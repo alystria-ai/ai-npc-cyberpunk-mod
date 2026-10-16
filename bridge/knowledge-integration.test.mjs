@@ -5,7 +5,7 @@ import fengari from 'fengari';
 import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
 
 const source = name => readFileSync(new URL(`../mod/${name}.lua`, import.meta.url), 'utf8');
-// init.lua ends with the table CET hands to other mods (GetMod('CyberpunkConvai'), docs/ADDON_API.md). This harness runs the
+// init.lua ends with the table CET hands to other mods (GetMod('AiNpcCyberpunkMod'), docs/ADDON_API.md). This harness runs the
 // file inside a function and returns its own table after it, so that final return statement is left out here.
 const initSource = source('init').replace(/\r?\nreturn \{addons = [^\n]*\s*$/, '\n');
 assert.notEqual(initSource, source('init'), 'init.lua no longer ends with the add-on API return');
@@ -483,7 +483,7 @@ test('temporary collector unavailability preserves the Lua world and omits old f
 
 test('real group voice hotkey freezes three distinct speakers, uses the first microphone reply once and sequences recognized text', () => run(`
  start();looked=resident;people={judy,actor('judy-alvarez',4,'Judy copy'),alex,resident}
- assert(hotkeyLabels.cyberpunk_convai_group_voice=='Cyberpunk Convai: group voice chat')
+ assert(hotkeyLabels.cyberpunk_convai_group_voice=='AI NPC Cyberpunk Mod: group voice chat')
  hotkeys.cyberpunk_convai_group_voice()
  local context=microphone.context;local first=stored('runtime/microphone-command.json').input
  assert(context and group.round.stage=='recording'and runtime.pending()==nil)

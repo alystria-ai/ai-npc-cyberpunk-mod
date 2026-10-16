@@ -1,19 +1,19 @@
--- Example add-on for Cyberpunk Convai (docs/ADDON_API.md). "Echo", a voice in V's earpiece: it answers the talk key while
+-- Example add-on for AI NPC Cyberpunk Mod (docs/ADDON_API.md). "Echo", a voice in V's earpiece: it answers the talk key while
 -- V is on foot, says a short line at the start and end of a fight, has two personalities and remembers how fights went.
 -- Copy this folder to start a new add-on.
 --
--- Installed as its own CET mod: bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvaiExample/ (packaging/build-addon.mjs).
--- Without Cyberpunk Convai, or with one that is too old, it prints one line and does nothing else.
+-- Installed as its own CET mod: bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkModExample/ (packaging/build-addon.mjs).
+-- Without AI NPC Cyberpunk Mod, or with one that is too old, it prints one line and does nothing else.
 -- Echo's text comes from Mistral or the local AI only (convai-addon.json "providers"); with neither set up the main mod says so once.
 local Example = {handle = nil, speaker = nil, fight = nil}
 
 local MODES = {'dry', 'cheerful'}   -- the ids of the modes in convai-addon.json, in the order of the setting's elements
 
 registerForEvent('onInit', function()
-    local main = GetMod('CyberpunkConvai')
+    local main = GetMod('AiNpcCyberpunkMod')
     local api = type(main) == 'table' and main.addons or nil
     if not api then
-        print('[Echo] Cyberpunk Convai is not installed (or is older than the add-on API); Echo stays off.')
+        print('[Echo] AI NPC Cyberpunk Mod is not installed (or is older than the add-on API); Echo stays off.')
         return
     end
     -- `requires` is the add-on API version this add-on was written for. A main mod that cannot serve it tells the player.

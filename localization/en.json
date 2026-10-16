@@ -69,6 +69,11 @@
     "A rule is too long. Keep each one under {max} characters.": "A rule is too long. Keep each one under {max} characters.",
     "A scene has taken control of the car.": "A scene has taken control of the car.",
     "A short rule": "A short rule",
+    "AI NPC Cyberpunk Mod: companion manager": "AI NPC Cyberpunk Mod: companion manager",
+    "AI NPC Cyberpunk Mod: group text chat": "AI NPC Cyberpunk Mod: group text chat",
+    "AI NPC Cyberpunk Mod: group voice chat": "AI NPC Cyberpunk Mod: group voice chat",
+    "AI NPC Cyberpunk Mod: talk by text": "AI NPC Cyberpunk Mod: talk by text",
+    "AI NPC Cyberpunk Mod: talk by voice": "AI NPC Cyberpunk Mod: talk by voice",
     "Above the speaker": "Above the speaker",
     "Add a copy": "Add a copy",
     "Add a copy, then use Party to choose its conversation profile.": "Add a copy, then use Party to choose its conversation profile.",
@@ -258,11 +263,6 @@
     "Custom models are ones you added; they join the default choice by size.": "Custom models are ones you added; they join the default choice by size.",
     "Cyber Engine Tweaks logs": "Cyber Engine Tweaks logs",
     "Cyber Engine Tweaks writes cyber_engine_tweaks.log and scripting.log in {path}": "Cyber Engine Tweaks writes cyber_engine_tweaks.log and scripting.log in {path}",
-    "Cyberpunk Convai: companion manager": "Cyberpunk Convai: companion manager",
-    "Cyberpunk Convai: group text chat": "Cyberpunk Convai: group text chat",
-    "Cyberpunk Convai: group voice chat": "Cyberpunk Convai: group voice chat",
-    "Cyberpunk Convai: talk by text": "Cyberpunk Convai: talk by text",
-    "Cyberpunk Convai: talk by voice": "Cyberpunk Convai: talk by voice",
     "DETAILS  {page} / {pages}": "DETAILS  {page} / {pages}",
     "DISMISS QUEUED - CLOSE PHONE": "DISMISS QUEUED - CLOSE PHONE",
     "Default": "Default",
@@ -896,11 +896,11 @@
   },
   "contexts": {
     "cet.bindings": [
-      "Cyberpunk Convai: companion manager",
-      "Cyberpunk Convai: group text chat",
-      "Cyberpunk Convai: group voice chat",
-      "Cyberpunk Convai: talk by text",
-      "Cyberpunk Convai: talk by voice"
+      "AI NPC Cyberpunk Mod: companion manager",
+      "AI NPC Cyberpunk Mod: group text chat",
+      "AI NPC Cyberpunk Mod: group voice chat",
+      "AI NPC Cyberpunk Mod: talk by text",
+      "AI NPC Cyberpunk Mod: talk by voice"
     ],
     "chauffeur.feedback": [
       "A new vehicle summon interrupted the trip.",
@@ -2103,6 +2103,46 @@
       ],
       "references": [
         "mod/character-editor.lua:70"
+      ]
+    },
+    "AI NPC Cyberpunk Mod: companion manager": {
+      "contexts": [
+        "cet.bindings"
+      ],
+      "references": [
+        "mod/init.lua:2730"
+      ]
+    },
+    "AI NPC Cyberpunk Mod: group text chat": {
+      "contexts": [
+        "cet.bindings"
+      ],
+      "references": [
+        "mod/init.lua:2688"
+      ]
+    },
+    "AI NPC Cyberpunk Mod: group voice chat": {
+      "contexts": [
+        "cet.bindings"
+      ],
+      "references": [
+        "mod/init.lua:2729"
+      ]
+    },
+    "AI NPC Cyberpunk Mod: talk by text": {
+      "contexts": [
+        "cet.bindings"
+      ],
+      "references": [
+        "mod/init.lua:2687"
+      ]
+    },
+    "AI NPC Cyberpunk Mod: talk by voice": {
+      "contexts": [
+        "cet.bindings"
+      ],
+      "references": [
+        "mod/init.lua:2728"
       ]
     },
     "Above the speaker": {
@@ -3720,46 +3760,6 @@
       ],
       "references": [
         "mod/mcm.lua:2038"
-      ]
-    },
-    "Cyberpunk Convai: companion manager": {
-      "contexts": [
-        "cet.bindings"
-      ],
-      "references": [
-        "mod/init.lua:2730"
-      ]
-    },
-    "Cyberpunk Convai: group text chat": {
-      "contexts": [
-        "cet.bindings"
-      ],
-      "references": [
-        "mod/init.lua:2688"
-      ]
-    },
-    "Cyberpunk Convai: group voice chat": {
-      "contexts": [
-        "cet.bindings"
-      ],
-      "references": [
-        "mod/init.lua:2729"
-      ]
-    },
-    "Cyberpunk Convai: talk by text": {
-      "contexts": [
-        "cet.bindings"
-      ],
-      "references": [
-        "mod/init.lua:2687"
-      ]
-    },
-    "Cyberpunk Convai: talk by voice": {
-      "contexts": [
-        "cet.bindings"
-      ],
-      "references": [
-        "mod/init.lua:2728"
       ]
     },
     "DETAILS  {page} / {pages}": {

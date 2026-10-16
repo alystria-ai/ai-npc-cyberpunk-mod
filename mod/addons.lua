@@ -4,7 +4,7 @@
 -- reads or writes a file, hooks a game function or runs per frame.
 --
 -- An add-on reaches this table through CET: init.lua returns {addons = <this module's public API>}, so in the add-on's onInit
---     local main = GetMod('CyberpunkConvai'); local api = main and main.addons
+--     local main = GetMod('AiNpcCyberpunkMod'); local api = main and main.addons
 -- Everything runs on the main mod's existing 0.1 s tick (M.tick, only while live) and on events the main mod already has.
 -- No native object is kept across a save load: anchors are resolved again whenever they are needed.
 --
@@ -478,8 +478,8 @@ api.register = guard('register', function(def)
     if not name then return nil, 'name is required' end
     if not api.compatible(def.requires) then
         local wanted = type(def.requires) == 'string' and def.requires or '?'
-        notify(name .. ' needs a newer Cyberpunk Convai (add-on API ' .. wanted .. '; this version has '
-            .. M.API_VERSION .. '). Update Cyberpunk Convai.')
+        notify(name .. ' needs a newer AI NPC Cyberpunk Mod (add-on API ' .. wanted .. '; this version has '
+            .. M.API_VERSION .. '). Update AI NPC Cyberpunk Mod.')
         M.live = true
         log('Add-on ' .. id .. ' refused: needs API ' .. wanted)
         return nil, 'incompatible: needs add-on API ' .. wanted .. ', this main mod has ' .. M.API_VERSION
@@ -1407,7 +1407,7 @@ local function readBridgeStatus()
         if type(entry) == 'table' and entry.status ~= 'ready' and type(entry.reason) == 'string' then
             local name = trim(entry.name, 60) or trim(entry.folder, 60) or 'An add-on'
             if entry.status == 'incompatible' then
-                notify(name .. ' needs a newer Cyberpunk Convai (' .. trim(entry.reason, 160) .. '). Update Cyberpunk Convai.')
+                notify(name .. ' needs a newer AI NPC Cyberpunk Mod (' .. trim(entry.reason, 160) .. '). Update AI NPC Cyberpunk Mod.')
             else notify(name .. ' could not load: ' .. trim(entry.reason, 160)) end
         end
     end

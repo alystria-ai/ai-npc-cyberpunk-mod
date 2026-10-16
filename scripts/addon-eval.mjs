@@ -58,7 +58,7 @@ async function main() {
     chat = async () => ({text: `Placeholder reply ${words[step++ % words.length]}.`, model: 'dry', finishReason: 'stop'});
   } else {
     apiKey = await mistralKey();
-    if (!apiKey) { console.error('No Mistral key: set MISTRAL_API_KEY or save one in Cyberpunk Convai\'s settings.'); return 1; }
+    if (!apiKey) { console.error('No Mistral key: set MISTRAL_API_KEY or save one in AI NPC Cyberpunk Mod\'s settings.'); return 1; }
     chat = paced(streamChat, args.gapMs);
     if (args.judge) judge = llmJudge({chat, apiKey});
   }

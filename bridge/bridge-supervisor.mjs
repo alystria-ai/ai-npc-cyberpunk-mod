@@ -19,7 +19,7 @@ import {atomicFile} from './guarded-file.mjs';
 import {isKeyFileText} from './key-codec.mjs';
 
 export const READY_MARKER = '[CyberpunkConvai] Convai conversation bridge ready';
-export const MOD_RUNTIME = 'bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/runtime';
+export const MOD_RUNTIME = 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/runtime';
 // libuv opens a file with no sharing for this flag (Windows only). The lock is
 // released by the kernel when the holder exits, so a crash never leaves it stale.
 const EXCLUSIVE = process.platform === 'win32' ? (constants.UV_FS_O_EXLOCK ?? 0x10000000) : 0;

@@ -1,6 +1,6 @@
 param(
     [string]$Id = 'daily-limit',
-    [string]$ModDirectory = 'E:\SteamLibrary\steamapps\common\Cyberpunk 2077\bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai'
+    [string]$ModDirectory = 'E:\SteamLibrary\steamapps\common\Cyberpunk 2077\bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod'
 )
 # Shows one in-game notice on demand, without any Convai (or other provider) use. Developer only:
 #   * the game must be running with the mod installed, a world loaded, and Developer mode ON in the mod's settings (with it off the mod

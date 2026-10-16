@@ -58,7 +58,7 @@ const clean = Object.fromEntries(['version', 'source', 'articulation', 'duration
 await writeFile(resolve(dirname(wavPath), `${basename(wavPath, '.wav')}-${mode}-timeline.json`), JSON.stringify(clean));
 if (flag('--install')) {
   const game = process.env.CYBERPUNK_CONVAI_GAME || 'E:/SteamLibrary/steamapps/common/Cyberpunk 2077';
-  const runtime = resolve(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/runtime');
+  const runtime = resolve(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/runtime');
   const slot = await storeSpeech(audio, resolve(game, 'r6/audioware/CyberpunkConvai'), 7);
   const nonce = randomUUID().replaceAll('-', ''), profileKey = option('--profile', 'judy-alvarez');
   await writeFile(resolve(runtime, 'speech-fixture.json'), JSON.stringify({version: 1, nonce, profileKey,

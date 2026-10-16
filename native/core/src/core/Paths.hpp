@@ -6,7 +6,7 @@
 // Where the plugin may touch the disk, and nothing else.
 //
 // Every file the natives read or write is a "channel": a bare file name inside the mod's
-// runtime folder (<game>\bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\runtime).
+// runtime folder (<game>\bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod\runtime).
 // A channel can never hold a path separator, a drive, "..", or a control character, so a Lua
 // caller cannot reach any other folder through the natives.
 

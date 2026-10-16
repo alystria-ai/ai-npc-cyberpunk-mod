@@ -184,6 +184,6 @@ test('init.lua loads the chooser, logs each talk decision and remembers the part
 
 test('the chooser is packaged and deployed next to init.lua', () => {
   for (const path of ['../packaging/release-plan.json', '../scripts/development-files.json']) {
-    assert.match(read(path), /"source": "mod\/talk-target\.lua",\s+"target": "bin\/x64\/plugins\/cyber_engine_tweaks\/mods\/CyberpunkConvai\/talk-target\.lua"/, path);
+    assert.match(read(path), /"source": "mod\/talk-target\.lua",\s+"target": "bin\/x64\/plugins\/cyber_engine_tweaks\/mods\/AiNpcCyberpunkMod\/talk-target\.lua"/, path);
   }
 });

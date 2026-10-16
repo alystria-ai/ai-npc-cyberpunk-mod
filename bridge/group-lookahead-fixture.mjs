@@ -58,7 +58,7 @@ export class GroupScenario {
   async start() {
     this.folder = await mkdtemp(join(tmpdir(), prefix));
     const state = this.state = join(this.folder, 'state'), game = join(this.folder, 'game');
-    this.runtime = join(game, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'mods', 'CyberpunkConvai', 'runtime');
+    this.runtime = join(game, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'mods', 'AiNpcCyberpunkMod', 'runtime');
     await mkdir(state, {recursive: true}); await mkdir(this.runtime, {recursive: true});
     this.hostLog = join(this.folder, 'host.jsonl');
     const ids = Object.fromEntries(SPEAKERS.map(speaker => [speaker.key, speaker.characterId]));

@@ -2249,7 +2249,7 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
     end
     provider = {
         id = PROVIDER, registrationKey = 'cyberpunk-convai.manager.v1', apiVersion = 2,
-        name = 'Cyberpunk Convai', shortName = 'CONVAI',
+        name = 'AI NPC Cyberpunk Mod', shortName = 'CONVAI',
         capabilities = {index = true, lazy = true, draft = true, action = true, atomicApply = true, dynamicSchema = true},
         listMods = function()
             return {complete = true, revision = tostring(ui.revision()), mods = {{id = MOD, name = ui.t(LABEL),

@@ -287,7 +287,7 @@ function M.new(options)
     end
 
     ---------------------------------------------------------- where logs are
-    local RELATIVE_MOD = 'bin\\x64\\plugins\\cyber_engine_tweaks\\mods\\CyberpunkConvai'
+    local RELATIVE_MOD = 'bin\\x64\\plugins\\cyber_engine_tweaks\\mods\\AiNpcCyberpunkMod'
     -- Rows: id, English label key handled by the caller; this returns paths only.
     function self.locations()
         local published = readJson(PATHS)
@@ -388,7 +388,7 @@ function M.new(options)
 
     local function buildLocal(reason)
         local stamp = os.date('%Y%m%d-%H%M%S')
-        local out = {'Cyberpunk Convai support report (short report, made inside the game)',
+        local out = {'AI NPC Cyberpunk Mod support report (short report, made inside the game)',
             'Created: ' .. os.date('%Y-%m-%d %H:%M:%S') .. '   id ' .. stamp,
             'Why it is short: ' .. (reason == 'no-response' and 'the conversation service did not answer the request'
                 or reason == 'failed' and 'the conversation service could not build the full report'
@@ -436,7 +436,7 @@ function M.new(options)
                 member.error and ('  error=' .. member.error) or '')
         end
         -- Logs the game can read: this mod's runtime folder and its CET log.
-        local files, seen = {'runtime/probe.log', 'runtime/mcm.log', 'CyberpunkConvai.log'}, {}
+        local files, seen = {'runtime/probe.log', 'runtime/mcm.log', 'AiNpcCyberpunkMod.log'}, {}
         for _, path in ipairs(files) do seen[path] = true end
         for _, name in ipairs(listNames('runtime')) do
             local path = 'runtime/' .. name

@@ -37,7 +37,7 @@ export const VECTORS = [
 /** A game folder, mod folder and state folder under a temp directory. */
 export async function fakeInstall(root) {
   const base = root ?? await mkdtemp(join(tmpdir(), 'convai-report-'));
-  const game = join(base, 'game'), modRoot = join(game, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'mods', 'CyberpunkConvai');
+  const game = join(base, 'game'), modRoot = join(game, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'mods', 'AiNpcCyberpunkMod');
   const runtime = join(modRoot, 'runtime'), state = join(base, 'project', 'runtime'), project = join(base, 'project');
   const cet = join(game, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks');
   for (const folder of [runtime, state, cet, join(game, 'r6', 'logs'), join(game, 'red4ext', 'logs'),
@@ -68,7 +68,7 @@ export async function plantedInstall() {
     `2026-10-05T10:00:00Z Using key ${PLANTED.shortKey} for the first request`,
     `2026-10-05T10:00:01Z Composer opened: actor=1 name=NC Resident`, ''].join('\n'));
   await f.put(join(f.runtime, 'mcm.log'), '2026-10-05T10:00:00Z Companion Manager registered with MCM API v2\n');
-  await f.put(join(f.modRoot, 'CyberpunkConvai.log'), `[2026-10-05 10:00:00] token=${PLANTED.base64}\n`);
+  await f.put(join(f.modRoot, 'AiNpcCyberpunkMod.log'), `[2026-10-05 10:00:00] token=${PLANTED.base64}\n`);
   await f.put(join(f.runtime, 'settings.json'), JSON.stringify({version: 2, voiceProvider: 'omni', omniSteps: 32,
     apiKey: PLANTED.shortKey, convaiUserId: PLANTED.userId, note: `uses ${PLANTED.shortKey} and ${PLANTED.hfToken}`,
     enabledByKey: {'bob-sagan': true, 'judy-alvarez': false}, relationshipModes: {'judy-alvarez': 'auto'}, developerMode: true}));

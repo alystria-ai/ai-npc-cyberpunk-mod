@@ -19,7 +19,7 @@ const dll = join(dist, 'CyberpunkConvaiLauncher.dll'), hostExe = join(dist, 'tes
 const available = process.platform === 'win32' && existsSync(dll) && existsSync(hostExe);
 const skip = available ? false : 'launcher not built (run scripts/Build-AutostartPlugin.ps1 -TestHost)';
 const prefix = 'cyberpunk-autostart-plugin-';
-const modRuntime = ['bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'mods', 'CyberpunkConvai', 'runtime'];
+const modRuntime = ['bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'mods', 'AiNpcCyberpunkMod', 'runtime'];
 
 // Started by the plugin in place of the supervisor. It records how it was
 // launched, whether a console window would be visible to a console grandchild
@@ -107,7 +107,7 @@ test('the launcher reports a runtime-independent RED4ext plugin and starts the h
       .find(row => row.event === 'started');
     const info = JSON.parse(await readFile(f.hostResult, 'utf8'));
     assert.deepEqual(info, {...info, api: 1, sdk: [0, 5, 0, 0, 0], name: 'CyberpunkConvaiLauncher',
-      author: 'Cyberpunk Convai', version: [1, 0, 0, 0, 0], runtime: [65535, 65535, 65535, 65535], load: true});
+      author: 'AI NPC Cyberpunk Mod', version: [1, 0, 0, 0, 0], runtime: [65535, 65535, 65535, 65535], load: true});
     assert.deepEqual(started.argv, ['C:\\path with space\\', 'say "hi"', `${f.game}\\bin`,
       '--game-pid', String(info.pid), '--game-root', f.game, '--lifeline', 'stdin']);
     assert.equal(started.cwd.toLowerCase(), f.root.toLowerCase());

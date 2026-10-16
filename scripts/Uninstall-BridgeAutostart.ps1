@@ -28,7 +28,7 @@ foreach ($name in @('launcher.ini', 'launcher.log')) {
 }
 if (@(Get-ChildItem -LiteralPath $target -Force).Count -eq 0) { Remove-Item -LiteralPath $target }
 else { Write-Output "Left other files in $target untouched." }
-$status = Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\runtime\bridge-service.json'
+$status = Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod\runtime\bridge-service.json'
 $exe = Join-Path $game 'bin\x64\Cyberpunk2077.exe'
 $running = @(Get-Process Cyberpunk2077 -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $exe }).Count -gt 0
 if ([IO.File]::Exists($status) -and -not $running) { Remove-Item -LiteralPath $status }

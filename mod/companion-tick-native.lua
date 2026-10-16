@@ -1,4 +1,4 @@
--- Optional native companion tick (red4ext/plugins/CyberpunkConvaiNative, system "actuator").
+-- Optional native companion tick (red4ext/plugins/AiNpcCyberpunkModNative, system "actuator").
 -- mod/companions.lua senses every ready companion ten times a second: IsAttached,
 -- IsDeadNoStatPool, GetWorldPosition, GetWorldForward, GetAIControllerComponent():GetCommandState,
 -- NPCPuppet.IsInCombat and the speed, heading, distance and facing maths. From CET that is about

@@ -3,183 +3,183 @@
   "files": [
     {
       "source": "mod/ui-fonts.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/ui-fonts.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/ui-fonts.lua"
     },
     {
       "source": "mod/mcm-fonts.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/mcm-fonts.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mcm-fonts.lua"
     },
     {
       "source": "mod/ui-locale.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/ui-locale.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/ui-locale.lua"
     },
     {
       "source": "mod/locales/zh-cn.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/zh-cn.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/locales/zh-cn.lua"
     },
     {
       "source": "mod/locales/zh-tw.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/zh-tw.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/locales/zh-tw.lua"
     },
     {
       "source": "mod/locales/es.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/es.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/locales/es.lua"
     },
     {
       "source": "mod/locales/pt-br.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/pt-br.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/locales/pt-br.lua"
     },
     {
       "source": "mod/locales/fr.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/fr.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/locales/fr.lua"
     },
     {
       "source": "mod/locales/de.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/de.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/locales/de.lua"
     },
     {
       "source": "mod/locales/ru.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/ru.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/locales/ru.lua"
     },
     {
       "source": "mod/locales/ja.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/ja.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/locales/ja.lua"
     },
     {
       "source": "mod/locales/ko.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/ko.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/locales/ko.lua"
     },
     {
       "source": "mod/locales/it.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/it.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/locales/it.lua"
     },
     {
       "source": "mod/locales/pl.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/pl.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/locales/pl.lua"
     },
     {
       "source": "mod/locales/cs.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/cs.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/locales/cs.lua"
     },
     {
       "source": "mod/locales/hu.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/hu.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/locales/hu.lua"
     },
     {
       "source": "mod/locales/tr.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/tr.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/locales/tr.lua"
     },
     {
       "source": "mod/locales/uk.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/uk.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/locales/uk.lua"
     },
     {
       "source": "mod/voice-preview.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/voice-preview.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/voice-preview.lua"
     },
     {
       "source": "mod/speech-replay-probe.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/speech-replay-probe.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/speech-replay-probe.lua"
     },
     {
       "source": "mod/speech-cadence-probe.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/speech-cadence-probe.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/speech-cadence-probe.lua"
     },
     {
       "source": "mod/perf-probe.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/perf-probe.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/perf-probe.lua"
     },
     {
       "source": "mod/native-core.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/native-core.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/native-core.lua"
     },
     {
       "source": "mod/continuous-speech.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/continuous-speech.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/continuous-speech.lua"
     },
     {
       "source": "mod/companion-equipment.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-equipment.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-equipment.lua"
     },
     {
       "source": "mod/loot-observer.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/loot-observer.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/loot-observer.lua"
     },
     {
       "source": "mod/loot-reactions.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/loot-reactions.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/loot-reactions.lua"
     },
     {
       "source": "mod/loot-probe.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/loot-probe.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/loot-probe.lua"
     },
     {
       "source": "mod/battle-observer.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/battle-observer.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/battle-observer.lua"
     },
     {
       "source": "mod/battle-reactions.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/battle-reactions.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/battle-reactions.lua"
     },
     {
       "source": "mod/quest-context.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/quest-context.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/quest-context.lua"
     },
     {
       "source": "mod/game-dialogue.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/game-dialogue.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/game-dialogue.lua"
     },
     {
       "source": "mod/witness-receipts.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/witness-receipts.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/witness-receipts.lua"
     },
     {
       "source": "mod/player-gear.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/player-gear.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/player-gear.lua"
     },
     {
       "source": "mod/turn-context.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/turn-context.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/turn-context.lua"
     },
     {
       "source": "mod/world-knowledge.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/world-knowledge.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/world-knowledge.lua"
     },
     {
       "source": "mod/journal-history.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/journal-history.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/journal-history.lua"
     },
     {
       "source": "mod/knowledge-parts.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/knowledge-parts.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/knowledge-parts.lua"
     },
     {
       "source": "mod/knowledge-probe.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/knowledge-probe.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/knowledge-probe.lua"
     },
     {
       "source": "mod/fact-identity.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/fact-identity.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/fact-identity.lua"
     },
     {
       "source": "mod/fact-identity-probe.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/fact-identity-probe.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/fact-identity-probe.lua"
     },
     {
       "source": "mod/knowledge-state.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/knowledge-state.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/knowledge-state.lua"
     },
     {
       "source": "mod/save-identity.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/save-identity.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/save-identity.lua"
     },
     {
       "source": "mod/save-identity-probe.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/save-identity-probe.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/save-identity-probe.lua"
     },
     {
       "source": "characters/world-knowledge.json",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/world-knowledge.json"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/world-knowledge.json"
     },
     {
       "source": "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds",
@@ -191,11 +191,11 @@
     },
     {
       "source": "mod/phone-chat.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/phone-chat.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/phone-chat.lua"
     },
     {
       "source": "mod/holocall.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/holocall.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/holocall.lua"
     },
     {
       "source": "r6/scripts/CyberpunkConvai/NpcNames.reds",
@@ -203,15 +203,15 @@
     },
     {
       "source": "mod/npc-names.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/npc-names.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/npc-names.lua"
     },
     {
       "source": "mod/npc-name-pools.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/npc-name-pools.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/npc-name-pools.lua"
     },
     {
       "source": "mod/phone-chat-style.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/phone-chat-style.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/phone-chat-style.lua"
     },
     {
       "source": "r6/scripts/CyberpunkConvai/PhoneChat.reds",
@@ -219,51 +219,51 @@
     },
     {
       "source": "mod/facial-playback.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/facial-playback.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/facial-playback.lua"
     },
     {
       "source": "mod/phone-layout.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/phone-layout.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/phone-layout.lua"
     },
     {
       "source": "mod/companion-records.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-records.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-records.lua"
     },
     {
       "source": "mod/face-probe.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/face-probe.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/face-probe.lua"
     },
     {
       "source": "mod/face-test.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/face-test.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/face-test.lua"
     },
     {
       "source": "mod/companion-gestures.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-gestures.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-gestures.lua"
     },
     {
       "source": "mod/companion-seating.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-seating.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-seating.lua"
     },
     {
       "source": "mod/seated-look.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/seated-look.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/seated-look.lua"
     },
     {
       "source": "mod/gesture-workspot.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/gesture-workspot.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/gesture-workspot.lua"
     },
     {
       "source": "mod/gesture-selection.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/gesture-selection.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/gesture-selection.lua"
     },
     {
       "source": "mod/gesture-catalog.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/gesture-catalog.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/gesture-catalog.lua"
     },
     {
       "source": "mod/gesture-probe.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/gesture-probe.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/gesture-probe.lua"
     },
     {
       "source": "r6/scripts/CyberpunkConvai/Face.reds",
@@ -287,103 +287,103 @@
     },
     {
       "source": "mod/companion-space.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-space.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-space.lua"
     },
     {
       "source": "mod/companion-travel.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-travel.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-travel.lua"
     },
     {
       "source": "mod/companion-actuator.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-actuator.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-actuator.lua"
     },
     {
       "source": "mod/companion-tick-native.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-tick-native.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-tick-native.lua"
     },
     {
       "source": "mod/companion-locomotion.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-locomotion.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-locomotion.lua"
     },
     {
       "source": "mod/companion-stance.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-stance.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-stance.lua"
     },
     {
       "source": "mod/companion-appearance.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-appearance.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-appearance.lua"
     },
     {
       "source": "mod/companion-behavior.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-behavior.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-behavior.lua"
     },
     {
       "source": "mod/companion-placement.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-placement.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-placement.lua"
     },
     {
       "source": "mod/companion-passage.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-passage.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-passage.lua"
     },
     {
       "source": "mod/mcm.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/mcm.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mcm.lua"
     },
     {
       "source": "mod/mcm-entry.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/mcm-entry.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mcm-entry.lua"
     },
     {
       "source": "mod/manager-party.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/manager-party.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/manager-party.lua"
     },
     {
       "source": "mod/invitation-readiness.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/invitation-readiness.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/invitation-readiness.lua"
     },
     {
       "source": "mod/addons.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/addons.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/addons.lua"
     },
     {
       "source": "mod/auto-connect.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/auto-connect.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/auto-connect.lua"
     },
     {
       "source": "mod/vanilla-reactions.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/vanilla-reactions.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/vanilla-reactions.lua"
     },
     {
       "source": "mod/talk-target.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/talk-target.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/talk-target.lua"
     },
     {
       "source": "mod/manager.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/manager.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/manager.lua"
     },
     {
       "source": "characters/manager-characters.json",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/manager-characters.json"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/manager-characters.json"
     },
     {
       "source": "mod/character-catalog.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/character-catalog.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/character-catalog.lua"
     },
     {
       "source": "mod/group-chat.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/group-chat.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/group-chat.lua"
     },
     {
       "source": "characters/roster.json",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/conversation-characters.json"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/conversation-characters.json"
     },
     {
       "source": "mod/microphone.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/microphone.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/microphone.lua"
     },
     {
       "source": "mod/speech.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/speech.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/speech.lua"
     },
     {
       "source": "r6/scripts/CyberpunkConvai/Speech.reds",
@@ -391,55 +391,55 @@
     },
     {
       "source": "mod/composer-input.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/composer-input.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/composer-input.lua"
     },
     {
       "source": "mod/subtitles.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/subtitles.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/subtitles.lua"
     },
     {
       "source": "mod/phone-input.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/phone-input.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/phone-input.lua"
     },
     {
       "source": "characters/phone-contacts.json",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/phone-contacts.json"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/phone-contacts.json"
     },
     {
       "source": "mod/init.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/init.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/init.lua"
     },
     {
       "source": "mod/notices.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/notices.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/notices.lua"
     },
     {
       "source": "mod/service-status.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/service-status.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/service-status.lua"
     },
     {
       "source": "mod/support-report.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/support-report.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/support-report.lua"
     },
     {
       "source": "mod/character-editor.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/character-editor.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/character-editor.lua"
     },
     {
       "source": "mod/convai-paid-tier.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/convai-paid-tier.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/convai-paid-tier.lua"
     },
     {
       "source": "mod/movement-log.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/movement-log.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/movement-log.lua"
     },
     {
       "source": "mod/diagnostics.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/diagnostics.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/diagnostics.lua"
     },
     {
       "source": "mod/companions.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companions.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companions.lua"
     },
     {
       "source": "r6/scripts/CyberpunkConvai/Composer.reds",
@@ -459,51 +459,51 @@
     },
     {
       "source": "mod/relationship-state.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/relationship-state.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/relationship-state.lua"
     },
     {
       "source": "mod/companion-vehicles.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-vehicles.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-vehicles.lua"
     },
     {
       "source": "mod/companion-vehicle-native.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-vehicle-native.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-vehicle-native.lua"
     },
     {
       "source": "mod/companion-vehicle-catalog.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-vehicle-catalog.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-vehicle-catalog.lua"
     },
     {
       "source": "mod/gameplay-actions.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/gameplay-actions.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/gameplay-actions.lua"
     },
     {
       "source": "mod/companion-tactics.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-tactics.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-tactics.lua"
     },
     {
       "source": "mod/companion-marking.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-marking.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-marking.lua"
     },
     {
       "source": "mod/companion-adoption.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-adoption.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-adoption.lua"
     },
     {
       "source": "mod/companion-chauffeur.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-chauffeur.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-chauffeur.lua"
     },
     {
       "source": "mod/companion-chauffeur-native.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-chauffeur-native.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-chauffeur-native.lua"
     },
     {
       "source": "mod/companion-reload-cleanup.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-reload-cleanup.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-reload-cleanup.lua"
     },
     {
       "source": "mod/companion-clearance.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-clearance.lua"
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-clearance.lua"
     }
   ],
   "retiredNative": [

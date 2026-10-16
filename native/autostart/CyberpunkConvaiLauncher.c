@@ -1,5 +1,5 @@
 /*
- * Cyberpunk Convai launcher: a RED4ext plugin that starts the conversation
+ * AI NPC Cyberpunk Mod launcher: a RED4ext plugin that starts the conversation
  * service supervisor when Cyberpunk 2077 starts with the mod installed.
  *
  * RED4ext is used only as a loader. The plugin reads no game memory, installs
@@ -60,7 +60,7 @@ _Static_assert(offsetof(R4ePluginInfo, name) == 16 && offsetof(R4ePluginInfo, au
 #define VALUE_CAP 1024
 #define COMMAND_CAP 16384
 #define MAX_ARGS 24
-#define MOD_RELATIVE L"\\bin\\x64\\plugins\\cyber_engine_tweaks\\mods\\CyberpunkConvai"
+#define MOD_RELATIVE L"\\bin\\x64\\plugins\\cyber_engine_tweaks\\mods\\AiNpcCyberpunkMod"
 
 static HANDLE g_lifeline = NULL; /* Write end. Deliberately never closed. */
 static bool g_started = false;
@@ -363,7 +363,7 @@ __declspec(dllexport) void Query(R4ePluginInfo *info) {
     const R4eFileVer independent = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF}; /* RED4EXT_V1_RUNTIME_VERSION_INDEPENDENT */
     info->sdk = sdk;
     info->name = L"CyberpunkConvaiLauncher";
-    info->author = L"Cyberpunk Convai";
+    info->author = L"AI NPC Cyberpunk Mod";
     info->version = version;
     info->runtime = independent;
 }

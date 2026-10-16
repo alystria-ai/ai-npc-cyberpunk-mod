@@ -103,7 +103,7 @@ test('Python locks pin every wheel by URL and hash', async () => {
 async function fakeInstall() {
   const root = await temporary();
   const game = join(root, 'Cyberpunk 2077 Ünïcode');
-  const app = join(game, 'red4ext/plugins/CyberpunkConvai/app');
+  const app = join(game, 'red4ext/plugins/AiNpcCyberpunkMod/app');
   await mkdir(join(app, 'defaults'), {recursive: true});
   await writeFile(join(app, 'defaults/pocket-voices.autobest.json'), JSON.stringify({version: 1, provider: 'pocket',
     engine: 'pocket-tts', runtime: {note: 'filled in'}, referenceRegistry: {path: 'C:\\dev'}, voices: {}}));
@@ -214,7 +214,7 @@ test('split files are joined, verified and their parts removed', async () => {
 });
 
 test('the Pocket template gets absolute paths for this installation only', () => {
-  const layout = installLayout({appDirectory: 'D:\\Games\\CP\\red4ext\\plugins\\CyberpunkConvai\\app', gameRoot: 'D:\\Games\\CP'});
+  const layout = installLayout({appDirectory: 'D:\\Games\\CP\\red4ext\\plugins\\AiNpcCyberpunkMod\\app', gameRoot: 'D:\\Games\\CP'});
   const config = pocketConfigFor({version: 1, runtime: {note: 'x'}, proposal: {}, referenceRegistry: {}}, layout);
   assert.deepEqual(Object.keys(config.runtime).sort(), ['exportDirectory', 'pythonExecutable', 'referenceDirectory', 'sourceDirectory', 'workDirectory']);
   assert.equal(config.proposal, undefined);
@@ -261,7 +261,7 @@ test('developer-only folders never feed a package', () => {
 
 // ---------------------------------------------------------------- native plugin and Local AI packs (docs/PACKAGING.md)
 test('the native plugin ships beside its own licences, and the systems not yet proven live start off', () => {
-  assert.equal(config.layout.nativeDirectory, 'red4ext/plugins/CyberpunkConvaiNative');
+  assert.equal(config.layout.nativeDirectory, 'red4ext/plugins/AiNpcCyberpunkModNative');
   assert.equal(config.layout.nativeDll, 'CyberpunkConvaiNative.dll');
   // The plugin reads runtime/native-off.txt of the mod folder (native/core/src/core/Paths.cpp); a missing file means all on.
   assert.equal(config.native.offFile, `${config.layout.modDirectory}/runtime/native-off.txt`);
@@ -435,7 +435,7 @@ test('the optional packs are uploaded to Hugging Face, one zip each with a SHA25
     assert.match(job, /huggingface_hub==\$env:HF_HUB_VERSION/, `${name} installs huggingface_hub`);
   }
   assert.match(jobs.omni, /--pack omni --packages "\$env:OUT\\packages"/);
-  assert.match(workflow, /HF_PACKS_REPO: alystria-ai\/cyberpunk-convai-packs/);
+  assert.match(workflow, /HF_PACKS_REPO: alystria-ai\/ai-npc-cyberpunk-mod-packs/);
   // The Runtime job still creates the GitHub release with Scripts and Runtime, and nothing else is attached to it.
   const runtime = jobOf(workflow, 'runtime');
   assert.match(runtime, /gh release upload \$tag --repo \$env:GITHUB_REPOSITORY --clobber @files /, 'the file list is splatted as an array');
@@ -444,7 +444,7 @@ test('the optional packs are uploaded to Hugging Face, one zip each with a SHA25
   assert.equal(workflow.split('gh release upload').length - 1, 1, 'only the Runtime job uploads to the GitHub release');
   // The uploader: one zip, the version folder, the sums file next to it, a clear message when the token cannot write.
   const uploader = await readFile(resolve(project, 'packaging/upload-packs.py'), 'utf8');
-  assert.match(uploader, /REPOSITORY = "alystria-ai\/cyberpunk-convai-packs"/);
+  assert.match(uploader, /REPOSITORY = "alystria-ai\/ai-npc-cyberpunk-mod-packs"/);
   assert.match(uploader, /f"\{version\}\/\{zips\[0\]\.name\}"/);
   assert.match(uploader, /f"\{version\}\/\{sums_name\(pack\)\}"/);
   assert.match(uploader, /f"SHA256SUMS-\{pack\}\.txt"/);
@@ -538,7 +538,7 @@ test('the Mature packs definition: one marker each, README, Hugging Face page te
   assert(spec.tiers.lite.size < 3e9 && spec.tiers.good.size < 5.6e9, 'lite fits a small card, good stays near the standard Local AI model');
   assert.deepEqual(new Set(Object.values(spec.tiers).map(model => model.family)), new Set(['qwen', 'gemma-4']));
   // The pack lives in the Local AI folder, so the marker is found next to the Local AI manifests.
-  assert.equal(config.layout.localAiDirectory, 'red4ext/plugins/CyberpunkConvai/app/local-ai');
+  assert.equal(config.layout.localAiDirectory, 'red4ext/plugins/AiNpcCyberpunkMod/app/local-ai');
   assert.equal(spec.directory, 'mature');
   // The builder refuses an unfinished or non-Apache pair, and writes the marker in the shape the bridge reads.
   const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
@@ -571,13 +571,13 @@ test('the Mature pack README and release notes are for adults, need the main mod
   for (const rel of ['packaging/MATURE_PACK_README.md', 'packaging/MATURE_PACK_RELEASE_NOTES.md']) {
     const text = await readFile(resolve(project, rel), 'utf8');
     assert.match(text, /18\+/, rel); assert.match(text, /adults? only/i, rel);
-    assert.match(text, /Local AI/, rel); assert.match(text, /Cyberpunk Convai/, rel);
+    assert.match(text, /Local AI/, rel); assert.match(text, /AI NPC Cyberpunk Mod/, rel);
     assert.match(text, /^\s*1\. Close the game\./m, `${rel}: install steps`);
     assert.match(text, /hard limits/i, rel);
     assert.match(text, /Apache-2\.0/, rel);
     assert.doesNotMatch(text, /\brecommended?\b/i, rel);
     assert.doesNotMatch(text, /every part|each part|several (?:parts|zips)|part\d+of|release page/i, `${rel}: one zip, from Hugging Face`);
-    assert.match(text, /huggingface\.co\/akshitireddy\/cyberpunk-convai-packs|Hugging Face/, rel);
+    assert.match(text, /huggingface\.co\/akshitireddy\/ai-npc-cyberpunk-mod-packs|Hugging Face/, rel);
     assert.doesNotMatch(text, /\bamm\b|reference-amm/i, rel);
     assert.doesNotMatch(text, /\b(?:api[- ]?key|token|secret|credential)s?\b/i, `${rel}: no keys`);
     assert.doesNotMatch(text, /convai (?:free|shared|embedded)/i, rel);
@@ -591,10 +591,10 @@ test('the Mature pack README and release notes are for adults, need the main mod
 });
 
 test('the README and the release notes send players to Hugging Face for every optional pack: one zip each, no parts, Install near the top', async () => {
-  const hf = 'https://huggingface.co/alystria-ai/cyberpunk-convai-packs';
+  const hf = 'https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs';
   const readme = (await readFile(resolve(project, 'README.md'), 'utf8')).replaceAll('\r\n', '\n');
   const player = (await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8')).replaceAll('\r\n', '\n');
-  const files = ['OmniPack', 'LocalAI-Standard', 'LocalAI-Lite', 'Mature-Lite', 'Mature-Standard'].map(name => `CyberpunkConvai-${name}-0.2.zip`);
+  const files = ['OmniPack', 'LocalAI-Standard', 'LocalAI-Lite', 'Mature-Lite', 'Mature-Standard'].map(name => `AI-NPC-Cyberpunk-Mod-${name}-0.2.zip`);
   for (const file of files) assert(readme.includes(hf + '/blob/main/0.2/' + file), 'the README links ' + file);
   for (const file of files.filter(name => !/Mature/.test(name))) assert(player.includes(hf + '/blob/main/0.2/' + file), 'the release notes link ' + file);
   assert(readme.includes(hf + ')'), 'and the repository page');
@@ -634,7 +634,7 @@ test('the release guard refuses a package that would install the development lau
   assert.match(builder, /unexpected RED4ext plugin file/);
   // The shipped DLL keeps the name CyberpunkConvai.dll, in its own plugin folder.
   assert.equal(config.layout.pluginDll, 'CyberpunkConvai.dll');
-  assert.equal(config.layout.pluginDirectory, 'red4ext/plugins/CyberpunkConvai');
+  assert.equal(config.layout.pluginDirectory, 'red4ext/plugins/AiNpcCyberpunkMod');
 });
 
 test('player-facing text follows the wording rules', async () => {
@@ -682,8 +682,8 @@ test('the release notes open with where the download files are, and a rebuild re
   const workflow = await workflowText();
   assert.match(workflow, /very bottom of this page, under Assets/);
   assert.match(workflow, /releases\/download\/\$tag/);
-  assert.match(workflow, /CyberpunkConvai-Scripts-\$version\.zip/);
-  assert.match(workflow, /CyberpunkConvai-Runtime-\$version\.zip/);
+  assert.match(workflow, /AI-NPC-Cyberpunk-Mod-Scripts-\$version\.zip/);
+  assert.match(workflow, /AI-NPC-Cyberpunk-Mod-Runtime-\$version\.zip/);
   assert.match(workflow, /\$download \+ \(Get-Content packaging\/PLAYER_README\.md -Raw\)/);
   assert.match(workflow, /gh release edit \$tag --repo \$env:GITHUB_REPOSITORY --notes-file \$notes/);
   // The pointer lives only on the release page: README.txt in the zips is PLAYER_README.md as it is.

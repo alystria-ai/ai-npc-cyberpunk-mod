@@ -214,7 +214,7 @@ const helpFixture = (withSupport = true) => `
     end
     return count
   end
-  local MOD = 'E:\\\\Game\\\\bin\\\\x64\\\\plugins\\\\cyber_engine_tweaks\\\\mods\\\\CyberpunkConvai'
+  local MOD = 'E:\\\\Game\\\\bin\\\\x64\\\\plugins\\\\cyber_engine_tweaks\\\\mods\\\\AiNpcCyberpunkMod'
   jsonFile('runtime/support-paths.json', {version = 1, gameRoot = 'E:\\\\Game', modRoot = MOD, runtime = MOD .. '\\\\runtime',
     reports = MOD .. '\\\\runtime\\\\reports', stateDirectory = 'D:\\\\project\\\\runtime',
     logs = {probe = {path = MOD .. '\\\\runtime\\\\probe.log'}, ['bridge-stderr'] = {path = 'D:\\\\project\\\\runtime\\\\bridge.stderr.log'},

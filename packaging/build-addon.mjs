@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // Builds one add-on's own download (docs/ADDON_API.md, "Packaging"). Each add-on is its own Nexus page and its own zip:
-//   CyberpunkConvai-<Name>-<version>.zip
-//     bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai<Name>/<the add-on folder's files>
+//   AI-NPC-Cyberpunk-Mod-<Name>-<version>.zip
+//     bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod<Name>/<the add-on folder's files>
 // The main mod's packages (packaging/build-release.mjs) never include addons/, and an add-on zip never includes a main mod
-// file: it is a separate CET mod folder that only talks to the main mod through GetMod('CyberpunkConvai').addons and its
+// file: it is a separate CET mod folder that only talks to the main mod through GetMod('AiNpcCyberpunkMod').addons and its
 // convai-addon.json manifest.
 //
 // Works on any add-on folder, in this repository (addons/example) or outside it. Skippy and Delamain live in repositories of their
@@ -21,14 +21,17 @@ const SHIPPED = /\.(?:lua|json|mjs|js|wav|txt|md)$/i;
 /** Never shipped: tests, evaluation scripts (eval/), dotfiles, dependency folders. */
 const SKIPPED = rel => /(?:^|\/)(?:\.|node_modules\/|test\/|tests\/|eval\/)/.test(rel) || /\.test\.m?js$/i.test(rel);
 
-/** The CET mod folder of an add-on: "skippy" -> "CyberpunkConvaiSkippy", "delamain-cab" -> "CyberpunkConvaiDelamainCab". */
+/** The CET mod folder of the main mod; an add-on's folder is this name followed by the add-on's name. */
+const MAIN_FOLDER = 'AiNpcCyberpunkMod';
+
+/** The CET mod folder of an add-on: "skippy" -> "AiNpcCyberpunkModSkippy", "delamain-cab" -> "AiNpcCyberpunkModDelamainCab". */
 export function addonFolderName(id) {
-  return 'CyberpunkConvai' + id.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join('');
+  return MAIN_FOLDER + id.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join('');
 }
 
-/** The zip's base name: "CyberpunkConvai-Skippy-1.0.0". */
+/** The zip's base name: "AI-NPC-Cyberpunk-Mod-Skippy-1.0.0". */
 export function addonArchiveName(manifest) {
-  return `${addonFolderName(manifest.id).replace(/^CyberpunkConvai/, 'CyberpunkConvai-')}-${manifest.version}`;
+  return `${addonFolderName(manifest.id).replace(new RegExp('^' + MAIN_FOLDER), 'AI-NPC-Cyberpunk-Mod-')}-${manifest.version}`;
 }
 
 async function walk(root, dir = root) {
@@ -59,7 +62,7 @@ export async function addonEntries(dir) {
     if (!listed.has(rel)) throw Error(`add-on ${manifest.id}: ${rel} is named in ${ADDON_MANIFEST} but not shipped`);
   }
   const folder = addonFolderName(manifest.id);
-  if (folder === 'CyberpunkConvai') throw Error('an add-on cannot use the main mod folder');
+  if (folder === MAIN_FOLDER) throw Error('an add-on cannot use the main mod folder');
   return {manifest, entries: files.map(rel => ({name: `${CET_MODS}/${folder}/${rel}`, source: resolve(root, rel)}))};
 }
 

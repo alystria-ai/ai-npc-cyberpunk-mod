@@ -87,7 +87,7 @@ test('discovery: the CET mods folder one level deep plus the environment list; b
   const game = await folder();
   const mods = resolve(game, CET_MODS);
   try {
-    await addonFolder(mods, 'CyberpunkConvaiSkippy', manifest());
+    await addonFolder(mods, 'AiNpcCyberpunkModSkippy', manifest());
     await addonFolder(mods, 'Broken', '{not json');
     await addonFolder(mods, 'TooNew', manifest({id: 'future', name: 'Future', requires: {api: '1.9'}}));
     await addonFolder(mods, 'Twin', manifest({name: 'Second Skippy'}));
@@ -100,7 +100,7 @@ test('discovery: the CET mods folder one level deep plus the environment list; b
     const byFolder = Object.fromEntries(problems.map(problem => [problem.dir.split(/[\\/]/).pop(), problem]));
     assert.equal(byFolder.Broken.status, 'invalid');
     assert.equal(byFolder.TooNew.status, 'incompatible');
-    assert.match(byFolder.TooNew.reason, /needs add-on API 1\.9; this Cyberpunk Convai has 1\.0/);
+    assert.match(byFolder.TooNew.reason, /needs add-on API 1\.9; this AI NPC Cyberpunk Mod has 1\.0/);
     assert.equal(byFolder.Twin.status, 'duplicate');
     assert.equal(byFolder.SomeOtherMod, undefined, 'a mod folder without a manifest is not an add-on');
     const host = await AddonHost.load({game, environment: {[ADDON_ENV]: extra}});
@@ -205,7 +205,7 @@ test('providers: add-on speakers use Mistral or the local AI only, the player\'s
   assert.equal(route('addon-cab-delamain', {applied: 'mistral', mistralKey: true, localReady: false}), null);
   assert.equal(route('addon-cab-delamain', {applied: 'convai', mistralKey: true, localReady: true}), 'local');
   assert.equal(route('judy-alvarez', {applied: 'mistral', mistralKey: true}), null, 'not an add-on speaker');
-  assert.equal(host.providerNotice('addon-skippy-gun'), "Skippy needs a free Mistral key or the Local AI pack. Set it up under Conversation provider in Cyberpunk Convai's settings.");
+  assert.equal(host.providerNotice('addon-skippy-gun'), "Skippy needs a free Mistral key or the Local AI pack. Set it up under Conversation provider in AI NPC Cyberpunk Mod's settings.");
   assert.match(host.providerNotice('addon-cab-delamain'), /^Delamain needs the Local AI pack\./);
   // The text host's view of the provider: fixed route, always active, the saved Mistral key.
   const player = {apiKey: 'k', applied: 'convai', route: 'convai', active: false};

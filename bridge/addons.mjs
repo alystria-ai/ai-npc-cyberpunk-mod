@@ -217,7 +217,7 @@ export async function discoverAddons({roots = [], version = ADDON_API_VERSION, f
     }
     if (!apiCompatible(manifest.requires.api, version)) {
       problems.push({dir, id: manifest.id, name: manifest.name, version: manifest.version, requires: manifest.requires.api,
-        status: 'incompatible', reason: `needs add-on API ${manifest.requires.api}; this Cyberpunk Convai has ${version}`});
+        status: 'incompatible', reason: `needs add-on API ${manifest.requires.api}; this AI NPC Cyberpunk Mod has ${version}`});
       continue;
     }
     if (ids.has(manifest.id)) { problems.push({dir, id: manifest.id, name: manifest.name, status: 'duplicate', reason: 'another add-on uses this id'}); continue; }
@@ -663,7 +663,7 @@ export class AddonHost {
     const owner = this.speakers.get(profileKey);
     const allowed = owner?.speaker.providers ?? ADDON_PROVIDERS;
     const need = allowed.length === 2 ? 'a free Mistral key or the Local AI pack' : allowed[0] === 'mistral' ? 'a free Mistral key' : 'the Local AI pack';
-    return `${this.addonName(profileKey)} needs ${need}. Set it up under Conversation provider in Cyberpunk Convai's settings.`;
+    return `${this.addonName(profileKey)} needs ${need}. Set it up under Conversation provider in AI NPC Cyberpunk Mod's settings.`;
   }
 
   /**

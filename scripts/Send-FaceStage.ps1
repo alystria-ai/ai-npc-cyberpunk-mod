@@ -4,7 +4,7 @@ param(
     [int]$Hold = 60,
     [switch]$NoWait,
     [int]$TimeoutSeconds = 45,
-    [string]$ModDirectory = 'E:\SteamLibrary\steamapps\common\Cyberpunk 2077\bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai'
+    [string]$ModDirectory = 'E:\SteamLibrary\steamapps\common\Cyberpunk 2077\bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod'
 )
 # Development probe (mod/face-test.lua, installed only by the development file list): puts a companion about
 # 1.1 m in front of V's camera, facing it, so face captures need no manual framing. Reuses a present copy of the

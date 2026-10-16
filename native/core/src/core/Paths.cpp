@@ -94,7 +94,7 @@ std::wstring ResolveRuntimeDirectory()
     {
         return {};
     }
-    return root + L"\\bin\\x64\\plugins\\cyber_engine_tweaks\\mods\\CyberpunkConvai\\runtime";
+    return root + L"\\bin\\x64\\plugins\\cyber_engine_tweaks\\mods\\AiNpcCyberpunkMod\\runtime";
 }
 
 std::wstring LongPath(const std::wstring& aPath)

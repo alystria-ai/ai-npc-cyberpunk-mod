@@ -2,7 +2,7 @@
   "name": "cyberpunk-convai-auth-backend",
   "private": true,
   "type": "module",
-  "description": "Token backend for the Cyberpunk Convai mod: hands out short-lived Convai auth tokens so the permanent key never ships.",
+  "description": "Token backend for the AI NPC Cyberpunk Mod: hands out short-lived Convai auth tokens so the permanent key never ships.",
   "engines": {
     "node": ">=20"
   },

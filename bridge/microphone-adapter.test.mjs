@@ -212,8 +212,8 @@ test('nothing the mod speaks can play into a recording: the voice key silences i
 
 test('the talk keys are registered as inputs (press and release), never as release-only hotkeys', () => {
   const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
-  assert.match(init, /registerInput\('cyberpunk_convai_voice', 'Cyberpunk Convai: talk by voice'/);
-  assert.match(init, /registerInput\('cyberpunk_convai_group_voice', 'Cyberpunk Convai: group voice chat'/);
+  assert.match(init, /registerInput\('cyberpunk_convai_voice', 'AI NPC Cyberpunk Mod: talk by voice'/);
+  assert.match(init, /registerInput\('cyberpunk_convai_group_voice', 'AI NPC Cyberpunk Mod: group voice chat'/);
   assert.doesNotMatch(init, /registerHotkey\('cyberpunk_convai_(group_)?voice'/);
 });
 

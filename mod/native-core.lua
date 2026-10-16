@@ -1,4 +1,4 @@
--- Optional native core (red4ext/plugins/CyberpunkConvaiNative). When the plugin is loaded and
+-- Optional native core (red4ext/plugins/AiNpcCyberpunkModNative). When the plugin is loaded and
 -- its "io" switch is on, the bridge mailbox, lease and log files listed below go through it:
 -- a CET io.open costs about 3 ms of the game thread, os.rename about 4.8 ms (perf probe
 -- 2026-10-11); a native call costs microseconds and a worker thread does the disk work.

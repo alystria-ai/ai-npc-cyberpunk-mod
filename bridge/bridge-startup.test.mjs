@@ -58,7 +58,7 @@ test('real bridge retains one player ID across world changes without provider, b
   {timeout: 60000}, async () => {
     const folder = await mkdtemp(join(tmpdir(), prefix));
     const state = join(folder, 'state'), game = join(folder, 'game');
-    const runtime = join(game, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'mods', 'CyberpunkConvai', 'runtime');
+    const runtime = join(game, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'mods', 'AiNpcCyberpunkMod', 'runtime');
     const control = join(state, 'bridge-control.json'), memoryPath = join(state, 'player-memory.json');
     const sideEffects = join(folder, 'forbidden-side-effects.log'), guardFile = join(folder, 'guard.mjs');
     let child, closed = null, output = '', errors = '';
@@ -173,7 +173,7 @@ test('real bridge starts, polls and stops with no settings file',
   {timeout: 60000}, async () => {
     const folder = await mkdtemp(join(tmpdir(), prefix));
     const state = join(folder, 'state'), game = join(folder, 'game');
-    const runtime = join(game, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'mods', 'CyberpunkConvai', 'runtime');
+    const runtime = join(game, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'mods', 'AiNpcCyberpunkMod', 'runtime');
     const control = join(state, 'bridge-control.json');
     const sideEffects = join(folder, 'forbidden-side-effects.log'), guardFile = join(folder, 'guard.mjs');
     let child, closed = null, output = '', errors = '';

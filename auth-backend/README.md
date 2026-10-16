@@ -1,6 +1,6 @@
 # Convai token backend
 
-A small Vercel service that hands the Cyberpunk Convai mod a short-lived Convai auth token, so the project's permanent Convai key never ships on players' machines. The design and its research are in `docs/CONVAI_AUTH_BACKEND.md`; this folder is the built service. **It was first deployed to Vercel on 2026-10-13** (address in the project's private notes, not here; `GET /api/healthz` answers `{"status":"ok"}`), and the bridge's backend mode is switched on per machine through `runtime/convai-auth.json`. Every test in this folder still uses a fake Convai and a fake Redis; the repository never calls the live service.
+A small Vercel service that hands the AI NPC Cyberpunk Mod a short-lived Convai auth token, so the project's permanent Convai key never ships on players' machines. The design and its research are in `docs/CONVAI_AUTH_BACKEND.md`; this folder is the built service. **It was first deployed to Vercel on 2026-10-13** (address in the project's private notes, not here; `GET /api/healthz` answers `{"status":"ok"}`), and the bridge's backend mode is switched on per machine through `runtime/convai-auth.json`. Every test in this folder still uses a fake Convai and a fake Redis; the repository never calls the live service.
 
 ```
 auth-backend/

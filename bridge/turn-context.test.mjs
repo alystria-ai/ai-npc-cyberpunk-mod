@@ -458,7 +458,7 @@ test('the new files ship: the development install list, the release plan and the
   for (const file of ['../scripts/development-files.json', '../packaging/release-plan.json']) {
     const text = readFileSync(new URL(file, import.meta.url), 'utf8');
     assert.match(text, /"source": "mod\/turn-context\.lua"/, file);
-    assert.match(text, /CyberpunkConvai\/turn-context\.lua"/, file);
+    assert.match(text, /AiNpcCyberpunkMod\/turn-context\.lua"/, file);
   }
   assert.match(readFileSync(new URL('../packaging/release-plan.json', import.meta.url), 'utf8'), /"bridge\/turn-context\.mjs"/);
   assert.match(readFileSync(new URL('../packaging/runtime-layout.mjs', import.meta.url), 'utf8'), /'bridge\/turn-context\.mjs'/);

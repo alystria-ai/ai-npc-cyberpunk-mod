@@ -28,7 +28,7 @@ for (const key of keys) {
   const sha256 = createHash('sha256').update(audio).digest('hex');
   if (sha256 !== candidate.wav.sha256) throw Error('Reference audio changed for ' + key);
   if (registry.profiles[key]?.referenceSha256 !== sha256) {
-    const saved = await client.createProfile({name: 'Cyberpunk Convai - ' + roster.find(p => p.key === key).name,
+    const saved = await client.createProfile({name: 'AI NPC Cyberpunk Mod - ' + roster.find(p => p.key === key).name,
       audio, transcript: candidate.transcript});
     registry.profiles[key] = {id: saved.id, referenceSha256: sha256, referenceStringId: candidate.stringId,
       listeningVerified: false, purpose: 'engine comparison'};

@@ -17,7 +17,7 @@ const PREFIX = '[EmotionTimeline] ';
 const API_HEADER = /api[-_ ]?key|authorization\s*:|bearer\s/i;
 const here = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_RUNTIME = process.env.CYBERPUNK_CONVAI_STATE || resolve(here, '..', 'runtime');
-const DEFAULT_GAME_RUNTIME = 'E:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077\\bin\\x64\\plugins\\cyber_engine_tweaks\\mods\\CyberpunkConvai\\runtime';
+const DEFAULT_GAME_RUNTIME = 'E:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077\\bin\\x64\\plugins\\cyber_engine_tweaks\\mods\\AiNpcCyberpunkMod\\runtime';
 
 function parseArgs(argv) {
   const options = {n: 5, runtime: DEFAULT_RUNTIME, gameRuntime: DEFAULT_GAME_RUNTIME};

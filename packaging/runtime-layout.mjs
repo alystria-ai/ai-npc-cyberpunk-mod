@@ -3,7 +3,7 @@ import {createReadStream} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {dirname, isAbsolute, relative, resolve, sep} from 'node:path';
 
-export const MOD_DIRECTORY = 'bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai';
+export const MOD_DIRECTORY = 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod';
 export const OMNI_REVISION = 'c5fdb5ccb189668d56333f77ba2629f4cd7535f4';
 export const ADAPTER_REVISION = '08a1592e3cb9b4c36beef5fa3185ec2313bb1fea';
 export const CLIENT_ASSETS = Object.freeze([
@@ -313,7 +313,7 @@ export async function resolveRuntimeLayout({appDirectory, developmentProject, ga
     modRoot = dirname(appRoot);
     gameRoot = await realpath(resolve(appRoot, '../../../../../../..'));
     if (relative(resolve(gameRoot, MOD_DIRECTORY, 'app'), appRoot) !== '')
-      throw new RuntimeError('invalid-installation', 'Install the runtime inside the CyberpunkConvai app directory.');
+      throw new RuntimeError('invalid-installation', 'Install the runtime inside the AiNpcCyberpunkMod app directory.');
     if (gameDirectory || stateDirectory)
       throw new RuntimeError('invalid-installation', 'Packaged runtime paths are discovered from the installation.');
     manifest = validateManifest(await readJson(resolve(appRoot, 'runtime-manifest.json')));

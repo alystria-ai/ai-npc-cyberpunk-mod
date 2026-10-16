@@ -163,7 +163,7 @@ export async function locateLogs({game, modRoot, runtime, stateDirectory}) {
   for (const path of await newest(runtime, /^(?!probe\.log$|mcm\.log$).+\.log$/i, 12)) {
     if (!CONTENT_LIKE.test(path.split(/[\\/]/).at(-1))) add(`mod-${slug(path)}`, path);
   }
-  add('mod-log', join(modRoot, 'CyberpunkConvai.log'));
+  add('mod-log', join(modRoot, 'AiNpcCyberpunkMod.log'));
   const bridgeNames = {'bridge-service': 'bridge-service.log', 'bridge-service-previous': 'bridge-service.log.previous',
     'bridge-stdout': 'bridge.stdout.log', 'bridge-stderr': 'bridge.stderr.log',
     'bridge-stdout-previous': 'bridge.stdout.previous.log', 'bridge-stderr-previous': 'bridge.stderr.previous.log'};
@@ -397,7 +397,7 @@ export async function collectReport(options) {
   });
   summary.privacy.redactions = {...redact.stats};
   const readme = [
-    'Cyberpunk Convai support report',
+    'AI NPC Cyberpunk Mod support report',
     `Created ${summary.generatedAt}  (report ${options.reportId})`, '',
     'Send this one file to the developer. It contains:',
     '  summary.json   versions, service status, settings, party, provider per companion, recent errors',

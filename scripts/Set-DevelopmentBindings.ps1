@@ -9,7 +9,7 @@ if (Get-Process Cyberpunk2077 -ErrorAction SilentlyContinue) {
 $path = Join-Path $GameDirectory 'bin\x64\plugins\cyber_engine_tweaks\bindings.json'
 if (-not (Test-Path -LiteralPath $path)) { throw "CET bindings not found: $path" }
 $bindings = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json -AsHashtable
-if (-not $bindings.Contains('CyberpunkConvai')) { $bindings['CyberpunkConvai'] = [ordered]@{} }
+if (-not $bindings.Contains('AiNpcCyberpunkMod')) { $bindings['AiNpcCyberpunkMod'] = [ordered]@{} }
 
 $desired = [ordered]@{
     cyberpunk_convai_manager    = ([long]0x73 -shl 48) # F4; F5 is vanilla QuickSave
@@ -22,8 +22,8 @@ $pending = [ordered]@{}
 foreach ($entry in $desired.GetEnumerator()) {
     # Running the setup again must not replace a user's chosen key, including
     # the locally accepted F4 manager shortcut.
-    if (-not $bindings['CyberpunkConvai'].Contains($entry.Key) -or
-        [long]$bindings['CyberpunkConvai'][$entry.Key] -eq 0) { $pending[$entry.Key] = $entry.Value }
+    if (-not $bindings['AiNpcCyberpunkMod'].Contains($entry.Key) -or
+        [long]$bindings['AiNpcCyberpunkMod'][$entry.Key] -eq 0) { $pending[$entry.Key] = $entry.Value }
 }
 if ($pending.Count -eq 0) { Write-Output 'All companion shortcuts are already assigned; existing choices preserved.'; return }
 
@@ -38,7 +38,7 @@ foreach ($mod in $bindings.Keys) {
 $backup = "$path.pre-convai-$(Get-Date -Format 'yyyyMMdd-HHmmss').bak"
 Copy-Item -LiteralPath $path -Destination $backup
 foreach ($entry in $pending.GetEnumerator()) {
-    $bindings['CyberpunkConvai'][$entry.Key] = $entry.Value
+    $bindings['AiNpcCyberpunkMod'][$entry.Key] = $entry.Value
 }
 $json = $bindings | ConvertTo-Json -Depth 8
 $temporary = $path + '.convai-bindings.tmp'

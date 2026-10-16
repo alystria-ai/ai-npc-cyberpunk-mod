@@ -16,8 +16,8 @@ $game = [IO.Path]::GetFullPath($GameDirectory).TrimEnd('\')
 $project = [IO.Path]::GetFullPath($ProjectDirectory).TrimEnd('\')
 if (-not [IO.File]::Exists((Join-Path $game 'bin\x64\Cyberpunk2077.exe'))) { throw 'Game directory is invalid.' }
 if (-not [IO.File]::Exists((Join-Path $game 'red4ext\RED4ext.dll'))) { throw 'RED4ext is not installed in this game directory.' }
-if (-not [IO.File]::Exists((Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\init.lua'))) {
-    throw 'Install the CyberpunkConvai CET mod first (scripts\Install-DevelopmentMod.ps1).'
+if (-not [IO.File]::Exists((Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod\init.lua'))) {
+    throw 'Install the AI NPC Cyberpunk Mod CET mod first (scripts\Install-DevelopmentMod.ps1).'
 }
 if (-not $NodePath) { $NodePath = (Get-Command node -ErrorAction Stop).Source }
 $node = [IO.Path]::GetFullPath($NodePath)
@@ -39,7 +39,7 @@ foreach ($value in @($node, $project) + $arguments) {
     if ($value -match '[\r\n"]') { throw 'A launcher path contains an unsupported character.' }
 }
 $lines = @(
-    '; Cyberpunk Convai launcher, written by scripts\Install-BridgeAutostart.ps1.',
+    '; AI NPC Cyberpunk Mod launcher, written by scripts\Install-BridgeAutostart.ps1.',
     '; Set enabled=0 to stop starting the conversation service with the game.',
     '[launch]', 'enabled=1', "program=$node"
 )

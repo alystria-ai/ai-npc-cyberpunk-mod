@@ -3,9 +3,9 @@
 // bridge so it can be tested on its own.
 //
 // Installed layout (game-relative):
-//   red4ext/plugins/CyberpunkConvai/app/      the application (this file is in app/launcher/)
-//   red4ext/plugins/CyberpunkConvai/voices/   voice reference clips (kept outside app/ on purpose)
-//   bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/data/   player state (this prepares it)
+//   red4ext/plugins/AiNpcCyberpunkMod/app/      the application (this file is in app/launcher/)
+//   red4ext/plugins/AiNpcCyberpunkMod/voices/   voice reference clips (kept outside app/ on purpose)
+//   bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/data/   player state (this prepares it)
 //
 // Three kinds of state file:
 //   - generated: voice configurations whose paths depend on where the game is installed, and the
@@ -45,7 +45,7 @@ async function writeIfChanged(path, bytes) {
 
 export function installLayout({appDirectory, gameRoot}) {
   const app = resolve(appDirectory), plugin = resolve(app, '..');
-  const mod = resolve(gameRoot, 'bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai');
+  const mod = resolve(gameRoot, 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod');
   return Object.freeze({
     app, plugin, gameRoot: resolve(gameRoot), mod, state: resolve(mod, 'data'), runtime: resolve(mod, 'runtime'),
     voices: resolve(plugin, 'voices'), defaults: resolve(app, 'defaults'),

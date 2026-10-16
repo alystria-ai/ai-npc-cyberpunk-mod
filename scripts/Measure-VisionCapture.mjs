@@ -16,7 +16,7 @@ const value = (name, fallback) => { const index = args.indexOf(name); return ind
 const blocks = Number(value('--blocks', 8)), blockSeconds = Number(value('--block', 12));
 const interval = Number(value('--interval', 2000)), burst = Number(value('--burst', 1));
 const width = Number(value('--width', 768)), quality = Number(value('--quality', 80));
-const perfPath = value('--perf', 'E:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077\\bin\\x64\\plugins\\cyber_engine_tweaks\\mods\\CyberpunkConvai\\runtime\\perf-probe.json');
+const perfPath = value('--perf', 'E:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077\\bin\\x64\\plugins\\cyber_engine_tweaks\\mods\\AiNpcCyberpunkMod\\runtime\\perf-probe.json');
 const saveFirst = value('--save-first'), series = args.includes('--series');
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const now = () => Date.now() / 1000;

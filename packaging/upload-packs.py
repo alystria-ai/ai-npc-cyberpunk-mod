@@ -3,7 +3,7 @@
 Run by .github/workflows/release.yml (the omni, localai and mature jobs). Each optional pack is ONE zip, with no parts, and
 lives in a folder per version of the repository, next to a SHA256SUMS-<pack>.txt:
 
-    <version>/CyberpunkConvai-OmniPack-<version>.zip
+    <version>/AI-NPC-Cyberpunk-Mod-OmniPack-<version>.zip
     <version>/SHA256SUMS-omni.txt
 
     python packaging/upload-packs.py --check                                   (can the token write to the repository?)
@@ -23,7 +23,7 @@ import sys
 import time
 from pathlib import Path
 
-REPOSITORY = "alystria-ai/cyberpunk-convai-packs"
+REPOSITORY = "alystria-ai/ai-npc-cyberpunk-mod-packs"
 PACKS = ("omni", "localai-standard", "localai-lite", "mature-lite", "mature-standard")
 
 
@@ -110,7 +110,7 @@ def upload(api, repository: str, version: str, pack: str, items: list[tuple[Path
             try:
                 print(f"Uploading {local.name} ({local.stat().st_size / 1024 ** 3:.2f} GiB) to {repository}/{remote} (attempt {attempt}).", flush=True)
                 api.upload_file(path_or_fileobj=str(local), path_in_repo=remote, repo_id=repository, repo_type="model",
-                                commit_message=f"Cyberpunk Convai {version}: {pack} pack, {local.name}")
+                                commit_message=f"AI NPC Cyberpunk Mod {version}: {pack} pack, {local.name}")
                 break
             except HfHubHTTPError as error:
                 status = getattr(getattr(error, "response", None), "status_code", None)

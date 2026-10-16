@@ -264,7 +264,7 @@ test('service stopped: a short report is written at once, says why, and no reque
   reportsFolder = false
   put('runtime/probe.log', '2026-10-05T10:00:00Z Game adapter initialized\\n')
   put('runtime/mcm.log', '2026-10-05T10:00:01Z Companion Manager registered\\n')
-  put('CyberpunkConvai.log', "[2026-10-05 10:00:00] Type 'MovePolicies' not found.\\n")
+  put('AiNpcCyberpunkMod.log', "[2026-10-05 10:00:00] Type 'MovePolicies' not found.\\n")
   put('runtime/settings.json', {version = 2, voiceProvider = 'omni', enabledByKey = {['bob-sagan'] = true, ['judy-alvarez'] = false}})
   put('runtime/local-voice-state.json', {state = 'error', provider = 'omni', updated = ms(-60)})
   local s = newSupport({party = function() return {{profileKey = 'bob-sagan', name = 'Bob Sagan', state = 'following'}} end})
@@ -282,7 +282,7 @@ test('service stopped: a short report is written at once, says why, and no reque
   for _, expected in ipairs({'short report', 'the conversation service was not running', '== versions ==', '== service status ==',
     '== settings ==', '== party ==', 'bob-sagan  state=following  name=Bob Sagan', 'conversationDisabled', 'judy-alvarez',
     '== log: runtime/probe.log ==', 'Game adapter initialized', '== log: runtime/mcm.log ==', 'Companion Manager registered',
-    '== log: CyberpunkConvai.log ==', "MovePolicies' not found", 'Not included: CET, redscript, RED4ext'}) do
+    '== log: AiNpcCyberpunkMod.log ==', "MovePolicies' not found", 'Not included: CET, redscript, RED4ext'}) do
     assert(text:find(expected, 1, true), 'missing: ' .. expected)
   end
 `));
@@ -301,7 +301,7 @@ test('the Lua report never reads credential, audio or conversation files and rem
     'request failed: api-key=${PLANTED.shortKey}',
     'character ${PLANTED.characterId} session ${PLANTED.sessionId} user ${PLANTED.userId}',
     'path C:\\\\Users\\\\${PLANTED.windowsUser}\\\\Desktop\\\\Code Palace\\\\mod'}, '\\n') .. '\\n')
-  put('CyberpunkConvai.log', 'token=${PLANTED.base64}\\n')
+  put('AiNpcCyberpunkMod.log', 'token=${PLANTED.base64}\\n')
   put('runtime/settings.json', {version = 2, apiKey = '${PLANTED.shortKey}', convaiUserId = '${PLANTED.userId}',
     endUserId = '${PLANTED.userId}', note = 'uses ${PLANTED.shortKey} and ${PLANTED.hfToken}', voiceProvider = 'pocket',
     enabledByKey = {x = true}})
@@ -350,7 +350,7 @@ test('Lua reports go to runtime/reports when it exists, and only the newest five
 test('log locations: exact paths from the service, derived paths from the launcher status, and honest placeholders otherwise', () => run(`
   local none = newSupport().locations()
   assert(none.known == false and none.launcher:find('the game folder\\\\red4ext\\\\plugins\\\\CyberpunkConvaiLauncher\\\\launcher.log', 1, true))
-  assert(none.mod:find('the game folder\\\\bin\\\\x64\\\\plugins\\\\cyber_engine_tweaks\\\\mods\\\\CyberpunkConvai\\\\runtime', 1, true))
+  assert(none.mod:find('the game folder\\\\bin\\\\x64\\\\plugins\\\\cyber_engine_tweaks\\\\mods\\\\AiNpcCyberpunkMod\\\\runtime', 1, true))
   assert(none.redscript:find('r6\\\\logs\\\\redscript_rCURRENT.log', 1, true) and none.red4ext:find('red4ext\\\\logs', 1, true))
   put('runtime/bridge-service.json', {state = 'failed', updated = ms(), gameRoot = 'D:\\\\Games\\\\Cyberpunk 2077', stateDirectory = 'D:\\\\Mod\\\\runtime'})
   local derived = newSupport().locations()

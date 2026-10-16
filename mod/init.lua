@@ -1,4 +1,4 @@
--- Cyberpunk Convai game adapter. It never renders an ImGui text field.
+-- AI NPC Cyberpunk Mod game adapter. It never renders an ImGui text field.
 -- Owns native composers, targeted turns, party connections and live diagnostics.
 -- Optional native core plugin: routes the bridge mailbox files through its worker thread when
 -- present (native-core.lua). Without the plugin, io and os stay unchanged.
@@ -2684,8 +2684,8 @@ if convaiAddons then
     convaiAddons.attach(seams)
 end
 
-registerHotkey('cyberpunk_convai_text', 'Cyberpunk Convai: talk by text', function() beginText(false) end)
-registerHotkey('cyberpunk_convai_group_text', 'Cyberpunk Convai: group text chat', function() beginText(true) end)
+registerHotkey('cyberpunk_convai_text', 'AI NPC Cyberpunk Mod: talk by text', function() beginText(false) end)
+registerHotkey('cyberpunk_convai_group_text', 'AI NPC Cyberpunk Mod: group text chat', function() beginText(true) end)
 -- The talk keys are inputs, not hotkeys: a hotkey runs its function only when the key comes back UP (docs/COMPANION_HOTKEY_INPUT.md), so a held
 -- key did nothing until it was let go, and a press meant to stop a recording was only seen a moment late. An input reports both edges:
 --   tap (up within HOLD_S)  toggles: the press began the recording, the next press finishes it
@@ -2725,9 +2725,9 @@ local function voiceKeyEdge(id, groupMode, isDown)
     end)
     if not ok then log('Voice key ' .. id .. ' failed: ' .. tostring(err)) end
 end
-registerInput('cyberpunk_convai_voice', 'Cyberpunk Convai: talk by voice', function(isDown) voiceKeyEdge('voice', false, isDown) end)
-registerInput('cyberpunk_convai_group_voice', 'Cyberpunk Convai: group voice chat', function(isDown) voiceKeyEdge('group_voice', true, isDown) end)
-registerHotkey('cyberpunk_convai_manager', 'Cyberpunk Convai: companion manager', openManager)
+registerInput('cyberpunk_convai_voice', 'AI NPC Cyberpunk Mod: talk by voice', function(isDown) voiceKeyEdge('voice', false, isDown) end)
+registerInput('cyberpunk_convai_group_voice', 'AI NPC Cyberpunk Mod: group voice chat', function(isDown) voiceKeyEdge('group_voice', true, isDown) end)
+registerHotkey('cyberpunk_convai_manager', 'AI NPC Cyberpunk Mod: companion manager', openManager)
 local worldSuspended, sessionHasState = false, false
 local fastTravelActive
 
@@ -3425,5 +3425,5 @@ registerForEvent('onShutdown', function()
     convaiLogFlush() -- the buffered probe.log lines (a CET reload or exit follows)
 end)
 
--- GetMod('CyberpunkConvai') returns this table to other CET mods. `addons` is the add-on API (docs/ADDON_API.md).
+-- GetMod('AiNpcCyberpunkMod') returns this table to other CET mods. `addons` is the add-on API (docs/ADDON_API.md).
 return {addons = convaiAddons and convaiAddons.public or nil}

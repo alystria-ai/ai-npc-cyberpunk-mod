@@ -22,7 +22,7 @@ function playFight() {
     M.attach(host)
     local events = {}
     function registerForEvent(name, fn) events[name] = fn end
-    function GetMod(name) if name == 'CyberpunkConvai' then return {addons = M.public} end return nil end
+    function GetMod(name) if name == 'AiNpcCyberpunkMod' then return {addons = M.public} end return nil end
     local Example = (function() ${exampleLua} end)()
     events.onInit()
     assert(Example.handle ~= nil and M.isSpeaker('addon-example-voice'))

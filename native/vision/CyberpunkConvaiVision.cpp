@@ -1,5 +1,5 @@
 /*
- * Cyberpunk Convai vision helper: takes one still picture of the Cyberpunk 2077 window, on request, for
+ * AI NPC Cyberpunk Mod vision helper: takes one still picture of the Cyberpunk 2077 window, on request, for
  * "Companions can see" (docs/COMPANION_VISION.md).
  *
  * Out of process and on demand. The game is never touched: no injection, no hook, no game-thread work. A capture

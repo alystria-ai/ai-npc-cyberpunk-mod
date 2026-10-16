@@ -31,7 +31,7 @@ test('an add-on written for a newer API is refused with one notice for the playe
     assert(handle == nil and reason:find('needs add%-on API 1.4'), tostring(reason))
     assert(M.live == true, 'live so the notice can be shown')
     tick(); tick()
-    assert(#notices == 1 and notices[1] == 'Skippy needs a newer Cyberpunk Convai (add-on API 1.4; this version has 1.0). Update Cyberpunk Convai.', notices[1])
+    assert(#notices == 1 and notices[1] == 'Skippy needs a newer AI NPC Cyberpunk Mod (add-on API 1.4; this version has 1.0). Update AI NPC Cyberpunk Mod.', notices[1])
     assert(select(2, M.public.register({id = 'Bad Id', name = 'x', requires = '1.0'})) == 'invalid id')
     assert(select(2, M.public.register({id = 'ok', requires = '1.0'})) == 'name is required')
   `);

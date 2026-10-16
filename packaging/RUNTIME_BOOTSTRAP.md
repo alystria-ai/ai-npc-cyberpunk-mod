@@ -7,13 +7,13 @@ import closure, local voice relocation/reference preparation and notices.
 
 ## Files and paths
 
-Stage these three modules in `CyberpunkConvai/app/bootstrap/`:
+Stage these three modules in `AiNpcCyberpunkMod/app/bootstrap/`:
 
 - `Runtime-Service.mjs`
 - `runtime-layout.mjs`
 - `runtime-bootstrap.mjs`
 
-Stage `Start-Runtime.ps1` directly in `CyberpunkConvai/app/`. The app directory
+Stage `Start-Runtime.ps1` directly in `AiNpcCyberpunkMod/app/`. The app directory
 also contains `bridge/`, `assets/`, `characters/`, `research/`, `node/`, `python/`
 and `browser/`. The game root is discovered by the exact installed app path;
 there is no fixed drive or Steam-library assumption. Portable executables are
@@ -38,9 +38,9 @@ packages; the manifest requires their entry points, and the final builder must
 still include the full reviewed distributions, runtime files and notices. This inventory step does
 not grant redistribution permission or prove the chosen binaries work together.
 
-Persistent bridge data goes in `CyberpunkConvai/data/`, outside `app/`.
+Persistent bridge data goes in `AiNpcCyberpunkMod/data/`, outside `app/`.
 Existing Lua settings, phone histories and game request/response files stay in
-`CyberpunkConvai/runtime/`. Neither directory belongs in an upgrade archive.
+`AiNpcCyberpunkMod/runtime/`. Neither directory belongs in an upgrade archive.
 The bootstrap does not reset, migrate or synthesize a player ID, memory, history,
 bindings, voice configuration or account mapping. Package updates replace app
 binaries and leave these two state directories intact. Stop the owned service
