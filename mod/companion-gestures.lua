@@ -29,6 +29,15 @@ M.policy = {firstClipMargin = .15, talkSettled = 1.0, reenterDelay = 4, flavourA
     -- session, so a three-idle pool shrinks to two) the last idle may come again with chance repeatChance, never a prop idle;
     -- with three or more it never repeats.
     cycleHold = true, shortCycle = 12, cycleMinimum = 15, cycleLead = .15, repeatChance = .3,
+    -- Round 16 (look-alike idles): every idle has a visual similarity group (catalog.idleGroups: arms_crossed, hands_on_hips,
+    -- ...). The pick never takes an idle of the previous idle's group while the pool has one of another group (Johnny:
+    -- generic_arms_crossed then johnny_crossed, two arms-crossed clips, live 2026-10-16); only when nothing else is left does
+    -- it fall back to the earlier rules. Pose blends of the idle workspots (catalog.idleBlend, baked into the archive by the
+    -- build: enter 0.9, exit 0.8 s; vanilla 0.5 and 0.2): after an exit the copy stays held for the whole blend-out
+    -- (settle = max(exitSettle, blend-out)), and the prop clean-up waits for the part of the blend-out that is longer than
+    -- the vanilla vanillaExitBlend. The exit signal itself still goes at the cycle end (cycleLead), where the loop clip is at
+    -- its base pose; the blend-out then runs after the hold, engine side, nothing per frame.
+    vanillaExitBlend = .2,
     groupStagger = 2, exitSettle = .4, driftNote = .15, flavourSettled = 1.5, flavourFirst = {0, 0}, flavourGap = {8, 20}, flavourLength = {40, 75},
     -- A conversation is one stance, not one stance per reply. The talk stance is kept for conversationHold s after the last
     -- speech, listening or thinking (V reads and answers within that), and a signature, flavour or prop idle may start
@@ -162,8 +171,10 @@ function M.new(options)
         for _, plain in ipairs(row and row.idles or {}) do if plain == key then return false end end
         return true
     end
-    -- A random idle from the pool, never the one she just had when there is a choice, and never a prop idle straight after
-    -- a prop idle. Interesting idles carry policy.interestingBonus times a plain idle's weight, so they come up early and
+    -- The similarity group of an idle (catalog.idleGroups), or nil when the catalog has none (an older catalog: no group rule).
+    local function groupOf(key) return key and self.catalog.idleGroups and self.catalog.idleGroups[key] or nil end
+    -- A random idle from the pool, never the one she just had when there is a choice, never an idle that looks like the one
+    -- she just had (same group) while another group is available, and never a prop idle straight after a prop idle. Interesting idles carry policy.interestingBonus times a plain idle's weight, so they come up early and
     -- often by chance; nothing is forced and nothing is gated.
     local function pickIdle(s, known, allow)
         local pool = flavourPool(known)
@@ -175,11 +186,14 @@ function M.new(options)
             and ((self.random or math.random)()) < policy.repeatChance then
             return s.lastIdle
         end
+        local lastGroup = groupOf(s.lastIdle)
         local choices, weights, total = {}, {}, 0
-        for pass = 1, 2 do
+        -- Pass 1: the strict rules. Pass 2: a look-alike may follow (nothing else is left). Pass 3: a prop idle may follow a prop idle.
+        for pass = 1, 3 do
             for _, key in ipairs(pool) do
                 if (key ~= s.lastIdle or #pool == 1) and (not allow or allow(key))
-                    and (pass == 2 or not (afterProp and propOf(key))) then
+                    and (pass >= 2 or not (lastGroup and groupOf(key) == lastGroup))
+                    and (pass == 3 or not (afterProp and propOf(key))) then
                     local weight = interesting(known, key) and policy.interestingBonus or 1
                     choices[#choices + 1] = key
                     weights[#choices] = weight
@@ -358,11 +372,16 @@ function M.new(options)
         end
         return true
     end
-    local function scheduleCleanup(s, prop, npc)
+    -- Seconds the pose takes to blend out of an idle after the exit signal (catalog.idleBlend.exitForced), 0 for an older catalog.
+    local function idleBlendOut()
+        local blend = self.catalog.idleBlend
+        return blend and tonumber(blend.exitForced) or 0
+    end
+    local function scheduleCleanup(s, prop, npc, delay)
         if not prop or not npc or not native.clearSlot then return end
         for pass, after in ipairs(policy.propCleanup) do
             self.cleanupSerial = self.cleanupSerial + 1
-            self.cleanups[self.cleanupSerial] = {npc = npc, prop = prop, due = self.clock + after, pass = pass, serial = s.serial, key = s.idleKey}
+            self.cleanups[self.cleanupSerial] = {npc = npc, prop = prop, due = self.clock + after + (delay or 0), pass = pass, serial = s.serial, key = s.idleKey}
         end
     end
     -- Worn visuals hidden while an idle plays (catalog.propIdles.<key>.hideComponents, plain substrings of component names,
@@ -467,14 +486,18 @@ function M.new(options)
             {family = known.talk, component = s.component, hold = s.cycleHold, cycles = s.cycles})
     end
     local function finish(s, reason)
-        if s.prop then scheduleCleanup(s, s.prop, s.entry.npc); s.prop = nil end
+        -- An idle's pose blends out for idleBlendOut() s after the exit signal: the copy stays held for all of it, and the
+        -- prop leaves the hand only once the part longer than the vanilla blend is over (not mid-blend). A fast exit does not wait.
+        local blended = s.flavour and s.exitAt and not s.exitInstant
+        local blendOut = blended and idleBlendOut() or 0
+        if s.prop then scheduleCleanup(s, s.prop, s.entry.npc, math.max(0, blendOut - policy.vanillaExitBlend)); s.prop = nil end
         showWorn(s)
-        note(s, 'finished', {reason = reason, exitLatency = s.exitAt and self.clock - s.exitAt})
+        note(s, 'finished', {reason = reason, exitLatency = s.exitAt and self.clock - s.exitAt, blendOut = blended and blendOut or nil})
         -- The workspot is left a tenth of a second after the exit signal, but the pose blends out for
         -- about half a second more (forced exit blend). Movement waits for that blend (observe keeps
         -- reporting the copy held), so she is never walked across the floor in the idle pose. A fast
         -- exit (combat, transport) and a start that never reached the workspot do not wait.
-        s.settleUntil = s.exitAt and not s.exitInstant and self.clock + policy.exitSettle or nil
+        s.settleUntil = s.exitAt and not s.exitInstant and self.clock + math.max(policy.exitSettle, blendOut) or nil
         s.phase, s.clip, s.exitAt, s.lingerUntil, s.recovery = 'off', nil, nil, nil, nil
         s.healthFrom, s.wedgedSince = self.clock, nil
         -- Every stance entry is a visible pose shuffle (the ambient legs differ from the

@@ -70,6 +70,16 @@ for (const name of workspots.filter((file) => !file.startsWith('convai_seat_')))
     walk(read(roundtrip, name).Data.RootChunk.workspotTree, (node) => { if (node.$type === 'workEntryAnim') entries++; });
     check(entries === 0, `${name} keeps ${entries} workEntryAnim clip(s); the enter must start on its first sequence`);
 }
+// Idle workspot copies carry the pose blends gestures.json declares (idleBlend, Round 16; vanilla is 0.5 / 0.5 / 0.2 s), and
+// the round trip through the binary keeps them.
+const wantedBlend = JSON.parse(fs.readFileSync(new URL('../assets/gestures/gestures.json', import.meta.url), 'utf8').replace(/^﻿/, '')).idleBlend;
+const round3 = (value) => Math.round(Number(value) * 1000) / 1000;
+for (const name of workspots.filter((file) => file.startsWith('convai_idle_'))) {
+    const tree = read(roundtrip, name).Data.RootChunk.workspotTree.Data;
+    check(round3(tree.inertializationDurationEnter) === round3(wantedBlend.enter)
+        && round3(tree.inertializationDurationExitNatural) === round3(wantedBlend.exitNatural)
+        && round3(tree.inertializationDurationExitForced) === round3(wantedBlend.exitForced), `${name} must carry the idle pose blends of gestures.json`);
+}
 // Sit workspots must never end by themselves (a vanilla one runs 4-9 fidgets
 // and leaves after 60-105 s): every random list needs a clip count that is
 // never reached and its sequence must repeat; the entity must play only these.

@@ -926,3 +926,50 @@ Live (the user, Johnny, 2026-10-16 08:36Z): `convai_idle_johnny_aggressive` "loo
 - **Cost.** Nothing per frame: the hold is one table lookup when an idle begins and one assignment at the play call.
 - **Not verified live.** Whether the loop clip's phase really lines up with the hold (the break clips and their pauses run inside it), and whether a 20 s hold of a 10 s loop reads as one idle; the aggressive idle is the one to look at, and the glasses one should look as before.
 - Install: CET reload for `mod/companion-gestures.lua` and `mod/gesture-catalog.lua`; no archive, no bridge restart.
+
+## Round 16 (October 16): look-alike idles never follow each other; longer pose blends into and out of the idles
+
+Live (the user, Johnny, 2026-10-16): "he did hands folded animation twice in a row ... we should kind of also have two similar-ish animations not play in a row, also can you make the transition from animation to base stance a little more smoother". `probe.log`: `convai_idle_generic_arms_crossed` at 08:59:46, then `convai_idle_johnny_crossed` at 09:00:21: two different clips that both look arms-crossed.
+
+### 1. Visual similarity groups
+
+Every idle workspot has one group (`idleGroups` in `assets/gestures/gestures.json`, described in `idleGroupNotes`; the build requires a group for every idle workspot, a description for every group, and no group row without a workspot, and writes `idleGroups` into the catalog). Assigned from the loop clip named in `assets/gestures/idle-cycles.json` and the `idleSources` description:
+
+| Group | Idles (loop clip) |
+|---|---|
+| `arms_crossed` | `alex`, `songbird`, `generic_arms_crossed`, `ripperdoc_arms`, `generic_arms_crossed_b` (`arms_crossed_front__01`), `rogue` (`arms_crossed_front__03`), `saul` (`arms_crossed_front__angry__01`), `johnny_crossed` (`johnny__stand__arms_crossed_front__01`) |
+| `hands_on_hips` | `judy`, `uscracks_cute` (`dirt__stand__2h_on_hip__01`), `kerry`, `jackie_hips`, `generic_hips_big` (`2h_on_hip__01`), `panam_hips`, `generic_hips` (`2h_on_hip__02`), `panam`, `generic_hip` (`rh_on_hip__01`, one hand) |
+| `hands_at_sides` | `generic`, `takemura`, `reed`, `placide`, `river`, `alt` (`2h_on_sides*`), `jackie` (`stand__relaxed__01`) |
+| `hands_front` | `hanako` (`2h_front`), `misty` (`2h_hold`), `bodyguard_front`, `generic_front` (`2h_front__01`) |
+| `hands_behind_back` | `generic_back`, `bodyguard_back` (`2h_back__01`) |
+| `hand_in_pocket` | `johnny` (`lh_pocket__01`) |
+| `hand_held_out` | `generic_hold` (`gesture_hold`) |
+| `tense` | `johnny_aggressive` (`2h_on_sides__aggressive__01`: hands at the sides but a confrontational stance) |
+| `smoking` | `johnny_smoke` (`lh_cigarette`) |
+| `glasses` | `johnny_shades` (`rh_glasses`) |
+| `drinking` | `judy_coffee` (`rh_cup`), `panam_beer` (`rh_bottle`) |
+
+Pick (`pickIdle`, `mod/companion-gestures.lua`): three passes. Pass 1: not the idle just played, no prop idle after a prop idle, and not an idle of the previous idle's group. Pass 2 (nothing left): a look-alike may follow. Pass 3 (still nothing): a prop idle may follow a prop idle (the Round 14 fallback). The interesting-idle weight (`interestingBonus`), the glasses hide, cycle holds and the two-idle-pool repeat (`repeatChance`, one draw before the passes) are untouched. A catalog without `idleGroups` behaves as before.
+
+Effects worth knowing: Johnny's `johnny_crossed` and `generic_arms_crossed` can no longer follow each other (his seven idles run in six groups). A character whose pool is mostly one look alternates: Judy has three hips idles (`judy`, `jackie_hips`, `panam_hips`; `generic_hips` is never picked) and one coffee idle, so after a hips idle only the coffee idle is left and she goes hips, coffee, hips, coffee (Panam the same with the beer; Alex alternates `alex` and a hips idle). That is the rule working as asked, not a bug; if a prop idle then feels too frequent, the lever is a softer rule (a chance to ignore the group), not data. A pool whose idles are all of one group falls back to the earlier rules.
+
+### 2. Pose blends into and out of an idle
+
+How it works (read from the extracted vanilla workspots: `inertializationDurationEnter`, `...ExitNatural`, `...ExitForced` on the workspot tree; all 37 idle copies carry the vanilla values):
+
+- **Enter**: `PlayInDevice` starts the workspot; the engine inertializes from the companion's current pose into the idle's first pose over `inertializationDurationEnter`: **0.5 s** in the vanilla idle workspots.
+- **Exit**: the controller sends `SendFastExitSignal` (the only exit that leaves the AI queue healthy); the workspot is left about 0.1 s later (log `exitLatency` 0.10-0.12) and the pose inertializes into the locomotion idle over `inertializationDurationExitForced`: **0.2 s** in the idle workspots (natural exit 0.5 s, used only if a workspot leaves by itself). That 0.2 s is the abrupt return to the base stance. The talk stances already use enter 1.5, natural exit 1.4, forced exit 0.5 (Round 5), which is why they looked smoother than the idles.
+- **No runtime control**: the natives the controller uses carry no blend time (`PlayInDevice`: state flavour, component names, slide time, slide behaviour; `SendFastExitSignal`: direction, stay-if-failed, slow-exit-if-failed, instant, blend-to-walk), and the workspot tree is a resource. A Lua-side blend would mean per-frame pose work, which is out of the question.
+
+What changed:
+
+- `assets/gestures/gestures.json` `idleBlend`: enter **0.9 s**, natural exit **0.8 s**, forced exit **0.8 s**. `scripts/Build-GestureAssets.mjs` writes them into every `convai_idle_*` workspot copy (talk stances and seats keep their own values, checked by a test and by `Verify-GestureAssets.mjs` after the binary round trip) and into the catalog as `idleBlend`. The generated copies were produced into a scratch folder to confirm; **the archive was not rebuilt**.
+- Controller (`mod/companion-gestures.lua`, Lua only, CET reload): after an idle exit that is not instant the copy stays held for `max(exitSettle, catalog.idleBlend.exitForced)` (was a fixed 0.4 s), so movement and the follow never start while the pose is still blending out; the prop clean-up passes wait for the part of the blend-out longer than the vanilla 0.2 s (`policy.vanillaExitBlend`) so a cigarette or cup does not vanish from the hand mid-blend; `finished` logs `blendOut`. An older catalog without `idleBlend` keeps the plain 0.4 s.
+- **The exit signal timing is unchanged on purpose**: it goes `cycleLead` (0.15 s) before the end of the cycle of the idle's own loop clip, where the clip is back at its base pose, and the longer blend-out then runs after the hold (the engine fades the old pose out; the clip is not played on). Moving the signal earlier would cut the idle mid-motion. The enter blend does not shift the cycle count either (the clip starts at the `play` call).
+- Not changed: the worn-glasses restore (`showWorn`) still happens at the exit, so during the 0.8 s blend-out both the held aviators and the face pair can show; the talk stance start after an idle `conversation` exit does not wait for the blend-out (reply latency comes first).
+
+**This needs the archive rebuilt.** Until the gesture archive is rebuilt and installed, the idle workspots keep 0.5 / 0.5 / 0.2 s; the Lua change alone only makes the hold after each exit 0.4 s longer (the settle follows the catalog's 0.8 s) and delays prop removal by 0.6 s. What the rebuild changes, exactly: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\Build-GestureAssets.ps1` extracts fresh inputs, runs the build (which now sets the three blend fields of the 37 idle workspot copies; nothing else in any workspot differs) and packs `convai_gestures.archive` (do not let `Refresh-ReleaseData` overwrite the committed one with an untested build). A game restart is needed for the new archive. Not verified: the Round 5b/5c measurements say the entry lurch's size follows how far the loop's first pose is from the standing pose, not the blend duration (a 3x longer blend did not make it gentler there), so the longer enter may soften the pose switch less than the exit does; the exit's 0.2 s was the shortest blend of the three.
+
+Tests (`bridge/companion-gestures.test.mjs`): the groups cover every idle and match the data file; Johnny over thousands of picks never plays two look-alikes in a row and his two arms-crossed idles never follow each other; the same with a busy hand; the all-one-group fallback keeps the earlier rules and keeps turning; an older catalog behaves as before; Judy alternates; `idleBlend` is 0.6-1.0 s, longer than vanilla and passed through as set; the build (skipped when the extracted data is not on the machine) writes the blends into every idle copy and leaves stances and seats alone; the hold after an exit follows the catalog's blend-out (0.8 s, 1.5 s, none); the exit signal stays at the cycle end whatever the blend and the copy is held for the blend that follows. Three older tests changed (the hold after an exit is 0.8 s in two of them, prop removal waits for the blend-out in one).
+
+To check live (after the archive rebuild and a game restart; Body gestures On, Developer mode): 1. Johnny over ten minutes: no two arms-crossed idles in a row (`flavour-begin` lines: `convai_idle_johnny_crossed` and `convai_idle_generic_arms_crossed` never adjacent). 2. The start and end of each idle: the pose should ease in and out over about a second with no snap to the base stance; say if the end is still abrupt (the forced blend can go to 1.0-1.2 s) or the start still lurches. 3. The cigarette and glasses idles: the item leaves the hand after the blend-out, not during it.
