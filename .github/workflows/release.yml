@@ -152,12 +152,20 @@ jobs:
           # A manual run tags the commit it was started from; a tag run already has its tag.
           # --latest: always mark the newest build as the Latest release.
           $createArgs = @('release', 'create', $tag, '--repo', $env:GITHUB_REPOSITORY, '--target', $env:GITHUB_SHA, '--title', "Cyberpunk Convai $version", '--notes-file', $notes, '--latest')
-          (Get-Content packaging/PLAYER_README.md -Raw) + "`n## Checksums`n`nSHA-256 values for the files on this page are in SHA256SUMS-runtime.txt below. Each optional pack on Hugging Face has its own SHA256SUMS file next to it.`n" | Set-Content $notes -Encoding utf8
+          # The release page is long and its files sit at the very bottom under Assets, so the notes start by saying so, with direct links.
+          # This note is only on the release page, not in the README.txt inside the zips.
+          $base = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$tag"
+          $download = "> **The download files are at the very bottom of this page, under Assets.** Scroll all the way down, or use these links:`n>`n> - [CyberpunkConvai-Scripts-$version.zip]($base/CyberpunkConvai-Scripts-$version.zip): the mod itself (also on Nexus Mods)`n> - [CyberpunkConvai-Runtime-$version.zip]($base/CyberpunkConvai-Runtime-$version.zip): the Runtime, with the Pocket TTS voices`n>`n> Then follow **Install** below.`n`n"
+          $download + (Get-Content packaging/PLAYER_README.md -Raw) + "`n## Checksums`n`nSHA-256 values for the files on this page are in SHA256SUMS-runtime.txt below. Each optional pack on Hugging Face has its own SHA256SUMS file next to it.`n" | Set-Content $notes -Encoding utf8
           Copy-Item "$env:OUT\packages\SHA256SUMS.txt" "$env:OUT\packages\SHA256SUMS-runtime.txt"
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
           if ($LASTEXITCODE -ne 0) {
             gh @createArgs
             if ($LASTEXITCODE -ne 0) { throw 'Could not create the release.' }
+          } else {
+            # A rebuild of an existing release refreshes its notes too, so they match the README.txt in the new zips.
+            gh release edit $tag --repo $env:GITHUB_REPOSITORY --notes-file $notes
+            if ($LASTEXITCODE -ne 0) { throw 'Could not update the release notes.' }
           }
           $files = @(Get-ChildItem "$env:OUT\packages" -Filter *.zip | ForEach-Object FullName)
           gh release upload $tag --repo $env:GITHUB_REPOSITORY --clobber @files "$env:OUT\packages\SHA256SUMS-runtime.txt"

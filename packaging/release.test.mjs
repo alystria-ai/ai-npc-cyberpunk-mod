@@ -677,3 +677,15 @@ test('the build pre-encodes the Mistral voice references with the bridge code an
   const workflow = await readFile(resolve(project, '.github/workflows/release.yml'), 'utf8');
   assert.equal(workflow.split('choco install ffmpeg').length - 1, 2, 'the Runtime and OmniVoice jobs install ffmpeg');
 });
+
+test('the release notes open with where the download files are, and a rebuild refreshes them', async () => {
+  const workflow = await workflowText();
+  assert.match(workflow, /very bottom of this page, under Assets/);
+  assert.match(workflow, /releases\/download\/\$tag/);
+  assert.match(workflow, /CyberpunkConvai-Scripts-\$version\.zip/);
+  assert.match(workflow, /CyberpunkConvai-Runtime-\$version\.zip/);
+  assert.match(workflow, /\$download \+ \(Get-Content packaging\/PLAYER_README\.md -Raw\)/);
+  assert.match(workflow, /gh release edit \$tag --repo \$env:GITHUB_REPOSITORY --notes-file \$notes/);
+  // The pointer lives only on the release page: README.txt in the zips is PLAYER_README.md as it is.
+  assert.doesNotMatch(await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8'), /under Assets/);
+});
