@@ -7,15 +7,15 @@ How the player release is built, what it contains and how it starts. Players rea
 
 | Package | Where players get it | Contents |
 |---|---|---|
-| `CyberpunkConvai-Scripts-<v>.zip` | Nexus Mods | Text only: the CET Lua mod, redscript, the four JSON catalogs the Lua reads, `README.txt` and `release.json`. |
-| `CyberpunkConvai-Runtime-<v>.zip` | GitHub release of this repository | Everything else needed to play: the RED4ext launcher, bundled Node, Chrome for Testing and Python, the bridge, the Pocket voice and lip-sync models, voice references, game archives and the Audioware reply bank. |
-| `CyberpunkConvai-OmniPack-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and the OmniVoice references. |
-| `CyberpunkConvai-LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip: the llama-server Vulkan build, the embedding model and the chat model, whole. |
-| `CyberpunkConvai-LocalAI-Lite-<v>.zip` | Hugging Face | Optional Local AI pack with Qwen3.5-2B (about 1.5 GB), the same server and embedding model. |
-| `CyberpunkConvai-Mature-Lite-<v>.zip`, `CyberpunkConvai-Mature-Standard-<v>.zip` | Hugging Face | The two optional Mature packs (opt-in build, below), one uncensored model each, each with its own marker (`manifest.mature-lite.json`, `manifest.mature-standard.json`) so either works alone. |
+| `AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip` | Nexus Mods | Text only: the CET Lua mod, redscript, the four JSON catalogs the Lua reads, `README.txt` and `release.json`. |
+| `AI-NPC-Cyberpunk-Mod-Runtime-<v>.zip` | GitHub release of this repository | Everything else needed to play: the RED4ext launcher, bundled Node, Chrome for Testing and Python, the bridge, the Pocket voice and lip-sync models, voice references, game archives and the Audioware reply bank. |
+| `AI-NPC-Cyberpunk-Mod-OmniPack-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and the OmniVoice references. |
+| `AI-NPC-Cyberpunk-Mod-LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip: the llama-server Vulkan build, the embedding model and the chat model, whole. |
+| `AI-NPC-Cyberpunk-Mod-LocalAI-Lite-<v>.zip` | Hugging Face | Optional Local AI pack with Qwen3.5-2B (about 1.5 GB), the same server and embedding model. |
+| `AI-NPC-Cyberpunk-Mod-Mature-Lite-<v>.zip`, `AI-NPC-Cyberpunk-Mod-Mature-Standard-<v>.zip` | Hugging Face | The two optional Mature packs (opt-in build, below), one uncensored model each, each with its own marker (`manifest.mature-lite.json`, `manifest.mature-standard.json`) so either works alone. |
 
-The optional packs are hosted in one Hugging Face model repository, `alystria-ai/cyberpunk-convai-packs`, in a folder per
-version (`0.2/CyberpunkConvai-OmniPack-0.2.zip`, with `0.2/SHA256SUMS-omni.txt` beside it). Each pack is ONE zip: no `-partNofM` zips
+The optional packs are hosted in one Hugging Face model repository, `alystria-ai/ai-npc-cyberpunk-mod-packs`, in a folder per
+version (`0.2/AI-NPC-Cyberpunk-Mod-OmniPack-0.2.zip`, with `0.2/SHA256SUMS-omni.txt` beside it). Each pack is ONE zip: no `-partNofM` zips
 and no `.partN` files inside. GitHub's 2 GiB per-file limit was the only reason for parts, and Hugging Face has no such limit. A model
 over 4 GiB (the standard Local AI model, the good Mature model) sits whole in a ZIP64 zip (`packaging/lib/zip.mjs` writes ZIP64 only
 where an entry or the archive needs it; Windows Explorer, PowerShell's Expand-Archive, 7-Zip and tar read it). The repository is private
@@ -40,7 +40,7 @@ Releases are numbered `0.N`: 0.1, 0.2, 0.3, ..., and a hotfix of one release is 
 The first build (2026-10-07, a private-repository test of the pipeline) was made as `2077.1` and
 renamed to `v0.1` on 2026-10-16 (title, tag and file names; the files inside were not rebuilt); the version check still accepts the old `2077.N` form. The tag is `v` + the
 number (`v0.2`) and the workflow accepts both forms (`v0.2`, `v0.2.1`); a manual run takes the number
-without the `v`. The same string goes into the package file names (`CyberpunkConvai-Scripts-0.2.zip`), the release title, both
+without the `v`. The same string goes into the package file names (`AI-NPC-Cyberpunk-Mod-Scripts-0.2.zip`), the release title, both
 `release.json` files and the OmniVoice `omni-pack.json`. The only version check at run time is
 `start-service.mjs` comparing the Scripts and Runtime strings for equality, so any form works; the
 builder accepts two to four numbers with an optional `-pre`/`+build` suffix
@@ -52,7 +52,7 @@ tool `test-release-install.mjs` matches package files by exact version, so 0.2 n
 ## Installed layout
 
 ```
-red4ext/plugins/CyberpunkConvai/
+red4ext/plugins/AiNpcCyberpunkMod/
   CyberpunkConvai.dll        launcher (native/autostart, compiled in the build)
   launcher.ini               UTF-16: %PLUGIN%\app\node\node.exe app\launcher\start-service.mjs
   app/                       the application, replaced by every update
@@ -74,9 +74,9 @@ red4ext/plugins/CyberpunkConvai/
     local-ai/                the Local AI pack(s), when installed (llama/, models/, licenses/, manifest.*.json)
   voices/                    reference clips (outside app/: the Omni worker requires it)
     prepared/                the Mistral voice's references, already cut and encoded (see below)
-red4ext/plugins/CyberpunkConvaiNative/
+red4ext/plugins/AiNpcCyberpunkModNative/
   CyberpunkConvaiNative.dll  the native core plugin (native/core, compiled in the build) and its licence texts
-bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/
+bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/
   *.lua, locales/, *.json    Scripts package
   data/                      player state, created on first start
   runtime/                   Lua <-> bridge exchange files
@@ -111,14 +111,14 @@ they ignore any Python installed on the machine.
 
 ### The native plugin and `native-off.txt`
 
-`red4ext/plugins/CyberpunkConvaiNative/CyberpunkConvaiNative.dll` is built from `native/core` in the release build
+`red4ext/plugins/AiNpcCyberpunkModNative/CyberpunkConvaiNative.dll` is built from `native/core` in the release build
 (the CMake project that `scripts/Build-NativeCore.ps1` drives, MSVC from Visual Studio 2022, static CRT, `/Brepro`; the RED4ext SDK
 is fetched by CMake at the commit pinned in `native/core/CMakeLists.txt`). The Runtime job of the workflow checks the toolchain
 before building and the clean-install test inspects the DLL with `convai_plugin_host.exe` (it checks the file without running game
 code). The package works without it: `--no-native` leaves it out and the Lua falls back to its own path for every system
 (`mod/native-core.lua`). The plugin's licence texts (RED4ext.SDK, yyjson) sit next to the DLL.
 
-`bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/runtime/native-off.txt` ships with exactly `actuator`, `vehicles`,
+`bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/runtime/native-off.txt` ships with exactly `actuator`, `vehicles`,
 `chauffeur`, `passage` and `faces`: the systems that are not yet proven in the real game start switched off. One name per line,
 `#` starts a comment, `all` switches everything off; the plugin polls the file about once a second and the Lua reads it too. A
 **missing file means every system is on**, so the file is part of the package, and a player turns a system on by deleting its line.
@@ -129,7 +129,7 @@ The list lives in `native.off` in `packaging/release.config.json`; change it the
 Two optional downloads (`docs/LOCAL_AI.md`): `localai-standard` (Gemma 4 E4B) and `localai-lite` (Qwen3.5-2B). Each holds the
 `llama-server` Vulkan build b11560 (only the server and its DLLs), the granite embedding model, one chat model, a manifest fragment
 (`manifest.standard.json` or `manifest.lite.json`, merged by `bridge/local-ai-pack.mjs`), the licence texts and the notices, under
-`red4ext/plugins/CyberpunkConvai/app/local-ai/`. The two packs repeat the shared server, embedding and notice files byte for byte, so
+`red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/`. The two packs repeat the shared server, embedding and notice files byte for byte, so
 extracting both only overwrites identical bytes. The chat model ships whole (no parts): `bridge/local-ai-pack.mjs` finds the model file directly, and
 `assemble-parts.mjs` only joins parts that an earlier release left behind (it finds no `.parts.json` in a current install and does nothing). Every file is the unmodified upstream file, pinned in the
 `localAi` block of `release.config.json` by URL, revision and SHA-256; a developer folder can stand in with `--models local`.
@@ -170,6 +170,33 @@ The Convai key is built into the Runtime package at `app/defaults/service.txt` f
 anyone can use their own account (with their own `characters.json`). Do not describe the built-in
 key in player-facing text. The key is stored scrambled (`convai-key-v1 ...`, not an `api-key = ...` line;
 `bridge/key-codec.mjs`) and the bridge limits turns on that key per day (docs/OWN_CONVAI_KEY.md, "Daily limit on the shared plan").
+
+### Carry-over from the old name (CyberpunkConvai)
+
+The mod was called Cyberpunk Convai until 0.2: its folders were `mods/CyberpunkConvai`, `red4ext/plugins/CyberpunkConvai` and
+`red4ext/plugins/CyberpunkConvaiNative` (`release.config.json` > `legacy` holds the two old names). The DLL file names did not
+change, so a hand rename of the three folders followed by an extract is airtight. For a plain extract over an old install:
+
+- **Stand-ins.** The Scripts zip ships a do-nothing `mods/CyberpunkConvai/init.lua` (`packaging/release-data/legacy-init.lua`), the
+  Runtime zip ships `red4ext/plugins/CyberpunkConvai/launcher.ini` with `enabled=0` and `mods/CyberpunkConvai/runtime/native-off.txt`
+  with `all`. They overwrite the old files at the same paths, so the old copy is inert even before the new service runs
+  (the final guard in `build-release.mjs` allows exactly that launcher.ini).
+- **Phase A, `adoptLegacyInstall`** (`packaging/runtime/migrate-legacy.mjs`, called by `start-service.mjs` before the data folder is
+  read; a few stat calls when there is no old folder). It retires the old copy first (`init.lua` and the DLLs renamed to
+  `*.migrated`), then moves the player state into the new folders: rename, or copy plus SHA-256 verification when a rename is
+  refused, and the source is removed only after verification. State files (settings, keys, memories, phone history) keep the OLD
+  content and the displaced new file goes to `data/legacy-migration/replaced/<tag>/`; package files (packs, voices, `native-off.txt`)
+  keep the NEW content; unknown leftovers go to `data/legacy-migration/leftovers/`. Logs, locks, pids and live service files
+  are not carried. CET's `bindings.json` key is renamed textually (the numbers exceed 2^53) after a `.pre-ai-npc-rename.bak` copy.
+  The report is `data/legacy-migration.json`.
+- **Phase B, `cleanupLegacyInstall`** runs 45 s after the start, off the main path, and deletes the old folders. A folder that had
+  errors in phase A, or a locked file, only postpones the removal to the next start; nothing is deleted before it was verified.
+- **Dev machines:** `scripts/Migrate-LegacyInstall.mjs --game <folder> [--dry-run]` runs both phases at once (it refuses while the
+  game runs) and `scripts/Install-DevelopmentMod.ps1` calls it first.
+- **Tests:** `packaging/migrate-legacy.test.mjs` (fake game folder with old-folder state, conflicts, copy fallback, failed
+  verification, locked files, bindings, and an end-to-end `start-service.mjs --prepare-only`) and `packaging/test-release-install.mjs`.
+- Kept on purpose under the old name: `r6/scripts/CyberpunkConvai` and `r6/audioware/CyberpunkConvai` (redscript compiles before
+  RED4ext, so a renamed folder would give duplicate classes on an update-over install).
 
 ## Building
 
@@ -235,7 +262,7 @@ To try a build in the real game, remove the development launcher first
 `v0.N` tag. Job 1 builds and install-tests Scripts + Runtime on `windows-2022` (Visual Studio 2022; `windows-2025` moved to Visual Studio 2026), keeps the Scripts
 zip as a workflow artifact (for Nexus), and creates the GitHub release `v0.N` in this same
 repository, uploading the packages to it. Job 2 builds the OmniVoice pack and job 3 (a matrix of `standard` and `lite`) the two Local AI
-packs; each uploads its zip to the Hugging Face repository `alystria-ai/cyberpunk-convai-packs` (below), not to the GitHub release. Large packages are not stored as workflow artifacts (private-repository artifact storage
+packs; each uploads its zip to the Hugging Face repository `alystria-ai/ai-npc-cyberpunk-mod-packs` (below), not to the GitHub release. Large packages are not stored as workflow artifacts (private-repository artifact storage
 is small).
 
 The release is published immediately, not left as a draft (the manual run has a `publish` switch
@@ -279,7 +306,7 @@ phone analyser (not started when the lip-sync model is present).
 
 ## Licences to keep in view
 
-The project's own code is under the Cyberpunk Convai Use License (`LICENSE`, modelled on the
+The project's own code is under the AI NPC Cyberpunk Mod Use License (`LICENSE`, modelled on the
 licence of the AI NPC Companions System for The Blood of Dawnwalker in the same GitHub
 organisation): free use, modification and redistribution, provided distributed modified versions
 with AI character conversations keep a selectable Convai option. It is source-available, not

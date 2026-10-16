@@ -74,7 +74,7 @@ Audioware was reported just as quiet, so it would not fix the level.
 
 ## Settings and fallback
 
-`<game>/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/runtime/dialogue-level.json`,
+`<game>/bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/runtime/dialogue-level.json`,
 read by the bridge every settings poll (no restart):
 
 ```json

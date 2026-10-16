@@ -1,10 +1,10 @@
-# Hugging Face page text: Cyberpunk Convai: Mature packs (18+)
+# Hugging Face page text: AI NPC Cyberpunk Mod: Mature packs (18+)
 
-Where it goes: only as optional files on this project's Hugging Face page (https://huggingface.co/alystria-ai/cyberpunk-convai-packs, in the folder of the version), beside the Local AI packs. There are two packs, Mature lite (`CyberpunkConvai-Mature-Lite-<version>.zip`) and Mature standard (`CyberpunkConvai-Mature-Standard-<version>.zip`), each one zip with no parts, uploaded either by the release workflow's opt-in `mature` job (Actions > Release > Run workflow, tick `mature`; it builds each pack from the private bucket's mirror in its own job, uploads it with its `SHA256SUMS-mature-<tier>.txt`, and never runs on a tag push) or by hand (`python packaging/upload-packs.py --version <version> --pack mature-lite --packages <folder>`). Never on Nexus Mods and not on the GitHub release.
+Where it goes: only as optional files on this project's Hugging Face page (https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs, in the folder of the version), beside the Local AI packs. There are two packs, Mature lite (`AI-NPC-Cyberpunk-Mod-Mature-Lite-<version>.zip`) and Mature standard (`AI-NPC-Cyberpunk-Mod-Mature-Standard-<version>.zip`), each one zip with no parts, uploaded either by the release workflow's opt-in `mature` job (Actions > Release > Run workflow, tick `mature`; it builds each pack from the private bucket's mirror in its own job, uploads it with its `SHA256SUMS-mature-<tier>.txt`, and never runs on a tag push) or by hand (`python packaging/upload-packs.py --version <version> --pack mature-lite --packages <folder>`). Never on Nexus Mods and not on the GitHub release.
 
 ## Short description
 
-Optional 18+ models for Cyberpunk Convai, in two packs (Mature lite and Mature standard, each works alone). They replace the Local AI models' built-in refusals with uncensored models, so that the main mod's **Mature content** setting has its full effect: companions can swear, talk about violence, drugs and dark themes, and flirt or be intimate with V, in character and in the game's adult tone. Hard limits always stay on (nothing involving minors, nothing without consent, nothing about real people, no real-world harm instructions, no hate).
+Optional 18+ models for AI NPC Cyberpunk Mod, in two packs (Mature lite and Mature standard, each works alone). They replace the Local AI models' built-in refusals with uncensored models, so that the main mod's **Mature content** setting has its full effect: companions can swear, talk about violence, drugs and dark themes, and flirt or be intimate with V, in character and in the game's adult tone. Hard limits always stay on (nothing involving minors, nothing without consent, nothing about real people, no real-world harm instructions, no hate).
 
 ## Description
 
@@ -26,7 +26,7 @@ The main mod has a **Mature content** setting (Settings > Conversation provider,
 **Requirements**
 
 - You are 18 or older.
-- Cyberpunk Convai (the main mod, Scripts and Runtime, same version) and its requirements.
+- AI NPC Cyberpunk Mod (the main mod, Scripts and Runtime, same version) and its requirements.
 - A Local AI pack (standard or lite) from this page, working on your computer.
 - Free disk space: about 2.7 GB for Mature lite, about 5.3 GB for Mature standard.
 

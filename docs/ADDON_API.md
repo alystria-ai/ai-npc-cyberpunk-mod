@@ -1,14 +1,14 @@
 # Add-on API
 
-Add-ons are separate CET mods that give Cyberpunk Convai new voices. The first two are Skippy, a talking smart pistol that
+Add-ons are separate CET mods that give AI NPC Cyberpunk Mod new voices. The first two are Skippy, a talking smart pistol that
 comments on fights (Oct 20), and the Delamain cab's voice (Oct 25). Each add-on has its own Nexus page, its own zip and its own
 repository: `alystria-ai/cyberpunk-convai-skippy` and `alystria-ai/cyberpunk-convai-delamain` (private until their launch dates;
 see "The two add-ons" below). An add-on depends on the main mod, but the main mod never depends on an add-on.
 
 API version: **1.0** (`mod/addons.lua` `M.API_VERSION`, `bridge/addons.mjs` `ADDON_API_VERSION`). An add-on asks for a
 version, for example `requires = '1.0'`. A main mod with the same major version and an equal or higher minor version serves it.
-Any other version gets one notice: "Skippy needs a newer Cyberpunk Convai (add-on API 1.2; this version has 1.0). Update
-Cyberpunk Convai."
+Any other version gets one notice: "Skippy needs a newer AI NPC Cyberpunk Mod (add-on API 1.2; this version has 1.0). Update
+AI NPC Cyberpunk Mod."
 
 ## Guarantees
 
@@ -29,7 +29,7 @@ Cyberpunk Convai."
 
 ```
 add-on folder (its own CET mod)              main mod
-  init.lua  ── GetMod('CyberpunkConvai').addons ──> mod/addons.lua (registration, remark scheduler, events, settings)
+  init.lua  ── GetMod('AiNpcCyberpunkMod').addons ──> mod/addons.lua (registration, remark scheduler, events, settings)
                                                         │ the same request / reply / lease files every automatic turn uses
   convai-addon.json  ── read at bridge start ──────> bridge/addons.mjs (AddonHost: persona rows, modes, blocks, journal)
   bridge.mjs (optional hooks) ─────────────────────> runAddonTurn in bridge/convai-bridge.mjs
@@ -51,8 +51,8 @@ my-addon/                            (addons/example/ here; Skippy and Delamain 
   *.test.mjs                         tests (run by scripts/run-tests.mjs; never shipped)
 ```
 
-Installed path: `bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai<Name>/`, for example `CyberpunkConvaiSkippy` or
-`CyberpunkConvaiDelamainCab`. The bridge finds add-ons the way CET does: in each folder of the CET mods folder that has a
+Installed path: `bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod<Name>/`, for example `AiNpcCyberpunkModSkippy` or
+`AiNpcCyberpunkModDelamainCab`. The bridge finds add-ons the way CET does: in each folder of the CET mods folder that has a
 `convai-addon.json`. For development, set `CYBERPUNK_CONVAI_ADDONS` to a `;`-separated list of add-on folders.
 `addons/example/` is a complete, tested add-on to copy.
 
@@ -135,9 +135,9 @@ The add-on runs as its own CET mod. It reaches the main mod in `onInit`.
 local Skippy = {}
 
 registerForEvent('onInit', function()
-    local main = GetMod('CyberpunkConvai')
+    local main = GetMod('AiNpcCyberpunkMod')
     local api = type(main) == 'table' and main.addons or nil
-    if not api then print('[Skippy] Cyberpunk Convai is not installed; Skippy stays off.') return end
+    if not api then print('[Skippy] AI NPC Cyberpunk Mod is not installed; Skippy stays off.') return end
     local handle, reason = api.register({id = 'skippy', name = 'Skippy', version = '1.0.0', requires = '1.0'})
     if not handle then print('[Skippy] ' .. tostring(reason)) return end
     Skippy.handle = handle
@@ -164,7 +164,7 @@ end)
 return Skippy
 ```
 
-`GetMod('CyberpunkConvai')` is `init.lua`'s return value, `{addons = <api>}`. CET runs `onInit` for every mod before gameplay
+`GetMod('AiNpcCyberpunkMod')` is `init.lua`'s return value, `{addons = <api>}`. CET runs `onInit` for every mod before gameplay
 starts, so this lookup works from the add-on's `onInit`. A main mod older than the API returns no `addons` field, and the add-on
 prints one line and stays off.
 
@@ -537,7 +537,7 @@ The bridge chooses the route for each add-on turn (`AddonHost.routeFor`), from w
 4. Otherwise nothing.
 
 When nothing can answer, the reply carries `errorCode: 'addon-provider'`. The game then shows one notice: "Skippy needs a free
-Mistral key or the Local AI pack. Set it up under Conversation provider in Cyberpunk Convai's settings." The add-on's remarks
+Mistral key or the Local AI pack. Set it up under Conversation provider in AI NPC Cyberpunk Mod's settings." The add-on's remarks
 pause for two minutes. For remarks the notice is shown once per session; a message V typed always gets it.
 
 **The default and the budget.**
@@ -770,8 +770,8 @@ node scripts/addon-eval.mjs --addon addons/example --script addons/example/eval/
 
 ```
 node packaging/build-addon.mjs addons/example --out dist/addons       # any add-on folder, in this repository or outside it
-→ dist/addons/CyberpunkConvai-Example-1.0.0.zip
-    bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvaiExample/{init.lua, convai-addon.json, bridge.mjs}
+→ dist/addons/AI-NPC-Cyberpunk-Mod-Example-1.0.0.zip
+    bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkModExample/{init.lua, convai-addon.json, bridge.mjs}
 ```
 
 The two shipping add-ons build their own zips with a self-contained copy of this builder (`tools/build.mjs` in each repository; same
@@ -812,7 +812,7 @@ check the list of calls.
 
 ## What the game must confirm live
 
-1. `GetMod('CyberpunkConvai')` from another mod's `onInit` returns the API (CET load order).
+1. `GetMod('AiNpcCyberpunkMod')` from another mod's `onInit` returns the API (CET load order).
 2. The voice of a `'player'` speaker plays as V's own audio, and of a `'vehicle'` speaker from the car (Audioware emitter on V and
    on vehicles). Subtitles show the speaker's name.
 3. A remark's latency from `handle:remark` to the first audio on Mistral (target under 2 s, with `prepare` called at the start of

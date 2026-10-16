@@ -42,7 +42,7 @@ Size in lines. "Per frame" means called from onUpdate every frame; "tick" is the
 ## 2. Architecture
 
 **Plugin.** `native/core` builds `CyberpunkConvaiNative.dll`, a RED4ext v1 plugin installed at
-`red4ext/plugins/CyberpunkConvaiNative/`. Layout:
+`red4ext/plugins/AiNpcCyberpunkModNative/`. Layout:
 
 ```
 native/core/
@@ -114,7 +114,7 @@ time 2.5 s ahead (2 ms resolution after 9 hours). `registration_tests.cpp` keeps
 `dist/native-core/CyberpunkConvaiNative.dll`.
 
 **Packaging (after an in-game pass).** `packaging/build-release.mjs` runs Build-NativeCore.ps1 and
-adds the DLL to the Runtime package at `red4ext/plugins/CyberpunkConvaiNative/`; `release.yml`
+adds the DLL to the Runtime package at `red4ext/plugins/AiNpcCyberpunkModNative/`; `release.yml`
 runs on a windows-2022 runner (VS 2022 and CMake are preinstalled) with the pinned SDK fetched by
 CMake. RED4ext is already a Nexus requirement.
 

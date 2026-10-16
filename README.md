@@ -1,13 +1,13 @@
-<h1 align="center">CYBERPUNK CONVAI</h1>
+<h1 align="center">AI NPC CYBERPUNK MOD</h1>
 
 <p align="center"><b>Night City talks back.</b><br>
 Speak to Cyberpunk 2077's characters in your own voice and hear them answer in theirs.</p>
 
 <p align="center">
-  <a href="https://github.com/alystria-ai/cyberpunk-convai/releases"><img alt="Version 0.2" src="https://img.shields.io/badge/VERSION-0.2-FCEE0A?style=for-the-badge&labelColor=000000"></a>
+  <a href="https://github.com/alystria-ai/ai-npc-cyberpunk-mod/releases"><img alt="Version 0.2" src="https://img.shields.io/badge/VERSION-0.2-FCEE0A?style=for-the-badge&labelColor=000000"></a>
   <a href="#requirements"><img alt="Cyberpunk 2077 2.31" src="https://img.shields.io/badge/CYBERPUNK_2077-2.31-FCEE0A?style=for-the-badge&labelColor=000000"></a>
   <a href="#requirements"><img alt="Windows 10 and 11, 64-bit" src="https://img.shields.io/badge/PLATFORM-WINDOWS_10_%7C_11-00F0FF?style=for-the-badge&labelColor=000000"></a>
-  <a href="LICENSE"><img alt="Cyberpunk Convai Use License 1.1" src="https://img.shields.io/badge/LICENCE-USE_LICENSE_1.1-00F0FF?style=for-the-badge&labelColor=000000"></a>
+  <a href="LICENSE"><img alt="AI NPC Cyberpunk Mod Use License 1.1" src="https://img.shields.io/badge/LICENCE-USE_LICENSE_1.1-00F0FF?style=for-the-badge&labelColor=000000"></a>
 </p>
 
 <p align="center">
@@ -22,13 +22,13 @@ Speak to Cyberpunk 2077's characters in your own voice and hear them answer in t
 
 Invite a character along and they walk at your shoulder through Night City. Ask them something out loud, into your own microphone, and they answer in their own voice: lips moving with the words, eyes on you, hands talking when the story runs long. Sit down on a couch and they sit beside you. Get in the car and they ride along, or take the wheel if you ask. Later, text them from V's phone, or ring them on a holocall and watch them pick up.
 
-Cyberpunk Convai gives the game's named characters, from Panam and Johnny to Takemura, Kerry, River and Alt Cunningham, personalities researched from the game's own lore, memories that last, and voices that sound like the characters you know. And the street answers too: the ganger on the corner, the NCPD officer, the ripperdoc and the bartender each talk back as their kind of person.
+AI NPC Cyberpunk Mod gives the game's named characters, from Panam and Johnny to Takemura, Kerry, River and Alt Cunningham, personalities researched from the game's own lore, memories that last, and voices that sound like the characters you know. And the street answers too: the ganger on the corner, the NCPD officer, the ripperdoc and the bartender each talk back as their kind of person.
 
 ## Free, three ways
 
-- **Convai free tier, the default.** Install, start the game, talk. No account, no key, nothing to set up. It is the most refined option and the one the characters were written for, with 100 turns a day.
-- **Mistral free plan.** Make a free Mistral account, paste its key once, and get the fastest cloud replies, about 5,000 turns a day. The same key unlocks **Voxtral**, each character's voice made in the cloud, so neither the text nor the voice costs your PC anything.
-- **Local AI.** Download a Local AI pack and your characters think and speak entirely on your own PC: no account, no key, no internet, no limit. A lite model keeps smaller graphics cards in the game.
+- **Fully local and free.** Download a Local AI pack and your characters think and speak entirely on your own PC, with the Pocket TTS voices: no account, no key, no internet, no limit. A lite model keeps smaller graphics cards in the game.
+- **Mistral with a free account.** Make a free Mistral account, paste its key once, and get the fastest cloud replies, about 5,000 turns a day. The same key unlocks **Voxtral**, each character's voice made in the cloud, so neither the text nor the voice costs your PC anything.
+- **Convai free tier, no setup.** It is what you get the moment you install: no account, no key, nothing to set up, 100 turns a day. Install, start the game, talk.
 
 The voices are free too. The default, **Pocket TTS**, gives every character a voice that sounds like them in the game, running right on your processor, so a fresh install sounds like Night City from the first line. With a Mistral key, **Voxtral** does the same in the cloud.
 
@@ -43,25 +43,28 @@ Close the game. Extract each download into your Cyberpunk 2077 folder (the one w
 | # | Download | Where from | Size | Needed? |
 |---|---|---|---|---|
 | 1 | **Scripts** | Nexus Mods | small, text only | Yes |
-| 2 | **Runtime** | [GitHub release](https://github.com/alystria-ai/cyberpunk-convai/releases), same version as Scripts | about 3 GB free space | Yes. It holds the Pocket TTS voices |
-| 3 | **OmniVoice pack** | [CyberpunkConvai-OmniPack-0.2.zip](https://huggingface.co/alystria-ai/cyberpunk-convai-packs/blob/main/0.2/CyberpunkConvai-OmniPack-0.2.zip) | about 15 GB free while installing, 9 GB installed | Optional: a richer voice for NVIDIA cards |
-| 4 | **Local AI standard** | [CyberpunkConvai-LocalAI-Standard-0.2.zip](https://huggingface.co/alystria-ai/cyberpunk-convai-packs/blob/main/0.2/CyberpunkConvai-LocalAI-Standard-0.2.zip) | about 5.3 GB | Optional: fully local conversations, best replies |
-| 5 | **Local AI lite** | [CyberpunkConvai-LocalAI-Lite-0.2.zip](https://huggingface.co/alystria-ai/cyberpunk-convai-packs/blob/main/0.2/CyberpunkConvai-LocalAI-Lite-0.2.zip) | about 1.5 GB | Optional: fully local conversations on smaller cards |
-| 6 | **Mature lite** | [CyberpunkConvai-Mature-Lite-0.2.zip](https://huggingface.co/alystria-ai/cyberpunk-convai-packs/blob/main/0.2/CyberpunkConvai-Mature-Lite-0.2.zip) | about 2.7 GB | Optional, adults only, needs a Local AI pack. See [Mature content](#mature-content-18) |
-| 7 | **Mature standard** | [CyberpunkConvai-Mature-Standard-0.2.zip](https://huggingface.co/alystria-ai/cyberpunk-convai-packs/blob/main/0.2/CyberpunkConvai-Mature-Standard-0.2.zip) | about 5.3 GB | Optional, adults only, needs a Local AI pack. See [Mature content](#mature-content-18) |
+| 2 | **Runtime** | [GitHub release](https://github.com/alystria-ai/ai-npc-cyberpunk-mod/releases), same version as Scripts | about 3 GB free space | Yes. It holds the Pocket TTS voices |
+| 3 | **OmniVoice pack** | [AI-NPC-Cyberpunk-Mod-OmniPack-0.2.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-OmniPack-0.2.zip) | about 15 GB free while installing, 9 GB installed | Optional: a richer voice for NVIDIA cards |
+| 4 | **Local AI standard** | [AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.zip) | about 5.3 GB | Optional: fully local conversations, best replies |
+| 5 | **Local AI lite** | [AI-NPC-Cyberpunk-Mod-LocalAI-Lite-0.2.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-LocalAI-Lite-0.2.zip) | about 1.5 GB | Optional: fully local conversations on smaller cards |
+| 6 | **Mature lite** | [AI-NPC-Cyberpunk-Mod-Mature-Lite-0.2.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-Mature-Lite-0.2.zip) | about 2.7 GB | Optional, adults only, needs a Local AI pack. See [Mature content](#mature-content-18) |
+| 7 | **Mature standard** | [AI-NPC-Cyberpunk-Mod-Mature-Standard-0.2.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-Mature-Standard-0.2.zip) | about 5.3 GB | Optional, adults only, needs a Local AI pack. See [Mature content](#mature-content-18) |
 
-Scripts come from Nexus Mods and the Runtime from the release page of this repository. The optional packs are on the mod's [Hugging Face page](https://huggingface.co/alystria-ai/cyberpunk-convai-packs), in a folder per version (`0.2`). Each pack is one zip file, so there are no parts to join, and each works on its own: install none, some or all. Use the same version number as the Scripts and Runtime, and extract the Runtime before the OmniVoice pack. If Windows' built-in extractor complains, use [7-Zip](https://www.7-zip.org).
+Scripts come from Nexus Mods and the Runtime from the release page of this repository. The optional packs are on the mod's [Hugging Face page](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs), in a folder per version (`0.2`). Each pack is one zip file, so there are no parts to join, and each works on its own: install none, some or all. Use the same version number as the Scripts and Runtime, and extract the Runtime before the OmniVoice pack. If Windows' built-in extractor complains, use [7-Zip](https://www.7-zip.org).
 
 The first start after installing takes a little longer while the service prepares itself.
 
 **Update.** Close the game and extract the new Scripts and Runtime (and any optional packs you use) over the old ones. Your conversations, memories and settings stay.
 
+**Updating from 0.1, when the mod was called Cyberpunk Convai.** The install folders now carry the new name. The cleanest way: before extracting, rename `bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai` to `AiNpcCyberpunkMod`, `red4ext\plugins\CyberpunkConvai` to `AiNpcCyberpunkMod` and `red4ext\plugins\CyberpunkConvaiNative` to `AiNpcCyberpunkModNative`, then extract over them. If you extract over the old folders instead, nothing is lost either: the first start moves your settings, keys, memories and Phone Chat history into the new folders, switches the old copy off so the two never run together, and removes the old folders a little later. What it did is written to `data\legacy-migration.json` in the new mod folder. Your CET key bindings are carried over in this case; after renaming by hand, set your keys again in CET's **Bindings**.
+
 **Uninstall.** Delete these from your Cyberpunk 2077 folder, and keep the frameworks if other mods use them:
 
-- `bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai` (this also deletes your conversations and settings)
-- `red4ext\plugins\CyberpunkConvai` (this also removes the OmniVoice, Local AI and Mature packs)
-- `red4ext\plugins\CyberpunkConvaiNative`
-- `r6\scripts\CyberpunkConvai` and `r6\audioware\CyberpunkConvai`
+- `bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod` (this also deletes your conversations and settings)
+- `red4ext\plugins\AiNpcCyberpunkMod` (this also removes the OmniVoice, Local AI and Mature packs)
+- `red4ext\plugins\AiNpcCyberpunkModNative`
+- `r6\scripts\CyberpunkConvai` and `r6\audioware\CyberpunkConvai` (these keep the old name on purpose)
+- anything still called `CyberpunkConvai` under `bin\x64\plugins\cyber_engine_tweaks\mods` or `red4ext\plugins`: leftovers of a 0.1 install, safe to delete
 - `archive\pc\mod\convai_facial.archive`, `convai_gestures.archive` and `cyberpunk_convai_ambient_driver_guard.archive`
 
 ## What you can do
@@ -95,22 +98,22 @@ Developed and tested with Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 
 
 ## First run
 
-1. **Bind your keys.** Open Cyber Engine Tweaks' **Bindings** and give a key to each Cyberpunk Convai action (see [Controls](#controls)). The mod never assigns or overwrites keys for you.
+1. **Bind your keys.** Open Cyber Engine Tweaks' **Bindings** and give a key to each AI NPC Cyberpunk Mod action (see [Controls](#controls)). The mod never assigns or overwrites keys for you.
 2. **Say something.** Face a character, press **talk by text**, type, press Enter. Or press **talk by voice**, wait for "Listening", speak, and press the same key again (or hold the key while you speak and let go).
 3. **Invite a companion.** Open the Companion Manager (your key, or Esc, then MCM, then Companion Manager), choose **Characters to invite** and press **Invite**. When the "joined" notice appears, go back to the game and she is there.
 4. **Make it yours.** In the Companion Manager choose **Settings**. **Conversation provider** and **Voices** are the two pages that change the most. Every change waits for **Apply**.
 
-Out of the box you get Convai free tier for the replies and Pocket TTS for the voice, each character sounding like themselves, running on your processor.
+Out of the box you get the Convai free tier for the replies and Pocket TTS for the voice, each character sounding like themselves, running on your processor.
 
 ## Controls
 
 | Key | What it does |
 |---|---|
-| **Cyberpunk Convai: talk by text** (CET binding) | Opens a private text conversation with the character you face |
-| **Cyberpunk Convai: talk by voice** (CET binding) | The microphone for a private conversation: tap to start and tap again to send, or hold it while you speak and let go |
-| **Cyberpunk Convai: group text chat** (CET binding) | Opens a text conversation with two or three nearby characters |
-| **Cyberpunk Convai: group voice chat** (CET binding) | The same microphone, for a group conversation |
-| **Cyberpunk Convai: companion manager** (CET binding) | Opens the Companion Manager |
+| **AI NPC Cyberpunk Mod: talk by text** (CET binding) | Opens a private text conversation with the character you face |
+| **AI NPC Cyberpunk Mod: talk by voice** (CET binding) | The microphone for a private conversation: tap to start and tap again to send, or hold it while you speak and let go |
+| **AI NPC Cyberpunk Mod: group text chat** (CET binding) | Opens a text conversation with two or three nearby characters |
+| **AI NPC Cyberpunk Mod: group voice chat** (CET binding) | The same microphone, for a group conversation |
+| **AI NPC Cyberpunk Mod: companion manager** (CET binding) | Opens the Companion Manager |
 | Hold **T**, then the **Chat** tab | Phone Chat: pick a contact and press the confirm key. **Enter** starts typing and sends, **Esc** stops typing |
 | **V** (the game's call key) on a Chat contact or inside a chat | Starts a holocall. Tap the phone button to hang up |
 | **J** / **L** on a contact in the phone's Contacts tab | Invites or dismisses that companion |
@@ -121,19 +124,19 @@ The microphone only ever starts when you press the key. A recording stops by its
 
 **Companion Manager > Settings > Conversation provider** chooses who writes your characters' replies. A change waits until no conversation is running and you choose **Apply**.
 
-| | **Convai free tier** (default) | **Convai API key** | **Mistral (free plan)** | **Local AI** |
-|---|---|---|---|---|
-| **Setup** | None | Paste your own Convai key | Free Mistral account, paste its key | Download a Local AI pack |
-| **Cost** | Free | Your Convai plan | Free | Free |
-| **Internet** | Needed | Needed | Needed | **Not needed** |
-| **Limit** | 100 turns a day (the service can change this), 12 a minute | Your Convai plan's limits | About 1 message a second, about 5,000 turns a day | None |
-| **Replies** | Most refined: stays in character best | Same as the free tier | Plainer. Smaller models hold a character less tightly and sometimes invent details | Standard: close to the free options. Lite: plainer |
-| **Reply speed** | A few seconds (2 to 3.5 s measured) | Same | Fastest cloud text: the voice can start a second or two after you send | Fast once the model is warm. The first reply after idle is slower |
-| **Memory kept** | On Convai's servers | On Convai's servers | On your computer | On your computer |
-| **Microphone** | Recognised by Convai | Recognised by Convai | Recognised on your computer (English) | Recognised on your computer (English) |
-| **Voices** | Any, including Convai's cloud voice | Any, including Convai's cloud voice | Pocket, OmniVoice or Voxtral | Pocket or OmniVoice |
-| **Sees your surroundings** | Yes | Yes | No | No |
-| **Graphics card** | Not needed | Not needed | Not needed | Needed (NVIDIA or AMD, with Vulkan) |
+|  | **Local AI** | **Mistral (free plan)** | **Convai free tier** (default) | **Convai API key** |
+| --- | --- | --- | --- | --- |
+| **Setup** | Download a Local AI pack | Free Mistral account, paste its key | None | Paste your own Convai key |
+| **Cost** | Free | Free | Free | Your Convai plan |
+| **Internet** | **Not needed** | Needed | Needed | Needed |
+| **Limit** | None | About 1 message a second, about 5,000 turns a day | 100 turns a day (the service can change this), 12 a minute | Your Convai plan's limits |
+| **Replies** | Standard: close to the free options. Lite: plainer | Plainer. Smaller models hold a character less tightly and sometimes invent details | Most refined: stays in character best | Same as the free tier |
+| **Reply speed** | Fast once the model is warm. The first reply after idle is slower | Fastest cloud text: the voice can start a second or two after you send | A few seconds (2 to 3.5 s measured) | Same |
+| **Memory kept** | On your computer | On your computer | On Convai's servers | On Convai's servers |
+| **Microphone** | Recognised on your computer (English) | Recognised on your computer (English) | Recognised by Convai | Recognised by Convai |
+| **Voices** | Pocket or OmniVoice | Pocket, OmniVoice or Voxtral | Any, including Convai's cloud voice | Any, including Convai's cloud voice |
+| **Sees your surroundings** | No | No | Yes | Yes |
+| **Graphics card** | Needed (NVIDIA or AMD, with Vulkan) | Not needed | Not needed | Not needed |
 
 Measured on one laptop; yours will differ, and Mistral's allowance is Mistral's to change.
 
@@ -159,7 +162,7 @@ Quick and free, with plainer replies than Convai's. Memory stays on your compute
 
 The language model runs on your own graphics card. No account, no key, no internet.
 
-1. Download a Local AI pack from the [Hugging Face page](https://huggingface.co/alystria-ai/cyberpunk-convai-packs) and extract it into the game folder ([Install](#install)).
+1. Download a Local AI pack from the [Hugging Face page](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs) and extract it into the game folder ([Install](#install)).
 2. Start the game. The **Local AI model** row shows "(Warming up)" while your card prepares the model, about a minute the first time.
 3. Choose **Local (needs Local AI pack)** as the provider and **Apply**.
 
@@ -180,7 +183,7 @@ Install neither, one or both. The **Local AI model** row lists what is installed
 
 ### Mature content (18+)
 
-**Settings > Conversation provider > Mature content** is off by default and for adults only. It works with Local AI only: turning it on selects Local AI, and choosing a cloud provider turns it off. With the standard models it changes language and tone, because those models refuse most adult material. The two optional **Mature packs**, Mature lite and Mature standard, on the [Hugging Face page](https://huggingface.co/alystria-ai/cyberpunk-convai-packs), add one model each without those refusals; either works alone. Fixed limits stay on for every model, with or without the packs. Details are in [the pack's notes](packaging/MATURE_PACK_README.md).
+**Settings > Conversation provider > Mature content** is off by default and for adults only. It works with Local AI only: turning it on selects Local AI, and choosing a cloud provider turns it off. With the standard models it changes language and tone, because those models refuse most adult material. The two optional **Mature packs**, Mature lite and Mature standard, on the [Hugging Face page](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs), add one model each without those refusals; either works alone. Fixed limits stay on for every model, with or without the packs. Details are in [the pack's notes](packaging/MATURE_PACK_README.md).
 
 ## Pick a voice
 
@@ -403,13 +406,13 @@ flowchart LR
 
 ### How Lua and the bridge talk
 
-There are no sockets between the game and the service. The Lua mod and the bridge exchange small JSON files in `bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/runtime/`: `last-input.json` (a turn request), `reply.json` (the answer), lease files (`reaction-lease.json`, `continuous-speech.json`, `knowledge-*.json`), command and state files (`memory-command.json`, `memory-status.json`, `own-key-command.json`, `mistral-state.json`, `speech-state.json`, `bridge-latency.json` and others). Writes are atomic (temp file then replace). The bridge wakes on a directory watcher (`bridge/file-wake.mjs`) with interval polls (50 ms for requests, 150 ms for the microphone, 500 ms for settings) kept as the fallback. When the native `io` system is loaded it replaces Lua's `io.open`/`os.rename` path for these files, because a native call costs 10 to 60 microseconds where a Lua file write costs several milliseconds under the game.
+There are no sockets between the game and the service. The Lua mod and the bridge exchange small JSON files in `bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/runtime/`: `last-input.json` (a turn request), `reply.json` (the answer), lease files (`reaction-lease.json`, `continuous-speech.json`, `knowledge-*.json`), command and state files (`memory-command.json`, `memory-status.json`, `own-key-command.json`, `mistral-state.json`, `speech-state.json`, `bridge-latency.json` and others). Writes are atomic (temp file then replace). The bridge wakes on a directory watcher (`bridge/file-wake.mjs`) with interval polls (50 ms for requests, 150 ms for the microphone, 500 ms for settings) kept as the fallback. When the native `io` system is loaded it replaces Lua's `io.open`/`os.rename` path for these files, because a native call costs 10 to 60 microseconds where a Lua file write costs several milliseconds under the game.
 
 Because the game never waits on the network, the Lua side stays simple: it writes a request and polls for a revision change.
 
 ### Native plugins
 
-`native/core` builds one DLL, `CyberpunkConvaiNative.dll`, in `red4ext/plugins/CyberpunkConvaiNative/`. It declares game runtime 2.31 (refused after a patch), registers one RTTI class per system all-or-nothing, wraps every native body in a guard, and switches a system off for the session after three faults. There is no `.reds` file, so a missing DLL cannot block game start. The systems are in `native/core/src/systems/`:
+`native/core` builds one DLL, `CyberpunkConvaiNative.dll`, in `red4ext/plugins/AiNpcCyberpunkModNative/`. It declares game runtime 2.31 (refused after a patch), registers one RTTI class per system all-or-nothing, wraps every native body in a guard, and switches a system off for the session after three faults. There is no `.reds` file, so a missing DLL cannot block game start. The systems are in `native/core/src/systems/`:
 
 | System | What it does | Default in the release |
 |---|---|---|
@@ -724,7 +727,7 @@ Companions look at V with a native look-at request that the controller owns exac
 
 Saved values are validated against these lists in `mod/manager.lua`; a damaged value falls back to the default without touching other settings.
 
-**Native gaze.** With the optional native plugin (`red4ext/plugins/CyberpunkConvaiNative`, system `gaze`), Lua still creates, queues and removes the event, so ownership and retry rules do not change, and `ConvaiNativeGaze.Fill(event, player, style, height, strength, seated)` configures it in one native call instead of the property and method calls Lua makes (the source headers say "30-odd" in `native/core/src/systems/gaze/GazeGame.hpp` and "about 40" in `GazeCore.hpp`; the figure depends on how the calls are counted). `Fill` returns built, declined (Lua builds it) or unavailable (Lua keeps its path for the session); a `gaze` line in `runtime/native-off.txt` forces the Lua path. The pure plan is in `native/core/src/systems/gaze/core/GazeCore.cpp`, tested against the Lua arithmetic. As of the last log entries (13 October) a first run reported `gaze=lua (class LookAtAddEvent not found)`, a fix uses the native class name `entLookAtAddEvent`, and a live re-check had not been recorded: whether native gaze works in the game is **not verified**, and the release plan ships only the native systems that pass the live check by 16 October.
+**Native gaze.** With the optional native plugin (`red4ext/plugins/AiNpcCyberpunkModNative`, system `gaze`), Lua still creates, queues and removes the event, so ownership and retry rules do not change, and `ConvaiNativeGaze.Fill(event, player, style, height, strength, seated)` configures it in one native call instead of the property and method calls Lua makes (the source headers say "30-odd" in `native/core/src/systems/gaze/GazeGame.hpp` and "about 40" in `GazeCore.hpp`; the figure depends on how the calls are counted). `Fill` returns built, declined (Lua builds it) or unavailable (Lua keeps its path for the session); a `gaze` line in `runtime/native-off.txt` forces the Lua path. The pure plan is in `native/core/src/systems/gaze/core/GazeCore.cpp`, tested against the Lua arithmetic. As of the last log entries (13 October) a first run reported `gaze=lua (class LookAtAddEvent not found)`, a fix uses the native class name `entLookAtAddEvent`, and a live re-check had not been recorded: whether native gaze works in the game is **not verified**, and the release plan ships only the native systems that pass the live check by 16 October.
 
 **Seated companions.** After the mount command has finished, with the vehicle and seat matching and V mounted in another seat of the same car, a passenger gets a gaze-only update after the same seat has been eligible for 0.5 s. Seated requests are wider (full 100 / 150, narrow 60 / 120, back 150) because V sits about 90 degrees off her axis, are solved in the car's space (`calculatePositionInParentSpace`) and leave the `Chest` part out so the hand-on-knee animation is not fought. The look is `full` up to about 8 m/s, with a 2 m/s margin so a speed that hovers there does not swap the request, and `side` at any higher speed. A driver gets no social look above 0.5 m/s. The Judy passenger pose was checked live (the head turns, the arm stays natural); other vehicles and models are not covered. `mod/seated-look.lua` is V's camera widening in a car, not the companion's gaze.
 
@@ -1172,7 +1175,7 @@ Two add-ons are planned, each in its own repository with its own zip builder (`t
 
 **Manifest** (`convai-addon.json`, schema 1). `id` (2 to 24 characters), `name`, `version`, `requires.api`, optional `bridge` module, `providers` (`mistral`, `local`, or both, the default) and up to 4 `speakers`. Each speaker has a persona (`backstory` up to 12,000 characters, optional `intro`, `identityRule`, `style`, up to 12 `samples` and 12 `rules`, `talkWords` 8 to 60, `voiceContext`), up to 4 `modes`, and an optional `voice` (a PCM `.wav` of at most 8 MB and 20 s, with its exact transcript). A `convai` field is refused. A speaker becomes the profile `addon-<addon id>-<speaker id>`. Limits are in `ADDON_LIMITS` (`bridge/addons.mjs`); the validator rejects anything outside them.
 
-**CET side.** In `onInit` the add-on calls `GetMod('CyberpunkConvai').addons.register({id, name, version, requires})` and gets a handle:
+**CET side.** In `onInit` the add-on calls `GetMod('AiNpcCyberpunkMod').addons.register({id, name, version, requires})` and gets a handle:
 
 | Method | Purpose |
 |---|---|
@@ -1194,7 +1197,7 @@ Two add-ons are planned, each in its own repository with its own zip builder (`t
 
 **Packaging and tests.** `node packaging/build-addon.mjs <folder> --out dist/addons` builds an add-on zip. It ships only `.lua`, `.json`, `.mjs`, `.js`, `.wav`, `.txt` and `.md`, never tests or `eval/`. Tests: `bridge/addons.test.mjs`, `bridge/addons-lua.test.mjs`, `bridge/addons-quality.test.mjs`, `bridge/addon-stock.test.mjs`, `bridge/addon-stock-lua.test.mjs`, `bridge/addon-voice.test.mjs`, `packaging/addon-packaging.test.mjs` and `addons/example/example.test.mjs`; `scripts/addon-eval.mjs` scores a speaker's prompt offline and counts it ready at an average of 7 or more over three runs with no dropped repeats. The two add-on repositories run their tests against this repository's host.
 
-Not verified in the game: add-on load order (`GetMod('CyberpunkConvai')` from another mod's `onInit`), remark latency on Mistral (target under 2 s), frame time during a Local AI remark, whether a voice stop silences the game's own scene dialogue (`audioVerified`), and the Delamain screen-face and held-remark behaviour. Details: [docs/ADDON_API.md](docs/ADDON_API.md).
+Not verified in the game: add-on load order (`GetMod('AiNpcCyberpunkMod')` from another mod's `onInit`), remark latency on Mistral (target under 2 s), frame time during a Local AI remark, whether a voice stop silences the game's own scene dialogue (`audioVerified`), and the Delamain screen-face and held-remark behaviour. Details: [docs/ADDON_API.md](docs/ADDON_API.md).
 
 ## Resource lifecycle (unloading)
 
@@ -1248,7 +1251,7 @@ Frame rate and response latency are the two top priorities. A loss of even 2 to 
 
 **FPS A/B results read in the docs.** Companion vision, a capture every 3 s: 57.41 against 57.41 FPS (median, 12 blocks of 20 s) and 55.49 against 55.47 (means, 16 blocks), with no more slow frames in capture windows. The ordinary-NPC lip-sync A/B (crowd face modes `off`, `ungated`, `gated`) and Local AI FPS in the game are owed live checks.
 
-**Why a native plugin exists.** CET Lua has no asynchronous file IO, so every lease, mailbox and stream read runs on the game thread at 1 to 5 ms. `native/core/` builds `CyberpunkConvaiNative.dll`, a RED4ext plugin in `red4ext/plugins/CyberpunkConvaiNative/`. It registers RTTI natives only (no hooks, no offsets), declares game runtime 2.31 so RED4ext refuses it after a patch, and has no `.reds` declaration, so a missing DLL never blocks the game. Systems: `io` (one below-normal-priority worker thread for all file IO, mutex-copy calls of 0.1 to 0.4 microseconds measured headless), `gaze`, `clearance`, `actuator`, `faces`, `vehicles`, `chauffeur` and `passage`. Every native body is guarded, three faults turn a system off for the session, and a line in `runtime/native-off.txt` (a system name or `all`) switches it off by hand. Each system keeps its Lua path as the fallback, and the actuator is proven against Lua before it is used. The first live runs on 2026-10-13 found wrong game-getter names, which were fixed; no system has a recorded full in-game pass yet (not verified in the game). See [docs/NATIVE_REWRITE_PLAN.md](docs/NATIVE_REWRITE_PLAN.md), [docs/NATIVE_PORT_BRIEF.md](docs/NATIVE_PORT_BRIEF.md), [docs/NATIVE_ACTUATOR.md](docs/NATIVE_ACTUATOR.md) and [docs/NATIVE_VEHICLES.md](docs/NATIVE_VEHICLES.md).
+**Why a native plugin exists.** CET Lua has no asynchronous file IO, so every lease, mailbox and stream read runs on the game thread at 1 to 5 ms. `native/core/` builds `CyberpunkConvaiNative.dll`, a RED4ext plugin in `red4ext/plugins/AiNpcCyberpunkModNative/`. It registers RTTI natives only (no hooks, no offsets), declares game runtime 2.31 so RED4ext refuses it after a patch, and has no `.reds` declaration, so a missing DLL never blocks the game. Systems: `io` (one below-normal-priority worker thread for all file IO, mutex-copy calls of 0.1 to 0.4 microseconds measured headless), `gaze`, `clearance`, `actuator`, `faces`, `vehicles`, `chauffeur` and `passage`. Every native body is guarded, three faults turn a system off for the session, and a line in `runtime/native-off.txt` (a system name or `all`) switches it off by hand. Each system keeps its Lua path as the fallback, and the actuator is proven against Lua before it is used. The first live runs on 2026-10-13 found wrong game-getter names, which were fixed; no system has a recorded full in-game pass yet (not verified in the game). See [docs/NATIVE_REWRITE_PLAN.md](docs/NATIVE_REWRITE_PLAN.md), [docs/NATIVE_PORT_BRIEF.md](docs/NATIVE_PORT_BRIEF.md), [docs/NATIVE_ACTUATOR.md](docs/NATIVE_ACTUATOR.md) and [docs/NATIVE_VEHICLES.md](docs/NATIVE_VEHICLES.md).
 
 **Latency and the stage clock.** `bridge/turn-clock.mjs` time-stamps one turn from the game writing the request to the first sound: 24 named stages (`inputWritten`, `received`, `knowledge`, `admitted`, `transport`, `recalled`, `promptBuilt`, `llmSent`, `llmHeaders`, `firstToken`, `firstSentence`, `fullText`, `voiceStart`, `ttsSent`, `firstPcm`, `published`, `playbackObserved` and others). Marks reach the clock through an `AsyncLocalStorage`, so a mark is one Map write and nothing runs per frame; a 25 ms stall watcher runs only during a turn. Every turn writes `stages` (marks, steps that add up to the total, and event-loop stalls of 80 ms or more) into `runtime/bridge-latency.json` in the installed mod folder. The measurement scripts are `scripts/Measure-TurnLatency.mjs` and its siblings.
 
@@ -1272,21 +1275,21 @@ The player release is built from a git commit, never from the working tree, so u
 
 | Package | Where players get it | Contents |
 |---|---|---|
-| `CyberpunkConvai-Scripts-<v>.zip` | Nexus Mods | Text only: the CET Lua mod, redscript, the JSON catalogs the Lua reads, `README.txt`, `release.json` |
-| `CyberpunkConvai-Runtime-<v>.zip` | GitHub release | Everything else needed to play: the RED4ext launcher and native plugin, bundled Node, Chrome for Testing and Python, the bridge, the Pocket voice and lip-sync models, the local speech model, voice references, the game archives and the Audioware reply bank |
-| `CyberpunkConvai-OmniPack-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and its references |
-| `CyberpunkConvai-LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip |
-| `CyberpunkConvai-LocalAI-Lite-<v>.zip` | Hugging Face | Optional Local AI pack with Qwen3.5-2B (about 1.5 GB), one zip |
-| `CyberpunkConvai-Mature-Lite-<v>.zip` and `CyberpunkConvai-Mature-Standard-<v>.zip` (each with its own marker, `manifest.mature-lite.json` or `manifest.mature-standard.json`, and one model) | Hugging Face only | Optional uncensored models for the Mature setting, one pack per model, each works alone ([packaging/MATURE_PACK_README.md](packaging/MATURE_PACK_README.md)); built only on request: by the release workflow's opt-in `mature` input (never on a tag push, one matrix job per pack) from the private bucket's mirror, or by hand with `--packages mature-lite` or `mature-standard` |
+| `AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip` | Nexus Mods | Text only: the CET Lua mod, redscript, the JSON catalogs the Lua reads, `README.txt`, `release.json` |
+| `AI-NPC-Cyberpunk-Mod-Runtime-<v>.zip` | GitHub release | Everything else needed to play: the RED4ext launcher and native plugin, bundled Node, Chrome for Testing and Python, the bridge, the Pocket voice and lip-sync models, the local speech model, voice references, the game archives and the Audioware reply bank |
+| `AI-NPC-Cyberpunk-Mod-OmniPack-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and its references |
+| `AI-NPC-Cyberpunk-Mod-LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip |
+| `AI-NPC-Cyberpunk-Mod-LocalAI-Lite-<v>.zip` | Hugging Face | Optional Local AI pack with Qwen3.5-2B (about 1.5 GB), one zip |
+| `AI-NPC-Cyberpunk-Mod-Mature-Lite-<v>.zip` and `AI-NPC-Cyberpunk-Mod-Mature-Standard-<v>.zip` (each with its own marker, `manifest.mature-lite.json` or `manifest.mature-standard.json`, and one model) | Hugging Face only | Optional uncensored models for the Mature setting, one pack per model, each works alone ([packaging/MATURE_PACK_README.md](packaging/MATURE_PACK_README.md)); built only on request: by the release workflow's opt-in `mature` input (never on a tag push, one matrix job per pack) from the private bucket's mirror, or by hand with `--packages mature-lite` or `mature-standard` |
 
-Why the split: Nexus scans every upload and holds flagged files for manual review, so the Nexus file is text only and is never held. The large binary runtime goes to GitHub Releases as plain zips, the way the core frameworks (RED4ext, Codeware, TweakXL, Audioware) are also distributed. The optional packs go to a Hugging Face model repository (`alystria-ai/cyberpunk-convai-packs`, one folder per version), one zip each: GitHub's 2 GiB per-file limit was the only reason for parts, so the packs have none, and a model over 4 GiB sits whole in a ZIP64 zip. The Nexus page lists the frameworks the mod needs (RED4ext, Cyber Engine Tweaks, redscript, Codeware, TweakXL, Audioware, Mod Configuration Menu) because the Runtime package's launcher and native plugin are RED4ext plugins. All packages use game-root-relative paths and merge into one install. Versions must match: `app/launcher/start-service.mjs` logs a warning when the Scripts `release.json` differs from the Runtime one.
+Why the split: Nexus scans every upload and holds flagged files for manual review, so the Nexus file is text only and is never held. The large binary runtime goes to GitHub Releases as plain zips, the way the core frameworks (RED4ext, Codeware, TweakXL, Audioware) are also distributed. The optional packs go to a Hugging Face model repository (`alystria-ai/ai-npc-cyberpunk-mod-packs`, one folder per version), one zip each: GitHub's 2 GiB per-file limit was the only reason for parts, so the packs have none, and a model over 4 GiB sits whole in a ZIP64 zip. The Nexus page lists the frameworks the mod needs (RED4ext, Cyber Engine Tweaks, redscript, Codeware, TweakXL, Audioware, Mod Configuration Menu) because the Runtime package's launcher and native plugin are RED4ext plugins. All packages use game-root-relative paths and merge into one install. Versions must match: `app/launcher/start-service.mjs` logs a warning when the Scripts `release.json` differs from the Runtime one.
 
 Releases are numbered `0.N` (0.1, 0.2, ...); a hotfix is `0.N.M`. The tag is `v` plus the number. The first build (2026-10-07, a private test of the pipeline) was made as `2077.1` and renamed to `v0.1`; the version check still accepts the old `2077.N` form. `packaging/lib/version.mjs` parses versions and `packaging/release.test.mjs` guards it.
 
 ### Installed layout
 
 ```text
-red4ext/plugins/CyberpunkConvai/
+red4ext/plugins/AiNpcCyberpunkMod/
   CyberpunkConvai.dll        launcher (native/autostart)
   launcher.ini               %PLUGIN%\app\node\node.exe app\launcher\start-service.mjs
   app/                       the application, replaced by every update
@@ -1296,8 +1299,8 @@ red4ext/plugins/CyberpunkConvai/
     omni/                    the OmniVoice pack, when installed
     local-ai/                the Local AI pack(s), when installed
   voices/                    reference clips (outside app/: the Omni worker requires it)
-red4ext/plugins/CyberpunkConvaiNative/CyberpunkConvaiNative.dll   native core plugin
-bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/         Lua, locales, JSON; data/ (player state); runtime/ (exchange files)
+red4ext/plugins/AiNpcCyberpunkModNative/CyberpunkConvaiNative.dll   native core plugin
+bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/         Lua, locales, JSON; data/ (player state); runtime/ (exchange files)
 r6/scripts/CyberpunkConvai/  redscript
 r6/audioware/CyberpunkConvai speech.yml + eight silent reply slots
 archive/pc/mod/              convai_facial, convai_gestures, cyberpunk_convai_ambient_driver_guard
@@ -1458,7 +1461,7 @@ The code is the reference. These design notes still carry older statements:
 
 ## Credits and licence
 
-**Licence.** The project's own source code, documentation and configuration are under the **Cyberpunk Convai Use License, version 1.1** ([LICENSE](LICENSE)): use, copy, modify and distribute, including commercially, provided that you keep the licence and notices, state significant changes, and, if you distribute a modified version with AI character conversation, offer a functional, user-selectable Convai integration as at least one provider option. Other providers, local models and self-hosted systems are allowed and any of them may be the default. It is source-available, not an OSI-approved open-source licence.
+**Licence.** The project's own source code, documentation and configuration are under the **AI NPC Cyberpunk Mod Use License, version 1.1** ([LICENSE](LICENSE)): use, copy, modify and distribute, including commercially, provided that you keep the licence and notices, state significant changes, and, if you distribute a modified version with AI character conversation, offer a functional, user-selectable Convai integration as at least one provider option. Other providers, local models and self-hosted systems are allowed and any of them may be the default. It is source-available, not an OSI-approved open-source licence.
 
 **Third-party components** keep their own licences, including Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware, Mod Configuration Menu, the Convai Web SDK, Node.js, Chrome for Testing and Chromium, Playwright, CPython, Kyutai Pocket TTS and its weights, VoiceStudio and OmniVoice (the OmniVoice weights are non-commercial), Moonshine and sherpa-onnx, llama.cpp, the Gemma, Qwen and Granite models and the CMU Pronouncing Dictionary. The exact versions and licence texts are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); the optional Mature pack's two models carry their own licences, listed in [packaging/MATURE_PACK_README.md](packaging/MATURE_PACK_README.md). Each release package also carries them as `THIRD-PARTY-NOTICES.txt`.
 

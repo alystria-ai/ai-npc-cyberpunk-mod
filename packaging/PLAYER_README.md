@@ -1,10 +1,10 @@
-# Cyberpunk Convai
+# AI NPC Cyberpunk Mod
 
 Talk to Cyberpunk 2077 characters by voice or text, with companions who answer in their own voices.
 
 ## What's new in 0.2
 
-- **Three ways to talk, all free**: Convai free tier out of the box (100 turns a day), Mistral with a free account (about 5,000 a day), or Local AI on your own graphics card with no account and no internet. Choose in Settings > Conversation provider.
+- **Three ways to talk, all free**: fully local on your own PC with Local AI (no account, no internet, no limit), Mistral with a free account (about 5,000 turns a day), or the Convai free tier (no setup, the default, 100 turns a day). Choose in Settings > Conversation provider.
 - **Holocalls**: call a character from the phone's Chat tab and they pick up live on screen.
 - **Voxtral voices**: the same free Mistral account gives every character their own voice made in the cloud, so nothing runs on your PC. The default Pocket TTS voices still run on your processor with no setup.
 - **V speaks too**: lines you type are heard in V's own voice before the reply (Settings > Voices).
@@ -38,13 +38,13 @@ You do not need to install anything else. The voice service, its voices and mode
 Close the game, then extract each download into your Cyberpunk 2077 folder (the folder that contains `bin`, `archive` and `r6`). Allow folders to merge.
 
 1. **Scripts**: from Nexus Mods, with Vortex or by hand.
-2. **Runtime**: from the Releases page of https://github.com/alystria-ai/cyberpunk-convai. Use the same version number as the Scripts.
+2. **Runtime**: from the Releases page of https://github.com/alystria-ai/ai-npc-cyberpunk-mod. Use the same version number as the Scripts.
 
-The optional packs are on the mod's Hugging Face page, https://huggingface.co/alystria-ai/cyberpunk-convai-packs, in a folder per version. Each pack is one zip file, so there is nothing to join, and each works on its own. Use the same version number as the Scripts and Runtime.
+The optional packs are on the mod's Hugging Face page, https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs, in a folder per version. Each pack is one zip file, so there is nothing to join, and each works on its own. Use the same version number as the Scripts and Runtime.
 
-3. **OmniVoice pack (optional)**: a higher-quality voice for NVIDIA graphics cards with at least 8 GB of video memory and a current driver. Download https://huggingface.co/alystria-ai/cyberpunk-convai-packs/blob/main/0.2/CyberpunkConvai-OmniPack-0.2.zip and extract it. Then choose an OmniVoice option in Settings > Voices.
+3. **OmniVoice pack (optional)**: a higher-quality voice for NVIDIA graphics cards with at least 8 GB of video memory and a current driver. Download https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-OmniPack-0.2.zip and extract it. Then choose an OmniVoice option in Settings > Voices.
 
-4. **Local AI packs (optional)**: let the characters answer with an AI model that runs on your own graphics card, with no account and no internet connection. There are two, and you can install neither, one or both: **Local AI standard** (Gemma 4 E4B, about 5.3 GB) for the best replies, and **Local AI lite** (Qwen3.5-2B, about 1.5 GB) for smaller graphics cards. Download https://huggingface.co/alystria-ai/cyberpunk-convai-packs/blob/main/0.2/CyberpunkConvai-LocalAI-Standard-0.2.zip and https://huggingface.co/alystria-ai/cyberpunk-convai-packs/blob/main/0.2/CyberpunkConvai-LocalAI-Lite-0.2.zip (one or both) and extract each. Then choose Local as the Conversation provider in Settings > Conversation provider. See "Local AI" below to pick a combination.
+4. **Local AI packs (optional)**: let the characters answer with an AI model that runs on your own graphics card, with no account and no internet connection. There are two, and you can install neither, one or both: **Local AI standard** (Gemma 4 E4B, about 5.3 GB) for the best replies, and **Local AI lite** (Qwen3.5-2B, about 1.5 GB) for smaller graphics cards. Download https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.zip and https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-LocalAI-Lite-0.2.zip (one or both) and extract each. Then choose Local as the Conversation provider in Settings > Conversation provider. See "Local AI" below to pick a combination.
 
 Start the game. The first start after installing takes a little longer while the voice service prepares itself.
 
@@ -54,7 +54,7 @@ If Windows reports an error while extracting, use 7-Zip (https://www.7-zip.org) 
 
 Convai free tier works out of the box with no setup and gives better quality responses. Local AI is for playing without an account or without the internet. It needs a separate graphics card that supports Vulkan (NVIDIA or AMD), at least 16 GB of system memory (32 GB is better) and about 5 GB more than usual while it runs. The first start after installing takes about a minute while your graphics card prepares the model; the Local AI model row in Settings > Conversation provider shows "Warming up" and then "Ready". The model is unloaded after ten minutes without a conversation.
 
-**Your own model (advanced, optional).** You can add a chat model of your own: put its `.gguf` file in a `custom` folder inside the Local AI folder (`red4ext\plugins\CyberpunkConvai\app\local-ai\`), list it in a small `manifest.custom.json` next to the other manifests, and it appears in the **Local AI model** row marked "(custom)". It is listed with the others from the smallest model to the largest and takes part in the default choice by its size. It must be a GGUF instruct or chat model that llama.cpp supports (Q4_K_M is a good choice), and it needs about its file size plus 1 GB of free graphics memory; one too large for your card is shown as such and never used. If it does not show up, the reason is in `bridge.stderr.log` (in the mod's `data` folder), on lines with `[custom models]`. The full steps and an example are in `docs/LOCAL_AI.md`, "Add your own model".
+**Your own model (advanced, optional).** You can add a chat model of your own: put its `.gguf` file in a `custom` folder inside the Local AI folder (`red4ext\plugins\AiNpcCyberpunkMod\app\local-ai\`), list it in a small `manifest.custom.json` next to the other manifests, and it appears in the **Local AI model** row marked "(custom)". It is listed with the others from the smallest model to the largest and takes part in the default choice by its size. It must be a GGUF instruct or chat model that llama.cpp supports (Q4_K_M is a good choice), and it needs about its file size plus 1 GB of free graphics memory; one too large for your card is shown as such and never used. If it does not show up, the reason is in `bridge.stderr.log` (in the mod's `data` folder), on lines with `[custom models]`. The full steps and an example are in `docs/LOCAL_AI.md`, "Add your own model".
 
 If your graphics card is short of memory the mod steps down by itself and keeps your voice before it keeps the model: the standard model gives way to the lite model, and if the lite model does not fit either, the text comes from Mistral or Convai, with one notice. Your voice only changes as a last resort. The standard model checks that about 6 GB of video memory is free when it starts; with less, the lite model is used.
 
@@ -86,19 +86,22 @@ Extra video memory each setup uses on top of the game's own:
 
 Close the game and extract the new Scripts and Runtime (and any optional packs you use) over the old ones. Your conversations, memories and settings are kept.
 
+Updating from 0.1, when the mod was called Cyberpunk Convai: the install folders now carry the new name. The cleanest way is to rename `bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai` to `AiNpcCyberpunkMod`, `red4ext\plugins\CyberpunkConvai` to `AiNpcCyberpunkMod` and `red4ext\plugins\CyberpunkConvaiNative` to `AiNpcCyberpunkModNative` before extracting. If you extract over the old folders instead, nothing is lost: the first start moves your settings, memories and Phone Chat history into the new folders, switches the old copy off so the two never run together, and removes the old folders a little later (`data\legacy-migration.json` in the new mod folder says what it did). Your CET hotkeys are carried over in that case; after renaming by hand, set your hotkeys again in CET's Bindings.
+
 ## Uninstall
 
 Delete these folders from your Cyberpunk 2077 folder:
 
-- `bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai` (this also deletes your conversations and settings)
-- `red4ext\plugins\CyberpunkConvai` (this also removes the OmniVoice and Local AI packs)
-- `red4ext\plugins\CyberpunkConvaiNative`
-- `r6\scripts\CyberpunkConvai` and `r6\audioware\CyberpunkConvai`
+- `bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod` (this also deletes your conversations and settings)
+- `red4ext\plugins\AiNpcCyberpunkMod` (this also removes the OmniVoice and Local AI packs)
+- `red4ext\plugins\AiNpcCyberpunkModNative`
+- `r6\scripts\CyberpunkConvai` and `r6\audioware\CyberpunkConvai` (these keep the old name on purpose)
+- anything still called `CyberpunkConvai` under `bin\x64\plugins\cyber_engine_tweaks\mods` or `red4ext\plugins`: leftovers of a 0.1 install, safe to delete
 - `archive\pc\mod\convai_facial.archive`, `convai_gestures.archive` and `cyberpunk_convai_ambient_driver_guard.archive`
 
 ## Licence
 
-Cyberpunk Convai is released under the Cyberpunk Convai Use License (see `LICENSE.txt`): you may use, modify and share it, including commercially, as long as modified versions that offer AI character conversations keep Convai available as a selectable option. You do not have to use Convai. Bundled components keep their own licences (see `THIRD-PARTY-NOTICES.txt`), and Cyberpunk 2077 and its assets belong to their owners.
+AI NPC Cyberpunk Mod is released under the AI NPC Cyberpunk Mod Use License (see `LICENSE.txt`): you may use, modify and share it, including commercially, as long as modified versions that offer AI character conversations keep Convai available as a selectable option. You do not have to use Convai. Bundled components keep their own licences (see `THIRD-PARTY-NOTICES.txt`), and Cyberpunk 2077 and its assets belong to their owners.
 
 ## Help
 

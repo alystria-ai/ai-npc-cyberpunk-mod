@@ -171,7 +171,7 @@ eports\` then the
 
 Where each log is written (verified in code): `mod/init.lua` and `mod/phone-layout.lua` append to
 `<mod>\runtime\probe.log`; `mod/mcm.lua` to `<mod>\runtime\mcm.log`; CET writes
-`<mod>\CyberpunkConvai.log`, `bin\x64\plugins\cyber_engine_tweaks\cyber_engine_tweaks.log` and
+`<mod>\AiNpcCyberpunkMod.log`, `bin\x64\plugins\cyber_engine_tweaks\cyber_engine_tweaks.log` and
 `scripting.log`; the supervisor (`bridge/bridge-supervisor.mjs`) writes `bridge-service.log`,
 `bridge.stdout.log` and `bridge.stderr.log` (previous run: `.previous`) to the **state folder**
 (development: the project's `runtime\`; packaged: `<mod>\data`, with the bootstrap using `data\logs\`);
@@ -193,7 +193,7 @@ the RED4ext launcher writes `launcher.log` beside its DLL; redscript and RED4ext
 3. If the service is stopped (fresh status says so) the page writes a **short text report** itself at once;
    if the service is not known to be stopped but does not answer within 6 s (30 s once it reports
    `building`), or answers `failed`, it does the same. The short report holds what the game can read
-   (service status, settings, party, `runtime\*.log`, `CyberpunkConvai.log`), says why it is short and names
+   (service status, settings, party, `runtime\*.log`, `AiNpcCyberpunkMod.log`), says why it is short and names
    the logs it could not read. It goes to `runtime\reports\` when that folder exists (the service creates it),
    otherwise to `runtime\`; the same five-newest rule applies.
 

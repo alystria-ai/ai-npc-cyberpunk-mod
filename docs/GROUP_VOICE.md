@@ -2,7 +2,7 @@
 
 ## Controls
 
-Assign any suitable key or chord to **Cyberpunk Convai: group voice chat** in
+Assign any suitable key or chord to **AI NPC Cyberpunk Mod: group voice chat** in
 CET. Press it to begin, wait for Listening, speak, then press that same shortcut
 again to finish. **Talk by voice** is the separate private action. The wrong
 mode's shortcut cannot submit or redirect an ongoing capture; the hint names

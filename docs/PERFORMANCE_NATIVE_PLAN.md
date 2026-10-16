@@ -200,7 +200,7 @@ Each class of hot path gets a different route:
 
 ### Plugin architecture
 
-- **Separate plugin.** `CyberpunkConvaiNative.dll` in its own folder, `red4ext/plugins/CyberpunkConvaiNative/`.
+- **Separate plugin.** `CyberpunkConvaiNative.dll` in its own folder, `red4ext/plugins/AiNpcCyberpunkModNative/`.
   It is separate from the launcher plugin so that a patch-day refusal never stops the bridge from starting.
 - **RTTI registration only.** It registers one native class, `ConvaiNative` (static functions on an
   `IScriptable`), through `CRTTISystem` register and post-register callbacks. No hooks, no offsets, no game
@@ -227,7 +227,7 @@ Each class of hot path gets a different route:
   - The main thread only takes a mutex and copies a string, so each call costs microseconds plus CET's
     string marshalling (estimated 5-20 µs).
 - **Paths.** The runtime folder comes from the DLL's own location: game root, then
-  `bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/runtime`.
+  `bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/runtime`.
 - **Build.**
   - C++20 with MSVC 2022 and CMake. Locally, VS 2022 17.14 (MSVC 14.44) and CMake 3.27 are installed. The
     release runner `windows-2025` has VS 2022.
