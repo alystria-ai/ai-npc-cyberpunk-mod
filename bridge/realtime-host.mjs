@@ -294,10 +294,10 @@ export class RealtimeHost {
           return page;
         } catch (error) { await page.close({runBeforeUnload: false}).catch(() => {}); throw error; }
       };
-      this.localPcm = new LocalPcmHost({createPage: createLocalPage});
+      this.localPcm = new LocalPcmHost({createPage: createLocalPage, label: 'companion', levelLog: line => console.error(line)});
       // The player's own typed line (V's voice, bridge/v-voice.mjs) plays on a page of its own, so it never waits for, or takes
       // the place of, the companion's utterance. Nothing is opened until a V line is played or warmed.
-      this.vPcm = new LocalPcmHost({createPage: createLocalPage});
+      this.vPcm = new LocalPcmHost({createPage: createLocalPage, label: 'V', levelLog: line => console.error(line)});
       this.pool = new TransportPool({limit: CONNECTION_LIMIT, create: async () => {
         const page = await browser.newPage();
         try {

@@ -64,9 +64,9 @@ export async function localSnapshotForHost(page, token, signal) {
 // owns it from startup through device drain; failures retire it before reuse.
 export class LocalPcmHost {
   constructor({createPage, pollMs = 40, timeoutMs = 150000, commandTimeoutMs = 5000,
-    cleanupTimeoutMs = 2500, now = () => performance.now()} = {}) {
+    cleanupTimeoutMs = 2500, now = () => performance.now(), levelLog = null, label = 'voice'} = {}) {
     if (typeof createPage !== 'function') throw Error('Local PCM page factory is required');
-    Object.assign(this, {createPage, pollMs, timeoutMs, commandTimeoutMs, cleanupTimeoutMs, now});
+    Object.assign(this, {createPage, pollMs, timeoutMs, commandTimeoutMs, cleanupTimeoutMs, now, levelLog, label});
     this.active = null; this.page = null; this.epoch = 0; this.retirements = new WeakMap();
   }
 
@@ -118,7 +118,7 @@ export class LocalPcmHost {
     if (signal?.aborted) cancel();
     const deadline = setTimeout(() => controller.abort(Error('Local PCM playback timed out')), this.timeoutMs);
     let producerTask, pump, page, result, final, succeeded = false, frames = 0, index = 0, identity;
-    let emitting = false, firstAcceptedMs = null, rendererReady, rendererReadyMs = null;
+    let emitting = false, firstAcceptedMs = null, rendererReady, rendererReadyMs = null, sentMakeup, levelLogged = false;
     const started = this.now();
     markStage('playStart');
     const check = async () => {
@@ -196,7 +196,13 @@ export class LocalPcmHost {
             if (!snapshot.sourceComplete || snapshot.receivedFrames !== frames) throw Error('Local PCM ended before its producer');
             return;
           }
+          // One line per reply of what was asked for and what the renderer's graph really applied (Voice volume diagnosis).
+          if (this.levelLog && !levelLogged && sentMakeup !== undefined && snapshot.level) {
+            levelLogged = true;
+            try { this.levelLog(`[VoiceVolume] ${this.label}: asked ${sentMakeup.toFixed(2)} dB, renderer has ${snapshot.level.makeupDb.toFixed(2)} dB, gain ${snapshot.level.gain.toFixed(3)}, limiter ${snapshot.level.limiter ? (snapshot.level.limited ? 'in the path' : 'idle') : 'MISSING'}`); } catch { /* a log never affects speech */ }
+          }
           if (control !== undefined) {
+            if (control.allow === true) sentMakeup = control.makeupDb ?? 0;
             const admitted = await evaluate(({token, control}) => window.localPcm.control(token, control),
               {token: turn.token, control});
             await check();
