@@ -25,8 +25,10 @@ export function playbackControl(value) {
   // Absent means the previous unity path.
   // delayMs: the Lip sync delay setting (bridge/audio-delay.mjs), audio heard
   // after the Windows mix (Bluetooth). It holds the heard cursor back.
+  // makeupDb is the dialogue level plus the Voice volume setting (bridge/dialogue-level.mjs): -6.02 dB (50% with matching off) to
+  // +18.02 dB (12 dB of dialogue level and 200%). Anything below 0 is plain attenuation.
   const makeupDb = value.makeupDb ?? 0, distance = value.distance ?? null, delayMs = value.delayMs ?? 0;
-  if (!Number.isFinite(makeupDb) || makeupDb < 0 || makeupDb > 12
+  if (!Number.isFinite(makeupDb) || makeupDb < -6.03 || makeupDb > 18.03
       || !Number.isFinite(delayMs) || delayMs < 0 || delayMs > 500
       || (distance !== null && (!Number.isFinite(distance) || distance < 0 || distance > 1000)))
     throw Error('Invalid playback level');

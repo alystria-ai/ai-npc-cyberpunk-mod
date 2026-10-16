@@ -556,6 +556,8 @@ local function setting(id, label, kind, value, default, description, elements, r
     end
     return {id = id, label = raw.label and label or ui.t(label), type = kind, value = value, defaultValue = default,
         description = raw.description and description or ui.t(description), elements = localized,
+        -- A slider ('int'): raw.min, raw.max and raw.step (MCM draws it with McmUiAddInt; the value shows as a number).
+        min = raw.min, max = raw.max, step = raw.step,
         capabilities = {read = true, write = true, draft = true, reset = true}}
 end
 
@@ -2110,6 +2112,7 @@ local function schema()
             delayLabels[index] = value == 'auto' and ui.t('Auto') or value == 0 and ui.t('Off') or (tostring(value) .. ' ms')
             if snapshot.settings.audioDelay == value then delayIndex = index end
         end
+        local voiceRange = manager.voiceVolumeRange()
         local pack = manager.omniPack()
         -- While the OmniVoice pack is missing its entries are greyed out; the row's name says why, in brackets.
         local voiceName = ui.t('Companion voices')
@@ -2125,6 +2128,11 @@ local function schema()
             setting('audioDelay', 'Lip sync delay (Bluetooth)', 'select', delayIndex, 1,
                 'Bluetooth audio arrives a little late, so lips and subtitles can run ahead of the voice. This holds them back to match, for every voice.\n\nAuto: 150 ms while Windows plays through Bluetooth, none otherwise. Pick a value if your headset is faster or slower.\n\nThe game’s own dialogue has the same delay and does not correct it.',
                 delayLabels, {elements = true}),
+            -- A slider, 50 to 200 in steps of 5; MCM shows its number, so the unit is in the name. The bridge applies it to every voice
+            -- (companions, NPCs, add-ons and V's typed lines) as gain behind a peak limiter; it takes effect on the next reply.
+            setting('voiceVolume', 'Voice volume (%)', 'int', snapshot.settings.voiceVolume, voiceRange.default,
+                'How loud the mod’s voices are, for companions, characters and V’s typed lines. 100 is the normal level.\n\nAbove 100 the voices get louder, with a limiter so they do not crackle. The game’s own dialogue and sounds do not change.\n\nThe next reply uses it after Apply.',
+                nil, {min = voiceRange.min, max = voiceRange.max, step = voiceRange.step}),
             withInworld(setting('naturalSpeech', 'Natural speech', 'bool', snapshot.settings.naturalSpeech, false,
                 'Companions now and then pause, hesitate, laugh or sigh, as their personality would. Each character decides when; it stays rare.\n\nOmniVoice can voice laughs and sighs; the other voices only add pauses.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.'),
                 'Inworld can voice laughs and sighs too.'),
@@ -2308,6 +2316,9 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     or key == 'gameDialogueContext'
                     or key == 'expressiveEmotions' or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations'
                     or key == 'matureContent' then values[key] = change.value
+                elseif key == 'voiceVolume' then
+                    if type(change.value) ~= 'number' then return {ok = false, error = ui.t('Choose a voice volume from 50 to 200 percent.')} end
+                    values.voiceVolume = change.value
                 elseif key == 'audioDelay' then
                     local delays = manager.audioDelayChoices()
                     if type(change.value) ~= 'number' or change.value ~= math.floor(change.value) or not delays[change.value] then

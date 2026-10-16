@@ -84,7 +84,7 @@ import {relationshipContext} from './romance-context.mjs';
 import {MultilingualConversations, RETIRED_PROVIDER_KEY, multilingualTwins, planTurnVoice, replyVoice} from './multilingual.mjs';
 import {CompanionActions} from './companion-actions.mjs';
 import {RequestFileOwner, fileIdentity} from './request-ownership.mjs';
-import {updateDialogueLevel, dialogueLevel} from './dialogue-level.mjs';
+import {updateDialogueLevel, dialogueLevel, updateVoiceVolume, voiceVolumePercentNow} from './dialogue-level.mjs';
 import {AudioOutputWatch, audioDelayMs, resolveDelayMs, setAudioDelayMs, settingDelay} from './audio-delay.mjs';
 import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, PLAYER_USER_FILE, memoryRecovery, validateKey, withoutIdentity} from './convai-key.mjs';
 import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
@@ -2703,6 +2703,8 @@ async function pollSettings(checkShutdown = true) {
     // Dialogue level match (docs/DIALOGUE_LEVEL.md): makeup gain for every voice.
     if (updateDialogueLevel(await readFile(resolve(runtime, 'dialogue-level.json'), 'utf8').catch(() => '')))
       console.error(`Dialogue level: ${JSON.stringify(dialogueLevel())}`);
+    // Voice volume (Settings > Voices): every voice, V's included; the next poll of a playing line and the next phrase use it.
+    if (updateVoiceVolume(settings)) console.error(`Voice volume: ${voiceVolumePercentNow()}%`);
     const relationshipState = await readFile(resolve(runtime, 'relationship-state.json'), 'utf8').catch(() => undefined);
     if (relationshipRoutes.update(settings, relationshipState,
         {boundary: currentBoundary(), busy: voiceBoundaryBusy() || voiceRouteReservation})) {

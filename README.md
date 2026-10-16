@@ -1216,6 +1216,7 @@ The Settings page groups its rows in this order: Interface, Conversations, Conve
 | `voice` | Voice playback | on |
 | `voiceProvider`, `omniSteps`, `omniReference` | Companion voices | `pocket`, 16, `long` |
 | `audioDelay` | Lip sync delay: auto, 0, 50, 100, 150, 200, 250 ms | `auto` |
+| `voiceVolume` | Voice volume slider, 50 to 200 percent, for every mod voice and V's typed lines | 100 |
 | `naturalSpeech` | Natural speech | off |
 | `expressiveEmotions` | Expressive emotions | on, except beside a saved Convai cloud voice |
 | `followUpInterest` | Follow-up questions | on |

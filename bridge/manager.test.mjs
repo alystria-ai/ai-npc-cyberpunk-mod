@@ -3910,6 +3910,50 @@ test('Lip sync delay (Bluetooth) is a Voices select: Auto by default, Off and mi
   `);
 });
 
+test('Voice volume is a Voices slider (50 to 200, steps of 5, 100 by default) saved for the bridge', () => {
+  run(`${mcmFixture}
+    assert(manager.snapshot(player).settings.voiceVolume == 100)
+    assert(invoke('tab:settings').ok)
+    local item = assert(row('voiceVolume'))
+    assert(item.type == 'int' and item.value == 100 and item.defaultValue == 100)
+    assert(item.min == 50 and item.max == 200 and item.step == 5, 'a slider range, not a list of steps')
+    assert(item.elements == nil and item.label:find('%', 1, true), 'the unit is in the name: MCM shows only the number')
+    assert(not item.description:lower():find('recommended', 1, true))
+    -- It sits in the Voices category, after the voice and delay rows.
+    local category
+    for _, c in ipairs(registered.loadMod('manager').categories or {}) do
+      for _, s in ipairs(c.settings) do if s.id == 'voiceVolume' then category = c.id end end
+    end
+    assert(category == 'voices', 'found in ' .. tostring(category))
+    saved = nil
+    assert(registered.applyBatch('manager', {{id = 'voiceVolume', value = 150}}).ok)
+    assert(manager.snapshot(player).settings.voiceVolume == 150)
+    assert(saved and saved.voiceVolume == 150, 'runtime/settings.json carries the value the bridge polls')
+    assert(registered.applyBatch('manager', {{id = 'voiceVolume', value = 53}}).ok)
+    assert(manager.snapshot(player).settings.voiceVolume == 55, 'a value between steps lands on the nearest step')
+    assert(registered.applyBatch('manager', {{id = 'voiceVolume', value = 200}}).ok and manager.snapshot(player).settings.voiceVolume == 200)
+    assert(registered.applyBatch('manager', {{id = 'voiceVolume', value = 50}}).ok and manager.snapshot(player).settings.voiceVolume == 50)
+    for _, bad in ipairs({49, 201, 'loud', 0 / 0}) do
+      assert(not registered.applyBatch('manager', {{id = 'voiceVolume', value = bad}}).ok, 'refused: ' .. tostring(bad))
+      assert(not manager.applySettings(player, {voiceVolume = bad}))
+    end
+    assert(manager.snapshot(player).settings.voiceVolume == 50, 'a refused value changes nothing')
+  `);
+});
+
+test('a saved Voice volume survives loading, and a hand-edited value is brought back into range', () => {
+  for (const [stored, expected, rewritten] of [[130, 130, false], [999, 100, true], [133, 135, true]]) {
+    run(`${managerFixture}
+      seed = {version = 2, subtitleStyle = 'dialogue', voiceProvider = 'convai', omniSteps = 16, enabledByKey = {}, voiceVolume = ${stored}}
+      for _, profile in ipairs(profiles) do seed.enabledByKey[profile.key] = true end
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.reset(); manager.configure(api, profiles)
+      assert(manager.snapshot(player).settings.voiceVolume == ${expected}, 'loaded ' .. tostring(manager.snapshot(player).settings.voiceVolume))
+      if ${rewritten} then assert(saved ~= nil and saved.voiceVolume == ${expected}, 'a repaired value is written back') end
+    `);
+  }
+});
+
 test('Current party shows no Play or game voice row under Dismiss, in Developer mode or out of it', () => {
   run(`${mcmFixture}
     api.spawn('johnny-silverhand')

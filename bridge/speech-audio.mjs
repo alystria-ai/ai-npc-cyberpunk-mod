@@ -92,7 +92,7 @@ export function prepareSpeech(base64, depot, {makeupDb = activeMakeupDb(), now =
     if (typeof base64 !== 'string' || base64.length > 32000000 || !/^[A-Za-z0-9+/]*={0,2}$/.test(base64)) throw Error('Invalid speech audio');
     const source = Buffer.from(base64, 'base64');
     const info = inspectWav(source);
-    const bytes = makeupDb > 0 ? levelWav(readPcmWav(source), makeupDb) : source;
+    const bytes = makeupDb !== 0 ? levelWav(readPcmWav(source), makeupDb) : source;
     await writeFile(prepared.temp, bytes);
     prepared.info = info;
     return info;
@@ -122,8 +122,9 @@ export async function storeSpeech(base64, depot, slot, {makeupDb = activeMakeupD
   const info = inspectWav(source);
   // Audioware plays these slots on the game's dialogue track at unity, which is
   // quieter than vanilla dialogue: the same calibrated makeup as the browser
-  // path. Matching turned off (0 dB) writes the original bytes unchanged.
-  const bytes = makeupDb > 0 ? levelWav(readPcmWav(source), makeupDb) : source;
+  // path, plus the Voice volume setting (negative below 100%). Nothing to apply
+  // (0 dB: matching off at 100%) writes the original bytes unchanged.
+  const bytes = makeupDb !== 0 ? levelWav(readPcmWav(source), makeupDb) : source;
   const file = resolve(depot, `reply-${slot}.wav`), temp = file + '.tmp';
   await writeFile(temp, bytes);
   await rename(temp, file);

@@ -8,7 +8,7 @@ import {decodeAnalysisPcm} from './analysis-pcm.mjs';
 import {JALI_LEAD_SECONDS} from './jali-face.mjs';
 import {displayText} from './natural-speech.mjs';
 import {captionCues, cueSignature} from './caption-cues.mjs';
-import {activeMakeupDb} from './dialogue-level.mjs';
+import {activeMakeupDb, dialogueLevel} from './dialogue-level.mjs';
 import {audioDelayMs} from './audio-delay.mjs';
 
 const SHARING_ERRORS = new Set(['EPERM', 'EACCES', 'EBUSY']);
@@ -138,10 +138,12 @@ export class ConvaiContinuousSpeech {
     if (this.retired) throw Error('Continuous speech was stopped by the game');
     const age = this.controlAt === undefined ? now - this.publishedAt : now - this.controlAt;
     if (age > (this.controlAt === undefined ? FIRST_LEASE_MS : LEASE_MS)) throw Error('Continuous speech game lease expired');
-    // The bridge's makeup gain rides along; 0 (matching off) is the unity path.
+    // The bridge's makeup gain rides along (dialogue level plus the Voice volume setting); 0 is the unity path. With level matching
+    // off, the low-pass stays open (no distance), whatever the Voice volume does to the gain.
     // The Lip sync delay (Bluetooth) rides along only when set, as delayMs.
     const delayMs = audioDelayMs();
-    return this.lastControl && age <= 400 ? {...this.lastControl, makeupDb: activeMakeupDb(), ...(delayMs ? {delayMs} : {})} : quiet();
+    return this.lastControl && age <= 400 ? {...this.lastControl, makeupDb: activeMakeupDb(), ...(dialogueLevel().enabled ? {} : {distance: null}),
+      ...(delayMs ? {delayMs} : {})} : quiet();
   }
 
   async frame(snapshot) {

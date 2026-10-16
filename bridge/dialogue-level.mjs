@@ -35,10 +35,37 @@ export function updateDialogueLevel(raw) {
   state = next; return changed;
 }
 export const dialogueLevel = () => ({...state});
-// The makeup actually applied: 0 when the player turned matching off.
-export const activeMakeupDb = () => state.enabled ? state.makeupDb : 0;
-
 export const dbToGain = db => Math.pow(10, db / 20);
+
+// Settings > Voices > Voice volume (runtime/settings.json "voiceVolume", a percent): the player's own trim on top of the dialogue
+// level, for every spoken voice (companions, NPCs, add-ons) and V's voice for typed lines. 100 is unity and the default; below it
+// is plain attenuation; above it is gain behind the same peak limiter (Web Audio compressor in the browser, the look-ahead limiter
+// in the Audioware WAVs), so 200% (+6.02 dB) never clips. It rides in the same makeup field, so nothing else changes: no per-frame
+// work, no buffering, no timing change (the limiter's fixed look-ahead is already compensated), and the next phrase or poll uses it.
+export const VOICE_VOLUME = Object.freeze({min: 50, max: 200, step: 5, default: 100});
+export const voiceVolumeDbOf = percent => 20 * Math.log10(percent / 100);
+// The total (dialogue level plus voice volume) the renderers accept, in dB: -6.02 (50% with matching off) to +18.02 (the most
+// makeup the file allows plus 200%).
+export const MIN_TOTAL_DB = voiceVolumeDbOf(VOICE_VOLUME.min);
+export const MAX_TOTAL_DB = MAX_MAKEUP_DB + voiceVolumeDbOf(VOICE_VOLUME.max);
+
+/** The percent a settings value means: a finite number clamped to 50..200 and rounded; anything else is 100. */
+export function voiceVolumePercent(value) {
+  if (!finite(value)) return VOICE_VOLUME.default;
+  return Math.max(VOICE_VOLUME.min, Math.min(VOICE_VOLUME.max, Math.round(value)));
+}
+let voiceVolume = VOICE_VOLUME.default;
+/** Reads the setting from the parsed runtime/settings.json (undefined keeps the current value). Returns whether it changed. */
+export function updateVoiceVolume(settings) {
+  if (!settings || typeof settings !== 'object') return false;
+  const next = voiceVolumePercent(settings.voiceVolume);
+  const changed = next !== voiceVolume; voiceVolume = next; return changed;
+}
+export const voiceVolumePercentNow = () => voiceVolume;
+/** The voice volume as dB: 0 at 100%. V's voice uses this alone (it has no dialogue-level makeup). */
+export const voiceVolumeDb = () => voiceVolume === VOICE_VOLUME.default ? 0 : voiceVolumeDbOf(voiceVolume);
+// The makeup actually applied: the dialogue level (0 when the player turned matching off) plus the voice volume.
+export const activeMakeupDb = () => (state.enabled ? state.makeupDb : 0) + voiceVolumeDb();
 
 // ITU-R BS.1770-4 K-weighting at any sample rate (libebur128 coefficients).
 export function kWeighting(samples, rate) {

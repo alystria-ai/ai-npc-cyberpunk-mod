@@ -654,8 +654,10 @@ add-on sections, Development, Help.
   Local AI pack)), Mature content, Local AI model, the **Mistral free API key** row (above the Convai one), the Convai key row (always listed, also with Mistral or Local chosen), the Convai paid tier entry, Edit characters.
   Everything that decides who answers is here. The old rows "Use my own Convai API key", "Conversations use" and the Local AI status row are gone
   (see "One key button per key" and "Where the status went" below).
-- **Voices**: Voice playback, Companion voices, **Voice status** (moved up to sit right under Companion voices), Lip sync delay, Natural speech,
-  Expressive emotions, Follow-up questions, V's voice. The OmniVoice pack row and the Inworld key rows are gone from here.
+- **Voices**: Voice playback, Companion voices, **Voice status** (moved up to sit right under Companion voices), Lip sync delay, **Voice volume (%)**
+  (a native MCM slider, type `int`, 50 to 200 in steps of 5, 100 by default; MCM shows only the number, so the unit is in the name; stored as
+  `voiceVolume` in `runtime/settings.json`; the bridge polls it, so the next reply after Apply uses it, no restart; see `docs/DIALOGUE_LEVEL.md`),
+  Natural speech, Expressive emotions, Follow-up questions, V's voice. The OmniVoice pack row and the Inworld key rows are gone from here.
 - **Development** holds Developer mode and, in Developer mode only, the Inworld key row right after it.
 
 **Provider selector and migration.** "Convai API key" stores `conversationProvider = 'convai'` with `useOwnConvaiKey = true`; the other entries store

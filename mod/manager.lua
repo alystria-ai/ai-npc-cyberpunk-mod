@@ -41,6 +41,13 @@ local eyeContactHeights = {-0.10, -0.05, 0, 0.05, 0.10}
 -- output device (bridge/audio-delay.mjs). The bridge reads it from settings.json.
 local audioDelays = {'auto', 0, 50, 100, 150, 200, 250}
 local headFollowStrengths = {0, 0.5, 1, 1.5}
+-- Voice volume, in percent (Settings > Voices): a slider. 100 is the unchanged level; the bridge turns it into gain behind a
+-- peak limiter for every voice, V's included (bridge/dialogue-level.mjs). Stored as a whole number of percent, in steps of 5.
+local voiceVolume = {min = 50, max = 200, step = 5, default = 100}
+local function cleanVoiceVolume(value)
+    if type(value) ~= 'number' or value ~= value or value < voiceVolume.min or value > voiceVolume.max then return nil end
+    return math.floor(value / voiceVolume.step + 0.5) * voiceVolume.step
+end
 local relationshipProfiles = {
     {key = 'judy-alvarez', name = 'Judy Alvarez'},
     {key = 'panam-palmer', name = 'Panam Palmer'},
@@ -633,6 +640,13 @@ local function loadSettings()
     if not isChoice(settings.audioDelay, audioDelays) then
         settings.audioDelay, settingsNeedSave = 'auto', settingsNeedSave or settings.audioDelay ~= nil
     end
+    do
+        local volume = cleanVoiceVolume(settings.voiceVolume)
+        if volume == nil or volume ~= settings.voiceVolume then
+            settingsNeedSave = settingsNeedSave or settings.voiceVolume ~= nil
+            settings.voiceVolume = volume or voiceVolume.default
+        end
+    end
     if settings.disappearingMessages ~= nil then
         settings.disappearingMessages, settingsNeedSave = nil, true
     end
@@ -1100,6 +1114,7 @@ function M.gazeSettings()
 end
 
 function M.audioDelayChoices() return audioDelays end
+function M.voiceVolumeRange() return voiceVolume end
 
 -- The Local AI model row's choices: every installed model the bridge reported (by its manifest name), smallest file first. No Auto entry. Each is
 -- {id, name, sizeMiB, custom, needMiB, tooLarge}; empty while no model is installed.
@@ -1657,6 +1672,7 @@ function M.snapshot(player)
             eyeContactHeight = settings.eyeContactHeight,
             headFollowStrength = settings.headFollowStrength,
             audioDelay = settings.audioDelay,
+            voiceVolume = settings.voiceVolume,
             voiceProvider = settings.voiceProvider,
             omniSteps = settings.omniSteps,
             omniReference = settings.omniReference,
@@ -1747,6 +1763,10 @@ function M.applySettings(player, values)
         elseif key == 'audioDelay' then
             if not isChoice(value, audioDelays) then return false, 'Choose one of the listed lip sync delays.' end
             nextSettings.audioDelay = value
+        elseif key == 'voiceVolume' then
+            local volume = cleanVoiceVolume(value)
+            if not volume then return false, 'Choose a voice volume from 50 to 200 percent.' end
+            nextSettings.voiceVolume = volume
         elseif key == 'subtitleStyle' then
             if value ~= 'overhead' and value ~= 'dialogue' then return false, 'Choose one of the listed subtitle displays.' end
             nextSettings.subtitleStyle = value

@@ -88,7 +88,27 @@ read by the bridge every settings poll (no restart):
 - If the browser cannot build the low-pass or limiter, the player falls back
   to the previous graph by itself.
 
-There is no Settings-menu row yet (it needs the label in all 18 UI languages).
+There is no Settings-menu row for this level (it needs the label in all 18 UI languages). The player's own trim is a different row, below.
+
+## Voice volume (Settings > Voices)
+
+A slider, 50 to 200 percent (steps of 5, default 100), saved as `voiceVolume` in `runtime/settings.json` and read by the bridge on every
+settings poll (`updateVoiceVolume`, `bridge/dialogue-level.mjs`). It is added, in dB, to the makeup above (`activeMakeupDb`), so it reaches
+every spoken voice through the two paths that already exist, and V's typed-line voice through its renderer control:
+
+- **Browser renderer** (Pocket, Voxtral, Inworld, Convai): `makeupDb` rides in the playback control the bridge answers on every renderer
+  poll (`ConvaiContinuousSpeech.control`; for V's line `VLine.onFrame`, which has no dialogue makeup, so it carries the volume alone and
+  nothing at all at 100). The player sets its gain stage and switches the limiter in whenever the total is not 0 dB. Boosting runs
+  through the same limiter as the dialogue level, so 200% on top of +6 dB never reaches full scale (real Edge, offline render: peaks of
+  0.90 to 0.95 for full-scale speech at +12 and +18 dB). Below 100 it is a plain attenuation. With no limiter node (an old browser) a
+  boost is skipped, as before, and an attenuation still applies.
+- **Audioware slot WAVs** (OmniVoice phrases, the complete-WAV Convai fallback): `storeSpeech` writes the same total with the look-ahead
+  limiter (ceiling -1 dBFS), timing compensated. A total of exactly 0 dB writes the original bytes.
+
+Why sample gain and not a game-side volume: both renderers already take a gain stage the bridge controls, with a limiter and a measured
+latency compensation, so one number covers every voice with no per-frame Lua, no extra buffering and no change to lip-sync or subtitle
+timing. The game's own dialogue and sounds are not touched. With level matching switched off by hand (`dialogue-level.json`), the volume
+still applies and the distance low-pass stays open.
 
 ## Phone and group
 
