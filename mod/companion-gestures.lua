@@ -140,6 +140,8 @@ function M.new(options)
         end
         return kept
     end
+    -- The prop declaration of an idle key, when it is a prop idle (catalog.propIdles).
+    local function propOf(key) return key and self.catalog.propIdles and self.catalog.propIdles[key] or nil end
     -- Interesting idles: a prop idle (catalog.propIdles), or one that is not a generic stance and is not one of the rig's
     -- generic mix (a signature idle, a character's own workspot). Everything else in the pool is a plain idle.
     local function interesting(known, key)
@@ -163,7 +165,8 @@ function M.new(options)
                 if (key ~= s.lastIdle or #pool == 1) and (not allow or allow(key))
                     and (pass == 2 or not (afterProp and propOf(key))) then
                     local weight = interesting(known, key) and policy.interestingBonus or 1
-                    choices[#choices + 1], weights[#choices] = key, weight
+                    choices[#choices + 1] = key
+                    weights[#choices] = weight
                     total = total + weight
                 end
             end
@@ -326,7 +329,6 @@ function M.new(options)
     -- Prop idles. The idle's own animation puts the item in the hand; the controller only (1) starts a prop idle when its
     -- hand slot is free, (2) looks once whether the prop appeared, and (3) takes the declared item out of the slot again
     -- after the idle, whatever ended it. Natives are optional (an older gesture-workspot.lua has none: no prop idle then).
-    local function propOf(key) return key and self.catalog.propIdles and self.catalog.propIdles[key] or nil end
     local function propUsable(key)
         if not propOf(key) then return true end
         return policy.propIdles ~= false and not self.propOff[key] and native.slotItem ~= nil and native.clearSlot ~= nil
