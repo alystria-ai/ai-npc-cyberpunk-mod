@@ -87,7 +87,7 @@ Nothing is parked.
 
 ## Captain's log
 
-**2026-10-16 (live): main pushed (d1a91628..fc2a4ae4, as alystria-ai). Notice frame's left edge dropped:** the user said "its fine leave it"; the live check is removed (investigation in the `toast-left-edge` entries of 2026-10-14).
+**2026-10-16 (live): main pushed (d1a91628..fc2a4ae4, as alystria-ai). Notice frame's left edge dropped:** the user said "its fine leave it"; the live check is removed (investigation in the `toast-left-edge` entries of 2026-10-14). Delamain (map hold) and Skippy live checks are moved to next week, before their releases (Oct 20, Oct 25): "delemain and skippy are fine tbh".
 
 **2026-10-16 (live, main 0bdc4667 after a CET reload, then a restart with the rebuilt archive): idle variety and smoother blends seen.** The user watched Johnny through several idles: no two look-alike idles back to back ("No look-alikes in a row"). The smoother blends (enter 0.9 s, exit 0.8 s) were rebuilt into the gesture archive (sha256 03904a0e), installed and seen after a restart: "Smooth now", and no double glasses at the end of Johnny's shades idle. The archive is in `packaging/release-data/archives/`.
 
