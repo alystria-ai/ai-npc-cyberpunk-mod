@@ -32,9 +32,12 @@ test('clips are joined with 0.4 s of silence', () => {
 });
 
 // The concatenation must match the research agent's proposed reference (torchaudio resample) to about one 16-bit step.
-test("matches the research agent's proposed three-clip reference", {skip: !existsSync(PROPOSED) || !existsSync(INDEX)}, () => {
+// The source clips are research data that may be pruned from disk; the test then skips.
+test("matches the research agent's proposed three-clip reference", {skip: !existsSync(PROPOSED) || !existsSync(INDEX)}, t => {
   const index = JSON.parse(readFileSync(INDEX, 'utf8')), voice = index.voices['judy-alvarez'];
-  const clips = voice.proposed.omni.clips.map(id => parseWav(readFileSync(resolve(index.dataRoot, voice.clips.find(clip => clip.id === id).p))));
+  const paths = voice.proposed.omni.clips.map(id => resolve(index.dataRoot, voice.clips.find(clip => clip.id === id).p));
+  if (!paths.every(path => existsSync(path))) return t.skip('the source clips are no longer on disk');
+  const clips = paths.map(path => parseWav(readFileSync(path)));
   const mine = parseWav(encodeWav(concatClips(clips).samples, 24000)), theirs = parseWav(readFileSync(PROPOSED));
   assert.equal(mine.frames, theirs.frames);
   let worst = 0;
