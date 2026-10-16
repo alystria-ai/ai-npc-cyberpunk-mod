@@ -22,15 +22,15 @@ Speak to Cyberpunk 2077's characters in your own voice and hear them answer in t
 
 Invite Judy along and she walks at your shoulder through Night City. Ask her something out loud, into your own microphone, and she answers in her own voice: lips moving with the words, eyes on you, hands talking when the story runs long. Sit down on a couch and she sits beside you. Get in the car and she rides along, or takes the wheel if you ask. Later, text her from V's phone, or ring her on a holocall and watch her pick up.
 
-Cyberpunk Convai gives 78 of the game's named characters, from Panam and Johnny to Takemura, Kerry, River and Alt Cunningham, personalities researched from the game's own lore, memories that last, and voices cloned from their own in-game voices, so Judy sounds like Judy. And the street answers too: the ganger on the corner, the NCPD officer, the ripperdoc and the bartender each talk back as their kind of person.
+Cyberpunk Convai gives 78 of the game's named characters, from Panam and Johnny to Takemura, Kerry, River and Alt Cunningham, personalities researched from the game's own lore, memories that last, and voices that sound like the characters you know. And the street answers too: the ganger on the corner, the NCPD officer, the ripperdoc and the bartender each talk back as their kind of person.
 
 ## Free, three ways
 
 - **Convai free tier, the default.** Install, start the game, talk. No account, no key, nothing to set up. It is the most refined option and the one the characters were written for, with 100 turns a day.
-- **Mistral free plan.** Make a free Mistral account, paste its key once, and get the fastest cloud replies, about 5,000 turns a day. The same key unlocks **Voxtral**, each character's cloned voice made in the cloud, so neither the text nor the voice costs your PC anything.
+- **Mistral free plan.** Make a free Mistral account, paste its key once, and get the fastest cloud replies, about 5,000 turns a day. The same key unlocks **Voxtral**, each character's voice made in the cloud, so neither the text nor the voice costs your PC anything.
 - **Local AI.** Download a Local AI pack and your characters think and speak entirely on your own PC: no account, no key, no internet, no limit. A lite model keeps smaller graphics cards in the game.
 
-The voices are free too. The default, **Pocket TTS**, clones each character's own in-game voice right on your processor, so a fresh install sounds like the game from the first line. With a Mistral key, **Voxtral** does the same in the cloud.
+The voices are free too. The default, **Pocket TTS**, gives every character a voice that sounds like them in the game, running right on your processor, so a fresh install sounds like Night City from the first line. With a Mistral key, **Voxtral** does the same in the cloud.
 
 **On this page:** [What you can do](#what-you-can-do) · [Requirements](#requirements) · [Install](#install) · [First run](#first-run) · [Controls](#controls) · [Conversation providers](#pick-a-brain-conversation-providers) · [Voices](#pick-a-voice) · [Latency and FPS](#smooth-frames-fast-replies) · [Settings](#settings) · [Troubleshooting](#troubleshooting) · [Add-ons](#add-ons) · [For developers](#for-developers) · [Credits and licence](#credits-and-licence)
 
