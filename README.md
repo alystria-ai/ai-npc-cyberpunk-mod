@@ -99,7 +99,7 @@ The first start after installing takes a little longer while the service prepare
 3. **Invite a companion.** Open the Companion Manager (your key, or Esc, then MCM, then Companion Manager), choose **Characters to invite** and press **Invite**. When the "joined" notice appears, go back to the game and she is there.
 4. **Make it yours.** In the Companion Manager choose **Settings**. **Conversation provider** and **Voices** are the two pages that change the most. Every change waits for **Apply**.
 
-Out of the box you get Convai free tier for the replies and Pocket TTS for the voice, each character in their own cloned voice, running on your processor.
+Out of the box you get Convai free tier for the replies and Pocket TTS for the voice, each character sounding like themselves, running on your processor.
 
 ## Controls
 
