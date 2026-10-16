@@ -4,20 +4,20 @@
 //   node packaging/build-release.mjs --version 0.2 --models hf --key-env CONVAI_API_KEY   (CI)
 //
 // Packages (dist/release/packages/):
-//   CyberpunkConvai-Scripts-<v>.zip        text only: CET Lua, redscript, JSON catalogs (for Nexus Mods)
-//   CyberpunkConvai-Runtime-<v>[...].zip   launcher, bundled Node/Chrome/Python, bridge, models, voices,
+//   AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip        text only: CET Lua, redscript, JSON catalogs (for Nexus Mods)
+//   AI-NPC-Cyberpunk-Mod-Runtime-<v>[...].zip   launcher, bundled Node/Chrome/Python, bridge, models, voices,
 //                                          game archives and the Audioware bank (GitHub)
-//   The optional packs are hosted on Hugging Face (alystria-ai/cyberpunk-convai-packs, one folder per version; packaging/upload-packs.py),
+//   The optional packs are hosted on Hugging Face (alystria-ai/ai-npc-cyberpunk-mod-packs, one folder per version; packaging/upload-packs.py),
 //   each ONE zip with no parts and no split files (the zip is ZIP64 where a model is over 4 GiB):
-//   CyberpunkConvai-OmniPack-<v>.zip       optional OmniVoice GPU pack
-//   CyberpunkConvai-LocalAI-Standard-<v>.zip  optional Local AI pack, Gemma 4 E4B
-//   CyberpunkConvai-LocalAI-Lite-<v>.zip   optional Local AI pack, Qwen3.5-2B
-//   CyberpunkConvai-Mature-Lite-<v>.zip    optional Mature lite pack, one uncensored model (Qwen3.5-4B); only with --packages mature-lite,
+//   AI-NPC-Cyberpunk-Mod-OmniPack-<v>.zip       optional OmniVoice GPU pack
+//   AI-NPC-Cyberpunk-Mod-LocalAI-Standard-<v>.zip  optional Local AI pack, Gemma 4 E4B
+//   AI-NPC-Cyberpunk-Mod-LocalAI-Lite-<v>.zip   optional Local AI pack, Qwen3.5-2B
+//   AI-NPC-Cyberpunk-Mod-Mature-Lite-<v>.zip    optional Mature lite pack, one uncensored model (Qwen3.5-4B); only with --packages mature-lite,
 //                                          never in the default set, never Nexus; it carries its own marker, so it works alone
-//   CyberpunkConvai-Mature-Standard-<v>.zip    optional Mature standard pack, one uncensored model (Gemma 4 E4B); only with --packages mature-standard
+//   AI-NPC-Cyberpunk-Mod-Mature-Standard-<v>.zip    optional Mature standard pack, one uncensored model (Gemma 4 E4B); only with --packages mature-standard
 // Only the Scripts (Nexus) and Runtime (GitHub release) packages may still be split into several zips (writeArchives).
 // plus SHA256SUMS.txt and release-manifest.json. The Runtime package also carries the native plugin
-// (red4ext/plugins/CyberpunkConvaiNative) and runtime/native-off.txt. See docs/PACKAGING.md.
+// (red4ext/plugins/AiNpcCyberpunkModNative) and runtime/native-off.txt. See docs/PACKAGING.md.
 //
 // Options:
 //   --version V        release version, 2077.N or 2077.N.M (required)
@@ -265,7 +265,7 @@ function nativeOffText(config) {
 
 function launcherIni() {
   const lines = [
-    '; Cyberpunk Convai: starts the conversation service with the game and stops it when the game exits.',
+    '; AI NPC Cyberpunk Mod: starts the conversation service with the game and stops it when the game exits.',
     '; Set enabled=0 to start it yourself instead.',
     '[launch]', 'enabled=1',
     'program=%PLUGIN%\\app\\node\\node.exe',
@@ -273,6 +273,20 @@ function launcherIni() {
     'working_directory=%PLUGIN%\\app',
   ];
   // GetPrivateProfileString reads Unicode only from UTF-16LE files with a byte order mark.
+  return Buffer.concat([Buffer.from([0xFF, 0xFE]), Buffer.from(lines.join('\r\n') + '\r\n', 'utf16le')]);
+}
+
+// The three files that keep an older copy from starting when the new packages are extracted over an old installation (the mod was
+// called CyberpunkConvai; packaging/runtime/migrate-legacy.mjs moves the player's state and removes the old folders at the first
+// start). Each sits at the exact path where the old install has a file of the same name, so extracting overwrites it:
+//   mods/CyberpunkConvai/init.lua                 the old CET mod becomes an empty stand-in
+//   red4ext/plugins/CyberpunkConvai/launcher.ini  the old launcher no longer starts the old service (enabled=0)
+//   mods/CyberpunkConvai/runtime/native-off.txt   the old native plugin switches every system off
+// On a clean installation they are three small files in two folders that the first start deletes.
+function legacyLauncherIni() {
+  const lines = ['; The launcher of the first releases of this mod (it was called CyberpunkConvai). The mod now lives in the AiNpcCyberpunkMod',
+    '; folders; this file only keeps an old copy from starting a second service. The first start of the game deletes this folder.',
+    '[launch]', 'enabled=0'];
   return Buffer.concat([Buffer.from([0xFF, 0xFE]), Buffer.from(lines.join('\r\n') + '\r\n', 'utf16le')]);
 }
 
@@ -308,6 +322,7 @@ async function scriptsPackage(source, config) {
   for (const rel of await walk(resolve(source.root, 'r6/scripts/CyberpunkConvai'))) {
     if (rel.endsWith('.reds') && !retired.has(rel)) pkg.file(`r6/scripts/CyberpunkConvai/${rel}`, resolve(source.root, 'r6/scripts/CyberpunkConvai', rel));
   }
+  pkg.text(`${config.legacy.modDirectory}/init.lua`, await readFile(resolve(source.root, 'packaging/release-data/legacy-init.lua'), 'utf8'));
   pkg.json(`${mod}/release.json`, {product: config.product, package: 'scripts', version, commit: source.commit});
   pkg.text(`${mod}/README.txt`, await readFile(resolve(source.root, 'packaging/PLAYER_README.md'), 'utf8'));
   pkg.text(`${mod}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
@@ -329,6 +344,8 @@ async function runtimePackage(source, config, models, key) {
   const dll = await buildLauncher(source);
   pkg.file(`${plugin}/${config.layout.pluginDll}`, dll);
   pkg.add(`${plugin}/launcher.ini`, {buffer: launcherIni()});
+  pkg.add(`${config.legacy.pluginDirectory}/launcher.ini`, {buffer: legacyLauncherIni()});
+  pkg.text(`${config.legacy.modDirectory}/runtime/native-off.txt`, 'all\n');
   pkg.text(`${plugin}/README.txt`, await readFile(resolve(source.root, 'packaging/PLAYER_README.md'), 'utf8'));
   pkg.text(`${plugin}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
 
@@ -343,11 +360,11 @@ async function runtimePackage(source, config, models, key) {
     const native = config.layout.nativeDirectory;
     pkg.file(`${native}/${config.layout.nativeDll}`, nativeDll);
     for (const [name, rel] of Object.entries(config.native.licences)) pkg.file(`${native}/${name}`, resolve(source.root, rel));
-    pkg.text(`${native}/README.txt`, 'Optional speed-up plugin for Cyberpunk Convai, loaded by RED4ext.\r\n'
-      + 'Cyberpunk Convai works the same without it: delete this folder and the mod runs entirely from its scripts.\r\n'
+    pkg.text(`${native}/README.txt`, 'Optional speed-up plugin for AI NPC Cyberpunk Mod, loaded by RED4ext.\r\n'
+      + 'AI NPC Cyberpunk Mod works the same without it: delete this folder and the mod runs entirely from its scripts.\r\n'
       + 'Systems that are not yet proven in the game start switched off; see runtime\\native-off.txt in the mod folder.\r\n');
     pkg.text(config.native.offFile, nativeOffText(config));
-    notices.push('Native plugin (red4ext/plugins/CyberpunkConvaiNative/CyberpunkConvaiNative.dll, built from native/core in this release): yyjson 0.12.0 (MIT, Copyright (c) 2020 YaoYuan)'
+    notices.push('Native plugin (red4ext/plugins/AiNpcCyberpunkModNative/CyberpunkConvaiNative.dll, built from native/core in this release): yyjson 0.12.0 (MIT, Copyright (c) 2020 YaoYuan)'
       + ' and the RED4ext.SDK headers (MIT, Copyright (c) 2020 - present Octavian Dima); the licence texts are in that folder.');
   }
 
@@ -451,7 +468,7 @@ async function runtimePackage(source, config, models, key) {
   log(`Voxtral references: ${voxtral.keys.length} voices, ${(voxtral.bytes / 1e6).toFixed(2)} MB in the Runtime package.`);
 
   // Launcher scripts, application metadata and notices.
-  for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs']) pkg.file(`${app}/launcher/${name}`, resolve(source.root, 'packaging/runtime', name));
+  for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs']) pkg.file(`${app}/launcher/${name}`, resolve(source.root, 'packaging/runtime', name));
   pkg.json(`${app}/package.json`, {name: 'cyberpunk-convai', version: npmVersion(version), private: true, type: 'module'});
 
   // Game-side binary assets: the three generated archives and the Audioware reply bank.
@@ -469,9 +486,9 @@ async function runtimePackage(source, config, models, key) {
   notices.push('Local speech recognition (Mistral voice input): Moonshine Tiny, English, int8 ONNX (app/models/stt/moonshine-tiny-en-int8/), MIT, Copyright (c) 2025 Useful Sensors, Inc. (Moonshine AI);'
     + ' licence text in app/models/stt/moonshine-tiny-en-int8/LICENSE. Run by sherpa-onnx (k2-fsa), Apache-2.0, licence in its *.dist-info folder.');
   notices.push('Pocket voice and lip-sync weights: trained for this mod; free for personal use with the mod.');
-  notices.push('Cyberpunk 2077, its audio and voice performances belong to CD PROJEKT RED and the performers; the reference voice clips (voices/) and game archives (archive/pc/mod/) are not licensed by the Cyberpunk Convai Use License.');
-  notices.push('Cyberpunk Convai itself: Cyberpunk Convai Use License, see LICENSE.txt in the plugin folder.');
-  pkg.text(`${app}/licenses/THIRD-PARTY-NOTICES.txt`, ['Cyberpunk Convai runtime - third-party components', '', ...notices.map(line => `- ${line}`), ''].join('\r\n'));
+  notices.push('Cyberpunk 2077, its audio and voice performances belong to CD PROJEKT RED and the performers; the reference voice clips (voices/) and game archives (archive/pc/mod/) are not licensed by the AI NPC Cyberpunk Mod Use License.');
+  notices.push('AI NPC Cyberpunk Mod itself: AI NPC Cyberpunk Mod Use License, see LICENSE.txt in the plugin folder.');
+  pkg.text(`${app}/licenses/THIRD-PARTY-NOTICES.txt`, ['AI NPC Cyberpunk Mod runtime - third-party components', '', ...notices.map(line => `- ${line}`), ''].join('\r\n'));
   pkg.text(`${app}/licenses/THIRD_PARTY_NOTICES.md`, await readFile(resolve(source.root, 'THIRD_PARTY_NOTICES.md'), 'utf8'));
   pkg.json(`${app}/release.json`, {product: config.product, package: 'runtime', version, commit: source.commit,
     node: tool.node.version, python: tool.python.version, browser: `${tool.browser.name} ${tool.browser.version}`,
@@ -621,7 +638,7 @@ async function omniPackage(source, config, models) {
   notices.push(`OmniVoice model (${model.repository} ${model.revision}) - code Apache-2.0, pretrained weights CC-BY-NC (see app/omni/model/README.md)`);
   notices.push('OmniVoice audio tokenizer - Boson Higgs Audio 2 Community License (app/omni/model/audio_tokenizer/LICENSE)');
   notices.push(`The OmniVoice weights are non-commercial (CC-BY-NC). VoiceStudio is AGPL-3.0-only: complete source at ${studio.repository} revision ${studio.revision} (app/omni/voicestudio/SOURCE.txt).`);
-  notices.push('Cyberpunk Convai itself: Cyberpunk Convai Use License, see LICENSE.txt in this folder.');
+  notices.push('AI NPC Cyberpunk Mod itself: AI NPC Cyberpunk Mod Use License, see LICENSE.txt in this folder.');
   pkg.text(`${omni}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
 
   // OmniVoice voice configurations and their reference clips.
@@ -648,7 +665,7 @@ async function omniPackage(source, config, models) {
     [values['local-voices.autobest-long.json'], values['local-voices.autobest-short.json']], {except: shipped, label: 'Voxtral references (OmniVoice clips)'});
   await pkg.tree(`${plugin}/voices/prepared`, voxtral.directory);
   log(`Voxtral references: ${voxtral.keys.length} voices, ${(voxtral.bytes / 1e6).toFixed(2)} MB in the OmniVoice pack (${voxtral.skipped.length} identical to the Runtime package's).`);
-  pkg.text(`${omni}/THIRD-PARTY-NOTICES.txt`, ['Cyberpunk Convai OmniVoice pack - third-party components', '', ...notices.map(line => `- ${line}`), ''].join('\r\n'));
+  pkg.text(`${omni}/THIRD-PARTY-NOTICES.txt`, ['AI NPC Cyberpunk Mod OmniVoice pack - third-party components', '', ...notices.map(line => `- ${line}`), ''].join('\r\n'));
   pkg.json(`${omni}/omni-pack.json`, {product: config.product, package: 'omni', version, commit: '' + source.commit,
     python: tool.omniPython.version, model: `${model.repository}@${model.revision}`, adapter: `${studio.repository}@${studio.revision}`});
   return pkg;
@@ -712,9 +729,9 @@ async function localAiPackage(source, config, tierKey) {
     `${spec.embed.name} (embedding model for memory search; both packs) - IBM Granite, ${spec.embed.license}: licenses/Apache-2.0.txt`
       + ` - https://huggingface.co/ibm-granite/granite-embedding-107m-multilingual and the GGUF at https://huggingface.co/${spec.embed.repository}`,
     'The model files are the unmodified converted files of the publishers named above.',
-    'Cyberpunk Convai itself: Cyberpunk Convai Use License, see LICENSE.txt in this folder.',
+    'AI NPC Cyberpunk Mod itself: AI NPC Cyberpunk Mod Use License, see LICENSE.txt in this folder.',
   ];
-  pkg.text(`${root}/THIRD-PARTY-NOTICES.txt`, ['Cyberpunk Convai Local AI packs - third-party components', '', ...notices.map(line => `- ${line}`), ''].join('\r\n'));
+  pkg.text(`${root}/THIRD-PARTY-NOTICES.txt`, ['AI NPC Cyberpunk Mod Local AI packs - third-party components', '', ...notices.map(line => `- ${line}`), ''].join('\r\n'));
   pkg.json(`${root}/local-ai-${tierKey}.json`, {product: config.product, package: `localai-${tierKey}`, version, commit: '' + source.commit,
     llamaCpp: spec.server.version, model: `${tier.repository}@${tier.revision}`, modelFile: tier.file, modelSha256: tier.sha256,
     embedModel: `${spec.embed.repository}@${spec.embed.revision}`});
@@ -757,9 +774,9 @@ async function maturePackage(source, config, tierKey) {
   pkg.json(`${root}/${spec.markers[tierKey]}`, {version: 1, pack: 'mature', [tierKey]: {file: `models/${model.file}`, name: model.name, family: model.family}});
   pkg.text(`${root}/${spec.directory}/README.md`, await readFile(resolve(source.root, spec.readme), 'utf8'));
   for (const licence of spec.licenceFiles) pkg.file(`${root}/${spec.directory}/licenses/${basename(licence)}`, resolve(source.root, licence));
-  pkg.text(`${root}/${spec.directory}/THIRD-PARTY-NOTICES-${packKey}.txt`, [`Cyberpunk Convai Mature ${packKey} pack - third-party components`, '',
+  pkg.text(`${root}/${spec.directory}/THIRD-PARTY-NOTICES-${packKey}.txt`, [`AI NPC Cyberpunk Mod Mature ${packKey} pack - third-party components`, '',
     `- ${model.name} (${model.key}; GGUF file ${model.file}; base model ${model.baseModel}) - ${model.license}: ${spec.directory}/licenses/Apache-2.0.txt - https://huggingface.co/${model.repository}`,
-    '- The model is a community fine-tune of the Apache-2.0 base model named above. The pack needs the Cyberpunk Convai main mod and a Local AI pack (llama-server).', ''].join('\r\n'));
+    '- The model is a community fine-tune of the Apache-2.0 base model named above. The pack needs the AI NPC Cyberpunk Mod main mod and a Local AI pack (llama-server).', ''].join('\r\n'));
   pkg.json(`${root}/${spec.directory}/mature-pack-${packKey}.json`, {product: config.product, package: `mature-${packKey}`, version, commit: '' + source.commit,
     models: [{tier: model.key, repository: model.repository, revision: model.revision, file: model.remote ?? model.file, sha256: model.sha256}]});
   return pkg;
@@ -856,7 +873,8 @@ async function main() {
       // Only the shipped launcher and the native plugin may install a RED4ext plugin. The development launcher
       // (red4ext/plugins/CyberpunkConvaiLauncher) must never ship: with it, two services start.
       if (/^red4ext\//i.test(entry.name) && /\.(?:dll|ini)$/i.test(entry.name)
-          && !entry.name.startsWith(`${config.layout.pluginDirectory}/`) && !entry.name.startsWith(`${config.layout.nativeDirectory}/`)) {
+          && !entry.name.startsWith(`${config.layout.pluginDirectory}/`) && !entry.name.startsWith(`${config.layout.nativeDirectory}/`)
+          && entry.name !== `${config.legacy.pluginDirectory}/launcher.ini`) {
         throw Error(`${item.file} installs an unexpected RED4ext plugin file: ${entry.name}`);
       }
       if (/(?:^|\/)CyberpunkConvaiLauncher[^/]*$/i.test(entry.name)) throw Error(`${item.file} contains the development launcher: ${entry.name}`);

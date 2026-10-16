@@ -1,5 +1,5 @@
 // Packaged entry point of the conversation service. The RED4ext launcher
-// (red4ext/plugins/CyberpunkConvai/CyberpunkConvai.dll) starts it with the bundled Node
+// (red4ext/plugins/AiNpcCyberpunkMod/CyberpunkConvai.dll) starts it with the bundled Node
 // when the game starts, as configured by launcher.ini next to the DLL:
 //   app/node/node.exe app/launcher/start-service.mjs --game-pid <pid> --game-root <root> --lifeline stdin
 // It prepares the data folder for this installation, joins any split download parts,
@@ -13,6 +13,7 @@ import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {installLayout, prepareState, serviceEnvironment} from './prepare-state.mjs';
 import {assembleParts} from './assemble-parts.mjs';
+import {adoptLegacyInstall, cleanupLegacyInstall} from './migrate-legacy.mjs';
 
 const appDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2);
@@ -24,9 +25,26 @@ if (!gameRoot) {
   process.exit(2);
 }
 const layout = installLayout({appDirectory, gameRoot});
+
+// An older installation (this mod was called CyberpunkConvai) is retired and its state moved to the new folders before anything
+// reads the data folder (packaging/runtime/migrate-legacy.mjs). It is a few stat calls when there is no old folder. A failure here
+// never stops the service: the old state stays where it is and the next start tries again.
+const early = [];
+let legacy = null;
+try { legacy = await adoptLegacyInstall({gameRoot: layout.gameRoot, log: message => early.push(message)}); }
+catch (error) { early.push(`Carry-over from the old installation failed: ${error?.stack || error}`); }
+
 mkdirSync(layout.state, {recursive: true});
 const logPath = resolve(layout.state, 'bridge-service.log');
 const log = message => { try { appendFileSync(logPath, `${new Date().toISOString()} ${message}\n`); } catch {} };
+for (const message of early) log(message);
+// What is left of the old folders (the old application and its browser, Python...) is removed off the main path, a while after
+// the start, so the game's loading never competes with the deletion. A locked file only postpones it to the next start.
+const legacyCleanup = delayMs => new Promise(done => {
+  if (!legacy?.found) return done(null);
+  const run = () => cleanupLegacyInstall({adopted: legacy, log}).then(done, error => { log(`Removing the old folders failed: ${error?.message || error}`); done(null); });
+  if (delayMs > 0) setTimeout(run, delayMs).unref(); else run();
+});
 
 function readVersion(path) {
   try { return JSON.parse(readFileSync(path, 'utf8')).version ?? null; } catch { return null; }
@@ -70,7 +88,9 @@ const localAiJoined = assembleParts(layout.localAi, {log}).catch(error => { log(
 const env = serviceEnvironment(layout, prepared);
 if (prepareOnly) {
   const localAi = await localAiJoined;
+  const cleaned = await legacyCleanup(0);
   process.stdout.write(JSON.stringify({ok: true, omni: prepared.omni, localAi: localAi.map(item => `${item.file}:${item.state}`),
+    legacy: legacy?.found ? {moved: legacy.report.moved.length, errors: legacy.report.errors, removed: cleaned?.removed ?? [], pending: cleaned?.pending ?? []} : null,
     key: prepared.keyFile.startsWith(layout.state) ? 'player' : 'package', state: layout.state}) + '\n');
   process.exit(0);
 }
@@ -86,6 +106,7 @@ try {
   log(`Supervisor arguments rejected: ${error.message}`);
   process.exit(2);
 }
+legacyCleanup(45_000);
 const supervisor = new BridgeSupervisor({...options, nodeExecutable: process.execPath,
   lifeline: options.lifeline === 'stdin' ? process.stdin : null});
 if (options.unknown.length) supervisor.log(`Ignored unknown arguments: ${options.unknown.join(' ')}`);

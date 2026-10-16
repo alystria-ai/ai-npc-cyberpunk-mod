@@ -243,8 +243,8 @@ async function main() {
     // Exact names only: version 0.2 must not pick up files of 0.2.1 or 0.20.
     const escaped = text => text.replace(/[.+]/g, '\\$&');
     // Only the Runtime may still come in several zips; the optional packs (OmniVoice, Local AI) are one zip each.
-    const pick = (prefix, {parts = false} = {}) => names.filter(name => name === `CyberpunkConvai-${prefix}-${version}.zip`
-      || (parts && new RegExp(`^CyberpunkConvai-${prefix}-${escaped(version)}-part\\d+of\\d+\\.zip$`).test(name))).sort();
+    const pick = (prefix, {parts = false} = {}) => names.filter(name => name === `AI-NPC-Cyberpunk-Mod-${prefix}-${version}.zip`
+      || (parts && new RegExp(`^AI-NPC-Cyberpunk-Mod-${prefix}-${escaped(version)}-part\\d+of\\d+\\.zip$`).test(name))).sort();
     const localIds = localAi ? ['LocalAI-Standard', 'LocalAI-Lite'] : [];
     const wanted = [...pick('Scripts'), ...pick('Runtime', {parts: true}), ...(omni ? pick('OmniPack') : []), ...localIds.flatMap(pick)];
     check('packages present', pick('Scripts').length === 1 && pick('Runtime', {parts: true}).length >= 1 && (!omni || pick('OmniPack').length === 1)
@@ -255,7 +255,7 @@ async function main() {
     let mismatches = 0, count = 0, longest = 0;
     const omniSplit = new Set();
     for (const id of ['Scripts', 'Runtime', ...(omni ? ['OmniPack'] : []), ...localIds]) {
-      const list = JSON.parse(await readFile(join(packagesDir, `CyberpunkConvai-${id}-${version}.files.json`), 'utf8'));
+      const list = JSON.parse(await readFile(join(packagesDir, `AI-NPC-Cyberpunk-Mod-${id}-${version}.files.json`), 'utf8'));
       for (const file of list) {
         count++; longest = Math.max(longest, game.length + 1 + file.path.length);
         const path = join(game, file.path);
@@ -267,8 +267,8 @@ async function main() {
     }
     check('every file matches the build', mismatches === 0, `${count} files, longest path ${longest} characters`);
 
-    const plugin = join(game, 'red4ext/plugins/CyberpunkConvai'), app = join(plugin, 'app');
-    const mod = join(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai'), state = join(mod, 'data');
+    const plugin = join(game, 'red4ext/plugins/AiNpcCyberpunkMod'), app = join(plugin, 'app');
+    const mod = join(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod'), state = join(mod, 'data');
     const node = join(app, 'node/node.exe');
     const where = spawnSync(join(systemRoot, 'System32/where.exe'), ['node', 'python', 'python3'], {env: cleanEnv(), encoding: 'utf8'});
     check('no Node or Python on the test PATH', where.status !== 0, (where.stdout || '').trim() || 'where found none');
@@ -294,8 +294,12 @@ async function main() {
     const plugins = join(game, 'red4ext/plugins');
     const pluginFolders = (await readdir(plugins, {withFileTypes: true})).filter(entry => entry.isDirectory()).map(entry => entry.name).sort();
     check('only the shipped plugins are installed (no development launcher)',
-      pluginFolders.every(name => ['CyberpunkConvai', 'CyberpunkConvaiNative'].includes(name)) && pluginFolders.includes('CyberpunkConvai'), pluginFolders.join(', '));
-    const nativeDll = join(plugins, 'CyberpunkConvaiNative/CyberpunkConvaiNative.dll');
+      pluginFolders.every(name => ['AiNpcCyberpunkMod', 'AiNpcCyberpunkModNative'].includes(name)) && pluginFolders.includes('AiNpcCyberpunkMod'), pluginFolders.join(', '));
+    // The packages also carry three stand-in files at the old CyberpunkConvai paths (they keep an old copy from starting when the packages
+    // are extracted over an old installation); the first start removed them with the old folders.
+    check('the old-name stand-ins were removed at the first start', summary.legacy?.removed?.length === 2 && summary.legacy.pending.length === 0
+      && !existsSync(join(plugins, 'CyberpunkConvai')) && !existsSync(join(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai')), JSON.stringify(summary.legacy));
+    const nativeDll = join(plugins, 'AiNpcCyberpunkModNative/CyberpunkConvaiNative.dll');
     const nativeOff = join(mod, 'runtime/native-off.txt');
     const release = JSON.parse(await readFile(join(app, 'release.json'), 'utf8'));
     if (existsSync(nativeDll)) {
@@ -308,7 +312,7 @@ async function main() {
       // The plugin's own parser rule: one name per line, '#' starts a comment, a missing file means all on.
       const off = existsSync(nativeOff) ? (await readFile(nativeOff, 'utf8')).split(/\r?\n/).map(line => line.replace(/#.*/, '').trim().toLowerCase()).filter(Boolean) : null;
       check('runtime/native-off.txt starts the unproven systems off', JSON.stringify(off) === JSON.stringify(buildConfig.native.off), off ? off.join(', ') : 'missing');
-      check('native plugin licences ship beside the DLL', ['RED4ext.SDK-LICENSE.md', 'yyjson-LICENSE.txt', 'README.txt'].every(name => existsSync(join(plugins, 'CyberpunkConvaiNative', name))));
+      check('native plugin licences ship beside the DLL', ['RED4ext.SDK-LICENSE.md', 'yyjson-LICENSE.txt', 'README.txt'].every(name => existsSync(join(plugins, 'AiNpcCyberpunkModNative', name))));
     } else {
       check('package without the native plugin has no native-off.txt', !existsSync(nativeOff) && release.nativePlugin === 'none');
     }

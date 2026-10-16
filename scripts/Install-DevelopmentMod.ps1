@@ -10,6 +10,18 @@ $project = [IO.Path]::GetFullPath($ProjectDirectory).TrimEnd('\')
 if (-not [IO.File]::Exists((Join-Path $game 'bin\x64\Cyberpunk2077.exe'))) { throw 'Game directory is invalid.' }
 if (-not $LuaOnly -and (Get-Process Cyberpunk2077 -ErrorAction SilentlyContinue)) { throw 'Close the game before installing native scripts, or use -LuaOnly for a CET reload.' }
 
+# The mod was called CyberpunkConvai: its old folders (mods\CyberpunkConvai, red4ext\plugins\CyberpunkConvai and ...Native) are moved to
+# the AI NPC Cyberpunk Mod folders and removed first, so the old copy can never load beside the new one. Does nothing when they are gone.
+# (-LuaOnly keeps the game running, so it cannot move them: run the full install once.)
+if (-not $LuaOnly) {
+    $nodeCommand = Get-Command node -ErrorAction SilentlyContinue
+    if (-not $nodeCommand) { throw 'Node.js is needed to move the old CyberpunkConvai folders (scripts\Migrate-LegacyInstall.mjs).' }
+    & $nodeCommand.Source (Join-Path $PSScriptRoot 'Migrate-LegacyInstall.mjs') --game $game
+    if ($LASTEXITCODE -ne 0) { throw 'Moving the old CyberpunkConvai folders failed; nothing was installed. See the messages above.' }
+} elseif (Test-Path -LiteralPath (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai')) {
+    Write-Warning 'The old CyberpunkConvai mod folder is still there, so two copies would load. Close the game and run this script without -LuaOnly once.'
+}
+
 Import-Module (Join-Path $PSScriptRoot 'DevelopmentFiles.psm1') -Force
 $manifest = Get-DevelopmentManifest $project
 $targets = @(Get-DevelopmentFiles -ProjectDirectory $project -GameDirectory $game -LuaOnly:$LuaOnly)
@@ -56,7 +68,7 @@ foreach ($item in $targets) {
         if ([IO.File]::Exists($temporary)) { Remove-Item -LiteralPath $temporary }
     }
 }
-[IO.Directory]::CreateDirectory((Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\runtime')) | Out-Null
+[IO.Directory]::CreateDirectory((Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod\runtime')) | Out-Null
 $receipt.complete = $true
 Save-InstallReceipt
 if ($LuaOnly) { Write-Output 'Lua adapter and catalogs installed and hash verified. Native files were not changed or validated. Use CET Reload All Mods to activate.' }
