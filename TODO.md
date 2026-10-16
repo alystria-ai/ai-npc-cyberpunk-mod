@@ -15,7 +15,6 @@ Install state: everything on `main` c277774d is installed in the game, including
 - Timing facts: about 35 new Cyberpunk mods a day, so a new one stays on page 1 of New for 12 to 14 hours; trending ranks mods first published in its window by endorsements; Steam peaks about 13:00 to 14:00 UTC and Sundays run 10 to 20% above weekdays.
 
 ### Needs the user (decisions and approvals)
-- **Convai paid tier: one small live look.** Buying, the plan update and paid replies were confirmed on 2026-10-16. Still to see: the status line (left, under the mod list) changes after Check and after Buy, the plan row reads "Gamer, monthly", and the matching plan row says "Current plan". Waiting on Convai (Himadri): the V2 `plan_name` values and the OK for the `login.convai.com/?ue=true&port=` sign-in hand-back. The backend plan-list deploy is not approved. See `docs/CONVAI_PAID_TIER.md`, "What is left open".
 - **Remind the user on 2026-10-17 to make the GitHub repository `alystria-ai/cyberpunk-convai` public.** Releases publish there and players need it public.
 - **Settings review walk-through** with the user (prep `docs/SETTINGS_REVIEW_2026-10-07.md`; decisions so far in the log).
 - **Shank's appearance text** needs a screenshot or full-body picture from the user (see "Appearance bios" below).
@@ -88,6 +87,8 @@ Nothing is parked.
 - Lip sync for vendors and ordinary NPCs by an appearance hop (2026-10-10): superseded by the gated crowd face graph (live check above).
 
 ## Captain's log
+
+**2026-10-16 (live, dev install):** the user confirmed the paid tier works, and Himadri confirmed the V2 plan names and the `ue=true&port=` sign-in hand-back (he proposed that method). The settings scroll fix (`settings-scroll-top`) was seen live: pages open at the top. Requested: remove the "Companions can see" setting (always on with Convai), drop "Experimental" from the holocall help, and fix Voice status saying "Convai voices" while Voxtral is chosen (branch `settings-polish`). Shank's appearance comes from online pictures (branch `shank-appearance`).
 
 **2026-10-16 (fresh-player release test of v0.2, built from main a19e1901; passed live):** the Scripts and Runtime 0.2 zips were built, install-tested (19 of 19 checks) and installed over a moved-aside dev install with no saved key. The user confirmed Sign in with Convai, the key showing afterwards, talk, mic, phone chat, holocall, settings layout and companions. The dev install was then restored (452 files matched by size and SHA-256, bindings.json unchanged). Two things to watch for the real release: (1) the first Runtime build died once with `CL.exe` exiting `-1073741819` while compiling `CyberpunkConvaiNative`; re-running the native build alone passed all tests with the same DLL hash, so it looks transient, but if it recurs in the Actions Runtime job that job fails. (2) The third-party MCM file `ModConfigurationMenuAPI/data/dynamic_snapshots.json` and CET's `persistent.json` still hold the add-on categories (Delamain Cab) and `cyberpunk-convai:manager` entries from the dev install, so a fresh install on a machine that had them could show stale add-on rows in MCM until the snapshot refreshes; not touched, check whether it matters for players who remove an add-on.
 
