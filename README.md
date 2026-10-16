@@ -22,15 +22,15 @@ Speak to Cyberpunk 2077's characters in your own voice and hear them answer in t
 
 Invite Judy along and she walks at your shoulder through Night City. Ask her something out loud, into your own microphone, and she answers in her own voice: lips moving with the words, eyes on you, hands talking when the story runs long. Sit down on a couch and she sits beside you. Get in the car and she rides along, or takes the wheel if you ask. Later, text her from V's phone, or ring her on a holocall and watch her pick up.
 
-Cyberpunk Convai gives 78 of the game's named characters, from Panam and Johnny to Takemura, Kerry, River and Alt Cunningham, personalities researched from the game's own lore, memories that last, and voices modelled on the originals. And the street answers too: the ganger on the corner, the NCPD officer, the ripperdoc and the bartender each talk back as their kind of person.
+Cyberpunk Convai gives 78 of the game's named characters, from Panam and Johnny to Takemura, Kerry, River and Alt Cunningham, personalities researched from the game's own lore, memories that last, and voices cloned from their own in-game voices, so Judy sounds like Judy. And the street answers too: the ganger on the corner, the NCPD officer, the ripperdoc and the bartender each talk back as their kind of person.
 
 ## Free, three ways
 
 - **Convai free tier, the default.** Install, start the game, talk. No account, no key, nothing to set up. It is the most refined option and the one the characters were written for, with 100 turns a day.
-- **Mistral free plan.** Make a free Mistral account, paste its key once, and get the fastest cloud replies, about 5,000 turns a day.
+- **Mistral free plan.** Make a free Mistral account, paste its key once, and get the fastest cloud replies, about 5,000 turns a day. The same key unlocks **Voxtral**, each character's cloned voice made in the cloud, so neither the text nor the voice costs your PC anything.
 - **Local AI.** Download a Local AI pack and your characters think and speak entirely on your own PC: no account, no key, no internet, no limit. A lite model keeps smaller graphics cards in the game.
 
-The default voice runs on your processor and costs nothing either, so a fresh install plays free from the first line.
+The voices are free too. The default, **Pocket TTS**, clones each character's own in-game voice right on your processor, so a fresh install sounds like the game from the first line. With a Mistral key, **Voxtral** does the same in the cloud.
 
 **On this page:** [What you can do](#what-you-can-do) · [Requirements](#requirements) · [Install](#install) · [First run](#first-run) · [Controls](#controls) · [Conversation providers](#pick-a-brain-conversation-providers) · [Voices](#pick-a-voice) · [Latency and FPS](#smooth-frames-fast-replies) · [Settings](#settings) · [Troubleshooting](#troubleshooting) · [Add-ons](#add-ons) · [For developers](#for-developers) · [Credits and licence](#credits-and-licence)
 
@@ -95,20 +95,20 @@ The first start after installing takes a little longer while the service prepare
 ## First run
 
 1. **Bind your keys.** Open Cyber Engine Tweaks' **Bindings** and give a key to each Cyberpunk Convai action (see [Controls](#controls)). The mod never assigns or overwrites keys for you.
-2. **Say something.** Face a character, press **talk by text**, type, press Enter. Or press **talk by voice**, wait for "Listening", speak, and press the same key again.
+2. **Say something.** Face a character, press **talk by text**, type, press Enter. Or press **talk by voice**, wait for "Listening", speak, and press the same key again (or hold the key while you speak and let go).
 3. **Invite a companion.** Open the Companion Manager (your key, or Esc, then MCM, then Companion Manager), choose **Characters to invite** and press **Invite**. When the "joined" notice appears, go back to the game and she is there.
 4. **Make it yours.** In the Companion Manager choose **Settings**. **Conversation provider** and **Voices** are the two pages that change the most. Every change waits for **Apply**.
 
-Out of the box you get Convai free tier for the replies and the Pocket voice, which runs on your processor.
+Out of the box you get Convai free tier for the replies and Pocket TTS for the voice, each character in their own cloned voice, running on your processor.
 
 ## Controls
 
 | Key | What it does |
 |---|---|
 | **Cyberpunk Convai: talk by text** (CET binding) | Opens a private text conversation with the character you face |
-| **Cyberpunk Convai: talk by voice** (CET binding) | Starts, then ends, the microphone for a private conversation |
+| **Cyberpunk Convai: talk by voice** (CET binding) | The microphone for a private conversation: tap to start and tap again to send, or hold it while you speak and let go |
 | **Cyberpunk Convai: group text chat** (CET binding) | Opens a text conversation with two or three nearby characters |
-| **Cyberpunk Convai: group voice chat** (CET binding) | Starts, then ends, the microphone for a group conversation |
+| **Cyberpunk Convai: group voice chat** (CET binding) | The same microphone, for a group conversation |
 | **Cyberpunk Convai: companion manager** (CET binding) | Opens the Companion Manager |
 | Hold **T**, then the **Chat** tab | Phone Chat: pick a contact and press the confirm key. **Enter** starts typing and sends, **Esc** stops typing |
 | **V** (the game's call key) on a Chat contact or inside a chat | Starts a holocall. Tap the phone button to hang up |
@@ -152,7 +152,7 @@ For more Convai than the free tier gives, the **Convai paid tier** row right bel
 2. Copy it, open **Settings > Conversation provider** and press **Paste** on the **Mistral free API key** row.
 3. Choose **Mistral (free plan)** as the provider and **Apply**.
 
-Quick and free, with plainer replies than Convai's. Memory stays on your computer, and the microphone is recognised on your computer, in English. With Mistral chosen but no key saved, conversations use Convai and you see one notice.
+Quick and free, with plainer replies than Convai's. Memory stays on your computer, and the microphone is recognised on your computer, in English. The same key also unlocks the **Voxtral** voice ([Pick a voice](#pick-a-voice)): with both, the whole conversation runs in the cloud. With Mistral chosen but no key saved, conversations use Convai and you see one notice.
 
 ### Local AI
 
@@ -187,9 +187,9 @@ Install neither, one or both. The **Local AI model** row lists what is installed
 
 | Voice | Runs on | Needs | Starts speaking after | Sound | Languages |
 |---|---|---|---|---|---|
-| **Pocket · Performance** (default) | Your processor, no video memory | Nothing extra: it comes with the Runtime | About 0.15 to 0.2 s | Good, and close to OmniVoice on well-covered characters such as Johnny, Judy, Panam and Alex | English |
+| **Pocket · Performance** (default, Pocket TTS) | Your processor, no video memory | Nothing extra: it comes with the Runtime | About 0.15 to 0.2 s | Each character's own voice, cloned on your PC. Close to OmniVoice on well-covered characters such as Johnny, Judy, Panam and Alex | English |
 | **OmniVoice** (Balanced, Quality, High Quality, Ultra Quality) | Your NVIDIA graphics card | The OmniVoice pack, about 8 GB of video memory or more and a current driver. About 2 GB extra while it runs | Balanced about 1.3 s, Quality 1.45 s, High Quality 2.1 s, Ultra Quality 2.5 s | Richer, especially on harder voices, and it can laugh and sigh. Higher tiers sound better and start slower | Many (needed for Multilingual conversations) |
-| **Voxtral · Mistral cloud** | Mistral's servers | Your Mistral key and internet. No local model is loaded | About 1 to 1.25 s, with an occasional slow reply | Each character's own voice, cloned in the cloud | English |
+| **Voxtral · Mistral cloud** | Mistral's servers: nothing runs on your PC | Your free Mistral key and internet. No local model is loaded | About 1 to 1.25 s, with an occasional slow reply | Each character's own voice, cloned in the cloud | English |
 | **Convai · Cloud voice** | Convai's servers | Convai as the provider and internet | Streams with the reply | Convai's own voice. It cannot clone, so V's typed-line voice stays silent beside it, and Natural speech and Expressive emotions are off | Many |
 
 Balanced and Quality use 16 generation steps, High Quality and Ultra Quality 32. Balanced and High Quality copy a short sample of the original voice, Quality and Ultra Quality a long one.
@@ -201,23 +201,24 @@ Balanced and Quality use 16 generation steps, High Quality and Ultra Quality 32.
 
 If your voice cannot run, the order is OmniVoice, then Pocket, then Convai's cloud voice. Voxtral has no local fallback: a line it cannot voice is shown as text, with one notice.
 
-The same page also holds **Voice playback** (Off means text only), **Lip sync delay (Bluetooth)**, **Natural speech** (pauses, hesitations and, with OmniVoice, laughs and sighs; off by default), **Expressive emotions**, **Follow-up questions** and **V's voice for typed lines** (all three on by default).
+The same page also holds **Voice playback** (Off means text only), **Voice volume** (a slider from 50 to 200 percent for every mod voice, V's included; the game's own audio is untouched), **Lip sync delay (Bluetooth)**, **Natural speech** (pauses, hesitations and, with OmniVoice, laughs and sighs; off by default), **Expressive emotions**, **Follow-up questions** and **V's voice for typed lines** (all three on by default).
 
 ## Smooth frames, fast replies
 
-The heavy lifting happens in a separate background service, not inside the game, so the default setup (Convai or Mistral for text, Pocket for the voice) uses no video memory at all. Only OmniVoice and Local AI touch your graphics card, and the lite model keeps fully local play light.
+The heavy lifting happens in a separate background service, not inside the game, so the default setup (Convai or Mistral for text, Pocket for the voice) uses no video memory at all. Pair Mistral or Convai with the **Voxtral** voice and everything happens in the cloud: no voice model on your processor or graphics card. Only OmniVoice and Local AI touch your graphics card, and the lite model keeps fully local play light.
 
 **For the fastest replies**
 
 - **Set Windows power mode to Balanced or Performance, and plug a laptop in.** Silent mode cut Local AI's speed by about 40 percent in testing, slows speech recognition and stretches OmniVoice's first start to about three minutes. On a laptop it is the biggest single factor.
-- **Use Pocket.** It starts speaking in 0.15 to 0.2 s, against 1.3 to 2.5 s for OmniVoice and about a second for Voxtral.
+- **Use Pocket or Voxtral.** Pocket starts speaking in 0.15 to 0.2 s and Voxtral in about a second, against 1.3 to 2.5 s for OmniVoice.
 - **For the fastest cloud text, use Mistral.** With Pocket, a reply began speaking a second or two after sending.
 - **Leave Auto-connect nearby characters on.** It readies a conversation as you look at or walk up to someone.
 - **Give Local AI room.** A model squeezed onto a nearly full card is slower, and the first reply after ten idle minutes includes loading time.
 
 **For the smoothest frames**
 
-- **Stay on the default** (cloud text and Pocket): nothing is loaded on the graphics card.
+- **Go all cloud:** Mistral or Convai for the text and Voxtral for the voice. Nothing is loaded on your PC at all, which is the lightest setup there is.
+- **Or stay on the default** (cloud text and Pocket): nothing is loaded on the graphics card, and Pocket takes a little processor time while it speaks.
 - **For fully local, use Local AI lite with Pocket:** about 1.5 GB of extra video memory, against about 3 GB for standard.
 - **Want OmniVoice and a local model together?** Lower textures or turn off ray tracing; they use the most video memory.
 - **Text only?** Turn off Voice playback and the voice models are released.
@@ -227,6 +228,7 @@ Extra video memory on top of the game's own (estimates from one 12 GB card):
 
 | Voice | Text | Extra video memory |
 |---|---|---|
+| Voxtral | Convai or Mistral | none, and no processor load either |
 | Pocket | Convai or Mistral | none |
 | Pocket | Local AI lite | about 1.5 GB |
 | Pocket | Local AI standard | about 3 GB |
@@ -236,7 +238,8 @@ Extra video memory on top of the game's own (estimates from one 12 GB card):
 
 | Your graphics card | What fits (lower settings: medium textures, no ray tracing) |
 |---|---|
-| 6 GB | Pocket with Convai or Mistral. Local AI lite on lower settings. |
+| Any | Voxtral or Pocket with Convai or Mistral. |
+| 6 GB | Local AI lite on lower settings. |
 | 8 GB | Pocket with Local AI lite, or OmniVoice with Convai or Mistral, both on lower settings. |
 | 12 GB | OmniVoice with Local AI lite on any settings. Pocket with Local AI standard on lower settings. |
 | 16 GB | OmniVoice with Local AI standard on lower settings, or with Local AI lite on higher settings. |
@@ -262,6 +265,7 @@ Everything lives under **Companion Manager > Settings**. Defaults are for a new 
 | Body gestures | Companion behavior | On |
 | Voice playback | Voices | On |
 | Companion voices | Voices | Pocket · Performance |
+| Voice volume (%) | Voices | 100 (50 to 200) |
 | Lip sync delay (Bluetooth) | Voices | Auto |
 | Natural speech | Voices | Off |
 | Expressive emotions | Voices | On (off beside Convai's cloud voice) |
