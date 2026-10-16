@@ -167,7 +167,7 @@ The language model runs on your own graphics card. No account, no key, no intern
 |---|---|---|
 | Model | Gemma 4 E4B | Qwen3.5-2B |
 | Download | about 5.3 GB | about 1.5 GB |
-| Best for | Named characters and companions: closest to what the character knows, invents the least | Smaller cards, or a game already using most of your video memory. Plainer replies, fine for ordinary NPCs |
+| Best for | Named characters and companions: closest to what the character knows, invents the least | Lighter on video memory and quicker to load. Plainer replies, fine for ordinary NPCs |
 | Free video memory it wants to start | about 6 GB | about 2 GB |
 | Extra video memory while running (with Pocket) | about 3 GB | about 1.5 GB |
 | Weaker at | | Languages other than English |
@@ -208,24 +208,22 @@ The same page also holds **Voice playback** (Off means text only), **Voice volum
 
 The heavy lifting happens in a separate background service, not inside the game, so the default setup (Convai or Mistral for text, Pocket for the voice) uses no video memory at all. Pair Mistral or Convai with the **Voxtral** voice and everything happens in the cloud: no voice model on your processor or graphics card. Only OmniVoice and Local AI touch your graphics card, and the lite model keeps fully local play light.
 
-**For the fastest replies**
+Every voice sounds like the character, Pocket and Voxtral included, so pick by what matters to you:
+
+- **Least effect on your frames:** go all cloud. Convai or Mistral for the text, Voxtral or Convai's voice for the speech. Nothing runs on your PC. The default (cloud text with Pocket) is nearly as light: no video memory, a little processor time while it speaks.
+- **Fastest replies:** Mistral for the text with Pocket for the voice. Pocket starts speaking in 0.15 to 0.2 s, and a reply began speaking a second or two after sending. Voxtral starts in about a second.
+- **Fully local, best replies:** Local AI standard, with Pocket for the voice (or OmniVoice on an NVIDIA graphics card). No account, no internet.
+- **Fully local, lightweight:** Local AI lite with Pocket, about 1.5 GB of extra video memory.
+- **Extra expression:** OmniVoice can laugh and sigh, and Natural speech adds pauses and hesitations. OmniVoice is the heaviest voice and starts speaking a little later.
+
+A few habits help every setup:
 
 - **Set Windows power mode to Balanced or Performance, and plug a laptop in.** Silent mode cut Local AI's speed by about 40 percent in testing, slows speech recognition and stretches OmniVoice's first start to about three minutes. On a laptop it is the biggest single factor.
-- **Use Pocket or Voxtral.** Pocket starts speaking in 0.15 to 0.2 s and Voxtral in about a second, against 1.3 to 2.5 s for OmniVoice.
-- **For the fastest cloud text, use Mistral.** With Pocket, a reply began speaking a second or two after sending.
 - **Leave Auto-connect nearby characters on.** It readies a conversation as you look at or walk up to someone.
-- **Give Local AI room.** A model squeezed onto a nearly full card is slower, and the first reply after ten idle minutes includes loading time.
-
-**For the smoothest frames**
-
-- **Go all cloud:** Mistral or Convai for the text and Voxtral for the voice. Nothing is loaded on your PC at all, which is the lightest setup there is.
-- **Or stay on the default** (cloud text and Pocket): nothing is loaded on the graphics card, and Pocket takes a little processor time while it speaks.
-- **For fully local, use Local AI lite with Pocket:** about 1.5 GB of extra video memory, against about 3 GB for standard.
-- **Want OmniVoice and a local model together?** Lower textures or turn off ray tracing; they use the most video memory.
 - **Text only?** Turn off Voice playback and the voice models are released.
 - Unused models leave on their own: Local AI after ten idle minutes, OmniVoice when playback is off, the microphone's recogniser 90 seconds after your last recording.
 
-Extra video memory on top of the game's own (estimates from one 12 GB card):
+Extra video memory each setup uses on top of the game's own:
 
 | Voice | Text | Extra video memory |
 |---|---|---|
@@ -236,14 +234,6 @@ Extra video memory on top of the game's own (estimates from one 12 GB card):
 | OmniVoice | Convai or Mistral | about 2 GB |
 | OmniVoice | Local AI lite | about 4 GB |
 | OmniVoice | Local AI standard | about 5 GB |
-
-| Your graphics card | What fits (lower settings: medium textures, no ray tracing) |
-|---|---|
-| Any | Voxtral or Pocket with Convai or Mistral. |
-| 6 GB | Local AI lite on lower settings. |
-| 8 GB | Pocket with Local AI lite, or OmniVoice with Convai or Mistral, both on lower settings. |
-| 12 GB | OmniVoice with Local AI lite on any settings. Pocket with Local AI standard on lower settings. |
-| 16 GB | OmniVoice with Local AI standard on lower settings, or with Local AI lite on higher settings. |
 
 ## Settings
 

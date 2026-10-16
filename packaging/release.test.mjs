@@ -646,8 +646,10 @@ test('player-facing text follows the wording rules', async () => {
   assert.doesNotMatch(readme, /embedded|shared plan/i);
   assert.match(readme, /Convai[^.]*gives better quality responses/);
   assert.match(readme, /RED4ext/);
-  // The graphics-memory picks cover 6, 8, 12 and 16 GB cards.
-  for (const size of ['6 GB', '8 GB', '12 GB', '16 GB']) assert(readme.includes(`| ${size} |`), size);
+  // Guidance is by goal, not by graphics card or a quality ranking (the user, 2026-10-16): every voice sounds good; no per-card table.
+  assert.match(readme, /## Choosing a setup/);
+  assert.match(readme, /\*\*Least effect on your frames:\*\*/);
+  assert.doesNotMatch(readme, /\| (?:6|8|12|16) GB \||lower settings/i);
   const notices = await readFile(resolve(project, 'THIRD_PARTY_NOTICES.md'), 'utf8');
   for (const name of ['llama.cpp', 'Gemma 4', 'Qwen3.5-2B', 'granite-embedding', 'Apache-2.0']) assert(notices.includes(name), `THIRD_PARTY_NOTICES.md must mention ${name}`);
 });

@@ -58,25 +58,29 @@ Convai free tier works out of the box with no setup and gives better quality res
 
 If your graphics card is short of memory the mod steps down by itself and keeps your voice before it keeps the model: the standard model gives way to the lite model, and if the lite model does not fit either, the text comes from Mistral or Convai, with one notice. Your voice only changes as a last resort. The standard model checks that about 6 GB of video memory is free when it starts; with less, the lite model is used.
 
-Extra video memory each combination needs on top of what the game itself uses. These are estimates from one 12 GB card; the game's own use depends on your settings, and ray tracing and high textures use the most.
+## Choosing a setup
+
+Every voice sounds like the character, Pocket and Voxtral included, so pick by what matters to you:
+
+- **Least effect on your frames:** go all cloud. Convai or Mistral for the text, Voxtral or Convai's voice for the speech. Nothing runs on your PC. The default (Convai with the Pocket voice) is nearly as light.
+- **Fastest replies:** Mistral for the text with Pocket for the voice. Pocket starts speaking in a fraction of a second.
+- **Fully local, best replies:** Local AI standard, with Pocket for the voice (or OmniVoice on an NVIDIA graphics card).
+- **Fully local, lightweight:** Local AI lite with Pocket.
+- **Extra expression:** OmniVoice can laugh and sigh, and Natural speech adds pauses and hesitations. OmniVoice is the heaviest voice and starts speaking a little later.
+
+Set Windows power mode to Balanced or Performance and plug a laptop in: it is the biggest single factor for reply speed.
+
+Extra video memory each setup uses on top of the game's own:
 
 | Voice | Text | Extra video memory |
 |---|---|---|
+| Voxtral | Convai or Mistral | none |
 | Pocket | Convai or Mistral | none |
 | Pocket | Local AI lite | about 1.5 GB |
 | Pocket | Local AI standard | about 3 GB |
 | OmniVoice | Convai or Mistral | about 2 GB |
 | OmniVoice | Local AI lite | about 4 GB |
 | OmniVoice | Local AI standard | about 5 GB |
-
-Which combination fits your card. Lower settings means medium textures and no ray tracing; higher settings means high textures or ray tracing.
-
-| Your graphics card | What fits | When it is short |
-|---|---|---|
-| 6 GB | Pocket with Convai or Mistral. Local AI lite only on lower settings. | The text moves to Mistral or Convai; the voice stays Pocket. |
-| 8 GB | Pocket with Local AI lite, or OmniVoice with Convai or Mistral, both on lower settings. | The lite model gives way to Mistral or Convai text; OmniVoice stays if you chose it. |
-| 12 GB | OmniVoice with Local AI lite on any settings. Pocket with Local AI standard on lower settings. | Standard becomes lite, lite becomes Mistral or Convai text; the voice stays. |
-| 16 GB | OmniVoice with Local AI standard on lower settings, with Local AI lite on higher settings. | Standard becomes lite, lite becomes Mistral or Convai text; the voice stays. |
 
 ## Update
 
