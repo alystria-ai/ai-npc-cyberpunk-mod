@@ -7,16 +7,20 @@
 // multi-gigabyte inputs never sit in memory. Entries can be byte ranges of a file, which
 // lets one large file be split across archives without temporary copies.
 //
-// Plain ZIP only (no ZIP64): every entry and every archive stays below 4 GiB and 65,535
-// entries, which the release builder already guarantees by keeping archives under the
-// 2 GiB GitHub asset limit. Exceeding a limit throws instead of writing a broken archive.
-import {open} from 'node:fs/promises';
+// ZIP64 only where it is needed: an archive whose entries and offsets all fit the classic format
+// stays a plain ZIP, byte for byte as before. An entry that may reach 4 GiB (a large model file, which
+// the optional packs now ship whole) gets ZIP64 sizes in its headers; an archive that grows past
+// 4 GiB or 65,535 entries gets the ZIP64 end records. Windows Explorer, 7-Zip and tar read both.
+// A non-ZIP64 entry that still outgrows 4 GiB throws instead of writing a broken archive.
+import {open, stat} from 'node:fs/promises';
 import {createReadStream} from 'node:fs';
 import {crc32, createDeflateRaw} from 'node:zlib';
 import {createHash} from 'node:crypto';
 
 const LIMIT = 0xFFFFFFFF;
-const MAX_ENTRIES = 0xFFFF;
+// An entry of at least this size (known before it is written) is a ZIP64 entry: deflate can grow incompressible data a little,
+// so the margin below 4 GiB keeps the compressed size inside the classic field for every other entry.
+const ZIP64_ENTRY = 0xF0000000;
 const NAME = /^[^\\:*?"<>|\x00-\x1f]+$/;
 
 // Formats that are already compressed (or are dense model weights) are stored as-is.
@@ -31,13 +35,14 @@ export function dosDateTime(date) {
 }
 
 export class ZipWriter {
-  static async create(path, {timestamp = new Date(Date.UTC(2026, 0, 1)), level = 6} = {}) {
+  // `zip64Entry` (tests only) lowers the size from which an entry is written as ZIP64, so the ZIP64 paths run on small files.
+  static async create(path, {timestamp = new Date(Date.UTC(2026, 0, 1)), level = 6, zip64Entry = ZIP64_ENTRY} = {}) {
     const handle = await open(path, 'w');
-    return new ZipWriter(handle, path, dosDateTime(timestamp), level);
+    return new ZipWriter(handle, path, dosDateTime(timestamp), level, zip64Entry);
   }
 
-  constructor(handle, path, stamp, level) {
-    Object.assign(this, {handle, path, stamp, level});
+  constructor(handle, path, stamp, level, zip64Entry = ZIP64_ENTRY) {
+    Object.assign(this, {handle, path, stamp, level, zip64Entry});
     this.offset = 0; this.entries = []; this.names = new Set();
   }
 
@@ -50,7 +55,6 @@ export class ZipWriter {
       const {bytesWritten} = await this.handle.write(buffer, written, buffer.length - written, this.offset);
       written += bytesWritten; this.offset += bytesWritten;
     }
-    if (this.offset > LIMIT) throw Error(`${this.path} grew past 4 GiB; split it further.`);
   }
 
   checkName(name) {
@@ -60,7 +64,6 @@ export class ZipWriter {
     }
     const key = name.toLowerCase();
     if (this.names.has(key)) throw Error(`Duplicate archive entry: ${name}`);
-    if (this.entries.length >= MAX_ENTRIES) throw Error(`${this.path} has too many entries; split it further.`);
     this.names.add(key);
   }
 
@@ -70,15 +73,19 @@ export class ZipWriter {
     const nameBytes = Buffer.from(name, 'utf8');
     const method = (store ?? STORED.test(name)) ? 0 : 8;
     const headerOffset = this.offset;
+    const knownSize = buffer !== undefined ? (length ?? buffer.length - start) : length ?? (await stat(source)).size - start;
+    const zip64 = knownSize >= this.zip64Entry;
     const header = Buffer.alloc(30);
     header.writeUInt32LE(0x04034b50, 0);
-    header.writeUInt16LE(20, 4);
+    header.writeUInt16LE(zip64 ? 45 : 20, 4);
     header.writeUInt16LE(0x0800, 6); // UTF-8 names
     header.writeUInt16LE(method, 8);
     header.writeUInt16LE(this.stamp.time, 10);
     header.writeUInt16LE(this.stamp.date, 12);
     header.writeUInt16LE(nameBytes.length, 26);
-    await this.write(Buffer.concat([header, nameBytes]));
+    // A ZIP64 entry: both sizes read 0xFFFFFFFF and the real ones sit in a 16-byte extra field, filled in below.
+    if (zip64) { header.writeUInt32LE(LIMIT, 18); header.writeUInt32LE(LIMIT, 22); header.writeUInt16LE(20, 28); }
+    await this.write(Buffer.concat([header, nameBytes, ...(zip64 ? [Buffer.from([0x01, 0x00, 0x10, 0x00]), Buffer.alloc(16)] : [])]));
     let crc = 0, uncompressed = 0;
     const hash = createHash('sha256');
     const dataStart = this.offset;
@@ -105,43 +112,77 @@ export class ZipWriter {
       await flush();
     }
     const compressed = this.offset - dataStart;
-    if (uncompressed > LIMIT || compressed > LIMIT) throw Error(`${name} is larger than 4 GiB; split it first.`);
+    if (!zip64 && (uncompressed > LIMIT || compressed > LIMIT)) throw Error(`${name} is larger than 4 GiB and its size was not known up front.`);
     if (length !== undefined && uncompressed !== length) throw Error(`${name}: expected ${length} bytes, read ${uncompressed}.`);
-    const sizes = Buffer.alloc(12);
-    sizes.writeUInt32LE(crc >>> 0, 0); sizes.writeUInt32LE(compressed, 4); sizes.writeUInt32LE(uncompressed, 8);
-    await this.handle.write(sizes, 0, 12, headerOffset + 14);
-    this.entries.push({nameBytes, method, crc: crc >>> 0, compressed, uncompressed, headerOffset});
+    if (zip64) {
+      const sizes = Buffer.alloc(16);
+      sizes.writeBigUInt64LE(BigInt(uncompressed), 0); sizes.writeBigUInt64LE(BigInt(compressed), 8);
+      await this.handle.write(sizes, 0, 16, headerOffset + 30 + nameBytes.length + 4);
+      const crcBytes = Buffer.alloc(4); crcBytes.writeUInt32LE(crc >>> 0, 0);
+      await this.handle.write(crcBytes, 0, 4, headerOffset + 14);
+    } else {
+      const sizes = Buffer.alloc(12);
+      sizes.writeUInt32LE(crc >>> 0, 0); sizes.writeUInt32LE(compressed, 4); sizes.writeUInt32LE(uncompressed, 8);
+      await this.handle.write(sizes, 0, 12, headerOffset + 14);
+    }
+    this.entries.push({nameBytes, method, crc: crc >>> 0, compressed, uncompressed, headerOffset, zip64});
     return {name, method, compressed, uncompressed, sha256: hash.digest('hex')};
   }
 
   async close() {
     const directoryOffset = this.offset;
     for (const entry of this.entries) {
+      // The central record carries a ZIP64 extra field for what does not fit its 32-bit fields: the sizes of a ZIP64 entry, and an
+      // offset of 4 GiB or more, in that order.
+      const bigOffset = entry.headerOffset >= LIMIT;
+      const fields = [];
+      if (entry.zip64) { const sizes = Buffer.alloc(16); sizes.writeBigUInt64LE(BigInt(entry.uncompressed), 0); sizes.writeBigUInt64LE(BigInt(entry.compressed), 8); fields.push(sizes); }
+      if (bigOffset) { const at = Buffer.alloc(8); at.writeBigUInt64LE(BigInt(entry.headerOffset)); fields.push(at); }
+      let extraBytes = Buffer.alloc(0);
+      if (fields.length) {
+        const head = Buffer.from([0x01, 0x00, 0, 0]);
+        head.writeUInt16LE(fields.reduce((sum, item) => sum + item.length, 0), 2);
+        extraBytes = Buffer.concat([head, ...fields]);
+      }
       const record = Buffer.alloc(46);
       record.writeUInt32LE(0x02014b50, 0);
-      record.writeUInt16LE(20, 4); // made by: MS-DOS / FAT attributes, version 2.0
-      record.writeUInt16LE(20, 6);
+      record.writeUInt16LE(fields.length ? 45 : 20, 4); // made by: MS-DOS / FAT attributes, version 2.0 (4.5 with ZIP64)
+      record.writeUInt16LE(fields.length ? 45 : 20, 6);
       record.writeUInt16LE(0x0800, 8);
       record.writeUInt16LE(entry.method, 10);
       record.writeUInt16LE(this.stamp.time, 12);
       record.writeUInt16LE(this.stamp.date, 14);
       record.writeUInt32LE(entry.crc, 16);
-      record.writeUInt32LE(entry.compressed, 20);
-      record.writeUInt32LE(entry.uncompressed, 24);
+      record.writeUInt32LE(entry.zip64 ? LIMIT : entry.compressed, 20);
+      record.writeUInt32LE(entry.zip64 ? LIMIT : entry.uncompressed, 24);
       record.writeUInt16LE(entry.nameBytes.length, 28);
+      record.writeUInt16LE(extraBytes.length, 30);
       record.writeUInt32LE(0, 38); // external attributes: a normal file
-      record.writeUInt32LE(entry.headerOffset, 42);
-      await this.write(Buffer.concat([record, entry.nameBytes]));
+      record.writeUInt32LE(bigOffset ? LIMIT : entry.headerOffset, 42);
+      await this.write(Buffer.concat([record, entry.nameBytes, extraBytes]));
+    }
+    const directorySize = this.offset - directoryOffset, count = this.entries.length;
+    const big = count >= 0xFFFF || directoryOffset >= LIMIT || directorySize >= LIMIT;
+    if (big) {
+      const zip64End = this.offset;
+      const record = Buffer.alloc(56);
+      record.writeUInt32LE(0x06064b50, 0); record.writeBigUInt64LE(44n, 4);
+      record.writeUInt16LE(45, 12); record.writeUInt16LE(45, 14);
+      record.writeBigUInt64LE(BigInt(count), 24); record.writeBigUInt64LE(BigInt(count), 32);
+      record.writeBigUInt64LE(BigInt(directorySize), 40); record.writeBigUInt64LE(BigInt(directoryOffset), 48);
+      const locator = Buffer.alloc(20);
+      locator.writeUInt32LE(0x07064b50, 0); locator.writeBigUInt64LE(BigInt(zip64End), 8); locator.writeUInt32LE(1, 16);
+      await this.write(Buffer.concat([record, locator]));
     }
     const end = Buffer.alloc(22);
     end.writeUInt32LE(0x06054b50, 0);
-    end.writeUInt16LE(this.entries.length, 8);
-    end.writeUInt16LE(this.entries.length, 10);
-    end.writeUInt32LE(this.offset - directoryOffset, 12);
-    end.writeUInt32LE(directoryOffset, 16);
+    end.writeUInt16LE(big ? 0xFFFF : count, 8);
+    end.writeUInt16LE(big ? 0xFFFF : count, 10);
+    end.writeUInt32LE(big ? LIMIT : directorySize, 12);
+    end.writeUInt32LE(big ? LIMIT : directoryOffset, 16);
     await this.write(end);
     await this.handle.close();
-    return {path: this.path, bytes: this.offset, entries: this.entries.length};
+    return {path: this.path, bytes: this.offset, entries: count};
   }
 }
 
@@ -156,7 +197,16 @@ export async function listZip(path) {
     await handle.read(tail, 0, tailLength, size - tailLength);
     const at = tail.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
     if (at < 0) throw Error(`${path} is not a ZIP archive.`);
-    const count = tail.readUInt16LE(at + 10), length = tail.readUInt32LE(at + 12), offset = tail.readUInt32LE(at + 16);
+    let count = tail.readUInt16LE(at + 10), length = tail.readUInt32LE(at + 12), offset = tail.readUInt32LE(at + 16);
+    if (count === 0xFFFF || length === LIMIT || offset === LIMIT) {
+      // ZIP64: the locator sits just before the end record and points at the ZIP64 end record with the real values.
+      const locator = at - 20;
+      if (locator < 0 || tail.readUInt32LE(locator) !== 0x07064b50) throw Error(`${path} has a damaged ZIP64 directory.`);
+      const record = Buffer.alloc(56);
+      await handle.read(record, 0, 56, Number(tail.readBigUInt64LE(locator + 8)));
+      if (record.readUInt32LE(0) !== 0x06064b50) throw Error(`${path} has a damaged ZIP64 directory.`);
+      count = Number(record.readBigUInt64LE(32)); length = Number(record.readBigUInt64LE(40)); offset = Number(record.readBigUInt64LE(48));
+    }
     const directory = Buffer.alloc(length);
     await handle.read(directory, 0, length, offset);
     const entries = [];
@@ -164,9 +214,22 @@ export async function listZip(path) {
       if (directory.readUInt32LE(position) !== 0x02014b50) throw Error(`${path} has a damaged directory.`);
       const nameLength = directory.readUInt16LE(position + 28), extra = directory.readUInt16LE(position + 30);
       const comment = directory.readUInt16LE(position + 32);
+      let compressed = directory.readUInt32LE(position + 20), uncompressed = directory.readUInt32LE(position + 24);
+      if (compressed === LIMIT || uncompressed === LIMIT) {
+        // The ZIP64 extra field: the fields that read 0xFFFFFFFF, in the order uncompressed, compressed, offset.
+        const extraStart = position + 46 + nameLength;
+        for (let at = extraStart; at + 4 <= extraStart + extra;) {
+          const id = directory.readUInt16LE(at), size = directory.readUInt16LE(at + 2);
+          if (id === 1) {
+            let field = at + 4;
+            if (uncompressed === LIMIT) { uncompressed = Number(directory.readBigUInt64LE(field)); field += 8; }
+            if (compressed === LIMIT) compressed = Number(directory.readBigUInt64LE(field));
+          }
+          at += 4 + size;
+        }
+      }
       entries.push({name: directory.toString('utf8', position + 46, position + 46 + nameLength),
-        method: directory.readUInt16LE(position + 10), crc: directory.readUInt32LE(position + 16),
-        compressed: directory.readUInt32LE(position + 20), uncompressed: directory.readUInt32LE(position + 24)});
+        method: directory.readUInt16LE(position + 10), crc: directory.readUInt32LE(position + 16), compressed, uncompressed});
       position += 46 + nameLength + extra + comment;
     }
     return entries;

@@ -6,12 +6,13 @@ checked against the SHA-256 recorded in the bucket's final/MANIFEST.json, so a r
 can only contain the exact files that were backed up.
 
     python packaging/fetch-models.py --config packaging/release.config.json --cache DIR --report OUT.json
-    python packaging/fetch-models.py --config packaging/release.config.json --cache DIR --report OUT.json --mature
+    python packaging/fetch-models.py --config packaging/release.config.json --cache DIR --report OUT.json --mature --tier lite
 
-With --mature it fetches only the two Mature pack models from the bucket's mirror (maturePack.mirror in the config: a
-prefix outside final/, with its own MANIFEST.json), each checked against the size and SHA-256 pinned in maturePack.tiers.
-A model the mirror does not have (or a missing token) is left out of the report, and the builder then downloads that
-model from its pinned public Hugging Face URL instead. A mirror file that is present but differs from the pin is an error.
+With --mature it fetches only the Mature pack model of the --tier being built (lite or good; each Mature pack is its own
+download) from the bucket's mirror (maturePack.mirror in the config: a prefix outside final/, with its own MANIFEST.json),
+checked against the size and SHA-256 pinned in maturePack.tiers. Without --tier it fetches both. A model the mirror does not
+have (or a missing token) is left out of the report, and the builder then downloads that model from its pinned public
+Hugging Face URL instead. A mirror file that is present but differs from the pin is an error.
 """
 from __future__ import annotations
 
@@ -31,7 +32,7 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def fetch_mature(full_config: dict, api, cache: Path, report: Path) -> int:
+def fetch_mature(full_config: dict, api, cache: Path, report: Path, tiers: tuple[str, ...] = ("lite", "good")) -> int:
     bucket = full_config["models"]["bucket"]
     spec = full_config["maturePack"]
     mirror = spec["mirror"]
@@ -45,7 +46,7 @@ def fetch_mature(full_config: dict, api, cache: Path, report: Path) -> int:
         print(f"Mature mirror manifest unavailable ({type(error).__name__}); using the public Hugging Face URLs.", flush=True)
         report.write_text(json.dumps({"files": files}, indent=1), encoding="utf-8")
         return 0
-    for key in ("lite", "good"):
+    for key in tiers:
         tier = spec["tiers"][key]
         remote = mirror["bucket"] + tier["file"]
         entry = listed.get(remote)
@@ -65,7 +66,7 @@ def fetch_mature(full_config: dict, api, cache: Path, report: Path) -> int:
                 raise SystemExit(f"{remote} does not match the pinned SHA-256 in release.config.json")
         files[tier["file"]] = str(local)
     report.write_text(json.dumps({"files": files}, indent=1), encoding="utf-8")
-    print(f"Verified {len(files)} of 2 Mature models from the bucket mirror.", flush=True)
+    print(f"Verified {len(files)} of {len(tiers)} Mature models from the bucket mirror.", flush=True)
     return 0
 
 
@@ -75,6 +76,7 @@ def main() -> int:
     parser.add_argument("--cache", type=Path, required=True)
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--mature", action="store_true")
+    parser.add_argument("--tier", choices=("lite", "good"), help="with --mature: fetch only this pack's model")
     args = parser.parse_args()
     token = (os.environ.get("HF_TOKEN") or "").strip()
     if args.mature and not token:
@@ -90,7 +92,7 @@ def main() -> int:
 
     full_config = json.loads(args.config.read_text(encoding="utf-8"))
     if args.mature:
-        return fetch_mature(full_config, HfApi(token=token), args.cache.resolve(), args.report)
+        return fetch_mature(full_config, HfApi(token=token), args.cache.resolve(), args.report, (args.tier,) if args.tier else ("lite", "good"))
     config = full_config["models"]
     api = HfApi(token=token)
     bucket = config["bucket"]

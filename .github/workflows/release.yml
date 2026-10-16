@@ -2,17 +2,19 @@
 # Run workflow) or when a version tag such as v0.2 (or v0.2.1 for a hotfix) is pushed; never on ordinary pushes.
 #
 # Secrets (Settings > Secrets and variables > Actions):
-#   HF_TOKEN         read access to the private Hugging Face bucket with the trained models
+#   HF_TOKEN         read access to the private Hugging Face bucket with the trained models, and WRITE access to the
+#                    Hugging Face model repository that hosts the optional packs (HF_PACKS_REPO below)
 #   CONVAI_API_KEY   the Convai key built into the Runtime package
 #
-# Packages are uploaded to a release in this same repository with the built-in GITHUB_TOKEN
+# The Scripts and Runtime packages are uploaded to a release in this same repository with the built-in GITHUB_TOKEN
 # (permission: contents: write), and the release is published immediately. While the repository
 # is private, only collaborators can see it. The Scripts package is also kept as a workflow
 # artifact for uploading to Nexus Mods. The Runtime package carries the native plugin, which the
 # build compiles with MSVC and CMake (both are on the Windows runner; the RED4ext SDK is fetched by
-# CMake at the commit pinned in native/core/CMakeLists.txt). The OmniVoice pack and the two Local AI
-# packs are built by their own jobs and added to the same release as separate downloads. The optional Mature pack has an
-# opt-in job (the `mature` input, off by default, never on a tag push, GitHub release only). See docs/PACKAGING.md.
+# CMake at the commit pinned in native/core/CMakeLists.txt). The OmniVoice pack, the two Local AI
+# packs and the two Mature packs are built by their own jobs and uploaded to the Hugging Face repository HF_PACKS_REPO,
+# one zip each (no parts), in a folder per version, with a SHA256SUMS-<pack>.txt beside it; they are not attached to the GitHub
+# release. The Mature packs have an opt-in job (the `mature` input, off by default, never on a tag push). See docs/PACKAGING.md.
 name: Release
 
 on:
@@ -22,19 +24,19 @@ on:
         description: Release version, 0.N or 0.N.M for a hotfix (for example 0.2 or 0.2.1)
         required: true
       omni:
-        description: Also build the optional OmniVoice pack
+        description: Also build the optional OmniVoice pack (uploaded to Hugging Face)
         type: boolean
         default: true
       localai:
-        description: Also build the two optional Local AI packs (standard and lite)
+        description: Also build the two optional Local AI packs, standard and lite (uploaded to Hugging Face)
         type: boolean
         default: true
       mature:
-        description: Also build the optional Mature pack (GitHub release only)
+        description: Also build the two optional Mature packs, lite and good (uploaded to Hugging Face)
         type: boolean
         default: false
       publish:
-        description: Create the GitHub release and upload the packages to it
+        description: Create the GitHub release (Scripts and Runtime) and upload the optional packs to Hugging Face
         type: boolean
         default: true
   push:
@@ -54,6 +56,7 @@ env:
   PYTHON_VERSION: '3.12.10'
   PIP_VERSION: '25.2'
   HF_HUB_VERSION: '1.33.0'
+  HF_PACKS_REPO: akshitireddy/cyberpunk-convai-packs
   OUT: C:\cpc\release
   CACHE: C:\cpc\cache
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
@@ -148,7 +151,7 @@ jobs:
           # A manual run tags the commit it was started from; a tag run already has its tag.
           # --latest: always mark the newest build as the Latest release.
           $createArgs = @('release', 'create', $tag, '--repo', $env:GITHUB_REPOSITORY, '--target', $env:GITHUB_SHA, '--title', "Cyberpunk Convai $version", '--notes-file', $notes, '--latest')
-          (Get-Content packaging/PLAYER_README.md -Raw) + "`n## Checksums`n`nSHA-256 values for every file are in the SHA256SUMS files below.`n" | Set-Content $notes -Encoding utf8
+          (Get-Content packaging/PLAYER_README.md -Raw) + "`n## Checksums`n`nSHA-256 values for the files on this page are in SHA256SUMS-runtime.txt below. Each optional pack on Hugging Face has its own SHA256SUMS file next to it.`n" | Set-Content $notes -Encoding utf8
           Copy-Item "$env:OUT\packages\SHA256SUMS.txt" "$env:OUT\packages\SHA256SUMS-runtime.txt"
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
           if ($LASTEXITCODE -ne 0) {
@@ -159,6 +162,9 @@ jobs:
           gh release upload $tag --repo $env:GITHUB_REPOSITORY --clobber @files "$env:OUT\packages\SHA256SUMS-runtime.txt"
           if ($LASTEXITCODE -ne 0) { throw 'Uploading the packages failed.' }
 
+  # The optional packs go to the Hugging Face model repository HF_PACKS_REPO, one zip each (no parts), in a folder per version, next to a
+  # SHA256SUMS-<pack>.txt (packaging/upload-packs.py). They are not attached to the GitHub release. Each job checks first that the
+  # HF_TOKEN secret can write to that repository, so a read-only token fails in seconds, not after the build.
   omni:
     name: OmniVoice pack
     needs: runtime
@@ -180,6 +186,15 @@ jobs:
           python -m pip install --disable-pip-version-check "pip==$env:PIP_VERSION" "huggingface_hub==$env:HF_HUB_VERSION"
           npm ci --no-audit --no-fund
 
+      - name: Check the Hugging Face upload access
+        if: github.ref_type == 'tag' || inputs.publish
+        shell: pwsh
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python packaging/upload-packs.py --check
+          if ($LASTEXITCODE -ne 0) { throw "The HF_TOKEN secret needs write access to the Hugging Face repository $env:HF_PACKS_REPO." }
+
       # The Mistral voice's reference clips are cut and encoded to MP3 at build time (bridge/voxtral-reference.mjs), so players need no ffmpeg.
       - name: ffmpeg (pre-builds the Mistral voice references)
         shell: pwsh
@@ -197,28 +212,30 @@ jobs:
           node packaging/build-release.mjs --version "${{ needs.runtime.outputs.version }}" --packages omni `
             --models hf --out $env:OUT --cache $env:CACHE
           Remove-Item -Recurse -Force "$env:OUT\stage" -ErrorAction SilentlyContinue
-          Get-PSDrive C | Format-Table Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
+          Get-ChildItem "$env:OUT\packages" -Filter *.zip | Format-Table Name, @{n='GB';e={[math]::Round($_.Length/1GB,2)}}
 
-      - name: Add the OmniVoice pack to the release
+      - name: Upload the OmniVoice pack to Hugging Face
         if: github.ref_type == 'tag' || inputs.publish
         shell: pwsh
         env:
-          GH_TOKEN: ${{ github.token }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          $tag = 'v${{ needs.runtime.outputs.version }}'
-          Copy-Item "$env:OUT\packages\SHA256SUMS.txt" "$env:OUT\packages\SHA256SUMS-omni.txt"
-          $files = @(Get-ChildItem "$env:OUT\packages" -Filter *.zip | ForEach-Object FullName)
-          gh release upload $tag --repo $env:GITHUB_REPOSITORY --clobber @files "$env:OUT\packages\SHA256SUMS-omni.txt"
-          if ($LASTEXITCODE -ne 0) { throw 'Uploading the OmniVoice pack failed.' }
+          python packaging/upload-packs.py --version "${{ needs.runtime.outputs.version }}" --pack omni --packages "$env:OUT\packages"
+          if ($LASTEXITCODE -ne 0) { throw "Uploading the OmniVoice pack to Hugging Face failed (the HF_TOKEN secret needs write access to $env:HF_PACKS_REPO)." }
 
-  # The optional Mature pack (packaging/MATURE_PACK_README.md): opt-in only (the `mature` input, default off), so never on a tag push,
-  # and a GitHub release download only, never Nexus. Its two models come from the private bucket's mirror (HF_TOKEN), with the pinned public URL as fallback.
+  # The optional Mature packs (packaging/MATURE_PACK_README.md): opt-in only (the `mature` input, default off), so never on a tag push.
+  # Two packs, lite and good, one model each, built and uploaded by one job each; they live on Hugging Face only, never Nexus and not the
+  # GitHub release. Each model comes from the private bucket's mirror (HF_TOKEN), with the pinned public URL as fallback.
   mature:
-    name: Mature pack
+    name: Mature pack (${{ matrix.tier }})
     needs: runtime
     if: inputs.mature
     runs-on: windows-2025
     timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        tier: [lite, good]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -234,28 +251,34 @@ jobs:
           python -m pip install --disable-pip-version-check "pip==$env:PIP_VERSION" "huggingface_hub==$env:HF_HUB_VERSION"
           npm ci --no-audit --no-fund
 
+      - name: Check the Hugging Face upload access
+        if: inputs.publish
+        shell: pwsh
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python packaging/upload-packs.py --check
+          if ($LASTEXITCODE -ne 0) { throw "The HF_TOKEN secret needs write access to the Hugging Face repository $env:HF_PACKS_REPO." }
+
       - name: Build the Mature pack
         shell: pwsh
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           Get-PSDrive C | Format-Table Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
-          node packaging/build-release.mjs --version "${{ needs.runtime.outputs.version }}" --packages mature `
+          node packaging/build-release.mjs --version "${{ needs.runtime.outputs.version }}" --packages "mature-${{ matrix.tier }}" `
             --models hf --out $env:OUT --cache $env:CACHE
           Remove-Item -Recurse -Force "$env:OUT\stage" -ErrorAction SilentlyContinue
-          Get-PSDrive C | Format-Table Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
+          Get-ChildItem "$env:OUT\packages" -Filter *.zip | Format-Table Name, @{n='GB';e={[math]::Round($_.Length/1GB,2)}}
 
-      - name: Add the Mature pack to the release
+      - name: Upload the Mature pack to Hugging Face
         if: inputs.publish
         shell: pwsh
         env:
-          GH_TOKEN: ${{ github.token }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          $tag = 'v${{ needs.runtime.outputs.version }}'
-          Copy-Item "$env:OUT\packages\SHA256SUMS.txt" "$env:OUT\packages\SHA256SUMS-mature.txt"
-          $files = @(Get-ChildItem "$env:OUT\packages" -Filter *.zip | ForEach-Object FullName)
-          gh release upload $tag --repo $env:GITHUB_REPOSITORY --clobber @files "$env:OUT\packages\SHA256SUMS-mature.txt"
-          if ($LASTEXITCODE -ne 0) { throw 'Uploading the Mature pack failed.' }
+          python packaging/upload-packs.py --version "${{ needs.runtime.outputs.version }}" --pack "mature-${{ matrix.tier }}" --packages "$env:OUT\packages"
+          if ($LASTEXITCODE -ne 0) { throw "Uploading the Mature pack to Hugging Face failed (the HF_TOKEN secret needs write access to $env:HF_PACKS_REPO)." }
 
   localai:
     name: Local AI pack (${{ matrix.tier }})
@@ -272,9 +295,25 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Build tools
+        shell: pwsh
+        run: python -m pip install --disable-pip-version-check "pip==$env:PIP_VERSION" "huggingface_hub==$env:HF_HUB_VERSION"
+
+      - name: Check the Hugging Face upload access
+        if: github.ref_type == 'tag' || inputs.publish
+        shell: pwsh
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python packaging/upload-packs.py --check
+          if ($LASTEXITCODE -ne 0) { throw "The HF_TOKEN secret needs write access to the Hugging Face repository $env:HF_PACKS_REPO." }
 
       # The packs hold unmodified upstream files (the llama.cpp build and the GGUF models), each downloaded from its pinned
-      # URL and checked against the SHA-256 in packaging/release.config.json. No secret is needed.
+      # URL and checked against the SHA-256 in packaging/release.config.json. The build needs no secret.
       - name: Build the Local AI pack
         shell: pwsh
         run: |
@@ -284,14 +323,11 @@ jobs:
           Remove-Item -Recurse -Force "$env:OUT\stage" -ErrorAction SilentlyContinue
           Get-ChildItem "$env:OUT\packages" -Filter *.zip | Format-Table Name, @{n='GB';e={[math]::Round($_.Length/1GB,2)}}
 
-      - name: Add the Local AI pack to the release
+      - name: Upload the Local AI pack to Hugging Face
         if: github.ref_type == 'tag' || inputs.publish
         shell: pwsh
         env:
-          GH_TOKEN: ${{ github.token }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          $tag = 'v${{ needs.runtime.outputs.version }}'
-          Copy-Item "$env:OUT\packages\SHA256SUMS.txt" "$env:OUT\packages\SHA256SUMS-localai-${{ matrix.tier }}.txt"
-          $files = @(Get-ChildItem "$env:OUT\packages" -Filter *.zip | ForEach-Object FullName)
-          gh release upload $tag --repo $env:GITHUB_REPOSITORY --clobber @files "$env:OUT\packages\SHA256SUMS-localai-${{ matrix.tier }}.txt"
-          if ($LASTEXITCODE -ne 0) { throw 'Uploading the Local AI pack failed.' }
+          python packaging/upload-packs.py --version "${{ needs.runtime.outputs.version }}" --pack "localai-${{ matrix.tier }}" --packages "$env:OUT\packages"
+          if ($LASTEXITCODE -ne 0) { throw "Uploading the Local AI pack to Hugging Face failed (the HF_TOKEN secret needs write access to $env:HF_PACKS_REPO)." }
