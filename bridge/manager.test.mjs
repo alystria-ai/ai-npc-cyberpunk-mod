@@ -6271,7 +6271,8 @@ test('a value change draws the page with its content hidden in the same call, an
     for change = 1, 4 do
       draw('Companion Manager', 'Pending: Voice')
       assert(passed.ready == false and wrapper.visible == false, 'the page was created visible (change ' .. change .. ')')
-      assert(passed.height == 400 and passed.scroll == 0.25, 'the other arguments were changed')
+      -- The first draw opens the page afresh (top); a redraw of the open page keeps MCM's position.
+      assert(passed.height == 400 and passed.scroll == (change == 1 and 0 or 0.25), 'the other arguments were changed')
       assert(passed.status == 'Pending: Voice', 'the status text was changed: ' .. tostring(passed.status))
       local frames = 0
       repeat
@@ -6674,6 +6675,7 @@ test('a redrawn page keeps its scroll position, whether MCM lost it or never set
     assert(invoke('tab:settings').ok)
     local rows = {managed = 3, action = 1}
     -- MCM hands over its captured position but it does not hold on the hidden, still empty page: set again with the show.
+    draw({rows = rows})
     local p = draw({rows = rows, scroll = 0.4})
     assert(p.beginScroll == 0.4 and p.wrapper.visible == true and p.scroll == 0.4 and scrolls == 1, 'position lost: ' .. tostring(p.scroll))
     -- It holds: nothing is set again.
@@ -6699,6 +6701,48 @@ test('a redrawn page keeps its scroll position, whether MCM lost it or never set
     -- The page after that is the same page again.
     p = draw({rows = rows, scroll = 0})
     assert(p.scroll == 0.7 and scrolls == 3)
+  `);
+});
+
+test('a page opened afresh starts at the top even when MCM hands over the position of the page it came from', () => {
+  run(`${mcmFixture}${earlyFixture}
+    assert(invoke('tab:settings').ok)
+    local rows = {managed = 3, action = 1}
+    -- The screen opens: nothing was drawn before, MCM restores the position it kept from last time.
+    local p = draw({rows = rows, scroll = 0.8, sticks = true})
+    assert(p.beginScroll == 0 and p.scroll == 0, 'a page opened afresh kept the old position: ' .. tostring(p.beginScroll))
+    -- Scrolling in the open page, then Apply or a refresh redraws it: MCM captures the position and it is kept.
+    scrollNow = 0.6
+    p = draw({rows = rows, scroll = 0.6, sticks = true})
+    assert(p.beginScroll == 0.6 and p.scroll == 0.6, 'a redraw of the open page jumped: ' .. tostring(p.beginScroll))
+    p = draw({rows = rows, scroll = 0, sticks = true})
+    assert(p.beginScroll == 0.6, 'a redraw MCM lost the position of did not keep it')
+    -- A button opens another page (here Back): MCM reads the page on screen, the new page still starts at the top.
+    assert(invoke('settings:back').ok)
+    p = draw({rows = rows, scroll = 0.6, sticks = true})
+    assert(p.beginScroll == 0 and p.scroll == 0, 'a sub-page opened from a scrolled page was scrolled: ' .. tostring(p.beginScroll))
+    -- Scroll there, open the first page again: top, and a redraw afterwards keeps what was scrolled.
+    scrollNow = 0.3
+    assert(invoke('tab:settings').ok)
+    p = draw({rows = rows, scroll = 0.3, sticks = true})
+    assert(p.beginScroll == 0 and p.scroll == 0, 'coming back to a page restored its old position')
+    scrollNow = 0.5
+    p = draw({rows = rows, scroll = 0.5, sticks = true})
+    assert(p.beginScroll == 0.5 and p.scroll == 0.5)
+    -- Another mod is shown, then ours again: fresh.
+    handlers.McmUiBegin(ref, 'MCM', '', 'Mods', 'Another Mod', 'Opened.', 0, '', true, true, 0, function() end)
+    handlers.McmUiSetContentTitle(ref, 'Another Mod')
+    p = draw({rows = rows, scroll = 0.5, sticks = true})
+    assert(p.beginScroll == 0 and p.scroll == 0, 'coming back from another mod restored the old position')
+    -- The Settings screen closes and opens again.
+    scrollNow = 0.4
+    handlers.OnUninitialize(ref)
+    p = draw({rows = rows, scroll = 0.4, sticks = true})
+    assert(p.beginScroll == 0 and p.scroll == 0, 'the screen opened again with the old position')
+    -- Nothing runs per frame.
+    mcm.update(player, false); local before = calls
+    for _ = 1, 6 do mcm.update(player, false) end
+    assert(calls == before)
   `);
 });
 

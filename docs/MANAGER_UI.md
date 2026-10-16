@@ -577,9 +577,19 @@ MCM captures the content scroll position before it draws and passes it to `McmUi
 (`McmUiGetContentScrollPosition`, only when the page being drawn is the one drawn last: same view, search and model page), (b) uses it when MCM's
 own argument is zero, and (c) sets the position again on the scroll wrapper's controller (`GetScrollPosition`, then `SetScrollPosition` only when it
 differs) in the call that shows the content: at the end of the early draw, or when the older pass or the stale-hold release shows the page. A page
-that was left (another view) starts at the top. `Probe: scroll position restored A -> B` in `runtime/mcm.log` says when it was needed (twelve at
+that is opened afresh starts at the top (below). `Probe: scroll position restored A -> B` in `runtime/mcm.log` says when it was needed (twelve at
 most). Not avoidable from a provider: MCM draws the whole screen again on every change (`drafts.changed` queues a render, and
 `handleStep` / `handleNumber` queue one too).
+
+#### A page opened afresh starts at the top
+
+MCM keeps ONE content scroll position for the whole mod, not one per page of the manager: before every draw it reads the page on screen (same mod, so
+the same scroll context), and it keeps the last position when the screen closes or another mod is shown. So a sub-page opened from a scrolled page, a page
+reached again with Back, the screen opened again, and the mod picked again after another mod all opened scrolled where the previous page had been. A draw of a
+page that is not the one drawn last (`lastDrawKey` differs from the page key: another view, search or model page, nothing drawn since the screen opened or
+another mod was shown) sets `drawFresh` in `McmUiBegin`; `McmUiBeginContent` then passes 0 instead of MCM's position, once. A redraw of the open page
+(Apply, a value change, a refresh) is not fresh and keeps its position as above. No native call is added and nothing runs per frame. MCM's own stored position
+is left alone: it is read again from the page before the next draw.
 
 ### Mature content stages its companions as pending changes
 
