@@ -74,7 +74,12 @@ local HOLD_MAX = 1.5
 -- skipped came back at the top. So the position is remembered for the page being drawn (scrollBefore: read once from the old page
 -- in McmUiBegin, only when the page is the one drawn last, lastDrawKey) and set again on the wrapper's scroll controller in the
 -- same call that shows the content, when it is not already there.
-local lastDrawKey, scrollBefore
+-- MCM keeps ONE content position for the whole mod, whatever page of the manager is shown: it reads the page on screen before
+-- every draw (same mod, so the Settings page's position becomes the position of the page opened from it) and keeps the last
+-- one when the screen closes or another mod is shown. So a page that is not the one drawn last (another view, search or model
+-- page, the screen opened again, coming back from another mod) is drawn at the top whatever MCM hands over (drawFresh, set in
+-- McmUiBegin, used once in McmUiBeginContent). A redraw of the same page is not fresh: its position is kept.
+local lastDrawKey, scrollBefore, drawFresh
 local scrollLogBudget = 12
 local function pageKey() return view .. '|' .. tostring(modelPage) .. '|' .. tostring(modelQuery) end
 -- The refusal MCM shows when a change would be applied automatically. It goes to
@@ -2459,6 +2464,7 @@ function M.install()
         presentation.statusText = status
         -- Redrawing the page that was drawn last: its scroll position is read from the old page, which still exists here.
         scrollBefore = nil
+        drawFresh = own == true and lastDrawKey ~= pageKey()
         if own and renderOwn and lastDrawKey == pageKey() then
             local read, position = pcall(function() return controller:McmUiGetContentScrollPosition() end)
             if read and type(position) == 'number' then scrollBefore = position end
@@ -2481,6 +2487,8 @@ function M.install()
     end)
     -- The content of our own page is created hidden (see contentHold); only the flag is changed, no widget is touched.
     Override('SettingsMainGameController', 'McmUiBeginContent', function(controller, height, scroll, ready, wrapped)
+        -- A page opened afresh starts at the top, not where MCM's single content position was left (see drawFresh).
+        if drawFresh then scroll, drawFresh = 0, false end
         if renderOwn and ready == true then
             renderOwn = false
             -- MCM's own position, or the old page's when MCM lost it (a capture it skipped).
@@ -2523,7 +2531,7 @@ function M.install()
             voiceSelectors = {}
             contentHold, renderOwn, early = nil, false, {on = false}
             statusOriginal = nil -- the widget dies with this screen; restoreStatusLine would call into it
-            lastDrawKey, scrollBefore = nil, nil
+            lastDrawKey, scrollBefore, drawFresh = nil, nil, false
         end
     end)
     ObserveAfter('SettingsSelectorController', 'McmUiConfigureBase', function(controller, host, id)
@@ -2950,7 +2958,7 @@ function M.resetSession()
     slowAt, lastWorldReady = 0, nil
     if type(convaiNotices) == 'table' and type(convaiNotices.resetLoading) == 'function' then convaiNotices.resetLoading() end
     presentation, early = {active = false, rows = {}}, {on = false}
-    lastDrawKey, scrollBefore = nil, nil
+    lastDrawKey, scrollBefore, drawFresh = nil, nil, false
     matureCheck, matureReset, matureSeen, matureMemory, matureChanges, providerSeen = false, false, nil, nil, nil, nil
     voiceDimController = nil
     fontPresentation.reset()
