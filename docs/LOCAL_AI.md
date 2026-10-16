@@ -12,7 +12,7 @@ Choose **Local** as the Conversation provider (Settings > Conversation provider)
 computer. Replies are spoken by the local voices (Pocket or OmniVoice) and the characters keep a memory of your talks, stored on your
 computer. Convai free tier gives better quality responses; Local is for playing without an account or without the internet.
 
-The models are optional downloads, like the OmniVoice pack: one zip file each, on the mod's Hugging Face page (https://huggingface.co/akshitireddy/cyberpunk-convai-packs, a folder per version). There are two, and you can install neither, one or both:
+The models are optional downloads, like the OmniVoice pack: one zip file each, on the mod's Hugging Face page (https://huggingface.co/alystria-ai/cyberpunk-convai-packs, a folder per version). There are two, and you can install neither, one or both:
 
 | Pack | Model | Download | Best for |
 |---|---|---|---|
@@ -262,7 +262,7 @@ so either one alone works and a hand-deleted model only removes its own tier. An
 `bridge/local-ai-pack.mjs` and is the same kind of check as `bridge/omni-pack.mjs`: it only stats files.
 
 Packaging: `packaging/build-release.mjs --packages localai-standard` (or `localai-lite`) builds each download as ONE zip (no parts), and the release workflow
-runs both as a matrix job (`localai`) that uploads each zip to the Hugging Face repository `akshitireddy/cyberpunk-convai-packs` (`docs/PACKAGING.md`). Every file is the unmodified upstream file, pinned by URL, revision and SHA-256 in the
+runs both as a matrix job (`localai`) that uploads each zip to the Hugging Face repository `alystria-ai/cyberpunk-convai-packs` (`docs/PACKAGING.md`). Every file is the unmodified upstream file, pinned by URL, revision and SHA-256 in the
 `localAi` block of `packaging/release.config.json`: the `llama-server` Vulkan build b11560 (MIT; only `llama-server.exe` and its
 DLLs are kept, no other command line tools), the Q8_0 granite embedding model (Apache-2.0), and one chat model: Gemma 4 E4B QAT q4_0
 (Apache-2.0, 5.15 GB, shipped whole in a ZIP64 zip; `app/launcher/assemble-parts.mjs` only joins parts left by an earlier release) or Qwen3.5-2B Q4_K_M by
@@ -485,7 +485,7 @@ with Mature content on the default choice and the fallback prefer the largest on
   installed." or "... is not installed. It is an optional download on the Hugging Face page of this mod.", plus "Choosing a cloud provider turns it off."
   (the old "Not using Local AI right now: no effect yet." line is gone, see below). `manager.applySettings` accepts `matureContent` whatever the pack says, and the snapshot reports the file's value.
 - Distribution: the packs (one uncensored GGUF each) are distributed ONLY as optional files on this project's Hugging Face repository
-  (`akshitireddy/cyberpunk-convai-packs`, `0.N/CyberpunkConvai-Mature-Lite-0.N.zip` and `...-Mature-Standard-0.N.zip`, each one zip, no parts), never on Nexus Mods and not on the
+  (`alystria-ai/cyberpunk-convai-packs`, `0.N/CyberpunkConvai-Mature-Lite-0.N.zip` and `...-Mature-Standard-0.N.zip`, each one zip, no parts), never on Nexus Mods and not on the
   GitHub release. `.github/workflows/release.yml` builds and uploads them only in its opt-in `mature` job (a matrix of `lite` and `standard`; the `mature` input is off by default and a tag push never runs it), and `packaging/build-release.mjs` builds each only with `--packages mature-lite` or `mature-standard`, never in the default set. Nothing of it is in the
   Runtime package or `release-plan.json`; its marker, README, release notes and models are not read by the runtime builder (tested). The
   main mod's own files (the bridge modules `mature-content`, `mature-guard`, `mature-guard-terms` and `mature-pack`, the Lua and locale

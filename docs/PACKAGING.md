@@ -14,7 +14,7 @@ How the player release is built, what it contains and how it starts. Players rea
 | `CyberpunkConvai-LocalAI-Lite-<v>.zip` | Hugging Face | Optional Local AI pack with Qwen3.5-2B (about 1.5 GB), the same server and embedding model. |
 | `CyberpunkConvai-Mature-Lite-<v>.zip`, `CyberpunkConvai-Mature-Standard-<v>.zip` | Hugging Face | The two optional Mature packs (opt-in build, below), one uncensored model each, each with its own marker (`manifest.mature-lite.json`, `manifest.mature-standard.json`) so either works alone. |
 
-The optional packs are hosted in one Hugging Face model repository, `akshitireddy/cyberpunk-convai-packs`, in a folder per
+The optional packs are hosted in one Hugging Face model repository, `alystria-ai/cyberpunk-convai-packs`, in a folder per
 version (`0.2/CyberpunkConvai-OmniPack-0.2.zip`, with `0.2/SHA256SUMS-omni.txt` beside it). Each pack is ONE zip: no `-partNofM` zips
 and no `.partN` files inside. GitHub's 2 GiB per-file limit was the only reason for parts, and Hugging Face has no such limit. A model
 over 4 GiB (the standard Local AI model, the good Mature model) sits whole in a ZIP64 zip (`packaging/lib/zip.mjs` writes ZIP64 only
@@ -235,7 +235,7 @@ To try a build in the real game, remove the development launcher first
 `v0.N` tag. Job 1 builds and install-tests Scripts + Runtime on `windows-2022` (Visual Studio 2022; `windows-2025` moved to Visual Studio 2026), keeps the Scripts
 zip as a workflow artifact (for Nexus), and creates the GitHub release `v0.N` in this same
 repository, uploading the packages to it. Job 2 builds the OmniVoice pack and job 3 (a matrix of `standard` and `lite`) the two Local AI
-packs; each uploads its zip to the Hugging Face repository `akshitireddy/cyberpunk-convai-packs` (below), not to the GitHub release. Large packages are not stored as workflow artifacts (private-repository artifact storage
+packs; each uploads its zip to the Hugging Face repository `alystria-ai/cyberpunk-convai-packs` (below), not to the GitHub release. Large packages are not stored as workflow artifacts (private-repository artifact storage
 is small).
 
 The release is published immediately, not left as a draft (the manual run has a `publish` switch

@@ -15,7 +15,7 @@ Install state: everything on `main` c277774d is installed in the game, including
 - Timing facts: about 35 new Cyberpunk mods a day, so a new one stays on page 1 of New for 12 to 14 hours; trending ranks mods first published in its window by endorsements; Steam peaks about 13:00 to 14:00 UTC and Sundays run 10 to 20% above weekdays.
 
 ### Needs the user (decisions and approvals)
-- **Remind the user on 2026-10-17 to make `alystria-ai/cyberpunk-convai` (GitHub) and `akshitireddy/cyberpunk-convai-packs` (Hugging Face) public.** v0.2 is built and published in both, privately (log 2026-10-16 "v0.2 built"). Players need both public: the README's download links point there.
+- **Remind the user on 2026-10-17 to make `alystria-ai/cyberpunk-convai` (GitHub) and `alystria-ai/cyberpunk-convai-packs` (Hugging Face) public.** v0.2 is built and published in both, privately (log 2026-10-16 "v0.2 built"). Players need both public: the README's download links point there.
 
 ### Release blockers (before Sun 18 Oct 11:00 UTC)
 - **Release build in the real game: done 2026-10-16.** A fresh-player install from the built Scripts and Runtime zips, with no key: Sign in with Convai, talk, mic, phone chat, holocall, settings layout and companions all work (see the log). Watch for the transient `CL.exe` crash in the CI native build.

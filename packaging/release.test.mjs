@@ -429,13 +429,13 @@ test('the optional packs are uploaded to Hugging Face, one zip each with a SHA25
   for (const [name, job] of Object.entries(jobs)) {
     assert(job, `the workflow has a ${name} job`);
     assert.match(job, /python packaging\/upload-packs\.py --version "\$\{\{ needs\.runtime\.outputs\.version \}\}" --pack /, `${name} uploads its pack to Hugging Face`);
-    assert.match(job, /HF_TOKEN: \$\{\{ secrets\.HF_TOKEN \}\}/);
+    assert.match(job, /HF_PACKS_TOKEN: \$\{\{ secrets\.HF_PACKS_TOKEN \}\}/, `${name} uploads with the pack repository's own token`);
     assert.doesNotMatch(job, /gh release upload|GH_TOKEN|\bgh \w/, `${name} never uploads to the GitHub release`);
     assert.match(job, /upload-packs\.py --check/, `${name} checks the write access before it builds`);
     assert.match(job, /huggingface_hub==\$env:HF_HUB_VERSION/, `${name} installs huggingface_hub`);
   }
   assert.match(jobs.omni, /--pack omni --packages "\$env:OUT\\packages"/);
-  assert.match(workflow, /HF_PACKS_REPO: akshitireddy\/cyberpunk-convai-packs/);
+  assert.match(workflow, /HF_PACKS_REPO: alystria-ai\/cyberpunk-convai-packs/);
   // The Runtime job still creates the GitHub release with Scripts and Runtime, and nothing else is attached to it.
   const runtime = jobOf(workflow, 'runtime');
   assert.match(runtime, /gh release upload \$tag --repo \$env:GITHUB_REPOSITORY --clobber @files /, 'the file list is splatted as an array');
@@ -444,11 +444,11 @@ test('the optional packs are uploaded to Hugging Face, one zip each with a SHA25
   assert.equal(workflow.split('gh release upload').length - 1, 1, 'only the Runtime job uploads to the GitHub release');
   // The uploader: one zip, the version folder, the sums file next to it, a clear message when the token cannot write.
   const uploader = await readFile(resolve(project, 'packaging/upload-packs.py'), 'utf8');
-  assert.match(uploader, /REPOSITORY = "akshitireddy\/cyberpunk-convai-packs"/);
+  assert.match(uploader, /REPOSITORY = "alystria-ai\/cyberpunk-convai-packs"/);
   assert.match(uploader, /f"\{version\}\/\{zips\[0\]\.name\}"/);
   assert.match(uploader, /f"\{version\}\/\{sums_name\(pack\)\}"/);
   assert.match(uploader, /f"SHA256SUMS-\{pack\}\.txt"/);
-  assert.match(uploader, /The HF_TOKEN secret cannot write to the Hugging Face repository \{repository\}\./);
+  assert.match(uploader, /The HF_PACKS_TOKEN secret cannot write to the Hugging Face repository \{repository\}\./);
   assert.match(uploader, /write access to \{repository\}/);
   assert.match(uploader, /Expected exactly one zip/, 'a multi-zip pack is refused');
 });
@@ -591,7 +591,7 @@ test('the Mature pack README and release notes are for adults, need the main mod
 });
 
 test('the README and the release notes send players to Hugging Face for every optional pack: one zip each, no parts, Install near the top', async () => {
-  const hf = 'https://huggingface.co/akshitireddy/cyberpunk-convai-packs';
+  const hf = 'https://huggingface.co/alystria-ai/cyberpunk-convai-packs';
   const readme = (await readFile(resolve(project, 'README.md'), 'utf8')).replaceAll('\r\n', '\n');
   const player = (await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8')).replaceAll('\r\n', '\n');
   const files = ['OmniPack', 'LocalAI-Standard', 'LocalAI-Lite', 'Mature-Lite', 'Mature-Standard'].map(name => `CyberpunkConvai-${name}-0.2.zip`);

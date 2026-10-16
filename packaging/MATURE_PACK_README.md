@@ -2,7 +2,7 @@
 
 **For adults only (18+).** This add-on lets your companions talk the way Night City really talks, with strong language, graphic violence, drug talk, dark themes, crude humour and, between consenting adults, flirting and sexual content. It is written to fit the characters and the game's adult tone. It does not do anything until you turn it on.
 
-The **Mature content** setting is part of the main mod and works without these packs: with the standard Local AI models it changes language, violence and tone, but those models are trained to refuse most adult content. These packs are optional downloads, only on this mod's Hugging Face page (https://huggingface.co/akshitireddy/cyberpunk-convai-packs), that add uncensored models so the setting has its full effect.
+The **Mature content** setting is part of the main mod and works without these packs: with the standard Local AI models it changes language, violence and tone, but those models are trained to refuse most adult content. These packs are optional downloads, only on this mod's Hugging Face page (https://huggingface.co/alystria-ai/cyberpunk-convai-packs), that add uncensored models so the setting has its full effect.
 
 ## What it adds
 

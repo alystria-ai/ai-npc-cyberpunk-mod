@@ -10,7 +10,8 @@ lives in a folder per version of the repository, next to a SHA256SUMS-<pack>.txt
     python packaging/upload-packs.py --version 0.2 --pack omni --packages DIR   (upload every zip in DIR/ and the sums file)
     python packaging/upload-packs.py --version 0.2 --pack omni --packages DIR --dry-run   (list what would be uploaded)
 
-The token comes from the HF_TOKEN environment variable (a GitHub Actions secret) and is never printed. Nothing is uploaded
+The token comes from the HF_PACKS_TOKEN environment variable (the GitHub Actions secret of the account that owns the pack
+repository; HF_TOKEN is the fallback for local runs) and is never printed. A missing repository is created, private. Nothing is uploaded
 to GitHub releases by this script; the Scripts and Runtime packages are not touched.
 """
 from __future__ import annotations
@@ -22,13 +23,13 @@ import sys
 import time
 from pathlib import Path
 
-REPOSITORY = "akshitireddy/cyberpunk-convai-packs"
+REPOSITORY = "alystria-ai/cyberpunk-convai-packs"
 PACKS = ("omni", "localai-standard", "localai-lite", "mature-lite", "mature-standard")
 
 
 def no_write_message(repository: str, detail: str = "") -> str:
-    return (f"The HF_TOKEN secret cannot write to the Hugging Face repository {repository}. "
-            f"Give the HF_TOKEN secret write access to {repository} (a fine-grained token needs write access to that repository's contents), "
+    return (f"The HF_PACKS_TOKEN secret cannot write to the Hugging Face repository {repository}. "
+            f"Give the HF_PACKS_TOKEN secret write access to {repository} (a fine-grained token needs write access to that repository's contents), "
             f"then run the workflow again.{(' (' + detail + ')') if detail else ''}")
 
 
@@ -57,9 +58,9 @@ def write_access(api, repository: str) -> tuple[bool, str]:
 
 
 def connect(repository: str):
-    token = (os.environ.get("HF_TOKEN") or "").strip()
+    token = (os.environ.get("HF_PACKS_TOKEN") or os.environ.get("HF_TOKEN") or "").strip()
     if not token:
-        raise SystemExit(no_write_message(repository, "HF_TOKEN is empty or not set"))
+        raise SystemExit(no_write_message(repository, "HF_PACKS_TOKEN is empty or not set"))
     if os.environ.get("GITHUB_ACTIONS") == "true":
         print(f"::add-mask::{token}", flush=True)
     from huggingface_hub import HfApi
@@ -70,8 +71,13 @@ def connect(repository: str):
         raise SystemExit(no_write_message(repository, why))
     try:
         api.repo_info(repository, repo_type="model")
-    except Exception as error:
-        raise SystemExit(f"The Hugging Face repository {repository} was not found or cannot be read ({type(error).__name__}). Create it as a model repository first.")
+    except Exception:
+        # A first upload creates the repository, private: it goes public with the release.
+        try:
+            api.create_repo(repository, repo_type="model", private=True, exist_ok=True)
+            print(f"Created the private Hugging Face repository {repository}.", flush=True)
+        except Exception as error:
+            raise SystemExit(f"The Hugging Face repository {repository} was not found and could not be created ({type(error).__name__}).")
     return api
 
 
@@ -138,7 +144,7 @@ def main() -> int:
     args = parser.parse_args()
     if args.check:
         connect(args.repo)
-        print(f"The HF_TOKEN secret can write to {args.repo}.", flush=True)
+        print(f"The HF_PACKS_TOKEN secret can write to {args.repo}.", flush=True)
         return 0
     if not (args.version and args.pack and args.packages):
         parser.error("--version, --pack and --packages are required")

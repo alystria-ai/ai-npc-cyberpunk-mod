@@ -2,8 +2,9 @@
 # Run workflow) or when a version tag such as v0.2 (or v0.2.1 for a hotfix) is pushed; never on ordinary pushes.
 #
 # Secrets (Settings > Secrets and variables > Actions):
-#   HF_TOKEN         read access to the private Hugging Face bucket with the trained models, and WRITE access to the
-#                    Hugging Face model repository that hosts the optional packs (HF_PACKS_REPO below)
+#   HF_TOKEN         read access to the private Hugging Face bucket with the trained models
+#   HF_PACKS_TOKEN   WRITE access to the Hugging Face model repository that hosts the optional packs (HF_PACKS_REPO below,
+#                    owned by the alystria-ai account); the first upload creates it, private
 #   CONVAI_API_KEY   the Convai key built into the Runtime package
 #
 # The Scripts and Runtime packages are uploaded to a release in this same repository with the built-in GITHUB_TOKEN
@@ -56,7 +57,7 @@ env:
   PYTHON_VERSION: '3.12.10'
   PIP_VERSION: '25.2'
   HF_HUB_VERSION: '1.33.0'
-  HF_PACKS_REPO: akshitireddy/cyberpunk-convai-packs
+  HF_PACKS_REPO: alystria-ai/cyberpunk-convai-packs
   OUT: C:\cpc\release
   CACHE: C:\cpc\cache
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
@@ -164,7 +165,7 @@ jobs:
 
   # The optional packs go to the Hugging Face model repository HF_PACKS_REPO, one zip each (no parts), in a folder per version, next to a
   # SHA256SUMS-<pack>.txt (packaging/upload-packs.py). They are not attached to the GitHub release. Each job checks first that the
-  # HF_TOKEN secret can write to that repository, so a read-only token fails in seconds, not after the build.
+  # HF_PACKS_TOKEN secret can write to that repository, so a read-only token fails in seconds, not after the build.
   omni:
     name: OmniVoice pack
     needs: runtime
@@ -190,10 +191,10 @@ jobs:
         if: github.ref_type == 'tag' || inputs.publish
         shell: pwsh
         env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_PACKS_TOKEN: ${{ secrets.HF_PACKS_TOKEN }}
         run: |
           python packaging/upload-packs.py --check
-          if ($LASTEXITCODE -ne 0) { throw "The HF_TOKEN secret needs write access to the Hugging Face repository $env:HF_PACKS_REPO." }
+          if ($LASTEXITCODE -ne 0) { throw "The HF_PACKS_TOKEN secret needs write access to the Hugging Face repository $env:HF_PACKS_REPO." }
 
       # The Mistral voice's reference clips are cut and encoded to MP3 at build time (bridge/voxtral-reference.mjs), so players need no ffmpeg.
       - name: ffmpeg (pre-builds the Mistral voice references)
@@ -218,10 +219,10 @@ jobs:
         if: github.ref_type == 'tag' || inputs.publish
         shell: pwsh
         env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_PACKS_TOKEN: ${{ secrets.HF_PACKS_TOKEN }}
         run: |
           python packaging/upload-packs.py --version "${{ needs.runtime.outputs.version }}" --pack omni --packages "$env:OUT\packages"
-          if ($LASTEXITCODE -ne 0) { throw "Uploading the OmniVoice pack to Hugging Face failed (the HF_TOKEN secret needs write access to $env:HF_PACKS_REPO)." }
+          if ($LASTEXITCODE -ne 0) { throw "Uploading the OmniVoice pack to Hugging Face failed (the HF_PACKS_TOKEN secret needs write access to $env:HF_PACKS_REPO)." }
 
   # The optional Mature packs (packaging/MATURE_PACK_README.md): opt-in only (the `mature` input, default off), so never on a tag push.
   # Two packs, lite and standard, one model each, built and uploaded by one job each; they live on Hugging Face only, never Nexus and not the
@@ -255,10 +256,10 @@ jobs:
         if: inputs.publish
         shell: pwsh
         env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_PACKS_TOKEN: ${{ secrets.HF_PACKS_TOKEN }}
         run: |
           python packaging/upload-packs.py --check
-          if ($LASTEXITCODE -ne 0) { throw "The HF_TOKEN secret needs write access to the Hugging Face repository $env:HF_PACKS_REPO." }
+          if ($LASTEXITCODE -ne 0) { throw "The HF_PACKS_TOKEN secret needs write access to the Hugging Face repository $env:HF_PACKS_REPO." }
 
       - name: Build the Mature pack
         shell: pwsh
@@ -275,10 +276,10 @@ jobs:
         if: inputs.publish
         shell: pwsh
         env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_PACKS_TOKEN: ${{ secrets.HF_PACKS_TOKEN }}
         run: |
           python packaging/upload-packs.py --version "${{ needs.runtime.outputs.version }}" --pack "mature-${{ matrix.tier }}" --packages "$env:OUT\packages"
-          if ($LASTEXITCODE -ne 0) { throw "Uploading the Mature pack to Hugging Face failed (the HF_TOKEN secret needs write access to $env:HF_PACKS_REPO)." }
+          if ($LASTEXITCODE -ne 0) { throw "Uploading the Mature pack to Hugging Face failed (the HF_PACKS_TOKEN secret needs write access to $env:HF_PACKS_REPO)." }
 
   localai:
     name: Local AI pack (${{ matrix.tier }})
@@ -307,10 +308,10 @@ jobs:
         if: github.ref_type == 'tag' || inputs.publish
         shell: pwsh
         env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_PACKS_TOKEN: ${{ secrets.HF_PACKS_TOKEN }}
         run: |
           python packaging/upload-packs.py --check
-          if ($LASTEXITCODE -ne 0) { throw "The HF_TOKEN secret needs write access to the Hugging Face repository $env:HF_PACKS_REPO." }
+          if ($LASTEXITCODE -ne 0) { throw "The HF_PACKS_TOKEN secret needs write access to the Hugging Face repository $env:HF_PACKS_REPO." }
 
       # The packs hold unmodified upstream files (the llama.cpp build and the GGUF models), each downloaded from its pinned
       # URL and checked against the SHA-256 in packaging/release.config.json. The build needs no secret.
@@ -327,7 +328,7 @@ jobs:
         if: github.ref_type == 'tag' || inputs.publish
         shell: pwsh
         env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_PACKS_TOKEN: ${{ secrets.HF_PACKS_TOKEN }}
         run: |
           python packaging/upload-packs.py --version "${{ needs.runtime.outputs.version }}" --pack "localai-${{ matrix.tier }}" --packages "$env:OUT\packages"
-          if ($LASTEXITCODE -ne 0) { throw "Uploading the Local AI pack to Hugging Face failed (the HF_TOKEN secret needs write access to $env:HF_PACKS_REPO)." }
+          if ($LASTEXITCODE -ne 0) { throw "Uploading the Local AI pack to Hugging Face failed (the HF_PACKS_TOKEN secret needs write access to $env:HF_PACKS_REPO)." }

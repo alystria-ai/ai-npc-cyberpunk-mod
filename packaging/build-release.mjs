@@ -7,7 +7,7 @@
 //   CyberpunkConvai-Scripts-<v>.zip        text only: CET Lua, redscript, JSON catalogs (for Nexus Mods)
 //   CyberpunkConvai-Runtime-<v>[...].zip   launcher, bundled Node/Chrome/Python, bridge, models, voices,
 //                                          game archives and the Audioware bank (GitHub)
-//   The optional packs are hosted on Hugging Face (akshitireddy/cyberpunk-convai-packs, one folder per version; packaging/upload-packs.py),
+//   The optional packs are hosted on Hugging Face (alystria-ai/cyberpunk-convai-packs, one folder per version; packaging/upload-packs.py),
 //   each ONE zip with no parts and no split files (the zip is ZIP64 where a model is over 4 GiB):
 //   CyberpunkConvai-OmniPack-<v>.zip       optional OmniVoice GPU pack
 //   CyberpunkConvai-LocalAI-Standard-<v>.zip  optional Local AI pack, Gemma 4 E4B
