@@ -56,15 +56,12 @@ The first start after installing takes a little longer while the service prepare
 
 **Update.** Close the game and extract the new Scripts and Runtime (and any optional packs you use) over the old ones. Your conversations, memories and settings stay.
 
-**Updating from 0.1, when the mod was called Cyberpunk Convai.** The install folders now carry the new name. The cleanest way: before extracting, rename `bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai` to `AiNpcCyberpunkMod`, `red4ext\plugins\CyberpunkConvai` to `AiNpcCyberpunkMod` and `red4ext\plugins\CyberpunkConvaiNative` to `AiNpcCyberpunkModNative`, then extract over them. If you extract over the old folders instead, nothing is lost either: the first start moves your settings, keys, memories and Phone Chat history into the new folders, switches the old copy off so the two never run together, and removes the old folders a little later. What it did is written to `data\legacy-migration.json` in the new mod folder. Your CET key bindings are carried over in this case; after renaming by hand, set your keys again in CET's **Bindings**.
-
 **Uninstall.** Delete these from your Cyberpunk 2077 folder, and keep the frameworks if other mods use them:
 
 - `bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod` (this also deletes your conversations and settings)
 - `red4ext\plugins\AiNpcCyberpunkMod` (this also removes the OmniVoice, Local AI and Mature packs)
 - `red4ext\plugins\AiNpcCyberpunkModNative`
-- `r6\scripts\CyberpunkConvai` and `r6\audioware\CyberpunkConvai` (these keep the old name on purpose)
-- anything still called `CyberpunkConvai` under `bin\x64\plugins\cyber_engine_tweaks\mods` or `red4ext\plugins`: leftovers of a 0.1 install, safe to delete
+- `r6\scripts\CyberpunkConvai` and `r6\audioware\CyberpunkConvai` (the scripts and speech files; internal names)
 - `archive\pc\mod\convai_facial.archive`, `convai_gestures.archive` and `cyberpunk_convai_ambient_driver_guard.archive`
 
 ## What you can do

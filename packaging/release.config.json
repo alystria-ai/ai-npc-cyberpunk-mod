@@ -12,11 +12,6 @@
     "nativeDll": "CyberpunkConvaiNative.dll",
     "localAiDirectory": "red4ext/plugins/AiNpcCyberpunkMod/app/local-ai"
   },
-  "legacy": {
-    "notes": "The folders of the first releases, when the mod was called CyberpunkConvai. The Scripts package carries a do-nothing init.lua at modDirectory; the Runtime package carries a launcher.ini with enabled=0 at pluginDirectory and a native-off.txt that says all at modDirectory/runtime. Extracting over an old installation overwrites the old files, so the old copy cannot start beside the new one. packaging/runtime/migrate-legacy.mjs moves the player's state and deletes these folders at the first start.",
-    "modDirectory": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai",
-    "pluginDirectory": "red4ext/plugins/CyberpunkConvai"
-  },
   "limits": {
     "assetBytes": 1950000000,
     "githubFileBytes": 1950000000,

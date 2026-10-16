@@ -247,25 +247,6 @@ test('a locked old DLL postpones the removal; the old copy is already unable to 
   } finally { await done(f); }
 });
 
-test('the stand-in files of a clean installation vanish at the first start without a trace but the report', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'ai npc legacy test '));
-  try {
-    const game = join(root, 'game');
-    const p = legacyPaths(game);
-    // What the packages carry at the old paths (packaging/release.config.json "legacy").
-    await put(join(p.oldMod, 'init.lua'), await read(join(project, 'packaging/release-data/legacy-init.lua')));
-    await put(join(p.oldMod, 'runtime/native-off.txt'), 'all\n');
-    await put(join(p.oldPlugin, 'launcher.ini'), 'enabled=0');
-    await put(join(p.newMod, 'runtime/native-off.txt'), 'actuator\n');
-    const adopted = await adoptLegacyInstall({gameRoot: game});
-    const cleaned = await cleanupLegacyInstall({adopted});
-    assert.deepEqual(cleaned.pending, []);
-    assert.equal(await exists(p.oldMod), false);
-    assert.equal(await exists(p.oldPlugin), false);
-    assert.equal(await read(join(p.newMod, 'runtime/native-off.txt')), 'actuator\n', 'the stand-in native-off.txt never overrides the real one');
-  } finally { await rm(root, {recursive: true, force: true}); }
-});
-
 test('bindings: only a plain rename of the old entry; an existing new entry or a damaged file is left alone', async () => {
   const root = await mkdtemp(join(tmpdir(), 'ai npc legacy test '));
   try {
@@ -317,15 +298,16 @@ test('the packaged service moves an old installation before it reads the data fo
   } finally { await done(f); }
 });
 
-test('the packages carry the stand-ins at the old paths, and nothing else of the old names', async () => {
+test('the packages carry nothing under the old folder names, and the carry-over targets the shipped folders', async () => {
+  // No build under the old name was ever public, so the packages ship no stand-ins at the old paths.
   const config = JSON.parse(await read(join(project, 'packaging/release.config.json')));
-  assert.equal(config.legacy.modDirectory, 'bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai');
-  assert.equal(config.legacy.pluginDirectory, 'red4ext/plugins/CyberpunkConvai');
+  assert.equal(config.legacy, undefined);
+  const builder = await read(join(project, 'packaging/build-release.mjs'));
+  assert.doesNotMatch(builder, /mods\/CyberpunkConvai\b|red4ext\/plugins\/CyberpunkConvai(?:Native)?\b|legacy-init/);
   const p = legacyPaths('G:/game');
-  assert(p.oldMod.replaceAll('\\', '/').endsWith(config.legacy.modDirectory));
-  assert(p.oldPlugin.replaceAll('\\', '/').endsWith(config.legacy.pluginDirectory));
+  assert(p.oldMod.replaceAll('\\', '/').endsWith('bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai'));
+  assert(p.oldPlugin.replaceAll('\\', '/').endsWith('red4ext/plugins/CyberpunkConvai'));
   assert(p.newMod.replaceAll('\\', '/').endsWith(config.layout.modDirectory));
   assert(p.newPlugin.replaceAll('\\', '/').endsWith(config.layout.pluginDirectory));
   assert(p.newNative.replaceAll('\\', '/').endsWith(config.layout.nativeDirectory));
-  assert.equal(await read(join(project, 'packaging/release-data/legacy-init.lua')).then(text => /return \{\}\s*$/.test(text)), true);
 });

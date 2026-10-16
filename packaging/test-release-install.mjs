@@ -295,9 +295,8 @@ async function main() {
     const pluginFolders = (await readdir(plugins, {withFileTypes: true})).filter(entry => entry.isDirectory()).map(entry => entry.name).sort();
     check('only the shipped plugins are installed (no development launcher)',
       pluginFolders.every(name => ['AiNpcCyberpunkMod', 'AiNpcCyberpunkModNative'].includes(name)) && pluginFolders.includes('AiNpcCyberpunkMod'), pluginFolders.join(', '));
-    // The packages also carry three stand-in files at the old CyberpunkConvai paths (they keep an old copy from starting when the packages
-    // are extracted over an old installation); the first start removed them with the old folders.
-    check('the old-name stand-ins were removed at the first start', summary.legacy?.removed?.length === 2 && summary.legacy.pending.length === 0
+    // A clean install has no folder under the mod's first name, and the first start finds no old installation to move.
+    check('no old-name folders on a clean install', summary.legacy === null
       && !existsSync(join(plugins, 'CyberpunkConvai')) && !existsSync(join(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai')), JSON.stringify(summary.legacy));
     const nativeDll = join(plugins, 'AiNpcCyberpunkModNative/CyberpunkConvaiNative.dll');
     const nativeOff = join(mod, 'runtime/native-off.txt');

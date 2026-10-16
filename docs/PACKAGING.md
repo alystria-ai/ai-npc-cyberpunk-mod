@@ -173,14 +173,11 @@ key in player-facing text. The key is stored scrambled (`convai-key-v1 ...`, not
 
 ### Carry-over from the old name (CyberpunkConvai)
 
-The mod was called Cyberpunk Convai until 0.2: its folders were `mods/CyberpunkConvai`, `red4ext/plugins/CyberpunkConvai` and
-`red4ext/plugins/CyberpunkConvaiNative` (`release.config.json` > `legacy` holds the two old names). The DLL file names did not
-change, so a hand rename of the three folders followed by an extract is airtight. For a plain extract over an old install:
+The mod was called Cyberpunk Convai before 0.2: its folders were `mods/CyberpunkConvai`, `red4ext/plugins/CyberpunkConvai` and
+`red4ext/plugins/CyberpunkConvaiNative`. No build under that name was ever public (0.1 was a private test), so player text
+says nothing about updating and the packages carry nothing under the old name. The carry-over below exists for the
+developer's and private testers' installs; on a player's machine it finds no old folder and costs a few stat calls.
 
-- **Stand-ins.** The Scripts zip ships a do-nothing `mods/CyberpunkConvai/init.lua` (`packaging/release-data/legacy-init.lua`), the
-  Runtime zip ships `red4ext/plugins/CyberpunkConvai/launcher.ini` with `enabled=0` and `mods/CyberpunkConvai/runtime/native-off.txt`
-  with `all`. They overwrite the old files at the same paths, so the old copy is inert even before the new service runs
-  (the final guard in `build-release.mjs` allows exactly that launcher.ini).
 - **Phase A, `adoptLegacyInstall`** (`packaging/runtime/migrate-legacy.mjs`, called by `start-service.mjs` before the data folder is
   read; a few stat calls when there is no old folder). It retires the old copy first (`init.lua` and the DLLs renamed to
   `*.migrated`), then moves the player state into the new folders: rename, or copy plus SHA-256 verification when a rename is

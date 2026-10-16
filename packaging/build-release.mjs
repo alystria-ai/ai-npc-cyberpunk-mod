@@ -276,20 +276,6 @@ function launcherIni() {
   return Buffer.concat([Buffer.from([0xFF, 0xFE]), Buffer.from(lines.join('\r\n') + '\r\n', 'utf16le')]);
 }
 
-// The three files that keep an older copy from starting when the new packages are extracted over an old installation (the mod was
-// called CyberpunkConvai; packaging/runtime/migrate-legacy.mjs moves the player's state and removes the old folders at the first
-// start). Each sits at the exact path where the old install has a file of the same name, so extracting overwrites it:
-//   mods/CyberpunkConvai/init.lua                 the old CET mod becomes an empty stand-in
-//   red4ext/plugins/CyberpunkConvai/launcher.ini  the old launcher no longer starts the old service (enabled=0)
-//   mods/CyberpunkConvai/runtime/native-off.txt   the old native plugin switches every system off
-// On a clean installation they are three small files in two folders that the first start deletes.
-function legacyLauncherIni() {
-  const lines = ['; The launcher of the first releases of this mod (it was called CyberpunkConvai). The mod now lives in the AiNpcCyberpunkMod',
-    '; folders; this file only keeps an old copy from starting a second service. The first start of the game deletes this folder.',
-    '[launch]', 'enabled=0'];
-  return Buffer.concat([Buffer.from([0xFF, 0xFE]), Buffer.from(lines.join('\r\n') + '\r\n', 'utf16le')]);
-}
-
 async function installPython(spec, lockFile, target, pthExtra) {
   const zip = await download(spec.url, resolve(cache, 'downloads', basename(spec.url)), spec.sha256, log);
   await extractZip(zip, target);
@@ -322,7 +308,6 @@ async function scriptsPackage(source, config) {
   for (const rel of await walk(resolve(source.root, 'r6/scripts/CyberpunkConvai'))) {
     if (rel.endsWith('.reds') && !retired.has(rel)) pkg.file(`r6/scripts/CyberpunkConvai/${rel}`, resolve(source.root, 'r6/scripts/CyberpunkConvai', rel));
   }
-  pkg.text(`${config.legacy.modDirectory}/init.lua`, await readFile(resolve(source.root, 'packaging/release-data/legacy-init.lua'), 'utf8'));
   pkg.json(`${mod}/release.json`, {product: config.product, package: 'scripts', version, commit: source.commit});
   pkg.text(`${mod}/README.txt`, await readFile(resolve(source.root, 'packaging/PLAYER_README.md'), 'utf8'));
   pkg.text(`${mod}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
@@ -344,8 +329,6 @@ async function runtimePackage(source, config, models, key) {
   const dll = await buildLauncher(source);
   pkg.file(`${plugin}/${config.layout.pluginDll}`, dll);
   pkg.add(`${plugin}/launcher.ini`, {buffer: launcherIni()});
-  pkg.add(`${config.legacy.pluginDirectory}/launcher.ini`, {buffer: legacyLauncherIni()});
-  pkg.text(`${config.legacy.modDirectory}/runtime/native-off.txt`, 'all\n');
   pkg.text(`${plugin}/README.txt`, await readFile(resolve(source.root, 'packaging/PLAYER_README.md'), 'utf8'));
   pkg.text(`${plugin}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
 
@@ -873,8 +856,7 @@ async function main() {
       // Only the shipped launcher and the native plugin may install a RED4ext plugin. The development launcher
       // (red4ext/plugins/CyberpunkConvaiLauncher) must never ship: with it, two services start.
       if (/^red4ext\//i.test(entry.name) && /\.(?:dll|ini)$/i.test(entry.name)
-          && !entry.name.startsWith(`${config.layout.pluginDirectory}/`) && !entry.name.startsWith(`${config.layout.nativeDirectory}/`)
-          && entry.name !== `${config.legacy.pluginDirectory}/launcher.ini`) {
+          && !entry.name.startsWith(`${config.layout.pluginDirectory}/`) && !entry.name.startsWith(`${config.layout.nativeDirectory}/`)) {
         throw Error(`${item.file} installs an unexpected RED4ext plugin file: ${entry.name}`);
       }
       if (/(?:^|\/)CyberpunkConvaiLauncher[^/]*$/i.test(entry.name)) throw Error(`${item.file} contains the development launcher: ${entry.name}`);
