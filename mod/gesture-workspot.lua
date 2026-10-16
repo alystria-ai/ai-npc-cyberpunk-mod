@@ -178,6 +178,30 @@ function M.clearSlot(npc, slot, wanted)
     end)
 end
 
+-- Visual components of a copy by name (docs/COMPANION_GESTURES.md, Round 14). An idle that holds a worn item in the hand
+-- (Johnny's aviators) hides the worn mesh while it plays and shows it again afterwards. `names` are plain substrings of the
+-- component name (the appearance's own name carries a numeric suffix); only visual components are touched. ok, count of
+-- components toggled. One walk of the component list per call, only at the start and end of such an idle (never per frame);
+-- safe to repeat: showing an already shown component changes nothing.
+function M.setComponentsVisible(npc, names, visible)
+    return call(function()
+        local changed = 0
+        for _, component in ipairs(npc:GetComponents() or {}) do
+            if component:IsA('entIVisualComponent') then
+                local name = type(NameToString) == 'function' and NameToString(component:GetName()) or tostring(component:GetName())
+                for _, wanted in ipairs(names) do
+                    if name:find(wanted, 1, true) then
+                        component:Toggle(visible == true)
+                        changed = changed + 1
+                        break
+                    end
+                end
+            end
+        end
+        return changed
+    end)
+end
+
 function M.stopInDevice(npc)
     return call(function()
         return Game.GetWorkspotSystem():StopInDevice(npc, Vector4.new(0, 0, 0, 0), Quaternion.new(0, 0, 0, 1))

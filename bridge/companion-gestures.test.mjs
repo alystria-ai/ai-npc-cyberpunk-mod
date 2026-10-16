@@ -493,13 +493,13 @@ for (const [bodyType, rig, pool] of [
     for round=1,6 do
       local before=idles()
       local waited=0
-      while idles()==before and waited<160 do step(.5);waited=waited+1 end
+      while idles()==before and waited<400 do step(.5);waited=waited+1 end
       assert(idles()==before+1,'an idle follows: '..idles()..' vs '..before)
       if round==1 then assert(waited<=16,'the first idle follows the reply within about five seconds: '..waited) end
       local component=last('play').component
       assert(inPool[component],'idle from the rig pool: '..component)
       seen[component]=true
-      step(50)
+      step(1)
     end
     local order={} for _,l in ipairs(logs) do if l.kind=='flavour-begin' then order[#order+1]=l.fields.component end end
     for i=2,#order do assert(order[i]~=order[i-1] or ${pool.length}==1,'not the same idle twice in a row: '..order[i]) end
@@ -857,6 +857,8 @@ test('a copy outside the round is left alone, and with the setting off the round
 // Round 12: prop idles (cigarette, sunglasses, cup, bottle). The natives are optional in the controller; these tests give
 // the fixture fake hand slots. Every VM is fresh, so installing them here affects no other test.
 const propFixture = `
+  local defaultBonus=m.policy.interestingBonus
+  m.policy.interestingBonus=1 -- the tests that aim a random value at one idle use a uniform pick; the weighting has its own tests
   local slots,clears={}, {}
   function native.slotItem(n,slot,wanted) calls[#calls+1]={name='slotItem',slot=slot};return true,slots[slot] end
   function native.clearSlot(n,slot,wanted)
@@ -1052,6 +1054,241 @@ test('Padre and Saul rest in measured, fitting idles: Padre in hands folded in f
     assert(ok,key..' is checked on '..padre.rig)
   end
   assert(cat.idleSources.generic_hold.what:find('right hand held out',1,true),'the hold pose is described from the measurement')
+`));
+
+// Idle choice is a weighted random pick from the pool: interesting idles (signature, own workspot, prop) weigh
+// policy.interestingBonus times a plain generic idle, never the one just played, never a prop idle after a prop idle.
+// Johnny's pool is seven idles: johnny, johnny_crossed, johnny_aggressive, johnny_smoke, johnny_shades (interesting) and the
+// rig's two generic ones (plain).
+const fairFixture = propFixture + `
+  m.policy.interestingBonus=defaultBonus
+  m.policy.propMisses=1e9 -- the fake hand never shows the prop; keep every prop idle in the pool
+  entry.record='Character.Silverhand';entry.serial=2;calls={};logs={}
+  entry.position={x=3,y=0,z=0}
+  local rnd=12345
+  c.random=function() rnd=(rnd*1103515245+12345)%2147483648;return rnd/2147483648 end
+  local cat=load(catalogSource)()
+  local known=cat.characters[entry.record]
+  local pool,seen={}, {}
+  local function add(k) if k and not seen[k] and cat.idleComponents[k] then seen[k]=true;pool[#pool+1]=k end end
+  add(known.idle) for _,k in ipairs(known.idles or {}) do add(k) end
+  for _,k in ipairs(cat.generic.rigs[known.rig].idles) do add(k) end
+  assert(#pool==7,'the pool: '..#pool)
+  local interesting={johnny=true,johnny_crossed=true,johnny_aggressive=true,johnny_smoke=true,johnny_shades=true}
+  local function weight(k) return interesting[k] and defaultBonus or 1 end
+  local function isProp(k) return cat.propIdles[k]~=nil end
+  local function keyOf(component) return (component:gsub('^convai_idle_','')) end
+  local function share(counts,total,key) return (counts[key] or 0)/total end
+  -- Expected share of each idle: the first pick (no last idle) and the long-run chain of the rule (no repeat, no prop after a prop).
+  local function firstShares()
+    local total=0 for _,k in ipairs(pool) do total=total+weight(k) end
+    local out={} for _,k in ipairs(pool) do out[k]=weight(k)/total end
+    return out
+  end
+  local function chainShares()
+    local p={} for _,k in ipairs(pool) do p[k]=1/#pool end
+    for iter=1,400 do
+      local q={} for _,k in ipairs(pool) do q[k]=0 end
+      for _,last in ipairs(pool) do
+        local total=0
+        for _,k in ipairs(pool) do if k~=last and not (isProp(last) and isProp(k)) then total=total+weight(k) end end
+        for _,k in ipairs(pool) do if k~=last and not (isProp(last) and isProp(k)) then q[k]=q[k]+p[last]*weight(k)/total end end
+      end
+      p=q
+    end
+    return p
+  end
+`;
+
+test('the idle pick is boosted but random: over many idles each of Johnny\'s seven appears at its weighted share, props never twice in a row', () => run(fairFixture + `
+  assert(defaultBonus>=2.5 and defaultBonus<=3,'the bonus is about 2.5-3 times a plain idle: '..defaultBonus)
+  local counts,total,order={}, 0, {}
+  local scanned=0
+  for second=1,19000 do
+    step(1)
+    if #logs>scanned then
+      for j=scanned+1,#logs do
+        if logs[j].kind=='flavour-begin' then
+          local key=keyOf(logs[j].fields.component)
+          counts[key]=(counts[key] or 0)+1;total=total+1;order[#order+1]=key
+          assert(order[#order-1]~=key,'the same idle twice in a row: '..key..' at pick '..total)
+          assert(not (order[#order-1] and isProp(order[#order-1]) and isProp(key)),'two prop idles in a row at pick '..total)
+        end
+      end
+      scanned=#logs
+    end
+    if second%2000==0 then logs={};scanned=0 end
+  end
+  assert(total>=200,'enough idles were picked: '..total)
+  local expected=chainShares()
+  local plain,interestingShare=0,0
+  for _,key in ipairs(pool) do
+    local f=share(counts,total,key)
+    assert(math.abs(f-expected[key])<.06,key..' share '..f..' against the expected '..expected[key]..' of '..total)
+    if interesting[key] then interestingShare=interestingShare+f else plain=plain+f end
+  end
+  assert(interestingShare>2*plain,'interesting idles clearly outnumber plain ones: '..interestingShare..' vs '..plain)
+`));
+
+test('early picks reflect the bonus: the first idle of many fresh copies is an interesting one at about the weighted share, a prop idle often', () => run(fairFixture + `
+  local counts,total={}, 0
+  for i=1,280 do
+    entry.serial=100+i;npc.inside=false;npc.entering=nil;npc.leaving=nil
+    local before=#logs
+    local waited=0
+    local fresh
+    while not fresh and waited<400 do
+      step(.5);waited=waited+1
+      for j=before+1,#logs do if logs[j].kind=='flavour-begin' then fresh=logs[j] end end
+    end
+    assert(fresh,'the first idle of copy '..i)
+    local key=keyOf(fresh.fields.component)
+    counts[key]=(counts[key] or 0)+1;total=total+1
+    c.release(entry,'despawn')
+    step(4)
+  end
+  local expected=firstShares()
+  local interestingShare=0
+  for _,key in ipairs(pool) do
+    local f=share(counts,total,key)
+    assert(math.abs(f-expected[key])<.07,key..' as the first idle: '..f..' against the expected '..expected[key])
+    if interesting[key] then interestingShare=interestingShare+f end
+  end
+  assert(interestingShare>.75,'an interesting idle opens '..interestingShare..' of the time')
+  local props=share(counts,total,'johnny_smoke')+share(counts,total,'johnny_shades')
+  assert(props>.25,'a prop idle opens '..props..' of the time')
+`));
+
+test('a character with only generic idles is picked uniformly, and the bonus is one named policy constant', () => run(`
+  assert(type(m.policy.interestingBonus)=='number' and m.policy.interestingBonus>1)
+  entry.record='Character.Mitch';entry.serial=3
+  local cat=load(catalogSource)()
+  local known=cat.characters[entry.record]
+  assert(known.idleSource=='generic' and cat.idleSources[known.idle].kind=='generic')
+`));
+
+test('the idle cadence keeps the pool turning: a gap of 8-20 s and a length of 40-75 s, so a given idle of seven does not take a quarter of an hour', () => run(`
+  assert(m.policy.flavourGap[1]>=5 and m.policy.flavourGap[2]<=25,'gap')
+  assert(m.policy.flavourLength[1]>=30 and m.policy.flavourLength[2]<=80,'length')
+  assert(m.policy.flavourFirst[1]==0 and m.policy.flavourFirst[2]==0,'no first-idle delay')
+  assert((m.policy.flavourGap[1]+m.policy.flavourGap[2]+m.policy.flavourLength[1]+m.policy.flavourLength[2])/2<=75,'an idle every 75 s on average at most')
+`));
+
+// Round 14: Johnny's sunglasses idle holds his aviators in the hand, so the pair on his face (a mesh component) is hidden while
+// it plays and shown again by every way out. A fake native keeps the visibility of the one component.
+const wornFixture = propFixture + `
+  local worn={visible=true,calls={}}
+  function native.setComponentsVisible(n,names,visible)
+    worn.calls[#worn.calls+1]={names=names,visible=visible}
+    worn.visible=visible
+    return true,1
+  end
+  local function shownCalls() local k=0 for _,x in ipairs(worn.calls) do if x.visible then k=k+1 end end return k end
+  c.random=function() return aim('johnny_shades') end
+  local function toIdle()
+    untilPlay()
+    local began=lastLog('flavour-begin')
+    assert(began and began.fields.component=='convai_idle_johnny_shades','the sunglasses idle: '..tostring(began and began.fields.component))
+    slots['AttachmentSlots.WeaponRight']={match=true,fists=false}
+    step(1)
+  end
+`;
+
+test('the worn glasses are hidden while his sunglasses idle plays and shown again when it ends, at once and once more later', () => run(wornFixture + `
+  untilPlay()
+  assert(lastLog('flavour-begin').fields.component=='convai_idle_johnny_shades')
+  step(1)
+  assert(#worn.calls==1 and worn.calls[1].visible==false and worn.calls[1].names[1]=='ma_specs__silverhand','hidden once when the idle became active')
+  assert(worn.visible==false and lastLog('worn-hidden') and lastLog('worn-hidden').fields.key=='johnny_shades')
+  step(30)
+  assert(#worn.calls==1,'nothing more while it plays: '..#worn.calls)
+  for i=1,8 do player.pos={x=i*.15,y=0,z=0};step(.1) end
+  assert(lastLog('exit').fields.reason=='movement')
+  step(.3)
+  assert(worn.visible==true and shownCalls()>=1,'shown again as the idle ended')
+  local before=#worn.calls
+  step(1) -- the cleanup passes repeat it
+  step(4)
+  assert(#worn.calls==before+2 and worn.visible==true,'two later passes, both showing: '..(#worn.calls-before))
+  step(5)
+  assert(#worn.calls==before+2,'then quiet')
+`));
+
+for (const how of ['combat', 'conversation', 'drift', 'release', 'rows']) {
+  test(`leaving the sunglasses idle by ${how} shows the glasses again`, () => run(wornFixture + `
+    entry.position={x=3,y=0,z=0}
+    toIdle()
+    assert(worn.visible==false and #worn.calls==1,'hidden while the idle plays')
+    local how='${how}'
+    if how=='combat' then context.combat=true;step(.5)
+    elseif how=='conversation' then speaking={knownEnd=14,at=0};step(.5)
+    elseif how=='drift' then entry.position={x=4.2,y=0,z=0};step(.5)
+    elseif how=='release' then c.release(entry,'despawn')
+    elseif how=='rows' then c.tick(player,.1,{})
+    end
+    step(.5)
+    assert(worn.visible==true,how..': shown again')
+    assert(shownCalls()>=1,how)
+    local reason=lastLog('finished') and lastLog('finished').fields.reason
+    if how=='combat' then assert(reason=='combat' or reason=='guard' or lastLog('exit'),'left for the fight: '..tostring(reason)) end
+    if how=='conversation' then assert(reason=='conversation','left for the conversation: '..tostring(reason)) end
+    if how=='drift' then assert(reason=='drifted') end
+    step(10)
+    assert(worn.visible==true,how..': still shown after the cleanup passes')
+  `));
+}
+
+test('the glasses stay as they are when no hide is declared, with the switch off, or without the native; abandoning at teardown makes no call and the next copy hides again', () => run(wornFixture + `
+  -- the cigarette idle declares nothing to hide
+  c.random=function() return aim('johnny_smoke') end
+  untilPlay();step(2)
+  assert(#worn.calls==0,'no hide for the cigarette idle')
+  for i=1,8 do player.pos={x=i*.15,y=0,z=0};step(.1) end
+  step(5)
+  assert(#worn.calls==0,'and nothing to show')
+  -- switch off
+  m.policy.hideComponents=false
+  entry.serial=3;npc.inside=false;calls={};logs={}
+  c.random=function() return aim('johnny_shades') end
+  player.pos={x=0,y=0,z=0};step(1)
+  untilPlay();step(2)
+  assert(lastLog('flavour-begin').fields.component=='convai_idle_johnny_shades' and #worn.calls==0,'kill switch: no hide')
+  m.policy.hideComponents=true
+  -- no native (older gesture-workspot.lua): the idle still plays
+  native.setComponentsVisible=nil
+  entry.serial=4;npc.inside=false;calls={};logs={}
+  player.pos={x=0,y=0,z=0};step(1)
+  untilPlay();step(2)
+  assert(lastLog('flavour-begin').fields.component=='convai_idle_johnny_shades' and #worn.calls==0 and not lastLog('worn-hidden'),'no native: plays, nothing hidden')
+`));
+
+test('abandoning at world teardown makes no visibility call, and a new copy starts with the glasses on and hides them again', () => run(wornFixture + `
+  untilPlay();step(1)
+  assert(#worn.calls==1 and worn.visible==false)
+  c.abandon('world teardown')
+  for i=1,60 do c.tick(player,.1,{}) end
+  assert(#worn.calls==1,'no call after abandon: '..#worn.calls)
+  -- the respawned copy is a new entity whose components are on
+  worn.visible=true
+  entry.serial=9;npc.inside=false;logs={};calls={}
+  c.random=function() return aim('johnny_shades') end
+  step(1)
+  untilPlay();step(1)
+  assert(#worn.calls==2 and worn.calls[2].visible==false and worn.visible==false,'hidden again for the new copy')
+`));
+
+test('the catalog hides exactly Johnny\'s worn specs for his sunglasses idle, as fragments of the appearance\'s component name', () => run(`
+  local cat=load(catalogSource)()
+  local shades=cat.propIdles.johnny_shades
+  assert(shades.hideComponents and #shades.hideComponents==1 and shades.hideComponents[1]=='ma_specs__silverhand')
+  for key,row in pairs(cat.propIdles) do
+    if row.hideComponents then
+      assert(key=='johnny_shades','only the idle that holds the worn item declares a hide: '..key)
+      for _,name in ipairs(row.hideComponents) do assert(type(name)=='string' and #name>=4 and not name:find('[^%w_]')) end
+    end
+  end
+  -- the pair in the hand and the pair on the face are the same item name, so the hide cannot be left declared on a missing prop
+  assert(shades.items[1].item:find('ma_specs__silverhand',1,true))
 `));
 
 test('a prop idle that drifts is left at once like any other, its idle is banned, and its item is still taken out of the hand', () => run(propFixture + `

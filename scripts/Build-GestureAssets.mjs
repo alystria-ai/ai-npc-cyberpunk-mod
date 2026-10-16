@@ -221,6 +221,11 @@ for (const [key, row] of Object.entries(source.propIdles ?? {})) {
         if (!/^Items\.[A-Za-z0-9_]+$/.test(item.item ?? '')) fail(`prop idle ${key}: item ${item.item} is not an Items.* record`);
         if (!HAND_SLOTS.has(item.slot)) fail(`prop idle ${key}: slot ${item.slot} is not a hand slot`);
     }
+    // Optional: worn visuals hidden while the idle plays (plain substrings of component names; Round 14).
+    if (row.hideComponents !== undefined && (!Array.isArray(row.hideComponents) || row.hideComponents.length === 0
+        || row.hideComponents.some((name) => typeof name !== 'string' || !/^[A-Za-z0-9_]{4,}$/.test(name)))) {
+        fail(`prop idle ${key}: hideComponents must be a non-empty list of component name fragments`);
+    }
 }
 for (const [key, row] of Object.entries(source.idleOptions ?? {})) {
     if (key === 'note') continue;
@@ -605,7 +610,8 @@ const catalog = {
     idleSources: Object.fromEntries(Object.entries(source.idleSources ?? {}).map(([key, [kind, what, rigs]]) => [key, { kind, what, rigs: rigs.split(',') }])),
     // Idles that put an item in a hand (animation data, scripts/Audit-PropIdles.mjs): what the controller takes off afterwards.
     propIdles: Object.fromEntries(Object.entries(source.propIdles ?? {}).filter(([key]) => key !== 'note')
-        .map(([key, row]) => [key, { prop: row.prop, items: row.items.map((item) => ({ item: item.item, slot: item.slot })) }])),
+        .map(([key, row]) => [key, { prop: row.prop, items: row.items.map((item) => ({ item: item.item, slot: item.slot })),
+            ...(row.hideComponents ? { hideComponents: row.hideComponents } : {}) }])),
     seatComponents: Object.fromEntries(Object.keys(seatWorkspots).map((key) => [key, `convai_sit_${key}`])),
     characters: source.characters,
     // Fallback for records not in 'characters': body type -> rig -> talk family and idle (mod/companion-gestures.lua).
