@@ -150,7 +150,7 @@ jobs:
             gh @createArgs
             if ($LASTEXITCODE -ne 0) { throw 'Could not create the release.' }
           }
-          $files = Get-ChildItem "$env:OUT\packages" -Filter *.zip | ForEach-Object FullName
+          $files = @(Get-ChildItem "$env:OUT\packages" -Filter *.zip | ForEach-Object FullName)
           gh release upload $tag --repo $env:GITHUB_REPOSITORY --clobber @files "$env:OUT\packages\SHA256SUMS-runtime.txt"
           if ($LASTEXITCODE -ne 0) { throw 'Uploading the packages failed.' }
 
@@ -202,7 +202,7 @@ jobs:
         run: |
           $tag = 'v${{ needs.runtime.outputs.version }}'
           Copy-Item "$env:OUT\packages\SHA256SUMS.txt" "$env:OUT\packages\SHA256SUMS-omni.txt"
-          $files = Get-ChildItem "$env:OUT\packages" -Filter *.zip | ForEach-Object FullName
+          $files = @(Get-ChildItem "$env:OUT\packages" -Filter *.zip | ForEach-Object FullName)
           gh release upload $tag --repo $env:GITHUB_REPOSITORY --clobber @files "$env:OUT\packages\SHA256SUMS-omni.txt"
           if ($LASTEXITCODE -ne 0) { throw 'Uploading the OmniVoice pack failed.' }
 
@@ -241,6 +241,6 @@ jobs:
         run: |
           $tag = 'v${{ needs.runtime.outputs.version }}'
           Copy-Item "$env:OUT\packages\SHA256SUMS.txt" "$env:OUT\packages\SHA256SUMS-localai-${{ matrix.tier }}.txt"
-          $files = Get-ChildItem "$env:OUT\packages" -Filter *.zip | ForEach-Object FullName
+          $files = @(Get-ChildItem "$env:OUT\packages" -Filter *.zip | ForEach-Object FullName)
           gh release upload $tag --repo $env:GITHUB_REPOSITORY --clobber @files "$env:OUT\packages\SHA256SUMS-localai-${{ matrix.tier }}.txt"
           if ($LASTEXITCODE -ne 0) { throw 'Uploading the Local AI pack failed.' }
