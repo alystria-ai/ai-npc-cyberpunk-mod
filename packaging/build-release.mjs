@@ -7,11 +7,15 @@
 //   CyberpunkConvai-Scripts-<v>.zip        text only: CET Lua, redscript, JSON catalogs (for Nexus Mods)
 //   CyberpunkConvai-Runtime-<v>[...].zip   launcher, bundled Node/Chrome/Python, bridge, models, voices,
 //                                          game archives and the Audioware bank (GitHub)
-//   CyberpunkConvai-OmniPack-<v>-partNofM.zip  optional OmniVoice GPU pack (GitHub)
-//   CyberpunkConvai-LocalAI-Standard-<v>-partNofM.zip  optional Local AI pack, Gemma 4 E4B (GitHub)
-//   CyberpunkConvai-LocalAI-Lite-<v>.zip   optional Local AI pack, Qwen3.5-2B (GitHub)
-//   CyberpunkConvai-Mature-<v>.zip         optional Mature pack, the uncensored models (GitHub release only, never Nexus; only with
-//                                          --packages mature, never in the default set; refuses to build unless both of its models, lite and good, are pinned)
+//   The optional packs are hosted on Hugging Face (akshitireddy/cyberpunk-convai-packs, one folder per version; packaging/upload-packs.py),
+//   each ONE zip with no parts and no split files (the zip is ZIP64 where a model is over 4 GiB):
+//   CyberpunkConvai-OmniPack-<v>.zip       optional OmniVoice GPU pack
+//   CyberpunkConvai-LocalAI-Standard-<v>.zip  optional Local AI pack, Gemma 4 E4B
+//   CyberpunkConvai-LocalAI-Lite-<v>.zip   optional Local AI pack, Qwen3.5-2B
+//   CyberpunkConvai-Mature-Lite-<v>.zip    optional Mature lite pack, one uncensored model (Qwen3.5-4B); only with --packages mature-lite,
+//                                          never in the default set, never Nexus; it carries its own marker, so it works alone
+//   CyberpunkConvai-Mature-Good-<v>.zip    optional Mature good pack, one uncensored model (Gemma 4 E4B); only with --packages mature-good
+// Only the Scripts (Nexus) and Runtime (GitHub release) packages may still be split into several zips (writeArchives).
 // plus SHA256SUMS.txt and release-manifest.json. The Runtime package also carries the native plugin
 // (red4ext/plugins/CyberpunkConvaiNative) and runtime/native-off.txt. See docs/PACKAGING.md.
 //
@@ -19,7 +23,7 @@
 //   --version V        release version, 2077.N or 2077.N.M (required)
 //   --dry-run          local build: models from the developer runtime/ folder, no key embedded
 //   --models local|hf  where trained models come from (default: hf, or local with --dry-run)
-//   --packages LIST    comma list of scripts,runtime,omni,localai-standard,localai-lite,mature (default: the first five)
+//   --packages LIST    comma list of scripts,runtime,omni,localai-standard,localai-lite,mature-lite,mature-good (default: the first five)
 //   --source REF       git ref to package (default HEAD); --worktree packages the working tree instead
 //   --key-env NAME     embed the Convai key from this environment variable (never printed)
 //   --key-file PATH    embed the Convai key from this file (local testing only)
@@ -58,9 +62,11 @@ if (!isReleaseVersion(version)) {
 }
 const dryRun = flag('--dry-run');
 const modelSource = value('--models', dryRun ? 'local' : 'hf');
-// 'mature' is the separate adult-flagged Mature pack (packaging/MATURE_PACK_README.md): built only when asked for, never in the default set.
-const PACKAGE_IDS = ['scripts', 'runtime', 'omni', 'localai-standard', 'localai-lite', 'mature'];
-const DEFAULT_PACKAGE_IDS = PACKAGE_IDS.filter(id => id !== 'mature');
+// 'mature-lite' and 'mature-good' are the two separate adult-flagged Mature packs (packaging/MATURE_PACK_README.md), one model each: built only
+// when asked for, never in the default set. The optional packs (OPTIONAL_PACKAGE_IDS) are hosted on Hugging Face as one zip each.
+const PACKAGE_IDS = ['scripts', 'runtime', 'omni', 'localai-standard', 'localai-lite', 'mature-lite', 'mature-good'];
+const DEFAULT_PACKAGE_IDS = PACKAGE_IDS.filter(id => !id.startsWith('mature'));
+const OPTIONAL_PACKAGE_IDS = new Set(['omni', 'localai-standard', 'localai-lite', 'mature-lite', 'mature-good']);
 const packages = new Set(value('--packages', DEFAULT_PACKAGE_IDS.join(',')).split(',').map(item => item.trim()).filter(Boolean));
 const localAiSource = value('--local-ai-source', process.env.CYBERPUNK_CONVAI_LOCAL_AI_DEV);
 const out = resolve(value('--out', resolve(project, 'dist/release')));
@@ -680,7 +686,7 @@ async function localAiPackage(source, config, tierKey) {
   for (const name of spec.server.require) if (!shipped.includes(name)) throw Error(`The llama.cpp ${spec.server.version} download has no ${name}.`);
   for (const name of shipped) pkg.file(`${root}/llama/${name}`, resolve(extracted, name));
 
-  // The embedding model and this pack's chat model (split into parts by splitLargeFiles when over the download limit).
+  // The embedding model and this pack's chat model, whole: the pack is one zip on Hugging Face (ZIP64 when the model is over 4 GiB).
   const embedPath = await localAiFile(spec.embed, huggingFace(spec.embed), spec.embed.file);
   pkg.file(`${root}/models/${spec.embed.file}`, embedPath);
   const chatPath = await localAiFile(tier, huggingFace(tier), tier.file);
@@ -715,66 +721,62 @@ async function localAiPackage(source, config, tierKey) {
   return pkg;
 }
 
-// The Mature pack (docs/LOCAL_AI.md, "Mature content"): a separate download, distributed only as a file on the GitHub release (built by the release workflow's opt-in `mature` job from the private bucket's mirror, or by hand; never on a tag push, never to Nexus). It carries the uncensored
-// model files in the Local AI folder's models/ and the marker the main mod looks for (manifest.mature.json, read by bridge/mature-pack.mjs;
-// the Local AI detector never reads it), plus its own README and licence files under mature/. Nothing of it is in the Runtime package.
-// With --models hf, the Mature models come from the private bucket's mirror (packaging/fetch-models.py --mature: same token, same
-// download helper, SHA-256 checked against the pins). It returns the cached local path of each model the mirror has, keyed by file name;
-// a model it lacks is downloaded from its pinned public Hugging Face URL by localAiFile.
-async function matureMirror(source) {
-  const report = resolve(out, 'mature-mirror.json');
-  log('Fetching the Mature models from the private Hugging Face bucket mirror.');
+// A Mature pack (docs/LOCAL_AI.md, "Mature content"): a separate download, hosted on Hugging Face with the other optional packs (built by the release
+// workflow's opt-in `mature` job from the private bucket's mirror, or by hand; never on a tag push, never to Nexus). There are two, Mature lite and
+// Mature good, one model each, and each works alone: a pack carries its own uncensored model file in the Local AI folder's models/ and its own marker
+// (manifest.mature-lite.json or manifest.mature-good.json, read by bridge/mature-pack.mjs; the Local AI detector never reads them), plus the
+// shared README and licence files and its own notices under mature/. Nothing of them is in the Runtime package.
+// With --models hf, the model comes from the private bucket's mirror (packaging/fetch-models.py --mature --tier: same token, same
+// download helper, SHA-256 checked against the pin), only the tier being built. It returns the cached local path of the model when the mirror has
+// it, keyed by file name; a model it lacks is downloaded from its pinned public Hugging Face URL by localAiFile.
+async function matureMirror(source, tierKey) {
+  const report = resolve(out, `mature-mirror-${tierKey}.json`);
+  log(`Fetching the Mature ${tierKey} model from the private Hugging Face bucket mirror.`);
   await run(hostPython, [resolve(source.root, 'packaging/fetch-models.py'), '--config', resolve(source.root, 'packaging/release.config.json'),
-    '--cache', resolve(cache, 'models'), '--report', report, '--mature']);
+    '--cache', resolve(cache, 'models'), '--report', report, '--mature', '--tier', tierKey]);
   return new Map(Object.entries((await readJson(report)).files));
 }
 
-async function maturePackage(source, config) {
+async function maturePackage(source, config, tierKey) {
   const spec = config.maturePack;
-  // Exactly two models, like the Local AI packs' two tiers: lite and good (bridge/mature-pack.mjs, MATURE_TIERS).
-  const tiers = ['lite', 'good'].map(key => ({key, ...spec.tiers?.[key]}));
-  const unfinished = tiers.filter(model => !model.file || model.placeholder || /PLACEHOLDER/.test(`${model.file}${model.sha256}${model.revision}`));
-  if (unfinished.length) {
-    throw Error(`The Mature pack model list is not filled in yet (${unfinished.length} of its two models are missing or placeholders in packaging/release.config.json, maturePack.tiers).`);
+  // Exactly two models exist, lite and good (bridge/mature-pack.mjs, MATURE_TIERS); each pack carries one.
+  if (Object.keys(spec.tiers ?? {}).join() !== 'lite,good') throw Error('The Mature packs are lite and good, one model each (maturePack.tiers).');
+  const model = {key: tierKey, ...spec.tiers[tierKey]};
+  if (!model.file || model.placeholder || /PLACEHOLDER/.test(`${model.file}${model.sha256}${model.revision}`)) {
+    throw Error(`The Mature ${tierKey} model is missing or a placeholder in packaging/release.config.json, maturePack.tiers.`);
   }
-  if (Object.keys(spec.tiers).length !== 2) throw Error('The Mature pack has exactly two models, lite and good (maturePack.tiers).');
-  for (const model of tiers) if (model.license !== 'Apache-2.0') throw Error(`${model.name}: the Mature pack ships Apache-2.0 base models only.`);
-  const pkg = new Package('mature');
+  if (model.license !== 'Apache-2.0') throw Error(`${model.name}: the Mature packs ship Apache-2.0 base models only.`);
+  const pkg = new Package(`mature-${tierKey}`);
   const root = config.layout.localAiDirectory;
   const huggingFace = item => `https://huggingface.co/${item.repository}/resolve/${item.revision}/${item.remote ?? item.file}`;
-  const mirrored = modelSource === 'hf' ? await matureMirror(source) : new Map();
-  for (const model of tiers) pkg.file(`${root}/models/${model.file}`, mirrored.get(model.file) ?? await localAiFile(model, huggingFace(model), model.file));
-  const entry = model => ({file: `models/${model.file}`, name: model.name, family: model.family});
-  pkg.json(`${root}/${spec.marker}`, {version: 1, pack: 'mature', lite: entry(tiers[0]), good: entry(tiers[1])});
+  const mirrored = modelSource === 'hf' ? await matureMirror(source, tierKey) : new Map();
+  pkg.file(`${root}/models/${model.file}`, mirrored.get(model.file) ?? await localAiFile(model, huggingFace(model), model.file));
+  // This pack's own marker, so the other pack's marker is never overwritten and either one alone is detected.
+  pkg.json(`${root}/${spec.markers[tierKey]}`, {version: 1, pack: 'mature', [tierKey]: {file: `models/${model.file}`, name: model.name, family: model.family}});
   pkg.text(`${root}/${spec.directory}/README.md`, await readFile(resolve(source.root, spec.readme), 'utf8'));
   for (const licence of spec.licenceFiles) pkg.file(`${root}/${spec.directory}/licenses/${basename(licence)}`, resolve(source.root, licence));
-  pkg.text(`${root}/${spec.directory}/THIRD-PARTY-NOTICES.txt`, ['Cyberpunk Convai Mature pack - third-party components', '',
-    ...tiers.map(model => `- ${model.name} (${model.key}; GGUF file ${model.file}; base model ${model.baseModel}) - ${model.license}: ${spec.directory}/licenses/Apache-2.0.txt - https://huggingface.co/${model.repository}`),
-    '- The models are community fine-tunes of the Apache-2.0 base models named above. The pack needs the Cyberpunk Convai main mod and a Local AI pack (llama-server).', ''].join('\r\n'));
-  pkg.json(`${root}/${spec.directory}/mature-pack.json`, {product: config.product, package: 'mature', version, commit: '' + source.commit,
-    models: tiers.map(model => ({tier: model.key, repository: model.repository, revision: model.revision, file: model.remote ?? model.file, sha256: model.sha256}))});
+  pkg.text(`${root}/${spec.directory}/THIRD-PARTY-NOTICES-${tierKey}.txt`, [`Cyberpunk Convai Mature ${tierKey} pack - third-party components`, '',
+    `- ${model.name} (${model.key}; GGUF file ${model.file}; base model ${model.baseModel}) - ${model.license}: ${spec.directory}/licenses/Apache-2.0.txt - https://huggingface.co/${model.repository}`,
+    '- The model is a community fine-tune of the Apache-2.0 base model named above. The pack needs the Cyberpunk Convai main mod and a Local AI pack (llama-server).', ''].join('\r\n'));
+  pkg.json(`${root}/${spec.directory}/mature-pack-${tierKey}.json`, {product: config.product, package: `mature-${tierKey}`, version, commit: '' + source.commit,
+    models: [{tier: model.key, repository: model.repository, revision: model.revision, file: model.remote ?? model.file, sha256: model.sha256}]});
   return pkg;
 }
 
 // ---------------------------------------------------------------- archives
-async function splitLargeFiles(pkg, config) {
-  for (const [name, entry] of [...pkg.entries]) {
+// No file is split any more. The optional packs are hosted on Hugging Face as ONE zip each (no limit there to stay under), and the
+// Scripts and Runtime packages carry no file near the GitHub per-file limit: one that is over it would break the upload, so it stops the build.
+// (Older installs may still have `.partN` files from earlier releases; packaging/runtime/assemble-parts.mjs joins those at start-up.)
+async function checkFileSizes(pkg, config) {
+  for (const [name, entry] of pkg.entries) {
     const size = await sizeOf(entry);
-    if (size <= config.limits.splitFileBytes) continue;
-    if (!entry.source || !/\/app\/(?:omni|local-ai)\//.test(name)) throw Error(`${name} is too large to ship in one piece.`);
-    const sha = await sha256File(entry.source);
-    const parts = [];
-    for (let start = 0, index = 1; start < size; start += config.limits.splitPartBytes, index++) {
-      const length = Math.min(config.limits.splitPartBytes, size - start);
-      parts.push({name: `${basename(name)}.part${index}`, size: length, sha256: await sha256File(entry.source, {start, length}), start});
-    }
-    pkg.entries.delete(name);
-    for (const part of parts) pkg.add(`${dirname(name)}/${part.name}`, {source: entry.source, start: part.start, length: part.size});
-    pkg.json(`${name}.parts.json`, {file: basename(name), size, sha256: sha, parts: parts.map(({name: n, size: s, sha256}) => ({name: n, size: s, sha256}))});
+    if (size > config.limits.githubFileBytes) throw Error(`${name} is ${(size / 1e9).toFixed(2)} GB, over the GitHub per-file limit; only the optional packs (hosted on Hugging Face) may hold files that large.`);
   }
 }
 
-async function writeArchives(pkg, baseName, config, timestamp) {
+// `single`: one zip whatever its size (the optional packs: ZIP64 where needed, no `-partNofM` zips). Otherwise an archive that would pass the
+// GitHub asset limit (or 60,000 entries) is closed and the next entry starts another one.
+async function writeArchives(pkg, baseName, config, timestamp, {single = false} = {}) {
   const directory = resolve(out, 'packages');
   await mkdir(directory, {recursive: true});
   const names = [...pkg.entries.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
@@ -783,13 +785,13 @@ async function writeArchives(pkg, baseName, config, timestamp) {
   if (tooLong.length) throw Error(`${tooLong.length} paths are too long for a typical game folder, e.g. ${tooLong[0]}`);
   const archives = [];
   let writer = null, index = 0;
-  const open = async () => { index++; writer = await ZipWriter.create(resolve(directory, `${baseName}.part${index}.tmp`), {timestamp}); };
+  const open = async () => { index++; writer = await ZipWriter.create(resolve(directory, `${baseName}.${index}.tmp`), {timestamp}); };
   const files = [];
   await open();
   for (const name of names) {
     const entry = pkg.entries.get(name), size = await sizeOf(entry);
     const bound = Math.ceil(size * 1.001) + 1024 + 2 * name.length + 128;
-    if (writer.count && (writer.size + bound > config.limits.assetBytes || writer.count >= 60000)) {
+    if (!single && writer.count && (writer.size + bound > config.limits.assetBytes || writer.count >= 60000)) {
       archives.push(await writer.close()); await open();
     }
     const added = await writer.add(name, entry);
@@ -826,16 +828,17 @@ async function main() {
     omni: () => omniPackage(source, config, models),
     'localai-standard': () => localAiPackage(source, config, 'standard'),
     'localai-lite': () => localAiPackage(source, config, 'lite'),
-    mature: () => maturePackage(source, config),
+    'mature-lite': () => maturePackage(source, config, 'lite'),
+    'mature-good': () => maturePackage(source, config, 'good'),
   };
-  const titles = {scripts: 'Scripts', runtime: 'Runtime', omni: 'OmniPack', 'localai-standard': 'LocalAI-Standard', 'localai-lite': 'LocalAI-Lite', mature: 'Mature'};
+  const titles = {scripts: 'Scripts', runtime: 'Runtime', omni: 'OmniPack', 'localai-standard': 'LocalAI-Standard', 'localai-lite': 'LocalAI-Lite', 'mature-lite': 'Mature-Lite', 'mature-good': 'Mature-Good'};
   for (const id of PACKAGE_IDS) {
     if (!packages.has(id)) continue;
     log(`Staging the ${titles[id]} package.`);
     const pkg = await builders[id]();
-    await splitLargeFiles(pkg, config);
+    if (!OPTIONAL_PACKAGE_IDS.has(id)) await checkFileSizes(pkg, config);
     log(`Writing ${titles[id]} (${pkg.entries.size} files).`);
-    const result = await writeArchives(pkg, `${config.product}-${titles[id]}-${version}`, config, timestamp);
+    const result = await writeArchives(pkg, `${config.product}-${titles[id]}-${version}`, config, timestamp, {single: OPTIONAL_PACKAGE_IDS.has(id)});
     report.packages[id] = {archives: result.archives, fileCount: result.files.length,
       uncompressedBytes: result.files.reduce((sum, file) => sum + file.bytes, 0)};
     await writeFile(resolve(out, 'packages', `${config.product}-${titles[id]}-${version}.files.json`), JSON.stringify(result.files, null, 1) + '\n');

@@ -63,7 +63,7 @@ const singles = DESCRIPTION_CONTEXTS.flatMap(name => catalog.contexts[name]).fil
 // Descriptions that mod/mcm.lua builds from several strings, each joined by a blank line, at their longest (every optional paragraph
 // present, a few installed models, one custom model and one unusable one). {tokens} are filled with sample values.
 const sampleModels = ['Qwen3.5-2B (1.3 GB)', 'Qwen3.5-4B · uncensored (2.6 GB)', 'Gemma 4 E4B (5.0 GB)', 'Gemma 4 E4B · uncensored (5.1 GB)', 'My Model (custom, 4.0 GB, needs 5.2 GB)'].join('\n');
-const MATURE_PACK = 'The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s GitHub page).';
+const MATURE_PACK = 'The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).';
 // A catalog string found by its beginning (the long helps are not repeated here).
 const byStart = (start, contains = '') => {
   const hits = Object.keys(catalog.strings).filter(text => text.startsWith(start) && text.includes(contains));

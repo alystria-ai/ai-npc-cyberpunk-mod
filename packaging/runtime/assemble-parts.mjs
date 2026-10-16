@@ -1,4 +1,6 @@
-// Joins files that the release had to split to stay under the 2 GiB download limit.
+// Joins files that an earlier release had to split to stay under the 2 GiB GitHub download limit. Current releases split nothing (the
+// optional packs are one zip each on Hugging Face), so on a fresh install this finds no `.parts.json` and does nothing; it stays for
+// installs that still hold parts from before.
 // Shipped as app/launcher/assemble-parts.mjs. A split file `X` arrives as `X.part1`,
 // `X.part2`, ... plus `X.parts.json` ({file, size, sha256, parts: [{name, size, sha256}]}).
 // On the first start after extraction the parts are joined into a temporary file, the

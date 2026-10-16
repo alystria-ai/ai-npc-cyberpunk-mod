@@ -2132,7 +2132,7 @@ test('Mature content is a settings row with or without the Mature pack: the help
     assert(row('conversationProvider') ~= nil)
     assert(tostring(noPack.description):find('safety check', 1, true), 'the help says the minors check runs on every model')
     assert(tostring(noPack.description):find('not installed', 1, true), 'the help says the uncensored models are not installed')
-    assert(tostring(noPack.description):find('GitHub page', 1, true), 'and where to get them')
+    assert(tostring(noPack.description):find('Hugging Face page', 1, true), 'and where to get them')
     assert(tostring(noPack.description):find('Choosing a cloud provider turns it off.', 1, true), 'the help says a cloud provider turns it off')
     assert(not tostring(noPack.description):find('no effect yet', 1, true))
     -- Usable without the pack, beside the Local AI provider (index 4); beside a cloud provider it is saved as off.

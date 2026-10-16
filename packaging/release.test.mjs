@@ -286,8 +286,8 @@ test('Local AI downloads pin every file by revision, size and hash, and the lice
   assert.equal(spec.tiers.standard.name, 'Gemma 4 E4B');
   assert.equal(spec.tiers.lite.name, 'Qwen3.5-2B');
   assert.equal(spec.embed.dim, 384);
-  // Only the standard model is over the download limit, so only it is split; the lite pack is one download.
-  assert(spec.tiers.standard.size > config.limits.splitFileBytes && spec.tiers.lite.size < config.limits.splitFileBytes);
+  // The standard model is over 4 GiB and ships whole in a ZIP64 zip (no parts); the lite model is well under it.
+  assert(spec.tiers.standard.size > 0xFFFFFFFF && spec.tiers.lite.size < 0xF0000000);
   for (const name of ['Apache-2.0.txt', 'llama.cpp-MIT.txt']) assert(existsSync(resolve(project, 'packaging/licenses', name)), name);
   assert.match(await readFile(resolve(project, 'packaging/licenses/Apache-2.0.txt'), 'utf8'), /Apache License\s+Version 2\.0/);
   assert.match(await readFile(resolve(project, 'packaging/licenses/llama.cpp-MIT.txt'), 'utf8'), /MIT License/);
@@ -343,53 +343,157 @@ test('the build writes the manifest fragments the detector reads, and ships both
   assert.match(builder, /manifest\.\$\{tierKey\}\.json/);
   assert.match(builder, /'localai-standard'/); assert.match(builder, /'localai-lite'/);
   assert.match(builder, /LocalAI-Standard/); assert.match(builder, /LocalAI-Lite/);
-  assert(builder.includes('(?:omni|local-ai)'), 'big model files are split only inside the OmniVoice and Local AI folders');
   const workflow = await readFile(resolve(project, '.github/workflows/release.yml'), 'utf8');
   assert.match(workflow, /tier: \[standard, lite\]/);
   assert.match(workflow, /--packages "localai-\$\{\{ matrix\.tier \}\}"/);
-  assert.match(workflow, /SHA256SUMS-localai-/);
+  assert.match(workflow, /--pack "localai-\$\{\{ matrix\.tier \}\}"/, 'each Local AI pack is uploaded under its own name, with its own SHA256SUMS-<pack>.txt');
 });
 
-// ---------------------------------------------------------------- the Mature pack in the release workflow
-test('the release workflow builds the Mature pack only in an opt-in job: off by default, never on a tag push, never Nexus, from the bucket mirror', async () => {
-  const workflow = (await readFile(resolve(project, '.github/workflows/release.yml'), 'utf8')).replaceAll('\r\n', '\n');
+// ---------------------------------------------------------------- the optional packs: one zip each, hosted on Hugging Face
+const workflowText = async () => (await readFile(resolve(project, '.github/workflows/release.yml'), 'utf8')).replaceAll('\r\n', '\n');
+const jobOf = (workflow, name) => new RegExp(`\\n  ${name}:\\n([\\s\\S]*?)(?=\\n  [a-z][\\w-]*:\\n|$)`).exec(workflow)?.[1]?.replace(/^\s*#.*\n/gm, '');
+
+test('optional packs are one zip each with no parts: the builder never splits a file or a pack, and says which packs are optional', async () => {
+  const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
+  assert.match(builder, /const OPTIONAL_PACKAGE_IDS = new Set\(\['omni', 'localai-standard', 'localai-lite', 'mature-lite', 'mature-good'\]\)/);
+  assert.doesNotMatch(builder, /splitLargeFiles|\.part\$\{index\}|\.parts\.json|splitPartBytes|splitFileBytes/, 'no file is split into .partN files and no .parts.json is written');
+  assert.match(builder, /writeArchives\(pkg, [^\n]*\{single: OPTIONAL_PACKAGE_IDS\.has\(id\)\}\)/, 'an optional pack is written as a single zip');
+  assert.match(builder, /if \(!single && writer\.count && /, 'only a non-optional package may roll over to a next zip');
+  assert.match(builder, /if \(!OPTIONAL_PACKAGE_IDS\.has\(id\)\) await checkFileSizes\(pkg, config\)/, 'the Scripts and Runtime packages still refuse a file over the GitHub limit');
+  // The header and the notes name no partNofM zip for any optional pack.
+  const header = builder.slice(0, builder.indexOf('// Options:'));
+  assert.doesNotMatch(header, /partNofM/);
+  assert.equal(config.limits.splitFileBytes, undefined);
+  assert.equal(config.limits.splitPartBytes, undefined);
+  assert(config.limits.githubFileBytes < 2 * 1024 ** 3);
+  // The join code stays for old installs, and finds nothing to do on an unsplit model: the Local AI detector reads the model file itself.
+  const directory = await temporary();
+  try {
+    await writeFile(join(directory, 'model.gguf'), Buffer.alloc(100, 1));
+    assert.deepEqual(await assembleParts(directory), [], 'an unsplit model needs no joining');
+    assert.deepEqual(await readdir(directory), ['model.gguf']);
+  } finally { await rm(directory, {recursive: true, force: true}); }
+});
+
+test('the Local AI detector uses an unsplit model file directly, with no .parts.json or .verified beside it', async () => {
+  const {detectLocalAiPack} = await import('../bridge/local-ai-pack.mjs');
+  const root = join('C:', 'game', 'app', 'local-ai');
+  const files = new Map();
+  const put = (rel, text = '') => files.set(resolve(root, rel), text);
+  const embed = {file: 'models/e.gguf', dim: 384, id: 'e'};
+  put('llama/llama-server.exe'); put(embed.file); put('models/gemma-4-E4B_q4_0-it.gguf');
+  put('manifest.standard.json', JSON.stringify({version: 1, server: 'llama/llama-server.exe', standard: {file: 'models/gemma-4-E4B_q4_0-it.gguf', name: 'Gemma 4 E4B'}, embed}));
+  const pack = detectLocalAiPack({project: 'x', environment: {CYBERPUNK_CONVAI_LOCAL_AI: root}, exists: path => files.has(path), readText: path => files.get(path)});
+  assert(pack.installed && pack.tiers.standard?.file === resolve(root, 'models/gemma-4-E4B_q4_0-it.gguf'));
+  assert(![...files.keys()].some(path => /\.(?:parts\.json|verified|part\d+)$/.test(path)));
+});
+
+test('ZIP64: an entry over the threshold, an archive with many entries and a big offset read back correctly and extract with tar', async () => {
+  const directory = await temporary();
+  try {
+    const source = join(directory, 'big.gguf');
+    const bytes = Buffer.alloc(50_000); for (let i = 0; i < bytes.length; i++) bytes[i] = (i * 7) % 253;
+    await writeFile(source, bytes);
+    const zip = await ZipWriter.create(join(directory, 'z.zip'), {zip64Entry: 10_000});
+    await zip.add('a/small.txt', {buffer: Buffer.from('tiny')});
+    await zip.add('a/big.gguf', {source});
+    await zip.add('a/text.txt', {buffer: Buffer.from('hello '.repeat(5000))});
+    await zip.add('a/range.bin', {source, start: 100, length: 20_000});
+    await zip.close();
+    const entries = await listZip(join(directory, 'z.zip'));
+    assert.deepEqual(entries.map(entry => [entry.name, entry.method, entry.uncompressed]),
+      [['a/small.txt', 8, 4], ['a/big.gguf', 0, 50_000], ['a/text.txt', 8, 30_000], ['a/range.bin', 8, 20_000]]);
+    await mkdir(join(directory, 'x'));
+    const tar = resolve(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe');
+    const run = spawnSync(tar, ['-xf', join(directory, 'z.zip'), '-C', join(directory, 'x')]);
+    assert.equal(run.status, 0, String(run.stderr));
+    assert(bytes.equals(await readFile(join(directory, 'x/a/big.gguf'))));
+    assert.equal((await readFile(join(directory, 'x/a/text.txt'), 'utf8')).length, 30_000);
+    assert(bytes.subarray(100, 20_100).equals(await readFile(join(directory, 'x/a/range.bin'))));
+    // The end records go ZIP64 only past 65,535 entries; a normal archive stays a plain ZIP byte for byte (the first test checks that).
+    const many = await ZipWriter.create(join(directory, 'many.zip'));
+    for (let i = 0; i < 65_600; i++) await many.add(`m/${i}.txt`, {buffer: Buffer.from('x'), store: true});
+    await many.close();
+    const listed = await listZip(join(directory, 'many.zip'));
+    assert.equal(listed.length, 65_600);
+    assert.equal(listed[65_599].name, 'm/65599.txt');
+    await mkdir(join(directory, 'y'));
+    assert.equal(spawnSync(tar, ['-xf', join(directory, 'many.zip'), '-C', join(directory, 'y')]).status, 0);
+    assert.equal((await readdir(join(directory, 'y/m'))).length, 65_600);
+  } finally { await rm(directory, {recursive: true, force: true}); }
+});
+
+test('the optional packs are uploaded to Hugging Face, one zip each with a SHA256SUMS-<pack>.txt, and never with gh release upload', async () => {
+  const workflow = await workflowText();
+  const jobs = {omni: jobOf(workflow, 'omni'), mature: jobOf(workflow, 'mature'), localai: jobOf(workflow, 'localai')};
+  for (const [name, job] of Object.entries(jobs)) {
+    assert(job, `the workflow has a ${name} job`);
+    assert.match(job, /python packaging\/upload-packs\.py --version "\$\{\{ needs\.runtime\.outputs\.version \}\}" --pack /, `${name} uploads its pack to Hugging Face`);
+    assert.match(job, /HF_TOKEN: \$\{\{ secrets\.HF_TOKEN \}\}/);
+    assert.doesNotMatch(job, /gh release upload|GH_TOKEN|\bgh \w/, `${name} never uploads to the GitHub release`);
+    assert.match(job, /upload-packs\.py --check/, `${name} checks the write access before it builds`);
+    assert.match(job, /huggingface_hub==\$env:HF_HUB_VERSION/, `${name} installs huggingface_hub`);
+  }
+  assert.match(jobs.omni, /--pack omni --packages "\$env:OUT\\packages"/);
+  assert.match(workflow, /HF_PACKS_REPO: akshitireddy\/cyberpunk-convai-packs/);
+  // The Runtime job still creates the GitHub release with Scripts and Runtime, and nothing else is attached to it.
+  const runtime = jobOf(workflow, 'runtime');
+  assert.match(runtime, /gh release upload \$tag --repo \$env:GITHUB_REPOSITORY --clobber @files /, 'the file list is splatted as an array');
+  assert.match(runtime, /\$files = @\(Get-ChildItem /, 'the single-zip splat bug stays fixed: the file list is always an array');
+  assert.doesNotMatch(runtime, /upload-packs/);
+  assert.equal(workflow.split('gh release upload').length - 1, 1, 'only the Runtime job uploads to the GitHub release');
+  // The uploader: one zip, the version folder, the sums file next to it, a clear message when the token cannot write.
+  const uploader = await readFile(resolve(project, 'packaging/upload-packs.py'), 'utf8');
+  assert.match(uploader, /REPOSITORY = "akshitireddy\/cyberpunk-convai-packs"/);
+  assert.match(uploader, /f"\{version\}\/\{zips\[0\]\.name\}"/);
+  assert.match(uploader, /f"\{version\}\/\{sums_name\(pack\)\}"/);
+  assert.match(uploader, /f"SHA256SUMS-\{pack\}\.txt"/);
+  assert.match(uploader, /The HF_TOKEN secret cannot write to the Hugging Face repository \{repository\}\./);
+  assert.match(uploader, /write access to \{repository\}/);
+  assert.match(uploader, /Expected exactly one zip/, 'a multi-zip pack is refused');
+});
+
+test('the release workflow builds the Mature packs only in an opt-in job: off by default, never on a tag push, one matrix entry per pack, never Nexus, from the bucket mirror', async () => {
+  const workflow = await workflowText();
   const input = /\n      mature:\n([\s\S]*?)\n      \w+:\n/.exec(workflow)?.[1] ?? '';
   assert.match(input, /type: boolean/, 'a boolean workflow_dispatch input named mature');
   assert.match(input, /default: false/, 'the input is off by default');
-  assert.match(input, /Mature pack \(GitHub release only\)/);
-  const job = /\n  mature:\n([\s\S]*?)(?=\n  [a-z][\w-]*:\n|$)/.exec(workflow)?.[1];
+  assert.match(input, /Mature packs, lite and good \(uploaded to Hugging Face\)/);
+  const job = jobOf(workflow, 'mature');
   assert(job, 'the workflow has a mature job');
   assert.match(job, /needs: runtime/);
   assert.match(job, /\n    if: inputs\.mature\n/, 'the job runs only when the input is ticked');
   assert.doesNotMatch(job, /ref_type|startsWith\(github\.ref|refs\/tags/, 'its condition never mentions a tag push');
-  assert.match(job, /--packages mature `\s*\n\s*--models hf/, 'it builds the pack from the bucket mirror');
+  assert.match(job, /\n      matrix:\n        tier: \[lite, good\]\n/, 'a matrix of the two packs');
+  assert.match(job, /fail-fast: false/);
+  assert.match(job, /--packages "mature-\$\{\{ matrix\.tier \}\}" `\s*\n\s*--models hf/, 'it builds the pack of its tier from the bucket mirror');
+  assert.match(job, /--pack "mature-\$\{\{ matrix\.tier \}\}"/, 'and uploads that pack under its own name');
   assert.match(job, /HF_TOKEN: \$\{\{ secrets\.HF_TOKEN \}\}/);
-  assert.match(job, /gh release upload \$tag --repo \$env:GITHUB_REPOSITORY --clobber/);
-  assert.doesNotMatch(job, /nexus/i, 'GitHub release only');
+  assert.doesNotMatch(job, /gh release upload/);
+  assert.doesNotMatch(job, /nexus/i, 'Hugging Face only');
   // The tag filters sit in the push trigger, which has no input: the mature input is false there, so the job is skipped.
   const trigger = workflow.slice(workflow.indexOf('\non:'), workflow.indexOf('\npermissions:'));
   assert(trigger.includes('tags:') && !/mature/.test(trigger.slice(trigger.indexOf('push:'))), 'the push trigger knows nothing of it');
   // The other jobs never build it.
-  for (const [name, body] of [['runtime', workflow.slice(workflow.indexOf('\n  runtime:'), workflow.indexOf('\n  omni:'))],
-    ['omni', workflow.slice(workflow.indexOf('\n  omni:'), workflow.indexOf('\n  # The optional Mature pack'))],
-    ['localai', workflow.slice(workflow.indexOf('\n  localai:'))]]) {
-    assert.doesNotMatch(body, /--packages[^\n]*mature/, `${name} does not build the Mature pack`);
-  }
-  // The builder reads the models from the mirror with --models hf and falls back to the pinned public URL.
+  for (const name of ['runtime', 'omni', 'localai']) assert.doesNotMatch(jobOf(workflow, name), /--packages[^\n]*mature/, `${name} does not build the Mature packs`);
+  // The builder reads the model from the mirror with --models hf (only the tier being built) and falls back to the pinned public URL.
   const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
-  assert.match(builder, /modelSource === 'hf' \? await matureMirror\(source\)/);
+  assert.match(builder, /modelSource === 'hf' \? await matureMirror\(source, tierKey\)/);
+  assert.match(builder, /'--mature', '--tier', tierKey\]/, 'only the tier being built is fetched');
   assert.match(builder, /mirrored\.get\(model\.file\) \?\? await localAiFile\(/, 'a model the mirror lacks comes from the pinned public URL');
-  const config = JSON.parse(await readFile(resolve(project, 'packaging/release.config.json'), 'utf8'));
+  const fetcher = await readFile(resolve(project, 'packaging/fetch-models.py'), 'utf8');
+  assert.match(fetcher, /--tier/);
+  assert.match(fetcher, /for key in tiers:/);
   assert.equal(config.maturePack.mirror.bucket, 'mature/', 'the mirror sits outside final/');
   assert.equal(config.maturePack.mirror.manifest, 'mature/MANIFEST.json');
   assert(!config.maturePack.mirror.bucket.startsWith('final/'));
 });
 
 // ---------------------------------------------------------------- the Mature pack (docs/LOCAL_AI.md, "Mature content")
-test('the Mature pack is its own package: built only on request, never in the default set, and nothing of it in the Runtime package or the main page text', async () => {
+test('the Mature packs are their own packages: built only on request, never in the default set, and nothing of it in the Runtime package or the main page text', async () => {
   const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
-  assert.match(builder, /const PACKAGE_IDS = \[[^\]]*'localai-lite', 'mature'\]/, 'it is a package id beside the Local AI packs');
-  assert.match(builder, /const DEFAULT_PACKAGE_IDS = PACKAGE_IDS\.filter\(id => id !== 'mature'\)/, 'the default set leaves it out');
+  assert.match(builder, /const PACKAGE_IDS = \[[^\]]*'localai-lite', 'mature-lite', 'mature-good'\]/, 'the two Mature packs are package ids beside the Local AI packs');
+  assert.match(builder, /const DEFAULT_PACKAGE_IDS = PACKAGE_IDS\.filter\(id => !id\.startsWith\('mature'\)\)/, 'the default set leaves them out');
   assert.match(builder, /value\('--packages', DEFAULT_PACKAGE_IDS\.join\(','\)\)/, 'a plain build uses the default set');
   // The release workflow produces the Mature pack only in its own opt-in job (see the workflow test below).
   // Nothing in the release plan or the runtime layout (the Runtime package) is the pack's marker, README, release notes or models.
@@ -406,13 +510,15 @@ test('the Mature pack is its own package: built only on request, never in the de
   assert.doesNotMatch(await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8'), /mature|uncensored|adult|18\+/i);
 });
 
-test('the Mature pack definition: marker, README, GitHub release notes and Apache-2.0 licences, exactly two pinned models (lite and good), and the build refusing anything else', async () => {
+test('the Mature packs definition: one marker each, README, Hugging Face page text and Apache-2.0 licences, exactly two pinned models (lite and good, one per pack), and the build refusing anything else', async () => {
   const spec = config.maturePack;
-  assert.equal(spec.marker, 'manifest.mature.json');
-  const {MATURE_MARKER, MATURE_TIERS} = await import('../bridge/mature-pack.mjs');
-  assert.equal(spec.marker, MATURE_MARKER, 'the build writes the file name the bridge looks for');
+  const {MATURE_MARKERS, MATURE_TIERS} = await import('../bridge/mature-pack.mjs');
+  assert.deepEqual(spec.markers, {lite: 'manifest.mature-lite.json', good: 'manifest.mature-good.json'});
+  assert.deepEqual(spec.markers, MATURE_MARKERS, 'the build writes the file names the bridge looks for');
+  assert.equal(spec.marker, undefined, 'no single marker: each pack carries its own');
+  assert.equal(new Set(Object.values(spec.markers)).size, 2, 'the two packs never overwrite each other');
   assert.equal(spec.status, 'pinned');
-  assert.notEqual(spec.marker, 'manifest.standard.json'); assert.notEqual(spec.marker, 'manifest.lite.json');
+  for (const marker of Object.values(spec.markers)) { assert.notEqual(marker, 'manifest.standard.json'); assert.notEqual(marker, 'manifest.lite.json'); }
   for (const rel of [spec.readme, spec.releaseNotes, ...spec.licenceFiles]) assert(existsSync(resolve(project, rel)), rel);
   assert.deepEqual(spec.licenceFiles, ['packaging/licenses/Apache-2.0.txt']);
   // Exactly two models, like the Local AI packs' lite and standard, each pinned by repository, revision, size and hash.
@@ -437,21 +543,28 @@ test('the Mature pack definition: marker, README, GitHub release notes and Apach
   // The builder refuses an unfinished or non-Apache pair, and writes the marker in the shape the bridge reads.
   const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
   assert.match(builder, /model\.placeholder \|\| \/PLACEHOLDER\//);
-  assert.match(builder, /the Mature pack ships Apache-2\.0 base models only/);
-  assert.match(builder, /exactly two models, lite and good/);
-  assert.match(builder, /\{version: 1, pack: 'mature', lite: entry\(tiers\[0\]\), good: entry\(tiers\[1\]\)\}/);
-  // A marker of that shape, for the pinned pair, is what the detector accepts, and it is not the Local AI pack.
+  assert.match(builder, /the Mature packs ship Apache-2\.0 base models only/);
+  assert.match(builder, /lite and good, one model each/);
+  assert.match(builder, /pkg\.json\(`\$\{root\}\/\$\{spec\.markers\[tierKey\]\}`, \{version: 1, pack: 'mature', \[tierKey\]: \{file: /, 'each pack writes its own marker with its own model only');
+  assert.match(builder, /THIRD-PARTY-NOTICES-\$\{tierKey\}\.txt/, 'the notices of the two packs have different names, so extracting both keeps both');
+  assert.match(builder, /mature-pack-\$\{tierKey\}\.json/);
+  // A marker of that shape, for each pinned model, is what the detector accepts alone, and it is not the Local AI pack.
   const {detectMaturePack} = await import('../bridge/mature-pack.mjs');
   const {detectLocalAiPack} = await import('../bridge/local-ai-pack.mjs');
   const root = join('C:', 'game', 'app', 'local-ai');
   const entry = model => ({file: `models/${model.file}`, name: model.name, family: model.family});
-  const text = JSON.stringify({version: 1, pack: 'mature', lite: entry(spec.tiers.lite), good: entry(spec.tiers.good)});
-  const files = new Map([[resolve(root, spec.marker), text]]);
-  const found = detectMaturePack({project: 'x', environment: {CYBERPUNK_CONVAI_LOCAL_AI: root}, exists: path => files.has(path), readText: path => files.get(path)});
-  assert.equal(found.installed, true);
-  assert.deepEqual(found.models.map(model => model.tier), ['lite', 'good']);
-  assert.equal(detectLocalAiPack({project: 'x', environment: {CYBERPUNK_CONVAI_LOCAL_AI: root}, exists: path => files.has(path), readText: path => files.get(path)}).installed, false,
-    'the Mature marker alone is not a Local AI pack');
+  const markerOf = tier => JSON.stringify({version: 1, pack: 'mature', [tier]: entry(spec.tiers[tier])});
+  const detect = (files, detector = detectMaturePack) => detector({project: 'x', environment: {CYBERPUNK_CONVAI_LOCAL_AI: root}, exists: path => files.has(path), readText: path => files.get(path)});
+  const liteOnly = new Map([[resolve(root, spec.markers.lite), markerOf('lite')]]);
+  const goodOnly = new Map([[resolve(root, spec.markers.good), markerOf('good')]]);
+  const both = new Map([...liteOnly, ...goodOnly]);
+  assert.deepEqual(detect(liteOnly).models.map(model => model.tier), ['lite'], 'Mature lite alone is detected');
+  assert.deepEqual(detect(goodOnly).models.map(model => model.tier), ['good'], 'Mature good alone is detected');
+  assert.deepEqual(detect(both).models.map(model => model.tier), ['lite', 'good'], 'both together');
+  for (const files of [liteOnly, goodOnly, both]) {
+    assert.equal(detect(files).installed, true);
+    assert.equal(detect(files, detectLocalAiPack).installed, false, 'the Mature markers alone are not a Local AI pack');
+  }
 });
 
 test('the Mature pack README and release notes are for adults, need the main mod and Local AI, give install steps, and say nothing they must not', async () => {
@@ -463,16 +576,56 @@ test('the Mature pack README and release notes are for adults, need the main mod
     assert.match(text, /hard limits/i, rel);
     assert.match(text, /Apache-2\.0/, rel);
     assert.doesNotMatch(text, /\brecommended?\b/i, rel);
+    assert.doesNotMatch(text, /every part|each part|several (?:parts|zips)|part\d+of|release page/i, `${rel}: one zip, from Hugging Face`);
+    assert.match(text, /huggingface\.co\/akshitireddy\/cyberpunk-convai-packs|Hugging Face/, rel);
     assert.doesNotMatch(text, /\bamm\b|reference-amm/i, rel);
     assert.doesNotMatch(text, /\b(?:api[- ]?key|token|secret|credential)s?\b/i, `${rel}: no keys`);
     assert.doesNotMatch(text, /convai (?:free|shared|embedded)/i, rel);
   }
   const notes = await readFile(resolve(project, 'packaging/MATURE_PACK_RELEASE_NOTES.md'), 'utf8');
-  assert.match(notes, /only as an optional file on this project's GitHub release/);
-  assert.match(notes, /Never on Nexus Mods/);
+  assert.match(notes, /only as optional files on this project's Hugging Face page/);
+  assert.match(notes, /Never on Nexus Mods and not on the GitHub release/);
   assert.doesNotMatch(notes, /adult-flagged|generative-AI tag|classify it as|mark as adult/i, 'no Nexus page instructions');
   assert.match(notes, /The main mod has a \*\*Mature content\*\* setting/, 'the setting belongs to the main mod');
   assert.doesNotMatch(await readFile(resolve(project, 'packaging/MATURE_PACK_README.md'), 'utf8'), /nexus/i);
+});
+
+test('the README and the release notes send players to Hugging Face for every optional pack: one zip each, no parts, Install near the top', async () => {
+  const hf = 'https://huggingface.co/akshitireddy/cyberpunk-convai-packs';
+  const readme = (await readFile(resolve(project, 'README.md'), 'utf8')).replaceAll('\r\n', '\n');
+  const player = (await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8')).replaceAll('\r\n', '\n');
+  const files = ['OmniPack', 'LocalAI-Standard', 'LocalAI-Lite', 'Mature-Lite', 'Mature-Good'].map(name => `CyberpunkConvai-${name}-0.2.zip`);
+  for (const file of files) assert(readme.includes(hf + '/resolve/main/0.2/' + file), 'the README links ' + file);
+  for (const file of files.filter(name => !/Mature/.test(name))) assert(player.includes(hf + '/resolve/main/0.2/' + file), 'the release notes link ' + file);
+  assert(readme.includes(hf + ')'), 'and the repository page');
+  // The Install section sits before Requirements and the long feature list, right after the intro.
+  const heading = text => readme.indexOf('\n## ' + text + '\n');
+  assert(heading('Install') > 0 && heading('Install') < heading('What you can do') && heading('What you can do') < heading('Requirements'), 'Install comes first');
+  assert(heading('Install') < 6000, 'near the top of the page');
+  const install = readme.slice(heading('Install'), heading('What you can do'));
+  assert.match(install, /Scripts come from Nexus Mods and the Runtime from the release page/);
+  assert.match(install, /Each pack is one zip file/);
+  // No parts, anywhere in what players read.
+  for (const [name, text] of [['README', readme], ['PLAYER_README', player]]) {
+    assert.doesNotMatch(text, /several parts|every part|extract (?:each|all) (?:of the )?parts|partNofM|part1of|in 1 GB parts|joins the downloaded parts|If it comes in several/i, name);
+  }
+  assert.doesNotMatch(readme, /Mature pack\*\* on the GitHub|GitHub Releases\b[^\n]*(?:OmniVoice|Local AI|Mature)/);
+  assert.doesNotMatch(player, /GitHub[^\n]*(?:OmniVoice|Local AI standard|Local AI lite)/);
+  // The wording rules for players: nothing called recommended, the paid Convai tier in one place, no Inworld, no word about a shared key.
+  assert.doesNotMatch(readme.slice(0, readme.indexOf('# For developers')), /\brecommended\b|inworld|embedded key|shared key|packaged key/i);
+  assert.equal(readme.slice(0, readme.indexOf('# For developers')).split('Convai paid tier').length - 1, 1, 'the paid Convai tier appears in one spot');
+  assert.doesNotMatch(player, /\b(?:api[- ]?key|key|token|secret|credential)s?\b|\brecommended\b|inworld/i);
+  // The Mature help text in the settings page names the Hugging Face page, in every language.
+  const mcm = await readFile(resolve(project, 'mod/mcm.lua'), 'utf8');
+  assert.match(mcm, /Pack: not installed \(optional, on this mod’s Hugging Face page\)\./);
+  assert.doesNotMatch(mcm, /GitHub page/);
+  const key = 'Pack: not installed (optional, on this mod’s Hugging Face page).';
+  for (const name of (await readdir(resolve(project, 'mod/locales'))).filter(file => file.endsWith('.lua'))) {
+    const lua = await readFile(resolve(project, 'mod/locales', name), 'utf8');
+    assert(lua.includes(key), name + ' keys the new sentence');
+    assert(/Hugging Face/.test(lua.split('\n').find(line => line.includes(key)) ?? ''), name + ' translates it with the Hugging Face page');
+    assert.doesNotMatch(lua, /GitHub[^\n]*Mature|Mature[^\n]*GitHub/, name);
+  }
 });
 
 test('the release guard refuses a package that would install the development launcher', async () => {

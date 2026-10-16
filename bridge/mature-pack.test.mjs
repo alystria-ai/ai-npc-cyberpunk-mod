@@ -1,10 +1,11 @@
-// The Mature pack marker: the pack is installed when a valid manifest.mature.json sits in the Local AI folder, and only then.
+// The Mature pack markers: a Mature pack (lite, good or both) is installed when a valid marker (manifest.mature-lite.json, manifest.mature-good.json,
+// or the earlier combined manifest.mature.json) sits in the Local AI folder, and only then.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp, mkdir, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
-import {MATURE_MARKER, MATURE_TIERS, detectMaturePack} from './mature-pack.mjs';
+import {MATURE_MARKER, MATURE_MARKERS, MATURE_TIERS, detectMaturePack} from './mature-pack.mjs';
 import {LOCAL_AI_ENV} from './local-ai-pack.mjs';
 
 const marker = (extra = {}) => ({version: 1, pack: 'mature', lite: {file: 'models/a.gguf', name: 'A', family: 'qwen'}, good: {file: 'models/b.gguf', name: 'B', family: 'gemma'}, ...extra});
@@ -106,4 +107,43 @@ test('only lite and good are read: at most two models, lite first, and any other
   // Either tier alone is fine.
   const onlyGood = detectMaturePack({project: 'C:/game', environment: {}, ...memory({[markerPath]: JSON.stringify(marker({lite: undefined}))})});
   assert.deepEqual(onlyGood.models.map(model => model.tier), ['good']);
+});
+
+const liteMarker = {version: 1, pack: 'mature', lite: {file: 'models/a.gguf', name: 'A', family: 'qwen'}};
+const goodMarker = {version: 1, pack: 'mature', good: {file: 'models/b.gguf', name: 'B', family: 'gemma'}};
+const litePath = resolve(root, MATURE_MARKERS.lite), goodPath = resolve(root, MATURE_MARKERS.good);
+
+test('each Mature pack has its own marker, so the two never overwrite each other', () => {
+  assert.deepEqual(MATURE_MARKERS, {lite: 'manifest.mature-lite.json', good: 'manifest.mature-good.json'});
+  assert.equal(new Set([MATURE_MARKER, ...Object.values(MATURE_MARKERS), 'manifest.standard.json', 'manifest.lite.json']).size, 5);
+});
+
+test('Mature lite alone, Mature good alone, and both are each detected', () => {
+  const only = markers => detectMaturePack({project: 'C:/game', environment: {}, ...memory(markers)});
+  const lite = only({[litePath]: JSON.stringify(liteMarker), [resolve(root, 'models/a.gguf')]: ''});
+  assert.equal(lite.installed, true);
+  assert.deepEqual(lite.models.map(model => [model.tier, model.name, model.present]), [['lite', 'A', true]]);
+  const good = only({[goodPath]: JSON.stringify(goodMarker)});
+  assert.equal(good.installed, true);
+  assert.deepEqual(good.models.map(model => [model.tier, model.name, model.present]), [['good', 'B', false]]);
+  const both = only({[litePath]: JSON.stringify(liteMarker), [goodPath]: JSON.stringify(goodMarker)});
+  assert.deepEqual(both.models.map(model => model.tier), ['lite', 'good'], 'lite first whatever the order of the markers');
+  // A marker is not a pack when it is foreign: a broken lite marker does not hide a good one.
+  const mixed = only({[litePath]: 'not json', [goodPath]: JSON.stringify(goodMarker)});
+  assert.deepEqual(mixed.models.map(model => model.tier), ['good']);
+  assert.equal(only({[litePath]: 'not json'}).installed, false);
+});
+
+test('the earlier combined marker still counts, and a per-pack marker wins for its own model', () => {
+  const combined = {[markerPath]: JSON.stringify(marker())};
+  assert.deepEqual(detectMaturePack({project: 'C:/game', environment: {}, ...memory(combined)}).models.map(model => model.name), ['A', 'B']);
+  const override = {...combined, [litePath]: JSON.stringify({...liteMarker, lite: {file: 'models/new.gguf', name: 'New', family: 'qwen'}})};
+  assert.deepEqual(detectMaturePack({project: 'C:/game', environment: {}, ...memory(override)}).models.map(model => model.name), ['New', 'B']);
+});
+
+test('a development folder with only a per-pack marker is found too', () => {
+  const dev = resolve('E:/dev/local-llm');
+  const found = detectMaturePack({project: 'C:/game', environment: {CYBERPUNK_CONVAI_LOCAL_AI_DEV: dev}, ...memory({[resolve(dev, MATURE_MARKERS.good)]: JSON.stringify(goodMarker)})});
+  assert.equal(found.root, dev);
+  assert.deepEqual(found.models.map(model => model.tier), ['good']);
 });

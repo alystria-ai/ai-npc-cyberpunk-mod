@@ -753,7 +753,7 @@ return {
     ["Clear memories about you for every character you have talked to.\n\nYour player identity stays. A confirmation comes first."] = "清除所有與你交談過的角色關於你的記憶。\n\n你的玩家身分保留。會先出現確認。",
     ["Saves a report file you can send to the developer.\n\nAPI keys, tokens, IDs, microphone audio and conversation text are left out. Without the conversation service, a shorter report is made from the files the game can read."] = "儲存一個可傳送給開發者的報告檔案。\n\nAPI 金鑰、權杖、ID、麥克風音訊和對話文字不會包含在內。對話服務未執行時，則根據遊戲可讀取的檔案產生較短的報告。",
     ["The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: installed."] = "Mature pack 的無審查模型可獲得完整效果；標準模型多會拒絕性內容。擴充包：已安裝。",
-    ["The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s GitHub page)."] = "Mature pack 的無審查模型可獲得完整效果；標準模型多會拒絕性內容。擴充包：未安裝（可選，見本模組 GitHub 頁面）。",
+    ["The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page)."] = "Mature pack 的無審查模型可獲得完整效果；標準模型多會拒絕性內容。擴充包：未安裝（可選，見本模組 Hugging Face 頁面）。",
     ["Until you choose one, Local AI loads the largest model that fits your free graphics memory.\n\nOne model at a time; a change applies when it next loads. A model that is missing, too large or failing is replaced by the largest that fits, with one notice."] = "未選擇時，本機 AI 會載入能放進可用顯示記憶體的最大模型。\n\n同一時間只執行一個模型；變更在下次載入時生效。缺失、過大或失敗的模型，會換成能放下的最大模型，並提示一次。",
     ["Body gestures"] = "肢體動作",
     ["Convai did not accept your API key. Check it in Settings > Conversation provider."] = "Convai 不接受你的 API 金鑰。請在 設定 > 對話提供者 中檢查。",

@@ -60,10 +60,11 @@ try {
   process.exit(1);
 }
 
-// The optional Local AI packs (docs/LOCAL_AI.md): the standard chat model arrives in parts, joined and verified once after
-// extraction. This runs beside the service rather than before it, so a first start does not wait for 5 GB; the bridge looks
-// for the pack again whenever Local is chosen, so it is found as soon as the join finishes. A problem here only means the
-// Local AI row reads "Not installed"; it never stops the service.
+// The optional Local AI packs (docs/LOCAL_AI.md) now ship every model whole, so a current install has nothing to join and the detector
+// uses the model file directly. This only matters for files left by an earlier release, which split the standard chat model into
+// parts: those are joined and verified once after extraction. It runs beside the service rather than before it, so a first start
+// does not wait for 5 GB; the bridge looks for the pack again whenever Local is chosen, so it is found as soon as the join finishes.
+// A problem here only means the Local AI row reads "Not installed"; it never stops the service.
 const localAiJoined = assembleParts(layout.localAi, {log}).catch(error => { log(`Local AI pack: ${error?.message || error}`); return []; });
 
 const env = serviceEnvironment(layout, prepared);

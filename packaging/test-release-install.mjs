@@ -5,7 +5,7 @@
 //
 // 1. Makes a stand-in game folder under %TEMP% whose path has spaces and non-ASCII characters
 //    (bin/x64/Cyberpunk2077.exe is the launcher test host, plus empty CET and RED4ext markers).
-// 2. Extracts the Scripts and Runtime zips (and every OmniVoice part with --omni) with
+// 2. Extracts the Scripts and Runtime zips (and the OmniVoice pack, one zip, with --omni) with
 //    PowerShell's Expand-Archive, as a player would, and checks every file against the build's
 //    file list (paths, sizes, SHA-256).
 // 3. Runs the remaining checks with a PATH that holds only Windows system folders, so no
@@ -19,8 +19,8 @@
 // 4. Plugin folders: only the launcher and the native plugin install into red4ext/plugins (never the development
 //    launcher); the native DLL is inspected without running it (convai_plugin_host) and runtime/native-off.txt lists the
 //    systems that start off.
-// 5. With --local-ai: both Local AI packs are extracted too, the split model is joined and verified by the packaged
-//    service, the packaged bridge detects the pack, and the packaged llama-server loads the chat models and the embedding
+// 5. With --local-ai: both Local AI packs are extracted too (one zip each, the chat models whole: nothing is joined), the
+//    packaged bridge detects the pack, and the packaged llama-server loads the chat models and the embedding
 //    model on the processor (no sound, no graphics card, no game).
 import {spawn, spawnSync} from 'node:child_process';
 import {copyFile, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile} from 'node:fs/promises';
@@ -185,13 +185,13 @@ async function loadModel(exe, model, {embedding = false, timeoutMs = 900_000} = 
 async function localAiChecks({work, game, app}) {
   const root = join(app, 'local-ai');
   const spec = JSON.parse(await readFile(join(project, 'packaging/release.config.json'), 'utf8')).localAi;
-  // The split standard model is joined and verified by the packaged service on its first start; everything must match its pin.
+  // The packs ship every model whole (no parts, nothing to join at the first start); everything must match its pin.
   for (const [label, item] of [['standard chat model', spec.tiers.standard], ['lite chat model', spec.tiers.lite], ['embedding model', spec.embed]]) {
     const path = join(root, 'models', item.file);
     const whole = existsSync(path) && (await stat(path)).size === item.size && await sha256File(path) === item.sha256;
     check(`Local AI ${label} is whole and matches its pinned hash`, whole, item.name);
   }
-  check('Local AI joined parts are gone', !(await readdir(join(root, 'models'))).some(name => /\.part\d+$/.test(name)));
+  check('Local AI models are whole files, no parts', !(await readdir(join(root, 'models'))).some(name => /\.part\d+$/.test(name)));
   // The packaged bridge finds the pack from the environment the packaged service gives it, ignoring a developer's folder.
   const script = join(work, 'local-ai-detect.mjs');
   await writeFile(script, `
@@ -242,12 +242,13 @@ async function main() {
     const names = await readdir(packagesDir);
     // Exact names only: version 0.2 must not pick up files of 0.2.1 or 0.20.
     const escaped = text => text.replace(/[.+]/g, '\\$&');
-    const pick = prefix => names.filter(name => name === `CyberpunkConvai-${prefix}-${version}.zip`
-      || new RegExp(`^CyberpunkConvai-${prefix}-${escaped(version)}-part\\d+of\\d+\\.zip$`).test(name)).sort();
+    // Only the Runtime may still come in several zips; the optional packs (OmniVoice, Local AI) are one zip each.
+    const pick = (prefix, {parts = false} = {}) => names.filter(name => name === `CyberpunkConvai-${prefix}-${version}.zip`
+      || (parts && new RegExp(`^CyberpunkConvai-${prefix}-${escaped(version)}-part\\d+of\\d+\\.zip$`).test(name))).sort();
     const localIds = localAi ? ['LocalAI-Standard', 'LocalAI-Lite'] : [];
-    const wanted = [...pick('Scripts'), ...pick('Runtime'), ...(omni ? pick('OmniPack') : []), ...localIds.flatMap(pick)];
-    check('packages present', pick('Scripts').length === 1 && pick('Runtime').length >= 1 && (!omni || pick('OmniPack').length >= 1)
-      && localIds.every(id => pick(id).length >= 1), wanted.join(', '));
+    const wanted = [...pick('Scripts'), ...pick('Runtime', {parts: true}), ...(omni ? pick('OmniPack') : []), ...localIds.flatMap(pick)];
+    check('packages present', pick('Scripts').length === 1 && pick('Runtime', {parts: true}).length >= 1 && (!omni || pick('OmniPack').length === 1)
+      && localIds.every(id => pick(id).length === 1), wanted.join(', '));
     let t = Date.now();
     for (const zip of wanted) await expand(join(packagesDir, zip), game);
     check('extracted with Expand-Archive', true, `${wanted.length} archives in ${((Date.now() - t) / 1000).toFixed(0)} s`);

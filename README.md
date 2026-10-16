@@ -32,9 +32,37 @@ Cyberpunk Convai gives 78 of the game's named characters, from Panam and Johnny 
 
 The voices are free too. The default, **Pocket TTS**, gives every character a voice that sounds like them in the game, running right on your processor, so a fresh install sounds like Night City from the first line. With a Mistral key, **Voxtral** does the same in the cloud.
 
-**On this page:** [What you can do](#what-you-can-do) · [Requirements](#requirements) · [Install](#install) · [First run](#first-run) · [Controls](#controls) · [Conversation providers](#pick-a-brain-conversation-providers) · [Voices](#pick-a-voice) · [Latency and FPS](#smooth-frames-fast-replies) · [Settings](#settings) · [Troubleshooting](#troubleshooting) · [Add-ons](#add-ons) · [For developers](#for-developers) · [Credits and licence](#credits-and-licence)
+**On this page:** [Install](#install) · [What you can do](#what-you-can-do) · [Requirements](#requirements) · [First run](#first-run) · [Controls](#controls) · [Conversation providers](#pick-a-brain-conversation-providers) · [Voices](#pick-a-voice) · [Latency and FPS](#smooth-frames-fast-replies) · [Settings](#settings) · [Troubleshooting](#troubleshooting) · [Add-ons](#add-ons) · [For developers](#for-developers) · [Credits and licence](#credits-and-licence)
 
 ---
+
+## Install
+
+Close the game. Extract each download into your Cyberpunk 2077 folder (the one with `bin`, `archive` and `r6`) and let the folders merge. Install the mods under [Requirements](#requirements) first.
+
+| # | Download | Where from | Size | Needed? |
+|---|---|---|---|---|
+| 1 | **Scripts** | Nexus Mods | small, text only | Yes |
+| 2 | **Runtime** | [GitHub release](https://github.com/alystria-ai/cyberpunk-convai/releases), same version as Scripts | about 3 GB free space | Yes. It holds the Pocket TTS voices |
+| 3 | **OmniVoice pack** | [CyberpunkConvai-OmniPack-0.2.zip](https://huggingface.co/akshitireddy/cyberpunk-convai-packs/resolve/main/0.2/CyberpunkConvai-OmniPack-0.2.zip) | about 15 GB free while installing, 9 GB installed | Optional: a richer voice for NVIDIA cards |
+| 4 | **Local AI standard** | [CyberpunkConvai-LocalAI-Standard-0.2.zip](https://huggingface.co/akshitireddy/cyberpunk-convai-packs/resolve/main/0.2/CyberpunkConvai-LocalAI-Standard-0.2.zip) | about 5.3 GB | Optional: fully local conversations, best replies |
+| 5 | **Local AI lite** | [CyberpunkConvai-LocalAI-Lite-0.2.zip](https://huggingface.co/akshitireddy/cyberpunk-convai-packs/resolve/main/0.2/CyberpunkConvai-LocalAI-Lite-0.2.zip) | about 1.5 GB | Optional: fully local conversations on smaller cards |
+| 6 | **Mature lite** | [CyberpunkConvai-Mature-Lite-0.2.zip](https://huggingface.co/akshitireddy/cyberpunk-convai-packs/resolve/main/0.2/CyberpunkConvai-Mature-Lite-0.2.zip) | about 2.7 GB | Optional, adults only, needs a Local AI pack. See [Mature content](#mature-content-18) |
+| 7 | **Mature good** | [CyberpunkConvai-Mature-Good-0.2.zip](https://huggingface.co/akshitireddy/cyberpunk-convai-packs/resolve/main/0.2/CyberpunkConvai-Mature-Good-0.2.zip) | about 5.3 GB | Optional, adults only, needs a Local AI pack. See [Mature content](#mature-content-18) |
+
+Scripts come from Nexus Mods and the Runtime from the release page of this repository. The optional packs are on the mod's [Hugging Face page](https://huggingface.co/akshitireddy/cyberpunk-convai-packs), in a folder per version (`0.2`). Each pack is one zip file, so there are no parts to join, and each works on its own: install none, some or all. Use the same version number as the Scripts and Runtime, and extract the Runtime before the OmniVoice pack. If Windows' built-in extractor complains, use [7-Zip](https://www.7-zip.org).
+
+The first start after installing takes a little longer while the service prepares itself.
+
+**Update.** Close the game and extract the new Scripts and Runtime (and any optional packs you use) over the old ones. Your conversations, memories and settings stay.
+
+**Uninstall.** Delete these from your Cyberpunk 2077 folder, and keep the frameworks if other mods use them:
+
+- `bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai` (this also deletes your conversations and settings)
+- `red4ext\plugins\CyberpunkConvai` (this also removes the OmniVoice, Local AI and Mature packs)
+- `red4ext\plugins\CyberpunkConvaiNative`
+- `r6\scripts\CyberpunkConvai` and `r6\audioware\CyberpunkConvai`
+- `archive\pc\mod\convai_facial.archive`, `convai_gestures.archive` and `cyberpunk_convai_ambient_driver_guard.archive`
 
 ## What you can do
 
@@ -64,33 +92,6 @@ Only characters the mod spawns join your party. Story characters you meet in the
 | Graphics card | Not needed for the default setup. Only OmniVoice and Local AI use it. |
 
 Developed and tested with Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5, TweakXL 1.11.4, Audioware 1.9.9 and Mod Configuration Menu 0.10.3. Newer versions may work. There is no load order to set: the mod's files live in folders of their own.
-
-## Install
-
-Close the game. Extract each download into your Cyberpunk 2077 folder (the one with `bin`, `archive` and `r6`) and let the folders merge.
-
-| # | Download | Where from | Size | Needed? |
-|---|---|---|---|---|
-| 1 | **Scripts** | Nexus Mods | small, text only | Yes |
-| 2 | **Runtime** | [GitHub Releases](https://github.com/alystria-ai/cyberpunk-convai/releases), same version as Scripts | about 3 GB free space | Yes |
-| 3 | **OmniVoice pack** | GitHub Releases | about 15 GB free while installing, 9 GB installed | Optional: a richer voice for NVIDIA cards |
-| 4 | **Local AI standard** | GitHub Releases | about 5.3 GB, in several parts | Optional: fully local conversations, best replies |
-| 5 | **Local AI lite** | GitHub Releases | about 1.5 GB | Optional: fully local conversations on smaller cards |
-| 6 | **Mature pack** | GitHub Releases | about 8 GB | Optional, adults only. See [Mature content](#mature-content-18) |
-
-Extract every part of a download that comes in parts, and extract the Runtime before the OmniVoice pack. If Windows' built-in extractor complains, use [7-Zip](https://www.7-zip.org).
-
-The first start after installing takes a little longer while the service prepares itself. After the standard Local AI pack it also joins the downloaded parts into one file, about a minute.
-
-**Update.** Close the game and extract the new Scripts and Runtime (and any optional packs you use) over the old ones. Your conversations, memories and settings stay.
-
-**Uninstall.** Delete these from your Cyberpunk 2077 folder, and keep the frameworks if other mods use them:
-
-- `bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai` (this also deletes your conversations and settings)
-- `red4ext\plugins\CyberpunkConvai` (this also removes the OmniVoice and Local AI packs)
-- `red4ext\plugins\CyberpunkConvaiNative`
-- `r6\scripts\CyberpunkConvai` and `r6\audioware\CyberpunkConvai`
-- `archive\pc\mod\convai_facial.archive`, `convai_gestures.archive` and `cyberpunk_convai_ambient_driver_guard.archive`
 
 ## First run
 
@@ -158,7 +159,7 @@ Quick and free, with plainer replies than Convai's. Memory stays on your compute
 
 The language model runs on your own graphics card. No account, no key, no internet.
 
-1. Download a Local AI pack from the GitHub release and extract it into the game folder ([Install](#install)).
+1. Download a Local AI pack from the [Hugging Face page](https://huggingface.co/akshitireddy/cyberpunk-convai-packs) and extract it into the game folder ([Install](#install)).
 2. Start the game. The **Local AI model** row shows "(Warming up)" while your card prepares the model, about a minute the first time.
 3. Choose **Local (needs Local AI pack)** as the provider and **Apply**.
 
@@ -179,7 +180,7 @@ Install neither, one or both. The **Local AI model** row lists what is installed
 
 ### Mature content (18+)
 
-**Settings > Conversation provider > Mature content** is off by default and for adults only. It works with Local AI only: turning it on selects Local AI, and choosing a cloud provider turns it off. With the standard models it changes language and tone, because those models refuse most adult material. The optional **Mature pack** on the GitHub release adds two models without those refusals. Fixed limits stay on for every model, with or without the pack. Details are in [the pack's notes](packaging/MATURE_PACK_README.md).
+**Settings > Conversation provider > Mature content** is off by default and for adults only. It works with Local AI only: turning it on selects Local AI, and choosing a cloud provider turns it off. With the standard models it changes language and tone, because those models refuse most adult material. The two optional **Mature packs**, Mature lite and Mature good, on the [Hugging Face page](https://huggingface.co/akshitireddy/cyberpunk-convai-packs), add one model each without those refusals; either works alone. Fixed limits stay on for every model, with or without the packs. Details are in [the pack's notes](packaging/MATURE_PACK_README.md).
 
 ## Pick a voice
 
@@ -434,7 +435,7 @@ The release ships `runtime/native-off.txt` listing exactly `actuator`, `vehicles
 ### Startup
 
 1. RED4ext loads `CyberpunkConvai.dll` (the launcher). It checks CET and the CET mod, reads `launcher.ini` and starts `app\node\node.exe app\launcher\start-service.mjs` hidden.
-2. `start-service.mjs` prepares the player's `data/` folder (see [Packaging](#packaging-and-release)), joins any split model files (SHA-256 verified) and sets every path explicitly. It clears inherited `NODE_OPTIONS` and `PYTHONPATH`, and nothing is looked up on `PATH`.
+2. `start-service.mjs` prepares the player's `data/` folder (see [Packaging](#packaging-and-release)), joins any model parts left by an earlier release (SHA-256 verified) and sets every path explicitly. It clears inherited `NODE_OPTIONS` and `PYTHONPATH`, and nothing is looked up on `PATH`.
 3. It runs the supervisor, which runs the bridge. The bridge prints a ready marker, answers the heartbeat and publishes status for the in-game Help page. While the service is starting, missing or failed, the talk keys and Phone Chat show a short explanation instead of waiting.
 
 ## Anatomy of a turn
@@ -566,7 +567,7 @@ The Mistral key lives only in the bridge's state folder (`player-mistral-key.txt
 
 Local AI runs a chat model in a `llama-server` process (llama.cpp b11560, Vulkan build) supervised by `bridge/local-llm-server.mjs`.
 
-- **Packs and models:** two optional packs. *Standard* is Gemma 4 E4B QAT q4_0 (5.15 GB file, about 5.3 GB pack, split in 1 GB parts and rejoined on first start). *Lite* is Qwen3.5-2B Q4_K_M (1.28 GB, about 1.5 GB pack). Each pack also holds the server, the `granite-embedding-107m-multilingual` Q8_0 embedder, a manifest fragment (`manifest.standard.json` or `manifest.lite.json`, merged by `bridge/local-ai-pack.mjs`) and the licence texts. Every file is the unmodified upstream file, pinned by URL, revision and SHA-256 in the `localAi` block of `packaging/release.config.json`.
+- **Packs and models:** two optional packs. *Standard* is Gemma 4 E4B QAT q4_0 (5.15 GB file, about 5.3 GB pack, shipped whole: one ZIP64 zip, no parts). *Lite* is Qwen3.5-2B Q4_K_M (1.28 GB, about 1.5 GB pack). Each pack also holds the server, the `granite-embedding-107m-multilingual` Q8_0 embedder, a manifest fragment (`manifest.standard.json` or `manifest.lite.json`, merged by `bridge/local-ai-pack.mjs`) and the licence texts. Every file is the unmodified upstream file, pinned by URL, revision and SHA-256 in the `localAi` block of `packaging/release.config.json`.
 - **Model choice** (`bridge/local-model-choice.mjs`): `listLocalModels`, `chooseLocalModel({models, pin, matureOn, freeMiB, sizeOf})`, `defaultModelIds`. Ids are `standard`, `lite`, `mature:lite`, `mature:good` and `custom:<file>`. The default is the largest installed model whose requirement fits the free video memory (standard needs the file plus about 1.2 GB free, lite the file plus about 0.7 GB). A chosen model that is missing, does not fit or does not start is replaced by the largest that fits, with one notice naming the model used. The saved id of a model that no pack has any more maps silently to the default.
 - **Server flags:** `-ngl 99 -fa on -np 1 --reasoning off --cache-ram <N> --ctx-checkpoints 32`; offload uses `-fit on` without `-ngl`. The server listens on a random loopback port with its API key in a file, never on the command line. The context size is chosen from free video memory from the ladder 16,384, 12,288, 8,192 and read back from `/props`. `CYBERPUNK_CONVAI_LOCAL_CACHE_RAM` defaults to 4096 at 12 GB free, 2048 at 8 GB, else 1024.
 - **Prompt budget** (`bridge/prompt-budget.mjs`): the limit is the context minus a 320-token reply reserve minus the larger of 48 and 1.5 percent of the context. Characters per token start at 3.6 and are learned from usage. Near the limit, `/tokenize` decides, and an overflow retries once before failing with `PromptTooLarge`.
@@ -577,7 +578,7 @@ Local AI runs a chat model in a `llama-server` process (llama.cpp b11560, Vulkan
 
 #### Mature content (setting and pack)
 
-`matureContent` (off by default) is part of the main mod and works with the Local AI provider only (`MATURE_PROVIDERS` in `bridge/mature-content.mjs`). Turning it on stages Local AI, the largest uncensored model that fits and a local voice (when the voice was a cloud one), and turning it off restores what it changed (`matureRestore`). The optional pack (`manifest.mature.json`, `bridge/mature-pack.mjs`) adds two uncensored models, a lite and a good one, distributed only on the GitHub release and never built by the release workflow. Hard limits are enforced for every model: an input screen before any model sees a message and an output screen on replies (`bridge/mature-guard.mjs`, with word lists for 15 languages in `bridge/mature-guard-terms.mjs`). Details and the guard's measurements: [docs/LOCAL_AI.md](docs/LOCAL_AI.md), [packaging/MATURE_PACK_README.md](packaging/MATURE_PACK_README.md).
+`matureContent` (off by default) is part of the main mod and works with the Local AI provider only (`MATURE_PROVIDERS` in `bridge/mature-content.mjs`). Turning it on stages Local AI, the largest uncensored model that fits and a local voice (when the voice was a cloud one), and turning it off restores what it changed (`matureRestore`). The two optional packs, Mature lite and Mature good (markers `manifest.mature-lite.json` and `manifest.mature-good.json`, read by `bridge/mature-pack.mjs`; either works alone), add one uncensored model each. They are distributed only on the Hugging Face page and built only by the release workflow's opt-in `mature` input, never on a tag push. Hard limits are enforced for every model: an input screen before any model sees a message and an output screen on replies (`bridge/mature-guard.mjs`, with word lists for 15 languages in `bridge/mature-guard-terms.mjs`). Details and the guard's measurements: [docs/LOCAL_AI.md](docs/LOCAL_AI.md), [packaging/MATURE_PACK_README.md](packaging/MATURE_PACK_README.md).
 
 ### Daily limit
 
@@ -1282,13 +1283,13 @@ The player release is built from a git commit, never from the working tree, so u
 | Package | Where players get it | Contents |
 |---|---|---|
 | `CyberpunkConvai-Scripts-<v>.zip` | Nexus Mods | Text only: the CET Lua mod, redscript, the JSON catalogs the Lua reads, `README.txt`, `release.json` |
-| `CyberpunkConvai-Runtime-<v>.zip` | GitHub Releases | Everything else needed to play: the RED4ext launcher and native plugin, bundled Node, Chrome for Testing and Python, the bridge, the Pocket voice and lip-sync models, the local speech model, voice references, the game archives and the Audioware reply bank |
-| `CyberpunkConvai-OmniPack-<v>-partNofM.zip` | GitHub Releases | Optional OmniVoice pack: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and its references |
-| `CyberpunkConvai-LocalAI-Standard-<v>[-partNofM].zip` | GitHub Releases | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), in 1 GB parts |
-| `CyberpunkConvai-LocalAI-Lite-<v>.zip` | GitHub Releases | Optional Local AI pack with Qwen3.5-2B (about 1.5 GB) |
-| Mature pack (`manifest.mature.json` and two models) | GitHub Releases only | Optional uncensored models for the Mature setting ([packaging/MATURE_PACK_README.md](packaging/MATURE_PACK_README.md)); built only on request: by the release workflow's opt-in `mature` input (never on a tag push) from the private bucket's mirror, or by hand with `--packages mature` |
+| `CyberpunkConvai-Runtime-<v>.zip` | GitHub release | Everything else needed to play: the RED4ext launcher and native plugin, bundled Node, Chrome for Testing and Python, the bridge, the Pocket voice and lip-sync models, the local speech model, voice references, the game archives and the Audioware reply bank |
+| `CyberpunkConvai-OmniPack-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and its references |
+| `CyberpunkConvai-LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip |
+| `CyberpunkConvai-LocalAI-Lite-<v>.zip` | Hugging Face | Optional Local AI pack with Qwen3.5-2B (about 1.5 GB), one zip |
+| `CyberpunkConvai-Mature-Lite-<v>.zip` and `CyberpunkConvai-Mature-Good-<v>.zip` (each with its own marker, `manifest.mature-lite.json` or `manifest.mature-good.json`, and one model) | Hugging Face only | Optional uncensored models for the Mature setting, one pack per model, each works alone ([packaging/MATURE_PACK_README.md](packaging/MATURE_PACK_README.md)); built only on request: by the release workflow's opt-in `mature` input (never on a tag push, one matrix job per pack) from the private bucket's mirror, or by hand with `--packages mature-lite` or `mature-good` |
 
-Why the split: Nexus scans every upload and holds flagged files for manual review, so the Nexus file is text only and is never held. The large binary runtime goes to GitHub Releases as plain zips, the way the core frameworks (RED4ext, Codeware, TweakXL, Audioware) are also distributed. The Nexus page lists the frameworks the mod needs (RED4ext, Cyber Engine Tweaks, redscript, Codeware, TweakXL, Audioware, Mod Configuration Menu) because the Runtime package's launcher and native plugin are RED4ext plugins. All packages use game-root-relative paths and merge into one install. Versions must match: `app/launcher/start-service.mjs` logs a warning when the Scripts `release.json` differs from the Runtime one.
+Why the split: Nexus scans every upload and holds flagged files for manual review, so the Nexus file is text only and is never held. The large binary runtime goes to GitHub Releases as plain zips, the way the core frameworks (RED4ext, Codeware, TweakXL, Audioware) are also distributed. The optional packs go to a Hugging Face model repository (`akshitireddy/cyberpunk-convai-packs`, one folder per version), one zip each: GitHub's 2 GiB per-file limit was the only reason for parts, so the packs have none, and a model over 4 GiB sits whole in a ZIP64 zip. The Nexus page lists the frameworks the mod needs (RED4ext, Cyber Engine Tweaks, redscript, Codeware, TweakXL, Audioware, Mod Configuration Menu) because the Runtime package's launcher and native plugin are RED4ext plugins. All packages use game-root-relative paths and merge into one install. Versions must match: `app/launcher/start-service.mjs` logs a warning when the Scripts `release.json` differs from the Runtime one.
 
 Releases are numbered `0.N` (0.1, 0.2, ...); a hotfix is `0.N.M`. The tag is `v` plus the number. The first build (2026-10-07, a private test of the pipeline) was made as `2077.1` and renamed to `v0.1`; the version check still accepts the old `2077.N` form. `packaging/lib/version.mjs` parses versions and `packaging/release.test.mjs` guards it.
 
@@ -1317,7 +1318,7 @@ RED4ext loads DLLs only from `red4ext/plugins/*.dll` and one folder deep, so the
 ### How it starts
 
 1. RED4ext loads `CyberpunkConvai.dll`. It checks that Cyber Engine Tweaks and the CET mod are present, reads `launcher.ini` and starts `app\node\node.exe app\launcher\start-service.mjs` hidden, with a pipe whose closing tells the service the game ended.
-2. `start-service.mjs` prepares `data/` (generated files refreshed, managed files kept once edited, player-owned files never touched), joins split OmniVoice parts on the first start after extraction (checking each SHA-256), and sets every path explicitly. It clears inherited `NODE_OPTIONS` and `PYTHONPATH`; nothing is looked up on `PATH`, and the bundled Pythons use their `._pth` file, so a Python installed on the machine is ignored.
+2. `start-service.mjs` prepares `data/` (generated files refreshed, managed files kept once edited, player-owned files never touched), joins any split parts left by an earlier release (checking each SHA-256; current packs have none), and sets every path explicitly. It clears inherited `NODE_OPTIONS` and `PYTHONPATH`; nothing is looked up on `PATH`, and the bundled Pythons use their `._pth` file, so a Python installed on the machine is ignored.
 3. It runs the same supervisor development uses (`bridge/bridge-supervisor.mjs`): one bridge per game session, crash restarts, the status file the Help page reads, and a graceful stop when the game exits. `--prepare-only` stops after step 2 and prints a summary.
 
 ### Native plugin switches (`native-off.txt`)
@@ -1330,12 +1331,13 @@ The Runtime package ships `runtime/native-off.txt` with exactly `actuator`, `veh
 - Trained models come from a private Hugging Face bucket (`packaging/fetch-models.py`, every file checked against its manifest) or from the developer's `runtime/` folder with `--models local`.
 - The launcher is compiled from `native/autostart` and the plugin from `native/core`, both with MSVC (static CRT, `/Brepro` so the same source gives a byte-identical DLL). `ffmpeg` is needed to pre-build the Voxtral reference slots.
 - The three game archives in `packaging/release-data/` are built from game files with WolvenKit, so CI cannot rebuild them.
-- Archives are deterministic (`packaging/lib/zip.mjs`: sorted entries, one timestamp, fixed deflate level). Each stays under 1.95 GB (GitHub's limit is 2 GiB per asset); files over 1 GB are split into `.partN` ranges with a `.parts.json`. Output goes to `dist/release/packages/` with `*.files.json`, `SHA256SUMS.txt` and `release-manifest.json`.
+- Archives are deterministic (`packaging/lib/zip.mjs`: sorted entries, one timestamp, fixed deflate level). The Scripts and Runtime zips each stay under 1.95 GB (GitHub's limit is 2 GiB per asset) and the build fails on a file over that; the optional packs are one zip each with nothing split, written as ZIP64 where an entry or the archive passes 4 GiB (a plain ZIP otherwise). Output goes to `dist/release/packages/` with `*.files.json`, `SHA256SUMS.txt` and `release-manifest.json`.
 - Not shipped: tests, fixtures, research and training material, benchmark audio, `misc/`, `vendor/`, developer `runtime/`, backups, keys and tokens, the development-only Lua files (`devOnlyLua` in the config; the build fails if a shipped file loads one without a guarded `pcall`), the retired `KnowledgeState.reds`, Rhubarb and the resident phone analyser.
 
 ```powershell
 node packaging/build-release.mjs --version 0.2 --dry-run                          # all five packages
 node packaging/build-release.mjs --version 0.2 --dry-run --packages scripts,runtime
+node packaging/build-release.mjs --version 0.2 --dry-run --packages localai-lite,mature-lite   # optional packs: one zip each
 node packaging/test-release-install.mjs --version 0.2 --packages dist/release/packages [--omni] [--local-ai]
 node --test packaging/release.test.mjs
 ```
@@ -1344,7 +1346,7 @@ The install test builds a stand-in game folder under `%TEMP%` (with spaces and n
 
 ### GitHub Actions
 
-`.github/workflows/release.yml` runs only from Actions, Release, Run workflow, or on a pushed `v0.N` tag. Job 1 builds and install-tests Scripts and Runtime on `windows-2022` (it needs Visual Studio 2022), keeps the Scripts zip as a workflow artifact (the file for Nexus) and creates the GitHub release `v0.N`. Job 2 builds the OmniVoice pack and job 3 (a matrix of `standard` and `lite`) builds the two Local AI packs; both add to the same release, so a release can briefly lack them. A new release is created with `--latest`, so the newest build is always marked Latest. The workflow uses the built-in `GITHUB_TOKEN` with `contents: write` plus repository secrets for the model bucket and the build. The auth backend is deployed separately (see [Daily limit](#daily-limit)).
+`.github/workflows/release.yml` runs only from Actions, Release, Run workflow, or on a pushed `v0.N` tag. Job 1 builds and install-tests Scripts and Runtime on `windows-2022` (it needs Visual Studio 2022), keeps the Scripts zip as a workflow artifact (the file for Nexus) and creates the GitHub release `v0.N`. Job 2 builds the OmniVoice pack, job 3 (a matrix of `lite` and `good`, opt-in with the `mature` input, never on a tag push) the two Mature packs, and job 4 (a matrix of `standard` and `lite`) the two Local AI packs. Each uploads its zip, with a `SHA256SUMS-<pack>.txt` beside it, to its version folder of the Hugging Face repository with `packaging/upload-packs.py`, after checking that the `HF_TOKEN` secret can write there; none is attached to the GitHub release. A new release is created with `--latest`, so the newest build is always marked Latest. The workflow uses the built-in `GITHUB_TOKEN` with `contents: write` plus repository secrets for the model bucket, the pack repository and the build. The auth backend is deployed separately (see [Daily limit](#daily-limit)).
 
 ### Keeping the inputs current
 

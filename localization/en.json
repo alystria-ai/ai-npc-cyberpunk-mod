@@ -629,7 +629,7 @@
     "The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead.": "The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead.",
     "The Local AI pack finds these. It is not installed or not ready, so none are collected now.": "The Local AI pack finds these. It is not installed or not ready, so none are collected now.",
     "The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: installed.": "The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: installed.",
-    "The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s GitHub page).": "The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s GitHub page).",
+    "The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).": "The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).",
     "The Mistral cloud voice speaks only English here. Turn off Multilingual conversations to choose it.": "The Mistral cloud voice speaks only English here. Turn off Multilingual conversations to choose it.",
     "The Mistral model is unavailable right now. Try again in a minute.": "The Mistral model is unavailable right now. Try again in a minute.",
     "The action could not finish: {reason}": "The action could not finish: {reason}",
@@ -1780,7 +1780,7 @@
       "The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead.",
       "The Local AI pack finds these. It is not installed or not ready, so none are collected now.",
       "The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: installed.",
-      "The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s GitHub page).",
+      "The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).",
       "The Mistral cloud voice speaks only English here. Turn off Multilingual conversations to choose it.",
       "The Mistral model is unavailable right now. Try again in a minute.",
       "The bio is too long. Keep it under {max} characters.",
@@ -6812,7 +6812,7 @@
         "mod/mcm.lua:1565"
       ]
     },
-    "The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s GitHub page).": {
+    "The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).": {
       "contexts": [
         "ui.localized"
       ],

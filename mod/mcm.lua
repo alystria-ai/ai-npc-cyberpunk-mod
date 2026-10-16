@@ -1563,7 +1563,7 @@ local function ownKeyRows(snapshot)
         local matureHelp = ui.t('Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+), Local AI only.')
         matureHelp = matureHelp .. '\n\n' .. (mistral.maturePack == true
             and ui.t('The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: installed.')
-            or ui.t('The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s GitHub page).'))
+            or ui.t('The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).'))
         matureHelp = matureHelp .. '\n\n' .. ui.t('Never allowed: sex with minors or without consent, sex about real people, hate, real-world weapon or drug instructions. A safety check enforces the minors rule.')
         matureHelp = matureHelp .. '\n\n' .. ui.t('Turning it on also selects Local AI, the largest uncensored model that fits and a local voice instead of a cloud one. Turning it off restores your choices.')
             .. ' ' .. ui.t('Choosing a cloud provider turns it off.')
