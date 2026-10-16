@@ -27,7 +27,7 @@
 //   --native PATH      use a prebuilt CyberpunkConvaiNative.dll instead of compiling native/core with MSVC
 //   --no-native        leave the native plugin out (the Lua keeps its own path)
 //   --vision PATH      use a prebuilt CyberpunkConvaiVision.exe instead of compiling native/vision with MSVC
-//   --no-vision        leave the "Companions can see" picture helper out (the setting then sends no picture)
+//   --no-vision        leave the "Companions can see" picture helper out (turns then carry no picture)
 //   --local-ai-source DIR  with --models local: a folder shaped like the Local AI developer folder
 //                      (default: CYBERPUNK_CONVAI_LOCAL_AI_DEV); a file missing there is downloaded
 //   --python EXE       host CPython used to run pip (default: python)
@@ -205,7 +205,7 @@ async function buildLauncher(source) {
   return resolve(output, 'CyberpunkConvaiLauncher.dll');
 }
 
-// The "Companions can see" picture helper (native/vision, docs/COMPANION_VISION.md). Optional: without it the setting simply
+// The "Companions can see" picture helper (native/vision, docs/COMPANION_VISION.md). Optional: without it turns simply
 // sends no picture, so a failed build is logged and the release goes on (--no-vision skips it, --vision PATH uses a prebuilt one).
 async function buildVision(source) {
   if (flag('--no-vision')) return null;

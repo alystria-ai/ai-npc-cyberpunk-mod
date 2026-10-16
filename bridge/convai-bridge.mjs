@@ -620,7 +620,7 @@ function writeStreamManifest(document,current){
 }
 const companionActions = new CompanionActions({createToken: () => 'drive-' + randomUUID(),
   publish: (packet, options) => atomic(resolve(runtime, 'companion-actions.json'), JSON.stringify(packet), options)});
-// "Companions can see" (docs/COMPANION_VISION.md): on by default, Convai only. Every conversation turn carries a recent picture of
+// "Companions can see" (docs/COMPANION_VISION.md): always on, Convai only. Every conversation turn carries a recent picture of
 // V's surroundings from an in-memory buffer that native/vision fills out of process while someone is near and nobody is talking;
 // it is published on the page ahead of the line. companionVision.attachToNextTurn(images) lets other features show the companion
 // something (e.g. a TV picture).

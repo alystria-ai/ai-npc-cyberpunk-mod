@@ -678,10 +678,17 @@ end
 local function voiceServiceLabel(state)
     local labels = {ready = 'Ready', loading = 'Loading', warming = 'Preparing voices', speaking = 'Preparing a reply',
         error = 'Unavailable', waiting = 'Waiting for voice service', disabled = 'Not configured', stopped = 'Stopped',
-        releasing = 'Releasing local voice memory', remote = 'Convai voices · Local model unloaded'}
+        releasing = 'Releasing local voice memory', remote = 'Convai voices · Local model unloaded',
+        remoteVoxtral = 'Voxtral cloud voice · Local model unloaded', remoteInworld = 'Inworld cloud voice · Local model unloaded'}
+    -- The bridge reports 'remote' for every voice that loads no local model; cloudVoice says which one is speaking.
+    local function labelKey()
+        if state.state == 'remote' and state.cloudVoice == 'voxtral' then return 'remoteVoxtral' end
+        if state.state == 'remote' and state.cloudVoice == 'inworld' then return 'remoteInworld' end
+        return state.state
+    end
     if state.pending then
         if state.preparationOnly then
-            return ui.t('{status} · After current reply', {status=ui.t(labels[state.state] or 'Waiting for voice service')})
+            return ui.t('{status} · After current reply', {status=ui.t(labels[labelKey()] or 'Waiting for voice service')})
         end
         return ui.t('Changing after the current reply')
     end
@@ -689,6 +696,7 @@ local function voiceServiceLabel(state)
     if type(fallback) == 'table' and (fallback.from == 'omni' or fallback.from == 'pocket' or fallback.from == 'voxtral' or fallback.from == 'inworld')
         and (fallback.to == 'pocket' or fallback.to == 'convai') then
         local values = {
+            -- A cloud voice that fell back is not the one speaking: the plain state names the Convai voice.
             status = ui.t(labels[state.state] or 'Waiting for voice service'),
             voice = manager.voiceLabel(fallback.to, state.omniSteps, state.omniReference),
             requested = manager.voiceLabel(fallback.from, state.requestedOmniSteps, state.requestedOmniReference)}
@@ -704,7 +712,7 @@ local function voiceServiceLabel(state)
     if preview.active and (preview.provider == 'pocket' or preview.provider == 'omni') and state.state == 'remote' then
         return ui.t('Preparing voices')
     end
-    return ui.t(labels[state.state] or 'Waiting for voice service')
+    return ui.t(labels[labelKey()] or 'Waiting for voice service')
 end
 
 -- The status line. While a different voice is pending in MCM's drafts it names
@@ -1619,9 +1627,6 @@ local function ownKeyRows(snapshot)
     local rows = {
         setting('conversationProvider', 'Conversation provider', 'select', providerIndexOf(snapshot.settings), 1, providerHelp,
             {'Convai free tier', 'Convai API key', 'Mistral (free plan)', 'Local (needs Local AI pack)'}, {elements = true, description = true}),
-        -- Companions can see (docs/COMPANION_VISION.md): Convai only, on by default; the bridge does all the work.
-        setting('companionVision', 'Companions can see', 'bool', snapshot.settings.companionVision ~= false, true,
-            'With each line, the character also gets a recent picture of your surroundings, taken from the game window a few seconds before you started talking.\n\nOnly the game window is captured, only while someone you can talk to is near, and pictures are kept in memory for a short time, never saved. Works with Convai only.'),
         matureRow,
         modelRow,
         keyRow('Mistral free API key',
@@ -2074,7 +2079,7 @@ local function schema()
                 'Right after the game’s own dialogue with a character, they know its last few lines, including your chosen replies and your phone calls with them.\n\nOnly the last few minutes count, and none of it is saved to memory.'),
             -- Holocalls start from the mod's Chat tab (docs/HOLOCALL.md); this is their only setting.
             setting('holocallLiveImage', 'Live holocall picture', 'bool', snapshot.settings.holocallLiveImage == true, true,
-                'Shows the character live in a holocall instead of their portrait.\n\nExperimental: the picture can stay empty. If she cannot be shown, the call goes on with the portrait.'),
+                'Shows the character live in a holocall instead of their portrait.\n\nIf she cannot be shown, the call goes on with the portrait.'),
         })
         -- Settings > Conversation provider: who writes the replies, Mature content, Local AI and the provider keys (the Inworld key is in
         -- Development).
@@ -2302,7 +2307,7 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     or key == 'autoConnectNearby' or key == 'holocallLiveImage' or key == 'naturalSpeech'
                     or key == 'gameDialogueContext'
                     or key == 'expressiveEmotions' or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations'
-                    or key == 'matureContent' or key == 'companionVision' then values[key] = change.value
+                    or key == 'matureContent' then values[key] = change.value
                 elseif key == 'audioDelay' then
                     local delays = manager.audioDelayChoices()
                     if type(change.value) ~= 'number' or change.value ~= math.floor(change.value) or not delays[change.value] then

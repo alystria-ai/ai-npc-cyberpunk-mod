@@ -164,7 +164,7 @@ If you want more Convai usage than the free tier gives, **Convai paid tier**, ri
 2. Copy the key, open **Settings > Conversation provider**, and press **Paste** on the **Mistral free API key** row.
 3. Choose **Mistral (free plan)** as the provider and **Apply**.
 
-Mistral answers quickly and costs nothing. Its replies are plainer than Convai's. Memory stays on your computer. The microphone works through speech recognition that runs on your computer, in English. Mistral does not receive pictures, so **Companions can see** does nothing with it. With no key saved, conversations use Convai and you see one notice.
+Mistral answers quickly and costs nothing. Its replies are plainer than Convai's. Memory stays on your computer. The microphone works through speech recognition that runs on your computer, in English. Mistral does not receive pictures, so **Companions can see** does not apply to it. With no key saved, conversations use Convai and you see one notice.
 
 ### Local AI (fully local, free, no internet)
 
@@ -303,11 +303,11 @@ With **Settings > Conversations > Talk to ordinary NPCs** on (the default), unna
 - Open the phone (normally hold **T**) and switch to the **Chat** tab, the third tab. Pick a contact and press the confirm key to open the conversation. **Enter** starts typing and sends. **Esc** stops typing. Phone Chat is text only. The character does not need to be nearby.
 - Histories and drafts are kept across launches. Contacts unlocked later appear when you open the tab.
 - **Holocalls:** with a contact selected on the Chat list (or inside a conversation) press **V** to call them. A call window opens at the top left and you talk by push-to-talk or by typing. Tap the phone button to hang up. Calls end after 3 minutes of silence or 30 minutes in total. The game's own Contacts call is untouched.
-- **Live holocall picture:** shows the character live instead of a portrait. It can stay empty, in which case the call goes on with the portrait.
+- **Live holocall picture:** shows the character live instead of a portrait. If she cannot be shown, the call goes on with the portrait.
 
 ### Companions can see (with Convai)
 
-With **Companions can see** on (the default) and Convai answering, each line you send also carries a recent picture of your surroundings, taken from the game window a few seconds before you started talking. Only the game window is captured, only while someone you can talk to is nearby, and pictures are kept in memory for a short time and never saved. It works with Convai only, and it is new: treat it as experimental.
+With Convai answering, **Companions can see** is always on: each line you send also carries a recent picture of your surroundings, taken from the game window a few seconds before you started talking. Only the game window is captured, only while someone you can talk to is nearby, and pictures are kept in memory for a short time and never saved. It works with Convai only, and it is new: treat it as experimental.
 
 
 ### V's voice
@@ -350,7 +350,6 @@ All settings live under **Companion Manager > Settings**. Defaults are for a new
 | Continue from game dialogue | Conversations | On |
 | Live holocall picture | Conversations | On |
 | Conversation provider | Conversation provider | Convai free tier |
-| Companions can see | Conversation provider | On (Convai only) |
 | Mature content | Conversation provider | Off |
 | Local AI model | Conversation provider | Largest installed model that fits |
 | Eye contact height | Companion behavior | Default |
@@ -1110,7 +1109,7 @@ Docs: [docs/CHARACTER_API.md](docs/CHARACTER_API.md), [characters/README.md](cha
 
 ### Companion vision
 
-"Companions can see" gives a Convai character one recent picture of V's surroundings with each conversation turn. It is Convai only: while Mistral or Local AI answers, `CompanionVision.active` is false and there is no picture, no helper process and no buffer. The setting is `companionVision` (default on) in Settings > Conversation provider, with the two developer switches `CYBERPUNK_CONVAI_VISION=off` (environment) and `visionTransport` in `runtime/settings.json`. **Status: built, unit-tested and measured against the running game for cost, but not seen working with Convai.** No live Convai turn has been made with a picture, so whether Convai accepts the image for the mod's characters is open. Every mod character uses `fast-gemma-4-31b-it`, and Convai describes its dynamic vision context as needing a vision-capable non-realtime model; an answer of `vision_not_enabled` would mean the characters must move to another model. Only a live call can settle this.
+"Companions can see" gives a Convai character one recent picture of V's surroundings with each conversation turn. It is Convai only: while Mistral or Local AI answers, `CompanionVision.active` is false and there is no picture, no helper process and no buffer. There is no player setting: it is always on with Convai (a saved `companionVision` key from an older install is dropped on the next load and ignored by the bridge). The two developer switches are `CYBERPUNK_CONVAI_VISION=off` (environment) and `visionTransport` in `runtime/settings.json`. **Status: built, unit-tested and measured against the running game for cost, but not seen working with Convai.** No live Convai turn has been made with a picture, so whether Convai accepts the image for the mod's characters is open. Every mod character uses `fast-gemma-4-31b-it`, and Convai describes its dynamic vision context as needing a vision-capable non-realtime model; an answer of `vision_not_enabled` would mean the characters must move to another model. Only a live call can settle this.
 
 **Why a rolling buffer.** When V talks to a companion, V is usually looking at her, so a picture taken then is mostly her face. The bridge instead keeps a few pictures taken before the conversation and sends one from the moment V was still looking at the place.
 
@@ -1210,7 +1209,6 @@ The Settings page groups its rows in this order: Interface, Conversations, Conve
 | `gameDialogueContext` | Continue from game dialogue | on |
 | `holocallLiveImage` | Live holocall picture | on |
 | `conversationProvider` / `useOwnConvaiKey` | Conversation provider (Convai free tier, Convai API key, Mistral, Local) | `convai`, key off |
-| `companionVision` | Companions can see | on |
 | `matureContent`, `localModel` | Mature content (Local AI only), Local AI model | off, `auto` |
 | `eyeContactHeight` | Eye contact height (-0.10 to +0.10 m in five steps) | 0 |
 | `headFollowStrength` | Head tracking strength (0, 0.5, 1, 1.5) | 1 (Gentle) |
@@ -1323,7 +1321,7 @@ There are two release styles. **At once** when a setting turns a feature off or 
 | Hidden browser and its pages | first use (a Convai turn or warm-up, the local voice, a recording) | provider or key switch or world reset; 5 idle minutes (`BROWSER_IDLE_MS`) |
 | Facial model (worker thread, about 3.6 MB of weights plus the text model) | bridge start | playback off, at once; reloads in a fraction of a second when playback is on |
 | Phone-analysis worker (Python, CPU) | only without the facial model, with Pocket speaking and playback on | as soon as Pocket stops or playback is off |
-| Vision helper (`CyberpunkConvaiVision.exe`, about 35 to 50 MiB) and its frame buffer (at most 4 JPEGs) | only while capturing: "Companions can see" on, Convai answering, someone near, no conversation running (nor for 12 s after one); one picture every 3 s | at once on any of those stopping; frames older than 2 minutes are never sent |
+| Vision helper (`CyberpunkConvaiVision.exe`, about 35 to 50 MiB) and its frame buffer (at most 4 JPEGs) | only while capturing: Convai answering, someone near, no conversation running (nor for 12 s after one); one picture every 3 s | at once on any of those stopping; frames older than 2 minutes are never sent |
 | Audio-output probe (hidden PowerShell, wakes every 60 s) | first turn, while the lip-sync delay is Auto | a hand-set delay, or playback off |
 | Convai connection pages | Convai is the provider and a character is warmed or speaking | a provider switch closes every page; with Mistral or Local AI none is opened |
 | Cloud voice clients (Voxtral, Inworld) | per reply, stateless HTTPS | nothing is held between replies |

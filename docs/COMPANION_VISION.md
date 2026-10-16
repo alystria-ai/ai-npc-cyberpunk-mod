@@ -2,7 +2,7 @@
 
 Status 2026-10-15: built on branch `companion-vision`, merged with main, unit-tested, capture cost measured against the running game. **Not seen working with Convai yet:** no live Convai turn was made. Whether Convai accepts the picture for our characters is the open question (see "Live check").
 
-With Convai, every conversation turn (typed or talk key) carries one recent picture of V's surroundings: V's view from a few seconds before the turn, never older than 15 s (see "Freshness" in section 3). Before a conversation it is taken from a few seconds **before** it started, so it shows the place rather than the companion's face; during one a new picture is taken as each turn starts, and the companion may be in it. Setting: Settings > Conversation provider > **Companions can see**, on by default, Convai only.
+With Convai, every conversation turn (typed or talk key) carries one recent picture of V's surroundings: V's view from a few seconds before the turn, never older than 15 s (see "Freshness" in section 3). Before a conversation it is taken from a few seconds **before** it started, so it shows the place rather than the companion's face; during one a new picture is taken as each turn starts, and the companion may be in it. There is no player setting: it is always on with Convai, never with Mistral or Local AI.
 
 ## 1. What Convai offers (research, 2026-10-14)
 
@@ -87,7 +87,7 @@ Capture methods (unchanged from the first build): Windows Graphics Capture of th
 **The helper.** `native/vision/CyberpunkConvaiVision.exe` (C++/WinRT, below-normal priority, about 35 to 50 MiB). Each capture: find the window owned by `Cyberpunk2077.exe`; open a WGC session with no cursor and no yellow border; take one frame (up to 600 ms); close the session; crop to the client area; scale with WIC Fant to 1024 px wide (`CAPTURE_DEFAULTS`; the helper takes width and quality per request, so no rebuild); encode a JPEG (quality 88) in memory; return it on stdout. It holds no capture session between pictures and touches neither the game process nor the disk.
 
 **The buffer** (`bridge/companion-vision.mjs`), driven by the bridge's existing 500 ms settings poll (a few property reads; nothing per frame, nothing in the game):
-- It captures one picture every **3 s**, keeping the last **5** in memory (about 500 KB at 1024 px, none older than 15 s), only while **all** of these hold: the setting is on, Convai answers, someone V may talk to is near (a party member, a nearby character the game lists, or a recent conversation partner), and no conversation is running.
+- It captures one picture every **3 s**, keeping the last **5** in memory (about 500 KB at 1024 px, none older than 15 s), only while **all** of these hold: Convai answers, someone V may talk to is near (a party member, a nearby character the game lists, or a recent conversation partner), and no conversation is running.
 - "A conversation is running" means: the composer is open, a turn is being answered, the talk key is held or its recording is being answered, or a reply is playing (the game's speech state). After the last of these, nothing is captured for **12 s** more, because the view is probably still on the companion.
 - A picture that finishes after a conversation began is dropped.
 - A turn takes the newest frame taken at least **2.5 s before the conversation started** (V turning to face her) **if it is at most 6 s old**, else the newest frame. A frame older than **15 s** is never sent (see "Freshness" below); the turn then goes without a picture and the log says why.
@@ -109,7 +109,7 @@ Capture methods (unchanged from the first build): Windows Graphics Capture of th
 
 **Privacy.** Only the game window, kept in memory for at most 15 s (a picture is taken only while someone V may talk to is near, or when a conversation turn starts) and never written to disk. Exceptions, development only: `CYBERPUNK_CONVAI_VISION_DEBUG_DIR` (an absolute folder) keeps one copy per picture, and `CYBERPUNK_CONVAI_VISION_DEBUG_LAST=1` or `"visionDebugLastSent": true` in `runtime/settings.json` keeps the last picture handed to Convai in `runtime/vision-last-sent.jpg` with `vision-last-sent.json` (when it was taken and how it was sent), overwritten by each picture.
 
-**The unload rule** (`docs/RESOURCE_LIFECYCLE.md`). The helper process exists only while it is capturing. It is stopped on the next poll when the setting is turned off, Mistral or Local AI becomes the provider, nobody is near, or a conversation starts. It is never stopped mid-capture. It starts again (about 0.2 to 0.4 s, off the turn's path) when capturing resumes, and for one frame at the start of a turn that has no young frame (see "Freshness"). Turning the setting off also drops the buffer and reconnects the pages audio-only, once.
+**The unload rule** (`docs/RESOURCE_LIFECYCLE.md`). The helper process exists only while it is capturing. It is stopped on the next poll when Mistral or Local AI becomes the provider, nobody is near, or a conversation starts. It is never stopped mid-capture. It starts again (about 0.2 to 0.4 s, off the turn's path) when capturing resumes, and for one frame at the start of a turn that has no young frame (see "Freshness"). Leaving Convai also drops the buffer and reconnects the pages audio-only, once.
 
 ### Freshness (2026-10-15, from a live test)
 
@@ -173,7 +173,7 @@ Most of the time is the compositor delivering its next frame, not work. Helper s
 - **Talk key:** about 0. The frame is in memory at the press and is published while V talks; Convai buffers it long before the key is released.
 - **Typed line with the composer open first** (the usual case): about 0. The frame is published when the composer opens and buffered while V types. At send, the page recognises the same picture (no new publish) and checks its acknowledgement (no network wait).
 - **Typed turn without a composer** (a group's next speaker, a line sent within about half a second of opening the composer): at most 350 ms, overlapping the context update (estimate 0 to 350 ms).
-- **Mistral, Local AI, or vision off:** 0.
+- **Mistral, Local AI, or vision off (developer switch):** 0.
 
 ## 5. Use from other features: `attachToNextTurn`
 
@@ -189,14 +189,14 @@ companionVision.attachToNextTurn(images, {characterId, ttlMs})
 
 - Queued pictures go with the next turn, typed or talk key, after the surroundings frame. They are not staged ahead (they may arrive while V types), so such a turn takes the fallback path above.
 - At most 4 pictures in all; the oldest queued are dropped first. They are composed into the one frame described above.
-- Nothing is sent while the setting is off or another provider answers.
+- Nothing is sent while the developer switch is off or another provider answers.
 - A retried turn sends the same picture again.
 - The function is synchronous and never throws. Pictures stay in memory only.
 
 ## 6. Settings and developer keys
 
-- `companionVision` (bool, default **true**): the setting in Settings > Conversation provider. Written by `mod/manager.lua`, read by the bridge on its settings poll. `false` turns everything off (no helper, no buffer, pages audio-only).
-- `CYBERPUNK_CONVAI_VISION=off` (environment, development): turns vision off whatever the setting says.
+- No player setting. The `companionVision` setting (Settings > Conversation provider) was removed on 2026-10-16: vision is always on with Convai. `mod/manager.lua` drops an old saved `companionVision` key on load and the bridge ignores it, so a saved `false` cannot keep vision off.
+- `CYBERPUNK_CONVAI_VISION=off` (environment, development): turns vision off (no helper, no buffer, pages audio-only).
 - `visionTransport` in `runtime/settings.json` (developer only, not in the menu): `"video"` (default, dynamic vision context) or `"upload"` (`uploadFile` of the JPEG, for the live comparison).
 - `visionWaitMs` in `runtime/settings.json` (developer only): the fallback wait cap, 0 to 900 ms (default 350). `0` sends the line at once and relies on the server sampling the published picture before the model answers.
 - `CYBERPUNK_CONVAI_VISION_HELPER`: absolute path to a helper build. Default search: `<app>/vision/`, then `dist/vision/`.
@@ -214,7 +214,6 @@ companionVision.attachToNextTurn(images, {characterId, ttlMs})
 - `bridge/companion-vision.mjs`: the buffer, frame choice, ahead-of-time staging, the unload rule, and `attachToNextTurn`.
 - `bridge/convai-vision.mjs`: page side (connect options, compose, publish or upload, reuse of a picture staged ahead, acknowledgements); bundled into `runtime/realtime-client.js`.
 - `bridge/realtime-client.mjs`, `bridge/realtime-host.mjs` and `bridge/convai-bridge.mjs`: wiring.
-- `mod/manager.lua` and `mod/mcm.lua`: the setting. `mod/locales/*.lua`: its 2 strings in 15 languages.
 - Packaging: `packaging/runtime-layout.mjs`, `packaging/release-plan.json` and `packaging/build-release.mjs`.
 - Tests: `bridge/companion-vision.test.mjs`, `bridge/convai-vision.test.mjs`, 2 cases in `bridge/realtime-client.test.mjs`, the provider-section row lists in `bridge/manager.test.mjs`.
 
@@ -223,12 +222,12 @@ companionVision.attachToNextTurn(images, {characterId, ttlMs})
 Each turn is one Convai interaction (about 1 of the 100k a month). No separate image charge is documented. A first check needs about 5 to 10 turns.
 
 1. Build the helper with `scripts/Build-VisionCapture.ps1` in the checkout the bridge runs from (the development bridge finds `dist/vision/CyberpunkConvaiVision.exe` there), and rebuild the page bundle with `npm run build:voice` (`runtime/realtime-client.js` carries `bridge/convai-vision.mjs`).
-2. Install `mod/manager.lua`, `mod/mcm.lua` and the 15 `mod/locales/*.lua`, reload CET, restart the bridge. Settings > Conversation provider shows **Companions can see** on.
+2. Restart the bridge (with the helper and bundle from step 1). Settings > Conversation provider has no vision row: it is always on with Convai.
 3. With Judy in the party, walk around for 15 s without talking: the log shows `[Vision] picture (buffer) 1024x576` and Task Manager shows `CyberpunkConvaiVision.exe`.
 4. Turn to Judy, open the composer, type "what do you see around us?", send. The log shows `turn …: 1 image(s), frame N s old`. The reply describes the place, not her face and not the HUD. `bridge-diagnostics.json`: the page's `vision.lastOutcome` (watch for `vision_not_enabled`: then try one character on a Gemini or GPT model) and `prestaged` above 0.
 5. Typed latency: compare `bridge-latency.json` for a few lines with `CYBERPUNK_CONVAI_VISION=off` against on.
 6. The talk key: "what's around us?". The reply is no slower than with vision off.
-7. While talking, `CyberpunkConvaiVision.exe` is gone from Task Manager except for about a second when a turn starts without a young frame (the picture taken for the turn); the buffer's regular captures come back about 12 s after the conversation ends. It is never there under Mistral or Local AI, with the setting off, or with nobody near.
+7. While talking, `CyberpunkConvaiVision.exe` is gone from Task Manager except for about a second when a turn starts without a young frame (the picture taken for the turn); the buffer's regular captures come back about 12 s after the conversation ends. It is never there under Mistral or Local AI, with `CYBERPUNK_CONVAI_VISION=off`, or with nobody near.
 8. `"visionTransport": "upload"` and `"visionWaitMs": 0` in `runtime/settings.json`: do these paths work instead?
 9. Minimise the game for a while, then talk: the turn goes without a picture and the reply still comes.
-10. FPS: `perf-probe.json` for 2 minutes walking with Judy near (captures running) against 2 minutes with the setting off; watch for hitches.
+10. FPS: `perf-probe.json` for 2 minutes walking with Judy near (captures running) against 2 minutes with `CYBERPUNK_CONVAI_VISION=off`; watch for hitches.

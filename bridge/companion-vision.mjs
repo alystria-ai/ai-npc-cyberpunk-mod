@@ -1,5 +1,6 @@
 // "Companions can see" (docs/COMPANION_VISION.md): with Convai, every conversation turn carries one recent picture of V's
-// surroundings. On by default (settings.json "companionVision"; false turns it off, as does CYBERPUNK_CONVAI_VISION=off).
+// surroundings. Always on with Convai (there is no player setting; a saved "companionVision" key from an older install is ignored);
+// CYBERPUNK_CONVAI_VISION=off is the developer switch.
 //
 // Why a rolling buffer and not a screenshot at talk time: when V talks, V is usually looking at the companion, so a picture taken
 // then is mostly her face. The view from a few seconds *before* the conversation shows where they are. So, while a companion (or
@@ -88,7 +89,7 @@ export class CompanionVision {
   update(settings) {
     let changed = false;
     if (settings && typeof settings === 'object') {
-      const enabled = !this.envOff && settings.companionVision !== false;
+      const enabled = !this.envOff;
       const transport = settings.visionTransport === 'upload' ? 'upload' : 'video';
       const wait = Number(settings.visionWaitMs);
       changed = enabled !== this.enabled || transport !== this.transport;
