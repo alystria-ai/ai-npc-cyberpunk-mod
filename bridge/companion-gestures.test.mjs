@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
 import fengari from 'fengari';
 
 // Controller fixture: a fake native workspot layer, scripted speech/listening
@@ -656,7 +657,7 @@ test('no idle or talk stance starts while V crouches or the copy is held crouche
   assert(idles()==1,'the idle starts once V stands: '..idles())
   context.crouched=true;step(.3)
   assert(count('exit')==1 and lastLog('exit').fields.reason=='crouching' and not last('exit').instant,'leaves for a crouch with the fast exit')
-  step(.5)
+  step(1.2) -- the idle pose blends out for 0.8 s (Round 16); the copy stays held for all of it
   assert(not held and lastLog('finished').fields.reason=='crouching','released')
   local plays=count('play')
   step(60)
@@ -680,10 +681,11 @@ test('movement ends the workspot first and the follow waits for the pose blend-o
   for i=1,8 do player.pos={x=i*.15,y=0,z=0};step(.1) end
   assert(lastLog('exit') and lastLog('exit').fields.reason=='movement','exits on movement')
   local at=count('exit')
-  -- the workspot is left within a tick, but movement still waits for the blend
+  -- the workspot is left within a tick, but movement still waits for the whole blend-out (Round 16: idle exit blend 0.8 s)
+  local blendOut=load(catalogSource)().idleBlend.exitForced
   local heldTicks,total=0,0
-  for i=1,12 do step(.1);total=total+1;if held then heldTicks=heldTicks+1 end end
-  assert(heldTicks>=3 and heldTicks<=5,'held about 0.4 s after the workspot is left: '..heldTicks)
+  for i=1,16 do step(.1);total=total+1;if held then heldTicks=heldTicks+1 end end
+  assert(heldTicks>=blendOut*10-2 and heldTicks<=blendOut*10+1,'held for the blend-out ('..blendOut..' s) after the workspot is left: '..heldTicks)
   assert(not held,'then released')
   assert(count('exit')==at,'no second exit')
 `));
@@ -898,8 +900,10 @@ test('a prop idle starts with a free hand, is looked at once, and the declared i
   assert(#clears==0,'nothing is cleared while the idle runs')
   for i=1,8 do player.pos={x=i*.15,y=0,z=0};step(.1) end
   assert(lastLog('exit') and lastLog('exit').fields.reason=='movement')
+  step(.9)
+  assert(#clears==0,'the item stays in the hand while the pose blends out (0.8 s): '..#clears)
   step(1)
-  assert(#clears==1,'the first clean-up pass half a second after the idle ended: '..#clears)
+  assert(#clears==1,'the first clean-up pass half a second after the blend-out: '..#clears)
   assert(clears[1].slot=='AttachmentSlots.WeaponLeft' and clears[1].item=='Items.crowd_cigarette_i_stick','exactly the declared item and slot')
   assert(slots['AttachmentSlots.WeaponLeft']==nil,'taken out')
   local removed=0 for _,l in ipairs(logs) do if l.kind=='props-clear' and l.fields.state=='removed' then removed=removed+1 end end
@@ -1087,14 +1091,17 @@ const fairFixture = propFixture + `
     local out={} for _,k in ipairs(pool) do out[k]=weight(k)/total end
     return out
   end
+  -- Round 16: the long-run chain also skips the previous idle's look-alikes (same group); Johnny's pool always has another group.
+  local function groupOf(k) return cat.idleGroups[k] end
+  local function follows(last,k) return k~=last and not (isProp(last) and isProp(k)) and groupOf(k)~=groupOf(last) end
   local function chainShares()
     local p={} for _,k in ipairs(pool) do p[k]=1/#pool end
     for iter=1,400 do
       local q={} for _,k in ipairs(pool) do q[k]=0 end
       for _,last in ipairs(pool) do
         local total=0
-        for _,k in ipairs(pool) do if k~=last and not (isProp(last) and isProp(k)) then total=total+weight(k) end end
-        for _,k in ipairs(pool) do if k~=last and not (isProp(last) and isProp(k)) then q[k]=q[k]+p[last]*weight(k)/total end end
+        for _,k in ipairs(pool) do if follows(last,k) then total=total+weight(k) end end
+        for _,k in ipairs(pool) do if follows(last,k) then q[k]=q[k]+p[last]*weight(k)/total end end
       end
       p=q
     end
@@ -1114,6 +1121,7 @@ test('the idle pick is boosted but random: over many idles each of Johnny\'s sev
           local key=keyOf(logs[j].fields.component)
           counts[key]=(counts[key] or 0)+1;total=total+1;order[#order+1]=key
           assert(order[#order-1]~=key,'the same idle twice in a row: '..key..' at pick '..total)
+          assert(not order[#order-1] or groupOf(order[#order-1])~=groupOf(key),'two look-alike idles in a row: '..tostring(order[#order-1])..' then '..key..' at pick '..total)
           assert(not (order[#order-1] and isProp(order[#order-1]) and isProp(key)),'two prop idles in a row at pick '..total)
         end
       end
@@ -1603,5 +1611,230 @@ test('no catalogued character talks from an ambient loop that differs from the p
     if family.idle.name=='idle_stand' then
       for record,known in pairs(cat.characters) do assert(known.talk~=key,record..' uses '..key) end
     end
+  end
+`));
+
+// Round 16: no two look-alike idles back to back (catalog.idleGroups, gestures.json idleGroups) and a longer pose blend into and
+// out of the idle workspots (catalog.idleBlend, baked by the build).
+const gesturesSource = JSON.parse(readFileSync(new URL('../assets/gestures/gestures.json', import.meta.url), 'utf8').replace(/^\uFEFF/, ''));
+const luaTable = (object) => `{${Object.entries(object).filter(([key]) => key !== 'note').map(([key, value]) => `${key}='${value}'`).join(',')}}`;
+
+test('every idle workspot has a similarity group, the groups are described, and the catalog carries the data file groups', () => run(`
+  local cat=load(catalogSource)()
+  local wanted=${luaTable(gesturesSource.idleGroups)}
+  local notes=${luaTable(gesturesSource.idleGroupNotes)}
+  local used={}
+  for key in pairs(cat.idleComponents) do
+    assert(cat.idleGroups[key]==wanted[key] and wanted[key],'group of '..key..': '..tostring(cat.idleGroups[key]))
+    used[cat.idleGroups[key]]=true
+  end
+  for key,group in pairs(cat.idleGroups) do assert(cat.idleComponents[key],'a group for an idle without a workspot: '..key) end
+  for group in pairs(used) do assert(notes[group],'the group '..group..' is described') end
+  for group in pairs(notes) do assert(used[group],'the described group '..group..' is used') end
+  -- the live case: two different clips that both look arms-crossed are one group
+  assert(cat.idleGroups.generic_arms_crossed=='arms_crossed' and cat.idleGroups.johnny_crossed=='arms_crossed')
+  for _,key in ipairs({'alex','songbird','rogue','saul','ripperdoc_arms','generic_arms_crossed_b'}) do assert(cat.idleGroups[key]=='arms_crossed',key) end
+  for _,key in ipairs({'judy','panam','kerry','jackie_hips','panam_hips','generic_hips','generic_hips_big','generic_hip'}) do assert(cat.idleGroups[key]=='hands_on_hips',key) end
+  assert(cat.idleGroups.johnny_smoke=='smoking' and cat.idleGroups.johnny_shades=='glasses' and cat.idleGroups.johnny_aggressive=='tense')
+  assert(cat.idleGroups.johnny=='hand_in_pocket' and cat.idleGroups.generic=='hands_at_sides')
+  assert(cat.idleGroups.judy_coffee=='drinking' and cat.idleGroups.panam_beer=='drinking')
+`));
+
+test('Johnny never plays two look-alike idles in a row over thousands of picks, and his two arms-crossed idles never follow each other', () => run(fairFixture + `
+  local order,scanned={}, 0
+  for second=1,19000 do
+    step(1)
+    if #logs>scanned then
+      for j=scanned+1,#logs do if logs[j].kind=='flavour-begin' then order[#order+1]=keyOf(logs[j].fields.component) end end
+      scanned=#logs
+    end
+    if second%2000==0 then logs={};scanned=0 end
+  end
+  assert(#order>=300,'enough idles were picked: '..#order)
+  local seen,crossed={}, 0
+  for i=1,#order do
+    seen[order[i]]=true
+    if i>1 then
+      assert(groupOf(order[i])~=groupOf(order[i-1]),'look-alikes in a row at '..i..': '..order[i-1]..' then '..order[i])
+      local a,b=order[i-1],order[i]
+      if (a=='johnny_crossed' and b=='generic_arms_crossed') or (a=='generic_arms_crossed' and b=='johnny_crossed') then crossed=crossed+1 end
+    end
+  end
+  assert(crossed==0,'the two arms-crossed idles followed each other '..crossed..' times')
+  for _,key in ipairs(pool) do assert(seen[key],'every idle still comes up: '..key) end
+`));
+
+test('with a prop idle excluded by a busy hand the picks still avoid look-alikes', () => run(fairFixture + `
+  slots['AttachmentSlots.WeaponLeft']={match=false,fists=false,record='Items.Preset_Yukimura_Default'}
+  slots['AttachmentSlots.WeaponRight']={match=false,fists=false,record='Items.Preset_Yukimura_Default'}
+  local order,scanned={}, 0
+  for second=1,9000 do
+    step(1)
+    if #logs>scanned then
+      for j=scanned+1,#logs do if logs[j].kind=='flavour-begin' then order[#order+1]=keyOf(logs[j].fields.component) end end
+      scanned=#logs
+    end
+    if second%1500==0 then logs={};scanned=0 end
+  end
+  assert(#order>=100,'enough idles: '..#order)
+  for i=1,#order do
+    assert(not isProp(order[i]),'a prop idle with a full hand: '..order[i])
+    if i>1 then assert(groupOf(order[i])~=groupOf(order[i-1]),'look-alikes in a row at '..i..': '..order[i-1]..' then '..order[i]) end
+  end
+`));
+
+test('with no idle of another group in the pool the earlier rules apply: never the same idle twice, never a prop after a prop, the pool keeps turning', () => run(fairFixture + `
+  for key in pairs(c.catalog.idleGroups) do c.catalog.idleGroups[key]='one_group' end
+  local order,scanned={}, 0
+  for second=1,12000 do
+    step(1)
+    if #logs>scanned then
+      for j=scanned+1,#logs do if logs[j].kind=='flavour-begin' then order[#order+1]=keyOf(logs[j].fields.component) end end
+      scanned=#logs
+    end
+    if second%2000==0 then logs={};scanned=0 end
+  end
+  assert(#order>=250,'enough idles: '..#order)
+  local seen={}
+  for i=1,#order do
+    seen[order[i]]=true
+    if i>1 then
+      assert(order[i]~=order[i-1],'the same idle twice at '..i)
+      assert(not (isProp(order[i]) and isProp(order[i-1])),'two prop idles in a row at '..i)
+    end
+  end
+  for _,key in ipairs(pool) do assert(seen[key],'every idle still comes up with the fallback: '..key) end
+`));
+
+test('an older catalog without groups behaves as before: the look-alikes do follow each other, so the rule is what stops them', () => run(fairFixture + `
+  c.catalog.idleGroups=nil
+  local order,scanned={}, 0
+  for second=1,6000 do
+    step(1)
+    if #logs>scanned then
+      for j=scanned+1,#logs do if logs[j].kind=='flavour-begin' then order[#order+1]=keyOf(logs[j].fields.component) end end
+      scanned=#logs
+    end
+    if second%1500==0 then logs={};scanned=0 end
+  end
+  assert(#order>=100,'enough idles: '..#order)
+  local crossed=0
+  for i=2,#order do
+    assert(order[i]~=order[i-1],'repeat at '..i)
+    local a,b=order[i-1],order[i]
+    if (a=='johnny_crossed' and b=='generic_arms_crossed') or (a=='generic_arms_crossed' and b=='johnny_crossed') then crossed=crossed+1 end
+  end
+  assert(crossed>0,'without groups the look-alikes do follow each other: '..crossed)
+`));
+
+test('Judy alternates between her hips idles and her coffee idle, never two hips idles in a row, and both kinds come up', () => run(propFixture + `
+  entry.record='Character.Judy';entry.serial=3;calls={};logs={}
+  local rnd=777
+  c.random=function() rnd=(rnd*1103515245+12345)%2147483648;return rnd/2147483648 end
+  m.policy.interestingBonus=2.75
+  m.policy.propMisses=1e9 -- the fake hand never shows the cup; keep the coffee idle in the pool
+  local cat=load(catalogSource)()
+  local order,scanned={}, 0
+  for second=1,9000 do
+    step(1)
+    if #logs>scanned then
+      for j=scanned+1,#logs do if logs[j].kind=='flavour-begin' then order[#order+1]=(logs[j].fields.component:gsub('^convai_idle_','')) end end
+      scanned=#logs
+    end
+    if second%1500==0 then logs={};scanned=0 end
+  end
+  assert(#order>=100,'enough idles: '..#order)
+  local kinds={}
+  for i=1,#order do
+    kinds[order[i]]=true
+    if i>1 then assert(cat.idleGroups[order[i]]~=cat.idleGroups[order[i-1]],'look-alikes in a row at '..i..': '..order[i-1]..' then '..order[i]) end
+  end
+  assert(kinds.judy_coffee and (kinds.judy or kinds.jackie_hips or kinds.panam_hips),'the coffee idle and hips idles both come up')
+`));
+
+// Pose blends (catalog.idleBlend): vanilla idle workspots blend in over 0.5 s and out over 0.2 s (forced: the exit signal the
+// controller sends); the build bakes the longer values into the idle copies, and the controller keeps the copy held for the blend-out.
+test('the idle pose blends are longer than vanilla, 0.6-1.0 s, and the catalog carries exactly what the data file sets', () => run(`
+  local cat=load(catalogSource)()
+  local blend=cat.idleBlend
+  assert(blend,'the catalog has idleBlend')
+  assert(blend.enter==${gesturesSource.idleBlend.enter} and blend.exitNatural==${gesturesSource.idleBlend.exitNatural} and blend.exitForced==${gesturesSource.idleBlend.exitForced},'passed through as set')
+  for _,field in ipairs({'enter','exitNatural','exitForced'}) do
+    assert(blend[field]>=.6 and blend[field]<=1.0,field..' is 0.6-1.0 s: '..tostring(blend[field]))
+  end
+  assert(blend.enter>.5 and blend.exitNatural>.5 and blend.exitForced>.2,'longer than the vanilla 0.5 / 0.5 / 0.2 s')
+  assert(m.policy.vanillaExitBlend==.2)
+`));
+
+test('the build writes the idle blends into every idle workspot copy and leaves talk stances and seats alone (needs the extracted game data)', async (context) => {
+  const {existsSync, mkdtempSync, readdirSync, rmSync} = await import('node:fs');
+  const {tmpdir} = await import('node:os');
+  const {join} = await import('node:path');
+  const {execFileSync} = await import('node:child_process');
+  const root = process.env.GESTURE_BUILD_ROOT || 'E:\\CyberpunkConvai-offload\\work\\gesture-assets-p3\\build-40092fb53de743c4806654d8e7a57a3c';
+  if (!existsSync(join(root, 'json')) || !existsSync(join(root, 'listing.txt'))) { context.skip('the extracted gesture data is not on this machine'); return; }
+  const out = mkdtempSync(join(tmpdir(), 'gesture-build-'));
+  const catalogFile = join(out, 'catalog.lua');
+  try {
+    execFileSync(process.execPath, [fileURLToPath(new URL('../scripts/Build-GestureAssets.mjs', import.meta.url)), '--inputs', join(root, 'json'),
+      '--out', out, '--listing', join(root, 'listing.txt'), '--catalog', catalogFile], {stdio: 'pipe'});
+    const round = (value) => Math.round(Number(value) * 1000) / 1000;
+    const blendOf = (file) => {
+      const tree = JSON.parse(readFileSync(join(out, file), 'utf8')).Data.RootChunk.workspotTree.Data;
+      return [tree.inertializationDurationEnter, tree.inertializationDurationExitNatural, tree.inertializationDurationExitForced].map(round);
+    };
+    const wanted = [gesturesSource.idleBlend.enter, gesturesSource.idleBlend.exitNatural, gesturesSource.idleBlend.exitForced].map(round);
+    const idles = readdirSync(out).filter((name) => name.startsWith('convai_idle_') && name.endsWith('.workspot.json'));
+    assert.ok(idles.length >= 30, `idle copies: ${idles.length}`);
+    for (const name of idles) assert.deepEqual(blendOf(name), wanted, name);
+    for (const name of readdirSync(out).filter((n) => n.startsWith('convai_seat_') && n.endsWith('.workspot.json'))) {
+      assert.deepEqual(blendOf(name).slice(0, 2), [0.5, 0.5], `${name} keeps its vanilla enter and exit`);
+    }
+    assert.deepEqual(blendOf('convai_talk_on_sides.workspot.json'),
+      [gesturesSource.blend.enter, gesturesSource.blend.exitNatural, gesturesSource.blend.exitForced].map(round), 'the talk stance keeps its own blends');
+    assert.ok(readFileSync(catalogFile, 'utf8').includes(`exitForced = ${gesturesSource.idleBlend.exitForced}`), 'the catalog carries the blend');
+  } finally { rmSync(out, {recursive: true, force: true}); }
+});
+
+test('after an idle exit the copy stays held for the whole blend-out, and that follows the catalog; an older catalog keeps the plain settle', () => run(propFixture + `
+  entry.record='Character.Silverhand';entry.serial=2
+  local function heldAfterExit(prepare)
+    c.release(entry,'despawn');step(4)
+    entry.serial=entry.serial+1;npc.inside=false;npc.entering=nil;npc.leaving=nil;calls={};logs={}
+    c.random=function() return aim('johnny_aggressive') end
+    if prepare then prepare() end
+    player.pos={x=0,y=0,z=0};step(1)
+    untilPlay();step(3)
+    for i=1,8 do player.pos={x=i*.15,y=0,z=0};step(.1) end
+    assert(lastLog('exit') and lastLog('exit').fields.reason=='movement')
+    local ticks=0
+    for i=1,40 do step(.1);if held then ticks=ticks+1 end end
+    return ticks,lastLog('finished').fields
+  end
+  local base=load(catalogSource)().idleBlend.exitForced
+  local ticks,fields=heldAfterExit()
+  assert(math.abs(ticks-base*10)<=2.5,'held '..ticks..' ticks for a blend-out of '..base..' s')
+  assert(fields.blendOut==base,'the finished line says what it waited for: '..tostring(fields.blendOut))
+  local longer,fieldsLonger=heldAfterExit(function() c.catalog.idleBlend.exitForced=1.5 end)
+  assert(math.abs(longer-15)<=2.5 and longer>ticks,'a 1.5 s blend-out holds for 1.5 s: '..longer)
+  assert(fieldsLonger.blendOut==1.5)
+  c.catalog.idleBlend.exitForced=base
+  local plain,fieldsPlain=heldAfterExit(function() c.catalog.idleBlend=nil end)
+  assert(math.abs(plain-m.policy.exitSettle*10)<=2.5,'an older catalog: the plain settle of '..m.policy.exitSettle..' s, held '..plain)
+  assert(fieldsPlain.blendOut==0)
+`));
+
+test('the exit signal still comes at the cycle end whatever the blend-out, and the copy is held for the blend that follows, so the hold is not cut mid-motion', () => run(holdFixture + `
+  local base=load(catalogSource)().idleBlend.exitForced
+  for _,blend in ipairs({base,1.5}) do
+    fresh()
+    c.catalog.idleBlend.exitForced=blend
+    local took,fields,exit=measure('Character.Silverhand','johnny_aggressive')
+    assert(fields.hold==25.47,'one cycle')
+    assert(took>=25.47-lead-.25 and took<=25.47-lead+.25,'the signal at the cycle end ('..blend..' s blend): '..took)
+    -- from the signal on: the workspot is left within a tick, and the copy is held until the blend-out is over
+    local ticks=0
+    for i=1,40 do step(.1);if held then ticks=ticks+1 end end
+    assert(math.abs(ticks-blend*10)<=2.5,'held through the '..blend..' s blend-out: '..ticks)
   end
 `));

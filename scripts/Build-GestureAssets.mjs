@@ -227,6 +227,22 @@ for (const [key, row] of Object.entries(source.propIdles ?? {})) {
         fail(`prop idle ${key}: hideComponents must be a non-empty list of component name fragments`);
     }
 }
+// Visual similarity group of every idle (Round 16): the controller never follows an idle with one of the same group while
+// the pool has another. Every idle workspot needs one, and a group row without a workspot is a typo.
+const idleGroups = Object.fromEntries(Object.entries(source.idleGroups ?? {}).filter(([key]) => key !== 'note'));
+const groupNotes = source.idleGroupNotes ?? {};
+for (const key of Object.keys(source.idleWorkspots)) {
+    if (!/^[a-z][a-z_]*$/.test(idleGroups[key] ?? '')) fail(`idle ${key} has no similarity group (idleGroups)`);
+    if (!groupNotes[idleGroups[key]]) fail(`idle ${key}: group ${idleGroups[key]} is not described in idleGroupNotes`);
+}
+for (const key of Object.keys(idleGroups)) if (!source.idleWorkspots[key]) fail(`idleGroups lists ${key}, which has no idle workspot`);
+for (const group of Object.keys(groupNotes)) if (!Object.values(idleGroups).includes(group)) fail(`idleGroupNotes describes ${group}, which no idle uses`);
+// Pose blends of the idle workspot copies (seconds, Round 16): vanilla is enter 0.5, natural exit 0.5, forced exit 0.2.
+const idleBlend = source.idleBlend ?? {};
+for (const field of ['enter', 'exitNatural', 'exitForced']) {
+    const seconds = Number(idleBlend[field]);
+    if (!(seconds >= 0.2 && seconds <= 3)) fail(`idleBlend.${field} must be 0.2-3 s: ${idleBlend[field]}`);
+}
 for (const [key, row] of Object.entries(source.idleOptions ?? {})) {
     if (key === 'note') continue;
     if (!source.idleWorkspots[key]) fail(`idle option for ${key}, which has no workspot`);
@@ -358,6 +374,10 @@ for (const [what, depot] of Object.entries(source.idleWorkspots).map(([key, d]) 
     const copy = clone(json);
     if (!faceNeutral(copy)) neutralFace(copy, what);
     const dropped = withoutEntries(copy, what);
+    const idleTree = copy.Data.RootChunk.workspotTree.Data;
+    idleTree.inertializationDurationEnter = idleBlend.enter;
+    idleTree.inertializationDurationExitNatural = idleBlend.exitNatural;
+    idleTree.inertializationDurationExitForced = idleBlend.exitForced;
     const options = source.idleOptions?.[key] ?? {};
     const omitted = options.omitClips?.length ? omitClips(copy, options.omitClips, what) : 0;
     const looped = options.endless ? endlessIdle(copy, what) : 0;
@@ -619,6 +639,11 @@ const catalog = {
     // Per idle: character (own clips), character workspot (shared clips) or generic, and the rigs it was checked on.
     idleSources: Object.fromEntries(Object.entries(source.idleSources ?? {}).map(([key, [kind, what, rigs]]) => [key, { kind, what, rigs: rigs.split(',') }])),
     idleCycles,
+    // Visual similarity group per idle (idleGroups in gestures.json): an idle is never followed by one of its own group
+    // while the pool has another (mod/companion-gestures.lua).
+    idleGroups,
+    // Pose blends baked into the idle workspot copies; the controller waits for the blend-out after an exit.
+    idleBlend: { enter: idleBlend.enter, exitNatural: idleBlend.exitNatural, exitForced: idleBlend.exitForced },
     // Idles that put an item in a hand (animation data, scripts/Audit-PropIdles.mjs): what the controller takes off afterwards.
     propIdles: Object.fromEntries(Object.entries(source.propIdles ?? {}).filter(([key]) => key !== 'note')
         .map(([key, row]) => [key, { prop: row.prop, items: row.items.map((item) => ({ item: item.item, slot: item.slot })),
