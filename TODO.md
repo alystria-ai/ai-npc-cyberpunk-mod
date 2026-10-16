@@ -15,9 +15,7 @@ Install state: everything on `main` c277774d is installed in the game, including
 - Timing facts: about 35 new Cyberpunk mods a day, so a new one stays on page 1 of New for 12 to 14 hours; trending ranks mods first published in its window by endorsements; Steam peaks about 13:00 to 14:00 UTC and Sundays run 10 to 20% above weekdays.
 
 ### Needs the user (decisions and approvals)
-- **Rebuild the gesture archive for the longer idle blends?** (branch `idle-variety`, log 2026-10-16 `idle-variety`; `scripts\Build-GestureAssets.ps1`, game restart afterwards.) The idle workspot copies still blend 0.5 s in and 0.2 s out; `gestures.json` `idleBlend` (0.9 / 0.8 s) takes effect only once the archive is rebuilt and installed.
 - **Remind the user on 2026-10-17 to make the GitHub repository `alystria-ai/cyberpunk-convai` public.** Releases publish there and players need it public.
-- **Settings review walk-through** with the user (prep `docs/SETTINGS_REVIEW_2026-10-07.md`; decisions so far in the log).
 
 ### Release blockers (before Sun 18 Oct 11:00 UTC)
 - **Release build in the real game: done 2026-10-16.** A fresh-player install from the built Scripts and Runtime zips, with no key: Sign in with Convai, talk, mic, phone chat, holocall, settings layout and companions all work (see the log). Watch for the transient `CL.exe` crash in the CI native build.
