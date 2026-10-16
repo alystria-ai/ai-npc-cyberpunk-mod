@@ -601,6 +601,16 @@ const lua = (value, indent = '') => {
     if (Array.isArray(value)) return `{\n${value.map((item) => `${next}${lua(item, next)},`).join('\n')}\n${indent}}`;
     return `{\n${Object.entries(value).filter(([, item]) => item !== null && item !== undefined).map(([key, item]) => `${next}${/^[A-Za-z_]\w*$/.test(key) ? key : `[${JSON.stringify(key)}]`} = ${lua(item, next)},`).join('\n')}\n${indent}}`;
 };
+// Natural cycle (seconds of the loop clip) of each idle per rig, measured by scripts/Measure-IdleCycles.mjs from the same
+// extracted workspots and animsets (Round 15). The controller holds an idle for whole cycles; an idle missing here keeps
+// the random hold. The measured file is optional, like the motion data.
+const cyclesFile = path.join(project, 'assets', 'gestures', 'idle-cycles.json');
+const idleCycles = {};
+for (const [key, row] of Object.entries(fs.existsSync(cyclesFile) ? readJson(cyclesFile).idles ?? {} : {})) {
+    if (!source.idleWorkspots[key]) fail(`idle-cycles.json lists ${key}, which has no idle workspot`);
+    const perRig = Object.fromEntries(Object.entries(row.cycle ?? {}).filter(([rig, seconds]) => source.rigs[rig] && Number(seconds) > 0));
+    if (Object.keys(perRig).length > 0) idleCycles[key] = perRig;
+}
 const catalog = {
     version: 2,
     device: source.device,
@@ -608,6 +618,7 @@ const catalog = {
     idleComponents: Object.fromEntries(Object.keys(source.idleWorkspots).map((key) => [key, `convai_idle_${key}`])),
     // Per idle: character (own clips), character workspot (shared clips) or generic, and the rigs it was checked on.
     idleSources: Object.fromEntries(Object.entries(source.idleSources ?? {}).map(([key, [kind, what, rigs]]) => [key, { kind, what, rigs: rigs.split(',') }])),
+    idleCycles,
     // Idles that put an item in a hand (animation data, scripts/Audit-PropIdles.mjs): what the controller takes off afterwards.
     propIdles: Object.fromEntries(Object.entries(source.propIdles ?? {}).filter(([key]) => key !== 'note')
         .map(([key, row]) => [key, { prop: row.prop, items: row.items.map((item) => ({ item: item.item, slot: item.slot })),

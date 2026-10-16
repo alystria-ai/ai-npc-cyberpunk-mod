@@ -35092,6 +35092,160 @@ local catalog = {
             },
         },
     },
+    idleCycles = {
+        judy = {
+            woman_base = 10,
+        },
+        johnny = {
+            woman_base = 25.47,
+            man_base = 25.47,
+        },
+        panam = {
+            woman_base = 18.5,
+            man_base = 10,
+            man_big = 10,
+        },
+        kerry = {
+            man_base = 10,
+        },
+        takemura = {
+            man_base = 25.47,
+        },
+        jackie = {
+            man_big = 11.07,
+        },
+        generic = {
+            woman_base = 34.8,
+            man_base = 25.47,
+            man_big = 25.47,
+        },
+        johnny_smoke = {
+            man_base = 11,
+        },
+        misty = {
+            woman_base = 8.83,
+        },
+        river = {
+            woman_base = 10.1,
+            man_base = 10.1,
+            man_big = 25.47,
+        },
+        rogue = {
+            woman_base = 13.77,
+        },
+        hanako = {
+            woman_base = 11.37,
+        },
+        saul = {
+            man_base = 4.17,
+        },
+        reed = {
+            man_big = 25.47,
+        },
+        placide = {
+            man_big = 13.37,
+        },
+        alex = {
+            woman_base = 22,
+            man_base = 21.97,
+            man_big = 22,
+        },
+        songbird = {
+            woman_base = 22,
+            man_base = 21.97,
+            man_big = 22,
+        },
+        generic_arms_crossed = {
+            woman_base = 22,
+            man_base = 21.97,
+            man_big = 22,
+        },
+        generic_hip = {
+            woman_base = 18.5,
+            man_base = 10,
+            man_big = 10,
+        },
+        generic_hips = {
+            woman_base = 10,
+            man_big = 10,
+        },
+        generic_hips_big = {
+            woman_base = 10,
+            man_base = 10,
+            man_big = 20.1,
+        },
+        generic_back = {
+            woman_base = 9.73,
+            man_base = 9.73,
+            man_big = 9.73,
+        },
+        alt = {
+            woman_base = 34.8,
+        },
+        jackie_hips = {
+            woman_base = 10,
+            man_base = 10,
+            man_big = 20.1,
+        },
+        panam_hips = {
+            woman_base = 10,
+            man_big = 10,
+        },
+        bodyguard_front = {
+            woman_base = 10,
+            man_base = 10,
+            man_big = 10,
+        },
+        bodyguard_back = {
+            woman_base = 9.73,
+            man_base = 9.73,
+            man_big = 9.73,
+        },
+        generic_hold = {
+            woman_base = 16,
+            man_base = 16,
+            man_big = 16,
+        },
+        ripperdoc_arms = {
+            woman_base = 22,
+            man_base = 21.97,
+            man_big = 22,
+        },
+        generic_arms_crossed_b = {
+            woman_base = 22,
+            man_base = 21.97,
+            man_big = 22,
+        },
+        uscracks_cute = {
+            woman_base = 10,
+            man_base = 10,
+        },
+        johnny_crossed = {
+            man_base = 22,
+        },
+        johnny_aggressive = {
+            woman_base = 25.47,
+            man_base = 25.47,
+        },
+        johnny_shades = {
+            man_base = 10,
+        },
+        judy_coffee = {
+            woman_base = 10,
+            man_base = 10,
+            man_big = 10,
+        },
+        panam_beer = {
+            woman_base = 3.83,
+            man_base = 5.3,
+            man_big = 3.83,
+        },
+        generic_front = {
+            woman_base = 10,
+            man_base = 10,
+            man_big = 10,
+        },
+    },
     propIdles = {
         johnny_smoke = {
             prop = "cigarette",

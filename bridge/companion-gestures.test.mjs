@@ -502,7 +502,9 @@ for (const [bodyType, rig, pool] of [
       step(1)
     end
     local order={} for _,l in ipairs(logs) do if l.kind=='flavour-begin' then order[#order+1]=l.fields.component end end
-    for i=2,#order do assert(order[i]~=order[i-1] or ${pool.length}==1,'not the same idle twice in a row: '..order[i]) end
+    -- three usable idles or more: never the same twice in a row; with two (generic_hips is never picked) a repeat is allowed
+    local usable=${pool.filter((k) => k !== 'convai_idle_generic_hips').length}
+    for i=2,#order do assert(order[i]~=order[i-1] or usable<=2,'not the same idle twice in a row: '..order[i]) end
     local kinds=0 for _ in pairs(seen) do kinds=kinds+1 end
     assert(kinds>=${Math.min(pool.length, 2)},'more than one idle used: '..kinds)
     assert(reads==1,'still one read')
@@ -1172,6 +1174,163 @@ test('the idle cadence keeps the pool turning: a gap of 8-20 s and a length of 4
   assert(m.policy.flavourLength[1]>=30 and m.policy.flavourLength[2]<=80,'length')
   assert(m.policy.flavourFirst[1]==0 and m.policy.flavourFirst[2]==0,'no first-idle delay')
   assert((m.policy.flavourGap[1]+m.policy.flavourGap[2]+m.policy.flavourLength[1]+m.policy.flavourLength[2])/2<=75,'an idle every 75 s on average at most')
+`));
+
+// Round 15: an idle holds for whole cycles of its own loop clip (catalog.idleCycles, measured from the workspot data) and is
+// left at a cycle end; prop idles, idles without a measured cycle and holds beyond the random range keep the random length.
+// Live 2026-10-16: Johnny's aggressive idle (a 25.47 s loop) replayed inside a random 40-75 s hold.
+const holdFixture = propFixture + `
+  local function aimFor(record,key)
+    local cat=load(catalogSource)()
+    local known=cat.characters[record]
+    local pool,seen={}, {}
+    local function add(k) if k and not seen[k] and cat.idleComponents[k] then seen[k]=true;pool[#pool+1]=k end end
+    add(known.idle) for _,k in ipairs(known.idles or {}) do add(k) end
+    if cat.generic.mix then for _,k in ipairs(cat.generic.rigs[known.rig].idles) do add(k) end end
+    for i,k in ipairs(pool) do if k==key then return (i-.5)/#pool end end
+    error('not in the pool: '..key)
+  end
+  -- Starts the idle 'key' for the copy of 'record' and returns the seconds from its play call to the exit signal, the
+  -- flavour-begin fields and the exit's log.
+  local function measure(record,key)
+    entry.record=record
+    local aimed=aimFor(record,key)
+    c.random=function() return aimed end
+    untilPlay()
+    local began=lastLog('flavour-begin')
+    assert(began and began.fields.component=='convai_idle_'..key,'the idle: '..tostring(began and began.fields.component))
+    local from,exits=c.clock,count('exit')
+    local waited=0
+    while count('exit')==exits and waited<1000 do step(.1);waited=waited+1 end
+    assert(count('exit')==exits+1,'the idle ended')
+    return c.clock-from,began.fields,lastLog('exit')
+  end
+  local function fresh()
+    c.release(entry,'despawn');step(4)
+    entry.serial=entry.serial+1;npc.inside=false;npc.entering=nil;npc.leaving=nil;calls={};logs={}
+  end
+  local lead=m.policy.cycleLead
+`;
+
+test('a long loop clip holds exactly one cycle and the exit comes at the cycle end, not mid-cycle (Johnny aggressive, 25.47 s)', () => run(holdFixture + `
+  local cat=load(catalogSource)()
+  assert(cat.idleCycles.johnny_aggressive.man_base==25.47,'the measured loop clip: '..tostring(cat.idleCycles.johnny_aggressive.man_base))
+  local took,fields,exit=measure('Character.Silverhand','johnny_aggressive')
+  assert(fields.hold==25.47 and fields.cycles==1,'one cycle: '..tostring(fields.hold)..' x '..tostring(fields.cycles))
+  assert(exit.fields.reason=='flavour ended','ended by its time: '..tostring(exit.fields.reason))
+  -- the exit signal comes cycleLead before the cycle end (the workspot leaves .1 s after it), within a tick or two
+  assert(took>=25.47-lead-.25 and took<=25.47-lead+.25,'the exit signal at the cycle end: '..took)
+`));
+
+test('a clip under 12 s runs two cycles, a very short one the whole cycles that reach 15 s', () => run(holdFixture + `
+  local cat=load(catalogSource)()
+  assert(cat.idleCycles.kerry.man_base==10,'Kerry loops a 10 s clip')
+  local took,fields=measure('Character.Kerry','kerry')
+  assert(fields.cycles==2 and fields.hold==20,'two cycles of 10 s: '..tostring(fields.hold)..' x '..tostring(fields.cycles))
+  assert(took>=20-lead-.25 and took<=20-lead+.25,'the exit at the end of the second cycle: '..took)
+  -- a 4.17 s clip: two cycles would be 8 s, so four whole cycles: 16.68 s
+  fresh()
+  c.catalog.idleCycles.kerry.man_base=4.17
+  local took2,fields2=measure('Character.Kerry','kerry')
+  assert(fields2.cycles==4 and math.abs(fields2.hold-16.68)<.01,'whole cycles reaching 15 s: '..tostring(fields2.hold)..' x '..tostring(fields2.cycles))
+  assert(took2>=16.68-lead-.25 and took2<=16.68-lead+.25,'and the exit at that cycle end: '..took2)
+`));
+
+test('a prop idle, an idle with no measured cycle, a cycle past the random range, and the kill switch keep the random 40-75 s hold', () => run(holdFixture + `
+  local took,fields=measure('Character.Silverhand','johnny_shades')
+  assert(fields.hold==nil and fields.cycles==nil,'a prop idle is not cycle-held')
+  assert(took>=39 and took<=76,'its random length: '..took)
+  fresh()
+  c.catalog.idleCycles.johnny_aggressive.man_base=nil
+  local took2,fields2=measure('Character.Silverhand','johnny_aggressive')
+  assert(fields2.hold==nil and took2>=39 and took2<=76,'no measured cycle: '..took2)
+  fresh()
+  c.catalog.idleCycles.johnny_aggressive.man_base=80
+  local took3,fields3=measure('Character.Silverhand','johnny_aggressive')
+  assert(fields3.hold==nil and took3>=39 and took3<=76,'a cycle past 75 s: '..took3)
+  fresh()
+  c.catalog.idleCycles.johnny_aggressive.man_base=25.47
+  m.policy.cycleHold=false
+  local took4,fields4=measure('Character.Silverhand','johnny_aggressive')
+  assert(fields4.hold==nil and took4>=39 and took4<=76,'switched off: '..took4)
+`));
+
+test('a cycle-held idle still ends by the old exits: V walking off stops it', () => run(holdFixture + `
+  c.random=function() return aimFor('Character.Silverhand','johnny_aggressive') end
+  untilPlay();step(3)
+  for i=1,8 do player.pos={x=i*.15,y=0,z=0};step(.1) end
+  assert(lastLog('exit') and lastLog('exit').fields.reason=='movement','stop on move still works')
+  step(1)
+  assert(lastLog('finished').fields.reason=='movement')
+`));
+
+test('every measured cycle belongs to an idle workspot and a known rig, and the cycles are real clip lengths', () => run(`
+  local cat=load(catalogSource)()
+  local rigs={woman_base=true,man_base=true,man_big=true}
+  local count=0
+  for key,row in pairs(cat.idleCycles) do
+    assert(cat.idleComponents[key],'no workspot for '..key)
+    for rig,seconds in pairs(row) do
+      assert(rigs[rig],'rig '..rig..' of '..key)
+      assert(type(seconds)=='number' and seconds>2 and seconds<60,key..' on '..rig..': '..tostring(seconds))
+      count=count+1
+    end
+  end
+  assert(count>=60,'the measured table is filled: '..count)
+  for _,key in ipairs({'johnny','johnny_crossed','johnny_aggressive','johnny_smoke','johnny_shades'}) do
+    assert(cat.idleCycles[key] and cat.idleCycles[key].man_base,'measured: '..key)
+  end
+  assert(m.policy.flavourGap[1]==8 and m.policy.flavourGap[2]==20,'the gap between idles is unchanged')
+`));
+
+// Round 15: with exactly two idles in the pool strict no-repeat is A-B-A-B; the last idle may come again with chance repeatChance.
+test('a two-idle pool is not strictly alternating: the last idle repeats about repeatChance of the time, and no third idle appears', () => run(`
+  entry.record='Character.sq017_blue_moon_x'
+  function native.bodyType() return 'manaverage' end
+  local rnd=4242
+  c.random=function() rnd=(rnd*1103515245+12345)%2147483648;return rnd/2147483648 end
+  assert(m.policy.repeatChance>=.2 and m.policy.repeatChance<=.4,'about 30 %: '..m.policy.repeatChance)
+  local scanned,order=0,{}
+  for second=1,16000 do
+    step(1)
+    if #logs>scanned then
+      for j=scanned+1,#logs do if logs[j].kind=='flavour-begin' then order[#order+1]=logs[j].fields.component end end
+      scanned=#logs
+    end
+    if second%2000==0 then logs={};scanned=0 end
+  end
+  assert(#order>=300,'enough idles: '..#order)
+  local seen,repeats,alternations={}, 0, 0
+  for i,component in ipairs(order) do
+    seen[component]=true
+    if i>1 then
+      if component==order[i-1] then repeats=repeats+1 end
+      if i>2 and component==order[i-2] and component~=order[i-1] then alternations=alternations+1 end
+    end
+  end
+  local kinds=0 for _ in pairs(seen) do kinds=kinds+1 end
+  assert(kinds==2 and seen.convai_idle_generic_arms_crossed and seen.convai_idle_generic,'only the two idles of the rig: '..kinds)
+  local share=repeats/(#order-1)
+  assert(share>.22 and share<.38,'a repeat about 30 % of the time: '..share)
+  assert(alternations<.8*(#order-2),'not strictly A-B-A-B: '..alternations..' of '..(#order-2))
+`));
+
+test('three or more idles never repeat the one just played', () => run(`
+  entry.record='Character.sq017_blue_moon_x'
+  function native.bodyType() return 'manbig' end
+  local rnd=99
+  c.random=function() rnd=(rnd*1103515245+12345)%2147483648;return rnd/2147483648 end
+  local scanned,order=0,{}
+  for second=1,9000 do
+    step(1)
+    if #logs>scanned then
+      for j=scanned+1,#logs do if logs[j].kind=='flavour-begin' then order[#order+1]=logs[j].fields.component end end
+      scanned=#logs
+    end
+    if second%1500==0 then logs={};scanned=0 end
+  end
+  assert(#order>=100,'enough idles: '..#order)
+  for i=2,#order do assert(order[i]~=order[i-1],'repeat at '..i..': '..order[i]) end
 `));
 
 // Round 14: Johnny's sunglasses idle holds his aviators in the hand, so the pair on his face (a mesh component) is hidden while
