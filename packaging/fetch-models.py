@@ -6,6 +6,12 @@ checked against the SHA-256 recorded in the bucket's final/MANIFEST.json, so a r
 can only contain the exact files that were backed up.
 
     python packaging/fetch-models.py --config packaging/release.config.json --cache DIR --report OUT.json
+    python packaging/fetch-models.py --config packaging/release.config.json --cache DIR --report OUT.json --mature
+
+With --mature it fetches only the two Mature pack models from the bucket's mirror (maturePack.mirror in the config: a
+prefix outside final/, with its own MANIFEST.json), each checked against the size and SHA-256 pinned in maturePack.tiers.
+A model the mirror does not have (or a missing token) is left out of the report, and the builder then downloads that
+model from its pinned public Hugging Face URL instead. A mirror file that is present but differs from the pin is an error.
 """
 from __future__ import annotations
 
@@ -25,13 +31,56 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def fetch_mature(full_config: dict, api, cache: Path, report: Path) -> int:
+    bucket = full_config["models"]["bucket"]
+    spec = full_config["maturePack"]
+    mirror = spec["mirror"]
+    manifest_path = cache / mirror["manifest"]
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    files: dict[str, str] = {}
+    try:
+        api.download_bucket_files(bucket, [(mirror["manifest"], str(manifest_path))], raise_on_missing_files=True)
+        listed = {entry["path"]: entry for entry in json.loads(manifest_path.read_text(encoding="utf-8"))["files"]}
+    except Exception as error:  # a missing mirror is not fatal: the builder uses the public URL
+        print(f"Mature mirror manifest unavailable ({type(error).__name__}); using the public Hugging Face URLs.", flush=True)
+        report.write_text(json.dumps({"files": files}, indent=1), encoding="utf-8")
+        return 0
+    for key in ("lite", "good"):
+        tier = spec["tiers"][key]
+        remote = mirror["bucket"] + tier["file"]
+        entry = listed.get(remote)
+        if not entry or entry["size"] != tier["size"] or entry["sha256"] != tier["sha256"]:
+            print(f"{remote} is not in the mirror manifest with the pinned size and SHA-256; using the public URL.", flush=True)
+            continue
+        local = cache / remote
+        if not (local.is_file() and local.stat().st_size == tier["size"] and sha256(local) == tier["sha256"]):
+            local.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                api.download_bucket_files(bucket, [(remote, str(local))], raise_on_missing_files=True)
+            except Exception as error:
+                print(f"{remote} could not be downloaded from the bucket ({type(error).__name__}); using the public URL.", flush=True)
+                continue
+            if local.stat().st_size != tier["size"] or sha256(local) != tier["sha256"]:
+                local.unlink(missing_ok=True)
+                raise SystemExit(f"{remote} does not match the pinned SHA-256 in release.config.json")
+        files[tier["file"]] = str(local)
+    report.write_text(json.dumps({"files": files}, indent=1), encoding="utf-8")
+    print(f"Verified {len(files)} of 2 Mature models from the bucket mirror.", flush=True)
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--cache", type=Path, required=True)
     parser.add_argument("--report", type=Path, required=True)
+    parser.add_argument("--mature", action="store_true")
     args = parser.parse_args()
     token = (os.environ.get("HF_TOKEN") or "").strip()
+    if args.mature and not token:
+        print("HF_TOKEN is not set: the Mature models come from their public Hugging Face URLs.", flush=True)
+        args.report.write_text(json.dumps({"files": {}}, indent=1), encoding="utf-8")
+        return 0
     if not token:
         print("HF_TOKEN is not set: add the HF_TOKEN secret, or build with --dry-run.", file=sys.stderr)
         return 2
@@ -39,7 +88,10 @@ def main() -> int:
         print(f"::add-mask::{token}", flush=True)
     from huggingface_hub import HfApi
 
-    config = json.loads(args.config.read_text(encoding="utf-8"))["models"]
+    full_config = json.loads(args.config.read_text(encoding="utf-8"))
+    if args.mature:
+        return fetch_mature(full_config, HfApi(token=token), args.cache.resolve(), args.report)
+    config = full_config["models"]
     api = HfApi(token=token)
     bucket = config["bucket"]
     cache = args.cache.resolve()
