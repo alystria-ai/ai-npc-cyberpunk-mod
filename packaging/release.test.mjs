@@ -685,7 +685,7 @@ test('the release notes open with where the download files are, and a rebuild re
   assert.match(workflow, /AI-NPC-Cyberpunk-Mod-Scripts-\$version\.zip/);
   assert.match(workflow, /AI-NPC-Cyberpunk-Mod-Runtime-\$version\.zip/);
   assert.match(workflow, /\$download \+ \(Get-Content packaging\/PLAYER_README\.md -Raw\)/);
-  assert.match(workflow, /gh release edit \$tag --repo \$env:GITHUB_REPOSITORY --notes-file \$notes/);
+  assert.match(workflow, /gh release edit \$tag --repo \$env:GITHUB_REPOSITORY --title "AI NPC Cyberpunk Mod \$version" --notes-file \$notes/);
   // The pointer lives only on the release page: README.txt in the zips is PLAYER_README.md as it is.
   assert.doesNotMatch(await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8'), /under Assets/);
 });

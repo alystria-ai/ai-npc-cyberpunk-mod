@@ -164,7 +164,7 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw 'Could not create the release.' }
           } else {
             # A rebuild of an existing release refreshes its notes too, so they match the README.txt in the new zips.
-            gh release edit $tag --repo $env:GITHUB_REPOSITORY --notes-file $notes
+            gh release edit $tag --repo $env:GITHUB_REPOSITORY --title "AI NPC Cyberpunk Mod $version" --notes-file $notes
             if ($LASTEXITCODE -ne 0) { throw 'Could not update the release notes.' }
           }
           $files = @(Get-ChildItem "$env:OUT\packages" -Filter *.zip | ForEach-Object FullName)
