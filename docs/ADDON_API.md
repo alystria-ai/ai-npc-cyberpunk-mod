@@ -2,7 +2,7 @@
 
 Add-ons are separate CET mods that give AI NPC Cyberpunk Mod new voices. The first two are Skippy, a talking smart pistol that
 comments on fights (Oct 20), and the Delamain cab's voice (Oct 25). Each add-on has its own Nexus page, its own zip and its own
-repository: `alystria-ai/cyberpunk-convai-skippy` and `alystria-ai/cyberpunk-convai-delamain` (private until their launch dates;
+repository: `alystria-ai/ai-npc-cyberpunk-mod-skippy` and `alystria-ai/ai-npc-cyberpunk-mod-delamain` (private until their launch dates;
 see "The two add-ons" below). An add-on depends on the main mod, but the main mod never depends on an add-on.
 
 API version: **1.0** (`mod/addons.lua` `M.API_VERSION`, `bridge/addons.mjs` `ADDON_API_VERSION`). An add-on asks for a
@@ -827,7 +827,7 @@ check the list of calls.
 9. Replacing the game's own lines: the log shows `muted game line: Skippy ...` for "new message detected" / "provocation" and the beeps
    are not heard (`audio=stop-sent(vo_3d_important)` and then silence); if the voice still plays, the stop does not work for scene
    dialogue and `audioVerified` stays `false`. For the cab, see item 10.
-10. The Delamain cab's own welcome and goodbye (add-on `cyberpunk-convai-delamain`, "The cab's own voice" in its
+10. The Delamain cab's own welcome and goodbye (add-on `ai-npc-cyberpunk-mod-delamain`, "The cab's own voice" in its
     `docs/DELAMAIN_RESEARCH.md`): ride a cab with "Replace the game's own lines" on. (a) The cab's greeting is silent and has no
     subtitle, the destination map opens a few seconds after you sit down, the fare and the ride work as always, and our welcome
     plays around the time the map opens (the log shows `the cab's own welcome is switched off for this boarding`). (b) At the end
@@ -851,15 +851,15 @@ tests, character docs and a self-contained zip builder, built against this docum
 
 | Add-on | Repository | Local clone (sibling of this checkout) | Release |
 |---|---|---|---|
-| Skippy (`skippy`) | `alystria-ai/cyberpunk-convai-skippy` | `..\cyberpunk-convai-skippy` | Oct 20 |
-| Delamain Cab (`delamain-cab`) | `alystria-ai/cyberpunk-convai-delamain` | `..\cyberpunk-convai-delamain` | Oct 25 |
+| Skippy (`skippy`) | `alystria-ai/ai-npc-cyberpunk-mod-skippy` | `..\cyberpunk-convai-skippy` | Oct 20 |
+| Delamain Cab (`delamain-cab`) | `alystria-ai/ai-npc-cyberpunk-mod-delamain` | `..\cyberpunk-convai-delamain` | Oct 25 |
 
 Their tests run against this repository's add-on host, Lua harness and `mod/addons.lua` (found through `CYBERPUNK_CONVAI_MAIN` or a
 sibling folder), so a change to the add-on API here should be checked by running both add-on test files there. To evaluate or
 develop one with the main mod, point the bridge at its folder with `CYBERPUNK_CONVAI_ADDONS`, and run
 `node scripts/addon-eval.mjs --addon <that folder> --script <that folder>/eval/<script>.json`. The goals each was built to follow:
 
-**Skippy** (`cyberpunk-convai-skippy`, Oct 20):
+**Skippy** (`ai-npc-cyberpunk-mod-skippy`, Oct 20):
 - One speaker, `gun`, anchored to `'player'` and available while V holds Skippy.
 - Two modes in the manifest, `killer` and `puppy`, chosen by a Personality setting through `setMode`.
 - Kill, headshot, damage and civilian-hit detection in Skippy's own `init.lua`, through `Observe` hooks with O(1) handlers.
@@ -869,7 +869,7 @@ develop one with the main mod, point the bridge at its folder with `CYBERPUNK_CO
 - `remember` for memorable fights.
 - An eval script with at least one full fight per mode.
 
-**Delamain** (`cyberpunk-convai-delamain`, id `delamain-cab`, Oct 25):
+**Delamain** (`ai-npc-cyberpunk-mod-delamain`, id `delamain-cab`, Oct 25):
 - One speaker, `delamain`, anchored to `'vehicle'`, with `group = true`, available only in a Delamain cab.
 - Never starts a line over the game's own Delamain scenes (default `sceneTiers = {1}`): every remark has `patience` and waits for the
   scene or subtitle line to end; a line that has started plays through (`playThrough`). The cab's own welcome, "your wish is my
