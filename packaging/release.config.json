@@ -184,7 +184,7 @@
     }
   },
   "models": {
-    "bucket": "akshitireddy/cyberpunk-pocket-rolling-checkpoints",
+    "bucket": "alystria-ai/cyberpunk-pocket-rolling-checkpoints",
     "manifest": "final/MANIFEST.json",
     "groups": [
       {"bucket": "final/pocket-voice/student-v2-s2000-ema-decv2/", "local": "runtime/pocket-student-v2-s2000-ema-decv2/", "target": "app/models/pocket/",

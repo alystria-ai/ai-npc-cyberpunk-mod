@@ -64,7 +64,7 @@ work = Path("/kaggle/working"); code = work / "code/pocket_training"; code.mkdir
 subprocess.run([sys.executable, "-m", "pip", "install", "-q", "einops", "sentencepiece", "tokenizers", "typer", "psutil",
                 "huggingface_hub==1.33.0"], check=False)
 RUN_ID = "__RUN_ID__"
-BUCKET = "akshitireddy/cyberpunk-pocket-rolling-checkpoints"
+BUCKET = "alystria-ai/cyberpunk-pocket-rolling-checkpoints"
 upload_state = {"next": 0, "last": 0.0}
 
 def publish():
@@ -133,7 +133,7 @@ def prepare(holdout: Path, hours: float):
         raise ValueError("Held-out evaluation IDs are required")
     trainer = TRAINER.read_text(encoding="utf-8")
     compile(trainer, "mimi_decoder.py", "exec")
-    token = (ROOT / "runtime/huggingface-checkpoint-token.txt").read_text().strip()
+    token = (ROOT / "runtime/huggingface-alystria-token.txt").read_text().strip()
     if not token.startswith("hf_"):
         raise ValueError("Private checkpoint credential missing")
     run_id = "mimi-decoder-" + nonce
@@ -154,7 +154,7 @@ def prepare(holdout: Path, hours: float):
         "slug": meta["id"], "nonce": nonce, "purpose": PURPOSE, "policy": "mimi_decoder_gan_v1",
         "source_sha256": core.sha(folder / "kernel.ipynb"), "datasets": DATASETS, "timeout_seconds": timeout,
         "quota_reserve_seconds": 0, "execution_type": "SAVE_AND_RUN_ALL", "contains_private_checkpoint_credential": True,
-        "checkpoint_storage": {"kind": "private_bucket", "bucket_id": "akshitireddy/cyberpunk-pocket-rolling-checkpoints",
+        "checkpoint_storage": {"kind": "private_bucket", "bucket_id": "alystria-ai/cyberpunk-pocket-rolling-checkpoints",
                                "path": "runs/" + run_id, "max_slots": 3},
         "automatic_model_promotion": False, "authorized_save_calls": 1, "launcher_sha256": core.sha(CORE_PATH),
         "mimi_launcher_sha256": core.sha(Path(__file__)), "trainer_sha256": sha_text(trainer), "selected_ids": [],

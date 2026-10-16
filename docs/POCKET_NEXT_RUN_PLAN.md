@@ -215,7 +215,7 @@ The evaluation runs inside the Kaggle session, on rank 0, while rank 1 idles; it
 | Subtitle/audio mismatches raise WER | WER guard | CTC CER filter; drop the worst voices' new rows |
 | Gains are within noise | CI includes 0 | Report honestly; the decoder retrain remains the main lever for identity |
 
-**Logged to the bucket at every evaluation:** all panel metrics with per-voice values and CIs, train loss / distillation MSE, LR, gradient norm, step time and memory, plus 4 fixed spot-listening renders (Johnny, Judy, Panam, Takemura, 3 clips). Three rotating slots per run in `akshitireddy/cyberpunk-pocket-rolling-checkpoints` (teacher about 5 GB, student about 1.7 GB), plus a pinned `selected/` candidate.
+**Logged to the bucket at every evaluation:** all panel metrics with per-voice values and CIs, train loss / distillation MSE, LR, gradient norm, step time and memory, plus 4 fixed spot-listening renders (Johnny, Judy, Panam, Takemura, 3 clips). Three rotating slots per run in `alystria-ai/cyberpunk-pocket-rolling-checkpoints` (teacher about 5 GB, student about 1.7 GB), plus a pinned `selected/` candidate.
 
 **Resume.** Same pattern as `scripts/Pocket-FullATeacher.py resume`: read the previous session's `continuation-collection.json`, carry the lifetime budget and continue from the newest slot. It is added for the student, which has no resume today.
 

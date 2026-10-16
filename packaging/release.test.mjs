@@ -577,7 +577,7 @@ test('the Mature pack README and release notes are for adults, need the main mod
     assert.match(text, /Apache-2\.0/, rel);
     assert.doesNotMatch(text, /\brecommended?\b/i, rel);
     assert.doesNotMatch(text, /every part|each part|several (?:parts|zips)|part\d+of|release page/i, `${rel}: one zip, from Hugging Face`);
-    assert.match(text, /huggingface\.co\/akshitireddy\/ai-npc-cyberpunk-mod-packs|Hugging Face/, rel);
+    assert.match(text, /huggingface\.co\/alystria-ai\/ai-npc-cyberpunk-mod-packs|Hugging Face/, rel);
     assert.doesNotMatch(text, /\bamm\b|reference-amm/i, rel);
     assert.doesNotMatch(text, /\b(?:api[- ]?key|token|secret|credential)s?\b/i, `${rel}: no keys`);
     assert.doesNotMatch(text, /convai (?:free|shared|embedded)/i, rel);

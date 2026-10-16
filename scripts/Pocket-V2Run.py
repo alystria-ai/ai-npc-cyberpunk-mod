@@ -10,7 +10,7 @@
 
 Inputs on Kaggle: the existing private common dataset (pocket source, tokenizer, alignment model), the full-A input
 dataset (48 kHz corpus audio) and the new v2 data dataset. Checkpoints, logs and the latent cache go to the private
-bucket akshitireddy/cyberpunk-pocket-rolling-checkpoints under runs/<run id>/ (three rotating slots).
+bucket alystria-ai/cyberpunk-pocket-rolling-checkpoints under runs/<run id>/ (three rotating slots).
 """
 import argparse
 import contextlib
@@ -68,7 +68,7 @@ print("POCKET_NOTEBOOK_STARTED pocket-v2 __NONCE__", time.strftime("%Y-%m-%dT%H:
 CODE = __CODE__
 CONFIG = __CONFIG__
 RUN_ID = CONFIG["run_id"]
-BUCKET = "akshitireddy/cyberpunk-pocket-rolling-checkpoints"
+BUCKET = "alystria-ai/cyberpunk-pocket-rolling-checkpoints"
 work = Path("/kaggle/working/v2"); work.mkdir(parents=True, exist_ok=True)
 notelog = work / "notebook.log"
 def say(*parts):
@@ -296,7 +296,7 @@ def prepare(role: str, run_id: str | None, teacher_run: str | None, smoke: bool,
     code = {n: (ROOT / "scripts/pocket_training" / n).read_text(encoding="utf-8") for n in CODE}
     for n, text in code.items():
         compile(text, n, "exec")
-    hf = (ROOT / "runtime/huggingface-checkpoint-token.txt").read_text().strip()
+    hf = (ROOT / "runtime/huggingface-alystria-token.txt").read_text().strip()
     if not hf.startswith("hf_"):
         raise ValueError("Private checkpoint credential missing")
     source = ('import os\nos.environ["HF_TOKEN"] = ' + repr(hf) + '\n'
@@ -318,7 +318,7 @@ def prepare(role: str, run_id: str | None, teacher_run: str | None, smoke: bool,
         "student": "pocket_voice_guided_distill_v1"}[role], "role": role, "run_id": run_id, "resume": resume,
         "source_sha256": core.sha(folder / "kernel.ipynb"), "datasets": datasets, "timeout_seconds": budget,
         "quota_reserve_seconds": 0, "execution_type": "SAVE_AND_RUN_ALL", "contains_private_checkpoint_credential": True,
-        "checkpoint_storage": {"kind": "private_bucket", "bucket_id": "akshitireddy/cyberpunk-pocket-rolling-checkpoints",
+        "checkpoint_storage": {"kind": "private_bucket", "bucket_id": "alystria-ai/cyberpunk-pocket-rolling-checkpoints",
                                "path": "runs/" + run_id, "max_slots": 3},
         "automatic_model_promotion": False, "authorized_save_calls": 1, "launcher_sha256": core.sha(CORE_PATH),
         "v2_launcher_sha256": core.sha(Path(__file__)), "selected_ids": [], "config": config, "smoke": smoke,
@@ -328,7 +328,7 @@ def prepare(role: str, run_id: str | None, teacher_run: str | None, smoke: bool,
 
 def logs(run_id: str) -> dict:
     sys.path.insert(0, str(ROOT / "scripts"))
-    token = (ROOT / "runtime/huggingface-checkpoint-token.txt").read_text().strip()
+    token = (ROOT / "runtime/huggingface-alystria-token.txt").read_text().strip()
     from huggingface_hub import HfApi
     api = HfApi()
     out = DEST / "logs" / run_id
@@ -336,7 +336,7 @@ def logs(run_id: str) -> dict:
     files = []
     for prefix in ("logs/", "selected/teacher.json", "selected/student.json"):
         try:
-            for entry in api.list_bucket_tree("akshitireddy/cyberpunk-pocket-rolling-checkpoints", prefix=base + prefix,
+            for entry in api.list_bucket_tree("alystria-ai/cyberpunk-pocket-rolling-checkpoints", prefix=base + prefix,
                                               recursive=True, token=token):
                 if getattr(entry, "type", None) == "file":
                     files.append(entry.path)
@@ -349,7 +349,7 @@ def logs(run_id: str) -> dict:
         local = out / remote[len(base):]
         local.parent.mkdir(parents=True, exist_ok=True)
         try:
-            api.download_bucket_files("akshitireddy/cyberpunk-pocket-rolling-checkpoints", files=[(remote, str(local))],
+            api.download_bucket_files("alystria-ai/cyberpunk-pocket-rolling-checkpoints", files=[(remote, str(local))],
                                       raise_on_missing_files=True, token=token)
             got.append(remote[len(base):])
         except Exception:
