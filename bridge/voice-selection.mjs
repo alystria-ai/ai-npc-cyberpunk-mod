@@ -174,8 +174,11 @@ export class VoiceSelection {
   get cloudActive(){return !!this.cloudEngine&&this.provider==='pocket';}
   // The player chose a cloud voice (committed or waiting for the idle boundary). No local voice model is loaded for it.
   get cloudWanted(){return this.requestedCloud!==null;}
-  // A cloud voice with no key cannot speak anything: the turn's voice is the Convai cloud voice (bridge: localChoice).
-  get cloudKeyless(){return this.cloudActive&&!this.cloudEngine.hasKey;}
+  // A cloud voice that cannot be asked right now (no key, or a refused key or a limit cooling down) cannot speak anything: the turn's voice
+  // is the Convai cloud voice (bridge: localChoice), so the conversation is not silent while it recovers. The order is: the cloud voice
+  // (asked again quickly for a hiccup, VoxtralVoice.fetchPart), then the Convai voice, then written text (a reply already on its way
+  // when the cloud voice fails is shown as written text: one reply is never given two voices).
+  get cloudKeyless(){return this.cloudActive&&(!this.cloudEngine.hasKey||!this.cloudEngine.ready);}
   // Why the cloud voice is not the one speaking, for the Settings status line and the one notice: no key, or its last
   // reply fell back (nothing is reported before a first failure, and it clears by itself with the next good reply).
   // Why the cloud voice cannot even be asked right now (no key, a limit or a refused key cooling down); null when it will be tried.
@@ -663,7 +666,8 @@ export class VoiceSelection {
       catch (error) {
         throwIfCancelled(options.signal);
         // The consumer's own failure, audio already played, or a failure that asking again cannot mend: never a second voice.
-        if (error?.sink || started || !RETRY_KINDS.has(error?.kind) || !engine.ready) throw error;
+        // A refusal the voice already asked again for (quickly, inside its own ask: VoxtralVoice.fetchPart) is not asked a third time.
+        if (error?.sink || started || error?.retried || !RETRY_KINDS.has(error?.kind) || !engine.ready) throw error;
       }
       engine.log?.('no audio for the first ask; asking again once with a longer wait');
       return await ask({firstAudioMs: this.cloudRetryAudioMs[name]});
@@ -701,7 +705,7 @@ export class VoiceSelection {
     });
     opening.catch(() => {});
     let cloud, failure;
-    try { cloud = await this.voxtral.synthesizeStream(profile, spoken, {signal: own.signal, onPcm: sink, continuation: true}); }
+    try { cloud = await this.voxtral.synthesizeStream(profile, spoken, {signal: own.signal, onPcm: sink, continuation: true, ahead: options.ahead === true}); }
     catch (error) { failure = error; }
     finally { options.signal?.removeEventListener('abort', relay); }
     throwIfCancelled(options.signal);

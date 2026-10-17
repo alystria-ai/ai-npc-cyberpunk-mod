@@ -440,7 +440,7 @@ test('a cloud reply that is late is asked again once with a longer wait; one tha
   const server = await serve(async (request, response) => {
     if (mode === 'slow') { await wait(400); return; }
     if (mode === 'slow-once') { mode = 'ok'; await wait(400); return; }
-    if (mode === 'limit') { response.writeHead(429); response.end(); return; }
+    if (mode === 'limit') { response.writeHead(429, {'retry-after': '30'}); response.end(); return; }
     sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done);
   });
   try {
@@ -794,7 +794,7 @@ test('the second part failing before its audio: it is asked for again once, then
       assert.equal(result.frames, 48000);
       assert.equal(server.requests.filter(request => request.body.input === REST).length, 2, 'the second part was asked for twice');
       assert.ok(voice.degraded, 'the player is told once that the cloud voice is not ready');
-      assert.ok(logs.some(line => line.includes('the rest of the reply: ') && line.includes('asking again')), logs.join('|'));
+      assert.ok(logs.some(line => line.includes('asking again')), logs.join('|'));
       assert.ok(logs.some(line => line.includes('the rest of the reply could not be spoken') && line.includes('the voice is not switched')), logs.join('|'));
       assert.ok(!logs.some(line => line.includes('fell back to Pocket')), logs.join('|'));
     } finally { await server.close(); }
@@ -1054,5 +1054,220 @@ test('the lip-sync analysis stays wanted for the cloud voice (it analyses audio)
     h.voice.update({voiceProvider: 'convai'}, null, false);
     assert.equal(wanted.at(-1), false);
     await h.voice.close();
+  } finally { await server.close(); }
+});
+
+// ---- a hiccup is not a bad key (2026-10-17: one HTTP 403 in a group round silenced two voices) -------------------------------------
+
+// A simulated Mistral that answers the first `failures` requests with `status` (then audio), and counts the requests.
+async function flaky(status, failures, headers = {}, body = '{"message":"hiccup"}') {
+  let seen = 0;
+  const server = await serve((request, response) => {
+    if (seen++ < failures) { response.writeHead(status, {'content-type': 'application/json', ...headers}); response.end(body); return; }
+    sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done);
+  });
+  return server;
+}
+const quick = {limits: {retryWaitMs: 5}};
+
+test('a 5xx, a 408, a 403 or a short 429 is asked again at once and the reply is spoken in the cloud voice, with no report and no cool-down', async () => {
+  for (const [status, headers] of [[503, {}], [500, {}], [408, {}], [403, {}], [429, {'retry-after': '0'}], [429, {'retry-after': '1'}]]) {
+    const server = await flaky(status, 1, headers);
+    try {
+      const scheduler = {schedule: task => Promise.resolve().then(() => task({})), noteHeaders() {}, pause() {}};
+      const logs = [];
+      const {voice} = voiceFor(server, {...quick, scheduler, onLog: line => logs.push(line)});
+      const sink = collect();
+      const result = await voice.synthesizeStream('judy-alvarez', 'Hello V.', sink);
+      assert.equal(server.requests.length, 2, `HTTP ${status}: asked again once`);
+      assert.equal(result.frames, 2400); assert.equal(sink.packets.length, 1);
+      assert.equal(voice.degraded, null, `HTTP ${status} left no report`); assert.equal(voice.ready, true);
+      assert.ok(logs.some(line => line.includes('asking again')), logs.join('|'));
+    } finally { await server.close(); }
+  }
+});
+
+test('the quick second ask is bounded: it waits at most the retry budget, and a Retry-After longer than that is not waited for', async () => {
+  const voice = new VoxtralVoice({getKey: () => KEY, scheduler: fastScheduler()});
+  const error = (status, retryAfterMs) => new VoxtralError(status === 429 ? 'limit' : 'network', 'x', {status, retryAfterMs});
+  assert.equal(voice.retryWait(error(503), 0), VOXTRAL_LIMITS.retryWaitMs);
+  assert.ok(VOXTRAL_LIMITS.retryWaitMs <= VOXTRAL_LIMITS.retryBudgetMs && VOXTRAL_LIMITS.retryBudgetMs <= 1000, 'about a second at most');
+  assert.equal(voice.retryWait(error(429, 800), 0), 800);
+  assert.equal(voice.retryWait(error(429, 12000), 0), null, 'a long Retry-After is the cool-down\'s business');
+  assert.equal(voice.retryWait(error(429), 0), VOXTRAL_LIMITS.retryWaitMs);
+  assert.equal(voice.retryWait(error(503), 1), null, 'one quick second ask, not a loop');
+  assert.equal(voice.retryWait(new VoxtralError('key', 'x', {status: 401}), 0), null, 'a 401 is a refused key: never again');
+  assert.equal(voice.retryWait(new VoxtralError('request', 'x', {status: 400}), 0), null);
+  assert.equal(voice.retryWait(new VoxtralError('timeout', 'x'), 0), null, 'a timeout is the voice selection\'s own longer second ask');
+  const server = await flaky(503, 1);
+  try {
+    const {voice: timed} = voiceFor(server);   // the real 300 ms wait
+    const started = performance.now();
+    await timed.synthesizeStream('judy-alvarez', 'Hello V.', collect());
+    const took = performance.now() - started;
+    assert.ok(took >= VOXTRAL_LIMITS.retryWaitMs - 20 && took < VOXTRAL_LIMITS.retryBudgetMs, `the retry added about ${VOXTRAL_LIMITS.retryWaitMs} ms, within the budget (${Math.round(took)} ms)`);
+  } finally { await server.close(); }
+});
+
+test('a 401 is a refused key: one request, reported as a key problem, with a 60 s cool-down; the message carries what the server said and never the key', async () => {
+  const server = await flaky(401, 99, {}, `{"message":"Unauthorized ${KEY}"}`);
+  try {
+    let time = 5_000_000;
+    const {voice} = voiceFor(server, {...quick, clock: () => time});
+    await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Hello V.', collect()), error => {
+      assert.equal(error.kind, 'key'); assert.equal(error.status, 401); assert.equal(error.retried, undefined);
+      assert.ok(error.message.includes('HTTP 401: {"message":"Unauthorized [key]"}'), error.message); assert.equal(error.message.includes(KEY), false);
+      return true;
+    });
+    assert.equal(server.requests.length, 1, 'a refused key is not asked again');
+    assert.equal(voice.degraded.reason, 'key'); assert.equal(voice.ready, false);
+    time += VOXTRAL_LIMITS.keyCooldownMs - 1; assert.equal(voice.ready, false);
+    time += 2; assert.equal(voice.ready, true, 'asked again after the cool-down');
+  } finally { await server.close(); }
+});
+
+test('a 403 that is still there on the quick second ask is reported as a refused key, with the shorter 20 s cool-down', async () => {
+  const server = await flaky(403, 99, {}, '<html><body><h1>403</h1> Forbidden by the gateway</body></html>');
+  try {
+    let time = 7_000_000;
+    const {voice} = voiceFor(server, {...quick, clock: () => time});
+    await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Hello V.', collect()), error => {
+      assert.equal(error.kind, 'key'); assert.equal(error.status, 403); assert.equal(error.retried, true);
+      assert.ok(error.message.includes('HTTP 403: 403 Forbidden by the gateway'), error.message);
+      return true;
+    });
+    assert.equal(server.requests.length, 2); assert.equal(voice.degraded.reason, 'key');
+    time += VOXTRAL_LIMITS.forbiddenCooldownMs - 1; assert.equal(voice.ready, false);
+    time += 2; assert.equal(voice.ready, true);
+  } finally { await server.close(); }
+});
+
+test('a 503 that keeps failing is asked for twice (not more), and the reply is written: no local voice', async () => {
+  const server = await flaky(503, 99);
+  try {
+    const h = selection(server, {voxtral: quick});
+    h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
+    await assert.rejects(h.voice.synthesizeStream('judy-alvarez', 'Hello V.', {onPcm() {}}), {kind: 'network', retried: true});
+    assert.equal(server.requests.length, 2, 'the quick second ask, and no third from the voice selection');
+    assert.equal(h.calls.length, 0); assert.equal(h.workers.length, 0);
+    await h.voice.close();
+  } finally { await server.close(); }
+});
+
+test('the 2026-10-17 round: a 403 in the middle of a group round no longer silences the next voices (retry, same key, no report)', async () => {
+  // The log of that round: Jackie's reply got one HTTP 403 ("did not accept the API key"), the key was then treated as refused for 60 s, and
+  // the next two speakers (Judy, Alex) were written replies with the routing line naming "fell back (key)". The key was fine four minutes later.
+  const server = await flaky(403, 1);
+  try {
+    const h = selection(server, {voxtral: quick});
+    h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
+    const speak = name => h.voice.synthesizeStream('judy-alvarez', `${name} answers.`, {onPcm() {}});
+    const first = await speak('Jackie');
+    assert.equal(first.provider, 'voxtral', 'the first speaker got through on the quick second ask');
+    for (const name of ['Judy', 'Alex']) assert.equal((await speak(name)).provider, 'voxtral');
+    assert.equal(h.voice.cloudFallback, null); assert.equal(h.voice.cloudKeyless, false);
+    const record = describeVoiceRoute({voice: h.voice, input: {profileKey: 'judy-alvarez'}, profile: {key: 'judy-alvarez', name: 'Judy'},
+      plan: {engine: 'pocket'}, reply: {engine: 'pocket'}, now: () => 0});
+    assert.equal(record.fallback, null); assert.equal(record.used, 'Mistral cloud voice (Voxtral)');
+    await h.voice.close();
+  } finally { await server.close(); }
+});
+
+test('a real bad key (401) is a key problem: the voice stops being asked, the turn goes to the Convai voice, and the log line says key; it recovers after the cool-down', async () => {
+  let good = false;
+  const server = await serve((request, response) => {
+    if (!good) { response.writeHead(401, {'content-type': 'application/json'}); response.end('{"message":"Unauthorized"}'); return; }
+    sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done);
+  });
+  try {
+    let time = 9_000_000;
+    const h = selection(server, {voxtral: {...quick, clock: () => time}});
+    h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
+    await assert.rejects(h.voice.synthesizeStream('judy-alvarez', 'Hello V.', {onPcm() {}}), {kind: 'key', status: 401});
+    assert.equal(server.requests.length, 1);
+    assert.deepEqual(h.voice.cloudFallback, {from: 'voxtral', to: 'convai', temporary: false, reason: 'key'});
+    assert.equal(h.voice.cloudKeyless, true, 'the next turn is spoken by the Convai voice, not left silent');
+    const convai = describeVoiceRoute({voice: h.voice, input: {profileKey: 'judy-alvarez'}, profile: {key: 'judy-alvarez', name: 'Judy', voiceName: 'Anna'},
+      plan: {engine: 'convai'}, reply: {engine: 'convai'}, now: () => 0});
+    assert.equal(convai.used, 'Convai cloud (Anna)'); assert.equal(convai.fallback, 'Mistral cloud voice fell back (key)');
+    assert.equal(h.calls.length, 0, 'never a local voice');
+    good = true; time += VOXTRAL_LIMITS.keyCooldownMs + 1;
+    assert.equal(h.voice.cloudKeyless, false, 'the cool-down is over: the cloud voice is tried again');
+    assert.equal((await h.voice.synthesizeStream('judy-alvarez', 'Back.', {onPcm() {}})).provider, 'voxtral');
+    assert.equal(h.voice.cloudFallback, null);
+    await h.voice.close();
+  } finally { await server.close(); }
+});
+
+test('a long 429 sends the turns to the Convai voice for the cool-down instead of leaving them as text', async () => {
+  const server = await serve((request, response) => { response.writeHead(429, {'retry-after': '20'}); response.end(); });
+  try {
+    let time = 3_000_000;
+    const h = selection(server, {voxtral: {...quick, clock: () => time}});
+    h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
+    await assert.rejects(h.voice.synthesizeStream('judy-alvarez', 'Hello V.', {onPcm() {}}), {kind: 'limit'});
+    assert.equal(server.requests.length, 1, 'a Retry-After of 20 s is not waited for');
+    assert.equal(h.voice.cloudKeyless, true);
+    time += 20_001; assert.equal(h.voice.cloudKeyless, false);
+    await h.voice.close();
+  } finally { await server.close(); }
+});
+
+// A simulated Mistral with a burst guard: more than `allowed` requests in flight at once get an HTTP 403 (the way a gateway can refuse a burst).
+async function burstGuarded(allowed, streamMs = 60) {
+  let inFlight = 0, peak = 0, refused = 0;
+  const server = await serve(async (request, response) => {
+    inFlight++; peak = Math.max(peak, inFlight);
+    try {
+      if (inFlight > allowed) { refused++; response.writeHead(403, {'content-type': 'application/json'}); response.end('{"message":"Forbidden"}'); return; }
+      sse(response); response.write(delta(bytesOf(samples(2400)))); await wait(streamMs); response.end(done);
+    } finally { inFlight--; }
+  });
+  return Object.assign(server, {stats: () => ({peak, refused})});
+}
+
+test('a group round asking for several voices at once (speaker, V line, held next speaker) never reports a false key problem', async () => {
+  const server = await burstGuarded(2);
+  try {
+    const {voice} = voiceFor(server, {limits: {retryWaitMs: 40}});
+    const speak = (name, ahead) => voice.synthesizeStream('judy-alvarez', `${name} answers.`, {onPcm() {}, ahead});
+    // Three for the speaker being heard and the V line, three held for the next speakers, all in the same instant.
+    const settled = await Promise.allSettled([speak('A'), speak('B'), speak('C'), speak('D', true), speak('E', true), speak('F', true)]);
+    assert.deepEqual(settled.map(entry => entry.status), Array(6).fill('fulfilled'), JSON.stringify(settled.map(entry => entry.reason?.message)));
+    assert.equal(voice.degraded, null, 'no key problem was reported'); assert.equal(voice.ready, true);
+    assert.ok(server.stats().peak <= 4, `at most the cap in flight at once (peak ${server.stats().peak})`);
+  } finally { await server.close(); }
+});
+
+test('after a refusal the voice keeps fewer speech requests in flight for a while, so a burst limit is not hit again', async () => {
+  const server = await burstGuarded(2, 80);
+  try {
+    let time = 11_000_000;
+    const {voice} = voiceFor(server, {...quick, clock: () => time});
+    voice.gate.tighten();                       // what a refusal does
+    assert.equal(voice.gate.cap, VOXTRAL_LIMITS.tightConcurrent);
+    const settled = await Promise.allSettled(['A', 'B', 'C', 'D'].map(name => voice.synthesizeStream('judy-alvarez', `${name} answers.`, {onPcm() {}})));
+    assert.deepEqual(settled.map(entry => entry.status), Array(4).fill('fulfilled'));
+    assert.equal(server.stats().refused, 0, 'two at a time never trips a limit of two'); assert.ok(server.stats().peak <= 2);
+    time += VOXTRAL_LIMITS.tightMs + 1; assert.equal(voice.gate.cap, VOXTRAL_LIMITS.maxConcurrent, 'the cap returns by itself');
+  } finally { await server.close(); }
+});
+
+test('the held next speaker is marked ahead and never takes the slots the speaker being heard needs', async () => {
+  const server = await serve(async (request, response) => { sse(response); response.write(delta(bytesOf(samples(2400)))); await wait(120); response.end(done); });
+  try {
+    const {voice} = voiceFor(server);
+    const order = [];
+    const speak = (name, ahead) => voice.synthesizeStream('judy-alvarez', `${name} answers.`, {onPcm() {}, ahead}).then(() => order.push(name));
+    // Two look-ahead replies: only one runs at a time. The speaker arriving after them still starts at once.
+    const pending = [speak('ahead-1', true), speak('ahead-2', true)];
+    await wait(30);
+    assert.equal(voice.gate.stats().runningAhead, 1); assert.equal(voice.gate.stats().waiting, 1, 'the second look-ahead waits for the first');
+    const before = server.requests.length;
+    const speaker = speak('speaker');
+    await wait(30);
+    assert.equal(server.requests.length - before, 1, 'the speaker being heard started at once, beside the look-ahead');
+    await Promise.all([...pending, speaker]);
+    assert.deepEqual(order.slice(0, 2).sort(), ['ahead-1', 'speaker']);
   } finally { await server.close(); }
 });

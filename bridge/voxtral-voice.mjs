@@ -20,6 +20,10 @@
 //    that reply's audio early (the written reply is complete) rather than playing two voices. The same holds for the rest of a
 //    reply (the second part of a long one, or the tail after a streamed first sentence): it is asked for again once, with a longer
 //    limit, and if that fails too the reply ends after the part already heard; no other voice speaks it.
+//  - A refusal that can be a hiccup (HTTP 403, 408, 5xx, a short 429) is asked again once at once, inside the ask (`fetchPart`, a wait of
+//    about 0.3 s, never more than a second in all), and only a 401 or a 403 that repeats is a refused key (2026-10-17: one 403 in a group
+//    round was reported as a bad key and silenced two voices). Speech requests in flight are capped (`request-gate.mjs`), the held next
+//    speaker of a group round (`ahead: true`) last, so a burst stays small and the speaker being heard never waits for it.
 //  - One request per reply (the whole text, streamed), never one per sentence: a free Mistral key may be limited to about one
 //    request a second for the whole workspace, shared with the text replies. Every request goes through the shared scheduler
 //    (bridge/mistral-rate.mjs), text first; the first-audio limit counts from the moment the request is actually sent.
@@ -30,6 +34,7 @@ import {readFile, readdir} from 'node:fs/promises';
 import {resolve, sep} from 'node:path';
 import {cancelled, throwIfCancelled} from './transport-pool.mjs';
 import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
+import {RequestGate} from './request-gate.mjs';
 import {isVariantKey} from './voice-variants.mjs';
 
 export const VOXTRAL_ENDPOINT = 'https://api.mistral.ai/v1/audio/speech';
@@ -59,7 +64,17 @@ export const VOXTRAL_LIMITS = Object.freeze({
   maxReferenceBytes: 4_000_000,
   cachedReferences: 32,
   limitCooldownMs: 20_000,   // after a 429, no request for the server's Retry-After (this when it names none, at most 60 s)
-  keyCooldownMs: 60_000,     // after the key was refused
+  keyCooldownMs: 60_000,     // after the key was refused (HTTP 401)
+  forbiddenCooldownMs: 20_000, // after an HTTP 403 that was still there on the quick second try (2026-10-17: one 403 mid-round was not a bad key)
+  // A refusal that can be a hiccup (HTTP 403, 429 with a short Retry-After, 408, 5xx) is tried again once at once, inside the reply's own ask,
+  // after this short wait; a Retry-After longer than the budget is not waited for. No turn is held back longer than the budget for a retry.
+  // A 401 is a refused key and is never tried again.
+  retryWaitMs: 300,
+  retryBudgetMs: 1000,
+  maxConcurrent: 4,          // speech requests in flight at once (a group round can ask for the speaker, V's line and the held next speaker together)
+  maxAhead: 1,               // of those, at most this many for the held next speaker (a look-ahead never takes every slot)
+  tightConcurrent: 2,        // after a refusal that may be a burst limit: this many at once ...
+  tightMs: 30_000,           // ... for this long
 });
 // A fixed identity for the packets (the PCM host checks owner/profile/model stay the same through one reply).
 const MODEL_ID = createHash('sha256').update(VOXTRAL_MODEL).digest('hex');
@@ -101,7 +116,10 @@ const retryAfter = headers => {
 export function mapStatus(status, body, {headers, apiKey} = {}) {
   const detail = (typeof body === 'string' && body ? body.slice(0, 160) : `HTTP ${status}`);
   const options = {status, retryAfterMs: retryAfter(headers), apiKey};
-  if (status === 401 || status === 403) return new VoxtralError('key', 'did not accept the API key', options);
+  // What the server said goes in the log line (the key and anything shaped like one are scrubbed): the line must show whether a 403 was
+  // a refused key or something else (a gateway page, a burst limit).
+  const said = typeof body === 'string' ? body.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100) : '';
+  if (status === 401 || status === 403) return new VoxtralError('key', `did not accept the API key (HTTP ${status}${said ? `: ${said}` : ''})`, options);
   if (status === 429) return new VoxtralError('limit', 'rate limited', options);
   if (status === 408 || status >= 500) return new VoxtralError('network', detail, options);
   return new VoxtralError('request', detail, options);
@@ -258,6 +276,8 @@ export class VoxtralVoice {
     Object.assign(this, {getKey, referenceRoot, registries: [].concat(registry ?? []).filter(Boolean), onChange, onLog, fetchImpl, read, list, endpoint,
       setTimer, clearTimer, now, clock, scheduler, prepare});
     this.limits = Object.freeze({...VOXTRAL_LIMITS, ...limits});
+    this.gate = new RequestGate({limit: this.limits.maxConcurrent, aheadLimit: this.limits.maxAhead, tightLimit: this.limits.tightConcurrent,
+      tightMs: this.limits.tightMs, now: clock, setTimer, clearTimer});
     this.references = new Map();      // voice key -> Promise<{base64, bytes, seconds}|null>
     // The API documents only MP3 and WAV references and also decodes Ogg (2026-10-13). If it ever refuses the Ogg one, the references are
     // prepared as MP3 from then on (`prepare(..., {safeFormat: true})`); the reply that met the refusal is written only.
@@ -365,7 +385,7 @@ export class VoxtralVoice {
    * `continuation: true`: this text is the rest of a reply whose first part was already heard in this voice. It gets the longer
    * limits and the second ask (`tail*` limits), and it is not held back by a limit cool-down that began after that first part.
    */
-  async synthesizeStream(key, text, {signal, onPcm, continuation = false, firstAudioMs} = {}) {
+  async synthesizeStream(key, text, {signal, onPcm, continuation = false, firstAudioMs, ahead = false} = {}) {
     throwIfCancelled(signal);
     if (typeof onPcm !== 'function') throw Error('Voxtral streaming requires a PCM consumer');
     const apiKey = this.getKey();
@@ -379,7 +399,7 @@ export class VoxtralVoice {
       const reference = await this.reference(key);
       throwIfCancelled(signal);
       if (!reference) throw fail('no-reference', 'has no reference clip for this voice');
-      const {partFailure, ...result} = await this.stream({key, text, apiKey, reference, signal, onPcm, queued, fail, continuation, firstAudioMs});
+      const {partFailure, ...result} = await this.stream({key, text, apiKey, reference, signal, onPcm, queued, fail, continuation, firstAudioMs, ahead});
       this.spoke++;
       // The second request of a split reply can fail on its own: the reply ends after the part already spoken (result.truncated).
       if (partFailure) this.noteFailure(partFailure, 'the rest of the reply');
@@ -394,7 +414,7 @@ export class VoxtralVoice {
   /** Records why Voxtral could not deliver (a limit or a refused key pauses requests) and says so in the log. */
   noteFailure(error, scope = '') {
     if (error.kind === 'limit' && error.status === 429) this.until = this.clock() + (error.retryAfterMs ?? this.limits.limitCooldownMs);
-    if (error.kind === 'key') this.until = this.clock() + this.limits.keyCooldownMs;
+    if (error.kind === 'key') this.until = this.clock() + (error.status === 403 ? this.limits.forbiddenCooldownMs : this.limits.keyCooldownMs);
     // A voice without a reference, or text that cannot be spoken, is that reply's problem, not the service's.
     if (error.kind !== 'text' && error.kind !== 'no-reference') this.note(error.kind);
     // The message is already scrubbed of the key; its detail says which limit was hit (for example how long it waited).
@@ -412,7 +432,7 @@ export class VoxtralVoice {
    * (`truncated`, `partFailure` set): the rest is never spoken by another voice. Only the first part failing before any audio
    * throws, and then nothing was heard, so the caller may ask again.
    */
-  async stream({key, text, apiKey, reference, signal, onPcm, queued, fail, continuation = false, firstAudioMs}) {
+  async stream({key, text, apiKey, reference, signal, onPcm, queued, fail, continuation = false, firstAudioMs, ahead = false}) {
     const parts = splitReply(text, this.limits);
     const id = ++this.sequence, started = this.now();
     let delivered = 0, chunks = 0, firstEmitAt = null, lastEmitAt = null, maxGapMs = 0;
@@ -433,7 +453,7 @@ export class VoxtralVoice {
     // Asked for again once (longer limits) when it is a rest of the reply: its first part, or an earlier part, was heard in this voice.
     // `firstAudioMs` (the caller asking again after a first ask gave no audio) replaces the default wait for the first audio.
     const part = (partText, partSignal, onSamples, again = continuation) => (again ? this.fetchPartAgain : this.fetchPart).call(this,
-      {text: partText, apiKey, reference, signal: partSignal, fail, onSamples, ...(firstAudioMs && !again ? {firstAudioMs} : {})});
+      {text: partText, apiKey, reference, signal: partSignal, fail, onSamples, ahead, ...(firstAudioMs && !again ? {firstAudioMs} : {})});
     const summary = (first, extra = {}) => {
       const truncated = !first.done || !!extra.truncated;
       return {provider: 'voxtral', engine: 'voxtral', sampleRate: VOXTRAL_RATE, channels: 1, frames: delivered, chunks,
@@ -527,8 +547,49 @@ export class VoxtralVoice {
     for (let ask = 0; ; ask++) {
       try { return await this.fetchPart({...args, firstAudioMs: asks[ask], maxQueueMs: this.limits.tailMaxQueueMs}); }
       catch (error) {
-        if (ask >= asks.length - 1 || args.signal?.aborted || !(error instanceof VoxtralError) || !ASK_AGAIN.has(error.kind)) throw error;
+        if (ask >= asks.length - 1 || args.signal?.aborted || !(error instanceof VoxtralError) || error.retried || !ASK_AGAIN.has(error.kind)) throw error;
         this.log(`the rest of the reply: ${error.kind}${error.status ? ` (HTTP ${error.status})` : ''}, asking again`);
+      }
+    }
+  }
+
+  /**
+   * How long to wait before the one quick second ask after `error` (attempt 0 failed), or null for none. Only an answer the server gave
+   * before any audio can be asked again, and only one that can be a hiccup: an HTTP 403 (if it is still there on the second ask it is
+   * reported as a refused key), a 408, a 5xx, or a 429 whose Retry-After fits `retryBudgetMs` (none given: `retryWaitMs`). A 401 is a
+   * refused key: never again. The wait is at most `retryBudgetMs` (about a second), so a turn is never held longer than that for it.
+   */
+  retryWait(error, attempt) {
+    if (attempt > 0 || !(error instanceof VoxtralError) || !error.status) return null;
+    const {status} = error, {retryWaitMs, retryBudgetMs} = this.limits;
+    if (status === 429) { const wait = error.retryAfterMs ?? retryWaitMs; return wait <= retryBudgetMs ? wait : null; }
+    return status === 403 || status === 408 || status >= 500 ? retryWaitMs : null;
+  }
+
+  /** Waits `ms` (cut short by `signal`, which throws the cancellation). */
+  pauseFor(ms, signal) {
+    return new Promise((resolve, reject) => {
+      let timer;
+      const onAbort = () => { this.clearTimer(timer); reject(signal.reason ?? cancelled()); };
+      timer = this.setTimer(() => { signal?.removeEventListener('abort', onAbort); resolve(); }, ms);
+      timer?.unref?.();
+      if (signal?.aborted) onAbort(); else signal?.addEventListener('abort', onAbort, {once: true});
+    });
+  }
+
+  /**
+   * One request, asked again once at once (after a short wait, see retryWait) when the server answered with a refusal that can be a hiccup.
+   * Nothing has been handed on at that point, so a second ask can never double any audio. A failure that is still there after the
+   * quick tries is thrown with `retried: true` (the voice selection does not ask a third time).
+   */
+  async fetchPart(args) {
+    for (let attempt = 0; ; attempt++) {
+      try { return await this.fetchOnce(args); }
+      catch (error) {
+        const wait = args.signal?.aborted ? null : this.retryWait(error, attempt);
+        if (wait === null) { if (attempt > 0 && error instanceof VoxtralError) error.retried = true; throw error; }
+        this.log(`${error.kind}${error.status ? ` (HTTP ${error.status})` : ''}, asking again in ${wait} ms`);
+        await this.pauseFor(wait, args.signal);
       }
     }
   }
@@ -537,8 +598,9 @@ export class VoxtralVoice {
    * One request: sends `text`, reads the server-sent events and hands `onSamples` whole 100 ms frames of float32 audio, in order.
    * Resolves with {done, frames, firstMs (from the send to the first audio), sentAt}. Before any audio has been handed on every
    * failure throws a VoxtralError; after that a failure ends this request's audio where it stopped (done: false).
+   * `ahead`: the held next speaker of a group round (it never takes the slots the speaker being heard needs, see bridge/request-gate.mjs).
    */
-  async fetchPart({text, apiKey, reference, signal, fail, onSamples, firstAudioMs = this.limits.firstAudioMs, maxQueueMs = this.limits.maxQueueMs}) {
+  async fetchOnce({text, apiKey, reference, signal, fail, onSamples, ahead = false, firstAudioMs = this.limits.firstAudioMs, maxQueueMs = this.limits.maxQueueMs}) {
     const controller = new AbortController();
     const onAbort = () => controller.abort(cancelled());
     signal?.addEventListener('abort', onAbort, {once: true});
@@ -576,7 +638,18 @@ export class VoxtralVoice {
       }
       if (from) pending = pending.slice(from);
     };
+    let release = null;
     try {
+      const gateStarted = this.now();
+      try {
+        // A burst of speech requests is kept small (a group round); the speaker being heard is never held back for the look-ahead.
+        release = await this.gate.acquire({ahead, signal: controller.signal, maxQueueMs});
+      } catch (error) {
+        throwIfCancelled(signal);
+        if (error?.code === 'queue-timeout') throw fail('timeout', 'waited too long behind other speech requests');
+        throw fail('network', error?.message || 'is unreachable');
+      }
+      maxQueueMs = Math.max(1, maxQueueMs - (this.now() - gateStarted));
       try {
         response = await this.scheduler.schedule(() => {
           // The first-audio limit counts from the moment the request is sent, not from when it queued behind other Mistral requests.
@@ -597,6 +670,8 @@ export class VoxtralVoice {
         const failure = mapStatus(response.status, body, {headers: response.headers, apiKey});
         // A 429 holds every Mistral request (text included) for the server's retry-after.
         if (failure.kind === 'limit') this.scheduler.pause(failure.retryAfterMs);
+        // A refusal that can be a burst limit (a 403, a 429, a server fault): fewer speech requests at once for a while.
+        if (failure.status === 403 || failure.status === 429 || failure.status >= 500) this.gate.tighten();
         if (failure.status === 400 && reference.format === 'ogg' && !this.safeFormat && /audio|mp3|wav/i.test(body)) {
           this.safeFormat = true; this.references.clear();
           this.log('the Ogg reference was refused; the references are prepared as MP3 from now on');
@@ -632,6 +707,7 @@ export class VoxtralVoice {
       signal?.removeEventListener('abort', onAbort);
       // Free the connection whichever way this ended.
       if (!controller.signal.aborted) controller.abort(cancelled('Voxtral request completed'));
+      release?.();
     }
   }
 }

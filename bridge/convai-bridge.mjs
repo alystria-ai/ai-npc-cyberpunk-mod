@@ -1346,7 +1346,7 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     // Pocket's worker is FIFO, so this runs right after the prior speaker's job.
     // The Inworld cloud voice turns the reply's emotion marks into steering (docs/CLOUD_VOICE_INWORLD.md); the other voices ignore them.
     const replyMarks = result.emotionMarks, replySounds = result.voiceMarks;
-    prefetched = new BufferedPcm({signal, synthesize: (onPcm, options) => localVoice.synthesizeStream(voiceKey, result.text, {...options, onPcm, emotion: {marks: replyMarks, sounds: replySounds}})});
+    prefetched = new BufferedPcm({signal, synthesize: (onPcm, options) => localVoice.synthesizeStream(voiceKey, result.text, {...options, onPcm, ahead: true, emotion: {marks: replyMarks, sounds: replySounds}})});
     prefetched.start().then(() => ahead.markReady(), () => {});
     try {
       await ahead.waitClaimed(signal);

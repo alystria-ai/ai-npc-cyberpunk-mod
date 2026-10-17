@@ -52,14 +52,34 @@ work exactly as with Pocket. Group chat look-ahead (`BufferedPcm`) is unchanged.
   voice").
 - The key goes only in the Authorization header; messages pass through `redact`; it is never logged or written to a state file.
 
+## Hiccups are not a bad key (2026-10-17)
+
+Live: in a group round Voxtral gave one `HTTP 403` ("did not accept the API key") on one reply; the key was then treated as refused for
+60 s, the next two speakers (Judy, Alex) were written replies whose routing line said `fallback="Mistral cloud voice fell back (key)"`,
+and Voxtral spoke again four minutes later with the same key. A 403 can be a gateway or burst refusal, so:
+
+- **A 403, a 408, a 5xx or a short 429 is asked again once, at once,** inside the reply's own ask (`VoxtralVoice.fetchPart`,
+  `retryWait`), after `retryWaitMs` (300 ms; a 429 waits its `Retry-After` when that fits `retryBudgetMs`, 1 s). The turn is never held
+  longer than that budget for it. Nothing has been handed on at that point, so a second ask cannot double any audio. A 401 is the only
+  answer that is a refused key at once. A 403 that is still there on the second ask is reported as `key` (20 s cool-down, not 60 s).
+- **The log line says what the server said** (first 100 characters of the body, the key scrubbed): `[Voxtral] could not speak this reply: key
+  (HTTP 403: ...)`, so a gateway page is told apart from a refused key.
+- **Speech requests in flight are capped** (`bridge/request-gate.mjs`): 4 at once, of which the held next speaker of a group round
+  (`ahead: true`, set where the look-ahead buffers its voice) may hold only 1; a waiting request for the speaker being heard always goes
+  before a waiting look-ahead one, so the speaker never waits for the look-ahead. After a refusal that may be a burst limit (403, 429, 5xx)
+  the cap is 2 for 30 s, then returns by itself. Measured 2026-10-12: Mistral showed no per-second limit with three requests at once; the cap
+  costs nothing when nothing is refused and keeps a burst small when something is.
+
 ## Fallback rule
 
 No local voice is loaded, so there is no local voice to fall back to. **Only while nothing of the reply has been heard** does a
 failure matter: before any audio has been delivered, each of these throws a `VoxtralError`. A request that gave no audio in time, lost
 its connection or was refused (`timeout`, `network`, `request`) is **asked once more with a longer wait** (10 s to first audio instead of
 7 s; `VoiceSelection.synthesizeHead`, `cloudRetryAudioMs`). A reply that still has no audio is shown as written text, with the one
-notice (`deliverPocketSpeech` returns the written reply). A turn whose voice has **no key at all** is routed to the Convai cloud voice
-instead (a written reply under the Mistral conversation provider, which has no Convai audio). Once the first part of a reply has played
+notice (`deliverPocketSpeech` returns the written reply). A turn whose cloud voice **cannot be asked right now** (no key at all, a
+refused key or a limit cooling down: `VoiceSelection.cloudKeyless`) is routed to the Convai cloud voice instead (a written reply under
+the Mistral conversation provider, which has no Convai audio), so the conversation is not silent while the cloud voice recovers. The
+order is: the cloud voice (asked again quickly for a hiccup, below), then the Convai voice, then written text. Once the first part of a reply has played
 in the cloud voice, the rest of it is never given to another voice (see "One reply, one voice"):
 
 | Cause | Kind | After it |
@@ -67,9 +87,10 @@ in the cloud voice, the rest of it is never given to another voice (see "One rep
 | No Mistral key | `no-key` | the turn goes to the Convai cloud voice until a key appears |
 | No clip at all for this character (see below) | `no-reference` | written reply for this character; the rest still use Voxtral |
 | No first audio in 7 s (counted from the moment the request is sent, not when it queued) or waiting over 6 s behind other Mistral requests | `timeout` | asked once more (10 s); then a written reply; the next reply tries again |
-| 429 | `limit` | cool-down for `Retry-After` (20 s when none, at most 60 s); every Mistral request pauses for it |
-| 401 / 403 | `key` | 60 s cool-down |
-| Network error, 5xx, stalled stream (8 s of silence) | `network` | next reply tries again |
+| 429 | `limit` | a `Retry-After` of 1 s or less (or none): asked again once after it; longer: cool-down for it (20 s when none given twice, at most 60 s), the Convai voice speaks meanwhile; every Mistral request pauses for it |
+| 401 | `key` | never asked again; 60 s cool-down, the Convai voice speaks meanwhile |
+| 403 | `key` only if it repeats | asked again once after 300 ms; still 403: `key`, 20 s cool-down, the Convai voice speaks meanwhile |
+| Network error, 5xx, 408, stalled stream (8 s of silence) | `network` | a 5xx or 408 is asked again once after 300 ms; the next reply tries again |
 | Refused request or unusable answer | `request` | next reply tries again |
 | Text over 4,000 characters, or nothing speakable | `text` | not a fallback event; written reply |
 

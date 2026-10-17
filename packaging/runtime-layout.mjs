@@ -120,6 +120,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/relationship-routing.mjs',
   'bridge/reply-language.mjs',
   'bridge/reply-stream.mjs',
+  'bridge/request-gate.mjs',
   'bridge/request-ownership.mjs',
   'bridge/resident-phone-analysis.mjs',
   'bridge/resident-voice.mjs',
