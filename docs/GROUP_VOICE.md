@@ -113,6 +113,28 @@ Convai records the held speaker's turn when it is sent: as for any generated but
 undelivered turn, an interrupted round can leave that speaker's unheard reply in provider
 memory (the bridge records it as `cancelled-turn`, never as delivered).
 
+### Look-ahead on a player's own key (2026-10-17, branch `group-latency`)
+
+The user's live round on the player's own Convai key (confirmed paid Gamer plan, Voxtral voice) waited 8.3 s and 9.0 s between speakers, while the first speaker's text came quickly. The stage clock (`runtime/bridge-latency.json`) of the later speakers read `preparation.mode: "none"`: nothing had been prepared. Each of them paid a fresh Convai connection (`timing.connectionMs` 3.0-4.3 s, `pageReused: false`, one more page per speaker), then the reply (`collectionMs` 2.4-2.6 s), then the voice (about 1.1 s to its first audio) and about 0.5 s of admission and publication, all after the previous speaker's last sample (`transport` to `voiceStart` 7.0 s and 7.7 s). Nothing was waiting behind the previous speaker's audio; there was nothing running ahead.
+
+Cause: `pollLookahead` refused every poll while `singleSession()` was true, and that is true for any player's own key (a free plan holds one connection, and the rule was also kept on paid plans to save interactions). It is not specific to spawned characters: a speaker created by another mod runs under a roster profile and looks to the bridge like any other speaker (tests below).
+
+Now:
+
+- Look-ahead is allowed when the plan can hold a second connection: the shared key, or a player's key whose confirmed plan allows two or more (`connectionLimit()`, 6 on a paid Gamer plan; `lookaheadAllowed`). A free, unknown or unread plan keeps one connection and the serial path (a held turn would need the second connection beside the speaker still heard), and with Mistral or the local AI there is no Convai connection to run ahead on.
+- On a confirmed paid plan the first speaker's request also opens the other speakers' pages (`warmRoundAhead`: `RealtimeHost.warm` with the exact route their turn will use, one after another, never awaited by the turn, no message sent, no memory written; it stops with the turn, and a page that does not open is opened on demand as before). Without this the next speaker's connection (3-4 s of its 7 s) would still start only when the previous speaker's text is complete, leaving about 2.2 s of silence. The shared key already opens them through the party connections.
+- Nothing changes for a solo turn or a private chat: the look-ahead and the warm-up act only on a group round, and only when the round has speakers after the first.
+- Interactions: a look-ahead turn is the turn the game submits a moment later, so a round that runs as predicted spends nothing extra. It spends one that is never heard only when the round is interrupted after the next speaker was requested.
+
+Measured with the real bridge against a simulated game and provider delays shaped like that live round (`LIVE_TIMINGS` in `bridge/group-lookahead-fixture.mjs`: connection 3.5 s, reply text 2.1-2.6 s, first audio 3.5 s after the connection, 5 s of audio; a speaker that is not prepared takes about 7 s). Silence between one speaker's last audio and the next speaker's first, three speakers, two gaps (`node scripts/Measure-GroupGap.mjs --fixture --key player-paid --live-timings`):
+
+| Bridge | Gap 1 | Gap 2 |
+| --- | ---: | ---: |
+| Before: player key on a paid plan | 7.5 s | 7.6 s |
+| Look-ahead allowed only (the gate) | 2.4 s | 2.5 s |
+| Look-ahead plus pages opened at the first request (now) | 0.31 s | 0.38 s |
+| Player key on a free plan (unchanged, serial) | 7.2 s | 7.4 s |
+
 Measured (silence between one speaker's last audio and the next speaker's first audio):
 
 | Setting | Serial (before) | Look-ahead (after) |
@@ -129,7 +151,7 @@ live runs. In-game numbers: `runtime/bridge-latency.json` rows of a held turn ca
 `readyBeforeClaim`); the gap is the later turn's `continuousPlaybackFirstObservedAt` minus
 the earlier turn's `continuousPlaybackCompleteAt`.
 
-`npm run test:group-voice` includes `group-lookahead.test.mjs` (module, buffered PCM),
+`npm run test:group-voice` includes `group-lookahead.test.mjs` (module, buffered PCM, the plan gate, a spawned speaker's prediction),
 `group-lookahead-bridge.test.mjs` (the real bridge against a simulated game/provider:
 gap, ordering, partial overlap, new message, dismissal, mismatch, failure, replaced
 prediction) and the hold tests in `convai-continuous-speech.test.mjs` and
