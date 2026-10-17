@@ -82,7 +82,8 @@ test('native feature fields and graph declarations share the same schema', () =>
 test('new appearance component clones are prepared during extraction behind the dynamic companion tag', () => {
   assert.match(nativeFace, /RegisterCallback\(n"Entity\/Extract", this, n"OnCompanionExtract"\)/);
   assert.match(nativeFace, /RegisterCallback\(n"Entity\/Initialize", this, n"OnCompanionInitialize"\)/);
-  assert.doesNotMatch(nativeFace, /RegisterCallback\(n"Entity\/(?:Attach|AfterAttach|Reassemble)"/);
+  // Reassemble is registered once, for a spawned character's appearance rebuild only (see the rebuild contract below).
+  assert.doesNotMatch(nativeFace, /RegisterCallback\(n"Entity\/(?:Attach|AfterAttach)"/);
   const extract = nativeFace.slice(nativeFace.indexOf('private cb func OnCompanionExtract'),
     nativeFace.indexOf('private func PrepareExtractedComponents'));
   const gate = extract.indexOf('dynamic.IsTagged(builder.GetEntityID(), n"CyberpunkConvaiCompanion")');
@@ -137,12 +138,13 @@ const body = (source, from, to) => {
 };
 test('ordinary NPCs are prepared once at spawn, behind filters, with no per-frame work and no rebuild', () => {
   const callbacks = [...nativeFace.matchAll(/RegisterCallback\(n"(Entity\/\w+)", this, n"(\w+)"\)/g)].map(match => `${match[1]} ${match[2]}`);
-  assert.deepEqual(callbacks, ['Entity/Initialize OnCompanionInitialize', 'Entity/Initialize OnWorldInitialize', 'Entity/Extract OnCompanionExtract'],
-    'the companion initialize and extract callbacks, and one per-NPC-spawn callback');
+  assert.deepEqual(callbacks, ['Entity/Initialize OnCompanionInitialize', 'Entity/Initialize OnWorldInitialize', 'Entity/Extract OnCompanionExtract',
+    'Entity/Reassemble OnReassemble'],
+    'the companion initialize and extract callbacks, one per-NPC-spawn callback, and the spawned character rebuild claim');
   assert.match(nativeFace, /RegisterCallback\(n"Entity\/Initialize", this, n"OnWorldInitialize"\)\s*\.AddTarget\(EntityTarget\.Type\(n"NPCPuppet"\)\)/,
     'the callback system filters to NPCPuppet before the script runs');
   // Nothing per frame, nothing delayed, nothing rebuilt.
-  assert.doesNotMatch(nativeFace, /OnUpdate|UpdateScriptableService|GetDelaySystem|DelayCallback|DelayEvent|ScheduleAppearanceChange|Entity\/(?:Attach|AfterAttach|Reassemble|Update)/);
+  assert.doesNotMatch(nativeFace, /OnUpdate|UpdateScriptableService|GetDelaySystem|DelayCallback|DelayEvent|ScheduleAppearanceChange|Entity\/(?:Attach|AfterAttach|Update)/);
   assert.doesNotMatch(nativeFace, /m_worldPending|m_worldPrepared|RequestWorldFace|WorldRebuildKeepsLook|ReleaseOldestWorld|NoteWorkspot/, 'the on-demand rebuild machinery is retired');
   const world = body(nativeFace, 'private cb func OnWorldInitialize', 'private func CrowdIndex');
   const order = needles => needles.map(needle => {
@@ -254,6 +256,69 @@ test('spawned characters: generic recognition, a face at spawn and at each rebui
   const ready = body(nativeFace, 'public final func ConvaiFaceReady()', 'private final func ConvaiFaceAdoptWorld');
   assert(ready.indexOf('ConvaiSpawnedElsewhere(dynamic)') < ready.indexOf('if world {'), 'a spawned character then passes the world NPC checks');
   assert.match(ready, /if world \{\s*if !Equals\(this\.m_convaiFaceRefusal, ""\) \{ return false; \};\s*if !this\.m_convaiFacePrepared && !this\.ConvaiFaceAdoptWorld\(\) \{ return false; \};/);
+});
+
+// October 17, live result: a spawned character's lips did not move (`face=false/prepared:<graph>` in the probe log). The spawner
+// rebuilds the appearance right after spawning (ScheduleAppearanceChange), the rebuild replaces face_rig with the vanilla graph, and
+// the extraction of such a rebuild names no entity (entity ID 0, no entity part: docs/FACIAL_ANIMATION.md, the Johnny trace), so
+// the managed lookup in OnCompanionExtract never matched it and nothing prepared the new face. The Reassemble event does name the
+// entity and fires after the builder extracted the new components, before they join the entity and initialize.
+test('a spawned character appearance rebuild: noted at extraction, claimed by its own entity at Reassemble, nothing else touched', () => {
+  const extract = body(nativeFace, 'private cb func OnCompanionExtract', 'private func PrepareExtractedComponents');
+  // The managed lookup still comes first; an extraction that names nobody is only noted, and only once a spawned character exists.
+  assert.match(extract, /if !dynamic\.IsManaged\(builder\.GetEntityID\(\)\) \{\s*if this\.m_spawnedSeen \{ this\.NoteRebuild\(builder\); \};\s*return;\s*\};/);
+  assert(extract.indexOf('this.NoteRebuild(builder)') < extract.indexOf('IsTagged('), 'a game-placed entity stops at the managed lookup');
+  assert.match(extract, /spawned = true;\s*this\.m_spawnedSeen = true;/);
+  // The first half: what is noted, in what order the guards run, and that it only reads.
+  const note = body(nativeFace, 'private func NoteRebuild', 'private cb func OnReassemble');
+  const inOrder = (text, needles) => {
+    const at = needles.map(needle => {
+      const found = text.indexOf(needle);
+      assert(found >= 0, needle);
+      return found;
+    });
+    assert.deepEqual([...at].sort((a, b) => a - b), at, needles.join(' < '));
+  };
+  inOrder(note, ['this.m_crowdMode == 0', 'builder.HasEntity()', '!builder.HasAppearance()', 'EntityID.IsDefined(builder.GetEntityID())',
+    'builder.GetTemplate().GetResource()', 'ResRef.GetHash(template.path)', 'appearance.GetComponents()', 'builder.GetCustomAppearances()']);
+  assert.match(note, /if this\.m_crowdMode == 0 \|\| builder\.HasEntity\(\) \|\| !builder\.HasAppearance\(\) \{ return; \};/,
+    'a first build (entity part), a mode that is off and a builder without an appearance are never noted');
+  assert.doesNotMatch(note, /\.graph\s*=|ConvaiFacePrepared|ScheduleAppearanceChange|GetDefinition\(|GetTemplatePath\(\)/,
+    'noting writes nothing, and never reads the template path through the wrapper (it dereferences the template without a check)');
+  assert.match(note, /Equals\(face\.GetName\(\), n"face_rig"\)/);
+  assert.match(note, /if ArraySize\(this\.m_rebuildFaces\) >= 6 \{\s*ArrayErase\(this\.m_rebuildFaces, 0\);\s*ArrayErase\(this\.m_rebuildTemplates, 0\);\s*\};/,
+    'bounded: the oldest note leaves first');
+  assert.match(nativeFace, /private let m_rebuildFaces: array<wref<AnimatedComponent>>;/, 'weak: no component is kept alive');
+  assert.match(nativeFace, /private let m_rebuildTemplates: array<Uint64>;/);
+  // The second half.
+  const claim = body(nativeFace, 'private cb func OnReassemble', 'public func RebuildCounts');
+  inOrder(claim, ['!this.m_spawnedSeen || this.m_crowdMode == 0', 'event.GetEntity() as NPCPuppet',
+    'ConvaiFaceService.SpawnedElsewhere(dynamic, npc.GetEntityID())', 'ArraySize(this.m_rebuildFaces) == 0', 'ResRef.GetHash(npc.GetTemplatePath())', 'this.m_rebuildTemplates[i] == key',
+    'this.PrepareSpawnedFace(face)', 'ArrayErase(this.m_rebuildFaces, i)', 'npc.ConvaiFacePrepared(']);
+  assert.match(claim, /let i = ArraySize\(this\.m_rebuildFaces\) - 1;\s*while i >= 0 \{/, 'newest first');
+  assert.match(claim, /if Equals\(status, ""\) \{\s*status = result;\s*graphPath = ResRef\.ToString\(ResourceRef\.GetPath\(face\.graph\)\);\s*\};/,
+    'the puppet gets the newest note status and the graph path of the face that was prepared');
+  assert.match(claim, /if !Equals\(status, ""\) \{\s*npc\.ConvaiFacePrepared\(StrBeginsWith\(status, "prepared:"\), status, graphPath\);\s*\} else \{\s*this\.m_rebuildMissed \+= 1;\s*\};/);
+  assert.doesNotMatch(claim, /IsTagged\(|face\.graph = |ScheduleAppearanceChange/, 'our own copies are not claimed here, and the graph is written only by PrepareSpawnedFace');
+  // Registered once, filtered to NPCPuppet by the callback system, in OnLoad (never from inside another callback).
+  assert.match(nativeFace, /RegisterCallback\(n"Entity\/Reassemble", this, n"OnReassemble"\)\s*\.AddTarget\(EntityTarget\.Type\(n"NPCPuppet"\)\)/);
+  assert.equal([...nativeFace.matchAll(/RegisterCallback\(n"Entity\/Reassemble"/g)].length, 1);
+  assert(body(nativeFace, 'private cb func OnLoad', 'private cb func OnCompanionExtract').includes('n"OnReassemble"'));
+  // A spawned character seen at its first build or at Initialize switches the notes on; nothing else does.
+  assert.equal([...nativeFace.matchAll(/this\.m_spawnedSeen = true;/g)].length, 2);
+  const world = body(nativeFace, 'private cb func OnWorldInitialize', 'private func CrowdIndex');
+  assert.match(world, /SpawnedElsewhere\(dynamic, npc\.GetEntityID\(\)\) \{ return; \};\s*this\.m_spawnedSeen = true;/);
+  // The status tells the truth: a prepared face that now runs another graph is "stale:<graph>" with the rebuild counts, and the
+  // talk-start request reports it (so the Lua log line "Face request: ... status=stale:..." appears).
+  const status = body(nativeFace, 'public final func ConvaiFaceStatus()', 'public final func ConvaiFaceReady()');
+  assert.match(status, /this\.m_convaiFacePrepared && !Equals\(this\.m_convaiFaceGraphPath, ""\)/);
+  assert.match(status, /return "stale:" \+ live \+ \(IsDefined\(service\) \? " " \+ service\.RebuildCounts\(\) : ""\);/);
+  assert.match(body(nativeFace, 'public final func ConvaiFaceRequest()', 'public final func ConvaiFaceApply('), /return this\.ConvaiFaceStatus\(\);/);
+  assert.match(nativeFace, /public func RebuildCounts\(\) -> String \{\s*return "noted=" \+ IntToString\(this\.m_rebuildStashed\)/);
+  // Our own companion extraction and the ordinary-NPC spawn path are unchanged by all of this.
+  assert.match(extract, /if !dynamic\.IsTagged\(builder\.GetEntityID\(\), n"CyberpunkConvaiCompanion"\) \{/);
+  // No per-frame work.
+  assert.doesNotMatch(nativeFace, /OnUpdate|UpdateScriptableService/);
 });
 
 // The filter, run as written: CrowdSkipReason and QuestBound are mechanical transliterations of their redscript bodies

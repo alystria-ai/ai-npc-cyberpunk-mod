@@ -34,6 +34,19 @@ public class ConvaiFaceService extends ScriptableService {
   // for it. Empty unless an add-on asked (mod/addons.lua handle:watchFace), so without add-ons nothing here ever runs.
   private let m_screenRigs: array<String>;
   private let m_screenIDs: array<EntityID>;
+  // Rebuilds of a spawned character's appearance (docs/SPAWNED_CHARACTERS.md, "Appearance changes"). The game builds a
+  // rebuild's components with no entity ID (the builder names nobody), so the extraction cannot tell whose face it is.
+  // Once a spawned character has been seen (m_spawnedSeen), an extraction that names nobody and carries no entity part
+  // leaves its face_rig clones here (weak, at most six) with a key for the entity template; the entity's own
+  // Reassemble event, which does name the entity, then prepares the clones of its own template before they initialize.
+  // Nothing is kept until a spawned character exists, and no component is held alive. The counters are for the status line.
+  private let m_spawnedSeen: Bool;
+  private let m_rebuildFaces: array<wref<AnimatedComponent>>;
+  private let m_rebuildTemplates: array<Uint64>;
+  private let m_rebuildStashed: Int32;
+  private let m_rebuildSeen: Int32;
+  private let m_rebuildApplied: Int32;
+  private let m_rebuildMissed: Int32;
 
   private cb func OnLoad() {
     this.m_names = ConvaiFaceAssets.Names();
@@ -71,19 +84,30 @@ public class ConvaiFaceService extends ScriptableService {
     // before touching any newly extracted component instance.
     GameInstance.GetCallbackSystem()
       .RegisterCallback(n"Entity/Extract", this, n"OnCompanionExtract");
+    // An appearance rebuild names its entity here (and only here): the second half of PrepareRebuiltFace.
+    GameInstance.GetCallbackSystem()
+      .RegisterCallback(n"Entity/Reassemble", this, n"OnReassemble")
+      .AddTarget(EntityTarget.Type(n"NPCPuppet"));
   }
 
   private cb func OnCompanionExtract(event: ref<EntityBuilderEvent>) {
     let builder = event.GetEntityBuilder();
     let dynamic = GameInstance.GetDynamicEntitySystem();
-    // Every entity the game builds reaches this callback: a game-placed one stops at the first lookup.
-    if !IsDefined(builder) || !IsDefined(dynamic) || !dynamic.IsManaged(builder.GetEntityID()) { return; };
+    if !IsDefined(builder) || !IsDefined(dynamic) { return; };
+    // Every entity the game builds reaches this callback: a game-placed one stops at the first lookup. A rebuild of an
+    // existing entity's appearance names no entity at all (measured: entity ID 0, no entity part), so it is only noted,
+    // and only once a spawned character exists.
+    if !dynamic.IsManaged(builder.GetEntityID()) {
+      if this.m_spawnedSeen { this.NoteRebuild(builder); };
+      return;
+    };
     let spawned = false;
     if !dynamic.IsTagged(builder.GetEntityID(), n"CyberpunkConvaiCompanion") {
       // A character another mod or a spawner created: an outfit change rebuilds face_rig with the vanilla graph, so its
       // speaking face is prepared again on every rebuild (the ordinary-NPC layer, inert until the mod voices it).
       if this.m_crowdMode == 0 || !ConvaiFaceService.SpawnedElsewhere(dynamic, builder.GetEntityID()) { return; };
       spawned = true;
+      this.m_spawnedSeen = true;
     };
     // These wrappers expose this builder's extracted component clones, not
     // shared .ent/.app definitions. They also cover appearance-only rebuilds.
@@ -143,6 +167,93 @@ public class ConvaiFaceService extends ScriptableService {
     npc.ConvaiFacePrepared(StrBeginsWith(status, "prepared:"), status, graphPath);
   }
 
+  // First half of a spawned character's rebuild: an extraction that names no entity and has no entity part (an appearance
+  // change of something that already exists) leaves its face_rig clones, with a key for the entity template, until that
+  // entity's Reassemble claims them. Runs only after a spawned character was seen, only for such an extraction (rare: a
+  // quest or a mod changing an appearance), reads no strings and holds no component alive.
+  private func NoteRebuild(builder: ref<EntityBuilderWrapper>) -> Void {
+    if this.m_crowdMode == 0 || builder.HasEntity() || !builder.HasAppearance() { return; };
+    if EntityID.IsDefined(builder.GetEntityID()) { return; };
+    let template = builder.GetTemplate().GetResource();
+    if !IsDefined(template) { return; };
+    let key = ResRef.GetHash(template.path);
+    let appearance = builder.GetAppearance();
+    if IsDefined(appearance) { this.NoteRebuiltFaces(appearance.GetComponents(), key); };
+    let customs = builder.GetCustomAppearances();
+    let i = 0;
+    while i < ArraySize(customs) {
+      this.NoteRebuiltFaces(customs[i].GetComponents(), key);
+      i += 1;
+    };
+  }
+
+  private func NoteRebuiltFaces(components: array<ref<IComponent>>, key: Uint64) -> Void {
+    let i = 0;
+    while i < ArraySize(components) {
+      let face = components[i] as AnimatedComponent;
+      if IsDefined(face) && Equals(face.GetName(), n"face_rig") {
+        // Oldest first out: an entry that no Reassemble claimed (a prefetch, a game character) never accumulates.
+        if ArraySize(this.m_rebuildFaces) >= 6 {
+          ArrayErase(this.m_rebuildFaces, 0);
+          ArrayErase(this.m_rebuildTemplates, 0);
+        };
+        ArrayPush(this.m_rebuildFaces, face);
+        ArrayPush(this.m_rebuildTemplates, key);
+        this.m_rebuildStashed += 1;
+      };
+      i += 1;
+    };
+  }
+
+  // Second half: the spawned character's own appearance rebuild. The Reassemble event fires after the builder extracted
+  // the new components and before they join the entity and initialize, so a face_rig noted for this entity template can
+  // still take the speaking graph (exactly as at the first build). Every note of the template is prepared (they only
+  // differ when a prefetch and the real rebuild both extracted); the status and graph path go to the puppet from the
+  // newest. A game character, our own copy and an entity of another template are never matched.
+  private cb func OnReassemble(event: ref<EntityLifecycleEvent>) {
+    if !this.m_spawnedSeen || this.m_crowdMode == 0 { return; };
+    let npc = event.GetEntity() as NPCPuppet;
+    let dynamic = GameInstance.GetDynamicEntitySystem();
+    if !IsDefined(npc) || !IsDefined(dynamic) || !ConvaiFaceService.SpawnedElsewhere(dynamic, npc.GetEntityID()) { return; };
+    this.m_rebuildSeen += 1;
+    if ArraySize(this.m_rebuildFaces) == 0 {
+      this.m_rebuildMissed += 1;
+      return;
+    };
+    let key = ResRef.GetHash(npc.GetTemplatePath());
+    let status = "";
+    let graphPath = "";
+    let i = ArraySize(this.m_rebuildFaces) - 1;
+    while i >= 0 {
+      if this.m_rebuildTemplates[i] == key {
+        let face = this.m_rebuildFaces[i];
+        if IsDefined(face) {
+          let result = this.PrepareSpawnedFace(face);
+          if Equals(status, "") {
+            status = result;
+            graphPath = ResRef.ToString(ResourceRef.GetPath(face.graph));
+          };
+          this.m_rebuildApplied += 1;
+        };
+        ArrayErase(this.m_rebuildFaces, i);
+        ArrayErase(this.m_rebuildTemplates, i);
+      };
+      i -= 1;
+    };
+    if !Equals(status, "") {
+      npc.ConvaiFacePrepared(StrBeginsWith(status, "prepared:"), status, graphPath);
+    } else {
+      this.m_rebuildMissed += 1;
+    };
+  }
+
+  // What the status line adds when the face was prepared and a rebuild replaced it anyway: how many rebuilds were noted and
+  // claimed, so one more live check says where a missing preparation was lost (docs/SPAWNED_CHARACTERS.md).
+  public func RebuildCounts() -> String {
+    return "noted=" + IntToString(this.m_rebuildStashed) + " claimed=" + IntToString(this.m_rebuildApplied)
+      + " reassembled=" + IntToString(this.m_rebuildSeen) + " unmatched=" + IntToString(this.m_rebuildMissed);
+  }
+
   // Ordinary world NPCs, once per spawn, before the face component initializes (so no flash and no rebuild). The game
   // spawns them with a vanilla face graph that has no ConvaiFace input, and a running component's graph cannot be
   // swapped (a same-name appearance change is a no-op, measured 2026-10-10), so the choice is made here or never.
@@ -162,6 +273,7 @@ public class ConvaiFaceService extends ScriptableService {
     // spawned Judy is meant to talk). Every other dynamic entity is left alone.
     if dynamic.IsManaged(npc.GetEntityID()) {
       if this.m_crowdMode == 0 || !ConvaiFaceService.SpawnedElsewhere(dynamic, npc.GetEntityID()) { return; };
+      this.m_spawnedSeen = true;
       let spawnedFace = npc.FindComponentByName(n"face_rig") as AnimatedComponent;
       if !IsDefined(spawnedFace) { return; };
       let spawnedStatus = this.PrepareSpawnedFace(spawnedFace);
@@ -455,6 +567,19 @@ private let m_convaiFaceRefusal: String;
 @addMethod(NPCPuppet)
 public final func ConvaiFaceStatus() -> String {
   if !Equals(this.m_convaiFaceRefusal, "") { return this.m_convaiFaceRefusal; };
+  // A face that was prepared but now runs another graph (a rebuild nobody prepared) says so, with the graph it runs and
+  // the rebuild counts, instead of keeping the old "prepared" word that ConvaiFaceReady no longer agrees with. Read once
+  // per reply, never per frame.
+  if this.m_convaiFacePrepared && !Equals(this.m_convaiFaceGraphPath, "") {
+    let face = this.FindComponentByName(n"face_rig") as AnimatedComponent;
+    if IsDefined(face) {
+      let live = ResRef.ToString(ResourceRef.GetPath(face.graph));
+      if !Equals(live, this.m_convaiFaceGraphPath) {
+        let service = GameInstance.GetScriptableServiceContainer().GetService(n"ConvaiFaceService") as ConvaiFaceService;
+        return "stale:" + live + (IsDefined(service) ? " " + service.RebuildCounts() : "");
+      };
+    };
+  };
   return this.m_convaiFaceStatus;
 }
 
@@ -516,7 +641,8 @@ public final func ConvaiFaceRequest() -> String {
   };
   this.m_convaiFaceRefusal = service.TalkRefusal(this, spawned);
   if !Equals(this.m_convaiFaceRefusal, "") { return this.m_convaiFaceRefusal; };
-  return this.m_convaiFaceStatus;
+  // A prepared face that a rebuild replaced reports "stale:<graph>" here (ConvaiFaceStatus), so the Lua log says so.
+  return this.ConvaiFaceStatus();
 }
 
 @addMethod(NPCPuppet)

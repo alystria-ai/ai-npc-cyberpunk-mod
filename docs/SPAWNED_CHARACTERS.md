@@ -54,6 +54,33 @@ No other mod's tag, record prefix, template path or name is ever matched. A spaw
 | Battle and loot witnesses | Yes (phase 2, built): near V at the start of a fight or at a pickup, friendly, with an enabled roster profile; they may speak the reaction and are named by profile in the battle context | `convaiSpawnedPeople.watch` and `reactionRows`, `reactionPeople` |
 | Offers about our party (leave) from a spawned speaker | No | `leaveOffer` in `mod/init.lua` |
 
+## Lips did not move (live result 2026-10-17) and the fix
+
+**Symptom.** The user spawned Jackie and Judy with a spawner. Both talked with their own voice and identity, gaze and follow were fine, and the lips did not move. `probe.log`:
+
+```
+Conversation result: ... face=false/prepared:man_big_sermo                    (the spawned Jackie)
+Conversation result: ... face=false/prepared:player_woman_photomode_sermo     (the spawned Judy)
+Conversation result: ... face=true/prepared:woman_average_sermo               (our own Alex, for comparison)
+```
+
+**The graph names were right.** Jackie's record uses the big-man crowd graph (`man_big_sermo`), and Judy's own face graph is her photo-mode graph, the one our own Judy copy carries. A "man_big for a woman" was a misreading: that line was Jackie. The status said `prepared` because the first build was prepared correctly. `face=false` came from `ConvaiFaceReady`, which compares the live `face_rig` graph with the one we prepared.
+
+**Cause.** The spawner creates the character from a record, then immediately asks the engine for an appearance change (`ScheduleAppearanceChange`, with a "cycle" or a saved look). The rebuild creates a new `face_rig` with the vanilla graph. Its extraction (`Entity/Extract`) names no entity: entity ID 0 and no entity part (measured earlier for a companion's rebuild, `docs/FACIAL_ANIMATION.md`, the Johnny trace). `OnCompanionExtract` stopped at the managed lookup, nothing prepared the new face, and the stored path no longer matched. No archive of the spawner changes Judy's or Panam's face graph or rig: the Judy facial fix archive holds one new `.app` that only an `.xl` patch (ArchiveXL, not installed) would apply, and the Judy and Panam body revamp archives hold meshes and textures.
+
+**Fix (`Face.reds`).** The rebuild's own entity is named by the `Entity/Reassemble` event, which Codeware fires after the builder extracted the new components and before they join the entity and initialize (Codeware 1.20.5, `EntityRequestComponentsHook`). The two halves meet there:
+
+1. `NoteRebuild` (in `OnCompanionExtract`, only after a spawned character was ever seen, only for an extraction with no entity ID, no entity part and an appearance): the `face_rig` clones are noted, weakly (at most six, oldest out), with a key for the entity template (`ResRef.GetHash` of the builder's template path, read from the template resource, not through the wrapper that dereferences it unchecked).
+2. `OnReassemble` (registered once for `NPCPuppet`, early exits first): for an entity that is spawned elsewhere (managed, none of our tags), every note of its template (`npc.GetTemplatePath()`) is prepared by the same `PrepareSpawnedFace` as at the first build (the gated crowd copy, or the companion graph for Judy's photo-mode graph), and the puppet gets the status and graph path of the newest. A game character, our own copy and another template are never matched.
+
+**Status line.** `ConvaiFaceStatus` now says `stale:<graph the face runs now> noted=N claimed=N reassembled=N unmatched=N` when a prepared face runs another graph. `ConvaiFaceRequest` returns it, so the log gets a `Face request: ... status=stale:...` line at talk start. If the lips still do not move after the fix, that line says where it was lost: `noted=0` (the extraction was not seen as expected), `reassembled=0` (the event did not fire), `unmatched>0` (the template keys differ), or `claimed>0` with a `stale:` graph (the clone the engine used was not the one we prepared).
+
+**Cost.** No per-frame work. Without a spawned character: one `Bool` read per extraction that names no entity (rare) and one script call per NPC reassembly that returns at its first line. With one: the same plus, per rebuild of anything, one pass over the appearance's components (once, for an extraction with no entity part), and per NPC reassembly one native managed lookup.
+
+**Live check owed (needs the Scripts install and a game restart).** Spawn Jackie and Judy with the spawner, wait a few seconds for the spawner's own appearance change, and talk to each by text. `probe.log` must read `face=true/prepared:man_big_sermo` for Jackie and `face=true/prepared:player_woman_photomode_sermo` for Judy, and the lips move. Then change one's outfit with the spawner and talk again. Our own Alex must still read `face=true/prepared:woman_average_sermo`. If a line reads `face=false/stale:...`, send the whole line.
+
+**Not covered.** Our own companions' appearance rebuilds are untouched (their spawn picks the final appearance up front), and a spawned character's rebuild that arrives with an entity ID (none seen) goes through the existing managed path.
+
 ## Invite and party
 
 - **Manager or phone invite of the same character.** Our invite spawns our own managed copy, as always. A spawned Judy and our Judy can stand side by side. Both talk as Judy, with one voice and one memory. Only one conversation runs at a time. A player who wants Judy to follow with our systems invites ours. A player who wants the spawner's Judy keeps hers, and she still talks.
@@ -66,8 +93,8 @@ No other mod's tag, record prefix, template path or name is ever matched. A spaw
 - **Save and load.** The reference spawner spawns with persistence off, so its characters are gone after a load, and "respawn all" creates new entity IDs. Our Lua cache is cleared on session release, and new IDs are read afresh. Memory is keyed by profile, so a respawned Judy remembers the previous talk.
 - **Despawn mid-conversation.** This goes through the existing talk path. The focus holds a weak reference and ends on `IsAttached` or `IsDead` checks. `ConvaiFaceReady` fails on a detached puppet, so no face write lands. Nothing of ours holds the entity alive.
 - **Duplicates.** A spawned copy and our copy of one character share a profile, as above. Group chat tracks speakers by entity (a body is never two speakers, and the round's rows, gestures role and leave guard are all by entity). It also keeps one voice per profile in a round, because the bridge keys a round's audience, memory and heard lines by profile. So with our Judy and a spawned Judy side by side, the addressed one speaks and the other is skipped, and our own copy wins when neither was addressed (see "Phase 2").
-- **Appearance changes.** The spawner changes outfits by rebuilding the appearance, which replaces `face_rig` with the vanilla graph. `OnCompanionExtract` now catches spawned builds, and `PrepareExtractedComponents` prepares the new face and updates the stored graph path, so `ConvaiFaceReady` keeps passing.
-  - A rebuild during a conversation briefly fails the ready check until the extraction finishes, then the face resumes.
+- **Appearance changes.** A spawner rebuilds the appearance (an outfit change, and a "cycle" right after it spawns someone), which replaces `face_rig` with the vanilla graph. Phase 1 assumed `OnCompanionExtract` sees such a rebuild as a managed build. **It does not** (live result 2026-10-17, see "Lips did not move" below): the extraction of a rebuild names no entity. The fix is the note-and-claim pair described there.
+  - A rebuild during a conversation briefly fails the ready check until the rebuild is claimed, then the face resumes.
   - The rebuild is not ours, so there is no flash risk from us.
 - **Car.** The spawner can seat its followers in V's car and drive. We send no hold, so talking to a seated spawned character does not fight its mount. Eye contact uses eyes and head only.
 - **Combat.**
