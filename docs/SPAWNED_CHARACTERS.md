@@ -214,6 +214,33 @@ No redscript change: nothing to rebuild in the game's script cache. A CET reload
 6. The spawned character's first-speaker round offers no leave action even with a companion in the round.
 7. FPS and latency: the perf probe and the stage clock show no new per-frame row, and a group round with no spawned characters keeps its usual first-reply time. The one extra row is the scan on the group key press and on a fight start.
 
+## First talk without the connection wait (branch `spawned-preconnect`, from `main` 9415fdc4)
+
+Live result (2026-10-17, the user): the first talk to a spawned character waited 3 to 5 s for Convai's connection, because nothing opened it until V spoke. Our own companions and the nearby slots did not have this.
+
+**Cause.** Two gaps. On a player's own key `deferWarm` (`singleSession`) stops every background pre-open, free plan or paid. And the one thing that would have prepared a spawned character, auto-connect, gives two shared slots at 5 m, staggered 3 s, and skipped any profile that is also a party member.
+
+**Design.** A lane of its own for spawned roster characters, in both halves:
+
+- **Game side (`mod/auto-connect.lua`, `mod/init.lua` `scanNearbyCharacters`).** The scan that already runs once a second marks a row `spawned` when it is a roster character another mod or a spawner created (`convaiSpawnedPeople.named(key)` and the cached `convaiWorldPolicy.spawned(entity)`; residents and archetypes are not). Such a row is admitted on the first scan that sees it, without the stagger, in its own place: at most `maxSpawned` = 3, beside the two slots, with the same hold (40 s), age (10 min) and cooldown rules. A talked-to one leaves for the partner role. `publishFile` writes the list as `spawned` in `runtime/nearby-connections.json`, in the same heartbeat as before. No new per-frame work, no new native call, no new file. `mod/spawned-characters.lua` and `mod/group-chat.lua` are not touched.
+- **Bridge (`bridge/nearby-warm.mjs`, `bridge/party-connections.mjs`).** `parseSpawned` reads the list (up to 3, stale after 8 s, invalid names refused). `PartyConnections.setSpawned` adds a `spawned` role to the plan: above the nearby ones, below the party, an invitation, the target and the partners, one entry per profile (a spawned Judy and our Judy share one connection; `alsoSpawned` marks it). The page opens through the same staggered, two-at-a-time `startWarm` as every party connection, never sends a message and never writes memory, and is closed when the game stops listing the character (unload what is unused). `NearbyWarm` also prepares the voice of a spawned character, after the partners.
+- **Plan rules** (`spawnedWarmLimit`): the shared key allows 3; a player's own key allows `min(3, connectionLimit - 1)` (6 on a confirmed paid plan: 3; a plan of 2: 1; a free, unknown or unread plan: none, so the free plan behaves exactly as before); Mistral or the local AI text provider: none. One connection is always kept for the page V is on. A player's key still pre-opens nothing else in the background (party, nearby, prefetch, phone); only the spawned lane is exempt, and only while `spawnedWarmLimit` is above 0 (`warmDeferred`).
+- **Interactions.** Opening a connection is not a turn (`docs/CONVAI_PAID_TIER.md`), so no interaction is spent.
+
+**Numbers** (real bridge, simulated game and provider with delays shaped like the 2026-10-17 live round, a fresh connection 3.5 s; `node scripts/Measure-SpawnedConnect.mjs`, time from V's line to the first audio): own key on a paid plan, listed ahead 3.8 s against 7.4 s without the hint; shared key 3.9 s against 7.4 s; free plan 7.4 s, nothing opened; party Judy also spawned, with Panam: 2 pages opened, 4.0 s; three spawned on a paid plan: 3 pages opened, 4.0 s; three spawned on a plan of two: 1 page opened, 3.8 s. The remaining 3.8 s is the reply itself.
+
+**Tests.** `bridge/party-connections.test.mjs` (role ranking, limit 3, dedupe, plan table, single-session with and without room), `bridge/nearby-warm.test.mjs` (`parseSpawned`, apply, voices, release), `bridge/auto-connect.test.mjs` (the lane, its cap and release rules, partner handoff, party overlap, source checks), `bridge/spawned-preconnect-bridge.test.mjs` (the real bridge: the first talk finds the page open on a paid plan and on the shared key; the free plan opens nothing; one page for a shared profile; three on a paid plan, one on a plan of two).
+
+**Live check owed** (needs the Scripts install, a bridge restart and a spawner; "Auto-connect nearby characters" on):
+1. Spawn Judy near V (within about 5 m) and wait 5 s without talking. `runtime/party-connection-state.json` lists `judy-alvarez` with role `spawned` and state `ready`; probe.log says `Auto-connect warming judy-alvarez (spawned)`.
+2. Talk to her. The first reply starts without the connection wait: `runtime/bridge-latency.json` shows `connectionWarm` true for that turn.
+3. Own key on a free plan: nothing opens ahead and the first talk takes as long as before. Own key on the paid plan: as in 1 and 2.
+4. Spawn four: only three open. Walk away or despawn: their pages close after about 40 s.
+5. Spawn Judy and invite our own Judy: one `judy-alvarez` connection, not two.
+6. FPS: no new per-frame row in the perf probe; the scan row count is unchanged.
+
+Not changed: a private talk to any other character on a player's key (a game NPC that is not spawned, a nearby one) still opens its connection when V talks; that is the `deferWarm` decision about interactions and memory-user slots.
+
 ## Ready for builders (Sonnet, from this document)
 
 1. **Optional invite notice** (above), only if players ask.

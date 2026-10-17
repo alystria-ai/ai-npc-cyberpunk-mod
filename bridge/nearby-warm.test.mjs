@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {NearbyWarm, parseEntities, parseNearby} from './nearby-warm.mjs';
-import {NEARBY_LIMIT} from './party-connections.mjs';
+import {NearbyWarm, parseEntities, parseNearby, parseSpawned} from './nearby-warm.mjs';
+import {NEARBY_LIMIT, SPAWNED_LIMIT} from './party-connections.mjs';
 
 const flush = () => new Promise(done => setImmediate(done));
 function fixture(overrides = {}) {
@@ -131,4 +131,54 @@ test('an ambient character is listed with its entity and warmed through that bod
   assert.deepEqual(routes.at(-1).profiles, ['resident-male', 'judy']);
   assert.deepEqual(routes.at(-1).given, {'resident-male': {characterId: 'resident-male-id', scope: 'private:123ULL'}},
     'only an ambient profile gets an entity route; a named one keeps its profile route');
+});
+
+// Characters another mod or a spawner created (mod/auto-connect.lua `spawned`): a list of their own beside the two nearby slots.
+test('the spawned list is validated, deduplicated, limited to three and refused when stale', () => {
+  const now = 100_000;
+  assert.equal(SPAWNED_LIMIT, 3);
+  assert.deepEqual(parseSpawned({updated: now, spawned: ['judy', 'panam', 'judy']}, {now}), ['judy', 'panam']);
+  assert.deepEqual(parseSpawned({updated: now, spawned: ['judy', 'panam', 'kerry']}, {now}), ['judy', 'panam', 'kerry']);
+  for (const bad of [null, {}, {updated: now}, {updated: now, spawned: ['a', 'b', 'c', 'd']}, {updated: now, spawned: ['bad/key']},
+    {updated: now - 9000, spawned: ['judy']}, {updated: now + 6000, spawned: ['judy']}, {updated: now, spawned: 'judy'}]) {
+    assert.deepEqual(parseSpawned(bad, {now}), []);
+  }
+  assert.deepEqual(parseSpawned({updated: now, spawned: ['stranger', 'judy']}, {now, isKnown: p => p !== 'stranger'}), ['judy']);
+  // A document written before this field existed lists none, and the two nearby slots still parse.
+  assert.deepEqual(parseSpawned({updated: now, profiles: ['judy'], partners: []}, {now}), []);
+  assert.deepEqual(parseNearby({updated: now, profiles: ['judy'], spawned: ['panam', 'kerry', 'viktor']}, {now}), ['judy']);
+});
+
+test('spawned characters reach the connections beside the nearby slots, keep a voice each and are released with the list', async () => {
+  const spawnedCalls = [], nearbyCalls = [], partnerCalls = [], voiceCalls = [];
+  let time = 1_000_000;
+  const connections = {setNearby: async profiles => { nearbyCalls.push([...profiles]); },
+    setPartners: async profiles => { partnerCalls.push([...profiles]); },
+    setSpawned: async profiles => { spawnedCalls.push([...profiles]); }};
+  const warm = new NearbyWarm({connections, now: () => time, prepareVoice: async profile => { voiceCalls.push(profile); }});
+  const document = (extra, age = 0) => JSON.stringify({updated: time - age, profiles: [], partners: [], ...extra});
+  await warm.apply(document({profiles: ['kerry'], spawned: ['judy', 'panam']}));
+  assert.deepEqual(spawnedCalls.at(-1), ['judy', 'panam']); assert.deepEqual(nearbyCalls.at(-1), ['kerry']);
+  assert.deepEqual(warm.diagnostic().spawned, ['judy', 'panam']);
+  // A voice each, one at a time, spawned characters before the plain nearby ones.
+  assert.deepEqual(voiceCalls, ['judy']);
+  await flush(); await warm.apply(document({profiles: ['kerry'], spawned: ['judy', 'panam']}));
+  await flush(); await warm.apply(document({profiles: ['kerry'], spawned: ['judy', 'panam']}));
+  assert.deepEqual(voiceCalls, ['judy', 'panam', 'kerry']);
+  // A character V now talks to is a partner, not a spawned one as well; the list shrinks.
+  await warm.apply(document({partners: ['panam'], spawned: ['judy', 'panam']}));
+  assert.deepEqual(spawnedCalls.at(-1), ['judy']); assert.deepEqual(partnerCalls.at(-1), ['panam']);
+  // The game stopped listing them: connections and voices are released, nothing stays prepared.
+  await warm.apply(document({}));
+  assert.deepEqual(spawnedCalls.at(-1), []); assert.deepEqual(warm.diagnostic().voices, {});
+  // A list that stops being refreshed counts as empty.
+  await warm.apply(document({spawned: ['judy']})); assert.deepEqual(spawnedCalls.at(-1), ['judy']);
+  time += 20_000; await warm.apply(document({spawned: ['judy']}, 20_000));
+  assert.deepEqual(spawnedCalls.at(-1), []);
+  await warm.apply(document({spawned: ['panam']}));
+  await warm.release();
+  assert.deepEqual(spawnedCalls.at(-1), []); assert.deepEqual(warm.diagnostic().spawned, []);
+  // Connections without a spawned lane (an older object) still work.
+  const plain = new NearbyWarm({connections: {setNearby: async () => {}}, now: () => time, prepareVoice: async () => {}});
+  await plain.apply(document({spawned: ['judy']})); await plain.release();
 });

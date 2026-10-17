@@ -38,7 +38,7 @@ import {battleTrigger, reactionLeaseProblem} from './battle-context.mjs';
 import {GroupPrefetch, parsedInputIdentity, parsePrewarm} from './group-prefetch.mjs';
 import {GroupLookahead, lookaheadAllowed, validateLookahead, waitUntil, BufferedPcm} from './group-lookahead.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
-import {PartyConnections, parsePartyConnections} from './party-connections.mjs';
+import {PartyConnections, parsePartyConnections, spawnedWarmLimit} from './party-connections.mjs';
 import {NearbyWarm} from './nearby-warm.mjs';
 import {CompanionInvitations} from './companion-invitations.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
@@ -351,6 +351,7 @@ const singleSession = () => keys.singleSession || mistral.active;
 // set once the paid tier service exists (further down), one until then.
 let playerConnectionLimit = () => 1;
 const connectionLimit = () => mistral.active ? 1 : playerConnectionLimit();
+const spawnedConnections = () => spawnedWarmLimit({singleSession: keys.singleSession, connectionLimit: connectionLimit(), textProvider: mistral.active});
 const groupLookaheadAllowed = () => lookaheadAllowed({singleSession: keys.singleSession, connectionLimit: connectionLimit(), textProvider: mistral.active});
 const keyNotice = () => {
   const keyNotice = keys.takeNotice() ?? mistral.takeNotice({cloudVoice: localVoice.requestedProvider === 'convai'});
@@ -963,6 +964,9 @@ const connections = new PartyConnections({host: realtime,
   canWarm: () => !stopped && !memoryQuiescing && !active && !mic.current && !micPolling && !lookahead.busy,
   // A single-session plan (own key) warms nothing in the background; only an invitation opens its companion's connection.
   deferWarm: singleSession,
+  // Characters another mod or a spawner created are the one exception on a player's key whose plan has room for them: their page is
+  // opened when the game first lists them near V (nearby-connections.json `spawned`), so the first talk does not pay the connection.
+  spawnedLimit: spawnedConnections, warmDeferred: () => keys.singleSession && spawnedConnections() > 0,
   isKnown: profile => Object.hasOwn(ids, profile) && !!warmRoute(profile, 'private'),
   configFor: (profile, scope) => {
     const route = warmRoute(profile, scope);

@@ -67,6 +67,7 @@ export class GroupScenario {
     Object.assign(this, {mode, timings, luaMs, speakers, hooks, playerKey});
     this.round = 0; this.requests = []; this.sequence = 0; this.controlSequence = 0;
     this.replyIds = new Set(); this.replyErrors = [];
+    this.nearbyState = null;   // set by setNearby(): the party heartbeat and the nearby/spawned list the game publishes
   }
 
   async start() {
@@ -111,18 +112,31 @@ export class GroupScenario {
     const now = Date.now();
     await write(join(this.runtime, 'world-session.json'), JSON.stringify({version: 1, updated: now, token: 'fixture-world', generation: 1, ready: true}));
     await this.writeSpeechState();
+    if (this.nearbyState) await this.writeNearby();
+  }
+  // mod/auto-connect.lua and mod/group-chat.lua: the party heartbeat (party-connections.json) and the list of characters near V
+  // (nearby-connections.json: the two slots, the partners and the spawned roster characters), republished while they hold.
+  async writeNearby() {
+    const {party, nearby, partners, spawned} = this.nearbyState, now = Date.now();
+    await write(join(this.runtime, 'party-connections.json'), JSON.stringify({updated: now, profiles: party}));
+    await write(join(this.runtime, 'nearby-connections.json'), JSON.stringify({updated: now, profiles: nearby, partners, spawned, entities: {}}));
+  }
+  // Publishes what the game side would from now on; the bridge opens connections for it as it does live.
+  async setNearby({party = [], nearby = [], partners = [], spawned = []} = {}) {
+    this.nearbyState = {party, nearby, partners, spawned};
+    await this.writeNearby();
   }
   async writeSpeechState() {
     await write(join(this.runtime, 'speech-state.json'), JSON.stringify({available: true, continuousAvailable: true,
       updated: Date.now(), state: 'idle', ...(this.lastDelivery ? {lastDelivery: this.lastDelivery} : {})}));
   }
 
-  inputFor(index, heard, {requestId} = {}) {
+  inputFor(index, heard, {requestId, priv = false} = {}) {
     const speaker = SPEAKERS[index - 1], generation = ++this.sequence;
     return {requestId: requestId ?? `${Date.now()}-${generation}-${speaker.entity}`, generation, entity: speaker.entity,
       name: speaker.name, bodyType: 'female', profileKey: speaker.key, text: this.text ?? 'What do you think?',
-      group: {id: this.groupId, index, total: this.speakers,
-        audience: SPEAKERS.slice(0, this.speakers).map(item => item.key), heard}};
+      ...(priv ? {} : {group: {id: this.groupId, index, total: this.speakers,
+        audience: SPEAKERS.slice(0, this.speakers).map(item => item.key), heard}})};
   }
   async submit(input) {
     this.pending = {input, sentAt: Date.now(), admitted: false};
@@ -138,6 +152,13 @@ export class GroupScenario {
     this.groupId = 'group-' + (++this.round); this.text = text; this.heard = []; this.predicted = null; this.index = 1;
     await this.publishPrediction(null);
     await this.submit(this.inputFor(1, []));
+    this.loop ??= this.run();
+  }
+
+  // One private talk: V says a line to one character (no group), as the game submits it when V talks to someone.
+  async beginPrivate(index = 1, text = 'Hey, got a minute?') {
+    this.text = text; this.heard = []; this.predicted = null; this.index = index; this.private = true;
+    await this.submit(this.inputFor(index, [], {priv: true}));
     this.loop ??= this.run();
   }
 
@@ -178,7 +199,7 @@ export class GroupScenario {
     const state = await readJson(join(this.runtime, 'continuous-speech.json'));
     if (state?.requestId !== pending.input.requestId || state.id !== pending.continuous.id) return;
     pending.text = state.text;
-    const next = pending.input.group.index + 1;
+    const next = (pending.input.group?.index ?? this.speakers) + 1;
     if (state.textComplete && this.mode === 'lookahead' && !pending.predicted && next <= this.speakers && !this.hooks.noPrediction) {
       pending.predicted = true;
       const heard = [...this.heard, {speaker: pending.input.name, text: state.text}];
@@ -198,7 +219,7 @@ export class GroupScenario {
       this.heard.push({speaker: pending.input.name, text: state.text});
       this.pending = null;
       await this.hooks.afterSpeaker?.(this, pending);
-      if (next <= this.speakers && !this.hooks.stopAfterSpeaker?.(pending)) {
+      if (next <= this.speakers && !this.private && !this.hooks.stopAfterSpeaker?.(pending)) {
         // mod/group-chat.lua: the prepared turn is reused when its context is unchanged.
         const input = this.mode === 'lookahead' && this.nextInput && !this.hooks.freshInput ? this.nextInput
           : this.inputFor(next, this.heard.slice(-2));
@@ -260,5 +281,32 @@ export async function measureRound(options) {
     const events = await scenario.events();
     return {gaps: await scenario.gaps(), events, latency: await readJson(join(scenario.runtime, 'bridge-latency.json')),
       output: scenario.output};
+  } finally { await scenario.stop(); }
+}
+
+// A first talk to one character, with the game having published who is near (a spawned character, a party member, a nearby one). The
+// simulated player reaches the character `reachMs` after the connections finished opening, then talks. Returns what the provider saw:
+// which pages were opened ahead (warm events), whether the talk found its page open, and the time from V's line to the first audio.
+export async function measureTalk({party = [], nearby = [], spawned = [], index = 1, expectWarms = 0, idleMs = 3000, reachMs = 300, ...options} = {}) {
+  const scenario = new GroupScenario({speakers: 1, ...options});
+  try {
+    await scenario.start();
+    if (party.length || nearby.length || spawned.length) await scenario.setNearby({party, nearby, spawned});
+    const warmEvents = async () => (await scenario.events()).filter(row => row.event === 'warm');
+    if (expectWarms > 0) {
+      await scenario.waitFor(async () => (await warmEvents()).length >= expectWarms, `${expectWarms} connection(s) to open ahead`, 30000);
+      const connectMs = Math.max(...Object.values(scenario.timings).map(timing => timing.connectMs ?? 0));
+      await sleep(connectMs + reachMs);
+    } else await sleep(idleMs);
+    const opened = (await warmEvents()).map(row => SPEAKERS.find(speaker => speaker.characterId === row.characterId)?.key);
+    const before = await readJson(join(scenario.runtime, 'party-connection-state.json'));
+    await scenario.beginPrivate(index);
+    await scenario.waitFor(() => scenario.done, 'the talk to finish', 60000);
+    const events = await scenario.events(), target = SPEAKERS[index - 1].characterId;
+    const start = events.findLast(row => row.event === 'reply-start' && row.characterId === target)?.t;
+    const audible = events.find(row => row.event === 'play-start' && row.characterId === target)?.t;
+    const connected = events.findLast(row => row.event === 'connected' && row.characterId === target);
+    return {opened, connectedWarm: connected?.warm, firstAudioMs: audible - start, events, output: scenario.output,
+      state: before};
   } finally { await scenario.stop(); }
 }
