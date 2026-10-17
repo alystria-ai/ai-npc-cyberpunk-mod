@@ -1,7 +1,7 @@
 import {describe, it} from 'node:test';
 import assert from 'node:assert/strict';
 import {setTimeout as sleep} from 'node:timers/promises';
-import {GroupScenario, DEFAULT_TIMINGS, SPEAKERS, measureRound} from './group-lookahead-fixture.mjs';
+import {GroupScenario, DEFAULT_TIMINGS, LIVE_TIMINGS, SPEAKERS, measureRound} from './group-lookahead-fixture.mjs';
 
 // The real convai-bridge.mjs runs against a simulated game and a simulated
 // Convai speech provider (see group-lookahead-fixture.mjs). Timing assertions
@@ -170,5 +170,63 @@ describe('group look-ahead in the real bridge', {concurrency: 2, timeout: 900000
       const gaps = await scenario.gaps(); assert.ok(gaps[0].gapMs < 1400, `the rebuilt turn is still ahead: ${gaps[0].gapMs}`);
       noErrors(scenario.output);
     });
+  });
+});
+
+// The live round of 2026-10-17: the player's own Convai key on a confirmed paid plan (six connections) and the Voxtral voice. Every
+// speaker change took 8-9 s because look-ahead was off for any player's key and a fresh connection (3-4 s) opened for each speaker.
+// The provider delays are the live ones (LIVE_TIMINGS: a speaker that is not prepared takes about 7 s from request to first audio).
+describe('group look-ahead on the own Convai key of a player', {concurrency: 2, timeout: 900000}, () => {
+  it('a confirmed paid plan runs the next speakers ahead and opens their pages early; a free plan stays serial', async () => {
+    const [paid, free] = await Promise.all([
+      measureRound({mode: 'lookahead', timings: LIVE_TIMINGS, playerKey: {connections: 6}}),
+      measureRound({mode: 'lookahead', timings: LIVE_TIMINGS, playerKey: {connections: 1}})]);
+    assert.equal(paid.gaps.length, 2); assert.equal(free.gaps.length, 2);
+    // Paid: the 7 s a speaker used to take is hidden behind the previous speaker's audio. Wide margins: the suite runs other work.
+    for (const gap of paid.gaps) assert.ok(gap.gapMs > 0 && gap.gapMs < 1500, `paid gap ${gap.gapMs}`);
+    // Free: one connection, nothing runs ahead, nothing is opened early: the whole request after the previous speaker's last sample.
+    for (const gap of free.gaps) assert.ok(gap.gapMs > 5500, `free gap ${gap.gapMs}`);
+    for (const {events} of [paid, free]) {
+      const order = events.filter(row => ['play-start', 'play-end'].includes(row.event)).map(row => `${row.event}:${row.characterId[0]}`);
+      assert.deepEqual(order, ['play-start:1', 'play-end:1', 'play-start:2', 'play-end:2', 'play-start:3', 'play-end:3'], 'one voice at a time, in order');
+    }
+    const modeOf = (round, key) => round.latency.turns.find(row => row.profile === key)?.preparation?.mode;
+    assert.equal(modeOf(paid, PANAM.key), 'lookahead'); assert.equal(modeOf(paid, ALEX.key), 'lookahead');
+    assert.equal(modeOf(free, PANAM.key), 'none'); assert.equal(modeOf(free, ALEX.key), 'none');
+    // Paid: both other speakers' pages open while the first speaker is being written, and their turns find them open.
+    const judyReplied = first(paid.events, 'play-start', JUDY.characterId);
+    for (const speaker of [PANAM, ALEX]) {
+      assert.ok(first(paid.events, 'warm', speaker.characterId) < judyReplied, `${speaker.name}'s page opened before ${JUDY.name} was audible`);
+      assert.equal(paid.events.find(row => row.event === 'connected' && row.characterId === speaker.characterId).warm, true, `${speaker.name}'s turn found its page open`);
+    }
+    assert.equal(paid.events.filter(row => row.event === 'warm' && row.characterId === JUDY.characterId).length, 0, 'the first speaker is not warmed twice');
+    // Free: no page opened ahead, no speaker started during the previous one.
+    assert.equal(free.events.filter(row => row.event === 'warm').length, 0);
+    assert.ok(first(free.events, 'reply-start', PANAM.characterId) > last(free.events, 'play-end', JUDY.characterId) - 1, 'serial: Panam is requested after Judy ended');
+    assert.ok(first(paid.events, 'reply-start', PANAM.characterId) < last(paid.events, 'play-end', JUDY.characterId) - 1000, 'ahead: Panam is requested during Judy');
+    noErrors(paid.output); noErrors(free.output);
+  });
+
+  it('a speaker alone takes as long to its first audio as before: nothing is opened or run ahead for a round of one', async () => {
+    const [paid, free] = await Promise.all([
+      measureRound({mode: 'lookahead', timings: LIVE_TIMINGS, speakers: 1, playerKey: {connections: 6}}),
+      measureRound({mode: 'lookahead', timings: LIVE_TIMINGS, speakers: 1, playerKey: {connections: 1}})]);
+    const toAudio = events => first(events, 'play-start', JUDY.characterId) - first(events, 'reply-start', JUDY.characterId);
+    assert.ok(toAudio(paid.events) >= LIVE_TIMINGS['judy-alvarez'].connectMs + LIVE_TIMINGS['judy-alvarez'].firstPcmMs - 50, 'the simulated provider time is paid');
+    assert.ok(Math.abs(toAudio(paid.events) - toAudio(free.events)) < 700, `paid ${toAudio(paid.events)} vs free ${toAudio(free.events)}`);
+    for (const {events} of [paid, free]) assert.equal(events.filter(row => row.event === 'warm').length, 0);
+    assert.equal(paid.latency.turns.length, 1); assert.equal(paid.latency.turns[0].preparation.mode, 'none');
+    noErrors(paid.output); noErrors(free.output);
+  });
+
+  it('a round of two on a paid plan: the second speaker follows the first without the provider wait', async () => {
+    const [paid, serial] = await Promise.all([
+      measureRound({mode: 'lookahead', timings: LIVE_TIMINGS, speakers: 2, playerKey: {connections: 6}}),
+      measureRound({mode: 'lookahead', timings: LIVE_TIMINGS, speakers: 2, playerKey: {connections: 1}})]);
+    assert.equal(paid.gaps.length, 1);
+    assert.ok(paid.gaps[0].gapMs > 0 && paid.gaps[0].gapMs < 1500, `paid gap ${paid.gaps[0].gapMs}`);
+    assert.ok(serial.gaps[0].gapMs > 5500, `serial gap ${serial.gaps[0].gapMs}`);
+    assert.ok(paid.gaps[0].gapMs < serial.gaps[0].gapMs * .3, `${paid.gaps[0].gapMs} vs ${serial.gaps[0].gapMs}`);
+    noErrors(paid.output); noErrors(serial.output);
   });
 });

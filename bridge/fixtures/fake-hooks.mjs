@@ -2,6 +2,7 @@
 export async function resolve(specifier, context, nextResolve) {
   if (context.parentURL?.endsWith('/bridge/convai-bridge.mjs')) {
     if (specifier === './realtime-host.mjs') return {url: new URL('./fake-realtime-host.mjs', import.meta.url).href, shortCircuit: true};
+    if (specifier === './convai-paid-tier.mjs') return {url: new URL('./fake-paid-tier.mjs', import.meta.url).href, shortCircuit: true};
     if (specifier === './player-memory-api.mjs') return {url: new URL('./fake-memory-api.mjs', import.meta.url).href, shortCircuit: true};
   }
   return nextResolve(specifier, context);

@@ -31,6 +31,16 @@ export function validateLookahead(command, source) {
   return validatePrefetch(command, {input, text: source.text});
 }
 
+// Whether the held next speaker may run beside the speaker being heard. It needs a second conversation connection while the
+// first is still open, so it needs a plan that allows two: the shared key (no cap of ours), or a player's own key on a confirmed
+// paid plan (connectionLimit 6). A player's key on a free, unknown or unread plan has one connection and keeps the serial path,
+// and with Mistral or the local AI there is no Convai connection to run ahead on. Memory-only; it is asked every poll.
+// singleSession: the key in use is a player's own; connectionLimit: how many connections that key may hold (1 when unknown).
+export function lookaheadAllowed({singleSession = false, connectionLimit = 1, textProvider = false} = {}) {
+  if (textProvider) return false;
+  return !singleSession || (Number.isFinite(connectionLimit) && connectionLimit >= 2);
+}
+
 export class AheadOwner {
   constructor() { this.state = 'held'; this.inner = null; }
   bind(owner) { this.inner = owner; this.state = 'claimed'; }

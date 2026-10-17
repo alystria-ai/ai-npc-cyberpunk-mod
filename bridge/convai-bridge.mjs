@@ -36,7 +36,7 @@ import {conversationContext as baseConversationContext, conversationContextBlock
 import {createIntrinsicConversationContext, loadIntrinsicCharacterContext} from './intrinsic-character-context.mjs';
 import {battleTrigger, reactionLeaseProblem} from './battle-context.mjs';
 import {GroupPrefetch, parsedInputIdentity, parsePrewarm} from './group-prefetch.mjs';
-import {GroupLookahead, validateLookahead, waitUntil, BufferedPcm} from './group-lookahead.mjs';
+import {GroupLookahead, lookaheadAllowed, validateLookahead, waitUntil, BufferedPcm} from './group-lookahead.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
 import {PartyConnections, parsePartyConnections} from './party-connections.mjs';
 import {NearbyWarm} from './nearby-warm.mjs';
@@ -342,14 +342,16 @@ if (backendDailyLimit !== null) turnGuard.setLimit(backendDailyLimit);
 const hostGuard = tokenSource ? {check: () => { turnGuard.check(); keys.assertAllowed(); }, consume: () => turnGuard.consume()} : turnGuard;
 if (dailyLimit > 0) console.error(`[CyberpunkConvai] Shared conversation allowance: ${dailyLimit} turns a day, ${turnGuard.snapshot()?.left ?? dailyLimit} left today`);
 const currentKey = () => keys.current();
-// A player's key saves its plan's interactions: no look-ahead, no pre-opened connections, on a free or a paid plan alike.
-// With Mistral there is no Convai connection to pre-open or to speculate on either.
+// A player's key pre-opens no connections and speculates on nothing (its plan's interactions and its one-connection free plan).
+// With Mistral there is no Convai connection to pre-open or to speculate on either. Group look-ahead is the exception on a
+// confirmed paid plan (lookaheadAllowed below), which may hold six connections.
 const singleSession = () => keys.singleSession || mistral.active;
 // How many conversation connections a player's key may hold at once: one on a free, unknown or unread plan; Convai's six on a
 // confirmed paid Gamer plan (docs/CONVAI_PAID_TIER.md), so several companions can talk and generate together. Memory-only;
 // set once the paid tier service exists (further down), one until then.
 let playerConnectionLimit = () => 1;
 const connectionLimit = () => mistral.active ? 1 : playerConnectionLimit();
+const groupLookaheadAllowed = () => lookaheadAllowed({singleSession: keys.singleSession, connectionLimit: connectionLimit(), textProvider: mistral.active});
 const keyNotice = () => {
   const keyNotice = keys.takeNotice() ?? mistral.takeNotice({cloudVoice: localVoice.requestedProvider === 'convai'});
   // The fallback notice names the model that was used instead.
@@ -973,6 +975,19 @@ const connections = new PartyConnections({host: realtime,
     return connectionMetricsWriting;
   },
 });
+// A group round on a player's own key on a paid plan (several connections at once): the other speakers' conversation pages open while
+// the first speaker is still being written, as the party maintenance does for the shared key (deferWarm keeps it off for a player's
+// key). The look-ahead of the next speaker then finds its page ready and starts at its reply instead of at its connection (about
+// 3.5 s of the 7 s a speaker took on the 2026-10-17 live round). Sends nothing, writes no memory, is never awaited by the turn and
+// stops with it; a page that does not open is simply opened when its turn needs it, as before.
+async function warmRoundAhead(input, signal) {
+  const scope = conversationScope(input);
+  for (const profile of input.group.audience) {
+    if (signal.aborted || stopped || memoryQuiescing || !groupLookaheadAllowed()) return;
+    if (profile === input.profileKey || !connections.isKnown(profile)) continue;
+    try { await realtime.warm(connections.configFor(profile, scope), {signal}); } catch { /* opened on demand later */ }
+  }
+}
 // The conversation pages a composer hint is about to use (its target's private page, or each speaker's group page), for staging
 // the surroundings picture ahead of the line. Empty while vision is not active.
 function composerPages(hint, config) {
@@ -2296,6 +2311,7 @@ async function runInput(request, prepared, clock) {
     const turnRoute = realtimeConfig(input), connectionWarm = connections.warmState(input, turnRoute);
     // The speaker being heard already holds this round's group connections.
     if (canWarm && !ahead) await connections.setRequest(input, turnRoute);
+    if (canWarm && !ahead && keys.singleSession && input.group?.index === 1 && groupLookaheadAllowed()) void warmRoundAhead(input, controller.signal);
     throwIfCancelled(controller.signal);
     clock.mark('transport');
     note(input, {transportRequestedAt: Date.now(), connectionWarm,
@@ -2414,7 +2430,7 @@ async function pollPrefetch() {
 // game, so the speaker change no longer pays a whole provider request.
 let lookaheadPolling = false, lookaheadWaiting = {raw: '', at: 0}, lookaheadHandled = '';
 async function pollLookahead() {
-  if (lookaheadPolling || stopped || memoryQuiescing || voiceRouteReservation || relationshipRouteReservation || singleSession()) return;
+  if (lookaheadPolling || stopped || memoryQuiescing || voiceRouteReservation || relationshipRouteReservation || !groupLookaheadAllowed()) return;
   lookaheadPolling = true;
   try {
     lookahead.prune();

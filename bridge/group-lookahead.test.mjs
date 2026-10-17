@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {GroupLookahead, BufferedPcm, AheadOwner, turnKey, validateLookahead, waitUntil} from './group-lookahead.mjs';
+import {GroupLookahead, BufferedPcm, AheadOwner, lookaheadAllowed, turnKey, validateLookahead, waitUntil} from './group-lookahead.mjs';
 import {parseInput} from './protocol.mjs';
 
 const first = {requestId: '100-1-1ULL', generation: 1, entity: '1ULL', name: 'Judy', bodyType: 'female', profileKey: 'judy', text: 'Hello',
@@ -153,4 +153,35 @@ test('a source mismatch produces no turn and no held entry', () => {
   const f = fixture();
   assert.equal(validateLookahead({...command, input: {...second, group: {...second.group, id: 'other'}}}, source()), null);
   assert.equal(f.lookahead.busy, false);
+});
+
+// Seen live on 2026-10-17: a player's own key on a confirmed paid plan (six connections) ran every group speaker change serially,
+// because the bridge turned look-ahead off for any player's key. The gate is the connections the plan allows, not whose key it is.
+test('look-ahead runs on the shared key and on a player key whose plan holds two or more connections, never on one', () => {
+  assert.equal(lookaheadAllowed({singleSession: false}), true, 'the shared key');
+  assert.equal(lookaheadAllowed(), true, 'the default is the shared key');
+  assert.equal(lookaheadAllowed({singleSession: true, connectionLimit: 6}), true, 'a confirmed paid plan');
+  assert.equal(lookaheadAllowed({singleSession: true, connectionLimit: 2}), true);
+  assert.equal(lookaheadAllowed({singleSession: true, connectionLimit: 1}), false, 'a free, unknown or unread plan holds one connection');
+  assert.equal(lookaheadAllowed({singleSession: true}), false, 'no limit known counts as one');
+  for (const limit of [0, -1, NaN, undefined, null, '6']) {
+    assert.equal(lookaheadAllowed({singleSession: true, connectionLimit: limit}), false, 'not a usable limit: ' + String(limit));
+  }
+  assert.equal(lookaheadAllowed({singleSession: false, textProvider: true}), false, 'Mistral or the local AI: no Convai connection to run ahead on');
+  assert.equal(lookaheadAllowed({singleSession: true, connectionLimit: 6, textProvider: true}), false);
+});
+
+// A character another mod or a spawner created speaks under a roster profile like any other (docs/SPAWNED_CHARACTERS.md): the bridge
+// sees an entity id and a profile key, so the next speaker being such a character, or the one being heard, changes nothing here.
+test('a prediction for a spawned character as the next speaker, or after one, is validated and held like any other', () => {
+  const spawnedEntity = '4294967295ULL';
+  const spawnedSecond = {...second, entity: spawnedEntity, requestId: '100-2-' + spawnedEntity};
+  assert.ok(validateLookahead({sourceRequestId: first.requestId, input: spawnedSecond}, source()), 'the next speaker is the spawned one');
+  const spawnedFirst = {...first, entity: spawnedEntity, requestId: '100-1-' + spawnedEntity};
+  assert.ok(validateLookahead({sourceRequestId: spawnedFirst.requestId, input: second}, source({input: spawnedFirst})), 'the speaker heard is the spawned one');
+  const f = fixture();
+  const entry = f.lookahead.offer(parseInput(JSON.stringify(spawnedSecond)));
+  assert.equal(f.lookahead.busy, true); assert.equal(entry.isHeld(), true);
+  const claimed = f.lookahead.claim(parseInput(JSON.stringify(spawnedSecond)), {current: async () => true});
+  assert.ok(claimed, 'the identical submission claims it'); assert.equal(f.lookahead.busy, false);
 });
