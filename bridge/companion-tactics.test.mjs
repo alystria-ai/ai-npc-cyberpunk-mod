@@ -321,22 +321,28 @@ test('target: a tagged NPC needs no combat evidence, but never a companion, chil
   for _,kind in ipairs({'companion','children','vendor','invulnerable'}) do
     local f={civilian=true,hostile=true,combat=true} f[kind]=true; local ok,reason=V(f); assert(ok==false and reason==kind,kind) end
   local ok,reason=V({friendly=true}); assert(ok==false and reason=='friendly')
-  -- named or story-controlled: only when already hostile to V and in combat
+  -- named or story-controlled: never, whatever they are doing (a fight with one can break a quest)
   ok,reason=V({civilian=true},true); assert(ok==false and reason=='story-character')
   ok,reason=V({story=true}); assert(ok==false and reason=='story-controlled')
-  ok,reason=V({story=true,hostile=true}); assert(ok==false,'hostile but not fighting')
-  ok,reason=V({story=true,combat=true}); assert(ok==false,'fighting but not hostile to V')
-  ok,reason=V({story=true,hostile=true,combat=true}); assert(ok==true and reason=='hostile-in-combat')
-  ok,reason=V({civilian=true,hostile=true,combat=true},true); assert(ok==true,'a named hostile fighter')
+  ok,reason=V({story=true,hostile=true,combat=true}); assert(ok==false and reason=='story-controlled','hostile and fighting is no exception')
+  ok,reason=V({civilian=true,hostile=true,combat=true},true); assert(ok==false and reason=='story-character','a named hostile fighter')
   assert(V(nil)==true)
+  -- the ranking tier: hostile or fighting, then able to fight, then anyone else
+  local T=Marking.tier
+  local tier,name=T({hostile=true}); assert(tier==1 and name=='hostile')
+  assert(T({combat=true})==1 and T({civilian=true,hostile=true})==1,'a hostile civilian still fights back')
+  tier,name=T({ganger=true}); assert(tier==2 and name=='fighter')
+  for _,kind in ipairs({'police','cyberpsycho','machine','armed'}) do local f={} f[kind]=true; assert(T(f)==2,kind) end
+  assert(T({civilian=true,armed=true})==3 and T({})==3 and T(nil)==3,'a civilian or a bystander is the last choice')
 `));
 
-test('target: the closest tagged NPC wins, even a civilian, beyond the crosshair, beyond 50 m, and over nearer enemies', () => run(markingWorld + `
-  aimed=ganger; civilian.tagged=true; guard.tagged=true; other.tagged=true
+test('target: a lone tagged NPC is the target, even a civilian, beyond the crosshair and beyond 50 m, and over nearer enemies', () => run(markingWorld + `
+  aimed=ganger; civilian.tagged=true
   local current,info=K.current(player)
-  assert(current==civilian and info.source=='tagged' and info.id=='90ULL' and info.distance==4,'a tagged civilian is the target')
-  civilian.tagged=false; current,info=K.current(player); assert(current==other and info.source=='tagged' and info.distance==25)
-  other.tagged=false; current,info=K.current(player); assert(current==guard and info.source=='tagged')
+  assert(current==civilian and info.source=='tagged' and info.id=='90ULL' and info.distance==4,'a lone tagged civilian is the target')
+  assert(info.why=='the only valid tag' and logged('because the only valid tag'),'the reason is logged')
+  civilian.tagged=false; other.tagged=true; current,info=K.current(player); assert(current==other and info.source=='tagged' and info.distance==25)
+  other.tagged=false; guard.tagged=true; current,info=K.current(player); assert(current==guard and info.source=='tagged')
   guard.tagged=false; cop.tagged=true; current,info=K.current(player); assert(current==cop and info.source=='tagged','a tagged cop counts')
   cop.tagged=false; clerk.tagged=true; current,info=K.current(player); assert(current==clerk and info.source=='tagged','a tagged neutral passer-by with no combat evidence')
   clerk.tagged=false; far.tagged=true; far.pos={x=95,y=0,z=0}; current,info=K.current(player); assert(current==far and info.source=='tagged' and info.distance==95,'a tag at 95 m is seen')
@@ -357,7 +363,7 @@ test('target: a tagged crowd NPC is taken before the crosshair; companions, chil
   assert(logged('tagged Passerby rejected: vendor %[civilian%+vendor%]'),logs[#logs])
 `));
 
-test('target: a named, quest-bound or scene-controlled NPC is tagged-targetable only when already hostile and in combat', () => run(markingWorld + `
+test('target: a named, quest-bound or scene-controlled NPC is never tagged-targetable, hostile and fighting or not', () => run(markingWorld + `
   local storyChar=civilian
   K=newMarking({protected=function(o) return o==storyChar end})
   storyChar.tagged=true; scripted.tagged=true; aimed=ganger
@@ -365,8 +371,9 @@ test('target: a named, quest-bound or scene-controlled NPC is tagged-targetable 
   assert(current==ganger and info.source=='aimed','a protected tagged NPC is skipped: '..tostring(info and info.name))
   assert(logged('tagged Passerby rejected: story%-character') and logged('tagged Scene Ganger rejected: story%-controlled'))
   storyChar.facts={civilian=true,hostile=true}; current=K.current(player); assert(current~=storyChar,'hostile but not fighting')
-  storyChar.facts={civilian=true,hostile=true,combat=true}; current,info=K.current(player)
-  assert(current==storyChar and info.source=='tagged','a named NPC already fighting V')
+  storyChar.facts={civilian=true,hostile=true,combat=true}; scripted.facts={ganger=true,story=true,hostile=true,combat=true}
+  current,info=K.current(player)
+  assert(current~=storyChar and current~=scripted and info.source=='aimed','a story character already fighting V is still no target')
   -- an erroring predicate counts as not protected: targeting still works
   K=newMarking({protected=function() error('native') end}); storyChar.facts={civilian=true}; assert(K.current(player)~=nil)
 `));
@@ -720,4 +727,288 @@ test('a fight start that fails halfway gives the preset and the attitudes back',
   assert(not ok and tostring(err):find('tracker gone'),tostring(err))
   assert(companion.reaction.current.name=='Follower','the preset is back')
   assert(companion.agent.attitude=='AIA_Friendly' and target.agent.attitude=='AIA_Friendly','the attitudes are back')
+`));
+
+// ---- Tag-fight fix (2026-10-17): which tag, how combat starts, and the restore afterwards ----
+
+test('target: of several tags the one that fights back is chosen, not the nearest bystander (the live case), and the reason is logged', () => run(markingWorld + `
+  -- 2026-10-17 live: a civilian at 20 m and a gang member at 28 m, both tagged; the nearer was taken and never fought.
+  civilian.tagged=true; civilian.pos={x=20,y=0,z=0}; ganger.tagged=true; ganger.pos={x=28,y=0,z=0}; aimed=nil
+  local current,info=K.current(player)
+  assert(current==ganger and info.source=='tagged' and info.distance==28,'the hostile one wins: '..tostring(info and info.name))
+  assert(info.why=='hostile over bystander' and logged('because hostile over bystander'),tostring(info.why))
+  assert(logged('Tactic tagged choice: Tyger Claw hostile 28m > Passerby bystander 20m'),table.concat(logs,'|'))
+  -- a fighter (gang, armed) beats a bystander too, but not a hostile one
+  ganger.tagged=false; other.tagged=true; other.pos={x=25,y=0,z=0}
+  current,info=K.current(player); assert(current==other and info.why=='fighter over bystander')
+  ganger.tagged=true; current,info=K.current(player); assert(current==ganger and info.why=='hostile over fighter')
+  -- already in combat counts like hostile
+  ganger.tagged=false; other.facts={ganger=true,combat=true}; current,info=K.current(player)
+  assert(current==other and info.why=='hostile over bystander')
+  -- a hostile civilian is still a hostile
+  other.tagged=false; civilian.facts={civilian=true,hostile=true}; clerk.tagged=true; clerk.pos={x=10,y=0,z=0}
+  current,info=K.current(player); assert(current==civilian and info.why=='hostile over bystander')
+`));
+
+test('target: within a tier the NPC V aims at wins, then the most recent tag, then the nearest', () => run(markingWorld + `
+  other.tagged=true; guard.tagged=true      -- both fighters: other at 25 m, guard at 40 m
+  aimed=nil
+  local current,info=K.current(player)
+  assert(current==other and info.why=='nearest','no list, no aim: the nearest')
+  aimed=guard; current,info=K.current(player); assert(current==guard and info.why=='aimed at' and logged('Arasaka Guard fighter aimed'))
+  -- the look-at lands on a companion: the NPC nearest the crosshair line counts as aimed
+  aimed=judy; native.crosshair=function() return {x=0,y=0,z=0},{x=1,y=0,z=0} end
+  guard.pos={x=29,y=0.1,z=0}; other.pos={x=25,y=9,z=0}
+  current,info=K.current(player); assert(current==guard and info.why=='aimed at','along the crosshair line')
+  native.crosshair=nil
+  -- the game's tag list holds the newest tag first: recency beats distance
+  aimed=nil; guard.pos={x=40,y=0,z=0}; other.pos={x=25,y=0,z=0}
+  native.taggedList=function() return {guard,other} end
+  current,info=K.current(player); assert(current==guard and info.why=='tagged most recently','guard was tagged last')
+  assert(logged('Arasaka Guard fighter tag#1 40m > Valentino fighter tag#2 25m'),table.concat(logs,'|'))
+  native.taggedList=function() return {other,guard} end
+  current,info=K.current(player); assert(current==other and info.why=='tagged most recently')
+  -- aimed outranks recency; tier outranks aim
+  aimed=guard; current,info=K.current(player); assert(current==guard and info.why=='aimed at')
+  ganger.tagged=true; ganger.pos={x=60,y=0,z=0}; native.taggedList=function() return {other,guard,ganger} end
+  current,info=K.current(player); assert(current==ganger and info.why=='hostile over fighter','a hostile tag beats the aimed fighter')
+`));
+
+test('target: a companion and a story character are never chosen from several tags', () => run(markingWorld + `
+  judy.tagged=true; scripted.tagged=true; civilian.tagged=true; ganger.tagged=true
+  K=newMarking({protected=function(o) return o==ganger end})
+  local current,info=K.current(player)
+  assert(current==civilian and info.source=='tagged','the protected hostile, the companion and the scene NPC are all skipped: '..tostring(info and info.name))
+  assert(info.why=='the only valid tag' and logged('rejected: story%-character') and logged('Scene Ganger rejected: story%-controlled'))
+`));
+
+// A game with the combat, restore and diagnosis natives, added to the tactic world.
+const engageExtras = `
+companion.hls,companion.stance,companion.threat='Relaxed','Stand',false
+hlsIgnored,stanceIgnored=false,false
+native.engage=function(c,t,stage) effect('engage',stage); return 'asked again '..stage end
+native.diagnose=function(c,t) return {hls=c.hls,stance=c.stance,threat=true,listed=true,out='AIA_Hostile',back='AIA_Hostile',
+  preset='Ganger_Aggressive',civilian=t.civilian==true,crowd=false} end
+native.removeThreat=function(c,t) effect('threat-remove',c.id,t.id); return 'threat on the target removed (read back gone)' end
+native.hasThreat=function(c) return c.threat end
+native.highLevel=function(c) return c.hls end
+native.setHighLevel=function(c,name) effect('hls',name); if not hlsIgnored then c.hls=name end; return true end
+native.stance=function(c) return c.stance end
+native.setStance=function(c,name) effect('stance',name); if not stanceIgnored then c.stance=name end; return true end
+native.playerCrouched=function(p) return p.crouched==true end
+env.rearm=function(entity) effect('rearm',entity); companion.hand=false; return true end
+function count(prefix) local n=0 for _,e in ipairs(effects) do if e:find('^'..prefix) then n=n+1 end end return n end
+function index(prefix) for i,e in ipairs(effects) do if e:find('^'..prefix) then return i end end end
+`;
+
+test('combat that does not register is asked for again at 1 s and 2 s, then diagnosed in the log', () => run(world + engageExtras + `
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  for _=1,9 do frame() end
+  assert(count('engage')==0 and not logged('engage stage'),'nothing is repeated before the first read-back')
+  for _=1,3 do frame() end
+  assert(count('engage')==1 and logged('engage stage 2'),table.concat(logs,'|'))
+  for _=1,10 do frame() end
+  assert(count('engage')==2 and logged('engage stage 3'),'a third ask at 2 s')
+  for _=1,12 do frame() end
+  assert(count('engage')==2,'that is the last one')
+  local line=assert(logged('engage: combat did not register after'),'the diagnosis is logged once')
+  assert(line:find('state=Relaxed stance=Stand threat=yes target%-listed=yes attitude=AIA_Hostile/AIA_Hostile preset=Ganger_Aggressive target%-civilian=no'),line)
+  local lines=0; for _,l in ipairs(logs) do if l:find('engage: combat did not') then lines=lines+1 end end; assert(lines==1)
+`));
+
+test('combat that registers after the second ask stops the asking', () => run(world + engageExtras + `
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  for _=1,12 do frame() end
+  assert(count('engage')==1)
+  companion.combat=true; frame()
+  assert(phase()=='fighting' and logged('native combat engaged'))
+  for _=1,40 do frame() end
+  assert(count('engage')==1,'no more asks once she fights')
+`));
+
+test('an order that never starts combat gives up once she stands at the target, with the reason in plain words', () => run(world + engageExtras + `
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  for _=1,150 do frame() end
+  assert(T.snapshot().last.result=='no-combat' and not T.owns(3))
+  local message
+  for _,e in ipairs(effects) do if e:find('^feedback ') then message=e end end
+  assert(message=='feedback Judy could not start the fight with Tyger Claw.',tostring(message))
+  assert(count('engage')==2,'asked at 1 s and 2 s, then gave up well before the 25 s limit')
+`));
+
+test('the notice says the target is not a fighter, or that she could not reach it', () => {
+  run(world + engageExtras + `
+  target.civilian=true
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  for _=1,150 do frame() end
+  local message; for _,e in ipairs(effects) do if e:find('^feedback ') then message=e end end
+  assert(message=="feedback Judy can't attack Tyger Claw: not a fighter.",tostring(message))
+  `);
+  run(world + engageExtras + `
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  -- the movement owner never gets her closer: the 25 s limit
+  for _=1,280 do T.update(player,0.1,true) end
+  assert(T.snapshot().last.result=='no-combat')
+  local message; for _,e in ipairs(effects) do if e:find('^feedback ') then message=e end end
+  assert(message=='feedback Judy could not reach Tyger Claw.',tostring(message))
+  `);
+});
+
+test('a finished tactic takes our threat back, stands her up, clears the Stealth state and asks for the holster, each step read back', () => run(world + engageExtras + `
+  companion.stance,companion.hls,companion.hand='Crouch','Stealth',true
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  for _=1,150 do frame() end
+  assert(T.snapshot().last.result=='no-combat')
+  assert(count('threat%-remove')==1 and logged('restore: threat on the target removed %(read back gone%)'),'her tracker is cleared at once')
+  for _=1,200 do frame() end
+  local order={}
+  for _,pattern in ipairs({'restore: stance Crouch %-> Stand asked %(try 1%)','restore: stance read back Stand %(ok%)',
+      'restore: state Stealth %-> Relaxed asked %(try 1%)','restore: state read back Relaxed %(ok%)',
+      'restore: stance Stand, state Relaxed, follow resumes','restore: holster asked of the equipment owner %(weapon in hand: Items.Preset_Lexington%)',
+      'restore: weapon read back: holstered'}) do
+    local at; for i,l in ipairs(logs) do if l:find(pattern) then at=i; break end end
+    assert(at,'missing in the log: '..pattern..'\\n'..table.concat(logs,'\\n'))
+    assert(not order[#order] or at>order[#order],'out of order: '..pattern); order[#order+1]=at
+  end
+  assert(index('stance Stand')<index('hls Relaxed') and index('hls Relaxed')<index('rearm'),'the stance first, the state next, the holster last')
+  assert(companion.stance=='Stand' and companion.hls=='Relaxed' and not companion.hand)
+  local before=#effects; for _=1,50 do frame() end; assert(#effects==before,'nothing more once it is settled')
+`));
+
+test('the restore waits for a threat that is not ours, leaves the player own fight alone, and gives up after its limit', () => {
+  run(world + engageExtras + `
+  companion.stance,companion.hls,companion.hand='Crouch','Stealth',true; companion.threat=true
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  for _=1,150 do frame() end
+  for _=1,100 do frame() end
+  assert(logged('restore: waiting, she still tracks a hostile threat') and count('stance')==0 and count('hls')==0,'nothing is changed while she fights someone else: '..table.concat(logs,'|')..' / '..table.concat(effects,'|'))
+  for _=1,100 do frame() end
+  assert(logged('restore: gave up after 14 s %(stance Crouch, state Stealth%)'),table.concat(logs,'|'))
+  `);
+  run(world + engageExtras + `
+  companion.stance,companion.hls,companion.hand='Crouch','Stealth',true
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  player.combat=true
+  for _=1,180 do frame() end
+  assert(logged('restore: V is in combat, her stance and state are left to the game') and count('stance')==0 and count('hls')==0)
+  assert(count('rearm')==1,'the holster owner is still armed')
+  `);
+});
+
+test('V crouching keeps the crouch-with-V module in charge; a refused stand is tried three times and then left to the game', () => {
+  run(world + engageExtras + `
+  companion.stance,companion.hls,companion.hand='Crouch','Stealth',true; player.crouched=true
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  for _=1,250 do frame() end
+  assert(logged('restore: V is crouched') and count('stance')==0 and count('hls')==0 and count('rearm')==1,table.concat(logs,'|')..' / '..table.concat(effects,'|'))
+  `);
+  run(world + engageExtras + `
+  companion.stance,companion.hls,companion.hand='Crouch','Stealth',true; stanceIgnored,hlsIgnored=true,true
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  for _=1,300 do frame() end
+  assert(count('stance')==3 and count('hls')==3,'three tries each: '..count('stance')..'/'..count('hls'))
+  assert(logged('stance still Crouch after 3 tries, left to the game') and logged('state still Stealth after 3 tries, left to the game'))
+  assert(count('rearm')==1,'the holster is asked anyway')
+  `);
+});
+
+test('no restore after leaving for a vehicle, a new tactic ends the old restore, and a dead target is restored too', () => {
+  run(world + engageExtras + `
+  companion.stance,companion.hls='Crouch','Stealth'
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  player.mounted=true; frame(); player.mounted=false
+  assert(T.snapshot().last.result=='vehicle')
+  for _=1,100 do frame() end
+  assert(count('stance')==0 and count('hls')==0 and count('rearm')==0,'the vehicle owner has her')
+  `);
+  run(world + engageExtras + `
+  companion.stance,companion.hls,companion.hand='Crouch','Stealth',true
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  companion.combat=true; frame(); frame()
+  target.alive=false; frame()
+  assert(T.snapshot().last.result=='target-down')
+  companion.combat=false
+  for _=1,120 do frame() end
+  assert(logged('restore: threat on the target removed') and count('stance Stand')==1 and count('hls Relaxed')==1 and count('rearm')==1,
+    'a won fight is restored the same way: '..table.concat(effects,' | '))
+  `);
+  run(world + engageExtras + `
+  companion.stance,companion.hls='Crouch','Stealth'
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  T.cancel('cancelled'); frame(); frame()
+  local offer=T.offer('44ULL'); assert(T.start('fight',offer,'44ULL'),"second start refused")
+  local before=count('stance')
+  for _=1,20 do frame() end
+  assert(count('stance')==before,'a new tactic owns her; no restore runs under it')
+  T.abandon(); for _=1,50 do frame() end
+  assert(count('stance')==before,'world teardown ends a restore without native calls')
+  `);
+});
+
+// The native adapter against fakes of the engine objects the new steps call.
+const hlsWorld = reactionWorld + `
+  NPCPuppet={ChangeHighLevelState=function(n,state) order[#order+1]='hls-'..state; n.hls=state end,
+    ChangeStanceState=function(n,s) order[#order+1]='stance-'..s; n.stanceName=s end}
+  local listed=true; stillListed=false
+  TargetTrackingExtension={HasHostileThreat=function(n) return n.threat==true end,
+    IsThreatInThreatList=function(n,t) return listed end}
+  local tracker={AddThreat=function() order[#order+1]='threat' end,SetThreatPersistence=function() end,
+    ActivateThreat=function() order[#order+1]='activate' end,SetThreatBeliefAccuracy=function(_,_,v) order[#order+1]='belief-'..v end,
+    MapThreat=function() return 7 end,RemoveThreat=function(_,id) order[#order+1]='remove-'..id; listed=stillListed end}
+  companion.GetTargetTrackerComponent=function() return tracker end
+  target.GetTargetTrackerComponent=function() return tracker end
+  companion.hls='Stealth'
+  companion.GetHighLevelStateFromBlackboard=function(self) return {value=self.hls} end
+  function listedAgain() listed=true end
+`;
+
+test('the adapter forces the Combat state last, after the attitudes, the threat and the combat start, and remembers the old one', () => run(hlsWorld + `
+  local receipt=N.startFight(companion,target)
+  assert(order[#order]=='hls-Combat','the forced state is the last step: '..table.concat(order,','))
+  assert(receipt.hlsFrom=='Stealth' and companion.hls=='Combat')
+  assert(table.concat(receipt.reaction.notes,'|'):find('Combat state asked %(was Stealth%)'))
+  NPCPuppet.ChangeHighLevelState=function() error('private') end
+  receipt=N.startFight(companion,target)
+  assert(table.concat(receipt.reaction.notes,'|'):find('Combat state refused: .*private'),'a refusal is noted and the fight goes on')
+`));
+
+test('the adapter asks again with a refreshed threat, the combat start and the Combat state; the diagnosis reads plain facts', () => run(hlsWorld + `
+  local receipt=N.startFight(companion,target); order={}
+  companion.hls='Stealth'
+  local text=N.engage(companion,target,2,receipt)
+  assert(order[1]=='activate' and order[2]:find('^belief%-1') and order[3]=='trigger' and order[4]=='hls-Combat',table.concat(order,','))
+  assert(text:find('threat activated and believed') and text:find('combat start asked of the reaction component') and text:find('Combat state asked again, reads Combat'),text)
+  local tracker=companion:GetTargetTrackerComponent(); tracker.ActivateThreat=function() error('no such thing') end
+  text=N.engage(companion,target,3,receipt); assert(text:find('threat refresh failed: .*no such thing') and text:find('Combat state asked again'),text)
+  Game={GetAllBlackboardDefs=function() return {PuppetState={Stance='S'}} end}
+  companion.GetPuppetStateBlackboard=function() return {GetInt=function() return 2 end} end
+  target.IsCrowd=function() return false end; target.civilian=true
+  companion.threat=true
+  local d=N.diagnose(companion,target)
+  assert(d.hls=='Combat' and d.stance=='Crouch' and d.threat==true and d.civilian==true and d.crowd==false and d.out=='AIA_Hostile' and d.preset=='Ganger_Aggressive')
+`));
+
+test('the adapter reads and sets the stance and state, removes the threat with a read-back, and reads the player crouch', () => run(hlsWorld + `
+  Game={GetAllBlackboardDefs=function() return {PuppetState={Stance='S'},PlayerStateMachine={Locomotion='L'}} end}
+  local seen=2
+  companion.GetPuppetStateBlackboard=function() return {GetInt=function() return seen end} end
+  assert(N.stance(companion)=='Crouch'); seen=3; assert(N.stance(companion)=='Stand'); seen=99; assert(N.stance(companion)==nil)
+  assert(N.highLevel(companion)=='Stealth' and N.highLevel({GetHighLevelStateFromBlackboard=function() error('x') end})==nil)
+  assert(N.setStance(companion,'Stand')==true and order[#order]=='stance-Stand')
+  local ok,err=N.setHighLevel(companion,'Relaxed'); assert(ok==true and order[#order]=='hls-Relaxed' and companion.hls=='Relaxed')
+  NPCPuppet.ChangeHighLevelState=function() error('boom') end
+  ok,err=N.setHighLevel(companion,'Relaxed'); assert(ok==false and tostring(err):find('boom'))
+  local state=11
+  local player={GetPlayerStateMachineBlackboard=function() return {GetInt=function() return state end} end}
+  assert(N.playerCrouched(player)==true); state=1; assert(N.playerCrouched(player)==true); state=2; assert(N.playerCrouched(player)==false)
+  state=0; assert(N.playerCrouched(player)==false); state=4; assert(N.playerCrouched(player)==nil)
+  -- threat removal
+  companion.threat=true; assert(N.hasThreat(companion)==true and N.threatListed(companion,target)==true)
+  order={}
+  assert(N.removeThreat(companion,target):find('removed %(read back gone%)') and order[1]=='remove-7')
+  assert(N.removeThreat(companion,target):find('no longer on her threat list'),'a threat that is gone is not removed twice')
+  listedAgain(); stillListed=true
+  assert(N.removeThreat(companion,target):find('STILL LISTED'),'a threat the game keeps is reported')
+  companion.GetTargetTrackerComponent=function() return nil end
+  assert(not pcall(N.removeThreat,companion,target))
 `));

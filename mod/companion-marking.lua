@@ -1,11 +1,12 @@
 -- The target for companion tactics (Fight), chosen from the game's own target
 -- marking. Nothing is bound or tagged by this mod. When a companion request is
 -- admitted the choice is, in order:
---   1. the closest NPC V tagged in the scanner (focus mode) within taggedRadius
---      (100 m), even a neutral, civilian or crowd NPC: the tag is V's decision.
---      A named, quest-bound or scene-controlled character is taken only when it
---      is already hostile to V and in combat. Companions, children, vendors,
---      invulnerable NPCs and friendly non-police NPCs are never taken;
+--   1. the best NPC V tagged in the scanner (focus mode) within taggedRadius
+--      (100 m), ranked as described below; even a neutral, civilian or crowd NPC
+--      can be taken when nothing better is tagged: the tag is V's decision.
+--      A named, quest-bound or scene-controlled character is never taken.
+--      Companions, children, vendors, invulnerable NPCs and friendly non-police
+--      NPCs are never taken;
 --   2. the NPC V is looking at (look-at, then closest to crosshair) within
 --      aimRadius, when it shows combat evidence (see M.verdict);
 --   3. the closest NPC within nearRadius that is already hostile to V.
@@ -15,6 +16,16 @@
 -- and story-controlled NPCs and friendly non-police NPCs fail steps 2 and 3. A
 -- crowd flag alone does not disqualify an NPC that was tagged or aimed at.
 -- Only plain identities and one live handle are returned.
+--
+-- Which tagged NPC (2026-10-17, after a live test with two tags where the nearer one,
+-- an ordinary bystander, was taken and never fought): every tagged NPC that passes
+-- M.taggedVerdict is ranked, not just the nearest. Best first: (1) one that is hostile
+-- to V or already in combat, then one that can fight (gang, police, cyberpsycho,
+-- machine, armed), then any other (M.tier); (2) within a tier the NPC V is aiming at;
+-- (3) then the most recently tagged (the game's tag list puts the newest tag first,
+-- focusModeTagging.script RegisterObjectToBlackboard: Insert( 0, target ));
+-- (4) then the nearest. A companion and a named, quest-bound or scene-controlled
+-- character are never a target. The reason is logged and returned as info.why.
 --
 -- Where the candidates come from (2026-10-17, after a live test in which five
 -- requests found only the companion herself): the game keeps every object V tagged
@@ -63,19 +74,30 @@ end
 -- Pure decision for an NPC V tagged in the scanner. No combat evidence is
 -- needed: a neutral, civilian or crowd NPC is a target because V marked it. A
 -- named or quest-bound character (protected, by the character catalog) or a
--- scene-controlled one (story) only when it is already hostile to V and fighting.
+-- scene-controlled one (story) is never taken, hostile or not: a fight with one
+-- can break a quest.
 function M.taggedVerdict(facts, protected)
     local f = facts or {}
     if f.companion then return false, 'companion' end
     if f.children then return false, 'children' end
     if f.vendor then return false, 'vendor' end
     if f.invulnerable then return false, 'invulnerable' end
-    if protected or f.story then
-        if f.hostile and f.combat then return true, 'hostile-in-combat' end
-        return false, protected and 'story-character' or 'story-controlled'
-    end
+    if protected then return false, 'story-character' end
+    if f.story then return false, 'story-controlled' end
     if f.friendly and not f.police then return false, 'friendly' end
     return true, 'tagged'
+end
+
+-- How likely a tagged NPC is to fight back, from the same plain facts: 1 hostile to V or already in combat,
+-- 2 able to fight (gang, police, cyberpsycho, machine, armed), 3 anyone else (a civilian, a bystander). Returns the
+-- number and its name.
+local TIER_NAMES = {'hostile', 'fighter', 'bystander'}
+function M.tier(facts)
+    local f = facts or {}
+    local tier = 3
+    if f.hostile or f.combat then tier = 1
+    elseif not f.civilian and (f.ganger or f.police or f.cyberpsycho or f.machine or f.armed) then tier = 2 end
+    return tier, TIER_NAMES[tier]
 end
 
 -- CET adapter. Every call is guarded by the caller; nothing here caches natives.
@@ -362,6 +384,8 @@ function M.new(options)
                     if row then
                         -- An unreadable tag read is settled by the list; a read that says no outweighs a stale list entry.
                         if row.tag == nil then row.tag = true end
+                        -- The list holds the newest tag first: its position is how recently V tagged this NPC.
+                        row.order = row.order or tagList.count
                     else
                         local at = guarded(native.position, npc)
                         local gap = distance(playerAt, at)
@@ -372,7 +396,7 @@ function M.new(options)
                             local tag, how = readTag(npc)
                             if tag == nil then tag = true end
                             if tag then
-                                rows[#rows + 1] = {npc = npc, at = at, gap = gap, tag = true}
+                                rows[#rows + 1] = {npc = npc, at = at, gap = gap, tag = true, order = tagList.count}
                                 if key then found[key] = rows[#rows] end
                             end
                         end
@@ -385,14 +409,65 @@ function M.new(options)
         table.sort(rows, function(a, b) return a.gap < b.gap end)
         logCandidates(rows, failures, via, tagList)
 
-        local choice, source
-        -- 1. Tagged: the closest NPC V marked, judged only by who it is.
+        local choice, source, why
+        -- 1. Tagged: every NPC V marked that passes the identity rules, ranked (M.tier, aimed, newest tag, nearest).
+        local candidates = {}
         for _, row in ipairs(rows) do
             if row.tag == true and row.gap <= settings.taggedRadius then
                 local ok, reason, facts = taggedEligible(row.npc, player)
-                if ok then choice, source = row.npc, 'tagged'; break end
-                reject(reason)
-                note('tagged', row.npc, reason, facts)
+                if ok then
+                    row.tier, row.tierName = M.tier(facts)
+                    row.facts = facts
+                    candidates[#candidates + 1] = row
+                else
+                    reject(reason)
+                    note('tagged', row.npc, reason, facts)
+                end
+            end
+        end
+        if #candidates > 0 then
+            -- The NPC V is aiming at only matters when there is a choice. A look-at that lands on a companion is
+            -- replaced by the NPC nearest the crosshair line.
+            local aimedKey
+            if #candidates > 1 then
+                local aimedNpc = guarded(native.aimed, player, settings.aimRadius)
+                aimedKey = aimedNpc ~= nil and guarded(native.key, aimedNpc) or nil
+                local isCandidate = false
+                for _, row in ipairs(candidates) do if aimedKey and guarded(native.key, row.npc) == aimedKey then isCandidate = true end end
+                if not isCandidate then
+                    aimedKey = nil
+                    for _, ordered in ipairs(crosshairOrder(player, candidates)) do
+                        aimedKey = guarded(native.key, ordered.npc); break
+                    end
+                end
+            end
+            for _, row in ipairs(candidates) do row.aimed = aimedKey ~= nil and guarded(native.key, row.npc) == aimedKey end
+            table.sort(candidates, function(a, b)
+                if a.tier ~= b.tier then return a.tier < b.tier end
+                if a.aimed ~= b.aimed then return a.aimed end
+                local ao, bo = a.order or math.huge, b.order or math.huge
+                if ao ~= bo then return ao < bo end
+                return a.gap < b.gap
+            end)
+            local best, runnerUp = candidates[1], candidates[2]
+            choice, source = best.npc, 'tagged'
+            if not runnerUp then why = 'the only valid tag'
+            elseif best.tier ~= runnerUp.tier then why = best.tierName .. ' over ' .. runnerUp.tierName
+            elseif best.aimed ~= runnerUp.aimed then why = 'aimed at'
+            elseif (best.order or math.huge) ~= (runnerUp.order or math.huge) then why = 'tagged most recently'
+            else why = 'nearest' end
+            if log then
+                -- Best first, then what each one is (the plain facts), so a name like "NC Resident" can be told apart
+                -- from a civilian record in the next log.
+                local seen, who = {}, {}
+                for _, row in ipairs(candidates) do
+                    local name = guarded(native.name, row.npc) or 'NPC'
+                    seen[#seen + 1] = name .. ' ' .. row.tierName
+                        .. (row.aimed and ' aimed' or '') .. (row.order and (' tag#' .. row.order) or '')
+                        .. ' ' .. string.format('%.0f', row.gap) .. 'm'
+                    who[#who + 1] = name .. ' [' .. factList(row.facts) .. ']'
+                end
+                pcall(log, 'Tactic tagged choice: ' .. table.concat(seen, ' > ') .. '; facts: ' .. table.concat(who, ', '))
             end
         end
 
@@ -434,12 +509,13 @@ function M.new(options)
 
         local npc, info
         if choice then npc, info = describe(choice, source, playerAt) end
+        if info then info.why = why or (source == 'aimed' and 'aimed at, combat evidence' or 'nearest hostile to V') end
         if log then
             local parts = {}
             for reason, count in pairs(rejected) do parts[#parts + 1] = reason .. '=' .. count end
             table.sort(parts)
             pcall(log, 'Tactic target: ' .. (info and (info.source .. ' ' .. info.name .. ' ' .. info.id
-                .. ' at ' .. string.format('%.0f', info.distance) .. 'm') or 'none')
+                .. ' at ' .. string.format('%.0f', info.distance) .. 'm, because ' .. info.why) or 'none')
                 .. (#parts > 0 and ('; skipped ' .. table.concat(parts, ' ')) or '')
                 .. (#notes > 0 and ('; ' .. table.concat(notes, '; ')) or ''))
         end

@@ -524,3 +524,12 @@ test('the shared draw calls refuse a rejecting AI and stop only running commands
  handle.command.state='AICommandState : Success (3)';m.draw.cancel(handle,npc);assert(stopped==0)
  handle.command.state='AICommandState : Executing (2)';m.draw.cancel(handle,npc);assert(stopped==1)
 `));
+
+test('rearm lets a copy that never reached the combat edge holster after a tactic, and never resets a failed cancellation', () => run(`
+ npc.hands[right]=nil;tick(10);assert(m.snapshot(s).phase=='complete' and not m.snapshot(s).armed)
+ npc.hands[right]=gun('tactic-draw');tick(20);assert(#ai.commands==0,'not armed: nothing is holstered')
+ assert(m.rearm(s)==true and m.snapshot(s).armed)
+ tick(6);assert(#ai.commands==1 and s.command.slotId==right,'the holster flow runs again')
+ local failed=m.new(npc);failed.cancelFailed=true;assert(m.rearm(failed)==false)
+ local gone=m.new(npc);m.abandon(gone);assert(m.rearm(gone)==false and m.rearm(nil)==false)
+`));

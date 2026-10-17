@@ -6,12 +6,16 @@ The mod has no marking key of its own. It reads the game's native marking: tag a
 enemy (or anyone) with the scanner (focus mode) as usual. The target is chosen when
 you talk to the companion, in this order:
 
-1. **Tagged.** The closest scanner-tagged NPC within 100 m (several tags are fine;
-   the nearest wins). The tag is V's decision, so a neutral, civilian or crowd NPC is
-   a valid target. A named, quest-bound or scene-controlled character is taken only
-   when it is already hostile to V and in combat. Never taken even when tagged:
-   managed companions or other player companions, children, vendors, invulnerable
-   NPCs, and friendly NPCs other than police.
+1. **Tagged.** A scanner-tagged NPC within 100 m. With several tags the best is
+   ranked, not the nearest: first one that is hostile to V or already in combat, then
+   one that can fight (gang, police, cyberpsycho, machine, armed), then anyone else
+   (a civilian or bystander); within a tier the NPC V is aiming at, then the most
+   recently tagged (the game's tag list keeps the newest tag first), then the
+   nearest. The tag is V's decision, so a neutral, civilian or crowd NPC is a valid
+   target when nothing better is tagged. Never taken even when tagged: managed
+   companions or other player companions, named, quest-bound or scene-controlled
+   characters (hostile or not), children, vendors, invulnerable NPCs, and friendly
+   NPCs other than police.
 2. **Looked at.** Nobody valid is tagged: the NPC under the crosshair (the game's
    look-at target, else the one closest to the crosshair line, within about 12
    degrees) if it is within 30 m and shows combat evidence: a gang member, police,
@@ -42,8 +46,14 @@ Each request writes two lines to `probe.log`:
   NPCs first, then the nearest, up to six. A tagged enemy missing from this line was
   outside the 100 m query; `tag=no` on an NPC V tagged means the tag read said false;
   `tag=err` means the read failed.
-- `Tactic target: <source> <name> <id> at <m>m; skipped civilian=1 ...; tagged <name>
-  rejected: <reason> [<signals>]` is the choice and why others were skipped.
+- `Tactic target: <source> <name> <id> at <m>m, because <why>; skipped civilian=1 ...;
+  tagged <name> rejected: <reason> [<signals>]` is the choice, the reason and why
+  others were skipped. `<why>` is `hostile over bystander` (tier over tier), `aimed
+  at`, `tagged most recently`, `nearest` or `the only valid tag`.
+- With two or more tagged candidates (and once for one) a third line,
+  `Tactic tagged choice: <name> <tier> [aimed] [tag#N] <m>m > ...; facts: <name>
+  [ganger+hostile], ...`, lists them best first with the plain facts read for each, so
+  an unfamiliar display name can be told from a civilian record.
 
 When nothing valid is found the offer is withheld and the character is told so
 (`tacticUnavailable: "no-target"`), so she declines instead of claiming to attack.
@@ -84,9 +94,54 @@ attitudes and the threat. A start that fails halfway gives back the preset and t
 attitudes it had already changed. Companions are not saved with the game
 (`persistState=false`), so a save or load never carries the preset across; world
 teardown forgets the tactic without native calls and the copies are deleted. Until the
-companion is in combat it runs toward the target; no combat within 25 s gives
-up. A living target gets its attitudes and threat persistence back when the
-fight ends or is cancelled.
+companion is in combat it runs toward the target. A living target gets its attitudes
+back when the fight ends or is cancelled.
+
+### Starting the combat (2026-10-17 fix)
+
+Live 2026-10-17 the order was accepted and the preset, the threat and `TriggerCombat`
+all went through, yet she walked up with the weapon out, crouched in the Stealth
+state and never fought. A follower that holds a threat which has not noticed her stays
+in the Stealth state; nothing in the sequence changed her high-level state. The game
+forces a fight with exactly one more call (`npcPuppet.script` OnFinisherEffectorActionOn,
+`psychoSquadAVSystem.script`, `bossStealthComponent.script`): attitude, injected
+threat, then `NPCPuppet.ChangeHighLevelState(npc, Combat)`. The fight start now ends
+with that call (log: `reaction: Combat state asked (was Stealth)`). If `NPCPuppet.IsInCombat` is
+still false 1 s later the start is asked again, stronger (`engage stage 2 ...`: the
+tracker's `ActivateThreat` and `SetThreatBeliefAccuracy` 1.0, the reaction component's
+combat start, the Combat state again), once more at 2 s (stage 3), and at 3 s one line
+`engage: combat did not register after 3.1s: state=... stance=... threat=... attitude=out/back
+preset=... target-civilian=...` says what the game reads. Without combat after that, she
+gives up once she has stood at the target for 4 s, or at 25 s, whichever is first, and the
+notice says why in plain words: `<name> can't attack <target>: not a fighter.` (a
+civilian or crowd record), `<name> could not reach <target>.`, or `<name> could not start
+the fight with <target>.`
+
+The threat is injected persistent (source `CommandInjectThreat`); only that source's
+persistence used to be removed, so the threat stayed in her tracker for ever. The end of
+the tactic now also removes it (`restore: threat on the target removed (read back gone)`).
+
+### After the tactic: the restore (2026-10-17 fix)
+
+Whenever the tactic ends (no combat, timeout, cancel, target down), apart from a vehicle,
+a vanished companion or a replacement tactic, the companion is put back, step by step and
+every step logged with its read-back (`Companion tactic: restore: ...`): the preset (above),
+the attitudes, our threat, then, every 0.4 s for at most 14 s while the tactic is over:
+
+1. wait while she still tracks any hostile threat (V's own fight; a game-chosen state is
+   left alone), then 1 s of calm;
+2. `stance Crouch -> Stand` (`NPCPuppet.ChangeStanceState`) unless V is crouched herself, read
+   back after 0.6 s, up to 3 tries;
+3. `state Stealth|Combat -> Relaxed` (`NPCPuppet.ChangeHighLevelState`), read back, up to 3
+   tries (the stance first, the state next: two state signals in one frame can overwrite
+   each other);
+4. the holster: the equipment owner is armed again (`companion-equipment.lua` `M.rearm`; a copy
+   that never reached the combat edge was never armed) and holsters by itself once she is calm
+   and Relaxed; 9 s later the hand is read (`weapon read back: holstered`).
+
+While V is crouched the crouch-with-V module keeps the stance and the state. Movement
+returns to the follow owner the moment the tactic ends. Polling only runs while a restore is
+pending, at 2.5 Hz.
 
 When the fight starts the companion's right hand is read. A real weapon already in
 hand is logged (`weapon already drawn (<record>)`); otherwise the draw goes in stages,
@@ -118,4 +173,4 @@ it; teardown forgets handles without native calls.
 Source: `mod/companion-marking.lua` (target selection), `mod/companion-tactics.lua`,
 `bridge/companion-actions.mjs`. Tests: `bridge/companion-tactics.test.mjs`,
 `bridge/companion-tactic-actions.test.mjs`, `bridge/gameplay-actions.test.mjs`.
-Not yet tested in game (2026-10-13: the combat command has never run live; the reaction start was added 2026-10-17 on branch `companion-45` and has not been seen either).
+Not yet tested in game (2026-10-17: the reaction start passed once on a different target and failed on the test above; the tag ranking, the Combat state, the engage stages and the restore are on branch `tag-fight-fix` and have not been seen).

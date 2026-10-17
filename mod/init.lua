@@ -2908,6 +2908,7 @@ end
 -- notices. Nothing here sends a request or plays a line.
 tacticEnv.player = function() return Game.GetPlayer() end
 tacticEnv.actor = function(entity) return companions.readyActor(entity) end
+tacticEnv.rearm = function(entity) return companions.rearmEquipment(entity) end
 tacticEnv.marked = function(player) return marking.current(player) end
 tacticEnv.feedback = function(message)
     local player = Game.GetPlayer()

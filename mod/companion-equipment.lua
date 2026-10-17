@@ -454,6 +454,17 @@ function M.update(s, player, delta, idle, acquireHold)
     end
 end
 
+-- A tactic ended with a weapon possibly still drawn: the combat edge arms the holster for an ordinary fight, so a
+-- copy that never reached it (the order failed, or was cancelled) is armed here. Returns true when it was armed. A
+-- failed cancellation is never reset.
+function M.rearm(s)
+    if not s or not s.npc or s.phase == 'released' or s.phase == 'abandoned' or s.cancelFailed then return false end
+    s.armed, s.attempts = true, {}
+    s.calmSince, s.retryAt, s.readySince, s.stopSince = nil, nil, nil, nil
+    if s.phase == 'complete' or s.phase == 'failed' then s.phase, s.reason = 'waiting', 'Armed again after a tactic' end
+    return true
+end
+
 function M.holdsMovement(s)
     return s~=nil and s.handoff==true
 end
