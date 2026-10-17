@@ -104,7 +104,7 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 | `load-ready` | Player | OmniVoice voice is ready. / Pocket voice is ready. / Local AI is ready. | The component finished loading, only when its loading line was shown. Once; waits for gameplay if it finished in a menu | none |
 | `load-failed` | Player | OmniVoice could not load. See Help in Settings. / Pocket could not load. See Help in Settings. / Local AI could not start. Check Local AI in Settings > Conversation provider. / Not enough graphics memory for Local AI. A cloud provider is used instead. | The component failed while its loading line was up (a voice failure that has a fallback is left to `voice-fallback`). Once | none |
 | `trip-guidance` | Developer | Your companion is driving to the selected waypoint. / Your companion is ready. Get in the passenger seat to start the trip. / The car has stopped. Step out so your companion can leave the driver seat. | Driving steps | none |
-| `tactic-outcome` | Developer | {name} could not start the fight with {target}. / {name} can't attack {target}: not a fighter. / {name} could not reach {target}. (and the older {name} could not engage the target.) | A companion tactic ended | none |
+| `tactic-outcome` | Removed | {name} could not start the fight with {target}. / {name} can't attack {target}: not a fighter. / {name} could not reach {target}. (and the older {name} could not engage the target.) | A companion tactic ended; removed 2026-10-18, the companion's reply covers it and the outcome is in `probe.log` only | never |
 | `support-report-saved` | Developer | Support report saved: {path} | A Help report finished | once |
 
 ## How much a notice can say
