@@ -120,8 +120,10 @@ function M.new(options)
     -- True while the system that recognises spawned characters can answer; the callers skip every scan without it.
     function service:available() return (self.options.ready or M.ready)() == true end
     -- The spawned characters within radius of V, nearest first: {npc, id, entity, distance}. One scan answers again for
-    -- SCAN_SECONDS. Never asked per frame: a group key press, a combat start or a pickup.
-    function service:nearby(player, radius)
+    -- SCAN_SECONDS. Never asked per frame: a group key press, a combat start or a pickup. `extra` is a list of NPCs the
+    -- caller already holds from its own native query (the talk-target candidates of the same key press): they are added to
+    -- the scan's answer when they are spawned and within radius, so a character the scan misses still counts.
+    function service:nearby(player, radius, extra)
         local rows = {}
         if not player or not self:available() then return rows end
         local now = clock()
@@ -147,8 +149,31 @@ function M.new(options)
             end
             self.scanned = cached
         end
+        local present = {}
         for _, row in ipairs(cached.rows) do
-            if row.distance <= radius then rows[#rows + 1] = row end
+            if row.distance <= radius then rows[#rows + 1] = row; present[row.entity] = true end
+        end
+        if type(extra) == 'table' and #extra > 0 then
+            local placed, origin = pcall(function() return player:GetWorldPosition() end)
+            local added = false
+            for _, npc in ipairs(placed and extra or {}) do
+                local good, row = pcall(function()
+                    local id = npc:GetEntityID()
+                    local key = tostring(id.hash)
+                    if present[key] or not npc:IsAttached() or npc:IsDeadNoStatPool() or self:kind(npc) ~= 'spawned' then return nil end
+                    local at = npc:GetWorldPosition()
+                    local distance = math.sqrt((at.x - origin.x)^2 + (at.y - origin.y)^2 + (at.z - origin.z)^2)
+                    if distance > radius then return nil end
+                    return {npc = npc, id = id, entity = key, distance = distance}
+                end)
+                if good and row then rows[#rows + 1] = row; present[row.entity] = true; added = true end
+            end
+            if added then
+                table.sort(rows, function(a, b)
+                    if a.distance == b.distance then return a.entity < b.entity end
+                    return a.distance < b.distance
+                end)
+            end
         end
         return rows
     end

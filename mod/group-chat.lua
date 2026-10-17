@@ -7,12 +7,16 @@ function M.choose(primary, candidates, supported)
     -- One body is never two speakers (entity), and one profile is one voice per round: a character another mod or a spawner
     -- created (docs/SPAWNED_CHARACTERS.md) can share Judy's profile with our own Judy copy, and the bridge keys a round's
     -- audience, memory and heard lines by profile. The addressed body first, then party companions, then spawned characters
-    -- (the caller's order), so the copy that is skipped is always the one that came later.
+    -- (the caller's order), so the copy that is skipped is always the one that came later. The one exception is a generic
+    -- person (a resident or an archetype, `generic = true`): two of them share a profile and are still two people, as two
+    -- gangers another mod spawned are. The bridge reads the round's audience as a set of profiles, so makeInput lists a
+    -- shared profile once.
     local selected, seen, bodies = {}, {}, {}
     local function add(candidate)
-        if candidate and supported[candidate.profileKey] and not seen[candidate.profileKey] and #selected < 3
+        if candidate and supported[candidate.profileKey] and #selected < 3
+            and not (seen[candidate.profileKey] and not (seen[candidate.profileKey] == 'generic' and candidate.generic))
             and not (candidate.entity ~= nil and bodies[candidate.entity]) then
-            seen[candidate.profileKey] = true
+            seen[candidate.profileKey] = candidate.generic and 'generic' or 'named'
             if candidate.entity ~= nil then bodies[candidate.entity] = true end
             selected[#selected + 1] = candidate
         end
@@ -41,6 +45,7 @@ local function startRound(id, participants, text)
         for _, key in ipairs({'entity', 'profileKey', 'name', 'bodyType', 'npc', 'archetype', 'voiceOnly'}) do row[key] = person[key] end
         -- A character another mod or a spawner created (docs/SPAWNED_CHARACTERS.md); nothing else reads it but the adapter.
         row.spawned = person.spawned
+        row.generic = person.generic
         frozen[#frozen + 1] = row
     end
     M.round = {id = id, participants = frozen, text = text, index = 0, stage = 'next', heard = {},
@@ -70,6 +75,12 @@ local function makeInput(r, index, generation, now, live, includePlaying)
             if i > total then total = i end
         end
     end
+    -- A profile is listed once however many generic people share it (the audience is a set of profiles).
+    local listed, unique = {}, {}
+    for _, key in ipairs(audience) do
+        if not listed[key] then listed[key] = true; unique[#unique + 1] = key end
+    end
+    audience = unique
     local function addHeard(utterance)
         for _, listener in ipairs(utterance.listeners) do
             if listener == speaker.profileKey then

@@ -680,26 +680,50 @@ convaiWorldPolicy = {
 -- answers a group key press, 'watch' a combat start or a pickup (both one targeting query, reused for a few seconds),
 -- 'sample' is a boolean compare at the observer's own half-second poll, and 'reactionRows' reads only the (at most
 -- three) characters 'watch' remembered, by entity ID, and nothing while there are none. They never enter 'companions'.
--- Only a roster character (not a resident or an archetype) joins: the bridge keys a round by profile, and a generic
--- passer-by is not one person. Our own copy of the same profile always comes first, so the spawned copy is the one skipped.
+-- Group chat takes every spawned character with an enabled profile, a roster character or a generic one (a resident or an
+-- archetype, flagged generic = true: two of them are two people although they share a profile). Reactions take roster
+-- characters only. Our own copy of the same roster profile always comes first, so the spawned copy is the one skipped.
 convaiSpawnedPeople = {
+    stats = {},
     combat = false,
     named = function(key)
         return type(key) == 'string' and not archetypes.keys[key] and key ~= 'resident-male' and key ~= 'resident-female'
             and not key:match('^npc%-')
     end,
-    -- Rows for the spawned characters within radius that have an enabled roster profile, nearest first. Same row shape as
-    -- companions.conversationCandidates, plus spawned = true.
-    nearby = function(player, radius)
+    -- Rows for the spawned characters within radius that have an enabled profile, nearest first. Same row shape as
+    -- companions.conversationCandidates, plus spawned = true (and generic = true with its archetype facts for a resident or
+    -- an archetype). options.roster keeps roster characters only (reactions); options.extra is a list of NPCs the caller
+    -- already holds from its own native query. convaiSpawnedPeople.stats says what the last call found and why it dropped some.
+    nearby = function(player, radius, options)
         local rows, service = {}, convaiSpawnedCharacters
+        local stats = {found = 0, kept = 0, generic = 0, noProfile = 0, unsupported = 0, disabled = 0, generated = 0}
+        convaiSpawnedPeople.stats = stats
         if service == nil or not player or not service:available() then return rows end
-        local ok, found = pcall(service.nearby, service, player, radius)
+        options = type(options) == 'table' and options or {}
+        local ok, found = pcall(service.nearby, service, player, radius, options.extra)
         if not ok or type(found) ~= 'table' then return rows end
+        stats.found = #found
         for _, row in ipairs(found) do
-            local named, key, name, body = pcall(profileIdentity, row.npc)
-            if named and key and supportedProfiles[key] and convaiSpawnedPeople.named(key) and manager.profileEnabled(key) then
-                rows[#rows + 1] = {npc = row.npc, id = row.id, entity = row.entity, profileKey = key, name = name,
-                    bodyType = body, distance = row.distance, spawned = true}
+            local named, key, name, body, archetype = pcall(profileIdentity, row.npc)
+            if not named or not key then stats.noProfile = stats.noProfile + 1
+            elseif not supportedProfiles[key] then stats.unsupported = stats.unsupported + 1
+            elseif not manager.profileEnabled(key) then stats.disabled = stats.disabled + 1
+            else
+                local roster = convaiSpawnedPeople.named(key)
+                if roster or not options.roster then
+                    local entry = {npc = row.npc, id = row.id, entity = row.entity, profileKey = key, name = name,
+                        bodyType = body, distance = row.distance, spawned = true}
+                    if not roster then
+                        entry.generic = true
+                        if not archetype and archetypes.keys[key] and type(characterCatalog.describe) == 'function' then
+                            archetype = characterCatalog.describe(archetypes, key, {})
+                        end
+                        entry.archetype = archetype
+                        stats.generic = stats.generic + 1
+                    end
+                    rows[#rows + 1] = entry
+                    stats.kept = stats.kept + 1
+                end
             end
         end
         return rows
@@ -708,7 +732,7 @@ convaiSpawnedPeople = {
     watch = function(player)
         local service = convaiSpawnedCharacters
         if service == nil or not player then return end
-        pcall(service.watch, service, convaiSpawnedPeople.nearby(player, 20))
+        pcall(service.watch, service, convaiSpawnedPeople.nearby(player, 20, {roster = true}))
     end,
     -- The observer's half-second sample: the start of a fight is the edge that asks for a watch (never while off).
     sample = function(player, observation, enabled)
@@ -872,6 +896,12 @@ local function warmConversation(participants, key, entity)
             for _, person in ipairs(participants) do
                 if not person.voiceOnly then audience[#audience + 1] = person.profileKey end
             end
+            -- Generic people can share a profile; the hint's audience is a set of profiles.
+            local listed, unique = {}, {}
+            for _, key in ipairs(audience) do
+                if not listed[key] then listed[key] = true; unique[#unique + 1] = key end
+            end
+            audience = unique
         else audience[1] = key end
         hint = json.encode({nonce = 'composer-' .. tostring(os.time()) .. '-' .. tostring(generation),
             audience = audience, group = participants ~= nil,
@@ -1317,6 +1347,8 @@ local function targetAtCrosshair()
             onFoot[id] = true
         end
     end
+    -- The native candidates of this key press, for a group round to count spawned characters among (selectConversation).
+    convaiTalkNative = candidates
     local playerPos, forward = targeting:GetCrosshairData(player)
     local forwardLength = math.sqrt(forward.x^2 + forward.y^2 + forward.z^2)
     -- Measure every candidate once: its best aim point (torso, or the actual
@@ -1581,8 +1613,15 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
         candidates = enabled
         -- Characters another mod or a spawner created join after V's own companions (docs/SPAWNED_CHARACTERS.md, phase 2):
         -- one targeting query on this key press, and none once three companions already fill the round.
-        if #candidates < 3 and convaiSpawnedPeople then
-            for _, row in ipairs(convaiSpawnedPeople.nearby(player, 8)) do candidates[#candidates + 1] = row end
+        -- Whoever V faces (a companion or a spawned character), the same rule: the scan's answer plus the spawned characters
+        -- among the native candidates this key press already gathered.
+        local companionCount = #candidates
+        if companionCount < 3 and convaiSpawnedPeople then
+            for _, row in ipairs(convaiSpawnedPeople.nearby(player, 8, {extra = convaiTalkNative})) do candidates[#candidates + 1] = row end
+            local stats = convaiSpawnedPeople.stats or {}
+            log('Group candidates: companions=' .. companionCount .. ' spawned=' .. (#candidates - companionCount)
+                .. ' (found=' .. tostring(stats.found) .. ' generic=' .. tostring(stats.generic) .. ' noProfile=' .. tostring(stats.noProfile)
+                .. ' unsupported=' .. tostring(stats.unsupported) .. ' disabled=' .. tostring(stats.disabled) .. ')')
         end
     end
     -- An installed add-on's voice (docs/ADDON_API.md: a talking gun in V's hand, a cab's voice) answers the talk keys while it
@@ -1639,6 +1678,7 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
         archetype = characterCatalog.describe(archetypes, key, {})
     end
     if archetype or key == 'resident-male' or key == 'resident-female' then
+        primary.generic = true
         primary.archetype = archetype or {category = 'resident'}
         local place = currentDistrict()
         if place then primary.archetype.district, primary.archetype.area = place.district, place.area end
@@ -1650,6 +1690,16 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
             .. ' district=' .. tostring(primary.archetype.district))
     end
     local participants = groupMode and groupChat.choose(primary, candidates, supportedProfiles) or nil
+    -- A generic spawned person in the round learns where it stands and gets its Night City name, like a generic primary.
+    for _, person in ipairs(participants or {}) do
+        if person ~= primary and person.spawned and person.generic then
+            person.archetype = person.archetype or {category = 'resident'}
+            local place = currentDistrict()
+            if place then person.archetype.district, person.archetype.area = place.district, place.area end
+            local generated = convaiNpcNames and convaiNpcNames.nameFor(person.npc, 'talk') or nil
+            if generated then person.name, person.archetype.npcName = generated, generated end
+        end
+    end
     if participants and #participants < 2 then
         local shortcut = ui.boundKey(singleAction)
         convaiNotices.send(player, 'group-needs-two', shortcut

@@ -288,6 +288,7 @@ function peopleRun(body) {
       scan = function() scans = scans + 1; return scene end,
       find = function(id) finds = finds + 1; for _, n in ipairs(scene) do if n.hash == id.hash then return n end end return nil end,
       read = function() return {managed = true, tags = {'SomeSpawnerTag'}} end})
+    characterCatalog = {describe = function(_, key) return {category = 'ordinary', base = key} end}
     archetypes = {keys = {['npc-maelstrom-male'] = true, ['vendor'] = true}}
     supportedProfiles = {['judy-alvarez'] = true, ['panam-palmer'] = true, ['resident-male'] = true, ['npc-maelstrom-male'] = true,
       ['vendor'] = true, ['off'] = true}
@@ -302,15 +303,33 @@ function peopleRun(body) {
   `);
 }
 
-test('adapter nearby: spawned characters with an enabled roster profile; residents, archetypes and unknowns never join', () => peopleRun(`
+test('adapter nearby: spawned characters with an enabled profile; generic ones are flagged, reactions take roster only, unknowns never join', () => peopleRun(`
   scene[1], scene[2], scene[3], scene[4], scene[5], scene[6], scene[7] =
     npc('1', 5, 'judy-alvarez', 'Judy Alvarez'), npc('2', 2, 'panam-palmer', 'Panam Palmer'), npc('3', 3, 'resident-male', 'Pedestrian'),
     npc('4', 4, 'npc-maelstrom-male', 'Maelstrom'), npc('5', 1, 'off', 'Disabled'), npc('6', 1.5, nil, 'No profile'),
     npc('7', 6, 'vendor', 'Vendor')
+  -- Group chat: every spawned character with an enabled profile, a roster one or a generic one.
   local rows = convaiSpawnedPeople.nearby(player, 8)
-  assert(#rows == 2 and rows[1].profileKey == 'panam-palmer' and rows[2].profileKey == 'judy-alvarez', #rows)
+  assert(#rows == 5 and rows[1].profileKey == 'panam-palmer' and rows[2].profileKey == 'resident-male'
+    and rows[3].profileKey == 'npc-maelstrom-male' and rows[4].profileKey == 'judy-alvarez' and rows[5].profileKey == 'vendor', #rows)
   assert(rows[1].spawned == true and rows[1].entity == '2' and rows[1].name == 'Panam Palmer' and rows[1].bodyType == 'WomanAverage'
-    and rows[1].distance == 2 and rows[1].npc == scene[2], 'the row shape of companions.conversationCandidates, plus spawned')
+    and rows[1].distance == 2 and rows[1].npc == scene[2] and rows[1].generic == nil,
+    'the row shape of companions.conversationCandidates, plus spawned')
+  assert(rows[2].generic == true and rows[2].archetype == nil and rows[3].generic == true and rows[3].archetype.base == 'npc-maelstrom-male',
+    'a generic one is flagged and carries its archetype facts')
+  local stats = convaiSpawnedPeople.stats
+  assert(stats.found == 7 and stats.kept == 5 and stats.generic == 3 and stats.noProfile == 1 and stats.disabled == 1, 'what the key press logs')
+  -- Reactions: roster characters only.
+  rows = convaiSpawnedPeople.nearby(player, 8, {roster = true})
+  assert(#rows == 2 and rows[1].profileKey == 'panam-palmer' and rows[2].profileKey == 'judy-alvarez', #rows)
+  -- The caller's own native candidates count too, when the scan misses them (here: the scan sees nobody).
+  local missed = npc('8', 3.5, 'panam-palmer', 'Panam Palmer')
+  local seenByScan = scene[2]
+  for i = #scene, 1, -1 do scene[i] = nil end
+  scene[1] = seenByScan
+  now = 100
+  rows = convaiSpawnedPeople.nearby(player, 8, {extra = {missed, scene[1], npc('9', 12, 'judy-alvarez', 'Too far')}})
+  assert(#rows == 2 and rows[1].entity == '2' and rows[2].entity == '8', 'extra: spawned and within range, once each: ' .. #rows)
   convaiSpawnedCharacters = nil
   assert(#convaiSpawnedPeople.nearby(player, 8) == 0, 'without the module nothing joins')
 `));
@@ -453,8 +472,10 @@ test('offers: a spawned speaker makes no leave offer about our party, in a group
 
 test('wiring: group chat and reactions ask for spawned characters on events only, behind the setting and behind the module', () => {
   const selection = between('local function selectConversation(', 'local function voiceTargetValid');
-  assert.match(selection, /if #candidates < 3 and convaiSpawnedPeople then\s+for _, row in ipairs\(convaiSpawnedPeople\.nearby\(player, 8\)\)/,
-    'a group key press, after the companions, never once three companions fill the round');
+  assert.match(selection, /if companionCount < 3 and convaiSpawnedPeople then\s+for _, row in ipairs\(convaiSpawnedPeople\.nearby\(player, 8, \{extra = convaiTalkNative\}\)\)/,
+    'a group key press, after the companions, whoever V faces, never once three companions fill the round');
+  assert.match(selection, /Group candidates: companions=/, 'the key press logs what it found, so a missing character can be told from a filtered one');
+  assert.match(init, /convaiTalkNative = candidates/);
   assert.match(selection, /spawned = convaiWorldPolicy ~= nil and convaiWorldPolicy\.spawned\(npc\) or nil/);
   // Nothing in the group or reaction path writes into companions state.
   assert.doesNotMatch(peopleSource.split('\n').filter(line => !line.trim().startsWith('--')).join('\n'), /companions\./);
@@ -474,3 +495,110 @@ test('wiring: group chat and reactions ask for spawned characters on events only
   const update = init.slice(init.indexOf("registerForEvent('onUpdate'"), init.indexOf("registerForEvent('onUpdate'") + 400);
   assert.doesNotMatch(update, /convaiSpawnedPeople/);
 });
+
+// The live bug (2026-10-17): V faces one of OUR companions, two characters another mod spawned stand nearby, and F7 said group
+// chat needs two people. Spawned characters count whoever V faces, whether the scan sees them or not, and generic ones too.
+function selectionRun(body) {
+  const selection = between('local function selectConversation(', 'local function voiceTargetValid');
+  peopleRun(`
+    local scanSees = true
+    local lines, notices = {}, {}
+    function log(line) lines[#lines + 1] = line end
+    groupChat = (function() ${groupSource} end)()
+    local function body(hash, x) return {hash = hash, x = x,
+      GetEntityID = function(self) return {hash = self.hash} end,
+      IsAttached = function() return true end, IsDeadNoStatPool = function() return false end,
+      GetWorldPosition = function(self) return {x = self.x, y = 0, z = 0} end,
+      GetAttitudeAgent = function() return {GetAttitudeTowards = function() return 'AIA_Friendly' end} end} end
+    -- Our companion Alex (entity C1) and two characters another mod spawned.
+    local alex = body('C1', 2)
+    local sA, sB = npc('S1', 4, 'judy-alvarez', 'Judy Alvarez'), npc('S2', 5, 'panam-palmer', 'Panam Palmer')
+    supportedProfiles['alex'] = true
+    info['C1'] = {key = 'alex', name = 'Alex'}
+    local ours = {npc = alex, entity = 'C1', profileKey = 'alex', name = 'Alex', bodyType = 'ManAverage', distance = 2}
+    companions = {conversationCandidates = function() return {ours} end}
+    local function readOf(n) if n.hash == 'C1' then return {managed = true, own = true} end return {managed = true, tags = {'SomeSpawnerTag'}} end
+    convaiSpawnedCharacters = S.new({clock = function() return now end, ready = function() return true end,
+      scan = function() scans = scans + 1; if scanSees then return {sA, sB, alex} end return {} end, read = readOf})
+    -- What the key press already gathered natively when V faces Alex.
+    local faced, nativeList = alex, {alex, sA, sB}
+    function targetAtCrosshair() convaiTalkNative = nativeList; return faced, nil, {} end
+    function logTalkTarget() end
+    function profileEnabled() return true end
+    ui = {boundKey = function() return 'F7' end, t = function(text) return text end}
+    convaiNotices = {send = function(_, id) notices[#notices + 1] = id end}
+    convaiTalkTarget = {remember = function() end}
+    function currentDistrict() return nil end
+    convaiNpcNames = nil
+    convaiWorldPolicy = {spawned = function(n) return n.hash:sub(1, 1) == 'S' end}
+    convaiHolocall, convaiAddons = nil, nil
+    ${selection}
+    ${body}
+  `);
+}
+test('facing one of our companions with two spawned characters nearby gives a three-person round (the F7 bug)', () => selectionRun(`
+  local primary, participants = selectConversation(player, true, 'cyberpunk_convai_text')
+  assert(#notices == 0, 'no "needs two characters" notice: ' .. table.concat(notices, ','))
+  assert(primary and primary.profileKey == 'alex' and primary.entity == 'C1')
+  assert(participants and #participants == 3, 'three people: ' .. tostring(participants and #participants))
+  assert(participants[1].profileKey == 'alex' and participants[2].profileKey == 'judy-alvarez' and participants[3].profileKey == 'panam-palmer')
+  assert(participants[2].spawned == true and participants[3].spawned == true and participants[1].spawned == nil)
+  assert(scans == 1, 'one query on the key press')
+  assert(lines[#lines]:find('Group candidates: companions=1 spawned=2', 1, true), lines[#lines])
+  -- Pressing again within three seconds reuses the scan.
+  selectConversation(player, true, 'cyberpunk_convai_text'); assert(scans == 1)
+  -- Facing a spawned character gives the same three.
+  faced = sA
+  local _, again = selectConversation(player, true, 'cyberpunk_convai_text')
+  assert(#again == 3 and again[1].profileKey == 'judy-alvarez')
+  -- The scan finding nobody (a character outside what it reports) does not matter: the key press's own native candidates count.
+  faced, scanSees, now = alex, false, 50
+  local _, viaNative = selectConversation(player, true, 'cyberpunk_convai_text')
+  assert(#viaNative == 3, 'counted from the native candidates: ' .. #viaNative)
+  -- Nobody spawned nearby: the notice, as before.
+  nativeList, now = {alex}, 100
+  local none = selectConversation(player, true, 'cyberpunk_convai_text')
+  assert(none == nil and notices[#notices] == 'group-needs-two')
+  -- Three companions fill the round: no query at all.
+  nativeList, now, scans = {alex, sA, sB}, 200, 0
+  local full = {ours, {npc = alex, entity = 'C2', profileKey = 'panam-palmer', name = 'P', distance = 3}, {npc = alex, entity = 'C3', profileKey = 'judy-alvarez', name = 'J', distance = 4}}
+  companions.conversationCandidates = function() return full end
+  local _, three = selectConversation(player, true, 'cyberpunk_convai_text')
+  assert(#three == 3 and scans == 0 and three[2].entity == 'C2', 'three companions: no scan')
+`));
+
+test('two generic spawned people (the same profile) and our companion are three people; the audience lists the profile once', () => selectionRun(`
+  -- Two gangers another mod spawned share one generic profile.
+  local g1, g2 = npc('S3', 3, 'resident-male', 'Pedestrian'), npc('S4', 4, 'resident-male', 'Pedestrian')
+  nativeList = {alex, g1, g2}
+  convaiSpawnedCharacters = S.new({clock = function() return now end, ready = function() return true end,
+    scan = function() return {g1, g2, alex} end, read = readOf})
+  local primary, participants = selectConversation(player, true, 'cyberpunk_convai_text')
+  assert(participants and #participants == 3 and participants[2].generic == true and participants[3].generic == true,
+    'three people: ' .. tostring(participants and #participants))
+  assert(participants[2].archetype and participants[2].archetype.category == 'resident' and participants[3].entity == 'S4')
+  -- Facing a spawned generic person works the same.
+  faced = g1
+  local _, again = selectConversation(player, true, 'cyberpunk_convai_text')
+  assert(#again == 3 and again[1].generic == true and again[1].entity == 'S3' and again[2].entity == 'C1' and again[3].entity == 'S4',
+    'the faced one first, then our companion, then the other generic person')
+  -- The round's inputs list a shared profile once, and every body still speaks.
+  groupChat.start('generic', participants, 'Hello')
+  local live = {C1 = true, S3 = true, S4 = true}
+  local first = groupChat.next(1, 100, live)
+  assert(first.entity == 'C1' and #first.group.audience == 2 and first.group.audience[1] == 'alex'
+    and first.group.audience[2] == 'resident-male' and first.group.total == 3, 'audience: ' .. table.concat(first.group.audience, ','))
+  groupChat.received(first.requestId, 'Hi', false, {'alex', 'resident-male', 'resident-male'})
+  groupChat.completed(first.requestId, true)
+  local second = groupChat.next(2, 101, live)
+  assert(second.entity == 'S3' and second.group.index == 2 and #second.group.heard == 1)
+  groupChat.received(second.requestId, 'Yo', false, {'alex', 'resident-male', 'resident-male'})
+  groupChat.completed(second.requestId, true)
+  local third = groupChat.next(3, 102, live)
+  assert(third.entity == 'S4' and third.group.index == 3 and #third.group.heard == 2, 'the third hears both')
+  -- A named profile is still one voice per round.
+  local chosen = groupChat.choose({entity = 'a', profileKey = 'alex'}, {{entity = 'b', profileKey = 'alex', spawned = true},
+    {entity = 'c', profileKey = 'resident-male', generic = true}, {entity = 'd', profileKey = 'resident-male', generic = true}},
+    {alex = true, ['resident-male'] = true})
+  assert(#chosen == 3 and chosen[2].entity == 'c' and chosen[3].entity == 'd')
+`));
