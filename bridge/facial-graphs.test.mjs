@@ -116,8 +116,8 @@ test('latched preparation alone cannot pass readiness after face_rig graph repla
   assert.match(ready, /this\.m_convaiFacePrepared/);
   assert.match(ready, /this\.IsAttached\(\)/);
   assert.match(ready, /this\.IsDeadNoStatPool\(\)/);
-  assert.match(ready, /if dynamic\.IsManaged\(this\.GetEntityID\(\)\) \{[^}]*if !dynamic\.IsTagged\(this\.GetEntityID\(\), n"CyberpunkConvaiCompanion"\) \{ return false; \};/,
-    'a dynamic entity must carry the companion tag');
+  assert.match(ready, /if dynamic\.IsManaged\(this\.GetEntityID\(\)\) \{[^}]*world = !dynamic\.IsTagged\(this\.GetEntityID\(\), n"CyberpunkConvaiCompanion"\);\s*if world && !this\.ConvaiSpawnedElsewhere\(dynamic\) \{ return false; \};/,
+    'a dynamic entity must carry the companion tag, or be a character another mod or a spawner created');
   assert.match(ready, /this\.FindComponentByName\(n"face_rig"\) as AnimatedComponent/);
   assert.match(ready, /ResourceRef\.IsLoaded\(face\.graph\)/);
   assert.match(ready, /ResourceRef\.IsFailed\(face\.graph\)/);
@@ -157,7 +157,8 @@ test('ordinary NPCs are prepared once at spawn, behind filters, with no per-fram
   assert.equal([...world.matchAll(/face\.graph = /g)].length, 1, 'one graph write, after every filter');
   assert.match(world, /graph = this\.m_crowdPlain\[index\]/, 'the ungated copy exists only for the FPS comparison mode');
   assert.match(world, /this\.m_crowdGated\[index\]/);
-  assert.match(world, /dynamic\.IsManaged\(npc\.GetEntityID\(\)\) \{ return; \}/, 'our companions and other mods\' dynamic spawns are never touched here');
+  assert.match(world, /if dynamic\.IsManaged\(npc\.GetEntityID\(\)\) \{\s*if this\.m_crowdMode == 0 \|\| !ConvaiFaceService\.SpawnedElsewhere\(dynamic, npc\.GetEntityID\(\)\) \{ return; \};[\s\S]*?this\.PrepareSpawnedFace\(spawnedFace\);[\s\S]*?return;\s*\};/,
+    'our companions are never touched here; a character another mod or a spawner created takes its own path and returns');
   assert.doesNotMatch(world, /TDBID\.ToStringDEBUG\(record\)[\s\S]*TDBID\.ToStringDEBUG\(record\)/, 'strings are read once, and only after the cheap checks passed');
   assert(world.indexOf('ArrayContains(this.m_named, record)') < world.indexOf('NameToString(npc.GetCurrentAppearanceName())'), 'the roster check comes before any string work');
   // The rig's track check is cached per rig path.
@@ -177,8 +178,8 @@ test('ordinary NPCs are prepared once at spawn, behind filters, with no per-fram
 
 test('conversation start reports the spawn decision and keeps the talk-time guards; a scene alone is no reason', () => {
   const request = body(nativeFace, 'public final func ConvaiFaceRequest()', 'public final func ConvaiFaceApply(');
-  assert.match(request, /if dynamic\.IsManaged\(this\.GetEntityID\(\)\) \{ return "managed"; \};/);
-  assert.match(request, /service\.TalkRefusal\(this\)/);
+  assert.match(request, /let spawned = dynamic\.IsManaged\(this\.GetEntityID\(\)\);\s*if spawned && !this\.ConvaiSpawnedElsewhere\(dynamic\) \{ return "managed"; \};/);
+  assert.match(request, /service\.TalkRefusal\(this, spawned\)/);
   assert.match(request, /return "unprepared:" \+ ResRef\.ToString\(ResourceRef\.GetPath\(face\.graph\)\)/, 'a face that is not ours says which graph it has');
   assert.doesNotMatch(request, /face\.graph =|ScheduleAppearanceChange|PrepareFaceComponent/);
   const guards = body(nativeFace, 'public func TalkRefusal', 'public static func QuestBound');
@@ -204,6 +205,52 @@ test('conversation start reports the spawn decision and keeps the talk-time guar
   assert.equal([...init.matchAll(/:ConvaiFaceRequest\(\)/g)].length, 4, 'composer, microphone, group speaker and the dev-only scripted talk only');
   const gaze = init.slice(init.indexOf('local function updateGaze'), init.indexOf('local function updateGaze') + 4000);
   assert.doesNotMatch(gaze, /ConvaiFaceRequest/, 'a glance never touches an NPC face');
+});
+
+/// October 17 (docs/SPAWNED_CHARACTERS.md): a character another mod or a spawner created through the dynamic entity system
+// gets a speaking face. Recognition is generic: managed, and none of our own "CyberpunkConvai" tags. No other mod's tag,
+// record or path is ever named. Its face is prepared at spawn and again at every appearance rebuild (outfit changes).
+test('spawned characters: generic recognition, a face at spawn and at each rebuild, quest marking the only extra refusal', () => {
+  const spawned = body(nativeFace, 'public static func SpawnedElsewhere', 'private func PrepareFaceComponent');
+  assert.match(spawned, /if !IsDefined\(dynamic\) \|\| !dynamic\.IsManaged\(id\) \{ return false; \};/);
+  assert.match(spawned, /dynamic\.GetTags\(id\)/);
+  assert.match(spawned, /StrBeginsWith\(NameToString\(tags\[i\]\), "CyberpunkConvai"\) \{ return false; \}/, 'any tag of ours excludes it');
+  // Only our own tag prefix is ever named in a tag check anywhere in the face service.
+  for (const [, tag] of nativeFace.matchAll(/IsTagged\([^,]+, n"(\w+)"\)/g)) assert(tag.startsWith('CyberpunkConvai'), tag);
+  // Extraction: a game-placed entity stops at the managed lookup; a spawned one is prepared, never as a holocall.
+  const extract = body(nativeFace, 'private cb func OnCompanionExtract', 'private func PrepareExtractedComponents');
+  assert(extract.indexOf('!dynamic.IsManaged(builder.GetEntityID())') < extract.indexOf('IsTagged('), 'the managed lookup comes first');
+  assert.match(extract, /if this\.m_crowdMode == 0 \|\| !ConvaiFaceService\.SpawnedElsewhere\(dynamic, builder\.GetEntityID\(\)\) \{ return; \};\s*spawned = true;/);
+  assert.match(extract, /let holocall = !spawned && /);
+  assert.equal([...extract.matchAll(/npc, holocall, spawned\);/g)].length, 3);
+  const prepareExtracted = body(nativeFace, 'private func PrepareExtractedComponents', 'private cb func OnCompanionInitialize');
+  assert.match(prepareExtracted, /spawned \? this\.PrepareSpawnedFace\(face\) : this\.PrepareFaceComponent\(face\)/);
+  // The spawned face: an already prepared gated copy is recognised, a crowd graph gets the gated copy after the rig and
+  // load checks, anything else (Judy's photo-mode graph, the paperdoll pair) the companion graph of our own copy.
+  const face = body(nativeFace, 'private func PrepareSpawnedFace', 'public static func SpawnedElsewhere');
+  const positions = ['this.m_crowdGatedPaths[i]', 'this.CrowdIndex(path)', 'return this.PrepareFaceComponent(face)', 'this.CheckRig(face)',
+    'let graph = this.m_crowdGated[index];', 'ResourceRef.IsLoaded(graph)', 'face.graph = graph;'].map(needle => {
+    const at = face.indexOf(needle);
+    assert(at >= 0, needle);
+    return at;
+  });
+  assert.deepEqual([...positions].sort((a, b) => a - b), positions);
+  assert.equal([...face.matchAll(/face\.graph = /g)].length, 1);
+  assert.match(face, /if this\.m_crowdMode == 2 \{ graph = this\.m_crowdPlain\[index\]; \};/);
+  assert.doesNotMatch(face, /m_named|CrowdSkipReason|QuestBound/, 'the roster and quest filters do not apply to a player-made character');
+  assert.match(body(nativeFace, 'private cb func OnLoad', 'private cb func OnCompanionExtract'),
+    /ArrayPush\(this\.m_crowdGatedPaths, folder \+ this\.m_crowdNames\[i\] \+ "\.animgraph"\);/);
+  // Talk time: a spawned character is refused only by a dialogue or a quest marking it, before the world NPC's guards.
+  const guards = body(nativeFace, 'public func TalkRefusal', 'public static func QuestBound');
+  assert.match(guards, /public func TalkRefusal\(npc: ref<NPCPuppet>, opt spawned: Bool\) -> String/);
+  assert.match(guards, /if spawned \{\s*if npc\.IsQuest\(\) \{ return "skipped:quest"; \};\s*return "";\s*\};/);
+  assert(guards.indexOf('skipped:dialogue') < guards.indexOf('if spawned {') && guards.indexOf('if spawned {') < guards.indexOf('QuestBound('));
+  // The puppet remembers the answer as two Bool fields; nothing per frame, no handle kept.
+  const remember = body(nativeFace, 'private final func ConvaiSpawnedElsewhere', '// The reason a conversation start refused');
+  assert.match(remember, /if !this\.m_convaiSpawnedKnown \{\s*this\.m_convaiSpawned = ConvaiFaceService\.SpawnedElsewhere\(dynamic, this\.GetEntityID\(\)\);\s*this\.m_convaiSpawnedKnown = true;/);
+  const ready = body(nativeFace, 'public final func ConvaiFaceReady()', 'private final func ConvaiFaceAdoptWorld');
+  assert(ready.indexOf('ConvaiSpawnedElsewhere(dynamic)') < ready.indexOf('if world {'), 'a spawned character then passes the world NPC checks');
+  assert.match(ready, /if world \{\s*if !Equals\(this\.m_convaiFaceRefusal, ""\) \{ return false; \};\s*if !this\.m_convaiFacePrepared && !this\.ConvaiFaceAdoptWorld\(\) \{ return false; \};/);
 });
 
 // The filter, run as written: CrowdSkipReason and QuestBound are mechanical transliterations of their redscript bodies

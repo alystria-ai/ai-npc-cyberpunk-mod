@@ -647,6 +647,20 @@ function M.resolve(catalog, actor)
         if key then return key, actor.name, M.describe(catalog.archetypes, key, actor.facts) end
         -- A story-bound or excluded world character never falls back to a resident.
         if actor.world == true and (reason == 'story-bound' or reason == 'excluded-record') then return nil, actor.name end
+        -- actor.spawned: a copy of a quest character's model that another mod or a spawner created (docs/SPAWNED_CHARACTERS.md).
+        -- It is player-made, not the quest's actor: classify it by its other facts (affiliation, crowd), else as a resident.
+        if actor.spawned == true and reason == 'story-bound' then
+            local plain = {}
+            for name, value in pairs(actor.facts) do plain[name] = value end
+            plain.quest, plain.recordName, plain.recordId = nil, nil, nil
+            if plain.bodyType == nil then plain.bodyType = actor.bodyType end
+            local again = M.classify(catalog.archetypes, plain)
+            if again then return again, actor.name, M.describe(catalog.archetypes, again, plain) end
+            local gender = plain.human ~= false and plain.children ~= true and M.gender(plain) or nil
+            if gender == 'FEMALE' then return 'resident-female', actor.name end
+            if gender == 'MALE' then return 'resident-male', actor.name end
+            return nil, actor.name
+        end
     end
     if not actor.crowd then return nil, actor.name end
     local body = normalized(actor.bodyType)

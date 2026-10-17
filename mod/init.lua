@@ -605,9 +605,12 @@ local function profileIdentity(npc, forceFacts)
     if owned and not managedKey then return nil, name, body end
     local recordOk, record = pcall(function() return tostring(npc:GetRecordID()) end)
     local crowdOk, crowd = pcall(function() return npc:IsCrowd() end)
+    -- spawned: a character another mod or a spawner created (mod/spawned-characters.lua, docs/SPAWNED_CHARACTERS.md). It is
+    -- player-made, not a quest actor, so it talks with its own roster profile like our copies (nothing of ours moves it).
+    local spawned = not owned and convaiSpawnedCharacters ~= nil and convaiSpawnedCharacters:is(npc) or nil
     -- world: the game's own character, not a copy the mod spawned. A named story character there gets no
     -- conversation profile at all (character-catalog.lua resolve); only the spawned copy talks.
-    local actor = {managedKey = managedKey, name = name, world = managedKey == nil,
+    local actor = {managedKey = managedKey, name = name, world = managedKey == nil and not spawned, spawned = spawned,
         bodyType = body, record = recordOk and record or '', crowd = crowdOk and crowd}
     if not managedKey and (forceFacts or (type(manager.archetypeConversations) == 'function' and manager.archetypeConversations())) then
         local idOk, entity = pcall(function() return tostring(npc:GetEntityID().hash) end)
@@ -617,9 +620,19 @@ local function profileIdentity(npc, forceFacts)
     return key, canonical, body, archetype
 end
 
+-- Characters another mod or a spawner created (docs/SPAWNED_CHARACTERS.md): recognised from the shared dynamic entity
+-- system, never from another mod's names. A global, so no function here gains an upvalue; optional like the modules below.
+do
+    local loaded, module = pcall(dofile, 'spawned-characters.lua')
+    convaiSpawnedCharacters = loaded and type(module) == 'table' and type(module.new) == 'function' and module.new() or nil
+end
+
 -- The one rule for characters the game placed (docs/WORLD_COMPANIONS.md, "The mod never touches game characters"):
 --   ours(npc)      a copy the mod spawned: the full feature set.
---   protected(npc) a named, story or quest character of the game: no mod system touches it at all.
+--   spawned(npc)   a character another mod or a spawner created: the talk path with its own roster profile, a speaking
+--                  face and eye contact while it talks; nothing that moves, seats, equips or targets it (that mod owns it).
+--   protected(npc) a named, story or quest character of the game, or a spawned one: no mod system touches it at all
+--                  outside a conversation the player starts (the talk path decides that one through profileIdentity).
 --   everyone else  an ordinary world NPC: only the talk path (a conversation the player starts) acts on it.
 -- Read on demand (a request, a conversation start), cached per entity, never per frame.
 local protectedCache, protectedCount = {}, 0
@@ -628,10 +641,18 @@ convaiWorldPolicy = {
         local ok, _, _, owned = pcall(companions.identity, npc)
         return ok and owned == true
     end,
+    spawned = function(npc)
+        if not npc or convaiSpawnedCharacters == nil then return false end
+        local ok, _, _, owned = pcall(companions.identity, npc)
+        if ok and owned == true then return false end
+        return convaiSpawnedCharacters:is(npc) == true
+    end,
     protected = function(npc)
         if not npc then return false end
         local ok, _, _, owned = pcall(companions.identity, npc)
         if ok and owned == true then return false end
+        -- Another mod's character is never a tactic target unless it fights V, and never renamed (mod/npc-names.lua).
+        if convaiSpawnedCharacters ~= nil and convaiSpawnedCharacters:is(npc) then return true end
         local idOk, entity = pcall(function() return tostring(npc:GetEntityID().hash) end)
         if not idOk then return false end
         local cached = protectedCache[entity]
@@ -1319,7 +1340,14 @@ local function beginFocus(player, npc)
         if quiet then pcall(quiet.focus, npc, 'focus') end
         return true
     end
-    local ok, focused = pcall(function() return player:ConvaiBeginFocus(npc) end)
+    -- Another mod's character (docs/SPAWNED_CHARACTERS.md) keeps its own AI: eye contact only, no hold, turn or chest twist,
+    -- so its follow and pose commands are never fought.
+    local policy = convaiWorldPolicy
+    local keepAI = policy ~= nil and policy.spawned(npc) == true
+    local ok, focused = pcall(function()
+        if keepAI then return player:ConvaiBeginFocus(npc, true) end
+        return player:ConvaiBeginFocus(npc)
+    end)
     if not ok or not focused then return false, tostring(focused) end
     if quiet then pcall(quiet.focus, npc, 'focus') end
     local managed = companions.owns(npc)
@@ -2762,6 +2790,7 @@ local function abandonSession(reason,preserveTransit)
     if convaiHolocall then pcall(convaiHolocall.abandon, reason) end
     focusedCrowd, releasedCrowd = nil, nil
     if convaiVanillaReactions then pcall(convaiVanillaReactions.clear) end
+    if convaiSpawnedCharacters then convaiSpawnedCharacters:reset() end
     phoneCatalogReady = false
     resetGaze()
     if convaiExpressionReset then convaiExpressionReset() end
@@ -3417,6 +3446,7 @@ registerForEvent('onShutdown', function()
     manager.reset()
     if liveWorld then endFocus(player) else focusedCrowd, releasedCrowd = nil, nil end
     if convaiVanillaReactions then pcall(convaiVanillaReactions.clear) end
+    if convaiSpawnedCharacters then convaiSpawnedCharacters:reset() end
     pcall(movementLog.flush) -- buffered Developer movement trace
     if convaiAddons and convaiAddons.live then pcall(convaiAddons.reset, 'shutdown') end
     focusMode = nil

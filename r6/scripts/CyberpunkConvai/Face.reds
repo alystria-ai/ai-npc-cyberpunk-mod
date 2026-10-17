@@ -4,7 +4,11 @@
 //    spawns with that rig and a crowd graph, with the same gated copy (PrepareScreenFace);
 //  - for ordinary world NPCs (crowd, vendors, gangs and the other archetype characters), once per NPC, at spawn
 //    (OnWorldInitialize), with a gated copy of the same graph: the speech layer sits behind one Switch that stays
-//    closed until the mod voices that NPC, so a face that is not speaking evaluates one switch more than vanilla.
+//    closed until the mod voices that NPC, so a face that is not speaking evaluates one switch more than vanilla;
+//  - for characters another mod or a spawner created (docs/SPAWNED_CHARACTERS.md: managed by the dynamic entity system,
+//    none of our tags), at spawn and again at each appearance rebuild (outfit changes rebuild face_rig): the gated crowd
+//    copy on a crowd graph, and on Judy's photo-mode graph or the paperdoll pair the companion graph our own copy of that
+//    character carries. They are player-made, so the roster and quest filters do not apply to them.
 // Story and quest characters, named roster characters (Johnny included, his record also uses man_average_sermo) and
 // every NPC whose face is not one of the four crowd graphs keep the vanilla graph. Shared game resources are never
 // patched, zero inputs leave the native face unchanged, and this service keeps entity IDs and strings only, never a
@@ -18,6 +22,8 @@ public class ConvaiFaceService extends ScriptableService {
   private let m_crowdGated: array<ResourceRef>;
   private let m_crowdPlain: array<ResourceRef>;
   private let m_crowdVanilla: array<String>;
+  // The gated copies' paths, to recognise a spawned character's face that an earlier extraction already prepared.
+  private let m_crowdGatedPaths: array<String>;
   private let m_named: array<TweakDBID>;
   private let m_verifiedRigs: array<String>;
   // 1 gated (shipping), 2 ungated, 0 off: the last two exist only to measure what the gate saves (docs/FACIAL_ANIMATION.md,
@@ -43,6 +49,7 @@ public class ConvaiFaceService extends ScriptableService {
       ArrayPush(this.m_crowdGated, ResourceRef.FromPath(ResRef.FromString(folder + this.m_crowdNames[i] + ".animgraph")));
       ArrayPush(this.m_crowdPlain, ResourceRef.FromPath(ResRef.FromString("cyberpunk_convai\\facial\\" + this.m_crowdNames[i] + ".animgraph")));
       ArrayPush(this.m_crowdVanilla, "base\\animations\\facial\\_facial_graphs\\" + this.m_crowdNames[i] + ".animgraph");
+      ArrayPush(this.m_crowdGatedPaths, folder + this.m_crowdNames[i] + ".animgraph");
       i += 1;
     };
     let records = ConvaiFaceAssets.NamedRecords();
@@ -69,32 +76,39 @@ public class ConvaiFaceService extends ScriptableService {
   private cb func OnCompanionExtract(event: ref<EntityBuilderEvent>) {
     let builder = event.GetEntityBuilder();
     let dynamic = GameInstance.GetDynamicEntitySystem();
-    if !IsDefined(builder) || !IsDefined(dynamic)
-      || !dynamic.IsTagged(builder.GetEntityID(), n"CyberpunkConvaiCompanion") { return; };
+    // Every entity the game builds reaches this callback: a game-placed one stops at the first lookup.
+    if !IsDefined(builder) || !IsDefined(dynamic) || !dynamic.IsManaged(builder.GetEntityID()) { return; };
+    let spawned = false;
+    if !dynamic.IsTagged(builder.GetEntityID(), n"CyberpunkConvaiCompanion") {
+      // A character another mod or a spawner created: an outfit change rebuilds face_rig with the vanilla graph, so its
+      // speaking face is prepared again on every rebuild (the ordinary-NPC layer, inert until the mod voices it).
+      if this.m_crowdMode == 0 || !ConvaiFaceService.SpawnedElsewhere(dynamic, builder.GetEntityID()) { return; };
+      spawned = true;
+    };
     // These wrappers expose this builder's extracted component clones, not
     // shared .ent/.app definitions. They also cover appearance-only rebuilds.
     let npc = dynamic.GetEntity(builder.GetEntityID()) as NPCPuppet;
     // A holocall's live-picture copy (mod/holocall.lua) is filmed far from V's camera, where the game stops animating a
     // face (measured: it moves at 8 and 11 m, it is frozen at 16 m and beyond). Its animated components are asked to stay
     // at full detail before they attach, as runtime changes are ignored. Only that one copy, for the call's length.
-    let holocall = dynamic.IsTagged(builder.GetEntityID(), n"CyberpunkConvaiHolocall");
+    let holocall = !spawned && dynamic.IsTagged(builder.GetEntityID(), n"CyberpunkConvaiHolocall");
     if builder.HasEntity() {
       let template = builder.GetTemplate();
       if !IsDefined(npc) { npc = template.GetEntity() as NPCPuppet; };
-      this.PrepareExtractedComponents(template.GetComponents(), npc, holocall);
+      this.PrepareExtractedComponents(template.GetComponents(), npc, holocall, spawned);
     };
     if builder.HasAppearance() {
-      this.PrepareExtractedComponents(builder.GetAppearance().GetComponents(), npc, holocall);
+      this.PrepareExtractedComponents(builder.GetAppearance().GetComponents(), npc, holocall, spawned);
     };
     let appearances = builder.GetCustomAppearances();
     let i = 0;
     while i < ArraySize(appearances) {
-      this.PrepareExtractedComponents(appearances[i].GetComponents(), npc, holocall);
+      this.PrepareExtractedComponents(appearances[i].GetComponents(), npc, holocall, spawned);
       i += 1;
     };
   }
 
-  private func PrepareExtractedComponents(components: array<ref<IComponent>>, npc: ref<NPCPuppet>, holocall: Bool) -> Void {
+  private func PrepareExtractedComponents(components: array<ref<IComponent>>, npc: ref<NPCPuppet>, holocall: Bool, spawned: Bool) -> Void {
     let i = 0;
     while i < ArraySize(components) {
       let face = components[i] as AnimatedComponent;
@@ -104,7 +118,7 @@ public class ConvaiFaceService extends ScriptableService {
         face.useLongRangeVisibility = true;
       };
       if IsDefined(face) && Equals(face.GetName(), n"face_rig") {
-        let status = this.PrepareFaceComponent(face);
+        let status = spawned ? this.PrepareSpawnedFace(face) : this.PrepareFaceComponent(face);
         if IsDefined(npc) {
           npc.ConvaiFacePrepared(StrBeginsWith(status, "prepared:"), status,
             ResRef.ToString(ResourceRef.GetPath(face.graph)));
@@ -142,7 +156,18 @@ public class ConvaiFaceService extends ScriptableService {
     let npc = event.GetEntity() as NPCPuppet;
     if !IsDefined(npc) { return; };
     let dynamic = GameInstance.GetDynamicEntitySystem();
-    if !IsDefined(dynamic) || dynamic.IsManaged(npc.GetEntityID()) { return; };
+    if !IsDefined(dynamic) { return; };
+    // Our own copies take OnCompanionInitialize. A character another mod or a spawner created (docs/SPAWNED_CHARACTERS.md)
+    // takes PrepareSpawnedFace: player-made, never a quest's actor, so the roster and quest filters below do not apply (a
+    // spawned Judy is meant to talk). Every other dynamic entity is left alone.
+    if dynamic.IsManaged(npc.GetEntityID()) {
+      if this.m_crowdMode == 0 || !ConvaiFaceService.SpawnedElsewhere(dynamic, npc.GetEntityID()) { return; };
+      let spawnedFace = npc.FindComponentByName(n"face_rig") as AnimatedComponent;
+      if !IsDefined(spawnedFace) { return; };
+      let spawnedStatus = this.PrepareSpawnedFace(spawnedFace);
+      npc.ConvaiFacePrepared(StrBeginsWith(spawnedStatus, "prepared:"), spawnedStatus, ResRef.ToString(ResourceRef.GetPath(spawnedFace.graph)));
+      return;
+    };
     let face = npc.FindComponentByName(n"face_rig") as AnimatedComponent;
     if !IsDefined(face) { return; };
     let index = this.CrowdIndex(ResRef.ToString(ResourceRef.GetPath(face.graph)));
@@ -279,12 +304,18 @@ public class ConvaiFaceService extends ScriptableService {
   // The talk-time guards, once per conversation start for an NPC that carries the layer. They cannot matter for an NPC
   // the spawn filter let through, except for a quest that took it since or a record the filter could not know: such an
   // NPC is only refused here (it keeps an inert, switched-off graph, never written), its voice still plays.
-  public func TalkRefusal(npc: ref<NPCPuppet>) -> String {
+  public func TalkRefusal(npc: ref<NPCPuppet>, opt spawned: Bool) -> String {
     // A dialogue in progress, one a quest marked or whose AI a quest or scene commands, and one whose appearance or
     // record belongs to a quest. A scene alone is no reason: vendors and community NPCs at their workspots are scene
     // actors, and the spawn filter already kept the story characters out.
     let scene = GameInstance.GetSceneSystem(npc.GetGame()).GetScriptInterface();
     if IsDefined(scene) && scene.IsEntityInDialogue(npc.GetEntityID()) { return "skipped:dialogue"; };
+    // A character another mod or a spawner created: only a quest marking it refuses it. Its AI is commanded by that mod
+    // (follow, pose), not by a quest, and a quest-named record or appearance is only the model the player chose.
+    if spawned {
+      if npc.IsQuest() { return "skipped:quest"; };
+      return "";
+    };
     if ConvaiFaceService.QuestBound(NameToString(npc.GetCurrentAppearanceName()))
       || ConvaiFaceService.QuestBound(TDBID.ToStringDEBUG(npc.GetRecordID())) { return "skipped:quest"; };
     if npc.IsQuest() || !npc.IsOnAutonomousAI() { return "skipped:driven"; };
@@ -309,6 +340,41 @@ public class ConvaiFaceService extends ScriptableService {
       i += 1;
     };
     return false;
+  }
+
+  // A spawned character's face: the gated crowd copy on one of the four crowd graphs (the ordinary-NPC layer and cost),
+  // otherwise the companion graph for that face (Judy's photo-mode graph, the paperdoll pair), which is what our own copy
+  // of that character carries. A face an earlier extraction already prepared is recognised, never rewritten.
+  private func PrepareSpawnedFace(face: ref<AnimatedComponent>) -> String {
+    if !IsDefined(face) { return "no-face-rig"; };
+    let path = ResRef.ToString(ResourceRef.GetPath(face.graph));
+    let i = 0;
+    while i < ArraySize(this.m_crowdGatedPaths) {
+      if Equals(path, this.m_crowdGatedPaths[i]) { return "prepared:" + this.m_crowdNames[i]; };
+      i += 1;
+    };
+    let index = this.CrowdIndex(path);
+    if index < 0 { return this.PrepareFaceComponent(face); };
+    let rig = this.CheckRig(face);
+    if !Equals(rig, "") { return rig; };
+    let graph = this.m_crowdGated[index];
+    if this.m_crowdMode == 2 { graph = this.m_crowdPlain[index]; };
+    if !ResourceRef.IsLoaded(graph) || ResourceRef.IsFailed(graph) { return "speech-graph-not-loaded"; };
+    face.graph = graph;
+    return "prepared:" + this.m_crowdNames[index];
+  }
+
+  // True for an entity another mod or a spawner created through the dynamic entity system: managed, and carrying none of
+  // our own tags (they all start with "CyberpunkConvai"). No other mod's tag is ever named or matched.
+  public static func SpawnedElsewhere(dynamic: ref<DynamicEntitySystem>, id: EntityID) -> Bool {
+    if !IsDefined(dynamic) || !dynamic.IsManaged(id) { return false; };
+    let tags = dynamic.GetTags(id);
+    let i = 0;
+    while i < ArraySize(tags) {
+      if StrBeginsWith(NameToString(tags[i]), "CyberpunkConvai") { return false; };
+      i += 1;
+    };
+    return true;
   }
 
   private func PrepareFaceComponent(face: ref<AnimatedComponent>) -> String {
@@ -364,6 +430,22 @@ public final func ConvaiFacePrepared(ready: Bool, status: String, opt graphPath:
 @addField(NPCPuppet)
 private let m_convaiFaceGraphPath: String;
 
+// Whether this dynamic entity is a character another mod or a spawner created (read once, then kept with the puppet).
+@addField(NPCPuppet)
+private let m_convaiSpawnedKnown: Bool;
+
+@addField(NPCPuppet)
+private let m_convaiSpawned: Bool;
+
+@addMethod(NPCPuppet)
+private final func ConvaiSpawnedElsewhere(dynamic: ref<DynamicEntitySystem>) -> Bool {
+  if !this.m_convaiSpawnedKnown {
+    this.m_convaiSpawned = ConvaiFaceService.SpawnedElsewhere(dynamic, this.GetEntityID());
+    this.m_convaiSpawnedKnown = true;
+  };
+  return this.m_convaiSpawned;
+}
+
 // The reason a conversation start refused this NPC (a dialogue, a quest, a commanded AI): the layer stays inert and
 // unwritten. Empty when it was never refused, or when the latest start cleared it.
 @addField(NPCPuppet)
@@ -381,10 +463,13 @@ public final func ConvaiFaceReady() -> Bool {
   if !this.IsAttached() || this.IsDeadNoStatPool() { return false; };
   let dynamic = GameInstance.GetDynamicEntitySystem();
   if !IsDefined(dynamic) { return false; };
+  let world = true;
   if dynamic.IsManaged(this.GetEntityID()) {
-    // A dynamic entity must be our companion copy.
-    if !dynamic.IsTagged(this.GetEntityID(), n"CyberpunkConvaiCompanion") { return false; };
-  } else {
+    // A dynamic entity must be our companion copy, or a character another mod or a spawner created (then like a world NPC).
+    world = !dynamic.IsTagged(this.GetEntityID(), n"CyberpunkConvaiCompanion");
+    if world && !this.ConvaiSpawnedElsewhere(dynamic) { return false; };
+  };
+  if world {
     if !Equals(this.m_convaiFaceRefusal, "") { return false; };
     if !this.m_convaiFacePrepared && !this.ConvaiFaceAdoptWorld() { return false; };
   };
@@ -418,7 +503,9 @@ public final func ConvaiFaceRequest() -> String {
   if !IsDefined(service) { return "service-unavailable"; };
   let dynamic = GameInstance.GetDynamicEntitySystem();
   if !this.IsAttached() || !IsDefined(dynamic) { return "unavailable"; };
-  if dynamic.IsManaged(this.GetEntityID()) { return "managed"; };
+  // Our copies are "managed"; a character another mod or a spawner created goes on like a world NPC.
+  let spawned = dynamic.IsManaged(this.GetEntityID());
+  if spawned && !this.ConvaiSpawnedElsewhere(dynamic) { return "managed"; };
   if !this.m_convaiFacePrepared && !this.ConvaiFaceAdoptWorld() {
     // Skipped at spawn (the reason is remembered), a graph that is not a crowd graph, or an NPC that spawned
     // before the scripts or while the mode was off.
@@ -427,7 +514,7 @@ public final func ConvaiFaceRequest() -> String {
     if !IsDefined(face) { return "no-face-rig"; };
     return "unprepared:" + ResRef.ToString(ResourceRef.GetPath(face.graph));
   };
-  this.m_convaiFaceRefusal = service.TalkRefusal(this);
+  this.m_convaiFaceRefusal = service.TalkRefusal(this, spawned);
   if !Equals(this.m_convaiFaceRefusal, "") { return this.m_convaiFaceRefusal; };
   return this.m_convaiFaceStatus;
 }

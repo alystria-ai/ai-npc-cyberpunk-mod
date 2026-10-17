@@ -34,6 +34,10 @@ Closed by the user on 2026-10-16 (log entry of that day): every main-mod live ch
 - **Multilingual:** lip sync stays English-trained (audio-only, visemes English-shaped).
 - **Free-key limits** (one connection at a time, one memory user) are left to Convai's plans; paid keys hold up to six connections (`convai-paid-tier`). **Natural speech note:** Convai's own cloud history keeps the raw reply with tags; only our copies are clean.
 - **Tests:** the full suite passed three times in a row on 2026-10-14 (4905 tests, 0 fail, 12 skipped); `scripts/pocket_training/test_*.py` need the training environment and `pwsh.exe` binding tests skip.
+- **Spawned characters and companion improvements** (branch `spawned-characters`, log 2026-10-17):
+  - Merge phase 1 and run its live check (`docs/SPAWNED_CHARACTERS.md`).
+  - Phase 2: group chat and reaction witnesses.
+  - The ranked companion items in `docs/COMPANION_IMPROVEMENTS_2026-10-17.md`.
 - **Add-on live checks** in `docs/ADDON_API.md` ("What the game must confirm live"), then each add-on's release on its date.
 
 ### Parked: start only when the user says so
@@ -53,6 +57,28 @@ Nothing is parked.
 - Lip sync for vendors and ordinary NPCs by an appearance hop (2026-10-10): superseded by the gated crowd face graph (live check above).
 
 ## Captain's log
+
+**2026-10-17 (branch `spawned-characters`, from main f634c42a; unit-tested and compiled, NOT merged, NOT installed, NOT seen in the game, game closed, no game input, no live Convai turn): characters spawned by another mod or a spawner can talk, with their own profile, voice, memory and lip sync; nothing of ours moves them.**
+- **Before:** a spawned Judy was refused as the protected story Judy.
+  - `profileIdentity` set `world=true` for any NPC that was not ours.
+  - `Face.reds` skipped every dynamic entity without our tag.
+- **Recognition is generic** (`mod/spawned-characters.lua`, `ConvaiFaceService.SpawnedElsewhere`): managed by the shared dynamic entity system, none of our `CyberpunkConvai*` tags, and not quest-marked. No other mod's name or tag is matched.
+- **What they get** (policy table in `docs/SPAWNED_CHARACTERS.md`):
+  - the talk path with their roster profile, by record and then by display name (a story-bound model falls back to an archetype or a resident)
+  - a speaking face at spawn and at every appearance rebuild
+  - eye contact without a hold, turn or chest twist (`ConvaiBeginFocus(npc, true)`)
+- **What they never get:** a scanner rename, a tactic target unless hostile in combat, gestures, seating, follow, vehicles, equipment or adoption.
+- **Tests:** full suite green, plus the new `bridge/spawned-characters.test.mjs` and the updated `bridge/facial-graphs.test.mjs`. `scripts/Compile-Redscript.ps1` compiles cleanly.
+- **To install:** a CET reload for the Lua, and a game restart for `Face.reds` and `Engagement.reds`.
+- **Live check owed:** the six steps in the doc.
+- The same day, `docs/COMPANION_IMPROVEMENTS_2026-10-17.md` ranked what our companion modules can learn from a spawner's follower, vehicle and combat code. Top five:
+  1. a far straggler rejoins even while V looks back (bounded wait)
+  2. the MoveTo hook filtered in redscript (FPS)
+  3. weapon draw through the switch-to-primary command
+  4. the tactic attack through the reaction component
+  5. level scaling at attach
+
+  The items are ready for Sonnet builders, and 4 and 5 need a live probe first.
 
 **2026-10-16 (night): no 0.1 update path for players.** 0.1 was never public, so the README and PLAYER_README drop the update-from-0.1 steps, and the packages no longer ship stand-ins at the old `CyberpunkConvai` paths (a clean install would have shown old-name folders until the first start). The carry-over code stays for private test installs; on a player's machine it finds nothing. Scripts and Runtime rebuilt (run 38932897825; the first attempt's Pocket cancel check timed out on the runner, the rerun passed 20/20 including the new "no old-name folders on a clean install").
 

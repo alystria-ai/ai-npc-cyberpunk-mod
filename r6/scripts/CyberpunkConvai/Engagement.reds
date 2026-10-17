@@ -76,8 +76,10 @@ public final func ConvaiEndFocus() -> Void {
     this.m_convaiFocusHold = null;
 }
 
+// keepAI: a character another mod or a spawner created (docs/SPAWNED_CHARACTERS.md). That mod owns its body, so it gets
+// eye contact only: no hold command, no turn and no chest twist that could fight its follow or pose commands.
 @addMethod(PlayerPuppet)
-public final func ConvaiBeginFocus(npc: wref<NPCPuppet>) -> Bool {
+public final func ConvaiBeginFocus(npc: wref<NPCPuppet>, opt keepAI: Bool) -> Bool {
     this.ConvaiEndFocus();
     if !IsDefined(npc) || npc.IsDead() || !npc.IsAttached()
         || this.ConvaiManagerIsOpen() {
@@ -86,7 +88,7 @@ public final func ConvaiBeginFocus(npc: wref<NPCPuppet>) -> Bool {
     this.m_convaiFocusNpc = npc;
     let workspots = GameInstance.GetWorkspotSystem(npc.GetGame());
     let inWorkspot = IsDefined(workspots) && workspots.IsActorInWorkspot(npc);
-    if (npc.IsCrowd() || npc.IsCharacterCivilian()) && !inWorkspot {
+    if !keepAI && (npc.IsCrowd() || npc.IsCharacterCivilian()) && !inWorkspot {
         let hold = new AIHoldPositionCommand();
         hold.duration = 40.0;
         this.m_convaiFocusHold = hold;
@@ -112,7 +114,7 @@ public final func ConvaiBeginFocus(npc: wref<NPCPuppet>) -> Bool {
     part.partName = n"Chest";
     // The managed actor turns with its AI command. Driving the chest toward V
     // at full weight at the same time visibly twists the upper body and feet.
-    part.weight = npc.IsPlayerCompanion() ? 0.0 : (inWorkspot ? 0.2 : 1.0);
+    part.weight = (keepAI || npc.IsPlayerCompanion()) ? 0.0 : (inWorkspot ? 0.2 : 1.0);
     part.suppress = 0.0;
     part.mode = 0;
     ArrayPush(parts, part);
