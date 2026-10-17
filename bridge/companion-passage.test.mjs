@@ -853,3 +853,50 @@ test('an engine warp during the boarding walk is logged as lift-walk-jump',()=>r
   enterCar(); play(14)
   assert(logged('lift-walk-jump'),'a warp was not noticed'..dump())
 `));
+
+// Far straggler catch-up (mod/companions.lua, catchUp and the 'far' rule). A
+// follower more than 60 m back used to wait for as long as V could see her, for
+// example on a long straight street. She now leaves after catchUp.watchedAfter
+// (6 s) in view, and the spot she lands on is still out of V's view.
+test('a far follower V keeps watching rejoins after about 6 s, behind V and out of view',()=>run(world+`
+  player.pos=Vector4.new(0,0,0); player.forward=Vector4.new(0,-1)
+  npc.pos=Vector4.new(0,-90,0)
+  -- V looks straight at her; she cannot walk (step 0), so only the rule can bring her.
+  play(8,0)
+  assert(#teleports==0,'she left before the wait in view was over'..dump())
+  assert(logged('waiting-in-view','far'),'no probe line for the wait in view'..dump())
+  play(8,0)
+  assert(#teleports>=1,'a far follower in view was stranded for 8 s past the wait'..dump())
+  local item=teleports[1]
+  local space=dofile('companion-space.lua')
+  local angle=space.angle(player.forward,space.bearing(item.from,item.spot))
+  assert(angle>60,'she appeared in front of V ('..angle..' degrees)')
+  local at=logged('relocated','far')
+  assert(at,'the rejoin was not logged as the far rule'..dump())
+  assert(at.fields.watched==true,'the in-view wait was not what released her')
+`));
+
+test('a far follower out of V\'s view still leaves after the short wait, not the in-view wait',()=>run(world+`
+  player.pos=Vector4.new(0,0,0); player.forward=Vector4.new(0,1)
+  npc.pos=Vector4.new(0,-90,0)
+  play(8,0)
+  assert(#teleports>=1,'a far follower V was not looking at stayed stranded'..dump())
+  assert(logged('relocated','far').fields.watched==false)
+`));
+
+test('a far follower in view never lands where V can see it, even with no hidden spot',()=>run(world+`
+  player.pos=Vector4.new(0,0,0); player.forward=Vector4.new(0,-1)
+  npc.pos=Vector4.new(0,-90,0)
+  -- Only ground in V's view is walkable: there is no hidden place to put her.
+  walkable=function(p) return p.y<-2 end
+  play(24,0)
+  assert(#teleports==0,'she was placed although every spot was in view of V'..dump())
+  assert(logged('relocation-failed','far'),'no probe line for the refused placement'..dump())
+`));
+
+test('a follower under 60 m back is left to walk, in view or not',()=>run(world+`
+  player.pos=Vector4.new(0,0,0); player.forward=Vector4.new(0,-1)
+  npc.pos=Vector4.new(0,-45,0)
+  play(20,0)
+  assert(#teleports==0,'a follower 45 m back was teleported by the far rule'..dump())
+`));

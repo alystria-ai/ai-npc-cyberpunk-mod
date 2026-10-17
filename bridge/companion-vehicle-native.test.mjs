@@ -552,3 +552,92 @@ test('isTaxi is true only for an attached Delamain cab record and never raises',
   assert.deepEqual(out, {player: true, taxi: true, other: false, detached: false, failing: false,
     noEntity: false, noCar: false});
 });
+
+// ---- convoy follow A/B (M.convoyMode, M.convoyProfile, M.follow) -------------------------------------
+// Developer mode only: runtime/convoy-follow-mode.txt picks the confirmed 'default' (traffic system on,
+// kinematic off, 8 m per stacked car) or 'smooth' (no traffic system, kinematic, 3 m per stacked bike).
+const convoyWorld = `
+dofile = function() return {useBudget = function() end, useSpatialBudget = function() end} end
+function NameToString(value) return value end
+Enum = {new = function(kind, value) return value end}
+function NewObject(kind) return {kind = kind, Copy = function(self) return self end} end
+local module = (function() ${source}
+end)()
+FILE, OPENS, SENT = nil, 0, {}
+io.open = function(path)
+  OPENS = OPENS + 1
+  assert(path == 'runtime/convoy-follow-mode.txt', path)
+  if FILE == nil then return nil end
+  return {read = function() return FILE end, close = function() end}
+end
+local function car(kind)
+  local ai = {SendCommand = function(_, c) SENT[#SENT + 1] = c; return true end}
+  local entity = {GetAIComponent = function() return ai end,
+    GetRecord = function() return {Type = function() return {Type = function() return kind end} end} end}
+  return {entity = entity}
+end
+function follow(kind, ordinal)
+  SENT = {}
+  local vehicle = car(kind)
+  local op = module.follow(vehicle, 'V-car', ordinal)
+  assert(op and #SENT == 1, 'the follow command was not sent')
+  return SENT[1], vehicle
+end
+M = module
+`;
+function convoy(code) {
+  const sandbox = vm();
+  try { sandbox.run(convoyWorld + code); } finally { sandbox.close(); }
+}
+
+test('the convoy follows exactly as before unless Developer mode picks the other mode', () => convoy(`
+  FILE = 'smooth'
+  -- No gate at all, and a gate that says no: the file is not even read.
+  local c = follow('Car', 2)
+  assert(OPENS == 0 and c.useTraffic == true and c.useKinematic == false and c.distanceMin == 26 and c.distanceMax == 38)
+  assert(c.trafficTryNeighborsForStart == true and c.trafficTryNeighborsForEnd == true and c.stopWhenTargetReached == false)
+  assert(c.needDriver == true and c.target == 'V-car')
+  M.developerMode = function() return false end
+  c = follow('Car', 2)
+  assert(OPENS == 0 and c.useKinematic == false)
+  -- Developer mode on but no file, an unknown word, or the word default.
+  M.developerMode = function() return true end
+  FILE = nil; c = follow('Car', 1); assert(c.useKinematic == false and c.useTraffic == true)
+  FILE = 'sideways'; c = follow('Car', 1); assert(c.useKinematic == false)
+  FILE = 'default\\r\\n'; c = follow('Bike', 1); assert(c.useKinematic == false and c.distanceMin == 18, 'a bike steps 8 m in the default mode')
+`));
+
+test('the smooth mode follows V\'s car kinematically with no traffic system, and a bike stacks 3 m', () => convoy(`
+  M.developerMode = function() return true end
+  FILE = '\\239\\187\\191Smooth\\r\\n'
+  local c, vehicle = follow('Car', 2)
+  assert(c.useTraffic == false and c.useKinematic == true and c.trafficTryNeighborsForStart == false
+    and c.trafficTryNeighborsForEnd == false, 'flags: '..tostring(c.useTraffic)..tostring(c.useKinematic)..tostring(M.convoyMode()))
+  assert(c.target == 'V-car', 'the target is still the car of V')
+  assert(c.distanceMin == 26 and c.distanceMax == 38 and vehicle.followMode == 'smooth')
+  c = follow('Bike', 2)
+  assert(c.distanceMin == 16 and c.distanceMax == 28 and c.useKinematic == true, 'a bike: 10 + 2 * 3')
+  c = follow('Bike', 1); assert(c.distanceMin == 13)
+`));
+
+test('an unreadable bike type or a failing Developer gate never stops the follow command', () => convoy(`
+  M.developerMode = function() error('manager unavailable') end
+  FILE = 'smooth'
+  local c = follow('Car', 1)
+  assert(c.useKinematic == false and c.distanceMin == 18, 'a failing gate is the default mode')
+  M.developerMode = function() return true end
+  local vehicle = car('Car')
+  vehicle.entity.GetRecord = function() error('record unavailable') end
+  assert(M.follow(vehicle, 'V-car', 1) and SENT[#SENT].distanceMin == 18 and SENT[#SENT].useKinematic == true,
+    'a bike test that raises counts as a car')
+  assert(M.follow({entity = {GetAIComponent = function() return nil end}}, 'V-car', 1) == nil,
+    'a car with no driving AI is still refused')
+`));
+
+test('the profile table is the whole difference between the modes', () => convoy(`
+  local default, smooth = M.convoyProfile('default', false), M.convoyProfile('smooth', false)
+  assert(default.useTraffic and not default.useKinematic and default.step == 8)
+  assert(not smooth.useTraffic and smooth.useKinematic and smooth.step == 8)
+  assert(M.convoyProfile('smooth', true).step == 3 and M.convoyProfile('default', true).step == 8)
+  assert(M.convoyProfile('nonsense', true).mode == 'default')
+`));

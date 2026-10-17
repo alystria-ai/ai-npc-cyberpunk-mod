@@ -287,19 +287,60 @@ function M.rebindVehicle(receipt,system)
         deleteRequested=receipt.deleteRequested==true,
         pendingCommand=receipt.command,retired=true,createdAt=0,followAttempts=0}
 end
+-- Convoy follow A/B (Developer mode only). 'default' is the confirmed convoy: the game's traffic system on,
+-- kinematic driving off, 8 m more room per car. 'smooth' is the other candidate: no traffic system, kinematic
+-- driving, and 3 m per stacked bike instead of 8. Both still follow V's car. Chosen by the one word in
+-- runtime/convoy-follow-mode.txt ('default' or 'smooth'; a missing, unreadable or unknown file is 'default')
+-- while Developer mode is on; read once per follow request, never per frame. M.developerMode is set by
+-- companions.lua.
+local CONVOY_MODE_FILE='runtime/convoy-follow-mode.txt'
+M.developerMode=nil
+function M.convoyMode()
+    local gate=M.developerMode
+    if type(gate)~='function' then return 'default' end
+    local gated,on=pcall(gate)
+    if not gated or on~=true then return 'default' end
+    local opener=io and io.open
+    local file=opener and opener(CONVOY_MODE_FILE,'rb')
+    if not file then return 'default' end
+    local text=file:read('*a')
+    file:close()
+    -- PowerShell writes a byte-order mark with Set-Content/Out-File -Encoding utf8.
+    if type(text)=='string' then text=text:gsub('^\239\187\191','') end
+    local word=type(text)=='string' and text:match('^%s*(%a+)') or nil
+    return word and word:lower()=='smooth' and 'smooth' or 'default'
+end
+-- The command settings for a mode: whether the game's traffic system and kinematic driving are used, and the
+-- extra minimum distance each stacked vehicle adds (a bike needs less than a car).
+function M.convoyProfile(mode,bike)
+    if mode=='smooth' then
+        return {mode='smooth',useTraffic=false,useKinematic=true,step=bike and 3 or 8}
+    end
+    return {mode='default',useTraffic=true,useKinematic=false,step=8}
+end
+local function isBike(entity)
+    local ok,bike=pcall(function()
+        return entity:GetRecord():Type():Type()==Enum.new('gamedataVehicleType','Bike')
+    end)
+    return ok and bike==true
+end
 function M.follow(vehicle,target,ordinal)
     local ai=vehicle.entity:GetAIComponent()
     if not ai then return nil,'This vehicle has no native driving AI.' end
+    local mode=M.convoyMode()
+    -- The bike test is one extra native read, made only for the A/B mode.
+    local profile=M.convoyProfile(mode,mode=='smooth' and isBike(vehicle.entity))
     local cmd=NewObject('AIVehicleFollowCommand')
     cmd.target=target
-    cmd.distanceMin=10+ordinal*8
+    cmd.distanceMin=10+ordinal*profile.step
     cmd.distanceMax=cmd.distanceMin+12
     cmd.stopWhenTargetReached=false
     cmd.needDriver=true
-    cmd.useTraffic=true
-    cmd.trafficTryNeighborsForStart=true
-    cmd.trafficTryNeighborsForEnd=true
-    cmd.useKinematic=false
+    cmd.useTraffic=profile.useTraffic
+    cmd.trafficTryNeighborsForStart=profile.useTraffic
+    cmd.trafficTryNeighborsForEnd=profile.useTraffic
+    cmd.useKinematic=profile.useKinematic
+    vehicle.followMode=profile.mode
     return command(ai,cmd:Copy(),vehicle.entity)
 end
 function M.brake(vehicle)

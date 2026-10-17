@@ -63,13 +63,24 @@ up. A living target gets its attitudes and threat persistence back when the
 fight ends or is cancelled.
 
 When the fight starts the companion's right hand is read. A real weapon already in
-hand is logged (`weapon already drawn (<record>)`); otherwise the game's
-`AIEquipCommand` for `AttachmentSlots.WeaponRight` is sent (`weapon draw requested`)
-and the hand is read back 1.5 s later (`weapon readback: drawn (<record>)`). An empty
-hand gets one more request and a second readback 2 s later; after that the combat AI
-decides (`hand still empty, the combat AI decides`). A refused or unavailable
-command is logged and never stops the fight. The holster module draws nothing; it
-only holsters after combat.
+hand is logged (`weapon already drawn (<record>)`); otherwise the draw goes in stages,
+each logged as `weapon draw requested (<stage>, hand empty)`:
+
+1. `switch`: the game's switch-to-primary-weapon command with unequip off.
+2. After 1 s with the hand still empty (`weapon readback: hand still empty, draw asked
+   again`): `equip`, an `AIEquipCommand` with the right-hand slot, the primary item's
+   record and a 1 s duration override. With no weapon record to name, this stage is
+   skipped.
+3. After another 1 s: `slot`, the bare `AIEquipCommand` for `AttachmentSlots.WeaponRight`,
+   read back 2 s later (`hand still empty, the combat AI decides`).
+
+Each stage cancels the previous command while it is still running. A stage the game
+refuses or does not have (`weapon draw stage <stage> refused`) moves straight on to the
+next one; all refused is `weapon draw unavailable`, and it never stops the fight. The
+native calls live in `mod/companion-equipment.lua` (`M.draw`) and are shared with the
+combat-start draw there: any companion entering combat with an empty hand (not owned by
+a tactic) gets the switch command once and, a second later, one explicit equip. The
+holster module still only holsters after combat.
 
 ## Cancellation and ownership
 

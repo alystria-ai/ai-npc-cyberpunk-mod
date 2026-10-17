@@ -18,9 +18,13 @@ local clearance = dofile('companion-clearance.lua')
 local appearance = dofile('companion-appearance.lua')
 local spawnRecords = dofile('companion-records.lua')
 local equipment = dofile('companion-equipment.lua')
+-- A combat-start weapon draw writes one 'Companion recovery weapon-draw' probe line per step (never per frame).
+equipment.report = function(kind, fields) if M.recoveryLog then pcall(M.recoveryLog, kind, fields) end end
 local vehicles = dofile('companion-vehicles.lua')
 local vehicleNative = dofile('companion-vehicle-native.lua')
 local fleet = vehicles.new(vehicleNative)
+-- The convoy follow A/B (companion-vehicle-native.lua, convoyMode) is a Developer-mode choice; init.lua sets M.developerMode.
+vehicleNative.developerMode = function() return M.developerMode and M.developerMode() == true end
 local reloadCleanupModule,reloadCleanup
 local function cleanupOwner()
     if not reloadCleanup then
@@ -1246,9 +1250,11 @@ local stranded={distance=10,after=8,retry=3,fieldOfView=60,
     -- beside her): rejoin after 6 s from 2.5 m, still only out of view.
     stanceDistance=2.5,stanceAfter=6}
 -- NPC sprint speed is capped by its animation (~5.4 m/s against V's ~8), so a
--- long sprint leaves followers behind. Like vanilla followers, a follower more
--- than 25 m back rejoins out of view, placed behind V.
-local catchUp={distance=60,after=2,cooldown=8,behind=4}
+-- long sprint leaves followers behind. A follower more than 60 m back rejoins
+-- out of view, placed behind V. If V can still see it (a long straight street),
+-- it leaves after watchedAfter seconds anyway: a copy that far is a few pixels
+-- tall when it vanishes, and the arrival spot is still checked to be hidden.
+local catchUp={distance=60,after=2,watchedAfter=6,cooldown=8,behind=4}
 -- Vanilla followers raise their individual time dilation with distance to
 -- their destination (FollowerTasks.script, AIFollowerInterpolateFollowingSpeed).
 -- These copies do not run that behavior task, so apply the same ramp here.
@@ -1521,6 +1527,8 @@ local function relocate(entry,player,rule,watched,lift)
     local outOfView=function(point)
         return space.angle(forward,space.bearing(origin,point))>stranded.fieldOfView
     end
+    -- A far straggler may leave while V watches it, but never arrives in view.
+    local hideSpot=not watched or rule=='far'
     local plans={}
     if rule=='lift-board' then
         -- Beside V inside the car; the car floor can stand off the navmesh.
@@ -1530,16 +1538,16 @@ local function relocate(entry,player,rule,watched,lift)
     else
         local behind=copyPosition(space.offset(origin,forward,lateral,-catchUp.behind))
         plans[#plans+1]={preferred=behind,accept=outOfView}
-        if watched then plans[#plans+1]={preferred=behind} end
+        if watched and not hideSpot then plans[#plans+1]={preferred=behind} end
         -- V in a lift car: search from the walkable ground nearest V.
         if passageState.inCar then
-            plans[#plans+1]={preferred=behind,accept=not watched and outOfView or nil,
+            plans[#plans+1]={preferred=behind,accept=hideSpot and outOfView or nil,
                 options={sourceRadius=separation.carSource}}
         end
         -- V's own recent footholds on this floor (a lobby, a doorway).
         for _,point in ipairs(passage.trailPoints(passageState.trail,origin,1.5,separation.trailReach,3)) do
             local foothold=Vector4.new(point.x,point.y,point.z,1)
-            plans[#plans+1]={preferred=foothold,accept=not watched and outOfView or nil,
+            plans[#plans+1]={preferred=foothold,accept=hideSpot and outOfView or nil,
                 options={origin=foothold},trail=true}
         end
     end
@@ -2087,7 +2095,7 @@ local function recoverDistant(entry,player)
         rule=liftArrival and 'lift-arrival' or 'floor-change'
         -- Never in view after a ride; only a long wait on another floor may.
         watched=verticalFor>=(liftArrival and stranded.watchedAfter or separation.floorWatchedAfter)
-    elseif farReady then rule,watched='far',false
+    elseif farReady then rule,watched='far',runtimeClock-entry.farSince>=catchUp.watchedAfter
     elseif arrivalReady then rule,watched='fast-travel',runtimeClock-entry.arrivalStart>=separation.arrivalWatchedAfter
     elseif strandedReady then
         rule,watched=unreachable and 'no-route' or stanceStuck and 'stance' or 'blocked',watchedTooLong
@@ -2112,6 +2120,8 @@ local function recoverDistant(entry,player)
         -- companion outside, and the arrival rule brings them up instead.
         if rule=='lift-board' then entry.boardedVisit=s.insideSince end
         note(entry,'relocation-failed',{rule=rule,reason=reason})
+        -- No hidden spot behind V right now: look again in a few seconds, not twice a second.
+        if rule=='far' then entry.strandedRetryAt=runtimeClock+stranded.retry end
     end
     return moved==true
 end
@@ -2371,6 +2381,8 @@ function M.update(player,delta,focusEntity)
             -- Holstering needs her own feet still, not V's: a requested stand-still
             -- counts although V is walking on.
             local holsterIdle=holsterStop and stopped and entry.speed<0.18 and not bodyHolds
+            -- The tactic draws for itself at the fight start; the equipment owner draws for any other combat.
+            if entry.equipment then entry.equipment.noDraw,entry.equipment.label=tactic and true or nil,entry.name end
             equipment.update(entry.equipment,player,step,(idle and not bodyHolds) or holsterIdle,function() return actuator.suspendHold(entry.motor) end)
             if not equipment.holdsMovement(entry.equipment) and not bodyHolds then
                 actuator.resumeHold(entry.motor)

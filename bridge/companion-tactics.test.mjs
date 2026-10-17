@@ -7,6 +7,7 @@ import {parseTacticOffer} from './companion-actions.mjs';
 
 const tacticsSource = readFileSync(new URL('../mod/companion-tactics.lua', import.meta.url), 'utf8');
 const markingSource = readFileSync(new URL('../mod/companion-marking.lua', import.meta.url), 'utf8');
+const equipmentSource = readFileSync(new URL('../mod/companion-equipment.lua', import.meta.url), 'utf8');
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 
 function run(code, globals = {}) {
@@ -46,7 +47,7 @@ companion=npc('44ULL',1,0,'Judy')
 target=npc('77ULL',20,0,'Tyger Claw'); target.hostile=true
 effects,logs={},{}
 local function effect(...) effects[#effects+1]=table.concat({...},' ') end
-drawError=nil
+drawError,noPrimary,drawErrorModes=nil,false,nil
 native={key=function(o) return o.id end,position=function(o) return {x=o.pos.x,y=o.pos.y,z=o.pos.z} end,
   alive=function(o) return o.alive end,inCombat=function(o) return o.combat end,
   playerInCombat=function(p) return p.combat end,playerMounted=function(p) return p.mounted end,
@@ -54,7 +55,10 @@ native={key=function(o) return o.id end,position=function(o) return {x=o.pos.x,y
   startFight=function(c,t) effect('fight-start',c.id,t.id); return {companionToTarget='AIA_Friendly',targetToCompanion='AIA_Hostile'} end,
   stopFight=function(r,c,t) effect('fight-stop',c.id,t.id,r.targetToCompanion) end,
   weapon=function(c) return c.hand,c.hand and 'Items.Preset_Lexington' or nil end,
-  drawWeapon=function(c) if drawError then error(drawError) end effect('draw',c.id); return {command=effect} end,
+  drawWeapon=function(c,mode,item)
+    if drawError and (not drawErrorModes or drawErrorModes[mode]) then error(drawError) end
+    effect('draw',c.id,mode,item); return {command=effect} end,
+  primaryItem=function(c) if not noPrimary then return 'Items.Preset_Malorian' end end,
   cancelDraw=function(h,c) effect('draw-cancel',c.id) end}
 ready=true
 env={player=function() return player end,
@@ -112,22 +116,48 @@ test('a fight on a defeated target needs no attitude restore', () => run(world +
 
 test('the weapon is drawn when the fight starts and read back; an empty hand gets one more request', () => run(world + `
   assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
-  assert(effects[2]=='draw 44ULL' and logged('weapon draw requested'),'draw asked at the start')
-  for _=1,10 do frame() end
+  assert(effects[2]=='draw 44ULL switch' and logged('weapon draw requested %(switch, hand empty%)'),'the switch-to-primary command comes first')
+  for _=1,8 do frame() end
   assert(not logged('readback'),'no readback before the command had time to run')
   companion.hand=true
-  for _=1,7 do frame() end
+  for _=1,4 do frame() end
   assert(logged('weapon readback: drawn %(Items.Preset_Lexington%)') and T.snapshot().weapon=='drawn')
   local before=#logs; for _=1,40 do frame() end; assert(#logs==before,'nothing more is logged once it is drawn')
 `));
 
-test('a hand that stays empty is asked twice, read back twice, then left to the combat AI', () => run(world + `
+test('a hand that stays empty goes switch, explicit equip with the primary item, bare slot equip, then is left to the combat AI', () => run(world + `
   assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
   for _=1,60 do frame() end
-  local draws=0; for _,e in ipairs(effects) do if e=='draw 44ULL' then draws=draws+1 end end
-  assert(draws==2,'one request and one more, got '..draws)
+  local draws={}
+  for _,e in ipairs(effects) do if e:find('^draw 44ULL') then draws[#draws+1]=e end end
+  assert(#draws==3,'three requests, got '..#draws)
+  assert(draws[1]=='draw 44ULL switch' and draws[2]=='draw 44ULL equip Items.Preset_Malorian' and draws[3]=='draw 44ULL slot',
+    table.concat(draws,' | '))
   assert(logged('hand still empty, draw asked again') and logged('hand still empty, the combat AI decides'))
   assert(T.snapshot().weapon=='empty' and T.owns(3),'the fight itself goes on')
+  -- Each stage replaces the one before: the old command is cancelled first.
+  local cancels=0; for _,e in ipairs(effects) do if e=='draw-cancel 44ULL' then cancels=cancels+1 end end
+  assert(cancels>=2,'the earlier commands were not cancelled: '..cancels)
+`));
+
+test('the explicit equip is read back after about a second and skipped when no primary item can be named', () => run(world + `
+  noPrimary=true
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  for _=1,14 do frame() end
+  local draws={}
+  for _,e in ipairs(effects) do if e:find('^draw 44ULL') then draws[#draws+1]=e end end
+  assert(draws[1]=='draw 44ULL switch' and draws[2]=='draw 44ULL slot' and #draws==2,table.concat(draws,' | '))
+  assert(logged('weapon draw requested %(slot, hand empty%)'))
+`));
+
+test('a missing switch command falls straight through to the explicit equip', () => run(world + `
+  drawError='AISwitchToPrimaryWeaponCommand is unavailable'; drawErrorModes={switch=true}
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  assert(effects[2]=='draw 44ULL equip Items.Preset_Malorian',tostring(effects[2]))
+  assert(logged('stage switch refused') and logged('weapon draw requested %(equip, hand empty%)'))
+  companion.hand=true
+  for _=1,12 do frame() end
+  assert(T.snapshot().weapon=='drawn' and T.owns(3))
 `));
 
 test('a weapon already in hand is not asked for; an unavailable draw never stops the fight', () => {
@@ -135,7 +165,7 @@ test('a weapon already in hand is not asked for; an unavailable draw never stops
   companion.hand=true
   assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
   assert(logged('weapon already drawn %(Items.Preset_Lexington%)'))
-  for _,e in ipairs(effects) do assert(e~='draw 44ULL','no draw request over a drawn weapon') end
+  for _,e in ipairs(effects) do assert(not e:find('^draw 44ULL'),'no draw request over a drawn weapon') end
   `);
   run(world + `
   drawError='no such command'
@@ -414,22 +444,44 @@ test('the native body type is the plain name, not the CName hash form', () => {
   `);
 });
 
-test('the native weapon draw uses the right-hand slot and is cancelled only while it is running', () => run(`
+test('the native weapon draw sends the switch-to-primary command, an explicit equip or the slot equip, and is cancelled only while running', () => run(`
+  dofile=function(path) assert(path=='companion-equipment.lua'); return (function() ${equipmentSource} end)() end
   local Tactics=(function() ${tacticsSource} end)()
   local N=Tactics.nativeAdapter()
-  local sent,stateText,stopped={},'AICommandState : Executing (2)',{}
-  NewObject=function(class) assert(class=='AIEquipCommand'); return {} end
+  local sent,stateText,stopped,classes={},'AICommandState : Executing (2)',{},{}
+  NewObject=function(class) classes[#classes+1]=class; return {} end
   TweakDBID={new=function(name) return name end}
   local ai={SendCommand=function(_,c) sent[#sent+1]=c; return true end,GetCommandState=function() return stateText end,
     StopExecutingCommand=function() stopped[#stopped+1]='stop' end,CancelCommand=function() stopped[#stopped+1]='cancel' end}
   local npc={GetAIControllerComponent=function() return ai end}
+  -- Default: the game's switch-to-primary command with unequip off.
   local handle=N.drawWeapon(npc)
-  assert(#sent==1 and sent[1].slotId=='AttachmentSlots.WeaponRight' and sent[1].failIfItemNotFound==false)
+  assert(classes[1]=='AISwitchToPrimaryWeaponCommand' and sent[1].unEquip==false and sent[1].slotId==nil)
+  -- Explicit equip: the item, the right-hand slot and a 1 s duration.
+  N.drawWeapon(npc,'equip','Items.Preset_Malorian')
+  assert(classes[2]=='AIEquipCommand' and sent[2].itemId=='Items.Preset_Malorian' and sent[2].durationOverride==1
+    and sent[2].slotId=='AttachmentSlots.WeaponRight')
+  assert(not pcall(N.drawWeapon,npc,'equip'),'an equip with no item raises')
+  -- Last resort: the bare right-hand slot equip.
+  N.drawWeapon(npc,'slot')
+  assert(sent[3].slotId=='AttachmentSlots.WeaponRight' and sent[3].itemId==nil and sent[3].failIfItemNotFound==false)
+  sent={}
   N.cancelDraw(handle,npc); assert(stopped[1]=='stop')
   stateText='AICommandState : Enqueued (0)'; N.cancelDraw(handle,npc); assert(stopped[2]=='cancel')
   stateText='AICommandState : Success (3)'; N.cancelDraw(handle,npc); assert(#stopped==2,'a finished command is left alone')
   ai.SendCommand=function() return false end
   assert(not pcall(N.drawWeapon,npc),'a refused command raises')
+  NewObject=function() return nil end
+  assert(not pcall(N.drawWeapon,npc),'a class the game does not have raises')
+  -- primary item: the first real weapon the copy carries
+  WeaponObject={IsFists=function(id) return id=='fists' end}
+  ItemID={GetTDBID=function(id) return 'Items.'..id end}
+  RPGManager={IsItemWeapon=function(id) return id~='shard' end}
+  local function data(id) return {GetID=function() return id end} end
+  Game={GetTransactionSystem=function() return {GetItemList=function() return true,{data('shard'),data('fists'),data('Malorian'),data('Lexington')} end} end}
+  assert(N.primaryItem(npc)=='Items.Malorian')
+  Game={GetTransactionSystem=function() return {GetItemList=function() return true,{data('shard')} end} end}
+  assert(N.primaryItem(npc)==nil,'no weapon carried: nothing to name')
   -- readback
   ScriptedPuppet={GetWeaponRight=function(n) return n.weapon end}
   WeaponObject={IsFists=function(id) return id=='fists' end}

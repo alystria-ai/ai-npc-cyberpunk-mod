@@ -13,9 +13,9 @@ local function safe(fn,...)
     if not ok then return nil,tostring(a) end
     return a,b,c
 end
-local function emit(s,event,person)
+local function emit(s,event,person,mode)
     if #s.events>=32 then table.remove(s.events,1) end
-    s.events[#s.events+1]={at=s.clock,event=event,serial=person and person.entry.serial,generation=s.generation}
+    s.events[#s.events+1]={at=s.clock,event=event,serial=person and person.entry.serial,generation=s.generation,mode=mode}
 end
 function M.new(api,chauffeurApi)
     return {api=api or dofile('companion-vehicle-native.lua'),clock=0,phase='on-foot',
@@ -437,7 +437,7 @@ local function follow(s,car,player,budget)
     local command,err=safe(s.api.follow,car,target,car.ordinal)
     car.command=command; car.error=err
     if not command then car.retryAt=s.clock+3 end
-    emit(s,'convoy-requested',driver)
+    emit(s,'convoy-requested',driver,car.followMode)
     return budget-1
 end
 local function cleanup(s)
