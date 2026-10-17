@@ -182,3 +182,30 @@ test('spawned characters reach the connections beside the nearby slots, keep a v
   const plain = new NearbyWarm({connections: {setNearby: async () => {}}, now: () => time, prepareVoice: async () => {}});
   await plain.apply(document({spawned: ['judy']})); await plain.release();
 });
+
+// A connections object with setAmbient gets the partner, spawned and nearby lists in ONE call (a profile that changes role keeps its
+// page); one without it gets the three setters in turn, as before.
+test('the three lists reach the connections as one plan change when they can take it, and one by one when they cannot', async () => {
+  const calls = [];
+  const ambient = {setAmbient: async value => { calls.push(['ambient', value]); }, setNearby: async () => { calls.push(['nearby']); },
+    setPartners: async () => { calls.push(['partners']); }, setSpawned: async () => { calls.push(['spawned']); }};
+  const warm = new NearbyWarm({connections: ambient, now: () => 5000, prepareVoice: async () => {}, routeFor: profile => profile === 'resident-male' ? {characterId: 'r', scope: 's'} : null});
+  await warm.apply(JSON.stringify({updated: 5000, profiles: ['kerry', 'resident-male'], partners: ['judy'], spawned: ['panam', 'judy'], entities: {'resident-male': '12ULL'}}));
+  assert.deepEqual(calls.map(call => call[0]), ['ambient'], 'one call, no separate setters');
+  assert.deepEqual(calls[0][1].partners, ['judy']); assert.deepEqual(calls[0][1].spawned, ['panam'], 'a partner is not also spawned');
+  assert.deepEqual(calls[0][1].nearby, ['kerry', 'resident-male']); assert.deepEqual(calls[0][1].routes, {'resident-male': {characterId: 'r', scope: 's'}});
+  await warm.release();
+  assert.deepEqual(calls.map(call => call[0]), ['ambient', 'ambient']); assert.deepEqual(calls[1][1], {});
+  // A failure is reported, not thrown.
+  const errors = [];
+  const failing = new NearbyWarm({connections: {setAmbient: async () => { throw Error('retain failed'); }}, now: () => 5000,
+    onError: error => errors.push(error.message), prepareVoice: async () => {}});
+  await failing.apply(JSON.stringify({updated: 5000, profiles: [], spawned: ['judy']}));
+  assert.deepEqual(errors, ['retain failed']);
+  // Without setAmbient: the three setters in turn.
+  const order = [];
+  const plain = new NearbyWarm({connections: {setNearby: async () => { order.push('nearby'); }, setPartners: async () => { order.push('partners'); },
+    setSpawned: async () => { order.push('spawned'); }}, now: () => 5000, prepareVoice: async () => {}});
+  await plain.apply(JSON.stringify({updated: 5000, profiles: ['kerry'], partners: [], spawned: []}));
+  assert.deepEqual(order, ['partners', 'spawned', 'nearby']);
+});

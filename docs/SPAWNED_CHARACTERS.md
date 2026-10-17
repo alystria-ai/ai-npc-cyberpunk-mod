@@ -156,6 +156,7 @@ Without Codeware's dynamic entity system (`IsReady` false) none of this runs. Th
 
 **Group chat.**
 - A spawned character joins with any enabled profile. **Fixed 2026-10-17 (branch `group-count`):** the first build took roster characters only and found them by one scan; a player facing one of our companions, with two spawned characters nearby, got "Group chat needs two characters nearby" (facing a spawned one worked, because the faced character is always counted and our companion made two). Now the candidates are the scan's answer plus the spawned characters among the native candidates the same key press already gathered for the talk target (`convaiTalkNative`), so a character the scan misses still counts, and a generic one counts too. A generic person (a resident, an archetype or a generated passer-by name: `resident-*`, `npc-*`, anything in the archetype index) is flagged `generic` and carries its archetype facts, its district and its Night City name like a generic primary. Two generic people sharing a profile are two people: `choose` keeps both, and the round's audience (and the prewarm hint) lists the shared profile once, because the bridge reads it as a set. A roster profile is still one voice per round. The key press logs `Group candidates: companions=N spawned=M (found, generic, noProfile, unsupported, disabled)`, so a missing character can be told from a filtered one.
+- **Fixed again 2026-10-17 (branch `group-fix2`):** the scan and the native talk-target candidates both report only what the camera sees, so a spawned character beside V but outside the aim cone (or behind V) was still dropped. See "Counting every spawned character" below.
 - Order: the addressed character, then V's companions (nearest first), then spawned characters (nearest first). The round holds three.
 - `choose` in `mod/group-chat.lua` skips a body already chosen (by entity) and a profile already chosen. The profile rule is not new: the bridge treats a round's audience as a set of profiles (`parseGroup` dedupes it, `bridge/group-prefetch.mjs` and `bridge/conversation-knowledge.mjs` refuse a repeat), and heard lines are matched to listeners by profile, so two bodies of one profile would answer as one character hearing herself. Because spawned candidates come after the companions, our own Judy is kept and a spawned Judy beside her is skipped, unless the spawned Judy was the addressed one. The earlier note said "by entity, not by profile key"; the entity half is built (rows, role, leave guard), the profile half stays for the reason above.
 - The round's frozen rows carry `spawned`. Everything after that is the existing round: face request and keep-AI eye contact per speaker (phase 1), the live check each tick that the body still resolves to its frozen profile, and one reply at a time. Spawned members get no gesture role (the gesture controller works from party entries only).
@@ -240,6 +241,61 @@ Live result (2026-10-17, the user): the first talk to a spawned character waited
 6. FPS: no new per-frame row in the perf probe; the scan row count is unchanged.
 
 Not changed: a private talk to any other character on a player's key (a game NPC that is not spawned, a nearby one) still opens its connection when V talks; that is the `deferWarm` decision about interactions and memory-user slots.
+
+## Counting every spawned character, and keeping their connection (branch `group-fix2`, from `main` cf97b9aa)
+
+Written 2026-10-17. Unit-tested; NOT merged, NOT installed, not seen in the game. Two live bugs from one test (`probe.log`, session from 09:08Z): V had our companion Alex plus a spawned Jackie (about 5 m) and a spawned Judy (about 1.7 m).
+
+**Bug 1: only two answered the group key.** Every key press logged `Group candidates: companions=1 spawned=1 (found=1 ...)`, so one spawned character was never a candidate. Cause: every query we have, the targeting search the group key used (`GetTargetParts`, tested set `Complete`) and the native talk-target candidates of the same key press, reports only what the camera sees. The companion-marking notes say the same ("it evidently does not return every NPC in range"), and the tactic candidate list of the same session never listed the spawned Judy either. A spawned character behind V or outside the aim cone is invisible to all of them while V faces Alex. The earlier fix (`group-count`) added the native candidates, which only helps for a character inside the cone.
+
+**Fix.** Spawned characters are remembered by entity ID (never a handle, at most 12, the one seen longest ago leaves first; `service:remember` in `mod/spawned-characters.lua`), and resolved directly at the key press with `Game.FindEntityByID` (`service:recall`), so a remembered character counts wherever V faces. What feeds the memory, none of it new per-frame work:
+
+| Source | When | Cost |
+|---|---|---|
+| The once-a-second auto-connect scan (`scanNearbyCharacters`, any spawned character it reports, roster or generic) | every scan, while "Auto-connect nearby characters" is on | the entity ID of a character the scan already classified (the classification is cached by `profileIdentity`) |
+| Every group key press (`convaiSpawnedPeople.nearby`): what its scan and its native candidates found, with the profile key | key press | nothing extra |
+| Every talk key press, private or group (`convaiSpawnedPeople.noteNative`): the spawned characters among the native candidates | key press | cached classification, a handful of candidates |
+| A spawned character V talks to (`selectConversation`) | key press | one table write |
+
+The range is the one group chat uses for V's own companions: 8 m (`companions.conversationCandidates(player, 8)`, now `convaiSpawnedRange`). At the key press `service:nearby(player, 8, native)` returns the characters from three sources, in this order of trust: `scan` (one targeting query, reused 3 s), `native` (the key press's own candidates) and `remembered`. A remembered ID is dropped, with the reason, when it no longer resolves (`gone`, forgotten for good), is dead (forgotten), no longer reads as spawned (forgotten), is not attached right now (`detached`, kept: it may stream back in) or is beyond 8 m (`out-of-range`, kept: it may come back).
+
+**The log line** now says how each character was found and why any was left out, with distances:
+
+```
+Group candidates: companions=1 spawned=2 (found=2 generic=0 noProfile=0 unsupported=0 disabled=0) radius=8m; counted: judy-alvarez d=1.7 via remembered, panam-palmer d=5.0 via scan; left out: none
+```
+
+`via` is `scan`, `native` or `remembered`. A left-out entry reads `<profile> d=<metres> <reason>` with the reason `out-of-range`, `gone`, `dead`, `not-spawned`, `detached`, `noProfile`, `unsupported` or `disabled` (at most six of each, then "+N more").
+
+**Limit.** A spawned character that no query has ever reported (spawned behind V and never in view since, with the auto-connect setting off and no key press that saw it) cannot be found: no list of ours holds another mod's characters, and the engine has no query that does not depend on the camera. The first key press or scan that sees it fixes this. With the default settings the scan sees it as soon as it is in view of V within 5 m, and V has to look at a character to talk to it anyway. The log line shows `spawned=0 ... counted: none` for this case, and `left out` for every other.
+
+**Bug 2: her connection went away.** `probe.log`: Judy was warmed as `spawned` at 09:10:38, became the partner when V talked to her (`Auto-connect partner judy-alvarez`, 09:10:42), then `Auto-connect partner released judy-alvarez (no exchange)` at 09:13:54 while she still stood beside V. The bridge closed her connection; at 09:14:14 she was warmed again by gaze and the F6 at 09:14:36 showed "Preparing connection". Causes, confirmed in the code:
+
+1. **The partner role never returned to the spawned lane.** The role replaces a lane place (`updatePartners` removes the lane entry), and the release put her under the 20 s cooldown. Re-admission needed the scan to report her again, which it does not while she is outside the camera's view (the same limit as Bug 1). It re-warmed only when V looked at her.
+2. **The lane lost her after 40 s without a sighting as well.** Jackie was released `(idle)` at 09:08:50 and Judy at 09:09:06, about 40 s after V turned to Alex, with both still in the world: the lane holds a character only while the scan reports it.
+3. **The 10-minute age limit** would have closed a spawned character's connection while it still stood beside V, then blocked it for 3 minutes.
+4. **The bridge dropped the page across a role change.** `NearbyWarm.apply` set the three lists one after another (`setPartners`, `setSpawned`, `setNearby`), each followed by a plan reconcile. A profile that moved from one list to another was in no list after the first call, so `host.retain` closed its page, and the next call opened it again.
+
+**"No exchange" is correct as designed.** The partner role ends 180 s (`partnerIdle`) after the last turn with that character. Judy's last turn was the round at 09:10:47 to 09:10:54 (she was the addressed character), and the release came 180 s later. What was missing is that a group round only counted for the character V addressed (`context.talking` is the primary's profile): a partner who answered as another speaker had talked and did not count. That is now counted.
+
+**Fix.**
+- `mod/auto-connect.lua`: a partner that is a spawned roster character (it came from the lane, or the adapter's `spawned(partner)` says so, which also reads the remembered IDs) goes **straight back to the spawned lane** when the partner role ends for `no exchange`, `another partner` or `replaced`, as long as it is within 8 m of V (`locate`) and the lane has a place (cap 3). It is listed under `spawned` in the same write that stops listing it under `partners`, with no cooldown and no release log (`Auto-connect partner judy-alvarez back to the spawned lane (no exchange)`). Parting ways, a scene, a party join and a full lane release as before. A spawned character in the lane has no age limit while it is wanted. Every character of the running group round counts as an exchange for an existing partner (`roundKeys`, read only while a partner exists).
+- `mod/init.lua`: the scan adds the remembered spawned roster characters within 8 m that it did not report (one `FindEntityByID` each, in the once-a-second scan only), so the lane keeps wanting a character that stands near V wherever V looks. It passes `spawned` and `roundKeys` to auto-connect.
+- `bridge/party-connections.mjs` `setAmbient` and `bridge/nearby-warm.mjs`: the partner, spawned and nearby lists are applied as **one** plan change, so a profile that changes role keeps its open page (the entry keeps its identity; only its role changes). A connections object without `setAmbient` still gets the three setters in turn. The plan rules are unchanged: the shared key allows 3 spawned, a player's own paid key `min(3, limit - 1)`, a free own key none (so on a free own key the partner's connection ends with the partner role, as before).
+
+**Cost.** No per-frame work. The scan gains one table insert per spawned character it reports and, while any spawned character is remembered, one `FindEntityByID` plus an attachment and a position read per remembered roster character (at most 12, typically 1 to 3), once a second. The key press gains the same for up to 12 and one cached classification per native candidate.
+
+**Files.** `mod/spawned-characters.lua` (`remember`, `recall`, sources and `report` in `nearby`), `mod/init.lua` (`convaiSpawnedRange`, `convaiRoundKeys`, `nearby`, `describe`, `noteNative`, the scan, the auto-connect options), `mod/auto-connect.lua`, `bridge/party-connections.mjs`, `bridge/nearby-warm.mjs`. Tests: `bridge/spawned-characters.test.mjs`, `bridge/auto-connect.test.mjs`, `bridge/party-connections.test.mjs`, `bridge/nearby-warm.test.mjs`. Needs a CET reload for the Lua and a bridge restart for the bridge files; no redscript.
+
+**Live check owed** (the Lua install and a bridge restart, "Auto-connect nearby characters" on, a spawner):
+1. Spawn Jackie (about 5 m) and Judy (about 1.7 m) with our companion Alex beside V. Look at each for a second, then face Alex and press the group key (F7), text or voice. Three people answer. `probe.log` reads `Group candidates: companions=1 spawned=2 ... counted: judy-alvarez d=1.x via remembered, jackie-welles d=5.x via scan` (or `native`).
+2. Face a spawned character and press F7: three people, the faced one first.
+3. Walk one spawned character beyond 8 m and press F7 facing Alex: two people, and the line says `left out: <profile> d=<metres> out-of-range`. Despawn one: `gone`.
+4. Turn so Judy is behind V (not on screen) and press F7 again: still three.
+5. Talk to Judy (F6), then leave her standing beside V for four minutes without talking to her. `probe.log` shows `Auto-connect partner judy-alvarez back to the spawned lane (no exchange)`, never `partner released judy-alvarez`. `runtime/party-connection-state.json` shows her role change from `partner` to `spawned` with state `ready` the whole time, and F6 after that has no "Preparing connection" notice.
+6. Face away from Jackie and Judy for two minutes: neither shows `Auto-connect released ... (idle)`. Walk them beyond 8 m: released about 40 s later.
+7. Group round addressed to Alex with Judy as the second speaker, then wait: her partner role is not released 180 s after V's last line to her but 180 s after the round.
+8. FPS and latency: no new per-frame row in the perf probe, the group key press time unchanged.
 
 ## Ready for builders (Sonnet, from this document)
 
