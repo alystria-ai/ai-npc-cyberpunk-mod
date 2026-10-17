@@ -47,6 +47,8 @@ Built 2026-10-17 on branch `companion-136` (headless tests only, nothing seen in
 
 ### 2. Filter the MoveTo hook in redscript (FPS, medium risk)
 
+**Built 2026-10-17** on branch `movement-hook-filter` (not merged, not installed, not seen in the game): `r6/scripts/CyberpunkConvai/Locomotion.reds`, the marking in `companion-actuator.lua` `walk`, the filtered observer with an engine-hook fallback and kill switch in `mod/companion-locomotion.lua`, `bridge/companion-locomotion-filter.test.mjs`, `scripts/Measure-LocomotionHook.mjs`. The in-game perf-probe comparison is still owed (`TODO.md`).
+
 **Problem.**
 - `mod/companion-locomotion.lua:43` observes `AIMoveToCommandHandler.UpdateCommand`. That runs every AI tick for every NPC in the world that is walking on a MoveTo command.
 - The Lua handler returns early on `M.active`, but `docs/PERFORMANCE_NATIVE_PLAN.md` (table row 10, line 171) records that each call still pays the CET trampoline. With a party it also does a `GetOwner` and an ownership loop for each walking NPC.

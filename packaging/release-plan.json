@@ -489,6 +489,10 @@
           "target": "r6/scripts/CyberpunkConvai/NpcNames.reds"
         },
         {
+          "source": "r6/scripts/CyberpunkConvai/Locomotion.reds",
+          "target": "r6/scripts/CyberpunkConvai/Locomotion.reds"
+        },
+        {
           "source": "r6/scripts/CyberpunkConvai/PhoneChat.reds",
           "target": "r6/scripts/CyberpunkConvai/PhoneChat.reds"
         },
