@@ -40,6 +40,9 @@ Closed by the user on 2026-10-16 (log entry of that day): every main-mod live ch
   - Merge phase 1 and run its live check (`docs/SPAWNED_CHARACTERS.md`).
   - Phase 2: group chat and reaction witnesses.
   - The ranked companion items in `docs/COMPANION_IMPROVEMENTS_2026-10-17.md`. Items 1, 3 and 6 are built on branch `companion-136` (log 2026-10-17, second entry), live checks owed. Items 2, 4, 5 and 7 are open.
+
+  - Phase 2 (group chat, and battle and loot witnesses) is built on branch `spawned-phase2` (from `spawned-characters`); its live checks are in the doc. Merge after phase 1.
+  - The ranked companion items in `docs/COMPANION_IMPROVEMENTS_2026-10-17.md`.
 - **Add-on live checks** in `docs/ADDON_API.md` ("What the game must confirm live"), then each add-on's release on its date.
 
 ### Parked: start only when the user says so
@@ -91,6 +94,15 @@ Nothing is parked.
 - **Measured (unit level, headless: `node scripts/Measure-LocomotionHook.mjs`, production Lua in fengari against a model of the hook, 600 to 1500 ticks):** calls into Lua per 1500 ticks with 0 companions and 50 or 200 ordinary walkers, before then after: 75,000 then 0 and 300,000 then 0 (also 0 `GetOwner` calls). With 3 companions and 200 walkers: 304,503 then 4,503 calls (only the companions' own 3 x 1,501), same for `GetOwner`. Lua time per call for an ordinary walker in fengari, before: roughly 12 to 15 microseconds with no companion out and 20 to 90 with three (the runs are noisy), after: not entered. Per tick with 3 companions and 200 walkers: 4 to 16 ms before, under 1 ms after (all of it the companions' own 3 calls and the model's wrapper). These are fengari-relative; the real CET trampoline per call is not in them and is the larger saving in the game. Stale facing cleared for 3 of 3 companions before and after.
 - **Tests:** `bridge/companion-locomotion-filter.test.mjs` (7: mode choice, every fallback, mark and its failure fallback, ordinary NPCs never enter Lua, marked walk reported and facing cleared, teardown gate, the redscript wrapper text and the packaging lists); the existing `companion-behavior` locomotion tests unchanged.
 - **Owed:** the live check in "Live checks owed" (needs the Scripts install, game restart, Developer perf probe).
+
+**2026-10-17 (branch `spawned-phase2`, from `spawned-characters` adf4ad43; unit-tested, NOT merged, NOT installed, NOT seen in the game, game closed, no game input, no live Convai turn): spawned characters join group chat and can be witnesses in battle and loot reactions.**
+- **Group chat:** a roster character that another mod or a spawner created joins after V's companions (nearest first; residents and archetypes do not). One targeting query on the group key press, skipped once three companions fill the round. They are never in `companions` state. One body is never two speakers, and one profile is one voice per round (our own copy wins over a spawned copy of the same profile).
+- **Turn context:** the round's spawned members appear in "Also with V", with no activity. A spawned first speaker makes no leave offer about our party.
+- **Reactions:** a friendly spawned character with an enabled roster profile, near V at the start of a fight or at a pickup (one cached scan, then entity IDs), may speak the battle or loot line and is named by profile in the battle context. Hostile ones never.
+- **Cost:** no per-frame work (`onUpdate` untouched). The observer sample gains one boolean compare; nothing is read while nobody is remembered.
+- **Files:** `mod/spawned-characters.lua`, `mod/group-chat.lua`, `mod/init.lua`, `docs/SPAWNED_CHARACTERS.md`, `bridge/group-chat.test.mjs`, `bridge/spawned-characters.test.mjs`. No redscript change.
+- **Tests:** the full suite (`node scripts/run-tests.mjs`, run from PowerShell) passes: 310 test files, 0 failures. New tests in `bridge/group-chat.test.mjs` (choose with spawned rows, the `onSpawned` hook, a full round with a spawned speaker) and `bridge/spawned-characters.test.mjs` (nearby, watch, the adapter table, reaction people with the real battle and loot policies, party row, leave guard, wiring); one pinned count updated in `bridge/facial-graphs.test.mjs` (five `ConvaiFaceRequest` sites). From Git Bash `bridge/development-tools.test.mjs` fails on a `tasklist` argument rewrite (also on main); it passes from PowerShell.
+- **Live checks owed:** the seven phase 2 steps in the doc (group with a companion, our Judy beside a spawned Judy, spawned-only group, battle and loot witness, the scan behind V, no leave offer, FPS and first-reply time).
 
 **2026-10-17 (branch `spawned-characters`, from main f634c42a; unit-tested and compiled, NOT merged, NOT installed, NOT seen in the game, game closed, no game input, no live Convai turn): characters spawned by another mod or a spawner can talk, with their own profile, voice, memory and lip sync; nothing of ours moves them.**
 - **Before:** a spawned Judy was refused as the protected story Judy.

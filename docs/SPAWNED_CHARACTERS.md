@@ -1,6 +1,6 @@
 # Characters spawned by another mod
 
-Written 2026-10-17 on branch `spawned-characters`. Phase 1 is built and unit-tested here. It has not been merged or installed, and nobody has seen it in the game.
+Written 2026-10-17 on branch `spawned-characters`. Phase 1 is built and unit-tested there. Phase 2 (group chat, and battle and loot reactions) is built and unit-tested on branch `spawned-phase2`, which starts from phase 1. Neither phase has been merged or installed, and nobody has seen either in the game.
 
 Players often use a spawner, another mod or tool, to put characters into the world: Judy, Panam, a ganger, a custom NPC. That mod owns the character's body. It decides where the character goes, how they follow, what they wear and what they do in a car. This document sets out what our mod does with such a character. The short version: they can talk with their own profile, voice and memory, and their face moves with the voice. Nothing of ours moves them.
 
@@ -49,7 +49,10 @@ No other mod's tag, record prefix, template path or name is ever matched. A spaw
 | Equipment, stance, weapons, attitude | No. The spawner may already change the shared record's weapons. | party only |
 | Invite, adopt, dismiss, delete | Never adopted. Our invite always spawns our own copy. | see below |
 | Follow, leave, drive or fight offers in conversation | No. Offers need a party entry. | unchanged |
-| Group chat, turn-context party, battle and loot witnesses | Not yet (phase 2) | see "Ready for builders" |
+| Group chat | Yes (phase 2, built): a roster character joins as a speaker after V's companions, never as a party member. Residents and archetypes do not join. | `selectConversation`, `convaiSpawnedPeople.nearby`, `group-chat.lua` `choose` |
+| Turn-context party ("Also with V") | Yes (phase 2, built): the spawned members of the current group round, with no activity | `turn-context` `party` callback in `mod/init.lua` |
+| Battle and loot witnesses | Yes (phase 2, built): near V at the start of a fight or at a pickup, friendly, with an enabled roster profile; they may speak the reaction and are named by profile in the battle context | `convaiSpawnedPeople.watch` and `reactionRows`, `reactionPeople` |
+| Offers about our party (leave) from a spawned speaker | No | `leaveOffer` in `mod/init.lua` |
 
 ## Invite and party
 
@@ -62,7 +65,7 @@ No other mod's tag, record prefix, template path or name is ever matched. A spaw
 
 - **Save and load.** The reference spawner spawns with persistence off, so its characters are gone after a load, and "respawn all" creates new entity IDs. Our Lua cache is cleared on session release, and new IDs are read afresh. Memory is keyed by profile, so a respawned Judy remembers the previous talk.
 - **Despawn mid-conversation.** This goes through the existing talk path. The focus holds a weak reference and ends on `IsAttached` or `IsDead` checks. `ConvaiFaceReady` fails on a detached puppet, so no face write lands. Nothing of ours holds the entity alive.
-- **Duplicates.** A spawned copy and our copy of one character share a profile, as above. Phase 2 group chat must dedupe speakers by entity, not by profile key.
+- **Duplicates.** A spawned copy and our copy of one character share a profile, as above. Group chat tracks speakers by entity (a body is never two speakers, and the round's rows, gestures role and leave guard are all by entity). It also keeps one voice per profile in a round, because the bridge keys a round's audience, memory and heard lines by profile. So with our Judy and a spawned Judy side by side, the addressed one speaks and the other is skipped, and our own copy wins when neither was addressed (see "Phase 2").
 - **Appearance changes.** The spawner changes outfits by rebuilding the appearance, which replaces `face_rig` with the vanilla graph. `OnCompanionExtract` now catches spawned builds, and `PrepareExtractedComponents` prepares the new face and updates the stored graph path, so `ConvaiFaceReady` keeps passing.
   - A rebuild during a conversation briefly fails the ready check until the extraction finishes, then the face resumes.
   - The rebuild is not ours, so there is no flash risk from us.
@@ -70,7 +73,7 @@ No other mod's tag, record prefix, template path or name is ever matched. A spaw
 - **Combat.**
   - The spawner's followers fight on V's side by their own attitude group.
   - Our tactic never picks them except as a tagged hostile in combat, for example after the spawner set them hostile.
-  - Battle reactions may already name them as nearby people through the game's own perception. Witness inclusion is a phase 2 decision.
+  - A spawned character that fights against V is still named as an opponent when V looks at it, by the game's own display name (unchanged). Phase 2 makes a friendly spawned character a possible witness (see "Phase 2").
 - **Crowd-face mode `off`.** Spawned faces are not prepared either. This is the FPS measurement mode, and a spawned character then talks without lip sync.
 - **A spawned quest-record crowd body** (for example a q-numbered ganger) gets the gated crowd graph. The roster and quest-token filters do not apply because the player chose the model.
 
@@ -110,9 +113,81 @@ Installing needs a CET reload for the Lua and a game restart for the reds.
 5. Invite our own Judy beside her. Both talk as Judy, and memory is shared.
 6. FPS: the movement trace and perf probe show no new per-frame rows.
 
+## Phase 2: group chat and reactions (built on branch `spawned-phase2`, from phase 1)
+
+Written 2026-10-17. Unit-tested; not merged, not installed, not seen in the game.
+
+**Finding them.** Nothing of ours lists another mod's characters, and a poll would cost frames. `service:nearby(player, radius)` in `mod/spawned-characters.lua` runs one targeting query (the same `TSF_NPC` query the auto-connect scan makes), keeps the NPCs that classify as spawned, and answers again from its cache for 3 seconds. It is asked only on an event:
+
+| Event | Radius | What is done with the answer |
+|---|---|---|
+| Group key press (text or voice) | 8 m | Candidates for the round, after V's companions. Skipped once three companions already fill the round. |
+| A fight starts (the observer's own half-second sample sees combat turn on) | 20 m | `watch`: remember up to three by entity ID. Skipped while both reaction settings are off. |
+| A loot pickup (the loot observer's context capture, already event-driven) | 20 m | `watch`, as above. Skipped while Loot reactions is off. |
+
+Without Codeware's dynamic entity system (`IsReady` false) none of this runs. The module never holds an entity beyond the 3-second scan cache: the watch list keeps entity IDs, and `Game.FindEntityByID` resolves them when the reaction list is built.
+
+**Group chat.**
+- A spawned character joins only with an enabled roster profile. A resident, an archetype or a generated passer-by name (`resident-*`, `npc-*`, anything in the archetype index) never joins: the bridge keys a round by profile, and a generic passer-by is not one person. A spawned ganger on the generic profile can still be the addressed primary (as before).
+- Order: the addressed character, then V's companions (nearest first), then spawned characters (nearest first). The round holds three.
+- `choose` in `mod/group-chat.lua` skips a body already chosen (by entity) and a profile already chosen. The profile rule is not new: the bridge treats a round's audience as a set of profiles (`parseGroup` dedupes it, `bridge/group-prefetch.mjs` and `bridge/conversation-knowledge.mjs` refuse a repeat), and heard lines are matched to listeners by profile, so two bodies of one profile would answer as one character hearing herself. Because spawned candidates come after the companions, our own Judy is kept and a spawned Judy beside her is skipped, unless the spawned Judy was the addressed one. The earlier note said "by entity, not by profile key"; the entity half is built (rows, role, leave guard), the profile half stays for the reason above.
+- The round's frozen rows carry `spawned`. Everything after that is the existing round: face request and keep-AI eye contact per speaker (phase 1), the live check each tick that the body still resolves to its frozen profile, and one reply at a time. Spawned members get no gesture role (the gesture controller works from party entries only).
+- They never enter `companions`, `connectionProfiles` or the party hint file.
+
+**Turn-context party.** For a round with a spawned member, the `party` callback adds that member (profile key and name, no activity) to "Also with V". The bridge then words it as company and claims nothing about what the character is doing (nothing of ours knows). A private turn and a round without spawned members are unchanged. The round-start hook (`groupChat.onSpawned`) drops the 5-second turn-context snapshot once so the new row is read; it fires only for such a round.
+
+**Offers.** A spawned first speaker in a round makes no leave offer about our party (`leaveOffer` returns nil). Follow, drive and fight offers were already private-talk only and refused for a spawned character.
+
+**Reaction witnesses.** Decision: a friendly spawned character with an enabled roster profile counts as a witness, and may speak the reaction, like one of V's companions.
+- `reactionPeople` appends the watched characters after the companions: still here, within 20 m, not hostile to V (checked every sample, so one that turns on V drops out), and our own copy of a profile always keeps its place. Availability to speak is the same `canSpeak` test.
+- `mod/battle-reactions.lua`, `mod/loot-reactions.lua` and `mod/loot-observer.lua` are unchanged: they already work from entity and profile rows. The bridge names a witness by profile in the battle context (`You were nearby during this encounter`) and the loot context.
+- A spawned reaction speaker gets `ConvaiFaceRequest` (as in a talk) so its prepared face runs. No eye contact, no focus: reactions never turn anyone.
+- A spawned enemy is still only an opponent name, as before.
+
+**Cost.**
+- No per-frame work. `onUpdate` is untouched. The half-second observer sample gains one boolean compare (`convaiSpawnedPeople.sample`) and, once per fight start, one cached scan.
+- Per half-second poll with nobody remembered: one table length check. With up to three remembered: per character one `FindEntityByID`, one attitude read and one position read, plus `canSpeak`.
+- A group key press adds one scan (reused for 3 seconds) when fewer than three companions are present. It happens before the round starts. A round's own steps (preview, look-ahead, the next speaker) are unchanged, so a round with no spawned characters has the same per-turn latency as before.
+- The first scan in a crowd classifies each NPC it meets once (attached, alive, then the managed lookup, cached by entity hash up to 256): a few hundred native reads at most, once, on the key press or the fight start. Measure it with the perf probe (live check 7).
+
+**Limits.** They get no movement, party, vehicles, seating, gestures, equipment or scanner rename. A spawned character is found only within 8 m (group) or 20 m (reactions) of V and only when the dynamic entity system manages it. The scan could miss one that is far from the player's frame (live check 3).
+
+## Files changed (phase 2, branch `spawned-phase2`)
+
+| File | Change |
+|---|---|
+| `mod/spawned-characters.lua` | `ready`, `scan`, `find`; service `available`, `nearby` (3-second cache), `watch`, `watching`; `reset` clears them |
+| `mod/group-chat.lua` | `choose` skips a repeated body (entity) as well as a repeated profile; frozen rows keep `spawned`; `onSpawned` hook |
+| `mod/init.lua` | Global `convaiSpawnedPeople` (`named`, `nearby`, `watch`, `sample`, `reactionRows`); `selectConversation` adds spawned candidates and marks a spawned primary; the `party` callback; `leaveOffer` guard; `reactionPeople`, `captureLootContext`, the observer sample and the reaction send (face request) |
+| `bridge/group-chat.test.mjs`, `bridge/spawned-characters.test.mjs` | Tests below |
+
+No redscript change: nothing to rebuild in the game's script cache. A CET reload installs it.
+
+## Tests (phase 2)
+
+- **`bridge/group-chat.test.mjs`:**
+  - `choose` with spawned rows: order, one body one speaker, one profile one voice, the cap, only supported profiles, a round of two spawned characters
+  - frozen `spawned` flag and the `onSpawned` hook (only for such rounds, a failing hook never breaks a round)
+  - a full round through the adapter's `updateGroup` with a spawned first speaker: face request, eye contact, one audience, the companion hears the spawned line, and a speaker that stops resolving ends the round
+- **`bridge/spawned-characters.test.mjs`:**
+  - `nearby`: spawned only, nearest first, radius, the 3-second cache, a clock that goes backwards, no dynamic entity system, a failing scan
+  - `watch`/`watching`: IDs only, three at most, gone ones dropped, expiry, nothing read while empty, `reset`
+  - the adapter's `convaiSpawnedPeople`: roster profiles only, a scan per fight start (not per sample), nothing while the settings are off, hostile or distant characters dropped
+  - `reactionPeople` merge with our companions, then the real battle and loot policies take the spawned witness (battle witnesses by profile, a loot offer to the spawned speaker)
+  - the turn-context party row and its wording on the bridge side; the leave-offer guard; wiring and "not per frame" checks
+- **Results:** see the TODO log entry of 2026-10-17 (`spawned-phase2`).
+
+### Live checks owed for phase 2 (need the game and a spawner)
+
+1. Spawn Judy (spawner) near V with one of our companions. Press the group key and speak or type. Both answer in turn; the spawned Judy has lips, eye contact and her own voice; our companion hears her line.
+2. Spawn Judy and invite our own Judy beside her. Group chat: the addressed one speaks, the other is skipped, no error in the probe log. Repeat addressing the other.
+3. Group chat with only spawned characters and no companions: two roster characters give a round. A spawned ganger on a generic profile does not join as a candidate.
+4. Battle with a friendly spawned character near V and Battle reactions on: she can speak the opening or closing line, with her face; she is named in the battle context. One that is made hostile never speaks. Loot reactions: pick up an item next to her.
+5. Confirm the `TSF_NPC` scan with `testedSet = Complete` finds a spawned character who stands behind V at 5 to 8 m (the auto-connect scan's own query; unconfirmed for characters outside the view).
+6. The spawned character's first-speaker round offers no leave action even with a companion in the round.
+7. FPS and latency: the perf probe and the stage clock show no new per-frame row, and a group round with no spawned characters keeps its usual first-reply time. The one extra row is the scan on the group key press and on a fight start.
+
 ## Ready for builders (Sonnet, from this document)
 
-1. **Phase 2, group chat and turn context.** Include spawned characters as speakers when the player addresses a group, deduped by entity. They stay out of `companions` state. Files: `mod/group-chat.lua`, the turn-context party in `mod/init.lua`.
-2. **Phase 2, reaction witnesses.** Decide whether battle and loot reactions may mention a spawned character by profile. Default: as an ordinary NPC.
-3. **Optional invite notice** (above), only if players ask.
-4. **Live check** above, through the existing probes and the face status in the probe log. It needs the user's game session.
+1. **Optional invite notice** (above), only if players ask.
+2. **Live checks** above (phase 1 and phase 2), through the existing probes and the face status in the probe log. They need the user's game session.

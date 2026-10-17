@@ -4,10 +4,16 @@ local M = {}
 function M.choose(primary, candidates, supported)
     -- An explicitly addressed person must never silently become somebody else.
     if primary and not supported[primary.profileKey] then return {}, 'unsupported-primary' end
-    local selected, seen = {}, {}
+    -- One body is never two speakers (entity), and one profile is one voice per round: a character another mod or a spawner
+    -- created (docs/SPAWNED_CHARACTERS.md) can share Judy's profile with our own Judy copy, and the bridge keys a round's
+    -- audience, memory and heard lines by profile. The addressed body first, then party companions, then spawned characters
+    -- (the caller's order), so the copy that is skipped is always the one that came later.
+    local selected, seen, bodies = {}, {}, {}
     local function add(candidate)
-        if candidate and supported[candidate.profileKey] and not seen[candidate.profileKey] and #selected < 3 then
+        if candidate and supported[candidate.profileKey] and not seen[candidate.profileKey] and #selected < 3
+            and not (candidate.entity ~= nil and bodies[candidate.entity]) then
             seen[candidate.profileKey] = true
+            if candidate.entity ~= nil then bodies[candidate.entity] = true end
             selected[#selected + 1] = candidate
         end
     end
@@ -33,12 +39,20 @@ local function startRound(id, participants, text)
     for _, person in ipairs(participants) do
         local row = {}
         for _, key in ipairs({'entity', 'profileKey', 'name', 'bodyType', 'npc', 'archetype', 'voiceOnly'}) do row[key] = person[key] end
+        -- A character another mod or a spawner created (docs/SPAWNED_CHARACTERS.md); nothing else reads it but the adapter.
+        row.spawned = person.spawned
         frozen[#frozen + 1] = row
     end
     M.round = {id = id, participants = frozen, text = text, index = 0, stage = 'next', heard = {},
         journal = M.captureJournal and M.captureJournal(), battle = M.captureBattle and M.captureBattle(),
         gameDialogue = M.captureGameDialogue and M.captureGameDialogue(),
         gear = M.capturePlayerGear and M.capturePlayerGear()}
+    -- Only a round that has a character another mod or a spawner created in it has anything to tell the adapter.
+    if M.onSpawned then
+        for _, person in ipairs(frozen) do
+            if person.spawned then pcall(M.onSpawned, M.round); break end
+        end
+    end
 end
 
 function M.start(id, participants, text)
