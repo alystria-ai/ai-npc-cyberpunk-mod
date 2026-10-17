@@ -99,5 +99,5 @@ test('the published partners are applied before the nearby list and their voices
   // A lost game releases partners too.
   time += 60_000; await warm.apply(JSON.stringify({updated: 1_000_000, profiles: ['nora'], partners: ['dex']}));
   assert.deepEqual(calls.at(-2), ['partners']); assert.deepEqual(calls.at(-1), ['nearby']);
-  await warm.release(); assert.deepEqual(warm.diagnostic(), {profiles: [], partners: [], voices: {}});
+  await warm.release(); assert.deepEqual(warm.diagnostic(), {profiles: [], partners: [], spawned: [], voices: {}});
 });

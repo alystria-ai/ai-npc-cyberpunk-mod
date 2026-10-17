@@ -1129,7 +1129,11 @@ do
                     local key, name = profileIdentity(entity)
                     if key and supportedProfiles[key] and manager.profileEnabled(key) then
                         local position = entity:GetWorldPosition()
-                        rows[#rows + 1] = {key = key, name = name, entity = id,
+                        -- A roster character another mod or a spawner created gets its own warm place (auto-connect.lua `spawned`);
+                        -- the classification is cached per entity (spawned-characters.lua), so this adds no query to the scan.
+                        local spawned = convaiSpawnedPeople ~= nil and convaiSpawnedPeople.named(key)
+                            and convaiWorldPolicy ~= nil and convaiWorldPolicy.spawned(entity) == true
+                        rows[#rows + 1] = {key = key, name = name, entity = id, spawned = spawned or nil,
                             distance = math.sqrt((position.x - origin.x)^2 + (position.y - origin.y)^2 + (position.z - origin.z)^2)}
                     end
                 end

@@ -437,3 +437,114 @@ test('the default publisher writes the entity map beside the slots and partners'
   assert.match(init, /entity = participants == nil and type\(entity\) == 'string' and entity or nil/);
   assert.match(init, /talkingId = \(active and active\.entity\)/);
 });
+
+// ---- Spawned roster characters: a lane of their own beside the two slots (docs/SPAWNED_CHARACTERS.md) ----------
+const spawnedFixture = `
+  local spawnedLists = {}
+  local function makeSpawned(extra)
+    local options = {publish = function(list, partnerList, ids, spawnedList)
+      published[#published + 1] = table.concat(list, ',')
+      publishedPartners[#publishedPartners + 1] = table.concat(partnerList or {}, ',')
+      spawnedLists[#spawnedLists + 1] = table.concat(spawnedList or {}, ',')
+    end}
+    for key, value in pairs(extra or {}) do options[key] = value end
+    return make(options)
+  end
+  local function lastSpawned() return spawnedLists[#spawnedLists] end
+`;
+
+test('a spawned character is wanted on the first scan, takes no slot, and is published in its own list', () => {
+  run(`${fixture}${spawnedFixture}
+    nearby = {{key = 'judy', name = 'Judy', distance = 4, spawned = true}, {key = 'a', name = 'A', distance = 1}, {key = 'b', name = 'B', distance = 2}}
+    local auto = makeSpawned()
+    step(auto, 1.2)
+    -- Spawned: at once, no stagger; the nearby ones keep their two slots and their stagger.
+    assert(table.concat(auto.spawned(), ',') == 'judy', 'the spawned character was not wanted on the first scan')
+    assert(table.concat(auto.active(), ',') == 'a', 'a slot was spent on the spawned one or the stagger was skipped')
+    step(auto, 3.2)
+    assert(table.concat(auto.active(), ',') == 'a,b' and lastSpawned() == 'judy' and last() == 'a,b', 'the lists differ: ' .. last() .. ' / ' .. lastSpawned())
+    local seen = false
+    for _, line in ipairs(logs) do if line == 'Auto-connect warming judy (spawned)' then seen = true end end
+    assert(seen, 'the spawned start was not logged')
+    local flagged = 0
+    for _, row in ipairs(auto.inspect().active) do if row.spawned then flagged = flagged + 1 end end
+    assert(flagged == 1)
+  `);
+});
+
+test('at most three spawned characters at a time, and they leave with the same hold, age and cooldown rules', () => {
+  run(`${fixture}${spawnedFixture}
+    nearby = {}
+    for _, key in ipairs({'s1', 's2', 's3', 's4'}) do nearby[#nearby + 1] = {key = key, name = key, distance = 2, spawned = true} end
+    local auto = makeSpawned()
+    step(auto, 3)
+    assert(#auto.spawned() == 3 and #auto.active() == 0, 'the lane holds three, no slot')
+    local first = table.concat(auto.spawned(), ',')
+    step(auto, 30)
+    assert(table.concat(auto.spawned(), ',') == first, 'a fourth replaced one that is still wanted')
+    -- Three walk away: held 40 s, then released. The fourth, now wanted, takes a place once the cooldown allows.
+    nearby = {{key = 's4', name = 's4', distance = 2, spawned = true}}
+    step(auto, 38)
+    assert(#auto.spawned() == 3, 'released before the hold ended')
+    step(auto, 4)
+    assert(table.concat(auto.spawned(), ',') == 's4', 'unwanted ones stayed warm or the fourth was not admitted: ' .. table.concat(auto.spawned(), ','))
+    assert(lastSpawned() == 's4', 'published ' .. tostring(lastSpawned()))
+    nearby = {}
+    step(auto, 45)
+    assert(#auto.spawned() == 0 and lastSpawned() == '' and last() == '')
+  `);
+  run(`${fixture}${spawnedFixture}
+    nearby = {{key = 'old', name = 'Old', distance = 2, spawned = true}}
+    local auto = makeSpawned()
+    step(auto, 2)
+    assert(#auto.spawned() == 1)
+    step(auto, 600)
+    assert(#auto.spawned() == 0, 'a spawned character stayed warm past the age limit without a conversation')
+  `);
+});
+
+test('a talked-to spawned character leaves the lane for the partner role; a profile shared with the party is still listed', () => {
+  run(`${fixture}${partnerFixture}${spawnedFixture}
+    nearby = {{key = 'judy', name = 'Judy', distance = 2, spawned = true}, {key = 'panam', name = 'Panam', distance = 3, spawned = true}}
+    local auto = makeSpawned({locate = locate})
+    distances.judy = 2
+    step(auto, 2)
+    assert(table.concat(auto.spawned(), ',') == 'judy,panam')
+    talk(auto, 'judy', 0.1)
+    assert(partners(auto) == 'judy' and table.concat(auto.spawned(), ',') == 'panam', 'one owner per connection')
+    assert(publishedPartners[#publishedPartners] == 'judy' and lastSpawned() == 'panam')
+    -- A party member who is also spawned: nothing is skipped for the party (one page per profile on the bridge).
+    party['kerry'] = true
+    nearby = {{key = 'panam', name = 'Panam', distance = 3, spawned = true}, {key = 'kerry', name = 'Kerry', distance = 3, spawned = true}}
+    step(auto, 3)
+    assert(lastSpawned():find('kerry', 1, true), 'a party profile that is also spawned was not published: ' .. lastSpawned())
+    -- Turning the setting off releases the lane and publishes it empty.
+    setting = false
+    step(auto, 2)
+    assert(#auto.spawned() == 0 and lastSpawned() == '')
+  `);
+});
+
+test('a looked-at spawned character is not double-counted and an ordinary nearby one never uses the lane', () => {
+  run(`${fixture}${spawnedFixture}
+    nearby = {{key = 'judy', name = 'Judy', distance = 2, spawned = true}, {key = 'a', name = 'A', distance = 1}}
+    local auto = makeSpawned()
+    for _ = 1, 5 do auto.look('judy', 'e1', 'Judy', 0.2) end
+    step(auto, 2)
+    local count = 0
+    for _, key in ipairs(auto.active()) do if key == 'judy' then count = count + 1 end end
+    for _, key in ipairs(auto.spawned()) do if key == 'judy' then count = count + 1 end end
+    assert(count == 1, 'the same character was warmed twice: ' .. count)
+    assert(not table.concat(auto.spawned(), ','):find('a', 1, true), 'an ordinary character took a spawned place')
+  `);
+});
+
+test('the default publisher writes the spawned list and the scan marks spawned roster characters', () => {
+  assert.match(source, /"spawned":\[' \.\. encode\(spawned\) \.\. '\]/);
+  assert.match(source, /maxSpawned = 3/);
+  const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+  // The row carries the flag from the cached spawned-character policy: no new per-frame or per-entity work.
+  assert.match(init, /convaiSpawnedPeople\.named\(key\)/);
+  assert.match(init, /convaiWorldPolicy\.spawned\(entity\) == true/);
+  assert.match(init, /spawned = spawned or nil/);
+});

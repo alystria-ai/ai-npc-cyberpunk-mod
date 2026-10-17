@@ -11,6 +11,19 @@ export const NEARBY_LIMIT = 2;
 // Conversation partners: world characters V just talked to (mod/auto-connect.lua), kept warm outside the two
 // nearby slots. Two at most (a group chat).
 export const PARTNER_LIMIT = 2;
+// Characters another mod or a spawner created that have a roster profile (mod/auto-connect.lua `spawned`, docs/SPAWNED_CHARACTERS.md):
+// their private connection is opened as soon as the game sees them near V, so the first talk does not pay the connection. Three at
+// most, and on a player's own key no more than its plan allows beside one connection for the turn in progress (spawnedLimit).
+export const SPAWNED_LIMIT = 3;
+// How many spawned characters may hold a pre-opened connection: SPAWNED_LIMIT on the shared key; on a player's own key one fewer than
+// the connections its plan holds (one stays free for the turn in progress), so none on a free, unknown or unread plan (one
+// connection), two on a plan of three, three from four; none with Mistral or the local AI (no Convai connection to open).
+export function spawnedWarmLimit({singleSession = false, connectionLimit = 1, textProvider = false} = {}) {
+  if (textProvider) return 0;
+  if (!singleSession) return SPAWNED_LIMIT;
+  const held = Number.isFinite(connectionLimit) ? Math.floor(connectionLimit) : 1;
+  return Math.max(0, Math.min(SPAWNED_LIMIT, held - 1));
+}
 export const connectionKey = (profile, scope) => JSON.stringify([profile, scope]);
 
 // An exact private route (a submitted ambient turn, or an ambient character's entity route): only the fields that
@@ -48,9 +61,14 @@ export class PartyConnections {
   // key). Background maintenance pre-opens nothing then (it would swap one companion's connection for another's, over
   // and over). Only an invitation opens its own companion's connection, once, before she joins (warmSingle); a failure
   // there does not fail the invitation, and every other connection opens on demand when V talks.
+  // spawnedLimit(): how many spawned characters may hold a pre-opened connection now (SPAWNED_LIMIT; fewer on a player's key whose
+  // plan holds fewer connections; 0 when none). warmDeferred(): true while deferWarm() is true but spawned characters may still be
+  // pre-opened (a player's key on a plan with room for them): only their entries, and the party entry of a profile a spawned
+  // character shares, are opened then; everything else stays on demand.
   constructor({host, configFor, isKnown, onState = () => {}, now = Date.now, staleMs = 6500, canWarm = () => true,
-    deferWarm = () => false}) {
-    Object.assign(this, {host, configFor, isKnown, onState, now, staleMs, canWarm, deferWarm});
+    deferWarm = () => false, spawnedLimit = () => SPAWNED_LIMIT, warmDeferred = () => false}) {
+    Object.assign(this, {host, configFor, isKnown, onState, now, staleMs, canWarm, deferWarm, spawnedLimit, warmDeferred});
+    this.spawned = [];
     this.profiles = []; this.updated = null; this.stale = true;
     this.invitations = []; this.retiring = new Map(); this.retirementDebt = new Map();
     this.entries = new Map(); this.composer = this.request = null; this.nearby = []; this.partners = [];
@@ -71,7 +89,7 @@ export class PartyConnections {
     const changed = JSON.stringify(this.profiles) !== JSON.stringify(snapshot.profiles) || this.stale;
     this.profiles = snapshot.profiles; this.updated = snapshot.updated;
     this.stale = this.now() - snapshot.updated > this.staleMs;
-    if (this.stale) { this.composer = this.request = null; this.nearby = []; this.partners = []; }
+    if (this.stale) { this.composer = this.request = null; this.nearby = []; this.partners = []; this.spawned = []; }
     for (const profile of removed) this.lastUsed.delete(profile);
     for (const field of ['composer', 'request']) {
       if (this[field]?.audience.some(profile => removed.includes(profile))) this[field] = null;
@@ -124,6 +142,20 @@ export class PartyConnections {
     this.partners = next; this.partnerRoutes = nextRoutes; this.revision++;
     return this.reconcile();
   }
+  // Spawned roster characters near V (named profiles only: an ambient resident has no route without its body). They rank below
+  // the party, invitations, the target and partners, above nearby characters, and a profile already listed above is the same
+  // connection (one page per profile: a spawned Judy and our own Judy share it).
+  setSpawned(profiles) {
+    if (!Array.isArray(profiles) || profiles.some(profile => typeof profile !== 'string' || !/^[a-z0-9-]{1,80}$/.test(profile))) {
+      throw Error('Invalid spawned profiles');
+    }
+    const next = [...new Set(profiles)].slice(0, SPAWNED_LIMIT);
+    if (JSON.stringify(next) === JSON.stringify(this.spawned)) return Promise.resolve();
+    this.spawned = next; this.revision++;
+    return this.reconcile();
+  }
+  // True while this entry may be opened although the plan pre-opens nothing else (warmDeferred).
+  deferredAllowed(entry) { return this.warmDeferred() === true && (entry.role === 'spawned' || entry.alsoSpawned === true); }
   setRequest(input, exactConfig) {
     // Ambient profiles cannot be warmed without their physical entity. An
     // admitted request may supply that exact already-validated route so normal
@@ -173,6 +205,13 @@ export class PartyConnections {
       .slice(0, Math.max(0, CONNECTION_LIMIT - privateProfiles.length));
     for (const profile of partnerProfiles) if (!this.isKnown(profile)) routes.set(profile, this.partnerRoutes.get(profile));
     privateProfiles.push(...partnerProfiles);
+    // Spawned roster characters (the plan's count, never more than the ones the game listed), once per profile.
+    let spawnedCap = 0;
+    try { spawnedCap = Math.max(0, Math.min(SPAWNED_LIMIT, Math.floor(Number(this.spawnedLimit())))) || 0; } catch { spawnedCap = 0; }
+    const spawnedProfiles = this.stale ? [] : this.spawned.filter(profile => this.isKnown(profile) && !privateProfiles.includes(profile))
+      .slice(0, Math.min(spawnedCap, Math.max(0, CONNECTION_LIMIT - privateProfiles.length)));
+    const sharedWithSpawned = new Set(this.stale ? [] : this.spawned.filter(profile => privateProfiles.includes(profile)));
+    privateProfiles.push(...spawnedProfiles);
     const nearbyProfiles = this.stale ? [] : this.nearby.filter(profile => eligible(profile, this.nearbyRoutes))
       .slice(0, Math.max(0, CONNECTION_LIMIT - privateProfiles.length));
     for (const profile of nearbyProfiles) if (!this.isKnown(profile)) routes.set(profile, this.nearbyRoutes.get(profile));
@@ -186,7 +225,8 @@ export class PartyConnections {
     const privateSpecs = privateProfiles.map(profile => ({profile, scope: 'private',
       role: party.includes(profile) ? 'party' : this.invitations.includes(profile) ? 'invitation'
         : focus?.audience[0] === profile ? 'target' : partnerProfiles.includes(profile) ? 'partner'
-          : nearbyProfiles.includes(profile) ? 'nearby' : 'target',
+          : spawnedProfiles.includes(profile) ? 'spawned' : nearbyProfiles.includes(profile) ? 'nearby' : 'target',
+      ...(sharedWithSpawned.has(profile) ? {alsoSpawned: true} : {}),
       ...(routes.has(profile) ? {config: routes.get(profile)} : {})}));
     const groupSpecs = groupProfiles.map(profile => ({profile, scope: groupScope, role: 'group'}));
     const specs = focus?.scope.startsWith('group:') ? [...groupSpecs, ...privateSpecs] : [...privateSpecs, ...groupSpecs];
@@ -225,6 +265,7 @@ export class PartyConnections {
       } else if (this.entries.get(identity).role !== spec.role) {
         this.entries.get(identity).role = spec.role; changed = true;
       }
+      if (this.entries.has(identity)) this.entries.get(identity).alsoSpawned = spec.alsoSpawned === true;
     }
     await this.host.retain(specs.map(spec => this.configuration(spec)), {protect: true});
     // With no remaining owner, retain has already closed this profile's pages.
@@ -255,20 +296,23 @@ export class PartyConnections {
       if (!this.retiring.has(profile) && now >= debt.retryAt) void this.retireInvitation(profile).catch(() => {});
     }
     if (this.paused || now < this.nextStart || [...this.entries.values()].filter(entry => entry.state === 'connecting').length >= 2) return;
+    const deferred = this.deferWarm();
     const entry = this.plan().map(spec => this.entries.get(connectionKey(spec.profile, spec.scope)))
       .find(row => !this.retiring.has(row.profile) && !this.needsRetirement(row.profile)
+        && (!deferred || this.deferredAllowed(row))
         && (row.state === 'waiting' || (['retrying', 'cooldown'].includes(row.state) && now >= row.retryAt)));
-    if (!entry) { if (this.deferWarm()) this.openCall(); return; }
+    if (!entry) { if (deferred) this.openCall(); return; }
     if (!this.canWarm()) return;
-    // A plan that pre-opens nothing still opens a holocall caller's page (openCall), and only hers.
-    if (this.deferWarm()) { this.openCall(); return; }
+    // A plan that pre-opens nothing still opens a holocall caller's page (openCall), and only hers, and the spawned characters
+    // that warmDeferred allows (the entry found above is one of those).
+    if (deferred) { this.startWarm(entry, {spawned: true}); return; }
     this.startWarm(entry);
   }
   // explicit: an invitation opening its own companion's connection, allowed on a single-session plan (warmSingle).
-  startWarm(entry, {explicit = false} = {}) {
+  startWarm(entry, {explicit = false, spawned = false} = {}) {
     if (entry.state === 'connecting' && entry.pending) return entry.pending;
     if (this.entries.get(entry.identity) !== entry || this.paused || this.retiring.has(entry.profile) || this.needsRetirement(entry.profile)
-        || !this.canWarm() || (this.deferWarm() && !explicit) || this.now() < this.nextStart
+        || !this.canWarm() || (this.deferWarm() && !explicit && !(spawned && this.deferredAllowed(entry))) || this.now() < this.nextStart
         || (['retrying', 'cooldown'].includes(entry.state) && this.now() < entry.retryAt)
         || [...this.entries.values()].filter(row => row.state === 'connecting').length >= 2) return null;
     const now = this.now();
@@ -426,7 +470,7 @@ export class PartyConnections {
     this.emit();
   }
   async clear() {
-    this.stale = true; this.profiles = []; this.invitations = []; this.composer = this.request = null; this.nearby = []; this.partners = [];
+    this.stale = true; this.profiles = []; this.invitations = []; this.composer = this.request = null; this.nearby = []; this.partners = []; this.spawned = [];
     this.lastUsed.clear();
     await this.reconcile(); this.emit();
   }
@@ -451,7 +495,7 @@ export class PartyConnections {
   }
   diagnostic() {
     return {updated: this.now(), partyUpdated: this.updated, stale: this.stale, limit: CONNECTION_LIMIT, warmPartyLimit: WARM_PARTY_LIMIT,
-      profiles: this.profiles, invitations: this.invitations, partners: this.partners, unconfigured: this.profiles.filter(profile => !this.isKnown(profile)),
+      profiles: this.profiles, invitations: this.invitations, partners: this.partners, spawned: this.spawned, unconfigured: this.profiles.filter(profile => !this.isKnown(profile)),
       ready: [...this.entries.values()].filter(entry => entry.state === 'ready').length,
       connecting: [...this.entries.values()].filter(entry => entry.state === 'connecting').length,
       connections: [...this.entries.values()].map(({profile, scope, role, state, attempts, failures, startedAt, readyAt, warmMs, connectionMs, retryAt}) =>

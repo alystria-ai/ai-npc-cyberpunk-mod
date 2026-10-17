@@ -12,6 +12,12 @@
 -- Off: nothing is prepared ahead. The same wait notice shows when the player starts talking to a
 -- character that is not connected yet: talkNotice() returns it with the setting on or off (no hint about the setting).
 --
+-- Spawned characters (docs/SPAWNED_CHARACTERS.md): a roster character that another mod or a spawner created is wanted from the first
+-- scan that sees it near V (the scan runs once a second anyway). It does not take one of the two slots: it has its own, at most
+-- maxSpawned (3), published as `spawned` beside `profiles`, with the same hold, age and cooldown rules. The bridge opens its
+-- connection (on a player's own key only if its plan has room, bridge/party-connections.mjs spawnedWarmLimit), so the first talk
+-- does not wait for it. A profile shared with a party member or a slot is one connection (the bridge keeps one page per profile).
+--
 -- Ranking of the two slots: a looked-at character first (looking is intent; it may replace the idlest unwanted
 -- one), then nearby characters by prominence (tier-1 named, other named, generic residents and archetypes), then
 -- by distance.
@@ -31,6 +37,7 @@ M.DEFAULTS = {
     radius = 5.0,      -- metres: standing this close also wants a character
     scanInterval = 1.0,
     maxWarm = 2,
+    maxSpawned = 3,    -- spawned roster characters kept warm beside the two slots
     hold = 40,         -- seconds a character stays warm after it stops being wanted
     maxAge = 600,      -- the longest one character stays warm without a conversation
     cooldown = 20,     -- seconds before a released character may be warmed again
@@ -76,7 +83,7 @@ end
 
 -- The default publisher: an atomic runtime/nearby-connections.json (the two slots, then the conversation partners,
 -- then the entity of each one that has an ID: a generic resident or archetype has no connection without its body).
-local function publishFile(profiles, partners, entities)
+local function publishFile(profiles, partners, entities, spawned)
     local function encode(list)
         local encoded = {}
         for _, key in ipairs(list or {}) do encoded[#encoded + 1] = json.encode(key) end
@@ -88,7 +95,7 @@ local function publishFile(profiles, partners, entities)
     local file = io.open(PATH .. '.tmp', 'wb')
     if not file then return false end
     file:write('{"updated":' .. string.format('%.0f', os.time() * 1000) .. ',"profiles":[' .. encode(profiles)
-        .. '],"partners":[' .. encode(partners) .. '],"entities":{' .. table.concat(ids, ',') .. '}}')
+        .. '],"partners":[' .. encode(partners) .. '],"spawned":[' .. encode(spawned) .. '],"entities":{' .. table.concat(ids, ',') .. '}}')
     file:close()
     os.remove(PATH)
     return os.rename(PATH .. '.tmp', PATH) ~= nil
@@ -137,9 +144,15 @@ function M.new(options)
 
     local function keys()
         local result = {}
-        for _, entry in ipairs(active) do result[#result + 1] = entry.key end
+        for _, entry in ipairs(active) do if not entry.spawned then result[#result + 1] = entry.key end end
         return result
     end
+    local function spawnedKeys()
+        local result = {}
+        for _, entry in ipairs(active) do if entry.spawned then result[#result + 1] = entry.key end end
+        return result
+    end
+    local function spawnedCount() return #spawnedKeys() end
     local function partnerKeys()
         local result = {}
         for _, partner in ipairs(partners) do result[#result + 1] = partner.key end
@@ -168,10 +181,10 @@ function M.new(options)
     end
 
     local function push(force)
-        local list, partnerList = keys(), partnerKeys()
+        local list, partnerList, spawnedList = keys(), partnerKeys(), spawnedKeys()
         local ids, idSignature = entityIds()
-        local signature = (#list > 0 or #partnerList > 0) and table.concat(list, ',') .. '|' .. table.concat(partnerList, ',')
-            .. '|' .. idSignature or ''
+        local signature = (#list > 0 or #partnerList > 0 or #spawnedList > 0) and table.concat(list, ',') .. '|' .. table.concat(partnerList, ',')
+            .. '|' .. idSignature .. '|' .. table.concat(spawnedList, ',') or ''
         local now = wall()
         if not force and signature == lastSignature and lastPublish and now - lastPublish < cfg.heartbeat then return end
         -- An unchanged heartbeat writes in a frame no other heartbeat writes in (init.lua convaiHeartbeatSlot).
@@ -179,7 +192,7 @@ function M.new(options)
         if not force and signature == lastSignature and lastPublish and type(slot) == 'function' and not slot() then
             return 'slot'
         end
-        if pcall(publish, list, partnerList, ids) then lastSignature, lastPublish = signature, now end
+        if pcall(publish, list, partnerList, ids, spawnedList) then lastSignature, lastPublish = signature, now end
     end
 
     local function releaseAll(reason)
@@ -281,21 +294,24 @@ function M.new(options)
         updatePartners(context)
 
         local wanted, order = {}, {}
-        local function want(key, name, priority, distance, entity)
+        local function want(key, name, priority, distance, entity, spawned)
             -- A partner already has its own connection; it never takes a slot as well.
             if isPartner(key) then return end
             if not wanted[key] then
                 wanted[key] = {key = key, name = name, priority = priority, distance = distance or 0,
-                    prominence = priority == 2 and prominence(key) or 0, entity = entity}
+                    prominence = priority == 2 and prominence(key) or 0, entity = entity, spawned = spawned == true}
                 order[#order + 1] = wanted[key]
-            elseif priority < wanted[key].priority then wanted[key].priority, wanted[key].entity = priority, entity end
+            else
+                if priority < wanted[key].priority then wanted[key].priority, wanted[key].entity = priority, entity end
+                if spawned == true then wanted[key].spawned = true end
+            end
         end
         if look.key and look.dwell >= cfg.gazeDwell then want(look.key, look.name, 1, 0, look.entity) end
         if not context.blocked and clock >= nextScan and type(options.scan) == 'function' then
             nextScan = clock + cfg.scanInterval
             local called, rows = pcall(options.scan, context.player, cfg.radius)
             if called and type(rows) == 'table' then
-                for _, row in ipairs(rows) do want(row.key, row.name, 2, row.distance, row.entity) end
+                for _, row in ipairs(rows) do want(row.key, row.name, 2, row.distance, row.entity, row.spawned) end
             end
         end
         table.sort(order, function(a, b)
@@ -325,27 +341,36 @@ function M.new(options)
                 local key = item.key
                 local present = false
                 for _, entry in ipairs(active) do if entry.key == key then present = true end end
-                if not present and item.priority > 0 and (cooling[key] or 0) <= clock
-                    and clock - lastStart >= cfg.stagger
-                    and not isParty(key) then
-                    if #active >= cfg.maxWarm then
-                        -- A looked-at character may take the place of the idlest one
-                        -- that nobody wants right now.
-                        local idlest
-                        for index, entry in ipairs(active) do
-                            if not wanted[entry.key] and (not idlest or entry.lastWanted < active[idlest].lastWanted) then idlest = index end
+                if not present and item.priority > 0 and (cooling[key] or 0) <= clock then
+                    if item.spawned then
+                        -- A spawned roster character has its own place (beside the two slots, no stagger: the bridge opens
+                        -- connections one after another). A profile shared with a party member is still listed: one page.
+                        if spawnedCount() < cfg.maxSpawned then
+                            active[#active + 1] = {key = key, name = item.name, since = clock, lastWanted = clock, spawned = true,
+                                reason = 'spawned', entity = type(item.entity) == 'string' and item.entity or nil}
+                            log('Auto-connect warming ' .. key .. ' (spawned)')
                         end
-                        if item.priority == 1 and idlest then
-                            cooling[active[idlest].key] = clock + cfg.cooldown
-                            log('Auto-connect released ' .. active[idlest].key .. ' (replaced)')
-                            table.remove(active, idlest)
+                    elseif clock - lastStart >= cfg.stagger and not isParty(key) then
+                        if #keys() >= cfg.maxWarm then
+                            -- A looked-at character may take the place of the idlest one
+                            -- that nobody wants right now.
+                            local idlest
+                            for index, entry in ipairs(active) do
+                                if not entry.spawned and not wanted[entry.key]
+                                    and (not idlest or entry.lastWanted < active[idlest].lastWanted) then idlest = index end
+                            end
+                            if item.priority == 1 and idlest then
+                                cooling[active[idlest].key] = clock + cfg.cooldown
+                                log('Auto-connect released ' .. active[idlest].key .. ' (replaced)')
+                                table.remove(active, idlest)
+                            end
                         end
-                    end
-                    if #active < cfg.maxWarm then
-                        active[#active + 1] = {key = key, name = item.name, since = clock, lastWanted = clock,
-                            reason = item.priority == 1 and 'gaze' or 'near', entity = type(item.entity) == 'string' and item.entity or nil}
-                        lastStart = clock
-                        log('Auto-connect warming ' .. key .. ' (' .. active[#active].reason .. ')')
+                        if #keys() < cfg.maxWarm then
+                            active[#active + 1] = {key = key, name = item.name, since = clock, lastWanted = clock,
+                                reason = item.priority == 1 and 'gaze' or 'near', entity = type(item.entity) == 'string' and item.entity or nil}
+                            lastStart = clock
+                            log('Auto-connect warming ' .. key .. ' (' .. active[#active].reason .. ')')
+                        end
                     end
                 end
             end
@@ -361,6 +386,7 @@ function M.new(options)
     end
 
     function A.active() return keys() end
+    function A.spawned() return spawnedKeys() end
     function A.partners() return partnerKeys() end
     -- The hook for asking a partner to follow: it leaves the partner role (the party owns its connection now).
     -- Returns true when it was a partner.
@@ -378,7 +404,7 @@ function M.new(options)
     function A.inspect()
         local rows = {}
         for _, entry in ipairs(active) do
-            rows[#rows + 1] = {key = entry.key, reason = entry.reason, since = entry.since, lastWanted = entry.lastWanted}
+            rows[#rows + 1] = {key = entry.key, reason = entry.reason, since = entry.since, lastWanted = entry.lastWanted, spawned = entry.spawned == true}
         end
         local partnerRows = {}
         for _, partner in ipairs(partners) do

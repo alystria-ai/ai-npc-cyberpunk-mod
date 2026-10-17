@@ -1,4 +1,4 @@
-import {NEARBY_LIMIT, PARTNER_LIMIT} from './party-connections.mjs';
+import {NEARBY_LIMIT, PARTNER_LIMIT, SPAWNED_LIMIT} from './party-connections.mjs';
 
 // "Auto-connect nearby characters": the game publishes up to two characters (a
 // profile key each) that the player is looking at or standing near, in
@@ -27,6 +27,15 @@ export function parsePartners(value, {isKnown = () => true, now = Date.now(), st
   return [...new Set(value.partners)].filter(isKnown);
 }
 
+// The spawned roster characters of a fresh document (`spawned`, up to SPAWNED_LIMIT: characters another mod or a spawner created,
+// with a named profile, mod/auto-connect.lua). [] for an older document without the field, or an invalid one.
+export function parseSpawned(value, {isKnown = () => true, now = Date.now(), staleMs = 8000} = {}) {
+  if (!value || !Number.isSafeInteger(value.updated) || value.updated < 0 || value.updated > now + 5000
+      || now - value.updated > staleMs || !Array.isArray(value.spawned) || value.spawned.length > SPAWNED_LIMIT
+      || value.spawned.some(profile => typeof profile !== 'string' || !/^[a-z0-9-]{1,80}$/.test(profile))) return [];
+  return [...new Set(value.spawned)].filter(isKnown);
+}
+
 // The physical entity of each listed ambient character (`entities`: {profile: "<hash>ULL"}). A generic resident or
 // archetype has no route without it; a named character never needs one. {} for an older document or a stale one.
 export function parseEntities(value, {now = Date.now(), staleMs = 8000} = {}) {
@@ -44,7 +53,7 @@ export class NearbyWarm {
   constructor({connections, prepareVoice, canPrepare = () => true, isKnown = () => true, routeFor = () => null, now = Date.now,
       staleMs = 8000, retryMs = 30000, onError = () => {}}) {
     Object.assign(this, {connections, prepareVoice, canPrepare, isKnown, routeFor, now, staleMs, retryMs, onError});
-    this.profiles = []; this.partners = [];
+    this.profiles = []; this.partners = []; this.spawned = [];
     this.voices = new Map();   // profile -> {state: 'preparing' | 'ready' | 'failed', controller, retryAt}
   }
   // Apply the published document (its raw text, or '' when absent).
@@ -54,8 +63,10 @@ export class NearbyWarm {
     const options = {isKnown: this.isKnown, now: this.now(), staleMs: this.staleMs};
     const partners = parsePartners(value, options);
     const profiles = parseNearby(value, options).filter(profile => !partners.includes(profile));
-    this.profiles = profiles; this.partners = partners;
-    for (const [profile, voice] of this.voices) if (!profiles.includes(profile) && !partners.includes(profile)) {
+    // A talked-to character is a partner, not also a spawned one; a profile in both lists is one connection anyway.
+    const spawned = parseSpawned(value, options).filter(profile => !partners.includes(profile));
+    this.profiles = profiles; this.partners = partners; this.spawned = spawned;
+    for (const [profile, voice] of this.voices) if (!profiles.includes(profile) && !partners.includes(profile) && !spawned.includes(profile)) {
       voice.controller?.abort(); this.voices.delete(profile);
     }
     // Idempotent: PartyConnections ignores an unchanged list, and re-applies it
@@ -66,13 +77,14 @@ export class NearbyWarm {
       catch (error) { this.onError(error); }
     }
     try { await this.connections.setPartners?.(partners, routes); } catch (error) { this.onError(error); }
+    try { await this.connections.setSpawned?.(spawned); } catch (error) { this.onError(error); }
     try { await this.connections.setNearby(profiles, routes); } catch (error) { this.onError(error); }
     this.prepareVoices();
   }
   prepareVoices() {
     if ([...this.voices.values()].some(voice => voice.state === 'preparing')) return;
     // Partners first: V is with them now.
-    for (const profile of [...this.partners, ...this.profiles]) {
+    for (const profile of [...this.partners, ...this.spawned, ...this.profiles]) {
       const voice = this.voices.get(profile);
       if (voice && (voice.state !== 'failed' || this.now() < voice.retryAt)) continue;
       if (!this.canPrepare()) return;
@@ -92,11 +104,12 @@ export class NearbyWarm {
   // Release everything now (bridge shutdown or a lost game).
   async release() {
     for (const voice of this.voices.values()) voice.controller?.abort();
-    this.voices.clear(); this.profiles = []; this.partners = [];
+    this.voices.clear(); this.profiles = []; this.partners = []; this.spawned = [];
     try { await this.connections.setPartners?.([]); } catch (error) { this.onError(error); }
+    try { await this.connections.setSpawned?.([]); } catch (error) { this.onError(error); }
     try { await this.connections.setNearby([]); } catch (error) { this.onError(error); }
   }
   diagnostic() {
-    return {profiles: [...this.profiles], partners: [...this.partners], voices: Object.fromEntries([...this.voices].map(([profile, voice]) => [profile, voice.state]))};
+    return {profiles: [...this.profiles], partners: [...this.partners], spawned: [...this.spawned], voices: Object.fromEntries([...this.voices].map(([profile, voice]) => [profile, voice.state]))};
   }
 }

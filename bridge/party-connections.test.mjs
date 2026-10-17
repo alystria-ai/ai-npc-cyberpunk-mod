@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {PartyConnections, parsePartyConnections, connectionKey, CONNECTION_LIMIT} from './party-connections.mjs';
+import {PartyConnections, parsePartyConnections, connectionKey, CONNECTION_LIMIT, SPAWNED_LIMIT, spawnedWarmLimit} from './party-connections.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
 
 const flush = () => new Promise(done => setImmediate(done));
@@ -9,7 +9,7 @@ const profiles = ['alex', 'judy', 'panam', 'kerry', 'viktor', 'misty', 'river', 
 // Characters beyond the eight warm private connections (the party has no size limit).
 const extraProfiles = ['evelyn', 'claire', 'wakako', 'rogue', 'takemura', 'saul', 'goro', 'hanako'];
 const everyone = [...profiles, ...extraProfiles];
-function fixture({canWarm = () => true, deferWarm} = {}) {
+function fixture({canWarm = () => true, deferWarm, spawnedLimit, warmDeferred} = {}) {
   let time = 100000;
   const live = new Map(), calls = [], reports = [], pending = [], refreshes = [];
   const host = {fail: false, defer: false,
@@ -40,7 +40,7 @@ function fixture({canWarm = () => true, deferWarm} = {}) {
       live.delete(identity); return true;
     },
   };
-  const connections = new PartyConnections({host, now: () => time, canWarm, ...(deferWarm ? {deferWarm} : {}),
+  const connections = new PartyConnections({host, now: () => time, canWarm, ...(deferWarm ? {deferWarm} : {}), ...(spawnedLimit ? {spawnedLimit} : {}), ...(warmDeferred ? {warmDeferred} : {}),
     isKnown: profile => [...everyone, 'nearby'].includes(profile),
     configFor: (profile, scope) => ({key: 'secret-key', characterId: profile, scope, sessionId: 'secret-session'}),
     onState: state => reports.push(state),
@@ -585,5 +585,103 @@ test('with a single-session plan a busy conversation holds the invitation until 
   busy = false;
   assert.equal((await f.connections.warmInvitation('judy')).ready, true);
   assert.equal(f.calls.length, 1);
+  await f.connections.clear();
+});
+
+// Characters another mod or a spawner created (docs/SPAWNED_CHARACTERS.md): their connection is opened when the game first lists them
+// near V, so the first talk does not pay it. Three at most, one page per profile, the plan's rules on a player's own key.
+test('spawned characters get a private connection above nearby ones, below the party, partners and the target', async () => {
+  const f = fixture(); f.heartbeat(['alex']);
+  await f.connections.setNearby(['kerry', 'viktor']);
+  await f.connections.setSpawned(['judy', 'panam']);
+  assert.deepEqual(f.connections.plan().map(spec => [spec.profile, spec.scope, spec.role]),
+    [['alex', 'private', 'party'], ['judy', 'private', 'spawned'], ['panam', 'private', 'spawned'],
+      ['kerry', 'private', 'nearby'], ['viktor', 'private', 'nearby']]);
+  await f.connections.setPartners(['panam']);
+  assert.deepEqual(f.connections.plan().map(spec => [spec.profile, spec.role]),
+    [['alex', 'party'], ['panam', 'partner'], ['judy', 'spawned'], ['kerry', 'nearby'], ['viktor', 'nearby']], 'a partner keeps the stronger role');
+  for (let at = 0; at < 6; at++) await f.step(500);
+  assert.deepEqual(f.calls.map(call => call.profile).sort(), ['alex', 'judy', 'kerry', 'panam', 'viktor']);
+  for (const call of f.calls) assert.equal(call.scope, 'private');
+  // A spawned character is dropped when the game stops listing it: its page closes (unload what is unused).
+  await f.connections.setSpawned([]);
+  assert(!f.live.has(connectionKey('judy', 'private')) && f.live.has(connectionKey('alex', 'private')));
+  assert.deepEqual(f.connections.diagnostic().spawned, []);
+});
+
+test('at most three spawned characters, one page per profile, and invalid lists are refused', async () => {
+  assert.equal(SPAWNED_LIMIT, 3);
+  const f = fixture(); f.heartbeat(['alex', 'judy']);
+  await f.connections.setSpawned(['judy', 'panam', 'kerry', 'viktor', 'panam']);
+  assert.deepEqual(f.connections.spawned, ['judy', 'panam', 'kerry'], 'listed three, no repeat');
+  // Judy is a party member: one connection, her party role; the spawned copy adds nothing.
+  assert.deepEqual(f.connections.plan().filter(spec => spec.scope === 'private').map(spec => [spec.profile, spec.role]),
+    [['alex', 'party'], ['judy', 'party'], ['panam', 'spawned'], ['kerry', 'spawned']]);
+  assert.throws(() => f.connections.setSpawned('judy'), /Invalid spawned profiles/);
+  assert.throws(() => f.connections.setSpawned(['bad/key']), /Invalid spawned profiles/);
+  const revision = f.connections.revision;
+  await f.connections.setSpawned(['judy', 'panam', 'kerry']); assert.equal(f.connections.revision, revision, 'the same list is a no-op');
+  for (let at = 0; at < 5; at++) await f.step(500);
+  assert.equal(f.calls.filter(call => call.profile === 'judy').length, 1, 'a profile in two roles is opened once');
+  // A profile no one knows is never opened.
+  await f.connections.setSpawned(['stranger']);
+  assert.deepEqual(f.connections.plan().filter(spec => spec.role === 'spawned'), []);
+  // A stale party heartbeat clears the list with everything else.
+  await f.connections.setSpawned(['panam']);
+  await f.connections.clear(); assert.deepEqual(f.connections.spawned, []);
+  assert.deepEqual(f.connections.plan(), []);
+});
+
+test('the spawned count follows the plan: fewer on a player key with a smaller plan, none when it holds one connection', async () => {
+  let limit = 3;
+  const f = fixture({spawnedLimit: () => limit}); f.heartbeat([]);
+  await f.connections.setSpawned(['judy', 'panam', 'kerry']);
+  const spawned = () => f.connections.plan().filter(spec => spec.role === 'spawned').map(spec => spec.profile);
+  assert.equal(spawned().length, 3);
+  limit = 1; assert.deepEqual(spawned(), ['judy']);
+  limit = 9; assert.equal(spawned().length, 3, 'never above three');
+  assert.equal(spawnedWarmLimit(), SPAWNED_LIMIT, 'the shared key');
+  assert.equal(spawnedWarmLimit({singleSession: true, connectionLimit: 6}), 3, 'a confirmed paid plan');
+  assert.equal(spawnedWarmLimit({singleSession: true, connectionLimit: 4}), 3);
+  assert.equal(spawnedWarmLimit({singleSession: true, connectionLimit: 3}), 2);
+  assert.equal(spawnedWarmLimit({singleSession: true, connectionLimit: 2}), 1);
+  assert.equal(spawnedWarmLimit({singleSession: true, connectionLimit: 1}), 0, 'a free, unknown or unread plan');
+  assert.equal(spawnedWarmLimit({singleSession: true}), 0);
+  assert.equal(spawnedWarmLimit({singleSession: true, connectionLimit: NaN}), 0);
+  assert.equal(spawnedWarmLimit({singleSession: false, textProvider: true}), 0, 'Mistral or the local AI');
+  assert.equal(spawnedWarmLimit({singleSession: true, connectionLimit: 6, textProvider: true}), 0);
+  const none = fixture({spawnedLimit: () => 0}); none.heartbeat([]);
+  await none.connections.setSpawned(['judy']);
+  assert.deepEqual(none.connections.plan(), []);
+});
+
+test('on a single-session plan with room only spawned characters are pre-opened; nothing else is, and a shared profile opens once', async () => {
+  let room = true;
+  const f = fixture({deferWarm: () => true, warmDeferred: () => room});
+  f.heartbeat(['alex', 'judy']);
+  await f.connections.setNearby(['kerry', 'viktor']);
+  await f.connections.setSpawned(['judy', 'panam']);
+  for (let at = 0; at < 6; at++) await f.step(500);
+  // Panam (spawned only) and Judy (a party member the spawned copy shares): open. Alex and the nearby ones are not.
+  assert.deepEqual(f.calls.map(call => call.profile).sort(), ['judy', 'panam']);
+  assert.equal(f.connections.entries.get(connectionKey('judy', 'private')).role, 'party');
+  assert.equal(f.connections.entries.get(connectionKey('judy', 'private')).alsoSpawned, true);
+  assert(!f.live.has(connectionKey('alex', 'private')) && !f.live.has(connectionKey('kerry', 'private')));
+  assert.deepEqual(await f.connections.invitationReadiness('alex'), {present: true, ready: true, busy: false, deferred: true}, 'invitations unchanged');
+  // The plan loses its room: nothing new opens.
+  room = false;
+  await f.connections.setSpawned(['panam', 'kerry']);
+  for (let at = 0; at < 4; at++) await f.step(500);
+  assert.equal(f.calls.filter(call => call.profile === 'kerry').length, 0, 'no room: not opened');
+  assert.equal(f.calls.length, 2);
+  await f.connections.clear();
+});
+
+test('on a single-session plan without room spawned characters open nothing, as before', async () => {
+  const f = fixture({deferWarm: () => true, warmDeferred: () => false});
+  f.heartbeat([]); await f.connections.setSpawned(['judy']);
+  for (let at = 0; at < 4; at++) await f.step(500);
+  assert.equal(f.calls.length, 0);
+  assert.equal(f.connections.entries.get(connectionKey('judy', 'private')).state, 'waiting', 'listed, not opened');
   await f.connections.clear();
 });
