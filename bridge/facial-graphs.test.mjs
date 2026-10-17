@@ -202,7 +202,10 @@ test('conversation start reports the spawn decision and keeps the talk-time guar
   assert.match(nativeFace.slice(nativeFace.indexOf('public final func ConvaiFaceReset(')), /return this\.ConvaiFaceApply\(new ConvaiFaceFeature\(\)\);/,
     'the reset is a fresh all-zero feature: speech_owner 0 closes the gate');
   const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
-  assert.equal([...init.matchAll(/:ConvaiFaceRequest\(\)/g)].length, 4, 'composer, microphone, group speaker and the dev-only scripted talk only');
+  assert.equal([...init.matchAll(/:ConvaiFaceRequest\(\)/g)].length, 5,
+    'composer, microphone, group speaker, the dev-only scripted talk and (phase 2) a spawned character speaking a battle or loot reaction');
+  assert.match(init, /if person\.spawned then pcall\(function\(\) return person\.npc:ConvaiFaceRequest\(\) end\) end/,
+    'the reaction site is for a spawned speaker only: our companions have their own face');
   const gaze = init.slice(init.indexOf('local function updateGaze'), init.indexOf('local function updateGaze') + 4000);
   assert.doesNotMatch(gaze, /ConvaiFaceRequest/, 'a glance never touches an NPC face');
 });

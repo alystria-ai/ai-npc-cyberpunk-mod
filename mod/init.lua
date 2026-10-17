@@ -318,7 +318,14 @@ gameplayActions = dofile('gameplay-actions.lua').new({
     followOffer = function(entity, context)
         return adoption and adoption.offer(entity, conversationNpc(entity), context.profileKey, context.name) or nil
     end,
-    leaveOffer = function(entity, context) return adoption and adoption.leaveOffer(entity, context) or nil end,
+    leaveOffer = function(entity, context)
+        -- A character another mod or a spawner created makes no offers about our party (docs/SPAWNED_CHARACTERS.md).
+        local round = groupChat.round
+        for _, person in ipairs(round and round.participants or {}) do
+            if person.entity == entity and person.spawned then return nil end
+        end
+        return adoption and adoption.leaveOffer(entity, context) or nil
+    end,
     queueFollow = function(offer, entity, requestId)
         if not adoption then return false, ui.t('That action is not available.') end
         return adoption.queueFollow(offer, entity, requestId)
@@ -668,6 +675,77 @@ convaiWorldPolicy = {
     end,
 }
 
+-- Characters another mod or a spawner created, in group chat and in battle and loot reactions (phase 2,
+-- docs/SPAWNED_CHARACTERS.md). A global table, so no function here gains an upvalue. Nothing in it runs per frame: 'nearby'
+-- answers a group key press, 'watch' a combat start or a pickup (both one targeting query, reused for a few seconds),
+-- 'sample' is a boolean compare at the observer's own half-second poll, and 'reactionRows' reads only the (at most
+-- three) characters 'watch' remembered, by entity ID, and nothing while there are none. They never enter 'companions'.
+-- Only a roster character (not a resident or an archetype) joins: the bridge keys a round by profile, and a generic
+-- passer-by is not one person. Our own copy of the same profile always comes first, so the spawned copy is the one skipped.
+convaiSpawnedPeople = {
+    combat = false,
+    named = function(key)
+        return type(key) == 'string' and not archetypes.keys[key] and key ~= 'resident-male' and key ~= 'resident-female'
+            and not key:match('^npc%-')
+    end,
+    -- Rows for the spawned characters within radius that have an enabled roster profile, nearest first. Same row shape as
+    -- companions.conversationCandidates, plus spawned = true.
+    nearby = function(player, radius)
+        local rows, service = {}, convaiSpawnedCharacters
+        if service == nil or not player or not service:available() then return rows end
+        local ok, found = pcall(service.nearby, service, player, radius)
+        if not ok or type(found) ~= 'table' then return rows end
+        for _, row in ipairs(found) do
+            local named, key, name, body = pcall(profileIdentity, row.npc)
+            if named and key and supportedProfiles[key] and convaiSpawnedPeople.named(key) and manager.profileEnabled(key) then
+                rows[#rows + 1] = {npc = row.npc, id = row.id, entity = row.entity, profileKey = key, name = name,
+                    bodyType = body, distance = row.distance, spawned = true}
+            end
+        end
+        return rows
+    end,
+    -- Remember who is near V for the reactions of the next minutes (a combat start, a pickup).
+    watch = function(player)
+        local service = convaiSpawnedCharacters
+        if service == nil or not player then return end
+        pcall(service.watch, service, convaiSpawnedPeople.nearby(player, 20))
+    end,
+    -- The observer's half-second sample: the start of a fight is the edge that asks for a watch (never while off).
+    sample = function(player, observation, enabled)
+        local combat = type(observation) == 'table' and observation.available == true and observation.combat == true
+        if not combat then convaiSpawnedPeople.combat = false; return end
+        if convaiSpawnedPeople.combat then return end
+        convaiSpawnedPeople.combat = true
+        if enabled then convaiSpawnedPeople.watch(player) end
+    end,
+    -- The remembered characters that are still here, friendly to V and within 20 m: {npc, entity, profileKey, name,
+    -- bodyType, distance, spawned = true}. The caller adds who can speak right now.
+    reactionRows = function(player)
+        local service = convaiSpawnedCharacters
+        if service == nil or not player then return {} end
+        local ok, watched = pcall(service.watching, service)
+        if not ok or type(watched) ~= 'table' or #watched == 0 then return {} end
+        local rows = {}
+        local placed, origin = pcall(function() return player:GetWorldPosition() end)
+        if not placed then return rows end
+        for _, row in ipairs(watched) do
+            local good, distance = pcall(function()
+                if not manager.profileEnabled(row.profileKey) or not supportedProfiles[row.profileKey] then return nil end
+                -- One that turned hostile is an enemy, not a witness.
+                if row.npc:GetAttitudeAgent():GetAttitudeTowards(player:GetAttitudeAgent())
+                    == Enum.new('EAIAttitude', 'AIA_Hostile') then return nil end
+                local at = row.npc:GetWorldPosition()
+                return math.sqrt((at.x - origin.x)^2 + (at.y - origin.y)^2 + (at.z - origin.z)^2)
+            end)
+            if good and distance and distance <= 20 then
+                rows[#rows + 1] = {npc = row.npc, entity = row.entity, profileKey = row.profileKey, name = row.name,
+                    bodyType = row.bodyType, distance = distance, spawned = true}
+            end
+        end
+        return rows
+    end,
+}
+
 -- Recent game dialogue (subtitled scene lines and V's chosen options), attached
 -- to manual turns so a reply follows on from what was just said in the game.
 -- See docs/GAME_DIALOGUE_CONTEXT.md. The bridge scopes it to the addressee.
@@ -744,7 +822,16 @@ do
     local loaded, module = pcall(dofile, 'turn-context.lua')
     convaiTurnContext = loaded and type(module) == 'table' and type(module.new) == 'function' and module.new({
         place = function() return currentDistrict() end,
-        party = function(player, radius) return companions.conversationCandidates(player, radius) end,
+        party = function(player, radius)
+            local rows = companions.conversationCandidates(player, radius)
+            -- The spawned characters of the group round this turn belongs to are with V too (they were chosen within 8 m).
+            -- They carry no activity: nothing of ours knows what another mod's character is doing.
+            local round = groupChat.round
+            for _, person in ipairs(round and round.participants or {}) do
+                if person.spawned then rows[#rows + 1] = {profileKey = person.profileKey, name = person.name} end
+            end
+            return rows
+        end,
         -- Read the game's dialogue volume only while V's voice for typed lines is on and the voice can clone (the bridge plays V at that level).
         wantVolume = function() return manager.vVoiceActive() == true end,
         -- What each companion is doing and how V moves: the companion modules' own state, read once per turn window.
@@ -755,6 +842,9 @@ do
             return companions.activityInputs(seats)
         end}) or nil
     microphone.captureTurnContext = function() return convaiTurnContext and convaiTurnContext:capture() or nil end
+    -- A group round with a character another mod or a spawner created in it needs a party row for that character: read it
+    -- afresh rather than reuse a snapshot a private turn took a moment earlier (nothing else changes for other rounds).
+    groupChat.onSpawned = function() if convaiTurnContext then convaiTurnContext:reset('group-spawned') end end
     -- A phone chat reads it once per message too (mod/phone-chat.lua, when the message is sent).
     phoneChat.captureTurnContext = microphone.captureTurnContext
 end
@@ -1488,6 +1578,11 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
             if profileEnabled(player, candidate.profileKey) then enabled[#enabled + 1] = candidate end
         end
         candidates = enabled
+        -- Characters another mod or a spawner created join after V's own companions (docs/SPAWNED_CHARACTERS.md, phase 2):
+        -- one targeting query on this key press, and none once three companions already fill the round.
+        if #candidates < 3 and convaiSpawnedPeople then
+            for _, row in ipairs(convaiSpawnedPeople.nearby(player, 8)) do candidates[#candidates + 1] = row end
+        end
     end
     -- An installed add-on's voice (docs/ADDON_API.md: a talking gun in V's hand, a cab's voice) answers the talk keys while it
     -- is available and no character with a profile is under the crosshair; in a group it joins the nearby companions.
@@ -1535,7 +1630,8 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
         return nil
     end
     if not profileEnabled(player, key) then log('Companion disabled in manager: ' .. name); return nil end
-    local primary = {npc = npc, name = name, entity = tostring(npc:GetEntityID().hash), bodyType = bodyType, profileKey = key}
+    local primary = {npc = npc, name = name, entity = tostring(npc:GetEntityID().hash), bodyType = bodyType, profileKey = key,
+        spawned = convaiWorldPolicy ~= nil and convaiWorldPolicy.spawned(npc) or nil}
     -- An archetype or resident learns which kind of NPC it is and where it stands
     -- (a summoned archetype copy from its profile key alone).
     if not archetype and archetypes.keys[key] and type(characterCatalog.describe) == 'function' then
@@ -2165,6 +2261,21 @@ local function reactionPeople(player, observation)
             end
         end
     end
+    -- Characters another mod or a spawner created that were near V when the fight began or a pickup was made
+    -- (convaiSpawnedPeople, docs/SPAWNED_CHARACTERS.md). Nothing is read while none are remembered; our own copy of a
+    -- profile always keeps its place, and the spawned one of that profile is left out.
+    local nearby = convaiSpawnedPeople and convaiSpawnedPeople.reactionRows(player) or {}
+    if #nearby > 0 then
+        local present = {}
+        for _, person in ipairs(people) do present[person.profileKey] = true end
+        for _, person in ipairs(nearby) do
+            if not present[person.profileKey] then
+                present[person.profileKey] = true
+                person.available, person.availableReason, person.voiceBusy = battleObserver.canSpeak(person.npc, combat and 'start' or 'end')
+                people[#people + 1] = person
+            end
+        end
+    end
     return people, ok
 end
 
@@ -2180,6 +2291,8 @@ local function captureLootContext(player)
             and not Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu)
             and not player:ConvaiComposerOpen()
     end)
+    -- A pickup is the event that asks who is near (spawned characters are found by a scan, reused for a few seconds).
+    if convaiSpawnedPeople and manager.lootReactions() then convaiSpawnedPeople.watch(player) end
     return {available = observation.available, blocked = observation.blocked,
         worldReady = ready, enabled = manager.lootReactions(), now = os.time(),
         people = reactionPeople(player, observation)}
@@ -2191,6 +2304,9 @@ local function updateBattles(player, elapsed, worldReady)
         battlePoll = 0
         battleSample = battleObserver.sample(player)
         battleSampleAt = os.time() * 1000
+        if convaiSpawnedPeople then
+            convaiSpawnedPeople.sample(player, battleSample, manager.battleReactions() or manager.lootReactions())
+        end
         battlePeople, battleCandidatesOk = reactionPeople(player, battleSample)
         battleOutputs = reactionOutputs(player)
     end
@@ -2314,6 +2430,8 @@ local function updateBattles(player, elapsed, worldReady)
         end
         if not claimed then cancelAutomatic('claim-failed'); return end
         speech.target = person.npc
+        -- A character another mod or a spawner created speaks with the face it was prepared with at spawn.
+        if person.spawned then pcall(function() return person.npc:ConvaiFaceRequest() end) end
         lastAutomatic = {at = now, requestId = context.requestId, kind = event.reaction.kind,
             phase = event.phase, encounter = event.encounter}
         log('Automatic ' .. event.reaction.kind .. ' reaction: ' .. tostring(event.phase or 'batch') .. ' speaker=' .. person.profileKey

@@ -2,6 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
+import {turnContext} from './turn-context.mjs';
+import {parseInput} from './protocol.mjs';
 
 // Characters another mod or a spawner created (docs/SPAWNED_CHARACTERS.md): generic recognition from the shared dynamic
 // entity system, the talk path with their own roster profile, eye contact without fighting their AI, and nothing else.
@@ -178,4 +180,297 @@ test('wiring: identity marks spawned copies as not world, caches reset with the 
   assert.match(engagement, /public final func ConvaiBeginFocus\(npc: wref<NPCPuppet>, opt keepAI: Bool\) -> Bool/);
   assert.match(engagement, /if !keepAI && \(npc\.IsCrowd\(\) \|\| npc\.IsCharacterCivilian\(\)\) && !inWorkspot \{/);
   assert.match(engagement, /part\.weight = \(keepAI \|\| npc\.IsPlayerCompanion\(\)\) \? 0\.0 :/);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Phase 2: group chat and battle and loot reactions (docs/SPAWNED_CHARACTERS.md).
+const groupSource = read('../mod/group-chat.lua');
+const battlePolicySource = read('../mod/battle-reactions.lua');
+const lootPolicySource = read('../mod/loot-reactions.lua');
+
+// A fake world for the service: npcs with positions, a scan that counts its calls, a clock the test moves.
+const fakeWorld = `
+  local now, scans, finds = 0, 0, 0
+  local kinds, positions, alive, ready = {}, {}, {}, true
+  local function npc(hash, x, kind)
+    kinds[hash], positions[hash], alive[hash] = kind, x, true
+    return {hash = hash,
+      GetEntityID = function(self) return {hash = self.hash} end,
+      IsAttached = function(self) return alive[self.hash] end,
+      IsDeadNoStatPool = function() return false end,
+      GetWorldPosition = function(self) return {x = positions[self.hash], y = 0, z = 0} end}
+  end
+  local player = {GetWorldPosition = function() return {x = 0, y = 0, z = 0} end}
+  local scene = {}
+  local service = S.new({clock = function() return now end, ready = function() return ready end,
+    scan = function() scans = scans + 1; return scene end,
+    find = function(id) finds = finds + 1; for _, n in ipairs(scene) do if n.hash == id.hash then return n end end return nil end,
+    read = function(n)
+      local kind = kinds[n.hash]
+      if kind == 'game' then return {managed = false} end
+      if kind == 'ours' then return {managed = true, own = true} end
+      return {managed = true, tags = {'SomeSpawnerTag'}}
+    end})
+`;
+
+test('nearby: one scan on demand finds spawned characters only, nearest first, and answers again for a few seconds', () => withModule(`${fakeWorld}
+  scene[1], scene[2], scene[3], scene[4], scene[5] = npc('1', 6, 'spawned'), npc('2', 2, 'spawned'), npc('3', 3, 'game'),
+    npc('4', 4, 'ours'), npc('5', 30, 'spawned')
+  assert(scans == 0, 'nothing runs until it is asked')
+  local rows = service:nearby(player, 8)
+  assert(scans == 1 and #rows == 2, 'the game-placed, our own and the far one are left out: ' .. #rows)
+  assert(rows[1].entity == '2' and rows[2].entity == '1' and rows[1].distance == 2 and rows[1].npc == scene[2], 'nearest first')
+  assert(rows[1].id.hash == '2', 'the entity ID travels with the row')
+  now = 2.9
+  assert(#service:nearby(player, 8) == 2 and scans == 1, 'reused within the window')
+  assert(#service:nearby(player, 3) == 1 and scans == 1, 'a smaller radius filters the same answer')
+  assert(#service:nearby(player, 40) == 3 and scans == 2, 'a larger radius than the answer covers asks again')
+  now = 6.5
+  alive['1'] = false
+  local later = service:nearby(player, 40)
+  assert(scans == 3 and #later == 2, 'after the window: asked again, and a detached character is gone')
+  now = 5 -- a clock that went backwards never serves an old answer
+  service:nearby(player, 8); assert(scans == 4)
+  ready = false
+  assert(#service:nearby(player, 8) == 0 and scans == 4 and service:available() == false,
+    'without the dynamic entity system nothing is scanned')
+  ready = true
+  local broken = S.new({clock = function() return 0 end, ready = function() return true end,
+    scan = function() error('native failure') end})
+  assert(#broken:nearby(player, 8) == 0, 'a failing scan is no answer, not an error')
+  assert(#service:nearby(nil, 8) == 0)
+`));
+
+test('watch and watching: entity IDs only, at most three, resolved when asked, gone ones dropped, expiry, reset', () => withModule(`${fakeWorld}
+  for i = 1, 5 do scene[i] = npc(tostring(i), i, 'spawned') end
+  local rows = {}
+  for i = 1, 5 do rows[i] = {id = {hash = tostring(i)}, entity = tostring(i), profileKey = 'k' .. i, name = 'N' .. i,
+    bodyType = 'WomanAverage', npc = scene[i], extra = true} end
+  assert(#service:watching() == 0 and finds == 0, 'nothing is read while nobody is watched')
+  service:watch(rows)
+  assert(#service.watched == S.WATCH_LIMIT and S.WATCH_LIMIT == 3)
+  for _, row in ipairs(service.watched) do assert(row.npc == nil and row.extra == nil, 'no entity handle is kept') end
+  local seen = service:watching()
+  assert(#seen == 3 and finds == 3 and seen[1].npc == scene[1] and seen[1].profileKey == 'k1' and seen[3].entity == '3')
+  alive['2'] = false
+  seen = service:watching()
+  assert(#seen == 2 and seen[2].entity == '3' and #service.watched == 2, 'a character that left is dropped for good')
+  alive['2'] = true
+  assert(#service:watching() == 2)
+  now = S.WATCH_SECONDS + 1
+  finds = 0
+  assert(#service:watching() == 0 and finds == 0 and #service.watched == 0, 'expired: nothing is resolved')
+  service:watch(rows); service:reset()
+  assert(#service:watching() == 0 and service.scanned == nil)
+  service:watch({}); assert(#service.watched == 0 and service.watchedAt == nil)
+  service:watch(nil); assert(#service.watched == 0)
+`));
+
+// The adapter's side, cut out of init.lua: the global table, with stubs for what it reads.
+const peopleSource = between('convaiSpawnedPeople = {', '-- Recent game dialogue');
+function peopleRun(body) {
+  run(`
+    local S = (function() ${moduleSource} end)()
+    Enum = {new = function(_, name) return name end}
+    local now, scans, finds = 0, 0, 0
+    local info, positions, attitude = {}, {}, {}
+    local scene = {}
+    local player = {GetWorldPosition = function() return {x = 0, y = 0, z = 0} end, GetAttitudeAgent = function() return 'player' end}
+    local function npc(hash, x, key, name)
+      info[hash] = {key = key, name = name}; positions[hash] = x; attitude[hash] = 'AIA_Friendly'
+      return {hash = hash,
+        GetEntityID = function(self) return {hash = self.hash} end,
+        IsAttached = function() return true end, IsDeadNoStatPool = function() return false end,
+        GetWorldPosition = function(self) return {x = positions[self.hash], y = 0, z = 0} end,
+        GetAttitudeAgent = function(self) return {GetAttitudeTowards = function() return attitude[self.hash] end} end}
+    end
+    convaiSpawnedCharacters = S.new({clock = function() return now end, ready = function() return true end,
+      scan = function() scans = scans + 1; return scene end,
+      find = function(id) finds = finds + 1; for _, n in ipairs(scene) do if n.hash == id.hash then return n end end return nil end,
+      read = function() return {managed = true, tags = {'SomeSpawnerTag'}} end})
+    archetypes = {keys = {['npc-maelstrom-male'] = true, ['vendor'] = true}}
+    supportedProfiles = {['judy-alvarez'] = true, ['panam-palmer'] = true, ['resident-male'] = true, ['npc-maelstrom-male'] = true,
+      ['vendor'] = true, ['off'] = true}
+    manager = {profileEnabled = function(key) return key ~= 'off' end}
+    function profileIdentity(n)
+      local row = info[n.hash]
+      if not row then return nil end
+      return row.key, row.name, 'WomanAverage'
+    end
+    ${peopleSource}
+    ${body}
+  `);
+}
+
+test('adapter nearby: spawned characters with an enabled roster profile; residents, archetypes and unknowns never join', () => peopleRun(`
+  scene[1], scene[2], scene[3], scene[4], scene[5], scene[6], scene[7] =
+    npc('1', 5, 'judy-alvarez', 'Judy Alvarez'), npc('2', 2, 'panam-palmer', 'Panam Palmer'), npc('3', 3, 'resident-male', 'Pedestrian'),
+    npc('4', 4, 'npc-maelstrom-male', 'Maelstrom'), npc('5', 1, 'off', 'Disabled'), npc('6', 1.5, nil, 'No profile'),
+    npc('7', 6, 'vendor', 'Vendor')
+  local rows = convaiSpawnedPeople.nearby(player, 8)
+  assert(#rows == 2 and rows[1].profileKey == 'panam-palmer' and rows[2].profileKey == 'judy-alvarez', #rows)
+  assert(rows[1].spawned == true and rows[1].entity == '2' and rows[1].name == 'Panam Palmer' and rows[1].bodyType == 'WomanAverage'
+    and rows[1].distance == 2 and rows[1].npc == scene[2], 'the row shape of companions.conversationCandidates, plus spawned')
+  convaiSpawnedCharacters = nil
+  assert(#convaiSpawnedPeople.nearby(player, 8) == 0, 'without the module nothing joins')
+`));
+
+test('adapter reactions: a fight start or a pickup asks once who is near; the watch list answers cheaply and drops enemies', () => peopleRun(`
+  scene[1], scene[2], scene[3] = npc('1', 5, 'judy-alvarez', 'Judy Alvarez'), npc('2', 18, 'panam-palmer', 'Panam Palmer'),
+    npc('3', 30, 'panam-palmer', 'Too far')
+  local P = convaiSpawnedPeople
+  assert(#P.reactionRows(player) == 0 and finds == 0 and scans == 0, 'nothing is read before the first event')
+  -- Out of combat: no scan, however often the observer samples.
+  for _ = 1, 50 do P.sample(player, {available = true, combat = false}, true) end
+  assert(scans == 0)
+  -- The fight starts: one scan. The rest of the fight is booleans.
+  P.sample(player, {available = true, combat = true}, true)
+  assert(scans == 1)
+  for _ = 1, 50 do P.sample(player, {available = true, combat = true}, true) end
+  assert(scans == 1, 'one scan per fight start')
+  local rows = P.reactionRows(player)
+  assert(#rows == 2 and rows[1].spawned == true and rows[1].profileKey == 'judy-alvarez' and rows[1].npc == scene[1]
+    and rows[1].distance == 5 and rows[2].profileKey == 'panam-palmer' and rows[2].distance == 18, #rows)
+  -- Someone who turns hostile, or walks off, is not a witness while that lasts.
+  attitude['1'] = 'AIA_Hostile'; positions['2'] = 25
+  assert(#P.reactionRows(player) == 0)
+  attitude['1'] = 'AIA_Friendly'; positions['2'] = 18
+  manager.profileEnabled = function(key) return key ~= 'judy-alvarez' end
+  rows = P.reactionRows(player); assert(#rows == 1 and rows[1].profileKey == 'panam-palmer')
+  manager.profileEnabled = function() return true end
+  -- A new fight is a new edge; with both reactions off the edge costs nothing.
+  P.sample(player, {available = true, combat = false}, true)
+  now = 10; P.sample(player, {available = true, combat = true}, false)
+  assert(scans == 1, 'the setting is off: no scan')
+  P.sample(player, {available = true, combat = false}, false)
+  now = 20; P.sample(player, {available = true, combat = true}, true)
+  assert(scans == 2)
+  -- A pickup asks too (the scan itself is reused for a few seconds).
+  now = 21; P.watch(player); assert(scans == 2)
+  now = 30; P.watch(player); assert(scans == 3)
+  -- An unavailable observation is not a fight.
+  P.sample(player, {available = false, combat = true}, true); assert(P.combat == false)
+  P.sample(player, nil, true); assert(P.combat == false)
+  convaiSpawnedCharacters = nil
+  P.watch(player); assert(#P.reactionRows(player) == 0)
+`));
+
+test('reaction people: spawned witnesses join the observer list after our companions, one per profile, and battle and loot take them', () => {
+  const reactionSource = between('local function reactionPeople(player, observation)', '-- Source callbacks obtain');
+  run(`
+    local policyModule = (function() ${battlePolicySource} end)()
+    local lootModule = (function() ${lootPolicySource} end)()
+    local available = {}
+    battleObserver = {canSpeak = function(n, phase) available[#available + 1] = n.tag .. ':' .. phase; return true, 'available', false end}
+    battles = {status = function() return {state = 'none'} end}
+    supportedProfiles = {['judy-alvarez'] = true, ['panam-palmer'] = true, ['alex'] = true}
+    manager = {profileEnabled = function() return true end}
+    local ours = {npc = {tag = 'ours'}, entity = '1ULL', profileKey = 'judy-alvarez', name = 'Judy', bodyType = 'WomanAverage', distance = 2}
+    companions = {conversationCandidates = function() return {ours} end}
+    local rows = {}
+    convaiSpawnedPeople = {reactionRows = function() return rows end}
+    ${reactionSource}
+    local player = {}
+    -- Nobody watched: exactly the companions, no extra native call.
+    local people, ok = reactionPeople(player, {combat = true})
+    assert(ok and #people == 1 and #available == 1 and people[1] == ours, 'companions only')
+    -- Watched: the spawned panam joins; the spawned judy is left out because our own Judy already speaks for that profile.
+    rows = {{npc = {tag = 'spawned-judy'}, entity = '8ULL', profileKey = 'judy-alvarez', name = 'Judy Alvarez', bodyType = 'WomanAverage', distance = 4, spawned = true},
+      {npc = {tag = 'spawned-panam'}, entity = '9ULL', profileKey = 'panam-palmer', name = 'Panam Palmer', bodyType = 'WomanAverage', distance = 6, spawned = true}}
+    available = {}
+    people = reactionPeople(player, {combat = true})
+    assert(#people == 2 and people[2].entity == '9ULL' and people[2].spawned == true and people[2].available == true, 'merged: ' .. #people)
+    assert(available[2] == 'spawned-panam:start', 'its speaking availability is asked like a companion: ' .. tostring(available[2]))
+    people = reactionPeople(player, {combat = false})
+    assert(available[#available] == 'spawned-panam:end', 'after the fight the phase is end: ' .. tostring(available[#available]))
+    -- The battle policy takes them as witnesses by entity and profile, and offers them a turn.
+    local policy = policyModule.new()
+    local now = 1000
+    local sample = {available = true, blocked = false, combat = false, opponents = {}}
+    local function tick(dt, combat) now = now + dt; sample.combat = combat; policy.update(sample, dt, now, true, people) end
+    tick(0, false); tick(.5, true); tick(3, true)
+    local offer = assert(policy.offer(false, {people[2]}, now), 'battle offer')
+    assert(offer.person.entity == '9ULL' and offer.person.profileKey == 'panam-palmer' and offer.phase == 'start', 'offer person')
+    local names = table.concat(policy.capture().witnesses, ',')
+    assert(names == 'judy-alvarez,panam-palmer', 'the spawned character is mentioned by profile: ' .. names)
+    -- The loot policy takes the same rows: a pickup comment can come from the spawned character.
+    local loot = lootModule.new()
+    local lootNow = 1000
+    local function lootTick(dt) lootNow = lootNow + dt; loot.update({available = true, blocked = false, paused = false, combat = false, holdForBattle = false}, dt, lootNow, true, people) end
+    lootTick(0)
+    local accepted = loot.acquire({acquisitionId = 'one', identity = 'hash-one', record = 'Items.Drink', name = 'NiCola', quantity = 1,
+      quality = 'Common', category = 'Consumable', newlyAcquired = false, source = 'world', confirmed = true}, {people[2]}, lootNow)
+    assert(accepted, 'a pickup seen by the spawned character is accepted')
+    for _ = 1, 6 do lootTick(1) end
+    local event = assert(loot.offer(false, people, lootNow), 'loot offer')
+    assert(event.person.entity == '9ULL' and event.person.profileKey == 'panam-palmer' and event.reaction.kind == 'loot', 'loot person')
+    -- Without the helper (an old install) nothing changes.
+    convaiSpawnedPeople = nil
+    people = reactionPeople(player, {combat = true}); assert(#people == 1, 'without helper')
+  `);
+});
+
+test('turn context: the spawned characters of the group round are with V, with no activity; other turns are unchanged', () => {
+  const partySource = between('        party = function(player, radius)', '        -- Read the game\'s dialogue volume').replace(/,\s*$/, '');
+  run(`
+    companions = {conversationCandidates = function() return {{profileKey = 'panam-palmer', name = 'Panam'}} end}
+    groupChat = {round = nil}
+    local party
+    ${partySource.replace(/^\s*party = function/, 'party = function')}
+    local rows = party({}, 15)
+    assert(#rows == 1, 'no round: just the companions')
+    groupChat.round = {participants = {{profileKey = 'judy-alvarez', name = 'Judy Alvarez', spawned = true},
+      {profileKey = 'panam-palmer', name = 'Panam'}, {profileKey = 'alex', name = 'Alex'}}}
+    rows = party({}, 15)
+    assert(#rows == 2 and rows[2].profileKey == 'judy-alvarez' and rows[2].name == 'Judy Alvarez' and rows[2].activity == nil,
+      'the spawned member joins the party rows without an activity; our own members are not repeated')
+  `);
+  // The bridge words it as company and claims nothing about what she is doing.
+  const text = turnContext(parseInput(JSON.stringify({requestId: '100-1-11ULL', generation: 1, entity: '11ULL',
+    profileKey: 'panam-palmer', name: 'Panam', bodyType: 'WomanAverage', text: 'Hi',
+    group: {id: 'g1', index: 1, total: 2, audience: ['panam-palmer', 'judy-alvarez'], heard: []},
+    turnContext: {version: 1, status: 'ready', hour: 14, minute: 5, district: 'Watson', gender: 'female', vehicle: false,
+      party: [{key: 'judy-alvarez', name: 'Judy Alvarez'}]}})));
+  assert.match(text, /Also with V: Judy Alvarez\./);
+  assert.doesNotMatch(text, /following V|sitting|standing near/);
+});
+
+test('offers: a spawned speaker makes no leave offer about our party, in a group round or outside one', () => {
+  const offerSource = between('    leaveOffer = function(entity, context)', '    queueFollow = function');
+  run(`
+    local asked = {}
+    adoption = {leaveOffer = function(entity, context) asked[#asked + 1] = entity; return {members = {1}} end}
+    groupChat = {round = nil}
+    local options = {}
+    ${offerSource.replace(/,\s*$/, '').replace(/^\s*leaveOffer = function/, 'options.leaveOffer = function')}
+    assert(options.leaveOffer('1ULL', {}) ~= nil, 'no round: as before')
+    groupChat.round = {participants = {{entity = '1ULL', spawned = true}, {entity = '2ULL'}}}
+    assert(options.leaveOffer('1ULL', {}) == nil, 'the spawned first speaker offers nothing')
+    assert(options.leaveOffer('2ULL', {}) ~= nil, 'our own companion still can')
+    assert(#asked == 2)
+  `);
+});
+
+test('wiring: group chat and reactions ask for spawned characters on events only, behind the setting and behind the module', () => {
+  const selection = between('local function selectConversation(', 'local function voiceTargetValid');
+  assert.match(selection, /if #candidates < 3 and convaiSpawnedPeople then\s+for _, row in ipairs\(convaiSpawnedPeople\.nearby\(player, 8\)\)/,
+    'a group key press, after the companions, never once three companions fill the round');
+  assert.match(selection, /spawned = convaiWorldPolicy ~= nil and convaiWorldPolicy\.spawned\(npc\) or nil/);
+  // Nothing in the group or reaction path writes into companions state.
+  assert.doesNotMatch(peopleSource.split('\n').filter(line => !line.trim().startsWith('--')).join('\n'), /companions\./);
+  // Reactions: the watch is asked at a fight start (the observer's own poll) and by a pickup, never by the per-poll list.
+  assert.match(init, /if convaiSpawnedPeople then\s+convaiSpawnedPeople\.sample\(player, battleSample, manager\.battleReactions\(\) or manager\.lootReactions\(\)\)/);
+  assert.match(init, /if convaiSpawnedPeople and manager\.lootReactions\(\) then convaiSpawnedPeople\.watch\(player\) end/);
+  const reactionSource = between('local function reactionPeople(player, observation)', '-- Source callbacks obtain');
+  assert.doesNotMatch(reactionSource, /\.watch\(|\.nearby\(|scan/, 'the half-second list never scans');
+  assert.match(init, /if person\.spawned then pcall\(function\(\) return person\.npc:ConvaiFaceRequest\(\) end\) end/);
+  assert.match(init, /groupChat\.onSpawned = function\(\) if convaiTurnContext then convaiTurnContext:reset\('group-spawned'\) end end/);
+  // The scan is the auto-connect scan's own query; nothing in the module moves, equips, seats or renames anyone.
+  assert.match(moduleSource, /query\.searchFilter = Game\['TSF_NPC;'\]\(\)/);
+  const code = moduleSource.split('\n').filter(line => !line.trim().startsWith('--')).join('\n');
+  assert.doesNotMatch(code, /Teleport|Mount|Equip|SetName|Workspot|AIAction|ChangeAttitude/i);
+  assert.match(groupSource, /row\.spawned = person\.spawned/);
+  // Not per frame: the new calls are in no per-frame callback.
+  const update = init.slice(init.indexOf("registerForEvent('onUpdate'"), init.indexOf("registerForEvent('onUpdate'") + 400);
+  assert.doesNotMatch(update, /convaiSpawnedPeople/);
 });

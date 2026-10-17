@@ -361,3 +361,103 @@ test('roleOf: recording for every member while V speaks the group utterance; an 
   local role,speaker=group.roleOf('2ULL')
   assert(role=='reply' and speaker=='1ULL','after the microphone, the first speaker is waited for')
 `));
+
+// Phase 2 of characters spawned by another mod or a spawner (docs/SPAWNED_CHARACTERS.md): they join as speakers, never as party.
+test('spawned characters follow the companions, one body is never two speakers, one profile is one voice', () => check(`
+  local function spawned(key,id) local row=p(key,id); row.spawned=true; return row end
+  local supported={judy=true,panam=true,alex=true}
+  -- Companions fill the round first; a spawned character takes the free place after them.
+  local sp=spawned('alex',5)
+  local chosen=group.choose(judy,{panam,sp},supported)
+  assert(#chosen==3 and chosen[1]==judy and chosen[2]==panam and chosen[3]==sp and chosen[3].spawned==true)
+  -- The addressed spawned character comes first, and our own copy of its profile is the one that is skipped later.
+  local spJudy=spawned('judy',6)
+  chosen=group.choose(spJudy,{judy,panam},supported)
+  assert(#chosen==2 and chosen[1]==spJudy and chosen[2]==panam,'one Judy: the addressed body')
+  chosen=group.choose(judy,{spJudy,panam},supported)
+  assert(#chosen==2 and chosen[1]==judy and chosen[2]==panam,'our copy keeps its place; the spawned copy of the same profile is skipped')
+  -- The same body reached twice (the crosshair target is also in the scan) is one speaker.
+  local again=spawned('alex',5)
+  chosen=group.choose(sp,{again,panam},supported)
+  assert(#chosen==2 and chosen[1]==sp and chosen[2]==panam)
+  -- A spawned character the manager does not support never joins; the cap of three still holds.
+  chosen=group.choose(judy,{spawned('ghost',7),panam,spawned('alex',8),spawned('nobody',9)},supported)
+  assert(#chosen==3 and chosen[2]==panam and chosen[3].entity=='8ULL')
+  -- Nobody but the spawned characters: a round of two spawned characters is a round.
+  chosen=group.choose(nil,{spawned('judy',10),spawned('panam',11)},supported)
+  assert(#chosen==2)
+`));
+
+test('a round keeps the spawned flag on its frozen rows and tells the adapter only when one is in it', () => check(`
+  local told={}
+  group.onSpawned=function(round) told[#told+1]=round.id end
+  local sp=p('alex',3); sp.spawned=true
+  group.start('with',{judy,sp},'Hello')
+  assert(#told==1 and told[1]=='with')
+  assert(group.round.participants[2].spawned==true and group.round.participants[1].spawned==nil)
+  group.start('without',{judy,panam},'Hello')
+  assert(#told==1,'a round of our own companions never calls it')
+  group.onSpawned=function() error('adapter failure') end
+  group.start('broken',{judy,sp},'Hello')
+  assert(group.round and group.round.id=='broken','a failing hook never breaks the round')
+  group.onSpawned=nil
+  local input=group.startVoice('voice',{judy,sp},1,100)
+  assert(input and group.round.participants[2].spawned==true)
+`));
+
+test('a round with a spawned character runs through the same adapter: face request, eye contact, one audience, shared heard lines', () => {
+  const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
+  const code = `local groupChat = (function() ${source} end)()
+    local profiles={['4ULL']='judy',['2ULL']='panam'}
+    local faces={}
+    local function npc(id)
+      return {id=id, IsAttached=function()return true end, IsDeadNoStatPool=function()return false end,
+        GetEntityID=function(self)return {hash=self.id} end, GetWorldPosition=function()return {x=0,y=0,z=0} end,
+        ConvaiFaceRequest=function(self) faces[#faces+1]=self.id; return 'prepared:crowd' end}
+    end
+    local spawnedJudy,panam=npc('4ULL'),npc('2ULL')
+    local function person(actor,key,spawned)return {npc=actor,entity=actor.id,profileKey=key,name=key,spawned=spawned}end
+    local player={GetWorldPosition=function()return {x=0,y=0,z=0}end}
+    local function profileIdentity(actor)return profiles[actor.id] end
+    local function profileEnabled()return true end
+    local speech={state='idle',requestId=nil}
+    function speech.stop()speech.requestId=nil end
+    local subtitles={ownsUtterance=function()return false end,clearEntity=function()end}
+    local microphone={}
+    function microphone.cancel()end
+    local pending,pendingKnowledgeOwner,generation,focusUntil,focusMode,focusEntity=nil,nil,0
+    local function cancelVoice()end
+    local function gameplayCanAcquire()return true end
+    local sent,focused={},{}
+    local function sendRequest(input)sent[#sent+1]=input;pending=input;return true end
+    local function beginFocus(_,actor)focused[#focused+1]=actor.id;return true end
+    local function log()end
+    ${adapter}
+    groupChat.start('mixed',{person(spawnedJudy,'judy',true),person(panam,'panam')},'Hi both')
+    updateGroup(player)
+    assert(#sent==1 and sent[1].profileKey=='judy' and sent[1].entity=='4ULL')
+    assert(faces[1]=='4ULL' and focused[1]=='4ULL','the spawned speaker gets the face request and the eye contact')
+    assert(speech.target==spawnedJudy)
+    local audience=sent[1].group.audience
+    assert(#audience==2 and audience[1]=='judy' and audience[2]=='panam','one audience, by profile')
+    groupChat.received(sent[1].requestId,'Hi V',false,{'judy','panam'})
+    pending=nil;speech.requestId=sent[1].requestId
+    updateGroup(player)
+    assert(groupChat.round.prepared and groupChat.round.prepared.profileKey=='panam')
+    speech.requestId=nil;updateGroup(player)
+    updateGroup(player)
+    assert(#sent==2 and sent[2].profileKey=='panam' and sent[2].group.index==2)
+    assert(#sent[2].group.heard==1 and sent[2].group.heard[1].text=='Hi V','the companion hears the spawned character')
+    assert(groupChat.roleOf('4ULL')=='reply','a spawned member is a round member like any other')
+    -- The spawned character leaving mid-round retires only this round, like any speaker.
+    groupChat.cancel()
+    groupChat.start('lost',{person(spawnedJudy,'judy',true),person(panam,'panam')},'Hi')
+    updateGroup(player)
+    profiles['4ULL']=nil
+    updateGroup(player)
+    assert(groupChat.round==nil,'a spawned speaker that stops resolving to its profile ends the round')
+  `;
+  const result = lauxlib.luaL_dostring(state, to_luastring(code));
+  const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
+  lua.lua_close(state); assert.equal(result, lua.LUA_OK, error);
+});
