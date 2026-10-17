@@ -284,7 +284,7 @@ test('Local AI downloads pin every file by revision, size and hash, and the lice
   }
   assert.match(spec.server.sha256, /^[a-f0-9]{64}$/);
   assert.equal(spec.tiers.standard.name, 'Gemma 4 E4B');
-  assert.equal(spec.tiers.lite.name, 'Qwen3.5-2B');
+  assert.equal(spec.tiers.lite.name, 'Bonsai 2 4B');
   assert.equal(spec.embed.dim, 384);
   // The standard model is over 4 GiB and ships whole in a ZIP64 zip (no parts); the lite model is well under it.
   assert(spec.tiers.standard.size > 0xFFFFFFFF && spec.tiers.lite.size < 0xF0000000);
@@ -326,8 +326,8 @@ test('the bridge detects the manifest fragments the Local AI packs write, standa
   const put = (rel, text = '') => files.set(resolve(root, rel), text);
   const embed = {file: 'models/granite-embedding-107m-multilingual-Q8_0.gguf', dim: 384, id: 'granite-embedding-107m-multilingual-q8_0'};
   put('llama/llama-server.exe'); put(embed.file);
-  put('manifest.lite.json', JSON.stringify({version: 1, server: 'llama/llama-server.exe', lite: {file: 'models/Qwen3.5-2B-Q4_K_M.gguf', name: 'Qwen3.5-2B'}, embed}));
-  put('models/Qwen3.5-2B-Q4_K_M.gguf');
+  put('manifest.lite.json', JSON.stringify({version: 1, server: 'llama/llama-server.exe', lite: {file: 'models/Ternary-Bonsai-2-4B-Q2_0.gguf', name: 'Bonsai 2 4B'}, embed}));
+  put('models/Ternary-Bonsai-2-4B-Q2_0.gguf');
   const detect = () => detectLocalAiPack({project: 'x', environment: {CYBERPUNK_CONVAI_LOCAL_AI: root}, exists: path => files.has(path), readText: path => files.get(path)});
   let pack = detect();
   assert(pack.installed && pack.tiers.lite && !pack.tiers.standard && pack.missing.length === 0);
@@ -335,7 +335,7 @@ test('the bridge detects the manifest fragments the Local AI packs write, standa
   assert(!detect().tiers.standard, 'a manifest without its model file is not a tier');
   put('models/gemma-4-E4B_q4_0-it.gguf');
   pack = detect();
-  assert(pack.tiers.standard?.name === 'Gemma 4 E4B' && pack.tiers.lite?.name === 'Qwen3.5-2B' && pack.embed.dim === 384);
+  assert(pack.tiers.standard?.name === 'Gemma 4 E4B' && pack.tiers.lite?.name === 'Bonsai 2 4B' && pack.embed.dim === 384);
 });
 
 test('the build writes the manifest fragments the detector reads, and ships both Local AI packs as separate downloads', async () => {
@@ -651,7 +651,7 @@ test('player-facing text follows the wording rules', async () => {
   assert.match(readme, /\*\*Least effect on your frames:\*\*/);
   assert.doesNotMatch(readme, /\| (?:6|8|12|16) GB \||lower settings/i);
   const notices = await readFile(resolve(project, 'THIRD_PARTY_NOTICES.md'), 'utf8');
-  for (const name of ['llama.cpp', 'Gemma 4', 'Qwen3.5-2B', 'granite-embedding', 'Apache-2.0']) assert(notices.includes(name), `THIRD_PARTY_NOTICES.md must mention ${name}`);
+  for (const name of ['llama.cpp', 'Gemma 4', 'Bonsai 2 4B', 'PrismML', 'granite-embedding', 'Apache-2.0']) assert(notices.includes(name), `THIRD_PARTY_NOTICES.md must mention ${name}`);
 });
 
 test('the Mistral voice finds its pre-built references with or without the OmniVoice pack', async () => {

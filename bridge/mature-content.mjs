@@ -37,6 +37,9 @@ export const MODEL_ALLOWANCE = Object.freeze([
   // content created for the purposes of pornography or sexual gratification" (an artistic-purpose exception is not clear for chat).
   {family: 'gemma', match: /gemma/i, level: 'suggestive', licence: 'older Gemma: Prohibited Use Policy bars sexually explicit content'},
   {family: 'qwen', match: /qwen/i, level: 'full', licence: 'Qwen3.5: Apache-2.0, no content restriction'},
+  // Bonsai 2 (PrismML, the Local AI lite model since 2026-10-17) is a Qwen3.5-based ternary model under Apache-2.0 and is not safety-tuned against the layer
+  // (docs/LOCAL_MODEL_BONSAI_2026-10-17.md, "Mature": no refusals in 144 replies); the lite model had the full allowance as Qwen3.5-2B, so it keeps it.
+  {family: 'bonsai', match: /bonsai/i, level: 'full', licence: 'Bonsai 2 (Qwen3.5-based): Apache-2.0, no content restriction'},
 ]);
 /** A model that is not in the table (its licence is unknown). */
 export const UNKNOWN_LEVEL = 'suggestive';

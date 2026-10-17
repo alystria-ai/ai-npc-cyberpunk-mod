@@ -13,7 +13,7 @@
 //   Paths are relative to the root; absolute paths and `..` are rejected. Another model is only another manifest.
 //
 // Developer layout (a folder shaped like E:\CyberpunkConvai-offload\work\local-llm\), used when the real pack has no
-// manifest: llama-vulkan/llama-server.exe and the single .gguf in dl-gemma4-e4b/, else dl-qwen35-4b/ (standard), dl-qwen35-2b/ (lite) and
+// manifest: llama-vulkan/llama-server.exe and the single .gguf in dl-gemma4-e4b/, else dl-qwen35-4b/ (standard), dl-bonsai2-4b/ (lite; the earlier lite model's dl-qwen35-2b/ is still read) and
 // dl-granite-emb/ (embed). Each file can be overridden by an environment variable.
 import {readFileSync, readdirSync, statSync} from 'node:fs';
 import {basename, isAbsolute, resolve} from 'node:path';
@@ -97,7 +97,7 @@ function devLayout(devRoot, environment, exists, list) {
   const pick = (variable, fallback) => (environment[variable] ? resolve(environment[variable]) : fallback);
   const server = pick(LOCAL_AI_ENV.server, devRoot ? resolve(devRoot, 'llama-vulkan/llama-server.exe') : null);
   const standardFile = pick(LOCAL_AI_ENV.standard, single('dl-gemma4-e4b') ?? single('dl-qwen35-4b'));
-  const liteFile = pick(LOCAL_AI_ENV.lite, single('dl-qwen35-2b'));
+  const liteFile = pick(LOCAL_AI_ENV.lite, single('dl-bonsai2-4b') ?? single('dl-qwen35-2b'));
   const embedFile = pick(LOCAL_AI_ENV.embed, single('dl-granite-emb'));
   return {root: devRoot ?? (server ? resolve(server, '..') : resolve('.')), dev: true, server,
     standard: standardFile ? {file: standardFile, name: modelName(standardFile)} : null,

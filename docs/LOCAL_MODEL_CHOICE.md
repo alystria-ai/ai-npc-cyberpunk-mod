@@ -4,12 +4,18 @@ Offline comparison for the fully local conversation option (`docs/LOCAL_OPTION_D
 through `llama-server` (Vulkan), thinking off, the same 24-turn prompt test built from the bridge's real prompt code, judged by
 Haiku with a blind rubric. The game was closed. Nothing here is in the mod yet.
 
+**Update 2026-10-17: the Lite tier is now Bonsai 2 4B (`Q2_0`, PrismML, Apache-2.0), not Qwen3.5-2B.** A re-run of the same harness with the same blind rubric
+(`docs/LOCAL_MODEL_BONSAI_2026-10-17.md`) scored it 2.96 overall against 2.19 for Qwen3.5-2B (grounded 4.08 against 3.04, invented phrases 12 against 44) at the same cost:
+1.58 GB of video memory at 8k context against 1.45 GB, a 1.21 GB download against 1.28 GB, and a warm reply in 0.37-0.41 s against 0.32-0.42 s. Its one cost is the first turn
+of a character (about 1.25 s against 0.52 s). It runs on the shipped llama.cpp b11560 Vulkan server, so nothing else in the pack changed. The Standard tier (Gemma 4 E4B)
+stays. Everything below is the original 2026-10-12 record: where it says Lite or the 2B, read it as the earlier model.
+
 ## Result in one table
 
 | Tier | Pick | Why | Runner-up |
 |---|---|---|---|
 | **Standard (about 3 GB VRAM)** | **Gemma 4 E4B QAT q4_0** | Fewest invented facts (4.56 of 5 against 4.08), best use of the supplied context, shortest replies, no stray tags, the fastest warm reply of the two 4B models (0.53 s against 0.62 s). | Qwen3.5-4B Q4_K_M: the same overall score, half the download (2.74 GB against 5.15 GB), but more invention and made-up emotion tags. |
-| **Lite (about 1.5 GB VRAM)** | **Qwen3.5-2B Q4_K_M** | The only candidate that fits in 1.5 GB, and the fastest (0.45 s warm, 143 tokens/s). It is clearly weaker: use it for ordinary NPCs, and prefer Convai or Mistral for named characters when only this tier fits. | none tested; Qwen3.5-0.8B is the floor for barks only |
+| **Lite (about 1.5 GB VRAM)** | **Qwen3.5-2B Q4_K_M** (replaced on 2026-10-17 by **Bonsai 2 4B Q2_0**, about 1.6 to 1.8 GB, see the update above) | The only candidate that fit in 1.5 GB, and the fastest (0.45 s warm, 143 tokens/s). It is clearly weaker: use it for ordinary NPCs, and prefer Convai or Mistral for named characters when only this tier fits. | none tested; Qwen3.5-0.8B is the floor for barks only |
 | **Dropped** | Ministral 3 3B | Same VRAM as the 4B models (3.0 GB) with lower quality: half of its replies run past three sentences and 19 of 48 invent something. Its one strength is Japanese. | |
 
 Decisions that apply to both tiers:
@@ -182,7 +188,7 @@ The card has 12.0 GiB usable (12,282 MiB):
 - **Game + Omni + 4B:** the LLM and Omni together take about 5.2 GB (typical) to 7.3 GB (Omni at 4.2 GiB). That leaves 4.7-6.8 GB for
   the game. At RT Ultra the game wants more, so the 4B tier **does not fit** with Omni on this card at those settings. It fits with
   lower texture or no ray tracing settings (a game below about 6.5 GB).
-- **Game + Omni + 2B:** about 3.7 GB (up to 5.8 GB), leaving 6.2-8.3 GB for the game. This probably fits at the game's high
+- **Game + Omni + 2B:** about 3.7 GB (up to 5.8 GB), leaving 6.2-8.3 GB for the game. With Bonsai 2 4B as the lite model (1.58 GB at 8k, 1.85 GB at the default 16k) it is about 3.9 GB (up to 5.9 GB). This probably fits at the game's high
   settings and is the realistic local setup when the voice is Omni. Confirm in step 2.
 - **Order matters.** Omni already refuses to load when more than 60% of VRAM is in use or under 4.5 GB is free
   (`--gpu-busy-fraction`). If the LLM loads first it can push Omni over that rule. Load Omni first (it loads at game start), then
@@ -201,7 +207,7 @@ The card has 12.0 GiB usable (12,282 MiB):
   came back in English every time. Spanish was on par with Qwen.
 - **If the pack size matters more than the last 0.5 points of grounding, ship Qwen3.5-4B instead.** The two tie overall.
 
-**Lite tier: Qwen3.5-2B.** 1.48 GB, 0.45 s warm, 143 tokens/s. It holds an ordinary NPC's voice but loses the quest and the memory
+**Lite tier: Qwen3.5-2B (since 2026-10-17: Bonsai 2 4B, see the update at the top).** 1.48 GB, 0.45 s warm, 143 tokens/s. It holds an ordinary NPC's voice but loses the quest and the memory
 more often, invented history on one memory turn, and did not answer in Spanish or Japanese. Treat it as the floor for ordinary NPCs
 and barks. When only this tier fits, keep named characters (Judy, Johnny, Panam, Jackie) on Convai or Mistral (options 1 and 3)
 or accept the weaker replies, as the user prefers.

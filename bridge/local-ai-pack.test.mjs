@@ -90,6 +90,16 @@ test('the developer layout is used when the pack has no manifest', () => {
   assert.equal(detectDev({CYBERPUNK_CONVAI_LOCAL_AI_DEV: devRoot}, devPaths.slice(1)).installed, false);
 });
 
+test('the developer layout takes the lite model from dl-bonsai2-4b and falls back to the earlier dl-qwen35-2b', () => {
+  const bonsai = resolve(devRoot, 'dl-bonsai2-4b/Ternary-Bonsai-2-4B-Q2_0.gguf');
+  devFiles[resolve(devRoot, 'dl-bonsai2-4b')] = ['Ternary-Bonsai-2-4B-Q2_0.gguf'];
+  try {
+    const found = detectDev({CYBERPUNK_CONVAI_LOCAL_AI_DEV: devRoot}, [...devPaths, bonsai]);
+    assert.deepEqual(found.tiers.lite, {file: bonsai, name: 'Ternary-Bonsai-2-4B-Q2_0'});
+  } finally { delete devFiles[resolve(devRoot, 'dl-bonsai2-4b')]; }
+  assert.equal(detectDev({CYBERPUNK_CONVAI_LOCAL_AI_DEV: devRoot}, devPaths).tiers.lite.file, devPaths[2], 'no Bonsai folder: the earlier lite model');
+});
+
 test('a real manifest wins over the developer layout', () => {
   const manifestPath = resolve(root, 'manifest.json');
   const found = detectLocalAiPack({project, environment: {CYBERPUNK_CONVAI_LOCAL_AI: root, CYBERPUNK_CONVAI_LOCAL_AI_DEV: devRoot},
