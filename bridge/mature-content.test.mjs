@@ -77,7 +77,7 @@ test('only the local AI may have it: Convai and Mistral never do (nor does a rem
 });
 
 test('the allowance is per model family from the loaded model name; an unknown model gets the restrained one', () => {
-  for (const name of ['gemma-4-E4B-it-Q4_K_M', 'Gemma 4 E4B', 'gemma4-e4b', 'Qwen3.5-2B', 'qwen35-2b-q8_0']) assert.equal(allowanceFor(name).level, 'full', name);
+  for (const name of ['gemma-4-E4B-it-Q4_K_M', 'Gemma 4 E4B', 'gemma4-e4b', 'Qwen3.5-2B', 'qwen35-2b-q8_0', 'Bonsai 2 4B', 'Ternary-Bonsai-2-4B-Q2_0']) assert.equal(allowanceFor(name).level, 'full', name);
   for (const name of ['gemma-3-4b-it', 'Gemma-2-9b', 'gemma-3n-E4B', 'some-new-model', '', null, undefined]) assert.equal(allowanceFor(name).level, 'suggestive', String(name));
   assert(MODEL_ALLOWANCE.every(row => row.family && row.match instanceof RegExp && ['full', 'suggestive'].includes(row.level) && row.licence));
 });

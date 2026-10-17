@@ -46,7 +46,7 @@ Close the game. Extract each download into your Cyberpunk 2077 folder (the one w
 | 2 | **Runtime** | [GitHub release](https://github.com/alystria-ai/ai-npc-cyberpunk-mod/releases), same version as Scripts | about 3 GB free space | Yes. It holds the Pocket TTS voices |
 | 3 | **OmniVoice pack** | [AI-NPC-Cyberpunk-Mod-OmniPack-0.2.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-OmniPack-0.2.zip) | about 15 GB free while installing, 9 GB installed | Optional: a richer voice for NVIDIA cards |
 | 4 | **Local AI standard** | [AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.zip) | about 5.3 GB | Optional: fully local conversations, best replies |
-| 5 | **Local AI lite** | [AI-NPC-Cyberpunk-Mod-LocalAI-Lite-0.2.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-LocalAI-Lite-0.2.zip) | about 1.5 GB | Optional: fully local conversations on smaller cards |
+| 5 | **Local AI lite** | [AI-NPC-Cyberpunk-Mod-LocalAI-Lite-0.2.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-LocalAI-Lite-0.2.zip) | about 1.4 GB | Optional: fully local conversations on smaller cards |
 | 6 | **Mature lite** | [AI-NPC-Cyberpunk-Mod-Mature-Lite-0.2.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-Mature-Lite-0.2.zip) | about 2.7 GB | Optional, adults only, needs a Local AI pack. See [Mature content](#mature-content-18) |
 | 7 | **Mature standard** | [AI-NPC-Cyberpunk-Mod-Mature-Standard-0.2.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-Mature-Standard-0.2.zip) | about 5.3 GB | Optional, adults only, needs a Local AI pack. See [Mature content](#mature-content-18) |
 
@@ -127,7 +127,7 @@ The microphone only ever starts when you press the key. A recording stops by its
 | **Cost** | Free | Free | Free | Your Convai plan |
 | **Internet** | **Not needed** | Needed | Needed | Needed |
 | **Limit** | None | About 1 message a second, about 5,000 turns a day | 100 turns a day (the service can change this), 12 a minute | Your Convai plan's limits |
-| **Replies** | Standard: close to the free options. Lite: plainer | Plainer. Smaller models hold a character less tightly and sometimes invent details | Most refined: stays in character best | Same as the free tier |
+| **Replies** | Standard: close to the free options. Lite: a little less grounded | Plainer. Smaller models hold a character less tightly and sometimes invent details | Most refined: stays in character best | Same as the free tier |
 | **Reply speed** | Fast once the model is warm. The first reply after idle is slower | Fastest cloud text: the voice can start a second or two after you send | A few seconds (2 to 3.5 s measured) | Same |
 | **Memory kept** | On your computer | On your computer | On Convai's servers | On Convai's servers |
 | **Microphone** | Recognised on your computer (English) | Recognised on your computer (English) | Recognised by Convai | Recognised by Convai |
@@ -165,11 +165,11 @@ The language model runs on your own graphics card. No account, no key, no intern
 
 | | **Local AI standard** | **Local AI lite** |
 |---|---|---|
-| Model | Gemma 4 E4B | Qwen3.5-2B |
-| Download | about 5.3 GB | about 1.5 GB |
-| Best for | Named characters and companions: closest to what the character knows, invents the least | Lighter on video memory and quicker to load. Plainer replies, fine for ordinary NPCs |
+| Model | Gemma 4 E4B | Bonsai 2 4B |
+| Download | about 5.3 GB | about 1.4 GB |
+| Best for | Named characters and companions: closest to what the character knows, invents the least | Lighter on video memory and quicker to load. Invents a little more than standard; fine for ordinary NPCs |
 | Free video memory it wants to start | about 6 GB | about 2 GB |
-| Extra video memory while running (with Pocket) | about 3 GB | about 1.5 GB |
+| Extra video memory while running (with Pocket) | about 3 GB | about 1.8 GB |
 | Weaker at | | Languages other than English |
 
 Install neither, one or both. The **Local AI model** row lists what is installed, smallest first; until you pick one, the largest that fits your free video memory is used. You need a Vulkan graphics card (NVIDIA or AMD), at least 16 GB of system memory (32 GB is better), and about 5 GB more than usual while it runs. Integrated graphics alone is not enough.
@@ -213,7 +213,7 @@ Every voice sounds like the character, Pocket and Voxtral included, so pick by w
 - **Least effect on your frames:** go all cloud. Convai or Mistral for the text, Voxtral or Convai's voice for the speech. Nothing runs on your PC. The default (cloud text with Pocket) is nearly as light: no video memory, a little processor time while it speaks.
 - **Fastest replies:** Mistral for the text with Pocket for the voice. Pocket starts speaking in 0.15 to 0.2 s, and a reply began speaking a second or two after sending. Voxtral starts in about a second.
 - **Fully local, best replies:** Local AI standard, with Pocket for the voice (or OmniVoice on an NVIDIA graphics card). No account, no internet.
-- **Fully local, lightweight:** Local AI lite with Pocket, about 1.5 GB of extra video memory.
+- **Fully local, lightweight:** Local AI lite with Pocket, about 1.8 GB of extra video memory.
 - **Extra expression:** OmniVoice can laugh and sigh, and Natural speech adds pauses and hesitations. OmniVoice is the heaviest voice and starts speaking a little later.
 
 A few habits help every setup:
@@ -229,7 +229,7 @@ Extra video memory each setup uses on top of the game's own:
 |---|---|---|
 | Voxtral | Convai or Mistral | none, and no processor load either |
 | Pocket | Convai or Mistral | none |
-| Pocket | Local AI lite | about 1.5 GB |
+| Pocket | Local AI lite | about 1.8 GB |
 | Pocket | Local AI standard | about 3 GB |
 | OmniVoice | Convai or Mistral | about 2 GB |
 | OmniVoice | Local AI lite | about 4 GB |
@@ -558,14 +558,14 @@ The Mistral key lives only in the bridge's state folder (`player-mistral-key.txt
 
 Local AI runs a chat model in a `llama-server` process (llama.cpp b11560, Vulkan build) supervised by `bridge/local-llm-server.mjs`.
 
-- **Packs and models:** two optional packs. *Standard* is Gemma 4 E4B QAT q4_0 (5.15 GB file, about 5.3 GB pack, shipped whole: one ZIP64 zip, no parts). *Lite* is Qwen3.5-2B Q4_K_M (1.28 GB, about 1.5 GB pack). Each pack also holds the server, the `granite-embedding-107m-multilingual` Q8_0 embedder, a manifest fragment (`manifest.standard.json` or `manifest.lite.json`, merged by `bridge/local-ai-pack.mjs`) and the licence texts. Every file is the unmodified upstream file, pinned by URL, revision and SHA-256 in the `localAi` block of `packaging/release.config.json`.
+- **Packs and models:** two optional packs. *Standard* is Gemma 4 E4B QAT q4_0 (5.15 GB file, about 5.3 GB pack, shipped whole: one ZIP64 zip, no parts). *Lite* is Bonsai 2 4B Q2_0 by PrismML (1.21 GB, about 1.4 GB pack; ternary weights on a Qwen3.5 base, Apache-2.0, run by the same llama.cpp b11560 server). Each pack also holds the server, the `granite-embedding-107m-multilingual` Q8_0 embedder, a manifest fragment (`manifest.standard.json` or `manifest.lite.json`, merged by `bridge/local-ai-pack.mjs`) and the licence texts. Every file is the unmodified upstream file, pinned by URL, revision and SHA-256 in the `localAi` block of `packaging/release.config.json`.
 - **Model choice** (`bridge/local-model-choice.mjs`): `listLocalModels`, `chooseLocalModel({models, pin, matureOn, freeMiB, sizeOf})`, `defaultModelIds`. Ids are `standard`, `lite`, `mature:lite`, `mature:good` and `custom:<file>`. The default is the largest installed model whose requirement fits the free video memory (standard needs the file plus about 1.2 GB free, lite the file plus about 0.7 GB). A chosen model that is missing, does not fit or does not start is replaced by the largest that fits, with one notice naming the model used. The saved id of a model that no pack has any more maps silently to the default.
 - **Server flags:** `-ngl 99 -fa on -np 1 --reasoning off --cache-ram <N> --ctx-checkpoints 32`; offload uses `-fit on` without `-ngl`. The server listens on a random loopback port with its API key in a file, never on the command line. The context size is chosen from free video memory from the ladder 16,384, 12,288, 8,192 and read back from `/props`. `CYBERPUNK_CONVAI_LOCAL_CACHE_RAM` defaults to 4096 at 12 GB free, 2048 at 8 GB, else 1024.
 - **Prompt budget** (`bridge/prompt-budget.mjs`): the limit is the context minus a 320-token reply reserve minus the larger of 48 and 1.5 percent of the context. Characters per token start at 3.6 and are learned from usage. Near the limit, `/tokenize` decides, and an overflow retries once before failing with `PromptTooLarge`.
 - **Lifecycle:** loaded when a turn needs it (after the first-start warm-up), unloaded after 10 idle minutes (`LOCAL_LLM_LIMITS.idleMs`) and when the provider leaves Local AI. A crashed server restarts twice, then reports `failed`. A change of model reloads only at an idle boundary and never mid-reply. If OmniVoice is still loading, `beforeStart` waits up to two minutes for it to settle. Memory shortage becomes `low-memory` and then a cloud fallback for the text, with the voice kept.
 - **Embedder** (`bridge/local-embed.mjs`): `llama-server --device none -ngl 0`, one thread, about 14 ms a query, 384 dimensions. It exits 5 idle minutes after its last use (`LOCAL_EMBED_LIMITS.idleMs`, 300,000 ms) and at once when the provider returns to Convai with no add-on installed. Retrieval takes at most 4 records and 1,200 characters above a score of 0.40 (cosine plus recency, importance and a pinned bonus) within a 400 ms budget. Memory files are `<state>/local-memory/<playerId>/<profileKey>.json` (`bridge/memory-store.mjs`).
 - **Custom models** (`bridge/custom-models.mjs`): a `manifest.custom.json` next to the other manifests lists up to 16 `.gguf` chat models (`file`, `name`, `uncensored`, `family`, `contextSize`, `chatTemplate`). The scanner reads the first 2 MiB for the GGUF header, rejects encoder architectures and non-zero pooling, and marks a broken model until restart. A model that needs more than the card's total memory stays listed as too large and is never chosen.
-- **Quality measurements** (48 judged replies each, 1 to 5): Gemma 4 E4B 3.04 with the fewest invented facts, Qwen3.5-4B 3.02, Ministral 3B 2.75, Qwen3.5-2B 2.33. Model choice notes: [docs/LOCAL_MODEL_CHOICE.md](docs/LOCAL_MODEL_CHOICE.md). Design and risks: [docs/LOCAL_OPTION_DESIGN.md](docs/LOCAL_OPTION_DESIGN.md), the player and developer manual is [docs/LOCAL_AI.md](docs/LOCAL_AI.md). Only one machine (a 12 GB RTX 4080 Laptop) has been measured; AMD and Intel cards are untested, and FPS under Local AI has not been measured in the game.
+- **Quality measurements** (48 judged replies each, 1 to 5): Gemma 4 E4B 3.04 with the fewest invented facts, Qwen3.5-4B 3.02, Ministral 3B 2.75, Qwen3.5-2B 2.33. In the 2026-10-17 re-run (same harness, 48 replies each) Bonsai 2 4B scored 2.96 against Gemma's 3.13 and Qwen3.5-2B's 2.19, with 12 invented phrases against 3 and 44, so it replaced Qwen3.5-2B as the lite model: [docs/LOCAL_MODEL_BONSAI_2026-10-17.md](docs/LOCAL_MODEL_BONSAI_2026-10-17.md). Model choice notes: [docs/LOCAL_MODEL_CHOICE.md](docs/LOCAL_MODEL_CHOICE.md). Design and risks: [docs/LOCAL_OPTION_DESIGN.md](docs/LOCAL_OPTION_DESIGN.md), the player and developer manual is [docs/LOCAL_AI.md](docs/LOCAL_AI.md). Only one machine (a 12 GB RTX 4080 Laptop) has been measured; AMD and Intel cards are untested, and FPS under Local AI has not been measured in the game.
 
 #### Mature content (setting and pack)
 
@@ -1279,7 +1279,7 @@ The player release is built from a git commit, never from the working tree, so u
 | `AI-NPC-Cyberpunk-Mod-Runtime-<v>.zip` | GitHub release | Everything else needed to play: the RED4ext launcher and native plugin, bundled Node, Chrome for Testing and Python, the bridge, the Pocket voice and lip-sync models, the local speech model, voice references, the game archives and the Audioware reply bank |
 | `AI-NPC-Cyberpunk-Mod-OmniPack-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and its references |
 | `AI-NPC-Cyberpunk-Mod-LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip |
-| `AI-NPC-Cyberpunk-Mod-LocalAI-Lite-<v>.zip` | Hugging Face | Optional Local AI pack with Qwen3.5-2B (about 1.5 GB), one zip |
+| `AI-NPC-Cyberpunk-Mod-LocalAI-Lite-<v>.zip` | Hugging Face | Optional Local AI pack with Bonsai 2 4B (about 1.4 GB), one zip |
 | `AI-NPC-Cyberpunk-Mod-Mature-Lite-<v>.zip` and `AI-NPC-Cyberpunk-Mod-Mature-Standard-<v>.zip` (each with its own marker, `manifest.mature-lite.json` or `manifest.mature-standard.json`, and one model) | Hugging Face only | Optional uncensored models for the Mature setting, one pack per model, each works alone ([packaging/MATURE_PACK_README.md](packaging/MATURE_PACK_README.md)); built only on request: by the release workflow's opt-in `mature` input (never on a tag push, one matrix job per pack) from the private bucket's mirror, or by hand with `--packages mature-lite` or `mature-standard` |
 
 Why the split: Nexus scans every upload and holds flagged files for manual review, so the Nexus file is text only and is never held. The large binary runtime goes to GitHub Releases as plain zips, the way the core frameworks (RED4ext, Codeware, TweakXL, Audioware) are also distributed. The optional packs go to a Hugging Face model repository (`alystria-ai/ai-npc-cyberpunk-mod-packs`, one folder per version), one zip each: GitHub's 2 GiB per-file limit was the only reason for parts, so the packs have none, and a model over 4 GiB sits whole in a ZIP64 zip. The Nexus page lists the frameworks the mod needs (RED4ext, Cyber Engine Tweaks, redscript, Codeware, TweakXL, Audioware, Mod Configuration Menu) because the Runtime package's launcher and native plugin are RED4ext plugins. All packages use game-root-relative paths and merge into one install. Versions must match: `app/launcher/start-service.mjs` logs a warning when the Scripts `release.json` differs from the Runtime one.
@@ -1463,7 +1463,7 @@ The code is the reference. These design notes still carry older statements:
 
 **Licence.** The project's own source code, documentation and configuration are under the **AI NPC Cyberpunk Mod Use License, version 1.1** ([LICENSE](LICENSE)): use, copy, modify and distribute, including commercially, provided that you keep the licence and notices, state significant changes, and, if you distribute a modified version with AI character conversation, offer a functional, user-selectable Convai integration as at least one provider option. Other providers, local models and self-hosted systems are allowed and any of them may be the default. It is source-available, not an OSI-approved open-source licence.
 
-**Third-party components** keep their own licences, including Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware, Mod Configuration Menu, the Convai Web SDK, Node.js, Chrome for Testing and Chromium, Playwright, CPython, Kyutai Pocket TTS and its weights, VoiceStudio and OmniVoice (the OmniVoice weights are non-commercial), Moonshine and sherpa-onnx, llama.cpp, the Gemma, Qwen and Granite models and the CMU Pronouncing Dictionary. The exact versions and licence texts are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); the optional Mature pack's two models carry their own licences, listed in [packaging/MATURE_PACK_README.md](packaging/MATURE_PACK_README.md). Each release package also carries them as `THIRD-PARTY-NOTICES.txt`.
+**Third-party components** keep their own licences, including Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware, Mod Configuration Menu, the Convai Web SDK, Node.js, Chrome for Testing and Chromium, Playwright, CPython, Kyutai Pocket TTS and its weights, VoiceStudio and OmniVoice (the OmniVoice weights are non-commercial), Moonshine and sherpa-onnx, llama.cpp, the Gemma, Qwen, Bonsai (PrismML) and Granite models and the CMU Pronouncing Dictionary. The exact versions and licence texts are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); the optional Mature pack's two models carry their own licences, listed in [packaging/MATURE_PACK_README.md](packaging/MATURE_PACK_README.md). Each release package also carries them as `THIRD-PARTY-NOTICES.txt`.
 
 Thanks to the authors of the frameworks the mod stands on, and to Convai and Mistral for their services.
 

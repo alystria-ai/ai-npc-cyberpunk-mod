@@ -27,7 +27,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - Install these from Nexus Mods first: Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Mod Configuration Menu
 - An internet connection while you talk with Convai, Mistral or the Voxtral voice (Local AI with a local voice needs none)
 - About 3 GB of free disk space (about 15 GB more while installing the optional OmniVoice pack, 9 GB once installed)
-- Optional Local AI packs: about 5.3 GB for standard and about 1.5 GB for lite (about 11 GB free while installing the standard one, which counts the downloaded zip)
+- Optional Local AI packs: about 5.3 GB for standard and about 1.4 GB for lite (about 11 GB free while installing the standard one, which counts the downloaded zip)
 
 RED4ext is needed because it starts the voice service with the game and loads the plugin that comes with the Runtime download.
 
@@ -44,7 +44,7 @@ The optional packs are on the mod's Hugging Face page, https://huggingface.co/al
 
 3. **OmniVoice pack (optional)**: a higher-quality voice for NVIDIA graphics cards with at least 8 GB of video memory and a current driver. Download https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-OmniPack-0.2.zip and extract it. Then choose an OmniVoice option in Settings > Voices.
 
-4. **Local AI packs (optional)**: let the characters answer with an AI model that runs on your own graphics card, with no account and no internet connection. There are two, and you can install neither, one or both: **Local AI standard** (Gemma 4 E4B, about 5.3 GB) for the best replies, and **Local AI lite** (Qwen3.5-2B, about 1.5 GB) for smaller graphics cards. Download https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.zip and https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-LocalAI-Lite-0.2.zip (one or both) and extract each. Then choose Local as the Conversation provider in Settings > Conversation provider. See "Local AI" below to pick a combination.
+4. **Local AI packs (optional)**: let the characters answer with an AI model that runs on your own graphics card, with no account and no internet connection. There are two, and you can install neither, one or both: **Local AI standard** (Gemma 4 E4B, about 5.3 GB) for the best replies, and **Local AI lite** (Bonsai 2 4B, about 1.4 GB) for smaller graphics cards. Download https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.zip and https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-LocalAI-Lite-0.2.zip (one or both) and extract each. Then choose Local as the Conversation provider in Settings > Conversation provider. See "Local AI" below to pick a combination.
 
 Start the game. The first start after installing takes a little longer while the voice service prepares itself.
 
@@ -76,7 +76,7 @@ Extra video memory each setup uses on top of the game's own:
 |---|---|---|
 | Voxtral | Convai or Mistral | none |
 | Pocket | Convai or Mistral | none |
-| Pocket | Local AI lite | about 1.5 GB |
+| Pocket | Local AI lite | about 1.8 GB |
 | Pocket | Local AI standard | about 3 GB |
 | OmniVoice | Convai or Mistral | about 2 GB |
 | OmniVoice | Local AI lite | about 4 GB |

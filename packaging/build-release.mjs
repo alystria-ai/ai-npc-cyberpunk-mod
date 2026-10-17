@@ -11,7 +11,7 @@
 //   each ONE zip with no parts and no split files (the zip is ZIP64 where a model is over 4 GiB):
 //   AI-NPC-Cyberpunk-Mod-OmniPack-<v>.zip       optional OmniVoice GPU pack
 //   AI-NPC-Cyberpunk-Mod-LocalAI-Standard-<v>.zip  optional Local AI pack, Gemma 4 E4B
-//   AI-NPC-Cyberpunk-Mod-LocalAI-Lite-<v>.zip   optional Local AI pack, Qwen3.5-2B
+//   AI-NPC-Cyberpunk-Mod-LocalAI-Lite-<v>.zip   optional Local AI pack, Bonsai 2 4B
 //   AI-NPC-Cyberpunk-Mod-Mature-Lite-<v>.zip    optional Mature lite pack, one uncensored model (Qwen3.5-4B); only with --packages mature-lite,
 //                                          never in the default set, never Nexus; it carries its own marker, so it works alone
 //   AI-NPC-Cyberpunk-Mod-Mature-Standard-<v>.zip    optional Mature standard pack, one uncensored model (Gemma 4 E4B); only with --packages mature-standard
@@ -707,8 +707,9 @@ async function localAiPackage(source, config, tierKey) {
       + ' the LLVM OpenMP runtime it includes (libomp.dll) has its licence in llama/LICENSE-LLVM-OpenMP - https://github.com/ggml-org/llama.cpp/tree/' + spec.server.version,
     `${standard.name} (instruction-tuned, QAT q4_0 GGUF; Local AI standard only) - Google, ${standard.license}: licenses/Apache-2.0.txt - https://huggingface.co/${standard.repository}`
       + ' - Google also publishes a prohibited use policy for Gemma: https://ai.google.dev/gemma/prohibited_use_policy',
-    `${lite.name} (Q4_K_M GGUF made by Unsloth; Local AI lite only) - Alibaba Cloud (Qwen), ${lite.license}, Copyright 2026 Alibaba Cloud: licenses/Apache-2.0.txt`
-      + ` - https://huggingface.co/Qwen/Qwen3.5-2B and https://huggingface.co/${lite.repository}`,
+    `${lite.name} (ternary Q2_0 GGUF, a Qwen3.5-based model; Local AI lite only) - ${lite.publisher}, ${lite.license}: licenses/Apache-2.0.txt;`
+      + ' it derives from Qwen3.5 (Alibaba Cloud, Apache-2.0)'
+      + ` - https://huggingface.co/${lite.repository}`,
     `${spec.embed.name} (embedding model for memory search; both packs) - IBM Granite, ${spec.embed.license}: licenses/Apache-2.0.txt`
       + ` - https://huggingface.co/ibm-granite/granite-embedding-107m-multilingual and the GGUF at https://huggingface.co/${spec.embed.repository}`,
     'The model files are the unmodified converted files of the publishers named above.',

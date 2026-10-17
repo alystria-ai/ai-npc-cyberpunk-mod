@@ -39,7 +39,12 @@ test('chooseContext: the largest context of the ladder whose extra cache fits th
   assert.equal(chooseContext({tier: 'standard', freeMiB: 1, sizeMiB}), 8192, 'the floor, whatever is free: the tier choice already decided it starts');
   assert.equal(chooseContext({tier: 'lite', freeMiB: NaN, sizeMiB: 1400}), 16384);
   assert.equal(chooseContext({tier: 'lite', freeMiB: null, sizeMiB: 1400}), 16384);
-  assert(LOCAL_LLM_LIMITS.kvMiBPerKToken.lite < LOCAL_LLM_LIMITS.kvMiBPerKToken.standard, 'the lite model costs less per token');
+  // The lite model is Bonsai 2 4B (full-attention KV is larger than Gemma 4's sliding window): measured 1,581 / 1,713 / 1,845 MiB at 8k / 12k / 16k.
+  assert.equal(LOCAL_LLM_LIMITS.kvMiBPerKToken.lite, 33);
+  const liteNeed = tierNeedMiB('lite', 1156);
+  assert.equal(chooseContext({tier: 'lite', freeMiB: liteNeed + 33 * 8 + 1, sizeMiB: 1156}), 16384);
+  assert.equal(chooseContext({tier: 'lite', freeMiB: liteNeed + 33 * 8 - 1, sizeMiB: 1156}), 12288);
+  assert.equal(chooseContext({tier: 'lite', freeMiB: liteNeed + 33 * 4 - 1, sizeMiB: 1156}), 8192);
 });
 
 // ---- The supervisor reads the context and counts tokens ------------------------------------------------------------------------

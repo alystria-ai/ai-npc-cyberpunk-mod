@@ -17,7 +17,7 @@ The models are optional downloads, like the OmniVoice pack: one zip file each, o
 | Pack | Model | Download | Best for |
 |---|---|---|---|
 | **Local AI standard** | Gemma 4 E4B | about 5.3 GB | Named characters and companions: it stays closest to what the character knows and invents the least |
-| **Local AI lite** | Qwen3.5-2B | about 1.5 GB | Smaller graphics cards, or a game that already uses most of the video memory. Plainer replies; fine for ordinary NPCs |
+| **Local AI lite** | Bonsai 2 4B | about 1.4 GB | Smaller graphics cards, or a game that already uses most of the video memory. Invents a little more than standard; fine for ordinary NPCs |
 
 Extract each download into your Cyberpunk 2077 folder (the same way as the OmniVoice pack; there are no parts to join), then pick **Local** in Settings > Conversation provider.
 There is no status row (removed 2026-10-14). While the model is not ready, the Local AI model row's name carries a bracket, "(Warming up)", "(Not enough memory)" or "(Unavailable)", and its help starts with the loading sentence; when it is ready or not installed the row needs no words.
@@ -199,10 +199,10 @@ RTX 4080 Laptop (12 GB); the game's own use depends on your settings (ray tracin
 | Voice | Text | Extra video memory | Notes |
 |---|---|---|---|
 | Pocket | Convai or Mistral (no Local AI) | 0 GB | Pocket runs on the processor |
-| Pocket | Local AI lite | about 1.5 GB | |
+| Pocket | Local AI lite | about 1.8 GB | |
 | Pocket | Local AI standard | about 3.1 GB | |
 | OmniVoice | Convai or Mistral (no Local AI) | about 2 GB (up to 4 GB) | |
-| OmniVoice | Local AI lite | about 3.7 GB (up to 5.8 GB) | |
+| OmniVoice | Local AI lite | about 3.9 GB (up to 5.9 GB) | |
 | OmniVoice | Local AI standard | about 5.2 GB (up to 7.3 GB) | |
 
 Lower settings means medium textures and no ray tracing; higher settings means high textures or ray tracing. The same table is in the
@@ -220,7 +220,7 @@ When the card is short, the voice is kept before the text: standard gives way to
 voice only changes as a last resort.
 
 A note on the start rule, found while writing the table: the tier check needs free video memory of at least the model file plus
-headroom (standard: the 5.15 GB model file plus 1200 MiB, so about 6 GB free; lite: the 1.28 GB file plus 700 MiB), although standard measures about 3.1 GB
+headroom (standard: the 5.15 GB model file plus 1200 MiB, so about 6 GB free; lite: the 1.21 GB file plus 700 MiB), although standard measures about 3.1 GB and lite about 1.6 to 1.8 GB
 once loaded. A 6 GB card therefore always starts lite or falls back, even when the standard model would have fitted at runtime. The rule
 is deliberate (a margin so the game keeps its textures), and the player README states "about 6 GB free" for standard.
 
@@ -238,7 +238,7 @@ set CYBERPUNK_CONVAI_LOCAL_AI_DEV=E:\CyberpunkConvai-offload\work\local-llm
 ```
 
 The folder is shaped like the model-choice benchmark's: `llama-vulkan\llama-server.exe`, the single `.gguf` in `dl-gemma4-e4b\`
-(else `dl-qwen35-4b\`) for the standard tier, `dl-qwen35-2b\` for lite, `dl-granite-emb\` for the embedding model. Each file can be
+(else `dl-qwen35-4b\`) for the standard tier, `dl-bonsai2-4b\` for lite (`dl-qwen35-2b\`, the earlier lite model, is still read when that folder is absent), `dl-granite-emb\` for the embedding model. Each file can be
 replaced by an environment variable, and the model is only ever configuration:
 
 | Variable | Meaning |
@@ -265,8 +265,8 @@ Packaging: `packaging/build-release.mjs --packages localai-standard` (or `locala
 runs both as a matrix job (`localai`) that uploads each zip to the Hugging Face repository `alystria-ai/ai-npc-cyberpunk-mod-packs` (`docs/PACKAGING.md`). Every file is the unmodified upstream file, pinned by URL, revision and SHA-256 in the
 `localAi` block of `packaging/release.config.json`: the `llama-server` Vulkan build b11560 (MIT; only `llama-server.exe` and its
 DLLs are kept, no other command line tools), the Q8_0 granite embedding model (Apache-2.0), and one chat model: Gemma 4 E4B QAT q4_0
-(Apache-2.0, 5.15 GB, shipped whole in a ZIP64 zip; `app/launcher/assemble-parts.mjs` only joins parts left by an earlier release) or Qwen3.5-2B Q4_K_M by
-Unsloth (Apache-2.0, 1.28 GB). Each pack unpacks to `red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/` with its manifest fragment, the
+(Apache-2.0, 5.15 GB, shipped whole in a ZIP64 zip; `app/launcher/assemble-parts.mjs` only joins parts left by an earlier release) or Bonsai 2 4B Q2_0 by PrismML (a
+Qwen3.5-based ternary model, Apache-2.0, 1.21 GB; the `Q2_0` file is the only packing stock llama.cpp runs, so the pack keeps the b11560 server; `docs/LOCAL_MODEL_BONSAI_2026-10-17.md`). Each pack unpacks to `red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/` with its manifest fragment, the
 licence texts and `THIRD-PARTY-NOTICES.txt`; `prepare-state.mjs` points `CYBERPUNK_CONVAI_LOCAL_AI` there. With `--models local` the
 developer folder (`--local-ai-source`, default `CYBERPUNK_CONVAI_LOCAL_AI_DEV`) supplies the files, each still checked against its
 pinned hash. See `docs/PACKAGING.md`.
@@ -331,12 +331,12 @@ RTX 4080 Laptop (Vulkan, `-fa on`, one slot, f16 KV cache), video memory after t
 | Model | n_ctx 8,192 | 12,288 | 16,384 | KV cost per 1,000 tokens |
 |---|---|---|---|---|
 | Standard (Gemma 4 E4B) | 3,008 MiB | 3,076 MiB | 3,144 MiB | 17 MiB |
-| Lite (Qwen3.5-2B) | 1,399 MiB | 1,451 MiB | 1,503 MiB | 13 MiB |
+| Lite (Bonsai 2 4B) | 1,581 MiB | 1,713 MiB | 1,845 MiB | 33 MiB |
 
-Both models keep a small cache (sliding-window or hybrid attention), so 16k costs only 136 MiB (standard) or 104 MiB (lite) more than 8k.
+Both models keep a small cache (sliding-window or hybrid attention), so 16k costs only 136 MiB (standard) or 264 MiB (lite) more than 8k.
 That is why 16,384 is the default for both tiers wherever the tier itself fits. OmniVoice is never pushed out by it: the ladder is checked
 against the free memory after OmniVoice has loaded (the order in "When it does not fit" is unchanged) and steps down to 12,288 or 8,192
-only when that extra 70 to 140 MiB is not free. The player-facing table's "about 3.1 GB" and "about 1.5 GB" cover the 8k to 16k range. A
+only when that extra 70 to 270 MiB is not free. The player-facing table's "about 3.1 GB" and "about 1.8 GB" cover the 8k to 16k range. A
 quantised cache (`q8_0`) was measured too: it saves only another 75 to 90 MiB, and the first long prompt prefilled slower on the Vulkan
 build, so it is not used. A fuller prompt costs prefill time, not memory: a 15,700-token prompt prefilled in about 7 s (standard) and 3 s
 (lite) cold; with the stable prefix cached a normal turn sends only its new tail.

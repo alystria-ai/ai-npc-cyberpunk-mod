@@ -51,10 +51,10 @@ export const LOCAL_LLM_LIMITS = Object.freeze({
   liteHeadroomMiB: 700,
   contextSize: 8192,           // the smallest context the ladder below ends in
   // The context the server is started with, largest first: the first one whose extra KV cache still fits the free VRAM. Measured on the
-  // RTX 4080 Laptop (docs/LOCAL_AI.md, "Context size"): going from 8k to 16k costs 136 MiB on Gemma 4 E4B and 104 MiB on Qwen3.5-2B (f16
+  // RTX 4080 Laptop (docs/LOCAL_AI.md, "Context size"): going from 8k to 16k costs 136 MiB on Gemma 4 E4B and 264 MiB on Bonsai 2 4B, the lite model (1,581 / 1,713 / 1,845 MiB at 8k / 12k / 16k; the earlier lite model, Qwen3.5-2B, cost 104; f16
   // KV cache; q8_0 saves only another 90 MiB and prefills a third slower), so the largest entry is taken wherever the tier itself fits.
   contextLadder: [16384, 12288, 8192],
-  kvMiBPerKToken: {standard: 17, lite: 13},   // KV cache growth per 1,000 tokens of context, f16
+  kvMiBPerKToken: {standard: 17, lite: 33},   // KV cache growth per 1,000 tokens of context, f16
   idleMs: 600_000,             // weights leave VRAM after ten idle minutes
   startupMs: 180_000,          // the first start compiles Vulkan shaders (about a minute)
   warmupMs: 240_000,           // one warm-up request, first time included
