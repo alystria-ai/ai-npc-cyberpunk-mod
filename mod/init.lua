@@ -675,6 +675,21 @@ convaiWorldPolicy = {
     end,
 }
 
+-- How far from V a spawned character still counts: the range group chat uses for the companions (companions.conversationCandidates).
+convaiSpawnedRange = 8
+
+-- The profile keys of the group round that is running (nil outside one), for auto-connect: every speaker of a round has
+-- talked, not only the one V addressed. Read by auto-connect only while a conversation partner exists; no native call.
+function convaiRoundKeys()
+    local round = groupChat.round
+    if not round or type(round.participants) ~= 'table' then return nil end
+    local keys = {}
+    for _, person in ipairs(round.participants) do
+        if type(person.profileKey) == 'string' then keys[#keys + 1] = person.profileKey end
+    end
+    return keys
+end
+
 -- Characters another mod or a spawner created, in group chat and in battle and loot reactions (phase 2,
 -- docs/SPAWNED_CHARACTERS.md). A global table, so no function here gains an upvalue. Nothing in it runs per frame: 'nearby'
 -- answers a group key press, 'watch' a combat start or a pickup (both one targeting query, reused for a few seconds),
@@ -696,23 +711,39 @@ convaiSpawnedPeople = {
     -- already holds from its own native query. convaiSpawnedPeople.stats says what the last call found and why it dropped some.
     nearby = function(player, radius, options)
         local rows, service = {}, convaiSpawnedCharacters
-        local stats = {found = 0, kept = 0, generic = 0, noProfile = 0, unsupported = 0, disabled = 0, generated = 0}
+        -- radius: the range asked. via: who was counted and how it was found ('scan', 'native' or 'remembered', with its distance).
+        -- left: who was not and why (a service reason such as out-of-range or gone, or noProfile, unsupported, disabled).
+        local stats = {found = 0, kept = 0, generic = 0, noProfile = 0, unsupported = 0, disabled = 0, generated = 0,
+            radius = radius, via = {}, left = {}}
         convaiSpawnedPeople.stats = stats
         if service == nil or not player or not service:available() then return rows end
         options = type(options) == 'table' and options or {}
         local ok, found = pcall(service.nearby, service, player, radius, options.extra)
         if not ok or type(found) ~= 'table' then return rows end
         stats.found = #found
+        local report = type(service.report) == 'table' and service.report.dropped or {}
+        for _, item in ipairs(report) do
+            stats.left[#stats.left + 1] = {who = item.key or ('entity ' .. tostring(item.entity)), reason = item.reason, distance = item.distance}
+        end
+        local seen = {}
         for _, row in ipairs(found) do
             local named, key, name, body, archetype = pcall(profileIdentity, row.npc)
-            if not named or not key then stats.noProfile = stats.noProfile + 1
-            elseif not supportedProfiles[key] then stats.unsupported = stats.unsupported + 1
-            elseif not manager.profileEnabled(key) then stats.disabled = stats.disabled + 1
+            if not named or not key then
+                stats.noProfile = stats.noProfile + 1
+                stats.left[#stats.left + 1] = {who = 'entity ' .. tostring(row.entity), reason = 'noProfile', distance = row.distance}
+            elseif not supportedProfiles[key] then
+                stats.unsupported = stats.unsupported + 1
+                stats.left[#stats.left + 1] = {who = key, reason = 'unsupported', distance = row.distance}
+            elseif not manager.profileEnabled(key) then
+                stats.disabled = stats.disabled + 1
+                stats.left[#stats.left + 1] = {who = key, reason = 'disabled', distance = row.distance}
             else
                 local roster = convaiSpawnedPeople.named(key)
                 if roster or not options.roster then
+                    seen[#seen + 1] = {id = row.id, entity = row.entity, key = key, name = name}
+                    stats.via[#stats.via + 1] = {who = key, source = row.source or 'scan', distance = row.distance}
                     local entry = {npc = row.npc, id = row.id, entity = row.entity, profileKey = key, name = name,
-                        bodyType = body, distance = row.distance, spawned = true}
+                        bodyType = body, distance = row.distance, spawned = true, source = row.source}
                     if not roster then
                         entry.generic = true
                         if not archetype and archetypes.keys[key] and type(characterCatalog.describe) == 'function' then
@@ -726,7 +757,42 @@ convaiSpawnedPeople = {
                 end
             end
         end
+        -- The profile key and name go with each remembered ID (for the log and for the auto-connect lane).
+        if #seen > 0 then pcall(service.remember, service, seen) end
         return rows
+    end,
+    -- Remember the spawned characters among the native candidates of a talk key press (any key: private or group), by entity ID.
+    -- Key press only; the classification is cached per entity, so this adds no native read for a character already looked at.
+    noteNative = function(list)
+        local service = convaiSpawnedCharacters
+        if service == nil or type(list) ~= 'table' then return end
+        local rows = {}
+        for _, npc in ipairs(list) do
+            local ok, row = pcall(function()
+                if not service:is(npc) then return nil end
+                local id = npc:GetEntityID()
+                return {id = id, entity = tostring(id.hash)}
+            end)
+            if ok and row then rows[#rows + 1] = row end
+        end
+        if #rows > 0 then pcall(service.remember, service, rows) end
+    end,
+    -- The probe-log tail of a nearby() call: the range, who counted and how each was found, who did not and why.
+    describe = function()
+        local stats = convaiSpawnedPeople.stats or {}
+        local function metres(distance) return type(distance) == 'number' and string.format(' d=%.1f', distance) or '' end
+        local function list(items, text)
+            local parts = {}
+            for index, item in ipairs(items or {}) do
+                if index > 6 then parts[#parts + 1] = '+' .. (#items - 6) .. ' more'; break end
+                parts[#parts + 1] = text(item)
+            end
+            return #parts > 0 and table.concat(parts, ', ') or 'none'
+        end
+        return ' radius=' .. tostring(stats.radius) .. 'm; counted: '
+            .. list(stats.via, function(item) return item.who .. metres(item.distance) .. ' via ' .. item.source end)
+            .. '; left out: '
+            .. list(stats.left, function(item) return item.who .. metres(item.distance) .. ' ' .. item.reason end)
     end,
     -- Remember who is near V for the reactions of the next minutes (a combat start, a pickup).
     watch = function(player)
@@ -1147,7 +1213,7 @@ do
         query.testedSet = Enum.new('TargetingSet', 'Complete')
         local _, parts = Game.GetTargetingSystem():GetTargetParts(player, query)
         local origin = player:GetWorldPosition()
-        local rows, seen = {}, {}
+        local rows, seen, spawnedSeen = {}, {}, {}
         for _, part in ipairs(parts or {}) do
             local component = TS_TargetPartInfo.GetComponent(part)
             local entity = component and component:GetEntity()
@@ -1157,15 +1223,36 @@ do
                 if not seen[id] then
                     seen[id] = true
                     local key, name = profileIdentity(entity)
+                    local named = key ~= nil and convaiSpawnedPeople ~= nil and convaiSpawnedPeople.named(key)
                     if key and supportedProfiles[key] and manager.profileEnabled(key) then
                         local position = entity:GetWorldPosition()
                         -- A roster character another mod or a spawner created gets its own warm place (auto-connect.lua `spawned`);
                         -- the classification is cached per entity (spawned-characters.lua), so this adds no query to the scan.
                         local spawned = convaiSpawnedPeople ~= nil and convaiSpawnedPeople.named(key)
                             and convaiWorldPolicy ~= nil and convaiWorldPolicy.spawned(entity) == true
+                        -- Any spawned character seen here is remembered by its ID (spawned-characters.lua remember): the query only
+                        -- reports what the camera sees, and the lane and the group key press must still know the ones behind V.
+                        if convaiSpawnedCharacters ~= nil and (spawned or (not named and convaiSpawnedCharacters:is(entity) == true)) then
+                            spawnedSeen[#spawnedSeen + 1] = {id = entity:GetEntityID(), entity = id, key = key, name = name}
+                        end
                         rows[#rows + 1] = {key = key, name = name, entity = id, spawned = spawned or nil,
                             distance = math.sqrt((position.x - origin.x)^2 + (position.y - origin.y)^2 + (position.z - origin.z)^2)}
                     end
+                end
+            end
+        end
+        -- Spawned roster characters this scan did not report (behind V, outside the view) but that are still here, within the
+        -- group chat range: the same lane, so a connection is not dropped because V looked the other way. One lookup per
+        -- remembered character, in this once-a-second scan only (spawned-characters.lua recall).
+        local service = convaiSpawnedCharacters
+        if service ~= nil then
+            if #spawnedSeen > 0 then pcall(service.remember, service, spawnedSeen) end
+            local good, recalled = pcall(service.recall, service, player, convaiSpawnedRange, seen, function(entry)
+                return entry.key ~= nil and convaiSpawnedPeople ~= nil and convaiSpawnedPeople.named(entry.key)
+            end)
+            for _, row in ipairs(good and recalled or {}) do
+                if supportedProfiles[row.key] and manager.profileEnabled(row.key) then
+                    rows[#rows + 1] = {key = row.key, name = row.name or row.key, entity = row.entity, spawned = true, distance = row.distance}
                 end
             end
         end
@@ -1195,6 +1282,17 @@ do
                 for _, member in ipairs(companions.connectionProfiles()) do if member == key then return true end end
                 return false
             end,
+            -- A partner that is a spawned roster character (another mod): when it stops being a partner while it still stands
+            -- near V it goes back to the spawned lane with its connection open (auto-connect.lua backToLane). The entity was
+            -- read at the conversation; the classification is cached.
+            spawned = function(partner)
+                if convaiSpawnedPeople == nil or not convaiSpawnedPeople.named(partner.key) then return false end
+                local service = convaiSpawnedCharacters
+                if service ~= nil and type(partner.id) == 'string' and service.knownBy[partner.id] ~= nil then return true end
+                return partner.entity ~= nil and convaiWorldPolicy ~= nil and convaiWorldPolicy.spawned(partner.entity) == true
+            end,
+            -- Every speaker of a running group round counts as an exchange for a partner (convaiRoundKeys).
+            roundKeys = function() return convaiRoundKeys() end,
             log = function(line) log(line) end})
         -- convaiAutoConnect.promote(key): a conversation partner asked to follow leaves the partner role.
         if built and type(value) == 'table' then autoConnect = value; convaiAutoConnect = value
@@ -1608,6 +1706,7 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
     if caller then log('Holocall conversation: profile=' .. caller.profileKey .. ' mode=' .. caller.holocall.mode); return caller end
     local npc, reason, decision = targetAtCrosshair()
     logTalkTarget(decision)
+    if convaiSpawnedPeople then convaiSpawnedPeople.noteNative(convaiTalkNative) end
     local candidates = groupMode and companions.conversationCandidates(player, 8) or {}
     if groupMode then
         local enabled = {}
@@ -1617,15 +1716,18 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
         candidates = enabled
         -- Characters another mod or a spawner created join after V's own companions (docs/SPAWNED_CHARACTERS.md, phase 2):
         -- one targeting query on this key press, and none once three companions already fill the round.
-        -- Whoever V faces (a companion or a spawned character), the same rule: the scan's answer plus the spawned characters
-        -- among the native candidates this key press already gathered.
+        -- Whoever V faces (a companion or a spawned character), the same rule: every spawned character within group range that
+        -- this key press can find: the scan's answer, the native candidates this key press already gathered, and the characters
+        -- remembered by entity ID from earlier queries (the queries report only what the camera sees, so one behind V or outside
+        -- the aim cone is found from memory). The log line says how each was found and why any was left out.
         local companionCount = #candidates
         if companionCount < 3 and convaiSpawnedPeople then
             for _, row in ipairs(convaiSpawnedPeople.nearby(player, 8, {extra = convaiTalkNative})) do candidates[#candidates + 1] = row end
             local stats = convaiSpawnedPeople.stats or {}
             log('Group candidates: companions=' .. companionCount .. ' spawned=' .. (#candidates - companionCount)
                 .. ' (found=' .. tostring(stats.found) .. ' generic=' .. tostring(stats.generic) .. ' noProfile=' .. tostring(stats.noProfile)
-                .. ' unsupported=' .. tostring(stats.unsupported) .. ' disabled=' .. tostring(stats.disabled) .. ')')
+                .. ' unsupported=' .. tostring(stats.unsupported) .. ' disabled=' .. tostring(stats.disabled) .. ')'
+                .. convaiSpawnedPeople.describe())
         end
     end
     -- An installed add-on's voice (docs/ADDON_API.md: a talking gun in V's hand, a cab's voice) answers the talk keys while it
@@ -1676,6 +1778,10 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
     if not profileEnabled(player, key) then log('Companion disabled in manager: ' .. name); return nil end
     local primary = {npc = npc, name = name, entity = tostring(npc:GetEntityID().hash), bodyType = bodyType, profileKey = key,
         spawned = convaiWorldPolicy ~= nil and convaiWorldPolicy.spawned(npc) or nil}
+    -- A spawned character V talks to is remembered by its ID (key press only), so a later group round counts it wherever V faces.
+    if primary.spawned and convaiSpawnedCharacters ~= nil then
+        pcall(convaiSpawnedCharacters.remember, convaiSpawnedCharacters, {{id = npc:GetEntityID(), entity = primary.entity, key = key, name = name}})
+    end
     -- An archetype or resident learns which kind of NPC it is and where it stands
     -- (a summoned archetype copy from its profile key alone).
     if not archetype and archetypes.keys[key] and type(characterCatalog.describe) == 'function' then

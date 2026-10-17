@@ -17,6 +17,10 @@
 -- maxSpawned (3), published as `spawned` beside `profiles`, with the same hold, age and cooldown rules. The bridge opens its
 -- connection (on a player's own key only if its plan has room, bridge/party-connections.mjs spawnedWarmLimit), so the first talk
 -- does not wait for it. A profile shared with a party member or a slot is one connection (the bridge keeps one page per profile).
+-- The scan only reports what the camera sees, so the adapter also adds the spawned characters it remembers by entity ID that are
+-- within group range (init.lua scanNearbyCharacters): a spawned character stays wanted, and stays connected, while it stands near V
+-- wherever V looks. It has no age limit while it is wanted. A conversation partner that is a spawned character goes back to the
+-- lane, not to a release, when the partner role ends while it is still near V (backToLane): its connection stays open.
 --
 -- Ranking of the two slots: a looked-at character first (looking is intent; it may replace the idlest unwanted
 -- one), then nearby characters by prominence (tier-1 named, other named, generic residents and archetypes), then
@@ -38,6 +42,7 @@ M.DEFAULTS = {
     scanInterval = 1.0,
     maxWarm = 2,
     maxSpawned = 3,    -- spawned roster characters kept warm beside the two slots
+    spawnedRadius = 8, -- metres: a released partner this close that is a spawned character goes back to the spawned lane
     hold = 40,         -- seconds a character stays warm after it stops being wanted
     maxAge = 600,      -- the longest one character stays warm without a conversation
     cooldown = 20,     -- seconds before a released character may be warmed again
@@ -206,6 +211,34 @@ function M.new(options)
         log('Auto-connect partner released ' .. partner.key .. ' (' .. reason .. ')')
     end
 
+    -- A partner that is a spawned roster character (it came from the spawned lane, or options.spawned says so).
+    local function isSpawnedPartner(partner)
+        if partner.spawned == true then return true end
+        if type(options.spawned) ~= 'function' then return false end
+        local ok, value = pcall(options.spawned, partner)
+        return ok and value == true
+    end
+
+    -- A partner that stops being one while it is still a spawned character standing near V goes straight back into the spawned
+    -- lane, keeping its connection open: it is listed under 'spawned' in the same write that stops listing it under 'partners',
+    -- and no cooldown applies (nothing is released, nothing is opened again). Only when the lane has a place; otherwise it is
+    -- released as before. Returns true when it went back.
+    local function backToLane(index, reason)
+        if reason ~= 'no exchange' and reason ~= 'another partner' and reason ~= 'replaced' then return false end
+        local partner = partners[index]
+        if not partner or spawnedCount() >= cfg.maxSpawned or not isSpawnedPartner(partner) or type(options.locate) ~= 'function' then return false end
+        local ok, distance = pcall(options.locate, partner)
+        if not ok or type(distance) ~= 'number' or distance > cfg.spawnedRadius then return false end
+        table.remove(partners, index)
+        active[#active + 1] = {key = partner.key, name = partner.key, since = clock, lastWanted = clock, spawned = true,
+            reason = 'spawned', entity = type(partner.id) == 'string' and partner.id or nil}
+        log('Auto-connect partner ' .. partner.key .. ' back to the spawned lane (' .. reason .. ')')
+        return true
+    end
+    local function leavePartner(index, reason)
+        if not backToLane(index, reason) then releasePartner(index, reason) end
+    end
+
     -- The conversation partner(s): adopted while V talks to a world character, released when they part.
     local function updatePartners(context)
         local talking = context.talking
@@ -214,8 +247,13 @@ function M.new(options)
             if not partner then
                 partner = {key = talking, since = clock}
                 table.insert(partners, 1, partner)
-                -- The partner role replaces a slot it held: one connection, one owner.
-                for index = #active, 1, -1 do if active[index].key == talking then table.remove(active, index) end end
+                -- The partner role replaces a slot or a spawned place it held: one connection, one owner.
+                for index = #active, 1, -1 do
+                    if active[index].key == talking then
+                        if active[index].spawned then partner.spawned = true end
+                        table.remove(active, index)
+                    end
+                end
                 log('Auto-connect partner ' .. talking)
             end
             partner.lastExchange, partner.graceUntil, partner.awaySince = clock, nil, nil
@@ -225,8 +263,19 @@ function M.new(options)
                 if other ~= partner and not other.graceUntil then other.graceUntil = clock + cfg.partnerGrace end
             end
         end
+        -- Every character in the group round that is running counts as an exchange, not only the one V addressed: a partner who
+        -- answers as another speaker has talked. The round's keys are asked only while there is a partner to refresh.
+        if #partners > 0 and type(options.roundKeys) == 'function' then
+            local ok, list = pcall(options.roundKeys)
+            if ok and type(list) == 'table' then
+                for _, key in ipairs(list) do
+                    local member = isPartner(key)
+                    if member then member.lastExchange, member.graceUntil = clock, nil end
+                end
+            end
+        end
         table.sort(partners, function(a, b) return a.lastExchange > b.lastExchange end)
-        while #partners > cfg.partnerMax do releasePartner(#partners, 'replaced') end
+        while #partners > cfg.partnerMax do leavePartner(#partners, 'replaced') end
         for index = #partners, 1, -1 do
             local partner, reason = partners[index], nil
             if partner.key ~= talking then
@@ -244,7 +293,7 @@ function M.new(options)
                     elseif ok and type(distance) == 'number' then partner.awaySince = nil end
                 end
             end
-            if reason then releasePartner(index, reason) end
+            if reason then leavePartner(index, reason) end
         end
     end
 
@@ -328,6 +377,9 @@ function M.new(options)
             -- The same profile key may now be another body (two residents): follow the one wanted most.
             if item then entry.lastWanted = clock; if type(item.entity) == 'string' then entry.entity = item.entity end end
             local idle, age = clock - entry.lastWanted, clock - entry.since
+            -- A spawned character near V keeps its connection for as long as it is near: the lane is bounded (three, and the
+            -- plan's count on the bridge), and the age limit would close it, and make V wait, while it still stands beside V.
+            if entry.spawned then age = 0 end
             if idle > cfg.hold or age > cfg.maxAge then
                 cooling[entry.key] = clock + (age > cfg.maxAge and cfg.ageCooldown or cfg.cooldown)
                 log('Auto-connect released ' .. entry.key .. (age > cfg.maxAge and ' (unused too long)' or ' (idle)'))

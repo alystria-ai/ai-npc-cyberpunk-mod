@@ -472,7 +472,7 @@ test('a spawned character is wanted on the first scan, takes no slot, and is pub
   `);
 });
 
-test('at most three spawned characters at a time, and they leave with the same hold, age and cooldown rules', () => {
+test('at most three spawned characters at a time, and they leave with the same hold and cooldown rules (no age limit while wanted)', () => {
   run(`${fixture}${spawnedFixture}
     nearby = {}
     for _, key in ipairs({'s1', 's2', 's3', 's4'}) do nearby[#nearby + 1] = {key = key, name = key, distance = 2, spawned = true} end
@@ -498,8 +498,13 @@ test('at most three spawned characters at a time, and they leave with the same h
     local auto = makeSpawned()
     step(auto, 2)
     assert(#auto.spawned() == 1)
-    step(auto, 600)
-    assert(#auto.spawned() == 0, 'a spawned character stayed warm past the age limit without a conversation')
+    -- No age limit while it is still wanted: the age release would close the connection (and make V wait) while the character
+    -- still stands beside V. The lane is bounded by its cap of three and by the bridge's plan.
+    step(auto, 700)
+    assert(#auto.spawned() == 1 and auto.spawned()[1] == 'old', 'a spawned character that is still near was released for age')
+    nearby = {}
+    step(auto, 45)
+    assert(#auto.spawned() == 0, 'it is still released once nobody wants it')
   `);
 });
 
@@ -547,4 +552,164 @@ test('the default publisher writes the spawned list and the scan marks spawned r
   assert.match(init, /convaiSpawnedPeople\.named\(key\)/);
   assert.match(init, /convaiWorldPolicy\.spawned\(entity\) == true/);
   assert.match(init, /spawned = spawned or nil/);
+});
+
+// ---- A released partner that is still a spawned character near V goes back to the spawned lane (2026-10-17 live bug) ----
+// Live: Judy was warmed as spawned, V talked to her (partner), 180 s without an exchange released the partner role while she still
+// stood beside V, and her connection closed; the next F6 had to prepare it again. Now she returns to the lane in the same write.
+const lanePublications = `
+  local everyPublication = {}
+  local function makeLane(extra)
+    local options = {publish = function(list, partnerList, ids, spawnedList)
+      published[#published + 1] = table.concat(list, ',')
+      publishedPartners[#publishedPartners + 1] = table.concat(partnerList or {}, ',')
+      spawnedLists[#spawnedLists + 1] = table.concat(spawnedList or {}, ',')
+      everyPublication[#everyPublication + 1] = {partners = partnerList or {}, spawned = spawnedList or {}}
+    end}
+    for key, value in pairs(extra or {}) do options[key] = value end
+    return make(options)
+  end
+  -- Every publication since index 'from' lists the profile under partners or spawned (its connection is never dropped).
+  local function alwaysListed(key, from)
+    for index = from, #everyPublication do
+      local row, found = everyPublication[index], false
+      for _, list in ipairs({row.partners, row.spawned}) do for _, k in ipairs(list) do if k == key then found = true end end end
+      if not found then return false, index end
+    end
+    return true
+  end
+`;
+
+test('a partner released for no exchange goes back to the spawned lane with its connection open, never dropped from the lists', () => {
+  run(`${fixture}${partnerFixture}${spawnedFixture}${lanePublications}
+    nearby = {{key = 'judy', name = 'Judy', distance = 1.7, spawned = true}}
+    local auto = makeLane({locate = locate})
+    distances.judy = 1.7
+    step(auto, 2)
+    assert(table.concat(auto.spawned(), ',') == 'judy')
+    -- V talks to her: the partner role takes the place of the lane entry (one connection, one owner).
+    talk(auto, 'judy', 0.1)
+    assert(partners(auto) == 'judy' and #auto.spawned() == 0)
+    local from = #everyPublication
+    -- The talk ends; she keeps standing beside V and is still reported (the scan, or the remembered ID behind V).
+    step(auto, 185)
+    assert(partners(auto) == '' and table.concat(auto.spawned(), ',') == 'judy', 'she went back to the lane: ' .. partners(auto) .. '/' .. table.concat(auto.spawned(), ','))
+    local ok, at = alwaysListed('judy', from + 1)
+    assert(ok, 'the connection was dropped from both lists in publication ' .. tostring(at))
+    assert(lastSpawned() == 'judy' and publishedPartners[#publishedPartners] == '')
+    local seen, released = false, false
+    for _, line in ipairs(logs) do
+      if line == 'Auto-connect partner judy back to the spawned lane (no exchange)' then seen = true end
+      if line:find('partner released judy', 1, true) then released = true end
+    end
+    assert(seen and not released, 'logged as a return, not a release')
+    -- No cooldown: nothing was released, so she is not blocked from the lane, and she stays for as long as she is near.
+    step(auto, 700)
+    assert(table.concat(auto.spawned(), ',') == 'judy', 'she must not age out beside V')
+    -- Talking to her again takes the partner role again, and a second return works the same way.
+    talk(auto, 'judy', 0.1)
+    assert(partners(auto) == 'judy')
+    step(auto, 185)
+    assert(table.concat(auto.spawned(), ',') == 'judy' and partners(auto) == '')
+  `);
+});
+
+test('a partner that came from outside the lane (flagged by the adapter) returns too; one that is far, not spawned or without room is released as before', () => {
+  run(`${fixture}${partnerFixture}${spawnedFixture}${lanePublications}
+    local spawnedKeys = {judy = true}
+    local auto = makeLane({locate = locate, spawned = function(partner) return spawnedKeys[partner.key] == true end})
+    nearby = {}
+    -- Judy was never in the lane (the setting or the cap kept her out): V talks to her, she is a spawned partner.
+    distances.judy = 3
+    talk(auto, 'judy', 0.1)
+    assert(partners(auto) == 'judy' and #auto.spawned() == 0)
+    nearby = {{key = 'judy', name = 'Judy', distance = 3, spawned = true}}
+    step(auto, 185)
+    assert(partners(auto) == '' and table.concat(auto.spawned(), ',') == 'judy', 'the adapter said she is spawned: back to the lane')
+    -- Far from V when the role ends: released, with the cooldown.
+    distances.judy = 12
+    talk(auto, 'judy', 0.1)
+    step(auto, 185)
+    assert(partners(auto) == '' and not table.concat(auto.spawned(), ','):find('judy', 1, true), 'too far from V: released, with the cooldown')
+    -- A character that is not spawned never goes to the lane.
+    distances.dex = 2
+    talk(auto, 'dex', 0.1)
+    step(auto, 185)
+    assert(partners(auto) == '' and not table.concat(auto.spawned(), ','):find('dex', 1, true), 'an ordinary partner took a spawned place')
+  `);
+  run(`${fixture}${partnerFixture}${spawnedFixture}${lanePublications}
+    local auto = makeLane({locate = locate, spawned = function() return true end})
+    nearby = {}
+    for _, key in ipairs({'s1', 's2', 's3'}) do nearby[#nearby + 1] = {key = key, name = key, distance = 2, spawned = true}; distances[key] = 2 end
+    step(auto, 2)
+    assert(#auto.spawned() == 3)
+    -- A fourth spawned character V talks to becomes a partner; with the lane full it cannot return and is released.
+    distances.s4 = 2
+    talk(auto, 's4', 0.1)
+    assert(partners(auto) == 's4' and #auto.spawned() == 3)
+    step(auto, 185)
+    assert(partners(auto) == '' and #auto.spawned() == 3 and not table.concat(auto.spawned(), ','):find('s4', 1, true), 'the lane is capped at three')
+    local released = false
+    for _, line in ipairs(logs) do if line == 'Auto-connect partner released s4 (no exchange)' then released = true end end
+    assert(released)
+  `);
+  run(`${fixture}${partnerFixture}${spawnedFixture}${lanePublications}
+    local auto = makeLane({locate = locate, spawned = function() return true end})
+    nearby = {{key = 'judy', name = 'Judy', distance = 2, spawned = true}, {key = 'panam', name = 'Panam', distance = 3, spawned = true}}
+    distances.judy, distances.panam = 2, 3
+    step(auto, 2)
+    local from = #everyPublication
+    talk(auto, 'judy', 0.1)
+    step(auto, 20)
+    -- V talks to Panam: Judy has 30 s of grace, then she is "another partner" and returns to the lane.
+    talk(auto, 'panam', 0.1)
+    assert(partners(auto) == 'panam,judy')
+    step(auto, 31)
+    assert(partners(auto) == 'panam' and table.concat(auto.spawned(), ',') == 'judy', 'another partner: ' .. partners(auto) .. '/' .. table.concat(auto.spawned(), ','))
+    assert(alwaysListed('judy', from + 1) and alwaysListed('panam', from + 1))
+  `);
+});
+
+test('a character in the running group round has an exchange even when V addressed someone else', () => {
+  run(`${fixture}${partnerFixture}${spawnedFixture}${lanePublications}
+    local round = nil
+    local auto = makeLane({locate = locate, roundKeys = function() return round end})
+    party.alex = true
+    nearby = {{key = 'judy', name = 'Judy', distance = 2, spawned = true}}
+    distances.judy = 2
+    step(auto, 2)
+    talk(auto, 'judy', 0.1)
+    assert(partners(auto) == 'judy')
+    -- A round addressed to Alex (a party member: never a partner) with Judy as another speaker, for five minutes.
+    round = {'alex', 'judy'}
+    for _ = 1, 300 do step(auto, 1, {worldReady = true, blocked = false, talking = 'alex'}) end
+    assert(partners(auto) == 'judy', 'a group turn did not count as an exchange')
+    -- The round ends: three minutes later the partner role ends and she goes back to the lane.
+    round = nil
+    step(auto, 185)
+    assert(partners(auto) == '' and table.concat(auto.spawned(), ',') == 'judy')
+  `);
+  // Without the round keys the same five minutes release the partner (the old behaviour: only the addressed one counted).
+  run(`${fixture}${partnerFixture}${spawnedFixture}${lanePublications}
+    local auto = makeLane({locate = locate})
+    party.alex = true
+    distances.judy = 2
+    talk(auto, 'judy', 0.1)
+    for _ = 1, 200 do step(auto, 1, {worldReady = true, blocked = false, talking = 'alex'}) end
+    assert(partners(auto) == '', 'without round keys only the addressed character counts')
+  `);
+});
+
+test('wiring: the scan remembers spawned characters and adds the remembered ones within group range; round keys and the partner check are passed in', () => {
+  const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+  assert.match(init, /convaiSpawnedRange = 8/);
+  assert.match(init, /spawnedSeen\[#spawnedSeen \+ 1\] = \{id = entity:GetEntityID\(\), entity = id, key = key, name = name\}/);
+  assert.match(init, /pcall\(service\.recall, service, player, convaiSpawnedRange, seen, function\(entry\)/);
+  assert.match(init, /roundKeys = function\(\) return convaiRoundKeys\(\) end/);
+  assert.match(init, /service\.knownBy\[partner\.id\] ~= nil/);
+  // The scan is the once-a-second one: the new lookups sit inside scanNearbyCharacters, not in a per-frame callback.
+  const update = init.slice(init.indexOf("registerForEvent('onUpdate'"), init.indexOf("registerForEvent('onUpdate'") + 400);
+  assert.doesNotMatch(update, /recall|remember/);
+  assert.match(source, /spawnedRadius = 8/);
+  assert.match(source, /if entry\.spawned then age = 0 end/);
 });

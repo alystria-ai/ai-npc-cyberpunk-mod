@@ -154,6 +154,26 @@ export class PartyConnections {
     this.spawned = next; this.revision++;
     return this.reconcile();
   }
+  // The three ambient lists in one step (partners, spawned characters, nearby characters). A profile that changes role (a spawned
+  // character V talks to becomes a partner, and a released partner goes back to the spawned lane) is in the plan before and after,
+  // so its page is kept: three separate setters would reconcile in between, find it in no list and close the page, then open it
+  // again. Same validation, limits and routes as the three setters; the routes cover the partners and the nearby ones.
+  setAmbient({partners = [], spawned = [], nearby = [], routes = {}} = {}) {
+    const clean = (list, message) => {
+      if (!Array.isArray(list) || list.some(profile => typeof profile !== 'string' || !/^[a-z0-9-]{1,80}$/.test(profile))) throw Error(message);
+      return [...new Set(list)];
+    };
+    const nextPartners = clean(partners, 'Invalid conversation partners').slice(0, PARTNER_LIMIT);
+    const nextSpawned = clean(spawned, 'Invalid spawned profiles').slice(0, SPAWNED_LIMIT);
+    const nextNearby = clean(nearby, 'Invalid nearby profiles').slice(0, NEARBY_LIMIT);
+    const nextPartnerRoutes = routeMap(nextPartners, routes), nextNearbyRoutes = routeMap(nextNearby, routes);
+    if (JSON.stringify(nextPartners) === JSON.stringify(this.partners) && sameRoutes(nextPartnerRoutes, this.partnerRoutes)
+        && JSON.stringify(nextSpawned) === JSON.stringify(this.spawned)
+        && JSON.stringify(nextNearby) === JSON.stringify(this.nearby) && sameRoutes(nextNearbyRoutes, this.nearbyRoutes)) return Promise.resolve();
+    this.partners = nextPartners; this.partnerRoutes = nextPartnerRoutes; this.spawned = nextSpawned;
+    this.nearby = nextNearby; this.nearbyRoutes = nextNearbyRoutes; this.revision++;
+    return this.reconcile();
+  }
   // True while this entry may be opened although the plan pre-opens nothing else (warmDeferred).
   deferredAllowed(entry) { return this.warmDeferred() === true && (entry.role === 'spawned' || entry.alsoSpawned === true); }
   setRequest(input, exactConfig) {

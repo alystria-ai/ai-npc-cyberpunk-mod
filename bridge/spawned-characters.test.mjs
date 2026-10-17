@@ -501,8 +501,9 @@ test('wiring: group chat and reactions ask for spawned characters on events only
 function selectionRun(body) {
   const selection = between('local function selectConversation(', 'local function voiceTargetValid');
   peopleRun(`
-    local scanSees = true
+    local scanSees, scanList = true, nil
     local lines, notices = {}, {}
+    local world = {}
     function log(line) lines[#lines + 1] = line end
     groupChat = (function() ${groupSource} end)()
     local function body(hash, x) return {hash = hash, x = x,
@@ -519,7 +520,9 @@ function selectionRun(body) {
     companions = {conversationCandidates = function() return {ours} end}
     local function readOf(n) if n.hash == 'C1' then return {managed = true, own = true} end return {managed = true, tags = {'SomeSpawnerTag'}} end
     convaiSpawnedCharacters = S.new({clock = function() return now end, ready = function() return true end,
-      scan = function() scans = scans + 1; if scanSees then return {sA, sB, alex} end return {} end, read = readOf})
+      scan = function() scans = scans + 1; if scanList then return scanList end; if scanSees then return {sA, sB, alex} end return {} end,
+      find = function(id) return world[id.hash] end, read = readOf})
+    for _, n in ipairs({alex, sA, sB}) do world[n.hash] = n end
     -- What the key press already gathered natively when V faces Alex.
     local faced, nativeList = alex, {alex, sA, sB}
     function targetAtCrosshair() convaiTalkNative = nativeList; return faced, nil, {} end
@@ -556,6 +559,7 @@ test('facing one of our companions with two spawned characters nearby gives a th
   local _, viaNative = selectConversation(player, true, 'cyberpunk_convai_text')
   assert(#viaNative == 3, 'counted from the native candidates: ' .. #viaNative)
   -- Nobody spawned nearby: the notice, as before.
+  world['S1'], world['S2'] = nil, nil -- both despawned: nobody is left to remember
   nativeList, now = {alex}, 100
   local none = selectConversation(player, true, 'cyberpunk_convai_text')
   assert(none == nil and notices[#notices] == 'group-needs-two')
@@ -602,3 +606,158 @@ test('two generic spawned people (the same profile) and our companion are three 
     {alex = true, ['resident-male'] = true})
   assert(#chosen == 3 and chosen[2].entity == 'c' and chosen[3].entity == 'd')
 `));
+
+// The live bug, second half (2026-10-17, 09:08:39): facing Alex with Jackie at about 5 m and Judy at about 1.7 m, only two answered.
+// The key press's own queries (the scan and the native talk-target candidates) report only what the camera sees, so one spawned
+// character was never a candidate. Every spawned character V's queries have ever reported is remembered by its ID and resolved on
+// the key press, wherever V faces.
+test('a spawned character outside the aim cone that no query reports now still counts, found from memory (the F7 bug, second half)', () => selectionRun(`
+  -- Judy at 1.7 m, Panam at 5 m, both seen once (V looked at them while the other mod spawned them).
+  positions['S1'], positions['S2'] = 1.7, 5
+  local _, seenOnce = selectConversation(player, true, 'cyberpunk_convai_text')
+  assert(#seenOnce == 3 and lines[#lines]:find('via scan', 1, true), lines[#lines])
+  -- V now faces Alex: the aim cone holds Alex only, and the scan reports Panam (at 5 m) but not Judy behind V.
+  now = 50
+  scanList, nativeList = {sB, alex}, {alex}
+  local primary, round = selectConversation(player, true, 'cyberpunk_convai_text')
+  assert(#notices == 0 and primary.profileKey == 'alex')
+  assert(round and #round == 3, 'three people: ' .. tostring(round and #round))
+  assert(round[1].profileKey == 'alex' and round[2].profileKey == 'judy-alvarez' and round[3].profileKey == 'panam-palmer', 'nearest spawned first')
+  assert(round[2].spawned == true and round[2].source == 'remembered' and round[3].source == 'scan')
+  local line = lines[#lines]
+  assert(line:find('Group candidates: companions=1 spawned=2', 1, true), line)
+  assert(line:find('radius=8m', 1, true) and line:find('judy-alvarez d=1.7 via remembered', 1, true)
+    and line:find('panam-palmer d=5.0 via scan', 1, true) and line:find('left out: none', 1, true), line)
+  -- Facing a spawned character with the other one remembered: the same three.
+  now, faced, scanList, nativeList = 100, sB, {sB}, {sB}
+  local _, faced3 = selectConversation(player, true, 'cyberpunk_convai_text')
+  assert(#faced3 == 3 and faced3[1].profileKey == 'panam-palmer' and faced3[2].profileKey == 'alex' and faced3[3].profileKey == 'judy-alvarez')
+  -- Facing Judy (native candidate) while Panam is remembered only.
+  now, faced, scanList, nativeList = 150, sA, {}, {sA}
+  local _, viaJudy = selectConversation(player, true, 'cyberpunk_convai_text')
+  assert(#viaJudy == 3 and viaJudy[1].profileKey == 'judy-alvarez', 'facing Judy, Panam from memory')
+  assert(lines[#lines]:find('judy-alvarez d=1.7 via native', 1, true) and lines[#lines]:find('panam-palmer d=5.0 via remembered', 1, true), lines[#lines])
+`));
+
+test('a remembered character that walked beyond group range, despawned or never was seen is left out, and the log says why with distances', () => selectionRun(`
+  positions['S1'], positions['S2'] = 1.7, 5
+  selectConversation(player, true, 'cyberpunk_convai_text')
+  scanList, nativeList, now = {alex}, {alex}, 50
+  -- Judy walked 12 m away: out of range (still remembered), Panam is counted.
+  positions['S1'] = 12
+  local _, near = selectConversation(player, true, 'cyberpunk_convai_text')
+  assert(#near == 2 and near[2].profileKey == 'panam-palmer')
+  local line = lines[#lines]
+  assert(line:find('companions=1 spawned=1', 1, true) and line:find('left out: judy-alvarez d=12.0 out-of-range', 1, true), line)
+  assert(convaiSpawnedCharacters.knownBy['S1'] ~= nil, 'still remembered: she may come back')
+  positions['S1'], now = 2, 100
+  local _, back = selectConversation(player, true, 'cyberpunk_convai_text')
+  assert(#back == 3, 'back within range: counted again')
+  -- Panam despawned (the entity is gone): left out as gone, and forgotten.
+  world['S2'], now = nil, 150
+  local _, gone = selectConversation(player, true, 'cyberpunk_convai_text')
+  assert(#gone == 2 and lines[#lines]:find('panam-palmer gone', 1, true), lines[#lines])
+  assert(convaiSpawnedCharacters.knownBy['S2'] == nil, 'forgotten')
+  -- One that no query ever reported cannot be found (the documented limit): only Alex and the remembered Judy.
+  convaiSpawnedCharacters:reset()
+  now = 200
+  local alone = selectConversation(player, true, 'cyberpunk_convai_text')
+  assert(alone == nil and notices[#notices] == 'group-needs-two', 'nobody remembered, nobody reported: the notice, as before')
+  assert(lines[#lines]:find('companions=1 spawned=0', 1, true) and lines[#lines]:find('counted: none; left out: none', 1, true), lines[#lines])
+`));
+
+test('remember and recall: IDs only, resolved on demand, bounded, nothing resolved while nothing is remembered', () => withModule(`${fakeWorld}
+  local function row(n, key) return {id = {hash = n.hash}, entity = n.hash, key = key, name = 'N' .. n.hash} end
+  assert(service.known and #service.known == 0 and S.KNOWN_LIMIT == 12)
+  local a, b, c = npc('1', 3, 'spawned'), npc('2', 9, 'spawned'), npc('3', 40, 'spawned')
+  scene[1], scene[2], scene[3] = a, b, c
+  local rows, dropped = service:recall(player, 8)
+  assert(#rows == 0 and #dropped == 0 and finds == 0, 'nothing remembered: nothing resolved')
+  service:remember({row(a, 'judy'), row(b, 'panam'), row(c, 'kerry'), {entity = 'x'}, {id = {hash = 'y'}}, 'junk'})
+  assert(#service.known == 3, 'a row needs an ID and an entity string')
+  for _, entry in ipairs(service.known) do assert(entry.npc == nil, 'no entity handle is kept') end
+  rows, dropped = service:recall(player, 8)
+  assert(#rows == 1 and rows[1].entity == '1' and rows[1].source == 'remembered' and rows[1].key == 'judy' and rows[1].npc == a and rows[1].distance == 3)
+  assert(#dropped == 2 and dropped[1].reason == 'out-of-range' and dropped[1].distance == 9 and dropped[2].distance == 40 and finds == 3)
+  -- present and accept skip an entry before it is resolved.
+  finds = 0
+  rows = service:recall(player, 50, {['1'] = true}, function(entry) return entry.key ~= 'kerry' end)
+  assert(#rows == 1 and rows[1].entity == '2' and finds == 1, 'one lookup: ' .. finds)
+  -- A detached one is kept (it may stream back in), a gone one is forgotten.
+  alive['1'] = false
+  rows, dropped = service:recall(player, 50)
+  assert(#rows == 2 and dropped[1].reason == 'detached' and #service.known == 3)
+  scene[2] = {hash = 'zz'}
+  rows, dropped = service:recall(player, 50)
+  assert(dropped[#dropped].reason == 'gone' and #service.known == 2 and service.knownBy['2'] == nil)
+  -- A character that no longer reads as spawned is forgotten too.
+  kinds['3'] = 'game'; service.cache = {}; service.count = 0
+  rows, dropped = service:recall(player, 50)
+  assert(#service.known == 1 and service.knownBy['3'] == nil)
+  -- Bounded: the one seen longest ago leaves first; seeing one again refreshes it.
+  service:reset(); assert(#service.known == 0 and next(service.knownBy) == nil)
+  for i = 1, S.KNOWN_LIMIT do now = i; service:remember({{id = {hash = 'k' .. i}, entity = 'k' .. i}}) end
+  now = 20; service:remember({{id = {hash = 'k1'}, entity = 'k1', key = 'judy'}})
+  now = 21; service:remember({{id = {hash = 'new'}, entity = 'new'}})
+  assert(#service.known == S.KNOWN_LIMIT and service.knownBy['k1'] ~= nil and service.knownBy['k1'].key == 'judy'
+    and service.knownBy['k2'] == nil and service.knownBy['new'] ~= nil, 'the oldest (k2) left, the refreshed k1 stayed')
+  assert(#service:recall(nil, 8) == 0 and #service:recall(player, 8, nil) >= 0)
+`));
+
+test('adapter: nearby remembers each kept character with its profile key, and describe lists who counted and who did not', () => peopleRun(`
+  scene[1], scene[2], scene[3], scene[4] = npc('1', 5, 'judy-alvarez', 'Judy Alvarez'), npc('2', 2, 'panam-palmer', 'Panam Palmer'),
+    npc('5', 1, 'off', 'Disabled'), npc('7', 6, 'vendor', 'Vendor')
+  local rows = convaiSpawnedPeople.nearby(player, 8)
+  local service = convaiSpawnedCharacters
+  assert(#rows == 3 and rows[1].source == 'scan')
+  assert(service.knownBy['1'].key == 'judy-alvarez' and service.knownBy['1'].name == 'Judy Alvarez' and service.knownBy['2'].key == 'panam-palmer')
+  local text = convaiSpawnedPeople.describe()
+  assert(text:find('radius=8m', 1, true) and text:find('panam-palmer d=2.0 via scan', 1, true) and text:find('judy-alvarez d=5.0 via scan', 1, true), text)
+  assert(text:find('off d=1.0 disabled', 1, true), 'a character left out for its profile says so: ' .. text)
+  -- Many left out: the list is cut with a count, so the line stays short.
+  for i = 1, 9 do scene[#scene + 1] = npc('9' .. i, 7, 'off', 'Disabled ' .. i) end
+  now = 100
+  convaiSpawnedPeople.nearby(player, 8)
+  assert(convaiSpawnedPeople.describe():find('+4 more', 1, true), convaiSpawnedPeople.describe())
+  -- The scan finding nobody now: Judy and Panam come back from memory with their keys.
+  for i = #scene, 1, -1 do scene[i] = nil end
+  scene[1] = npc('2', 2, 'panam-palmer', 'Panam Palmer'); scene[2] = npc('1', 5, 'judy-alvarez', 'Judy Alvarez')
+  local keep = {scene[1], scene[2]}
+  now = 200
+  -- (the fake find resolves through scene, so keep them reachable but make the scan itself report nothing)
+  convaiSpawnedCharacters = S.new({clock = function() return now end, ready = function() return true end, scan = function() return {} end,
+    find = function(id) for _, n in ipairs(keep) do if n.hash == id.hash then return n end end return nil end,
+    read = function() return {managed = true, tags = {'SomeSpawnerTag'}} end})
+  convaiSpawnedCharacters:remember({{id = {hash = '1'}, entity = '1', key = 'judy-alvarez', name = 'Judy Alvarez'}})
+  rows = convaiSpawnedPeople.nearby(player, 8)
+  assert(#rows == 1 and rows[1].profileKey == 'judy-alvarez' and rows[1].source == 'remembered', 'from memory: ' .. #rows)
+`));
+
+test('wiring: remembered IDs are asked on a key press or in the once-a-second scan, never per frame; the log names the source', () => {
+  assert.match(init, /convaiSpawnedPeople\.describe\(\)\)/);
+  assert.match(init, /pcall\(convaiSpawnedCharacters\.remember, convaiSpawnedCharacters, \{\{id = npc:GetEntityID\(\), entity = primary\.entity, key = key, name = name\}\}\)/);
+  const code = moduleSource.split('\n').filter(line => !line.trim().startsWith('--')).join('\n');
+  assert.match(code, /source = 'remembered'/);
+  assert.match(code, /KNOWN_LIMIT = 12/);
+  // The module keeps IDs, not handles: a known entry has no npc field.
+  assert.doesNotMatch(code, /entry = \{[^}]*npc =/);
+  const update = init.slice(init.indexOf("registerForEvent('onUpdate'"), init.indexOf("registerForEvent('onUpdate'") + 400);
+  assert.doesNotMatch(update, /convaiSpawnedCharacters|recall|remember/);
+});
+
+test('any talk key press remembers the spawned characters among its native candidates, without a profile lookup', () => peopleRun(`
+  scene[1], scene[2] = npc('1', 5, 'judy-alvarez', 'Judy Alvarez'), npc('2', 2, 'panam-palmer', 'Panam Palmer')
+  local service = convaiSpawnedCharacters
+  convaiSpawnedPeople.noteNative(nil); convaiSpawnedPeople.noteNative({})
+  assert(#service.known == 0)
+  convaiSpawnedPeople.noteNative({scene[1], scene[2], {GetEntityID = function() error('unreadable') end}})
+  assert(#service.known == 2 and service.knownBy['1'] ~= nil and service.knownBy['1'].key == nil)
+  local before = #service.known
+  convaiSpawnedPeople.noteNative({scene[1]})
+  assert(#service.known == before, 'the same character once')
+  convaiSpawnedCharacters = nil
+  convaiSpawnedPeople.noteNative({scene[1]})
+`));
+test('wiring: every talk key press notes its native candidates', () => {
+  assert.match(init, /if convaiSpawnedPeople then convaiSpawnedPeople\.noteNative\(convaiTalkNative\) end/);
+});

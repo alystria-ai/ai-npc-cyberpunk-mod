@@ -15,7 +15,7 @@
 -- runs one targeting query for the NPCs around V and keeps only the spawned ones. It is asked on an event (a group key press, a
 -- combat start, a pickup), the answer is reused for SCAN_SECONDS, and nothing runs without such an event. Reaction witnesses
 -- are then remembered by entity ID only (service:watch), at most WATCH_LIMIT of them, for WATCH_SECONDS.
-local M = {OWN_PREFIX = 'CyberpunkConvai', LIMIT = 256, SCAN_SECONDS = 3, WATCH_LIMIT = 3, WATCH_SECONDS = 180,
+local M = {OWN_PREFIX = 'CyberpunkConvai', LIMIT = 256, SCAN_SECONDS = 3, WATCH_LIMIT = 3, WATCH_SECONDS = 180, KNOWN_LIMIT = 12,
     -- The tags our NPC spawns carry, checked by name before any tag list is read (companion copies, holocall pictures).
     OWN_TAGS = {'CyberpunkConvaiCompanion', 'CyberpunkConvaiHolocall'}}
 
@@ -100,7 +100,8 @@ function M.find(id) return Game.FindEntityByID(id) end
 -- options.clock() replace the native ones (tests). The cache maps an entity hash to its kind, or false for "neither".
 function M.new(options)
     options = type(options) == 'table' and options or {}
-    local service = {cache = {}, count = 0, options = options, scanned = nil, watched = {}, watchedAt = nil}
+    local service = {cache = {}, count = 0, options = options, scanned = nil, watched = {}, watchedAt = nil,
+        known = {}, knownBy = {}, report = {dropped = {}}}
     local function clock() return (options.clock or os.clock)() end
     function service:kind(npc)
         if not npc then return nil end
@@ -119,12 +120,93 @@ function M.new(options)
     function service:is(npc) return self:kind(npc) == 'spawned' end
     -- True while the system that recognises spawned characters can answer; the callers skip every scan without it.
     function service:available() return (self.options.ready or M.ready)() == true end
-    -- The spawned characters within radius of V, nearest first: {npc, id, entity, distance}. One scan answers again for
-    -- SCAN_SECONDS. Never asked per frame: a group key press, a combat start or a pickup. `extra` is a list of NPCs the
-    -- caller already holds from its own native query (the talk-target candidates of the same key press): they are added to
-    -- the scan's answer when they are spawned and within radius, so a character the scan misses still counts.
+    -- Characters this service has seen spawned, by entity ID only (never a handle): the once-a-second auto-connect scan and every
+    -- group key press add what their queries report. A targeting query (GetTargetParts) reports only what the camera can see,
+    -- so a spawned character standing behind V, or beside V outside the aim cone, is missed by every query while V faces
+    -- another way (2026-10-17 live round). Remembering the ID lets a later key press or scan resolve the entity directly
+    -- (Game.FindEntityByID), wherever V faces. At most KNOWN_LIMIT, the one seen longest ago leaves first; an ID that no longer
+    -- resolves, or no longer reads as spawned, is forgotten. rows: {id, entity, key?, name?}; key and name are for the log.
+    function service:remember(rows)
+        local now = clock()
+        for _, row in ipairs(type(rows) == 'table' and rows or {}) do
+            if row.id ~= nil and type(row.entity) == 'string' then
+                local entry = self.knownBy[row.entity]
+                if entry then
+                    entry.id, entry.at = row.id, now
+                    if row.key then entry.key, entry.name = row.key, row.name or entry.name end
+                else
+                    if #self.known >= M.KNOWN_LIMIT then
+                        local oldest = 1
+                        for index, other in ipairs(self.known) do if other.at < self.known[oldest].at then oldest = index end end
+                        self.knownBy[self.known[oldest].entity] = nil
+                        table.remove(self.known, oldest)
+                    end
+                    entry = {id = row.id, entity = row.entity, key = row.key, name = row.name, at = now}
+                    self.known[#self.known + 1] = entry
+                    self.knownBy[row.entity] = entry
+                end
+            end
+        end
+    end
+    local function forget(self, entry)
+        self.knownBy[entry.entity] = nil
+        for index, other in ipairs(self.known) do
+            if other == entry then table.remove(self.known, index); break end
+        end
+    end
+    -- The remembered characters that are here now and within radius of V: rows {npc, id, entity, distance, key, name,
+    -- source = 'remembered'}, nearest first, plus the list of those left out with the reason ('gone', 'dead', 'not-spawned',
+    -- 'detached', 'out-of-range', each with its distance when known). `present` is a set of entity hashes the caller already has;
+    -- accept(entry), when given, skips an entry before anything is resolved. One FindEntityByID, one attachment check and one
+    -- position read per remembered character, and nothing at all while none is remembered. Never asked per frame.
+    function service:recall(player, radius, present, accept)
+        local rows, dropped = {}, {}
+        if #self.known == 0 or not player then return rows, dropped end
+        local placed, origin = pcall(function() return player:GetWorldPosition() end)
+        if not placed or origin == nil then return rows, dropped end
+        local entries = {}
+        for _, entry in ipairs(self.known) do entries[#entries + 1] = entry end
+        for _, entry in ipairs(entries) do
+            if not (present and present[entry.entity]) and (accept == nil or accept(entry)) then
+                local found, npc = pcall(self.options.find or M.find, entry.id)
+                local reason, distance
+                if not found or npc == nil then reason = 'gone'
+                else
+                    local asked, fact = pcall(function()
+                        if npc:IsDeadNoStatPool() then return {reason = 'dead'} end
+                        if not npc:IsAttached() then return {reason = 'detached'} end
+                        if self:kind(npc) ~= 'spawned' then return {reason = 'not-spawned'} end
+                        local at = npc:GetWorldPosition()
+                        return {distance = math.sqrt((at.x - origin.x)^2 + (at.y - origin.y)^2 + (at.z - origin.z)^2)}
+                    end)
+                    if not asked or type(fact) ~= 'table' then reason = 'gone'
+                    elseif fact.reason then reason = fact.reason
+                    elseif fact.distance > radius then reason, distance = 'out-of-range', fact.distance
+                    else
+                        rows[#rows + 1] = {npc = npc, id = entry.id, entity = entry.entity, distance = fact.distance,
+                            key = entry.key, name = entry.name, source = 'remembered'}
+                    end
+                end
+                if reason then
+                    dropped[#dropped + 1] = {entity = entry.entity, key = entry.key, reason = reason, distance = distance}
+                    if reason == 'gone' or reason == 'dead' or reason == 'not-spawned' then forget(self, entry) end
+                end
+            end
+        end
+        table.sort(rows, function(a, b)
+            if a.distance == b.distance then return a.entity < b.entity end
+            return a.distance < b.distance
+        end)
+        return rows, dropped
+    end
+    -- The spawned characters within radius of V, nearest first: {npc, id, entity, distance, source}. Three sources, in this
+    -- order of trust: 'scan' (one targeting query, answered again for SCAN_SECONDS), 'native' (`extra`: NPCs the caller already
+    -- holds from its own native query, the talk-target candidates of the same key press) and 'remembered' (an ID seen earlier,
+    -- resolved now: it counts wherever V is facing). Never asked per frame: a group key press, a combat start or a pickup.
+    -- service.report.dropped says who was left out and why, with distances, for the probe log.
     function service:nearby(player, radius, extra)
-        local rows = {}
+        local rows, dropped = {}, {}
+        self.report = {dropped = dropped}
         if not player or not self:available() then return rows end
         local now = clock()
         local cached = self.scanned
@@ -137,7 +219,7 @@ function M.new(options)
                     local good, row = pcall(function()
                         if not npc:IsAttached() or npc:IsDeadNoStatPool() or self:kind(npc) ~= 'spawned' then return nil end
                         local at, id = npc:GetWorldPosition(), npc:GetEntityID()
-                        return {npc = npc, id = id, entity = tostring(id.hash),
+                        return {npc = npc, id = id, entity = tostring(id.hash), source = 'scan',
                             distance = math.sqrt((at.x - origin.x)^2 + (at.y - origin.y)^2 + (at.z - origin.z)^2)}
                     end)
                     if good and row then cached.rows[#cached.rows + 1] = row end
@@ -151,29 +233,37 @@ function M.new(options)
         end
         local present = {}
         for _, row in ipairs(cached.rows) do
-            if row.distance <= radius then rows[#rows + 1] = row; present[row.entity] = true end
+            if row.distance <= radius then rows[#rows + 1] = row; present[row.entity] = true
+            else dropped[#dropped + 1] = {entity = row.entity, reason = 'out-of-range', distance = row.distance} end
         end
-        if type(extra) == 'table' and #extra > 0 then
-            local placed, origin = pcall(function() return player:GetWorldPosition() end)
-            local added = false
-            for _, npc in ipairs(placed and extra or {}) do
+        local placed, origin = pcall(function() return player:GetWorldPosition() end)
+        local added = false
+        if placed and type(extra) == 'table' then
+            for _, npc in ipairs(extra) do
                 local good, row = pcall(function()
                     local id = npc:GetEntityID()
                     local key = tostring(id.hash)
                     if present[key] or not npc:IsAttached() or npc:IsDeadNoStatPool() or self:kind(npc) ~= 'spawned' then return nil end
                     local at = npc:GetWorldPosition()
                     local distance = math.sqrt((at.x - origin.x)^2 + (at.y - origin.y)^2 + (at.z - origin.z)^2)
-                    if distance > radius then return nil end
-                    return {npc = npc, id = id, entity = key, distance = distance}
+                    return {npc = npc, id = id, entity = key, distance = distance, source = 'native'}
                 end)
-                if good and row then rows[#rows + 1] = row; present[row.entity] = true; added = true end
+                if good and row then
+                    if row.distance > radius then dropped[#dropped + 1] = {entity = row.entity, reason = 'out-of-range', distance = row.distance}
+                    else rows[#rows + 1] = row; present[row.entity] = true; added = true end
+                end
             end
-            if added then
-                table.sort(rows, function(a, b)
-                    if a.distance == b.distance then return a.entity < b.entity end
-                    return a.distance < b.distance
-                end)
-            end
+        end
+        -- Remember what the queries reported, then add the characters remembered from earlier that no query reported now.
+        self:remember(rows)
+        local recalled, left = self:recall(player, radius, present)
+        for _, row in ipairs(recalled) do rows[#rows + 1] = row; added = true end
+        for _, item in ipairs(left) do dropped[#dropped + 1] = item end
+        if added then
+            table.sort(rows, function(a, b)
+                if a.distance == b.distance then return a.entity < b.entity end
+                return a.distance < b.distance
+            end)
         end
         return rows
     end
@@ -216,7 +306,10 @@ function M.new(options)
         return rows
     end
     -- A world change: entity hashes from the old session mean nothing now.
-    function service:reset() self.cache, self.count, self.scanned, self.watched, self.watchedAt = {}, 0, nil, {}, nil end
+    function service:reset()
+        self.cache, self.count, self.scanned, self.watched, self.watchedAt = {}, 0, nil, {}, nil
+        self.known, self.knownBy, self.report = {}, {}, {dropped = {}}
+    end
     return service
 end
 

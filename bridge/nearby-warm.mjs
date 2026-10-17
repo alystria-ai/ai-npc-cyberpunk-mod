@@ -76,9 +76,15 @@ export class NearbyWarm {
       try { const route = this.routeFor(profile, entities[profile]); if (route) routes[profile] = route; }
       catch (error) { this.onError(error); }
     }
-    try { await this.connections.setPartners?.(partners, routes); } catch (error) { this.onError(error); }
-    try { await this.connections.setSpawned?.(spawned); } catch (error) { this.onError(error); }
-    try { await this.connections.setNearby(profiles, routes); } catch (error) { this.onError(error); }
+    if (typeof this.connections.setAmbient === 'function') {
+      // One plan change for the three lists: a profile that moves between roles (a spawned character V talked to is a partner,
+      // a released partner is spawned again) keeps its open connection instead of being closed and opened again.
+      try { await this.connections.setAmbient({partners, spawned, nearby: profiles, routes}); } catch (error) { this.onError(error); }
+    } else {
+      try { await this.connections.setPartners?.(partners, routes); } catch (error) { this.onError(error); }
+      try { await this.connections.setSpawned?.(spawned); } catch (error) { this.onError(error); }
+      try { await this.connections.setNearby(profiles, routes); } catch (error) { this.onError(error); }
+    }
     this.prepareVoices();
   }
   prepareVoices() {
@@ -105,6 +111,10 @@ export class NearbyWarm {
   async release() {
     for (const voice of this.voices.values()) voice.controller?.abort();
     this.voices.clear(); this.profiles = []; this.partners = []; this.spawned = [];
+    if (typeof this.connections.setAmbient === 'function') {
+      try { await this.connections.setAmbient({}); } catch (error) { this.onError(error); }
+      return;
+    }
     try { await this.connections.setPartners?.([]); } catch (error) { this.onError(error); }
     try { await this.connections.setSpawned?.([]); } catch (error) { this.onError(error); }
     try { await this.connections.setNearby([]); } catch (error) { this.onError(error); }

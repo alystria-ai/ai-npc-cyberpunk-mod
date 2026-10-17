@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {PartyConnections, parsePartyConnections, connectionKey, CONNECTION_LIMIT, SPAWNED_LIMIT, spawnedWarmLimit} from './party-connections.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
+import {NearbyWarm} from './nearby-warm.mjs';
 
 const flush = () => new Promise(done => setImmediate(done));
 const deferred = () => { let resolve, reject; const promise = new Promise((done, fail) => { resolve = done; reject = fail; }); return {promise, resolve, reject}; };
@@ -684,4 +685,66 @@ test('on a single-session plan without room spawned characters open nothing, as 
   assert.equal(f.calls.length, 0);
   assert.equal(f.connections.entries.get(connectionKey('judy', 'private')).state, 'waiting', 'listed, not opened');
   await f.connections.clear();
+});
+
+// A profile that changes role (a spawned character V talks to becomes a partner; a released partner goes back to the spawned lane) must
+// keep its open connection (2026-10-17 live bug: the partner role ended, the page closed, the next talk had to prepare it again). The
+// three lists are applied in one plan change (setAmbient); applying them one by one reconciles in between and closes the page.
+test('setAmbient validates like the three setters, ignores an unchanged set and keeps a profile that changes role', async () => {
+  const f = fixture(); f.heartbeat(['alex']);
+  assert.throws(() => f.connections.setAmbient({partners: 'judy'}), /Invalid conversation partners/);
+  assert.throws(() => f.connections.setAmbient({spawned: ['bad/key']}), /Invalid spawned profiles/);
+  assert.throws(() => f.connections.setAmbient({nearby: [1]}), /Invalid nearby profiles/);
+  await f.connections.setAmbient({spawned: ['judy', 'panam'], nearby: ['kerry', 'viktor', 'misty'], partners: ['river', 'jackie', 'alex']});
+  assert.deepEqual(f.connections.spawned, ['judy', 'panam']); assert.deepEqual(f.connections.nearby, ['kerry', 'viktor'], 'two nearby at most');
+  assert.deepEqual(f.connections.partners, ['river', 'jackie'], 'two partners at most');
+  const revision = f.connections.revision;
+  await f.connections.setAmbient({spawned: ['judy', 'panam'], nearby: ['kerry', 'viktor'], partners: ['river', 'jackie']});
+  assert.equal(f.connections.revision, revision, 'the same lists are a no-op');
+  await f.connections.setAmbient({}); assert.deepEqual(f.connections.plan(), [{profile: 'alex', scope: 'private', role: 'party'}]);
+});
+
+test('a spawned character who becomes a partner and returns to the spawned lane keeps its connection open the whole time', async () => {
+  const f = fixture(); f.heartbeat([]);
+  const retained = [];
+  const retain = f.host.retain;
+  f.host.retain = async (configs, options) => { retained.push(configs.map(config => config.characterId).sort()); return retain(configs, options); };
+  const warm = new NearbyWarm({connections: f.connections, now: f.now, prepareVoice: async () => {}});
+  const document = extra => JSON.stringify({updated: f.now(), profiles: [], partners: [], spawned: [], ...extra});
+  await warm.apply(document({spawned: ['judy']}));
+  for (let at = 0; at < 4; at++) await f.step(500);
+  const judy = connectionKey('judy', 'private');
+  assert(f.live.has(judy), 'opened as spawned'); assert.equal(f.calls.length, 1);
+  const before = retained.length;
+  // V talks to her: the game lists her as a partner and no longer as spawned.
+  await warm.apply(document({partners: ['judy'], entities: {}}));
+  assert.equal(f.connections.entries.get(judy).role, 'partner');
+  // The partner role ends while she stands beside V: spawned again (the same document that stops listing her as a partner).
+  await warm.apply(document({spawned: ['judy']}));
+  assert.equal(f.connections.entries.get(judy).role, 'spawned');
+  // And again, and a move to a nearby slot and back.
+  await warm.apply(document({partners: ['judy']}));
+  await warm.apply(document({profiles: ['judy']}));
+  await warm.apply(document({spawned: ['judy']}));
+  for (let at = 0; at < 4; at++) await f.step(500);
+  assert(f.live.has(judy), 'the page is still open');
+  assert.equal(f.calls.length, 1, 'opened once, never again');
+  assert(retained.length > before);
+  for (const wanted of retained.slice(before)) assert(wanted.includes('judy'), 'a retain without her would have closed the page: ' + wanted);
+  assert.equal(f.connections.entries.get(judy).state, 'ready');
+  // Control: applying the same changes with the three setters one after another (no setAmbient) drops her in between.
+  const g = fixture(); g.heartbeat([]);
+  const seen = [];
+  const keep = g.host.retain;
+  g.host.retain = async (configs, options) => { seen.push(configs.map(config => config.characterId)); return keep(configs, options); };
+  const sequential = new NearbyWarm({connections: {setPartners: (list, routes) => g.connections.setPartners(list, routes),
+    setSpawned: list => g.connections.setSpawned(list), setNearby: (list, routes) => g.connections.setNearby(list, routes)},
+    now: g.now, prepareVoice: async () => {}});
+  const documentG = extra => JSON.stringify({updated: g.now(), profiles: [], partners: [], spawned: [], ...extra});
+  await sequential.apply(documentG({spawned: ['judy']}));
+  await sequential.apply(documentG({partners: ['judy']}));
+  const mark = seen.length;
+  await sequential.apply(documentG({spawned: ['judy']}));
+  assert(seen.slice(mark).some(wanted => !wanted.includes('judy')), 'one by one, the page is dropped in between (what setAmbient prevents)');
+  await f.connections.clear(); await g.connections.clear();
 });
