@@ -137,6 +137,19 @@ add its record to `invulnerableModels` in `mod/companion-records.lua`.
 Tests: `bridge/companion-records.test.mjs` (armed clone for her record, one grant at attach, release before deletion,
 profile independence, refused/unconfirmed/missing system, fast travel).
 
+## Combat readiness at attach: level and attitude — October 17
+
+Written on branch `companion-45` (item 5 of `docs/COMPANION_IMPROVEMENTS_2026-10-17.md`); unit-tested, not seen in the game.
+
+A copy comes from a record whose level and stats are fixed by the record. When `attachFollower` (`mod/companions.lua`) has set the follower role, `spawnRecords.prepare` (`mod/companion-records.lua`) runs once for that copy:
+
+- **Only our own copy.** The entity must carry our spawn tag (`CyberpunkConvaiCompanion`). A character of the game, a quest actor or one that another mod spawned (`docs/SPAWNED_CHARACTERS.md`) is never scaled and is not even read.
+- **Level.** The game's own `NPCManager.ScaleToPlayer` (a private script function; the puppet keeps the manager in `m_NPCManager`). It removes the copy's PowerLevel modifiers and adds V's PowerLevel and Level. If the manager cannot be reached, the same stat calls are made directly. The level is read before and after: `Companion readiness: <name> level 7 -> 30 (V 30) via npc-manager` (or `via stats`). Equipment is not touched by either path. It happens once per attach, so a copy recreated by fast travel is scaled again as a new entity.
+- **Attitude.** The follower role puts the copy into V's attitude group. The group and the attitude towards V are read back once: `attitude ok, group ... (V: ...), towards V AIA_Friendly`. A difference is read again 1 s later, once, from the existing tick (no timer, no per-frame work): `attitude ok on re-read` or `attitude MISMATCH`. Nothing is corrected; a mismatch is only logged.
+- **Off switch.** Create `runtime/companion-scaling-off` to skip the scaling (read at each attach); the attitude read-back still happens.
+
+Live check: `TODO.md`, entry of 2026-10-17 (`companion-45`).
+
 ## Scoped adaptation
 
 `mod/companion-records.lua` resolves the selected model before entity creation.

@@ -47,12 +47,16 @@ target=npc('77ULL',20,0,'Tyger Claw'); target.hostile=true
 effects,logs={},{}
 local function effect(...) effects[#effects+1]=table.concat({...},' ') end
 drawError=nil
+reactionError=nil
 native={key=function(o) return o.id end,position=function(o) return {x=o.pos.x,y=o.pos.y,z=o.pos.z} end,
   alive=function(o) return o.alive end,inCombat=function(o) return o.combat end,
   playerInCombat=function(p) return p.combat end,playerMounted=function(p) return p.mounted end,
   hostileToPlayer=function(o) return o.hostile end,name=function(o) return o.name end,bodyType=function(o) return o.body end,
-  startFight=function(c,t) effect('fight-start',c.id,t.id); return {companionToTarget='AIA_Friendly',targetToCompanion='AIA_Hostile'} end,
+  startFight=function(c,t) effect('fight-start',c.id,t.id)
+    return {companionToTarget='AIA_Friendly',targetToCompanion='AIA_Hostile',
+      reaction={notes={'preset Follower -> Ganger_Aggressive (read back ok)','combat start asked of the reaction component'}}} end,
   stopFight=function(r,c,t) effect('fight-stop',c.id,t.id,r.targetToCompanion) end,
+  stopReaction=function(r,c) if reactionError then error(reactionError) end effect('preset-restore',c.id); return 'preset restored to Follower (read back ok)' end,
   weapon=function(c) return c.hand,c.hand and 'Items.Preset_Lexington' or nil end,
   drawWeapon=function(c) if drawError then error(drawError) end effect('draw',c.id); return {command=effect} end,
   cancelDraw=function(h,c) effect('draw-cancel',c.id) end}
@@ -182,6 +186,48 @@ test('a fight that cannot start leaves nothing behind', () => run(world + `
   local ok,message=T.start('fight',T.offer('44ULL'),'44ULL')
   assert(ok==false and message:find('could not engage') and not T.owns(3) and logged('fight start failed: .*threat refused'))
   assert(T.snapshot().last.result=='fight-unavailable')
+`));
+
+test('the reaction start is logged with the fight and the preset goes back with the attitudes', () => run(world + `
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  assert(logged('reaction: preset Follower %-> Ganger_Aggressive %(read back ok%)') and logged('reaction: combat start asked of the reaction component'))
+  companion.combat=true; frame(); frame()
+  player.mounted=true; frame()
+  assert(logged('reaction: preset restored to Follower %(read back ok%)'),'the restore is logged')
+  local restore,stop
+  for i,e in ipairs(effects) do if e=='preset-restore 44ULL' then restore=i end; if e:find('^fight%-stop') then stop=i end end
+  assert(restore and stop and restore<stop,'both are given back, the preset first')
+`));
+
+test('a defeated target still gets the companion her preset back; a missing companion gets no native call', () => {
+  run(world + `
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  companion.combat=true; frame(); frame()
+  target.alive=false; frame()
+  assert(T.snapshot().last.result=='target-down')
+  local restored=false
+  for _,e in ipairs(effects) do if e=='preset-restore 44ULL' then restored=true end; assert(not e:find('^fight%-stop')) end
+  assert(restored,'the preset is restored although there is no target to restore')
+  `);
+  run(world + `
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  companion.alive=false; T.cancel('gone')
+  for _,e in ipairs(effects) do assert(e~='preset-restore 44ULL','a gone companion is not touched') end
+  `);
+});
+
+test('a cancelled fight and a failed preset restore never leave the tactic active', () => run(world + `
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  T.cancel('cancelled')
+  assert(not T.owns(3) and effects[#effects]=='fight-stop 44ULL 77ULL AIA_Hostile')
+  local restores=0; for _,e in ipairs(effects) do if e=='preset-restore 44ULL' then restores=restores+1 end end
+  assert(restores==1,'restored exactly once')
+  effects,logs={}, {}
+  reactionError='component gone'
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  T.cancel('cancelled')
+  assert(not T.owns(3) and logged('reaction: preset restore failed: .*component gone'),'the failure is logged')
+  assert(effects[#effects]=='fight-stop 44ULL 77ULL AIA_Hostile','the attitudes are still given back')
 `));
 
 test('world teardown forgets every handle without native calls', () => run(world + `
@@ -356,6 +402,60 @@ test('target: the choice is logged with what was skipped, and unreadable natives
   K.abandon()
 `));
 
+test('target: a tagged NPC the targeting search never reports is found through the game tagged list (the live failure)', () => run(markingWorld + `
+  -- 2026-10-17 live: five requests found only the companion; the tagged gang member was never a candidate.
+  native.nearby=function() return {judy} end
+  native.taggedList=function() return {ganger} end
+  aimed=judy; ganger.tagged=true
+  local current,info=K.current(player)
+  assert(current==ganger and info.source=='tagged' and info.id=='77ULL' and info.distance==20,'the tagged NPC is the target')
+  assert(logged('Tactic candidates: 2 NPCs within 100m, 1 tagged.*tag list 1 %(1 missed by the search, 0 beyond 100m%)'),table.concat(logs,'|'))
+  assert(logged('Tyger Claw 20m tag=yes'),'it is listed with its tag state')
+  assert(logged('Tactic target: tagged Tyger Claw 77ULL at 20m'))
+`));
+
+test('target: with many NPCs about and one tagged, the tag list picks it; stale, far, unreadable and ineligible entries are handled', () => run(markingWorld + `
+  local function make(id,x,name,facts) local o=npc(id,x,name,facts); return o end
+  native.nearby=function(_,radius) local r={} for _,o in ipairs(world) do if o.pos.x<=radius and o~=ganger then r[#r+1]=o end end return r end
+  -- the search reports twelve NPCs but not the tagged ganger, who is only on the tag list
+  ganger.tagged=true
+  local stale=make('201ULL',30,'Stale Ganger',{ganger=true}); stale.tagged=false
+  local beyond=make('202ULL',150,'Distant Ganger',{ganger=true}); beyond.tagged=true
+  local unreadable=make('203ULL',35,'Unreadable Tag',{ganger=true}); unreadable.tagError='no such method'
+  native.taggedList=function() return {stale,beyond,judy,ganger} end
+  aimed=nil
+  local current,info=K.current(player)
+  assert(current==ganger and info.source=='tagged','the one valid tagged NPC wins: '..tostring(info and info.name))
+  assert(logged('tag list 4 %(2 missed by the search, 1 beyond 100m%)'),table.concat(logs,'|'))
+  assert(not logged('Stale Ganger.-tag=yes'),'a read that says no outweighs a stale list entry')
+  -- take the valid one away: the unreadable entry is trusted from the list, the companion and the stale one never
+  logs={}
+  ganger.tagged=false
+  native.taggedList=function() return {stale,judy,unreadable} end
+  current,info=K.current(player)
+  assert(current==unreadable and info.source=='tagged','an unreadable tag read is settled by the list')
+  -- only a companion and a stale entry are tagged: nothing tagged is valid, the aimed and nearest steps follow
+  logs={}
+  native.taggedList=function() return {stale,judy} end
+  aimed=nil; other.facts.hostile=true; other.pos={x=25,y=0,z=0}
+  current,info=K.current(player)
+  assert(info and info.source=='nearest','no valid tag, so the nearest hostile follows: '..table.concat(logs,'|'))
+`));
+
+test('target: an unreadable tag list is logged and the search alone still works; a companion under the crosshair never blocks an NPC beside her', () => run(markingWorld + `
+  native.taggedList=function() error('blackboard unavailable') end
+  ganger.tagged=true
+  local current,info=K.current(player)
+  assert(current==ganger and info.source=='tagged','the search still supplies the tagged NPC')
+  assert(logged('tag list unreadable %(.*blackboard unavailable'),table.concat(logs,'|'))
+  -- the look-at lands on her; the ganger is a little to the side of the crosshair
+  ganger.tagged=false; aimed=judy
+  native.crosshair=function() return {x=0,y=0,z=0},{x=0,y=1,z=0} end
+  ganger.pos={x=1,y=20,z=-1}
+  current,info=K.current(player)
+  assert(current==ganger and info.source=='aimed','skipped the companion and aimed along the crosshair')
+`));
+
 test('target: when the look-at lands on a companion, the eligible NPC on the crosshair line is chosen', () => run(markingWorld + `
   aimed=judy
   native.crosshair=function() return {x=0,y=0,z=1.7},{x=0,y=1,z=0} end
@@ -382,6 +482,26 @@ test('target: the native tag reader tries each method and reports which one answ
   local broken={IsTaggedinFocusMode=function() error('boom') end,IsTaggedInFocusMode=function() return 7 end}
   local ok,err=pcall(N.tagRead,broken); assert(not ok and tostring(err):find('returned number'),tostring(err))
   ok,err=pcall(N.tagRead,{}); assert(not ok and tostring(err):find('attempt to call'),tostring(err))
+`));
+
+test('the native tagged list reads the game blackboard once per call and keeps only NPCs', () => run(`
+  local Marking=(function() ${markingSource} end)()
+  local N=Marking.nativeAdapter()
+  local reads=0
+  local defs={TaggedObjectsList={taggedObjectsList='taggedObjectsList'}}
+  local npcA,npcB={IsNPC=function() return true end},{IsNPC=function() return true end}
+  local device={IsNPC=function() return false end}
+  local held=nil
+  Game={GetAllBlackboardDefs=function() return defs end,
+    GetBlackboardSystem=function() return {Get=function(_,board) assert(board==defs.TaggedObjectsList)
+      return {GetVariant=function(_,field) assert(field=='taggedObjectsList'); reads=reads+1; return held end} end} end}
+  FromVariant=function(v) return v end
+  held={npcA,device,npcB}
+  local list=N.taggedList()
+  assert(#list==2 and list[1]==npcA and list[2]==npcB and reads==1,'NPCs only, one read')
+  held=nil; assert(#N.taggedList()==0,'an empty variant is an empty list')
+  Game.GetBlackboardSystem=function() error('no blackboard') end
+  assert(not pcall(N.taggedList),'an unreadable board raises, so the caller can log it')
 `));
 
 test('companions hand exactly one owned copy to the tactic decision and resume following afterwards', () => run(`${companionEngine}
@@ -437,4 +557,115 @@ test('the native weapon draw uses the right-hand slot and is cancelled only whil
   local function item(id) return {GetItemID=function() return id end} end
   assert(N.weapon({weapon=nil})==false and N.weapon({weapon=item('fists')})==false)
   local drawn,record=N.weapon({weapon=item('Preset_Lexington')}); assert(drawn==true and record=='Items.Preset_Lexington')
+`));
+
+// The native adapter's reaction steps against a fake of the game objects they call.
+const reactionWorld = `
+  local Tactics=(function() ${tacticsSource} end)()
+  local N=Tactics.nativeAdapter()
+  local order={}
+  local function id(name) return {name=name} end
+  local presets={}
+  local function preset(name,aggressive) local p={name=name,aggressive=aggressive,id=id(name)}
+    function p:EnumName() return self.name end; function p:IsAggressive() return self.aggressive end; function p:GetID() return self.id end
+    presets[name]=p; presets[p.id]=p; return p end
+  preset('Follower',false); preset('Ganger_Aggressive',true)
+  TweakDBID={new=function(name) return name end}
+  TweakDBInterface={GetReactionPresetRecord=function(key) return presets[key] or presets[(tostring(key):gsub('^ReactionPresets%.',''))] end,
+    GetAIThreatPersistenceSourceRecord=function() return nil end}
+  TweakDB={GetRecords=function() local all={}; for key,p in pairs(presets) do if type(key)=='string' then all[#all+1]=p end end; return all end}
+  NameToString=function(v) return v end
+  Enum={new=function(_,v) return v end}
+  AIActionHelper={TryStartCombatWithTarget=function(c,t) order[#order+1]='helper'; return helperResult~=false end}
+  helperResult=true
+  local function agent(name) local a={name=name,attitude='AIA_Friendly'}
+    function a:GetAttitudeTowards(o) return self.attitude end
+    function a:SetAttitudeTowards(o,v) order[#order+1]=name..'-attitude-'..v; self.attitude=v end
+    return a end
+  local function component(start) local c={current=presets.Follower}
+    function c:GetReactionPreset() return self.current end
+    function c:SetReactionPreset(p) order[#order+1]='preset-'..p.name; self.current=p end
+    function c:TriggerCombat(t) order[#order+1]='trigger'; if triggerError then error(triggerError) end end
+    return c end
+  local function puppet(name) local n={name=name,agent=agent(name),reaction=component(),civilian=false}
+    function n:GetAttitudeAgent() return self.agent end
+    function n:GetStimReactionComponent() return self.reaction end
+    function n:IsCharacterCivilian() return self.civilian end
+    function n:GetWorldPosition() return {x=0,y=0,z=0} end
+    function n:GetTargetTrackerComponent() return {AddThreat=function() order[#order+1]='threat' end,SetThreatPersistence=function() end} end
+    return n end
+  companion,target=puppet('companion'),puppet('target')
+`;
+
+test('the adapter raises an aggressive preset, starts combat last through the reaction component, and restores the preset', () => run(reactionWorld + `
+  local receipt=N.startFight(companion,target)
+  assert(companion.reaction.current.name=='Ganger_Aggressive')
+  assert(order[1]=='preset-Ganger_Aggressive' and order[#order]=='trigger','preset first, the combat start after attitudes and threat: '..table.concat(order,','))
+  local joined=table.concat(receipt.reaction.notes,'|')
+  assert(joined:find('preset Follower %-> Ganger_Aggressive %(read back ok%)') and joined:find('combat start asked of the reaction component'),joined)
+  assert(N.stopReaction(receipt,companion):find('preset restored to Follower %(read back ok%)'))
+  assert(companion.reaction.current.name=='Follower','the earlier preset is back')
+  N.stopFight(receipt,companion,target)
+  assert(companion.agent.attitude=='AIA_Friendly' and target.agent.attitude=='AIA_Friendly','attitudes back as before')
+`));
+
+test('the adapter leaves a preset the game changed since, and one it could not raise, alone', () => run(reactionWorld + `
+  local receipt=N.startFight(companion,target)
+  preset('Sleep',false); companion.reaction.current=presets.Sleep
+  local text=N.stopReaction(receipt,companion)
+  assert(text:find('left as the game set it %(Sleep%)') and companion.reaction.current.name=='Sleep')
+  -- already aggressive: nothing raised, nothing to restore
+  companion.reaction.current=presets.Ganger_Aggressive; order={}
+  receipt=N.startFight(companion,target)
+  assert(table.concat(receipt.reaction.notes,'|'):find('already aggressive') and N.stopReaction(receipt,companion)==nil)
+  for _,o in ipairs(order) do assert(not o:find('^preset%-'),'no preset call') end
+  -- no aggressive preset in the install: the preset is kept, combat is still asked for
+  presets.Ganger_Aggressive=nil; presets[id]=nil
+  companion.reaction.current=presets.Follower; order={}
+  receipt=N.startFight(companion,target)
+  assert(table.concat(receipt.reaction.notes,'|'):find('no aggressive preset found') and companion.reaction.current.name=='Follower' and order[#order]=='trigger')
+`));
+
+test('the adapter falls back to an aggressive combat preset by name and skips civilian and police presets', () => run(reactionWorld + `
+  presets.Ganger_Aggressive=nil
+  preset('Civilian_Aggressive',true); preset('Police_Aggressive',true); preset('Zeta_Aggressive',true); preset('Alpha_Aggressive',true)
+  local receipt=N.startFight(companion,target)
+  assert(companion.reaction.current.name=='Alpha_Aggressive','the first by name that is not civilian or police: '..companion.reaction.current.name)
+  N.stopReaction(receipt,companion); assert(companion.reaction.current.name=='Follower')
+`));
+
+test('a failed combat start or preset change is noted and never stops the fight; a civilian record uses the game helper', () => {
+  run(reactionWorld + `
+  triggerError='no such method'
+  local receipt=N.startFight(companion,target)
+  assert(table.concat(receipt.reaction.notes,'|'):find('combat start failed: .*no such method'),'noted')
+  assert(companion.reaction.current.name=='Ganger_Aggressive','the preset stays set so the receipt can restore it')
+  assert(N.stopReaction(receipt,companion):find('restored'))
+  triggerError=nil
+  companion.reaction.SetReactionPreset=function() error('private') end
+  receipt=N.startFight(companion,target)
+  assert(table.concat(receipt.reaction.notes,'|'):find('preset change failed: .*private') and order[#order]=='trigger','combat still asked for')
+  assert(N.stopReaction(receipt,companion)==nil,'nothing was raised, so nothing is restored')
+  companion.GetStimReactionComponent=function() return nil end
+  receipt=N.startFight(companion,target)
+  assert(table.concat(receipt.reaction.notes,'|'):find('reaction component unavailable'),'attitudes alone remain')
+  `);
+  run(reactionWorld + `
+  companion.civilian=true
+  local receipt=N.startFight(companion,target)
+  assert(order[#order]=='helper' and not table.concat(order,','):find('trigger'),table.concat(order,','))
+  assert(table.concat(receipt.reaction.notes,'|'):find('directly %(civilian record%)'))
+  helperResult=false; order={}
+  receipt=N.startFight(companion,target)
+  assert(table.concat(receipt.reaction.notes,'|'):find('combat start failed: .*refused'))
+  `);
+});
+
+test('a fight start that fails halfway gives the preset and the attitudes back', () => run(reactionWorld + `
+  target.GetTargetTrackerComponent=nil
+  companion.GetTargetTrackerComponent=function() error('tracker gone') end
+  local ok,err=pcall(N.startFight,companion,target)
+  assert(not ok and tostring(err):find('tracker gone'),tostring(err))
+  assert(companion.reaction.current.name=='Follower','the preset is back')
+  assert(companion.agent.attitude=='AIA_Friendly' and target.agent.attitude=='AIA_Friendly','the attitudes are back')
 `));

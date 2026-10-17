@@ -4,9 +4,9 @@
 -- exactly one managed copy through companions.tactics (owns/decide); the
 -- companion's actuator still issues every native command, so there is one owner
 -- per movement command. Fighting releases movement to native combat AI.
--- Every native change (hostility, the persistent threat, a weapon draw) is
--- recorded and restored on completion or cancellation; world teardown forgets
--- handles without native calls.
+-- Every native change (hostility, the persistent threat, the reaction preset,
+-- a weapon draw) is recorded and restored on completion or cancellation; world
+-- teardown forgets handles without native calls.
 local M = {}
 local KINDS = {fight = true}
 local DEFAULTS = {
@@ -67,17 +67,112 @@ function M.nativeAdapter()
     function N.hostileToPlayer(npc, player) return attitudeName(npc, player) == 'AIA_Hostile' end
     function N.name(npc) return tostring(npc:GetTweakDBFullDisplayName(true) or 'NPC') end
     function N.bodyType(npc) return bodyName(npc:GetBodyType()) end
+    -- The reaction component (ReactionManagerComponent, reactionComponent.script). A follower carries the Follower
+    -- preset, which ignores the hostile stimuli that make an ordinary NPC fight, so hostile attitudes alone can leave her
+    -- watching. For the tactic only: an aggressive preset, then the component's own TriggerCombat (the game's
+    -- AIActionHelper.TryStartCombatWithTarget). Both are script functions the game marks private; CET calls them by name.
+    -- docs/COMPANION_IMPROVEMENTS_2026-10-17.md item 4.
+    local PRESET_CANDIDATES = {'Ganger_Aggressive', 'Mercenary_Aggressive', 'Corpo_Aggressive'}
+    local PRESET_EXCLUDED = {'Civilian', 'Child', 'Police', 'Guard', 'Prevention', 'Sleep', 'Vehicle', 'Lore', 'NoReaction'}
+    local function presetLabel(record) return record and bodyName(record:EnumName()) or '?' end
+    local function aggressivePreset()
+        for _, name in ipairs(PRESET_CANDIDATES) do
+            local record = TweakDBInterface.GetReactionPresetRecord(TweakDBID.new('ReactionPresets.' .. name))
+            if record and record:IsAggressive() == true then return record end
+        end
+        -- The named presets are not in this install: the first aggressive combat preset by name.
+        local found, foundName
+        for _, record in ipairs(TweakDB:GetRecords('gamedataReactionPreset_Record') or {}) do
+            local name = presetLabel(record)
+            local skip = name:find('Aggressive', 1, true) == nil
+            for _, word in ipairs(PRESET_EXCLUDED) do if name:find(word, 1, true) then skip = true end end
+            if not skip and record:IsAggressive() == true and (not foundName or name < foundName) then found, foundName = record, name end
+        end
+        return found
+    end
+    local function reactionComponent(npc)
+        local component = npc:GetStimReactionComponent()
+        if not component then error('no reaction component') end
+        return component
+    end
+    -- Raises the preset and prepares the component's combat start (run last, after the attitudes and the threat). Never
+    -- raises: a failed step is noted and the fight goes on on the attitudes and the threat alone. reaction.notes are logged
+    -- by the tactic.
+    local function startReaction(companion, target, receipt)
+        local reaction = {notes = {}}
+        receipt.reaction = reaction
+        local function note(text) reaction.notes[#reaction.notes + 1] = text end
+        local component
+        local reached, reachError = pcall(function() component = reactionComponent(companion) end)
+        if not reached then note('reaction component unavailable: ' .. tostring(reachError)); return end
+        -- Only a preset that can be put back is changed.
+        local raised, raiseError = pcall(function()
+            local current = component:GetReactionPreset()
+            if not current then note('preset unreadable, left as it is'); return end
+            if current:IsAggressive() == true then note('preset ' .. presetLabel(current) .. ' is already aggressive'); return end
+            local wanted = aggressivePreset()
+            if not wanted then note('no aggressive preset found, ' .. presetLabel(current) .. ' kept'); return end
+            component:SetReactionPreset(wanted)
+            reaction.presetFrom, reaction.presetTo = current:GetID(), wanted:GetID()
+            local now = component:GetReactionPreset()
+            note('preset ' .. presetLabel(current) .. ' -> ' .. presetLabel(wanted) .. ' (read back ' ..
+                ((now and now:GetID() == wanted:GetID()) and 'ok' or ('differs: ' .. presetLabel(now))) .. ')')
+        end)
+        if not raised then note('preset change failed: ' .. tostring(raiseError)) end
+        reaction.start = function()
+            local started, startError = pcall(function()
+                local civilian = false
+                pcall(function() civilian = companion:IsCharacterCivilian() == true end)
+                if civilian then
+                    -- TriggerCombat also sends a security-breach stimulus for a civilian record; use its combat start directly.
+                    if AIActionHelper.TryStartCombatWithTarget(companion, target) == false then error('the game refused combat with this target') end
+                    note('combat start asked of the game directly (civilian record)')
+                else
+                    component:TriggerCombat(target)
+                    note('combat start asked of the reaction component')
+                end
+            end)
+            if not started then note('combat start failed: ' .. tostring(startError)) end
+        end
+    end
+    -- Gives the preset back, only while it still reads the one this tactic set (a preset the game chose since is its own).
+    -- Needs only the companion: a defeated target does not excuse leaving her aggressive. Returns text for the log, or nil.
+    function N.stopReaction(receipt, companion)
+        local reaction = receipt and receipt.reaction
+        if not reaction or not reaction.presetFrom then return nil end
+        local component = reactionComponent(companion)
+        local current = component:GetReactionPreset()
+        if current and current:GetID() ~= reaction.presetTo then return 'preset left as the game set it (' .. presetLabel(current) .. ')' end
+        local old = TweakDBInterface.GetReactionPresetRecord(reaction.presetFrom)
+        if not old then error('the earlier preset record is gone') end
+        component:SetReactionPreset(old)
+        local now = component:GetReactionPreset()
+        return 'preset restored to ' .. presetLabel(old) .. ' (read back ' ..
+            ((now and now:GetID() == reaction.presetFrom) and 'ok' or ('differs: ' .. presetLabel(now))) .. ')'
+    end
     -- Fight: agent-level hostility in both directions (never the whole attitude
     -- group, which would turn V's group against everyone of the target's group),
-    -- then a persistent hostile threat so the companion's combat AI engages.
+    -- then a persistent hostile threat so the companion's combat AI engages, and
+    -- the reaction component's own combat start on top.
     function N.startFight(companion, target)
         local receipt = {companionToTarget = attitudeName(companion, target), targetToCompanion = attitudeName(target, companion)}
-        companion:GetAttitudeAgent():SetAttitudeTowards(target:GetAttitudeAgent(), attitude('AIA_Hostile'))
-        target:GetAttitudeAgent():SetAttitudeTowards(companion:GetAttitudeAgent(), attitude('AIA_Hostile'))
-        local tracker = companion:GetTargetTrackerComponent()
-        tracker:AddThreat(target, true, target:GetWorldPosition(), 1.0, -1.0, true)
-        local source = persistenceSource()
-        if source then tracker:SetThreatPersistence(target, true, source); receipt.persistence = source end
+        startReaction(companion, target, receipt)
+        local started, failure = pcall(function()
+            companion:GetAttitudeAgent():SetAttitudeTowards(target:GetAttitudeAgent(), attitude('AIA_Hostile'))
+            target:GetAttitudeAgent():SetAttitudeTowards(companion:GetAttitudeAgent(), attitude('AIA_Hostile'))
+            local tracker = companion:GetTargetTrackerComponent()
+            tracker:AddThreat(target, true, target:GetWorldPosition(), 1.0, -1.0, true)
+            local source = persistenceSource()
+            if source then tracker:SetThreatPersistence(target, true, source); receipt.persistence = source end
+            local reaction = receipt.reaction
+            if reaction and reaction.start then local start = reaction.start; reaction.start = nil; start() end
+        end)
+        if not started then
+            -- The caller never gets this receipt, so give back what was already changed.
+            pcall(N.stopReaction, receipt, companion)
+            pcall(N.stopFight, receipt, companion, target)
+            error(failure, 0)
+        end
         return receipt
     end
     function N.stopFight(receipt, companion, target)
@@ -158,6 +253,12 @@ function M.new(options)
         end
         if not a.fightReceipt then return end
         local receipt = a.fightReceipt; a.fightReceipt = nil
+        -- The preset goes back whenever the companion is still there, whatever became of the target.
+        if get(native.alive, a.companion) and type(native.stopReaction) == 'function' then
+            local restored, result = pcall(native.stopReaction, receipt, a.companion)
+            if not restored then log('reaction: preset restore failed: ' .. tostring(result))
+            elseif result then log('reaction: ' .. tostring(result)) end
+        end
         -- A defeated target needs nothing back; a living one gets its attitudes.
         if get(native.alive, a.target) and get(native.alive, a.companion) then
             pcall(native.stopFight, receipt, a.companion, a.target)
@@ -291,6 +392,7 @@ function M.new(options)
             finish('fight-unavailable'); return false, 'Your companion could not engage that target.'
         end
         active.fightReceipt = receipt
+        for _, line in ipairs(type(receipt.reaction) == 'table' and receipt.reaction.notes or {}) do log('reaction: ' .. tostring(line)) end
         enter('fight-approach', 'fight accepted: ' .. captured.name .. ' ' .. captured.targetId)
         drawWeapon(active)
         return true, (actor.name or 'Your companion') .. ' is going after ' .. captured.name .. '.'

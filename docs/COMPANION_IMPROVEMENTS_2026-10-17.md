@@ -100,6 +100,8 @@ On 2026-10-17 we read a widely used character spawner's follower, movement, vehi
 
 **Files.** `mod/companion-tactics.lua` (receipt plus native adapter), `bridge/companion-tactics.test.mjs`.
 
+**Status (2026-10-17).** Built on branch `companion-45`: aggressive preset, `TriggerCombat`, restore on every end, `reaction:` log lines (`docs/COMPANION_TACTICS.md`, "Fight"). Not seen in the game.
+
 **Risk.** Medium: the companion could stay aggressive if the restore is missed. The existing receipt and recovery paths (`docs/COMPANION_RECOVERY_TRANSACTIONS.md`) must cover the preset, including a save or load mid-tactic.
 
 **Verify.**
@@ -117,6 +119,8 @@ On 2026-10-17 we read a widely used character spawner's follower, movement, vehi
 - Both are one-shot calls at attach.
 
 **Files.** `mod/companions.lua` (attach), `bridge/companion-records.test.mjs`.
+
+**Status (2026-10-17).** Built on branch `companion-45`, in `mod/companion-records.lua` (`prepare`) with a one-line call from `attachFollower` (`docs/COMPANION_COMBAT.md`, "Combat readiness at attach"). Not seen in the game.
 
 **Risk.** Low to medium. First check live that scaling does not reset the armed clone's equipment.
 

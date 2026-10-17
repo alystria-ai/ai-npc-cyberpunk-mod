@@ -365,6 +365,12 @@ local function attachFollower(entry, player)
     entry.floorFix = {at = runtimeClock + floorSettle.first, tries = 0}
     -- Alt Cunningham's copy (companion-records.lua): invulnerable, once, no per-frame work. nil: not a protected model.
     entry.invulnerable = spawnRecords.protect(entry.entityID, entry.modelRecordID)
+    -- Combat readiness (companion-records.lua): level scaling to V once, the attitude group read back once. A difference is
+    -- read again 1 s later, once (the role may not have settled); then nothing more. No per-frame work.
+    local prepared = select(2, pcall(spawnRecords.prepare, entry.system, entry.entityID, npc, player, entry.name))
+    if type(prepared) == 'table' and prepared.attitude == 'mismatch' then
+        entry.attitudeCheck = {at = runtimeClock + 1.0}
+    end
     entry.motor = actuator.new(npc,entry.clearance)
     entry.equipment = equipment.new(npc)
     entry.person = behavior.new(entry.serial)
@@ -2206,6 +2212,10 @@ function M.update(player,delta,focusEntity)
     end
     for _,entry in ipairs(ready) do
         if entry.floorFix then pcall(settleOnFloor,entry) end
+        if entry.attitudeCheck and runtimeClock >= entry.attitudeCheck.at then
+            entry.attitudeCheck = nil
+            if entry.npc then pcall(spawnRecords.attitudeRecheck, entry.npc, player, entry.name) end
+        end
         if vehicles.owns(fleet,entry.serial) then stopPace(entry) end
         if vehicles.allowsSeatedAttention(fleet,entry.serial) then
             seatedAttention(entry,player,focusEntity,gazeSettings,step)

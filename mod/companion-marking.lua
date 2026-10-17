@@ -16,10 +16,22 @@
 -- crowd flag alone does not disqualify an NPC that was tagged or aimed at.
 -- Only plain identities and one live handle are returned.
 --
+-- Where the candidates come from (2026-10-17, after a live test in which five
+-- requests found only the companion herself): the game keeps every object V tagged
+-- in the global blackboard TaggedObjectsList (FocusModeTaggingSystem, script dump
+-- focusModeTagging.script), so that list is read first and an NPC on it is a
+-- candidate whether or not the targeting search reports it. The targeting search
+-- (GetTargetParts, tested set Complete) is only the second source and supplies the
+-- untagged NPCs near V for the aimed and nearest steps; it evidently does not
+-- return every NPC in range. Both are read once per request, never per frame.
+--
 -- The tag read tries each known reader and reports which one answered, or the
--- error. Each request writes one candidates line: how many NPCs were found
--- within the tag radius, how many tag reads failed, and the nearest NPCs with
--- tag=yes / no / err, so a tag that never counted is visible in probe.log.
+-- error. IsTaggedinFocusMode is the game's own spelling (GameObject asks the
+-- ScanningController, the same place the tagging system writes to). Each request
+-- writes one candidates line: how many NPCs were found within the tag radius,
+-- how many tag reads failed, how many the tag list held and how many of those the
+-- search had missed, and the nearest NPCs with tag=yes / no / err, so a tag that
+-- never counted is visible in probe.log.
 local M = {}
 local DEFAULTS = {aimRadius = 30, nearRadius = 50, taggedRadius = 100, aimCone = 0.9781, listMax = 6}
 -- GameObject tag readers, in the order tried. The first that answers with a boolean is used.
@@ -127,6 +139,19 @@ function M.nativeAdapter()
                 local key = tostring(entity:GetEntityID().hash)
                 if not seen[key] then seen[key] = true; result[#result + 1] = entity end
             end
+        end
+        return result
+    end
+    -- Every NPC on the game's own tagged-object list (the blackboard the focus-mode tagging system keeps), anywhere in the
+    -- world. Raises when the blackboard or the variant cannot be read; an empty or invalid list is an empty table.
+    function N.taggedList()
+        local defs = Game.GetAllBlackboardDefs()
+        local board = Game.GetBlackboardSystem():Get(defs.TaggedObjectsList)
+        local variant = board:GetVariant(defs.TaggedObjectsList.taggedObjectsList)
+        local list = variant ~= nil and FromVariant(variant) or nil
+        local result = {}
+        for _, object in ipairs(type(list) == 'table' and list or {}) do
+            if object ~= nil and object:IsNPC() then result[#result + 1] = object end
         end
         return result
     end
@@ -271,7 +296,7 @@ function M.new(options)
     end
 
     -- One line per request: what was found and what each tag read said.
-    local function logCandidates(rows, failures, how)
+    local function logCandidates(rows, failures, how, tagList)
         if not log then return end
         local tagged = 0
         for _, row in ipairs(rows) do if row.tag == true then tagged = tagged + 1 end end
@@ -289,6 +314,10 @@ function M.new(options)
         local extra = {}
         if failures.count > 0 then extra[#extra + 1] = failures.count .. ' tag reads failed (' .. tostring(failures.first) .. ')' end
         if how then extra[#extra + 1] = 'via ' .. how end
+        if tagList and tagList.error then extra[#extra + 1] = 'tag list unreadable (' .. tagList.error .. ')'
+        elseif tagList and tagList.count > 0 then
+            extra[#extra + 1] = 'tag list ' .. tagList.count .. ' (' .. tagList.missed .. ' missed by the search, ' .. tagList.far .. ' beyond ' .. settings.taggedRadius .. 'm)'
+        end
         pcall(log, 'Tactic candidates: ' .. #rows .. ' NPCs within ' .. settings.taggedRadius .. 'm, ' .. tagged .. ' tagged'
             .. (#extra > 0 and (', ' .. table.concat(extra, ', ')) or '')
             .. (#parts > 0 and ('; ' .. table.concat(parts, '; ')) or ''))
@@ -319,8 +348,42 @@ function M.new(options)
             elseif how and not via then via = how end
             rows[#rows + 1] = {npc = npc, at = at, gap = distance(playerAt, at), tag = tag}
         end
+        -- The game's tagged list: a tagged NPC the targeting search did not report is a candidate all the same.
+        local tagList = {count = 0, missed = 0, far = 0}
+        if type(native.taggedList) == 'function' then
+            local found = {}
+            for _, row in ipairs(rows) do local key = guarded(native.key, row.npc); if key then found[key] = row end end
+            local ok, list = pcall(native.taggedList, player)
+            if ok and type(list) == 'table' then
+                for _, npc in ipairs(list) do
+                    tagList.count = tagList.count + 1
+                    local key = guarded(native.key, npc)
+                    local row = key and found[key]
+                    if row then
+                        -- An unreadable tag read is settled by the list; a read that says no outweighs a stale list entry.
+                        if row.tag == nil then row.tag = true end
+                    else
+                        local at = guarded(native.position, npc)
+                        local gap = distance(playerAt, at)
+                        if gap > settings.taggedRadius then
+                            tagList.far = tagList.far + 1
+                        else
+                            tagList.missed = tagList.missed + 1
+                            local tag, how = readTag(npc)
+                            if tag == nil then tag = true end
+                            if tag then
+                                rows[#rows + 1] = {npc = npc, at = at, gap = gap, tag = true}
+                                if key then found[key] = rows[#rows] end
+                            end
+                        end
+                    end
+                end
+            else
+                tagList.error = (tostring(list):gsub('^.-:%d+:%s*', ''):gsub('%s+', ' '):sub(1, 80))
+            end
+        end
         table.sort(rows, function(a, b) return a.gap < b.gap end)
-        logCandidates(rows, failures, via)
+        logCandidates(rows, failures, via, tagList)
 
         local choice, source
         -- 1. Tagged: the closest NPC V marked, judged only by who it is.

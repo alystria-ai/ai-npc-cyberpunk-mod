@@ -251,4 +251,104 @@ function M.unprotect(entityID)
     return ok
 end
 
+-- Combat readiness at attach (docs/COMPANION_IMPROVEMENTS_2026-10-17.md item 5). Called once from companions.lua
+-- attachFollower for the copy this mod just created; nothing here runs per frame.
+-- 1. Level: the game's own NPCManager.ScaleToPlayer (cyberpunk/managers/npcManager.script, a private script function; the
+--    puppet keeps the manager in m_NPCManager and no accessor exists). It drops the copy's PowerLevel modifiers and adds
+--    V's PowerLevel and Level as additive modifiers. If the manager cannot be reached, the same three stat calls are made
+--    directly. The level is read before and after and logged. Equipment is not touched by either path.
+-- 2. Attitude: the follower role (AIFollowerRole.OnRoleSet, aiRole.script) puts the copy into V's attitude group. The group
+--    and the attitude towards V are read back once and a difference is logged. Nothing is corrected here.
+-- Only a copy that carries our own spawn tag is touched, so a character of the game or of another mod never is.
+-- Switch off without a code change: create runtime/companion-scaling-off (read at each attach).
+local ownTag = 'CyberpunkConvaiCompanion'
+local function scalingDisabled()
+    if M.scaling == false then return true end
+    local ok, file = pcall(io.open, 'runtime/companion-scaling-off', 'rb')
+    if ok and file then file:close(); return true end
+    return false
+end
+local function plainName(value)
+    if value == nil then return nil end
+    if type(value) == 'string' then return value end
+    if type(NameToString) == 'function' then
+        local ok, name = pcall(NameToString, value)
+        if ok and type(name) == 'string' then return name end
+    end
+    local raw = tostring(value)
+    return raw:match('%-%-%[%[%s*(.-)%s*%-%-%]%]') or raw
+end
+local function statLevel(entityID)
+    return Game.GetStatsSystem():GetStatValue(entityID, Enum.new('gamedataStatType', 'Level'))
+end
+local function scaleToPlayer(npc, player)
+    local reached, manager = pcall(function() return npc.m_NPCManager end)
+    if reached and manager ~= nil then
+        if pcall(function() manager:ScaleToPlayer() end) then return 'npc-manager' end
+    end
+    local stats = Game.GetStatsSystem()
+    local power, level = Enum.new('gamedataStatType', 'PowerLevel'), Enum.new('gamedataStatType', 'Level')
+    local additive = Enum.new('gameStatModifierType', 'Additive')
+    local id, playerID = npc:GetEntityID(), player:GetEntityID()
+    local playerPower, playerLevel = stats:GetStatValue(playerID, power), stats:GetStatValue(playerID, level)
+    stats:RemoveAllModifiers(id, power)
+    stats:AddModifier(id, RPGManager.CreateStatModifier(power, additive, playerPower))
+    stats:AddModifier(id, RPGManager.CreateStatModifier(level, additive, playerLevel))
+    return 'stats'
+end
+-- The follower role's attitude: same group as V and a friendly attitude towards V. Raises when the game will not say.
+-- Returns true, or false and a description.
+function M.attitudeReadBack(npc, player)
+    local own, other = npc:GetAttitudeAgent(), player:GetAttitudeAgent()
+    local group, wanted = plainName(own:GetAttitudeGroup()), plainName(other:GetAttitudeGroup())
+    local towards = tostring(own:GetAttitudeTowards(other))
+    local friendly = towards:find('AIA_Friendly', 1, true) ~= nil
+    local detail = 'group ' .. tostring(group) .. ' (V: ' .. tostring(wanted) .. '), towards V ' .. (towards:match('AIA_%a+') or towards)
+    return group == wanted and friendly, detail
+end
+-- Returns {scaled, method, before, after, attitude = 'ok'|'mismatch'|'unreadable'}, or nil when this is not our copy.
+function M.prepare(system, entityID, npc, player, label)
+    local owned, ours = pcall(function() return system:IsTagged(entityID, CName.new(ownTag)) end)
+    if not owned or not ours then return nil end
+    local report = {}
+    if scalingDisabled() then
+        note('Companion readiness: ' .. tostring(label) .. ' level scaling is switched off')
+    else
+        local before, after, playerLevel
+        pcall(function() before = statLevel(npc:GetEntityID()) end)
+        local scaled, method = pcall(scaleToPlayer, npc, player)
+        if scaled then
+            pcall(function() after = statLevel(npc:GetEntityID()) end)
+            pcall(function() playerLevel = statLevel(player:GetEntityID()) end)
+            report.scaled, report.method, report.before, report.after = true, method, before, after
+            note(string.format('Companion readiness: %s level %s -> %s (V %s) via %s', tostring(label), tostring(before),
+                tostring(after), tostring(playerLevel), method))
+        else
+            note('Companion readiness: ' .. tostring(label) .. ' level scaling failed (' .. tostring(method):sub(1, 160) .. ')')
+        end
+    end
+    local read, ok, detail = pcall(M.attitudeReadBack, npc, player)
+    if not read then
+        report.attitude = 'unreadable'
+        note('Companion readiness: ' .. tostring(label) .. ' attitude unreadable (' .. tostring(ok):sub(1, 120) .. ')')
+    elseif ok then
+        report.attitude = 'ok'
+        note('Companion readiness: ' .. tostring(label) .. ' attitude ok, ' .. detail)
+    else
+        report.attitude = 'mismatch'
+        note('Companion readiness: ' .. tostring(label) .. ' attitude differs at attach, ' .. detail .. '; read again shortly')
+    end
+    return report
+end
+-- The one re-read after a difference at attach (the role may not have finished). Returns true when it matches.
+function M.attitudeRecheck(npc, player, label)
+    local read, ok, detail = pcall(M.attitudeReadBack, npc, player)
+    if not read then
+        note('Companion readiness: ' .. tostring(label) .. ' attitude unreadable on re-read (' .. tostring(ok):sub(1, 120) .. ')')
+        return false
+    end
+    note('Companion readiness: ' .. tostring(label) .. ' attitude ' .. (ok and 'ok on re-read, ' or 'MISMATCH, ') .. detail)
+    return ok
+end
+
 return M

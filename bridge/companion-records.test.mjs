@@ -1,5 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
 import {companionEngine} from './companion-fixture.mjs';
 
@@ -337,4 +338,141 @@ test('Alt Cunningham keeps the protection after fast travel recreates her copy',
   local replacement=entities[sequence]
   assert(replacement and replacement~=alt and companions.list()[1].state=='ready')
   assert(#god.granted==2 and god.granted[2].id==tostring(replacement:GetEntityID().hash),'the new copy is protected too')
+`));
+
+// Combat readiness at attach: level scaling to V and the attitude read-back (item 5 of
+// docs/COMPANION_IMPROVEMENTS_2026-10-17.md).
+const recordsSource = readFileSync(new URL('../mod/companion-records.lua', import.meta.url), 'utf8');
+function runReadiness(code) {
+  const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
+  const world = `
+  local Records=(function() ${recordsSource} end)()
+  lines={}; Records.log=function(line) lines[#lines+1]=line end
+  local function logged(pattern) for _,l in ipairs(lines) do if l:find(pattern) then return l end end end
+  fileExists={}
+  io.open=function(path) if fileExists[path] then return {close=function() end} end end
+  Enum={new=function(kind,value) return kind..'.'..value end}
+  CName={new=function(v) return v end}
+  NameToString=function(v) return v end
+  local stats={values={},calls={}}
+  function stats:GetStatValue(id,stat) self.calls[#self.calls+1]='get '..id.hash..' '..stat; return (self.values[id.hash] or {})[stat] or 0 end
+  function stats:RemoveAllModifiers(id,stat) self.calls[#self.calls+1]='remove '..id.hash..' '..stat; self.values[id.hash]=self.values[id.hash] or {}; self.values[id.hash][stat]=0 end
+  function stats:AddModifier(id,mod) self.calls[#self.calls+1]='add '..id.hash..' '..mod.stat..' '..mod.value
+    local v=self.values[id.hash]; v[mod.stat]=(v[mod.stat] or 0)+mod.value end
+  Game={GetStatsSystem=function() return stats end}
+  RPGManager={CreateStatModifier=function(stat,kind,value) return {stat=stat,kind=kind,value=value} end}
+  local function agent(group,towards) return {GetAttitudeGroup=function() return group end,GetAttitudeTowards=function() return towards end} end
+  player={GetEntityID=function() return {hash='player'} end,GetAttitudeAgent=function() return agent('player',nil) end}
+  stats.values.player={['gamedataStatType.Level']=30,['gamedataStatType.PowerLevel']=28}
+  scaleCalls=0
+  local function copy(opts) opts=opts or {}
+    local n={GetEntityID=function() return {hash='copy'} end,
+      GetAttitudeAgent=function() return agent(opts.group or 'player',opts.towards or 'EAIAttitude : AIA_Friendly (2)') end}
+    if opts.manager~=false then
+      n.m_NPCManager={ScaleToPlayer=function()
+        scaleCalls=scaleCalls+1
+        if opts.managerError then error(opts.managerError) end
+        stats.values.copy={['gamedataStatType.Level']=30,['gamedataStatType.PowerLevel']=28}
+      end}
+    end
+    stats.values.copy=stats.values.copy or {['gamedataStatType.Level']=opts.level or 7}
+    return n end
+  tagged=true
+  system={IsTagged=function(_,id,tag) return tagged and tag=='CyberpunkConvaiCompanion' end}
+  `;
+  const status = lauxlib.luaL_dostring(state, to_luastring(world + code));
+  const error = status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
+  lua.lua_close(state); assert.equal(status, lua.LUA_OK, error);
+}
+
+test('readiness: the game scales our copy to V through its NPC manager, with the level before and after logged', () => runReadiness(`
+  local report=Records.prepare(system,'e1',copy(),player,'Judy')
+  assert(report.scaled and report.method=='npc-manager' and report.before==7 and report.after==30,'report')
+  assert(scaleCalls==1,'scaled once')
+  assert(logged('Companion readiness: Judy level 7 %-> 30 %(V 30%) via npc%-manager'),table.concat(lines,'|'))
+  for _,c in ipairs(stats.calls) do assert(not c:find('^add') and not c:find('^remove'),'the manager route changes no stat itself') end
+`));
+
+test('readiness: without a reachable manager the same stat calls are made directly, once', () => runReadiness(`
+  local report=Records.prepare(system,'e1',copy({manager=false}),player,'Judy')
+  assert(report.method=='stats' and report.after==7+30,'additive on the copy, like the game call: '..tostring(report.after))
+  local adds,removes=0,0
+  for _,c in ipairs(stats.calls) do if c:find('^add') then adds=adds+1 elseif c:find('^remove') then removes=removes+1 end end
+  assert(adds==2 and removes==1,'PowerLevel cleared, then PowerLevel and Level added')
+  assert(logged('via stats'))
+  -- a manager that raises falls back the same way
+  lines={}; stats.calls={}
+  report=Records.prepare(system,'e1',copy({managerError='boom'}),player,'Judy')
+  assert(report.method=='stats' and logged('via stats'))
+`));
+
+test('readiness: only a copy that carries our own tag is touched, and the file switch turns scaling off', () => runReadiness(`
+  tagged=false
+  assert(Records.prepare(system,'e1',copy(),player,'Ordinary')==nil,'not our copy: nothing')
+  assert(scaleCalls==0 and #stats.calls==0 and #lines==0,'no read, no write, no log for a character that is not ours')
+  tagged=true
+  system.IsTagged=function() error('unreadable') end
+  assert(Records.prepare(system,'e1',copy(),player,'Ordinary')==nil and scaleCalls==0,'an unreadable tag is not ours')
+  system.IsTagged=function(_,id,tag) return true end
+  fileExists['runtime/companion-scaling-off']=true
+  local report=Records.prepare(system,'e1',copy(),player,'Judy')
+  assert(scaleCalls==0 and not report.scaled and logged('scaling is switched off') and report.attitude=='ok','scaling off, the read-back still happens')
+  fileExists['runtime/companion-scaling-off']=nil
+  Records.scaling=false
+  Records.prepare(system,'e1',copy(),player,'Judy'); assert(scaleCalls==0,'the module switch')
+`));
+
+test('readiness: the attitude read-back logs agreement, a difference once, and an unreadable answer', () => runReadiness(`
+  local report=Records.prepare(system,'e1',copy(),player,'Judy')
+  assert(report.attitude=='ok' and logged('attitude ok, group player %(V: player%), towards V AIA_Friendly'),table.concat(lines,'|'))
+  lines={}
+  report=Records.prepare(system,'e1',copy({group='Gang'}),player,'Judy')
+  assert(report.attitude=='mismatch' and logged('attitude differs at attach, group Gang %(V: player%)'),table.concat(lines,'|'))
+  lines={}
+  report=Records.prepare(system,'e1',copy({towards='EAIAttitude : AIA_Neutral (1)'}),player,'Judy')
+  assert(report.attitude=='mismatch' and logged('towards V AIA_Neutral'))
+  lines={}
+  local broken=copy(); broken.GetAttitudeAgent=function() error('no agent') end
+  report=Records.prepare(system,'e1',broken,player,'Judy')
+  assert(report.attitude=='unreadable' and logged('attitude unreadable %(.*no agent'))
+  -- the one re-read
+  lines={}
+  assert(Records.attitudeRecheck(copy(),player,'Judy')==true and logged('attitude ok on re%-read'))
+  assert(Records.attitudeRecheck(copy({group='Gang'}),player,'Judy')==false and logged('attitude MISMATCH, group Gang'))
+  assert(Records.attitudeRecheck(broken,player,'Judy')==false and logged('unreadable on re%-read'))
+`));
+
+test('readiness: a failing scale is logged and never stops the attach', () => runReadiness(`
+  Game.GetStatsSystem=function() error('no stats') end
+  local report=Records.prepare(system,'e1',copy({manager=false}),player,'Judy')
+  assert(report and not report.scaled and logged('level scaling failed %(.*no stats'),table.concat(lines,'|'))
+  assert(report.attitude=='ok','the attitude is still read back')
+`));
+
+test('readiness: companions scale a copy at attach once and re-read a differing attitude once, not per frame', () => run(`
+  local lines,reads,scales={}, {group=0},0
+  io.open=function(path)
+    if path=='runtime/probe.log' then return {write=function(_,...) lines[#lines+1]=table.concat({...}) end,close=function() end} end
+    return nil
+  end
+  local levels={player=30,copy=7}
+  Game.GetStatsSystem=function() return {GetStatValue=function(_,id) return levels[id.hash=='player' and 'player' or 'copy'] end} end
+  player.GetAttitudeAgent=function() return {GetAttitudeGroup=function() return 'player' end} end
+  companions.registerDefinition('readiness-judy',{id='Character.Judy',name='Judy',profileKey='judy-alvarez'})
+  companions.spawn('readiness-judy')
+  local npc=entities[sequence]
+  npc.m_NPCManager={ScaleToPlayer=function() scales=scales+1; levels.copy=30 end}
+  local group='Gang'
+  function npc:GetAttitudeAgent() return {GetAttitudeGroup=function() reads.group=reads.group+1; return group end,
+    GetAttitudeTowards=function() return 'EAIAttitude : AIA_Friendly (2)' end} end
+  tick(1)
+  assert(companions.list()[1].state=='ready','attached')
+  assert(scales==1 and reads.group==1,'scaled once and read once at attach')
+  local function has(pattern) for _,l in ipairs(lines) do if l:find(pattern) then return true end end end
+  assert(has('Companion readiness: Judy level 7 %-> 30 %(V 30%) via npc%-manager'),table.concat(lines,'|'))
+  assert(has('attitude differs at attach'))
+  group='player'
+  tick(1); assert(reads.group==1,'not yet: the re-read waits a second')
+  tick(2); assert(reads.group==2 and has('attitude ok on re%-read'),'one re-read: '..reads.group)
+  tick(40); assert(reads.group==2 and scales==1,'nothing more is read or scaled afterwards')
 `));
