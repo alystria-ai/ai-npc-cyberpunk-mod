@@ -13,6 +13,78 @@ local quietSeconds, commandSeconds, maxAttempts = 2.5, 6, 2
 -- engine still calls Alerted is treated as relaxed after alertedCalm of calm.
 local holsterDelay, settleSeconds, stopLimit, stopCooldown, alertedCalm = 3, 1, 8, 20, 6
 
+-- Drawing a weapon. A copy that enters combat with an empty hand gets one draw, and the Fight tactic
+-- (companion-tactics.lua) borrows the same native calls through M.draw. The game's own switch-to-primary
+-- command comes first, without unequipping anything. If the hand is still empty drawReadback seconds later, an
+-- explicit equip of the copy's primary weapon follows (a short duration override), or the bare right-hand slot
+-- equip when no primary item can be named. Nothing here runs unless a copy enters combat.
+local drawReadback = 1
+local D = {}
+M.draw = D
+-- Receives (kind, fields) for the probe log. companions.lua sets it; nil keeps the module silent.
+M.report = nil
+local function newCommand(class)
+    local command = NewObject(class)
+    if command == nil then error(class .. ' is unavailable') end
+    return command
+end
+local function sendDraw(npc, command)
+    local accepted = npc:GetAIControllerComponent():SendCommand(command)
+    if accepted == false then error('the AI refused the draw command') end
+    return {command = command}
+end
+-- true and the item record when a real weapon (not fists) is drawn, false when the hand is empty or holds
+-- fists. Raises when the game will not say.
+function D.weapon(npc)
+    local item = ScriptedPuppet.GetWeaponRight(npc)
+    if item == nil then return false end
+    local id = item:GetItemID()
+    if WeaponObject.IsFists(id) then return false end
+    return true, tostring(ItemID.GetTDBID(id))
+end
+-- The item record of a weapon the copy carries, for the explicit equip. One inventory read, called only after
+-- the switch command failed to put a weapon in hand. nil when nothing can be named.
+function D.primaryItem(npc)
+    local first, second = Game.GetTransactionSystem():GetItemList(npc)
+    local items = type(second) == 'table' and second or type(first) == 'table' and first
+    if not items then return nil end
+    for _, data in ipairs(items) do
+        local id = data:GetID()
+        if RPGManager.IsItemWeapon(id) and not WeaponObject.IsFists(id) then return ItemID.GetTDBID(id) end
+    end
+    return nil
+end
+-- mode 'switch' (default): AISwitchToPrimaryWeaponCommand, unEquip off. 'equip': AIEquipCommand for the right
+-- hand with the item and a 1 s duration. 'slot': AIEquipCommand for the right-hand slot alone. Returns a handle for
+-- D.cancel and raises when the class is missing or the AI refuses.
+function D.send(npc, mode, itemId)
+    if mode == 'equip' then
+        if itemId == nil then error('no item to equip') end
+        local command = newCommand('AIEquipCommand')
+        command.slotId = TweakDBID.new('AttachmentSlots.WeaponRight')
+        command.itemId = itemId
+        pcall(function() command.durationOverride = 1.0 end)
+        pcall(function() command.failIfItemNotFound = false end)
+        return sendDraw(npc, command)
+    elseif mode == 'slot' then
+        local command = newCommand('AIEquipCommand')
+        command.slotId = TweakDBID.new('AttachmentSlots.WeaponRight')
+        pcall(function() command.failIfItemNotFound = false end)
+        return sendDraw(npc, command)
+    end
+    local command = newCommand('AISwitchToPrimaryWeaponCommand')
+    pcall(function() command.unEquip = false end)
+    return sendDraw(npc, command)
+end
+-- Stops the command only while it is running or queued; a finished one is left alone.
+function D.cancel(handle, npc)
+    if not handle or not handle.command then return end
+    local ai = npc:GetAIControllerComponent()
+    local state = tostring(ai:GetCommandState(handle.command))
+    if state:find('Executing', 1, true) then ai:StopExecutingCommand(handle.command, true)
+    elseif state:find('Enqueued', 1, true) then ai:CancelCommand(handle.command) end
+end
+
 local function copy(value)
     if type(value) ~= 'table' then return value end
     local result = {}; for key, item in pairs(value) do result[key] = copy(item) end
@@ -84,8 +156,15 @@ local function cancel(s)
     return true
 end
 
+-- Drops a pending combat draw. cancelNative stops its command (only if still running); false just forgets it.
+local function stopDraw(s, cancelNative)
+    local draw = s.draw; s.draw = nil
+    if cancelNative and draw and draw.handle and s.npc then pcall(D.cancel, draw.handle, s.npc) end
+end
+
 function M.release(s)
     if not s then return end
+    stopDraw(s, true)
     s.releaseRequested=true
     local released=cancel(s)
     s.armed, s.readySince = false, nil
@@ -95,6 +174,7 @@ end
 function M.abandon(s)
     if not s then return end
     -- Called after detach/death/world teardown. No native reads or cancellation.
+    s.draw = nil
     s.npc, s.command, s.finishedAt, s.readySince = nil, nil, nil, nil
     s.handoff,s.handoffAt,s.handoffReady=false,nil,nil
     s.cancellation,s.releaseRequested=nil,nil
@@ -134,6 +214,55 @@ local function failAttempt(s, reason)
     else s.phase = 'waiting' end
 end
 
+local function report(s, kind, fields)
+    fields.name = s.label
+    if M.report then pcall(M.report, kind, fields) end
+end
+-- One draw request for a stage. 'equip' names the primary weapon and falls back to the bare slot equip.
+local function drawStage(s, stage)
+    local mode, itemId = stage, nil
+    if stage == 'equip' then
+        local ok, id = pcall(D.primaryItem, s.npc)
+        if ok and id ~= nil then itemId = id else mode = 'slot' end
+    end
+    local sent, handle = pcall(D.send, s.npc, mode, itemId)
+    if not sent then
+        report(s, 'weapon-draw', {stage = mode, result = 'refused', reason = tostring(handle)})
+        s.lastDraw = {stage = mode, result = 'refused'}
+        return false
+    end
+    s.draw = {stage = stage, mode = mode, at = s.clock, handle = handle}
+    s.lastDraw = {stage = mode, result = 'sent'}
+    report(s, 'weapon-draw', {stage = mode, result = 'sent'})
+    return true
+end
+-- Combat has just begun: one draw if the right hand is empty. The tactic (s.noDraw) draws for itself.
+local function beginDraw(s)
+    stopDraw(s, true)
+    if s.noDraw then return end
+    local ok, drawn = pcall(D.weapon, s.npc)
+    if ok and drawn == true then s.lastDraw = {result = 'in-hand'}; return end
+    if not drawStage(s, 'switch') then drawStage(s, 'equip') end
+end
+-- Reads the hand once the first request has had time to run; an empty hand gets the explicit equip, once.
+local function followDraw(s)
+    local draw = s.draw
+    if not draw or s.clock - draw.at < drawReadback then return end
+    local ok, drawn, record = pcall(D.weapon, s.npc)
+    if ok and drawn == true then
+        s.lastDraw = {stage = draw.mode, result = 'drawn', record = record}
+        report(s, 'weapon-draw', {stage = draw.mode, result = 'drawn', record = record, after = s.clock - draw.at})
+        stopDraw(s, false)
+    elseif draw.stage == 'switch' then
+        stopDraw(s, true)
+        drawStage(s, 'equip')
+    else
+        s.lastDraw = {stage = draw.mode, result = 'empty'}
+        report(s, 'weapon-draw', {stage = draw.mode, result = 'empty', hand = ok and 'empty' or 'unreadable'})
+        stopDraw(s, true)
+    end
+end
+
 local function tick(s, player, idle, acquireHold)
     local npc = s.npc
     if not flag(npc:IsAttached(), 'NPC attachment') or flag(npc:IsDeadNoStatPool(), 'NPC life') then
@@ -160,11 +289,14 @@ local function tick(s, player, idle, acquireHold)
         if not s.wasCombat then
             s.episode, s.attempts, s.armed = s.episode + 1, {}, true
             s.retryAt,s.cancelFailed = nil,nil
+            beginDraw(s)
         end
         s.wasCombat, s.calmSince, s.stopSince = true, nil, nil
+        followDraw(s)
         wait(s, 'Native combat owns equipment'); return
     end
     s.wasCombat = false
+    if s.draw then stopDraw(s, true) end
     if not s.armed or s.cancelFailed then return end
 
     local guard = s.guard
@@ -339,6 +471,7 @@ function M.snapshot(s)
         commandID = s.commandID, commandState = s.commandState, active = s.command ~= nil,
         movementSuspended = s.handoff == true, holdReleased = s.handoffReady == true,
         slot = s.slot, guard = copy(s.guard), hands = copy(s.hands), stopWanted = s.stopWanted == true,
+        draw = s.draw and s.draw.mode or nil, lastDraw = copy(s.lastDraw),
         calm = s.calmSince and math.max(0, s.clock - s.calmSince) or nil,
         age = s.issuedAt and math.max(0, s.clock - s.issuedAt), cancellationFailed = s.cancelFailed == true}
 end

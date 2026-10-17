@@ -428,3 +428,99 @@ test('world teardown abandons suspended movement and equipment without native ac
  npc.GetAIControllerComponent=function()error('native AI destroyed')end
  companions.abandon();assert(#companions.list()==0)
 `));
+
+// Combat-start weapon draw (M.draw, beginDraw and followDraw in mod/companion-equipment.lua): the game's
+// switch-to-primary command once when combat begins with an empty hand, then an explicit equip if the hand is
+// still empty a second later. Event-driven on the combat edge, never polled.
+const drawing = `
+ local classes,reports,stopped={},{},0
+ NewObject=function(kind)classes[#classes+1]=kind;return {kind=kind}end
+ RPGManager={IsItemWeapon=function()return true end}
+ local carried={{GetID=function()return {record='Items.Malorian',hash='m'}end}}
+ Game.GetTransactionSystem=function()return {GetItemList=function()return true,carried end}end
+ m.report=function(kind,fields)reports[#reports+1]={kind=kind,fields=fields}end
+ local function sent(kind)local n=0;for _,c in ipairs(ai.commands)do if c.kind==kind then n=n+1 end end;return n end
+ function ai:StopExecutingCommand(c)stopped=stopped+1;c.state='Interrupted' end
+ npc.hands[right]=nil
+`;
+
+test('combat starting with an empty hand sends the switch-to-primary command once, with unequip off', () => run(drawing + `
+ tick(1);assert(#ai.commands==0,'no draw while calm')
+ npc.combat=true;tick(.25)
+ assert(sent('AISwitchToPrimaryWeaponCommand')==1 and ai.commands[1].unEquip==false,'one switch command')
+ assert(m.snapshot(s).draw=='switch' and m.snapshot(s).lastDraw.result=='sent')
+ npc.hands[right]=gun('drawn');tick(3)
+ assert(#ai.commands==1,'no second draw once the hand holds a weapon')
+ assert(stopped==0,'a command that produced a weapon is not interrupted')
+ assert(m.snapshot(s).lastDraw.result=='drawn' and m.snapshot(s).draw==nil)
+ assert(reports[#reports].kind=='weapon-draw' and reports[#reports].fields.result=='drawn')
+`));
+
+test('a hand still empty after a second gets one explicit equip of the primary item with a short duration', () => run(drawing + `
+ npc.combat=true;tick(.75);assert(#ai.commands==1)
+ tick(.5)
+ assert(#ai.commands==2 and sent('AIEquipCommand')==1,'the explicit equip follows')
+ local equip=ai.commands[2]
+ assert(equip.itemId=='Items.Malorian' and equip.slotId==right and equip.durationOverride==1)
+ assert(stopped==1,'the unfinished switch command is replaced, not stacked')
+ tick(20);assert(#ai.commands==2,'no more than the switch and one explicit equip')
+ assert(m.snapshot(s).lastDraw.result=='empty' and m.snapshot(s).draw==nil)
+`));
+
+test('with no primary item to name the explicit equip becomes the bare right-hand slot equip', () => run(drawing + `
+ carried[1]=nil
+ npc.combat=true;tick(1.5)
+ local equip=ai.commands[2]
+ assert(equip and equip.kind=='AIEquipCommand' and equip.slotId==right and equip.itemId==nil)
+`));
+
+test('a missing switch command goes straight to the explicit equip', () => run(drawing + `
+ NewObject=function(kind)
+  if kind=='AISwitchToPrimaryWeaponCommand' then return nil end
+  classes[#classes+1]=kind;return {kind=kind}
+ end
+ npc.combat=true;tick(.25)
+ assert(#ai.commands==1 and ai.commands[1].kind=='AIEquipCommand' and ai.commands[1].itemId=='Items.Malorian')
+ assert(reports[1].fields.result=='refused' and reports[2].fields.result=='sent')
+`));
+
+test('no draw when a weapon is already in hand, for the tactic, or for a world the game will not read', () => {
+  run(drawing + `npc.hands[right]=gun('ready');npc.combat=true;tick(3);assert(#ai.commands==0)`);
+  run(drawing + `npc.hands[right]=gun('fists',true);npc.combat=true;tick(.25);assert(sent('AISwitchToPrimaryWeaponCommand')==1)`);
+  run(drawing + `s.noDraw=true;npc.combat=true;tick(3);assert(#ai.commands==0,'the tactic draws for itself')`);
+  run(drawing + `ScriptedPuppet.GetWeaponRight=function()error('unreadable')end;npc.combat=true;tick(.25)
+   assert(sent('AISwitchToPrimaryWeaponCommand')==1,'an unreadable hand is treated as empty: one draw')`);
+});
+
+test('V entering combat draws for a companion that is not in combat herself, once per fight', () => run(drawing + `
+ player.combat=true;tick(.25);assert(sent('AISwitchToPrimaryWeaponCommand')==1)
+ npc.hands[right]=gun('drawn');tick(5)
+ player.combat=false;npc.combat=false;npc.hands[right]=nil;tick(1)
+ player.combat=true;tick(.25);assert(sent('AISwitchToPrimaryWeaponCommand')==2,'a new fight draws again')
+ tick(.75);assert(sent('AISwitchToPrimaryWeaponCommand')==2,'the same fight does not draw twice')
+`));
+
+test('a draw still pending when combat ends is cancelled, and dismissal or teardown forgets it', () => {
+  run(drawing + `
+   npc.combat=true;tick(.25);assert(#ai.commands==1 and ai.commands[1].state=='Executing')
+   npc.combat=false;tick(.25)
+   assert(stopped==1 and m.snapshot(s).draw==nil,'the unfinished draw is stopped when the fight ends')
+  `);
+  run(drawing + `
+   npc.combat=true;tick(.25);m.release(s);assert(stopped==1 and m.snapshot(s).draw==nil)
+  `);
+  run(drawing + `
+   npc.combat=true;tick(.25)
+   npc.GetAIControllerComponent=function()error('native AI destroyed')end
+   m.abandon(s);assert(m.snapshot(s).draw==nil and stopped==0,'teardown touches no native object')
+  `);
+});
+
+test('the shared draw calls refuse a rejecting AI and stop only running commands', () => run(drawing + `
+ ai.accept=false
+ assert(not pcall(m.draw.send,npc,'switch'),'a rejected command raises')
+ ai.accept=true
+ local handle=m.draw.send(npc,'switch')
+ handle.command.state='AICommandState : Success (3)';m.draw.cancel(handle,npc);assert(stopped==0)
+ handle.command.state='AICommandState : Executing (2)';m.draw.cancel(handle,npc);assert(stopped==1)
+`));

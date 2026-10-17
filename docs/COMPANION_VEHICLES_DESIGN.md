@@ -113,6 +113,14 @@ occupant override. It asks native traffic routing to follow V with a real
 driver and physical movement (`useTraffic=true`, `useKinematic=false`). These
 flags are source-supported; the exact road-follow result still needs a live
 game check. No broad vehicle component injection is installed.
+
+Convoy follow A/B (Developer mode only, 2026-10-17): `runtime/convoy-follow-mode.txt`
+holding `smooth` switches the same follow command to `useTraffic=false`,
+`trafficTryNeighborsForStart/End=false`, `useKinematic=true`, and stacks a bike 3 m
+per place instead of 8 (target still V's car). The file is read once per follow request
+and only while Developer mode is on; anything else is the confirmed `default`. Kinematic
+driving can clip through traffic, which is why it stays an A/B. To judge it, compare the
+movement trace's convoy gap over a 2 km drive and capture the convoy at a junction.
 The native [AIDriveFollowCommandHandler](https://github.com/CDPR-Modding-Documentation/Cyberpunk-Scripts/blob/fce9ab7e6a608b0d729290d898003589515900e1/scripts/cyberpunk/ai/commands/aiDriveCommandHandler.script)
 also maps all ten follow fields into behavior arguments (lines 426-459),
 confirming that the traffic and physical movement flags are consumed by the

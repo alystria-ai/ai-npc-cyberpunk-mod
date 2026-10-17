@@ -12,8 +12,11 @@ local KINDS = {fight = true}
 local DEFAULTS = {
     -- maxOfferDistance follows the tag radius of companion-marking.lua (100 m).
     maxOfferDistance = 100, fightApproach = 8, fightStartTimeout = 25, fightTimeout = 180,
-    offerTtl = 125, drawReadback = 1.5, drawRetryReadback = 2.0,
+    -- Weapon draw: the switch-to-primary command, read back after drawReadback; an empty hand then gets the explicit
+    -- equip, read back after drawReadback; then the bare slot equip, read back after drawRetryReadback.
+    offerTtl = 125, drawReadback = 1.0, drawRetryReadback = 2.0,
 }
+local DRAW_STAGES = {'switch', 'equip', 'slot'}
 
 local function copy(value)
     if type(value) ~= 'table' then return value end
@@ -189,23 +192,19 @@ function M.nativeAdapter()
         if WeaponObject.IsFists(id) then return false end
         return true, tostring(ItemID.GetTDBID(id))
     end
-    -- The companion's own native equip command for the right-hand slot (the game's AIEquipCommand, the
-    -- counterpart of the AIUnequipCommand the holster uses). Returns a handle for N.cancelDraw.
-    function N.drawWeapon(npc)
-        local command = NewObject('AIEquipCommand')
-        command.slotId = TweakDBID.new('AttachmentSlots.WeaponRight')
-        pcall(function() command.failIfItemNotFound = false end)
-        local accepted = npc:GetAIControllerComponent():SendCommand(command)
-        if accepted == false then error('the AI refused the equip command') end
-        return {command = command}
+    -- The native draw commands are shared with the combat-start draw in companion-equipment.lua (M.draw): the
+    -- game's switch-to-primary command, an explicit equip of the primary item, and the bare right-hand slot
+    -- equip. N.drawWeapon(npc, mode, itemId) returns a handle for N.cancelDraw.
+    local function drawCalls()
+        local ok, equipment = pcall(dofile, 'companion-equipment.lua')
+        if not ok or type(equipment) ~= 'table' or type(equipment.draw) ~= 'table' then
+            error('the draw commands are unavailable: ' .. tostring(equipment))
+        end
+        return equipment.draw
     end
-    function N.cancelDraw(handle, npc)
-        if not handle or not handle.command then return end
-        local ai = npc:GetAIControllerComponent()
-        local state = tostring(ai:GetCommandState(handle.command))
-        if state:find('Executing', 1, true) then ai:StopExecutingCommand(handle.command, true)
-        elseif state:find('Enqueued', 1, true) then ai:CancelCommand(handle.command) end
-    end
+    function N.drawWeapon(npc, mode, itemId) return drawCalls().send(npc, mode, itemId) end
+    function N.primaryItem(npc) return drawCalls().primaryItem(npc) end
+    function N.cancelDraw(handle, npc) return drawCalls().cancel(handle, npc) end
     return N
 end
 
@@ -319,8 +318,32 @@ function M.new(options)
         return false
     end
 
-    -- The weapon in hand when the fight starts: already drawn, or asked for through the native equip command. The
-    -- result is read back once the command has had time to run (T.update).
+    -- The weapon in hand when the fight starts: already drawn, or asked for in stages (DRAW_STAGES): the game's
+    -- switch-to-primary command, then an explicit equip of the primary item (the bare slot equip when no item can be
+    -- named), then the bare slot equip. Each stage is read back in T.update; an empty hand moves on to the next.
+    local function requestStage(a, from, hand)
+        local lastError
+        for index = from, #DRAW_STAGES do
+            local mode, itemId = DRAW_STAGES[index], nil
+            local usable = true
+            if mode == 'equip' then
+                local ok, id = pcall(native.primaryItem, a.companion)
+                if ok and id ~= nil then itemId = id else usable, lastError = false, 'no primary item found' end
+            end
+            if usable then
+                local sent, handle = pcall(native.drawWeapon, a.companion, mode, itemId)
+                if sent then
+                    a.draw = {state = 'requested', at = clock, handle = handle, index = index, readbacks = a.draw and a.draw.readbacks or 0}
+                    log('weapon draw requested (' .. mode .. ', hand ' .. hand .. ')')
+                    return true
+                end
+                lastError = handle
+                log('weapon draw stage ' .. mode .. ' refused: ' .. tostring(handle))
+            end
+        end
+        return false, lastError
+    end
+
     local function drawWeapon(a)
         local ok, drawn, record = pcall(native.weapon, a.companion)
         if ok and drawn == true then
@@ -328,35 +351,37 @@ function M.new(options)
             log('weapon already drawn (' .. tostring(record) .. ')')
             return
         end
-        local requested, handle = pcall(native.drawWeapon, a.companion)
+        local requested, failure = requestStage(a, 1, ok and 'empty' or 'unreadable')
         if not requested then
             a.draw = {state = 'unavailable', at = clock}
-            log('weapon draw unavailable: ' .. tostring(handle))
-            return
+            log('weapon draw unavailable: ' .. tostring(failure))
         end
-        a.draw = {state = 'requested', at = clock, handle = handle, readbacks = 0}
-        log('weapon draw requested (hand ' .. (ok and 'empty' or 'unreadable') .. ')')
     end
 
     local function readBackWeapon(a)
         local draw = a.draw
         if not draw or draw.state ~= 'requested' then return end
-        local wait = draw.readbacks == 0 and settings.drawReadback or settings.drawRetryReadback
+        local wait = draw.index < #DRAW_STAGES and settings.drawReadback or settings.drawRetryReadback
         if clock - draw.at < wait then return end
         draw.readbacks = draw.readbacks + 1
         local ok, drawn, record = pcall(native.weapon, a.companion)
         if ok and drawn == true then
             draw.state = 'drawn'
             log('weapon readback: drawn (' .. tostring(record) .. ') after ' .. string.format('%.1f', clock - draw.at) .. 's')
-        elseif draw.readbacks == 1 then
-            -- One more request: the first may have been dropped while she was moving or the item was not yet attached.
-            local again, handle = pcall(native.drawWeapon, a.companion)
-            draw.at = clock
-            if again then draw.handle = handle; log('weapon readback: ' .. (ok and 'hand still empty' or 'unreadable') .. ', draw asked again')
-            else draw.state = 'unavailable'; log('weapon readback: ' .. (ok and 'hand still empty' or 'unreadable') .. ', draw refused: ' .. tostring(handle)) end
+            return
+        end
+        local hand = ok and 'hand still empty' or 'unreadable'
+        if draw.index < #DRAW_STAGES then
+            -- The command may have been dropped while she was moving, or the item was not yet attached: the next
+            -- stage replaces it.
+            local old = draw.handle; draw.handle = nil
+            if old then pcall(native.cancelDraw, old, a.companion) end
+            local again, failure = requestStage(a, draw.index + 1, ok and 'empty' or 'unreadable')
+            if again then log('weapon readback: ' .. hand .. ', draw asked again')
+            else draw.state = 'unavailable'; log('weapon readback: ' .. hand .. ', draw refused: ' .. tostring(failure)) end
         else
             draw.state = 'empty'
-            log('weapon readback: ' .. (ok and 'hand still empty' or 'unreadable') .. ', the combat AI decides')
+            log('weapon readback: ' .. hand .. ', the combat AI decides')
         end
     end
 

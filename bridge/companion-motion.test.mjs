@@ -490,9 +490,17 @@ test('a follower left very far behind rejoins behind V, never in front of the ca
   assert(teleports[1].from.y>=60,'a follower rejoined before it was 60 m behind')
 `));
 
-test('a far follower V can see keeps running instead of teleporting',()=>run(leftBehind('Vector4.new(0,-1)')+`
+test('a far follower V can see keeps running for about 6 s, then rejoins behind V out of view',()=>run(leftBehind('Vector4.new(0,-1)',44)+`
+  -- Each tick is half a second. The copy has been more than 60 m back for about 2 s, in V's view the whole time.
+  assert(#teleports==0,'teleported a follower V was looking at before the wait in view')
   tick(6)
-  assert(#teleports==0,'teleported a follower V was looking at')
+  assert(#teleports==0,'teleported a follower V was looking at after only 5 s')
+  tick(4)
+  assert(#teleports>=1,'a far follower V kept looking at was stranded past the wait in view')
+  local space=dofile('companion-space.lua')
+  local item=teleports[1]
+  assert(space.angle(player.forward,space.bearing(item.from,item.spot))>60,'the follower arrived in front of V')
+  assert(item.from.y>=60,'a follower rejoined before it was 60 m behind')
 `));
 
 const paced=`${companionEngine}

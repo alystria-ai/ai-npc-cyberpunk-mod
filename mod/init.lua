@@ -933,6 +933,7 @@ if gameDialogue then gameDialogue.options.log = log end
 if convaiWitnessReceipts then convaiWitnessReceipts.options.log = log end
 -- Doors, lifts, fast travel and stranded followers: one line per recovery
 -- decision (companions.lua note(), throttled per kind; never per frame).
+companions.developerMode = function() return manager.developerMode() end
 companions.recoveryLog = function(kind, fields)
     local ok, text = pcall(json.encode, fields or {})
     log('Companion recovery ' .. tostring(kind) .. ' ' .. (ok and text or ''))

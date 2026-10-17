@@ -22,6 +22,8 @@ On 2026-10-17 we read a widely used character spawner's follower, movement, vehi
 
 ## Ranked list
 
+Built 2026-10-17 on branch `companion-136` (headless tests only, nothing seen in the game): items 1, 3 and 6. Each item's live check is in the `TODO.md` entry of that date.
+
 ### 1. A far straggler rejoins even while V looks back (high impact, low risk)
 
 **Problem.**
