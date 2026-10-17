@@ -4,9 +4,9 @@ The single working document for development: open items first, then a dated log,
 
 ## Open items
 
-Rewritten 2026-10-15 afternoon at `main` c277774d. The log entry "2026-10-15 (TODO cleanup)" lists what was removed or merged; the older "2026-10-14 (TODO cleanup)" entry keeps the long text of the shortened live-check lists. Log entries that say "NOT merged" or "NOT installed" predate the merges: every branch is in `main` except `skippy-stock`, `skippy-voice`, `v-voice-finetune` (not used) and `youtube-home-2` (superseded when YouTube was removed).
+Rewritten 2026-10-15 afternoon at `main` c277774d. The log entry "2026-10-15 (TODO cleanup)" lists what was removed or merged; the older "2026-10-14 (TODO cleanup)" entry keeps the long text of the shortened live-check lists. Log entries that say "NOT merged" or "NOT installed" predate the merges: every branch is in `main` except `skippy-stock`, `skippy-voice`, `v-voice-finetune` (not used) and `youtube-home-2` (superseded when YouTube was removed). Every 2026-10-17 branch (spawned characters, companion items 1 to 6, group count and look-ahead, pre-open, Voxtral retry, V's voice engine, Bonsai lite) is in `main` 07541c71, pushed and in the rebuilt v0.2 release.
 
-Install state: everything on `main` c277774d is installed in the game, including the reds and the archives (hashes in the log). `mod/diagnostics.lua` is the uncommitted dev copy and is never installed. The Skippy and DelamainCab zips come from the sibling clones; rebuild them if their latest commits are not in the installed zips (unsure which are). The 43 voices' louder clips are runtime-only and in the bucket. Install backups: scratchpad `install-backup-1014b` and `install-backup-1015e`. Lua needs a CET reload, `bridge/` a bridge restart, plugins, redscript and archives a game restart. A live check below counts as owed unless it says it was seen.
+Install state: everything on `main` 07541c71 is installed in the game (2026-10-17, with `dev_install_tree.py`), including the reds and the archives. `mod/diagnostics.lua` is the uncommitted dev copy and is never installed. The Skippy and DelamainCab zips come from the sibling clones; rebuild them if their latest commits are not in the installed zips (unsure which are). The 43 voices' louder clips are runtime-only and in the bucket. Install backups: scratchpad `install-backup-1014b` and `install-backup-1015e`. Lua needs a CET reload, `bridge/` a bridge restart, plugins, redscript and archives a game restart. A live check below counts as owed unless it says it was seen.
 
 ### Release schedule (decided 2026-10-10)
 - **Main mod on Nexus: Sun 18 Oct 2026, about 11:00 UTC (16:30 IST), version 0.2** (tag `v0.2`; scheme 0.N, hotfix 0.N.M). It lands two days before *Cyberpunk: Edgerunners 2* (all 10 episodes on Netflix Tue 20 Oct, about 07:00 UTC). Release-blocking bugs must be fixed by then.
@@ -15,14 +15,13 @@ Install state: everything on `main` c277774d is installed in the game, including
 - Timing facts: about 35 new Cyberpunk mods a day, so a new one stays on page 1 of New for 12 to 14 hours; trending ranks mods first published in its window by endorsements; Steam peaks about 13:00 to 14:00 UTC and Sundays run 10 to 20% above weekdays.
 
 ### Needs the user (decisions and approvals)
-- **Remind the user on 2026-10-17 to make the GitHub repo `alystria-ai/ai-npc-cyberpunk-mod` and the Hugging Face packs repo (`alystria-ai/ai-npc-cyberpunk-mod-packs`) public.** v0.2 is built and published in both, privately (log 2026-10-16 "v0.2 built"). Players need both public: the README's download links point there.
+- **Going public is the user's call** (2026-10-17: "don't worry about public stuff"). Both repos are still private; don't remind. Players need `alystria-ai/ai-npc-cyberpunk-mod` and `alystria-ai/ai-npc-cyberpunk-mod-packs` public before the README links and the in-mod pack downloads work.
 
 ### Release blockers (before Sun 18 Oct 11:00 UTC)
 - **Release build in the real game: done 2026-10-16.** A fresh-player install from the built Scripts and Runtime zips, with no key: Sign in with Convai, talk, mic, phone chat, holocall, settings layout and companions all work (see the log). Watch for the transient `CL.exe` crash in the CI native build.
 - **Release data and models at build time.** `packaging/release-data` is current (2026-10-13 refresh needed nothing; Alt's twins re-verified in `dc518334`); run `node packaging/Refresh-ReleaseData.mjs` only on purpose and never let it overwrite the committed gestures archive (an earlier run copied the untested `36f54d4f` over the tested `6966d508`; reverted). Models come from the bucket `final/` (`packaging/fetch-models.py`, every file checked against `final/MANIFEST.json`; contents confirmed 2026-10-13, log entry "v0.2 packaging"). The 43 voices' louder clips were uploaded 2026-10-15 (log `bucket-clips-1015`). The Omni pack is built by the workflow's second job (dry run 4 parts, 6.37 GB) and arrives after the Runtime package; without it players get Pocket and the cloud voices.
 
 ### Live checks owed
-- **AMD Vulkan check of the lite model (Bonsai 2 4B `Q2_0`, owed before the lite pack is promoted, `docs/LOCAL_MODEL_BONSAI_2026-10-17.md`).** Intel (iGPU) and NVIDIA loaded it and gave coherent text; no AMD card was available. Run the 4B once on an AMD Vulkan card (the lite pack, a short chat). Upstream has an open report of wrong quantised results on one Adreno GPU, so `Q2_0` on Vulkan is young. FPS with Local AI lite in the game is also unmeasured.
 Closed by the user on 2026-10-16 (log entry of that day): every main-mod live check, the release-relevant ones (crowd lip-sync FPS A/B, performance capture, daily-limit and preparing notices, unloading, mic retest) and the feature sweeps. Left: the add-on checks, before their releases.
 
 - **Skippy hologram text and game lines** (Skippy repo; log `skippy-onscreen-mute`, `skippy-hologram`, `skippy-live-fixes`, `addon-game-lines`, `skippy-line-ids`): hold him in a fight for a few minutes. Every remark with a subtitle is also heard (`Remark released ... voice-stopped=<reason>` in probe.log or `did not reach the player (lease: ...)` in bridge.stderr.log means a cut), voice slightly from the right where the gun is, speaker `Skippy (AI)`; our remark shows in the gun's own hologram; the game's own "new message detected", "provocation" and beeps are gone (else `muted game line: Skippy ... audio=` says what was tried); with "Replace the game's own lines" off the game's hologram returns.
@@ -39,20 +38,14 @@ Closed by the user on 2026-10-16 (log entry of that day): every main-mod live ch
 - **Multilingual:** lip sync stays English-trained (audio-only, visemes English-shaped).
 - **Free-key limits** (one connection at a time, one memory user) are left to Convai's plans; paid keys hold up to six connections (`convai-paid-tier`). **Natural speech note:** Convai's own cloud history keeps the raw reply with tags; only our copies are clean.
 - **Tests:** the full suite passed three times in a row on 2026-10-14 (4905 tests, 0 fail, 12 skipped); `scripts/pocket_training/test_*.py` need the training environment and `pwsh.exe` binding tests skip.
-- **Spawned characters and companion improvements** (branch `spawned-characters`, log 2026-10-17):
-  - Merge phase 1 and run its live check (`docs/SPAWNED_CHARACTERS.md`).
-  - Spawned faces after a spawner's appearance change (branch `spawned-face`, log 2026-10-17): the lips did not move because the rebuild was never prepared; fixed with a note-and-claim at `Entity/Reassemble`. Needs the Scripts install, a game restart and the live check in the doc.
-  - Phase 2: group chat and reaction witnesses.
-  - The ranked companion items in `docs/COMPANION_IMPROVEMENTS_2026-10-17.md`. Items 1, 3 and 6 are built on branch `companion-136` (log 2026-10-17, second entry), live checks owed. Items 2, 4, 5 and 7 are open.
-
-  - Phase 2 (group chat, and battle and loot witnesses) is built on branch `spawned-phase2` (from `spawned-characters`); its live checks are in the doc. Merge after phase 1.
-  - The ranked companion items in `docs/COMPANION_IMPROVEMENTS_2026-10-17.md`.
+- **Companion item 7, turn toward V on arrival** (`docs/COMPANION_IMPROVEMENTS_2026-10-17.md`): the only open item of that list; items 1 to 6 are merged (live checks of 1 to 5 under "Live checks owed").
 - **Add-on live checks** in `docs/ADDON_API.md` ("What the game must confirm live"), then each add-on's release on its date.
 
 ### Parked: start only when the user says so
 Nothing is parked.
 
 ### Settled and dropped
+- **AMD Vulkan check of Bonsai lite: dropped by the user (2026-10-17);** no note in player text.
 - **YouTube TV is removed completely** (the user, 2026-10-15; log `remove-youtube-tv`).
 - **Battle and loot reactions are both Off by default** (`loadSettings` in `mod/manager.lua`, MCM defaults in `mod/mcm.lua`; log "reaction defaults docs"). **Names for passers-by are always on**, with no setting (`names-always-on`).
 - Emotion-matched voice references (2026-10-15): no emotion-sorted reference sets exist for any character, so the user dropped it. **Inworld is not a release option** (the user, 2026-10-15); it stays under Developer options. Its terms research is in `docs/CLOUD_VOICE_INWORLD.md` (the free 70 minutes has no stated period; cloning game voices stays a judgement, not a permission; a two-part reply may start its second part a little later than Voxtral's); it matters only if Inworld comes back.
