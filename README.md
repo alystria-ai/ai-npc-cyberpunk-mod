@@ -180,7 +180,7 @@ Install neither, one or both. The **Local AI model** row lists what is installed
 
 ### Mature content (18+)
 
-**Settings > Conversation provider > Mature content** is off by default and for adults only. It works with Local AI only: turning it on selects Local AI, and choosing a cloud provider turns it off. With the standard models it changes language and tone, because those models refuse most adult material. The two optional **Mature packs**, Mature lite and Mature standard, on the [Hugging Face page](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs), add one model each without those refusals; either works alone. Fixed limits stay on for every model, with or without the packs. Details are in [the pack's notes](packaging/MATURE_PACK_README.md).
+**Settings > Conversation provider > Mature content** is off by default and for adults only. It works with Local AI only: turning it on selects Local AI, and choosing a cloud provider turns it off. With the standard models it changes language and tone, because those models refuse most adult material. The two optional **Mature packs**, Mature lite and Mature standard, on the [Hugging Face page](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs), add one model each without those refusals; either works alone. Mature lite needs about 3.4 GB of free video memory and Mature standard about 6.5 GB. Fixed limits stay on for every model, with or without the packs. Details are in [the pack's notes](packaging/MATURE_PACK_README.md).
 
 ## Pick a voice
 
