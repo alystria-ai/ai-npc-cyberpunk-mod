@@ -109,3 +109,12 @@ Talk to Cyberpunk 2077 characters by voice or text, and hear companions answer i
 ```
 
 Character count of the summary (including spaces and punctuation): 265
+
+## 4. Screenshot captions (suggested)
+
+1. Text conversation with a character, opened with the talk-by-text key.
+2. Voice chat showing the "Listening" prompt.
+3. Companion Manager with the "Characters to invite" list.
+4. Settings > Conversation provider, showing Local AI, Mistral and the Convai free tier.
+5. Group conversation with companions taking turns.
+6. Phone Chat with a holocall live on screen.
