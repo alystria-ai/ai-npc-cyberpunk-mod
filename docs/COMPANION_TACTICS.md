@@ -121,6 +121,16 @@ The threat is injected persistent (source `CommandInjectThreat`); only that sour
 persistence used to be removed, so the threat stayed in her tracker for ever. The end of
 the tactic now also removes it (`restore: threat on the target removed (read back gone)`).
 
+### The Combat state is not a fight (2026-10-17, second live retest)
+
+Live at 17:53Z the target choice was right (the only tag, a ganger 30 m away) and the log said "native combat engaged" at once, yet she only crouched and stood with the gun out, never approached or shot, and the tactic never ended or restored. Causes: (1) "engaged" was `NPCPuppet.IsInCombat`, which the forced Combat state satisfies on its own while her combat AI has no target; (2) the ganger never noticed V or her, so the combat AI had no opponent; (3) once engaged, `T.update` stopped watching, so the give-up and the restore never ran; and `T.decide` released her movement on that false engagement, so nothing walked her to him.
+
+Now:
+1. **Evidence.** Engaged needs her in combat AND her combat AI holding a target: the behavior argument `CombatTarget` (`aiComponent.script`, `npcStateComponent.script` GetCombatTarget), read through `GetAIControllerComponent():GetBehaviorArgument` and `FromVariant`. Ours, or any other (she may be fighting someone beside him), counts; `none` does not. Where the argument cannot be read (logged once: `combat target unreadable (...)`), in combat and not crouched counts. Read at most every 0.25 s while a tactic runs.
+2. **Until then she is walked to him** with the move command we already send (Run, which the game turns into a sprint in the Combat state), not released to an idle combat AI. The asks at 1 s and 2 s now also **open the fight on his side**: she is put on his threat list (`AddThreat`, not persistent, as the game's own `InjectThreat`) and his state is set to Combat (the same two steps `OnFinisherEffectorActionOn` makes for the NPC it turns on; attitudes are already hostile both ways). At the end she is taken off his list again (`restore: she is off his threat list (read back gone)`); his own AI ends his fight state.
+3. **The watch never stops.** In the fighting phase, a fight that is no longer one (no combat or no combat target) for 3 s sends her back to the approach with the asks and the 4 s-at-the-target give-up starting over (`fight lost (...)`); the overall 180 s limit stays. A status line every 5 s (twelve at most) shows what she and the game read: `status 5s fighting, her combat target is ours, gap 8m: state=... stance=... combat-target=...`.
+4. If her old target is still on her list when the restore waits (6 s), it is removed once more.
+
 ### After the tactic: the restore (2026-10-17 fix)
 
 Whenever the tactic ends (no combat, timeout, cancel, target down), apart from a vehicle,

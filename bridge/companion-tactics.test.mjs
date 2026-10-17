@@ -105,7 +105,7 @@ test('a fight engages immediately, approaches until native combat, and restores 
   assert(effects[1]=='fight-start 44ULL 77ULL' and T.owns(3))
   assert(logged('fight accepted: Tyger Claw 77ULL'),'the start is logged with the target')
   local d=frame(); assert(d.operation.kind=='move' and d.operation.gait=='Run')
-  companion.combat=true; d=frame(); assert(d.operation.kind=='release' and phase()=='fighting')
+  companion.combat=true; for _=1,4 do d=frame() end; assert(d.operation.kind=='release' and phase()=='fighting')
   player.mounted=true; frame()
   assert(not T.owns(3) and effects[#effects]=='fight-stop 44ULL 77ULL AIA_Hostile')
 `));
@@ -126,7 +126,8 @@ test('the weapon is drawn when the fight starts and read back; an empty hand get
   companion.hand=true
   for _=1,4 do frame() end
   assert(logged('weapon readback: drawn %(Items.Preset_Lexington%)') and T.snapshot().weapon=='drawn')
-  local before=#logs; for _=1,40 do frame() end; assert(#logs==before,'nothing more is logged once it is drawn')
+  local function weaponLines() local n=0 for _,l in ipairs(logs) do if l:find('weapon') then n=n+1 end end return n end
+  local before=weaponLines(); for _=1,40 do frame() end; assert(weaponLines()==before,'nothing more is logged about the weapon once it is drawn')
 `));
 
 test('a hand that stays empty goes switch, explicit equip with the primary item, bare slot equip, then is left to the combat AI', () => run(world + `
@@ -884,6 +885,7 @@ test('the restore waits for a threat that is not ours, leaves the player own fig
   assert(logged('restore: waiting, she still tracks a hostile threat') and count('stance')==0 and count('hls')==0,'nothing is changed while she fights someone else: '..table.concat(logs,'|')..' / '..table.concat(effects,'|'))
   for _=1,100 do frame() end
   assert(logged('restore: gave up after 14 s %(stance Crouch, state Stealth%)'),table.concat(logs,'|'))
+  assert(count('threat%-remove')==2 and logged('restore: threat still held after 6 s, removed again'),'one more try at the old target: '..table.concat(effects,'|'))
   `);
   run(world + engageExtras + `
   companion.stance,companion.hls,companion.hand='Crouch','Stealth',true
@@ -960,6 +962,7 @@ const hlsWorld = reactionWorld + `
   companion.hls='Stealth'
   companion.GetHighLevelStateFromBlackboard=function(self) return {value=self.hls} end
   function listedAgain() listed=true end
+  target.hls='Relaxed'; target.GetHighLevelStateFromBlackboard=function(self) return {value=self.hls} end
 `;
 
 test('the adapter forces the Combat state last, after the attitudes, the threat and the combat start, and remembers the old one', () => run(hlsWorld + `
@@ -976,8 +979,9 @@ test('the adapter asks again with a refreshed threat, the combat start and the C
   local receipt=N.startFight(companion,target); order={}
   companion.hls='Stealth'
   local text=N.engage(companion,target,2,receipt)
-  assert(order[1]=='activate' and order[2]:find('^belief%-1') and order[3]=='trigger' and order[4]=='hls-Combat',table.concat(order,','))
-  assert(text:find('threat activated and believed') and text:find('combat start asked of the reaction component') and text:find('Combat state asked again, reads Combat'),text)
+  assert(order[1]=='activate' and order[2]:find('^belief%-1') and order[3]=='threat' and order[4]=='hls-Combat' and order[5]=='trigger' and order[6]=='hls-Combat',table.concat(order,','))
+  assert(text:find('threat activated and believed') and text:find('target alerted: she is on his threat list, his state asked, reads Combat') and text:find('combat start asked of the reaction component') and text:find('Combat state asked again, reads Combat'),text)
+  assert(receipt.targetThreat==true,'the receipt remembers she was put on his list')
   local tracker=companion:GetTargetTrackerComponent(); tracker.ActivateThreat=function() error('no such thing') end
   text=N.engage(companion,target,3,receipt); assert(text:find('threat refresh failed: .*no such thing') and text:find('Combat state asked again'),text)
   Game={GetAllBlackboardDefs=function() return {PuppetState={Stance='S'}} end}
@@ -1011,4 +1015,118 @@ test('the adapter reads and sets the stance and state, removes the threat with a
   assert(N.removeThreat(companion,target):find('STILL LISTED'),'a threat the game keeps is reported')
   companion.GetTargetTrackerComponent=function() return nil end
   assert(not pcall(N.removeThreat,companion,target))
+`));
+
+// ---- Second live retest (2026-10-17 17:53Z): the Combat state alone is no fight ----
+const evidenceExtras = engageExtras + `
+companion.combatTarget=''
+combatTargetError=nil
+native.combatTarget=function(c) if combatTargetError then error(combatTargetError) end return c.combatTarget end
+local plainDiagnose=native.diagnose
+native.diagnose=function(c,t) local d=plainDiagnose(c,t); d.combatTarget=c.combatTarget; return d end
+native.releaseTarget=function(r,c,t) effect('target-release',t.id); return 'she is off his threat list (read back gone)' end
+`;
+
+test('the Combat state alone is not a fight: she is walked to the target until her combat AI holds a target', () => run(world + evidenceExtras + `
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  companion.combat=true; companion.hls='Combat'    -- the live case: forced Combat, no combat target
+  local d
+  for _=1,8 do d=frame() end
+  assert(phase()=='fight-approach','still approaching: '..phase())
+  assert(d.operation.kind=='move' and d.operation.gait=='Run','she is not released to an idle combat AI')
+  assert(not logged('native combat engaged'))
+  for _=1,12 do frame() end
+  assert(count('engage')>=1,'the asks go on while the evidence is missing')
+  assert(logged('engage stage 2 %(no fight after .-in combat but no combat target'),table.concat(logs,'|'))
+  companion.combatTarget='77ULL'
+  for _=1,4 do d=frame() end
+  assert(phase()=='fighting' and d.operation.kind=='release' and logged('native combat engaged %(her combat target is ours%)'),table.concat(logs,'|'))
+`));
+
+test('a fight against someone else beside the target counts as a fight', () => run(world + evidenceExtras + `
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  companion.combat=true; companion.combatTarget='1234ULL'
+  for _=1,5 do frame() end
+  assert(phase()=='fighting' and logged('her combat target is 1234ULL'))
+`));
+
+test('an unreadable combat target is judged by her stance: crouched is no fight, standing is', () => run(world + evidenceExtras + `
+  combatTargetError='no such argument'
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  companion.combat=true; companion.stance='Crouch'
+  for _=1,8 do frame() end
+  assert(phase()=='fight-approach' and logged('combat target unreadable %(.*no such argument'),table.concat(logs,'|'))
+  companion.stance='Stand'
+  for _=1,4 do frame() end
+  assert(phase()=='fighting' and logged('target unreadable'),table.concat(logs,'|'))
+`));
+
+test('a fight that stops being one sends her back to the target; the give-up and the restore still happen (the live case)', () => run(world + evidenceExtras + `
+  companion.hand=true
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  companion.combat=true; companion.combatTarget='77ULL'
+  for _=1,6 do frame() end
+  assert(phase()=='fighting')
+  companion.combatTarget=''; companion.hls,companion.stance='Stealth','Crouch'   -- her AI lets go of him
+  for _=1,20 do frame() end
+  assert(phase()=='fighting','not at once')
+  for _=1,20 do frame() end
+  assert(phase()=='fight-approach' and logged('fight lost %(in combat but no combat target%)'),table.concat(logs,'|'))
+  -- no fight comes back: the asks run again, then she gives up at the target and is restored
+  companion.combat=false
+  for _=1,200 do frame() end
+  assert(T.snapshot().last and T.snapshot().last.result=='no-combat',tostring(T.snapshot().last and T.snapshot().last.result))
+  local message; for _,e in ipairs(effects) do if e:find('^feedback ') then message=e end end
+  assert(message=='feedback Judy could not start the fight with Tyger Claw.',tostring(message))
+  assert(count('target%-release')==1)
+  for _=1,250 do frame() end
+  assert(count('stance Stand')>=1 and count('hls Relaxed')>=1 and count('rearm')==1 and logged('weapon read back: holstered'),table.concat(effects,' | '))
+`));
+
+test('a status line says what she and the game read every 5 s while the tactic runs, at most twelve', () => run(world + evidenceExtras + `
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  companion.combat=true; companion.combatTarget='77ULL'
+  for _=1,70 do frame() end
+  local line=assert(logged('status 5s fighting'),table.concat(logs,'|'))
+  assert(line:find('her combat target is ours, gap %d+m: state=') and line:find('combat%-target=77ULL'),line)
+  for _=1,800 do frame() end
+  local n=0; for _,l in ipairs(logs) do if l:find('Companion tactic: status ') then n=n+1 end end
+  assert(n==12,'twelve at most, got '..n)
+`));
+
+test('the adapter reads her combat target, alerts the target by putting her on his threat list, and takes her off again', () => run(hlsWorld + `
+  target.hls='Relaxed'; target.GetHighLevelStateFromBlackboard=function(self) return {value=self.hls} end
+  local entity={GetEntityID=function() return {hash=555} end}
+  companion.GetAIControllerComponent=function() return {GetBehaviorArgument=function(_,name) assert(name=='CombatTarget'); return behavior end} end
+  FromVariant=function(v) return v.object end
+  behavior=nil; assert(N.combatTarget(companion)=='')
+  behavior={object=nil}; assert(N.combatTarget(companion)=='')
+  behavior={object=entity}; assert(N.combatTarget(companion)=='555')
+  companion.GetAIControllerComponent=function() error('no ai') end
+  assert(not pcall(N.combatTarget,companion),'an unreadable argument raises')
+  -- alert the target
+  local receipt={}
+  local added
+  local removed
+  local targetTracker={AddThreat=function(_,who,hostile,pos,acc,cool,persistent) added={who=who,hostile=hostile,persistent=persistent,cool=cool} end,
+    MapThreat=function() return 9 end,RemoveThreat=function(_,id) removed=id; isListed=false end}
+  target.GetTargetTrackerComponent=function() return targetTracker end
+  local text=N.alertTarget(companion,target,receipt)
+  assert(added.who==companion and added.hostile==true and added.persistent==false and added.cool==-1,'she is a non persistent hostile threat of his')
+  assert(target.hls=='Combat' and receipt.targetThreat==true and text:find('his state asked, reads Combat'),text)
+  -- take her off
+  isListed=true
+  TargetTrackingExtension.IsThreatInThreatList=function(n,t) return isListed end
+  text=N.releaseTarget(receipt,companion,target)
+  assert(removed==9 and text:find('off his threat list %(read back gone%)') and receipt.targetThreat==nil,text)
+  assert(N.releaseTarget(receipt,companion,target)==nil,'nothing to do twice')
+  receipt.targetThreat=true; isListed=false
+  assert(N.releaseTarget(receipt,companion,target):find('no longer on his threat list'))
+  receipt.targetThreat=true; isListed=true; targetTracker.RemoveThreat=function() end
+  assert(N.releaseTarget(receipt,companion,target):find('STILL LISTED'))
+  -- a target without a tracker raises, and an engage stage notes it without stopping
+  target.GetTargetTrackerComponent=function() return nil end
+  assert(not pcall(N.alertTarget,companion,target,receipt))
+  local engaged=N.engage(companion,target,2,{reaction={notes={},trigger=function() end}})
+  assert(engaged:find('target alert failed'),engaged)
 `));

@@ -18,7 +18,10 @@ local DEFAULTS = {
     engageReadback = 1.0, arriveSlack = 3, arriveGrace = 4,
     -- After a tactic ends: the stance and high-level state are looked at every restoreGap seconds for at most
     -- restoreLimit seconds; a hostile threat that is not ours holds the restore back until it is gone.
-    restoreGap = 0.4, restoreLimit = 14, restoreCalm = 1.0, standGap = 0.6, holsterWatch = 9,
+    restoreGap = 0.4, restoreLimit = 14, threatRetry = 6, restoreCalm = 1.0, standGap = 0.6, holsterWatch = 9,
+    -- Watching the fight: the evidence is read every observeGap seconds; a fight lost for lostGrace seconds sends her back to
+    -- the target; a status line every statusGap seconds, statusMax lines at most.
+    observeGap = 0.25, lostGrace = 3, statusGap = 5, statusMax = 12,
     -- Weapon draw: the switch-to-primary command, read back after drawReadback; an empty hand then gets the explicit
     -- equip, read back after drawReadback; then the bare slot equip, read back after drawRetryReadback.
     offerTtl = 125, drawReadback = 1.0, drawRetryReadback = 2.0,
@@ -167,6 +170,7 @@ function M.nativeAdapter()
     function N.highLevel(npc)
         local ok, value = pcall(function() local state = npc:GetHighLevelStateFromBlackboard(); return bodyName(state.value or state) end)
         if ok and value ~= '' then return value end
+        return nil
     end
     -- NPCPuppet.ChangeHighLevelState: the call the game makes together with a threat when it forces a fight
     -- (npcPuppet.script OnFinisherEffectorActionOn, psychoSquadAVSystem.script, bossStealthComponent.script). Returns true or
@@ -182,6 +186,7 @@ function M.nativeAdapter()
             return STANCE_NAMES[npc:GetPuppetStateBlackboard():GetInt(Game.GetAllBlackboardDefs().PuppetState.Stance)]
         end)
         if ok then return value end
+        return nil
     end
     function N.setStance(npc, name)
         local ok, failure = pcall(function() NPCPuppet.ChangeStanceState(npc, Enum.new('gamedataNPCStanceState', name)) end)
@@ -223,7 +228,41 @@ function M.nativeAdapter()
         read('civilian', function() return target:IsCharacterCivilian() == true end)
         read('crowd', function() return target:IsCrowd() == true end)
         read('preset', function() return presetLabel(reactionComponent(companion):GetReactionPreset()) end)
+        read('combatTarget', function() return N.combatTarget(companion) end)
         return d
+    end
+    -- Whom her combat AI is shooting at: the entity id of the behavior argument 'CombatTarget' (aiComponent.script,
+    -- npcStateComponent.script GetCombatTarget), or '' when there is none. Raises when the argument cannot be read.
+    -- The Combat state alone proves nothing: it can be forced while the AI has no target.
+    function N.combatTarget(npc)
+        local variant = npc:GetAIControllerComponent():GetBehaviorArgument('CombatTarget')
+        if variant == nil then return '' end
+        local object = FromVariant(variant)
+        if object == nil then return '' end
+        return tostring(object:GetEntityID().hash)
+    end
+    -- Opens the fight on the target's side too. A target that never noticed her is no opponent for the combat AI (she
+    -- crouches in the Stealth state and waits), so the game's own steps are made for him as well: she goes on his
+    -- threat list (TargetTrackingExtension.InjectThreat does an AddThreat, not persistent) and his state is set to
+    -- Combat (npcPuppet.script OnFinisherEffectorActionOn does both for the NPC it turns on). Attitudes are already
+    -- hostile both ways. Returns text for the log.
+    function N.alertTarget(companion, target, receipt)
+        local tracker = target:GetTargetTrackerComponent()
+        if not tracker then error('the target has no target tracker') end
+        tracker:AddThreat(companion, true, companion:GetWorldPosition(), 1.0, -1.0, false)
+        if receipt then receipt.targetThreat = true end
+        local raised, raiseError = N.setHighLevel(target, 'Combat')
+        return 'target alerted: she is on his threat list, ' .. (raised and ('his state asked, reads ' .. tostring(N.highLevel(target) or '?')) or ('his state refused: ' .. tostring(raiseError)))
+    end
+    -- Takes her off the target's threat list again (the target's own AI ends the fight state itself). Returns the log text.
+    function N.releaseTarget(receipt, companion, target)
+        if not (receipt and receipt.targetThreat) then return nil end
+        receipt.targetThreat = nil
+        local tracker = target:GetTargetTrackerComponent()
+        if not tracker then error('the target has no target tracker') end
+        if not (TargetTrackingExtension.IsThreatInThreatList(target, companion, false, false) == true) then return 'she was no longer on his threat list' end
+        tracker:RemoveThreat(tracker:MapThreat(companion))
+        return 'she is off his threat list (read back ' .. (TargetTrackingExtension.IsThreatInThreatList(target, companion, false, false) == true and 'STILL LISTED' or 'gone') .. ')'
     end
     -- Combat did not register yet: asks again, stronger each stage. It makes her believe she knows where the target is
     -- (the tracker's own ActivateThreat and SetThreatBeliefAccuracy), repeats the reaction component's combat start and
@@ -236,6 +275,8 @@ function M.nativeAdapter()
             tracker:SetThreatBeliefAccuracy(target, 1.0)
         end)
         notes[#notes + 1] = refreshed and 'threat activated and believed' or ('threat refresh failed: ' .. tostring(refreshError))
+        local alerted, alertText = pcall(N.alertTarget, companion, target, receipt)
+        notes[#notes + 1] = alerted and alertText or ('target alert failed: ' .. tostring(alertText))
         local reaction = receipt and receipt.reaction
         if reaction and reaction.trigger then
             local before = #reaction.notes
@@ -243,7 +284,7 @@ function M.nativeAdapter()
             for index = before + 1, #reaction.notes do notes[#notes + 1] = reaction.notes[index] end
         end
         local ok, failure = N.setHighLevel(companion, 'Combat')
-        notes[#notes + 1] = ok and ('Combat state asked again, reads ' .. tostring(N.highLevel(companion))) or ('Combat state refused: ' .. tostring(failure))
+        notes[#notes + 1] = ok and ('Combat state asked again, reads ' .. tostring(N.highLevel(companion) or '?')) or ('Combat state refused: ' .. tostring(failure))
         return table.concat(notes, '; ')
     end
 
@@ -322,6 +363,7 @@ function M.new(options)
         if type(fn) ~= 'function' then return nil end
         local ok, value = pcall(fn, ...)
         if ok then return value end
+        return nil
     end
     local function log(line) if env.log then pcall(env.log, 'Companion tactic: ' .. line) end end
     local function feedback(message) if env.feedback and message then pcall(env.feedback, message) end end
@@ -334,6 +376,7 @@ function M.new(options)
         return ': state=' .. word(d.hls) .. ' stance=' .. word(d.stance) .. ' threat=' .. yes(d.threat) .. ' target-listed=' .. yes(d.listed)
             .. ' attitude=' .. word(d.out) .. '/' .. word(d.back) .. ' preset=' .. word(d.preset)
             .. ' target-civilian=' .. yes(d.civilian) .. ' target-crowd=' .. yes(d.crowd)
+            .. ' combat-target=' .. (d.combatTarget == nil and '?' or (d.combatTarget == '' and 'none' or tostring(d.combatTarget)))
     end
     -- The player notice when the order could not start the fight, in plain words and short (the notice frame holds two lines).
     local function failureMessage(a)
@@ -387,6 +430,11 @@ function M.new(options)
         if get(native.alive, a.target) and get(native.alive, a.companion) then
             pcall(native.stopFight, receipt, a.companion, a.target)
         end
+        -- She leaves the target's threat list again (only when the engage stages put her there).
+        if get(native.alive, a.target) and get(native.alive, a.companion) and type(native.releaseTarget) == 'function' then
+            local released, text = pcall(native.releaseTarget, receipt, a.companion, a.target)
+            if text or not released then log('restore: ' .. (released and tostring(text) or ('target threat removal failed: ' .. tostring(text)))) end
+        end
         -- Our threat leaves her tracker whatever became of the target (the game does not always drop one that was
         -- injected as persistent, and a threat she still holds keeps her armed and in the Stealth state).
         if get(native.alive, a.companion) and type(native.removeThreat) == 'function' then
@@ -405,7 +453,7 @@ function M.new(options)
     local function beginRestore(a, reason)
         if RESTORE_SKIPPED[reason] or not get(native.alive, a.companion) then return end
         if type(native.highLevel) ~= 'function' and type(native.stance) ~= 'function' then return end
-        restoring = {companion = a.companion, entity = a.entity, name = a.companionName or 'companion', serial = a.serial,
+        restoring = {companion = a.companion, target = a.target, entity = a.entity, name = a.companionName or 'companion', serial = a.serial,
             startedAt = clock, nextAt = clock + settings.restoreGap, standTries = 0, hlsTries = 0, noted = {}}
     end
     local function restoreLog(r, line) log('restore: ' .. line) end
@@ -447,7 +495,15 @@ function M.new(options)
         end
         if get(native.hasThreat, r.companion) == true then
             r.calmSince = nil
-            restoreNote(r, 'threat', 'waiting, she still tracks a hostile threat'); return
+            restoreNote(r, 'threat', 'waiting, she still tracks a hostile threat')
+            -- Her senses can put the old target back on the list while his hostility is being undone: once more, then wait.
+            r.waitSince = r.waitSince or clock
+            if not r.threatRetried and clock - r.waitSince >= settings.threatRetry and type(native.removeThreat) == 'function' then
+                r.threatRetried = true
+                local removed, result = pcall(native.removeThreat, r.companion, r.target)
+                restoreLog(r, 'threat still held after ' .. settings.threatRetry .. ' s, removed again: ' .. (removed and tostring(result) or ('failed: ' .. tostring(result))))
+            end
+            return
         end
         r.calmSince = r.calmSince or clock
         if clock - r.calmSince < settings.restoreCalm then return end
@@ -651,6 +707,44 @@ function M.new(options)
         return true, (actor.name or 'Your companion') .. ' is going after ' .. captured.name .. '.'
     end
 
+    -- Is a fight really on? The Combat state alone is no proof (live 2026-10-17: it was forced while her combat AI had no
+    -- target, and she crouched at the edge of nothing). It takes her being in combat AND her combat AI holding a target:
+    -- ours, or any other (she may be fighting someone beside it). Where the target cannot be read, in combat and not
+    -- crouched (the Stealth stance) stands in. Returns true or false and the reason.
+    local function judge(a)
+        if get(native.inCombat, a.companion) ~= true then return false, 'not in combat' end
+        if type(native.combatTarget) ~= 'function' then return true, 'in combat' end
+        local read, key = pcall(native.combatTarget, a.companion)
+        if read and type(key) == 'string' then
+            if key == a.targetId then return true, 'her combat target is ours' end
+            if key ~= '' then return true, 'her combat target is ' .. key end
+            return false, 'in combat but no combat target'
+        end
+        if not a.blindNoted then
+            a.blindNoted = true
+            log('combat target unreadable (' .. tostring(key) .. '), judging by her stance')
+        end
+        local stance = get(native.stance, a.companion)
+        if stance == 'Crouch' then return false, 'in combat, crouched, target unreadable' end
+        return true, 'in combat, stance ' .. tostring(stance) .. ', target unreadable'
+    end
+    local function observe(a)
+        local seen = a.evidence
+        if seen and clock - seen.at < settings.observeGap then return seen.engaged end
+        local engaged, why = judge(a)
+        a.evidence = {at = clock, engaged = engaged, why = why}
+        return engaged
+    end
+    -- A line every statusGap seconds (the first statusMax of them) while the tactic runs: what she and the game read.
+    local function statusLine(a)
+        if (a.statusCount or 0) >= settings.statusMax or clock < (a.statusAt or a.startedAt + settings.statusGap) then return end
+        a.statusAt, a.statusCount = clock + settings.statusGap, (a.statusCount or 0) + 1
+        local mine, theirs = get(native.position, a.companion), get(native.position, a.target)
+        local gap = (mine and theirs) and string.format('%.0f', distanceBetween(mine, theirs)) .. 'm' or '?'
+        log('status ' .. string.format('%.0f', clock - a.startedAt) .. 's ' .. a.phase .. ', ' .. tostring(a.evidence and a.evidence.why)
+            .. ', gap ' .. gap .. diagnosisText(get(native.diagnose, a.companion, a.target)))
+    end
+
     function T.owns(serial) return active ~= nil and active.serial == serial end
 
     -- Movement decision for the owned copy, in the companion behavior schema.
@@ -659,7 +753,9 @@ function M.new(options)
         if not a or a.serial ~= serial then return nil end
         local operation
         if a.phase == 'fight-approach' then
-            if context.combat then operation = op('release')
+            -- Released to the combat AI only on real evidence of a fight (T.update), never on the Combat state alone:
+            -- until then she is walked to the target.
+            if a.evidence and a.evidence.engaged then operation = op('release')
             else
                 local goal = get(native.position, a.target)
                 if not goal then return nil end
@@ -692,19 +788,21 @@ function M.new(options)
         end
         if get(native.playerMounted, player) then finish('vehicle'); return end
         local targetAlive = get(native.alive, a.target) == true
-        local elapsed = clock - a.since
         if not targetAlive then finish('target-down'); return end
         readBackWeapon(a)
-        local fighting = get(native.inCombat, a.companion)
+        local engaged = observe(a)
         if a.phase == 'fight-approach' then
-            if fighting then enter('fighting', 'native combat engaged')
+            local elapsed = clock - (a.everEngaged and a.since or a.startedAt)
+            if engaged then
+                a.everEngaged, a.arrivedAt = true, nil
+                enter('fighting', 'native combat engaged (' .. tostring(a.evidence.why) .. ')')
             else
                 local engage = a.engage
                 if engage and engage.stage < ENGAGE_STAGES and clock - engage.at >= settings.engageReadback then
-                    -- No combat after the first ask: ask again, stronger (stage 2 and 3).
+                    -- No fight yet: ask again, stronger (stage 2 and 3).
                     engage.stage, engage.at = engage.stage + 1, clock
                     local asked, text = pcall(native.engage, a.companion, a.target, engage.stage, a.fightReceipt)
-                    log('engage stage ' .. engage.stage .. ' (no combat after ' .. string.format('%.1f', clock - a.since) .. 's): '
+                    log('engage stage ' .. engage.stage .. ' (no fight after ' .. string.format('%.1f', clock - a.since) .. 's, ' .. tostring(a.evidence.why) .. '): '
                         .. (asked and tostring(text) or ('failed: ' .. tostring(text))))
                 elseif engage and engage.stage >= ENGAGE_STAGES and not engage.reported and clock - engage.at >= settings.engageReadback then
                     engage.reported = true
@@ -714,7 +812,7 @@ function M.new(options)
                 if elapsed > settings.fightStartTimeout then
                     finish('no-combat', failureMessage(a)); return
                 end
-                -- At the target and still no combat once every ask is made: waiting longer helps nobody.
+                -- At the target and still no fight once every ask is made: waiting longer helps nobody.
                 if engage and engage.reported then
                     local mine, theirs = get(native.position, a.companion), get(native.position, a.target)
                     if mine and theirs and distanceBetween(mine, theirs) <= settings.fightApproach + settings.arriveSlack then
@@ -725,7 +823,20 @@ function M.new(options)
                     end
                 end
             end
+        elseif a.phase == 'fighting' then
+            -- Engagement is watched all the way: a fight that stops being one (no combat, or no target) for
+            -- lostGrace seconds sends her back to the target, with the asks and the give-up starting again.
+            if engaged then a.lostSince = nil
+            else
+                a.lostSince = a.lostSince or clock
+                if clock - a.lostSince >= settings.lostGrace then
+                    a.lostSince, a.arrivedAt = nil, nil
+                    if a.engage then a.engage = {stage = 1, at = clock} end
+                    enter('fight-approach', 'fight lost (' .. tostring(a.evidence.why) .. ')')
+                end
+            end
         end
+        statusLine(a)
         if clock - a.startedAt > settings.fightTimeout then finish('fight-timeout') end
     end
 
