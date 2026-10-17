@@ -202,6 +202,10 @@
       "target": "r6/scripts/CyberpunkConvai/NpcNames.reds"
     },
     {
+      "source": "r6/scripts/CyberpunkConvai/Locomotion.reds",
+      "target": "r6/scripts/CyberpunkConvai/Locomotion.reds"
+    },
+    {
       "source": "mod/npc-names.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/npc-names.lua"
     },

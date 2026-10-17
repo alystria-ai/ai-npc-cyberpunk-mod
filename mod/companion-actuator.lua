@@ -1513,6 +1513,9 @@ local function walk(s,intent,c)
     cmd.ignoreNavigation=false
     cmd.useStart=c.speed<0.18
     cmd.useStop=final and cmd.finishWhenDestinationReached
+    -- The MoveTo filter (r6/scripts/CyberpunkConvai/Locomotion.reds) reports a command to companion-locomotion.lua only if
+    -- it is marked here; every other NPC's command never reaches Lua. Marking is a no-op while the filter is not in use.
+    if convaiLocomotion and convaiLocomotion.mark then convaiLocomotion.mark(cmd) end
     s.gait,s.stage=gait,waypoint and 'walking-leg' or 'walking'; submit(s,cmd)
 end
 

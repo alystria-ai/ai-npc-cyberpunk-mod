@@ -144,6 +144,9 @@ local function publish(now)
         -- The ordinary-NPC face mode in effect (runtime/crowd-face-mode.txt: off, ungated, gated; "default" is gated
         -- with no file), so every window of an FPS comparison says which build it measured.
         crowdFace = type(convaiFacialPlayback) == 'table' and convaiFacialPlayback.crowdMode or 'default',
+        -- The hook behind the MoveTo observer ('filtered': ConvaiOwnedMoveUpdate, only our marked commands; 'engine': every
+        -- walking NPC's UpdateCommand; nil: not installed), so a window says which one its hook rows measured.
+        locomotionHook = type(convaiLocomotion) == 'table' and convaiLocomotion.mode or nil,
         -- Hook handlers wrapped so far (0 with hooks registered: the wrap missed them).
         hooksWrapped = M.hooksWrapped}
     for label, s in pairs(stats) do
