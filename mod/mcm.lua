@@ -614,7 +614,7 @@ local function sharedCharacterLines(snapshot)
     if settings.naturalSpeech then speech[#speech + 1] = ui.t('Natural speech') end
     if settings.expressiveEmotions then speech[#speech + 1] = ui.t('Expressive emotions') end
     if settings.followUpInterest then speech[#speech + 1] = ui.t('Follow-up questions') end
-    if settings.vVoice and settings.voiceProvider ~= 'convai' then speech[#speech + 1] = ui.t('V’s voice for typed lines') end
+    if settings.vVoice then speech[#speech + 1] = ui.t('V’s voice for typed lines') end
     local talk = {}
     if #speech > 0 then talk[#talk + 1] = ui.t('Speech: {list}', {list = table.concat(speech, ' · ')}) end
     if settings.multilingualConversations then talk[#talk + 1] = ui.t('Multilingual: replies in your language') end
@@ -2142,11 +2142,11 @@ local function schema()
             setting('followUpInterest', 'Follow-up questions', 'bool', snapshot.settings.followUpInterest, true,
                 'Characters sometimes ask about something you said, pick up something from earlier or share a thought that invites an answer.\n\nNow and then, never on every reply, and never while you are leaving, giving an order or fighting.'),
             setting('vVoice', 'V’s voice for typed lines', 'bool', snapshot.settings.vVoice, true,
-                ui.t('When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. A slow V line is skipped, so the reply is never delayed.\n\nUses the voice chosen above, cloned for V.')
-                    .. (snapshot.settings.voiceProvider == 'convai' and ('\n\n' .. (developer
-                        and ui.t('Works with the Pocket, OmniVoice, Voxtral or Inworld voices.')
-                        or ui.t('Works with the Pocket, OmniVoice or Voxtral voices.'))) or ''),
-                nil, {description = true}),
+                'When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. A slow V line is skipped, so the reply is never delayed. The line always shows as a subtitle.\n\nThe voice that speaks it is chosen in the next row.'),
+            setting('vVoiceEngine', 'V’s voice engine', 'select', snapshot.settings.vVoiceEngine == 'voxtral' and 2 or 1, 1,
+                'Pocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second. English only, and not with Mature content on.\n\nWhichever you pick, a line that is not ready in time is skipped.',
+                {ui.t('Pocket · On your PC'), (snapshot.mistral or {}).saved and ui.t('Voxtral · Mistral cloud') or ui.t('Voxtral · needs Mistral key')},
+                {elements = true}),
         }, 'Changes wait until you choose Apply.')
         categories[#categories + 1] = voicesCategory
         categories[#categories + 1] = category('subtitles', 'Subtitles', {
@@ -2352,6 +2352,13 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                         return {ok=false,error=ui.t('Choose an interface language.')}
                     end
                     values.uiLanguage = choices[change.value].value
+                elseif key == 'vVoiceEngine' then
+                    -- Order: 1 Pocket (stored 'pocket'), 2 Voxtral (stored 'voxtral', needs the Mistral key).
+                    if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose one of the listed voices for V.')} end
+                    if change.value == 2 and not manager.mistral().saved then
+                        return {ok = false, error = ui.t('Requires a Mistral key (add it in Settings > Conversation provider)')}
+                    end
+                    values.vVoiceEngine = change.value == 2 and 'voxtral' or 'pocket'
                 elseif key == 'voiceProvider' then
                     local choice = type(change.value) == 'number' and VOICE_CHOICES[change.value] or nil
                     if not choice then

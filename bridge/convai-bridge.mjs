@@ -865,26 +865,43 @@ function logFollowUp(input, result) {
       + `reason=${followUp.reasonFor(turn) ?? 'not-spoken'} ended-with-question=${asked ? 'yes' : 'no'}`);
   } catch { /* a log line never affects a reply */ }
 }
-// V's voice for typed lines (bridge/v-voice.mjs, docs/V_VOICE.md): the player's typed line is also spoken in V's cloned voice, by the voice
-// the player chose (Pocket and OmniVoice locally, Mistral and Inworld in the cloud; never the Convai cloud voice, never a local model
-// beside a cloud voice). It runs beside the companion's reply and never delays it. The plan for V's key is made the same way as a
-// character's (localChoice), so a cloud voice with no key, or a language the voice cannot speak, simply gives no V line.
+// V's voice for typed lines (bridge/v-voice.mjs, docs/V_VOICE.md): the player's typed line is also spoken in V's cloned voice, by the engine
+// the player chose for V (Settings > Voices > V's voice engine): Pocket on the CPU (the default) or the Mistral cloud voice (Voxtral), whatever
+// the companions use. Never OmniVoice, never the Convai cloud voice, never a local model beside a cloud voice that was chosen for it. It runs
+// beside the companion's reply and never delays it. English only (a turn in another language gets no V line).
 const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console.error('[VVoice] ' + line),
-  planFor: (input, key) => planTurnVoice({enabled: multilingual.enabled,
-    language: multilingual.enabled ? multilingual.expected(input.text) : 'en', local: localChoice(key)}),
-  // Voice playback Off silences the companions, not V: with the V setting on his line is spoken (docs/RESOURCE_LIFECYCLE.md).
-  ready: key => localVoice.usesProfile(key),
+  planFor: (input, key) => ({engine: vVoice.engine, language: multilingual.enabled ? multilingual.expected(input.text) : 'en'}),
+  // Pocket, when it is the companions' own voice: that worker speaks V too, one job at a time. Voice playback Off silences the companions,
+  // not V: with the V setting on the Pocket worker stays loaded for his line (docs/RESOURCE_LIFECYCLE.md).
+  ready: key => localVoice.vRouteSpeaks(key),
   isLocal: () => !localVoice.cloudActive,
-  stream: (key, text, options) => localVoice.synthesizeStream(key, text, options),
-  render: (key, text, options) => localVoice.synthesize(key, text, options),
+  stream: (key, text, options) => {
+    if (localVoice.cloudActive) return Promise.reject(Error('The companions use a cloud voice now'));   // never V on the cloud voice through Pocket's route
+    return localVoice.synthesizeStream(key, text, options);
+  },
   prepare: (key, options) => localVoice.prepareProfile(key, options),
   play: (config, producer, options) => realtime.playVoiceLine(config, producer, options),
   warm: options => realtime.prewarmVoiceLine(options),
-  // Beside OmniVoice, V's line is spoken by a Pocket worker of its own on the CPU (bridge/v-helper-voice.mjs), never rendered on
-  // OmniVoice's one GPU worker. It is loaded in the background while the OmniVoice voice is committed and the setting is on.
+  // With any other companion voice (OmniVoice, a cloud voice, the Convai voice) V's Pocket line is spoken by a Pocket worker of its own on
+  // the CPU (bridge/v-helper-voice.mjs), never rendered on OmniVoice's one GPU worker. It is loaded in the background only while the V
+  // setting is on and the engine is Pocket (never beside the Pocket route or with the Voxtral engine).
   helper: {speaks: key => localVoice.vHelperSpeaks(key), ready: key => localVoice.vHelperReady(key),
     stream: (key, text, options) => localVoice.vHelperStream(key, text, options),
     prepare: (key, options) => localVoice.vHelperPrepare(key, options)},
+  // The Voxtral engine: a request of its own to the Mistral voice, beside the companion's text request. No local model, and no fallback to
+  // one (a failed line is silent; the subtitle is on screen). It never takes a start from the reply: while the shared Mistral scheduler is
+  // pacing or pausing requests (a limit was hit, an allowance is nearly used up) V is skipped.
+  cloud: {
+    problem: key => {
+      if (matureContent.enabled) return 'Mature content keeps your lines off the cloud';
+      if (!voxtralVoice.hasKey) return 'no Mistral key';
+      if (!voxtralVoice.ready) return 'a Mistral limit is cooling down';
+      if (!voxtralVoice.hasReference(key)) return `no ${key} clip`;
+      const load = mistralScheduler.stats();
+      return load.spacingMs > 0 || load.pausedForMs > 0 ? 'Mistral is pacing requests' : null;
+    },
+    stream: (key, text, options) => voxtralVoice.synthesizeStream(key, text, options),
+    warm: key => { void voxtralVoice.reference(key); }},
   // One log line and one record per V line: what happened and when (V's own stage clock), no dialogue.
   report: (input, summary) => {
     try {
@@ -2282,6 +2299,14 @@ async function runInput(request, prepared, clock) {
         error: `${input.name} does not have a conversation profile configured yet.`}), {signal: controller.signal, isCurrent: current, isCurrentSync: current.sync});
       return;
     }
+    // V's voice for typed lines (docs/V_VOICE.md) starts here, the moment the turn is known to be for a real companion: it needs only the typed
+    // text, so its voice request goes out beside everything below (knowledge, memory admission, the transport hand-over, the model request)
+    // instead of after them. It is a request of its own on its own renderer page, so it never stands in front of the reply: the reply's
+    // audio waits only while V is audible and V is dropped when it is not audible in time.
+    vVoice.noteGender(input);
+    let vLine = null;
+    current.vLine = () => vLine;
+    if (!ahead) vLine = vVoice.start(input, {signal: controller.signal, clock});
     knowledgeTurn = await knowledgeRouter.prepare(input, {worldToken: worldSession?.token, generation: worldSession?.generation});
     stages.knowledgePreparedMs = performance.now() - preparationStarted;
     clock.mark('knowledge');
@@ -2320,12 +2345,7 @@ async function runInput(request, prepared, clock) {
     clock.mark('transport');
     note(input, {transportRequestedAt: Date.now(), connectionWarm,
       submissionStages: {...stages, beforeTransportMs: performance.now() - preparationStarted}});
-    // V's voice for typed lines starts only now, after the text request is under way: it runs beside the reply and never in front of it.
-    let vLine = null;
-    vVoice.noteGender(input);
-    current.vLine = () => vLine;
     const replying = respond(input, profile, {signal: controller.signal, prepared, current});
-    if (!ahead) vLine = vVoice.start(input, {signal: controller.signal, clock});
     const result = await replying;
     // Ready but not yet submitted by the game: hold until it is, or cancelled.
     // (Continuous speech already waited for this inside its own admission.)
@@ -2739,9 +2759,9 @@ async function pollSettings(checkShutdown = true) {
     const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
     const followUpChanged = followUp.update(settings);
     if (followUpChanged) console.error(`[FollowUp] setting is now ${followUp.enabled ? 'on' : 'off'}`);
-    if (vVoice.update(settings)) console.error(`[VVoice] setting is now ${vVoice.enabled ? 'on' : 'off'}`);
+    if (vVoice.update(settings)) console.error(`[VVoice] setting is now ${vVoice.enabled ? 'on' : 'off'}, engine ${vVoice.engine}`);
     if (companionVision.update(settings)) console.error(`[Vision] setting is now ${companionVision.enabled ? 'on' : 'off'} (${companionVision.transport})`);
-    localVoice.setVHelperWanted(vVoice.enabled && vVoice.available);
+    localVoice.setVHelperWanted(vVoice.wantsPocket);
     void releaseUnused().catch(error => console.error('[CyberpunkConvai] Releasing unused resources:', error.message));
     const matureBefore = matureContent.enabled, packBefore = matureContent.pack;
     if (maturePackInstalled() !== packBefore) await mistralControl.publishStatus().catch(() => {});   // the settings help says whether the uncensored models are installed

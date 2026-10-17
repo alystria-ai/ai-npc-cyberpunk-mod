@@ -7,7 +7,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - **Three ways to talk, all free**: fully local on your own PC with Local AI (no account, no internet, no limit), Mistral with a free account (about 5,000 turns a day), or the Convai free tier (no setup, the default, 100 turns a day). Choose in Settings > Conversation provider.
 - **Holocalls**: call a character from the phone's Chat tab and they pick up live on screen.
 - **Voxtral voices**: the same free Mistral account gives every character their own voice made in the cloud, so nothing runs on your PC. The default Pocket TTS voices still run on your processor with no setup.
-- **V speaks too**: lines you type are heard in V's own voice before the reply (Settings > Voices).
+- **V speaks too**: lines you type are heard in V's own voice before the reply (Settings > Voices). Pick V's voice engine there: Pocket (default, runs on your processor) or Voxtral (cloud).
 - **Voice volume**: one slider from 50 to 200 percent for every mod voice.
 - **Hold to talk**: hold the talk-by-voice button while you speak and let go, or tap to start and tap again to send. Your words show as V's subtitle while you speak.
 - **Companions see Night City**: with Convai, companions can talk about what is around you. The picture of the game window is taken only while someone you can talk to is near and is never saved.

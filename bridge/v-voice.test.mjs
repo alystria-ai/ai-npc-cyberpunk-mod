@@ -6,7 +6,7 @@ import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {runInNewContext} from 'node:vm';
 import {readFileSync} from 'node:fs';
-import {V_VOICE_KEYS, V_MAX_CHARS, VVoice, VLine, loadVVoiceReferences, extraVoices, vGenderOf, vLineText, wavToPackets} from './v-voice.mjs';
+import {V_VOICE_KEYS, V_ENGINES, V_MAX_CHARS, VVoice, VLine, loadVVoiceReferences, extraVoices, vGenderOf, vLineText} from './v-voice.mjs';
 import {TurnClock, withClock} from './turn-clock.mjs';
 import {PcmEdges, fadeGain} from './pcm-edges.mjs';
 import {LocalPcmClient} from './local-pcm-client.mjs';
@@ -132,29 +132,6 @@ test('the spoken line is one clean line, cut on a sentence end when it is too lo
   assert.ok(vLineText('x'.repeat(500)).length <= V_MAX_CHARS, 'one long word is still bounded');
 });
 
-test('a rendered WAV becomes in-order 24 kHz mono packets the local renderer accepts', () => {
-  const bytes = wav({seconds: 3.5});
-  const {packets, frames} = wavToPackets(bytes, {profile: 'v-male'});
-  assert.equal(frames, 84000);
-  assert.deepEqual(packets.map(item => item.frames), [48000, 36000]);
-  let sent = 0, last = 0, identity;
-  for (const [index, item] of packets.entries()) {
-    const owned = ownedLocalPcmPacket(item, {token: 'v-test', frames: sent, index, identity});
-    identity = owned.identity; sent += item.frames; last = item.index;
-  }
-  assert.equal(sent, frames); assert.equal(last, 2);
-});
-
-test('other sample rates and channel counts are converted: 48 kHz stereo halves in length, 24-bit decodes', () => {
-  const stereo = wavToPackets(wav({seconds: 1, rate: 48000, channels: 2}), {profile: 'v-female'});
-  assert.equal(stereo.frames, 24000);
-  assert.ok(stereo.packets[0].pcm.every(value => Number.isFinite(value) && Math.abs(value) <= 1));
-  const deep = wavToPackets(wav({seconds: 0.5, bits: 24}), {profile: 'v-female'});
-  assert.equal(deep.frames, 12000);
-  assert.ok(Math.max(...deep.packets[0].pcm) > 0.2 && Math.max(...deep.packets[0].pcm) < 0.3);
-  assert.throws(() => wavToPackets(Buffer.from('not a wav')), /WAV/);
-});
-
 test('the game\'s dialogue volume rides along in the parsed turn context and never makes an empty snapshot count', () => {
   const parsed = parseTurnContext({version: 1, status: 'ready', hour: 3, minute: 4, gender: 'female', dialogueVolume: 0.42});
   assert.equal(parsed.dialogueVolume, 0.42); assert.equal(parsed.gender, 'female');
@@ -180,14 +157,13 @@ test('a stage clock listener fires once, on the first mark, or at once when the 
 // ---- the feature's gate ---------------------------------------------------------------------------------------------------
 
 function feature(extra = {}) {
-  const calls = {play: [], stream: [], render: [], prepare: [], warm: 0, logs: [], reports: []};
+  const calls = {play: [], stream: [], prepare: [], warm: 0, logs: [], reports: []};
   const voice = new VVoice({
     voices: {male: {key: 'v-male'}, female: {key: 'v-female'}},
     planFor: () => ({engine: 'pocket', language: 'en'}),
     ready: () => true,
     isLocal: () => true,
     stream: async (key, text, options) => { calls.stream.push([key, text]); await options.onPcm(packet({profile: key})); return {frames: 4800}; },
-    render: async (key, text, options) => { calls.render.push([key, text, options.language]); return {audio: wav({seconds: 1}).toString('base64')}; },
     play: async (config, producer, options) => { calls.play.push(config); await producer(async () => {}, {signal: options.signal}); },
     prepare: async key => { calls.prepare.push(key); },
     warm: async () => { calls.warm++; },
@@ -210,16 +186,6 @@ test('the setting is on unless the player turned it off, and follows runtime/set
   assert.equal(voice.update({vVoice: false, vVoiceChosen: true}), true); assert.equal(voice.enabled, false, 'a chosen false is kept');
   assert.equal(voice.update({}), true, 'no stored value is on again'); assert.equal(voice.update({vVoice: false, vVoiceChosen: true}), true);
   assert.equal(voice.update({vVoice: true}), true); assert.equal(voice.enabled, true);
-});
-
-test('beside a voice that cannot clone (the Convai cloud voice) the setting stays on and does nothing: no V line, no warm-up, no log', async () => {
-  const {voice, calls} = feature({planFor: () => ({engine: 'convai', language: 'en'}), ready: () => false});
-  assert.equal(voice.enabled, true);
-  // No dialogue volume is read for it either, and that is not reported as a problem.
-  assert.equal(voice.start(typed({turnContext: {version: 1, status: 'ready', gender: 'male'}})), null);
-  voice.warmUp(); await sleep(5);
-  assert.equal(calls.warm, 0); assert.deepEqual(calls.prepare, []); assert.deepEqual(calls.play, []); assert.deepEqual(calls.logs, []);
-  assert.equal(voice.enabled, true, 'still on');
 });
 
 test('only a typed line of the player gets a V line: never speech, a reaction, an add-on remark, a phone chat or a later group speaker', () => {
@@ -258,11 +224,11 @@ test('the voice is chosen by V\'s gender from the turn context; an unknown gende
   assert.ok(calls.logs.length >= 2 && calls.logs.length <= 3, 'each reason is reported once');
 });
 
-test('a Convai-voice turn, an unsupported language or a voice the chosen backend lacks gives no V line (and loads nothing)', () => {
-  for (const extra of [{planFor: () => ({engine: 'convai', language: 'en'})}, {planFor: () => null}, {ready: () => false}]) {
+test('a plan for an engine V never uses (OmniVoice, the Convai voice), no plan, or a Pocket voice that is not routed gives no V line and loads nothing', () => {
+  for (const extra of [{planFor: () => ({engine: 'convai', language: 'en'})}, {planFor: () => ({engine: 'omni', language: 'en'})}, {planFor: () => null}, {ready: () => false}]) {
     const {voice, calls} = feature(extra);
     assert.equal(voice.start(typed()), null);
-    assert.deepEqual(calls.play.concat(calls.stream, calls.render), []);
+    assert.deepEqual(calls.play.concat(calls.stream), []);
   }
 });
 
@@ -296,7 +262,7 @@ function line(extra = {}, hostOptions) {
   const clock = new TurnClock();
   const made = new VLine({input: typed(), key: 'v-male', text: 'Hello Judy.', plan: {engine: 'pocket', language: 'en'}, volume: 0.6,
     play: host.play, stream: async (key, text, options) => { await options.onPcm(packet()); return {}; },
-    render: async () => ({audio: wav({seconds: 1}).toString('base64')}), clock, log: item => logs.push(item),
+    clock, log: item => logs.push(item),
     onSettled: summary => summaries.push(summary), ...extra});
   return {line: made, host, logs, summaries, clock};
 }
@@ -380,24 +346,6 @@ test('the turn ending (a newer message, a stop) stops the line, even while it is
   const never = line({signal: already.signal});
   assert.equal(never.line.state, 'dropped');
   assert.equal(never.host.state.config, undefined, 'a turn that is already over starts nothing');
-});
-
-test('an OmniVoice line is rendered whole, converted to packets and played; another language is passed on', async () => {
-  const rendered = [];
-  const emitted = [];
-  const host = async (config, producer, options) => { await producer(async item => { emitted.push(item); }, {signal: options.signal}); options.onFrame({receivedFrames: 1, ended: false}); options.onFrame({receivedFrames: 1, ended: true}); };
-  const made = line({plan: {engine: 'omni', language: 'es'}, play: host,
-    render: async (key, text, options) => { rendered.push([key, text, options.language]); return {audio: wav({seconds: 2.2, rate: 24000}).toString('base64')}; }});
-  await made.line.clear; await made.line.finished;
-  assert.deepEqual(rendered, [['v-male', 'Hello Judy.', 'es']]);
-  // 2.2 s of speech (52800 frames) with a 160 ms lead-in and a 320 ms silent tail: 3840 + 52800 + 7680 frames, in order.
-  assert.equal(emitted.reduce((sum, item) => sum + item.frames, 0), 3840 + 52800 + 7680);
-  emitted.forEach((item, at) => { assert.equal(item.index, at + 1); assert.equal(item.offsetFrames, emitted.slice(0, at).reduce((sum, other) => sum + other.frames, 0)); assert.ok(item.frames <= 48000); });
-  assert.ok(emitted.at(-1).pcm.slice(-7680).every(value => value === 0), 'the last 320 ms are silence');
-  assert.equal(made.line.state, 'done');
-  const english = [];
-  const again = line({plan: {engine: 'omni', language: 'en'}, play: host, render: async (key, text, options) => { english.push(Object.hasOwn(options, 'language')); return {audio: wav().toString('base64')}; }});
-  await again.line.finished; assert.deepEqual(english, [false]);
 });
 
 test('waitClear: a reply published as a whole waits for an audible V line, and drops one that is not audible', async () => {
@@ -512,19 +460,6 @@ test('end to end on the real local renderer host: the Pocket-format packets are 
   assert.equal(host.active, null, 'the host is free for the next line');
 });
 
-test('end to end with an OmniVoice WAV on the real local renderer host', async t => {
-  const {host, players} = offlineHost();
-  t.after(() => host.close());
-  const made = new VLine({input: typed(), key: 'v-female', text: 'Hello Judy.', plan: {engine: 'omni', language: 'en'}, volume: 1,
-    play: (config, producer, options) => host.play(config, producer, options),
-    render: async () => ({audio: wav({seconds: 1.5, rate: 22050}).toString('base64')})});
-  await until(() => players[0]?.sealed, 'the renderer to be sealed');
-  assert.equal(players[0].frames, 36000 + 3840 + 7680, '1.5 s at 24 kHz after resampling from 22.05 kHz, plus the 160 ms lead-in and the 320 ms tail');
-  players[0].finish();
-  await made.finished;
-  assert.equal(made.state, 'done');
-});
-
 test('the companion\'s continuous speech buffers silently while V is audible, publishes nothing, and starts the moment V ends', async () => {
   const owner = {requestId: 'reply-1', entity: 'judy-copy-2', generation: 7};
   let now = 10000;
@@ -549,73 +484,97 @@ test('the companion\'s continuous speech buffers silently while V is audible, pu
   assert.ok(events.includes('reply'));
 });
 
-// ---- an OmniVoice companion (the live drop: reason=reply-voice-started, 0.9 to 1.1 s) ---------------------------------------------
+// ---- V's own engine: Pocket (the companions' worker, or a worker of V's own) or the Voxtral cloud voice -------------------------
 
-// The companion's voice is OmniVoice: its one GPU worker renders V's line and the companion's reply one after the other, and V's
-// whole-WAV render is slower than the text reply, so the reply's own request (ttsSent) finds V still unheard.
-const omniPlan = () => ({engine: 'omni', language: 'en'});
-
-test('OmniVoice without a helper (the old path): V is rendered on the GPU worker, not audible when the reply voice starts, and dropped', async () => {
-  let release;
-  const gate = new Promise(done => { release = done; });
-  const {voice, calls} = feature({planFor: omniPlan, render: async (key, text, options) => { calls.render.push([key, text]); await gate; return {audio: wav({seconds: 1}).toString('base64')}; }});
-  const clock = new TurnClock();
-  const made = voice.start(typed(), {clock});
-  await until(() => calls.render.length === 1, 'the OmniVoice render to be asked for');
-  withClock(clock, () => clock.mark('ttsSent'));
-  assert.equal(made.state, 'dropped'); assert.equal(made.reason, 'reply-voice-started');
-  release(); await made.finished;
-  assert.equal(calls.stream.length, 0);
-});
-
-function helperFeature({stream, ready = () => true, speaks = () => true, endAfter = 30, planFor = omniPlan} = {}) {
+// The engine is V's setting (runtime/settings.json vVoiceEngine), whatever the companions use. `main`: the companions' voice is the
+// Pocket worker itself (it speaks V, one job at a time). `own`: V has a Pocket worker of its own (the companions use OmniVoice, a
+// cloud voice or the Convai voice). `cloud`: the Voxtral voice.
+function engineFeature({engine = 'pocket', main = false, own = false, ownReady = true, problem = null, endAfter = 30, language = 'en', stream, ownStream, cloudStream} = {}) {
   const host = renderer({endAfter});
-  const helperCalls = {stream: [], ready: [], prepare: []};
+  const seen = {own: [], ownReady: [], ownPrepare: [], cloud: [], cloudWarm: [], main: [], mainPrepare: []};
   const helper = {
-    speaks: key => speaks(key),
-    ready: key => { helperCalls.ready.push(key); return ready(key); },
+    speaks: () => own,
+    ready: key => { seen.ownReady.push(key); return ownReady; },
     stream: async (key, text, options) => {
-      helperCalls.stream.push([key, text]);
+      seen.own.push([key, text]);
+      if (ownStream) return ownStream(key, text, options);
+      await options.onPcm(packet({profile: key})); return {frames: 4800};
+    },
+    prepare: async key => { seen.ownPrepare.push(key); }};
+  const cloud = {
+    problem: () => (typeof problem === 'function' ? problem() : problem),
+    stream: async (key, text, options) => {
+      seen.cloud.push([key, text]);
+      if (cloudStream) return cloudStream(key, text, options);
+      await options.onPcm(packet({profile: key})); return {frames: 4800};
+    },
+    warm: key => { seen.cloudWarm.push(key); }};
+  const made = feature({planFor: () => ({engine, language}), ready: () => main, helper, cloud, play: host.play,
+    stream: async (key, text, options) => {
+      seen.main.push([key, text]);
       if (stream) return stream(key, text, options);
       await options.onPcm(packet({profile: key})); return {frames: 4800};
     },
-    prepare: async key => { helperCalls.prepare.push(key); }};
-  const made = feature({planFor, helper, play: host.play});
-  return {...made, helperCalls, host};
+    prepare: async key => { seen.mainPrepare.push(key); }});
+  made.voice.update({vVoice: true, vVoiceEngine: engine});
+  return {...made, seen, host};
 }
 
-test('OmniVoice with the Pocket helper: V is spoken by the helper (never rendered on OmniVoice), audible in a few ms, and the reply waits for its end', async () => {
-  const {voice, calls, helperCalls, host} = helperFeature();
+test('the engine is the player\'s choice: Pocket unless Voxtral is stored, and a change of it counts as a change', () => {
+  const voice = new VVoice({voices: {male: {key: 'v-male'}}});
+  assert.equal(voice.engine, 'pocket'); assert.deepEqual(V_ENGINES, ['pocket', 'voxtral']);
+  assert.equal(voice.update({}), true); assert.equal(voice.engine, 'pocket', 'a file that never stored it is Pocket');
+  assert.equal(voice.update({vVoiceEngine: 'pocket'}), false);
+  assert.equal(voice.update({vVoiceEngine: 'voxtral'}), true); assert.equal(voice.engine, 'voxtral');
+  assert.equal(voice.update({vVoiceEngine: 'voxtral'}), false);
+  for (const value of ['omni', 'convai', 'inworld', 'POCKET', 7, null]) { voice.update({vVoiceEngine: 'voxtral'}); assert.equal(voice.update({vVoiceEngine: value}), true, String(value)); assert.equal(voice.engine, 'pocket', String(value)); }
+  assert.equal(voice.wantsPocket, true);
+  voice.update({vVoiceEngine: 'voxtral'}); assert.equal(voice.wantsPocket, false, 'the cloud engine needs no Pocket worker');
+  voice.update({vVoiceEngine: 'pocket', vVoice: false, vVoiceChosen: true}); assert.equal(voice.wantsPocket, false, 'V off: no Pocket worker for V');
+  assert.equal(new VVoice({voices: {}}).wantsPocket, false);
+});
+
+test('Pocket with the companions on Pocket: the shared worker speaks V, one job at a time, so the companion\'s own request stops an unfinished V line', async () => {
+  const {voice, seen} = engineFeature({main: true});
+  const clock = new TurnClock();
+  const quick = voice.start(typed(), {clock});
+  await quick.finished;
+  assert.deepEqual(seen.main, [['v-male', 'Hey Judy, how are you holding up?']]);
+  assert.deepEqual(seen.own.concat(seen.cloud, seen.ownReady), [], 'no other engine is asked');
+  let release;
+  const gate = new Promise(done => { release = done; });
+  const slow = engineFeature({main: true, stream: async (key, text, options) => { await gate; await options.onPcm(packet({profile: key})); return {}; }});
+  const slowClock = new TurnClock();
+  const made = slow.voice.start(typed(), {clock: slowClock});
+  withClock(slowClock, () => slowClock.mark('ttsSent'));
+  assert.equal(made.state, 'dropped'); assert.equal(made.reason, 'reply-voice-started');
+  release(); await made.finished;
+});
+
+test('Pocket with a worker of its own (companions on OmniVoice, a cloud voice or the Convai voice): audible in a few ms, never stopped by the companion\'s request, and the reply waits for its end', async () => {
+  const {voice, seen, host} = engineFeature({own: true});
   const clock = new TurnClock();
   const made = voice.start(typed(), {clock});
   assert.ok(made, 'a line is started');
   await until(() => made.state === 'playing', 'V to be audible');
-  // The companion's own OmniVoice request goes out while V speaks: V is not stopped for it (a different worker, the CPU).
   withClock(clock, () => clock.mark('ttsSent'));
-  assert.equal(made.state, 'playing', 'the companion\'s OmniVoice request does not stop V');
-  // The companion's reply is ready (a whole render): it waits until V has ended, and V's audio is never cut.
-  const started = performance.now();
+  assert.equal(made.state, 'playing', 'the companion\'s request does not stop V: a different worker');
   await made.waitClear();
   assert.equal(made.state, 'done'); assert.equal(made.holds(), false);
   assert.ok(clock.has('vAudible') && clock.has('vEnded') && !clock.has('vDropped'));
   await made.finished;
-  assert.deepEqual(helperCalls.stream, [['v-male', 'Hey Judy, how are you holding up?']]);
-  assert.deepEqual(calls.render, [], 'nothing is rendered on OmniVoice for V');
-  assert.deepEqual(calls.stream, [], 'the chosen voice\'s own Pocket stream is not used either');
+  assert.deepEqual(seen.own, [['v-male', 'Hey Judy, how are you holding up?']]);
+  assert.deepEqual(seen.main.concat(seen.cloud), [], 'neither the companions\' worker nor the cloud is used');
   assert.equal(host.state.played, true);
-  assert.equal(calls.reports.length, 1);
-  assert.equal(calls.reports[0].result, 'played'); assert.equal(calls.reports[0].engine, 'pocket-helper');
-  assert.ok(performance.now() - started >= 0);
 });
 
-test('with the helper, V is first and the companion second, in order, never overlapping: the reply is held while V is audible and released after it ends', async () => {
+test('with its own worker V is first and the companion second, in order, never overlapping: held while V is audible, released after it ends', async () => {
   const order = [];
-  const {voice} = helperFeature({endAfter: 40});
+  const {voice} = engineFeature({own: true, endAfter: 40});
   const made = voice.start(typed());
   made.whenClear(() => order.push('V ended'));
   await until(() => made.state === 'playing', 'V to be audible');
   order.push('V audible');
-  // The reply polls its hold on every frame: held the whole time V is audible.
   for (let poll = 0; poll < 5; poll++) { assert.equal(made.holds(), true); await sleep(2); }
   await made.clear;
   assert.equal(made.holds(), false);
@@ -624,64 +583,138 @@ test('with the helper, V is first and the companion second, in order, never over
   await made.finished;
 });
 
-test('a helper line still waiting for its first audio is not stopped by the companion\'s OmniVoice request, but the reply never waits for it', async () => {
+test('a line on V\'s own worker that is still waiting for its first audio is not stopped by the companion\'s request, but the reply never waits for it', async () => {
   let release;
   const gate = new Promise(done => { release = done; });
-  const {voice} = helperFeature({stream: async (key, text, options) => { await gate; await options.onPcm(packet({profile: key})); return {}; }});
+  const {voice} = engineFeature({own: true, ownStream: async (key, text, options) => { await gate; await options.onPcm(packet({profile: key})); return {}; }});
   const clock = new TurnClock();
   const made = voice.start(typed(), {clock});
   withClock(clock, () => clock.mark('ttsSent'));
-  assert.equal(made.state, 'synth', 'not stopped: the helper is not the OmniVoice worker');
-  assert.equal(made.holds(), false, 'but the reply is ready first: V is dropped, the reply is never delayed');
+  assert.equal(made.state, 'synth', 'not stopped: nothing is shared');
+  assert.equal(made.holds(), false, 'the reply is ready first: V is dropped, the reply is never delayed');
   assert.equal(made.reason, 'slower-than-reply');
   release(); await made.finished;
 });
 
-test('a helper that is still loading (or failed) gives no V line, asks for a due load, and never touches OmniVoice', async () => {
-  const {voice, calls, helperCalls} = helperFeature({ready: () => false});
+test('V\'s own worker still loading (or failed) gives no V line, asks for a due load, and uses no other engine', () => {
+  const {voice, seen, calls} = engineFeature({own: true, ownReady: false});
   assert.equal(voice.start(typed()), null);
   assert.equal(voice.start(typed({requestId: 'r2'})), null);
-  assert.deepEqual(helperCalls.ready, ['v-male', 'v-male'], 'asking is what starts a due load');
-  assert.deepEqual(calls.play.concat(calls.render, calls.stream, helperCalls.stream), []);
+  assert.deepEqual(seen.ownReady, ['v-male', 'v-male'], 'asking is what starts a due load');
+  assert.deepEqual(calls.play.concat(seen.main, seen.own, seen.cloud), []);
   assert.ok(calls.logs.some(line => /not loaded yet/.test(line)));
 });
 
-test('beside OmniVoice, a non-English turn or a voice the Pocket helper lacks gives no V line (Pocket speaks English only); OmniVoice is not used instead', () => {
-  const language = helperFeature({planFor: () => ({engine: 'omni', language: 'es'})});
-  assert.equal(language.voice.start(typed()), null);
-  const lacking = helperFeature({speaks: () => false});
-  assert.equal(lacking.voice.start(typed()), null);
-  for (const made of [language, lacking]) assert.deepEqual(made.calls.render.concat(made.calls.play, made.helperCalls.stream), []);
-  assert.equal(language.calls.logs.length, 1); assert.match(language.calls.logs[0], /English only/);
+test('a Pocket turn with no worker able to speak it gives no line and warms nothing', async () => {
+  const {voice, seen, calls} = engineFeature({});          // not the companions' worker, no worker of V's own
+  assert.equal(voice.start(typed()), null);
+  voice.noteGender(typed()); voice.warmUp(); await sleep(5);
+  assert.equal(calls.warm, 0); assert.deepEqual(seen.mainPrepare.concat(seen.ownPrepare, seen.cloudWarm), []);
+  assert.ok(calls.logs.length <= 1);
 });
 
-test('a plan for the Pocket voice itself never uses the helper: the chosen worker speaks V', async () => {
-  const {voice, calls, helperCalls} = helperFeature({planFor: () => ({engine: 'pocket', language: 'en'})});
-  await voice.start(typed()).finished;
-  assert.deepEqual(calls.stream.map(row => row[0]), ['v-male']);
-  assert.deepEqual(helperCalls.stream.concat(helperCalls.ready), []);
+test('both engines speak English only: another language gives no V line (with one log line) and nothing is started', () => {
+  for (const [engine, options] of [['pocket', {own: true}], ['pocket', {main: true}], ['voxtral', {}]]) {
+    const made = engineFeature({engine, language: 'es', ...options});
+    assert.equal(made.voice.start(typed()), null, engine);
+    assert.equal(made.voice.start(typed()), null);
+    assert.deepEqual(made.calls.play.concat(made.seen.main, made.seen.own, made.seen.cloud), []);
+    assert.equal(made.calls.logs.length, 1); assert.match(made.calls.logs[0], /English only/);
+  }
 });
 
-test('warming on the composer prepares V\'s voice on the helper when OmniVoice is chosen, not as a hidden OmniVoice render', async () => {
-  const {voice, calls, helperCalls} = helperFeature();
-  voice.noteGender(typed());
+test('Voxtral: V\'s line is asked of the cloud voice at once; no Pocket worker is touched, and the companion\'s request does not stop it', async () => {
+  const {voice, seen, host, calls} = engineFeature({engine: 'voxtral'});
+  const clock = new TurnClock();
+  const made = voice.start(typed(), {clock});
+  assert.ok(made);
+  await until(() => made.state === 'playing', 'V to be audible');
+  withClock(clock, () => clock.mark('ttsSent'));
+  assert.equal(made.state, 'playing', 'a cloud voice shares nothing with the reply');
+  await made.waitClear();
+  assert.equal(made.state, 'done');
+  await made.finished;
+  assert.deepEqual(seen.cloud, [['v-male', 'Hey Judy, how are you holding up?']]);
+  assert.deepEqual(seen.main.concat(seen.own, seen.ownReady, seen.mainPrepare, seen.ownPrepare), [], 'no Pocket worker is asked for anything');
+  assert.equal(host.state.played, true);
+  assert.equal(calls.reports[0].engine, 'voxtral'); assert.equal(calls.reports[0].result, 'played');
+  for (const name of ['voiceStart', 'ttsSent', 'firstPcm', 'audible', 'ended']) assert.ok(name in calls.reports[0].marks, name);
+});
+
+test('Voxtral: a line that is not audible when the reply is ready is dropped, never waited for', async () => {
+  let release;
+  const gate = new Promise(done => { release = done; });
+  const {voice} = engineFeature({engine: 'voxtral', cloudStream: async (key, text, options) => { await gate; await options.onPcm(packet({profile: key})); return {}; }});
+  const made = voice.start(typed(), {clock: new TurnClock()});
+  assert.equal(made.holds(), false); assert.equal(made.reason, 'slower-than-reply');
+  release(); await made.finished;
+});
+
+test('Voxtral cannot speak now (no key, a limit cooling down, no clip, Mature content): no line, one log line per reason, and never a local voice instead', async () => {
+  let problem = 'no Mistral key';
+  const {voice, seen, calls} = engineFeature({engine: 'voxtral', own: true, main: true, problem: () => problem});
+  assert.equal(voice.start(typed()), null); assert.equal(voice.start(typed()), null);
+  problem = 'a Mistral limit is cooling down';
+  assert.equal(voice.start(typed()), null);
+  assert.deepEqual(calls.logs.map(line => /no Mistral key|cooling down/.exec(line)?.[0]), ['no Mistral key', 'cooling down']);
+  assert.deepEqual(seen.main.concat(seen.own, seen.cloud, seen.ownReady), [], 'no Pocket worker is used as a stand-in, not even a loaded one');
+  assert.deepEqual(calls.play, []);
   voice.warmUp(); await sleep(5);
-  assert.deepEqual(helperCalls.prepare, ['v-male']); assert.deepEqual(calls.prepare, []);
-  assert.equal(calls.warm, 1, 'the renderer page is still warmed');
-  const pocket = helperFeature({speaks: () => false});
-  pocket.voice.noteGender(typed()); pocket.voice.warmUp(); await sleep(5);
-  assert.deepEqual(pocket.calls.prepare, ['v-male'], 'with no helper in use the chosen voice prepares it, as before');
+  assert.equal(calls.warm, 0); assert.deepEqual(seen.cloudWarm.concat(seen.mainPrepare, seen.ownPrepare), []);
+  problem = null;
+  await voice.start(typed()).finished;
+  assert.deepEqual(seen.cloud.map(row => row[0]), ['v-male'], 'asked again as soon as it can speak');
+});
+
+test('Voxtral failing drops the line quietly: one ask (no retry that would arrive after the reply), no Pocket worker, nothing thrown', async () => {
+  const {voice, seen, calls} = engineFeature({engine: 'voxtral', own: true, main: true, cloudStream: async () => { throw Error('Mistral voice error: 429'); }});
+  const made = voice.start(typed(), {clock: new TurnClock()});
+  await made.clear; await made.finished;
+  assert.equal(made.state, 'dropped'); assert.equal(made.reason, 'failed');
+  assert.equal(seen.cloud.length, 1);
+  assert.deepEqual(seen.main.concat(seen.own), []);
+  assert.equal(calls.logs.length, 1); assert.match(calls.logs[0], /429/);
+});
+
+test('warming on the composer: the page and the voice that was used last; Voxtral reads and encodes V\'s clip, Pocket prepares its voice where it is spoken', async () => {
+  // Voxtral: with no line yet both clips are warmed, afterwards the one that was used.
+  const cloud = engineFeature({engine: 'voxtral'});
+  cloud.voice.warmUp(); await sleep(5);
+  assert.equal(cloud.calls.warm, 1); assert.deepEqual(cloud.seen.cloudWarm, ['v-male', 'v-female']);
+  assert.deepEqual(cloud.seen.mainPrepare.concat(cloud.seen.ownPrepare), [], 'nothing is prepared on a Pocket worker for the cloud voice');
+  cloud.voice.noteGender(typed({turnContext: {version: 1, status: 'ready', gender: 'female'}}));
+  cloud.voice.warmUp(); await sleep(5);
+  assert.deepEqual(cloud.seen.cloudWarm.slice(2), ['v-female']);
+  const one = engineFeature({engine: 'voxtral'}); one.voice.voices = {male: {key: 'v-male'}};
+  one.voice.warmUp(); await sleep(5);
+  assert.deepEqual(one.seen.cloudWarm, ['v-male']);
+  // Pocket on V's own worker prepares there; on the companions' worker, there.
+  const own = engineFeature({own: true});
+  own.voice.warmUp(); await sleep(5);
+  assert.equal(own.calls.warm, 1); assert.deepEqual(own.seen.ownPrepare.concat(own.seen.mainPrepare), [], 'two clips and no line yet: nothing to guess');
+  own.voice.noteGender(typed()); own.voice.warmUp(); await sleep(5);
+  assert.deepEqual(own.seen.ownPrepare, ['v-male']); assert.deepEqual(own.seen.mainPrepare, []);
+  const main = engineFeature({main: true});
+  main.voice.noteGender(typed()); main.voice.warmUp(); await sleep(5);
+  assert.deepEqual(main.seen.mainPrepare, ['v-male']); assert.deepEqual(main.seen.ownPrepare, []);
+  // V off warms nothing.
+  const off = engineFeature({engine: 'voxtral'}); off.voice.update({vVoice: false, vVoiceChosen: true, vVoiceEngine: 'voxtral'}); off.voice.warmUp(); await sleep(5);
+  assert.equal(off.calls.warm, 0); assert.deepEqual(off.seen.cloudWarm, []);
 });
 
 // ---- the wiring in the bridge (the parts a unit test cannot run) ----------------------------------------------------------
 
 const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
 
-test('the bridge starts V\'s line after the reply is requested, not for a look-ahead, and gates both reply paths', () => {
-  const replying = bridge.indexOf('const replying = respond(');
-  const started = bridge.indexOf('vVoice.start(input, {signal: controller.signal, clock})');
-  assert.ok(replying > 0 && started > replying, 'the text request is under way before V\'s line is started');
-  assert.match(bridge, /if \(!ahead\) vLine = vVoice\.start/);
+test('the bridge starts V\'s line at the top of the turn (before knowledge, admission and the transport hand-over), not for a look-ahead, and gates both reply paths', () => {
+  const run = bridge.slice(bridge.indexOf('async function runInput'), bridge.indexOf('let lastAudioHeartbeat'));
+  const started = run.indexOf('vVoice.start(input, {signal: controller.signal, clock})');
+  assert.ok(started > 0);
+  for (const later of ['knowledgeRouter.prepare(', 'admitPlayerConversation(', 'connections.setRequest(', 'const replying = respond(']) {
+    assert.ok(run.indexOf(later) > started, `V's line starts before ${later}`);
+  }
+  assert.ok(run.indexOf('if (!profile || !ids[profile.key])') < started, 'only for a turn that is for a real companion');
+  assert.match(run, /if \(!ahead\) vLine = vVoice\.start/);
   assert.match(bridge, /hold: \(\) => ahead\?\.isHeld\(\) === true \|\| current\.vLine\?\.\(\)\?\.holds\(\) === true/);
   assert.match(bridge, /await current\.vLine\?\.\(\)\?\.waitClear\(signal\)/);
   assert.match(bridge, /if \(vVoice\.update\(settings\)\)/);
@@ -689,20 +722,26 @@ test('the bridge starts V\'s line after the reply is requested, not for a look-a
   assert.match(bridge, /extra: extraVoices\(vVoiceReferences\)/);
 });
 
-test('V\'s line is never given a local model of its own: it goes through the chosen voice only', () => {
+test('V\'s line is never given a local model of its own: Pocket goes through the voice selection, Voxtral through the cloud voice, never OmniVoice', () => {
   const block = bridge.slice(bridge.indexOf('const vVoice = new VVoice('), bridge.indexOf('// A returning shopkeeper\'s memory'));
+  assert.match(block, /planFor: \(input, key\) => \(\{engine: vVoice\.engine,/, 'V\'s engine is its own setting');
+  assert.match(block, /ready: key => localVoice\.vRouteSpeaks\(key\),/);
   assert.match(block, /localVoice\.synthesizeStream\(/);
-  assert.match(block, /localVoice\.synthesize\(/);
   assert.match(block, /localVoice\.prepareProfile\(/);
+  assert.match(block, /voxtralVoice\.synthesizeStream\(/);
+  assert.match(block, /voxtralVoice\.reference\(key\)/, 'the cloud clip is prepared at warm-up');
+  assert.doesNotMatch(block, /localVoice\.synthesize\(/, 'V is never rendered on OmniVoice');
   assert.doesNotMatch(block, /new (Pocket|Resident|Omni)/, 'no voice engine is constructed for V');
 });
 
-test('beside OmniVoice V is spoken by the voice selection\'s Pocket helper, and the settings poll tells it whether V is wanted', () => {
+test('V\'s own Pocket worker is the voice selection\'s, and the settings poll tells it whether V wants Pocket', () => {
   const block = bridge.slice(bridge.indexOf('const vVoice = new VVoice('), bridge.indexOf('// A returning shopkeeper\'s memory'));
   assert.match(block, /helper: \{speaks: key => localVoice\.vHelperSpeaks\(key\), ready: key => localVoice\.vHelperReady\(key\)/);
   assert.match(block, /localVoice\.vHelperStream\(/);
   assert.match(block, /localVoice\.vHelperPrepare\(/);
-  assert.match(bridge, /localVoice\.setVHelperWanted\(vVoice\.enabled && vVoice\.available\)/);
+  assert.match(bridge, /localVoice\.setVHelperWanted\(vVoice\.wantsPocket\)/);
+  assert.match(block, /matureContent\.enabled/, 'Mature content keeps V\'s line off the cloud');
+  assert.match(block, /mistralScheduler\.stats\(\)/, 'V never takes a Mistral start from the reply');
 });
 
 // ---- air at both ends (bridge/pcm-edges.mjs) ----------------------------------------------------------------------------------

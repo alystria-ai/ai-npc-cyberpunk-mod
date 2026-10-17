@@ -72,7 +72,7 @@ The first start after installing takes a little longer while the service prepare
 - **The whole street talks.** Gangers, NCPD officers, guards, ripperdocs, vendors, bartenders and passers-by answer as their kind of person. Shopkeepers you keep coming back to remember you.
 - **Group conversations.** Address two or three companions at once and they take turns, picking up from each other.
 - **Phone Chat and holocalls.** A **Chat** tab sits on V's phone beside Messages and Contacts. Text any supported contact, wherever they are, or call them and they pick up on a holocall, live on screen for the contacts the game itself stages video calls for.
-- **V speaks too.** Lines you type are voiced in the V voice that matches yours, then the companion answers.
+- **V speaks too.** Lines you type are voiced in the V voice that matches yours, then the companion answers. You pick the engine for V's voice in Settings > Voices: Pocket (the default) or Voxtral.
 - **They remember.** Conversations stay with a character across saves. You can make one character forget, or all of them.
 - **Relationships that follow your save.** Judy, Panam, River, Kerry and Meredith know where things stand with V.
 - **Make them yours.** Edit a character's bio, speaking style and memories in your browser (with Mistral or Local AI).
@@ -191,7 +191,7 @@ Install neither, one or both. The **Local AI model** row lists what is installed
 | **Pocket · Performance** (default, Pocket TTS) | Your processor, no video memory | Nothing extra: it comes with the Runtime | About 0.15 to 0.2 s | Each character's own voice, cloned on your PC. Close to OmniVoice on well-covered characters such as Johnny, Judy, Panam and Alex | English |
 | **OmniVoice** (Balanced, Quality, High Quality, Ultra Quality) | Your NVIDIA graphics card | The OmniVoice pack, about 8 GB of video memory or more and a current driver. About 2 GB extra while it runs | Balanced about 1.3 s, Quality 1.45 s, High Quality 2.1 s, Ultra Quality 2.5 s | Richer, especially on harder voices, and it can laugh and sigh. Higher tiers sound better and start slower | Many (needed for Multilingual conversations) |
 | **Voxtral · Mistral cloud** | Mistral's servers: nothing runs on your PC | Your free Mistral key and internet. No local model is loaded | About 1 to 1.25 s, with an occasional slow reply | Each character's own voice, cloned in the cloud | English |
-| **Convai · Cloud voice** | Convai's servers | Convai as the provider and internet | Streams with the reply | Convai's own voice. It cannot clone, so V's typed-line voice stays silent beside it, and Natural speech and Expressive emotions are off | Many |
+| **Convai · Cloud voice** | Convai's servers | Convai as the provider and internet | Streams with the reply | Convai's own voice. It cannot clone, and Natural speech and Expressive emotions are off. V's typed-line voice has its own engine and still speaks | Many |
 
 Balanced and Quality use 16 generation steps, High Quality and Ultra Quality 32. Balanced and High Quality copy a short sample of the original voice, Quality and Ultra Quality a long one.
 
@@ -202,7 +202,7 @@ Balanced and Quality use 16 generation steps, High Quality and Ultra Quality 32.
 
 If your voice cannot run, the order is OmniVoice, then Pocket, then Convai's cloud voice. Voxtral has no local fallback: a line it cannot voice is shown as text, with one notice.
 
-The same page also holds **Voice playback** (Off means text only), **Voice volume** (a slider from 50 to 200 percent for every mod voice, V's included; the game's own audio is untouched), **Lip sync delay (Bluetooth)**, **Natural speech** (pauses, hesitations and, with OmniVoice, laughs and sighs; off by default), **Expressive emotions**, **Follow-up questions** and **V's voice for typed lines** (all three on by default).
+The same page also holds **Voice playback** (Off means text only), **Voice volume** (a slider from 50 to 200 percent for every mod voice, V's included; the game's own audio is untouched), **Lip sync delay (Bluetooth)**, **Natural speech** (pauses, hesitations and, with OmniVoice, laughs and sighs; off by default), **Expressive emotions**, **Follow-up questions** and **V's voice for typed lines** (all three on by default). **V's voice engine** sits right under it: **Pocket** (the default) runs on your processor and starts in about 0.2 s, **Voxtral** is made in the cloud with your Mistral key and loads nothing on your PC (English only, and not with Mature content on). The engine is separate from the companions' voice, so any mix works: Pocket for V beside Voxtral companions, or Voxtral for V beside Pocket companions. A line that is not ready in time is skipped, so a reply is never delayed, and V's words always show as a subtitle.
 
 ## Smooth frames, fast replies
 
@@ -262,6 +262,7 @@ Everything lives under **Companion Manager > Settings**. Defaults are for a new 
 | Expressive emotions | Voices | On (off beside Convai's cloud voice) |
 | Follow-up questions | Voices | On |
 | V's voice for typed lines | Voices | On |
+| V's voice engine | Voices | Pocket |
 | Subtitles, Subtitle display | Subtitles | On, Cinematic subtitles |
 | React to battles, React to collected loot | Automatic reactions | Off |
 | Developer mode | Development | Off |
@@ -601,7 +602,7 @@ The voice selector (`voiceProvider`, plus `omniSteps` 16 or 32 and `omniReferenc
 
 **Natural speech and emotion tags.** The character's own reply may carry `{joy}`, `{warm}`, `{interest}`, `{surprise}`, `{sadness}`, `{fear}`, `{anger}`, `{disgust}` and `{calm}` tags (with an optional `:strong`) that drive the face at that word (`bridge/emotion-tags.mjs`, `emotion-selector.mjs`), and, with OmniVoice, square-bracket sounds for laughs and sighs that dice in the bridge decide to offer (`bridge/natural-speech.mjs`, `natural-speech-talk.mjs`). Docs: [docs/EMOTION_TAGS.md](docs/EMOTION_TAGS.md), [docs/NATURAL_SPEECH_BLOCK_V3.md](docs/NATURAL_SPEECH_BLOCK_V3.md).
 
-**V's voice.** The typed line is spoken in a cloned male or female V voice (chosen from the character creator's voice tone) through the active engine, or through a CPU Pocket helper when the voice is OmniVoice (`bridge/v-voice.mjs`, `v-helper-voice.mjs`, `pcm-edges.mjs`). A slow V line is dropped so a reply is never delayed. [docs/V_VOICE.md](docs/V_VOICE.md).
+**V's voice.** The typed line is spoken in a cloned male or female V voice (chosen from the character creator's voice tone) by V's own engine, `vVoiceEngine`: Pocket (default) on the companions' Pocket worker when they use Pocket, otherwise on a Pocket worker of V's own on the CPU; or Voxtral, the Mistral cloud voice, with no local model (`bridge/v-voice.mjs`, `v-helper-voice.mjs`, `pcm-edges.mjs`). Never OmniVoice, never the Convai voice. The bridge starts V's line at the top of the turn, beside the model request, and drops it if it is not audible when the reply is ready, so a reply is never delayed. [docs/V_VOICE.md](docs/V_VOICE.md).
 
 **Group voice and look-ahead.** A group round schedules the addressed character plus at most two nearby ones. The next speaker's turn is prepared while the current one speaks (`bridge/group-lookahead.mjs`, `group-prefetch.mjs`), which cut the median silence between speakers from 3.0 s to 0.78 s in five live Convai runs. [docs/GROUP_VOICE.md](docs/GROUP_VOICE.md).
 
@@ -1117,6 +1118,7 @@ The Settings page groups its rows in this order: Interface, Conversations, Conve
 | `expressiveEmotions` | Expressive emotions | on, except beside a saved Convai cloud voice |
 | `followUpInterest` | Follow-up questions | on |
 | `vVoice` | V's voice for typed lines | on |
+| `vVoiceEngine` | V's voice engine: `pocket` or `voxtral` (Voxtral needs a Mistral key and is not kept with Mature content on) | `pocket` |
 | `subtitles`, `subtitleStyle` | Subtitles, display (`dialogue` or `overhead`) | on, `dialogue` |
 | `battleReactions`, `lootReactions` | Automatic reactions | off, off |
 | `developerMode` | Developer mode | off |
@@ -1207,9 +1209,9 @@ There are two release styles. **At once** when a setting turns a feature off or 
 
 | Resource | Starts when | Released when |
 |---|---|---|
-| Pocket TTS worker (Python, CPU) | Pocket is the chosen voice and playback is on, or playback is off while V's voice is on | another voice is chosen; a cloud voice is chosen; playback off (unless V's voice needs it); shutdown (exit confirmed, process tree killed if needed) |
+| Pocket TTS worker (Python, CPU) | Pocket is the chosen companion voice and playback is on, or playback is off while V's voice is on with the Pocket engine | another voice is chosen; a cloud voice is chosen; playback off (unless V's voice needs it); shutdown (exit confirmed, process tree killed if needed) |
 | OmniVoice worker (Python, GPU) | OmniVoice is chosen, the pack is installed, playback on | another voice or reference is chosen; a cloud voice is chosen; playback off at once; shutdown. A reload costs about 45 s |
-| V's helper Pocket worker (CPU) | OmniVoice is chosen, V's voice is on and V's clips exist | V's voice off; the voice is no longer OmniVoice; before any other Pocket worker starts (one work-folder lock) |
+| V's own Pocket worker (CPU) | V's voice is on, V's engine is Pocket, V's clips exist and the companions' voice is not Pocket itself (OmniVoice, a cloud voice or the Convai voice). With OmniVoice it waits until OmniVoice is loaded | V's voice off; V's engine changed to Voxtral; the companions switch to Pocket (their worker then speaks V); before any other Pocket worker starts (one work-folder lock) |
 | V's line renderer page | V's voice is on and a voice is usable | V's voice off |
 | Local AI `llama-server` (GPU) | Local AI is chosen (loaded ahead on choosing it), or an add-on remark needs it | the provider leaves Local AI; 10 idle minutes; shutdown |
 | Memory embedder `llama-server` (CPU, one thread) | first memory search or write of a text provider | 5 idle minutes; at once when the provider returns to Convai and no add-on is installed |
@@ -1225,8 +1227,8 @@ There are two release styles. **At once** when a setting turns a feature off or 
 
 Rules that follow from the table:
 
-- **A cloud voice means no local voice worker at all**, not even as a backup (`targetBackend` in `bridge/voice-selection.mjs`).
-- **Playback off silences the companions, not V.** With playback off the companions' voice is released, but V's typed line is still spoken whenever V's voice is on: through the chosen Pocket worker, through V's CPU helper when the voice is OmniVoice, or as one request to the chosen cloud voice. With the Convai voice V has no line. With V's voice also off nothing voice-related stays loaded.
+- **A cloud voice means no local voice worker at all**, not even as a backup (`targetBackend` in `bridge/voice-selection.mjs`). The one exception is the player's own choice of Pocket for V's voice (below): that worker exists only for V, never speaks for a companion, and is gone when V's engine is Voxtral or V's voice is off. With Voxtral companions and Voxtral (or no) V voice, no Pocket worker loads at all.
+- **Playback off silences the companions, not V.** With playback off the companions' voice is released, but V's typed line is still spoken whenever V's voice is on: by V's Pocket engine (the companions' Pocket worker, or V's own CPU worker beside any other voice) or as one request to the Voxtral voice (V's engine Voxtral). With V's voice also off nothing voice-related stays loaded.
 - **Every release is awaited.** Pocket and V's helper retire through confirmed EOF and exit (`taskkill /T` on Windows because the virtual environment's `python.exe` is a launcher); a new Pocket worker starts only after the old one has exited. The voice service's `close()` ends OmniVoice, the phone-analysis worker and the facial thread, and `shutdown()` awaits them together with the recogniser, both model servers and the browser. Model servers also have a synchronous kill on process exit (`killSync`).
 - **Nothing here runs per frame.** Every check is a due-check on the bridge's 500 ms settings poll or a single timer. The bridge's other interval timers (50 ms request, 150 ms microphone, prefetch and phone, 60 ms look-ahead, 500 ms settings, knowledge, memory, support and editor) are single file reads that hold no model and no process. The sign-in token source renews a token about every hour with one small request.
 - **Add-ons add nothing local of their own.** An add-on speaker uses the player's chosen voice and the Mistral or Local AI text route; the add-on poll and stock timer exist only while an add-on is installed.

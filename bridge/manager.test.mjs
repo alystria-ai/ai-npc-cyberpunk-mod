@@ -5117,13 +5117,13 @@ test('Follow-up questions sits in the Voices category after Expressive emotions,
   `);
 });
 
-test('V’s voice for typed lines is on by default, a saved choice is kept, and beside the Convai cloud voice it stays on, inactive, with no refusal or notice', () => {
+test('V’s voice for typed lines is on by default and a saved choice is kept; whatever voice the companions use, the setting stays active', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)
     assert(saved.vVoice == true and manager.vVoice() == true)
     assert(manager.snapshot(player).settings.vVoice == true)
-    -- The default voice may be the Convai cloud voice: still on, but nothing is active for it.
-    assert(manager.vVoiceActive() == (manager.snapshot(player).settings.voiceProvider ~= 'convai'))
+    -- V has an engine of its own, so nothing the companions use (not even the Convai cloud voice) makes the setting inactive.
+    assert(manager.vVoiceActive() == true)
     -- A case is {saved vVoice, saved voice, expected vVoice, developer mode (default off), the voice it loads as (default: as saved)}.
     for _, case in ipairs({{'missing', 'pocket', true}, {true, 'pocket', true}, {true, 'omni', true}, {true, 'voxtral', true}, {true, 'inworld', true, true},
         -- The Inworld voice is a developer-mode voice: without developer mode a saved one loads as Pocket TTS.
@@ -5131,7 +5131,6 @@ test('V’s voice for typed lines is on by default, a saved choice is kept, and 
         -- Only an explicit false stays off; a value that is not a boolean is the default (on).
         {false, 'pocket', false, false, nil, true}, {false, 'convai', false, false, nil, true}, {false, 'pocket', true}, {false, 'omni', true}, {false, 'convai', true},
         {'yes', 'pocket', true}, {1, 'pocket', true},
-        -- A saved pairing with the Convai cloud voice loads as it was saved: on, not switched off.
         {true, 'convai', true}, {'missing', 'convai', true}}) do
       seed = {version = 2, voiceProvider = case[2], developerMode = case[4] == true, enabledByKey = {}, future = {keep = 'unchanged'}}
       if case[1] ~= 'missing' then seed.vVoice = case[1] end
@@ -5142,7 +5141,7 @@ test('V’s voice for typed lines is on by default, a saved choice is kept, and 
       assert(manager.vVoice() == case[3] and saved.vVoice == case[3], tostring(case[1]) .. ' ' .. case[2])
       assert(manager.snapshot(player).settings.vVoice == case[3])
       assert(manager.snapshot(player).settings.voiceProvider == loadedVoice, 'voice moved ' .. tostring(case[1]) .. ' ' .. case[2] .. ' -> ' .. tostring(manager.snapshot(player).settings.voiceProvider))
-      assert(manager.vVoiceActive() == (case[3] and loadedVoice ~= 'convai'), tostring(case[1]) .. ' ' .. case[2])
+      assert(manager.vVoiceActive() == case[3], tostring(case[1]) .. ' ' .. case[2])
       assert(manager.takeNaturalSpeechNotice() == nil, 'no notice at load')
       assert(saved.future.keep == 'unchanged')
     end
@@ -5150,17 +5149,14 @@ test('V’s voice for typed lines is on by default, a saved choice is kept, and 
     files['runtime/settings.json'], saved = 'seed', nil
     manager.configure(api, profiles); manager.prepare(player)
     assert(manager.vVoice() and manager.vVoiceActive())
-    -- Choosing the Convai cloud voice keeps V's voice on (inactive), with no notice.
+    -- Choosing the Convai cloud voice keeps V's voice on and active (V's own engine speaks), with no notice.
     local ok, err, notice = manager.applySettings(player, {voiceProvider = 'convai'})
     assert(ok and not err and notice == nil and manager.vVoice() and saved.vVoice == true and saved.voiceProvider == 'convai', tostring(err))
-    assert(not manager.vVoiceActive() and manager.takeNaturalSpeechNotice() == nil)
-    -- Turning it on or off beside the Convai cloud voice is never refused.
-    assert(manager.applySettings(player, {vVoice = false}) and not manager.vVoice() and saved.vVoice == false and saved.vVoiceChosen == true and saved.voiceProvider == 'convai')
-    assert(manager.applySettings(player, {vVoice = true}) and manager.vVoice() and saved.voiceProvider == 'convai' and not manager.vVoiceActive())
+    assert(manager.vVoiceActive() and manager.takeNaturalSpeechNotice() == nil)
+    assert(manager.applySettings(player, {vVoice = false}) and not manager.vVoice() and not manager.vVoiceActive() and saved.vVoice == false and saved.vVoiceChosen == true and saved.voiceProvider == 'convai')
+    assert(manager.applySettings(player, {vVoice = true}) and manager.vVoice() and manager.vVoiceActive() and saved.voiceProvider == 'convai')
     assert(manager.takeNaturalSpeechNotice() == nil)
-    -- Switching to a voice that clones makes it work at once, with no extra step.
     assert(manager.applySettings(player, {voiceProvider = 'pocket'}) and manager.vVoice() and manager.vVoiceActive())
-    assert(manager.applySettings(player, {voiceProvider = 'convai', vVoice = true}) and manager.vVoice() and not manager.vVoiceActive())
     assert(manager.applySettings(player, {vVoice = 'yes'}) == false and manager.vVoice())
     assert(manager.applySettings(player, {voiceProvider = 'pocket', followUpInterest = false}) and manager.vVoice())
     -- Explicitly turned off stays off through a voice change.
@@ -5168,7 +5164,85 @@ test('V’s voice for typed lines is on by default, a saved choice is kept, and 
   `);
 });
 
-test('V’s voice sits in the Voices category after Follow-up questions, is on by default, notes the voices it needs only beside the Convai voice, and applies on its own', () => {
+test('V’s voice engine is Pocket by default, only Pocket and Voxtral are kept, and Mature content keeps it off the cloud', () => {
+  run(`${managerFixture}
+    manager.configure(api, profiles); manager.prepare(player)
+    assert(saved.vVoiceEngine == 'pocket' and manager.vVoiceEngine() == 'pocket' and manager.snapshot(player).settings.vVoiceEngine == 'pocket')
+    -- A case is {saved engine, saved Mature content, expected engine}. Mature content needs Local AI, so the seed carries it.
+    for _, case in ipairs({{'missing', false, 'pocket'}, {'pocket', false, 'pocket'}, {'voxtral', false, 'voxtral'},
+        {'omni', false, 'pocket'}, {'inworld', false, 'pocket'}, {'convai', false, 'pocket'}, {7, false, 'pocket'}, {true, false, 'pocket'},
+        {'voxtral', true, 'pocket'}, {'pocket', true, 'pocket'}}) do
+      seed = {version = 2, voiceProvider = 'pocket', matureContent = case[2], conversationProvider = case[2] and 'local' or 'convai', enabledByKey = {}, future = {keep = 'unchanged'}}
+      if case[1] ~= 'missing' then seed.vVoiceEngine = case[1] end
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.configure(api, profiles); manager.prepare(player)
+      assert(manager.vVoiceEngine() == case[3] and saved.vVoiceEngine == case[3], tostring(case[1]) .. ' ' .. tostring(case[2]))
+      assert(manager.snapshot(player).settings.vVoiceEngine == case[3])
+      assert(saved.future.keep == 'unchanged')
+    end
+  `);
+});
+
+test('V’s voice engine: Voxtral needs the Mistral key, applies on its own beside any companion voice, is refused with Mature content on, and Mature content turning on moves V to Pocket', () => {
+  run(`${mcmFixture}
+    local clock = 1000; os.clock = function() return clock end
+    local function key(tag, value)
+      jsonFixtures['mistral-' .. tag] = value
+      files['runtime/mistral-state.json'] = 'mistral-' .. tag
+      clock = clock + 2
+    end
+    assert(invoke('tab:settings').ok)
+    loaded = registered.loadMod('manager')
+    -- The row sits right after the V's voice switch, in the Voices category, and says what Voxtral needs while there is no key.
+    local order, at = {}, {}
+    for _, category in ipairs(loaded.categories) do
+      if category.id == 'voices' then for _, item in ipairs(category.settings) do order[#order + 1] = item.id end end
+    end
+    for index, id in ipairs(order) do at[id] = index end
+    assert(at.vVoiceEngine == at.vVoice + 1, 'the engine row follows the switch')
+    local engine = row('vVoiceEngine')
+    assert(engine.label == 'V’s voice engine' and engine.type == 'select' and engine.value == 1 and engine.defaultValue == 1)
+    assert(#engine.elements == 2 and engine.elements[1] == 'Pocket · On your PC' and engine.elements[2] == 'Voxtral · needs Mistral key', engine.elements[2])
+    for _, banned in ipairs({'recommended', 'inworld', 'antivirus', 'embedded', 'paid'}) do
+      assert(not tostring(engine.description):lower():find(banned, 1, true), banned)
+      for _, element in ipairs(engine.elements) do assert(not element:lower():find(banned, 1, true), banned) end
+    end
+    assert(not row('vVoice').description:lower():find('inworld', 1, true))
+    assert(engine.description:find('Pocket', 1, true) and engine.description:find('Voxtral', 1, true) and engine.description:find('Mistral key', 1, true))
+    -- No key: refused with the one short reason, nothing changes.
+    local result = registered.applyBatch('manager', {{id = 'vVoiceEngine', value = 2}})
+    assert(result.ok == false and result.error == 'Requires a Mistral key (add it in Settings > Conversation provider)', result.error)
+    assert(saved.vVoiceEngine == 'pocket')
+    assert(not manager.applySettings(player, {vVoiceEngine = 'voxtral'}) and manager.vVoiceEngine() == 'pocket')
+    assert(registered.applyBatch('manager', {{id = 'vVoiceEngine', value = 3}}).ok == false)
+    assert(not manager.applySettings(player, {vVoiceEngine = 'omni'}) and not manager.applySettings(player, {vVoiceEngine = 'inworld'}))
+    -- A key is saved: the entry is a plain label and applies, whatever the companions use (here Pocket, then the Convai cloud voice).
+    key('a', {provider = 'convai', effective = 'convai', saved = true})
+    loaded = registered.loadMod('manager')
+    assert(row('vVoiceEngine').elements[2] == 'Voxtral · Mistral cloud', row('vVoiceEngine').elements[2])
+    assert(registered.applyBatch('manager', {{id = 'vVoiceEngine', value = 2}}).ok)
+    assert(saved.vVoiceEngine == 'voxtral' and manager.vVoiceEngine() == 'voxtral' and manager.snapshot(player).settings.vVoiceEngine == 'voxtral')
+    assert(saved.voiceProvider == 'pocket' and saved.vVoice == true, 'the companions\\' voice and the switch are untouched')
+    loaded = registered.loadMod('manager')
+    assert(row('vVoiceEngine').value == 2)
+    assert(manager.applySettings(player, {voiceProvider = 'convai'}) and manager.vVoiceEngine() == 'voxtral' and manager.vVoiceActive(), 'beside the Convai voice V still has its own engine')
+    assert(manager.applySettings(player, {voiceProvider = 'pocket'}) and manager.vVoiceEngine() == 'voxtral')
+    -- Back to Pocket, always allowed.
+    assert(registered.applyBatch('manager', {{id = 'vVoiceEngine', value = 1}}).ok and saved.vVoiceEngine == 'pocket')
+    -- Mature content keeps the player's words off the cloud: Voxtral is refused while it is on, and turning it on moves V to Pocket.
+    assert(manager.applySettings(player, {vVoiceEngine = 'voxtral'}) and saved.vVoiceEngine == 'voxtral')
+    local ok, err, notice, reload = manager.applySettings(player, {conversationProvider = 'local', matureContent = true})
+    assert(ok and saved.matureContent == true and saved.vVoiceEngine == 'pocket' and reload == true, tostring(err))
+    local refused, why = manager.applySettings(player, {vVoiceEngine = 'voxtral'})
+    assert(refused == false and why == 'Voxtral sends your line to Mistral. Turn off Mature content to choose it.', tostring(why))
+    assert(saved.vVoiceEngine == 'pocket')
+    assert(manager.applySettings(player, {matureContent = false}) and manager.applySettings(player, {vVoiceEngine = 'voxtral'}) and saved.vVoiceEngine == 'voxtral')
+    -- Both in one Apply while Mature content is on or turns on: Mature content wins and V is Pocket.
+    assert(manager.applySettings(player, {matureContent = true, vVoiceEngine = 'voxtral'}) and saved.vVoiceEngine == 'pocket')
+  `);
+});
+
+test('V’s voice sits in the Voices category after Follow-up questions, is on by default, and applies on its own; the old Convai-voice note is gone', () => {
   run(`${mcmFixture}
     assert(invoke('tab:settings').ok)
     local owner, order = nil, {}
@@ -5183,22 +5257,20 @@ test('V’s voice sits in the Voices category after Follow-up questions, is on b
     assert(row('vVoice').description:find('type a line', 1, true)
         and row('vVoice').description:find('Push-to-talk', 1, true))
     assert(not row('vVoice').description:find('Off by default', 1, true) and not row('vVoice').description:find('cannot clone', 1, true))
-    for _, banned in ipairs({'recommended', 'antivirus', 'embedded', 'paid'}) do
+    for _, banned in ipairs({'recommended', 'antivirus', 'embedded', 'paid', 'inworld'}) do
       assert(not row('vVoice').description:lower():find(banned, 1, true), banned)
     end
-    local note = 'Works with the Pocket, OmniVoice, Voxtral or Inworld voices.'
-    local voiceNow = manager.snapshot(player).settings.voiceProvider
-    assert((row('vVoice').description:find(note, 1, true) ~= nil) == (voiceNow == 'convai'), 'the note shows beside the Convai voice only')
     local at = {}
     for index, id in ipairs(order) do at[id] = index end
     assert(at.followUpInterest < at.vVoice, 'with the other speech settings')
-    -- Beside the Convai voice the note lists the voices V's voice works with: Inworld only in Developer mode.
+    -- No voice makes the row differ: V's engine is its own row now.
+    local plain = row('vVoice').description
     assert(manager.applySettings(player, {voiceProvider = 'convai'}))
     loaded = registered.loadMod('manager')
-    assert(row('vVoice').description:find('Works with the Pocket, OmniVoice or Voxtral voices.', 1, true), 'no Inworld in the note without Developer mode')
+    assert(row('vVoice').description == plain and not row('vVoice').description:find('Works with', 1, true))
     assert(manager.applySettings(player, {developerMode = true}))
     loaded = registered.loadMod('manager')
-    assert(row('vVoice').description:find(note, 1, true), 'Developer mode names the Inworld voice too')
+    assert(row('vVoice').description == plain and not row('vVoiceEngine').description:lower():find('inworld', 1, true), 'Developer mode adds no Inworld text here')
     assert(manager.applySettings(player, {voiceProvider = 'pocket', developerMode = false}))
     loaded = registered.loadMod('manager')
     local clock = 5000

@@ -32,6 +32,9 @@ local OMNI_LABELS = {
 local OMNI_PACK_MISSING = 'Requires the optional OmniVoice pack (GPU)'
 local VOXTRAL_KEY_MISSING = 'Requires a Mistral key (add it in Settings > Conversation provider)'
 local INWORLD_KEY_MISSING = 'Requires an Inworld key (add it in Settings > Development)'
+-- V's voice engine (Settings > Voices): which voice speaks V's typed line, whatever the companions use. Pocket is the default.
+local V_VOICE_ENGINES = {'pocket', 'voxtral'}
+local V_ENGINE_MATURE = 'Voxtral sends your line to Mistral. Turn off Mature content to choose it.'
 local voiceFallbackSeen, voiceFallbackNotice = {}, nil
 -- Natural speech and Expressive emotions need a local voice (the Convai cloud voice would read their tags aloud). The
 -- pending notice, once, after an Apply that switched the voice or turned the two settings off.
@@ -769,12 +772,15 @@ local function loadSettings()
         settings.naturalSpeech, settings.expressiveEmotions, settingsNeedSave = false, false, true
     end
     -- V's voice for typed lines (on by default, key vVoice): the bridge speaks what the player types in V's cloned voice. Only an
-    -- explicit false (the player turned it off) is kept off. Beside the Convai cloud voice, which cannot clone, the setting simply
-    -- stays on and does nothing; nothing here is switched, refused or announced for that pairing.
+    -- explicit false (the player turned it off) is kept off. Which engine speaks it is its own setting (vVoiceEngine: 'pocket', the default,
+    -- or 'voxtral'), whatever voice the companions use, so the Convai cloud voice no longer makes the setting inactive.
     -- The first version saved false as its default, so a saved false counts only once the player has set it themselves (an Apply that
     -- carried it, vVoiceChosen); an unchosen false becomes the default, true (the pattern of holocallLiveImage above).
     if type(settings.vVoiceChosen) ~= 'boolean' then settings.vVoiceChosen = false end
     if type(settings.vVoice) ~= 'boolean' or (not settings.vVoice and not settings.vVoiceChosen) then settings.vVoice, settingsNeedSave = true, true end
+    if settings.vVoiceEngine ~= 'pocket' and settings.vVoiceEngine ~= 'voxtral' then settings.vVoiceEngine, settingsNeedSave = 'pocket', true end
+    -- Mature content keeps the player's words off the cloud: a saved Voxtral engine beside it (hand-edited) is Pocket.
+    if settings.matureContent == true and settings.vVoiceEngine == 'voxtral' then settings.vVoiceEngine, settingsNeedSave = 'pocket', true end
     if type(settings.enabledByKey) ~= 'table' then settings.enabledByKey = {} end
     for index, key in ipairs(legacyKeys) do
         if type(settings.enabledByKey[key]) ~= 'boolean' and type(settings.enabled) == 'table'
@@ -940,18 +946,24 @@ function M.followUpInterest()
     return settings.followUpInterest == true
 end
 
--- On by default. On, what the player types is also spoken aloud in V's own voice (male or female V), cloned by the voice
--- the player chose. Typed lines only; push-to-talk never replays V. The Convai cloud voice cannot clone: the setting stays on
--- but is inactive beside it (no V line), and works at once when a cloning voice is chosen.
+-- On by default. On, what the player types is also spoken aloud in V's own voice (male or female V), cloned by V's own voice engine
+-- (vVoiceEngine: Pocket by default, or Voxtral), whatever voice the companions use. Typed lines only; push-to-talk never replays V.
 function M.vVoice()
     loadSettings()
     return settings.vVoice == true
 end
 
--- The setting is on AND the saved voice can clone (anything but the Convai cloud voice). Used to skip work that only a real V line needs.
+-- V's voice engine: 'pocket' (default) or 'voxtral'.
+function M.vVoiceEngine()
+    loadSettings()
+    return settings.vVoiceEngine == 'voxtral' and 'voxtral' or 'pocket'
+end
+
+-- The setting is on, so a real V line can follow a typed turn. Used to skip work that only a real V line needs (the game-side read of the
+-- dialogue volume). It no longer depends on the companions' voice: V's engine is its own choice.
 function M.vVoiceActive()
     loadSettings()
-    return settings.vVoice == true and settings.voiceProvider ~= 'convai'
+    return settings.vVoice == true
 end
 
 -- Off by default. On, conversations go to each character's multilingual twin, which answers in the player's language.
@@ -1681,6 +1693,7 @@ function M.snapshot(player)
             expressiveEmotions = settings.expressiveEmotions,
             followUpInterest = settings.followUpInterest,
             vVoice = settings.vVoice == true,
+            vVoiceEngine = settings.vVoiceEngine == 'voxtral' and 'voxtral' or 'pocket',
             -- Part of the main mod: off by default, Local AI only. The optional Mature pack (uncensored models) only changes the help text.
             matureContent = settings.matureContent == true,
             matureRestore = cleanMatureRestore(settings.matureRestore),
@@ -1785,6 +1798,11 @@ function M.applySettings(player, values)
             -- An OmniVoice choice cannot be saved while the optional pack is missing; the choice never takes effect.
             if value == 'omni' and not M.omniPack().installed then return false, OMNI_PACK_MISSING end
             nextSettings.voiceProvider = value
+        elseif key == 'vVoiceEngine' then
+            if not isChoice(value, V_VOICE_ENGINES) then return false, 'Choose one of the listed voices for V.' end
+            -- The Mistral cloud voice speaks with the player's Mistral key (the same one the text replies and the companions' Voxtral use).
+            if value == 'voxtral' and not M.mistral().saved then return false, VOXTRAL_KEY_MISSING end
+            nextSettings.vVoiceEngine = value
         elseif key == 'omniSteps' then
             if value ~= 16 and value ~= 32 then return false, 'Choose 16 or 32 voice steps.' end
             nextSettings.omniSteps = value
@@ -1816,6 +1834,12 @@ function M.applySettings(player, values)
     end
     if nextSettings.voiceProvider == 'inworld' and nextSettings.developerMode ~= true then
         nextSettings.voiceProvider, rulesReload = 'pocket', true
+    end
+    -- Mature content keeps the player's words off the cloud: V's line is never spoken by Voxtral beside it. Choosing Voxtral while it is
+    -- on is refused; turning it on moves V to Pocket (the page reloads to show it).
+    if nextSettings.matureContent == true and nextSettings.vVoiceEngine == 'voxtral' then
+        if values.vVoiceEngine == 'voxtral' and values.matureContent ~= true then return false, V_ENGINE_MATURE end
+        nextSettings.vVoiceEngine, rulesReload = 'pocket', true
     end
     if nextSettings.developerMode ~= settings.developerMode then rulesReload = true end
     -- Natural speech and Expressive emotions need a local voice. They are judged as they will be after this Apply:

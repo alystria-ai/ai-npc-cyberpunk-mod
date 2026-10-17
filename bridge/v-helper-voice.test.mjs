@@ -77,10 +77,10 @@ test('the helper loads only after the OmniVoice worker is ready, and only while 
   await h.voice.close();
 });
 
-test('V off, the Pocket voice or the Convai voice: no helper is ever loaded', async () => {
+test('V not wanted, or the Pocket voice itself: no helper; the Convai voice loads one only while V wants Pocket', async () => {
   const off = fixture(); await omniReady(off, {wanted: false});
   off.voice.setVHelperWanted(false); await tick();
-  assert.equal(off.helperWorker(), undefined, 'V off');
+  assert.equal(off.helperWorker(), undefined, 'V off, or on another engine');
   assert.equal(off.voice.vHelperReady('v-male'), false);
   off.voice.setVHelperWanted(true); await until(() => off.helperWorker()?.loaded, 'the helper');
   off.voice.setVHelperWanted(false); await until(() => off.helperWorker().closes === 1, 'the helper to be released');
@@ -91,12 +91,20 @@ test('V off, the Pocket voice or the Convai voice: no helper is ever loaded', as
   pocket.voice.update({voiceProvider: 'pocket'}, null, false); await pocket.voice.start(); await tick();
   assert.equal(pocket.workers.length, 1, 'only the chosen Pocket worker');
   assert.equal(pocket.voice.vHelperSpeaks('v-male'), false, 'with the Pocket voice, V uses the chosen worker');
+  assert.equal(pocket.voice.vRouteSpeaks('v-male'), true);
   await pocket.voice.close();
 
+  // The Convai voice runs no worker: V on Pocket gets a Pocket worker of its own; V not on Pocket gets nothing.
   const convai = fixture();
-  convai.voice.setVHelperWanted(true);
   convai.voice.update({voiceProvider: 'convai'}, null, false); await convai.voice.start(); await tick();
-  assert.equal(convai.workers.length, 0);
+  assert.equal(convai.workers.length, 0, 'V not wanted on Pocket: nothing loads');
+  convai.voice.setVHelperWanted(true);
+  await until(() => convai.helperWorker()?.loaded, "V's Pocket worker beside the Convai voice");
+  assert.equal(convai.workers.length, 1);
+  assert.equal(convai.voice.vHelperSpeaks('v-male'), true); assert.equal(convai.voice.vRouteSpeaks('v-male'), false);
+  convai.voice.setVHelperWanted(false);
+  await until(() => convai.helperWorker().closes === 1, "V's Pocket worker to be released (exit confirmed)");
+  assert.equal(convai.voice.vHelper.running, false);
   await convai.voice.close();
 });
 
@@ -133,30 +141,72 @@ test('voice playback Off with V on: OmniVoice is released at once, the helper st
   await live.voice.close();
 });
 
-test('a cloud voice never loads the helper: no local voice model, not even for V', async () => {
-  const cloud = {hasKey: true, ready: true, setReferences() {}, async synthesizeStream() { return {}; }};
-  const h = fixture({options: {voxtral: cloud}});
-  h.voice.setVHelperWanted(true);
+const cloudVoice = (extra = {}) => ({hasKey: true, ready: true, setReferences() {}, async reference() {}, async synthesizeStream() { return {}; }, ...extra});
+
+test('a cloud companion voice with V not on Pocket loads no local model of any kind; V on Pocket loads one Pocket worker for V only', async () => {
+  const h = fixture({options: {voxtral: cloudVoice()}});
   h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start(); await tick();
   assert.equal(h.voice.cloudActive, true);
   assert.equal(h.voice.vHelperDue, false); assert.equal(h.voice.vHelper.running, false);
-  assert.equal(h.voice.vHelperSpeaks('v-male'), false);
-  assert.equal(h.workers.length, 0, 'no local voice worker of any kind');
+  assert.equal(h.workers.length, 0, 'V off or on the cloud voice: no local voice worker of any kind');
+  // The player picks Pocket for V: its own worker loads, in the background, and nothing else does.
+  h.voice.setVHelperWanted(true);
+  await until(() => h.helperWorker()?.loaded, "V's Pocket worker");
+  assert.equal(h.workers.length, 1, 'no OmniVoice and no second Pocket worker');
+  assert.equal(h.voice.cloudActive, true, 'the companions still speak with the cloud voice');
+  assert.equal(h.voice.vHelperSpeaks('v-male'), true); assert.equal(h.voice.vRouteSpeaks('v-male'), false);
+  assert.equal(h.voice.vHelperReady('v-male'), true);
+  // The player moves V to the cloud voice (or switches V off): the worker is released and its exit confirmed.
+  h.voice.setVHelperWanted(false);
+  await until(() => h.helperWorker().closes === 1, 'the worker to be released');
+  await h.voice.vHelper.release();
+  assert.equal(h.helperWorker().loaded, false); assert.equal(h.voice.vHelper.running, false);
   await h.voice.close();
+  assert.equal(h.workers.length, 1, 'closing starts nothing');
 });
 
-test('a cloud companion voice with playback Off and V on: still no local model; V keeps using the cloud voice (reference warmed)', async () => {
-  const references = [];
-  const cloud = {hasKey: true, ready: true, setReferences() {}, async reference(key) { references.push(key); }, async synthesizeStream() { return {}; }};
-  const h = fixture({options: {voxtral: cloud}});
-  h.voice.setVHelperWanted(true);
+test('a cloud companion voice with playback Off: V on Pocket keeps its own worker, V not on Pocket keeps nothing', async () => {
+  const h = fixture({options: {voxtral: cloudVoice()}});
   h.voice.update({voiceProvider: 'voxtral', voice: false}, null, false); await h.voice.start(); await tick();
   assert.equal(h.workers.length, 0, 'no local voice worker of any kind');
   assert.equal(h.voice.vHelper.running, false);
-  assert.equal(h.voice.usesProfile('v-male'), true, 'V\'s line is still routed to the cloud voice');
-  const receipt = await h.voice.prepareProfile('v-male');
-  assert.equal(receipt.cloudVoice, 'voxtral', 'V\'s voice is prepared on the cloud voice, not skipped as muted');
-  assert.deepEqual(references, ['v-male']);
+  const receipt = await h.voice.prepareProfile('judy-alvarez');
+  assert.equal(receipt.muted, true, 'the companions are silent: nothing is prepared for them');
+  h.voice.setVHelperWanted(true);
+  await until(() => h.helperWorker()?.loaded, "V's Pocket worker with the companions muted");
+  assert.equal(h.workers.length, 1);
+  h.voice.setVHelperWanted(false);
+  await until(() => h.helperWorker().closes === 1, 'the worker to be released');
+  await h.voice.close();
+});
+
+test("a settings preview of the Pocket voice releases V's worker first and gives it back when the preview ends, after the previewed worker has exited", async () => {
+  const h = fixture({options: {voxtral: cloudVoice()}});
+  h.voice.setVHelperWanted(true);
+  h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
+  await until(() => h.helperWorker()?.loaded, "V's worker");
+  const vWorker = h.helperWorker();
+  h.voice.prepare({provider: 'pocket'});              // the player is choosing the Pocket voice in Settings: its worker warms
+  await until(() => h.workers.length === 2 && h.workers[1].loaded, 'the previewed Pocket worker');
+  assert.equal(vWorker.closes, 1, "V's worker was released before the previewed one started");
+  assert.ok(h.events.indexOf('pocket#1 closed') < h.events.indexOf('pocket#2 start'));
+  assert.equal(h.voice.vHelper.running, false, 'never two Pocket workers (one work folder, one lock)');
+  h.voice.prepare(null);                               // the player went back: the previewed worker leaves, V's comes back after it
+  await until(() => h.workers.length === 3 && h.workers[2].loaded, "V's worker again");
+  assert.ok(h.events.indexOf('pocket#2 closed') < h.events.indexOf('pocket#3 start'), "V's worker starts only after the previewed one has exited");
+  await h.voice.close();
+});
+
+test("switching the companions from the cloud voice to Pocket: V's own worker leaves, the companions' worker takes over and speaks V", async () => {
+  const h = fixture({options: {voxtral: cloudVoice()}});
+  h.voice.setVHelperWanted(true);
+  h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
+  await until(() => h.helperWorker()?.loaded, "V's worker");
+  h.voice.update({voiceProvider: 'pocket'}, null, false); await h.voice.start().catch(() => {});
+  await until(() => h.workers.length === 2 && h.workers[1].loaded, "the companions' Pocket worker");
+  assert.equal(h.workers[0].closes, 1);
+  assert.equal(h.voice.pocketRoute, true); assert.equal(h.voice.vRouteSpeaks('v-male'), true); assert.equal(h.voice.vHelperSpeaks('v-male'), false);
+  assert.equal(h.voice.vHelper.running, false);
   await h.voice.close();
 });
 

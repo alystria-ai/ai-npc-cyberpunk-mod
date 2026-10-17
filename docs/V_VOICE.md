@@ -44,14 +44,84 @@ calls `subtitles.showTyped` (`mod/subtitles.lua`) once, right after the request 
 - **Settings.** With the game's subtitles off (`player:ConvaiManagerSubtitles()`, the same switch replies use) nothing is shown. No phone
   Chat text, reaction or add-on remark gets it (those never pass the composer's submission); no per-frame work beyond a caption's own.
 
+## V's voice engine (2026-10-17, branch `v-voice-engine`, not merged)
+
+V's line no longer follows the companions' voice. **Settings > Voices > V's voice engine** picks the engine for V alone, and
+the sections below that still describe "the voice you already chose" are history: this section is current.
+
+| Engine | How V's line is made | Loads locally |
+|---|---|---|
+| **Pocket** (default) | Cloned by a Pocket worker on the CPU. When the companions use Pocket, their worker speaks V (one job at a time, as before); with any other companion voice (OmniVoice, Voxtral, the Convai voice) V has a **Pocket worker of its own** (`bridge/v-helper-voice.mjs`) | Pocket worker, only when V needs it |
+| **Voxtral** | One HTTPS request to the Mistral Voxtral voice with the player's Mistral key, cloned from V's reference | Nothing |
+
+Not offered: OmniVoice (its GPU worker cannot serve V in time and cannot cancel a started render), the Convai voice (it cannot clone)
+and Inworld (developer-only, never named to players). The engine is independent of the companions' voice, so every mix works.
+Both engines are English only: a turn in another language gets no V line (subtitle still shows).
+
+**What the choice does to the pipeline.**
+
+- **Early start.** V's line starts at the top of `runInput`, right after the profile check and before knowledge preparation, admission,
+  the connection set-up and the transport hand-over (before, it started after `respond()` had been called). Synthesis therefore runs
+  in parallel with the whole of the companion's text request, not just its tail. A look-ahead (group) turn still gets no V line.
+- **Pocket** has the fastest first audio (about 0.2-0.3 s once warm), so it is audible long before a typical reply and costs the
+  reply the least. **Voxtral** is a cloud round trip (first audio about 1.15 s in the simulation), so it is audible later and, because
+  V then plays before the reply, it delays the reply's start more. That cost is inherent to a cloud voice; the engine is the player's choice.
+- **Warm-up.** Pocket prepares the V clones on whichever worker will speak (the shared one or V's own). Voxtral pre-creates the cloned
+  reference for the gender used last (both genders when none yet) so the first line does not pay for the clone.
+- **Mistral scheduler.** A Voxtral line is skipped while the shared Mistral scheduler is spacing or paused (`spacingMs > 0` or
+  `pausedForMs > 0`): V never takes a Mistral start from the reply. A failed V cloud line is not retried (a retry would land after the
+  reply, which is dropped by design) and has no Convai-voice stand-in; V is silent and the subtitle shows.
+- **The worker rule.** A Pocket worker for V loads only when V's voice is On, the engine is Pocket, V's clips exist and the companions
+  are not already on the Pocket worker; never beside another Pocket worker (one work-folder lock), released with confirmed exit when
+  any of that stops being true (`voice-selection.mjs`: `pocketRoute`, `vHelperDue`, `vHelperSpeaks`, `vRouteSpeaks`).
+
+**Load and unload by combination** (V's voice On; with V's voice Off no V worker exists in any row):
+
+| Companions | V engine | Local models loaded | Notes |
+|---|---|---|---|
+| Pocket | Pocket | the one Pocket worker (shared) | V and the companion share it; V's unfinished line is dropped when the companion's TTS request goes out |
+| Pocket | Voxtral | the Pocket worker (companions only) | V is one HTTPS request |
+| Voxtral | Pocket | **V's own Pocket worker only** | no Pocket for the companions; the cloud-voice rule is kept for them |
+| Voxtral | Voxtral | **none** | nothing local at all |
+| OmniVoice | Pocket | OmniVoice + V's own Pocket worker (starts after Omni is ready) | as before |
+| OmniVoice | Voxtral | OmniVoice only | V's Pocket worker is released if it was running |
+| Convai voice | Pocket | V's own Pocket worker only | V now speaks beside the Convai voice |
+| Convai voice | Voxtral | none | V now speaks beside the Convai voice |
+
+**Missing key, Mature content, language.** Voxtral for V needs a Mistral key: the row reads "Voxtral · needs Mistral key" and the
+manager refuses to apply it until a key is saved ("Requires a Mistral key (add it in Settings > Conversation provider)"). If the key
+is removed later, the bridge skips V's line (one log line, subtitle still shown); there is **no silent fallback to Pocket**, because
+that would load a model the player did not choose. Mature content keeps V's lines off the cloud: the manager refuses Voxtral while
+Mature is on, turning Mature on moves V to Pocket (with the page reload Mature already does, no notice), a hand-edited pairing is
+normalized at load, and the bridge refuses a cloud V line with Mature on.
+
+**Measured (simulated providers, `scripts/Measure-VVoice.mjs`, real `VVoice`/`VLine`/`TurnClock`; prep 180 ms, companion text 900 ms,
+5 runs; milliseconds).** "Delay" is when the reply's audio starts, minus when it would start without V.
+
+| Scenario | V audible before -> after | Reply delay before -> after |
+|---|---|---|
+| Pocket companions, V on Pocket | 494 -> 318 | 1634 -> 1438 |
+| Pocket companions, V on Voxtral | 1342 -> 1157 | 2475 -> 2281 |
+| Voxtral companions, V on Pocket (own worker) | 490 -> 305 | 770 -> 588 |
+| Voxtral companions, V on Voxtral | 1363 -> 1164 | 1623 -> 1430 |
+| OmniVoice companions, V on Pocket (own worker) | 483 -> 317 | 563 -> 385 |
+| OmniVoice companions, V on Voxtral | 1353 -> 1165 | 1419 -> 1228 |
+
+The early start saves about 180-200 ms in every scenario (the pre-reply steps no longer sit in front of V). Compared with the old
+behaviour where V followed the companions' voice (Voxtral companions: V audible at 1353 ms and reply delay +1621; now Pocket gives 305 ms
+and +588), choosing Pocket for V is the fastest option for V and costs the reply the least. These are simulated numbers from
+the stage clock, not live ones; the live check below gives the real figures.
+
 ## Which voice speaks
+
+(Historical for the 2026-10-14 to 2026-10-16 behaviour, where V followed the companions' voice. Current: see "V's voice engine" above.)
 
 V's voice follows **V's voice tone** from the character creator (the "brain gender"), not V's body: a V built with a male voice
 speaks with `v-male` whatever the body, as the game's own V lines do. `mod/turn-context.lua` reads it from the character
 customization state (`IsBrainGenderMale`) and sends it as `voice`; only when that read fails does it fall back to the resolved
 gender (`gender`). `voice` is never written into the model's context.
 
-The voice is the one **you already chose** for companions:
+Until 2026-10-17 the voice was the one **you had chosen** for companions:
 
 | Companion voice | How V's line is made |
 |---|---|
@@ -75,7 +145,7 @@ changes nothing about what is loaded at start. Toggling the setting takes effect
 
 Latency is as important as FPS here, so V never stands in front of anything:
 
-- The companion's text request is sent first; V's line starts after it (`runInput` starts `respond` and then `vVoice.start`).
+- V's line starts first, at the top of `runInput` (2026-10-17; before it started after `respond()`), so its synthesis runs beside the whole companion text request.
 - A V line is never started for a look-ahead (group) turn.
 - V plays on a second hidden renderer page (`RealtimeHost.playVoiceLine`, a second `LocalPcmHost`), so it never waits for, or
   takes the place of, the companion's utterance. The game's single pending-request machinery is untouched.
@@ -247,20 +317,21 @@ actor says "assumed" where the subtitle says "assume" (the audio is clear).
 | Piece | File |
 |---|---|
 | Feature, clip loading, V's line, gate | `bridge/v-voice.mjs` |
-| Helper Pocket voice beside OmniVoice | `bridge/v-helper-voice.mjs`, `bridge/voice-selection.mjs` (`tickVHelper`, `vHelper*`) |
+| V's own Pocket worker (any companion voice but Pocket) | `bridge/v-helper-voice.mjs`, `bridge/voice-selection.mjs` (`pocketRoute`, `tickVHelper`, `vHelper*`, `vRouteSpeaks`) |
 | Second renderer page | `bridge/realtime-host.mjs` (`playVoiceLine`, `prewarmVoiceLine`) |
 | Config merge | `bridge/addons.mjs` (`voiceConfigPaths`, `extra`) |
 | Wiring | `bridge/convai-bridge.mjs` (`vVoice`, `runInput`, `continuousSpeech` hold, `publishResult`, settings poll, composer warm-up) |
 | Stage clock listener | `bridge/turn-clock.mjs` (`on`) |
 | Dialogue volume | `mod/turn-context.lua`, `bridge/turn-context.mjs` (`dialogueVolume`) |
-| Setting | `mod/manager.lua` (`vVoice`, `vVoiceChosen`), `mod/mcm.lua` |
+| Setting | `mod/manager.lua` (`vVoice`, `vVoiceChosen`, `vVoiceEngine`), `mod/mcm.lua` |
+| Simulated measurement | `scripts/Measure-VVoice.mjs` (`--legacy`, `--runs`, `--prep`, `--json`) |
 | V's subtitle | `mod/subtitles.lua` (`showTyped`), `mod/init.lua` (the submission in `onUpdate`), `bridge/subtitles.test.mjs` |
 | Tests | `bridge/v-voice.test.mjs`, `bridge/v-helper-voice.test.mjs`, `bridge/manager.test.mjs`, `bridge/turn-context.test.mjs`, `bridge/addons.test.mjs` |
 
 ## Live check
 
-See TODO.md, "Live checks still to run": V's gender follows the V voice, the clip sounds like V, V is heard before the
+See TODO.md, "Live checks still to run" (including the V's voice engine check of 2026-10-17: Pocket and Voxtral each audible, the reply start with each, the process list per combination, Voxtral refused without a key and with Mature on): V's gender follows the V voice, the clip sounds like V, V is heard before the
 companion on Pocket (and on a cloud voice), the companion starts right after V ends, the dropped line on a cold start, the
-volume follows the game's Dialogue volume, and the Convai-voice case (setting on, no V line, the inline note on the row, no notice).
+volume follows the game's Dialogue volume, and, since 2026-10-17, V speaking beside the Convai voice.
 
 **Clip choice (2026-10-14, by ear):** the user preferred the original male clips (11.4 s, 3 lines) over the picker's male set, and the picker's female set (11.55 s, 2 clips) over the original female clips. The manifest ships that mix.
