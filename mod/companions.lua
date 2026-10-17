@@ -1011,6 +1011,14 @@ function M.readyActor(entity)
     return {serial=entry.serial,npc=entry.npc,profileKey=entry.profileKey,name=entry.profileName}
 end
 
+-- Tactic hook: a tactic has ended and the copy may still hold a drawn weapon. Arms the equipment owner's holster
+-- flow again (it holsters on its own once she is calm and relaxed). True when it was asked.
+function M.rearmEquipment(entity)
+    local entry=chauffeurEntry(entity)
+    if not entry or not entry.equipment then return false end
+    return equipment.rearm(entry.equipment)==true
+end
+
 -- Offers and queue admission run only from gameplay. Menu callers use the
 -- cached snapshot and retain the exact serial/entity pair in their intent.
 function M.chauffeurOffer(entity)
