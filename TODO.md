@@ -38,13 +38,13 @@ Closed by the user on 2026-10-16 (log entry of that day): every main-mod live ch
 - **Multilingual:** lip sync stays English-trained (audio-only, visemes English-shaped).
 - **Free-key limits** (one connection at a time, one memory user) are left to Convai's plans; paid keys hold up to six connections (`convai-paid-tier`). **Natural speech note:** Convai's own cloud history keeps the raw reply with tags; only our copies are clean.
 - **Tests:** the full suite passed three times in a row on 2026-10-14 (4905 tests, 0 fail, 12 skipped); `scripts/pocket_training/test_*.py` need the training environment and `pwsh.exe` binding tests skip.
-- **Companion item 7, turn toward V on arrival** (`docs/COMPANION_IMPROVEMENTS_2026-10-17.md`): the only open item of that list; items 1 to 6 are merged (live checks of 1 to 5 under "Live checks owed").
 - **Add-on live checks** in `docs/ADDON_API.md` ("What the game must confirm live"), then each add-on's release on its date.
 
 ### Parked: start only when the user says so
 Nothing is parked.
 
 ### Settled and dropped
+- **Companion item 7 (turn toward V on arrival): dropped (the user, 2026-10-17: the issue does not happen in the game).**
 - **AMD Vulkan check of Bonsai lite: dropped by the user (2026-10-17);** no note in player text.
 - **YouTube TV is removed completely** (the user, 2026-10-15; log `remove-youtube-tv`).
 - **Battle and loot reactions are both Off by default** (`loadSettings` in `mod/manager.lua`, MCM defaults in `mod/mcm.lua`; log "reaction defaults docs"). **Names for passers-by are always on**, with no setting (`names-always-on`).
