@@ -922,7 +922,7 @@ do
             end
             return rows
         end,
-        -- Read the game's dialogue volume only while V's voice for typed lines is on and the voice can clone (the bridge plays V at that level).
+        -- Read the game's dialogue volume only while V's voice for typed lines is on (the bridge plays V at that level).
         wantVolume = function() return manager.vVoiceActive() == true end,
         -- What each companion is doing and how V moves: the companion modules' own state, read once per turn window.
         activity = function()

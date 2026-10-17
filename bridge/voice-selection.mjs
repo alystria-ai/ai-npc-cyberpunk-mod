@@ -578,8 +578,7 @@ export class VoiceSelection {
     const client = this.client;
     const backend=this.clientBackend;
     this.client = this.starting = this.clientBackend = this.clientReference = null;
-    this.tickVHelper();
-    if (!client) { this.publish(this.releasing ? 'releasing' : (this.closed||this.silent ? 'stopped' : 'remote')); return this.retiring; }
+    if (!client) { this.tickVHelper(); this.publish(this.releasing ? 'releasing' : (this.closed||this.silent ? 'stopped' : 'remote')); return this.retiring; }
     this.releasing = true;
     this.publish('releasing');
     // Signal EOF even during warmup. The worker owns its bounded physical
@@ -596,17 +595,29 @@ export class VoiceSelection {
       }
     });
     const completed = this.retiring;
+    // V's own Pocket worker may be due now that the Pocket worker is leaving; it waits for this exit (Pocket's one work-folder lock).
+    this.tickVHelper();
     this.retiring.catch(() => this.publish('error', {detail: 'Could not release local voices. Restart the voice service.'}));
     return this.retiring;
   }
-  // ---- V's helper voice (bridge/v-helper-voice.mjs) ----
-  // It exists only while OmniVoice is the committed voice (never beside a cloud voice, the Pocket voice or the Convai voice), the V
-  // setting is on, and Pocket is configured. With playback on it waits for OmniVoice to be loaded (it is not started during OmniVoice's
-  // load), and one that already runs is kept while OmniVoice loads again. With playback Off OmniVoice is released and the helper is
-  // all that stays loaded: V speaks whenever the V setting is on. Due-checked where routing already changes; nothing runs on a timer.
+  // ---- V's own Pocket worker (bridge/v-helper-voice.mjs) ----
+  // V's voice engine is the player's choice (settings `vVoiceEngine`, default Pocket). With Pocket, V's line is spoken by the Pocket worker
+  // the companions use when they use Pocket themselves (`pocketRoute`: one worker, one job at a time). With any other companion voice
+  // (OmniVoice, a cloud voice, the Convai voice) V has a Pocket worker of its own: it is loaded only because V needs it (`vHelperWanted`:
+  // the V setting is on, the engine is Pocket and clips exist), never beside the Pocket route (one work folder, one lock), and released,
+  // with its exit confirmed, the moment that stops being true. A V engine that is a cloud voice (Voxtral) is never asked for here: with
+  // it, and companions on a cloud voice or on the Convai voice, no Pocket worker exists at all. With playback Off OmniVoice is released and
+  // the helper is all that stays loaded (V speaks whenever the V setting is on); a Pocket route with playback Off keeps its one worker for V.
+  // Due-checked where routing already changes; nothing runs on a timer.
+  /** The committed companion voice is the Pocket worker itself (not a cloud voice borrowing Pocket's route). */
+  get pocketRoute() { return this.provider === 'pocket' && !this.cloudActive; }
   get vHelperDue() {
-    if(!(this.vHelperWanted&&!this.closed&&this.provider==='omni'&&!this.cloudActive
-      &&this.provider===this.requestedProvider&&!!this.configuredByBackend.pocket))return false;
+    if(!(this.vHelperWanted&&!this.closed&&!!this.configuredByBackend.pocket))return false;
+    // The Pocket route speaks V itself, and a Pocket worker that exists (a settings preview warms one) holds the work folder's lock.
+    if(this.pocketRoute||this.clientBackend==='pocket')return false;
+    if(this.provider!=='omni')return true;
+    // OmniVoice: the helper waits for it to be loaded (it is never started during OmniVoice's own load); with playback Off there is none.
+    if(!(this.provider===this.requestedProvider))return false;
     if(this.silent)return true;
     if(this.client?.failure)return false;
     if(this.vHelper.running)return true;
@@ -620,10 +631,12 @@ export class VoiceSelection {
     if (value === this.vHelperWanted) return;
     this.vHelperWanted = value; this.tickVHelper();
   }
-  /** Could V's helper speak this key (Pocket's configuration has it)? True while OmniVoice is committed; says nothing about being loaded. */
+  /** Is V's own Pocket worker the one in charge for this key (Pocket's configuration has it, and the Pocket route is not speaking)? Says nothing about being loaded. */
   vHelperSpeaks(key) {
-    return this.provider==='omni'&&!this.cloudActive&&!!this.configuredByBackend.pocket&&this.registries.pocket.has(key)&&this.availabilities.pocket.has(key);
+    return !this.pocketRoute&&!!this.configuredByBackend.pocket&&this.registries.pocket.has(key)&&this.availabilities.pocket.has(key);
   }
+  /** Is the Pocket route (the companions' own worker) the one that speaks this key for V? Loaded or about to be: the call that follows starts it. */
+  vRouteSpeaks(key) { return this.pocketRoute&&this.usesProfile(key); }
   /** Is the helper loaded and ready for this key? Also asks it to load when it is due and not yet running, so a missed trigger heals itself. */
   vHelperReady(key) { this.tickVHelper(); return this.vHelper.ready(key); }
   vHelperStream(key, text, options = {}) { return this.vHelper.stream(key, stripSpeechTags(text), options); }

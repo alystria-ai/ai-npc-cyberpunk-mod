@@ -32,7 +32,7 @@ no longer open it.
   player muted earlier stays muted, since nothing resets the saved value),
   **Auto-connect nearby characters** (on by default and silent, see below), eye contact height, head tracking strength
   (Eyes only / Subtle / Gentle (default) / Strong), **Body gestures (experimental)** (on by default since 2026-10-11), voice playback,
-  **V's voice for typed lines** (on by default; speaks what you type in V's cloned voice before the companion answers; does nothing beside the Convai cloud voice, which cannot clone, and the row says so; see `docs/V_VOICE.md`),
+  **V's voice for typed lines** (on by default; speaks what you type in V's cloned voice before the companion answers; see `docs/V_VOICE.md`) and, right under it, **V's voice engine** (a select, Pocket by default or Voxtral; Pocket runs on the processor, Voxtral is the Mistral cloud voice with the player's Mistral key and loads nothing locally; Voxtral reads "Voxtral · needs Mistral key" and is refused on Apply until a key is saved, and it is refused with Mature content on, which keeps the typed line off the cloud; the companions' voice does not matter, any mix works),
   **Keep prepared voices** (on by default), subtitles, automatic reactions, interface language and
   Developer mode (routine popups, a movement trace file, gesture logs and the setting in support reports; leave it off
   for normal play). The global voice choices are **Pocket · Performance (the default), OmniVoice · Balanced,
@@ -657,7 +657,7 @@ add-on sections, Development, Help.
 - **Voices**: Voice playback, Companion voices, **Voice status** (moved up to sit right under Companion voices), Lip sync delay, **Voice volume (%)**
   (a native MCM slider, type `int`, 50 to 200 in steps of 5, 100 by default; MCM shows only the number, so the unit is in the name; stored as
   `voiceVolume` in `runtime/settings.json`; the bridge polls it, so the next reply after Apply uses it, no restart; see `docs/DIALOGUE_LEVEL.md`),
-  Natural speech, Expressive emotions, Follow-up questions, V's voice. The OmniVoice pack row and the Inworld key rows are gone from here.
+  Natural speech, Expressive emotions, Follow-up questions, V's voice for typed lines, **V's voice engine** (2026-10-17). The OmniVoice pack row and the Inworld key rows are gone from here.
 - **Development** holds Developer mode and, in Developer mode only, the Inworld key row right after it.
 
 **Provider selector and migration.** "Convai API key" stores `conversationProvider = 'convai'` with `useOwnConvaiKey = true`; the other entries store

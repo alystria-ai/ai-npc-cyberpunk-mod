@@ -309,7 +309,7 @@ const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'ut
 
 test('the bridge releases what settings stop using: facial model, renderer pages, idle browser, probe, embedder', () => {
   assert.match(bridge, /const BROWSER_IDLE_MS = 300_000;/);
-  assert.match(bridge, /localVoice\.setVHelperWanted\(vVoice\.enabled && vVoice\.available\);\s*void releaseUnused\(\)/, 'due-checked from the settings poll');
+  assert.match(bridge, /localVoice\.setVHelperWanted\(vVoice\.wantsPocket\);\s*void releaseUnused\(\)/, 'due-checked from the settings poll');
   assert.match(bridge, /if \(muted\) await jaliFace\.suspend\(\); else if \(!jaliFace\.active\) void jaliFace\.resume\(\);/);
   assert.match(bridge, /realtime\.releaseRendererPages\(\{line: !vVoice\.enabled \|\| !vVoice\.available, companion: muted\}\)/);
   assert.match(bridge, /releaseIfIdle\(\{idleMs: BROWSER_IDLE_MS, keepRenderer\}\)/);
@@ -317,7 +317,7 @@ test('the bridge releases what settings stop using: facial model, renderer pages
   assert.match(bridge, /if \(voiceBoundaryBusy\(\) \|\| voiceRouteReservation \|\| keySwitching \|\| providerSwitching\) return;/, 'pages only between turns');
   assert.match(bridge, /else audioWatch\.suspend\(\);/);
   assert.match(bridge, /if \(!mistral\.active && !addonHost\.active\) void localEmbedder\.close\(\)/);
-  assert.match(bridge, /ready: key => localVoice\.usesProfile\(key\),/, 'V speaks with playback Off while his setting is on');
+  assert.match(bridge, /ready: key => localVoice\.vRouteSpeaks\(key\),/, 'V speaks with playback Off while his setting is on');
   assert.doesNotMatch(bridge, /ready: key => localVoice\.playbackEnabled/);
   assert.match(bridge, /const muted = localVoice\.silent;/, 'no grace period: the release follows the setting');
   assert.match(bridge, /prewarmVoice: \(\) => host === realtime && localVoice\.playbackEnabled !== false/, 'no browser warm-up while muted');
