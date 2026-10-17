@@ -821,7 +821,7 @@ test('combat that registers after the second ask stops the asking', () => run(wo
   assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
   for _=1,12 do frame() end
   assert(count('engage')==1)
-  companion.combat=true; frame()
+  companion.combat=true; for _=1,4 do frame() end
   assert(phase()=='fighting' and logged('native combat engaged'))
   for _=1,40 do frame() end
   assert(count('engage')==1,'no more asks once she fights')
@@ -834,7 +834,7 @@ test('an order that never starts combat gives up once she stands at the target, 
   local message
   for _,e in ipairs(effects) do if e:find('^feedback ') then message=e end end
   assert(message=='feedback Judy could not start the fight with Tyger Claw.',tostring(message))
-  assert(count('engage')==2,'asked at 1 s and 2 s, then gave up well before the 25 s limit')
+  assert(count('engage')>=2 and count('engage')<=3,'asked at 1 s and 2 s (and once more at a low rate), then gave up well before the 25 s limit: '..count('engage'))
 `));
 
 test('the notice says the target is not a fighter, or that she could not reach it', () => {
@@ -1012,7 +1012,7 @@ test('the adapter reads and sets the stance and state, removes the threat with a
   assert(N.removeThreat(companion,target):find('removed %(read back gone%)') and order[1]=='remove-7')
   assert(N.removeThreat(companion,target):find('no longer on her threat list'),'a threat that is gone is not removed twice')
   listedAgain(); stillListed=true
-  assert(N.removeThreat(companion,target):find('STILL LISTED'),'a threat the game keeps is reported')
+  assert(N.removeThreat(companion,target):find('listed again at once, checked again below'),'a threat the game keeps is reported, and not as the verdict')
   companion.GetTargetTrackerComponent=function() return nil end
   assert(not pcall(N.removeThreat,companion,target))
 `));
@@ -1130,3 +1130,237 @@ test('the adapter reads her combat target, alerts the target by putting her on h
   local engaged=N.engage(companion,target,2,{reaction={notes={},trigger=function() end}})
   assert(engaged:find('target alert failed'),engaged)
 `));
+
+// ---- Third live retest (2026-10-17 18:16Z, 18:18Z): a real combat target, his group, the leftovers between orders ----
+
+// The adapter against fakes of the engine objects the combat opening calls.
+const openingWorld = hlsWorld + `
+  local function trackerFor(owner) return {AddThreat=function(_,who) order[#order+1]='threat-on-'..owner..'-'..who.name end,SetThreatPersistence=function() end,
+    MapThreat=function(_,who) return who.name end,RemoveThreat=function(_,id) order[#order+1]='unthreat-'..owner..'-'..id end} end
+  player={name='V',agent=agent('V'),GetAttitudeAgent=function(self) return self.agent end}
+  function reactor(owner) local c={}
+    function c:GetReactionPreset() return presets.Follower end
+    function c:TriggerCombat(who) order[#order+1]=owner..'-combat-'..who.name end
+    return c end
+  target.GetStimReactionComponent=function() return reactor('target') end
+  companion.GetStimReactionComponent=function() return reactor('companion') end
+  Game={GetPlayer=function() return player end}
+  ToVariant=function(object) return {object=object} end
+  FromVariant=function(v) return v.object end
+`;
+
+test('the adapter makes the target a real opponent: hostile to V, and his own reaction component starts combat against V and against her', () => run(openingWorld + `
+  target.agent.attitude='AIA_Neutral'
+  local receipt={}
+  local text=N.provoke(companion,target,player,receipt)
+  local joined=table.concat(order,',')
+  assert(joined:find('target%-attitude%-AIA_Hostile') and joined:find('target%-combat%-V') and joined:find('target%-combat%-companion'),joined)
+  assert(joined:find('target%-combat%-V.*target%-combat%-companion'),'V first, then her: '..joined)
+  assert(text:find('he is hostile to V %(was AIA_Neutral%)') and text:find('combat start against V asked') and text:find('combat start against her asked'),text)
+  assert(receipt.targetToPlayer=='AIA_Neutral','the old attitude toward V is remembered')
+  N.stopFight({targetToPlayer='AIA_Neutral'},companion,target)
+  assert(target.agent.attitude=='AIA_Neutral','stopFight gives it back')
+  target.agent.attitude='AIA_Hostile'; order={}; receipt={}
+  N.provoke(companion,target,player,receipt)
+  assert(receipt.targetToPlayer==nil and not table.concat(order,','):find('attitude'),table.concat(order,','))
+`));
+
+test('a civilian target is never turned on V: only her side, through the game combat helper', () => run(openingWorld + `
+  target.civilian=true
+  local receipt={}
+  local text=N.provoke(companion,target,player,receipt)
+  assert(not table.concat(order,','):find('combat%-V') and order[#order]=='helper' and not text:find('against V'),table.concat(order,',')..' / '..text)
+  assert(receipt.targetToPlayer==nil)
+  target.civilian=false
+  target.GetStimReactionComponent=function() error('no component') end
+  text=N.provoke(companion,target,player,{})
+  assert(text:find('against V failed: .*no component') and text:find('against her failed'),text)
+`));
+
+test('the adapter sets her combat target through the behavior argument and reads it back', () => run(openingWorld + `
+  local seen, value
+  target.GetEntityID=function() return {hash=77} end
+  companion.GetAIControllerComponent=function() return {
+    SetBehaviorArgument=function(_,name,variant) seen={name=name,object=variant.object}; value=variant end,
+    GetBehaviorArgument=function() return value end} end
+  assert(N.setCombatTarget(companion,target)==true and seen.name=='CombatTarget' and seen.object==target)
+  companion.GetAIControllerComponent=function() return {SetBehaviorArgument=function() end,GetBehaviorArgument=function() return nil end} end
+  assert(N.setCombatTarget(companion,target)==false,'the AI took another one at once: reported as different')
+  companion.GetAIControllerComponent=function() return {SetBehaviorArgument=function() error('no such argument') end} end
+  assert(not pcall(N.setCombatTarget,companion,target))
+`));
+
+test('the adapter lists the squadmates of every squad kind once, pulls one in with his old attitudes remembered, and releases him', () => run(openingWorld + `
+  local function member(name,x) local m=puppet(name); m.GetEntityID=function() return {hash=name} end; m.pos={x=x,y=0,z=0}
+    m.GetTargetTrackerComponent=function() return trackerFor(name) end
+    m.GetStimReactionComponent=function() return reactor(name) end; m.GetWorldPosition=function(s) return {x=s.pos.x,y=0,z=0} end; return m end
+  local a,b=member('a',5),member('b',9)
+  target.GetEntityID=function() return {hash='t'} end
+  companion.GetEntityID=function() return {hash='c'} end
+  local squadA={ListMembersWeak=function() return {target,a} end}
+  local squadB={ListMembersWeak=function() return {a,b} end}
+  target.GetSquadMemberComponent=function() return {MySquads=function() return {squadA,squadB} end} end
+  local list=N.squadmates(target)
+  assert(#list==2 and list[1]==a and list[2]==b,'the target is not his own squadmate, a member of two squads counts once')
+  target.GetSquadMemberComponent=function() return nil end
+  assert(#N.squadmates(target)==0)
+  a.IsNPC=function() return true end; a.IsPlayerCompanion=function() return false end; a.IsCrowd=function() return false end
+  a.IsCharacterCivilian=function() return true end; a.IsOnAutonomousAI=function() return false end
+  local f=N.squadFacts(a,player)
+  assert(f.npc==true and f.companion==false and f.civilian==true and f.story==true and f.children==nil and f.friendly==true and f.hostile==false,'facts')
+  companion.agent.attitude='AIA_Neutral'; a.agent.attitude='AIA_Friendly'; player.agent.attitude='AIA_Friendly'
+  companion.GetTargetTrackerComponent=function() return trackerFor('companion') end
+  order={}
+  local receipt={}
+  assert(N.pullIn(companion,a,player,receipt)=='pulled in')
+  local joined=table.concat(order,',')
+  assert(a.agent.attitude=='AIA_Hostile' and companion.agent.attitude=='AIA_Hostile','hostile both ways')
+  assert(joined:find('a%-combat%-V') and joined:find('a%-combat%-companion') and joined:find('threat%-on%-companion%-a'),joined)
+  local key, record; for k,r in pairs(receipt.squad) do key,record=k,r end
+  assert(record.fromHer=='AIA_Neutral' and record.toHer=='AIA_Friendly',tostring(record.fromHer))
+  order={}; N.pullIn(companion,a,player,receipt)
+  assert(not table.concat(order,','):find('attitude') and table.concat(order,','):find('a%-combat%-V'),'asked again, not changed again: '..table.concat(order,','))
+  TargetTrackingExtension.IsThreatInThreatList=function() return true end
+  assert(N.releaseMember(receipt,companion,key)=='released')
+  assert(companion.agent.attitude=='AIA_Neutral' and a.agent.attitude=='AIA_Friendly' and receipt.squad[key]==nil)
+  assert(table.concat(order,','):find('unthreat%-companion%-a'),table.concat(order,','))
+  assert(N.releaseMember(receipt,companion,key)==nil,'once')
+`));
+
+test('the adapter holsters through the unequip command on the right hand', () => run(`
+  local Tactics=(function() ${tacticsSource} end)()
+  local N=Tactics.nativeAdapter()
+  local sent,class,result
+  NewObject=function(c) class=c; return {} end
+  TweakDBID={new=function(n) return n end}
+  local npc={GetAIControllerComponent=function() return {SendCommand=function(_,c) sent=c; return result~=false end} end}
+  N.holster(npc)
+  assert(class=='AIUnequipCommand' and sent.slotId=='AttachmentSlots.WeaponRight')
+  result=false; assert(not pcall(N.holster,npc))
+`));
+
+// The tactic against fakes for the opening natives.
+const openingExtras = engageExtras + `
+companion.combatTarget=''
+native.combatTarget=function(c) return c.combatTarget end
+native.provoke=function(c,t,p,r) effect('provoke',t.id); return 'he is hostile to V (was AIA_Neutral); his combat start against V asked' end
+targetSetWorks=false
+native.setCombatTarget=function(c,t) effect('set-target',t.id); if targetSetWorks then c.combatTarget=t.id; c.combat=true; c.hls='Combat' end; return targetSetWorks end
+mates={}
+native.squadmates=function(t) return mates end
+native.squadFacts=function(m,p) return m.facts or {npc=true} end
+native.pullIn=function(c,m,p,r) r.squad=r.squad or {}; r.squad[m.id]={npc=m}; effect('pull',m.id); return 'pulled in' end
+native.releaseMember=function(r,c,key) effect('release-member',key); r.squad[key]=nil; return 'released' end
+function mate(id,x,facts) local m={id=id,pos={x=x,y=0,z=0},alive=true,name='Goon '..id,facts=facts or {npc=true},hand=false,body='Man'}; mates[#mates+1]=m; return m end
+`;
+
+test('the fight is opened for real at once: his side, her combat target, his group; a stranded path does not hold it back', () => run(world + openingExtras + `
+  targetSetWorks=true
+  mate('g1',25); mate('g2',30)
+  local standing=companion.pos
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  assert(index('provoke')<index('set%-target') and index('set%-target')<index('pull'),table.concat(effects,' | '))
+  assert(logged('opening %(start%): he is hostile to V') and logged('opening %(start%): her combat target set, reads back as the target'),table.concat(logs,'|'))
+  assert(logged('squad %(start%): 2 squadmates listed, 2 pulled in %(Goon g1, Goon g2%)'),table.concat(logs,'|'))
+  local d
+  for _=1,6 do T.update(player,0.1,true); d=T.decide(3,{position=standing,motion=motion},0.1) end
+  assert(phase()=='fighting' and d.operation.kind=='release','a path that goes nowhere does not matter once she has a target: '..phase())
+  assert(count('engage')==0,'no ladder needed')
+`));
+
+test('squadmates: only fighters near him join; civilians, friends, companions, named characters, her own copies and far ones do not; the count is logged', () => run(world + openingExtras + `
+  mate('near',25); mate('far',90)
+  mate('civ',22,{npc=true,civilian=true}); mate('crowd',22,{npc=true,crowd=true}); mate('friend',22,{npc=true,friendly=true})
+  mate('story',22,{npc=true,story=true}); mate('judy',22,{npc=true,companion=true}); mate('named',22); mate('mine',22)
+  local down=mate('down',22); down.alive=false
+  env.protected=function(m) return m.id=='named' end
+  env.owned=function(m) return m.id=='mine' end
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  assert(count('pull')==1,table.concat(effects,'|'))
+  local line=assert(logged('squad %(start%): 10 squadmates listed, 1 pulled in %(Goon near%); skipped:'),table.concat(logs,'|'))
+  for _,word in ipairs({'civilian 2','companion 2','down 1','far 1','friendly 1','story%-character 1','story%-controlled 1'}) do assert(line:find(word),word..' in '..line) end
+`));
+
+test('the squad is pulled in at the start and on the 1 s and 2 s asks only, and given back with the fight', () => run(world + openingExtras + `
+  mate('g1',25)
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  for _=1,60 do frame() end
+  local function pulls() local n=0 for _,l in ipairs(logs) do if l:find('Companion tactic: squad %(') then n=n+1 end end return n end
+  assert(pulls()==3,'start, stage 2, stage 3: '..pulls())
+  assert(logged('squad %(stage 2%)') and logged('squad %(stage 3%)') and not logged('squad %(again%)'),table.concat(logs,'|'))
+  T.cancel('cancelled')
+  assert(count('release%-member')==1 and logged('restore: 1 squadmates released'),table.concat(effects,'|')..table.concat(logs,'|'))
+`));
+
+test('a squad that cannot be listed is noted once and the fight goes on', () => run(world + openingExtras + `
+  native.squadmates=function() error('no squad component') end
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  for _=1,40 do frame() end
+  local n=0; for _,l in ipairs(logs) do if l:find('squadmates could not be listed') then n=n+1 end end
+  assert(n==1 and T.owns(3),'noted once, the order runs on')
+`));
+
+test('with no fight after the three asks the combat target and the fight are asked for again every 3 s until she gives up', () => run(world + openingExtras + `
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  for _=1,80 do T.update(player,0.1,true) end
+  local again=0; for _,l in ipairs(logs) do if l:find('Companion tactic: engage again') then again=again+1 end end
+  assert(again>=1 and again<=3,'a low rate: '..again..' in 8 s')
+  local opens=0; for _,e in ipairs(effects) do if e=='set-target 77ULL' then opens=opens+1 end end
+  assert(opens>=4,'start, two stages and at least one slow ask: '..opens)
+  assert(logged('opening %(again%)') and not logged('squad %(again%)'),'the squad is not asked on the slow retries')
+`));
+
+test('restore: the target is read off her threat list again a moment later; one still there is removed once more, with her attitude to him in the log', () => {
+  run(world + openingExtras + `
+  native.threatListed=function(c,t) return true end
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  T.cancel('cancelled')
+  assert(count('threat%-remove')==1)
+  for _=1,20 do frame() end
+  assert(logged('restore: target still on her threat list 1%.%d s after the tactic ended %(her attitude to him AIA_Hostile%), removed again'),table.concat(logs,'|'))
+  assert(count('threat%-remove')==2)
+  local n=0; for _,l in ipairs(logs) do if l:find('on her threat list 1') then n=n+1 end end; assert(n==1,'once')
+  `);
+  run(world + openingExtras + `
+  native.threatListed=function() return false end
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  T.cancel('cancelled')
+  for _=1,20 do frame() end
+  assert(logged('restore: target off her threat list 1%.%d s after the tactic ended') and count('threat%-remove')==1,table.concat(logs,'|'))
+  `);
+});
+
+test('restore: a weapon still drawn is asked for again, then holstered with the unequip command, then reported', () => {
+  run(world + openingExtras + `
+  local rearms=0
+  env.rearm=function(entity) rearms=rearms+1; effect('rearm',entity); return true end
+  native.holster=function(c) effect('holster',c.id) end
+  companion.hand=true
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  T.cancel('cancelled')
+  for _=1,600 do frame() end
+  assert(rearms==2,'asked twice: '..rearms)
+  assert(logged('holster asked of the equipment owner again %(ask 2%)') and logged('the unequip command sent directly'),table.concat(logs,'|'))
+  assert(count('holster')==1 and logged('weapon read back: still drawn %(Items.Preset_Lexington%)'),table.concat(logs,'|'))
+  assert(index('rearm')<index('holster'))
+  `);
+  run(world + openingExtras + `
+  local asks=0
+  env.rearm=function(entity) asks=asks+1; effect('rearm',entity); if asks==2 then companion.hand=false end; return true end
+  native.holster=function(c) effect('holster',c.id) end
+  companion.hand=true
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  T.cancel('cancelled')
+  for _=1,600 do frame() end
+  assert(asks==2 and count('holster')==0 and logged('weapon read back: holstered'),'the second ask worked, no direct command: '..table.concat(logs,'|'))
+  `);
+  run(world + openingExtras + `
+  env.rearm=function(entity) effect('rearm',entity); return true end
+  native.holster=function(c) effect('holster',c.id) end
+  companion.hand=true; player.combat=true
+  assert(T.start('fight',T.offer('44ULL'),'44ULL'),"start refused")
+  T.cancel('cancelled')
+  for _=1,600 do frame() end
+  assert(count('holster')==0 and count('rearm')==1,'V is in combat: no extra holster commands: '..table.concat(effects,'|'))
+  `);
+});

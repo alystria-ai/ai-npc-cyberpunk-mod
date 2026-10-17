@@ -2910,6 +2910,9 @@ tacticEnv.player = function() return Game.GetPlayer() end
 tacticEnv.actor = function(entity) return companions.readyActor(entity) end
 tacticEnv.rearm = function(entity) return companions.rearmEquipment(entity) end
 tacticEnv.marked = function(player) return marking.current(player) end
+-- Squadmates pulled into a fight: never a named, story or spawned character, and never one of our own copies.
+tacticEnv.protected = function(npc) return convaiWorldPolicy ~= nil and convaiWorldPolicy.protected(npc) == true end
+tacticEnv.owned = function(npc) return companions.owns(npc) or (convaiCompanionAdoption ~= nil and convaiCompanionAdoption.hidden(npc)) end
 tacticEnv.feedback = function(message)
     local player = Game.GetPlayer()
     if player then convaiNotices.send(player, 'tactic-outcome', ui.t(message)) end

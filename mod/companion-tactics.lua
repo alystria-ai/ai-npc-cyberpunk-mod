@@ -25,6 +25,14 @@ local DEFAULTS = {
     -- Weapon draw: the switch-to-primary command, read back after drawReadback; an empty hand then gets the explicit
     -- equip, read back after drawReadback; then the bare slot equip, read back after drawRetryReadback.
     offerTtl = 125, drawReadback = 1.0, drawRetryReadback = 2.0,
+    -- Once the engage stages are used up and there is still no fight, the combat target is set and the fight asked for again
+    -- every reassertGap seconds (a few native calls each; only while the order is pending).
+    reassertGap = 3,
+    -- The target's squadmates within squadRadius metres of him (at most squadMax of them) are put into the fight.
+    squadRadius = 40, squadMax = 12,
+    -- A threat removed from her tracker is read again threatCheck seconds into the restore (her senses can list a hostile
+    -- in view again at once); a weapon still drawn after holsterWatch seconds is asked for again, holsterTries times.
+    threatCheck = 1.0, holsterTries = 2,
 }
 local DRAW_STAGES = {'switch', 'equip', 'slot'}
 local ENGAGE_STAGES = 3
@@ -213,7 +221,8 @@ function M.nativeAdapter()
         if not tracker then error('no target tracker') end
         if not N.threatListed(npc, target) then return 'the target was no longer on her threat list' end
         tracker:RemoveThreat(tracker:MapThreat(target))
-        return 'threat on the target removed (read back ' .. (N.threatListed(npc, target) and 'STILL LISTED' or 'gone') .. ')'
+        -- Her senses can list a hostile in view again at once, so this read is not the verdict: the restore reads it again later.
+        return 'threat on the target removed (read back ' .. (N.threatListed(npc, target) and 'listed again at once, checked again below' or 'gone') .. ')'
     end
     -- What the log and the player notice need when the combat does not start: plain facts, each read guarded.
     function N.diagnose(companion, target)
@@ -288,6 +297,131 @@ function M.nativeAdapter()
         return table.concat(notes, '; ')
     end
 
+    -- A real combat target (aiComponent.script: the behavior argument 'CombatTarget' is what the shooting actions read; the game's
+    -- own AICombatTargetHelper.SetNewCombatTarget sets it from inside the behavior). SetBehaviorArgument is a plain import, so
+    -- no script half is needed; the AI commands that carry a target (AIInjectCombatTargetCommand, AIShootCommand) take an
+    -- EntityReference, which holds only a node reference and cannot name a spawned NPC. Returns true when it reads back as the target.
+    function N.setCombatTarget(companion, target)
+        companion:GetAIControllerComponent():SetBehaviorArgument('CombatTarget', ToVariant(target))
+        return N.combatTarget(companion) == N.key(target)
+    end
+    -- Makes the target a real opponent from his side as well: hostile to V (undone at the end only when it was not already),
+    -- and his own reaction component starts combat against V and against her (reactionComponent TriggerCombat; a civilian
+    -- record is spared V and gets the game's combat helper, so a bystander is never turned on V). Returns text for the log.
+    function N.provoke(companion, target, player, receipt)
+        local notes = {}
+        local civilian = false
+        pcall(function() civilian = target:IsCharacterCivilian() == true end)
+        if not civilian and player then
+            local ok, failure = pcall(function()
+                local was = attitudeName(target, player)
+                if was ~= 'AIA_Hostile' then
+                    target:GetAttitudeAgent():SetAttitudeTowards(player:GetAttitudeAgent(), attitude('AIA_Hostile'))
+                    if receipt and receipt.targetToPlayer == nil and was then receipt.targetToPlayer = was end
+                    notes[#notes + 1] = 'he is hostile to V (was ' .. tostring(was) .. ')'
+                end
+            end)
+            if not ok then notes[#notes + 1] = 'attitude to V failed: ' .. tostring(failure) end
+        end
+        local function against(who, label)
+            local ok, failure = pcall(function()
+                if civilian then
+                    if AIActionHelper.TryStartCombatWithTarget(target, who) == false then error('the game refused combat') end
+                else
+                    reactionComponent(target):TriggerCombat(who)
+                end
+            end)
+            notes[#notes + 1] = ok and ('his combat start against ' .. label .. ' asked') or ('his combat start against ' .. label .. ' failed: ' .. tostring(failure))
+        end
+        if not civilian and player then against(player, 'V') end
+        against(companion, 'her')
+        return table.concat(notes, '; ')
+    end
+
+    -- Squad: the target's squadmates (the game's squad member component keeps one squad per kind, the combat squad and the
+    -- community the NPCs were spawned in). A list of NPC handles, the target not in it; raises when it cannot be read.
+    function N.squadmates(target)
+        local component = target:GetSquadMemberComponent()
+        if not component then return {} end
+        local result, seen = {}, {[N.key(target)] = true}
+        for _, squad in ipairs(component:MySquads() or {}) do
+            for _, member in ipairs(squad:ListMembersWeak() or {}) do
+                local ok, key = pcall(N.key, member)
+                if ok and not seen[key] then seen[key] = true; result[#result + 1] = member end
+            end
+        end
+        return result
+    end
+    -- Plain facts that decide whether a squadmate may be pulled in (the same signals as companion-marking.lua facts, each read
+    -- guarded: an unreadable signal is left nil).
+    function N.squadFacts(npc, player)
+        local f = {}
+        local function read(name, fn) local ok, value = pcall(fn); if ok then f[name] = value == true end end
+        read('npc', function() return npc:IsNPC() end)
+        read('companion', function() return npc:IsPlayerCompanion() end)
+        read('crowd', function() return npc:IsCrowd() end)
+        read('civilian', function() return npc:IsCharacterCivilian() end)
+        read('children', function() return npc:IsCharacterChildren() end)
+        read('vendor', function() return npc:IsVendor() end)
+        read('invulnerable', function() return npc:IsInvulnerable() end)
+        read('story', function() return not npc:IsOnAutonomousAI() end)
+        read('friendly', function() return attitudeName(npc, player) == 'AIA_Friendly' end)
+        read('hostile', function() return attitudeName(npc, player) == 'AIA_Hostile' end)
+        return f
+    end
+    -- Puts one squadmate into the fight: hostile to V and to her (and she to him; what was different is remembered), on her
+    -- threat list, and his reaction component starts combat against both. Idempotent: a member already pulled in is only
+    -- asked again. Returns text.
+    function N.pullIn(companion, member, player, receipt)
+        receipt.squad = receipt.squad or {}
+        local key = N.key(member)
+        local record = receipt.squad[key]
+        if not record then
+            record = {npc = member}
+            receipt.squad[key] = record
+            local function hostile(from, to, field)
+                local was = attitudeName(from, to)
+                if was ~= 'AIA_Hostile' then
+                    from:GetAttitudeAgent():SetAttitudeTowards(to:GetAttitudeAgent(), attitude('AIA_Hostile'))
+                    if was then record[field] = was end
+                end
+            end
+            hostile(companion, member, 'fromHer'); hostile(member, companion, 'toHer'); hostile(member, player, 'toPlayer')
+        end
+        local component = reactionComponent(member)
+        component:TriggerCombat(player)
+        component:TriggerCombat(companion)
+        local mine = companion:GetTargetTrackerComponent()
+        if mine then mine:AddThreat(member, true, member:GetWorldPosition(), 1.0, -1.0, false); record.threat = true end
+        return 'pulled in'
+    end
+    -- Gives a pulled-in squadmate's attitudes back and takes him off her threat list (his own AI ends his fight). Returns text.
+    function N.releaseMember(receipt, companion, key)
+        local record = receipt and receipt.squad and receipt.squad[key]
+        if not record then return nil end
+        receipt.squad[key] = nil
+        local member = record.npc
+        if record.fromHer then companion:GetAttitudeAgent():SetAttitudeTowards(member:GetAttitudeAgent(), attitude(record.fromHer)) end
+        if record.toHer then member:GetAttitudeAgent():SetAttitudeTowards(companion:GetAttitudeAgent(), attitude(record.toHer)) end
+        if record.toPlayer then
+            local player = Game.GetPlayer()
+            if player then member:GetAttitudeAgent():SetAttitudeTowards(player:GetAttitudeAgent(), attitude(record.toPlayer)) end
+        end
+        if record.threat and N.threatListed(companion, member) then
+            local tracker = companion:GetTargetTrackerComponent()
+            if tracker then tracker:RemoveThreat(tracker:MapThreat(member)) end
+        end
+        return 'released'
+    end
+
+    -- A drawn weapon the equipment owner did not holster: the unequip command it uses itself (companion-equipment.lua), for
+    -- the right hand. Raises when the game refuses it.
+    function N.holster(npc)
+        local command = NewObject('AIUnequipCommand')
+        command.slotId = TweakDBID.new('AttachmentSlots.WeaponRight')
+        if npc:GetAIControllerComponent():SendCommand(command) == false then error('the holster command was refused') end
+    end
+
     -- Fight: agent-level hostility in both directions (never the whole attitude
     -- group, which would turn V's group against everyone of the target's group),
     -- then a persistent hostile threat so the companion's combat AI engages, the
@@ -326,6 +460,11 @@ function M.nativeAdapter()
         if receipt.persistence then companion:GetTargetTrackerComponent():SetThreatPersistence(target, false, receipt.persistence) end
         if receipt.companionToTarget then companion:GetAttitudeAgent():SetAttitudeTowards(target:GetAttitudeAgent(), attitude(receipt.companionToTarget)) end
         if receipt.targetToCompanion then target:GetAttitudeAgent():SetAttitudeTowards(companion:GetAttitudeAgent(), attitude(receipt.targetToCompanion)) end
+        if receipt.targetToPlayer then
+            local player = Game.GetPlayer()
+            if player then target:GetAttitudeAgent():SetAttitudeTowards(player:GetAttitudeAgent(), attitude(receipt.targetToPlayer)) end
+            receipt.targetToPlayer = nil
+        end
     end
     -- What is in the right hand: true and the item record when a real weapon (not fists) is drawn, false when
     -- the hand is empty or holds fists. Raises when the game will not say.
@@ -426,6 +565,21 @@ function M.new(options)
             if not restored then log('reaction: preset restore failed: ' .. tostring(result))
             elseif result then log('reaction: ' .. tostring(result)) end
         end
+        -- The squadmates pulled in leave the fight: attitudes back, off her threat list (their own AI ends their combat).
+        if type(native.releaseMember) == 'function' and type(receipt.squad) == 'table' and get(native.alive, a.companion) then
+            local keys = {}
+            for key in pairs(receipt.squad) do keys[#keys + 1] = key end
+            local done, failed = 0, 0
+            for _, key in ipairs(keys) do
+                local member = receipt.squad[key] and receipt.squad[key].npc
+                if member and get(native.alive, member) then
+                    local ok, failure = pcall(native.releaseMember, receipt, a.companion, key)
+                    if ok then done = done + 1 else failed = failed + 1; log('restore: squadmate release failed: ' .. tostring(failure)) end
+                end
+            end
+            if done + failed > 0 then log('restore: ' .. done .. ' squadmates released' .. (failed > 0 and (', ' .. failed .. ' failed') or '')) end
+            receipt.squad = nil
+        end
         -- A defeated target needs nothing back; a living one gets its attitudes.
         if get(native.alive, a.target) and get(native.alive, a.companion) then
             pcall(native.stopFight, receipt, a.companion, a.target)
@@ -460,10 +614,32 @@ function M.new(options)
     local function restoreNote(r, key, line)
         if not r.noted[key] then r.noted[key] = true; restoreLog(r, line) end
     end
+    -- The holster is asked of the equipment owner, which holsters once she is calm; read back after holsterWatch seconds. A weapon
+    -- still drawn then is asked for again (up to holsterTries asks), and once more through the unequip command itself (live
+    -- 2026-10-17: the second order's holster was asked once and the weapon was still drawn 9 s later).
     local function restoreHolster(r)
         local ok, drawn, record = pcall(native.weapon, r.companion)
         if r.rearmed then
-            restoreLog(r, 'weapon read back: ' .. ((ok and drawn == true) and ('still drawn (' .. tostring(record) .. ')') or 'holstered'))
+            local still = ok and drawn == true
+            local text = still and ('still drawn (' .. tostring(record) .. ')') or 'holstered'
+            if not still then restoreLog(r, 'weapon read back: ' .. text); restoring = nil; return end
+            if get(native.playerInCombat, get(env.player)) == true then
+                restoreLog(r, 'weapon read back: ' .. text .. ', V is in combat, left to the game'); restoring = nil; return
+            end
+            if (r.holsterAsks or 1) < settings.holsterTries and type(env.rearm) == 'function' then
+                r.holsterAsks = (r.holsterAsks or 1) + 1
+                local armed, rearmError = pcall(env.rearm, r.entity)
+                restoreLog(r, 'weapon read back: ' .. text .. ', holster asked of the equipment owner again (ask ' .. r.holsterAsks .. ')'
+                    .. (armed and '' or (', could not be asked: ' .. tostring(rearmError))))
+                if armed then r.rearmed = clock; return end
+            end
+            if not r.holsterDirect and type(native.holster) == 'function' then
+                r.holsterDirect = true
+                local sent, failure = pcall(native.holster, r.companion)
+                restoreLog(r, 'weapon read back: ' .. text .. ', the unequip command sent directly' .. (sent and '' or (', refused: ' .. tostring(failure))))
+                if sent then r.rearmed = clock; return end
+            end
+            restoreLog(r, 'weapon read back: ' .. text)
             restoring = nil; return
         end
         if ok and drawn ~= true then restoreLog(r, 'weapon already holstered'); restoring = nil; return end
@@ -471,7 +647,7 @@ function M.new(options)
         if type(env.rearm) == 'function' then armed, rearmError = pcall(env.rearm, r.entity) end
         if armed then
             restoreLog(r, 'holster asked of the equipment owner (weapon in hand: ' .. ((ok and drawn == true) and tostring(record) or 'unreadable') .. ')')
-            r.rearmed = clock
+            r.rearmed, r.holsterAsks = clock, 1
         else
             restoreLog(r, 'holster could not be asked: ' .. tostring(rearmError)); restoring = nil
         end
@@ -481,6 +657,23 @@ function M.new(options)
         if not r or clock < r.nextAt then return end
         r.nextAt = clock + settings.restoreGap
         if (active and active.companion == r.companion) or not get(native.alive, r.companion) then restoring = nil; return end
+        -- Our threat was taken out of her tracker when the tactic ended. Her senses can list a hostile in view again at once, so
+        -- the verdict is read here, once, after threatCheck seconds; a threat still there is removed once more.
+        if not r.threatChecked and type(native.threatListed) == 'function' and get(native.alive, r.target) == true
+            and clock - r.startedAt >= settings.threatCheck then
+            r.threatChecked = true
+            local listed = get(native.threatListed, r.companion, r.target)
+            local after = string.format('%.1f', clock - r.startedAt) .. ' s after the tactic ended'
+            if listed == true then
+                local diag = get(native.diagnose, r.companion, r.target)
+                local removed, result = true, nil
+                if type(native.removeThreat) == 'function' then removed, result = pcall(native.removeThreat, r.companion, r.target) end
+                restoreLog(r, 'target still on her threat list ' .. after .. ' (her attitude to him ' .. tostring(type(diag) == 'table' and diag.out or '?')
+                    .. '), removed again: ' .. (removed and tostring(result) or ('failed: ' .. tostring(result))))
+            elseif listed == false then
+                restoreLog(r, 'target off her threat list ' .. after)
+            end
+        end
         if r.rearmed then
             if clock - r.rearmed >= settings.holsterWatch then restoreHolster(r) end
             return
@@ -667,6 +860,80 @@ function M.new(options)
         end
     end
 
+    -- Whether a squadmate of the target may be pulled in, from plain facts: never a companion, a civilian or crowd NPC, a child,
+    -- a vendor, an invulnerable or scene-controlled NPC, a named character, nor anyone friendly to V. Returns true, or false
+    -- and the reason.
+    local function squadVerdict(f, protected, owned)
+        if owned or f.companion then return false, 'companion' end
+        if f.npc == false then return false, 'not-npc' end
+        if f.crowd or f.civilian then return false, 'civilian' end
+        if f.children then return false, 'children' end
+        if f.vendor then return false, 'vendor' end
+        if f.invulnerable then return false, 'invulnerable' end
+        if f.story then return false, 'story-controlled' end
+        if protected then return false, 'story-character' end
+        if f.friendly then return false, 'friendly' end
+        return true, 'squadmate'
+    end
+    -- His group joins the fight: the target's squadmates within squadRadius of him are put into combat against V and her.
+    -- Runs at the engage stages only (never per frame). Logs how many.
+    local function pullSquad(a, label)
+        if type(native.squadmates) ~= 'function' or not a.fightReceipt then return end
+        local player = get(env.player)
+        local read, mates = pcall(native.squadmates, a.target)
+        if not read then
+            if not a.squadFailed then a.squadFailed = true; log('squad (' .. label .. '): squadmates could not be listed: ' .. tostring(mates)) end
+            return
+        end
+        local at = get(native.position, a.target)
+        local pulled, skipped, listed, failures = {}, {}, 0, 0
+        for _, member in ipairs(type(mates) == 'table' and mates or {}) do
+            listed = listed + 1
+            local verdict, why = false, 'unreadable'
+            local where = get(native.position, member)
+            if get(native.alive, member) ~= true then why = 'down'
+            elseif at and where and distanceBetween(at, where) > settings.squadRadius then why = 'far'
+            elseif #pulled >= settings.squadMax then why = 'over-limit'
+            else
+                local facts = get(native.squadFacts, member, player) or {}
+                local protected = env.protected and get(env.protected, member) == true
+                local owned = env.owned and get(env.owned, member) == true
+                verdict, why = squadVerdict(facts, protected, owned)
+            end
+            if verdict then
+                local ok, failure = pcall(native.pullIn, a.companion, member, player, a.fightReceipt)
+                if ok then pulled[#pulled + 1] = get(native.name, member) or 'NPC'
+                else failures = failures + 1; log('squad (' .. label .. '): pulling in ' .. tostring(get(native.name, member) or 'NPC') .. ' failed: ' .. tostring(failure)) end
+            else
+                skipped[why] = (skipped[why] or 0) + 1
+            end
+        end
+        local parts = {}
+        for why, n in pairs(skipped) do parts[#parts + 1] = why .. ' ' .. n end
+        table.sort(parts)
+        log('squad (' .. label .. '): ' .. listed .. ' squadmates listed, ' .. #pulled .. ' pulled in'
+            .. (#pulled > 0 and (' (' .. table.concat(pulled, ', ') .. ')') or '')
+            .. (#parts > 0 and ('; skipped: ' .. table.concat(parts, ', ')) or '')
+            .. (failures > 0 and ('; ' .. failures .. ' failed') or ''))
+    end
+    -- Opens the fight for real: the target is a real opponent from his side (his reaction component starts combat against V and
+    -- her), she holds him as her combat target (the behavior argument the shooting reads), and his group joins. The engine then
+    -- positions her itself; the move command only runs until the target reads back. withSquad: the engage stages, not the slow retries.
+    local function openCombat(a, label, withSquad)
+        if not a.fightReceipt then return end
+        local player = get(env.player)
+        if type(native.provoke) == 'function' then
+            local ok, text = pcall(native.provoke, a.companion, a.target, player, a.fightReceipt)
+            log('opening (' .. label .. '): ' .. (ok and tostring(text) or ('target side failed: ' .. tostring(text))))
+        end
+        if type(native.setCombatTarget) == 'function' then
+            local ok, result = pcall(native.setCombatTarget, a.companion, a.target)
+            log('opening (' .. label .. '): her combat target ' .. (ok and (result and 'set, reads back as the target' or 'asked, reads back different') or ('could not be set: ' .. tostring(result))))
+        end
+        if withSquad then pullSquad(a, label) end
+        a.evidence = nil
+    end
+
     -- Called once per accepted Convai action, with the exact captured offer.
     function T.start(kind, offer, entity)
         if not KINDS[kind] or type(offer) ~= 'table' or type(offer.actor) ~= 'table' or type(offer.target) ~= 'table'
@@ -703,6 +970,7 @@ function M.new(options)
         restoring = nil
         for _, line in ipairs(type(receipt.reaction) == 'table' and receipt.reaction.notes or {}) do log('reaction: ' .. tostring(line)) end
         enter('fight-approach', 'fight accepted: ' .. captured.name .. ' ' .. captured.targetId)
+        openCombat(active, 'start', true)
         drawWeapon(active)
         return true, (actor.name or 'Your companion') .. ' is going after ' .. captured.name .. '.'
     end
@@ -804,10 +1072,20 @@ function M.new(options)
                     local asked, text = pcall(native.engage, a.companion, a.target, engage.stage, a.fightReceipt)
                     log('engage stage ' .. engage.stage .. ' (no fight after ' .. string.format('%.1f', clock - a.since) .. 's, ' .. tostring(a.evidence.why) .. '): '
                         .. (asked and tostring(text) or ('failed: ' .. tostring(text))))
+                    openCombat(a, 'stage ' .. engage.stage, true)
                 elseif engage and engage.stage >= ENGAGE_STAGES and not engage.reported and clock - engage.at >= settings.engageReadback then
                     engage.reported = true
                     a.diag = get(native.diagnose, a.companion, a.target)
                     log('engage: combat did not register after ' .. string.format('%.1f', clock - a.since) .. 's' .. diagnosisText(a.diag))
+                end
+                -- The asks are used up and there is still no fight: the same asks again at a low rate until the order is given up
+                -- (the Combat state does not hold by itself: live 2026-10-17 it fell back to Relaxed and Stealth within seconds).
+                if engage and engage.stage >= ENGAGE_STAGES and clock - (engage.again or engage.at) >= settings.reassertGap then
+                    engage.again = clock
+                    local asked, text = pcall(native.engage, a.companion, a.target, engage.stage, a.fightReceipt)
+                    log('engage again (no fight after ' .. string.format('%.1f', clock - a.since) .. 's, ' .. tostring(a.evidence.why) .. '): '
+                        .. (asked and tostring(text) or ('failed: ' .. tostring(text))))
+                    openCombat(a, 'again', false)
                 end
                 if elapsed > settings.fightStartTimeout then
                     finish('no-combat', failureMessage(a)); return
