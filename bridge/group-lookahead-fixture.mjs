@@ -45,12 +45,26 @@ export const DEFAULT_TIMINGS = {
   alex: {firstTextMs: 1100, textCompleteMs: 1400, firstPcmMs: 1500, pcmCompleteMs: 2600, audioSeconds: 4, text: 'I could use a drink after all this.'},
 };
 
+// What the stage clock of a live round on the player's own Convai key and the Voxtral voice showed (2026-10-17): a fresh connection
+// for every speaker (3.0-4.3 s), the reply text 2.4-2.6 s after that, the first audio 1.1 s after the text, a reply of about 5 s. The
+// simulated Convai speech path folds the text and the voice into the delays of one provider request; the connection is its own cost
+// (connectMs), paid by a speaker whose page was not opened ahead of time. A speaker that is not prepared at all takes about 7 s from
+// its request to its first audio, as it did live.
+const liveShaped = text => ({connectMs: 3500, firstTextMs: 2100, textCompleteMs: 2600, firstPcmMs: 3500, pcmCompleteMs: 4500, audioSeconds: 5, text});
+export const LIVE_TIMINGS = {
+  'judy-alvarez': liveShaped('Hey V, good to see you both here.'),
+  'panam-palmer': liveShaped('Yeah, about time we all got together.'),
+  alex: liveShaped('I could use a drink after all this.'),
+};
+
 export class GroupScenario {
   // mode: 'lookahead' publishes predictions as the game does; 'serial' never
   // does (the bridge then behaves as before this feature). luaMs models how
   // often the game's update loop reads and writes files.
-  constructor({mode = 'lookahead', timings = DEFAULT_TIMINGS, luaMs = 50, speakers = 3, hooks = {}} = {}) {
-    Object.assign(this, {mode, timings, luaMs, speakers, hooks});
+  // playerKey: null for the shared key (the default), or {connections} for a player's own Convai key whose plan allows that many
+  // conversation connections at once (1: free or unread plan, 6: confirmed paid Gamer plan). The plan is never read from Convai.
+  constructor({mode = 'lookahead', timings = DEFAULT_TIMINGS, luaMs = 50, speakers = 3, hooks = {}, playerKey = null} = {}) {
+    Object.assign(this, {mode, timings, luaMs, speakers, hooks, playerKey});
     this.round = 0; this.requests = []; this.sequence = 0; this.controlSequence = 0;
     this.replyIds = new Set(); this.replyErrors = [];
   }
@@ -67,12 +81,14 @@ export class GroupScenario {
       writeFile(join(state, 'convai-key.txt'), 'api-key=isolated-test-key-not-a-real-credential\n'),
       writeFile(join(state, 'characters.json'), JSON.stringify(ids)),
       writeFile(join(state, 'local-voices.json'), '{}'),
-      writeFile(join(this.runtime, 'settings.json'), JSON.stringify({voiceProvider: 'convai'})),
+      writeFile(join(this.runtime, 'settings.json'), JSON.stringify({voiceProvider: 'convai', ...(this.playerKey ? {useOwnConvaiKey: true} : {})})),
+      ...(this.playerKey ? [writeFile(join(state, 'player-convai-key.txt'), 'api-key=isolated-test-player-key-not-a-real-credential\n')] : []),
       writeFile(join(this.folder, 'timings.json'), JSON.stringify(byId)),
     ]);
     this.timingsPath = join(this.folder, 'timings.json');
     const env = {...process.env, CYBERPUNK_CONVAI_STATE: state, CYBERPUNK_CONVAI_GAME: game,
-      CYBERPUNK_CONVAI_KEY_FILE: join(state, 'convai-key.txt'), CYBERPUNK_CONVAI_MUTE_BROWSER: '1', FAKE_HOST_LOG: this.hostLog, FAKE_HOST_TIMINGS: this.timingsPath};
+      CYBERPUNK_CONVAI_KEY_FILE: join(state, 'convai-key.txt'), CYBERPUNK_CONVAI_MUTE_BROWSER: '1', FAKE_HOST_LOG: this.hostLog, FAKE_HOST_TIMINGS: this.timingsPath,
+      FAKE_PAID_CONNECTIONS: String(this.playerKey?.connections ?? 1)};
     delete env.NODE_OPTIONS; delete env.NODE_PATH;
     this.output = '';
     this.child = spawn(process.execPath, ['--import', register, bridge], {cwd: this.folder, env, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe']});
@@ -83,7 +99,9 @@ export class GroupScenario {
     this.heartbeat = setInterval(() => void this.beat().catch(() => {}), 400);
     for (let at = 0; at < 600; at++) {
       if (this.closed) throw Error('bridge exited during startup\n' + this.output);
-      if ((await readJson(join(this.runtime, 'bridge-status.json')))?.state === 'waiting') return;
+      // A player's key takes over at the bridge's first idle boundary; the round must not begin before it has.
+      if ((await readJson(join(this.runtime, 'bridge-status.json')))?.state === 'waiting'
+          && (!this.playerKey || (await readJson(join(this.runtime, 'own-key-state.json')))?.active === 'player')) return;
       await sleep(100);
     }
     throw Error('bridge did not reach waiting\n' + this.output);

@@ -1,7 +1,8 @@
 // Measures the silence between one group speaker's last audio and the next
 // speaker's first audio, serial versus look-ahead.
 //
-//   node scripts/Measure-GroupGap.mjs --fixture          offline: the real bridge, a simulated game and provider
+//   node scripts/Measure-GroupGap.mjs --fixture [--key shared|player-paid|player-free] [--live-timings] [--speakers 2|3] [--rounds N]
+//                                                       offline: the real bridge, a simulated game and provider
 //   node scripts/Measure-GroupGap.mjs --live [--rounds 1]  Convai speech via the real RealtimeHost (a few calls)
 //
 // --live uses the Convai test user recorded in runtime/convai-latency-test-user.json (never the player's ID),
@@ -23,12 +24,17 @@ const summarize = (label, gaps) => console.log(JSON.stringify({label, gapsMs: ga
   medianMs: Math.round(median(gaps)), minMs: Math.round(Math.min(...gaps)), maxMs: Math.round(Math.max(...gaps))}));
 
 if (flag('fixture')) {
-  const {measureRound} = await import(pathToFileURL(resolve(project, 'bridge/group-lookahead-fixture.mjs')).href);
+  const {measureRound, LIVE_TIMINGS} = await import(pathToFileURL(resolve(project, 'bridge/group-lookahead-fixture.mjs')).href);
+  // --key shared (default) | player-paid | player-free: which key the simulated bridge runs on (the plan is never read from Convai).
+  // --live-timings: provider delays shaped like the 2026-10-17 live round on a player's key (about 7 s per speaker that is not prepared).
+  const keyName = args.includes('--key') ? args[args.indexOf('--key') + 1] : 'shared';
+  const playerKey = keyName === 'player-paid' ? {connections: 6} : keyName === 'player-free' ? {connections: 1} : null;
+  const options = {playerKey, speakers: option('speakers', 3), ...(flag('live-timings') ? {timings: LIVE_TIMINGS} : {})};
   const rounds = option('rounds', 2), results = {serial: [], lookahead: []};
   for (let at = 0; at < rounds; at++) for (const mode of ['serial', 'lookahead']) {
-    results[mode].push(...(await measureRound({mode})).gaps.map(row => row.gapMs));
+    results[mode].push(...(await measureRound({...options, mode})).gaps.map(row => row.gapMs));
   }
-  for (const mode of ['serial', 'lookahead']) summarize('fixture-' + mode, results[mode]);
+  for (const mode of ['serial', 'lookahead']) summarize(`fixture-${keyName}-${mode}`, results[mode]);
 } else if (flag('live')) {
   const {RealtimeHost} = await import(pathToFileURL(resolve(project, 'bridge/realtime-host.mjs')).href);
   const {ConvaiContinuousSpeech} = await import(pathToFileURL(resolve(project, 'bridge/convai-continuous-speech.mjs')).href);

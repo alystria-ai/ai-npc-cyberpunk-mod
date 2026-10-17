@@ -461,3 +461,40 @@ test('a round with a spawned character runs through the same adapter: face reque
   const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
   lua.lua_close(state); assert.equal(result, lua.LUA_OK, error);
 });
+
+// The look-ahead needs the game to publish the next speaker's turn while the current one is heard (runtime/group-prefetch.json). A
+// round with a character another mod or a spawner created in it publishes the same predictions as a round of our own companions,
+// whether the spawned character speaks first, second or last, and the prepared turn is the one later submitted.
+test('a spawned speaker, before or after our companion, gets the same prediction and the same prepared turn', () => check(`
+  local published, count = nil, 0
+  group.onPreparation=function(value) published=value; count=count+1 end
+  local sp=p('alex',5); sp.spawned=true
+  -- Our companions first, the spawned character last (the order choose() gives).
+  group.start('after',{judy,panam,sp},'Hello friends')
+  live['5ULL']=true
+  local first=group.next(1,100,live)
+  group.received(first.requestId,'Hello V',false,{'judy','panam','alex'})
+  local prepared=group.preview(2,101,live)
+  assert(published and published.sourceRequestId==first.requestId and prepared.profileKey=='panam')
+  group.completed(first.requestId,true)
+  local second=group.next(3,102,live)
+  assert(second.requestId==prepared.requestId,'the prepared turn of the companion is the submitted one')
+  group.received(second.requestId,'Hey',false,{'judy','panam','alex'})
+  local afterSecond=group.preview(4,103,live)
+  assert(afterSecond.profileKey=='alex' and afterSecond.entity=='5ULL' and afterSecond.group.heard[#afterSecond.group.heard].text=='Hey',
+    'the prediction for the spawned character is published while the companion is heard')
+  assert(published.input==afterSecond and published.sourceRequestId==second.requestId)
+  group.completed(second.requestId,true)
+  local third=group.next(5,104,live)
+  assert(third.requestId==afterSecond.requestId and third.generation==afterSecond.generation and third.entity=='5ULL')
+  -- The spawned character first (it was the addressed one): our companion is predicted while it is heard.
+  published=nil
+  group.start('before',{sp,judy,panam},'Hello friends')
+  local lead=group.next(6,200,live)
+  assert(lead.entity=='5ULL' and lead.group.index==1)
+  group.received(lead.requestId,'Hi V',false,{'alex','judy','panam'})
+  local ahead=group.preview(7,201,live)
+  assert(published and published.sourceRequestId==lead.requestId and ahead.profileKey=='judy' and ahead.group.heard[1].speaker=='alex')
+  group.completed(lead.requestId,true)
+  assert(group.next(8,202,live).requestId==ahead.requestId)
+`));

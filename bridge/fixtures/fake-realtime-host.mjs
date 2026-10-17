@@ -19,8 +19,23 @@ const poses = duration => Array.from({length: Math.round(duration * 30) + 2}, (_
 });
 
 export class RealtimeHost {
-  constructor() { this.active = new Set(); this.calls = new Map(); }
-  async warm() { return {}; }
+  constructor() { this.active = new Set(); this.calls = new Map(); this.pages = new Map(); }
+  // A connection costs its character's connectMs (when the timings say so) the first time it is needed, and nothing once a warm()
+  // opened it ahead of the turn. A page that is still opening is shared: the turn waits only for what is left.
+  page(characterId, connectMs) {
+    let page = this.pages.get(characterId);
+    if (!page) { page = {readyAt: Date.now() + connectMs, opened: false}; this.pages.set(characterId, page); }
+    return page;
+  }
+  async warm(config, {signal} = {}) {
+    const ms = timings()[config.characterId]?.connectMs ?? 0, existed = this.pages.has(config.characterId);
+    log({event: 'warm', characterId: config.characterId, existed});
+    const page = this.page(config.characterId, ms);
+    try { await sleep(Math.max(0, page.readyAt - Date.now()), signal); }
+    catch (error) { if (!page.opened) this.pages.delete(config.characterId); throw error; }
+    page.opened = true;
+    return {};
+  }
   async retain() {}
   async readiness() { return {present: true, ready: true}; }
   async refreshIdle() { return true; }
@@ -31,11 +46,18 @@ export class RealtimeHost {
     const spec = {firstTextMs: 1100, textCompleteMs: 1400, firstPcmMs: 1500, pcmCompleteMs: 2600, audioSeconds: 4,
       text: 'A short spoken reply. It has two sentences.', ...timings()[config.characterId]};
     const call = (this.calls.get(config.characterId) ?? 0) + 1; this.calls.set(config.characterId, call);
-    const start = Date.now(), token = liveSpeech?.token;
+    const token = liveSpeech?.token;
     const own = new AbortController(); this.active.add(own);
     const cancel = () => own.abort(); signal?.addEventListener('abort', cancel, {once: true});
     if (signal?.aborted) cancel();
     log({event: 'reply-start', characterId: config.characterId, context: config.context, ttsEnabled: config.ttsEnabled});
+    if (spec.connectMs) {
+      const page = this.page(config.characterId, spec.connectMs), existed = page.opened;
+      try { await sleep(Math.max(0, page.readyAt - Date.now()), own.signal); page.opened = true; }
+      catch (error) { if (!page.opened) this.pages.delete(config.characterId); log({event: 'reply-abort', characterId: config.characterId}); throw error; }
+      log({event: 'connected', characterId: config.characterId, warm: existed});
+    }
+    const start = Date.now();
     if (spec.failBeforeMs !== undefined && (spec.failOnCall === undefined || spec.failOnCall === call)) {
       try { await sleep(spec.failBeforeMs, own.signal); } catch (error) { log({event: 'reply-abort', characterId: config.characterId}); throw error; }
       log({event: 'reply-fail', characterId: config.characterId}); throw Error('Simulated provider failure');
