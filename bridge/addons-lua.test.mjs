@@ -116,6 +116,11 @@ test('a reply the game accepts says "playing" in the lease at once, and the dead
   // probe.log 2026-10-14: companion-kill was played and released in the same second; the bridge cut it ("Continuous speech owner
   // changed") because its lease still had no playback time when the request's deadline passed.
   run(`${WORLD}
+    -- The lease is an exchange file that ships as a placeholder (Mod Organizer 2): rewritten in place, never renamed over or removed.
+    local fileMoves = {}
+    local realRemove, realRename = os.remove, os.rename
+    os.remove = function(path) fileMoves[#fileMoves + 1] = 'remove ' .. path; return realRemove(path) end
+    os.rename = function(from, to) fileMoves[#fileMoves + 1] = 'rename ' .. from .. ' ' .. to; return realRename(from, to) end
     M.attach(host)
     local handle = assert(M.public.register({id = 'skippy', name = 'Skippy', version = '1.0.0', requires = '1.0'}))
     handle:speaker({id = 'gun', name = 'Skippy', anchor = 'player', minGap = 2})
@@ -134,14 +139,17 @@ test('a reply the game accepts says "playing" in the lease at once, and the dead
     assert(accepted.playbackStartedAt <= context.reaction.expiresAt, 'the bridge reads it as playing')
     -- The voice starts on the next tick: no second write of the same playback time.
     local writes = 0
-    for _, entry in ipairs(opened) do if entry == 'wb runtime/reaction-lease.json.tmp' then writes = writes + 1 end end
+    for _, entry in ipairs(opened) do if entry == 'wb runtime/reaction-lease.json' then writes = writes + 1 end end
     state.pendingId, state.speechId = nil, context.requestId
     now = now + 1
     tick()
     local after = 0
-    for _, entry in ipairs(opened) do if entry == 'wb runtime/reaction-lease.json.tmp' then after = after + 1 end end
+    for _, entry in ipairs(opened) do if entry == 'wb runtime/reaction-lease.json' then after = after + 1 end end
     assert(lease().playbackStartedAt == (now - 1) * 1000, 'the playback time is the moment it was accepted')
     assert(after - writes <= 1, 'at most the regular refresh')
+    assert(writes >= 1, 'the lease was written in place')
+    for _, move in ipairs(fileMoves) do assert(not move:find('reaction-lease', 1, true), move) end
+    for _, entry in ipairs(opened) do assert(not entry:find('reaction-lease.json.tmp', 1, true), entry) end
   `);
 });
 

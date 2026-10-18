@@ -137,8 +137,18 @@ local function decode(text)
     return ok and value or nil
 end
 
+-- Exchange files (a placeholder ships; the bridge reads them with a retry) are rewritten in place: one open, never a new or
+-- deleted file (Mod Organizer 2). The rest are saved state and keep the temp-and-rename protection.
+local IN_PLACE = {['reaction-lease.json'] = true}
+
 local function writeFile(name, text)
     local path = 'runtime/' .. name
+    if IN_PLACE[name] then
+        local file = io.open(path, 'wb')
+        if not file then return false end
+        file:write(text); file:close()
+        return true
+    end
     local file = io.open(path .. '.tmp', 'wb')
     if not file then return false end
     file:write(text); file:close()

@@ -173,6 +173,24 @@ assert(missing == nil and message:find('No such file'))
 assert(real.open == opens and real.rename == renames and real.remove == removes, 'routed IO used the real io')
 `));
 
+// Mod Organizer 2: the turn path's exchange files are rewritten in place, and "no request" is an empty file (nothing is removed).
+test('with the plugin, an in-place write and an empty in-place write of an exchange file are one native write each', () => run(`
+local M, api = boot(true)
+local opens, renames, removes = real.open, real.rename, real.remove
+local writes, nativeRemoves, nativeRenames = n('Write'), n('Remove'), n('Rename')
+local f = io.open('runtime/last-input.json', 'wb'); f:write('{"requestId":"1"}'); assert(f:close() == true)
+assert(disk['runtime/last-input.json'] == '{"requestId":"1"}' and n('Write') == writes + 1)
+-- Withdrawing the request: open and close with no bytes is a valid empty write, not a delete.
+f = io.open('runtime/last-input.json', 'wb'); assert(f:close() == true)
+assert(disk['runtime/last-input.json'] == '' and n('Write') == writes + 2 and n('Remove') == nativeRemoves)
+for _, name in ipairs({'reaction-lease.json', 'battle-cancellations.json', 'group-prefetch.json', 'conversation-prewarm.json', 'continuous-control.json', 'speech-state.json'}) do
+  f = io.open('runtime/' .. name, 'wb'); f:write('{}'); assert(f:close() == true)
+  assert(disk['runtime/' .. name] == '{}', name)
+end
+assert(n('Rename') == nativeRenames and n('Remove') == nativeRemoves and api.held() == 0)
+assert(real.open == opens and real.rename == renames and real.remove == removes, 'routed IO used the real io')
+`));
+
 test('files outside the whitelist and read-write modes use the real io', () => run(`
 local M, api = boot(true)
 local opens = real.open
