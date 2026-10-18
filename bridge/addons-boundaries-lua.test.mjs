@@ -139,9 +139,7 @@ test('handle API: a wrong or oversized argument is refused with its reason, a nu
   `);
 });
 
-test('a remarkDropped handler that asks for the same remark again while a scene is on must not spin the scheduler within one tick', {
-  todo: 'BUG: mod/addons.lua schedule() drops a remark inside its while-loop over the queue; the remarkDropped handler queues a new remark, the loop takes it, it is dropped again, and so on without end (the game freezes). Bound the loop to the entries that were queued when it began'
-}, () => {
+test('a remarkDropped handler that asks for the same remark again while a scene is on must not spin the scheduler within one tick', () => {
   lua(`
     ${REGISTER}
     handle:speaker({id = 'gun', name = 'Skippy', minGap = 2})
