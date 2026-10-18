@@ -59,11 +59,46 @@ export function headContext(input) {
 // ---- Johnny speaks up (phase 2): his own unprompted remark, an automatic reaction like a companion's battle line -------------------
 // mod/johnny-remarks.lua sends {kind: 'head', event, facts, expiresAt} with his head field. The facts are plain values the game read
 // (a roster character's name, a journal title, a romance fact's meaning); they are quoted to the model as data, never as instructions.
-const EVENTS = new Set(['person', 'quest', 'romance']);
+const EVENTS = new Set(['person', 'quest', 'romance', 'place']);
 const ROMANCE = Object.freeze({together: name => `V and ${name} are together now; it has just become a romance in this save.`,
   friends: name => `V and ${name} have just settled on staying friends, not lovers.`,
   declined: name => `V has just turned ${name} down.`,
   night: name => `V has just spent a night with ${name}.`});
+// The places of mod/johnny-remarks.lua M.PLACES (the same keys; a test holds the Lua table, this one and the research file together):
+// how to say where V is, and what he knows about it, each note only from his intrinsic claims or knowledge rules
+// (research/cyberpunk/native-reviews/johnny-places-20261019.json lists the sources and the evidence of every row).
+//   note     what he knows about the place, said when the gate is met; '' says the place name alone
+//   gate     a milestone id of his head field that the note needs (null: whenever he is in V's head)
+//   altNote  said instead of the note when the game's own rule for it is met by this save (the Lua read it: facts.alt)
+export const PLACES = Object.freeze({
+  afterlife: {phrase: 'the Afterlife, Little China, Watson', gate: null,
+    note: '',
+    altNote: "Here V paid Rogue for the Hellman lead, and she sent V on to Panam. You were along for it, in V's head."},
+  'arasaka-tower': {phrase: 'Corpo Plaza, City Center, where Arasaka Tower stands', gate: null,
+    note: 'You say you took Arasaka Tower down in 2023 for Alt. That is your account: the records disagree on who did it and how many died, and your codex says you died in that attack.',
+    altNote: 'You say you took Arasaka Tower down in 2023 for Alt, and V has lived through your memory of that raid. The records disagree on who did it and how many died.'},
+  embers: {phrase: 'Embers, the Glen, Heywood', gate: null,
+    note: '',
+    altNote: "At Embers Hanako offered to lead V to Mikoshi under Arasaka Tower if V testified against Yorinobu. That was her offer; you heard it from inside V's head."},
+  pacifica: {phrase: 'Pacifica', gate: 'alt',
+    note: "In the Voodoo Boys' data fortress Maman Brigitte pulled a fragment of you off V's chip and sent V into the deep Net; you and V reached Alt beyond the Blackwall."},
+  badlands: {phrase: 'the Badlands', note: '', gate: null},
+  'oil-field': {phrase: 'the North Sunrise oil field, the Badlands', gate: 'second-chance',
+    note: 'At the oil fields V gave you one last chance, and you said you would try.'},
+  dogtown: {phrase: 'Dogtown', gate: null,
+    note: '',
+    altNote: 'Songbird promised V a cure in her first bargain. That was her offer, not proof that it works.'},
+  'viktors-clinic': {phrase: "Viktor's clinic, Little China, Watson", gate: null,
+    note: "Here Viktor told V the Relic was overwriting V's consciousness with your construct, and that V had only a few weeks left."},
+  'kerry-estate': {phrase: "Kerry's estate, North Oaks, Westbrook", gate: null,
+    note: "Kerry's place. You once urged him to quit Samurai and find his own path, and you still think his titles are kitsch.",
+    altNote: "Kerry's place. Here Kerry recognized you talking through V, and you pitched bringing Samurai back."},
+  'denny-estate': {phrase: "Denny's estate, North Oaks, Westbrook", gate: null,
+    note: "Denny's place. You credit her with real talent and backbone, even when she tries your patience."},
+  totentanz: {phrase: 'the Totentanz, Northside, Watson', gate: null,
+    note: '',
+    altNote: "V got Nancy out of the Totentanz alive; you were along for it, in V's head."},
+});
 const REMARK_WORDS = 25;
 const cleanText = (value, limit) => typeof value === 'string' && value.length <= limit * 4
   ? value.replace(/<[^>]*>/g, '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, limit) || null : null;
@@ -86,17 +121,33 @@ export function parseHeadReaction(value, head, profileKey) {
     if (!Object.hasOwn(ROMANCE, value.facts.what)) return null;
     facts.what = value.facts.what;
   }
+  if (value.event === 'place') {
+    if (typeof value.facts.place !== 'string' || !Object.hasOwn(PLACES, value.facts.place)) return null;
+    facts.place = value.facts.place;
+    if (value.facts.alt === true && PLACES[facts.place].altNote) facts.alt = true;
+  }
   return {kind: 'head', event: value.event, facts, expiresAt: value.expiresAt, maxWords: REMARK_WORDS};
+}
+
+// V has arrived somewhere he knows: the phrase, and his note: the second one when the save has what its rule needs, else the first when
+// its gate is met by the milestones of this save.
+function placeEvent(key, alt, head) {
+  const place = PLACES[key];
+  const text = alt === true && place.altNote ? place.altNote : place.note && (!place.gate || head?.milestones.includes(place.gate)) ? place.note : '';
+  const note = text ? ` ${text}` : '';
+  return `V has just arrived in ${place.phrase}.${note}`;
 }
 
 /** The trigger of a remark: where he is, what just happened (quoted data), and the limits of the line. */
 export function headTrigger(input) {
   const reaction = input.reaction, facts = reaction?.facts ?? {};
   if (reaction?.kind !== 'head') throw Error('Invalid head trigger');
+  const head = headOf({...input, reaction: undefined});
   const event = reaction.event === 'person' ? `V has just been talking with ${JSON.stringify(facts.name)} in person (that scene is over now).`
     : reaction.event === 'quest' ? `V has just ${facts.outcome === 'failed' ? 'failed' : 'finished'} the job ${JSON.stringify(facts.title)}${facts.mine ? ', one of your own' : ''}.`
-      : ROMANCE[facts.what](JSON.stringify(facts.name));
-  const standing = STANDING[headOf({...input, reaction: undefined})?.stage] ?? '';
+      : reaction.event === 'place' ? placeEvent(facts.place, facts.alt, head)
+        : ROMANCE[facts.what](JSON.stringify(facts.name));
+  const standing = STANDING[head?.stage] ?? '';
   return 'You are Johnny Silverhand, the engram in V\'s head; nobody but V hears you. This event was not spoken by V. '
     + event + ' ' + (standing ? `Where you and V stand: ${standing} ` : '')
     + `Speak up on your own with one in-character remark of no more than ${REMARK_WORDS} words about it, from your own view. `

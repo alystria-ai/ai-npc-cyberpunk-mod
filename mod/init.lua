@@ -705,16 +705,71 @@ function convaiJohnnyRemarksService()
     end
     return convaiJohnnyRemarks or nil
 end
--- One event from a collector: 'person' (a game-dialogue row), 'quest' (a finished job from the history scan) or 'romance' (a fact name).
+-- One event from a collector: 'person' (a game-dialogue row), 'quest' (a finished job from the history scan), 'romance' (a fact name)
+-- or 'place' (a place row from the district sample below).
 function convaiJohnnyRemarkNote(kind, value)
     local remarks = convaiJohnnyRemarksService()
     local module = convaiJohnnyRemarksModule
     if not remarks or not module then return end
-    local subject, facts
+    local subject, facts, cooldown
     if kind == 'person' then subject, facts = module.personEvent(value)
     elseif kind == 'quest' then subject, facts = module.questEvent(value)
-    elseif kind == 'romance' then subject, facts = module.romanceEvent(value) end
-    if subject and remarks:note(kind, subject, facts, os.time()) then log('Johnny speaks up: noted ' .. subject) end
+    elseif kind == 'romance' then subject, facts = module.romanceEvent(value)
+    elseif kind == 'place' then
+        subject, facts, cooldown = module.placeEvent(value)
+        -- The second note needs facts and journal entries of this save: read once per arrival (a few native reads, hours apart), here.
+        if subject and value.alt and module.altMet(value, function(name) return Game.GetQuestsSystem():GetFactStr(name) end,
+            function(path, class)
+                local journal = Game.GetJournalManager()
+                local entry = journal:GetEntryByString(path, class)
+                if not entry or not entry:IsA(class) then return nil end
+                return journal:GetEntryState(entry) == Enum.new('gameJournalEntryState', 'Succeeded') and 'succeeded' or 'other'
+            end) then facts.alt = true end
+    end
+    -- convaiLogLine, not log: this function is defined above `local function log`, where a bare log is an undefined global.
+    if subject and remarks:note(kind, subject, facts, os.time(), cooldown) and convaiLogLine then convaiLogLine('Johnny speaks up: noted ' .. subject) end
+end
+-- Places (Johnny speaks up, step 2): the existing 0.5 s battle sample calls this. It reads at most every PLACE_SECONDS, and only while
+-- both settings are on (two boolean reads otherwise): the id of the district V is in (three native calls). The record and its parents
+-- are resolved only when that id changed. Nothing per frame and no hook: the game's own district event (PlayerPuppet OnDistrictChanged,
+-- queued by DistrictManager when a district is entered, not when one is left) would need an observer that stays registered with the
+-- settings off. A save load starts a new baseline (convaiJohnnyPlaceReset in abandonSession). Globals, so updateBattles gains no upvalue.
+do
+    local nextAt, lastId, chain, tracker = nil, nil, nil, nil
+    local function districtChain(id)
+        local names, record, guard = {}, TweakDBInterface.GetDistrictRecord(id), 0
+        while record and guard < 8 do
+            names[#names + 1] = nameString(record:EnumName())
+            record, guard = record:ParentDistrict(), guard + 1
+        end
+        return names
+    end
+    function convaiJohnnyPlaceSample(worldReady, mounted)
+        local at = os.clock()
+        if not worldReady or (nextAt and at < nextAt) then return end
+        local module = convaiJohnnyRemarksModule
+        nextAt = at + (module and module.PLACE_SECONDS or 6)
+        if manager.johnnyRemarks() == 'off' or not manager.johnnyInHead() then lastId, chain, tracker = nil, nil, nil; return end
+        if not convaiJohnnyRemarksService() then return end
+        module = convaiJohnnyRemarksModule
+        local ok, key, id = pcall(function()
+            local system = Game.GetScriptableSystemsContainer():Get('PreventionSystem')
+            local district = system and system:GetCurrentDistrict()
+            local value = district and district:GetDistrictID()
+            if not value then return nil end
+            return tostring(value.hash) .. '_' .. tostring(value.length), value
+        end)
+        if not ok then return end
+        if key ~= lastId then
+            local resolved, names = true, {}
+            if id then resolved, names = pcall(districtChain, id) end
+            lastId, chain = key, resolved and names or {}
+        end
+        tracker = tracker or module.placeTracker()
+        local row = tracker:observe(chain, mounted)
+        if row then convaiJohnnyRemarkNote('place', row) end
+    end
+    function convaiJohnnyPlaceReset() nextAt, lastId, chain, tracker = nil, nil, nil, nil end
 end
 
 -- The one rule for characters the game placed (docs/WORLD_COMPANIONS.md, "The mod never touches game characters"):
@@ -1191,6 +1246,8 @@ local function log(line)
     print('[CyberpunkConvai] ' .. line)
 end
 microphone.log = log
+-- For the functions defined above this point (the Johnny services): a bare `log` there would be an undefined global.
+convaiLogLine = log
 -- Names for nameless ordinary NPCs (docs/NPC_NAMES.md, mod/npc-names.lua). One generator serves the scanner and the talk path.
 -- The gate is the rule above: not ours, not protected (named, quest-bound, story record), a resolved ordinary profile (an archetype
 -- or the two residents), an adult human. Read on demand (a scan, a conversation start), never per frame.
@@ -2775,6 +2832,9 @@ local function updateBattles(player, elapsed, worldReady)
         end
         battlePeople, battleCandidatesOk = reactionPeople(player, battleSample)
         battleOutputs = reactionOutputs(player)
+        if convaiJohnnyPlaceSample then convaiJohnnyPlaceSample(worldReady, battleSample.vehicle == true) end
+        -- A Johnny probe acting over time (Developer mode, mod/johnny-probe.lua); nil otherwise.
+        if convaiJohnnyProbeTick then pcall(convaiJohnnyProbeTick) end
     end
     local now = os.time()
     battles.update(battleSample, worldReady and elapsed or 0, now, manager.battleReactions(), battlePeople)
@@ -3033,6 +3093,15 @@ speech.devNotice = function(request)
     convaiNotices.send(player, 'daily-limit', dailyLimitText())
     log('Developer notice shown: ' .. id)
     return true
+end
+
+-- Development only: a Johnny probe (mod/johnny-probe.lua, docs/JOHNNY_IN_YOUR_HEAD.md "Live check owed"), from the same mailbox poll,
+-- only for a new "johnny-probe:<feature>:<action>:<stamp>" request and only with Developer mode on. Loaded on the first such request.
+function convaiJohnnyProbeRun(request)
+    if not manager.developerMode() then return false end
+    local ok, probe = pcall(dofile, 'johnny-probe.lua')
+    if not ok or type(probe) ~= 'table' then log('Johnny probe unavailable: ' .. tostring(probe)); return false end
+    return probe.run(request)
 end
 
 local function groupAudience(player)
@@ -3426,6 +3495,7 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     convaiHeadTalk = nil
     if convaiJohnnyHead then convaiJohnnyHead:reset() end
     if convaiJohnnyRemarks then convaiJohnnyRemarks:reset() end
+    if convaiJohnnyPlaceReset then convaiJohnnyPlaceReset() end
     -- The face service decides at each NPC's spawn, so the setting is handed over before the next world loads.
     if convaiFacialPlayback and type(convaiFacialPlayback.applyStoryTalk) == 'function' then
         pcall(convaiFacialPlayback.applyStoryTalk, manager.storyConversations())
@@ -3812,8 +3882,11 @@ registerForEvent('onUpdate', function(delta)
             request:close()
             if nonce and #nonce > 0 and nonce ~= lastDiagnosticRequest then
                 lastDiagnosticRequest = nonce
-                -- "notice:<id>:<nonce>" shows one notice on demand (Developer mode only); anything else is a diagnostic capture.
-                if nonce:find('^notice:') then pcall(speech.devNotice, nonce) else captureDiagnostic() end
+                -- "notice:<id>:<nonce>" shows one notice on demand (Developer mode only); "johnny-probe:..." runs a Johnny probe
+                -- (mod/johnny-probe.lua, Developer mode only); anything else is a diagnostic capture.
+                if nonce:find('^notice:') then pcall(speech.devNotice, nonce)
+                elseif nonce:find('^johnny%-probe:') then pcall(convaiJohnnyProbeRun, nonce)
+                else captureDiagnostic() end
                 local response = io.open('runtime/diagnostic-response.txt', 'wb')
                 if response then response:write(nonce); response:close() end
             end

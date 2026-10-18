@@ -7507,8 +7507,9 @@ test('the developer notice trigger shows the daily-limit notice only with Develo
   const textStart = init.indexOf('local function dailyLimitText'), textEnd = init.indexOf('local function keyNoticeText');
   const start = init.indexOf('speech.devNotice = function'), end = init.indexOf('local function groupAudience');
   assert(textStart > 0 && textEnd > textStart && start > 0 && end > start, 'the developer notice code moved');
-  // The poll in onUpdate hands "notice:" requests to speech.devNotice and everything else to the diagnostic capture, once per new request.
-  assert(init.includes("if nonce:find('^notice:') then pcall(speech.devNotice, nonce) else captureDiagnostic() end"));
+  // The poll in onUpdate hands "notice:" requests to speech.devNotice, "johnny-probe:" requests to the Johnny probes and everything else
+  // to the diagnostic capture, once per new request.
+  assert.match(init, /if nonce:find\('\^notice:'\) then pcall\(speech\.devNotice, nonce\)\s+elseif nonce:find\('\^johnny%-probe:'\) then pcall\(convaiJohnnyProbeRun, nonce\)\s+else captureDiagnostic\(\) end/);
   const devNoticeBody = init.slice(start, end);
   assert(!/onUpdate|registerForEvent/.test(devNoticeBody), 'no event hook of its own: it adds no per-frame work');
   run(`

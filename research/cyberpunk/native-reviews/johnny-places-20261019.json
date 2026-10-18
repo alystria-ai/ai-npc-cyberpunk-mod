@@ -1,0 +1,333 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-10-19",
+  "purpose": "Places Johnny Silverhand speaks up about when V arrives (Johnny speaks up, step 2: mod/johnny-remarks.lua M.PLACES, bridge/johnny-head.mjs PLACES). For each place: the gamedataDistrict enum names that trigger it and their parent chain in the game's District records, the phrase the bridge words, and a short note written to Johnny in the second person, taken only from his intrinsic claims, his profile and the knowledge rules he is told (directly or as the engram that shares V's senses, native-cowitness.json). A note gated on a head milestone is said only when that milestone is in the head field; an altNote needs a fact or journal entry the head field does not carry. An empty note means the remark goes on the place name alone.",
+  "gameRoot": "E:/SteamLibrary/steamapps/common/Cyberpunk 2077/tools/redmod",
+  "sources": [
+    "research/cyberpunk/native-character-claims/johnny-silverhand.json",
+    "characters/profile-text/johnny-silverhand.txt",
+    "research/cyberpunk/native-cowitness.json",
+    "characters/world-knowledge.json",
+    "research/cyberpunk/native-rules/core-arcs.json",
+    "research/cyberpunk/native-rules/priority-johnny-rogue-20261004.json",
+    "research/cyberpunk/native-rules/priority-endings-20261004.json",
+    "research/cyberpunk/native-rules/priority-phantom-20261004.json",
+    "research/cyberpunk/native-rules/silverhand.json",
+    "research/cyberpunk/native-rules/silverhand-20261005.json",
+    "research/cyberpunk/native-rules/arasaka-heist-20261005.json",
+    "research/cyberpunk/native-rules/zz-cast-knowledge-20261018b.json",
+    "research/cyberpunk/native-rules/phantom.json",
+    "research/cyberpunk/native-rules/city-contacts-20261005.json",
+    "research/cyberpunk/native-rules/heywood-20261005.json",
+    "scripts/core/data/tweakDBEnums.script",
+    "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak",
+    "tweaks/ep1/gameplay/static_data/database/fasttravel/districts.tweak",
+    "scripts/core/systems/prevention/districtManager.script",
+    "scripts/core/systems/preventionSystem.script",
+    "mod/init.lua",
+    "mod/johnny-remarks.lua",
+    "mod/johnny-head.lua",
+    "bridge/johnny-head.mjs",
+    "bridge/place-names.mjs"
+  ],
+  "conventions": {
+    "districts": "Enum names (tweakDBEnums.script gamedataDistrict) that put V at the place. Matching walks V's chain from the most specific record up, so a district entry also covers every record under it; the most specific place on the chain wins.",
+    "level": "venue: one record (an interior or a named site). district: any record under the listed roots.",
+    "gate": "'none': true whenever Johnny is in V's head (after q101_done, before an ending). Otherwise a head milestone id of mod/johnny-head.lua M.MILESTONES.",
+    "altGate": "What the altNote needs instead: facts (name, test, verified writer) and/or journal entries (cooked journal path, class, state), with the knowledge rule that pins them. The altNote replaces the note when its gate is met.",
+    "vehicle": "true: an arrival read while V is in a vehicle counts (open districts V drives into). false: a reading while V is mounted in a vehicle should not count as being at the place (interiors and estates whose volume may reach the street), so the arrival is the first reading on foot.",
+    "evidence": "Paths relative to gameRoot, file:line or file:first-last."
+  },
+  "places": [
+    {
+      "key": "afterlife",
+      "districts": ["LittleChina_Afterlife"],
+      "level": "venue",
+      "phrase": "the Afterlife, Little China, Watson",
+      "note": "",
+      "noteSources": [],
+      "gate": "none",
+      "altNote": "Here V paid Rogue for the Hellman lead, and she sent V on to Panam. You were along for it, in V's head.",
+      "altNoteSources": [
+        "jr-priority.rogue.commission (priority-johnny-rogue-20261004.json; speakers rogue-amendiares, johnny-silverhand)",
+        "evidence jr-priority.rogue.commission: q103_rogue_done is written in the Afterlife phase (q103_01_afterlife_new.questphase)"
+      ],
+      "altGate": {
+        "rule": "jr-priority.rogue.commission",
+        "facts": [
+          {"name": "q103_rogue_paid_up", "test": ">= 1", "writer": "base/quest/main_quests/part1/q103/scenes/q103_03_rogue.scene sceneGraph graph/237 (factAllowlist writer)"},
+          {"name": "q103_rogue_done", "test": ">= 1", "writer": "base/quest/main_quests/part1/q103/phases/q103_01_afterlife_new.questphase graph nodes/12 (factAllowlist writer)"}
+        ]
+      },
+      "cooldownSeconds": 14400,
+      "vehicle": false,
+      "evidence": [
+        "scripts/core/data/tweakDBEnums.script:3250 (LittleChina_Afterlife)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:790-793 (Afterlife: enumName LittleChina_Afterlife, parentDistrict Districts.LittleChina)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:783-786 (LittleChina: parentDistrict Districts.Watson)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:34-36 (Watson: root, no parent)"
+      ],
+      "remarks": "No claim, profile line or Johnny-known rule names the Afterlife in its text. The only grounded line is the q103 payment to Rogue, which the rule's evidence places in the Afterlife phase. Visited often (Rogue, Nix, gigs), so a 4 h cooldown."
+    },
+    {
+      "key": "arasaka-tower",
+      "districts": [
+        "CorpoPlaza",
+        "CorpoPlaza_ArasakaTowerLobby", "CorpoPlaza_ArasakaTowerJungle", "CorpoPlaza_ArasakaTowerAtrium", "CorpoPlaza_ArasakaTowerNest",
+        "CorpoPlaza_ArasakaTowerSaburoOffice", "CorpoPlaza_ArasakaTowerJenkins", "CorpoPlaza_ArasakaTowerUnlistedFloors",
+        "CorpoPlaza_ArasakaTowerUpperAtrium", "CorpoPlaza_ArasakaTowerCEOFloor"
+      ],
+      "level": "district",
+      "phrase": "Corpo Plaza, City Center, where Arasaka Tower stands",
+      "note": "You say you took Arasaka Tower down in 2023 for Alt. That is your account: the records disagree on who did it and how many died, and your codex says you died in that attack.",
+      "noteSources": ["johnny.history.tower-for-alt", "johnny.history.tower-records-disputed", "johnny.history.codex-tower-death"],
+      "gate": "none",
+      "altNote": "You say you took Arasaka Tower down in 2023 for Alt, and V has lived through your memory of that raid. The records disagree on who did it and how many died.",
+      "altNoteSources": ["johnny.history.tower-for-alt", "johnny.history.tower-records-disputed", "priority-endings.johnny.firestorm-memory"],
+      "altGate": {
+        "rule": "priority-endings.johnny.firestorm-memory",
+        "facts": [
+          {"name": "q101_rogue_moved_to_heli", "test": ">= 1", "writer": "base/quest/main_quests/part1/q101/scenes/q101_06c_memories_backalley_p1.scene sceneGraph graph/116 (setExactValue 1)"}
+        ],
+        "journal": [
+          {"path": "quests/main_quest/act_01/q101_01_firestorm", "class": "gameJournalQuest", "state": "succeeded"}
+        ]
+      },
+      "cooldownSeconds": 21600,
+      "vehicle": true,
+      "evidence": [
+        "scripts/core/data/tweakDBEnums.script:3203 (CorpoPlaza), 3205-3213 (the nine CorpoPlaza_ArasakaTower* names), 3194 (CityCenter)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:375-378 (CorpoPlaza: parentDistrict Districts.CityCenter)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:382-441 (ArasakaTowerLobby, Jungle, Atrium, Nest, SaburoOffice, Jenkins, UnlistedFloors, UpperAtrium, CEOFloor: each parentDistrict Districts.CorpoPlaza)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:79-81 (CityCenter: root)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:445-448 (Corpo_apart: CorpoPlaza_Apartment, parentDistrict Districts.CorpoPlaza)"
+      ],
+      "remarks": "The note keeps the 2023 bombing as his account (tower-for-alt is only-with-explicit-self-perspective) and the records as disputed; it says nothing about the present tower being rebuilt (no claim does). The tower interiors are reached only in endgame missions, where he is busy, so the plaza is the real trigger. V's Corpo Plaza apartment (CorpoPlaza_Apartment) is under CorpoPlaza and matches too; the arrival is counted on entering the plaza, not on going indoors, so the long cooldown is what keeps a Corpo Plaza home from hearing it often. The altNote's journal quest (Love Like Fire) is part of Playing for Time, so it is probably always succeeded after q101_done; not verified here."
+    },
+    {
+      "key": "embers",
+      "districts": ["Glen_Embers"],
+      "level": "venue",
+      "phrase": "Embers, the Glen, Heywood",
+      "note": "",
+      "noteSources": [],
+      "gate": "none",
+      "altNote": "At Embers Hanako offered to lead V to Mikoshi under Arasaka Tower if V testified against Yorinobu. That was her offer; you heard it from inside V's head.",
+      "altNoteSources": ["ah5.embers.hanako-offer (arasaka-heist-20261005.json; Johnny as co-witness, native-cowitness.json)", "evidence ah5.ev.embers.offer (q115_00b_hanako node 1228)"],
+      "altGate": {
+        "rule": "ah5.embers.hanako-offer",
+        "journal": [
+          {"path": "quests/meta/02_sickness/q115/04_talk_hanako", "class": "gameJournalQuestObjective", "state": "succeeded", "writer": "base q115_00b_hanako scene node 1228, end of the Embers conversation"}
+        ]
+      },
+      "cooldownSeconds": 10800,
+      "vehicle": false,
+      "evidence": [
+        "scripts/core/data/tweakDBEnums.script:3228 (Glen_Embers), 3226 (Glen), 3232 (Heywood)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:487-490 (Embers: enumName Glen_Embers, parentDistrict Districts.Glen)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:480-483 (Glen: parentDistrict Districts.Heywood)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:4-6 (Heywood: root)"
+      ],
+      "remarks": "Nothing of his own about Embers. The Hanako meeting is Nocturne Op55N1, just before the point of no return; the save the game returns to after the credits is after it, so the altNote matters mostly there. Whether Embers can be entered outside that quest is not checked; if not, the trigger never fires."
+    },
+    {
+      "key": "pacifica",
+      "districts": ["Pacifica"],
+      "level": "district",
+      "phrase": "Pacifica",
+      "note": "In the Voodoo Boys' data fortress Maman Brigitte pulled a fragment of you off V's chip and sent V into the deep Net; you and V reached Alt beyond the Blackwall.",
+      "noteSources": [
+        "voodoo-queen.transmission.alt-dive (zz-cast-knowledge-20261018b.json; Johnny as co-witness; gated on q110_made_contact_with_alt, the alt milestone's own fact)",
+        "priority-endings.johnny.transmission-alt"
+      ],
+      "gate": "alt",
+      "cooldownSeconds": 21600,
+      "vehicle": true,
+      "evidence": [
+        "scripts/core/data/tweakDBEnums.script:3271 (Pacifica), 3195 (Coastview), 3291 (WestWindEstate), 3202 (Coastview_q110Cyberspace)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:19-21 (Pacifica: root, no parent)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:24-27 (Pacifica gangs: Factions.VoodooBoys, Factions.Animals)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:564-567 (Coastview: parentDistrict Districts.Pacifica)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:620-623 (WestWindEstate: parentDistrict Districts.Pacifica)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:571-616 (Coastview children incl. BattysHotel, GrandImperialMall, VDBChapel, q110Cyberspace)"
+      ],
+      "remarks": "The note does not claim the dive happened in Pacifica (no rule says where the data fortress is). Pacifica is where it fits because the game's own district record lists the Voodoo Boys as a Pacifica gang and the q110 cyberspace record sits under Coastview. Without the alt milestone the remark goes on the name alone. Dogtown is not under Pacifica in the records (separate place below)."
+    },
+    {
+      "key": "badlands",
+      "districts": ["Badlands", "NorthBadlands", "SouthBadlands"],
+      "level": "district",
+      "phrase": "the Badlands",
+      "note": "",
+      "noteSources": [],
+      "gate": "none",
+      "cooldownSeconds": 28800,
+      "vehicle": true,
+      "evidence": [
+        "scripts/core/data/tweakDBEnums.script:3173 (Badlands), 3259 (NorthBadlands), 3279 (SouthBadlands)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:91-93 (Badlands: root), 105-107 (SouthBadlands: root), 115-117 (NorthBadlands: root)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:153-371 (Badlands_* records: each parentDistrict Districts.Badlands; LakeHut under LagunaBend under Badlands)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:193-226 (SouthBadlands_* records: parentDistrict Districts.SouthBadlands)"
+      ],
+      "remarks": "Three separate roots, so all three are listed. MorroRock (NCX) and Langley_Clinic are their own roots and left out. No claim or Johnny-known rule is about the Badlands at large (Ghost Town's Raffen Shiv detour and the Sunset Motel are not tied to a record); his one Badlands memory is on the oil-field venue so it is not said twice. A border the player crosses often, so the longest cooldown."
+    },
+    {
+      "key": "oil-field",
+      "districts": ["Badlands_NorthSunriseOilField"],
+      "level": "venue",
+      "phrase": "the North Sunrise oil field, the Badlands",
+      "note": "At the oil fields V gave you one last chance, and you said you would try.",
+      "noteSources": ["core-arcs.johnny.second-chance", "evidence core-arcs.johnny.oilfield-choice (sq031_05_grave.scene writes sq032_johnny_friend)"],
+      "gate": "second-chance",
+      "cooldownSeconds": 10800,
+      "vehicle": true,
+      "evidence": [
+        "scripts/core/data/tweakDBEnums.script:3179 (Badlands_NorthSunriseOilField)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:153-156 (NorthSunriseOilField: enumName Badlands_NorthSunriseOilField, parentDistrict Districts.Badlands)"
+      ],
+      "remarks": "The rule says only 'the oilfield'; nothing read here ties the grave scene (sq031_05_grave) to this record, but it is the game's only oil-field district record. Medium confidence, so the note says 'the oil fields', not 'here'. Without the second chance the remark goes on the name alone (a refusal has no verified fact). The phrase spells the record name; the localized name (LocKey#78523) was not read."
+    },
+    {
+      "key": "dogtown",
+      "districts": ["Dogtown", "Dogtown_Brooklyn"],
+      "level": "district",
+      "phrase": "Dogtown",
+      "note": "",
+      "noteSources": [],
+      "gate": "none",
+      "altNote": "Songbird promised V a cure in her first bargain. That was her offer, not proof that it works.",
+      "altNoteSources": ["phantom.priority.dog-promise (priority-phantom-20261004.json; Johnny as co-witness)"],
+      "altGate": {
+        "rule": "phantom.priority.dog-promise",
+        "facts": [
+          {"name": "q301_sb_agreed", "test": "== 1", "writer": "ep1/quest/main_quests/q301/scenes/q301_00_holocall_hook.scene sceneGraph graph/464 (setExactValue 1)"}
+        ],
+        "journal": [
+          {"path": "ep1/quests/main_quest/q301_crash/00_hook/talk_songbird", "class": "gameJournalQuestObjective", "state": "succeeded"}
+        ]
+      },
+      "cooldownSeconds": 21600,
+      "vehicle": true,
+      "evidence": [
+        "scripts/core/data/tweakDBEnums.script:3215 (Dogtown), 3217 (Dogtown_Brooklyn)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:125-127 (Dogtown: root, no parentDistrict; gangs Factions.Barghest at 133-136)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:1008-1011 (WorldmapSub: Dogtown_Worldmap_Sub, parentDistrict Districts.Dogtown)",
+        "tweaks/ep1/gameplay/static_data/database/fasttravel/districts.tweak:4-35 (Akebono, Expo, Hideout, CapitanCaliente, Cynosure: parentDistrict Districts.Dogtown)",
+        "tweaks/ep1/gameplay/static_data/database/fasttravel/districts.tweak:39-41 (Brooklyn: Dogtown_Brooklyn with no parentDistrict)"
+      ],
+      "remarks": "Dogtown is a root record, not a child of Pacifica, and Dogtown_Brooklyn has no parent at all, so it is listed by name. The phrase leaves out Pacifica because the records do not put Dogtown there. Nothing of his own about Dogtown; every Dogtown rule is gated on Phantom Liberty journal or facts. The altNote is the premise of Phantom Liberty for him."
+    },
+    {
+      "key": "viktors-clinic",
+      "districts": ["LittleChina_VictorsClinic"],
+      "level": "venue",
+      "phrase": "Viktor's clinic, Little China, Watson",
+      "note": "Here Viktor told V the Relic was overwriting V's consciousness with your construct, and that V had only a few weeks left.",
+      "noteSources": ["sh5.resurrection.relic-diagnosis (silverhand-20261005.json; speaker johnny-silverhand)", "evidence sh5.ev.resurrection.viktor-diagnosis (q101_07_ripperdoc, Viktor's clinic, every option of choice 1331)"],
+      "gate": "none",
+      "cooldownSeconds": 21600,
+      "vehicle": false,
+      "evidence": [
+        "scripts/core/data/tweakDBEnums.script:3256 (LittleChina_VictorsClinic)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:818-821 (VictorsClinic: parentDistrict Districts.LittleChina)"
+      ],
+      "remarks": "The rule's own gate is the journal objective quests/main_quest/act_01/q101_resurrection/takemura/talk_with_johnny. Its evidence puts the diagnosis on every branch of q101_07_ripperdoc and that objective inside Playing for Time's flow, so q101_done implies it: gate none. Strict fallback: gate on that objective. Scene tier 2 there is open, and Viktor's own lines keep Johnny busy until they end. Frequent ripperdoc visits, so 6 h."
+    },
+    {
+      "key": "kerry-estate",
+      "districts": ["NorthOaks_Kerry_Estate"],
+      "level": "venue",
+      "phrase": "Kerry's estate, North Oaks, Westbrook",
+      "note": "Kerry's place. You once urged him to quit Samurai and find his own path, and you still think his titles are kitsch.",
+      "noteSources": ["johnny.music.kerry-independence", "johnny.music.kerry-titles"],
+      "gate": "none",
+      "altNote": "Kerry's place. Here Kerry recognized you talking through V, and you pitched bringing Samurai back.",
+      "altNoteSources": ["jr-priority.mansion.recognized", "jr-priority.mansion.reunion-proposed"],
+      "altGate": {
+        "rule": "jr-priority.mansion.recognized",
+        "journal": [
+          {"path": "quests/side_quest/sq011_kerry", "class": "gameJournalQuest", "state": "succeeded", "writer": "sq011_kerry completion node2716 (not the earlier sq011_kerry_met fact)"}
+        ]
+      },
+      "cooldownSeconds": 10800,
+      "vehicle": false,
+      "evidence": [
+        "scripts/core/data/tweakDBEnums.script:3264 (NorthOaks_Kerry_Estate), 3260 (NorthOaks), 3292 (Westbrook)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:980-983 (Kerry_Estate: parentDistrict Districts.NorthOaks)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:973-976 (NorthOaks: parentDistrict Districts.Westbrook)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:49-51 (Westbrook: root)"
+      ],
+      "remarks": "The claims are intrinsic and say nothing about V having been here. The rules call it 'Kerry's villa' and the claims' source scene is sq011_01_kerry_mansion; the record is Kerry_Estate."
+    },
+    {
+      "key": "denny-estate",
+      "districts": ["NorthOaks_Denny_Estate"],
+      "level": "venue",
+      "phrase": "Denny's estate, North Oaks, Westbrook",
+      "note": "Denny's place. You credit her with real talent and backbone, even when she tries your patience.",
+      "noteSources": ["johnny.friends.denny-respect"],
+      "gate": "none",
+      "cooldownSeconds": 10800,
+      "vehicle": false,
+      "evidence": [
+        "scripts/core/data/tweakDBEnums.script:3263 (NorthOaks_Denny_Estate)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:987-990 (Denny_Estate: parentDistrict Districts.NorthOaks)"
+      ],
+      "remarks": "The claim's limits forbid seeding the reunion argument, Denny's participation or Henry's exclusion; the note does neither. Whether V can enter outside the reunion quest is not checked."
+    },
+    {
+      "key": "totentanz",
+      "districts": ["Northside_Totentaz"],
+      "level": "venue",
+      "phrase": "the Totentanz, Northside, Watson",
+      "note": "",
+      "noteSources": [],
+      "gate": "none",
+      "altNote": "V got Nancy out of the Totentanz alive; you were along for it, in V's head.",
+      "altNoteSources": ["jr-priority.nancy.safe (priority-johnny-rogue-20261004.json; speakers nancy-hartley, johnny-silverhand)"],
+      "altGate": {
+        "rule": "jr-priority.nancy.safe",
+        "journal": [
+          {"path": "quests/side_quest/sq011_johnny/04_nancy", "class": "gameJournalQuestPhase", "state": "succeeded", "writer": "Nancy-saved scene resolves the 04_nancy phase at node617"}
+        ]
+      },
+      "cooldownSeconds": 10800,
+      "vehicle": false,
+      "evidence": [
+        "scripts/core/data/tweakDBEnums.script:3269 (Northside_Totentaz, the game's own spelling), 3265 (Northside)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:868-871 (Totentaz: parentDistrict Districts.Northside)",
+        "tweaks/base/gameplay/static_data/database/fasttravel/districts.tweak:839-842 (Northside: parentDistrict Districts.Watson)"
+      ],
+      "remarks": "Who ran the club differs by branch (ah5.totentanz.brick, .patricia, .royce, sh5.second-conflict.*), so the altNote names none of them."
+    }
+  ],
+  "rejected": [
+    {"place": "Pistis Sophia", "why": "No gamedataDistrict record exists for it. His claim johnny.service.desertion-and-withdrawal (Tapeworm finale, sq032_07) is real, but a trigger would need a position check, not a district."},
+    {"place": "Rainbow Cadenza", "why": "No district record."},
+    {"place": "Ebunike", "why": "No district record; the Grayson and Porsche rules (silverhand.grayson-*, silverhand.porsche-recovered) cannot be tied to a place V's district reading reports."},
+    {"place": "The drive-in / theater of the Rogue date", "why": "No district record (silverhand.movie-*, jr-priority.date.arranged)."},
+    {"place": "Riot Club (LittleChina_RiotClub)", "why": "Only Kerry's Off the Leash gig rules (cc5.blue.band-reconciled, cc5.blue.band-coerced: Blue Moon's audience, journal-gated); nothing of Johnny's own, and Kerry is covered by the person and romance remarks."},
+    {"place": "Lizzie's Bar (Kabuki_LizziesBar)", "why": "No claim or Johnny-known rule names it (the one rule that does, cc5.coach.av-call, is a Corpo-path line from before the Relic woke)."},
+    {"place": "Kabuki, Japantown, Charter Hill", "why": "Only gig, boxing and fixer rules (fr5.*, hw5.boxing.*, fo5.down-street.parade-intel); nothing of Johnny's."},
+    {"place": "North Oaks (district), Columbarium (NorthOaks_Columbarium)", "why": "No claim or rule mentions them; the two estates under North Oaks are kept as venues."},
+    {"place": "Rocky Ridge (Badlands_RockyRidge)", "why": "No claim or rule mentions it."},
+    {"place": "Biotechnica Flats (Badlands_BiotechnicaFlats)", "why": "Rules mention Biotechnica the corporation (aldecaldos.native.farmhouse-backed-saul, phantom.native.nele.captured), never the Flats."},
+    {"place": "Konpeki Plaza (ArasakaWaterfront_KonpekiPlaza)", "why": "The Heist is before the engram woke (native-cowitness.json excludes the-heist) and no claim of his names it."},
+    {"place": "Arasaka Estate (NorthOaks_Arasaka_Estate)", "why": "No claim or rule mentions it."},
+    {"place": "NCX (MorroRock_NCX)", "why": "phantom.native.ncx.moon says Johnny witnessed the launch, but NCX is entered only inside The Killing Moon's own sequence (scenes and fights, where he is busy)."},
+    {"place": "Langley clinic (Langley_Clinic)", "why": "2079 only; q307_2079 has already closed the head gate."},
+    {"place": "V's apartment, Megabuilding H10 (LittleChina_VApartment)", "why": "A grounded note exists (sh5.resurrection.johnny-proposal; its evidence is q101_08_takemura_v_room: here he told V it had not been easy for him either and proposed they help each other, starting with Rogue; gate none), but V comes home constantly and a home remark would repeat. Add it only with a long cooldown if wanted."},
+    {"place": "El Coyote Cojo (Vista_del_rey_ElCoyoteCojo)", "why": "Jackie's ofrenda rules (heywood.heroes.ofrenda, fo5.heroes.padre) are V's grief, not Johnny's history."},
+    {"place": "Misty's Esoterica (LittleChina_MistysShop)", "why": "The Johnny-related rule (hw5.pft.misty.home-care, the omega blockers) took place at V's home, not the shop."},
+    {"place": "Grand Imperial Mall, Batty's Hotel (Coastview children)", "why": "Folded into Pacifica; their rules (ah5.placide.*, bryce-mosley.walk-line.*) are journal or fact gated and add little beyond the alt note."}
+  ],
+  "hierarchyNotes": [
+    "Every gamedataDistrict enum value has exactly one District record (base or ep1 districts.tweak) and vice versa; nothing else in REDmod's tweaks sets parentDistrict.",
+    "Roots (no parentDistrict): Heywood, Pacifica, Watson, Westbrook, SantoDomingo, CityCenter, Badlands, SouthBadlands, NorthBadlands, Dogtown, MorroRock, Langley_Clinic, Dogtown_Brooklyn.",
+    "Dogtown is a root, not under Pacifica; its base record is in base districts.tweak:125 and five children are in ep1. Dogtown_Brooklyn (ep1:39) has no parent at all, so a chain walk from it never reaches Dogtown.",
+    "The Badlands are three roots: Badlands (most Badlands_* children, the oil field among them), SouthBadlands (farms, trailer park, q201SpaceStation) and NorthBadlands (no children). MorroRock holds NCX.",
+    "Corpo Plaza is under City Center and holds the nine Arasaka Tower interiors, V's Corpo Plaza apartment and q201Cyberspace. The Arasaka Tower records are CorpoPlaza_ArasakaTower{Lobby, Jungle, Atrium, Nest, SaburoOffice, Jenkins, UnlistedFloors, UpperAtrium, CEOFloor}.",
+    "The Totentanz record is spelled Northside_Totentaz (record Totentaz).",
+    "There is a district-change event: PreventionSystem.OnDistrictAreaEntered(DistrictEnteredEvent) (preventionSystem.script:3713) feeds DistrictManager's stack (districtManager.script:142-200), which also writes UI_Map.currentLocationEnumName to the blackboard on every change. The delamain-cab add-on already observes PreventionSystem.OnDistrictAreaEntered (probe.log). It fires on both entering and leaving an area, so a sampled read stays simpler; it is noted here because the design doc says no such event was found."
+  ]
+}
