@@ -700,6 +700,149 @@ test('a character in the running group round has an exchange even when V address
   `);
 });
 
+// ---- Night City Allies followers (2026-10-18 live round): connected from spawn, kept while they stand near V -----------------
+test('a gaze at a spawned character puts it in the lane on a tick the scan skips, and a slot entry moves to the lane once the scan says spawned', () => {
+  run(`${fixture}${spawnedFixture}
+    nearby = {}
+    local auto = makeSpawned()
+    step(auto, 1.2)
+    -- The scan ran at the start; the next one is a second away. The gaze (flagged by the adapter) reaches its dwell on a skipped tick.
+    for _ = 1, 4 do auto.look('rita', 'e1', 'Rita', 0.2, true) end
+    step(auto, 0.1)
+    assert(table.concat(auto.spawned(), ',') == 'rita' and #auto.active() == 0, 'a gazed spawned character took a slot: ' .. table.concat(auto.active(), ','))
+    assert(lastSpawned() == 'rita')
+  `);
+  run(`${fixture}${spawnedFixture}
+    nearby = {}
+    local auto = makeSpawned()
+    -- A gaze without the flag (the old path) puts her in a slot ...
+    for _ = 1, 4 do auto.look('rita', 'e1', 'Rita', 0.2) end
+    step(auto, 0.1)
+    assert(table.concat(auto.active(), ',') == 'rita' and #auto.spawned() == 0)
+    -- ... and the next scan that reports her as spawned moves the same connection to the lane, no release, no cooldown.
+    nearby = {{key = 'rita', name = 'Rita', distance = 2, spawned = true}}
+    for _ = 1, 4 do auto.look('rita', 'e1', 'Rita', 0.2) end
+    step(auto, 1.2)
+    assert(table.concat(auto.spawned(), ',') == 'rita' and #auto.active() == 0, 'she stayed in the slot: ' .. table.concat(auto.active(), ','))
+    local moved, released = false, false
+    for _, line in ipairs(logs) do
+      if line == 'Auto-connect rita moved to the spawned lane' then moved = true end
+      if line:find('released rita', 1, true) then released = true end
+    end
+    assert(moved and not released)
+    -- A full lane leaves a slot entry where it is.
+    nearby = {}
+    for _, key in ipairs({'s1', 's2', 's3'}) do nearby[#nearby + 1] = {key = key, name = key, distance = 2, spawned = true} end
+    local full = makeSpawned()
+    for _ = 1, 4 do full.look('late', 'e9', 'Late', 0.2) end
+    step(full, 0.1)
+    nearby[#nearby + 1] = {key = 'late', name = 'Late', distance = 2, spawned = true}
+    step(full, 1.2)
+    assert(#full.spawned() == 3 and table.concat(full.active(), ',') == 'late', 'a fourth took a lane place')
+  `);
+});
+
+test('a blocked world (a choice hub, a vehicle, combat, tier 2) keeps the spawned lane open; an ordinary slot still idles out; a spawned release has no cooldown', () => {
+  run(`${fixture}${spawnedFixture}
+    nearby = {{key = 'lucy', name = 'Lucy', distance = 2, spawned = true}, {key = 'a', name = 'A', distance = 1}}
+    local auto = makeSpawned()
+    step(auto, 5)
+    assert(table.concat(auto.spawned(), ',') == 'lucy' and table.concat(auto.active(), ',') == 'a')
+    -- A follower mod menu raises a choice hub (blocked): the scan is not asked, nothing reports her, and she stays for as long as it lasts.
+    nearby = {}
+    local asked = scans
+    step(auto, 200, {worldReady = true, blocked = true})
+    assert(scans == asked, 'the scan was asked while blocked')
+    assert(table.concat(auto.spawned(), ',') == 'lucy', 'the lane dropped her while the world was blocked: ' .. table.concat(auto.spawned(), ','))
+    assert(#auto.active() == 0, 'an ordinary character stayed warm through the block')
+    assert(lastSpawned() == 'lucy')
+    -- The block ends and nobody reports her: the usual hold, then released.
+    step(auto, 38)
+    assert(table.concat(auto.spawned(), ',') == 'lucy', 'released before the hold ended')
+    step(auto, 4)
+    assert(#auto.spawned() == 0 and lastSpawned() == '', 'still held after the hold')
+    -- No cooldown: reported again (V turned back), she is warmed on the next scan, not after twenty seconds.
+    nearby = {{key = 'lucy', name = 'Lucy', distance = 2, spawned = true}}
+    step(auto, 1.2)
+    assert(table.concat(auto.spawned(), ',') == 'lucy', 'a spawned character waited out a cooldown')
+  `);
+});
+
+test('a spawned partner is not released for a scene: a hub, tier 2 or a dialogue flag leave it a partner; a scripted scene sends it back to the lane', () => {
+  run(`${fixture}${partnerFixture}${spawnedFixture}${lanePublications}
+    local spawnedKeys = {judy = true, rita = true}
+    local auto = makeLane({locate = locate, spawned = function(partner) return spawnedKeys[partner.key] == true end})
+    nearby = {{key = 'judy', name = 'Judy', distance = 2, spawned = true}}
+    distances.judy, distances.rita, distances.dex = 2, 3, 2
+    step(auto, 2)
+    talk(auto, 'judy', 0.1)
+    assert(partners(auto) == 'judy' and #auto.spawned() == 0)
+    local from = #everyPublication
+    -- Facing the follower shows the mod menu: scene (tier 2 or dialogue) but no scripted scene. 60 s of it.
+    step(auto, 60, {worldReady = true, blocked = true, scene = true})
+    assert(partners(auto) == 'judy', 'a hub or tier 2 ended the partner role: ' .. partners(auto))
+    local released = false
+    for _, line in ipairs(logs) do if line:find('partner released judy', 1, true) then released = true end end
+    assert(not released and alwaysListed('judy', from + 1), 'a spawned partner was released for a hub')
+    -- An ordinary world partner is released for the same scene, as before.
+    talk(auto, 'dex', 0.1)
+    step(auto, 0.1, {worldReady = true, blocked = true, scene = true})
+    assert(not partners(auto):find('dex', 1, true), 'an ordinary partner survived a scene')
+    -- A scripted scene proper (tier 3 or above): back to the lane in one write, connection never dropped, nothing released.
+    step(auto, 0.1, {worldReady = true, blocked = true, scene = true, sceneReal = true})
+    assert(partners(auto) == '' and table.concat(auto.spawned(), ',') == 'judy', 'she did not go back to the lane: ' .. partners(auto) .. '/' .. table.concat(auto.spawned(), ','))
+    assert(alwaysListed('judy', from + 1), 'the connection was dropped for the scene')
+    local back, dropped = false, false
+    for _, line in ipairs(logs) do
+      if line == 'Auto-connect partner judy back to the spawned lane (scene)' then back = true end
+      if line:find('partner released judy', 1, true) then dropped = true end
+    end
+    assert(back and not dropped)
+    -- The partner V addresses right now is left alone even in a scripted scene.
+    step(auto, 2)
+    talk(auto, 'rita', 0.1)
+    step(auto, 0.1, {worldReady = true, blocked = true, scene = true, sceneReal = true, talking = 'rita'})
+    assert(partners(auto) == 'rita', 'the addressed partner was moved')
+  `);
+  // No place in the lane, or too far from V: it stays a partner (never released for the scene) and leaves by the usual rules.
+  run(`${fixture}${partnerFixture}${spawnedFixture}${lanePublications}
+    local auto = makeLane({locate = locate, spawned = function() return true end})
+    nearby = {}
+    for _, key in ipairs({'s1', 's2', 's3'}) do nearby[#nearby + 1] = {key = key, name = key, distance = 2, spawned = true}; distances[key] = 2 end
+    step(auto, 2)
+    distances.s4 = 2
+    talk(auto, 's4', 0.1)
+    step(auto, 0.1, {worldReady = true, blocked = true, scene = true, sceneReal = true})
+    assert(partners(auto) == 's4' and #auto.spawned() == 3, 'a full lane: the partner stays')
+    distances.s4 = 12
+    step(auto, 0.1, {worldReady = true, blocked = true, scene = true, sceneReal = true})
+    assert(partners(auto) == 's4', 'too far for the lane: the partner stays, the scene does not release it')
+    local released = false
+    for _, line in ipairs(logs) do if line == 'Auto-connect partner released s4 (scene)' then released = true end end
+    assert(not released)
+    -- The usual rules still end it: parted ways.
+    distances.s4 = 20
+    step(auto, 25, {worldReady = true, blocked = true, scene = true, sceneReal = true})
+    assert(partners(auto) == '', 'a partner that walked away stayed for ever')
+  `);
+});
+
+test('wiring: the scene context carries sceneReal (tier 3 or above), the gaze carries the cached spawned classification, and an NCA clone record counts as spawned', () => {
+  const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+  assert.match(init, /sceneReal = battleSample ~= nil and battleSample\.available == true and \(tonumber\(battleSample\.tier\) or 0\) >= 3/);
+  assert.match(init, /pcall\(autoConnect\.look, lookKey, lookEntity, lookName, step, lookSpawned\)/);
+  assert.match(init, /lookSpawned = convaiSpawnedCharacters ~= nil and convaiSpawnedPeople ~= nil and convaiSpawnedPeople\.named\(key\)\s+and convaiSpawnedCharacters:is\(result\) == true/);
+  assert.match(init, /module\.new\(\{clone = clone\}\)/);
+  assert.match(init, /if characterCatalog\.isCloneRecord\(record\) then convaiCloneRecordIds\[id\] = true end/);
+  assert.match(init, /Spawned character not counted: /);
+  // The gaze classification is the cached read: no new native query, and it runs only for the profiled character V faces.
+  const gaze = init.slice(init.indexOf('local function updateGaze'), init.indexOf('local function updateGaze') + 2600);
+  assert.doesNotMatch(gaze, /GetTargetParts|FindEntityByID|IsManaged/);
+  assert.match(source, /function A\.look\(key, entity, name, dt, spawned\)/);
+  assert.match(source, /want\(look\.key, look\.name, 1, 0, look\.entity, look\.spawned\)/);
+  assert.match(source, /if entry\.spawned and context\.blocked then entry\.lastWanted = clock end/);
+});
+
 test('wiring: the scan remembers spawned characters and adds the remembered ones within group range; round keys and the partner check are passed in', () => {
   const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
   assert.match(init, /convaiSpawnedRange = 8/);

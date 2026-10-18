@@ -21,6 +21,11 @@
 -- within group range (init.lua scanNearbyCharacters): a spawned character stays wanted, and stays connected, while it stands near V
 -- wherever V looks. It has no age limit while it is wanted. A conversation partner that is a spawned character goes back to the
 -- lane, not to a release, when the partner role ends while it is still near V (backToLane): its connection stays open.
+-- A follower mod's own interaction menu (a choice hub, scene tier 2) and a game dialogue flag are not a scene for such a character:
+-- they never end its partner role, and while the world is blocked (that menu, a vehicle, combat) the lane keeps what it holds, since
+-- the scan that would report the follower is not asked (2026-10-18 live round: Night City Allies followers dropped within a minute).
+-- A scripted scene proper (context.sceneReal, tier 3 or above) sends a spawned partner back to the lane, never to a release.
+-- A look sample can say the character it faces is spawned (A.look): a gaze must not put it in a slot on a tick the scan skips.
 --
 -- Ranking of the two slots: a looked-at character first (looking is intent; it may replace the idlest unwanted
 -- one), then nearby characters by prominence (tier-1 named, other named, generic residents and archetypes), then
@@ -225,7 +230,7 @@ function M.new(options)
     -- and no cooldown applies (nothing is released, nothing is opened again). Only when the lane has a place; otherwise it is
     -- released as before. Returns true when it went back.
     local function backToLane(index, reason)
-        if reason ~= 'no exchange' and reason ~= 'another partner' and reason ~= 'replaced' then return false end
+        if reason ~= 'no exchange' and reason ~= 'another partner' and reason ~= 'replaced' and reason ~= 'scene' then return false end
         local partner = partners[index]
         if not partner or spawnedCount() >= cfg.maxSpawned or not isSpawnedPartner(partner) or type(options.locate) ~= 'function' then return false end
         local ok, distance = pcall(options.locate, partner)
@@ -278,10 +283,19 @@ function M.new(options)
         table.sort(partners, function(a, b) return a.lastExchange > b.lastExchange end)
         while #partners > cfg.partnerMax do leavePartner(#partners, 'replaced') end
         for index = #partners, 1, -1 do
-            local partner, reason = partners[index], nil
-            if partner.key ~= talking then
+            local partner, reason, moved = partners[index], nil, false
+            -- A scene (context.scene) ends the role of a world character. A spawned roster character (a follower mod's) keeps its
+            -- connection: only a scripted scene proper (context.sceneReal) ends the role, and it goes back to the lane then; a
+            -- choice hub, a dialogue flag or staged gameplay leaves the partner as it is.
+            local scene = context.scene == true
+            local spawnedHere = scene and isSpawnedPartner(partner)
+            if spawnedHere then partner.spawned = true end
+            if spawnedHere and context.sceneReal == true and partner.key ~= talking then moved = backToLane(index, 'scene') end
+            if moved then
+                -- back in the lane: nothing is released
+            elseif partner.key ~= talking then
                 if isParty(partner.key) then reason = 'joined the party'
-                elseif context.scene == true then reason = 'scene'
+                elseif scene and not spawnedHere then reason = 'scene'
                 elseif partner.graceUntil and clock >= partner.graceUntil then reason = 'another partner'
                 elseif clock - partner.lastExchange > cfg.partnerIdle then reason = 'no exchange'
                 elseif type(options.locate) == 'function' then
@@ -299,11 +313,13 @@ function M.new(options)
     end
 
     -- A gaze sample, about every 0.2 s: the character V is facing (a profile
-    -- that is enabled and not already in the party), or nil.
-    function A.look(key, entity, name, dt)
+    -- that is enabled and not already in the party), or nil. spawned: the adapter's cached classification says it is a spawned
+    -- roster character, so the gaze wants it for the lane too (the scan that says so runs only once a second).
+    function A.look(key, entity, name, dt, spawned)
         if not key or not entity then if next(look) ~= nil then look = {} end; return end
         if look.key ~= key or look.entity ~= entity then look = {key = key, entity = entity, name = name, dwell = 0} end
         look.dwell = look.dwell + (tonumber(dt) or 0)
+        look.spawned = spawned == true
         look.seen = clock
     end
 
@@ -356,7 +372,7 @@ function M.new(options)
                 if spawned == true then wanted[key].spawned = true end
             end
         end
-        if look.key and look.dwell >= cfg.gazeDwell then want(look.key, look.name, 1, 0, look.entity) end
+        if look.key and look.dwell >= cfg.gazeDwell then want(look.key, look.name, 1, 0, look.entity, look.spawned) end
         if not context.blocked and clock >= nextScan and type(options.scan) == 'function' then
             nextScan = clock + cfg.scanInterval
             local called, rows = pcall(options.scan, context.player, cfg.radius)
@@ -377,12 +393,24 @@ function M.new(options)
             local item = wanted[entry.key]
             -- The same profile key may now be another body (two residents): follow the one wanted most.
             if item then entry.lastWanted = clock; if type(item.entity) == 'string' then entry.entity = item.entity end end
+            -- A slot character the scan now reports as spawned (a gaze or an earlier scan put it in a slot first) moves to the lane:
+            -- the same connection, no release, and a slot is free for someone else.
+            if item and item.spawned and not entry.spawned and spawnedCount() < cfg.maxSpawned then
+                entry.spawned, entry.reason = true, 'spawned'
+                log('Auto-connect ' .. entry.key .. ' moved to the spawned lane')
+            end
+            -- While the world is blocked (combat, a scene, a call, a vehicle, a choice hub such as a follower mod's own menu) the scan
+            -- is not asked, so nothing reports a spawned character that stands beside V: the lane keeps what it holds until the
+            -- block ends and the next scan decides again.
+            if entry.spawned and context.blocked then entry.lastWanted = clock end
             local idle, age = clock - entry.lastWanted, clock - entry.since
             -- A spawned character near V keeps its connection for as long as it is near: the lane is bounded (three, and the
             -- plan's count on the bridge), and the age limit would close it, and make V wait, while it still stands beside V.
             if entry.spawned then age = 0 end
             if idle > cfg.hold or age > cfg.maxAge then
-                cooling[entry.key] = clock + (age > cfg.maxAge and cfg.ageCooldown or cfg.cooldown)
+                -- No cooldown for a spawned character: it was released because no scan reported it, and one that is reported
+                -- again (V turned back, its body was made again) is warmed at once instead of after a wait that V would feel.
+                if not entry.spawned then cooling[entry.key] = clock + (age > cfg.maxAge and cfg.ageCooldown or cfg.cooldown) end
                 log('Auto-connect released ' .. entry.key .. (age > cfg.maxAge and ' (unused too long)' or ' (idle)'))
                 table.remove(active, index)
             end

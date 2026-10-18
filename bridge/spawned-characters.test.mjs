@@ -37,6 +37,30 @@ test('classify: managed and none of our tags is spawned; ours, quest-marked and 
   assert(S.classify({managed = false}) == nil and S.classify({}) == nil and S.classify(nil) == nil, 'game-placed characters')
 `));
 
+test('classify: a copy made by a record-cloning mod (clone) is spawned although the dynamic entity system or a quest flag says otherwise', () => withModule(`
+  assert(S.classify({managed = false, clone = true}) == 'spawned', 'not managed, but a clone record (an NCA follower)')
+  assert(S.classify({managed = true, clone = true, quest = true}) == 'spawned', 'a quest flag copied with the record does not make it a quest actor')
+  assert(S.classify({managed = true, clone = true, own = true}) == 'ours', 'our own copy is still ours')
+  assert(S.classify({managed = true, clone = true, tags = {'CyberpunkConvaiCompanion'}}) == 'ours')
+  assert(S.classify({managed = false, clone = false}) == nil and S.classify({managed = false, quest = true}) == nil, 'no clone: unchanged')
+`));
+
+test('the service asks options.clone once per entity with the read, never changes the reader table, and treats a failing check as no clone', () => withModule(`
+  local asked, shared = 0, {managed = false}
+  local service = S.new({read = function() return shared end, clone = function(n) asked = asked + 1; return n.cloned == true end})
+  local function npc(hash, cloned) return {hash = hash, cloned = cloned, GetEntityID = function(self) return {hash = self.hash} end} end
+  assert(service:is(npc('1', true)) == true and service:kind(npc('1', true)) == 'spawned', 'a clone of a game record is spawned')
+  assert(service:is(npc('2', false)) == false, 'a game-placed body is not')
+  assert(shared.clone == nil, 'the reader table was changed')
+  local before = asked
+  for _ = 1, 10 do service:is(npc('1', true)); service:is(npc('2', false)) end
+  assert(asked == before, 'the check is cached with the classification: ' .. asked .. ' vs ' .. before)
+  local failing = S.new({read = function() return {managed = false} end, clone = function() error('no record') end})
+  assert(failing:is(npc('3', true)) == false, 'an unreadable record is not a clone')
+  -- Without the option nothing changes.
+  assert(S.new({read = function() return {managed = false} end}):is(npc('4', true)) == false)
+`));
+
 test('read: the native lookups, our tags checked by name first, no answer before the system is ready', () => withModule(`
   local tagged, listed = {}, 0
   local system = {ready = true, managed = {}, tags = {}}

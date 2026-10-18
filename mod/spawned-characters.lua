@@ -2,8 +2,10 @@
 --
 -- Recognition is generic and engine-level: an NPC that the shared dynamic entity system manages. The game itself never
 -- creates characters through that system (story, quest, community and crowd actors come from the world and its spawners),
--- only mods do. Our own spawns carry tags that start with OWN_PREFIX and are excluded. No other mod's tag, record prefix,
--- template path or name is ever matched: a spawn from any spawner that uses the system is recognised the same way.
+-- only mods do. Our own spawns carry tags that start with OWN_PREFIX and are excluded. No other mod's tag, template path or name
+-- is ever matched: a spawn from any spawner that uses the system is recognised the same way. The one addition is a copy of a
+-- record made by a record-cloning mod (character-catalog.lua CLONE_PREFIXES, `clone` below): it is spawned even when the
+-- dynamic entity system's answer is missing.
 --
 -- What such a character gets is decided in mod/init.lua (convaiWorldPolicy.spawned, profileIdentity): a conversation the
 -- player starts, with its own roster profile, voice and memory, a speaking face and eye contact while it talks. Nothing of
@@ -28,13 +30,17 @@ end
 --   own      it carries one of OWN_TAGS
 --   tags     its tag names as strings, when they could be read
 --   quest    a quest has marked it (a quest mod's actor): the usual rules for game characters apply instead
+--   clone    its record is a record-cloning mod's copy ("NCA.Character.x", character-catalog.lua CLONE_PREFIXES; init.lua passes
+--            the check as options.clone). Such a copy is player-made by construction, so it counts as spawned although the
+--            dynamic entity system did not say so or a quest flag was copied with the record (Night City Allies' Rita Wheeler,
+--            2026-10-18: a clone of a game-placed character's record, counted as a game character and kept out of the lane)
 function M.classify(info)
-    if type(info) ~= 'table' or info.managed ~= true then return nil end
+    if type(info) ~= 'table' or (info.managed ~= true and info.clone ~= true) then return nil end
     if info.own == true then return 'ours' end
     for _, tag in ipairs(type(info.tags) == 'table' and info.tags or {}) do
         if ownTag(tag) then return 'ours' end
     end
-    if info.quest == true then return nil end
+    if info.quest == true and info.clone ~= true then return nil end
     return 'spawned'
 end
 
@@ -97,7 +103,8 @@ end
 function M.find(id) return Game.FindEntityByID(id) end
 
 -- options.read(npc) replaces M.read (tests); options.ready(), options.scan(player, radius), options.find(id) and
--- options.clock() replace the native ones (tests). The cache maps an entity hash to its kind, or false for "neither".
+-- options.clock() replace the native ones (tests). options.clone(npc) says a body was made from a record-cloning mod's copy of a
+-- record (see classify); it is asked once per entity, with the read. The cache maps an entity hash to its kind, or false for "neither".
 function M.new(options)
     options = type(options) == 'table' and options or {}
     local service = {cache = {}, count = 0, options = options, scanned = nil, watched = {}, watchedAt = nil,
@@ -111,6 +118,14 @@ function M.new(options)
         if cached ~= nil then return cached or nil end
         local read, info = pcall(self.options.read or M.read, npc)
         if not read or type(info) ~= 'table' then return nil end
+        if type(self.options.clone) == 'function' then
+            local asked, cloned = pcall(self.options.clone, npc)
+            if asked and cloned == true then
+                local copy = {}
+                for name, value in pairs(info) do copy[name] = value end
+                copy.clone, info = true, copy
+            end
+        end
         local kind = M.classify(info)
         if self.count >= M.LIMIT then self.cache, self.count = {}, 0 end
         self.cache[key], self.count = kind or false, self.count + 1

@@ -477,9 +477,15 @@ end
 mcm.configure(manager, companions, dofile('manager-party.lua'), dofile('mcm-entry.lua'), invitations)
 convaiManager = mcm
 local catalog = characterCatalog.build(profiles, archetypes)
+-- The record IDs of a record-cloning mod's copies ("NCA.Character.Judy", characterCatalog.CLONE_PREFIXES): a global table, read by
+-- the spawned-character check below (an NCA follower counts as spawned whatever the dynamic entity system answers for it).
+convaiCloneRecordIds = {}
 for record, profile in pairs(characterCatalog.build(profiles).records) do
     local ok, id = pcall(function() return tostring(TweakDBID.new(record)) end)
-    if ok then catalog.records[id] = profile end
+    if ok then
+        catalog.records[id] = profile
+        if characterCatalog.isCloneRecord(record) then convaiCloneRecordIds[id] = true end
+    end
 end
 do -- archetype crowd/vendor record names, also by TweakDBID string
     local named = {}
@@ -638,7 +644,16 @@ end
 -- system, never from another mod's names. A global, so no function here gains an upvalue; optional like the modules below.
 do
     local loaded, module = pcall(dofile, 'spawned-characters.lua')
-    convaiSpawnedCharacters = loaded and type(module) == 'table' and type(module.new) == 'function' and module.new() or nil
+    -- clone(npc): the body was made from a record-cloning mod's copy of a record (Night City Allies: "NCA.Character.x"), by the
+    -- hash of the record or, when the engine can name it, by its debug name. Asked once per entity (the classification is cached).
+    local function clone(npc)
+        local ok, recordId = pcall(function() return npc:GetRecordID() end)
+        if not ok or recordId == nil then return false end
+        if convaiCloneRecordIds[tostring(recordId)] then return true end
+        local named, text = pcall(function() return TDBID.ToStringDEBUG(recordId) end)
+        return named and characterCatalog.isCloneRecord(text) == true
+    end
+    convaiSpawnedCharacters = loaded and type(module) == 'table' and type(module.new) == 'function' and module.new({clone = clone}) or nil
 end
 
 -- May V talk to the game's own named characters right now (docs/WORLD_CHARACTERS.md)? A global, loaded like the module above:
@@ -1278,6 +1293,7 @@ end
 -- characters to prepare; the bridge opens their connection and local voice.
 local autoConnect
 do
+    local spawnedLost, rosterNoted, rosterNotedCount = {}, {}, 0
     local function scanNearbyCharacters(player, radius)
         local query = TargetSearchQuery.new()
         query.searchFilter = Game['TSF_NPC;']()
@@ -1305,6 +1321,18 @@ do
                         -- the classification is cached per entity (spawned-characters.lua), so this adds no query to the scan.
                         local spawned = convaiSpawnedPeople ~= nil and convaiSpawnedPeople.named(key)
                             and convaiWorldPolicy ~= nil and convaiWorldPolicy.spawned(entity) == true
+                        -- Once per entity: a roster character counted as the game's own (not spawned), with what decided it, so a
+                        -- follower that should have joined the lane (Rita, 2026-10-18) shows its record and managed answer in the log.
+                        if named and not spawned and not rosterNoted[id] then
+                            if rosterNotedCount >= 64 then rosterNoted, rosterNotedCount = {}, 0 end
+                            rosterNoted[id], rosterNotedCount = true, rosterNotedCount + 1
+                            pcall(function()
+                                local system = Game.GetDynamicEntitySystem()
+                                log('Roster character counted as game-placed: ' .. key .. ' entity=' .. id .. ' record='
+                                    .. tostring(TDBID.ToStringDEBUG(entity:GetRecordID())) .. ' managed='
+                                    .. tostring(system ~= nil and system:IsManaged(entity:GetEntityID())))
+                            end)
+                        end
                         -- Any spawned character seen here is remembered by its ID (spawned-characters.lua remember): the query only
                         -- reports what the camera sees, and the lane and the group key press must still know the ones behind V.
                         if convaiSpawnedCharacters ~= nil and (spawned or (not named and convaiSpawnedCharacters:is(entity) == true)) then
@@ -1322,10 +1350,19 @@ do
         local service = convaiSpawnedCharacters
         if service ~= nil then
             if #spawnedSeen > 0 then pcall(service.remember, service, spawnedSeen) end
-            local good, recalled = pcall(service.recall, service, player, convaiSpawnedRange, seen, function(entry)
+            local good, recalled, dropped = pcall(service.recall, service, player, convaiSpawnedRange, seen, function(entry)
                 return entry.key ~= nil and convaiSpawnedPeople ~= nil and convaiSpawnedPeople.named(entry.key)
             end)
+            -- Why a remembered spawned character is not counted (gone, detached, out of range ...), logged when the reason changes.
+            for _, item in ipairs(good and type(dropped) == 'table' and dropped or {}) do
+                if spawnedLost[item.entity] ~= item.reason then
+                    spawnedLost[item.entity] = item.reason
+                    log('Spawned character not counted: ' .. tostring(item.key or item.entity) .. ' ' .. tostring(item.reason)
+                        .. (type(item.distance) == 'number' and string.format(' d=%.1f', item.distance) or ''))
+                end
+            end
             for _, row in ipairs(good and recalled or {}) do
+                spawnedLost[row.entity] = nil
                 if supportedProfiles[row.key] and manager.profileEnabled(row.key) then
                     rows[#rows + 1] = {key = row.key, name = row.name or row.key, entity = row.entity, spawned = true, distance = row.distance}
                 end
@@ -1705,13 +1742,17 @@ local function updateGaze(player, elapsed)
     gazePoll = 0
     local canFocus = gameplayCanAcquire(player)
     local npc, identity
-    local lookKey, lookEntity, lookName
+    local lookKey, lookEntity, lookName, lookSpawned
     if canFocus then
         local found, result = pcall(targetAtCrosshair)
         if found and result then
             local key, canonical = profileIdentity(result)
             if key and supportedProfiles[key] and manager.profileEnabled(key) and not companions.owns(result) then
                 lookKey, lookName, lookEntity = key, canonical, tostring(result:GetEntityID().hash)
+                -- The cached classification (spawned-characters.lua): a roster character another mod made is wanted for the spawned
+                -- lane by the gaze too, since the scan that says so runs only once a second (it put Rita in a slot, 2026-10-18).
+                lookSpawned = convaiSpawnedCharacters ~= nil and convaiSpawnedPeople ~= nil and convaiSpawnedPeople.named(key)
+                    and convaiSpawnedCharacters:is(result) == true
             end
             -- The passive gaze response (turning toward V) is for our own companions only; an ordinary NPC is
             -- faced toward V when the player starts a conversation with it, not when V merely looks at it.
@@ -1722,7 +1763,7 @@ local function updateGaze(player, elapsed)
         end
     end
     -- Auto-connect counts how long V keeps facing one profiled character.
-    if autoConnect then pcall(autoConnect.look, lookKey, lookEntity, lookName, step) end
+    if autoConnect then pcall(autoConnect.look, lookKey, lookEntity, lookName, step, lookSpawned) end
     if focusMode == 'gaze' then
         if identity == focusEntity then gazeLost = 0; return end
         gazeLost = gazeLost + step
@@ -3717,8 +3758,12 @@ registerForEvent('onUpdate', function(delta)
         -- A scripted scene (or game dialogue) ends a conversation partnership.
         local scene = battleSample ~= nil and battleSample.available == true
             and (battleSample.tier ~= 1 or battleSample.dialogue == true)
+        -- sceneReal: a scripted scene proper (scene tier 3 or above, as the talk refusal counts it). Tier 2 is staged gameplay,
+        -- which an interaction prompt raises (a follower mod's own menu among them), and a dialogue flag or a choice hub alone is
+        -- no scene: for a spawned character (a follower another mod made) only sceneReal ends the partner role (auto-connect.lua).
         local ok, err = pcall(autoConnect.update, elapsedPoll, {worldReady = worldReady == true, blocked = blocked,
             player = player, talking = talking, talkingEntity = active and speech.target or nil, scene = scene,
+            sceneReal = battleSample ~= nil and battleSample.available == true and (tonumber(battleSample.tier) or 0) >= 3,
             talkingId = (active and active.entity) or (pending and pending.entity)
                 or (microphone.context and microphone.context.entity) or nil})
         if not ok then log('Auto-connect update failed: ' .. tostring(err)) end
