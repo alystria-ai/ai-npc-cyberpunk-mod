@@ -39,6 +39,21 @@ Three ways, all free. Pick one in Companion Manager > Settings > Conversation pr
 
 [b]Voices.[/b] Pocket TTS runs on your processor and never counts against a daily limit. Voxtral needs a Mistral key. OmniVoice needs an NVIDIA card and its optional pack.
 
+[size=4][b]How much video memory? (quick guide)[/b][/size]
+
+Pick a voice and a text option. Here is what each pair adds on top of the game itself:
+
+[list]
+[*][b]Pocket voice + cloud text[/b] (Convai or Mistral): [b]0 GB[/b], the default
+[*][b]Pocket voice + Local AI lite[/b]: about [b]1.8 GB[/b]
+[*][b]Pocket voice + Local AI standard[/b]: about [b]3.1 GB[/b]
+[*][b]OmniVoice + cloud text[/b]: about [b]2 GB[/b] (up to 4 GB)
+[*][b]OmniVoice + Local AI lite[/b]: about [b]3.9 GB[/b] (up to 5.9 GB)
+[*][b]OmniVoice + Local AI standard[/b]: about [b]5.2 GB[/b] (up to 7.3 GB)
+[/list]
+
+The Voxtral voice is like Pocket here: it runs in the cloud and uses no video memory. Measured on one 12 GB RTX 4080 Laptop; your game settings decide how much room is left. If your card runs short, the mod steps down by itself (standard to lite, then lite to cloud text), and you can change either choice in Settings at any time.
+
 [size=4][b]Requirements[/b][/size]
 
 [list]
