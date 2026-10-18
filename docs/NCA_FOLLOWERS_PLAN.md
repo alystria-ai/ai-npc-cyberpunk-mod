@@ -254,3 +254,31 @@ Each has a suggested default.
 **What would change this.** There is no denoiser or source separator on disk (a separation model is a new download, so it needs approval, and a separated stem would still be processed audio, not a clean reference for a clone), or a clip with a dialogue-only track. The better first step is her game voice: the scenes' audio is clean and already attributed (the Rita route). Whether Lucy speaks in the base-game scenes has not been checked yet.
 
 **Language boxes.** Both twins' boxes are unticked (`language_hardening_mode` off, set through the signed-in dashboard, readback confirmed). `languageBoxOff: true` is now recorded for `lucy-kushinada` and `rita-wheeler` in `runtime/multilingual-profiles.json` and `packaging/release-data/multilingual-profiles.json`; the `awaitingLanguageBox` allowance is gone from `bridge/multilingual.test.mjs`, so the installed-map test is strict again, and with the runtime map present all 55 multilingual and NCA tests pass (0 skipped).
+
+## 8. Lucy: music removed with Demucs, four candidate clips waiting for the user's ear (2026-10-18, night)
+
+Section 7 found a bed under every line. The user then approved a vocal separator, so the three clips were run through Demucs.
+
+**Install (separate from every mod Python).** A new venv at `%TEMP%\demucs-venv` made from the packaged CPython 3.11 (read only, nothing was installed into `vendor`, omni or the packaged Pythons). The existing PyTorch there is a CUDA build, so it could not be reused without touching it; CPU `torch` from PyPI is 241 MB (under the 300 MB limit). Demucs 4.1.0 loads its htdemucs weights (`955717e8.safetensors`, about 80 MB) from the Hugging Face repository `adefossez/HTDemucs`, not from the older `dl.fbaipublicfiles.com` URL (the 4.1.0 package changed its loader), so the weights came from the Demucs author's own HF repo; they landed in the user's HF cache and were removed again afterwards together with the venv (about 1.5 GB). **To recreate:**
+```
+<packaged python> -m venv %TEMP%\demucs-venv
+%TEMP%\demucs-venv\Scripts\python.exe -I -m pip install torch==2.8.0 torchaudio==2.8.0 demucs==4.1.0 numpy
+%TEMP%\demucs-venv\Scripts\python.exe -I scripts\clip-search\lucy\separate_vocals.py <out_dir> <name>=<44.1 kHz stereo WAV> ...
+```
+(About 35 to 45 s of CPU per clip of 3 minutes.)
+
+**What the stems show.** `cue_metrics.py` on the vocals stems: inside the captioned lines the quietest frames fall to -45 to -70 dB (the mix was -25 to -35 dB), so between words there is real silence. The car-chase clip stays poor (floors -25 to -45 dB, engines and shouting leak through) and is rejected. The compilation has no captions and Whisper loops on its stem, so no speaker can be certified: rejected. `gap_bed.py` is not meaningful on a stem (the uncaptioned gaps contain other sung or spoken vocals), so the floor inside the lines and in the pauses next to them is the check.
+
+**The captions are not the dub.** The Netflix English captions differ from what the dub says (for example the caption "I only steal from Arasaka suits" is David's dub line "Is it stealing if I only hit Arasaka suits?"). The captions give rough timing only; the real words come from Whisper on the stem (`analyze_external.py` on the stem), and speakers come from the dialogue structure of the scene (Lucy proposes the deal, explains the split and the trainee; David answers each time). Speech edges for the cuts are read from the stem's loud regions, not from the captions.
+
+**Candidates (mono 24 kHz, 15 ms fades, no EQ/denoise/gain), all from "David and the Mystery Girl" (`HI8ubzVgvio`).** Saved to `C:\Users\akshi\Downloads\AI-NPC-Lucy-Clips\` with a README:
+| File | Length | Clip time | Words (dub) | Pause floor (mix) |
+|---|---|---|---|---|
+| `lucy-1-lesson-number-one.wav` | 5.2 s | 113.1-118.3 | Listen up. Lesson number one. Less judgment, more awareness. | -72 dB (-31) |
+| `lucy-2-trainee.wav` | 2.3 s | 130.4-132.7 | Plus, got a trainee to supervise now. (wording least certain) | -55 dB (-27) |
+| `lucy-3-seventy-thirty.wav` | 4.7 s | 138.9-143.6 | 70-30. And I'll pay the second the job's done. I think that's fair. | -75 dB (-28) |
+| `lucy-4-crazy-idea.wav` | 3.0 s | 80.2-83.2 | Hey, crazy idea. How about we work together? | -62 dB (-33) |
+
+Total 15.2 s. Speech to pause SNR is 40 to 61 dB; Whisper reads clips 1, 3 and 4 back word for word. Metrics cannot hear artefacts such as watery or ghost-voice leftovers, so the user confirms by ear that these are Lucy and clean.
+
+**Not done, by instruction:** no reference built, no config changed, `lucy-kushinada` is still `unprepared`, no sample rendered. When the user confirms, the build is the usual recipe (`build_reference`, 0.4 s gaps, short <= 10 s, long <= 18 s; 15.2 s of material makes one long set and one short set) followed by the three configs and `voice.localProfiles`.
