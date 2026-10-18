@@ -176,6 +176,27 @@ test('a state file that exists in both places keeps the old content, and the dis
   } finally { await done(f); }
 });
 
+test('an empty placeholder the package ships in runtime/ takes the old content in place, and a shipped log is emptied, never deleted', async () => {
+  const f = await fakeGame();
+  const {p} = f;
+  try {
+    // Mod Organizer 2 needs these to exist (docs/PACKAGING.md), so the carry-over writes into them instead of replacing them.
+    await put(join(p.newMod, 'runtime/phone-chat-history.json'), '');
+    await put(join(p.newMod, 'runtime/mcm.log'), 'written by this start');
+    await put(join(p.newMod, 'runtime/bridge-service.json'), '{"state":"running"}');
+    const adopted = await adoptLegacyInstall({gameRoot: f.game});
+    assert.deepEqual(adopted.report.errors, []);
+    assert.equal(await read(join(p.newMod, 'runtime/phone-chat-history.json')), '{"history":[1,2,3]}');
+    assert.deepEqual(adopted.report.replaced, [], 'nothing was displaced');
+    assert(adopted.report.moved.some(item => item.path === 'phone-chat-history.json' && item.how === 'copied'));
+    assert.equal(await exists(join(p.newMod, 'data/legacy-migration/replaced')), false);
+    for (const name of ['mcm.log', 'bridge-service.json']) {
+      assert.equal(await exists(join(p.newMod, 'runtime', name)), true, `${name} was not deleted`);
+      assert.equal(await read(join(p.newMod, 'runtime', name)), '', `${name} was emptied`);
+    }
+  } finally { await done(f); }
+});
+
 test('when a rename is refused the state is copied, compared and only then removed', async () => {
   const f = await fakeGame();
   const {p} = f;

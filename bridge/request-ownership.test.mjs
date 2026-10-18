@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp, writeFile, rename, rm, readFile, stat} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join, dirname, basename, resolve} from 'node:path';
-import {RequestFileOwner, fileIdentity} from './request-ownership.mjs';
+import {RequestFileOwner, fileIdentity, requestFileEmpty} from './request-ownership.mjs';
 
 async function scratch(run) {
   const root = await mkdtemp(join(tmpdir(), 'cyberpunk-request-owner-'));
@@ -85,3 +85,30 @@ test('removing the request file retires the owner for good, and a later request 
   assert.equal(await successor.current(), true);
   assert.equal(await owner.current(), false);
 }));
+
+// The game now rewrites the request file in place and withdraws a request by writing it empty (Mod Organizer 2: no file is created,
+// renamed over or deleted).
+test('a request rewritten in place with different bytes retires the owner, and an empty write is a withdrawal', async () => scratch(async root => {
+  const path = join(root, 'last-input.json'), raw = JSON.stringify({requestId: '1-1-1ULL', text: 'aaaa'});
+  await writeFile(path, '');
+  await writeFile(path, raw);
+  const owner = await RequestFileOwner.admit(path, raw);
+  assert.equal(await owner.current(), true);
+  const before = await stat(path);
+  await new Promise(done => setTimeout(done, 20));
+  await writeFile(path, '');
+  const after = await stat(path);
+  assert.equal(after.ino, before.ino, 'the same file, rewritten in place');
+  assert.equal(await owner.current(), false);
+  // A newer request written over the withdrawal is not the owner's either.
+  await writeFile(path, raw.replace('aaaa', 'bbbb'));
+  assert.equal(await owner.current(), false);
+}));
+
+test('an empty or blank read of the request file counts as no request', () => {
+  assert.equal(requestFileEmpty(''), true);
+  assert.equal(requestFileEmpty(' \r\n\t'), true);
+  assert.equal(requestFileEmpty('{}'), false);
+  assert.equal(requestFileEmpty('{"requestId"'), false);
+  assert.equal(requestFileEmpty(undefined), false);
+});

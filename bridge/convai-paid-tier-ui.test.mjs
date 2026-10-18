@@ -275,6 +275,30 @@ test('without the conversation service the page says so instead of showing plans
   assert(row('paid-unavailable') and not category('paid-plans'))
 `));
 
+test('an empty status file (the shipped placeholder) is no service yet, and every command is written in place over the command file', () => run(`${paidFixture}
+  jsonFile('runtime/own-key-state.json', {version = 1, saved = true, tail = 'abcd', active = 'shared'})
+  files['runtime/paid-tier-state.json'] = ''
+  files['runtime/paid-tier-command.json'] = ''
+  local removed, renamed, opened = {}, {}, {}
+  local function exempt(path) return tostring(path):find('runtime/settings.json', 1, true) == 1 end
+  local remove, rename, open = os.remove, os.rename, io.open
+  os.remove = function(path) if not exempt(path) then removed[#removed + 1] = path end return remove(path) end
+  os.rename = function(from, to) if not exempt(from) then renamed[#renamed + 1] = from end return rename(from, to) end
+  io.open = function(path, mode) if mode == 'wb' and not exempt(path) then opened[#opened + 1] = path end return open(path, mode) end
+  assert(invoke('tab:settings').ok and invoke('paid-tier').ok)
+  loaded = registered.loadMod('manager')
+  assert(row('paid-unavailable') and not category('paid-plans'), 'an empty status file reads as no service')
+  assert(command().action == 'refresh')
+  assert(invoke('paid-tier:back').ok and invoke('paid-tier').ok and command().action == 'refresh')
+  assert(#removed == 0 and #renamed == 0, 'the command file was removed or renamed: ' .. table.concat(removed, ',') .. '|' .. table.concat(renamed, ','))
+  local commands = 0
+  for _, path in ipairs(opened) do
+    assert(not path:find('.tmp', 1, true) and not path:find('.previous', 1, true), 'a side file was written: ' .. path)
+    if path == 'runtime/paid-tier-command.json' then commands = commands + 1 end
+  end
+  assert(commands == 2, commands)
+`));
+
 test('a confirmed purchase moves conversations to the player key and says so once in gameplay', () => run(`${paidFixture}
   jsonFile('runtime/own-key-state.json', {version = 1, saved = true, tail = 'abcd', active = 'shared'})
   service({plan = {name = 'Free', paid = false}})

@@ -17,7 +17,7 @@
 // configurations. Its text comes only from Mistral or the local AI, never Convai (routeFor): an add-on speaker never has a Convai
 // character ID and never counts toward the Convai allowance. The bridge also keeps each speaker's recent lines and its memories of
 // earlier fights or rides (runtime/addon-journal.json), shows both to the speaker, and drops a remark that repeats a recent one.
-import {readFile, readdir, writeFile, mkdir, copyFile, rm} from 'node:fs/promises';
+import {readFile, readdir, writeFile, mkdir, copyFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {basename, dirname, isAbsolute, resolve, sep} from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -1067,9 +1067,10 @@ export class AddonHost {
   /** Files the bridge should re-read when the game replaces them (bridge/file-wake.mjs). Empty with no add-ons. */
   watchHandlers(runtime, {read = path => readFile(path, 'utf8')} = {}) {
     if (!this.active) return {};
-    // A file that cannot be read keeps what was last seen: the game replaces these files by removing then renaming, so a read in
-    // between finds nothing, and an empty document would drop every mode and prepared stock line (a missing file starts empty anyway).
-    const reader = (name, apply) => () => read(resolve(runtime, name)).then(raw => apply(raw), () => undefined);
+    // A file that cannot be read, or reads empty, keeps what was last seen: the game writes addon-state.json in place (it is
+    // empty for a moment between the file being opened and its text arriving, and empty until the first save), and an empty
+    // document would drop every mode and prepared stock line. The game never saves an empty document: even "nothing" is JSON.
+    const reader = (name, apply) => () => read(resolve(runtime, name)).then(raw => typeof raw === 'string' && raw.trim() === '' ? undefined : apply(raw), () => undefined);
     return {[ADDON_STATE_FILE]: reader(ADDON_STATE_FILE, raw => this.observeState(raw)),
       [ADDON_SETTINGS_FILE]: reader(ADDON_SETTINGS_FILE, raw => this.observeSettings(raw))};
   }
@@ -1087,12 +1088,16 @@ export class AddonHost {
   }
 
   /**
-   * Writes runtime/addons-status.json for the game. With nothing found, removes a file an earlier run left (an uninstalled add-on)
-   * and writes nothing, so a plain install keeps exactly the files it had.
+   * Writes runtime/addons-status.json for the game. With nothing found, empties a file an earlier run left (an uninstalled add-on);
+   * a missing or already empty file is left alone, so a plain install changes nothing. The file is never removed or created here:
+   * under Mod Organizer 2 only a file that already exists is written in place (the install ships it empty).
    */
-  async publishStatus(runtime, {write = (path, data) => writeFile(path, data), remove = path => rm(path, {force: true})} = {}) {
+  async publishStatus(runtime, {write = (path, data) => writeFile(path, data), read = path => readFile(path, 'utf8')} = {}) {
     const path = resolve(runtime, ADDON_STATUS_FILE);
-    if (!this.addons.length && !this.problems.length) { await remove(path).catch(() => {}); return false; }
+    if (!this.addons.length && !this.problems.length) {
+      if ((await read(path).catch(() => '')) !== '') await write(path, '').catch(() => {});
+      return false;
+    }
     await mkdir(dirname(path), {recursive: true}).catch(() => {});
     await write(path, JSON.stringify(this.status()));
     return true;

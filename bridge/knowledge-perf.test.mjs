@@ -153,6 +153,26 @@ return {decodes=#decoded}
   assert.equal(out.decodes, 5);
 });
 
+test('loadPack treats an empty cache file (the shipped placeholder) like a missing one and rewrites it in place', () => {
+  const out = run(packFixture + `
+local store={}; local registry={}; local serial=0
+local fullText=jsonEncode(bigPack())
+store['world-knowledge.json']=fullText
+store['runtime/knowledge-pack-lua.json']=''
+local env={open=function(path,mode) return fakeFile(store,path,mode) end,
+ decode=function(raw) if raw=='' then error('an empty cache must not reach the decoder') end
+  if raw==fullText then return bigPack() end return registry[raw] end,
+ encode=function(value) serial=serial+1; local key='cache-'..serial..string.rep('.',10); registry[key]=value; return key end,
+ source='world-knowledge.json',cache='runtime/knowledge-pack-lua.json'}
+os.remove=function() error('removed the cache') end
+os.rename=function() error('renamed the cache') end
+local pack=worldModule.loadPack(env)
+assert(pack.sources and #store['runtime/knowledge-pack-lua.json']>0,'the placeholder is rewritten')
+return {ok=true}
+`);
+  assert.equal(out.ok, true);
+});
+
 // ---------------------------------------------------------------- world collector
 
 const worldFixture = `

@@ -101,3 +101,28 @@ test('a due recapture of the same world waits for a frame no other heartbeat wri
   assert(reads==22 and #writes==2)
   convaiHeartbeatSlot=nil
 `));
+
+test('the default relationship-state publisher rewrites the file in place: one open, no temp file, no remove, no rename', () => {
+  const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
+  try {
+    const result = lauxlib.luaL_dostring(state, to_luastring(`
+local files, opens, removed, renamed = {}, {}, {}, {}
+json = {encode = function(value) return 'encoded' end}
+io = {open = function(path, mode)
+  opens[#opens + 1] = path .. ':' .. mode
+  return {write = function(self, text) files[path] = text; return self end, close = function() return true end}
+end}
+os.remove = function(path) removed[#removed + 1] = path; return true end
+os.rename = function(from, to) renamed[#renamed + 1] = from .. '>' .. to; return true end
+local module = (function() ${source} end)()
+local frame = {status = 'ready', worldToken = 'world-one', generation = 1}
+local collector = module.new({currentWorld = function() return frame end, clock = function() return 100000 end,
+  readVersion = function() return '2.31' end, readFact = function() return 0 end})
+assert(collector:update(frame), 'the default publisher reported a failed write')
+assert(#opens == 1 and opens[1] == 'runtime/relationship-state.json:wb', table.concat(opens, ','))
+assert(#removed == 0 and #renamed == 0, 'remove or rename used')
+assert(files['runtime/relationship-state.json'] == 'encoded' and files['runtime/relationship-state.json.tmp'] == nil)
+`));
+    assert.equal(result, lua.LUA_OK, result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1)));
+  } finally { lua.lua_close(state); }
+});

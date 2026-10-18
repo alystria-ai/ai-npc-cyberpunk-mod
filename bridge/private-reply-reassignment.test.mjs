@@ -33,15 +33,20 @@ function run(code) {
     local files, registry, nextId = {}, {}, 0
     json={encode=function(value) nextId=nextId+1; registry[tostring(nextId)]=value; return tostring(nextId) end,
       decode=function(raw) return registry[raw] end, null={}}
+    -- Every file operation, so a test can prove an exchange file is only ever rewritten in place (Mod Organizer 2).
+    -- Opening for writing truncates the file like the real one; nothing is created by a rename or deleted by a remove.
+    local ops = {}
     io.open=function(path, mode)
+      ops[#ops+1]='open '..tostring(mode)..' '..path
       if mode=='rb' then
         if files[path]==nil then return nil end
         return {read=function() return files[path] end, close=function() return true end}
       end
-      return {write=function(_, raw) files[path]=raw; return true end, close=function() return true end}
+      files[path]=''
+      return {write=function(_, raw) files[path]=files[path]..raw; return true end, close=function() return true end}
     end
-    os.remove=function(path) local had=files[path]~=nil; files[path]=nil; return had or nil end
-    os.rename=function(from, to) files[to]=files[from]; files[from]=nil; return true end
+    os.remove=function(path) ops[#ops+1]='remove '..path; local had=files[path]~=nil; files[path]=nil; return had or nil end
+    os.rename=function(from, to) ops[#ops+1]='rename '..from..' '..to; files[to]=files[from]; files[from]=nil; return true end
     local function command() return files['runtime/microphone-command.json'] and registry[files['runtime/microphone-command.json']] end
     local commands = {}
     local realOpen=io.open
@@ -138,7 +143,7 @@ test('a text reply still being generated is retired when its copy is reassigned'
   assert(pending==mine and lastInput() and lastInput().requestId==mine.requestId and #revoked==0 and #stopped==0)
   assert(companions.setProfile(firstSerial, 'panam-palmer', 'Panam'))
   assert(pending==nil, 'the old profile still owns the pending request')
-  assert(files['runtime/last-input.json']==nil, 'the bridge would keep publishing for the old profile')
+  assert(files['runtime/last-input.json']=='', 'the bridge would keep publishing for the old profile')
   assert(#revoked==1 and revoked[1].id==mine.requestId and revoked[1].reason=='profile-reassigned')
   assert(focusUntil<os.time()+100, 'focus on the reassigned copy was kept alive')
   -- The same copy's next request, now as Panam, is a new owner and unaffected.
@@ -155,7 +160,7 @@ test('a reply that is streaming or playing is stopped, with no late audio or cap
   assert(companions.setProfile(firstSerial, 'panam-palmer', 'Panam'))
   assert(#stopped==1 and stopped[1].id==mine.requestId and stopped[1].reason=='profile-reassigned')
   assert(speech.requestId==nil)
-  assert(files['runtime/last-input.json']==nil, 'late streamed phrases would still be accepted by the bridge')
+  assert(files['runtime/last-input.json']=='', 'late streamed phrases would still be accepted by the bridge')
   -- Retiring twice (or reassigning back) cannot stop anything else.
   speech.requestId='someone-else'
   assert(companions.setProfile(firstSerial, 'judy-alvarez', 'Judy'))
@@ -167,7 +172,7 @@ test('captions shown without speech are cleared; a fully delivered reply is left
   assert(sendRequest(mine)); pending=nil
   subtitles.entity, subtitles.owns = id(first), true
   assert(companions.setProfile(firstSerial, 'panam-palmer', 'Panam'))
-  assert(#cleared==1 and cleared[1]==id(first) and #stopped==0 and files['runtime/last-input.json']==nil)
+  assert(#cleared==1 and cleared[1]==id(first) and #stopped==0 and files['runtime/last-input.json']=='')
   -- Finished long ago: no pending, speech or captions. Nothing is in flight, so
   -- the last request file (used by diagnostics) is not touched.
   local done, revokedBefore = request(second, 'judy-alvarez'), #revoked
@@ -264,7 +269,7 @@ test('automatic battle and loot reactions of the copy are cancelled when the pro
   assert(companions.setProfile(firstSerial, 'panam-palmer', 'Panam'))
   assert(automatic==nil and pending==nil and automaticCancelled[1].reason=='profile-reassigned'
     and automaticCancelled[1].id==reaction.requestId)
-  assert(files['runtime/last-input.json']==nil)
+  assert(files['runtime/last-input.json']=='')
 
   local line = request(second, 'judy-alvarez', {reaction={kind='loot'}, text='You picked up some items.'})
   automatic = line
@@ -272,4 +277,24 @@ test('automatic battle and loot reactions of the copy are cancelled when the pro
   assert(companions.setProfile(secondSerial, 'panam-palmer', 'Panam'))
   assert(automatic==nil and pending==nil and automaticCancelled[2].reason=='profile-reassigned'
     and automaticCancelled[2].id==line.requestId)
+`));
+
+// Mod Organizer 2 (docs/PACKAGING.md): under its virtual file system a file the game creates or deletes in its own folder is
+// lost, so the request file ships empty and is only ever rewritten in place; "no request" is the empty file.
+test('the request file is rewritten in place: never renamed, removed or created through a temp file', () => run(`
+  local mine = request(first, 'judy-alvarez')
+  assert(sendRequest(mine) and pending==mine)
+  assert(files['runtime/last-input.json']~='' and lastInput().requestId==mine.requestId)
+  -- Retiring the request (its copy is reassigned) withdraws it by writing the file empty.
+  assert(companions.setProfile(firstSerial, 'panam-palmer', 'Panam'))
+  assert(files['runtime/last-input.json']=='' and lastInput()==nil)
+  -- A newer request is written over the empty file, and a stale retire never blanks it.
+  local renewed = request(second, 'judy-alvarez')
+  assert(sendRequest(renewed) and lastInput().requestId==renewed.requestId)
+  local writes = 0
+  for _, op in ipairs(ops) do
+    assert(not op:find('^remove') and not op:find('^rename') and not op:find('%.tmp'), op)
+    if op=='open wb runtime/last-input.json' then writes=writes+1 end
+  end
+  assert(writes==3, 'one in-place write per request and one for the withdrawal, got '..writes)
 `));

@@ -187,7 +187,8 @@ function M.update(player)
     local f = io.open('runtime/microphone-state.json', 'rb')
     if f then
         local ok, value = pcall(json.decode, f:read('*a')); f:close()
-        if ok and value.requestId == M.context.requestId then
+        -- An empty placeholder (or a half-written file) decodes to nothing: no state yet.
+        if ok and type(value) == 'table' and value.requestId == M.context.requestId then
             if value.state == 'recording' and M.state == 'starting' then
                 M.state = 'recording'; M.started = os.time(); M.recordingAt = M.clock()
                 local shortcut = ui.boundKey(M.context.group

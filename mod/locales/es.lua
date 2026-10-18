@@ -476,7 +476,6 @@ return {
     ["What to do"] = "Qué hacer",
     ["Where the logs are"] = "Dónde están los registros",
     ["the game folder"] = "la carpeta del juego",
-    ["the runtime folder of the mod project, or the data folder inside the mod folder"] = "la carpeta de ejecución del proyecto del mod, o la carpeta de datos dentro de la carpeta del mod",
     ["Auto-connect nearby characters"] = "Conexión automática con personajes cercanos",
     ["Continue from game dialogue"] = "Continuar desde los diálogos del juego",
     ["Preparing connection to {name}…"] = "Preparando la conexión con {name}…",

@@ -201,16 +201,20 @@ end
 json={encode=function(value)
  local key='json-'..(#encoded+1); encoded[#encoded+1]=plainCopy(value);return key
 end}
-io={open=function(path)return {write=function(_,data)files[path]=data end,close=function()end}end}
+-- Every file operation: exchange files are rewritten in place (Mod Organizer 2), so nothing is renamed, removed or made through a .tmp.
+local ops={}
+io={open=function(path,mode)
+ ops[#ops+1]='open '..tostring(mode)..' '..path
+ files[path]=''
+ return {write=function(_,data)files[path]=files[path]..data end,close=function()
+  if path=='runtime/last-input.json'and files[path]~=''then
+   requests[#requests+1]=encoded[tonumber(files[path]:match('%d+'))]
+  end
+ end}
+end}
 os.time=function()return math.floor(now)end
-os.remove=function(path)files[path]=nil end
-os.rename=function(from,to)
- files[to],files[from]=files[from],nil
- if to=='runtime/last-input.json'then
-  requests[#requests+1]=encoded[tonumber(files[to]:match('%d+'))]
- end
- return true
-end
+os.remove=function(path)ops[#ops+1]='remove '..path;files[path]=nil end
+os.rename=function(from,to)ops[#ops+1]='rename '..from..' '..to;files[to],files[from]=files[from],nil;return true end
 local cancelAutomatic
 ${adapter}
 ${lifecycle}
@@ -317,6 +321,25 @@ local function plain(value)
  if type(value)=='table' then for _,item in pairs(value)do plain(item)end end
 end
 plain(evidence)
+`));
+
+test('the lease, the request and the cancellation record are rewritten in place, never created, renamed or removed', () => run(adapterFixture + `
+sample.combat=false; updateBattles(player,.5,true)
+sample.combat=true; for _=1,6 do now=now+.5;updateBattles(player,.5,true)end
+assert(automatic and pending==automatic and #requests==1)
+local request=automatic.requestId
+assert(files['runtime/reaction-lease.json']~=nil)
+-- A manual input takes over: the lease is rewritten as not valid and the cancellation is recorded.
+pending={requestId='manual'};active={};speech.requestId=request
+now=now+.5;updateBattles(player,.5,true)
+assert(automatic==nil)
+assert(files['runtime/battle-cancellations.json']~=nil and not encoded[tonumber(files['runtime/reaction-lease.json']:match('%d+'))].valid)
+local seen={}
+for _,op in ipairs(ops)do
+ assert(not op:find('^remove')and not op:find('^rename')and not op:find('%.tmp'),op)
+ seen[op]=true
+end
+assert(seen['open wb runtime/last-input.json']and seen['open wb runtime/reaction-lease.json']and seen['open wb runtime/battle-cancellations.json'])
 `));
 
 test('temporary native speech holds the same pending reaction and gates actual delivery without restarting generation', () => run(adapterFixture + `

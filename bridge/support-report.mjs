@@ -1,9 +1,8 @@
 import {createHash} from 'node:crypto';
 import {open, readFile, readdir, rm, stat, mkdir} from 'node:fs/promises';
-import {resolve, join} from 'node:path';
+import {resolve, join, dirname, basename} from 'node:path';
 import os from 'node:os';
 import {spawn} from 'node:child_process';
-import {basename} from 'node:path';
 import {createZip} from './zip-writer.mjs';
 import {atomicFile} from './guarded-file.mjs';
 
@@ -24,6 +23,9 @@ import {atomicFile} from './guarded-file.mjs';
 
 export const REPORT_KEEP = 5;
 export const REPORT_NAME = /^convai-report-(\d{8}-\d{6})(?:-[a-z]+)?\.(?:zip|txt)$/;
+// The short report the game's Lua writes when the service is not running: one fixed file in runtime/, written in place (a new
+// file there would land in Mod Organizer 2's Overwrite folder). Not a REPORT_NAME, so pruning never touches it; Copy path accepts it.
+export const LUA_REPORT_NAME = 'convai-report-lua.txt';
 export const LOG_MAX_LINES = 2000;
 export const LOG_MAX_BYTES = 1024 * 1024;
 const LINE_LIMIT = 1000, REQUEST_MAX_BYTES = 16384, REQUEST_MAX_AGE_MS = 120000;
@@ -131,7 +133,10 @@ async function readSmallJson(path, maxBytes = 256 * 1024) {
   try {
     const info = await stat(path);
     if (!info.isFile() || info.size > maxBytes) return {error: info.isFile() ? 'too-large' : 'not-a-file'};
-    return {value: JSON.parse((await readFile(path, 'utf8')).replace(/^﻿/, '')), modified: info.mtime.toISOString()};
+    const text = (await readFile(path, 'utf8')).replace(/^﻿/, '');
+    // An empty file is a placeholder the install ships and the service has not written yet: nothing there, like a missing one.
+    if (text.trim() === '') return {error: 'absent'};
+    return {value: JSON.parse(text), modified: info.mtime.toISOString()};
   } catch (error) { return {error: error.code === 'ENOENT' ? 'absent' : 'unreadable'}; }
 }
 
@@ -238,13 +243,27 @@ export async function customServerSecrets({project, environment = process.env} =
   return found;
 }
 
-export async function publishSupportPaths({game, modRoot, runtime, stateDirectory, now = Date.now}) {
+// Where the zip reports are written. The service's data folder is <data home>/data, so a data folder named "data" outside the mod
+// folder has the data home as its parent (%LOCALAPPDATA%\AiNpcCyberpunkMod, packaging/runtime/state-home.mjs): reports go to
+// <data home>/reports, outside the game folder (files created there land in Mod Organizer 2's Overwrite folder). Any other state
+// folder (the development project's runtime/, or data/ kept in the mod folder after a deferred move) keeps <runtime>/reports.
+export function reportsDirectoryFor({runtime, stateDirectory, modRoot = resolve(runtime, '..')}) {
+  if (stateDirectory) {
+    const state = resolve(stateDirectory), home = dirname(state);
+    if (basename(state).toLowerCase() === 'data' && home !== dirname(home) && home.toLowerCase() !== resolve(modRoot).toLowerCase()) {
+      return join(home, 'reports');
+    }
+  }
+  return join(runtime, 'reports');
+}
+
+export async function publishSupportPaths({game, modRoot, runtime, stateDirectory, reportsDirectory, now = Date.now}) {
   const logs = {};
   for (const entry of await locateLogs({game, modRoot, runtime, stateDirectory})) {
     logs[entry.id] = {path: entry.path, exists: await stat(entry.path).then(info => info.isFile(), () => false)};
   }
   const document = {version: 1, updated: now(), gameRoot: game, modRoot, runtime,
-    reports: join(runtime, 'reports'), stateDirectory: stateDirectory ?? null, logs};
+    reports: reportsDirectory ?? reportsDirectoryFor({runtime, stateDirectory, modRoot}), stateDirectory: stateDirectory ?? null, logs};
   await atomicFile(join(runtime, 'support-paths.json'), JSON.stringify(document));
   return document;
 }
@@ -475,11 +494,11 @@ export async function pruneReports(directory, keep = REPORT_KEEP) {
   return removed;
 }
 
-/** Collects, zips, writes into <runtime>/reports and keeps the newest five. */
+/** Collects, zips, writes into the reports folder (reportsDirectoryFor) and keeps the newest five. */
 export async function buildReport(options) {
   const now = options.now ?? Date.now;
   const reportId = options.reportId ?? `r-${stamp(new Date(now()))}`;
-  const directory = join(options.runtime, 'reports');
+  const directory = options.reportsDirectory ?? reportsDirectoryFor(options);
   await mkdir(directory, {recursive: true});
   const {entries, summary} = await collectReport({...options, reportId});
   const archive = createZip(entries, {date: new Date(now())});
@@ -517,7 +536,8 @@ export function parseClipboardRequest(raw, now = Date.now()) {
   if (value?.version !== 1 || typeof value.id !== 'string' || !/^[A-Za-z0-9_.:-]{1,96}$/.test(value.id)) return null;
   if (!Number.isFinite(value.issuedAt) || Math.abs(now - value.issuedAt) > CLIPBOARD_REQUEST_MAX_AGE_MS) return null;
   if (typeof value.text !== 'string' || value.text.length > 1024 || /[\u0000-\u001f]/.test(value.text)) return null;
-  if (!REPORT_NAME.test(basename(value.text.replaceAll('\\', '/')))) return null;
+  const file = basename(value.text.replaceAll('\\', '/'));
+  if (!REPORT_NAME.test(file) && file !== LUA_REPORT_NAME) return null;
   return {id: value.id, text: value.text};
 }
 // clip.exe reads UTF-16 text that starts with a byte-order mark, so a Windows

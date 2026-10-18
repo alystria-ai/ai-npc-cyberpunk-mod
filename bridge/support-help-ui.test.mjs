@@ -218,7 +218,7 @@ const helpFixture = (withSupport = true) => `
   jsonFile('runtime/support-paths.json', {version = 1, gameRoot = 'E:\\\\Game', modRoot = MOD, runtime = MOD .. '\\\\runtime',
     reports = MOD .. '\\\\runtime\\\\reports', stateDirectory = 'D:\\\\project\\\\runtime',
     logs = {probe = {path = MOD .. '\\\\runtime\\\\probe.log'}, ['bridge-stderr'] = {path = 'D:\\\\project\\\\runtime\\\\bridge.stderr.log'},
-      launcher = {path = 'E:\\\\Game\\\\red4ext\\\\plugins\\\\CyberpunkConvaiLauncher\\\\launcher.log'},
+      launcher = {path = 'E:\\\\Game\\\\red4ext\\\\plugins\\\\AiNpcCyberpunkMod\\\\launcher.log'},
       cet = {path = 'E:\\\\Game\\\\bin\\\\x64\\\\plugins\\\\cyber_engine_tweaks\\\\cyber_engine_tweaks.log'},
       redscript = {path = 'E:\\\\Game\\\\r6\\\\logs\\\\redscript_rCURRENT.log'},
       red4ext = {path = 'E:\\\\Game\\\\red4ext\\\\logs\\\\red4ext-2026-10-05-12-15-19.log'}}})
@@ -238,7 +238,7 @@ test('Settings offers Help, and the Help page has one parent Back, guidance, the
   -- Real absolute paths from the service's published locations.
   assert(row('help-log-mod').description:find(MOD .. '\\\\runtime', 1, true))
   assert(row('help-log-bridge').description:find('D:\\\\project\\\\runtime', 1, true))
-  assert(row('help-log-launcher').description:find('E:\\\\Game\\\\red4ext\\\\plugins\\\\CyberpunkConvaiLauncher\\\\launcher.log', 1, true))
+  assert(row('help-log-launcher').description:find('E:\\\\Game\\\\red4ext\\\\plugins\\\\AiNpcCyberpunkMod\\\\launcher.log', 1, true))
   assert(row('help-log-cet').description:find('E:\\\\Game\\\\bin\\\\x64\\\\plugins\\\\cyber_engine_tweaks', 1, true))
   assert(row('help-log-redscript').description:find('E:\\\\Game\\\\r6\\\\logs\\\\redscript_rCURRENT.log', 1, true))
   assert(row('help-log-red4ext').description:find('E:\\\\Game\\\\red4ext\\\\logs', 1, true))
@@ -311,13 +311,32 @@ test('with the conversation service stopped the page writes a short report itsel
   assert(not files['runtime/report-request.json'], 'no request is sent to a service that is not running')
   local report
   for _, write in ipairs(fileWrites) do
-    if write.path:match('^runtime/reports/convai%-report%-.*%-lua%.txt$') then report = write end
+    if write.path == 'runtime/convai-report-lua.txt' then report = write end
   end
-  assert(report, 'a Lua-side report file was written')
+  assert(report, 'a Lua-side report file was written, in the one fixed file')
   assert(report.value:find('the conversation service was not running', 1, true))
   local last = row('help-last')
-  assert(last.value:match('^convai%-report%-.*%-lua%.txt$') and last.description:find('short report', 1, true))
-  assert(last.description:find('…\\\\runtime\\\\reports\\\\\\n', 1, true) and not last.description:find(MOD, 1, true), last.description)
+  assert(last.value == 'convai-report-lua.txt' and last.description:find('short report', 1, true))
+  assert(last.description:find('…\\\\AiNpcCyberpunkMod\\\\runtime\\\\\\n' .. 'convai-report-lua.txt', 1, true) and not last.description:find(MOD, 1, true), last.description)
+  for _, write in ipairs(fileWrites) do assert(not write.path:find('convai%-report') or write.path == 'runtime/convai-report-lua.txt', 'no other report name: ' .. write.path) end
+  -- A second report rewrites the same file in place: no new name, nothing renamed or removed.
+  fileWrites = {}
+  os.remove = function(path) error('os.remove ' .. path) end
+  os.rename = function(from, to) error('os.rename ' .. from) end
+  pump(false, 1)
+  assert(invoke('help:generate').ok)
+  local rewrites = 0
+  for _, write in ipairs(fileWrites) do if write.path == 'runtime/convai-report-lua.txt' then rewrites = rewrites + 1 end end
+  assert(rewrites == 1, rewrites)
+`));
+
+test('before the service has published its folders the page says where the data and the reports are now, outside the game folder', () => run(`${helpFixture()}
+  files['runtime/support-paths.json'] = nil
+  assert(invoke('tab:settings').ok and invoke('help').ok)
+  assert(row('help-log-bridge').description:find('%LOCALAPPDATA%\\\\AiNpcCyberpunkMod\\\\data', 1, true), row('help-log-bridge').description)
+  assert(row('help-log-reports').description:find('%LOCALAPPDATA%\\\\AiNpcCyberpunkMod\\\\reports', 1, true), row('help-log-reports').description)
+  assert(row('help-log-launcher').description:find('red4ext\\\\plugins\\\\AiNpcCyberpunkMod\\\\launcher.log', 1, true), row('help-log-launcher').description)
+  assert(not row('help-log-bridge').description:find('mod folder', 1, true) and not row('help-log-launcher').description:find('CyberpunkConvaiLauncher', 1, true))
 `));
 
 test('without the support module the manager is unchanged and shows no Help entry', () => run(`${helpFixture(false)}

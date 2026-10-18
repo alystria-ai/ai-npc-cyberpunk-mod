@@ -476,7 +476,6 @@ return {
     ["What to do"] = "Что делать",
     ["Where the logs are"] = "Где находятся журналы",
     ["the game folder"] = "папка игры",
-    ["the runtime folder of the mod project, or the data folder inside the mod folder"] = "папка среды выполнения проекта мода или папка данных внутри папки мода",
     ["Auto-connect nearby characters"] = "Автоподключение ближайших персонажей",
     ["Continue from game dialogue"] = "Продолжать игровые диалоги",
     ["Preparing connection to {name}…"] = "Подготовка подключения к {name}…",

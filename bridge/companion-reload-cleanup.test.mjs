@@ -21,13 +21,16 @@ local function copy(v)
 end
 local now,files,encoded,sequence,reads,writes=10000,{},{},0,0,0
 local PATH='runtime/companion-chauffeur-cleanup.json'
-os={time=function()return now end,remove=function(p)files[p]=nil;return true end,
- rename=function(a,b)if files[a] then files[b]=files[a];files[a]=nil;return true end end}
+local removed,renamed={},{}
+os={time=function()return now end,remove=function(p)removed[#removed+1]=p;files[p]=nil;return true end,
+ rename=function(a,b)renamed[#renamed+1]=a..'>'..b;if files[a] then files[b]=files[a];files[a]=nil;return true end end}
+-- The shipped placeholder is an empty file, and deleting the receipt writes an empty file: both mean no cleanup pending.
+local function gone()return files[PATH]==nil or files[PATH]=='' end
 json={encode=function(v)sequence=sequence+1;local k='json-'..sequence;encoded[k]=copy(v);return k end,
  decode=function(k)return copy(assert(encoded[k],'invalid json'))end}
 io={open=function(path,mode)
  if mode=='rb' then if not files[path] then return nil end
-  return {read=function(_,count)reads=reads+1;return files[path]:sub(1,count)end,close=function()return true end}
+  return {read=function(_,count)reads=reads+1;local text=files[path]:sub(1,count);if text==''then return nil end;return text end,close=function()return true end}
  end
  return {write=function(_,v)writes=writes+1;files[path]=v;return true end,close=function()return true end}
 end}
@@ -135,7 +138,7 @@ tick();assert(calls.restores==1 and calls.cancels==1 and calls.unmounts==0)
 tick();assert(calls.unmounts==1 and owner.phase=='unmounting-driver')
 tick(8);assert(calls.unmounts==1 and calls.deletes==0 and calls.cancels==1)
 world.driverMounted=false;tick();assert(calls.cancels==2 and calls.deletes==0)
-tick();assert(calls.deletes==1 and owner.phase=='complete' and not files[PATH])
+tick();assert(calls.deletes==1 and owner.phase=='complete' and gone())
 `));
 test('a recovered executing unmount waits for its seat link to clear',()=>run(`
 receipt.command={id=17,class='AIUnmountCommand'};save();old.class='AIUnmountCommand'
@@ -151,7 +154,7 @@ world.exiting=false;tick();assert(owner.phase=='complete' and calls.deletes==1)
 test('unmount attempts are persisted and limited even across repeated CET reloads',()=>run(`
 receipt.attempts=2;save();tick();assert(owner.attempts==3 and calls.unmounts==1)
 latest.state='Failure';tick();assert(owner.phase=='failed' and calls.deletes==0)
-assert(not files[PATH])
+assert(gone())
 `));
 test('a timed-out native command never licenses driver deletion',()=>run(`
 receipt.command={id=17,class='AIMountCommand'};save();world.blockCancel=true
@@ -176,7 +179,7 @@ assert(cleanup.captureSeated(owner,{},{}));local saved=json.decode(files[PATH])
 assert(saved.intent=='cleanup-only' and saved.version==2 and not saved.profileKey and not saved.waypoint)
 assert(not cleanup.captureSeated(owner,{},{}));noMutations()
 local before=calls.samples;cleanup.abandon(owner)
-assert(not files[PATH] and not owner.receipt and owner.operation==nil and calls.samples==before)
+assert(gone() and not owner.receipt and owner.operation==nil and calls.samples==before)
 tick();assert(calls.samples==before)
 `));
 test('a terminal car command retains stopping authority while V is passenger and the car is coasting',()=>run(`
@@ -273,18 +276,18 @@ values.aboard=true;cleanup.update(owner,player,.5,true)
 assert(owner.phase=='waiting-for-player-exit' and retired==0)
 `,true));
 test('native unique tag must read back as exactly one same entity; a disk receipt alone cannot authorize cleanup',()=>run(`
-values.noTag=true;assert(not cleanup.captureSeated(owner,player,npc));assert(not files[PATH])
-values.noTag=false;values.duplicate=true;assert(not cleanup.captureSeated(owner,player,npc));assert(not files[PATH])
+values.noTag=true;assert(not cleanup.captureSeated(owner,player,npc));assert(gone())
+values.noTag=false;values.duplicate=true;assert(not cleanup.captureSeated(owner,player,npc));assert(gone())
 values.duplicate=false;assert(cleanup.captureSeated(owner,player,npc))
 local r=json.decode(files[PATH]);tags[r.tag]=nil
 cleanup.update(owner,player,.5,true);assert(owner.phase=='rejected' and retired==0)
 `,true));
 test('native legacy command capture rejects a handler belonging to another car or slot',()=>run(`
 commands.AIMountCommand={id=4,class='AIMountCommand',mountData={mountParentEntityId={hash='999ULL'},slotName='seat_front_left'}}
-assert(not cleanup.captureSeated(owner,player,npc));assert(not files[PATH])
+assert(not cleanup.captureSeated(owner,player,npc));assert(gone())
 commands.AIMountCommand.mountData.mountParentEntityId.hash=values.carId
 commands.AIMountCommand.mountData.slotName='seat_back_right'
-assert(not cleanup.captureSeated(owner,player,npc));assert(not files[PATH])
+assert(not cleanup.captureSeated(owner,player,npc));assert(gone())
 commands.AIMountCommand.mountData.slotName='seat_front_left'
 assert(cleanup.captureSeated(owner,player,npc));assert(json.decode(files[PATH]).command.id==4)
 `,true));
@@ -295,5 +298,24 @@ assert(owner.phase=='waiting-for-despawn' and values.retiring)
 Game.FindEntityByID=function()error('retired vehicle read')end
 cleanup.update(owner,player,.5,true);assert(owner.phase=='waiting-for-despawn')
 values.managed=false;cleanup.update(owner,player,.5,true)
-assert(owner.phase=='complete' and not files[PATH])
+assert(owner.phase=='complete' and gone())
 `,true));
+
+test('the cleanup receipt is written and erased in place: an empty file, never a temp file, a remove or a rename',()=>run(`
+files[PATH]=''
+assert(cleanup.captureSeated(owner,{},{}));assert(files[PATH]~='' and json.decode(files[PATH]).intent=='cleanup-only')
+cleanup.abandon(owner)
+assert(files[PATH]=='' and gone(),'erasing leaves an empty file')
+save();world.driverMounted=false;owner=cleanup.new(api);tick();tick()
+assert(owner.phase=='complete' and files[PATH]=='')
+assert(#removed==0 and #renamed==0,'no os.remove/os.rename: '..table.concat(removed,',')..table.concat(renamed,','))
+assert(files[PATH..'.tmp']==nil)
+`));
+test('an empty receipt file is the shipped placeholder: no cleanup pending, no rejection, nothing read from the world',()=>run(`
+files[PATH]=''
+local writesBefore=writes
+tick(3)
+assert(not owner.receipt and owner.phase~='rejected' and calls.samples==0 and writes==writesBefore)
+noMutations()
+assert(cleanup.captureSeated(owner,{},{}),'a capture after an empty placeholder is allowed')
+`));

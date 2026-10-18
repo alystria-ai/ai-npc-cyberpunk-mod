@@ -19,16 +19,14 @@ local function readFile(path)
     local file = io.open(path, 'rb'); if not file then return nil end
     local raw = file:read(MAX_BYTES + 1); file:close(); return raw
 end
+-- In place: the file is shipped as an empty placeholder and only ever rewritten, never deleted
+-- or renamed over (a new file would land in Mod Organizer 2's Overwrite folder). A reader that
+-- catches the file mid-write fails closed (a partial or empty file decodes to nothing).
 local function writeFile(path, raw)
-    local temp = path .. '.tmp'
-    local file = io.open(temp, 'wb'); if not file then return false end
+    local file = io.open(path, 'wb'); if not file then return false end
     local written = file:write(raw); local closed = file:close()
     if not written or not closed then return false end
-    if os.rename(temp, path) then return true end
-    -- Lua's Windows rename may not replace a destination. The complete temp is
-    -- already closed; a missing-file interval fails closed at the reader.
-    os.remove(path)
-    return os.rename(temp, path) ~= nil
+    return true
 end
 local function unavailable(reason)
     return {version = 1, status = 'unavailable', authoritative = false, reason = reason}
@@ -111,7 +109,8 @@ function M.new(options)
         self.ack = ack
     end
     local function apply(raw, time, worldGeneration)
-        if type(raw) ~= 'string' or #raw > MAX_BYTES then return end
+        -- An empty file is the shipped placeholder, the same as no command.
+        if type(raw) ~= 'string' or #raw > MAX_BYTES or raw:match('^%s*$') then return end
         local ok, command = pcall(decode, raw)
         if not ok or type(command) ~= 'table' or not token(command.id) then return end
         local cached = self.seen[command.id]
@@ -189,7 +188,7 @@ function M.new(options)
             local _, native = capture()
             if native.status ~= 'available' or native.authoritative ~= true then return unavailable(native.reason) end
             local raw = read(bindingPath, MAX_BYTES)
-            if type(raw) ~= 'string' or #raw > MAX_BYTES then return unavailable('bridge-binding-unavailable') end
+            if type(raw) ~= 'string' or #raw > MAX_BYTES or raw:match('^%s*$') then return unavailable('bridge-binding-unavailable') end
             local binding = decode(raw)
             if type(binding) ~= 'table' or binding.version ~= 1 or binding.status ~= 'ready'
                 or not finite(binding.publishedAt) or time - binding.publishedAt < -1000

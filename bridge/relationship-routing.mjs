@@ -164,7 +164,8 @@ export class RelationshipRouting {
     // Multilingual conversations commits at the same idle boundary as the relationship modes.
     const multilingual = settings === undefined ? this.pending?.multilingual ?? this.multilingual
       : settings?.multilingualConversations === true;
-    const snapshot = rawSnapshot === undefined ? this.pending?.snapshot ?? this.snapshot : parseRelationshipState(rawSnapshot);
+    // An empty file is the shipped placeholder (nothing published yet): the same as a missing one.
+    const snapshot = rawSnapshot === undefined || rawSnapshot === '' ? this.pending?.snapshot ?? this.snapshot : parseRelationshipState(rawSnapshot);
     this.pending = {modes, snapshot, multilingual};
     if (busy) return false;
     this.modes = modes; this.snapshot = snapshot; this.multilingual = multilingual; this.pending = null;

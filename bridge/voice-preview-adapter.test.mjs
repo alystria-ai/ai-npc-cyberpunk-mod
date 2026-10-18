@@ -263,3 +263,21 @@ test('the reference length is part of the choice: it is previewed, carried in th
     assert(current().active and current().provider == 'inworld' and current().omniSteps == nil)
   `);
 });
+
+test('the default writer replaces voice-preview.json in place: one open, no temporary file, no remove, no rename', () => {
+  run(`
+    local ops, store = {}, {}
+    io.open = function(path, mode)
+        ops[#ops + 1] = 'open ' .. mode .. ' ' .. path
+        store[path] = ''
+        return {write = function(self, raw) store[path] = raw; return self end, close = function() return true end}
+    end
+    os.remove = function(path) ops[#ops + 1] = 'remove ' .. path; return true end
+    os.rename = function(from) ops[#ops + 1] = 'rename ' .. from; return true end
+    local second = (function() ${source} end)().new({now = function() return clock end, encode = function() return 'lease' end})
+    second.bind(api)
+    changed(1, true)
+    second.update(true, 'native-menu-2', function() return committed end)
+    assert(#ops == 1 and ops[1] == 'open wb runtime/voice-preview.json' and store['runtime/voice-preview.json'] == 'lease', table.concat(ops, ','))
+  `);
+});

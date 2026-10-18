@@ -1,11 +1,11 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile, readdir, writeFile, stat, mkdir, rm} from 'node:fs/promises';
-import {join} from 'node:path';
+import {join, parse} from 'node:path';
 import {createZip, readZip, crc32} from './zip-writer.mjs';
 import {createRedactor, tailFile, pruneReports, buildReport, collectReport, credentialSecrets,
   SupportReportControl, parseReportRequest, parseClipboardRequest, publishSupportPaths, locateLogs, localAiSection, shortHash,
-  REPORT_KEEP, LOG_MAX_LINES, LOG_MAX_BYTES} from './support-report.mjs';
+  REPORT_KEEP, REPORT_NAME, LUA_REPORT_NAME, reportsDirectoryFor, LOG_MAX_LINES, LOG_MAX_BYTES} from './support-report.mjs';
 import {PLANTED, VECTORS, fakeInstall, plantedInstall} from './support-report-fixture.mjs';
 
 const zipText = async path => readZip(await readFile(path)).map(entry => ({name: entry.name, text: entry.data.toString('utf8')}));
@@ -336,6 +336,13 @@ test('the report shows Local AI detection from whitelisted state fields, the pac
     await rm(join(f.runtime, 'mistral-state.json'));
     const missing = await localAiSection({runtime: f.runtime, project: f.project, environment: {}});
     assert.equal(missing.state, 'absent'); assert.equal(missing.localAi, null); assert.equal(missing.localModels, null);
+    // The install ships the status files empty: that is no state yet too, not an unreadable file.
+    await writeFile(join(f.runtime, 'mistral-state.json'), '');
+    const placeholder = await localAiSection({runtime: f.runtime, project: f.project, environment: {}});
+    assert.equal(placeholder.state, 'absent'); assert.equal(placeholder.localAi, null);
+    await writeFile(join(f.runtime, 'bridge-service.json'), '');
+    const empty = await collectReport({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project, reportId: 'r-empty', environment: {}});
+    assert.equal(empty.summary.bridge.status['bridge-service.json'].state, 'absent');
   } finally { await f.cleanup(); }
 });
 
@@ -377,4 +384,89 @@ test('Copy report path asks the service to copy only a report file path, once pe
     await control.poll();
     assert.equal(copies.length, 1, 'only a convai-report file path is copied');
   } finally { await f.cleanup(); }
+});
+
+test('zip reports go to <data home>/reports when the service data folder is <data home>/data, and stay in runtime/reports otherwise', async () => {
+  const f = await fakeInstall();
+  try {
+    const home = join(f.base, 'LocalAppData', 'AiNpcCyberpunkMod'), state = join(home, 'data');
+    await mkdir(state, {recursive: true});
+    // The service's own data folder: the data home is its parent.
+    assert.equal(reportsDirectoryFor({runtime: f.runtime, stateDirectory: state}), join(home, 'reports'));
+    // Development (state in the project's runtime/), no state, and data/ kept in the mod folder after a deferred move: the old place.
+    for (const stateDirectory of [f.state, undefined, null, join(f.modRoot, 'data'), join(f.base, 'data-copy'), join(parse(f.base).root, 'data')]) {
+      assert.equal(reportsDirectoryFor({runtime: f.runtime, stateDirectory}), join(f.runtime, 'reports'), String(stateDirectory));
+    }
+    const control = await SupportReportControl.open({game: f.game, runtime: f.runtime, stateDirectory: state, project: f.project});
+    // The Help page reads the published location; Lua cannot see %LOCALAPPDATA%.
+    const paths = JSON.parse(await readFile(join(f.runtime, 'support-paths.json'), 'utf8'));
+    assert.equal(paths.reports, join(home, 'reports'));
+    assert.equal(paths.stateDirectory, state);
+    const built = await buildReport({game: f.game, runtime: f.runtime, stateDirectory: state, project: f.project, request: {id: 'r', issuedAt: 0}});
+    assert.equal(built.path, join(home, 'reports', built.name));
+    assert((await stat(built.path)).size === built.bytes);
+    await assert.rejects(stat(join(f.runtime, 'reports')), {code: 'ENOENT'}, 'nothing is created under the game folder');
+    // Through the service: the ready result names the file outside the game folder, and only the newest five stay there.
+    const requestPath = join(f.runtime, 'report-request.json'), resultPath = join(f.runtime, 'report-result.json');
+    await writeFile(requestPath, JSON.stringify({version: 1, id: 'r-home', issuedAt: Date.now(), lua: {}}));
+    await control.poll();
+    const result = JSON.parse(await readFile(resultPath, 'utf8'));
+    assert.equal(result.state, 'ready');
+    assert(result.path.startsWith(join(home, 'reports')) && !result.path.startsWith(f.game), result.path);
+    for (let index = 0; index < 7; index++) {
+      await buildReport({game: f.game, runtime: f.runtime, stateDirectory: state, project: f.project, request: {id: 'r', issuedAt: 0},
+        now: () => new Date(2026, 9, 5, 14, 0, index).getTime()});
+    }
+    assert((await readdir(join(home, 'reports'))).filter(name => REPORT_NAME.test(name)).length <= REPORT_KEEP);
+    await assert.rejects(stat(join(f.runtime, 'reports')), {code: 'ENOENT'});
+    control.close();
+  } finally { await f.cleanup(); }
+});
+
+test('without a data home the zip reports are written to runtime/reports as before, and support-paths.json says so', async () => {
+  const f = await fakeInstall();
+  try {
+    const built = await buildReport({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project, request: {id: 'r', issuedAt: 0}});
+    assert.equal(built.path, join(f.runtime, 'reports', built.name));
+    const published = await publishSupportPaths({game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state});
+    assert.equal(published.reports, join(f.runtime, 'reports'));
+    assert.equal(JSON.parse(await readFile(join(f.runtime, 'support-paths.json'), 'utf8')).reports, join(f.runtime, 'reports'));
+  } finally { await f.cleanup(); }
+});
+
+test('empty exchange files are read as missing: no report, no copy, no result written, and nothing is removed', async () => {
+  const f = await fakeInstall();
+  try {
+    const names = ['report-request.json', 'report-result.json', 'clipboard-request.json', 'support-paths.json'];
+    for (const name of names) await writeFile(join(f.runtime, name), '');
+    const copies = [];
+    let builds = 0;
+    const control = await SupportReportControl.open({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      copy: async text => { copies.push(text); }, build: async () => { builds++; throw Error('must not build'); }});
+    // open() publishes the paths over the shipped empty file, in place.
+    assert.equal(JSON.parse(await readFile(join(f.runtime, 'support-paths.json'), 'utf8')).version, 1);
+    for (let round = 0; round < 3; round++) await control.poll();
+    assert.equal(builds, 0); assert.deepEqual(copies, []);
+    assert.equal(await readFile(join(f.runtime, 'report-result.json'), 'utf8'), '', 'no result is written for no request');
+    for (const name of names) assert((await stat(join(f.runtime, name))).isFile(), `${name} is still there`);
+    // The request then overwrites the empty file and is answered as usual.
+    await writeFile(join(f.runtime, 'report-request.json'), JSON.stringify({version: 1, id: 'r-empty', issuedAt: Date.now(), lua: {}}));
+    await control.poll();
+    assert.equal(builds, 1);
+    assert.equal(JSON.parse(await readFile(join(f.runtime, 'report-result.json'), 'utf8')).id, 'r-empty');
+    control.close();
+    assert.equal(parseReportRequest('', Date.now()), null); assert.equal(parseClipboardRequest('', Date.now()), null);
+  } finally { await f.cleanup(); }
+});
+
+test('Copy report path also accepts the fixed short report written by the game, and nothing else new', () => {
+  const now = Date.now();
+  const bs = String.fromCharCode(92), mod = ['E:', 'Game', 'bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'mods', 'AiNpcCyberpunkMod', 'runtime'].join(bs);
+  const ask = text => parseClipboardRequest(JSON.stringify({version: 1, id: 'c1', issuedAt: now, text}), now);
+  assert.deepEqual(ask(`${mod}${bs}${LUA_REPORT_NAME}`), {id: 'c1', text: `${mod}${bs}${LUA_REPORT_NAME}`});
+  assert.equal(LUA_REPORT_NAME, 'convai-report-lua.txt');
+  assert.equal(REPORT_NAME.test(LUA_REPORT_NAME), false, 'pruning never matches the fixed file');
+  for (const name of ['convai-report-lua.txt.bak', 'convai-report-lua.zip', 'settings.json', 'xconvai-report-lua.txt']) {
+    assert.equal(ask(`${mod}${bs}${name}`), null, name);
+  }
 });

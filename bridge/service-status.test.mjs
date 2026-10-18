@@ -67,6 +67,15 @@ test('with no evidence at all the adapter keeps its previous behaviour', () => r
   assert(status.notice() == nil)
 `));
 
+test('empty status files (the shipped placeholders) are the same as missing ones', () => run(`
+  for _, path in ipairs({'runtime/knowledge-status.json', 'runtime/local-voice-state.json', 'runtime/bridge-service.json'}) do
+    files[path] = ''
+  end
+  assert(status.unavailable() == nil, 'an empty file must not read as a stopped service')
+  assert(status.blockedMessage() == nil)
+  assert(status.notice() == nil)
+`));
+
 test('a fresh bridge heartbeat always allows conversations', () => run(`
   put('runtime/bridge-service.json', {state = 'failed', code = 'bridge-crashed', since = ms(-5), updated = ms()})
   put('runtime/knowledge-status.json', {version = 1, updated = ms(-1)})
@@ -179,4 +188,16 @@ test('status files are read at most once a second and malformed files are ignore
   files['runtime/bridge-service.json'] = 'malformed'
   files['runtime/knowledge-status.json'] = 'malformed'
   assert(status.unavailable() == nil, 'unreadable evidence is no evidence')
+`));
+
+test('the empty placeholders the install ships (bridge-service.json and the heartbeats) are no evidence, like missing files', () => run(`
+  for _, name in ipairs({'bridge-service', 'knowledge-status', 'local-voice-state'}) do files['runtime/' .. name .. '.json'] = '' end
+  assert(status.unavailable() == nil, 'empty files must not read as a stopped service')
+  assert(status.blockedMessage() == nil)
+  assert(status.lostSince(now() - 10) == nil)
+  assert(status.notice() == nil)
+  -- The service then writes over them in place: the same files now carry real status.
+  advance(5)
+  put('runtime/bridge-service.json', {state = 'failed', code = 'missing-key', since = ms(-1), updated = ms()})
+  assert(status.unavailable().kind == 'setup')
 `));

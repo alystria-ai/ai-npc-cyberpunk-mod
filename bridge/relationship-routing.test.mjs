@@ -326,3 +326,13 @@ test('idle relationship retirement drops an affected completed exact-ID focus bu
   await retireRelationshipConnections(connections, ['judy-alvarez']);
   assert.equal(connections.request.profile, 'panam-palmer');
 });
+
+test('an empty relationship-state.json (the shipped placeholder) is read like a missing one: the last snapshot stays, and nothing is invented', () => {
+  const routes = new RelationshipRouting({ordinaryIds, now: () => NOW});
+  routes.update({}, '', {boundary});
+  assert.equal(routes.select('kerry-eurodyne', boundary).reason, 'relationship-state-unavailable', 'an empty first file is no snapshot');
+  routes.update({}, JSON.stringify(snapshot({sq028_kerry_relationship: 1})), {boundary});
+  assert.equal(routes.select('kerry-eurodyne', boundary).style, 'romantic');
+  routes.update(undefined, '', {boundary});
+  assert.equal(routes.select('kerry-eurodyne', boundary).style, 'romantic', 'an empty file dropped the last fresh snapshot, unlike a missing file');
+});

@@ -713,3 +713,43 @@ test('wiring: the scan remembers spawned characters and adds the remembered ones
   assert.match(source, /spawnedRadius = 8/);
   assert.match(source, /if entry\.spawned then age = 0 end/);
 });
+
+test('the default nearby-connections publisher rewrites the file in place: no temp file, no remove, no rename', () => {
+  run(`${fixture}
+    local files, opens, removed, renamed = {}, {}, {}, {}
+    json = {encode = function(value) return '"' .. tostring(value) .. '"' end}
+    io.open = function(path, mode)
+      if mode == 'rb' then
+        if not files[path] then return nil end
+        return {read = function() local text = files[path]; if text == '' then return nil end return text end, close = function() return true end}
+      end
+      opens[#opens + 1] = path
+      return {write = function(self, text) files[path] = text; return self end, close = function() return true end}
+    end
+    os.remove = function(path) removed[#removed + 1] = path; return true end
+    os.rename = function(from, to) renamed[#renamed + 1] = from .. '>' .. to; return true end
+    local auto = make({publish = false})
+    for _ = 1, 3 do auto.look('judy-alvarez', 'e1', 'Judy', 0.2) end
+    step(auto, 1)
+    assert(#opens >= 1, 'the default publisher never wrote')
+    for _, path in ipairs(opens) do assert(path == 'runtime/nearby-connections.json', 'wrote ' .. path) end
+    assert(#removed == 0 and #renamed == 0, 'remove or rename used')
+    assert(files['runtime/nearby-connections.json'] and files['runtime/nearby-connections.json']:find('"profiles"', 1, true))
+    assert(files['runtime/nearby-connections.json.tmp'] == nil)
+  `);
+});
+
+test('an empty party-connection-state file (the shipped placeholder) means no connection is ready yet', () => {
+  run(`${fixture}
+    local files = {['runtime/party-connection-state.json'] = ''}
+    json = {decode = function(raw) error('decoded an empty file') end, encode = function(value) return '"' .. tostring(value) .. '"' end}
+    io.open = function(path, mode)
+      if mode ~= 'rb' or files[path] == nil then return nil end
+      return {read = function() local text = files[path]; if text == '' then return nil end return text end, close = function() return true end}
+    end
+    local auto = make({ready = false})
+    assert(auto.talkNotice('judy-alvarez', 'Judy') == 'Preparing connection to Judy…', 'an empty state file counted as ready')
+    files['runtime/party-connection-state.json'] = nil
+    assert(auto.talkNotice('judy-alvarez', 'Judy') == 'Preparing connection to Judy…', 'a missing state file counted as ready')
+  `);
+});

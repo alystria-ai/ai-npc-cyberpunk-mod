@@ -379,10 +379,10 @@ local function publishPhoneDelivery(receipt)
     local ok, raw = pcall(json.encode, {version = 1, updated = os.time() * 1000, receipts = knowledgePhoneReceipts})
     if not ok or #raw > 32768 then return end
     local path = 'runtime/knowledge-phone-delivery.json'
-    local file = io.open(path .. '.tmp', 'wb'); if not file then return end
-    local written, closed = file:write(raw), file:close()
-    if not written or not closed then return end
-    if not os.rename(path .. '.tmp', path) then os.remove(path); os.rename(path .. '.tmp', path) end
+    -- In place (the file ships as an empty placeholder under Mod Organizer 2): the bridge reads it with a
+    -- try/catch and ignores a partial or empty file until the next publication.
+    local file = io.open(path, 'wb'); if not file then return end
+    file:write(raw); file:close()
 end
 
 microphone.captureKnowledge = function(context) return captureKnowledge(context, nil, true) end
@@ -402,11 +402,10 @@ convaiGroupChat = groupChat
 phoneChat.serviceBlocked = function() return (serviceCall('blockedMessage', os.time())) end
 groupChat.onPreparation = function(preparation)
     if preparation and not attachKnowledge(preparation.input) then preparation = nil end
-    local f = io.open('runtime/group-prefetch.json.tmp', 'wb')
+    -- Written in place (the shipped placeholder is replaced, never created or deleted: Mod Organizer 2).
+    local f = io.open('runtime/group-prefetch.json', 'wb')
     if not f then return end
     f:write(preparation and json.encode(preparation) or '{}'); f:close()
-    os.remove('runtime/group-prefetch.json')
-    os.rename('runtime/group-prefetch.json.tmp', 'runtime/group-prefetch.json')
 end
 groupChat.onPreparation(nil)
 local supportedProfiles = {}
@@ -1025,8 +1024,6 @@ local function warmConversation(participants, key, entity)
     local call = not participants and convaiHolocall and convaiHolocall.call or nil
     if call and not key then key, entity = call.key, call.entity end
     call = call ~= nil and key == call.key
-    local f = io.open('runtime/conversation-prewarm.json.tmp', 'wb')
-    if not f then return end
     local hint = '{}'
     -- An add-on voice never has a Convai connection to warm (docs/ADDON_API.md: Mistral or the local AI only). The hint still says a
     -- typed line may follow, so the bridge warms V's voice for it (docs/V_VOICE.md); it opens no connection for it.
@@ -1050,9 +1047,10 @@ local function warmConversation(participants, key, entity)
             audience = audience, group = participants ~= nil,
             entity = participants == nil and type(entity) == 'string' and entity or nil, call = call or nil})
     end
+    -- In place, after the hint is built (the old code opened the temp file first so a failed open skipped the work).
+    local f = io.open('runtime/conversation-prewarm.json', 'wb')
+    if not f then return end
     f:write(hint); f:close()
-    os.remove('runtime/conversation-prewarm.json')
-    os.rename('runtime/conversation-prewarm.json.tmp', 'runtime/conversation-prewarm.json')
 end
 warmConversation(nil, nil)
 
@@ -2269,13 +2267,11 @@ local function sendRequest(context)
     elseif context.group and context.group.index == 1 and not context.reaction then
         gameplayActions.capture(context, 'group-text')
     end
-    local file = io.open('runtime/last-input.json.tmp', 'wb')
+    -- In place over the shipped placeholder (Mod Organizer 2 never sees a new or deleted file). The bridge retries a
+    -- half-written read on the file's next change; an empty file means "no request".
+    local file = io.open('runtime/last-input.json', 'wb')
     if not file then gameplayActions.revoke('request-write-failed', context.requestId); return false end
     file:write(json.encode(context)); file:close()
-    os.remove('runtime/last-input.json')
-    if not os.rename('runtime/last-input.json.tmp', 'runtime/last-input.json') then
-        gameplayActions.revoke('request-write-failed', context.requestId); return false
-    end
     pending = context
     pendingKnowledgeOwner = owner
     if not context.reaction then focusUntil = os.time() + 90 end
@@ -2352,7 +2348,7 @@ if convaiHolocall then
             local stop = 'holocall-' .. tostring(reason)
             if microphone.context and microphone.context.holocall then cancelVoice(stop) end
             if pending and pending.holocall then
-                if requestFileId == pending.requestId then requestFileId = nil; os.remove('runtime/last-input.json') end
+                if requestFileId == pending.requestId then requestFileId = nil; do local f = io.open('runtime/last-input.json', 'wb'); if f then f:close() end end end
                 pending, pendingKnowledgeOwner = nil, nil
             end
             if active and active.holocall then active = nil end
@@ -2390,9 +2386,9 @@ local function retirePrivateReply(entity, reason)
     end
     if owner.source == 'voice' then microphone.revoke(owner.context) end
     if pending and pending.requestId == requestId then pending, pendingKnowledgeOwner = nil, nil end
-    -- The bridge owns a text request through this file: once it is gone there is
-    -- no further audio, subtitles, face or memory for it. Never remove a newer one.
-    if requestFileId == requestId then requestFileId = nil; os.remove('runtime/last-input.json') end
+    -- The bridge owns a text request through this file: once it is empty (written in place, never deleted: Mod
+    -- Organizer 2) there is no further audio, subtitles, face or memory for it. Never blank a newer one.
+    if requestFileId == requestId then requestFileId = nil; do local f = io.open('runtime/last-input.json', 'wb'); if f then f:close() end end end
     if speech.requestId == requestId then pcall(speech.stop, reason)
     elseif captionsOnly then pcall(subtitles.clearEntity, entity) end
     if focusEntity == entity then focusUntil = os.time() + 1 end
@@ -2419,14 +2415,13 @@ local function reactionLease(valid)
     if not automatic then return false end
     local now = os.time()
     if valid and automatic.leaseAt == now then return true end
-    local file = io.open('runtime/reaction-lease.json.tmp', 'wb')
+    -- In place: the bridge keeps its last good lease when it reads a partial file (bridge/battle-lease.mjs).
+    local file = io.open('runtime/reaction-lease.json', 'wb')
     if not file then return false end
     file:write(json.encode({requestId = automatic.requestId, valid = valid, updated = now * 1000,
         playbackStartedAt = automatic.playbackAt and automatic.playbackAt * 1000})); file:close()
-    os.remove('runtime/reaction-lease.json')
-    local written = os.rename('runtime/reaction-lease.json.tmp', 'runtime/reaction-lease.json')
-    if written then automatic.leaseAt = now end
-    return written ~= nil
+    automatic.leaseAt = now
+    return true
 end
 
 local reactionGuard, reactionEvidence = nil, {}
@@ -2496,11 +2491,9 @@ local function recordReactionCancellation(reason, abandoning)
     if #reactionEvidence > 32 then table.remove(reactionEvidence, 1) end
     -- This bounded ledger is diagnostic data only. No text, native object,
     -- conversation session or credential is retained, including during unload.
-    local file = io.open('runtime/battle-cancellations.json.tmp', 'wb')
+    local file = io.open('runtime/battle-cancellations.json', 'wb')
     if not file then return end
     file:write(json.encode({version = 1, updated = record.at, events = reactionEvidence})); file:close()
-    os.remove('runtime/battle-cancellations.json')
-    os.rename('runtime/battle-cancellations.json.tmp', 'runtime/battle-cancellations.json')
 end
 
 cancelAutomatic = function(reason, abandoning)
@@ -3097,7 +3090,7 @@ if convaiAddons then
     seams.drop = function(requestId, reason, entity)
         if pending and pending.requestId == requestId then pending, pendingKnowledgeOwner = nil, nil end
         if privateReply and privateReply.requestId == requestId then privateReply = nil end
-        if requestFileId == requestId then requestFileId = nil; os.remove('runtime/last-input.json') end
+        if requestFileId == requestId then requestFileId = nil; do local f = io.open('runtime/last-input.json', 'wb'); if f then f:close() end end end
         if speech.requestId == requestId then pcall(speech.stop, reason)
         elseif not speech.requestId and entity and subtitles.entity == entity and subtitles.ownsUtterance() then
             pcall(subtitles.clearEntity, entity)

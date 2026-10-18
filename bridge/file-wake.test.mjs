@@ -103,6 +103,30 @@ test('the real watcher sees an atomic replace (temp file and rename) of a watche
   assert.ok(at - started < 500, `woke after ${Math.round(at - started)} ms`);
 });
 
+// The game rewrites last-input.json in place over the placeholder that ships empty (Mod Organizer 2): the same wake, with no rename.
+test('the real watcher sees an in-place write over an existing watched file, and a write of an empty file', async t => {
+  const directory = mkdtempSync(join(tmpdir(), 'file-wake-'));
+  t.after(() => rmSync(directory, {recursive: true, force: true}));
+  writeFileSync(join(directory, 'last-input.json'), '');
+  let wakes = 0, woke;
+  let seen = new Promise(done => { woke = done; });
+  const wake = watchFiles(directory, {'last-input.json': () => { wakes++; woke(performance.now()); }});
+  t.after(() => wake.close());
+  assert.equal(wake.active, true);
+  await new Promise(done => setTimeout(done, 50));
+  let started = performance.now();
+  writeFileSync(join(directory, 'last-input.json'), '{"requestId":"1"}');
+  let at = await Promise.race([seen, new Promise(done => setTimeout(() => done(null), 2000))]);
+  assert.ok(at !== null, 'the handler ran for the in-place write');
+  assert.ok(at - started < 500, `woke after ${Math.round(at - started)} ms`);
+  seen = new Promise(done => { woke = done; });
+  started = performance.now();
+  writeFileSync(join(directory, 'last-input.json'), '');
+  at = await Promise.race([seen, new Promise(done => setTimeout(() => done(null), 2000))]);
+  assert.ok(at !== null, 'the handler ran for the empty write (the withdrawal)');
+  assert.ok(wakes >= 2);
+});
+
 test('a wake signal resolves its waiters when fired, and a fire nobody waited for is not lost', async () => {
   const signal = createWakeSignal();
   let woke = 0;

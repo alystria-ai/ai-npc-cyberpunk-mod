@@ -86,7 +86,7 @@ local function readJson(path)
     return ok and type(value) == 'table' and value or nil
 end
 
--- The default publisher: an atomic runtime/nearby-connections.json (the two slots, then the conversation partners,
+-- The default publisher: runtime/nearby-connections.json, rewritten in place (the two slots, then the conversation partners,
 -- then the entity of each one that has an ID: a generic resident or archetype has no connection without its body).
 local function publishFile(profiles, partners, entities, spawned)
     local function encode(list)
@@ -97,13 +97,14 @@ local function publishFile(profiles, partners, entities, spawned)
     local ids = {}
     for key, id in pairs(entities or {}) do ids[#ids + 1] = json.encode(key) .. ':' .. json.encode(id) end
     table.sort(ids)
-    local file = io.open(PATH .. '.tmp', 'wb')
+    -- In place (one open): the file ships as an empty placeholder and the bridge ignores a partial read, so there is
+    -- no temp file, remove or rename (a file deleted and renamed back is a new file under Mod Organizer 2).
+    local file = io.open(PATH, 'wb')
     if not file then return false end
-    file:write('{"updated":' .. string.format('%.0f', os.time() * 1000) .. ',"profiles":[' .. encode(profiles)
+    local written = file:write('{"updated":' .. string.format('%.0f', os.time() * 1000) .. ',"profiles":[' .. encode(profiles)
         .. '],"partners":[' .. encode(partners) .. '],"spawned":[' .. encode(spawned) .. '],"entities":{' .. table.concat(ids, ',') .. '}}')
-    file:close()
-    os.remove(PATH)
-    return os.rename(PATH .. '.tmp', PATH) ~= nil
+    local closed = file:close()
+    return written and closed and true or false
 end
 
 -- True when the bridge reports this character's private connection ready.

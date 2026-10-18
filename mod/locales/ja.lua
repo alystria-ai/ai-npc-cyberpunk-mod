@@ -476,7 +476,6 @@ return {
     ["What to do"] = "対処方法",
     ["Where the logs are"] = "ログの場所",
     ["the game folder"] = "ゲームフォルダー",
-    ["the runtime folder of the mod project, or the data folder inside the mod folder"] = "MODプロジェクトのランタイムフォルダー、またはMODフォルダー内のデータフォルダー",
     ["Auto-connect nearby characters"] = "近くのキャラクターに自動接続",
     ["Continue from game dialogue"] = "ゲーム内の会話から続ける",
     ["Preparing connection to {name}…"] = "{name}への接続を準備中…",

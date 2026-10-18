@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {parseInput} from './protocol.mjs';
 import {inputIdentity, parsedInputIdentity} from './group-prefetch.mjs';
-import {fileIdentity, RequestFileOwner} from './request-ownership.mjs';
+import {fileIdentity, RequestFileOwner, requestFileEmpty} from './request-ownership.mjs';
 import {reactionLeaseProblem} from './battle-context.mjs';
 
 // Execute the bridge's real read and polling functions without starting its
@@ -20,11 +20,11 @@ const input = {requestId: '1000-1-1ULL', generation: 1, entity: '1ULL', name: 'J
 const missing = () => Object.assign(Error('Heartbeat rename gap'), {code: 'ENOENT'});
 
 function fixture() {
-  const state = {queue: [], reads: 0, delays: [], accepted: [], errors: [], actionRevocations: 0, now: Date.now(),
+  const state = {queue: [], reads: 0, delays: [], accepted: [], errors: [], statuses: [], gone: false, actionRevocations: 0, now: Date.now(),
     lease: {requestId: input.requestId, valid: true, updated: Date.now()}};
   // The bridge's clock (Date.now) is this fixture's own, so a test can let time pass.
   const clock = {now: () => state.now};
-  const context = vm.createContext({parseInput, inputIdentity, parsedInputIdentity, fileIdentity, RequestFileOwner,
+  const context = vm.createContext({parseInput, inputIdentity, parsedInputIdentity, fileIdentity, RequestFileOwner, requestFileEmpty,
     reactionLeaseProblem: (value, lease) => reactionLeaseProblem(value, lease, state.now), Date: clock, AbortController,
     companionActions: {revoke: async () => { state.actionRevocations++; }},
     readLease: async () => {
@@ -33,22 +33,22 @@ function fixture() {
       if (value instanceof Error) throw value;
       return value;
     },
-    record: request => state.accepted.push(request),
+    record: request => state.accepted.push(request), noteStatus: (...args) => state.statuses.push(args), fileState: state,
     setTimeout: (done, delay) => { state.delays.push(delay); done(); },
     console: {error: (...args) => { state.errors.push(args); throw Error(args.join(' ')); }}, rawInput: JSON.stringify(input)});
   vm.runInContext(`
-    let polling=false, stopped=false, active=null, observed='', observedIdentity=null, lastAcceptedIdentity='', voiceRouteReservation=false;
+    let polling=false, stopped=false, active=null, observed='', observedIdentity=null, invalidSeen='', lastAcceptedIdentity='', voiceRouteReservation=false;
     let relationshipRouteReservation=false;
     const inputPath='input', runtime='runtime', resolve=(...parts)=>parts.join('/');
-    const stat=async()=>({mtimeMs:1,size:rawInput.length});
+    const stat=async()=>fileState.gone?null:({mtimeMs:1,size:rawInput.length});
     const readFile=async path=>path===inputPath ? rawInput : readLease();
-    const prefetch={invalidate(){},claim(){return null;}}, lookahead={claim(){return null;}}, completeContext=()=>'', status=async()=>{};
+    const prefetch={invalidate(){},claim(){return null;}}, lookahead={claim(){return null;}}, completeContext=()=>'', status=async(...args)=>noteStatus(...args);
     const processInput=request=>record(request);
     ${adapter}
     globalThis.api={tick,reactionCurrent,refusal:reactionLeaseRefusal,state:()=>({active,observed,lastAcceptedIdentity}),
       setActive:value=>{active=value;},setRelationshipReservation:value=>{relationshipRouteReservation=value;}};
   `, context);
-  return {state, api: context.api};
+  return {state, api: context.api, context};
 }
 
 test('manual turns do not read a reaction lease', async () => {
@@ -179,4 +179,51 @@ test('an invalid lease cannot abort a newer owner while its read was pending', a
   await poll;
   assert.equal(first.controller.signal.aborted, false);
   assert.equal(newer.controller.signal.aborted, false);
+});
+
+// The game withdraws a request by writing last-input.json empty (it never deletes the file: Mod Organizer 2), and ships it empty.
+test('an empty request file is a missing request file: nothing accepted, nothing reported, nothing remembered', async () => {
+  const outcome = async setup => {
+    const {state, api, context} = fixture();
+    setup(context, state);
+    await api.tick(); await api.tick();
+    return {accepted: state.accepted.length, statuses: state.statuses, errors: state.errors, reads: state.reads, observed: api.state().observed};
+  };
+  const missingFile = await outcome((context, state) => { state.gone = true; });
+  const emptyFile = await outcome(context => { context.rawInput = ''; });
+  const blankFile = await outcome(context => { context.rawInput = ' \t '; });
+  assert.deepEqual(emptyFile, missingFile);
+  assert.deepEqual(blankFile, missingFile);
+  assert.deepEqual(emptyFile, {accepted: 0, statuses: [], errors: [], reads: 0, observed: ''});
+});
+
+test('a request written over an empty file is accepted, and an empty write afterwards does not cancel or reaccept anything', async () => {
+  const {state, api, context} = fixture();
+  const full = context.rawInput;
+  context.rawInput = ''; await api.tick();
+  assert.equal(state.accepted.length, 0);
+  context.rawInput = full; await api.tick();
+  assert.equal(state.accepted.length, 1);
+  // The withdrawal: the bridge's poll takes no action of its own on it (the request owner sees the change), and the same
+  // request written again is the one it already accepted.
+  context.rawInput = ''; await api.tick(); await api.tick();
+  assert.equal(state.accepted.length, 1); assert.equal(state.accepted[0].controller.signal.aborted, false);
+  assert.deepEqual(state.statuses, []); assert.deepEqual(state.errors, []);
+});
+
+test('a half-written request is read again on the next change, and only content that stays unreadable is reported', async () => {
+  const {state, api, context} = fixture();
+  const full = context.rawInput;
+  context.rawInput = full.slice(0, 40);
+  await api.tick();
+  assert.equal(state.accepted.length, 0); assert.deepEqual(state.statuses, []);
+  // The write finished: the finished request is accepted, and the partial read was never reported.
+  context.rawInput = full; await api.tick();
+  assert.equal(state.accepted.length, 1); assert.deepEqual(state.statuses, []);
+  // Content that still cannot be parsed on the poll after is a real fault, and is reported once.
+  api.setActive(null);
+  context.rawInput = '{"requestId": nonsense'; await api.tick();
+  assert.deepEqual(state.statuses, []);
+  await api.tick(); await api.tick();
+  assert.equal(state.statuses.length, 1); assert.equal(state.statuses[0][0], 'invalid-input');
 });

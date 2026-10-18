@@ -307,3 +307,33 @@ test('an add-on speaker\'s context blocks are added at begin and again at finish
  mic.decorate=nil;state('recording','voice-2');mic.update(player);now=110
  assert(mic.finish('private')==context and commands[#commands].action=='finish'and commands[#commands].input.addon==nil)
 `));
+
+test('empty microphone state and heard files (the shipped placeholders) mean nothing yet: a recording is not cancelled and nothing is shown', () => check(`
+ -- a decoder that answers nil (not an error) for an empty document must not crash the poll either
+ local decode=json.decode;json.decode=function(raw)if raw==''then return nil end return decode(raw)end
+ local context=input(false);assert(mic.begin(context))
+ files['runtime/microphone-state.json']='';files['runtime/microphone-heard.json']=''
+ assert(mic.update(player)==nil and mic.context==context and mic.state=='starting' and #cancellations==0,'an empty state file ended the recording')
+ state('recording');mic.update(player)
+ assert(mic.state=='recording')
+ local shown=#feedback
+ files['runtime/microphone-heard.json']=''
+ mic.update(player)
+ assert(mic.context==context and #feedback==shown and #cancellations==0,'an empty heard file showed words or cancelled')
+ files['runtime/microphone-state.json']=''
+ mic.update(player)
+ assert(mic.context==context and mic.state=='recording','an emptied state file after recording started is still nothing')
+`));
+
+test('the microphone command file is rewritten in place for every command, never removed or renamed', () => check(`
+ local removed,renamed,opened={},{},{}
+ os.remove=function(path)removed[#removed+1]=path;return true end
+ os.rename=function(from,to)renamed[#renamed+1]=from..'>'..to;return true end
+ local open=io.open
+ io.open=function(path,mode)if mode=='wb'then opened[#opened+1]=path end return open(path,mode)end
+ local context=input(false);assert(mic.begin(context));state('recording');mic.update(player)
+ now=now+3;assert(mic.finish('private')==context)
+ assert(#opened>=2)
+ for _,path in ipairs(opened)do assert(path=='runtime/microphone-command.json','wrote '..path)end
+ assert(#removed==0 and #renamed==0)
+`));
