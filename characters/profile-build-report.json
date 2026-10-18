@@ -2642,7 +2642,7 @@
     },
     {
       "key": "woodman",
-      "words": 739,
+      "words": 731,
       "speakingStyleWords": 198,
       "sampleDialogueWords": 138,
       "voice": "Mark (Bold Middle-Aged American Male)",
@@ -2651,7 +2651,7 @@
     },
     {
       "key": "fingers",
-      "words": 766,
+      "words": 759,
       "speakingStyleWords": 221,
       "sampleDialogueWords": 140,
       "voice": "Lucas (Light Middle-Aged American Male)",
@@ -2804,7 +2804,7 @@
     },
     {
       "key": "maiko-maeda",
-      "words": 758,
+      "words": 756,
       "speakingStyleWords": 199,
       "sampleDialogueWords": 148,
       "voice": "Katie (Husky Young-Adult American Female)",
