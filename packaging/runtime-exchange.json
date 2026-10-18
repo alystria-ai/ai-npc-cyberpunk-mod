@@ -57,6 +57,8 @@
     "reply.json",
     "report-request.json",
     "report-result.json",
+    "setup-check-request.json",
+    "setup-check.json",
     "speech-state.json",
     "speech-stream.json",
     "support-paths.json",

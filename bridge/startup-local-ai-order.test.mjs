@@ -1,8 +1,8 @@
 // The startup order of the Local AI choice, watched on a real bridge process (bridge/bridge-run-fixture.mjs).
 //
 // At launch the bridge applies the saved conversation provider on the FIRST settings poll, and that poll starts the local model server
-// (prepareLocal) before it has read Mature content or the saved model choice. A `llama-server` that the guard fakes records what the server
-// was told to load, so these tests see the first start's decision, not a regex over the source.
+// (prepareLocal). It reads Mature content and the saved model choice first, so the first start loads what the player chose. A `llama-server`
+// that the guard fakes records what the server was told to load, so these tests see the first start's decision, not a regex over the source.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {launchBridge, matureOnlyPack} from './bridge-run-fixture.mjs';
@@ -25,7 +25,7 @@ test('a Mature-only install whose saved provider is Local AI loads its Mature mo
     localAi: matureOnlyPack(), fakeLlama: FAKE_SERVER});
   try {
     await bridge.ready();
-    // The first start was made before Mature content was read ('mature-off' on a value that was never the player's); it is started again.
+    // Mature content is read before the first start, so that start loads the Mature model (it never fails 'mature-off' on a value that was not the player's).
     assert.equal(await firstStart(bridge), 'mature-lite.gguf');
     // And the page is not left saying "turn Mature content on" while it is on (the fake server then refuses to run, which is a different failure).
     const settled = await bridge.until(() => status(bridge), value => value?.localAi === 'failed' && value.localReason === undefined,
@@ -75,12 +75,10 @@ test('a provider other than Local AI loads no model at launch, with a pack insta
   } finally { await bridge.cleanup(); }
 });
 
-// The same ordering fault, for the two other things the first start reads. The local server takes its model choice when a start begins
-// (local-llm-server.mjs, #startOnce), and at launch that is inside the poll that applies the provider, before `syncLocalModelChoice` and
-// `matureContent.update`: the saved `localModel` and Mature content are not yet known, so the first start loads the default (largest model that
-// fits, censored) and nothing reloads it (the first sync only records the choice).
-test('the model the player saved is the one the first start loads', {timeout: 60000,
-  todo: 'BUG: the first Local AI start of a launch ignores the saved localModel (convai-bridge.mjs prepareLocal runs before syncLocalModelChoice)'}, async () => {
+// The same order, for the two other things the first start reads. The local server takes its model choice when a start begins
+// (local-llm-server.mjs, #startOnce), and nothing reloads it afterwards (the first sync only records the choice), so the poll that applies the
+// provider has to know the saved `localModel` and Mature content already: `matureContent.update` and `syncLocalModelChoice` come before it.
+test('the model the player saved is the one the first start loads', {timeout: 60000}, async () => {
   const bridge = await launchBridge({settings: {conversationProvider: 'local', localModel: 'lite', voice: false},
     localAi: standardPack, fakeLlama: FAKE_SERVER});
   try {
@@ -89,8 +87,7 @@ test('the model the player saved is the one the first start loads', {timeout: 60
   } finally { await bridge.cleanup(); }
 });
 
-test('with Mature content saved on and an uncensored model installed beside the standard one, the first start loads the uncensored model', {timeout: 60000,
-  todo: 'BUG: the first Local AI start of a launch runs with Mature content still off, so it loads the censored standard model (convai-bridge.mjs, same order fault)'}, async () => {
+test('with Mature content saved on and an uncensored model installed beside the standard one, the first start loads the uncensored model', {timeout: 60000}, async () => {
   const bridge = await launchBridge({settings: {conversationProvider: 'local', matureContent: true, voice: false},
     localAi: {...standardPack, ...matureOnlyPack()}, fakeLlama: FAKE_SERVER});
   try {

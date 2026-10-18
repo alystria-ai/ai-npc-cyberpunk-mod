@@ -96,7 +96,11 @@ export function fallbackReason(voice, profile, {plan, engine} = {}) {
     if (voice.failedBackends?.has('omni')) return voice.omniRetry ? 'Omni still loading (retrying in the background)' : 'Omni worker unavailable';
     if (!voice.omniVariants?.[voice.omniReference]?.configured) return 'Omni not configured';
   }
-  if (voice.failedBackends?.has(requested)) return `${requested === 'omni' ? 'Omni' : 'Pocket'} worker unavailable`;
+  if (voice.failedBackends?.has(requested)) {
+    // A failed Pocket is loaded again by the poll (VoiceSelection.pocketRetry) until it gives up.
+    if (requested === 'pocket' && voice.pocketRetry) return 'Pocket still loading (retrying in the background)';
+    return `${requested === 'omni' ? 'Omni' : 'Pocket'} worker unavailable`;
+  }
   if (voice.multilingual && requested === 'pocket') return 'Multilingual is on: Pocket speaks English only';
   // The chosen backend is not the one routing (the change is waiting for a quiet moment, or it was never set up).
   if (voice.provider !== voice.resolvedProvider) return 'voice change pending';

@@ -99,6 +99,17 @@ function M.reach(now)
     return 'never'
 end
 
+-- The supervisor's or launcher's own status code ('browser-missing', 'install-incomplete', 'launcher-program-missing' ...) while
+-- unavailable() says the service failed, for the setup check's line; nil otherwise. Reads the same cached file.
+function M.failureCode(now)
+    now = now or os.time()
+    local down = M.unavailable(now)
+    if not down or (down.kind ~= 'failed' and down.kind ~= 'setup' and down.kind ~= 'browser') then return nil end
+    local service = supervisor(now)
+    local code = service and service.code
+    return type(code) == 'string' and code:match('^[%w%-_]+$') and code:sub(1, 60) or nil
+end
+
 function M.message(kind)
     if kind == 'starting' then return ui.t('The conversation service is starting. Try again in a few seconds.') end
     if kind == 'restarted' then return ui.t('The conversation service restarted. Please try again.') end

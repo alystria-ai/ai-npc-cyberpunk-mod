@@ -69,6 +69,7 @@ import {VendorMemory, vendorMemoryKey} from './vendor-memory.mjs';
 import {PlayerMemoryApi} from './player-memory-api.mjs';
 import {PlayerMemoryControl} from './player-memory-control.mjs';
 import {SupportReportControl} from './support-report.mjs';
+import {SetupCheckControl, cachedBrowserName, cachedGraphicsCards, cachedModManagers, collectSetupCheck, findNestedPacks, readPackPlacement} from './setup-check.mjs';
 import {CharacterOverrides} from './character-overrides.mjs';
 import {CharacterEditor} from './character-editor.mjs';
 import {EditorServer} from './character-editor-server.mjs';
@@ -2700,7 +2701,9 @@ async function learnCardTotal() {
   cardTotalMiB = await nvidiaTotalMiB().catch(() => null);
 }
 let localModelChoiceKey = null, localModelListKey = '', localModelListCheckedAt = 0;
-async function syncLocalModelChoice(settings) {
+// The poll calls this before it applies the saved provider (and reads Mature content just before): the first Local AI start takes the model
+// choice and Mature content when it begins, and nothing reloads it afterwards (the first sync only records the choice). Cheap: no file, no process.
+function syncLocalModelChoice(settings) {
   if (!settings || typeof settings !== 'object') return;   // a partial settings write: keep what is chosen
   const pin = normalisePin(settings.localModel);
   if (pin !== localModelPin) { localModelPin = pin; localModelFallbackNoted = ''; console.error(`[LocalAI] model choice is now ${pin}`); }
@@ -2712,6 +2715,9 @@ async function syncLocalModelChoice(settings) {
     // A Mature-only install could not start Local AI while Mature content was off ('mature-off'); turning it on lifts that: try again.
     if (!first && matureContent.enabled && mistral.clearLocalFailure('mature-off')) prepareLocal();
   }
+}
+// The installed models and the defaults for the settings page, after the provider is applied so the card probe never holds a start back.
+async function publishLocalModelList() {
   if (Date.now() - localModelListCheckedAt >= 5000) {
     localModelListCheckedAt = Date.now();
     refreshLocalPack();
@@ -2733,6 +2739,15 @@ async function pollSettings(checkShutdown = true) {
     // A transient rename/partial settings write must not reset the selected quality.
     const raw = await readFile(resolve(runtime, 'settings.json'), 'utf8').catch(() => '');
     let settings; try { settings = JSON.parse(raw); } catch {}
+    // Mature content and the saved model choice come first: the saved provider is applied below, and its first Local AI start (prepareLocal)
+    // loads the model these two decide. They are the first thing this poll does with the file, so that start waits for nothing but this read.
+    const matureBefore = matureContent.enabled, packBefore = matureContent.pack;
+    if (maturePackInstalled() !== packBefore) await mistralControl.publishStatus().catch(() => {});   // the settings help says whether the uncensored models are installed
+    const matureChanged = matureContent.update(settings) || matureContent.enabled !== matureBefore;
+    if (matureChanged) console.error(`[MatureContent] setting is now ${matureContent.enabled ? 'on' : 'off'}`);
+    // The guard's patterns compile on first use (about a second); do that now, in the background, not inside the first Mature turn.
+    if (matureChanged && matureContent.enabled) void warmMatureGuard();
+    syncLocalModelChoice(settings);
     // Own Convai key: the setting and the settings page's commands, then the switch itself once nothing is running.
     if (settings) {
       if (keys.setPreference(settings.useOwnConvaiKey === true)) await ownKeyControl.publishStatus().catch(() => {});
@@ -2785,20 +2800,7 @@ async function pollSettings(checkShutdown = true) {
     if (companionVision.update(settings)) console.error(`[Vision] setting is now ${companionVision.enabled ? 'on' : 'off'} (${companionVision.transport})`);
     localVoice.setVHelperWanted(vVoice.wantsPocket);
     void releaseUnused().catch(error => console.error('[CyberpunkConvai] Releasing unused resources:', error.message));
-    const matureBefore = matureContent.enabled, packBefore = matureContent.pack;
-    if (maturePackInstalled() !== packBefore) await mistralControl.publishStatus().catch(() => {});   // the settings help says whether the uncensored models are installed
-    const matureChanged = matureContent.update(settings) || matureContent.enabled !== matureBefore;
-    if (matureChanged) console.error(`[MatureContent] setting is now ${matureContent.enabled ? 'on' : 'off'}`);
-    // The guard's patterns compile on first use (about a second); do that now, in the background, not inside the first Mature turn.
-    if (matureChanged && matureContent.enabled) void warmMatureGuard();
-    await syncLocalModelChoice(settings);
-    // At startup the saved provider is applied before this poll reads Mature content, so a Mature-only install can fail with
-    // 'mature-off' on a value that was never the player's. Once the setting is known to be on, that failure is stale: start again.
-    // (The failure already handed the turns to Convai; clearing it lets the chosen Local AI take them back, as when the setting is turned on.)
-    if (matureContent.enabled && mistral.clearLocalFailure('mature-off')) {
-      console.error('[LocalAI] Mature content is on: starting the local model again');
-      prepareLocal();
-    }
+    await publishLocalModelList();
     if (speechChanged) console.error(`[NaturalSpeech] setting is now ${naturalSpeech.enabled ? 'on' : 'off'}`);
     if (emotionSelection.update(settings)) console.error(`Facial emotion selector: ${emotionSelection.mode}`);
     if (settings && typeof settings === 'object') replyStreaming = settings.replyStreaming !== false && !replyStreamingForcedOff;
@@ -2859,6 +2861,22 @@ const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
 const supportReport = await SupportReportControl.open({game, runtime, stateDirectory, project,
   secrets: () => [...keys.secrets(), ...mistral.secrets()], knownIds: () => Object.values(relationshipRoutes.providerIds ?? ids),
   bridge: () => ({busy: !!active, microphoneActive: !!mic.current})});
+// Help > Setup check (bridge/setup-check.mjs): codes the game turns into text. The first run, at the end of start-up, reads files only (no
+// process, no connection); a request from the Help page runs it in full. The graphics card, browser and mod managers are looked up once.
+const bridgeStartedAt = Date.now() - Math.round(process.uptime() * 1000);
+const setupCheck = await SetupCheckControl.open({runtime, log: message => console.error('[CyberpunkConvai] ' + message),
+  collect: (request, {light = false} = {}) => collectSetupCheck({game, modRoot: resolve(runtime, '..'), project, stateDirectory, request, light,
+    plugin: resolve(game, 'red4ext/plugins/AiNpcCyberpunkMod'),
+    settings: async () => JSON.parse((await readFile(resolve(runtime, 'settings.json'), 'utf8')).replace(/^\uFEFF/, '')),
+    localAi: () => {
+      const pack = refreshLocalPack(), matureInstalled = maturePackInstalled(), {state, reason} = localServer.status();
+      return {status: localAiStatus(), reason: state === 'failed' ? reason ?? null : null, packInstalled: pack.installed, tiers: pack.tiers,
+        matureOnly: pack.installed && !pack.tiers.standard && !pack.tiers.lite && matureInstalled, ownServer: ownServerListed(), models: maturePackModels};
+    },
+    omniPack: () => detectOmniPack({project, config: omniVoiceConfigs.long}),
+    browser: () => cachedBrowserName(), graphics: () => cachedGraphicsCards(), modManagers: () => cachedModManagers({game}),
+    nestedPacks: () => findNestedPacks({game, modRoot: resolve(runtime, '..'), plugin: resolve(game, 'red4ext/plugins/AiNpcCyberpunkMod')}),
+    placement: () => readPackPlacement({stateDirectory, startedAt: bridgeStartedAt})})});
 // Settings > Edit characters: a local page, served only while it is open (bridge/character-editor-server.mjs).
 const characterEditor = new CharacterEditor({personas: personaBook, overrides: characterOverrides, memory: mistralMemory, route: () => mistral.route});
 const editorControl = await EditorControl.open({server: new EditorServer({editor: characterEditor, log: message => console.error('[Editor] ' + message)}),
@@ -2867,6 +2885,7 @@ const editorControl = await EditorControl.open({server: new EditorServer({editor
 await companionActions.revoke();
 await status('waiting');
 await pollSettings(false);
+void setupCheck.run(null, {light: true}).catch(error => console.error('[CyberpunkConvai] Setup check:', error.message));
 await pollKnowledge();
 void localVoice.start().catch(error => console.error('[CyberpunkConvai] Local voice startup:', error.message));
 // A text route (Mistral, the local AI) opens no Convai connection, so nothing else starts the hidden browser that renders the
@@ -2900,6 +2919,7 @@ function logKnowledgePoll(error) {
 const knowledgeTimer = setInterval(() => { void pollKnowledge().catch(logKnowledgePoll); }, 500);
 const memoryTimer = setInterval(() => { void memoryControl.poll().catch(error => console.error('[CyberpunkConvai] Memory control:', error.message)); }, 500);
 const supportTimer = setInterval(() => { void supportReport.poll().catch(error => console.error('[CyberpunkConvai] Support report:', error.message)); }, 500);
+const setupTimer = setInterval(() => { void setupCheck.poll().catch(error => console.error('[CyberpunkConvai] Setup check:', error.message)); }, 500);
 const paidTierTimer = setInterval(() => { void paidTierControl.poll().catch(error => console.error('[CyberpunkConvai] Paid tier:', error.message)); }, 500);
 // The same polls run a few milliseconds after the game replaces their file (bridge/file-wake.mjs): a typed or spoken turn and a
 // phone message no longer wait half an interval (25 ms for the request, 75 ms for the microphone and the phone) to be seen.
@@ -2925,6 +2945,7 @@ async function shutdown() {
   clearInterval(knowledgeTimer);
   clearInterval(memoryTimer);
   clearInterval(supportTimer); supportReport.close();
+  clearInterval(setupTimer); setupCheck.close();
   clearInterval(paidTierTimer); paidTierControl.close();
   clearInterval(editorTimer); await editorControl.close().catch(() => {});
   clearInterval(timer); clearInterval(micTimer); clearInterval(prefetchTimer); clearInterval(lookaheadTimer); clearInterval(settingsTimer);

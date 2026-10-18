@@ -167,6 +167,15 @@ async function removeEmptyFolders(fs, root) {
   for (const folder of folders) { try { await fs.rmdir(folder); } catch {} }
 }
 
+// What this start's move did, for the bridge's setup check (bridge/setup-check.mjs readPackPlacement) and the support report: one small
+// file in the state folder (outside the game folder in a released install), replaced at every start. The caller logs a failure and goes on.
+export const PLACEMENT_FILE = 'pack-placement.json';
+export async function recordPlacement({state, report, fs = realFs, now = Date.now}) {
+  await fs.mkdir(state, {recursive: true});
+  await fs.writeFile(join(state, PLACEMENT_FILE), JSON.stringify({version: 1, updated: now(),
+    fixed: report?.fixed ?? [], conflicts: report?.conflicts ?? [], errors: report?.errors ?? []}));
+}
+
 export async function placeMisplacedPacks({layout, log = () => {}, fs = realFs} = {}) {
   const report = {fixed: [], conflicts: [], errors: []};
   if (await kindOf(fs, layout.app) !== 'dir') return report;
