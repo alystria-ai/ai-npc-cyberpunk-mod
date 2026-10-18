@@ -2787,6 +2787,13 @@ async function pollSettings(checkShutdown = true) {
     // The guard's patterns compile on first use (about a second); do that now, in the background, not inside the first Mature turn.
     if (matureChanged && matureContent.enabled) void warmMatureGuard();
     await syncLocalModelChoice(settings);
+    // At startup the saved provider is applied before this poll reads Mature content, so a Mature-only install can fail with
+    // 'mature-off' on a value that was never the player's. Once the setting is known to be on, that failure is stale: start again.
+    // (The failure already handed the turns to Convai; clearing it lets the chosen Local AI take them back, as when the setting is turned on.)
+    if (matureContent.enabled && mistral.clearLocalFailure('mature-off')) {
+      console.error('[LocalAI] Mature content is on: starting the local model again');
+      prepareLocal();
+    }
     if (speechChanged) console.error(`[NaturalSpeech] setting is now ${naturalSpeech.enabled ? 'on' : 'off'}`);
     if (emotionSelection.update(settings)) console.error(`Facial emotion selector: ${emotionSelection.mode}`);
     if (settings && typeof settings === 'object') replyStreaming = settings.replyStreaming !== false && !replyStreamingForcedOff;

@@ -710,3 +710,11 @@ test('a stopped server (setting off) is asked which model it loads before the in
     assert.equal(normal.seen.at(-1).system, judyHead(normal.host));
   } finally { normal.host.close(); }
 });
+
+test('a Mature-only install whose saved provider is Local AI starts once the settings poll reads Mature content on (startup order)', async () => {
+  // The saved provider is applied before the poll reads Mature content, so the first start can fail with 'mature-off' on a stale value.
+  // The poll lifts that failure every time it finds the setting on, not only when the setting changes.
+  const bridge = await readFile(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  const poll = bridge.slice(bridge.indexOf('await syncLocalModelChoice(settings);'));
+  assert.match(poll.slice(0, 900), /if \(matureContent\.enabled && mistral\.clearLocalFailure\('mature-off'\)\) \{\s*console\.error\([^)]*\);\s*prepareLocal\(\);/);
+});
