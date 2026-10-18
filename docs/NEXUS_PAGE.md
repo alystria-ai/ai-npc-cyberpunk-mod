@@ -91,7 +91,6 @@ The menus come in sixteen languages. Turn on Multilingual conversations to talk 
 [size=4][b]Links and credits[/b][/size]
 
 [list]
-[*]Source code: [url=https://github.com/alystria-ai/ai-npc-cyberpunk-mod]github.com/alystria-ai/ai-npc-cyberpunk-mod[/url]
 [*]Runtime and optional packs: [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs]Hugging Face[/url]
 [*]Something off? In game, open Companion Manager > Settings > Help > Help and support, choose Generate report, and send that file with what you were doing.
 [/list]
