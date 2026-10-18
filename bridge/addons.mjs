@@ -317,14 +317,19 @@ export function parseAddonStock(list) {
   return rows;
 }
 
-/** The reaction of an automatic add-on remark: {kind: 'addon', addon, speaker, event, expiresAt}, or null when malformed. */
-export function parseAddonReaction(value, addon) {
+/**
+ * The reaction of an automatic add-on remark: {kind: 'addon', addon, speaker, event, expiresAt}, or null when malformed. With the
+ * request's `profileKey` it must be the profile of the very speaker the remark names (only mod/addons.lua writes these requests, with
+ * exactly that key): an add-on remark can never be asked of a main character or of another add-on's speaker.
+ */
+export function parseAddonReaction(value, addon, profileKey) {
   if (!object(value) || value.kind !== 'addon' || typeof value.addon !== 'string' || !ADDON_ID.test(value.addon)
       || typeof value.speaker !== 'string' || !SPEAKER_ID.test(value.speaker)
       || typeof value.event !== 'string' || !EVENT_NAME.test(value.event)
       || !Number.isSafeInteger(value.expiresAt) || value.expiresAt <= 0) return null;
   // The remark's event data must name the same speaker.
   if (!addon || addon.id !== value.addon || addon.speaker !== value.speaker) return null;
+  if (profileKey !== undefined && profileKey !== speakerProfileKey(value.addon, value.speaker)) return null;
   return {kind: 'addon', addon: value.addon, speaker: value.speaker, event: value.event, expiresAt: value.expiresAt,
     ...(Number.isInteger(value.priority) && value.priority >= 1 && value.priority <= 5 ? {priority: value.priority} : {}),
     // The word limit of the remark, so the text host can stop, cap and size the request to it (bridge/text-provider-host.mjs).

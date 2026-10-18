@@ -612,9 +612,7 @@ test('routes: for every provider set and player state the route is never Convai,
   assert.throws(() => sharedMemory(null).recall(), TypeError, 'a missing store gives a view with no methods, never a stand-in');
 });
 
-test('protocol: an add-on remark must come from that add-on\'s own speaker profile', {
-  todo: 'DEFENCE IN DEPTH: parseInput accepts reaction.kind "addon" on a request whose profileKey is a main character (or another add-on\'s speaker); only mod/addons.lua ever writes such a request today, with profileKey = the speaker key'
-}, () => {
+test('protocol: an add-on remark must come from that add-on\'s own speaker profile', () => {
   const now = Date.now();
   const request = extra => JSON.stringify({requestId: '1-2-3ULL', generation: 2, entity: '3ULL', name: 'Someone', bodyType: '', profileKey: 'addon-skippy-gun',
     text: 'Combat started.', sentAt: 1, voiceOnly: true,
