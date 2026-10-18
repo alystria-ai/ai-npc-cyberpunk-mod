@@ -473,6 +473,11 @@
    "voiceName": "Phoebe",
    "reason": "Highest female register, theatrical, for a conceptual pop star."
   },
+  "lucy-kushinada": {
+   "voice": "AZURE-MULTILINGUAL-ad8798063c",
+   "voiceName": "Seraphina",
+   "reason": "Cool, controlled female voice for a guarded young netrunner who says little and means all of it (placeholder until her voice is decided)."
+  },
   "mama-welles": {
    "voice": "AZURE-MULTILINGUAL-c419069dad",
    "voiceName": "ShimmerTurbo",
@@ -567,6 +572,11 @@
    "voice": "AZURE-MULTILINGUAL-c54bd099e4",
    "voiceName": "Xiaochen",
    "reason": "Confident, broadcast-style voice for a Chinese-heritage fixer and former reporter."
+  },
+  "rita-wheeler": {
+   "voice": "AZURE-MULTILINGUAL-c49149301e",
+   "voiceName": "Arabella",
+   "reason": "Low, direct female voice for a Mox bouncer whose tough act is part of the job (placeholder until her voice is decided)."
   },
   "resident-female": {
    "voice": "JennyMultilingualV2Neural",

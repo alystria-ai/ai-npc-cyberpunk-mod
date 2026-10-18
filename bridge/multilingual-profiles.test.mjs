@@ -39,9 +39,9 @@ function fixture(keys = ['judy-alvarez', 'jackie-welles']) {
   return {api, calls, rows, objects, loseNext: () => { lose = true; }};
 }
 
-test('tier-1 roster has 24 unique profile keys', () => {
-  assert.equal(TIER1_KEYS.length, 24);
-  assert.equal(new Set(TIER1_KEYS).size, 24);
+test('tier-1 roster has 26 unique profile keys', () => {
+  assert.equal(TIER1_KEYS.length, 26);
+  assert.equal(new Set(TIER1_KEYS).size, 26);
 });
 
 test('twin payload keeps the biography, swaps only the marker, and picks a gender-matched multilingual voice', () => {

@@ -147,14 +147,15 @@ export function extendFacialGraph(original, options = {}) {
 
 // Records of the named roster: every character the mod gives a profile or a phone contact, and the managed copies. The
 // crowd preparation (Face.reds) never touches them: Johnny's record uses man_average_sermo, and a named character met
-// in the world is a story character. Sorted, so the generated source is stable.
+// in the world is a story character. A record may carry one clone prefix: Night City Allies spawns its followers from
+// NCA.Character.<name> (docs/NCA_FOLLOWERS_PLAN.md). Sorted, so the generated source is stable.
 export function namedRecords() {
   const read = name => JSON.parse(readFileSync(new URL(`../characters/${name}`, import.meta.url), 'utf8').replace(/^﻿/, ''));
   const records = new Set();
   for (const row of read('roster.json')) for (const record of row.records || []) records.add(record);
   for (const row of read('manager-characters.json')) if (row.record) records.add(row.record);
   for (const row of read('phone-contacts.json')) if (row.record) records.add(row.record);
-  for (const record of records) if (!/^Character\.[A-Za-z0-9_]+$/.test(record)) throw new Error(`Unexpected record name ${record}`);
+  for (const record of records) if (!/^(?:[A-Za-z][A-Za-z0-9_]*\.)?Character\.[A-Za-z0-9_]+$/.test(record)) throw new Error(`Unexpected record name ${record}`);
   return [...records].sort();
 }
 

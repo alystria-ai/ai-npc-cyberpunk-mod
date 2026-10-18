@@ -87,6 +87,20 @@ Each pack is one zip file and works on its own. Install none, some or all. Get t
 [*][b]Mature lite[/b] (about 2.9 GB) and [b]Mature standard[/b] (about 5.5 GB). For adults only (18+). Each adds a model without the usual refusals and works on its own: it includes the Local AI engine, so no Local AI pack is needed. The Mature content setting is off by default.
 [/list]
 
+[size=4][b]Use your own AI model or model server[/b][/size]
+
+Already run AI models on your PC? Local AI can use them instead of its own packs. All of this goes in the Local AI folder: [b]Cyberpunk 2077\red4ext\plugins\AiNpcCyberpunkMod\app\local-ai\[/b]. Create a text file there named [b]manifest.custom.json[/b] (check it does not end in .txt).
+
+[b]Your own model server[/b] (KoboldCpp, LM Studio, Ollama, llama.cpp, or anything with an OpenAI-compatible API). Start the server first, then put its address in the file:
+[code]{"version":1,"models":[{"endpoint":"http://127.0.0.1:5001/v1","name":"My Server"}]}[/code]
+Usual addresses: KoboldCpp [b]http://127.0.0.1:5001/v1[/b], LM Studio [b]http://127.0.0.1:1234/v1[/b] (start its local server), Ollama [b]http://127.0.0.1:11434/v1[/b] (also add [b]"model":"qwen3:8b"[/b], or whichever model you pulled). If your server asks for a password or key, add [b]"apiKey":"your-key"[/b]. No Local AI pack is needed for this.
+
+[b]Your own model file[/b] (any GGUF). Put it in a folder named [b]custom[/b] inside the Local AI folder, then:
+[code]{"version":1,"models":[{"file":"custom/MyModel-Q4_K_M.gguf","name":"My Model"}]}[/code]
+This runs on the mod's own engine, so a Local AI or Mature pack must be installed.
+
+Then start the game, open Settings > Conversation provider, choose Local AI, pick your model in the Local AI model row and press Apply. You can list several models in the same file, separated by commas inside the brackets. Your server or model shares the graphics card with the game, so pick a size that leaves the game enough video memory.
+
 [size=4][b]FAQ[/b][/size]
 
 [b]Will it slow my game down?[/b]
