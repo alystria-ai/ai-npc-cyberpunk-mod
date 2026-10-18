@@ -74,7 +74,7 @@ The heavy work runs in a separate background service, not inside the game. The d
 Yes. Open Cyber Engine Tweaks' Bindings and give a key to each AI NPC Cyberpunk Mod action, such as talk by text, talk by voice and the companion manager. The mod never assigns or overwrites keys for you.
 
 [b]Does it change the story?[/b]
-No. Companions are temporary copies that the mod owns. Story characters you meet in the world are left alone, so the story plays out as written.
+No. Companions are temporary copies that the mod owns. Story characters you meet in the world are left alone by default, so the story plays out as written. Talking to them is off until you turn on Settings > Conversations > Talk to story characters (then reload your save); they then answer with voice and face only.
 
 [b]What leaves my computer?[/b]
 With Convai, your lines go to Convai, along with a recent picture of the game window. That picture is taken only while someone you can talk to is near, kept in memory for a few seconds and never saved. With Mistral, your lines go to Mistral. With Local AI, nothing leaves your computer for replies.
