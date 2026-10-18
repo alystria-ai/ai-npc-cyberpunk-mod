@@ -1737,6 +1737,31 @@ test('Johnny in your head is off by default, offered under Conversations and sav
   `);
 });
 
+test('Johnny speaks up is Off by default, a three-way select under Conversations, and saved', () => {
+  run(`${mcmFixture}
+    assert(manager.johnnyRemarks() == 'off' and manager.snapshot(player).settings.johnnyRemarks == 'off', 'a missing key is off')
+    assert(saved.johnnyRemarks == 'off', 'a new install saves the default Off')
+    assert(invoke('tab:settings').ok)
+    local remarks = assert(row('johnnyRemarks'), 'the setting is not offered')
+    assert(remarks.type == 'select' and remarks.value == 1 and remarks.defaultValue == 1 and remarks.label == 'Johnny speaks up')
+    assert(#remarks.elements == 3 and remarks.elements[1] == 'Off' and remarks.elements[2] == 'Rare' and remarks.elements[3] == 'Normal')
+    local conversations, at, remarksAt
+    for _, category in ipairs(loaded.categories) do if category.id == 'conversation-controls' then conversations = category end end
+    for index, item in ipairs(conversations.settings) do
+      if item.id == 'johnnyInHead' then at = index end
+      if item.id == 'johnnyRemarks' then remarksAt = index end
+    end
+    assert(remarksAt == at + 1, 'right under Johnny in your head')
+    assert(registered.applyBatch('manager', {{id = 'johnnyRemarks', value = 3}}).ok and manager.johnnyRemarks() == 'normal' and saved.johnnyRemarks == 'normal')
+    loaded = registered.loadMod('manager'); assert(row('johnnyRemarks').value == 3)
+    assert(registered.applyBatch('manager', {{id = 'johnnyRemarks', value = 2}}).ok and manager.johnnyRemarks() == 'rare')
+    assert(not registered.applyBatch('manager', {{id = 'johnnyRemarks', value = 4}}).ok and manager.johnnyRemarks() == 'rare')
+    assert(not manager.applySettings(player, {johnnyRemarks = 'often'}) and manager.johnnyRemarks() == 'rare')
+    assert(registered.applyBatch('manager', {{id = 'johnnyRemarks', value = 1}}).ok and manager.johnnyRemarks() == 'off' and saved.johnnyRemarks == 'off')
+    assert(manager.johnnyInHead() == false, 'the neighbouring setting is not disturbed')
+  `);
+});
+
 test('the live holocall picture is on by default, offered under Conversations, and an explicit Off is kept', () => {
   run(`${mcmFixture}
     assert(manager.holocallLiveImage() == true and manager.snapshot(player).settings.holocallLiveImage == true)

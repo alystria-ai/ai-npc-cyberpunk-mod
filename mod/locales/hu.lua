@@ -858,4 +858,9 @@ return {
     ["Friends"] = "Barátok",
     ["Close friends"] = "Közeli barátok",
     ["Gone after the ending"] = "A befejezés után eltűnt",
+    ["Johnny speaks up"] = "Johnny megszólal",
+    ["Rare"] = "Ritkán",
+    ["Normal"] = "Normál",
+    ["Choose how often Johnny speaks up."] = "Válaszd ki, milyen gyakran szólal meg Johnny.",
+    ["Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the free shared plan each remark uses one of the day’s turns; remarks never take more than a tenth of them."] = "Johnny magától szólal meg, miután találkozol valakivel, akiről tud, teljesítesz egy megbízást, vagy egy románc előrehalad. Szükséges: Johnny a fejedben.\n\nRitkán: legfeljebb óránként kétszer. Normál: legfeljebb óránként hatszor, soha nem öt percnél sűrűbben.\n\nAz ingyenes, megosztott csomagban minden megjegyzés a mai körök egyikét használja; a megjegyzések soha nem viszik el a körök tizedénél többet.",
 }

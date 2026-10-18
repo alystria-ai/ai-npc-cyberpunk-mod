@@ -26,7 +26,7 @@ const OMNI = ['OmniVoice · Balanced', 'OmniVoice · Quality', 'OmniVoice · Hig
 const STATIC_OPTIONS = [
   '10 cm higher', '10 cm lower', '5 cm higher', '5 cm lower', 'Above the speaker', 'Auto', 'Casual', 'Cinematic subtitles', 'Convai API key', 'Convai free tier',
   'Default', 'Eyes only', 'Gentle (default)', 'Local AI', 'Mistral (free plan)', 'No model installed',
-  'Off', 'Ordinary', 'Romantic', 'Strong', 'Subtle',
+  'Off', 'Ordinary', 'Romantic', 'Strong', 'Subtle', 'Rare', 'Normal',
   'Pocket · Performance', ...OMNI, 'Convai · Cloud voice',
   'Voxtral · Mistral cloud', 'Voxtral · needs Mistral key', 'Inworld · Cloud voice', 'Inworld · needs key',
 ];

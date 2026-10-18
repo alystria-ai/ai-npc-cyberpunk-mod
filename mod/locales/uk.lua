@@ -858,4 +858,9 @@ return {
     ["Friends"] = "Друзі",
     ["Close friends"] = "Близькі друзі",
     ["Gone after the ending"] = "Зник після фіналу",
+    ["Johnny speaks up"] = "Johnny озивається",
+    ["Rare"] = "Рідко",
+    ["Normal"] = "Звичайно",
+    ["Choose how often Johnny speaks up."] = "Обери, як часто Johnny озивається.",
+    ["Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the free shared plan each remark uses one of the day’s turns; remarks never take more than a tenth of them."] = "Johnny сам каже щось, коли ти зустрічаєш когось, про кого він знає, завершуєш завдання або романтична лінія просувається. Потребує Johnny у твоїй голові.\n\nРідко: не більше двох разів на годину. Звичайно: не більше шести разів на годину, але не частіше ніж раз на п’ять хвилин.\n\nУ безкоштовному спільному плані кожна репліка витрачає один із сьогоднішніх ходів; репліки ніколи не займають більше десятої частини всіх ходів.",
 }

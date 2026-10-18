@@ -858,4 +858,9 @@ return {
     ["Friends"] = "朋友",
     ["Close friends"] = "挚友",
     ["Gone after the ending"] = "结局后离去",
+    ["Johnny speaks up"] = "Johnny 主动发言",
+    ["Rare"] = "很少",
+    ["Normal"] = "正常",
+    ["Choose how often Johnny speaks up."] = "选择 Johnny 主动发言的频率。",
+    ["Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the free shared plan each remark uses one of the day’s turns; remarks never take more than a tenth of them."] = "当你遇到他认识的人、完成任务或恋爱关系推进时，Johnny 会自己说点什么。需要脑中的 Johnny。\n\n很少：每小时最多两次。正常：每小时最多六次，间隔不少于五分钟。\n\n在免费共享方案中，每条发言消耗当天的一个回合；发言消耗的回合永远不会超过全部回合的十分之一。",
 }

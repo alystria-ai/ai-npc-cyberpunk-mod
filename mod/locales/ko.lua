@@ -858,4 +858,9 @@ return {
     ["Friends"] = "친구",
     ["Close friends"] = "절친",
     ["Gone after the ending"] = "결말 후 떠남",
+    ["Johnny speaks up"] = "Johnny 먼저 말하기",
+    ["Rare"] = "드물게",
+    ["Normal"] = "보통",
+    ["Choose how often Johnny speaks up."] = "Johnny가 먼저 말하는 빈도를 고르세요.",
+    ["Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the free shared plan each remark uses one of the day’s turns; remarks never take more than a tenth of them."] = "Johnny가 알고 있는 사람을 만나거나, 임무를 끝내거나, 로맨스가 진전되면 Johnny가 스스로 뭔가 말합니다. 머릿속의 Johnny가 필요합니다.\n\n드물게: 한 시간에 최대 두 번. 보통: 한 시간에 최대 여섯 번이며, 5분보다 촘촘하지 않습니다.\n\n무료 공유 플랜에서는 발언마다 오늘의 회수를 하나씩 씁니다. 발언이 쓰는 회수는 전체의 10분의 1을 넘지 않습니다.",
 }

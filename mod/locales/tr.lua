@@ -858,4 +858,9 @@ return {
     ["Friends"] = "Arkadaşlar",
     ["Close friends"] = "Yakın arkadaşlar",
     ["Gone after the ending"] = "Final sonrası gitti",
+    ["Johnny speaks up"] = "Johnny kendiliğinden konuşur",
+    ["Rare"] = "Nadiren",
+    ["Normal"] = "Normal",
+    ["Choose how often Johnny speaks up."] = "Johnny’nin kendiliğinden ne sıklıkla konuşacağını seç.",
+    ["Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the free shared plan each remark uses one of the day’s turns; remarks never take more than a tenth of them."] = "Tanıdığı birini karşılayınca, bir işi bitirince ya da bir romantik ilişki ilerleyince Johnny kendiliğinden bir şey söyler. Kafanda Johnny olmasını gerektirir.\n\nNadiren: saatte en fazla iki kez. Normal: saatte en fazla altı kez, beş dakikadan daha sık değil.\n\nÜcretsiz paylaşımlı planda her söz günlük haklardan birini harcar; sözler hiçbir zaman tüm hakların onda birinden fazlasını kullanmaz.",
 }

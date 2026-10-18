@@ -858,4 +858,9 @@ return {
     ["Friends"] = "Amici",
     ["Close friends"] = "Amici stretti",
     ["Gone after the ending"] = "Scomparso dopo il finale",
+    ["Johnny speaks up"] = "Johnny interviene",
+    ["Rare"] = "Raramente",
+    ["Normal"] = "Normale",
+    ["Choose how often Johnny speaks up."] = "Scegli ogni quanto interviene Johnny.",
+    ["Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the free shared plan each remark uses one of the day’s turns; remarks never take more than a tenth of them."] = "Johnny di sua iniziativa dice qualcosa dopo che incontri qualcuno di cui ha sentito parlare, completi un incarico o una storia d’amore va avanti. Richiede Johnny nella tua testa.\n\nRaramente: al massimo due volte all’ora. Normale: al massimo sei volte all’ora, mai a meno di cinque minuti di distanza.\n\nCon il piano gratuito condiviso, ogni commento usa uno dei turni di oggi; i commenti non occupano mai più di un decimo di essi.",
 }

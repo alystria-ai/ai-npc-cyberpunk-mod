@@ -858,4 +858,9 @@ return {
     ["Friends"] = "Přátelé",
     ["Close friends"] = "Blízcí přátelé",
     ["Gone after the ending"] = "Po konci pryč",
+    ["Johnny speaks up"] = "Johnny se ozývá",
+    ["Rare"] = "Vzácně",
+    ["Normal"] = "Normální",
+    ["Choose how often Johnny speaks up."] = "Vyber, jak často se Johnny ozývá.",
+    ["Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the free shared plan each remark uses one of the day’s turns; remarks never take more than a tenth of them."] = "Johnny sám od sebe něco řekne, když potkáš někoho, o kom ví, když dokončíš zakázku nebo když se vztah posune dál. Vyžaduje Johnny v hlavě.\n\nVzácně: nejvýše dvakrát za hodinu. Normální: nejvýše šestkrát za hodinu, nikdy blíž než po pěti minutách.\n\nNa sdíleném bezplatném plánu každá poznámka spotřebuje jeden z dnešních tahů; poznámky nikdy nezaberou víc než desetinu z nich.",
 }

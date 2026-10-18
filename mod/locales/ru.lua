@@ -858,4 +858,9 @@ return {
     ["Friends"] = "Друзья",
     ["Close friends"] = "Близкие друзья",
     ["Gone after the ending"] = "Пропал после финала",
+    ["Johnny speaks up"] = "Johnny подаёт голос",
+    ["Rare"] = "Редко",
+    ["Normal"] = "Обычно",
+    ["Choose how often Johnny speaks up."] = "Выберите, как часто Johnny подаёт голос.",
+    ["Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the free shared plan each remark uses one of the day’s turns; remarks never take more than a tenth of them."] = "Johnny сам что-нибудь говорит, когда вы встречаете того, о ком он знает, заканчиваете задание или романтическая линия продвигается. Нужен Johnny в вашей голове.\n\nРедко: не более двух раз в час. Обычно: не более шести раз в час, но не чаще, чем через пять минут.\n\nНа бесплатном общем плане каждая реплика тратит один из сегодняшних ходов; реплики никогда не занимают больше одной десятой всех ходов.",
 }
