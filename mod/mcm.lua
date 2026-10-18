@@ -717,6 +717,25 @@ local function voiceServiceLabel(state)
     return ui.t(labels[labelKey()] or 'Waiting for voice service')
 end
 
+-- Johnny's standing in this save's story (docs/JOHNNY_IN_YOUR_HEAD.md): a read-only row under his setting while it is on, or nil.
+-- convaiJohnnyStanding (init.lua) loads mod/johnny-head.lua only then and reads a few quest facts once per draw of the page.
+local function johnnyStandingRow(snapshot)
+    if snapshot.settings.johnnyInHead ~= true or type(convaiJohnnyStanding) ~= 'function' then return nil end
+    local ok, stage = pcall(convaiJohnnyStanding)
+    stage = ok and stage or 'unknown'
+    local value
+    if stage == 'before' then value = ui.t('Not in your head yet')
+    elseif stage == 'wary' then value = ui.t('Wary')
+    elseif stage == 'grudging' then value = ui.t('Grudging respect')
+    elseif stage == 'friends' then value = ui.t('Friends')
+    elseif stage == 'close' then value = ui.t('Close friends')
+    elseif stage == 'after' then value = ui.t('Gone after the ending')
+    else value = ui.t('Unknown') end
+    return readonly('johnnyStanding', 'Johnny’s standing', value,
+        'Where you and Johnny stand in this save’s story. It follows what you have been through together, such as Alt, the oil fields, Rogue and the reunion concert.\n\nRead from your save; nothing is stored.',
+        {value = true})
+end
+
 -- The status line. While a different voice is pending in MCM's drafts it names
 -- that voice instead (short, so the row is not truncated).
 local function savedVoiceIndex(settings)
@@ -2067,7 +2086,7 @@ local function schema()
                 'Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate.',
                 languageElements, {elements=true}),
         })
-        categories[#categories + 1] = category('conversation-controls', 'Conversations', {
+        local conversationRows = {
             action('memory', 'Memory', 'Manage',
                 'See what each character remembers and make one or all of them forget.\n\nMemories are kept across saves.',
                 function(context) return navigate('memory', context) end),
@@ -2078,6 +2097,8 @@ local function schema()
                 'Gang members, NCPD officers, guards, ripperdocs, shopkeepers, bartenders and passers-by answer as their kind of person.\n\nThey do not know your story and forget you after a save load, except shopkeepers you come back to.\n\nNamed characters are not affected.'),
             setting('storyConversations', 'Talk to story characters', 'bool', snapshot.settings.storyConversations == true, false,
                 'The game’s own named characters, such as Judy, Jackie, Panam and Rogue, answer when you talk to them where they stand. They use their own voice and memory, and their face follows what they say.\n\nNothing else about them changes: they do not turn, move, gesture or follow. They do not answer during scenes, quest conversations, fights or rides.\n\nTakes effect after you reload your save.'),
+            setting('johnnyInHead', 'Johnny in your head', 'bool', snapshot.settings.johnnyInHead == true, false,
+                'Johnny Silverhand answers when you use the talk keys with nobody in front of you, as the voice in V’s head. He knows your jobs and your story so far, and what he thinks of you follows it.\n\nOnly while the story has him in V’s head. He stays quiet during scenes, calls, dialogue choices and fights, and when the game gives him a line.'),
             withInworld(setting('multilingualConversations', 'Multilingual conversations', 'bool', snapshot.settings.multilingualConversations, false,
                 'Talk in any language; each character answers in yours.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech and Expressive emotions turn off.'),
                 'Inworld speaks English only as well.'),
@@ -2088,7 +2109,15 @@ local function schema()
             -- Holocalls start from the mod's Chat tab (docs/HOLOCALL.md); this is their only setting.
             setting('holocallLiveImage', 'Live holocall picture', 'bool', snapshot.settings.holocallLiveImage == true, true,
                 'Shows the character live in a holocall instead of their portrait.\n\nIf she cannot be shown, the call goes on with the portrait.'),
-        })
+        }
+        -- Johnny's standing in this save's story, right under his setting while it is on (read from the save as the page is drawn).
+        local standing = johnnyStandingRow(snapshot)
+        if standing then
+            for index, row in ipairs(conversationRows) do
+                if row.id == 'johnnyInHead' then table.insert(conversationRows, index + 1, standing); break end
+            end
+        end
+        categories[#categories + 1] = category('conversation-controls', 'Conversations', conversationRows)
         -- Settings > Conversation provider: who writes the replies, Mature content, Local AI and the provider keys (the Inworld key is in
         -- Development).
         local providerRows, inworldKeyRow = ownKeyRows(snapshot)
@@ -2400,6 +2429,7 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     values.relationshipModes[key:sub(14)] = ({'auto', 'on', 'off'})[change.value]
                 elseif key == 'archetypeConversations' then values.archetypeConversations = change.value
                 elseif key == 'storyConversations' then values.storyConversations = change.value
+                elseif key == 'johnnyInHead' then values.johnnyInHead = change.value
                 elseif key:sub(1, 6) == 'addon:' and convaiAddons and convaiAddons.live then
                     local staged, problem = convaiAddons.stageSetting(key, change.value)
                     if not staged then convaiAddons.discardSettings(); return {ok = false, error = problem} end

@@ -1687,6 +1687,56 @@ test('Talk to story characters is off by default, offered under Conversations an
   `);
 });
 
+test('Johnny in your head is off by default, offered under Conversations and saved; his standing shows only while it is on', () => {
+  run(`${mcmFixture}
+    assert(manager.johnnyInHead() == false and manager.snapshot(player).settings.johnnyInHead == false, 'a missing key is off')
+    assert(saved.johnnyInHead == false, 'a new install saves the default Off')
+    assert(invoke('tab:settings').ok)
+    local johnny = assert(row('johnnyInHead'), 'the setting is not offered')
+    assert(johnny.type == 'bool' and johnny.value == false and johnny.defaultValue == false and johnny.capabilities.draft)
+    assert(johnny.label == 'Johnny in your head')
+    assert(row('johnnyStanding') == nil, 'no standing row while the setting is off')
+    local conversations
+    for _, category in ipairs(loaded.categories) do if category.id == 'conversation-controls' then conversations = category end end
+    local at, standingAt, last
+    for index, item in ipairs(conversations.settings) do
+      if item.id == 'johnnyInHead' then at = index end
+      if item.id == 'johnnyStanding' then standingAt = index end
+      last = item.id
+    end
+    assert(at, 'the setting is not in the Conversations section')
+    assert(last == 'holocallLiveImage', 'the rows after it are all still there')
+    -- On: the standing is read (once per draw) and shown right under the setting; the rows after it are kept.
+    local reads = 0
+    convaiJohnnyStanding = function() reads = reads + 1; return 'grudging' end
+    assert(registered.applyBatch('manager', {{id = 'johnnyInHead', value = true}}).ok and manager.johnnyInHead() == true and saved.johnnyInHead == true, 'an explicit On is kept')
+    loaded = registered.loadMod('manager'); assert(row('johnnyInHead').value == true)
+    local standing = assert(row('johnnyStanding'), 'the standing row is shown while the setting is on')
+    assert(standing.value == 'Grudging respect' and standing.label == 'Johnny’s standing' and standing.capabilities.write == false)
+    assert(reads >= 1)
+    for _, category in ipairs(loaded.categories) do if category.id == 'conversation-controls' then conversations = category end end
+    for index, item in ipairs(conversations.settings) do
+      if item.id == 'johnnyInHead' then at = index end
+      if item.id == 'johnnyStanding' then standingAt = index end
+      last = item.id
+    end
+    assert(standingAt == at + 1 and last == 'holocallLiveImage')
+    -- A stage the page does not know, or a failing read, says Unknown and never breaks the page.
+    convaiJohnnyStanding = function() error('no game') end
+    loaded = registered.loadMod('manager'); assert(row('johnnyStanding').value == 'Unknown')
+    convaiJohnnyStanding = function() return 'before' end
+    loaded = registered.loadMod('manager'); assert(row('johnnyStanding').value == 'Not in your head yet')
+    convaiJohnnyStanding = nil
+    loaded = registered.loadMod('manager'); assert(row('johnnyStanding') == nil, 'no row without the reader')
+    assert(registered.applyBatch('manager', {{id = 'johnnyInHead', value = false}}).ok)
+    assert(manager.johnnyInHead() == false and saved.johnnyInHead == false, 'an explicit Off is kept')
+    loaded = registered.loadMod('manager'); assert(row('johnnyInHead').value == false)
+    -- Only a boolean is accepted, and the neighbouring setting is not disturbed.
+    assert(not manager.applySettings(player, {johnnyInHead = 'yes'}) and manager.johnnyInHead() == false)
+    assert(manager.storyConversations() == false)
+  `);
+});
+
 test('the live holocall picture is on by default, offered under Conversations, and an explicit Off is kept', () => {
   run(`${mcmFixture}
     assert(manager.holocallLiveImage() == true and manager.snapshot(player).settings.holocallLiveImage == true)
