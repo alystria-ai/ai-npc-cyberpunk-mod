@@ -654,7 +654,7 @@ test('the main page texts say the Mature packs work alone and give their new siz
   for (const name of ['Mature lite', 'Mature standard']) assert.doesNotMatch(row(name), /needs a Local AI pack/);
   assert.match(row('Mature lite'), /works on its own/); assert.match(row('Mature standard'), /works on its own/);
   const optional = nexus.split('\n').find(line => line.includes('[b]Mature lite[/b]'));
-  assert.match(optional, /about 2\.9 GB/); assert.match(optional, /about 5\.5 GB/); assert.match(optional, /work on their own|works on its own|each works alone/i);
+  assert.match(optional, /about 2\.9 GB/); assert.match(optional, /about 5\.5 GB/); assert.match(optional, /work on their own|works on its own|each works alone|no Local AI pack is needed/i);
   assert.doesNotMatch(optional, /They need a Local AI pack/);
   for (const [name, text] of [['README', readme], ['NEXUS_PAGE', nexus]]) assert.doesNotMatch(text.slice(0, text.indexOf('# For developers') > 0 ? text.indexOf('# For developers') : text.length), /\brecommended\b/i, name);
   assert.doesNotMatch(await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8'), /mature|uncensored|adult|18\+/i);
