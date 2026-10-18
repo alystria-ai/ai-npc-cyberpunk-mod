@@ -5514,6 +5514,18 @@
             "value": 1
           },
           {
+            "type": "fact",
+            "key": "q003_paid_maelstrom",
+            "op": "eq",
+            "value": 0,
+            "guard": {
+              "type": "journal",
+              "key": "jt.pickup.completed",
+              "op": "eq",
+              "value": "succeeded"
+            }
+          },
+          {
             "type": "journal",
             "key": "jt.pickup.completed",
             "op": "eq",
