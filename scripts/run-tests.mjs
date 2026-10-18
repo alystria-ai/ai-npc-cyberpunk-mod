@@ -9,7 +9,7 @@
 // Usage: node scripts/run-tests.mjs [extra node --test args, e.g. --test-reporter=dot]
 
 import { spawn } from "node:child_process";
-import { readdirSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -37,6 +37,8 @@ export const EXCLUDE = new Set([
 ]);
 
 function walk(dir, out) {
+  // A checkout may lack one of the search folders (an add-on repository removes addons/): skip it instead of ending the run.
+  if (!existsSync(path.join(ROOT, dir))) return out;
   for (const entry of readdirSync(path.join(ROOT, dir), { withFileTypes: true })) {
     if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
     const rel = `${dir}/${entry.name}`;

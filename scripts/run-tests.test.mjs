@@ -158,7 +158,7 @@ test('a suite too large for one command line is split into batches, every file r
   } finally { await rm(root, {recursive: true, force: true}); }
 });
 
-test('a search folder that does not exist is skipped, not a crash of the whole run', {todo: 'BUG: scripts/run-tests.mjs walk() calls readdirSync on each of bridge, packaging, scripts, auth-backend and addons without checking it exists, so a checkout without one of them (an add-on repository removes addons/) ends npm test with an ENOENT stack trace and no test run'}, async () => {
+test('a search folder that does not exist is skipped, not a crash of the whole run', async () => {
   const root = await layout({'bridge/a.test.mjs': passing});
   try {
     await rm(join(root, 'addons'), {recursive: true, force: true});
