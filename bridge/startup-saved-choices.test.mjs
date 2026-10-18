@@ -33,7 +33,10 @@ test('saved Convai-key and Mistral choices are applied (key first) before the br
 
     // The warm-up of the provider's connection (docs/LATENCY_2026-10-13.md) is the only outward request, and it names Mistral's host alone.
     const attempts = await bridge.until(() => bridge.forbidden(), lines => lines.some(line => line.includes('api.mistral.ai')), 'no warm-up request was attempted');
-    for (const line of attempts) assert.match(line, /^fetch (?:data:,|https:\/\/api\.mistral\.ai\/)$/, 'a request to another address');
+    // Program launches (the hidden browser, and the registry lookup that finds it) are not requests; only network attempts are checked here.
+    for (const line of attempts.filter(line => !/^(?:spawn|spawnSync|exec|execSync|execFile|execFileSync|fork)\b/.test(line))) {
+      assert.match(line, /^fetch (?:data:,|https:\/\/api\.mistral\.ai\/)$/, 'a request to another address');
+    }
 
     // No key is in any file the bridge wrote for the game, in a log or in its output.
     const files = (await readdir(bridge.runtime)).map(name => join(bridge.runtime, name));

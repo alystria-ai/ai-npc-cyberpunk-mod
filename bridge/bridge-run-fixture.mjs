@@ -55,7 +55,7 @@ child.execFile = function(command, args, options, callback) {
   return {kill() {}};
 };
 child.spawn = function(command, args) {
-  if (!isFake(command)) return forbidden('spawn')();
+  if (!isFake(command)) return forbidden('spawn ' + String(command))();
   appendFileSync(llamaLog, JSON.stringify({event: 'spawn', args: (args || []).map(String)}) + '\\n');
   throw Error('the fake llama-server never starts');
 };
