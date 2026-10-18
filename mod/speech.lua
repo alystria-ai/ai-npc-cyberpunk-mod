@@ -279,6 +279,10 @@ end
 
 function M.start(context, reply)
     M.stop()
+    -- A named character of the game is voiced only while the game leaves it alone (mod/world-talk.lua, set by init.lua; nil for
+    -- every other speaker): a scene or fight that began since V asked drops the reply before anything is heard or shown.
+    local storyGuard = M.storyGuard
+    if storyGuard and storyGuard(M.target, context, true) == true then return false end
     M.voiceOnly = context.voiceOnly == true
     captions.voiceOnly = M.voiceOnly
     -- A holocall turn (mod/holocall.lua): full volume with no distance, and the call's subtitle line.
@@ -613,6 +617,10 @@ local function updateSpeech(delta)
     if not M.requestId then return end
     if not player or tostring(player:GetEntityID().hash) ~= M.playerID then M.abandon(); return end
     if not M.actor:IsAttached() or (not M.voiceOnly and M.actor:IsDeadNoStatPool()) then M.stop('target-lost'); return end
+    -- The same test while a named character's reply is heard (about twice a second, held inside the guard): a scene, a fight or
+    -- a ride that starts ends the reply and releases the face. True when it did.
+    local storyGuard = M.storyGuard
+    if storyGuard and storyGuard(M.actor, M.context) == true then return end
     if not voiceEnabled(player) then
         fallback('muted', M.text); return
     end

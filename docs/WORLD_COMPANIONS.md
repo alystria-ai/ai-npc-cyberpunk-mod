@@ -1,5 +1,7 @@
 # Game-placed characters, and the retired "follow me"
 
+**Amended 2026-10-18: the game's own named characters can now be talked to (voice and face only), see [WORLD_CHARACTERS.md](WORLD_CHARACTERS.md).** The rows below for named characters describe the rule before that change; everything except the talk path is still true for them.
+
 **Decision 2026-10-11 (release 0.2): the mod never touches a character the game placed, except the talk path for ordinary NPCs.** Only companions the mod spawns are party members. A world character can no longer be asked to follow (the adoption code below is kept but switched off, `allowWorldFollow` in `mod/companion-adoption.lua`; nothing sets it). "Leave V's Party" remains for spawned companions. The rest of this page describes the retired world-follow mechanism, and then what still applies.
 
 ## The rule
@@ -8,7 +10,8 @@
 | --- | --- |
 | **Our spawned companions** | The full feature set: conversation, gaze, bark muting, gestures, seating, car and chauffeur, tactics, recovery. Unchanged. |
 | **Ordinary world NPCs** (pedestrians, vendors, gangers, guards) | Only the talk path: V starts a conversation, the NPC faces V and its vanilla barks are muted for that conversation, its reply and lip-sync play. Auto-connect may pre-open a bridge connection (a background warm-up with no in-game effect). No passive gaze response, no party, no car, gestures, seating or other systems. |
-| **Named, story and quest characters the game placed** (the real Judy, Panam, Takemura, Jackie in a story scene, any quest-flagged or `q###`/`sq###`/`mq###` record, MaxTac) | Nothing at all, as if the mod were not installed: no conversation, auto-connect, gaze, bark muting, face work, tactic target or perception change. Only our own spawned copy of Judy talks. |
+| **Named characters the game placed** (a roster record or name: the real Judy, Panam, Jackie, Rogue), since 2026-10-18 and while Settings > Talk to story characters is on | Only the talk path, with voice and face only: the roster profile, the reply from the character, lip sync and expressions. No gaze, bark muting, idle or gesture, movement, action, party, attitude, equipment, tactic target, perception change or scanner name; never during a scene, quest conversation, fight or ride. [WORLD_CHARACTERS.md](WORLD_CHARACTERS.md) |
+| **Other story and quest characters the game placed** (a quest-flagged or `q###`/`sq###`/`mq###` record with no roster profile, MaxTac) | Nothing at all, as if the mod were not installed: no conversation, auto-connect, gaze, bark muting, face work, tactic target or perception change. |
 
 One predicate decides it: `convaiWorldPolicy` in `mod/init.lua` (`ours`, `protected`), over `characterCatalog.protectedReason` (`mod/character-catalog.lua`: a roster record or name, a Main/Side/Minor quest flag, or a quest-prefixed record). It is read on demand, cached per entity, and never runs per frame. Our copies are recognised through `companions.identity`, so a spawned Judy is never mistaken for the vanilla one.
 
@@ -16,10 +19,10 @@ Gates:
 
 | System | Gate |
 | --- | --- |
-| Talk key, voice, group chat, game-dialogue speaker lookup | `profileIdentity` passes `world = true` for any non-managed NPC; `characterCatalog.resolve` returns no profile for a roster record or name, and never falls back to an archetype or resident for a story-bound or excluded record. |
+| Talk key, voice, group chat, game-dialogue speaker lookup | `profileIdentity` passes `world = true` for any non-managed NPC; `characterCatalog.resolve` returns no profile for a roster record or name unless `story` is set (Talk to story characters, 2026-10-18, private talk only), and never falls back to an archetype or resident for a story-bound or excluded record. |
 | Auto-connect scan and look counting | Uses `profileIdentity`: named and story characters have no key, so they are skipped. |
 | Passive gaze response | Only our own companions (`companions.owns`). An ordinary NPC is faced toward V when the player starts a conversation. |
-| `beginFocus` (look-at hold, bark muting) | Refuses unless the NPC is ours or the talk path resolved a profile for it. |
+| `beginFocus` (look-at hold, bark muting) | Refuses unless the NPC is ours or the talk path resolved a profile for it; always refuses a story character (`convaiWorldPolicy.story`). |
 | Tactic target (`companion-marking.lua`) | `protected` NPCs are never aimed or nearest targets (`story-character`); a tagged one only when already hostile to V and in combat. |
 | Follow offer | `unavailable`: the character declines in character; nothing is armed. |
 | Face rebuild (`ConvaiFaceRequest`), cars, gestures, idle pools, seating, recovery | Reached only from a conversation (face) or only iterate our own party entries. |

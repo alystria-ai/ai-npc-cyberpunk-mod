@@ -724,6 +724,8 @@ local function loadSettings()
     if settings.keepPreparedVoices ~= true then settings.keepPreparedVoices, settingsNeedSave = true, true end
     -- On by default: unnamed gang members, police, vendors and residents can be talked to (docs/NPC_ARCHETYPES.md).
     if type(settings.archetypeConversations) ~= 'boolean' then settings.archetypeConversations, settingsNeedSave = true, true end
+    -- On by default: the game's own named characters can be talked to where they stand (docs/WORLD_CHARACTERS.md).
+    if type(settings.storyConversations) ~= 'boolean' then settings.storyConversations, settingsNeedSave = true, true end
     -- Off by default. A saved pairing with the Convai cloud voice cannot stand: the cloud voice is kept (it is the
     -- player's voice) and the setting is turned off below.
     if type(settings.naturalSpeech) ~= 'boolean' then settings.naturalSpeech, settingsNeedSave = false, true end
@@ -850,6 +852,13 @@ end
 function M.archetypeConversations()
     loadSettings()
     return settings.archetypeConversations ~= false
+end
+
+-- Talk to story characters: the game's own named characters answer the talk keys where they stand, with their face and voice
+-- only (mod/world-talk.lua). Read on a key press and by the face service at start-up, never per frame.
+function M.storyConversations()
+    loadSettings()
+    return settings.storyConversations ~= false
 end
 
 function M.profileEnabled(key)
@@ -1700,6 +1709,7 @@ function M.snapshot(player)
             localModel = validModelId(settings.localModel) and settings.localModel or 'auto',
             multilingualConversations = settings.multilingualConversations,
             archetypeConversations = settings.archetypeConversations,
+            storyConversations = settings.storyConversations ~= false,
             uiLanguage = settings.uiLanguage,
             enabledByKey = enabled},
         ownKey = M.ownKey(),
@@ -1770,6 +1780,9 @@ function M.applySettings(player, values)
         elseif key == 'archetypeConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.archetypeConversations = value
+        elseif key == 'storyConversations' then
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.storyConversations = value
         elseif key == 'conversationProvider' then
             if value ~= 'convai' and value ~= 'mistral' and value ~= 'local' then return false, 'Choose one of the listed conversation providers.' end
             nextSettings.conversationProvider = value

@@ -344,6 +344,9 @@ gameplayActions = dofile('gameplay-actions.lua').new({
     end})
 convaiGameplayActions = gameplayActions
 microphone.captureActions = function(context)
+    -- No actions for a game-placed story character (docs/WORLD_CHARACTERS.md): it is not a party member, so nothing is offered
+    -- and it is not even told what it cannot do.
+    if convaiStory and convaiStory.entity == context.entity then return false end
     return gameplayActions.capture(context, context.group and 'group-voice' or 'private-voice')
 end
 
@@ -617,8 +620,13 @@ local function profileIdentity(npc, forceFacts)
     local spawned = not owned and convaiSpawnedCharacters ~= nil and convaiSpawnedCharacters:is(npc) or nil
     -- world: the game's own character, not a copy the mod spawned. A named story character there gets no
     -- conversation profile at all (character-catalog.lua resolve); only the spawned copy talks.
+    -- story: the player allows talking to the game's own named characters (Settings > Talk to story characters,
+    -- docs/WORLD_CHARACTERS.md). It only lets a roster record or name resolve for a character the game placed: it stays
+    -- world, so a story-bound character without a roster profile still never falls back to an archetype or a resident.
+    local story = managedKey == nil and not spawned and convaiWorldTalk ~= nil
+        and type(manager.storyConversations) == 'function' and manager.storyConversations() or nil
     local actor = {managedKey = managedKey, name = name, world = managedKey == nil and not spawned, spawned = spawned,
-        bodyType = body, record = recordOk and record or '', crowd = crowdOk and crowd}
+        story = story, bodyType = body, record = recordOk and record or '', crowd = crowdOk and crowd}
     if not managedKey and (forceFacts or (type(manager.archetypeConversations) == 'function' and manager.archetypeConversations())) then
         local idOk, entity = pcall(function() return tostring(npc:GetEntityID().hash) end)
         actor.facts = archetypeFacts(npc, idOk and entity or nil, body)
@@ -634,12 +642,24 @@ do
     convaiSpawnedCharacters = loaded and type(module) == 'table' and type(module.new) == 'function' and module.new() or nil
 end
 
+-- May V talk to the game's own named characters right now (docs/WORLD_CHARACTERS.md)? A global, loaded like the module above:
+-- read on a talk key press, a recording's validity poll and twice a second while such a reply is heard, never per frame.
+do
+    local loaded, module = pcall(dofile, 'world-talk.lua')
+    convaiWorldTalk = loaded and type(module) == 'table' and type(module.new) == 'function'
+        and module.new({sample = function(player) return battleObserver.sample(player) end}) or nil
+end
+
 -- The one rule for characters the game placed (docs/WORLD_COMPANIONS.md, "The mod never touches game characters"):
 --   ours(npc)      a copy the mod spawned: the full feature set.
 --   spawned(npc)   a character another mod or a spawner created: the talk path with its own roster profile, a speaking
 --                  face and eye contact while it talks; nothing that moves, seats, equips or targets it (that mod owns it).
 --   protected(npc) a named, story or quest character of the game, or a spawned one: no mod system touches it at all
 --                  outside a conversation the player starts (the talk path decides that one through profileIdentity).
+--   story(npc)     a named character of the game that the player may talk to (Settings > Talk to story characters, on by
+--                  default): its roster profile and voice, and while it speaks its mouth and face. No gaze, bark muting, turn,
+--                  idle, gesture, movement, action, party, attitude, equipment or scanner name, ever (docs/WORLD_CHARACTERS.md).
+--                  It is still protected(npc) for every other system.
 --   everyone else  an ordinary world NPC: only the talk path (a conversation the player starts) acts on it.
 -- Read on demand (a request, a conversation start), cached per entity, never per frame.
 local protectedCache, protectedCount = {}, 0
@@ -653,6 +673,16 @@ convaiWorldPolicy = {
         local ok, _, _, owned = pcall(companions.identity, npc)
         if ok and owned == true then return false end
         return convaiSpawnedCharacters:is(npc) == true
+    end,
+    story = function(npc)
+        if not npc or convaiWorldTalk == nil then return false end
+        if type(manager.storyConversations) ~= 'function' or not manager.storyConversations() then return false end
+        local identified, _, _, owned = pcall(companions.identity, npc)
+        if identified and owned == true then return false end
+        if convaiSpawnedCharacters ~= nil and convaiSpawnedCharacters:is(npc) then return false end
+        -- A roster profile that is not an archetype or a resident: the game's own named character (by record or name).
+        local resolved, key = pcall(profileIdentity, npc)
+        return resolved and type(key) == 'string' and convaiSpawnedPeople ~= nil and convaiSpawnedPeople.named(key) == true
     end,
     protected = function(npc)
         if not npc then return false end
@@ -1556,7 +1586,9 @@ end
 local function beginFocus(player, npc)
     endFocus(player)
     -- Only our spawned copies and a character the talk path resolved (a conversation the player started) are ever
-    -- turned toward V or have their barks muted. A named or story character of the game is left untouched.
+    -- turned toward V or have their barks muted. A named or story character of the game is left untouched, even when V
+    -- talks to it (docs/WORLD_CHARACTERS.md): it keeps its own gaze, pose and barks, and only its voice and face are driven.
+    if convaiWorldPolicy ~= nil and convaiWorldPolicy.story(npc) == true then return false, 'story character: voice and face only' end
     if not companions.owns(npc) and not (profileIdentity(npc)) then return false, 'not ours and not a conversation' end
     -- Owned companions arbitrate attention against locomotion themselves.
     -- The civilian path can add a second hold/turn independently of that state.
@@ -1707,6 +1739,11 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
     local npc, reason, decision = targetAtCrosshair()
     logTalkTarget(decision)
     if convaiSpawnedPeople then convaiSpawnedPeople.noteNative(convaiTalkNative) end
+    -- A story character of the game takes private talk only (docs/WORLD_CHARACTERS.md): aimed at with a group key it is not a
+    -- member of the round, which is then built from the characters with V, as when V aims at nothing.
+    if groupMode and npc and convaiWorldPolicy ~= nil and convaiWorldPolicy.story(npc) == true then
+        npc, reason = nil, 'Group chat needs two characters nearby. Use private chat for one person.'
+    end
     local candidates = groupMode and companions.conversationCandidates(player, 8) or {}
     if groupMode then
         local enabled = {}
@@ -1778,6 +1815,24 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
     if not profileEnabled(player, key) then log('Companion disabled in manager: ' .. name); return nil end
     local primary = {npc = npc, name = name, entity = tostring(npc:GetEntityID().hash), bodyType = bodyType, profileKey = key,
         spawned = convaiWorldPolicy ~= nil and convaiWorldPolicy.spawned(npc) or nil}
+    -- A named character of the game (docs/WORLD_CHARACTERS.md) is talked to only while the game is not in charge of it: not in a
+    -- scene or quest dialogue, not while V is in a quest conversation, not under a scene's or quest's AI, in a fight, hurt or
+    -- riding. Read fresh on this key press; the same test then guards the recording and the reply. Nothing of the character
+    -- is touched: a refusal is a notice and a log line.
+    primary.story = convaiWorldPolicy ~= nil and convaiWorldPolicy.story(npc) == true or nil
+    convaiStory = primary.story and {entity = primary.entity, key = key, name = name} or nil
+    -- The face writer then judges this one speaker by the story rules (no scene flag: it stays true in ordinary gameplay).
+    if convaiFacialPlayback then convaiFacialPlayback.storyEntity = convaiStory and convaiStory.entity or nil end
+    if primary.story then
+        local why = convaiWorldTalk:refusal(npc, player)
+        if why then
+            convaiStory = nil
+            log('World conversation refused: profile=' .. key .. ' reason=' .. why)
+            convaiNotices.send(player, 'talk-busy', ui.t('{name} is busy right now.', {name = name}))
+            return nil
+        end
+        log('World conversation: profile=' .. key .. ' (voice and face only)')
+    end
     -- A spawned character V talks to is remembered by its ID (key press only), so a later group round counts it wherever V faces.
     if primary.spawned and convaiSpawnedCharacters ~= nil then
         pcall(convaiSpawnedCharacters.remember, convaiSpawnedCharacters, {{id = npc:GetEntityID(), entity = primary.entity, key = key, name = name}})
@@ -1974,7 +2029,7 @@ local function beginTextNow(groupMode, waited)
                 log('Face request: actor=' .. tostring(identity) .. ' status=' .. tostring(faceStatus))
             end
             -- A holocall's live-picture copy is far away and held still: it never turns to V.
-            if focusEntity ~= identity and not primary.holocall then
+            if focusEntity ~= identity and not primary.holocall and not primary.story then
                 local focused, reason = beginFocus(player, npc)
                 if not focused then
                     log('NPC focus unavailable: ' .. tostring(reason))
@@ -2124,10 +2179,11 @@ local function toggleVoice(groupMode, source)
             -- A holocall's caller stays valid while that call is connected, wherever V is.
             if primary.holocall then return convaiHolocall ~= nil and convaiHolocall.partnerValid(context) end
             if primary.voiceOnly then return convaiAddons ~= nil and convaiAddons.participantLive(primary, Game.GetPlayer()) end
+            if primary.story and convaiWorldTalk:refusal(npc, Game.GetPlayer(), entity) then return false end
             return voiceTargetValid(npc, context)
         end
         if microphone.begin(context, targetValid, 'press') then
-            if not primary.voiceOnly and not primary.holocall then beginFocus(player, npc) end
+            if not primary.voiceOnly and not primary.holocall and not primary.story then beginFocus(player, npc) end
             focusMode, focusEntity, focusUntil = 'chat', entity, os.time() + 120
             local micNote = ui.t('Connecting microphone - wait for Listening')
             convaiNotices.sendLines(player, {{id = 'talk-connecting', text = connectNote}, {id = 'mic-connecting', text = micNote}})
@@ -2159,6 +2215,8 @@ local function sendRequest(context)
     elseif context.voiceOnly then
         -- An add-on's voice (docs/ADDON_API.md) cannot follow, fight or drive: no gameplay actions, and its context blocks.
         if convaiAddons and convaiAddons.live then convaiAddons.decorate(context) end
+    elseif convaiStory and convaiStory.entity == context.entity and not context.group then
+        -- A game-placed story character gets no action offers or advisories (docs/WORLD_CHARACTERS.md).
     elseif not context.group and not context.reaction then gameplayActions.capture(context, 'private-text')
     elseif context.group and context.group.index == 1 and not context.reaction then
         gameplayActions.capture(context, 'group-text')
@@ -2295,6 +2353,21 @@ local function retirePrivateReply(entity, reason)
     elseif captionsOnly then pcall(subtitles.clearEntity, entity) end
     if focusEntity == entity then focusUntil = os.time() + 1 end
     log('Private reply retired: ' .. tostring(reason))
+    return true
+end
+
+-- A named character of the game is voiced only while the game leaves it alone (docs/WORLD_CHARACTERS.md, mod/world-talk.lua).
+-- speech.lua asks when the reply is about to start (starting = true, nothing to retire yet) and while it plays, about twice a
+-- second (the answer is held 0.4 s). True when the reply was ended: its voice, subtitle and face stop at once, so the game's own
+-- animation resumes, and the bridge's request is dropped. Anyone who is not the story character V is talking to: false at once.
+speech.storyGuard = function(actor, context, starting)
+    local story = convaiStory
+    if not story or convaiWorldTalk == nil or type(context) ~= 'table' or context.entity ~= story.entity then return false end
+    local why = convaiWorldTalk:refusal(actor, Game.GetPlayer(), story.entity)
+    if not why then return false end
+    log('World conversation ended: profile=' .. story.key .. ' reason=' .. why .. (starting and ' (before the reply began)' or ''))
+    if starting then return true end
+    retirePrivateReply(context.entity, 'story-' .. why)
     return true
 end
 
@@ -3078,6 +3151,13 @@ local function abandonSession(reason,preserveTransit)
     focusedCrowd, releasedCrowd = nil, nil
     if convaiVanillaReactions then pcall(convaiVanillaReactions.clear) end
     if convaiSpawnedCharacters then convaiSpawnedCharacters:reset() end
+    convaiStory = nil
+    if convaiFacialPlayback then convaiFacialPlayback.storyEntity = nil end
+    if convaiWorldTalk then convaiWorldTalk:reset() end
+    -- The face service decides at each NPC's spawn, so the setting is handed over before the next world loads.
+    if convaiFacialPlayback and type(convaiFacialPlayback.applyStoryTalk) == 'function' then
+        pcall(convaiFacialPlayback.applyStoryTalk, manager.storyConversations())
+    end
     phoneCatalogReady = false
     resetGaze()
     if convaiExpressionReset then convaiExpressionReset() end
@@ -3103,6 +3183,14 @@ registerForEvent('onInit', function()
         if not okMode then log('Crowd face mode failed: ' .. tostring(requested))
         elseif requested or problem then
             log('Crowd face mode: requested=' .. tostring(requested) .. ' applied=' .. tostring(applied) .. (problem and (' problem=' .. tostring(problem)) or ''))
+        end
+    end
+    -- Talk to story characters (docs/WORLD_CHARACTERS.md): the face service prepares a named character's face at its spawn, so
+    -- it is told the setting before the world loads (and again each time a world is released).
+    if convaiFacialPlayback and type(convaiFacialPlayback.applyStoryTalk) == 'function' then
+        local okStory, appliedStory = pcall(convaiFacialPlayback.applyStoryTalk, manager.storyConversations())
+        if not okStory or appliedStory ~= true then
+            log('Story character faces: setting not handed to the face service (' .. tostring(appliedStory) .. ')')
         end
     end
     -- Disk receipts grant only interrupted cleanup authority. Native unique

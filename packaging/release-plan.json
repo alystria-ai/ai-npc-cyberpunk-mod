@@ -306,6 +306,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/spawned-characters.lua"
         },
         {
+          "source": "mod/world-talk.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/world-talk.lua"
+        },
+        {
           "source": "mod/talk-target.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/talk-target.lua"
         },

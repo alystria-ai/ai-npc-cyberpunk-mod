@@ -639,7 +639,9 @@ function M.resolve(catalog, actor)
         -- actor.world: a character the game placed in the world, not our spawned copy. A named roster character there
         -- is the game's own (a quest or scene may drive it): only the copy the mod spawned talks. Name lookups that
         -- only attribute a line to a profile (game dialogue context) leave world unset.
-        if actor.world == true then return nil, actor.name end
+        -- actor.story: the player allows talking to the game's own named characters (docs/WORLD_CHARACTERS.md): the roster
+        -- profile resolves for the character the game placed, and nothing else about it changes (it never falls back below).
+        if actor.world == true and actor.story ~= true then return nil, actor.name end
         return profile.key, profile.name
     end
     if catalog.archetypes and type(actor.facts) == 'table' then

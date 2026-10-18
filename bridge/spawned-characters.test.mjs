@@ -533,7 +533,7 @@ function selectionRun(body) {
     convaiTalkTarget = {remember = function() end}
     function currentDistrict() return nil end
     convaiNpcNames = nil
-    convaiWorldPolicy = {spawned = function(n) return n.hash:sub(1, 1) == 'S' end}
+    convaiWorldPolicy = {spawned = function(n) return n.hash:sub(1, 1) == 'S' end, story = function() return false end}
     convaiHolocall, convaiAddons = nil, nil
     ${selection}
     ${body}
