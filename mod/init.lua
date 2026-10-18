@@ -2679,6 +2679,8 @@ end
 function convaiJohnnyRemarkTick(player, now, worldReady, outputs, manual, busy, mayFollow)
     local remarks = convaiJohnnyRemarks
     if automatic and automatic.reaction.kind == 'head' then
+        -- Kept or released once per tick, by the first call (the offer call passes busy, and an owned turn means busy).
+        if busy ~= nil then return false end
         local head = convaiJohnnyHeadService()
         local reason = not worldReady and 'world-not-ready' or manual and 'manual-priority' or not outputs.enabled and 'outputs-disabled'
             or (convaiJohnnyRemarksService() == nil or head == nil) and 'off'
