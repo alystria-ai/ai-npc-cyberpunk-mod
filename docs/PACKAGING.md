@@ -104,9 +104,12 @@ entry whose game-relative path would exceed 255 characters under a 70-character 
    paths and `CYBERPUNK_CONVAI_PYTHON` when the pack is installed, the key file and state folder.
    It clears inherited `NODE_OPTIONS`, `PYTHONPATH` and similar overrides. Nothing is looked up on PATH. The one thing the package
    does not carry is a browser: the bridge's hidden browser is the Microsoft Edge that Windows 10 and 11 include, else an installed
-   Google Chrome (`bridge/system-browser.mjs`; a developer's `CYBERPUNK_CONVAI_BROWSER` still names an executable instead).
+   Google Chrome, else another installed Chromium browser (Brave, Vivaldi, Opera and Opera GX, Chromium, Edge and Chrome Beta, Dev and
+   Canary, Yandex, Thorium and a few more). `bridge/system-browser.mjs` checks the usual install folders, then the registry's App Paths
+   entries (so a browser installed elsewhere is found), once per start and only until one is found. Firefox cannot be used: Playwright
+   drives only its own patched Firefox. A developer's `CYBERPUNK_CONVAI_BROWSER` still names an executable instead.
    Chrome for Testing was bundled in 0.2 until Hugging Face's virus scanner flagged its `chrome.dll` (a false positive). If neither
-   browser is installed the supervisor reports `browser-missing` (the in-game "service could not start" notice, one line in
+   browser is installed the supervisor reports `browser-missing` (the in-game notice, the Settings status line and Help row that name the missing browser, one line in
    `bridge-service.log`) and starts the bridge by itself once one is installed.
 3. It then runs the development supervisor unchanged (`bridge/bridge-supervisor.mjs`): one bridge
    per game session, crash restarts, the status file the in-game Help page reads, and a graceful
@@ -411,7 +414,7 @@ root states the same facts for readers of the repository, and the Runtime packag
 
 Component facts: VoiceStudio is AGPL-3.0-only (the pack carries its licence and the source
 location). OmniVoice weights are CC-BY-NC and its audio tokenizer uses the Boson Higgs Audio 2
-Community License; both licence files ship with the pack. No browser ships: the hidden browser is the player's Microsoft Edge, else Google Chrome (see "How it starts" below). The speech-recognition model is Moonshine Tiny (MIT) run by sherpa-onnx (Apache-2.0); see docs/LOCAL_STT.md. Pocket TTS code is MIT and its
+Community License; both licence files ship with the pack. No browser ships: the hidden browser is the player's Microsoft Edge, else Google Chrome, else another installed Chromium browser (see "How it starts" below). The speech-recognition model is Moonshine Tiny (MIT) run by sherpa-onnx (Apache-2.0); see docs/LOCAL_STT.md. Pocket TTS code is MIT and its
 weights CC-BY-4.0 (gated on Hugging Face, with a prohibited-use clause covering voice cloning
 without consent); the notices carry the attribution and the change statement the shipped model
 needs. The lip-sync lexicon (CMUdict, BSD-2-Clause, plus espeak-ng-generated game words) ships

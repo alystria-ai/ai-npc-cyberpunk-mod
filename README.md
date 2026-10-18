@@ -91,7 +91,7 @@ Only characters the mod spawns join your party. Story characters you meet in the
 | Disk space | About 3 GB for the main mod. The optional packs add more (see [Install](#install)). |
 | Internet | Needed while you talk with Convai, Mistral or the Voxtral voice. Not needed for Local AI with a local voice. |
 | Graphics card | Not needed for the default setup (Convai or Mistral text, Pocket or Voxtral voice). Only OmniVoice (about 2 GB of video memory) and Local AI (lite about 1.8 GB, standard about 3.1 GB) use it; see [Smooth frames, fast replies](#smooth-frames-fast-replies). |
-| Web browser | Microsoft Edge, which Windows 10 and 11 include, or Google Chrome. The mod's background service runs a hidden copy of it for audio and the Convai connection; it ships no browser of its own. |
+| Web browser | A Chromium browser such as Microsoft Edge (which Windows 10 and 11 include), Google Chrome, Brave or Opera. The mod's background service runs a hidden copy of it for audio and the Convai connection; it ships no browser of its own. Without one the service does not start, and the game says so in Settings and on the Help page. |
 
 Developed and tested with Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5, TweakXL 1.11.4, Audioware 1.9.9 and Mod Configuration Menu 0.10.3. Newer versions may work. There is no load order to set: the mod's files live in folders of their own.
 
@@ -401,7 +401,7 @@ flowchart LR
 | **Vision helper** | C++/WinRT, `native/vision/` | `CyberpunkConvaiVision.exe`: captures one frame of the game window through Windows Graphics Capture, only while it is needed. |
 | **Bridge** | Node.js ES modules, `bridge/` | The conversation service. Owns providers, memory, context assembly, the voices, speech recognition, lip-sync and facial data, playback, and every timer that must not run in the game. |
 | **Supervisor** | `bridge/bridge-supervisor.mjs`, `scripts/Supervise-ConversationBridge.mjs` | One bridge per game session, restarts after crashes with backoff, stops when the game exits, publishes `runtime/bridge-service.json` for the in-game status line. |
-| **Hidden browser** | The system's Microsoft Edge, else Google Chrome (nothing is bundled), driven by Playwright | Hosts the Convai Web SDK (compiled into `realtime-client.js`), the continuous PCM player and the local speech capture page, because those need browser audio and WebRTC. |
+| **Hidden browser** | The system's Microsoft Edge, else Google Chrome, else another installed Chromium browser (Brave, Vivaldi, Opera and others; nothing is bundled), driven by Playwright | Hosts the Convai Web SDK (compiled into `realtime-client.js`), the continuous PCM player and the local speech capture page, because those need browser audio and WebRTC. |
 | **Python workers** | `bridge/*.py` | Persistent processes: Pocket TTS (CPU), OmniVoice (CUDA), local speech recognition (sherpa-onnx, CPU) and the Pocket phone analyser. Each request carries an owner token and a request id, and shutdown is pipe EOF. |
 | **llama-server** | llama.cpp (Vulkan build), `bridge/local-llm-server.mjs`, `bridge/local-embed.mjs` | The Local AI chat model and the small CPU memory embedder. |
 | **Sign-in backend** | `auth-backend/`, Vercel Node functions with an Upstash Redis store | Keeps the free tier's daily limit fair across installs. See [Daily limit](#daily-limit). |

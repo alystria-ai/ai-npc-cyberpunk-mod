@@ -5,6 +5,7 @@ import os from 'node:os';
 import {spawn} from 'node:child_process';
 import {createZip} from './zip-writer.mjs';
 import {atomicFile} from './guarded-file.mjs';
+import {NO_BROWSER_MESSAGE} from './system-browser.mjs';
 
 // Support report: one redacted zip a player can send to the developer after an
 // error. The Help page in Companion Manager writes runtime/report-request.json;
@@ -270,6 +271,13 @@ export async function publishSupportPaths({game, modRoot, runtime, stateDirector
 
 // ------------------------------------------------------------------ report
 
+// A fault the player can fix, stated plainly at the top of the report (the service status code says which).
+function knownProblems(raw) {
+  const problems = [];
+  if (raw['bridge-service.json']?.code === 'browser-missing') problems.push(`The conversation service could not start: ${NO_BROWSER_MESSAGE} (service status code browser-missing).`);
+  return problems;
+}
+
 const STATUS_FILES = ['bridge-service.json', 'bridge-status.json', 'knowledge-status.json', 'local-voice-state.json',
   'party-connection-state.json', 'party-connections.json', 'companion-invitations-state.json', 'memory-status.json',
   'relationship-routing.json', 'world-session.json', 'bridge-latency.json'];
@@ -448,8 +456,9 @@ export async function collectReport(options) {
     for (const profile of raw['party-connections.json'].profiles.slice(0, 12)) party.push({profile: clip(profile, 80), state: 'connected'});
   }
   const versionInfo = await versions({game, modRoot, project: project ?? resolve(runtime, '..'), logs, now});
+  const problems = knownProblems(raw);
   const summary = redact.value({
-    schema: 1, reportId: options.reportId, generatedBy: 'bridge', generatedAt: new Date(now()).toISOString(),
+    schema: 1, ...(problems.length ? {problems} : {}), reportId: options.reportId, generatedBy: 'bridge', generatedAt: new Date(now()).toISOString(),
     privacy: {notes: ['No API keys, tokens, audio, voice references, model files or conversation text are included.',
       'IDs are replaced by short hashes; key and token patterns, long secrets and your Windows account name are removed from every log.'],
       redactions: undefined},
@@ -468,6 +477,7 @@ export async function collectReport(options) {
   const readme = [
     'AI NPC Cyberpunk Mod support report',
     `Created ${summary.generatedAt}  (report ${options.reportId})`, '',
+    ...(problems.length ? ['PROBLEM FOUND:', ...problems.map(line => `  ${line}`), ''] : []),
     'Send this one file to the developer. It contains:',
     '  summary.json   versions, service status, settings, Local AI detection, party, provider per companion, recent errors',
     '  logs/*.txt     the end of each mod, service, CET, redscript and RED4ext log (last 2000 lines each);',

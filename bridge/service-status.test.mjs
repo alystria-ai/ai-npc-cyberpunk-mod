@@ -50,6 +50,7 @@ const messages = {
   starting: 'The conversation service is starting. Try again in a few seconds.',
   restarted: 'The conversation service restarted. Please try again.',
   setup: 'The conversation service needs your Convai API key. Add it, then restart the game.',
+  browser: 'The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, then restart the game.',
   failed: 'The conversation service could not start. Restart the game, or see Help in Settings.',
   stopped: 'The conversation service is not running. Restart the game to start it again.',
 };
@@ -132,6 +133,16 @@ test('failures distinguish missing setup from other errors, including launcher f
   put('runtime/bridge-service.json', {state = 'failed', code = 'launcher-program-missing', source = 'launcher',
       since = ms(-7200), updated = ms(-7200)})
   assert(select(2, status.blockedMessage()) == 'stopped', 'an old launcher failure is only a stale trace')
+`));
+
+test('a missing browser gets its own explanation, a proactive notice and no confusion with other failures', () => run(`
+  put('runtime/bridge-service.json', {state = 'failed', code = 'browser-missing', since = ms(-4), updated = ms(-1)})
+  local message, kind = status.blockedMessage()
+  assert(kind == 'browser' and message == ${lua_(messages.browser)}, tostring(kind))
+  assert(status.notice() == ${lua_(messages.browser)}, 'announced in game before the player tries to talk')
+  advance(1)
+  put('runtime/bridge-service.json', {state = 'failed', code = 'bridge-crashed', since = ms(-4), updated = ms(-1)})
+  assert(select(2, status.blockedMessage()) == 'failed')
 `));
 
 test('a request is retired early only when the supervisor saw its bridge exit afterwards', () => run(`

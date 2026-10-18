@@ -407,3 +407,24 @@ test('the page sentences, the module and the catalogue agree, and every one is i
   for (const source of pageSources) assert.doesNotMatch(source, forbidden, source);
   assert.doesNotMatch(luaText.replace(/--.*$/gm, ''), /\bupdate\b|Observe|Override|GameInstance|Game\./, 'no per-frame hook and no native call');
 });
+
+test('a service that never started for want of a browser says so on Settings and on Help, and a plain stop does not', () => run(`${helpFixture()}
+  local sentence = 'The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, then restart the game.'
+  jsonFile('runtime/bridge-service.json', {state = 'failed', code = 'browser-missing', updated = os.time() * 1000.0, since = os.time() * 1000.0 - 5000})
+  assert(invoke('tab:settings').ok)
+  -- The status line, and the Local AI model row that must not claim "No model installed" while nothing is running.
+  assert(row('voice-status').value == 'Needs a browser', tostring(row('voice-status').value))
+  assert(row('voice-status').description == sentence)
+  local model = row('localModel')
+  assert(model.elements[1] == 'Service not running' and model.description:sub(1, #sentence) == sentence, tostring(model.elements[1]))
+  assert(invoke('help').ok)
+  assert(row('help-service').value == 'Needs a browser' and row('help-service').description == sentence)
+  -- A plain stop: the row says the service is not running with the ordinary sentence, and the status line is unchanged.
+  jsonFile('runtime/bridge-service.json', {state = 'stopped', updated = os.time() * 1000.0, since = os.time() * 1000.0 - 5000})
+  os.time = (function(real) return function() return real() + 2 end end)(os.time)
+  assert(invoke('help:back').ok)
+  assert(row('voice-status').value ~= 'Needs a browser')
+  assert(row('localModel').elements[1] == 'Service not running' and row('localModel').description:find('is not running', 1, true))
+  assert(invoke('help').ok)
+  assert(row('help-service').value == 'Not running' and row('help-service').description:find('restart the game', 1, true))
+`));

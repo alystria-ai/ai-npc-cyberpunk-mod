@@ -760,6 +760,8 @@ local function voiceStatusText(snapshot, allowPending)
             return ui.t('Pending: {voice}', {voice = manager.voiceLabel(choice.provider, choice.steps, choice.reference)})
         end
     end
+    -- The service never started because no browser can run its conversation page: say that, not "Waiting for voice service".
+    if support and support.serviceFault() == 'browser' then return ui.t('Needs a browser') end
     return voiceServiceLabel(snapshot.localVoice)
 end
 
@@ -1607,7 +1609,15 @@ local function ownKeyRows(snapshot)
             local default = manager.localModelDefaultId()
             for index, choice in ipairs(choices) do if choice.id == default then selected = index end end
         end
-        if #choices == 0 then labels[1] = ui.t('No model installed') end
+        -- Nothing listed because the conversation service is not running (it is what reports the installed models): say so, with the
+        -- service's own sentence, rather than "No model installed". With no evidence about the service at all, nothing changes.
+        local serviceNote
+        if #choices == 0 then
+            local serviceState = support and support.serviceState() or 'unknown'
+            if serviceState == 'stopped' then labels[1], serviceNote = ui.t('Service not running'), support.serviceMessage()
+            elseif serviceState == 'starting' then labels[1], serviceNote = ui.t('Service starting'), support.serviceMessage()
+            else labels[1] = ui.t('No model installed') end
+        end
         local modelHelp = ui.t('Until you choose one, Local AI loads the largest model that fits your free graphics memory.\n\nOne model at a time; a change applies when it next loads. A model that is missing, too large or failing is replaced by the largest that fits, with one notice.')
         if #sizes > 0 then modelHelp = modelHelp .. '\n\n' .. table.concat(sizes, '\n') end
         if anyCustom then
@@ -1627,6 +1637,7 @@ local function ownKeyRows(snapshot)
             label = label .. ' (' .. ui.t('Unavailable') .. ')'
             status = mistral.localReason == 'mature-off' and ui.t('Only Mature models found. Turn on Mature content to use them.') or loadingText('local-ai', 'failed')
         end
+        status = status or serviceNote
         if status then modelHelp = status .. '\n\n' .. modelHelp end
         modelRow = setting('localModel', label, 'select', selected, 1, modelHelp, labels, {elements = true, description = true, label = true})
     end
@@ -1813,6 +1824,8 @@ local function pageSignature(snapshot)
             modelKey[#modelKey + 1] = model.id .. ':' .. model.name .. ':' .. tostring(model.sizeMiB) .. ':' .. tostring(model.custom) .. ':' .. tostring(model.tooLarge) .. ':' .. tostring(model.needMiB)
         end
         for _, problem in ipairs(mistral.localModelProblems or {}) do modelKey[#modelKey + 1] = 'x:' .. problem.name .. ':' .. problem.reason end
+        -- With no model listed the row names the service state (not running, starting, or its fault), which changes without the player.
+        if support and #(mistral.localModels or {}) == 0 then modelKey[#modelKey + 1] = 's:' .. support.serviceState() .. ':' .. tostring(support.serviceFault()) end
         add(table.concat(modelKey, '|'))
         -- Installed add-ons' own settings (docs/ADDON_API.md); nothing without one.
         if convaiAddons and convaiAddons.live then add('addons:' .. convaiAddons.signature()) end
@@ -2019,8 +2032,11 @@ local function schema()
             function(context) return navigate('settings', context) end)
         rows[#rows + 1] = readonly('help-steps', 'What to do', 'Create a report',
             'If a character stops answering, voices stop or an error appears: choose Generate report and send the file it names to the developer, with a short note about what you were doing.\n\nThe logs listed below show what went wrong.')
-        rows[#rows + 1] = readonly('help-service', 'Conversation service', support.serviceLabel(),
-            'The conversation service runs beside the game. If it is not running, restart the game. Its logs are listed below.', {value = true})
+        -- No Edge or Chrome for the hidden conversation page: the row says so, and its help says what to install.
+        local serviceHelp = support.serviceFault() == 'browser'
+            and ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, then restart the game.')
+            or ui.t('The conversation service runs beside the game. If it is not running, restart the game. Its logs are listed below.')
+        rows[#rows + 1] = readonly('help-service', 'Conversation service', support.serviceLabel(), serviceHelp, {value = true, description = true})
         categories[#categories + 1] = category('help-trouble', 'If something goes wrong', rows)
         categories[#categories + 1] = category('help-report', 'Report for the developer', {
             action('help:generate', 'Generate report', 'Create',
@@ -2109,6 +2125,9 @@ local function schema()
                 'Companions gesture while they speak longer replies and nod while you talk, with the game’s own animations in their usual stance.\n\nThey stop at once when anyone moves or a fight starts.'),
         })
         local voiceStatus = voiceStatusText(snapshot)
+        local voiceStatusHelp = support and support.serviceFault() == 'browser'
+            and ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, then restart the game.')
+            or ui.t('Changes wait until you choose Apply; Revert discards them. No game restart is needed.')
         -- The list: Pocket Performance (the default), OmniVoice Balanced / Quality (16 steps, short / long reference),
         -- High Quality / Ultra Quality (32 steps, short / long reference), the Mistral cloud voice (Voxtral), Convai Cloud voice.
         local voiceIndex = savedVoiceIndex(snapshot.settings)
@@ -2129,8 +2148,7 @@ local function schema()
                 'Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, English only. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.',
                 voiceMenuLabels(pack, snapshot.mistral, developer), {elements = true, label = true}),
                 'Inworld: the same with your own Inworld key, and it also speaks with emotion.'),
-            readonly('voice-status', 'Voice status', voiceStatus,
-                'Changes wait until you choose Apply; Revert discards them. No game restart is needed.'),
+            readonly('voice-status', 'Voice status', voiceStatus, voiceStatusHelp, {description = true}),
             setting('audioDelay', 'Lip sync delay (Bluetooth)', 'select', delayIndex, 1,
                 'Bluetooth audio arrives a little late, so lips and subtitles can run ahead of the voice. This holds them back to match, for every voice.\n\nAuto: 150 ms while Windows plays through Bluetooth, none otherwise. Pick a value if your headset is faster or slower.\n\nThe game’s own dialogue has the same delay and does not correct it.',
                 delayLabels, {elements = true}),
