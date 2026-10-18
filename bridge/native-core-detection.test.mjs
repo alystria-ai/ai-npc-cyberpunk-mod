@@ -163,8 +163,7 @@ OUT = api.status()
 
 // Add-ons read this through handle:native().status() (mod/addons.lua). The reason of a plugin that failed the late checks carries the
 // error text of the failed call, and error texts can hold a backslash (a path) or a line break; status() only swaps the quotes.
-test('the status after a failed late check is valid JSON even when the error text holds a backslash or a line break',
-  {todo: 'api.status() builds its JSON by hand and only replaces double quotes: a backslash or a newline in the reason makes it invalid JSON'}, () => {
+test('the status after a failed late check is valid JSON even when the error text holds a backslash or a line break', () => {
   const out = run(`
 fakeCore.CheckVersion = function()
   error('C:' .. string.char(92) .. 'Users' .. string.char(92) .. 'name "quoted" ' .. string.char(10) .. ' second line', 0)

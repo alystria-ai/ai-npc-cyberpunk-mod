@@ -288,8 +288,13 @@ function M.install(options)
         systems[system] = systems[system] or {on = nil, next = -math.huge}
         systems[system].onChange = callback
     end
+    -- The reason can hold a backslash (a path in an error text) or a line break: escape what JSON needs, nothing else.
+    local ESCAPED = {['"'] = '\\"', ['\\'] = '\\\\', ['\n'] = '\\n', ['\r'] = '\\r', ['\t'] = '\\t'}
+    local function jsonText(value)
+        return (tostring(value):gsub('[%c"\\]', function(char) return ESCAPED[char] or string.format('\\u%04x', char:byte()) end))
+    end
     api.status = function()
-        if not present then return '{"present":false,"reason":"' .. tostring(reason):gsub('"', "'") .. '"}' end
+        if not present then return '{"present":false,"reason":"' .. jsonText(reason) .. '"}' end
         local ok, text = pcall(function() return Core.Status() end)
         return ok and text or nil
     end
