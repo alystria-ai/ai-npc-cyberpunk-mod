@@ -343,6 +343,39 @@ function M.follow(vehicle,target,ordinal)
     vehicle.followMode=profile.mode
     return command(ai,cmd:Copy(),vehicle.entity)
 end
+-- Followers another mod seats in V's car (docs/COMPANION_VEHICLES_DESIGN.md, "Other mods' riders"): characters the shared dynamic
+-- entity system manages that are not ours, in V's attitude group and friendly to V, near V, standing outside every vehicle.
+-- Their mod mounts them the moment V gets in, picking seats without looking at who sits where, so the policy keeps their
+-- seats free of ours. Nothing of theirs is read beyond identity, attitude and mount state, and nothing is sent. Asked once
+-- when boarding starts, never per frame; the service (init.lua's spawned-character service) does one targeting query and
+-- one lookup per remembered ID. 0 when that service is missing, on a bike (nobody rides a bike's seats) or when none counts.
+local FOREIGN_RADIUS=50
+local function machine(npc)
+    local ok,value=pcall(function() return npc:IsMech() or npc:IsDrone() end)
+    return ok and value==true
+end
+function M.foreignRiders(player,vehicle)
+    local service=rawget(_G,'convaiSpawnedCharacters')
+    if not service or not player or not vehicle or not vehicle.entity or isBike(vehicle.entity) then return 0 end
+    local asked,rows=pcall(service.nearby,service,player,FOREIGN_RADIUS)
+    if not asked then error(rows) end
+    if type(rows)~='table' then return 0 end
+    local own=player:GetAttitudeAgent()
+    local group=NameToString(own:GetAttitudeGroup())
+    local pending=0
+    for _,row in ipairs(rows) do
+        local read,rides=pcall(function()
+            local npc=row.npc
+            if not npc or not npc:IsAttached() or npc:IsDeadNoStatPool() or machine(npc) then return false end
+            local agent=npc:GetAttitudeAgent()
+            if NameToString(agent:GetAttitudeGroup())~=group then return false end
+            if not tostring(agent:GetAttitudeTowards(own)):find('AIA_Friendly',1,true) then return false end
+            return M.mounting({npc=npc})==nil
+        end)
+        if read and rides==true then pending=pending+1 end
+    end
+    return pending
+end
 function M.brake(vehicle)
     if vehicle.owned and vehicle.entity and vehicle.entity:IsAttached() and not vehicle.entity:IsPlayerMounted() then
         vehicle.entity:ForceBrakesUntilStoppedOrFor(5)

@@ -337,3 +337,12 @@ Scope set by the user: a Night City Allies follower gets exactly what any charac
 11. **Goro, only if the clone is numbered.** Recruit Goro through NCA: if he talks, nothing to do; if "does not have a conversation profile" shows, send the probe line (a numbered clone whose display name is not "Takemura").
 12. **A generic NCA merc or Mox.** Talk with "Talk to ordinary NPCs" on: a faction archetype or a resident answers (no named character, no "no profile" notice); a Wyvern or Griffin drone gets the notice. Confirm NCA's quest-record merc ("Sword Mox") answers as a Mox.
 13. **Duplicate.** Invite our own Judy beside NCA's Judy: both talk as Judy, a group round gives one speaker for the profile, lips move on whichever body speaks, no probe-log error.
+
+## 11. Seats in V's car: our companions yield to NCA's riders (branch `fix/nca-seats`, 2026-10-19)
+
+Live bug (2026-10-18, 20:29Z): V, our Rosalind Myers and NCA's Lucy, Rita and Judy in V's car; Judy did not get in and the other three sat in one spot. Cause and fix are in `docs/COMPANION_VEHICLES_DESIGN.md`, "Other mods' riders". In short: NCA mounts its followers the moment V gets in and picks seats without checking occupancy (front passenger seat to its best-liked rider, then the free passenger seats in the vehicle's seat order, one per rider); our fleet chose `seat_front_right` for Rosalind from what was free at that moment, before NCA's followers had started to mount. Now the fleet asks once per boarding how many followers another mod is about to seat (spawned-character service, V's attitude group, friendly, outside every vehicle; nothing NCA-specific is named) and keeps the seats NCA's plan uses out of our choice for 25 s. A companion left without a seat takes the ordinary no-free-seat path (overflow car, or waiting for Alt). We still never move, seat, command or dismiss an NCA follower. Lua only: CET reload, no restart.
+
+**Live checks.** NCA 1.6.9 with Lucy, Rita and Judy as followers, our Rosalind (or anyone) invited:
+1. Get into V's car with Rosalind and two NCA followers: Rosalind takes the seat NCA does not (`probe.log` `seat-reserved` through the Developer snapshot, or just look); the three sit in three different seats.
+2. With three NCA followers and Rosalind: Rosalind gets her own overflow car (or waits if she cannot drive); nobody shares a seat and NCA's third follower is seated or dismissed by NCA, never stuck in a body.
+3. Rosalind alone: she still takes the front passenger seat as before.

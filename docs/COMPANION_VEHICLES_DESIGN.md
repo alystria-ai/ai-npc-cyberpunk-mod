@@ -308,6 +308,23 @@ The companion fixture loads the vehicle modules. The parent task owns the
 development manifest and package test-script registration for both vehicle test
 files.
 
+## Other mods' riders (2026-10-19, branch `fix/nca-seats`)
+
+**Live bug (2026-10-18, 20:29Z).** V got into V's car with our Rosalind Myers and three Night City Allies (NCA) followers: Lucy, Rita and NCA's Judy. Judy did not get in, and the other three sat in one spot. `probe.log` shows our fleet put Rosalind in `seat_front_right`.
+
+**Cause.** NCA mounts its followers when V gets in, and it never looks at who sits where. Its seat plan (read from NCA's source, nothing copied): the seats are the car's `seat_front_right`, `seat_back_left` and `seat_back_right` minus V's own; every rider's favourite seat first, then `seat_front_right` to the rider with the best relationship, then the rest from the free list in the vehicle's seat order; a rider without a seat is dismissed from the drive. Our fleet chose a seat at the same moment from what was free *then*: NCA's followers had not mounted yet, so `seat_front_right` looked free and we reserved and mounted into it. Two mount commands then ran for one slot. The existing checks could not see it: the occupant and reservation reads only show a seat once somebody has started to mount.
+
+**Fix (our companions only; NCA's followers are never touched).**
+- `mod/companion-vehicle-native.lua` `M.foreignRiders(player, vehicle)`: once per boarding, counts the followers another mod seats in V's car. It asks the spawned-character service (`mod/spawned-characters.lua`, the same recognition as every other spawned character: managed by the dynamic entity system, not ours, not a quest actor; one targeting query plus one lookup per remembered ID, radius 50 m) and keeps the ones in V's attitude group and friendly to V, alive, attached, not a drone or mech, and standing outside every vehicle. Nothing of NCA's is named or matched (no tag, record or namespace), nothing is sent. A bike, a missing service or a failed read count none.
+- `mod/companion-vehicles.lua`: when the first companion needs a seat in V's car, `sampleForeign` asks that question once and `foreignPlan` fixes the seats the other mod will use: `seat_front_right` first, then the next free passenger seats in the car's seat order, one per rider, from the seats free at that moment. `available` keeps those seats out of every choice for 25 s (`FOREIGN_HOLD`), so they never reach `fill`. The plan is made once and never moves: a seat that fills up must not push the hold onto the next one. Only V's own car is held, never an overflow car of ours.
+- A companion who finds no seat left takes the ordinary no-free-seat path, unchanged: a companion who can drive gets an overflow car (the convoy), a passenger-only one (Alt) waits for a seat; a seat that stays empty after the hold ends is hers.
+- The check just before the mount is the existing one (`board`: the reserved seat must still be free of any occupant or reservation, else she is reseated), so a seat the plan did not name, or a favourite seat, is still never mounted into once somebody holds it.
+- Cost: one targeting query and a few reads once per boarding (when a trip starts), nothing per frame, no new hook.
+
+**Limits.** NCA's favourite seats are not readable, so a favourite outside the default plan can still land a rider in a seat we took (the occupant re-check catches it only once the rider has started to mount). A follower that arrives after the 25 s hold, or one NCA decides to seat after V has already been driving (a catch-up after a teleport), is not planned for. A rider NCA ends up dismissing or one that drives its own car still counts in the plan, so we can leave a seat empty. NCA's own setting "allow passengers" is off: the plan holds seats nobody uses until the hold ends.
+
+**Tests.** `bridge/companion-vehicles.test.mjs` (the hold: one, two, three and too many riders, the expiry, the once-only plan, the re-check before the mount, V's car only, a failed or missing read, a second boarding) and `bridge/companion-foreign-riders.test.mjs` (the native read).
+
 ## Delamain cab
 
 Since patch 2.3 V can call the self-driving Delamain cab (`Vehicle.v_standard2_villefort_cortes_delamain_player`,

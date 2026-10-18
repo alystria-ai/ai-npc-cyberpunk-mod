@@ -757,3 +757,110 @@ test('a lone passenger-only companion with no free seat waits on foot and no car
   tick(60)
   assert(fleet.people[1].vehicle==primary and fleet.people[1].seat=='seat_front_right')
 `));
+
+// ---- another mod's riders (docs/COMPANION_VEHICLES_DESIGN.md, "Other mods' riders") -----------------------------------------------
+// The follower mod seats its own followers in V's car when V gets in: the front passenger seat first, then the next free
+// passenger seats in the vehicle's seat order, one per rider, without looking at who sits where. The adapter reports how
+// many of them are about to ride; our companions choose from what is left after that plan.
+const foreignFixture=`${fixture}
+  world.foreignCalls=0
+  function api.foreignRiders(player,car)
+    world.foreignCalls=world.foreignCalls+1
+    if world.foreignError then return nil,'scan failed' end
+    return world.foreign or 0
+  end
+  local function seatsOf(car) local out={} for _,p in pairs(fleet.people) do if p.vehicle==car then out[p.seat]=p.entry.serial end end return out end
+`;
+
+test('with no foreign riders the first companion still takes the front passenger seat',()=>run(`${foreignFixture}
+  party(1); tick(30)
+  assert(fleet.people[1].seat=='seat_front_right',fleet.people[1].seat)
+  assert(world.foreignCalls==1,world.foreignCalls)
+`));
+
+test('one foreign rider takes the front passenger seat in the plan: our companion sits in the next seat',()=>run(`${foreignFixture}
+  world.foreign=1; party(1); tick(30)
+  assert(fleet.people[1].vehicle==primary and fleet.people[1].seat=='seat_back_left',tostring(fleet.people[1].seat))
+  assert(fleet.people[1].phase=='riding',fleet.people[1].phase)
+  assert(world.mounts[1].seat=='seat_back_left')
+`));
+
+test('two foreign riders leave one seat: the first companion takes the last seat, the second gets an overflow car',()=>run(`${foreignFixture}
+  world.foreign=2; party(2); tick(100)
+  local at=seatsOf(primary)
+  assert(at.seat_back_right==1 and not at.seat_front_right and not at.seat_back_left,'V car: '..tostring(at.seat_back_right)..' '..tostring(at.seat_front_right)..' '..tostring(at.seat_back_left))
+  assert(#world.spawned==1 and fleet.people[2].vehicle==world.spawned[1] and fleet.people[2].seat=='seat_front_left')
+  for _,m in pairs(world.mounts) do if m.vehicle=='v-car' then assert(m.seat=='seat_back_right',m.seat) end end
+`));
+
+test('three foreign riders take every passenger seat: nobody of ours shares one, the companion uses the no-free-seat path',()=>run(`${foreignFixture}
+  world.foreign=3; party(1); tick(100)
+  assert(fleet.people[1].vehicle~=primary,'never in V car')
+  assert(#world.spawned==1 and fleet.people[1].vehicle==world.spawned[1])
+  for _,m in pairs(world.mounts) do assert(m.vehicle~='v-car',m.vehicle..' '..m.seat) end
+`));
+
+test('more foreign riders than seats hold only the seats that exist, and a companion who cannot drive waits',()=>run(`${foreignFixture}
+  world.foreign=7; party(1); entries[1].key='alt-cunningham'; entries[1].record='Character.Alt'
+  tick(100)
+  assert(#world.spawned==0 and not fleet.people[1].vehicle and count('mount')==0)
+`));
+
+test('the hold ends after twenty-five seconds: a companion still waiting then takes the seat that stayed empty',()=>run(`${foreignFixture}
+  world.foreign=3; party(1); entries[1].key='alt-cunningham'; entries[1].record='Character.Alt'
+  tick(240)
+  assert(not fleet.people[1].vehicle,'held at 24 s')
+  tick(30)
+  assert(fleet.people[1].vehicle==primary and fleet.people[1].seat=='seat_front_right',tostring(fleet.people[1].seat))
+`));
+
+test('the plan is made once per boarding from the seats free then: a seat that fills up does not move the hold',()=>run(`${foreignFixture}
+  world.foreign=1; party(2)
+  primary.info.speed=3 -- V is still rolling: assignment happens, mounting waits
+  tick(10)
+  assert(world.foreignCalls==1)
+  -- The follower mod's rider reaches the front seat; our companions must not slide into back left as the free list changes.
+  for _,s in ipairs(primary.info.seats) do if s.name=='seat_front_right' then s.occupant='foreign-rider' end end
+  primary.info.speed=0; tick(60)
+  local at=seatsOf(primary)
+  assert(at.seat_back_left==1 and at.seat_back_right==2,tostring(at.seat_back_left)..' '..tostring(at.seat_back_right))
+  assert(world.foreignCalls==1,world.foreignCalls)
+`));
+
+test('a seat the plan did not name is still re-checked just before the mount: an occupant there sends the companion on',()=>run(`${foreignFixture}
+  world.foreign=1; party(1)
+  primary.info.speed=3; tick(10)
+  assert(fleet.people[1].seat=='seat_back_left',tostring(fleet.people[1].seat))
+  -- The plan was wrong (a favourite seat): the other mod's rider took back left before we sent the mount.
+  for _,s in ipairs(primary.info.seats) do if s.name=='seat_back_left' then s.occupant='foreign-rider' end end
+  primary.info.speed=0; tick(60)
+  assert(fleet.people[1].vehicle==primary and fleet.people[1].seat=='seat_back_right',tostring(fleet.people[1].seat))
+  assert(count('mount')==1 and world.mounts[1].seat=='seat_back_right')
+`));
+
+test('the hold applies to V car only: an overflow car keeps all of its passenger seats',()=>run(`${foreignFixture}
+  world.foreign=3; party(5); tick(200)
+  local over=seatsOf(world.spawned[1])
+  assert(over.seat_front_left==1 and over.seat_front_right and over.seat_back_left and over.seat_back_right,'a full overflow car')
+`));
+
+test('a failed foreign read leaves the ordinary seat choice and is not asked again for the same boarding',()=>run(`${foreignFixture}
+  world.foreignError=true; party(2); tick(40)
+  assert(world.foreignCalls==1,world.foreignCalls)
+  assert(fleet.people[1].seat=='seat_front_right' and fleet.people[2].seat=='seat_back_left')
+  assert(fleet.foreign.error=='scan failed',tostring(fleet.foreign.error))
+`));
+
+test('an adapter without the foreign read changes nothing',()=>run(`${fixture}
+  party(1); tick(30)
+  assert(fleet.people[1].seat=='seat_front_right' and not fleet.foreign.error)
+`));
+
+test('a new boarding asks again, and so does a new vehicle',()=>run(`${foreignFixture}
+  world.foreign=1; party(1); tick(30)
+  assert(world.foreignCalls==1 and fleet.people[1].seat=='seat_back_left')
+  transport.abandon(fleet); world.mounts={}
+  for _,s in ipairs(primary.info.seats) do if s.name~='seat_front_left' then s.occupant=nil end end
+  world.foreign=0; party(1); tick(30)
+  assert(world.foreignCalls==2 and fleet.people[1].seat=='seat_front_right',tostring(fleet.people[1].seat))
+`));

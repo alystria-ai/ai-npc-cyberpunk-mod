@@ -104,11 +104,41 @@ local function reserved(s,vehicle,seat,except)
     end
     return false
 end
+-- Followers another mod seats in V's car (docs/COMPANION_VEHICLES_DESIGN.md, "Other mods' riders"). They never join our party, and
+-- their mod mounts them the moment V gets in without asking who sits where: it gives the front passenger seat to one rider,
+-- then the next free passenger seats in the vehicle's own seat order, one per rider. A seat of ours that it picks ends up
+-- with two bodies in it. So the seats that plan will use are kept out of our choice, from the moment boarding starts until
+-- FOREIGN_HOLD seconds later; a companion who finds no seat left takes the ordinary no-free-seat path (the overflow car,
+-- or waiting). The plan is made once per boarding from the seats free at that moment and never changes while it stands
+-- (a seat that fills up must not move the hold to the next one).
+local FOREIGN_HOLD=25
+local FOREIGN_SEATS={seat_front_right=true,seat_back_left=true,seat_back_right=true}
+local FOREIGN_FIRST='seat_front_right'
+local function foreignPlan(vehicle,riders)
+    local free={}
+    for _,seat in ipairs(vehicle.info and vehicle.info.seats or {}) do
+        if FOREIGN_SEATS[seat.name] and not seat.occupant then free[#free+1]=seat.name end
+    end
+    local held,count={},0
+    for _,name in ipairs(free) do
+        if name==FOREIGN_FIRST and count<riders then held[name]=true; count=count+1 end
+    end
+    for _,name in ipairs(free) do
+        if count>=riders then break end
+        if not held[name] then held[name]=true; count=count+1 end
+    end
+    return held
+end
+local function foreignHeld(s,vehicle,seat)
+    local plan=s.foreign
+    return plan~=nil and plan.held[seat]==true and vehicle==s.primary and s.clock<plan.expires
+end
 local function available(s,vehicle,seat,person)
     local ownId=person and tostring(person.entry.entityID.hash)
     return (not seat.occupant or seat.occupant==ownId)
         and (not seat.reserved or seat.occupant==ownId)
         and not reserved(s,vehicle,seat.name,person)
+        and (seat.occupant==ownId or not foreignHeld(s,vehicle,seat.name))
 end
 local function assign(s,person,vehicle,seat)
     person.vehicle,person.seat=vehicle,seat
@@ -186,11 +216,31 @@ local function begin(s,primary,entries)
     acquired(s,entries)
     emit(s,'journey-start')
 end
+-- One question to the adapter per boarding (a trip, for a chauffeur car): how many of another mod's followers are about to ride
+-- in V's car. It is asked when someone first needs a seat and never again for the same boarding: the seats are chosen in that
+-- same update, and waiting for a second try would delay every companion's boarding. A missing adapter function, a failed read
+-- or no answer all mean none: the original seat choice.
+local function sampleForeign(s,player)
+    local plan=s.foreign
+    if plan and plan.generation==s.generation and plan.vehicle==s.primary.id and plan.trip==s.chauffeur then return end
+    plan={generation=s.generation,vehicle=s.primary.id,trip=s.chauffeur,riders=0,held={},expires=0}
+    s.foreign=plan
+    if not s.api.foreignRiders then return end
+    local riders,err=safe(s.api.foreignRiders,player,s.primary)
+    plan.error=err
+    if err then return end
+    plan.riders=math.max(0,math.floor(tonumber(riders) or 0))
+    if plan.riders==0 then return end
+    plan.held=foreignPlan(s.primary,plan.riders)
+    plan.expires=s.clock+FOREIGN_HOLD
+    emit(s,'foreign-riders',nil,plan.riders)
+end
 local function allocate(s,player)
     if not s.primary.info or not s.primary.info.ready then
         s.error='Waiting for the passenger capacity of your vehicle.'; return
     end
     s.error=nil
+    if #pending(s)>0 then sampleForeign(s,player) end
     -- A native follower can have boarded between two samples. Actual mounting
     -- takes precedence over an uncommitted local passenger-seat reservation.
     for _,person in ipairs(pending(s)) do
@@ -779,7 +829,7 @@ function M.abandon(s)
     -- Session teardown cannot query already destroyed native components.
     s.generation=s.generation+1; s.people={}; s.cars={}; s.primary=nil
     s.phase='on-foot'; s.fastTravelPending=nil; s.replan=nil; s.error=nil; s.taxiExit=nil
-    s.chauffeur=nil; s.lastChauffeur=nil
+    s.chauffeur=nil; s.lastChauffeur=nil; s.foreign=nil
     s.events={}; s.clock=0
 end
 function M.snapshot(s,serial)
