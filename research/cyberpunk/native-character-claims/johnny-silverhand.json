@@ -3,7 +3,7 @@
   "characterKey": "johnny-silverhand",
   "gameVersion": "2.31",
   "locale": "en_us",
-  "reviewedAt": "2026-10-01",
+  "reviewedAt": "2026-10-19",
   "status": "research-reviewed-not-installed",
   "purpose": "Source-backed intrinsic topic material and disclosure/cadence boundaries, not automatic player conversation memory.",
   "nativeTool": {
@@ -290,6 +290,84 @@
       "rawSha256": "46eeb57361ec079bbaa444af18c4ed023511778e5dfcec270021cd2470113e42",
       "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/subtitles/quest/q108/q108_14_rogue.json.json",
       "jsonSha256": "ea603680d3f3538c003ecdf21c6493cb8238aec7c06fe24363b794376126891c",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "firestorm",
+      "depotPath": "base\\quest\\main_quests\\part1\\q101\\scenes\\q101_06c_memories_p2.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "16126220819294833001",
+      "archiveEntrySha1": "8dee66b4ef47fe677ef0dc89df83ad7399ed0a36",
+      "rawFile": "runtime/voice-cast/silverhand-cast/scenes/flashback-actors/raw/base/base/quest/main_quests/part1/q101/scenes/q101_06c_memories_p2.scene",
+      "rawSha256": "ba27ef78c443d8a1928db510b8d606d2e9d05b862af09117e50301e74cda2b27",
+      "jsonFile": "runtime/voice-cast/silverhand-cast/scenes/flashback-actors/raw/base/base/quest/main_quests/part1/q101/scenes/q101_06c_memories_p2.scene.json",
+      "jsonSha256": "cff00723ec09e314bb434ab29040ea3ca03dc2d61db8c294414d3a822a1c751e",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "firestorm-subtitle",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q101\\q101_06c_memories_p2.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "5830746719142850081",
+      "archiveEntrySha1": "3ecd616525b15b3c3a48435be28c13f1552ed73b",
+      "rawFile": "research/cyberpunk/cache/game/localization/raw/base/base/localization/en-us/subtitles/quest/q101/q101_06c_memories_p2.json",
+      "rawSha256": "498b279a3d172af9b4eea5533a2263a7f7140b1c76ebfbc29bed3fc4bde0be21",
+      "jsonFile": "research/cyberpunk/cache/game/localization/raw/base/base/localization/en-us/subtitles/quest/q101/q101_06c_memories_p2.json.json",
+      "jsonSha256": "f7f59b48b9000882605c2ba8eabc5037c8bc3fe3884ac8d4b07403df4807081b",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "firestorm-capture",
+      "depotPath": "base\\quest\\main_quests\\part1\\q101\\scenes\\q101_06c_memories_p3.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "16090115820207669582",
+      "archiveEntrySha1": "6764aa97f0e832607d147635a97c186c373488ff",
+      "rawFile": "research/cyberpunk/cache/game/scene-evidence/priority-endings-20261004-history/raw/base/base/quest/main_quests/part1/q101/scenes/q101_06c_memories_p3.scene",
+      "rawSha256": "b7978606245e85c112f22f0e06dd0861be3e507d9f03711446286fa8fe37dfe3",
+      "jsonFile": "research/cyberpunk/cache/game/scene-evidence/priority-endings-20261004-history/raw/base/base/quest/main_quests/part1/q101/scenes/q101_06c_memories_p3.scene.json",
+      "jsonSha256": "355b5e39a37dd9b858a82300430b2700b13fe4f3bcc0d2a9f89ef514499ce412",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "firestorm-capture-subtitle",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q101\\q101_06c_memories_p3.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "3099138423226217072",
+      "archiveEntrySha1": "b152631d2b27b59584ec6e4fe6857cb1720bf733",
+      "rawFile": "research/cyberpunk/cache/game/localization/raw/base/base/localization/en-us/subtitles/quest/q101/q101_06c_memories_p3.json",
+      "rawSha256": "de78aa89c29a2aee918d45e399bcd0ed866a6b6e6e925b5127879ecd39f9d256",
+      "jsonFile": "research/cyberpunk/cache/game/localization/raw/base/base/localization/en-us/subtitles/quest/q101/q101_06c_memories_p3.json.json",
+      "jsonSha256": "a514481a1efd484ecf51e41fc72e10de552eaa3210c3347c2fd3070eef0b4f74",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "alt-aftermath",
+      "depotPath": "base\\quest\\main_quests\\part1\\q108\\scenes\\q108_21_finale.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "15659900530803368306",
+      "archiveEntrySha1": "f1bb91db6425b2c634863f356521a4af0ee55c3a",
+      "rawFile": "research/cyberpunk/cache/game/scene-evidence/priority-endings-20261004-history/raw/base/base/quest/main_quests/part1/q108/scenes/q108_21_finale.scene",
+      "rawSha256": "ddddab444a6d7805a3adaa94595b448654cee4c495a9c27562c47a2e2c201d84",
+      "jsonFile": "research/cyberpunk/cache/game/scene-evidence/priority-endings-20261004-history/raw/base/base/quest/main_quests/part1/q108/scenes/q108_21_finale.scene.json",
+      "jsonSha256": "212ae585eac77823844ddd9652be1a58db0e2f52d701352d0b148dcb3ca69c16",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "alt-aftermath-subtitle",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q108\\q108_21_finale.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "431706476255401678",
+      "archiveEntrySha1": "4d2a4ffbc3401caa62722f40da41e3a0bae0a32a",
+      "rawFile": "research/cyberpunk/cache/game/localization/raw/base/base/localization/en-us/subtitles/quest/q108/q108_21_finale.json",
+      "rawSha256": "11273851ecb6160a292170ad74257e3cf3914239568c1bd0218339433d001c9c",
+      "jsonFile": "research/cyberpunk/cache/game/localization/raw/base/base/localization/en-us/subtitles/quest/q108/q108_21_finale.json.json",
+      "jsonSha256": "91f9d18259725af3fa08225b06f431121365f0f7459b259ad6ba0cc55801b165",
       "serialization": "fresh-pinned-wolvenkit-9.0.1",
       "nativeIndexVerified": true
     }
@@ -5601,6 +5679,4263 @@
         ],
         "perspective": "johnny-memory-of-santiago-statements"
       }
+    },
+    {
+      "id": "johnny.memory.tower-raid-plan",
+      "text": "In Johnny's remembered raid on Arasaka Tower he lays out the plan himself: get the payload onto the elevator, arm it and let gravity bring the tower down. The diversion, Weyland drawing Arasaka's attention away from the tower, is his idea, Rogue orders an evacuation announcement on every frequency and a news report in the memory has the tower being evacuated, and even inside the memory he is unsure what the bomb was called.",
+      "kind": "uncertain-recollection",
+      "disclosure": "only-with-explicit-self-perspective",
+      "audience": [
+        "private-one-to-one"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Rogue"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1215558083456446464"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/22/locstringId/ruid",
+          "expected": "1693665733430636544"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/22/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/22/itemId/id",
+          "expected": 5633
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/315/locstringId/ruid",
+          "expected": "1693665733430636544"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/315/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/315/vpeIndex",
+          "expected": 91
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/91/content",
+          "valueSha256": "fcfb3403fbaf668a29352ee9038d78d36522dc0de7624060f257eb7cb896734b",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/stringId",
+          "expected": "1693665733430636544"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/femaleVariant",
+          "valueSha256": "fcfb3403fbaf668a29352ee9038d78d36522dc0de7624060f257eb7cb896734b",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/22/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/playerName",
+          "expected": "Johnny"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id",
+          "expected": 17
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id",
+          "expected": "1103967280742240508"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value",
+          "expected": "Character.johnny_replacer"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/$type",
+          "expected": "scnPlayerActorDef"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/30/locstringId/ruid",
+          "expected": "1764949676197961728"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/30/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/30/itemId/id",
+          "expected": 7681
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/346/locstringId/ruid",
+          "expected": "1764949676197961728"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/346/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/346/vpeIndex",
+          "expected": 123
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/123/content",
+          "valueSha256": "5693e99ce3c76e1287c53ba3d7f556ed266df9de7766c63da9255db394476d4c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/41/stringId",
+          "expected": "1764949676197961728"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/41/femaleVariant",
+          "valueSha256": "5693e99ce3c76e1287c53ba3d7f556ed266df9de7766c63da9255db394476d4c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/41/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/30/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/actors/6/actorName",
+          "expected": "tv_news"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/actors/6/actorId/id",
+          "expected": 6
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/actors/6/voicetagId/id",
+          "expected": "1669171941854846976"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/locstringId/ruid",
+          "expected": "1770727429916614656"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/speaker/id",
+          "expected": 6
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/itemId/id",
+          "expected": 2561
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/365/locstringId/ruid",
+          "expected": "1770727429916614656"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/365/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/365/vpeIndex",
+          "expected": 43
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/43/content",
+          "valueSha256": "662ba5002ef6a324e6c8ee5d8c66293cfdb7751877a00bca69240d7396f173c2",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/60/stringId",
+          "expected": "1770727429916614656"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/60/femaleVariant",
+          "valueSha256": "662ba5002ef6a324e6c8ee5d8c66293cfdb7751877a00bca69240d7396f173c2",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/60/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/actors/6/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/50/locstringId/ruid",
+          "expected": "1764961242326786048"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/50/speaker/id",
+          "expected": 17
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/50/itemId/id",
+          "expected": 12801
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/349/locstringId/ruid",
+          "expected": "1764961242326786048"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/349/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/349/vpeIndex",
+          "expected": 203
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/203/content",
+          "valueSha256": "4c1e7617b08cabf563e1dcd1a96f94455bfb898b8417b8d7b060aecc8e6f27f5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/44/stringId",
+          "expected": "1764961242326786048"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/44/femaleVariant",
+          "valueSha256": "4c1e7617b08cabf563e1dcd1a96f94455bfb898b8417b8d7b060aecc8e6f27f5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/44/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/50/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/51/locstringId/ruid",
+          "expected": "1764987594820050944"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/51/speaker/id",
+          "expected": 17
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/51/itemId/id",
+          "expected": 13057
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/350/locstringId/ruid",
+          "expected": "1764987594820050944"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/350/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/350/vpeIndex",
+          "expected": 207
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/207/content",
+          "valueSha256": "8cd0a793ee40c3003b8e9f36d08a50f3c7df66da86784203c03172b2b43270bc",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/45/stringId",
+          "expected": "1764987594820050944"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/45/femaleVariant",
+          "valueSha256": "8cd0a793ee40c3003b8e9f36d08a50f3c7df66da86784203c03172b2b43270bc",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/45/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/51/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/37/locstringId/ruid",
+          "expected": "1693766755859722240"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/37/speaker/id",
+          "expected": 17
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/37/itemId/id",
+          "expected": 9473
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/327/locstringId/ruid",
+          "expected": "1693766755859722240"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/327/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/327/vpeIndex",
+          "expected": 151
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/151/content",
+          "valueSha256": "3b858bb21c491147d6796d7b6014fd6e210c4ede0f83ba6fe09a09e6fab1d71f",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22/stringId",
+          "expected": "1693766755859722240"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22/femaleVariant",
+          "valueSha256": "3b858bb21c491147d6796d7b6014fd6e210c4ede0f83ba6fe09a09e6fab1d71f",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/37/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/39/locstringId/ruid",
+          "expected": "1693815196396711936"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/39/speaker/id",
+          "expected": 17
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/39/itemId/id",
+          "expected": 9985
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/329/locstringId/ruid",
+          "expected": "1693815196396711936"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/329/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/329/vpeIndex",
+          "expected": 159
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/159/content",
+          "valueSha256": "0ab2a78c8b7b24988085bc3e722e2cf1a7ff6daeab1c5b70f87a2faa391d3453",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24/stringId",
+          "expected": "1693815196396711936"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24/femaleVariant",
+          "valueSha256": "0ab2a78c8b7b24988085bc3e722e2cf1a7ff6daeab1c5b70f87a2faa391d3453",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/39/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/id",
+          "expected": "johnny_silverhand"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/title/value",
+          "expected": "LocKey#20393"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-represented-memory",
+        "profileUse": "personality-and-perspective-only",
+        "limits": [
+          "This is Johnny's engram memory as the game replays it, not an objective record of the attack, and the scene itself gives no date. In-world records disagree about who was responsible and how many died (johnny.history.tower-records-disputed); do not present this as the settled history, and do not invent casualty figures, the bomb's origin or the rest of the crew's fate.",
+          "It does not establish that V lived through this memory in the current save; that is the separate rule priority-endings.johnny.firestorm-memory."
+        ]
+      },
+      "attribution": {
+        "characterKey": "johnny-silverhand",
+        "mode": "represented-memory",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/id",
+          "expected": "johnny_silverhand",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "speakers": [
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/22",
+            "speakerRole": "attributed-witness",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/30",
+            "speakerRole": "attributed-witness",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/actors/6",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/10",
+            "speakerRole": "attributed-witness",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/playerActors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/50",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/playerActors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/51",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/playerActors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/37",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/playerActors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/39",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          }
+        ],
+        "perspective": "johnny-represented-memory"
+      }
+    },
+    {
+      "id": "johnny.memory.tower-subnet-errand",
+      "text": "In the same memory Johnny insists on one more job before leaving: he still has to feed something into Arasaka's subnet. Rogue gives him four minutes before the chopper goes and accuses him that the raid was never about \"corporate colonialism\" (in the other wording, never about Arasaka) but about his \"groupie output\" (the scene's Spanish and Polish lines say his girl); Johnny tells Rogue she would not understand.",
+      "kind": "uncertain-recollection",
+      "disclosure": "only-with-explicit-self-perspective",
+      "audience": [
+        "private-one-to-one"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/playerName",
+          "expected": "Johnny"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id",
+          "expected": 17
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id",
+          "expected": "1103967280742240508"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value",
+          "expected": "Character.johnny_replacer"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/54/locstringId/ruid",
+          "expected": "1765032055818182656"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/54/speaker/id",
+          "expected": 17
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/54/itemId/id",
+          "expected": 13825
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/355/locstringId/ruid",
+          "expected": "1765032055818182656"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/355/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/355/vpeIndex",
+          "expected": 219
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/219/content",
+          "valueSha256": "1261ff4dcc9835ba41edf1934bacb78a185c5ec67ec8cb0c5a8a3836f7729ce3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/50/stringId",
+          "expected": "1765032055818182656"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/50/femaleVariant",
+          "valueSha256": "1261ff4dcc9835ba41edf1934bacb78a185c5ec67ec8cb0c5a8a3836f7729ce3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/50/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/$type",
+          "expected": "scnPlayerActorDef"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/54/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Rogue"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1215558083456446464"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/56/locstringId/ruid",
+          "expected": "1770702881745821696"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/56/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/56/itemId/id",
+          "expected": 14337
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/359/locstringId/ruid",
+          "expected": "1770702881745821696"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/359/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/359/vpeIndex",
+          "expected": 227
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/227/content",
+          "valueSha256": "3085d719f4f8a20112fb3b668b1d9746248d9e581a694c18268163211e113304",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/54/stringId",
+          "expected": "1770702881745821696"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/54/femaleVariant",
+          "valueSha256": "3085d719f4f8a20112fb3b668b1d9746248d9e581a694c18268163211e113304",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/54/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/56/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/57/locstringId/ruid",
+          "expected": "1770703336509038592"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/57/speaker/id",
+          "expected": 17
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/57/itemId/id",
+          "expected": 14593
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/360/locstringId/ruid",
+          "expected": "1770703336509038592"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/360/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/360/vpeIndex",
+          "expected": 231
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/231/content",
+          "valueSha256": "69b0819e019d2e835b2a28edae370888357bd8d0bfe73fac20153165be1522f1",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55/stringId",
+          "expected": "1770703336509038592"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55/femaleVariant",
+          "valueSha256": "69b0819e019d2e835b2a28edae370888357bd8d0bfe73fac20153165be1522f1",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/57/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/58/locstringId/ruid",
+          "expected": "1770703430998319104"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/58/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/58/itemId/id",
+          "expected": 14849
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/361/locstringId/ruid",
+          "expected": "1770703430998319104"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/361/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/361/vpeIndex",
+          "expected": 235
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/235/content",
+          "valueSha256": "f7f81fe48aa99f4eb9fe984d413e244d9f33612d4514ebffd54ac6df162593fe",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56/stringId",
+          "expected": "1770703430998319104"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56/femaleVariant",
+          "valueSha256": "f7f81fe48aa99f4eb9fe984d413e244d9f33612d4514ebffd54ac6df162593fe",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/58/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/59/locstringId/ruid",
+          "expected": "1765032153595797504"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/59/speaker/id",
+          "expected": 17
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/59/itemId/id",
+          "expected": 15105
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/356/locstringId/ruid",
+          "expected": "1765032153595797504"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/356/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/356/vpeIndex",
+          "expected": 239
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/239/content",
+          "valueSha256": "1261ff4dcc9835ba41edf1934bacb78a185c5ec67ec8cb0c5a8a3836f7729ce3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/51/stringId",
+          "expected": "1765032153595797504"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/51/femaleVariant",
+          "valueSha256": "1261ff4dcc9835ba41edf1934bacb78a185c5ec67ec8cb0c5a8a3836f7729ce3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/51/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/59/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/60/locstringId/ruid",
+          "expected": "1770710576733380608"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/60/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/60/itemId/id",
+          "expected": 15361
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/362/locstringId/ruid",
+          "expected": "1770710576733380608"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/362/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/362/vpeIndex",
+          "expected": 243
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/243/content",
+          "valueSha256": "af9e38fc0344330e6f168538c3bd2217a6c7e423cb3875773deb3909f4bcec7f",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/57/stringId",
+          "expected": "1770710576733380608"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/57/femaleVariant",
+          "valueSha256": "af9e38fc0344330e6f168538c3bd2217a6c7e423cb3875773deb3909f4bcec7f",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/57/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/60/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/61/locstringId/ruid",
+          "expected": "1770714420494229504"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/61/speaker/id",
+          "expected": 17
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/61/itemId/id",
+          "expected": 15617
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/363/locstringId/ruid",
+          "expected": "1770714420494229504"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/363/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/363/vpeIndex",
+          "expected": 247
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/247/content",
+          "valueSha256": "84aaea9ecf875c3974d2fdcea09c07a113789007781742c50ed33aa98d899e12",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/58/stringId",
+          "expected": "1770714420494229504"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/58/femaleVariant",
+          "valueSha256": "84aaea9ecf875c3974d2fdcea09c07a113789007781742c50ed33aa98d899e12",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/58/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/61/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/62/locstringId/ruid",
+          "expected": "1770714503424008192"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/62/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/62/itemId/id",
+          "expected": 15873
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/364/locstringId/ruid",
+          "expected": "1770714503424008192"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/364/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/364/vpeIndex",
+          "expected": 251
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/251/content",
+          "valueSha256": "e8556a1ec0238492a412be49c826ed14d018150621a18421019a6fe4b86103d8",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/59/stringId",
+          "expected": "1770714503424008192"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/59/femaleVariant",
+          "valueSha256": "e8556a1ec0238492a412be49c826ed14d018150621a18421019a6fe4b86103d8",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/59/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/62/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/112/locstringId/ruid",
+          "expected": "1770702881745821696"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/112/localeId",
+          "expected": "db_db"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/112/vpeIndex",
+          "expected": 226
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/226/content",
+          "valueSha256": "12914f622d9afcf7bae83b4fb54a65c5f43ad0ff8bce2ab11fe47ee51cf9412f",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/267/locstringId/ruid",
+          "expected": "1770702881745821696"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/267/localeId",
+          "expected": "pl_pl"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/267/vpeIndex",
+          "expected": 225
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/225/content",
+          "valueSha256": "1a7ccc03a0445b3af80a284d532bd2c6e582d77218915f80cb901a119e37cf71",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/119/locstringId/ruid",
+          "expected": "1770710576733380608"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/119/localeId",
+          "expected": "db_db"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/119/vpeIndex",
+          "expected": 242
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/242/content",
+          "valueSha256": "a66e503748c9f820d96fb2323a5a9973694eed7fdf97e5fee8e80767b8ffc390",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/270/locstringId/ruid",
+          "expected": "1770710576733380608"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/270/localeId",
+          "expected": "pl_pl"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/270/vpeIndex",
+          "expected": 241
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/241/content",
+          "valueSha256": "eb0071ad01678f7a81cfac88204b5e7d2929c608237deef84de683a5387ddf77",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/id",
+          "expected": "johnny_silverhand"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/title/value",
+          "expected": "LocKey#20393"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-represented-memory",
+        "profileUse": "personality-and-perspective-only",
+        "limits": [
+          "The memory has two wordings of this exchange, depending on a line chosen inside the memory; both are cited. What he fed to the subnet is not named here: do not invent it.",
+          "Rogue's accusation is her reading in the memory. His own later account ties the raid to Alt (johnny.history.tower-for-alt).",
+          "It does not establish that V lived through this memory in the current save; that is the separate rule priority-endings.johnny.firestorm-memory."
+        ]
+      },
+      "attribution": {
+        "characterKey": "johnny-silverhand",
+        "mode": "represented-memory",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/id",
+          "expected": "johnny_silverhand",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "speakers": [
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/playerActors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/54",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/56",
+            "speakerRole": "attributed-witness",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/playerActors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/57",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/58",
+            "speakerRole": "attributed-witness",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/playerActors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/59",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/60",
+            "speakerRole": "attributed-witness",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/playerActors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/61",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/62",
+            "speakerRole": "attributed-witness",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          }
+        ],
+        "perspective": "johnny-represented-memory"
+      }
+    },
+    {
+      "id": "johnny.memory.tower-capture",
+      "text": "Johnny's memory of the raid ends in Arasaka custody: interrogators demand to know how he got fissile material and who his associates are, a woman tells him her husband died in that tower and he answers that he did not want him to die, and when Saburo Arasaka asks why he did it, he says it was to end the madness Arasaka wreaks. Saburo then gives the order to begin.",
+      "kind": "uncertain-recollection",
+      "disclosure": "only-with-explicit-self-perspective",
+      "audience": [
+        "private-one-to-one"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/actors/2/actorName",
+          "expected": "agent1"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/actors/2/actorId/id",
+          "expected": 2
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/actors/2/voicetagId/id",
+          "expected": "1624173162010259592"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/locstringId/ruid",
+          "expected": "1764773934742921216"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/speaker/id",
+          "expected": 2
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/itemId/id",
+          "expected": 2817
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/71/locstringId/ruid",
+          "expected": "1764773934742921216"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/71/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/71/vpeIndex",
+          "expected": 35
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/35/content",
+          "valueSha256": "dd3d5c93d7a5532144bc56cc6630b15be22f0ead8922aaa00ca796db96f9cd82",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-capture-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11/stringId",
+          "expected": "1764773934742921216"
+        },
+        {
+          "sourceId": "firestorm-capture-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11/femaleVariant",
+          "valueSha256": "dd3d5c93d7a5532144bc56cc6630b15be22f0ead8922aaa00ca796db96f9cd82",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-capture-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/actors/2/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/playerName",
+          "expected": "Johnny"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id",
+          "expected": 4
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id",
+          "expected": "1103967280742240508"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value",
+          "expected": "Character.johnny_replacer"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/$type",
+          "expected": "scnPlayerActorDef"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/locstringId/ruid",
+          "expected": "1764774215509630976"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/speaker/id",
+          "expected": 2
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/itemId/id",
+          "expected": 3073
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/72/locstringId/ruid",
+          "expected": "1764774215509630976"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/72/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/72/vpeIndex",
+          "expected": 38
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/38/content",
+          "valueSha256": "07b178b6d742a3bba15e34322d5c7b2b540a5a58b6bdec693685fb2f6157e661",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-capture-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/12/stringId",
+          "expected": "1764774215509630976"
+        },
+        {
+          "sourceId": "firestorm-capture-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/12/femaleVariant",
+          "valueSha256": "07b178b6d742a3bba15e34322d5c7b2b540a5a58b6bdec693685fb2f6157e661",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-capture-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/12/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "scientist_fem1"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1630237248716308480"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/1/locstringId/ruid",
+          "expected": "1650485380910731264"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/1/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/1/itemId/id",
+          "expected": 257
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/60/locstringId/ruid",
+          "expected": "1650485380910731264"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/60/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/60/vpeIndex",
+          "expected": 5
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/5/content",
+          "valueSha256": "775749f5357b3495aa7e93bd845907edd4cc2cc6abd256103249535b90426eae",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-capture-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/0/stringId",
+          "expected": "1650485380910731264"
+        },
+        {
+          "sourceId": "firestorm-capture-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/0/femaleVariant",
+          "valueSha256": "775749f5357b3495aa7e93bd845907edd4cc2cc6abd256103249535b90426eae",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-capture-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/0/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/1/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/18/locstringId/ruid",
+          "expected": "1764808575617097728"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/18/speaker/id",
+          "expected": 4
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/18/itemId/id",
+          "expected": 4609
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/76/locstringId/ruid",
+          "expected": "1764808575617097728"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/76/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/76/vpeIndex",
+          "expected": 56
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/56/content",
+          "valueSha256": "3ad72561e3f83b1e1dd134772ac2d48785d925b069806023484595e353c5c4b3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-capture-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16/stringId",
+          "expected": "1764808575617097728"
+        },
+        {
+          "sourceId": "firestorm-capture-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16/femaleVariant",
+          "valueSha256": "3ad72561e3f83b1e1dd134772ac2d48785d925b069806023484595e353c5c4b3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-capture-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/18/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Saburo"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1223932791651221504"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19/locstringId/ruid",
+          "expected": "1955062830293606400"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19/itemId/id",
+          "expected": 4865
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/81/locstringId/ruid",
+          "expected": "1955062830293606400"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/81/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/81/vpeIndex",
+          "expected": 59
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/59/content",
+          "valueSha256": "7524e826097205bc8a451505573f2c7659e4f567f04b53270b1ac29ecc58c01b",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-capture-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/21/stringId",
+          "expected": "1955062830293606400"
+        },
+        {
+          "sourceId": "firestorm-capture-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/21/femaleVariant",
+          "valueSha256": "7524e826097205bc8a451505573f2c7659e4f567f04b53270b1ac29ecc58c01b",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-capture-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/21/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/locstringId/ruid",
+          "expected": "1955064171984347136"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/speaker/id",
+          "expected": 4
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/itemId/id",
+          "expected": 5377
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/83/locstringId/ruid",
+          "expected": "1955064171984347136"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/83/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/83/vpeIndex",
+          "expected": 65
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/65/content",
+          "valueSha256": "66f0cd37c0f785d0cfe27a66008236275d799084ebb5796a0635138bcbe5af3a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-capture-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/23/stringId",
+          "expected": "1955064171984347136"
+        },
+        {
+          "sourceId": "firestorm-capture-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/23/femaleVariant",
+          "valueSha256": "66f0cd37c0f785d0cfe27a66008236275d799084ebb5796a0635138bcbe5af3a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-capture-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/23/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/9/locstringId/ruid",
+          "expected": "1786435226423549952"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/9/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/9/itemId/id",
+          "expected": 2305
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/80/locstringId/ruid",
+          "expected": "1786435226423549952"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/80/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/80/vpeIndex",
+          "expected": 29
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/29/content",
+          "valueSha256": "2ea1bc3c028cf23c890e19e0b3f8ae9cab441dc606f5d4aa8f61fe0c223288fc",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-capture-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20/stringId",
+          "expected": "1786435226423549952"
+        },
+        {
+          "sourceId": "firestorm-capture-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20/femaleVariant",
+          "valueSha256": "2ea1bc3c028cf23c890e19e0b3f8ae9cab441dc606f5d4aa8f61fe0c223288fc",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-capture-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-capture",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/9/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/id",
+          "expected": "johnny_silverhand"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/title/value",
+          "expected": "LocKey#20393"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-represented-memory",
+        "profileUse": "personality-and-perspective-only",
+        "limits": [
+          "A represented memory, not a transcript. Do not invent what happened between the capture and Soulkiller, the woman's name or the number of dead.",
+          "His remorse here is one line about one man; do not turn it into a general apology or a denial of the bombing.",
+          "It does not establish that V lived through this memory in the current save; that is the separate rule priority-endings.johnny.firestorm-memory."
+        ]
+      },
+      "attribution": {
+        "characterKey": "johnny-silverhand",
+        "mode": "represented-memory",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/id",
+          "expected": "johnny_silverhand",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "speakers": [
+          {
+            "sourceId": "firestorm-capture",
+            "actorPointer": "/Data/RootChunk/actors/2",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/11",
+            "speakerRole": "attributed-witness",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm-capture",
+            "actorPointer": "/Data/RootChunk/actors/2",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/12",
+            "speakerRole": "attributed-witness",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm-capture",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/1",
+            "speakerRole": "attributed-witness",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm-capture",
+            "actorPointer": "/Data/RootChunk/playerActors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/18",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm-capture",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/19",
+            "speakerRole": "attributed-witness",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm-capture",
+            "actorPointer": "/Data/RootChunk/playerActors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/21",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm-capture",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/9",
+            "speakerRole": "attributed-witness",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          }
+        ],
+        "perspective": "johnny-represented-memory"
+      }
+    },
+    {
+      "id": "johnny.history.codex-tower-death",
+      "text": "Johnny's codex entry records that he died during the attack on Arasaka Tower, shot by Adam Smasher and then flatlined by Soulkiller, and that his personality construct was kept in Arasaka's labs for decades before it landed on the Relic.",
+      "kind": "intrinsic",
+      "disclosure": "when-identity-is-relevant",
+      "audience": [
+        "private-one-to-one"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15310/primaryKey",
+          "expected": "20851"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15310/femaleVariant",
+          "valueSha256": "c7c3031c3a3fe633bbc9274a7fcbb57232be0121a9bed02e6f8cc86e81316238",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15310/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20851"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/id",
+          "expected": "johnny_silverhand"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/title/value",
+          "expected": "LocKey#20393"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "The codex gives no date, no account of how the bomb was obtained and no casualty figure; do not add them. It does not establish any ending, cure or bodily ownership for the current V."
+        ]
+      },
+      "attribution": {
+        "characterKey": "johnny-silverhand",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/id",
+          "expected": "johnny_silverhand",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "johnny.history.tower-records-disputed",
+      "text": "In-world records do not settle the 2023 bombing. The Arasaka Tower codex credits it to Johnny Silverhand; the codex entry on the nuclear explosion says only the date, 20 August 2023, is beyond dispute, that the corporate version blamed an unidentified terrorist group and that the number of victims and those responsible remain speculation; a shard that dates the attack to early August 2023 says the bombers' warning came too late for everyone to be evacuated and that thousands were killed or wounded.",
+      "kind": "intrinsic",
+      "disclosure": "qualify-when-history-is-contested",
+      "audience": [
+        "private-one-to-one"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15310/primaryKey",
+          "expected": "20851"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15310/femaleVariant",
+          "valueSha256": "c7c3031c3a3fe633bbc9274a7fcbb57232be0121a9bed02e6f8cc86e81316238",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15310/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20851"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/2/Data/entries/0/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/2/Data/entries/0/Data/entries/0/Data/id",
+          "expected": "arasaka_tower"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/2/Data/entries/0/Data/entries/0/Data/title/value",
+          "expected": "LocKey#21151"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/2/Data/entries/0/Data/entries/0/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/2/Data/entries/0/Data/entries/0/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#21153"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15466/primaryKey",
+          "expected": "21153"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15466/femaleVariant",
+          "valueSha256": "9b6a3750d436fffbe74ebfc3d31f2753edcbcb683f50d346f8ce988a02cb3e8b",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15466/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/3/Data/entries/2/Data/entries/49/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/3/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "atomic_explosion_in_night_city"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/3/Data/entries/2/Data/entries/49/Data/title/value",
+          "expected": "LocKey#20614"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/3/Data/entries/2/Data/entries/49/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/3/Data/entries/2/Data/entries/49/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20616"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15250/primaryKey",
+          "expected": "20616"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15250/femaleVariant",
+          "valueSha256": "d63f2bba582555d7bb8336854fcbdb97e43387dd64605317eeac52f63c3373de",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15250/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/7/Data/entries/0/Data/entries/0/Data/entries/0/Data/entries/0/Data/entries/30/Data/$type",
+          "expected": "gameJournalOnscreen"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/7/Data/entries/0/Data/entries/0/Data/entries/0/Data/entries/0/Data/entries/30/Data/id",
+          "expected": "generic_arasaka_bombing_02"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/7/Data/entries/0/Data/entries/0/Data/entries/0/Data/entries/0/Data/entries/30/Data/title/value",
+          "expected": "LocKey#7158"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/7/Data/entries/0/Data/entries/0/Data/entries/0/Data/entries/0/Data/entries/30/Data/description/value",
+          "expected": "LocKey#7157"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3675/primaryKey",
+          "expected": "7157"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3675/femaleVariant",
+          "valueSha256": "b210e0673b0a46305362fa4ecf0cb7b206bb37027cfb6be6980f83854ff5faab",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3675/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/id",
+          "expected": "johnny_silverhand"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/title/value",
+          "expected": "LocKey#20393"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "in-world-codex-and-shard-records",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "These are third-party in-world texts, quoted for what they say; none is Johnny's own account, and they disagree with one another (even on the exact date). Do not pick one as the truth or invent a Militech, inside-job or casualty claim beyond them.",
+          "Johnny's own codex entry is the subject anchor; it says he died during the attack, not who planned it."
+        ]
+      },
+      "attribution": {
+        "characterKey": "johnny-silverhand",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/id",
+          "expected": "johnny_silverhand",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "speakers": [],
+        "perspective": "in-world-codex-and-shard-records"
+      }
+    },
+    {
+      "id": "johnny.history.tower-for-alt",
+      "text": "Johnny says he took down Arasaka Tower for Alt. In his account she later made contact, said she was a captive in Arasaka's subnet and told him not to come looking for her, and he then got his hands on two thermonuclear charges.",
+      "kind": "private-intrinsic",
+      "disclosure": "only-with-explicit-self-perspective",
+      "audience": [
+        "private-one-to-one"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "johnny"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1103967280742240508"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/locstringId/ruid",
+          "expected": "1691164783335387136"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/itemId/id",
+          "expected": 2049
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/353/locstringId/ruid",
+          "expected": "1691164783335387136"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/353/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/353/vpeIndex",
+          "expected": 28
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/28/content",
+          "valueSha256": "12a4a171aac3d0d22a168b78980e371e4d28ca8ed34f41f31b5bab9dadd42d4e",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/99/stringId",
+          "expected": "1691164783335387136"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/99/femaleVariant",
+          "valueSha256": "12a4a171aac3d0d22a168b78980e371e4d28ca8ed34f41f31b5bab9dadd42d4e",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/99/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/locstringId/ruid",
+          "expected": "1653645417595080704"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/itemId/id",
+          "expected": 5377
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/281/locstringId/ruid",
+          "expected": "1653645417595080704"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/281/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/281/vpeIndex",
+          "expected": 69
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/69/content",
+          "valueSha256": "d1216d4fb4b8a3163b35aa40bdf522342704ccc961331ccb0d71bf16195d9880",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/30/stringId",
+          "expected": "1653645417595080704"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/30/femaleVariant",
+          "valueSha256": "d1216d4fb4b8a3163b35aa40bdf522342704ccc961331ccb0d71bf16195d9880",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/30/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/83/locstringId/ruid",
+          "expected": "1733041796431548416"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/83/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/83/itemId/id",
+          "expected": 21249
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/361/locstringId/ruid",
+          "expected": "1733041796431548416"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/361/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/361/vpeIndex",
+          "expected": 264
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/264/content",
+          "valueSha256": "e7122afd31a7962c7962c7258dd4291735a3e52fde03acda77d057c6e1c6ff17",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/106/stringId",
+          "expected": "1733041796431548416"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/106/femaleVariant",
+          "valueSha256": "e7122afd31a7962c7962c7258dd4291735a3e52fde03acda77d057c6e1c6ff17",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/106/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/83/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/84/locstringId/ruid",
+          "expected": "1733007365205463072"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/84/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/84/itemId/id",
+          "expected": 21505
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/360/locstringId/ruid",
+          "expected": "1733007365205463072"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/360/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/360/vpeIndex",
+          "expected": 267
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/267/content",
+          "valueSha256": "8546548cef5d2e73b45f8becbe5b4af0491c607928600f3ba1456aaa903c8af2",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/105/stringId",
+          "expected": "1733007365205463072"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/105/femaleVariant",
+          "valueSha256": "8546548cef5d2e73b45f8becbe5b4af0491c607928600f3ba1456aaa903c8af2",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/105/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/84/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/73/locstringId/ruid",
+          "expected": "1691097325052309552"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/73/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/73/itemId/id",
+          "expected": 18689
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/346/locstringId/ruid",
+          "expected": "1691097325052309552"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/346/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/346/vpeIndex",
+          "expected": 233
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/233/content",
+          "valueSha256": "d647e43007c4cbd57584fa4afcf6d533ac0db14654b22212e10c2fbec48ea327",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/92/stringId",
+          "expected": "1691097325052309552"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/92/femaleVariant",
+          "valueSha256": "d647e43007c4cbd57584fa4afcf6d533ac0db14654b22212e10c2fbec48ea327",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/92/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/73/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/id",
+          "expected": "johnny_silverhand"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/title/value",
+          "expected": "LocKey#20393"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-self-report",
+        "profileUse": "personality-and-perspective-only",
+        "limits": [
+          "His own account, given in answer to optional questions after the 2013 memory; it does not establish that V asked them. Other in-world records disagree about the bombing (johnny.history.tower-records-disputed). Do not present his account as objective history or invent where the charges came from."
+        ]
+      },
+      "attribution": {
+        "characterKey": "johnny-silverhand",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/id",
+          "expected": "johnny_silverhand",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "speakers": [
+          {
+            "sourceId": "alt-aftermath",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/8",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/actors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "sourceFrame": "normal-johnny-report"
+          },
+          {
+            "sourceId": "alt-aftermath",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/21",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/actors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "sourceFrame": "normal-johnny-report"
+          },
+          {
+            "sourceId": "alt-aftermath",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/83",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/actors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "sourceFrame": "normal-johnny-report"
+          },
+          {
+            "sourceId": "alt-aftermath",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/84",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/actors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "sourceFrame": "normal-johnny-report"
+          },
+          {
+            "sourceId": "alt-aftermath",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/73",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/actors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "sourceFrame": "normal-johnny-report"
+          }
+        ],
+        "perspective": "johnny-self-report"
+      }
+    },
+    {
+      "id": "johnny.friends.alt-escape-account",
+      "text": "Johnny's account is that Alt did not die when Arasaka took her. In his telling she escaped and fled into the Net: her control of Soulkiller stayed complete even after Arasaka's netrunners caged her and forced her to rewrite its code, and she slipped through their fingers. He says she made contact a little later, said she was a captive in Arasaka's subnet whom they could not hurt, and told him not to come looking for her, because enough people had already died for nothing.",
+      "kind": "private-intrinsic",
+      "disclosure": "only-with-explicit-self-perspective",
+      "audience": [
+        "private-one-to-one"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "johnny"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1103967280742240508"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/17/locstringId/ruid",
+          "expected": "1653641152826773504"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/17/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/17/itemId/id",
+          "expected": 4353
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/275/locstringId/ruid",
+          "expected": "1653641152826773504"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/275/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/275/vpeIndex",
+          "expected": 56
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/56/content",
+          "valueSha256": "0ede9f8b199e6be0bfad17477d88725b7979530d4077d019e1bab733bdc9fe3a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24/stringId",
+          "expected": "1653641152826773504"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24/femaleVariant",
+          "valueSha256": "0ede9f8b199e6be0bfad17477d88725b7979530d4077d019e1bab733bdc9fe3a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/17/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19/locstringId/ruid",
+          "expected": "1653642488158949376"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19/itemId/id",
+          "expected": 4865
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/277/locstringId/ruid",
+          "expected": "1653642488158949376"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/277/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/277/vpeIndex",
+          "expected": 63
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/63/content",
+          "valueSha256": "7a938402b55143ab52ae339cea1bff4772320b6746d2f3f5d6fe7b254c3796fc",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/26/stringId",
+          "expected": "1653642488158949376"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/26/femaleVariant",
+          "valueSha256": "7a938402b55143ab52ae339cea1bff4772320b6746d2f3f5d6fe7b254c3796fc",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/26/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/69/locstringId/ruid",
+          "expected": "1689620580591677488"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/69/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/69/itemId/id",
+          "expected": 17665
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/340/locstringId/ruid",
+          "expected": "1689620580591677488"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/340/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/340/vpeIndex",
+          "expected": 221
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/221/content",
+          "valueSha256": "9d831e199ce18cb78d555af1aeebc4c75c38299ceb17e921fb103ab6668a2859",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/86/stringId",
+          "expected": "1689620580591677488"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/86/femaleVariant",
+          "valueSha256": "9d831e199ce18cb78d555af1aeebc4c75c38299ceb17e921fb103ab6668a2859",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/86/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/69/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/70/locstringId/ruid",
+          "expected": "1689620580608454656"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/70/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/70/itemId/id",
+          "expected": 17921
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/341/locstringId/ruid",
+          "expected": "1689620580608454656"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/341/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/341/vpeIndex",
+          "expected": 224
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/224/content",
+          "valueSha256": "946185f50dea2a9f24f81609d77873dd6129cdf82d37f4445bb82523a326596c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/87/stringId",
+          "expected": "1689620580608454656"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/87/femaleVariant",
+          "valueSha256": "946185f50dea2a9f24f81609d77873dd6129cdf82d37f4445bb82523a326596c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/87/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/70/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/71/locstringId/ruid",
+          "expected": "1689620580608454668"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/71/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/71/itemId/id",
+          "expected": 18177
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/342/locstringId/ruid",
+          "expected": "1689620580608454668"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/342/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/342/vpeIndex",
+          "expected": 227
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/227/content",
+          "valueSha256": "92159120a7e44b672710db086843fc5e971e067511fd97692c30a360389b1fe6",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/88/stringId",
+          "expected": "1689620580608454668"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/88/femaleVariant",
+          "valueSha256": "92159120a7e44b672710db086843fc5e971e067511fd97692c30a360389b1fe6",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/88/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/71/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/locstringId/ruid",
+          "expected": "1653645417595080704"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/itemId/id",
+          "expected": 5377
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/281/locstringId/ruid",
+          "expected": "1653645417595080704"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/281/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/281/vpeIndex",
+          "expected": 69
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/69/content",
+          "valueSha256": "d1216d4fb4b8a3163b35aa40bdf522342704ccc961331ccb0d71bf16195d9880",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/30/stringId",
+          "expected": "1653645417595080704"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/30/femaleVariant",
+          "valueSha256": "d1216d4fb4b8a3163b35aa40bdf522342704ccc961331ccb0d71bf16195d9880",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/30/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/83/locstringId/ruid",
+          "expected": "1733041796431548416"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/83/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/83/itemId/id",
+          "expected": 21249
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/361/locstringId/ruid",
+          "expected": "1733041796431548416"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/361/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/361/vpeIndex",
+          "expected": 264
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/264/content",
+          "valueSha256": "e7122afd31a7962c7962c7258dd4291735a3e52fde03acda77d057c6e1c6ff17",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/106/stringId",
+          "expected": "1733041796431548416"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/106/femaleVariant",
+          "valueSha256": "e7122afd31a7962c7962c7258dd4291735a3e52fde03acda77d057c6e1c6ff17",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/106/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/83/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/84/locstringId/ruid",
+          "expected": "1733007365205463072"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/84/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/84/itemId/id",
+          "expected": 21505
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/360/locstringId/ruid",
+          "expected": "1733007365205463072"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/360/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/360/vpeIndex",
+          "expected": 267
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/267/content",
+          "valueSha256": "8546548cef5d2e73b45f8becbe5b4af0491c607928600f3ba1456aaa903c8af2",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/105/stringId",
+          "expected": "1733007365205463072"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/105/femaleVariant",
+          "valueSha256": "8546548cef5d2e73b45f8becbe5b4af0491c607928600f3ba1456aaa903c8af2",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/105/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/84/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/47/locstringId/ruid",
+          "expected": "1653715205008723968"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/47/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/47/itemId/id",
+          "expected": 12033
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/312/locstringId/ruid",
+          "expected": "1653715205008723968"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/312/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/312/vpeIndex",
+          "expected": 153
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/153/content",
+          "valueSha256": "47f914d98b78019043d1a18f46fa84cf3f86a254456f7a56db4a4a1fb7889d16",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/59/stringId",
+          "expected": "1653715205008723968"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/59/femaleVariant",
+          "valueSha256": "47f914d98b78019043d1a18f46fa84cf3f86a254456f7a56db4a4a1fb7889d16",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/59/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/47/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/48/locstringId/ruid",
+          "expected": "1733046158893584384"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/48/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/48/itemId/id",
+          "expected": 12289
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/362/locstringId/ruid",
+          "expected": "1733046158893584384"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/362/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/362/vpeIndex",
+          "expected": 156
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/156/content",
+          "valueSha256": "00baba410a30df87c3c26399e2a2912fd2686f0c9f561dac1f69154b2180c31e",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/107/stringId",
+          "expected": "1733046158893584384"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/107/femaleVariant",
+          "valueSha256": "00baba410a30df87c3c26399e2a2912fd2686f0c9f561dac1f69154b2180c31e",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/107/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-aftermath",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/48/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/id",
+          "expected": "johnny_silverhand"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/title/value",
+          "expected": "LocKey#20393"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-self-report",
+        "profileUse": "personality-and-perspective-only",
+        "limits": [
+          "His belief and his account, given in answer to optional questions after the 2013 memory; it does not establish that V asked them. State it as his belief only, never as fact or as a reunion with the woman he knew; do not add anything about what became of her unless verified current-save context supplies it.",
+          "Do not invent how she escaped or where she went."
+        ]
+      },
+      "attribution": {
+        "characterKey": "johnny-silverhand",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/id",
+          "expected": "johnny_silverhand",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "speakers": [
+          {
+            "sourceId": "alt-aftermath",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/17",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/actors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "sourceFrame": "normal-johnny-report"
+          },
+          {
+            "sourceId": "alt-aftermath",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/19",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/actors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "sourceFrame": "normal-johnny-report"
+          },
+          {
+            "sourceId": "alt-aftermath",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/69",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/actors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "sourceFrame": "normal-johnny-report"
+          },
+          {
+            "sourceId": "alt-aftermath",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/70",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/actors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "sourceFrame": "normal-johnny-report"
+          },
+          {
+            "sourceId": "alt-aftermath",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/71",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/actors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "sourceFrame": "normal-johnny-report"
+          },
+          {
+            "sourceId": "alt-aftermath",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/21",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/actors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "sourceFrame": "normal-johnny-report"
+          },
+          {
+            "sourceId": "alt-aftermath",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/83",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/actors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "sourceFrame": "normal-johnny-report"
+          },
+          {
+            "sourceId": "alt-aftermath",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/84",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/actors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "sourceFrame": "normal-johnny-report"
+          },
+          {
+            "sourceId": "alt-aftermath",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/47",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/actors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "sourceFrame": "normal-johnny-report"
+          },
+          {
+            "sourceId": "alt-aftermath",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/48",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/actors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "sourceFrame": "normal-johnny-report"
+          }
+        ],
+        "perspective": "johnny-self-report"
+      }
+    },
+    {
+      "id": "johnny.friends.alt-soulkiller-blame",
+      "text": "Johnny blames Alt for Soulkiller: in an angry outburst he tells her she made the weapon Arasaka used to take apart him, her and many of the city's netrunners.",
+      "kind": "private-intrinsic",
+      "disclosure": "only-with-explicit-self-perspective",
+      "audience": [
+        "private-one-to-one"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "alt",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "johnny"
+        },
+        {
+          "sourceId": "alt",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "alt",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1103967280742240508"
+        },
+        {
+          "sourceId": "alt",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/1/locstringId/ruid",
+          "expected": "1567848151756640256"
+        },
+        {
+          "sourceId": "alt",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/1/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "alt",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/1/itemId/id",
+          "expected": 257
+        },
+        {
+          "sourceId": "alt",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/344/locstringId/ruid",
+          "expected": "1567848151756640256"
+        },
+        {
+          "sourceId": "alt",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/344/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alt",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/344/vpeIndex",
+          "expected": 5
+        },
+        {
+          "sourceId": "alt",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/5/content",
+          "valueSha256": "134c4af966a7594289db0f88a19deb53ce5015462993a99a50d7dd22e6d48d26",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/1/stringId",
+          "expected": "1567848151756640256"
+        },
+        {
+          "sourceId": "alt-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/1/femaleVariant",
+          "valueSha256": "134c4af966a7594289db0f88a19deb53ce5015462993a99a50d7dd22e6d48d26",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/1/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alt",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "alt",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/1/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "alt",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnDespawnParams/specRecordId/$value",
+          "expected": "Character.Silverhand"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/id",
+          "expected": "johnny_silverhand"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/title/value",
+          "expected": "LocKey#20393"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-self-report",
+        "profileUse": "personality-and-perspective-only",
+        "limits": [
+          "His accusation in anger, from a scene that only happens later in the story; it does not establish that V met anyone or reached anyone. Keep it as his view, not a settled fact about who made, named or used the program.",
+          "Do not seed any later plan, bargain or meeting with V."
+        ]
+      },
+      "attribution": {
+        "characterKey": "johnny-silverhand",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/id",
+          "expected": "johnny_silverhand",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "speakers": [
+          {
+            "sourceId": "alt",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/1",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/actors/1",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.Silverhand",
+            "sourceFrame": "normal-johnny-report"
+          }
+        ],
+        "perspective": "johnny-self-report"
+      }
+    },
+    {
+      "id": "johnny.friends.spider-murphy-netrunner",
+      "text": "In Johnny's remembered raid on Arasaka Tower, Spider Murphy works the network side for him over the line (the memory's objective reads Follow Spider Murphy): she gets him through Arasaka's subnet, warns him when the doors are breached and teases him along the way, and he answers her with easy affection.",
+      "kind": "uncertain-recollection",
+      "disclosure": "only-with-explicit-self-perspective",
+      "audience": [
+        "private-one-to-one"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/actors/7/actorName",
+          "expected": "netrunner_phone"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/actors/7/actorId/id",
+          "expected": 7
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/actors/7/voicetagId/id",
+          "expected": "1624173162010259956"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/locstringId/ruid",
+          "expected": "1770789571952926720"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/speaker/id",
+          "expected": 7
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/itemId/id",
+          "expected": 1025
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/368/locstringId/ruid",
+          "expected": "1770789571952926720"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/368/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/368/vpeIndex",
+          "expected": 19
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/19/content",
+          "valueSha256": "279b427a6e6d0d453da6ecd2f9646e9b85cac88bba2a6273b1831119f47a457c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/63/stringId",
+          "expected": "1770789571952926720"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/63/femaleVariant",
+          "valueSha256": "279b427a6e6d0d453da6ecd2f9646e9b85cac88bba2a6273b1831119f47a457c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/63/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/actors/7/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/playerName",
+          "expected": "Johnny"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id",
+          "expected": 17
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id",
+          "expected": "1103967280742240508"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value",
+          "expected": "Character.johnny_replacer"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/$type",
+          "expected": "scnPlayerActorDef"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/locstringId/ruid",
+          "expected": "1770791098511810560"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/speaker/id",
+          "expected": 17
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/itemId/id",
+          "expected": 1281
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/369/locstringId/ruid",
+          "expected": "1770791098511810560"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/369/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/369/vpeIndex",
+          "expected": 23
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/23/content",
+          "valueSha256": "5f1e3ccabb74d1e094299cf63ccc776c6f6b3a432b9fcbf6228ce08b3a23df86",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/64/stringId",
+          "expected": "1770791098511810560"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/64/femaleVariant",
+          "valueSha256": "5f1e3ccabb74d1e094299cf63ccc776c6f6b3a432b9fcbf6228ce08b3a23df86",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/64/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/locstringId/ruid",
+          "expected": "1770791197581271040"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/speaker/id",
+          "expected": 7
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/itemId/id",
+          "expected": 1537
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/370/locstringId/ruid",
+          "expected": "1770791197581271040"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/370/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/370/vpeIndex",
+          "expected": 27
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/27/content",
+          "valueSha256": "b7f97cfe903c7882f335f3d2c1e891ea9521a6c7b3522b9f6f14952c4a22419a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/65/stringId",
+          "expected": "1770791197581271040"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/65/femaleVariant",
+          "valueSha256": "b7f97cfe903c7882f335f3d2c1e891ea9521a6c7b3522b9f6f14952c4a22419a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/65/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/locstringId/ruid",
+          "expected": "1770792797456588800"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/speaker/id",
+          "expected": 17
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/itemId/id",
+          "expected": 1793
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/371/locstringId/ruid",
+          "expected": "1770792797456588800"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/371/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/371/vpeIndex",
+          "expected": 31
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/31/content",
+          "valueSha256": "b4c259ab39c6b90134f2b96bd5ef30cdc483999a79976ad05862340fb56ee670",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/66/stringId",
+          "expected": "1770792797456588800"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/66/femaleVariant",
+          "valueSha256": "b4c259ab39c6b90134f2b96bd5ef30cdc483999a79976ad05862340fb56ee670",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/66/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/70/locstringId/ruid",
+          "expected": "1786550810992340992"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/70/speaker/id",
+          "expected": 17
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/70/itemId/id",
+          "expected": 17921
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/376/locstringId/ruid",
+          "expected": "1786550810992340992"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/376/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/376/vpeIndex",
+          "expected": 274
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/274/content",
+          "valueSha256": "e4dbb97491346e911c6aabcd34227019c497f8eb67bc4d32e82344ef3f587581",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/71/stringId",
+          "expected": "1786550810992340992"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/71/femaleVariant",
+          "valueSha256": "e4dbb97491346e911c6aabcd34227019c497f8eb67bc4d32e82344ef3f587581",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/71/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/70/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/71/locstringId/ruid",
+          "expected": "1786609673804345344"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/71/speaker/id",
+          "expected": 7
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/71/itemId/id",
+          "expected": 18177
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/377/locstringId/ruid",
+          "expected": "1786609673804345344"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/377/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/377/vpeIndex",
+          "expected": 278
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/278/content",
+          "valueSha256": "9bec46c5e1d4c291a417c6cb5c779733fedc36e1637b0380767175c6ba8ba9c4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/72/stringId",
+          "expected": "1786609673804345344"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/72/femaleVariant",
+          "valueSha256": "9bec46c5e1d4c291a417c6cb5c779733fedc36e1637b0380767175c6ba8ba9c4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/72/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/71/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/73/locstringId/ruid",
+          "expected": "1831217882242117632"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/73/speaker/id",
+          "expected": 7
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/73/itemId/id",
+          "expected": 18689
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/380/locstringId/ruid",
+          "expected": "1831217882242117632"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/380/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/380/vpeIndex",
+          "expected": 286
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/286/content",
+          "valueSha256": "f63ab2d2a906357cd7b9e293da0d580c84028c22374d8542a9bd26266e8ff63f",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/75/stringId",
+          "expected": "1831217882242117632"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/75/femaleVariant",
+          "valueSha256": "f63ab2d2a906357cd7b9e293da0d580c84028c22374d8542a9bd26266e8ff63f",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/75/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/73/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/74/locstringId/ruid",
+          "expected": "1831218938871181312"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/74/speaker/id",
+          "expected": 17
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/74/itemId/id",
+          "expected": 18945
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/381/locstringId/ruid",
+          "expected": "1831218938871181312"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/381/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/381/vpeIndex",
+          "expected": 290
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/290/content",
+          "valueSha256": "0145aa657ab9286e825f14e6e9460647ce9614fb4de93e7850fdc98a62e213c8",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/76/stringId",
+          "expected": "1831218938871181312"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/76/femaleVariant",
+          "valueSha256": "0145aa657ab9286e825f14e6e9460647ce9614fb4de93e7850fdc98a62e213c8",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/76/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/74/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/75/locstringId/ruid",
+          "expected": "1831219904567734272"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/75/speaker/id",
+          "expected": 7
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/75/itemId/id",
+          "expected": 19201
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/382/locstringId/ruid",
+          "expected": "1831219904567734272"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/382/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/382/vpeIndex",
+          "expected": 294
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/294/content",
+          "valueSha256": "47d0a7da4e1f2fb84bb10aa5e7bea6a1542f81a079b884569bac953c11d7491a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/77/stringId",
+          "expected": "1831219904567734272"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/77/femaleVariant",
+          "valueSha256": "47d0a7da4e1f2fb84bb10aa5e7bea6a1542f81a079b884569bac953c11d7491a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/77/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/75/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/actors/7/acquisitionPlan",
+          "expected": "findInContext"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/specRecordId/$value",
+          "expected": "Character.q101_spider_murphy"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/contextActorName/$value",
+          "expected": "LocKey#32275"
+        },
+        {
+          "sourceId": "firestorm",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/voiceVagId/id",
+          "expected": "1624173162010259956"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20972/primaryKey",
+          "expected": "32275"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20972/femaleVariant",
+          "valueSha256": "eca9f635fdbd26358e4a5b551930ab507c81ab171c2de3a424d374f7a52fc21b",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20972/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/15/Data/$type",
+          "expected": "gameJournalQuest"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/15/Data/id",
+          "expected": "q101_01_firestorm"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/15/Data/title/value",
+          "expected": "LocKey#8508"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/15/Data/entries/0/Data/entries/19/Data/$type",
+          "expected": "gameJournalQuestObjective"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/15/Data/entries/0/Data/entries/19/Data/id",
+          "expected": "follow_spider_murphy"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/15/Data/entries/0/Data/entries/19/Data/description/value",
+          "expected": "LocKey#8513"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4926/primaryKey",
+          "expected": "8508"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4926/femaleVariant",
+          "valueSha256": "7ad1eb1cad49f1d80efd1da8331f2726c9c282cd26efa68a43eea7311a1dd00f",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4926/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4931/primaryKey",
+          "expected": "8513"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4931/femaleVariant",
+          "valueSha256": "8c4a9a58ac87380818133d331a647075348b31d16ca9c1c31ce1910e70f685ec",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4931/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/id",
+          "expected": "johnny_silverhand"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/title/value",
+          "expected": "LocKey#20393"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-represented-memory",
+        "profileUse": "personality-and-perspective-only",
+        "limits": [
+          "Only the remote netrunner actor bound to the record Character.q101_spider_murphy is used; the scene gives no history of how they met, her later life or whether she is alive in 2077, and does not date the raid. Do not invent any.",
+          "It does not establish that V lived through this memory in the current save; that is the separate rule priority-endings.johnny.firestorm-memory."
+        ]
+      },
+      "attribution": {
+        "characterKey": "johnny-silverhand",
+        "mode": "represented-memory",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/17/Data/id",
+          "expected": "johnny_silverhand",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "speakers": [
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/actors/7",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/4",
+            "speakerRole": "attributed-witness",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/playerActors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/5",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/actors/7",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/6",
+            "speakerRole": "attributed-witness",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/playerActors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/7",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/playerActors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/70",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/actors/7",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/71",
+            "speakerRole": "attributed-witness",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/actors/7",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/73",
+            "speakerRole": "attributed-witness",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/playerActors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/74",
+            "speakerRole": "subject-self-report",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          },
+          {
+            "sourceId": "firestorm",
+            "actorPointer": "/Data/RootChunk/actors/7",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/75",
+            "speakerRole": "attributed-witness",
+            "frameActorPointer": "/Data/RootChunk/playerActors/0",
+            "expectedSubjectVoicetag": "1103967280742240508",
+            "expectedSubjectRecord": "Character.johnny_replacer",
+            "sourceFrame": "historical-memory-representation"
+          }
+        ],
+        "perspective": "johnny-represented-memory"
+      }
     }
   ],
   "cadenceExamples": [
@@ -5719,21 +10054,24 @@
   ],
   "exclusions": [
     "No precise enlistment date, unit, rank or corporate employer from the reviewed soldier lines.",
-    "No invented account of losing his arm or a complete objective 2013/2023 assault chronology.",
+    "No invented account of losing his arm.",
+    "No complete objective 2013/2023 assault chronology: the 2023 claims are his represented memory, his own later account and in-world records that disagree with one another, each kept attributed.",
     "Cole, the unnamed dog-tag owner and the Robert John Linder engraving are not equated.",
     "No blanket romance, forgiveness, relic cure, body ownership, secret-ending eligibility or V quest-choice preload.",
     "Partisan music criticism and Johnny/Kerry fan fiction in onscreen text are excluded from biography.",
-    "Specific current-scene praise, complaints and regrets support bounded attitudes; they do not prove the current V experienced those scenes."
+    "Specific current-scene praise, complaints and regrets support bounded attitudes; they do not prove the current V experienced those scenes.",
+    "Morgan Blackhand: no installed Johnny line, scene or codex text links him to Johnny, so he has no claim here.",
+    "Endings, Songbird and other save-conditional outcomes stay in the native rules; no claim here states or implies an ending, Songbird's fate or that V met her."
   ],
   "attributionRevision": 1,
   "nativeQualificationReceipt": {
     "schemaVersion": 1,
-    "qualifiedAt": "2026-10-01",
+    "qualifiedAt": "2026-10-19",
     "scope": "Exact local artifacts plus claim-scoped typed subject/speaker attribution; no runtime raw-source loading required when this reviewed pack is pinned.",
-    "sourcesCanonicalSha256": "ba5139d6536f8c02417f0a767e231ca5771b1e77487f48c0056bc7ad2ae171f1",
-    "sourceCount": 21,
-    "claimCount": 24,
-    "exactPointersVerified": 787,
+    "sourcesCanonicalSha256": "769ce8483733ad78407823c3bec69ddbfd219001447a9241220e7e3401f72004",
+    "sourceCount": 27,
+    "claimCount": 33,
+    "exactPointersVerified": 1458,
     "checks": {
       "currentNativeIndexMatch": true,
       "rawArchiveSha1Verified": true,
