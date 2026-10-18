@@ -120,7 +120,10 @@ def main():
     if not args.no_asr:
         from transformers import pipeline
         snap = glob.glob(str(HUB / "models--openai--whisper-small.en/snapshots/*"))[0]
-        asr = pipeline("automatic-speech-recognition", model=snap, device=-1)
+        # Whisper is most of the run time on the CPU (about 15 minutes for 60 clips when three run at once); use a free GPU
+        # when there is one (full precision, same transcripts), else stay on the CPU
+        gpu = torch.cuda.is_available() and torch.cuda.mem_get_info()[0] > 2 * 2**30
+        asr = pipeline("automatic-speech-recognition", model=snap, device=0 if gpu else -1)
         for c in clips:
             heard = asr({"raw": load(c["wavPath"], 16000), "sampling_rate": 16000})["text"].strip()
             c["asr"] = heard
