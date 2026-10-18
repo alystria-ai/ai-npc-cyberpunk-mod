@@ -6,13 +6,16 @@
     "2.31"
   ],
   "profileKeys": [
+    "dum-dum",
+    "hanako-arasaka",
     "jackie-welles",
-    "takemura",
     "johnny-silverhand",
     "mama-welles",
     "misty-olszewski",
-    "viktor-vektor",
-    "hanako-arasaka"
+    "oda",
+    "royce",
+    "takemura",
+    "viktor-vektor"
   ],
   "sources": [
     {
@@ -5375,7 +5378,9 @@
       ],
       "audience": {
         "speakers": [
-          "jackie-welles"
+          "jackie-welles",
+          "royce",
+          "dum-dum"
         ],
         "perspective": "participant",
         "channels": [
@@ -5384,7 +5389,9 @@
         ],
         "recipients": [
           "v",
-          "jackie-welles"
+          "jackie-welles",
+          "royce",
+          "dum-dum"
         ]
       },
       "condition": {
@@ -5512,6 +5519,18 @@
             "key": "q003_militech_betrayed",
             "op": "gte",
             "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q003_paid_maelstrom",
+            "op": "eq",
+            "value": 0,
+            "guard": {
+              "type": "journal",
+              "key": "jt.pickup.completed",
+              "op": "eq",
+              "value": "succeeded"
+            }
           },
           {
             "type": "journal",
@@ -5739,7 +5758,8 @@
       ],
       "audience": {
         "speakers": [
-          "jackie-welles"
+          "jackie-welles",
+          "dum-dum"
         ],
         "perspective": "participant",
         "channels": [
@@ -5748,7 +5768,8 @@
         ],
         "recipients": [
           "v",
-          "jackie-welles"
+          "jackie-welles",
+          "dum-dum"
         ]
       },
       "condition": {
@@ -6541,7 +6562,8 @@
       ],
       "audience": {
         "speakers": [
-          "takemura"
+          "takemura",
+          "oda"
         ],
         "perspective": "participant",
         "channels": [
@@ -6550,7 +6572,8 @@
         ],
         "recipients": [
           "v",
-          "takemura"
+          "takemura",
+          "oda"
         ]
       },
       "condition": {

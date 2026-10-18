@@ -9,6 +9,7 @@
     "aaron",
     "alan-noel",
     "alex",
+    "angelica-whelan",
     "babs-okoye",
     "bill-mitchell",
     "briana-dolson",
@@ -1820,7 +1821,8 @@
       ],
       "audience": {
         "speakers": [
-          "aaron"
+          "aaron",
+          "angelica-whelan"
         ],
         "perspective": "participant",
         "channels": [
@@ -1829,7 +1831,8 @@
         ],
         "recipients": [
           "v",
-          "aaron"
+          "aaron",
+          "angelica-whelan"
         ]
       },
       "condition": {

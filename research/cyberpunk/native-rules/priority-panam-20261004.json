@@ -6,10 +6,11 @@
     "2.31"
   ],
   "profileKeys": [
-    "panam-palmer",
+    "carol-emeka",
     "mitch-anderson",
+    "panam-palmer",
     "saul-bright",
-    "carol-emeka"
+    "teddy"
   ],
   "sources": [
     {
@@ -1030,7 +1031,7 @@
           "jsonPointer": "/Data/RootChunk/locStore/vpEntries/35",
           "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry",
           "expected": {
-            "/content": "Listen \u2013 we can't leave camp, no chance. But... but, Saul never said a thing about gear."
+            "/content": "Listen – we can't leave camp, no chance. But... but, Saul never said a thing about gear."
           }
         },
         {
@@ -3423,7 +3424,7 @@
           "jsonPointer": "/Data/RootChunk/locStore/vpEntries/101",
           "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry",
           "expected": {
-            "/content": "Sheesh\u2026 OK. The Raffens captured Saul. They're holding him somewhere inside their base."
+            "/content": "Sheesh… OK. The Raffens captured Saul. They're holding him somewhere inside their base."
           }
         },
         {
@@ -7407,7 +7408,7 @@
           "jsonPointer": "/Data/RootChunk/locStore/vpEntries/37",
           "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry",
           "expected": {
-            "/content": "Saul, I tried to raise Scorpion, but he\u2026"
+            "/content": "Saul, I tried to raise Scorpion, but he…"
           }
         },
         {
@@ -8758,7 +8759,8 @@
       "audience": {
         "speakers": [
           "panam-palmer",
-          "mitch-anderson"
+          "mitch-anderson",
+          "teddy"
         ],
         "perspective": "participant",
         "channels": [
@@ -8768,7 +8770,8 @@
         "recipients": [
           "v",
           "panam-palmer",
-          "mitch-anderson"
+          "mitch-anderson",
+          "teddy"
         ]
       },
       "condition": {

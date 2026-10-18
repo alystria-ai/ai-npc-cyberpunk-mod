@@ -16,6 +16,7 @@
     "meredith-stout",
     "nancy-hartley",
     "placide",
+    "royce",
     "viktor-vektor",
     "yorinobu-arasaka"
   ],
@@ -2711,7 +2712,8 @@
       "audience": {
         "speakers": [
           "nancy-hartley",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "royce"
         ],
         "perspective": "participant",
         "channels": [
@@ -2721,7 +2723,8 @@
         "recipients": [
           "v",
           "nancy-hartley",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "royce"
         ]
       },
       "condition": {

@@ -1047,6 +1047,146 @@
    "voice": "AZURE-MULTILINGUAL-eb15982107",
    "voiceName": "Ximena",
    "reason": "Guarded, warm female voice for a Dogtown local (shared with the ripperdoc and the woman living rough)."
+  },
+  "bryce-mosley": {
+   "voice": "AZURE-MULTILINGUAL-c387a0c635",
+   "voiceName": "Andrew",
+   "reason": "Even, confident mid male voice for a smooth NetWatch negotiator."
+  },
+  "dum-dum": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin",
+   "reason": "Casual, friendly mid male voice for a talkative gang salesman."
+  },
+  "royce": {
+   "voice": "AZURE-MULTILINGUAL-b56af7ad45",
+   "voiceName": "OnyxTurbo",
+   "reason": "Low, rough male register for a menacing, erratic Maelstrom boss (the same voice already used for the Maelstrom male archetype)."
+  },
+  "rosalind-myers": {
+   "voice": "AZURE-MULTILINGUAL-9a90389ca0",
+   "voiceName": "Serena",
+   "reason": "Authoritative, composed female voice for a president and former corporate CEO (the same voice used for the Militech and NCPD female archetypes)."
+  },
+  "kurt-hansen": {
+   "voice": "AZURE-MULTILINGUAL-3ea74315c9",
+   "voiceName": "Christopher",
+   "reason": "Mature, composed male voice for a polished, quietly menacing ex-colonel."
+  },
+  "woodman": {
+   "voice": "AZURE-MULTILINGUAL-19f6a69dbc",
+   "voiceName": "Derek",
+   "reason": "Rough, self-satisfied mid male voice for a sneering Clouds caretaker, in line with the other abrasive Tyger Claws and Maelstrom men."
+  },
+  "fingers": {
+   "voice": "AZURE-MULTILINGUAL-67e07b0e1f",
+   "voiceName": "Lewis",
+   "reason": "Light, fussy mid male voice for an unctuous, twitchy ripperdoc."
+  },
+  "garry-the-prophet": {
+   "voice": "AZURE-MULTILINGUAL-a2e2d3c386",
+   "voiceName": "Marcello",
+   "reason": "Expressive, theatrical male voice for a ranting street preacher."
+  },
+  "brendan": {
+   "voice": "AZURE-MULTILINGUAL-8087ad87b4",
+   "voiceName": "EchoTurbo",
+   "reason": "Light, bright young male voice for a relentlessly cheerful vending-machine AI."
+  },
+  "anthony-gilchrist": {
+   "voice": "AZURE-MULTILINGUAL-65374d4054",
+   "voiceName": "Davis",
+   "reason": "Smooth, confident adult male voice for a polished Militech executive and double-dealer."
+  },
+  "denny": {
+   "voice": "AZURE-MULTILINGUAL-579bb40ede",
+   "voiceName": "Lola",
+   "reason": "Deep, weathered female voice for a blunt, hard-edged ex-drummer."
+  },
+  "henry": {
+   "voice": "AZURE-MULTILINGUAL-65374d4054",
+   "voiceName": "Davis",
+   "reason": "Casual, slightly gritty male voice for a talkative, self-mocking ex-rock bassist."
+  },
+  "teddy": {
+   "voice": "AZURE-MULTILINGUAL-df94d676e2",
+   "voiceName": "Brian",
+   "reason": "Casual, easy mid-register male voice for a joking, outgoing nomad veteran."
+  },
+  "weyland": {
+   "voice": "AZURE-MULTILINGUAL-3ff4a9681c",
+   "voiceName": "Ollie",
+   "reason": "British-native male voice, the nearest on offer to Weyland's Caribbean-flavoured English; no listed voice carries the accent itself."
+  },
+  "oda": {
+   "voice": "AZURE-MULTILINGUAL-d71516a5ca",
+   "voiceName": "Masaru",
+   "reason": "Japanese-native male voice for a stoic, formal Arasaka cyberninja (the same voice as his teacher Takemura)."
+  },
+  "chester-bennett": {
+   "voice": "AZURE-MULTILINGUAL-67e07b0e1f",
+   "voiceName": "Lewis",
+   "reason": "Low, rough American male voice for a large, gravel-voiced BARGHEST lieutenant colonel with a Southern drawl."
+  },
+  "bree-whitney": {
+   "voice": "AZURE-MULTILINGUAL-54251ef38f",
+   "voiceName": "Ava",
+   "reason": "Quick, expressive, slightly anxious American female voice for a talkative investigative journalist on the run."
+  },
+  "edgar-tool": {
+   "voice": "AZURE-MULTILINGUAL-c1eb570bf7",
+   "voiceName": "Amanda",
+   "reason": "Bright, theatrical female voice for a diva persona that copies Lina Malina (Lina herself uses Laura and Emma, so TooLina gets a different but related voice)."
+  },
+  "jacob-long": {
+   "voice": "AZURE-MULTILINGUAL-65374d4054",
+   "voiceName": "Davis",
+   "reason": "Relaxed, casual, expressive American male voice for a talkative street hustler with a thick Dogtown dialect."
+  },
+  "angelica-whelan": {
+   "voice": "AZURE-MULTILINGUAL-8f3af70863",
+   "voiceName": "Evelyn",
+   "reason": "Smooth, self-assured American female voice for a calm, charismatic gang pack leader who deals rather than shouts."
+  },
+  "voodoo-queen": {
+   "voice": "AZURE-MULTILINGUAL-b439921109",
+   "voiceName": "Vivienne",
+   "reason": "Composed, low-mid French-native female voice for a Haitian-Creole-speaking gang leader (Placide's twin already uses the French-native Lucien)."
+  },
+  "anders-hellman": {
+   "voice": "AZURE-MULTILINGUAL-7c29b4eda9",
+   "voiceName": "Steffan",
+   "reason": "Mature, crisp, polished male voice for a precise, condescending Arasaka scientist (the same voice as the discreet fixer Mr. Hands)."
+  },
+  "joshua-stephenson": {
+   "voice": "AZURE-MULTILINGUAL-df94d676e2",
+   "voiceName": "Brian",
+   "reason": "Casual, sincere mid-register male voice for an earnest, anxious convert (the same voice as the unsure young officer Bill Mitchell)."
+  },
+  "maiko-maeda": {
+   "voice": "AZURE-MULTILINGUAL-8f3af70863",
+   "voiceName": "Evelyn",
+   "reason": "Level, composed female voice for a cold, calculating Clouds manager (also used for the detached Alt Cunningham)."
+  },
+  "wilky-laguerre": {
+   "voice": "AZURE-MULTILINGUAL-4ef14f6865",
+   "voiceName": "Remy",
+   "reason": "Smooth, low French-native male voice for a sardonic Haitian-Creole-speaking Voodoo Boys netrunner (the same voice as the Voodoo Boys male archetype)."
+  },
+  "aurore-cassel": {
+   "voice": "AZURE-MULTILINGUAL-b439921109",
+   "voiceName": "Vivienne",
+   "reason": "French-native female voice, the only one on offer, for a French netrunner (the same voice as the Voodoo Boys and NetWatch female archetypes); her delivery is playful and drawling, so keep the pace light."
+  },
+  "dante-caruso": {
+   "voice": "AZURE-MULTILINGUAL-65374d4054",
+   "voiceName": "Davis",
+   "reason": "Relaxed, slightly rough male voice for a laconic, folksy Militech agent with a drawl (the same voice as the nomad veteran and the sardonic rockerboy)."
+  },
+  "jago-szabo": {
+   "voice": "AZURE-MULTILINGUAL-3cff3776e9",
+   "voiceName": "Florian",
+   "reason": "Cold, precise male voice with a Central European sound for a Hungarian-born accountant whose friendly manner covers a calculating mind (the same voice as the Arasaka heir and the netrunner-vendor archetype)."
   }
  }
 }
