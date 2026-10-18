@@ -958,6 +958,16 @@ function M.list()
     return rows
 end
 
+-- The NPC handles the party holds right now, with their profile keys (init.lua abandonSession, at a world unload only, never per
+-- frame): it watches them weakly through its one collect, while the world still exists, to find any that another holder keeps.
+function M.heldActors()
+    local out={}
+    for _,entry in ipairs(entries) do
+        if entry.npc then out[#out+1]={npc=entry.npc,key=entry.profileKey or entry.key} end
+    end
+    return out
+end
+
 function M.abandon(preserveTransit)
     -- Native components may already be torn down. Dropping references is enough:
     -- these DynamicEntitySystem copies are explicitly nonpersistent.

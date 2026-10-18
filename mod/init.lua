@@ -3119,12 +3119,36 @@ registerHotkey('cyberpunk_convai_manager', 'AI NPC Cyberpunk Mod: companion mana
 local worldSuspended, sessionHasState = false, false
 local fastTravelActive
 
-local function abandonSession(reason,preserveTransit)
+-- Companion handles another holder still kept at a world unload (abandonSession below). They are never released: the last
+-- reference to an NPC whose world is gone must not be dropped, because the puppet's destructor then releases its AI
+-- component, which points into the freed world (crash dumps of 18 Oct 13:14 and 13:19 and of 23 Sep: CET's finalizer ->
+-- NPCPuppet destructor -> ScriptedPuppet.aiController -> access violation). A few puppets per load, kept until the game exits.
+convaiUnloadPins = convaiUnloadPins or {}
+-- A weak-valued table of the party's handles (1..n) with their profile keys ('key1'..), or nil. Its own function, so the strong
+-- list it reads from dies with this call's frame and is not still on abandonSession's stack during the collect.
+function convaiWatchParty()
+    if type(companions.heldActors) ~= 'function' then return nil end
+    local ok, held = pcall(companions.heldActors)
+    if not ok or type(held) ~= 'table' or #held == 0 then return nil end
+    local watch = setmetatable({}, {__mode = 'v'})
+    for index, row in ipairs(held) do watch[index] = row.npc; watch['key' .. index] = row.key end
+    return watch
+end
+
+-- worldAlive: the old world still exists (the player's detach or death), so one collect here lets the engine destroy what the mod
+-- held while it can. After the world is gone (a save restored, a world that became unavailable) nothing is collected: a finalizer
+-- run then destroys a puppet of the freed world.
+local function abandonSession(reason,preserveTransit,worldAlive)
     -- Never touch NPC/player components during native world destruction.
     -- pcall cannot catch an access violation in an already unloaded component.
     -- Whatever was logged so far goes to disk first: a crash in the work below must not take the lines before it along.
     if convaiLogFlush then convaiLogFlush() end
     invalidateKnowledge(reason)
+    -- The party's own handles, watched weakly through the collect at the end (world alive only, never on fast travel).
+    local watch = (worldAlive == true and preserveTransit ~= true) and convaiWatchParty() or nil
+    -- Development probe (mod/face-test.lua): its stage keeps a companion handle (and a look-at event aimed at V) between frames.
+    local faceTest = convaiFacialPlayback and convaiFacialPlayback.faceTest
+    if faceTest and type(faceTest.abandon) == 'function' then pcall(faceTest.abandon, reason) end
     cancelAutomatic(reason, true)
     battles.reset()
     loot.reset(); lootObserver.reset(); lastAutomatic, mergeSuppressedUntil = nil, 0
@@ -3169,8 +3193,26 @@ local function abandonSession(reason,preserveTransit)
     log('Session references released: ' .. reason)
     -- Every handle the mod held is dropped above; collect them now, while the engine still owns the objects, so no Lua
     -- finalizer releases a puppet or vehicle later, in the middle of the world unload or of the next session's start. A
-    -- fast travel keeps its world, so it is left alone. Runs once per unload, never per frame.
-    if preserveTransit ~= true then pcall(collectgarbage) end
+    -- fast travel keeps its world, so it is left alone; a world already gone is left alone too (see worldAlive above).
+    -- Runs once per unload, never per frame.
+    if preserveTransit ~= true and worldAlive == true then
+        pcall(collectgarbage)
+        -- A companion handle that survived the collect is still referenced somewhere: pin it for good (see convaiUnloadPins).
+        if watch then
+            local kept = {}
+            for index = 1, 64 do
+                local npc = watch[index]
+                if npc ~= nil then
+                    convaiUnloadPins[#convaiUnloadPins + 1] = npc
+                    kept[#kept + 1] = tostring(watch['key' .. index])
+                end
+            end
+            if #kept > 0 then
+                log('Unload: ' .. #kept .. ' companion handle(s) still referenced after the collect, kept alive so no finalizer destroys them after the world is gone: '
+                    .. table.concat(kept, ', ') .. ' (pinned in total: ' .. #convaiUnloadPins .. ')')
+            end
+        end
+    end
 end
 
 registerForEvent('onInit', function()
@@ -3295,14 +3337,24 @@ registerForEvent('onInit', function()
     end)
     ObserveBefore('PlayerPuppet', 'OnDetach', function()
         worldSuspended = true
-        if not fastTravelActive then abandonSession('player detached') end
+        if not fastTravelActive then
+            -- A load (or a quit to the menu) has begun. The new V attaches seconds before the save is restored, while the old
+            -- world is still being torn down; until OnGameRestored the mod stays suspended (18 Oct 13:32 crash: a probe's kept
+            -- handle of the old Johnny was sent an AI command 4 s after this detach, from onUpdate).
+            convaiHeartbeat.restoreWait, convaiHeartbeat.restoreAttached = os.clock(), nil
+            abandonSession('player detached', false, true)
+        end
     end)
     ObserveBefore('PlayerPuppet', 'OnDeath', function()
         fastTravelActive=nil
         worldSuspended = true
-        abandonSession('player died')
+        abandonSession('player died', false, true)
     end)
     local function playerAttached()
+        if convaiHeartbeat.restoreWait then
+            convaiHeartbeat.restoreAttached = convaiHeartbeat.restoreAttached or os.clock()
+            return
+        end
         if not fastTravelActive or fastTravelActive.finished then worldSuspended=false end
     end
     ObserveAfter('PlayerPuppet', 'OnGameAttached', playerAttached)
@@ -3311,6 +3363,7 @@ registerForEvent('onInit', function()
         -- Observed on a real load in the read-only probe. This clears old
         -- transient references without writing anything into the save.
         fastTravelActive=nil
+        convaiHeartbeat.restoreWait, convaiHeartbeat.restoreAttached = nil, nil
         abandonSession('save restored')
         worldSuspended = false
     end)
@@ -3373,6 +3426,12 @@ registerForEvent('onUpdate', function(delta)
     -- later unrelated load. Expiration only drops receipts; it never restores.
     if fastTravelActive and not fastTravelActive.finished and os.time()-fastTravelActive.started>120 then
         fastTravelActive=nil; abandonSession('fast travel timed out')
+    end
+    -- A detach that no save restore followed (a new game started from the menu): two minutes after the new V attached, the mod resumes.
+    local restoreAttached = convaiHeartbeat.restoreAttached
+    if restoreAttached and os.clock() - restoreAttached > 120 then
+        convaiHeartbeat.restoreWait, convaiHeartbeat.restoreAttached = nil, nil
+        worldSuspended = false
     end
     if worldSuspended then return end
     -- One shared physics budget covers queued spawns, vehicle placement and

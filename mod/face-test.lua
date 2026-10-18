@@ -617,7 +617,11 @@ local function stageTick(context)
     if row and row.entity == stage.entity then current = row
     else for _, other in ipairs(context and context.actors or {}) do if other.entity == stage.entity then current = other end end end
     -- Pinned, she may drop out of the nearby rows while V frames the shot from further away: keep holding the same entity.
-    if not current and M.stagePinned and stage.npc and IsDefined(stage.npc) then current = {npc = stage.npc, entity = stage.entity} end
+    -- IsDefined stays true for a kept handle of a despawned copy, so the copy must also still be attached to the world.
+    if not current and M.stagePinned and stage.npc and IsDefined(stage.npc) then
+        local attached, yes = pcall(function() return stage.npc:IsAttached() end)
+        if attached and yes == true then current = {npc = stage.npc, entity = stage.entity} end
+    end
     if not current then endStage(stage, 'lost'); log('stage-lost', {who = stage.who}); return end
     -- V moved (a collision pushed V, V walked or was teleported): stop instead of following V's new position.
     local player = Game.GetPlayer()
@@ -781,6 +785,22 @@ commands['face-stage'] = function(rest, context)
     M.stage = stage
     log('stage', {who = word, hold = hold, spawned = stage.spawnedHere == true})
     return true, {staging = word, hold = hold, spawnedHere = stage.spawnedHere == true}
+end
+
+-- A world unload (mod/init.lua abandonSession: a load, a detach, a death). The stage's companion handle and its look-at event
+-- (aimed at the old V) must not outlive the world, and the stage must not keep sending AI commands to a copy of the old world
+-- (18 Oct 13:32 crash: SendCommand on the pinned old Johnny from onUpdate during a load). Only references are dropped here, no
+-- native call: the copy is being destroyed with its world, and so are its time dilation and look-at.
+function M.abandon(reason)
+    local stage = M.stage
+    if stage then
+        if stage.state ~= 'released' and stage.state ~= 'lost' and stage.state ~= 'failed' then log('stage-abandoned', {who = stage.who, reason = reason}) end
+        stage.npc, stage.lookEvent, stage.frozen = nil, nil, false
+        stage.state = 'released'
+    end
+    M.stage, M.play, M.cue, M.run = nil, nil, nil, nil
+    local companions = convaiCompanions
+    if type(companions) == 'table' then companions.devQuiet = nil end -- keyed by the old copies' serials
 end
 
 local function step(run)
