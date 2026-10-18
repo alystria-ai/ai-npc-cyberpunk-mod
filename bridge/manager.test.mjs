@@ -1452,7 +1452,7 @@ const memoryFixture = `
   end
   local function memoryWrites()
     local count = 0
-    for _, write in ipairs(fileWrites) do if write.path == 'runtime/memory-command.json.tmp' then count = count + 1 end end
+    for _, write in ipairs(fileWrites) do if write.path == 'runtime/memory-command.json' then count = count + 1 end end
     return count
   end
   local function memoryRequest()
@@ -3469,7 +3469,7 @@ test('backing out of the memory picker or cancelling a Forget confirmation says 
     local removed, originalRemove = {}, os.remove
     os.remove = function(path) removed[#removed + 1] = path; return originalRemove(path) end
     local function nothingDeleted()
-      -- Opening Settings sends the prepared-voices measure request (its command file swaps through os.remove); that is not stored memory.
+      -- Settings saved or other exchange files may still swap through os.remove (a prepared-voices request used to); that is not stored memory.
       local touched = 0
       for _, path in ipairs(removed) do if not tostring(path):find('prepared-voices', 1, true) then touched = touched + 1 end end
       assert(memoryWrites() == 0 and memoryRequest() == nil and touched == 0, 'a back-out or cancel touched stored memory')
@@ -3743,35 +3743,96 @@ test('failed command publication shows failure, does not retry and leaves an ear
     publishMemory(1, nil, 'ready', memoryResult(command, 'succeeded')); reloadMemory()
     assert(invoke('memory:forget-all').ok)
     local failing = token()
-    local rename = os.rename
-    os.rename = function(from, to)
-      if from == 'runtime/memory-command.json.tmp' then return nil end
-      return rename(from, to)
+    local open = io.open
+    io.open = function(path, mode)
+      if path == 'runtime/memory-command.json' and mode == 'wb' then return nil end
+      return open(path, mode)
     end
     assert(not invoke('memory:confirm:' .. failing).ok)
-    os.rename = rename
+    io.open = open
     for _ = 1, 10 do mcm.update(player, false) end
     assert(files['runtime/memory-command.json'] == raw and memoryRequest().id == command.id)
     assert(not files['runtime/memory-command.json.tmp'] and not files['runtime/memory-command.json.previous'])
-    assert(not manager.confirmMemoryClear(failing) and memoryWrites() == 2)
+    assert(not manager.confirmMemoryClear(failing) and memoryWrites() == 1)
   `);
 });
 
-test('memory recovery reads an interrupted publication backup and blocks a corrupt previous request', () => {
+test('memory recovery reads the saved request, ignores an empty or cut-short file, and blocks a request that parses but is not valid', () => {
   run(`${managerFixture}${memoryFixture}
     publishMemory(1, nil)
     local prior = {version = 1, id = 'saved-ui-session:4', action = 'clear', scope = 'all', issuedAt = memoryClock * 1000.0}
     jsonFixtures.previous = prior
-    files['runtime/memory-command.json.previous'] = 'previous'
+    files['runtime/memory-command.json'] = 'previous'
     manager.configure(api, profiles)
     assert(manager.snapshot(player).memory.command.id == prior.id)
     assert(not manager.beginMemoryClear('all') and memoryWrites() == 0)
-    files['runtime/memory-command.json.previous'] = 'corrupt'
+    -- The shipped placeholder is empty, and a write cut short does not parse: neither is a request, and neither blocks the page.
+    -- (The old backup name is not read either: nothing writes it any more.)
+    for _, content in ipairs({'', '   ', 'truncated'}) do
+      files['runtime/memory-command.json'] = content
+      files['runtime/memory-command.json.previous'] = 'previous'
+      manager = (function() ${managerSource} end)()
+      manager.configure(api, profiles)
+      local state = manager.snapshot(player).memory
+      assert(state.command == nil and state.state == 'ready' and not tostring(state.feedback):find('could not be read', 1, true), content)
+      assert(manager.beginMemoryClear('all'), content)
+    end
+    jsonFixtures.invalid = {version = 1, id = 'x', action = 'clear', scope = 'nobody'}
+    files['runtime/memory-command.json'] = 'invalid'
     manager = (function() ${managerSource} end)()
     manager.configure(api, profiles)
     local state = manager.snapshot(player).memory
     assert(state.state == 'unavailable' and state.feedback:find('could not be read', 1, true))
     assert(not manager.beginMemoryClear('all') and memoryWrites() == 0)
+  `);
+});
+
+test('every command file is written in place: no temporary file, backup, remove or rename, and no key in any of them (Mod Organizer 2 only keeps writes to a file that exists)', () => {
+  run(`${managerFixture}${memoryFixture}
+    publishMemory(1, nil)
+    manager.configure(api, profiles)
+    local removed, renamed, opened = {}, {}, {}
+    -- The player's saved settings keep their own protected write (a different class of file): only those paths are exempt.
+    local function exempt(path) return tostring(path):find('runtime/settings.json', 1, true) == 1 end
+    os.remove = function(path) if not exempt(path) then removed[#removed + 1] = path end return true end
+    os.rename = function(from) if not exempt(from) then renamed[#renamed + 1] = from end return true end
+    local open = io.open
+    io.open = function(path, mode) if mode == 'wb' and not exempt(path) then opened[#opened + 1] = path end return open(path, mode) end
+    assert(manager.pasteOwnKey() and manager.removeOwnKey())
+    assert(manager.pasteMistralKey() and manager.removeMistralKey())
+    assert(manager.pasteInworldKey() and manager.removeInworldKey())
+    assert(manager.beginMemoryClear('all'))
+    assert(manager.confirmMemoryClear(manager.snapshot(player).memory.confirmation.token))
+    assert(#removed == 0 and #renamed == 0, 'a command file was removed or renamed: ' .. table.concat(removed, ',') .. '|' .. table.concat(renamed, ','))
+    local seen = {}
+    for _, path in ipairs(opened) do
+      assert(not path:find('.tmp', 1, true) and not path:find('.previous', 1, true), 'a side file was opened: ' .. path)
+      seen[path] = (seen[path] or 0) + 1
+    end
+    for _, path in ipairs({'own-key-command', 'mistral-key-command', 'inworld-key-command'}) do
+      assert(seen['runtime/' .. path .. '.json'] == 2, path)
+      -- Only the request: the key itself never leaves the clipboard for any file the game writes.
+      local command = jsonFixtures[files['runtime/' .. path .. '.json']]
+      local names = {}
+      for name in pairs(command) do names[#names + 1] = name end
+      table.sort(names)
+      assert(table.concat(names, ',') == 'action,id,issuedAt,version', table.concat(names, ','))
+    end
+    assert(seen['runtime/memory-command.json'] == 1 and memoryRequest().scope == 'all')
+  `);
+});
+
+test('an empty status file is no status: every status reader behaves as for a missing file', () => {
+  run(`${managerFixture}${memoryFixture}
+    for _, name in ipairs({'memory-status', 'own-key-state', 'mistral-state', 'local-voice-state', 'paid-tier-state'}) do
+      files['runtime/' .. name .. '.json'] = ''
+    end
+    manager.configure(api, profiles)
+    local state = manager.snapshot(player)
+    assert(state.memory.state == 'unavailable' and state.memory.command == nil)
+    local key = manager.ownKey()
+    assert(key.saved == false and key.active == 'shared' and key.pending == false and key.result == nil)
+    for _ = 1, 3 do manager.snapshot(player) end
   `);
 });
 

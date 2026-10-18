@@ -50,6 +50,13 @@ const resumeInput = (value, sequence = value.ledgerSequence) => ({authoritative:
 async function defaultRead(path) {
   try { return await readFile(path, 'utf8'); } catch (cause) { if (cause.code === 'ENOENT') return null; throw cause; }
 }
+// An empty file is the placeholder the Scripts zip ships under Mod Organizer 2 (a new file would land in its Overwrite
+// folder), so it means "nothing yet", exactly as a missing file does. Without this, an empty activation record or state
+// file would read as corruption.
+const blankAsMissing = read => async path => {
+  const raw = await read(path);
+  return typeof raw === 'string' && raw.trim() === '' ? null : raw;
+};
 async function atomicWrite(path, raw) {
   await mkdir(dirname(path), {recursive: true});
   const temp = `${path}.${opaque()}.tmp`;
@@ -191,7 +198,7 @@ export class KnowledgeService {
     if (typeof runtimeDir !== 'string' || typeof now !== 'function' || heartbeatMs < 500 || heartbeatMs > 10000
         || commandTimeoutMs < 100 || commandTimeoutMs > 10000) throw error('INVALID_CONFIGURATION');
     this.runtimeDir = resolve(runtimeDir); this.pack = clone(pack); this.ledger = ledger; this.now = now;
-    this.io = {read: io.read ?? defaultRead, write: io.write ?? atomicWrite, wait: io.wait ?? sleep};
+    this.io = {read: blankAsMissing(io.read ?? defaultRead), write: io.write ?? atomicWrite, wait: io.wait ?? sleep};
     this.statePath = resolve(this.runtimeDir, 'knowledge-state.json');
     this.commandPath = resolve(this.runtimeDir, 'knowledge-command.json');
     this.bindingPath = resolve(this.runtimeDir, 'knowledge-binding.json');

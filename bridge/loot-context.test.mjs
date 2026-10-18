@@ -7,7 +7,7 @@ import {parseReaction, battleTrigger, reactionLeaseValid, reactionLeaseProblem} 
 import {parseInput} from './protocol.mjs';
 import {conversationContext} from './quest-context.mjs';
 import {inputIdentity, parsedInputIdentity} from './group-prefetch.mjs';
-import {fileIdentity, RequestFileOwner} from './request-ownership.mjs';
+import {fileIdentity, RequestFileOwner, requestFileEmpty} from './request-ownership.mjs';
 
 const recipient = {entity: '100ULL', profileKey: 'judy-alvarez'};
 function pickup() {
@@ -350,7 +350,7 @@ function bridgeFixture() {
   const input = automatic(pickup(), Date.now() + 60000);
   const state = {accepted: [], queue: [], reads: 0, errors: [], delays: [], actionRevocations: 0,
     lease: {requestId: input.requestId, valid: true, updated: Date.now()}};
-  const context = vm.createContext({parseInput, inputIdentity, parsedInputIdentity, fileIdentity, RequestFileOwner, reactionLeaseProblem, AbortController,
+  const context = vm.createContext({parseInput, inputIdentity, parsedInputIdentity, fileIdentity, RequestFileOwner, requestFileEmpty, reactionLeaseProblem, AbortController,
     companionActions: {revoke: async () => { state.actionRevocations++; }},
     rawInput: JSON.stringify(input), record: request => state.accepted.push(request),
     readLease: async () => {
@@ -362,7 +362,7 @@ function bridgeFixture() {
     setTimeout: (done, delay) => { state.delays.push(delay); done(); },
     console: {error: (...args) => { state.errors.push(args); throw Error(args.join(' ')); }}});
   vm.runInContext(`
-    let polling=false,stopped=false,active=null,observed='',observedIdentity=null,lastAcceptedIdentity='',voiceRouteReservation=false;
+    let polling=false,stopped=false,active=null,observed='',observedIdentity=null,invalidSeen='',lastAcceptedIdentity='',voiceRouteReservation=false;
     let relationshipRouteReservation=false;
     const inputPath='input',runtime='runtime',resolve=(...parts)=>parts.join('/');
     const stat=async()=>({mtimeMs:1,size:rawInput.length});

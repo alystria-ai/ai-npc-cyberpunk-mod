@@ -1009,6 +1009,28 @@ assert(#stats.driveCalls==1 and stats.driveCalls[1].serial==1 and stats.driveCal
 assert(not convaiGameplayActions.inspect().pending)
 `));
 
+// Mod Organizer 2 loses a file the game creates, renames over or deletes in its own folder: the turn path's exchange files
+// ship as placeholders and are only ever rewritten in place; "no request" is the empty file.
+test('the turn path rewrites its exchange files in place: no temp file, rename or remove, and a cancelled request is an empty file', () => run(`
+local renames, removes = {}, {}
+local realRename, realRemove = os.rename, os.remove
+os.rename = function(from, to) renames[#renames + 1] = from .. ' -> ' .. to; return realRename(from, to) end
+os.remove = function(path) removes[#removes + 1] = path; return realRemove(path) end
+events.onInit(); events.onUpdate(0); privateConversation()
+local input = submitText()
+assert(input.text and files['runtime/last-input.json'] ~= '')
+for _ = 1, 20 do clock = clock + 1; events.onUpdate(0.1) end
+local mine = {'last-input.json', 'reaction-lease.json', 'battle-cancellations.json', 'group-prefetch.json',
+    'conversation-prewarm.json', 'speech-state.json', 'continuous-control.json'}
+local function mentions(path) for _, name in ipairs(mine) do if path:find('runtime/' .. name, 1, true) then return true end end end
+for _, row in ipairs(stats.io) do assert(not (mentions(row.path) and row.path:find('.tmp', 1, true)), 'temp file ' .. row.path) end
+for _, row in ipairs(renames) do assert(not mentions(row), 'rename ' .. row) end
+for _, path in ipairs(removes) do assert(not mentions(path), 'remove ' .. path) end
+local opened = {}
+for _, row in ipairs(stats.io) do if row.mode == 'wb' then opened[row.path] = true end end
+assert(opened['runtime/last-input.json'] and opened['runtime/conversation-prewarm.json'] and opened['runtime/group-prefetch.json'])
+`));
+
 const drivePreparingNotice = (developer) => `
 events.onInit(); events.onUpdate(0); privateConversation()
 stats.developer = ${developer}
@@ -1077,7 +1099,7 @@ test('a message whose request cannot be written is logged and the player is told
 local realOpen = io.open
 local failing = true
 io.open = function(path, mode)
-    if failing and path == 'runtime/last-input.json.tmp' then return nil end
+    if failing and path == 'runtime/last-input.json' and mode == 'wb' then return nil end
     return realOpen(path, mode)
 end
 openBox(); player.composerOpen = false; player.submission = 'Are you there?'; events.onUpdate(0.1)

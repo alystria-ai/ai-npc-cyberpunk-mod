@@ -113,17 +113,19 @@ local function updateMemory()
     -- erase or retry a cloud clear whose outcome is still unknown.
     if not memoryLoaded then
         memoryLoaded = true
-        local target = 'runtime/memory-command.json'
-        local file = io.open(target, 'rb')
-        if not file then target = target .. '.previous'; file = io.open(target, 'rb') end
+        local file = io.open('runtime/memory-command.json', 'rb')
         if file then
             local raw = file:read('*a'); file:close()
+            -- The shipped empty placeholder, or a write cut short, is no request. Only a file that reads as a request
+            -- but is not a valid one blocks the page.
             local ok, previous = pcall(json.decode, raw)
-            if ok and validMemoryCommand(previous) then
-                memorySequence = tonumber(previous.id:match(':(%d+)$')) or 0
-                memoryCommand = {id = previous.id, scope = previous.scope, profileKey = previous.profileKey,
-                    issuedAt = previous.issuedAt, state = 'pending'}
-            else memoryRecoveryBlocked = true end
+            if ok and type(previous) == 'table' then
+                if validMemoryCommand(previous) then
+                    memorySequence = tonumber(previous.id:match(':(%d+)$')) or 0
+                    memoryCommand = {id = previous.id, scope = previous.scope, profileKey = previous.profileKey,
+                        issuedAt = previous.issuedAt, state = 'pending'}
+                else memoryRecoveryBlocked = true end
+            end
         end
     end
     local state = readJSON('runtime/memory-status.json')
@@ -249,27 +251,17 @@ local function memorySessionUUID()
     return uuid
 end
 
+-- The command files are shipped as empty placeholders and written in place: under Mod Organizer 2 a new file (a temporary one,
+-- or the target re-created after a remove) lands in its Overwrite folder and the service never sees it. They are a few
+-- hundred bytes, so a write that dies half-way leaves a file the service reads as no command, like the empty placeholder.
 local function writeCommandFile(target, value)
     local encoded, payload = pcall(json.encode, value)
     if not encoded then return false end
-    local temporary, backup = target .. '.tmp', target .. '.previous'
-    local file = io.open(temporary, 'wb')
+    local file = io.open(target, 'wb')
     if not file then return false end
     local written = file:write(payload)
     local closed = file:close()
-    if not written or not closed then os.remove(temporary); return false end
-    local existing = io.open(target, 'rb')
-    if existing then
-        existing:close(); os.remove(backup)
-        if not os.rename(target, backup) then os.remove(temporary); return false end
-    end
-    if not os.rename(temporary, target) then
-        if existing then os.rename(backup, target) end
-        os.remove(temporary)
-        return false
-    end
-    os.remove(backup)
-    return true
+    return written and closed and true or false
 end
 
 local function writeMemoryCommand(value) return writeCommandFile('runtime/memory-command.json', value) end

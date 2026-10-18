@@ -179,3 +179,50 @@ test('snapshot retains current generation for dynamic facts and rejects a race w
  assert(paused.identity.status=='unavailable' and paused.identity.userId==nil)
  state.faulted=true;assert(service.snapshot().reason=='native-world-unavailable')
 `));
+
+test('empty command and binding files are the same as missing ones, not corruption', () => run(`
+ issue();service.update();command=nil
+ local empty=options();empty.read=function() return '' end
+ empty.decode=function() error('an empty file must not reach the decoder') end
+ local blank=m.new(empty)
+ local before=writes
+ assert(blank.update() and writes==before+1 and published.ack==nil)
+ assert(applies==1,'empty command applied something')
+ assert(blank.capture().reason=='bridge-binding-unavailable')
+ assert(blank.snapshot().status=='ready' and blank.snapshot().identity.reason=='bridge-binding-unavailable')
+`));
+
+test('the Lua writer rewrites the state file in place: no temp file, no remove, no rename', () => run(`
+ local files,created={['runtime/knowledge-state.json']=''},{}
+ io.open=function(path,mode)
+  assert(not path:find('.tmp',1,true),'temp file '..path)
+  if mode=='rb' then
+   if not files[path] then return nil end
+   return {read=function() return files[path] end,close=function() return true end}
+  end
+  assert(mode=='wb');if not files[path] then created[#created+1]=path end
+  files[path]=''
+  return {write=function(_,raw) files[path]=files[path]..raw;return true end,close=function() return true end}
+ end
+ os.remove=function() error('removed a file') end
+ os.rename=function() error('renamed a file') end
+ local plain=options();plain.read=nil;plain.write=nil;plain.runtimeDir='runtime'
+ local fresh=m.new(plain)
+ assert(fresh.update())
+ assert(#files['runtime/knowledge-state.json']>0 and #created==0,'the state file must be rewritten, not created')
+ assert(published.status=='ready' or published.status=='unavailable')
+ -- A failed open still reports the failure and publishes an unavailable state.
+ io.open=function() return nil end
+ now=now+600;assert(not fresh.update() and fresh.status().reason=='state-publication-failed')
+`));
+
+test('the knowledge exchange and trace Lua writers never delete, rename or create a temp file', () => {
+  for (const name of ['knowledge-state.lua', 'knowledge-parts.lua', 'movement-log.lua']) {
+    const code = readFileSync(new URL(`../mod/${name}`, import.meta.url), 'utf8').split('\n')
+      .filter(line => !line.trim().startsWith('--')).join('\n');
+    assert.doesNotMatch(code, /os\.(remove|rename)|\.tmp/, name);
+  }
+  const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+  const delivery = init.slice(init.indexOf('local function publishPhoneDelivery'), init.indexOf('microphone.captureKnowledge'));
+  assert.doesNotMatch(delivery, /os\.(remove|rename)|\.tmp/);
+});

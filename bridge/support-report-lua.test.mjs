@@ -101,7 +101,7 @@ os.date = function(format)
 end
 function advance(seconds) clock = clock + seconds; cpu = cpu + seconds end
 
-files, removed, readLog, blocked, reportsFolder = {}, {}, {}, {}, true
+files, removed, readLog, blocked, reportsFolder, written = {}, {}, {}, {}, true, {}
 local forbidden = {'convai%-key', 'token', 'huggingface', 'kaggle', '%.wav$', 'last%-input', 'phone%-chat', 'chat%-history', 'memory%-command'}
 local function check(path)
   for _, pattern in ipairs(forbidden) do
@@ -129,7 +129,7 @@ io.open = function(path, mode)
   if path:sub(1, 15) == 'runtime/reports' and not reportsFolder then return nil end
   local buffer = {}
   return {write = function(self, text) buffer[#buffer + 1] = text; return self end,
-    close = function() files[path] = table.concat(buffer); return true end}
+    close = function() files[path] = table.concat(buffer); written[#written + 1] = path; return true end}
 end
 dir = function(folder)
   if folder == 'runtime/reports' and not reportsFolder then error('no such directory') end
@@ -141,6 +141,8 @@ dir = function(folder)
   return list
 end
 os.remove = function(path) removed[#removed + 1] = path; files[path] = nil; return true end
+-- Windows cannot rename over an existing file, and a rename is a new file under Mod Organizer 2: the module must never rename.
+os.rename = function(from, to) error('os.rename ' .. from .. ' -> ' .. to) end
 
 function put(path, value)
   files[path] = type(value) == 'string' and value or json.encode(value)
@@ -261,7 +263,7 @@ test('a building service gets longer to finish; a silent one gets a short Lua re
 
 test('service stopped: a short report is written at once, says why, and no request is sent', () => run(`
   put('runtime/bridge-service.json', {state = 'stopped', updated = ms(), since = ms(-5)})
-  reportsFolder = false
+  put('runtime/convai-report-lua.txt', '')
   put('runtime/probe.log', '2026-10-05T10:00:00Z Game adapter initialized\\n')
   put('runtime/mcm.log', '2026-10-05T10:00:01Z Companion Manager registered\\n')
   put('AiNpcCyberpunkMod.log', "[2026-10-05 10:00:00] Type 'MovePolicies' not found.\\n")
@@ -275,10 +277,11 @@ test('service stopped: a short report is written at once, says why, and no reque
   local status = s.status()
   assert(status.phase == 'ready' and status.mode == 'lua' and status.reason == 'service-stopped')
   local name = status.fileName
-  assert(name:match('^convai%-report%-20261005%-%d+%-lua%.txt$'))
+  assert(name == 'convai-report-lua.txt', 'one fixed name, no time stamp')
   local text = files['runtime/' .. name]
-  assert(text, 'with no reports folder the file lands in runtime/ itself')
+  assert(text and text ~= '', 'the shipped empty file was filled in place')
   assert(status.path:find('runtime\\\\' .. name, 1, true) and status.path:find('the game folder', 1, true))
+  assert(#removed == 0 and #written == 1 and written[1] == 'runtime/convai-report-lua.txt', 'one in-place write, nothing removed or renamed')
   for _, expected in ipairs({'short report', 'the conversation service was not running', '== versions ==', '== service status ==',
     '== settings ==', '== party ==', 'bob-sagan  state=following  name=Bob Sagan', 'conversationDisabled', 'judy-alvarez',
     '== log: runtime/probe.log ==', 'Game adapter initialized', '== log: runtime/mcm.log ==', 'Companion Manager registered',
@@ -321,48 +324,84 @@ test('the Lua report never reads credential, audio or conversation files and rem
   for _, path in ipairs(readLog) do check(path) end
 `));
 
-test('Lua reports go to runtime/reports when it exists, and only the newest five are kept', () => run(`
+test('the short report is one fixed file in runtime/, rewritten in place: no new name, no rename, no removal, no pruning', () => run(`
   put('runtime/bridge-service.json', {state = 'stopped', updated = ms(), since = ms(-5)})
-  put('runtime/support-paths.json', {version = 1, runtime = 'E:\\\\Game\\\\mod\\\\runtime', reports = 'E:\\\\Game\\\\mod\\\\runtime\\\\reports', logs = {}})
-  for index = 1, 4 do put('runtime/reports/convai-report-2026100' .. index .. '-100000.zip', 'old') end
+  put('runtime/support-paths.json', {version = 1, runtime = 'E:\\\\Game\\\\mod\\\\runtime', reports = 'C:\\\\Users\\\\V\\\\AppData\\\\Local\\\\AiNpcCyberpunkMod\\\\reports', logs = {}})
+  put('runtime/convai-report-lua.txt', '')
+  -- Reports of earlier versions and the zip folder are not the module's to touch.
+  for index = 1, 7 do put('runtime/reports/convai-report-2026100' .. index .. '-100000.zip', 'old') end
   put('runtime/reports/convai-report-20261005-110000-lua.txt', 'old')
+  put('runtime/convai-report-20260101-000000-lua.txt', 'old stray')
   put('runtime/reports/notes.txt', 'keep me')
-  put('runtime/convai-report-20260101-000000.zip', 'old stray')
+  local before = 0
+  for _ in pairs(files) do before = before + 1 end
   local s = newSupport()
   for _ = 1, 3 do
     assert(s.request())
-    assert(s.status().path:find('E:\\\\Game\\\\mod\\\\runtime\\\\reports\\\\', 1, true), s.status().path)
+    assert(s.status().fileName == 'convai-report-lua.txt')
+    assert(s.status().path == 'E:\\\\Game\\\\mod\\\\runtime\\\\convai-report-lua.txt', s.status().path)
   end
-  local kept = {}
-  for path in pairs(files) do if path:match('^runtime/reports/convai%-report%-') then kept[#kept + 1] = path end end
-  assert(#kept == 5, #kept .. ' kept')
-  assert(files['runtime/reports/notes.txt'] == 'keep me', 'unrelated files are untouched')
-  assert(not files['runtime/reports/convai-report-20261001-100000.zip'] and not files['runtime/reports/convai-report-20261002-100000.zip'])
-  assert(files['runtime/convai-report-20260101-000000.zip'], 'the other folder is pruned only when a report goes there')
-  -- A reports folder that cannot be written falls back to runtime/.
-  blocked['runtime/reports/'] = true
-  assert(s.request() and s.status().path:find('E:\\\\Game\\\\mod\\\\runtime\\\\convai-report-', 1, true), s.status().path)
+  assert(#written == 3, 'three requests, three writes')
+  for _, path in ipairs(written) do assert(path == 'runtime/convai-report-lua.txt', 'only the fixed file is written: ' .. path) end
+  assert(#removed == 0, 'nothing is removed, not even an old report')
+  local after = 0
+  for _ in pairs(files) do after = after + 1 end
+  assert(after == before, 'no file appears under any other name')
+  assert(files['runtime/reports/convai-report-20261001-100000.zip'] and files['runtime/convai-report-20260101-000000-lua.txt']
+    and files['runtime/reports/notes.txt'] == 'keep me', 'older files are left alone')
+  assert(files['runtime/convai-report-lua.txt']:find('short report', 1, true))
+  -- Written without the shipped placeholder it is simply created (a development folder); a folder that cannot be written fails.
+  files['runtime/convai-report-lua.txt'] = nil
+  assert(s.request() and files['runtime/convai-report-lua.txt'])
   blocked['runtime/'] = true
   local failed, why = s.request()
   assert(not failed and s.status().phase == 'failed' and why:find('could not be created', 1, true))
+  assert(#removed == 0)
+`));
+
+test('empty exchange files read as missing: no result, no published paths, no request to answer', () => run(`
+  put('runtime/knowledge-status.json', {version = 1, updated = ms()})
+  put('runtime/report-request.json', '')
+  put('runtime/report-result.json', '')
+  put('runtime/support-paths.json', '')
+  put('runtime/clipboard-request.json', '')
+  local s = newSupport()
+  local none = s.locations()
+  assert(none.known == false and none.reports == '%LOCALAPPDATA%\\\\AiNpcCyberpunkMod\\\\reports', 'an empty support-paths.json is no published location')
+  assert(s.request())
+  advance(1); s.update(true)
+  assert(s.status().phase == 'working', 'an empty report-result.json is no answer yet')
+  assert(files['runtime/report-request.json'] ~= '' and json.decode(files['runtime/report-request.json']).version == 1, 'the request overwrote the empty file')
+  advance(10); s.update(true)
+  assert(s.status().phase == 'ready' and s.status().reason == 'no-response', 'no answer: the short report')
+  assert(#removed == 0)
+  -- Copy path writes over the empty placeholder, in place.
+  local ok = s.copyPath()
+  assert(ok and json.decode(files['runtime/clipboard-request.json']).text == s.status().path)
+  assert(#removed == 0)
 `));
 
 test('log locations: exact paths from the service, derived paths from the launcher status, and honest placeholders otherwise', () => run(`
   local none = newSupport().locations()
-  assert(none.known == false and none.launcher:find('the game folder\\\\red4ext\\\\plugins\\\\CyberpunkConvaiLauncher\\\\launcher.log', 1, true))
+  assert(none.known == false and none.launcher:find('the game folder\\\\red4ext\\\\plugins\\\\AiNpcCyberpunkMod\\\\launcher.log', 1, true))
+  assert(not none.launcher:find('CyberpunkConvaiLauncher', 1, true))
   assert(none.mod:find('the game folder\\\\bin\\\\x64\\\\plugins\\\\cyber_engine_tweaks\\\\mods\\\\AiNpcCyberpunkMod\\\\runtime', 1, true))
   assert(none.redscript:find('r6\\\\logs\\\\redscript_rCURRENT.log', 1, true) and none.red4ext:find('red4ext\\\\logs', 1, true))
+  -- The data and the reports now live outside the game folder; before the service says where, the page names the usual place.
+  assert(none.bridge == '%LOCALAPPDATA%\\\\AiNpcCyberpunkMod\\\\data', none.bridge)
+  assert(none.reports == '%LOCALAPPDATA%\\\\AiNpcCyberpunkMod\\\\reports', none.reports)
   put('runtime/bridge-service.json', {state = 'failed', updated = ms(), gameRoot = 'D:\\\\Games\\\\Cyberpunk 2077', stateDirectory = 'D:\\\\Mod\\\\runtime'})
   local derived = newSupport().locations()
   assert(derived.known and derived.bridge == 'D:\\\\Mod\\\\runtime')
-  assert(derived.launcher == 'D:\\\\Games\\\\Cyberpunk 2077\\\\red4ext\\\\plugins\\\\CyberpunkConvaiLauncher\\\\launcher.log')
+  assert(derived.launcher == 'D:\\\\Games\\\\Cyberpunk 2077\\\\red4ext\\\\plugins\\\\AiNpcCyberpunkMod\\\\launcher.log')
   assert(derived.cet == 'D:\\\\Games\\\\Cyberpunk 2077\\\\bin\\\\x64\\\\plugins\\\\cyber_engine_tweaks')
-  put('runtime/support-paths.json', {version = 1, gameRoot = 'E:\\\\G', runtime = 'E:\\\\G\\\\mod\\\\runtime', reports = 'E:\\\\G\\\\mod\\\\runtime\\\\reports',
+  assert(derived.reports == '%LOCALAPPDATA%\\\\AiNpcCyberpunkMod\\\\reports')
+  put('runtime/support-paths.json', {version = 1, gameRoot = 'E:\\\\G', runtime = 'E:\\\\G\\\\mod\\\\runtime', reports = 'C:\\\\Users\\\\V\\\\AppData\\\\Local\\\\AiNpcCyberpunkMod\\\\reports',
     stateDirectory = 'E:\\\\P\\\\runtime', logs = {probe = {path = 'E:\\\\G\\\\mod\\\\runtime\\\\probe.log'},
       ['bridge-stderr'] = {path = 'E:\\\\P\\\\runtime\\\\logs\\\\bridge.stderr.log'}, red4ext = {path = 'E:\\\\G\\\\red4ext\\\\logs\\\\red4ext-1.log'}}})
   local exact = newSupport().locations()
   assert(exact.mod == 'E:\\\\G\\\\mod\\\\runtime' and exact.bridge == 'E:\\\\P\\\\runtime\\\\logs' and exact.red4ext == 'E:\\\\G\\\\red4ext\\\\logs')
-  assert(exact.reports == 'E:\\\\G\\\\mod\\\\runtime\\\\reports')
+  assert(exact.reports == 'C:\\\\Users\\\\V\\\\AppData\\\\Local\\\\AiNpcCyberpunkMod\\\\reports', 'the service says the reports are outside the game folder')
 `));
 
 test('Copy path needs a report, asks the service and tries the game clipboard from the update, and never raises', () => run(`
@@ -391,4 +430,15 @@ test('Copy path needs a report, asks the service and tries the game clipboard fr
   ok, message = s.copyPath()
   assert(not ok and message:find('clipboard is not available', 1, true))
   io.open = realOpen
+`));
+
+test('empty status files, as the install ships them, read as no status in the locations and the service state', () => run(`
+  for _, name in ipairs({'bridge-service', 'bridge-status', 'knowledge-status', 'local-voice-state', 'party-connection-state', 'support-paths'}) do
+    put('runtime/' .. name .. '.json', '')
+  end
+  local support = newSupport()
+  local where = support.locations()
+  assert(where.known == false, 'an empty bridge-service.json or support-paths.json is not a source of paths')
+  assert(convaiServiceStatus.unavailable() == nil and convaiServiceStatus.notice() == nil)
+  assert(type(support.serviceState()) == 'string')
 `));

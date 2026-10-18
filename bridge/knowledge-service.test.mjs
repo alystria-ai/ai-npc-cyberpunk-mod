@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp, readFile, writeFile, mkdir, rm} from 'node:fs/promises';
+import {mkdtemp, readFile, writeFile, mkdir, readdir, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join, basename, dirname} from 'node:path';
 import {readFileSync} from 'node:fs';
@@ -979,4 +979,25 @@ test('a successful cursor CAS immediately followed by a save is recognized from 
   assert.equal(recorded.status, 'recorded', JSON.stringify(recorded)); assert.equal(recorded.sendAllowed, true);
   assert.equal(f.native.ledgerSequence, 1); assert.equal(f.calls.filter(c => c.kind === 'advance').length, 1);
   assert.equal(f.service.isCurrent(guard), true);
+});
+
+test('empty exchange files (the shipped placeholders) read as missing ones, and the default writer never leaves or removes a file', async t => {
+  const names = ['knowledge-activation.json', 'knowledge-state.json', 'knowledge-binding.json', 'knowledge-command.json',
+    'knowledge-fact-index.json', 'knowledge-provider-users.json', 'knowledge-provider-users-allocation.json'];
+  const outcome = async placeholders => {
+    const root = await mkdtemp(join(tmpdir(), 'cyberpunk-knowledge-placeholders-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    if (placeholders) for (const name of names) await writeFile(join(root, name), '');
+    const service = await KnowledgeService.open({runtimeDir: root, ledgerPath: join(root, 'ledger.json'), pack, restMemoryEnabled: true});
+    const result = {failure: service.failure ?? null, journal: service.journal, pool: service.restPoolStatus()};
+    await service.refresh();
+    result.reason = service.status().reason;
+    await service.close();
+    return {result, files: (await readdir(root)).sort()};
+  };
+  const missing = await outcome(false), empty = await outcome(true);
+  assert.equal(empty.result.failure, null, 'an empty activation record is not corruption');
+  assert.deepEqual(empty.result, missing.result);
+  for (const name of names) assert.ok(empty.files.includes(name), `${name} must survive`);
+  assert.equal(empty.files.filter(name => name.endsWith('.tmp')).length, 0, 'a temp file was left behind');
 });

@@ -30,6 +30,7 @@ import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {childEnv, sha256File} from './lib/files.mjs';
+import {loadRuntimeExchange} from './lib/runtime-exchange.mjs';
 
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const argv = process.argv.slice(2);
@@ -301,6 +302,9 @@ async function main() {
     // A clean install has no folder under the mod's first name, and the first start finds no old installation to move.
     check('no old-name folders on a clean install', summary.legacy === null
       && !existsSync(join(plugins, 'CyberpunkConvai')) && !existsSync(join(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai')), JSON.stringify(summary.legacy));
+    // Mod Organizer 2: the files the game and the service exchange exist from the start, and so does launcher.log, so nothing creates them new.
+    const placeholders = (await loadRuntimeExchange(project)).exchange.filter(name => !existsSync(join(mod, 'runtime', name)));
+    check('runtime/ exchange placeholders and launcher.log are installed', placeholders.length === 0 && existsSync(join(plugin, 'launcher.log')), placeholders.slice(0, 8).join(', '));
     const nativeDll = join(plugins, 'AiNpcCyberpunkModNative/CyberpunkConvaiNative.dll');
     const nativeOff = join(mod, 'runtime/native-off.txt');
     const release = JSON.parse(await readFile(join(app, 'release.json'), 'utf8'));

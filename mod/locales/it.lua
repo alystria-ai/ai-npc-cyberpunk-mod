@@ -485,7 +485,6 @@ return {
     ["Your player identity stays the same. Matching Phone Chat messages and drafts are also cleared."] = "La tua identità di giocatore resta invariata. Vengono cancellati anche i messaggi e le bozze corrispondenti della Chat del telefono.",
     ["all characters you have talked to"] = "tutti i personaggi con cui hai parlato",
     ["the game folder"] = "la cartella del gioco",
-    ["the runtime folder of the mod project, or the data folder inside the mod folder"] = "la cartella runtime del progetto del mod, oppure la cartella data all’interno della cartella del mod",
     ["the selected character"] = "il personaggio selezionato",
     ["{count} matching models"] = "{count} modelli corrispondenti",
     ["{count} more companions also failed."] = "Errore anche per altri {count} compagni.",

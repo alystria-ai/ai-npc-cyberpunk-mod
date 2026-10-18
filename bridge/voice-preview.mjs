@@ -1,6 +1,6 @@
 // A settings draft may prepare the model without committing voice routing.
 // The lease expires if the menu, game or writer disappears. Missing/partial
-// atomic-file reads retain only the previous lease's original expiry.
+// reads (the game writes the file in place, so a read can find it empty) retain only the previous lease's original expiry.
 export const VOICE_PREVIEW_MAX_AGE_MS = 4000;
 const MAX_FUTURE_MS = 1500;
 const fresh = (value, now) => value && Number.isFinite(now)

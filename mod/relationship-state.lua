@@ -32,14 +32,12 @@ local function write(value)
     local ok, raw = pcall(json.encode, value)
     if not ok then return false end
     local path = 'runtime/relationship-state.json'
-    local file = io.open(path .. '.tmp', 'wb')
+    -- In place: a lease file that ships as an empty placeholder. Deleting and renaming it back would make a new
+    -- file under Mod Organizer 2. The bridge reads a torn or empty file as no snapshot (parseRelationshipState).
+    local file = io.open(path, 'wb')
     if not file then return false end
     local written, closed = file:write(raw), file:close()
-    if not written or not closed then return false end
-    -- Windows rename cannot replace a file: remove first (one operation fewer).
-    os.remove(path)
-    if not os.rename(path .. '.tmp', path) then return false end
-    return true
+    return written and closed and true or false
 end
 
 function M.new(options)

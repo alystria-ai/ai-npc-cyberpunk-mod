@@ -476,7 +476,6 @@ return {
     ["What to do"] = "해야 할 일",
     ["Where the logs are"] = "로그 위치",
     ["the game folder"] = "게임 폴더",
-    ["the runtime folder of the mod project, or the data folder inside the mod folder"] = "모드 프로젝트의 런타임 폴더 또는 모드 폴더 안의 데이터 폴더",
     ["Auto-connect nearby characters"] = "근처 캐릭터 자동 연결",
     ["Continue from game dialogue"] = "게임 대화에서 이어가기",
     ["Preparing connection to {name}…"] = "{name} 연결 준비 중…",

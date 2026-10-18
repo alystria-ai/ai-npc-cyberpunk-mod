@@ -485,7 +485,6 @@ return {
     ["Your player identity stays the same. Matching Phone Chat messages and drafts are also cleared."] = "A játékosazonosságod változatlan marad. A megfelelő telefonos csevegésüzenetek és vázlatok is törlődnek.",
     ["all characters you have talked to"] = "minden karakter, akivel beszéltél",
     ["the game folder"] = "a játék mappája",
-    ["the runtime folder of the mod project, or the data folder inside the mod folder"] = "a modprojekt futtatási mappája, vagy a modmappán belüli data mappa",
     ["the selected character"] = "a kiválasztott karakter",
     ["{count} matching models"] = "{count} egyező modell",
     ["{count} more companions also failed."] = "{count} további társ csatlakozása is sikertelen volt.",

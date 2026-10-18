@@ -485,7 +485,6 @@ return {
     ["Your player identity stays the same. Matching Phone Chat messages and drafts are also cleared."] = "Oyuncu kimliğin aynı kalır. Eşleşen Telefon Sohbet mesajları ve taslakları da temizlenir.",
     ["all characters you have talked to"] = "konuştuğun tüm karakterler",
     ["the game folder"] = "oyun klasörü",
-    ["the runtime folder of the mod project, or the data folder inside the mod folder"] = "mod projesinin çalışma zamanı klasörü veya mod klasöründeki veri klasörü",
     ["the selected character"] = "seçili karakter",
     ["{count} matching models"] = "{count} eşleşen model",
     ["{count} more companions also failed."] = "Ayrıca {count} yoldaş daha başarısız oldu.",

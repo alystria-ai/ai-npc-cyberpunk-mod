@@ -123,10 +123,13 @@ test('without add-ons the host is inert: no rows, ids, blocks, files, timers or 
     const paths = {pocket: 'a.json', omni: {short: 'b.json'}, warnings: []};
     assert.equal(await host.voiceConfigPaths(paths, {stateDirectory: runtime}), paths, 'the very same object comes back');
     assert.equal(host.trigger({profileKey: 'judy-alvarez', text: 'Combat has begun.'}), 'Combat has begun.');
-    // A status file an earlier run left (an add-on since uninstalled) is removed, and nothing is written.
+    // A status file an earlier run left (an add-on since uninstalled) is emptied in place, never removed or created.
+    await assert.rejects(stat(resolve(runtime, 'addons-status.json')), {code: 'ENOENT'});
+    assert.equal(await host.publishStatus(runtime), false);
+    await assert.rejects(stat(resolve(runtime, 'addons-status.json')), {code: 'ENOENT'}, 'no file appears for nothing to publish');
     await writeFile(resolve(runtime, 'addons-status.json'), '{}');
     assert.equal(await host.publishStatus(runtime), false);
-    await assert.rejects(stat(resolve(runtime, 'addons-status.json')), {code: 'ENOENT'});
+    assert.equal(await readFile(resolve(runtime, 'addons-status.json'), 'utf8'), '');
     host.observeState(JSON.stringify({version: 1, updated: Date.now(), addons: {x: {companionContext: [{key: 'k', text: 'cab'}]}}}));
     assert.deepEqual(host.blocks({profileKey: 'judy-alvarez'}), [], 'an inactive host ignores a stray state file');
   } finally { await rm(runtime, {recursive: true, force: true}); }
@@ -444,7 +447,31 @@ test('a hook that throws, returns a promise or keeps failing never breaks a turn
   assert.match(host.trigger(input), /This event was not spoken by V/, 'a promise from a hook falls back to the default trigger');
 });
 
-test('the file watchers keep what they last saw when a read finds nothing (the game replaces a file by remove then rename)', async () => {
+test('addons-status.json: written in place over the shipped empty file, emptied (never removed) when there is nothing to publish', async () => {
+  const runtime = await folder();
+  try {
+    const path = resolve(runtime, 'addons-status.json');
+    await writeFile(path, '');
+    const writes = [];
+    const write = async (target, data) => { writes.push([target, data]); await writeFile(target, data); };
+    const quiet = new AddonHost({addons: []});
+    assert.equal(await quiet.publishStatus(runtime, {write}), false);
+    assert.deepEqual(writes, [], 'an empty placeholder is left as it is');
+    const host = new AddonHost({addons: [validateManifest(manifest(), tmpdir())]});
+    assert.equal(await host.publishStatus(runtime, {write}), true);
+    assert.equal(writes.length, 1);
+    assert.equal(JSON.parse(await readFile(path, 'utf8')).addons[0].id, 'skippy');
+    assert.equal(await quiet.publishStatus(runtime, {write}), false);
+    assert.deepEqual(writes[1], [path, ''], 'what an earlier run left is emptied');
+    assert.equal(await readFile(path, 'utf8'), '');
+  } finally { await rm(runtime, {recursive: true, force: true}); }
+});
+
+test('the bridge side never removes an add-on exchange file', () => {
+  assert.doesNotMatch(read('./addons.mjs'), /\b(?:rm|rmSync|unlink|unlinkSync)\(/);
+});
+
+test('the file watchers keep what they last saw when a read finds nothing or an empty file (the game writes addon-state.json in place)', async () => {
   const host = new AddonHost({addons: [validateManifest(manifest(), tmpdir())]});
   host.observeSettings(JSON.stringify({version: 1, addons: {skippy: {remarkGap: 1, remarkGapChosen: true}}}));
   const before = JSON.stringify(host.settings);
@@ -452,6 +479,11 @@ test('the file watchers keep what they last saw when a read finds nothing (the g
   const handlers = host.watchHandlers('runtime', {read: async () => { throw Object.assign(Error('gone'), {code: 'ENOENT'}); }});
   for (const handler of Object.values(handlers)) await handler();
   assert.equal(JSON.stringify(host.settings), before);
+  // The shipped placeholder, or a file caught between being opened for writing and its text arriving, is empty: also kept.
+  for (const text of ['', '  \r\n']) {
+    for (const handler of Object.values(host.watchHandlers('runtime', {read: async () => text}))) await handler();
+    assert.equal(JSON.stringify(host.settings), before);
+  }
   // A real (even if empty) document still applies.
   const empty = host.watchHandlers('runtime', {read: async () => JSON.stringify({version: 1, addons: {}})});
   for (const handler of Object.values(empty)) await handler();

@@ -1136,6 +1136,7 @@
   "edgar-tool": {
    "voice": "AZURE-MULTILINGUAL-c1eb570bf7",
    "voiceName": "Amanda",
+   "voiceGender": "FEMALE",
    "reason": "Bright, theatrical female voice for a diva persona that copies Lina Malina (Lina herself uses Laura and Emma, so TooLina gets a different but related voice)."
   },
   "jacob-long": {

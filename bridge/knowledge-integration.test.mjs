@@ -439,6 +439,22 @@ test('phone delivery publication is bounded, deduplicated and retains the origin
  assert(files['runtime/knowledge-phone-delivery.json']==before)
 `));
 
+test('phone delivery receipts are written in place: no temp file, no remove, no rename of the exchange file', () => run(`
+ start();local live=stored('runtime/world-session.json');local original=live.token;hooks.OnGameRestored();events.onUpdate(0)
+ local removed,renamed=os.remove,os.rename
+ os.remove=function(path) assert(not tostring(path):find('knowledge-phone-delivery',1,true),'removed '..path);return removed(path) end
+ os.rename=function(from,to)
+  assert(not tostring(from):find('knowledge-phone-delivery',1,true) and not tostring(to):find('knowledge-phone-delivery',1,true),'renamed '..from)
+  return renamed(from,to)
+ end
+ files['runtime/knowledge-phone-delivery.json']=''
+ phoneOptions.onDelivered({version=1,id='delivery-1',sequence=1,requestId='request-1',
+  source='phone-ui',state='accepted',partial=false,cancelled=false,completedAt=now*1000,
+  profileKey='alex',contact='alex',world='phone-world',binding='original-phone-binding',generation=live.generation,worldToken=original})
+ assert(#stored('runtime/knowledge-phone-delivery.json').receipts==1)
+ assert(files['runtime/knowledge-phone-delivery.json.tmp']==nil)
+`));
+
 test('microphone begin and finish capture fresh facts without changing request ownership', () => run(`
  start();local live=stored('runtime/world-session.json');local context=input('mic')
  assert(microphone.begin(context))

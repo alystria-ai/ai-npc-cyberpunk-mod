@@ -28,7 +28,7 @@ test('every batch character has a roster row, dossier, first-person profile, app
     assert.ok(read(`characters/profile-text/${key}.txt`).startsWith('BACKSTORY'), key + ' profile text');
     assert.ok(store[key]?.backstory?.text, key + ' first-person store');
     assert.ok(appearance[key], key + ' appearance entry');
-    assert.equal(voiceMap.voices[voiceMap.assignments[key]?.voice]?.gender, row.gender, key + ' twin voice gender');
+    assert.equal(voiceMap.voices[voiceMap.assignments[key]?.voice]?.gender, voiceMap.assignments[key].voiceGender ?? row.gender, key + ' twin voice gender');
     assert.deepEqual(plan.find(item => item.key === key), row, key + ' profile plan matches the roster');
   }
 });

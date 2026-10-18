@@ -83,7 +83,7 @@ import {RelationshipRouting, retireRelationshipConnections} from './relationship
 import {relationshipContext} from './romance-context.mjs';
 import {MultilingualConversations, RETIRED_PROVIDER_KEY, multilingualTwins, planTurnVoice, replyVoice} from './multilingual.mjs';
 import {CompanionActions} from './companion-actions.mjs';
-import {RequestFileOwner, fileIdentity} from './request-ownership.mjs';
+import {RequestFileOwner, fileIdentity, requestFileEmpty} from './request-ownership.mjs';
 import {updateDialogueLevel, dialogueLevel, updateVoiceVolume, voiceVolumePercentNow} from './dialogue-level.mjs';
 import {AudioOutputWatch, audioDelayMs, resolveDelayMs, setAudioDelayMs, settingDelay} from './audio-delay.mjs';
 import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, PLAYER_USER_FILE, memoryRecovery, validateKey, withoutIdentity} from './convai-key.mjs';
@@ -743,7 +743,7 @@ function localTurn(input, prepared = preparedInputs.get(input)) {
   return {profileKey: input.profileKey, name: profileFor(input, roster)?.name ?? input.name, channel,
     ...(ambient ? {ambientKey: route?.sessionKey ?? `${input.profileKey}:${input.entity ?? ''}`} : {})};
 }
-let observed = '', observedIdentity = null;
+let observed = '', observedIdentity = null, invalidSeen = '';
 let lastAcceptedIdentity = '';
 let polling = false, active = null, stopped = false;
 let prefetchPolling = false, prefetchObserved = '', partyObserved = '', partyWasFresh = false;
@@ -2062,17 +2062,25 @@ async function tick() {
     const stampIdentity = fileIdentity(stamp);
     if (stampIdentity === observedIdentity) return;
     const raw = await readFile(inputPath, 'utf8');
+    // An empty file is a missing file: the game writes it in place to withdraw the request (it never deletes the file, which
+    // a virtual file system such as Mod Organizer 2's would not follow), and ships it empty. The owner of a running turn sees
+    // the change through RequestFileOwner, as it saw the removal.
+    if (requestFileEmpty(raw)) { observedIdentity = stampIdentity; return; }
     const signature = `${stamp.mtimeMs}:${stamp.size}:${raw}`;
     if (signature === observed) { observedIdentity = stampIdentity; return; }
     const input = parseInput(raw);
     if (!input) {
+      // The game rewrites this file in place, so a read can land in the middle of the write. A partial read is not a
+      // finished request, a cancel or an error: it is read again on the next poll, and its identity (size, time) is not
+      // remembered, so the finished file is read as soon as it changes. Only content that reads the same twice is reported.
+      if (invalidSeen !== signature) { invalidSeen = signature; return; }
       observed = signature; observedIdentity = stampIdentity;
       prefetch.invalidate();
-      // Lua replaces this small file in place. A transient partial write is
-      // not a new target and must not cancel an otherwise valid active turn.
+      // A transient partial write is not a new target and must not cancel an otherwise valid active turn.
       if (!active) await status('invalid-input', 'Could not parse the game request');
       return;
     }
+    invalidSeen = '';
     // input is parseInput's own result: hash it without parsing it again.
     const identity = parsedInputIdentity(input);
     if (identity === lastAcceptedIdentity) { observed = signature; observedIdentity = stampIdentity; return; }
@@ -2547,7 +2555,7 @@ async function pollKnowledge() {
   if (knowledgePolling || stopped) return;
   knowledgePolling = true;
   try {
-    const session = await readWorldSession(resolve(runtime, 'world-session.json'));
+    const session = await readWorldSession(resolve(runtime, 'world-session.json'), {held: worldSession?.ready === true});
     const priorWorld = worldSession?.ready ? JSON.stringify([worldSession.token, worldSession.generation]) : null;
     worldSession = session;
     const nextWorld = worldSession?.ready ? JSON.stringify([worldSession.token, worldSession.generation]) : null;

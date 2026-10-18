@@ -2823,7 +2823,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "dum-dum": {
@@ -2841,7 +2841,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "royce": {
@@ -2859,7 +2859,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "rosalind-myers": {
@@ -2877,7 +2877,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "kurt-hansen": {
@@ -2895,7 +2895,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "woodman": {
@@ -2913,7 +2913,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "fingers": {
@@ -2931,7 +2931,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "garry-the-prophet": {
@@ -2949,7 +2949,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "brendan": {
@@ -2967,7 +2967,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "anthony-gilchrist": {
@@ -2985,7 +2985,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "denny": {
@@ -3003,7 +3003,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "henry": {
@@ -3021,7 +3021,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "teddy": {
@@ -3039,7 +3039,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "weyland": {
@@ -3057,7 +3057,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "oda": {
@@ -3075,7 +3075,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "chester-bennett": {
@@ -3093,7 +3093,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "bree-whitney": {
@@ -3111,7 +3111,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "edgar-tool": {
@@ -3129,7 +3129,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "jacob-long": {
@@ -3147,7 +3147,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "angelica-whelan": {
@@ -3165,7 +3165,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "voodoo-queen": {
@@ -3183,7 +3183,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "anders-hellman": {
@@ -3201,7 +3201,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "joshua-stephenson": {
@@ -3219,7 +3219,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "maiko-maeda": {
@@ -3237,7 +3237,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "wilky-laguerre": {
@@ -3255,7 +3255,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "aurore-cassel": {
@@ -3273,7 +3273,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "dante-caruso": {
@@ -3291,7 +3291,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     },
     "jago-szabo": {
@@ -3309,7 +3309,7 @@
       ],
       "model": "fast-gemma-4-31b-it",
       "languageBoxField": "language_hardening_mode",
-      "languageBoxOff": false,
+      "languageBoxOff": true,
       "notCloned": []
     }
   }

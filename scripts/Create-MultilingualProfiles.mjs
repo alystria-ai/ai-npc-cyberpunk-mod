@@ -91,7 +91,9 @@ export function voiceFor({key, gender, voiceMap}) {
   const entry = voiceMap?.assignments?.[key];
   if (entry?.voice) {
     if (!voiceMap.voices?.[entry.voice]) throw Error('Voice map assigns a voice it does not describe: ' + key);
-    if (voiceMap.voices[entry.voice].gender !== gender) throw Error(`Voice map gender mismatch for ${key}: ${voiceMap.voices[entry.voice].gender} voice, ${gender} character`);
+    // voiceGender: an assignment may name the gender of its voice when it differs from the character on purpose (Edgar Tool is male and performs the feminine TooLina persona).
+    const voiceGender = entry.voiceGender ?? gender;
+    if (voiceMap.voices[entry.voice].gender !== voiceGender) throw Error(`Voice map gender mismatch for ${key}: ${voiceMap.voices[entry.voice].gender} voice, ${voiceGender} expected`);
     return {voice: entry.voice, source: 'map'};
   }
   const voice = MULTILINGUAL_VOICES[gender];

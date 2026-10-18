@@ -63,16 +63,14 @@ end
 local function store(value)
     local ok,raw=pcall(json.encode,value)
     if not ok or type(raw)~='string' or #raw>MAX_BYTES then return false end
-    local file=io.open(PATH..'.tmp','wb'); if not file then return false end
+    -- In place: the file ships empty and is only rewritten, never created, deleted or renamed
+    -- (Mod Organizer 2 sends a new file to Overwrite). A torn write fails valid() in load.
+    local file=io.open(PATH,'wb'); if not file then return false end
     local written,closed=file:write(raw),file:close()
-    if not written or not closed then return false end
-    if not os.rename(PATH..'.tmp',PATH) then
-        os.remove(PATH)
-        if not os.rename(PATH..'.tmp',PATH) then return false end
-    end
-    return true
+    return written and closed and true or false
 end
-local function erase() os.remove(PATH); os.remove(PATH..'.tmp') end
+-- Empty means no cleanup pending (load treats an empty or missing file the same way).
+local function erase() local file=io.open(PATH,'wb'); if file then file:write(''); file:close() end end
 local function finish(s,phase,reason)
     s.phase,s.error,s.receipt,s.operation,s.carID,s.actorID=phase,reason,nil,nil,nil,nil
     s.vehicleOperation,s.vehicleCommandAt=nil,nil
@@ -299,6 +297,7 @@ function M.load(s)
     s.loaded=true
     local file=io.open(PATH,'rb'); if not file then return end
     local raw=file:read(MAX_BYTES+1); file:close()
+    if raw==nil or raw=='' then return end
     local ok,value=pcall(json.decode,raw or '')
     if not ok or type(raw)~='string' or #raw>MAX_BYTES or not valid(value,os.time()) then
         finish(s,'rejected','invalid-or-expired-receipt'); return

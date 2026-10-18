@@ -1,15 +1,19 @@
 import {readFile, stat} from 'node:fs/promises';
 
-// Lua replaces last-input.json by writing a temporary file and renaming it, so
-// every replacement is a new file: a new file index and creation time. Rereading
-// the whole request (often 0.5+ MB of journal history) on every ownership check
+// Lua rewrites last-input.json in place (one open, write, close over the file that ships empty), so a
+// replacement keeps its file index and creation time and shows as a new size and modification time.
+// Rereading the whole request (often 0.5+ MB of journal history) on every ownership check
 // cost about 4-10 ms per call, several times per playback poll and per PCM
 // packet. An unchanged identity cannot hold different bytes; any change still
-// gets the exact byte comparison against the admitted request.
+// gets the exact byte comparison against the admitted request. The game withdraws a request by writing the file
+// empty, which is a change like any other: the bytes no longer match, so the owner is retired.
 export function fileIdentity(info) {
   if (!info) return null;
   return [info.ino, info.size, info.mtimeMs, info.ctimeMs, info.birthtimeMs].join(':');
 }
+
+// An empty (or blank) read of the request file means no request, exactly as a missing file did.
+export const requestFileEmpty = raw => typeof raw === 'string' && raw.trim() === '';
 
 const defaultFiles = {stat, readFile};
 
