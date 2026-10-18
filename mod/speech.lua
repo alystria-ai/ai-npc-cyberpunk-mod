@@ -477,6 +477,11 @@ local function refreshManifest()
     if not f then return end
     local raw = f:read(4000001); f:close()
     if not raw or #raw > 4000000 then return end
+    -- The manifest changes only when a phrase is appended (two to four times a reply), and it carries every phrase's whole face timeline
+    -- (up to 180 KB). The same text as the last look gives the same verdict (what it is checked against does not change while the reply
+    -- lasts), so it is neither decoded nor checked again: a pure-Lua decode of it, 13 times a second, was a stutter while a companion spoke.
+    if raw == s.seenRaw then return end
+    s.seenRaw = raw
     local ok, doc = pcall(json.decode, raw)
     if not ok or type(doc) ~= 'table' or doc.version ~= (s.version or 1) or doc.streamId ~= s.id
         or doc.requestId ~= M.requestId or doc.entity ~= M.context.entity
@@ -681,7 +686,11 @@ local function updateSpeech(delta)
     local s = M.stream
     if s then
         s.poll = s.poll + delta
-        if s.poll >= .075 then s.poll = 0; refreshManifest() end
+        -- The producer said it is complete and every phrase has arrived: the manifest has nothing more to tell.
+        if s.poll >= .075 then
+            s.poll = 0
+            if not (s.total and s.received >= s.total and s.manifest and s.manifest.complete == true) then refreshManifest() end
+        end
         if M.state == 'buffering' or M.state == 'starting' then s.gap = s.gap + delta end
         if M.state == 'buffering' then
             s.wait = s.wait + delta
