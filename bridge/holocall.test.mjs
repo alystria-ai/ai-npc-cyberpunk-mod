@@ -210,6 +210,9 @@ holocall.configure({
   onEnded = function(call, reason) ended[#ended + 1] = call.contact .. ':' .. reason end,
 })
 holocall.sweepDue = false
+-- The scenarios below film her on far studios too (a roof 20 m above V, ground 10 m down) to cover the whole search; the
+-- default (no far picture, the portrait instead) has its own test.
+holocall.FAR_PICTURE = true
 `;
 
 test('idle costs nothing, and a phone request rings, connects as a voice call and routes the talk keys to the caller', () => run(`
@@ -583,6 +586,27 @@ test('on a terrace (V\'s own floor all round, in view) the storey under V\'s flo
   assert(#created == 0 and holocall.call.state == 'dialing', 'sixty-seven candidates, three per tick')
   tick(0.6)
   assert(#created == 0 and logged('no%-studio%-spot %(in%-view=41, no%-floor=9%)'), logs[#logs])
+  holocall.finish(player, 'hangup')
+`));
+
+test('by default a studio past FACE_RANGE is not used: the call goes on with the portrait; a near floor still gets the picture', () => run(world + `
+  holocall.FAR_PICTURE = false
+  game.window = 'holocall'
+  -- Only the roof 20 m above V: past FACE_RANGE, where her face would be still and coarse (live, 2026-10-18: a roof
+  -- 84.5 m away). The seventeen near columns are tried (the roof is out of their range), nothing farther, nothing spawned.
+  game.requests = {'judy'}; holocall.drain(player); tick(2)
+  assert(#created == 0, 'nothing is spawned for a far roof')
+  assert(logged('holo failed contact=judy reason=no%-studio%-spot %(no%-floor=17%) fallback=audio'), logs[#logs])
+  assert(holocall.connected() and holocall.call.mode == 'audio' and game.connects[#game.connects] == false)
+  assert(lastNotice().id == 'holocall-live-fallback')
+  local caller = holocall.partner(player, false)
+  assert(caller.npc == player and caller.voiceOnly == true and caller.holocall.mode == 'audio')
+  holocall.finish(player, 'hangup')
+  -- The terrace: the storey under V's floor, 3.5 m from V, is within range, so the picture is used as before.
+  roof = false; ground = 30; lower = 26.5; created = {}
+  game.requests = {'judy'}; holocall.drain(player); tick(2.4)
+  assert(#created == 5 and logged('floor=%-3.5m away=3.5m'))
+  assert(holocall.connected() and holocall.call.mode == 'holo' and holocall.faceRow() ~= nil)
   holocall.finish(player, 'hangup')
 `));
 
