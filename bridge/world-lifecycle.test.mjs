@@ -882,7 +882,7 @@ assert(#stats.starts == 1 and stats.starts[1] == 'current-world-reply', 'current
 assert(#stats.received == 1 and stats.received[1] == 'current-world-reply')
 `));
 
-test('actual detach callback cancels owned sessions and blocks heartbeat revival until attach or take-control', () => run(`
+test('actual detach callback cancels owned sessions and blocks heartbeat revival until the save is restored', () => run(`
 events.onInit(); events.onUpdate(0)
 local initial = published()
 local input = queueVoice('detached-world-reply'); events.onUpdate(0.1); primeSessions()
@@ -898,14 +898,22 @@ for _ = 1, 4 do events.onUpdate(0.1) end
 assert(#stats.publications == publications and not published().ready,
     'apparently attached actor revived a suspended world before its lifecycle attach')
 assert(#stats.starts == 0 and microphone.currentKnowledgeOwner() == nil)
-after['PlayerPuppet.OnGameAttached'](); events.onUpdate(0)
+-- The new V attaches seconds before the save is restored, while the old world is still torn down: still suspended.
+after['PlayerPuppet.OnGameAttached'](); for _ = 1, 3 do events.onUpdate(0.1) end
+assert(#stats.publications == publications and not published().ready, 'attach before the restore revived the world')
+tearingDown = true; after['PlayerSystem.OnGameRestored'](); tearingDown = false; events.onUpdate(0)
 local attached = published()
-assert(attached.ready and attached.token ~= initial.token and attached.generation == initial.generation + 1)
+-- The detach and the restore each retire the epoch, so the revived world is two generations on.
+assert(attached.ready and attached.token ~= initial.token and attached.generation == initial.generation + 2, 'the restore did not revive the world')
 before['PlayerPuppet.OnDetach'](); events.onUpdate(0)
-assert(not published().ready)
+assert(not published().ready, 'the second detach left the world ready')
 after['PlayerPuppet.OnTakeControl'](); events.onUpdate(0)
+assert(not published().ready, 'take-control before the restore revived the world')
+-- No restore at all (a new game from the menu): two minutes after the attach the mod resumes on its own.
+clock = clock + 60; events.onUpdate(0); assert(not published().ready, 'revived before the fallback')
+clock = clock + 61; events.onUpdate(0)
 local controlled = published()
-assert(controlled.ready and controlled.token ~= attached.token and controlled.generation == attached.generation + 1)
+assert(controlled.ready and controlled.token ~= attached.token and controlled.generation == attached.generation + 1, 'the fallback did not revive the world')
 local captured = assert(microphone.captureKnowledge({profileKey = 'judy-alvarez'}, 'private'))
 assert(captured.owner.worldToken == controlled.token and captured.worldKnowledge.identity.status == 'unknown')
 assert(worldCollector.configurations == 1 and convaiQuestContext.capture().status == 'active')
@@ -1208,7 +1216,7 @@ assert(#registrations == 2, 'new session must register again, found ' .. #regist
 -- A failed registration (native part not installed) is retried until it succeeds.
 companions.registerPhoneContacts = function() registrations[#registrations + 1] = clock; error('native unavailable') end
 tearingDown = true; before['PlayerPuppet.OnDetach'](); tearingDown = false
-after['PlayerPuppet.OnGameAttached']()
+after['PlayerPuppet.OnGameAttached'](); after['PlayerSystem.OnGameRestored']()
 for _ = 1, 3 do clock = clock + 1; events.onUpdate(0.1) end
 assert(#registrations == 5)
 `));

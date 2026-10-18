@@ -84,7 +84,7 @@ test('the buffer flushes at 64 lines or 8 KB, and at once for failure, error, ab
 `));
 
 test('probe.log lines are flushed before a world is abandoned and at shutdown, and a frame with nothing waiting reads one field', () => {
-  assert.match(initSource, /local function abandonSession\(reason,preserveTransit\)[^\n]*\n(?:[^\n]*\n){0,4}?\s*if convaiLogFlush then convaiLogFlush\(\) end\n\s*invalidateKnowledge\(reason\)/);
+  assert.match(initSource, /local function abandonSession\(reason,preserveTransit(?:,worldAlive)?\)[^\n]*\n(?:[^\n]*\n){0,4}?\s*if convaiLogFlush then convaiLogFlush\(\) end\n\s*invalidateKnowledge\(reason\)/);
   assert.match(initSource, /log\('Game adapter shut down'\)\n\s*convaiLogFlush\(\)/);
   assert.match(initSource, /convaiHeartbeat\.frame = convaiHeartbeat\.frame \+ 1\n\s*-- [^\n]*\n\s*if convaiLog\.n > 0 then convaiLogTick\(\) end/);
   // No other writer in init.lua appends to probe.log behind the buffer's back.
