@@ -1169,6 +1169,9 @@ end
 local function definitionFor(profile)
     local known = companions.definition(profile.key)
     if known then return known end
+    -- invite = false: another mod owns this character's body (Night City Allies' Lucy and Rita, docs/NCA_FOLLOWERS_PLAN.md).
+    -- Her records only let the talk path recognise that mod's copy; we never spawn one of our own from the menus.
+    if profile.invite == false then return nil end
     local record = type(profile.records) == 'table' and profile.records[1] or nil
     return record and {id = record, name = profile.name} or nil
 end
