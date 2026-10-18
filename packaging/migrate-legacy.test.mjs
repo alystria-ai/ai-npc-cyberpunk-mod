@@ -272,7 +272,7 @@ test('the packaged service moves an old installation before it reads the data fo
     // A minimal installed application: the real launcher files and the defaults prepareState needs.
     const app = join(p.newPlugin, 'app');
     await mkdir(join(app, 'launcher'), {recursive: true});
-    for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs']) await cp(join(project, 'packaging/runtime', name), join(app, 'launcher', name));
+    for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs']) await cp(join(project, 'packaging/runtime', name), join(app, 'launcher', name));
     await put(join(app, 'defaults/pocket-voices.autobest.json'), JSON.stringify({version: 1, provider: 'pocket', engine: 'pocket-tts', runtime: {}, voices: {}}));
     await put(join(app, 'defaults/characters.json'), '{"v":2}');
     await put(join(app, 'defaults/multilingual-profiles.json'), '{"v":2}');
