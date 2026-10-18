@@ -13,6 +13,13 @@
 //   await server.reselect()                                                    // the model choice changed: reload at an idle moment
 //   await server.stop(); server.killSync();                                    // bridge shutdown / process exit
 //
+// A server the player already runs (an `endpoint` entry of the custom manifest, bridge/custom-models.mjs; docs/LOCAL_AI.md, "Use your own server") is
+// the other kind of model: choosing it starts no llama-server of ours (one that is running is stopped when the choice changes), and ensure() only looks
+// at the server once when the model is chosen (GET <endpoint>/models, 4 s at most; then the context from the entry, the listing, /props or 8192), hands out
+// its address, key and model id, and then trusts it: no polling, no idle timer, no warm-up. A server that stops answering mid-session is looked at again
+// by the next ensure() (externalLost); one that cannot be reached fails like a custom model that did not start (one notice, then the default model, then
+// the cloud provider). The embedder (bridge/local-embed.mjs) is separate and unchanged.
+//
 // `LlamaProcess` (also used by the CPU embedder, bridge/local-embed.mjs) owns one child: the free port, the key
 // file, the health check, the output tail and the kill. The key reaches the child through a private temporary file
 // (`--api-key-file`), never the command line, and is never logged, in an error message, status() or an event.
@@ -23,7 +30,7 @@ import {mkdtempSync, readFileSync, renameSync, rmSync, statSync, writeFileSync} 
 import {createServer} from 'node:net';
 import {tmpdir, freemem, setPriority, constants as osConstants} from 'node:os';
 import {join} from 'node:path';
-import {chooseLocalModel, listLocalModels, normalisePin, stillSatisfies} from './local-model-choice.mjs';
+import {chooseLocalModel, externalModels, listLocalModels, normalisePin, stillSatisfies} from './local-model-choice.mjs';
 
 const REASON_TEXT = Object.freeze({
   'not-installed': 'the Local AI pack is not installed',
@@ -60,7 +67,12 @@ export const LOCAL_LLM_LIMITS = Object.freeze({
   startupMs: 180_000,          // the first start compiles Vulkan shaders (about a minute)
   warmupMs: 240_000,           // one warm-up request, first time included
   maxRestarts: 2,
+  externalProbeMs: 4000,       // a server the player runs: the one look at it when its model is chosen (GET /models), and each context question
+  externalContext: 8192,       // its context when neither the entry, the listing nor /props says
 });
+
+/** The key sent to a server the player runs that needs none (streamChat wants a key of 8 characters; such a server ignores the header). */
+export const NO_KEY = 'no-key-needed';
 
 // The llama-server command line for the chat model. Pure; the key goes in a file, never on the command line.
 // `chatTemplate` (a model the player added, bridge/custom-models.mjs) is the name of a llama.cpp built-in template: `--chat-template`.
@@ -384,12 +396,13 @@ export class LocalLlmServer extends EventEmitter {
       freeVramMiB = nvidiaFreeMiB, idleMs = LOCAL_LLM_LIMITS.idleMs, startupMs = LOCAL_LLM_LIMITS.startupMs, warmup = true,
       warmupMs = LOCAL_LLM_LIMITS.warmupMs, stateFile, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout,
       log = () => {}, maxRestarts = LOCAL_LLM_LIMITS.maxRestarts, backoffMs = 750, cacheRamMiB, freeMemMiB = () => freemem() / 1048576,
-      beforeStart, beforeStartMs = 120_000, fileSizeMiB = defaultFileSizeMiB, environment = process.env, command, argsPrefix = [], processOptions = {}} = {}) {
+      beforeStart, beforeStartMs = 120_000, fileSizeMiB = defaultFileSizeMiB, environment = process.env, command, argsPrefix = [], processOptions = {},
+      externalProbeMs = LOCAL_LLM_LIMITS.externalProbeMs} = {}) {
     super();
     const fixedContext = Number.parseInt(contextSize ?? environment.CYBERPUNK_CONVAI_LOCAL_CTX ?? '', 10);
     Object.assign(this, {pack, tierSetting: tier, selection, contextSize: Number.isFinite(fixedContext) && fixedContext >= 2048 ? fixedContext : null, spawnImpl, fetchImpl, freeVramMiB, idleMs, startupMs, warmup,
       warmupMs, stateFile, now, setTimer, clearTimer, log, maxRestarts, backoffMs, argsPrefix, processOptions, freeMemMiB,
-      beforeStart, beforeStartMs, fileSizeMiB});
+      beforeStart, beforeStartMs, fileSizeMiB, externalProbeMs});
     const configured = Number.parseInt(cacheRamMiB ?? environment.CYBERPUNK_CONVAI_LOCAL_CACHE_RAM ?? '', 10);
     this.cacheRamMiB = Number.isFinite(configured) && configured >= 0 ? configured : null;   // null: chosen at each start
     this.command = command ?? pack?.server;
@@ -401,6 +414,7 @@ export class LocalLlmServer extends EventEmitter {
     if (this.#contextSize && (this.#state === 'ready' || this.#state === 'warming')) status.contextSize = this.#contextSize;
     if (this.#reason) status.reason = this.#reason;
     if (this.#firstTime) status.firstTime = true;
+    if (this.#info?.external && this.#state === 'ready') status.external = true;
     return status;
   }
 
@@ -411,13 +425,18 @@ export class LocalLlmServer extends EventEmitter {
   }
 
   // contextSize: the server's own n_ctx per slot (read from /props once it is up), so a prompt is fitted to what is really there.
-  #handle() { return {endpoint: this.#info.endpoint, apiKey: this.#info.apiKey, model: this.#model, tier: this.#tier, contextSize: this.#info.contextSize}; }
+  // A server the player runs also gets `requestModel` (the id its requests ask for) and `trustedOrigin` (the only origin its key may go to).
+  #handle() {
+    const info = this.#info;
+    return {endpoint: info.endpoint, apiKey: info.apiKey, model: this.#model, tier: this.#tier, contextSize: info.contextSize,
+      ...(info.external ? {external: true, requestModel: info.requestModel, trustedOrigin: info.trustedOrigin} : {})};
+  }
 
   // Starts the server if needed; resolves when it is ready. Concurrent callers share one start.
   async ensure({signal} = {}) {
     signal?.throwIfAborted();
     if (this.#state === 'failed') throw new LocalAiUnavailable(this.#reason);
-    if (this.#state === 'ready' && this.#proc?.running) { this.touch(); return this.#handle(); }
+    if (this.#state === 'ready' && (this.#proc?.running || this.#info?.external)) { this.touch(); return this.#handle(); }
     if (!this.#starting) this.#launch(false);
     const handle = await abortable(this.#starting, signal);
     this.touch();
@@ -516,10 +535,8 @@ export class LocalLlmServer extends EventEmitter {
 
   // The model to load now: the player's choice (this.selection), else the older `tier` option, else the default (the largest that fits).
   // A chosen model that is missing or does not fit is replaced by the default, and one 'model-fallback' event names the model used.
-  #choose(pack, freeMiB) {
+  #choose(pack, freeMiB, selected = this.#selected(pack)) {
     this.#lastFreeMiB = Number.isFinite(freeMiB) ? freeMiB : null;
-    const selected = this.#selected(pack);
-    for (const model of selected.models) if (model.custom && this.#broken.get(model.id) === this.#sizeKey(model)) model.broken = true;
     const sizeOf = file => this.fileSizeMiB(file);
     if (this.tierSetting === 'standard' || this.tierSetting === 'lite') {
       const forced = selected.models.find(model => model.id === this.tierSetting);
@@ -527,19 +544,39 @@ export class LocalLlmServer extends EventEmitter {
       return {model: forced, sizeMiB: Number(sizeOf(forced.file)) || 0, profile: forced.tier, pinned: true, fellBack: null};
     }
     const choice = chooseLocalModel({models: selected.models, pin: selected.pin, matureOn: selected.matureOn, freeMiB, totalMiB: this.#totalMiB, sizeOf});
-    // A model that did not start is announced with the retry (#startOnce, which knows the model used instead); the other reasons here.
+    this.#announce(choice, selected);
+    return choice;
+  }
+
+  // A model that did not start is announced with the retry (#startOnce, which knows the model used instead); the other reasons here.
+  #announce(choice, selected) {
     if (choice.fellBack && choice.fellBack !== 'start-failed') {
       this.log('[local] the chosen model is not usable (' + choice.fellBack + '): ' + choice.model.name + ' was chosen instead');
       this.emit('model-fallback', {pin: selected.pin, reason: choice.fellBack, model: choice.model.name});
     }
     if (choice.offload) this.log('[local] ' + choice.model.name + ' does not fit the free graphics memory: it is loaded with part of its layers on the CPU (Mature content never uses a censored model)');
-    return choice;
   }
 
+  // The models to choose from now. Without an installed pack there is no llama-server of ours, so only the servers the player runs can answer.
+  // A custom model that failed to start (until its file changes or reset()) is marked broken.
   #selected(pack) {
     let picked = null;
     try { picked = typeof this.selection === 'function' ? this.selection() : null; } catch { /* a broken hook means no choice */ }
-    return {models: listLocalModels({pack, matureModels: picked?.matureModels, customModels: picked?.customModels}), pin: normalisePin(picked?.pin), matureOn: picked?.matureOn === true};
+    let models = listLocalModels({pack, matureModels: picked?.matureModels, customModels: picked?.customModels});
+    if (!pack?.installed) models = externalModels(models);
+    for (const model of models) if (model.custom && this.#broken.get(model.id) === this.#sizeKey(model)) model.broken = true;
+    return {models, pin: normalisePin(picked?.pin), matureOn: picked?.matureOn === true};
+  }
+
+  // Is the choice a server the player runs? Decided without the graphics card (such a server uses none of ours): a pinned server, or one
+  // that is the last resort of its group. Null when a file model is chosen (the normal start decides which, with the card's numbers).
+  #externalChoice(selected) {
+    if (this.tierSetting === 'standard' || this.tierSetting === 'lite') return null;
+    if (!externalModels(selected.models).length) return null;
+    try {
+      const choice = chooseLocalModel({models: selected.models, pin: selected.pin, matureOn: selected.matureOn, freeMiB: null, totalMiB: this.#totalMiB, sizeOf: file => this.fileSizeMiB(file)});
+      return choice.model.external === true ? choice : null;
+    } catch { return null; }
   }
 
   /** The id of the model that is loaded or loading (null when none): 'standard', 'lite', 'mature:...' or 'custom:...'. */
@@ -554,7 +591,7 @@ export class LocalLlmServer extends EventEmitter {
   /** The total memory (MiB) of the graphics card the last start used, or null before any start. */
   get totalVramMiB() { return this.#totalMiB; }
 
-  #sizeKey(model) { return model.file + '|' + Math.round(Number(this.fileSizeMiB(model.file)) || 0); }
+  #sizeKey(model) { return model.external ? model.endpoint + '|' + (model.requestModel ?? '') : model.file + '|' + Math.round(Number(this.fileSizeMiB(model.file)) || 0); }
 
   // A model the player added did not start (or died while warming up): it is left out until its file changes or reset(), the player is told
   // once (the retry's 'model-fallback', the same notice as a missing chosen model, naming the model it then uses) and the start is tried
@@ -562,7 +599,8 @@ export class LocalLlmServer extends EventEmitter {
   #modelFailed(model, why) {
     this.#broken.set(model.id, this.#sizeKey(model));
     this.#failedPin = model.id;
-    this.log('[local] the custom model "' + model.name + '" did not start (' + why + '): the default model is chosen instead');
+    this.log(model.external ? '[local] the server of the model "' + model.name + '" cannot be used (' + why + '): the default model is chosen instead'
+      : '[local] the custom model "' + model.name + '" did not start (' + why + '): the default model is chosen instead');
   }
 
   /**
@@ -594,14 +632,25 @@ export class LocalLlmServer extends EventEmitter {
   async #startOnce() {
     const generation = this.#generation;
     const pack = this.pack;
-    if (!pack?.installed) throw new LocalAiUnavailable('not-installed');
+    const selected = this.#selected(pack);
+    const early = this.#externalChoice(selected);
+    // No pack and no server of the player's to use: not installed. A server that was tried and failed is that server's failure; one marked uncensored is
+    // not the default while Mature content is off (it runs when it is chosen in the row, or once Mature content is on: clearLocalFailure('mature-off')).
+    if (!early && !pack?.installed) {
+      if (!selected.models.length) throw new LocalAiUnavailable('not-installed');
+      throw selected.models.some(model => model.broken) ? new LocalAiUnavailable('start-failed', 'the server you added did not answer')
+        : new LocalAiUnavailable('mature-off', 'the server you added is marked uncensored: choose it in the Local AI model row, or turn Mature content on');
+    }
     this.#setState('starting');
+    const failedPin = this.#failedPin; this.#failedPin = null;
+    if (early) { this.#announce(early, selected); return this.#startExternal(early.model, failedPin, generation); }
     await this.#waitBeforeStart();
     this.#guard(generation);
     const {device, freeMiB} = await this.#selectDevice();
     this.#guard(generation);
-    const failedPin = this.#failedPin; this.#failedPin = null;
-    const choice = this.#choose(pack, freeMiB);
+    const choice = this.#choose(pack, freeMiB, selected);
+    // With the card's numbers a file model turned out too large for it, and a server the player runs is the last resort: use it.
+    if (choice.model.external === true) return this.#startExternal(choice.model, failedPin, generation);
     if (failedPin) this.emit('model-fallback', {pin: failedPin, reason: 'start-failed', model: choice.model.name});
     const tierKey = choice.profile, tier = choice.model;
     const contextSize = tier.contextSize ?? this.contextSize ?? chooseContext({tier: tierKey, freeMiB, sizeMiB: choice.sizeMiB});
@@ -654,6 +703,76 @@ export class LocalLlmServer extends EventEmitter {
     return this.#handle();
   }
 
+  // A server the player runs is the model: no process of ours. Look at it once (reachable? which model id? how big a context?), then trust it.
+  async #startExternal(model, failedPin, generation) {
+    if (failedPin) this.emit('model-fallback', {pin: failedPin, reason: 'start-failed', model: model.name});
+    this.#tier = null; this.#model = model.loadedName ?? model.name; this.#modelId = model.id; this.#contextSize = model.contextSize ?? 0;
+    this.#hints = {uncensored: model.uncensored === true, family: model.family ?? null};
+    this.#firstTime = false;
+    this.#emitStatus();
+    let found;
+    try { found = await this.#lookAtServer(model); } catch (error) {
+      this.#guard(generation);
+      this.log('[local] the server of "' + model.name + '" did not answer: ' + (error?.message || 'error'));
+      this.#modelFailed(model, error?.code || 'unreachable');
+      return this.#startOnce();
+    }
+    this.#guard(generation);
+    this.#info = {endpoint: model.endpoint + '/chat/completions', base: model.endpoint, apiKey: model.apiKey || NO_KEY, contextSize: found.contextSize,
+      external: true, remote: model.remote === true, requestModel: found.requestModel, trustedOrigin: model.origin};
+    this.#contextSize = found.contextSize;
+    this.#setState('ready');   // no warm-up and no idle timer: nothing of ours is loaded
+    if (this.#reselectPending) { const timer = this.setTimer(() => { void this.#reloadIfIdle(); }, 250); timer?.unref?.(); }
+    return this.#handle();
+  }
+
+  // GET <endpoint>/models (a short timeout): the one reachability check. Resolves {requestModel, contextSize}; rejects with a plain message (no address, no key).
+  async #lookAtServer(model) {
+    const headers = {accept: 'application/json', ...(model.apiKey ? {authorization: 'Bearer ' + model.apiKey} : {})};
+    const get = async url => {
+      const response = await this.fetchImpl(url, {headers, signal: AbortSignal.timeout(this.externalProbeMs)});
+      let body = null;
+      try { body = response.ok ? await response.json() : (await response.arrayBuffer?.(), null); } catch { /* not JSON */ }
+      return {status: response.status, ok: response.ok, body};
+    };
+    const fail = (code, message) => Object.assign(Error(message), {code});
+    let listing;
+    try { listing = await get(model.endpoint + '/models'); } catch (error) {
+      throw fail('unreachable', 'could not be reached (' + String(error?.cause?.code ?? error?.name ?? 'error').slice(0, 40) + ')');
+    }
+    if (listing.status === 401 || listing.status === 403) throw fail('key-refused', 'the server did not accept the API key');
+    if (!listing.ok) throw fail('bad-address', 'the server answered HTTP ' + listing.status + ' at /models (the address usually ends in /v1)');
+    const listed = Array.isArray(listing.body?.data) ? listing.body.data.filter(item => typeof item?.id === 'string') : [];
+    const requestModel = model.requestModel ?? (listed.length === 1 ? listed[0].id : 'local');
+    const usable = value => { const number = Number(value); return Number.isFinite(number) && number >= 512 ? Math.floor(number) : null; };
+    let contextSize = model.contextSize;
+    if (!contextSize) {
+      const row = listed.find(item => item.id === requestModel) ?? (listed.length === 1 ? listed[0] : null);
+      contextSize = usable(row?.context_length) ?? usable(row?.max_context_length) ?? usable(row?.loaded_context_length) ?? usable(row?.n_ctx) ?? usable(row?.meta?.n_ctx) ?? null;
+    }
+    if (!contextSize) {
+      // llama.cpp: GET /props at the server's root; KoboldCpp: GET /api/extra/true_max_context_length. Both at once, whatever fails is skipped.
+      const root = model.endpoint.endsWith('/v1') ? model.endpoint.slice(0, -3) : model.origin;
+      const [props, kobold] = await Promise.all([get(root + '/props').catch(() => null), get(root + '/api/extra/true_max_context_length').catch(() => null)]);
+      contextSize = usable(props?.body?.default_generation_settings?.n_ctx) ?? usable(props?.body?.n_ctx) ?? usable(kobold?.body?.value) ?? null;
+    }
+    return {requestModel, contextSize: contextSize ?? LOCAL_LLM_LIMITS.externalContext};
+  }
+
+  /**
+   * A server the player runs stopped answering (a chat request to it failed to connect or time out): forget it, so the next ensure() looks at it
+   * again with one short request instead of trusting a connection that is gone. Does nothing for our own llama-server (it has its exit handler).
+   * Returns whether it did something.
+   */
+  externalLost() {
+    if (this.#state !== 'ready' || !this.#info?.external) return false;
+    this.#info = null;
+    this.#disarm();
+    this.log('[local] the server you added stopped answering: it is looked at again before the next turn');
+    this.#setState('stopped');
+    return true;
+  }
+
   // The context the server really has (n_ctx per slot, GET /props); the one it was asked for when it does not say.
   async #readContext(proc, requested) {
     try {
@@ -671,7 +790,7 @@ export class LocalLlmServer extends EventEmitter {
    */
   async tokenize(text, {signal, timeoutMs = 2500} = {}) {
     const info = this.#info;
-    if (!info?.base || this.#state !== 'ready') return null;
+    if (!info?.base || this.#state !== 'ready' || info.external) return null;   // a server the player runs: the estimate (and the refusal it learns from) stands
     try {
       const timeout = AbortSignal.timeout(timeoutMs);
       const response = await this.fetchImpl(info.base + '/tokenize', {method: 'POST', signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
@@ -703,7 +822,7 @@ export class LocalLlmServer extends EventEmitter {
     const timeout = AbortSignal.timeout(timeoutMs);
     const response = await this.fetchImpl(info.endpoint, {method: 'POST', signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
       headers: {'content-type': 'application/json', authorization: 'Bearer ' + info.apiKey},
-      body: JSON.stringify({model: this.#model ?? 'local', messages, max_tokens: 1, stream: false, temperature: 0, cache_prompt: cachePrompt})});
+      body: JSON.stringify({model: info.requestModel ?? this.#model ?? 'local', messages, max_tokens: 1, stream: false, temperature: 0, cache_prompt: cachePrompt})});
     await response.arrayBuffer?.().catch(() => {});
     if (!response.ok) throw Error('HTTP ' + response.status);
   }
@@ -739,7 +858,7 @@ export class LocalLlmServer extends EventEmitter {
 
   #arm() {
     this.#disarm();
-    if (this.#state !== 'ready' || this.#inflight > 0 || !(this.idleMs > 0)) return;
+    if (this.#state !== 'ready' || this.#inflight > 0 || !(this.idleMs > 0) || this.#info?.external) return;   // a server the player runs holds nothing of ours
     this.#idleTimer = this.setTimer(() => this.#idleFire(), this.idleMs);
     this.#idleTimer?.unref?.();
   }
@@ -761,6 +880,7 @@ export class LocalLlmServer extends EventEmitter {
     let release = null;
     try {
       const info = await this.ensure();
+      if (info.external && this.#info?.remote) return false;   // nothing is sent to a remote server ahead of a turn
       release = this.begin();
       await this.#complete(info, messages);
       return true;

@@ -62,6 +62,8 @@ Nothing is parked.
 
 ## Captain's log
 
+**2026-10-18 (branch feature/external-local-endpoint, not merged or pushed): Local AI on the player's own server.** A player runs Qwen3.5-9B in KoboldCpp and asked to connect it. An `endpoint` entry in `local-ai/manifest.custom.json` (instead of `file`) names KoboldCpp, LM Studio, Ollama, a llama.cpp server or any OpenAI-compatible chat API; it appears in the Local AI model row as "(custom)", needs no pack, starts none of our llama-server (an already loaded one is unloaded) and streams through the same route as our own server. Bridge only (no Lua change). Local and private-network hosts need nothing more, any other host needs `"remote": true` and https, `apiKey` is scrubbed from logs, lists and support reports. Docs: LOCAL_AI.md "Use your own server". Tests: `bridge/external-endpoint.test.mjs`. Open: live check against a real KoboldCpp (needs the user or the player), merge, Runtime rebuild; the provider label "Local (needs Local AI pack)" still says pack (Lua and localization, left alone).
+
 **2026-10-18 (evening): v0.2 released.** The user published the mod on Nexus Mods and the demo video on YouTube. Downloads: Scripts on Nexus and Hugging Face; Runtime 0.2 (system Edge, no bundled browser, ClamAV clean) and the optional packs on Hugging Face. GitHub account alystria-ai is flagged and hidden; rebuild the release there after reinstatement.
 
 **2026-10-18 (evening): new to-do, add-ons for Lucy and Rita Wheeler** (Night City Allies followers), from a player's feature request stored verbatim under "Still to build"; nothing else decided yet.

@@ -14,6 +14,19 @@
 //   family       optional label (letters, digits, `. _ -` and spaces, at most 40) used for the Mature allowance table (e.g. 'qwen')
 //   contextSize  optional whole number 2048 to 262144: the context the server starts with (else the usual ladder by free memory)
 //   chatTemplate optional name of a llama.cpp built-in chat template (`--chat-template`); for a file without a usable template of its own
+// An entry can instead name a server the player already runs (KoboldCpp, LM Studio, Ollama, a llama.cpp server, anything with an
+// OpenAI-compatible chat API) with `endpoint` in place of `file`; our own llama-server is then not used for it (docs/LOCAL_AI.md, "Use your own server"):
+//     {endpoint: 'http://127.0.0.1:5001/v1', name: 'KoboldCpp Qwen 9B', model: 'optional model id', apiKey: 'optional', remote: false,
+//      uncensored: false, family: 'qwen', contextSize: 8192}
+//   endpoint     required (in place of `file`); an http:// or https:// address, no user name, query or fragment. Chats go to <endpoint>/chat/completions
+//                (an address with no path gets /v1). Localhost, this computer's own names and the private network (192.168.x.x, 10.x.x.x,
+//                172.16 to 31, 169.254.x.x, 100.64 to 127 (Tailscale), IPv6 fc00::/7 and fe80::/10, `.local`, `.lan`, `.home.arpa`, `.internal`, a name
+//                with no dot) need nothing more. Any other host needs `"remote": true` and an https:// address, so a typo cannot send chats to the internet unnoticed.
+//   model        optional model id sent with each request (Ollama and LM Studio want one); without it the server's only listed model, else `local`
+//   apiKey       optional, for a server that wants one. A secret: it is sent only to this endpoint's own origin and never logged, listed or put in a report
+//   remote       optional boolean (default false); see `endpoint`
+//   name, uncensored, family, contextSize as above (a missing contextSize: the server is asked once, else 8192; a missing name: the server's host).
+//   `chatTemplate` does not apply. The checks of a file (header, size, graphics memory) do not apply either: the server is looked at when the model is chosen.
 // A bad entry is skipped with one log line (never thrown). Like the Mature marker, the dev folder (CYBERPUNK_CONVAI_LOCAL_AI_DEV) is the
 // fallback when the real folder has no manifest.
 //
@@ -35,7 +48,7 @@ import {modelNeedMiB, safeModelId} from './local-model-choice.mjs';
 export const CUSTOM_MARKER = 'manifest.custom.json';
 export const CUSTOM_LIMITS = Object.freeze({
   maxModels: 16, nameMax: 60, familyMax: 40, minContext: 2048, maxContext: 262144, headerBytes: 2 * 1024 * 1024, minFileBytes: 1024 * 1024,
-  maxProblems: 8,
+  maxProblems: 8, endpointMax: 300, modelMax: 120, apiKeyMax: 512,
 });
 
 /** The reasons a model is not usable, as the settings page gets them. */
@@ -162,18 +175,102 @@ function insidePath(root, value) {
   return {path: resolve(root, value)};
 }
 
+// A log line names a file entry by its file and any other entry by its number: an endpoint's address can carry a secret in its path.
 const label = (entry, index) => (typeof entry?.file === 'string' ? '"' + entry.file.slice(0, 80) + '"' : 'entry ' + (index + 1));
+
+// The part of a server model's id made from its address and model id: `custom:<this>` (letters, digits, `. _ -`, at most 60). Stable across runs.
+const endpointId = entry => ('ep-' + new URL(entry.endpoint).host + (entry.model ? '-' + entry.model : '')).toLowerCase().replace(/[^a-z0-9._-]+/g, '-').slice(0, 60);
+
+// ---- Servers the player runs themselves ----------------------------------------------------------------------------------------
+
+const IPV4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+const PRIVATE_NAME = /\.(?:local|lan|internal|localdomain|home\.arpa)$/;
+
+/**
+ * Where a host name or address is: 'loopback' (this computer), 'lan' (the private network: RFC 1918, link-local, 100.64.0.0/10 (Tailscale),
+ * IPv6 unique-local and link-local, `.local` and similar names, a name with no dot) or 'remote' (anything else). Pure, no lookups. A name
+ * that only contains such a word (`127.0.0.1.example.com`, `localhost.example.com`) is remote.
+ */
+export function hostKind(hostname) {
+  const host = String(hostname ?? '').toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+  if (!host) return 'remote';
+  if (host === 'localhost' || host.endsWith('.localhost') || host === '::1') return 'loopback';
+  const four = IPV4.exec(host);
+  if (four) {
+    const [a, b, c, d] = four.slice(1).map(Number);
+    if ([a, b, c, d].some(part => part > 255)) return 'remote';
+    if (a === 127) return 'loopback';
+    if (a === 10 || (a === 192 && b === 168) || (a === 172 && b >= 16 && b <= 31) || (a === 169 && b === 254) || (a === 100 && b >= 64 && b <= 127)) return 'lan';
+    return 'remote';
+  }
+  if (host.includes(':')) return /^f[cd][0-9a-f]{2}:/.test(host) || /^fe[89ab][0-9a-f]:/.test(host) ? 'lan' : 'remote';
+  if (!host.includes('.') || PRIVATE_NAME.test(host)) return 'lan';
+  return 'remote';
+}
+
+/**
+ * The address of a server the player runs, checked strictly: {endpoint, origin, kind} or {error: 'why'}. `endpoint` is normalised (no
+ * trailing slash; no path means /v1); `origin` is its scheme, host and port (the only place the key may go); `kind` is hostKind().
+ * `remote` (the entry's "remote" flag) must be true for a host outside this computer and the private network, which must then use https.
+ */
+export function checkEndpoint(value, {remote = false} = {}) {
+  if (typeof value !== 'string' || !value.trim()) return {error: '"endpoint" must be an http:// or https:// address'};
+  const text = value.trim();
+  if (text.length > CUSTOM_LIMITS.endpointMax || /[\u0000-\u001f\u007f\s]/.test(text)) return {error: '"endpoint" is not a usable address'};
+  let url;
+  try { url = new URL(text); } catch { return {error: '"endpoint" must be an http:// or https:// address'}; }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return {error: '"endpoint" must start with http:// or https://'};
+  if (!url.hostname) return {error: '"endpoint" has no host'};
+  if (url.username || url.password) return {error: '"endpoint" must not contain a user name or password (use "apiKey")'};
+  if (url.search || url.hash) return {error: '"endpoint" must not contain a query or a #fragment'};
+  const kind = hostKind(url.hostname);
+  if (kind === 'remote') {
+    if (remote !== true) return {error: '"endpoint" is outside this computer and your local network; if that is what you want, add "remote": true'};
+    if (url.protocol !== 'https:') return {error: 'a "remote" endpoint must use https://, so your chats and key are not sent in the clear'};
+  }
+  const path = url.pathname.replace(/\/+$/, '');
+  return {endpoint: url.origin + (path || '/v1'), origin: url.origin, kind};
+}
+
+// The fields of an entry that names a server: {target, model, apiKey} or {error}.
+function checkServerFields(raw) {
+  if (raw.file !== undefined) return {error: 'give either "file" or "endpoint", not both'};
+  let remote = false;
+  if (raw.remote !== undefined) {
+    if (typeof raw.remote !== 'boolean') return {error: '"remote" must be true or false'};
+    remote = raw.remote;
+  }
+  const target = checkEndpoint(raw.endpoint, {remote});
+  if (target.error) return target;
+  let model = null;
+  if (raw.model !== undefined) {
+    if (typeof raw.model !== 'string' || !raw.model.trim() || raw.model.trim().length > CUSTOM_LIMITS.modelMax || /[\u0000-\u001f\u007f]/.test(raw.model)) {
+      return {error: '"model" must be a model id (text of at most ' + CUSTOM_LIMITS.modelMax + ' characters)'};
+    }
+    model = raw.model.trim();
+  }
+  let apiKey = null;
+  if (raw.apiKey !== undefined) {
+    if (typeof raw.apiKey !== 'string' || !raw.apiKey.trim() || raw.apiKey.trim().length > CUSTOM_LIMITS.apiKeyMax || /[\u0000-\u001f\u007f\s]/.test(raw.apiKey.trim())) {
+      return {error: '"apiKey" must be text without spaces (at most ' + CUSTOM_LIMITS.apiKeyMax + ' characters)'};
+    }
+    apiKey = raw.apiKey.trim();
+  }
+  return {target, model, apiKey};
+}
 
 /**
  * One manifest entry, checked strictly: {entry: {file, name, uncensored, family, contextSize, chatTemplate}} or {error: 'why'}.
- * `file` is absolute (inside `root`).
+ * `file` is absolute (inside `root`). An entry with `endpoint` instead of `file` is a server the player runs: {external: true, file: null,
+ * endpoint, origin, hostKind, remote, model, apiKey, name, uncensored, family, contextSize, chatTemplate: null}.
  */
 export function validateEntry(root, raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {error: 'is not an object'};
-  const located = insidePath(root, raw.file);
-  if (located.error) return {error: located.error};
-  const fileName = basename(located.path).replace(/\.gguf$/i, '');
-  let name = fileName;
+  const server = raw.endpoint !== undefined ? checkServerFields(raw) : null;
+  if (server?.error) return {error: server.error};
+  const located = server ? null : insidePath(root, raw.file);
+  if (located?.error) return {error: located.error.replace('needs a "file"', 'needs a "file" or an "endpoint"')};
+  let name = server ? new URL(server.target.origin).host : basename(located.path).replace(/\.gguf$/i, '');
   if (raw.name !== undefined) {
     if (typeof raw.name !== 'string' || !raw.name.trim()) return {error: '"name" must be a non-empty text'};
     name = raw.name.trim();
@@ -194,6 +291,10 @@ export function validateEntry(root, raw) {
       return {error: '"contextSize" must be a whole number from ' + CUSTOM_LIMITS.minContext + ' to ' + CUSTOM_LIMITS.maxContext};
     }
     contextSize = raw.contextSize;
+  }
+  if (server) {
+    return {entry: {file: null, name, uncensored, family, contextSize, chatTemplate: null, external: true, endpoint: server.target.endpoint,
+      origin: server.target.origin, hostKind: server.target.kind, remote: server.target.kind === 'remote', model: server.model, apiKey: server.apiKey}};
   }
   let chatTemplate = null;
   if (raw.chatTemplate !== undefined) {
@@ -223,7 +324,9 @@ function shardPaths(file) {
  * again), never thrown.
  *   const scanner = new CustomModelScanner({project, log});
  *   scanner.scan({totalVramMiB})  -> {present, root, models: [...], problems: [{name, reason, detail}]}
- * A model: {id: 'custom:<id>', name, file, sizeMiB, needMiB, tooLarge, uncensored, family, contextSize, chatTemplate, architecture}.
+ * A model: {id: 'custom:<id>', name, file, sizeMiB, needMiB, tooLarge, uncensored, family, contextSize, chatTemplate, architecture}; a server
+ * the player runs (an `endpoint` entry) has {external: true, file: null, endpoint, origin, hostKind, remote, model, apiKey} and no size (0), never
+ * `tooLarge`. `apiKey` is a secret: only the supervisor reads it; no log line, status or list carries it.
  */
 export class CustomModelScanner {
   #cache = new Map(); #logged = new Set();
@@ -264,6 +367,17 @@ export class CustomModelScanner {
       const checked = validateEntry(root, raw);
       if (checked.error) { this.#say('skipped ' + label(raw, index) + ': ' + checked.error); return; }
       const entry = checked.entry;
+      if (entry.external) {
+        // A server the player runs: nothing to read from disk, and no network here (it is looked at when the model is chosen).
+        const serverKey = (entry.endpoint + '|' + (entry.model ?? '')).toLowerCase();
+        if (files.has(serverKey)) { this.#say('skipped ' + label(raw, index) + ': the same endpoint and model are listed twice'); return; }
+        files.add(serverKey);
+        let id = 'custom:' + endpointId(entry), suffix = 2;
+        while (ids.has(id)) id = 'custom:' + endpointId(entry) + '-' + suffix++;
+        ids.add(id);
+        models.push({...entry, id, sizeMiB: 0, needMiB: 0, tooLarge: false, architecture: null});
+        return;
+      }
       const key = entry.file.toLowerCase();
       if (files.has(key)) { this.#say('skipped ' + label(raw, index) + ': the same file is listed twice'); return; }
       files.add(key);
