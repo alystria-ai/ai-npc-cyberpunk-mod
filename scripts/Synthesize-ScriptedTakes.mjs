@@ -3,7 +3,7 @@
 // player's keys and reference clips in place (nothing is copied); no key is ever printed, logged or written.
 //
 //   node scripts/Synthesize-ScriptedTakes.mjs [--engines pocket,voxtral,inworld] [--out <folder>] [--state <folder>]
-//        [--name jackie-welcome] [--voice jackie-welles] [--pocket-work <folder>] [--pocket-threads 2]
+//        [--name songbird-welcome] [--voice songbird] (--tagged-file <file> | --tagged "<text>") [--pocket-work <folder>] [--pocket-threads 2]
 //
 // Pocket runs a SEPARATE worker with its own work folder, so it never shares the running bridge's work-folder lock.
 // Audio is never played.
@@ -26,16 +26,15 @@ const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const argument = (name, fallback) => { const at = process.argv.indexOf(`--${name}`); return at >= 0 ? process.argv[at + 1] : fallback; };
 const stateDirectory = resolve(argument('state', process.env.CYBERPUNK_CONVAI_STATE || 'C:\\Users\\akshi\\Desktop\\Code Palace\\Cyberpunk Mod\\runtime'));
 const outDirectory = resolve(argument('out', 'C:\\Users\\akshi\\Desktop\\Code Palace\\demo-video\\takes'));
-const baseName = argument('name', 'jackie-welcome');
+const baseName = argument('name', 'welcome');
 const voiceKey = argument('voice', 'jackie-welles');
 const engines = argument('engines', 'pocket,voxtral,inworld').split(',').map(value => value.trim()).filter(Boolean);
 const pocketWork = resolve(argument('pocket-work', resolve(stateDirectory, '..', '..', 'demo-video', 'takes', '.pocket-work')));
 const pocketThreads = Number(argument('pocket-threads', '2'));
-// Where a developer's notes keep an `inworld=<key>` line when the bridge's own player-inworld-key.txt does not exist.
-const inworldFallbackFile = argument('inworld-notes', '');
-
-const TAGGED = "{joy:strong}V! Hermano, listen up. Now you can actually talk to us. Say it or type it, and we answer back in our own voice. {warm}Bring me along, I ride shotgun, I got your back, and I don't forget nothin'. {interest}And it can run right on your own rig, no eddies. {joy}Preem, right?";
-const CLEAN = "V! Hermano, listen up. Now you can actually talk to us. Say it or type it, and we answer back in our own voice. Bring me along, I ride shotgun, I got your back, and I don't forget nothin'. And it can run right on your own rig, no eddies. Preem, right?";
+// The line, in the pipeline's own tag format ({joy} {warm} ...): --tagged-file <utf-8 file> or --tagged "<text>".
+const TAGGED = argument('tagged-file') ? (await readFile(resolve(argument('tagged-file')), 'utf8')).trim() : argument('tagged');
+if (!TAGGED) throw Error('Give the line with --tagged-file <file> or --tagged "<text>".');
+const CLEAN = parseTagged(TAGGED).display;
 
 const parsed = parseTagged(TAGGED);
 if (parsed.display !== CLEAN) throw Error(`The tagged line does not parse to the clean line: ${JSON.stringify(parsed.display)}`);
@@ -48,13 +47,8 @@ const readText = async path => readFile(path, 'utf8').catch(() => null);
 
 // ---- keys (read in place, kept in memory only) ------------------------------------------------------------------------
 const mistralKey = parseMistralKey(await readText(resolve(stateDirectory, MISTRAL_KEY_FILE)));
-let inworldKey = parseInworldKey(await readText(resolve(stateDirectory, INWORLD_KEY_FILE))), inworldKeySource = INWORLD_KEY_FILE;
-if (!inworldKey) {
-  const notes = await readText(inworldFallbackFile);
-  const line = notes?.split(/\r?\n/).map(entry => entry.trim()).find(entry => /^inworld(?:[-_ ]?(?:api[-_ ]?)?key)?\s*[=:]/i.test(entry));
-  inworldKey = line ? parseInworldKey(line.replace(/^inworld(?:[-_ ]?(?:api[-_ ]?)?key)?\s*[=:]\s*/i, '')) : null;
-  inworldKeySource = inworldKey ? 'developer key notes (inworld= line)' : 'none';
-}
+// The mod's own key files only (state folder); nothing else is ever consulted.
+const inworldKey = parseInworldKey(await readText(resolve(stateDirectory, INWORLD_KEY_FILE))), inworldKeySource = INWORLD_KEY_FILE;
 console.log(`Keys: mistral ${mistralKey ? 'found' : 'MISSING'} (${MISTRAL_KEY_FILE}); inworld ${inworldKey ? 'found' : 'MISSING'} (${inworldKeySource})`);
 
 // ---- the voice configurations, as the bridge loads them -----------------------------------------------------------------
@@ -99,7 +93,7 @@ async function runVoxtral() {
 async function runInworld() {
   const steered = steerText(CLEAN, emotionMarks, {sounds: []});
   console.log(`  [inworld] steering: ${steered.tags} instruction(s) applied; first words sent: ${JSON.stringify(steered.text.slice(0, 70))}`);
-  if (steered.tags !== emotionMarks.length || !steered.text.startsWith('[say with delighted excitement]')) throw Error('Inworld steering was not applied as expected');
+  if (steered.tags !== emotionMarks.length) throw Error('Inworld steering was not applied as expected');
   const voice = new InworldVoice({getKey: () => inworldKey, referenceRoot, storePath: resolve(argument('inworld-store', resolve(outDirectory, '.inworld-voices.json'))),
     limits: {stallMs: 20000}, onLog: log('')});
   voice.setReferences([omniLong, omniShort, pocketRegistry]);
