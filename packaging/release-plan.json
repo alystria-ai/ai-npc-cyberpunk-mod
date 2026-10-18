@@ -864,6 +864,7 @@
       "blue-moon",
       "bob-sagan",
       "briana-dolson",
+      "bryce-mosley",
       "carol-emeka",
       "cassidy-righter",
       "chang-hoon-nam",
@@ -946,7 +947,7 @@
       "additionalProfileStatus": "source-qualified activation; listening not required by user",
       "sourceQualifiedActivation": true,
       "subjectiveListeningRequired": false,
-      "preparedLocalProfiles": 76,
+      "preparedLocalProfiles": 77,
       "fallbackProfiles": 4
     },
     "startupProfiles": [

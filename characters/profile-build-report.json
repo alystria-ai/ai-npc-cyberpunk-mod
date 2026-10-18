@@ -1,6 +1,6 @@
 {
-  "profiles": 80,
-  "named": 78,
+  "profiles": 81,
+  "named": 79,
   "ambient": 2,
   "profileRevision": 5,
   "model": "fast-gemma-4-31b-it",
@@ -2576,6 +2576,15 @@
       "voice": "Emily (Friendly Young-Adult American Female)",
       "sources": 3,
       "researchRevision": "cedf59715537b85e4dbc9423c7482174b2fdf9ae5effe9f64befe9fdac4a891c"
+    },
+    {
+      "key": "bryce-mosley",
+      "words": 609,
+      "speakingStyleWords": 188,
+      "sampleDialogueWords": 144,
+      "voice": "Noah (Confident Adult American Male)",
+      "sources": 6,
+      "researchRevision": "4879ad11c0dd4f504b49d58a371e6a8c5a68e71afa7ebef049cff1daf04ff729"
     }
   ]
 }

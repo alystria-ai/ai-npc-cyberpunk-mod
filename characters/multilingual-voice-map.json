@@ -1037,6 +1037,11 @@
    "voice": "AZURE-MULTILINGUAL-eb15982107",
    "voiceName": "Ximena",
    "reason": "Guarded, warm female voice for a Dogtown local (shared with the ripperdoc and the woman living rough)."
+  },
+  "bryce-mosley": {
+   "voice": "AZURE-MULTILINGUAL-c387a0c635",
+   "voiceName": "Andrew",
+   "reason": "Even, confident mid male voice for a smooth NetWatch negotiator."
   }
  }
 }
