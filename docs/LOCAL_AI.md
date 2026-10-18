@@ -56,6 +56,13 @@ no "Auto" entry: the row always shows one concrete model as selected. Only one m
   leaves the model alone. Turning Mature content off puts the earlier model back, as it does the other choices.
 - **Choosing a model** uses exactly that model, whatever fits better and whatever Mature content says (an uncensored model with
   Mature content off simply runs without the Mature rules).
+- **A Mature pack alone (no standard, lite or custom model installed).** The Mature packs include the engine, so they work without a Local AI pack
+  (see "Mature content"). Then every installed model is an uncensored one, and the rule is: they run only while Mature content is on. With it on, the
+  default and the fallbacks are the Mature models as above (the good one if it fits, else the lite one, with layers on the CPU if even that does not fit).
+  With it off, nothing is chosen, a pin makes no difference, Local AI is unavailable (the start fails with the reason `mature-off`, so the row shows the
+  usual "Unavailable" state and the cloud provider answers with the usual one notice), and the row offers no default (nothing is saved on Apply); turning
+  Mature content on selects the Mature model and lifts the failure, and turning it off again unloads the model. As soon as a standard, lite or custom model is
+  installed beside the Mature pack nothing of this applies and everything above holds as before.
 - **Fallback.** A chosen model that is missing, does not fit the free graphics memory or did not start is replaced by the largest
   model that fits (with Mature content on and an uncensored model available: the largest uncensored one that fits), with one notice
   that names the model used: "The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so
@@ -474,7 +481,7 @@ with Mature content on the default choice and the fallback prefer the largest on
   packs' two tiers, and the first marker that names a tier wins; since 2026-10-14 the old `models` list is no longer read, so a marker with only that is "installed" with no model to offer); a valid marker is
   "installed" (the listed files are reported as `present`; a model whose file is absent is not offered or loaded, and a model left in parts by an earlier release is
   joined by the launcher before the bridge starts); a missing,
-  malformed or foreign marker, or a model path that leaves the folder, is not trusted. `detectLocalAiPack` never reads this marker; the model
+  malformed or foreign marker, or a model path that leaves the folder, is not trusted. `detectLocalAiPack` reads only two fields of it, `server` and `embed` (see "The Mature packs carry the engine" below), never its model entries; the model
   choice (`bridge/local-model-choice.mjs`) joins the marker's models that are present on disk with the pack's own two.
 - When: once at start and then from the settings poll at most every 5 s (one `stat` and a tiny read; never per frame, never per turn).
   `MatureContent` has two inputs, `requested` (the settings file) and `pack` (the scan); `enabled` is `requested`. Finding or losing the
@@ -490,6 +497,18 @@ with Mature content on the default choice and the fallback prefer the largest on
   Runtime package or `release-plan.json`; its marker, README, release notes and models are not read by the runtime builder (tested). The
   main mod's own files (the bridge modules `mature-content`, `mature-guard`, `mature-guard-terms` and `mature-pack`, the Lua and locale
   strings) are in the Runtime and Scripts packages.
+- The Mature packs carry the engine (2026-10-18): so that a player who installs only a Mature pack has a working Local AI (before, they saw "No model
+  installed"), each pack ships the same engine files as the Local AI packs, byte for byte and at the same paths: `app/local-ai/llama/` (llama-server and its
+  libraries, with the LLVM OpenMP licence), `models/granite-embedding-107m-multilingual-Q8_0.gguf`, `licenses/Apache-2.0.txt`, `licenses/llama.cpp-MIT.txt` and
+  `LICENSE.txt`. They come from the same pinned `localAi` inputs through one helper (`addEngine` in `packaging/build-release.mjs`), so installing a Local AI pack over a Mature pack, or
+  the reverse, only overwrites identical files. The Mature marker names them like a Local AI manifest does: `{version: 1, pack: 'mature', server: 'llama/llama-server.exe', lite|good: {...}, embed: {file, dim, id}}`.
+  `detectLocalAiPack` merges `server` and `embed` from the Mature markers (only when no Local AI manifest names them, and never a model entry, so a Mature `lite` is not the
+  Local AI lite model); a Mature-only install counts as installed when the marker names a server whose file exists and a model file that exists. A marker of an older Mature pack
+  has neither field, adds nothing, and works beside a Local AI pack as before (it alone is still no install). The root `THIRD-PARTY-NOTICES.txt` and the `local-ai-<tier>.json`
+  receipts stay the Local AI packs'; each Mature pack lists llama.cpp, its OpenMP runtime and the IBM Granite embedding model in its own `mature/THIRD-PARTY-NOTICES-<tier>.txt`.
+  The packs are about 2.9 GB (lite: model 2.71 GB + embedding model 0.12 GB + llama-server) and about 5.5 GB (standard: model 5.34 GB + the same). The released Runtime's bridge needs
+  `local-ai-pack.mjs`, `local-model-choice.mjs`, `local-llm-server.mjs`, `mistral-key.mjs`, `mature-pack.mjs` and `convai-bridge.mjs` patched for a Mature-only install to be detected; with the
+  old bridge a Mature-only install still reads as no Local AI pack, and a Mature pack beside a Local AI pack works as it did.
 - Packaging of the pack: `maturePack` in `packaging/release.config.json` and `maturePackage` in `packaging/build-release.mjs`. It writes the
   model files into `app/local-ai/models/`, the marker, and `app/local-ai/mature/` (`README.md` from `packaging/MATURE_PACK_README.md`,
   `licenses/Apache-2.0.txt`, `THIRD-PARTY-NOTICES.txt`, `mature-pack.json`). The config has exactly two models under `maturePack.tiers` (`lite`: Qwen3.5-4B-Uncensored-HauhauCS-Aggressive Q4_K_M, 2.71 GB; `good`:
@@ -500,7 +519,7 @@ with Mature content on the default choice and the fallback prefer the largest on
   and it refuses a non-Apache-2.0 model or a third entry.
 - Texts: `packaging/MATURE_PACK_README.md` (ships in the pack) and `packaging/MATURE_PACK_RELEASE_NOTES.md` (the text for the GitHub
   release: what it adds, that the setting is part of the main mod, that the hard limits stay on every model, that it needs the main mod and
-  a Local AI pack, the install steps; it replaced the Nexus page text and its adult-flag and tag instructions).
+  that a Local AI pack is not needed (each pack carries the engine), the install steps; it replaced the Nexus page text and its adult-flag and tag instructions).
 
 #### The setting
 

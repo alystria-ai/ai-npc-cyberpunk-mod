@@ -28,6 +28,7 @@ import {chooseLocalModel, listLocalModels, normalisePin, stillSatisfies} from '.
 const REASON_TEXT = Object.freeze({
   'not-installed': 'the Local AI pack is not installed',
   'low-memory': 'not enough free graphics memory',
+  'mature-off': 'only Mature models are installed and Mature content is off',
   'no-gpu': 'no discrete graphics card was found',
   'start-failed': 'the local model server did not start',
   crashed: 'the local model server stopped working',
@@ -35,7 +36,7 @@ const REASON_TEXT = Object.freeze({
 });
 
 export class LocalAiUnavailable extends Error {
-  // reason: 'not-installed' | 'low-memory' | 'no-gpu' | 'start-failed' | 'crashed' | 'stopped'
+  // reason: 'not-installed' | 'low-memory' | 'mature-off' | 'no-gpu' | 'start-failed' | 'crashed' | 'stopped'
   constructor(reason, detail) {
     super('[local:unavailable] ' + (REASON_TEXT[reason] ?? String(reason)) + (detail ? ' (' + detail + ')' : ''));
     this.name = 'LocalAiUnavailable';

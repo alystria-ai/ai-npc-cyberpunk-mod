@@ -84,7 +84,7 @@ Each pack is one zip file and works on its own. Install none, some or all. Get t
 [*][b]OmniVoice pack[/b] (about 9 GB installed). A richer voice that can laugh and sigh. For NVIDIA cards with at least 8 GB of video memory and a current driver. It adds about 2 GB of video memory while it runs (up to 4 GB). Choose an OmniVoice voice in Settings > Voices.
 [*][b]Local AI standard[/b] (about 5.3 GB download). The language model for fully local conversations, with the best replies. Uses about 3.1 GB of video memory and needs about 6 GB free to start.
 [*][b]Local AI lite[/b] (about 1.4 GB download). The same kind of model, for smaller graphics cards or a game that already uses most of the video memory. Uses about 1.8 GB.
-[*][b]Mature lite[/b] (about 2.7 GB) and [b]Mature standard[/b] (about 5.3 GB). For adults only (18+). Each adds a model without the usual refusals. They need a Local AI pack, and the Mature content setting is off by default.
+[*][b]Mature lite[/b] (about 2.9 GB) and [b]Mature standard[/b] (about 5.5 GB). For adults only (18+). Each adds a model without the usual refusals and works on its own: it includes the Local AI engine, so no Local AI pack is needed. The Mature content setting is off by default.
 [/list]
 
 [size=4][b]FAQ[/b][/size]

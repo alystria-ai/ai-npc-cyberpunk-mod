@@ -2,11 +2,12 @@
 
 **For adults only (18+).** This add-on lets your companions talk the way Night City really talks, with strong language, graphic violence, drug talk, dark themes, crude humour and, between consenting adults, flirting and sexual content. It is written to fit the characters and the game's adult tone. It does not do anything until you turn it on.
 
-The **Mature content** setting is part of the main mod and works without these packs: with the standard Local AI models it changes language, violence and tone, but those models are trained to refuse most adult content. These packs are optional downloads, only on this mod's Hugging Face page (https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs), that add uncensored models so the setting has its full effect.
+The **Mature content** setting is part of the main mod and works without these packs: with the standard Local AI models it changes language, violence and tone, but those models are trained to refuse most adult content. These packs are optional downloads, only on this mod's Hugging Face page (https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs), that add uncensored models so the setting has its full effect. Each pack also carries the Local AI engine (the llama.cpp server) and the small model that gives companions their memory, so a Mature pack works on its own: you do not need a Local AI pack.
 
 ## What it adds
 
-- **Two packs, each with one uncensored model for Local AI: Mature lite and Mature standard.** The standard Local AI models are trained to refuse most adult content, so the full effect needs an uncensored model. **Mature lite** (about 2.7 GB) is for smaller graphics cards; **Mature standard** (about 5.3 GB) writes better. Each is a single zip file and works on its own, and you can install both. The models are community fine-tunes of Apache-2.0 base models. They run on your own graphics card, on your own computer.
+- **Two packs, each with one uncensored model for Local AI: Mature lite and Mature standard.** The standard Local AI models are trained to refuse most adult content, so the full effect needs an uncensored model. **Mature lite** (about 2.9 GB) is for smaller graphics cards; **Mature standard** (about 5.5 GB) writes better. Each is a single zip file with everything it needs, so it works on its own, and you can install both. The models are community fine-tunes of Apache-2.0 base models. They run on your own graphics card, on your own computer.
+- **The engine is included.** Both packs hold the same engine files and the same memory model as the Local AI packs, byte for byte. Installing a Mature pack over a Local AI pack, or a Local AI pack over a Mature pack, only overwrites identical files, and installing both Mature packs shares them too.
 - **Local AI only.** The setting applies to the Local AI provider. Convai and Mistral never get it, with the setting on or off. Choosing Convai or Mistral as the Conversation provider turns the setting off, and turning it on selects Local AI.
 
 ## What stays the same
@@ -30,20 +31,20 @@ The uncensored models have no limits of their own, so the mod holds these in thr
 
 - You are 18 or older.
 - The main mod, **AI NPC Cyberpunk Mod** (Scripts and Runtime, the same version number as this pack), and everything it needs.
-- A **Local AI pack** (standard or lite) from the same Hugging Face page, and a graphics card with free memory for it. Local AI must be working before you add a Mature pack.
-- Free disk space for the model: about 2.7 GB for Mature lite, about 5.3 GB for Mature standard (about 8 GB for both). You need free graphics memory for the one you use: about 3.4 GB for lite, about 6.5 GB for good.
+- A graphics card with free memory for the model you use: about 3.4 GB for lite, about 6.5 GB for standard. No Local AI pack is needed. If you also have one (standard or lite from the same Hugging Face page), its models stay available for when Mature content is off.
+- Free disk space: about 2.9 GB for Mature lite, about 5.5 GB for Mature standard (about 8.3 GB for both, which share the engine files).
 
 ## Install
 
 1. Close the game.
-2. Download the pack you want from the Hugging Face page (one zip file each: Mature lite, Mature standard, or both) and extract it into your Cyberpunk 2077 folder (the folder that contains `bin`, `archive` and `r6`). Allow folders to merge. The files go into the same Local AI folder as the Local AI packs (`red4ext/plugins/AiNpcCyberpunkMod/app/local-ai`): the model and a small marker file (`manifest.mature-lite.json` or `manifest.mature-standard.json`), plus a small `mature` folder with this README and the licences.
+2. Download the pack you want from the Hugging Face page (one zip file each: Mature lite, Mature standard, or both) and extract it into your Cyberpunk 2077 folder (the folder that contains `bin`, `archive` and `r6`). Allow folders to merge. The files go into the same Local AI folder as the Local AI packs (`red4ext/plugins/AiNpcCyberpunkMod/app/local-ai`): the model, the engine (the `llama` folder and the memory model), a small marker file (`manifest.mature-lite.json` or `manifest.mature-standard.json`), and the licences, plus a small `mature` folder with this README.
 3. Start the game. The first start after installing takes a little longer while the voice service prepares itself.
-4. Open the Companion Manager, then Settings > Conversation provider. Choose **Local** in Conversation provider and **Apply**, then turn on **Mature content** and **Apply** again. The setting's help text says whether a Mature pack was found. Turning Mature content on selects the good model if it is installed and fits your free graphics memory, and the lite one if not (or if only that pack is installed), in the **Local AI model** row (right below it; **Apply** to use it). You can pick either model by name there. While Mature content is off, the default model is never one of them.
+4. Open the Companion Manager, then Settings > Conversation provider. Turn on **Mature content** and **Apply**: turning it on also selects Local AI. (With a Local AI pack as well you can choose **Local** first and **Apply**, then turn on Mature content.) The setting's help text says whether a Mature pack was found. Turning Mature content on selects the good model if it is installed and fits your free graphics memory, and the lite one if not (or if only that pack is installed), in the **Local AI model** row (right below it; **Apply** to use it). You can pick either model by name there. While Mature content is off, the default model is never one of them. With a Mature pack alone (no Local AI pack), Local AI runs only while Mature content is on: switch the setting off and Local AI waits until you turn it back on or install a Local AI pack.
 
 ## Turn it off or remove it
 
 - Turn **Mature content** off in the same place and Apply. The next conversation is exactly as it was before.
-- To remove a pack, close the game and delete its marker (`manifest.mature-lite.json` or `manifest.mature-standard.json`) from the Local AI folder and its model file, which is listed in `mature/THIRD-PARTY-NOTICES-lite.txt` or `mature/THIRD-PARTY-NOTICES-standard.txt`. Without any marker the setting stays, and the standard Local AI models are used.
+- To remove a pack, close the game and delete its marker (`manifest.mature-lite.json` or `manifest.mature-standard.json`) from the Local AI folder and its model file, which is listed in `mature/THIRD-PARTY-NOTICES-lite.txt` or `mature/THIRD-PARTY-NOTICES-standard.txt`. The engine files (the `llama` folder and the memory model) are shared with the Local AI packs: leave them if you use one. Without any marker the setting stays, and the standard Local AI models are used.
 
 ## Licences
 
@@ -52,7 +53,9 @@ The models are fine-tunes of Apache-2.0 base models (the licence text is in `mat
 - Lite: Qwen3.5-4B-HauhauCS-Aggressive (shown in the menu as "Qwen3.5-4B · uncensored"), an uncensored fine-tune of Qwen3.5-4B (Alibaba Cloud, Apache-2.0)
 - Good: Gemma-4-E4B-MiniFantasy (shown in the menu as "Gemma 4 E4B · uncensored"), an uncensored fine-tune of Gemma 4 E4B (Google, Apache-2.0)
 
-AI NPC Cyberpunk Mod itself is under the AI NPC Cyberpunk Mod Use License of the main mod.
+The engine files are the unmodified upstream files: llama.cpp (the `llama-server` build, MIT licence, `licenses/llama.cpp-MIT.txt`, with the LLVM OpenMP licence in `llama/LICENSE-LLVM-OpenMP`) and the IBM Granite embedding model (Apache-2.0, `licenses/Apache-2.0.txt`). Their notices are in the same two notices files.
+
+AI NPC Cyberpunk Mod itself is under the AI NPC Cyberpunk Mod Use License of the main mod (`LICENSE.txt` in the Local AI folder).
 
 ## Good to know
 
