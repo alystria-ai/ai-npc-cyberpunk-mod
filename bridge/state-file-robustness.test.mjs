@@ -155,7 +155,7 @@ test('MemoryStore on a root that is a file (or cannot be listed) starts empty, k
   assert.equal(saved.channels.private[0].r, 'hi there');
 });
 
-test('a damaged character memory file is kept aside before the first save writes over it', {todo: 'MemoryStore skips a damaged character file silently (no log line) and the next save replaces it with no copy; VendorMemory keeps its damaged file as .corrupt'}, async t => {
+test('a damaged character memory file is kept aside before the first save writes over it', async t => {
   const directory = await folder(t);
   const {root, player} = await seedMemoryFolder(directory);
   const damaged = await readFile(join(player, 'truncated.json'), 'utf8');
@@ -164,6 +164,25 @@ test('a damaged character memory file is kept aside before the first save writes
   await store.flush();
   const kept = [...await filesUnder(root)].filter(([path, text]) => path !== join(player, 'truncated.json') && text === damaged);
   assert.equal(kept.length, 1, 'the cut-off file survives somewhere beside the new one');
+});
+
+test('the kept copy of a damaged character memory file is logged once, is not made for an empty file, and goes when the character is forgotten', async t => {
+  const directory = await folder(t);
+  const {root, player} = await seedMemoryFolder(directory);
+  const lines = [];
+  const store = await MemoryStore.open({dir: root, limits: {characterBytes: 1000}, log: line => lines.push(line)});
+  assert.ok(lines.some(line => line.includes('truncated.json')), 'the skipped file is named in the log: ' + JSON.stringify(lines));
+  for (const key of ['truncated', 'empty']) {
+    store.record({profileKey: key, v: 'hello again', r: 'you are back'});
+    await store.flush();
+    store.record({profileKey: key, v: 'and once more', r: 'welcome'});
+    await store.flush();
+  }
+  assert.equal(lines.filter(line => /kept as truncated\.json\.corrupt/.test(line)).length, 1);
+  assert.deepEqual((await names(player)).filter(name => /^(?:truncated|empty)/.test(name)), ['empty.json', 'truncated.json', 'truncated.json.corrupt']);
+  store.forget({profileKeys: ['truncated']});
+  await store.flush();
+  assert.deepEqual((await names(player)).filter(name => name.startsWith('truncated')), [], 'the player\'s forget takes the old copy too');
 });
 
 // ---------------------------------------------------------------- character edits (CharacterOverrides)

@@ -100,6 +100,7 @@ export class MemoryStore {
     this.generation = 0;           // bumped by every forget: summaries, extractions and retrievals that began earlier are discarded
     this.extractor = null;
     this.dirty = new Set(); this.removedKeys = new Set(); this.wipeAll = false;
+    this.damaged = new Set();      // characters whose file the load could not use: kept aside (<key>.json.corrupt) before a save writes over it
     this.saving = Promise.resolve(); this.saveTimer = null;
     this.workTimer = null; this.workDue = Infinity; this.running = null;
     this.serial = 0;
@@ -152,13 +153,19 @@ export class MemoryStore {
     for (const name of names) {
       const match = FILE.exec(name);
       if (!match) continue;
+      let raw = null;
       try {
-        const raw = await this.read(join(this.root, name));
-        if (Buffer.byteLength(raw) > this.limits.characterBytes) continue;
-        const value = JSON.parse(raw);
-        if (!plain(value) || value.version !== 1 || value.profileKey !== match[1]) continue;
-        this.rows.set(match[1], this.#character(value, match[1], false));
-      } catch { /* unreadable or damaged: skipped, and left on disk */ }
+        raw = await this.read(join(this.root, name));
+        if (Buffer.byteLength(raw) <= this.limits.characterBytes) {
+          const value = JSON.parse(raw);
+          if (plain(value) && value.version === 1 && value.profileKey === match[1]) { this.rows.set(match[1], this.#character(value, match[1], false)); continue; }
+        }
+      } catch { /* unreadable or damaged */ }
+      // Skipped, and left on disk as the reader found it. A file that was read but is not usable (not a folder, a locked file or an empty one)
+      // holds the player's words, so the first save of that character moves it aside instead of writing over it (#keepAside).
+      const keep = typeof raw === 'string' && raw.trim() !== '';
+      if (keep) this.damaged.add(match[1]);
+      this.log(`character file ${name} could not be used and was skipped` + (keep ? `; a save of this character keeps it as ${name}.corrupt` : ''));
     }
     this.#trim();
     this.#saveSoon();
@@ -574,12 +581,12 @@ export class MemoryStore {
     let removed = 0;
     if (all) {
       removed = this.rows.size;
-      this.rows.clear(); this.dirty.clear(); this.removedKeys.clear(); this.wipeAll = true;
+      this.rows.clear(); this.dirty.clear(); this.removedKeys.clear(); this.damaged.clear(); this.wipeAll = true;
     } else {
       for (const key of profileKeys) {
         if (!KEY.test(key ?? '')) continue;
         if (this.rows.delete(key)) removed++;
-        this.dirty.delete(key); this.removedKeys.add(key);
+        this.dirty.delete(key); this.removedKeys.add(key); this.damaged.delete(key);
       }
     }
     this.ambient.clear();
@@ -608,6 +615,16 @@ export class MemoryStore {
         importance: record.importance, pinned: record.pinned, source: record.source, v: record.vec ? encodeVector(record.vec) : ''})),
     });
   }
+  // The damaged file the load skipped is moved to <key>.json.corrupt (an older copy there is replaced, as VendorMemory does) before the first save
+  // of that character writes over it. A file that is already gone is nothing to keep; any other failure stops this character's save and is retried.
+  async #keepAside(key) {
+    if (!this.damaged.has(key)) return;
+    const path = this.#path(key);
+    try { await this.remove(path + '.corrupt'); await this.rename(path, path + '.corrupt'); }
+    catch (error) { if (error?.code !== 'ENOENT') throw error; }
+    this.damaged.delete(key);
+    this.log(`character file ${key}.json was damaged: kept as ${key}.json.corrupt, and a new file takes its place`);
+  }
   /** Writes the changed characters now (off the speech path; also at shutdown and in tests). Only changed characters are rewritten. */
   flush() {
     if (this.saveTimer) { this.clearTimer(this.saveTimer); this.saveTimer = null; }
@@ -623,10 +640,10 @@ export class MemoryStore {
           for (const name of names) await this.remove(join(this.root, name)).catch(() => {});
           if (this.legacyPath) for (const path of [this.legacyPath, this.legacyPath + '.migrated']) await this.remove(path).catch(() => {});
         }
-        for (const key of removals) await this.remove(this.#path(key)).catch(() => {});
+        for (const key of removals) for (const path of [this.#path(key), this.#path(key) + '.corrupt']) await this.remove(path).catch(() => {});
         let failure = null;
         for (const [key, text] of writes) {
-          try { await this.write(this.#path(key), text); } catch (error) { failure ??= error; if (this.rows.has(key)) this.dirty.add(key); } // kept for the next save
+          try { await this.#keepAside(key); await this.write(this.#path(key), text); } catch (error) { failure ??= error; if (this.rows.has(key)) this.dirty.add(key); } // kept for the next save
         }
         if (failure) throw failure;
       } catch (error) { this.log('memory save failed: ' + (error?.code ?? error?.message ?? 'error')); throw error; }
