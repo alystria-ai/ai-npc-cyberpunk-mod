@@ -200,10 +200,13 @@ function M.style()
     local ok, value = pcall(function() return M.styleProvider and M.styleProvider() end)
     return ok and value == 'overhead' and 'overhead' or 'dialogue'
 end
-function M.enabled()
-    local player = Game.GetPlayer()
+-- object:method() for a method without arguments, inside the caller's pcall: no closure per call.
+local function invoke(object, method) return object[method](object) end
+-- framePlayer: the V the caller already holds this frame (a speaking frame asks about the setting several times); nil asks the game.
+function M.enabled(framePlayer)
+    local player = framePlayer or Game.GetPlayer()
     if not player then return false end
-    local ok, enabled = pcall(function() return player:ConvaiManagerSubtitles() end)
+    local ok, enabled = pcall(invoke, player, 'ConvaiManagerSubtitles')
     return not ok or enabled
 end
 function M.abandon()
@@ -669,16 +672,18 @@ function M.linger(seconds)
     M.timed, M.lingering, M.remaining = nil, true, math.min(seconds, 5)
     return true
 end
-function M.update(delta)
+function M.update(delta, framePlayer)
     M.frameSerial = (M.frameSerial or 0) + 1
     if M.retiring then
         M.retiring.wait = M.retiring.wait - (finite(delta) and math.max(0, delta) or 0)
         if M.retiring.wait <= 0 then retire() end
     end
     if not M.pages then return end
-    local ok, player = pcall(function() return Game.GetPlayer() end)
+    -- init.lua passes the V it fetched for this frame; a caller without it (a test) asks the game.
+    local player, ok = framePlayer, true
+    if not player then ok, player = pcall(function() return Game.GetPlayer() end) end
     if not ok or not player or (M.playerID and identity(player) ~= M.playerID) then M.abandon(); return end
-    if not M.enabled() or (M.actor and not validActor(M.actor, M.entity)) then M.clear(); return end
+    if not M.enabled(player) or (M.actor and not validActor(M.actor, M.entity)) then M.clear(); return end
     if M.mode == 'overhead' and vehicleConversation(player) then
         -- The player has already seen this page on foot. Retire its root and
         -- preserve progress; only unread continuation text may enter the HUD.

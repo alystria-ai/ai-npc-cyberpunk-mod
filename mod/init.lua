@@ -3802,12 +3802,12 @@ registerForEvent('onUpdate', function(delta)
     mark('init:expressionContext')
     local expressionContext=convaiExpressionFrame(menuPlayer,worldReady,pending)
     mark('init:speech')
-    local speechOk, speechError = pcall(speech.update, tonumber(delta) or 0,expressionContext)
+    local speechOk, speechError = pcall(speech.update, tonumber(delta) or 0,expressionContext,menuPlayer)
     if not speechOk then
         log('Speech update failed: ' .. tostring(speechError))
         speech.stop('error')
     end
-    local subtitlesOk, subtitlesError = pcall(subtitles.update, tonumber(delta) or 0)
+    local subtitlesOk, subtitlesError = pcall(subtitles.update, tonumber(delta) or 0, menuPlayer)
     if not subtitlesOk then
         log('Subtitle update failed: ' .. tostring(subtitlesError))
         subtitles.clear()

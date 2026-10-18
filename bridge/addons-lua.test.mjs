@@ -1354,7 +1354,7 @@ test('speech.lua: a screen face gets the voice\'s face calls under its own entit
   // The wiring: asked once per reply, cleared with the reply, and the pause uses it every frame for the native and the browser voice.
   assert.match(speechSource, /if M\.voiceOnly and not M\.holocall and type\(M\.faceSource\) == 'function' then/);
   assert.match(speechSource, /if M\.faceEntity then facial\.clearExpression\(M\.faceEntity\); facial\.screenEntity = nil end/);
-  assert.match(speechSource, /local paused = pausedFor\(M\.requestId, Game\.GetBlackboardSystem\(\)/);
+  assert.match(speechSource, /local paused = pausedFor\(M\.requestId, inMenu\)/);
   assert.match(speechSource, /paused = pausedFor\(context\.requestId, paused\)/);
   assert.match(speechSource, /if started and M\.requestId and pausedFor\(M\.requestId, false\) then/);
   const init = read('../mod/init.lua');

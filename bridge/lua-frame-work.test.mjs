@@ -144,3 +144,76 @@ test('onUpdate helpers: they answer exactly as the closures did (attached, alive
   assert(convaiInvoke(player, 'ConvaiPhoneIsOpen') == true)
   assert(select('#', pcall(convaiInvoke, player, 'ConvaiBoom')) == 2 and not pcall(convaiInvoke, player, 'ConvaiBoom'))
 `));
+
+// A reply in progress asked the game for V and for the menu flag on every frame (GetPlayer, GetEntityID, and the blackboard
+// definitions, system, blackboard and value: five or six native calls for the flag alone). init.lua now hands speech.update the V
+// it fetched for the frame and the menu flag comes from its cached reader (the definition and its id are read once).
+const speakingFixture = `${speechFixture}
+  speech.available=true
+  speech.target={GetEntityID=function() return {hash='npc'} end,
+    IsAttached=function() return true end, IsDeadNoStatPool=function() return false end}
+  local reply={text='Hello V', audio={slot=0,event='convai_reply_0',duration=2}}
+  assert(speech.start({entity='npc', requestId='one', name='Judy'}, reply))
+  local reads, boards, definitions, paused = 0, 0, 0, nil
+  local getPlayer, getBoard, getDefinitions = Game.GetPlayer, Game.GetBlackboardSystem, Game.GetAllBlackboardDefs
+  Game.GetPlayer = function() reads = reads + 1; return getPlayer() end
+  Game.GetBlackboardSystem = function() boards = boards + 1; return getBoard() end
+  Game.GetAllBlackboardDefs = function() definitions = definitions + 1; return getDefinitions() end
+  player.ConvaiSpeechPause = function(_, value) paused = value end
+`;
+
+test('speech: a speaking frame takes V from init.lua and the menu flag from its cached reader, and pauses with the menu as before', () => run(`${speakingFixture}
+  local menu = false
+  convaiInMenu = function() return menu end
+  -- The first heard frame starts the caption and the lease (once per reply); count the frames after it.
+  cursor = 0.4; speech.update(0.1, nil, player)
+  reads, boards, definitions = 0, 0, 0
+  cursor = 0.5; speech.update(0.1, nil, player)
+  assert(reads == 0 and boards == 0 and definitions == 0, 'a speaking frame asked the game for V ' .. reads .. ' and the blackboard ' .. boards .. ' times')
+  assert(speech.state == 'playing' and speech.paused == false)
+  menu = true; cursor = 0.6; speech.update(0.1, nil, player)
+  assert(speech.paused == true and paused == true, 'the menu did not pause the reply')
+  menu = false; speech.update(0.1, nil, player)
+  assert(speech.paused == false and paused == false, 'closing the menu did not resume it')
+  assert(reads == 0 and boards == 0 and definitions == 0)
+  -- A change of V is still caught (the player passed in is the one compared with the reply's owner).
+  playerHash = 'someone-else'
+  speech.update(0.1, nil, player)
+  assert(not speech.requestId, 'a reply outlived a change of V')
+`));
+
+test('speech: without the frame\'s V or the cached reader (a test, an older init) the same frame asks the game as before', () => run(`${speakingFixture}
+  convaiInMenu = nil
+  cursor = 0.4; speech.update(0.1)
+  reads, boards, definitions = 0, 0, 0
+  cursor = 0.5; speech.update(0.1)
+  assert(reads == 1, 'V was read ' .. reads .. ' times')
+  assert(boards == 1 and definitions == 1, 'the blackboard was read through the definitions')
+  assert(speech.state == 'playing' and speech.paused == false)
+`));
+
+test('speech: with V passed in, the 2 s heartbeat asks the game for nobody and still publishes the lease', () => run(`${speechFixture}
+  for _ = 1, 8 do speech.update(0.25, nil, player) end
+  assert(playerReads == 0, 'the heartbeat read V ' .. playerReads .. ' times')
+  assert(published == 1 and speech.available == true and speech.heartbeat == 0)
+`));
+
+test('subtitles: a frame with a caption up takes V from init.lua (one Game.GetPlayer call and a closure fewer per frame), and asks once without it', () => run(`${speechFixture}
+  player.ConvaiManagerSubtitles=function() return true end
+  captions.pages={'Hello'}; captions.page=1; captions.remaining=5; captions.mode='dialogue'
+  captions.update(0.1, player)
+  assert(playerReads == 0, 'subtitles.update read V ' .. playerReads .. ' times although init handed it over')
+  assert(captions.pages and captions.remaining < 5, 'the caption was not advanced')
+  captions.update(0.1)
+  assert(playerReads == 1, 'without the frame V the caption asked the game ' .. playerReads .. ' times')
+  assert(captions.enabled(player) == true and captions.enabled() == true and playerReads == 2)
+  -- A different V ends the caption, whichever way V arrived.
+  captions.playerID = 'someone-else'
+  captions.update(0.1, player)
+  assert(captions.pages == nil, 'a caption outlived a change of V')
+`));
+
+test('onUpdate hands the frame\'s V to speech and subtitles', () => {
+  assert.ok(/pcall\(speech\.update, tonumber\(delta\) or 0,\s*expressionContext,\s*menuPlayer\)/.test(initSource));
+  assert.ok(/pcall\(subtitles\.update, tonumber\(delta\) or 0, menuPlayer\)/.test(initSource));
+});
