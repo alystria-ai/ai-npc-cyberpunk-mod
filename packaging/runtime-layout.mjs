@@ -133,6 +133,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/speech-stream.mjs',
   'bridge/stt-activity.mjs',
   'bridge/support-report.mjs',
+  'bridge/system-browser.mjs',
   'bridge/text-action-words.mjs',
   'bridge/text-actions.mjs',
   'bridge/text-emotion.mjs',

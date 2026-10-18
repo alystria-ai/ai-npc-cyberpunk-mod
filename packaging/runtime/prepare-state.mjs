@@ -50,7 +50,7 @@ export function installLayout({appDirectory, gameRoot}) {
     app, plugin, gameRoot: resolve(gameRoot), mod, state: resolve(mod, 'data'), runtime: resolve(mod, 'runtime'),
     voices: resolve(plugin, 'voices'), defaults: resolve(app, 'defaults'),
     node: resolve(app, 'node/node.exe'), python: resolve(app, 'python/python.exe'),
-    browser: resolve(app, 'browser/chrome-win64/chrome.exe'), assets: resolve(app, 'assets'),
+    assets: resolve(app, 'assets'),
     pocketSource: resolve(app, 'pocket-tts'), pocketModel: resolve(app, 'models/pocket'),
     faceModel: resolve(app, 'models/lipsync'),
     omni: resolve(app, 'omni'), omniPython: resolve(app, 'omni/python/python.exe'),
@@ -150,7 +150,9 @@ export async function prepareState(layout, {log = () => {}} = {}) {
 }
 
 // Environment for the supervisor and, through it, the bridge and its workers. Every
-// executable and asset path is explicit; nothing is looked up on PATH.
+// executable and asset path is explicit; nothing is looked up on PATH. The one exception is the hidden browser: the mod does not
+// ship one, so the bridge uses the system's Edge, else Chrome (bridge/system-browser.mjs). A developer's CYBERPUNK_CONVAI_BROWSER
+// passes through unchanged and names the executable instead.
 export function serviceEnvironment(layout, {omni, keyFile}, source = process.env) {
   const env = {...source};
   for (const name of ['NODE_OPTIONS', 'NODE_PATH', 'PYTHONPATH', 'PYTHONHOME', 'PYTHONSTARTUP', 'PYTHONUSERBASE',
@@ -165,7 +167,6 @@ export function serviceEnvironment(layout, {omni, keyFile}, source = process.env
     CYBERPUNK_CONVAI_GAME: layout.gameRoot,
     CYBERPUNK_CONVAI_STATE: layout.state,
     CYBERPUNK_CONVAI_KEY_FILE: keyFile,
-    CYBERPUNK_CONVAI_BROWSER: layout.browser,
     CYBERPUNK_CONVAI_CLIENT_ASSETS: layout.assets,
     CYBERPUNK_CONVAI_LOCAL_AI: layout.localAi,
     // The folder 'runtime/voice-references/' maps to. Besides OmniVoice, the Mistral cloud voice (Voxtral) reads its reference clips

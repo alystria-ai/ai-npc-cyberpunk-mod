@@ -47,6 +47,7 @@ Three ways, all free. Pick one in Companion Manager > Settings > Conversation pr
 [*]Tested with Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5, TweakXL 1.11.4, Audioware 1.9.9 and Mod Configuration Menu 0.10.3. Newer versions may work.
 [*]About 3 GB of free disk space, plus more for the optional packs.
 [*]Internet while you use Convai, Mistral or the Voxtral voice. Local AI with a local voice needs none.
+[*]Microsoft Edge (Windows 10 and 11 include it) or Google Chrome. The voice service runs a hidden copy of it; the mod ships no browser.
 [*]No graphics card needed for the default setup. Only OmniVoice and Local AI use one.
 [/list]
 

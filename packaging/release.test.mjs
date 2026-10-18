@@ -80,9 +80,9 @@ test('the bridge closure is complete, test-free and includes the supervisor and 
 });
 
 test('pinned toolchain entries are official HTTPS downloads with SHA-256 values', () => {
-  for (const name of ['node', 'python', 'omniPython', 'browser']) {
+  for (const name of ['node', 'python', 'omniPython']) {
     const item = config.toolchain[name];
-    assert.match(item.url, /^https:\/\/(?:nodejs\.org|www\.python\.org|storage\.googleapis\.com\/chrome-for-testing-public)\//, name);
+    assert.match(item.url, /^https:\/\/(?:nodejs\.org|www\.python\.org)\//, name);
     assert.match(item.sha256, /^[a-f0-9]{64}$/, name);
   }
   for (const spec of Object.values(config.toolchain.omniModel.files)) assert.match(spec.sha256, /^[a-f0-9]{64}$/);
@@ -187,7 +187,11 @@ test('the service environment names every runtime path and clears inherited over
       CYBERPUNK_CONVAI_PYTHON: 'C:\\old\\python.exe'});
     assert.equal(env.NODE_OPTIONS, undefined); assert.equal(env.PYTHONPATH, undefined);
     assert.equal(env.CYBERPUNK_CONVAI_PYTHON, undefined);
-    assert.equal(env.CYBERPUNK_CONVAI_BROWSER, f.layout.browser);
+    // No browser is bundled: the bridge uses the system's Edge, else Chrome, unless a developer names an executable.
+    assert.equal(env.CYBERPUNK_CONVAI_BROWSER, undefined);
+    assert.equal(f.layout.browser, undefined);
+    assert.equal(config.toolchain.browser, undefined);
+    assert.equal(serviceEnvironment(f.layout, {omni: false, keyFile: 'K'}, {CYBERPUNK_CONVAI_BROWSER: 'C:/dev/edge.exe'}).CYBERPUNK_CONVAI_BROWSER, 'C:/dev/edge.exe');
     const omni = serviceEnvironment(f.layout, {omni: true, keyFile: 'K'}, {});
     assert.equal(omni.CYBERPUNK_CONVAI_PYTHON, f.layout.omniPython);
     assert.equal(omni.CYBERPUNK_CONVAI_OMNI_REFERENCES, f.layout.voices);
@@ -231,7 +235,7 @@ test('the project licence keeps Convai selectable and the notices cover the bund
   assert.match(licence, /user-selectable Convai integration/);
   assert.match(licence, /Copyright \(c\) 2026 Alystria AI/);
   const notices = await readFile(resolve(project, 'THIRD_PARTY_NOTICES.md'), 'utf8');
-  for (const name of ['AGPL-3.0', 'CC-BY-NC', 'Chrome for Testing', 'Node.js', 'CPython', 'BSD-2-Clause', 'espeak-ng', 'CC-BY-4.0', 'Kyutai']) {
+  for (const name of ['AGPL-3.0', 'CC-BY-NC', 'Node.js', 'CPython', 'BSD-2-Clause', 'espeak-ng', 'CC-BY-4.0', 'Kyutai']) {
     assert(notices.includes(name), `THIRD_PARTY_NOTICES.md must mention ${name}`);
   }
 });
@@ -603,7 +607,7 @@ test('the README and the release notes send players to Hugging Face for every op
   assert(heading('Install') > 0 && heading('Install') < heading('What you can do') && heading('What you can do') < heading('Requirements'), 'Install comes first');
   assert(heading('Install') < 6000, 'near the top of the page');
   const install = readme.slice(heading('Install'), heading('What you can do'));
-  assert.match(install, /Scripts come from Nexus Mods and the Runtime from the release page/);
+  assert.match(install, /Scripts come from Nexus Mods \(the same file is on Hugging Face too\)\. The Runtime and the optional packs are on the mod's/);
   assert.match(install, /Each pack is one zip file/);
   // No parts, anywhere in what players read.
   for (const [name, text] of [['README', readme], ['PLAYER_README', player]]) {

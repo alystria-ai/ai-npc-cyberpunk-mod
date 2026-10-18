@@ -5,6 +5,7 @@ import {chromium} from 'playwright';
 import {TransportPool, abortable, cancelled, throwIfCancelled, transportKey, SessionBindings} from './transport-pool.mjs';
 import {CONNECTION_LIMIT} from './party-connections.mjs';
 import {absoluteRuntimeOverride} from './runtime-paths.mjs';
+import {launchSystemBrowser} from './system-browser.mjs';
 import {LocalPcmHost} from './local-pcm-host.mjs';
 import {markStage} from './turn-clock.mjs';
 
@@ -266,11 +267,12 @@ export class RealtimeHost {
     await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
     let browser;
     try {
-      browser = await this.launchBrowser({...(this.browserExecutable
-        ? {executablePath: this.browserExecutable} : {channel: 'msedge'}), headless: true,
+      // Edge, else an installed Chrome; CYBERPUNK_CONVAI_BROWSER (a developer's override) names an executable instead.
+      browser = await launchSystemBrowser(browserChoice => this.launchBrowser({...browserChoice, headless: true,
         ...(this.muteBrowser ? {} : {ignoreDefaultArgs: ['--mute-audio']}),
         args: ['--autoplay-policy=no-user-gesture-required', '--disable-background-timer-throttling',
-          ...(this.muteBrowser ? ['--mute-audio'] : [])]});
+          ...(this.muteBrowser ? ['--mute-audio'] : [])]}),
+      {executablePath: this.browserExecutable, log: line => console.error(`[CyberpunkConvai] ${line}`)});
       if (epoch !== this.epoch) throw cancelled('Conversation startup cancelled');
       this.browser = browser; this.server = server;
       const createLocalPage = async () => {

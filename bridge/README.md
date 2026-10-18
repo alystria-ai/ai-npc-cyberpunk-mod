@@ -62,7 +62,7 @@ server/share. Empty, relative or control-character values fail validation.
 | Variable | Selects | Development default |
 |---|---|---|
 | `CYBERPUNK_CONVAI_PYTHON` | Python executable used for the owned resident voice worker | `vendor/reference-voicestudio/.venv/Scripts/python.exe` under the project |
-| `CYBERPUNK_CONVAI_BROWSER` | Playwright-compatible browser executable; replaces the Edge channel lookup | Installed `msedge` channel |
+| `CYBERPUNK_CONVAI_BROWSER` | Playwright-compatible browser executable; replaces the system browser lookup (a developer override; the Runtime package sets nothing) | Installed Microsoft Edge (`msedge` channel), else installed Google Chrome (`chrome` channel); see `system-browser.mjs` |
 | `CYBERPUNK_CONVAI_CLIENT_ASSETS` | Directory containing the prebuilt browser client and continuous PCM modules | Project `runtime/realtime-client.js`, with PCM modules beside `realtime-host.mjs` |
 
 The asset directory must contain these four required files:

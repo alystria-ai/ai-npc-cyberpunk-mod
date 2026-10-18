@@ -13,7 +13,6 @@ This file states what each component's published licence says. It is not legal a
 | Component | Version | Licence | Where the licence text is |
 |---|---|---|---|
 | Node.js | 24.21.0 (official Windows build, `node.exe` only) | MIT, plus bundled third-party licences | `app/node/LICENSE` |
-| Chrome for Testing (Chromium) | 145.0.7632.6, unmodified official build | Chromium licences (BSD-style, plus third-party components) | not in the zip; https://chromium.googlesource.com/chromium/src/+/main/LICENSE and `chrome://credits` |
 | CPython | 3.12.10 embeddable distribution | PSF License | `app/python/LICENSE.txt` |
 | Python packages | hash-locked in `packaging/python/pocket.lock.txt` | each package's own | each `*.dist-info` folder under `app/python/Lib/site-packages` |
 | Kyutai Pocket TTS source | revision `41cbc84` | MIT | `app/pocket-tts/LICENSE` |

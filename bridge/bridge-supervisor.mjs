@@ -17,6 +17,7 @@ import {dirname, isAbsolute, resolve} from 'node:path';
 import {setTimeout as delay} from 'node:timers/promises';
 import {atomicFile} from './guarded-file.mjs';
 import {isKeyFileText} from './key-codec.mjs';
+import {NO_BROWSER_MESSAGE, systemBrowserAvailable} from './system-browser.mjs';
 
 export const READY_MARKER = '[CyberpunkConvai] Convai conversation bridge ready';
 export const MOD_RUNTIME = 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/runtime';
@@ -75,9 +76,9 @@ export class BridgeSupervisor {
   constructor({project, stateDirectory, keyFile, gameRoot, gamePid = null, lifeline = null,
     buildVoiceClient = false, nodeExecutable = process.execPath, spawn = spawnProcess,
     alive = processAlive, killTree = killProcessTree, now = Date.now, sleep = delay,
-    timings = {}} = {}) {
+    browserAvailable = systemBrowserAvailable, timings = {}} = {}) {
     Object.assign(this, {project, stateDirectory, keyFile, gameRoot, gamePid, lifeline,
-      buildVoiceClient, nodeExecutable, spawn, alive, killTree, now, sleep});
+      buildVoiceClient, nodeExecutable, spawn, alive, killTree, now, sleep, browserAvailable});
     this.timings = {...DEFAULT_TIMINGS, ...timings};
     this.entry = resolve(project, 'bridge/convai-bridge.mjs');
     this.paths = {
@@ -186,7 +187,11 @@ export class BridgeSupervisor {
     const existing = await this.findServingBridge();
     if (existing) return this.adopt(existing);
     const setup = await this.preflight();
-    if (setup) { this.retrySetup = true; return this.fail(setup); }
+    if (setup) {
+      this.retrySetup = true;
+      if (setup === 'browser-missing') this.log(NO_BROWSER_MESSAGE);
+      return this.fail(setup);
+    }
     if (this.buildVoiceClient && !this.built) {
       await this.setStatus('starting', 'building-voice-client');
       const built = await this.build();
@@ -231,6 +236,8 @@ export class BridgeSupervisor {
       if (!ids || typeof ids !== 'object' || Array.isArray(ids)) return 'missing-character-ids';
     } catch { return 'missing-character-ids'; }
     try { await stat(this.entry); } catch { return 'bridge-missing'; }
+    // The conversation page runs in the system's Edge (or Chrome), which the mod does not ship (bridge/system-browser.mjs).
+    try { if (!this.browserAvailable()) return 'browser-missing'; } catch {}
     return null;
   }
 

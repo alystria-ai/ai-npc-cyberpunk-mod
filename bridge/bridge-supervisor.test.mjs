@@ -67,7 +67,7 @@ function supervise(f, options = {}) {
   const lifeline = new PassThrough();
   const spawned = [];
   const supervisor = new BridgeSupervisor({project: f.project, stateDirectory: f.state,
-    keyFile: join(f.state, 'convai-key.txt'), gameRoot: f.game, lifeline, timings,
+    keyFile: join(f.state, 'convai-key.txt'), gameRoot: f.game, lifeline, timings, browserAvailable: () => true,
     spawn: (command, args, spawnOptions) => { spawned.push({command, args, spawnOptions}); return spawn(command, args, spawnOptions); },
     ...options});
   const done = supervisor.run();
@@ -198,6 +198,21 @@ test('missing character IDs are reported as a setup failure', async t => {
   const run = supervise(f);
   const failed = await until(() => readJson(f.statusPath), value => value?.state === 'failed', 'setup failure was not reported');
   assert.equal(failed.code, 'missing-character-ids'); assert.equal(run.spawned.length, 0);
+  run.endGame(); await run.done;
+});
+
+test('no Edge or Chrome is a setup failure with one clear log line, and the bridge starts once a browser is installed', async t => {
+  const f = await fixture(t);
+  let installed = false;
+  const run = supervise(f, {browserAvailable: () => installed});
+  const failed = await until(() => readJson(f.statusPath), value => value?.state === 'failed', 'a missing browser was not reported');
+  assert.equal(failed.code, 'browser-missing'); assert.equal(run.spawned.length, 0);
+  await sleep(300);
+  const lines = (await readFile(join(f.state, 'bridge-service.log'), 'utf8')).split('\n').filter(line => line.includes('No browser to run the conversation page'));
+  assert.equal(lines.length, 1, 'the instruction is logged once, not on every retry');
+  assert.match(lines[0], /Microsoft Edge.*Google Chrome/);
+  installed = true;
+  await until(() => readJson(f.statusPath), value => value?.state === 'ready', 'the bridge did not start once a browser was available');
   run.endGame(); await run.done;
 });
 

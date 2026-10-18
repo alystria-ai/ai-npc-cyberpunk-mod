@@ -91,6 +91,7 @@ Only characters the mod spawns join your party. Story characters you meet in the
 | Disk space | About 3 GB for the main mod. The optional packs add more (see [Install](#install)). |
 | Internet | Needed while you talk with Convai, Mistral or the Voxtral voice. Not needed for Local AI with a local voice. |
 | Graphics card | Not needed for the default setup. Only OmniVoice and Local AI use it. |
+| Web browser | Microsoft Edge, which Windows 10 and 11 include, or Google Chrome. The mod's background service runs a hidden copy of it for audio and the Convai connection; it ships no browser of its own. |
 
 Developed and tested with Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5, TweakXL 1.11.4, Audioware 1.9.9 and Mod Configuration Menu 0.10.3. Newer versions may work. There is no load order to set: the mod's files live in folders of their own.
 
@@ -400,7 +401,7 @@ flowchart LR
 | **Vision helper** | C++/WinRT, `native/vision/` | `CyberpunkConvaiVision.exe`: captures one frame of the game window through Windows Graphics Capture, only while it is needed. |
 | **Bridge** | Node.js ES modules, `bridge/` | The conversation service. Owns providers, memory, context assembly, the voices, speech recognition, lip-sync and facial data, playback, and every timer that must not run in the game. |
 | **Supervisor** | `bridge/bridge-supervisor.mjs`, `scripts/Supervise-ConversationBridge.mjs` | One bridge per game session, restarts after crashes with backoff, stops when the game exits, publishes `runtime/bridge-service.json` for the in-game status line. |
-| **Hidden browser** | Chrome for Testing (Edge in development) driven by Playwright | Hosts the Convai Web SDK (compiled into `realtime-client.js`), the continuous PCM player and the local speech capture page, because those need browser audio and WebRTC. |
+| **Hidden browser** | The system's Microsoft Edge, else Google Chrome (nothing is bundled), driven by Playwright | Hosts the Convai Web SDK (compiled into `realtime-client.js`), the continuous PCM player and the local speech capture page, because those need browser audio and WebRTC. |
 | **Python workers** | `bridge/*.py` | Persistent processes: Pocket TTS (CPU), OmniVoice (CUDA), local speech recognition (sherpa-onnx, CPU) and the Pocket phone analyser. Each request carries an owner token and a request id, and shutdown is pipe EOF. |
 | **llama-server** | llama.cpp (Vulkan build), `bridge/local-llm-server.mjs`, `bridge/local-embed.mjs` | The Local AI chat model and the small CPU memory embedder. |
 | **Sign-in backend** | `auth-backend/`, Vercel Node functions with an Upstash Redis store | Keeps the free tier's daily limit fair across installs. See [Daily limit](#daily-limit). |
@@ -1283,7 +1284,7 @@ The player release is built from a git commit, never from the working tree, so u
 | Package | Where players get it | Contents |
 |---|---|---|
 | `AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip` | Nexus Mods | Text only: the CET Lua mod, redscript, the JSON catalogs the Lua reads, `README.txt`, `release.json` |
-| `AI-NPC-Cyberpunk-Mod-Runtime-<v>.zip` | GitHub release, mirrored to the Hugging Face version folder (from 0.2 on, the link players get) | Everything else needed to play: the RED4ext launcher and native plugin, bundled Node, Chrome for Testing and Python, the bridge, the Pocket voice and lip-sync models, the local speech model, voice references, the game archives and the Audioware reply bank |
+| `AI-NPC-Cyberpunk-Mod-Runtime-<v>.zip` | GitHub release, mirrored to the Hugging Face version folder (from 0.2 on, the link players get) | Everything else needed to play: the RED4ext launcher and native plugin, bundled Node and Python, the bridge, the Pocket voice and lip-sync models, the local speech model, voice references, the game archives and the Audioware reply bank |
 | `AI-NPC-Cyberpunk-Mod-OmniPack-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and its references |
 | `AI-NPC-Cyberpunk-Mod-LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip |
 | `AI-NPC-Cyberpunk-Mod-LocalAI-Lite-<v>.zip` | Hugging Face | Optional Local AI pack with Bonsai 2 4B (about 1.4 GB), one zip |
@@ -1300,7 +1301,7 @@ red4ext/plugins/AiNpcCyberpunkMod/
   CyberpunkConvai.dll        launcher (native/autostart)
   launcher.ini               %PLUGIN%\app\node\node.exe app\launcher\start-service.mjs
   app/                       the application, replaced by every update
-    node/  browser/chrome-win64/  python/  pocket-tts/  bridge/  node_modules/
+    node/  python/  pocket-tts/  bridge/  node_modules/
     assets/  characters/  research/  models/{pocket,lipsync,stt}/
     defaults/  launcher/  licenses/
     omni/                    the OmniVoice pack, when installed
@@ -1313,7 +1314,7 @@ r6/audioware/CyberpunkConvai speech.yml + eight silent reply slots
 archive/pc/mod/              convai_facial, convai_gestures, cyberpunk_convai_ambient_driver_guard
 ```
 
-RED4ext loads DLLs only from `red4ext/plugins/*.dll` and one folder deep, so the Python, torch and Chrome DLLs under `app/` are never loaded into the game. The build refuses any entry whose game-relative path would exceed 255 characters under a 70-character game folder (Windows' built-in zip extractor fails beyond 260).
+RED4ext loads DLLs only from `red4ext/plugins/*.dll` and one folder deep, so the Python and torch DLLs under `app/` are never loaded into the game. The build refuses any entry whose game-relative path would exceed 255 characters under a 70-character game folder (Windows' built-in zip extractor fails beyond 260).
 
 ### How it starts
 
@@ -1327,7 +1328,7 @@ The Runtime package ships `runtime/native-off.txt` with exactly `actuator`, `veh
 
 ### Building
 
-- Inputs pinned in `packaging/release.config.json`: Node 24.21.0, CPython 3.12.10 and 3.11.9 embeddable, Chrome for Testing 145.0.7632.6 (matching the Playwright 1.58.2 build), pocket-tts and VoiceStudio revisions, every OmniVoice and Local AI model file with URL, revision and SHA-256. Python wheels are locked in `packaging/python/*.lock.txt` and installed with `--no-deps --require-hashes --only-binary=:all:`.
+- Inputs pinned in `packaging/release.config.json`: Node 24.21.0, CPython 3.12.10 and 3.11.9 embeddable, pocket-tts and VoiceStudio revisions, every OmniVoice and Local AI model file with URL, revision and SHA-256. Python wheels are locked in `packaging/python/*.lock.txt` and installed with `--no-deps --require-hashes --only-binary=:all:`.
 - Trained models come from a private Hugging Face bucket (`packaging/fetch-models.py`, every file checked against its manifest) or from the developer's `runtime/` folder with `--models local`.
 - The launcher is compiled from `native/autostart` and the plugin from `native/core`, both with MSVC (static CRT, `/Brepro` so the same source gives a byte-identical DLL). `ffmpeg` is needed to pre-build the Voxtral reference slots.
 - The three game archives in `packaging/release-data/` are built from game files with WolvenKit, so CI cannot rebuild them.
@@ -1350,7 +1351,7 @@ The install test builds a stand-in game folder under `%TEMP%` (with spaces and n
 
 ### Keeping the inputs current
 
-New models or voice configs go to the bucket's `final/` folder and its manifest; new character ids or rebuilt archives use `node packaging/Refresh-ReleaseData.mjs`; Python versions use `python packaging/python/lock.py <name>`; Node, Python and Chrome changes edit URL, version and SHA-256 in `release.config.json`.
+New models or voice configs go to the bucket's `final/` folder and its manifest; new character ids or rebuilt archives use `node packaging/Refresh-ReleaseData.mjs`; Python versions use `python packaging/python/lock.py <name>`; Node and Python changes edit URL, version and SHA-256 in `release.config.json`.
 
 ## Tests
 
@@ -1470,7 +1471,7 @@ The code is the reference. These design notes still carry older statements:
 
 **Licence.** The project's own source code, documentation and configuration are under the **AI NPC Cyberpunk Mod Use License, version 1.1** ([LICENSE](LICENSE)): use, copy, modify and distribute, including commercially, provided that you keep the licence and notices, state significant changes, and, if you distribute a modified version with AI character conversation, offer a functional, user-selectable Convai integration as at least one provider option. Other providers, local models and self-hosted systems are allowed and any of them may be the default. It is source-available, not an OSI-approved open-source licence.
 
-**Third-party components** keep their own licences, including Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware, Mod Configuration Menu, the Convai Web SDK, Node.js, Chrome for Testing and Chromium, Playwright, CPython, Kyutai Pocket TTS and its weights, VoiceStudio and OmniVoice (the OmniVoice weights are non-commercial), Moonshine and sherpa-onnx, llama.cpp, the Gemma, Qwen, Bonsai (PrismML) and Granite models and the CMU Pronouncing Dictionary. The exact versions and licence texts are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); the optional Mature pack's two models carry their own licences, listed in [packaging/MATURE_PACK_README.md](packaging/MATURE_PACK_README.md). Each release package also carries them as `THIRD-PARTY-NOTICES.txt`.
+**Third-party components** keep their own licences, including Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware, Mod Configuration Menu, the Convai Web SDK, Node.js, Playwright, CPython, Kyutai Pocket TTS and its weights, VoiceStudio and OmniVoice (the OmniVoice weights are non-commercial), Moonshine and sherpa-onnx, llama.cpp, the Gemma, Qwen, Bonsai (PrismML) and Granite models and the CMU Pronouncing Dictionary. The exact versions and licence texts are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); the optional Mature pack's two models carry their own licences, listed in [packaging/MATURE_PACK_README.md](packaging/MATURE_PACK_README.md). Each release package also carries them as `THIRD-PARTY-NOTICES.txt`.
 
 Thanks to the authors of the frameworks the mod stands on, and to Convai and Mistral for their services.
 

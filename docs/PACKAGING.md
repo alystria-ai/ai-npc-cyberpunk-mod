@@ -8,7 +8,7 @@ How the player release is built, what it contains and how it starts. Players rea
 | Package | Where players get it | Contents |
 |---|---|---|
 | `AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip` | Nexus Mods | Text only: the CET Lua mod, redscript, the four JSON catalogs the Lua reads, `README.txt` and `release.json`. |
-| `AI-NPC-Cyberpunk-Mod-Runtime-<v>.zip` | GitHub release of this repository | Everything else needed to play: the RED4ext launcher, bundled Node, Chrome for Testing and Python, the bridge, the Pocket voice and lip-sync models, voice references, game archives and the Audioware reply bank. |
+| `AI-NPC-Cyberpunk-Mod-Runtime-<v>.zip` | GitHub release of this repository | Everything else needed to play: the RED4ext launcher, bundled Node and Python, the bridge, the Pocket voice and lip-sync models, voice references, game archives and the Audioware reply bank. |
 | `AI-NPC-Cyberpunk-Mod-OmniPack-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and the OmniVoice references. |
 | `AI-NPC-Cyberpunk-Mod-LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip: the llama-server Vulkan build, the embedding model and the chat model, whole. |
 | `AI-NPC-Cyberpunk-Mod-LocalAI-Lite-<v>.zip` | Hugging Face | Optional Local AI pack with Bonsai 2 4B (about 1.4 GB), the same server and embedding model. |
@@ -57,7 +57,6 @@ red4ext/plugins/AiNpcCyberpunkMod/
   launcher.ini               UTF-16: %PLUGIN%\app\node\node.exe app\launcher\start-service.mjs
   app/                       the application, replaced by every update
     node/node.exe            official Node.js (node.exe and LICENSE only)
-    browser/chrome-win64/    official Chrome for Testing, the build Playwright 1.58.2 targets
     python/                  official CPython 3.12 embeddable + hash-locked wheels (Pocket worker)
     pocket-tts/              Kyutai pocket-tts source at the pinned revision (tree hash verified)
     bridge/                  production import closure + worker scripts + the supervisor
@@ -99,9 +98,14 @@ entry whose game-relative path would exceed 255 characters under a 70-character 
    whose closing tells the service that the game ended.
 2. `start-service.mjs` prepares `data/` (below), joins split files left by an earlier release on the first start
    (verifying their SHA-256; current packs have none), and sets every path explicitly:
-   `CYBERPUNK_CONVAI_BROWSER`, `CYBERPUNK_CONVAI_CLIENT_ASSETS`, the four `CYBERPUNK_CONVAI_OMNI_*`
+   `CYBERPUNK_CONVAI_CLIENT_ASSETS`, the four `CYBERPUNK_CONVAI_OMNI_*`
    paths and `CYBERPUNK_CONVAI_PYTHON` when the pack is installed, the key file and state folder.
-   It clears inherited `NODE_OPTIONS`, `PYTHONPATH` and similar overrides. Nothing is looked up on PATH.
+   It clears inherited `NODE_OPTIONS`, `PYTHONPATH` and similar overrides. Nothing is looked up on PATH. The one thing the package
+   does not carry is a browser: the bridge's hidden browser is the Microsoft Edge that Windows 10 and 11 include, else an installed
+   Google Chrome (`bridge/system-browser.mjs`; a developer's `CYBERPUNK_CONVAI_BROWSER` still names an executable instead).
+   Chrome for Testing was bundled in 0.2 until Hugging Face's virus scanner flagged its `chrome.dll` (a false positive). If neither
+   browser is installed the supervisor reports `browser-missing` (the in-game "service could not start" notice, one line in
+   `bridge-service.log`) and starts the bridge by itself once one is installed.
 3. It then runs the development supervisor unchanged (`bridge/bridge-supervisor.mjs`): one bridge
    per game session, crash restarts, the status file the in-game Help page reads, and a graceful
    stop when the game exits. `--prepare-only` stops after step 2 and prints a summary.
@@ -202,7 +206,7 @@ developer's and private testers' installs; on a player's machine it finds no old
 into a release. Inputs:
 
 - `packaging/release.config.json`: pinned toolchain URLs and SHA-256 values (Node 24.21.0,
-  CPython 3.12.10 and 3.11.9 embeddable, Chrome for Testing 145.0.7632.6, pocket-tts and
+  CPython 3.12.10 and 3.11.9 embeddable, pocket-tts and
   VoiceStudio revisions, every OmniVoice model file), package layout and limits.
 - `packaging/python/*.lock.txt`: every wheel by URL and SHA-256, installed with `--no-deps
   --require-hashes --only-binary=:all:` for the target platform. pip's generated console-script
@@ -288,8 +292,7 @@ permission can stay read-only.
   `runtime/` before that.
 - New character IDs or rebuilt archives: `node packaging/Refresh-ReleaseData.mjs`, review, commit.
 - Python versions: edit `packaging/python/<name>.in`, run `python packaging/python/lock.py <name>`.
-- Node, Python, Chrome: change URL, version and SHA-256 in `release.config.json` (Chrome must match
-  `node_modules/playwright-core/browsers.json`).
+- Node, Python: change URL, version and SHA-256 in `release.config.json`.
 - Lua files that must not ship: `devOnlyLua` in the config. The build fails if a shipped file
   loads one without a guarded `pcall`.
 
@@ -315,8 +318,7 @@ root states the same facts for readers of the repository, and the Runtime packag
 
 Component facts: VoiceStudio is AGPL-3.0-only (the pack carries its licence and the source
 location). OmniVoice weights are CC-BY-NC and its audio tokenizer uses the Boson Higgs Audio 2
-Community License; both licence files ship with the pack. Chrome for Testing ships without a
-licence file in its zip; the notices point to the Chromium licence. The speech-recognition model is Moonshine Tiny (MIT) run by sherpa-onnx (Apache-2.0); see docs/LOCAL_STT.md. Pocket TTS code is MIT and its
+Community License; both licence files ship with the pack. No browser ships: the hidden browser is the player's Microsoft Edge, else Google Chrome (see "How it starts" below). The speech-recognition model is Moonshine Tiny (MIT) run by sherpa-onnx (Apache-2.0); see docs/LOCAL_STT.md. Pocket TTS code is MIT and its
 weights CC-BY-4.0 (gated on Hugging Face, with a prohibited-use clause covering voice cloning
 without consent); the notices carry the attribution and the change statement the shipped model
 needs. The lip-sync lexicon (CMUdict, BSD-2-Clause, plus espeak-ng-generated game words) ships

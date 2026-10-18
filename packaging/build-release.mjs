@@ -5,7 +5,7 @@
 //
 // Packages (dist/release/packages/):
 //   AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip        text only: CET Lua, redscript, JSON catalogs (for Nexus Mods)
-//   AI-NPC-Cyberpunk-Mod-Runtime-<v>[...].zip   launcher, bundled Node/Chrome/Python, bridge, models, voices,
+//   AI-NPC-Cyberpunk-Mod-Runtime-<v>[...].zip   launcher, bundled Node/Python, bridge, models, voices,
 //                                          game archives and the Audioware bank (GitHub)
 //   The optional packs are hosted on Hugging Face (alystria-ai/ai-npc-cyberpunk-mod-packs, one folder per version; packaging/upload-packs.py),
 //   each ONE zip with no parts and no split files (the zip is ZIP64 where a model is over 4 GiB):
@@ -358,13 +358,7 @@ async function runtimePackage(source, config, models, key) {
   for (const name of tool.node.files) pkg.file(`${app}/node/${name}`, resolve(nodeDir, tool.node.root, name));
   notices.push(`Node.js ${tool.node.version} - MIT and bundled licences: app/node/LICENSE - ${tool.node.url}`);
 
-  // Browser: the official Chrome for Testing build Playwright ${version} is made for.
-  const chromeZip = await download(tool.browser.url, resolve(cache, 'downloads', basename(tool.browser.url)), tool.browser.sha256, log);
-  const chromeDir = resolve(stage, 'browser');
-  await extractZip(chromeZip, chromeDir);
-  await pkg.tree(`${app}/browser`, chromeDir);
-  notices.push(`${tool.browser.name} ${tool.browser.version} (Chromium) - unmodified official build - ${tool.browser.url}`
-    + ' - licences: https://chromium.googlesource.com/chromium/src/+/main/LICENSE and chrome://credits');
+  // No browser is bundled: the hidden browser is the Edge that ships with Windows, else an installed Chrome (bridge/system-browser.mjs).
 
   // Python for the Pocket voice worker.
   const pythonDir = resolve(stage, 'python');
@@ -474,7 +468,7 @@ async function runtimePackage(source, config, models, key) {
   pkg.text(`${app}/licenses/THIRD-PARTY-NOTICES.txt`, ['AI NPC Cyberpunk Mod runtime - third-party components', '', ...notices.map(line => `- ${line}`), ''].join('\r\n'));
   pkg.text(`${app}/licenses/THIRD_PARTY_NOTICES.md`, await readFile(resolve(source.root, 'THIRD_PARTY_NOTICES.md'), 'utf8'));
   pkg.json(`${app}/release.json`, {product: config.product, package: 'runtime', version, commit: source.commit,
-    node: tool.node.version, python: tool.python.version, browser: `${tool.browser.name} ${tool.browser.version}`,
+    node: tool.node.version, python: tool.python.version,
     pocketTts: tool.pocketTts.revision, pocketModel: pocketConfig.model.sha256, convaiKey: key ? 'package' : 'player',
     nativePlugin: nativeDll ? await sha256File(nativeDll) : 'none'});
   return pkg;
