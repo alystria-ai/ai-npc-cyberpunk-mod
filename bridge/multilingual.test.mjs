@@ -6,6 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {detectLanguage, isNonEnglish} from './reply-language.mjs';
 import {MultilingualConversations, multilingualTwins, planTurnVoice, replyVoice, twinMarkerKey} from './multilingual.mjs';
+import {CAST_EXPANSION_KEYS} from './cast-expansion-keys.mjs';
 import {RelationshipRouting, relationshipRegistry, selectRelationshipProfile, parseRelationshipState,
   RELATIONSHIP_PROFILES} from './relationship-routing.mjs';
 import {PlayerMemory} from './player-memory.mjs';
@@ -416,7 +417,8 @@ test('the installed twin map covers every profiled character; old romantic rows 
     assert.ok(loaded[key] || skipped.includes(key), key);
   }
   const unrouted = twinned.filter(key => !loaded[key]);
-  assert.ok(unrouted.every(key => key.startsWith('npc-')), 'only a new archetype batch may wait for the language box');
+  // a new archetype batch (npc-*) or the 2026-10-18 cast expansion may wait for the language box, nothing else
+  assert.ok(unrouted.every(key => key.startsWith('npc-') || CAST_EXPANSION_KEYS.includes(key)), 'only a new batch may wait for the language box: ' + unrouted.filter(key => !key.startsWith('npc-') && !CAST_EXPANSION_KEYS.includes(key)));
   // Every profiled (relationship) character has its one twin routed.
   for (const key of Object.keys(RELATIONSHIP_PROFILES)) {
     assert.ok(Object.hasOwn(ids, key), key + ' is not in characters.json');
