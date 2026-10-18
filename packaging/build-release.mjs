@@ -118,6 +118,24 @@ async function prepareSource() {
   return {root, commit, time};
 }
 
+// Every package carries this note at its top level, so a player who opens the zip sees where it goes before extracting.
+// The same text in every package, so extracting several over one another is harmless.
+const INSTALL_NOTE_NAME = 'HOW TO INSTALL - extract into your Cyberpunk 2077 folder.txt';
+const INSTALL_NOTE = [
+  'AI NPC Cyberpunk Mod',
+  '',
+  'Extract this zip INTO your Cyberpunk 2077 folder (the folder that has bin, archive and r6 in it), and allow folders to merge.',
+  'The zip already starts with the right folders (red4ext or bin).',
+  '',
+  'Do not extract it into a new folder named after the zip. Windows "Extract All" and 7-Zip "Extract to <name>" do that by default:',
+  'change the destination to the Cyberpunk 2077 folder itself. If it happened anyway, the mod moves its optional pack files into',
+  'place by itself the next time the game starts.',
+  '',
+  'With Vortex: use Install From File, and Vortex places the files for you.',
+  '',
+  'You can delete this text file after installing.',
+  ''].join('\r\n');
+
 // ---------------------------------------------------------------- package model
 // A package is a map of game-relative entry name -> {source, start?, length?} or {buffer}.
 class Package {
@@ -858,6 +876,7 @@ async function main() {
     if (!packages.has(id)) continue;
     log(`Staging the ${titles[id]} package.`);
     const pkg = await builders[id]();
+    pkg.text(INSTALL_NOTE_NAME, INSTALL_NOTE);
     if (!OPTIONAL_PACKAGE_IDS.has(id)) await checkFileSizes(pkg, config);
     log(`Writing ${titles[id]} (${pkg.entries.size} files).`);
     const result = await writeArchives(pkg, `${config.product}-${titles[id]}-${version}`, config, timestamp, {single: OPTIONAL_PACKAGE_IDS.has(id)});
