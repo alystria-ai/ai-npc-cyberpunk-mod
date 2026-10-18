@@ -6,14 +6,15 @@
     "2.31"
   ],
   "profileKeys": [
-    "johnny-silverhand",
-    "rogue-amendiares",
-    "kerry-eurodyne",
-    "spider-murphy",
-    "santiago",
-    "thompson",
     "adam-smasher",
-    "nancy-hartley"
+    "grayson",
+    "johnny-silverhand",
+    "kerry-eurodyne",
+    "nancy-hartley",
+    "rogue-amendiares",
+    "santiago",
+    "spider-murphy",
+    "thompson"
   ],
   "sources": [
     {
@@ -26694,7 +26695,8 @@
       ],
       "audience": {
         "speakers": [
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "grayson"
         ],
         "perspective": "participant",
         "channels": [
@@ -26703,7 +26705,8 @@
         ],
         "recipients": [
           "v",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "grayson"
         ]
       },
       "condition": {
