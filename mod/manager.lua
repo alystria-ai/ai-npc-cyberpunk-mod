@@ -69,6 +69,8 @@ local function readJSON(path)
     local file = io.open(path, 'rb')
     if not file then return nil end
     local raw = file:read('*a'); file:close()
+    -- Windows PowerShell and older Notepad save UTF-8 with a byte-order mark (EF BB BF), which the codec reads as garbage.
+    if raw:sub(1, 3) == '\239\187\191' then raw = raw:sub(4) end
     local ok, value = pcall(json.decode, raw)
     return ok and type(value) == 'table' and value or nil
 end

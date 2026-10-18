@@ -89,7 +89,7 @@ for (const [label, text] of Object.entries(unreadable)) {
   });
 }
 
-test('a file with a byte order mark, as Windows PowerShell and older Notepad write it, still loads its settings', {todo: 'BUG: mod/manager.lua readJSON does not strip a leading EF BB BF; the codec rejects it and the whole file reads as unreadable'}, () => {
+test('a file with a byte order mark, as Windows PowerShell and older Notepad write it, still loads its settings', () => {
   const out = run(`${managerLua}
     files['runtime/settings.json'] = '\\239\\187\\191' .. ${luaString(JSON.stringify({...freshSettings, conversationProvider: 'local', voice: false}))}
     local manager = newManager()
