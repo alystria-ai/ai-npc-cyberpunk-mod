@@ -53,6 +53,8 @@ for kind, name in files.items():
     (backup / name).write_text(raw, encoding="utf-8")
     cfg = json.loads(raw.lstrip("\ufeff"))
     for key, value in (("rita-wheeler", entries[kind]), ("lucy-kushinada", {"status": "unprepared"})):
+        if key == "lucy-kushinada" and cfg["voices"].get(key, {}).get("status") == "ready":
+            continue  # her web-clip reference (scripts/clip-search/lucy/build_lucy.py) is kept
         assert key not in cfg["voices"] or cfg["voices"][key] == {"status": "unprepared"}, (name, key, cfg["voices"][key])
         cfg["voices"][key] = value
     tmp = path.with_name(path.name + ".part")

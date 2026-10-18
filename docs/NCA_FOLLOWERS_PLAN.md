@@ -281,4 +281,12 @@ Section 7 found a bed under every line. The user then approved a vocal separator
 
 Total 15.2 s. Speech to pause SNR is 40 to 61 dB; Whisper reads clips 1, 3 and 4 back word for word. Metrics cannot hear artefacts such as watery or ghost-voice leftovers, so the user confirms by ear that these are Lucy and clean.
 
-**Not done, by instruction:** no reference built, no config changed, `lucy-kushinada` is still `unprepared`, no sample rendered. When the user confirms, the build is the usual recipe (`build_reference`, 0.4 s gaps, short <= 10 s, long <= 18 s; 15.2 s of material makes one long set and one short set) followed by the three configs and `voice.localProfiles`.
+**Not done at that point, by instruction (done later the same night, section 9):** no reference built, no config changed, `lucy-kushinada` still `unprepared`, no sample rendered. When the user confirms, the build is the usual recipe (`build_reference`, 0.4 s gaps, short <= 10 s, long <= 18 s; 15.2 s of material makes one long set and one short set) followed by the three configs and `voice.localProfiles`.
+
+## 9. Lucy's references built and wired; samples rendered (2026-10-18, night)
+
+The user approved clips 2, 3 and 4 by ear as clearly Lucy and clean; clip 1 was dropped. `scripts/clip-search/lucy/build_lucy.py` built omni-short (8.08 s: clips 3 and 4), omni-long and Pocket (10.78 s: all three, 0.4 s gaps) and replaced her `unprepared` in `pocket-voices.autobest.json`, `local-voices.autobest-short.json` and `local-voices.autobest-long.json`; `lucy-kushinada` is in `voice.localProfiles` (78, `preparedLocalProfiles` 78). The long set is shorter than the usual 12 to 18 s, as Rita's is, and is not padded. Details, hashes and the ship steps are in `docs/GAME_VOICE_REFERENCES.md`, "Lucy Kushinada: web-clip reference".
+
+Checks: the Omni registry loader and `validatePocketConfig` accept the live files; the voice, packaging, multilingual and NCA tests pass (263) and the five Python voice tests pass. Samples (`render_sample_omni.py`, `render_sample_pocket.mjs`, no game, no bridge): the same line in both engines, 5.64 s (Omni long, 32 steps) and 4.64 s (Pocket on the CPU in 1.5 s of generation), both read back word for word by Whisper; median pitch 185 Hz (Omni) and 149 Hz (Pocket). Whether the voice sounds like her is the user's ear.
+
+**To ship:** the six WAVs `runtime/voice-references/picked/autobest/{omni-short,omni-long,pocket}/{rita-wheeler,lucy-kushinada}.wav` to `final/voice-references/picked/autobest/<kind>/`, and the three configs `runtime/pocket-voices.autobest.json`, `runtime/local-voices.autobest-short.json` and `runtime/local-voices.autobest-long.json` to `final/voice-configs/`.

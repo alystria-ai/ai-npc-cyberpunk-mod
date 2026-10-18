@@ -891,6 +891,7 @@
       "life-coach",
       "lina-malina",
       "lizzy-wizzy",
+      "lucy-kushinada",
       "mama-welles",
       "mark-bana",
       "meredith-stout",
@@ -947,7 +948,7 @@
       "additionalProfileStatus": "source-qualified activation; listening not required by user",
       "sourceQualifiedActivation": true,
       "subjectiveListeningRequired": false,
-      "preparedLocalProfiles": 77,
+      "preparedLocalProfiles": 78,
       "fallbackProfiles": 4
     },
     "startupProfiles": [

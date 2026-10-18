@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync, readdirSync} from 'node:fs';
+import {existsSync, readFileSync, readdirSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import fengari from 'fengari';
 import {KnowledgeRouter} from './conversation-knowledge.mjs';
 import {multilingualTwins} from './multilingual.mjs';
@@ -204,13 +205,13 @@ test('Convai characters: both have an original and a multilingual twin in the re
   }
 });
 
-test('Convai characters: both are tier-1 (pre-open lane priority) and the release plan lists the Rita local voice', () => {
+test('Convai characters: both are tier-1 (pre-open lane priority) and the release plan lists both local voices', () => {
   for (const key of KEYS) assert.ok(TIER1_KEYS.includes(key), key + ' in TIER1_KEYS');
   const auto = read('../mod/auto-connect.lua');
   for (const key of KEYS) assert.ok(auto.includes(`'${key}'`), key + ' in M.TIER1');
   const plan = JSON.parse(read('../packaging/release-plan.json'));
   assert.ok(plan.voice.localProfiles.includes('rita-wheeler'));
-  assert.ok(!plan.voice.localProfiles.includes('lucy-kushinada'), 'Lucy has no local reference yet');
+  assert.ok(plan.voice.localProfiles.includes('lucy-kushinada'), 'Lucy has a web-clip reference since 2026-10-18');
   assert.equal(plan.voice.registry.preparedLocalProfiles, plan.voice.localProfiles.length);
   assert.ok(JSON.parse(read('../characters/world-knowledge.json')).profileKeys.includes('rita-wheeler'));
 });
@@ -240,5 +241,24 @@ test('routing: with their IDs both profiles pass the gate of every provider (Con
     const prepared = await router.prepare({requestId: '1-1-1ULL', generation: 1, entity: '1ULL', profileKey: key, name: row(key).name, text: 'Hi', worldKnowledge});
     assert.equal(prepared.route.profileKey, key); assert.deepEqual(prepared.route.audience, [key]);
     assert.ok(router.configFor(key, 'group:lucy-kushinada,rita-wheeler') !== undefined);
+  }
+});
+
+// ---- The installed voice configs (skipped where the ignored runtime folder is absent) -----------------------------
+
+const voiceConfigs = ['pocket-voices.autobest.json', 'local-voices.autobest-short.json', 'local-voices.autobest-long.json'];
+const voicesInstalled = voiceConfigs.every(name => existsSync(new URL('../runtime/' + name, import.meta.url)));
+test('installed voice configs: both followers are ready with a reference that matches its hash, within the length limits', {skip: !voicesInstalled && 'runtime voice configs absent'}, () => {
+  for (const name of voiceConfigs) {
+    const cfg = JSON.parse(readFileSync(new URL('../runtime/' + name, import.meta.url), 'utf8').replace(/^﻿/, ''));
+    for (const key of KEYS) {
+      const entry = cfg.voices[key];
+      assert.equal(entry.status, 'ready', `${name}: ${key} is ready`);
+      const file = new URL('../' + entry.reference, import.meta.url);
+      assert.equal(createHash('sha256').update(readFileSync(file)).digest('hex'), entry.sha256, `${name}: ${key} reference hash`);
+      assert.equal(createHash('sha256').update(entry.transcript, 'utf8').digest('hex'), entry.transcriptSha256, `${name}: ${key} transcript hash`);
+      const limit = name.includes('short') ? 10 : 18;   // omni-short at most 10 s, the long set and Pocket at most 18 s (Omni's hard limit is 20 s)
+      assert.ok(entry.pick.seconds > 5 && entry.pick.seconds <= limit, `${name}: ${key} is ${entry.pick.seconds} s`);
+    }
   }
 });
