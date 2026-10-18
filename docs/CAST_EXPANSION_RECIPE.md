@@ -206,3 +206,25 @@ first-person rewrite, knowledge-row drafts from a template); Sonnet for identity
 ambiguous. Each helper writes only to `staging/cast/<its keys>/`; the lead merges. Every brief also says: no `find /` or
 whole-disk searches; stop every background command before finishing; never read, run or stage `scripts/Test-GameInput.ps1`;
 never print key, token or auth files; no game launch, no live talk turns, no Convai calls; never mention AMM.
+
+## Lessons from the 28-character batch (2026-10-19)
+
+- `analyze.py` runs Whisper on a free GPU (over 2 GB free), else on the CPU. On the CPU with three helpers at once it took about
+  15 minutes per character; on the GPU about one.
+- Use the spec overrides instead of loosening rules. Use `exclude` for a clearly foreign line (Henry: one sq011 line at
+  typicality 0.50 against a 0.90 median) or shouted outliers (Edgar Tool: five lines at 0.73 to 0.79). Use `prefer` when the
+  greedy fill leaves the short set under 7 s although the pool is large (Maiko: a top clip of 6.08 s with nothing that fits
+  beside it; Henry: 4 clips, 19 s). Each override carries an `excludeNote` or `preferNote`.
+- The relaxed peak rule (-1.5 dBFS) applies when the -3 dBFS pool is under 12 s, even if the relaxed pool is large. Loud
+  voices like Garry the Prophet's need it, and their clips still have no clipped samples.
+- Mixed stems: the Cassel twins' `bella_*` and `theo_*` stems also hold Alex and V in disguise, so only the twin's own scene
+  actors are accepted. Edgar Tool's lines are the TooLina persona and are voiced in a feminine register (roster gender
+  FEMALE, decided from the lines).
+- Twins are created with `languageBoxOff: false`. `bridge/cast-expansion-keys.mjs` lists the batch, and the twin-map test
+  in `bridge/multilingual.test.mjs` lets these keys wait for the language box. Remove them from that allowance once the
+  dashboard step is done.
+- Ear check: `render_samples.py <lines.json> <out-dir>` loads OmniVoice once for the whole list. Score the renders with the
+  same WavLM x-vector against every reference (own reference first is the expected rank) and with Whisper against the line.
+  Flag any character whose own reference does not rank first.
+- `merge.mjs knowledge` is not needed when the knowledge builder runs after the roster merge, because `profileKeys` follow
+  the roster.
