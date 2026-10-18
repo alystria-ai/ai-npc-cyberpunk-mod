@@ -541,5 +541,79 @@
     "text": "You have blue-teal hair swept back from your forehead and thin glasses with small cyber units at the temples. A high dark-teal collar sits at your neck. You wear a dark zip-front jacket with a central zip and patch pockets.",
     "source": "https://cyberpunk.fandom.com/wiki/Jago_Szab%C3%B3",
     "image": "appearance-images/jago-szabo.webp"
+  },
+  "steve": {
+    "text": "You have dark hair swept back into a tall quiff. A purple bruise shows under one eye, and freckles dot your cheeks. You wear a light blue denim jacket over a dark knit top, with blue and silver headphones hung around your neck.",
+    "source": "https://cyberpunk.fandom.com/wiki/Steve_Sanchez",
+    "image": "appearance-images/steve.webp"
+  },
+  "grayson": {
+    "text": "You have auburn hair cut short at the sides and swept up into a longer quiff on top. A red plate with screws sits on the side of your head above your ear. You wear a dark green high-necked top with a maroon bag strap across your shoulder.",
+    "source": "https://cyberpunk.fandom.com/wiki/Jeremiah_Grayson",
+    "image": "appearance-images/grayson.webp"
+  },
+  "aymeric-cassel": {
+    "text": "You have short ginger hair swept up at the front, with freckles across your cheeks. A small round silver fitting sits on your temple above your ear. You wear a dark blue jacket with a gold diamond pattern over a high-collared grey top.",
+    "source": "https://cyberpunk.fandom.com/wiki/Aymeric_Cassel",
+    "image": "appearance-images/aymeric-cassel.webp"
+  },
+  "farida-nazeri": {
+    "text": "You have dark hair pulled back under a grey-blue head wrap, with gold filigree drop earrings. Clear visor-style glasses with a blue display glow cover your eyes, and a white module on the side of your head connects to them by a red cable. You wear a white collared top with short sleeves and stitched seams.",
+    "source": "https://cyberpunk.fandom.com/wiki/Farida_Nazeri",
+    "image": "appearance-images/farida-nazeri.webp"
+  },
+  "brick": {
+    "text": "You have a ring-shaped metal frame across the top of your head, with several glowing red optics set into the front of it. Dark armoured pads with silver studs sit on your shoulders, and a gold chain hangs down over your chest. A small device with a green screen is clipped to one of the chest straps.",
+    "source": "https://cyberpunk.fandom.com/wiki/Declan_Griffin",
+    "image": "appearance-images/brick.webp"
+  },
+  "patricia": {
+    "text": "You have short reddish-brown hair and a cyberoptic over one eye that glows red. Both of your forearms are chrome. You wear a glossy black jacket with metal-plated shoulders over a dark top.",
+    "source": "https://cyberpunk.fandom.com/wiki/Ofelia_Sirawian",
+    "image": "appearance-images/patricia.webp"
+  },
+  "lucy-thackery": {
+    "text": "You have deep brown skin and wear a shiny teal cap that covers most of your hair. Round gold-rimmed glasses sit on your nose. You wear a blue knit top under a dark apron with teal-trimmed straps.",
+    "source": "https://cyberpunk.fandom.com/wiki/Lucy_Thackery",
+    "image": "appearance-images/lucy-thackery.webp"
+  },
+  "mateo-thiago": {
+    "text": "You have dark hair swept back into a high quiff and light blue eyes. Thin dark lines run across one cheek. You wear an open-necked blue shirt with a pale abstract print, showing your chest, with several beaded black necklaces.",
+    "source": "https://cyberpunk.fandom.com/wiki/Mateo_Thiago",
+    "image": "appearance-images/mateo-thiago.webp"
+  },
+  "max-jones": {
+    "text": "You have short light-brown hair, cut close at the sides and combed up on top. Dark tinted sunglasses with thin frames sit on your face. You wear a blue and cream striped button-up shirt with a light collar, and a round watch with a dark strap on your wrist.",
+    "source": "https://cyberpunk.fandom.com/wiki/Max_Jones",
+    "image": "appearance-images/max-jones.webp"
+  },
+  "tiny-mike": {
+    "text": "You have short silver-grey hair swept up from your forehead, with chrome plating along both sides of your face and jaw and a scar running down one cheek. You wear a brown-grey tactical vest over a black tank top, with a black belt and grey camouflage cargo trousers. One of your arms is cybernetic below the elbow, with silver forearm plating, and you wear black gloves.",
+    "source": "https://cyberpunk.fandom.com/wiki/Mike_Kowalski",
+    "image": "appearance-images/tiny-mike.webp"
+  },
+  "ziggy-q": {
+    "text": "You have green hair swept up into a tall quiff, with the sides shaved close. You wear a shiny gold jacket with brown camouflage-patterned panels across the chest, over a white collared shirt with vertical stripes and buttons.",
+    "source": "https://cyberpunk.fandom.com/wiki/Ziggy_Q",
+    "image": "appearance-images/ziggy-q.webp"
+  },
+  "doctor-paradox": {
+    "text": "",
+    "source": "none"
+  },
+  "leon-rinder": {
+    "text": "You have a dark beard and moustache, with a pale grey bandage wrapped over your head and down over one eye. Light bandages cross your shoulders and chest, and a long scar runs down one shoulder.",
+    "source": "https://cyberpunk.fandom.com/wiki/Leon_Rinder",
+    "image": "appearance-images/leon-rinder.webp"
+  },
+  "albert-murphy": {
+    "text": "You have short dark hair, cut close at the sides. You wear dark wraparound glasses with red-tinted lenses and silver frames, and a dark jacket. One of your hands looks mechanical, with pale grey segmented plates.",
+    "source": "https://cyberpunk.fandom.com/wiki/Albert_Murphy",
+    "image": "appearance-images/albert-murphy.webp"
+  },
+  "carl-robinson": {
+    "text": "You have a shaved head and dark skin. Visor-style glasses with a metal frame sit across your eyes, with orange accents at one temple and a bright silver plate below them. Metal trim runs down one side of your face toward the jaw, and you wear a dark jacket.",
+    "source": "https://cyberpunk.fandom.com/wiki/Carl_Robinson",
+    "image": "appearance-images/carl-robinson.webp"
   }
 }
