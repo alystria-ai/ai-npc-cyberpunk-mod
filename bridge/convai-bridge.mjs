@@ -98,7 +98,7 @@ import {MemoryStore} from './memory-store.mjs';
 import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
 import {detectLocalAiPack} from './local-ai-pack.mjs';
 import {LocalLlmServer, nvidiaTotalMiB} from './local-llm-server.mjs';
-import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, normalisePin} from './local-model-choice.mjs';
+import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, matureOffBlocks, normalisePin} from './local-model-choice.mjs';
 import {CustomModelScanner} from './custom-models.mjs';
 import {LlamaEmbedder} from './local-embed.mjs';
 import {watchFiles, createWakeSignal} from './file-wake.mjs';
@@ -2715,12 +2715,26 @@ function syncLocalModelChoice(settings) {
     if (!first && matureContent.enabled && mistral.clearLocalFailure('mature-off')) prepareLocal();
   }
 }
+// The pack, or a model of the player's own, can appear while the game runs (the pack extracted after choosing Local, a model added to the
+// manifest). A start that was refused for what was missing is tried again at once, instead of staying on Convai until the player picks
+// another provider and then Local again. Looked at with the 5 s refresh below: property reads, no file and no process unless it retries.
+function retryLocalAfterInstall() {
+  const why = mistral.localBroken;
+  if (mistral.preference !== 'local' || (why !== 'not-installed' && why !== 'mature-off')) return;
+  const lifted = why === 'not-installed' ? localPack.installed || ownServerListed()
+    : !matureOffBlocks(listLocalModels({pack: localPack, matureModels: maturePackModels, customModels: customScan.models}), matureContent.enabled);
+  if (lifted && mistral.clearLocalFailure(why)) {
+    console.error(`[LocalAI] ${why === 'not-installed' ? 'a model was installed' : 'a model that needs no Mature content was installed'}: starting the local model`);
+    prepareLocal();
+  }
+}
 // The installed models and the defaults for the settings page, after the provider is applied so the card probe never holds a start back.
 async function publishLocalModelList() {
   if (Date.now() - localModelListCheckedAt >= 5000) {
     localModelListCheckedAt = Date.now();
     refreshLocalPack();
     scanCustomModels();
+    retryLocalAfterInstall();
     await learnCardTotal();
     const listKey = JSON.stringify([installedLocalModels(), localModelDefaults(), customModelProblems()]);
     if (listKey !== localModelListKey) { localModelListKey = listKey; await mistralControl.publishStatus().catch(() => {}); }
