@@ -34,3 +34,6 @@ convai voice cloning devslot/
 # manifest assets/v-voice/v-voice.json (transcripts and hashes) is committed. packaging/build-release.mjs packs the clips from the local copy.
 /assets/v-voice/*.wav
 /assets/v-voice/v-voice-build.json
+
+# Files made for the developer (samples, reports, the install tutorial): kept in the project folder, never committed.
+/deliverables/
