@@ -656,6 +656,28 @@ test('the spawned count follows the plan: fewer on a player key with a smaller p
   assert.deepEqual(none.connections.plan(), []);
 });
 
+// 2026-10-18 live round (Night City Allies followers): the shared key's plan holds eleven connections. A party member, a partner and
+// the spawned characters the game lists are all in it, so a spawned character is opened before the first talk; only a text provider
+// (Mistral or the local AI: spawnedWarmLimit 0, no Convai connection exists) or a player's one-connection plan opens none.
+test('on the shared key a spawned character is opened beside the party and a partner, within the eleven the plan holds', async () => {
+  const f = fixture();
+  f.heartbeat(['alex']);
+  await f.connections.setAmbient({partners: ['panam'], spawned: ['kerry', 'viktor'], nearby: ['nearby']});
+  assert.deepEqual(f.connections.plan().map(spec => `${spec.profile}:${spec.role}`),
+    ['alex:party', 'panam:partner', 'kerry:spawned', 'viktor:spawned', 'nearby:nearby']);
+  for (let at = 0; at < 8; at++) await f.step(500);
+  assert.deepEqual(f.calls.map(call => call.profile).sort(), ['alex', 'kerry', 'nearby', 'panam', 'viktor']);
+  const state = f.reports.at(-1);
+  assert.deepEqual(state.connections.filter(row => row.role === 'spawned').map(row => [row.profile, row.state]), [['kerry', 'ready'], ['viktor', 'ready']]);
+  // Eight party members and two partners leave one place of the eleven: the first spawned character takes it.
+  const full = fixture();
+  full.heartbeat(profiles);
+  await full.connections.setAmbient({partners: ['evelyn', 'claire'], spawned: ['kerry', 'viktor', 'misty']});
+  const roles = full.connections.plan().filter(spec => spec.role === 'spawned').map(spec => spec.profile);
+  assert.ok(roles.length <= 1 && full.connections.plan().length <= CONNECTION_LIMIT, `spawned within the plan: ${roles}`);
+  await f.connections.clear(); await full.connections.clear();
+});
+
 test('on a single-session plan with room only spawned characters are pre-opened; nothing else is, and a shared profile opens once', async () => {
   let room = true;
   const f = fixture({deferWarm: () => true, warmDeferred: () => room});

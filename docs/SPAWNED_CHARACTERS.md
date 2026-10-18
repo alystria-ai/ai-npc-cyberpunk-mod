@@ -319,6 +319,14 @@ Group candidates: companions=1 spawned=2 (found=2 generic=0 noProfile=0 unsuppor
 3. Ride in V's car with them for a minute, then get out: the same, no `released`.
 4. Walk one beyond 8 m: a `Spawned character not counted: <key> out-of-range` line, and `released (idle)` about 40 s later.
 
+## "Preparing connection" on Mistral and the local AI (branch `fix/nca-connect-bridge`, from `main` 9273275d)
+
+**Live result 2026-10-18 (21:02Z, after the lane fix).** The three followers were warmed `(spawned)` and nothing was released, yet the first text to Rita or Judy showed "Preparing connection to <name>...", and `runtime/party-connection-state.json` listed no connection for them (`spawned` lists them, `connections` does not).
+
+**Cause.** Not the plan limit. That session's conversation provider was Mistral (`settings.json` `conversationProvider: "mistral"`, last written 20:25Z; `runtime/mistral-state.json` `effective: "mistral"`; the bridge log's last transition is `Conversation provider: mistral`; the voice was Voxtral). With a text provider no Convai connection exists: `spawnedWarmLimit` is 0 (`textProvider`) and `deferWarm` holds the nearby ones as `waiting`, by design. The Lua notice only read `party-connection-state.json` for a `ready` private entry, so it showed for every character that has no entry, here every one but the party member (whose entry is a no-op). `bridge/party-connections.test.mjs` now pins the other case, the shared key on Convai: party, a partner and spawned characters are all in the eleven-connection plan and open before the first talk, and `spawnedWarmLimit` is 3 there.
+
+**Fix (Lua only).** `mod/auto-connect.lua` takes `options.noConnection()`; while it is true `talkNotice` shows nothing and `ready` is true (a holocall does not ring for ever). `mod/init.lua` passes the bridge's applied provider (`manager.mistral().effective` is `mistral` or `local`, read from `runtime/mistral-state.json` at most every 1.5 s, and only on a talk start or a holocall poll). Convai (shared key or the player's own) is unchanged: the notice still shows while the connection is really being prepared, and a player's own free-plan key still opens none ahead, since it holds one connection.
+
 ## Ready for builders (Sonnet, from this document)
 
 1. **Optional invite notice** (above), only if players ask.

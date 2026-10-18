@@ -10,7 +10,9 @@
 -- voices. Nothing here touches the world, the party or a conversation, and no notice
 -- announces a warm-up. A player who talks before one finishes sees the short wait notice.
 -- Off: nothing is prepared ahead. The same wait notice shows when the player starts talking to a
--- character that is not connected yet: talkNotice() returns it with the setting on or off (no hint about the setting).
+-- character that is not connected yet: talkNotice() returns it with the setting on or off (no hint about the setting). While Mistral
+-- or the local AI answers turns (options.noConnection) there is no Convai connection to prepare, so nothing waits for one and the
+-- notice never shows (2026-10-18: Rita and Judy showed it on Mistral, where the bridge opens no connection by design).
 --
 -- Spawned characters (docs/SPAWNED_CHARACTERS.md): a roster character that another mod or a spawner created is wanted from the first
 -- scan that sees it near V (the scan runs once a second anyway). It does not take one of the two slots: it has its own, at most
@@ -151,6 +153,13 @@ function M.new(options)
 
     local function log(line)
         if type(options.log) == 'function' then pcall(options.log, line) end
+    end
+
+    -- True while a text provider (Mistral or the local AI) answers turns: no Convai connection exists, so none is waited for.
+    local function noConnection()
+        if type(options.noConnection) ~= 'function' then return false end
+        local ok, value = pcall(options.noConnection)
+        return ok and value == true
     end
 
     local function keys()
@@ -326,12 +335,12 @@ function M.new(options)
     -- The notice for the wait at the start of a conversation: shown whenever the
     -- character is not connected yet, with the setting on or off.
     function A.talkNotice(key, name)
-        if not key or ready(key) then return nil end
+        if not key or ready(key) or noConnection() then return nil end
         return ui.t('Preparing connection to {name}…', {name = name})
     end
 
     -- Is this character's conversation connection ready (the notice above would not show)? A holocall rings until it is.
-    function A.ready(key) return key ~= nil and ready(key) == true end
+    function A.ready(key) return key ~= nil and (ready(key) == true or noConnection()) end
 
     -- Every frame, also while a menu pauses the game: keeps the list fresh for
     -- the bridge, which drops a list that stops being refreshed.
