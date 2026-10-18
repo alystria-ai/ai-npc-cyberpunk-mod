@@ -153,7 +153,8 @@ private:
     void FlushAppends(bool aForce);
     void CheckControl(uint64_t aNow);
     uint64_t NextWake(uint64_t aNow);
-    void Publish(Channel& aChannel, bool aExists, std::string aContent);
+    // aRetired (optional) receives the replaced bytes, so the caller frees them after unlocking.
+    void Publish(Channel& aChannel, bool aExists, std::string aContent, std::string* aRetired = nullptr);
     Channel& ChannelLocked(std::string_view aChannel);
     void NoteOpTime(uint64_t aStartMicros);
 

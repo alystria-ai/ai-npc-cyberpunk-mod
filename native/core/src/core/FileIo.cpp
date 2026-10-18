@@ -422,7 +422,7 @@ FileIo::Channel& FileIo::ChannelLocked(std::string_view aChannel)
     return m_channels[std::string(aChannel)];
 }
 
-void FileIo::Publish(Channel& aChannel, bool aExists, std::string aContent)
+void FileIo::Publish(Channel& aChannel, bool aExists, std::string aContent, std::string* aRetired)
 {
     if (aChannel.seen && aChannel.exists == aExists && aChannel.content == aContent)
     {
@@ -430,6 +430,10 @@ void FileIo::Publish(Channel& aChannel, bool aExists, std::string aContent)
     }
     aChannel.seen = true;
     aChannel.exists = aExists;
+    if (aRetired)
+    {
+        *aRetired = std::move(aChannel.content); // the caller frees the old bytes after unlocking
+    }
     aChannel.content = std::move(aContent);
     aChannel.revision = aChannel.revision >= 0x7ffffff0 ? 1 : aChannel.revision + 1;
     ++m_stats.publishes;
@@ -910,6 +914,12 @@ void FileIo::PollDue(uint64_t aNow)
         bool exists = false;
         const bool read = fileio::ReadWhole(path, content, exists);
         NoteOpTime(started);
+        // The JSON check parses the whole document (a few hundred microseconds for the 140 KB
+        // continuous face file) and the hash walks every byte: neither needs the mutex, and the game
+        // thread takes that mutex in Revision() and Read() every frame while a reply plays.
+        const bool parses = !read || !exists || !item.json || fileio::IsJson(content);
+        const uint64_t invalidHash = parses ? 0 : fileio::Hash(content);
+        std::string retired; // the replaced bytes are freed after the lock is released (declared first)
         std::lock_guard<std::mutex> lock(m_mutex);
         Channel& channel = ChannelLocked(item.name);
         if (channel.pendingOps > 0 || channel.opSerial != item.serial || !read)
@@ -920,12 +930,12 @@ void FileIo::PollDue(uint64_t aNow)
         if (!exists)
         {
             channel.diskTime = 0;
-            Publish(channel, false, {});
+            Publish(channel, false, {}, &retired);
             continue;
         }
-        if (item.json && !fileio::IsJson(content))
+        if (!parses)
         {
-            const uint64_t hash = fileio::Hash(content);
+            const uint64_t hash = invalidHash;
             channel.invalidStreak = hash == channel.invalidHash ? channel.invalidStreak + 1 : 1;
             channel.invalidHash = hash;
             ++m_stats.jsonRejected;
@@ -940,7 +950,7 @@ void FileIo::PollDue(uint64_t aNow)
         channel.diskTime = time;
         channel.diskSize = size;
         channel.diskFresh = Fresh(time);
-        Publish(channel, true, std::move(content));
+        Publish(channel, true, std::move(content), &retired);
     }
 }
 
