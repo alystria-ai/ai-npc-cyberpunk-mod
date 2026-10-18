@@ -1877,7 +1877,7 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
     -- Johnny in your head (docs/JOHNNY_IN_YOUR_HEAD.md): with nobody in front of V, private talk addresses Johnny while the story has
     -- him in V's head and the game does not have the floor. Not in V's head (or the setting off): the notice below, as before.
     if not npc and not groupMode then
-        local head = convaiJohnnyHeadService()
+        local head = type(convaiJohnnyHeadService) == 'function' and convaiJohnnyHeadService() or nil
         local why = head and head:refusal(player) or nil
         if head and why == nil and supportedProfiles[head.key] and profileEnabled(player, head.key) then
             local partner = head:partner(player)
@@ -1995,7 +1995,7 @@ end
 
 -- An add-on speaker's context blocks go with its spoken turn, as they do with a typed one (sendRequest).
 microphone.decorate = function(context)
-    if context.voiceOnly and not context.holocall and not context.head and convaiAddons and convaiAddons.live then convaiAddons.decorate(context) end
+    if context.voiceOnly and not context.holocall and convaiAddons and convaiAddons.live then convaiAddons.decorate(context) end
 end
 
 microphone.onCancelled = function(context, reason)
@@ -2271,7 +2271,7 @@ local function toggleVoice(groupMode, source)
             if primary.holocall then return convaiHolocall ~= nil and convaiHolocall.partnerValid(context) end
             -- Johnny in V's head stays valid while the story keeps him there and the game does not take the floor (held 0.4 s).
             if primary.head then
-                local head = convaiJohnnyHeadService()
+                local head = type(convaiJohnnyHeadService) == 'function' and convaiJohnnyHeadService() or nil
                 return head ~= nil and head:refusal(Game.GetPlayer()) == nil
             end
             if primary.voiceOnly then return convaiAddons ~= nil and convaiAddons.participantLive(primary, Game.GetPlayer()) end
@@ -2460,7 +2460,7 @@ speech.storyGuard = function(actor, context, starting)
     local headTalk = convaiHeadTalk
     if headTalk and type(context) == 'table' and context.entity == headTalk.entity
         and (type(context.head) == 'table' or (not starting and speech.head == true)) then
-        local head = convaiJohnnyHeadService()
+        local head = type(convaiJohnnyHeadService) == 'function' and convaiJohnnyHeadService() or nil
         local why = head == nil and 'off' or head:refusal(Game.GetPlayer())
         if not why then return false end
         log('Johnny in your head: reply ended reason=' .. why .. (starting and ' (before the reply began)' or ''))

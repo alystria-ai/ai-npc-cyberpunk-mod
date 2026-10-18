@@ -232,7 +232,7 @@ test('talk keys: with nobody in front of V and private talk, Johnny answers, is 
   // After the crosshair, the add-on voices and the group candidates; before the "face a nearby character" notice; private only.
   assert.ok(select.indexOf('targetAtCrosshair()') < select.indexOf(head) && select.indexOf('convaiAddons.talkCandidates') < select.indexOf(head));
   assert.match(head, /if not npc and not groupMode then/);
-  assert.match(head, /local head = convaiJohnnyHeadService\(\)/);
+  assert.match(head, /local head = type\(convaiJohnnyHeadService\) == 'function' and convaiJohnnyHeadService\(\) or nil/);
   assert.match(head, /if head and why == nil and supportedProfiles\[head\.key\] and profileEnabled\(player, head\.key\) then/, 'a muted Johnny stays muted');
   assert.match(head, /convaiHeadTalk = \{entity = partner\.entity\}/);
   assert.match(head, /why ~= 'before' and why ~= 'after' and why ~= 'unreadable' then[\s\S]*convaiNotices\.send\(player, 'talk-busy', ui\.t\('\{name\} is busy right now\.', \{name = head\.name\}\)\)\s+return nil/);
@@ -244,10 +244,11 @@ test('talk keys: his turn has no face, gaze, actions or add-on blocks, and the r
   assert.match(init, /\(not primary\.voiceOnly or primary\.head\) and autoConnect\.talkNotice\(key, name\)/, 'the typed path says when he is still connecting');
   assert.match(init, /holocall = primary\.holocall, head = primary\.head\}/);
   assert.match(init, /voiceOnly = primary\.voiceOnly, holocall = primary\.holocall, head = primary\.head\}/);
-  assert.match(init, /if primary\.head then\s+local head = convaiJohnnyHeadService\(\)\s+return head ~= nil and head:refusal\(Game\.GetPlayer\(\)\) == nil\s+end\s+if primary\.voiceOnly then/);
+  assert.match(init, /if primary\.head then\s+local head = type\(convaiJohnnyHeadService\) == 'function' and convaiJohnnyHeadService\(\) or nil\s+return head ~= nil and head:refusal\(Game\.GetPlayer\(\)\) == nil\s+end\s+if primary\.voiceOnly then/);
   assert.match(init, /elseif context\.head then\s+-- Johnny in V's head has no body[^\n]*\s+elseif context\.voiceOnly then/);
   assert.match(init, /if type\(context\.head\) == 'table' then return false end\s+if convaiStory and convaiStory\.entity == context\.entity then return false end\s+return gameplayActions\.capture\(context, context\.group and 'group-voice' or 'private-voice'\)/);
-  assert.match(init, /if context\.voiceOnly and not context\.holocall and not context\.head and convaiAddons/);
+  // The add-on decorate step adds blocks only for an add-on speaker's profile, so his turn passes through it untouched.
+  assert.match(init, /if context\.voiceOnly and not context\.holocall and convaiAddons and convaiAddons\.live then convaiAddons\.decorate\(context\) end/);
   // The reply guard: the story guard's hook ends his reply when the game takes the floor.
   const guard = between('speech.storyGuard = function', 'local story = convaiStory');
   assert.match(guard, /context\.entity == headTalk\.entity\s+and \(type\(context\.head\) == 'table' or \(not starting and speech\.head == true\)\)/);
