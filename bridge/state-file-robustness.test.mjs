@@ -226,7 +226,7 @@ test('CharacterOverrides given a folder that does not exist, or a file instead o
   assert.equal(overrides.get('judy-alvarez'), null, 'a failed save changes nothing in memory');
 });
 
-test('a damaged character edit file is kept aside before the player\'s next save writes over it', {todo: 'the load log says "they are left as they are", but set() replaces the damaged file with no copy'}, async t => {
+test('a damaged character edit file is kept aside before the player\'s next save writes over it', async t => {
   const directory = await folder(t);
   const dir = await seedOverrides(directory);
   const damaged = await readFile(join(dir, 'cut-off.json'), 'utf8');
@@ -234,6 +234,20 @@ test('a damaged character edit file is kept aside before the player\'s next save
   await overrides.set('cut-off', {bio: BIO + ' Edited again.'});
   const kept = [...await filesUnder(directory)].filter(([path, text]) => path !== join(dir, 'cut-off.json') && text === damaged);
   assert.equal(kept.length, 1);
+});
+
+test('a reset of a damaged character edit file keeps the old file too, logs it once, and an empty or folder entry is left alone', async t => {
+  const directory = await folder(t);
+  const dir = await seedOverrides(directory);
+  const damaged = await readFile(join(dir, 'cut-off.json'), 'utf8');
+  const lines = [];
+  const overrides = await CharacterOverrides.open({dir, log: line => lines.push(line)});
+  await overrides.reset('cut-off');
+  await overrides.set('cut-off', {bio: BIO + ' Edited again.'});
+  assert.equal(await readFile(join(dir, 'cut-off.json.corrupt'), 'utf8'), damaged);
+  assert.equal(lines.filter(line => line.includes('kept as cut-off.json.corrupt') && line.includes('were damaged')).length, 1, JSON.stringify(lines));
+  await overrides.set('empty-one', {bio: BIO});
+  assert.ok(!(await names(dir)).includes('empty-one.json.corrupt'), 'an empty file is nothing to keep');
 });
 
 // ---------------------------------------------------------------- vendor memory
