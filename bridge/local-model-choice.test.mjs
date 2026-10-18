@@ -299,3 +299,54 @@ test('Mature content on never falls back to a censored model: good, then lite (o
   const none = pick(stock, {matureOn: true, freeMiB: needOf('standard') - 1});
   assert.deepEqual([none.model.id, none.offload], ['lite', false]);
 });
+
+// ---- a Mature pack alone (the packs carry their own engine): the Mature models run only while Mature content is on
+const matureOnly = listLocalModels({pack: {tiers: {standard: null, lite: null}}, matureModels});
+const rejects = (action, reason) => assert.throws(action, error => error.name === 'LocalAiUnavailable' && error.reason === reason, reason);
+
+test('a Mature-only install: with Mature content off nothing runs (mature-off), with a pin or without, and no default is offered', () => {
+  assert.deepEqual(matureOnly.map(model => model.id), ['mature:lite', 'mature:good']);
+  rejects(() => pick(matureOnly, {matureOn: false}), 'mature-off');
+  rejects(() => pick(matureOnly, {matureOn: false, pin: 'mature:good'}), 'mature-off');
+  rejects(() => pick(matureOnly, {matureOn: false, pin: 'mature:lite'}), 'mature-off');
+  rejects(() => pick(matureOnly, {matureOn: false, pin: 'custom:gone'}), 'mature-off');
+  rejects(() => pick(matureOnly, {matureOn: false, freeMiB: 1000}), 'mature-off', 'not low-memory either');
+  // The settings page: the row lists them (the list is not gated), but no default is saved on Apply; turning Mature content on selects the good one.
+  assert.deepEqual(defaultModelIds({models: matureOnly, sizeOf, freeMiB: 24000, matureOn: false}), {default: null, mature: 'mature:good'});
+  assert.deepEqual(describeLocalModels(matureOnly, sizeOf).map(entry => entry.id), ['mature:lite', 'mature:good']);
+});
+
+test('a Mature-only install: with Mature content on the Mature model is chosen and runs (good if it fits, else lite, offloaded when even that does not fit)', () => {
+  assert.equal(pick(matureOnly, {matureOn: true}).model.id, 'mature:good');
+  assert.equal(pick(matureOnly, {matureOn: true, pin: 'mature:lite'}).model.id, 'mature:lite');
+  assert.equal(pick(matureOnly, {matureOn: true, pin: 'mature:lite'}).pinned, true);
+  const tight = pick(matureOnly, {matureOn: true, freeMiB: needOf('mature:good') - 1});
+  assert.deepEqual([tight.model.id, tight.offload], ['mature:lite', false]);
+  const tiny = pick(matureOnly, {matureOn: true, freeMiB: 1000});
+  assert.deepEqual([tiny.model.id, tiny.offload], ['mature:lite', true]);
+  assert.equal(pick(matureOnly, {matureOn: true, pin: 'standard'}).model.id, 'mature:good', 'a saved id of a model that is not installed falls back inside the Mature pack');
+  assert.deepEqual(defaultModelIds({models: matureOnly, sizeOf, freeMiB: 24000, matureOn: true}), {default: 'mature:good', mature: 'mature:good'});
+  // One Mature pack alone.
+  const liteAlone = listLocalModels({pack: {tiers: {}}, matureModels: matureModels.filter(model => model.tier === 'lite')});
+  assert.equal(pick(liteAlone, {matureOn: true}).model.id, 'mature:lite');
+  rejects(() => pick(liteAlone, {matureOn: false}), 'mature-off');
+});
+
+test('a Mature-only install: a loaded Mature model does not satisfy a choice once Mature content is off; with it on, it does', () => {
+  assert.equal(stillSatisfies({loadedId: 'mature:good', models: matureOnly, pin: 'mature:good', matureOn: true}), true);
+  assert.equal(stillSatisfies({loadedId: 'mature:good', models: matureOnly, pin: 'mature:good', matureOn: false}), false);
+  assert.equal(stillSatisfies({loadedId: 'mature:good', models: matureOnly, pin: 'auto', matureOn: false}), false);
+  assert.equal(stillSatisfies({loadedId: 'mature:good', models: matureOnly, pin: 'auto', matureOn: true}), true);
+});
+
+test('a combined install keeps every earlier behaviour: Mature off still runs the ordinary models and a pinned Mature model; with a custom model too', () => {
+  assert.equal(pick(withMature, {matureOn: false}).model.id, 'standard');
+  assert.equal(pick(withMature, {matureOn: false, pin: 'mature:good'}).model.id, 'mature:good', 'a pinned model runs whatever Mature content says');
+  assert.equal(stillSatisfies({loadedId: 'mature:good', models: withMature, pin: 'mature:good', matureOn: false}), true);
+  assert.deepEqual(defaultModelIds({models: withMature, sizeOf, freeMiB: 24000, matureOn: false}), {default: 'standard', mature: 'mature:good'});
+  // A Mature pack with a Local AI pack that has only its lite model, or a custom model: not a Mature-only install.
+  const custom = [{id: 'custom:mine', name: 'Mine', file: 'mine.gguf', uncensored: false}];
+  const withCustom = listLocalModels({pack: {tiers: {}}, matureModels, customModels: custom});
+  assert.equal(pick(withCustom, {matureOn: false, pin: 'mature:lite'}).model.id, 'mature:lite');
+  assert.equal(pick(withCustom, {matureOn: false}).model.id, 'custom:mine');
+});

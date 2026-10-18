@@ -1,7 +1,7 @@
 // Is an optional Mature pack installed?
 //
 // The Mature packs are separate, optional downloads (Hugging Face, packaging/MATURE_PACK_README.md) that hold the uncensored model files:
-// "Mature lite" (one model) and "Mature standard" (one model). Each works alone and each is a single zip. They do NOT gate the "Mature content"
+// "Mature lite" (one model) and "Mature standard" (one model). Each works alone (it includes the llama-server build and the embedding model) and each is a single zip. They do NOT gate the "Mature content"
 // setting (bridge/mature-content.mjs), which is part of the main mod and works with any model. A marker tells the setting's help text whether
 // an uncensored model is installed, and lists the models for the Local AI model choice (bridge/local-model-choice.mjs: they appear in the
 // Local AI model row, and Auto prefers one when Mature content is on). Each pack carries its own marker, so either alone is detected and the
@@ -9,6 +9,10 @@
 // (manifest.standard.json, manifest.lite.json; bridge/local-ai-pack.mjs), under their own names so detectLocalAiPack never reads them:
 //   <local-ai root>/manifest.mature-lite.json   {version: 1, pack: 'mature', lite: {file: 'models/x.gguf', name: 'X', family: 'qwen'}}
 //   <local-ai root>/manifest.mature-standard.json   {version: 1, pack: 'mature', good: {file, name, family}}
+// Since the packs carry the llama-server build and the embedding model themselves (so a player can install a Mature pack alone), a marker also
+// has `server: 'llama/llama-server.exe'` and `embed: {file, dim, id}` (same shape as the Local AI manifests). This module ignores them:
+// bridge/local-ai-pack.mjs reads them (MATURE_ENGINE_MARKERS, the same marker names) so a Mature-only install counts as installed. An older marker
+// without them still works beside a Local AI pack.
 // A marker may name either tier (the earlier combined manifest.mature.json named both and is still read, for development folders); the first
 // marker that names a tier wins. Exactly two models can come out, lite and good: no list, no third entry.
 // Only the markers decide ("installed" = at least one valid marker). The model files they list are reported (`present`) but are not required:

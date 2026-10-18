@@ -159,3 +159,85 @@ test('the two optional packs unpack into one folder with a manifest fragment eac
   const halfDeleted = detect([server, small, embed], {'manifest.standard.json': standard, 'manifest.lite.json': lite});
   assert.equal(halfDeleted.tiers.standard, null); assert(halfDeleted.tiers.lite); assert.equal(halfDeleted.installed, true);
 });
+
+// ---- the Mature packs carry the engine too, so a Mature pack alone is a working install (docs/LOCAL_AI.md, "Mature content")
+import {MATURE_ENGINE_MARKERS} from './local-ai-pack.mjs';
+import {MATURE_MARKER, MATURE_MARKERS} from './mature-pack.mjs';
+
+const matureEmbed = {file: 'models/embed.gguf', dim: 384, id: 'granite-embedding-107m-multilingual-q8_0'};
+const matureLiteMarker = {version: 1, pack: 'mature', server: 'llama/llama-server.exe', lite: {file: 'models/uncensored-lite.gguf', name: 'Qwen3.5-4B · uncensored', family: 'qwen'}, embed: matureEmbed};
+const matureStandardMarker = {version: 1, pack: 'mature', server: 'llama/llama-server.exe', good: {file: 'models/uncensored-good.gguf', name: 'Gemma 4 E4B · uncensored', family: 'gemma-4'}, embed: matureEmbed};
+const oldMatureMarker = {version: 1, pack: 'mature', lite: matureLiteMarker.lite};   // an older Mature pack: no server, no embed
+const at = name => resolve(root, name);
+
+// `fragments` maps a file name in the pack folder to its JSON; `files` are the other files present.
+function detectFolder(fragments, files = []) {
+  const present = new Set([...files.map(at), ...Object.keys(fragments).map(at)]);
+  return detectLocalAiPack({project, environment: {CYBERPUNK_CONVAI_LOCAL_AI: root}, exists: path => present.has(path),
+    readText: path => JSON.stringify(fragments[Object.keys(fragments).find(name => at(name) === path)])});
+}
+
+test('the Mature marker names are the ones bridge/mature-pack.mjs reads', () => {
+  assert.deepEqual([...MATURE_ENGINE_MARKERS].sort(), [...Object.values(MATURE_MARKERS), MATURE_MARKER].sort());
+});
+
+test('a Mature pack alone is an installed pack: its marker supplies the server and the embedding model, and no chat tier is invented', () => {
+  const lite = detectFolder({'manifest.mature-lite.json': matureLiteMarker}, ['llama/llama-server.exe', 'models/embed.gguf', 'models/uncensored-lite.gguf']);
+  assert.deepEqual(lite, {installed: true, missing: [], root, server: at('llama/llama-server.exe'), tiers: {standard: null, lite: null},
+    embed: {file: at('models/embed.gguf'), dim: 384, id: 'granite-embedding-107m-multilingual-q8_0'}, dev: false},
+    'the Mature `lite` model is not the Local AI lite model');
+  const standard = detectFolder({'manifest.mature-standard.json': matureStandardMarker}, ['llama/llama-server.exe', 'models/embed.gguf', 'models/uncensored-good.gguf']);
+  assert.equal(standard.installed, true);
+  assert.deepEqual(standard.tiers, {standard: null, lite: null});
+  // Both Mature packs together.
+  const both = detectFolder({'manifest.mature-lite.json': matureLiteMarker, 'manifest.mature-standard.json': matureStandardMarker},
+    ['llama/llama-server.exe', 'models/embed.gguf', 'models/uncensored-lite.gguf', 'models/uncensored-good.gguf']);
+  assert.equal(both.installed, true);
+  // The embedding model is optional, as for the Local AI packs.
+  const noEmbed = detectFolder({'manifest.mature-lite.json': matureLiteMarker}, ['llama/llama-server.exe', 'models/uncensored-lite.gguf']);
+  assert.equal(noEmbed.installed, true); assert.equal(noEmbed.embed, null); assert.deepEqual(noEmbed.missing, ['embed']);
+});
+
+test('a Mature pack alone is not installed without its server or its model file, or with a marker that is not ours', () => {
+  assert.equal(detectFolder({'manifest.mature-lite.json': matureLiteMarker}, ['models/embed.gguf', 'models/uncensored-lite.gguf']).installed, false, 'no server file');
+  const noModel = detectFolder({'manifest.mature-lite.json': matureLiteMarker}, ['llama/llama-server.exe', 'models/embed.gguf']);
+  assert.equal(noModel.installed, false); assert.deepEqual(noModel.missing, ['model']);
+  const files = ['llama/llama-server.exe', 'models/embed.gguf', 'models/uncensored-lite.gguf'];
+  for (const marker of [{...matureLiteMarker, pack: 'standard'}, {...matureLiteMarker, version: 2}, null, [], {...matureLiteMarker, server: 'C:\\Windows\\llama-server.exe'},
+    {...matureLiteMarker, server: '../llama-server.exe'}]) {
+    assert.equal(detectFolder({'manifest.mature-lite.json': marker}, files).installed, false, JSON.stringify(marker));
+  }
+  assert.equal(detectLocalAiPack({project, environment: {CYBERPUNK_CONVAI_LOCAL_AI: root}, exists: path => path === at('manifest.mature-lite.json') || files.map(at).includes(path),
+    readText: () => '{not json'}).installed, false);
+  // A model path that leaves the pack is not used either.
+  const escaping = {...matureLiteMarker, lite: {file: '../outside/m.gguf', name: 'x'}};
+  assert.equal(detectFolder({'manifest.mature-lite.json': escaping}, [...files, '../outside/m.gguf']).installed, false);
+});
+
+test('an older Mature marker without a server adds nothing: alone it is not an install, beside a Local AI pack nothing changes', () => {
+  const files = ['llama/llama-server.exe', 'models/embed.gguf', 'models/uncensored-lite.gguf'];
+  const alone = detectFolder({'manifest.mature-lite.json': oldMatureMarker}, files);
+  assert.equal(alone.installed, false); assert.equal(alone.server, null); assert.deepEqual(alone.missing, ['server', 'model', 'embed']);
+  const standard = {version: 1, server: manifest.server, standard: manifest.standard, embed: manifest.embed};
+  const localFiles = ['llama/llama-server.exe', 'models/q4.gguf', 'models/embed.gguf'];
+  const without = detectFolder({'manifest.standard.json': standard}, localFiles);
+  const withOld = detectFolder({'manifest.standard.json': standard, 'manifest.mature-lite.json': oldMatureMarker}, [...localFiles, 'models/uncensored-lite.gguf']);
+  assert.deepEqual(withOld, without, 'identical to the same install without the Mature marker');
+  assert.equal(withOld.installed, true);
+});
+
+test('Mature and Local AI packs together: the Local AI manifest names the pieces first, the Mature marker never supplies a chat tier', () => {
+  const standard = {version: 1, server: manifest.server, standard: manifest.standard, embed: manifest.embed};
+  const files = ['llama/llama-server.exe', 'models/q4.gguf', 'models/embed.gguf', 'models/uncensored-lite.gguf'];
+  const combined = detectFolder({'manifest.standard.json': standard, 'manifest.mature-lite.json': matureLiteMarker}, files);
+  assert.equal(combined.installed, true);
+  assert.equal(combined.tiers.standard.name, 'Qwen3.5-4B');
+  assert.equal(combined.tiers.lite, null, 'the Mature lite model is not offered as the Local AI lite model');
+  assert.equal(combined.embed.id, 'granite-embedding-107m-multilingual-q8_0');
+  // The same install with the files named in the other order is identical.
+  assert.deepEqual(detectFolder({'manifest.mature-lite.json': matureLiteMarker, 'manifest.standard.json': standard}, files), combined);
+  // A Local AI pack whose standard model was deleted, beside a Mature pack: the engine still starts, for the Mature model.
+  const noStandard = detectFolder({'manifest.standard.json': standard, 'manifest.mature-lite.json': matureLiteMarker},
+    ['llama/llama-server.exe', 'models/embed.gguf', 'models/uncensored-lite.gguf']);
+  assert.equal(noStandard.installed, true); assert.equal(noStandard.tiers.standard, null);
+});

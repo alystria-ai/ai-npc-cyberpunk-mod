@@ -337,3 +337,22 @@ test('the bridge unloads the local model server when the provider leaves Local A
   assert.match(apply, /if \(!mistral\.active && !addonHost\.active\) void localEmbedder\.close\(\)/);
   assert.ok(!/localEmbedder\.(close|stop)/.test(poll));
 });
+
+test('local: a Mature-only install that could not start while Mature content was off (mature-off) is lifted when it is turned on, and no other failure is', async () => {
+  const provider = await pair({mistral: null});
+  provider.setPreference('local'); provider.apply();
+  provider.noteLocalFailure('mature-off');
+  assert.equal(provider.requested, 'convai');
+  assert.equal(provider.clearLocalFailure('low-memory'), false, 'only the named reason is lifted');
+  assert.equal(provider.requested, 'convai');
+  let changes = 0; provider.onChange(() => { changes++; });
+  assert.equal(provider.clearLocalFailure('mature-off'), true);
+  assert.equal(changes, 1);
+  assert.equal(provider.requested, 'local');
+  assert.equal(provider.takeNotice(), undefined, 'the failure notice that was waiting is dropped');
+  assert.equal(provider.clearLocalFailure('mature-off'), false, 'nothing left to lift');
+  // Not while another provider is chosen.
+  const other = await pair();
+  other.noteLocalFailure('mature-off');
+  assert.equal(other.clearLocalFailure('mature-off'), false);
+});

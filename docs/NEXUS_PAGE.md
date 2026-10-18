@@ -72,7 +72,7 @@ The Voxtral voice is like Pocket here: it runs in the cloud and uses no video me
 [*]Install the mods in Requirements first.
 [*]Download Scripts for version 0.2 from Nexus Mods, with Vortex or by hand. The same file is also on the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-Scripts-0.2.zip]Hugging Face page[/url].
 [*]Download the Runtime for version 0.2, [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-Runtime-0.2.zip]AI-NPC-Cyberpunk-Mod-Runtime-0.2.zip[/url], from the mod's [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs]Hugging Face page[/url] (0.2 folder). Use the same version number as the Scripts.
-[*]Close the game. Extract both zips into your Cyberpunk 2077 folder (the one with bin, archive and r6) and let the folders merge. Extract the Runtime before the OmniVoice pack. If Windows' extractor reports an error, use [url=https://www.7-zip.org]7-Zip[/url].
+[*]Close the game. Extract both zips into your Cyberpunk 2077 folder (the one with bin, archive and r6) and let the folders merge. Don't extract into a new folder named after the zip (Windows' "Extract All" and 7-Zip's "Extract to" suggest one): pick the Cyberpunk 2077 folder itself. If a pack ends up one folder too deep anyway, the mod moves it into place the next time the game starts. Extract the Runtime before the OmniVoice pack. If Windows' extractor reports an error, use [url=https://www.7-zip.org]7-Zip[/url].
 [*]Start the game. The first start after installing takes a little longer while the voice service prepares itself.
 [/list]
 
@@ -84,7 +84,7 @@ Each pack is one zip file and works on its own. Install none, some or all. Get t
 [*][b]OmniVoice pack[/b] (about 9 GB installed). A richer voice that can laugh and sigh. For NVIDIA cards with at least 8 GB of video memory and a current driver. It adds about 2 GB of video memory while it runs (up to 4 GB). Choose an OmniVoice voice in Settings > Voices.
 [*][b]Local AI standard[/b] (about 5.3 GB download). The language model for fully local conversations, with the best replies. Uses about 3.1 GB of video memory and needs about 6 GB free to start.
 [*][b]Local AI lite[/b] (about 1.4 GB download). The same kind of model, for smaller graphics cards or a game that already uses most of the video memory. Uses about 1.8 GB.
-[*][b]Mature lite[/b] (about 2.7 GB) and [b]Mature standard[/b] (about 5.3 GB). For adults only (18+). Each adds a model without the usual refusals. They need a Local AI pack, and the Mature content setting is off by default.
+[*][b]Mature lite[/b] (about 2.9 GB) and [b]Mature standard[/b] (about 5.5 GB). For adults only (18+). Each adds a model without the usual refusals and works on its own: it includes the Local AI engine, so no Local AI pack is needed. The Mature content setting is off by default.
 [/list]
 
 [size=4][b]FAQ[/b][/size]

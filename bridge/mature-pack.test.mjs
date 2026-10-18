@@ -147,3 +147,14 @@ test('a development folder with only a per-pack marker is found too', () => {
   assert.equal(found.root, dev);
   assert.deepEqual(found.models.map(model => model.tier), ['good']);
 });
+
+test('a marker that also names the server and the embedding model (a Mature pack with the engine) is detected the same: those fields are for bridge/local-ai-pack.mjs', () => {
+  const withEngine = marker({server: 'llama/llama-server.exe', embed: {file: 'models/e.gguf', dim: 384, id: 'e'}});
+  const plain = detectMaturePack({project: 'C:/game', environment: {}, ...memory({[markerPath]: JSON.stringify(marker())})});
+  const engine = detectMaturePack({project: 'C:/game', environment: {}, ...memory({[markerPath]: JSON.stringify(withEngine)})});
+  assert.deepEqual(engine, plain);
+  const liteOnly = detectMaturePack({project: 'C:/game', environment: {}, ...memory({[resolve(root, MATURE_MARKERS.lite)]: JSON.stringify({version: 1, pack: 'mature', server: 'llama/llama-server.exe',
+    lite: {file: 'models/a.gguf', name: 'A', family: 'qwen'}, embed: {file: 'models/e.gguf', dim: 384, id: 'e'}}), [resolve(root, 'models/a.gguf')]: ''})});
+  assert.deepEqual(liteOnly.models.map(model => [model.tier, model.present]), [['lite', true]]);
+  assert.equal(liteOnly.installed, true);
+});

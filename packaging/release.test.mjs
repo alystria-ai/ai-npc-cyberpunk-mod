@@ -549,7 +549,7 @@ test('the Mature packs definition: one marker each, README, Hugging Face page te
   assert.match(builder, /model\.placeholder \|\| \/PLACEHOLDER\//);
   assert.match(builder, /the Mature packs ship Apache-2\.0 base models only/);
   assert.match(builder, /lite and good, one model each/);
-  assert.match(builder, /pkg\.json\(`\$\{root\}\/\$\{spec\.markers\[tierKey\]\}`, \{version: 1, pack: 'mature', \[tierKey\]: \{file: /, 'each pack writes its own marker with its own model only');
+  assert.match(builder, /pkg\.json\(`\$\{root\}\/\$\{spec\.markers\[tierKey\]\}`, \{version: 1, pack: 'mature', server: engine\.server, \[tierKey\]: \{file: [^\n]*embed: engine\.embed\}\);/, 'each pack writes its own marker with its own model only, and the server and the embedding model');
   assert.match(builder, /THIRD-PARTY-NOTICES-\$\{packKey\}\.txt/, 'the notices of the two packs have different names, so extracting both keeps both');
   assert.match(builder, /mature-pack-\$\{packKey\}\.json/);
   // A marker of that shape, for each pinned model, is what the detector accepts alone, and it is not the Local AI pack.
@@ -569,6 +569,97 @@ test('the Mature packs definition: one marker each, README, Hugging Face page te
     assert.equal(detect(files).installed, true);
     assert.equal(detect(files, detectLocalAiPack).installed, false, 'the Mature markers alone are not a Local AI pack');
   }
+});
+
+test('the Mature packs carry the Local AI engine: the same shared files as the Local AI packs, written by one helper, with notices and licences', async () => {
+  const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
+  const body = name => { const at = builder.indexOf(`async function ${name}(`); return builder.slice(at, builder.indexOf('\n}\n', at)); };
+  // One helper adds the engine, and both kinds of pack call it, so the llama folder, the embedding model and the licence texts are the same
+  // files at the same paths (installing one pack over another overwrites identical bytes).
+  const engine = body('addEngine');
+  assert.match(engine, /\$\{root\}\/llama\/\$\{name\}/, 'the llama-server build goes to llama/');
+  assert.match(engine, /\$\{root\}\/models\/\$\{spec\.embed\.file\}/, 'the embedding model');
+  for (const licence of ['Apache-2.0.txt', 'llama.cpp-MIT.txt']) assert(engine.includes(`\${root}/licenses/${licence}`), licence);
+  assert.match(engine, /\$\{root\}\/LICENSE\.txt/);
+  assert.match(engine, /for \(const name of spec\.server\.require\)/, 'a build without the required server files stops');
+  for (const name of ['localAiPackage', 'maturePackage']) assert.match(body(name), /await addEngine\(pkg, source, config\)/, name);
+  // The engine comes from the same pinned inputs: the same localAi entries, checked against the same hashes, whichever pack asks.
+  assert.doesNotMatch(body('maturePackage'), /spec\.server|llama-b\d+/, 'the Mature builder has no pins of its own for the engine');
+  assert.match(body('maturePackage'), /engineNotices\(config\.localAi, /, 'the notices name llama.cpp, its OpenMP runtime and the IBM Granite model');
+  assert.match(builder, /LICENSE-LLVM-OpenMP/);
+  assert.match(builder, /IBM Granite/);
+  // The Mature pack's own files stay under their own names, so none of them can overwrite a Local AI pack's different file.
+  const mature = body('maturePackage');
+  assert.doesNotMatch(mature, /`\$\{root\}\/THIRD-PARTY-NOTICES\.txt`|`\$\{root\}\/local-ai-/, 'the root notices file belongs to the Local AI packs');
+  assert.match(mature, /\$\{spec\.directory\}\/THIRD-PARTY-NOTICES-\$\{packKey\}\.txt/);
+  // The pack text says it is whole.
+  for (const rel of ['packaging/MATURE_PACK_README.md', 'packaging/MATURE_PACK_RELEASE_NOTES.md']) {
+    const text = await readFile(resolve(project, rel), 'utf8');
+    assert.match(text, /no Local AI pack is needed|you do not need a Local AI pack|works without a Local AI pack/i, `${rel}: works on its own`);
+    assert.match(text, /about 2\.9 GB/, rel); assert.match(text, /about 5\.5 GB/, rel);
+    assert.doesNotMatch(text, /about 2\.7 GB|about 5\.3 GB|needs a Local AI pack|Local AI must be working/i, `${rel}: the old sizes and the old requirement are gone`);
+    assert.match(text, /llama\.cpp/, rel); assert.match(text, /Granite/, rel);
+  }
+});
+
+test('the markers the Mature builder writes make a Mature-only install detected, an old marker beside a Local AI pack still work, and the Mature pack never fills a Local AI tier', async () => {
+  const {detectLocalAiPack} = await import('../bridge/local-ai-pack.mjs');
+  const {detectMaturePack} = await import('../bridge/mature-pack.mjs');
+  const {listLocalModels, chooseLocalModel} = await import('../bridge/local-model-choice.mjs');
+  const spec = config.maturePack, engineSpec = config.localAi;
+  const root = join('C:', 'game', 'app', 'local-ai');
+  const embed = {file: `models/${engineSpec.embed.file}`, dim: engineSpec.embed.dim, id: engineSpec.embed.file.replace(/\.gguf$/i, '').toLowerCase()};
+  const marker = (tier, extra = {}) => ({version: 1, pack: 'mature', server: 'llama/llama-server.exe', [tier]: {file: `models/${spec.tiers[tier].file}`, name: spec.tiers[tier].name, family: spec.tiers[tier].family}, embed, ...extra});
+  const localManifest = tier => ({version: 1, server: 'llama/llama-server.exe', [tier]: {file: `models/${engineSpec.tiers[tier].file}`, name: engineSpec.tiers[tier].name}, embed});
+  const folder = (fragments, extraFiles = []) => {
+    const files = new Map(extraFiles.map(rel => [resolve(root, rel), '']));
+    for (const [name, value] of Object.entries(fragments)) files.set(resolve(root, name), JSON.stringify(value));
+    const options = {project: 'x', environment: {CYBERPUNK_CONVAI_LOCAL_AI: root}, exists: path => files.has(path), readText: path => files.get(path)};
+    return {pack: detectLocalAiPack(options), mature: detectMaturePack(options)};
+  };
+  const engineFiles = ['llama/llama-server.exe', embed.file];
+  // Mature lite and Mature standard, each alone.
+  for (const [tier, markerName] of [['lite', spec.markers.lite], ['good', spec.markers.good]]) {
+    const {pack, mature} = folder({[markerName]: marker(tier)}, [...engineFiles, `models/${spec.tiers[tier].file}`]);
+    assert.equal(pack.installed, true, `Mature ${tier} alone is an installed pack`);
+    assert.deepEqual(pack.tiers, {standard: null, lite: null});
+    assert.equal(pack.embed.id, embed.id);
+    assert.deepEqual(pack.missing, []);
+    assert.deepEqual(mature.models.map(model => [model.tier, model.present]), [[tier, true]]);
+    // The model row: its model is the only one, it runs with Mature content on, and nothing runs with it off.
+    const models = listLocalModels({pack, matureModels: mature.models});
+    assert.deepEqual(models.map(model => model.id), [`mature:${tier}`]);
+    assert.equal(chooseLocalModel({models, matureOn: true, freeMiB: 24000, sizeOf: () => 3000}).model.id, `mature:${tier}`);
+    assert.throws(() => chooseLocalModel({models, matureOn: false, freeMiB: 24000, sizeOf: () => 3000}), error => error.reason === 'mature-off');
+  }
+  // An older Mature pack (no server, no embed) alone is not an install; beside a Local AI pack it changes nothing.
+  const old = {version: 1, pack: 'mature', lite: marker('lite').lite};
+  assert.equal(folder({[spec.markers.lite]: old}, [...engineFiles, `models/${spec.tiers.lite.file}`]).pack.installed, false);
+  const localOnly = folder({'manifest.standard.json': localManifest('standard')}, [...engineFiles, `models/${engineSpec.tiers.standard.file}`]);
+  const localWithOld = folder({'manifest.standard.json': localManifest('standard'), [spec.markers.lite]: old}, [...engineFiles, `models/${engineSpec.tiers.standard.file}`, `models/${spec.tiers.lite.file}`]);
+  assert.deepEqual(localWithOld.pack, localOnly.pack);
+  // Combined: both Local AI tiers and both Mature models, every id present, the Local AI tiers untouched.
+  const combined = folder({'manifest.standard.json': localManifest('standard'), 'manifest.lite.json': localManifest('lite'), [spec.markers.lite]: marker('lite'), [spec.markers.good]: marker('good')},
+    [...engineFiles, ...Object.values(engineSpec.tiers).map(tier => `models/${tier.file}`), ...Object.values(spec.tiers).map(tier => `models/${tier.file}`)]);
+  assert.equal(combined.pack.tiers.standard.name, engineSpec.tiers.standard.name);
+  assert.equal(combined.pack.tiers.lite.name, engineSpec.tiers.lite.name);
+  assert.deepEqual(listLocalModels({pack: combined.pack, matureModels: combined.mature.models}).map(model => model.id), ['standard', 'lite', 'mature:lite', 'mature:good']);
+});
+
+test('the main page texts say the Mature packs work alone and give their new sizes; the player release notes still do not mention them', async () => {
+  const readme = (await readFile(resolve(project, 'README.md'), 'utf8')).replaceAll('\r\n', '\n');
+  const nexus = (await readFile(resolve(project, 'docs/NEXUS_PAGE.md'), 'utf8')).replaceAll('\r\n', '\n');
+  const row = name => readme.split('\n').find(line => line.includes(`**${name}**`) && line.includes('AI-NPC-Cyberpunk-Mod-'));
+  assert.match(row('Mature lite'), /about 2\.9 GB/); assert.match(row('Mature standard'), /about 5\.5 GB/);
+  for (const name of ['Mature lite', 'Mature standard']) assert.doesNotMatch(row(name), /needs a Local AI pack/);
+  assert.match(row('Mature lite'), /works on its own/); assert.match(row('Mature standard'), /works on its own/);
+  const optional = nexus.split('\n').find(line => line.includes('[b]Mature lite[/b]'));
+  assert.match(optional, /about 2\.9 GB/); assert.match(optional, /about 5\.5 GB/); assert.match(optional, /work on their own|works on its own|each works alone/i);
+  assert.doesNotMatch(optional, /They need a Local AI pack/);
+  for (const [name, text] of [['README', readme], ['NEXUS_PAGE', nexus]]) assert.doesNotMatch(text.slice(0, text.indexOf('# For developers') > 0 ? text.indexOf('# For developers') : text.length), /\brecommended\b/i, name);
+  assert.doesNotMatch(await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8'), /mature|uncensored|adult|18\+/i);
+  const localAi = await readFile(resolve(project, 'docs/LOCAL_AI.md'), 'utf8');
+  assert.match(localAi, /mature-off/); assert.match(localAi, /Mature-only install/);
 });
 
 test('the Mature pack README and release notes are for adults, need the main mod and Local AI, give install steps, and say nothing they must not', async () => {

@@ -98,7 +98,7 @@ import {MemoryStore} from './memory-store.mjs';
 import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
 import {detectLocalAiPack} from './local-ai-pack.mjs';
 import {LocalLlmServer, nvidiaTotalMiB} from './local-llm-server.mjs';
-import {defaultModelIds, describeLocalModels, listLocalModels, normalisePin} from './local-model-choice.mjs';
+import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, normalisePin} from './local-model-choice.mjs';
 import {CustomModelScanner} from './custom-models.mjs';
 import {LlamaEmbedder} from './local-embed.mjs';
 import {watchFiles, createWakeSignal} from './file-wake.mjs';
@@ -297,9 +297,12 @@ function refreshLocalPack(force = false) {
   }
   return localPack;
 }
+// A server the player already runs (an `endpoint` entry of manifest.custom.json, docs/LOCAL_AI.md "Use your own server") can answer Local AI with no
+// pack at all. Read from the last scan of the manifest (the settings poll, at most every 5 s): no file is read here.
+const ownServerListed = () => externalModels(customScan.models).length > 0;
 // The status the settings page shows: ready, warming up, not installed, not enough graphics memory, or unavailable.
 function localAiStatus() {
-  if (!refreshLocalPack().installed) return 'not-installed';
+  if (!refreshLocalPack().installed && !ownServerListed()) return 'not-installed';
   const {state, reason} = localServer.status();
   if (state === 'failed') return reason === 'low-memory' ? 'no-memory' : reason === 'not-installed' ? 'not-installed' : 'failed';
   return state === 'starting' || state === 'warming' ? 'warming' : 'ready';
@@ -307,7 +310,9 @@ function localAiStatus() {
 // Choosing Local: look for the pack, clear an earlier failure, and load the model in the background so the shader compile of a
 // first start is over before the first conversation. A missing pack or a failed start falls back to the cloud provider with one notice.
 function prepareLocal() {
-  if (!refreshLocalPack(true).installed) { mistral.noteLocalFailure('not-installed'); return; }
+  const packInstalled = refreshLocalPack(true).installed;
+  if (!packInstalled) scanCustomModels();   // a pack-less install can still have a server of its own listed
+  if (!packInstalled && !ownServerListed()) { mistral.noteLocalFailure('not-installed'); return; }
   localServer.reset();
   void localServer.ensure({background: true}).catch(() => {});
 }
@@ -2689,6 +2694,8 @@ async function syncLocalModelChoice(settings) {
     const first = localModelChoiceKey === null;
     localModelChoiceKey = choiceKey;
     if (!first && mistral.applied === 'local') void localServer.reselect().catch(() => {});
+    // A Mature-only install could not start Local AI while Mature content was off ('mature-off'); turning it on lifts that: try again.
+    if (!first && matureContent.enabled && mistral.clearLocalFailure('mature-off')) prepareLocal();
   }
   if (Date.now() - localModelListCheckedAt >= 5000) {
     localModelListCheckedAt = Date.now();

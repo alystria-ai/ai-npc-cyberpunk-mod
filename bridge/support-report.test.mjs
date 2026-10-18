@@ -1,10 +1,10 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile, readdir, writeFile, stat, mkdir} from 'node:fs/promises';
+import {readFile, readdir, writeFile, stat, mkdir, rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import {createZip, readZip, crc32} from './zip-writer.mjs';
 import {createRedactor, tailFile, pruneReports, buildReport, collectReport, credentialSecrets,
-  SupportReportControl, parseReportRequest, parseClipboardRequest, publishSupportPaths, locateLogs, shortHash,
+  SupportReportControl, parseReportRequest, parseClipboardRequest, publishSupportPaths, locateLogs, localAiSection, shortHash,
   REPORT_KEEP, LOG_MAX_LINES, LOG_MAX_BYTES} from './support-report.mjs';
 import {PLANTED, VECTORS, fakeInstall, plantedInstall} from './support-report-fixture.mjs';
 
@@ -283,6 +283,59 @@ test('log locations prefer the first existing candidate and report where a missi
     assert(!none.some(row => row.id.startsWith('bridge-')), 'no state folder, no service log rows');
     const written = await publishSupportPaths({game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state});
     assert.equal(written.logs['bridge-stderr'].exists, true);
+  } finally { await f.cleanup(); }
+});
+
+test('the launcher log is found in the released plugin folder, with the old development folder as a fallback', async () => {
+  const f = await fakeInstall();
+  try {
+    const launcherPath = async () => (await locateLogs({game: f.game, modRoot: f.modRoot, runtime: f.runtime})).find(row => row.id === 'launcher').path;
+    const released = join(f.game, 'red4ext', 'plugins', 'AiNpcCyberpunkMod', 'launcher.log');
+    const old = join(f.game, 'red4ext', 'plugins', 'CyberpunkConvaiLauncher', 'launcher.log');
+    assert.equal(await launcherPath(), released, 'neither exists: the released folder is where it will appear');
+    await writeFile(old, 'old');
+    assert.equal(await launcherPath(), old, 'only the old folder has one');
+    await mkdir(join(f.game, 'red4ext', 'plugins', 'AiNpcCyberpunkMod'), {recursive: true});
+    await writeFile(released, `2026-10-18 10:00:00 Game directory: C:\\Users\\${PLANTED.windowsUser}\\Games`);
+    assert.equal(await launcherPath(), released, 'both exist: the released folder wins');
+    const report = await collectReport({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project, reportId: 'r-launcher'});
+    const entry = report.entries.find(row => /-launcher\.txt$/.test(row.name));
+    assert(entry && entry.data.includes('Game directory') && !entry.data.includes(PLANTED.windowsUser), 'the launcher log is in the report, redacted');
+  } finally { await f.cleanup(); }
+});
+
+test('the report shows Local AI detection from whitelisted state fields, the pack root and the manifests, and no key fields', async () => {
+  const f = await fakeInstall();
+  try {
+    const packRoot = join(f.project, 'local-ai');
+    await mkdir(packRoot, {recursive: true});
+    for (const name of ['manifest.standard.json', 'manifest.mature-lite.json', 'manifest.txt']) await writeFile(join(packRoot, name), '{}');
+    await writeFile(join(f.runtime, 'mistral-state.json'), JSON.stringify({
+      version: 1, provider: 'local', effective: 'local', saved: true, tail: PLANTED.shortKey.slice(-4), apiKey: PLANTED.hexKey,
+      localAi: 'not-installed', maturePack: true,
+      localModels: [{id: 'bonsai-8b', name: 'Bonsai 8B', sizeMiB: 4631.4, file: `C:\\Users\\${PLANTED.windowsUser}\\secret.gguf`, token: PLANTED.hfToken}],
+    }));
+    const section = await localAiSection({runtime: f.runtime, project: f.project, environment: {}});
+    assert.equal(section.localAi, 'not-installed'); assert.equal(section.maturePack, true);
+    assert.deepEqual(section.localModels, [{id: 'bonsai-8b', name: 'Bonsai 8B', sizeMiB: 4631}]);
+    assert.equal(section.root, packRoot); assert.equal(section.rootExists, true);
+    assert.deepEqual(section.manifests, ['manifest.mature-lite.json', 'manifest.standard.json']);
+    const chosen = join(f.base, 'elsewhere');
+    const overridden = await localAiSection({runtime: f.runtime, project: f.project, environment: {CYBERPUNK_CONVAI_LOCAL_AI: chosen}});
+    assert.equal(overridden.root, chosen); assert.equal(overridden.rootExists, false); assert.deepEqual(overridden.manifests, []);
+    assert.equal(overridden.rootSource, 'CYBERPUNK_CONVAI_LOCAL_AI');
+
+    const report = await collectReport({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      reportId: 'r-local', environment: {}, secrets: [PLANTED.hexKey]});
+    const text = report.entries.map(row => row.data).join('\n');
+    for (const planted of [PLANTED.hexKey, PLANTED.hfToken, PLANTED.windowsUser, 'secret.gguf']) assert(!text.includes(planted), `${planted} leaked`);
+    assert.equal(report.summary.localAi.localAi, 'not-installed');
+    assert.equal(report.summary.localAi.localModels[0].name, 'Bonsai 8B');
+    assert.equal(Object.keys(report.summary.localAi).some(key => /key|token|provider|effective|saved|tail/i.test(key)), false);
+    // No state file yet (first start): the section says so instead of failing.
+    await rm(join(f.runtime, 'mistral-state.json'));
+    const missing = await localAiSection({runtime: f.runtime, project: f.project, environment: {}});
+    assert.equal(missing.state, 'absent'); assert.equal(missing.localAi, null); assert.equal(missing.localModels, null);
   } finally { await f.cleanup(); }
 });
 

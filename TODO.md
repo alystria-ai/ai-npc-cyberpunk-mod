@@ -62,6 +62,20 @@ Nothing is parked.
 
 ## Captain's log
 
+**2026-10-18 ~21:45 IST: Runtime 0.2 patch 2 and Mature packs with the engine, on Hugging Face.** Three players reported "No model installed" with Local AI installed. A packaged stand-in test with the released files showed detection works. The cause is a pack extracted one folder too deep (Windows "Extract All" and 7-Zip "Extract to <name>" defaults).
+- **Fixes, merged:**
+  - `fix/pack-autoplace`: the launcher moves pack files found one or two folders too deep, or in the mod or plugin folder, into place at start (`packaging/runtime/place-packs.mjs`).
+  - `fix/report-local-ai`: the support report gets a Local AI section and the released launcher-log path.
+  - `fix/mature-engine`: each Mature pack carries llama-server and the embedder, so it works alone. Mature-only with Mature content off leaves Local AI off.
+  - Every zip now has a "HOW TO INSTALL" note at the top.
+- **Build and tests:** the Runtime was patched from the b9712264 tree (10 changed or added files plus the note, ClamAV 0 infected). Four packaged cases passed: in place, nested, Mature-only, and Mature-only nested.
+- **Hugging Face:** both Mature packs rebuilt (2.9 and 5.5 GB). Model card (`packaging/HF_MODEL_CARD.md`) and LICENSE uploaded.
+- **Open:**
+  - the Lucy and Rita Wheeler integration moves into the main mod (agent on `addon-nca-plan`);
+  - the Mature-off row text for a Mature-only install is generic ("could not start"), a Scripts follow-up.
+
+**2026-10-18 (feature/external-local-endpoint, merged into main; ships in the next Runtime): Local AI on the player's own server.** A player runs Qwen3.5-9B in KoboldCpp and asked to connect it. An `endpoint` entry in `local-ai/manifest.custom.json` (instead of `file`) names KoboldCpp, LM Studio, Ollama, a llama.cpp server or any OpenAI-compatible chat API; it appears in the Local AI model row as "(custom)", needs no pack, starts none of our llama-server (an already loaded one is unloaded) and streams through the same route as our own server. Bridge only (no Lua change). Local and private-network hosts need nothing more, any other host needs `"remote": true` and https, `apiKey` is scrubbed from logs, lists and support reports. Docs: LOCAL_AI.md "Use your own server". Tests: `bridge/external-endpoint.test.mjs`. Open: live check against a real KoboldCpp (needs the user or the player), merge, Runtime rebuild; the provider label "Local (needs Local AI pack)" still says pack (Lua and localization, left alone).
+
 **2026-10-18 (evening): v0.2 released.** The user published the mod on Nexus Mods and the demo video on YouTube. Downloads: Scripts on Nexus and Hugging Face; Runtime 0.2 (system Edge, no bundled browser, ClamAV clean) and the optional packs on Hugging Face. GitHub account alystria-ai is flagged and hidden; rebuild the release there after reinstatement.
 
 **2026-10-18 (night, branch `nca-followers`, not merged or installed): Lucy and Rita Wheeler for NCA, in the main mod.** NCA 1.6.9 spawns followers through the dynamic entity system (tag `NCA_Companion`, clone records `NCA.<record>`), so the spawned-character path already sees them; what was missing was who they are. Added: dossiers and roster rows `lucy-kushinada` and `rita-wheeler` (82 profiles; records `Character.EdgerunnersLucy_Merc`, `NCA.Character.EdgerunnersLucy_Merc`, `Character.EdgerunnersLucy`, `Character.lizzies_bouncer`, `NCA.Character.lizzies_bouncer`; full-name aliases only), `invite: false` (manager `definitionFor`: never our own copy from the menus), a ride context for spawned roster followers in V's car (`convaiSpawnedPeople.riders`, seat → passenger or driving, read only when a turn's context is read), clone-prefixed records in `FaceFeature.reds` `NamedRecords`, the knowledge audience and placeholder voices. Tests: `bridge/nca-followers.test.mjs` and a manager test. They cannot talk until their Convai characters exist (D1). The three zips are now in `ref mods` (moved from Downloads). Plan and decisions: `docs/NCA_FOLLOWERS_PLAN.md`.

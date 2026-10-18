@@ -173,7 +173,10 @@ export async function locateLogs({game, modRoot, runtime, stateDirectory}) {
   for (const folder of folders) {
     for (const path of await newest(folder, /^bootstrap-.+\.(?:stdout|stderr)\.log$/i, 2)) add(`bootstrap-${slug(path)}`, path);
   }
-  add('launcher', join(game, 'red4ext', 'plugins', 'CyberpunkConvaiLauncher', 'launcher.log'));
+  // The launcher DLL writes launcher.log next to itself: red4ext/plugins/AiNpcCyberpunkMod in a released install. The old
+  // development folder name stays as a fallback; the first one that exists wins.
+  add('launcher', [join(game, 'red4ext', 'plugins', 'AiNpcCyberpunkMod', 'launcher.log'),
+    join(game, 'red4ext', 'plugins', 'CyberpunkConvaiLauncher', 'launcher.log')]);
   const cet = join(game, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks');
   add('cet', join(cet, 'cyber_engine_tweaks.log'));
   add('cet-scripting', join(cet, 'scripting.log'));
@@ -207,6 +210,29 @@ export async function credentialSecrets(stateDirectory) {
       const value = /^[A-Za-z0-9_-]+\s*=\s*(\S+)$/.exec(raw)?.[1];
       if (value) found.push(value);
       for (const part of raw.split(/\s+/)) if (part.length >= 12) found.push(part);
+    } catch {}
+  }
+  return found;
+}
+
+// The apiKey values of the servers listed in manifest.custom.json (a model server the player runs, docs/LOCAL_AI.md "Use your own server"): secrets like
+// any key file, scrubbed from every line of the report. The manifest itself is never copied into the report (only its file name is listed).
+export async function customServerSecrets({project, environment = process.env} = {}) {
+  const found = [];
+  const roots = new Set();
+  const named = name => (typeof environment?.[name] === 'string' && environment[name].trim() ? resolve(environment[name]) : null);
+  roots.add(named('CYBERPUNK_CONVAI_LOCAL_AI') ?? (project ? resolve(project, 'local-ai') : null));
+  roots.add(named('CYBERPUNK_CONVAI_LOCAL_AI_DEV'));
+  for (const root of roots) {
+    if (!root) continue;
+    try {
+      const path = join(root, 'manifest.custom.json');
+      const info = await stat(path);
+      if (!info.isFile() || info.size > 262144) continue;
+      const manifest = JSON.parse(await readFile(path, 'utf8'));
+      for (const entry of Array.isArray(manifest?.models) ? manifest.models : []) {
+        if (typeof entry?.apiKey === 'string' && entry.apiKey.trim()) { found.push(entry.apiKey.trim()); if (entry.apiKey.trim() !== entry.apiKey) found.push(entry.apiKey); }
+      }
     } catch {}
   }
   return found;
@@ -302,6 +328,29 @@ async function versions({game, modRoot, project, logs, now}) {
   return result;
 }
 
+// Local AI detection, as the service sees it. Only the fields named here are copied from runtime/mistral-state.json (which
+// also holds provider and key-status fields); the pack root and the manifest file names come from the folder itself.
+export async function localAiSection({runtime, project, environment = process.env}) {
+  const read = await readSmallJson(join(runtime, 'mistral-state.json'));
+  const state = read.value && typeof read.value === 'object' ? read.value : {};
+  const fromEnvironment = typeof environment.CYBERPUNK_CONVAI_LOCAL_AI === 'string' && environment.CYBERPUNK_CONVAI_LOCAL_AI.trim() !== '';
+  const root = fromEnvironment ? resolve(environment.CYBERPUNK_CONVAI_LOCAL_AI) : resolve(project, 'local-ai');
+  let manifests = null;
+  try { manifests = (await readdir(root)).filter(name => /^manifest.*\.json$/i.test(name)).sort(); } catch {}
+  const models = Array.isArray(state.localModels) ? state.localModels.slice(0, 30).map(row => ({
+    id: clip(row?.id, 80), name: clip(row?.name, 80), sizeMiB: Number.isFinite(row?.sizeMiB) ? Math.round(row.sizeMiB) : undefined,
+    // A model server the player runs: only that it is one. Its address and key are neither published by the bridge nor copied here.
+    ...(row?.external === true ? {external: true} : {})})) : null;
+  return {
+    state: read.error ?? 'present', stateModified: read.modified,
+    localAi: typeof state.localAi === 'string' ? clip(state.localAi, 40) : null,
+    maturePack: typeof state.maturePack === 'boolean' ? state.maturePack : null,
+    localModels: models,
+    root, rootSource: fromEnvironment ? 'CYBERPUNK_CONVAI_LOCAL_AI' : 'default (local-ai next to the bridge)',
+    rootExists: manifests !== null, manifests: manifests ?? [],
+  };
+}
+
 function companionProviders({settings, voice, routing, party}) {
   const routed = new Set(Array.isArray(voice?.routedProfiles) ? voice.routedProfiles : []);
   const routes = new Map((Array.isArray(routing?.routes) ? routing.routes : []).map(row => [row?.profileKey, row]));
@@ -329,9 +378,9 @@ function companionProviders({settings, voice, routing, party}) {
 
 /** Builds the report in memory. Nothing is written here. */
 export async function collectReport(options) {
-  const {game, runtime, stateDirectory, project, request, now = Date.now, bridge = {}} = options;
+  const {game, runtime, stateDirectory, project, request, now = Date.now, bridge = {}, environment = process.env} = options;
   const modRoot = options.modRoot ?? resolve(runtime, '..');
-  const secrets = [...(options.secrets ?? []), ...await credentialSecrets(stateDirectory)];
+  const secrets = [...(options.secrets ?? []), ...await credentialSecrets(stateDirectory), ...await customServerSecrets({project: project ?? resolve(runtime, '..'), environment})];
   const redact = createRedactor({secrets, ids: options.knownIds ?? []});
   const logs = await locateLogs({game, modRoot, runtime, stateDirectory});
   const lua = sanitizeRequest(request ?? {});
@@ -390,6 +439,7 @@ export async function collectReport(options) {
       ageMs: Number.isFinite(request?.issuedAt) ? Math.max(0, now() - request.issuedAt) : null},
     bridge: {pid: process.pid, uptimeSeconds: Math.round(process.uptime()), ...bridge, status},
     settings: settingsView,
+    localAi: await localAiSection({runtime, project: project ?? resolve(runtime, '..'), environment}),
     party: {companions: party, connections: raw['party-connection-state.json']
       ? redact.value(compactStatus('party-connection-state.json', raw['party-connection-state.json'])) : null},
     providers: companionProviders({settings, voice: raw['local-voice-state.json'], routing: raw['relationship-routing.json'], party}),
@@ -400,7 +450,7 @@ export async function collectReport(options) {
     'AI NPC Cyberpunk Mod support report',
     `Created ${summary.generatedAt}  (report ${options.reportId})`, '',
     'Send this one file to the developer. It contains:',
-    '  summary.json   versions, service status, settings, party, provider per companion, recent errors',
+    '  summary.json   versions, service status, settings, Local AI detection, party, provider per companion, recent errors',
     '  logs/*.txt     the end of each mod, service, CET, redscript and RED4ext log (last 2000 lines each);',
     '                 voice-routing.txt lists which voice spoke each reply and why (no reply text)', '',
     'It does NOT contain API keys or tokens, microphone audio, voice references, model files',
