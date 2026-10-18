@@ -5,7 +5,10 @@
   "gameVersions": [
     "2.31"
   ],
-  "profileKeys": [],
+  "profileKeys": [
+    "oda",
+    "rosalind-myers"
+  ],
   "sources": [
     {
       "id": "db.source.7f6067eb32e4",
@@ -930,7 +933,8 @@
       ],
       "audience": {
         "speakers": [
-          "takemura"
+          "takemura",
+          "oda"
         ],
         "perspective": "participant",
         "channels": [
@@ -939,7 +943,8 @@
         ],
         "recipients": [
           "v",
-          "takemura"
+          "takemura",
+          "oda"
         ]
       },
       "condition": {
@@ -1862,7 +1867,8 @@
       ],
       "audience": {
         "speakers": [
-          "solomon-reed"
+          "solomon-reed",
+          "rosalind-myers"
         ],
         "perspective": "witnessed",
         "channels": [
@@ -1871,7 +1877,8 @@
         ],
         "recipients": [
           "v",
-          "solomon-reed"
+          "solomon-reed",
+          "rosalind-myers"
         ]
       },
       "condition": {

@@ -11,6 +11,7 @@
     "dakota-smith",
     "iris-tanner",
     "jim-jarry",
+    "joshua-stephenson",
     "life-coach",
     "lizzy-wizzy",
     "rachel-casich",
@@ -1896,7 +1897,8 @@
       ],
       "audience": {
         "speakers": [
-          "rachel-casich"
+          "rachel-casich",
+          "joshua-stephenson"
         ],
         "perspective": "participant",
         "channels": [
@@ -1905,7 +1907,8 @@
         ],
         "recipients": [
           "v",
-          "rachel-casich"
+          "rachel-casich",
+          "joshua-stephenson"
         ]
       },
       "condition": {

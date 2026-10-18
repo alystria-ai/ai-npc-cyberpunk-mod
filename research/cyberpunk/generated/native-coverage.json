@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "builtAt": "2026-10-14T20:38:42.836Z",
+  "builtAt": "2026-10-18T19:03:39.565Z",
   "errors": [],
-  "enabledRules": 782,
-  "citedArtifacts": 777,
-  "verifiedEvidencePointers": 9270,
+  "enabledRules": 853,
+  "citedArtifacts": 782,
+  "verifiedEvidencePointers": 9284,
   "outcomesResearched": 1162,
-  "jsonHashBoundPointers": 9270,
+  "jsonHashBoundPointers": 9284,
   "legacyJsonPointers": 0,
-  "outcomesWithReviewedRules": 762,
-  "outcomesUnmapped": 400,
+  "outcomesWithReviewedRules": 766,
+  "outcomesUnmapped": 396,
   "verified": [
     {
       "evidenceId": "al5.ev.wartime.tracking-switch",
@@ -101980,6 +101980,160 @@
       "archive": "base",
       "archiveEntrySha1": "8ca4a5c8f052523b632fed9fd48d7aa8189aeb4a",
       "depotPath": "base\\quest\\side_quests\\sq031\\scenes\\sq031_04_grayson.scene"
+    },
+    {
+      "evidenceId": "ck5.ev.q004-evelyn-with-v",
+      "jsonPath": "scene-evidence/priority-judy-information-20261004/raw/base/base/quest/main_quests/prologue/q004/scenes/q004_02_meeting_evelyn.scene.json",
+      "jsonPointer": "/Data/RootChunk/actors/0",
+      "assetSha256": "ffcd4410566e3d0d05118e93d0305e4a473c7fb4c146c2f04cfa058857b1f207",
+      "jsonSha256": "d963370eb0310f5311abd72cfa84d66c62e90b7943568a9a3ce975fce4cb8f0b",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "b5e7ff0eb3debb1e17c512adb82c10ca68cfef2a",
+      "depotPath": "base\\quest\\main_quests\\prologue\\q004\\scenes\\q004_02_meeting_evelyn.scene"
+    },
+    {
+      "evidenceId": "ck5.ev.q004-evelyn-with-v",
+      "jsonPath": "scene-evidence/priority-judy-information-20261004/raw/base/base/quest/main_quests/prologue/q004/scenes/q004_03_this_is_judy.scene.json",
+      "jsonPointer": "/Data/RootChunk/actors/0",
+      "assetSha256": "8bdd42a9ecacd8d923ffdc807f6107ba878cad79f649bd2f129ec275625b68e3",
+      "jsonSha256": "25d61bab163dc90fc22221d27cc430e820dccee8930893244c101bf798a84f98",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "adda1ccdd08b7c920d09e96ea86f12c3fbcd4322",
+      "depotPath": "base\\quest\\main_quests\\prologue\\q004\\scenes\\q004_03_this_is_judy.scene"
+    },
+    {
+      "evidenceId": "ck5.ev.q004-evelyn-with-v",
+      "jsonPath": "scene-evidence/priority-judy-information-phases-20261004/raw/base/base/quest/main_quests/prologue/q004/phases/q004_nightclub.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/19/Data",
+      "assetSha256": "da54dfb8183daaf30238ec3685816ee0e526cb04c551b3e6201f7c02c8a21801",
+      "jsonSha256": "86ce33bb45a1fab597cad2f7c65fb86aa4fa39b18b6a3bce1d3a44dcc497f1a0",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "c5b5c8bf909f45592d2941d5fb3698a377694f7a",
+      "depotPath": "base\\quest\\main_quests\\prologue\\q004\\phases\\q004_nightclub.questphase"
+    },
+    {
+      "evidenceId": "ck5.ev.q004-evelyn-with-v",
+      "jsonPath": "scene-evidence/priority-judy-information-phases-20261004/raw/base/base/quest/main_quests/prologue/q004/phases/q004_nightclub.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data",
+      "assetSha256": "da54dfb8183daaf30238ec3685816ee0e526cb04c551b3e6201f7c02c8a21801",
+      "jsonSha256": "86ce33bb45a1fab597cad2f7c65fb86aa4fa39b18b6a3bce1d3a44dcc497f1a0",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "c5b5c8bf909f45592d2941d5fb3698a377694f7a",
+      "depotPath": "base\\quest\\main_quests\\prologue\\q004\\phases\\q004_nightclub.questphase"
+    },
+    {
+      "evidenceId": "ck5.ev.q108-escape-party",
+      "jsonPath": "scene-evidence/cast-q108-scenes-20261018/raw/base/base/quest/main_quests/part1/q108/scenes/q108_14a_escape.scene.json",
+      "jsonPointer": "/Data/RootChunk/actors/1",
+      "assetSha256": "7c8650dd1de30543d176211b93484ead4834980b2a3fef790dda51619db93845",
+      "jsonSha256": "17caf26f6772219b123e96ff5b38316209f3537e89ab2340c94dbf8a7fe084ce",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "3710cf2b40440242c67f30cbb7df92e38954c16b",
+      "depotPath": "base\\quest\\main_quests\\part1\\q108\\scenes\\q108_14a_escape.scene"
+    },
+    {
+      "evidenceId": "ck5.ev.q108-escape-party",
+      "jsonPath": "scene-evidence/cast-q108-scenes-20261018/raw/base/base/quest/main_quests/part1/q108/scenes/q108_14a_escape.scene.json",
+      "jsonPointer": "/Data/RootChunk/actors/3",
+      "assetSha256": "7c8650dd1de30543d176211b93484ead4834980b2a3fef790dda51619db93845",
+      "jsonSha256": "17caf26f6772219b123e96ff5b38316209f3537e89ab2340c94dbf8a7fe084ce",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "3710cf2b40440242c67f30cbb7df92e38954c16b",
+      "depotPath": "base\\quest\\main_quests\\part1\\q108\\scenes\\q108_14a_escape.scene"
+    },
+    {
+      "evidenceId": "ck5.ev.q108-escape-party",
+      "jsonPath": "scene-evidence/cast-q108-scenes-20261018/raw/base/base/quest/main_quests/part1/q108/scenes/q108_14b_lift.scene.json",
+      "jsonPointer": "/Data/RootChunk/actors/1",
+      "assetSha256": "1cd81f3c7a57505f10989034418f51dc3bb5fd60a4dac50db9c7c906d8648c6f",
+      "jsonSha256": "2efc78d3676bfa1816b33c2fc783a0c6a94c36af8080e4b87d7988ea7fb1f349",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "1339f92f1980c57911377270e92f306e3f5074a6",
+      "depotPath": "base\\quest\\main_quests\\part1\\q108\\scenes\\q108_14b_lift.scene"
+    },
+    {
+      "evidenceId": "ck5.ev.q108-escape-party",
+      "jsonPath": "scene-evidence/cast-q108-scenes-20261018/raw/base/base/quest/main_quests/part1/q108/scenes/q108_14b_lift.scene.json",
+      "jsonPointer": "/Data/RootChunk/actors/3",
+      "assetSha256": "1cd81f3c7a57505f10989034418f51dc3bb5fd60a4dac50db9c7c906d8648c6f",
+      "jsonSha256": "2efc78d3676bfa1816b33c2fc783a0c6a94c36af8080e4b87d7988ea7fb1f349",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "1339f92f1980c57911377270e92f306e3f5074a6",
+      "depotPath": "base\\quest\\main_quests\\part1\\q108\\scenes\\q108_14b_lift.scene"
+    },
+    {
+      "evidenceId": "ck5.ev.q108-escape-party",
+      "jsonPath": "scene-evidence/cast-q108-20261018/raw/base/base/quest/main_quests/part1/q108/phases/q108_04_atlantis.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data",
+      "assetSha256": "137ca273d9932e814972fbdc5366f2e5b8a4a24b2f3895cb1c5f2eb7d8fb8733",
+      "jsonSha256": "3c66d75e4c732f056eed8be66603e6c4c739c3a3668035b7781e8d5dcdbc5903",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "6e9cf99b472d26d3af5accff38fa345bd5d522f9",
+      "depotPath": "base\\quest\\main_quests\\part1\\q108\\phases\\q108_04_atlantis.questphase"
+    },
+    {
+      "evidenceId": "ck5.ev.q108-escape-party",
+      "jsonPath": "scene-evidence/cast-q108-20261018/raw/base/base/quest/main_quests/part1/q108/phases/q108_04_atlantis.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/3/Data",
+      "assetSha256": "137ca273d9932e814972fbdc5366f2e5b8a4a24b2f3895cb1c5f2eb7d8fb8733",
+      "jsonSha256": "3c66d75e4c732f056eed8be66603e6c4c739c3a3668035b7781e8d5dcdbc5903",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "6e9cf99b472d26d3af5accff38fa345bd5d522f9",
+      "depotPath": "base\\quest\\main_quests\\part1\\q108\\phases\\q108_04_atlantis.questphase"
+    },
+    {
+      "evidenceId": "ck6.ev.fact.q003_dumdum_dead.2b5fc7f0-48",
+      "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_04d_shootout_militech.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/questNode/Data/type/Data",
+      "assetSha256": "2b5fc7f0f2002e77d5617e2f50c7796c9ac39c8c9e274c66c6fa9047e26bf30a",
+      "jsonSha256": "2065e6ece770f90cbce508318e08243c5b47ad2252b559d044e65aaab8edea3c",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "4435c19e4fbcf333f8563db5cbb8bd8b0aa3216a",
+      "depotPath": "base\\quest\\main_quests\\prologue\\q003\\scenes\\q003_04d_shootout_militech.scene"
+    },
+    {
+      "evidenceId": "ck6.ev.fact.q003_dumdum_dead.2b5fc7f0-68",
+      "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_04d_shootout_militech.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data/questNode/Data/type/Data",
+      "assetSha256": "2b5fc7f0f2002e77d5617e2f50c7796c9ac39c8c9e274c66c6fa9047e26bf30a",
+      "jsonSha256": "2065e6ece770f90cbce508318e08243c5b47ad2252b559d044e65aaab8edea3c",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "4435c19e4fbcf333f8563db5cbb8bd8b0aa3216a",
+      "depotPath": "base\\quest\\main_quests\\prologue\\q003\\scenes\\q003_04d_shootout_militech.scene"
+    },
+    {
+      "evidenceId": "ck6.ev.fact.q003_dumdum_dead.2b5fc7f0-260",
+      "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_04d_shootout_militech.scene.json",
+      "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/260/Data/questNode/Data/type/Data",
+      "assetSha256": "2b5fc7f0f2002e77d5617e2f50c7796c9ac39c8c9e274c66c6fa9047e26bf30a",
+      "jsonSha256": "2065e6ece770f90cbce508318e08243c5b47ad2252b559d044e65aaab8edea3c",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "4435c19e4fbcf333f8563db5cbb8bd8b0aa3216a",
+      "depotPath": "base\\quest\\main_quests\\prologue\\q003\\scenes\\q003_04d_shootout_militech.scene"
+    },
+    {
+      "evidenceId": "ck6.ev.fact.q110_placide_dead.02d6f731-13",
+      "jsonPath": "scene-evidence/priority-endings-20261004-phases/raw/base/base/quest/main_quests/part1/q110/phases/q110_07b_placide_combat.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/13/Data/type/Data",
+      "assetSha256": "02d6f7311c2774dcf2374ac8d58a00d2addcc50de3a6d42393de4e28b0d1ff9f",
+      "jsonSha256": "85049c2ffc480ac7ce1663271f528aa89fc55505cd0b0311dbad761963cfbfac",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "e5aaa50c97d0088343965a88688ac3b25ed49518",
+      "depotPath": "base\\quest\\main_quests\\part1\\q110\\phases\\q110_07b_placide_combat.questphase"
     }
   ],
   "outcomes": [
@@ -102102,6 +102256,7 @@
       "questKey": "life-during-wartime",
       "outcomeKey": "captured",
       "rules": [
+        "anders-hellman.life-during-wartime.captured",
         "priority-panam.native.hellman-captured"
       ]
     },
@@ -102110,7 +102265,8 @@
       "questKey": "riders-on-the-storm",
       "outcomeKey": "briefed",
       "rules": [
-        "priority-panam.native.riders-briefing"
+        "priority-panam.native.riders-briefing",
+        "teddy.riders.sent-v"
       ]
     },
     {
@@ -102308,7 +102464,8 @@
       "questKey": "queen-of-the-highway",
       "outcomeKey": "collapse-witnessed",
       "rules": [
-        "priority-panam.native.collapse-witnessed"
+        "priority-panam.native.collapse-witnessed",
+        "teddy.queen.v-woke-at-new-camp"
       ]
     },
     {
@@ -102468,6 +102625,7 @@
       "questKey": "nocturne-op55n1",
       "outcomeKey": "arasaka-disclosed",
       "rules": [
+        "anders-hellman.nocturne.collected-v",
         "hw5.nocturne.misty-sendoff.arasaka"
       ]
     },
@@ -102516,7 +102674,8 @@
       "questKey": "nocturne-op55n1",
       "outcomeKey": "rogue",
       "rules": [
-        "priority-endings.johnny.route-rogue"
+        "priority-endings.johnny.route-rogue",
+        "weyland.nocturne.flew-the-assault"
       ]
     },
     {
@@ -102675,7 +102834,8 @@
       "questKey": "belly-of-the-beast",
       "outcomeKey": "killed",
       "rules": [
-        "priority-endings.johnny.saul-killed"
+        "priority-endings.johnny.saul-killed",
+        "santiago.belly-of-the-beast.saul-killed"
       ]
     },
     {
@@ -102867,7 +103027,8 @@
       "questKey": "path-of-glory",
       "outcomeKey": "alive-after-solo",
       "rules": [
-        "priority-endings.johnny.rogue-alive-after-solo"
+        "priority-endings.johnny.rogue-alive-after-solo",
+        "weyland.glory.rogue-alive"
       ]
     },
     {
@@ -103657,7 +103818,9 @@
       "decisionId": "judy-river.information.introductions",
       "questKey": "the-information",
       "outcomeKey": "evelyn-met",
-      "rules": []
+      "rules": [
+        "evelyn-parker.information.met-v"
+      ]
     },
     {
       "decisionId": "judy-river.information.introductions",
@@ -103684,7 +103847,8 @@
       "questKey": "the-pickup",
       "outcomeKey": "met",
       "rules": [
-        "ah5.pickup.stout-meeting"
+        "ah5.pickup.stout-meeting",
+        "anthony-gilchrist.the-pickup.stout-meeting"
       ]
     },
     {
@@ -103734,6 +103898,7 @@
       "questKey": "the-pickup",
       "outcomeKey": "paid-militech-unsafe",
       "rules": [
+        "dum-dum.the-pickup.chip-malware",
         "jt.royce-negotiation.paid-militech-unsafe"
       ]
     },
@@ -103758,7 +103923,8 @@
       "questKey": "the-pickup",
       "outcomeKey": "peaceful",
       "rules": [
-        "jt.pickup-conflict.peaceful"
+        "jt.pickup-conflict.peaceful",
+        "royce.the-pickup.sale-completed"
       ]
     },
     {
@@ -103766,6 +103932,7 @@
       "questKey": "the-pickup",
       "outcomeKey": "fought-maelstrom",
       "rules": [
+        "dum-dum.the-pickup.fought-maelstrom",
         "jt.pickup-conflict.fought-maelstrom"
       ]
     },
@@ -103774,6 +103941,7 @@
       "questKey": "the-pickup",
       "outcomeKey": "fought-militech",
       "rules": [
+        "dum-dum.the-pickup.fought-militech",
         "jt.pickup-conflict.fought-militech"
       ]
     },
@@ -103804,7 +103972,8 @@
       "questKey": "the-pickup",
       "outcomeKey": "killed-by-militech",
       "rules": [
-        "db.royce-downed-by-militech"
+        "db.royce-downed-by-militech",
+        "dum-dum.the-pickup.royce-downed"
       ]
     },
     {
@@ -103872,7 +104041,8 @@
       "questKey": "the-pickup",
       "outcomeKey": "confronted-gilchrist",
       "rules": [
-        "ah5.pickup.gilchrist-confronted"
+        "ah5.pickup.gilchrist-confronted",
+        "anthony-gilchrist.the-pickup.confronted"
       ]
     },
     {
@@ -103888,6 +104058,7 @@
       "questKey": "the-pickup",
       "outcomeKey": "gilchrist",
       "rules": [
+        "anthony-gilchrist.the-pickup.gate-meeting",
         "jt.pickup-gate-contact.gilchrist"
       ]
     },
@@ -104296,7 +104467,8 @@
       "questKey": "i-walk-the-line",
       "outcomeKey": "accepted",
       "rules": [
-        "ahe-native.netwatch-accepted"
+        "ahe-native.netwatch-accepted",
+        "bryce-mosley.walk-line.deal-accepted"
       ]
     },
     {
@@ -104310,7 +104482,8 @@
       "questKey": "i-walk-the-line",
       "outcomeKey": "warned-by-agent",
       "rules": [
-        "ahe-native.placide-virus-warning"
+        "ahe-native.placide-virus-warning",
+        "bryce-mosley.walk-line.virus-warning"
       ]
     },
     {
@@ -104324,7 +104497,8 @@
       "questKey": "i-walk-the-line",
       "outcomeKey": "returned",
       "rules": [
-        "ah5.placide.returned"
+        "ah5.placide.returned",
+        "voodoo-queen.i-walk-the-line.v-returned"
       ]
     },
     {
@@ -104332,7 +104506,8 @@
       "questKey": "transmission",
       "outcomeKey": "met",
       "rules": [
-        "ahe-native.alt-contact"
+        "ahe-native.alt-contact",
+        "voodoo-queen.transmission.alt-dive"
       ]
     },
     {
@@ -104432,7 +104607,8 @@
       "questKey": "last-caress",
       "outcomeKey": "absent",
       "rules": [
-        "ah5.estate.takemura-absent"
+        "ah5.estate.takemura-absent",
+        "anders-hellman.last-caress.estate-without-takemura"
       ]
     },
     {
@@ -104483,7 +104659,8 @@
       "outcomeKey": "heard",
       "rules": [
         "ah5.tower.yorinobu-heard",
-        "ah5.tower.yorinobu-held"
+        "ah5.tower.yorinobu-held",
+        "anders-hellman.total-immortal.yorinobu-held"
       ]
     },
     {
@@ -104528,7 +104705,9 @@
       "decisionId": "silverhand.yorinobu-confronted",
       "questKey": "totalimmortal",
       "outcomeKey": "completed",
-      "rules": []
+      "rules": [
+        "anders-hellman.total-immortal.yorinobu-held"
+      ]
     },
     {
       "decisionId": "arasaka-heist.maelstrom-leadership",
@@ -104543,7 +104722,8 @@
       "questKey": "second-conflict",
       "outcomeKey": "royce",
       "rules": [
-        "ah5.totentanz.royce"
+        "ah5.totentanz.royce",
+        "dum-dum.second-conflict.totentanz-recognised-v"
       ]
     },
     {
@@ -104599,6 +104779,9 @@
       "questKey": "second-conflict",
       "outcomeKey": "denny",
       "rules": [
+        "denny.a-like-supreme.performed",
+        "denny.second-conflict.chosen-for-reunion",
+        "henry.second-conflict.passed-over-for-reunion",
         "silverhand.lineup-denny",
         "silverhand.lineup-denny-nancy"
       ]
@@ -104608,6 +104791,9 @@
       "questKey": "second-conflict",
       "outcomeKey": "henry",
       "rules": [
+        "denny.second-conflict.passed-over-for-reunion",
+        "henry.a-like-supreme.performed",
+        "henry.second-conflict.chosen-for-reunion",
         "silverhand.lineup-henry",
         "silverhand.lineup-henry-nancy"
       ]
@@ -105001,6 +105187,7 @@
       "questKey": "you-know-my-name",
       "outcomeKey": "v-won",
       "rules": [
+        "aurore-cassel.name.roulette-v-won",
         "phantom.priority.name-roulette-v-won"
       ]
     },
@@ -105083,7 +105270,8 @@
       "questKey": "spellbound",
       "outcomeKey": "delivered",
       "rules": [
-        "heywood.nix.spellbook.delivered"
+        "heywood.nix.spellbook.delivered",
+        "r3n0.spellbound.tablet-sold"
       ]
     },
     {
@@ -105187,7 +105375,8 @@
       "questKey": "they-wont-go-when-i-go",
       "outcomeKey": "departed",
       "rules": [
-        "cc5.rachel.crucifixion-departed"
+        "cc5.rachel.crucifixion-departed",
+        "joshua-stephenson.passion.v-walked-out"
       ]
     },
     {
@@ -105210,13 +105399,17 @@
       "decisionId": "city-contacts.sergei.captive",
       "questKey": "olive-branch",
       "outcomeKey": "delivered",
-      "rules": []
+      "rules": [
+        "sergei-karasinsky.olive-branch.delivered"
+      ]
     },
     {
       "decisionId": "city-contacts.sergei.captive",
       "questKey": "olive-branch",
       "outcomeKey": "released",
-      "rules": []
+      "rules": [
+        "sergei-karasinsky.olive-branch.released"
+      ]
     },
     {
       "decisionId": "city-contacts.sergei.aftermath",
@@ -105297,7 +105490,8 @@
       "questKey": "spy-in-the-jungle",
       "outcomeKey": "given-ana",
       "rules": [
-        "cc5.steven.biomonitor-to-ana"
+        "cc5.steven.biomonitor-to-ana",
+        "mark-bana.spy-jungle.biomonitor-to-ana"
       ]
     },
     {
@@ -105305,7 +105499,8 @@
       "questKey": "spy-in-the-jungle",
       "outcomeKey": "destroyed",
       "rules": [
-        "cc5.steven.biomonitor-destroyed"
+        "cc5.steven.biomonitor-destroyed",
+        "mark-bana.spy-jungle.biomonitor-destroyed"
       ]
     },
     {
@@ -105313,7 +105508,8 @@
       "questKey": "spy-in-the-jungle",
       "outcomeKey": "drop-point",
       "rules": [
-        "cc5.steven.biomonitor-drop-point"
+        "cc5.steven.biomonitor-drop-point",
+        "mark-bana.spy-jungle.biomonitor-drop-point"
       ]
     },
     {
@@ -105375,7 +105571,8 @@
       "questKey": "dazed-and-confused",
       "outcomeKey": "letter-recovery",
       "rules": [
-        "cc5.shank.tool-letter"
+        "cc5.shank.tool-letter",
+        "edgar-tool.dazed-and-confused.letter-read-aloud"
       ]
     },
     {
@@ -105383,7 +105580,8 @@
       "questKey": "dazed-and-confused",
       "outcomeKey": "sister-performance",
       "rules": [
-        "cc5.shank.tool-sister"
+        "cc5.shank.tool-sister",
+        "edgar-tool.dazed-and-confused.sister-reunion"
       ]
     },
     {
@@ -105391,7 +105589,8 @@
       "questKey": "dazed-and-confused",
       "outcomeKey": "clone-performance",
       "rules": [
-        "cc5.shank.tool-clone"
+        "cc5.shank.tool-clone",
+        "edgar-tool.dazed-and-confused.clone-story"
       ]
     },
     {
@@ -105423,6 +105622,7 @@
       "questKey": "dazed-and-confused",
       "outcomeKey": "freed",
       "rules": [
+        "edgar-tool.dazed-and-confused.freed-from-booth",
         "pg5.dazed.freed.hands"
       ]
     },
@@ -107893,6 +108093,7 @@
       "questKey": "no-easy-way-out",
       "outcomeKey": "deal",
       "rules": [
+        "angelica-whelan.no-easy-way-out.deal-accepted",
         "phantom.native.aaron.angie-deal-disclosed"
       ]
     },
@@ -107909,6 +108110,7 @@
       "questKey": "no-easy-way-out",
       "outcomeKey": "intimidated",
       "rules": [
+        "angelica-whelan.no-easy-way-out.sasquatch-threat",
         "phantom.native.aaron.angie-intimidated-disclosed"
       ]
     },
@@ -108253,6 +108455,7 @@
       "questKey": "automatic-love",
       "outcomeKey": "booth-seen",
       "rules": [
+        "evelyn-parker.automatic-love.booth-seen",
         "priority-judy.booth-recording"
       ]
     },
@@ -108269,7 +108472,8 @@
       "questKey": "automatic-love",
       "outcomeKey": "peaceful",
       "rules": [
-        "priority-judy.woodman-fingers-lead"
+        "priority-judy.woodman-fingers-lead",
+        "woodman.automatic-love.fingers-lead"
       ]
     },
     {
@@ -108291,6 +108495,7 @@
       "questKey": "the-space-in-between",
       "outcomeKey": "questioned",
       "rules": [
+        "fingers.space-in-between.questioned",
         "priority-judy.fingers-testimony"
       ]
     },
@@ -108299,6 +108504,7 @@
       "questKey": "the-space-in-between",
       "outcomeKey": "assault-observed",
       "rules": [
+        "fingers.space-in-between.assaulted",
         "priority-judy.fingers-assault"
       ]
     },
@@ -108315,6 +108521,7 @@
       "questKey": "disasterpiece",
       "outcomeKey": "extracted",
       "rules": [
+        "evelyn-parker.disasterpiece.extracted",
         "jr-native.disasterpiece-evelyn-extracted"
       ]
     },
@@ -108331,7 +108538,9 @@
       "questKey": "double-life",
       "outcomeKey": "assignment-revealed",
       "rules": [
-        "priority-judy.evelyn-recording-assignment"
+        "evelyn-parker.double-life.assignment",
+        "priority-judy.evelyn-recording-assignment",
+        "voodoo-queen.double-life.evelyn-hired"
       ]
     },
     {
@@ -108355,6 +108564,7 @@
       "questKey": "ex-factor",
       "outcomeKey": "helped",
       "rules": [
+        "maiko-maeda.ex-factor.office-meeting",
         "priority-judy.ex-helped"
       ]
     },
@@ -108437,6 +108647,7 @@
       "questKey": "pisces",
       "outcomeKey": "bosses-removed",
       "rules": [
+        "maiko-maeda.pisces.bosses-removed",
         "priority-judy.pisces-bosses-removed"
       ]
     },
@@ -108445,7 +108656,8 @@
       "questKey": "pisces",
       "outcomeKey": "accepted",
       "rules": [
-        "jr-native.pisces-payment-accepted"
+        "jr-native.pisces-payment-accepted",
+        "maiko-maeda.pisces.paid-v"
       ]
     },
     {
@@ -109044,7 +109256,8 @@
       "questKey": "hole-in-the-sky",
       "outcomeKey": "rescued",
       "rules": [
-        "phantom.priority.hole-myers-rescued"
+        "phantom.priority.hole-myers-rescued",
+        "rosalind-myers.hole.rescued"
       ]
     },
     {
@@ -109052,7 +109265,8 @@
       "questKey": "spider-and-the-fly",
       "outcomeKey": "defeated",
       "rules": [
-        "phantom.priority.spider-chimera-defeated"
+        "phantom.priority.spider-chimera-defeated",
+        "rosalind-myers.spider.chimera-defeated"
       ]
     },
     {
@@ -109060,7 +109274,9 @@
       "questKey": "lucretia-my-reflection",
       "outcomeKey": "cooperated",
       "rules": [
-        "phantom.priority.lucretia-intruders-cooperated"
+        "jacob-long.lucretia.intruders-cooperated",
+        "phantom.priority.lucretia-intruders-cooperated",
+        "rosalind-myers.lucretia.intruders-cooperated"
       ]
     },
     {
@@ -109088,7 +109304,8 @@
       "questKey": "lucretia-my-reflection",
       "outcomeKey": "accepted",
       "rules": [
-        "phantom.priority.lucretia-operation-accepted"
+        "phantom.priority.lucretia-operation-accepted",
+        "rosalind-myers.lucretia.operation-accepted"
       ]
     },
     {
@@ -109299,7 +109516,8 @@
       "questKey": "leave-in-silence",
       "outcomeKey": "alive",
       "rules": [
-        "phantom.native.border.handover-alive"
+        "phantom.native.border.handover-alive",
+        "rosalind-myers.silence.handover-alive"
       ]
     },
     {
@@ -109307,7 +109525,8 @@
       "questKey": "leave-in-silence",
       "outcomeKey": "dead",
       "rules": [
-        "phantom.native.border.handover-dead"
+        "phantom.native.border.handover-dead",
+        "rosalind-myers.silence.handover-dead"
       ]
     },
     {
@@ -109315,7 +109534,8 @@
       "questKey": "leave-in-silence",
       "outcomeKey": "accepted",
       "rules": [
-        "phantom.native.border.medal-accepted-disclosed"
+        "phantom.native.border.medal-accepted-disclosed",
+        "rosalind-myers.silence.medal-accepted"
       ]
     },
     {
@@ -109502,6 +109722,7 @@
       "questKey": "run-this-town",
       "outcomeKey": "bennett-jago-alive",
       "rules": [
+        "jago-szabo.run-this-town.peace-deal",
         "pg5.town.bennett-jago-alive"
       ]
     },
@@ -109510,6 +109731,7 @@
       "questKey": "run-this-town",
       "outcomeKey": "bennett-jago-dead",
       "rules": [
+        "chester-bennett.run-this-town.jago-killed",
         "pg5.town.bennett-jago-dead"
       ]
     },
@@ -109518,6 +109740,7 @@
       "questKey": "run-this-town",
       "outcomeKey": "jago-bennett-dead",
       "rules": [
+        "jago-szabo.run-this-town.bennett-killed",
         "pg5.town.jago-bennett-dead"
       ]
     },
@@ -109526,6 +109749,7 @@
       "questKey": "run-this-town",
       "outcomeKey": "jago-bennett-alive",
       "rules": [
+        "jago-szabo.run-this-town.terra-cognita-price",
         "pg5.town.jago-bennett-alive"
       ]
     },
@@ -109960,6 +110184,7 @@
       "questKey": "shot-by-both-sides",
       "outcomeKey": "bree-alive",
       "rules": [
+        "bree-whitney.shot-by-both-sides.sided-with-bree",
         "pg5.shot.bree-alive"
       ]
     },
@@ -109980,6 +110205,7 @@
       "questKey": "shot-by-both-sides",
       "outcomeKey": "reported",
       "rules": [
+        "bree-whitney.shot-by-both-sides.sold-to-netwatch",
         "pg5.shot.netwatch"
       ]
     },
@@ -110018,6 +110244,7 @@
       "questKey": "never-fade-away",
       "outcomeKey": "experienced",
       "rules": [
+        "cast.never-fade.memory-2013-escape-party",
         "priority-endings.johnny.alt-memory"
       ]
     },
@@ -110454,7 +110681,9 @@
       "questKey": "knockin-on-heavens-door",
       "outcomeKey": "killed",
       "rules": [
-        "silverhand.rogue-killed"
+        "adam-smasher.knockin.killed-rogue",
+        "silverhand.rogue-killed",
+        "weyland.knockin.rogue-died"
       ]
     },
     {
@@ -110462,6 +110691,7 @@
       "questKey": "knockin-on-heavens-door",
       "outcomeKey": "killed",
       "rules": [
+        "adam-smasher.knockin.finished-off",
         "sh5.knockin.smasher-killed"
       ]
     },
@@ -110508,6 +110738,22 @@
   "narrativeTopics": {
     "policy": "exact-or-pinned-reviewed-alias",
     "proofs": [
+      {
+        "ruleId": "adam-smasher.knockin.finished-off",
+        "decisionId": "silverhand.rogue-route-smasher-fate",
+        "outcomeKey": "killed",
+        "nativeTopic": "smasher.fate",
+        "catalogTopic": "smasher.fate",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "adam-smasher.knockin.killed-rogue",
+        "decisionId": "silverhand.rogue-fate",
+        "outcomeKey": "killed",
+        "nativeTopic": "rogue.fate",
+        "catalogTopic": "rogue.fate",
+        "qualification": "exact"
+      },
       {
         "ruleId": "ah5.corpo-rat.corpo",
         "decisionId": "arasaka-heist.corpo-career",
@@ -111211,7 +111457,7 @@
         "catalogTopic": "v.aldecaldo-membership",
         "qualification": "pinned-reviewed-alias",
         "policy": "identity-preserving-namespace",
-        "ruleSha256": "b7bb4569d6766a3100814b24c8f5c5efd7560087ba666fbc539e195f35cb0674",
+        "ruleSha256": "305a35d26144159e986f8149c6d174cda14cd58770b192f9834e05bff432af32",
         "reviewRef": "native-reviews/topic-identity-audit-oct03.md"
       },
       {
@@ -111220,6 +111466,137 @@
         "outcomeKey": "completed",
         "nativeTopic": "v.alt-contact-at-camp",
         "catalogTopic": "v.alt-contact-at-camp",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "anders-hellman.last-caress.estate-without-takemura",
+        "decisionId": "arasaka-heist.devil-takemura-presence",
+        "outcomeKey": "absent",
+        "nativeTopic": "takemura.devil.participation",
+        "catalogTopic": "takemura.devil.participation",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "anders-hellman.life-during-wartime.captured",
+        "decisionId": "aldecaldos.wartime.hellman-captured",
+        "outcomeKey": "captured",
+        "nativeTopic": "hellman.capture",
+        "catalogTopic": "hellman.capture",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "anders-hellman.nocturne.collected-v",
+        "decisionId": "heywood.nocturne.misty-sendoff",
+        "outcomeKey": "arasaka-disclosed",
+        "nativeTopic": "misty.v.final-plan",
+        "catalogTopic": "misty.v.final-plan",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "anders-hellman.total-immortal.yorinobu-held",
+        "decisionId": "arasaka-heist.yorinobu-confronted",
+        "outcomeKey": "heard",
+        "nativeTopic": "yorinobu.final.confrontation",
+        "catalogTopic": "yorinobu.final.confrontation",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "anders-hellman.total-immortal.yorinobu-held",
+        "decisionId": "silverhand.yorinobu-confronted",
+        "outcomeKey": "completed",
+        "nativeTopic": "yorinobu.final.confrontation",
+        "catalogTopic": "v.arasaka.yorinobu-confrontation",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "compatible-facet",
+        "ruleSha256": "b8d5bd03497d08be4c8d9b304194ec3a48a4ec20d8fd215ff6fedd175b8eed59",
+        "reviewRef": "native-reviews/cast-knowledge-20261018b.md"
+      },
+      {
+        "ruleId": "angelica-whelan.no-easy-way-out.deal-accepted",
+        "decisionId": "phantom.easy.angie",
+        "outcomeKey": "deal",
+        "nativeTopic": "aaron.angie",
+        "catalogTopic": "aaron.angie",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "angelica-whelan.no-easy-way-out.sasquatch-threat",
+        "decisionId": "phantom.easy.angie",
+        "outcomeKey": "intimidated",
+        "nativeTopic": "aaron.angie",
+        "catalogTopic": "aaron.angie",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "anthony-gilchrist.the-pickup.confronted",
+        "decisionId": "arasaka-heist.gilchrist-confrontation",
+        "outcomeKey": "confronted-gilchrist",
+        "nativeTopic": "militech.leak.confrontation",
+        "catalogTopic": "militech.leak.confrontation",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "anthony-gilchrist.the-pickup.gate-meeting",
+        "decisionId": "arasaka-heist.pickup-gate-contact",
+        "outcomeKey": "gilchrist",
+        "nativeTopic": "militech.investigation.winner",
+        "catalogTopic": "militech.investigation.winner",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "anthony-gilchrist.the-pickup.stout-meeting",
+        "decisionId": "arasaka-heist.stout-meeting",
+        "outcomeKey": "met",
+        "nativeTopic": "meredith.meeting",
+        "catalogTopic": "meredith.meeting",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "aurore-cassel.name.roulette-v-won",
+        "decisionId": "phantom.name.roulette",
+        "outcomeKey": "v-won",
+        "nativeTopic": "phantom.cassel-roulette",
+        "catalogTopic": "phantom.cassel-roulette",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "bree-whitney.shot-by-both-sides.sided-with-bree",
+        "decisionId": "phantom.shot.resolution",
+        "outcomeKey": "bree-alive",
+        "nativeTopic": "bree-dante.fate",
+        "catalogTopic": "bree-dante.fate",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "bree-whitney.shot-by-both-sides.sold-to-netwatch",
+        "decisionId": "phantom.shot.netwatch",
+        "outcomeKey": "reported",
+        "nativeTopic": "bree.netwatch-deal",
+        "catalogTopic": "bree.netwatch-deal",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "bryce-mosley.walk-line.deal-accepted",
+        "decisionId": "arasaka-heist.netwatch-choice",
+        "outcomeKey": "accepted",
+        "nativeTopic": "voodoo.netwatch.choice",
+        "catalogTopic": "voodoo.netwatch.choice",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "bryce-mosley.walk-line.virus-warning",
+        "decisionId": "arasaka-heist.placide-malware-warning",
+        "outcomeKey": "warned-by-agent",
+        "nativeTopic": "placide.malware.warning",
+        "catalogTopic": "placide.malware.warning",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "cast.never-fade.memory-2013-escape-party",
+        "decisionId": "silverhand.memory-2013",
+        "outcomeKey": "experienced",
+        "nativeTopic": "johnny.memory.2013",
+        "catalogTopic": "johnny.memory.2013",
         "qualification": "exact"
       },
       {
@@ -111420,6 +111797,14 @@
         "outcomeKey": "body-discovered",
         "nativeTopic": "liam.story.fate",
         "catalogTopic": "liam.story.fate",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "chester-bennett.run-this-town.jago-killed",
+        "decisionId": "phantom.town.succession",
+        "outcomeKey": "bennett-jago-dead",
+        "nativeTopic": "dogtown.succession",
+        "catalogTopic": "dogtown.succession",
         "qualification": "exact"
       },
       {
@@ -111689,6 +112074,162 @@
         "nativeTopic": "takemura.arasaka-assault",
         "catalogTopic": "takemura.arasaka-assault",
         "qualification": "exact"
+      },
+      {
+        "ruleId": "denny.a-like-supreme.performed",
+        "decisionId": "silverhand.reunion-lineup",
+        "outcomeKey": "denny",
+        "nativeTopic": "samurai.reunion.lineup",
+        "catalogTopic": "samurai.reunion.lineup",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "denny.second-conflict.chosen-for-reunion",
+        "decisionId": "silverhand.reunion-lineup",
+        "outcomeKey": "denny",
+        "nativeTopic": "samurai.reunion.lineup",
+        "catalogTopic": "samurai.reunion.lineup",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "denny.second-conflict.passed-over-for-reunion",
+        "decisionId": "silverhand.reunion-lineup",
+        "outcomeKey": "henry",
+        "nativeTopic": "samurai.reunion.lineup",
+        "catalogTopic": "samurai.reunion.lineup",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "dum-dum.second-conflict.totentanz-recognised-v",
+        "decisionId": "arasaka-heist.maelstrom-leadership",
+        "outcomeKey": "royce",
+        "nativeTopic": "maelstrom.totentanz.leader",
+        "catalogTopic": "maelstrom.totentanz.leader",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "dum-dum.the-pickup.chip-malware",
+        "decisionId": "arasaka-heist.royce-negotiation",
+        "outcomeKey": "paid-militech-unsafe",
+        "nativeTopic": "pickup.negotiation",
+        "catalogTopic": "pickup.negotiation",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "dum-dum.the-pickup.fought-maelstrom",
+        "decisionId": "arasaka-heist.pickup-conflict",
+        "outcomeKey": "fought-maelstrom",
+        "nativeTopic": "pickup.conflict",
+        "catalogTopic": "pickup.conflict",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "dum-dum.the-pickup.fought-militech",
+        "decisionId": "arasaka-heist.pickup-conflict",
+        "outcomeKey": "fought-militech",
+        "nativeTopic": "pickup.conflict",
+        "catalogTopic": "pickup.conflict",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "dum-dum.the-pickup.royce-downed",
+        "decisionId": "arasaka-heist.royce-fate",
+        "outcomeKey": "killed-by-militech",
+        "nativeTopic": "maelstrom.royce.fate",
+        "catalogTopic": "maelstrom.royce.fate",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "edgar-tool.dazed-and-confused.clone-story",
+        "decisionId": "city-contacts.shank.tool-treatment",
+        "outcomeKey": "clone-performance",
+        "nativeTopic": "brainporium.tool.outcome",
+        "catalogTopic": "brainporium.tool.outcome",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "edgar-tool.dazed-and-confused.freed-from-booth",
+        "decisionId": "phantom.dazed.early-resolution",
+        "outcomeKey": "freed",
+        "nativeTopic": "tool.early-release",
+        "catalogTopic": "tool.early-release",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "edgar-tool.dazed-and-confused.letter-read-aloud",
+        "decisionId": "city-contacts.shank.tool-treatment",
+        "outcomeKey": "letter-recovery",
+        "nativeTopic": "brainporium.tool.outcome",
+        "catalogTopic": "brainporium.tool.outcome",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "edgar-tool.dazed-and-confused.sister-reunion",
+        "decisionId": "city-contacts.shank.tool-treatment",
+        "outcomeKey": "sister-performance",
+        "nativeTopic": "brainporium.tool.outcome",
+        "catalogTopic": "brainporium.tool.outcome",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "evelyn-parker.automatic-love.booth-seen",
+        "decisionId": "judy-river.automatic.evidence",
+        "outcomeKey": "booth-seen",
+        "nativeTopic": "evelyn.clouds_evidence.booth",
+        "catalogTopic": "evelyn.clouds_evidence",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "compatible-facet",
+        "ruleSha256": "7f3e660e14308d0e3daeaea9b01bdcdc11e1324f4f9a78781c00bd13666fc153",
+        "reviewRef": "native-reviews/cast-knowledge-20261018.md"
+      },
+      {
+        "ruleId": "evelyn-parker.disasterpiece.extracted",
+        "decisionId": "judy-river.disasterpiece.recovery",
+        "outcomeKey": "extracted",
+        "nativeTopic": "evelyn.recovery",
+        "catalogTopic": "evelyn.recovery",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "evelyn-parker.double-life.assignment",
+        "decisionId": "judy-river.double.recordings",
+        "outcomeKey": "assignment-revealed",
+        "nativeTopic": "evelyn.contract_evidence.assignment",
+        "catalogTopic": "evelyn.contract_evidence",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "compatible-facet",
+        "ruleSha256": "65169367117eb7e6c6a60335ec822c0f58ece8785428f0012de9f2804f97bbf7",
+        "reviewRef": "native-reviews/cast-knowledge-20261018.md"
+      },
+      {
+        "ruleId": "evelyn-parker.information.met-v",
+        "decisionId": "judy-river.information.introductions",
+        "outcomeKey": "evelyn-met",
+        "nativeTopic": "heist.introductions",
+        "catalogTopic": "heist.introductions",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "fingers.space-in-between.assaulted",
+        "decisionId": "judy-river.space.fingers-treatment",
+        "outcomeKey": "assault-observed",
+        "nativeTopic": "fingers.interrogation.assault",
+        "catalogTopic": "fingers.interrogation",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "compatible-stage",
+        "ruleSha256": "df7cf72cb197b38430a06e7c5b293a3df2aa6fa02847054d0994e661246484d2",
+        "reviewRef": "native-reviews/cast-knowledge-20261018b.md"
+      },
+      {
+        "ruleId": "fingers.space-in-between.questioned",
+        "decisionId": "judy-river.space.fingers-treatment",
+        "outcomeKey": "questioned",
+        "nativeTopic": "fingers.interrogation.testimony",
+        "catalogTopic": "fingers.interrogation",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "compatible-stage",
+        "ruleSha256": "e18f91412d95131f10602f0f0ae11d760c52ed3fbc51ae6bfb049138509559bf",
+        "reviewRef": "native-reviews/cast-knowledge-20261018b.md"
       },
       {
         "ruleId": "fixers.native.an-inconvenient-killer.agreed-to-leave.confirmed-debrief",
@@ -113323,6 +113864,30 @@
         "qualification": "exact"
       },
       {
+        "ruleId": "henry.a-like-supreme.performed",
+        "decisionId": "silverhand.reunion-lineup",
+        "outcomeKey": "henry",
+        "nativeTopic": "samurai.reunion.lineup",
+        "catalogTopic": "samurai.reunion.lineup",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "henry.second-conflict.chosen-for-reunion",
+        "decisionId": "silverhand.reunion-lineup",
+        "outcomeKey": "henry",
+        "nativeTopic": "samurai.reunion.lineup",
+        "catalogTopic": "samurai.reunion.lineup",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "henry.second-conflict.passed-over-for-reunion",
+        "decisionId": "silverhand.reunion-lineup",
+        "outcomeKey": "denny",
+        "nativeTopic": "samurai.reunion.lineup",
+        "catalogTopic": "samurai.reunion.lineup",
+        "qualification": "exact"
+      },
+      {
         "ruleId": "heywood.boxing.final.defeat",
         "decisionId": "heywood.boxing.final-result",
         "outcomeKey": "defeat",
@@ -113840,6 +114405,46 @@
         "outcomeKey": "participated",
         "nativeTopic": "v.wilson.competition",
         "catalogTopic": "v.wilson.competition",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jacob-long.lucretia.intruders-cooperated",
+        "decisionId": "phantom.lucretia.intruders",
+        "outcomeKey": "cooperated",
+        "nativeTopic": "phantom.jacob-taylor",
+        "catalogTopic": "phantom.jacob-taylor",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jago-szabo.run-this-town.bennett-killed",
+        "decisionId": "phantom.town.succession",
+        "outcomeKey": "jago-bennett-dead",
+        "nativeTopic": "dogtown.succession",
+        "catalogTopic": "dogtown.succession",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jago-szabo.run-this-town.peace-deal",
+        "decisionId": "phantom.town.succession",
+        "outcomeKey": "bennett-jago-alive",
+        "nativeTopic": "dogtown.succession",
+        "catalogTopic": "dogtown.succession",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "jago-szabo.run-this-town.terra-cognita-price",
+        "decisionId": "phantom.town.succession",
+        "outcomeKey": "jago-bennett-alive",
+        "nativeTopic": "dogtown.succession",
+        "catalogTopic": "dogtown.succession",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "joshua-stephenson.passion.v-walked-out",
+        "decisionId": "city-contacts.rachel.final-participation",
+        "outcomeKey": "departed",
+        "nativeTopic": "rachel.shoot.v-role",
+        "catalogTopic": "rachel.shoot.v-role",
         "qualification": "exact"
       },
       {
@@ -114782,6 +115387,54 @@
         "outcomeKey": "together",
         "nativeTopic": "takemura.jigjig.ride",
         "catalogTopic": "takemura.jigjig.ride",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "maiko-maeda.ex-factor.office-meeting",
+        "decisionId": "judy-river.ex.participation",
+        "outcomeKey": "helped",
+        "nativeTopic": "judy.clouds_help",
+        "catalogTopic": "judy.clouds_help",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "maiko-maeda.pisces.bosses-removed",
+        "decisionId": "judy-river.pisces.control",
+        "outcomeKey": "bosses-removed",
+        "nativeTopic": "clouds.management",
+        "catalogTopic": "clouds.management",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "maiko-maeda.pisces.paid-v",
+        "decisionId": "judy-river.pisces.payment",
+        "outcomeKey": "accepted",
+        "nativeTopic": "judy.trust_maiko_payment",
+        "catalogTopic": "judy.trust_maiko_payment",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "mark-bana.spy-jungle.biomonitor-destroyed",
+        "decisionId": "city-contacts.bana.evidence",
+        "outcomeKey": "destroyed",
+        "nativeTopic": "bana.evidence.disposition",
+        "catalogTopic": "bana.evidence.disposition",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "mark-bana.spy-jungle.biomonitor-drop-point",
+        "decisionId": "city-contacts.bana.evidence",
+        "outcomeKey": "drop-point",
+        "nativeTopic": "bana.evidence.disposition",
+        "catalogTopic": "bana.evidence.disposition",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "mark-bana.spy-jungle.biomonitor-to-ana",
+        "decisionId": "city-contacts.bana.evidence",
+        "outcomeKey": "given-ana",
+        "nativeTopic": "bana.evidence.disposition",
+        "catalogTopic": "bana.evidence.disposition",
         "qualification": "exact"
       },
       {
@@ -116466,7 +117119,7 @@
         "catalogTopic": "panam.convoy-trust",
         "qualification": "pinned-reviewed-alias",
         "policy": "identity-preserving-namespace",
-        "ruleSha256": "0412b1f95e2903bd623fe4301becaa74b763c755456308e10daf7411f7a142bf",
+        "ruleSha256": "62a6fa45443d0bda0033d755eb3c4e13965e191925ae205533dd99691d803306",
         "reviewRef": "native-reviews/priority-panam-20261004.md"
       },
       {
@@ -116558,6 +117211,102 @@
         "outcomeKey": "job-focused",
         "nativeTopic": "panam.help-motive",
         "catalogTopic": "panam.help-motive",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "r3n0.spellbound.tablet-sold",
+        "decisionId": "heywood.nix.spellbook-handoff",
+        "outcomeKey": "delivered",
+        "nativeTopic": "v.nix.spellbook",
+        "catalogTopic": "v.nix.spellbook",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "rosalind-myers.hole.rescued",
+        "decisionId": "phantom.hole.rescue",
+        "outcomeKey": "rescued",
+        "nativeTopic": "myers.crash-rescue",
+        "catalogTopic": "myers.crash-rescue",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "rosalind-myers.lucretia.intruders-cooperated",
+        "decisionId": "phantom.lucretia.intruders",
+        "outcomeKey": "cooperated",
+        "nativeTopic": "phantom.jacob-taylor",
+        "catalogTopic": "phantom.jacob-taylor",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "rosalind-myers.lucretia.operation-accepted",
+        "decisionId": "phantom.lucretia.operation",
+        "outcomeKey": "accepted",
+        "nativeTopic": "v.nusa.operation",
+        "catalogTopic": "v.nusa.operation",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "rosalind-myers.silence.handover-alive",
+        "decisionId": "phantom.silence.handover",
+        "outcomeKey": "alive",
+        "nativeTopic": "songbird.nusa-handover",
+        "catalogTopic": "songbird.nusa-handover",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "rosalind-myers.silence.handover-dead",
+        "decisionId": "phantom.silence.handover",
+        "outcomeKey": "dead",
+        "nativeTopic": "songbird.nusa-handover",
+        "catalogTopic": "songbird.nusa-handover",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "rosalind-myers.silence.medal-accepted",
+        "decisionId": "phantom.silence.medal",
+        "outcomeKey": "accepted",
+        "nativeTopic": "v.nusa.medal",
+        "catalogTopic": "v.nusa.medal",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "rosalind-myers.spider.chimera-defeated",
+        "decisionId": "phantom.spider.chimera",
+        "outcomeKey": "defeated",
+        "nativeTopic": "phantom.chimera",
+        "catalogTopic": "phantom.chimera",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "royce.the-pickup.sale-completed",
+        "decisionId": "arasaka-heist.pickup-conflict",
+        "outcomeKey": "peaceful",
+        "nativeTopic": "pickup.conflict",
+        "catalogTopic": "pickup.conflict",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "santiago.belly-of-the-beast.saul-killed",
+        "decisionId": "silverhand.saul-fate",
+        "outcomeKey": "killed",
+        "nativeTopic": "saul.fate",
+        "catalogTopic": "saul.fate",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "sergei-karasinsky.olive-branch.delivered",
+        "decisionId": "city-contacts.sergei.captive",
+        "outcomeKey": "delivered",
+        "nativeTopic": "olive-branch.alex",
+        "catalogTopic": "olive-branch.alex",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "sergei-karasinsky.olive-branch.released",
+        "decisionId": "city-contacts.sergei.captive",
+        "outcomeKey": "released",
+        "nativeTopic": "olive-branch.alex",
+        "catalogTopic": "olive-branch.alex",
         "qualification": "exact"
       },
       {
@@ -116898,10 +117647,91 @@
         "nativeTopic": "kerry.v.terrace-intimacy",
         "catalogTopic": "kerry.v.terrace-intimacy",
         "qualification": "exact"
+      },
+      {
+        "ruleId": "teddy.queen.v-woke-at-new-camp",
+        "decisionId": "aldecaldos.queen.relic-disclosure",
+        "outcomeKey": "collapse-witnessed",
+        "nativeTopic": "priority-panam.collapse-observed",
+        "catalogTopic": "v.relic-known-to-aldecaldos",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "compatible-facet",
+        "ruleSha256": "658865141d84289fa91d14cc95a1bebc0f949ccbbb36d5b12b6d8d400fcab53e",
+        "reviewRef": "native-reviews/cast-knowledge-20261018b.md"
+      },
+      {
+        "ruleId": "teddy.riders.sent-v",
+        "decisionId": "aldecaldos.riders.briefing",
+        "outcomeKey": "briefed",
+        "nativeTopic": "saul.rescue-plan",
+        "catalogTopic": "saul.rescue-plan",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "voodoo-queen.double-life.evelyn-hired",
+        "decisionId": "judy-river.double.recordings",
+        "outcomeKey": "assignment-revealed",
+        "nativeTopic": "evelyn.contract_evidence.assignment",
+        "catalogTopic": "evelyn.contract_evidence",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "compatible-facet",
+        "ruleSha256": "a4eae893824c920696f721b10adba58bf562c0dc3f8d4217795513aaa1a5ad9c",
+        "reviewRef": "native-reviews/cast-knowledge-20261018b.md"
+      },
+      {
+        "ruleId": "voodoo-queen.i-walk-the-line.v-returned",
+        "decisionId": "arasaka-heist.mall-return",
+        "outcomeKey": "returned",
+        "nativeTopic": "placide.v.return",
+        "catalogTopic": "placide.v.return",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "voodoo-queen.transmission.alt-dive",
+        "decisionId": "arasaka-heist.alt-contact",
+        "outcomeKey": "met",
+        "nativeTopic": "v.alt.contact",
+        "catalogTopic": "v.alt.contact",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "weyland.glory.rogue-alive",
+        "decisionId": "silverhand.rogue-afterlife",
+        "outcomeKey": "alive-after-solo",
+        "nativeTopic": "rogue.sun.presence",
+        "catalogTopic": "rogue.sun.presence",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "weyland.knockin.rogue-died",
+        "decisionId": "silverhand.rogue-fate",
+        "outcomeKey": "killed",
+        "nativeTopic": "rogue.fate",
+        "catalogTopic": "rogue.fate",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "weyland.nocturne.flew-the-assault",
+        "decisionId": "silverhand.final-route",
+        "outcomeKey": "rogue",
+        "nativeTopic": "v.final-route",
+        "catalogTopic": "v.final-route",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "woodman.automatic-love.fingers-lead",
+        "decisionId": "judy-river.automatic.woodman",
+        "outcomeKey": "peaceful",
+        "nativeTopic": "woodman.encounter.lead",
+        "catalogTopic": "woodman.encounter",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "compatible-facet",
+        "ruleSha256": "584218b06d8f833e91f1097d096544cc7224a3ad81eb181e931d2bacdee08563",
+        "reviewRef": "native-reviews/cast-knowledge-20261018b.md"
       }
     ],
-    "exactMatches": 737,
-    "reviewedAliases": 45,
+    "exactMatches": 801,
+    "reviewedAliases": 53,
     "reviewDocuments": [
       {
         "reference": "native-reviews/topic-identity-audit-oct03.md",
@@ -116909,9 +117739,19 @@
         "bytes": 8452
       },
       {
+        "reference": "native-reviews/cast-knowledge-20261018b.md",
+        "sha256": "76d3a2123c11dc69de44e41bd25796c9a27e547b56f290ff3ab98eb595af192f",
+        "bytes": 13539
+      },
+      {
         "reference": "native-reviews/queen-friendship-alias-20261015.md",
-        "sha256": "1407655c1e0a8bd1ef6d61ff894111539771414a0069b46ea3b54f2003884db0",
-        "bytes": 2598
+        "sha256": "e06ad3cc4fd36d880d2dfff542ab18af41831500e53b87a9f7b45e6a3c5b3356",
+        "bytes": 2622
+      },
+      {
+        "reference": "native-reviews/cast-knowledge-20261018.md",
+        "sha256": "48be6b6e05408df50735c3288d27674f7fa1d1626949e57bb48bec026260a394",
+        "bytes": 7170
       },
       {
         "reference": "native-reviews/judy-river-oct01.md",

@@ -6,13 +6,14 @@
     "2.31"
   ],
   "profileKeys": [
-    "panam-palmer",
-    "saul-bright",
-    "mitch-anderson",
+    "bob-sagan",
     "carol-emeka",
     "cassidy-righter",
-    "bob-sagan",
-    "dakota-smith"
+    "dakota-smith",
+    "mitch-anderson",
+    "panam-palmer",
+    "saul-bright",
+    "teddy"
   ],
   "sources": [
     {
@@ -5125,7 +5126,8 @@
       "audience": {
         "speakers": [
           "panam-palmer",
-          "saul-bright"
+          "saul-bright",
+          "teddy"
         ],
         "perspective": "participant",
         "channels": [
@@ -5136,7 +5138,8 @@
         "recipients": [
           "v",
           "panam-palmer",
-          "saul-bright"
+          "saul-bright",
+          "teddy"
         ]
       },
       "condition": {

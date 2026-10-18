@@ -7,6 +7,7 @@
   ],
   "profileKeys": [
     "alt-cunningham",
+    "anders-hellman",
     "carol-emeka",
     "hanako-arasaka",
     "johnny-silverhand",
@@ -16,7 +17,8 @@
     "panam-palmer",
     "rogue-amendiares",
     "saul-bright",
-    "takemura"
+    "takemura",
+    "weyland"
   ],
   "sources": [
     {
@@ -2097,7 +2099,8 @@
       ],
       "audience": {
         "speakers": [
-          "hanako-arasaka"
+          "hanako-arasaka",
+          "anders-hellman"
         ],
         "perspective": "participant",
         "channels": [
@@ -2106,7 +2109,8 @@
         ],
         "recipients": [
           "v",
-          "hanako-arasaka"
+          "hanako-arasaka",
+          "anders-hellman"
         ]
       },
       "condition": {
@@ -2586,7 +2590,8 @@
       "audience": {
         "speakers": [
           "rogue-amendiares",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "weyland"
         ],
         "perspective": "participant",
         "channels": [
@@ -2596,7 +2601,8 @@
         "recipients": [
           "v",
           "rogue-amendiares",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "weyland"
         ]
       },
       "condition": {
@@ -2635,7 +2641,8 @@
       ],
       "audience": {
         "speakers": [
-          "panam-palmer"
+          "panam-palmer",
+          "adam-smasher"
         ],
         "perspective": "participant",
         "channels": [
@@ -2645,7 +2652,8 @@
         "recipients": [
           "v",
           "panam-palmer",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "adam-smasher"
         ]
       },
       "condition": {
@@ -3314,7 +3322,8 @@
       ],
       "audience": {
         "speakers": [
-          "takemura"
+          "takemura",
+          "anders-hellman"
         ],
         "perspective": "participant",
         "channels": [
@@ -3324,7 +3333,8 @@
         "recipients": [
           "v",
           "takemura",
-          "hanako-arasaka"
+          "hanako-arasaka",
+          "anders-hellman"
         ]
       },
       "condition": {
