@@ -227,6 +227,25 @@ local function bodyObject(player)
     return ok and object or nil
 end
 
+-- One probe line per holocall reply (mod/holocall.lua), from its first phrase: how her voice is played and, for an Audioware
+-- phrase, what it plays on and how far that is from V (an emitter is full level within 2 m and silent past 18 m), so a call
+-- whose voice was not heard can be told from one that played. A few guarded reads once per reply, never per frame.
+local function noteHolocallVoice(path, emitter, level)
+    if not M.holocall or M.holocallNoted or type(M.log) ~= 'function' then return end
+    M.holocallNoted = true
+    local line = 'Holocall voice: path=' .. path
+    if level then line = line .. string.format(' level=%.2f', level) end
+    if emitter then
+        local ok, kind, away = pcall(function()
+            local a, b = emitter:GetWorldPosition(), M.player:GetWorldPosition()
+            local name = NameToString(emitter:GetClassName())
+            return name, math.sqrt((a.x - b.x)^2 + (a.y - b.y)^2 + (a.z - b.z)^2)
+        end)
+        line = line .. (ok and string.format(' on=%s away=%.1fm', tostring(kind), away) or ' on=unreadable')
+    end
+    pcall(M.log, line)
+end
+
 local function beginChunk(audio, text, timeline, startSeconds)
     -- Where the sound comes from: an add-on voice with its own object (voiceFrom: Skippy's gun) is heard from that object, every other
     -- reply from its speaker, and a holocall reply (heard through the phone, not from the live picture's copy, which is far away) from V.
@@ -249,6 +268,7 @@ local function beginChunk(audio, text, timeline, startSeconds)
         M.error = tostring(started)
         fallback('playback-failed', M.text); return false
     end
+    noteHolocallVoice('audioware', emitter)
     M.slot, M.duration, M.chunkText = audio.slot, audio.duration, text
     if M.stream and M.stream.version == 2 then M.stream.chunkStart = startSeconds or 0 end
     M.state, M.position, M.waited, M.stalled = 'starting', 0, 0, 0
@@ -283,6 +303,7 @@ function M.start(context, reply)
     -- every other speaker): a scene or fight that began since V asked drops the reply before anything is heard or shown.
     local storyGuard = M.storyGuard
     if storyGuard and storyGuard(M.target, context, true) == true then return false end
+    M.holocallNoted = nil
     M.voiceOnly = context.voiceOnly == true
     captions.voiceOnly = M.voiceOnly
     -- A holocall turn (mod/holocall.lua): full volume with no distance, and the call's subtitle line.
@@ -331,6 +352,10 @@ function M.start(context, reply)
             captions.show(context.name, reply.text, actor, context.entity); publish(); return false
         end
         M.player, M.actor, M.playerID = player, actor, tostring(player:GetEntityID().hash)
+        if M.holocall then
+            local known, status = pcall(controller.status)
+            noteHolocallVoice('browser', nil, known and type(status) == 'table' and status.volume or nil)
+        end
         M.requestId, M.context = context.requestId, {requestId=context.requestId,generation=context.generation,
             entity=context.entity,name=context.name}
         if face.beginExpression then face.beginExpression(M.context,reply.expression) end

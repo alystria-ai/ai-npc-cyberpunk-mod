@@ -16,8 +16,8 @@
 -- same without the quest path: for a STAGED character (and the setting on) it finds a floor out of V's sight above V,
 -- places a copy of the character there (the character's own record) held in a talk pose and kept animating, and points
 -- the game's own holocall camera at it with the game's own framing, lit by three of the game's own lamps as the game lights
--- its studio actor with lights of its own (M.LIGHTS). Anything that does not work out (no floor, the copy
--- or camera not ready in time, the copy moving) falls back to the portrait voice call.
+-- its studio actor with lights of its own (M.LIGHTS). Anything that does not work out (no floor within FACE_RANGE of V,
+-- the copy or camera not ready in time, the copy moving) falls back to the portrait voice call.
 --
 -- Cost: idle, update() is one nil check and drain() runs only on the phone's own request drain. A call ticks every
 -- 0.25 s and reads one native event queue per tick; the floor search runs once per live call, one candidate per tick.
@@ -63,9 +63,15 @@ M.LOW_TOP, M.LOW_BOTTOM, M.LOW_RADII = 10, -80, {12, 24, 40}
 -- Near first. The game animates a face only near V's own camera: a copy filmed 8 or 11 m from V moves its mouth, blinks
 -- and turns its eyes; at 16 m and beyond its face is frozen (live, 2026-10-15; the body still moves). So the search first
 -- tries a floor within FACE_RANGE metres of V (straight above or below V, then rings NEAR_RADII round V, floors from
--- NEAR_TOP above to NEAR_BOTTOM below V's feet, still out of V's sight), and only then the farther columns, where the
--- picture still works with a still face.
+-- NEAR_TOP above to NEAR_BOTTOM below V's feet, still out of V's sight), and the farther columns only with FAR_PICTURE.
 M.FACE_RANGE, M.NEAR_RADII, M.NEAR_TOP, M.NEAR_BOTTOM = 11, {5, 8}, 10, -10
+-- Far studios are not used. Past FACE_RANGE the game neither animates her face nor draws her and the place round her at
+-- full detail (live, 2026-10-18, V on a street in Little China: no near floor was hidden from V, so every call landed on
+-- a roof 79 m up, 84.5 m away; the picture had a still face that ignored the reply, a coarse low-detail body (Blue Moon)
+-- and broken scenery along its bottom edge (Rogue)). With no studio within FACE_RANGE the call goes on with the portrait,
+-- as the game's own voice calls do. True brings back the farther columns (above V, then the low rings): a picture with a
+-- still, coarse face.
+M.FAR_PICTURE = false
 -- A near column is tried floor by floor: when the first floor down a column will not do (V's own floor, in plain view),
 -- the next one under it is tried, up to NEAR_LAYERS floors (live, 2026-10-16: on a terrace every near column's first
 -- floor was V's own, in view, while the storey under it, 2 to 5 m below V and hidden by V's floor, was never looked at;
@@ -312,9 +318,9 @@ function M.studioAt(origin, x, y, range, below)
 end
 
 -- The columns searched, in order: the near ones (straight above or below V and eight round V on each of NEAR_RADII, a
--- floor within NEAR_TOP/NEAR_BOTTOM, tried floor by floor, kept only within FACE_RANGE of V), straight above V, eight
--- around at STUDIO_RADIUS (both with a floor above V), then rings round V at LOW_RADII with a floor level with or below
--- V. Each: {x, y, range, near}.
+-- floor within NEAR_TOP/NEAR_BOTTOM, tried floor by floor, kept only within FACE_RANGE of V); with FAR_PICTURE also
+-- straight above V, eight around at STUDIO_RADIUS (both with a floor above V), then rings round V at LOW_RADII with a
+-- floor level with or below V. Each: {x, y, range, near}.
 local function columns(origin)
     local above = {top = M.STUDIO_TOP, bottom = M.STUDIO_MIN}
     local low = {top = M.LOW_TOP, bottom = M.LOW_BOTTOM}
@@ -327,6 +333,7 @@ local function columns(origin)
                 range = near, near = true}
         end
     end
+    if not M.FAR_PICTURE then return list end
     list[#list + 1] = {x = origin.x, y = origin.y, range = above}
     for i = 0, 7 do
         local a = math.rad(i * 45)

@@ -243,7 +243,8 @@ is spawned with `forceMaxVisibility` (judy_holocall.scene, `spawnSetParams`); th
 **Fix.** The studio search tries near floors first (step 1 above), so a picture within 11 m of V is used whenever there
 is one; the probe line's `away=<m>` says how far she is. From V's Corpo Plaza apartment the search found a floor 5.1 m
 above V and the picture showed the jaw, the blink and a replayed talking timeline (`face-play` through the real writer)
-moving. A farther studio still gives the picture, with a still face. Also, `Face.reds` asks the holocall copy's
+moving. A farther studio is no longer used (`M.FAR_PICTURE`, false since 2026-10-18; see "Far studios" below): the
+call goes on with the portrait. Also, `Face.reds` asks the holocall copy's
 animated components for full detail before they attach (`clientForcedLod 0`, `clientForcedVisibility`,
 `useLongRangeVisibility`), since runtime changes are ignored; whether that alone keeps a far face moving is checked
 after the next game restart (see "Not verified yet").
@@ -424,6 +425,25 @@ The second turn: `ready`, 3.7 s. Now:
   `ready` in `runtime/party-connection-state.json`, read at most once a second) or `READY_MAX` (18 s), asked once per
   0.25 s tick while it rings. The connect line says `ready=yes|timeout ring=<s>s`.
 With Mistral or the local AI the warm resolves at once, so the call connects as soon as the picture is up.
+
+### Far studios (branch `holo-fix`, 2026-10-18)
+
+**Seen live (2026-10-18, V on a street in Little China, five calls).** No near floor was hidden from V, so every
+call took the first column above V: `holo spawn ... floor=+79.0m away=84.5m` (a roof 79 m up, 30 m to one side). The
+picture came up, but her face never moved with a reply (the speech face was written: `face=true/prepared`, 151 to
+163 frames applied, as at 20 m on 2026-10-15), Blue Moon's body was coarse and without facial detail, and Rogue's
+picture had broken scenery along its bottom edge. `Face.reds`'s full-detail request for the copy's components does not
+keep a far face moving or detailed. The calls of 2026-10-15/16 that worked were all placed from apartments, with a
+near studio (`floor=+4.5m away=4.5m`, `+5.1m`).
+
+**Now.** The search stops after the near columns (`M.FAR_PICTURE = false`): with no hidden floor within `FACE_RANGE` the
+call connects with the portrait, the usual `holo failed ... reason=no-studio-spot (<reasons>) fallback=audio` line and the
+"Live picture unavailable" notice. `far=<n>` in the reasons counts near floors that were hidden but past 11 m. Setting
+`M.FAR_PICTURE = true` restores the farther columns.
+
+**Voice probe line.** Each holocall reply logs `Holocall voice: path=browser level=<0..1>` (the cloud and Pocket voices,
+the browser renderer, at the phone's full level) or `Holocall voice: path=audioware on=<class> away=<m>m` (an Omni or
+prepared WAV, played on V's weapon or chest item: full level within 2 m, silent past 18 m), once per reply.
 
 ### Bridge
 
