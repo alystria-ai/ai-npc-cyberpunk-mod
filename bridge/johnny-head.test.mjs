@@ -355,3 +355,17 @@ test('the text providers say where he is right before V\'s words', () => {
   const last = messages[messages.length - 1].content;
   assert.match(last, /\[YOU, RIGHT NOW: You are in V's head, the engram on the Relic: [^\]]*V is in Watson\. You have no body; you go where V goes/);
 });
+
+test('shipping: the module ships and dev-installs; the setting has its row and help in English and all 15 languages', () => {
+  for (const plan of ['../packaging/release-plan.json', '../scripts/development-files.json']) {
+    assert.match(read(plan), /"source": "mod\/johnny-head\.lua",\s+"target": "bin\/x64\/plugins\/cyber_engine_tweaks\/mods\/AiNpcCyberpunkMod\/johnny-head\.lua"/, plan);
+  }
+  assert.match(read('../mod/mcm.lua'), /setting\('johnnyInHead', 'Johnny in your head', 'bool', snapshot\.settings\.johnnyInHead == true, false,/);
+  const en = JSON.parse(read('../localization/en.json')).strings;
+  const strings = Object.keys(en).filter(key => /Johnny|Grudging respect|Close friends|Not in your head yet|Gone after the ending|^Wary$|^Friends$/.test(key));
+  assert.ok(strings.length >= 10, strings.join(' | '));
+  for (const locale of ['cs', 'de', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'pl', 'pt-br', 'ru', 'tr', 'uk', 'zh-cn', 'zh-tw']) {
+    const source = read(`../mod/locales/${locale}.lua`);
+    for (const key of strings) assert.ok(source.includes(`["${key.replace(/\n/g, '\\n')}"]`), `${locale}: ${key.slice(0, 40)}`);
+  }
+});

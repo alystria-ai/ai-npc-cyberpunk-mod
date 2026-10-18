@@ -97,12 +97,52 @@ A reply Johnny is speaking when one of these starts is ended, through the same s
 ## Cost (FPS and latency)
 
 - **Setting off:** nothing. `mod/johnny-head.lua` is never loaded (`dofile` on first need, only when `manager.johnnyInHead()` is true); `selectConversation` does one boolean read on a talk key press that found nobody, which already ends in a notice today. The MCM row is not drawn.
-- **Setting on:** still nothing per frame. On a talk key press that found nobody: one battle sample (as the holocall does), at most fourteen `GetFactStr` reads (held 5 s, so a recording's validity poll costs nothing new) and a walk over at most 40 buffered game-dialogue rows. During a recording the head partner's validity is read about twice a second with the 0.4 s hold (the same poll the microphone already makes for any target).
+- **Setting on:** still nothing per frame. On a talk key press that found nobody: one battle sample (as the holocall does), at most fifteen `GetFactStr` reads (one before the story start) (held 5 s, so a recording's validity poll costs nothing new) and a walk over at most 40 buffered game-dialogue rows. During a recording the head partner's validity is read about twice a second with the 0.4 s hold (the same poll the microphone already makes for any target).
 - **Talk path latency:** the turn is an ordinary private turn on the holocall's audio route: the bridge warms the connection (`warmConversation`) when the composer opens or the recording starts, and the stage clock (`bridge/turn-clock.mjs`, `runtime/bridge-latency.json`) measures it with no change. The added context is one sentence in the "right now" block and one short world block (under 900 characters).
 
-## Phase 2: Johnny speaks first (not built)
+## Phase 2: Johnny speaks first (designed, not built)
 
-Short unprompted remarks at moments that already raise an event, with a cooldown of several minutes and a cap per hour, never in a scene, a call, a fight or after a game Johnny line: a quest objective finished (the journal event the knowledge collector already gets), V sitting down (the `WorkspotEvents.OnEnter` observer `mod/seated-look.lua` already installs), a long quiet drive. They would go through the automatic-reaction route (`docs/BATTLE_REACTIONS.md`: a reaction turn, its own lease, the subtitles' reaction line), as a second switch under the setting, off by default. Open question 3 below.
+### What the player asked for
+
+ZeroEscape (Nexus, 2026-10-19, after the first request) wants Johnny to comment unprompted on what V is doing: combat, quests and romances. The triggers he named: the Relic glitch (V coughing blood), V pulling off cool combat feats, V entering specific locations, and V meeting specific people. These are wishes, not a spec: no per-frame work, FPS, latency and the game's own scenes still win, and a remark that would cost any of them is not built.
+
+### Which turn path
+
+Not the add-on remark system (`mod/addons.lua` `Handle.remark`, Skippy's combat remarks), although its queue, priorities, gaps and caps are the right model. It runs only while an add-on is registered (`convaiAddons.live`), and an add-on speaker's text comes only from Mistral or the local AI with a manifest persona (`docs/ADDON_API.md`): Johnny would lose his roster profile, his knowledge rules and his Convai memory, which phase 1 uses.
+
+Instead, the main mod's automatic-turn path with a third reaction kind, `head`, beside `battle` and `loot` (`docs/BATTLE_REACTIONS.md`, `docs/LOOT_REACTIONS.md`):
+
+- **One reply owner.** The same `automatic` slot, `reactionLease`, `cancelAutomatic` and follow-on rules as battle and loot reactions, so a Johnny remark, a companion's battle line and a manual talk never overlap.
+- **The speaker** is the phase 1 head partner (V's entity, voice only, the `head` field), so the reply takes the same route (V's own sound, his subtitle line, no face). Today a battle speaker must be a body near V (`battleObserver.canSpeak`); the delivery check for `head` is `head:refusal(player)` instead, and `speech.storyGuard` already ends a head reply when a scene, a call or a game line of his starts.
+- **The bridge** accepts `reaction.kind = 'head'` (`bridge/protocol.mjs` `parseReaction`, `bridge/battle-context.mjs`) with a short event text and plain facts (the place, the person, the quest title): an automatic turn carries no right-now block (`sendRequest` adds it only to manual turns), so what he remarks on travels in the event. One short line, no question back, never stored in conversation memory, like the other reactions.
+- **Events feed a small queue.** Each event handler only appends `{kind, facts, at}` (bounded, newest wins per kind). The existing 0.1 s game tick drains it when the gates below are open. Nothing new runs per frame.
+
+### The triggers
+
+| Trigger | What already exists | Event or sample | New work | Cost and verdict |
+|---|---|---|---|---|
+| **Meeting a named person** | `mod/game-dialogue.lua` hooks the game's subtitle feed (`ShowDialogLines`, `OnShowDialogLine`) and attributes each line to a roster profile, with who else was present | Event-driven; already paid while Continue from game dialogue is on | A callback when a row is pushed: a roster character first heard in some hours. The remark waits until the scene is over (tier 1) | No new native reads. **First.** |
+| **Quests** | `ObserveAfter('JournalNotificationQueue', 'OnJournalUpdate')` (`mod/init.lua`) triggers the knowledge rescan after a 1 s debounce; `mod/world-knowledge.lua` already computes edges (a journal entry or fact that changed) through `onEdges`, wired today only for witness receipts (off by default) | Event-driven, then one rescan | A Johnny consumer of the edges: a quest succeeded or failed, his own quests above all (Chippin' In, Blistering Love, A Like Supreme, Tapeworm) | A few table operations per rescan. The remark comes after the rescan, so its time limit is generous. **First.** |
+| **Romances** | `mod/relationship-state.lua` already reads the eleven romance facts (Judy, Panam, River, Kerry, Meredith) every 2 s | Sampled, already paid | An on-change callback when a fact goes from 0 to set | Free. Fires at the end of a scene, so it waits for tier 1. **First.** |
+| **Entering a location** | `currentDistrict()` (`mod/init.lua`: `PreventionSystem:GetCurrentDistrict()` and a record walk) is read only when a turn is built; `bridge/place-names.mjs` already names the Afterlife, Lizzie's and the Arasaka Tower records (not the Ebunike) | Neither: no district-change event was found | Read only the district id every 5 to 10 s on the existing 0.5 s battle tick, and resolve the record only when it changes; a short list of places he has something to say about | One native call every 5 to 10 s, nothing per frame. The perf probe must show no new row. **Second.** |
+| **The Relic glitch, V coughing blood** | Nothing: no observer, status effect or fact for it in the repo | Unknown: it may be a status effect, or only a scripted animation and screen effect | First a read-only developer probe that lists V's applied status effects (`StatusEffectSystem:GetAppliedEffects`) during an open-world Relic episode (a live test). If it is a status effect, `ObserveAfter('PlayerPuppet', 'OnStatusEffectApplied')` with one table lookup | Event-driven and O(1) once the name is known. The story's own Relic episodes are scenes (tier 2 and above), where he stays quiet anyway; the open-world ones are the target. **After the probe.** |
+| **Cool combat feats** | Nothing in the main mod: no kill, headshot, multi-kill, takedown or low-health event (`docs/ADDON_API.md`); battle reactions know only fighting and ended, and the opponents V looked at | Would need new hooks on the damage or death path, called for every NPC hit | O(1) counters in the handlers; the decision on the 0.1 s tick; one remark after the fight ("after the fight" is also when a battle reaction speaks) rather than mid-fight | A handler on every hit in a heavy fight is a real FPS risk, and he stays quiet in fights today (open question 1). **Deferred**, and only with a perf-probe measurement. |
+
+### How chatty he is
+
+A select under Johnny in your head, **Johnny speaks up**: **Off** (the default), **Rare** or **Normal**.
+
+- **Off:** no hook is installed and no queue exists; the phase 1 setting alone loads nothing for remarks. CET cannot remove an observer, so a hook installed at session start when the select was on checks one boolean per event and returns once it is turned off.
+- **Rare:** at least 15 minutes between remarks and at most 2 an hour. **Normal:** at least 5 minutes and at most 6 an hour. A remark nobody heard does not count (the add-on rule).
+- **Always:** a cooldown per kind and per subject (the same person or place not again for an hour), a time limit after which a queued remark is dropped (about 60 s for a person or a place, 120 s for a quest), never within 10 s after a scene or a game line of his, never while V talks to anyone, records, or a reply or reaction plays, and the phase 1 story and busy gates.
+- **Quota:** on the free shared Convai key every remark counts as one of the day's turns (`bridge/shared-key-guard.mjs`), so the caps are also a quota control (open question 7).
+
+### Order of work
+
+1. The queue, the `head` reaction kind on both sides, the select and its 15 translations, with the three free triggers (people, quests, romances).
+2. Locations, after a perf-probe capture with the district read on.
+3. The Relic probe (a live test), then its hook.
+4. Combat feats, only if the user wants them after a measurement (and open question 1 allows remarks in fights).
 
 ## Phase 3: the glitching hologram (research, not built)
 
@@ -113,7 +153,7 @@ What exists (verified):
 - V sitting down is already an event (`mod/seated-look.lua`: `WorkspotEvents.OnEnter`, scene tier and seat class, nothing per frame). A scripted sequence that limits movement has no event: only the 0.5 s scene-tier sample.
 - No effect files, glitch shaders or hologram assets exist in this repo; the Skippy hologram lives in its own repository.
 
-The smallest clean version: on `WorkspotEvents.OnEnter` (V sits, tier 1, no vehicle, story gate open, busy gate clear, at most once every several minutes), spawn one tagged non-persistent `Character.Silverhand` copy two to three metres away with the blendable appearance and the phantom component left on, facing V, no AI role; delete it after about five seconds, or at once on standing up, a fight, a scene, a session end (`abandonSession`) or a sweep by tag at start-up. A short remark (phase 2) can play while he is there.
+The smallest clean version: on `WorkspotEvents.OnEnter` (V sits, tier 1, no vehicle, story gate open, busy gate clear, at most once every several minutes), spawn one tagged non-persistent `Character.Silverhand` copy two to three metres away with the blendable appearance and the phantom component left on, facing V, no AI role; delete it after about five seconds, or at once on standing up, a fight, a scene, a session end (`abandonSession`) or a sweep by tag at start-up. A short phase 2 remark can play while he is there.
 
 Why it is not built now: the glitch look is unproven at standing distance (the phantom controller may hide the whole entity, `companion-appearance.lua`), the cost is a full puppet with a facial rig per pop-in, and a scripted sequence that limits movement cannot be told from one that stages the game's own Johnny without a quest-state rule per scene. It needs one live test of the blendable appearance on a spawned copy first (open question 4).
 
@@ -136,15 +176,20 @@ Thin or missing (from the survey of the profile, claims and rules): the 2023 Ara
 | `bridge/johnny-head.mjs` (new) | the head block: standing and next-job guidance |
 | `bridge/turn-context.mjs`, `bridge/quest-context.mjs`, `bridge/mistral-prompt.mjs` | the "in V's head" sentence, the head block's place, the `HERE` pattern |
 | `packaging/release-plan.json`, `scripts/development-files.json` | ship and dev-install `johnny-head.lua` |
-| tests | `bridge/johnny-head.test.mjs` (new), `bridge/manager.test.mjs` |
+| `bridge/addons-lua.test.mjs` | the typed path's connection notice now also shows for Johnny (voice only, but with his own connection) |
+| `README.md`, `docs/NOTIFICATIONS.md` | the setting and the `talk-busy` notice's second use |
+| tests | `bridge/johnny-head.test.mjs` (new: the gates, stages and service in fengari, the loader, the wiring, the bridge words, shipping), `bridge/manager.test.mjs` (the setting and the standing row) |
 
 ## Open questions for the user
 
 1. **Combat.** Johnny stays quiet in fights (default), or he may answer in a fight like a voice in V's ear.
 2. **Scene tier 2.** Quiet at tier 2 too (default: the game's Johnny is often staged there, at the cost of Viktor's clinic and Misty's shop), or only at tier 3 like story characters.
-3. **Phase 2, Johnny speaks first.** Build it now behind a second switch (default off), or wait for feedback on phase 1.
+3. **Phase 2, Johnny speaks first.** Build step 1 of phase 2 now (people, quests, romances behind Johnny speaks up, Off by default; recommended), or wait for live feedback on phase 1 first.
 4. **Phase 3, the hologram.** One live test of the blendable look on a spawned copy first (recommended), or skip the hologram and keep him a voice.
 5. **Lore gaps.** Fill them through the reviewed claims pipeline after `cast-expansion` lands (recommended), or a short in-head primer written now.
+6. **Chattiness levels.** Off / Rare / Normal with the numbers above (recommended), or add Often (about 2 minutes, 15 an hour), or a single on/off switch.
+7. **Remarks on the shared key.** Count them as turns like battle reactions (recommended, the caps keep it small), or send remarks only for players with their own key, Mistral or Local AI.
+8. **Combat feats.** Defer (recommended: per-hit hooks are an FPS risk), or build after-fight remarks with a perf-probe measurement.
 
 ## Build steps
 
@@ -157,4 +202,15 @@ Thin or missing (from the survey of the profile, claims and rules): the 2023 Ara
 
 ## Live check owed
 
-Written at the end of the build (see the last section of the branch's TODO entry).
+Needs the Scripts install (all committed `mod/` files, including the new `mod/johnny-head.lua`), a CET reload and a bridge restart (the bridge runs from the main checkout, so after the merge). No archive, no redscript, no game restart. Use a save after Playing for Time and before the point of no return.
+
+1. Settings > Conversations: **Johnny in your head** is there, Off. Turn it on and Apply. Under it **Johnny's standing** appears with a value (Wary on an early Act 2 save; Friends or Close friends after the oil fields). Turn it off: the standing row goes. Check one other language for cut-off text.
+2. With it on, in open gameplay, face nobody and press the text key: the composer opens for Johnny Silverhand (a "Preparing connection" notice may show the first time). Type "Hey Johnny, you there?". His voice comes centred, as if inside V's head (no direction, same level when V turns), with the subtitle "Johnny Silverhand". `probe.log`: `Johnny in your head: conversation stage=<stage>`; the bridge log: `Turn context: ... head=<stage>`.
+3. The voice key with nobody in front of V: the same, spoken. Then face a companion or a passer-by and press the key: that character answers, not Johnny.
+4. Ask "What should I do next?": he names one of V's actual open jobs, in his voice, and says why. Ask about Rogue and Kerry: answers fit the save (the date, the reunion if done). Ask "What do you think of me?": the tone fits the standing row.
+5. Ask "Where are you right now?": he says he is in V's head (or words to that effect), never a place or task of his own.
+6. The game first: press the text key with nobody in front during (a) a dialogue choice with any NPC, (b) a phone call, (c) a fight, (d) a cutscene: each time "Johnny Silverhand is busy right now." and nothing starts; `probe.log` names the reason (`dialogue`, `call`, `combat`, `scene`). Start a reply, then walk into a scene or start a fight while he talks: his reply stops, `Johnny in your head: reply ended reason=...`.
+7. Right after the game's own Johnny says something (an ambient comment of his), press the key within 10 s: busy (`johnny-speaking`); after 10 s he answers.
+8. Story gate: on a save before Playing for Time is done (the prologue or the first heist) the key behaves as with the setting off ("Face a nearby character to talk.", `Johnny in your head: not in V's head (before)`), and the standing row says "Not in your head yet".
+9. FPS and latency: with the setting on, the perf probe shows no new per-frame row; `runtime/bridge-latency.json` for a Johnny turn is in line with a companion turn on the same provider.
+10. Setting off: everything as before; `johnny-head.lua` is not loaded (no `Johnny in your head` line in `probe.log`).

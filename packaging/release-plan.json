@@ -310,6 +310,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/world-talk.lua"
         },
         {
+          "source": "mod/johnny-head.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/johnny-head.lua"
+        },
+        {
           "source": "mod/talk-target.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/talk-target.lua"
         },
