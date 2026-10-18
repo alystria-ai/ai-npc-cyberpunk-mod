@@ -34,6 +34,7 @@ M.catalog = {
     ['phone-queue-refused'] = {class = PLAYER, repeatS = 20},
     -- Conversation service and replies
     ['service-down'] = {class = PLAYER},               -- once per failure
+    ['setup-problem'] = {class = PLAYER},              -- the setup check's first-load notice: the first critical install problem, once per game session (mod/setup-check.lua)
     ['service-blocked'] = {class = PLAYER, repeatS = 15},
     ['conversation-timeout'] = {class = PLAYER, repeatS = 15},
     ['reply-error'] = {class = PLAYER, repeatS = 15},
@@ -204,9 +205,11 @@ end
 
 -- Notices that stay longer than the ordinary five seconds: id -> seconds the notice stays after its frame has opened (the game
 -- adds about 2.7 s of intro and 0.9 s of outro around it). The daily limit has two lines to read and a choice to make.
+-- The setup check's first-load notice can carry two problems (one a line) and is written to the warning line without this mod's
+-- scripts, which the ordinary notice needs (a missing redscript is one of the problems it reports).
 -- Cost: one table lookup per permitted line of a notice. The loading notice may not cover such a notice before that time
 -- plus the intro and outro has passed (lastSentWait).
-M.showS = {['daily-limit'] = 9}
+M.showS = {['daily-limit'] = 9, ['setup-problem'] = 9}
 local INTRO_OUTRO_S = 3.6
 
 -- The notice held on screen: {text, at, mode, mask (which loads it lists), sig (the texts of the lines that change while their load goes on), matched, checkedAt, menu}, or nil.
