@@ -344,35 +344,72 @@ function M.follow(vehicle,target,ordinal)
     return command(ai,cmd:Copy(),vehicle.entity)
 end
 -- Followers another mod seats in V's car (docs/COMPANION_VEHICLES_DESIGN.md, "Other mods' riders"): characters the shared dynamic
--- entity system manages that are not ours, in V's attitude group and friendly to V, near V, standing outside every vehicle.
--- Their mod mounts them the moment V gets in, picking seats without looking at who sits where, so the policy keeps their
--- seats free of ours. Nothing of theirs is read beyond identity, attitude and mount state, and nothing is sent. Asked once
--- when boarding starts, never per frame; the service (init.lua's spawned-character service) does one targeting query and
--- one lookup per remembered ID. 0 when that service is missing, on a bike (nobody rides a bike's seats) or when none counts.
+-- entity system manages that are not ours, near V, alive, standing outside every vehicle, and either following V (the engine's
+-- follower role, which Night City Allies gives every follower it spawns, squad member or not) or friendly to V in V's own
+-- attitude group. The mod that made them mounts them the moment V gets in, or the engine's follower AI does, picking seats
+-- without looking at who sits where, so the policy keeps our companions out of their way. Nothing of theirs is read beyond
+-- identity, attitude and mount state, and nothing is sent. Asked once when boarding starts, never per frame; the service
+-- (init.lua's spawned-character service) does one targeting query and one lookup per remembered ID.
+-- Returns the count and a report {ids = {EntityID...}, rows = {{who, distance, counted, why}...}} for probe.log and for
+-- M.foreignPending. 0 when that service is missing, on a bike (nobody rides a bike's seats) or when none counts.
 local FOREIGN_RADIUS=50
 local function machine(npc)
     local ok,value=pcall(function() return npc:IsMech() or npc:IsDrone() end)
     return ok and value==true
 end
+-- init.lua sets the service as a global of this mod's environment; a bare read finds it, rawget(_G) is the second try.
+local function spawnedService()
+    local ok,service=pcall(function() return convaiSpawnedCharacters end)
+    if ok and service then return service end
+    return rawget(_G,'convaiSpawnedCharacters')
+end
+local function plainDistance(value) return type(value)=='number' and math.floor(value*10+.5)/10 or nil end
 function M.foreignRiders(player,vehicle)
-    local service=rawget(_G,'convaiSpawnedCharacters')
-    if not service or not player or not vehicle or not vehicle.entity or isBike(vehicle.entity) then return 0 end
+    local report={ids={},rows={}}
+    local service=spawnedService()
+    if not service then report.why='no spawned-character service'; return 0,report end
+    if not player or not vehicle or not vehicle.entity then report.why='no vehicle'; return 0,report end
+    if isBike(vehicle.entity) then report.why='bike'; return 0,report end
     local asked,rows=pcall(service.nearby,service,player,FOREIGN_RADIUS)
     if not asked then error(rows) end
-    if type(rows)~='table' then return 0 end
+    if type(rows)~='table' then report.why='no rows'; return 0,report end
     local own=player:GetAttitudeAgent()
     local group=NameToString(own:GetAttitudeGroup())
     local pending=0
     for _,row in ipairs(rows) do
-        local read,rides=pcall(function()
+        local line={who=row.key or row.entity and tostring(row.entity) or '?',distance=plainDistance(row.distance)}
+        local read,why,id=pcall(function()
             local npc=row.npc
-            if not npc or not npc:IsAttached() or npc:IsDeadNoStatPool() or machine(npc) then return false end
+            if not npc or not npc:IsAttached() then return 'detached' end
+            if npc:IsDeadNoStatPool() then return 'dead' end
+            if machine(npc) then return 'machine' end
+            if M.mounting({npc=npc}) then return 'mounted' end
+            local follower=select(2,pcall(function() return npc:IsPlayerCompanion() end))==true
             local agent=npc:GetAttitudeAgent()
-            if NameToString(agent:GetAttitudeGroup())~=group then return false end
-            if not tostring(agent:GetAttitudeTowards(own)):find('AIA_Friendly',1,true) then return false end
+            local friendly=tostring(agent:GetAttitudeTowards(own)):find('AIA_Friendly',1,true)~=nil
+            local sameGroup=NameToString(agent:GetAttitudeGroup())==group
+            if follower then return 'follower',npc:GetEntityID() end
+            if friendly and sameGroup then return 'friendly-group',npc:GetEntityID() end
+            return friendly and 'other-group' or 'not-friendly'
+        end)
+        line.why=read and why or 'unreadable'
+        line.counted=read and (why=='follower' or why=='friendly-group')
+        if line.counted then pending=pending+1; report.ids[#report.ids+1]=id end
+        report.rows[#report.rows+1]=line
+    end
+    return pending,report
+end
+-- Of the characters foreignRiders counted (their entity IDs), how many still stand outside every vehicle: the policy waits
+-- for them to take their seats. Called only while that wait lasts, twice a second, a lookup and a mount read each.
+function M.foreignPending(ids)
+    local pending=0
+    for _,id in ipairs(ids or {}) do
+        local read,waiting=pcall(function()
+            local npc=Game.FindEntityByID(id)
+            if not npc or not npc:IsAttached() or npc:IsDeadNoStatPool() then return false end
             return M.mounting({npc=npc})==nil
         end)
-        if read and rides==true then pending=pending+1 end
+        if read and waiting==true then pending=pending+1 end
     end
     return pending
 end

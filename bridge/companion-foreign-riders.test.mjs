@@ -33,7 +33,7 @@ function FACILITY:GetMountingInfoSingleWithObjects(npc)
   if not at then return nil end
   return {parentId = {hash = at.vehicle}, slotId = {id = at.seat}}
 end
-Game = {GetMountingFacility = function() return FACILITY end}
+Game = {GetMountingFacility = function() return FACILITY end, FindEntityByID = function(id) return ENTITIES and ENTITIES[id] end}
 local mod = (function() ${native}
 end)()
 
@@ -53,6 +53,12 @@ function person(options)
   function npc:IsAttached() return options.attached ~= false end
   function npc:IsDeadNoStatPool() return options.dead == true end
   function npc:GetAttitudeAgent() return agent end
+  NEXT_ID = (NEXT_ID or 100) + 1
+  local id = {hash = tostring(NEXT_ID) .. 'ULL', n = NEXT_ID}
+  function npc:GetEntityID() return id end
+  if options.follower ~= nil then function npc:IsPlayerCompanion() return options.follower end end
+  ENTITIES = ENTITIES or {}
+  ENTITIES[id] = npc
   if options.drone ~= nil or options.mech ~= nil then
     function npc:IsMech() return options.mech == true end
     function npc:IsDrone() return options.drone == true end
@@ -84,15 +90,58 @@ test('a friendly follower of V that stands outside every vehicle is a pending ri
   assert(CALLS.nearby == 1 and CALLS.radius == 50, tostring(CALLS.radius))
 `));
 
-test('only V-group, friendly, living, attached characters count', () => run(`${world}
+test('only followers, or friendly characters of V group, that are alive and attached count', () => run(`${world}
   service({
-    person(),                                                  -- a follower
+    person(),                                                  -- friendly, V's group
     person({group = 'civilian'}),                              -- a roamer or a placed character: another attitude group
     person({towards = 'EAIAttitude : AIA_Hostile (0)'}),       -- an enemy
     person({towards = 'EAIAttitude : AIA_Neutral (1)'}),
     person({dead = true}), person({attached = false}),
   })
   assert(mod.foreignRiders(player, car()) == 1)
+`));
+
+test('a character that follows V (the engine follower role) counts whatever its attitude group reads', () => run(`${world}
+  service({person({follower = true, group = 'civilian', towards = 'EAIAttitude : AIA_Neutral (1)'}),
+           person({follower = false, group = 'civilian'}), person({follower = false})})
+  local count, report = mod.foreignRiders(player, car())
+  assert(count == 2, count)
+  assert(#report.ids == 2)
+  assert(report.rows[1].why == 'follower' and report.rows[1].counted == true)
+  assert(report.rows[2].why == 'other-group' and report.rows[2].counted == false)
+  assert(report.rows[3].why == 'friendly-group' and report.rows[3].counted == true)
+`));
+
+test('the report names who was counted and who not and why, with the distance, for probe.log', () => run(`${world}
+  local keyed = person({dead = true}); keyed.key = 'judy-alvarez'; keyed.distance = 8.24
+  local far = person({towards = 'EAIAttitude : AIA_Hostile (0)'}); far.entity = 5551234; far.distance = 30
+  service({keyed, person({mounted = {vehicle = CARID, seat = 'seat_back_left'}}), far, person()})
+  local count, report = mod.foreignRiders(player, car())
+  assert(count == 1)
+  local why = {}
+  for _, row in ipairs(report.rows) do why[#why + 1] = row.why end
+  assert(table.concat(why, ',') == 'dead,mounted,not-friendly,friendly-group', table.concat(why, ','))
+  assert(report.rows[1].who == 'judy-alvarez' and report.rows[1].distance == 8.2)
+  assert(report.rows[3].who == '5551234')
+`));
+
+test('foreignPending counts the counted characters that still stand outside every vehicle', () => run(`${world}
+  service({person(), person(), person()})
+  local count, report = mod.foreignRiders(player, car())
+  assert(count == 3 and mod.foreignPending(report.ids) == 3)
+  FACILITY.mounts[ENTITIES[report.ids[1]]] = {vehicle = CARID, seat = 'seat_front_right'}
+  assert(mod.foreignPending(report.ids) == 2)
+  ENTITIES[report.ids[2]] = nil                                -- gone from the world
+  assert(mod.foreignPending(report.ids) == 1)
+  assert(mod.foreignPending({}) == 0 and mod.foreignPending(nil) == 0)
+`));
+
+test('the spawned-character service is found as a global of the mod environment; without it the report says so', () => run(`${world}
+  service({person()})
+  assert(mod.foreignRiders(player, car()) == 1)
+  _G.convaiSpawnedCharacters = nil
+  local count, report = mod.foreignRiders(player, car())
+  assert(count == 0 and report.why == 'no spawned-character service', tostring(report.why))
 `));
 
 test('a character already mounted anywhere is not pending: its seat is read from the car, a foreign car is not ours to plan', () => run(`${world}
@@ -151,3 +200,13 @@ test('the policy takes the count from the adapter once, with the player and V ca
   assert(seen and seen[1] == player and seen[2] == fleet.primary)
   assert(fleet.people[1].seat == 'seat_back_left', tostring(fleet.people[1].seat))
 `));
+
+test('the service is read as a bare global of the mod environment first, and the fleet report reaches probe.log', () => {
+  // Live 2026-10-19: rawget(_G, ...) alone found nothing in the game, so the first version counted nobody. A bare global read is
+  // the form every other module uses for init.lua's globals; rawget(_G) stays as the second try.
+  assert.match(native, /pcall\(function\(\) return convaiSpawnedCharacters end\)/);
+  const companions = readFileSync(new URL('../mod/companions.lua', import.meta.url), 'utf8');
+  assert.match(companions, /fleet\.report = function\(kind, fields\)[^\n]*M\.recoveryLog, 'vehicle-' \.\. kind, fields/);
+  assert.match(policy, /report\(s,'boarding'/);
+  assert.match(policy, /report\(s,'exit-start'/);
+});

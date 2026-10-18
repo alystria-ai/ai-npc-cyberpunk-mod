@@ -5,6 +5,7 @@ local M={}
 local stopChauffeurConvoy
 local MAX_ATTEMPTS=3
 local BOARD_TIMEOUT,EXIT_TIMEOUT,ATTACH_TIMEOUT=20,12,12
+local EXIT_RETRY=10
 local function terminal(state)
     return state=='Success' or state=='Failure' or state=='Cancelled' or state=='Interrupted' or state=='Detached'
 end
@@ -16,6 +17,21 @@ end
 local function emit(s,event,person,mode)
     if #s.events>=32 then table.remove(s.events,1) end
     s.events[#s.events+1]={at=s.clock,event=event,serial=person and person.entry.serial,generation=s.generation,mode=mode}
+end
+-- One probe.log line per decision (the owner of the fleet sets s.report; companions.lua writes 'Companion recovery vehicle-<kind>').
+-- Rare events only (a boarding, a seat, an exit), never per frame. Fields are plain strings, numbers and lists.
+local function report(s,kind,fields)
+    if type(s.report)=='function' then pcall(s.report,kind,fields) end
+end
+local function who(person) return person.entry.name or person.entry.key or tostring(person.entry.serial) end
+-- One line per exit decision of each person, not per tick: the line repeats only when the decision changes.
+local function exitNote(s,person,key,fields)
+    if person.exitNote==key then return end
+    person.exitNote=key
+    fields=fields or {}
+    fields.name,fields.decision=who(person),key
+    if fields.seat==nil then fields.seat=person.seat end
+    report(s,'exit',fields)
 end
 function M.new(api,chauffeurApi)
     return {api=api or dofile('companion-vehicle-native.lua'),clock=0,phase='on-foot',
@@ -104,14 +120,19 @@ local function reserved(s,vehicle,seat,except)
     end
     return false
 end
--- Followers another mod seats in V's car (docs/COMPANION_VEHICLES_DESIGN.md, "Other mods' riders"). They never join our party, and
--- their mod mounts them the moment V gets in without asking who sits where: it gives the front passenger seat to one rider,
--- then the next free passenger seats in the vehicle's own seat order, one per rider. A seat of ours that it picks ends up
--- with two bodies in it. So the seats that plan will use are kept out of our choice, from the moment boarding starts until
--- FOREIGN_HOLD seconds later; a companion who finds no seat left takes the ordinary no-free-seat path (the overflow car,
--- or waiting). The plan is made once per boarding from the seats free at that moment and never changes while it stands
--- (a seat that fills up must not move the hold to the next one).
-local FOREIGN_HOLD=25
+-- Followers another mod seats in V's car (docs/COMPANION_VEHICLES_DESIGN.md, "Other mods' riders"). They never join our party,
+-- and whatever mounts them (their mod, or the engine's follower AI) picks seats without asking who sits where: Night City Allies
+-- gives the front passenger seat to one rider, then the next free passenger seats in the vehicle's own seat order, one per
+-- rider. A seat of ours that it picks ends up with two bodies in it. Two layers keep us out of the way:
+--   * the PLAN: the seats that default order will use are kept out of our choice (a plan, made once per boarding from the seats
+--     free at that moment, which never changes while it stands: a seat that fills up must not move the hold to the next one);
+--   * the WAIT: the plan can be wrong (favourite seats, a mod that does not follow that order, the engine mounting followers
+--     itself), so while any counted rider still stands outside a vehicle our companions send no mount command, spawn no overflow
+--     car and choose no seat for good. The wait ends when every counted rider is seated or gone, or after FOREIGN_SETTLE
+--     seconds; the seats are then chosen from what is actually occupied or reserved, which is what the pre-mount check in
+--     `board` sees anyway. Without the adapter's foreignPending only the plan applies, for FOREIGN_HOLD seconds.
+-- A companion left without a seat takes the ordinary no-free-seat path (the overflow car, or waiting).
+local FOREIGN_HOLD,FOREIGN_SETTLE,FOREIGN_POLL=25,12,.5
 local FOREIGN_SEATS={seat_front_right=true,seat_back_left=true,seat_back_right=true}
 local FOREIGN_FIRST='seat_front_right'
 local function foreignPlan(vehicle,riders)
@@ -131,7 +152,18 @@ local function foreignPlan(vehicle,riders)
 end
 local function foreignHeld(s,vehicle,seat)
     local plan=s.foreign
-    return plan~=nil and plan.held[seat]==true and vehicle==s.primary and s.clock<plan.expires
+    if not plan or plan.held[seat]~=true or vehicle~=s.primary or plan.settled then return false end
+    return s.clock<plan.expires
+end
+local function foreignSettling(s)
+    local plan=s.foreign
+    return plan~=nil and plan.waits==true and not plan.settled
+end
+local function heldNames(plan)
+    local names={}
+    for name in pairs(plan.held) do names[#names+1]=name end
+    table.sort(names)
+    return names
 end
 local function available(s,vehicle,seat,person)
     local ownId=person and tostring(person.entry.entityID.hash)
@@ -145,6 +177,9 @@ local function assign(s,person,vehicle,seat)
     person.phase='waiting-to-board'
     person.attempts,person.retryAt,person.error=0,nil,nil
     emit(s,'seat-reserved',person)
+    if s.foreign and s.foreign.logged then
+        report(s,'seat',{name=who(person),seat=seat,car=vehicle==s.primary and 'V' or ('party car '..tostring(vehicle.ordinal))})
+    end
 end
 -- A companion who never drives (catalog.passengerOnly: Alt Cunningham) is seated first, so she takes a seat in V's car
 -- before anyone who could drive an overflow car; the rest keep their serial order.
@@ -192,11 +227,20 @@ local function startExit(s,reason)
     s.phase=reason=='fast-travel' and 'recovering' or 'exiting'
     s.exitReason=reason
     s.recoveryPositions={}
+    local rows={}
+    for _,person in ipairs(ordered(s)) do
+        if person.owned then
+            local at=person.mount and (tostring(person.mount.seat)..(s.primary and person.mount.vehicle==s.primary.id and '@V' or '@other')) or 'not mounted'
+            rows[#rows+1]={name=who(person),seat=person.seat or 'none',phase=person.phase,mounted=at}
+        end
+    end
     for _,person in pairs(s.people) do
         person.phase='leaving'; person.attempts=0; person.retryAt=nil
         person.recovered=nil; person.recoverAttempts=nil; person.recoverAt=nil
+        person.exitNote,person.failedAt,person.rounds=nil,nil,nil
     end
     emit(s,reason)
+    report(s,'exit-start',{reason=reason,people=rows})
 end
 -- The Delamain cab leaves about 5 s after V is out, so companions start leaving
 -- at arrival while V still sits. taxiExit keeps the fleet from boarding again.
@@ -217,23 +261,59 @@ local function begin(s,primary,entries)
     emit(s,'journey-start')
 end
 -- One question to the adapter per boarding (a trip, for a chauffeur car): how many of another mod's followers are about to ride
--- in V's car. It is asked when someone first needs a seat and never again for the same boarding: the seats are chosen in that
--- same update, and waiting for a second try would delay every companion's boarding. A missing adapter function, a failed read
--- or no answer all mean none: the original seat choice.
+-- in V's car. It is asked when someone first needs a seat and not again for the same boarding: the seats are chosen in that
+-- same update. A missing adapter function, a failed read or no answer all mean none: the original seat choice.
 local function sampleForeign(s,player)
     local plan=s.foreign
     if plan and plan.generation==s.generation and plan.vehicle==s.primary.id and plan.trip==s.chauffeur then return end
     plan={generation=s.generation,vehicle=s.primary.id,trip=s.chauffeur,riders=0,held={},expires=0}
     s.foreign=plan
-    if not s.api.foreignRiders then return end
-    local riders,err=safe(s.api.foreignRiders,player,s.primary)
-    plan.error=err
-    if err then return end
+    if not s.api.foreignRiders then plan.why='adapter has no foreign-rider read'; return end
+    local riders,detail=safe(s.api.foreignRiders,player,s.primary)
+    if riders==nil then plan.error=tostring(detail); plan.why='read failed'; return end
     plan.riders=math.max(0,math.floor(tonumber(riders) or 0))
+    if type(detail)=='table' then plan.rows,plan.ids,plan.why=detail.rows,detail.ids,detail.why end
     if plan.riders==0 then return end
     plan.held=foreignPlan(s.primary,plan.riders)
     plan.expires=s.clock+FOREIGN_HOLD
+    if type(s.api.foreignPending)=='function' and type(plan.ids)=='table' and #plan.ids>0 then
+        plan.waits=true; plan.settleUntil=s.clock+FOREIGN_SETTLE; plan.nextPoll=s.clock+FOREIGN_POLL
+    end
     emit(s,'foreign-riders',nil,plan.riders)
+end
+-- While the wait lasts: twice a second, a lookup and a mount read for each counted rider (a few characters, a few seconds).
+local function pollForeign(s)
+    local plan=s.foreign
+    if not foreignSettling(s) then return end
+    local why
+    if s.clock>=plan.settleUntil then why='timeout'
+    elseif s.clock>=plan.nextPoll then
+        plan.nextPoll=s.clock+FOREIGN_POLL
+        local pending,err=safe(s.api.foreignPending,plan.ids)
+        if pending==nil then plan.error=tostring(err); why='unreadable'
+        elseif tonumber(pending)<=0 then why='seated' end
+    end
+    if not why then return end
+    plan.settled,plan.settledWhy=true,why
+    report(s,'settled',{why=why,waited=math.floor((s.clock-(plan.settleUntil-FOREIGN_SETTLE))*10+.5)/10,error=plan.error})
+end
+-- The line for the next live check: what the read found, which seats were held, and where each of our companions went.
+local function boardingLine(s)
+    local plan=s.foreign
+    if not plan or plan.logged then return end
+    plan.logged=true
+    local chosen,seated={},{}
+    for _,person in ipairs(ordered(s)) do
+        if person.owned then
+            chosen[#chosen+1]={name=who(person),seat=person.seat or 'none',
+                car=person.vehicle and (person.vehicle==s.primary and 'V' or 'party car') or 'none'}
+        end
+    end
+    for _,seat in ipairs(s.primary.info and s.primary.info.seats or {}) do
+        if seat.occupant or seat.reserved then seated[#seated+1]=seat.name..(seat.occupant and '=occupied' or '=reserved') end
+    end
+    report(s,'boarding',{riders=plan.riders,held=heldNames(plan),waiting=plan.waits==true,why=plan.why,error=plan.error,
+        taken=seated,people=chosen,foreign=plan.rows})
 end
 local function allocate(s,player)
     if not s.primary.info or not s.primary.info.ready then
@@ -241,6 +321,7 @@ local function allocate(s,player)
     end
     s.error=nil
     if #pending(s)>0 then sampleForeign(s,player) end
+    pollForeign(s)
     -- A native follower can have boarded between two samples. Actual mounting
     -- takes precedence over an uncommitted local passenger-seat reservation.
     for _,person in ipairs(pending(s)) do
@@ -250,7 +331,22 @@ local function allocate(s,player)
             assign(s,person,s.primary,mount.seat)
         end
     end
+    -- The same for a companion planned for another car whom the engine's follower AI seated in V's car (live 2026-10-19: Alex
+    -- sat in V's passenger seat while the fleet waited to board her elsewhere, and she was still there when V got out). The
+    -- last mount board() read stands in for a fresh one: no extra native read per person per tick.
+    for _,person in ipairs(ordered(s)) do
+        local mount=person.owned and not person.removing and person.vehicle and person.vehicle~=s.primary and person.mount
+        if mount and mount.vehicle==s.primary.id and mount.seat~='seat_front_left'
+            and not reserved(s,s.primary,mount.seat,person) and (not person.command or releaseCommand(s,person)) then
+            emit(s,'adopted-in-primary',person)
+            assign(s,person,s.primary,mount.seat)
+        end
+    end
     fill(s,s.primary)
+    boardingLine(s)
+    -- Nothing past this point (the cab's no-seat message, a spawned party car) before the other mod's followers have sat down:
+    -- whoever is left without a seat is decided from the real occupancy afterwards.
+    if foreignSettling(s) then return end
     if isTaxi(s,s.primary) then
         -- A self-driving cab has no convoy: whoever finds no seat waits and walks on after the exit.
         for _,person in ipairs(pending(s)) do
@@ -403,6 +499,10 @@ local function board(s,person,hooks,budget)
     end
     if person.attempts>=MAX_ATTEMPTS then person.phase='boarding-failed'; return budget end
     if s.clock<(person.retryAt or 0) or budget<=0 or car.info.speed>0.8 or car.info.scene then return budget end
+    if car==s.primary and foreignSettling(s) then
+        person.error="Waiting for another mod's followers to take their seats."
+        return budget
+    end
     if s.api.canBoard then
         local calm,err=safe(s.api.canBoard,person.entry)
         if not calm then person.error=err or 'Waiting for combat to finish before boarding.'; return budget end
@@ -552,21 +652,47 @@ local function leave(s,person,player,hooks,budget,recoveryPositions)
     end
     local car=person.vehicle
     if not car or mount.vehicle~=car.id then
-        person.error='Companion entered another vehicle; its occupant is left unchanged.'
-        -- A foreign mount is not an on-foot handoff. Wait for its native
-        -- dismount instead of issuing walking into somebody else's vehicle.
-        person.phase='waiting-for-native-dismount'; return budget
+        -- She sits in a car of the fleet (V's or a party car) other than the one planned for her, because the engine's follower
+        -- AI seated her there: her exit is ours to run, from the car she is really in (live 2026-10-19: Alex stayed seated
+        -- when V got out). Only a car that is not the fleet's is somebody else's.
+        local actual
+        if s.primary and s.primary.id==mount.vehicle then actual=s.primary end
+        for _,other in ipairs(s.cars) do if other.id==mount.vehicle then actual=other end end
+        if actual then
+            person.vehicle,person.seat=actual,mount.seat; car=actual
+            exitNote(s,person,'exits-from-actual-car',{seat=mount.seat,car=actual==s.primary and 'V' or 'party car'})
+        else
+            person.error='Companion entered another vehicle; its occupant is left unchanged.'
+            -- A foreign mount is not an on-foot handoff. Wait for its native
+            -- dismount instead of issuing walking into somebody else's vehicle.
+            person.phase='waiting-for-native-dismount'
+            exitNote(s,person,'waits-for-foreign-vehicle',{seat=mount.seat})
+            return budget
+        end
     end
     if budget<=0 or not car.info or not car.info.ready or car.info.speed>0.5 or car.info.scene
-        or s.clock<(person.retryAt or 0) then return budget end
+        or s.clock<(person.retryAt or 0) then
+        if car.info and car.info.ready and (car.info.speed>0.5 or car.info.scene) then
+            exitNote(s,person,'waits-for-car',{speed=math.floor((car.info.speed or 0)*10+.5)/10,scene=car.info.scene==true})
+        end
+        return budget
+    end
     if car.command or car.pendingCommand then return budget end
-    if person.attempts>=MAX_ATTEMPTS then person.phase='exit-failed'; return budget end
+    if person.attempts>=MAX_ATTEMPTS then
+        person.phase='exit-failed'
+        exitNote(s,person,'exit-failed-'..(person.rounds or 0),{round=person.rounds or 0})
+        -- Three refused unmounts are not the end: try again in rounds, ten seconds apart, instead of leaving her seated for good.
+        person.failedAt=person.failedAt or s.clock
+        if s.clock-person.failedAt<EXIT_RETRY or (person.rounds or 0)>=2 then return budget end
+        person.rounds=(person.rounds or 0)+1; person.attempts,person.failedAt=0,nil
+    end
     person.attempts=person.attempts+1; person.commandAt=s.clock
     person.commandState=nil
     local command,err=safe(s.api.mount,person.entry,car,mount.seat,true)
     person.command=command; person.phase='unmounting'; person.error=err
     if not command then person.retryAt=s.clock+2 end
     emit(s,'unmount-requested',person)
+    exitNote(s,person,'unmount-requested-'..person.attempts..'-'..(person.rounds or 0),{attempt=person.attempts,seat=mount.seat})
     return budget-1
 end
 stopChauffeurConvoy=function(s)
