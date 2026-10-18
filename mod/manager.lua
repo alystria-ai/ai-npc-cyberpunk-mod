@@ -720,6 +720,12 @@ local function loadSettings()
     if type(settings.archetypeConversations) ~= 'boolean' then settings.archetypeConversations, settingsNeedSave = true, true end
     -- Off by default: the game's own named characters can be talked to where they stand once the player turns it on (docs/WORLD_CHARACTERS.md).
     if type(settings.storyConversations) ~= 'boolean' then settings.storyConversations, settingsNeedSave = false, true end
+    -- Off by default: Johnny answers the talk keys as the voice in V's head while the story has him there (docs/JOHNNY_IN_YOUR_HEAD.md).
+    if type(settings.johnnyInHead) ~= 'boolean' then settings.johnnyInHead, settingsNeedSave = false, true end
+    -- Off by default: how often Johnny speaks up unprompted (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): off, rare or normal.
+    if settings.johnnyRemarks ~= 'off' and settings.johnnyRemarks ~= 'rare' and settings.johnnyRemarks ~= 'normal' then
+        settings.johnnyRemarks, settingsNeedSave = 'off', true
+    end
     -- Off by default. A saved pairing with the Convai cloud voice cannot stand: the cloud voice is kept (it is the
     -- player's voice) and the setting is turned off below.
     if type(settings.naturalSpeech) ~= 'boolean' then settings.naturalSpeech, settingsNeedSave = false, true end
@@ -853,6 +859,20 @@ end
 function M.storyConversations()
     loadSettings()
     return settings.storyConversations == true
+end
+
+-- Johnny in your head: the talk keys with nobody in front of V address Johnny Silverhand (mod/johnny-head.lua). Read on a talk key
+-- press that found nobody and when the settings page is drawn, never per frame.
+function M.johnnyInHead()
+    loadSettings()
+    return settings.johnnyInHead == true
+end
+
+-- Johnny speaks up: 'off', 'rare' or 'normal' (mod/johnny-remarks.lua). Read when a collector hands over an event and on the 0.1 s tick
+-- while a remark waits, never per frame.
+function M.johnnyRemarks()
+    loadSettings()
+    return settings.johnnyRemarks == 'rare' and 'rare' or settings.johnnyRemarks == 'normal' and 'normal' or 'off'
 end
 
 function M.profileEnabled(key)
@@ -1707,6 +1727,8 @@ function M.snapshot(player)
             multilingualConversations = settings.multilingualConversations,
             archetypeConversations = settings.archetypeConversations,
             storyConversations = settings.storyConversations == true,
+            johnnyInHead = settings.johnnyInHead == true,
+            johnnyRemarks = M.johnnyRemarks(),
             uiLanguage = settings.uiLanguage,
             enabledByKey = enabled},
         ownKey = M.ownKey(),
@@ -1780,6 +1802,12 @@ function M.applySettings(player, values)
         elseif key == 'storyConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.storyConversations = value
+        elseif key == 'johnnyInHead' then
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.johnnyInHead = value
+        elseif key == 'johnnyRemarks' then
+            if value ~= 'off' and value ~= 'rare' and value ~= 'normal' then return false, 'Choose how often Johnny speaks up.' end
+            nextSettings.johnnyRemarks = value
         elseif key == 'conversationProvider' then
             if value ~= 'convai' and value ~= 'mistral' and value ~= 'local' then return false, 'Choose one of the listed conversation providers.' end
             nextSettings.conversationProvider = value

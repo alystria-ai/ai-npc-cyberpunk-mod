@@ -373,7 +373,7 @@ export class RealtimeHost {
   run(config, method, options = {}) {
     const attempt = async () => {
       // One admission per turn; the recovery retries below repeat the same turn.
-      if (method !== 'warm' && this.guard) { this.guard.check(); this.guard.consume(); }
+      if (method !== 'warm' && this.guard) { this.guard.check(config); this.guard.consume(config); }
       let current = config, waited = false;
       for (let retries = 0; ; retries++) {
         try { return await this.runOnce(current, method, options); }

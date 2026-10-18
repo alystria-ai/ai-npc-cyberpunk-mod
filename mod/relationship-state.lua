@@ -80,6 +80,14 @@ function M.new(options)
         end
         if not same(frame, currentWorld()) then return self:reset('world-changed-during-capture') end
         if not publish(candidate) then last = nil; return false end
+        -- A fact that became set since the last capture of the same world (Johnny speaks up, init.lua; nil leaves it as before). The
+        -- first capture of a world is only a baseline.
+        if type(self.onFact) == 'function' and last and same(last, frame) then
+            for _, spec in ipairs(FACTS) do
+                local now, before = candidate.facts[spec[1]], last.facts[spec[1]]
+                if now and now.status == 'known' and (not before or before.status ~= 'known') then pcall(self.onFact, spec[1]) end
+            end
+        end
         last = candidate
         return true
     end

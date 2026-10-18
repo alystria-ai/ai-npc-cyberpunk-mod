@@ -14,9 +14,10 @@ import {resolve} from 'node:path';
 // the provider's retained memory. The player's existing memory policy remains
 // authoritative; this feature does not promise group amnesia at the server.
 export const REVIEWED_INTRINSIC_PACKS = Object.freeze([
+  // Re-reviewed 2026-10-19 with nine more claims (research/cyberpunk/native-reviews/johnny-lore-20261019.md); raw hash is the LF bytes.
   Object.freeze({key: 'johnny-silverhand', file: 'research/cyberpunk/native-character-claims/johnny-silverhand.json',
-    hashEncoding: 'canonical-json-v1', sha256: 'e2ceecd1c589adcf2d7ca8b40cf09fa64bda63978f9f6015509bb53d523303d2',
-    reviewedRawFileSha256: '25b1ab54131f9c32dcb0fb68730975fcfea682c209c7139c177438702656ce8c'}),
+    hashEncoding: 'canonical-json-v1', sha256: '38c3ba06101612bf932d82857b4ce0dcc32e137700022d9845b64c0a385edbb2',
+    reviewedRawFileSha256: '41dc2f6b05abaa5eda33b5b4ea5e92d3c087c16e523b314d0877c15242e95ef0'}),
   Object.freeze({key: 'jackie-welles', file: 'research/cyberpunk/native-character-claims/jackie-welles.json',
     hashEncoding: 'canonical-json-v1', sha256: '32162b6414b63c418b67de147868b8b82d9ee59b401967959c8488217d5fb352',
     reviewedRawFileSha256: '3818200ab7fcd8a5b87bff8829d302adaecfc957eb528b86dae9b6a780f69140'}),
@@ -87,6 +88,17 @@ function canonical(value) {
 export function intrinsicAuthorDocumentHash(value) {
   return digest(canonical(value));
 }
+
+// Johnny's Alt and 2023 tower questions are matched by more than one topic row.
+const JOHNNY_ALT = Object.freeze({match: /\balt(?:\s+cunningham)?\b/u,
+  association: /\balt\s+cunningham\b|\b(?:who\s+(?:was|is)|tell\s+me\s+about|what\s+happened\s+(?:to|with))\s+alt\b|\bwhat\s+happened\s+between\s+you\s+and\s+alt\b|\b(?:you|your|johnny)\b.{0,35}\b(?:love|loved|know|knew|meet|met|relationship|history|girlfriend|feel|felt|think|thought)\b.{0,35}\balt\b|\balt\b.{0,35}\b(?:you|johnny)\b/u,
+  blocked: /\b(?:alt[ -]?(?:key|shortcut|hotkey)|keyboard|press\s+alt|hold\s+alt)\b/u});
+// A bomb, a nuke or a tower alone is present-day talk; the 2023 history needs Arasaka Tower, the year or his own bomb.
+// Plans, security and getting into the tower now (the ending assaults, the heist) are present-day too,
+// unless the question itself is about the past (2023, back then, was/were, did you).
+const JOHNNY_TOWER = Object.freeze({match: /\b(?:arasaka\s+tower|tower|nukes?|nuked|nuclear|bomb(?:s|ing|ed)?|2023|twenty[- ]twenty[- ]three|fissile)\b/u,
+  association: /\b(?:2023|twenty[- ]twenty[- ]three)\b|\barasaka\s+tower\b|\b(?:nukes?|nuked|nuclear|bomb(?:s|ing|ed)?|fissile)\b.{0,40}\b(?:arasaka|tower)\b|\b(?:arasaka|tower)\b.{0,40}\b(?:nukes?|nuked|nuclear|bomb(?:s|ing|ed)?|fissile)\b|\byour\s+(?:bomb(?:ing)?|nukes?|raid|attack)\b|\byou\b.{0,20}\b(?:nuked|bombed)\b|\byou\b.{0,30}\b(?:plant\w*|set\s+off|detonat\w*|regret\w*|sorry|guilt\w*)\b.{0,30}\b(?:nukes?|bomb(?:s|ing)?)\b|\byou\b.{0,20}\b(?:get|got)\b.{0,20}\b(?:nukes|nuclear|charges)\b|\bbomb\b.{0,12}\bcalled\b/u,
+  blocked: /^(?!.*\b(?:2023|twenty[- ]twenty[- ]three|back\s+then|was|were|did\s+you)\b).*\b(?:plans?\s+for|get\s+(?:in|into|inside)|going\s+(?:to|into)|break\w*\s+in\w*|security|assault\s+on|storm\w*|rebuil[td]|new\s+tower|heist|last\s+night|just\s+now|today|tonight|tomorrow|we\s+(?:can|should|will|could))\b/u});
 
 // Deliberately curated claim IDs, not fuzzy searches through a private bio.
 // Broad questions never silently unlock the most painful nearby material.
@@ -222,12 +234,32 @@ const TOPICS = freeze({
     {id: 'desertion', match: /\b(?:desert(?:ed|ing|ion)?|pistis\s+sophia)\b/u,
       association: /\byour\s+(?:desertion|service|time|past)\b|\byou\b.{0,40}\b(?:desert(?:ed|ing|ion)?|pistis\s+sophia)\b|\b(?:tell\s+me\s+about|what\s+happened\s+at)\s+pistis\s+sophia\b/u,
       personal: true, sensitive: true, claims: ['johnny.service.desertion-and-withdrawal']},
+    // 2023 tower, Soulkiller and Spider Murphy (reviewed 2026-10-19, native-reviews/johnny-lore-20261019.md):
+    // his represented memory and his own account stay attributed; in-world records that disagree come with them.
+    {id: 'spider-murphy', match: /\bspider\b|\bmurph(?:y)?\b/u,
+      association: /\bspider\s+murphy\b|\b(?:tell\s+me\s+about|who\s+was)\s+murph\b|\b(?:you|your|johnny)\b.{0,40}\b(?:spider|murph(?:y)?)\b|\b(?:spider|murph(?:y)?)\b.{0,40}\b(?:you|johnny)\b/u,
+      blocked: /\bmurphy'?s\s+law\b|\bspider[- ](?:tanks?|bots?|drones?|mines?|webs?|mechs?)\b|\bspiders\b|\bmy\s+(?:\w+\s+)?murphy\b/u,
+      personal: true, claims: ['johnny.friends.spider-murphy-netrunner']},
+    {id: 'soulkiller', match: /\bsoul\s*killer\b/u, personal: true, sensitive: true,
+      claims: ['johnny.friends.alt-soulkiller-blame', 'johnny.history.codex-tower-death', 'johnny.friends.alt-escape-account']},
+    {id: 'tower-death', match: /\b(?:how\s+(?:did\s+)?you\s+die[ds]?|your\s+death|(?:when|after)\s+you\s+died|smasher|saburo|captured|capture|interrogat\w*)\b/u,
+      association: /\b(?:how\s+(?:did\s+)?you\s+die[ds]?|your\s+death|(?:when|after)\s+you\s+died)\b|\b(?:smasher|saburo)\b.{0,40}\b(?:you|your)\b|\b(?:you|your)\b.{0,40}\b(?:smasher|saburo)\b|\b(?:captured|interrogated)\s+you\b|\byou\s+(?:were|got)\s+(?:captured|interrogated)\b|\b(?:were|was|got)\s+you\s+(?:captured|interrogated)\b|\byour\s+(?:capture|interrogation)\b/u,
+      blocked: /\b(?:will|gonna|going\s+to|plans?|mikoshi)\b/u,
+      personal: true, sensitive: true, claims: ['johnny.history.codex-tower-death', 'johnny.memory.tower-capture']},
+    {id: 'tower-motive', ...JOHNNY_TOWER, detail: /\b(?:why|reason|motive|alt|rogue|subnet|worth\s+it|regret\w*|sorry|guilt\w*)\b/u,
+      personal: true, sensitive: true,
+      claims: ['johnny.history.tower-for-alt', 'johnny.memory.tower-subnet-errand', 'johnny.memory.tower-capture']},
+    {id: 'arasaka-tower', ...JOHNNY_TOWER, personal: true, sensitive: true,
+      claims: ['johnny.memory.tower-raid-plan', 'johnny.history.tower-records-disputed', 'johnny.history.tower-for-alt']},
     {id: 'war-service', match: /\b(?:war|military|army|enlist(?:ed|ment)?|soldier|military\s+service)\b/u,
       personal: true, sensitive: true, currentWarCheck: true,
       claims: ['johnny.service.corporate-army', 'johnny.service.mexico-disillusionment']},
-    {id: 'alt', match: /\balt(?:\s+cunningham)?\b/u,
-      association: /\balt\s+cunningham\b|\b(?:who\s+(?:was|is)|tell\s+me\s+about|what\s+happened\s+(?:to|with))\s+alt\b|\bwhat\s+happened\s+between\s+you\s+and\s+alt\b|\b(?:you|your|johnny)\b.{0,35}\b(?:love|loved|know|knew|meet|met|relationship|history|girlfriend|feel|felt|think|thought)\b.{0,35}\balt\b|\balt\b.{0,35}\b(?:you|johnny)\b/u,
-      blocked: /\b(?:alt[ -]?(?:key|shortcut|hotkey)|keyboard|press\s+alt|hold\s+alt)\b/u, personal: true, sensitive: true,
+    // His account that Alt survived as herself; johnny.memory.alt-identity-boundary (conditional) is never selectable here.
+    {id: 'alt-escape', ...JOHNNY_ALT, personal: true, sensitive: true,
+      association: new RegExp(JOHNNY_ALT.association.source + '|\\balt\\b.{0,40}\\b(?:escape[ds]?|fled|got\\s+out|alive|dead|die[ds]?|surviv\\w*|contact\\w*|went)\\b|\\b(?:what\\s+happened\\s+to|where\\s+(?:did|is))\\s+alt\\b', 'u'),
+      detail: /\b(?:escape[ds]?|fled|got\s+out|get\s+out|the\s+net|blackwall|alive|dead|die[ds]?|surviv\w*|contact\w*|went|where\s+(?:did|is)|what\s+happened\s+to)\b/u,
+      claims: ['johnny.friends.alt-escape-account', 'johnny.friends.alt-soulkiller-blame']},
+    {id: 'alt', ...JOHNNY_ALT, personal: true, sensitive: true,
       claims: ['johnny.friends.alt-admiration', 'johnny.friends.alt-wounded-pride']},
     {id: 'rogue', match: /\brogue\b/u, personal: true, sensitive: true,
       claims: ['johnny.friends.rogue-broken-trust']},

@@ -1,3 +1,4 @@
+import {headTrigger} from './johnny-head.mjs';
 import {lootTrigger, lootFacts} from './loot-context.mjs';
 
 const unknown = () => ({version: 1, status: 'unavailable'});
@@ -70,6 +71,7 @@ export function reactionLeaseValid(input, lease, now = Date.now()) {
 export function battleTrigger(input) {
   if (!input.reaction) return input.text;
   if (input.reaction.kind === 'loot') return lootTrigger(input);
+  if (input.reaction.kind === 'head') return headTrigger(input);
   const battle = parseBattle(input.battle);
   if (!parseReaction(input.reaction, battle, input.loot)) throw Error('Invalid battle trigger');
   const opening = input.reaction.phase === 'start';
@@ -89,7 +91,7 @@ export function battleTrigger(input) {
 }
 
 export function battleContext(input) {
-  if (input.reaction?.kind === 'loot') return '';
+  if (input.reaction?.kind === 'loot' || input.reaction?.kind === 'head') return '';
   const battle = parseBattle(input.battle);
   if (!battle) return '';
   if (battle.status === 'unavailable') return 'Current combat observations are unavailable. Do not infer that an earlier encounter happened in this loaded save.';

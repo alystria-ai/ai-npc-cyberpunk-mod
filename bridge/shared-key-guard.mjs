@@ -191,6 +191,48 @@ export class SharedKeyGuard {
   flush() { return this.saving; }
 }
 
+// Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): his unprompted remarks are automatic reactions and count as turns like any
+// other, but on the shared key they may use at most REMARK_SHARE of the day's limit (10 of 100), so a chatty Johnny never eats the turns
+// a player wants for talking. Counted in their own signed record (the same format and secret as the turn count, its own files), where a
+// remark goes to Convai; a remark answered by Mistral or Local AI is not a shared-key turn and is not counted.
+export const REMARK_SHARE = 0.1;
+export const isRemark = config => config?.reaction?.kind === 'head';
+export const remarkCap = limit => Math.max(1, Math.floor(limit * REMARK_SHARE));
+
+/** The remarks' share of the shared key. Follows the guard's limit and day; does nothing for a remark that is not on the shared key. */
+export class RemarkAllowance {
+  constructor({guard, store, now = guard.now} = {}) {
+    Object.assign(this, {guard, store, now});
+    this.day = dayOf(now()); this.count = 0; this.seen = now();
+    this.saving = Promise.resolve();
+  }
+  get cap() { return remarkCap(this.guard.limit); }
+  #applies(config) { return isRemark(config) && this.guard.enabled && this.guard.applies(); }
+  #roll() {
+    const now = this.now(), today = dayOf(Math.max(now, this.seen));
+    if (today !== this.day && today > this.day) { this.day = today; this.count = 0; }
+    this.seen = Math.max(this.seen, now);
+  }
+  async load() {
+    const record = this.store ? await this.store.load().catch(() => null) : null;
+    if (record) { this.day = record.day; this.count = record.count; this.seen = record.seen; this.#roll(); }
+    return this;
+  }
+  /** Throws TurnLimitError('daily') when the remarks' share of today is used up (the remark just stops; no notice for a reaction). */
+  check(config) {
+    if (!this.#applies(config)) return;
+    this.#roll();
+    if (this.count >= this.cap) throw new TurnLimitError('daily');
+  }
+  consume(config) {
+    if (!this.#applies(config)) return;
+    this.#roll();
+    this.count += 1;
+    this.saving = this.saving.then(() => this.store?.save({day: this.day, count: this.count, seen: this.seen})).catch(() => {});
+  }
+  flush() { return this.saving; }
+}
+
 /** The cap for this run: CYBERPUNK_CONVAI_DAILY_LIMIT = a number of turns, or off/0/none to switch the guard off.
  * Unset: `fallback` (the full cap for the project's packaged key, off for a plain developer or player key file). */
 export function limitFromEnvironment(value, fallback) {

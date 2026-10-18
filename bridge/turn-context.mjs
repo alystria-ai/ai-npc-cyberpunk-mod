@@ -17,6 +17,7 @@
 // optional): a companion in person gets all four, a stranger gets the weather and a visible injury (a bystander sees both; never heat
 // or money), a phone contact gets the weather where V is (like the time) and nothing else of V's body, wanted state or wallet.
 import {describePlace} from './place-names.mjs';
+import {headOf} from './johnny-head.mjs';
 
 // The whole block, framing included (the phone's block is the longest: it also says what she cannot know).
 export const MAX_CHARS = 900;
@@ -38,6 +39,10 @@ const PHONE_SUFFIX = " Treat this as fact: you are not with V and cannot see V's
 // contact she is somewhere else with her own place and doing not given, and learns nothing of V's company, heat or wallet.
 const CALL_SUFFIX = " Treat this as fact: you are on a call, not with V, and you do not know how near or far you are, so never say you are there, close or nearby. "
   + 'Never name a place you are at or a task you are doing right now or have just done; if asked, stay vague in your own way (your usual life is fine; plans and wishes are fine). Do not recite it.';
+// Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): he has no body and goes where V goes. He knows what V sees and feels, so he gets
+// what a companion in person gets (company, health, heat, money), but never a place or a doing of his own.
+const HEAD_SUFFIX = ' Treat this as fact: you have no body here and go wherever V goes; never claim to be anywhere else, to touch, carry or'
+  + ' see anything V does not, or to have been doing something on your own. Do not recite it.';
 const MOTIONS = {still: 'standing still', walking: 'walking', running: 'running'};
 const GENDERS = {female: 'a woman (she/her)', male: 'a man (he/him)'};
 // Weather kinds the game side sends (mod/turn-context.lua weatherKind), V's health bands and the money bands.
@@ -155,12 +160,18 @@ export function describeTurnContext(input, {ambient = false, voice = false} = {}
   if (!snapshot || snapshot.status !== 'ready') return {text: '', parts: 0, reason: 'unavailable or malformed'};
   if (voice) return voiceTurnContext(input, snapshot);
   const sentences = [];
-  const call = !ambient && !input.group && input.channel !== 'phone' ? holocallOf(input) : null;
+  const head = !ambient && input.channel !== 'phone' ? headOf(input) : null;
+  const call = !ambient && !head && !input.group && input.channel !== 'phone' ? holocallOf(input) : null;
   // Remote: a phone chat or a holocall. Neither learns who is with V, V's heat or V's money.
   const spot = placeOf(snapshot), place = spot?.text ?? null, phone = input.channel === 'phone' || call !== null;
   // The first sentence, so a budget cut never reaches it: where she is and what she is doing. She is in person with V (a face to
   // face talk, a companion, a voice chat) or on a call, and the call says nothing of her own place or doing.
-  if (!ambient && !phone) {
+  if (head) {
+    // One sentence (bridge/mistral-prompt.mjs HERE): where he is, and where V is.
+    sentences.push(`You are in V's head, the engram on the Relic: you see what V sees and hear what V hears, nobody else sees or hears you, and V talks to you under their breath${place ? `; V is in ${place}` : ''}.`);
+    const around = surroundings(spot, snapshot.vehicle);
+    if (around) sentences.push(around.replace(/^You are/, 'V is').replace(/^Which street or building you are at/, 'Which street or building V is at'));
+  } else if (!ambient && !phone) {
     const mine = (snapshot.party ?? []).find(row => row.key === input.profileKey);
     const [state, via] = ACTIVITIES[mine?.activity] ?? ['', 'in'];
     sentences.push(`You are with V in person${state}${place ? ` ${via} ${place}` : ''}.`);
@@ -203,7 +214,7 @@ export function describeTurnContext(input, {ambient = false, voice = false} = {}
   const prefix = 'Right now (from the game, this turn only): ';
   const suffix = ambient
     ? ' You are a stranger to V and know only what you can see and hear. Background only; bring it up only when it fits.'
-    : call ? CALL_SUFFIX : phone ? PHONE_SUFFIX : ' Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine).'
+    : head ? HEAD_SUFFIX : call ? CALL_SUFFIX : phone ? PHONE_SUFFIX : ' Treat this as fact: never claim to be anywhere else, or to have just been doing something, unless this says so (what you would like to do or will do is fine).'
       + ' Your usual workplace, home and hangouts are not here unless this says so: never greet or serve V as if V had come to them. Do not recite it.';
   // Over budget: drop whole sentences from the end, never cut one in half.
   const budget = MAX_CHARS - prefix.length - suffix.length;
@@ -217,6 +228,7 @@ export const turnContext = (input, options) => describeTurnContext(input, option
 // One line per reply for the bridge log (stderr): whether this turn's context carried the block, or why not. Counts only.
 export function turnContextDiagnostic(input, options) {
   const {text, parts, reason} = describeTurnContext(input, options);   // `voice` in the options: the form an add-on voice gets
-  const call = input && !input.group && input.channel !== 'phone' && holocallOf(input) ? ` holocall=${input.holocall.mode}` : '';
+  const head = input && input.channel !== 'phone' && headOf(input) ? ` head=${input.head.stage}` : '';
+  const call = head ? head : input && !input.group && input.channel !== 'phone' && holocallOf(input) ? ` holocall=${input.holocall.mode}` : '';
   return text ? `Turn context: ${parts} facts, ${text.length} chars${call}` : `Turn context: none (${reason})${call}`;
 }
