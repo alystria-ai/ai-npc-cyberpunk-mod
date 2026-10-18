@@ -16,6 +16,7 @@ import {installLayout, prepareState, serviceEnvironment} from './prepare-state.m
 import {assembleParts} from './assemble-parts.mjs';
 import {placeMisplacedPacks} from './place-packs.mjs';
 import {adoptLegacyInstall, cleanupLegacyInstall} from './migrate-legacy.mjs';
+import {dataHomeFor, moveGameFolderState} from './state-home.mjs';
 
 const appDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2);
@@ -26,15 +27,30 @@ if (!gameRoot) {
   process.stderr.write('Conversation service: --game-root is required.\n');
   process.exit(2);
 }
-const layout = installLayout({appDirectory, gameRoot});
+// The player's data lives outside the game folder, in %LOCALAPPDATA%\AiNpcCyberpunkMod\data (packaging/runtime/state-home.mjs): under
+// Mod Organizer 2 every file created inside the game folder is redirected into its Overwrite folder. Only runtime/, which the game's
+// Lua must reach, stays in the mod folder.
+const early = [];
+const home = dataHomeFor(process.env);
+if (home.problem) early.push(home.problem);
+let layout = installLayout({appDirectory, gameRoot, dataHome: home.root});
 
 // An older installation (this mod was called CyberpunkConvai) is retired and its state moved to the new folders before anything
 // reads the data folder (packaging/runtime/migrate-legacy.mjs). It is a few stat calls when there is no old folder. A failure here
 // never stops the service: the old state stays where it is and the next start tries again.
-const early = [];
 let legacy = null;
-try { legacy = await adoptLegacyInstall({gameRoot: layout.gameRoot, log: message => early.push(message)}); }
+try { legacy = await adoptLegacyInstall({gameRoot: layout.gameRoot, stateDirectory: layout.state, log: message => early.push(message)}); }
 catch (error) { early.push(`Carry-over from the old installation failed: ${error?.stack || error}`); }
+
+// Then the data folder an earlier release kept in the game folder moves to the data home, once. One lstat when there is nothing to
+// move. The move is all or nothing; when it cannot finish (a file in use, a full disk) this start keeps the game folder's copy and
+// the next start tries again, so the player never sees an empty data folder.
+if (layout.dataHome) {
+  let moved = null;
+  try { moved = await moveGameFolderState({from: layout.gameState, to: layout.state, log: message => early.push(message)}); }
+  catch (error) { early.push(`Moving the data folder out of the game folder failed: ${error?.stack || error}`); moved = {found: true, state: 'deferred'}; }
+  if (moved?.found && moved.state === 'deferred') layout = installLayout({appDirectory, gameRoot, dataHome: null});
+}
 
 mkdirSync(layout.state, {recursive: true});
 const logPath = resolve(layout.state, 'bridge-service.log');
@@ -67,7 +83,7 @@ let prepared;
 try {
   const runtimeVersion = readVersion(resolve(appDirectory, 'release.json'));
   const scriptsVersion = readVersion(resolve(layout.mod, 'release.json'));
-  log(`Conversation service ${runtimeVersion ?? '(unknown version)'} preparing ${layout.gameRoot}.`);
+  log(`Conversation service ${runtimeVersion ?? '(unknown version)'} preparing ${layout.gameRoot}; player data in ${layout.state}.`);
   if (scriptsVersion && runtimeVersion && scriptsVersion !== runtimeVersion) {
     log(`Warning: the Scripts package is ${scriptsVersion} but the Runtime package is ${runtimeVersion}. Install matching versions.`);
   }

@@ -183,8 +183,8 @@ enough memory once loaded), the mod shows "The Local AI model you chose is missi
 start, so Gemma-4-E4B was used instead." once (it names the model that answers instead: the largest model that fits). The mod does not
 try that model again until its file changes or you restart the game.
 
-**If it does not show up.** Open the bridge log, `bridge.stderr.log`, in the `data` folder of the mod
-(`red4ext\plugins\AiNpcCyberpunkMod\data\`), and look for lines starting with `[LocalAI] [custom models]`. Each problem is one line, for
+**If it does not show up.** Open the bridge log, `bridge.stderr.log`, in the mod's data folder
+(`%LOCALAPPDATA%\AiNpcCyberpunkMod\data\`; the in-game Help page shows the full path), and look for lines starting with `[LocalAI] [custom models]`. Each problem is one line, for
 example:
 
 - `skipped "custom/x.bin": only .gguf files are accepted` - fix the entry in the manifest;

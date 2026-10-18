@@ -67,7 +67,7 @@ red4ext/plugins/AiNpcCyberpunkMod/
     models/lipsync/          lip-sync model, text stage and lexicon
     models/stt/              Moonshine Tiny English int8 (local speech recognition for the Mistral route; MIT)
     defaults/                templates and managed defaults copied into data/ at start-up
-    launcher/                start-service.mjs, prepare-state.mjs, assemble-parts.mjs, migrate-legacy.mjs, place-packs.mjs
+    launcher/                start-service.mjs, prepare-state.mjs, assemble-parts.mjs, migrate-legacy.mjs, place-packs.mjs, state-home.mjs
     licenses/                third-party notices (Python packages keep theirs in *.dist-info)
     omni/                    the OmniVoice pack, when installed
     local-ai/                the Local AI pack(s), when installed (llama/, models/, licenses/, manifest.*.json)
@@ -77,12 +77,14 @@ red4ext/plugins/AiNpcCyberpunkModNative/
   CyberpunkConvaiNative.dll  the native core plugin (native/core, compiled in the build) and its licence texts
 bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/
   *.lua, locales/, *.json    Scripts package
-  data/                      player state, created on first start
-  runtime/                   Lua <-> bridge exchange files
+  runtime/                   Lua <-> bridge exchange files (the only folder the service writes in the game folder's CET mod)
     native-off.txt           which native systems stay off (Runtime package, see below)
 r6/scripts/CyberpunkConvai/  redscript (Scripts package)
 r6/audioware/CyberpunkConvai speech.yml + eight silent reply slots (Runtime)
 archive/pc/mod/              convai_facial, convai_gestures, cyberpunk_convai_ambient_driver_guard (Runtime)
+
+%LOCALAPPDATA%/AiNpcCyberpunkMod/   outside the game folder (packaging/runtime/state-home.mjs)
+  data/                      player state, created on first start (before this change: mods/AiNpcCyberpunkMod/data)
 ```
 
 RED4ext loads DLLs only from `red4ext/plugins/*.dll` and `red4ext/plugins/<name>/*.dll`
@@ -161,7 +163,7 @@ installed" or "not installed". `packaging/runtime/place-packs.mjs` (shipped as `
   interrupted move is retried in full at the next start and a pack is never seen half-placed. Empty wrapper folders are then removed with a plain
   `rmdir` (so only when empty, only inside the candidate). Anything unexpected (permissions, a link or odd entry, a failed rename or copy) stops
   everything, leaves the rest where it is, and logs it.
-- **Log:** one line per pack in `data/bridge-service.log`: `Moved the <pack> files into place from <wrapper path relative to the game root>`
+- **Log:** one line per pack in `bridge-service.log` in `data/`: `Moved the <pack> files into place from <wrapper path relative to the game root>`
   (`Local AI standard`, `Local AI lite`, `Mature standard`, `Mature lite`, `OmniVoice`). No in-game notice.
 - **Also handled:** `red4ext\...` or `app\...` extracted into `bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod\`, `red4ext\...`
   extracted into `red4ext\plugins\AiNpcCyberpunkMod\` (also inside one wrapper folder there).
@@ -192,6 +194,29 @@ looks first.
 - Slot files carry a fixed `written` time, so the same inputs give the same package.
 
 ### Player state (`data/`)
+
+`data/` is `%LOCALAPPDATA%\AiNpcCyberpunkMod\data`, outside the game folder (`packaging/runtime/state-home.mjs`). Mod Organizer 2
+runs the game and every process it starts (the launcher's node.exe and its Python workers included) inside its virtual file
+system, USVFS, which puts every file created under the game folder into MO2's Overwrite folder; a player reported that after
+the service had created its files there, CET stopped loading the mod ("cannot open init.lua"). MO2's Cyberpunk plugin maps only
+the game folder (and profile-local saves), so `%LOCALAPPDATA%` is written as is, with or without MO2, Vortex or a manual install.
+`runtime/` stays in the CET mod folder because CET lets Lua open files only inside its own mod folder.
+
+- **Override:** `CYBERPUNK_CONVAI_DATA_HOME` (an absolute path) is the folder that holds `data/`, for development or a player who
+  wants it elsewhere; a relative value is ignored (one line in `bridge-service.log`). Without `%LOCALAPPDATA%` the data stays in the
+  game folder as before. Two game installs on one Windows account share the folder; the generated files are rewritten on every start.
+- **Move from the game folder** (`moveGameFolderState`, run by `start-service.mjs` after the old-name carry-over and before
+  `prepareState`; one lstat when there is nothing to move). All or nothing: every state file is copied into a staging folder beside
+  the new `data/` and verified (size and SHA-256); only then are the copies put in place and the originals removed. Any failure
+  (a full disk, an unreadable file, a lock still held by a service from the previous session) leaves the old folder untouched and
+  this start uses it; the next start tries again. Generated files and `lipsync-model/` are not copied (they are written fresh),
+  volatile files (`*.lock`, `*.pid`, `*.tmp`, `bridge-control.json`) are dropped. When both folders have a file with different
+  content the newer one is used and the other goes to `moved-from-game-folder/<time>-replaced|older/`; nothing is deleted
+  unverified. The result is one line in `bridge-service.log` and `moved-from-game-folder.json` in the new `data/`.
+- **Tests:** `packaging/state-home.test.mjs` (location rules, the move with conflicts, a failed copy, a held lock, and
+  `start-service.mjs --prepare-only` end to end); every test that runs `start-service.mjs` sets `CYBERPUNK_CONVAI_DATA_HOME` to a
+  temporary folder, so the real `%LOCALAPPDATA%` is never written by tests.
+
 
 - **Generated, refreshed every start:** `pocket-voices.autobest.json` (absolute paths for this
   install), the two OmniVoice configs (with the pack), `voice-configs.json`, `lipsync-model/`.

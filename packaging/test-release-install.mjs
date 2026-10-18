@@ -51,6 +51,8 @@ const systemRoot = process.env.SystemRoot || 'C:\\Windows';
 // Only Windows' own folders: no Node, Python, Git or developer tools.
 const cleanPath = [join(systemRoot, 'System32'), systemRoot, join(systemRoot, 'System32', 'Wbem'),
   join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0')].join(';');
+// The player's data folder (%LOCALAPPDATA%\AiNpcCyberpunkMod in a real install) goes to a folder of this test run instead.
+let dataHome = null;
 const cleanEnv = () => {
   const env = {};
   for (const name of ['SystemRoot', 'SystemDrive', 'windir', 'TEMP', 'TMP', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA',
@@ -58,7 +60,7 @@ const cleanEnv = () => {
     'CommonProgramFiles', 'NUMBER_OF_PROCESSORS', 'PROCESSOR_ARCHITECTURE', 'OS', 'PATHEXT', 'ComSpec']) {
     if (process.env[name] !== undefined) env[name] = process.env[name];
   }
-  return {...env, PATH: cleanPath};
+  return {...env, PATH: cleanPath, ...(dataHome ? {CYBERPUNK_CONVAI_DATA_HOME: dataHome} : {})};
 };
 
 async function expand(zip, destination) {
@@ -87,7 +89,7 @@ const app = ${JSON.stringify(app)}, state = ${JSON.stringify(state)};
 const load = path => import(pathToFileURL(resolve(app, path)).href);
 // The same environment the packaged service gives the bridge and its workers.
 const launcher = await load('launcher/prepare-state.mjs');
-const layout = launcher.installLayout({appDirectory: app, gameRoot: ${JSON.stringify(game)}});
+const layout = launcher.installLayout({appDirectory: app, gameRoot: ${JSON.stringify(game)}, dataHome: resolve(state, '..')});
 Object.assign(process.env, launcher.serviceEnvironment(layout, {omni: ${withOmni ? 'true' : 'false'}, keyFile: resolve(state, 'unused.txt')}, process.env));
 const {PocketVoice} = await load('bridge/pocket-voice.mjs');
 const {JaliFace} = await load('bridge/jali-face.mjs');
@@ -229,6 +231,7 @@ console.log(JSON.stringify(detectLocalAiPack({project: app, environment: env})))
 async function main() {
   const work = await mkdtemp(join(tmpdir(), 'convai install test '));
   const game = join(work, 'Cyberpunk 2077 Ünïcode Test');
+  dataHome = join(work, 'LocalAppData', 'AiNpcCyberpunkMod');
   console.log(`Stand-in game folder: ${game}`);
   try {
     await mkdir(join(game, 'bin/x64/plugins/cyber_engine_tweaks'), {recursive: true});
@@ -268,7 +271,7 @@ async function main() {
     check('every file matches the build', mismatches === 0, `${count} files, longest path ${longest} characters`);
 
     const plugin = join(game, 'red4ext/plugins/AiNpcCyberpunkMod'), app = join(plugin, 'app');
-    const mod = join(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod'), state = join(mod, 'data');
+    const mod = join(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod'), state = join(dataHome, 'data');
     const node = join(app, 'node/node.exe');
     const where = spawnSync(join(systemRoot, 'System32/where.exe'), ['node', 'python', 'python3'], {env: cleanEnv(), encoding: 'utf8'});
     check('no Node or Python on the test PATH', where.status !== 0, (where.stdout || '').trim() || 'where found none');

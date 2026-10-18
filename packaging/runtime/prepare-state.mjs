@@ -5,7 +5,9 @@
 // Installed layout (game-relative):
 //   red4ext/plugins/AiNpcCyberpunkMod/app/      the application (this file is in app/launcher/)
 //   red4ext/plugins/AiNpcCyberpunkMod/voices/   voice reference clips (kept outside app/ on purpose)
-//   bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/data/   player state (this prepares it)
+//   bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/runtime/  files the game's Lua reads and writes (CET keeps Lua inside its mod folder)
+// and, outside the game folder (packaging/runtime/state-home.mjs):
+//   %LOCALAPPDATA%/AiNpcCyberpunkMod/data/   player state (this prepares it); the game folder's data/ when there is no data home
 //
 // Three kinds of state file:
 //   - generated: voice configurations whose paths depend on where the game is installed, and the
@@ -43,11 +45,14 @@ async function writeIfChanged(path, bytes) {
   return true;
 }
 
-export function installLayout({appDirectory, gameRoot}) {
+// dataHome: the folder that holds data/ (state-home.mjs dataHomeFor), or null/undefined to keep data/ in the game's mod folder.
+export function installLayout({appDirectory, gameRoot, dataHome = null}) {
   const app = resolve(appDirectory), plugin = resolve(app, '..');
   const mod = resolve(gameRoot, 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod');
+  const gameState = resolve(mod, 'data');
   return Object.freeze({
-    app, plugin, gameRoot: resolve(gameRoot), mod, state: resolve(mod, 'data'), runtime: resolve(mod, 'runtime'),
+    app, plugin, gameRoot: resolve(gameRoot), mod, gameState, dataHome: dataHome ? resolve(dataHome) : null,
+    state: dataHome ? resolve(dataHome, 'data') : gameState, runtime: resolve(mod, 'runtime'),
     voices: resolve(plugin, 'voices'), defaults: resolve(app, 'defaults'),
     node: resolve(app, 'node/node.exe'), python: resolve(app, 'python/python.exe'),
     assets: resolve(app, 'assets'),

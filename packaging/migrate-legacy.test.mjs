@@ -272,25 +272,30 @@ test('the packaged service moves an old installation before it reads the data fo
     // A minimal installed application: the real launcher files and the defaults prepareState needs.
     const app = join(p.newPlugin, 'app');
     await mkdir(join(app, 'launcher'), {recursive: true});
-    for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs']) await cp(join(project, 'packaging/runtime', name), join(app, 'launcher', name));
+    for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs', 'state-home.mjs']) await cp(join(project, 'packaging/runtime', name), join(app, 'launcher', name));
     await put(join(app, 'defaults/pocket-voices.autobest.json'), JSON.stringify({version: 1, provider: 'pocket', engine: 'pocket-tts', runtime: {}, voices: {}}));
     await put(join(app, 'defaults/characters.json'), '{"v":2}');
     await put(join(app, 'defaults/multilingual-profiles.json'), '{"v":2}');
     await put(join(app, 'models/lipsync/face-model.json'), '{}');
-    const run = () => spawnSync(process.execPath, [join(app, 'launcher/start-service.mjs'), '--game-root', f.game, '--prepare-only'], {encoding: 'utf8', timeout: 60_000});
+    // The data home stands in for %LOCALAPPDATA%\AiNpcCyberpunkMod: the old state goes straight there.
+    const home = join(f.root, 'LocalAppData', 'AiNpcCyberpunkMod'), state = join(home, 'data');
+    const run = () => spawnSync(process.execPath, [join(app, 'launcher/start-service.mjs'), '--game-root', f.game, '--prepare-only'],
+      {encoding: 'utf8', timeout: 60_000, env: {...process.env, CYBERPUNK_CONVAI_DATA_HOME: home}});
     const first = run();
     assert.equal(first.status, 0, first.stderr + first.stdout);
     const summary = JSON.parse(first.stdout.trim().split('\n').pop());
     assert.equal(summary.ok, true);
     assert(summary.legacy && summary.legacy.errors.length === 0 && summary.legacy.pending.length === 0, JSON.stringify(summary.legacy));
     assert.equal(summary.key, 'player', 'the carried convai-key.txt is the key it picks');
-    assert.equal(await read(join(p.newMod, 'data/player-memory.json')), MEMORY);
+    assert.equal(await read(join(state, 'player-memory.json')), MEMORY);
     assert.equal(await read(join(p.newMod, 'runtime/settings.json')), '{"provider":"mistral"}');
     // A managed file the player edited stays theirs.
-    assert.equal(await read(join(p.newMod, 'data/characters.json')), '{"mine":true}');
+    assert.equal(await read(join(state, 'characters.json')), '{"mine":true}');
+    assert.equal(summary.state, state);
+    assert.equal(await exists(join(p.newMod, 'data')), false, 'nothing is written to data/ in the game folder');
     assert.equal(await exists(p.oldMod), false);
     assert.equal(await exists(p.oldPlugin), false);
-    assert(/older installation/.test(await read(join(p.newMod, 'data/bridge-service.log'))), 'the service log tells what happened');
+    assert(/older installation/.test(await read(join(state, 'bridge-service.log'))), 'the service log tells what happened');
     // Starting again is the same as a normal start.
     const second = run();
     assert.equal(second.status, 0, second.stderr);
