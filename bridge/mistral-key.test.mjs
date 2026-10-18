@@ -272,6 +272,11 @@ test('local: a chosen model that could not be used says so once, naming the mode
   assert.deepEqual(new MistralControl({provider, commandPath: 'm.json', publish() {}, localModelProblems: () => problems}).status().localModelProblems, problems);
   assert.equal('localModelProblems' in new MistralControl({provider, commandPath: 'm.json', publish() {}, localModelProblems: () => []}).status(), false);
   assert.equal('localModelProblems' in new MistralControl({provider, commandPath: 'm.json', publish() {}}).status(), false);
+  // Why Local AI failed: only 'mature-off' is published (the page then says to turn Mature content on), and only when it is the reason.
+  const reason = value => new MistralControl({provider, commandPath: 'm.json', publish() {}, localReason: () => value}).status();
+  assert.equal(reason('mature-off').localReason, 'mature-off');
+  for (const other of [null, undefined, 'low-memory', 'start-failed', 'not-installed']) assert.equal('localReason' in reason(other), false);
+  assert.equal('localReason' in new MistralControl({provider, commandPath: 'm.json', publish() {}}).status(), false);
 });
 
 test('a saved conversation provider of groq (removed 2026-10-14) is the default, Convai: no provider change, no notice, no Groq state', async () => {

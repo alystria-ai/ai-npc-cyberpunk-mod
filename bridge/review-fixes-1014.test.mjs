@@ -30,7 +30,7 @@ test('every status the phone shows for a provider failure is translated by the p
 test('the Conversation provider options are translated (the catalogue has them in every language)', () => {
   const mcm = read('../mod/mcm.lua');
   const row = mcm.slice(mcm.indexOf("{'Convai free tier', 'Convai API key', 'Mistral (free plan)'"));
-  assert.match(row.slice(0, 200), /'Local \(needs Local AI pack\)'\}, \{elements = true, description = true\}\)/);
+  assert.match(row.slice(0, 200), /'Local AI'\}, \{elements = true, description = true\}\)/);
   assert.ok(!/groq/i.test(row.slice(0, 200)), 'Groq was removed as a provider');
 });
 

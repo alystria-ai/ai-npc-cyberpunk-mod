@@ -534,6 +534,8 @@ function M.mistral()
         inworld = {saved = inworld.saved == true, tail = inworldTail, result = mistralResults[inworldResult] and inworldResult or nil},
         effective = providerName(state.effective),
         localAi = localAiStates[state.localAi] and state.localAi or nil,
+        -- Why a failed Local AI could not start, when the settings page can say what to do: 'mature-off' (only Mature models, Mature content off).
+        localReason = state.localReason == 'mature-off' and 'mature-off' or nil,
         maturePack = state.maturePack == true,
         localModels = localModels,
         -- The model shown as selected when none was chosen (the largest that fits), and the one turning Mature content on selects.

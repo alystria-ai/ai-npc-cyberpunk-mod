@@ -163,7 +163,7 @@ The language model runs on your own graphics card. No account, no key, no intern
 
 1. Download a Local AI pack from the [Hugging Face page](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs) and extract it into the game folder ([Install](#install)).
 2. Start the game. The **Local AI model** row shows "(Warming up)" while your card prepares the model, about a minute the first time.
-3. Choose **Local (needs Local AI pack)** as the provider and **Apply**.
+3. Choose **Local AI** as the provider and **Apply**.
 
 | | **Local AI standard** | **Local AI lite** |
 |---|---|---|

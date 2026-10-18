@@ -307,6 +307,8 @@ function localAiStatus() {
   if (state === 'failed') return reason === 'low-memory' ? 'no-memory' : reason === 'not-installed' ? 'not-installed' : 'failed';
   return state === 'starting' || state === 'warming' ? 'warming' : 'ready';
 }
+// Why Local AI is down, when the settings page can tell the player what to do: only Mature models are usable and Mature content is off.
+const localAiReason = () => { const {state, reason} = localServer.status(); return state === 'failed' && reason === 'mature-off' ? 'mature-off' : null; };
 // Choosing Local: look for the pack, clear an earlier failure, and load the model in the background so the shader compile of a
 // first start is over before the first conversation. A missing pack or a failed start falls back to the cloud provider with one notice.
 function prepareLocal() {
@@ -2825,7 +2827,7 @@ const paidTierControl = await new PaidTierControl({keys, commandPath: resolve(ru
   log: message => console.error('[CyberpunkConvai] ' + message)}).open();
 playerConnectionLimit = () => paidTierControl.connectionLimit();
 const mistralControl = await new MistralControl({provider: mistral, commandPath: resolve(runtime, 'mistral-key-command.json'),
-  inworldCommandPath: resolve(runtime, 'inworld-key-command.json'), localStatus: localAiStatus, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, localModelDefaults, localModelProblems: customModelProblems, model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
+  inworldCommandPath: resolve(runtime, 'inworld-key-command.json'), localStatus: localAiStatus, localReason: localAiReason, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, localModelDefaults, localModelProblems: customModelProblems, model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
 mistral.onChange(() => { void mistralControl.publishStatus().catch(() => {}); });
 const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
   commandPath: resolve(runtime, 'memory-command.json'),

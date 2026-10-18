@@ -80,7 +80,7 @@ const composites = {
     'Never allowed: sex with minors or without consent, sex about real people, hate, real-world weapon or drug instructions. A safety check enforces the minors rule.',
     'Turning it on also selects Local AI, the largest uncensored model that fits and a local voice instead of a cloud one. Turning it off restores your choices.',
     `${SAME}Choosing a cloud provider turns it off.`,
-    'Needs the Local AI pack.',
+    'Needs Local AI.',
   ],
   // The provider help with its longest note (the free tier's allowance line, the longest of the notes) after it.
   'Conversation provider': [
@@ -107,6 +107,19 @@ const composites = {
   'Natural speech (developer mode)': [byStart('Companions now and then pause'), 'Inworld can voice laughs and sighs too.'],
   'Expressive emotions (developer mode)': [byStart('Each character marks its own feelings'), 'Inworld always speaks with emotion, whatever this says.'],
   'Multilingual conversations (developer mode)': [byStart('Talk in any language'), 'Inworld speaks English only as well.'],
+  // Local AI could not start because only Mature models are usable and Mature content is off: this line replaces the generic failure line at the
+  // top of the model help. A Mature-only install lists the Mature pack's two models; a server of the player's is one custom model.
+  'Local AI model (Mature-only install)': [
+    'Only Mature models found. Turn on Mature content to use them.',
+    'Until you choose one, Local AI loads the largest model that fits your free graphics memory.\n\nOne model at a time; a change applies when it next loads. A model that is missing, too large or failing is replaced by the largest that fits, with one notice.',
+    'LIST_MATURE',
+  ],
+  'Local AI model (own server marked uncensored)': [
+    'Only Mature models found. Turn on Mature content to use them.',
+    'Until you choose one, Local AI loads the largest model that fits your free graphics memory.\n\nOne model at a time; a change applies when it next loads. A model that is missing, too large or failing is replaced by the largest that fits, with one notice.',
+    'LIST_SERVER',
+    'Custom models are ones you added; they join the default choice by size.',
+  ],
   'Local AI model': [
     'Until you choose one, Local AI loads the largest model that fits your free graphics memory.\n\nOne model at a time; a change applies when it next loads. A model that is missing, too large or failing is replaced by the largest that fits, with one notice.',
     `LIST`,
@@ -116,7 +129,7 @@ const composites = {
 };
 const compositeSources = Object.values(composites).flat().map(text => text.startsWith(SAME) ? text.slice(SAME.length) : text);
 for (const text of compositeSources) {
-  const known = text === 'LIST' || text.startsWith('Not usable') || text.startsWith('Until you choose') || text in catalog.strings;
+  const known = text === 'LIST' || text === 'LIST_MATURE' || text === 'LIST_SERVER' || text.startsWith('Not usable') || text.startsWith('Until you choose') || text in catalog.strings;
   assert(known, `a composite part is not in the catalog: ${text.slice(0, 50)}`);
 }
 
@@ -127,6 +140,8 @@ const translateComposite = (parts, translate) => parts.map((part, index) => {
 }).join('');
 
 const translatePart = (part, translate) => {
+  if (part === 'LIST_MATURE') return ['Qwen3.5-4B · uncensored (2.6 GB)', 'Gemma 4 E4B · uncensored (5.1 GB)'].join(String.fromCharCode(10));
+  if (part === 'LIST_SERVER') return translate('{name} (custom)').replace('{name}', 'My Model');
   if (part === 'LIST') {
     // The installed models: names as the bridge gives them, the custom line from its template.
     return sampleModels.split('\n').map(line => line.includes('custom')

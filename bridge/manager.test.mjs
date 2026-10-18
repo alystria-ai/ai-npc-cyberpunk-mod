@@ -2337,7 +2337,7 @@ test('Mature content turned on and off again before Apply leaves no pending chan
 test('without the Local AI pack Mature content stages nothing else and the help says Local AI is needed', () => {
   run(`${mcmFixture}${matureFixture}
     startFrom({noPack = true})
-    assert(tostring(row('matureContent').description):find('Needs the Local AI pack', 1, true), 'the help does not say Local AI is needed')
+    assert(tostring(row('matureContent').description):find('Needs Local AI.', 1, true), 'the help does not say Local AI is needed')
     -- Beside a cloud provider and with no Local AI pack there is nothing to switch to: the switch goes back to off, nothing else is staged.
     user('matureContent', true)
     assert(drafts() == '', 'the switch stayed on without Local AI: ' .. drafts())
@@ -5635,7 +5635,7 @@ test('Settings sections: Conversation provider sits after Conversations and befo
     for _, id in ipairs(voices) do assert(not id:find('inworld', 1, true) and id ~= 'voice-pack', id .. ' is in Voices') end
     for _, id in ipairs({'groq-key-status', 'groq-key:paste', 'groq-key:remove', 'permissions', 'enabled:person-1'}) do assert(row(id) == nil, id .. ' is still offered') end
     local elements = row('conversationProvider').elements
-    assert(#elements == 4 and elements[1] == 'Convai free tier' and elements[2] == 'Convai API key' and elements[3] == 'Mistral (free plan)' and elements[4] == 'Local (needs Local AI pack)')
+    assert(#elements == 4 and elements[1] == 'Convai free tier' and elements[2] == 'Convai API key' and elements[3] == 'Mistral (free plan)' and elements[4] == 'Local AI')
     assert(not tostring(row('conversationProvider').description):find('Groq', 1, true))
     -- Developer mode: the Inworld key is the row after Developer mode.
     assert(registered.applyBatch('manager', {{id = 'developerMode', value = true}}).ok); loaded = registered.loadMod('manager')
@@ -5862,10 +5862,12 @@ test('The Conversation provider section offers the provider, Mature content, the
     local provider = row('conversationProvider')
     assert(provider and provider.type == 'select' and provider.value == 1 and provider.defaultValue == 1)
     assert(#provider.elements == 4 and provider.elements[1] == 'Convai free tier' and provider.elements[2] == 'Convai API key'
-      and provider.elements[3] == 'Mistral (free plan)' and provider.elements[4] == 'Local (needs Local AI pack)')
+      and provider.elements[3] == 'Mistral (free plan)' and provider.elements[4] == 'Local AI')
     assert(provider.description:find('memory stays on this computer', 1, true) and provider.description:find('Convai API key uses your own key', 1, true))
     assert(not provider.description:lower():find('text only', 1, true), 'Mistral is not described as text only')
     assert(provider.description:find('local voice', 1, true) and provider.description:find('until no conversation is running', 1, true))
+    assert(provider.description:find('With Mistral or Local AI, Convai', 1, true), 'the voice paragraph names the option Local AI')
+    assert(not provider.description:find('needs Local AI pack', 1, true) and not provider.description:find('Recommended', 1, true) and not provider.description:find('recommended', 1, true))
     assert(provider.description:find('not available yet', 1, true), 'without local speech recognition the help says so')
     local mistral = row('mistral-key')
     assert(mistral and mistral.type == 'action' and mistral.label == 'Mistral free API key' and mistral.value == 'Paste', mistral.label)
@@ -5940,6 +5942,25 @@ test('The Conversation provider section offers the provider, Mature content, the
         assert(not model.description:find('Local AI is warming up', 1, true) and not model.description:find('could not start', 1, true))
       end
       assert(row('local-ai-status') == nil)
+    end
+    -- Only Mature models (a Mature-only install, or a server of the player's marked uncensored) with Mature content off: the bridge says
+    -- localReason = 'mature-off' beside a failed Local AI, and the model row says what to do instead of the generic line. Any other reason,
+    -- or none (an older Runtime), keeps the generic line; a reason without a failure shows nothing.
+    do
+      local MATURE_OFF = 'Only Mature models found. Turn on Mature content to use them.'
+      answer('local-ai-mature-off', {provider = 'local', effective = 'convai', localAi = 'failed', localReason = 'mature-off'})
+      local model = row('localModel')
+      assert(manager.mistral().localReason == 'mature-off')
+      assert(model.label == 'Local AI model (Unavailable)' and firstParagraph(model.description) == MATURE_OFF, model.label .. ' | ' .. firstParagraph(model.description))
+      assert(not model.description:find('could not start', 1, true))
+      for _, other in ipairs({'low-memory', 'start-failed', 7, true}) do
+        answer('local-ai-reason-' .. tostring(other), {provider = 'local', effective = 'convai', localAi = 'failed', localReason = other})
+        assert(manager.mistral().localReason == nil and firstParagraph(row('localModel').description) == WAIT.failed[2], tostring(other))
+      end
+      answer('local-ai-failed-no-reason', {provider = 'local', effective = 'convai', localAi = 'failed'})
+      assert(firstParagraph(row('localModel').description) == WAIT.failed[2])
+      answer('local-ai-ready-with-reason', {provider = 'local', effective = 'local', localAi = 'ready', localReason = 'mature-off'})
+      assert(row('localModel').label == 'Local AI model' and not row('localModel').description:find(MATURE_OFF, 1, true))
     end
     answer('local-ai-none', {provider = 'convai', effective = 'convai'})
     assert(row('localModel').label == 'Local AI model' and manager.mistral().localAi == nil)
