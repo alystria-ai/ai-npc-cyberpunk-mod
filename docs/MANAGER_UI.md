@@ -170,7 +170,9 @@ eports\` then the
   button that is always offered. It writes `runtime/clipboard-request.json`; the conversation
   service puts the full path on the Windows clipboard with `clip.exe` (only the path of a
   `convai-report-*` file, or the short report `convai-report-lua.txt`, is accepted). The game's own `ImGui.SetClipboardText` is tried too,
-  from the next top-level update rather than inside the menu callback. The "Support report
+  from the next top-level update rather than inside the menu callback. While no service is answering the button cannot copy (no
+  request file is written): the banner and the row's help text show the whole path instead, broken after folder separators, so it
+  can be found by hand. The "Support report
   saved" popup appears only in Developer mode (once, when gameplay resumes).
 - **Where the logs are**: absolute paths for the mod's `runtime\` logs (`probe.log`, `mcm.log`),
   the conversation service logs (`bridge.stderr.log`, `bridge.stdout.log`, `bridge-service.log`),
@@ -202,9 +204,13 @@ the RED4ext launcher writes `launcher.log` beside its DLL; redscript and RED4ext
 2. The zip holds `README.txt`, `summary.json` (mod fingerprint, CET/game/RED4ext versions, service status,
    settings, party, provider per companion, recent errors, the log index) and `logs/NN-<id>.txt`: the last
    2,000 lines or 1 MiB of each log.
-3. If the service is stopped (fresh status says so) the page writes a **short text report** itself at once;
-   if the service is not known to be stopped but does not answer within 6 s (30 s once it reports
-   `building`), or answers `failed`, it does the same. The short report holds what the game can read
+3. If no service is answering the page writes a **short text report** itself at once, with no request and no wait:
+   `bridge-service.json` missing, empty, unreadable or stale and no fresh heartbeat (`service-status.lua` `reach()`: `never` when
+   nothing of this game session shows, `stopped` when it ran and went quiet), or a fresh status that says stopped or failed. A
+   service that is up (a fresh heartbeat, or a fresh ready, starting or restarting status) is asked and given 6 s
+   (30 s once it reports `building`) with the banner "Creating the report…"; no answer, or `failed`, ends in the short report.
+   When the service never started, the second line of the short report is a `PROBLEM:` line with the likeliest causes (the Runtime
+   is missing or did not load: `red4ext\plugins\AiNpcCyberpunkMod\`, the RED4ext log, antivirus; a Chromium browser). The short report holds what the game can read
    (service status, settings, party, `runtime\*.log`, `AiNpcCyberpunkMod.log`), says why it is short and names
    the logs it could not read. It is one fixed file, `runtime\convai-report-lua.txt` (shipped empty and rewritten in place, so a
    new report replaces the last one and no file is created, renamed or removed).

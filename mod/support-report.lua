@@ -4,9 +4,11 @@
 -- Lua is sandboxed to this mod's folder, so the full report is built by the
 -- conversation service (bridge/support-report.mjs), which can read the CET,
 -- redscript and RED4ext logs. This module writes runtime/report-request.json,
--- waits for runtime/report-result.json, and shows the path it names. When the
--- service is not running (or does not answer) it writes a shorter text report
--- itself from the files the game can read, and says so. That short report is
+-- waits for runtime/report-result.json, and shows the path it names. When no
+-- service is answering (it never started, it stopped, or its status file is
+-- missing, empty or stale) it writes a shorter text report at once, from the
+-- files the game can read, and says so; a service that is up but silent gets
+-- a few seconds first. That short report is
 -- one fixed file, runtime/convai-report-lua.txt, shipped empty and rewritten in
 -- place: a file with a new name would land in Mod Organizer 2's Overwrite folder.
 --
@@ -245,6 +247,25 @@ function M.displayPath(path)
     return '…\\' .. table.concat(kept, '\\') .. '\\\n' .. file
 end
 
+-- The whole path, for a player who has to find the file by hand (Copy report path cannot work without the service). Broken
+-- after a folder separator so that no line is wider than WRAP characters, with the file name last, on a line of its own.
+local WRAP = 44
+function M.fullPath(path)
+    local text = tostring(path or '')
+    local file, folder = baseName(text), dirName(text)
+    if file == '' or not folder then return text end
+    local lines, line = {}, ''
+    for part in (folder .. '\\'):gmatch('[^\\/]*[\\/]?') do
+        if part ~= '' then
+            if line ~= '' and #line + #part > WRAP then lines[#lines + 1] = line; line = '' end
+            line = line .. part
+        end
+    end
+    if line ~= '' then lines[#lines + 1] = line end
+    lines[#lines + 1] = file
+    return table.concat(lines, '\n')
+end
+
 ------------------------------------------------------------------ instance
 
 function M.new(options)
@@ -280,6 +301,18 @@ function M.new(options)
         if status then ok, down = pcall(status.unavailable, now()) end
         if ok and type(down) == 'table' then return down.kind == 'starting' and 'starting' or 'stopped' end
         return 'unknown'
+    end
+
+    -- 'live' | 'stopped' | 'never': can anything answer a request now? Unlike serviceState() this is never 'unknown': no status
+    -- file, an empty or unreadable one, a stale one and no fresh heartbeat all mean nothing is answering ('never' when the service
+    -- left no trace in this game session). Only a fresh heartbeat or a fresh ready/starting status from the supervisor is 'live'.
+    function self.serviceReach()
+        local status = serviceStatus()
+        if status and type(status.reach) == 'function' then
+            local ok, value = pcall(status.reach, now())
+            if ok and (value == 'live' or value == 'stopped' or value == 'never') then return value end
+        end
+        return heartbeatFresh() and 'live' or 'never'
     end
 
     -- The kind of fault the service status names ('browser', 'setup', 'failed', ...), or nil; only meaningful while nothing is serving.
@@ -415,6 +448,7 @@ function M.new(options)
             'Created: ' .. os.date('%Y-%m-%d %H:%M:%S') .. '   id ' .. stamp,
             'Why it is short: ' .. (reason == 'no-response' and 'the conversation service did not answer the request'
                 or reason == 'failed' and 'the conversation service could not build the full report'
+                or reason == 'service-never-started' and 'the conversation service never started in this game session'
                 or 'the conversation service was not running'),
             'Not included: CET, redscript, RED4ext, launcher and conversation-service logs (outside the mod folder).',
             'Keys, tokens, IDs, audio and conversation text are never included; the paths for the other logs are in the Help page.'}
@@ -422,6 +456,12 @@ function M.new(options)
         if self.serviceFault() == 'browser' then
             table.insert(out, 2, 'PROBLEM: no browser for the conversation page (service status code browser-missing). a Chromium browser such as '
                 .. 'Microsoft Edge, Google Chrome, Brave or Opera must be installed, then restart the game.')
+        elseif reason == 'service-never-started' then
+            -- No status at all: the launcher that starts the service never ran. Likeliest first (the Runtime is a separate download).
+            table.insert(out, 2, 'PROBLEM: the conversation service never started (runtime/bridge-service.json is missing, empty or from an earlier '
+                .. 'session). Most likely the Runtime is missing or did not load: check that red4ext\\plugins\\AiNpcCyberpunkMod\\ exists in the '
+                .. 'game folder, read the newest log in red4ext\\logs, and check that antivirus has not blocked or removed it. The service also '
+                .. 'needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera.')
         end
         section(out, 'versions')
         local okVersion, cet = pcall(function() return GetVersion and GetVersion() or nil end)
@@ -508,8 +548,10 @@ function M.new(options)
         if state.phase == 'working' then return false, ui.t('A report is already being created.') end
         counter = counter + 1
         local id = 'r' .. now() .. '-' .. counter
-        local down = self.serviceState() == 'stopped'
-        if down then fallback('service-stopped')
+        -- Nothing answering (never started, stopped, or only stale or empty status files): the short report now, no wait. Only a
+        -- service that is up (a fresh heartbeat, or a fresh ready/starting status) is asked, and given FIRST_WAIT to answer.
+        local reach = self.serviceReach()
+        if reach ~= 'live' then fallback(reach == 'never' and 'service-never-started' or 'service-stopped')
         else
             local payload = {version = 1, id = id, issuedAt = now() * 1000,
                 lua = {cetVersion = (select(2, pcall(function() return GetVersion and GetVersion() or nil end))),
@@ -561,8 +603,25 @@ function M.new(options)
     -- clipboard, tried from the next top-level update because an ImGui call is not
     -- safe inside a native menu callback. Either one is enough.
     local CLIPBOARD = 'runtime/clipboard-request.json'
+
+    -- What the Copy row says and shows, in the banner and in its help text, while no service can copy the path: the path itself,
+    -- whole, for the player to find the file. nil once a service is up (or before a report exists).
+    function self.copyUnavailableText()
+        if not state.path or self.serviceReach() == 'live' then return nil end
+        -- The path starts on a line of its own, below the sentence.
+        return ui.t('Copying the path needs the conversation service, which is not running. The report file is at: {path}',
+            {path = '\n' .. M.fullPath(state.path)})
+    end
+
     function self.copyPath()
         if not state.path then return false, ui.t('Create a report first.') end
+        -- No service to put the path on the clipboard: no request file is written (it would sit unread and be acted on whenever a
+        -- service starts); the banner shows the path instead, and the game's own clipboard is still tried from the next update.
+        local unavailable = self.copyUnavailableText()
+        if unavailable then
+            if hasGameClipboard() then pendingCopy = state.path end
+            return true, unavailable
+        end
         counter = counter + 1
         local requested = pcall(function()
             local file = io.open(CLIPBOARD, 'wb')

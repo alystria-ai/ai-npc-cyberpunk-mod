@@ -434,6 +434,7 @@ return {
     ["Copy"] = "複製",
     ["Copy report path"] = "複製報告路徑",
     ["Copy the report path to the clipboard so you can paste it into a message."] = "將報告路徑複製到剪貼簿，以便貼上到訊息中。",
+    ["Copying the path needs the conversation service, which is not running. The report file is at: {path}"] = "複製路徑需要對話服務，而該服務未執行。報告檔案位於：{path}",
     ["Create"] = "建立",
     ["Create a report"] = "建立報告",
     ["Create a report first, then copy its path."] = "請先建立報告，再複製其路徑。",

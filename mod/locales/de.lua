@@ -434,6 +434,7 @@ return {
     ["Copy"] = "Kopieren",
     ["Copy report path"] = "Berichtspfad kopieren",
     ["Copy the report path to the clipboard so you can paste it into a message."] = "Kopiere den Berichtspfad in die Zwischenablage, damit du ihn in eine Nachricht einfügen kannst.",
+    ["Copying the path needs the conversation service, which is not running. The report file is at: {path}"] = "Zum Kopieren des Pfads wird der Gesprächsdienst benötigt, der nicht läuft. Die Berichtsdatei liegt unter: {path}",
     ["Create"] = "Erstellen",
     ["Create a report"] = "Bericht erstellen",
     ["Create a report first, then copy its path."] = "Erstelle zuerst einen Bericht und kopiere dann seinen Pfad.",

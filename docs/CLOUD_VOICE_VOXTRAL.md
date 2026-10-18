@@ -90,6 +90,7 @@ in the cloud voice, the rest of it is never given to another voice (see "One rep
 | 429 | `limit` | a `Retry-After` of 1 s or less (or none): asked again once after it; longer: cool-down for it (20 s when none given twice, at most 60 s), the Convai voice speaks meanwhile; every Mistral request pauses for it |
 | 401 | `key` | never asked again; 60 s cool-down, the Convai voice speaks meanwhile |
 | 403 | `key` only if it repeats | asked again once after 300 ms; still 403: `key`, 20 s cool-down, the Convai voice speaks meanwhile |
+| 403 whose own body says "guardrail" (or a plain "blocked" that does not blame the key, the account or the network, and is not a web page) | `content` | a refusal of that one line's text, not of the key: never asked again, no cool-down, the gate is not tightened, no degraded state. That reply is shown as written text and one log line says so (`refused this line (guardrail); shown as text`); the next reply asks Voxtral as usual. No other voice speaks it: the Convai voice is chosen when a turn starts, before any text exists |
 | Network error, 5xx, 408, stalled stream (8 s of silence) | `network` | a 5xx or 408 is asked again once after 300 ms; the next reply tries again |
 | Refused request or unusable answer | `request` | next reply tries again |
 | Text over 4,000 characters, or nothing speakable | `text` | not a fallback event; written reply |

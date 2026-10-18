@@ -115,6 +115,7 @@ return {
     ["Copy"] = "Kopírovat",
     ["Copy report path"] = "Kopírovat cestu k hlášení",
     ["Copy the report path to the clipboard so you can paste it into a message."] = "Zkopíruje cestu k hlášení do schránky, aby ji šlo vložit do zprávy.",
+    ["Copying the path needs the conversation service, which is not running. The report file is at: {path}"] = "Zkopírování cesty vyžaduje konverzační službu, která neběží. Soubor hlášení je uložen v: {path}",
     ["Create"] = "Vytvořit",
     ["Create a report"] = "Vytvořit hlášení",
     ["Create a report first, then copy its path."] = "Nejdřív vytvoř hlášení, potom zkopíruj jeho cestu.",

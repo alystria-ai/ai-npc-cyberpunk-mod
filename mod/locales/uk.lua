@@ -115,6 +115,7 @@ return {
     ["Copy"] = "Копіювати",
     ["Copy report path"] = "Копіювати шлях до звіту",
     ["Copy the report path to the clipboard so you can paste it into a message."] = "Скопіюй шлях до звіту в буфер обміну, щоб вставити його в повідомлення.",
+    ["Copying the path needs the conversation service, which is not running. The report file is at: {path}"] = "Копіювання шляху потребує служби розмов, яка не працює. Файл звіту розташований тут: {path}",
     ["Create"] = "Створити",
     ["Create a report"] = "Створити звіт",
     ["Create a report first, then copy its path."] = "Спершу створи звіт, а потім скопіюй його шлях.",

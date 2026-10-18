@@ -115,6 +115,7 @@ return {
     ["Copy"] = "Másolás",
     ["Copy report path"] = "Jelentés elérési útjának másolása",
     ["Copy the report path to the clipboard so you can paste it into a message."] = "Másold a vágólapra a jelentés elérési útját, hogy beilleszthesd egy üzenetbe.",
+    ["Copying the path needs the conversation service, which is not running. The report file is at: {path}"] = "Az elérési út másolása a beszélgetési szolgáltatást igényli, amely nem fut. A jelentésfájl itt található: {path}",
     ["Create"] = "Létrehozás",
     ["Create a report"] = "Jelentés létrehozása",
     ["Create a report first, then copy its path."] = "Előbb hozz létre jelentést, majd másold ki az elérési útját.",

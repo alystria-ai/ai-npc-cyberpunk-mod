@@ -77,6 +77,28 @@ function M.unavailable(now)
     return nil
 end
 
+local function ofThisSession(value)
+    return type(value) == 'table' and type(value.updated) == 'number' and value.updated >= (loadedAt - SESSION_WINDOW_S) * 1000.0
+end
+
+-- Whether anything can answer a request now, for a caller that must decide before it waits (the in-game support report):
+--   'live'     a heartbeat is fresh, or the supervisor's own fresh status says ready, starting or restarting;
+--   'stopped'  the service left traces in this game session (a failure, a stop, a heartbeat gone quiet) but nothing answers now;
+--   'never'    no trace of it in this session: no bridge-service.json, an empty or unreadable one, or one from an earlier session.
+-- Unlike unavailable(), no evidence at all is a definite answer here. Reads the same cached files; nothing new is opened.
+function M.reach(now)
+    now = now or os.time()
+    local knowledge = cached('runtime/knowledge-status.json', now)
+    local voice = cached('runtime/local-voice-state.json', now)
+    if fresh(knowledge, now) or fresh(voice, now) then return 'live' end
+    local service = supervisor(now)
+    if service and fresh(service, now) and (service.state == 'ready' or service.state == 'starting' or service.state == 'restarting') then
+        return 'live'
+    end
+    if ofThisSession(service) or ofThisSession(knowledge) or ofThisSession(voice) then return 'stopped' end
+    return 'never'
+end
+
 function M.message(kind)
     if kind == 'starting' then return ui.t('The conversation service is starting. Try again in a few seconds.') end
     if kind == 'restarted' then return ui.t('The conversation service restarted. Please try again.') end

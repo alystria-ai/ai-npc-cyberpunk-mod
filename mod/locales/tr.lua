@@ -115,6 +115,7 @@ return {
     ["Copy"] = "Kopyala",
     ["Copy report path"] = "Rapor yolunu kopyala",
     ["Copy the report path to the clipboard so you can paste it into a message."] = "Rapor yolunu panoya kopyala, böylece bir mesaja yapıştırabilirsin.",
+    ["Copying the path needs the conversation service, which is not running. The report file is at: {path}"] = "Yolu kopyalamak, çalışmayan konuşma servisini gerektiriyor. Rapor dosyası şu konumda: {path}",
     ["Create"] = "Oluştur",
     ["Create a report"] = "Rapor oluştur",
     ["Create a report first, then copy its path."] = "Önce bir rapor oluştur, sonra yolunu kopyala.",

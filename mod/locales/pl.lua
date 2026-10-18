@@ -115,6 +115,7 @@ return {
     ["Copy"] = "Kopiuj",
     ["Copy report path"] = "Kopiuj ścieżkę raportu",
     ["Copy the report path to the clipboard so you can paste it into a message."] = "Skopiuj ścieżkę raportu do schowka, aby wkleić ją do wiadomości.",
+    ["Copying the path needs the conversation service, which is not running. The report file is at: {path}"] = "Kopiowanie ścieżki wymaga usługi rozmów, która nie działa. Plik raportu znajduje się w: {path}",
     ["Create"] = "Utwórz",
     ["Create a report"] = "Utwórz raport",
     ["Create a report first, then copy its path."] = "Najpierw utwórz raport, a potem skopiuj jego ścieżkę.",
