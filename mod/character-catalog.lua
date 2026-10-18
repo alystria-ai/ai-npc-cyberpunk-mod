@@ -619,6 +619,24 @@ function M.protectedReason(catalog, actor)
     return nil
 end
 
+-- Record-cloning mods spawn a character from a copy of its record named "<prefix><original record>" (Night City Allies:
+-- NCA.Character.Judy, docs/NCA_FOLLOWERS_PLAN.md). The copy keeps every flat, so it is the same person: every roster record
+-- also matches under each prefix, and no row needs to list its clones. A prefix is data here, not a mod check: nothing
+-- reads another mod's presence, and a record that does not exist costs one unused table entry. A numbered copy
+-- ("NCA.<number>", made when the original has no debug name) has no readable original, so it resolves by display name.
+M.CLONE_PREFIXES = {'NCA.'}
+
+-- The original record name behind a clone's debug name ("NCA.Character.Judy" -> "Character.Judy"), the name itself for an
+-- original ("Character.Judy"), or nil for anything else (a number, another family).
+function M.originalRecordName(text)
+    if type(text) ~= 'string' then return nil end
+    if text:find('^Character%.') then return text end
+    for _, prefix in ipairs(M.CLONE_PREFIXES) do
+        if text:sub(1, #prefix) == prefix and text:sub(#prefix + 1):find('^Character%.') then return text:sub(#prefix + 1) end
+    end
+    return nil
+end
+
 function M.build(profiles, archetypes)
     local catalog = {keys = {}, names = {}, records = {}, archetypes = archetypes}
     for _, profile in ipairs(profiles) do
@@ -626,6 +644,16 @@ function M.build(profiles, archetypes)
         catalog.names[normalized(profile.name)] = profile
         for _, alias in ipairs(profile.aliases or {}) do catalog.names[normalized(alias)] = profile end
         for _, record in ipairs(profile.records or {}) do catalog.records[record] = profile end
+    end
+    -- The clone names, after every explicit record, so a row that lists its own clone keeps it.
+    for _, profile in ipairs(profiles) do
+        for _, record in ipairs(profile.records or {}) do
+            if type(record) == 'string' and record:find('^Character%.') then
+                for _, prefix in ipairs(M.CLONE_PREFIXES) do
+                    if catalog.records[prefix .. record] == nil then catalog.records[prefix .. record] = profile end
+                end
+            end
+        end
     end
     return catalog
 end
@@ -662,6 +690,16 @@ function M.resolve(catalog, actor)
             if gender == 'FEMALE' then return 'resident-female', actor.name end
             if gender == 'MALE' then return 'resident-male', actor.name end
             return nil, actor.name
+        end
+        -- A spawned human the archetypes do not know (a spawner's generic mercenary or roamer, whose faction has no archetype) is
+        -- an ordinary person too: a resident by body, never a named character and never a child or a machine.
+        if actor.spawned == true and reason == 'unclassified' and actor.facts.human ~= false and actor.facts.children ~= true then
+            local plain = {}
+            for name, value in pairs(actor.facts) do plain[name] = value end
+            if plain.bodyType == nil then plain.bodyType = actor.bodyType end
+            local gender = M.gender(plain)
+            if gender == 'FEMALE' then return 'resident-female', actor.name end
+            if gender == 'MALE' then return 'resident-male', actor.name end
         end
     end
     if not actor.crowd then return nil, actor.name end

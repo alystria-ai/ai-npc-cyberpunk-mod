@@ -559,8 +559,8 @@ local function archetypeFacts(npc, entity, body)
     local recordId
     read('recordId', function() recordId = npc:GetRecordID(); return tostring(recordId) end)
     read('recordName', function()
-        local text = TDBID.ToStringDEBUG(recordId)
-        return type(text) == 'string' and text:find('^Character%.') and text or nil
+        -- A record-cloning mod's copy ("NCA.Character.x") reads as the original record, so its tokens and quest prefix still count.
+        return characterCatalog.originalRecordName(TDBID.ToStringDEBUG(recordId))
     end)
     read('crowd', function() return npc:IsCrowd() == true end)
     read('children', function() return npc:IsCharacterChildren() == true end)
