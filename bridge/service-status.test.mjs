@@ -67,6 +67,15 @@ test('with no evidence at all the adapter keeps its previous behaviour', () => r
   assert(status.notice() == nil)
 `));
 
+test('empty status files (the shipped placeholders) are the same as missing ones', () => run(`
+  for _, path in ipairs({'runtime/knowledge-status.json', 'runtime/local-voice-state.json', 'runtime/bridge-service.json'}) do
+    files[path] = ''
+  end
+  assert(status.unavailable() == nil, 'an empty file must not read as a stopped service')
+  assert(status.blockedMessage() == nil)
+  assert(status.notice() == nil)
+`));
+
 test('a fresh bridge heartbeat always allows conversations', () => run(`
   put('runtime/bridge-service.json', {state = 'failed', code = 'bridge-crashed', since = ms(-5), updated = ms()})
   put('runtime/knowledge-status.json', {version = 1, updated = ms(-1)})

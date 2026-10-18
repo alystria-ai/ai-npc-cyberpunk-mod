@@ -19,17 +19,20 @@ test('Developer trace is off without I/O and rotates both retained files within 
     opens=opens+1
     if mode=='rb' then
       if not files[path] then return nil end
-      return {seek=function() return #files[path] end,close=function() return true end}
+      return {seek=function() return #files[path] end,read=function() return files[path] end,
+        close=function() return true end}
     end
-    assert(mode=='ab');files[path]=files[path] or ''
+    if mode=='wb' then
+      -- Only a file that already exists may be rewritten: a new file would land in MO2's Overwrite folder.
+      assert(files[path],'rotation created '..path);files[path]=''
+    else assert(mode=='ab');files[path]=files[path] or '' end
     return {write=function(_,line) files[path]=files[path]..line;return true end,
       close=function() return true end}
   end
-  os.remove=function(path) files[path]=nil;return true end
-  os.rename=function(from,to)
-    if files[to] or not files[from] then return nil end
-    files[to],files[from]=files[from],nil;return true
-  end
+  -- Shipped placeholders: both trace files exist (empty) before the first sample.
+  files['runtime/movement-trace.ndjson'],files['runtime/movement-trace.previous.ndjson']='',''
+  os.remove=function() error('rotation deleted a trace file') end
+  os.rename=function() error('rotation renamed a trace file') end
   json={encode=function() return '"'..string.rep('x',32765)..'"' end}
   local movement=(function() ${logger} end)()
   local provider=function() calls=calls+1;return {id=calls} end
@@ -54,6 +57,45 @@ test('Developer trace is off without I/O and rotates both retained files within 
   assert(not movement.update(false,1,provider) and #files[active]==retained+32768)
 `));
 
+test('Developer trace rotation copies the active file into the previous one in place and never deletes or renames', () => run(`
+  local files,created={},{}
+  local function fake(path,mode)
+    if mode=='rb' then
+      if not files[path] then return nil end
+      return {seek=function() return #files[path] end,read=function() return files[path] end,
+        close=function() return true end}
+    end
+    if not files[path] then created[#created+1]=path end
+    files[path]=(mode=='wb' or not files[path]) and '' or files[path]
+    return {write=function(_,line) files[path]=files[path]..line;return true end,close=function() return true end}
+  end
+  io.open=fake
+  os.remove=function() error('deleted a trace file') end
+  os.rename=function() error('renamed a trace file') end
+  json={encode=function() return '"'..string.rep('x',32765)..'"' end}
+  local active,previous='runtime/movement-trace.ndjson','runtime/movement-trace.previous.ndjson'
+  -- Placeholders plus an old, oversized previous file left by an unbounded trace.
+  files[active],files[previous]='',string.rep('y',3*1048576)
+  local movement=(function() ${logger} end)()
+  local provider=function() return {} end
+  local function push(lines) for _=1,lines do assert(movement.update(true,.5,provider)) end; assert(movement.flush()) end
+  push(64)
+  assert(files[previous]=='','An oversized trace is emptied in place')
+  assert(#files[active]==2097152)
+  local first=files[active]
+  push(8)
+  assert(files[previous]==first,'The rotated content must be the old active file')
+  assert(#files[active]==262144)
+  assert(#created==0,'created: '..table.concat(created,','))
+  -- A failed copy leaves the active file intact.
+  push(56)
+  assert(#files[active]==2097152)
+  local intact=files[active]
+  io.open=function(path,mode) if path==previous and mode=='wb' then return nil end return fake(path,mode) end
+  for _=1,7 do assert(movement.update(true,.5,provider)) end
+  assert(not movement.update(true,.5,provider) and files[active]==intact,'A failed copy must not lose the active file')
+`));
+
 test('Developer trace buffers samples and opens the trace file only on its 5 s flush', () => run(`
   local files,opens={},0
   io.open=function(path,mode)
@@ -65,8 +107,8 @@ test('Developer trace buffers samples and opens the trace file only on its 5 s f
     files[path]=files[path] or ''
     return {write=function(_,line) files[path]=files[path]..line;return true end,close=function() return true end}
   end
-  os.remove=function(path) files[path]=nil;return true end
-  os.rename=function(from,to) files[to],files[from]=files[from],nil;return true end
+  os.remove=function() error('deleted a trace file') end
+  os.rename=function() error('renamed a trace file') end
   json={encode=function() return '{}' end}
   local movement=(function() ${logger} end)()
   local provider=function() return {} end

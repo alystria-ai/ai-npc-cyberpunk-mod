@@ -379,10 +379,10 @@ local function publishPhoneDelivery(receipt)
     local ok, raw = pcall(json.encode, {version = 1, updated = os.time() * 1000, receipts = knowledgePhoneReceipts})
     if not ok or #raw > 32768 then return end
     local path = 'runtime/knowledge-phone-delivery.json'
-    local file = io.open(path .. '.tmp', 'wb'); if not file then return end
-    local written, closed = file:write(raw), file:close()
-    if not written or not closed then return end
-    if not os.rename(path .. '.tmp', path) then os.remove(path); os.rename(path .. '.tmp', path) end
+    -- In place (the file ships as an empty placeholder under Mod Organizer 2): the bridge reads it with a
+    -- try/catch and ignores a partial or empty file until the next publication.
+    local file = io.open(path, 'wb'); if not file then return end
+    file:write(raw); file:close()
 end
 
 microphone.captureKnowledge = function(context) return captureKnowledge(context, nil, true) end

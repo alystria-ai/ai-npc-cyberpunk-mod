@@ -171,6 +171,21 @@ test('a missing, stale or other-world part makes that snapshot unavailable for t
   assert.equal(resolveKnowledgeParts(plain), plain);
 });
 
+test('an empty part file (the shipped placeholder) reads as a missing one, and the writer never removes, renames or creates a temp file', () => {
+  const out = run(`
+os.remove=function() error('removed a part file') end
+os.rename=function() error('renamed a part file') end
+local open=parts.open
+parts.open=function(path,mode) assert(not path:find('.tmp',1,true),'temp file '..path); return open(path,mode) end
+settle();return snapshot()`);
+  configureKnowledgeParts({runtimeDir: 'runtime', readFile: () => ''});
+  const empty = resolveKnowledgeParts(out.request);
+  assert.equal(empty.worldKnowledge.status, 'unavailable'); assert.equal(empty.worldKnowledge.reason, 'knowledge-part-missing');
+  assert.equal(empty.journalHistory.status, 'unavailable');
+  configureKnowledgeParts({runtimeDir: 'runtime', readFile: store(out.files)});
+  assert.equal(resolveKnowledgeParts(out.request).worldKnowledge.status !== 'unavailable', true);
+});
+
 test('parseInput rebuilds the parts, and a kept part survives its file being replaced by a newer revision', () => {
   const out = run(`settle();local first=snapshot();values.b=3;now=now+1;world:demand(0);settle();return {first=first,second=snapshot()}`);
   const files = structuredClone(out.first.files);

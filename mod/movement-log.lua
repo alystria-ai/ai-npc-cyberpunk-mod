@@ -20,13 +20,41 @@ local function size(path)
     return length
 end
 
+-- Empties a file in place. Rotation only ever modifies the two trace files that
+-- exist and never deletes or renames one: under Mod Organizer 2 a deleted or
+-- renamed file comes back as a new file in the Overwrite folder, so the next
+-- launch would not see it. A failed open leaves the file as it was.
+local function truncate(path)
+    local file = io.open(path, 'wb')
+    if not file then return false end
+    return file:close() ~= nil
+end
+
 -- The file's size, or nil when absent. An externally enlarged or older
--- unbounded trace cannot enter this two-file budget and is removed (false when
+-- unbounded trace cannot enter this two-file budget and is emptied (false when
 -- that fails). Normal CET reloads preserve both valid files.
 local function boundedSize(path)
     local length = size(path)
     if not length or length <= FILE_LIMIT then return length end
-    return os.remove(path) and nil or false
+    return truncate(path) and 0 or false
+end
+
+-- Moves the active file's content into the previous file and empties the active
+-- one, both in place. A failure before the active file is emptied leaves it
+-- intact for the next update/reload (the previous file may then hold a partial
+-- copy, which the next rotation overwrites).
+local function rotate()
+    local source = io.open(ACTIVE, 'rb')
+    if not source then return false end
+    local content = source:read('*a')
+    source:close()
+    if type(content) ~= 'string' then return false end
+    local target = io.open(PREVIOUS, 'wb')
+    if not target then return false end
+    local wrote = target:write(content)
+    local closed = target:close()
+    if wrote == nil or closed == nil then return false end
+    return truncate(ACTIVE)
 end
 
 local function append(chunk)
@@ -34,14 +62,13 @@ local function append(chunk)
     if not sizes then
         local active, previous = boundedSize(ACTIVE), boundedSize(PREVIOUS)
         if active == false or previous == false then return false end
-        sizes = {active = active or 0, previous = previous ~= nil}
+        sizes = {active = active or 0}
     end
     if sizes.active + #chunk > FILE_LIMIT then
-        -- Retire the oldest file first. Rename of the closed active file is
-        -- atomic; a failed rename leaves it intact for the next update/reload.
-        if sizes.previous and not os.remove(PREVIOUS) then return false end
-        if sizes.active > 0 and not os.rename(ACTIVE, PREVIOUS) then return false end
-        sizes.previous, sizes.active = sizes.active > 0, 0
+        -- Retire the oldest content first: the previous file is overwritten by
+        -- the active file's.
+        if sizes.active > 0 and not rotate() then return false end
+        sizes.active = 0
     end
     local file = io.open(ACTIVE, 'ab')
     if not file then return false end
