@@ -172,7 +172,7 @@ Item details (costs before the 2026-10-12 capture are the 2026-10-11 numbers):
 | 11 | `updateGaze` → `targetAtCrosshair` (`init.lua:1081`, `:896`) | 5 Hz | Estimated 1-5 ms/s, more in crowds. It runs a `GetTargetParts` scan within 8 m plus head-slot transforms even with no companion and auto-connect off. | **Lua:** skip when neither a companion nor auto-connect needs it; use cached positions for owned copies. |
 | 12 | Turn-time polls: `reply.json` at 10 Hz while a reply is pending (`init.lua:2556`, up to 90 s); `microphone-state.json` at 10 Hz while recording | 10 Hz during waits | About 30 ms/s while waiting | **Lua** 3-4 Hz (adds 0.1-0.25 s of reply latency), or the C++ reader. |
 | 13 | `log()` opens and closes `probe.log` for every line (`init.lua:625`) | Per log line | About 3 ms per line | **Lua:** buffer lines and append at most once a second, with a flush on shutdown. |
-| 14 | `gesture-catalog.lua` (35k lines) is loaded by separate `dofile`s in `companion-gestures.lua:47` and `companion-seating.lua:492`, plus the development probe | Load time | Two or three heap copies, so GC pressure | **Lua:** load once and share it. |
+| 14 | `gesture-catalog.lua` (35k lines) is loaded by separate `dofile`s in `companion-gestures.lua:47` and `companion-seating.lua:492`, plus the development probe | Load time | Two or three heap copies, so GC pressure | **Lua:** load once and share it. **Done 2026-10-19 (`20aa14fc`):** the gesture controller's copy is handed to seating and preferred by the holocall picture. Measured offline, one copy holds only about 1.1 MB of table data (6,811 tables), so the gain is load time and a few MB, not the large heap of section 10. |
 | 15 | init.lua's own work in `onUpdate` (the inline blocks between the wrapped calls) | Every frame and 10 Hz | **~34 ms/s**: `event:onUpdate` 179 minus its wrapped top-level sections (~145). Holds the nearby lease write and rename, the diagnostic mailbox poll, the focus, gaze and talk-target work | **Attribute first:** have the probe time the inline blocks (`perf-probe.watch` cannot reach them; split them into module functions or add labelled timers in Developer mode only). Then Lua fixes. **Done in part:** `convaiPerfMark` segments (`9057812`) give `init:session`, `init:knowledge`, `init:worldReady`, `init:ui`, `init:mcm`, `init:invitations`, `init:partyConnections`, `init:phone`, `init:expressionContext`, `init:speech`, `init:poll` per frame and `init:tick`, `init:group`, `init:battles`, `init:gaze`, `init:reply` at 10 Hz. A segment includes the wrapped sections it calls. The world check no longer repeats `IsAttached`, `IsPreGame` and `GetSystemRequestsHandler` (`4dcc8e4`, four native calls per frame). |
 | 16 | `relationshipState.update` (`relationship-state.lua`) | Every frame | 4.8 ms/s | **Lua:** gate the per-frame check; the 2 s write keeps its rename (the bridge acts on an empty read). |
 | 17 | `autoConnect.update`/`heartbeat` and `phoneChatStyle.refresh` | Every frame (heartbeat, style), 10 Hz (update) | 4.7 + 4.4 ms/s; the style refresh peaked at 63 ms in one frame | **Lua:** refresh the style only when the phone is shown or its inputs change. |
@@ -433,3 +433,27 @@ Notes:
 - Tests: `bridge/lua-idle-work.test.mjs` (log buffer, idle board, world answer, phone style, auto-connect), plus the
   subtitles and loot-observer tests. Live check: the first reply after a load still shows its overhead caption in the right
   place (the Overrides now register then), and `probe.log` still ends with the shutdown line after a CET reload.
+
+## 10. The fifth round, 2026-10-19 (`perf-study`; unit-tested, the native part built and tested locally, not installed or live)
+
+The 2026-10-19 capture (150 windows, 2026-10-18 21:57 to 22:02 UTC, one idle companion, 58.9 fps) put `event:onUpdate` at 38 ms/s (0.65 ms a frame, 3.8 % of the
+frame; 179 ms/s on 2026-10-12). The probe file is replaced at every session start, so copy it after each run. Findings: a native call through CET costs 25 to 30 µs
+here (`init:session`, five calls, is 8.25 ms/s); the stutters (27 frames over 40 ms in 300 s) are not in the mod's Lua (worst `onUpdate` in those windows 3 to 13 ms against frames of 41 to 109 ms);
+no `hook:` row appeared because no hook fired (idle companion, no crowd); the Lua heap was 145 to 243 MB in game against 33 to 43 MB at the menu and is not explained (attribute it with
+`collectgarbage(); print(collectgarbage('count'))` before and after clearing one structure at a time).
+
+| Change | Commit | Expected |
+| --- | --- | --- |
+| speech reads V only on the heartbeat frame or while a reply plays | `444d1a43` | one native call a frame at rest, about 1.5 ms/s |
+| subtitles hooks return before any native read while no caption of ours is up | `ddbf2a05` | a closure and two native calls per crowd chatter line event |
+| vanilla-reaction hooks idle again once every hold has run out | `78daabef` | no stimulus read or owner lookup per NPC event after a finished conversation |
+| onUpdate's session, pause, phone, composer and submission checks are named functions; the tick reuses the frame's V | `08f7f58f` | about 5 closures a frame and one native call at 10 Hz |
+| cloud voice uses the text routes' keep-alive pool and reads a finished stream to its end | `500c729d` | 40 to 97 ms (a new TLS connection to the provider, measured) off the first audio of each request that paid one |
+| native worker checks JSON before taking the mutex | `4998a36b` | game-thread `Revision()` stalls: about 70 calls over 1 ms and 7 to 8 ms worst, to 0 to 2 and 0.4 to 2.4 ms (twenty 2 MB documents) |
+| native directory watcher wakes the worker on a replaced file | `2a82b154` | bridge-to-game hop p50 15.2 to 0.6-1.2 ms, p95 30 to 10-13 ms (40 replaced files) |
+| speaking frames: V from init.lua, the cached menu flag, no closures in the setting reads | `d62d61ea` | about six native calls and three closures fewer a frame while a reply plays, about 9 ms/s |
+
+Left, with the reasons: the five-call session check every frame (about 3 ms/s if throttled, but a stale player handle after a load is what it guards against; needs a change event and a load test),
+the phone-open read (1.5 ms/s; a hook on the phone), the relationship facts read every 2 s (25 native calls in one frame), the 10 Hz tick (about 5 ms/s). Live plan: Developer-mode runs A to G
+(idle, crowd, walking, speaking, after a conversation, native status, voice latency) against the numbers above; the speaking windows (`speaking: true`) show the `speech.update` and `subtitles.update` gain,
+`hook:ReactionManagerComponent.*` should be near zero after a conversation, `ConvaiNative.Status()` shows `watchEvents`, and `bridge-latency.json` shows the voice's first PCM for the second request of a reply.
