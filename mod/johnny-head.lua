@@ -86,9 +86,10 @@ end
 --   replacer         V is replaced by another character (a flashback where the player is Johnny)
 --   call             a phone call is incoming or running
 --   dialogue         V is in a quest conversation
---   scene            scene tier 2 or above (staged, limited or cinematic), or a dialogue choice while the tier is unknown. A choice at
---                    tier 1 is the game's "Talk" prompt on a vendor or a fixer, not a conversation (the rule of mod/world-talk.lua);
---                    tier 2 refuses here, unlike for a story character, because the game often stages its own Johnny there
+--   scene            scene tier 3 or above (limited gameplay or a cinematic), or a dialogue choice while the tier is unknown: the rule of
+--                    mod/world-talk.lua for story characters. Tier 2 is staged gameplay (Viktor's clinic, Misty's shop) and does not
+--                    refuse by itself; where the game stages its own Johnny there, his game line keeps Johnny quiet (johnny-speaking).
+--                    A choice at tier 1 or 2 is the game's "Talk" prompt on a vendor or a fixer, not a conversation
 --   combat           V is in a fight
 --   johnny-speaking  the game gave Johnny a line in the last LINE_SECONDS (spoken: true)
 function M.busy(sample, spoken)
@@ -97,7 +98,7 @@ function M.busy(sample, spoken)
     if sample.call == true then return 'call' end
     if sample.dialogue == true then return 'dialogue' end
     local tier = tonumber(sample.tier)
-    if (tier ~= nil and tier >= 2) or (tier == nil and sample.choices == true) then return 'scene' end
+    if (tier ~= nil and tier >= 3) or (tier == nil and sample.choices == true) then return 'scene' end
     if sample.combat == true then return 'combat' end
     if spoken == true then return 'johnny-speaking' end
     return nil

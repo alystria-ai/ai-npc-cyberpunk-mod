@@ -86,7 +86,7 @@ Read once on the key press, from a fresh `battleObserver.sample(player)` (the sa
 | `replacer` | V is replaced by another character (a flashback where the player is Johnny) |
 | `call` | a phone call is incoming or running |
 | `dialogue` | V is in a quest conversation |
-| `scene` | scene tier 2 or above (staged gameplay, limited gameplay, a cinematic), or a dialogue choice on screen while the tier is unknown. Stricter than talking to a character (tier 3): the game's own Johnny appearances are often staged at tier 2 |
+| `scene` | scene tier 3 or above (limited gameplay, a cinematic), or a dialogue choice on screen while the tier is unknown: the same rule as talking to a story character (the user, 2026-10-19). Tier 2 is staged gameplay (Viktor's clinic, Misty's shop) and stays open; where the game stages its own Johnny at tier 2, his game line keeps Johnny quiet (`johnny-speaking`, below) |
 | `combat` | V is in a fight |
 | `johnny-speaking` | the game showed a line by Johnny in the last 10 s (the game-dialogue buffer, `mod/game-dialogue.lua`, which already attributes lines to `johnny-silverhand`; nothing new is observed) |
 
@@ -182,8 +182,8 @@ Thin or missing (from the survey of the profile, claims and rules): the 2023 Ara
 
 ## Open questions for the user
 
-1. **Combat.** Johnny stays quiet in fights (default), or he may answer in a fight like a voice in V's ear.
-2. **Scene tier 2.** Quiet at tier 2 too (default: the game's Johnny is often staged there, at the cost of Viktor's clinic and Misty's shop), or only at tier 3 like story characters.
+1. **Combat.** Decided 2026-10-19: Johnny stays quiet in fights.
+2. **Scene tier 2.** Decided 2026-10-19: quiet from tier 3, like story characters; the 10 s rule after a game line of his covers the game's own Johnny staged at tier 2.
 3. **Phase 2, Johnny speaks first.** Build step 1 of phase 2 now (people, quests, romances behind Johnny speaks up, Off by default; recommended), or wait for live feedback on phase 1 first.
 4. **Phase 3, the hologram.** One live test of the blendable look on a spawned copy first (recommended), or skip the hologram and keep him a voice.
 5. **Lore gaps.** Fill them through the reviewed claims pipeline after `cast-expansion` lands (recommended), or a short in-head primer written now.
