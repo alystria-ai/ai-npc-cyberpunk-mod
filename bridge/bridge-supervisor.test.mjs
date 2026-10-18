@@ -170,6 +170,18 @@ test('a bridge that is already running is used instead of starting a second one'
   assert.deepEqual(await stoppedPids(f.state), [manual.pid]);
 });
 
+test('the empty placeholders the install ships are no status and no bridge: the supervisor starts one, publishes over them and never removes them', async t => {
+  const f = await fixture(t);
+  await writeFile(f.statusPath, ''); await writeFile(join(f.runtime, 'local-voice-state.json'), '');
+  const run = supervise(f);
+  const ready = await until(() => readJson(f.statusPath), value => value?.state === 'ready', 'bridge did not become ready over the placeholder');
+  assert.equal(ready.code, 'bridge-ready', 'an empty local-voice-state.json is not a bridge that is already running');
+  assert.equal(run.spawned.length, 1);
+  run.endGame(); await run.done;
+  const final = await readJson(f.statusPath);
+  assert.equal(final.state, 'stopped', 'the status file stays and holds the last state');
+});
+
 test('missing setup is reported without starting a bridge and recovers once the key is added', async t => {
   const f = await fixture(t, {key: false});
   const run = supervise(f);

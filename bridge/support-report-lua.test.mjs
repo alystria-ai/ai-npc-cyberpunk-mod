@@ -431,3 +431,14 @@ test('Copy path needs a report, asks the service and tries the game clipboard fr
   assert(not ok and message:find('clipboard is not available', 1, true))
   io.open = realOpen
 `));
+
+test('empty status files, as the install ships them, read as no status in the locations and the service state', () => run(`
+  for _, name in ipairs({'bridge-service', 'bridge-status', 'knowledge-status', 'local-voice-state', 'party-connection-state', 'support-paths'}) do
+    put('runtime/' .. name .. '.json', '')
+  end
+  local support = newSupport()
+  local where = support.locations()
+  assert(where.known == false, 'an empty bridge-service.json or support-paths.json is not a source of paths')
+  assert(convaiServiceStatus.unavailable() == nil and convaiServiceStatus.notice() == nil)
+  assert(type(support.serviceState()) == 'string')
+`));

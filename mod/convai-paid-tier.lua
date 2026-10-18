@@ -75,13 +75,11 @@ function M.new(options)
     local function write(payload)
         local ok = pcall(function()
             local encoded = json.encode(payload)
-            local temporary = COMMAND .. '.tmp'
-            local file = io.open(temporary, 'wb')
+            -- In place over the shipped placeholder: a new file here would land in Mod Organizer 2's Overwrite folder.
+            local file = io.open(COMMAND, 'wb')
             if not file then error('no file') end
             local wrote = file:write(encoded); file:close()
             if not wrote then error('write failed') end
-            os.remove(COMMAND)
-            if not os.rename(temporary, COMMAND) then error('rename failed') end
         end)
         return ok
     end

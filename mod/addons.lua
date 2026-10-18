@@ -137,17 +137,20 @@ local function decode(text)
     return ok and value or nil
 end
 
--- Exchange files (a placeholder ships; the bridge reads them with a retry) are rewritten in place: one open, never a new or
--- deleted file (Mod Organizer 2). The rest are saved state and keep the temp-and-rename protection.
-local IN_PLACE = {['reaction-lease.json'] = true}
+-- The player's saved add-on settings are state, not an exchange file: they keep the temporary file and the swap, so an update
+-- that unpacks over the folder never has them half-written. Every other file written here (addon-state.json, reaction-lease.json) is
+-- shipped as an empty placeholder and written in place: under Mod Organizer 2 a new file (a temporary one, or the target
+-- re-created after a remove) lands in its Overwrite folder and the service never sees it.
+local KEPT_FILES = {['addon-settings.json'] = true}
 
 local function writeFile(name, text)
     local path = 'runtime/' .. name
-    if IN_PLACE[name] then
+    if not KEPT_FILES[name] then
         local file = io.open(path, 'wb')
         if not file then return false end
-        file:write(text); file:close()
-        return true
+        local written = file:write(text)
+        local closed = file:close()
+        return written ~= nil and written ~= false and closed ~= false
     end
     local file = io.open(path .. '.tmp', 'wb')
     if not file then return false end

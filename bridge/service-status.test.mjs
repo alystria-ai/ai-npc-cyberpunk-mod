@@ -189,3 +189,15 @@ test('status files are read at most once a second and malformed files are ignore
   files['runtime/knowledge-status.json'] = 'malformed'
   assert(status.unavailable() == nil, 'unreadable evidence is no evidence')
 `));
+
+test('the empty placeholders the install ships (bridge-service.json and the heartbeats) are no evidence, like missing files', () => run(`
+  for _, name in ipairs({'bridge-service', 'knowledge-status', 'local-voice-state'}) do files['runtime/' .. name .. '.json'] = '' end
+  assert(status.unavailable() == nil, 'empty files must not read as a stopped service')
+  assert(status.blockedMessage() == nil)
+  assert(status.lostSince(now() - 10) == nil)
+  assert(status.notice() == nil)
+  -- The service then writes over them in place: the same files now carry real status.
+  advance(5)
+  put('runtime/bridge-service.json', {state = 'failed', code = 'missing-key', since = ms(-1), updated = ms()})
+  assert(status.unavailable().kind == 'setup')
+`));

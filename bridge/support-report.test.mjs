@@ -336,6 +336,13 @@ test('the report shows Local AI detection from whitelisted state fields, the pac
     await rm(join(f.runtime, 'mistral-state.json'));
     const missing = await localAiSection({runtime: f.runtime, project: f.project, environment: {}});
     assert.equal(missing.state, 'absent'); assert.equal(missing.localAi, null); assert.equal(missing.localModels, null);
+    // The install ships the status files empty: that is no state yet too, not an unreadable file.
+    await writeFile(join(f.runtime, 'mistral-state.json'), '');
+    const placeholder = await localAiSection({runtime: f.runtime, project: f.project, environment: {}});
+    assert.equal(placeholder.state, 'absent'); assert.equal(placeholder.localAi, null);
+    await writeFile(join(f.runtime, 'bridge-service.json'), '');
+    const empty = await collectReport({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project, reportId: 'r-empty', environment: {}});
+    assert.equal(empty.summary.bridge.status['bridge-service.json'].state, 'absent');
   } finally { await f.cleanup(); }
 });
 

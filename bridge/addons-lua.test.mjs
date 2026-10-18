@@ -79,6 +79,34 @@ test('a proactive remark: queued, written as an automatic request with a lease, 
   `);
 });
 
+test('the exchange files (addon-state.json, reaction-lease.json) are written in place, the saved settings keep their protected swap', () => {
+  run(`${WORLD}
+    M.attach(host)
+    local removed, renamed = {}, {}
+    local remove, rename = os.remove, os.rename
+    os.remove = function(path) removed[#removed + 1] = path; return remove(path) end
+    os.rename = function(from, to) renamed[#renamed + 1] = from .. '>' .. to; return rename(from, to) end
+    local handle = assert(M.public.register({id = 'skippy', name = 'Skippy', version = '1.0.0', requires = '1.0'}))
+    handle:speaker({id = 'gun', name = 'Skippy', anchor = 'player', minGap = 5})
+    assert(handle:setCompanionContext('ride', 'You are riding in a cab.'))
+    assert(handle:remark('gun', {event = 'kill', text = 'V took down an enemy.', priority = 3}))
+    tick(); now = now + 1; tick(1)
+    assert(files['runtime/addon-state.json'] ~= nil and files['runtime/reaction-lease.json'] ~= nil)
+    for _, entry in ipairs(opened) do
+      if entry:find('wb ', 1, true) == 1 then
+        assert(not entry:find('.tmp', 1, true) and not entry:find('.previous', 1, true), 'a side file was written: ' .. entry)
+      end
+    end
+    assert(#removed == 0 and #renamed == 0, 'an exchange file was removed or swapped: ' .. table.concat(removed, ',') .. '|' .. table.concat(renamed, ','))
+    -- The player's saved settings are state, not an exchange file: they keep the temporary file and the swap.
+    handle:settings({title = 'Skippy', items = {{id = 'remarks', label = 'Combat remarks', kind = 'bool', default = true}}})
+    assert(M.stageSetting('addon:skippy:remarks', false) and M.commitSettings())
+    assert(files['runtime/addon-settings.json'] ~= nil and files['runtime/addon-settings.json.tmp'] == nil)
+    assert(#removed == 1 and removed[1] == 'runtime/addon-settings.json' and renamed[1] == 'runtime/addon-settings.json.tmp>runtime/addon-settings.json',
+      table.concat(removed, ',') .. '|' .. table.concat(renamed, ','))
+  `);
+});
+
 test('remarkStarted carries the reply text of the remark that is heard, and no other', () => {
   run(`${WORLD}
     M.attach(host)

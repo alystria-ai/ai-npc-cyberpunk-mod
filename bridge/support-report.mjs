@@ -133,7 +133,10 @@ async function readSmallJson(path, maxBytes = 256 * 1024) {
   try {
     const info = await stat(path);
     if (!info.isFile() || info.size > maxBytes) return {error: info.isFile() ? 'too-large' : 'not-a-file'};
-    return {value: JSON.parse((await readFile(path, 'utf8')).replace(/^﻿/, '')), modified: info.mtime.toISOString()};
+    const text = (await readFile(path, 'utf8')).replace(/^﻿/, '');
+    // An empty file is a placeholder the install ships and the service has not written yet: nothing there, like a missing one.
+    if (text.trim() === '') return {error: 'absent'};
+    return {value: JSON.parse(text), modified: info.mtime.toISOString()};
   } catch (error) { return {error: error.code === 'ENOENT' ? 'absent' : 'unreadable'}; }
 }
 

@@ -41,25 +41,15 @@ function M.indexOf(saved)
     return 1
 end
 
+-- Written in place over the shipped empty file: under Mod Organizer 2 a new file (a temporary one, or the target re-created
+-- after a remove) lands in its Overwrite folder and the service never sees it. A reader that catches the file empty or cut short
+-- retains the last valid lease, bounded by its expiry (bridge/voice-preview.mjs).
 local function writeFile(path, raw)
-    local temporary = path .. '.tmp'
-    local file = io.open(temporary, 'wb')
+    local file = io.open(path, 'wb')
     if not file then return false end
     local called, written = pcall(file.write, file, raw)
     local closed, result = pcall(file.close, file)
-    if not called or not written or not closed or not result then
-        pcall(os.remove, temporary)
-        return false
-    end
-    local moved, renamed = pcall(os.rename, temporary, path)
-    if not moved or not renamed then
-        -- Windows rename cannot replace a destination. Readers retain a valid
-        -- lease through the brief replacement gap, bounded by its expiry.
-        pcall(os.remove, path)
-        moved, renamed = pcall(os.rename, temporary, path)
-    end
-    if not moved or not renamed then pcall(os.remove, temporary); return false end
-    return true
+    return called and written and closed and result and true or false
 end
 
 function M.new(options)
