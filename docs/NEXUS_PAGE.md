@@ -3,6 +3,8 @@
 ## 1. Page description (Nexus BBCode)
 
 ```text
+[youtube]7hoYG5tmZ98[/youtube]
+
 [size=4][b]Key features[/b][/size]
 
 [list]
@@ -130,7 +132,9 @@ The voice service runs a hidden copy of a Chromium browser, and the mod ships no
 The pack was most likely extracted into an extra folder named after the zip. Download the Runtime 0.2.1 again from Hugging Face, extract it into your Cyberpunk 2077 folder, and start the game: the mod moves the pack files into place by itself. Or move the red4ext folder from inside that extra folder up into the Cyberpunk 2077 folder yourself. With only a Mature pack, also turn on Mature content in Settings > Conversation provider. Still stuck? Generate a report (see below) and send it.
 
 [size=4][b]Support and help[/b][/size]
-In game, open Companion Manager > Settings > Help > Help and support, choose Generate report, and send that file with what you were doing. If you need further assistance feel free to join the discord server,
+In game, open Companion Manager > Settings > Help > Help and support, choose Generate report, and send that file with what you were doing. If you need further assistance feel free to join the [url=https://discord.com/invite/3p2FzjZQZ]discord server[/url]:
+
+[url=https://discord.com/invite/3p2FzjZQZ][img]https://logos-world.net/wp-content/uploads/2020/12/Discord-Symbol.png[/img][/url]
 ```
 
 ## 2. File description (Scripts upload)
