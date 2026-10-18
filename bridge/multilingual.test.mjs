@@ -409,7 +409,8 @@ test('the installed twin map covers every profiled character; old romantic rows 
   // runtime/relationship-profiles.json (if still present) is no longer read: only the two files above feed the twin map.
   const {twins: loaded, skipped} = multilingualTwins(document, {ordinaryIds: ids});
   // Every profile has a verified twin, the generic NPC archetypes (npc-*) included (docs/NPC_ARCHETYPES.md). A twin is
-  // routed once its language box is marked off; a new batch may be waiting for that web-session step, and nothing else.
+  // routed once its language box is marked off; only a new archetype batch (npc-*) may still be waiting for that
+  // web-session step. The 2026-10-18 cast expansion's boxes are all set, so none of those keys may be skipped.
   for (const key of skipped) assert.equal(document.characters[key]?.verified === true && document.characters[key].languageBoxOff !== true, true, key + ' is skipped');
   const twinned = Object.keys(ids);
   for (const key of twinned) {
@@ -417,8 +418,8 @@ test('the installed twin map covers every profiled character; old romantic rows 
     assert.ok(loaded[key] || skipped.includes(key), key);
   }
   const unrouted = twinned.filter(key => !loaded[key]);
-  // a new archetype batch (npc-*) or the 2026-10-18 cast expansion may wait for the language box, nothing else
-  assert.ok(unrouted.every(key => key.startsWith('npc-') || CAST_EXPANSION_KEYS.includes(key)), 'only a new batch may wait for the language box: ' + unrouted.filter(key => !key.startsWith('npc-') && !CAST_EXPANSION_KEYS.includes(key)));
+  assert.ok(unrouted.every(key => key.startsWith('npc-')), 'only a new archetype batch (npc-*) may wait for the language box: ' + unrouted.filter(key => !key.startsWith('npc-')));
+  for (const key of CAST_EXPANSION_KEYS) assert.equal(document.characters[key]?.languageBoxOff, true, key + ' language box must be off');
   // Every profiled (relationship) character has its one twin routed.
   for (const key of Object.keys(RELATIONSHIP_PROFILES)) {
     assert.ok(Object.hasOwn(ids, key), key + ' is not in characters.json');

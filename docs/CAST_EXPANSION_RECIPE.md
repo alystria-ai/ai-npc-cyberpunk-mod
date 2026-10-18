@@ -218,11 +218,12 @@ never print key, token or auth files; no game launch, no live talk turns, no Con
 - The relaxed peak rule (-1.5 dBFS) applies when the -3 dBFS pool is under 12 s, even if the relaxed pool is large. Loud
   voices like Garry the Prophet's need it, and their clips still have no clipped samples.
 - Mixed stems: the Cassel twins' `bella_*` and `theo_*` stems also hold Alex and V in disguise, so only the twin's own scene
-  actors are accepted. Edgar Tool's lines are the TooLina persona and are voiced in a feminine register (roster gender
-  FEMALE, decided from the lines).
-- Twins are created with `languageBoxOff: false`. `bridge/cast-expansion-keys.mjs` lists the batch, and the twin-map test
-  in `bridge/multilingual.test.mjs` lets these keys wait for the language box. Remove them from that allowance once the
-  dashboard step is done.
+  actors are accepted. Edgar Tool's lines are the TooLina persona and are voiced in a feminine register. He was first rostered
+  FEMALE from the lines; the user then decided he is MALE (roster gender MALE). His voices stay feminine on purpose, and his
+  twin-voice assignment carries `voiceGender: "FEMALE"` so the gender-match checks accept it.
+- Twins are created with `languageBoxOff: false`; the dashboard step then sets the box and the main session records
+  `languageBoxOff: true` (done for this batch on 2026-10-19). `bridge/cast-expansion-keys.mjs` lists the batch, and the
+  twin-map test in `bridge/multilingual.test.mjs` requires the box to be off for every key in it.
 - Ear check: `render_samples.py <lines.json> <out-dir>` loads OmniVoice once for the whole list. Score the renders with the
   same WavLM x-vector against every reference (own reference first is the expected rank) and with Whisper against the line.
   Flag any character whose own reference does not rank first.
