@@ -70,15 +70,15 @@ The Voxtral voice is like Pocket here: it runs in the cloud and uses no video me
 
 [list=1]
 [*]Install the mods in Requirements first.
-[*]Download Scripts for version 0.2 from Nexus Mods, with Vortex or by hand. The same file is also on the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-Scripts-0.2.zip]Hugging Face page[/url].
-[*]Download the Runtime for version 0.2, [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-Runtime-0.2.zip]AI-NPC-Cyberpunk-Mod-Runtime-0.2.zip[/url], from the mod's [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs]Hugging Face page[/url] (0.2 folder). Use the same version number as the Scripts.
+[*]Download Scripts for version 0.2.1 from Nexus Mods, with Vortex or by hand. The same file is also on the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.1/AI-NPC-Cyberpunk-Mod-Scripts-0.2.1.zip]Hugging Face page[/url].
+[*]Download the Runtime for version 0.2.1, [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.1/AI-NPC-Cyberpunk-Mod-Runtime-0.2.1.zip]AI-NPC-Cyberpunk-Mod-Runtime-0.2.1.zip[/url], from the mod's [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs]Hugging Face page[/url] (0.2.1 folder). Use the same version number as the Scripts.
 [*]Close the game. Extract both zips into your Cyberpunk 2077 folder (the one with bin, archive and r6) and let the folders merge. Don't extract into a new folder named after the zip (Windows' "Extract All" and 7-Zip's "Extract to" suggest one): pick the Cyberpunk 2077 folder itself. If a pack ends up one folder too deep anyway, the mod moves it into place the next time the game starts. Extract the Runtime before the OmniVoice pack. If Windows' extractor reports an error, use [url=https://www.7-zip.org]7-Zip[/url].
 [*]Start the game. The first start after installing takes a little longer while the voice service prepares itself.
 [/list]
 
 [size=4][b]Optional packs[/b][/size]
 
-Each pack is one zip file and works on its own. Install none, some or all. Get them from the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs]Hugging Face page[/url] as the Runtime, in the 0.2 folder, and use the same version number as the Scripts.
+Each pack is one zip file and works on its own. Install none, some or all. Get them from the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs]Hugging Face page[/url] as the Runtime, in the 0.2.1 folder, and use the same version number as the Scripts.
 
 [list]
 [*][b]OmniVoice pack[/b] (about 9 GB installed). A richer voice that can laugh and sigh. For NVIDIA cards with at least 8 GB of video memory and a current driver. It adds about 2 GB of video memory while it runs (up to 4 GB). Choose an OmniVoice voice in Settings > Voices.
@@ -139,8 +139,8 @@ Cyberpunk 2077 and its characters, voices and assets belong to CD PROJEKT RED.
 ## 2. File description (Scripts upload)
 
 ```text
-AI NPC Cyberpunk Mod, the Scripts file for version 0.2 (Cyberpunk 2077 2.31). Small and text only. Install it with Vortex or by hand, after the mods listed on this page.
-The Runtime for version 0.2 is also needed. Get it from the Hugging Face page linked on this page (0.2 folder). It holds the voice service and the Pocket TTS voices.
+AI NPC Cyberpunk Mod, the Scripts file for version 0.2.1 (Cyberpunk 2077 2.31). Small and text only. Install it with Vortex or by hand, after the mods listed on this page.
+The Runtime for version 0.2.1 is also needed. Get it from the Hugging Face page linked on this page (0.2.1 folder). It holds the voice service and the Pocket TTS voices.
 ```
 
 ## 3. Short summary (brief overview field)
