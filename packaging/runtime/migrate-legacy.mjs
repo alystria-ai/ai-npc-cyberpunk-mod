@@ -146,6 +146,13 @@ async function mergeTree(ctx, src, dst, kind, rel = '') {
   if (target.isFile() && await sameFile(fs, src, dst)) { await fs.rm(src, {force: true}); return; }
   const name = rel.split('/').pop();
   if (kind === 'package' || PACKAGE_FILES.has(name)) { await fs.rm(src, {force: true}); report.packageKept.push(rel); return; }
+  // An empty file here is a placeholder the package ships (runtime/ exchange files: Mod Organizer 2 needs them to exist, see
+  // docs/PACKAGING.md): the old content goes into it in place, so nothing is displaced and the file is never deleted and re-created.
+  if (target.isFile() && target.size === 0) {
+    try { await fs.copyFile(src, dst); await fs.rm(src, {force: true}); report.moved.push({area: ctx.tag, path: label, how: 'copied'}); }
+    catch (error) { report.errors.push(`${src}: ${error.message}`); ctx.log(`Could not move ${src}: ${error.message}. It stays where it is.`); }
+    return;
+  }
   // State conflict: the old content wins; the file it displaces is saved, not deleted.
   const saved = join(ctx.paths.newState, 'legacy-migration', 'replaced', ctx.tag, ...rel.split('/'));
   await fs.mkdir(dirname(saved), {recursive: true});
@@ -165,10 +172,14 @@ async function place(ctx, src, dst, label) {
   }
 }
 
-// Drops stale lock, pid, log and status files that came over with a whole folder.
-async function purgeVolatile(fs, directory) {
+// Drops stale lock, pid, log and status files that came over with a whole folder. `emptyThem` empties them in place instead (the
+// package's own runtime/ placeholders: a file that is deleted and written again is a new file under Mod Organizer 2).
+async function purgeVolatile(fs, directory, {emptyThem = false} = {}) {
   for (const entry of await fs.readdir(directory, {withFileTypes: true}).catch(() => [])) {
-    if (entry.isFile() && isVolatile(entry.name)) await fs.rm(join(directory, entry.name), {force: true}).catch(() => {});
+    if (!entry.isFile() || !isVolatile(entry.name)) continue;
+    const path = join(directory, entry.name);
+    if (emptyThem) await fs.writeFile(path, '').catch(() => {});
+    else await fs.rm(path, {force: true}).catch(() => {});
   }
 }
 
@@ -231,7 +242,8 @@ export async function adoptLegacyInstall({gameRoot, stateDirectory, log = () => 
     ctx.tag = tag.replace('/', '-');
     try { await mergeTree(ctx, src, dst, kind); } catch (error) { report.errors.push(`${src}: ${error.message}`); log(`Carry-over of ${src} failed: ${error.message}`); }
   }
-  for (const directory of [paths.newState, join(paths.newMod, 'runtime')]) await purgeVolatile(fs, directory);
+  await purgeVolatile(fs, paths.newState);
+  await purgeVolatile(fs, join(paths.newMod, 'runtime'), {emptyThem: true});
   try { report.bindings = await carryBindings(paths, fs); } catch (error) { report.bindings = 'failed'; report.errors.push(`bindings.json: ${error.message}`); }
   if (report.moved.length || report.replaced.length) log(`Carried over ${report.moved.length} item(s) of the player's state to ${NEW_NAME}${report.replaced.length ? `; ${report.replaced.length} file(s) it replaced are saved under data/legacy-migration/replaced` : ''}.`);
   await writeReport(ctx);

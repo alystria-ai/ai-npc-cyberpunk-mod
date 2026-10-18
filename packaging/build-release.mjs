@@ -45,6 +45,7 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {ZipWriter, listZip} from './lib/zip.mjs';
 import {isReleaseVersion, npmVersion} from './lib/version.mjs';
 import {importClosure, checkLuaPartition} from './lib/closure.mjs';
+import {loadRuntimeExchange} from './lib/runtime-exchange.mjs';
 import {packagedKeyText} from './lib/packaged-key.mjs';
 import {copyInto, download, exists, extractZip, posix, readJson, run, sha256Buffer, sha256File, walk, writeText} from './lib/files.mjs';
 
@@ -327,8 +328,12 @@ async function scriptsPackage(source, config) {
   pkg.json(`${mod}/release.json`, {product: config.product, package: 'scripts', version, commit: source.commit});
   pkg.text(`${mod}/README.txt`, await readFile(resolve(source.root, 'packaging/PLAYER_README.md'), 'utf8'));
   pkg.text(`${mod}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
+  // The runtime/ files the Lua and the bridge exchange, as empty placeholders: under Mod Organizer 2 a file created in the game
+  // folder lands in Overwrite and is gone at the next launch, while an existing one is only ever modified or replaced
+  // (packaging/lib/runtime-exchange.mjs). An update that extracts over a running install only empties transient files.
+  for (const name of (await loadRuntimeExchange(source.root)).exchange) pkg.text(`${mod}/runtime/${name}`, '');
   for (const name of pkg.entries.keys()) {
-    if (!/\.(?:lua|reds|json|txt)$/.test(name)) throw Error(`Scripts package must stay text-only: ${name}`);
+    if (!/\.(?:lua|reds|json|txt|log|ndjson)$/.test(name)) throw Error(`Scripts package must stay text-only: ${name}`);
   }
   return {pkg, devOnlyExcluded: excluded};
 }
@@ -345,6 +350,9 @@ async function runtimePackage(source, config, models, key) {
   const dll = await buildLauncher(source);
   pkg.file(`${plugin}/${config.layout.pluginDll}`, dll);
   pkg.add(`${plugin}/launcher.ini`, {buffer: launcherIni()});
+  // The launcher opens launcher.log in the game process with CREATE_ALWAYS. Under Mod Organizer 2 that is a new file in Overwrite
+  // unless one exists; an existing real file opened for writing stays in place, so it ships empty.
+  pkg.text(`${plugin}/launcher.log`, '');
   pkg.text(`${plugin}/README.txt`, await readFile(resolve(source.root, 'packaging/PLAYER_README.md'), 'utf8'));
   pkg.text(`${plugin}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
 
