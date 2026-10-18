@@ -649,17 +649,21 @@ local function retryFace(delta)
 end
 
 local function updateSpeech(delta)
-    local player = Game.GetPlayer()
+    -- V is fetched only on a frame that needs V: the 2 s heartbeat, or a reply in progress. A quiet frame makes no native
+    -- call (each Game.GetPlayer() through CET costs the game thread and leaves one more handle for the collector).
+    local player, fetched = nil, false
     M.heartbeat = M.heartbeat + delta
     -- speech-state.json lease: the bridge keeps it 5 s. Written in a frame no other heartbeat writes in.
     local slot = M.heartbeat >= 2 and convaiHeartbeatSlot
     if M.heartbeat >= 2 and (type(slot) ~= 'function' or slot()) then
+        player, fetched = Game.GetPlayer(), true
         M.heartbeat = 0
         continuousAdapter()
         if not M.continuous then M.available = player ~= nil and pcall(function() player:ConvaiSpeechPosition() end) end
         publish()
     end
     if not M.requestId then return end
+    if not fetched then player = Game.GetPlayer() end
     if not player or tostring(player:GetEntityID().hash) ~= M.playerID then M.abandon(); return end
     if not M.actor:IsAttached() or (not M.voiceOnly and M.actor:IsDeadNoStatPool()) then M.stop('target-lost'); return end
     -- The same test while a named character's reply is heard (about twice a second, held inside the guard): a scene, a fight or
