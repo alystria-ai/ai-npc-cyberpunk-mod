@@ -187,6 +187,14 @@ exception is terminal: upstream prefill can throw after starting an unjoined
 decoder, so that process is retired instead of reused. Reference preparation
 failures before synthesis remain recoverable for the other valid profiles.
 
+A cancelled request has `POCKET_LIMITS.cancelMs` (2 s) to be answered before the
+worker is retired. The one exception is a voice preparation: a first-time
+preparation takes 1.4 to 4.5 s and cannot be interrupted, so a cancelled one gets
+`prepareCancelMs` (15 s). The worker finishes it, answers `cancelled` (the
+prepared voice stays cached) and takes the next job; V's typed line is cancelled
+on purpose when the companion's voice starts, which used to take the worker down
+whenever that line met a voice not yet prepared.
+
 IPC carries a fresh owner token and request ID. Packets also retain exact
 profile/model identity and sample offset. Startup, reference preparation,
 generation, PCM acknowledgements and teardown have deadlines. Only the spawned
