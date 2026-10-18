@@ -8,23 +8,28 @@ The design and the measurements behind it are in `docs/LOCAL_OPTION_DESIGN.md` a
 
 ### What it is
 
-Choose **Local** as the Conversation provider (Settings > Conversation provider) and the characters answer with an AI model that runs on your
-computer. Replies are spoken by the local voices (Pocket or OmniVoice) and the characters keep a memory of your talks, stored on your
-computer. Convai free tier gives better quality responses; Local is for playing without an account or without the internet.
+Choose **Local AI** as the Conversation provider (Settings > Conversation provider) and the characters answer with an AI model that runs on your computer. It is free and needs no internet. Replies are spoken by the local voices (Pocket or OmniVoice; Voxtral also works if you saved a Mistral key, but it needs the internet) and the characters keep a memory of your talks, stored on your computer. The voice key works too: your speech is recognised on this computer, in English. Convai free tier gives better quality responses; Local AI is for playing offline, with no account and no daily limit.
 
-The models are optional downloads, like the OmniVoice pack: one zip file each, on the mod's Hugging Face page (https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs, a folder per version). There are two, and you can install neither, one or both:
+The models are optional downloads, like the OmniVoice pack: one zip file each, on the mod's Hugging Face page (https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs, a folder per version). There are two, and you can install neither, one or both. Each pack includes the engine and the memory model it needs, so one alone is enough:
 
-| Pack | Model | Download | Best for |
-|---|---|---|---|
-| **Local AI standard** | Gemma 4 E4B | about 5.3 GB | Named characters and companions: it stays closest to what the character knows and invents the least |
-| **Local AI lite** | Bonsai 2 4B | about 1.4 GB | Smaller graphics cards, or a game that already uses most of the video memory. Invents a little more than standard; fine for ordinary NPCs |
+| Pack | Model | Download | Video memory | Best for |
+|---|---|---|---|---|
+| **Local AI standard** | Gemma 4 E4B | about 5.3 GB | about 3.1 GB in use; needs about 6 GB free to start | Named characters and companions: it stays closest to what the character knows and invents the least |
+| **Local AI lite** | Bonsai 2 4B | about 1.4 GB | about 1.8 GB; needs about 2 GB free | Smaller graphics cards, or a game that already uses most of the video memory. Invents a little more than standard; fine for ordinary NPCs |
 
-Extract each download into your Cyberpunk 2077 folder (the same way as the OmniVoice pack; there are no parts to join), then pick **Local** in Settings > Conversation provider.
-There is no status row (removed 2026-10-14). While the model is not ready, the Local AI model row's name carries a bracket, "(Warming up)", "(Not enough memory)" or "(Unavailable)", and its help starts with the loading sentence; when it is ready or not installed the row needs no words.
+Extract each download into your Cyberpunk 2077 folder (the same way as the OmniVoice pack; there are no parts to join), then pick **Local AI** in Settings > Conversation provider. If the files ended up one or two folders too deep (Windows "Extract All" puts them in a folder named after the zip), the mod moves them into place the next time the game starts.
 
-The first start after installing takes about a minute while the graphics card prepares the model (the row name says "(Warming up)"). After
-that the model loads in a few seconds when you start talking, and it is unloaded again after ten minutes without a conversation so the
-game gets its video memory back.
+The **Local AI model** row shows how Local AI is doing. While the model is not ready, the row's name carries a bracket and its help starts with one sentence:
+
+| Row name | Help starts with |
+|---|---|
+| Local AI model (Warming up) | "Local AI is warming up…" |
+| Local AI model (Not enough memory) | "Not enough graphics memory for Local AI. A cloud provider is used instead." |
+| Local AI model (Unavailable) | "Local AI could not start. Check Local AI in Settings > Conversation provider." or, when only Mature models are installed and Mature content is off, "Only Mature models found. Turn on Mature content to use them." |
+
+When the model is ready the row needs no words. With no model installed the row lists "No model installed". While the conversation service is not running, the row cannot know what is installed: it lists "Service not running" (or "Service starting" while it starts) instead, and the help says what is wrong with the service.
+
+The first start after installing takes about a minute while the graphics card prepares the model (the row name says "(Warming up)"). After that the model loads in a few seconds when you start talking, and it is unloaded again after ten minutes without a conversation so the game gets its video memory back.
 
 ### When it does not fit
 
@@ -33,10 +38,12 @@ do anything:
 
 1. It keeps your chosen voice (OmniVoice loads first) and uses the **lite** model instead of the standard one.
 2. If even the lite model does not fit beside OmniVoice, it keeps the voice and uses a cloud provider for the text: Mistral if you saved a
-   Mistral account key, otherwise Convai. You see one notice, once.
+   Mistral key, otherwise Convai. You see one notice, once: "Local AI could not start, so a cloud provider is used. Check Local AI in
+   Settings > Conversation provider."
 3. The voice is only changed as a last resort.
 
-If the pack is missing or the model cannot start, the same fallback applies. Choosing Local again tries again.
+If the pack is missing or the model cannot start, the same fallback applies. To try again, choose another provider and Apply, then choose
+Local AI and Apply again.
 
 ### Choosing the model
 
@@ -82,7 +89,7 @@ no "Auto" entry: the row always shows one concrete model as selected. Only one m
   models are not touched.
 - Models you add yourself (see "Add your own model" below) are listed among the others, in size order, with "(custom)". They take part
   in the default choice and the fallback like any other model, by size and fit. A custom model that is too large for the graphics card
-  stays in the row, marked "too large for this graphics card"; it is never chosen as the default or the fallback, and choosing it
+  stays in the row, marked "(custom · too large)"; it is never chosen as the default or the fallback, and choosing it
   falls back like any model that does not fit.
 - A change applies when Local AI is the chosen provider, at an idle moment: the old server is stopped (its graphics memory is freed)
   and the new model loads. It waits for a reply in flight and never restarts in the middle of one, and it does nothing when the
@@ -97,14 +104,14 @@ Local AI stays the chosen provider either way.
 ### Add your own model
 
 You can add chat models of your own to the **Local AI model** row. There is no screen for it: you copy the model file into a folder and
-list it in a small text file. The model then appears in the row after the built-in ones, marked "(custom)", and you can pick it there.
-Only one model is ever loaded, so nothing else changes.
+list it in a small text file. The model then appears in the row among the others (sorted by file size), marked "(custom)", and you can pick it there.
+Only one model is ever loaded, so nothing else changes. Your model runs on the engine of an installed pack, so a Local AI pack (a Mature pack carries the same engine) is needed; without one the model is listed but cannot start.
 
 **1. Find the Local AI folder.** In a normal install it is `red4ext\plugins\AiNpcCyberpunkMod\app\local-ai\` inside your Cyberpunk 2077
 folder (the same folder the Local AI packs unpack into; it contains `manifest.standard.json` or `manifest.lite.json`). Make a folder
 called `custom` inside it. Put your model file there. The mod never copies, moves or deletes your files.
 
-**2. Write `manifest.custom.json`** next to the other manifests (a plain text file; a text editor is enough):
+**2. Write `manifest.custom.json`** next to the other manifests (a plain text file; a text editor is enough). Use straight quotes (`"`) and forward slashes (`/`) in paths (a single `\` breaks the JSON). The Runtime also reads a file saved with a byte-order mark ("UTF-8 with BOM", as Notepad can save and PowerShell does) and curly double quotes (“ ”) pasted from a web page. Do not save it as "Unicode" (UTF-16).
 
 ```json
 {
@@ -142,9 +149,8 @@ or at the next idle moment.
 
 - the file exists and is a GGUF file (it starts with the bytes `GGUF` and has a version llama.cpp reads);
 - it is not an embedding model (those cannot chat). This is read from the file's architecture and pooling type;
-- its size, from which the help text of the row tells you about how much graphics memory it needs ("needs about 5.2 GB of graphics memory");
-- it can fit the card at all. A model that needs more than your graphics card's total memory is still listed, marked "too large for
-  this graphics card", and the default choice and the fallback never pick it.
+- its size, from which the help text of the row tells you how much graphics memory it needs ("My Model (custom, 4.4 GB, needs 5.6 GB)");
+- it can fit the card at all. A model that needs more than your graphics card's total memory is still listed, marked "(custom · too large)" ("too large for this card" in the help), and the default choice and the fallback never pick it.
 
 A model that fails a check is not offered. The row's help text names it ("Not usable: Embedder: an embedding model, not a chat model")
 and the log says why in one line.
@@ -155,7 +161,7 @@ and the log says why in one line.
   in advance; a model it cannot load fails at the first start (see below).
 - An **instruct or chat** model with a chat template. A base model (no "instruct" or "chat" in its name) answers badly or rambles.
   The template is read from the file; set `chatTemplate` only if the model has none.
-- The **Q4_K_M** quantisation is the recommended size/quality trade. Smaller quants lose quality; bigger ones use more memory.
+- **Q4_K_M** is the usual balance of size and quality. Smaller quants lose quality; bigger ones use more memory.
 - A split model (`name-00001-of-00003.gguf`): list only the first part and keep all parts in the same folder.
 - Do not use a model for an image (`mmproj`) or an embedding model.
 
@@ -191,22 +197,20 @@ example:
 - `"My Model" is not usable: the file x.gguf was not found` - the path or the file name is wrong (Windows hides extensions: check
   that the file is not called `x.gguf.gguf` or `x.gguf.txt`);
 - `"My Model" is too large for this graphics card` - pick a smaller model or quant;
-- `manifest.custom.json is not valid JSON` - a comma or a quote is wrong; a free JSON checker finds it quickly.
+- `manifest.custom.json is not valid JSON` - a comma or a quote is wrong; a free JSON checker finds it quickly;
+- `manifest.custom.json must be {"version": 1, "models": [...]}` - the outer part of the file is missing or misspelt.
 
-Make sure the Local AI pack itself is installed (the **Local AI model** row only matters when Local is the Conversation provider) and
-that the file is named `manifest.custom.json` (not `.txt`). An embedding model can only be spotted when its header says so; a file with
-an unusual header may pass the check and then fail to start, which the notice above covers. Whether a model has a chat template is not
-checked ahead of time.
+Make sure a pack with the engine is installed (the **Local AI model** row only matters when Local AI is the Conversation provider) and that the file is named exactly `manifest.custom.json`. A file saved as `manifest.custom.json.txt` (Notepad adds `.txt` while Windows hides extensions) is not read, and the log says nothing about it. An embedding model can only be spotted when its header says so; a file with an unusual header may pass the check and then fail to start, which the notice above covers. Whether a model has a chat template is not checked ahead of time.
 
 ### Use your own server (KoboldCpp, LM Studio, Ollama)
 
 If you already run a model in a program of your own, Local AI can talk to it instead of loading a model itself. It works with KoboldCpp,
 LM Studio, Ollama, text-generation-webui, a llama.cpp `llama-server` and anything else with an OpenAI-compatible chat API (the `/v1`
-address). You do not need a Local AI pack for this: with only your own server listed, Local AI uses it.
+address). You do not need a Local AI pack for this: with only your own server listed, Local AI uses it. While your server is the chosen model, Local AI uses none of this computer's graphics memory.
 
 **1. Start your server** with its model loaded, and leave it running while you play.
 
-**2. List it in `manifest.custom.json`** (the same file as "Add your own model", in the same folder), with an `endpoint` instead of a `file`:
+**2. List it in `manifest.custom.json`** (the same file as "Add your own model", in the same folder; if there is no `local-ai` folder yet, make one in `red4ext\plugins\AiNpcCyberpunkMod\app\`), with an `endpoint` instead of a `file`:
 
 ```json
 {
@@ -235,16 +239,13 @@ Only `endpoint` is needed. The usual address of each program:
 | Key | Needed | Meaning |
 |---|---|---|
 | `endpoint` | yes (in place of `file`) | The server's address, `http://` or `https://`. The mod sends chats to `<endpoint>/chat/completions`. An address with no path gets `/v1`. No user name, query or `#` part. |
-| `name` | no | The name shown in the row, 1 to 60 characters. Default: the server's address. |
+| `name` | no | The name shown in the row, 1 to 60 characters. Default: the server's host (for example `127.0.0.1`). |
 | `model` | no | The model id sent with each request. Without it: the server's only listed model, else `local`. |
 | `apiKey` | no | For a server that asks for a key. It is sent only to this server, and never written to the log, the settings page or a support report. |
 | `remote` | no | `true` allows a server outside this computer and your home network. See below. |
 | `uncensored`, `family`, `contextSize` | no | As in "Add your own model". `contextSize` missing: the mod asks the server once (its model list, `/props`, or KoboldCpp's context question), and uses 8192 when none answers. A `contextSize` bigger than your server really has makes it refuse long prompts. |
 
-**Which addresses work.** This computer (`localhost`, `127.0.0.1`) and your home network (`192.168.x.x`, `10.x.x.x`, `172.16` to `172.31`,
-`169.254.x.x`, Tailscale's `100.64` to `100.127`, IPv6 `fc00::/7` and `fe80::/10`, names ending in `.local`, `.lan`, `.home.arpa` or `.internal`,
-and a plain name such as `gaming-pc`) need nothing more. Any other host is the internet: the entry must say `"remote": true` and use `https://`,
-so a typo cannot send your chats away unnoticed. Without the flag the entry is skipped and the log says so.
+**Which addresses work.** This computer (`localhost`, names ending in `.localhost`, `127.x.x.x`, `::1`) and your home network (`192.168.x.x`, `10.x.x.x`, `172.16` to `172.31`, `169.254.x.x`, Tailscale's `100.64` to `100.127`, IPv6 `fc00::/7` and `fe80::/10`, names ending in `.local`, `.lan`, `.localdomain`, `.home.arpa` or `.internal`, and a plain name with no dot such as `gaming-pc`) need nothing more. Any other host is the internet: the entry must say `"remote": true` and use `https://`, so a typo cannot send your chats away unnoticed. Without the flag, or with an `http://` address on the internet, the entry is skipped and the log says so.
 
 **3. Choose it.** In Settings > Conversation provider, set the provider to Local AI, open **Local AI model**, pick "KoboldCpp Qwen 9B (custom)"
 and **Apply**. Start your server and let it finish loading before you choose it. The mod looks at the server once when it is chosen (a short request to `/models`); nothing is polled afterwards and nothing of
@@ -254,52 +255,55 @@ that fits; your server is used when you choose it, or when nothing of Local AI's
 **Share the graphics card on purpose.** Your server keeps its model in video memory beside Cyberpunk 2077, and the mod can no longer see how
 much of it that is. Size the model, its quantisation and its context (and KoboldCpp's or LM Studio's GPU layers) so the game keeps enough
 for itself: a model that fills the card makes the game stutter. The mod's own memory model for remembering past talks is small and runs
-on the processor: it keeps running when an installed pack provides it, and without a pack memory search works as it does without one.
+on the processor: it keeps running when an installed pack provides it.
 
-**If your server is not reachable.** When it is chosen but does not answer (not started yet, wrong address, wrong key), the mod says so once
-in the game, uses another Local AI model if you have one, and otherwise your cloud provider, as it does when a model does not start.
-Start your server, then pick another provider and Local again to try again. If it stops answering during play, the mod looks at it again
-before the next turn. For the cause, look in `bridge.stderr.log` for `[LocalAI] [local]` lines: `could not be reached (ECONNREFUSED)` is a server that
-is not running or the wrong port; `did not accept the API key` is a wrong `apiKey`; `answered HTTP 404 at /models` is an address that is missing its `/v1`.
+**If your server is not reachable.** When it is chosen but does not answer (not started yet, wrong address, wrong key), the mod says so once in the game and uses another Local AI model if you have one ("The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so ... was used instead."), and otherwise your cloud provider ("Local AI could not start, so a cloud provider is used. ..."), as it does when a model does not start. To try again, start your server, then pick another provider and Apply, and choose Local AI and Apply again. If it stops answering during play, or stops in the middle of a reply, that turn goes to your cloud provider (Mistral with a saved key, with the notice "Local AI could not answer that one, so a cloud provider did.") or, with none, you see "Local AI could not answer that. Try again in a moment." The mod looks at the server again before the next turn. For the cause, look in `bridge.stderr.log` for `[LocalAI] [local]` lines: `could not be reached (ECONNREFUSED)` is a server that is not running or the wrong port; `did not accept the API key` is a wrong `apiKey`; `the server answered HTTP 404 at /models` is an address that is missing its `/v1`; `stopped answering` is a server that went away during play.
 
 The same rules as for any model apply to a server: **Mature content** reads its `uncensored` and `family` entries, and the hard limits and the
 output screen run on its replies exactly as for a model of the pack.
 
 ### Which combination to pick
 
-Graphics memory (video memory) each part adds on top of what the game itself uses. These are estimates from measurements on one
-RTX 4080 Laptop (12 GB); the game's own use depends on your settings (ray tracing and high textures use the most) and is not included.
+Every voice sounds like the character, so pick by what matters to you:
+
+- **Least effect on your frames:** cloud text (Mistral or Convai) with Voxtral or Pocket for the voice. Nothing uses your graphics card; Pocket takes a little processor time while it speaks.
+- **Fastest replies:** Mistral for the text with Pocket for the voice.
+- **Fully local, best replies:** Local AI standard, with Pocket for the voice (or OmniVoice on an NVIDIA graphics card). No account, no internet.
+- **Fully local, lightweight:** Local AI lite with Pocket, about 1.8 GB of extra video memory.
+- **Extra expression:** OmniVoice can laugh and sigh. It is the heaviest voice and starts speaking a little later.
+
+If Local AI makes the game stutter, choose the lite model in the **Local AI model** row.
+
+| Voice | Runs on | Languages | Notes |
+|---|---|---|---|
+| **Pocket** (default) | Your processor, no video memory | English | Each character's own voice, made on your PC |
+| **OmniVoice** | Your NVIDIA graphics card (the optional OmniVoice pack) | Many (needed for Multilingual conversations) | Richer, and it can laugh and sigh |
+| **Voxtral** | Mistral's servers, with your free Mistral key | English | Each character's own voice, made in the cloud. Needs the internet, so Local AI with Voxtral is no longer offline |
+
+With Local AI the voice key still works: your speech is recognised on this computer, in English (type in other languages).
+
+Graphics memory (video memory) each setup adds on top of what the game itself uses (not included). These are estimates from measurements on one RTX 4080 Laptop (12 GB).
 
 | Voice | Text | Extra video memory | Notes |
 |---|---|---|---|
-| Pocket | Convai or Mistral (no Local AI) | 0 GB | Pocket runs on the processor |
+| Voxtral | Mistral or Convai (no Local AI) | 0 GB | Made in the cloud; no processor load either |
+| Pocket | Mistral or Convai (no Local AI) | 0 GB | Pocket runs on the processor |
 | Pocket | Local AI lite | about 1.8 GB | |
 | Pocket | Local AI standard | about 3.1 GB | |
-| OmniVoice | Convai or Mistral (no Local AI) | about 2 GB (up to 4 GB) | |
+| OmniVoice | Mistral or Convai (no Local AI) | about 2 GB (up to 4 GB) | |
 | OmniVoice | Local AI lite | about 3.9 GB (up to 5.9 GB) | |
 | OmniVoice | Local AI standard | about 5.2 GB (up to 7.3 GB) | |
-
-Lower settings means medium textures and no ray tracing; higher settings means high textures or ray tracing. The same table is in the
-player README (`packaging/PLAYER_README.md`); keep the two in step.
-
-| Your card | What fits | When it is short |
-|---|---|---|
-| **6 GB** | Pocket with Convai or Mistral. Local AI lite only on lower settings. | The text moves to Mistral or Convai; the voice stays Pocket. |
-| **8 GB** | Pocket with Local AI lite, or OmniVoice with Convai or Mistral, both on lower settings. | The lite model gives way to Mistral or Convai text; OmniVoice stays if chosen. |
-| **12 GB** | OmniVoice with Local AI lite on any settings. Pocket with Local AI standard on lower settings. | Standard becomes lite, lite becomes Mistral or Convai text; the voice stays. |
-| **16 GB** | OmniVoice with Local AI standard on lower settings, with Local AI lite on higher settings. | Standard becomes lite, lite becomes Mistral or Convai text; the voice stays. |
-| **24 GB** | Anything; OmniVoice with Local AI standard has plenty of room. | |
 
 When the card is short, the voice is kept before the text: standard gives way to lite, lite gives way to Mistral or Convai, and the
 voice only changes as a last resort.
 
-A note on the start rule, found while writing the table: the tier check needs free video memory of at least the model file plus
-headroom (standard: the 5.15 GB model file plus 1200 MiB, so about 6 GB free; lite: the 1.21 GB file plus 700 MiB), although standard measures about 3.1 GB and lite about 1.6 to 1.8 GB
-once loaded. A 6 GB card therefore always starts lite or falls back, even when the standard model would have fitted at runtime. The rule
-is deliberate (a margin so the game keeps its textures), and the player README states "about 6 GB free" for standard.
+The start rule has a margin: the standard model starts only when about 6 GB of video memory is free (its 5.15 GB file plus 1.2 GB of
+room), although it uses about 3.1 GB once loaded; the lite model needs about 2 GB free (its 1.21 GB file plus 0.7 GB) and uses about
+1.6 to 1.8 GB. With less free memory the lite model is used, then cloud text. The margin is deliberate, so the game keeps its textures.
 
-You also need about 5 GB more system memory than with Convai (16 GB total at least, 32 GB is better) and an NVIDIA or AMD graphics
-card that supports Vulkan. A computer without a separate graphics card cannot use Local AI.
+You also need about 5 GB more system memory than with Convai (16 GB total at least, 32 GB is better) and a separate NVIDIA or AMD
+graphics card that supports Vulkan. A computer with only integrated graphics cannot run the packs' models (a server of your own on
+another computer can still answer, see "Use your own server").
 
 ## For developers
 
@@ -809,12 +813,12 @@ the support report, and the Mature rules and hard-limit guard on its replies.
 
 ### Live checks (need the game and a GPU)
 
-1. With the dev folder set: choose Local, Apply; the Local AI model row name shows (Warming up), then no bracket; talk to a companion; the reply streams
+1. With the dev folder set: choose Local AI, Apply; the Local AI model row name shows (Warming up), then no bracket; talk to a companion; the reply streams
    and is spoken.
 2. First start only: the shader compile takes about a minute and shows no error notice.
 3. FPS and 1% lows in four states: baseline; model loaded and idle; 20 scripted turns; model unloaded after ten minutes. Idle must cost
    nothing (the supervisor has no polling).
 4. Free video memory with OmniVoice chosen: standard where it fits, lite where it does not, cloud text with one notice where neither does.
-5. Remove the pack (or point the folder somewhere empty): choosing Local gives one notice and Convai or Mistral answers.
+5. Remove the pack (or point the folder somewhere empty): choosing Local AI gives one notice and Convai or Mistral answers.
 6. Forget on the Memory page: ask the character what it remembers afterwards.
 7. Stop the bridge: no `llama-server` process is left.
