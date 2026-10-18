@@ -428,3 +428,48 @@ test('a service that never started for want of a browser says so on Settings and
   assert(invoke('help').ok)
   assert(row('help-service').value == 'Not running' and row('help-service').description:find('restart the game', 1, true))
 `));
+
+test('with no service at all the page writes the short report at once, and Copy path shows the whole path instead of copying', () => run(`${helpFixture()}
+  assert(invoke('tab:settings').ok and invoke('help').ok)
+  assert(row('help:copy').description == 'Create a report first, then copy its path.')
+  assert(invoke('help:generate').ok)
+  assert(not files['runtime/report-request.json'], 'no request is sent to a service that never started')
+  assert(row('help:generate').disabled ~= true, 'no waiting phase: the button is free again at once')
+  local report
+  for _, write in ipairs(fileWrites) do
+    if write.path == 'runtime/convai-report-lua.txt' then report = write end
+  end
+  assert(report, 'the short report was written during the click')
+  local lines = {}
+  for line in (report.value .. '\\n'):gmatch('(.-)\\n') do lines[#lines + 1] = line end
+  assert(lines[2]:find('PROBLEM: the conversation service never started', 1, true), lines[2])
+  assert(row('help-last').value == 'convai-report-lua.txt')
+  -- Copy cannot work without the service: no request file, and the row's help carries the full path, line by line.
+  local copy = row('help:copy')
+  local full = MOD .. '\\\\runtime\\\\convai-report-lua.txt'
+  assert(copy.description:find('needs the conversation service, which is not running', 1, true), copy.description)
+  local shown = copy.description:match('is at: \\n(.*)$')
+  assert(shown and shown:gsub('\\n', '') == full, tostring(shown))
+  assert(shown:find('\\nconvai-report-lua.txt', 1, true), 'the file name is on its own line')
+  local writes = #fileWrites
+  local result = invoke('help:copy')
+  assert(result.ok and not files['runtime/clipboard-request.json'] and #fileWrites == writes, 'nothing is queued for a service that is not running')
+`));
+
+test('with the service up the Copy row keeps its ordinary help, and shows the path once the service has gone quiet', () => run(`${helpFixture()}
+  jsonFile('runtime/bridge-service.json', {state = 'ready', updated = os.time() * 1000.0, since = os.time() * 1000.0 - 30000})
+  assert(invoke('tab:settings').ok and invoke('help').ok)
+  assert(invoke('help:generate').ok)
+  assert(files['runtime/report-request.json'] and row('help:generate').disabled == true, 'a service that is up is asked, and the page shows the wait')
+  local request = jsonFixtures[files['runtime/report-request.json']]
+  local path = MOD .. '\\\\runtime\\\\reports\\\\convai-report-20261005-120000.zip'
+  jsonFile('runtime/report-result.json', {version = 1, id = request.id, state = 'ready', mode = 'bridge', path = path,
+    fileName = 'convai-report-20261005-120000.zip'})
+  pump(false, 4)
+  assert(row('help-last').value == 'convai-report-20261005-120000.zip')
+  assert(row('help:copy').description == 'Copy the report path to the clipboard so you can paste it into a message.', row('help:copy').description)
+  -- The status is no longer refreshed (the service died): within a few seconds of the page's own poll the row shows the path.
+  pump(false, 60)
+  assert(row('help:copy').description:find('needs the conversation service, which is not running', 1, true), row('help:copy').description)
+  assert(row('help:copy').description:match('is at: \\n(.*)$'):gsub('\\n', '') == path)
+`));

@@ -2017,8 +2017,9 @@ local function schema()
             cet = 'cyber_engine_tweaks.log', redscript = 'redscript_rCURRENT.log', red4ext = 'red4ext-*.log',
             reports = 'convai-report-*.zip'}
         local rawRow = {value = true, description = true}
+        -- Without a running service the path cannot be copied: the row shows the whole path instead, to find the file by hand.
         local copyDescription = report.path
-            and ui.t('Copy the report path to the clipboard so you can paste it into a message.')
+            and (support.copyUnavailableText() or ui.t('Copy the report path to the clipboard so you can paste it into a message.'))
             or ui.t('Create a report first, then copy its path.')
         local lastValue, lastDescription = ui.t('None yet'), ui.t('Choose Generate report. The file name and its folder appear here and in the banner above.')
         if report.path then

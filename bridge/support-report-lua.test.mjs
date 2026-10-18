@@ -242,11 +242,17 @@ test('a building service gets longer to finish; a silent one gets a short Lua re
   assert(s.banner():find('did not answer', 1, true))
   assert(files[reportsWritten()[1]]:find('the conversation service did not answer the request', 1, true))
 
-  -- No evidence at all about the service: wait the short time, then fall back.
+  -- The supervisor says the service is up (fresh and ready) but no heartbeat file has appeared yet: ask it, wait the short time,
+  -- show progress meanwhile, then fall back.
   files = {}
+  put('runtime/bridge-service.json', {state = 'ready', updated = ms(), since = ms(-30)})
   local quiet = newSupport()
-  quiet.request()
-  advance(5); quiet.update(true); assert(quiet.status().phase == 'working')
+  assert(quiet.serviceState() == 'unknown' and quiet.serviceReach() == 'live')
+  local started, startedMessage = quiet.request()
+  assert(started and startedMessage == 'Creating the report…' and quiet.banner() == 'Creating the report…')
+  assert(files['runtime/report-request.json'] and quiet.status().phase == 'working')
+  advance(5); put('runtime/bridge-service.json', {state = 'ready', updated = ms(), since = ms(-30)})
+  quiet.update(true); assert(quiet.status().phase == 'working')
   advance(2); quiet.update(true)
   assert(quiet.status().phase == 'ready' and quiet.status().reason == 'no-response')
 
@@ -411,6 +417,15 @@ test('Copy path needs a report, asks the service and tries the game clipboard fr
   assert(not ok and message == 'Create a report first.' and not files['runtime/clipboard-request.json'])
   assert(s.request())
   assert(s.canCopy())
+  -- No service to copy it: the request file is not written, and the message and the row's help show the whole path instead.
+  assert(s.serviceReach() == 'stopped')
+  ok, message = s.copyPath()
+  assert(ok and not files['runtime/clipboard-request.json'], 'nothing is queued for a service that is not running')
+  assert(message:find('needs the conversation service, which is not running', 1, true) and message:find(support.fullPath(s.status().path), 1, true), message)
+  assert(s.copyUnavailableText() == message)
+  -- The service comes up: the ordinary copy.
+  advance(1); put('runtime/knowledge-status.json', {version = 1, updated = ms()})
+  assert(s.serviceReach() == 'live' and s.copyUnavailableText() == nil)
   ok, message = s.copyPath()
   assert(ok and message == 'Report path copied to the clipboard.')
   local requested = json.decode(files['runtime/clipboard-request.json'])
@@ -465,4 +480,117 @@ test('a service that failed with browser-missing is named in the Help row, its h
   assert(other.serviceFault() == 'failed' and other.serviceLabel() == 'Not running' and other.serviceMessage():find('could not start', 1, true))
   other.request()
   assert(not files['runtime/' .. other.status().fileName]:find('PROBLEM', 1, true))
+`));
+
+test('no service answering (never started, empty, unreadable or stale status): the short report at once, no request, no wait', () => run(`
+  local function report(case)
+    advance(1) -- the status module reads each file once a second: every case starts a new second
+    local s = newSupport()
+    local ok, message = s.request()
+    assert(ok and message:find('Short report saved because the conversation service is not running', 1, true), case .. ': ' .. tostring(message))
+    assert(not files['runtime/report-request.json'], case .. ': no request is sent when nothing answers')
+    assert(s.status().phase == 'ready' and s.status().mode == 'lua', case .. ': ready at once, no waiting phase')
+    assert(#removed == 0)
+    local text = files['runtime/' .. s.status().fileName]
+    local lines = {}
+    for line in (text .. '\\n'):gmatch('(.-)\\n') do lines[#lines + 1] = line end
+    return s, text, lines
+  end
+  local function neverStarted(case, s, text, lines)
+    assert(s.status().reason == 'service-never-started', case .. ': ' .. tostring(s.status().reason))
+    assert(s.serviceReach() == 'never', case)
+    assert(lines[2]:find('PROBLEM: the conversation service never started', 1, true), case .. ': ' .. lines[2])
+    for _, cause in ipairs({'red4ext\\\\plugins\\\\AiNpcCyberpunkMod\\\\', 'red4ext\\\\logs', 'antivirus', 'Chromium browser such as Microsoft Edge'}) do
+      assert(lines[2]:find(cause, 1, true), case .. ': line 2 lacks ' .. cause)
+    end
+    assert(text:find('Why it is short: the conversation service never started in this game session', 1, true), case)
+  end
+
+  -- 1. No status file at all (the Runtime did not load).
+  local s, text, lines = report('missing')
+  assert(s.serviceState() == 'unknown', 'other callers keep their own answer for no evidence')
+  neverStarted('missing', s, text, lines)
+  assert(lines[1]:find('short report', 1, true) and not text:find('PROBLEM: no browser', 1, true))
+
+  -- 2. The status file as the install ships it: empty.
+  files = {}; put('runtime/bridge-service.json', '')
+  s, text, lines = report('empty'); neverStarted('empty', s, text, lines)
+
+  -- 3. Present but unreadable (not JSON, or a read that fails).
+  files = {}; put('runtime/bridge-service.json', '{not json')
+  s, text, lines = report('garbled'); neverStarted('garbled', s, text, lines)
+  files = {}; put('runtime/bridge-service.json', {state = 'ready', updated = ms(), since = ms(-30)})
+  local realOpen = io.open
+  io.open = function(path, mode) if path == 'runtime/bridge-service.json' then error('sharing violation') end return realOpen(path, mode) end
+  s, text, lines = report('unreadable'); neverStarted('unreadable', s, text, lines)
+  io.open = realOpen
+
+  -- 4. Left over from an earlier game session (an hour old, and this session started after it): nothing started this time.
+  files = {}; put('runtime/bridge-service.json', {state = 'ready', updated = ms(-3600), since = ms(-7200)})
+  put('runtime/knowledge-status.json', {version = 1, updated = ms(-3600)})
+  s, text, lines = report('earlier session'); neverStarted('earlier session', s, text, lines)
+
+  -- 5. The service ran in this session and went quiet: stale, but not "never started". Short report at once, no problem line.
+  for _, trace in ipairs({
+    {'runtime/bridge-service.json', {state = 'ready', updated = ms(-60), since = ms(-90)}},
+    {'runtime/knowledge-status.json', {version = 1, updated = ms(-25)}},
+    {'runtime/bridge-service.json', {state = 'failed', code = 'bridge-crashed', updated = ms(-60), since = ms(-60)}}}) do
+    files = {}; put(trace[1], trace[2])
+    s, text, lines = report(trace[1])
+    assert(s.serviceReach() == 'stopped' and s.status().reason == 'service-stopped', trace[1])
+    assert(not text:find('PROBLEM', 1, true) and text:find('Why it is short: the conversation service was not running', 1, true))
+  end
+`));
+
+test('only a service that is up gets a request and a wait: a fresh heartbeat, or a fresh ready, starting or restarting status', () => run(`
+  for _, case in ipairs({
+    {'runtime/knowledge-status.json', {version = 1, updated = ms()}},
+    {'runtime/local-voice-state.json', {state = 'ready', updated = ms(-5)}},
+    {'runtime/bridge-service.json', {state = 'ready', updated = ms(), since = ms(-30)}},
+    {'runtime/bridge-service.json', {state = 'starting', updated = ms(-3), since = ms(-3)}},
+    {'runtime/bridge-service.json', {state = 'restarting', updated = ms(-3), since = ms(-3)}}}) do
+    files, written = {}, {}
+    put(case[1], case[2])
+    local s = newSupport()
+    assert(s.serviceReach() == 'live', case[1])
+    local ok, message = s.request()
+    assert(ok and message == 'Creating the report…' and s.status().phase == 'working')
+    assert(files['runtime/report-request.json'] and #reportsWritten() == 0, 'asked the service, nothing written in Lua')
+    advance(1)
+  end
+  -- A fresh status that is stopped, stopping or failed is not a service to wait for.
+  for _, state in ipairs({'stopped', 'stopping', 'failed'}) do
+    files = {}; put('runtime/bridge-service.json', {state = state, updated = ms(), since = ms(-2)})
+    local s = newSupport()
+    assert(s.serviceReach() == 'stopped', state)
+    assert(s.request() and s.status().phase == 'ready' and not files['runtime/report-request.json'], state)
+    advance(1)
+  end
+  -- A status module that cannot say is the same as no trace; a fresh heartbeat is still read directly.
+  files = {}
+  local s = newSupport()
+  local realStatus = convaiServiceStatus
+  convaiServiceStatus = {version = 1}
+  assert(s.serviceReach() == 'never')
+  advance(1); put('runtime/knowledge-status.json', {version = 1, updated = ms()})
+  assert(s.serviceReach() == 'live')
+  convaiServiceStatus = realStatus
+`));
+
+test('the whole path is broken after a folder separator, never mid-name, with the file name alone on the last line', () => run(`
+  local path = 'the game folder\\\\bin\\\\x64\\\\plugins\\\\cyber_engine_tweaks\\\\mods\\\\AiNpcCyberpunkMod\\\\runtime\\\\convai-report-lua.txt'
+  local text = support.fullPath(path)
+  local lines = {}
+  for line in (text .. '\\n'):gmatch('(.-)\\n') do lines[#lines + 1] = line end
+  assert(#lines >= 3 and lines[#lines] == 'convai-report-lua.txt', text)
+  for index = 1, #lines - 1 do
+    assert(#lines[index] <= 44 and lines[index]:sub(-1) == '\\\\', index .. ': ' .. lines[index])
+  end
+  assert(text:gsub('\\n', '') == path, 'nothing is lost or added but the breaks')
+  assert(support.fullPath('E:\\\\a\\\\b.txt') == 'E:\\\\a\\\\\\nb.txt', support.fullPath('E:\\\\a\\\\b.txt'))
+  assert(support.fullPath('b.txt') == 'b.txt' and support.fullPath(nil) == '')
+  -- A folder name longer than a line stays whole on a line of its own.
+  local long = 'C:\\\\Users\\\\V\\\\AppData\\\\Local\\\\AiNpcCyberpunkMod\\\\' .. string.rep('x', 60) .. '\\\\convai-report-lua.txt'
+  local out = support.fullPath(long)
+  assert(out:find(string.rep('x', 60) .. '\\\\', 1, true) and out:gsub('\\n', '') == long)
 `));

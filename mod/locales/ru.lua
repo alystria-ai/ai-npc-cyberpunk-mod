@@ -434,6 +434,7 @@ return {
     ["Copy"] = "Копировать",
     ["Copy report path"] = "Копировать путь к отчёту",
     ["Copy the report path to the clipboard so you can paste it into a message."] = "Скопируйте путь к отчёту в буфер обмена, чтобы вставить его в сообщение.",
+    ["Copying the path needs the conversation service, which is not running. The report file is at: {path}"] = "Для копирования пути нужна служба бесед, которая не запущена. Файл отчёта находится по этому пути: {path}",
     ["Create"] = "Создать",
     ["Create a report"] = "Создать отчёт",
     ["Create a report first, then copy its path."] = "Сначала создайте отчёт, затем скопируйте его путь.",

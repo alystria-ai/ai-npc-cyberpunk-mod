@@ -212,3 +212,52 @@ test('the empty placeholders the install ships (bridge-service.json and the hear
   put('runtime/bridge-service.json', {state = 'failed', code = 'missing-key', since = ms(-1), updated = ms()})
   assert(status.unavailable().kind == 'setup')
 `));
+
+test('reach(): live only with a fresh heartbeat or a fresh ready, starting or restarting supervisor; no evidence is a definite "never"', () => run(`
+  -- No evidence at all (unlike unavailable(), which stays silent): nothing started in this session.
+  assert(status.reach() == 'never' and status.unavailable() == nil)
+  for _, name in ipairs({'runtime/knowledge-status.json', 'runtime/local-voice-state.json', 'runtime/bridge-service.json'}) do files[name] = '' end
+  advance(1)
+  assert(status.reach() == 'never', 'the empty placeholders the install ships are no trace')
+  advance(1); files['runtime/bridge-service.json'] = 'malformed'
+  assert(status.reach() == 'never', 'an unreadable status file is no trace')
+  -- A heartbeat or a fresh supervisor that says the service is up or coming up.
+  advance(1); put('runtime/knowledge-status.json', {version = 1, updated = ms(-1)})
+  assert(status.reach() == 'live', 'knowledge heartbeat')
+  advance(1); put('runtime/knowledge-status.json', nil); put('runtime/local-voice-state.json', {state = 'ready', updated = ms(-6)})
+  assert(status.reach() == 'live', 'voice heartbeat')
+  put('runtime/local-voice-state.json', nil)
+  for _, state in ipairs({'ready', 'starting', 'restarting'}) do
+    advance(1); put('runtime/bridge-service.json', {state = state, since = ms(-30), updated = ms(-2)})
+    assert(status.reach() == 'live', state)
+  end
+  -- Fresh but not up: stopped, stopping or failed are traces of this session with nothing answering.
+  for _, state in ipairs({'stopped', 'stopping', 'failed'}) do
+    advance(1); put('runtime/bridge-service.json', {state = state, code = 'x', since = ms(-30), updated = ms(-2)})
+    assert(status.reach() == 'stopped', state)
+  end
+`));
+
+test('reach(): a stale trace from this session is "stopped", one from before this session started is "never"', () => run(`
+  -- The module was loaded at the clock's start: a trace written in the three minutes before that, or since, is this session's.
+  advance(600)
+  put('runtime/bridge-service.json', {state = 'ready', since = ms(-300), updated = ms(-120)})
+  assert(status.reach() == 'stopped', 'a supervisor gone quiet')
+  advance(1); put('runtime/bridge-service.json', nil); put('runtime/knowledge-status.json', {version = 1, updated = ms(-25)})
+  assert(status.reach() == 'stopped', 'a heartbeat gone quiet')
+  advance(1); put('runtime/knowledge-status.json', nil); put('runtime/local-voice-state.json', {state = 'ready', updated = ms(-300)})
+  assert(status.reach() == 'stopped', 'a voice heartbeat gone quiet')
+  -- Left by an earlier session of the game (older than the start of this one by more than the launcher's head start).
+  advance(1); put('runtime/local-voice-state.json', nil)
+  put('runtime/bridge-service.json', {state = 'ready', since = ms(-90000), updated = ms(-86400)})
+  put('runtime/knowledge-status.json', {version = 1, updated = ms(-86400)})
+  assert(status.reach() == 'never', 'yesterday\\'s status says nothing about this session')
+  -- A status written just before the module loaded (the launcher starts first) still counts.
+  advance(1); put('runtime/knowledge-status.json', nil)
+  put('runtime/bridge-service.json', {state = 'failed', code = 'browser-missing', since = ms(-770), updated = ms(-770)})
+  assert(status.reach() == 'stopped', 'the launcher failed two and a half minutes before the module loaded')
+  -- Cached for the second, like the other readers: no extra file opens.
+  local before = readsOf('runtime/bridge-service.json')
+  status.reach(); status.reach()
+  assert(readsOf('runtime/bridge-service.json') == before)
+`));

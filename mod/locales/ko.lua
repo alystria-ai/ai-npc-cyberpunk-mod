@@ -434,6 +434,7 @@ return {
     ["Copy"] = "복사",
     ["Copy report path"] = "보고서 경로 복사",
     ["Copy the report path to the clipboard so you can paste it into a message."] = "보고서 경로를 클립보드에 복사해 메시지에 붙여넣을 수 있습니다.",
+    ["Copying the path needs the conversation service, which is not running. The report file is at: {path}"] = "경로를 복사하려면 대화 서비스가 필요한데, 이 서비스는 실행 중이 아닙니다. 보고서 파일은 다음 위치에 있습니다: {path}",
     ["Create"] = "만들기",
     ["Create a report"] = "보고서 만들기",
     ["Create a report first, then copy its path."] = "먼저 보고서를 만든 다음 경로를 복사하세요.",
