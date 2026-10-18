@@ -15,6 +15,8 @@ Talk to Cyberpunk 2077 characters by voice or text, and hear them answer in thei
 [*][b]Companions that live alongside you.[/b] They walk beside you, run to catch up, follow you through doors, lifts and fast travel, and sit with you on couches, benches, chairs and bar stools while you look around freely.
 [*][b]They ride along, take the wheel and fight.[/b] Ask one to drive you to your waypoint. In a fight they use the game's own combat AI, and if you like, they comment when a battle starts and ends or after a run of loot (off by default).
 [*][b]Faces and bodies that act.[/b] Lips follow the words, the whole face changes at the very word where the feeling shifts, eyes and head follow you, and they gesture through longer replies, nod while you talk and hold idle poses with props such as a cigarette, a cup or a pair of shades.
+[*][b]Johnny in your head.[/b] Turn it on (off by default) and, with nobody in front of you, talk and Johnny answers in V's head: he knows your jobs, his own history and how things stand between you. With Johnny speaks up he also comments on people you meet, jobs you finish and romances.
+[*][b]Night City Allies followers talk.[/b] With Night City Allies, its followers who are characters here (Judy, Panam, Goro and more) talk as themselves, and Lucy (with Lucy for NCA) and Rita Wheeler have their own voices and memory. NCA keeps doing the following, fighting and driving.
 [*][b]Group conversations.[/b] Address two or three companions at once, and they take turns and pick up from each other.
 [*][b]Phone Chat and holocalls.[/b] A Chat tab on V's phone lets you text any supported contact, wherever they are, or call them and watch them pick up live on screen.
 [*][b]V speaks too.[/b] Lines you type are voiced in the V voice that matches yours, then the character answers.
@@ -85,6 +87,14 @@ Each pack is one zip file and works on its own. Install none, some or all. Get t
 [*][b]Local AI standard[/b] (about 5.3 GB download). The language model for fully local conversations, with the best replies. Uses about 3.1 GB of video memory and needs about 6 GB free to start.
 [*][b]Local AI lite[/b] (about 1.4 GB download). The same kind of model, for smaller graphics cards or a game that already uses most of the video memory. Uses about 1.8 GB.
 [*][b]Mature lite[/b] (about 2.9 GB) and [b]Mature standard[/b] (about 5.5 GB). For adults only (18+). Each adds a model without the usual refusals and works on its own: it includes the Local AI engine, so no Local AI pack is needed. The Mature content setting is off by default.
+[/list]
+
+[size=4][b]Fully local setup (no internet, no account)[/b][/size]
+[list=1]
+[*]Install the Scripts and the Runtime as above, plus one Local AI pack (Standard or Lite) or a Mature pack.
+[*]In game: Companion Manager > Settings > Conversation provider, choose [b]Local AI[/b] and press Apply. With only a Mature pack, also turn on [b]Mature content[/b].
+[*]Voices: Local AI speaks with [b]Pocket TTS[/b], already in the Runtime and running on your PC (English). For voices that sound like the game characters, and for other languages, add the optional [b]OmniPack[/b] and choose an OmniVoice voice in Settings > Voices. It needs more graphics memory.
+[*]If Windows asks whether node.js may use the network, you can decline: Local AI and the local voices only talk inside your PC. Convai and Mistral need it allowed.
 [/list]
 
 [size=4][b]Use your own AI model or model server[/b][/size]
