@@ -578,3 +578,37 @@ test('a holocall reply (and a V-anchored voice with no object of its own) plays 
  speech.stop('cancelled')
  assert(speech.emitter == nil)
 `));
+
+test('with a Speech.reds that has it, a holocall reply plays as V\'s own sound (ConvaiSpeechStartOnV), never on an emitter; an ordinary reply is unchanged', () => run(speechSetup, `
+ local onV, emitters, logs = {}, {}, {}
+ player.ConvaiSpeechStartOnV = function(_, event) native(); onV[#onV + 1] = event; cursor = 0; return true end
+ player.ConvaiSpeechStart = function(_, object) native(); emitters[#emitters + 1] = tostring(object:GetEntityID().hash); cursor = 0; return true end
+ speech.log = function(line) logs[#logs + 1] = line end
+ player.IsAttached = function() return true end
+ player.IsDeadNoStatPool = function() return false end
+ ScriptedPuppet = {GetActiveWeapon = function() error('no object of V is looked for on a call') end}
+ speech.target = player
+ local call = {entity = 'V', requestId = 'req-v', generation = 5, name = 'Judy', holocall = {contact = 'judy'}}
+ local reply = {text = 'Hello V', audio = chunk(1).audio}
+ assert(speech.start(call, reply))
+ assert(#onV == 1 and #emitters == 0 and speech.emitter == nil, table.concat(emitters, ','))
+ assert(speech.state == 'starting' and speech.slot == reply.audio.slot)
+ assert(logs[1] == 'Holocall voice: path=audioware-v', tostring(logs[1]))
+ -- Its clock is read as before (ConvaiSpeechPosition serves either kind) and it stops as before.
+ cursor = 0.4; speech.update(0.1)
+ assert(speech.state == 'playing', speech.state)
+ speech.stop('cancelled')
+ -- Speech.reds refuses (or an older one has no such method): the emitter path is kept.
+ player.ConvaiSpeechStartOnV = function() native(); return false end
+ ScriptedPuppet = {GetActiveWeapon = function() return {GetEntityID = function() return {hash = 'WEAPON'} end, IsAttached = function() return true end} end}
+ assert(speech.start(call, reply))
+ assert(emitters[1] == 'WEAPON')
+ speech.stop('cancelled')
+ -- A reply in person never plays on V.
+ onV, emitters = {}, {}
+ player.ConvaiSpeechStartOnV = function(_, event) native(); onV[#onV + 1] = event; return true end
+ speech.target = actor
+ assert(speech.start(context, reply))
+ assert(#onV == 0 and #emitters == 1)
+ speech.stop('cancelled')
+`));

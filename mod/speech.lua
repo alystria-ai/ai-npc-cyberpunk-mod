@@ -246,9 +246,35 @@ local function noteHolocallVoice(path, emitter, level)
     pcall(M.log, line)
 end
 
+-- A phrase that has started playing: its clock, its face and the published state.
+local function startedChunk(audio, text, timeline, startSeconds)
+    M.slot, M.duration, M.chunkText = audio.slot, audio.duration, text
+    if M.stream and M.stream.version == 2 then M.stream.chunkStart = startSeconds or 0 end
+    M.state, M.position, M.waited, M.stalled = 'starting', 0, 0, 0
+    local expected = M.stream and M.stream.version == 2
+        and {index = M.stream.index, startSeconds = M.stream.chunkStart} or nil
+    face.start(M.context, timeline, M.actor, audio.duration, expected)
+    -- Still waiting for the screen face: this phrase's face is kept so the face can start it when it appears (retryFace).
+    if M.faceRetry then M.faceChunk = {timeline = timeline, duration = audio.duration, expected = expected} end
+    publish()
+    return true
+end
+
+-- A holocall phrase is played as V's own sound (Speech.reds ConvaiSpeechStartOnV: Audioware's V track, no place in the world), as a
+-- phone voice is heard. True when it started; false with an older Speech.reds (no such method), which keeps the emitter path below.
+local function startOnV(audio)
+    if not M.holocall then return false end
+    local ok, started = pcall(function() return M.player:ConvaiSpeechStartOnV(CName.new(audio.event)) end)
+    return ok and started == true
+end
+
 local function beginChunk(audio, text, timeline, startSeconds)
+    if startOnV(audio) then
+        noteHolocallVoice('audioware-v')
+        return startedChunk(audio, text, timeline, startSeconds)
+    end
     -- Where the sound comes from: an add-on voice with its own object (voiceFrom: Skippy's gun) is heard from that object, every other
-    -- reply from its speaker, and a holocall reply (heard through the phone, not from the live picture's copy, which is far away) from V.
+    -- reply from its speaker, and (with an older Speech.reds only) a holocall reply from an object of V's.
     local emitter = M.emitter or (not M.holocall and M.actor) or M.player
     -- Audioware refuses V as an emitter ("entity_id cannot be undefined or V" in its log), so what would be V's own emitter is replaced by an
     -- object that is with V (bodyObject); when there is none the voice cannot play, and the text is shown with the reason, not a bare refusal.
@@ -269,16 +295,7 @@ local function beginChunk(audio, text, timeline, startSeconds)
         fallback('playback-failed', M.text); return false
     end
     noteHolocallVoice('audioware', emitter)
-    M.slot, M.duration, M.chunkText = audio.slot, audio.duration, text
-    if M.stream and M.stream.version == 2 then M.stream.chunkStart = startSeconds or 0 end
-    M.state, M.position, M.waited, M.stalled = 'starting', 0, 0, 0
-    local expected = M.stream and M.stream.version == 2
-        and {index = M.stream.index, startSeconds = M.stream.chunkStart} or nil
-    face.start(M.context, timeline, M.actor, audio.duration, expected)
-    -- Still waiting for the screen face: this phrase's face is kept so the face can start it when it appears (retryFace).
-    if M.faceRetry then M.faceChunk = {timeline = timeline, duration = audio.duration, expected = expected} end
-    publish()
-    return true
+    return startedChunk(audio, text, timeline, startSeconds)
 end
 
 -- Lip sync delay (Bluetooth), resolved by the bridge (bridge/audio-delay.mjs):
