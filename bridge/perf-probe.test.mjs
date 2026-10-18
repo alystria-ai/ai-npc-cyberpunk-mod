@@ -165,3 +165,30 @@ developer=false;t=t+2;frame(true)
 assert(writes>=pending,'no final write')
 assert(#written.history<=150)
 `));
+
+test('the probe keeps its own window close and file write out of event:onUpdate and reports it as probe.self', () => run(`
+local events={}
+registerForEvent=function(name,handler) events[name]=handler end
+assert(P.hookRegistrations())
+-- the probe's file write costs 30 ms of the frame it lands in
+local open=io.open
+io.open=function(path,mode)
+ local file=open(path,mode)
+ if path=='runtime/perf-probe.json' then local close=file.close; file.close=function(self) t=t+.030; return close(self) end end
+ return file
+end
+registerForEvent('onUpdate',function() frame(false); P.mark('init:a'); t=t+.003 end)
+developer=true;t=t+2
+for _=1,1300 do events.onUpdate(.016) end
+P.flush();local row=written.history[#written.history]
+local most,own=0,0
+for _,window in ipairs(written.history) do
+ most=math.max(most,window.sections['event:onUpdate'].maxMs)
+ if window.sections['probe.self'] then own=math.max(own,window.sections['probe.self'].maxMs) end
+end
+-- the handler's own work: speech.update 5 ms + init:a 3 ms (frame()'s 10 ms gap comes after its own timing)
+assert(most<18.5,'event:onUpdate carried the probe write: '..most)
+assert(own>=30,'probe.self '..own)
+-- the rows still reach the file one by one, in the shape readers know
+assert(#written.history>=1 and written.history[1].sections)
+`));
