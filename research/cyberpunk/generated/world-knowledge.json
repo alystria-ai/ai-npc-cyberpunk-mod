@@ -13,42 +13,61 @@
     "alex",
     "alt-cunningham",
     "ana-friedman",
+    "anders-hellman",
+    "angelica-whelan",
+    "anthony-gilchrist",
     "arthur-jenkins",
+    "aurore-cassel",
     "babs-okoye",
     "bill-mitchell",
     "blue-moon",
     "bob-sagan",
+    "bree-whitney",
+    "brendan",
     "briana-dolson",
     "bryce-mosley",
     "carol-emeka",
     "cassidy-righter",
     "chang-hoon-nam",
+    "chester-bennett",
     "claire-russell",
     "coach-fred",
     "cynthia-najarro",
     "dakota-smith",
+    "dante-caruso",
     "dennis-cranmer",
+    "denny",
     "dexter-deshawn",
     "dino-dinovic",
+    "dum-dum",
+    "edgar-tool",
     "elizabeth-peralez",
     "evelyn-parker",
+    "fingers",
     "frank-nostra",
+    "garry-the-prophet",
     "hanako-arasaka",
+    "henry",
     "iris-tanner",
     "jackie-welles",
+    "jacob-long",
+    "jago-szabo",
     "jake-estevez",
     "jefferson-peralez",
     "jesse",
     "jim-jarry",
     "johnny-silverhand",
+    "joshua-stephenson",
     "joss-kutcher",
     "judy-alvarez",
     "kerry-eurodyne",
+    "kurt-hansen",
     "liam-northom",
     "life-coach",
     "lina-malina",
     "lizzy-wizzy",
     "lucy-kushinada",
+    "maiko-maeda",
     "mama-welles",
     "mark-bana",
     "meredith-stout",
@@ -59,6 +78,7 @@
     "nancy-hartley",
     "nele-springer",
     "nix",
+    "oda",
     "ozob-bozo",
     "paco-torres",
     "padre-ibarra",
@@ -68,12 +88,14 @@
     "r3n0",
     "rachel-casich",
     "regina-jones",
-    "rita-wheeler",
     "resident-female",
     "resident-male",
+    "rita-wheeler",
     "river-ward",
     "robert-wilson",
     "rogue-amendiares",
+    "rosalind-myers",
+    "royce",
     "sandra-dorsett",
     "santiago",
     "saul-bright",
@@ -85,9 +107,14 @@
     "steven-santos",
     "t-bug",
     "takemura",
+    "teddy",
     "thompson",
     "viktor-vektor",
+    "voodoo-queen",
     "wakako-okada",
+    "weyland",
+    "wilky-laguerre",
+    "woodman",
     "yorinobu-arasaka"
   ],
   "sources": [
@@ -4543,6 +4570,16 @@
       "id": "ck5.source.q108-escape",
       "kind": "native",
       "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q108\\scenes\\q108_14a_escape.scene, q108_14b_lift.scene and phases\\q108_04_atlantis.questphase (scene-evidence/cast-q108-scenes-20261018 and cast-q108-20261018); exported with WolvenKit CLI 9.0.1, hashes recorded in each batch inventory."
+    },
+    {
+      "id": "ck6.source.q003-04d-shootout",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\prologue\\q003\\scenes\\q003_04d_shootout_militech.scene (scene-evidence/ah5-01); exported with WolvenKit CLI, raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
+    },
+    {
+      "id": "ck6.source.q110-07b-placide-combat",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q110\\phases\\q110_07b_placide_combat.questphase (scene-evidence/priority-endings-20261004-phases); exported with WolvenKit CLI, raw SHA-256 and serialized JSON SHA-256 are recorded in the batch inventory."
     }
   ],
   "evidence": [
@@ -152369,6 +152406,86 @@
           }
         }
       ]
+    },
+    {
+      "id": "ck6.ev.fact.q003_dumdum_dead.2b5fc7f0-48",
+      "sourceId": "ck6.source.q003-04d-shootout",
+      "kind": "native",
+      "locator": "q003_04d_shootout_militech.scene sets q003_dumdum_dead (questSetVar node, graph index 48).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_04d_shootout_militech.scene.json",
+        "assetSha256": "2b5fc7f0f2002e77d5617e2f50c7796c9ac39c8c9e274c66c6fa9047e26bf30a",
+        "jsonSha256": "2065e6ece770f90cbce508318e08243c5b47ad2252b559d044e65aaab8edea3c",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q003_dumdum_dead",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "ck6.ev.fact.q003_dumdum_dead.2b5fc7f0-68",
+      "sourceId": "ck6.source.q003-04d-shootout",
+      "kind": "native",
+      "locator": "q003_04d_shootout_militech.scene sets q003_dumdum_dead (questSetVar node, graph index 68).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_04d_shootout_militech.scene.json",
+        "assetSha256": "2b5fc7f0f2002e77d5617e2f50c7796c9ac39c8c9e274c66c6fa9047e26bf30a",
+        "jsonSha256": "2065e6ece770f90cbce508318e08243c5b47ad2252b559d044e65aaab8edea3c",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q003_dumdum_dead",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "ck6.ev.fact.q003_dumdum_dead.2b5fc7f0-260",
+      "sourceId": "ck6.source.q003-04d-shootout",
+      "kind": "native",
+      "locator": "q003_04d_shootout_militech.scene sets q003_dumdum_dead (questSetVar node, graph index 260).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_04d_shootout_militech.scene.json",
+        "assetSha256": "2b5fc7f0f2002e77d5617e2f50c7796c9ac39c8c9e274c66c6fa9047e26bf30a",
+        "jsonSha256": "2065e6ece770f90cbce508318e08243c5b47ad2252b559d044e65aaab8edea3c",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/260/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q003_dumdum_dead",
+          "/value": 1
+        }
+      }
+    },
+    {
+      "id": "ck6.ev.fact.q110_placide_dead.02d6f731-13",
+      "sourceId": "ck6.source.q110-07b-placide-combat",
+      "kind": "native",
+      "locator": "q110_07b_placide_combat.questphase sets q110_placide_dead to 1 (questSetVar node, graph node 13).",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-endings-20261004-phases/raw/base/base/quest/main_quests/part1/q110/phases/q110_07b_placide_combat.questphase.json",
+        "assetSha256": "02d6f7311c2774dcf2374ac8d58a00d2addcc50de3a6d42393de4e28b0d1ff9f",
+        "jsonSha256": "85049c2ffc480ac7ce1663271f528aa89fc55505cd0b0311dbad761963cfbfac",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/13/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q110_placide_dead",
+          "/value": 1
+        }
+      }
     }
   ],
   "factAllowlist": {
@@ -156820,6 +156937,54 @@
         }
       ],
       "writerAuditScope": "Main winning base/EP1 quest index and every currently exported scene fact index. Not an assertion that every shipped scene was decoded. Reachability and reset semantics are reviewed separately."
+    },
+    "q003_dumdum_dead": {
+      "evidenceRefs": [
+        "ck6.ev.fact.q003_dumdum_dead.2b5fc7f0-48",
+        "ck6.ev.fact.q003_dumdum_dead.2b5fc7f0-68",
+        "ck6.ev.fact.q003_dumdum_dead.2b5fc7f0-260"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_04d_shootout_militech.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 0
+        },
+        {
+          "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_04d_shootout_militech.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        },
+        {
+          "jsonPath": "scene-evidence/ah5-01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_04d_shootout_militech.scene.json",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/260/Data/questNode/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 3
+      }
+    },
+    "q110_placide_dead": {
+      "evidenceRefs": [
+        "ck6.ev.fact.q110_placide_dead.02d6f731-13"
+      ],
+      "writers": [
+        {
+          "jsonPath": "scene-evidence/priority-endings-20261004-phases/raw/base/base/quest/main_quests/part1/q110/phases/q110_07b_placide_combat.questphase.json",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/13/Data/type/Data",
+          "value": 1,
+          "setExactValue": 1
+        }
+      ],
+      "writerAuditScope": {
+        "scope": "Positive assignments in freshly exported installed 2.31 native assets cited by this lane; writers outside these assets are not claimed to be exhausted.",
+        "candidateWriters": 1
+      }
     }
   },
   "journalAllowlist": {
@@ -163199,7 +163364,8 @@
       "audience": {
         "speakers": [
           "nancy-hartley",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "royce"
         ],
         "perspective": "participant",
         "channels": [
@@ -163209,7 +163375,8 @@
         "recipients": [
           "v",
           "nancy-hartley",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "royce"
         ]
       },
       "condition": {
@@ -166092,7 +166259,8 @@
       "audience": {
         "speakers": [
           "carol-emeka",
-          "cassidy-righter"
+          "cassidy-righter",
+          "teddy"
         ],
         "perspective": "participant",
         "channels": [
@@ -166102,7 +166270,8 @@
         "recipients": [
           "v",
           "carol-emeka",
-          "cassidy-righter"
+          "cassidy-righter",
+          "teddy"
         ]
       },
       "condition": {
@@ -166145,7 +166314,8 @@
       "audience": {
         "speakers": [
           "carol-emeka",
-          "cassidy-righter"
+          "cassidy-righter",
+          "teddy"
         ],
         "perspective": "participant",
         "channels": [
@@ -166155,7 +166325,8 @@
         "recipients": [
           "v",
           "carol-emeka",
-          "cassidy-righter"
+          "cassidy-righter",
+          "teddy"
         ]
       },
       "condition": {
@@ -168117,7 +168288,8 @@
       "audience": {
         "speakers": [
           "panam-palmer",
-          "saul-bright"
+          "saul-bright",
+          "teddy"
         ],
         "perspective": "participant",
         "channels": [
@@ -168128,7 +168300,8 @@
         "recipients": [
           "v",
           "panam-palmer",
-          "saul-bright"
+          "saul-bright",
+          "teddy"
         ]
       },
       "condition": {
@@ -169392,6 +169565,826 @@
       ]
     },
     {
+      "id": "anders-hellman.last-caress.estate-without-takemura",
+      "revision": 1,
+      "questKey": "last-caress",
+      "topic": "takemura.devil.participation",
+      "outcome": "absent",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Hellman took V to Hanako Arasaka's estate to get her out. Takemura was not with them and took no part in the estate rescue.",
+      "sourceIds": [
+        "ah5.source.14ef51168981",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.estate.takemura-lost",
+        "ah5.ev.journal.f6f74747514d",
+        "ah5.ev.journal.7e8de7206f32"
+      ],
+      "audience": {
+        "speakers": [
+          "anders-hellman"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "anders-hellman"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q112_takemura_dead",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "ah5.estate.hellman",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "ah5.estate.talk-hanako",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.devil-takemura-presence",
+          "outcomeKey": "absent"
+        }
+      ]
+    },
+    {
+      "id": "anders-hellman.life-during-wartime.captured",
+      "revision": 1,
+      "questKey": "life-during-wartime",
+      "topic": "hellman.capture",
+      "outcome": "captured",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "After the AV crash V caught Hellman at the gas station; Takemura took him into custody, and V and Takemura then questioned him about the biochip and Silverhand's construct at the Sunset Motel. He does not know what Panam or the Aldecaldos did afterwards.",
+      "sourceIds": [
+        "priority-panam.source.fd6f4709f414"
+      ],
+      "evidenceRefs": [
+        "priority-panam.evidence.hellman-captured",
+        "al-native.release-entry",
+        "al-native.sidequest-entry",
+        "priority-panam.evidence.writer-q104_haru_taken_by_takemura",
+        "priority-panam.evidence.journal-priority-panam-wartime-hellman-confronted",
+        "priority-panam.evidence.journal-priority-panam-wartime-completed"
+      ],
+      "audience": {
+        "speakers": [
+          "anders-hellman"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "anders-hellman"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q104_haru_taken_by_takemura",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "priority-panam.wartime.hellman-confronted",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "priority-panam.wartime.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.wartime.hellman-captured",
+          "outcomeKey": "captured"
+        }
+      ]
+    },
+    {
+      "id": "anders-hellman.nocturne.collected-v",
+      "revision": 1,
+      "questKey": "nocturne-op55n1",
+      "topic": "misty.v.final-plan",
+      "outcome": "arasaka-disclosed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "When V chose Hanako's Arasaka plan, Hellman came for V in an Arasaka car at Misty's Esoterica. Misty, seeing the stretch, objected to V that Arasaka had killed Jackie; V left with Hellman anyway. Hellman reminded V of their earlier talk about the construct in V's head, and said he would be watching V.",
+      "sourceIds": [
+        "hw5.source.938efb513f50",
+        "hw5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "hw5.ev.nocturne.sendoff-arasaka-route",
+        "hw5.ev.journal.81398875e80c",
+        "hw5.ev.journal.3a223bc3bac6"
+      ],
+      "audience": {
+        "speakers": [
+          "anders-hellman"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "anders-hellman"
+        ]
+      },
+      "condition": {
+        "any": [
+          {
+            "type": "journal",
+            "key": "hw5.nocturne.talk-takemura",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "hw5.nocturne.talk-hellman",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "heywood.nocturne.misty-sendoff",
+          "outcomeKey": "arasaka-disclosed"
+        }
+      ]
+    },
+    {
+      "id": "anders-hellman.total-immortal.yorinobu-held",
+      "revision": 1,
+      "questKey": "totalimmortal",
+      "topic": "yorinobu.final.confrontation",
+      "outcome": "heard",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "On the CEO floor of Arasaka Tower V reached Yorinobu Arasaka without killing him and he was held until Hanako took charge of her brother. Hellman was there; once Hanako had taken over he told V it was time to look to V's own problem and led the badly weakened V away for treatment. He does not know what was said between V and Yorinobu beyond what he overheard.",
+      "sourceIds": [
+        "ah5.source.a8bba5d438b4",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.tower.yorinobu-confrontation",
+        "ah5.ev.journal.b7c8cab21a4b",
+        "ah5.ev.journal.6d081c0606cb"
+      ],
+      "audience": {
+        "speakers": [
+          "anders-hellman"
+        ],
+        "perspective": "witnessed",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "anders-hellman"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "ah5.tower.confront-yorinobu",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "ah5.tower.hanako-takes-over",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.yorinobu-confronted",
+          "outcomeKey": "heard"
+        },
+        {
+          "decisionId": "silverhand.yorinobu-confronted",
+          "outcomeKey": "completed"
+        }
+      ]
+    },
+    {
+      "id": "angelica-whelan.no-easy-way-out.deal-accepted",
+      "revision": 1,
+      "questKey": "no-easy-way-out",
+      "topic": "aaron.angie",
+      "outcome": "deal",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At Damir's clinic, with Aaron unconscious, Angie offered V a cut of the winnings if V stood aside and let Aaron throw the fight against Vince. V accepted, so Angie let V leave, promised the scavs would let V pass, and said Aaron was the Animals' problem now. This is the agreement, not proof that the bout has already been fought.",
+      "sourceIds": [
+        "ph-easy"
+      ],
+      "evidenceRefs": [
+        "ph-proof-aaron-angie-negotiation"
+      ],
+      "audience": {
+        "speakers": [
+          "angelica-whelan"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "angelica-whelan"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "mq306_angie_path",
+        "op": "eq",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.easy.angie",
+          "outcomeKey": "deal"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "phantom.aaron.angie",
+          "outcome": "deal"
+        }
+      ]
+    },
+    {
+      "id": "angelica-whelan.no-easy-way-out.sasquatch-threat",
+      "revision": 1,
+      "questKey": "no-easy-way-out",
+      "topic": "aaron.angie",
+      "outcome": "intimidated",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At Damir's clinic, with Aaron unconscious, V answered Angie's offer by warning that she could end up like Sasquatch. Angie conceded she had misjudged the merc Aaron could afford and backed down without a fight.",
+      "sourceIds": [
+        "ph-easy"
+      ],
+      "evidenceRefs": [
+        "ph-proof-aaron-angie-negotiation"
+      ],
+      "audience": {
+        "speakers": [
+          "angelica-whelan"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "angelica-whelan"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "mq306_intimidate",
+        "op": "eq",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.easy.angie",
+          "outcomeKey": "intimidated"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "phantom.aaron.angie",
+          "outcome": "intimidated"
+        }
+      ]
+    },
+    {
+      "id": "anthony-gilchrist.the-pickup.confronted",
+      "revision": 1,
+      "questKey": "the-pickup",
+      "topic": "militech.leak.confrontation",
+      "outcome": "confronted-gilchrist",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "After the All Foods job V confronted Anthony Gilchrist at the gate, with Jackie present, telling him V had seen the LOA-stamped cargo manifests and knew he was the mole. He answered by suggesting they part amicably, with no accusations and no bad blood, and said he knew how to take care of his friends and that V would not regret keeping a lid on it.",
+      "sourceIds": [
+        "ah5.source.a528dbc54c73"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.pickup.gilchrist-confrontation",
+        "ah5.ev.fact.q003_anthony_intimidated.e58f32fff632"
+      ],
+      "audience": {
+        "speakers": [
+          "anthony-gilchrist"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "anthony-gilchrist"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q003_anthony_intimidated",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.gilchrist-confrontation",
+          "outcomeKey": "confronted-gilchrist"
+        }
+      ]
+    },
+    {
+      "id": "anthony-gilchrist.the-pickup.gate-meeting",
+      "revision": 1,
+      "questKey": "the-pickup",
+      "topic": "militech.investigation.winner",
+      "outcome": "gilchrist",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "After the All Foods job Anthony Gilchrist stopped his men from opening fire on V and Jackie and met them for a word. He said V had shot at his people, which meant nothing to Militech management, and that if V had worked with Stout he would be dead by now, so V had saved his life without meaning to and he was now saving V's, which made them even.",
+      "sourceIds": [
+        "jt-native-231"
+      ],
+      "evidenceRefs": [
+        "jt-native.pickup-gate-contact.gilchrist",
+        "jt-native.production-lineage"
+      ],
+      "audience": {
+        "speakers": [
+          "anthony-gilchrist"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "anthony-gilchrist"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q003_anthony_won",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "jt.pickup.completed",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "jt.pickup.contact.gilchrist",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.pickup-gate-contact",
+          "outcomeKey": "gilchrist"
+        }
+      ]
+    },
+    {
+      "id": "anthony-gilchrist.the-pickup.stout-meeting",
+      "revision": 1,
+      "questKey": "the-pickup",
+      "topic": "meredith.meeting",
+      "outcome": "met",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "Before the All Foods job Meredith Stout brought V in for a meeting at which she questioned V about the missing Militech convoy and the mole inside Militech. Anthony Gilchrist was held there by her bodyguards while she did it. He shouted that he was not the mole and that Stout and everyone under her was finished.",
+      "sourceIds": [
+        "ah5.source.14d48c8feb32",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.militech.meeting",
+        "ah5.ev.fact.q003_militech_met.b1590cc8dd91",
+        "ah5.ev.journal.3d6e75c842fb"
+      ],
+      "audience": {
+        "speakers": [
+          "anthony-gilchrist"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "anthony-gilchrist"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q003_militech_met",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "ah5.militech.meet-agent",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.stout-meeting",
+          "outcomeKey": "met"
+        }
+      ]
+    },
+    {
+      "id": "aurore-cassel.name.roulette-v-won",
+      "revision": 1,
+      "questKey": "you-know-my-name",
+      "topic": "phantom.cassel-roulette",
+      "outcome": "v-won",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At the twins' roulette table at the Black Sapphire, Aurore and Aymeric Cassel and V played on opposite colours with everything at stake, and V won the all-in exchange when the Cassels lost their stake. This does not claim V won every earlier spin.",
+      "sourceIds": [
+        "pph-source-dfe9bce28b1f7c71"
+      ],
+      "evidenceRefs": [
+        "pph-proof-name-roulette-v-won"
+      ],
+      "audience": {
+        "speakers": [
+          "aurore-cassel"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "aurore-cassel"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q303_07_netrunners_lost_all_in",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "pph.name-roulette-v-won",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.name.roulette",
+          "outcomeKey": "v-won"
+        }
+      ]
+    },
+    {
+      "id": "bree-whitney.shot-by-both-sides.sided-with-bree",
+      "revision": 1,
+      "questKey": "shot-by-both-sides",
+      "topic": "bree-dante.fate",
+      "outcome": "bree-alive",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "In the buried Cynosure lab V took Bree Whitney's side against the Militech agent Dante Caruso and killed him. Bree walked out of the lab alive.",
+      "sourceIds": [
+        "pg5.source.a87921da68fe",
+        "pg5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.journal.26b3b7002420",
+        "pg5.ev.journal.b5ee4347d29a",
+        "pg5.ev.journal.17ed6727b2f2"
+      ],
+      "audience": {
+        "speakers": [
+          "bree-whitney"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "bree-whitney"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "pg5.shot.kill-dante",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "pg5.shot.client-pleased",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          },
+          {
+            "type": "journal",
+            "key": "pg5.shot.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.shot.resolution",
+          "outcomeKey": "bree-alive"
+        }
+      ]
+    },
+    {
+      "id": "bree-whitney.shot-by-both-sides.sold-to-netwatch",
+      "revision": 1,
+      "questKey": "shot-by-both-sides",
+      "topic": "bree.netwatch-deal",
+      "outcome": "reported",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "Bree Whitney lived through the Cynosure lab confrontation and went through with her private arrangement: she sold the Militech data to NetWatch and then dropped out of sight.",
+      "sourceIds": [
+        "pg5.source.40cae7fa9d7e",
+        "pg5.source.2004d7b0c737"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.shot.netwatch-section",
+        "pg5.ev.shot.netwatch-route",
+        "pg5.ev.fact.mq305_mr_hands_sends_message_about_bree.8478636ca380"
+      ],
+      "audience": {
+        "speakers": [
+          "bree-whitney"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "bree-whitney"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "mq305_mr_hands_sends_message_about_bree",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.shot.netwatch",
+          "outcomeKey": "reported"
+        }
+      ]
+    },
+    {
+      "id": "bryce-mosley.walk-line.deal-accepted",
+      "revision": 1,
+      "questKey": "i-walk-the-line",
+      "topic": "voodoo.netwatch.choice",
+      "outcome": "accepted",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At the Grand Imperial Mall Bryce Mosley offered V an arrangement and V accepted it: Bryce would leave with his data, in exchange for removing the Voodoo Boys' virus and releasing their trapped netrunners. Those were the offered terms, not a guarantee of later safety.",
+      "sourceIds": [
+        "ahe-walk-line"
+      ],
+      "evidenceRefs": [
+        "ahe-native.netwatch-accepted"
+      ],
+      "audience": {
+        "speakers": [
+          "bryce-mosley"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "bryce-mosley"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q110_08a_netwatch_deal",
+        "op": "gte",
+        "value": 2
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.netwatch-choice",
+          "outcomeKey": "accepted"
+        }
+      ]
+    },
+    {
+      "id": "bryce-mosley.walk-line.virus-warning",
+      "revision": 1,
+      "questKey": "i-walk-the-line",
+      "topic": "placide.malware.warning",
+      "outcome": "warned-by-agent",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At the Grand Imperial Mall Bryce Mosley warned V about the Voodoo Boys' malware and demonstrated that V's diagnostic was repeating a forged result. This does not establish whether V accepted his offer.",
+      "sourceIds": [
+        "ahe-walk-line"
+      ],
+      "evidenceRefs": [
+        "ahe-native.placide-virus-warning"
+      ],
+      "audience": {
+        "speakers": [
+          "bryce-mosley"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "bryce-mosley"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q110_08a_virus",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.placide-malware-warning",
+          "outcomeKey": "warned-by-agent"
+        }
+      ]
+    },
+    {
       "id": "cast.never-fade.memory-2013-escape-party",
       "revision": 1,
       "questKey": "never-fade-away",
@@ -170220,7 +171213,8 @@
       ],
       "audience": {
         "speakers": [
-          "rachel-casich"
+          "rachel-casich",
+          "joshua-stephenson"
         ],
         "perspective": "participant",
         "channels": [
@@ -170229,7 +171223,8 @@
         ],
         "recipients": [
           "v",
-          "rachel-casich"
+          "rachel-casich",
+          "joshua-stephenson"
         ]
       },
       "condition": {
@@ -170754,6 +171749,73 @@
         {
           "decisionId": "city-contacts.violence.motel-death",
           "outcomeKey": "body-discovered"
+        }
+      ]
+    },
+    {
+      "id": "chester-bennett.run-this-town.jago-killed",
+      "revision": 1,
+      "questKey": "run-this-town",
+      "topic": "dogtown.succession",
+      "outcome": "bennett-jago-dead",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "At Kurt Hansen's wake Jago was killed. Bennett kept hold of the room, had Jago's men stand down, left Jago's body where it fell as a warning, and took control of Dogtown.",
+      "sourceIds": [
+        "pg5.source.9b7b2b87db4e",
+        "pg5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.town.followup-switch",
+        "pg5.ev.journal.781ebf87b43c",
+        "pg5.ev.journal.e43f5a0b5365"
+      ],
+      "audience": {
+        "speakers": [
+          "chester-bennett"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "chester-bennett"
+        ]
+      },
+      "condition": {
+        "any": [
+          {
+            "type": "journal",
+            "key": "pg5.town.bennett-bad",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          },
+          {
+            "type": "journal",
+            "key": "pg5.town.bennett-contacts",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.town.succession",
+          "outcomeKey": "bennett-jago-dead"
         }
       ]
     },
@@ -173750,7 +174812,8 @@
       ],
       "audience": {
         "speakers": [
-          "solomon-reed"
+          "solomon-reed",
+          "rosalind-myers"
         ],
         "perspective": "witnessed",
         "channels": [
@@ -173759,7 +174822,8 @@
         ],
         "recipients": [
           "v",
-          "solomon-reed"
+          "solomon-reed",
+          "rosalind-myers"
         ]
       },
       "condition": {
@@ -173844,7 +174908,8 @@
       ],
       "audience": {
         "speakers": [
-          "takemura"
+          "takemura",
+          "oda"
         ],
         "perspective": "participant",
         "channels": [
@@ -173853,7 +174918,8 @@
         ],
         "recipients": [
           "v",
-          "takemura"
+          "takemura",
+          "oda"
         ]
       },
       "condition": {
@@ -174584,6 +175650,716 @@
       }
     },
     {
+      "id": "denny.a-like-supreme.performed",
+      "revision": 1,
+      "questKey": "second-conflict",
+      "topic": "samurai.reunion.lineup",
+      "outcome": "denny",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "In this save Denny, whom V had chosen over Henry, played in the Samurai reunion concert that Kerry organised, on stage with Kerry and Nancy, with V on stage as well.",
+      "sourceIds": [
+        "native-story.silverhand-second",
+        "native-story.silverhand-supreme",
+        "native-story.silverhand-transcript"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.reunion-performance",
+        "silverhand-native.lineup-denny",
+        "silverhand-native.invocation-lineup"
+      ],
+      "audience": {
+        "speakers": [
+          "denny"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "denny"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq011_denny_samurai",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq031_samurai_concert_done",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.reunion-lineup",
+          "outcomeKey": "denny"
+        }
+      ]
+    },
+    {
+      "id": "denny.second-conflict.chosen-for-reunion",
+      "revision": 1,
+      "questKey": "second-conflict",
+      "topic": "samurai.reunion.lineup",
+      "outcome": "denny",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At Denny's house, with Kerry and V there, Denny and Henry each refused to play with the other, and V chose Denny for Kerry's planned Samurai reunion. Denny told Henry to get out and asked Kerry about Nancy. This does not say whether the concert took place.",
+      "sourceIds": [
+        "native-story.silverhand-second",
+        "native-story.silverhand-transcript"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.lineup-denny",
+        "silverhand-native.invocation-lineup"
+      ],
+      "audience": {
+        "speakers": [
+          "denny"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "denny"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq011_denny_samurai",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.reunion-lineup",
+          "outcomeKey": "denny"
+        }
+      ]
+    },
+    {
+      "id": "denny.second-conflict.passed-over-for-reunion",
+      "revision": 1,
+      "questKey": "second-conflict",
+      "topic": "samurai.reunion.lineup",
+      "outcome": "henry",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At Denny's house, with Kerry and V there, Denny and Henry each refused to play with the other, and V chose Henry for Kerry's planned Samurai reunion instead of Denny. Denny threw the group out of her sight. This does not say whether the concert took place.",
+      "sourceIds": [
+        "native-story.silverhand-second",
+        "native-story.silverhand-transcript"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.lineup-henry",
+        "silverhand-native.invocation-lineup"
+      ],
+      "audience": {
+        "speakers": [
+          "denny"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "denny"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq011_henry_samurai",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.reunion-lineup",
+          "outcomeKey": "henry"
+        }
+      ]
+    },
+    {
+      "id": "dum-dum.second-conflict.totentanz-recognised-v",
+      "revision": 1,
+      "questKey": "second-conflict",
+      "topic": "maelstrom.totentanz.leader",
+      "outcome": "royce",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At the Totentanz Dum Dum, still working for Royce and still running the Maelstrom gang's entrance there, recognised V from the All Foods deal and noted that V had come without Jackie. He sat V down while Royce was busy being interviewed by the journalist Nancy Hartley, and told V that Royce was not to be bothered. V and Nancy dealt with Royce and Dum Dum there.",
+      "sourceIds": [
+        "ah5.source.51f5b84d03de",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.totentanz.royce-leads",
+        "ah5.ev.journal.5168d7bcfe97"
+      ],
+      "audience": {
+        "speakers": [
+          "dum-dum"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "dum-dum"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "ah5.totentanz.royce",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.maelstrom-leadership",
+          "outcomeKey": "royce"
+        }
+      ]
+    },
+    {
+      "id": "dum-dum.the-pickup.chip-malware",
+      "revision": 1,
+      "questKey": "the-pickup",
+      "topic": "pickup.negotiation",
+      "outcome": "paid-militech-unsafe",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "When V paid for the Flathead at the All Foods plant, the credchip V handed Royce carried hostile malware that started breaking into the gang's systems, and V had given no warning. Royce shouted that the chip had a vector and ordered the gang to kill V and Jackie. Dum Dum does not know where the chip came from.",
+      "sourceIds": [
+        "jt-native-231"
+      ],
+      "evidenceRefs": [
+        "jt-native.royce-negotiation.paid-militech-unsafe",
+        "jt-native.production-lineage"
+      ],
+      "audience": {
+        "speakers": [
+          "dum-dum"
+        ],
+        "perspective": "witnessed",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "dum-dum"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q003_militech_virus_uploaded",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "jt.pickup.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.royce-negotiation",
+          "outcomeKey": "paid-militech-unsafe"
+        }
+      ]
+    },
+    {
+      "id": "dum-dum.the-pickup.fought-maelstrom",
+      "revision": 1,
+      "questKey": "the-pickup",
+      "topic": "pickup.conflict",
+      "outcome": "fought-maelstrom",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "At the All Foods plant the Flathead negotiation with V and Jackie broke down and turned into a fight between V, Jackie and the Maelstrom gang. Dum Dum was in the room and called on the gang to shoot the intruders. This does not say how the fight ended for anyone on the Maelstrom side.",
+      "sourceIds": [
+        "jt-native-231"
+      ],
+      "evidenceRefs": [
+        "jt-native.pickup-conflict.fought-maelstrom",
+        "jt-native.production-lineage"
+      ],
+      "audience": {
+        "speakers": [
+          "dum-dum"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "dum-dum"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q003_no_deal",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "jt.pickup.hostile-escape",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "jt.pickup.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.pickup-conflict",
+          "outcomeKey": "fought-maelstrom"
+        }
+      ]
+    },
+    {
+      "id": "dum-dum.the-pickup.fought-militech",
+      "revision": 1,
+      "questKey": "the-pickup",
+      "topic": "pickup.conflict",
+      "outcome": "fought-militech",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Militech stormed the All Foods plant while V and Jackie were inside. Dum Dum cursed Militech, led V and Jackie out through the closed-off parts of the plant (the ventilation shaft, the production line, past the vault where the gang keeps its merchandise), and fought the Militech strike team beside them.",
+      "sourceIds": [
+        "jt-native-231"
+      ],
+      "evidenceRefs": [
+        "jt-native.pickup-conflict.fought-militech",
+        "jt-native.production-lineage"
+      ],
+      "audience": {
+        "speakers": [
+          "dum-dum"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "dum-dum"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q003_militech_invades",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "jt.pickup.militech-survived",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "jt.pickup.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.pickup-conflict",
+          "outcomeKey": "fought-militech"
+        }
+      ]
+    },
+    {
+      "id": "dum-dum.the-pickup.royce-downed",
+      "revision": 1,
+      "questKey": "the-pickup",
+      "topic": "maelstrom.royce.fate",
+      "outcome": "killed-by-militech",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "Royce went down under the Militech assault on All Foods while V and Jackie were there. Dum Dum was on the spot with them and shouted to V that Militech had killed Royce.",
+      "sourceIds": [
+        "db.source.c3e13a81728e",
+        "db.source.151c9a044f4d",
+        "jt-native-231",
+        "db.source.86ccc4b66fa9",
+        "db.source.19c1d57c850c",
+        "db.source.752f36b67be0"
+      ],
+      "evidenceRefs": [
+        "db.ev.fact.q003_militech_invades.0c2df584713e",
+        "db.ev.fact.q003_militech_invades.594ec3bbf1ba",
+        "jt-native.q003_militech_invades",
+        "db.ev.fact.q003_royce_dead.301e13f5f843",
+        "db.ev.fact.q003_royce_dead.27b18d5447d5",
+        "db.ev.fact.q003_royce_dead.aa9f089089bb",
+        "jt-native.pickup.completed"
+      ],
+      "audience": {
+        "speakers": [
+          "dum-dum"
+        ],
+        "perspective": "witnessed",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "dum-dum"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q003_militech_invades",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q003_royce_dead",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "jt.pickup.completed",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "fact",
+            "key": "q003_dumdum_dead",
+            "op": "eq",
+            "value": 0,
+            "guard": {
+              "type": "journal",
+              "key": "jt.pickup.completed",
+              "op": "eq",
+              "value": "succeeded"
+            }
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.royce-fate",
+          "outcomeKey": "killed-by-militech"
+        }
+      ]
+    },
+    {
+      "id": "edgar-tool.dazed-and-confused.clone-story",
+      "revision": 1,
+      "questKey": "dazed-and-confused",
+      "topic": "brainporium.tool.outcome",
+      "outcome": "clone-performance",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "During the braindance shoot V took charge of at Shank's Brainporium, Lina Malina told Tool he was a clone, grown in a Biotechnica lab on FIA orders to take her place. Tool reacted in alarm: he asked whether his whole life was a lie and feared the FIA would kill him to cover their tracks.",
+      "sourceIds": [
+        "cc5.source.03189a6fb22b"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.mq303.direction-choice",
+        "cc5.ev.fact.mq303_finale_cia.ea9acbd3b384"
+      ],
+      "audience": {
+        "speakers": [
+          "edgar-tool"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "edgar-tool"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "mq303_finale_cia",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.shank.tool-treatment",
+          "outcomeKey": "clone-performance"
+        }
+      ]
+    },
+    {
+      "id": "edgar-tool.dazed-and-confused.freed-from-booth",
+      "revision": 1,
+      "questKey": "dazed-and-confused",
+      "topic": "tool.early-release",
+      "outcome": "freed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 4,
+      "stable": true,
+      "statement": "V found Tool locked up in a booth at Shank's Brainporium, insisting he was the real Lina Malina, and let him out instead of going along with Shank's plan. Tool took it as a fan doing right by Lina ('I knew I could count on you').",
+      "sourceIds": [
+        "pg5.source.5025f2443676",
+        "pg5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.dazed.freed-route",
+        "pg5.ev.journal.ec10b55b9ee0",
+        "pg5.ev.journal.45c60af06f5e",
+        "pg5.ev.journal.9537da127305",
+        "pg5.ev.journal.2095836e6a28"
+      ],
+      "audience": {
+        "speakers": [
+          "edgar-tool"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "edgar-tool"
+        ]
+      },
+      "condition": {
+        "any": [
+          {
+            "type": "journal",
+            "key": "pg5.dazed.hands-freed-a",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "pg5.dazed.hands-freed-b",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "pg5.dazed.hands-freed-c",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "pg5.dazed.hands-freed-d",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.dazed.early-resolution",
+          "outcomeKey": "freed"
+        }
+      ]
+    },
+    {
+      "id": "edgar-tool.dazed-and-confused.letter-read-aloud",
+      "revision": 1,
+      "questKey": "dazed-and-confused",
+      "topic": "brainporium.tool.outcome",
+      "outcome": "letter-recovery",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "During the braindance shoot V took charge of at Shank's Brainporium, Lina Malina read aloud lines she had been sent, and they were Tool's own fan letter, signed Edgar Tool. It snapped Tool out of the Lina persona: he came back to himself as Edgar, confused about what he was wearing and what Shank had let happen, with a hangover and little memory of the last few days.",
+      "sourceIds": [
+        "cc5.source.03189a6fb22b"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.mq303.direction-choice",
+        "cc5.ev.fact.mq303_finale_shock.349400e1a7a3"
+      ],
+      "audience": {
+        "speakers": [
+          "edgar-tool"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "edgar-tool"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "mq303_finale_shock",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.shank.tool-treatment",
+          "outcomeKey": "letter-recovery"
+        }
+      ]
+    },
+    {
+      "id": "edgar-tool.dazed-and-confused.sister-reunion",
+      "revision": 1,
+      "questKey": "dazed-and-confused",
+      "topic": "brainporium.tool.outcome",
+      "outcome": "sister-performance",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "During the braindance shoot V took charge of at Shank's Brainporium, Lina Malina told Tool he was her long-lost little sister and recalled their old apartment and the swing he built her. Tool accepted it ('Sister... It's really you!') and the shoot went ahead as a sister act.",
+      "sourceIds": [
+        "cc5.source.03189a6fb22b"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.mq303.direction-choice",
+        "cc5.ev.fact.mq303_finale_sisters.9cadd70cf2f6"
+      ],
+      "audience": {
+        "speakers": [
+          "edgar-tool"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "edgar-tool"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "mq303_finale_sisters",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.shank.tool-treatment",
+          "outcomeKey": "sister-performance"
+        }
+      ]
+    },
+    {
       "id": "evelyn-parker.automatic-love.booth-seen",
       "revision": 1,
       "questKey": "automatic-love",
@@ -174820,6 +176596,122 @@
         {
           "decisionId": "judy-river.information.introductions",
           "outcomeKey": "evelyn-met"
+        }
+      ]
+    },
+    {
+      "id": "fingers.space-in-between.assaulted",
+      "revision": 1,
+      "questKey": "the-space-in-between",
+      "topic": "fingers.interrogation.assault",
+      "outcome": "assault-observed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 7,
+      "stable": true,
+      "statement": "During the questioning at his Jig-Jig Street clinic, V assaulted Fingers while Judy looked on; he pleaded with them to stop ('not my nose') and insisted he knew nothing more. This does not establish that he was killed or how he treated V afterwards.",
+      "sourceIds": [
+        "priority-judy.fingers-assault.source"
+      ],
+      "evidenceRefs": [
+        "priority-judy.fingers-assault.evidence"
+      ],
+      "audience": {
+        "speakers": [
+          "fingers"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "fingers"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q105_fingers_beaten",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "priority-judy.space.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.space.fingers-treatment",
+          "outcomeKey": "assault-observed"
+        }
+      ]
+    },
+    {
+      "id": "fingers.space-in-between.questioned",
+      "revision": 1,
+      "questKey": "the-space-in-between",
+      "topic": "fingers.interrogation.testimony",
+      "outcome": "questioned",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 7,
+      "stable": true,
+      "statement": "V and Judy questioned Fingers in his clinic about Evelyn Parker. He told them that when he could not repair her he called his fixer Wakako and said he had a busted doll with a braindance implant to hand off. This testimony does not by itself establish whether V assaulted him.",
+      "sourceIds": [
+        "priority-judy.fingers-testimony.source"
+      ],
+      "evidenceRefs": [
+        "priority-judy.fingers-testimony.evidence"
+      ],
+      "audience": {
+        "speakers": [
+          "fingers"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "fingers"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "fingers_told_wakako",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "priority-judy.space.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.space.fingers-treatment",
+          "outcomeKey": "questioned"
         }
       ]
     },
@@ -188824,6 +190716,168 @@
       ]
     },
     {
+      "id": "henry.a-like-supreme.performed",
+      "revision": 1,
+      "questKey": "second-conflict",
+      "topic": "samurai.reunion.lineup",
+      "outcome": "henry",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "In this save Henry, whom V had chosen over Denny, played in the Samurai reunion concert that Kerry organised, on stage with Kerry and Nancy, with V on stage as well.",
+      "sourceIds": [
+        "native-story.silverhand-second",
+        "native-story.silverhand-supreme",
+        "native-story.silverhand-transcript"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.reunion-performance",
+        "silverhand-native.lineup-henry",
+        "silverhand-native.invocation-lineup"
+      ],
+      "audience": {
+        "speakers": [
+          "henry"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "henry"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq011_henry_samurai",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq031_samurai_concert_done",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.reunion-lineup",
+          "outcomeKey": "henry"
+        }
+      ]
+    },
+    {
+      "id": "henry.second-conflict.chosen-for-reunion",
+      "revision": 1,
+      "questKey": "second-conflict",
+      "topic": "samurai.reunion.lineup",
+      "outcome": "henry",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At Denny's house, with Kerry and V there, Denny and Henry each refused to play with the other, and V chose Henry for Kerry's planned Samurai reunion. Henry said he had no problem with Denny joining, Denny threw everyone out, and he asked Kerry about Nancy. This does not say whether the concert took place.",
+      "sourceIds": [
+        "native-story.silverhand-second",
+        "native-story.silverhand-transcript"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.lineup-henry",
+        "silverhand-native.invocation-lineup"
+      ],
+      "audience": {
+        "speakers": [
+          "henry"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "henry"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq011_henry_samurai",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.reunion-lineup",
+          "outcomeKey": "henry"
+        }
+      ]
+    },
+    {
+      "id": "henry.second-conflict.passed-over-for-reunion",
+      "revision": 1,
+      "questKey": "second-conflict",
+      "topic": "samurai.reunion.lineup",
+      "outcome": "denny",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At Denny's house, with Kerry and V there, Denny and Henry each refused to play with the other, and V chose Denny for Kerry's planned Samurai reunion instead of Henry. Henry argued with Kerry, told Denny off, and Denny told him to get out. This does not say whether the concert took place.",
+      "sourceIds": [
+        "native-story.silverhand-second",
+        "native-story.silverhand-transcript"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.lineup-denny",
+        "silverhand-native.invocation-lineup"
+      ],
+      "audience": {
+        "speakers": [
+          "henry"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "henry"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq011_denny_samurai",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.reunion-lineup",
+          "outcomeKey": "denny"
+        }
+      ]
+    },
+    {
       "id": "heywood.boxing.final.defeat",
       "revision": 1,
       "questKey": "beat-on-the-brat",
@@ -192484,6 +194538,276 @@
         {
           "decisionId": "heywood.wilson.competition",
           "outcomeKey": "participated"
+        }
+      ]
+    },
+    {
+      "id": "jacob-long.lucretia.intruders-cooperated",
+      "revision": 1,
+      "questKey": "lucretia-my-reflection",
+      "topic": "phantom.jacob-taylor",
+      "outcome": "cooperated",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "When Jacob and Taylor stumbled into the hideout and found President Myers and V, Myers held them at gunpoint, V chose to talk first, and V and Myers reached an initial agreement with them. The standoff ended without a shooting and Jacob and Taylor stayed alive at that point. Their later fate is a separate question.",
+      "sourceIds": [
+        "pph-source-dcd9a2d911169967"
+      ],
+      "evidenceRefs": [
+        "pph-proof-lucretia-intruders-cooperated"
+      ],
+      "audience": {
+        "speakers": [
+          "jacob-long"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "jacob-long"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q302_squot_misfit_negotiate",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q302_07_peaceful_run_off",
+            "op": "eq",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.lucretia.intruders",
+          "outcomeKey": "cooperated"
+        }
+      ]
+    },
+    {
+      "id": "jago-szabo.run-this-town.bennett-killed",
+      "revision": 1,
+      "questKey": "run-this-town",
+      "topic": "dogtown.succession",
+      "outcome": "jago-bennett-dead",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "At Kurt Hansen's wake the standoff with Bennett ended with Bennett killed, after a Cuban cartel envoy called Aguilar turned against him. Jago told his men to stand down and have Bennett's body taken away, and he ended up running Dogtown.",
+      "sourceIds": [
+        "pg5.source.9b7b2b87db4e",
+        "pg5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.town.followup-switch",
+        "pg5.ev.journal.953b33c5bcf2"
+      ],
+      "audience": {
+        "speakers": [
+          "jago-szabo"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "jago-szabo"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "pg5.town.jago-bad",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.town.succession",
+          "outcomeKey": "jago-bennett-dead"
+        }
+      ]
+    },
+    {
+      "id": "jago-szabo.run-this-town.peace-deal",
+      "revision": 1,
+      "questKey": "run-this-town",
+      "topic": "dogtown.succession",
+      "outcome": "bennett-jago-alive",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "At Kurt Hansen's wake the standoff between Jago and Bennett did not end in bloodshed: pressed by a Cuban cartel envoy called Aguilar, they struck a deal. Both lived, Jago stayed on as Bennett's adjutant, and the two have since worked together.",
+      "sourceIds": [
+        "pg5.source.9b7b2b87db4e",
+        "pg5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.town.followup-switch",
+        "pg5.ev.journal.1957049bbd42"
+      ],
+      "audience": {
+        "speakers": [
+          "jago-szabo",
+          "chester-bennett"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "jago-szabo",
+          "chester-bennett"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "pg5.town.bennett-good",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.town.succession",
+          "outcomeKey": "bennett-jago-alive"
+        }
+      ]
+    },
+    {
+      "id": "jago-szabo.run-this-town.terra-cognita-price",
+      "revision": 1,
+      "questKey": "run-this-town",
+      "topic": "dogtown.succession",
+      "outcome": "jago-bennett-alive",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "At Kurt Hansen's wake a Cuban cartel envoy called Aguilar backed Jago to lead Dogtown but made him pay Bennett's price: Terra Cognita under Bennett's exclusive control. Jago gave in 'for the good of Dogtown', took over Dogtown, and Bennett stayed alive holding Terra Cognita.",
+      "sourceIds": [
+        "pg5.source.9b7b2b87db4e",
+        "pg5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "pg5.ev.town.followup-switch",
+        "pg5.ev.journal.925a3dc09f22"
+      ],
+      "audience": {
+        "speakers": [
+          "jago-szabo",
+          "chester-bennett"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "jago-szabo",
+          "chester-bennett"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "pg5.town.jago-terra",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.town.succession",
+          "outcomeKey": "jago-bennett-alive"
+        }
+      ]
+    },
+    {
+      "id": "joshua-stephenson.passion.v-walked-out",
+      "revision": 1,
+      "questKey": "they-wont-go-when-i-go",
+      "topic": "rachel.shoot.v-role",
+      "outcome": "departed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "In the braindance studio, before the recording, Joshua asked V to wield the hammer and nail him to the cross. V refused to take any part, even to watch, and walked out of the studio.",
+      "sourceIds": [
+        "cc5.source.717add9468dc"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.sq023.studio-choice",
+        "cc5.ev.fact.sq023_crucifixion_refused.e1940c0c8ab8"
+      ],
+      "audience": {
+        "speakers": [
+          "joshua-stephenson"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "joshua-stephenson"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq023_crucifixion_refused",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.rachel.final-participation",
+          "outcomeKey": "departed"
         }
       ]
     },
@@ -197485,7 +199809,8 @@
       ],
       "audience": {
         "speakers": [
-          "takemura"
+          "takemura",
+          "oda"
         ],
         "perspective": "participant",
         "channels": [
@@ -197494,7 +199819,8 @@
         ],
         "recipients": [
           "v",
-          "takemura"
+          "takemura",
+          "oda"
         ]
       },
       "condition": {
@@ -197860,7 +200186,8 @@
       ],
       "audience": {
         "speakers": [
-          "jackie-welles"
+          "jackie-welles",
+          "dum-dum"
         ],
         "perspective": "participant",
         "channels": [
@@ -197869,7 +200196,8 @@
         ],
         "recipients": [
           "v",
-          "jackie-welles"
+          "jackie-welles",
+          "dum-dum"
         ]
       },
       "condition": {
@@ -198367,6 +200695,18 @@
             "value": 1
           },
           {
+            "type": "fact",
+            "key": "q003_paid_maelstrom",
+            "op": "eq",
+            "value": 0,
+            "guard": {
+              "type": "journal",
+              "key": "jt.pickup.completed",
+              "op": "eq",
+              "value": "succeeded"
+            }
+          },
+          {
             "type": "journal",
             "key": "jt.pickup.completed",
             "op": "eq",
@@ -198464,7 +200804,9 @@
       ],
       "audience": {
         "speakers": [
-          "jackie-welles"
+          "jackie-welles",
+          "royce",
+          "dum-dum"
         ],
         "perspective": "participant",
         "channels": [
@@ -198473,7 +200815,9 @@
         ],
         "recipients": [
           "v",
-          "jackie-welles"
+          "jackie-welles",
+          "royce",
+          "dum-dum"
         ]
       },
       "condition": {
@@ -198918,6 +201262,200 @@
         {
           "decisionId": "arasaka-heist.takemura-ride",
           "outcomeKey": "together"
+        }
+      ]
+    },
+    {
+      "id": "maiko-maeda.ex-factor.office-meeting",
+      "revision": 1,
+      "questKey": "ex-factor",
+      "topic": "judy.clouds_help",
+      "outcome": "helped",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 7,
+      "stable": true,
+      "statement": "V came to Maiko's office at Clouds with Judy Alvarez, her old acquaintance. Maiko was cold to both of them, warned that security would soon find them and that blowback from the Tyger Claws would hit every doll in the building, and called what they wanted impossible and beyond their means. She does not know how the rest of their visit ended.",
+      "sourceIds": [
+        "priority-judy.ex-helped.source"
+      ],
+      "evidenceRefs": [
+        "priority-judy.ex-helped.evidence"
+      ],
+      "audience": {
+        "speakers": [
+          "maiko-maeda"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "maiko-maeda"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq026_04_started",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "priority-judy.ex.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.ex.participation",
+          "outcomeKey": "helped"
+        }
+      ]
+    },
+    {
+      "id": "maiko-maeda.pisces.bosses-removed",
+      "revision": 1,
+      "questKey": "pisces",
+      "topic": "clouds.management",
+      "outcome": "bosses-removed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 7,
+      "stable": true,
+      "statement": "At the penthouse meeting V rejected Maiko's arrangement and sided with Judy, and the Tyger Claw bosses were removed from the meeting, which ruined Maiko's plan to be installed as Clouds' manager. Maiko was furious and warned V that the Claws would take their revenge on Clouds. This does not establish what became of Maiko herself or of Clouds afterwards.",
+      "sourceIds": [
+        "priority-judy.pisces-bosses-removed.source"
+      ],
+      "evidenceRefs": [
+        "priority-judy.pisces-bosses-removed.evidence"
+      ],
+      "audience": {
+        "speakers": [
+          "maiko-maeda"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "maiko-maeda"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq026_side_judy",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq026_04_done",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq026_maiko_dead",
+            "op": "eq",
+            "value": 0,
+            "guard": {
+              "type": "journal",
+              "key": "priority-judy.pisces.wait-established",
+              "op": "eq",
+              "value": "succeeded"
+            }
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.pisces.control",
+          "outcomeKey": "bosses-removed"
+        }
+      ]
+    },
+    {
+      "id": "maiko-maeda.pisces.paid-v",
+      "revision": 1,
+      "questKey": "pisces",
+      "topic": "judy.trust_maiko_payment",
+      "outcome": "accepted",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 8,
+      "stable": true,
+      "statement": "After V backed her takeover of Clouds, Maiko paid V for it and V took the money. She values a well-performed service. Judy's reaction to this is not something Maiko can speak to.",
+      "sourceIds": [
+        "jr-pisces"
+      ],
+      "evidenceRefs": [
+        "jr-native.pisces-payment",
+        "jr-native.pisces-completed-debrief",
+        "jr-native.pisces-maiko-installed"
+      ],
+      "audience": {
+        "speakers": [
+          "maiko-maeda"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "maiko-maeda"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq026_13_maiko_money",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq026_04_done",
+            "op": "eq",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.pisces.payment",
+          "outcomeKey": "accepted"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "jr-native.pisces-resolution-route",
+          "outcome": "maiko-management"
         }
       ]
     },
@@ -206585,7 +209123,8 @@
       ],
       "audience": {
         "speakers": [
-          "aaron"
+          "aaron",
+          "angelica-whelan"
         ],
         "perspective": "participant",
         "channels": [
@@ -206594,7 +209133,8 @@
         ],
         "recipients": [
           "v",
-          "aaron"
+          "aaron",
+          "angelica-whelan"
         ]
       },
       "condition": {
@@ -207071,7 +209611,8 @@
       ],
       "audience": {
         "speakers": [
-          "hanako-arasaka"
+          "hanako-arasaka",
+          "anders-hellman"
         ],
         "perspective": "participant",
         "channels": [
@@ -207080,7 +209621,8 @@
         ],
         "recipients": [
           "v",
-          "hanako-arasaka"
+          "hanako-arasaka",
+          "anders-hellman"
         ]
       },
       "condition": {
@@ -209365,7 +211907,8 @@
       "audience": {
         "speakers": [
           "rogue-amendiares",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "weyland"
         ],
         "perspective": "participant",
         "channels": [
@@ -209375,7 +211918,8 @@
         "recipients": [
           "v",
           "rogue-amendiares",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "weyland"
         ]
       },
       "condition": {
@@ -209482,7 +212026,8 @@
       ],
       "audience": {
         "speakers": [
-          "takemura"
+          "takemura",
+          "anders-hellman"
         ],
         "perspective": "participant",
         "channels": [
@@ -209492,7 +212037,8 @@
         "recipients": [
           "v",
           "takemura",
-          "hanako-arasaka"
+          "hanako-arasaka",
+          "anders-hellman"
         ]
       },
       "condition": {
@@ -210663,7 +213209,8 @@
       ],
       "audience": {
         "speakers": [
-          "judy-alvarez"
+          "judy-alvarez",
+          "maiko-maeda"
         ],
         "perspective": "participant",
         "channels": [
@@ -210672,7 +213219,8 @@
         ],
         "recipients": [
           "v",
-          "judy-alvarez"
+          "judy-alvarez",
+          "maiko-maeda"
         ]
       },
       "condition": {
@@ -210992,7 +213540,8 @@
       ],
       "audience": {
         "speakers": [
-          "judy-alvarez"
+          "judy-alvarez",
+          "maiko-maeda"
         ],
         "perspective": "participant",
         "channels": [
@@ -211001,7 +213550,8 @@
         ],
         "recipients": [
           "v",
-          "judy-alvarez"
+          "judy-alvarez",
+          "maiko-maeda"
         ]
       },
       "condition": {
@@ -211641,7 +214191,8 @@
       "audience": {
         "speakers": [
           "panam-palmer",
-          "mitch-anderson"
+          "mitch-anderson",
+          "teddy"
         ],
         "perspective": "participant",
         "channels": [
@@ -211651,7 +214202,8 @@
         "recipients": [
           "v",
           "panam-palmer",
-          "mitch-anderson"
+          "mitch-anderson",
+          "teddy"
         ]
       },
       "condition": {
@@ -212472,6 +215024,497 @@
         {
           "decisionId": "heywood.nix.spellbook-handoff",
           "outcomeKey": "delivered"
+        }
+      ]
+    },
+    {
+      "id": "rosalind-myers.hole.rescued",
+      "revision": 1,
+      "questKey": "hole-in-the-sky",
+      "topic": "myers.crash-rescue",
+      "outcome": "rescued",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At the crash site V reached the downed shuttle and found Myers alive. V and Myers fought off the attackers together and escaped the wreck. Myers had first held V at gunpoint and demanded to know who V was, and she told V she had to be sure it was really V; she understood that Songbird's plan had sent V.",
+      "sourceIds": [
+        "pph-source-e25ea7aaa0b41d18"
+      ],
+      "evidenceRefs": [
+        "pph-proof-hole-myers-rescued"
+      ],
+      "audience": {
+        "speakers": [
+          "rosalind-myers"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rosalind-myers"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "pph.hole-myers-rescued",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.hole.rescue",
+          "outcomeKey": "rescued"
+        }
+      ]
+    },
+    {
+      "id": "rosalind-myers.lucretia.intruders-cooperated",
+      "revision": 1,
+      "questKey": "lucretia-my-reflection",
+      "topic": "phantom.jacob-taylor",
+      "outcome": "cooperated",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "When two intruders, Jacob and Taylor, stumbled into the hideout, Myers held them at gunpoint (\"Weapons, now!\"), V chose to talk first, and V and Myers reached an initial agreement with them. The standoff ended without bloodshed and the two stayed alive at that point. Their later fate is a separate question.",
+      "sourceIds": [
+        "pph-source-dcd9a2d911169967"
+      ],
+      "evidenceRefs": [
+        "pph-proof-lucretia-intruders-cooperated"
+      ],
+      "audience": {
+        "speakers": [
+          "rosalind-myers"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rosalind-myers"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q302_squot_misfit_negotiate",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q302_07_peaceful_run_off",
+            "op": "eq",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.lucretia.intruders",
+          "outcomeKey": "cooperated"
+        }
+      ]
+    },
+    {
+      "id": "rosalind-myers.lucretia.operation-accepted",
+      "revision": 1,
+      "questKey": "lucretia-my-reflection",
+      "topic": "v.nusa.operation",
+      "outcome": "accepted",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "In the hideout discussion with Reed, Myers told Reed and V that they had to find Songbird together, and V stayed in the search: V went on looking for Songbird together with Reed. This does not establish that V took the NUSA oath.",
+      "sourceIds": [
+        "pph-source-fa8932deef283503"
+      ],
+      "evidenceRefs": [
+        "pph-proof-lucretia-operation-accepted"
+      ],
+      "audience": {
+        "speakers": [
+          "rosalind-myers"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rosalind-myers"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q302_07_oath_done",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "pph.lucretia-operation-accepted",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.lucretia.operation",
+          "outcomeKey": "accepted"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "phantom.lucretia.operation",
+          "outcome": "accepted"
+        }
+      ]
+    },
+    {
+      "id": "rosalind-myers.silence.handover-alive",
+      "revision": 1,
+      "questKey": "leave-in-silence",
+      "topic": "songbird.nusa-handover",
+      "outcome": "alive",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At the border crossing V and Reed brought Songbird (Song So Mi) alive and handed her over to NUSA custody, and Myers was there to receive her. Myers told V that Songbird would be in excellent hands and receive the best care available on the continent. Songbird's later condition and recovery are not established by the handover.",
+      "sourceIds": [
+        "ph-silence"
+      ],
+      "evidenceRefs": [
+        "ph-proof-border-handover",
+        "ph-proof-cynosure-alive"
+      ],
+      "audience": {
+        "speakers": [
+          "rosalind-myers"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rosalind-myers"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q305_songbird_alive",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "phantom.border.handover",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.silence.handover",
+          "outcomeKey": "alive"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "phantom.firestarter.route",
+          "outcome": "reed"
+        },
+        {
+          "id": "phantom.cynosure.fate",
+          "outcome": "alive"
+        }
+      ]
+    },
+    {
+      "id": "rosalind-myers.silence.handover-dead",
+      "revision": 1,
+      "questKey": "leave-in-silence",
+      "topic": "songbird.nusa-handover",
+      "outcome": "dead",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At the border crossing V and Reed delivered Songbird's body (Song So Mi) to the NUSA, and Myers was there when it was handed over. Myers told V that Song So Mi was killed in the line of duty and that she would make sure she was remembered that way. She did not learn from this the private cause of her death or her last request.",
+      "sourceIds": [
+        "ph-silence"
+      ],
+      "evidenceRefs": [
+        "ph-proof-border-handover",
+        "ph-proof-cynosure-death"
+      ],
+      "audience": {
+        "speakers": [
+          "rosalind-myers"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rosalind-myers"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q305_fact_songbird_dead",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "phantom.border.handover",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.silence.handover",
+          "outcomeKey": "dead"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "phantom.firestarter.route",
+          "outcome": "reed"
+        },
+        {
+          "id": "phantom.cynosure.fate",
+          "outcome": "dead"
+        }
+      ]
+    },
+    {
+      "id": "rosalind-myers.silence.medal-accepted",
+      "revision": 1,
+      "questKey": "leave-in-silence",
+      "topic": "v.nusa.medal",
+      "outcome": "accepted",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At the border, after Songbird was handed over alive, Myers offered V a NUSA medal for risking V's life to help her and the nation, and V accepted it. Accepting the medal does not prove V's loyalty or gratitude, or that V agrees with Myers.",
+      "sourceIds": [
+        "ph-silence"
+      ],
+      "evidenceRefs": [
+        "ph-proof-border-medal",
+        "ph-proof-border-handover",
+        "ph-proof-cynosure-alive"
+      ],
+      "audience": {
+        "speakers": [
+          "rosalind-myers"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rosalind-myers"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q305_11_medal_taken",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q305_songbird_alive",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "phantom.border.handover",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.silence.medal",
+          "outcomeKey": "accepted"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "phantom.firestarter.route",
+          "outcome": "reed"
+        },
+        {
+          "id": "phantom.cynosure.fate",
+          "outcome": "alive"
+        }
+      ]
+    },
+    {
+      "id": "rosalind-myers.spider.chimera-defeated",
+      "revision": 1,
+      "questKey": "spider-and-the-fly",
+      "topic": "phantom.chimera",
+      "outcome": "defeated",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "In the derelict Founding Our Future Expo hall in Dogtown, Myers and V fought a rogue Chimera together and destroyed it. Myers was on the spot for the whole fight.",
+      "sourceIds": [
+        "pph-source-eaf0a2a0e016da31"
+      ],
+      "evidenceRefs": [
+        "pph-proof-spider-chimera-defeated"
+      ],
+      "audience": {
+        "speakers": [
+          "rosalind-myers"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "rosalind-myers"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "chimera_defeated",
+        "op": "eq",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.spider.chimera",
+          "outcomeKey": "defeated"
+        }
+      ]
+    },
+    {
+      "id": "royce.the-pickup.sale-completed",
+      "revision": 1,
+      "questKey": "the-pickup",
+      "topic": "pickup.conflict",
+      "outcome": "peaceful",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "At the All Foods plant V and Jackie finished the Flathead deal with Royce without a fight. He told them to take the damn bot and get out of his factory, and sent his regards to Dexter DeShawn.",
+      "sourceIds": [
+        "jt-native-231"
+      ],
+      "evidenceRefs": [
+        "jt-native.pickup-conflict.peaceful",
+        "jt-native.production-lineage"
+      ],
+      "audience": {
+        "speakers": [
+          "royce"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "royce"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q003_calm_ending",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "jt.pickup.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.pickup-conflict",
+          "outcomeKey": "peaceful"
         }
       ]
     },
@@ -214962,6 +218005,540 @@
         {
           "decisionId": "silverhand.terrace-kiss",
           "outcomeKey": "kissed"
+        }
+      ]
+    },
+    {
+      "id": "teddy.queen.v-woke-at-new-camp",
+      "revision": 1,
+      "questKey": "queen-of-the-highway",
+      "topic": "priority-panam.collapse-observed",
+      "outcome": "collapse-witnessed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "V passed out and the Aldecaldos brought V along to the new camp. When V woke, Teddy greeted V with a tease about sleeping beauty finally joining them.",
+      "sourceIds": [
+        "priority-panam.source.0a1bdd041afa"
+      ],
+      "evidenceRefs": [
+        "priority-panam.evidence.collapse-witnessed",
+        "al-native.release-entry",
+        "al-native.sidequest-entry",
+        "priority-panam.evidence.writer-sq027_campwakeup_im_fine",
+        "priority-panam.evidence.journal-priority-panam-queen-completed"
+      ],
+      "audience": {
+        "speakers": [
+          "teddy"
+        ],
+        "perspective": "witnessed",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "teddy"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq027_campwakeup_im_fine",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "priority-panam.queen.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.queen.relic-disclosure",
+          "outcomeKey": "collapse-witnessed"
+        }
+      ]
+    },
+    {
+      "id": "teddy.riders.sent-v",
+      "revision": 1,
+      "questKey": "riders-on-the-storm",
+      "topic": "saul.rescue-plan",
+      "outcome": "briefed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At the Aldecaldo camp, while Panam prepared V to go after Saul, Teddy told V where he stood: he would rather move than sit, but the clan had decided to wait and gather its strength, and maybe that would be their own undoing. He feared every passing second put Saul closer to death's door, and he sent V off to get Saul out.",
+      "sourceIds": [
+        "priority-panam.source.a3ab9b39be72"
+      ],
+      "evidenceRefs": [
+        "priority-panam.evidence.riders-briefing",
+        "al-native.release-entry",
+        "al-native.sidequest-entry",
+        "priority-panam.evidence.journal-priority-panam-riders-drone-briefing",
+        "al-native.saul-rescue"
+      ],
+      "audience": {
+        "speakers": [
+          "teddy"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "teddy"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "priority-panam.riders.drone-briefing",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "aldecaldos.riders.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.riders.briefing",
+          "outcomeKey": "briefed"
+        }
+      ]
+    },
+    {
+      "id": "voodoo-queen.double-life.evelyn-hired",
+      "revision": 1,
+      "questKey": "double-life",
+      "topic": "evelyn.contract_evidence.assignment",
+      "outcome": "assignment-revealed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 7,
+      "stable": true,
+      "statement": "Maman Brigitte had Evelyn Parker spin a virtu of a target's room for the Voodoo Boys: Evelyn was to get a layout of the whole room, come back, and be paid in eddies, and that was her one job. When Evelyn asked about a biochip, Brigitte told her it was none of her concern. The Voodoo Boys valued Evelyn as their best route to Yorinobu. Brigitte does not know that V and Judy later watched the recording.",
+      "sourceIds": [
+        "priority-judy.evelyn-recording-assignment.source"
+      ],
+      "evidenceRefs": [
+        "priority-judy.evelyn-recording-assignment.evidence"
+      ],
+      "audience": {
+        "speakers": [
+          "voodoo-queen"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "voodoo-queen"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q105_12a_scan_holograms",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q105_04_done",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "priority-judy.double.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.double.recordings",
+          "outcomeKey": "assignment-revealed"
+        }
+      ]
+    },
+    {
+      "id": "voodoo-queen.i-walk-the-line.v-returned",
+      "revision": 1,
+      "questKey": "i-walk-the-line",
+      "topic": "placide.v.return",
+      "outcome": "returned",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "After the Grand Imperial Mall job V came back alive to Batty's hotel, where V and Placide had it out over being set up. Maman Brigitte, freed from the Net at the mall, was there: she told Placide to leave them and told V that if V had survived the mall it was at the chip's cost, so V and the chip had to be examined. She says she had no hand in what Placide decided while she was trapped. This does not establish what V and the NetWatch agent agreed at the mall.",
+      "sourceIds": [
+        "ah5.source.0ff50f6ad84c",
+        "ah5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "ah5.ev.placide.return-confrontation",
+        "ah5.ev.journal.47d0e255b14d"
+      ],
+      "audience": {
+        "speakers": [
+          "voodoo-queen"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "voodoo-queen"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "ah5.placide.returned",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "fact",
+            "key": "q110_placide_dead",
+            "op": "eq",
+            "value": 0,
+            "guard": {
+              "type": "journal",
+              "key": "ah5.placide.returned",
+              "op": "eq",
+              "value": "succeeded"
+            }
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.mall-return",
+          "outcomeKey": "returned"
+        }
+      ]
+    },
+    {
+      "id": "voodoo-queen.transmission.alt-dive",
+      "revision": 1,
+      "questKey": "transmission",
+      "topic": "v.alt.contact",
+      "outcome": "met",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "In the Voodoo Boys' data fortress Maman Brigitte ran the dive in which a fragment of Silverhand's engram was extracted from V's chip and V was sent into the deep Net to reach Alt Cunningham, who alone could give her people safe passage past the Blackwall. She believes the Blackwall is itself an AI and that when the change comes the Voodoo Boys must be on the winning side. She did not hear what V and Alt said to each other beyond the Blackwall, and this says nothing about how the encounter ended for her or her runners.",
+      "sourceIds": [
+        "ahe-transmission"
+      ],
+      "evidenceRefs": [
+        "ahe-native.alt-contact"
+      ],
+      "audience": {
+        "speakers": [
+          "voodoo-queen"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "voodoo-queen"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q110_made_contact_with_alt",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.alt-contact",
+          "outcomeKey": "met"
+        }
+      ]
+    },
+    {
+      "id": "weyland.glory.rogue-alive",
+      "revision": 1,
+      "questKey": "path-of-glory",
+      "topic": "rogue.sun.presence",
+      "outcome": "alive-after-solo",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "On the morning V stopped by the Afterlife before going after something big, Rogue was alive and there, and Weyland, on duty at the bar, greeted V and wished V luck.",
+      "sourceIds": [
+        "priority-endings.source.faacc856ec6e",
+        "priority-endings.source.37d448f0c57a"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.8f5194376550",
+        "priority-endings.evidence.119a271d25f7"
+      ],
+      "audience": {
+        "speakers": [
+          "weyland"
+        ],
+        "perspective": "witnessed",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "weyland"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q115_did_it_solo",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q203_active",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.rogue-afterlife",
+          "outcomeKey": "alive-after-solo"
+        }
+      ]
+    },
+    {
+      "id": "weyland.knockin.rogue-died",
+      "revision": 1,
+      "questKey": "knockin-on-heavens-door",
+      "topic": "rogue.fate",
+      "outcome": "killed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 10,
+      "stable": true,
+      "statement": "Rogue died in the confrontation with Adam Smasher inside Arasaka Tower. Weyland, who had been recovered after the AV was shot down, was at the tower afterwards and mourned her to V: his father always said that with one thing on a desert island he would take Rogue, and her generation was made of a different mettle.",
+      "sourceIds": [
+        "native-story.silverhand-knockin",
+        "native-story.silverhand-transcript"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.rogue-death",
+        "priority-endings.evidence.6ec6a61a97da"
+      ],
+      "audience": {
+        "speakers": [
+          "weyland"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "weyland"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q116_rogue_dead",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q115_jungle_weyland_saved",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.rogue-fate",
+          "outcomeKey": "killed"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "ending.assault-route",
+          "outcome": "rogue"
+        }
+      ]
+    },
+    {
+      "id": "weyland.nocturne.flew-the-assault",
+      "revision": 1,
+      "questKey": "nocturne-op55n1",
+      "topic": "v.final-route",
+      "outcome": "rogue",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "V took the Arasaka Tower assault route with Rogue. At the Afterlife Rogue laid out the plan, and Weyland got the AV running and flew Rogue and V toward the tower.",
+      "sourceIds": [
+        "priority-endings.source.483d11959305"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.db62c268a8ab"
+      ],
+      "audience": {
+        "speakers": [
+          "weyland"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "weyland"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q115_rogue_in_av",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.final-route",
+          "outcomeKey": "rogue"
+        }
+      ]
+    },
+    {
+      "id": "woodman.automatic-love.fingers-lead",
+      "revision": 1,
+      "questKey": "automatic-love",
+      "topic": "woodman.encounter.lead",
+      "outcome": "peaceful",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 7,
+      "stable": true,
+      "statement": "In his Clouds office, when V pressed him about Evelyn Parker, Woodman gave V the lead: the ripperdoc he took her to goes by Fingers, and his clinic is in an alley up on Jig-Jig Street. This does not establish what happened to either of them afterwards.",
+      "sourceIds": [
+        "priority-judy.woodman-fingers-lead.source"
+      ],
+      "evidenceRefs": [
+        "priority-judy.woodman-fingers-lead.evidence"
+      ],
+      "audience": {
+        "speakers": [
+          "woodman"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "woodman"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q105_03c_woodman_success",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "priority-judy.automatic.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.automatic.woodman",
+          "outcomeKey": "peaceful"
         }
       ]
     }

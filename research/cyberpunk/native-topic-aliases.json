@@ -55,7 +55,7 @@
       "outcomeKey": "initiated",
       "nativeTopic": "aldecaldos.v-aldecaldo-initiation",
       "catalogTopic": "v.aldecaldo-membership",
-      "ruleSha256": "b7bb4569d6766a3100814b24c8f5c5efd7560087ba666fbc539e195f35cb0674",
+      "ruleSha256": "305a35d26144159e986f8149c6d174cda14cd58770b192f9834e05bff432af32",
       "policy": "identity-preserving-namespace",
       "rationale": "Existing topic names the ceremony establishing V’s clan membership; the assault-route group protects it against incompatible ending routes.",
       "reviewRef": "native-reviews/topic-identity-audit-oct03.md",
@@ -487,7 +487,7 @@
       "outcomeKey": "assisted",
       "nativeTopic": "aldecaldos.panam-plan-disclosed",
       "catalogTopic": "panam.convoy-trust",
-      "ruleSha256": "0412b1f95e2903bd623fe4301becaa74b763c755456308e10daf7411f7a142bf",
+      "ruleSha256": "62a6fa45443d0bda0033d755eb3c4e13965e191925ae205533dd99691d803306",
       "policy": "identity-preserving-namespace",
       "rationale": "Joins the existing loyalty topic and sq027 route group, preserving contradiction suppression between convoy assistance and reporting the plan to Saul.",
       "reviewRef": "native-reviews/priority-panam-20261004.md",
@@ -564,6 +564,78 @@
       "rationale": "Evelyn's shared-journal copy of the reviewed Judy rule with the same condition and evidence rows: it keeps the same native topic facet so the compatible evidence facets of this decision stay separate.",
       "reviewRef": "native-reviews/cast-knowledge-20261018.md",
       "reviewed": true
+    },
+    {
+      "ruleId": "teddy.queen.v-woke-at-new-camp",
+      "decisionId": "aldecaldos.queen.relic-disclosure",
+      "outcomeKey": "collapse-witnessed",
+      "nativeTopic": "priority-panam.collapse-observed",
+      "catalogTopic": "v.relic-known-to-aldecaldos",
+      "ruleSha256": "658865141d84289fa91d14cc95a1bebc0f949ccbbb36d5b12b6d8d400fcab53e",
+      "policy": "compatible-facet",
+      "rationale": "Observing a collapse is compatible with subsequently receiving a Relic explanation; the witnessed collapse does not establish the private explanation. The rule admits only Panam and only after her explicit wakeup exchange receipt. Same topic as priority-panam.native.collapse-witnessed for a different audience.",
+      "reviewRef": "native-reviews/cast-knowledge-20261018b.md",
+      "reviewed": true
+    },
+    {
+      "ruleId": "voodoo-queen.double-life.evelyn-hired",
+      "decisionId": "judy-river.double.recordings",
+      "outcomeKey": "assignment-revealed",
+      "nativeTopic": "evelyn.contract_evidence.assignment",
+      "catalogTopic": "evelyn.contract_evidence",
+      "ruleSha256": "a4eae893824c920696f721b10adba58bf562c0dc3f8d4217795513aaa1a5ad9c",
+      "policy": "compatible-facet",
+      "rationale": "Production Judy scene starts at Start2; its End0 cannot be reached from Start2 or first-BD return without section1513 establishing the recording assignment. The second-BD return can bypass1513 because it follows that section; unconnected Start6 is excluded. Positive scan history and completed quest/fact exclude shortcut initialization. Compatible with the veve clue. Same topic as priority-judy.evelyn-recording-assignment for a different audience.",
+      "reviewRef": "native-reviews/cast-knowledge-20261018b.md",
+      "reviewed": true
+    },
+    {
+      "ruleId": "woodman.automatic-love.fingers-lead",
+      "decisionId": "judy-river.automatic.woodman",
+      "outcomeKey": "peaceful",
+      "nativeTopic": "woodman.encounter.lead",
+      "catalogTopic": "woodman.encounter",
+      "ruleSha256": "584218b06d8f833e91f1097d096544cc7224a3ad81eb181e931d2bacdee08563",
+      "policy": "compatible-facet",
+      "rationale": "Section371 supplies Fingers name/address and completes directly into2347 exact positive success. It records the conversational lead, not an absence of later combat. Judy needs a matching disclosure receipt. Compatible historical facet with later defeat. Same topic as priority-judy.woodman-fingers-lead for a different audience.",
+      "reviewRef": "native-reviews/cast-knowledge-20261018b.md",
+      "reviewed": true
+    },
+    {
+      "ruleId": "fingers.space-in-between.assaulted",
+      "decisionId": "judy-river.space.fingers-treatment",
+      "outcomeKey": "assault-observed",
+      "nativeTopic": "fingers.interrogation.assault",
+      "catalogTopic": "fingers.interrogation",
+      "ruleSha256": "df7cf72cb197b38430a06e7c5b293a3df2aa6fa02847054d0994e661246484d2",
+      "policy": "compatible-stage",
+      "rationale": "Exact positive assault writers in the Fingers interrogation, including the later punch paths, plus the finished Space In Between quest. Judy is a native scene actor and addressed participant; no killed fact is inferred. Compatible historical stage with testimony. Same topic as priority-judy.fingers-assault for a different audience.",
+      "reviewRef": "native-reviews/cast-knowledge-20261018b.md",
+      "reviewed": true
+    },
+    {
+      "ruleId": "fingers.space-in-between.questioned",
+      "decisionId": "judy-river.space.fingers-treatment",
+      "outcomeKey": "questioned",
+      "nativeTopic": "fingers.interrogation.testimony",
+      "catalogTopic": "fingers.interrogation",
+      "ruleSha256": "e18f91412d95131f10602f0f0ae11d760c52ed3fbc51ae6bfb049138509559bf",
+      "policy": "compatible-stage",
+      "rationale": "Scene section1713 contains the fixer question and Fingers’ Wakako answer; the subsequent node1716 writes fingers_told_wakako=1. Exact Space In Between completion gates a durable testimony stage. The positive testimony can coexist with a later assault, so it is a compatible stage rather than proof of a nonviolent interrogation. Same topic as priority-judy.fingers-testimony for a different audience.",
+      "reviewRef": "native-reviews/cast-knowledge-20261018b.md",
+      "reviewed": true
+    },
+    {
+      "ruleId": "anders-hellman.total-immortal.yorinobu-held",
+      "decisionId": "silverhand.yorinobu-confronted",
+      "outcomeKey": "completed",
+      "nativeTopic": "yorinobu.final.confrontation",
+      "catalogTopic": "v.arasaka.yorinobu-confrontation",
+      "policy": "compatible-facet",
+      "rationale": "The catalog outcome says V reached Yorinobu and left with Hellman for treatment; the rule states exactly that from Hellman's side (condition: confrontation and Hanako takeover journals). Separate facet of the same confrontation, different catalog topic.",
+      "reviewRef": "native-reviews/cast-knowledge-20261018b.md",
+      "reviewed": true,
+      "ruleSha256": "b8d5bd03497d08be4c8d9b304194ec3a48a4ec20d8fd215ff6fedd175b8eed59"
     }
   ]
 }

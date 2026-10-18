@@ -14,7 +14,8 @@
     "kerry-eurodyne",
     "mitch-anderson",
     "panam-palmer",
-    "river-ward"
+    "river-ward",
+    "teddy"
   ],
   "sources": [
     {
@@ -2050,7 +2051,8 @@
       "audience": {
         "speakers": [
           "carol-emeka",
-          "cassidy-righter"
+          "cassidy-righter",
+          "teddy"
         ],
         "perspective": "participant",
         "channels": [
@@ -2060,7 +2062,8 @@
         "recipients": [
           "v",
           "carol-emeka",
-          "cassidy-righter"
+          "cassidy-righter",
+          "teddy"
         ]
       },
       "condition": {
@@ -2110,7 +2113,8 @@
       "audience": {
         "speakers": [
           "carol-emeka",
-          "cassidy-righter"
+          "cassidy-righter",
+          "teddy"
         ],
         "perspective": "participant",
         "channels": [
@@ -2120,7 +2124,8 @@
         "recipients": [
           "v",
           "carol-emeka",
-          "cassidy-righter"
+          "cassidy-righter",
+          "teddy"
         ]
       },
       "condition": {
