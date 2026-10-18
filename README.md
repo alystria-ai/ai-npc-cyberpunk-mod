@@ -42,7 +42,7 @@ Close the game. Extract each download into your Cyberpunk 2077 folder (the one w
 
 | # | Download | Where from | Size | Needed? |
 |---|---|---|---|---|
-| 1 | **Scripts** | Nexus Mods | small, text only | Yes |
+| 1 | **Scripts** | Nexus Mods, or [AI-NPC-Cyberpunk-Mod-Scripts-0.2.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-Scripts-0.2.zip) | small, text only | Yes |
 | 2 | **Runtime** | [AI-NPC-Cyberpunk-Mod-Runtime-0.2.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-Runtime-0.2.zip), same version as Scripts | about 3 GB free space | Yes. It holds the Pocket TTS voices |
 | 3 | **OmniVoice pack** | [AI-NPC-Cyberpunk-Mod-OmniPack-0.2.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-OmniPack-0.2.zip) | about 15 GB free while installing, 9 GB installed | Optional: a richer voice for NVIDIA cards |
 | 4 | **Local AI standard** | [AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.zip) | about 5.3 GB | Optional: fully local conversations, best replies |
@@ -50,7 +50,7 @@ Close the game. Extract each download into your Cyberpunk 2077 folder (the one w
 | 6 | **Mature lite** | [AI-NPC-Cyberpunk-Mod-Mature-Lite-0.2.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-Mature-Lite-0.2.zip) | about 2.7 GB | Optional, adults only, needs a Local AI pack. See [Mature content](#mature-content-18) |
 | 7 | **Mature standard** | [AI-NPC-Cyberpunk-Mod-Mature-Standard-0.2.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-Mature-Standard-0.2.zip) | about 5.3 GB | Optional, adults only, needs a Local AI pack. See [Mature content](#mature-content-18) |
 
-Scripts come from Nexus Mods. The Runtime and the optional packs are on the mod's [Hugging Face page](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs), in a folder per version (`0.2`). Each pack is one zip file, so there are no parts to join, and each works on its own: install none, some or all. Use the same version number as the Scripts and Runtime, and extract the Runtime before the OmniVoice pack. If Windows' built-in extractor complains, use [7-Zip](https://www.7-zip.org).
+Scripts come from Nexus Mods (the same file is on Hugging Face too). The Runtime and the optional packs are on the mod's [Hugging Face page](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs), in a folder per version (`0.2`). Each pack is one zip file, so there are no parts to join, and each works on its own: install none, some or all. Use the same version number as the Scripts and Runtime, and extract the Runtime before the OmniVoice pack. If Windows' built-in extractor complains, use [7-Zip](https://www.7-zip.org).
 
 The first start after installing takes a little longer while the service prepares itself.
 

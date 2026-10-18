@@ -54,7 +54,7 @@ Three ways, all free. Pick one in Companion Manager > Settings > Conversation pr
 
 [list=1]
 [*]Install the mods in Requirements first.
-[*]Download Scripts for version 0.2 from Nexus Mods, with Vortex or by hand.
+[*]Download Scripts for version 0.2 from Nexus Mods, with Vortex or by hand. The same file is also on the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-Scripts-0.2.zip]Hugging Face page[/url].
 [*]Download the Runtime for version 0.2, [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-Runtime-0.2.zip]AI-NPC-Cyberpunk-Mod-Runtime-0.2.zip[/url], from the mod's [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs]Hugging Face page[/url] (0.2 folder). Use the same version number as the Scripts.
 [*]Close the game. Extract both zips into your Cyberpunk 2077 folder (the one with bin, archive and r6) and let the folders merge. Extract the Runtime before the OmniVoice pack. If Windows' extractor reports an error, use [url=https://www.7-zip.org]7-Zip[/url].
 [*]Start the game. The first start after installing takes a little longer while the voice service prepares itself.
@@ -91,7 +91,7 @@ The menus come in sixteen languages. Turn on Multilingual conversations to talk 
 [size=4][b]Links and credits[/b][/size]
 
 [list]
-[*]Runtime and optional packs: [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs]Hugging Face[/url]
+[*]Scripts, Runtime and optional packs: [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs]Hugging Face[/url]
 [*]Something off? In game, open Companion Manager > Settings > Help > Help and support, choose Generate report, and send that file with what you were doing.
 [/list]
 
