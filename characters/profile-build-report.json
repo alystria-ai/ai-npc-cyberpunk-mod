@@ -1895,7 +1895,7 @@
     },
     {
       "key": "alex",
-      "words": 975,
+      "words": 973,
       "speakingStyleWords": 157,
       "sampleDialogueWords": 230,
       "voice": "Anna (Expressive Young-Adult American Female)",
@@ -2246,7 +2246,7 @@
     },
     {
       "key": "mark-bana",
-      "words": 565,
+      "words": 560,
       "speakingStyleWords": 143,
       "sampleDialogueWords": 131,
       "voice": "Arthur (Husky Middle-Aged British Male)",
@@ -2489,7 +2489,7 @@
     },
     {
       "key": "solomon-reed",
-      "words": 828,
+      "words": 826,
       "speakingStyleWords": 165,
       "sampleDialogueWords": 238,
       "voice": "John (Deep Calm Middle-Aged American Male)",
@@ -2498,7 +2498,7 @@
     },
     {
       "key": "songbird",
-      "words": 875,
+      "words": 871,
       "speakingStyleWords": 162,
       "sampleDialogueWords": 247,
       "voice": "Anna (Expressive Young-Adult American Female)",
