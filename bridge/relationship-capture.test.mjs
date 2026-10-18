@@ -64,14 +64,51 @@ test('a world change during native reads prevents further native access or stale
 test('native failures, wrong versions and malformed facts never publish a partial relationship', () => run(`
   values.sq030_judy_lover='error';collector:update(frame)
   assert(writes[#writes].status=='unavailable')
+  now=now+2000
   values.sq030_judy_lover='1';collector:update(frame)
   assert(writes[#writes].status=='unavailable')
+  now=now+2000
   local before=reads;version='2.32';collector:update(frame)
   assert(reads==before and writes[#writes].reason=='unsupported-game-version')
 `));
 
+test('a game version other than 2.31 is reported once per heartbeat, not written and read again on every frame', () => run(`
+  version='2.32'
+  for _=1,30 do assert(collector:update(frame)) end
+  assert(#writes==1 and writes[1].reason=='unsupported-game-version', 'written '..#writes..' times in one heartbeat')
+  assert(reads==0, 'no fact is read on a version that is not supported')
+  now=now+1999;for _=1,10 do collector:update(frame) end
+  assert(#writes==1, 'still the same heartbeat')
+  now=now+1;collector:update(frame)
+  assert(#writes==2 and writes[2].reason=='unsupported-game-version', 'the next heartbeat writes it again, for the lease on the bridge side')
+  version='2.31';now=now+2000;collector:update(frame)
+  assert(writes[#writes].status=='ready' and reads==11, 'a supported version captures as before')
+`));
+
+test('a fact that cannot be read is reported once per heartbeat, and its reads are not repeated on every frame', () => run(`
+  values.sq030_judy_lover='error'
+  for _=1,20 do collector:update(frame) end
+  assert(#writes==1 and writes[1].reason=='native-fact-unavailable', 'written '..#writes..' times')
+  assert(reads<=2, 'read '..reads..' facts in one heartbeat')
+`));
+
+test('an unavailable answer is not written again until the heartbeat, a different reason or a ready capture in between writes at once', () => run(`
+  collector:reset('menu');collector:reset('menu');collector:reset('menu')
+  assert(#writes==1)
+  collector:reset('loading')
+  assert(#writes==2 and writes[2].reason=='loading', 'a different reason is a change')
+  now=now+2000;collector:reset('loading')
+  assert(#writes==3, 'the heartbeat writes the same answer again')
+  assert(collector:update(frame) and writes[#writes].status=='ready')
+  collector:reset('loading')
+  assert(#writes==5 and writes[5].status=='unavailable', 'after a ready capture the same reason is a change again')
+`));
+
 test('failed writes retry and a new save generation does not inherit the previous positive facts', () => run(`
   failedWrite=true;assert(not collector:update(frame))
+  for _=1,10 do collector:update(frame) end
+  assert(reads==11 and #writes==1, 'a failed write was retried on every frame')
+  now=now+1000
   failedWrite=false;assert(collector:update(frame));assert(reads==22)
   collector:reset('save-reload')
   frame={status='ready',worldToken='world-two',generation=2};current=frame;values={}
