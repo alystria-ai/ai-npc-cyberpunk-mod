@@ -812,6 +812,12 @@ local function saveSettings()
     local existing = io.open(target, 'rb')
     if existing then
         existing:close()
+        -- loadSettings falls back to the backup when settings.json is unreadable, so then the backup is the only good copy and must not be
+        -- removed to make room: it takes the file's place first, and the steps below find an ordinary good file (a failure or a crash at
+        -- any step leaves settings.json or the backup with the settings in it).
+        if not readJSON(target) and readJSON(backup) then
+            if not os.remove(target) or not os.rename(backup, target) then return false end
+        end
         os.remove(backup)
         if not os.rename(target, backup) then return false end
     end

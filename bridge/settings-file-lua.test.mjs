@@ -369,49 +369,47 @@ test('a failed save step leaves the old file in place and reports the failure, w
 });
 
 // The backup is the only good copy while settings.json is unreadable. Loading falls back to it, so the next save must not delete it before
-// the new file is safely in place: today it removes the backup first (to make room for the unreadable file), so a save that fails or is
-// cut off at that moment leaves the player with no good copy at all and the next start loads the defaults.
+// the new file is safely in place. It first takes the unreadable file's place (remove it, rename the backup over it), and the ordinary six
+// steps follow: eight steps in all, and a failure or a crash at any of them leaves a good copy for the next start.
 const corruptTarget = `files['runtime/settings.json'] = ''
   files['runtime/settings.json.previous'] = ${luaString(JSON.stringify({...freshSettings, conversationProvider: 'local', voiceVolume: 150}))}`;
 
-test('an unreadable settings.json with a good backup: a save that cannot move the old file aside keeps the backup, so the next start still has the settings',
-  {todo: 'BUG: mod/manager.lua saveSettings does os.remove(backup) before the rename that can fail; with an unreadable target that destroys the only good copy'}, () => {
+test('an unreadable settings.json with a good backup: a save that cannot move the old file aside keeps the backup, so the next start still has the settings', () => {
+  const out = run(`${managerLua}
+    ${corruptTarget}
+    local player = newPlayer()
+    local manager = newManager()
+    assert(manager.snapshot(player).settings.conversationProvider == 'local')
+    failOn = function(kind, path) return kind == 'rename' and path == 'runtime/settings.json>runtime/settings.json.previous' end
+    local applied = manager.applySettings(player, {subtitleStyle = 'overhead'})
+    failOn = nil
+    report('applied', applied)
+    local restarted = newManager().snapshot(newPlayer()).settings
+    report('provider', restarted.conversationProvider); report('volume', restarted.voiceVolume)
+  `);
+  assert.equal(out.applied, false);
+  assert.equal(out.provider, 'local', 'the settings of the backup were lost');
+  assert.equal(out.volume, 150);
+});
+
+test('an unreadable settings.json with a good backup: a crash at any step of the next save still leaves the settings for the next start', () => {
+  const failures = [];
+  for (let crash = 1; crash <= 8; crash += 1) {
     const out = run(`${managerLua}
       ${corruptTarget}
       local player = newPlayer()
       local manager = newManager()
-      assert(manager.snapshot(player).settings.conversationProvider == 'local')
-      failOn = function(kind, path) return kind == 'rename' and path == 'runtime/settings.json>runtime/settings.json.previous' end
-      local applied = manager.applySettings(player, {subtitleStyle = 'overhead'})
-      failOn = nil
-      report('applied', applied)
-      local restarted = newManager().snapshot(newPlayer()).settings
-      report('provider', restarted.conversationProvider); report('volume', restarted.voiceVolume)
+      manager.snapshot(player)
+      resetOps()
+      crashAt = ${crash}
+      pcall(function() manager.applySettings(player, {subtitleStyle = 'overhead'}) end)
+      crashAt = nil
+      report('provider', newManager().snapshot(newPlayer()).settings.conversationProvider)
     `);
-    assert.equal(out.applied, false);
-    assert.equal(out.provider, 'local', 'the settings of the backup were lost');
-    assert.equal(out.volume, 150);
-  });
-
-test('an unreadable settings.json with a good backup: a crash at any step of the next save still leaves the settings for the next start',
-  {todo: 'BUG: same window as above; steps 4 and 5 (the backup is gone, the old file is moved aside) find only defaults on restart'}, () => {
-    const failures = [];
-    for (let crash = 1; crash <= 6; crash += 1) {
-      const out = run(`${managerLua}
-        ${corruptTarget}
-        local player = newPlayer()
-        local manager = newManager()
-        manager.snapshot(player)
-        resetOps()
-        crashAt = ${crash}
-        pcall(function() manager.applySettings(player, {subtitleStyle = 'overhead'}) end)
-        crashAt = nil
-        report('provider', newManager().snapshot(newPlayer()).settings.conversationProvider)
-      `);
-      if (out.provider !== 'local') failures.push(`step ${crash}: ${out.provider}`);
-    }
-    assert.deepEqual(failures, []);
-  });
+    if (out.provider !== 'local') failures.push(`step ${crash}: ${out.provider}`);
+  }
+  assert.deepEqual(failures, []);
+});
 
 test('an unreadable settings.json with a good backup: the next successful save keeps the backup\'s settings and leaves one clean file', () => {
   const out = run(`${managerLua}
