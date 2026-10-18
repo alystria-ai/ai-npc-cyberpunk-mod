@@ -375,3 +375,49 @@ test('Alt Cunningham: reviewed topics select her own claims, never the condition
   const group = request('Do you still feel like the real Alt?', {profileKey: 'alt-cunningham'});
   assert.equal(selector.select({...group, group: 'party'}, admission(group), () => true).context, '');
 });
+
+test('Johnny: the 2023 tower, Soulkiller and Spider Murphy topics select only his reviewed attributed claims', () => {
+  const tower = selected('What happened at Arasaka Tower in 2023?');
+  assert.equal(tower.topic, 'arasaka-tower');
+  assert(tower.claims.some(claim => claim.id === 'johnny.history.tower-records-disputed'));
+  assert.match(tower.context, /johnny-represented-memory|remembered raid/);
+  assert.match(tower.context, /subjective, attributed history/);
+  assert.equal(selected('Why did you nuke Arasaka Tower?').topic, 'tower-motive');
+  assert.equal(selected('How did you die?').topic, 'tower-death');
+  assert.equal(selected('Tell me about Soulkiller.').topic, 'soulkiller');
+  assert.equal(selected('Who was Spider Murphy?').topic, 'spider-murphy');
+  assert.match(selected('Who was Spider Murphy?').context, /Spider Murphy/);
+  const escape = selected('Do you think Alt escaped into the Net?');
+  assert.equal(escape.topic, 'alt-escape');
+  assert.match(escape.context, /never as fact or as a reunion/);
+  for (const query of ['What happened to Alt?', 'Do you know where Alt went?', 'Do you think Alt got out?']) {
+    assert.equal(selected(query).topic, 'alt-escape', query);
+  }
+  assert.equal(selected('Did you take down Arasaka Tower?').topic, 'arasaka-tower');
+  assert.equal(selected('What do you think of Smasher?').topic, 'tower-death');
+  assert.equal(selected('Do you remember Murph?').topic, 'spider-murphy');
+  assert.equal(selected('Were you captured by Arasaka?').topic, 'tower-death');
+  assert.equal(selected('What was the plan for the 2023 raid?').topic, 'arasaka-tower');
+  assert.equal(selected('Why did you storm Arasaka Tower?').topic, 'tower-motive');
+  for (const query of ['Do you regret the nuke?', 'Do you feel guilty about the bombing?']) {
+    assert.equal(selected(query).topic, 'tower-motive', query);
+  }
+  assert.equal(selected('Tell me about Alt.').topic, 'alt');
+  assert.equal(selected('Did you lose any friends in the war?').topic, 'cole');
+  assert.equal(selected('Tell me about your time in the war.').topic, 'war-service');
+  // The conditional Alt boundary claim stays out of every topic.
+  for (const query of ['Do you think Alt escaped into the Net?', 'Tell me about Soulkiller.', 'What happened at Arasaka Tower in 2023?']) {
+    assert(!selected(query).claims.some(claim => claim.kind === 'conditional'), query);
+  }
+  // Ordinary present-day talk, spiders and other people's towers are not his history.
+  for (const query of ['Can you open the door?', 'Is there a spider on the wall?', 'Should we go to the tower now?',
+    'What do you think of this tower?', 'Hey!', 'Do you think the NCPD captured the suspect?', 'Did you interrogate the guard?',
+    'Do you know how to defuse a bomb?', 'Where is the bomb?', 'Do you think nuclear power is safe?',
+    'What do you think about the bombing in Heywood?', 'Tell me about spider tanks.', 'Who is spider?',
+    "Tell me about Murphy's law.", 'Who is Murphy in that movie?', 'Do you remember my friend Murphy?',
+    'What is the plan for the assault on Arasaka Tower?', 'Do you think we can get into Arasaka Tower from the roof?',
+    'Tell me about the Arasaka Tower security.', 'Do you think Smasher will be at the tower?',
+    'What happened at Arasaka Tower during the heist?', "What do you think of Saburo's Mikoshi plan?"]) {
+    assert.equal(selected(query).context, '', query);
+  }
+});

@@ -573,6 +573,14 @@ test('the alternate schema preserves a public recollection as perspective and ex
   f.pack.claims[0].text = 'Johnny remembers a colleague challenging his charm.';
   f.pack.claims[0].audience = ['private-one-to-one'];
   assert.doesNotMatch(build(f).backstory, /remembers a colleague/);
+  // The 2023 memory scenes name the same replacer record and voice 'Johnny'; any other player name stays unqualified.
+  f.pack.claims[0].audience = ['private-one-to-one', 'group-without-private-details'];
+  for (const [playerName, accepted] of [['Johnny', true], ['V', false]]) {
+    f.document.Data.RootChunk.playerActors[0].playerName = playerName;
+    f.jsonRaw = Buffer.from(JSON.stringify(f.document)); f.source.jsonSha256 = f.pack.sources[0].jsonSha256 = hash(f.jsonRaw);
+    if (accepted) assert.match(build(f).backstory, /remembers a colleague/);
+    else assert.throws(() => build(f), /unqualified subjective-memory frame/);
+  }
 });
 
 test('recorded binary and exported JSON hashes both reject stale artifacts', () => {

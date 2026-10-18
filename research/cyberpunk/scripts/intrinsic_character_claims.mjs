@@ -4125,6 +4125,9 @@ export const REVIEWED_INTRINSIC_SUBJECT_BINDINGS = freeze({
 const playerSubjectBindings = new Map([['johnny-silverhand', [
   {record: 'Character.Player_Puppet_Base', playerName: 'V_Posessed', voice: '1851716938809483264'},
   {record: 'Character.johnny_replacer', playerName: 'Player', voice: '1103967280742240508'},
+  // Reviewed 2026-10-19 (native-reviews/johnny-lore-20261019.md): the 2023 memory scenes
+  // q101_06c_memories_p2 and _p3 name the same replacer record and voice 'Johnny'.
+  {record: 'Character.johnny_replacer', playerName: 'Johnny', voice: '1103967280742240508'},
 ]]]);
 const hash = value => createHash('sha256').update(value).digest('hex');
 const nonempty = value => typeof value === 'string' && value.trim().length > 0;
