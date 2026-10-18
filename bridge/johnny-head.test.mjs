@@ -187,3 +187,88 @@ test('the module is read-only, has no update entry point and never touches the g
   assert.doesNotMatch(moduleSource, /:Set[A-Z]\w*\(|:Apply\w*\(|:Play\w*\(|:Queue\w*\(|:Send\w*\(|CreateEntity|DeleteEntity|io\.open|os\.remove/);
   assert.doesNotMatch(moduleSource, /Character\.Silverhand|GetLookAtObject|GetTargetParts/, 'no lookup of the game\'s Johnny');
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// The wiring in init.lua, speech and continuous speech.
+
+const init = read('../mod/init.lua');
+const between = (from, to, source = init) => {
+  const start = source.indexOf(from), end = source.indexOf(to, start);
+  assert.ok(start >= 0 && end > start, `markers ${from} .. ${to}`);
+  return source.slice(start, end);
+};
+
+test('loader: nothing is loaded while the setting is off; loaded once on first need; a broken module is not retried', () => {
+  const loader = between('function convaiJohnnyHeadService()', '-- The one rule for characters the game placed');
+  run(`
+    local on, loads, broken = false, 0, false
+    local manager = {johnnyInHead = function() return on end}
+    local battleObserver = {sample = function() return {available = true} end}
+    local real = (function() ${moduleSource} end)()
+    function dofile(path)
+      assert(path == 'johnny-head.lua'); loads = loads + 1
+      if broken then error('missing file') end
+      return real
+    end
+    print = function() end
+    ${loader}
+    assert(convaiJohnnyHeadService() == nil and loads == 0, 'off: not even read from disk')
+    assert(convaiJohnnyStanding() == nil and loads == 0)
+    on = true
+    local service = assert(convaiJohnnyHeadService())
+    assert(loads == 1 and service.key == 'johnny-silverhand' and service.name == 'Johnny Silverhand')
+    assert(convaiJohnnyHeadService() == service and loads == 1, 'loaded once')
+    on = false
+    assert(convaiJohnnyHeadService() == nil, 'turned off: the talk keys stop asking it')
+    convaiJohnnyHead, broken, on = nil, true, true
+    assert(convaiJohnnyHeadService() == nil and loads == 2)
+    assert(convaiJohnnyHeadService() == nil and loads == 2, 'a failed load is not retried every key press')
+  `);
+});
+
+test('talk keys: with nobody in front of V and private talk, Johnny answers, is busy, or the old notice stays', () => {
+  const select = between('local function selectConversation(player, groupMode, singleAction, addonHears)', 'local function voiceTargetValid');
+  const head = between('-- Johnny in your head (docs/JOHNNY_IN_YOUR_HEAD.md): with nobody in front of V', "if not npc then convaiNotices.send(player, 'talk-no-target'", select);
+  // After the crosshair, the add-on voices and the group candidates; before the "face a nearby character" notice; private only.
+  assert.ok(select.indexOf('targetAtCrosshair()') < select.indexOf(head) && select.indexOf('convaiAddons.talkCandidates') < select.indexOf(head));
+  assert.match(head, /if not npc and not groupMode then/);
+  assert.match(head, /local head = convaiJohnnyHeadService\(\)/);
+  assert.match(head, /if head and why == nil and supportedProfiles\[head\.key\] and profileEnabled\(player, head\.key\) then/, 'a muted Johnny stays muted');
+  assert.match(head, /convaiHeadTalk = \{entity = partner\.entity\}/);
+  assert.match(head, /why ~= 'before' and why ~= 'after' and why ~= 'unreadable' then[\s\S]*convaiNotices\.send\(player, 'talk-busy', ui\.t\('\{name\} is busy right now\.', \{name = head\.name\}\)\)\s+return nil/);
+  // A holocall still wins: it is asked first.
+  assert.ok(select.indexOf('convaiHolocall.partner(player, groupMode)') < select.indexOf(head));
+});
+
+test('talk keys: his turn has no face, gaze, actions or add-on blocks, and the recording and reply follow the busy gate', () => {
+  assert.match(init, /\(not primary\.voiceOnly or primary\.head\) and autoConnect\.talkNotice\(key, name\)/, 'the typed path says when he is still connecting');
+  assert.match(init, /holocall = primary\.holocall, head = primary\.head\}/);
+  assert.match(init, /voiceOnly = primary\.voiceOnly, holocall = primary\.holocall, head = primary\.head\}/);
+  assert.match(init, /if primary\.head then\s+local head = convaiJohnnyHeadService\(\)\s+return head ~= nil and head:refusal\(Game\.GetPlayer\(\)\) == nil\s+end\s+if primary\.voiceOnly then/);
+  assert.match(init, /elseif context\.head then\s+-- Johnny in V's head has no body[^\n]*\s+elseif context\.voiceOnly then/);
+  assert.match(init, /if type\(context\.head\) == 'table' then return false end\s+if convaiStory and convaiStory\.entity == context\.entity then return false end\s+return gameplayActions\.capture\(context, context\.group and 'group-voice' or 'private-voice'\)/);
+  assert.match(init, /if context\.voiceOnly and not context\.holocall and not context\.head and convaiAddons/);
+  // The reply guard: the story guard's hook ends his reply when the game takes the floor.
+  const guard = between('speech.storyGuard = function', 'local story = convaiStory');
+  assert.match(guard, /context\.entity == headTalk\.entity\s+and \(type\(context\.head\) == 'table' or \(not starting and speech\.head == true\)\)/);
+  assert.match(guard, /retirePrivateReply\(context\.entity, 'head-' \.\. why\)/);
+  // A session end forgets him.
+  assert.match(init, /convaiHeadTalk = nil\s+if convaiJohnnyHead then convaiJohnnyHead:reset\(\) end/);
+  // Speech: V's own sound like a holocall, no face, no add-on hooks.
+  const speech = read('../mod/speech.lua');
+  assert.match(speech, /if not M\.holocall and not M\.head then return false end/);
+  assert.match(speech, /M\.head = type\(context\.head\) == 'table'/);
+  assert.match(speech, /if M\.voiceOnly and not M\.head and type\(M\.voiceSource\) == 'function' then/);
+  assert.match(speech, /if M\.voiceOnly and not M\.head and type\(M\.hideCaption\) == 'function' then/);
+  const continuous = read('../mod/continuous-speech.lua');
+  assert.match(continuous, /if owner and \(owner\.holocall or owner\.head\) then speakerDistance = 0; return volume or 0, 0 end/);
+  assert.match(continuous, /head=type\(context\.head\)=='table' or nil/);
+});
+
+test('cost: nothing of his runs per frame, and the module is loaded only through the setting', () => {
+  const update = init.slice(init.indexOf("registerForEvent('onUpdate'"), init.indexOf("registerForEvent('onShutdown'"));
+  assert.doesNotMatch(update, /convaiJohnnyHead|convaiHeadTalk|johnny-head|johnnyInHead/, 'onUpdate is untouched');
+  const loads = init.match(/dofile, 'johnny-head\.lua'/g) ?? [];
+  assert.equal(loads.length, 1, 'one loader');
+  assert.match(between('function convaiJohnnyHeadService()', "pcall(dofile, 'johnny-head.lua')"), /if not manager\.johnnyInHead\(\) then return nil end/);
+});

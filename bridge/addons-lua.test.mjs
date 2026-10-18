@@ -911,7 +911,8 @@ test('init.lua: every call into the add-on API is skipped until an add-on is liv
   // messages only. No Convai warm-up or connect note is made for one.
   assert.match(init, /if voices and voices\[1\] and singleAction == 'cyberpunk_convai_voice' and not addonHears then[^]*?return nil\s+end\s+voices = nil\s+end/);
   assert.match(init, /if not person\.voiceOnly then audience\[#audience \+ 1\] = person\.profileKey end/);
-  assert.match(init, /local connectNote = autoConnect and not participants and not primary\.voiceOnly and autoConnect\.talkNotice\(key, name\) or nil/);
+  // Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md) is voice only but has his own connection, so the typed path says when it is not ready.
+  assert.match(init, /local connectNote = autoConnect and not participants and \(not primary\.voiceOnly or primary\.head\) and autoConnect\.talkNotice\(key, name\) or nil/);
   assert.doesNotMatch(init, /seams\.warm/);
   // attach only stores functions; the other calls are guarded where they are made.
   assert.match(init, /convaiAddons and convaiAddons\.live and convaiAddons\.talkCandidates\(player, groupMode\)/);

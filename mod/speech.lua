@@ -180,7 +180,7 @@ function M.stop(reason)
     M.continuousFaceCursor, M.continuousFaceTarget, M.continuousFaceState, M.continuousHeardAll = nil, nil, nil, nil
     M.player, M.actor, M.requestId, M.slot, M.duration = nil, nil, nil, nil, nil
     M.state, M.position, M.paused = reason or 'idle', nil, false
-    M.voiceOnly, M.holocall = false, false
+    M.voiceOnly, M.holocall, M.head = false, false, false
     publish()
 end
 
@@ -261,9 +261,10 @@ local function startedChunk(audio, text, timeline, startSeconds)
 end
 
 -- A holocall phrase is played as V's own sound (Speech.reds ConvaiSpeechStartOnV: Audioware's V track, no place in the world), as a
--- phone voice is heard. True when it started; false with an older Speech.reds (no such method), which keeps the emitter path below.
+-- phone voice is heard, and so is Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md). True when it started; false with an older
+-- Speech.reds (no such method), which keeps the emitter path below.
 local function startOnV(audio)
-    if not M.holocall then return false end
+    if not M.holocall and not M.head then return false end
     local ok, started = pcall(function() return M.player:ConvaiSpeechStartOnV(CName.new(audio.event)) end)
     return ok and started == true
 end
@@ -326,12 +327,14 @@ function M.start(context, reply)
     -- A holocall turn (mod/holocall.lua): full volume with no distance, and the call's subtitle line.
     M.holocall = type(context.holocall) == 'table'
     captions.holocall = M.holocall
+    -- Johnny in V's head (mod/johnny-head.lua): V's own sound like a holocall, no face, and his ordinary dialogue line (voiceOnly).
+    M.head = type(context.head) == 'table'
     captions.voiceProfile = M.voiceOnly and context.profileKey or nil
     -- An add-on remark whose speaker shows the text itself (addons.lua handle:speaker showsReply) is heard without a subtitle: asked once
     -- here, and every caption call below that follows the voice is skipped. A subtitle shown because the voice could not play (the
     -- captions.show calls) is never skipped, so the text is not lost. Anything that is not an add-on remark is never asked.
     M.captionHidden = nil
-    if M.voiceOnly and type(M.hideCaption) == 'function' then
+    if M.voiceOnly and not M.head and type(M.hideCaption) == 'function' then
         local ok, hidden = pcall(M.hideCaption, context.profileKey, context.requestId)
         if ok and hidden == true then M.captionHidden = true; captions.clear() end
     end
@@ -359,7 +362,7 @@ function M.start(context, reply)
         paused = pausedFor(context.requestId, paused)
         -- An add-on voice may be heard from its own object (addons.lua voiceFrom: Skippy's gun), asked once here for this reply.
         local source = nil
-        if M.voiceOnly and type(M.voiceSource) == 'function' then
+        if M.voiceOnly and not M.head and type(M.voiceSource) == 'function' then
             local ok, object = pcall(M.voiceSource, context.profileKey, player)
             source = ok and object or nil
         end
@@ -413,7 +416,7 @@ function M.start(context, reply)
     -- An add-on voice may be heard from its own object (addons.lua voiceFrom: Skippy's gun in V's hand), asked once for this reply. It is
     -- also the emitter: a speaker anchored to V (Skippy) has no other body to play from (see beginChunk).
     M.emitter = nil
-    if M.voiceOnly and not M.holocall and type(M.voiceSource) == 'function' then
+    if M.voiceOnly and not M.holocall and not M.head and type(M.voiceSource) == 'function' then
         local sourced, object = pcall(M.voiceSource, context.profileKey, player)
         M.emitter = sourced and object or nil
     end
@@ -461,7 +464,7 @@ function M.abandon()
     M.continuous, M.continuousEnded, M.continuousId, M.continuousCaptions = nil, nil, nil, nil
     M.continuousFaceCursor, M.continuousFaceTarget, M.continuousFaceState, M.continuousHeardAll = nil, nil, nil, nil
     M.player, M.actor, M.playerID, M.requestId = nil, nil, nil, nil
-    M.voiceOnly, M.holocall = false, false
+    M.voiceOnly, M.holocall, M.head = false, false, false
     M.slot, M.duration, M.position, M.paused = nil, nil, 0, false
     M.state, M.available = 'idle', false
     publish()

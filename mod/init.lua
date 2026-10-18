@@ -346,6 +346,8 @@ convaiGameplayActions = gameplayActions
 microphone.captureActions = function(context)
     -- No actions for a game-placed story character (docs/WORLD_CHARACTERS.md): it is not a party member, so nothing is offered
     -- and it is not even told what it cannot do.
+    -- Nor for Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): he has no body to follow, fight or drive with.
+    if type(context.head) == 'table' then return false end
     if convaiStory and convaiStory.entity == context.entity then return false end
     return gameplayActions.capture(context, context.group and 'group-voice' or 'private-voice')
 end
@@ -648,6 +650,26 @@ do
     local loaded, module = pcall(dofile, 'world-talk.lua')
     convaiWorldTalk = loaded and type(module) == 'table' and type(module.new) == 'function'
         and module.new({sample = function(player) return battleObserver.sample(player) end}) or nil
+end
+
+-- Johnny in your head (docs/JOHNNY_IN_YOUR_HEAD.md, mod/johnny-head.lua): with the setting on, the private talk keys that find nobody
+-- in front of V address Johnny as the voice in V's head. Globals, like the modules above. Nothing is loaded while the setting is off:
+-- the module is read from disk on the first talk key press (or draw of the settings page) that asks for it with the setting on.
+function convaiJohnnyHeadService()
+    if not manager.johnnyInHead() then return nil end
+    if convaiJohnnyHead == nil then
+        local loaded, module = pcall(dofile, 'johnny-head.lua')
+        convaiJohnnyHead = loaded and type(module) == 'table' and type(module.new) == 'function' and module.new({
+            sample = function(player) return battleObserver.sample(player) end,
+            lines = function() return convaiGameDialogue and convaiGameDialogue.lines or nil end}) or false
+        if not convaiJohnnyHead then print('[CyberpunkConvai] johnny-head.lua unavailable: ' .. tostring(module)) end
+    end
+    return convaiJohnnyHead or nil
+end
+-- His standing for the settings page (mod/mcm.lua johnnyStandingRow), read once per draw of that page.
+function convaiJohnnyStanding()
+    local service = convaiJohnnyHeadService()
+    return service and service:standing() or nil
 end
 
 -- The one rule for characters the game placed (docs/WORLD_COMPANIONS.md, "The mod never touches game characters"):
@@ -1852,6 +1874,26 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
         end
     end
     if not npc and groupMode and candidates[1] and not candidates[1].voiceOnly then npc = candidates[1].npc end
+    -- Johnny in your head (docs/JOHNNY_IN_YOUR_HEAD.md): with nobody in front of V, private talk addresses Johnny while the story has
+    -- him in V's head and the game does not have the floor. Not in V's head (or the setting off): the notice below, as before.
+    if not npc and not groupMode then
+        local head = convaiJohnnyHeadService()
+        local why = head and head:refusal(player) or nil
+        if head and why == nil and supportedProfiles[head.key] and profileEnabled(player, head.key) then
+            local partner = head:partner(player)
+            if partner then
+                convaiHeadTalk = {entity = partner.entity}
+                log('Johnny in your head: conversation stage=' .. tostring(partner.head.stage))
+                return partner
+            end
+        elseif head and why ~= nil and why ~= 'before' and why ~= 'after' and why ~= 'unreadable' then
+            log('Johnny in your head: refused reason=' .. why)
+            convaiNotices.send(player, 'talk-busy', ui.t('{name} is busy right now.', {name = head.name}))
+            return nil
+        elseif head then
+            log('Johnny in your head: not in V\'s head (' .. tostring(why or 'muted') .. ')')
+        end
+    end
     if not npc then convaiNotices.send(player, 'talk-no-target', ui.t(reason)); return nil end
     local key, name, bodyType, archetype = profileIdentity(npc)
     if not key or not supportedProfiles[key] then
@@ -1953,7 +1995,7 @@ end
 
 -- An add-on speaker's context blocks go with its spoken turn, as they do with a typed one (sendRequest).
 microphone.decorate = function(context)
-    if context.voiceOnly and not context.holocall and convaiAddons and convaiAddons.live then convaiAddons.decorate(context) end
+    if context.voiceOnly and not context.holocall and not context.head and convaiAddons and convaiAddons.live then convaiAddons.decorate(context) end
 end
 
 microphone.onCancelled = function(context, reason)
@@ -2054,8 +2096,9 @@ local function beginTextNow(groupMode, waited)
         if not primary then return end
         if conversationServiceBlocked(player) then return end
         local npc, key, name, bodyType, identity = primary.npc, primary.profileKey, primary.name, primary.bodyType, primary.entity
-        -- A character that is not connected yet makes V wait: say so (mod/auto-connect.lua). An add-on voice has no connection.
-        local connectNote = autoConnect and not participants and not primary.voiceOnly and autoConnect.talkNotice(key, name) or nil
+        -- A character that is not connected yet makes V wait: say so (mod/auto-connect.lua). An add-on voice has no connection; Johnny in
+        -- V's head has his own.
+        local connectNote = autoConnect and not participants and (not primary.voiceOnly or primary.head) and autoConnect.talkNotice(key, name) or nil
         generation = generation + 1
         local speedAtOpen = playerSpeedText(player)
         local moveAtOpen = moveStateText(player)
@@ -2091,7 +2134,7 @@ local function beginTextNow(groupMode, waited)
         focusUntil = os.time() + 45
         active = {generation = generation, entity = identity, name = name, bodyType = bodyType,
             profileKey = key, participants = participants, archetype = primary.archetype, voiceOnly = primary.voiceOnly,
-            holocall = primary.holocall}
+            holocall = primary.holocall, head = primary.head}
         warmConversation(participants, key, identity)
         convaiDemandKnowledge() -- fresh world and journal by the time V sends
         if connectNote then convaiNotices.send(player, 'talk-connecting', connectNote) end
@@ -2218,7 +2261,7 @@ local function toggleVoice(groupMode, source)
         else
             context = {generation = generation, entity = entity, name = name, bodyType = body,
                 profileKey = key, text = '[Microphone]', sentAt = os.time(), archetype = primary.archetype,
-                voiceOnly = primary.voiceOnly, holocall = primary.holocall}
+                voiceOnly = primary.voiceOnly, holocall = primary.holocall, head = primary.head}
             context.requestId = tostring(os.time()) .. '-' .. tostring(generation) .. '-' .. entity
         end
         active, pending, pendingKnowledgeOwner = nil, nil, nil
@@ -2226,6 +2269,11 @@ local function toggleVoice(groupMode, source)
         local function targetValid()
             -- A holocall's caller stays valid while that call is connected, wherever V is.
             if primary.holocall then return convaiHolocall ~= nil and convaiHolocall.partnerValid(context) end
+            -- Johnny in V's head stays valid while the story keeps him there and the game does not take the floor (held 0.4 s).
+            if primary.head then
+                local head = convaiJohnnyHeadService()
+                return head ~= nil and head:refusal(Game.GetPlayer()) == nil
+            end
             if primary.voiceOnly then return convaiAddons ~= nil and convaiAddons.participantLive(primary, Game.GetPlayer()) end
             if primary.story and convaiWorldTalk:refusal(npc, Game.GetPlayer(), entity) then return false end
             return voiceTargetValid(npc, context)
@@ -2260,6 +2308,8 @@ local function sendRequest(context)
     if not knowledgeAllowed or current.paused or not sameKnowledgeOwner(owner, current) then return false end
     if context.holocall then
         -- A holocall's caller is not here (mod/holocall.lua): no gameplay actions (follow, fight, drive) are offered.
+    elseif context.head then
+        -- Johnny in V's head has no body (docs/JOHNNY_IN_YOUR_HEAD.md): no gameplay actions, no add-on blocks.
     elseif context.voiceOnly then
         -- An add-on's voice (docs/ADDON_API.md) cannot follow, fight or drive: no gameplay actions, and its context blocks.
         if convaiAddons and convaiAddons.live then convaiAddons.decorate(context) end
@@ -2405,6 +2455,19 @@ end
 -- second (the answer is held 0.4 s). True when the reply was ended: its voice, subtitle and face stop at once, so the game's own
 -- animation resumes, and the bridge's request is dropped. Anyone who is not the story character V is talking to: false at once.
 speech.storyGuard = function(actor, context, starting)
+    -- Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): a scene, a call, a fight or a game line of his that starts ends his reply as
+    -- well. The pending context carries `head` when the reply starts; while it plays, speech.head says it is his.
+    local headTalk = convaiHeadTalk
+    if headTalk and type(context) == 'table' and context.entity == headTalk.entity
+        and (type(context.head) == 'table' or (not starting and speech.head == true)) then
+        local head = convaiJohnnyHeadService()
+        local why = head == nil and 'off' or head:refusal(Game.GetPlayer())
+        if not why then return false end
+        log('Johnny in your head: reply ended reason=' .. why .. (starting and ' (before the reply began)' or ''))
+        if starting then return true end
+        retirePrivateReply(context.entity, 'head-' .. why)
+        return true
+    end
     local story = convaiStory
     if not story or convaiWorldTalk == nil or type(context) ~= 'table' or context.entity ~= story.entity then return false end
     local why = convaiWorldTalk:refusal(actor, Game.GetPlayer(), story.entity)
@@ -3226,6 +3289,8 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     convaiStory = nil
     if convaiFacialPlayback then convaiFacialPlayback.storyEntity = nil end
     if convaiWorldTalk then convaiWorldTalk:reset() end
+    convaiHeadTalk = nil
+    if convaiJohnnyHead then convaiJohnnyHead:reset() end
     -- The face service decides at each NPC's spawn, so the setting is handed over before the next world loads.
     if convaiFacialPlayback and type(convaiFacialPlayback.applyStoryTalk) == 'function' then
         pcall(convaiFacialPlayback.applyStoryTalk, manager.storyConversations())

@@ -115,7 +115,7 @@ local function nativeFact(name) return Game.GetQuestsSystem():GetFactStr(name) e
 function M.new(options)
     options = type(options) == 'table' and options or {}
     local readFact, clock, now = options.readFact or nativeFact, options.clock or os.clock, options.now or os.time
-    local service = {}
+    local service = {key = M.KEY, name = M.NAME}
     local factsAt, held = nil, nil
 
     local function read(name)

@@ -2086,7 +2086,7 @@ local function schema()
                 'Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate.',
                 languageElements, {elements=true}),
         })
-        local conversationRows = {
+        local conversations = category('conversation-controls', 'Conversations', {
             action('memory', 'Memory', 'Manage',
                 'See what each character remembers and make one or all of them forget.\n\nMemories are kept across saves.',
                 function(context) return navigate('memory', context) end),
@@ -2109,15 +2109,15 @@ local function schema()
             -- Holocalls start from the mod's Chat tab (docs/HOLOCALL.md); this is their only setting.
             setting('holocallLiveImage', 'Live holocall picture', 'bool', snapshot.settings.holocallLiveImage == true, true,
                 'Shows the character live in a holocall instead of their portrait.\n\nIf she cannot be shown, the call goes on with the portrait.'),
-        }
+        })
         -- Johnny's standing in this save's story, right under his setting while it is on (read from the save as the page is drawn).
         local standing = johnnyStandingRow(snapshot)
         if standing then
-            for index, row in ipairs(conversationRows) do
-                if row.id == 'johnnyInHead' then table.insert(conversationRows, index + 1, standing); break end
+            for index, row in ipairs(conversations.settings) do
+                if row.id == 'johnnyInHead' then table.insert(conversations.settings, index + 1, standing); break end
             end
         end
-        categories[#categories + 1] = category('conversation-controls', 'Conversations', conversationRows)
+        categories[#categories + 1] = conversations
         -- Settings > Conversation provider: who writes the replies, Mature content, Local AI and the provider keys (the Inworld key is in
         -- Development).
         local providerRows, inworldKeyRow = ownKeyRows(snapshot)
