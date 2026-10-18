@@ -1197,6 +1197,12 @@ function M.new(options)
                     return
                 end
                 local style = context.selected and 'full' or 'side'
+                -- Development only (face-test `gaze`): the strong held look replaces this one.
+                local devGaze = convaiCompanions and convaiCompanions.devGazeKey
+                if devGaze then
+                    local okKey, key = pcall(function() return tostring(npc:GetEntityID().hash) end)
+                    if okKey and key == devGaze then style = 'none' end
+                end
                 if s.lookStyle ~= style then
                     s.lookStyle = style
                     pcall(nat.look, entry, style, self.player, self.gazeSettings())

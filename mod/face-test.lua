@@ -208,6 +208,21 @@ commands['invite'] = function(rest)
     return true, {invited = who}
 end
 
+-- drive <who> | drive off (development only): the same chauffeur request as the talk action's DRIVE, without a turn. Needs V
+-- near the owned car with a map destination selected; the companion takes the driver seat, waits for V, then drives there.
+commands['drive'] = function(rest, context)
+    local companions = convaiCompanions
+    if not companions then return false, 'companions not loaded' end
+    if rest == 'off' then return companions.cancelChauffeur('development probe') end
+    local row = context and rowFor(context, rest)
+    if not row or not row.npc then return false, 'no companion matching ' .. rest .. ' in range' end
+    local offer = companions.chauffeurOffer(row.npc)
+    if not offer or not offer.available then return false, 'no drive offer: ' .. tostring(offer and offer.reason) end
+    local queued, reason = companions.queueChauffeur(offer.actor and offer.actor.serial, offer, row.npc)
+    if not queued then return false, 'drive refused: ' .. tostring(reason) end
+    return true, {drive = row.name, to = offer.waypoint and offer.waypoint.name, seat = offer.passengerSeat}
+end
+
 -- lead <forward> <lateral> | lead off (development only): every companion walks and stops this far ahead of V (metres; lateral
 -- negative is V's right, as in companion-space.lua) instead of in its lane. Cleared by a reload.
 commands['lead'] = function(rest)
@@ -454,9 +469,10 @@ local function lookAtV(stage, on)
             event:SetEntityTarget(Game.GetPlayer(), CName.new('pla_default_tgt'), Vector4.new(0, 0, 0, 0))
             event:SetStyle(Enum.new('animLookAtStyle', 'Normal'))
             event.bodyPart = CName.new('Eyes')
-            event.request.limits.softLimitDegrees = 90
-            event.request.limits.hardLimitDegrees = 140
-            event.request.limits.backLimitDegrees = 140
+            local wide = stage.wide == true -- side by side on a seat: V is about 90 degrees off her forward axis
+            event.request.limits.softLimitDegrees = wide and 140 or 90
+            event.request.limits.hardLimitDegrees = wide and 170 or 140
+            event.request.limits.backLimitDegrees = wide and 170 or 140
             event.request.limits.hardLimitDistance = 5
             local head = LookAtPartRequest.new()
             head.partName, head.weight, head.suppress, head.mode = CName.new('Head'), 1, 1, 0
@@ -472,6 +488,22 @@ local function lookAtV(stage, on)
         pcall(function() LookAtRemoveEvent.QueueRemoveLookatEvent(stage.npc, event) end)
     end
     return true
+end
+-- gaze <who> | gaze off (development only): the same strong look at V's eyes as a staged copy's, for any companion in range
+-- (a seated one included). One at a time; `gaze off` removes it.
+commands['gaze'] = function(rest, context)
+    if M.gazeHold then lookAtV(M.gazeHold, false); M.gazeHold = nil end
+    if convaiCompanions then convaiCompanions.devGazeKey = nil end
+    if rest == 'off' or rest == '' then return true, 'gaze off' end
+    local row = context and rowFor(context, rest)
+    if not row or not row.npc then return false, 'no companion matching ' .. rest .. ' in range' end
+    M.gazeHold = {npc = row.npc, wide = true}
+    -- A seated companion's own glance steps aside while this look is held (companion-seating.lua).
+    if convaiCompanions then
+        local okKey, key = pcall(function() return tostring(row.npc:GetEntityID().hash) end)
+        convaiCompanions.devGazeKey = okKey and key or nil
+    end
+    return lookAtV(M.gazeHold, true), {gaze = row.name}
 end
 local function endStage(stage, state)
     if not stage then return end
@@ -737,6 +769,13 @@ commands['face-stage'] = function(rest, context)
         if not stage then return false, 'no stage' end
         stage.gestures = word == 'gestures'
         if stage.quiet then setQuiet(stage, true) end
+        -- The gesture owner's scene guard also refuses in a restricted zone (scene tier above 1: clubs, quest hubs). For a staged
+        -- recording that guard is lifted while gestures are on, and put back with nogestures or a reload.
+        local owner = convaiGestures
+        if owner then
+            owner.guardKept = owner.guardKept or owner.allowed
+            owner.allowed = stage.gestures and function() return true end or owner.guardKept
+        end
         return true, word
     elseif word == 'pin' or word == 'unpin' then
         M.stagePinned = word == 'pin'
