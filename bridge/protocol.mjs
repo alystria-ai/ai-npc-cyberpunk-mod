@@ -10,6 +10,7 @@ import {parseJournalHistory} from './journal-history.mjs';
 import {parseGameDialogue} from './game-dialogue.mjs';
 import {parseGear} from './player-gear.mjs';
 import {parseTurnContext} from './turn-context.mjs';
+import {parseHead} from './johnny-head.mjs';
 import {resolveKnowledgeParts} from './knowledge-parts.mjs';
 import {parseChauffeurOffer, parseTacticOffer, parseFollowOffer, parseLeaveOffer, parseFollowUnavailable, parseTacticUnavailable, parseDriveUnavailable}
   from './companion-actions.mjs';
@@ -68,7 +69,9 @@ function parseRequest(raw) {
   const tacticUnavailable = parseTacticUnavailable(value.tacticUnavailable);
   const driveUnavailable = chauffeurOffer ? null : parseDriveUnavailable(value.driveUnavailable);
   // A holocall turn (docs/HOLOCALL.md): V and the character talk over the phone. Private turns only; a malformed value is dropped.
-  const holocall = group ? null : parseHolocall(value.holocall);
+  // Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): his stage with V. Private turns only; it is never a holocall as well.
+  const head = group ? null : parseHead(value.head);
+  const holocall = group || head ? null : parseHolocall(value.holocall);
   return {requestId, generation, entity, name: name.slice(0, 120), bodyType: bodyType.slice(0, 80), profileKey, text: text.trim(), group,
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(loot ? {loot} : {}), ...(reaction ? {reaction} : {}),
     ...(chauffeurOffer ? {chauffeurOffer} : {}), ...(tacticOffer ? {tacticOffer} : {}),
@@ -76,7 +79,7 @@ function parseRequest(raw) {
     ...(followUnavailable ? {followUnavailable} : {}), ...(tacticUnavailable ? {tacticUnavailable} : {}), ...(driveUnavailable ? {driveUnavailable} : {}),
     ...(worldKnowledge ? {worldKnowledge} : {}), ...(journalHistory ? {journalHistory} : {}),
     ...(gameDialogue ? {gameDialogue} : {}), ...(gear ? {gear} : {}), ...(turnContext ? {turnContext} : {}),
-    ...(addon ? {addon} : {}), ...(holocall ? {holocall} : {})};
+    ...(addon ? {addon} : {}), ...(holocall ? {holocall} : {}), ...(head ? {head} : {})};
 }
 
 // {version: 1, contact, mode: 'audio' | 'holo'} from mod/holocall.lua -> {contact, mode}, or null.

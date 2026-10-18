@@ -210,8 +210,9 @@ export function capContext(context, limit = LIMITS.context) {
  *   reaction       true for an automatic battle / loot line: `text` is then an event, not something V said
  */
 // The first sentence of the right-now block (bridge/turn-context.mjs): "you are with V in person ..." or, in a phone chat, "you are
-// messaging V by text ... you are somewhere else ..." or, on a holocall (docs/HOLOCALL.md), "you are on a voice call / holocall ...".
-const HERE = /You are (?:with V in person[^.]*\.|(?:messaging V by text|on a voice call with V|on a holocall)[^.]*\.(?: You are somewhere else[^.]*\.)?)/;
+// messaging V by text ... you are somewhere else ..." or, on a holocall (docs/HOLOCALL.md), "you are on a voice call / holocall ...", or for
+// Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md) "you are in V's head ...".
+const HERE = /You are (?:with V in person[^.]*\.|in V's head[^.]*\.|(?:messaging V by text|on a voice call with V|on a holocall)[^.]*\.(?: You are somewhere else[^.]*\.)?)/;
 export function buildMessages({persona, memory, history = [], context, contextParts, remembered = [], text, reaction = false, limits = LIMITS, mature = null, guard = false}) {
   const v2 = !!contextParts && typeof contextParts === 'object';
   const messages = [{role: 'system', content: systemPrompt({persona, memory, limits, mature, guard,
@@ -247,7 +248,9 @@ export function buildMessages({persona, memory, history = [], context, contextPa
       ? 'You are not with V and cannot see V; never say you are there, close or nearby, and name no place or task of your own right now.'
       : here.startsWith('You are on a')
         ? 'You are not with V; never say you are there, close or nearby, and name no place or task of your own right now.'
-        : 'That is all you are doing; never claim to be anywhere else.'}]` : '',
+        : here.startsWith("You are in V's head")
+          ? 'You have no body; you go where V goes and never claim to be anywhere else or to be doing something of your own.'
+          : 'That is all you are doing; never claim to be anywhere else.'}]` : '',
     volatile ? `[THIS TURN: notes for you, never to be read aloud]\n${volatile}` : '',
     facts.length ? `[THINGS YOU REMEMBER ABOUT V THAT MAY MATTER NOW: true unless the world context says otherwise; mention one only if it fits]\n${facts.join('\n')}` : '',
     message].filter(Boolean).join('\n\n')});

@@ -272,3 +272,86 @@ test('cost: nothing of his runs per frame, and the module is loaded only through
   assert.equal(loads.length, 1, 'one loader');
   assert.match(between('function convaiJohnnyHeadService()', "pcall(dofile, 'johnny-head.lua')"), /if not manager\.johnnyInHead\(\) then return nil end/);
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// The bridge: the head field, the right-now sentence and the head block.
+
+const {parseInput} = await import('./protocol.mjs');
+const {parseHead, headContext, headOf, MAX_CHARS} = await import('./johnny-head.mjs');
+const {turnContext, turnContextDiagnostic} = await import('./turn-context.mjs');
+const {conversationContextBlocks} = await import('./quest-context.mjs');
+const {buildMessages} = await import('./mistral-prompt.mjs');
+
+const snapshot = {version: 1, status: 'ready', hour: 22, minute: 5, district: 'Watson', health: 'hurt', money: 'low', heat: 1,
+  party: [{key: 'judy-alvarez', name: 'Judy Alvarez', activity: 'following'}]};
+const raw = over => JSON.stringify({requestId: '1-2-33ULL', generation: 2, entity: '33ULL', name: 'Johnny Silverhand', bodyType: '',
+  profileKey: 'johnny-silverhand', text: 'What should I do next?', turnContext: snapshot,
+  head: {version: 1, stage: 'grudging', milestones: ['alt', 'bender']}, ...over});
+
+test('parseHead: a known stage and known milestones only; CET\'s empty list; anything else is dropped', () => {
+  assert.deepEqual(parseHead({version: 1, stage: 'wary', milestones: {}}), {stage: 'wary', milestones: []});
+  assert.deepEqual(parseHead({version: 1, stage: 'close', milestones: ['second-chance', 'reunion', 'reunion', 'nope', 7]}),
+    {stage: 'close', milestones: ['second-chance', 'reunion']});
+  for (const bad of [null, [], {stage: 'wary', milestones: []}, {version: 2, stage: 'wary', milestones: []},
+    {version: 1, stage: 'lovers', milestones: []}, {version: 1, stage: 'before', milestones: []}, {version: 1, stage: 'wary'},
+    {version: 1, stage: 'wary', milestones: {a: 1}}, {version: 1, stage: 'wary', milestones: Array(7).fill('alt')}]) {
+    assert.equal(parseHead(bad), null, JSON.stringify(bad));
+  }
+});
+
+test('parseInput: a private turn keeps the head (never a holocall as well); a group round or a malformed head drops it', () => {
+  const input = parseInput(raw({holocall: {version: 1, contact: 'johnny', mode: 'audio'}}));
+  assert.deepEqual(input.head, {stage: 'grudging', milestones: ['alt', 'bender']});
+  assert.equal(input.holocall, undefined, 'the head wins over a holocall');
+  assert.equal(parseInput(raw({head: {version: 1, stage: 'lovers'}})).head, undefined);
+  assert.equal(parseInput(raw({head: undefined})).head, undefined);
+  assert.ok(parseInput(raw({head: 'x'})), 'a malformed head never loses the message');
+});
+
+test('right now: he is in V\'s head with no body, knows what V sees and feels, and never gets a place of his own', () => {
+  const input = parseInput(raw());
+  const text = turnContext(input);
+  assert.ok(text.startsWith("Right now (from the game, this turn only): You are in V's head, the engram on the Relic: you see what V sees and hear what V hears, nobody else sees or hears you, and V talks to you under their breath; V is in Watson."), text);
+  assert.match(text, /Also with V: Judy Alvarez\. /, 'he sees who is with V');
+  assert.match(text, /V is hurt\. The police are after V\. .*V is short on cash\./);
+  assert.match(text, /you have no body here and go wherever V goes/);
+  assert.doesNotMatch(text, /with V in person|on a voice call|messaging V|You are indoors|You are outdoors/);
+  assert.ok(text.length <= 900);
+  assert.match(turnContextDiagnostic(input), new RegExp(`^Turn context: \\d+ facts, ${text.length} chars head=grudging$`));
+  // Anyone else with a stray head field, a phone chat or a group round is unchanged.
+  const other = parseInput(raw({profileKey: 'judy-alvarez', name: 'Judy Alvarez'}));
+  assert.match(turnContext(other), /You are with V in person/);
+  assert.match(turnContext({...input, channel: 'phone'}), /messaging V by text/);
+  assert.equal(headOf({...input, group: {id: 'g', index: 1}}), null);
+  assert.equal(headOf({...input, reaction: {kind: 'battle'}}), null);
+});
+
+test('the head block: his stage in his words, what they went through, and "what next" from V\'s open jobs; only for his turn', () => {
+  const words = stage => headContext(parseInput(raw({head: {version: 1, stage, milestones: []}})));
+  assert.match(words('wary'), /stuck with each other: the Relic put you in V's head and it is killing V\. There is no trust yet/);
+  assert.match(words('grudging'), /grudging respect between you, not friendship/);
+  assert.match(words('friends'), /At the oil fields V gave you one last chance and you said you would try\. You are friends now/);
+  assert.match(words('close'), /You trust V and V trusts you/);
+  const text = headContext(parseInput(raw({head: {version: 1, stage: 'close', milestones: ['alt', 'porsche', 'second-chance', 'reunion']}})));
+  assert.match(text, /^YOU AND V \(from this save's story, this conversation only\)\n/);
+  assert.match(text, /Behind you both: you and V reached Alt beyond the Blackwall, V found your old Porsche and Samurai played the reunion concert\./);
+  assert.doesNotMatch(text, /Behind you both:[^\n]*oil fields/, 'the second chance is in the stage sentence, not repeated');
+  assert.match(text, /pick one of V's open jobs listed in this context and say which you would do and why/);
+  assert.match(text, /Never invent a job\./);
+  assert.ok(text.length <= MAX_CHARS);
+  assert.doesNotMatch(words('wary'), /Behind you both/);
+  assert.equal(headContext(parseInput(raw({profileKey: 'judy-alvarez'}))), '', 'nobody else gets it');
+  assert.equal(headContext(parseInput(raw({head: undefined}))), '');
+  // In the turn's blocks: right after the now block, never cut (no key), for his named profile.
+  const blocks = conversationContextBlocks(parseInput(raw()));
+  assert.equal(blocks[0].tier, 'now');
+  assert.equal(blocks[1].tier, 'world'); assert.match(blocks[1].text, /^YOU AND V/); assert.equal(blocks[1].key, undefined);
+});
+
+test('the text providers say where he is right before V\'s words', () => {
+  const now = turnContext(parseInput(raw()));
+  const messages = buildMessages({persona: {name: 'Johnny Silverhand', ambient: false, backstory: 'A rockerboy engram.', style: 'Dry.',
+    samples: ['V: Hi. Johnny: What.']}, contextParts: {now, notes: '', world: '', volatile: ''}, text: 'hey'});
+  const last = messages[messages.length - 1].content;
+  assert.match(last, /\[YOU, RIGHT NOW: You are in V's head, the engram on the Relic: [^\]]*V is in Watson\. You have no body; you go where V goes/);
+});

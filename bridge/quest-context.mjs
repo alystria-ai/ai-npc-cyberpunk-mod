@@ -9,6 +9,7 @@ import {availableQuestsContext, recentSharedContext} from './quest-overview.mjs'
 import {gameDialogueContext} from './game-dialogue.mjs';
 import {gearContext, visibleGearContext} from './player-gear.mjs';
 import {turnContext} from './turn-context.mjs';
+import {headContext} from './johnny-head.mjs';
 import {isAmbientProfile} from './protocol.mjs';
 import {snapshotKey} from './parsed-snapshot.mjs';
 
@@ -168,7 +169,8 @@ export function conversationContextBlocks(input) {
   const trusted = attached?.identity && attached.identity === contextIdentity(input) ? attached : null;
   const knowledge = trusted?.knowledgeContext || (input.worldKnowledge !== undefined ? WORLD_UNAVAILABLE : '');
   const history = trusted?.historyContext || (input.journalHistory !== undefined ? HISTORY_UNAVAILABLE : '');
-  return [{tier: 'now', text: now}, {tier: 'world', text: groupContext(input)}, {tier: 'world', key: 'knowledge', text: knowledge},
+  // Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): where he and V stand and how he answers "what next?", right after the now block.
+  return [{tier: 'now', text: now}, {tier: 'world', text: headContext(input)}, {tier: 'world', text: groupContext(input)}, {tier: 'world', key: 'knowledge', text: knowledge},
     {tier: 'world', key: 'recency', text: trusted?.recencyContext}, {tier: 'world', key: 'history', text: history}, {tier: 'world', key: 'jobs', text: trusted?.jobsContext},
     {tier: 'world', key: 'journal', text: journalContext(input.journal)}, {tier: 'volatile', text: gameDialogueContext(input)},
     {tier: 'volatile', text: battleContext(input)}, {tier: 'volatile', text: lootContext(input)}, {tier: 'world', key: 'gear', text: gearContext(input)},
