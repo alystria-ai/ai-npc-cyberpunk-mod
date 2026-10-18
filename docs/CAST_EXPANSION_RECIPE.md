@@ -253,8 +253,9 @@ Sawyer, Barry Lewis and Mr. Blue Eyes (civilian stems: 77, 40 and 28 attributed 
 - **Release data.** `merge.mjs release-data --keys ...` copies only these keys' IDs; the full `Refresh-ReleaseData.mjs` would also take rows
   that other branches added to the shared `runtime/`.
 - **Tests that notice a new batch.** `bridge/first-person-profiles.test.mjs` (two count pins), `bridge/nca-compat.test.mjs` (a record that NCA
-  also offers, here `Character.Brick`, joins the named set), `bridge/multilingual.test.mjs` (the twins wait for the language box; the
-  allowance is `CAST_EXPANSION_2_KEYS` and goes when they move into `CAST_EXPANSION_KEYS`).
+  also offers, here `Character.Brick`, joins the named set), `bridge/multilingual.test.mjs` (the twins waited for the language box
+  under an allowance for `CAST_EXPANSION_2_KEYS`; the boxes were set and recorded on 2026-10-19, the allowance is gone and the test checks
+  `languageBoxOff: true` for both key lists).
 - **Order used.** Text and CPU work first (specs, extraction, dossiers, profiles, merges, Convai), then the GPU steps that need the
   coordinator's power-mode go-ahead: `analyze.py`, `build.py`, `merge_rows.mjs`, `merge.mjs release-plan`, the ear check, and the voice
   and release-plan assertions that are marked `todo` in `bridge/cast-expansion.test.mjs` until then.

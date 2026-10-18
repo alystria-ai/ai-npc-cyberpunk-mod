@@ -418,11 +418,9 @@ test('the installed twin map covers every profiled character; old romantic rows 
     assert.ok(loaded[key] || skipped.includes(key), key);
   }
   const unrouted = twinned.filter(key => !loaded[key]);
-  // The 2026-10-19 second cast batch (CAST_EXPANSION_2_KEYS) also waits for the dashboard step; once its boxes are off its keys
-  // move into CAST_EXPANSION_KEYS and this allowance goes.
-  const waiting = key => key.startsWith('npc-') || CAST_EXPANSION_2_KEYS.includes(key);
-  assert.ok(unrouted.every(waiting), 'only a new archetype batch (npc-*) or the second cast batch may wait for the language box: ' + unrouted.filter(key => !waiting(key)));
-  for (const key of CAST_EXPANSION_KEYS) assert.equal(document.characters[key]?.languageBoxOff, true, key + ' language box must be off');
+  assert.ok(unrouted.every(key => key.startsWith('npc-')), 'only a new archetype batch (npc-*) may wait for the language box: ' + unrouted.filter(key => !key.startsWith('npc-')));
+  // The second batch's boxes were set on 2026-10-19 too (its keys join CAST_EXPANSION_KEYS once its voices are built).
+  for (const key of [...CAST_EXPANSION_KEYS, ...CAST_EXPANSION_2_KEYS]) assert.equal(document.characters[key]?.languageBoxOff, true, key + ' language box must be off');
   // Every profiled (relationship) character has its one twin routed.
   for (const key of Object.keys(RELATIONSHIP_PROFILES)) {
     assert.ok(Object.hasOwn(ids, key), key + ' is not in characters.json');
