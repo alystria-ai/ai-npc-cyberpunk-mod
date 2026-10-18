@@ -104,6 +104,9 @@ With Convai, your lines go to Convai, along with a recent picture of the game wi
 [b]What languages can I use?[/b]
 The menus come in sixteen languages. Turn on Multilingual conversations to talk in any language. Pocket and Voxtral speak English only, so those replies use OmniVoice, or Convai's cloud voice without the pack. The Convai microphone expects English, so type in other languages.
 
+[b]Settings says "No model installed" for Local AI. What now?[/b]
+The pack was most likely extracted into an extra folder named after the zip. Download the Runtime 0.2 again from Hugging Face, extract it into your Cyberpunk 2077 folder, and start the game: the mod moves the pack files into place by itself. Or move the red4ext folder from inside that extra folder up into the Cyberpunk 2077 folder yourself. Still stuck? Generate a report (see below) and send it.
+
 [size=4][b]Links and credits[/b][/size]
 
 [list]
