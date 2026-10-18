@@ -46,7 +46,7 @@ export const CET_MODS = 'bin/x64/plugins/cyber_engine_tweaks/mods';
 export const ADDON_LIMITS = Object.freeze({addons: 8, speakers: 4, persona: 12000, samples: 12, rules: 12, line: 600,
   blocks: 8, blockText: 1500, blocksTotal: 4000, facts: 4000, eventText: 600, companionBlocks: 4, companionText: 600,
   referenceBytes: 8 * 1024 * 1024, referenceSeconds: 20, transcript: 2000, hookMs: 5, modes: 4, recentLines: 12, recentShown: 6,
-  recentChecked: 8, heard: 240, talkWordsMin: 8, talkWordsMax: 60, retryMs: 250, retryShare: 1.25, retryGuessMs: 900, memories: 12, memoriesShown: 6, memoryText: 300,
+  recentChecked: 8, moduleMs: 5000, heard: 240, talkWordsMin: 8, talkWordsMax: 60, retryMs: 250, retryShare: 1.25, retryGuessMs: 900, memories: 12, memoriesShown: 6, memoryText: 300,
   // Stock (bridge/addon-stock.mjs); the game side keeps the same numbers in mod/addons.lua STOCK.
   stockKeys: 12, stockText: 600, stockSlots: 8, stockSlotName: 48, stockBlocks: 4, stockBlocksText: 3000});
 
@@ -549,21 +549,29 @@ export class AddonHost {
     }
   }
 
-  /** Imports each add-on's bridge module. A module that fails to load leaves its add-on working without hooks. */
-  async loadModules({importModule = path => import(pathToFileURL(path).href)} = {}) {
+  /**
+   * Imports each add-on's bridge module. A module that fails to load, or whose import or activate does not finish within
+   * `timeoutMs`, leaves its add-on working without hooks: one add-on must never hold up the bridge start.
+   */
+  async loadModules({importModule = path => import(pathToFileURL(path).href), timeoutMs = ADDON_LIMITS.moduleMs} = {}) {
+    const within = (work, what) => {
+      let timer;
+      const limit = new Promise((_, reject) => { timer = setTimeout(() => reject(Error(`${what} did not finish within ${timeoutMs / 1000} s`)), timeoutMs); timer.unref?.(); });
+      return Promise.race([work, limit]).finally(() => clearTimeout(timer));
+    };
     for (const addon of this.addons) {
       if (!addon.bridge) continue;
       try {
-        const module = await importModule(addon.bridge);
+        const module = await within(importModule(addon.bridge), 'loading the bridge module');
         if (module?.apiVersion !== undefined && !apiCompatible(String(module.apiVersion))) throw Error(`bridge module needs add-on API ${module.apiVersion}`);
         this.modules.set(addon.id, module);
         if (typeof module.activate === 'function') {
-          await module.activate(Object.freeze({version: ADDON_API_VERSION, addon: Object.freeze({id: addon.id, name: addon.name, version: addon.version,
+          await within(module.activate(Object.freeze({version: ADDON_API_VERSION, addon: Object.freeze({id: addon.id, name: addon.name, version: addon.version,
             speakers: addon.speakers.map(speaker => Object.freeze({id: speaker.id, name: speaker.name, profileKey: speaker.profileKey}))}),
           log: message => this.log(`[${addon.id}] ${String(message).slice(0, 400)}`),
           settings: () => ({...(this.settings[addon.id] ?? {})}),
           state: () => this.state.addons[addon.id]?.state ?? null,
-          character: value => this.characterInfo(value)}));
+          character: value => this.characterInfo(value)})), 'activate');
         }
       } catch (error) {
         this.modules.delete(addon.id);

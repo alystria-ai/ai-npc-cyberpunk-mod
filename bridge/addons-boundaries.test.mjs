@@ -557,16 +557,16 @@ test('bridge module: whatever a hook returns is bounded, sanitised and namespace
   assert.equal(host.hookFailures.get('skippy:trigger'), undefined, 'slow is not a failure, the hook stays on');
 });
 
-test('bridge module: activate or import that never settles must not hold up the bridge start', {
-  todo: 'BUG: AddonHost.loadModules awaits import() and module.activate() with no timeout, so one add-on module that never settles keeps AddonHost.load, and with it the whole bridge start, waiting forever'
-}, async () => {
+test('bridge module: activate or import that never settles must not hold up the bridge start', async () => {
+  assert.ok(ADDON_LIMITS.moduleMs >= 2000, 'the real wait is long enough for a cold import on a slow disk');
   const hung = new Promise(() => {});
   const limit = ms => new Promise(done => setTimeout(() => done('timed out'), ms));
   for (const [label, importModule] of [['activate', async () => ({activate: () => hung})], ['import', () => hung]]) {
     const host = new AddonHost({addons: [validateManifest(manifest({bridge: 'bridge.mjs'}), tmpdir())]});
-    const outcome = await Promise.race([host.loadModules({importModule}).then(() => 'loaded'), limit(400)]);
+    const outcome = await Promise.race([host.loadModules({importModule, timeoutMs: 50}).then(() => 'loaded'), limit(2000)]);
     assert.equal(outcome, 'loaded', `a module whose ${label} never settles held the bridge start`);
     assert.equal(host.modules.has('skippy'), false, 'and its hooks are not used');
+    assert.match(host.moduleErrors.get('skippy'), /did not finish within/, 'and the reason is kept for the status file');
   }
 });
 
