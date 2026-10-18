@@ -12,7 +12,8 @@
 //   engine  'pocket', 'voxtral' or 'inworld': synthesize the text live through that voice. Ignored when `audio` is given. With neither,
 //           the engine the player's settings chose speaks it.
 //   route   'game': the line takes the place of the model's reply and goes through the ordinary reply path from there (the voice the
-//           player's settings chose, that voice's own lip sync and face, and the ordinary publish). `audio` and `engine` are ignored.
+//           player's settings chose, that voice's own lip sync and face, and the ordinary publish). With `audio`, that WAV is the voice
+//           (the whole-file face analysis, as for OmniVoice); `engine` is ignored.
 import {randomBytes, createHash} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {decodeWav} from './voxtral-reference.mjs';
@@ -36,7 +37,7 @@ export function parseScriptedLine(raw) {
   if (audio !== undefined && (typeof audio !== 'string' || !isAbsolute(audio) || !/\.wav$/i.test(audio))) throw Error('"audio" must be an absolute path to a .wav file');
   if (engine !== undefined && !SCRIPTED_ENGINES.includes(engine)) throw Error(`"engine" must be one of ${SCRIPTED_ENGINES.join(', ')}`);
   if (route !== undefined && route !== 'game') throw Error('"route" must be "game" when given');
-  if (route === 'game') return {text: text.trim(), route};
+  if (route === 'game') return {text: text.trim(), route, ...(audio ? {audio} : {})};
   return {text: text.trim(), ...(audio ? {audio} : {}), ...(engine ? {engine} : {})};
 }
 

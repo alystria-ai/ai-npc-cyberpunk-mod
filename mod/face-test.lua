@@ -168,11 +168,19 @@ commands['speak-line'] = function(rest, context)
     -- The WAV may be anywhere (CET cannot open it outside the mod folder); the bridge reads and checks it.
     if doc.audio ~= nil and type(doc.audio) ~= 'string' then return false, '"audio" must be a path' end
     if doc.engine ~= nil and doc.engine ~= 'pocket' and doc.engine ~= 'voxtral' and doc.engine ~= 'inworld' then return false, 'engine must be pocket, voxtral or inworld' end
-    local row = rowFor(context, who)
-    if not row then return false, 'no owned companion matching ' .. who .. ' in range' end
     local speech, player = convaiSpeech, Game.GetPlayer()
     if not speech or type(speech.devSay) ~= 'function' or not player then return false, 'speech adapter unavailable' end
-    local called, sent, detail = pcall(speech.devSay, player, row.npc, 'scripted line', {file = path})
+    -- `speak-line holocall <file>`: the connected holocall's caller says it, on the call (the talk keys' own partner).
+    local row, partner
+    if who == 'holocall' then
+        partner = convaiHolocall and convaiHolocall.partner(player, false)
+        if not partner then return false, 'no connected holocall' end
+        row = {npc = partner.npc, entity = partner.entity, name = partner.name, profileKey = partner.profileKey}
+    else
+        row = rowFor(context, who)
+        if not row then return false, 'no owned companion matching ' .. who .. ' in range' end
+    end
+    local called, sent, detail = pcall(speech.devSay, player, row.npc, 'scripted line', {file = path, partner = partner})
     if not called then return false, tostring(sent) end
     log('speak-line', {who = who, file = path, audio = doc.audio ~= nil, engine = doc.engine, sent = sent == true, detail = tostring(detail), entity = row.entity})
     return sent == true, {requestId = sent and detail or nil, problem = (not sent) and detail or nil, entity = row.entity, companion = row.name or row.profileKey}
@@ -216,9 +224,10 @@ commands['drive'] = function(rest, context)
     if rest == 'off' then return companions.cancelChauffeur('development probe') end
     local row = context and rowFor(context, rest)
     if not row or not row.npc then return false, 'no companion matching ' .. rest .. ' in range' end
-    local offer = companions.chauffeurOffer(row.npc)
+    local entity = tostring(row.entity)
+    local offer = companions.chauffeurOffer(entity)
     if not offer or not offer.available then return false, 'no drive offer: ' .. tostring(offer and offer.reason) end
-    local queued, reason = companions.queueChauffeur(offer.actor and offer.actor.serial, offer, row.npc)
+    local queued, reason = companions.queueChauffeur(offer.actor and offer.actor.serial, offer, entity)
     if not queued then return false, 'drive refused: ' .. tostring(reason) end
     return true, {drive = row.name, to = offer.waypoint and offer.waypoint.name, seat = offer.passengerSeat}
 end
@@ -424,6 +433,8 @@ local STAGE_DISTANCE, STAGE_DEFAULT_HOLD, STAGE_MAX_HOLD, STAGE_SPAWN_WAIT, STAG
 local STAGE_MIN_DISTANCE, STAGE_BIG_DISTANCE, STAGE_MOVE_LIMIT, STAGE_LIFT_LIMIT = .7, 1.3, .3, .5
 M.stageDistance = M.stageDistance or STAGE_DISTANCE
 M.spawned = M.spawned or {}
+M.group = M.group or {} -- face-stage group: several stages held at once
+local GROUP_SPACING = .85
 M.leaving = M.leaving or {}
 
 -- Complete control while a character is staged (development only; nothing persists: convaiCompanions.devQuiet lives in
@@ -593,6 +604,21 @@ local function anchorStage(stage, row, context)
     return true
 end
 
+-- A group member's spot (face-stage group): in a row across V's view at the stage distance, `lateral` metres to V's left
+-- (negative: right), turned to face V. Fixed once, like anchorStage.
+local function anchorGroup(stage, row)
+    local distance = math.max(M.stageDistance, STAGE_MIN_DISTANCE)
+    local target, why = stageTarget(distance)
+    if not target then return nil, why end
+    local x, y = target.x + target.rx * stage.lateral, target.y + target.ry * stage.lateral
+    local dx, dy = target.vx - x, target.vy - y
+    local atan2 = math.atan2 or math.atan
+    stage.anchor = {x = x, y = y, z = target.z, yaw = math.deg(atan2(-dx, dy))}
+    stage.origin = {x = target.vx, y = target.vy, z = target.vz}
+    stage.distance = distance
+    return true
+end
+
 -- Reuses a present copy of the character, otherwise invites one through the party queue. Returns ok, error.
 local function beginStage(stage, context)
     stage.state, stage.deadline = 'spawning', M.clock + STAGE_SPAWN_WAIT
@@ -614,8 +640,8 @@ local function beginStage(stage, context)
     return true
 end
 
-local function stageTick(context)
-    local stage = M.stage
+local function stageTick(context, stage)
+    stage = stage or M.stage
     if not stage or stage.state == 'released' or stage.state == 'lost' or stage.state == 'failed' then return end
     if M.clock < stage.nextAt then return end
     stage.nextAt = M.clock + STAGE_PERIOD
@@ -638,7 +664,7 @@ local function stageTick(context)
                     if tostring(entry.profileKey or entry.key) == tostring(row.profileKey or stage.who) then stage.serial = entry.serial end
                 end
             end
-            local anchored, why = anchorStage(stage, row, context or {})
+            local anchored, why = (stage.lateral and anchorGroup or anchorStage)(stage, row, context or {})
             if not anchored then stage.state, stage.error = 'failed', why; log('stage-failed', {who = stage.who, why = why}); return end
             setQuiet(stage, true)
         elseif M.clock > stage.deadline then stage.state, stage.error = 'failed', 'the copy did not become ready in time'; return
@@ -769,10 +795,12 @@ commands['face-stage'] = function(rest, context)
         return true, {distance = M.stageDistance}
     elseif word == 'gestures' or word == 'nogestures' then
         -- Body gestures while she is staged (a scripted line, speak-line): the quiet mark then leaves her gesture owner running.
-        local stage = M.stage
+        local stage = M.stage or M.group[1]
         if not stage then return false, 'no stage' end
-        stage.gestures = word == 'gestures'
-        if stage.quiet then setQuiet(stage, true) end
+        for _, each in ipairs(M.stage and {M.stage} or M.group) do
+            each.gestures = word == 'gestures'
+            if each.quiet then setQuiet(each, true) end
+        end
         -- The gesture owner's scene guard also refuses in a restricted zone (scene tier above 1: clubs, quest hubs). For a staged
         -- recording that guard is lifted while gestures are on, and put back with nogestures or a reload.
         local owner = convaiGestures
@@ -791,6 +819,11 @@ commands['face-stage'] = function(rest, context)
         convaiGestures.preferIdle(key)
         return true, {idle = key or 'off'}
     elseif word == 'look' or word == 'unlook' then
+        if #M.group > 0 then
+            local all = true
+            for _, each in ipairs(M.group) do if each.state ~= 'staged' or not lookAtV(each, word == 'look') then all = false end end
+            return all, word
+        end
         local stage = M.stage
         if not stage or stage.state ~= 'staged' then return false, 'no staged character' end
         return lookAtV(stage, word == 'look'), word
@@ -801,14 +834,38 @@ commands['face-stage'] = function(rest, context)
         return true, word == 'freeze' and 'freezing' or 'thawed'
     elseif word == 'off' then
         endStage(M.stage, 'released')
+        for _, each in ipairs(M.group) do endStage(each, 'released') end
+        M.group = {}
         return true, 'released'
+    elseif word == 'group' then
+        -- face-stage group <first> <second> [third]: one row facing V, the first in the middle, the second to V's left, the third
+        -- to V's right. Held until `face-stage off` (pin it so V can step back to frame the shot).
+        local names = {}
+        for name in tail:gmatch('%S+') do names[#names + 1] = name end
+        if #names < 2 or #names > 3 then return false, 'usage: face-stage group <middle> <left> [right]' end
+        if not convaiCompanions then return false, 'companion runtime not loaded' end
+        endStage(M.stage); M.stage = nil
+        for _, each in ipairs(M.group) do endStage(each) end
+        M.group = {}
+        local laterals = {0, GROUP_SPACING, -GROUP_SPACING}
+        for index, name in ipairs(names) do
+            local stage = {who = name, hold = 900, state = 'clearing', placed = 0, nextAt = 0, deadline = M.clock + 20, lateral = laterals[index]}
+            local ok, err = beginStage(stage, context)
+            if not ok then return false, name .. ': ' .. tostring(err) end
+            M.group[#M.group + 1] = stage
+        end
+        log('stage-group', {who = names})
+        return true, {group = names}
     elseif word == 'dismiss' then
         thaw(M.stage)
         lookAtV(M.stage, false)
         -- Only characters this probe invited (their key was absent at the time): through the party queue's own
         -- dismissal, which removes the copy (or cancels a still pending invitation) at the next gameplay flush.
+        for _, each in ipairs(M.group) do thaw(each); lookAtV(each, false) end
         local done = dismissSpawned()
         endStage(M.stage, 'released')
+        for _, each in ipairs(M.group) do endStage(each, 'released') end
+        M.group = {}
         return true, {dismissed = done, leaving = pendingLeaving(context)}
     end
     local hold = math.max(5, math.min(STAGE_MAX_HOLD, tonumber(tail) or STAGE_DEFAULT_HOLD))
@@ -837,7 +894,8 @@ function M.abandon(reason)
         stage.npc, stage.lookEvent, stage.frozen = nil, nil, false
         stage.state = 'released'
     end
-    M.stage, M.play, M.cue, M.run = nil, nil, nil, nil
+    for _, each in ipairs(M.group or {}) do each.npc, each.lookEvent, each.frozen, each.state = nil, nil, false, 'released' end
+    M.stage, M.play, M.cue, M.run, M.group = nil, nil, nil, nil, {}
     local companions = convaiCompanions
     if type(companions) == 'table' then companions.devQuiet = nil end -- keyed by the old copies' serials
 end
@@ -851,6 +909,7 @@ function M.poll(delta, context)
     delta = (type(delta) == 'number' and delta == delta and delta > 0 and delta < .5) and delta or 0
     M.clock = M.clock + delta
     if M.stage then local ok, err = pcall(stageTick, context); if not ok then M.stage.state, M.stage.error = 'failed', tostring(err) end end
+    for _, each in ipairs(M.group) do local ok, err = pcall(stageTick, context, each); if not ok then each.state, each.error = 'failed', tostring(err) end end
     if M.play then local ok, err = pcall(playTick, delta, context); if not ok then log('play-error', {error = tostring(err)}); M.play = nil end end
     if M.cue then local ok, err = pcall(cueTick, delta, context); if not ok then log('cue-error', {error = tostring(err)}); M.cue = nil end end
     local run = M.run

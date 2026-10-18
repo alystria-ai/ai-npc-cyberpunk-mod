@@ -2263,9 +2263,13 @@ speech.devSay = function(player, npc, text, scripted)
     if not manager.developerMode() then return false, 'developer mode is off' end
     if type(text) ~= 'string' or #text == 0 or #text > 400 then return false, 'text must be 1 to 400 characters' end
     if scripted ~= nil and (type(scripted) ~= 'table' or type(scripted.file) ~= 'string') then return false, 'bad scripted line' end
-    local key, name, bodyType = profileIdentity(npc)
+    -- `scripted.partner`: a connected holocall's caller (holocall.partner's row), addressed as the talk keys address it.
+    local partner = scripted and type(scripted.partner) == 'table' and scripted.partner or nil
+    local key, name, bodyType
+    if partner then key, name, bodyType = partner.profileKey, partner.name, partner.bodyType or ''
+    else key, name, bodyType = profileIdentity(npc) end
     if not key or not supportedProfiles[key] then return false, 'no conversation profile for ' .. tostring(name) end
-    local identity = tostring(npc:GetEntityID().hash)
+    local identity = partner and partner.entity or tostring(npc:GetEntityID().hash)
     generation = generation + 1
     cancelAutomatic('manual-text')
     gameplayActions.revoke('new-conversation')
@@ -2274,8 +2278,9 @@ speech.devSay = function(player, npc, text, scripted)
     groupChat.cancel()
     subtitles.clear()
     speech.target = npc
-    pcall(function() return npc:ConvaiFaceRequest() end)
-    local context = {generation = generation, entity = identity, name = name, bodyType = bodyType, profileKey = key}
+    if not (partner and partner.voiceOnly) then pcall(function() return npc:ConvaiFaceRequest() end) end
+    local context = {generation = generation, entity = identity, name = name, bodyType = bodyType, profileKey = key,
+        voiceOnly = partner and partner.voiceOnly or nil, holocall = partner and partner.holocall or nil}
     warmConversation(nil, key, identity)
     pending = nil
     context.requestId = tostring(os.time()) .. '-' .. tostring(context.generation) .. '-' .. context.entity
