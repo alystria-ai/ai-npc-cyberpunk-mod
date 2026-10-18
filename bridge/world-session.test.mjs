@@ -55,13 +55,13 @@ test('expired, future and invalid leases fail closed without retrying valid JSON
 test('bridge world polling uses the bounded reader before evaluating reset ownership', () => {
   const source = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   const poll = source.slice(source.indexOf('async function pollKnowledge()'), source.indexOf('// An existing request belongs'));
-  assert.match(poll, /await readWorldSession\(resolve\(runtime, 'world-session\.json'\)\)/);
+  assert.match(poll, /await readWorldSession\(resolve\(runtime, 'world-session\.json'\), \{held: worldSession\?\.ready === true\}\)/);
   assert.doesNotMatch(poll, /readFile\(resolve\(runtime, 'world-session\.json'/);
   assert.match(poll, /priorWorld && priorWorld !== nextWorld/);
   assert.match(poll, /await resetLiveRoutes\(\)/);
 });
 
-test('an empty heartbeat file (the shipped placeholder) means no session yet and returns at once, with no retry', async () => {
+test('an empty heartbeat file (the shipped placeholder) means no session yet and returns at once when none was held', async () => {
   const empty = fixture(['']);
   assert.equal(await empty.run(), null);
   assert.equal(empty.calls.length, 1); assert.deepEqual(empty.waits, []);
@@ -70,4 +70,14 @@ test('an empty heartbeat file (the shipped placeholder) means no session yet and
   // a missing or half-written file still gets its bounded retries
   const torn = fixture(['{"version":1,', ready]); assert.deepEqual(await torn.run(), ready);
   assert.deepEqual(torn.waits, [15]);
+});
+
+test('an empty read while a ready session was held gets one 15 ms retry (the truncate-then-write instant), then counts as no session', async () => {
+  const run = (values) => { const f = fixture(values); return {f, result: readWorldSession('fixture-world-session.json', {now: () => NOW, held: true,
+    read: async (path, encoding) => { f.calls.push([path, encoding]); const value = values[Math.min(f.calls.length - 1, values.length - 1)];
+      return typeof value === 'string' ? value : JSON.stringify(value); }, wait: async ms => { f.waits.push(ms); }})}; };
+  const recovered = run(['', ready]); assert.deepEqual(await recovered.result, ready);
+  assert.equal(recovered.f.calls.length, 2); assert.deepEqual(recovered.f.waits, [15]);
+  const stillEmpty = run(['']); assert.equal(await stillEmpty.result, null);
+  assert.equal(stillEmpty.f.calls.length, 2); assert.deepEqual(stillEmpty.f.waits, [15]);
 });

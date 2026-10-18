@@ -2550,7 +2550,7 @@ async function pollKnowledge() {
   if (knowledgePolling || stopped) return;
   knowledgePolling = true;
   try {
-    const session = await readWorldSession(resolve(runtime, 'world-session.json'));
+    const session = await readWorldSession(resolve(runtime, 'world-session.json'), {held: worldSession?.ready === true});
     const priorWorld = worldSession?.ready ? JSON.stringify([worldSession.token, worldSession.generation]) : null;
     worldSession = session;
     const nextWorld = worldSession?.ready ? JSON.stringify([worldSession.token, worldSession.generation]) : null;
