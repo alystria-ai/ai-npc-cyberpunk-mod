@@ -278,8 +278,27 @@ function M.new(options)
         return 'unknown'
     end
 
+    -- The kind of fault the service status names ('browser', 'setup', 'failed', ...), or nil; only meaningful while nothing is serving.
+    function self.serviceFault()
+        if heartbeatFresh() then return nil end
+        local status = serviceStatus()
+        local ok, down = false, nil
+        if status then ok, down = pcall(status.unavailable, now()) end
+        if ok and type(down) == 'table' then return down.kind end
+        return nil
+    end
+
+    -- The localized sentence for what is wrong with the service now (the one the notices use), or nil while it is running.
+    function self.serviceMessage()
+        local kind, status = self.serviceFault(), serviceStatus()
+        if not kind or not status or type(status.message) ~= 'function' then return nil end
+        local ok, text = pcall(status.message, kind)
+        return ok and type(text) == 'string' and text or nil
+    end
+
     function self.serviceLabel()
         local code = self.serviceState()
+        if code ~= 'running' and self.serviceFault() == 'browser' then return ui.t('Needs a browser') end
         if code == 'running' then return ui.t('Running') end
         if code == 'starting' then return ui.t('Starting') end
         if code == 'stopped' then return ui.t('Not running') end
@@ -395,6 +414,11 @@ function M.new(options)
                 or 'the conversation service was not running'),
             'Not included: CET, redscript, RED4ext, launcher and conversation-service logs (outside the mod folder).',
             'Keys, tokens, IDs, audio and conversation text are never included; the paths for the other logs are in the Help page.'}
+        -- The commonest reason the service never started: say it first, in plain words (the code is bridge-service.json's).
+        if self.serviceFault() == 'browser' then
+            table.insert(out, 2, 'PROBLEM: no browser for the conversation page (service status code browser-missing). a Chromium browser such as '
+                .. 'Microsoft Edge, Google Chrome, Brave or Opera must be installed, then restart the game.')
+        end
         section(out, 'versions')
         local okVersion, cet = pcall(function() return GetVersion and GetVersion() or nil end)
         out[#out + 1] = 'cet: ' .. tostring(okVersion and cet or 'unknown')

@@ -392,3 +392,27 @@ test('Copy path needs a report, asks the service and tries the game clipboard fr
   assert(not ok and message:find('clipboard is not available', 1, true))
   io.open = realOpen
 `));
+
+test('a service that failed with browser-missing is named in the Help row, its help and the first lines of the short report', () => run(`
+  put('runtime/bridge-service.json', {state = 'failed', code = 'browser-missing', updated = ms(), since = ms(-5)})
+  reportsFolder = false
+  local s = newSupport()
+  assert(s.serviceState() == 'stopped', 'other callers still see a service that is not running')
+  assert(s.serviceFault() == 'browser')
+  assert(s.serviceLabel() == 'Needs a browser', s.serviceLabel())
+  assert(s.serviceMessage():find('Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera', 1, true), s.serviceMessage())
+  local ok = s.request()
+  assert(ok and s.status().mode == 'lua')
+  local text = files['runtime/' .. s.status().fileName]
+  local lines = {}
+  for line in (text .. '\\n'):gmatch('(.-)\\n') do lines[#lines + 1] = line end
+  assert(lines[2]:find('PROBLEM: no browser for the conversation page', 1, true) and lines[2]:find('browser-missing', 1, true), lines[2])
+  assert(text:find('Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera', 1, true))
+  -- Any other failure keeps the ordinary wording and no problem line.
+  put('runtime/bridge-service.json', {state = 'failed', code = 'bridge-crashed', updated = ms(), since = ms(-5)})
+  advance(2)
+  local other = newSupport()
+  assert(other.serviceFault() == 'failed' and other.serviceLabel() == 'Not running' and other.serviceMessage():find('could not start', 1, true))
+  other.request()
+  assert(not files['runtime/' .. other.status().fileName]:find('PROBLEM', 1, true))
+`));

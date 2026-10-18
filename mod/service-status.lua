@@ -47,10 +47,13 @@ local function supervisor(now)
 end
 
 local function failureKind(value)
-    return value.code == 'missing-key' and 'setup' or 'failed'
+    if value.code == 'missing-key' then return 'setup' end
+    -- No Edge, Chrome or other Chromium browser to run the hidden conversation page (bridge/system-browser.mjs).
+    if value.code == 'browser-missing' then return 'browser' end
+    return 'failed'
 end
 
--- nil when conversations may proceed; otherwise {kind = starting|stopped|setup|failed}.
+-- nil when conversations may proceed; otherwise {kind = starting|stopped|setup|browser|failed}.
 function M.unavailable(now)
     now = now or os.time()
     local knowledge = cached('runtime/knowledge-status.json', now)
@@ -78,6 +81,7 @@ function M.message(kind)
     if kind == 'starting' then return ui.t('The conversation service is starting. Try again in a few seconds.') end
     if kind == 'restarted' then return ui.t('The conversation service restarted. Please try again.') end
     if kind == 'setup' then return ui.t('The conversation service needs your Convai API key. Add it, then restart the game.') end
+    if kind == 'browser' then return ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, then restart the game.') end
     if kind == 'failed' then return ui.t('The conversation service could not start. Restart the game, or see Help in Settings.') end
     return ui.t('The conversation service is not running. Restart the game to start it again.')
 end

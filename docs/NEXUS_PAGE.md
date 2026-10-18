@@ -62,7 +62,7 @@ The Voxtral voice is like Pocket here: it runs in the cloud and uses no video me
 [*]Tested with Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5, TweakXL 1.11.4, Audioware 1.9.9 and Mod Configuration Menu 0.10.3. Newer versions may work.
 [*]About 3 GB of free disk space, plus more for the optional packs.
 [*]Internet while you use Convai, Mistral or the Voxtral voice. Local AI with a local voice needs none.
-[*]Microsoft Edge (Windows 10 and 11 include it) or Google Chrome. The voice service runs a hidden copy of it; the mod ships no browser.
+[*]A Chromium browser such as Microsoft Edge (Windows 10 and 11 include it), Google Chrome, Brave or Opera. The voice service runs a hidden copy of it; the mod ships no browser. Firefox does not work.
 [*]No graphics card needed for the default setup: Convai or Mistral for the text, and Pocket or Voxtral for the voice. Only OmniVoice and Local AI use one.
 [/list]
 
@@ -117,6 +117,9 @@ With Convai, your lines go to Convai, along with a recent picture of the game wi
 
 [b]What languages can I use?[/b]
 The menus come in sixteen languages. Turn on Multilingual conversations to talk in any language. Pocket and Voxtral speak English only, so those replies use OmniVoice, or Convai's cloud voice without the pack. The Convai microphone expects English, so type in other languages.
+
+[b]The conversation service does not start, and Settings says it needs a browser. What now?[/b]
+The voice service runs a hidden copy of a Chromium browser, and the mod ships none. It looks for Microsoft Edge first, then Google Chrome, Brave, Vivaldi, Opera and a few others. If a debloat tool removed Edge, or you have none of these, install or repair Microsoft Edge (free from [url=https://www.microsoft.com/edge]microsoft.com/edge[/url]) or install Google Chrome, then restart the game. Firefox cannot be used. Still stuck? Generate a report (see below) and send it: it names the problem on its first lines.
 
 [b]Settings says "No model installed" for Local AI. What now?[/b]
 The pack was most likely extracted into an extra folder named after the zip. Download the Runtime 0.2 again from Hugging Face, extract it into your Cyberpunk 2077 folder, and start the game: the mod moves the pack files into place by itself. Or move the red4ext folder from inside that extra folder up into the Cyberpunk 2077 folder yourself. Still stuck? Generate a report (see below) and send it.

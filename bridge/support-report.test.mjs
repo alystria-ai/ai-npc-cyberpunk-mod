@@ -378,3 +378,21 @@ test('Copy report path asks the service to copy only a report file path, once pe
     assert.equal(copies.length, 1, 'only a convai-report file path is copied');
   } finally { await f.cleanup(); }
 });
+
+test('a service that never started because no browser was found says so plainly at the top of the report', async () => {
+  const f = await plantedInstall();
+  try {
+    const make = () => collectReport({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      request: {id: 'r-browser', issuedAt: Date.now()}, secrets: []});
+    const quiet = await make();
+    assert(!('problems' in quiet.summary) && !quiet.entries[0].data.includes('PROBLEM'), 'no problem line without the failure');
+    await f.put(join(f.runtime, 'bridge-service.json'), JSON.stringify({state: 'failed', code: 'browser-missing', updated: Date.now()}));
+    const {summary, entries} = await make();
+    assert.equal(Object.keys(summary)[1], 'problems', 'listed first, before the versions');
+    assert.match(summary.problems[0], /Chromium browser such as Microsoft Edge[^]*browser-missing/);
+    const readme = entries.find(entry => entry.name === 'README.txt').data;
+    assert(readme.indexOf('PROBLEM FOUND') > 0 && readme.indexOf('PROBLEM FOUND') < readme.indexOf('Send this one file'), 'the README states it before the contents list');
+    await f.put(join(f.runtime, 'bridge-service.json'), JSON.stringify({state: 'failed', code: 'missing-key', updated: Date.now()}));
+    assert(!('problems' in (await make()).summary), 'only the browser fault is reported this way');
+  } finally { await f.cleanup(); }
+});

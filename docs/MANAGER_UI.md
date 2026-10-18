@@ -153,7 +153,15 @@ the party instead of refusing it:
 returns to Settings, like Relationships and Memory. The page has three groups:
 
 - **If something goes wrong**: what to do, and whether the conversation service is Running,
-  Starting, Not running or Unknown.
+  Starting, Not running, Needs a browser or Unknown. "Needs a browser" is shown when the service
+  never started because no Chromium browser (Edge, Chrome, Brave, Opera and others) is installed
+  (`bridge-service.json` code `browser-missing`); the row's help then says "The conversation service
+  needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, then
+  restart the game." The same sentence is the in-game notice, the help of the Voice status row (whose
+  value reads "Needs a browser" instead of "Waiting for voice service") and the first lines of the short
+  report. While the service is not running or starting and no model is listed, the Local AI model row
+  reads "Service not running" or "Service starting" (with the service's own sentence at the top of its
+  help) instead of "No model installed", which stays for a service whose state is unknown.
 - **Report for the developer**: **Generate report**, the **Last report** row (file name as the
   value; the description and the banner show a shortened path, `…
 untime

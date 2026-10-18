@@ -236,7 +236,8 @@ export class BridgeSupervisor {
       if (!ids || typeof ids !== 'object' || Array.isArray(ids)) return 'missing-character-ids';
     } catch { return 'missing-character-ids'; }
     try { await stat(this.entry); } catch { return 'bridge-missing'; }
-    // The conversation page runs in the system's Edge (or Chrome), which the mod does not ship (bridge/system-browser.mjs).
+    // The conversation page runs in an installed Chromium browser (Edge, Chrome, Brave, Opera and others), which the mod does not ship
+    // (bridge/system-browser.mjs looks in the usual folders and the registry, once per start).
     try { if (!this.browserAvailable()) return 'browser-missing'; } catch {}
     return null;
   }
