@@ -7,7 +7,7 @@ How the player release is built, what it contains and how it starts. Players rea
 
 | Package | Where players get it | Contents |
 |---|---|---|
-| `AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip` | Nexus Mods | Text only: the CET Lua mod, redscript, the four JSON catalogs the Lua reads, `README.txt` and `release.json`. |
+| `AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip` | Nexus Mods | Text only: the CET Lua mod, redscript, the four JSON catalogs the Lua reads, the empty `runtime/` placeholder files (see "Mod Organizer 2" below), `README.txt` and `release.json`. |
 | `AI-NPC-Cyberpunk-Mod-Runtime-<v>.zip` | GitHub release of this repository | Everything else needed to play: the RED4ext launcher, bundled Node and Python, the bridge, the Pocket voice and lip-sync models, voice references, game archives and the Audioware reply bank. |
 | `AI-NPC-Cyberpunk-Mod-OmniPack-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and the OmniVoice references. |
 | `AI-NPC-Cyberpunk-Mod-LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip: the llama-server Vulkan build, the embedding model and the chat model, whole. |
@@ -201,6 +201,42 @@ system, USVFS, which puts every file created under the game folder into MO2's Ov
 the service had created its files there, CET stopped loading the mod ("cannot open init.lua"). MO2's Cyberpunk plugin maps only
 the game folder (and profile-local saves), so `%LOCALAPPDATA%` is written as is, with or without MO2, Vortex or a manual install.
 `runtime/` stays in the CET mod folder because CET lets Lua open files only inside its own mod folder.
+
+### Mod Organizer 2: files that exist from the start
+
+USVFS puts every NEW file created under the game folder in Overwrite (invisible at the next launch), while an existing real file that
+is opened for writing, or replaced with `MoveFileExW(REPLACE_EXISTING)` (what `fs.rename` over an existing file does on Windows), stays
+in place. So the files the game and the service must share inside the game folder are made to exist in the packages, and both sides only
+ever modify or replace them (no player usvfs log was available; the design works with or without one).
+
+- **`packaging/runtime-exchange.json`** classifies every `runtime/` file name the shipped Lua and the bridge use: `exchange` (about 70
+  files; shipped as **empty placeholders in the Scripts package** by `scriptsPackage`), `state` (settings, chat history, witness
+  receipts, decision ledger, add-on settings: never shipped, an update would wipe the player's data; their writers keep the temp-file
+  and backup protection), `optional` (switch and probe files made by hand, and the knowledge-service files that the shipped bridge never
+  runs: a missing file is harmless) and `elsewhere` (names that are not in the mod folder). `packaging/runtime-exchange.test.mjs` fails
+  when a new `runtime/` name appears unclassified, when shipped Lua that uses exchange files calls `os.remove`/`os.rename` or names a
+  `.tmp` (the three files that also write state are listed with the reason), and when the bridge deletes an exchange file.
+- **Rules for code that touches an exchange file.** Lua: one `io.open(path, 'wb')`, write, close (no `.tmp`, no `os.remove`, no
+  `os.rename`: Windows refuses to rename over an existing file, so the old code deleted and re-created it, which is a new file); a
+  "withdrawn" or "consumed" signal is an empty file. Node: `atomicFile` (temp + rename over the placeholder) or a plain write; never
+  `rm`/`unlink`. Every reader treats a missing, an empty and a half-written file as "nothing yet". This is also cheaper in the game
+  thread (one `io.open` instead of open + remove + rename).
+- **`launcher.log`** (opened with `CREATE_ALWAYS` by the launcher in the game process) ships empty in the Runtime package, beside
+  `launcher.ini`, so it is an existing file opened for writing.
+- **Help reports** (the bridge's zip reports) are written to `%LOCALAPPDATA%\AiNpcCyberpunkMod\reports` (the parent of the service's
+  state folder when that folder is called `data` and sits outside the mod folder; else the old `runtime/reports`). The Help page shows
+  the path the bridge published in `runtime/support-paths.json`, and `%LOCALAPPDATA%\AiNpcCyberpunkMod\data` and `...\reports` when
+  nothing is published. The in-game short report (service not running) is one fixed file, `runtime/convai-report-lua.txt`, rewritten
+  in place.
+- **Legacy carry-over** (`migrate-legacy.mjs`): an empty file at the new place is a placeholder and takes the old content in place
+  (nothing is displaced); the volatile files it purges from the new `runtime/` are emptied, not deleted.
+- **Not covered:** the `state` files above are created by their first write (Overwrite under MO2, so those settings do not persist
+  across launches there; see TODO.md); the `.native-tmp` file of the optional native plugin's atomic write; the Audioware reply
+  bank (`r6/audioware/CyberpunkConvai`) already ships its slot files and `speech.yml`, and only the transient `reply-pre-*.tmp` is new;
+  `knowledge-fact-commits/<generation>.json` (run-time names; dormant); CET's own `AiNpcCyberpunkMod.log`.
+- **Live check on MO2** (not done): install Scripts and Runtime physically, start the game from MO2 with the service on, talk to a
+  companion, quit; Overwrite should hold only CET's `AiNpcCyberpunkMod.log` and the `state` files. Start again: the mod loads and
+  talking works from the first turn.
 
 - **Override:** `CYBERPUNK_CONVAI_DATA_HOME` (an absolute path) is the folder that holds `data/`, for development or a player who
   wants it elsewhere; a relative value is ignored (one line in `bridge-service.log`). Without `%LOCALAPPDATA%` the data stays in the
