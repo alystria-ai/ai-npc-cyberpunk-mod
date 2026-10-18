@@ -1645,6 +1645,29 @@ test('Auto-connect nearby characters is on by default, offered under Conversatio
   `);
 });
 
+test('Talk to story characters is on by default, offered under Conversations and saved with the settings', () => {
+  run(`${mcmFixture}
+    assert(manager.storyConversations() == true and manager.snapshot(player).settings.storyConversations == true)
+    assert(invoke('tab:settings').ok)
+    local story = assert(row('storyConversations'), 'the setting is not offered')
+    assert(story.type == 'bool' and story.value == true and story.defaultValue == true and story.capabilities.draft)
+    assert(story.label == 'Talk to story characters')
+    local conversations
+    for _, category in ipairs(loaded.categories) do if category.id == 'conversation-controls' then conversations = category end end
+    local found = false
+    for _, item in ipairs(conversations.settings) do if item.id == 'storyConversations' then found = true end end
+    assert(found, 'the setting is not in the Conversations section')
+    assert(registered.applyBatch('manager', {{id = 'storyConversations', value = false}}).ok)
+    assert(manager.storyConversations() == false and saved.storyConversations == false, 'an explicit Off is kept')
+    assert(manager.snapshot(player).settings.storyConversations == false)
+    loaded = registered.loadMod('manager'); assert(row('storyConversations').value == false)
+    -- Only a boolean is accepted, and the neighbouring setting is not disturbed.
+    assert(not manager.applySettings(player, {storyConversations = 'yes'}) and manager.storyConversations() == false)
+    assert(manager.archetypeConversations() == true)
+    assert(registered.applyBatch('manager', {{id = 'storyConversations', value = true}}).ok and manager.storyConversations())
+  `);
+});
+
 test('the live holocall picture is on by default, offered under Conversations, and an explicit Off is kept', () => {
   run(`${mcmFixture}
     assert(manager.holocallLiveImage() == true and manager.snapshot(player).settings.holocallLiveImage == true)

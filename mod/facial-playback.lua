@@ -336,6 +336,18 @@ function M.applyCrowdMode()
     if ok then return requested,applied,nil end
     return requested,applied,tostring(result)
 end
+-- Talk to story characters (docs/WORLD_CHARACTERS.md): the face service prepares a named game character's face when that character
+-- spawns, so it must know the setting before the world loads. Called at start-up and each time a world is released; never per
+-- frame. True when the service took it.
+function M.applyStoryTalk(enabled)
+    local ok,result=pcall(function()
+        local service=Game.GetScriptableServiceContainer():GetService(CName.new('ConvaiFaceService'))
+        return service:SetStoryTalk(enabled==true)
+    end)
+    M.storyTalk=ok and result==true
+    if ok and type(result)=='boolean' and result==(enabled==true) then return true end
+    return false,tostring(result)
+end
 -- Development-only visibility probe (mod/face-test.lua). It is absent from a
 -- normal install, inert until a runtime request file appears, and errors in it
 -- can never reach speech or the writer (every call below is pcall-wrapped).
@@ -531,11 +543,13 @@ function M.beginExpressionFrame(delta,context)
 end
 -- The five status tags as CNames, built on first use (a CName is a value; building five per check was per-frame work).
 local injuryTags,injuryNames={'Injured','Defeated','Unconscious','Stunned','Ragdoll'}
-local function luaActorSafe(actor)
+-- sceneAllowed: the broad IsEntityInScene flag is not read (a named character of the game that V talks to: it stays true in
+-- ordinary gameplay, so it would keep every such mouth shut; the dialogue, autonomy, combat and injury checks remain).
+local function luaActorSafe(actor,sceneAllowed)
     if not actor:IsOnAutonomousAI() or NPCPuppet.IsInCombat(actor) then return false end
     local scene=Game.GetSceneSystem():GetScriptInterface()
     local id=actor:GetEntityID()
-    if scene:IsEntityInDialogue(id) or scene:IsEntityInScene(id) then return false end
+    if scene:IsEntityInDialogue(id) or (not sceneAllowed and scene:IsEntityInScene(id)) then return false end
     -- Status effects are the game's injury/incapacitation signal. Missing
     -- native APIs fail closed for the optional expression layer only.
     if not injuryNames then
@@ -554,6 +568,12 @@ end
 local function safeExpressionActor(actor,entity)
     if entity~=nil and entity==M.screenEntity then return true end
     if not M.expressionManaged then return true end
+    -- M.storyEntity: the named game character V is talking to (init.lua sets it; docs/WORLD_CHARACTERS.md). The Lua checks without
+    -- the broad scene flag; the native check reads it, so it is not used for this one speaker.
+    if entity~=nil and entity==M.storyEntity then
+        local ok,ready=pcall(luaActorSafe,actor,true)
+        return ok and ready==true
+    end
     if native then
         local ok,answer=pcall(native.Safe,actor)
         if ok and answer==1 then return true elseif ok and answer==0 then return false end

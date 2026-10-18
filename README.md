@@ -70,6 +70,7 @@ The first start after installing takes a little longer while the service prepare
 - **Bring a crew.** Invite companions from the Companion Manager. They walk beside you, run to catch up, follow you through doors, lifts and fast travel, sit with you on couches and bar stools, ride in your car and fight with the game's own combat AI. Ask one to drive and they take you to your waypoint. The Model browser lists every character model in the game, and any of them can tag along as a follower.
 - **They see what you see.** With Convai, each line you send carries a fresh glimpse of the game window, so a companion can talk about the place you are actually standing in.
 - **The whole street talks.** Gangers, NCPD officers, guards, ripperdocs, vendors, bartenders and passers-by answer as their kind of person. Shopkeepers you keep coming back to remember you.
+- **The story cast answers too.** Talk to the game's own Judy, Jackie, Panam or Rogue where they stand: their own voice, a face that follows the words, and nothing else of theirs touched.
 - **Group conversations.** Address two or three companions at once and they take turns, picking up from each other.
 - **Phone Chat and holocalls.** A **Chat** tab sits on V's phone beside Messages and Contacts. Text any supported contact, wherever they are, or call them and they pick up on a holocall, live on screen for the contacts the game itself stages video calls for.
 - **V speaks too.** Lines you type are voiced in the V voice that matches yours, then the companion answers. You pick the engine for V's voice in Settings > Voices: Pocket (the default) or Voxtral.
@@ -79,7 +80,7 @@ The first start after installing takes a little longer while the service prepare
 - **Sixteen interface languages,** and a Multilingual setting that lets you talk in any language.
 - **An optional Mature setting** for adults. It is off by default and works with Local AI only. See [Mature content](#mature-content-18).
 
-Only characters the mod spawns join your party. Story characters you meet in the world are left alone, so the story plays out exactly as written.
+Only characters the mod spawns join your party. Story characters you meet in the world, such as the game's own Judy or Jackie, can be talked to where they stand: they answer in their own voice and their face follows the words, and nothing else about them changes, so the story plays out exactly as written.
 
 ## Requirements
 
@@ -244,6 +245,7 @@ Everything lives under **Companion Manager > Settings**. Defaults are for a new 
 | Interface language | Interface | Automatic (follows the game) |
 | Memory, Relationships | Conversations | Auto |
 | Talk to ordinary NPCs | Conversations | On |
+| Talk to story characters | Conversations | On |
 | Multilingual conversations | Conversations | Off |
 | Auto-connect nearby characters | Conversations | On (silent) |
 | Continue from game dialogue | Conversations | On |
@@ -270,6 +272,7 @@ Everything lives under **Companion Manager > Settings**. Defaults are for a new 
 A few worth knowing:
 
 - **Talk to ordinary NPCs:** passers-by, vendors and the rest answer as their kind of person. They do not know your story and forget you after a save load, except shopkeepers you come back to.
+- **Talk to story characters:** the game's own named characters (Judy, Jackie, Panam, Rogue and the rest of the cast) answer where they stand, in their own voice, with their own memory and a face that follows what they say. Nothing else about them changes: they do not turn, move or gesture, and they stay quiet during scenes, quest conversations, fights and rides. Reload your save after switching it.
 - **Live holocall picture:** the character appears live in the call window instead of a portrait. If she cannot be shown, the call goes on with the portrait. Calls end after 3 minutes of silence or 30 minutes in total, and the game's own Contacts call is untouched.
 - **Memory:** **Forget selected character** and **Forget all memories**, each with a confirmation. A forget also clears the matching Phone Chat messages. **Relationships** has Auto, On or Off for Judy, Panam, River, Kerry and Meredith; Auto follows your save.
 - **Multilingual conversations:** talk in any language and each character answers in yours. It switches the voice to OmniVoice (or Convai's cloud voice without the pack), because Pocket and Voxtral speak English only. The microphone with Convai expects English, so type in other languages.
@@ -295,7 +298,7 @@ A few worth knowing:
 
 **A companion cannot be summoned there.** Companions need clear space, and a spawn is refused when there is no safe spot nearby. Try somewhere more open. Party membership is not restored after a save reload, a game restart or a Cyber Engine Tweaks reload.
 
-**Does it change the story?** No. Companions are temporary copies that the mod owns. They never recruit, revive or alter story characters, and story characters in the world are left alone.
+**Does it change the story?** No. Companions are temporary copies that the mod owns. They never recruit, revive or alter story characters. A story character in the world only answers when you talk to it, with its voice and face, and the mod stays out of scenes, quest conversations, fights and rides.
 
 **Which of my data leaves my computer?** With Convai your lines go to Convai, along with a recent picture of the game window, taken only while someone you can talk to is near, kept in memory for a few seconds and never saved. With Mistral your lines go to Mistral. With Local AI nothing leaves your computer for replies. Voxtral sends the text to be spoken and a short reference clip of the character to Mistral.
 
@@ -809,7 +812,7 @@ Design notes: [docs/COMPANION_CLEARANCE.md](docs/COMPANION_CLEARANCE.md), [docs/
 
 **Dismissing.** `companions.dismiss` first checks `IsManaged` and the companion tag, releases gestures, equipment and pace, then calls `DeleteEntity`; the entry stays in a `leaving` state until the game confirms. A protected chauffeur driver cannot be dismissed mid-trip. The phone names a character, not a copy, and removes the newest match first. Current party's dismiss names `live:<serial>`.
 
-**World companions.** The rule since 2026-10-11 is that the mod never touches a character the game placed, apart from the talk path. Spawned companions get the full feature set. Ordinary world NPCs (pedestrians, vendors, gangers) get only conversation: they face V, their vanilla barks are muted and their reply and lip sync play, with no gaze response, party, car, gestures or seating. Named, story and quest characters (the real Judy, Panam, any quest-flagged or `q###`, `sq###`, `mq###` record) get nothing at all. One predicate, `convaiWorldPolicy` in `mod/init.lua` over `characterCatalog.protectedReason`, decides, read on demand and cached per entity. The "world character joins V" mechanism (a managed stand-in copy created with a non-crowd record clone, the original hidden with a visibility event, restored when V is far or looking away) is kept in `mod/companion-adoption.lua` but disabled: the file header says `offer()` reports `unavailable` and `queueFollow()` refuses unless `options.allowWorldFollow` is set, which only tests set. The leave half is live: a spawned companion asked to leave says goodbye, walks to goals chosen by a reachable-goal search (at least 12 m from V, then chained farther until out of sight or 50 m away) and is removed when V can no longer see her. Dismiss in Current party stays instant.
+**World companions.** The rule since 2026-10-11 is that the mod never touches a character the game placed, apart from the talk path. Spawned companions get the full feature set. Ordinary world NPCs (pedestrians, vendors, gangers) get only conversation: they face V, their vanilla barks are muted and their reply and lip sync play, with no gaze response, party, car, gestures or seating. Named, story and quest characters (the real Judy, Panam, any quest-flagged or `q###`, `sq###`, `mq###` record) got nothing at all until 2026-10-18; since then a named roster character answers the talk keys with its voice and face only (`convaiWorldPolicy.story`, `mod/world-talk.lua`, Settings > Talk to story characters, `docs/WORLD_CHARACTERS.md`), and every other system still skips it. One predicate, `convaiWorldPolicy` in `mod/init.lua` over `characterCatalog.protectedReason`, decides, read on demand and cached per entity. The "world character joins V" mechanism (a managed stand-in copy created with a non-crowd record clone, the original hidden with a visibility event, restored when V is far or looking away) is kept in `mod/companion-adoption.lua` but disabled: the file header says `offer()` reports `unavailable` and `queueFollow()` refuses unless `options.allowWorldFollow` is set, which only tests set. The leave half is live: a spawned companion asked to leave says goodbye, walks to goals chosen by a reachable-goal search (at least 12 m from V, then chained farther until out of sight or 50 m away) and is removed when V can no longer see her. Dismiss in Current party stays instant.
 
 **Appearances.** The selected template appearance is part of the spawn spec so the native face graph initialises for that outfit; `companion-records.lua` routes by the model record, never by an assigned profile. Kerry gets his clothed appearance name, Johnny the native `silverhand_riot__not_blendable` appearance with a private combat record. Existing copies must be dismissed and invited again to receive a changed appearance. The Kerry outfit is not confirmed in a fresh in-game invitation.
 
@@ -978,13 +981,14 @@ The kinds are 11 gangs and factions (Maelstrom, Tyger Claws, Valentinos, 6th Str
 
 **How an NPC is chosen.** `profileIdentity` in `mod/init.lua` reads plain facts of the NPC under the crosshair (affiliation, vendor type, quest flag, police and crowd flags, TweakDB record name, body type; each read guarded and cached per entity) and `mod/character-catalog.lua` (`classify`, generated detection data) applies a fixed precedence: our managed copy, named roster profile, vendor, story-bound check, police, corporate security, faction, gang, resident kind, then the generic resident. No gender, no profile; children, androids and MaxTac are never routed. The bridge gets the facts as `archetype` fields (`parseArchetype`, fixed vocabulary) and `archetypeContext` words them with the district.
 
-**Which systems apply.** One predicate, `convaiWorldPolicy` in `mod/init.lua` (`ours`, `protected`), over `characterCatalog.protectedReason`:
+**Which systems apply.** One predicate, `convaiWorldPolicy` in `mod/init.lua` (`ours`, `spawned`, `story`, `protected`), over `characterCatalog.protectedReason`:
 
 | Who | What the mod does |
 |---|---|
 | A companion the mod spawned | the full feature set |
 | An ordinary world NPC | only the talk path: it faces V, its vanilla barks are muted for the conversation, its reply and lip-sync play; auto-connect may pre-open a connection. No gaze response, party, car, gestures or seating |
-| A named, story or quest character the game placed | nothing at all, as if the mod were not installed; only the mod's own copy of that character talks |
+| A named character the game placed (a roster record or name, with Talk to story characters on) | the talk path with voice and face only: its reply, subtitle, lip sync and expressions. No gaze, bark muting, gestures, movement, actions, party, attitude, equipment or scanner name, and never during a scene, quest conversation, fight or ride (`docs/WORLD_CHARACTERS.md`) |
+| Any other story or quest character the game placed | nothing at all, as if the mod were not installed; only the mod's own copy of a roster character talks |
 
 Sessions are partitioned by the actor's entity (two Maelstrom gangers never share a conversation), Convai long-term memory is off, quest knowledge and save identity are never attached, and the bridge gives an ordinary NPC no journal or world facts (see above). Each variant has 1 to 4 local voices (`voiceCount`), chosen deterministically from the shop record or the entity id. District is per-turn context, not a separate profile. The Model browser classifies a record from TweakDB alone so an archetype copy can be invited as a model. The ordinary-NPC talk path, the classifier's TweakDB reads and the archetype voices are built but have not been seen or heard in the game (the check list is in `docs/NPC_ARCHETYPES.md`).
 
@@ -1101,6 +1105,7 @@ The Settings page groups its rows in this order: Interface, Conversations, Conve
 |---|---|---|
 | `uiLanguage` | Interface language | `auto` |
 | `archetypeConversations` | Talk to ordinary NPCs | on |
+| `storyConversations` | Talk to story characters | on |
 | `multilingualConversations` | Multilingual conversations | off |
 | `autoConnectNearby` | Auto-connect nearby characters | on |
 | `gameDialogueContext` | Continue from game dialogue | on |

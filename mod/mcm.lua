@@ -2072,6 +2072,8 @@ local function schema()
                 function(context) return navigate('relationships', context) end),
             setting('archetypeConversations', 'Talk to ordinary NPCs', 'bool', snapshot.settings.archetypeConversations ~= false, true,
                 'Gang members, NCPD officers, guards, ripperdocs, shopkeepers, bartenders and passers-by answer as their kind of person.\n\nThey do not know your story and forget you after a save load, except shopkeepers you come back to.\n\nNamed characters are not affected.'),
+            setting('storyConversations', 'Talk to story characters', 'bool', snapshot.settings.storyConversations ~= false, true,
+                'The game’s own named characters, such as Judy, Jackie, Panam and Rogue, answer when you talk to them where they stand. They use their own voice and memory, and their face follows what they say.\n\nNothing else about them changes: they do not turn, move, gesture or follow. They do not answer during scenes, quest conversations, fights or rides.\n\nTakes effect after you reload your save.'),
             withInworld(setting('multilingualConversations', 'Multilingual conversations', 'bool', snapshot.settings.multilingualConversations, false,
                 'Talk in any language; each character answers in yours.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech and Expressive emotions turn off.'),
                 'Inworld speaks English only as well.'),
@@ -2393,6 +2395,7 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     end
                     values.relationshipModes[key:sub(14)] = ({'auto', 'on', 'off'})[change.value]
                 elseif key == 'archetypeConversations' then values.archetypeConversations = change.value
+                elseif key == 'storyConversations' then values.storyConversations = change.value
                 elseif key:sub(1, 6) == 'addon:' and convaiAddons and convaiAddons.live then
                     local staged, problem = convaiAddons.stageSetting(key, change.value)
                     if not staged then convaiAddons.discardSettings(); return {ok = false, error = problem} end

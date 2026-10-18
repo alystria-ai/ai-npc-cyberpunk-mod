@@ -1484,7 +1484,7 @@ test('Face.reds: the screen-face watch is checked only while a rig is watched, b
   const reds = read('../r6/scripts/CyberpunkConvai/Face.reds');
   const world = reds.slice(reds.indexOf('private cb func OnWorldInitialize'), reds.indexOf('// A watched screen face'));
   assert.match(world, /let screens = ArraySize\(this\.m_screenRigs\) > 0;\s+if this\.m_crowdMode == 0 && !screens \{ return; \};/);
-  assert.match(world, /if screens && this\.PrepareScreenFace\(npc, face, index\) \{ return; \};\s+if this\.m_crowdMode == 0 \{ return; \};/);
+  assert.match(world, /if index >= 0 && screens && this\.PrepareScreenFace\(npc, face, index\) \{ return; \};[\s\S]+?if index < 0 \{ return; \};\s+if this\.m_crowdMode == 0 \{ return; \};/);
   const prepare = reds.slice(reds.indexOf('private func PrepareScreenFace'), reds.indexOf('private func ScreenSlot'));
   assert.match(prepare, /this\.CheckRig\(face\)/);
   assert.match(prepare, /let graph = this\.m_crowdGated\[index\];/, 'the gated graph, never the ungated one');

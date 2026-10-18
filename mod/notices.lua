@@ -56,6 +56,7 @@ M.catalog = {
     -- Starting a conversation
     ['talk-no-target'] = {class = PLAYER, repeatS = 20},
     ['talk-no-profile'] = {class = PLAYER, repeatS = 20},
+    ['talk-busy'] = {class = PLAYER, repeatS = 10},          -- a story character the game has in a scene, a fight or a ride is not talked to (mod/world-talk.lua)
     ['group-needs-two'] = {class = PLAYER, repeatS = 20},
     ['talk-connecting'] = {class = PLAYER, repeatS = 10},
     -- Holocalls (mod/holocall.lua, docs/HOLOCALL.md)

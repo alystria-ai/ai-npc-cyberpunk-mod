@@ -2,6 +2,8 @@
 
 Written 2026-10-17 on branch `spawned-characters`. Phase 1 is built and unit-tested there. Phase 2 (group chat, and battle and loot reactions) is built and unit-tested on branch `spawned-phase2`, which starts from phase 1. Neither phase has been merged or installed, and nobody has seen either in the game.
 
+Characters the game itself placed (the real Judy, Jackie, Panam) are a different case: they talk with voice and face only, see [WORLD_CHARACTERS.md](WORLD_CHARACTERS.md) (2026-10-18). A spawned character gets the same talk, profile, voice, memory and lip sync, plus eye contact while it talks; a game-placed one gets no gaze.
+
 Players often use a spawner, another mod or tool, to put characters into the world: Judy, Panam, a ganger, a custom NPC. That mod owns the character's body. It decides where the character goes, how they follow, what they wear and what they do in a car. This document sets out what our mod does with such a character. The short version: they can talk with their own profile, voice and memory, and their face moves with the voice. Nothing of ours moves them.
 
 ## Before this branch

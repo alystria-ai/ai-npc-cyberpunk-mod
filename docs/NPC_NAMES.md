@@ -9,7 +9,7 @@ Always on: there is no setting and no menu row (a saved `npcNames` value from an
 The rule the talk path already uses (docs/WORLD_COMPANIONS.md, "The mod never touches game characters"), evaluated by `convaiNpcNames` in `mod/init.lua` through `M.ordinary` in `mod/npc-names.lua`:
 
 1. **Not ours.** A copy the mod spawned (a companion, an archetype copy) already has its name: `convaiWorldPolicy.ours`.
-2. **Not protected.** A named roster character, a quest-bound character (`MainQuest`, `SideQuest`, `MinorQuest` on the record, or a `q###` / `sq###` / `mq###` record) and a story record get nothing: `convaiWorldPolicy.protected` (`characterCatalog.protectedReason`).
+2. **Not protected.** (A named game character that the player may now talk to, `convaiWorldPolicy.story`, is still protected: it keeps its own name on the scanner, docs/WORLD_CHARACTERS.md.) A named roster character, a quest-bound character (`MainQuest`, `SideQuest`, `MinorQuest` on the record, or a `q###` / `sq###` / `mq###` record) and a story record get nothing: `convaiWorldPolicy.protected` (`characterCatalog.protectedReason`).
 3. **A generic profile.** The catalog resolves the NPC to an archetype key (`npc-*`) or to `resident-male` / `resident-female`. Anything else (a named profile, no profile) is refused.
 4. **An adult human.** Children and machines (drones, androids) are refused (`facts.children`, `facts.human`).
 5. **Scanner only: not in combat.** An enemy who is fighting keeps the game's tactical label (`NPCPuppet.IsInCombat`). Combat is momentary: the NPC is named at the next scan once it ends. Talking to someone mid-fight still uses the name.

@@ -9,8 +9,13 @@
 //    none of our tags), at spawn and again at each appearance rebuild (outfit changes rebuild face_rig): the gated crowd
 //    copy on a crowd graph, and on Judy's photo-mode graph or the paperdoll pair the companion graph our own copy of that
 //    character carries. They are player-made, so the roster and quest filters do not apply to them.
-// Story and quest characters, named roster characters (Johnny included, his record also uses man_average_sermo) and
-// every NPC whose face is not one of the four crowd graphs keep the vanilla graph. Shared game resources are never
+//  - for the game's own named characters (the roster records in NamedRecords: Judy, Jackie, Panam, Rogue and the rest) while
+//    "Talk to story characters" is on (SetStoryTalk, set from mod/facial-playback.lua applyStoryTalk, on by default; docs/
+//    WORLD_CHARACTERS.md), once at spawn (OnWorldInitialize, PrepareStoryFace): the same preparation as a spawned character, the
+//    gated crowd copy on a crowd graph and the companion graph on Judy's photo-mode graph or the paperdoll pair. The speech
+//    layer is inert until the mod voices that character, so a scene or the character's own animation sees the vanilla face.
+// Other story and quest characters, named roster characters while that setting is off (Johnny included, his record also uses
+// man_average_sermo) and every NPC whose face is not one of the four crowd graphs keep the vanilla graph. Shared game resources are never
 // patched, zero inputs leave the native face unchanged, and this service keeps entity IDs and strings only, never a
 // live actor or component. There is no per-frame work here: one callback per NPC spawn, one call per conversation.
 public class ConvaiFaceService extends ScriptableService {
@@ -29,6 +34,9 @@ public class ConvaiFaceService extends ScriptableService {
   // 1 gated (shipping), 2 ungated, 0 off: the last two exist only to measure what the gate saves (docs/FACIAL_ANIMATION.md,
   // "Ordinary NPCs", set from mod/facial-playback.lua by runtime/crowd-face-mode.txt). It applies to NPCs that spawn afterwards.
   private let m_crowdMode: Int32;
+  // "Talk to story characters" (docs/WORLD_CHARACTERS.md): the named roster characters the game placed get the speaking face at
+  // their spawn and their talk-time guard below. Set by the Lua side before a world loads; on until it says otherwise.
+  private let m_storyTalk: Bool;
   // Screen faces (docs/FACIAL_ANIMATION.md, "A face on a screen"): the face_rig rig paths an add-on watches now (the Delamain cab
   // while a cab exists: the NPC the seat-back screens film carries Delamain's own head rig) and, per rig, the last NPC prepared
   // for it. Empty unless an add-on asked (mod/addons.lua handle:watchFace), so without add-ons nothing here ever runs.
@@ -72,6 +80,7 @@ public class ConvaiFaceService extends ScriptableService {
       i += 1;
     };
     this.m_crowdMode = 1;
+    this.m_storyTalk = true;
     GameInstance.GetCallbackSystem()
       .RegisterCallback(n"Entity/Initialize", this, n"OnCompanionInitialize")
       .AddTarget(DynamicEntityTarget.Tag(n"CyberpunkConvaiCompanion"));
@@ -283,8 +292,10 @@ public class ConvaiFaceService extends ScriptableService {
     let face = npc.FindComponentByName(n"face_rig") as AnimatedComponent;
     if !IsDefined(face) { return; };
     let index = this.CrowdIndex(ResRef.ToString(ResourceRef.GetPath(face.graph)));
+    if index >= 0 && screens && this.PrepareScreenFace(npc, face, index) { return; };
+    // The game's own named characters (Judy, Jackie, Panam ...) whom the player may talk to: whatever their graph, one preparation.
+    if this.m_storyTalk && this.m_crowdMode != 0 && this.PrepareStoryFace(npc, face) { return; };
     if index < 0 { return; };
-    if screens && this.PrepareScreenFace(npc, face, index) { return; };
     if this.m_crowdMode == 0 { return; };
     let record = npc.GetRecordID();
     let recordValid = TDBID.IsValid(record);
@@ -303,6 +314,28 @@ public class ConvaiFaceService extends ScriptableService {
     };
     face.graph = graph;
     npc.ConvaiFacePrepared(true, "prepared:" + this.m_crowdNames[index], ResRef.ToString(ResourceRef.GetPath(graph)));
+  }
+
+  // A named roster character the game placed (NamedRecords) gets the speaking face at its spawn, on a crowd graph or on the graph
+  // our own copy of that character carries (PrepareSpawnedFace), whatever its record's quest flag: the roster is the list of
+  // people the player may talk to, and the talk-time guard (TalkRefusal) and the Lua side keep it out of scenes. True when the
+  // record is on the roster (handled, prepared or not); false leaves the ordinary-NPC filters to decide.
+  private func PrepareStoryFace(npc: ref<NPCPuppet>, face: ref<AnimatedComponent>) -> Bool {
+    let record = npc.GetRecordID();
+    if !TDBID.IsValid(record) || !ArrayContains(this.m_named, record) { return false; };
+    let status = this.PrepareSpawnedFace(face);
+    npc.ConvaiFacePrepared(StrBeginsWith(status, "prepared:"), status, ResRef.ToString(ResourceRef.GetPath(face.graph)));
+    return true;
+  }
+
+  // Talk to story characters (the setting): applies to characters that spawn afterwards, so a save reload picks a change up.
+  public func SetStoryTalk(on: Bool) -> Bool {
+    this.m_storyTalk = on;
+    return this.m_storyTalk;
+  }
+
+  public func StoryTalk() -> Bool {
+    return this.m_storyTalk;
   }
 
   // The crowd graph (0 to 3) that a face graph path names, or -1. Only the vanilla path counts: anything else (the
@@ -426,6 +459,13 @@ public class ConvaiFaceService extends ScriptableService {
     // (follow, pose), not by a quest, and a quest-named record or appearance is only the model the player chose.
     if spawned {
       if npc.IsQuest() { return "skipped:quest"; };
+      return "";
+    };
+    // A named character of the game that the player may talk to (docs/WORLD_CHARACTERS.md): its quest flag and a quest-named record
+    // are what it is, not a scene. Only an AI that a scene or quest commands refuses it here (a dialogue was refused above); the Lua
+    // side adds combat, injury, a ride and V's own quest conversation before any reply starts.
+    if this.m_storyTalk && ArrayContains(this.m_named, npc.GetRecordID()) {
+      if !npc.IsOnAutonomousAI() { return "skipped:driven"; };
       return "";
     };
     if ConvaiFaceService.QuestBound(NameToString(npc.GetCurrentAppearanceName()))
