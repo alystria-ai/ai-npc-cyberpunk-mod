@@ -158,3 +158,22 @@ Johnny and Panam, using the same archive/transcript verification in batches of
 See [character voice preparation](VOICE_TRAINING.md) for dataset counts, model
 revisions, limits and the distinction between a trained adapter and an accepted
 voice. The original reference manifests and listening comparisons remain intact.
+
+## Hand-extracted references for Rita Wheeler (2026-10-18)
+
+Rita Wheeler (`Character.lizzies_bouncer`, the Mox door guard at Lizzie's Bar) is a named character with her own lines. Attribution is at scene level:
+
+- Scene `base\quest\main_quests\prologue\q000\scenes\q000_corpo_04_lizzies_club.scene` (The Corpo-Rat), exported with `research/cyberpunk/scripts/extract_scene_evidence.py` (batch `rita-lizzies-door`). Its actor 6 is named `lizzies_bouncer` (the name of her character record), community entry `bouncer`, voicetag id 1624173162027036812, and is the speaker of nine screenplay lines. `scripts/clip-search/rita-wheeler/scene_lines.py` lists them.
+- The nine locstring ids map one to one to the nine voice files `civ_prnd_f_01_enus_30_q000_f_<hex>.wem`, which are the only files with that prefix in the voice archive, and to nine installed English subtitle entries (the transcripts).
+- Not used: the door guards of `q105_01a_bouncer` and `q004_01_meet_the_lizzies` (community entries `bouncer_quest_01` and `bouncer_quest_02` of `wat_kab_com_lizzies_default`). They speak with other voice tags (`gang_liz_f_01`, `gang_liz_f_03`) and nothing in the exported scenes ties them to her record, so a shared look or role is not accepted as identity.
+
+Extracted by `scripts/clip-search/rita-wheeler/extract_rita.py` (the low-level helpers of `Extract-VoiceReferences.py`: archive index, Oodle, RIFF check, vgmstream, FFprobe-style WAV facts) into `runtime/voice-references/extracted/rita-wheeler/<StringID>.{wem,wav,txt}`. All nine are mono 48 kHz 16-bit, no clipped samples, digital silence between words (no noise floor, no hum). Seconds, in scene order: 1.93, 2.22, 2.78, 2.89, 1.33, 2.20, 1.79, 2.01, 1.74. A Whisper small.en pass (`asr_check.py`) matches the subtitles at 0.73 to 1.00 word similarity (the differences are the non-word "Pff", a contraction and one mis-heard word); pitch median about 190 to 220 Hz (crude estimate, so an average-pitch voice with a clipped, blunt delivery rather than a low one).
+
+Built by `build_rita.py` (clip-search recipe: whole clips, 0.4 s gaps, mono 24 kHz, 16-bit; no EQ, denoise or gain). The four shouted lines (gated loudness 17 to 19.5 dB against the set median of 22) stay out; the rule is the usual one (1.5 to 9 s, at least three words, within 2 dB of the median, peak at most -3 dBFS). ECAPA typicality was not run: the weights are not on disk since the 2026-10-16 clean-up and fetching them needs approval; all nine clips are one actor in one scene, so one voice holds by construction.
+
+| Key | Set | Clips (StringID) | Seconds | sha256 |
+| --- | --- | --- | ---: | --- |
+| `rita-wheeler` | omni-short | 1672130344050925568, 1877987316845268992, 1882154225697222656, 1985029939546484736 | 9.98 | `ca35e3ecfd937568f12db48b05ddb992862eb71c6a2d2fd6accbd0039c54e1f2` |
+| `rita-wheeler` | omni-long, pocket | the four above plus 1877994627231928320 (1.33 s), in scene order | 11.71 | `5b8050f02875ca5b685449bd4f42baea8a64ec7b7187323aa1463772273fee46` |
+
+Wired into `runtime/pocket-voices.autobest.json`, `runtime/local-voices.autobest-short.json` and `runtime/local-voices.autobest-long.json` (the three files `runtime/voice-configs.json` names; Voxtral reads the Omni long set first, then Pocket). `lucy-kushinada` has `{"status": "unprepared"}` in the same three files (no game voice). The Node and Python loaders accept all three (`node` registry 257 ready, 1 unavailable: Lucy; the hashes match). Backups of the three files: `runtime/backups/rita-voice-20261018/`. `packaging/release-plan.json` lists `rita-wheeler` under `voice.localProfiles` (77). To ship: upload the three WAVs to `final/voice-references/picked/autobest/{omni-short,omni-long,pocket}/rita-wheeler.wav` and the three config files to `final/voice-configs/` in the Hugging Face bucket; re-running `scripts/Build-AutobestConfigs.mjs` would put her back to `unprepared` (the pool has no clips for her), so re-apply `build_rita.py` afterwards.

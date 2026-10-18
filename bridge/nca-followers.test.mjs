@@ -2,6 +2,10 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync, readdirSync} from 'node:fs';
 import fengari from 'fengari';
+import {KnowledgeRouter} from './conversation-knowledge.mjs';
+import {multilingualTwins} from './multilingual.mjs';
+import {RelationshipRouting} from './relationship-routing.mjs';
+import {TIER1_KEYS} from '../scripts/Create-MultilingualProfiles.mjs';
 
 // Night City Allies followers Lucy and Rita Wheeler (docs/NCA_FOLLOWERS_PLAN.md). Recognition is roster data only: NCA
 // spawns its followers through the shared dynamic entity system, so the generic spawned-character path
@@ -168,4 +172,73 @@ test('wiring: riders feed the turn context party and activity only, never a per-
   const update = init.slice(init.indexOf("registerForEvent('onUpdate'"));
   assert.doesNotMatch(update.slice(0, update.indexOf('\nend)') + 5), /convaiSpawnedPeople\.(?:riders|seats)/);
   assert.equal(init.split('convaiSpawnedPeople.riders(').length - 1, 1, 'one caller: the turn context party callback');
+});
+
+// ---- Convai characters and routing on every provider (the user's decision D1, 2026-10-18) -------------------------------------
+
+const KEYS = ['lucy-kushinada', 'rita-wheeler'];
+const releaseIds = JSON.parse(read('../packaging/release-data/characters.json'));
+const releaseTwins = JSON.parse(read('../packaging/release-data/multilingual-profiles.json'));
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+test('Convai characters: both have an original and a multilingual twin in the release data, distinct from every other character', () => {
+  const voiceMap = JSON.parse(read('../characters/multilingual-voice-map.json'));
+  const all = [...Object.values(releaseIds), ...Object.values(releaseTwins.characters).map(entry => entry.multilingualCharacterId)];
+  for (const key of KEYS) {
+    assert.match(releaseIds[key], UUID, key + ' original ID');
+    const twin = releaseTwins.characters[key];
+    assert.ok(twin, key + ' twin row');
+    assert.equal(twin.originalCharacterId, releaseIds[key], key + ' twin points at its own original');
+    assert.match(twin.multilingualCharacterId, UUID);
+    assert.notEqual(twin.multilingualCharacterId, releaseIds[key]);
+    assert.equal(twin.verified, true); assert.equal(twin.phase, 'verified');
+    assert.equal(twin.name, row(key).name + ' Multilingual');
+    assert.equal(twin.voiceType, voiceMap.assignments[key].voice, 'the twin carries the mapped voice');
+    assert.deepEqual(twin.languageCodes, ['en-US']);
+    assert.equal(all.filter(id => id === releaseIds[key]).length, 1, 'original ID is unique');
+    assert.equal(all.filter(id => id === twin.multilingualCharacterId).length, 1, 'twin ID is unique');
+  }
+  // Until the language box is unticked in the Convai dashboard a twin is left out (and logged); it never breaks the plain profile.
+  for (const key of KEYS) if (releaseTwins.characters[key].languageBoxOff !== true) {
+    assert.ok(multilingualTwins(releaseTwins, {ordinaryIds: releaseIds}).skipped.includes(key));
+  }
+});
+
+test('Convai characters: both are tier-1 (pre-open lane priority) and the release plan lists the Rita local voice', () => {
+  for (const key of KEYS) assert.ok(TIER1_KEYS.includes(key), key + ' in TIER1_KEYS');
+  const auto = read('../mod/auto-connect.lua');
+  for (const key of KEYS) assert.ok(auto.includes(`'${key}'`), key + ' in M.TIER1');
+  const plan = JSON.parse(read('../packaging/release-plan.json'));
+  assert.ok(plan.voice.localProfiles.includes('rita-wheeler'));
+  assert.ok(!plan.voice.localProfiles.includes('lucy-kushinada'), 'Lucy has no local reference yet');
+  assert.equal(plan.voice.registry.preparedLocalProfiles, plan.voice.localProfiles.length);
+  assert.ok(JSON.parse(read('../characters/world-knowledge.json')).profileKeys.includes('rita-wheeler'));
+});
+
+test('routing: with their IDs both profiles pass the gate of every provider (Convai, Mistral and the local AI), and the plain route names the Convai ID', async () => {
+  // Convai: the provider ID is the character ID (a twin only while the language box is off and the setting is on).
+  const routing = new RelationshipRouting({ordinaryIds: releaseIds, multilingual: multilingualTwins(releaseTwins, {ordinaryIds: releaseIds}).twins});
+  for (const key of KEYS) assert.equal(routing.providerIds[key], releaseIds[key]);
+  // Mistral and the local AI: the bridge's only per-profile gates are the roster lookup and the ID check; after them a turn is
+  // addressed by profile key and name alone (local memory is runtime/local-memory/player/<key>.json), so IDs are all that was missing.
+  const bridge = read('../bridge/convai-bridge.mjs');
+  assert.equal(bridge.split('!ids[profile.key]').length - 1, 2, 'the two turn gates are the only ID checks for a roster profile');
+  const localTurn = bridge.slice(bridge.indexOf('function localTurn('), bridge.indexOf('let observed ='));
+  assert.match(localTurn, /profileKey: input\.profileKey/);
+  assert.doesNotMatch(localTurn, /(?:^|[^A-Za-z])ids(?:[^A-Za-z]|$)|characterId/, 'a local or Mistral turn needs no Convai ID');
+  // The knowledge route (shared by all three providers) accepts both keys as a private audience and as a group member.
+  const identity = {status: 'verified', authoritative: true, userId: 'u', campaignId: 'c', playthroughId: 'c', branchId: 'b',
+    worldGeneration: 7, generation: 4, activationId: 'a', worldToken: '4:a:b'};
+  const guard = {epoch: 1, userId: 'u', branchId: 'b', worldGeneration: 7, generation: 4, activationId: 'a', remoteGeneration: 1};
+  const service = {saveIdentity: identity, guard: () => guard, isCurrent: () => true, async current() { return true; },
+    configFor: () => null, async project() { return {knowledgeContext: '', saveIdentity: identity, guard, remoteConfig: null}; },
+    ledger: {contextFor: ({characterKey, channel}) => ({status: 'unavailable', characterKey, channel})}};
+  const router = new KnowledgeRouter({service, now: () => Date.now()});
+  for (const key of KEYS) {
+    const worldKnowledge = {version: 1, status: 'ready', gameVersion: '2.31', generation: 7, worldToken: identity.worldToken,
+      capturedAt: new Date().toISOString(), identity: {status: 'unknown'}, audience: {channel: 'private', profileKeys: [key]}, facts: {}, journal: {}};
+    const prepared = await router.prepare({requestId: '1-1-1ULL', generation: 1, entity: '1ULL', profileKey: key, name: row(key).name, text: 'Hi', worldKnowledge});
+    assert.equal(prepared.route.profileKey, key); assert.deepEqual(prepared.route.audience, [key]);
+    assert.ok(router.configFor(key, 'group:lucy-kushinada,rita-wheeler') !== undefined);
+  }
 });

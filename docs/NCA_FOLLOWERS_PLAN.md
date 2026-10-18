@@ -214,3 +214,27 @@ Each has a suggested default.
 | `mod/turn-context.lua` | `classify`: the `mounted` seat |
 | `scripts/Build-FacialGraphs.mjs`, `r6/scripts/CyberpunkConvai/FaceFeature.reds` | clone-prefixed records |
 | `bridge/nca-followers.test.mjs` (new), `bridge/manager.test.mjs`, `bridge/first-person-profiles.test.mjs` | tests |
+
+## 6. Decisions taken and work done (2026-10-18, later the same day)
+
+**The user's decisions.** D1 yes (Convai characters for both and their twins). D3 and D4: Rita uses her own game lines and stays one named character with one profile and one memory. D2: Lucy gets real clips of her English-dub voice from the anime, research first, nothing downloaded until the user approves. D5 to D9: the suggested defaults (leave the Model browser as is; keep the placeholder voices until the real ones are in; ask nothing of the player about the Rita mod; nothing for Edgerunners 2 yet; leave on-foot company out).
+
+**D1, done.** Created with `Provision-Characters.mjs --apply --only <key>` and `Create-MultilingualProfiles.mjs --roster named --only <key> --apply`, each verified by readback (biography, speaking style, samples, voice, model). No other character was read for writing or changed: `runtime/characters.json` differs from before in exactly two keys.
+
+| Character | Convai ID | Convai voice |
+|---|---|---|
+| Lucy Kushinada | `97634ae6-cb10-11f1-8511-42010a7be02f` | Claire (Whispering Young-Adult American Female), placeholder: soft and calm; revisit when her real voice is chosen |
+| Lucy Kushinada Multilingual | `a537a2b6-cb10-11f1-a9df-42010a7be02f` | Azure Seraphina |
+| Rita Wheeler | `73c06244-cb11-11f1-a63a-42010a7be02f` | Katie (Husky Young-Adult American Female) |
+| Rita Wheeler Multilingual | `7a784d5e-cb11-11f1-8e7f-42010a7be02f` | Azure Arabella |
+
+- Rita's Convai voice was changed from the placeholder Rachel before her character was created (roster row, plan row and build report). Katie is the husky young adult voice; Rachel is neutral. The measured pitch of her game lines is average (about 190 to 220 Hz), so "low" is carried by her delivery, which Katie's husk fits best. Katie is also Panam's and Claire Russell's voice on the Convai provider.
+- Release data: the two original IDs in `packaging/release-data/characters.json`, the two twin rows in `packaging/release-data/multilingual-profiles.json` (only these rows were added; the file is otherwise as it was). Both are in `TIER1_KEYS` (26) and in `mod/auto-connect.lua` `M.TIER1`, so the pre-open lane treats a follower as a first-rank profile.
+- The twins stay unused until the language box is unticked (`multilingualTwins` skips a twin whose `languageBoxOff` is not true and logs it). That is the one manual step; see the report to the user for the exact list.
+- **Routing on every provider, checked.** After the ID gate (`!ids[profile.key]` at the text and microphone turn starts), nothing per profile depends on a Convai ID except the Convai route itself: the knowledge route is keyed by profile key (both keys are in the world-knowledge audience), `localTurn` (Mistral and Local AI) carries the key and the name only, local memory is `runtime/local-memory/player/<key>.json`, and the voice choice reads the roster and the voice configs. `bridge/nca-followers.test.mjs` pins the data (IDs, twins, voice map), tier-1 membership and these gates, and runs the real knowledge router and relationship routing for both keys. No live talk turn was made.
+
+**D3 and D4, Rita's voice, done offline.** Her lines are the nine of the actor `lizzies_bouncer` in the Corpo-Rat scene `q000_corpo_04_lizzies_club` (scene-level attribution; details, clips, checks and hashes in `docs/GAME_VOICE_REFERENCES.md`, "Hand-extracted references for Rita Wheeler"). The door guards of The Information and the Lizzie's mood scene speak with other voice tags and are not hers on the evidence. Two short references (omni-short 9.98 s; omni-long and Pocket 11.71 s) were built and wired into the three live voice configs; Voxtral takes the long set. To ship, upload the three WAVs and the three configs to the Hugging Face bucket (paths in that section). Limits: only nine lines of 1.3 to 2.9 s exist, so the long set is shorter than the usual 12 to 18 s; all four shouted lines are left out; no listening review yet (an audition in the game is the first live check for her voice).
+
+**D2, Lucy, research only.** Candidates, tool and pipeline are in the report to the user; nothing was downloaded, no tool installed, and her Convai voice stays the placeholder. She has `unprepared` in the three voice configs (the same entry a profile without a clip has): on Pocket or Omni she falls back to the Convai voice, and on Voxtral, or Mistral or local text with a local voice, she is text only until a reference exists.
+
+**Work list changes.** D1, release data, `TIER1_KEYS`, auto-connect, the README line and Rita's references are done. Open: the user unticks the two language boxes and the map then records `languageBoxOff: true` in `runtime/multilingual-profiles.json` and the release data; upload Rita's files; Lucy's clips (needs the user's download approval); the live checks above, plus an audition of Rita's voice.

@@ -2771,6 +2771,42 @@
       "languageBoxField": "language_hardening_mode",
       "languageBoxOff": true,
       "notCloned": []
+    },
+    "lucy-kushinada": {
+      "phase": "verified",
+      "originalCharacterId": "97634ae6-cb10-11f1-8511-42010a7be02f",
+      "startedAt": "2026-10-18T16:26:14.929Z",
+      "key": "lucy-kushinada",
+      "name": "Lucy Kushinada Multilingual",
+      "multilingualCharacterId": "a537a2b6-cb10-11f1-a9df-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-18T16:26:22.898Z",
+      "voiceType": "AZURE-MULTILINGUAL-ad8798063c",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
+    },
+    "rita-wheeler": {
+      "phase": "verified",
+      "originalCharacterId": "73c06244-cb11-11f1-a63a-42010a7be02f",
+      "startedAt": "2026-10-18T16:32:13.449Z",
+      "key": "rita-wheeler",
+      "name": "Rita Wheeler Multilingual",
+      "multilingualCharacterId": "7a784d5e-cb11-11f1-8e7f-42010a7be02f",
+      "verified": true,
+      "verifiedAt": "2026-10-18T16:32:19.174Z",
+      "voiceType": "AZURE-MULTILINGUAL-c49149301e",
+      "languageCodes": [
+        "en-US"
+      ],
+      "model": "fast-gemma-4-31b-it",
+      "languageBoxField": "language_hardening_mode",
+      "languageBoxOff": false,
+      "notCloned": []
     }
   }
 }

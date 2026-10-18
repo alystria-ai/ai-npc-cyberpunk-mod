@@ -910,6 +910,7 @@
       "r3n0",
       "rachel-casich",
       "regina-jones",
+      "rita-wheeler",
       "river-ward",
       "robert-wilson",
       "rogue-amendiares",
@@ -946,7 +947,7 @@
       "additionalProfileStatus": "source-qualified activation; listening not required by user",
       "sourceQualifiedActivation": true,
       "subjectiveListeningRequired": false,
-      "preparedLocalProfiles": 76,
+      "preparedLocalProfiles": 77,
       "fallbackProfiles": 4
     },
     "startupProfiles": [
