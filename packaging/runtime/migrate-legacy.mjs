@@ -35,7 +35,8 @@ export const NEW_NAME = 'AiNpcCyberpunkMod';
 export const LEGACY_NAME = 'CyberpunkConvai';
 export const REPORT_FILE = 'legacy-migration.json';
 
-export function legacyPaths(gameRoot) {
+// stateDirectory: where the new installation keeps the player's data (state-home.mjs); the new mod folder's data/ by default.
+export function legacyPaths(gameRoot, {stateDirectory} = {}) {
   const game = resolve(gameRoot);
   const cet = join(game, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks');
   const plugins = join(game, 'red4ext', 'plugins');
@@ -43,6 +44,7 @@ export function legacyPaths(gameRoot) {
     game, bindings: join(cet, 'bindings.json'),
     oldMod: join(cet, 'mods', LEGACY_NAME), oldPlugin: join(plugins, LEGACY_NAME), oldNative: join(plugins, `${LEGACY_NAME}Native`),
     newMod: join(cet, 'mods', NEW_NAME), newPlugin: join(plugins, NEW_NAME), newNative: join(plugins, `${NEW_NAME}Native`),
+    newState: stateDirectory ? resolve(stateDirectory) : join(cet, 'mods', NEW_NAME, 'data'),
   });
 }
 
@@ -145,7 +147,7 @@ async function mergeTree(ctx, src, dst, kind, rel = '') {
   const name = rel.split('/').pop();
   if (kind === 'package' || PACKAGE_FILES.has(name)) { await fs.rm(src, {force: true}); report.packageKept.push(rel); return; }
   // State conflict: the old content wins; the file it displaces is saved, not deleted.
-  const saved = join(ctx.paths.newMod, 'data', 'legacy-migration', 'replaced', ctx.tag, ...rel.split('/'));
+  const saved = join(ctx.paths.newState, 'legacy-migration', 'replaced', ctx.tag, ...rel.split('/'));
   await fs.mkdir(dirname(saved), {recursive: true});
   await fs.rename(dst, saved);
   await place(ctx, src, dst, label);
@@ -206,8 +208,8 @@ async function retire(ctx) {
   }
 }
 
-export async function adoptLegacyInstall({gameRoot, log = () => {}, fs = realFs} = {}) {
-  const paths = legacyPaths(gameRoot);
+export async function adoptLegacyInstall({gameRoot, stateDirectory, log = () => {}, fs = realFs} = {}) {
+  const paths = legacyPaths(gameRoot, {stateDirectory});
   const present = [];
   for (const key of ['oldMod', 'oldPlugin', 'oldNative']) if (await exists(fs, paths[key])) present.push(key);
   if (!present.length) return {found: false, paths};
@@ -219,7 +221,7 @@ export async function adoptLegacyInstall({gameRoot, log = () => {}, fs = realFs}
   // runtime/native-off.txt belongs to the package (a later update changes the list), so it is never carried: the new package writes its own.
   for (const name of PACKAGE_FILES) await fs.rm(join(paths.oldMod, 'runtime', name), {force: true}).catch(() => {});
   const merges = [
-    ['mod/data', join(paths.oldMod, 'data'), join(paths.newMod, 'data'), 'state'],
+    ['mod/data', join(paths.oldMod, 'data'), paths.newState, 'state'],
     ['mod/runtime', join(paths.oldMod, 'runtime'), join(paths.newMod, 'runtime'), 'state'],
     ['plugin/local-ai', join(paths.oldPlugin, 'app', 'local-ai'), join(paths.newPlugin, 'app', 'local-ai'), 'package'],
     ['plugin/omni', join(paths.oldPlugin, 'app', 'omni'), join(paths.newPlugin, 'app', 'omni'), 'package'],
@@ -229,7 +231,7 @@ export async function adoptLegacyInstall({gameRoot, log = () => {}, fs = realFs}
     ctx.tag = tag.replace('/', '-');
     try { await mergeTree(ctx, src, dst, kind); } catch (error) { report.errors.push(`${src}: ${error.message}`); log(`Carry-over of ${src} failed: ${error.message}`); }
   }
-  for (const directory of [join(paths.newMod, 'data'), join(paths.newMod, 'runtime')]) await purgeVolatile(fs, directory);
+  for (const directory of [paths.newState, join(paths.newMod, 'runtime')]) await purgeVolatile(fs, directory);
   try { report.bindings = await carryBindings(paths, fs); } catch (error) { report.bindings = 'failed'; report.errors.push(`bindings.json: ${error.message}`); }
   if (report.moved.length || report.replaced.length) log(`Carried over ${report.moved.length} item(s) of the player's state to ${NEW_NAME}${report.replaced.length ? `; ${report.replaced.length} file(s) it replaced are saved under data/legacy-migration/replaced` : ''}.`);
   await writeReport(ctx);
@@ -239,8 +241,8 @@ export async function adoptLegacyInstall({gameRoot, log = () => {}, fs = realFs}
 async function writeReport(ctx) {
   const {fs, paths, report} = ctx;
   try {
-    await fs.mkdir(join(paths.newMod, 'data'), {recursive: true});
-    await fs.writeFile(join(paths.newMod, 'data', REPORT_FILE), JSON.stringify(report, null, 2) + '\n');
+    await fs.mkdir(paths.newState, {recursive: true});
+    await fs.writeFile(join(paths.newState, REPORT_FILE), JSON.stringify(report, null, 2) + '\n');
   } catch { /* the report is for support; the carry-over does not depend on it */ }
 }
 
@@ -269,7 +271,7 @@ export async function cleanupLegacyInstall({adopted, log = () => {}, fs = realFs
     if (report.errors.some(error => error.startsWith(folder))) { pending.push(folder); continue; }
     let safe = true;
     const keep = async (src, label) => {
-      const dst = join(paths.newMod, 'data', 'legacy-migration', 'leftovers', key.replace('old', '').toLowerCase(), ...label.split('/'));
+      const dst = join(paths.newState, 'legacy-migration', 'leftovers', key.replace('old', '').toLowerCase(), ...label.split('/'));
       try { await moveEntry(fs, src, dst); report.leftovers.push(label); log(`Kept ${src} as data/legacy-migration/leftovers/${label}.`); }
       catch (error) { safe = false; report.errors.push(`${src}: ${error.message}`); log(`Could not keep ${src}: ${error.message}. The old folder stays.`); }
     };

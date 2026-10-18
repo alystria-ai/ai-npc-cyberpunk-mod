@@ -174,7 +174,7 @@ Where each log is written (verified in code): `mod/init.lua` and `mod/phone-layo
 `<mod>\AiNpcCyberpunkMod.log`, `bin\x64\plugins\cyber_engine_tweaks\cyber_engine_tweaks.log` and
 `scripting.log`; the supervisor (`bridge/bridge-supervisor.mjs`) writes `bridge-service.log`,
 `bridge.stdout.log` and `bridge.stderr.log` (previous run: `.previous`) to the **state folder**
-(development: the project's `runtime\`; packaged: `<mod>\data`, with the bootstrap using `data\logs\`);
+(development: the project's `runtime\`; packaged: `%LOCALAPPDATA%\AiNpcCyberpunkMod\data`, in 0.2 `<mod>\data`; the old bootstrap used `data\logs\`);
 the RED4ext launcher writes `launcher.log` beside its DLL; redscript and RED4ext write to `r6\logs` and
 `red4ext\logs`. Lua cannot see outside the mod folder, so the service publishes the real absolute paths in
 `runtime\support-paths.json` at start (the supervisor also adds `gameRoot` and `stateDirectory` to

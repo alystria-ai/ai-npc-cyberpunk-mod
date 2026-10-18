@@ -358,7 +358,7 @@ test('the packaged service places the pack before its checks and logs one line (
   const f = await fakeGame();
   try {
     const app = f.layout.app;
-    for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs']) await cp(join(project, 'packaging/runtime', name), join(app, 'launcher', name));
+    for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs', 'state-home.mjs']) await cp(join(project, 'packaging/runtime', name), join(app, 'launcher', name));
     await put(join(app, 'defaults/pocket-voices.autobest.json'), JSON.stringify({version: 1, provider: 'pocket', engine: 'pocket-tts', runtime: {}, voices: {}}));
     await put(join(app, 'defaults/characters.json'), '{"v":2}');
     await put(join(app, 'defaults/multilingual-profiles.json'), '{"v":2}');
@@ -366,18 +366,20 @@ test('the packaged service places the pack before its checks and logs one line (
     const wrapper = join(f.game, 'AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2');
     await standardPack(wrapper);
     await omniPack(wrapper);
-    const run = () => spawnSync(process.execPath, [join(app, 'launcher/start-service.mjs'), '--game-root', f.game, '--prepare-only'], {encoding: 'utf8', timeout: 60_000});
+    const home = join(f.root, 'LocalAppData', 'AiNpcCyberpunkMod'), state = join(home, 'data');
+    const run = () => spawnSync(process.execPath, [join(app, 'launcher/start-service.mjs'), '--game-root', f.game, '--prepare-only'],
+      {encoding: 'utf8', timeout: 60_000, env: {...process.env, CYBERPUNK_CONVAI_DATA_HOME: home}});
     const first = run();
     assert.equal(first.status, 0, first.stderr + first.stdout);
     assert.equal(JSON.parse(first.stdout.trim().split('\n').pop()).omni, true, 'the OmniVoice pack is found in the same start');
     assert.equal(await read(join(app, 'local-ai/models/chat.gguf')), 'MODEL-BYTES-standard');
     assert.equal(await exists(wrapper), false);
-    const log = (await read(join(f.layout.state, 'bridge-service.log'))).split('\n').filter(line => / Moved the /.test(line));
+    const log = (await read(join(state, 'bridge-service.log'))).split('\n').filter(line => / Moved the /.test(line));
     assert.equal(log.length, 2, log.join('\n'));
     assert.match(log.join('\n'), /Moved the Local AI standard files into place from AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0\.2/);
     assert.match(log.join('\n'), /Moved the OmniVoice files into place from AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0\.2/);
     const second = run();
     assert.equal(second.status, 0, second.stderr);
-    assert.equal((await read(join(f.layout.state, 'bridge-service.log'))).split('\n').filter(line => / Moved the /.test(line)).length, 2, 'a second start moves nothing');
+    assert.equal((await read(join(state, 'bridge-service.log'))).split('\n').filter(line => / Moved the /.test(line)).length, 2, 'a second start moves nothing');
   } finally { await f.cleanup(); }
 });
