@@ -535,7 +535,7 @@ test('a failure during an owned turn waits for the idle boundary before the rout
 test('Pocket failing, or both local voices failing, falls down to Convai',async()=>{
   const pocketOnly=dualFixture({start:'pocket',fail:['pocket']});
   await pocketOnly.voice.start().catch(()=>{});await tick();pocketOnly.voice.update({},null,false);
-  assert.equal(pocketOnly.voice.provider,'convai');assert.deepEqual(pocketOnly.voice.fallback,{from:'pocket',to:'convai'});
+  assert.equal(pocketOnly.voice.provider,'convai');assert.deepEqual(pocketOnly.voice.fallback,{from:'pocket',to:'convai',temporary:true});
   assert.equal((await pocketOnly.voice.prepareProfile('johnny-silverhand')).provider,'convai');
   await pocketOnly.voice.close();
   const both=dualFixture({fail:['omni','pocket'],start:'omni'});
@@ -683,12 +683,12 @@ test('prepared voices are always kept: on for every worker, and an old saved kee
 
 // A slow or failed OmniVoice is not a lost one: Pocket serves meanwhile, Omni loads again in the background, and the
 // voice returns at an idle reply boundary. `omni` scripts each Omni attempt in order: 'fail', 'hold' (a gate the test
-// opens), or 'ok' (the default once the script runs out).
-function retryFixture({omni = []} = {}) {
+// opens), or 'ok' (the default once the script runs out). `pocket` scripts the Pocket attempts the same way.
+function retryFixture({omni = [], pocket = []} = {}) {
   const workers = [], states = [], logs = []; let now = 1000, live = 0, peak = 0;
   const voices = {'johnny-silverhand': {reference: 'runtime/voice-references/johnny.wav', sha256: 'a'.repeat(64), transcript: 'Original line.'}};
   const factory = backend => (config, hooks) => {
-    const attempt = workers.filter(worker => worker.backend === backend).length, mode = backend === 'omni' ? (omni[attempt] || 'ok') : 'ok';
+    const attempt = workers.filter(worker => worker.backend === backend).length, mode = (backend === 'omni' ? omni : pocket)[attempt] || 'ok';
     const gate = defer(); let loaded = false, owned = false;
     const worker = {backend, hooks, gate, mode, starts: 0, closes: 0, steps: 32, failure: undefined,
       get loaded() { return loaded; }, hasProfile: key => Object.hasOwn(config.voices, key),
@@ -710,8 +710,9 @@ function retryFixture({omni = []} = {}) {
     factory: factory('pocket'), omniFactory: factory('omni'), clock: () => now,
     omniConfig: {version: 2, provider: 'hybrid', engine: 'omnivoice', steps: 32, voices}});
   const omniWorkers = () => workers.filter(worker => worker.backend === 'omni');
+  const pocketWorkers = () => workers.filter(worker => worker.backend === 'pocket');
   const settle = async () => { for (let i = 0; i < 6; i++) await tick(); };
-  return {voice, workers, states, logs, omniWorkers, settle, advance: ms => { now += ms; }, live: () => live, peak: () => peak,
+  return {voice, workers, states, logs, omniWorkers, pocketWorkers, settle, advance: ms => { now += ms; }, live: () => live, peak: () => peak,
     pocket: () => workers.find(worker => worker.backend === 'pocket')};
 }
 
@@ -802,6 +803,91 @@ test('a failed background load is retried again after its worker has exited', as
   h.omniWorkers()[2].gate.resolve(); await h.settle(); h.voice.update({}, null, false); await h.voice.retiring; await h.settle();
   assert.equal(h.voice.provider, 'omni'); assert.equal(h.voice.client, h.omniWorkers()[2]);
   await h.voice.close();
+});
+
+// A Pocket worker that failed (two stalled starts while the game loads, a crash) is not lost for the session: the voice falls to Convai's,
+// Pocket loads again after the same waits as Omni, and a Pocket that is up again is routed at the next idle poll.
+test('a Pocket that fails is loaded again after each wait, only when due and idle, and the fourth failure is the last', async () => {
+  const h = retryFixture({pocket: ['fail', 'fail', 'fail', 'fail']});
+  h.voice.update({}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.pocketWorkers().length, 1); assert.equal(h.voice.provider, 'convai');
+  assert.deepEqual(h.voice.fallback, {from: 'pocket', to: 'convai', temporary: true});
+  assert.equal(h.pocketWorkers()[0].closes, 1, 'the failed worker is released while it waits');
+  const waits = [];
+  for (const delay of [45_000, 180_000, 600_000]) {
+    waits.push(h.states.at(-1).pocketRetry.nextInMs);
+    h.advance(delay - 1); h.voice.update({}, null, false); await h.settle();
+    assert.equal(h.pocketWorkers().length, waits.length, 'not before the wait is over');
+    h.advance(1); h.voice.update({}, null, true); await h.settle();
+    assert.equal(h.pocketWorkers().length, waits.length, 'no load during a reply');
+    h.voice.update({}, null, false); await h.settle();
+    assert.equal(h.pocketWorkers().length, waits.length + 1);
+    assert.equal(h.pocketWorkers().at(-1).starts, 1);
+    h.voice.update({}, null, false); await h.settle();
+    assert.equal(h.pocketWorkers().length, waits.length + 1, 'one load per retry, however many polls follow');
+  }
+  assert.deepEqual(waits, [45_000, 180_000, 600_000]);
+  // The fourth failure ends it: a plain, permanent fallback, and nothing more is ever loaded.
+  assert.equal(h.voice.pocketRetry, null); assert.deepEqual(h.voice.fallback, {from: 'pocket', to: 'convai'});
+  assert.equal(h.states.at(-1).pocketRetry, null); assert.ok(h.logs.some(line => /\[PocketRetry\] giving up/.test(line)));
+  assert.equal(h.pocketWorkers().every(worker => worker.closes === 1), true);
+  h.advance(86_400_000); h.voice.update({}, null, false); await h.settle(); assert.equal(h.pocketWorkers().length, 4);
+  // The player chooses Pocket again: the normal start path, with the retry story reset.
+  h.voice.update({voiceProvider: 'convai'}, null, false); h.voice.update({voiceProvider: 'pocket'}, null, false); await h.settle();
+  assert.equal(h.pocketWorkers().length, 5); assert.equal(h.voice.provider, 'pocket'); assert.equal(h.voice.fallback, null);
+  await h.voice.close(); assert.equal(h.live(), 0);
+});
+
+test('a Pocket that loads on a retry takes the route back at the next idle poll, and its failures start over', async () => {
+  const h = retryFixture({pocket: ['fail', 'ok']});
+  h.voice.update({}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.voice.provider, 'convai'); assert.equal(h.voice.profileReady('johnny-silverhand'), false);
+  h.advance(45_000); h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.pocketWorkers().length, 2); assert.equal(h.pocketWorkers()[1].loaded, true);
+  assert.equal(h.voice.pocketRetry, null, 'a loaded Pocket ends the story');
+  h.voice.update({}, null, false); await h.settle();
+  assert.equal(h.voice.provider, 'pocket'); assert.equal(h.voice.fallback, null); assert.equal(h.states.at(-1).pocketRetry, null);
+  assert.equal(h.voice.profileReady('johnny-silverhand'), true);
+  assert.ok(h.logs.some(line => /\[PocketRetry\] attempt 1 failed/.test(line)) && h.logs.some(line => /\[PocketRetry\] Pocket is ready again/.test(line)));
+  // A crash later is a new story with the first wait again.
+  h.pocketWorkers()[1].hooks.onState({state: 'error'}); await h.settle();
+  assert.equal(h.voice.pocketRetry.failures, 1);
+  h.voice.update({}, null, false); await h.settle();
+  assert.deepEqual(h.voice.fallback, {from: 'pocket', to: 'convai', temporary: true});
+  await h.voice.close(); assert.equal(h.live(), 0);
+});
+
+test('a Pocket retry ends, or waits, when the voice is not wanted: another voice, playback Off, a closed service', async () => {
+  // Another voice chosen while the retry waits: the story ends and nothing is loaded when it comes due.
+  const away = retryFixture({pocket: ['fail']});
+  away.voice.update({}, null, false); await away.settle(); away.voice.update({}, null, false); await away.settle();
+  assert.ok(away.voice.pocketRetry);
+  away.voice.update({voiceProvider: 'convai'}, null, false); await away.settle();
+  assert.equal(away.voice.pocketRetry, null); away.advance(600_000); away.voice.update({}, null, false); await away.settle();
+  assert.equal(away.pocketWorkers().length, 1); assert.equal(away.voice.provider, 'convai'); assert.equal(away.voice.fallback, null);
+  await away.voice.close();
+  // A worker loading on a retry is released when the player moves to another voice (the normal release of an unused worker).
+  const loading = retryFixture({pocket: ['fail', 'hold']});
+  loading.voice.update({}, null, false); await loading.settle(); loading.voice.update({}, null, false); await loading.settle();
+  loading.advance(45_000); loading.voice.update({}, null, false); await loading.settle();
+  const worker = loading.pocketWorkers()[1]; assert.ok(worker && worker.loaded === false);
+  loading.voice.update({voiceProvider: 'convai'}, null, false); await loading.voice.retiring; await loading.settle();
+  assert.equal(worker.closes, 1); assert.equal(loading.live(), 0); assert.equal(loading.voice.pocketRetry, null);
+  await loading.voice.close();
+  // Playback Off: due, but no worker is loaded; the wait keeps its place and the load follows when playback comes back.
+  const quiet = retryFixture({pocket: ['fail']});
+  quiet.voice.update({}, null, false); await quiet.settle(); quiet.voice.update({}, null, false); await quiet.settle();
+  quiet.voice.update({voice: false}, null, false); await quiet.settle(); quiet.advance(60_000);
+  quiet.voice.update({voice: false}, null, false); await quiet.settle();
+  assert.equal(quiet.pocketWorkers().length, 1); assert.ok(quiet.voice.pocketRetry);
+  quiet.voice.update({voice: true}, null, false); await quiet.settle(); quiet.voice.update({}, null, false); await quiet.settle();
+  assert.equal(quiet.pocketWorkers().length, 2); assert.equal(quiet.voice.provider, 'pocket');
+  await quiet.voice.close();
+  // The service closing ends it.
+  const closing = retryFixture({pocket: ['fail']});
+  closing.voice.update({}, null, false); await closing.settle(); closing.voice.update({}, null, false); await closing.settle();
+  await closing.voice.close(); assert.equal(closing.voice.pocketRetry, null);
+  closing.advance(600_000); closing.voice.update({}, null, false); await closing.settle(); assert.equal(closing.pocketWorkers().length, 1);
 });
 
 test('with the real OmniVoice client, a silent start falls to Pocket, then a below-normal worker loads and takes over at idle', async () => {
