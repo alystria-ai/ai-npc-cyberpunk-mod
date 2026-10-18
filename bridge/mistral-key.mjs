@@ -89,12 +89,22 @@ export class MistralProvider {
   get active() { return this.applied !== 'convai'; }
   /** Which text route answers: 'mistral', 'local' or (Convai) 'convai'. */
   get route() { return this.applied; }
-  /** The local AI cannot be used (reason: 'not-installed', 'low-memory', 'no-gpu', 'start-failed', 'crashed'): Convai takes over at the next idle boundary, with one notice. */
+  /** The local AI cannot be used (reason: 'not-installed', 'low-memory', 'mature-off', 'no-gpu', 'start-failed', 'crashed'): Convai takes over at the next idle boundary, with one notice. */
   noteLocalFailure(reason) {
     if (this.preference !== 'local') return;
     if (this.localBroken === (reason || 'start-failed')) return;
     this.localBroken = reason || 'start-failed'; this.localNoticePending = true;
     this.#changed();
+  }
+  /**
+   * The reason the local AI could not be used has gone away (Mature content was turned on beside a Mature-only install): the local AI is the
+   * requested provider again, taken at the next idle boundary, and the earlier failure's notice is dropped. Returns whether anything changed.
+   */
+  clearLocalFailure(reason) {
+    if (this.preference !== 'local' || !this.localBroken || this.localBroken !== reason) return false;
+    this.localBroken = null; this.localNoticePending = false;
+    this.#changed();
+    return true;
   }
   /**
    * One local turn could not be answered and the player's cloud provider answered it instead: the reply carries a notice

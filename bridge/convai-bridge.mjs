@@ -2689,6 +2689,8 @@ async function syncLocalModelChoice(settings) {
     const first = localModelChoiceKey === null;
     localModelChoiceKey = choiceKey;
     if (!first && mistral.applied === 'local') void localServer.reselect().catch(() => {});
+    // A Mature-only install could not start Local AI while Mature content was off ('mature-off'); turning it on lifts that: try again.
+    if (!first && matureContent.enabled && mistral.clearLocalFailure('mature-off')) prepareLocal();
   }
   if (Date.now() - localModelListCheckedAt >= 5000) {
     localModelListCheckedAt = Date.now();
