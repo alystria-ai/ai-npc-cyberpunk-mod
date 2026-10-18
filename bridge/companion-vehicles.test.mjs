@@ -864,3 +864,159 @@ test('a new boarding asks again, and so does a new vehicle',()=>run(`${foreignFi
   world.foreign=0; party(1); tick(30)
   assert(world.foreignCalls==2 and fleet.people[1].seat=='seat_front_right',tostring(fleet.people[1].seat))
 `));
+
+// ---- the wait for another mod's followers, the log lines and the exits (live check 2026-10-19: Alex, Lucy, Rita and Judy) -------
+const waitFixture=`${foreignFixture}
+  world.pendingCalls=0
+  world.log={}
+  fleet.report=function(kind,fields) world.log[#world.log+1]={kind=kind,fields=fields} end
+  function api.foreignRiders(player,car)
+    world.foreignCalls=world.foreignCalls+1
+    local ids={} for i=1,(world.foreign or 0) do ids[i]='f'..i end
+    return world.foreign or 0,{ids=ids,rows={{who='judy-alvarez',counted=true,why='follower',distance=8.2}}}
+  end
+  function api.foreignPending(ids) world.pendingCalls=world.pendingCalls+1; return world.walking or 0 end
+  local baseMount=api.mount
+  function api.mount(entry,car,seat,exit)
+    if exit and world.unmountRefused then
+      local c={kind='unmount',entry=entry,car=car,seat=seat,state='Failure'}
+      world.commands[#world.commands+1]=c; return c
+    end
+    return baseMount(entry,car,seat,exit)
+  end
+  local function lines(kind) local out={} for _,l in ipairs(world.log) do if l.kind==kind then out[#out+1]=l.fields end end return out end
+  local function occupy(name,id) for _,s in ipairs(primary.info.seats) do if s.name==name then s.occupant=id end end end
+  local function unmounts() local n=0 for _,c in ipairs(world.commands) do if c.kind=='unmount' then n=n+1 end end return n end
+`;
+
+test('our companions send no mount command while a counted rider is still walking to the car, then board when she sat down',()=>run(`${waitFixture}
+  world.foreign=1; world.walking=1; party(1); tick(30)
+  assert(count('mount')==0,'no mount while she walks')
+  assert(fleet.people[1].seat=='seat_back_left' and fleet.people[1].phase=='waiting-to-board',tostring(fleet.people[1].phase))
+  assert(#world.spawned==0 and fleet.people[1].error and fleet.people[1].error:find('followers',1,true),tostring(fleet.people[1].error))
+  assert(world.pendingCalls>=4 and world.pendingCalls<=7,'polled about twice a second: '..world.pendingCalls)
+  world.walking=0; tick(10)
+  assert(count('mount')==1 and fleet.people[1].phase=='riding' and world.mounts[1].seat=='seat_back_left')
+  local settled=lines('settled'); assert(#settled==1 and settled[1].why=='seated',#settled)
+  assert(fleet.foreign.settled)
+`));
+
+test('the wait ends after twelve seconds when a counted rider never sits down',()=>run(`${waitFixture}
+  world.foreign=1; world.walking=1; party(1); tick(100)
+  assert(count('mount')==0,count('mount'))
+  tick(40)
+  assert(count('mount')==1 and fleet.people[1].phase=='riding')
+  assert(lines('settled')[1].why=='timeout')
+`));
+
+test('after the wait the seat comes from what is really occupied: a rider the plan did not expect there sends her on',()=>run(`${waitFixture}
+  world.foreign=1; world.walking=1; party(1); tick(10)
+  assert(fleet.people[1].seat=='seat_back_left')
+  -- The other mod (or the engine) put its rider in back left, not in the front seat the plan expected.
+  occupy('seat_back_left','foreign-rider'); world.walking=0; tick(40)
+  assert(fleet.people[1].vehicle==primary and fleet.people[1].seat=='seat_front_right',tostring(fleet.people[1].seat))
+  assert(fleet.people[1].phase=='riding')
+  for _,c in ipairs(world.commands) do assert(not(c.kind=='mount' and c.seat=='seat_back_left'),'never into the occupied seat') end
+`));
+
+test('no overflow car and no seat decision for good while the other mod is still seating its riders',()=>run(`${waitFixture}
+  world.foreign=3; world.walking=3; party(1); tick(60)
+  assert(#world.spawned==0 and count('mount')==0 and not fleet.people[1].vehicle)
+  occupy('seat_front_right','f1'); occupy('seat_back_left','f2'); occupy('seat_back_right','f3')
+  world.walking=0; tick(60)
+  assert(#world.spawned==1 and fleet.people[1].vehicle==world.spawned[1],'now she is the one who needs a car')
+  for _,m in pairs(world.mounts) do assert(m.vehicle~='v-car') end
+`));
+
+test('with five companions and three counted riders no car is spawned during the wait, two after it',()=>run(`${waitFixture}
+  world.foreign=3; world.walking=3; party(5); tick(100)
+  assert(#world.spawned==0,#world.spawned)
+  world.walking=0
+  occupy('seat_front_right','f1'); occupy('seat_back_left','f2'); occupy('seat_back_right','f3')
+  tick(300)
+  assert(#world.spawned==2,#world.spawned)
+  for _,m in pairs(world.mounts) do assert(m.vehicle~='v-car') end
+`));
+
+test('the boarding line says what was counted, which seats were held and where each of our companions went',()=>run(`${waitFixture}
+  world.foreign=2; world.walking=2; party(2); tick(30)
+  local boarding=lines('boarding'); assert(#boarding==1,#boarding)
+  local b=boarding[1]
+  assert(b.riders==2 and #b.held==2 and b.held[1]=='seat_back_left' and b.held[2]=='seat_front_right',table.concat(b.held,','))
+  assert(b.foreign[1].who=='judy-alvarez' and b.foreign[1].counted==true)
+  assert(b.people[1].name=='person-1' and b.people[1].seat=='seat_back_right' and b.people[1].car=='V')
+  assert(b.people[2].seat=='none')
+  assert(b.waiting==true)
+`));
+
+test('the boarding line is written even when nobody was counted, so a silent read is visible',()=>run(`${waitFixture}
+  world.foreign=0; party(1); tick(20)
+  local b=lines('boarding')[1]
+  assert(b and b.riders==0 and #b.held==0 and b.people[1].seat=='seat_front_right')
+  transport.abandon(fleet); fleet.report=nil; world.mounts={}; party(1); tick(5) -- no report hook: nothing raised
+`));
+
+test('a read that failed is named in the boarding line',()=>run(`${waitFixture}
+  function api.foreignRiders() error('targeting system unavailable') end
+  party(1); tick(20)
+  local b=lines('boarding')[1]
+  assert(b.riders==0 and b.error and b.error:find('targeting system',1,true) and b.why=='read failed',tostring(b.error))
+`));
+
+test('a companion the engine seated in V car while the fleet planned another car for her is adopted where she sits',()=>run(`${waitFixture}
+  party(1)
+  for i=2,4 do primary.info.seats[i].occupant='quest-npc' end
+  tick(40)
+  assert(#world.spawned==1 and fleet.people[1].vehicle==world.spawned[1],'planned for her own car')
+  -- a seat frees up and the engine's follower AI mounts her there before our own mount does anything
+  primary.info.seats[3].occupant=nil; actual(entries[1],primary,'seat_back_left')
+  tick(20)
+  assert(fleet.people[1].vehicle==primary and fleet.people[1].seat=='seat_back_left' and fleet.people[1].phase=='riding',tostring(fleet.people[1].phase))
+  local seat=lines('seat'); assert(#seat>=1 and seat[#seat].seat=='seat_back_left' and seat[#seat].car=='V')
+`));
+
+test('V gets out while she sits in V car although another car was planned for her: her unmount is ours to run',()=>run(`${waitFixture}
+  party(1)
+  for i=2,4 do primary.info.seats[i].occupant='quest-npc' end
+  tick(40)
+  assert(fleet.people[1].vehicle==world.spawned[1])
+  primary.info.seats[3].occupant=nil; actual(entries[1],primary,'seat_back_left')
+  tick(1) -- board() reads the mount; the next allocate would adopt her
+  world.primary=nil -- V is out before that
+  tick(40)
+  local first
+  for _,c in ipairs(world.commands) do if c.kind=='unmount' then first=first or c end end
+  assert(first and first.car==primary and first.seat=='seat_back_left',tostring(first))
+  assert(not world.mounts[1],'she is out')
+  local kinds={}
+  for _,e in ipairs(lines('exit')) do kinds[#kinds+1]=e.decision end
+  assert(table.concat(kinds,','):find('exits-from-actual-car',1,true),table.concat(kinds,','))
+  assert(#lines('exit-start')==1 and lines('exit-start')[1].reason=='vehicle-change')
+`));
+
+test('an unmount the game keeps refusing is retried in rounds ten seconds apart, three rounds at most',()=>run(`${waitFixture}
+  party(1); tick(30)
+  assert(fleet.people[1].phase=='riding')
+  world.unmountRefused=true; world.primary=nil
+  tick(90)  -- nine seconds: the first round of three attempts is used up
+  assert(unmounts()==3,unmounts())
+  assert(fleet.people[1].phase=='exit-failed',tostring(fleet.people[1].phase))
+  tick(150)
+  assert(unmounts()>=4,unmounts())
+  tick(600)
+  assert(unmounts()==9,'bounded: '..unmounts())
+  local kinds={}
+  for _,e in ipairs(lines('exit')) do kinds[#kinds+1]=e.decision end
+  assert(table.concat(kinds,','):find('exit-failed-0',1,true) and table.concat(kinds,','):find('exit-failed-2',1,true),table.concat(kinds,','))
+`));
+
+test('a plain exit logs the start and each person once, never per tick',()=>run(`${waitFixture}
+  party(2); tick(40)
+  world.primary=nil; tick(80)
+  assert(#lines('exit-start')==1)
+  local starts=lines('exit-start')[1]
+  assert(#starts.people==2 and starts.people[1].mounted:find('@V',1,true),tostring(starts.people[1].mounted))
+  local perPerson={}
+  for _,e in ipairs(lines('exit')) do perPerson[e.name]=(perPerson[e.name] or 0)+1 end
+  for name,n in pairs(perPerson) do assert(n<=2,name..' logged '..n) end
+`));
