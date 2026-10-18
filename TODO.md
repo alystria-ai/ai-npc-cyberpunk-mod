@@ -39,6 +39,7 @@ Closed by the user on 2026-10-16 (log entry of that day): every main-mod live ch
 - **Free-key limits** (one connection at a time, one memory user) are left to Convai's plans; paid keys hold up to six connections (`convai-paid-tier`). **Natural speech note:** Convai's own cloud history keeps the raw reply with tags; only our copies are clean.
 - **Tests:** the full suite passed three times in a row on 2026-10-14 (4905 tests, 0 fail, 12 skipped); `scripts/pocket_training/test_*.py` need the training environment and `pwsh.exe` binding tests skip.
 - **Add-on live checks** in `docs/ADDON_API.md` ("What the game must confirm live"), then each add-on's release on its date.
+- **Add-on: an AI Lucy character** (requested 2026-10-18): a new add-on, like Skippy and Delamain, that brings Lucy in as an AI character, built on the add-on API (`docs/ADDON_API.md`). Its own repository and Nexus page, requiring the main mod. Scope, model and appearance source, voice and date are not decided yet.
 
 ### Parked: start only when the user says so
 Nothing is parked.
@@ -59,6 +60,8 @@ Nothing is parked.
 - Lip sync for vendors and ordinary NPCs by an appearance hop (2026-10-10): superseded by the gated crowd face graph (live check above).
 
 ## Captain's log
+
+**2026-10-18 (evening): new to-do, an add-on for an AI Lucy character.** Added under "Still to build"; nothing decided beyond that it is an add-on.
 
 **2026-10-18 ~17:30 IST (branch fix/system-edge 7268c47e, not merged or pushed): no bundled browser.** Hugging Face's ClamAV flagged Chrome for Testing's chrome.dll in the Runtime zip (false positive; `Win.Packed.Mikey-*`). The hidden browser is now the system's Edge (`msedge`), else Chrome (`bridge/system-browser.mjs`); `CYBERPUNK_CONVAI_BROWSER` stays a developer override; with neither, the supervisor fails with `browser-missing` (existing service-failed notice, one log line) and retries until one is installed. Chrome removed from `release.config.json`, `build-release.mjs`, `prepare-state.mjs`, docs and notices. Patched Runtime 0.2 zip (b9712264 contents, browser removed, 6 files changed, 1 added) in `%TEMP%untime-edge`, ClamAV 0 infected. Open: live test, merge, upload.
 
