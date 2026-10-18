@@ -59,7 +59,7 @@ export function headContext(input) {
 // ---- Johnny speaks up (phase 2): his own unprompted remark, an automatic reaction like a companion's battle line -------------------
 // mod/johnny-remarks.lua sends {kind: 'head', event, facts, expiresAt} with his head field. The facts are plain values the game read
 // (a roster character's name, a journal title, a romance fact's meaning); they are quoted to the model as data, never as instructions.
-const EVENTS = new Set(['person', 'quest', 'romance', 'place']);
+const EVENTS = new Set(['person', 'quest', 'romance', 'place', 'relic']);
 const ROMANCE = Object.freeze({together: name => `V and ${name} are together now; it has just become a romance in this save.`,
   friends: name => `V and ${name} have just settled on staying friends, not lovers.`,
   declined: name => `V has just turned ${name} down.`,
@@ -99,6 +99,9 @@ export const PLACES = Object.freeze({
     note: '',
     altNote: "V got Nancy out of the Totentanz alive; you were along for it, in V's head."},
 });
+// An episode of the Relic's sickness on V (mod/johnny-relic.lua: a status effect with the gameplay tag JohnnySickness, the breathing camera and
+// the fullscreen distortion), said by how bad the game made it. What he knows is the head field's own: the Relic is killing V.
+export const RELIC_SEVERITY = Object.freeze({low: 'a mild one', medium: 'a bad one', heavy: 'a severe one'});
 const REMARK_WORDS = 25;
 const cleanText = (value, limit) => typeof value === 'string' && value.length <= limit * 4
   ? value.replace(/<[^>]*>/g, '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, limit) || null : null;
@@ -126,6 +129,10 @@ export function parseHeadReaction(value, head, profileKey) {
     facts.place = value.facts.place;
     if (value.facts.alt === true && PLACES[facts.place].altNote) facts.alt = true;
   }
+  if (value.event === 'relic') {
+    if (typeof value.facts.severity !== 'string' || !Object.hasOwn(RELIC_SEVERITY, value.facts.severity)) return null;
+    facts.severity = value.facts.severity;
+  }
   return {kind: 'head', event: value.event, facts, expiresAt: value.expiresAt, maxWords: REMARK_WORDS};
 }
 
@@ -146,7 +153,8 @@ export function headTrigger(input) {
   const event = reaction.event === 'person' ? `V has just been talking with ${JSON.stringify(facts.name)} in person (that scene is over now).`
     : reaction.event === 'quest' ? `V has just ${facts.outcome === 'failed' ? 'failed' : 'finished'} the job ${JSON.stringify(facts.title)}${facts.mine ? ', one of your own' : ''}.`
       : reaction.event === 'place' ? placeEvent(facts.place, facts.alt, head)
-        : ROMANCE[facts.what](JSON.stringify(facts.name));
+        : reaction.event === 'relic' ? `V has just had an attack of the Relic malfunction, ${RELIC_SEVERITY[facts.severity]}: the vision glitching, the body failing for a moment. It is over now.`
+          : ROMANCE[facts.what](JSON.stringify(facts.name));
   const standing = STANDING[head?.stage] ?? '';
   return 'You are Johnny Silverhand, the engram in V\'s head; nobody but V hears you. This event was not spoken by V. '
     + event + ' ' + (standing ? `Where you and V stand: ${standing} ` : '')

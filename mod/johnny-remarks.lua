@@ -9,6 +9,9 @@
 --
 -- Places (step 2): init.lua reads the district V is in every PLACE_SECONDS on the existing 0.5 s battle sample (only while both settings
 -- are on) and hands the record names to placeTracker; an arrival at a place on M.PLACES becomes a 'place' event with its own cooldown.
+--
+-- The Relic (step 3): mod/johnny-relic.lua sees an episode of the Relic's sickness on V (a status effect with the gameplay tag
+-- JohnnySickness) come and go through two event observers; its end becomes one 'relic' event, which waits for V to be himself again.
 local M = {}
 
 -- Rare: at least 15 minutes between remarks and at most 2 an hour. Normal: at least 5 minutes and at most 6 an hour.
@@ -18,7 +21,9 @@ M.QUIET_SECONDS = 10       -- never within 10 s of the last game line the event 
 M.SEND_SECONDS = 60        -- a remark that was sent must be heard within this (the reaction's deadline)
 M.MAX_QUEUE = 6
 -- How long an event waits for its moment (scenes, calls and talk come first): a person until a while after the last line they spoke.
-M.TTL = {person = 180, quest = 240, romance = 300, place = 90}
+M.TTL = {person = 180, quest = 240, romance = 300, place = 90, relic = 120}
+M.RELIC_SECONDS = 900      -- one remark on the Relic's sickness per quarter of an hour at most (the episodes come in runs)
+M.RELIC_SEVERITY = {low = true, medium = true, heavy = true}
 -- The romance facts mod/relationship-state.lua reads, as Johnny would hear them (who, and what moved on).
 M.ROMANCES = {
     sq030_judy_lover = {who = 'judy-alvarez', name = 'Judy', what = 'together'},
@@ -71,6 +76,13 @@ function M.romanceEvent(fact)
     local row = M.ROMANCES[fact]
     if not row then return nil end
     return 'romance:' .. row.who, {name = row.name, profileKey = row.who, what = row.what}
+end
+
+-- The end of an episode of the Relic's sickness (mod/johnny-relic.lua: {severity, record, seconds, ...}) -> subject, facts and the
+-- cooldown, or nil. Only the severity travels. Pure.
+function M.relicEvent(event)
+    if type(event) ~= 'table' or type(event.severity) ~= 'string' or not M.RELIC_SEVERITY[event.severity] then return nil end
+    return 'relic:episode', {severity = event.severity}, M.RELIC_SECONDS
 end
 
 -- The places he speaks up about, by the gamedataDistrict records that put V there (the enum names of tweakDBEnums.script and the parent

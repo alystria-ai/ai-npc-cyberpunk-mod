@@ -705,8 +705,8 @@ function convaiJohnnyRemarksService()
     end
     return convaiJohnnyRemarks or nil
 end
--- One event from a collector: 'person' (a game-dialogue row), 'quest' (a finished job from the history scan), 'romance' (a fact name)
--- or 'place' (a place row from the district sample below).
+-- One event from a collector: 'person' (a game-dialogue row), 'quest' (a finished job from the history scan), 'romance' (a fact name),
+-- 'place' (a place row from the district sample below) or 'relic' (the end of an episode of the Relic's sickness, the watch below).
 function convaiJohnnyRemarkNote(kind, value)
     local remarks = convaiJohnnyRemarksService()
     local module = convaiJohnnyRemarksModule
@@ -715,6 +715,7 @@ function convaiJohnnyRemarkNote(kind, value)
     if kind == 'person' then subject, facts = module.personEvent(value)
     elseif kind == 'quest' then subject, facts = module.questEvent(value)
     elseif kind == 'romance' then subject, facts = module.romanceEvent(value)
+    elseif kind == 'relic' then subject, facts, cooldown = module.relicEvent(value)
     elseif kind == 'place' then
         subject, facts, cooldown = module.placeEvent(value)
         -- The second note needs facts and journal entries of this save: read once per arrival (a few native reads, hours apart), here.
@@ -728,6 +729,19 @@ function convaiJohnnyRemarkNote(kind, value)
     end
     -- convaiLogLine, not log: this function is defined above `local function log`, where a bare log is an undefined global.
     if subject and remarks:note(kind, subject, facts, os.time(), cooldown) and convaiLogLine then convaiLogLine('Johnny speaks up: noted ' .. subject) end
+end
+-- The Relic watch (Johnny speaks up, step 3, mod/johnny-relic.lua): created once both settings are on, by the district sample below (its
+-- gate runs every PLACE_SECONDS), because its two observers have to exist before an episode starts. They cannot be removed, so they stay
+-- registered for the session and return at once while the watch is switched off. Nothing is loaded with either setting off.
+function convaiJohnnyRelicEnsure()
+    if convaiJohnnyRelic == nil then
+        local loaded, module = pcall(dofile, 'johnny-relic.lua')
+        convaiJohnnyRelic = loaded and type(module) == 'table' and type(module.new) == 'function' and module.new({
+            onEvent = function(event) convaiJohnnyRemarkNote('relic', event) end,
+            log = function(line) if convaiLogLine then convaiLogLine(line) end end}) or false
+        if not convaiJohnnyRelic then print('[CyberpunkConvai] johnny-relic.lua unavailable: ' .. tostring(module)) end
+    end
+    if convaiJohnnyRelic then convaiJohnnyRelic:enable() end
 end
 -- Places (Johnny speaks up, step 2): the existing 0.5 s battle sample calls this. It reads at most every PLACE_SECONDS, and only while
 -- both settings are on (two boolean reads otherwise): the id of the district V is in (three native calls). The record and its parents
@@ -749,8 +763,13 @@ do
         if not worldReady or (nextAt and at < nextAt) then return end
         local module = convaiJohnnyRemarksModule
         nextAt = at + (module and module.PLACE_SECONDS or 6)
-        if manager.johnnyRemarks() == 'off' or not manager.johnnyInHead() then lastId, chain, tracker = nil, nil, nil; return end
+        if manager.johnnyRemarks() == 'off' or not manager.johnnyInHead() then
+            lastId, chain, tracker = nil, nil, nil
+            if convaiJohnnyRelic then convaiJohnnyRelic:disable() end
+            return
+        end
         if not convaiJohnnyRemarksService() then return end
+        convaiJohnnyRelicEnsure()
         module = convaiJohnnyRemarksModule
         local ok, key, id = pcall(function()
             local system = Game.GetScriptableSystemsContainer():Get('PreventionSystem')
@@ -3496,6 +3515,7 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     if convaiJohnnyHead then convaiJohnnyHead:reset() end
     if convaiJohnnyRemarks then convaiJohnnyRemarks:reset() end
     if convaiJohnnyPlaceReset then convaiJohnnyPlaceReset() end
+    if convaiJohnnyRelic then convaiJohnnyRelic:reset() end
     -- The face service decides at each NPC's spawn, so the setting is handed over before the next world loads.
     if convaiFacialPlayback and type(convaiFacialPlayback.applyStoryTalk) == 'function' then
         pcall(convaiFacialPlayback.applyStoryTalk, manager.storyConversations())

@@ -152,7 +152,8 @@ test('district sample: nothing while either setting is off; every PLACE_SECONDS 
     manager = {johnnyInHead = function() return inHead end, johnnyRemarks = function() return level end}
     os.clock = function() return clock end
     local real = (function() ${moduleSource} end)()
-    function dofile(path) return real end
+    local watch = {enable = function() end, disable = function() end, reset = function() end}
+    function dofile(path) if path == 'johnny-relic.lua' then return {new = function() return watch end} end return real end
     print = function() end
     convaiLogLine = function(line) noted[#noted + 1] = line end
     local function nameString(value) return value end
