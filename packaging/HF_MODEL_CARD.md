@@ -9,7 +9,6 @@ tags:
   - gguf
   - llama.cpp
   - text-to-speech
-  - not-for-all-audiences
 ---
 
 # AI NPC Cyberpunk Mod: download packs
