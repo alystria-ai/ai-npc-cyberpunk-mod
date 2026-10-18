@@ -203,7 +203,7 @@ export async function discoverAddons({roots = [], version = ADDON_API_VERSION, f
     try { entries = await files.readdir(root.path, {withFileTypes: true}); } catch { continue; }
     for (const entry of entries) if (entry.isDirectory()) folders.push(resolve(root.path, entry.name));
   }
-  const addons = [], problems = [], ids = new Set();
+  const addons = [], problems = [], ids = new Set(), profileKeys = new Set();
   for (const dir of [...new Set(folders)].sort()) {
     let raw;
     try { raw = await files.readFile(resolve(dir, ADDON_MANIFEST), 'utf8'); }
@@ -221,8 +221,14 @@ export async function discoverAddons({roots = [], version = ADDON_API_VERSION, f
       continue;
     }
     if (ids.has(manifest.id)) { problems.push({dir, id: manifest.id, name: manifest.name, status: 'duplicate', reason: 'another add-on uses this id'}); continue; }
+    // "addon-<id>-<speaker>" joins two names with a dash, so add-on "ab" with speaker "c-d" and add-on "ab-c" with speaker "d" share
+    // one key: the later add-on would silently take the earlier one's profile over.
+    if (manifest.speakers.some(speaker => profileKeys.has(speaker.profileKey))) {
+      problems.push({dir, id: manifest.id, name: manifest.name, status: 'duplicate', reason: 'a speaker of this add-on has the same profile key as one of another add-on'}); continue;
+    }
     if (addons.length >= ADDON_LIMITS.addons) { problems.push({dir, id: manifest.id, name: manifest.name, status: 'skipped', reason: 'too many add-ons'}); continue; }
     ids.add(manifest.id); addons.push(manifest);
+    for (const speaker of manifest.speakers) profileKeys.add(speaker.profileKey);
   }
   return {addons, problems};
 }

@@ -276,9 +276,7 @@ test('discovery: an add-on that needs a newer API does not reserve its id, at mo
   } finally { await rm(work, {recursive: true, force: true}); }
 });
 
-test('discovery: two add-ons never share a profile key (addon-<id>-<speaker> must be unambiguous across add-ons)', {
-  todo: 'BUG: add-on "delamain" with speaker "cab-delamain" and add-on "delamain-cab" with speaker "delamain" both become addon-delamain-cab-delamain; discoverAddons reports no problem and the later one silently takes over the key'
-}, async () => {
+test('discovery: two add-ons never share a profile key (addon-<id>-<speaker> must be unambiguous across add-ons)', async () => {
   const work = await folder();
   try {
     const real = await addonFolder(work, 'a-real', manifest({id: 'delamain-cab', name: 'Delamain', speakers: [speaker('delamain')]}));
