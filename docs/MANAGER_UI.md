@@ -629,8 +629,8 @@ live menus in the worst case and the truncation.
 **Focused rows and the key boxes (2026-10-14).** The game draws an "A" and a "D" key box at the left and right arrows of a focused selector, over
 the option text. Their width could not be measured, so each is assumed to take 3 units (`KEY_HINT_UNITS`) of the 32 (`OPTION_BOX_UNITS`);
 `OPTION_BUDGET` is what is left, 32 - 2 * 3 = 26. Every option text of every select (English and the 15 translations) and the built-in model names
-must fit 26, which `bridge/select-labels.test.mjs` enforces; some labels were shortened in several languages for it ("Local (needs Local AI pack)",
-"No model installed" and others). The Mature model names (21.6 and 23.0 units) and the Inworld names already fit and are unchanged. The 3-unit
+must fit 26, which `bridge/select-labels.test.mjs` enforces; some labels were shortened in several languages for it
+(for example "No model installed"). The Mature model names (21.6 and 23.0 units) and the Inworld names already fit and are unchanged. The 3-unit
 width is an assumption: if a focused label still runs under a key box in the game, raise `KEY_HINT_UNITS`.
 
 **Greyed-out entries (not yet verified in the game).** While the OmniVoice pack is missing, the four OmniVoice entries of Companion voices are

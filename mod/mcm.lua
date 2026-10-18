@@ -1552,8 +1552,8 @@ local function ownKeyRows(snapshot)
     elseif own.daily then note = ui.t('Convai free tier: {left} of {limit} left today', {left = own.daily.left, limit = own.daily.limit}) end
     -- The voice key needs speech recognition on this computer, which only the bridge can say it has.
     local providerHelp = mistral.stt
-        and ui.t('Who writes your companions’ replies. A change waits until no conversation is running; choose Apply.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.')
-        or ui.t('Who writes your companions’ replies. A change waits until no conversation is running; choose Apply.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.')
+        and ui.t('Who writes your companions’ replies. A change waits until no conversation is running; choose Apply.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.')
+        or ui.t('Who writes your companions’ replies. A change waits until no conversation is running; choose Apply.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.')
     if note then providerHelp = providerHelp .. '\n\n' .. note end
     -- Mature content is part of the main mod (off by default). It works with the Local AI provider only: turning it on selects Local AI,
     -- and choosing a cloud provider turns it off. The help says whether the optional Mature pack (uncensored models) is installed (the
@@ -1568,7 +1568,7 @@ local function ownKeyRows(snapshot)
         matureHelp = matureHelp .. '\n\n' .. ui.t('Turning it on also selects Local AI, the largest uncensored model that fits and a local voice instead of a cloud one. Turning it off restores your choices.')
             .. ' ' .. ui.t('Choosing a cloud provider turns it off.')
         if not LOCAL_AI_PRESENT[mistral.localAi] then
-            matureHelp = matureHelp .. '\n\n' .. ui.t('Needs the Local AI pack.')
+            matureHelp = matureHelp .. '\n\n' .. ui.t('Needs Local AI.')
         end
         matureRow = setting('matureContent', 'Mature content', 'bool', snapshot.settings.matureContent, false, matureHelp, nil, {description = true})
     end
@@ -1622,13 +1622,17 @@ local function ownKeyRows(snapshot)
         local label = ui.t('Local AI model')
         if state == 'warming' then label, status = label .. ' (' .. ui.t('Warming up') .. ')', loadingText('local-ai', 'loading')
         elseif state == 'no-memory' then label, status = label .. ' (' .. ui.t('Not enough memory') .. ')', loadingText('local-ai', 'no-memory')
-        elseif state == 'failed' then label, status = label .. ' (' .. ui.t('Unavailable') .. ')', loadingText('local-ai', 'failed') end
+        elseif state == 'failed' then
+            -- Only Mature models (the Mature pack's, or a server of the player's marked uncensored) and Mature content off: say what to do.
+            label = label .. ' (' .. ui.t('Unavailable') .. ')'
+            status = mistral.localReason == 'mature-off' and ui.t('Only Mature models found. Turn on Mature content to use them.') or loadingText('local-ai', 'failed')
+        end
         if status then modelHelp = status .. '\n\n' .. modelHelp end
         modelRow = setting('localModel', label, 'select', selected, 1, modelHelp, labels, {elements = true, description = true, label = true})
     end
     local rows = {
         setting('conversationProvider', 'Conversation provider', 'select', providerIndexOf(snapshot.settings), 1, providerHelp,
-            {'Convai free tier', 'Convai API key', 'Mistral (free plan)', 'Local (needs Local AI pack)'}, {elements = true, description = true}),
+            {'Convai free tier', 'Convai API key', 'Mistral (free plan)', 'Local AI'}, {elements = true, description = true}),
         matureRow,
         modelRow,
         keyRow('Mistral free API key',

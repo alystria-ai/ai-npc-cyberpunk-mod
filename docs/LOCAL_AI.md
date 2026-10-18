@@ -445,7 +445,7 @@ reader is to read through the native core.
 `conversationProvider` is `convai | mistral | local` (a saved `groq` from before 2026-10-14 reads as `convai`). `MistralProvider` (`bridge/mistral-key.mjs`) keeps `preference` (the
 setting), `requested` and `applied`; a switch happens only at an idle boundary. `local` is requested while it works; after
 `noteLocalFailure(reason)` it is Mistral when a key exists, else Convai, until the setting is chosen again. The status file
-`runtime/mistral-state.json` carries `localAi`: `ready | warming | not-installed | no-memory | failed`, and `localModels`:
+`runtime/mistral-state.json` carries `localAi`: `ready | warming | not-installed | no-memory | failed`, `localReason` (only `mature-off`, beside `failed`: only Mature models are usable while Mature content is off, so the model row says to turn it on), and `localModels`:
 `[{id, name, sizeMiB}]`, the installed chat models for the model row (names and sizes, never paths).
 
 ### Model choice (developers)
