@@ -39,14 +39,15 @@ const PROVIDER_LABELS = Object.freeze({mistral: 'Mistral', local: 'The local AI'
  * The message carries `[mistral:<kind>]` so the bridge can classify a failure from its text alone, like convai-quota.mjs.
  */
 export class MistralError extends Error {
-  constructor(kind, detail, {status, retryAfterMs, apiKey, zeroQuota = false, provider = 'mistral', slow = false} = {}) {
+  constructor(kind, detail, {status, retryAfterMs, apiKey, zeroQuota = false, provider = 'mistral', slow = false, partial = false} = {}) {
     provider = PROVIDER_LABELS[provider] ? provider : 'mistral';
     super(`${PROVIDER_LABELS[provider]} ${redact(detail, apiKey).slice(0, 200)} [${provider}:${kind}]`);
     this.name = 'MistralError';
     // zeroQuota: the account has no allowance at all for this model (retrying cannot help; another model may work).
     // slow: the service was reachable but did not answer in time (no response, or a stream that went quiet), or answered with a server
     // fault; the caller may speak a short in-character line instead of an error (docs/MISTRAL.md).
-    Object.assign(this, {kind, status, retryAfterMs, zeroQuota, provider, slow});
+    // partial: some of the reply had already been delivered (a retry would say it twice).
+    Object.assign(this, {kind, status, retryAfterMs, zeroQuota, provider, slow, partial});
   }
 }
 
@@ -110,7 +111,7 @@ export function mapFailure(status, body, {headers, apiKey, provider} = {}) {
 }
 
 /** Retry only what clears by itself: the per-second limit, a server fault, a timeout, an empty answer. Never a bad key. */
-export const retryable = error => error instanceof MistralError && !error.zeroQuota && !error.daily
+export const retryable = error => error instanceof MistralError && !error.zeroQuota && !error.daily && !error.partial
   && (error.kind === 'network' || error.kind === 'empty' || error.kind === 'limit');
 
 // ---- SSE ---------------------------------------------------------------------------------------------------------------
@@ -337,12 +338,12 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
       throw mapFailure(response.status, body, {headers: response.headers, apiKey, provider});
     }
     if (!response.body) throw new MistralError('network', 'sent no reply stream', {apiKey, provider});
-    let text = '', actualModel, finishReason, usage, stoppedEarly = false;
+    let text = '', actualModel, finishReason, usage, stoppedEarly = false, sawDone = false;
     try {
       // After [DONE] the body is read to its end (bounded) instead of cancelled, so the connection is reused by the next turn.
       for await (const data of sseData(response.body, {drainMs: DRAIN_MS})) {
         quiet();
-        if (data === '[DONE]') break;
+        if (data === '[DONE]') { sawDone = true; break; }
         let chunk; try { chunk = JSON.parse(data); } catch { continue; }
         if (chunk?.object === 'error' || chunk?.error) throw mapFailure(Number.isInteger(chunk.code) ? chunk.code : Number.isInteger(chunk.error?.code) ? chunk.error.code : 502, chunk, {apiKey, provider});
         if (typeof chunk?.model === 'string') actualModel = chunk.model;
@@ -360,6 +361,9 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
         if (choice.finish_reason) finishReason = choice.finish_reason;
         if (choice.finish_reason === 'error') throw new MistralError('network', 'stopped the reply with an error', {apiKey, provider});
       }
+      // A server the player runs can die while it writes (a killed KoboldCpp closes the stream as cleanly as a finished one): a stream that ends
+      // with neither "[DONE]" nor a finish_reason is a reply cut off, not a finished one. The cloud's streams always end with one of them.
+      if (provider === 'local' && !stoppedEarly && !sawDone && !finishReason) throw new MistralError('network', 'went quiet before the reply was finished', {apiKey, provider, partial: !!text.trim()});
     } catch (error) {
       if (timedOut) throw new MistralError('network', started ? 'went quiet before the reply was finished' : 'did not finish in time', {apiKey, provider, slow: true});
       if (signal?.aborted) throw signal.reason ?? abortError();

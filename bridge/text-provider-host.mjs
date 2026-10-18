@@ -138,6 +138,8 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
       if (isLocalUnavailable(error)) provider?.noteLocalFailure?.(error.reason ?? 'start-failed');
       // A server the player runs that did not answer (stopped, moved, asleep) is looked at again before the next turn: one short request, no polling.
       else if (failureKind(error) === 'network') { try { server.externalLost?.(); } catch { /* best effort */ } }
+      // A refused key on a server whose first look could not tell (KoboldCpp guards only its chat requests): named once in the log.
+      else if (failureKind(error) === 'key') { try { server.externalKeyRefused?.(); } catch { /* best effort */ } }
       try { onFailure?.(error); } catch { /* an observer never fails a reply */ }
     },
     prewarm: messages => server.prewarm(messages),
