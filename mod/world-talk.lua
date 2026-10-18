@@ -19,9 +19,11 @@ local INJURY = {'Injured', 'Defeated', 'Unconscious', 'Stunned', 'Ragdoll'}
 -- answer is 'unreadable': the character is left alone rather than risk talking over the game. Pure.
 --   gone      not in the world any more, or dead
 --   hub       V is in a quest conversation (a dialogue the game runs, with or without choices), a phone call or a scene of her own
---             (scene tier other than 1). A dialogue choice that is only an interaction prompt ("Talk" on a ripperdoc, a vendor, a
---             fixer standing at their post) is not a conversation: with V in ordinary gameplay (tier 1), not in a dialogue and not
---             on a call, the prompt alone never refuses
+--             (scene tier 3 or above: limited gameplay or a cinematic). Tier 2 is staged gameplay, V walking freely where the game
+--             has staged its people (Viktor's clinic, Misty's shop), so it does not refuse by itself. A dialogue choice that is only
+--             an interaction prompt ("Talk" on a ripperdoc, a vendor, a fixer standing at their post) is not a conversation: with V
+--             at tier 1 or 2, not in a dialogue and not on a call, the prompt alone never refuses. A scene that commands the
+--             character itself is still refused below (dialogue, driven)
 --   dialogue  the character is in a scene or quest dialogue
 --   driven    the game's AI is not on its own (a scene or quest commands it)
 --   combat    the character or V is in a fight
@@ -70,10 +72,12 @@ function M.read(npc, player, sample)
     if type(seen) == 'table' and seen.available == true then
         -- IsEntityInScene is deliberately not read: it stays true in ordinary gameplay (docs/WORLD_COMPANIONS.md).
         -- A shown dialogue choice (seen.choices) is also the game's own "Talk" prompt on an idle character V aims at (a ripperdoc, a
-        -- vendor, a fixer): it counts only when the scene tier is not known to be 1 (fail closed), as a conversation holds V at
-        -- tier 2 or above and sets her dialogue flag.
-        facts.hub = seen.dialogue == true or seen.call == true or (seen.tier ~= nil and seen.tier ~= 1)
-            or (seen.choices == true and seen.tier ~= 1)
+        -- vendor, a fixer): it counts only when the scene tier is unknown (fail closed). Tier 2 (staged gameplay) was V standing at
+        -- Viktor's and Misty's posts with the Talk prompt up (18 Oct 11:02Z); a quest conversation sets V's dialogue flag or holds
+        -- her at tier 3 or above, and a scene that commands the character is refused by dialogue or driven.
+        local tier = tonumber(seen.tier)
+        facts.hub = seen.dialogue == true or seen.call == true or (tier ~= nil and tier >= 3)
+            or (seen.choices == true and tier == nil)
         facts.hubWhy = 'dialogue=' .. tostring(seen.dialogue) .. ' choices=' .. tostring(seen.choices) .. ' call=' .. tostring(seen.call)
             .. ' tier=' .. tostring(seen.tier)
         facts.playerCombat = seen.combat == true

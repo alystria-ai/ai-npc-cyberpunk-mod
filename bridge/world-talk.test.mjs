@@ -92,7 +92,8 @@ test('read: the natives, the player-side quest conversation, and the broad scene
   -- character (a ripperdoc, a vendor, a door or terminal in view): it must not refuse (the "busy right now" bug of 2026-10-18).
   playerSample.choices = true; assert(reason() == nil, 'an interaction prompt alone is not a quest conversation')
   playerSample.tier = nil; assert(reason() == 'hub', 'a choice with the scene tier unknown fails closed'); playerSample.tier = 1
-  playerSample.tier = 2; assert(reason() == 'hub', 'a choice with V above tier 1 is a conversation'); playerSample.tier = 1
+  playerSample.tier = 2; assert(reason() == nil, 'a choice at tier 2 (staged gameplay: Viktor, Misty) is the Talk prompt'); playerSample.tier = 1
+  playerSample.tier = 3; assert(reason() == 'hub', 'a choice with V at tier 3 or above is a conversation'); playerSample.tier = 1
   playerSample.dialogue = true; assert(reason() == 'hub', 'a choice while V is in a dialogue'); playerSample.dialogue = false
   playerSample.call = true; assert(reason() == 'hub', 'a choice during a phone call'); playerSample.call = false
   playerSample.choices = false
@@ -102,7 +103,8 @@ test('read: the natives, the player-side quest conversation, and the broad scene
   end
   playerSample.dialogue = true; assert(reason() == 'hub'); playerSample.dialogue = false
   playerSample.call = true; assert(reason() == 'hub', 'a phone call'); playerSample.call = false
-  playerSample.tier = 3; assert(reason() == 'hub', 'V in a scene of her own (scene tier above 1)'); playerSample.tier = 1
+  playerSample.tier = 2; assert(reason() == nil, 'V walking freely in a staged area (tier 2) is not a scene of her own'); playerSample.tier = 1
+  playerSample.tier = 3; assert(reason() == 'hub', 'V in a scene of her own (scene tier 3 or above)'); playerSample.tier = 1
   playerSample.combat = true; assert(reason() == 'combat'); playerSample.combat = false
   playerSample.available = false; assert(reason() == 'unreadable', 'no player sample: refuse'); playerSample.available = true
   -- A native that is missing or throws leaves only its fact unread: the answer is a refusal, never a crash.
