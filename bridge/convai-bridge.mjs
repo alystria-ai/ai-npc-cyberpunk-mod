@@ -2700,7 +2700,9 @@ async function learnCardTotal() {
   cardTotalMiB = await nvidiaTotalMiB().catch(() => null);
 }
 let localModelChoiceKey = null, localModelListKey = '', localModelListCheckedAt = 0;
-async function syncLocalModelChoice(settings) {
+// The poll calls this before it applies the saved provider (and reads Mature content just before): the first Local AI start takes the model
+// choice and Mature content when it begins, and nothing reloads it afterwards (the first sync only records the choice). Cheap: no file, no process.
+function syncLocalModelChoice(settings) {
   if (!settings || typeof settings !== 'object') return;   // a partial settings write: keep what is chosen
   const pin = normalisePin(settings.localModel);
   if (pin !== localModelPin) { localModelPin = pin; localModelFallbackNoted = ''; console.error(`[LocalAI] model choice is now ${pin}`); }
@@ -2712,6 +2714,9 @@ async function syncLocalModelChoice(settings) {
     // A Mature-only install could not start Local AI while Mature content was off ('mature-off'); turning it on lifts that: try again.
     if (!first && matureContent.enabled && mistral.clearLocalFailure('mature-off')) prepareLocal();
   }
+}
+// The installed models and the defaults for the settings page, after the provider is applied so the card probe never holds a start back.
+async function publishLocalModelList() {
   if (Date.now() - localModelListCheckedAt >= 5000) {
     localModelListCheckedAt = Date.now();
     refreshLocalPack();
@@ -2733,6 +2738,15 @@ async function pollSettings(checkShutdown = true) {
     // A transient rename/partial settings write must not reset the selected quality.
     const raw = await readFile(resolve(runtime, 'settings.json'), 'utf8').catch(() => '');
     let settings; try { settings = JSON.parse(raw); } catch {}
+    // Mature content and the saved model choice come first: the saved provider is applied below, and its first Local AI start (prepareLocal)
+    // loads the model these two decide. They are the first thing this poll does with the file, so that start waits for nothing but this read.
+    const matureBefore = matureContent.enabled, packBefore = matureContent.pack;
+    if (maturePackInstalled() !== packBefore) await mistralControl.publishStatus().catch(() => {});   // the settings help says whether the uncensored models are installed
+    const matureChanged = matureContent.update(settings) || matureContent.enabled !== matureBefore;
+    if (matureChanged) console.error(`[MatureContent] setting is now ${matureContent.enabled ? 'on' : 'off'}`);
+    // The guard's patterns compile on first use (about a second); do that now, in the background, not inside the first Mature turn.
+    if (matureChanged && matureContent.enabled) void warmMatureGuard();
+    syncLocalModelChoice(settings);
     // Own Convai key: the setting and the settings page's commands, then the switch itself once nothing is running.
     if (settings) {
       if (keys.setPreference(settings.useOwnConvaiKey === true)) await ownKeyControl.publishStatus().catch(() => {});
@@ -2785,20 +2799,7 @@ async function pollSettings(checkShutdown = true) {
     if (companionVision.update(settings)) console.error(`[Vision] setting is now ${companionVision.enabled ? 'on' : 'off'} (${companionVision.transport})`);
     localVoice.setVHelperWanted(vVoice.wantsPocket);
     void releaseUnused().catch(error => console.error('[CyberpunkConvai] Releasing unused resources:', error.message));
-    const matureBefore = matureContent.enabled, packBefore = matureContent.pack;
-    if (maturePackInstalled() !== packBefore) await mistralControl.publishStatus().catch(() => {});   // the settings help says whether the uncensored models are installed
-    const matureChanged = matureContent.update(settings) || matureContent.enabled !== matureBefore;
-    if (matureChanged) console.error(`[MatureContent] setting is now ${matureContent.enabled ? 'on' : 'off'}`);
-    // The guard's patterns compile on first use (about a second); do that now, in the background, not inside the first Mature turn.
-    if (matureChanged && matureContent.enabled) void warmMatureGuard();
-    await syncLocalModelChoice(settings);
-    // At startup the saved provider is applied before this poll reads Mature content, so a Mature-only install can fail with
-    // 'mature-off' on a value that was never the player's. Once the setting is known to be on, that failure is stale: start again.
-    // (The failure already handed the turns to Convai; clearing it lets the chosen Local AI take them back, as when the setting is turned on.)
-    if (matureContent.enabled && mistral.clearLocalFailure('mature-off')) {
-      console.error('[LocalAI] Mature content is on: starting the local model again');
-      prepareLocal();
-    }
+    await publishLocalModelList();
     if (speechChanged) console.error(`[NaturalSpeech] setting is now ${naturalSpeech.enabled ? 'on' : 'off'}`);
     if (emotionSelection.update(settings)) console.error(`Facial emotion selector: ${emotionSelection.mode}`);
     if (settings && typeof settings === 'object') replyStreaming = settings.replyStreaming !== false && !replyStreamingForcedOff;

@@ -184,7 +184,7 @@ load, a crashed worker). A failed worker stays out of routing until the player
 chooses that provider again, and is not restarted in a loop. The exception since
 October 10 is OmniVoice: it is loaded again in the background after 45 s, 3 min
 and 10 min, and takes its place back at an idle boundary ("Startup limit, background retry and switch back" below); Pocket
-and Convai failures are unchanged. The fallback
+gets the same three waits (see "Pocket retries too" there); a Convai failure is unchanged. The fallback
 commits at the next idle settings poll, like any routing change, so a turn in
 progress keeps its voice. The bridge publishes `fallback: {from, to}` (with `temporary: true` while OmniVoice is being retried) in
 `runtime/local-voice-state.json` (and the support report) once the lower voice
@@ -294,8 +294,14 @@ session ("A failed worker stays out of routing until the player chooses that pro
   using Pocket · Performance for now." (the same 600 s repeat window as the permanent text). Silence on the way back. If the retries
   run out, the permanent "is unavailable" text follows. The Settings status line reads "Using Pocket, OmniVoice not ready yet".
   See [NOTIFICATIONS.md](NOTIFICATIONS.md).
-- **Not covered.** Pocket's own startup (`POCKET_LIMITS.startupMs`, 180 s, CPU only) keeps its fixed limit, and a Pocket failure
-  still lands on Convai for the session.
+- **Pocket retries too.** Pocket's own startup (`POCKET_LIMITS.startupMs`, 180 s, CPU only, with the stall watchdog's second attempt)
+  keeps its limit, but a Pocket that still fails (a stalled start while the game loads, a crash) is no longer lost for the session:
+  `VoiceSelection` schedules the same waits (**45 s**, **3 min**, **10 min**; a fourth failure gives up until the player chooses Pocket
+  again), published as `pocketRetry: {failures, loading, nextInMs}` and logged as `[PocketRetry] ...`, with `fallback.temporary: true`
+  while it runs. There is no background candidate (the voice it falls to, Convai's, loads nothing): when a retry is due, with no reply in
+  flight and voice playback not Off (V's typed line counts), the failure is cleared and the normal start loads Pocket again; the route
+  returns at the next idle poll. The failed worker is released when it fails. The story ends, and nothing loads, when the player chooses
+  another voice, a cloud voice or Multilingual conversations, or the service closes.
 
 ## OmniVoice implementation and historical measurements
 

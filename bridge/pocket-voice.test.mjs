@@ -163,6 +163,37 @@ test('hung cancellation and shutdown kill only the owned handle and require exit
   h.finish();
 });
 
+// A first-time preparation of a voice takes 1.4 to 4.5 s and cannot be interrupted. V's typed line is cancelled on purpose when the companion's voice
+// starts, so the first line after an install used to take the whole worker down at the 2 s cancel deadline (and Pocket then stayed failed).
+test('cancelling a voice preparation waits for it to finish instead of killing the worker, and the worker goes on with the next job', async () => {
+  const timers = clock(), h = harness({timers}), controller = new AbortController();
+  const preparing = h.client.prepareProfile(profile, {signal: controller.signal}), rejected = assert.rejects(preparing, {name: 'AbortError'});
+  await tick(); const request = h.requests[0]; assert.equal(request.op, 'prepare');
+  controller.abort(); await rejected; assert.equal(h.requests.at(-1).op, 'cancel');
+  // The old deadline and then some pass with the worker still preparing: it is not stopped.
+  timers.advance(POCKET_LIMITS.cancelMs * 2); await tick();
+  assert.equal(h.client.failure, undefined); assert.equal(h.child.stdin.writableEnded, false); assert.equal(h.child.kills, 0);
+  // The next job queues behind it (the worker takes one at a time); nothing is sent while the preparation runs.
+  const next = h.client.prepareProfile(profile); await tick(); assert.equal(h.requests.filter(row => row.op === 'prepare').length, 1);
+  // The preparation ends: the worker answers 'cancelled' (what it prepared stays), and the same worker runs the next job.
+  h.send({op: 'cancelled', id: request.id, profile, ...h.profiles()}); await tick();
+  assert.equal(h.client.failure, undefined); assert.equal(h.requests.at(-1).op, 'prepare'); assert.notEqual(h.requests.at(-1).id, request.id);
+  timers.advance(POCKET_LIMITS.prepareCancelMs); await tick(); assert.equal(h.client.failure, undefined, 'the answered cancel has no deadline left');
+  h.prepared(h.requests.length - 1); assert.equal((await next).ready, true);
+  assert.equal(h.launches.length, 1, 'one worker throughout'); await h.close();
+});
+
+test('a cancelled preparation that never ends still stops the worker, after the longer wait', async () => {
+  const timers = clock(), h = harness({timers}), controller = new AbortController();
+  const preparing = h.client.prepareProfile(profile, {signal: controller.signal}), rejected = assert.rejects(preparing, {name: 'AbortError'});
+  await tick(); controller.abort(); await rejected;
+  timers.advance(POCKET_LIMITS.prepareCancelMs - 1); await tick(); assert.equal(h.client.failure, undefined);
+  timers.advance(1); await tick(); assert.match(h.client.failure.message, /did not stop its cancelled request/);
+  assert.equal(h.child.stdin.writableEnded, true);
+  timers.advance(POCKET_LIMITS.cancelMs); assert.equal(h.child.kills, 1);
+  h.finish();
+});
+
 test('Keep prepared voices is sent with each prepare and stream request only while on, and the source is reported',async()=>{
   const off=harness();
   const first=off.client.prepareProfile(profile);await tick();

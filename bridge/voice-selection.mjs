@@ -37,6 +37,10 @@ const RETRY_KINDS = new Set(['timeout', 'network', 'request']);
 // a fourth failure ends the retries until the player chooses Omni again. Nothing here runs per frame: the retry is
 // due-checked from the 500 ms settings poll, and a due retry waits for a moment with no reply in flight.
 export const OMNI_RETRY_DELAYS_MS = Object.freeze([45_000, 180_000, 600_000]);
+// A chosen Pocket worker that fails (a start that stalls twice while the game loads, or a crash) is not given up on either: the same waits and
+// the same end after the fourth failure, then the normal start loads it again (it has no background candidate, since the voice it falls to,
+// Convai's, loads nothing). Due-checked from the poll like Omni's, never per turn; the story ends when the player no longer wants Pocket.
+export const POCKET_RETRY_DELAYS_MS = Object.freeze([45_000, 180_000, 600_000]);
 // Voice playback Off (user decision, 2026-10-14: "if they turn it off it should not be loaded"): the companions' voice worker is released at
 // once, on the poll that reads the setting. The one thing kept is what V's typed line needs while V's voice is On (`vHelperWanted`): the
 // Pocket worker (the chosen one, or V's helper beside OmniVoice). A cloud voice has no worker. Loading again begins on the poll after
@@ -100,6 +104,8 @@ export class VoiceSelection {
     // chains each retired candidate's confirmed exit; a new worker starts only after it, like any replacement.
     this.omniRetry=null;this.candidate=null;this.candidateExit=Promise.resolve();
     this.omniRetryDelays=options.omniRetryDelays||OMNI_RETRY_DELAYS_MS;
+    // pocketRetry: {failures, nextAt} while a failed Pocket is to be loaded again
+    this.pocketRetry=null;this.pocketRetryDelays=options.pocketRetryDelays||POCKET_RETRY_DELAYS_MS;
     // "Keep prepared voices" (default on): Pocket saves each voice's prepared state to disk; Omni warms at the
     // selected steps while the companion joins.
     this.keepPrepared=options.keepPreparedVoices!==false;
@@ -204,12 +210,12 @@ export class VoiceSelection {
   }
   // Set only once the fallback is the committed route, so the player is told
   // after the voice actually changed, never during a pending switch.
-  // `temporary` marks an Omni that is being loaded again in the background; the voice returns by itself.
+  // `temporary` marks an Omni that is being loaded again in the background, or a Pocket that will be; the voice returns by itself.
   get fallback(){
     const want=this.resolvedProvider;
     if(want===this.requestedProvider||this.provider!==want)return null;
     const value={from:this.requestedProvider,to:want};
-    return this.requestedProvider==='omni'&&this.omniRetry?{...value,temporary:true}:value;
+    return (this.requestedProvider==='omni'&&this.omniRetry)||(this.requestedProvider==='pocket'&&this.pocketRetry)?{...value,temporary:true}:value;
   }
   // Why a character is on Convai: chosen, or the local voice cannot serve it.
   convaiReason(profile){
@@ -251,6 +257,7 @@ export class VoiceSelection {
         this.failedBackends.delete(chosen);
         // Any change of or to Omni starts its retry story afresh (the normal start path takes over).
         if(chosen==='omni'||this.requestedProvider==='omni')this.endOmniRetry();
+        if(chosen==='pocket'||this.requestedProvider==='pocket')this.pocketRetry=null;
       }
       this.requestedProvider=chosen;
     }
@@ -268,6 +275,7 @@ export class VoiceSelection {
   consumeRouteChanges() { const value = [...this.routeChanges].sort(); this.routeChanges.clear(); return value; }
   stageAvailability(client,backend=this.clientBackend) {
     if (this.client !== client || this.closed || !client.loaded) return;
+    if(backend==='pocket'&&this.pocketRetry){this.pocketRetry=null;this.log('Pocket is ready again','PocketRetry');}
     const registry=backend==='omni'?this.omniVariants[this.clientReference].registry:this.registries[backend];
     this.verifiedAvailabilities.set(this.verifiedKey(backend,this.clientReference),
       new Set(registry.keys.filter(key=>client.hasProfile(key))));
@@ -337,6 +345,7 @@ export class VoiceSelection {
     const applied = this.applyWhenIdle(busy);
     this.reconcile();
     this.maintainOmniRetry();
+    this.maintainPocketRetry();
     if (previewChanged && !applied) this.publish();
     return applied;
   }
@@ -380,6 +389,8 @@ export class VoiceSelection {
       workerBackend:this.clientBackend,preparationQueued:this.targetBackend!==this.clientBackend,
       omniRetry:this.omniRetry?{failures:this.omniRetry.failures,loading:!!this.candidate,
         nextInMs:this.candidate?0:Math.max(0,this.omniRetry.nextAt-this.clock())}:null,
+      pocketRetry:this.pocketRetry?{failures:this.pocketRetry.failures,loading:this.clientBackend==='pocket',
+        nextInMs:this.clientBackend==='pocket'?0:Math.max(0,this.pocketRetry.nextAt-this.clock())}:null,
       configured: this.configured, bridgePid: process.pid,
       configuredProfiles: this.profileKeys,
       availabilityPending: this.availabilityPending, routeRevision: this.routeRevision,
@@ -474,10 +485,11 @@ export class VoiceSelection {
     if(this.closed||this.client!==client||this.failedBackends.has(backend))return;
     this.failedBackends.add(backend);
     if(backend==='omni')this.scheduleOmniRetry(client.failure?.message);
+    if(backend==='pocket')this.schedulePocketRetry(client.failure?.message);
     this.reconcile();
     this.publish();
   }
-  log(message){try{this.options.onLog?.(`[OmniRetry] ${message}\n`);}catch{}}
+  log(message,tag='OmniRetry'){try{this.options.onLog?.(`[${tag}] ${message}\n`);}catch{}}
   // The next Omni attempt, if the player still wants Omni and attempts remain. `fallback.temporary` follows it.
   scheduleOmniRetry(reason){
     const failures=(this.omniRetry?.failures??0)+1,delay=this.omniRetryDelays[failures-1];
@@ -489,6 +501,34 @@ export class VoiceSelection {
     this.log(`attempt ${failures} failed${reason?` (${reason})`:''}; trying again in ${Math.round(delay/1000)} s`);
   }
   endOmniRetry(){this.omniRetry=null;void this.dropCandidate();}
+  // Would routing speak with Pocket if it could run? The player chose Pocket, or chose Omni and Omni cannot run now, so Pocket is the next
+  // voice. A cloud voice, the Convai voice and Multilingual conversations (Pocket speaks English only) want no Pocket worker.
+  get pocketWanted(){
+    if(this.cloudWanted||this.multilingual)return false;
+    return this.requestedProvider==='pocket'||(this.requestedProvider==='omni'&&!this.backendUsable('omni'));
+  }
+  // The next Pocket attempt, if the player still wants Pocket and attempts remain. `fallback.temporary` follows it.
+  schedulePocketRetry(reason){
+    const failures=(this.pocketRetry?.failures??0)+1,delay=this.pocketRetryDelays[failures-1];
+    if(this.closed||!this.pocketWanted||delay===undefined){
+      if(this.pocketRetry||delay===undefined)this.log(`giving up after ${failures} failed attempts${reason?` (${reason})`:''}`,'PocketRetry');
+      this.pocketRetry=null;return;
+    }
+    this.pocketRetry={failures,nextAt:this.clock()+delay};
+    this.log(`attempt ${failures} failed${reason?` (${reason})`:''}; trying again in ${Math.round(delay/1000)} s`,'PocketRetry');
+  }
+  // Due-checked from update() (the 500 ms settings poll): no timer, no loop, nothing per turn. Once the wait is over, with no reply in flight,
+  // the failure is cleared and the normal start loads Pocket again (the failed worker was released when it failed). No worker is loaded for a
+  // voice that is no longer wanted (the story ends), and none while voice playback is Off, unless V's typed line uses Pocket.
+  maintainPocketRetry(){
+    if(this.closed||!this.pocketRetry)return;
+    if(!this.pocketWanted){this.pocketRetry=null;return;}
+    if(this.busy||this.clientBackend==='pocket'||this.clock()<this.pocketRetry.nextAt||(this.silent&&!this.vHelperWanted))return;
+    this.failedBackends.delete('pocket');
+    this.log(`loading Pocket again (retry ${this.pocketRetry.failures})`,'PocketRetry');
+    this.reconcile();
+    this.publish();
+  }
   // Due-checked from update() (the 500 ms settings poll): no timer, no loop. Waits for a moment with no reply in
   // flight, so the load never competes with a reply's own work, and for the previous worker's confirmed exit.
   maintainOmniRetry(){
@@ -823,7 +863,7 @@ export class VoiceSelection {
   }
   close() {
     if (this.closed) return this.closing||this.retiring;
-    this.closed = true; this.preview = null; this.omniRetry = null;
+    this.closed = true; this.preview = null; this.omniRetry = null; this.pocketRetry = null;
     for (const waiter of this.routingWaiters) waiter.reject(Error('Voice service is closed'));
     this.routingWaiters.clear();
     return this.closing=Promise.all([this.retire(),this.phoneAnalysis?.close(),this.dropCandidate(),this.vHelper.release()]);
