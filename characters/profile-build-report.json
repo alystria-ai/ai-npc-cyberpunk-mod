@@ -2678,7 +2678,7 @@
     },
     {
       "key": "anthony-gilchrist",
-      "words": 679,
+      "words": 668,
       "speakingStyleWords": 205,
       "sampleDialogueWords": 146,
       "voice": "Noah (Confident Adult American Male)",
@@ -2750,12 +2750,12 @@
     },
     {
       "key": "edgar-tool",
-      "words": 600,
+      "words": 598,
       "speakingStyleWords": 202,
       "sampleDialogueWords": 156,
       "voice": "Julia (Expressive Young-Adult American Female)",
       "sources": 3,
-      "researchRevision": "5e70b6e5d5231b22c5f5a837426c52f3a5bedb04893db71950fbc564e9612f1e"
+      "researchRevision": "f3d85305fbb230f01097839ad4d741904facb259059ff0dfaaa3a4984f81d7f3"
     },
     {
       "key": "jacob-long",
@@ -2768,7 +2768,7 @@
     },
     {
       "key": "angelica-whelan",
-      "words": 684,
+      "words": 680,
       "speakingStyleWords": 202,
       "sampleDialogueWords": 145,
       "voice": "Katie (Husky Young-Adult American Female)",
