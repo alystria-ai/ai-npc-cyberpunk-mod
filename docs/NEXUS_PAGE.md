@@ -9,16 +9,58 @@ Talk to Cyberpunk 2077 characters by voice or text, and hear them answer in thei
 
 [size=4][b]Key features[/b][/size]
 
+[b]Conversations[/b]
 [list]
-[*][b]Talk by voice or text.[/b] Face someone, press your key, then speak or type. They answer out loud, with subtitles and moving lips.
-[*][b]Bring companions along.[/b] They walk beside you, follow you through doors and fast travel, sit on couches and bar stools, and ride in your car. Ask one to drive.
-[*][b]Group conversations.[/b] Talk to several people at once, and they take turns.
-[*][b]Phone Chat and holocalls.[/b] Text supported contacts from V's phone, or call them and they answer live on screen.
-[*][b]The street talks back.[/b] Gangers, police officers, ripperdocs and bartenders answer as their kind of person.
-[*][b]V speaks too.[/b] Lines you type are voiced in V's own voice before the reply.
+[*][b]Talk by voice or text.[/b] Face someone and press your talk key. Hold it while you speak and let go, or tap to start and tap again to send, or type. They answer out loud, with subtitles.
+[*][b]70+ characters to invite,[/b] from Panam, Johnny and Judy to Takemura, Kerry, River and Alt Cunningham, each with a personality researched from the game's own lore and a voice that sounds like them.
+[*][b]Group conversations.[/b] Address two or three companions at once, and they take turns and pick up from each other.
+[*][b]Phone Chat.[/b] A Chat tab sits on V's phone beside Messages and Contacts. Text any supported contact, wherever they are.
+[*][b]Holocalls.[/b] Call them from the Chat tab and they pick up live on screen, for the contacts the game itself stages video calls for.
+[*][b]V speaks too.[/b] Lines you type are voiced in the V voice that matches yours, then the character answers.
+[*][b]Follow-up questions.[/b] Now and then a character asks you something back.
+[*][b]The whole street talks.[/b] Gangers, NCPD officers, guards, ripperdocs, vendors, bartenders and passers-by answer as their kind of person, with several voices each. Shopkeepers you keep coming back to remember you.
+[*][b]The story cast can answer too.[/b] Turn on Settings > Conversations > Talk to story characters (off by default) and the game's own Judy, Jackie, Panam or Rogue answer where they stand, in their own voice, with a face that follows the words. Nothing else about them changes.
+[*][b]Characters spawned by other mods can talk too,[/b] with their own profile, voice and memory.
+[*][b]Any language.[/b] Menus in sixteen languages, and a Multilingual setting to talk in any language.
+[/list]
+
+[b]Companions[/b]
+[list]
+[*][b]Bring a crew.[/b] Invite companions from the Companion Manager, with no party size limit. They walk beside you, run to catch up, and follow you through doors, lifts and fast travel.
+[*][b]They sit with you[/b] on couches, benches, chairs and bar stools, and you can look around freely while seated.
+[*][b]They ride along,[/b] or take the wheel and drive you to your waypoint.
+[*][b]They fight beside you[/b] with the game's own combat AI.
+[*][b]Party page.[/b] Everyone with you, in one place.
+[*][b]Model browser.[/b] Any character model in the game can tag along as a follower.
+[*][b]Battle and loot reactions[/b] (off by default). A companion makes one short comment when a fight starts and ends, or after a run of loot pickups.
+[/list]
+
+[b]Face, body and voice[/b]
+[list]
+[*][b]Lip sync and emotions.[/b] Mouths move with the words, and the whole face changes at the very word where the feeling shifts.
+[*][b]Gestures and idles.[/b] Calm talking gestures timed to the phrase, nods while you talk, and varied idle poses with props such as a cigarette, a cup or a pair of shades.
+[*][b]Eye contact.[/b] Their eyes and head follow you, with adjustable height and strength.
+[*][b]Voices that sound like them.[/b] Pocket TTS, the default, runs on your processor with no setup and starts speaking in about 0.2 seconds. OmniVoice, for NVIDIA cards, can laugh and sigh. Voxtral makes each voice in the cloud with a free Mistral key.
+[*][b]Natural speech[/b] (optional). Pauses and hesitations, and with OmniVoice, laughs and sighs.
+[*][b]Subtitles your way.[/b] The game's own cinematic line, or floating above the speaker.
+[*][b]Voice volume[/b] from 50 to 200 percent for every mod voice, and a lip sync delay for Bluetooth headsets.
+[/list]
+
+[b]They know Night City and remember you[/b]
+[list]
+[*][b]They see what you see.[/b] With Convai, each line carries a fresh glimpse of the game window, so a companion can talk about where you are standing. The picture is never saved.
+[*][b]They know the moment.[/b] Characters continue from the game's own dialogue, know the quest you are on, remember what you did together, and know what V is wearing and carrying.
 [*][b]They remember.[/b] Conversations stay with a character across saves. Make one character forget, or all of them.
-[*][b]Voices that sound like them.[/b] Pocket TTS, the default, runs on your processor with no setup. Voxtral and OmniVoice are optional.
-[*][b]Characters spawned by other mods can talk too.[/b] They use their own profile, voice and memory.
+[*][b]Relationships that follow your save.[/b] Judy, Panam, River, Kerry and Meredith know where things stand with V.
+[*][b]Make them yours.[/b] Edit a character's bio, speaking style and memories in your browser (with Mistral or Local AI).
+[/list]
+
+[b]Your setup[/b]
+[list]
+[*][b]Three free ways to run it:[/b] fully local with Local AI, Mistral with a free account, or the Convai free tier. See How it runs below.
+[*][b]Light on your game.[/b] The heavy work runs in a separate background service, the default setup uses no video memory, and unused models unload on their own.
+[*][b]Ready when you are.[/b] Auto-connect readies a conversation as you look at or walk up to someone.
+[*][b]An optional Mature setting[/b] for adults (18+). It is off by default and works with Local AI only.
 [/list]
 
 [size=4][b]How it runs[/b][/size]
