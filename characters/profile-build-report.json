@@ -1877,7 +1877,7 @@
     },
     {
       "key": "adam-smasher",
-      "words": 711,
+      "words": 706,
       "speakingStyleWords": 170,
       "sampleDialogueWords": 117,
       "voice": "John (Deep Calm Middle-Aged American Male)",
@@ -2093,7 +2093,7 @@
     },
     {
       "key": "hanako-arasaka",
-      "words": 848,
+      "words": 831,
       "speakingStyleWords": 175,
       "sampleDialogueWords": 217,
       "voice": "Freya (Authoritative Adult British Female)",
@@ -2183,7 +2183,7 @@
     },
     {
       "key": "kerry-eurodyne",
-      "words": 973,
+      "words": 976,
       "speakingStyleWords": 161,
       "sampleDialogueWords": 239,
       "voice": "Logan (Expressive Young-Adult American Male)",
@@ -2570,7 +2570,7 @@
     },
     {
       "key": "yorinobu-arasaka",
-      "words": 754,
+      "words": 736,
       "speakingStyleWords": 167,
       "sampleDialogueWords": 193,
       "voice": "Mark (Bold Middle-Aged American Male)",
