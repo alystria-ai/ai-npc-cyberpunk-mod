@@ -304,13 +304,16 @@ function M.install(options)
         return ok and text or nil
     end
     local function editSwitches(system, off)
+        system = system:lower()
         local names, seen = {}, false
         local file = realOpen('runtime/native-off.txt', 'rb')
         if file then
             for line in (file:read('*a') or ''):gmatch('[^\r\n]+') do
                 local name = line:match('^%s*(.-)%s*$')
-                if name == system then seen = true end
-                if name ~= '' and (name ~= system or off) then names[#names + 1] = name end
+                -- The plugin reads a name the way Switches::ParseFile does: comment cut off, trimmed, lower-cased.
+                local listed = (name:gsub('#.*', '')):match('^%s*(.-)%s*$'):lower()
+                if listed == system then seen = true end
+                if name ~= '' and (listed ~= system or off) then names[#names + 1] = name end
             end
             file:close()
         end
