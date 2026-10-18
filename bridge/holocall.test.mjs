@@ -481,6 +481,19 @@ test('a staged character gets the live picture: a hidden floor above V, the copy
   tick(1); assert(spatial.rays == rays, 'nothing runs after the call')
 `));
 
+test('the live picture holds the copy with the gesture controller\'s catalogue when there is one, never compiling a second copy', () => run(world + `
+  local loadFile = dofile
+  dofile = function(path) assert(path ~= 'gesture-catalog.lua', 'the catalogue was compiled again'); return loadFile(path) end
+  convaiGestures = {catalog = {device = 'device.ent', families = {on_sides = {component = 'talk_on_sides'},
+    judy_own = {component = 'convai_talk_judy'}}, characters = {['Character.Judy'] = {talk = 'judy_own', rig = 'woman_base'}}}}
+  game.window = 'holocall'
+  game.requests = {'judy'}; holocall.drain(player); tick(2.5)
+  assert(holocall.connected() and holocall.call.mode == 'holo')
+  assert(played[1] == 'convai_talk_judy', tostring(played[1]))
+  holocall.finish(player, 'hangup')
+  convaiGestures = nil
+`));
+
 test('without the black backing in the window (an older Holocall.reds) the camera cuts nothing out of the picture', () => run(world + `
   game.window = 'holocall'; game.noBacking = true
   game.requests = {'judy'}; holocall.drain(player); tick(2.5)

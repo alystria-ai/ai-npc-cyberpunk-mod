@@ -1513,6 +1513,8 @@ do
     -- Seating (docs/COMPANION_SEATING.md): companions always take a free seat
     -- beside a seated V (no setting). It owns the body before gestures do.
     convaiSeatingOptions = {
+        -- The gesture catalogue (1.4 MB of generated Lua) is compiled and held once, shared with the gesture controller.
+        catalog = controller and type(controller.catalog) == 'table' and controller.catalog or nil,
         gazeSettings = function() return companions.gazeSettings and companions.gazeSettings() or nil end,
         log = function(kind, fields)
             if manager.developerMode() then
