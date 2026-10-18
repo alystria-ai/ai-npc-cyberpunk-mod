@@ -29192,7 +29192,8 @@
       ],
       "audience": {
         "speakers": [
-          "judy-alvarez"
+          "judy-alvarez",
+          "evelyn-parker"
         ],
         "perspective": "participant",
         "channels": [
@@ -29201,7 +29202,8 @@
         ],
         "recipients": [
           "v",
-          "judy-alvarez"
+          "judy-alvarez",
+          "evelyn-parker"
         ]
       },
       "condition": {

@@ -1,15 +1,15 @@
 {
   "version": 1,
-  "builtAt": "2026-10-14T20:38:42.836Z",
+  "builtAt": "2026-10-18T17:41:15.444Z",
   "errors": [],
-  "enabledRules": 782,
-  "citedArtifacts": 777,
-  "verifiedEvidencePointers": 9270,
+  "enabledRules": 796,
+  "citedArtifacts": 781,
+  "verifiedEvidencePointers": 9280,
   "outcomesResearched": 1162,
-  "jsonHashBoundPointers": 9270,
+  "jsonHashBoundPointers": 9280,
   "legacyJsonPointers": 0,
-  "outcomesWithReviewedRules": 762,
-  "outcomesUnmapped": 400,
+  "outcomesWithReviewedRules": 765,
+  "outcomesUnmapped": 397,
   "verified": [
     {
       "evidenceId": "al5.ev.wartime.tracking-switch",
@@ -101980,6 +101980,116 @@
       "archive": "base",
       "archiveEntrySha1": "8ca4a5c8f052523b632fed9fd48d7aa8189aeb4a",
       "depotPath": "base\\quest\\side_quests\\sq031\\scenes\\sq031_04_grayson.scene"
+    },
+    {
+      "evidenceId": "ck5.ev.q004-evelyn-with-v",
+      "jsonPath": "scene-evidence/priority-judy-information-20261004/raw/base/base/quest/main_quests/prologue/q004/scenes/q004_02_meeting_evelyn.scene.json",
+      "jsonPointer": "/Data/RootChunk/actors/0",
+      "assetSha256": "ffcd4410566e3d0d05118e93d0305e4a473c7fb4c146c2f04cfa058857b1f207",
+      "jsonSha256": "d963370eb0310f5311abd72cfa84d66c62e90b7943568a9a3ce975fce4cb8f0b",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "b5e7ff0eb3debb1e17c512adb82c10ca68cfef2a",
+      "depotPath": "base\\quest\\main_quests\\prologue\\q004\\scenes\\q004_02_meeting_evelyn.scene"
+    },
+    {
+      "evidenceId": "ck5.ev.q004-evelyn-with-v",
+      "jsonPath": "scene-evidence/priority-judy-information-20261004/raw/base/base/quest/main_quests/prologue/q004/scenes/q004_03_this_is_judy.scene.json",
+      "jsonPointer": "/Data/RootChunk/actors/0",
+      "assetSha256": "8bdd42a9ecacd8d923ffdc807f6107ba878cad79f649bd2f129ec275625b68e3",
+      "jsonSha256": "25d61bab163dc90fc22221d27cc430e820dccee8930893244c101bf798a84f98",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "adda1ccdd08b7c920d09e96ea86f12c3fbcd4322",
+      "depotPath": "base\\quest\\main_quests\\prologue\\q004\\scenes\\q004_03_this_is_judy.scene"
+    },
+    {
+      "evidenceId": "ck5.ev.q004-evelyn-with-v",
+      "jsonPath": "scene-evidence/priority-judy-information-phases-20261004/raw/base/base/quest/main_quests/prologue/q004/phases/q004_nightclub.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/19/Data",
+      "assetSha256": "da54dfb8183daaf30238ec3685816ee0e526cb04c551b3e6201f7c02c8a21801",
+      "jsonSha256": "86ce33bb45a1fab597cad2f7c65fb86aa4fa39b18b6a3bce1d3a44dcc497f1a0",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "c5b5c8bf909f45592d2941d5fb3698a377694f7a",
+      "depotPath": "base\\quest\\main_quests\\prologue\\q004\\phases\\q004_nightclub.questphase"
+    },
+    {
+      "evidenceId": "ck5.ev.q004-evelyn-with-v",
+      "jsonPath": "scene-evidence/priority-judy-information-phases-20261004/raw/base/base/quest/main_quests/prologue/q004/phases/q004_nightclub.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data",
+      "assetSha256": "da54dfb8183daaf30238ec3685816ee0e526cb04c551b3e6201f7c02c8a21801",
+      "jsonSha256": "86ce33bb45a1fab597cad2f7c65fb86aa4fa39b18b6a3bce1d3a44dcc497f1a0",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "c5b5c8bf909f45592d2941d5fb3698a377694f7a",
+      "depotPath": "base\\quest\\main_quests\\prologue\\q004\\phases\\q004_nightclub.questphase"
+    },
+    {
+      "evidenceId": "ck5.ev.q108-escape-party",
+      "jsonPath": "scene-evidence/cast-q108-scenes-20261018/raw/base/base/quest/main_quests/part1/q108/scenes/q108_14a_escape.scene.json",
+      "jsonPointer": "/Data/RootChunk/actors/1",
+      "assetSha256": "7c8650dd1de30543d176211b93484ead4834980b2a3fef790dda51619db93845",
+      "jsonSha256": "17caf26f6772219b123e96ff5b38316209f3537e89ab2340c94dbf8a7fe084ce",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "3710cf2b40440242c67f30cbb7df92e38954c16b",
+      "depotPath": "base\\quest\\main_quests\\part1\\q108\\scenes\\q108_14a_escape.scene"
+    },
+    {
+      "evidenceId": "ck5.ev.q108-escape-party",
+      "jsonPath": "scene-evidence/cast-q108-scenes-20261018/raw/base/base/quest/main_quests/part1/q108/scenes/q108_14a_escape.scene.json",
+      "jsonPointer": "/Data/RootChunk/actors/3",
+      "assetSha256": "7c8650dd1de30543d176211b93484ead4834980b2a3fef790dda51619db93845",
+      "jsonSha256": "17caf26f6772219b123e96ff5b38316209f3537e89ab2340c94dbf8a7fe084ce",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "3710cf2b40440242c67f30cbb7df92e38954c16b",
+      "depotPath": "base\\quest\\main_quests\\part1\\q108\\scenes\\q108_14a_escape.scene"
+    },
+    {
+      "evidenceId": "ck5.ev.q108-escape-party",
+      "jsonPath": "scene-evidence/cast-q108-scenes-20261018/raw/base/base/quest/main_quests/part1/q108/scenes/q108_14b_lift.scene.json",
+      "jsonPointer": "/Data/RootChunk/actors/1",
+      "assetSha256": "1cd81f3c7a57505f10989034418f51dc3bb5fd60a4dac50db9c7c906d8648c6f",
+      "jsonSha256": "2efc78d3676bfa1816b33c2fc783a0c6a94c36af8080e4b87d7988ea7fb1f349",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "1339f92f1980c57911377270e92f306e3f5074a6",
+      "depotPath": "base\\quest\\main_quests\\part1\\q108\\scenes\\q108_14b_lift.scene"
+    },
+    {
+      "evidenceId": "ck5.ev.q108-escape-party",
+      "jsonPath": "scene-evidence/cast-q108-scenes-20261018/raw/base/base/quest/main_quests/part1/q108/scenes/q108_14b_lift.scene.json",
+      "jsonPointer": "/Data/RootChunk/actors/3",
+      "assetSha256": "1cd81f3c7a57505f10989034418f51dc3bb5fd60a4dac50db9c7c906d8648c6f",
+      "jsonSha256": "2efc78d3676bfa1816b33c2fc783a0c6a94c36af8080e4b87d7988ea7fb1f349",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "1339f92f1980c57911377270e92f306e3f5074a6",
+      "depotPath": "base\\quest\\main_quests\\part1\\q108\\scenes\\q108_14b_lift.scene"
+    },
+    {
+      "evidenceId": "ck5.ev.q108-escape-party",
+      "jsonPath": "scene-evidence/cast-q108-20261018/raw/base/base/quest/main_quests/part1/q108/phases/q108_04_atlantis.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data",
+      "assetSha256": "137ca273d9932e814972fbdc5366f2e5b8a4a24b2f3895cb1c5f2eb7d8fb8733",
+      "jsonSha256": "3c66d75e4c732f056eed8be66603e6c4c739c3a3668035b7781e8d5dcdbc5903",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "6e9cf99b472d26d3af5accff38fa345bd5d522f9",
+      "depotPath": "base\\quest\\main_quests\\part1\\q108\\phases\\q108_04_atlantis.questphase"
+    },
+    {
+      "evidenceId": "ck5.ev.q108-escape-party",
+      "jsonPath": "scene-evidence/cast-q108-20261018/raw/base/base/quest/main_quests/part1/q108/phases/q108_04_atlantis.questphase.json",
+      "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/3/Data",
+      "assetSha256": "137ca273d9932e814972fbdc5366f2e5b8a4a24b2f3895cb1c5f2eb7d8fb8733",
+      "jsonSha256": "3c66d75e4c732f056eed8be66603e6c4c739c3a3668035b7781e8d5dcdbc5903",
+      "jsonIntegrity": "hash-verified",
+      "archive": "base",
+      "archiveEntrySha1": "6e9cf99b472d26d3af5accff38fa345bd5d522f9",
+      "depotPath": "base\\quest\\main_quests\\part1\\q108\\phases\\q108_04_atlantis.questphase"
     }
   ],
   "outcomes": [
@@ -102675,7 +102785,8 @@
       "questKey": "belly-of-the-beast",
       "outcomeKey": "killed",
       "rules": [
-        "priority-endings.johnny.saul-killed"
+        "priority-endings.johnny.saul-killed",
+        "santiago.belly-of-the-beast.saul-killed"
       ]
     },
     {
@@ -103657,7 +103768,9 @@
       "decisionId": "judy-river.information.introductions",
       "questKey": "the-information",
       "outcomeKey": "evelyn-met",
-      "rules": []
+      "rules": [
+        "evelyn-parker.information.met-v"
+      ]
     },
     {
       "decisionId": "judy-river.information.introductions",
@@ -105083,7 +105196,8 @@
       "questKey": "spellbound",
       "outcomeKey": "delivered",
       "rules": [
-        "heywood.nix.spellbook.delivered"
+        "heywood.nix.spellbook.delivered",
+        "r3n0.spellbound.tablet-sold"
       ]
     },
     {
@@ -105210,13 +105324,17 @@
       "decisionId": "city-contacts.sergei.captive",
       "questKey": "olive-branch",
       "outcomeKey": "delivered",
-      "rules": []
+      "rules": [
+        "sergei-karasinsky.olive-branch.delivered"
+      ]
     },
     {
       "decisionId": "city-contacts.sergei.captive",
       "questKey": "olive-branch",
       "outcomeKey": "released",
-      "rules": []
+      "rules": [
+        "sergei-karasinsky.olive-branch.released"
+      ]
     },
     {
       "decisionId": "city-contacts.sergei.aftermath",
@@ -105297,7 +105415,8 @@
       "questKey": "spy-in-the-jungle",
       "outcomeKey": "given-ana",
       "rules": [
-        "cc5.steven.biomonitor-to-ana"
+        "cc5.steven.biomonitor-to-ana",
+        "mark-bana.spy-jungle.biomonitor-to-ana"
       ]
     },
     {
@@ -105305,7 +105424,8 @@
       "questKey": "spy-in-the-jungle",
       "outcomeKey": "destroyed",
       "rules": [
-        "cc5.steven.biomonitor-destroyed"
+        "cc5.steven.biomonitor-destroyed",
+        "mark-bana.spy-jungle.biomonitor-destroyed"
       ]
     },
     {
@@ -105313,7 +105433,8 @@
       "questKey": "spy-in-the-jungle",
       "outcomeKey": "drop-point",
       "rules": [
-        "cc5.steven.biomonitor-drop-point"
+        "cc5.steven.biomonitor-drop-point",
+        "mark-bana.spy-jungle.biomonitor-drop-point"
       ]
     },
     {
@@ -108253,6 +108374,7 @@
       "questKey": "automatic-love",
       "outcomeKey": "booth-seen",
       "rules": [
+        "evelyn-parker.automatic-love.booth-seen",
         "priority-judy.booth-recording"
       ]
     },
@@ -108315,6 +108437,7 @@
       "questKey": "disasterpiece",
       "outcomeKey": "extracted",
       "rules": [
+        "evelyn-parker.disasterpiece.extracted",
         "jr-native.disasterpiece-evelyn-extracted"
       ]
     },
@@ -108331,6 +108454,7 @@
       "questKey": "double-life",
       "outcomeKey": "assignment-revealed",
       "rules": [
+        "evelyn-parker.double-life.assignment",
         "priority-judy.evelyn-recording-assignment"
       ]
     },
@@ -110018,6 +110142,7 @@
       "questKey": "never-fade-away",
       "outcomeKey": "experienced",
       "rules": [
+        "cast.never-fade.memory-2013-escape-party",
         "priority-endings.johnny.alt-memory"
       ]
     },
@@ -110454,6 +110579,7 @@
       "questKey": "knockin-on-heavens-door",
       "outcomeKey": "killed",
       "rules": [
+        "adam-smasher.knockin.killed-rogue",
         "silverhand.rogue-killed"
       ]
     },
@@ -110462,6 +110588,7 @@
       "questKey": "knockin-on-heavens-door",
       "outcomeKey": "killed",
       "rules": [
+        "adam-smasher.knockin.finished-off",
         "sh5.knockin.smasher-killed"
       ]
     },
@@ -110508,6 +110635,22 @@
   "narrativeTopics": {
     "policy": "exact-or-pinned-reviewed-alias",
     "proofs": [
+      {
+        "ruleId": "adam-smasher.knockin.finished-off",
+        "decisionId": "silverhand.rogue-route-smasher-fate",
+        "outcomeKey": "killed",
+        "nativeTopic": "smasher.fate",
+        "catalogTopic": "smasher.fate",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "adam-smasher.knockin.killed-rogue",
+        "decisionId": "silverhand.rogue-fate",
+        "outcomeKey": "killed",
+        "nativeTopic": "rogue.fate",
+        "catalogTopic": "rogue.fate",
+        "qualification": "exact"
+      },
       {
         "ruleId": "ah5.corpo-rat.corpo",
         "decisionId": "arasaka-heist.corpo-career",
@@ -111223,6 +111366,14 @@
         "qualification": "exact"
       },
       {
+        "ruleId": "cast.never-fade.memory-2013-escape-party",
+        "decisionId": "silverhand.memory-2013",
+        "outcomeKey": "experienced",
+        "nativeTopic": "johnny.memory.2013",
+        "catalogTopic": "johnny.memory.2013",
+        "qualification": "exact"
+      },
+      {
         "ruleId": "cc5.blue.band-coerced",
         "decisionId": "city-contacts.blue.band-resolution",
         "outcomeKey": "coerced",
@@ -111688,6 +111839,44 @@
         "outcomeKey": "present",
         "nativeTopic": "takemura.arasaka-assault",
         "catalogTopic": "takemura.arasaka-assault",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "evelyn-parker.automatic-love.booth-seen",
+        "decisionId": "judy-river.automatic.evidence",
+        "outcomeKey": "booth-seen",
+        "nativeTopic": "evelyn.clouds_evidence.booth",
+        "catalogTopic": "evelyn.clouds_evidence",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "compatible-facet",
+        "ruleSha256": "7f3e660e14308d0e3daeaea9b01bdcdc11e1324f4f9a78781c00bd13666fc153",
+        "reviewRef": "native-reviews/cast-knowledge-20261018.md"
+      },
+      {
+        "ruleId": "evelyn-parker.disasterpiece.extracted",
+        "decisionId": "judy-river.disasterpiece.recovery",
+        "outcomeKey": "extracted",
+        "nativeTopic": "evelyn.recovery",
+        "catalogTopic": "evelyn.recovery",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "evelyn-parker.double-life.assignment",
+        "decisionId": "judy-river.double.recordings",
+        "outcomeKey": "assignment-revealed",
+        "nativeTopic": "evelyn.contract_evidence.assignment",
+        "catalogTopic": "evelyn.contract_evidence",
+        "qualification": "pinned-reviewed-alias",
+        "policy": "compatible-facet",
+        "ruleSha256": "65169367117eb7e6c6a60335ec822c0f58ece8785428f0012de9f2804f97bbf7",
+        "reviewRef": "native-reviews/cast-knowledge-20261018.md"
+      },
+      {
+        "ruleId": "evelyn-parker.information.met-v",
+        "decisionId": "judy-river.information.introductions",
+        "outcomeKey": "evelyn-met",
+        "nativeTopic": "heist.introductions",
+        "catalogTopic": "heist.introductions",
         "qualification": "exact"
       },
       {
@@ -114785,6 +114974,30 @@
         "qualification": "exact"
       },
       {
+        "ruleId": "mark-bana.spy-jungle.biomonitor-destroyed",
+        "decisionId": "city-contacts.bana.evidence",
+        "outcomeKey": "destroyed",
+        "nativeTopic": "bana.evidence.disposition",
+        "catalogTopic": "bana.evidence.disposition",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "mark-bana.spy-jungle.biomonitor-drop-point",
+        "decisionId": "city-contacts.bana.evidence",
+        "outcomeKey": "drop-point",
+        "nativeTopic": "bana.evidence.disposition",
+        "catalogTopic": "bana.evidence.disposition",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "mark-bana.spy-jungle.biomonitor-to-ana",
+        "decisionId": "city-contacts.bana.evidence",
+        "outcomeKey": "given-ana",
+        "nativeTopic": "bana.evidence.disposition",
+        "catalogTopic": "bana.evidence.disposition",
+        "qualification": "exact"
+      },
+      {
         "ruleId": "pg5.academy.controlled.hands",
         "decisionId": "phantom.academy.data",
         "outcomeKey": "controlled",
@@ -116561,6 +116774,38 @@
         "qualification": "exact"
       },
       {
+        "ruleId": "r3n0.spellbound.tablet-sold",
+        "decisionId": "heywood.nix.spellbook-handoff",
+        "outcomeKey": "delivered",
+        "nativeTopic": "v.nix.spellbook",
+        "catalogTopic": "v.nix.spellbook",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "santiago.belly-of-the-beast.saul-killed",
+        "decisionId": "silverhand.saul-fate",
+        "outcomeKey": "killed",
+        "nativeTopic": "saul.fate",
+        "catalogTopic": "saul.fate",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "sergei-karasinsky.olive-branch.delivered",
+        "decisionId": "city-contacts.sergei.captive",
+        "outcomeKey": "delivered",
+        "nativeTopic": "olive-branch.alex",
+        "catalogTopic": "olive-branch.alex",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "sergei-karasinsky.olive-branch.released",
+        "decisionId": "city-contacts.sergei.captive",
+        "outcomeKey": "released",
+        "nativeTopic": "olive-branch.alex",
+        "catalogTopic": "olive-branch.alex",
+        "qualification": "exact"
+      },
+      {
         "ruleId": "sh5.belly.smasher-killed",
         "decisionId": "silverhand.aldecaldo-route-smasher-fate",
         "outcomeKey": "killed",
@@ -116900,8 +117145,8 @@
         "qualification": "exact"
       }
     ],
-    "exactMatches": 737,
-    "reviewedAliases": 45,
+    "exactMatches": 749,
+    "reviewedAliases": 47,
     "reviewDocuments": [
       {
         "reference": "native-reviews/topic-identity-audit-oct03.md",
@@ -116910,8 +117155,13 @@
       },
       {
         "reference": "native-reviews/queen-friendship-alias-20261015.md",
-        "sha256": "1407655c1e0a8bd1ef6d61ff894111539771414a0069b46ea3b54f2003884db0",
-        "bytes": 2598
+        "sha256": "e06ad3cc4fd36d880d2dfff542ab18af41831500e53b87a9f7b45e6a3c5b3356",
+        "bytes": 2622
+      },
+      {
+        "reference": "native-reviews/cast-knowledge-20261018.md",
+        "sha256": "48be6b6e05408df50735c3288d27674f7fa1d1626949e57bb48bec026260a394",
+        "bytes": 7170
       },
       {
         "reference": "native-reviews/judy-river-oct01.md",

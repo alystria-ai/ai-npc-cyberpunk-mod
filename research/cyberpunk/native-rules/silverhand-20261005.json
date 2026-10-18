@@ -1842,7 +1842,8 @@
       "audience": {
         "speakers": [
           "panam-palmer",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "adam-smasher"
         ],
         "perspective": "participant",
         "channels": [
@@ -1852,7 +1853,8 @@
         "recipients": [
           "v",
           "panam-palmer",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "adam-smasher"
         ]
       },
       "condition": {
@@ -1962,7 +1964,8 @@
       ],
       "audience": {
         "speakers": [
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "adam-smasher"
         ],
         "perspective": "participant",
         "channels": [
@@ -1971,7 +1974,8 @@
         ],
         "recipients": [
           "v",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "adam-smasher"
         ]
       },
       "condition": {

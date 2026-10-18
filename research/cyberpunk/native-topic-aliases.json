@@ -540,6 +540,30 @@
       "rationale": "Joins the reviewed domain of aldecaldos.queen.romance. The friendship hook is sent only on the False side of sq027_panam_lover > 0 and the romance rule requires that fact, so the two outcomes cannot both hold; sharing the topic makes the resolver suppress both if a contradictory snapshot ever shows them together.",
       "reviewRef": "native-reviews/queen-friendship-alias-20261015.md",
       "reviewed": true
+    },
+    {
+      "ruleId": "evelyn-parker.automatic-love.booth-seen",
+      "decisionId": "judy-river.automatic.evidence",
+      "outcomeKey": "booth-seen",
+      "nativeTopic": "evelyn.clouds_evidence.booth",
+      "catalogTopic": "evelyn.clouds_evidence",
+      "ruleSha256": "7f3e660e14308d0e3daeaea9b01bdcdc11e1324f4f9a78781c00bd13666fc153",
+      "policy": "compatible-facet",
+      "rationale": "Evelyn's shared-journal copy of the reviewed Judy rule with the same condition and evidence rows: it keeps the same native topic facet so the compatible evidence facets of this decision stay separate.",
+      "reviewRef": "native-reviews/cast-knowledge-20261018.md",
+      "reviewed": true
+    },
+    {
+      "ruleId": "evelyn-parker.double-life.assignment",
+      "decisionId": "judy-river.double.recordings",
+      "outcomeKey": "assignment-revealed",
+      "nativeTopic": "evelyn.contract_evidence.assignment",
+      "catalogTopic": "evelyn.contract_evidence",
+      "ruleSha256": "65169367117eb7e6c6a60335ec822c0f58ece8785428f0012de9f2804f97bbf7",
+      "policy": "compatible-facet",
+      "rationale": "Evelyn's shared-journal copy of the reviewed Judy rule with the same condition and evidence rows: it keeps the same native topic facet so the compatible evidence facets of this decision stay separate.",
+      "reviewRef": "native-reviews/cast-knowledge-20261018.md",
+      "reviewed": true
     }
   ]
 }

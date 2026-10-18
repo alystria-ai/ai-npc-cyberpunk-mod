@@ -19,6 +19,7 @@
     "blue-moon",
     "bob-sagan",
     "briana-dolson",
+    "bryce-mosley",
     "carol-emeka",
     "cassidy-righter",
     "chang-hoon-nam",
@@ -4530,6 +4531,16 @@
       "kind": "native",
       "locator": "base\\quest\\side_quests\\sq031\\scenes\\sq031_04_grayson.scene",
       "title": "Installed Cyberpunk 2077 2.31 sq031_04_grayson.scene"
+    },
+    {
+      "id": "ck5.source.q004-evelyn",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\prologue\\q004\\scenes\\q004_02_meeting_evelyn.scene, q004_03_this_is_judy.scene and phases\\q004_nightclub.questphase (scene-evidence/priority-judy-information-20261004 and priority-judy-information-phases-20261004); exported with WolvenKit CLI 9.0.1, hashes recorded in each batch inventory."
+    },
+    {
+      "id": "ck5.source.q108-escape",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q108\\scenes\\q108_14a_escape.scene, q108_14b_lift.scene and phases\\q108_04_atlantis.questphase (scene-evidence/cast-q108-scenes-20261018 and cast-q108-20261018); exported with WolvenKit CLI 9.0.1, hashes recorded in each batch inventory."
     }
   ],
   "evidence": [
@@ -152234,6 +152245,128 @@
           "expectedValue": "Player"
         }
       ]
+    },
+    {
+      "id": "ck5.ev.q004-evelyn-with-v",
+      "sourceId": "ck5.source.q004-evelyn",
+      "kind": "native",
+      "locator": "The q004_nightclub phase runs q004_02_meeting_evelyn (Evelyn is actor 0 and speaks 98 of the scene lines alongside the player) and then q004_03_this_is_judy (Evelyn is actor 0, Judy actor 1, the player present): in The Information V meets Evelyn in person and she is with V at Judy's workshop. The rule also requires the completed Information journal state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/priority-judy-information-20261004/raw/base/base/quest/main_quests/prologue/q004/scenes/q004_02_meeting_evelyn.scene.json",
+        "assetSha256": "ffcd4410566e3d0d05118e93d0305e4a473c7fb4c146c2f04cfa058857b1f207",
+        "jsonSha256": "d963370eb0310f5311abd72cfa84d66c62e90b7943568a9a3ce975fce4cb8f0b",
+        "jsonPointer": "/Data/RootChunk/actors/0",
+        "expectedType": "scnActorDef",
+        "expected": {
+          "/actorName": "Evelyn"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/priority-judy-information-20261004/raw/base/base/quest/main_quests/prologue/q004/scenes/q004_03_this_is_judy.scene.json",
+          "assetSha256": "8bdd42a9ecacd8d923ffdc807f6107ba878cad79f649bd2f129ec275625b68e3",
+          "jsonSha256": "25d61bab163dc90fc22221d27cc430e820dccee8930893244c101bf798a84f98",
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "expectedType": "scnActorDef",
+          "expected": {
+            "/actorName": "Evelyn"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/priority-judy-information-phases-20261004/raw/base/base/quest/main_quests/prologue/q004/phases/q004_nightclub.questphase.json",
+          "assetSha256": "da54dfb8183daaf30238ec3685816ee0e526cb04c551b3e6201f7c02c8a21801",
+          "jsonSha256": "86ce33bb45a1fab597cad2f7c65fb86aa4fa39b18b6a3bce1d3a44dcc497f1a0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/19/Data",
+          "expectedType": "questSceneNodeDefinition",
+          "expected": {
+            "/sceneFile/DepotPath/$value": "base\\quest\\main_quests\\prologue\\q004\\scenes\\q004_02_meeting_evelyn.scene"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/priority-judy-information-phases-20261004/raw/base/base/quest/main_quests/prologue/q004/phases/q004_nightclub.questphase.json",
+          "assetSha256": "da54dfb8183daaf30238ec3685816ee0e526cb04c551b3e6201f7c02c8a21801",
+          "jsonSha256": "86ce33bb45a1fab597cad2f7c65fb86aa4fa39b18b6a3bce1d3a44dcc497f1a0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data",
+          "expectedType": "questSceneNodeDefinition",
+          "expected": {
+            "/sceneFile/DepotPath/$value": "base\\quest\\main_quests\\prologue\\q004\\scenes\\q004_03_this_is_judy.scene"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ck5.ev.q108-escape-party",
+      "sourceId": "ck5.source.q108-escape",
+      "kind": "native",
+      "locator": "In Never Fade Away the q108_04_atlantis phase runs q108_14a_escape and q108_14b_lift; in both scenes the actors are Rogue (0), Santiago (1), Johnny (2) and Thompson (3). This is Johnny's represented memory of the 2013 rescue, played in the current save once the quest completes.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/cast-q108-scenes-20261018/raw/base/base/quest/main_quests/part1/q108/scenes/q108_14a_escape.scene.json",
+        "assetSha256": "7c8650dd1de30543d176211b93484ead4834980b2a3fef790dda51619db93845",
+        "jsonSha256": "17caf26f6772219b123e96ff5b38316209f3537e89ab2340c94dbf8a7fe084ce",
+        "jsonPointer": "/Data/RootChunk/actors/1",
+        "expectedType": "scnActorDef",
+        "expected": {
+          "/actorName": "Santiago"
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/cast-q108-scenes-20261018/raw/base/base/quest/main_quests/part1/q108/scenes/q108_14a_escape.scene.json",
+          "assetSha256": "7c8650dd1de30543d176211b93484ead4834980b2a3fef790dda51619db93845",
+          "jsonSha256": "17caf26f6772219b123e96ff5b38316209f3537e89ab2340c94dbf8a7fe084ce",
+          "jsonPointer": "/Data/RootChunk/actors/3",
+          "expectedType": "scnActorDef",
+          "expected": {
+            "/actorName": "Thompson"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/cast-q108-scenes-20261018/raw/base/base/quest/main_quests/part1/q108/scenes/q108_14b_lift.scene.json",
+          "assetSha256": "1cd81f3c7a57505f10989034418f51dc3bb5fd60a4dac50db9c7c906d8648c6f",
+          "jsonSha256": "2efc78d3676bfa1816b33c2fc783a0c6a94c36af8080e4b87d7988ea7fb1f349",
+          "jsonPointer": "/Data/RootChunk/actors/1",
+          "expectedType": "scnActorDef",
+          "expected": {
+            "/actorName": "Santiago"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/cast-q108-scenes-20261018/raw/base/base/quest/main_quests/part1/q108/scenes/q108_14b_lift.scene.json",
+          "assetSha256": "1cd81f3c7a57505f10989034418f51dc3bb5fd60a4dac50db9c7c906d8648c6f",
+          "jsonSha256": "2efc78d3676bfa1816b33c2fc783a0c6a94c36af8080e4b87d7988ea7fb1f349",
+          "jsonPointer": "/Data/RootChunk/actors/3",
+          "expectedType": "scnActorDef",
+          "expected": {
+            "/actorName": "Thompson"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/cast-q108-20261018/raw/base/base/quest/main_quests/part1/q108/phases/q108_04_atlantis.questphase.json",
+          "assetSha256": "137ca273d9932e814972fbdc5366f2e5b8a4a24b2f3895cb1c5f2eb7d8fb8733",
+          "jsonSha256": "3c66d75e4c732f056eed8be66603e6c4c739c3a3668035b7781e8d5dcdbc5903",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data",
+          "expectedType": "questSceneNodeDefinition",
+          "expected": {
+            "/sceneFile/DepotPath/$value": "base\\quest\\main_quests\\part1\\q108\\scenes\\q108_14a_escape.scene"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/cast-q108-20261018/raw/base/base/quest/main_quests/part1/q108/phases/q108_04_atlantis.questphase.json",
+          "assetSha256": "137ca273d9932e814972fbdc5366f2e5b8a4a24b2f3895cb1c5f2eb7d8fb8733",
+          "jsonSha256": "3c66d75e4c732f056eed8be66603e6c4c739c3a3668035b7781e8d5dcdbc5903",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/3/Data",
+          "expectedType": "questSceneNodeDefinition",
+          "expected": {
+            "/sceneFile/DepotPath/$value": "base\\quest\\main_quests\\part1\\q108\\scenes\\q108_14b_lift.scene"
+          }
+        }
+      ]
     }
   ],
   "factAllowlist": {
@@ -161870,6 +162003,119 @@
   },
   "rules": [
     {
+      "id": "adam-smasher.knockin.finished-off",
+      "revision": 1,
+      "questKey": "knockin-on-heavens-door",
+      "topic": "smasher.fate",
+      "outcome": "killed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "On the assault with Rogue, once Smasher was beaten, V finished him off instead of walking away.",
+      "sourceIds": [
+        "sh5.source.3ae0bce8808a"
+      ],
+      "evidenceRefs": [
+        "sh5.ev.smasher.aftermath-hit",
+        "sh5.ev.fact.q116_smashero_deado.b1b210ba1e2e"
+      ],
+      "audience": {
+        "speakers": [
+          "adam-smasher"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "adam-smasher"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q116_smashero_deado",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q115_rogue_in_av",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.rogue-route-smasher-fate",
+          "outcomeKey": "killed"
+        }
+      ]
+    },
+    {
+      "id": "adam-smasher.knockin.killed-rogue",
+      "revision": 1,
+      "questKey": "knockin-on-heavens-door",
+      "topic": "rogue.fate",
+      "outcome": "killed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 10,
+      "stable": true,
+      "statement": "In the assault on Arasaka Tower with Rogue, Adam Smasher killed Rogue during the confrontation before Mikoshi.",
+      "sourceIds": [
+        "silverhand-native.q116-01-adam-smasher-scene"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.rogue-death"
+      ],
+      "audience": {
+        "speakers": [
+          "adam-smasher"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "adam-smasher"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q116_rogue_dead",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.rogue-fate",
+          "outcomeKey": "killed"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "ending.assault-route",
+          "outcome": "rogue"
+        }
+      ]
+    },
+    {
       "id": "ah5.corpo-rat.corpo",
       "revision": 1,
       "questKey": "the-corpo-rat",
@@ -163304,7 +163550,9 @@
           "meredith-stout",
           "dexter-deshawn",
           "placide",
-          "t-bug"
+          "t-bug",
+          "spider-murphy",
+          "thompson"
         ],
         "perspective": "told-by-v",
         "channels": [
@@ -163321,7 +163569,9 @@
           "meredith-stout",
           "dexter-deshawn",
           "placide",
-          "t-bug"
+          "t-bug",
+          "spider-murphy",
+          "thompson"
         ]
       },
       "condition": {
@@ -169140,6 +169390,72 @@
       ]
     },
     {
+      "id": "cast.never-fade.memory-2013-escape-party",
+      "revision": 1,
+      "questKey": "never-fade-away",
+      "topic": "johnny.memory.2013",
+      "outcome": "experienced",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "The current save establishes that V relived Johnny's 2013 memory of the attempt to rescue Alt from Arasaka Tower (Never Fade Away). In that remembered rescue Johnny, Rogue, Santiago and Thompson are together in the escape from the tower. This is Johnny's remembered version, not proof that Santiago or Thompson recall it the same way or know that V relived it.",
+      "sourceIds": [
+        "priority-endings.source.0abedd54c29b",
+        "priority-endings.source.9afb79f8a075",
+        "priority-endings.source.964c26f3b858",
+        "ck5.source.q108-escape"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.4771e7b95731",
+        "priority-endings.evidence.2c9e8f4c6499",
+        "priority-endings.evidence.900ef2dfadb7",
+        "ck5.ev.q108-escape-party"
+      ],
+      "audience": {
+        "speakers": [
+          "santiago",
+          "thompson"
+        ],
+        "perspective": "told-by-v",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "santiago",
+          "thompson"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q101_rogue_moved_to_heli",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "endings.never-fade.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.memory-2013",
+          "outcomeKey": "experienced"
+        }
+      ]
+    },
+    {
       "id": "cc5.blue.band-coerced",
       "revision": 1,
       "questKey": "i-dont-wanna-hear-it",
@@ -174264,6 +174580,246 @@
         "saves": null,
         "liveCheck": "Export the sq023_hook questphase (nested sub-phase nodes/25) with extract_scene_evidence.py first. Live: finish the Sinnerman chase once by killing Joshua and once with \"Screw this, I'm out\", and read sq023_joshua_killed after each."
       }
+    },
+    {
+      "id": "evelyn-parker.automatic-love.booth-seen",
+      "revision": 1,
+      "questKey": "automatic-love",
+      "topic": "evelyn.clouds_evidence.booth",
+      "outcome": "booth-seen",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 7,
+      "stable": true,
+      "statement": "The current save's journal records that V saw the recording of Evelyn being attacked through her cyberware at Clouds. It is evidence of the attack, not a memory Evelyn can recount, and it says nothing about her recovery or the attacker's identity.",
+      "sourceIds": [
+        "priority-judy.booth-recording.source"
+      ],
+      "evidenceRefs": [
+        "priority-judy.booth-recording.evidence"
+      ],
+      "audience": {
+        "speakers": [
+          "evelyn-parker"
+        ],
+        "perspective": "shared-journal",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "evelyn-parker"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q105_03d_dollhouse_evelyn_attack_seen",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "priority-judy.automatic.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.automatic.evidence",
+          "outcomeKey": "booth-seen"
+        }
+      ]
+    },
+    {
+      "id": "evelyn-parker.disasterpiece.extracted",
+      "revision": 1,
+      "questKey": "disasterpiece",
+      "topic": "evelyn.recovery",
+      "outcome": "extracted",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 6,
+      "stable": true,
+      "statement": "The current save's journal records that V and Judy got Evelyn out of the scavenger braindance studio. This is a record of her rescue, not something she can narrate: she was unresponsive, and her recovery and later fate are separate events.",
+      "sourceIds": [
+        "jr-native.disasterpiece-extraction-route.source"
+      ],
+      "evidenceRefs": [
+        "jr-native.disasterpiece-extraction-route"
+      ],
+      "audience": {
+        "speakers": [
+          "evelyn-parker"
+        ],
+        "perspective": "shared-journal",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "evelyn-parker"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q105_03_done",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "judy-river.disasterpiece.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.disasterpiece.recovery",
+          "outcomeKey": "extracted"
+        }
+      ]
+    },
+    {
+      "id": "evelyn-parker.double-life.assignment",
+      "revision": 1,
+      "questKey": "double-life",
+      "topic": "evelyn.contract_evidence.assignment",
+      "outcome": "assignment-revealed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 7,
+      "stable": true,
+      "statement": "The current save's journal records that V and Judy reviewed evidence that Evelyn was hired to record a virtu rather than organize the entire Relic heist. Evelyn does not automatically know they saw it, and the evidence does not identify her hidden employer with certainty.",
+      "sourceIds": [
+        "priority-judy.evelyn-recording-assignment.source"
+      ],
+      "evidenceRefs": [
+        "priority-judy.evelyn-recording-assignment.evidence"
+      ],
+      "audience": {
+        "speakers": [
+          "evelyn-parker"
+        ],
+        "perspective": "shared-journal",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "evelyn-parker"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q105_12a_scan_holograms",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q105_04_done",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "priority-judy.double.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.double.recordings",
+          "outcomeKey": "assignment-revealed"
+        }
+      ]
+    },
+    {
+      "id": "evelyn-parker.information.met-v",
+      "revision": 1,
+      "questKey": "the-information",
+      "topic": "heist.introductions",
+      "outcome": "evelyn-met",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 7,
+      "stable": true,
+      "statement": "In The Information V met Evelyn Parker in person and worked with her on the Konpeki braindance job; she took V to Judy's workshop for the analysis.",
+      "sourceIds": [
+        "priority-judy.information-judy-met.source",
+        "ck5.source.q004-evelyn"
+      ],
+      "evidenceRefs": [
+        "priority-judy.information-judy-met.evidence",
+        "ck5.ev.q004-evelyn-with-v"
+      ],
+      "audience": {
+        "speakers": [
+          "evelyn-parker"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "evelyn-parker"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q004_judy_met",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "priority-judy.information.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.information.introductions",
+          "outcomeKey": "evelyn-met"
+        }
+      ]
     },
     {
       "id": "fixers.native.an-inconvenient-killer.agreed-to-leave.confirmed-debrief",
@@ -198364,6 +198920,165 @@
       ]
     },
     {
+      "id": "mark-bana.spy-jungle.biomonitor-destroyed",
+      "revision": 1,
+      "questKey": "spy-in-the-jungle",
+      "topic": "bana.evidence.disposition",
+      "outcome": "destroyed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "The current save establishes that at the agents' final meeting for Spy in the Jungle V destroyed Bana's biomonitor, siding with Steven Santos, instead of giving it to Ana Friedman. Bana was dead and was not present, so he knows this only because V told him.",
+      "sourceIds": [
+        "cc5.source.54273b1b7a16",
+        "cc5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.s08.destroy-in-meeting",
+        "cc5.ev.fact.sts_ep1_08_biomonitor_destroyed.5e6acba6fef4",
+        "cc5.ev.journal.83e8389362ae"
+      ],
+      "audience": {
+        "speakers": [
+          "mark-bana"
+        ],
+        "perspective": "told-by-v",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mark-bana"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sts_ep1_08_biomonitor_destroyed",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "cc5.spy-in-the-jungle.final-meeting-talk",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.bana.evidence",
+          "outcomeKey": "destroyed"
+        }
+      ]
+    },
+    {
+      "id": "mark-bana.spy-jungle.biomonitor-drop-point",
+      "revision": 1,
+      "questKey": "spy-in-the-jungle",
+      "topic": "bana.evidence.disposition",
+      "outcome": "drop-point",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "The current save establishes that V left Bana's biomonitor at the fixer's drop point, as Steven Santos urged, instead of giving it to Ana Friedman. Bana was dead and was not present, so he knows this only because V told him.",
+      "sourceIds": [
+        "cc5.source.78b4c99da35e",
+        "cc5.source.a87921da68fe"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.s08.drop-point",
+        "cc5.ev.journal.a2f9f844cfb7"
+      ],
+      "audience": {
+        "speakers": [
+          "mark-bana"
+        ],
+        "perspective": "told-by-v",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mark-bana"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "cc5.spy-in-the-jungle.drop-point",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.bana.evidence",
+          "outcomeKey": "drop-point"
+        }
+      ]
+    },
+    {
+      "id": "mark-bana.spy-jungle.biomonitor-to-ana",
+      "revision": 1,
+      "questKey": "spy-in-the-jungle",
+      "topic": "bana.evidence.disposition",
+      "outcome": "given-ana",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "The current save establishes that at the end of Spy in the Jungle V left Bana's biomonitor with Ana Friedman rather than destroying it. Bana was dead and was not present, so he knows this only because V told him.",
+      "sourceIds": [
+        "cc5.source.54273b1b7a16"
+      ],
+      "evidenceRefs": [
+        "cc5.ev.fact.sts_ep1_08_biomonitor_ana.20087311822c"
+      ],
+      "audience": {
+        "speakers": [
+          "mark-bana"
+        ],
+        "perspective": "told-by-v",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mark-bana"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sts_ep1_08_biomonitor_ana",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.bana.evidence",
+          "outcomeKey": "given-ana"
+        }
+      ]
+    },
+    {
       "id": "pg5.academy.controlled.hands",
       "revision": 1,
       "questKey": "gig-talent-academy",
@@ -207156,7 +207871,8 @@
       ],
       "audience": {
         "speakers": [
-          "panam-palmer"
+          "panam-palmer",
+          "adam-smasher"
         ],
         "perspective": "participant",
         "channels": [
@@ -207166,7 +207882,8 @@
         "recipients": [
           "v",
           "panam-palmer",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "adam-smasher"
         ]
       },
       "condition": {
@@ -209635,7 +210352,8 @@
       ],
       "audience": {
         "speakers": [
-          "judy-alvarez"
+          "judy-alvarez",
+          "evelyn-parker"
         ],
         "perspective": "participant",
         "channels": [
@@ -209644,7 +210362,8 @@
         ],
         "recipients": [
           "v",
-          "judy-alvarez"
+          "judy-alvarez",
+          "evelyn-parker"
         ]
       },
       "condition": {
@@ -211706,6 +212425,231 @@
       }
     },
     {
+      "id": "r3n0.spellbound.tablet-sold",
+      "revision": 1,
+      "questKey": "spellbound",
+      "topic": "v.nix.spellbook",
+      "outcome": "delivered",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "The current save establishes that V sold the old spellbook tablet to Nix. R3n0 was not part of that sale and knows it only if V tells her; the payment amount is not established.",
+      "sourceIds": [
+        "heywood-native-installed-231"
+      ],
+      "evidenceRefs": [
+        "heywood-native-nix-tablet-handoff",
+        "heywood-native-production-lineage"
+      ],
+      "audience": {
+        "speakers": [
+          "r3n0"
+        ],
+        "perspective": "told-by-v",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "r3n0"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "mq015_tablet_sold",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "heywood.nix.spellbook-handoff",
+          "outcomeKey": "delivered"
+        }
+      ]
+    },
+    {
+      "id": "santiago.belly-of-the-beast.saul-killed",
+      "revision": 1,
+      "questKey": "belly-of-the-beast",
+      "topic": "saul.fate",
+      "outcome": "killed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "The current save establishes that Adam Smasher killed Saul during the Aldecaldo assault on Arasaka Tower. Santiago was not present and knows this only if V tells him.",
+      "sourceIds": [
+        "priority-endings.source.583e45a43dc2"
+      ],
+      "evidenceRefs": [
+        "priority-endings.evidence.8027377ba483"
+      ],
+      "audience": {
+        "speakers": [
+          "santiago"
+        ],
+        "perspective": "told-by-v",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "santiago"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q116_saul_dead",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.saul-fate",
+          "outcomeKey": "killed"
+        }
+      ]
+    },
+    {
+      "id": "sergei-karasinsky.olive-branch.delivered",
+      "revision": 1,
+      "questKey": "olive-branch",
+      "topic": "olive-branch.alex",
+      "outcome": "delivered",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 5,
+      "stable": true,
+      "statement": "The current save establishes that V drove Sergei's car to the Tyger Claws' diner and handed over the \"gift\" with Alex in the trunk. Sergei was not at the handover, so he knows this only if V tells him.",
+      "sourceIds": [
+        "fo5.source.6ecc17b39ee8",
+        "fo5.source.c0ba2108b54c"
+      ],
+      "evidenceRefs": [
+        "fo5.ev.jpn01.debrief-good",
+        "fo5.ev.journal.4ff0b875a134",
+        "fo5.ev.fact.jpn_01_debrief_good.ea080eedfb0f"
+      ],
+      "audience": {
+        "speakers": [
+          "sergei-karasinsky"
+        ],
+        "perspective": "told-by-v",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "sergei-karasinsky"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "fo5.jpn01.quest",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "fact",
+            "key": "jpn_01_debrief_good",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.sergei.captive",
+          "outcomeKey": "delivered"
+        }
+      ]
+    },
+    {
+      "id": "sergei-karasinsky.olive-branch.released",
+      "revision": 1,
+      "questKey": "olive-branch",
+      "topic": "olive-branch.alex",
+      "outcome": "freed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "The current save establishes that V released Alex, the prisoner in Sergei's trunk, instead of delivering him to the Tyger Claws, and that Wakako's debrief confirmed it. Sergei knows this only if V tells him; the record does not establish what then happened to Sergei or Alex.",
+      "sourceIds": [
+        "fixers.native.sts-wbr-jpn-01.debrief-graphs"
+      ],
+      "evidenceRefs": [
+        "fixers.native.olive-branch.confirmed-debrief"
+      ],
+      "audience": {
+        "speakers": [
+          "sergei-karasinsky"
+        ],
+        "perspective": "told-by-v",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "sergei-karasinsky"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "fixers.sts-wbr-jpn-01.quest",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "fixers.sts-wbr-jpn-01.free-alex",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "fixers.sts-wbr-jpn-01.confirmed-debrief-1",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "city-contacts.sergei.captive",
+          "outcomeKey": "released"
+        }
+      ]
+    },
+    {
       "id": "sh5.belly.smasher-killed",
       "revision": 1,
       "questKey": "belly-of-the-beast",
@@ -211730,7 +212674,8 @@
       "audience": {
         "speakers": [
           "panam-palmer",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "adam-smasher"
         ],
         "perspective": "participant",
         "channels": [
@@ -211740,7 +212685,8 @@
         "recipients": [
           "v",
           "panam-palmer",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "adam-smasher"
         ]
       },
       "condition": {
@@ -212271,7 +213217,8 @@
       ],
       "audience": {
         "speakers": [
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "adam-smasher"
         ],
         "perspective": "participant",
         "channels": [
@@ -212280,7 +213227,8 @@
         ],
         "recipients": [
           "v",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "adam-smasher"
         ]
       },
       "condition": {
