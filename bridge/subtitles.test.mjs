@@ -532,6 +532,44 @@ assert(m.controller==nil and m.actor==nil)
 plain(m.status())
 `));
 
+test('crowd chatter lines and HUD removals cost no native read while no caption of ours is overhead or tagged', () => run(setup + `
+m.install()
+local after=afterHooks['ChatterLineLogicController.SetLineData']
+local byData,onHide=afterHooks['SubtitlesGameController.OnHideLineByData'],afterHooks['SubtitlesGameController.OnHideLine']
+local idReads=0
+local entry=setmetatable({},{__index=function(_,key)if key=='id' then idReads=idReads+1 end;return 'native-line'end})
+local foreign=surface('999ULL')
+local reads=nativeReads
+after(wrapController(foreign),{id='native-chatter',text='A crowd bark'})
+byData(nil,entry);onHide(nil,entry)
+assert(nativeReads==reads,'a crowd line with nothing of ours overhead must not read its native root')
+assert(idReads==0,'a removal with no dialogue caption of ours must not read the entry')
+assert(foreign.root.name=='native-chatter-root' and #foreign.root.visibilityWrites==0)
+-- An overhead caption of ours: the same hook still claims its own line, and a foreign line is still checked and left alone.
+m.show('Judy','A rendered line.',judy,'201ULL')
+local own=surface('201ULL')
+after(wrapController(own),shown()[1])
+assert(own.root.name~='native-chatter-root' and m.status().rendered.renderer=='native-overhead')
+reads=nativeReads
+after(wrapController(foreign),{id='native-chatter',text='A crowd bark'})
+assert(nativeReads>reads and foreign.root.name=='native-chatter-root')
+byData(nil,entry);assert(idReads==0,'an overhead caption is not lost by a HUD removal')
+-- Cleared: back to no native work for crowd lines.
+m.clear()
+reads=nativeReads
+after(wrapController(foreign),{id='native-chatter-2',text='Another bark'})
+assert(nativeReads==reads)
+-- A dialogue-HUD caption of ours: a removal of its exact line is still noticed.
+style='dialogue'
+m.show('Judy','A dialogue line.',judy,'201ULL')
+local line=shown()[#shown()]
+reads=nativeReads
+after(wrapController(foreign),{id='native-chatter-3',text='A third bark'})
+assert(nativeReads==reads,'a dialogue caption tags no overhead root')
+onHide(nil,entry);assert(idReads==1 and m.status().nativeRemovals==0,'another line is read and ignored')
+onHide(nil,{id=line.id});assert(m.status().nativeRemovals==1 and m.status().removedOnHide==1)
+`));
+
 test('reused roots, wrong actor owners and failed native receipts cannot borrow the bubble override', () => run(setup + `
 m.install();m.ensureProjectionGuards() -- the guards register on the first overhead caption; these tests drive them directly
 local after=afterHooks['ChatterLineLogicController.SetLineData']
