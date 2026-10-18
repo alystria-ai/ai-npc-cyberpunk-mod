@@ -8,7 +8,7 @@ twin. (Until 2026-10-09 the five romantic profiles of Judy, Panam, River, Kerry 
 Meredith had twins too, 128 in all; see "Retired romantic profiles" below.)
 The twins exist and are verified; the mod uses them while Settings > Conversations > Multilingual
 conversations is on (see "Multilingual conversations" below).
-Lucy Kushinada and Rita Wheeler (`lucy-kushinada`, `rita-wheeler`, the Night City Allies followers, added 2026-10-18) have a profile and a twin like the rest (156 twins in all: 82 named, 74 archetype); their twins' language boxes are not yet unticked either (`docs/NCA_FOLLOWERS_PLAN.md`, section 6).
+Lucy Kushinada and Rita Wheeler (`lucy-kushinada`, `rita-wheeler`, the Night City Allies followers, added 2026-10-18) have a profile and a twin like the rest (156 twins in all: 82 named, 74 archetype); their twins' language boxes were unticked through the signed-in dashboard on 2026-10-18 (readback unticked) and `languageBoxOff: true` is recorded for both in `runtime/multilingual-profiles.json` and the release data (`docs/NCA_FOLLOWERS_PLAN.md`, section 6).
 Alt Cunningham (`alt-cunningham`, added 2026-10-10) has a profile and a twin like the rest. Her twin's language box is not yet recorded
 as unticked (`languageBoxOff` is false in `runtime/multilingual-profiles.json`): until that web-session step is done the
 bridge answers her with the original profile. See `needsLanguageBoxOff` in `scripts/Create-MultilingualProfiles.mjs`.

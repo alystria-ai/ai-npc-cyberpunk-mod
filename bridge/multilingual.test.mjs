@@ -416,10 +416,7 @@ test('the installed twin map covers every profiled character; old romantic rows 
     assert.ok(loaded[key] || skipped.includes(key), key);
   }
   const unrouted = twinned.filter(key => !loaded[key]);
-  // Lucy Kushinada and Rita Wheeler (the Night City Allies followers, created 2026-10-18) wait for the same web-session step; delete this
-  // list once their language boxes are unticked and languageBoxOff is recorded in runtime/multilingual-profiles.json.
-  const awaitingLanguageBox = ['lucy-kushinada', 'rita-wheeler'];
-  assert.ok(unrouted.every(key => key.startsWith('npc-') || awaitingLanguageBox.includes(key)), 'only a new batch may wait for the language box');
+  assert.ok(unrouted.every(key => key.startsWith('npc-')), 'only a new archetype batch may wait for the language box');
   // Every profiled (relationship) character has its one twin routed.
   for (const key of Object.keys(RELATIONSHIP_PROFILES)) {
     assert.ok(Object.hasOwn(ids, key), key + ' is not in characters.json');
