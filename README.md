@@ -4,7 +4,7 @@
 Speak to Cyberpunk 2077's characters in your own voice and hear them answer in theirs.</p>
 
 <p align="center">
-  <a href="https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/0.2"><img alt="Version 0.2" src="https://img.shields.io/badge/VERSION-0.2-FCEE0A?style=for-the-badge&labelColor=000000"></a>
+  <a href="https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/0.2.1"><img alt="Version 0.2.1" src="https://img.shields.io/badge/VERSION-0.2.1-FCEE0A?style=for-the-badge&labelColor=000000"></a>
   <a href="#requirements"><img alt="Cyberpunk 2077 2.31" src="https://img.shields.io/badge/CYBERPUNK_2077-2.31-FCEE0A?style=for-the-badge&labelColor=000000"></a>
   <a href="#requirements"><img alt="Windows 10 and 11, 64-bit" src="https://img.shields.io/badge/PLATFORM-WINDOWS_10_%7C_11-00F0FF?style=for-the-badge&labelColor=000000"></a>
   <a href="LICENSE"><img alt="AI NPC Cyberpunk Mod Use License 1.1" src="https://img.shields.io/badge/LICENCE-USE_LICENSE_1.1-00F0FF?style=for-the-badge&labelColor=000000"></a>
@@ -50,19 +50,23 @@ Close the game. Extract each download into your Cyberpunk 2077 folder (the one w
 | 6 | **Mature lite** | [AI-NPC-Cyberpunk-Mod-Mature-Lite-0.2.1.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.1/AI-NPC-Cyberpunk-Mod-Mature-Lite-0.2.1.zip) | about 2.9 GB | Optional, adults only, works on its own (it includes the Local AI engine). See [Mature content](#mature-content-18) |
 | 7 | **Mature standard** | [AI-NPC-Cyberpunk-Mod-Mature-Standard-0.2.1.zip](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.1/AI-NPC-Cyberpunk-Mod-Mature-Standard-0.2.1.zip) | about 5.5 GB | Optional, adults only, works on its own (it includes the Local AI engine). See [Mature content](#mature-content-18) |
 
-Scripts come from Nexus Mods (the same file is on Hugging Face too). The Runtime and the optional packs are on the mod's [Hugging Face page](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs), in a folder per version (`0.2`). Each pack is one zip file, so there are no parts to join, and each works on its own: install none, some or all. Use the same version number as the Scripts and Runtime, and extract the Runtime before the OmniVoice pack. If Windows' built-in extractor complains, use [7-Zip](https://www.7-zip.org).
+Scripts come from Nexus Mods (the same file is on Hugging Face too). The Runtime and the optional packs are on the mod's [Hugging Face page](https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs), in a folder per version (`0.2.1`). Each pack is one zip file, so there are no parts to join, and each works on its own: install none, some or all. Use the same version number as the Scripts and Runtime, and extract the Runtime before the OmniVoice pack. If Windows' built-in extractor complains, use [7-Zip](https://www.7-zip.org). If a pack ends up one or two folders too deep (for example inside a folder named after the zip), the mod moves its files into place the next time the game starts.
 
 The first start after installing takes a little longer while the service prepares itself.
 
-**Update.** Close the game and extract the new Scripts and Runtime (and any optional packs you use) over the old ones. Your conversations, memories and settings stay.
+**Update.** Close the game and extract the new Scripts and Runtime (and any optional packs you use) over the old ones. Your conversations, memories and settings stay. If an older version kept the service's data inside the mod's folder, the first start moves it to the place below.
+
+**Where your data is.** The background service keeps the memories stored on your computer, your saved keys, its logs and your reports in `%LOCALAPPDATA%\AiNpcCyberpunkMod`, outside the game folder. Your settings and Phone Chat history stay in the mod's own folder.
 
 **Uninstall.** Delete these from your Cyberpunk 2077 folder, and keep the frameworks if other mods use them:
 
-- `bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod` (this also deletes your conversations and settings)
+- `bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod` (this also deletes your settings and Phone Chat history)
 - `red4ext\plugins\AiNpcCyberpunkMod` (this also removes the OmniVoice, Local AI and Mature packs)
 - `red4ext\plugins\AiNpcCyberpunkModNative`
 - `r6\scripts\CyberpunkConvai` and `r6\audioware\CyberpunkConvai` (the scripts and speech files; internal names)
 - `archive\pc\mod\convai_facial.archive`, `convai_gestures.archive` and `cyberpunk_convai_ambient_driver_guard.archive`
+
+To remove everything, also delete `%LOCALAPPDATA%\AiNpcCyberpunkMod` (the memories stored on your computer, saved keys, logs and reports).
 
 ## What you can do
 
@@ -70,8 +74,10 @@ The first start after installing takes a little longer while the service prepare
 - **Bring a crew.** Invite companions from the Companion Manager. They walk beside you, run to catch up, follow you through doors, lifts and fast travel, sit with you on couches and bar stools, ride in your car and fight with the game's own combat AI. Ask one to drive and they take you to your waypoint. The Model browser lists every character model in the game, and any of them can tag along as a follower.
 - **They see what you see.** With Convai, each line you send carries a fresh glimpse of the game window, so a companion can talk about the place you are actually standing in.
 - **The whole street talks.** Gangers, NCPD officers, guards, ripperdocs, vendors, bartenders and passers-by answer as their kind of person. Shopkeepers you keep coming back to remember you.
-- **The story cast answers too.** Talk to the game's own Judy, Jackie, Panam or Rogue where they stand: their own voice, a face that follows the words, and nothing else of theirs touched.
+- **The story cast answers too.** Once you turn on Talk to story characters, talk to the game's own Judy, Jackie, Panam or Rogue where they stand: their own voice, a face that follows the words, and nothing else of theirs touched.
+- **Johnny in your head.** Turn it on in Settings and, once the story has put him there, **talk by text** or **talk by voice** with nobody in front of you reaches Johnny. He answers as the voice in V's head.
 - **Group conversations.** Address two or three companions at once and they take turns, picking up from each other.
+- **Night City Allies followers talk too.** If you use Night City Allies, its Lucy (from the Lucy for NCA mod) and Rita Wheeler talk in their own voice with their own memory, and NCA's other followers that are copies of the game's characters talk as those characters. Night City Allies still handles their following, fighting and driving.
 - **Phone Chat and holocalls.** A **Chat** tab sits on V's phone beside Messages and Contacts. Text any supported contact, wherever they are, or call them and they pick up on a holocall, live on screen for the contacts the game itself stages video calls for.
 - **V speaks too.** Lines you type are voiced in the V voice that matches yours, then the companion answers. You pick the engine for V's voice in Settings > Voices: Pocket (the default) or Voxtral.
 - **They remember.** Conversations stay with a character across saves. You can make one character forget, or all of them.
@@ -91,7 +97,7 @@ Only characters the mod spawns join your party. Story characters you meet in the
 | Disk space | About 3 GB for the main mod. The optional packs add more (see [Install](#install)). |
 | Internet | Needed while you talk with Convai, Mistral or the Voxtral voice. Not needed for Local AI with a local voice. |
 | Graphics card | Not needed for the default setup (Convai or Mistral text, Pocket or Voxtral voice). Only OmniVoice (about 2 GB of video memory) and Local AI (lite about 1.8 GB, standard about 3.1 GB) use it; see [Smooth frames, fast replies](#smooth-frames-fast-replies). |
-| Web browser | A Chromium browser such as Microsoft Edge (which Windows 10 and 11 include), Google Chrome, Brave or Opera. The mod's background service runs a hidden copy of it for audio and the Convai connection; it ships no browser of its own. Without one the service does not start, and the game says so in Settings and on the Help page. |
+| Web browser | A Chromium browser such as Microsoft Edge (which Windows 10 and 11 include), Google Chrome, Brave, Vivaldi or Opera. Firefox cannot be used. The mod's background service runs a hidden copy of it for audio and the Convai connection; it ships no browser of its own. Without one the service does not start, and the game says **Needs a browser** on the Help page and in Settings > Voices > Voice status. |
 
 Developed and tested with Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5, TweakXL 1.11.4, Audioware 1.9.9 and Mod Configuration Menu 0.10.3. Newer versions may work. There is no load order to set: the mod's files live in folders of their own.
 
@@ -139,24 +145,6 @@ The microphone only ever starts when you press the key. A recording stops by its
 
 Measured on one laptop; yours will differ, and Mistral's allowance is Mistral's to change.
 
-### Convai free tier
-
-Nothing to set up: this is what you get the moment you install. A turn is one reply: a typed or spoken line, a phone message, each speaker in a group round, or an automatic comment. The 100 a day reset at local midnight, and **Settings > Conversation provider** shows how many are left. When they run out a notice says so. Wait for tomorrow, or switch to Mistral or Local AI and keep going. The local voices never count against it.
-
-### Convai API key
-
-With your own Convai account, copy your key and press **Paste** on the **Convai API key** row. The key is read from the clipboard once, checked with Convai and saved on your computer. Choose **Convai API key** as the provider and **Apply**, and your own plan's limits apply instead of the daily ones. Only the last four characters are ever shown, and **Remove** deletes the key.
-
-For more Convai than the free tier gives, the **Convai paid tier** row right below opens the plans Convai made for this mod: Gamer at $4 a month or $32 a year (500 Convai interactions a month) and Gamer Pro at $8 a month or $64 a year (1,000 a month). **Sign in with Convai** there saves your key without copying it by hand. Choosing a plan opens Convai's own payment page (Stripe) in your browser; the mod never sees your card. About 15 seconds after you pay, the plan is active and the provider switches to **Convai API key** for you. On a paid plan several companions can talk at once, and **Manage or cancel plan** opens your Convai billing page.
-
-### Mistral (free plan)
-
-1. Make a free account at Mistral (it asks for phone verification) and create an API key.
-2. Copy it, open **Settings > Conversation provider** and press **Paste** on the **Mistral free API key** row.
-3. Choose **Mistral (free plan)** as the provider and **Apply**.
-
-Quick and free, with plainer replies than Convai's. Memory stays on your computer, and the microphone is recognised on your computer, in English. The same key also unlocks the **Voxtral** voice ([Pick a voice](#pick-a-voice)): with both, the whole conversation runs in the cloud. With Mistral chosen but no key saved, conversations use Convai and you see one notice.
-
 ### Local AI
 
 The language model runs on your own graphics card. No account, no key, no internet.
@@ -178,7 +166,25 @@ Install neither, one or both. The **Local AI model** row lists what is installed
 
 - The model unloads after ten quiet minutes so the game gets its video memory back, and reloads in a few seconds when you talk again.
 - Short on memory, the mod steps down by itself and keeps your voice before the model: standard gives way to lite, and if lite does not fit either, the text comes from Mistral (with a saved key) or Convai, with one notice.
-- You can add a GGUF chat model of your own, or use a server you already run (KoboldCpp, LM Studio, Ollama): see "Add your own model" and "Use your own server" in [LOCAL_AI.md](docs/LOCAL_AI.md).
+- You can add a GGUF chat model of your own, or use a server you already run (KoboldCpp, LM Studio, Ollama or any other OpenAI-compatible one; no pack needed, and it shows as "(custom)" in the **Local AI model** row): see "Add your own model" and "Use your own server" in [LOCAL_AI.md](docs/LOCAL_AI.md).
+
+### Mistral (free plan)
+
+1. Make a free account at Mistral (it asks for phone verification) and create an API key.
+2. Copy it, open **Settings > Conversation provider** and press **Paste** on the **Mistral free API key** row.
+3. Choose **Mistral (free plan)** as the provider and **Apply**.
+
+Quick and free, with plainer replies than Convai's. Memory stays on your computer, and the microphone is recognised on your computer, in English. The same key also unlocks the **Voxtral** voice ([Pick a voice](#pick-a-voice)): with both, the whole conversation runs in the cloud. With Mistral chosen but no key saved, conversations use Convai and you see one notice.
+
+### Convai free tier
+
+Nothing to set up: this is what you get the moment you install. A turn is one reply: a typed or spoken line, a phone message, each speaker in a group round, or an automatic comment. The 100 a day reset at local midnight, and **Settings > Conversation provider** shows how many are left. When they run out a notice says so. Wait for tomorrow, or switch to Local AI or Mistral and keep going. The local voices never count against it.
+
+### Convai API key
+
+With your own Convai account, copy your key and press **Paste** on the **Convai API key** row. The key is read from the clipboard once, checked with Convai and saved on your computer. Choose **Convai API key** as the provider and **Apply**, and your own plan's limits apply instead of the daily ones. Only the last four characters are ever shown, and **Remove** deletes the key.
+
+For more Convai than the free tier gives, the **Convai paid tier** row right below opens the plans Convai made for this mod: Gamer at $4 a month or $32 a year (500 Convai interactions a month) and Gamer Pro at $8 a month or $64 a year (1,000 a month). **Sign in with Convai** there saves your key without copying it by hand. Choosing a plan opens Convai's own payment page (Stripe) in your browser; the mod never sees your card. About 15 seconds after you pay, the plan is active and the provider switches to **Convai API key** for you. On a paid plan several companions can talk at once, and **Manage or cancel plan** opens your Convai billing page.
 
 ### Mature content (18+)
 
@@ -244,13 +250,13 @@ Everything lives under **Companion Manager > Settings**. Defaults are for a new 
 | Setting | Page | Default |
 |---|---|---|
 | Interface language | Interface | Automatic (follows the game) |
-| Memory, Relationships | Conversations | Auto |
+| Memory, Relationships | Conversations | Relationships: Auto |
 | Talk to ordinary NPCs | Conversations | On |
 | Talk to story characters | Conversations | Off |
 | Johnny in your head | Conversations | Off |
 | Johnny speaks up | Conversations | Off |
 | Multilingual conversations | Conversations | Off |
-| Auto-connect nearby characters | Conversations | On (silent) |
+| Auto-connect nearby characters | Conversations | On |
 | Continue from game dialogue | Conversations | On |
 | Live holocall picture | Conversations | On |
 | Conversation provider | Conversation provider | Convai free tier |
@@ -276,8 +282,8 @@ A few worth knowing:
 
 - **Talk to ordinary NPCs:** passers-by, vendors and the rest answer as their kind of person. They do not know your story and forget you after a save load, except shopkeepers you come back to.
 - **Talk to story characters:** the game's own named characters (Judy, Jackie, Panam, Rogue and the rest of the cast) answer where they stand, in their own voice, with their own memory and a face that follows what they say. Nothing else about them changes: they do not turn, move or gesture, and they stay quiet during scenes, quest conversations, fights and rides. It is off by default. Reload your save after switching it.
-- **Johnny in your head:** once the story has put Johnny Silverhand in V's head (after Playing for Time) and until an ending takes him out, the talk keys with nobody in front of you reach him. He answers as a voice in V's head, with his own voice and memory, knows your jobs and your story so far, and will tell you which job he would do next. **Johnny's standing**, right under it, shows where you two stand in this save's story (Wary, Grudging respect, Friends, Close friends), read from your save. He stays quiet during scenes, calls, dialogue choices and fights, and when the game gives him a line. It is off by default. Details: `docs/JOHNNY_IN_YOUR_HEAD.md`.
-- **Johnny speaks up:** Off (the default), Rare or Normal. With Johnny in your head on, he makes a short remark of his own after you talk with a named character, finish a main or side job, or a romance moves on: at most twice an hour at Rare, at most six times an hour and five minutes apart at Normal, never during scenes, calls, fights or while you talk. On the free shared plan each remark uses one of the day's turns, and remarks never take more than a tenth of them.
+- **Johnny in your head:** once the story has put Johnny Silverhand in V's head (after Playing for Time) and until an ending takes him out, **talk by text** and **talk by voice** with nobody in front of you reach him (the group keys do not). He answers as a voice in V's head, with his own voice and memory, knows your jobs and your story so far, and will tell you which job he would do next. **Johnny's standing**, right under it, shows where you two stand in this save's story (Wary, Grudging respect, Friends, Close friends), read from your save. He stays quiet during scenes, calls, dialogue choices and fights, and when the game gives him a line. It is off by default. Details: `docs/JOHNNY_IN_YOUR_HEAD.md`.
+- **Johnny speaks up:** Off (the default), Rare or Normal. With Johnny in your head on, he makes a short remark of his own after you meet a named character in the game's own dialogue, finish a main or side job, or a romance moves on: at most twice an hour and 15 minutes apart at Rare, at most six times an hour and five minutes apart at Normal, never during scenes, calls, fights or while you talk. With the Convai free tier each remark uses one of the day's turns, and remarks never take more than a tenth of them.
 - **Live holocall picture:** the character appears live in the call window instead of a portrait. If she cannot be shown, the call goes on with the portrait. Calls end after 3 minutes of silence or 30 minutes in total, and the game's own Contacts call is untouched.
 - **Memory:** **Forget selected character** and **Forget all memories**, each with a confirmation. A forget also clears the matching Phone Chat messages. **Relationships** has Auto, On or Off for Judy, Panam, River, Kerry and Meredith; Auto follows your save.
 - **Multilingual conversations:** talk in any language and each character answers in yours. It switches the voice to OmniVoice (or Convai's cloud voice without the pack), because Pocket and Voxtral speak English only. The microphone with Convai expects English, so type in other languages.
@@ -291,7 +297,7 @@ A few worth knowing:
 
 **A character does not answer.** Give the game a moment after launch: the background service starts with it. **Settings > Help > Help and support** shows the service status; if it is not running, restart the game. With Mistral, check that the key row says it was accepted. With Local AI, check that the **Local AI model** row does not read "(Warming up)", "(Not enough memory)" or "(Unavailable)".
 
-**"Today's turns are used."** The free tier's daily turns are spent and come back tomorrow. To keep talking now, choose **Mistral (free plan)** (with a free key) or **Local** (with a Local AI pack) as the Conversation provider and **Apply**. Voices keep working, because the local voices do not count. A [Convai API key](#convai-api-key) of your own also works.
+**"Today's turns are used."** The free tier's daily turns are spent and come back tomorrow. To keep talking now, choose **Mistral (free plan)** (with a free key) or **Local AI** (with a Local AI pack) as the Conversation provider and **Apply**. Voices keep working, because the local voices do not count. A [Convai API key](#convai-api-key) of your own also works.
 
 **The microphone does nothing, or says "needs Convai for now".** Check that **talk by voice** has a key in CET's Bindings. Press it, wait for **Listening**, speak, press it again. Windows must let desktop apps use the microphone, and yours should be the Windows **default** input device. With Mistral or Local AI your speech is recognised on your computer, in English, and the recogniser takes a moment to load the first time: if it is not ready yet you see "Speaking to companions needs Convai for now". Try again in a moment, type, or switch to Convai.
 
@@ -305,7 +311,7 @@ A few worth knowing:
 
 **Does it change the story?** No. Companions are temporary copies that the mod owns. They never recruit, revive or alter story characters. A story character in the world only answers when you talk to it, with its voice and face, and the mod stays out of scenes, quest conversations, fights and rides.
 
-**Which of my data leaves my computer?** With Convai your lines go to Convai, along with a recent picture of the game window, taken only while someone you can talk to is near, kept in memory for a few seconds and never saved. With Mistral your lines go to Mistral. With Local AI nothing leaves your computer for replies. Voxtral sends the text to be spoken and a short reference clip of the character to Mistral.
+**Which of my data leaves my computer?** With Convai your lines go to Convai, along with a recent picture of the game window, taken only while someone you can talk to is near, kept in memory for a few seconds and never saved. With Mistral your lines go to Mistral. With Local AI nothing leaves your computer for replies, unless you point it at a model server on another computer (see [LOCAL_AI.md](docs/LOCAL_AI.md)). Voxtral sends the text to be spoken and a short reference clip of the character to Mistral.
 
 **Something else looks off?** This is the first public release, and reports help it grow fast. Open **Companion Manager > Settings > Help > Help and support** and choose **Generate report**. It saves one file with versions, settings and recent log lines, never your keys, voice recordings or conversation text. Send that file along with what you were doing. The five newest reports are kept.
 
