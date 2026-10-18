@@ -98,7 +98,7 @@ test('the slow minute after a 429 is not cut short by an answer whose headers sh
   assert.equal(scheduler.spacingMs, 0, 'a minute after the 429 the starts are free again');
 });
 
-test('a slowing that only a header asked for ends when a later header shows room, also when a 429 had slowed the starts a minute earlier', {todo: 'BUG: slowFrom429 is only cleared inside noteHeaders when the slow period has ended at that very call, so after a 429 minute a header slowdown inherits the stale flag and "room again" cannot relax it (bridge/mistral-rate.mjs, noteHeaders); it then ends by itself after 30 s'}, () => {
+test('a slowing that only a header asked for ends when a later header shows room, also when a 429 had slowed the starts a minute earlier', () => {
   let clock = 0;
   const scheduler = new MistralScheduler({now: () => clock});
   const room = headers({'x-ratelimit-limit-req-minute': '188', 'x-ratelimit-remaining-req-minute': '150'});
