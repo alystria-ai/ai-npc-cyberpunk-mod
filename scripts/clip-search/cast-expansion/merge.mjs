@@ -7,6 +7,10 @@
 //   node merge.mjs knowledge --keys a,b     world-knowledge profileKeys (characters/ and research/cyberpunk/generated/)
 //   node merge.mjs release-plan --keys a,b  voice.localProfiles and registry.preparedLocalProfiles (keys whose three voice
 //                                           rows are ready in the live configs)
+//   node merge.mjs release-data --keys a,b  the Convai IDs of these keys only, from runtime/characters.json and
+//                                           runtime/multilingual-profiles.json into packaging/release-data/ (the full
+//                                           packaging/Refresh-ReleaseData.mjs copy would also pick up other branches' rows
+//                                           from the shared runtime folder)
 // --dry-run prints what would change.
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import {existsSync, readFileSync} from 'node:fs';
@@ -16,7 +20,7 @@ import {fileURLToPath} from 'node:url';
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const args = process.argv.slice(2), phase = args[0], dryRun = args.includes('--dry-run');
 const keys = args.includes('--keys') ? args[args.indexOf('--keys') + 1].split(',').filter(Boolean) : [];
-if (!['profiles', 'knowledge', 'release-plan'].includes(phase) || !keys.length) throw Error('usage: profiles|knowledge|release-plan --keys a,b [--dry-run]');
+if (!['profiles', 'knowledge', 'release-plan', 'release-data'].includes(phase) || !keys.length) throw Error('usage: profiles|knowledge|release-plan|release-data --keys a,b [--dry-run]');
 const path = rel => resolve(repo, rel);
 const readJson = async rel => JSON.parse((await readFile(path(rel), 'utf8')).replace(/^﻿/, ''));
 const staged = (key, name) => resolve(repo, 'staging/cast', key, name);
@@ -81,6 +85,18 @@ if (phase === 'profiles') {
     for (const key of keys) if (!pack.profileKeys.includes(key)) pack.profileKeys.push(key);
     await save(rel, pack);
   }
+} else if (phase === 'release-data') {
+  const ids = await readJson('runtime/characters.json'), twins = await readJson('runtime/multilingual-profiles.json');
+  const outIds = await readJson('packaging/release-data/characters.json'), outTwins = await readJson('packaging/release-data/multilingual-profiles.json');
+  for (const key of keys) {
+    const twin = twins.characters?.[key];
+    if (!/^[0-9a-f-]{36}$/u.test(ids[key] ?? '')) throw Error(`${key}: no original ID in runtime/characters.json`);
+    if (!twin?.verified || twin.originalCharacterId !== ids[key]) throw Error(`${key}: no verified twin for the current original`);
+    outIds[key] = ids[key];
+    outTwins.characters[key] = twin;
+  }
+  await save('packaging/release-data/characters.json', outIds);
+  await save('packaging/release-data/multilingual-profiles.json', outTwins);
 } else {
   const plan = await readJson('packaging/release-plan.json');
   const live = ['local-voices.autobest-short.json', 'local-voices.autobest-long.json', 'pocket-voices.autobest.json']
