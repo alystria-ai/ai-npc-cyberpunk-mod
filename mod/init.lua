@@ -3193,9 +3193,11 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     log('Session references released: ' .. reason)
     -- Every handle the mod held is dropped above; collect them now, while the engine still owns the objects, so no Lua
     -- finalizer releases a puppet or vehicle later, in the middle of the world unload or of the next session's start. A
-    -- fast travel keeps its world, so it is left alone; a world already gone is left alone too (see worldAlive above).
-    -- Runs once per unload, never per frame.
-    if preserveTransit ~= true and worldAlive == true then
+    -- fast travel is collected too (the request, before anything moves): its old surroundings are streamed out a moment later,
+    -- and a finalizer that then dropped the last reference to one of those NPCs crashed the game 50 s after a fast travel
+    -- (18 Oct 16:02, the same stack as 13:14 and 13:19). The party's receipts are strong references, so they survive the collect.
+    -- A world already gone is left alone (see worldAlive above). Runs once per unload or fast travel, never per frame.
+    if worldAlive == true then
         pcall(collectgarbage)
         -- A companion handle that survived the collect is still referenced somewhere: pin it for good (see convaiUnloadPins).
         if watch then
@@ -3327,7 +3329,9 @@ registerForEvent('onInit', function()
         if not prepared or not accepted then log('Party fast travel could not start: '..tostring(accepted)); return end
         fastTravelActive={started=os.time(),finished=false}
         worldSuspended=true
-        abandonSession('fast travel started',true)
+        -- worldAlive: nothing has moved yet, so the collect at the end of abandonSession releases the dropped NPC handles
+        -- while the engine still owns those NPCs (see the comment there).
+        abandonSession('fast travel started',true,true)
     end)
     ObserveAfter('FastTravelSystem','OnLoadingScreenFinished',function(_,finished)
         if finished~=true or not fastTravelActive then return end
@@ -3343,6 +3347,10 @@ registerForEvent('onInit', function()
             -- handle of the old Johnny was sent an AI command 4 s after this detach, from onUpdate).
             convaiHeartbeat.restoreWait, convaiHeartbeat.restoreAttached = os.clock(), nil
             abandonSession('player detached', false, true)
+        elseif not fastTravelActive.finished then
+            -- The teleport's own detach: the handles other hooks wrapped since the request (a callback's NPC argument is a
+            -- strong reference until the next collect) are released now, while the old surroundings still exist.
+            pcall(collectgarbage)
         end
     end)
     ObserveBefore('PlayerPuppet', 'OnDeath', function()
