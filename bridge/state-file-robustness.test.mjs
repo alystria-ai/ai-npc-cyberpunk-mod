@@ -426,7 +426,7 @@ test('the sign-in settings file is optional: empty, cut off, array or folder lea
   assert.equal((await readAuthSettings({env: {}, path})).enabled, true);
 });
 
-test('a sign-in settings file with a byte-order mark is read like any other (PowerShell and Notepad can write one)', {todo: 'readAuthSettings parses the raw text, so a BOM makes the whole file count as unreadable and the backend stays off with no message; local-ai-pack.mjs, custom-models.mjs and key-codec.mjs strip it'}, async t => {
+test('a sign-in settings file with a byte-order mark is read like any other (PowerShell and Notepad can write one)', async t => {
   const directory = await folder(t);
   const path = join(directory, 'convai-auth.json');
   await writeFile(path, '﻿' + JSON.stringify({enabled: true, url: 'https://backend.example/token', secret: 's'.repeat(32)}));
