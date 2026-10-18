@@ -426,5 +426,80 @@
     "text": "You have a closely shaved head, light eyes and a weathered, stubbled face. Thin cyberware lines run along your temple and cheek, and metal implant lines show at your neck. You wear a black V-neck shirt with a brown leather shoulder harness and belt, a knife sheath across your chest, silver dog tags on a chain and a pistol at your hip. One arm is a dark cyberarm with small orange lights, and the other upper arm carries a dark band.",
     "source": "https://cyberpunk.fandom.com/wiki/Kurt_Hansen",
     "image": "appearance-images/kurt-hansen.jpeg"
+  },
+  "woodman": {
+    "text": "You are bald, with a broad face and a heavy brow, and a dark mark sits under one eye. You wear a dark pinstripe jacket with thin pale stripes, open over a red shirt with a red and grey striped collar.",
+    "source": "https://cyberpunk.fandom.com/wiki/Woodman",
+    "image": "appearance-images/woodman.webp"
+  },
+  "fingers": {
+    "text": "You have a bald head with dark hair left at the sides and back, and a small hoop earring in one ear. A studded black leather collar sits around your neck, with a dark tassel hanging from it. You wear a red mesh tank top, and red patterned ink shows on your shoulders.",
+    "source": "https://cyberpunk.fandom.com/wiki/Fingers",
+    "image": "appearance-images/fingers.webp"
+  },
+  "garry-the-prophet": {
+    "text": "You wear a black knit beanie and rectangular metal-framed glasses. A short dark goatee and moustache frame your mouth. You wear a shiny dark-blue armoured jacket with a pattern of small angular panels and a dark grey collar.",
+    "source": "https://cyberpunk.fandom.com/wiki/Garry_the_Prophet",
+    "image": "appearance-images/garry-the-prophet.webp"
+  },
+  "brendan": {
+    "text": "You are a tall vending machine with a green metal frame and a rounded white and pink display window. Packaged snacks and drinks sit in rows behind the glass with bright labels. A dark keypad panel sits below the window, and a black dispensing slot is at the bottom.",
+    "source": "https://cyberpunk.fandom.com/wiki/Brendan",
+    "image": "appearance-images/brendan.webp"
+  },
+  "anthony-gilchrist": {
+    "text": "You have short dark hair cut close and combed forward, and a faint smile on your face. Dark shadows sit under your eyes, and a small dark mark is on your forehead. You wear a dark navy high-collared jacket with pale blue piping and silver-edged badges on the chest.",
+    "source": "https://cyberpunk.fandom.com/wiki/Anthony_Gilchrist",
+    "image": "appearance-images/anthony-gilchrist.webp"
+  },
+  "denny": {
+    "text": "You have a large mass of dark curly hair and freckles across your nose and cheeks. Dark lipstick and dark eyeshadow frame your eyes, and a thin black choker with gold tips hangs at your throat. You wear an open white shirt with wide lapels over a dark leather corset, with a belt fitted with gold buckles and a dark tattoo on your forearm.",
+    "source": "https://cyberpunk.fandom.com/wiki/Denny",
+    "image": "appearance-images/denny.webp"
+  },
+  "henry": {
+    "text": "You wear a cream wide-brimmed cowboy hat with a dark band and a silver buckle, and black wraparound sunglasses. A thin moustache sits above your lip, and tattoos show on your chest. Several layered gold chains hang at your neck, and you wear a glossy orange satin jacket open over your chest with black leather straps across the front.",
+    "source": "https://cyberpunk.fandom.com/wiki/Henry",
+    "image": "appearance-images/henry.webp"
+  },
+  "teddy": {
+    "text": "You wear a black baseball cap and have a shaved, weathered face with light stubble. A dark sleeveless vest hangs open over a dark collared shirt. A dark cross-hatched tattoo covers your upper arm, with more patterned ink on your shoulder.",
+    "source": "https://cyberpunk.fandom.com/wiki/Theodore_Simos",
+    "image": "appearance-images/teddy.webp"
+  },
+  "weyland": {
+    "text": "You have a shaved head with two tufts of dark hair at the top. A tan cloth mask covers your nose and mouth, and a black eyepiece with an orange lens sits over one eye. You wear a grey sleeveless top under a khaki harness with olive webbing straps, with orange cables running over one shoulder and dark patterned tattoos on your upper arms.",
+    "source": "https://cyberpunk.fandom.com/wiki/Crispin_Weyland",
+    "image": "appearance-images/weyland.webp"
+  },
+  "oda": {
+    "text": "You have long black hair that falls forward over one side of your face, with the other side shaved above the ear. A black cable-like collar runs from the back of your head down to your neck. You wear a dark charcoal high-collared jacket with a cream panel down the front, metal clips on the chest and armoured panels on the shoulders.",
+    "source": "https://cyberpunk.fandom.com/wiki/Oda_Sandayu",
+    "image": "appearance-images/oda.webp"
+  },
+  "chester-bennett": {
+    "text": "You have a short dark haircut with shaved sides. A white angular mask covers your face from the brow to the cheek, with a red light glowing from its eye. A dark jacket with a shoulder pack sits under it.",
+    "source": "https://cyberpunk.fandom.com/wiki/Chester_Bennett",
+    "image": "appearance-images/chester-bennett.webp"
+  },
+  "bree-whitney": {
+    "text": "You have short pale blue-white hair swept up and to the side, and blue eyes with dark lipstick. Dangling silver hoop earrings hang from your ears. You wear a dark jacket with a bright teal collar and teal trim across the shoulders.",
+    "source": "https://cyberpunk.fandom.com/wiki/Bree_Whitney",
+    "image": "appearance-images/bree-whitney.webp"
+  },
+  "edgar-tool": {
+    "text": "You have pink and purple dreadlocks swept up on your head and round pink-tinted sunglasses with thin rims. A silver nose ring sits in one nostril, and a dark tattoo covers your upper arm. You wear a black sleeveless vest with orange and purple zebra-stripe panels, long shiny gold arm sleeves and a black metal-studded choker.",
+    "source": "https://cyberpunk.fandom.com/wiki/Edgar_Tool",
+    "image": "appearance-images/edgar-tool.webp"
+  },
+  "jacob-long": {
+    "text": "You have short bright yellow hair spiked up at the front. A grey-brown patterned bandana sits around your neck and shoulders. You wear a dark knit sweater with a black harness of straps and green knitted sleeves on your forearms, and a small handheld device is clipped to one strap.",
+    "source": "https://cyberpunk.fandom.com/wiki/Jacob_Long",
+    "image": "appearance-images/jacob-long.webp"
+  },
+  "angelica-whelan": {
+    "text": "You have shoulder-length hair in pink and blue and a black quilted cap with a textured surface. Dark line markings sit beneath your eyes, and large silver hoop earrings hang from your ears. You wear a shiny gold quilted jacket over a black top with a white logo, and layered gold bangles on your forearms.",
+    "source": "https://cyberpunk.fandom.com/wiki/Angelica_Whelan",
+    "image": "appearance-images/angelica-whelan.webp"
   }
 }

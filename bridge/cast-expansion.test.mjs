@@ -10,7 +10,11 @@ const read = path => readFileSync(url(path), 'utf8').replace(/^﻿/u, '');
 const json = path => JSON.parse(read(path));
 
 // Keys added by the batch, in roster order.
-export const CAST_EXPANSION_KEYS = Object.freeze(['bryce-mosley', 'dum-dum', 'royce', 'rosalind-myers', 'kurt-hansen']);
+export const CAST_EXPANSION_KEYS = Object.freeze([
+  'bryce-mosley', 'dum-dum', 'royce', 'rosalind-myers', 'kurt-hansen', 'woodman', 'fingers', 'garry-the-prophet',
+  'brendan', 'anthony-gilchrist', 'denny', 'henry', 'teddy', 'weyland', 'oda', 'chester-bennett', 'bree-whitney',
+  'edgar-tool', 'jacob-long', 'angelica-whelan'
+]);
 // Keys whose Convai character and twin exist (packaging/release-data); the rest are profile-only until provisioning.
 const PROVISIONED = new Set(Object.keys(json('packaging/release-data/characters.json')));
 
