@@ -131,8 +131,6 @@ const INSTALL_NOTE = [
   'change the destination to the Cyberpunk 2077 folder itself. If it happened anyway, the mod moves its optional pack files into',
   'place by itself the next time the game starts.',
   '',
-  'With Vortex: use Install From File, and Vortex places the files for you.',
-  '',
   'You can delete this text file after installing.',
   ''].join('\r\n');
 

@@ -72,7 +72,7 @@ The Voxtral voice is like Pocket here: it runs in the cloud and uses no video me
 [*]Install the mods in Requirements first.
 [*]Download Scripts for version 0.2 from Nexus Mods, with Vortex or by hand. The same file is also on the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-Scripts-0.2.zip]Hugging Face page[/url].
 [*]Download the Runtime for version 0.2, [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2/AI-NPC-Cyberpunk-Mod-Runtime-0.2.zip]AI-NPC-Cyberpunk-Mod-Runtime-0.2.zip[/url], from the mod's [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs]Hugging Face page[/url] (0.2 folder). Use the same version number as the Scripts.
-[*]Close the game. Extract both zips into your Cyberpunk 2077 folder (the one with bin, archive and r6) and let the folders merge. Extract the Runtime before the OmniVoice pack. If Windows' extractor reports an error, use [url=https://www.7-zip.org]7-Zip[/url].
+[*]Close the game. Extract both zips into your Cyberpunk 2077 folder (the one with bin, archive and r6) and let the folders merge. Don't extract into a new folder named after the zip (Windows' "Extract All" and 7-Zip's "Extract to" suggest one): pick the Cyberpunk 2077 folder itself. If a pack ends up one folder too deep anyway, the mod moves it into place the next time the game starts. Extract the Runtime before the OmniVoice pack. If Windows' extractor reports an error, use [url=https://www.7-zip.org]7-Zip[/url].
 [*]Start the game. The first start after installing takes a little longer while the voice service prepares itself.
 [/list]
 
