@@ -1147,6 +1147,46 @@
    "voice": "AZURE-MULTILINGUAL-8f3af70863",
    "voiceName": "Evelyn",
    "reason": "Smooth, self-assured American female voice for a calm, charismatic gang pack leader who deals rather than shouts."
+  },
+  "voodoo-queen": {
+   "voice": "AZURE-MULTILINGUAL-b439921109",
+   "voiceName": "Vivienne",
+   "reason": "Composed, low-mid French-native female voice for a Haitian-Creole-speaking gang leader (Placide's twin already uses the French-native Lucien)."
+  },
+  "anders-hellman": {
+   "voice": "AZURE-MULTILINGUAL-7c29b4eda9",
+   "voiceName": "Steffan",
+   "reason": "Mature, crisp, polished male voice for a precise, condescending Arasaka scientist (the same voice as the discreet fixer Mr. Hands)."
+  },
+  "joshua-stephenson": {
+   "voice": "AZURE-MULTILINGUAL-df94d676e2",
+   "voiceName": "Brian",
+   "reason": "Casual, sincere mid-register male voice for an earnest, anxious convert (the same voice as the unsure young officer Bill Mitchell)."
+  },
+  "maiko-maeda": {
+   "voice": "AZURE-MULTILINGUAL-8f3af70863",
+   "voiceName": "Evelyn",
+   "reason": "Level, composed female voice for a cold, calculating Clouds manager (also used for the detached Alt Cunningham)."
+  },
+  "wilky-laguerre": {
+   "voice": "AZURE-MULTILINGUAL-4ef14f6865",
+   "voiceName": "Remy",
+   "reason": "Smooth, low French-native male voice for a sardonic Haitian-Creole-speaking Voodoo Boys netrunner (the same voice as the Voodoo Boys male archetype)."
+  },
+  "aurore-cassel": {
+   "voice": "AZURE-MULTILINGUAL-b439921109",
+   "voiceName": "Vivienne",
+   "reason": "French-native female voice, the only one on offer, for a French netrunner (the same voice as the Voodoo Boys and NetWatch female archetypes); her delivery is playful and drawling, so keep the pace light."
+  },
+  "dante-caruso": {
+   "voice": "AZURE-MULTILINGUAL-65374d4054",
+   "voiceName": "Davis",
+   "reason": "Relaxed, slightly rough male voice for a laconic, folksy Militech agent with a drawl (the same voice as the nomad veteran and the sardonic rockerboy)."
+  },
+  "jago-szabo": {
+   "voice": "AZURE-MULTILINGUAL-3cff3776e9",
+   "voiceName": "Florian",
+   "reason": "Cold, precise male voice with a Central European sound for a Hungarian-born accountant whose friendly manner covers a calculating mind (the same voice as the Arasaka heir and the netrunner-vendor archetype)."
   }
  }
 }

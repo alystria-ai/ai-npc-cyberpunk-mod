@@ -13,7 +13,8 @@ const json = path => JSON.parse(read(path));
 export const CAST_EXPANSION_KEYS = Object.freeze([
   'bryce-mosley', 'dum-dum', 'royce', 'rosalind-myers', 'kurt-hansen', 'woodman', 'fingers', 'garry-the-prophet',
   'brendan', 'anthony-gilchrist', 'denny', 'henry', 'teddy', 'weyland', 'oda', 'chester-bennett', 'bree-whitney',
-  'edgar-tool', 'jacob-long', 'angelica-whelan'
+  'edgar-tool', 'jacob-long', 'angelica-whelan', 'voodoo-queen', 'anders-hellman', 'joshua-stephenson',
+  'maiko-maeda', 'wilky-laguerre', 'aurore-cassel', 'dante-caruso', 'jago-szabo'
 ]);
 // Keys whose Convai character and twin exist (packaging/release-data); the rest are profile-only until provisioning.
 const PROVISIONED = new Set(Object.keys(json('packaging/release-data/characters.json')));

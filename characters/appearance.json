@@ -501,5 +501,45 @@
     "text": "You have shoulder-length hair in pink and blue and a black quilted cap with a textured surface. Dark line markings sit beneath your eyes, and large silver hoop earrings hang from your ears. You wear a shiny gold quilted jacket over a black top with a white logo, and layered gold bangles on your forearms.",
     "source": "https://cyberpunk.fandom.com/wiki/Angelica_Whelan",
     "image": "appearance-images/angelica-whelan.webp"
+  },
+  "voodoo-queen": {
+    "text": "You have green-tinted skin, close-cropped dark hair and teal eyeshadow over your eyes. Your lips are gold, and gold coin earrings hang from your ears on thin curved hooks. You wear a black high-necked zipped top with ridged plating across the chest and layered grey-green shoulder pieces.",
+    "source": "https://cyberpunk.fandom.com/wiki/Maman_Brigitte",
+    "image": "appearance-images/voodoo-queen.webp"
+  },
+  "anders-hellman": {
+    "text": "You have short light-brown hair swept back from your forehead and light stubble along your jaw. Round wire-rimmed glasses sit on your face. You wear a dark tailored suit jacket over a white shirt with a high stand collar and a white placket down the front.",
+    "source": "https://cyberpunk.fandom.com/wiki/Anders_Hellman",
+    "image": "appearance-images/anders-hellman.webp"
+  },
+  "joshua-stephenson": {
+    "text": "You have short dark hair and a shaved head, with dark ink tattoos on your forehead, cheeks and neck. A thin gold chain hangs at your throat. You wear a rust-orange zip-front prison jacket with dark bands across the chest and printed prisoner lettering and a number on the front.",
+    "source": "https://cyberpunk.fandom.com/wiki/Joshua_Stephenson",
+    "image": "appearance-images/joshua-stephenson.webp"
+  },
+  "maiko-maeda": {
+    "text": "You have short reddish-brown hair swept back over your head and dark, angled eye make-up. Your lips are deep blue. You wear a pink and burgundy patterned silk top with a deep V-neck, and dark fuzzy fabric sits across your shoulders.",
+    "source": "https://cyberpunk.fandom.com/wiki/Maiko_Maeda",
+    "image": "appearance-images/maiko-maeda.webp"
+  },
+  "wilky-laguerre": {
+    "text": "You have long dreadlocks that fall past your shoulders and pale, white-looking eyes. Dark scarring runs across your face and forehead. You wear a striped vest in teal, mauve and brown with an orange lapel, and a metal port sits on your chest, with red cables running over your shoulders.",
+    "source": "https://cyberpunk.fandom.com/wiki/Wilky_LaGuerre",
+    "image": "appearance-images/wilky-laguerre.webp"
+  },
+  "aurore-cassel": {
+    "text": "You have a short red pixie cut, freckles across your nose and cheeks, and heavy dark eye make-up with black lipstick. Large silver hoop earrings hang from your ears, and a black choker with a silver diamond ornament sits at your throat. You wear a mustard-yellow open jacket over a black mesh top with layered silver chains and a metallic patterned bodice.",
+    "source": "https://cyberpunk.fandom.com/wiki/Aurore_Cassel",
+    "image": "appearance-images/aurore-cassel.webp"
+  },
+  "dante-caruso": {
+    "text": "You have dark hair cut into a short spiked mohawk and a dark moustache above your mouth. Thin dark marks run across your cheeks, and a small silver hoop sits in one ear. You wear a lilac collared shirt with a teal geometric print, and a silver pendant hangs on black cords at your neck.",
+    "source": "https://cyberpunk.fandom.com/wiki/Dante_Caruso",
+    "image": "appearance-images/dante-caruso.webp"
+  },
+  "jago-szabo": {
+    "text": "You have blue-teal hair swept back from your forehead and thin glasses with small cyber units at the temples. A high dark-teal collar sits at your neck. You wear a dark zip-front jacket with a central zip and patch pockets.",
+    "source": "https://cyberpunk.fandom.com/wiki/Jago_Szab%C3%B3",
+    "image": "appearance-images/jago-szabo.webp"
   }
 }

@@ -1,6 +1,6 @@
 {
-  "profiles": 102,
-  "named": 100,
+  "profiles": 110,
+  "named": 108,
   "ambient": 2,
   "profileRevision": 5,
   "model": "fast-gemma-4-31b-it",
@@ -2774,6 +2774,78 @@
       "voice": "Katie (Husky Young-Adult American Female)",
       "sources": 3,
       "researchRevision": "a5167f32b8abab8d818e70a5ee7ac64d8403539058d1a9f60c8708310046cf63"
+    },
+    {
+      "key": "voodoo-queen",
+      "words": 881,
+      "speakingStyleWords": 224,
+      "sampleDialogueWords": 172,
+      "voice": "Linda (Deep Middle-Aged American Female)",
+      "sources": 5,
+      "researchRevision": "1f4cd65041191eb02849eab93a813e43fd4550ecd25d0bba887c40e163fc29a6"
+    },
+    {
+      "key": "anders-hellman",
+      "words": 816,
+      "speakingStyleWords": 211,
+      "sampleDialogueWords": 186,
+      "voice": "Oliver (Husky Middle-Aged British Male)",
+      "sources": 7,
+      "researchRevision": "158b90173f2bc99a3bb698531afac37ea3162ac130e40b596f7c27d23a0ac282"
+    },
+    {
+      "key": "joshua-stephenson",
+      "words": 763,
+      "speakingStyleWords": 206,
+      "sampleDialogueWords": 169,
+      "voice": "Ethan (Calm Young-Adult American Male)",
+      "sources": 4,
+      "researchRevision": "1183e25c570f0c517f38e6fdd45708a3f094bfc258627d14ea8a83a6d4099913"
+    },
+    {
+      "key": "maiko-maeda",
+      "words": 758,
+      "speakingStyleWords": 199,
+      "sampleDialogueWords": 148,
+      "voice": "Katie (Husky Young-Adult American Female)",
+      "sources": 5,
+      "researchRevision": "13b0c32c6101aaefa3fe5f42bd4212e6956abde9298ef64f487cce5d1bb1aa78"
+    },
+    {
+      "key": "wilky-laguerre",
+      "words": 832,
+      "speakingStyleWords": 221,
+      "sampleDialogueWords": 157,
+      "voice": "Cole (Husky Middle-Aged American Male)",
+      "sources": 2,
+      "researchRevision": "6ce64bb49cd41e7808b93d70d5481d448ac690a980e5e900124a6f445f290d49"
+    },
+    {
+      "key": "aurore-cassel",
+      "words": 791,
+      "speakingStyleWords": 199,
+      "sampleDialogueWords": 145,
+      "voice": "Katie (Husky Young-Adult American Female)",
+      "sources": 3,
+      "researchRevision": "c23cdfdb32620bec939188ba4d8f000f1377a58e8b29caf1aa090c2db41c8ad9"
+    },
+    {
+      "key": "dante-caruso",
+      "words": 689,
+      "speakingStyleWords": 188,
+      "sampleDialogueWords": 129,
+      "voice": "Ethan (Calm Young-Adult American Male)",
+      "sources": 2,
+      "researchRevision": "0ba47771a7ded00c242ff079fad483d7a60a9ca3b857502a474035a50ee14d9e"
+    },
+    {
+      "key": "jago-szabo",
+      "words": 674,
+      "speakingStyleWords": 187,
+      "sampleDialogueWords": 148,
+      "voice": "Noah (Confident Adult American Male)",
+      "sources": 2,
+      "researchRevision": "b97c4f80d091519cb964dc1d248daecdf1d23de76d0d5d1851cca0923c6ff69e"
     }
   ]
 }
