@@ -248,6 +248,7 @@ Everything lives under **Companion Manager > Settings**. Defaults are for a new 
 | Talk to ordinary NPCs | Conversations | On |
 | Talk to story characters | Conversations | Off |
 | Johnny in your head | Conversations | Off |
+| Johnny speaks up | Conversations | Off |
 | Multilingual conversations | Conversations | Off |
 | Auto-connect nearby characters | Conversations | On (silent) |
 | Continue from game dialogue | Conversations | On |
@@ -276,6 +277,7 @@ A few worth knowing:
 - **Talk to ordinary NPCs:** passers-by, vendors and the rest answer as their kind of person. They do not know your story and forget you after a save load, except shopkeepers you come back to.
 - **Talk to story characters:** the game's own named characters (Judy, Jackie, Panam, Rogue and the rest of the cast) answer where they stand, in their own voice, with their own memory and a face that follows what they say. Nothing else about them changes: they do not turn, move or gesture, and they stay quiet during scenes, quest conversations, fights and rides. It is off by default. Reload your save after switching it.
 - **Johnny in your head:** once the story has put Johnny Silverhand in V's head (after Playing for Time) and until an ending takes him out, the talk keys with nobody in front of you reach him. He answers as a voice in V's head, with his own voice and memory, knows your jobs and your story so far, and will tell you which job he would do next. **Johnny's standing**, right under it, shows where you two stand in this save's story (Wary, Grudging respect, Friends, Close friends), read from your save. He stays quiet during scenes, calls, dialogue choices and fights, and when the game gives him a line. It is off by default. Details: `docs/JOHNNY_IN_YOUR_HEAD.md`.
+- **Johnny speaks up:** Off (the default), Rare or Normal. With Johnny in your head on, he makes a short remark of his own after you talk with a named character, finish a main or side job, or a romance moves on: at most twice an hour at Rare, at most six times an hour and five minutes apart at Normal, never during scenes, calls, fights or while you talk. On the free shared plan each remark uses one of the day's turns, and remarks never take more than a tenth of them.
 - **Live holocall picture:** the character appears live in the call window instead of a portrait. If she cannot be shown, the call goes on with the portrait. Calls end after 3 minutes of silence or 30 minutes in total, and the game's own Contacts call is untouched.
 - **Memory:** **Forget selected character** and **Forget all memories**, each with a confirmation. A forget also clears the matching Phone Chat messages. **Relationships** has Auto, On or Off for Judy, Panam, River, Kerry and Meredith; Auto follows your save.
 - **Multilingual conversations:** talk in any language and each character answers in yours. It switches the voice to OmniVoice (or Convai's cloud voice without the pack), because Pocket and Voxtral speak English only. The microphone with Convai expects English, so type in other languages.
@@ -1114,6 +1116,7 @@ The Settings page groups its rows in this order: Interface, Conversations, Conve
 | `archetypeConversations` | Talk to ordinary NPCs | on |
 | `storyConversations` | Talk to story characters | off |
 | `johnnyInHead` | Johnny in your head | off |
+| `johnnyRemarks` | Johnny speaks up | `off` (`off`, `rare`, `normal`) |
 | `multilingualConversations` | Multilingual conversations | off |
 | `autoConnectNearby` | Auto-connect nearby characters | on |
 | `gameDialogueContext` | Continue from game dialogue | on |

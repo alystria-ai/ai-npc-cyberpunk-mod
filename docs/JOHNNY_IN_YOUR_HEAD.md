@@ -1,6 +1,6 @@
 # Johnny in your head
 
-Written 2026-10-19 on branch `johnny-in-head` (from `main` 7f74149a). Design first, then built in steps (see "Build steps" at the end). Not merged, not installed, not seen in the game.
+Written 2026-10-19 on branch `johnny-in-head` (from `main` 7f74149a; `main` merged in after the cast expansion). Design first, then built in steps (see "Build steps" at the end). Phase 1 and the first step of phase 2 are built. Not merged, not installed, not seen in the game.
 
 ## The request
 
@@ -21,6 +21,8 @@ Settings > Conversations > **Johnny in your head** (off by default). With it on,
 He knows what a companion knows: the "right now" facts, V's tracked quest and open jobs, the story facts of this save that concern him (the `silverhand.*` and related knowledge rules), the last game dialogue (including his own lines in the game), V's gear and his intrinsic claims. On top of that he gets two things nobody else gets: where he is (in V's head, not standing anywhere) and where he and V stand (the standing, below). When V asks what to do next, he picks from V's open jobs and says which one he would do and why.
 
 He stays quiet (the talk key shows "Johnny Silverhand is busy right now.") during a scene, a quest conversation or dialogue choice, a phone call, a fight, while V is replaced by someone else (a flashback where the player is Johnny), and for a few seconds after the game itself gave Johnny a line. Before the story puts him in V's head, and after an ending removes him, the setting does nothing and the talk keys behave as if it were off.
+
+With **Johnny speaks up** (right under it, Off by default) at Rare or Normal, he also speaks first now and then: a short remark after V has talked with a named character, finished a main or side job, or a romance moved on (phase 2, step 1, below).
 
 ## Where each piece comes from (reuse, not rebuild)
 
@@ -100,7 +102,7 @@ A reply Johnny is speaking when one of these starts is ended, through the same s
 - **Setting on:** still nothing per frame. On a talk key press that found nobody: one battle sample (as the holocall does), at most fifteen `GetFactStr` reads (one before the story start) (held 5 s, so a recording's validity poll costs nothing new) and a walk over at most 40 buffered game-dialogue rows. During a recording the head partner's validity is read about twice a second with the 0.4 s hold (the same poll the microphone already makes for any target).
 - **Talk path latency:** the turn is an ordinary private turn on the holocall's audio route: the bridge warms the connection (`warmConversation`) when the composer opens or the recording starts, and the stage clock (`bridge/turn-clock.mjs`, `runtime/bridge-latency.json`) measures it with no change. The added context is one sentence in the "right now" block and one short world block (under 900 characters).
 
-## Phase 2: Johnny speaks first (designed, not built)
+## Phase 2: Johnny speaks first (step 1 built)
 
 ### What the player asked for
 
@@ -132,14 +134,23 @@ Instead, the main mod's automatic-turn path with a third reaction kind, `head`, 
 
 A select under Johnny in your head, **Johnny speaks up**: **Off** (the default), **Rare** or **Normal**.
 
-- **Off:** no hook is installed and no queue exists; the phase 1 setting alone loads nothing for remarks. CET cannot remove an observer, so a hook installed at session start when the select was on checks one boolean per event and returns once it is turned off.
+- **Off (the default):** no new native hook exists at all: the three collectors already run, and each hands its event to `convaiJohnnyRemarkNote` in `mod/init.lua`, which returns after two boolean reads (`manager.johnnyRemarks()`, `manager.johnnyInHead()`) while either setting is off. `mod/johnny-remarks.lua` is not loaded and no queue exists, so the 0.1 s tick does one nil check.
 - **Rare:** at least 15 minutes between remarks and at most 2 an hour. **Normal:** at least 5 minutes and at most 6 an hour. A remark nobody heard does not count (the add-on rule).
 - **Always:** a cooldown per kind and per subject (the same person or place not again for an hour), a time limit after which a queued remark is dropped (about 60 s for a person or a place, 120 s for a quest), never within 10 s after a scene or a game line of his, never while V talks to anyone, records, or a reply or reaction plays, and the phase 1 story and busy gates.
-- **Quota:** on the free shared Convai key every remark counts as one of the day's turns (`bridge/shared-key-guard.mjs`), so the caps are also a quota control (open question 7).
+- **How long an event waits:** a person until 180 s after the last line they spoke (the remark comes after the scene, at least 10 s after that line), a job 240 s, a romance 300 s. At Rare most events expire before the 15-minute gap allows another remark; that is what Rare means.
+- **Quota (the user, 2026-10-19):** every remark is an automatic reaction and counts as one of the day's turns on the free shared Convai key, like a battle reaction. They may use at most `REMARK_SHARE` = 0.1 of the day's limit (`remarkCap(limit)`, 10 of 100; it follows the limit the sign-in backend sets), counted apart in a signed `remark-usage.json` (two copies, the format of the turn count) by `RemarkAllowance` in `bridge/shared-key-guard.mjs`, at the one place a turn reaches Convai (`RealtimeHost.run`, which now passes the turn's config to the guard). The eleventh remark of a day is refused before it reaches Convai and just stops, with no notice (an automatic reaction never shows one). A remark answered by Mistral or Local AI is not a shared-key turn and is not counted; a player's own Convai key is never limited.
+
+### What step 1 built
+
+- `mod/johnny-remarks.lua` (new, pure): `personEvent`, `questEvent` and `romanceEvent` turn a collector's value into a subject and plain facts; `new` keeps the queue (`note`, `pending`, `offer`, `claim`, `release`, `reset`) with the levels, the per-subject hour, the quiet time and the waits above.
+- The collectors gained one optional callback each, nil unless set: `mod/game-dialogue.lua` `options.onRow` (a recorded line), `mod/journal-history.lua` `onFinished` (jobs a history scan finds finished that the previous scan did not; the first scan of a world is a baseline and more than four at once is a rebuilt list, not news), `mod/relationship-state.lua` `onFact` (a romance fact newly set in the same world; the first capture is a baseline).
+- `mod/init.lua`: `convaiJohnnyRemarksService` (lazy loader), `convaiJohnnyRemarkNote` (the collectors' entry), `convaiJohnnyRemarkTick` (on the 0.1 s tick inside `updateBattles`, after battle and loot reactions; it starts a `head` reaction with the phase 1 head partner, and keeps or releases it while it is the automatic turn), the delivery check in `reactionCanDeliver`, the release of a remark nobody heard in `cancelAutomatic`, and no battle block on a remark (`sendRequest`).
+- Bridge: `parseHeadReaction` and `headTrigger` (`bridge/johnny-head.mjs`; only his profile with his head field; facts validated and quoted as data; at most 25 words, no question), wired in `bridge/protocol.mjs` and `bridge/battle-context.mjs`; `RemarkAllowance` above.
+- Settings > Conversations > **Johnny speaks up** (Off, Rare, Normal; `johnnyRemarks` in `runtime/settings.json`, Off by default), right under Johnny in your head, in 15 languages.
 
 ### Order of work
 
-1. The queue, the `head` reaction kind on both sides, the select and its 15 translations, with the three free triggers (people, quests, romances).
+1. Done: the queue, the `head` reaction kind on both sides, the select and its 15 translations, with the three free triggers (people, quests, romances).
 2. Locations, after a perf-probe capture with the district read on.
 3. The Relic probe (a live test), then its hook.
 4. Combat feats, only if the user wants them after a measurement (and open question 1 allows remarks in fights).
@@ -175,21 +186,24 @@ Thin or missing (from the survey of the profile, claims and rules): the 2023 Ara
 | `bridge/protocol.mjs` | `parseHead` |
 | `bridge/johnny-head.mjs` (new) | the head block: standing and next-job guidance |
 | `bridge/turn-context.mjs`, `bridge/quest-context.mjs`, `bridge/mistral-prompt.mjs` | the "in V's head" sentence, the head block's place, the `HERE` pattern |
-| `packaging/release-plan.json`, `scripts/development-files.json` | ship and dev-install `johnny-head.lua` |
+| `packaging/release-plan.json`, `scripts/development-files.json`, `packaging/runtime-layout.mjs` | ship and dev-install `johnny-head.lua`, `johnny-remarks.lua` and `bridge/johnny-head.mjs` |
+| `mod/johnny-remarks.lua` (new) | phase 2: the remark events, queue and rate (pure) |
+| `mod/game-dialogue.lua`, `mod/journal-history.lua`, `mod/relationship-state.lua` | one optional callback each (`onRow`, `onFinished`, `onFact`) |
+| `bridge/battle-context.mjs`, `bridge/shared-key-guard.mjs`, `bridge/realtime-host.mjs`, `bridge/convai-bridge.mjs` | the remark's trigger; the remarks' share of the shared key and its wiring |
 | `bridge/addons-lua.test.mjs` | the typed path's connection notice now also shows for Johnny (voice only, but with his own connection) |
 | `README.md`, `docs/NOTIFICATIONS.md` | the setting and the `talk-busy` notice's second use |
-| tests | `bridge/johnny-head.test.mjs` (new: the gates, stages and service in fengari, the loader, the wiring, the bridge words, shipping), `bridge/manager.test.mjs` (the setting and the standing row) |
+| tests | `bridge/johnny-head.test.mjs` (new: the gates, stages and service in fengari, the loader, the wiring, the bridge words, shipping), `bridge/johnny-remarks.test.mjs` (new: the events, the rate and the queue, the collectors' callbacks, the loader, the automatic-turn wiring, the trigger, the shared key's share, shipping), `bridge/manager.test.mjs` (both settings and the standing row), `bridge/select-labels.test.mjs` (Rare and Normal) |
 
 ## Open questions for the user
 
 1. **Combat.** Decided 2026-10-19: Johnny stays quiet in fights.
 2. **Scene tier 2.** Decided 2026-10-19: quiet from tier 3, like story characters; the 10 s rule after a game line of his covers the game's own Johnny staged at tier 2.
-3. **Phase 2, Johnny speaks first.** Build step 1 of phase 2 now (people, quests, romances behind Johnny speaks up, Off by default; recommended), or wait for live feedback on phase 1 first.
+3. **Phase 2, Johnny speaks first.** Decided 2026-10-19: step 1 built (people, quests, romances); locations, the Relic glitch and combat feats come later.
 4. **Phase 3, the hologram.** One live test of the blendable look on a spawned copy first (recommended), or skip the hologram and keep him a voice.
 5. **Lore gaps.** Fill them through the reviewed claims pipeline after `cast-expansion` lands (recommended), or a short in-head primer written now.
-6. **Chattiness levels.** Off / Rare / Normal with the numbers above (recommended), or add Often (about 2 minutes, 15 an hour), or a single on/off switch.
-7. **Remarks on the shared key.** Count them as turns like battle reactions (recommended, the caps keep it small), or send remarks only for players with their own key, Mistral or Local AI.
-8. **Combat feats.** Defer (recommended: per-hit hooks are an FPS risk), or build after-fight remarks with a perf-probe measurement.
+6. **Chattiness levels.** Decided 2026-10-19: Off / Rare / Normal.
+7. **Remarks on the shared key.** Decided 2026-10-19: they count as turns, capped at a tenth of the day's (10 of 100).
+8. **Combat feats.** Decided 2026-10-19: later (after locations and the Relic probe), with a perf-probe measurement.
 
 ## Build steps
 
@@ -199,18 +213,25 @@ Thin or missing (from the survey of the profile, claims and rules): the 2023 Ara
 4. The talk wiring in `mod/init.lua`, speech and subtitles; static tests (nothing in `onUpdate`, lazy load).
 5. The bridge: protocol, head block, turn context; tests.
 6. The read-only standing row; packaging; docs, README, TODO.
+7. (After the user's answers.) Quiet from scene tier 3; `main` merged in; phase 2 step 1 (Johnny speaks up) with the shared key's remark share; the lore gaps on branch `johnny-lore`, merged in.
 
 ## Live check owed
 
-Needs the Scripts install (all committed `mod/` files, including the new `mod/johnny-head.lua`), a CET reload and a bridge restart (the bridge runs from the main checkout, so after the merge). No archive, no redscript, no game restart. Use a save after Playing for Time and before the point of no return.
+Needs the Scripts install (all committed `mod/` files, including the new `mod/johnny-head.lua` and `mod/johnny-remarks.lua`, and the `.json` data), a CET reload and a bridge restart (the bridge runs from the main checkout, so after the merge). No archive, no redscript, no game restart. Use a save after Playing for Time and before the point of no return.
 
 1. Settings > Conversations: **Johnny in your head** is there, Off. Turn it on and Apply. Under it **Johnny's standing** appears with a value (Wary on an early Act 2 save; Friends or Close friends after the oil fields). Turn it off: the standing row goes. Check one other language for cut-off text.
 2. With it on, in open gameplay, face nobody and press the text key: the composer opens for Johnny Silverhand (a "Preparing connection" notice may show the first time). Type "Hey Johnny, you there?". His voice comes centred, as if inside V's head (no direction, same level when V turns), with the subtitle "Johnny Silverhand". `probe.log`: `Johnny in your head: conversation stage=<stage>`; the bridge log: `Turn context: ... head=<stage>`.
 3. The voice key with nobody in front of V: the same, spoken. Then face a companion or a passer-by and press the key: that character answers, not Johnny.
 4. Ask "What should I do next?": he names one of V's actual open jobs, in his voice, and says why. Ask about Rogue and Kerry: answers fit the save (the date, the reunion if done). Ask "What do you think of me?": the tone fits the standing row.
 5. Ask "Where are you right now?": he says he is in V's head (or words to that effect), never a place or task of his own.
-6. The game first: press the text key with nobody in front during (a) a dialogue choice with any NPC, (b) a phone call, (c) a fight, (d) a cutscene: each time "Johnny Silverhand is busy right now." and nothing starts; `probe.log` names the reason (`dialogue`, `call`, `combat`, `scene`). Start a reply, then walk into a scene or start a fight while he talks: his reply stops, `Johnny in your head: reply ended reason=...`.
+6. The game first: press the text key with nobody in front during (a) a dialogue choice with any NPC, (b) a phone call, (c) a fight, (d) a cutscene: each time "Johnny Silverhand is busy right now." and nothing starts; `probe.log` names the reason (`dialogue`, `call`, `combat`, `scene`). Start a reply, then walk into a scene or start a fight while he talks: his reply stops, `Johnny in your head: reply ended reason=...`. At Viktor's clinic or Misty's shop (scene tier 2) with nobody in front, he answers (tier 2 is open since the user's decision).
 7. Right after the game's own Johnny says something (an ambient comment of his), press the key within 10 s: busy (`johnny-speaking`); after 10 s he answers.
 8. Story gate: on a save before Playing for Time is done (the prologue or the first heist) the key behaves as with the setting off ("Face a nearby character to talk.", `Johnny in your head: not in V's head (before)`), and the standing row says "Not in your head yet".
 9. FPS and latency: with the setting on, the perf probe shows no new per-frame row; `runtime/bridge-latency.json` for a Johnny turn is in line with a companion turn on the same provider.
 10. Setting off: everything as before; `johnny-head.lua` is not loaded (no `Johnny in your head` line in `probe.log`).
+11. **Johnny speaks up, Off:** with Johnny speaks up Off (the default) nothing below happens and `probe.log` has no `Johnny speaks up` line.
+12. **A person:** set Johnny speaks up to Normal and Apply. Talk through a scene with a named character (Judy, Rogue, Kerry, Panam, Viktor). About 10 s after the scene's last line, with nothing else going on, Johnny says one short line about them in his own voice (centred, his subtitle). `probe.log`: `Johnny speaks up: noted person:<key>`, then `Automatic head reaction: person:<key> stage=<stage>`. Meet the same character again within the hour: no second remark.
+13. **A job:** finish a main or side job (a gig or NCPD hustle does not count). Within a few minutes of the journal update (the history scan), one remark naming it; for one of his own (Chippin' In, Tapeworm, A Like Supreme) he treats it as his.
+14. **A romance:** on a save just before a romance decision (Judy's lake, Panam's tank, River's water tower, Kerry's beach), make the choice: after the scene, one remark about it. Loading a save where the romance already happened gives no remark (baseline).
+15. **The rate:** at Normal no two remarks less than 5 minutes apart and at most 6 an hour; at Rare at most 2 an hour, 15 minutes apart. A remark never starts while V types, records, talks to anyone, a battle or loot reaction plays, or in a scene, a call, a fight (`Automatic reaction released: head-<reason>` when one is dropped).
+16. **Shared key:** on the free shared Convai key each remark lowers "x of y left today" by one; after 10 remarks in a day the next ones stop silently (bridge log: the daily-limit refusal for a reaction) while V's own talk goes on. With Mistral or Local AI the count does not move.
