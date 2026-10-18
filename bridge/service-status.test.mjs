@@ -61,11 +61,24 @@ test('every service message is a catalogued English UI key', () => {
   for (const text of Object.values(messages)) assert(source.includes(`ui.t('${text}')`), `ui.t literal for ${text}`);
 });
 
-test('with no evidence at all the adapter keeps its previous behaviour', () => run(`
+test('with no evidence at all the adapter stays silent while the game has only just loaded', () => run(`
   assert(status.unavailable() == nil)
   assert(status.blockedMessage() == nil)
   assert(status.lostSince(now() - 10) == nil)
   assert(status.notice() == nil)
+  advance(14)
+  assert(status.unavailable() == nil, 'still inside the first seconds: a bridge started by hand may be coming up')
+`));
+
+test('no trace of this session after the first seconds means the service never started: a request is told so at once, not after its 90 s', () => run(`
+  advance(15)
+  local message, kind = status.blockedMessage()
+  assert(kind == 'failed' and message == ${lua_(messages.failed)}, tostring(kind))
+  assert(status.lostSince(now() - 10) == nil, 'only the supervisor status retires a request early')
+  assert(status.notice() == nil, 'and there is no proactive notice for a service nobody tried to start')
+  -- A bridge that comes up (started by hand, or late) is served again at once.
+  advance(1); put('runtime/knowledge-status.json', {version = 1, updated = ms(-1)})
+  assert(status.unavailable() == nil)
 `));
 
 test('empty status files (the shipped placeholders) are the same as missing ones', () => run(`
@@ -75,6 +88,20 @@ test('empty status files (the shipped placeholders) are the same as missing ones
   assert(status.unavailable() == nil, 'an empty file must not read as a stopped service')
   assert(status.blockedMessage() == nil)
   assert(status.notice() == nil)
+  advance(15)
+  assert(status.unavailable().kind == 'failed', 'and none is a service that never started, as no file is')
+`));
+
+test('what an earlier session of the game left behind is not this session: "never", not "restart the game" for a service nobody started', () => run(`
+  put('runtime/bridge-service.json', {state = 'stopped', code = 'game-exited', since = ms(-90000), updated = ms(-86400)})
+  put('runtime/knowledge-status.json', {version = 1, updated = ms(-86400)})
+  assert(status.unavailable().kind == 'stopped', 'inside the first seconds the old behaviour stands')
+  advance(15)
+  local message, kind = status.blockedMessage()
+  assert(kind == 'failed' and message == ${lua_(messages.failed)}, tostring(kind))
+  -- A trace written in this session is still "stopped": the service ran and is gone.
+  advance(1); put('runtime/bridge-service.json', {state = 'stopped', code = 'game-exited', since = ms(-30), updated = ms(-20)})
+  assert(status.unavailable().kind == 'stopped')
 `));
 
 test('a fresh bridge heartbeat always allows conversations', () => run(`
@@ -132,7 +159,7 @@ test('failures distinguish missing setup from other errors, including launcher f
   advance(1)
   put('runtime/bridge-service.json', {state = 'failed', code = 'launcher-program-missing', source = 'launcher',
       since = ms(-7200), updated = ms(-7200)})
-  assert(select(2, status.blockedMessage()) == 'stopped', 'an old launcher failure is only a stale trace')
+  assert(select(2, status.blockedMessage()) == 'failed', 'an old launcher failure is no trace of this session: the service never started')
 `));
 
 test('a missing browser gets its own explanation, a proactive notice and no confusion with other failures', () => run(`
