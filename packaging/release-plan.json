@@ -322,6 +322,14 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/johnny-probe.lua"
         },
         {
+          "source": "mod/johnny-hologram.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/johnny-hologram.lua"
+        },
+        {
+          "source": "mod/johnny-hologram-probe.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/johnny-hologram-probe.lua"
+        },
+        {
           "source": "mod/johnny-relic.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/johnny-relic.lua"
         },

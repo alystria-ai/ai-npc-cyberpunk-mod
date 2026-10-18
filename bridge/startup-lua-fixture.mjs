@@ -246,7 +246,7 @@ export const freshSettings = {
   battleReactions: false, lootReactions: false, bodyGestures: true, autoConnectNearby: true,
   holocallLiveImageChosen: false, holocallLiveImage: true, gameDialogueContext: true, decisionLedger: false, witnessReceipts: false,
   eyeContactHeight: 0, headFollowStrength: 1, voiceProvider: 'pocket', omniSteps: 16, omniReference: 'long', keepPreparedVoices: true,
-  archetypeConversations: true, storyConversations: false, johnnyInHead: false, johnnyRemarks: 'off',
+  archetypeConversations: true, storyConversations: false, johnnyInHead: false, johnnyRemarks: 'off', johnnyHologram: false,
   naturalSpeech: false, expressiveEmotions: true, expressiveEmotionsChosen: false, followUpInterest: true,
   matureContent: false, localModel: 'auto', multilingualConversations: false,
   vVoiceChosen: false, vVoice: true, vVoiceEngine: 'pocket',

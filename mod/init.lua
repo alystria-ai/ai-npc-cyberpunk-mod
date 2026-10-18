@@ -627,6 +627,8 @@ local function profileIdentity(npc, forceFacts)
     local name = managedName or tostring(npc:GetTweakDBFullDisplayName(true) or 'NPC')
     local body = tostring(npc:GetBodyType() or '')
     if owned and not managedKey then return nil, name, body end
+    -- Our own glitching copy of Johnny (mod/johnny-hologram.lua) is a picture, not a character: no profile, no talk.
+    if convaiJohnnyHologram and convaiJohnnyHologram.visit and convaiJohnnyHologram:owns(tostring(npc:GetEntityID().hash)) then return nil, name, body end
     local recordOk, record = pcall(function() return tostring(npc:GetRecordID()) end)
     local crowdOk, crowd = pcall(function() return npc:IsCrowd() end)
     -- spawned: a character another mod or a spawner created (mod/spawned-characters.lua, docs/SPAWNED_CHARACTERS.md). It is
@@ -705,8 +707,21 @@ function convaiJohnnyRemarksService()
     end
     return convaiJohnnyRemarks or nil
 end
+-- The optional Johnny features that ride the 0.5 s battle sample (places, the fight watch, the hologram) run under pcall: updateBattles
+-- itself is called under pcall and a fault there would reset the battle sample and cancel automatic reactions every frame. A fault is
+-- logged once per feature and the feature carries on at its next call.
+function convaiJohnnyGuarded(name, work, ...)
+    local ok, problem = pcall(work, ...)
+    if ok then return end
+    convaiJohnnyFaults = convaiJohnnyFaults or {}
+    if not convaiJohnnyFaults[name] then
+        convaiJohnnyFaults[name] = true
+        if convaiLogLine then convaiLogLine('Johnny ' .. name .. ' failed (carrying on): ' .. tostring(problem)) end
+    end
+end
 -- One event from a collector: 'person' (a game-dialogue row), 'quest' (a finished job from the history scan), 'romance' (a fact name),
--- 'place' (a place row from the district sample below) or 'relic' (the end of an episode of the Relic's sickness, the watch below).
+-- 'place' (a place row from the district sample below), 'relic' (the end of an episode of the Relic's sickness, the watch below) or
+-- 'fight' (the end of a fight that counts, the fight watch below).
 function convaiJohnnyRemarkNote(kind, value)
     local remarks = convaiJohnnyRemarksService()
     local module = convaiJohnnyRemarksModule
@@ -716,6 +731,7 @@ function convaiJohnnyRemarkNote(kind, value)
     elseif kind == 'quest' then subject, facts = module.questEvent(value)
     elseif kind == 'romance' then subject, facts = module.romanceEvent(value)
     elseif kind == 'relic' then subject, facts, cooldown = module.relicEvent(value)
+    elseif kind == 'fight' then subject, facts, cooldown = module.fightEvent(value)
     elseif kind == 'place' then
         subject, facts, cooldown = module.placeEvent(value)
         -- The second note needs facts and journal entries of this save: read once per arrival (a few native reads, hours apart), here.
@@ -743,6 +759,54 @@ function convaiJohnnyRelicEnsure()
     end
     if convaiJohnnyRelic then convaiJohnnyRelic:enable() end
 end
+-- The fight watch (Johnny speaks up, step 4): a tracker made by the district sample's gate below once both settings are on, fed by the
+-- 0.5 s battle sample (convaiJohnnyFightSample: one nil check while it does not exist). It reads four of the game's own counters (quest
+-- facts) when a fight starts and when it ends, nothing per hit. Dropped when either setting goes off and at every world change.
+function convaiJohnnyFightCounters()
+    local module, quests = convaiJohnnyRemarksModule, Game.GetQuestsSystem()
+    local counters = {}
+    for _, name in ipairs(module.FIGHT_COUNTERS) do
+        local value = quests:GetFactStr(name)
+        if type(value) ~= 'number' then return nil end
+        counters[name] = value
+    end
+    return counters
+end
+function convaiJohnnyFightSample(sample)
+    local tracker = convaiJohnnyFight
+    if not tracker or not sample or sample.available ~= true then return end
+    local event = tracker:observe(sample.combat == true, os.clock(), convaiJohnnyFightCounters)
+    if event then
+        if convaiLogLine then
+            convaiLogLine('Johnny speaks up: fight over seconds=' .. event.seconds .. ' dead=' .. event.dead .. ' alive=' .. event.alive)
+        end
+        convaiJohnnyRemarkNote('fight', event)
+    end
+end
+-- Johnny's hologram (phase 3, mod/johnny-hologram.lua): loaded on the first sit that finds both settings on (Johnny in your head, and
+-- Johnny's hologram); with either off a sit costs two boolean reads. The look is Johnny's (M.DEFAULT_LOOK); the live test picks it.
+function convaiJohnnyHologramService()
+    if not manager.johnnyHologram() or not manager.johnnyInHead() then return nil end
+    if convaiJohnnyHologram == nil then
+        local loaded, module = pcall(dofile, 'johnny-hologram.lua')
+        convaiJohnnyHologram = loaded and type(module) == 'table' and type(module.new) == 'function' and module.new({
+            enabled = function() return manager.johnnyHologram() and manager.johnnyInHead() end,
+            story = function() local head = convaiJohnnyHeadService(); return head and head:story() or 'unreadable' end,
+            lines = function() return convaiGameDialogue and convaiGameDialogue.lines or nil end,
+            log = function(line) if convaiLogLine then convaiLogLine(line) end end}) or false
+        if convaiJohnnyHologram then pcall(convaiJohnnyHologram.sweep, convaiJohnnyHologram)
+        else print('[CyberpunkConvai] johnny-hologram.lua unavailable: ' .. tostring(module)) end
+    end
+    return convaiJohnnyHologram or nil
+end
+-- V sat down (mod/seated-look.lua onSit): one table write in the service. V stood up (onStand): he goes at once.
+function convaiJohnnyHologramMoment(kind, seat)
+    local service = convaiJohnnyHologramService()
+    if service then service:moment('sit', kind, seat) end
+end
+function convaiJohnnyHologramStand()
+    if convaiJohnnyHologram then convaiJohnnyHologram:stand() end
+end
 -- Places (Johnny speaks up, step 2): the existing 0.5 s battle sample calls this. It reads at most every PLACE_SECONDS, and only while
 -- both settings are on (two boolean reads otherwise): the id of the district V is in (three native calls). The record and its parents
 -- are resolved only when that id changed. Nothing per frame and no hook: the game's own district event (PlayerPuppet OnDistrictChanged,
@@ -765,12 +829,14 @@ do
         nextAt = at + (module and module.PLACE_SECONDS or 6)
         if manager.johnnyRemarks() == 'off' or not manager.johnnyInHead() then
             lastId, chain, tracker = nil, nil, nil
+            convaiJohnnyFight = nil
             if convaiJohnnyRelic then convaiJohnnyRelic:disable() end
             return
         end
         if not convaiJohnnyRemarksService() then return end
         convaiJohnnyRelicEnsure()
         module = convaiJohnnyRemarksModule
+        if not convaiJohnnyFight then convaiJohnnyFight = module.fightTracker() end
         local ok, key, id = pcall(function()
             local system = Game.GetScriptableSystemsContainer():Get('PreventionSystem')
             local district = system and system:GetCurrentDistrict()
@@ -2796,6 +2862,16 @@ local function captureLootContext(player)
         people = reactionPeople(player, observation)}
 end
 
+-- Johnny's hologram on the 0.5 s battle sample, only while a sit is waiting or he is there. A global, so updateBattles gains no
+-- upvalue. talking: V types, records, talks in a group or on the phone, or any reply or reaction is playing.
+function convaiJohnnyHologramTick(player, sample, worldReady)
+    local service = convaiJohnnyHologram
+    if not service then return end
+    local talking = active ~= nil or groupChat.round ~= nil or microphone.context ~= nil or phoneChat.pending ~= nil
+        or automatic ~= nil or speech.requestId ~= nil
+    service:tick(player, sample, worldReady, talking)
+end
+
 -- Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2), on the 0.1 s game tick inside updateBattles. A global, so updateBattles gains
 -- no upvalue. With nothing queued it is one length check. `owned`: a head remark is the automatic turn now (keep it or release it);
 -- otherwise it may start one when nothing else is going on (busy false) and mayFollow allows a new automatic turn.
@@ -2851,7 +2927,11 @@ local function updateBattles(player, elapsed, worldReady)
         end
         battlePeople, battleCandidatesOk = reactionPeople(player, battleSample)
         battleOutputs = reactionOutputs(player)
-        if convaiJohnnyPlaceSample then convaiJohnnyPlaceSample(worldReady, battleSample.vehicle == true) end
+        if convaiJohnnyPlaceSample then convaiJohnnyGuarded('place sample', convaiJohnnyPlaceSample, worldReady, battleSample.vehicle == true) end
+        if convaiJohnnyFight then convaiJohnnyGuarded('fight watch', convaiJohnnyFightSample, battleSample) end
+        if convaiJohnnyHologram and convaiJohnnyHologram:active() then
+            convaiJohnnyGuarded('hologram', convaiJohnnyHologramTick, player, battleSample, worldReady)
+        end
         -- A Johnny probe acting over time (Developer mode, mod/johnny-probe.lua); nil otherwise.
         if convaiJohnnyProbeTick then pcall(convaiJohnnyProbeTick) end
     end
@@ -3516,6 +3596,8 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     if convaiJohnnyRemarks then convaiJohnnyRemarks:reset() end
     if convaiJohnnyPlaceReset then convaiJohnnyPlaceReset() end
     if convaiJohnnyRelic then convaiJohnnyRelic:reset() end
+    convaiJohnnyFight = nil
+    if convaiJohnnyHologram then convaiJohnnyHologram:abandon(reason) end
     -- The face service decides at each NPC's spawn, so the setting is handed over before the next world loads.
     if convaiFacialPlayback and type(convaiFacialPlayback.applyStoryTalk) == 'function' then
         pcall(convaiFacialPlayback.applyStoryTalk, manager.storyConversations())
@@ -3587,6 +3669,9 @@ registerForEvent('onInit', function()
     local lookLoaded, lookResult, lookReason = pcall(function()
         return dofile('seated-look.lua').install({
             classify = dofile('companion-seating.lua').classify,
+            -- Johnny's hologram hears of a sit and of V standing up (both do nothing while its setting is off).
+            onSit = function(kind, seat) convaiJohnnyHologramMoment(kind, seat) end,
+            onStand = function() convaiJohnnyHologramStand() end,
             -- False from the player's detach until the next session is up: the exit hooks then make no native call.
             live = function() return not worldSuspended end,
             log = function(kind, fields)

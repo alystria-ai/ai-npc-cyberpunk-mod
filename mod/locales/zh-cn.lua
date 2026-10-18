@@ -866,5 +866,7 @@ return {
     ["Rare"] = "很少",
     ["Normal"] = "正常",
     ["Choose how often Johnny speaks up."] = "选择 Johnny 主动发言的频率。",
-    ["Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the free shared plan each remark uses one of the day’s turns; remarks never take more than a tenth of them."] = "当你遇到他认识的人、完成任务或恋爱关系推进时，Johnny 会自己说点什么。需要脑中的 Johnny。\n\n很少：每小时最多两次。正常：每小时最多六次，间隔不少于五分钟。\n\n在免费共享方案中，每条发言消耗当天的一个回合；发言消耗的回合永远不会超过全部回合的十分之一。",
+    ["Johnny says something on his own after you meet someone he knows of, finish a job, a romance moves on, you arrive somewhere he knows, the Relic acts up, or a big fight ends. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the free shared plan each remark uses one of the day’s turns; remarks never take more than a tenth of them."] = "当你遇到他认识的人、完成任务、恋爱关系推进、抵达他认识的地方、Relic 出状况，或一场大战结束时，Johnny 会自己说点什么。需要脑中的 Johnny。\n\n很少：每小时最多两次。正常：每小时最多六次，间隔不少于五分钟。\n\n在免费共享方案中，每条发言消耗当天的一个回合；发言消耗的回合永远不会超过全部回合的十分之一。",
+    ["Johnny’s hologram"] = "Johnny 的全息投影",
+    ["Now and then, when you sit down, Johnny shows himself a few steps away for a few seconds as a glitching hologram, the way the story shows him. Needs Johnny in your head.\n\nNever in scenes, calls, dialogue choices or fights, and at most once every ten minutes."] = "偶尔你坐下时，Johnny 会以故障的全息投影形式在几步之外出现几秒钟，就像剧情里那样。需要脑中的 Johnny。\n\n绝不会出现在过场、通话、对话选项或战斗中，且最多每十分钟一次。",
 }

@@ -726,6 +726,8 @@ local function loadSettings()
     if settings.johnnyRemarks ~= 'off' and settings.johnnyRemarks ~= 'rare' and settings.johnnyRemarks ~= 'normal' then
         settings.johnnyRemarks, settingsNeedSave = 'off', true
     end
+    -- Off by default: now and then Johnny shows himself beside V as a glitching hologram (docs/JOHNNY_IN_YOUR_HEAD.md, phase 3).
+    if type(settings.johnnyHologram) ~= 'boolean' then settings.johnnyHologram, settingsNeedSave = false, true end
     -- Off by default. A saved pairing with the Convai cloud voice cannot stand: the cloud voice is kept (it is the
     -- player's voice) and the setting is turned off below.
     if type(settings.naturalSpeech) ~= 'boolean' then settings.naturalSpeech, settingsNeedSave = false, true end
@@ -873,6 +875,13 @@ end
 function M.johnnyRemarks()
     loadSettings()
     return settings.johnnyRemarks == 'rare' and 'rare' or settings.johnnyRemarks == 'normal' and 'normal' or 'off'
+end
+
+-- Johnny's hologram: a short glitching appearance beside V when V sits down (mod/johnny-hologram.lua). Read when V sits and while the
+-- appearance is waiting or showing, on the 0.5 s battle sample, never per frame.
+function M.johnnyHologram()
+    loadSettings()
+    return settings.johnnyHologram == true
 end
 
 function M.profileEnabled(key)
@@ -1729,6 +1738,7 @@ function M.snapshot(player)
             storyConversations = settings.storyConversations == true,
             johnnyInHead = settings.johnnyInHead == true,
             johnnyRemarks = M.johnnyRemarks(),
+            johnnyHologram = settings.johnnyHologram == true,
             uiLanguage = settings.uiLanguage,
             enabledByKey = enabled},
         ownKey = M.ownKey(),
@@ -1808,6 +1818,9 @@ function M.applySettings(player, values)
         elseif key == 'johnnyRemarks' then
             if value ~= 'off' and value ~= 'rare' and value ~= 'normal' then return false, 'Choose how often Johnny speaks up.' end
             nextSettings.johnnyRemarks = value
+        elseif key == 'johnnyHologram' then
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.johnnyHologram = value
         elseif key == 'conversationProvider' then
             if value ~= 'convai' and value ~= 'mistral' and value ~= 'local' then return false, 'Choose one of the listed conversation providers.' end
             nextSettings.conversationProvider = value

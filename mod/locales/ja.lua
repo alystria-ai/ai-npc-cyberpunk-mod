@@ -866,5 +866,7 @@ return {
     ["Rare"] = "まれ",
     ["Normal"] = "普通",
     ["Choose how often Johnny speaks up."] = "Johnnyが自分から話す頻度を選んでください。",
-    ["Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the free shared plan each remark uses one of the day’s turns; remarks never take more than a tenth of them."] = "Johnnyが知っている人物に出会ったとき、仕事を終えたとき、ロマンスが進んだときに、Johnnyが自分から何か話します。頭の中のJohnnyが必要です。\n\nまれ：1時間に最大2回。普通：1時間に最大6回、5分未満の間隔にはなりません。\n\n無料の共有プランでは、発言は1回ごとに今日の回数を1つ使います。発言が使う回数は全体の10分の1を超えません。",
+    ["Johnny says something on his own after you meet someone he knows of, finish a job, a romance moves on, you arrive somewhere he knows, the Relic acts up, or a big fight ends. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the free shared plan each remark uses one of the day’s turns; remarks never take more than a tenth of them."] = "Johnnyが知っている人物に出会ったとき、仕事を終えたとき、ロマンスが進んだとき、Johnnyが知っている場所に着いたとき、Relicが不安定になったとき、大きな戦闘が終わったときに、Johnnyが自分から何か話します。頭の中のJohnnyが必要です。\n\nまれ：1時間に最大2回。普通：1時間に最大6回、5分未満の間隔にはなりません。\n\n無料の共有プランでは、発言は1回ごとに今日の回数を1つ使います。発言が使う回数は全体の10分の1を超えません。",
+    ["Johnny’s hologram"] = "Johnnyのホログラム",
+    ["Now and then, when you sit down, Johnny shows himself a few steps away for a few seconds as a glitching hologram, the way the story shows him. Needs Johnny in your head.\n\nNever in scenes, calls, dialogue choices or fights, and at most once every ten minutes."] = "時々、座ったときに、物語で見せるように、Johnnyがノイズの走るホログラムとして数歩離れた場所に数秒間現れます。頭の中のJohnnyが必要です。\n\nシーン、通話、会話の選択肢、戦闘中には決して現れず、10分に最大1回です。",
 }

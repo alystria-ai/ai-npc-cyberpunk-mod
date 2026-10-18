@@ -138,6 +138,9 @@ function M.new(options)
         return facts
     end
 
+    -- The story state: 'active' while he is in V's head, 'before', 'after' or 'unreadable' (Johnny's hologram asks, mod/johnny-hologram.lua).
+    function service:story() return M.story(self:facts()) end
+
     -- The stage for the settings page: one of M.stage's answers ('unreadable' reads as 'unknown').
     function service:standing()
         local stage = M.stage(self:facts())

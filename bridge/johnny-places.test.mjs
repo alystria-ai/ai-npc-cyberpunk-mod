@@ -243,9 +243,33 @@ test('noting a place: alt is set only when the game answers yes to every fact an
   `);
 });
 
+test('guard: a fault in an optional Johnny feature on the battle sample is logged once and never reaches updateBattles', () => {
+  const block = between('function convaiJohnnyGuarded(', '-- One event from a collector');
+  run(`
+    local logged = {}
+    convaiLogLine = function(line) logged[#logged + 1] = line end
+    ${block}
+    local seen = {}
+    convaiJohnnyGuarded('place sample', function(a, b) seen[#seen + 1] = a .. b end, 'x', 'y')
+    assert(seen[1] == 'xy' and #logged == 0, 'arguments are passed through, nothing logged on success')
+    convaiJohnnyGuarded('place sample', function() error('boom') end)
+    convaiJohnnyGuarded('place sample', function() error('boom again') end)
+    assert(#logged == 1 and logged[1]:find('Johnny place sample failed', 1, true) and logged[1]:find('boom', 1, true), 'logged once per feature')
+    convaiJohnnyGuarded('fight watch', function() error('other') end)
+    assert(#logged == 2 and not logged[1]:find('update failed', 1, true) and not logged[1]:find('observation skipped', 1, true))
+    convaiLogLine = nil
+    convaiJohnnyGuarded('hologram', function() error('no logger') end)
+  `);
+  const battles = between('local function updateBattles(player, elapsed, worldReady)', 'local now = os.time()');
+  for (const call of ['convaiJohnnyPlaceSample', 'convaiJohnnyFightSample', 'convaiJohnnyHologramTick']) {
+    assert.ok(new RegExp(`convaiJohnnyGuarded\\('[a-z ]+', ${call},`).test(battles), `${call} runs guarded`);
+  }
+  assert.doesNotMatch(battles, /(?<!convaiJohnnyGuarded\('[a-z ]+', )convaiJohnnyPlaceSample\(|convaiJohnnyFightSample\(|convaiJohnnyHologramTick\(/);
+});
+
 test('wiring: the sample rides the 0.5 s battle sample, a load resets it, and the Johnny functions above log use convaiLogLine', () => {
   const battles = between('local function updateBattles(player, elapsed, worldReady)', 'local now = os.time()');
-  assert.match(battles, /if not battleSample or battlePoll >= 0\.5 then[\s\S]*if convaiJohnnyPlaceSample then convaiJohnnyPlaceSample\(worldReady, battleSample\.vehicle == true\) end/);
+  assert.match(battles, /if not battleSample or battlePoll >= 0\.5 then[\s\S]*if convaiJohnnyPlaceSample then convaiJohnnyGuarded\('place sample', convaiJohnnyPlaceSample, worldReady, battleSample\.vehicle == true\) end/);
   assert.match(init, /if convaiJohnnyRemarks then convaiJohnnyRemarks:reset\(\) end\s+if convaiJohnnyPlaceReset then convaiJohnnyPlaceReset\(\) end/);
   const update = init.slice(init.indexOf("registerForEvent('onUpdate'"), init.indexOf("registerForEvent('onShutdown'"));
   assert.doesNotMatch(update, /convaiJohnnyPlace|GetCurrentDistrict/);

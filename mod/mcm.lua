@@ -2118,8 +2118,10 @@ local function schema()
                 'Johnny Silverhand answers when you use the talk keys with nobody in front of you, as the voice in V’s head. He knows your jobs and your story so far, and what he thinks of you follows it.\n\nOnly while the story has him in V’s head. He stays quiet during scenes, calls, dialogue choices and fights, and when the game gives him a line.'),
             setting('johnnyRemarks', 'Johnny speaks up', 'select',
                 snapshot.settings.johnnyRemarks == 'normal' and 3 or snapshot.settings.johnnyRemarks == 'rare' and 2 or 1, 1,
-                'Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the free shared plan each remark uses one of the day’s turns; remarks never take more than a tenth of them.',
+                'Johnny says something on his own after you meet someone he knows of, finish a job, a romance moves on, you arrive somewhere he knows, the Relic acts up, or a big fight ends. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the free shared plan each remark uses one of the day’s turns; remarks never take more than a tenth of them.',
                 {'Off', 'Rare', 'Normal'}),
+            setting('johnnyHologram', 'Johnny’s hologram', 'bool', snapshot.settings.johnnyHologram == true, false,
+                'Now and then, when you sit down, Johnny shows himself a few steps away for a few seconds as a glitching hologram, the way the story shows him. Needs Johnny in your head.\n\nNever in scenes, calls, dialogue choices or fights, and at most once every ten minutes.'),
             withInworld(setting('multilingualConversations', 'Multilingual conversations', 'bool', snapshot.settings.multilingualConversations, false,
                 'Talk in any language; each character answers in yours.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech and Expressive emotions turn off.'),
                 'Inworld speaks English only as well.'),
@@ -2457,6 +2459,7 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 then return {ok = false, error = ui.t('Choose how often Johnny speaks up.')} end
                     -- Order: 1 Off, 2 Rare, 3 Normal.
                     values.johnnyRemarks = ({'off', 'rare', 'normal'})[change.value]
+                elseif key == 'johnnyHologram' then values.johnnyHologram = change.value
                 elseif key:sub(1, 6) == 'addon:' and convaiAddons and convaiAddons.live then
                     local staged, problem = convaiAddons.stageSetting(key, change.value)
                     if not staged then convaiAddons.discardSettings(); return {ok = false, error = problem} end

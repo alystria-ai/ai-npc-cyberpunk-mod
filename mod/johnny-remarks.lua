@@ -12,6 +12,12 @@
 --
 -- The Relic (step 3): mod/johnny-relic.lua sees an episode of the Relic's sickness on V (a status effect with the gameplay tag
 -- JohnnySickness) come and go through two event observers; its end becomes one 'relic' event, which waits for V to be himself again.
+--
+-- Fights (step 4): no per-hit work at all. The game keeps count of the people V's side downed in quest facts (gmpl_npcs_*_by_player,
+-- scripts/cyberpunk/systems/dataTrackingSystem.script); the fight watch reads four of them when a fight starts and when it ends (the
+-- 0.5 s battle sample's combat flag, ended after FIGHT_QUIET s without it) and a long enough, big enough fight becomes one 'fight'
+-- event. Combat feats such as headshots, multi-kills or quickhack chains would need hooks on every hit: see the cost study
+-- (mod/combat-feats-probe.lua) and docs/JOHNNY_IN_YOUR_HEAD.md.
 local M = {}
 
 -- Rare: at least 15 minutes between remarks and at most 2 an hour. Normal: at least 5 minutes and at most 6 an hour.
@@ -21,7 +27,7 @@ M.QUIET_SECONDS = 10       -- never within 10 s of the last game line the event 
 M.SEND_SECONDS = 60        -- a remark that was sent must be heard within this (the reaction's deadline)
 M.MAX_QUEUE = 6
 -- How long an event waits for its moment (scenes, calls and talk come first): a person until a while after the last line they spoke.
-M.TTL = {person = 180, quest = 240, romance = 300, place = 90, relic = 120}
+M.TTL = {person = 180, quest = 240, romance = 300, place = 90, relic = 120, fight = 150}
 M.RELIC_SECONDS = 900      -- one remark on the Relic's sickness per quarter of an hour at most (the episodes come in runs)
 M.RELIC_SEVERITY = {low = true, medium = true, heavy = true}
 -- The romance facts mod/relationship-state.lua reads, as Johnny would hear them (who, and what moved on).
@@ -83,6 +89,76 @@ end
 function M.relicEvent(event)
     if type(event) ~= 'table' or type(event.severity) ~= 'string' or not M.RELIC_SEVERITY[event.severity] then return nil end
     return 'relic:episode', {severity = event.severity}, M.RELIC_SECONDS
+end
+
+-- The fight watch. The game's counters (quest facts, saved with the game): killed outright, downed and then finished, downed and left
+-- alive, knocked out without a weapon. They count what V's side did (a companion's kill included).
+M.FIGHT_COUNTERS = {'gmpl_npcs_killed_by_player', 'gmpl_npcs_finished_by_player', 'gmpl_npcs_defeated_by_player', 'gmpl_npcs_incapacitated_by_player'}
+M.FIGHT_QUIET = 4          -- a fight is over after this many seconds without combat (the battle state machine's own rule)
+M.FIGHT_MIN_SECONDS = 8    -- a skirmish shorter than this is not worth a word
+M.FIGHT_MIN_DOWN = 3       -- nor one with fewer people down than this
+M.FIGHT_SECONDS = 600      -- one remark on a fight per ten minutes at most
+M.FIGHT_MAX = 99
+
+-- The counters at the start and at the end of a fight ({killed, finished, defeated, incapacitated} as numbers, in M.FIGHT_COUNTERS
+-- order or by those names) -> {seconds, dead, alive, down} or nil: a fight too short or too small, a counter that is not a number, or one
+-- that went down (a save from before the fight was loaded). dead: killed or finished; alive: downed or knocked out and left alive. Pure.
+function M.fightCounts(start, stop, seconds)
+    if type(start) ~= 'table' or type(stop) ~= 'table' or type(seconds) ~= 'number' or seconds ~= seconds then return nil end
+    local delta = {}
+    for _, name in ipairs(M.FIGHT_COUNTERS) do
+        local a, b = start[name], stop[name]
+        if type(a) ~= 'number' or type(b) ~= 'number' or a ~= a or b ~= b or b < a then return nil end
+        delta[name] = b - a
+    end
+    local dead = delta.gmpl_npcs_killed_by_player + delta.gmpl_npcs_finished_by_player
+    local alive = delta.gmpl_npcs_defeated_by_player + delta.gmpl_npcs_incapacitated_by_player
+    seconds = math.floor(seconds)
+    if seconds < M.FIGHT_MIN_SECONDS or dead + alive < M.FIGHT_MIN_DOWN then return nil end
+    return {seconds = math.min(seconds, 3600), dead = math.min(dead, M.FIGHT_MAX), alive = math.min(alive, M.FIGHT_MAX),
+        down = math.min(dead + alive, M.FIGHT_MAX)}
+end
+
+-- The end of a fight (M.fightCounts) -> subject, facts and the cooldown, or nil. Pure.
+function M.fightEvent(event)
+    if type(event) ~= 'table' or type(event.seconds) ~= 'number' or type(event.dead) ~= 'number' or type(event.alive) ~= 'number' then return nil end
+    return 'fight:summary', {seconds = event.seconds, dead = event.dead, alive = event.alive}, M.FIGHT_SECONDS
+end
+
+-- The fight watch's state, fed every 0.5 s battle sample while both settings are on. observe(combat, at, readCounters): combat is V's
+-- combat flag, at is os.clock seconds, readCounters() returns the counters table or nil (called once when a fight starts and once when
+-- it ends). Returns the M.fightCounts event when a fight that counts has ended, else nil. A fight already going when the watch begins
+-- (a save loaded mid-fight) is skipped. Pure given the reader.
+function M.fightTracker()
+    local tracker, state, first = {}, nil, true
+    function tracker:observe(combat, at, readCounters)
+        if type(at) ~= 'number' then return nil end
+        if first then
+            first = false
+            if combat == true then state = {ignored = true, startedAt = at} end
+            return nil
+        end
+        if combat == true then
+            if not state then
+                local ok, counters = pcall(readCounters)
+                state = {startedAt = at, start = ok and type(counters) == 'table' and counters or nil}
+            end
+            state.quietSince = nil
+            state.lastAt = at
+            return nil
+        end
+        if not state then return nil end
+        state.quietSince = state.quietSince or at
+        if at - state.quietSince < M.FIGHT_QUIET then return nil end
+        local fight = state
+        state = nil
+        if fight.ignored or not fight.start then return nil end
+        local ok, counters = pcall(readCounters)
+        if not ok or type(counters) ~= 'table' then return nil end
+        return M.fightCounts(fight.start, counters, (fight.lastAt or fight.startedAt) - fight.startedAt)
+    end
+    function tracker:reset() state, first = nil, true end
+    return tracker
 end
 
 -- The places he speaks up about, by the gamedataDistrict records that put V there (the enum names of tweakDBEnums.script and the parent

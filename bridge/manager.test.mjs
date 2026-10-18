@@ -1762,6 +1762,33 @@ test('Johnny speaks up is Off by default, a three-way select under Conversations
   `);
 });
 
+test('Johnnys hologram is Off by default, a switch under Conversations right after Johnny speaks up, and saved', () => {
+  run(`${mcmFixture}
+    assert(manager.johnnyHologram() == false and manager.snapshot(player).settings.johnnyHologram == false, 'a missing key is off')
+    assert(saved.johnnyHologram == false, 'a new install saves the default Off')
+    assert(invoke('tab:settings').ok)
+    local hologram = assert(row('johnnyHologram'), 'the setting is not offered')
+    assert(hologram.type == 'bool' and hologram.value == false and hologram.defaultValue == false and hologram.label == 'Johnny’s hologram')
+    local conversations, remarksAt, hologramAt, last
+    for _, category in ipairs(loaded.categories) do if category.id == 'conversation-controls' then conversations = category end end
+    for index, item in ipairs(conversations.settings) do
+      if item.id == 'johnnyRemarks' then remarksAt = index end
+      if item.id == 'johnnyHologram' then hologramAt = index end
+      last = item.id
+    end
+    assert(hologramAt == remarksAt + 1, 'right under Johnny speaks up')
+    assert(last == 'holocallLiveImage', 'the rows after it are all still there')
+    assert(registered.applyBatch('manager', {{id = 'johnnyHologram', value = true}}).ok and manager.johnnyHologram() == true and saved.johnnyHologram == true)
+    loaded = registered.loadMod('manager'); assert(row('johnnyHologram').value == true)
+    manager.reset(); manager.configure(api, profiles)
+    assert(manager.johnnyHologram() == true, 'an explicit On survives a reload')
+    assert(not manager.applySettings(player, {johnnyHologram = 'yes'}) and manager.johnnyHologram() == true, 'only a boolean')
+    assert(not manager.applySettings(player, {johnnyHologram = 1}) and manager.johnnyHologram() == true)
+    assert(registered.applyBatch('manager', {{id = 'johnnyHologram', value = false}}).ok and manager.johnnyHologram() == false and saved.johnnyHologram == false)
+    assert(manager.johnnyInHead() == false and manager.johnnyRemarks() == 'off', 'the neighbouring settings are not disturbed')
+  `);
+});
+
 test('the live holocall picture is on by default, offered under Conversations, and an explicit Off is kept', () => {
   run(`${mcmFixture}
     assert(manager.holocallLiveImage() == true and manager.snapshot(player).settings.holocallLiveImage == true)

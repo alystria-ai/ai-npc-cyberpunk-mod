@@ -59,7 +59,7 @@ export function headContext(input) {
 // ---- Johnny speaks up (phase 2): his own unprompted remark, an automatic reaction like a companion's battle line -------------------
 // mod/johnny-remarks.lua sends {kind: 'head', event, facts, expiresAt} with his head field. The facts are plain values the game read
 // (a roster character's name, a journal title, a romance fact's meaning); they are quoted to the model as data, never as instructions.
-const EVENTS = new Set(['person', 'quest', 'romance', 'place', 'relic']);
+const EVENTS = new Set(['person', 'quest', 'romance', 'place', 'relic', 'fight']);
 const ROMANCE = Object.freeze({together: name => `V and ${name} are together now; it has just become a romance in this save.`,
   friends: name => `V and ${name} have just settled on staying friends, not lovers.`,
   declined: name => `V has just turned ${name} down.`,
@@ -102,6 +102,10 @@ export const PLACES = Object.freeze({
 // An episode of the Relic's sickness on V (mod/johnny-relic.lua: a status effect with the gameplay tag JohnnySickness, the breathing camera and
 // the fullscreen distortion), said by how bad the game made it. What he knows is the head field's own: the Relic is killing V.
 export const RELIC_SEVERITY = Object.freeze({low: 'a mild one', medium: 'a bad one', heavy: 'a severe one'});
+// The end of a fight (mod/johnny-remarks.lua fightCounts): how long it lasted and how many went down, from the game's own counters, which
+// count everything V's side did. Small whole numbers only; said with the hedge that allies' kills are in the count.
+const FIGHT_LIMITS = Object.freeze({seconds: 3600, dead: 99, alive: 99});
+const count = (value, max) => Number.isInteger(value) && value >= 0 && value <= max ? value : null;
 const REMARK_WORDS = 25;
 const cleanText = (value, limit) => typeof value === 'string' && value.length <= limit * 4
   ? value.replace(/<[^>]*>/g, '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, limit) || null : null;
@@ -133,7 +137,24 @@ export function parseHeadReaction(value, head, profileKey) {
     if (typeof value.facts.severity !== 'string' || !Object.hasOwn(RELIC_SEVERITY, value.facts.severity)) return null;
     facts.severity = value.facts.severity;
   }
+  if (value.event === 'fight') {
+    for (const [name, max] of Object.entries(FIGHT_LIMITS)) {
+      facts[name] = count(value.facts[name], max);
+      if (facts[name] === null) return null;
+    }
+    if (facts.dead + facts.alive < 1) return null;
+  }
   return {kind: 'head', event: value.event, facts, expiresAt: value.expiresAt, maxWords: REMARK_WORDS};
+}
+
+// A fight is over: about how long, how many went down, and the hedge the game's counters need.
+function fightEvent(facts) {
+  const down = facts.dead + facts.alive;
+  const people = `${down} ${down === 1 ? 'enemy' : 'enemies'}`;
+  const outcome = facts.alive === 0 ? 'all of them dead' : facts.dead === 0 ? 'all of them left alive'
+    : `${facts.dead} of them dead and ${facts.alive} left alive`;
+  return `A fight V was in has just ended. It lasted about ${facts.seconds} seconds and ${people} went down: ${outcome}. `
+    + 'The count may include enemies that V\'s allies took down. It is over now.';
 }
 
 // V has arrived somewhere he knows: the phrase, and his note: the second one when the save has what its rule needs, else the first when
@@ -154,7 +175,8 @@ export function headTrigger(input) {
     : reaction.event === 'quest' ? `V has just ${facts.outcome === 'failed' ? 'failed' : 'finished'} the job ${JSON.stringify(facts.title)}${facts.mine ? ', one of your own' : ''}.`
       : reaction.event === 'place' ? placeEvent(facts.place, facts.alt, head)
         : reaction.event === 'relic' ? `V has just had an attack of the Relic malfunction, ${RELIC_SEVERITY[facts.severity]}: the vision glitching, the body failing for a moment. It is over now.`
-          : ROMANCE[facts.what](JSON.stringify(facts.name));
+          : reaction.event === 'fight' ? fightEvent(facts)
+            : ROMANCE[facts.what](JSON.stringify(facts.name));
   const standing = STANDING[head?.stage] ?? '';
   return 'You are Johnny Silverhand, the engram in V\'s head; nobody but V hears you. This event was not spoken by V. '
     + event + ' ' + (standing ? `Where you and V stand: ${standing} ` : '')

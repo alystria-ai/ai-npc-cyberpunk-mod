@@ -137,7 +137,7 @@ test('a wrong type or an unknown choice in any setting lands on that setting\'s 
     conversationProvider: 7, battleReactions: 'on', lootReactions: [], bodyGestures: 'no', autoConnectNearby: 'yes', holocallLiveImage: 'x',
     gameDialogueContext: 2, decisionLedger: 'y', witnessReceipts: 9, eyeContactHeight: 'high', headFollowStrength: 99,
     voiceProvider: 12, omniSteps: '16', omniReference: 4, archetypeConversations: 'maybe', storyConversations: 3, johnnyInHead: 'x',
-    johnnyRemarks: 5, naturalSpeech: 'x', expressiveEmotions: 'x', followUpInterest: 'x', matureContent: 'x', localModel: 'has space',
+    johnnyRemarks: 5, johnnyHologram: 'x', naturalSpeech: 'x', expressiveEmotions: 'x', followUpInterest: 'x', matureContent: 'x', localModel: 'has space',
     multilingualConversations: 'x', vVoice: 'x', vVoiceEngine: 'elevenlabs', enabledByKey: 'all', relationshipModes: 'friends',
     uiLanguage: 'klingon', keepPreparedVoices: 'always', expressiveEmotionsChosen: 'x', vVoiceChosen: 'x', holocallLiveImageChosen: 'x',
   };
@@ -240,7 +240,7 @@ test('reading the setting of the moment each frame reads the file once, and agai
     report('beforeReads', (readCounts['runtime/settings.json'] or 0) + (readCounts['runtime/settings.json.previous'] or 0))
     for _ = 1, 500 do
       manager.interfaceLanguage(); manager.developerMode(); manager.battleReactions(); manager.lootReactions(); manager.subtitleStyle()
-      manager.naturalSpeech(); manager.expressiveEmotions(); manager.vVoice(); manager.vVoiceEngine(); manager.johnnyInHead(); manager.johnnyRemarks()
+      manager.naturalSpeech(); manager.expressiveEmotions(); manager.vVoice(); manager.vVoiceEngine(); manager.johnnyInHead(); manager.johnnyRemarks(); manager.johnnyHologram()
       manager.autoConnectNearby(); manager.storyConversations(); manager.archetypeConversations()
     end
     report('reads', readCounts['runtime/settings.json'])
