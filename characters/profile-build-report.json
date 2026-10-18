@@ -1940,7 +1940,7 @@
     },
     {
       "key": "bill-mitchell",
-      "words": 566,
+      "words": 556,
       "speakingStyleWords": 146,
       "sampleDialogueWords": 150,
       "voice": "Ethan (Calm Young-Adult American Male)",
@@ -2039,7 +2039,7 @@
     },
     {
       "key": "dennis-cranmer",
-      "words": 498,
+      "words": 497,
       "speakingStyleWords": 119,
       "sampleDialogueWords": 153,
       "voice": "Lucas (Light Middle-Aged American Male)",
@@ -2192,7 +2192,7 @@
     },
     {
       "key": "liam-northom",
-      "words": 538,
+      "words": 539,
       "speakingStyleWords": 157,
       "sampleDialogueWords": 132,
       "voice": "Ethan (Calm Young-Adult American Male)",
@@ -2444,7 +2444,7 @@
     },
     {
       "key": "sandra-dorsett",
-      "words": 643,
+      "words": 641,
       "speakingStyleWords": 194,
       "sampleDialogueWords": 204,
       "voice": "Anna (Expressive Young-Adult American Female)",
