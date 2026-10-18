@@ -69,6 +69,7 @@ import {VendorMemory, vendorMemoryKey} from './vendor-memory.mjs';
 import {PlayerMemoryApi} from './player-memory-api.mjs';
 import {PlayerMemoryControl} from './player-memory-control.mjs';
 import {SupportReportControl} from './support-report.mjs';
+import {SetupCheckControl, cachedBrowserName, cachedGraphicsCards, cachedModManagers, collectSetupCheck, findNestedPacks, readPackPlacement} from './setup-check.mjs';
 import {CharacterOverrides} from './character-overrides.mjs';
 import {CharacterEditor} from './character-editor.mjs';
 import {EditorServer} from './character-editor-server.mjs';
@@ -2860,6 +2861,22 @@ const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
 const supportReport = await SupportReportControl.open({game, runtime, stateDirectory, project,
   secrets: () => [...keys.secrets(), ...mistral.secrets()], knownIds: () => Object.values(relationshipRoutes.providerIds ?? ids),
   bridge: () => ({busy: !!active, microphoneActive: !!mic.current})});
+// Help > Setup check (bridge/setup-check.mjs): codes the game turns into text. The first run, at the end of start-up, reads files only (no
+// process, no connection); a request from the Help page runs it in full. The graphics card, browser and mod managers are looked up once.
+const bridgeStartedAt = Date.now() - Math.round(process.uptime() * 1000);
+const setupCheck = await SetupCheckControl.open({runtime, log: message => console.error('[CyberpunkConvai] ' + message),
+  collect: (request, {light = false} = {}) => collectSetupCheck({game, modRoot: resolve(runtime, '..'), project, stateDirectory, request, light,
+    plugin: resolve(game, 'red4ext/plugins/AiNpcCyberpunkMod'),
+    settings: async () => JSON.parse((await readFile(resolve(runtime, 'settings.json'), 'utf8')).replace(/^\uFEFF/, '')),
+    localAi: () => {
+      const pack = refreshLocalPack(), matureInstalled = maturePackInstalled(), {state, reason} = localServer.status();
+      return {status: localAiStatus(), reason: state === 'failed' ? reason ?? null : null, packInstalled: pack.installed, tiers: pack.tiers,
+        matureOnly: pack.installed && !pack.tiers.standard && !pack.tiers.lite && matureInstalled, ownServer: ownServerListed(), models: maturePackModels};
+    },
+    omniPack: () => detectOmniPack({project, config: omniVoiceConfigs.long}),
+    browser: () => cachedBrowserName(), graphics: () => cachedGraphicsCards(), modManagers: () => cachedModManagers({game}),
+    nestedPacks: () => findNestedPacks({game, modRoot: resolve(runtime, '..'), plugin: resolve(game, 'red4ext/plugins/AiNpcCyberpunkMod')}),
+    placement: () => readPackPlacement({stateDirectory, startedAt: bridgeStartedAt})})});
 // Settings > Edit characters: a local page, served only while it is open (bridge/character-editor-server.mjs).
 const characterEditor = new CharacterEditor({personas: personaBook, overrides: characterOverrides, memory: mistralMemory, route: () => mistral.route});
 const editorControl = await EditorControl.open({server: new EditorServer({editor: characterEditor, log: message => console.error('[Editor] ' + message)}),
@@ -2868,6 +2885,7 @@ const editorControl = await EditorControl.open({server: new EditorServer({editor
 await companionActions.revoke();
 await status('waiting');
 await pollSettings(false);
+void setupCheck.run(null, {light: true}).catch(error => console.error('[CyberpunkConvai] Setup check:', error.message));
 await pollKnowledge();
 void localVoice.start().catch(error => console.error('[CyberpunkConvai] Local voice startup:', error.message));
 // A text route (Mistral, the local AI) opens no Convai connection, so nothing else starts the hidden browser that renders the
@@ -2901,6 +2919,7 @@ function logKnowledgePoll(error) {
 const knowledgeTimer = setInterval(() => { void pollKnowledge().catch(logKnowledgePoll); }, 500);
 const memoryTimer = setInterval(() => { void memoryControl.poll().catch(error => console.error('[CyberpunkConvai] Memory control:', error.message)); }, 500);
 const supportTimer = setInterval(() => { void supportReport.poll().catch(error => console.error('[CyberpunkConvai] Support report:', error.message)); }, 500);
+const setupTimer = setInterval(() => { void setupCheck.poll().catch(error => console.error('[CyberpunkConvai] Setup check:', error.message)); }, 500);
 const paidTierTimer = setInterval(() => { void paidTierControl.poll().catch(error => console.error('[CyberpunkConvai] Paid tier:', error.message)); }, 500);
 // The same polls run a few milliseconds after the game replaces their file (bridge/file-wake.mjs): a typed or spoken turn and a
 // phone message no longer wait half an interval (25 ms for the request, 75 ms for the microphone and the phone) to be seen.
@@ -2926,6 +2945,7 @@ async function shutdown() {
   clearInterval(knowledgeTimer);
   clearInterval(memoryTimer);
   clearInterval(supportTimer); supportReport.close();
+  clearInterval(setupTimer); setupCheck.close();
   clearInterval(paidTierTimer); paidTierControl.close();
   clearInterval(editorTimer); await editorControl.close().catch(() => {});
   clearInterval(timer); clearInterval(micTimer); clearInterval(prefetchTimer); clearInterval(lookaheadTimer); clearInterval(settingsTimer);

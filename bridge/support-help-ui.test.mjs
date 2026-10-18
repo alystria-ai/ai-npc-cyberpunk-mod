@@ -12,6 +12,7 @@ const read = name => readFileSync(new URL(`../mod/${name}`, import.meta.url), 'u
 const managerSource = read('manager.lua'), queueSource = read('manager-party.lua'), mcmSource = read('mcm.lua');
 const voicePreviewSource = read('voice-preview.lua'), fontsSource = read('ui-fonts.lua'), mcmFontsSource = read('mcm-fonts.lua');
 const supportSource = read('support-report.lua'), serviceSource = read('service-status.lua'), editorSource = read('character-editor.lua');
+const setupSource = read('setup-check.lua');
 
 function run(code) {
   const state = lauxlib.luaL_newstate();
@@ -135,13 +136,14 @@ const managerFixture = `
   local function request(value, dt) player.queue[#player.queue + 1] = value; manager.update(player, dt or 0.1) end
 `;
 
-const mcmFixture = (withSupport = true) => `
+const mcmFixture = (withSupport = true, withSetup = false, withMcm = true) => `
   ${managerFixture}
   local originalDofile = dofile
   dofile = function(path)
     if path == 'voice-preview.lua' then return (function() ${voicePreviewSource} end)() end
     if path == 'support-report.lua' then if not ${withSupport} then error('module absent') end return (function() ${supportSource} end)() end
     if path == 'service-status.lua' then return (function() ${serviceSource} end)() end
+    if path == 'setup-check.lua' then if not ${withSetup} then error('module absent') end return (function() ${setupSource} end)() end
     if path == 'character-editor.lua' then return (function() ${editorSource} end)() end
     if path == 'ui-fonts.lua' then return (function() ${fontsSource} end)() end
     if path == 'mcm-fonts.lua' then return (function() ${mcmFontsSource} end)() end
@@ -160,7 +162,7 @@ const mcmFixture = (withSupport = true) => `
   nativeApi.reloadMod = function()
     reloads = reloads + 1; loaded = registered.loadMod('manager'); return loaded
   end
-  GetMod = function(name) assert(name == 'ModConfigurationMenuAPI'); return nativeApi end
+  GetMod = function(name) assert(name == 'ModConfigurationMenuAPI'); return ${withMcm} and nativeApi or nil end
   Game = {GetPlayer = function() return player end}
   Observe = function(class, method, callback) handlers[method] = callback end
   ObserveAfter = Observe
@@ -173,7 +175,7 @@ const mcmFixture = (withSupport = true) => `
   mcm.configure(manager, api, (function() ${queueSource} end)(), entryFactory)
   mcm.install()
   activeMod = 'cyberpunk-convai:manager'
-  loaded = registered.loadMod('manager')
+  if ${withMcm} then loaded = registered.loadMod('manager') end
   local function row(id)
     for _, category in ipairs(loaded.categories) do
       for _, setting in ipairs(category.settings) do if setting.id == id then return setting end end
@@ -189,8 +191,8 @@ const mcmFixture = (withSupport = true) => `
   end
 `;
 
-const helpFixture = (withSupport = true) => `
-  ${mcmFixture(withSupport)}
+const helpFixture = (withSupport = true, withSetup = false, withMcm = true) => `
+  ${mcmFixture(withSupport, withSetup, withMcm)}
   local clockNow, popups = 1800000000, {}
   local cpu = 0
   os.time = function() return clockNow end
@@ -472,4 +474,155 @@ test('with the service up the Copy row keeps its ordinary help, and shows the pa
   pump(false, 60)
   assert(row('help:copy').description:find('needs the conversation service, which is not running', 1, true), row('help:copy').description)
   assert(row('help:copy').description:match('is at: \\n(.*)$'):gsub('\\n', '') == path)
+`));
+
+// ---- Help > Setup check (docs/MANAGER_UI.md, mod/setup-check.lua): the first section of the page, over the real mcm.lua
+// The game as it is with everything installed; a test changes one thing of it.
+const setupWorld = `
+  Codeware = {Version = function() return '1.20.5' end}
+  TweakXL = {Version = function() return '1.11.4' end}
+  GetVersion = function() return '1.37.1' end
+  function player:ConvaiPhoneIsOpen() return false end
+  for _, name in ipairs({'world-knowledge.json', 'manager-characters.json', 'conversation-characters.json', 'phone-contacts.json', 'locales/de.lua'}) do files[name] = 'x' end
+  Game.GetSystemRequestsHandler = function() return {GetGameVersion = function() return '2.31' end,
+    IsPreGame = function() return false end, IsGamePaused = function() return false end} end
+  local consoleLines = {}
+  print = function(...) consoleLines[#consoleLines + 1] = table.concat({...}, ' ') end
+  local function serviceUp() jsonFile('runtime/knowledge-status.json', {updated = os.time() * 1000.0}) end
+  serviceUp()
+  local function setupRow(id) return row('setup:' .. id) end
+  local function consoleHas(text)
+    for _, line in ipairs(consoleLines) do if line:find(text, 1, true) then return true end end
+    return false
+  end
+  local function requestWrites()
+    local count = 0
+    for _, write in ipairs(fileWrites) do if write.path == 'runtime/setup-check-request.json' then count = count + 1 end end
+    return count
+  end
+`;
+
+test('the Help page opens with the setup check: the service row, one line per check, and a count in the description', () => run(`${helpFixture(true, true)}
+  ${setupWorld}
+  assert(invoke('tab:settings').ok and invoke('help').ok)
+  local first = loaded.categories[1]
+  assert(first.id == 'help-setup' and first.name == 'Setup check', first.id)
+  assert(first.description == 'No problem found. Select a line to see what was checked.', first.description)
+  assert(first.settings[1].id == 'help-service', 'the Conversation service row first (Back is the bottom-bar button)')
+  assert(mcm.inspect().back.id == 'help:back' and countBack() == 0, 'still one parent Back')
+  assert(row('help-service').value == 'Running')
+  for _, id in ipairs({'files', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'tweakxl', 'audioware', 'mcm'}) do
+    local item = setupRow(id)
+    assert(item and item.value == 'OK' and item.type == 'string' and item.capabilities.write == false and item.description ~= '', id .. ' ' .. tostring(item and item.description))
+  end
+  assert(setupRow('codeware').label == 'Codeware' and setupRow('codeware').description == 'Version 1.20.5.')
+  assert(setupRow('game').label == 'Game version' and setupRow('game').description == 'Version 2.31.')
+  -- the existing groups follow, unchanged
+  assert(category('help-trouble') and category('help-report') and category('help-logs') and row('help-steps') and row('help:generate'))
+  assert(category('help-trouble').settings[1].id == 'help-steps')
+`));
+
+test('a missing framework, a missing file and a service that never started are Problems with their fix, counted in the description', () => run(`${helpFixture(true, true)}
+  ${setupWorld}
+  TweakXL = nil
+  files['phone-contacts.json'] = nil
+  files['runtime/knowledge-status.json'] = nil
+  assert(invoke('tab:settings').ok and invoke('help').ok)
+  assert(row('help-service').value == 'Not running' and row('help-service').description:find('Runtime zip straight into the Cyberpunk 2077 folder', 1, true), row('help-service').description)
+  assert(setupRow('tweakxl').value == 'Problem' and setupRow('tweakxl').description == 'TweakXL is missing. Install it from Nexus Mods, then restart the game.')
+  assert(setupRow('files').value == 'Problem' and setupRow('files').description:find('Missing: phone-contacts.json.', 1, true))
+  assert(setupRow('codeware').value == 'OK')
+  assert(category('help-setup').description == 'Problems found: 3. Select a line marked Problem to read what to do.', category('help-setup').description)
+`));
+
+test('opening the page runs the check again and asks a running service once; the page redraws when its answer arrives', () => run(`${helpFixture(true, true)}
+  ${setupWorld}
+  assert(invoke('tab:settings').ok)
+  pump(false, 2)
+  assert(not files['runtime/setup-check-request.json'], 'nothing is asked while the page is closed')
+  serviceUp()
+  assert(invoke('help').ok)
+  assert(not setupRow('browser'), 'no answer of the service yet')
+  assert(requestWrites() == 0, 'not inside the menu callback')
+  pump(false, 1)
+  local request = jsonFixtures[files['runtime/setup-check-request.json']]
+  assert(request and request.version == 1 and type(request.id) == 'string', 'the request is written from the next update')
+  assert(requestWrites() == 1)
+  jsonFile('runtime/setup-check.json', {version = 1, updated = os.time() * 1000.0, request = request.id, checks = {
+    {id = 'browser', state = 'problem', code = 'missing'},
+    {id = 'gpu', state = 'ok', code = 'found', name = 'NVIDIA GeForce RTX 4070', memoryMiB = 12282},
+    {id = 'internet', state = 'problem', code = 'blocked', service = 'convai', host = 'api.convai.com'}}})
+  serviceUp()
+  pump(false, 6)
+  assert(setupRow('browser') and setupRow('browser').value == 'Problem' and setupRow('browser').description:find('Chromium browser', 1, true))
+  assert(setupRow('gpu').label == 'Graphics card' and setupRow('gpu').description == 'NVIDIA GeForce RTX 4070, 12 GB of video memory.')
+  assert(setupRow('internet').description:find('Allow Node.js through your firewall', 1, true))
+  assert(category('help-setup').description == 'Problems found: 2. Select a line marked Problem to read what to do.', category('help-setup').description)
+  -- one request per opening: staying on the page and pumping asks nothing more (the first-load check asks once, twelve seconds in)
+  serviceUp()
+  pump(false, 10)
+  assert(requestWrites() == 1, requestWrites())
+`));
+
+test('without the setup module the Help page keeps its groups and shows only the Conversation service row first', () => run(`${helpFixture()}
+  assert(invoke('tab:settings').ok and invoke('help').ok)
+  assert(loaded.categories[1].id == 'help-setup' and #loaded.categories[1].settings == 1 and loaded.categories[1].description == '')
+  assert(row('help-service') and row('help-steps') and not row('setup:files') and not convaiSetupCheck)
+`));
+
+test('the first load: a missing framework is announced once in gameplay, after twelve seconds', () => run(`${helpFixture(true, true)}
+  ${setupWorld}
+  TweakXL = nil
+  files['runtime/knowledge-status.json'] = nil
+  pump(true, 10)
+  assert(#popups == 0, 'twelve seconds after the first world have not passed yet')
+  pump(true, 20)
+  assert(#popups == 1 and popups[1] == 'TweakXL is missing. Install it from Nexus Mods, then restart the game.', popups[1] or 'no popup')
+  pump(true, 60)
+  assert(#popups == 1, 'once per game session')
+  assert(consoleHas('TweakXL is missing'), 'the notice is logged too')
+  assert(not consoleHas('Mod Configuration Menu is missing'), 'Mod Configuration Menu is there, so its line is not printed')
+`));
+
+test('without Mod Configuration Menu the CET console, probe.log and a game notification say so', () => run(`${helpFixture(true, true, false)}
+  ${setupWorld}
+  assert(not registered and not loaded, 'the manager is not registered without Mod Configuration Menu')
+  -- probe.log is appended to; the harness's files keep only a whole write, so this one is recorded line by line
+  local probe, baseOpen = {}, io.open
+  io.open = function(path, mode)
+    if mode == 'a' and path == 'runtime/probe.log' then
+      return {write = function(self, ...) for index = 1, select('#', ...) do probe[#probe + 1] = tostring((select(index, ...))) end return self end, close = function() return true end}
+    end
+    return baseOpen(path, mode)
+  end
+  files['runtime/knowledge-status.json'] = nil
+  pump(true, 30)
+  assert(consoleHas('AI NPC Cyberpunk Mod: Mod Configuration Menu is missing or too old, so the Companion Manager cannot open. Install Mod Configuration Menu 0.10.3 or newer from Nexus Mods, then restart the game.'), table.concat(consoleLines, ' | '))
+  local lines = 0
+  for _, line in ipairs(consoleLines) do if line:find('Mod Configuration Menu is missing or too old', 1, true) then lines = lines + 1 end end
+  assert(lines == 1, 'one clear line, not one per update')
+  assert(table.concat(probe):find('Mod Configuration Menu is missing or too old', 1, true), 'probe.log has the line')
+  assert(#popups == 1 and popups[1] == 'Install Mod Configuration Menu from Nexus Mods to open the Companion Manager.', popups[1] or 'no popup')
+`));
+
+test('without this mod’s scripts the notice is written to the warning line itself, once, when gameplay is on screen', () => run(`${helpFixture(true, true)}
+  ${setupWorld}
+  player.ConvaiPhoneIsOpen = nil
+  player.ConvaiPhoneFeedback = nil
+  local written, menu = {}, true
+  local board = {SetVariant = function(_, id, value) written[#written + 1] = value end, GetBool = function() return menu end}
+  Game.GetAllBlackboardDefs = function() return {UI_Notifications = {WarningMessage = 'warning'}, UI_System = {IsInMenu = 'menu'}} end
+  Game.GetBlackboardSystem = function() return {Get = function() return board end} end
+  SimpleScreenMessage = {new = function() return {} end}
+  Enum = {new = function(name, value) return name .. '.' .. value end}
+  ToVariant = function(value) return value end
+  files['runtime/knowledge-status.json'] = nil
+  pump(false, 30)
+  assert(#written == 0 and #popups == 0, 'a menu is open: nothing is shown yet')
+  menu = false
+  pump(false, 2)
+  assert(#written == 1 and #popups == 0, 'written to the warning line, not through this mod’s scripts')
+  assert(written[1].message == 'This mod’s scripts did not load. Install redscript, then restart the game.' and written[1].isShown == true and written[1].duration == 9, written[1].message)
+  pump(false, 60)
+  assert(#written == 1, 'once')
 `));

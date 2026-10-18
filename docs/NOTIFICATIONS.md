@@ -52,6 +52,14 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 | `party-dismissed` | Developer | {name} dismissed. | A dismissal finished | none |
 | `service-down` | Player | The conversation service needs your Convai API key. Add it, then restart the game. | Once per supervisor failure, in gameplay | once |
 | `service-down` | Player | The conversation service could not start. Restart the game, or see Help in Settings. | Once per supervisor failure, in gameplay | once |
+| `setup-problem` | Player | {name} is missing. Install it from Nexus Mods, then restart the game. ({name}: RED4ext, Codeware, TweakXL or Audioware) | The setup check (`mod/setup-check.lua`) found a critical problem 12 s after the first world, once per game session; only the first problem in its fixed order, written to the warning line without this mod’s scripts, 9 s | once |
+| `setup-problem` | Player | This mod’s scripts did not load. Install redscript, then restart the game. | Same as the first `setup-problem` row | once |
+| `setup-problem` | Player | Install Mod Configuration Menu from Nexus Mods to open the Companion Manager. | Same as the first `setup-problem` row | once |
+| `setup-problem` | Player | Some mod files are missing. Extract the Scripts zip again. See Help in Settings. | Same as the first `setup-problem` row | once |
+| `setup-problem` | Player | The conversation service did not start. Is the Runtime installed? See Help in Settings. | Same as the first `setup-problem` row | once |
+| `setup-problem` | Player | The Scripts and Runtime versions do not match. Install the same version of both. | Same as the first `setup-problem` row | once |
+| `setup-problem` | Player | A pack is one folder too deep. See Help in Settings. | Same as the first `setup-problem` row | once |
+| `setup-problem` | Player | The conversation service cannot reach the internet. See Help in Settings. | Same as the first `setup-problem` row | once |
 | `service-blocked` | Player | The conversation service is starting. Try again in a few seconds. | The player starts a conversation while the service is starting | 15 |
 | `service-blocked` | Player | The conversation service restarted. Please try again. | The service restarted after the request was sent | 15 |
 | `service-blocked` | Player | The conversation service is not running. Restart the game to start it again. | The service is stopped (and the two failure texts above) | 15 |
@@ -128,10 +136,10 @@ opens (about 13 s with the intro and outro), and its roughly 96 letters take abo
 the full second sentence, with "free" in it. Longer explanations belong in Settings (the help of the rows) or Phone Chat, which has room.
 
 How long. `PlayerPuppet:SetWarningMessage` always asks for 5 s, counted by the game after the intro (about 2.7 s) and followed by an outro of
-about 0.9 s, so an ordinary notice is readable for about 6 s. A notice listed in `M.showS` (`mod/notices.lua`; today only `daily-limit`, 9 s,
+about 0.9 s, so an ordinary notice is readable for about 6 s. A notice listed in `M.showS` (`mod/notices.lua`; today `daily-limit` and `setup-problem`, 9 s each,
 about 10 s readable and 13 s with the intro and outro) is written once to the same blackboard line with that `duration` (`M.screen.timed`),
 the way the loading notice is. If that write fails it falls back to the ordinary five-second notice. While it is up, the loading notice does
-not cover it (it waits the duration plus the intro and outro, `M.lastSentWait`, instead of 3 s). No other notice's duration changed.
+not cover it (it waits the duration plus the intro and outro, `M.lastSentWait`, instead of 3 s). No other notice's duration changed. The setup notice is one short paragraph of at most two lines in every language (`bridge/setup-notice-fit.test.mjs`, which shares its measure, `bridge/notice-fit.mjs`, with the daily-limit test).
 
 ## Loading notices
 

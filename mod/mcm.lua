@@ -90,6 +90,9 @@ local CONTENT_FONT_SIZE = 22
 -- manager works without it, and a load failure only hides the Help entry.
 local support, supportSignature
 local supportLoaded, supportFactory = pcall(dofile, 'support-report.lua')
+-- Setup check (mod/setup-check.lua): the first section of the Help page and the first-load notice. Optional too; read through its
+-- global convaiSetupCheck, so no function here gains an upvalue (LuaJIT limits them).
+pcall(dofile, 'setup-check.lua')
 -- Edit characters: opens the character editor page in the player's browser. Optional like Help: without it the row is not shown.
 local editor
 local editorLoaded, editorFactory = pcall(dofile, 'character-editor.lua')
@@ -1818,7 +1821,10 @@ local function pageSignature(snapshot)
         add(tostring(#snapshot.models))
         add(tostring(snapshot.scan.finished))
     end
-    if support and view == 'help' then add('help:' .. support.signature() .. '|' .. support.serviceState()) end
+    if support and view == 'help' then
+        add('help:' .. support.signature() .. '|' .. support.serviceState())
+        if convaiSetupCheck then add('setup:' .. convaiSetupCheck.signature()) end
+    end
     if paidTier and view == 'paid-tier' then
         local own = snapshot.ownKey
         add(table.concat({'paid', tostring(own.saved), own.tail or '', own.result or '', paidTier.signature()}, '|'))
@@ -2048,15 +2054,38 @@ local function schema()
                 lastDescription = lastDescription .. '\n' .. ui.t('This is a short report: the conversation service was not available to build the full one.')
             end
         end
-        rows[#rows + 1] = action('help:back', 'Back to settings', 'Back', 'Return to conversation settings.',
+        -- Setup check first (mod/setup-check.lua): the Conversation service row, then one line per check (OK, Problem, Note) whose
+        -- help is the one-line fix. Without the module only the service row is shown, as before.
+        local setup, setupRows = convaiSetupCheck, {}
+        setupRows[#setupRows + 1] = action('help:back', 'Back to settings', 'Back', 'Return to conversation settings.',
             function(context) return navigate('settings', context) end)
-        rows[#rows + 1] = readonly('help-steps', 'What to do', 'Create a report',
-            'If a character stops answering, voices stop or an error appears: choose Generate report and send the file it names to the developer, with a short note about what you were doing.\n\nThe logs listed below show what went wrong.')
-        -- No Edge or Chrome for the hidden conversation page: the row says so, and its help says what to install.
+        -- No Edge or Chrome for the hidden conversation page: the row says so, and its help says what to install. A service that never
+        -- started, or failed for a reason the setup check knows, gets the setup check's fix instead.
+        local serviceValue = support.serviceLabel()
         local serviceHelp = support.serviceFault() == 'browser'
             and ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, then restart the game.')
             or ui.t('The conversation service runs beside the game. If it is not running, restart the game. Its logs are listed below.')
-        rows[#rows + 1] = readonly('help-service', 'Conversation service', support.serviceLabel(), serviceHelp, {value = true, description = true})
+        local setupLines, summary = {}, ''
+        if setup then
+            local linesOk, lines = pcall(setup.lines)
+            if linesOk and type(lines) == 'table' then setupLines = lines end
+            local serviceOk, service = pcall(setup.serviceLine)
+            if serviceOk and type(service) == 'table' then serviceValue, serviceHelp = service.value, service.description end
+            local countOk, problems = pcall(setup.problemCount)
+            if countOk and type(problems) == 'number' then
+                summary = problems == 0 and ui.t('No problem found. Select a line to see what was checked.')
+                    or ui.t('Problems found: {count}. Select a line marked Problem to read what to do.', {count = problems})
+            end
+        end
+        setupRows[#setupRows + 1] = readonly('help-service', 'Conversation service', serviceValue, serviceHelp, {value = true, description = true})
+        for _, item in ipairs(setupLines) do
+            setupRows[#setupRows + 1] = readonly('setup:' .. item.id, item.label, item.value, item.description, {label = true, value = true, description = true})
+        end
+        local setupCategory = category('help-setup', 'Setup check', setupRows)
+        setupCategory.description = summary   -- already translated
+        categories[#categories + 1] = setupCategory
+        rows[#rows + 1] = readonly('help-steps', 'What to do', 'Create a report',
+            'If a character stops answering, voices stop or an error appears: choose Generate report and send the file it names to the developer, with a short note about what you were doing.\n\nThe logs listed below show what went wrong.')
         categories[#categories + 1] = category('help-trouble', 'If something goes wrong', rows)
         categories[#categories + 1] = category('help-report', 'Report for the developer', {
             action('help:generate', 'Generate report', 'Create',
@@ -2242,7 +2271,11 @@ local function schema()
             categories[#categories + 1] = category('help', 'Help', {
                 action('help', 'Help and support', 'Open',
                     'Find the log files and create a report to send to the developer if something goes wrong.',
-                    function(context) return navigate('help', context) end),
+                    function(context)
+                        -- The setup check runs again from the next slow update (never inside this menu callback).
+                        if convaiSetupCheck then pcall(convaiSetupCheck.refresh) end
+                        return navigate('help', context)
+                    end),
             })
         end
     end
@@ -2869,6 +2902,12 @@ function M.slowUpdate(currentPlayer, worldReady)
         log(paidNotice.text)
         messages[#messages + 1] = paidNotice
         paidNotice = nil
+    end
+    -- Setup check (mod/setup-check.lua): one notice at the first load when something critical is wrong (with or without Mod
+    -- Configuration Menu), and the Help page's re-check. A few comparisons until something is due.
+    if convaiSetupCheck then
+        local checked, setupNotice = pcall(convaiSetupCheck.tick, worldReady == true, currentPlayer ~= nil)
+        if checked and setupNotice then log(setupNotice); messages[#messages + 1] = {id = 'setup-problem', text = setupNotice} end
     end
     if worldReady then
         -- A voice that could not run is announced once, in gameplay.

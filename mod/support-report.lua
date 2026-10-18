@@ -467,6 +467,12 @@ function M.new(options)
         local okVersion, cet = pcall(function() return GetVersion and GetVersion() or nil end)
         out[#out + 1] = 'cet: ' .. tostring(okVersion and cet or 'unknown')
         out[#out + 1] = 'interface language: ' .. tostring(ui.current and ui.current() or 'unknown')
+        -- The setup check (mod/setup-check.lua): every game-side check, and the service's own checks when it answered this session.
+        section(out, 'setup check')
+        local setupOk, setupLines = pcall(function() return convaiSetupCheck and convaiSetupCheck.reportLines() or nil end)
+        if setupOk and type(setupLines) == 'table' then
+            for _, line in ipairs(setupLines) do out[#out + 1] = M.redactLine(tostring(line)) end
+        else out[#out + 1] = 'not available' end
         section(out, 'service status')
         out[#out + 1] = 'state: ' .. self.serviceState()
         for _, name in ipairs({'bridge-service', 'bridge-status', 'knowledge-status', 'local-voice-state', 'party-connection-state'}) do
@@ -556,7 +562,9 @@ function M.new(options)
             local payload = {version = 1, id = id, issuedAt = now() * 1000,
                 lua = {cetVersion = (select(2, pcall(function() return GetVersion and GetVersion() or nil end))),
                     language = ui.current and ui.current() or nil, view = 'help',
-                    developerMode = options.developerMode and options.developerMode() or nil, party = sanitizeParty()}}
+                    developerMode = options.developerMode and options.developerMode() or nil, party = sanitizeParty(),
+                    -- The game-side setup checks (mod/setup-check.lua), which the service cannot see.
+                    setup = (select(2, pcall(function() return convaiSetupCheck and convaiSetupCheck.summary() or nil end)))}}
             local encoded = pcall(function()
                 local file = io.open(REQUEST, 'wb')
                 if not file then error('no file') end

@@ -14,7 +14,7 @@ import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {installLayout, prepareState, serviceEnvironment} from './prepare-state.mjs';
 import {assembleParts} from './assemble-parts.mjs';
-import {placeMisplacedPacks} from './place-packs.mjs';
+import {placeMisplacedPacks, recordPlacement} from './place-packs.mjs';
 import {adoptLegacyInstall, cleanupLegacyInstall} from './migrate-legacy.mjs';
 import {dataHomeFor, moveGameFolderState} from './state-home.mjs';
 
@@ -90,8 +90,12 @@ try {
   // Optional pack files extracted one folder too deep (a wrapper folder named after the zip) are moved into place first, so the pack
   // checks below and the bridge find them (packaging/runtime/place-packs.mjs). A few stat calls when there is nothing to fix; a
   // problem is logged and never stops the service.
-  try { await placeMisplacedPacks({layout, log}); }
-  catch (error) { log(`Checking for misplaced pack files failed: ${error?.stack || error}`); }
+  // What it did is kept in <state>/pack-placement.json for the setup check on the Help page; failing to write that never stops the service.
+  try {
+    const placed = await placeMisplacedPacks({layout, log});
+    try { await recordPlacement({state: layout.state, report: placed}); }
+    catch (error) { log(`Recording the pack placement failed: ${error?.message || error}`); }
+  } catch (error) { log(`Checking for misplaced pack files failed: ${error?.stack || error}`); }
   prepared = await prepareState(layout, {log});
   if (prepared.omni) await assembleParts(layout.omni, {log});
 } catch (error) {
