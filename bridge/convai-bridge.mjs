@@ -49,6 +49,7 @@ import {createReferencePreparer} from './voxtral-reference.mjs';
 import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute} from './voice-routing-log.mjs';
 import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
+import {hasSpeechTags, parseTagged} from './natural-speech.mjs';
 import {FollowUp} from './follow-up.mjs';
 import {VVoice, loadVVoiceReferences, extraVoices} from './v-voice.mjs';
 import {MatureContent} from './mature-content.mjs';
@@ -109,6 +110,7 @@ import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-captu
 import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, warmConnection} from './mistral-client.mjs';
 import {TurnClock, withClock, markStage} from './turn-clock.mjs';
 import {AddonHost, LOCAL_REMARK_GAP_S, fixedProvider, rosterLookup, sharedMemory} from './addons.mjs';
+import {parseScriptedLine, pcmFromWav, preparedVoice, engineVoice} from './scripted-line.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
@@ -1464,7 +1466,7 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
       // turns (runAddonTurn). Throwing here for the missing receipt stopped the voice stream the moment the text was complete,
       // which cut every add-on line off in the middle (probe.log 2026-10-14: "Conversation receipt owner changed" after each
       // Delamain line). Such a turn only has to still be current.
-      if (!receiptPrepared && input.addon) {
+      if (!receiptPrepared && (input.addon || input.scripted)) {
         if (!await current()) throw Error('Conversation owner changed');
         return;
       }
@@ -2258,6 +2260,66 @@ async function runAddonTurn(request, input, profile, current, clock, {userText =
   }
 }
 
+// A scripted line (development only; bridge/scripted-line.mjs, mod/face-test.lua `speak-line`): the companion speaks an EXACT line through the
+// real reply pipeline with the language model skipped. The line's tags drive the face as in a model reply; its audio is a prepared WAV (the
+// lip sync and face timeline are analysed from that audio by the Pocket route's own analysis) or a live synthesis by a named engine. No
+// knowledge route, no Convai or local memory, no V line, no history: it is a performance, not a conversation turn. It is refused unless
+// Developer mode is on in settings.json, and it never plays in a test.
+async function runScriptedTurn(request, input, profile, current, clock) {
+  const signal = request.controller.signal;
+  const refuse = (error, errorCode) => atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
+    error, errorCode}), {signal, isCurrent: current, isCurrentSync: current.sync});
+  if (!developerMode) { console.error('[Scripted] ignored: Developer mode is off'); await refuse('Scripted lines need Developer mode.', 'scripted-dev-only'); return; }
+  try {
+    const line = parseScriptedLine(await readFile(input.scripted.file, 'utf8'));
+    let voice, source;
+    if (line.audio) { voice = preparedVoice(pcmFromWav(await readFile(line.audio))); source = 'prepared audio'; }
+    else { voice = engineVoice(line.engine, localVoice); source = line.engine ?? 'configured voice'; }
+    // The text as a model reply would arrive: tags removed from the words, the feelings kept as marks at their offsets, the sounds as marks.
+    const parsed = hasSpeechTags(line.text) ? parseTagged(line.text) : null;
+    const text = parsed?.display || line.text;
+    const result = {text, transport: 'realtime', sessionID: realtimeSessions.get(sessionKey(input)), timing: {scripted: true},
+      ...(parsed?.marks.length ? {emotionMarks: parsed.marks} : {}), ...(parsed?.sounds.length ? {voiceMarks: parsed.sounds} : {})};
+    if (!(await readSpeechStateCached()).continuousAvailable) throw Error('the game has not advertised continuous playback');
+    throwIfCancelled(signal);
+    // The face's plan from the marks (no player line, no Convai label), exactly as synthesizeReplyBody plans a Pocket reply.
+    const written = result.emotionMarks;
+    const plan = emotionSelection.plan({player: '', reply: text, profile: input.profileKey, convai: undefined, marks: written, breaks: []});
+    const cue = plan ? (plan.summary?.basis === 'calm' ? undefined : planSignal(plan)) : undefined;
+    const planned = {...result, ...(cue ? {expressionSignal: cue} : {}), ...(plan ? {expressionPlan: plan} : {})};
+    emotionSelection.remember(input.profileKey, plan);
+    clock.mark('admitted');
+    note(input, {receivedAt: request.receivedAt, preparation: {mode: 'scripted'}});
+    console.error(`[Scripted] profile=${input.profileKey} source=${source} chars=${text.length} marks=${result.emotionMarks?.length ?? 0} sounds=${result.voiceMarks?.length ?? 0}`);
+    const speech = continuousSpeech(input, profile, current, signal, undefined, true, written, {player: '', late: {signal: undefined, settled: true, startedAt: Date.now()}});
+    const spoken = await deliverPocketSpeech({input, profile, voiceKey: voiceKeyFor(input), result: planned, current, signal, voice, host: realtime, speech,
+      phoneAnalysis: localVoice.phoneAnalysis, jaliFace, onAnalysis: timing => measure(input, {localLipAnalysis: timing})});
+    if (spoken.audioError) console.error(`[Scripted] ${spoken.audioError}`);
+    if (!await current()) return;
+    await publishScripted(input, profile, spoken, current, signal);
+  } catch (error) {
+    throwIfCancelled(signal);
+    console.error('[Scripted] failed:', String(error?.message ?? error).slice(0, 300));
+    await refuse(`The scripted line failed: ${String(error?.message ?? error).slice(0, 160)}`, 'scripted-failed').catch(() => {});
+  }
+}
+// What publishResult does for a continuous reply, without its conversation bookkeeping (no session id, prefetch, connection or language
+// observation, follow-up record or gear log): a scripted line must leave the character's real conversation untouched.
+async function publishScripted(input, profile, result, current, signal) {
+  if (!await current()) return false;
+  if (result.continuous) {
+    if (!result.liveDelivery?.published || !result.liveDelivery.ended) throw Error('Continuous speech did not finish');
+    await measure(input, {transport: 'scripted', timing: result.timing,
+      stream: {id: result.liveDelivery.id, mode: 'pocket-continuous', complete: true}, continuousPlaybackCompleteAt: Date.now()});
+    await status('ready', profile.name);
+    return true;
+  }
+  const committed = await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
+    profile: profile.key, text: result.text, audioError: result.audioError, updated: Date.now()}), {signal, isCurrent: current, isCurrentSync: current.sync});
+  if (committed) { markPublished(input.requestId); await status('ready', profile.name); }
+  return committed;
+}
+
 async function runInput(request, prepared, clock) {
   let input = request.input;
   const {controller} = request;
@@ -2299,6 +2361,8 @@ async function runInput(request, prepared, clock) {
         error: `${input.name} does not have a conversation profile configured yet.`}), {signal: controller.signal, isCurrent: current, isCurrentSync: current.sync});
       return;
     }
+    // Development only: an exact prepared line instead of a model reply (runScriptedTurn). Never has a knowledge route or memory.
+    if (input.scripted && profile && ids[profile.key]) { await runScriptedTurn(request, input, profile, current, clock); return; }
     // V's voice for typed lines (docs/V_VOICE.md) starts here, the moment the turn is known to be for a real companion: it needs only the typed
     // text, so its voice request goes out beside everything below (knowledge, memory admission, the transport hand-over, the model request)
     // instead of after them. It is a request of its own on its own renderer page, so it never stands in front of the reply: the reply's
@@ -2571,6 +2635,8 @@ if (initial) {
 const controlPath = resolve(stateDirectory, 'bridge-control.json');
 let controlsObserved = await readFile(controlPath, 'utf8').catch(() => '');
 let settingsPolling = false, lastVoiceHeartbeat = 0;
+// Developer mode (runtime/settings.json, written by the game's manager): the only switch a scripted line (bridge/scripted-line.mjs) obeys.
+let developerMode = false;
 const voicePreview = new VoicePreviewLease();
 // Lip sync delay (Bluetooth), bridge/audio-delay.mjs. The resolved value goes to
 // every browser renderer through its control and to the game (Omni/Audioware
@@ -2739,7 +2805,7 @@ async function pollSettings(checkShutdown = true) {
         settings = {...settings, multilingualConversations: false, ...(settings.voiceProvider === 'convai' ? {voiceProvider: 'pocket'} : {})};
       }
     }
-    if (settings) { audioDelaySetting = settingDelay(settings); await applyAudioDelay(); }
+    if (settings) { audioDelaySetting = settingDelay(settings); await applyAudioDelay(); developerMode = settings.developerMode === true; }
     // Dialogue level match (docs/DIALOGUE_LEVEL.md): makeup gain for every voice.
     if (updateDialogueLevel(await readFile(resolve(runtime, 'dialogue-level.json'), 'utf8').catch(() => '')))
       console.error(`Dialogue level: ${JSON.stringify(dialogueLevel())}`);

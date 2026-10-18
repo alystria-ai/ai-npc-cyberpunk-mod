@@ -2199,9 +2199,12 @@ end
 -- a present character exactly as the composer's submission does (the same context, sendRequest, claimPrivateReply and
 -- bridge route), so a scripted conversation exercises the real reply path (speech, face, captions). It runs once per
 -- request file, never per frame. No native composer window is opened and nothing is typed.
-speech.devSay = function(player, npc, text)
+-- `scripted` ({file = <json path>}, from `speak-line`, bridge/scripted-line.mjs) makes the bridge speak the exact line in that file instead of
+-- asking a model: the request is otherwise identical, so the reply reaches the game by the same speech, face and subtitle path.
+speech.devSay = function(player, npc, text, scripted)
     if not manager.developerMode() then return false, 'developer mode is off' end
     if type(text) ~= 'string' or #text == 0 or #text > 400 then return false, 'text must be 1 to 400 characters' end
+    if scripted ~= nil and (type(scripted) ~= 'table' or type(scripted.file) ~= 'string') then return false, 'bad scripted line' end
     local key, name, bodyType = profileIdentity(npc)
     if not key or not supportedProfiles[key] then return false, 'no conversation profile for ' .. tostring(name) end
     local identity = tostring(npc:GetEntityID().hash)
@@ -2220,6 +2223,7 @@ speech.devSay = function(player, npc, text)
     context.requestId = tostring(os.time()) .. '-' .. tostring(context.generation) .. '-' .. context.entity
     context.text = text
     context.sentAt = os.time()
+    if scripted then context.scripted = {file = scripted.file} end
     local sent = sendRequest(context)
     log('Native input captured (scripted): generation=' .. context.generation .. ' bytes=' .. #text .. ' sent=' .. tostring(sent))
     return sent == true, sent and context.requestId or 'the request was not sent'

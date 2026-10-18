@@ -69,6 +69,7 @@ function parseRequest(raw) {
   const driveUnavailable = chauffeurOffer ? null : parseDriveUnavailable(value.driveUnavailable);
   // A holocall turn (docs/HOLOCALL.md): V and the character talk over the phone. Private turns only; a malformed value is dropped.
   const holocall = group ? null : parseHolocall(value.holocall);
+  const scripted = group ? null : parseScripted(value.scripted);
   return {requestId, generation, entity, name: name.slice(0, 120), bodyType: bodyType.slice(0, 80), profileKey, text: text.trim(), group,
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(loot ? {loot} : {}), ...(reaction ? {reaction} : {}),
     ...(chauffeurOffer ? {chauffeurOffer} : {}), ...(tacticOffer ? {tacticOffer} : {}),
@@ -76,7 +77,15 @@ function parseRequest(raw) {
     ...(followUnavailable ? {followUnavailable} : {}), ...(tacticUnavailable ? {tacticUnavailable} : {}), ...(driveUnavailable ? {driveUnavailable} : {}),
     ...(worldKnowledge ? {worldKnowledge} : {}), ...(journalHistory ? {journalHistory} : {}),
     ...(gameDialogue ? {gameDialogue} : {}), ...(gear ? {gear} : {}), ...(turnContext ? {turnContext} : {}),
-    ...(addon ? {addon} : {}), ...(holocall ? {holocall} : {})};
+    ...(addon ? {addon} : {}), ...(holocall ? {holocall} : {}), ...(scripted ? {scripted} : {})};
+}
+
+// Development only (bridge/scripted-line.mjs): {file} names a JSON file holding the exact line to speak. Absent for every ordinary turn;
+// the bridge ignores it unless Developer mode is on.
+function parseScripted(value) {
+  if (!value || typeof value !== 'object' || typeof value.file !== 'string') return null;
+  const file = value.file;
+  return file.length > 0 && file.length <= 520 && /\.json$/i.test(file) && !/[\u0000-\u001f]/.test(file) ? {file} : null;
 }
 
 // {version: 1, contact, mode: 'audio' | 'holo'} from mod/holocall.lua -> {contact, mode}, or null.

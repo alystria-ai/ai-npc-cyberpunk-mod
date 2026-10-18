@@ -149,6 +149,36 @@ commands['say'] = function(rest, context)
     return sent == true, {requestId = sent and detail or nil, problem = (not sent) and detail or nil, entity = row.entity}
 end
 
+-- speak-line <who> <file.json>: the character speaks an EXACT prepared line (no model): the file holds {text, audio?, engine?} (see
+-- bridge/scripted-line.mjs; scripts/Send-ScriptedLine.ps1 writes it). It goes through the same request path as `say`, flagged so the
+-- bridge voices the text (tags move the face and gestures as in a reply) with the prepared WAV, or live through the named engine.
+-- Needs Developer mode (the same gate as `say`, and the bridge checks it again). One request file read, once per command.
+commands['speak-line'] = function(rest, context)
+    local who, path = rest:match('^(%S+)%s+(.+)$')
+    if not who then return false, 'usage: speak-line <who> <file.json>' end
+    path = path:gsub('^"(.*)"$', '%1')
+    if #path > 500 or not path:lower():match('%.json$') then return false, 'the line file must be a .json path' end
+    local file = io.open(path, 'rb')
+    if not file then return false, 'cannot read ' .. path end
+    local raw = file:read('*a'); file:close()
+    local ok, doc = pcall(json.decode, (tostring(raw):gsub('^\239\187\191', '')))
+    if not ok or type(doc) ~= 'table' or type(doc.text) ~= 'string' or doc.text:match('^%s*$') then return false, 'the line file needs a "text" string' end
+    if doc.audio ~= nil then
+        local audio = type(doc.audio) == 'string' and io.open(doc.audio, 'rb')
+        if not audio then return false, 'cannot read the audio file ' .. tostring(doc.audio) end
+        audio:close()
+    end
+    if doc.engine ~= nil and doc.engine ~= 'pocket' and doc.engine ~= 'voxtral' and doc.engine ~= 'inworld' then return false, 'engine must be pocket, voxtral or inworld' end
+    local row = rowFor(context, who)
+    if not row then return false, 'no owned companion matching ' .. who .. ' in range' end
+    local speech, player = convaiSpeech, Game.GetPlayer()
+    if not speech or type(speech.devSay) ~= 'function' or not player then return false, 'speech adapter unavailable' end
+    local called, sent, detail = pcall(speech.devSay, player, row.npc, 'scripted line', {file = path})
+    if not called then return false, tostring(sent) end
+    log('speak-line', {who = who, file = path, audio = doc.audio ~= nil, engine = doc.engine, sent = sent == true, detail = tostring(detail), entity = row.entity})
+    return sent == true, {requestId = sent and detail or nil, problem = (not sent) and detail or nil, entity = row.entity, companion = row.name or row.profileKey}
+end
+
 -- face-play <who> <name> [rate]: plays the mapped mouth timeline in runtime/<name>.json ({tracks, frames, duration}, the
 -- shape of a reply's face in continuous-face.json, flattened) silently on a present character through the real writer
 -- (facial-playback start, sync on the probe's own clock, stop and endExpression, exactly as speech.lua drives it), so one
@@ -319,7 +349,7 @@ local function setQuiet(stage, on)
     if type(companions) ~= 'table' then return end
     if on then
         companions.devQuiet = companions.devQuiet or {}
-        companions.devQuiet[stage.serial] = true
+        companions.devQuiet[stage.serial] = stage.gestures and 'gestures' or true
     elseif companions.devQuiet then
         companions.devQuiet[stage.serial] = nil
         if next(companions.devQuiet) == nil then companions.devQuiet = nil end
@@ -569,7 +599,7 @@ end
 
 commands['face-stage'] = function(rest, context)
     local word, tail = rest:match('^(%S+)%s*(.*)$')
-    if not word then return false, 'usage: face-stage <key> [hold-seconds] | status | check | distance <m> | look | freeze | thaw | off | dismiss' end
+    if not word then return false, 'usage: face-stage <key> [hold-seconds] | status | check | distance <m> | look | freeze | thaw | gestures | nogestures | off | dismiss' end
     if word == 'status' then
         local stage = M.stage
         if not stage then return true, {state = 'none', leaving = pendingLeaving(context)} end
@@ -627,6 +657,13 @@ commands['face-stage'] = function(rest, context)
         if not metres then return true, {distance = M.stageDistance} end
         M.stageDistance = math.max(STAGE_MIN_DISTANCE, math.min(2, metres))
         return true, {distance = M.stageDistance}
+    elseif word == 'gestures' or word == 'nogestures' then
+        -- Body gestures while she is staged (a scripted line, speak-line): the quiet mark then leaves her gesture owner running.
+        local stage = M.stage
+        if not stage then return false, 'no stage' end
+        stage.gestures = word == 'gestures'
+        if stage.quiet then setQuiet(stage, true) end
+        return true, word
     elseif word == 'look' or word == 'unlook' then
         local stage = M.stage
         if not stage or stage.state ~= 'staged' then return false, 'no staged character' end

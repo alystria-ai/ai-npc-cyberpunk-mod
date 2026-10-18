@@ -2213,8 +2213,19 @@ function M.update(player,delta,focusEntity)
     -- Development only: mod/face-test.lua (not in a player package) sets M.devQuiet while its face-stage probe places a
     -- character, and everything below (movement, turning, body animation, gestures, seated attention) then leaves that
     -- copy alone. Nil in the shipped mod: one nil check per tick, nothing per copy.
+    -- A copy marked 'gestures' (`face-stage gestures`, so a scripted line has body gestures while she stands on her spot) is
+    -- still left out of everything else, but keeps its gesture owner below.
     local quiet=M.devQuiet
-    if quiet then for i=#ready,1,-1 do if quiet[ready[i].serial] then table.remove(ready,i) end end end
+    local quietBody
+    if quiet then
+        for i=#ready,1,-1 do
+            local held=quiet[ready[i].serial]
+            if held then
+                local entry=table.remove(ready,i)
+                if held=='gestures' then quietBody=quietBody or {}; quietBody[#quietBody+1]=entry end
+            end
+        end
+    end
     -- Crouch with V (companion-stance.lua): a few comparisons unless V crouches or a copy is held crouched.
     if M.stance then pcall(M.stance.tick,step,ready,player,stanceBlocker) end
     -- Service empty fleets too: the last dismissal can leave a car waiting for
@@ -2225,6 +2236,20 @@ function M.update(player,delta,focusEntity)
         -- releases any copy it did not observe in a settled stance last tick.
         local rows={}
         for _,entry in ipairs(ready) do rows[#rows+1]={entry=entry,transport=vehicles.owns(fleet,entry.serial)} end
+        -- Development only (quietBody is nil in the shipped mod): a staged copy stands settled beside V; its gap and facing are
+        -- refreshed here because the update that normally sets them skips it.
+        if quietBody then
+            local vat=player:GetWorldPosition()
+            for _,entry in ipairs(quietBody) do
+                pcall(function()
+                    local at=entry.npc:GetWorldPosition()
+                    entry.position,entry.playerGap,entry.facingError=at,math.sqrt((at.x-vat.x)^2+(at.y-vat.y)^2),0
+                end)
+                pcall(M.bodyAnimation.observe,entry,{idle=true,settled=true,crouched=false,combat=false,
+                    suspendHold=function() return false end,resumeHold=function() end},step)
+                rows[#rows+1]={entry=entry,transport=false}
+            end
+        end
         local ticked,tickError=pcall(M.bodyAnimation.tick,player,step,rows)
         if not ticked then M.bodyAnimationError=tostring(tickError) end
     end
