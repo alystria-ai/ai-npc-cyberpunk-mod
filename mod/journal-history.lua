@@ -223,6 +223,16 @@ function Collector:step(lane,now)
         -- Each finished scan is a revision (docs/PERFORMANCE_NATIVE_PLAN.md item 1b): the bridge keeps its rows
         -- from knowledge-<lane>.json, and a turn names the revision and the row ids it uses.
         self.revision=(self.revision or 0)+1; job.revision=self.revision
+        -- Jobs this history scan finds finished that the previous one did not (Johnny speaks up, init.lua; nil leaves it as before).
+        -- The first scan of a world is only a baseline, and a burst of more than four is a rebuilt list, not news.
+        if lane=='history' and type(self.onFinished)=='function' and target.cache then
+            local before,done=target.cache.quests,{}
+            for id,quest in pairs(job.quests) do
+                local old=before[id]
+                if (quest.state=='succeeded' or quest.state=='failed') and (not old or old.state~=quest.state) then done[#done+1]=quest end
+            end
+            if #done>0 and #done<=4 then pcall(self.onFinished,done) end
+        end
         target.cache=job; target.cache.finished=now; target.job=nil; target.rush=nil
         job.scanned=job.started
         target.next=now+(lane=='active' and self.activeInterval or self.historyInterval)

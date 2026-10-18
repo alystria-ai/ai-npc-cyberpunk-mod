@@ -110,6 +110,13 @@ local journalHistory = dofile('journal-history.lua').new({
     currentGeneration = function() return knowledgeFrame and knowledgeFrame.generation end,
     currentWorldToken = function() return knowledgeFrame and knowledgeFrame.worldToken end})
 convaiWorldKnowledge = worldKnowledge
+-- Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md): a job the history scan newly finds finished, a romance fact newly set. Both callbacks
+-- return at once while the setting is off (convaiJohnnyRemarkNote is defined further down).
+journalHistory.onFinished = function(quests)
+    if not convaiJohnnyRemarkNote then return end
+    for _, quest in ipairs(quests) do convaiJohnnyRemarkNote('quest', quest) end
+end
+relationshipState.onFact = function(fact) if convaiJohnnyRemarkNote then convaiJohnnyRemarkNote('romance', fact) end end
 -- Requests name the world and journal parts by revision; each part is written once (docs/PERFORMANCE_NATIVE_PLAN.md 1b).
 local partsLoaded, knowledgeParts = pcall(dofile, 'knowledge-parts.lua')
 if not partsLoaded or type(knowledgeParts) ~= 'table' then knowledgeParts = nil end
@@ -671,6 +678,30 @@ function convaiJohnnyStanding()
     local service = convaiJohnnyHeadService()
     return service and service:standing() or nil
 end
+-- Johnny speaks up (phase 2, mod/johnny-remarks.lua): loaded on the first event that finds both settings on (Johnny in your head, and
+-- Johnny speaks up at Rare or Normal). The collectors that hand events over already run; with either setting off an event costs two
+-- boolean reads here and nothing is loaded.
+function convaiJohnnyRemarksService()
+    if manager.johnnyRemarks() == 'off' or not manager.johnnyInHead() then return nil end
+    if convaiJohnnyRemarks == nil then
+        local loaded, module = pcall(dofile, 'johnny-remarks.lua')
+        convaiJohnnyRemarksModule = loaded and type(module) == 'table' and type(module.new) == 'function' and module or nil
+        convaiJohnnyRemarks = convaiJohnnyRemarksModule and module.new({level = function() return manager.johnnyRemarks() end}) or false
+        if not convaiJohnnyRemarks then print('[CyberpunkConvai] johnny-remarks.lua unavailable: ' .. tostring(module)) end
+    end
+    return convaiJohnnyRemarks or nil
+end
+-- One event from a collector: 'person' (a game-dialogue row), 'quest' (a finished job from the history scan) or 'romance' (a fact name).
+function convaiJohnnyRemarkNote(kind, value)
+    local remarks = convaiJohnnyRemarksService()
+    local module = convaiJohnnyRemarksModule
+    if not remarks or not module then return end
+    local subject, facts
+    if kind == 'person' then subject, facts = module.personEvent(value)
+    elseif kind == 'quest' then subject, facts = module.questEvent(value)
+    elseif kind == 'romance' then subject, facts = module.romanceEvent(value) end
+    if subject and remarks:note(kind, subject, facts, os.time()) then log('Johnny speaks up: noted ' .. subject) end
+end
 
 -- The one rule for characters the game placed (docs/WORLD_COMPANIONS.md, "The mod never touches game characters"):
 --   ours(npc)      a copy the mod spawned: the full feature set.
@@ -932,6 +963,8 @@ local gameDialogueLoaded, gameDialogueModule = pcall(dofile, 'game-dialogue.lua'
 local gameDialogue = gameDialogueLoaded and type(gameDialogueModule) == 'table'
     and type(gameDialogueModule.new) == 'function' and gameDialogueModule.new({
     enabled = function() return type(manager.gameDialogueContext) ~= 'function' or manager.gameDialogueContext() == true end,
+    -- Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md): a named character V just heard in person may get a remark from him later.
+    onRow = function(row) if convaiJohnnyRemarkNote then convaiJohnnyRemarkNote('person', row) end end,
     -- A game voice is speaking: add-on remarks that asked to be patient wait for it (mod/addons.lua gameLine). Skipped until an add-on registers.
     onGameLineWanted = function() return convaiAddons ~= nil and convaiAddons.live == true end,
     onGameLine = function(seconds, kind, measured) convaiAddons.gameLine(seconds, kind, measured) end,
@@ -2302,7 +2335,7 @@ local function sendRequest(context)
     if not context.reaction and convaiTurnContext then context.turnContext = context.turnContext or convaiTurnContext:capture() end
     -- Automatic turns have one subject. Manual conversations may still discuss
     -- recent combat and pickups together when V asks about them.
-    if context.reaction and context.reaction.kind == 'loot' then context.battle = nil
+    if context.reaction and (context.reaction.kind == 'loot' or context.reaction.kind == 'head') then context.battle = nil
     else context.battle = context.battle or battles.capture() end
     local current = knowledgeOwner(refreshKnowledgeFrame())
     if not knowledgeAllowed or current.paused or not sameKnowledgeOwner(owner, current) then return false end
@@ -2577,6 +2610,10 @@ cancelAutomatic = function(reason, abandoning)
     end
     log('Automatic reaction released: ' .. tostring(reason))
     if automatic.reaction.kind == 'loot' then loot.release(automatic.reaction) end
+    -- A Johnny remark nobody heard gives its rate slot back (mod/johnny-remarks.lua).
+    if automatic.reaction.kind == 'head' and convaiJohnnyRemarks then
+        pcall(convaiJohnnyRemarks.release, convaiJohnnyRemarks, convaiJohnnyRemarks.current, automatic.playbackAt ~= nil)
+    end
     if lastAutomatic and lastAutomatic.requestId == automatic.requestId then
         lastAutomatic.finishedAt = os.time()
     end
@@ -2643,6 +2680,48 @@ local function captureLootContext(player)
         people = reactionPeople(player, observation)}
 end
 
+-- Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2), on the 0.1 s game tick inside updateBattles. A global, so updateBattles gains
+-- no upvalue. With nothing queued it is one length check. `owned`: a head remark is the automatic turn now (keep it or release it);
+-- otherwise it may start one when nothing else is going on (busy false) and mayFollow allows a new automatic turn.
+function convaiJohnnyRemarkTick(player, now, worldReady, outputs, manual, busy, mayFollow)
+    local remarks = convaiJohnnyRemarks
+    if automatic and automatic.reaction.kind == 'head' then
+        local head = convaiJohnnyHeadService()
+        local reason = not worldReady and 'world-not-ready' or manual and 'manual-priority' or not outputs.enabled and 'outputs-disabled'
+            or (convaiJohnnyRemarksService() == nil or head == nil) and 'off'
+            or (not automatic.playbackAt and now * 1000 > automatic.reaction.expiresAt) and 'expired'
+            or head:refusal(player)
+        if reason then cancelAutomatic('head-' .. reason)
+        elseif not pending and not speech.requestId and not subtitles.ownsUtterance() then cancelAutomatic('completed')
+        elseif not reactionLease(true) then cancelAutomatic('lease-write-failed') end
+        return true
+    end
+    if busy or not remarks or not remarks:pending() then return false end
+    local head = convaiJohnnyRemarksService() and convaiJohnnyHeadService() or nil
+    if not head or head:refusal(player) then return false end
+    local entry = remarks:offer(now)
+    if not entry or not mayFollow(entry, 'head') then return false end
+    local partner = head:partner(player)
+    if not partner then return false end
+    generation = generation + 1
+    local context = {generation = generation, entity = partner.entity, name = partner.name, bodyType = '',
+        profileKey = partner.profileKey, voiceOnly = true, head = partner.head, sentAt = now,
+        text = 'Johnny speaks up unprompted. Give one brief in-character remark.',
+        reaction = {kind = 'head', event = entry.kind, facts = entry.facts,
+            expiresAt = math.floor((now + convaiJohnnyRemarksModule.SEND_SECONDS) * 1000)}}
+    context.requestId = tostring(os.time()) .. '-' .. generation .. '-' .. context.entity
+    automatic = context
+    captureReactionGuard(worldReady, outputs, nil)
+    if reactionLease(true) and sendRequest(context) then
+        remarks:claim(entry, now)
+        speech.target = player
+        convaiHeadTalk = {entity = partner.entity}
+        lastAutomatic = {at = now, requestId = context.requestId, kind = 'head'}
+        log('Automatic head reaction: ' .. entry.subject .. ' stage=' .. tostring(partner.head.stage))
+    else cancelAutomatic('request-write-failed') end
+    return true
+end
+
 local function updateBattles(player, elapsed, worldReady)
     battlePoll = battlePoll + elapsed
     if not battleSample or battlePoll >= 0.5 then
@@ -2675,7 +2754,9 @@ local function updateBattles(player, elapsed, worldReady)
     local manual = active ~= nil or groupChat.round ~= nil
         or (microphone.context ~= nil and microphone.state ~= 'reply') or phoneChat.pending ~= nil
     local outputs = battleOutputs or reactionOutputs(player)
-    if automatic then
+    if automatic and automatic.reaction.kind == 'head' then
+        convaiJohnnyRemarkTick(player, now, worldReady, outputs, manual)
+    elseif automatic then
         local speaker
         for _, person in ipairs(battlePeople) do
             if person.entity == automatic.entity and person.profileKey == automatic.profileKey then speaker = person; break end
@@ -2741,7 +2822,11 @@ local function updateBattles(player, elapsed, worldReady)
         event.reaction = {kind = 'battle', encounter = event.encounter, phase = event.phase, expiresAt = event.expiresAt,
             batch = event.loot and event.loot.batch or nil}
     end
-    if not event then return end
+    -- Battle and loot reactions first; then a waiting Johnny remark (one length check while nothing is queued).
+    if not event then
+        if convaiJohnnyRemarks then convaiJohnnyRemarkTick(player, now, worldReady, outputs, manual, busy, mayFollow) end
+        return
+    end
     generation = generation + 1
     local person
     for _, candidate in ipairs(battlePeople) do
@@ -2873,6 +2958,13 @@ local function reactionCanDeliver(context, player)
     if not context.reaction then return true end
     if context.reaction.kind == 'addon' then return convaiAddons ~= nil and convaiAddons.canDeliver(context, player) end
     if not automatic or automatic.requestId ~= context.requestId then return false end
+    -- A Johnny remark is heard only while he is still in V's head and the game does not have the floor (read fresh, held 0.4 s).
+    if context.reaction.kind == 'head' then
+        local head = convaiJohnnyHeadService()
+        local why = head == nil and 'off' or head:refusal(player)
+        if why then cancelAutomatic('head-' .. why); return false end
+        return true
+    end
     -- A reply can become ready between the half-second observer samples. Read
     -- player scene/combat state and the owned speaker before playback.
     for _, person in ipairs(battlePeople) do
@@ -3291,6 +3383,7 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     if convaiWorldTalk then convaiWorldTalk:reset() end
     convaiHeadTalk = nil
     if convaiJohnnyHead then convaiJohnnyHead:reset() end
+    if convaiJohnnyRemarks then convaiJohnnyRemarks:reset() end
     -- The face service decides at each NPC's spawn, so the setting is handed over before the next world loads.
     if convaiFacialPlayback and type(convaiFacialPlayback.applyStoryTalk) == 'function' then
         pcall(convaiFacialPlayback.applyStoryTalk, manager.storyConversations())

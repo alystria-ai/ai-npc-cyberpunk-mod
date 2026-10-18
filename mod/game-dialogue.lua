@@ -247,6 +247,8 @@ function Instance:push(row, now)
     self.lines[#self.lines + 1] = row
     self.counts.recorded = self.counts.recorded + 1
     self:prune(now)
+    -- A recorded line, for Johnny speaks up (init.lua, docs/JOHNNY_IN_YOUR_HEAD.md): one call per game line, nothing when unset.
+    if type(self.options.onRow) == 'function' then pcall(self.options.onRow, row) end
     return true
 end
 

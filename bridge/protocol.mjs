@@ -10,7 +10,7 @@ import {parseJournalHistory} from './journal-history.mjs';
 import {parseGameDialogue} from './game-dialogue.mjs';
 import {parseGear} from './player-gear.mjs';
 import {parseTurnContext} from './turn-context.mjs';
-import {parseHead} from './johnny-head.mjs';
+import {parseHead, parseHeadReaction} from './johnny-head.mjs';
 import {resolveKnowledgeParts} from './knowledge-parts.mjs';
 import {parseChauffeurOffer, parseTacticOffer, parseFollowOffer, parseLeaveOffer, parseFollowUnavailable, parseTacticUnavailable, parseDriveUnavailable}
   from './companion-actions.mjs';
@@ -57,7 +57,11 @@ function parseRequest(raw) {
   // An add-on speaker's turn data (docs/ADDON_API.md); absent for every ordinary turn.
   const addon = parseAddonInput(value.addon);
   const battle = parseBattle(value.battle);
-  const reaction = value.reaction?.kind === 'addon' ? parseAddonReaction(value.reaction, addon) : parseReaction(value.reaction, battle, loot);
+  // Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): his own unprompted remark, only with his head field on his profile.
+  const head = group ? null : parseHead(value.head);
+  const reaction = value.reaction?.kind === 'addon' ? parseAddonReaction(value.reaction, addon)
+    : value.reaction?.kind === 'head' ? parseHeadReaction(value.reaction, head, profileKey)
+      : parseReaction(value.reaction, battle, loot);
   if (reaction === null) return null;
   // A malformed optional offer removes only gameplay admission; the original
   // conversation is still valid and must keep its actor/request identity.
@@ -69,8 +73,7 @@ function parseRequest(raw) {
   const tacticUnavailable = parseTacticUnavailable(value.tacticUnavailable);
   const driveUnavailable = chauffeurOffer ? null : parseDriveUnavailable(value.driveUnavailable);
   // A holocall turn (docs/HOLOCALL.md): V and the character talk over the phone. Private turns only; a malformed value is dropped.
-  // Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): his stage with V. Private turns only; it is never a holocall as well.
-  const head = group ? null : parseHead(value.head);
+  // Johnny in V's head (docs/JOHNNY_IN_YOUR_HEAD.md): his stage with V (parsed above). Private turns only; never a holocall as well.
   const holocall = group || head ? null : parseHolocall(value.holocall);
   return {requestId, generation, entity, name: name.slice(0, 120), bodyType: bodyType.slice(0, 80), profileKey, text: text.trim(), group,
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(loot ? {loot} : {}), ...(reaction ? {reaction} : {}),

@@ -55,3 +55,51 @@ export function headContext(input) {
   const text = lines.join('\n');
   return text.length <= MAX_CHARS ? text : text.slice(0, text.lastIndexOf('\n', MAX_CHARS));
 }
+
+// ---- Johnny speaks up (phase 2): his own unprompted remark, an automatic reaction like a companion's battle line -------------------
+// mod/johnny-remarks.lua sends {kind: 'head', event, facts, expiresAt} with his head field. The facts are plain values the game read
+// (a roster character's name, a journal title, a romance fact's meaning); they are quoted to the model as data, never as instructions.
+const EVENTS = new Set(['person', 'quest', 'romance']);
+const ROMANCE = Object.freeze({together: name => `V and ${name} are together now; it has just become a romance in this save.`,
+  friends: name => `V and ${name} have just settled on staying friends, not lovers.`,
+  declined: name => `V has just turned ${name} down.`,
+  night: name => `V has just spent a night with ${name}.`});
+const REMARK_WORDS = 25;
+const cleanText = (value, limit) => typeof value === 'string' && value.length <= limit * 4
+  ? value.replace(/<[^>]*>/g, '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, limit) || null : null;
+
+/** The reaction of a remark -> {kind: 'head', event, facts, expiresAt, maxWords}, or null. Needs his profile and a valid head field. */
+export function parseHeadReaction(value, head, profileKey) {
+  if (!plain(value) || value.kind !== 'head' || !head || profileKey !== HEAD_PROFILE || !EVENTS.has(value.event)
+      || !Number.isSafeInteger(value.expiresAt) || value.expiresAt <= 0 || !plain(value.facts)) return null;
+  const facts = {};
+  if (value.event === 'person' || value.event === 'romance') {
+    facts.name = cleanText(value.facts.name, 60);
+    if (!facts.name) return null;
+  }
+  if (value.event === 'quest') {
+    facts.title = cleanText(value.facts.title, 160);
+    if (!facts.title || !['succeeded', 'failed'].includes(value.facts.outcome)) return null;
+    facts.outcome = value.facts.outcome; facts.mine = value.facts.mine === true;
+  }
+  if (value.event === 'romance') {
+    if (!Object.hasOwn(ROMANCE, value.facts.what)) return null;
+    facts.what = value.facts.what;
+  }
+  return {kind: 'head', event: value.event, facts, expiresAt: value.expiresAt, maxWords: REMARK_WORDS};
+}
+
+/** The trigger of a remark: where he is, what just happened (quoted data), and the limits of the line. */
+export function headTrigger(input) {
+  const reaction = input.reaction, facts = reaction?.facts ?? {};
+  if (reaction?.kind !== 'head') throw Error('Invalid head trigger');
+  const event = reaction.event === 'person' ? `V has just been talking with ${JSON.stringify(facts.name)} in person (that scene is over now).`
+    : reaction.event === 'quest' ? `V has just ${facts.outcome === 'failed' ? 'failed' : 'finished'} the job ${JSON.stringify(facts.title)}${facts.mine ? ', one of your own' : ''}.`
+      : ROMANCE[facts.what](JSON.stringify(facts.name));
+  const standing = STANDING[headOf({...input, reaction: undefined})?.stage] ?? '';
+  return 'You are Johnny Silverhand, the engram in V\'s head; nobody but V hears you. This event was not spoken by V. '
+    + event + ' ' + (standing ? `Where you and V stand: ${standing} ` : '')
+    + `Speak up on your own with one in-character remark of no more than ${REMARK_WORDS} words about it, from your own view. `
+    + 'Use only these facts and what you already know; do not invent what was said, who was there, rewards or outcomes. '
+    + 'Do not ask any question, including a rhetorical one. Return only the spoken line, without narration or actions.';
+}

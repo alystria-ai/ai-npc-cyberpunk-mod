@@ -90,7 +90,7 @@ import {ConvaiKeys, OwnKeyControl, PLAYER_KEY_FILE, PLAYER_USER_FILE, memoryReco
 import {QuotaWatch, classifyFailure} from './convai-quota.mjs';
 import {readKeyFileText} from './key-codec.mjs';
 import {AUTH_CONFIG_FILE, INSTALL_FILE, TokenSource, loadInstallId, readAuthSettings} from './convai-credential.mjs';
-import {DAILY_LIMIT, LimitStore, SharedKeyGuard, UsageStore, limitFromEnvironment, machineId} from './shared-key-guard.mjs';
+import {DAILY_LIMIT, LimitStore, RemarkAllowance, SharedKeyGuard, UsageStore, limitFromEnvironment, machineId} from './shared-key-guard.mjs';
 import {MISTRAL_KEY_FILE, MistralControl, MistralProvider} from './mistral-key.mjs';
 import {TextProviderHost, attachTextProvider, isLocalUnavailable, localRoute, mistralRoute} from './text-provider-host.mjs';
 import {MEMORY_FILE as MISTRAL_MEMORY_FILE} from './mistral-memory.mjs';
@@ -346,7 +346,12 @@ turnGuardRef = turnGuard;
 if (backendDailyLimit !== null) turnGuard.setLimit(backendDailyLimit);
 // What the hosts ask before a turn: the local gate as before, plus (backend mode only) the backend's own "daily allowance used"
 // answer, shown with the same notice. Both are synchronous checks of memory; nothing here touches the network.
-const hostGuard = tokenSource ? {check: () => { turnGuard.check(); keys.assertAllowed(); }, consume: () => turnGuard.consume()} : turnGuard;
+// Johnny's unprompted remarks may use at most a tenth of the shared key's day (bridge/shared-key-guard.mjs REMARK_SHARE), counted apart.
+const remarkAllowance = await new RemarkAllowance({guard: turnGuard,
+  store: dailyLimit > 0 ? new UsageStore({machine: await machineId(), paths: [resolve(stateDirectory, 'remark-usage.json'),
+    resolve(process.env.LOCALAPPDATA || homedir(), 'CyberpunkConvai', 'remark-usage.json')]}) : undefined}).load();
+const hostGuard = {check: config => { turnGuard.check(); remarkAllowance.check(config); if (tokenSource) keys.assertAllowed(); },
+  consume: config => { turnGuard.consume(); remarkAllowance.consume(config); }};
 if (dailyLimit > 0) console.error(`[CyberpunkConvai] Shared conversation allowance: ${dailyLimit} turns a day, ${turnGuard.snapshot()?.left ?? dailyLimit} left today`);
 const currentKey = () => keys.current();
 // A player's key pre-opens no connections and speculates on nothing (its plan's interactions and its one-connection free plan).
