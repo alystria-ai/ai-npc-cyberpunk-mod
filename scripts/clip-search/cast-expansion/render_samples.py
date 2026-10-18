@@ -58,8 +58,11 @@ try:
         torch.cuda.synchronize()
         values = np.asarray(wav.detach().float().cpu() if hasattr(wav, "detach") else wav).reshape(-1)
         assert values.size and np.isfinite(values).all(), key
+        peak = float(np.abs(values).max())
+        if peak > 0.99:  # a PCM file cannot hold it: scale this ear-check sample down instead of clipping (reported below)
+            values = values * (0.99 / peak)
         sf.write(str(out_dir / f"{key}.wav"), values, backend.sample_rate, format="WAV", subtype="PCM_16")
-        print(json.dumps({"key": key, "seconds": round(values.size / backend.sample_rate, 2), "peak": round(float(np.abs(values).max()), 3),
+        print(json.dumps({"key": key, "seconds": round(values.size / backend.sample_rate, 2), "peak": round(peak, 3), "scaled": peak > 0.99,
                           "render_seconds": round(time.monotonic() - t1, 1)}), flush=True)
 finally:
     backend.unload()
