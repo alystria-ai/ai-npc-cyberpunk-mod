@@ -90,7 +90,7 @@ Only characters the mod spawns join your party. Story characters you meet in the
 | Other mods | Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Mod Configuration Menu, all from Nexus Mods. RED4ext starts the mod's background service with the game. |
 | Disk space | About 3 GB for the main mod. The optional packs add more (see [Install](#install)). |
 | Internet | Needed while you talk with Convai, Mistral or the Voxtral voice. Not needed for Local AI with a local voice. |
-| Graphics card | Not needed for the default setup. Only OmniVoice and Local AI use it. |
+| Graphics card | Not needed for the default setup (Convai or Mistral text, Pocket or Voxtral voice). Only OmniVoice (about 2 GB of video memory) and Local AI (lite about 1.8 GB, standard about 3.1 GB) use it; see [Smooth frames, fast replies](#smooth-frames-fast-replies). |
 | Web browser | Microsoft Edge, which Windows 10 and 11 include, or Google Chrome. The mod's background service runs a hidden copy of it for audio and the Convai connection; it ships no browser of its own. |
 
 Developed and tested with Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5, TweakXL 1.11.4, Audioware 1.9.9 and Mod Configuration Menu 0.10.3. Newer versions may work. There is no load order to set: the mod's files live in folders of their own.
