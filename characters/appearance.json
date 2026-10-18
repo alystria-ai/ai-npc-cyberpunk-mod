@@ -406,5 +406,25 @@
     "text": "You have short brown hair brushed back from your forehead and blue eyes. Plated cyberware frames your face, with seams across your forehead and along your jaw, and runs back over the side of your head and down your neck. You wear a white shirt with thin grey pinstripes over a dark high-necked underlayer, with a loosely knotted blue-grey tie. A NetWatch ID badge is clipped to your shirt pocket.",
     "source": "https://cyberpunk.fandom.com/wiki/Bryce_Mosley",
     "image": "appearance-images/bryce-mosley.webp"
+  },
+  "dum-dum": {
+    "text": "You have a shaved head with pink, scarred skin. A cluster of glowing orange cyberoptics sits in the middle of your forehead, a large round lens ringed by small lights, with metal plating running down your nose and across your face. More metal fittings are set into your throat and chest. You wear a tan padded tactical vest with wide shoulder straps and a chest pocket marked Arasaka.",
+    "source": "https://cyberpunk.fandom.com/wiki/Dum_Dum",
+    "image": "appearance-images/dum-dum.webp"
+  },
+  "royce": {
+    "text": "You have a bald, scarred head and a thick dark beard. A large array of red cyberoptics covers your upper face, with a glowing central lens and bright red light strips, set in plates that run back toward your temples. Metal studs and rings line your ears. You wear a dark, heavy jacket with a thick, stitched collar over a dark plaid shirt, with a pale emblem on the jacket.",
+    "source": "https://cyberpunk.fandom.com/wiki/Royce",
+    "image": "appearance-images/royce.webp"
+  },
+  "rosalind-myers": {
+    "text": "You have short brown hair slicked back from your forehead, pale green-grey eyes and freckles across your nose and cheeks. Thin cyberware lines run down the side of your temple and cheek. You wear round white earrings, silver rings and a stack of silver bracelets. Your ivory jacket has thin white pinstripes, gold-bronze shoulder plates and gold trim along the sleeves, with a grey-blue stand collar over a cream underlayer and a small red, white and blue flag pin on the chest.",
+    "source": "https://cyberpunk.fandom.com/wiki/Rosalind_Myers",
+    "image": "appearance-images/rosalind-myers.webp"
+  },
+  "kurt-hansen": {
+    "text": "You have a closely shaved head, light eyes and a weathered, stubbled face. Thin cyberware lines run along your temple and cheek, and metal implant lines show at your neck. You wear a black V-neck shirt with a brown leather shoulder harness and belt, a knife sheath across your chest, silver dog tags on a chain and a pistol at your hip. One arm is a dark cyberarm with small orange lights, and the other upper arm carries a dark band.",
+    "source": "https://cyberpunk.fandom.com/wiki/Kurt_Hansen",
+    "image": "appearance-images/kurt-hansen.jpeg"
   }
 }

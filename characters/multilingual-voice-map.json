@@ -1052,6 +1052,26 @@
    "voice": "AZURE-MULTILINGUAL-c387a0c635",
    "voiceName": "Andrew",
    "reason": "Even, confident mid male voice for a smooth NetWatch negotiator."
+  },
+  "dum-dum": {
+   "voice": "AZURE-MULTILINGUAL-1aa256e8f9",
+   "voiceName": "Dustin",
+   "reason": "Casual, friendly mid male voice for a talkative gang salesman."
+  },
+  "royce": {
+   "voice": "AZURE-MULTILINGUAL-b56af7ad45",
+   "voiceName": "OnyxTurbo",
+   "reason": "Low, rough male register for a menacing, erratic Maelstrom boss (the same voice already used for the Maelstrom male archetype)."
+  },
+  "rosalind-myers": {
+   "voice": "AZURE-MULTILINGUAL-9a90389ca0",
+   "voiceName": "Serena",
+   "reason": "Authoritative, composed female voice for a president and former corporate CEO (the same voice used for the Militech and NCPD female archetypes)."
+  },
+  "kurt-hansen": {
+   "voice": "AZURE-MULTILINGUAL-3ea74315c9",
+   "voiceName": "Christopher",
+   "reason": "Mature, composed male voice for a polished, quietly menacing ex-colonel."
   }
  }
 }

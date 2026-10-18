@@ -102,7 +102,7 @@ test('the rewrite checker accepts a faithful first-person copy and flags the usu
 
 test('every checked-in profile opens in the first person, none in the second or third', async () => {
   const roster = await json('../characters/roster.json');
-  assert.equal(roster.length, 83);
+  assert.equal(roster.length, 87);
   for (const row of roster) {
     assert.match(row.backstory, /^I(?:'|’)m\b/u, row.key);
     assert(!isThirdPerson(row), row.key);
@@ -112,7 +112,7 @@ test('every checked-in profile opens in the first person, none in the second or 
 test('the checked-in first-person copies are what the roster and the profile text files hold', async () => {
   const roster = await json('../characters/roster.json'), store = await json('../characters/first-person-profiles.json');
   const keys = Object.keys(store.characters);
-  assert.equal(keys.length, 83);
+  assert.equal(keys.length, 87);
   for (const key of keys) {
     const row = roster.find(item => item.key === key), copy = store.characters[key];
     assert(row, key);

@@ -1,6 +1,6 @@
 {
-  "profiles": 83,
-  "named": 81,
+  "profiles": 87,
+  "named": 85,
   "ambient": 2,
   "profileRevision": 5,
   "model": "fast-gemma-4-31b-it",
@@ -2603,6 +2603,42 @@
       "voice": "Noah (Confident Adult American Male)",
       "sources": 6,
       "researchRevision": "4879ad11c0dd4f504b49d58a371e6a8c5a68e71afa7ebef049cff1daf04ff729"
+    },
+    {
+      "key": "dum-dum",
+      "words": 692,
+      "speakingStyleWords": 175,
+      "sampleDialogueWords": 138,
+      "voice": "Ryan (Expressive Young-Adult American Male)",
+      "sources": 6,
+      "researchRevision": "1094f7d92316e931401bc02ad3a38594fda1458b0471611967170735a06fc9f5"
+    },
+    {
+      "key": "royce",
+      "words": 679,
+      "speakingStyleWords": 172,
+      "sampleDialogueWords": 127,
+      "voice": "Cole (Husky Middle-Aged American Male)",
+      "sources": 6,
+      "researchRevision": "ca840339bcdfe4a5fc920088372ee9d43b58ed9e1eaac178870e7aaf9a66bfb5"
+    },
+    {
+      "key": "rosalind-myers",
+      "words": 736,
+      "speakingStyleWords": 176,
+      "sampleDialogueWords": 168,
+      "voice": "Sarah (Authoritative Middle-Aged American Female)",
+      "sources": 5,
+      "researchRevision": "2856ce4ef3cdf2532ef972811f09cc6bdb94ef5271aef1adcd065656dfa78fb3"
+    },
+    {
+      "key": "kurt-hansen",
+      "words": 668,
+      "speakingStyleWords": 194,
+      "sampleDialogueWords": 137,
+      "voice": "John (Deep Calm Middle-Aged American Male)",
+      "sources": 5,
+      "researchRevision": "63737f4ed7b73c07e2c2e197ed83f0d304ea17049fdbfc275b860c11ca846105"
     }
   ]
 }
