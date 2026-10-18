@@ -386,7 +386,7 @@ function abortable(promise, signal) {
 export class LocalLlmServer extends EventEmitter {
   #state = 'stopped'; #reason = null; #tier = null; #model = null; #firstTime = false;
   #proc = null; #info = null; #starting = null; #generation = 0; #inflight = 0; #idleTimer = null;
-  #warmed = new Set(); #contextSize = 0; #modelId = null; #reselectPending = false; #hints = null; #totalMiB = null; #lastFreeMiB = null; #failedPin = null; #broken = new Map();
+  #keyNoted = false; #warmed = new Set(); #contextSize = 0; #modelId = null; #reselectPending = false; #hints = null; #totalMiB = null; #lastFreeMiB = null; #failedPin = null; #broken = new Map();
 
   // command/argsPrefix replace pack.server when spawning (tests); processOptions go to LlamaProcess (tests).
   // contextSize: a fixed context (tests, CYBERPUNK_CONVAI_LOCAL_CTX); without it each start takes the ladder's largest that fits.
@@ -709,6 +709,7 @@ export class LocalLlmServer extends EventEmitter {
     this.#tier = null; this.#model = model.loadedName ?? model.name; this.#modelId = model.id; this.#contextSize = model.contextSize ?? 0;
     this.#hints = {uncensored: model.uncensored === true, family: model.family ?? null};
     this.#firstTime = false;
+    this.#keyNoted = false;
     this.#emitStatus();
     let found;
     try { found = await this.#lookAtServer(model); } catch (error) {
@@ -757,6 +758,18 @@ export class LocalLlmServer extends EventEmitter {
       contextSize = usable(props?.body?.default_generation_settings?.n_ctx) ?? usable(props?.body?.n_ctx) ?? usable(kobold?.body?.value) ?? null;
     }
     return {requestModel, contextSize: contextSize ?? LOCAL_LLM_LIMITS.externalContext};
+  }
+
+  /**
+   * A turn on the server the player runs came back 401/403. Its first look cannot tell: KoboldCpp's --password guards the chat requests only, so
+   * a wrong or missing `apiKey` passes the look at /models. Says so once in the log (no address, no key), where the docs send the player to look.
+   * The server stays as it is: the turn fails (or the cloud answers it) and the next turn asks again. Returns whether it logged.
+   */
+  externalKeyRefused() {
+    if (this.#state !== 'ready' || !this.#info?.external || this.#keyNoted) return false;
+    this.#keyNoted = true;
+    this.log('[local] the server of "' + this.#model + '" did not accept the API key (check "apiKey" in manifest.custom.json)');
+    return true;
   }
 
   /**

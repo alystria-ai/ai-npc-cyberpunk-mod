@@ -19,7 +19,7 @@ import {MistralMemory} from './mistral-memory.mjs';
 import {MistralProvider} from './mistral-key.mjs';
 import {PersonaBook} from './mistral-prompt.mjs';
 import {MatureContent, allowanceFor} from './mature-content.mjs';
-import {streamChat} from './mistral-client.mjs';
+import {streamChat, failureKind, errorCodeFor} from './mistral-client.mjs';
 import {collectReport, customServerSecrets} from './support-report.mjs';
 import {ReplyStream} from './reply-stream.mjs';
 
@@ -42,8 +42,10 @@ const SECRET = 'sk-ext-Zq81vTn4Lp0xRw7Hc2Yd9KbM3sGj5Fa6';
 
 // ---- A fake OpenAI-compatible server ---------------------------------------------------------------------------------------------
 // Options: key (required bearer token), models (the /v1/models listing), props (/props body), kobold (true_max_context_length value),
-// reply (chat text), echoKey (a 401 whose message repeats the key it was given), listing (extra fields of each listed model).
-async function fakeServer(t, {key = null, models = [{id: 'qwen3.5-9b'}], props, kobold, reply = 'Sure thing, V. What do you need?', echoKey = false, port = 0, paceMs = 0} = {}) {
+// reply (chat text), echoKey (a 401 whose message repeats the key it was given), listing (extra fields of each listed model),
+// keyOnPost (KoboldCpp's --password: only POST requests need the key, the model list and /props answer anyone),
+// cutAfter (the server dies mid-reply, as a killed KoboldCpp does: the body ends cleanly after that many pieces, with no finish_reason and no [DONE]).
+async function fakeServer(t, {key = null, models = [{id: 'qwen3.5-9b'}], props, kobold, reply = 'Sure thing, V. What do you need?', echoKey = false, port = 0, paceMs = 0, keyOnPost = false, cutAfter = 0} = {}) {
   const requests = [];
   const server = createServer((request, response) => {
     let raw = '';
@@ -52,7 +54,7 @@ async function fakeServer(t, {key = null, models = [{id: 'qwen3.5-9b'}], props, 
       let body = null; try { body = raw ? JSON.parse(raw) : null; } catch { /* not JSON */ }
       requests.push({method: request.method, url: request.url, headers: request.headers, body});
       const given = (request.headers.authorization ?? '').replace(/^Bearer /, '');
-      if (key && given !== key) {
+      if (key && given !== key && (!keyOnPost || request.method === 'POST')) {
         response.writeHead(401, {'content-type': 'application/json'});
         response.end(JSON.stringify({error: {message: echoKey ? `Incorrect API key provided: ${given}` : 'Invalid API key'}}));
         return;
@@ -65,7 +67,9 @@ async function fakeServer(t, {key = null, models = [{id: 'qwen3.5-9b'}], props, 
         response.writeHead(200, {'content-type': 'text/event-stream'});
         const text = typeof reply === 'function' ? reply(body) : reply;
         void (async () => {
+          let sent = 0;
           for (const piece of String(text).match(/.{1,9}/gs) ?? []) {
+            if (cutAfter && sent++ >= cutAfter) { response.end(); return; }
             response.write(`data: ${JSON.stringify({choices: [{index: 0, delta: {content: piece}}]})}\n\n`);
             if (paceMs) await sleep(paceMs);
           }
@@ -490,6 +494,53 @@ test('a server that is down leads to the fallback provider, with one notice; a s
   assert.equal(third.text, 'The cloud answers, V.');
   assert.equal(live.failures.length, 1, 'the look found it still down: one failure episode');
   assert.equal(both.provider.localBroken, 'start-failed');
+});
+
+// ---- What a real KoboldCpp does that the first fake did not (live test 2026-10-18, KoboldCpp 1.123.1) ------------------------------
+
+test('a server that dies while it writes the reply: the cut-off text is a failed turn (no stored reply), the server is looked at again, and the cloud answers when there is one', async t => {
+  const long = 'You want the whole history of this place? That is a lot of noise. I can give you the highlights, if you really want them.';
+  const cloud = await fakeServer(t, {reply: 'The cloud answers, V.'});
+  const api = await fakeServer(t, {reply: long, cutAfter: 4});
+  // The client alone: a body that ends with no [DONE] and no finish_reason is not a finished reply.
+  const direct = await streamChat({apiKey: SECRET, messages: [{role: 'user', content: 'hi'}], provider: 'local', endpoint: api.endpoint + '/chat/completions', retries: 2, backoffMs: [0]}).catch(error => error);
+  assert.equal(direct.kind, 'network', direct.message ?? JSON.stringify(direct));
+  assert.match(direct.message, /before the reply was finished/);
+  assert.equal(api.chats().length, 1, 'text had already been delivered: it is not asked again (the reply would be spoken twice)');
+  // The same through the host, with no cloud account: the turn fails, nothing is remembered, the server is forgotten for a fresh look.
+  const project = emptyProject(t);
+  const h = supervisor(t, {project, selected: {customModels: scanManifest(project, [entryFor(api)]).models}});
+  const lone = await hostFor(t, {server: h.server});
+  const error = await lone.host.reply(turn('Tell me the whole history.')).catch(caught => caught);
+  assert.equal(failureKind(error), 'network', String(error));
+  assert.deepEqual(lone.host.memory.recall({profileKey: 'judy-alvarez', channel: 'private'}).turns, []);
+  assert.equal(h.server.status().state, 'stopped', 'the next turn looks at the server again');
+  assert(h.logs.some(line => /stopped answering/.test(line)), h.logs.join('\n'));
+  // With a Mistral key saved the cloud answers the turn the server could not finish.
+  const live = supervisor(t, {project, selected: {customModels: scanManifest(project, [entryFor(api)]).models}});
+  const both = await hostFor(t, {server: live.server, mistralKey: 'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL', cloud});
+  assert.equal((await both.host.reply(turn('Tell me the whole history.'))).text, 'The cloud answers, V.');
+});
+
+test('a server that guards only its chat requests (KoboldCpp --password): a wrong or missing key passes the first look, fails the turn as a refused key, and is named once in the log', async t => {
+  const api = await fakeServer(t, {key: SECRET, keyOnPost: true});
+  const project = emptyProject(t);
+  const wrong = supervisor(t, {project, selected: {customModels: scanManifest(project, [entryFor(api, {apiKey: 'a-wrong-key-12345'})]).models}});
+  assert.equal((await wrong.server.ensure()).external, true, 'the model list answers anyone: the look at the server cannot tell');
+  const {host} = await hostFor(t, {server: wrong.server, log: line => wrong.logs.push(line)});
+  for (const text of ['first', 'second']) {
+    const error = await host.reply(turn(text)).catch(caught => caught);
+    assert.equal(failureKind(error), 'key', String(error));
+    assert.equal(errorCodeFor(error), 'local-failed');
+  }
+  assert.equal(wrong.logs.filter(line => /did not accept the API key/.test(line)).length, 1, 'said once, not on every turn:\n' + wrong.logs.join('\n'));
+  assert(!wrong.logs.join('\n').includes('a-wrong-key-12345'));
+  assert(wrong.logs.every(line => !/127.0.0.1/.test(line)), 'the line names the server, not its address');
+  // The right key works on the same kind of server (and the key is sent to the model list and to the turn).
+  const right = supervisor(t, {project, selected: {customModels: scanManifest(project, [entryFor(api, {apiKey: SECRET})]).models}});
+  const ok = await hostFor(t, {server: right.server});
+  assert.equal((await ok.host.reply(turn('hello'))).transport, 'local');
+  assert.equal(right.logs.filter(line => /did not accept/.test(line)).length, 0);
 });
 
 // ---- The key stays a secret -------------------------------------------------------------------------------------------------------
