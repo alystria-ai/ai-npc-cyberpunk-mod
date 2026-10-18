@@ -96,6 +96,13 @@ function M.new(options)
     local round = options.round
     local log = options.log or function() end
     local holds, logged, counts, installed = {}, {}, {}, {}
+    -- No hold is active after this clock value: the latest moment any hold can still count (a pinned one until maxPinned, a timed
+    -- one until its end). R.idle uses it so that holds which have all run out stop the hooks' per-NPC work (see R.idle).
+    local quietAfter = -math.huge
+    local function extend(hold)
+        local last = hold.pinned and hold.since + cfg.maxPinned or hold.untilAt
+        if last > quietAfter then quietAfter = last end
+    end
     local R = {}
 
     local function currentRound()
@@ -131,13 +138,23 @@ function M.new(options)
         if participant(hash) then
             -- A group participant keeps the grace after the round ends.
             holds[hash] = {pinned = false, since = now, untilAt = now + cfg.grace, reason = 'group'}
+            extend(holds[hash])
             return true
         end
         return false
     end
 
-    -- Nothing addressed: every hook returns to vanilla at once.
-    function R.idle() return next(holds) == nil and currentRound() == nil end
+    -- Nothing addressed: every hook returns to vanilla at once. A hold that has run out is dropped only when its own NPC is next
+    -- checked (R.addressed), and an NPC V talked to and walked away from is never checked again: once every hold has run out they
+    -- are all dropped here, as R.addressed would drop each, so every other NPC's stimulus, look-at and bump is vanilla again
+    -- without a stimulus read or an owner lookup (before, one finished conversation kept that work on for the rest of the session).
+    function R.idle()
+        if next(holds) ~= nil then
+            if clock() <= quietAfter then return false end
+            holds = {}
+        end
+        return currentRound() == nil
+    end
 
     -- The mod starts addressing an NPC (an entity or its hash) until release().
     function R.focus(target, reason)
@@ -145,6 +162,7 @@ function M.new(options)
         if not hash then return false end
         R.ensureHooks()
         holds[hash] = {pinned = true, since = clock(), reason = reason or 'focus'}
+        extend(holds[hash])
         return true
     end
 
@@ -158,20 +176,24 @@ function M.new(options)
         local hold = holds[hash]
         if hold and (hold.pinned or hold.untilAt >= untilAt) then return true end
         holds[hash] = {pinned = false, since = now, untilAt = untilAt, reason = reason or 'hold'}
+        extend(holds[hash])
         return true
     end
 
     -- The mod stops addressing: every hold keeps only the grace.
     function R.release(grace)
         local untilAt = clock() + (tonumber(grace) or cfg.grace)
+        quietAfter = -math.huge
         for _, hold in pairs(holds) do
             if hold.pinned or hold.untilAt > untilAt then hold.pinned, hold.untilAt = false, untilAt end
+            extend(hold)
         end
     end
 
     -- A load, detach or shutdown: nothing stays quiet.
     function R.clear()
         holds, logged = {}, {}
+        quietAfter = -math.huge
     end
 
     local function quiet(kind, object)
