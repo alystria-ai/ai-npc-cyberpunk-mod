@@ -2,7 +2,8 @@
 // (red4ext/plugins/AiNpcCyberpunkMod/CyberpunkConvai.dll) starts it with the bundled Node
 // when the game starts, as configured by launcher.ini next to the DLL:
 //   app/node/node.exe app/launcher/start-service.mjs --game-pid <pid> --game-root <root> --lifeline stdin
-// It prepares the data folder for this installation, joins any split download parts,
+// It prepares the data folder for this installation (first moving optional pack files that were extracted one folder too deep
+// into place), joins any split download parts,
 // sets every executable and asset path explicitly, and then runs the same supervisor as
 // development (bridge/bridge-supervisor.mjs): one bridge for this game session, crash
 // restarts, and a graceful stop when the game exits.
@@ -13,6 +14,7 @@ import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {installLayout, prepareState, serviceEnvironment} from './prepare-state.mjs';
 import {assembleParts} from './assemble-parts.mjs';
+import {placeMisplacedPacks} from './place-packs.mjs';
 import {adoptLegacyInstall, cleanupLegacyInstall} from './migrate-legacy.mjs';
 
 const appDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -69,6 +71,11 @@ try {
   if (scriptsVersion && runtimeVersion && scriptsVersion !== runtimeVersion) {
     log(`Warning: the Scripts package is ${scriptsVersion} but the Runtime package is ${runtimeVersion}. Install matching versions.`);
   }
+  // Optional pack files extracted one folder too deep (a wrapper folder named after the zip) are moved into place first, so the pack
+  // checks below and the bridge find them (packaging/runtime/place-packs.mjs). A few stat calls when there is nothing to fix; a
+  // problem is logged and never stops the service.
+  try { await placeMisplacedPacks({layout, log}); }
+  catch (error) { log(`Checking for misplaced pack files failed: ${error?.stack || error}`); }
   prepared = await prepareState(layout, {log});
   if (prepared.omni) await assembleParts(layout.omni, {log});
 } catch (error) {

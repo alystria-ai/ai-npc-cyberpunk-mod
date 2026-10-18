@@ -67,7 +67,7 @@ red4ext/plugins/AiNpcCyberpunkMod/
     models/lipsync/          lip-sync model, text stage and lexicon
     models/stt/              Moonshine Tiny English int8 (local speech recognition for the Mistral route; MIT)
     defaults/                templates and managed defaults copied into data/ at start-up
-    launcher/                start-service.mjs, prepare-state.mjs, assemble-parts.mjs
+    launcher/                start-service.mjs, prepare-state.mjs, assemble-parts.mjs, migrate-legacy.mjs, place-packs.mjs
     licenses/                third-party notices (Python packages keep theirs in *.dist-info)
     omni/                    the OmniVoice pack, when installed
     local-ai/                the Local AI pack(s), when installed (llama/, models/, licenses/, manifest.*.json)
@@ -140,6 +140,38 @@ extracting both only overwrites identical bytes. The chat model ships whole (no 
 Licences (all redistributable with the licence text, which the packs carry): llama.cpp MIT, the LLVM OpenMP runtime Apache-2.0 with
 LLVM exceptions, Gemma 4 E4B Apache-2.0 (Google also publishes a prohibited use policy), Bonsai 2 4B (PrismML, a Qwen3.5-based model) Apache-2.0, granite-embedding
 Apache-2.0. `THIRD_PARTY_NOTICES.md` has the table.
+
+### Packs extracted one folder too deep (`place-packs.mjs`)
+
+The optional packs are zips whose entries start at the game root. Windows "Extract All" and 7-Zip's "Extract to <zip name>\" wrap
+them in a folder named after the zip, so the files land in
+`<game>\AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2\red4ext\plugins\AiNpcCyberpunkMod\app\local-ai\...` and the mod reports "No model
+installed" or "not installed". `packaging/runtime/place-packs.mjs` (shipped as `app/launcher/place-packs.mjs`) moves them into place.
+`start-service.mjs` runs it once per game start, before `prepareState` and its pack checks; a failure is logged and never stops the service.
+
+- **Search (bounded):** the game root's direct child folders plus one more level (`X\X\red4ext\...`), the CET mod folder, and the plugin
+  folder with one wrapper level. Folders of the game itself (`archive`, `bin`, `engine`, `r6`, `red4ext`, `mods`, `tools`, `Support`,
+  `localization`, `REDprelauncher`, `REDmod`, ...) are never searched. A candidate counts only when its
+  `red4ext/plugins/AiNpcCyberpunkMod/app/` holds a marker: `local-ai/manifest.*.json` (Local AI and Mature packs),
+  `local-ai/mature/`, or `omni/omni-pack.json` (OmniVoice). No recursion beyond that. Nothing to fix costs about 1 ms (a handful of stat/readdir calls).
+- **Move:** only the pack folders of the misplaced `app/` (`local-ai/`, `omni/`), plus `voices/` for the OmniVoice pack (its reference clips,
+  next to `app/`). Never `launcher`, `bridge` or anything else a Runtime package holds. Rename on the same volume (a folder that does not exist
+  yet moves whole); on EXDEV copy, verify the size, then delete. A file already in place with the same size: the stray copy is dropped. A different
+  size: both are left alone and one line says so; nothing is ever overwritten. The markers (`manifest.*.json`, `omni-pack.json`) move last, so an
+  interrupted move is retried in full at the next start and a pack is never seen half-placed. Empty wrapper folders are then removed with a plain
+  `rmdir` (so only when empty, only inside the candidate). Anything unexpected (permissions, a link or odd entry, a failed rename or copy) stops
+  everything, leaves the rest where it is, and logs it.
+- **Log:** one line per pack in `data/bridge-service.log`: `Moved the <pack> files into place from <wrapper path relative to the game root>`
+  (`Local AI standard`, `Local AI lite`, `Mature standard`, `Mature lite`, `OmniVoice`). No in-game notice.
+- **Also handled:** `red4ext\...` or `app\...` extracted into `bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod\`, `red4ext\...`
+  extracted into `red4ext\plugins\AiNpcCyberpunkMod\` (also inside one wrapper folder there).
+- **Not handled:** wrappers three or more folders deep; a pack extracted outside the game folder; a pack unzipped into the wrong place by
+  a single file or folder (no marker); files the player renamed; the Scripts and Runtime packages (only the optional packs are placed, because
+  the launcher itself comes from the Runtime); a different file already in place (never overwritten); same-size files are trusted without
+  hashing (a 5 GB model is not read); links and junctions (stop); pack files in a folder the game owns.
+- **Tests:** `packaging/place-packs.test.mjs` (depth 1, 2 and 3, every pack kind, existing same-size and different-size files, nothing to fix with
+  timing, game folders and non-pack folders left alone, the CET and plugin folder forms, a refused rename and its retry, EXDEV copy, a bad copy,
+  and `start-service.mjs --prepare-only` end to end).
 
 ### Pre-built Mistral voice references
 

@@ -445,7 +445,7 @@ async function runtimePackage(source, config, models, key) {
   log(`Voxtral references: ${voxtral.keys.length} voices, ${(voxtral.bytes / 1e6).toFixed(2)} MB in the Runtime package.`);
 
   // Launcher scripts, application metadata and notices.
-  for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs']) pkg.file(`${app}/launcher/${name}`, resolve(source.root, 'packaging/runtime', name));
+  for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs']) pkg.file(`${app}/launcher/${name}`, resolve(source.root, 'packaging/runtime', name));
   pkg.json(`${app}/package.json`, {name: 'cyberpunk-convai', version: npmVersion(version), private: true, type: 'module'});
 
   // Game-side binary assets: the three generated archives and the Audioware reply bank.
