@@ -29,7 +29,6 @@ Closed by the user on 2026-10-16 (log entry of that day): every main-mod live ch
 
 - **Group look-ahead on the own key** (branch `group-latency`, log 2026-10-17 `group-latency`; needs a bridge restart): with the own key on the paid plan, a group round of two or three. The later speaker follows the first within about a second; `runtime/bridge-latency.json` shows `preparation.mode: "lookahead"` for the later turns. Shared key and solo turns as before.
 
-- **Talk to the game's own story characters** (branch `world-talk`, log 2026-10-18 `world-talk`, `docs/WORLD_CHARACTERS.md` live check; Scripts install incl. `world-talk.lua`, game restart for `Face.reds`, reload the save): (1) face the game's own Judy (or Jackie, Panam, Rogue) where she stands, text and voice key: she answers in her voice, lips and expressions move, `probe.log` has `World conversation: profile=... (voice and face only)` and a `prepared:` face status; (2) no gaze, no gesture or idle change, no `Focus ownership` line, scanner name unchanged; (3) walk away or let a scene or fight start mid-reply: the reply stops, the face goes back to her own animation, `World conversation ended: ... reason=...`; (4) a quest NPC in a scene, a choice hub or a car: "{name} is busy right now."; (5) perf probe shows no new per-frame row. If every talk shows `reason=driven`, `IsOnAutonomousAI()` is false for idle story characters: send the line.
 
 ### Still to build, later and smaller gaps
 - **Performance (FPS first):** the C++ port runs as the RED4ext plugin `native/core/` (`docs/NATIVE_REWRITE_PLAN.md`; every system has a Lua fallback and a kill switch); the Lua wins are in `docs/PERFORMANCE_NATIVE_PLAN.md`. Next, after the capture above: fix what the `init:` rows show.
@@ -64,6 +63,8 @@ Nothing is parked.
 - Lip sync for vendors and ordinary NPCs by an appearance hop (2026-10-10): superseded by the gated crowd face graph (live check above).
 
 ## Captain's log
+
+**2026-10-19: story characters live check passed (the user).** Talking to the game's own story characters works in the game (tested with Viktor and Misty where the game placed them); the open item "Talk to the game's own story characters" is closed. Skippy's live check is left for later (the user).
 
 **2026-10-19: no "Preparing connection" notice while Mistral or the local AI answers (branch `fix/nca-connect-bridge`, from main 9273275d, NOT merged; Lua only: `mod/auto-connect.lua`, `mod/init.lua`; CET reload, no bridge restart).** After the NCA lane fix the followers were warmed `(spawned)`, but the first text to Rita or Judy still showed the notice. The session's provider was Mistral (`settings.json` and `mistral-state.json` say `mistral`, last change 20:25Z), where no Convai connection exists and the bridge opens none by design (`spawnedWarmLimit` 0 for a text provider); the notice only looked for a ready private entry. Now `talkNotice` is silent and `ready` true when the bridge's applied provider is Mistral or local. The shared key on Convai already puts party, partner and spawned characters in its eleven-connection plan (pinned by a new `party-connections` test). Open: confirm with the user which provider the test ran on. Detail: `docs/SPAWNED_CHARACTERS.md`, "Preparing connection on Mistral and the local AI".
 
