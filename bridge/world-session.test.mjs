@@ -61,9 +61,13 @@ test('bridge world polling uses the bounded reader before evaluating reset owner
   assert.match(poll, /await resetLiveRoutes\(\)/);
 });
 
-test('an empty heartbeat file (the shipped placeholder) reads exactly like a missing one', async () => {
-  const empty = fixture(['']), absent = fixture([missing()]);
-  assert.equal(await empty.run(), null); assert.equal(await absent.run(), null);
-  assert.equal(empty.calls.length, absent.calls.length); assert.deepEqual(empty.waits, absent.waits);
-  const recovered = fixture(['', ready]); assert.deepEqual(await recovered.run(), ready);
+test('an empty heartbeat file (the shipped placeholder) means no session yet and returns at once, with no retry', async () => {
+  const empty = fixture(['']);
+  assert.equal(await empty.run(), null);
+  assert.equal(empty.calls.length, 1); assert.deepEqual(empty.waits, []);
+  const spaces = fixture([' ']); assert.equal(await spaces.run(), null);
+  assert.equal(spaces.calls.length, 1); assert.deepEqual(spaces.waits, []);
+  // a missing or half-written file still gets its bounded retries
+  const torn = fixture(['{"version":1,', ready]); assert.deepEqual(await torn.run(), ready);
+  assert.deepEqual(torn.waits, [15]);
 });
