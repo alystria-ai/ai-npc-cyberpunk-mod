@@ -11,6 +11,13 @@ import {atomicFile} from './guarded-file.mjs';
 
 const bridge = fileURLToPath(new URL('./convai-bridge.mjs', import.meta.url));
 const prefix = 'cyberpunk-bridge-startup-';
+// The bridge looks for the Local AI pack in <repo>/local-ai, a git-ignored link a developer fills with real models. With two or more installed
+// it asks nvidia-smi for the card's size at startup (a designed, once-a-minute probe), which the side-effect guard rightly refuses. The test
+// points the pack root at an empty folder of its own and drops any developer override, so it never depends on the machine's models.
+function isolateLocalAi(env, folder) {
+  for (const name of Object.keys(env)) if (/^CYBERPUNK_CONVAI_LOCAL_/.test(name)) delete env[name];
+  env.CYBERPUNK_CONVAI_LOCAL_AI = join(folder, 'no-local-ai');
+}
 async function readJson(path) {
   try { return JSON.parse(await readFile(path, 'utf8')); } catch { return null; }
 }
@@ -75,6 +82,7 @@ test('real bridge retains one player ID across world changes without provider, b
       const env = {...process.env, CYBERPUNK_CONVAI_STATE: state, CYBERPUNK_CONVAI_GAME: game,
         CYBERPUNK_CONVAI_KEY_FILE: join(state, 'convai-key.txt'), CYBERPUNK_TEST_SIDE_EFFECTS: sideEffects};
       delete env.NODE_OPTIONS; delete env.NODE_PATH;
+      isolateLocalAi(env, folder);
       child = spawn(process.execPath, ['--import', pathToFileURL(guardFile).href, bridge], {
         cwd: folder, env, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
       });
@@ -189,6 +197,7 @@ test('real bridge starts, polls and stops with no settings file',
       const env = {...process.env, CYBERPUNK_CONVAI_STATE: state, CYBERPUNK_CONVAI_GAME: game,
         CYBERPUNK_CONVAI_KEY_FILE: join(state, 'convai-key.txt'), CYBERPUNK_TEST_SIDE_EFFECTS: sideEffects};
       delete env.NODE_OPTIONS; delete env.NODE_PATH;
+      isolateLocalAi(env, folder);
       child = spawn(process.execPath, ['--import', pathToFileURL(guardFile).href, bridge], {
         cwd: folder, env, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
       });
