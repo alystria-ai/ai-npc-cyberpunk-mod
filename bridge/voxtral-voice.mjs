@@ -24,6 +24,11 @@
 //    about 0.3 s, never more than a second in all), and only a 401 or a 403 that repeats is a refused key (2026-10-17: one 403 in a group
 //    round was reported as a bad key and silenced two voices). Speech requests in flight are capped (`request-gate.mjs`), the held next
 //    speaker of a group round (`ahead: true`) last, so a burst stays small and the speaker being heard never waits for it.
+//  - A 403 whose own body says "guardrail" (or that the request was "blocked", `isContentRefusal`) is a refusal of that one line's text,
+//    not of the key: it is a VoxtralError of kind 'content', never asked again (it would be refused the same way), never a pause of the
+//    voice (the next reply's voice is asked as usual), never a tightening of the request gate, never reported as a refused key, and it
+//    leaves no degraded state. That reply is shown as written text; one log line says so. No other voice speaks it: the Convai voice is
+//    chosen when a turn starts (before any text exists), so a refusal that comes with the reply cannot hand it over.
 //  - One request per reply (the whole text, streamed), never one per sentence: a free Mistral key may be limited to about one
 //    request a second for the whole workspace, shared with the text replies. Every request goes through the shared scheduler
 //    (bridge/mistral-rate.mjs), text first; the first-audio limit counts from the moment the request is actually sent.
@@ -95,7 +100,8 @@ export const redact = (text, apiKey) => {
 
 /**
  * kind: 'no-key', 'no-reference', 'key' (refused), 'limit' (429), 'timeout' (no first audio in time), 'network' (unreachable,
- * a server fault or a stalled stream), 'request' (a refused request or an unusable answer), 'text' (not speakable).
+ * a server fault or a stalled stream), 'request' (a refused request or an unusable answer), 'text' (not speakable), 'content' (the
+ * server's guardrail refused this line's text: not a key, a limit or a fault, and the same text would be refused again).
  * Always thrown before any audio reached `onPcm` (or by the consumer itself, marked `sink`).
  */
 export class VoxtralError extends Error {
@@ -112,10 +118,28 @@ const retryAfter = headers => {
   return Number.isFinite(seconds) && seconds >= 0 ? Math.min(seconds, 60) * 1000 : undefined;
 };
 
+// A body that is a web page (a gateway or firewall block page), and wording that blames the key, the account or the network.
+const MARKUP_BODY = /<\s*(?:!doctype|html|head|body)\b/i;
+const NOT_CONTENT = /\b(?:key|token|account|organi[sz]ation|workspace|credentials?|ip|address|access|subscription|plan)\b/i;
+
+/**
+ * Is this a 403 in which the server itself says the text was refused: its own body names a guardrail, or says "blocked" (plain or JSON
+ * body, not a web page, and not blaming the key, the account or the network: "your key is blocked" stays a key problem)? Only the
+ * body the server sent is looked at (its first 2,000 characters), never the request or anything this module made up.
+ */
+export function isContentRefusal(status, body) {
+  if (status !== 403 || typeof body !== 'string') return false;
+  const text = body.slice(0, 2000);
+  if (/guardrail/i.test(text)) return true;
+  return /\bblocked\b/i.test(text) && !MARKUP_BODY.test(text) && !NOT_CONTENT.test(text);
+}
+
 /** Maps an HTTP status to a VoxtralError. */
 export function mapStatus(status, body, {headers, apiKey} = {}) {
   const detail = (typeof body === 'string' && body ? body.slice(0, 160) : `HTTP ${status}`);
   const options = {status, retryAfterMs: retryAfter(headers), apiKey};
+  // The server refused this line's text (its guardrail), not the key: nothing here says "key", and nothing pauses or retries (see noteFailure).
+  if (isContentRefusal(status, body)) return new VoxtralError('content', 'refused this line (guardrail)', options);
   // What the server said goes in the log line (the key and anything shaped like one are scrubbed): the line must show whether a 403 was
   // a refused key or something else (a gateway page, a burst limit).
   const said = typeof body === 'string' ? body.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100) : '';
@@ -413,6 +437,12 @@ export class VoxtralVoice {
 
   /** Records why Voxtral could not deliver (a limit or a refused key pauses requests) and says so in the log. */
   noteFailure(error, scope = '') {
+    // The server's guardrail refused this one line: no pause (the next reply's voice is asked as usual), no degraded state (that would
+    // publish a fallback to the Convai voice that does not happen) and one line, with no key wording. The written reply stands.
+    if (error.kind === 'content') {
+      this.log(scope ? `refused the rest of this reply (guardrail), the reply ends after the part already heard` : 'refused this line (guardrail); shown as text');
+      return;
+    }
     if (error.kind === 'limit' && error.status === 429) this.until = this.clock() + (error.retryAfterMs ?? this.limits.limitCooldownMs);
     if (error.kind === 'key') this.until = this.clock() + (error.status === 403 ? this.limits.forbiddenCooldownMs : this.limits.keyCooldownMs);
     // A voice without a reference, or text that cannot be spoken, is that reply's problem, not the service's.
@@ -557,10 +587,11 @@ export class VoxtralVoice {
    * How long to wait before the one quick second ask after `error` (attempt 0 failed), or null for none. Only an answer the server gave
    * before any audio can be asked again, and only one that can be a hiccup: an HTTP 403 (if it is still there on the second ask it is
    * reported as a refused key), a 408, a 5xx, or a 429 whose Retry-After fits `retryBudgetMs` (none given: `retryWaitMs`). A 401 is a
-   * refused key: never again. The wait is at most `retryBudgetMs` (about a second), so a turn is never held longer than that for it.
+   * refused key: never again. A guardrail refusal of the text ('content', also an HTTP 403) is never asked again: the same text is refused
+   * the same way. The wait is at most `retryBudgetMs` (about a second), so a turn is never held longer than that for it.
    */
   retryWait(error, attempt) {
-    if (attempt > 0 || !(error instanceof VoxtralError) || !error.status) return null;
+    if (attempt > 0 || !(error instanceof VoxtralError) || !error.status || error.kind === 'content') return null;
     const {status} = error, {retryWaitMs, retryBudgetMs} = this.limits;
     if (status === 429) { const wait = error.retryAfterMs ?? retryWaitMs; return wait <= retryBudgetMs ? wait : null; }
     return status === 403 || status === 408 || status >= 500 ? retryWaitMs : null;
@@ -670,8 +701,9 @@ export class VoxtralVoice {
         const failure = mapStatus(response.status, body, {headers: response.headers, apiKey});
         // A 429 holds every Mistral request (text included) for the server's retry-after.
         if (failure.kind === 'limit') this.scheduler.pause(failure.retryAfterMs);
-        // A refusal that can be a burst limit (a 403, a 429, a server fault): fewer speech requests at once for a while.
-        if (failure.status === 403 || failure.status === 429 || failure.status >= 500) this.gate.tighten();
+        // A refusal that can be a burst limit (a 403, a 429, a server fault): fewer speech requests at once for a while. A guardrail
+        // refusal of this line's text is not one.
+        if (failure.kind !== 'content' && (failure.status === 403 || failure.status === 429 || failure.status >= 500)) this.gate.tighten();
         if (failure.status === 400 && reference.format === 'ogg' && !this.safeFormat && /audio|mp3|wav/i.test(body)) {
           this.safeFormat = true; this.references.clear();
           this.log('the Ogg reference was refused; the references are prepared as MP3 from now on');

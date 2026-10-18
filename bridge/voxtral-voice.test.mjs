@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
 import {resolve} from 'node:path';
-import {VoxtralVoice, VoxtralError, VOXTRAL_LIMITS, capWav, joinWavs, mapStatus, redact, splitReply, sseEvents} from './voxtral-voice.mjs';
+import {VoxtralVoice, VoxtralError, VOXTRAL_LIMITS, capWav, isContentRefusal, joinWavs, mapStatus, redact, splitReply, sseEvents} from './voxtral-voice.mjs';
 import {createVoiceProfileRegistry} from './voice-profile-registry.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {ownedLocalPcmPacket} from './local-pcm-host.mjs';
@@ -702,7 +702,7 @@ function planned(plans) {
     at[plan?.name] = performance.now();
     if (!plan) { response.writeHead(400); response.end('unexpected text'); return; }
     if (plan.delay) await wait(plan.delay);
-    if (typeof plan.then === 'number') { response.writeHead(plan.then, {'content-type': 'application/json'}); response.end('{"message":"no"}'); return; }
+    if (typeof plan.then === 'number') { response.writeHead(plan.then, {'content-type': 'application/json'}); response.end(plan.body ?? '{"message":"no"}'); return; }
     sse(response);
     for (const [index, samplesOut] of (plan.deltas ?? []).entries()) {
       if (index && plan.gap) await wait(plan.gap);
@@ -1138,6 +1138,137 @@ test('a 403 that is still there on the quick second ask is reported as a refused
     });
     assert.equal(server.requests.length, 2); assert.equal(voice.degraded.reason, 'key');
     time += VOXTRAL_LIMITS.forbiddenCooldownMs - 1; assert.equal(voice.ready, false);
+    time += 2; assert.equal(voice.ready, true);
+  } finally { await server.close(); }
+});
+
+// ---- a guardrail refusal is about that line's text, not the key (a 403 "Request blocked by guardrail policy" paused the voice for 20 s) ----
+
+const GUARDRAIL_BODIES = ['Request blocked by guardrail policy', '{"message":"Request blocked by guardrail policy"}',
+  '{"object":"error","message":"Request blocked by guardrail policy","type":"guardrail_violation","code":"3000"}',
+  'REQUEST BLOCKED BY GUARDRAIL POLICY', 'Guardrail triggered', '{"error":{"message":"Content blocked by policy"}}', 'Request blocked'];
+const REFUSED_LINE = '[Voxtral] refused this line (guardrail); shown as text\n';
+
+test('a 403 whose own body names the guardrail (or says blocked) is a content refusal; a gateway page, a blamed key and every other status keep their meaning', () => {
+  for (const body of GUARDRAIL_BODIES) {
+    assert.equal(isContentRefusal(403, body), true, body);
+    const error = mapStatus(403, `${body} ${KEY}`, {apiKey: KEY});
+    assert.equal(error.kind, 'content', body); assert.equal(error.status, 403);
+    assert.ok(error.message.endsWith('[voxtral:content]')); assert.equal(/key/i.test(error.message), false, `no key wording: ${error.message}`);
+    assert.equal(error.message.includes(KEY), false);
+  }
+  for (const body of ['', undefined, '{"message":"Forbidden"}', '{"message":"hiccup"}', 'Forbidden by the gateway',
+    '<html><body><h1>Sorry, you have been blocked</h1> This website is using a security service</body></html>',
+    '<!DOCTYPE html><title>Attention Required</title> You are blocked', 'Your API key has been blocked', '{"message":"Account blocked"}',
+    'Access blocked for this IP address', 'This organization is blocked', 'unblocked', 'blockedness']) {
+    assert.equal(isContentRefusal(403, body), false, String(body));
+    const error = mapStatus(403, body, {apiKey: KEY});
+    assert.equal(error.kind, 'key', `a 403 saying ${JSON.stringify(body)} is what it was: a key problem`);
+    assert.ok(error.message.includes('did not accept the API key (HTTP 403'), error.message);
+  }
+  // Only a 403: the same words under another status are what that status already meant.
+  assert.equal(mapStatus(401, 'Request blocked by guardrail policy').kind, 'key');
+  assert.equal(mapStatus(429, 'Request blocked by guardrail policy').kind, 'limit');
+  assert.equal(mapStatus(503, 'Request blocked by guardrail policy').kind, 'network');
+  assert.equal(mapStatus(400, 'Request blocked by guardrail policy').kind, 'request');
+});
+
+test('a guardrail 403 is that reply\'s problem only: one request (no second ask), no pause, no tightened gate, no report, one log line, a written reply, and the next reply is asked as usual', async () => {
+  for (const body of GUARDRAIL_BODIES) {
+    const server = await flaky(403, 1, {}, body);
+    try {
+      let time = 13_000_000;
+      const logs = [];
+      const {voice} = voiceFor(server, {limits: {retryWaitMs: 5}, clock: () => time, onLog: line => logs.push(line)});
+      const refused = collect();
+      await assert.rejects(voice.synthesizeStream('judy-alvarez', 'A line the guardrail dislikes.', refused), error => {
+        assert.equal(error.kind, 'content', body); assert.equal(error.status, 403); assert.equal(error.retried, undefined);
+        assert.equal(/key/i.test(error.message), false, `no key wording: ${error.message}`); assert.equal(error.message.includes(KEY), false);
+        return true;
+      });
+      assert.equal(server.requests.length, 1, `${body}: a content refusal is not asked again`);
+      assert.equal(refused.packets.length, 0, 'the reply is written text only');
+      assert.equal(voice.until, 0, 'the voice is not paused'); assert.equal(voice.ready, true);
+      assert.equal(voice.degraded, null, 'no fallback to another voice is reported for a reply-level refusal'); assert.equal(voice.fellBack, 0);
+      assert.equal(voice.gate.cap, VOXTRAL_LIMITS.maxConcurrent, 'not a burst limit: the gate is not tightened');
+      assert.deepEqual(logs, [REFUSED_LINE], 'exactly one line, with no key wording and no second ask');
+      // The next reply's voice goes straight out, with no wait.
+      const next = collect();
+      const result = await voice.synthesizeStream('judy-alvarez', 'A line it likes.', next);
+      assert.equal(server.requests.length, 2); assert.equal(result.provider, 'voxtral'); assert.equal(next.packets.length, 1);
+      assert.equal(voice.degraded, null);
+    } finally { await server.close(); }
+  }
+});
+
+test('through the voice selection a guardrail 403 is written text for that reply: no third ask, no Convai-voice fallback state, no local voice, and the next turn speaks in the cloud voice', async () => {
+  const server = await flaky(403, 1, {}, '{"message":"Request blocked by guardrail policy"}');
+  try {
+    const logs = [];
+    const h = selection(server, {voxtral: {...quick, onLog: line => logs.push(line)}});
+    h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
+    await assert.rejects(h.voice.synthesizeStream('judy-alvarez', 'A line the guardrail dislikes.', {onPcm() {}}), {kind: 'content', status: 403});
+    assert.equal(server.requests.length, 1, 'neither the voice\'s quick second ask nor the voice selection\'s longer one');
+    assert.deepEqual(logs, [REFUSED_LINE]);
+    assert.equal(h.calls.length, 0); assert.equal(h.workers.length, 0, 'never a local voice');
+    assert.equal(h.voice.cloudFallback, null, 'the Convai voice is not announced: the next turn is still the cloud voice');
+    assert.equal(h.voice.cloudKeyless, false); assert.equal(h.voice.cloudBlocked, null); assert.equal(h.voice.cloudLast, null);
+    h.voice.publish();
+    assert.equal(h.states.at(-1).fallback, null); assert.equal(h.states.at(-1).voxtral.degraded, null);
+    const record = describeVoiceRoute({voice: h.voice, input: {profileKey: 'judy-alvarez'}, profile: {key: 'judy-alvarez', name: 'Judy'},
+      plan: {engine: 'pocket'}, reply: {engine: 'pocket'}, now: () => 0});
+    assert.equal(record.fallback, null); assert.equal(record.used, 'Mistral cloud voice (Voxtral)');
+    assert.equal((await h.voice.synthesizeStream('judy-alvarez', 'Next turn.', {onPcm() {}})).provider, 'voxtral');
+    assert.equal(server.requests.length, 2);
+    await h.voice.close();
+  } finally { await server.close(); }
+});
+
+test('the rest of a reply refused by the guardrail: not asked again, the reply ends after the part already heard, one log line, no pause', async () => {
+  const server = await planned([
+    {name: 'head', input: HEAD, deltas: [level(4800, 0.25)]},
+    {name: 'tail', input: TAIL, then: 403, body: '{"message":"Request blocked by guardrail policy"}'}]);
+  try {
+    const logs = [];
+    const h = selection(server, {voxtral: {onLog: line => logs.push(line)}, pocket: async () => { throw Error('Pocket must not speak the tail'); }});
+    h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
+    const utterance = new Utterance(), head = collect(), tail = collect();
+    const settled = await Promise.allSettled([headOf(h, head, {utterance}), tailOf(h, tail, utterance)]);
+    assert.equal(settled[0].status, 'fulfilled'); assert.equal(settled[1].status, 'rejected'); assert.equal(settled[1].reason.kind, 'content');
+    assert.equal(server.requests.filter(request => request.body.input === TAIL).length, 1, 'the refused rest is asked for once');
+    assert.equal(tail.packets.length, 0); assert.equal(head.packets.length, 2); assert.equal(h.calls.length, 0);
+    const refusals = logs.filter(line => /refused/.test(line));
+    assert.equal(refusals.length, 1, logs.join('|')); assert.ok(refusals[0].includes('the reply ends after the part already heard'), refusals[0]);
+    assert.equal(logs.some(line => /key|asking again/i.test(line)), false, logs.join('|'));
+    assert.equal(h.cloud.until, 0); assert.equal(h.cloud.ready, true); assert.equal(h.cloud.gate.cap, VOXTRAL_LIMITS.maxConcurrent);
+    assert.equal(h.voice.cloudFallback, null);
+  } finally { await server.close(); }
+});
+
+test('a 403 with other wording is still a key problem (one quick second ask, the burst gate tightened, 20 s pause only when it repeats); a 401 that mentions the guardrail is still a refused key', async () => {
+  for (const body of ['{"message":"Forbidden"}', 'Forbidden by the gateway', 'Your API key has been blocked',
+    '<html><body>Sorry, you have been blocked</body></html>']) {
+    const server = await flaky(403, 99, {}, body);
+    try {
+      let time = 15_000_000;
+      const logs = [];
+      const {voice} = voiceFor(server, {...quick, clock: () => time, onLog: line => logs.push(line)});
+      await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Hello V.', collect()), {kind: 'key', status: 403, retried: true});
+      assert.equal(server.requests.length, 2, `${body}: one quick second ask`);
+      assert.equal(voice.degraded.reason, 'key'); assert.equal(voice.gate.cap, VOXTRAL_LIMITS.tightConcurrent, 'a 403 may be a burst limit');
+      assert.equal(logs.filter(line => line.includes('asking again')).length, 1);
+      assert.ok(logs.some(line => line.includes('did not accept the API key (HTTP 403')), logs.join('|'));
+      time += VOXTRAL_LIMITS.forbiddenCooldownMs - 1; assert.equal(voice.ready, false);
+      time += 2; assert.equal(voice.ready, true);
+    } finally { await server.close(); }
+  }
+  const server = await flaky(401, 99, {}, 'Request blocked by guardrail policy');
+  try {
+    let time = 17_000_000;
+    const {voice} = voiceFor(server, {...quick, clock: () => time});
+    await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Hello V.', collect()), {kind: 'key', status: 401});
+    assert.equal(server.requests.length, 1); assert.equal(voice.degraded.reason, 'key');
+    time += VOXTRAL_LIMITS.keyCooldownMs - 1; assert.equal(voice.ready, false);
     time += 2; assert.equal(voice.ready, true);
   } finally { await server.close(); }
 });
