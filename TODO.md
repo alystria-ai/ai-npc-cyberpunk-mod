@@ -73,7 +73,7 @@ Found on the way: the scripted game route had dropped the prepared WAV, so the P
 - a holocall from the apartment with OmniVoice: `Holocall voice: path=audioware-v`, her voice heard (needs a full restart for `Speech.reds`);
 - story characters off on a fresh settings file.
 
-Demo video, screenshots and the Nexus and YouTube write-up are in `Downloads\AI-NPC-Nexus-Launch`; the edit script is `demo-videouild_demo.py`.
+Demo video, screenshots and the Nexus and YouTube write-up are in `Downloads\AI-NPC-Nexus-Launch`; the edit script is `demo-video/build_demo.py`.
 
 **2026-10-18 (branch `holo-fix`, from main e975fdfc; unit-tested and compiled, NOT merged, NOT installed): silent native voice on a holocall.** Live 09:30Z from the apartment (`floor=+4.5m away=4.5m`, face working): a prepared OmniVoice WAV on a holocall moved her lips (`nativePlaybackObserved: true`) but was not heard; V's voice and a Voxtral (browser) holocall reply were heard. The native phrase was a spatial Audioware emitter on V's weapon or chest item (distance attenuation, 18 m max, occlusion); fix: `Speech.reds` `ConvaiSpeechStartOnV` queues a `DynamicSoundEvent` on V, which Audioware plays on V's own non-spatial track; `speech.lua` uses it first for holocall phrases (`Holocall voice: path=audioware-v`), the old emitter path stays as the fallback for an older `Speech.reds`. Tests: speech-delivery new test; suites 360 pass of 363 (2 fail, both face-stage/face-test failures already at HEAD); `Compile-Redscript.ps1` exit 0. Needs a full restart.
 
