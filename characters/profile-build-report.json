@@ -1913,8 +1913,8 @@
     },
     {
       "key": "ana-friedman",
-      "words": 585,
-      "speakingStyleWords": 197,
+      "words": 582,
+      "speakingStyleWords": 196,
       "sampleDialogueWords": 188,
       "voice": "Anna (Expressive Young-Adult American Female)",
       "sources": 4,
@@ -1931,7 +1931,7 @@
     },
     {
       "key": "babs-okoye",
-      "words": 641,
+      "words": 639,
       "speakingStyleWords": 150,
       "sampleDialogueWords": 181,
       "voice": "Anna (Expressive Young-Adult American Female)",
@@ -2408,7 +2408,7 @@
     },
     {
       "key": "rita-wheeler",
-      "words": 694,
+      "words": 689,
       "speakingStyleWords": 274,
       "sampleDialogueWords": 206,
       "voice": "Katie (Husky Young-Adult American Female)",
