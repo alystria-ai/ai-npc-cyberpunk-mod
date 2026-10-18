@@ -62,6 +62,19 @@ Nothing is parked.
 
 ## Captain's log
 
+**2026-10-18 ~21:45 IST: Runtime 0.2 patch 2 and Mature packs with the engine, on Hugging Face.** Three players reported "No model installed" with Local AI installed. A packaged stand-in test with the released files showed detection works. The cause is a pack extracted one folder too deep (Windows "Extract All" and 7-Zip "Extract to <name>" defaults).
+- **Fixes, merged:**
+  - `fix/pack-autoplace`: the launcher moves pack files found one or two folders too deep, or in the mod or plugin folder, into place at start (`packaging/runtime/place-packs.mjs`).
+  - `fix/report-local-ai`: the support report gets a Local AI section and the released launcher-log path.
+  - `fix/mature-engine`: each Mature pack carries llama-server and the embedder, so it works alone. Mature-only with Mature content off leaves Local AI off.
+  - Every zip now has a "HOW TO INSTALL" note at the top.
+- **Build and tests:** the Runtime was patched from the b9712264 tree (10 changed or added files plus the note, ClamAV 0 infected). Four packaged cases passed: in place, nested, Mature-only, and Mature-only nested.
+- **Hugging Face:** both Mature packs rebuilt (2.9 and 5.5 GB). Model card (`packaging/HF_MODEL_CARD.md`) and LICENSE uploaded.
+- **Open:**
+  - the Lucy and Rita Wheeler integration moves into the main mod (agent on `addon-nca-plan`);
+  - external local servers such as KoboldCpp, LM Studio and Ollama (agent on `feature/external-local-endpoint`);
+  - the Mature-off row text for a Mature-only install is generic ("could not start"), a Scripts follow-up.
+
 **2026-10-18 (evening): v0.2 released.** The user published the mod on Nexus Mods and the demo video on YouTube. Downloads: Scripts on Nexus and Hugging Face; Runtime 0.2 (system Edge, no bundled browser, ClamAV clean) and the optional packs on Hugging Face. GitHub account alystria-ai is flagged and hidden; rebuild the release there after reinstatement.
 
 **2026-10-18 (evening): new to-do, add-ons for Lucy and Rita Wheeler** (Night City Allies followers), from a player's feature request stored verbatim under "Still to build"; nothing else decided yet.
