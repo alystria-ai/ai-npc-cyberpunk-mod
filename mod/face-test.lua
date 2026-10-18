@@ -896,8 +896,9 @@ function M.abandon(reason)
     end
     for _, each in ipairs(M.group or {}) do each.npc, each.lookEvent, each.frozen, each.state = nil, nil, false, 'released' end
     M.stage, M.play, M.cue, M.run, M.group = nil, nil, nil, nil, {}
+    M.gazeHold = nil -- `gaze <who>`: a companion handle and its look-at event, like a stage's
     local companions = convaiCompanions
-    if type(companions) == 'table' then companions.devQuiet = nil end -- keyed by the old copies' serials
+    if type(companions) == 'table' then companions.devQuiet = nil; companions.devGazeKey = nil end -- keyed by the old copies
 end
 
 local function step(run)

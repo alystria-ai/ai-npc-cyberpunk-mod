@@ -3179,6 +3179,10 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     if convaiHolocall then pcall(convaiHolocall.abandon, reason) end
     focusedCrowd, releasedCrowd = nil, nil
     if convaiVanillaReactions then pcall(convaiVanillaReactions.clear) end
+    -- The last crosshair search's NPC handles (targetAtCrosshair, refreshed by the gaze every 0.2 s): the whole on-foot party
+    -- and every NPC near V. Kept until the next search, so without this every one of them outlived the unload (18 Oct 09:10
+    -- detach: Jackie's and Johnny's handles were still held after the collect).
+    convaiTalkNative = nil
     if convaiSpawnedCharacters then convaiSpawnedCharacters:reset() end
     convaiStory = nil
     if convaiFacialPlayback then convaiFacialPlayback.storyEntity = nil end
