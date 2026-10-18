@@ -187,7 +187,7 @@ test('voice map describes every voice it assigns, with the right gender, and cov
     const entry = voiceMap.assignments[row.key];
     assert.ok(entry, 'no voice for ' + row.key);
     assert.match(entry.voice, /^AZURE-MULTILINGUAL-|^[A-Za-z]+Multilingual(V2)?Neural$/u);
-    assert.equal(voiceMap.voices[entry.voice].gender, row.gender, row.key);
+    assert.equal(voiceMap.voices[entry.voice].gender, entry.voiceGender ?? row.gender, row.key);
     assert.ok(entry.reason.length > 10 && !entry.reason.includes('\n'), row.key);
     used.add(entry.voice);
   }

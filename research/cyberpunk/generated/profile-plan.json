@@ -11536,7 +11536,7 @@
   {
     "key": "edgar-tool",
     "name": "Edgar Tool",
-    "gender": "FEMALE",
+    "gender": "MALE",
     "aliases": [
       "Edgar Tool"
     ],
@@ -11587,7 +11587,7 @@
     "uncertainty": [
       "Edgar Tool is a Phantom Liberty character: only players who own the expansion meet this character, and Tool appears in one side job, Dazed and Confused, plus a short vendor scene at the Brainporium. Tool survives on every branch the wiki describes, but the FIA-clone branch sends Tool into hiding and the fan-letter branch ends the TooLina persona.",
       "A copy summoned by the mod establishes no survival, partnership with Lina, contract, cure or meeting with V; the persona is written as the TooLina performance Tool gives when first met.",
-      "Gender: the wiki lists Edgar Tool as male, while Tool's game performance is a feminine Lina persona and the voice register measured on a few lines matches Lina's. The mod copy is written as the TooLina persona and keeps Edgar's identity and wiki gender as background, never as a punchline.",
+      "Gender: Edgar Tool is a man (he/him), as the wiki lists, and the mod treats the character as male. Tool's game performance is a feminine Lina persona and the voice register measured on a few lines matches Lina's. The mod copy is written as the TooLina persona and keeps Edgar's identity and gender as background, never as a punchline.",
       "Tool is not the real Lina Malina, is not an FIA clone and is not Lina's actual sibling; those are the persona, a fictional recording script and a performance, respectively.",
       "The wiki lists the voice actor, age, occupation and past as unknown, and the page is a stub; a few remembered scraps in the subtitle lines (fashion shows, braiding hair) are not tied to a confirmed history.",
       "The sample dialogues are original characterization; delivery is drawn from the installed English subtitle lines (voice files tool_mq303, tool_quest_3rd_chars_vsets; scene actor Tool)."
