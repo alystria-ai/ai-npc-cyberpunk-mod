@@ -475,8 +475,10 @@ setting), `requested` and `applied`; a switch happens only at an idle boundary. 
   forgets a server that stopped answering so the next `ensure()` looks again. The request goes through the same `localRoute` and `streamChat` as our own server, with
   `requestModel` and `trustedOrigin` on the lease: `checkedEndpoint` accepts a non-loopback address only when it is exactly that origin, so the key reaches that one origin. The
   embedder (`local-embed.mjs`) is separate and unchanged. `bridge/support-report.mjs` adds the manifest's `apiKey` values to the scrubber's secrets.
-- `bridge/convai-bridge.mjs`: `syncLocalModelChoice` runs on the settings poll (it reads `localModel` from `settings.json` and compares it
-  with Mature content and the Mature pack's presence; it re-lists the installed models and republishes the status at most every 5 s). The
+- `bridge/convai-bridge.mjs`: `syncLocalModelChoice` runs on the settings poll, right after Mature content is read and before the poll applies
+  the saved provider, so the first Local AI start of a launch already loads the saved model (it reads `localModel` from `settings.json` and
+  compares it with Mature content and the Mature pack's presence). `publishLocalModelList` follows the provider change: it re-lists the
+  installed models and republishes the status at most every 5 s. The
   fallback becomes the `local-model-fallback` notice (`MistralProvider.noteLocalModelFallback`, sent as `keyNotice` on the next reply),
   once per distinct pin and reason until the pin changes.
 - Custom models (`bridge/custom-models.mjs`, tests `custom-models.test.mjs`, `custom-model-choice.test.mjs` and the custom block at the end
