@@ -444,6 +444,21 @@ call connects with the portrait, the usual `holo failed ... reason=no-studio-spo
 **Voice probe line.** Each holocall reply logs `Holocall voice: path=browser level=<0..1>` (the cloud and Pocket voices,
 the browser renderer, at the phone's full level) or `Holocall voice: path=audioware on=<class> away=<m>m` (an Omni or
 prepared WAV, played on V's weapon or chest item: full level within 2 m, silent past 18 m), once per reply.
+With the 2026-10-18 voice fix the Audioware line is `Holocall voice: path=audioware-v` (see below); `path=audioware on=...`
+only appears with an older `Speech.reds`.
+
+**Native voice on a call (2026-10-18).** Seen live from an apartment (`floor=+4.5m away=4.5m`): a prepared OmniVoice
+WAV played on a holocall moved her lips (the Audioware cursor advanced, `nativePlaybackObserved: true`) but nothing was
+heard, while V's own voice and a Voxtral (browser) reply on the same kind of call were heard normally. The Audioware
+phrase was a spatial `DynamicEmitterEvent` on V's weapon or chest item (`bodyObject`, because Audioware refuses V as an
+emitter): a kira spatial track placed at that item's world position, attenuated by distance (silent past 18 m) and an
+occlusion filter, heard from the listener. An item's world position need not be where V stands (a worn item's entity is
+not V's body), so the phone voice could play somewhere V could not hear it. Fix: `Speech.reds`
+`ConvaiSpeechStartOnV(event)` queues a `DynamicSoundEvent` on V itself; Audioware's `Engine::play` sees the listener's
+own entity and plays it on V's non-spatial track (`tracks.v.vocal`), with no place, distance or occlusion: a phone voice.
+`speech.lua` tries it first for every holocall phrase; `ConvaiSpeechPosition`, `Pause` and `Stop` serve both kinds, so
+the clock, lip sync, pause and stop are unchanged. With an older `Speech.reds` (no such method) the emitter path is kept.
+Needs a full game restart (redscript).
 
 ### Bridge
 
