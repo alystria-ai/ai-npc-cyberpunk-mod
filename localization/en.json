@@ -4092,8 +4092,8 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-vehicles.lua:608",
-        "mod/companion-vehicles.lua:736"
+        "mod/companion-vehicles.lua:658",
+        "mod/companion-vehicles.lua:786"
       ]
     },
     "Find the log files and create a report to send to the developer if something goes wrong.": {
@@ -7462,7 +7462,7 @@
       ],
       "references": [
         "mod/companion-chauffeur.lua:243",
-        "mod/companion-vehicles.lua:728"
+        "mod/companion-vehicles.lua:778"
       ]
     },
     "The selected companion is unavailable.": {
@@ -7470,7 +7470,7 @@
         "chauffeur.feedback"
       ],
       "references": [
-        "mod/companion-vehicles.lua:718"
+        "mod/companion-vehicles.lua:768"
       ]
     },
     "The service launcher writes launcher.log at {path}": {
@@ -8140,7 +8140,7 @@
         "party.vehicle-transition-feedback"
       ],
       "references": [
-        "mod/companion-vehicles.lua:270"
+        "mod/companion-vehicles.lua:320"
       ]
     },
     "Waiting for the native vehicle mount to release.": {
@@ -8157,7 +8157,7 @@
       ],
       "references": [
         "mod/companion-chauffeur.lua:333",
-        "mod/companion-vehicles.lua:389"
+        "mod/companion-vehicles.lua:439"
       ]
     },
     "Waiting for the result of clearing memories for {target}. Reopen this page after the memory service reconnects.": {
@@ -8185,7 +8185,7 @@
         "party.vehicle-transition-feedback"
       ],
       "references": [
-        "mod/companion-vehicles.lua:276"
+        "mod/companion-vehicles.lua:326"
       ]
     },
     "Waiting for you to board": {
