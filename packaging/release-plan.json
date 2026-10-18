@@ -852,6 +852,7 @@
     "compute": "CUDA PyTorch",
     "tensorRT": false,
     "localProfiles": [
+      "8ug8ear",
       "aaron",
       "adam-smasher",
       "alan-noel",
@@ -881,6 +882,7 @@
       "hanako-arasaka",
       "iris-tanner",
       "jackie-welles",
+      "jake-estevez",
       "jefferson-peralez",
       "jesse",
       "jim-jarry",
@@ -947,8 +949,8 @@
       "additionalProfileStatus": "source-qualified activation; listening not required by user",
       "sourceQualifiedActivation": true,
       "subjectiveListeningRequired": false,
-      "preparedLocalProfiles": 77,
-      "fallbackProfiles": 4
+      "preparedLocalProfiles": 79,
+      "fallbackProfiles": 2
     },
     "startupProfiles": [
       "johnny-silverhand",
