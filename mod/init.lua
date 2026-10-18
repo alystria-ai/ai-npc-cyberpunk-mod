@@ -1405,6 +1405,12 @@ do
             end,
             -- Every speaker of a running group round counts as an exchange for a partner (convaiRoundKeys).
             roundKeys = function() return convaiRoundKeys() end,
+            -- Mistral or the local AI answers turns: no Convai connection is opened or waited for, so no "Preparing connection" notice.
+            -- The bridge's applied provider (runtime/mistral-state.json, read at most every 1.5 s), asked only on a talk start.
+            noConnection = function()
+                local ok, state = pcall(manager.mistral)
+                return ok and type(state) == 'table' and (state.effective == 'mistral' or state.effective == 'local')
+            end,
             log = function(line) log(line) end})
         -- convaiAutoConnect.promote(key): a conversation partner asked to follow leaves the partner role.
         if built and type(value) == 'table' then autoConnect = value; convaiAutoConnect = value

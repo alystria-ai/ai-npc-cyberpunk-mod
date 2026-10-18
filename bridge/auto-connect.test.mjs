@@ -843,6 +843,29 @@ test('wiring: the scene context carries sceneReal (tier 3 or above), the gaze ca
   assert.match(source, /if entry\.spawned and context\.blocked then entry\.lastWanted = clock end/);
 });
 
+test('with Mistral or the local AI answering turns there is no connection to wait for: no notice, and a holocall is ready', () => {
+  run(`${fixture}
+    local noConnection = false
+    local auto = make({noConnection = function() return noConnection end})
+    assert(auto.talkNotice('rita-wheeler', 'Rita') == 'Preparing connection to Rita…', 'Convai: not connected yet shows the notice')
+    assert(auto.ready('rita-wheeler') == false)
+    noConnection = true
+    assert(auto.talkNotice('rita-wheeler', 'Rita') == nil, 'a text provider has no connection to prepare')
+    assert(auto.ready('rita-wheeler') == true, 'a holocall does not ring for ever on a provider with no connection')
+    assert(auto.ready(nil) == false and auto.talkNotice(nil, 'x') == nil)
+    -- A failing check counts as "a connection is needed", and no option at all changes nothing.
+    local broken = make({noConnection = function() error('no state') end})
+    assert(broken.talkNotice('judy', 'Judy') == 'Preparing connection to Judy…' and broken.ready('judy') == false)
+    assert(make().talkNotice('judy', 'Judy') == 'Preparing connection to Judy…')
+    readyKeys.judy = true
+    noConnection = false
+    assert(auto.talkNotice('judy', 'Judy') == nil and auto.ready('judy') == true)
+  `);
+  const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+  assert.match(init, /noConnection = function\(\)\s+local ok, state = pcall\(manager\.mistral\)\s+return ok and type\(state\) == 'table' and \(state\.effective == 'mistral' or state\.effective == 'local'\)/);
+  assert.match(source, /if not key or ready\(key\) or noConnection\(\) then return nil end/);
+});
+
 test('wiring: the scan remembers spawned characters and adds the remembered ones within group range; round keys and the partner check are passed in', () => {
   const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
   assert.match(init, /convaiSpawnedRange = 8/);
