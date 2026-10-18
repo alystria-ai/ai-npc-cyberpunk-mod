@@ -229,3 +229,32 @@ never print key, token or auth files; no game launch, no live talk turns, no Con
   Flag any character whose own reference does not rank first.
 - `merge.mjs knowledge` is not needed when the knowledge builder runs after the roster merge, because `profileKeys` follow
   the roster.
+
+## Second batch (2026-10-19, branch `cast-batch-2`)
+
+15 characters, listed in `bridge/cast-expansion-keys.mjs` as `CAST_EXPANSION_2_KEYS`: Steve Sanchez, Jeremiah Grayson, Aymeric Cassel,
+Farida Nazeri, Brick, Patricia, Lucy Thackery, Mateo Thiago, Max Jones, Tiny Mike, Ziggy Q, Doctor Paradox, Leon Rinder, Albert Murphy
+(voice stem `kruger`) and Carl Robinson ("Dodger"). They are the batch-1 leftovers with a scene-verified identity and enough audio, plus
+three BARGHEST lieutenants from the Dogtown gigs. Held back: Hasan Demir and Pedro Aimar (voice and identity are clear, but no body record
+was found: a few hundred `Character.*` names were hashed against both TweakDBs, nothing matched), Tom and Sasquatch (identity doubtful), Kirk
+Sawyer, Barry Lewis and Mr. Blue Eyes (civilian stems: 77, 40 and 28 attributed lines of mostly shared models).
+
+- **Profile limit.** There is none at 128. That number was `VOICE_PROFILE_LIMITS.profiles` in `bridge/voice-profile-registry.mjs` until commit
+  `440de661` (2026-10-08) raised it to 1024; `bridge/pocket_voice_runtime.py` and `bridge/resident-voice-worker.py` carry the same 1024. The
+  `registry.profileLimit` in `packaging/release-plan.json` was a stale note that no code reads (now 1024). The next limit is 256
+  `profileKeys` per knowledge pack in `bridge/world-knowledge.mjs` (`LIMIT.profiles`); the roster is at 125 and the three voice configs at
+  286 rows (before this batch). Nothing needs raising.
+- **Aliases are full names only.** A nickname such as "Dodger" is also a handle in `characters/npc-name-pools.json`, and
+  `bridge/npc-names.test.mjs` fails when a generated handle equals a roster alias. The nickname stays in the dossier text.
+- **Knowledge.** `staging/cast/_knowledge/build-specs.mjs --additions` writes the pack and the audience additions, then
+  `node research/cyberpunk/scripts/build_native_pack.mjs --apply` recompiles `generated/world-knowledge.json` and
+  `characters/world-knowledge.json`. A rule that sits in a `zz-cast-knowledge-*` pack is cloned, not edited. Review text:
+  `research/cyberpunk/native-reviews/cast-knowledge-20261019c.md`.
+- **Release data.** `merge.mjs release-data --keys ...` copies only these keys' IDs; the full `Refresh-ReleaseData.mjs` would also take rows
+  that other branches added to the shared `runtime/`.
+- **Tests that notice a new batch.** `bridge/first-person-profiles.test.mjs` (two count pins), `bridge/nca-compat.test.mjs` (a record that NCA
+  also offers, here `Character.Brick`, joins the named set), `bridge/multilingual.test.mjs` (the twins wait for the language box; the
+  allowance is `CAST_EXPANSION_2_KEYS` and goes when they move into `CAST_EXPANSION_KEYS`).
+- **Order used.** Text and CPU work first (specs, extraction, dossiers, profiles, merges, Convai), then the GPU steps that need the
+  coordinator's power-mode go-ahead: `analyze.py`, `build.py`, `merge_rows.mjs`, `merge.mjs release-plan`, the ear check, and the voice
+  and release-plan assertions that are marked `todo` in `bridge/cast-expansion.test.mjs` until then.

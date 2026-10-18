@@ -7,3 +7,11 @@ export const CAST_EXPANSION_KEYS = Object.freeze([
   'edgar-tool', 'jacob-long', 'angelica-whelan', 'voodoo-queen', 'anders-hellman', 'joshua-stephenson',
   'maiko-maeda', 'wilky-laguerre', 'aurore-cassel', 'dante-caruso', 'jago-szabo'
 ]);
+
+// The 2026-10-19 second expansion (same recipe), in roster order. Their Convai twins still await the dashboard language box
+// (see docs/CAST_EXPANSION_RECIPE.md "Second batch"), so they are not in CAST_EXPANSION_KEYS and the twin-map test does not
+// require languageBoxOff for them yet. Move them into CAST_EXPANSION_KEYS once the box is off and their voices are built.
+export const CAST_EXPANSION_2_KEYS = Object.freeze([
+  'steve', 'grayson', 'aymeric-cassel', 'farida-nazeri', 'brick', 'patricia', 'lucy-thackery', 'mateo-thiago',
+  'max-jones', 'tiny-mike', 'ziggy-q', 'doctor-paradox', 'leon-rinder', 'albert-murphy', 'carl-robinson'
+]);

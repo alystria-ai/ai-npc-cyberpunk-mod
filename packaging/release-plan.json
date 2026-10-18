@@ -980,7 +980,7 @@
     "registry": {
       "schemaVersion": 2,
       "sharedModel": true,
-      "profileLimit": 128,
+      "profileLimit": 1024,
       "preparation": "lazy",
       "startupProfilesLimit": 3,
       "maxCachedProfiles": 8,

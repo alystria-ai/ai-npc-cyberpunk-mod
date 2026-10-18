@@ -156,9 +156,10 @@ test('none of NCA\'s merc, roamer or location records is a roster record, except
     'Character.the_mox_1_ranged1_lexington_wa', 'Character.sq024_pacifica_race_lizzie_female_racer', 'Character.tyger_claws_biker1_melee1_baseball_wa',
     'Character.nid_maelstrom_drone_wyvern_easy', 'Character.arr_valentinos_grunt1_ranged1_nova_ma', 'Character.sts_wat_nid_01_lizzie'];
   const records = new Set(roster.flatMap(entry => entry.records || []));
-  // Character.Royce became a named roster character with the 2026-10-18 cast expansion: NCA's Royce is that Royce and talks as him
-  // (a record NCA.<X> resolves as <X>). Every other record of the list is still no roster record.
-  const named = new Set(['Character.Royce']);
+  // Character.Royce became a named roster character with the 2026-10-18 cast expansion and Character.Brick with the 2026-10-19 one:
+  // NCA's Royce and Brick are those characters and talk as them (a record NCA.<X> resolves as <X>). Every other record of the list
+  // is still no roster record.
+  const named = new Set(['Character.Royce', 'Character.Brick']);
   for (const record of mercs) {
     if (named.has(record)) assert.ok(records.has(record), record + ' is the named roster character');
     else assert.ok(!records.has(record) && !records.has('NCA.' + record), record);
