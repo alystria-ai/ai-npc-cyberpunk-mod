@@ -2242,7 +2242,7 @@
       "sampleDialogueWords": 232,
       "voice": "Linda (Deep Middle-Aged American Female)",
       "sources": 7,
-      "researchRevision": "471aba44fda47f7800a4de651434a0ed952f41a7f7060df5af862f9a27eef66c"
+      "researchRevision": "c1bf5697fa8a80f0e35597816bed50128cffa385b50cdf059e259a46bb80004d"
     },
     {
       "key": "mark-bana",
@@ -2707,10 +2707,10 @@
       "key": "teddy",
       "words": 676,
       "speakingStyleWords": 190,
-      "sampleDialogueWords": 155,
+      "sampleDialogueWords": 152,
       "voice": "Ryan (Expressive Young-Adult American Male)",
       "sources": 5,
-      "researchRevision": "3bd38b76f265707576280a1bdae073515d1f714e97f542c9230ad8a32c512c7d"
+      "researchRevision": "e15dc8750e0fdd2847c56b7fc3a92c76c59305f016c1b2593a228d7fc5f46f6a"
     },
     {
       "key": "weyland",
@@ -2779,10 +2779,10 @@
       "key": "voodoo-queen",
       "words": 881,
       "speakingStyleWords": 224,
-      "sampleDialogueWords": 172,
+      "sampleDialogueWords": 171,
       "voice": "Linda (Deep Middle-Aged American Female)",
       "sources": 5,
-      "researchRevision": "1f4cd65041191eb02849eab93a813e43fd4550ecd25d0bba887c40e163fc29a6"
+      "researchRevision": "cfc7b8f25b775087105b192087f9d5af29acad7844a5e611db623794d40861b1"
     },
     {
       "key": "anders-hellman",
