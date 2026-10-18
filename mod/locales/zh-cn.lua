@@ -476,7 +476,6 @@ return {
     ["What to do"] = "该怎么做",
     ["Where the logs are"] = "日志位置",
     ["the game folder"] = "游戏文件夹",
-    ["the runtime folder of the mod project, or the data folder inside the mod folder"] = "模组项目的运行时文件夹，或模组文件夹内的数据文件夹",
     ["Auto-connect nearby characters"] = "自动连接附近角色",
     ["Continue from game dialogue"] = "接续游戏内对话",
     ["Preparing connection to {name}…"] = "正在准备连接 {name}…",

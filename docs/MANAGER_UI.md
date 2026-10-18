@@ -161,12 +161,12 @@ eports\` then the
   file name on its own line, so a long path never overflows) and **Copy report path**, a
   button that is always offered. It writes `runtime/clipboard-request.json`; the conversation
   service puts the full path on the Windows clipboard with `clip.exe` (only the path of a
-  `convai-report-*` file is accepted). The game's own `ImGui.SetClipboardText` is tried too,
+  `convai-report-*` file, or the short report `convai-report-lua.txt`, is accepted). The game's own `ImGui.SetClipboardText` is tried too,
   from the next top-level update rather than inside the menu callback. The "Support report
   saved" popup appears only in Developer mode (once, when gameplay resumes).
 - **Where the logs are**: absolute paths for the mod's `runtime\` logs (`probe.log`, `mcm.log`),
   the conversation service logs (`bridge.stderr.log`, `bridge.stdout.log`, `bridge-service.log`),
-  `launcher.log` (`red4ext\plugins\CyberpunkConvaiLauncher`), the CET logs (`cyber_engine_tweaks.log`,
+  `launcher.log` (`red4ext\plugins\AiNpcCyberpunkMod`), the CET logs (`cyber_engine_tweaks.log`,
   `scripting.log`), `r6\logs\redscript_rCURRENT.log`, `red4ext\logs`, and the reports folder.
 
 Where each log is written (verified in code): `mod/init.lua` and `mod/phone-layout.lua` append to
@@ -186,7 +186,11 @@ the RED4ext launcher writes `launcher.log` beside its DLL; redscript and RED4ext
    language, view, developerMode, party[]}}`) and waits. The service polls every 500 ms
    (`bridge/support-report.mjs`), writes `runtime\report-result.json` (`building`, then `ready` with `path`,
    `fileName`, `bytes`, or `failed` with a code) and builds
-   `<mod>\runtime\reports\convai-report-YYYYMMDD-HHMMSS.zip`. Only the newest five reports are kept.
+   `%LOCALAPPDATA%\AiNpcCyberpunkMod\reports\convai-report-YYYYMMDD-HHMMSS.zip` (the parent of the service's `data\` folder, so outside
+   the game folder: a file created there would land in Mod Organizer 2's Overwrite folder; a service whose data folder is not named
+   `data` outside the mod folder, as in development, keeps `<mod>\runtime\reports\`). The service publishes the folder in
+   `runtime\support-paths.json`; before it has, the page names `%LOCALAPPDATA%\AiNpcCyberpunkMod\reports` and `...data`.
+   Only the newest five reports are kept.
 2. The zip holds `README.txt`, `summary.json` (mod fingerprint, CET/game/RED4ext versions, service status,
    settings, party, provider per companion, recent errors, the log index) and `logs/NN-<id>.txt`: the last
    2,000 lines or 1 MiB of each log.
@@ -194,8 +198,8 @@ the RED4ext launcher writes `launcher.log` beside its DLL; redscript and RED4ext
    if the service is not known to be stopped but does not answer within 6 s (30 s once it reports
    `building`), or answers `failed`, it does the same. The short report holds what the game can read
    (service status, settings, party, `runtime\*.log`, `AiNpcCyberpunkMod.log`), says why it is short and names
-   the logs it could not read. It goes to `runtime\reports\` when that folder exists (the service creates it),
-   otherwise to `runtime\`; the same five-newest rule applies.
+   the logs it could not read. It is one fixed file, `runtime\convai-report-lua.txt` (shipped empty and rewritten in place, so a
+   new report replaces the last one and no file is created, renamed or removed).
 
 ### Privacy
 

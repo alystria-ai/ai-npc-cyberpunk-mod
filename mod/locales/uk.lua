@@ -485,7 +485,6 @@ return {
     ["Your player identity stays the same. Matching Phone Chat messages and drafts are also cleared."] = "Ідентичність гравця не змінюється. Відповідні повідомлення чату на телефоні й чернетки також очищаються.",
     ["all characters you have talked to"] = "усі персонажі, з якими відбулися розмови",
     ["the game folder"] = "папка гри",
-    ["the runtime folder of the mod project, or the data folder inside the mod folder"] = "робоча папка проєкту мода або папка data усередині папки мода",
     ["the selected character"] = "вибраний персонаж",
     ["{count} matching models"] = "Збігів моделей: {count}",
     ["{count} more companions also failed."] = "Ще компаньйонів із помилкою: {count}.",

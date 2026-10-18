@@ -6,7 +6,9 @@
 -- redscript and RED4ext logs. This module writes runtime/report-request.json,
 -- waits for runtime/report-result.json, and shows the path it names. When the
 -- service is not running (or does not answer) it writes a shorter text report
--- itself from the files the game can read, and says so.
+-- itself from the files the game can read, and says so. That short report is
+-- one fixed file, runtime/convai-report-lua.txt, shipped empty and rewritten in
+-- place: a file with a new name would land in Mod Organizer 2's Overwrite folder.
 --
 -- Nothing here touches native game state. Call update() from the top-level CET
 -- update only. Privacy: the same rules as the service. Only the files named
@@ -14,9 +16,11 @@
 local M = {version = 1}
 
 local REQUEST, RESULT, PATHS = 'runtime/report-request.json', 'runtime/report-result.json', 'runtime/support-paths.json'
-local KEEP, MAX_LINES, MAX_BYTES, LINE_LIMIT = 5, 2000, 1048576, 1000
+local MAX_LINES, MAX_BYTES, LINE_LIMIT = 2000, 1048576, 1000
+local LOCAL_NAME = 'convai-report-lua.txt'
 local FIRST_WAIT, BUILD_WAIT = 6, 30 -- seconds to wait for the service, before and after it reports "building"
-local NAME_PATTERN = '^convai%-report%-(%d%d%d%d%d%d%d%d%-%d%d%d%d%d%d)[%-%a]*%.(%a+)$'
+-- Where the data and the zip reports are when the service has not published its folders (Lua cannot expand the variable).
+local DATA_FALLBACK, REPORTS_FALLBACK = '%LOCALAPPDATA%\\AiNpcCyberpunkMod\\data', '%LOCALAPPDATA%\\AiNpcCyberpunkMod\\reports'
 
 ------------------------------------------------------------------ redaction
 
@@ -303,10 +307,10 @@ function M.new(options)
         local mod = pick('probe') and dirName(pick('probe')) or (published and published.runtime)
             or underGame(RELATIVE_MOD .. '\\runtime')
         result.mod = mod
-        result.reports = (published and published.reports) or (mod .. '\\reports')
+        result.reports = (published and published.reports) or REPORTS_FALLBACK
         local bridge = pick('bridge-stderr') and dirName(pick('bridge-stderr')) or stateDirectory
-        result.bridge = bridge or ui.t('the runtime folder of the mod project, or the data folder inside the mod folder')
-        result.launcher = pick('launcher') or underGame('red4ext\\plugins\\CyberpunkConvaiLauncher\\launcher.log')
+        result.bridge = bridge or DATA_FALLBACK
+        result.launcher = pick('launcher') or underGame('red4ext\\plugins\\AiNpcCyberpunkMod\\launcher.log')
         result.cet = pick('cet') and dirName(pick('cet')) or underGame('bin\\x64\\plugins\\cyber_engine_tweaks')
         result.redscript = pick('redscript') or underGame('r6\\logs\\redscript_rCURRENT.log')
         result.red4ext = pick('red4ext') and dirName(pick('red4ext')) or underGame('red4ext\\logs')
@@ -454,34 +458,16 @@ function M.new(options)
         return table.concat(out, '\n') .. '\n', stamp
     end
 
-    local function prune(folder, prefix)
-        local rows = {}
-        for _, name in ipairs(listNames(folder)) do
-            local stamp = name:match(NAME_PATTERN)
-            if stamp then rows[#rows + 1] = {name = name, stamp = stamp} end
-        end
-        table.sort(rows, function(a, b) if a.stamp ~= b.stamp then return a.stamp < b.stamp end return a.name < b.name end)
-        for index = 1, #rows - KEEP do pcall(os.remove, prefix .. rows[index].name) end
-    end
-
+    -- One fixed file, written in place (the shipped empty file is truncated and rewritten). Nothing is created under a new
+    -- name, renamed or removed, so under Mod Organizer 2 it stays the mod's own file instead of landing in Overwrite.
     local function writeLocal(reason)
-        local ok, text, stamp = pcall(buildLocal, reason)
+        local ok, text = pcall(buildLocal, reason)
         if not ok then return nil end
-        local name = 'convai-report-' .. stamp .. '-lua.txt'
-        for _, folder in ipairs({'runtime/reports/', 'runtime/'}) do
-            local file = io.open(folder .. name, 'wb')
-            if file then
-                local wrote = file:write(text); file:close()
-                if wrote then
-                    local trimmed = folder:gsub('/$', '')
-                    pcall(prune, trimmed, folder)
-                    local locations = self.locations()
-                    local display = folder == 'runtime/reports/' and locations.reports or dirName(locations.reports)
-                    return name, (display or 'runtime') .. '\\' .. name
-                end
-            end
-        end
-        return nil
+        local file = io.open('runtime/' .. LOCAL_NAME, 'wb')
+        if not file then return nil end
+        local wrote = file:write(text); file:close()
+        if not wrote then return nil end
+        return LOCAL_NAME, self.locations().mod .. '\\' .. LOCAL_NAME
     end
 
     local function fallback(reason)

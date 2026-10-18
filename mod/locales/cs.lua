@@ -485,7 +485,6 @@ return {
     ["Your player identity stays the same. Matching Phone Chat messages and drafts are also cleared."] = "Identita hráče zůstane stejná. Odpovídající zprávy a koncepty v chatu v telefonu se také vymažou.",
     ["all characters you have talked to"] = "všechny postavy, s nimiž proběhla konverzace",
     ["the game folder"] = "složka hry",
-    ["the runtime folder of the mod project, or the data folder inside the mod folder"] = "běhová složka projektu módu nebo složka data uvnitř složky módu",
     ["the selected character"] = "vybraná postava",
     ["{count} matching models"] = "Odpovídajících modelů: {count}",
     ["{count} more companions also failed."] = "Selhali i další společníci: {count}.",
