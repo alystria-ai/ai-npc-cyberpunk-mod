@@ -321,7 +321,7 @@ test('wiring: nothing of the story talk runs per frame, and a story character is
 test('the face service: named characters are prepared at spawn on any graph, guarded at talk time, never altered otherwise (Face.reds)', () => {
   const face = read('../r6/scripts/CyberpunkConvai/Face.reds');
   assert.match(face, /private let m_storyTalk: Bool;/);
-  assert.match(face, /this\.m_storyTalk = true;/);
+  assert.match(face, /this\.m_storyTalk = false;/);
   assert.match(face, /public func SetStoryTalk\(on: Bool\) -> Bool \{\s+this\.m_storyTalk = on;\s+return this\.m_storyTalk;/);
   // At spawn: after the screen face (which needs its slot), before the crowd-graph return, and only for roster records.
   const spawn = between('private cb func OnWorldInitialize', 'private func PrepareStoryFace', face);
@@ -345,7 +345,7 @@ test('shipping: the module ships and installs, the notice exists, the setting ha
     assert.match(read(plan), /"source": "mod\/world-talk\.lua",\s+"target": "bin\/x64\/plugins\/cyber_engine_tweaks\/mods\/AiNpcCyberpunkMod\/world-talk\.lua"/, plan);
   }
   assert.match(read('../mod/notices.lua'), /\['talk-busy'\] = \{class = PLAYER, repeatS = 10\}/);
-  assert.match(read('../mod/mcm.lua'), /setting\('storyConversations', 'Talk to story characters', 'bool', snapshot\.settings\.storyConversations ~= false, true,/);
+  assert.match(read('../mod/mcm.lua'), /setting\('storyConversations', 'Talk to story characters', 'bool', snapshot\.settings.storyConversations == true, false,/);
   const en = JSON.parse(read('../localization/en.json'));
   const text = JSON.stringify(en);
   for (const key of ['Talk to story characters', '{name} is busy right now.']) assert.ok(text.includes(JSON.stringify(key)), `en.json: ${key}`);

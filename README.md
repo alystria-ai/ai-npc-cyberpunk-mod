@@ -80,7 +80,7 @@ The first start after installing takes a little longer while the service prepare
 - **Sixteen interface languages,** and a Multilingual setting that lets you talk in any language.
 - **An optional Mature setting** for adults. It is off by default and works with Local AI only. See [Mature content](#mature-content-18).
 
-Only characters the mod spawns join your party. Story characters you meet in the world, such as the game's own Judy or Jackie, can be talked to where they stand: they answer in their own voice and their face follows the words, and nothing else about them changes, so the story plays out exactly as written.
+Only characters the mod spawns join your party. Story characters you meet in the world, such as the game's own Judy or Jackie, can be talked to where they stand once you turn on Settings > Conversations > Talk to story characters (it is off by default): they answer in their own voice and their face follows the words, and nothing else about them changes, so the story plays out exactly as written.
 
 ## Requirements
 
@@ -245,7 +245,7 @@ Everything lives under **Companion Manager > Settings**. Defaults are for a new 
 | Interface language | Interface | Automatic (follows the game) |
 | Memory, Relationships | Conversations | Auto |
 | Talk to ordinary NPCs | Conversations | On |
-| Talk to story characters | Conversations | On |
+| Talk to story characters | Conversations | Off |
 | Multilingual conversations | Conversations | Off |
 | Auto-connect nearby characters | Conversations | On (silent) |
 | Continue from game dialogue | Conversations | On |
@@ -272,7 +272,7 @@ Everything lives under **Companion Manager > Settings**. Defaults are for a new 
 A few worth knowing:
 
 - **Talk to ordinary NPCs:** passers-by, vendors and the rest answer as their kind of person. They do not know your story and forget you after a save load, except shopkeepers you come back to.
-- **Talk to story characters:** the game's own named characters (Judy, Jackie, Panam, Rogue and the rest of the cast) answer where they stand, in their own voice, with their own memory and a face that follows what they say. Nothing else about them changes: they do not turn, move or gesture, and they stay quiet during scenes, quest conversations, fights and rides. Reload your save after switching it.
+- **Talk to story characters:** the game's own named characters (Judy, Jackie, Panam, Rogue and the rest of the cast) answer where they stand, in their own voice, with their own memory and a face that follows what they say. Nothing else about them changes: they do not turn, move or gesture, and they stay quiet during scenes, quest conversations, fights and rides. It is off by default. Reload your save after switching it.
 - **Live holocall picture:** the character appears live in the call window instead of a portrait. If she cannot be shown, the call goes on with the portrait. Calls end after 3 minutes of silence or 30 minutes in total, and the game's own Contacts call is untouched.
 - **Memory:** **Forget selected character** and **Forget all memories**, each with a confirmation. A forget also clears the matching Phone Chat messages. **Relationships** has Auto, On or Off for Judy, Panam, River, Kerry and Meredith; Auto follows your save.
 - **Multilingual conversations:** talk in any language and each character answers in yours. It switches the voice to OmniVoice (or Convai's cloud voice without the pack), because Pocket and Voxtral speak English only. The microphone with Convai expects English, so type in other languages.
@@ -1105,7 +1105,7 @@ The Settings page groups its rows in this order: Interface, Conversations, Conve
 |---|---|---|
 | `uiLanguage` | Interface language | `auto` |
 | `archetypeConversations` | Talk to ordinary NPCs | on |
-| `storyConversations` | Talk to story characters | on |
+| `storyConversations` | Talk to story characters | off |
 | `multilingualConversations` | Multilingual conversations | off |
 | `autoConnectNearby` | Auto-connect nearby characters | on |
 | `gameDialogueContext` | Continue from game dialogue | on |

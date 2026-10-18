@@ -10,7 +10,7 @@
 //    copy on a crowd graph, and on Judy's photo-mode graph or the paperdoll pair the companion graph our own copy of that
 //    character carries. They are player-made, so the roster and quest filters do not apply to them.
 //  - for the game's own named characters (the roster records in NamedRecords: Judy, Jackie, Panam, Rogue and the rest) while
-//    "Talk to story characters" is on (SetStoryTalk, set from mod/facial-playback.lua applyStoryTalk, on by default; docs/
+//    "Talk to story characters" is on (SetStoryTalk, set from mod/facial-playback.lua applyStoryTalk, off by default; docs/
 //    WORLD_CHARACTERS.md), once at spawn (OnWorldInitialize, PrepareStoryFace): the same preparation as a spawned character, the
 //    gated crowd copy on a crowd graph and the companion graph on Judy's photo-mode graph or the paperdoll pair. The speech
 //    layer is inert until the mod voices that character, so a scene or the character's own animation sees the vanilla face.
@@ -80,7 +80,7 @@ public class ConvaiFaceService extends ScriptableService {
       i += 1;
     };
     this.m_crowdMode = 1;
-    this.m_storyTalk = true;
+    this.m_storyTalk = false;
     GameInstance.GetCallbackSystem()
       .RegisterCallback(n"Entity/Initialize", this, n"OnCompanionInitialize")
       .AddTarget(DynamicEntityTarget.Tag(n"CyberpunkConvaiCompanion"));

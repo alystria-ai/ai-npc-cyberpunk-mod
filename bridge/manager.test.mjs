@@ -1645,18 +1645,21 @@ test('Auto-connect nearby characters is on by default, offered under Conversatio
   `);
 });
 
-test('Talk to story characters is on by default, offered under Conversations and saved with the settings', () => {
+test('Talk to story characters is off by default, offered under Conversations and saved with the settings', () => {
   run(`${mcmFixture}
-    assert(manager.storyConversations() == true and manager.snapshot(player).settings.storyConversations == true)
+    assert(manager.storyConversations() == false and manager.snapshot(player).settings.storyConversations == false, 'a missing key is off')
     assert(invoke('tab:settings').ok)
     local story = assert(row('storyConversations'), 'the setting is not offered')
-    assert(story.type == 'bool' and story.value == true and story.defaultValue == true and story.capabilities.draft)
+    assert(story.type == 'bool' and story.value == false and story.defaultValue == false and story.capabilities.draft)
     assert(story.label == 'Talk to story characters')
     local conversations
     for _, category in ipairs(loaded.categories) do if category.id == 'conversation-controls' then conversations = category end end
     local found = false
     for _, item in ipairs(conversations.settings) do if item.id == 'storyConversations' then found = true end end
     assert(found, 'the setting is not in the Conversations section')
+    assert(saved.storyConversations == false, 'a new install saves the default Off')
+    assert(registered.applyBatch('manager', {{id = 'storyConversations', value = true}}).ok and manager.storyConversations() == true and saved.storyConversations == true, 'an explicit On is kept')
+    loaded = registered.loadMod('manager'); assert(row('storyConversations').value == true)
     assert(registered.applyBatch('manager', {{id = 'storyConversations', value = false}}).ok)
     assert(manager.storyConversations() == false and saved.storyConversations == false, 'an explicit Off is kept')
     assert(manager.snapshot(player).settings.storyConversations == false)

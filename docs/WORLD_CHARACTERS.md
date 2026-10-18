@@ -14,7 +14,7 @@ So: the game's own named characters can be talked to where they stand, with thei
 
 Face the game's own Judy (or Jackie, Panam, Rogue, or anyone on the roster) and use the talk keys, text or voice. She answers in her own voice, from her own body, with her lips moving to the words and her face showing the feelings she marks (the Expressive emotions setting decides whether she marks them). Her memory is the same as our Judy's: one profile, one memory.
 
-Settings > Conversations > **Talk to story characters** (on by default). It takes effect for a character that spawns after the change, so reload the save after switching it.
+Settings > Conversations > **Talk to story characters** (off by default; turn it on to use this). It takes effect for a character that spawns after the change, so reload the save after switching it.
 
 ## The policy
 
@@ -99,7 +99,7 @@ Emotions: nothing new. The reply's emotion timeline (the Expressive emotions set
 | `mod/character-catalog.lua` | `resolve`: `actor.story` lets the roster profile resolve for a world character; no other change |
 | `mod/speech.lua` | two hook points (`M.storyGuard`): before a reply starts and while it plays |
 | `mod/facial-playback.lua` | `applyStoryTalk`; `storyEntity` (the writer's safety check without the scene flag for that speaker) |
-| `mod/manager.lua`, `mod/mcm.lua` | the setting `storyConversations` (on by default), its row and help text |
+| `mod/manager.lua`, `mod/mcm.lua` | the setting `storyConversations` (off by default; a missing key counts as off), its row and help text |
 | `mod/notices.lua`, `docs/NOTIFICATIONS.md` | the `talk-busy` notice |
 | `r6/scripts/CyberpunkConvai/Face.reds` | `m_storyTalk`, `SetStoryTalk`, `StoryTalk`, `PrepareStoryFace`, the story branch of `TalkRefusal` |
 | `localization/en.json`, `mod/locales/*.lua` | three strings, 15 locales |
@@ -122,6 +122,6 @@ Installing needs a CET reload for the Lua and a game restart for the reds. The f
 3. Walk away and wait: the reply ends with her face going back to her own animation (no frozen mouth, no stuck expression). Start a second reply and trigger a fight or let a quest scene start: the reply stops, the log says `World conversation ended: ... reason=...`.
 4. Face a quest character who is in a scene or a dialogue choice hub, or sits in a vehicle: the talk key shows "{name} is busy right now." and nothing starts. Face a quest NPC with no roster profile: the old notice.
 5. FPS and latency: the perf probe shows no new per-frame row, and with a story character in view the frame time is within noise of before (the ungated speech layer on a photo-mode graph is the only standing cost).
-6. Settings > Conversations > Talk to story characters Off, reload the save: Judy gets the old notice again.
+6. Settings > Conversations > Talk to story characters Off (the default), reload the save: Judy gets the old notice again.
 
 If the key refuses everywhere with `reason=driven`, `IsOnAutonomousAI()` is false for idle story characters in the world (not measured before); send the log line.
