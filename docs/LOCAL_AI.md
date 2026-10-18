@@ -227,7 +227,7 @@ Only `endpoint` is needed. The usual address of each program:
 
 | Program | `endpoint` | Notes |
 |---|---|---|
-| KoboldCpp | `http://127.0.0.1:5001/v1` | Nothing else needed. Add `"contextSize"` with the context you started it with. |
+| KoboldCpp | `http://127.0.0.1:5001/v1` | Nothing else needed: the model and its context are found by themselves. Start it with, for example, `--usevulkan --contextsize 8192 --port 5001 --host 127.0.0.1` (the last one keeps it on this computer). With `--password`, put the same value in `"apiKey"`; KoboldCpp checks it only on chats, so a wrong one shows at your first line, not when you choose the model. Tested with KoboldCpp 1.123.1. |
 | LM Studio | `http://127.0.0.1:1234/v1` | Start its local server (Developer tab). Add `"model"` with the model's name as LM Studio shows it when more than one model is loaded. |
 | Ollama | `http://127.0.0.1:11434/v1` | Add `"model"` with the name you pull (for example `"model": "qwen3:8b"`): Ollama needs it. |
 | llama.cpp `llama-server` | `http://127.0.0.1:8080/v1` | Its `--api-key`, if you set one, goes in `"apiKey"`. |
@@ -246,8 +246,8 @@ Only `endpoint` is needed. The usual address of each program:
 and a plain name such as `gaming-pc`) need nothing more. Any other host is the internet: the entry must say `"remote": true` and use `https://`,
 so a typo cannot send your chats away unnoticed. Without the flag the entry is skipped and the log says so.
 
-**3. Choose it.** In Settings > Conversation provider, set the provider to Local, open **Local AI model**, pick "KoboldCpp Qwen 9B (custom)"
-and **Apply**. The mod looks at the server once when it is chosen (a short request to `/models`); nothing is polled afterwards and nothing of
+**3. Choose it.** In Settings > Conversation provider, set the provider to Local AI, open **Local AI model**, pick "KoboldCpp Qwen 9B (custom)"
+and **Apply**. Start your server and let it finish loading before you choose it. The mod looks at the server once when it is chosen (a short request to `/models`); nothing is polled afterwards and nothing of
 Local AI's own is loaded for it: if its own model was loaded, that model is unloaded. With no model chosen, the mod prefers a model of its own
 that fits; your server is used when you choose it, or when nothing of Local AI's own is installed or fits.
 
