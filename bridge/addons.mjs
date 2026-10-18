@@ -1081,10 +1081,16 @@ export class AddonHost {
   /** Files the bridge should re-read when the game replaces them (bridge/file-wake.mjs). Empty with no add-ons. */
   watchHandlers(runtime, {read = path => readFile(path, 'utf8')} = {}) {
     if (!this.active) return {};
-    // A file that cannot be read, or reads empty, keeps what was last seen: the game writes addon-state.json in place (it is
-    // empty for a moment between the file being opened and its text arriving, and empty until the first save), and an empty
-    // document would drop every mode and prepared stock line. The game never saves an empty document: even "nothing" is JSON.
-    const reader = (name, apply) => () => read(resolve(runtime, name)).then(raw => typeof raw === 'string' && raw.trim() === '' ? undefined : apply(raw), () => undefined);
+    // A file that cannot be read, reads empty or reads cut off keeps what was last seen: the game writes addon-state.json in place
+    // (it is empty for a moment between the file being opened and its text arriving, and a document with stock lines is far bigger
+    // than one buffer, so a read can land halfway), and an empty or torn document would drop every mode and prepared stock line.
+    // The game never saves an empty document: even "nothing" is JSON.
+    const reader = (name, apply) => () => read(resolve(runtime, name)).then(raw => {
+      if (typeof raw !== 'string' || raw.trim() === '') return undefined;
+      let value;
+      try { value = JSON.parse(raw); } catch { return undefined; }
+      return apply(value);
+    }, () => undefined);
     return {[ADDON_STATE_FILE]: reader(ADDON_STATE_FILE, raw => this.observeState(raw)),
       [ADDON_SETTINGS_FILE]: reader(ADDON_SETTINGS_FILE, raw => this.observeSettings(raw))};
   }

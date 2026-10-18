@@ -401,9 +401,7 @@ test('state and settings files: empty, truncated or wrong-shaped documents read 
   assert.deepEqual(Object.keys(host.journal.speakers), [], 'the journal is for add-on speakers only');
 });
 
-test('addon-state.json: a half-written (truncated) file keeps what was last seen, like an empty one', {
-  todo: 'BUG: only an empty file is skipped (bridge/addons.mjs watchHandlers); a state file caught mid-write (it is written in place, and a document with stock lines is far bigger than one buffer) parses as {addons: {}} and drops every prepared stock line'
-}, async () => {
+test('addon-state.json: a half-written (truncated) file keeps what was last seen, like an empty one', async () => {
   const host = new AddonHost({addons: [validateManifest(manifest({speakers: [speaker('gun', {modes: {calm: {name: 'Calm'}}})]}), tmpdir())], startedAt: 0});
   const document = JSON.stringify({version: 1, updated: 5, addons: {skippy: {companionContext: [{key: 'ride', text: 'You are riding in a cab.'}],
     stock: [{speaker: 'gun', key: 'kill', text: 'V is about to kill.', rev: 1, slots: [], blocks: []}]}}});
@@ -413,6 +411,18 @@ test('addon-state.json: a half-written (truncated) file keeps what was last seen
   for (const handler of Object.values(host.watchHandlers('runtime', {read: async () => torn}))) await handler();
   assert.equal(host.blocks({profileKey: 'judy-alvarez'}).length, 1, 'the companion context survived the torn read');
   assert.equal(host.state.addons.skippy.stock.length, 1, 'so did the prepared stock rows');
+  // The settings file is written the same way: a torn read is not "every setting back to its default".
+  const seen = [];
+  host.modules.set('skippy', {onSettings: values => seen.push(values)});
+  const settings = JSON.stringify({version: 1, addons: {skippy: {sarcasm: 7, loud: true}}});
+  host.observeSettings(settings);
+  const tornSettings = settings.slice(0, Math.floor(settings.length * 0.6));
+  for (const handler of Object.values(host.watchHandlers('runtime', {read: async () => tornSettings}))) await handler();
+  assert.deepEqual(host.settings, {skippy: {sarcasm: 7, loud: true}}, 'the settings survived the torn read');
+  assert.equal(seen.length, 1, 'and no module was told its settings changed');
+  // A complete document still replaces what was seen (also one that really is empty of add-ons).
+  for (const handler of Object.values(host.watchHandlers('runtime', {read: async () => JSON.stringify({version: 1, updated: 6, addons: {}})}))) await handler();
+  assert.deepEqual(host.state.addons, {}, 'a whole document is applied');
 });
 
 test('the placeholder files shipped empty (addon-state.json, addon-settings.json) and a missing runtime folder read as nothing yet', async () => {
