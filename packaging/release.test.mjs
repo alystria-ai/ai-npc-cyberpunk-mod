@@ -654,7 +654,7 @@ test('the main page texts say the Mature packs work alone and give their new siz
   for (const name of ['Mature lite', 'Mature standard']) assert.doesNotMatch(row(name), /needs a Local AI pack/);
   assert.match(row('Mature lite'), /works on its own/); assert.match(row('Mature standard'), /works on its own/);
   const optional = nexus.split('\n').find(line => line.includes('[b]Mature lite[/b]'));
-  assert.match(optional, /about 2\.9 GB/); assert.match(optional, /about 5\.5 GB/); assert.match(optional, /work on their own|works on its own|each works alone/i);
+  assert.match(optional, /about 2\.9 GB/); assert.match(optional, /about 5\.5 GB/); assert.match(optional, /work on their own|works on its own|each works alone|no Local AI pack is needed/i);
   assert.doesNotMatch(optional, /They need a Local AI pack/);
   for (const [name, text] of [['README', readme], ['NEXUS_PAGE', nexus]]) assert.doesNotMatch(text.slice(0, text.indexOf('# For developers') > 0 ? text.indexOf('# For developers') : text.length), /\brecommended\b/i, name);
   assert.doesNotMatch(await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8'), /mature|uncensored|adult|18\+/i);
@@ -689,9 +689,9 @@ test('the README and the release notes send players to Hugging Face for every op
   const hf = 'https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs';
   const readme = (await readFile(resolve(project, 'README.md'), 'utf8')).replaceAll('\r\n', '\n');
   const player = (await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8')).replaceAll('\r\n', '\n');
-  const files = ['OmniPack', 'LocalAI-Standard', 'LocalAI-Lite', 'Mature-Lite', 'Mature-Standard'].map(name => `AI-NPC-Cyberpunk-Mod-${name}-0.2.zip`);
-  for (const file of files) assert(readme.includes(hf + '/blob/main/0.2/' + file), 'the README links ' + file);
-  for (const file of files.filter(name => !/Mature/.test(name))) assert(player.includes(hf + '/blob/main/0.2/' + file), 'the release notes link ' + file);
+  const files = ['OmniPack', 'LocalAI-Standard', 'LocalAI-Lite', 'Mature-Lite', 'Mature-Standard'].map(name => `AI-NPC-Cyberpunk-Mod-${name}-0.2.1.zip`);
+  for (const file of files) assert(readme.includes(hf + '/blob/main/0.2.1/' + file), 'the README links ' + file);
+  for (const file of files.filter(name => !/Mature/.test(name))) assert(player.includes(hf + '/blob/main/0.2.1/' + file), 'the release notes link ' + file);
   assert(readme.includes(hf + ')'), 'and the repository page');
   // The Install section sits before Requirements and the long feature list, right after the intro.
   const heading = text => readme.indexOf('\n## ' + text + '\n');
