@@ -52,6 +52,11 @@ function M.classify(input)
         if LEAVING[phase] then return 'leaving-car' end
         if BOARDING[phase] then return 'boarding' end
     end
+    -- A character another mod seated in V's vehicle (init.lua convaiSpawnedPeople.riders): the seat the engine reports.
+    local mounted = input.mounted
+    if type(mounted) == 'table' and type(mounted.seat) == 'string' then
+        return mounted.seat == DRIVER_SEAT and 'driving' or 'passenger'
+    end
     local tactic = input.tactic
     if type(tactic) == 'table' and tactic.kind == 'fight' then return 'attacking' end
     local seating = input.seating

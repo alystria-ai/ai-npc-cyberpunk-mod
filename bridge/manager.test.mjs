@@ -148,6 +148,22 @@ const managerFixture = `
   local function request(value, dt) player.queue[#player.queue + 1] = value; manager.update(player, dt or 0.1) end
 `;
 
+// Night City Allies' Lucy and Rita (docs/NCA_FOLLOWERS_PLAN.md): the roster records only let the talk path recognise that
+// mod's copy. invite = false keeps them out of every invite (Manager "Profile only", MCM unavailable, the party queue refuses).
+test('a roster profile marked invite = false is talk only: no companion definition, so nothing invites our own copy', () => {
+  run(`${managerFixture}
+    manager.configure(api, {{key = 'judy-alvarez', name = 'Judy Alvarez', records = {'Character.Judy'}},
+      {key = 'lucy-kushinada', name = 'Lucy Kushinada', invite = false,
+        records = {'Character.EdgerunnersLucy_Merc', 'NCA.Character.EdgerunnersLucy_Merc', 'Character.EdgerunnersLucy'}}})
+    assert(defs['judy-alvarez'] and defs['judy-alvarez'].id == 'Character.Judy', 'an ordinary roster profile is still invitable')
+    assert(defs['lucy-kushinada'] == nil and manager.definition('lucy-kushinada') == nil, 'no definition for a talk-only profile')
+    local queue = (function() ${queueSource} end)().new(api)
+    queue.bind('player-1')
+    assert(not queue.invite('lucy-kushinada') and #spawned == 0, 'the party queue refuses it')
+    assert(queue.invite('judy-alvarez'))
+  `);
+});
+
 test('MCM party invitations reserve distinct copies, cancel without spawning and flush only once', () => {
   run(`${managerFixture}
     manager.configure(api, profiles)

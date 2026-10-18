@@ -1,6 +1,6 @@
 {
-  "profiles": 80,
-  "named": 78,
+  "profiles": 82,
+  "named": 80,
   "ambient": 2,
   "profileRevision": 5,
   "model": "fast-gemma-4-31b-it",
@@ -2227,6 +2227,15 @@
       "researchRevision": "c11de7f513d3b395c38233cf45f22a8bcf4324ce645465e25d92ae2826b5fd17"
     },
     {
+      "key": "lucy-kushinada",
+      "words": 888,
+      "speakingStyleWords": 297,
+      "sampleDialogueWords": 178,
+      "voice": "Claire (Whispering Young-Adult American Female)",
+      "sources": 4,
+      "researchRevision": "e31beb85e5005b5bd0466fca2bfebec516de15848761fa2986b3c95800dde2ff"
+    },
+    {
       "key": "mama-welles",
       "words": 702,
       "speakingStyleWords": 126,
@@ -2396,6 +2405,15 @@
       "voice": "Sarah (Authoritative Middle-Aged American Female)",
       "sources": 50,
       "researchRevision": "1a633b88d1a5854d58bc6ecfa81dfb64f10c261fcae55e5a4021b4b7f4212f36"
+    },
+    {
+      "key": "rita-wheeler",
+      "words": 694,
+      "speakingStyleWords": 274,
+      "sampleDialogueWords": 206,
+      "voice": "Katie (Husky Young-Adult American Female)",
+      "sources": 4,
+      "researchRevision": "95188b7775c30846c0f64a65d543722b9b70e9a54c6beb68b3f7e36df434457f"
     },
     {
       "key": "river-ward",

@@ -202,6 +202,10 @@
     "source": "https://cyberpunk.fandom.com/wiki/Lizzy_Wizzy",
     "image": "appearance-images/lizzy-wizzy.webp"
   },
+  "lucy-kushinada": {
+    "text": "You have pale skin, pale pearly eyes and a short, square-cut silver-white bob with an undercut. A longer lock at the front is tinted pink and teal toward the ends. Cyberware ports dot your body. You wear a dark grey jumpsuit with red accents, white shorts and a white jacket, with a black belt that holds a cyberdeck and black armoured knee-high boots with red accents.",
+    "source": "https://guiltygear.wiki.gg/wiki/Lucy"
+  },
   "mama-welles": {
     "text": "You have shoulder-length brown hair with side-swept bangs and a lined, weathered face. You wear a red knit top under a dark brown leather vest with stitched pockets.",
     "source": "https://cyberpunk.fandom.com/wiki/Guadalupe_Alejandra_Welles",
@@ -304,6 +308,10 @@
   "resident-male": {
     "text": "",
     "source": "none"
+  },
+  "rita-wheeler": {
+    "text": "You have chrome cyberware arms with pink and cyan accents, spikes along your forearms and knuckles, and sharp prosthetic nails. A Mox mark is tattooed across your upper chest. You have a punk look and carry a baseball bat.",
+    "source": "https://cyberpunk2077.wiki.fextralife.com/Rita+Wheeler"
   },
   "river-ward": {
     "text": "You have close-cropped dark hair and a brown fur-trimmed vest over a red shirt. A cybernetic eye with a black lens sits in your left eye socket, and you wear a silver feather pendant on a chain and a small drop earring in one ear.",

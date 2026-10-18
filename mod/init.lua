@@ -864,6 +864,42 @@ convaiSpawnedPeople = {
         end
         return rows
     end,
+    -- Spawned roster characters riding in V's own vehicle (another mod seats its follower there: Night City Allies' Lucy or
+    -- Rita, docs/NCA_FOLLOWERS_PLAN.md): rows {profileKey, name, spawned = true} for the turn context's party, and
+    -- convaiSpawnedPeople.seats[profileKey] = the seat name, which the activity callback turns into 'passenger' or 'driving'.
+    -- Asked only when a turn's context is read (turn-context.lua, cached 5 s), never per frame. Nothing is read unless V sits
+    -- in a vehicle and a spawned character is remembered; then one recall (spawned-characters.lua) and one mount read per
+    -- remembered roster character (at most 12). The seat is a fact the engine reports; nothing of ours moves or seats her.
+    riders = function(player, radius)
+        local seats = {}
+        convaiSpawnedPeople.seats = seats
+        local service = convaiSpawnedCharacters
+        if service == nil or not player or type(service.known) ~= 'table' or #service.known == 0 then return {} end
+        local inCar, car = pcall(function() return player:GetMountedVehicle() end)
+        if not inCar or car == nil then return {} end
+        local carRead, carId = pcall(function() return tostring(car:GetEntityID().hash) end)
+        if not carRead or type(carId) ~= 'string' then return {} end
+        local recalled, found = pcall(service.recall, service, player, radius, nil,
+            function(entry) return entry.key == nil or convaiSpawnedPeople.named(entry.key) end)
+        if not recalled or type(found) ~= 'table' then return {} end
+        local rows = {}
+        for _, row in ipairs(found) do
+            local mounted, seat = pcall(function()
+                local info = Game.GetMountingFacility():GetMountingInfoSingleWithObjects(row.npc)
+                if not info or tostring(info.parentId.hash) ~= carId then return nil end
+                return NameToString(info.slotId.id)
+            end)
+            if mounted and type(seat) == 'string' and seat ~= '' and seat ~= 'None' then
+                local named, key, name = pcall(profileIdentity, row.npc)
+                if named and key and convaiSpawnedPeople.named(key) and supportedProfiles[key] and manager.profileEnabled(key)
+                    and seats[key] == nil then
+                    seats[key] = seat
+                    rows[#rows + 1] = {profileKey = key, name = name, spawned = true}
+                end
+            end
+        end
+        return rows
+    end,
 }
 
 -- Recent game dialogue (subtitled scene lines and V's chosen options), attached
@@ -950,6 +986,10 @@ do
             for _, person in ipairs(round and round.participants or {}) do
                 if person.spawned then rows[#rows + 1] = {profileKey = person.profileKey, name = person.name} end
             end
+            -- A spawned roster character in V's own vehicle is with V as well, and the engine says which seat she has
+            -- (convaiSpawnedPeople.riders; the activity callback below words it). Nothing is read while V is on foot.
+            local ridersRead, riders = pcall(function() return convaiSpawnedPeople.riders(player, radius) end)
+            for _, person in ipairs(ridersRead and riders or {}) do rows[#rows + 1] = person end
             return rows
         end,
         -- Read the game's dialogue volume only while V's voice for typed lines is on (the bridge plays V at that level).
@@ -959,7 +999,14 @@ do
             local seats = {}
             local ok, snapshot = pcall(function() return convaiSeating and convaiSeating.snapshot() end)
             for _, row in ipairs(ok and snapshot and snapshot.companions or {}) do seats[row.serial] = row.phase end
-            return companions.activityInputs(seats)
+            local info = companions.activityInputs(seats)
+            -- The seats the party callback just read for spawned riders (our own copy of a profile keeps its own state).
+            if type(info) == 'table' and type(info.rows) == 'table' then
+                for key, seat in pairs(convaiSpawnedPeople and convaiSpawnedPeople.seats or {}) do
+                    if info.rows[key] == nil then info.rows[key] = {mounted = {seat = seat}} end
+                end
+            end
+            return info
         end}) or nil
     microphone.captureTurnContext = function() return convaiTurnContext and convaiTurnContext:capture() or nil end
     -- A group round with a character another mod or a spawner created in it needs a party row for that character: read it
