@@ -2257,19 +2257,12 @@ end
 -- a present character exactly as the composer's submission does (the same context, sendRequest, claimPrivateReply and
 -- bridge route), so a scripted conversation exercises the real reply path (speech, face, captions). It runs once per
 -- request file, never per frame. No native composer window is opened and nothing is typed.
--- `scripted` ({file = <json path>}, from `speak-line`, bridge/scripted-line.mjs) makes the bridge speak the exact line in that file instead of
--- asking a model: the request is otherwise identical, so the reply reaches the game by the same speech, face and subtitle path.
-speech.devSay = function(player, npc, text, scripted)
+speech.devSay = function(player, npc, text)
     if not manager.developerMode() then return false, 'developer mode is off' end
     if type(text) ~= 'string' or #text == 0 or #text > 400 then return false, 'text must be 1 to 400 characters' end
-    if scripted ~= nil and (type(scripted) ~= 'table' or type(scripted.file) ~= 'string') then return false, 'bad scripted line' end
-    -- `scripted.partner`: a connected holocall's caller (holocall.partner's row), addressed as the talk keys address it.
-    local partner = scripted and type(scripted.partner) == 'table' and scripted.partner or nil
-    local key, name, bodyType
-    if partner then key, name, bodyType = partner.profileKey, partner.name, partner.bodyType or ''
-    else key, name, bodyType = profileIdentity(npc) end
+    local key, name, bodyType = profileIdentity(npc)
     if not key or not supportedProfiles[key] then return false, 'no conversation profile for ' .. tostring(name) end
-    local identity = partner and partner.entity or tostring(npc:GetEntityID().hash)
+    local identity = tostring(npc:GetEntityID().hash)
     generation = generation + 1
     cancelAutomatic('manual-text')
     gameplayActions.revoke('new-conversation')
@@ -2278,15 +2271,13 @@ speech.devSay = function(player, npc, text, scripted)
     groupChat.cancel()
     subtitles.clear()
     speech.target = npc
-    if not (partner and partner.voiceOnly) then pcall(function() return npc:ConvaiFaceRequest() end) end
-    local context = {generation = generation, entity = identity, name = name, bodyType = bodyType, profileKey = key,
-        voiceOnly = partner and partner.voiceOnly or nil, holocall = partner and partner.holocall or nil}
+    pcall(function() return npc:ConvaiFaceRequest() end)
+    local context = {generation = generation, entity = identity, name = name, bodyType = bodyType, profileKey = key}
     warmConversation(nil, key, identity)
     pending = nil
     context.requestId = tostring(os.time()) .. '-' .. tostring(context.generation) .. '-' .. context.entity
     context.text = text
     context.sentAt = os.time()
-    if scripted then context.scripted = {file = scripted.file} end
     local sent = sendRequest(context)
     log('Native input captured (scripted): generation=' .. context.generation .. ' bytes=' .. #text .. ' sent=' .. tostring(sent))
     return sent == true, sent and context.requestId or 'the request was not sent'

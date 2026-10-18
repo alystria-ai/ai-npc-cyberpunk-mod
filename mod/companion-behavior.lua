@@ -50,8 +50,6 @@ local function glance(c)
 end
 local function pace(c,catching)
     local speed=math.max(c.frame.speed,c.frame.rawSpeed or 0)
-    -- Development only (mod/face-test.lua `lead`): walking ahead of V needs one gait more than V's.
-    if convaiCompanions and convaiCompanions.devLead and speed>0.5 then return speed>3.2 and 'Sprint' or 'Run' end
     if speed>3.2 or (catching and c.playerGap>5.0) then return 'Sprint' end
     if speed>1.45 or catching then return 'Run' end
     return 'Walk'

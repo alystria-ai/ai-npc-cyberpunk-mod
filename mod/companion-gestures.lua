@@ -179,11 +179,6 @@ function M.new(options)
     local function pickIdle(s, known, allow)
         local pool = flavourPool(known)
         if #pool == 0 then return nil end
-        -- A development probe (face-test.lua, face-stage idle <key>) may name the idle to play; it wins whenever she has it
-        -- and holds until a conversation starts (no 'flavour ended' exit).
-        if self.preferredIdle then
-            for _, key in ipairs(pool) do if self.preferredIdle[key] and (not allow or allow(key)) then return key end end
-        end
         local afterProp = s.lastIdle and propOf(s.lastIdle) ~= nil
         -- Two idles only: strict no-repeat is A-B-A-B for hours (Oct 16 live, Alex: alex and jackie_hips for ten minutes). The
         -- last idle comes again with probability policy.repeatChance (one draw); never a prop idle, and only when allowed.
@@ -637,7 +632,7 @@ function M.new(options)
             -- Signature idle: leave when its time is up or a conversation starts
             -- (the talk stance follows from the next settled tick).
             if mode ~= nil then requestExit(s, 'conversation', false)
-            elseif self.clock >= s.flavourUntil and not (self.preferredIdle and self.preferredIdle[s.idleKey]) then requestExit(s, 'flavour ended', false) end
+            elseif self.clock >= s.flavourUntil then requestExit(s, 'flavour ended', false) end
             return
         end
         -- Any conversation activity (a short reply included) holds the stance for the whole conversation.
@@ -797,18 +792,6 @@ function M.new(options)
         end
     end
 
-    -- Development only (face-test.lua): prefer idle keys, comma-separated (each companion takes the first it has; nil clears
-    -- them), and start them soon; a playing idle ends now.
-    function self.preferIdle(key)
-        local wanted
-        for one in tostring(key or ''):gmatch('[^,%s]+') do wanted = wanted or {}; wanted[one] = true end
-        self.preferredIdle = wanted
-        for _, s in pairs(self.states) do
-            if s.flavour and s.phase == 'active' then s.flavourUntil = self.clock end
-            s.nextFlavourAt = self.clock
-        end
-        return true
-    end
     function self.release(entry, reason)
         local s = self.states[entry.serial]
         if not s then return end
