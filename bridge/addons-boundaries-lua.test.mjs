@@ -223,9 +223,7 @@ test('add-ons that fail are isolated: every callback of one throwing changes not
   `);
 });
 
-test('re-registering an id forgets what the earlier registration had waiting', {
-  todo: 'BUG: api.register for an id that exists drops the old speakers but leaves the old registration\'s queued remark; the next tick sends it for a profile key that M.isSpeaker no longer knows'
-}, () => {
+test('re-registering an id forgets what the earlier registration had waiting', () => {
   lua(`
     local old = assert(M.public.register({id = 'skippy', name = 'Skippy', version = '1.0.0', requires = '1.0'}))
     old:speaker({id = 'gun', name = 'Skippy', minGap = 2})

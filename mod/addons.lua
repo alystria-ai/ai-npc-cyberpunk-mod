@@ -501,6 +501,10 @@ api.register = guard('register', function(def)
     local previous = addons[id]
     if previous then
         for key, speaker in pairs(speakers) do if speaker.addon == previous then speakers[key] = nil end end
+        -- What the earlier registration had waiting or in flight goes with it: its speakers are gone, and a remark for one of them
+        -- would otherwise be sent on the next tick for a profile key that no speaker owns.
+        for index = #queue, 1, -1 do if queue[index].speaker.addon == previous then table.remove(queue, index) end end
+        if flight and flight.speaker.addon == previous then release('add-on-replaced', true) end
     else order[#order + 1] = id end
     local addon = {id = id, name = name, version = type(def.version) == 'string' and def.version:sub(1, 32) or '?',
         enabled = true, handlers = {}, speakers = {}, companion = {}, companionOrder = {}, state = nil,
