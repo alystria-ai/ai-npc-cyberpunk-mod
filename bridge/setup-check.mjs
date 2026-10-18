@@ -161,7 +161,7 @@ export async function detectModManagers({game, sharedObjects, readdir = realRead
 // -------------------------------------------------------------- nested packs
 
 // Folders of the game itself (and of other tools) that are never searched for a wrapped pack (the same list as
-// packaging/runtime/place-packs.mjs; the bridge cannot import from packaging/, and a test keeps the two equal).
+// place-packs.mjs in the packaging folder; the bridge cannot import from packaging/, and a test keeps the two equal).
 export const GAME_FOLDERS = Object.freeze(new Set(['archive', 'bin', 'engine', 'r6', 'red4ext', 'mods', 'tools', 'plugins', 'support',
   'localization', 'redprelauncher', 'redmod', 'app', 'voices', 'node_modules', '.git']));
 const LOCAL_MARKER = /^manifest\.[A-Za-z0-9._-]+\.json$/;
@@ -172,7 +172,7 @@ const PACK_NAMES = Object.freeze({
 
 /**
  * Optional pack files extracted one folder too deep, found but never moved (the launcher moves them at the game's start,
- * packaging/runtime/place-packs.mjs; this only reports what is still there). Same places, same markers:
+ * place-packs.mjs in the packaging folder; this only reports what is still there). Same places, same markers:
  *   - the game folder's child folders, and one level further;  - the mod folder (red4ext/... or app/... extracted into it);
  *   - the plugin folder (red4ext/... inside it, or inside one wrapper folder of it).
  * A candidate is <base>/red4ext/plugins/AiNpcCyberpunkMod/app holding local-ai/manifest.*.json, a non-empty local-ai/mature/ or
@@ -300,8 +300,8 @@ export function resetSetupCheckCaches() { caches.graphics = null; caches.browser
 const PLACEMENT_WINDOW_MS = 10 * 60 * 1000;
 
 /**
- * What the launcher's pack mover reported at this start (packaging/runtime/start-service.mjs writes <state>/pack-placement.json before it
- * starts the bridge): {fixed: [{pack, from}], conflicts: [...], errors: [...]}, or null when there is no such file or it is older than
+ * What the launcher's pack mover reported at this start (start-service.mjs in the packaging folder writes
+ * <state>/pack-placement.json before it starts the bridge): {fixed: [{pack, from}], conflicts: [...], errors: [...]}, or null when there is no such file or it is older than
  * ten minutes before this bridge process started (an earlier game start's). `startedAt` is the bridge process's start (ms).
  */
 export async function readPackPlacement({stateDirectory, startedAt = Date.now(), now = Date.now(), read = path => readFile(path, 'utf8')} = {}) {

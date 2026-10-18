@@ -2081,7 +2081,9 @@ local function schema()
         for _, item in ipairs(setupLines) do
             setupRows[#setupRows + 1] = readonly('setup:' .. item.id, item.label, item.value, item.description, {label = true, value = true, description = true})
         end
-        categories[#categories + 1] = {id = 'help-setup', name = ui.t('Setup check'), description = summary, settings = setupRows}
+        local setupCategory = category('help-setup', 'Setup check', setupRows)
+        setupCategory.description = summary   -- already translated
+        categories[#categories + 1] = setupCategory
         rows[#rows + 1] = readonly('help-steps', 'What to do', 'Create a report',
             'If a character stops answering, voices stop or an error appears: choose Generate report and send the file it names to the developer, with a short note about what you were doing.\n\nThe logs listed below show what went wrong.')
         categories[#categories + 1] = category('help-trouble', 'If something goes wrong', rows)

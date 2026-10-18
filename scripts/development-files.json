@@ -442,6 +442,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/support-report.lua"
     },
     {
+      "source": "mod/setup-check.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/setup-check.lua"
+    },
+    {
       "source": "mod/character-editor.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/character-editor.lua"
     },

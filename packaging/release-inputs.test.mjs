@@ -131,5 +131,7 @@ test('every catalog the Scripts package puts at the mod root is read by the ship
   }
   // npc-names.json is the crowd name store a Lua module writes next to init.lua (see the observation in deliverables/tests/REPORT.md).
   unclassified.delete('npc-names.json');
+  // release.json is written beside init.lua by the Scripts build (packaging/build-release.mjs) and only read, by the setup check.
+  unclassified.delete('release.json');
   assert.deepEqual([...unclassified], [], 'classify the file in packaging/runtime-exchange.json or ship it as a catalog');
 });

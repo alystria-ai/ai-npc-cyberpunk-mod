@@ -11,7 +11,7 @@
 --
 -- Cost: run() opens five small files and asks CET whether a few classes exist, a few milliseconds. It runs once FIRST_DELAY_S after
 -- the first world is ready and once each time the Help page opens, never per frame. tick() is called from mcm.lua's quarter-second
--- slow update: a few comparisons, plus one small read a second for at most FOLLOW_S while the Help page waits for the service.
+-- slow update: a few comparisons, plus one small read a second for at most FOLLOW_S while a request waits for the service.
 -- Nothing here touches native game state beyond read-only getters.
 if type(convaiSetupCheck) == 'table' and convaiSetupCheck.version == 1 then return convaiSetupCheck end
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
@@ -24,12 +24,14 @@ local FIRST_DELAY_S = 12       -- the first-load check waits this long after the
 local FOLLOW_S = 15            -- how long the Help page follows the request it wrote
 local CATALOGS = {'world-knowledge.json', 'manager-characters.json', 'conversation-characters.json', 'phone-contacts.json'}
 local LOCALE_COUNT = 15
--- bridge-service.json codes that mean the Runtime's files are missing or incomplete (bridge/bridge-supervisor.mjs,
--- packaging/runtime/start-service.mjs, native/autostart/CyberpunkConvaiLauncher.c).
+-- bridge-service.json codes that mean the Runtime's files are missing or incomplete (bridge/bridge-supervisor.mjs, the launcher's
+-- start-service.mjs in the packaging folder, native/autostart/CyberpunkConvaiLauncher.c).
 local INCOMPLETE = {['install-incomplete'] = true, ['bridge-missing'] = true, ['missing-character-ids'] = true,
     ['launcher-not-configured'] = true, ['launcher-program-missing'] = true, ['launcher-directory-missing'] = true}
 -- The order of the game-side lines on the page and in the notice's choice (the first critical problem is the one announced).
 local CRITICAL = {'red4ext', 'codeware', 'redscript', 'audioware', 'tweakxl', 'mcm', 'files', 'service', 'versions', 'packs', 'internet'}
+-- Every game-side check, in the order the reports list them.
+local GAME_IDS = {'service', 'files', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'tweakxl', 'audioware', 'mcm'}
 local MCM_CONSOLE = 'AI NPC Cyberpunk Mod: Mod Configuration Menu is missing or too old, so the Companion Manager cannot open. '
     .. 'Install Mod Configuration Menu 0.10.3 or newer from Nexus Mods, then restart the game.'
 
@@ -38,7 +40,7 @@ local game                -- the last game-side result: {checks = {id -> check},
 local bridge              -- the service's answer of this session (decoded runtime/setup-check.json), or nil
 local pending             -- {id, untilAt, nextAt} while the Help page waits for the service's answer
 local refreshDue = false
-local firstDue, firstDone = nil, false
+local firstDue, firstAsked, firstDone = nil, false, false
 local counter, content = 0, ''
 
 ------------------------------------------------------------------ helpers
@@ -88,7 +90,21 @@ local function gigabytes(mib)
     return (value:gsub('%.0$', ''))
 end
 
+-- The page's signature: every game-side result and the service answer's time.
+local function contentOf()
+    local parts = {}
+    if game then
+        for _, id in ipairs(GAME_IDS) do
+            local check = game.checks[id]
+            if check then parts[#parts + 1] = id .. '=' .. tostring(check.state) .. ':' .. tostring(check.code) end
+        end
+    end
+    parts[#parts + 1] = 'bridge=' .. tostring(bridge and bridge.updated or '')
+    return table.concat(parts, '|')
+end
+
 ------------------------------------------------------------------ game side
+
 
 -- Each probe is read-only and pcall-wrapped: a framework that is absent leaves its class (and its static Version()) undefined.
 local function frameworks()
@@ -111,9 +127,15 @@ local function frameworks()
     return found
 end
 
+-- The service status module (mod/service-status.lua), which init.lua loads first; loaded here when it was not.
+local function statusModule()
+    local ok, status = pcall(function() return convaiServiceStatus or dofile('service-status.lua') end)
+    return ok and type(status) == 'table' and status or nil
+end
+
 local function serviceCheck(now)
-    local status = convaiServiceStatus
-    if type(status) ~= 'table' then return {state = 'unknown', code = 'unknown'} end
+    local status = statusModule()
+    if not status then return {state = 'unknown', code = 'unknown'} end
     local reach = try(function() return status.reach(now) end)
     local down = try(function() return status.unavailable(now) end)
     if reach == 'never' then return {state = 'problem', code = 'never'} end
@@ -190,6 +212,7 @@ function M.run(now)
         and answer.updated >= (loadedAt - SESSION_WINDOW_S) * 1000.0 then
         bridge = answer
     end
+    content = contentOf()
     return checks
 end
 
@@ -217,11 +240,17 @@ end
 
 ------------------------------------------------------------------ lines
 
-local VALUE = {ok = 'OK', problem = 'Problem', note = 'Note', unknown = 'Unknown'}
+-- Literal ui.t calls, so the catalogue (scripts/Extract-UiCatalog.mjs) lists every state word.
+local function stateWord(state)
+    if state == 'ok' then return ui.t('OK') end
+    if state == 'problem' then return ui.t('Problem') end
+    if state == 'note' then return ui.t('Note') end
+    return ui.t('Unknown')
+end
 
 -- One line: id, label (already translated, or a product name), state, description (already translated).
 local function line(id, label, state, description, value)
-    return {id = id, label = label, state = state, value = value or ui.t(VALUE[state] or 'Unknown'), description = description or ''}
+    return {id = id, label = label, state = state, value = value or stateWord(state), description = description or ''}
 end
 
 local function versionText(check)
@@ -374,26 +403,14 @@ function M.problemCount()
     return count
 end
 
--- Changes when what the page shows changes (the game-side results or a new service answer).
+-- Changes when what the page shows changes (the game-side results or a new service answer). Built when a result arrives, never in tick().
 function M.signature() return content end
-
-local function contentOf()
-    local parts = {}
-    if game then
-        for _, id in ipairs(CRITICAL) do
-            local check = game.checks[id]
-            if check then parts[#parts + 1] = id .. '=' .. tostring(check.state) .. ':' .. tostring(check.code) end
-        end
-    end
-    parts[#parts + 1] = 'bridge=' .. tostring(bridge and bridge.updated or '')
-    return table.concat(parts, '|')
-end
 
 ------------------------------------------------------------------ the request
 
 local function serviceLive()
-    local status = convaiServiceStatus
-    return type(status) == 'table' and try(function() return status.reach(os.time()) end) == 'live'
+    local status = statusModule()
+    return status ~= nil and try(function() return status.reach(os.time()) end) == 'live'
 end
 
 -- The Help page opened: run the game-side checks on the next tick and ask a running service to check again (the internet check is
@@ -423,16 +440,16 @@ local function follow(now)
     local answer = readJson(RESULT)
     if type(answer) == 'table' and answer.version == 1 and answer.request == pending.id and type(answer.checks) == 'table' then
         bridge, pending = answer, nil
+        content = contentOf()
     end
 end
 
 ------------------------------------------------------------------ first load
 
 local function shortText(id)
-    if id == 'red4ext' then return ui.t('RED4ext is not loaded, so this mod cannot start. Install RED4ext, then restart the game.') end
     if id == 'redscript' then return ui.t('This mod’s scripts did not load. Install redscript, then restart the game.') end
     if id == 'mcm' then return ui.t('Install Mod Configuration Menu from Nexus Mods to open the Companion Manager.') end
-    if id == 'files' then return ui.t('Some of this mod’s files are missing. Extract the Scripts zip again. See Help in Settings.') end
+    if id == 'files' then return ui.t('Some mod files are missing. Extract the Scripts zip again. See Help in Settings.') end
     if id == 'service' then return ui.t('The conversation service did not start. Is the Runtime installed? See Help in Settings.') end
     if id == 'versions' then return ui.t('The Scripts and Runtime versions do not match. Install the same version of both.') end
     if id == 'packs' then return ui.t('A pack is one folder too deep. See Help in Settings.') end
@@ -456,8 +473,10 @@ function M.problems()
     return list
 end
 
--- The notice of the first load, once per game session: the first critical problem, and Mod Configuration Menu's on a second line
--- when it is missing too (without it the Help page cannot open at all). nil when nothing critical is wrong.
+-- The notice of the first load, once per game session: the first critical problem, one short text of at most two lines (the warning
+-- line's frame, docs/NOTIFICATIONS.md); the others are in the log and on the Help page. nil when nothing critical is wrong. The order
+-- of CRITICAL puts everything that stops the mod, and Mod Configuration Menu, before the checks that need the Help page, so the text
+-- never sends the player to a page they cannot open.
 local function firstLoad()
     local problems = M.problems()
     if #problems == 0 then
@@ -465,16 +484,14 @@ local function firstLoad()
         return nil
     end
     appendLog('Setup check: problems: ' .. table.concat(problems, ', '))
-    local mcmMissing = false
-    for _, id in ipairs(problems) do if id == 'mcm' then mcmMissing = true end end
-    if mcmMissing then
-        -- The Help page cannot show this, so the CET console and probe.log say it too, in English for the report.
-        print('[AiNpcCyberpunkMod] ' .. MCM_CONSOLE)
-        appendLog(MCM_CONSOLE)
+    for _, id in ipairs(problems) do
+        if id == 'mcm' then
+            -- The Help page cannot show this, so the CET console and probe.log say it too, in English for the report.
+            print('[AiNpcCyberpunkMod] ' .. MCM_CONSOLE)
+            appendLog(MCM_CONSOLE)
+        end
     end
-    local text = shortText(problems[1])
-    if mcmMissing and problems[1] ~= 'mcm' then text = text .. '\n' .. shortText('mcm') end
-    return text
+    return shortText(problems[1])
 end
 
 -- Gameplay on screen, asked without this mod's scripts (init.lua's worldReady needs one of their methods, so it is never true when
@@ -504,15 +521,24 @@ function M.tick(worldReady, inSession)
     if not firstDone and (worldReady or inSession) then
         if not firstDue then firstDue = now + FIRST_DELAY_S
         elseif now >= firstDue then
-            firstDone = true
-            M.run(now)
-            held = firstLoad()
+            if not firstAsked then
+                -- Once per session: the game-side checks, and the service's full answer (it holds the internet test, which the
+                -- service does not run on its own). Nothing is asked of a service that is not running.
+                firstAsked = true
+                M.run(now)
+                request(now)
+            end
+            -- The notice is decided when that answer has come, or after FOLLOW_S without one.
+            if not pending then
+                firstDone = true
+                M.run(now)
+                held = firstLoad()
+            end
         end
     end
     if held and (worldReady or (game and game.checks.redscript.state == 'problem' and playable())) then
         notice, held = held, nil
     end
-    content = contentOf()
     return notice
 end
 
@@ -522,7 +548,7 @@ end
 function M.reportLines()
     if not game then M.run() end
     local out = {}
-    for _, id in ipairs({'service', 'files', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'tweakxl', 'audioware', 'mcm'}) do
+    for _, id in ipairs(GAME_IDS) do
         local check = game.checks[id]
         if check then
             out[#out + 1] = string.format('%s: %s %s%s%s', id, tostring(check.state), tostring(check.code),
@@ -557,7 +583,7 @@ end
 function M.summary()
     if not game then M.run() end
     local rows = {}
-    for _, id in ipairs({'service', 'files', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'tweakxl', 'audioware', 'mcm'}) do
+    for _, id in ipairs(GAME_IDS) do
         local check = game.checks[id]
         if check then rows[#rows + 1] = {id = id, state = check.state, code = check.code, version = check.version or check.detail} end
     end
