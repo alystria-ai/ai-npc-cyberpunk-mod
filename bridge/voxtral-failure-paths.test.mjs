@@ -208,7 +208,7 @@ test('the voice asks for the key once per call: a key removed between two replie
 
 // ---- a refused key that is replaced -----------------------------------------------------------------------------------------------------
 
-test('after a refused key (HTTP 401) the player saves another key: the new key is tried at once, not after the 60 s that belonged to the old one', {todo: 'BUG: VoxtralVoice keeps `until` when the key changes, so a freshly saved key is not used for up to 60 s after a 401 (InworldVoice#syncKey clears its cool-down when the key is replaced; bridge/voxtral-voice.mjs, getKey / ready / synthesizeStream)'}, async () => {
+test('after a refused key (HTTP 401) the player saves another key: the new key is tried at once, not after the 60 s that belonged to the old one', async () => {
   let refuse = true;
   const server = await serve((request, response) => {
     if (refuse && request.headers.authorization === `Bearer ${KEY}`) { response.writeHead(401, {'content-type': 'application/json'}); response.end('{"message":"Unauthorized"}'); return; }
@@ -226,4 +226,24 @@ test('after a refused key (HTTP 401) the player saves another key: the new key i
     await voice.synthesizeStream('judy-alvarez', 'Two.', sink);
     assert.equal(sink.packets.length, 1);
   } finally { await server.close(); }
+});
+
+test('a 401 that comes back for the old key after the player saved another one does not pause the new key', async () => {
+  let release;
+  const gate = new Promise(done => { release = done; });
+  const server = await serve(async (request, response) => {
+    if (request.headers.authorization === `Bearer ${KEY}`) { await gate; response.writeHead(401, {'content-type': 'application/json'}); response.end('{"message":"Unauthorized"}'); return; }
+    sse(response); response.end(delta(bytesOf(samples(2400))) + done);
+  });
+  try {
+    let key = KEY;
+    const {voice} = voiceFor(server, {getKey: () => key, clock: () => 1_000_000});
+    const pending = voice.synthesizeStream('judy-alvarez', 'One.', collect()).catch(caught => caught);
+    while (server.requests.length < 1) await new Promise(resolve => setTimeout(resolve, 5));
+    key = OTHER_KEY;
+    assert.equal(voice.ready, true, 'the new key is seen while the old request is still out');
+    release();
+    assert.equal((await pending).kind, 'key');
+    assert.equal(voice.ready, true, 'a refusal of the old key does not pause the new key');
+  } finally { release?.(); await server.close(); }
 });
