@@ -60,6 +60,21 @@ Nothing is parked.
 
 ## Captain's log
 
+**2026-10-18 ~15:45 IST (main b9712264, pushed; v0.2 Scripts and Runtime rebuild run 39118499418): launch state.** Merged and pushed:
+- world-talk (75ce5453), with **Talk to story characters off by default** (9a7af2e8: a missing key is off, a saved choice is kept; `Face.reds` `m_storyTalk` starts false);
+- the save-load crash fix: suspended from the player's detach until the save is restored, collect only while the old world exists, surviving party handles pinned, and `convaiTalkNative` cleared at an unload (97b1efd1, the leak that kept Jackie and Johnny alive);
+- holocall: no far studio (portrait instead), and an Omni or prepared phrase on a call plays on V's own Audioware track (`Speech.reds` `ConvaiSpeechStartOnV`);
+- the development recording tools were removed from the release (b9712264) and kept on the local branch `recording-tools` (scripted lines on the game route, group stage, drive/lead/gaze probes, preferred idles).
+
+Found on the way: the scripted game route had dropped the prepared WAV, so the Panam, Johnny, Evelyn and Takemura demo clips were voiced by Voxtral (kept by the user). Crash analysis: 13:14, 13:19 and 23 Sep were a CET finalizer releasing a puppet after its world was gone; 13:32 was an AI command to a dead handle; 14:40 was an engine-side entity initialization job with a stale capture, no mod frame. Every crash happened while the exe ran without Steam on a non-owning account; launches now go through Steam.
+
+**Live checks owed** (game installed with the dev build, which is functionally the same plus the probes):
+- a save load after fighting beside two companions: no crash and no `Unload:` line;
+- a holocall from the apartment with OmniVoice: `Holocall voice: path=audioware-v`, her voice heard (needs a full restart for `Speech.reds`);
+- story characters off on a fresh settings file.
+
+Demo video, screenshots and the Nexus and YouTube write-up are in `Downloads\AI-NPC-Nexus-Launch`; the edit script is `demo-videouild_demo.py`.
+
 **2026-10-18 (branch `holo-fix`, from main e975fdfc; unit-tested and compiled, NOT merged, NOT installed): silent native voice on a holocall.** Live 09:30Z from the apartment (`floor=+4.5m away=4.5m`, face working): a prepared OmniVoice WAV on a holocall moved her lips (`nativePlaybackObserved: true`) but was not heard; V's voice and a Voxtral (browser) holocall reply were heard. The native phrase was a spatial Audioware emitter on V's weapon or chest item (distance attenuation, 18 m max, occlusion); fix: `Speech.reds` `ConvaiSpeechStartOnV` queues a `DynamicSoundEvent` on V, which Audioware plays on V's own non-spatial track; `speech.lua` uses it first for holocall phrases (`Holocall voice: path=audioware-v`), the old emitter path stays as the fallback for an older `Speech.reds`. Tests: speech-delivery new test; suites 360 pass of 363 (2 fail, both face-stage/face-test failures already at HEAD); `Compile-Redscript.ps1` exit 0. Needs a full restart.
 
 **2026-10-18 (branch `holo-fix`, from main 3ce7a8ec; unit-tested, NOT merged, NOT installed, NOT seen in the game): holocall live picture far from V.** Live, five calls from a Little China street all logged `holo spawn ... floor=+79.0m away=84.5m`: no hidden near floor, so the first column above V was used, past `FACE_RANGE` (11 m). Result: still face during replies (face frames were written), coarse low-detail Blue Moon, broken scenery strip in Rogue's picture. `holocall.lua` was unchanged since 2026-10-16; the working calls of 10-15/16 were from apartments with near studios. Fix: `M.FAR_PICTURE = false` (far columns not searched; portrait instead). `speech.lua` logs one `Holocall voice:` line per holocall reply (path, level, emitter class and distance). The voice itself: the typed replies' renderer log shows full gain (`[VoiceVolume] companion ... gain 3.069`, lease level 1.0) and playback to the end; to be confirmed live with the new line. Tests: `bridge/holocall.test.mjs` 21/21 (one new); speech/face suites pass except two face-stage/face-test failures already at HEAD.
