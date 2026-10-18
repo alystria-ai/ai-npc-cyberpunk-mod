@@ -63,8 +63,11 @@ function M.update(s,position,dt,company)
     local departure=space.ground(position,s.stopAnchor)
     local localInteraction=insideGathering(s,position,company)
     local runningDeparture=s.rawSpeed>3.2 and s.activeFor>=.2 and departure>=1.2
-    if not s.moving and (runningDeparture or not localInteraction
-        and ((departure>1.0 and s.activeFor>=0.3) or departure>2.2)) then
+    -- Development only (mod/face-test.lua `lead`; nil in the shipped mod): the walk counts as started at V's first step, even beside
+    -- the companion (a 'gathering' otherwise holds the group until V clearly walks off).
+    local lead=convaiCompanions and convaiCompanions.devLead
+    if not s.moving and (runningDeparture or (lead or not localInteraction)
+        and ((departure>(lead and .15 or 1.0) and s.activeFor>=(lead and 0 or 0.3)) or departure>2.2)) then
         if runningDeparture then
             s.direction=space.bearing(s.stopAnchor,position)
             s.pendingTurn=nil

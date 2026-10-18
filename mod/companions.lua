@@ -259,6 +259,12 @@ local function seatedAttention(entry,player,focusEntity,gazeSettings,step)
 end
 local function distance(a,b) return space.distance(a,b) end
 local function copyPosition(p) return Vector4.new(p.x,p.y,p.z,p.w or 1) end
+-- Development only (mod/face-test.lua `lead`): the first formation place moves to (lateral, forward) metres from V, or back to
+-- its authored place with nil. Spawn, walking lane, stop spot and comfort checks all read this one table.
+local authoredFirstSlot={slots[1][1],slots[1][2]}
+function M.devSetFirstSlot(lateral,forward)
+    slots[1]={lateral or authoredFirstSlot[1],forward or authoredFirstSlot[2]}
+end
 local function formationPosition(player,slot)
     local direction=groupFrame and groupFrame.direction or player:GetWorldForward()
     local point=space.offset(space.copy(player:GetWorldPosition()),direction,slots[slot][1],slots[slot][2])
@@ -2354,7 +2360,8 @@ function M.update(player,delta,focusEntity)
             if not tactic and not departing and not seated and recoverDistant(entry,player) then return end
             local id=tostring(entry.entityID.hash)
             local lane=travel.laneFrame(groupFrame,entry.lane)
-            local travelTarget=space.offset(lane.position,lane.direction,slots[entry.lane][1],0)
+            local lead=M.devLead -- development only (mod/face-test.lua `lead`; nil in the shipped mod): she also walks that far ahead
+            local travelTarget=space.offset(lane.position,lane.direction,slots[entry.lane][1],lead and lead.forward or 0)
             local choices=space.candidates(groupFrame,entry.lane)
             local restTarget=choices[1]
             for _,point in ipairs(choices) do
@@ -2367,7 +2374,8 @@ function M.update(player,delta,focusEntity)
                 id=id,slot=entry.lane,frame=groupFrame,player=player,npc=entry.npc,clearance=entry.clearance,
                 position=entry.position,direction=entry.direction,speed=entry.speed,
                 playerGap=entry.playerGap,targetGap=entry.targetGap,facingError=entry.facingError,
-                selected=id==focusEntity,combat=fightingOk and fighting==true,
+                -- devLead.calm (development only): no turn toward V while V looks at her, until the face-test cue releases it.
+                selected=id==focusEntity and not (lead and lead.calm),combat=fightingOk and fighting==true,
                 gazeSettings=gazeSettings,
                 motion=entry.motor.feedback,travelTarget=travelTarget,restTarget=restTarget,
                 comfortable=space.comfortable(entry.position,groupFrame,entry.lane,others,id,entry.clearance),

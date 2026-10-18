@@ -11,6 +11,8 @@
 //           that serves synthesized audio (the Pocket continuous route: PocketFacialStream over the packets this module hands out).
 //   engine  'pocket', 'voxtral' or 'inworld': synthesize the text live through that voice. Ignored when `audio` is given. With neither,
 //           the engine the player's settings chose speaks it.
+//   route   'game': the line takes the place of the model's reply and goes through the ordinary reply path from there (the voice the
+//           player's settings chose, that voice's own lip sync and face, and the ordinary publish). `audio` and `engine` are ignored.
 import {randomBytes, createHash} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {decodeWav} from './voxtral-reference.mjs';
@@ -24,15 +26,17 @@ export const SCRIPTED_MAX_SECONDS = 100;        // the local PCM host takes 120 
 const PACKET_FRAMES = 2400;                     // 100 ms, like the cloud voices' packets
 const MODEL_ID = createHash('sha256').update('scripted-prepared-audio').digest('hex');
 
-/** The file's JSON as {text, audio?, engine?}; throws an Error that says what is wrong. */
+/** The file's JSON as {text, audio?, engine?, route?}; throws an Error that says what is wrong. */
 export function parseScriptedLine(raw) {
   let value;
   try { value = JSON.parse(String(raw).replace(/^﻿/, '')); } catch { throw Error('the scripted line file is not JSON'); }
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw Error('the scripted line file must hold a JSON object');
-  const {text, audio, engine} = value;
+  const {text, audio, engine, route} = value;
   if (typeof text !== 'string' || !text.trim() || text.length > SCRIPTED_MAX_TEXT) throw Error(`"text" must be 1 to ${SCRIPTED_MAX_TEXT} characters`);
   if (audio !== undefined && (typeof audio !== 'string' || !isAbsolute(audio) || !/\.wav$/i.test(audio))) throw Error('"audio" must be an absolute path to a .wav file');
   if (engine !== undefined && !SCRIPTED_ENGINES.includes(engine)) throw Error(`"engine" must be one of ${SCRIPTED_ENGINES.join(', ')}`);
+  if (route !== undefined && route !== 'game') throw Error('"route" must be "game" when given');
+  if (route === 'game') return {text: text.trim(), route};
   return {text: text.trim(), ...(audio ? {audio} : {}), ...(engine ? {engine} : {})};
 }
 

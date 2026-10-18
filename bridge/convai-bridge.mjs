@@ -45,7 +45,7 @@ import {VoiceSelection} from './voice-selection.mjs';
 import {VoxtralVoice} from './voxtral-voice.mjs';
 import {InworldVoice} from './inworld-voice.mjs';
 import {INWORLD_KEY_FILE, InworldKey} from './inworld-key.mjs';
-import {createReferencePreparer} from './voxtral-reference.mjs';
+import {createReferencePreparer, encodeWav16} from './voxtral-reference.mjs';
 import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute} from './voice-routing-log.mjs';
 import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
@@ -110,7 +110,7 @@ import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-captu
 import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, warmConnection} from './mistral-client.mjs';
 import {TurnClock, withClock, markStage} from './turn-clock.mjs';
 import {AddonHost, LOCAL_REMARK_GAP_S, fixedProvider, rosterLookup, sharedMemory} from './addons.mjs';
-import {parseScriptedLine, pcmFromWav, preparedVoice, engineVoice} from './scripted-line.mjs';
+import {parseScriptedLine, pcmFromWav, preparedVoice, engineVoice, SCRIPTED_RATE} from './scripted-line.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
@@ -1380,9 +1380,10 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
 
 // options.preStore (the reply's first phrase): the audio is written for its speech slot while the face analysis runs, not after it
 // (bridge/speech-audio.mjs prepareSpeech); the result carries `preStored` for publishResult.
-async function synthesizeOmniPhrase(profile,text,{preStore=false,...options}={}){
+async function synthesizeOmniPhrase(profile,text,{preStore=false,prepared,...options}={}){
   markStage('ttsSent');
-  const generated=await localVoice.synthesize(profile,text,options);
+  // `prepared` (a scripted line on the game route, development only): audio already made, analysed and published like a rendered phrase.
+  const generated=prepared??await localVoice.synthesize(profile,text,options);
   markStage('firstPcm');
   let preStored;
   // The analysis is started first (it runs in a worker), then the file is prepared on this thread while that runs: the other way round
@@ -2272,6 +2273,7 @@ async function runScriptedTurn(request, input, profile, current, clock) {
   if (!developerMode) { console.error('[Scripted] ignored: Developer mode is off'); await refuse('Scripted lines need Developer mode.', 'scripted-dev-only'); return; }
   try {
     const line = parseScriptedLine(await readFile(input.scripted.file, 'utf8'));
+    if (line.route === 'game') { await runScriptedGameRoute(input, profile, line, current, signal, clock); return; }
     let voice, source;
     if (line.audio) { voice = preparedVoice(pcmFromWav(await readFile(line.audio))); source = 'prepared audio'; }
     else { voice = engineVoice(line.engine, localVoice); source = line.engine ?? 'configured voice'; }
@@ -2303,6 +2305,32 @@ async function runScriptedTurn(request, input, profile, current, clock) {
     await refuse(`The scripted line failed: ${String(error?.message ?? error).slice(0, 160)}`, 'scripted-failed').catch(() => {});
   }
 }
+// route 'game': the line stands in for the model's reply and the ordinary reply path does the rest. Without `audio`, the voice the
+// player chose speaks it (synthesizeReply). With `audio`, that WAV is handled as an OmniVoice reply is: one whole file, the same face
+// analysis (synthesizeOmniPhrase with the audio given) and the ordinary publish. Her session id is carried through unchanged.
+async function runScriptedGameRoute(input, profile, line, current, signal, clock) {
+  const parsed = hasSpeechTags(line.text) ? parseTagged(line.text) : null;
+  const text = parsed?.display || line.text;
+  const written = parsed?.marks.length ? parsed.marks : undefined;
+  const result = {text, transport: 'realtime', model: 'scripted', finishReason: 'stop', timing: {scripted: true},
+    ...(written ? {emotionMarks: written} : {}), ...(parsed?.sounds.length ? {voiceMarks: parsed.sounds} : {})};
+  clock.mark('admitted');
+  console.error(`[Scripted] profile=${input.profileKey} route=game audio=${line.audio ? 'prepared' : 'voice setting'} chars=${text.length} marks=${written?.length ?? 0}`);
+  let spoken;
+  if (!line.audio) spoken = await synthesizeReply(input, result, signal, current, profile);
+  else {
+    const plan = emotionSelection.plan({player: '', reply: text, profile: input.profileKey, convai: undefined, marks: written, breaks: []});
+    const cue = plan ? (plan.summary?.basis === 'calm' ? undefined : planSignal(plan)) : undefined;
+    emotionSelection.remember(input.profileKey, plan);
+    const audio = encodeWav16(pcmFromWav(await readFile(line.audio)), SCRIPTED_RATE).toString('base64');
+    const voiced = await synthesizeOmniPhrase(voiceKeyFor(input), text, {signal, prepared: {audio, faces: [], captions: [], timing: {}}});
+    spoken = {...result, ...voiced, ...(cue ? {expressionSignal: cue} : {}), ...(plan ? {expressionPlan: plan} : {}),
+      timing: {...voiced.timing, scripted: true}};
+  }
+  if (!await current()) return;
+  await publishResult(input, profile, {...spoken, sessionID: realtimeSessions.get(sessionKey(input))}, current, signal);
+}
+
 // What publishResult does for a continuous reply, without its conversation bookkeeping (no session id, prefetch, connection or language
 // observation, follow-up record or gear log): a scripted line must leave the character's real conversation untouched.
 async function publishScripted(input, profile, result, current, signal) {

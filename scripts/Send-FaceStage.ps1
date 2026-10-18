@@ -1,6 +1,7 @@
 param(
     [string]$Character,
-    [ValidateSet('stage', 'status', 'off', 'dismiss', 'where', 'check', 'freeze', 'thaw', 'look', 'unlook', 'gestures', 'nogestures')][string]$Action = 'stage',
+    [ValidateSet('stage', 'status', 'off', 'dismiss', 'where', 'check', 'freeze', 'thaw', 'look', 'unlook', 'gestures', 'nogestures', 'idle')][string]$Action = 'stage',
+    [string]$Idle = 'off',
     [int]$Hold = 60,
     [switch]$NoWait,
     [int]$TimeoutSeconds = 45,
@@ -57,5 +58,6 @@ switch ($Action) {
         while ($left -gt 0 -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 1200; $left = (Send-Command 'face-stage status').result.leaving }
         $done | Add-Member -NotePropertyName stillThere -NotePropertyValue $left -Force -PassThru | ConvertTo-Json -Depth 6
     }
+    'idle' { (Send-Command "face-stage idle $Idle").result | ConvertTo-Json -Depth 6 }  # -Idle panam_beer prefers that idle, -Idle off clears it
     default { (Send-Command "face-stage $(if ($Action -eq 'status') { 'status' } else { $Action })").result | ConvertTo-Json -Depth 6 }
 }

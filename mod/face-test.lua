@@ -158,16 +158,15 @@ commands['speak-line'] = function(rest, context)
     if not who then return false, 'usage: speak-line <who> <file.json>' end
     path = path:gsub('^"(.*)"$', '%1')
     if #path > 500 or not path:lower():match('%.json$') then return false, 'the line file must be a .json path' end
-    local file = io.open(path, 'rb')
-    if not file then return false, 'cannot read ' .. path end
+    -- CET opens files only inside this mod's folder, by a path relative to it: an absolute path there is made relative.
+    local relative = path:gsub('\\', '/'):match('/AiNpcCyberpunkMod/(.+)$')
+    local file = io.open(path, 'rb') or (relative and io.open(relative, 'rb'))
+    if not file then return false, 'cannot read ' .. path .. ' (it must be inside the mod folder)' end
     local raw = file:read('*a'); file:close()
     local ok, doc = pcall(json.decode, (tostring(raw):gsub('^\239\187\191', '')))
     if not ok or type(doc) ~= 'table' or type(doc.text) ~= 'string' or doc.text:match('^%s*$') then return false, 'the line file needs a "text" string' end
-    if doc.audio ~= nil then
-        local audio = type(doc.audio) == 'string' and io.open(doc.audio, 'rb')
-        if not audio then return false, 'cannot read the audio file ' .. tostring(doc.audio) end
-        audio:close()
-    end
+    -- The WAV may be anywhere (CET cannot open it outside the mod folder); the bridge reads and checks it.
+    if doc.audio ~= nil and type(doc.audio) ~= 'string' then return false, '"audio" must be a path' end
     if doc.engine ~= nil and doc.engine ~= 'pocket' and doc.engine ~= 'voxtral' and doc.engine ~= 'inworld' then return false, 'engine must be pocket, voxtral or inworld' end
     local row = rowFor(context, who)
     if not row then return false, 'no owned companion matching ' .. who .. ' in range' end
@@ -196,6 +195,78 @@ local function playStop(play, npc, reason)
     M.play = nil
     log('play-' .. reason, {name = play.name, frames = play.frames, position = play.position})
 end
+-- invite <who> (development only): the character joins exactly as from the Companion Manager (the party queue, no 'joined' notice),
+-- and is then an ordinary companion: she walks with V, turns and talks through the mod's own systems. No stage, no hold.
+commands['invite'] = function(rest)
+    local who = rest:match('^(%S+)')
+    if not who then return false, 'usage: invite <who>' end
+    local queue = convaiManager and convaiManager.party and convaiManager.party()
+    if not queue then return false, 'the party queue is not available' end
+    local called, accepted, message = pcall(queue.invite, who, {quiet = true})
+    if not called or not accepted then return false, 'invitation refused: ' .. tostring(called and message or accepted) end
+    M.spawned[#M.spawned + 1] = who -- so `face-stage dismiss` sends her away again
+    return true, {invited = who}
+end
+
+-- lead <forward> <lateral> | lead off (development only): every companion walks and stops this far ahead of V (metres; lateral
+-- negative is V's right, as in companion-space.lua) instead of in its lane. Cleared by a reload.
+commands['lead'] = function(rest)
+    if not convaiCompanions then return false, 'companion runtime not loaded' end
+    if rest == 'off' or rest == '' then
+        convaiCompanions.devLead = nil
+        if convaiCompanions.devSetFirstSlot then convaiCompanions.devSetFirstSlot(nil, nil) end
+        return true, 'lead off'
+    end
+    local forward, lateral = rest:match('^(%S+)%s*(%S*)$')
+    forward, lateral = tonumber(forward), tonumber(lateral) or 0
+    if not forward then return false, 'usage: lead <forward> <lateral> | lead off' end
+    -- calm: she does not turn to V while V looks at her (the start of a shot); an armed cue releases it once V has walked.
+    convaiCompanions.devLead = {forward = forward, lateral = lateral, calm = true}
+    if convaiCompanions.devSetFirstSlot then convaiCompanions.devSetFirstSlot(lateral, forward) end
+    return true, convaiCompanions.devLead
+end
+
+-- cue <who> <file.json> | cue off (development only): speak-line fires by itself once V has stood still for half a second facing
+-- that character (within 25 degrees, 6 m) for 1.6 s, long enough for her own turn toward V to finish first. Checked every .1 s while
+-- armed; disarmed after it fires. Once V has walked 1.5 m, lead mode's calm ends, so she turns to V as usual when V stops and looks.
+commands['cue'] = function(rest)
+    if rest == 'off' then M.cue = nil; return true, 'cue off' end
+    local who, path = rest:match('^(%S+)%s+(.+)$')
+    if not who then return false, 'usage: cue <who> <file.json> | cue off' end
+    M.cue = {who = who, path = path, still = 0, at = 0}
+    return true, {armed = who}
+end
+
+local function cueTick(delta, context)
+    local cue = M.cue
+    cue.at = cue.at + delta
+    if cue.at < .1 then return end
+    local elapsed = cue.at; cue.at = 0
+    local player = Game.GetPlayer()
+    local row = context and rowFor(context, cue.who)
+    if not player or not row or not row.npc then cue.still = 0; return end
+    local p, n, f = player:GetWorldPosition(), row.npc:GetWorldPosition(), player:GetWorldForward()
+    local moved = cue.last and math.sqrt((p.x - cue.last.x) ^ 2 + (p.y - cue.last.y) ^ 2) or 0
+    cue.last = {x = p.x, y = p.y}
+    cue.from = cue.from or {x = p.x, y = p.y}
+    local lead = convaiCompanions and convaiCompanions.devLead
+    if lead and lead.calm and math.sqrt((p.x - cue.from.x) ^ 2 + (p.y - cue.from.y) ^ 2) > 1.5 then lead.calm = false end
+    if not cue.walked then cue.walked = math.sqrt((p.x - cue.from.x) ^ 2 + (p.y - cue.from.y) ^ 2) > 1.5 end
+    if not cue.walked then cue.still = 0; return end
+    if moved / elapsed > .3 then cue.still = 0; return end
+    local dx, dy = n.x - p.x, n.y - p.y
+    local gap = math.sqrt(dx * dx + dy * dy)
+    local flen = math.sqrt(f.x * f.x + f.y * f.y)
+    if gap < .3 or gap > 6 or flen < .01 then cue.still = 0; return end
+    local facing = math.deg(math.acos(math.max(-1, math.min(1, (dx * f.x + dy * f.y) / (gap * flen)))))
+    if facing > 25 then cue.still = 0; return end
+    cue.still = cue.still + elapsed
+    if cue.still < 1.6 then return end
+    M.cue = nil
+    local ok, result = commands['speak-line'](cue.who .. ' "' .. cue.path .. '"', context)
+    log('cue-fired', {who = cue.who, ok = ok, facing = facing, gap = gap, result = type(result) == 'string' and result or nil})
+end
+
 commands['face-play'] = function(rest, context)
     local who, name, rate = rest:match('^(%S+)%s*(%S*)%s*(%S*)$')
     if who == 'off' then
@@ -330,12 +401,12 @@ end
 -- invited earlier and waits until each is really gone ('clearing'), so two characters never share a spot; the spot is
 -- also moved sideways when another owned companion stands on it, and nobody is ever placed on V (.85 m away).
 local STAGE_DISTANCE, STAGE_DEFAULT_HOLD, STAGE_MAX_HOLD, STAGE_SPAWN_WAIT, STAGE_PERIOD, STAGE_RESEND = .85, 60, 300, 75, .1, .25
--- `face-stage distance <metres>` sets how far in front of V the spot is (.85 to 2; .85 by default, reset by a reload). A
+-- `face-stage distance <metres>` sets how far in front of V the spot is (.7 to 2; .85 by default, reset by a reload). A
 -- spot closer than the two bodies' capsules put V under the character's collision: a big body (jackie, pepe) pushed V,
 -- the old live-camera hold followed V's new position, and both drifted until V fell through the floor (October 9).
 -- So the spot is fixed ONCE at stage time (anchor) and never re-derived; big bodies (man_big, man_fat graphs, or an
 -- unreadable graph) are never closer than STAGE_BIG_DISTANCE; and the stage aborts when V moves more than STAGE_MOVE_LIMIT.
-local STAGE_MIN_DISTANCE, STAGE_BIG_DISTANCE, STAGE_MOVE_LIMIT, STAGE_LIFT_LIMIT = .85, 1.3, .3, .5
+local STAGE_MIN_DISTANCE, STAGE_BIG_DISTANCE, STAGE_MOVE_LIMIT, STAGE_LIFT_LIMIT = .7, 1.3, .3, .5
 M.stageDistance = M.stageDistance or STAGE_DISTANCE
 M.spawned = M.spawned or {}
 M.leaving = M.leaving or {}
@@ -545,13 +616,16 @@ local function stageTick(context)
     local current
     if row and row.entity == stage.entity then current = row
     else for _, other in ipairs(context and context.actors or {}) do if other.entity == stage.entity then current = other end end end
+    -- Pinned, she may drop out of the nearby rows while V frames the shot from further away: keep holding the same entity.
+    if not current and M.stagePinned and stage.npc and IsDefined(stage.npc) then current = {npc = stage.npc, entity = stage.entity} end
     if not current then endStage(stage, 'lost'); log('stage-lost', {who = stage.who}); return end
     -- V moved (a collision pushed V, V walked or was teleported): stop instead of following V's new position.
     local player = Game.GetPlayer()
     local pat = player and player:GetWorldPosition()
     if not pat then endStage(stage, 'failed'); stage.error = 'no player'; return end
     local origin = stage.origin
-    if math.sqrt((pat.x - origin.x) ^ 2 + (pat.y - origin.y) ^ 2) > STAGE_MOVE_LIMIT or math.abs(pat.z - origin.z) > STAGE_LIFT_LIMIT then
+    -- 'face-stage pin' keeps her on her spot while V moves (framing a recorded shot); otherwise a move ends the stage.
+    if not M.stagePinned and (math.sqrt((pat.x - origin.x) ^ 2 + (pat.y - origin.y) ^ 2) > STAGE_MOVE_LIMIT or math.abs(pat.z - origin.z) > STAGE_LIFT_LIMIT) then
         endStage(stage, 'failed'); stage.error = 'V moved during the stage'
         log('stage-aborted', {who = stage.who, moved = math.sqrt((pat.x - origin.x) ^ 2 + (pat.y - origin.y) ^ 2), lift = pat.z - origin.z})
         return
@@ -664,6 +738,15 @@ commands['face-stage'] = function(rest, context)
         stage.gestures = word == 'gestures'
         if stage.quiet then setQuiet(stage, true) end
         return true, word
+    elseif word == 'pin' or word == 'unpin' then
+        M.stagePinned = word == 'pin'
+        return true, word
+    elseif word == 'idle' then
+        -- Prefer one idle (a gesture-catalog key such as panam_beer) for every copy; 'idle off' clears it.
+        if not convaiGestures or not convaiGestures.preferIdle then return false, 'gesture owner not loaded' end
+        local key = tail ~= '' and tail ~= 'off' and tail or nil
+        convaiGestures.preferIdle(key)
+        return true, {idle = key or 'off'}
     elseif word == 'look' or word == 'unlook' then
         local stage = M.stage
         if not stage or stage.state ~= 'staged' then return false, 'no staged character' end
@@ -710,6 +793,7 @@ function M.poll(delta, context)
     M.clock = M.clock + delta
     if M.stage then local ok, err = pcall(stageTick, context); if not ok then M.stage.state, M.stage.error = 'failed', tostring(err) end end
     if M.play then local ok, err = pcall(playTick, delta, context); if not ok then log('play-error', {error = tostring(err)}); M.play = nil end end
+    if M.cue then local ok, err = pcall(cueTick, delta, context); if not ok then log('cue-error', {error = tostring(err)}); M.cue = nil end end
     local run = M.run
     if run then
         run.elapsed = run.elapsed + delta
