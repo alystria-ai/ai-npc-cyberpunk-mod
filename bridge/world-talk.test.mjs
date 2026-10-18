@@ -88,7 +88,18 @@ test('read: the natives, the player-side quest conversation, and the broad scene
   for _, tag in ipairs({'Injured', 'Defeated', 'Unconscious', 'Stunned', 'Ragdoll'}) do
     state.tags[tag] = true; assert(reason() == 'hurt', tag); state.tags[tag] = nil
   end
-  playerSample.choices = true; assert(reason() == 'hub', 'a quest conversation choice hub'); playerSample.choices = false
+  -- A dialogue choice on screen at scene tier 1, with V not in a dialogue and not on a call, is the game's "Talk" prompt on an idle
+  -- character (a ripperdoc, a vendor, a door or terminal in view): it must not refuse (the "busy right now" bug of 2026-10-18).
+  playerSample.choices = true; assert(reason() == nil, 'an interaction prompt alone is not a quest conversation')
+  playerSample.tier = nil; assert(reason() == 'hub', 'a choice with the scene tier unknown fails closed'); playerSample.tier = 1
+  playerSample.tier = 2; assert(reason() == 'hub', 'a choice with V above tier 1 is a conversation'); playerSample.tier = 1
+  playerSample.dialogue = true; assert(reason() == 'hub', 'a choice while V is in a dialogue'); playerSample.dialogue = false
+  playerSample.call = true; assert(reason() == 'hub', 'a choice during a phone call'); playerSample.call = false
+  playerSample.choices = false
+  do
+    local f = W.read(npc, 'V', function() return {available = true, dialogue = false, choices = true, call = false, tier = 3, combat = false} end)
+    assert(f.hub == true and f.hubWhy == 'dialogue=false choices=true call=false tier=3', tostring(f.hubWhy))
+  end
   playerSample.dialogue = true; assert(reason() == 'hub'); playerSample.dialogue = false
   playerSample.call = true; assert(reason() == 'hub', 'a phone call'); playerSample.call = false
   playerSample.tier = 3; assert(reason() == 'hub', 'V in a scene of her own (scene tier above 1)'); playerSample.tier = 1
@@ -123,6 +134,11 @@ test('the service holds an answer for 0.4 s per character, forgets on reset and 
   local n = 0; for _ in pairs(svc.held) do n = n + 1 end
   assert(n <= W.LIMIT, 'held answers must stay bounded: ' .. n)
   assert(svc:refusal(nil, 'V', '9') == 'gone')
+  -- A hub refusal keeps the player-side facts for the log line; any other answer clears them.
+  playerSample.tier = 3
+  assert(svc:refusal(npc, 'V') == 'hub' and svc.detail == 'dialogue=false choices=false call=false tier=3', tostring(svc.detail))
+  playerSample.tier = 1
+  assert(svc:refusal(npc, 'V') == nil and svc.detail == nil)
 `));
 
 // ---------------------------------------------------------------------------------------------------------------------

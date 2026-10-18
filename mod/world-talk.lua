@@ -18,7 +18,10 @@ local INJURY = {'Injured', 'Defeated', 'Unconscious', 'Stunned', 'Ragdoll'}
 -- The first reason the character cannot be talked to, from plain facts, or nil. A fact that could not be read is nil and the
 -- answer is 'unreadable': the character is left alone rather than risk talking over the game. Pure.
 --   gone      not in the world any more, or dead
---   hub       V is in a quest conversation (a choice hub), a phone call or a scene of her own (scene tier above 1)
+--   hub       V is in a quest conversation (a dialogue the game runs, with or without choices), a phone call or a scene of her own
+--             (scene tier other than 1). A dialogue choice that is only an interaction prompt ("Talk" on a ripperdoc, a vendor, a
+--             fixer standing at their post) is not a conversation: with V in ordinary gameplay (tier 1), not in a dialogue and not
+--             on a call, the prompt alone never refuses
 --   dialogue  the character is in a scene or quest dialogue
 --   driven    the game's AI is not on its own (a scene or quest commands it)
 --   combat    the character or V is in a fight
@@ -66,7 +69,13 @@ function M.read(npc, player, sample)
     local seen = type(sample) == 'function' and select(2, pcall(sample, player)) or nil
     if type(seen) == 'table' and seen.available == true then
         -- IsEntityInScene is deliberately not read: it stays true in ordinary gameplay (docs/WORLD_COMPANIONS.md).
-        facts.hub = seen.dialogue == true or seen.choices == true or seen.call == true or (seen.tier ~= nil and seen.tier ~= 1)
+        -- A shown dialogue choice (seen.choices) is also the game's own "Talk" prompt on an idle character V aims at (a ripperdoc, a
+        -- vendor, a fixer): it counts only when the scene tier is not known to be 1 (fail closed), as a conversation holds V at
+        -- tier 2 or above and sets her dialogue flag.
+        facts.hub = seen.dialogue == true or seen.call == true or (seen.tier ~= nil and seen.tier ~= 1)
+            or (seen.choices == true and seen.tier ~= 1)
+        facts.hubWhy = 'dialogue=' .. tostring(seen.dialogue) .. ' choices=' .. tostring(seen.choices) .. ' call=' .. tostring(seen.call)
+            .. ' tier=' .. tostring(seen.tier)
         facts.playerCombat = seen.combat == true
     end
     return facts
@@ -85,7 +94,10 @@ function M.new(options)
         local now = clock()
         local held = entity and self.held[entity]
         if held and now >= held.at and now - held.at < M.HOLD_SECONDS then return held.reason end
-        local reason = M.classify(M.read(npc, player, options.sample))
+        local facts = M.read(npc, player, options.sample)
+        local reason = M.classify(facts)
+        -- The player-side facts behind a hub refusal, for the probe-log line on the talk key press (set on every read, never held).
+        self.detail = reason == 'hub' and type(facts) == 'table' and facts.hubWhy or nil
         if entity then
             if not self.held[entity] then
                 if self.count >= M.LIMIT then self.held, self.count = {}, 0 end

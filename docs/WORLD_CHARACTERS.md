@@ -36,7 +36,7 @@ The guard is `mod/world-talk.lua`, a read-only module (`classify` is pure). It a
 | Reason | Read from |
 |---|---|
 | `gone` | detached or dead (`IsAttached`, `IsDeadNoStatPool`) |
-| `hub` | V is in a quest conversation, a phone call or a scene of her own: the player-side sample of `mod/battle-observer.lua` (`dialogue`, `choices` = the dialogue choice hub, `call`, scene tier other than 1) |
+| `hub` | V is in a quest conversation, a phone call or a scene of her own: the player-side sample of `mod/battle-observer.lua` (`dialogue`, `call`, scene tier other than 1; `choices`, a dialogue choice on screen, counts only when the tier is not known to be 1, because the game also shows its "Talk" prompt on an idle ripperdoc, vendor or fixer as a choice). The refusal log line then lists these facts |
 | `dialogue` | the character is in a scene or quest dialogue (`IsEntityInDialogue`) |
 | `driven` | a scene or quest commands its AI (`not IsOnAutonomousAI()`) |
 | `combat` | the character (`NPCPuppet.IsInCombat`) or V is in a fight |

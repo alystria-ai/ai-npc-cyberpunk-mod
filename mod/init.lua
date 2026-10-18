@@ -1827,7 +1827,8 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
         local why = convaiWorldTalk:refusal(npc, player)
         if why then
             convaiStory = nil
-            log('World conversation refused: profile=' .. key .. ' reason=' .. why)
+            log('World conversation refused: profile=' .. key .. ' reason=' .. why
+                .. (convaiWorldTalk.detail and (' (' .. convaiWorldTalk.detail .. ')') or ''))
             convaiNotices.send(player, 'talk-busy', ui.t('{name} is busy right now.', {name = name}))
             return nil
         end
