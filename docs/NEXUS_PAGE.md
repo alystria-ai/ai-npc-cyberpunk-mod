@@ -22,7 +22,7 @@ Talk to Cyberpunk 2077 characters by voice or text, and hear them answer in thei
 [*][b]They know the moment.[/b] They continue from the game's own dialogue, know the quest you are on and what V is wearing and carrying, and with Convai they see a fresh glimpse of the game window, so they can talk about where you are standing (the picture is never saved).
 [*][b]They remember you.[/b] Conversations stay with a character across saves, and Judy, Panam, River, Kerry and Meredith know where things stand with V. Make one character forget, or all of them, and edit any character's bio, speaking style and memories in your browser (with Mistral or Local AI).
 [*][b]Voices that sound like them.[/b] Pocket TTS, the default, runs on your processor with no setup and starts in about 0.2 seconds. OmniVoice, for NVIDIA cards, can laugh and sigh, and Voxtral makes each voice in the cloud with a free Mistral key. Optional natural speech adds pauses and hesitations, and one slider sets every mod voice from 50 to 200 percent.
-[*][b]Free three ways, and light on your game.[/b] Run it fully on your PC with Local AI, with a free Mistral account, or on the Convai free tier (see How it runs). The heavy work runs in a separate background service, the default setup uses no video memory, and unused models unload on their own.
+[*][b]Free three ways, and light on your game.[/b] Run it fully on your PC with Local AI, with a free Mistral account, or on the Convai free tier (see How it runs). The heavy work runs in a separate background service, the default setup (cloud text with the Pocket voice) uses no video memory, and unused models unload on their own.
 [*][b]Any language.[/b] Menus in sixteen languages, and a Multilingual setting to talk in any language.
 [*][b]An optional Mature setting[/b] for adults (18+), off by default, with Local AI only.
 [/list]
@@ -32,7 +32,7 @@ Talk to Cyberpunk 2077 characters by voice or text, and hear them answer in thei
 Three ways, all free. Pick one in Companion Manager > Settings > Conversation provider.
 
 [list]
-[*][b]Local AI: fully on your own PC.[/b] Download a Local AI pack and your characters think and speak on your own computer. No account, no key, no internet and no limit. It needs a graphics card with Vulkan (NVIDIA or AMD), at least 16 GB of system memory, and about 5 GB more than usual while it runs. A lite pack runs on smaller cards.
+[*][b]Local AI: fully on your own PC.[/b] Download a Local AI pack and your characters think and speak on your own computer. No account, no key, no internet and no limit. It runs on your graphics card (Vulkan, NVIDIA or AMD): the lite model uses about 1.8 GB of video memory, the standard model about 3.1 GB and needs about 6 GB free to start (with less, the lite model is used). It also needs at least 16 GB of system memory and uses about 5 GB more than usual while it runs.
 [*][b]Mistral: free account, fastest cloud replies.[/b] Make a free Mistral account (it asks for phone verification), paste its key once, and get about 5,000 turns a day. Replies are plainer than Convai's. The same key unlocks Voxtral, a voice made in the cloud for each character.
 [*][b]Convai free tier (the default): nothing to set up.[/b] Install, start the game and talk. It gives 100 turns a day, and Settings shows how many are left. Convai's paid plans give more turns, and their plan page is in the Convai settings.
 [/list]
@@ -48,7 +48,7 @@ Three ways, all free. Pick one in Companion Manager > Settings > Conversation pr
 [*]About 3 GB of free disk space, plus more for the optional packs.
 [*]Internet while you use Convai, Mistral or the Voxtral voice. Local AI with a local voice needs none.
 [*]Microsoft Edge (Windows 10 and 11 include it) or Google Chrome. The voice service runs a hidden copy of it; the mod ships no browser.
-[*]No graphics card needed for the default setup. Only OmniVoice and Local AI use one.
+[*]No graphics card needed for the default setup: Convai or Mistral for the text, and Pocket or Voxtral for the voice. Only OmniVoice and Local AI use one.
 [/list]
 
 [size=4][b]Install[/b][/size]
@@ -66,16 +66,16 @@ Three ways, all free. Pick one in Companion Manager > Settings > Conversation pr
 Each pack is one zip file and works on its own. Install none, some or all. Get them from the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs]Hugging Face page[/url] as the Runtime, in the 0.2 folder, and use the same version number as the Scripts.
 
 [list]
-[*][b]OmniVoice pack[/b] (about 9 GB installed). A richer voice that can laugh and sigh. For NVIDIA cards with at least 8 GB of video memory and a current driver. Choose an OmniVoice voice in Settings > Voices.
-[*][b]Local AI standard[/b] (about 5.3 GB). The language model for fully local conversations, with the best replies.
-[*][b]Local AI lite[/b] (about 1.4 GB). The same kind of model, for smaller graphics cards.
+[*][b]OmniVoice pack[/b] (about 9 GB installed). A richer voice that can laugh and sigh. For NVIDIA cards with at least 8 GB of video memory and a current driver. It adds about 2 GB of video memory while it runs (up to 4 GB). Choose an OmniVoice voice in Settings > Voices.
+[*][b]Local AI standard[/b] (about 5.3 GB download). The language model for fully local conversations, with the best replies. Uses about 3.1 GB of video memory and needs about 6 GB free to start.
+[*][b]Local AI lite[/b] (about 1.4 GB download). The same kind of model, for smaller graphics cards or a game that already uses most of the video memory. Uses about 1.8 GB.
 [*][b]Mature lite[/b] (about 2.7 GB) and [b]Mature standard[/b] (about 5.3 GB). For adults only (18+). Each adds a model without the usual refusals. They need a Local AI pack, and the Mature content setting is off by default.
 [/list]
 
 [size=4][b]FAQ[/b][/size]
 
 [b]Will it slow my game down?[/b]
-The heavy work runs in a separate background service, not inside the game. The default setup uses no video memory. On a laptop, set Windows power mode to Balanced or Performance and plug it in. In testing, Silent mode cut Local AI's speed by about 40 percent.
+The heavy work runs in a separate background service, not inside the game. The text and the voice are separate choices, and only OmniVoice and Local AI use your graphics card. Extra video memory on top of the game: none with cloud text (Convai or Mistral) and the Pocket or Voxtral voice, the default; about 1.8 GB with Local AI lite; about 3.1 GB with Local AI standard; about 2 GB (up to 4 GB) with OmniVoice; the two add up when combined. If the card runs short, the mod steps down by itself: standard to lite, then lite to cloud text. On a laptop, set Windows power mode to Balanced or Performance and plug it in. In testing, Silent mode cut Local AI's speed by about 40 percent.
 
 [b]Do I have to set keys?[/b]
 Yes. Open Cyber Engine Tweaks' Bindings and give a key to each AI NPC Cyberpunk Mod action, such as talk by text, talk by voice and the companion manager. The mod never assigns or overwrites keys for you.
