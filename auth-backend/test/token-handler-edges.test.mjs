@@ -293,9 +293,7 @@ test('who counts as one caller: the platform address beats a header the caller c
   assert.equal((await anonymous()).json.error, 'rate', 'every request with no address at all shares one bucket');
 });
 
-test('a request body that fails while being read (the client went away) gets a controlled answer instead of a rejected handler', {
-  todo: 'BUG: token-handler.js:82 awaits readRawBody outside any try, so a stream error rejects the handler (same at admin.js:101)',
-}, async () => {
+test('a request body that fails while being read (the client went away) gets a controlled answer instead of a rejected handler', async () => {
   const world = createWorld();
   const broken = new Readable({ read() { this.destroy(new Error('aborted')); } });
   broken.method = 'POST';
