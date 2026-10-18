@@ -3,7 +3,9 @@
 // can act on. `provider` ('mistral' default, 'local') picks the wording and marker of errors and the hosts a key may go to.
 //
 // The player's API key is used for exactly one thing: the Authorization header of a request to its own provider (api.mistral.ai). It is never put in a message, a log line, an error text or a state file; every message that leaves this module goes
-// through `redact`. A different endpoint is accepted only when it is on this computer (the tests' fake server, the local AI).
+// through `redact`. A different endpoint is accepted only when it is on this computer (the tests' fake server, the local AI), or when the caller
+// names its exact origin as `trustedOrigin`: a server the player runs themselves (bridge/custom-models.mjs, an `endpoint` entry) on the local network
+// or, with the player's explicit "remote": true, anywhere; the key then goes to that origin and to no other.
 import {markStage} from './turn-clock.mjs';
 export const MISTRAL_ENDPOINT = 'https://api.mistral.ai/v1/chat/completions';
 export const MISTRAL_MODELS_ENDPOINT = 'https://api.mistral.ai/v1/models';
@@ -191,10 +193,11 @@ const LATE = Symbol('late');
 const DRAIN_MS = 250;
 const LOOPBACK = /^(?:127\.0\.0\.1|localhost|\[::1\])$/;
 const HOSTS = Object.freeze({mistral: 'api.mistral.ai'});
-function checkedEndpoint(endpoint, provider = 'mistral') {
+function checkedEndpoint(endpoint, provider = 'mistral', trustedOrigin) {
   const url = new URL(endpoint);
   if (url.protocol === 'https:' && HOSTS[provider] && url.hostname === HOSTS[provider]) return url.href;
   if ((url.protocol === 'http:' || url.protocol === 'https:') && LOOPBACK.test(url.hostname)) return url.href;
+  if (provider === 'local' && typeof trustedOrigin === 'string' && trustedOrigin && url.origin === trustedOrigin) return url.href;
   throw Error(`The ${PROVIDER_LABELS[provider] ?? 'Mistral'} key is only ever sent to ${HOSTS[provider] ?? 'api.mistral.ai'}`);
 }
 
@@ -278,9 +281,9 @@ const contentText = content => typeof content === 'string' ? content
  */
 export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTokens = 300, temperature = 0.8, onDelta, shouldStop,
   signal, fetchImpl = globalThis.fetch, endpoint, firstByteMs = 25000, retryFirstByteMs, stallMs = 0, totalMs = 70000, retries = 2,
-  backoffMs = [1200, 3500], sleepImpl = sleep, extraBody, provider = 'mistral', onHeaders, onRetry, now = () => performance.now()} = {}) {
+  backoffMs = [1200, 3500], sleepImpl = sleep, extraBody, provider = 'mistral', trustedOrigin, onHeaders, onRetry, now = () => performance.now()} = {}) {
   if (typeof apiKey !== 'string' || apiKey.length < 8) throw new MistralError('key', 'has no API key', {provider});
-  const url = checkedEndpoint(endpoint ?? MISTRAL_ENDPOINT, provider);
+  const url = checkedEndpoint(endpoint ?? MISTRAL_ENDPOINT, provider, trustedOrigin);
   let lastError;
   const failed = [];
   for (let attempt = 0; attempt <= retries; attempt++) {

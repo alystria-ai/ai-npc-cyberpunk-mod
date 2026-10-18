@@ -21,6 +21,11 @@
 // pack model and Mature content is off, nothing is chosen and nothing is offered as the default: Local AI is unavailable ('mature-off') until
 // Mature content is turned on, or a Local AI pack or a custom model is added. The rule above ("a pinned model is used whatever Mature content says")
 // is for installs that have another model to run; with a standard, lite or custom model installed nothing changes.
+// A server the player runs (an `endpoint` entry of bridge/custom-models.mjs: KoboldCpp, LM Studio, Ollama, ...) is a custom model with no file:
+// `external: true`. It uses no graphics memory of ours, so it always "fits" and is never "too large", and it has no size (0). It joins the
+// default choice only as the last resort of its group: the default is an installed file model when there is one (an uncensored one first with
+// Mature content on), and a server only when the group has none, or when it is chosen (pinned). A pinned server that is unreachable counts as
+// broken (it failed to start) and falls back like a model that did not start.
 // Pure functions: no I/O, no timers. The caller supplies the file sizes and the free memory, and runs this only when a model is about to
 // be loaded and when the settings poll sees the choice change (never per frame, never per turn).
 import {basename} from 'node:path';
@@ -46,7 +51,7 @@ export const safeModelId = safeId;
 /**
  * Every installed chat model, in a stable order: standard, lite, then the Mature pack's models in the marker's order, then the custom ones.
  * `pack` is the result of detectLocalAiPack; `matureModels` the `models` of detectMaturePack (an empty list or undefined when that pack is
- * not installed); `customModels` the `models` of CustomModelScanner.scan() (already checked: usable files only). A model whose file is
+ * not installed); `customModels` the `models` of CustomModelScanner.scan() (already checked: usable files only, and servers). A model whose file is
  * absent is left out. Returns [{id, name, file, tier, uncensored, loadedName}] and, for a custom model, also {custom: true, family,
  * contextSize, chatTemplate, tooLarge}:
  *   tier         'standard' | 'lite' for the Local AI packs' models, null for a Mature model (its headroom follows its size)
@@ -71,14 +76,21 @@ export function listLocalModels({pack, matureModels = [], customModels = []} = {
     models.push({id, name, file: entry.file, tier: null, matureTier, uncensored: true, loadedName: UNCENSORED_NAME.test(name) ? name : name + ' (uncensored)'});
   }
   for (const entry of Array.isArray(customModels) ? customModels : []) {
-    if (!entry?.file || typeof entry.id !== 'string' || taken.has(entry.id)) continue;
+    if (!(entry?.file || (entry?.external === true && entry.endpoint)) || typeof entry.id !== 'string' || taken.has(entry.id)) continue;
     taken.add(entry.id);
-    models.push({id: entry.id, name: entry.name, file: entry.file, tier: null, uncensored: entry.uncensored === true, loadedName: entry.name, custom: true,
+    const model = {id: entry.id, name: entry.name, file: entry.file ?? null, tier: null, uncensored: entry.uncensored === true, loadedName: entry.name, custom: true,
       family: entry.family ?? null, contextSize: entry.contextSize ?? null, chatTemplate: entry.chatTemplate ?? null,
-      tooLarge: entry.tooLarge === true});
+      tooLarge: entry.tooLarge === true};
+    // A server the player runs: where it is, which model to ask for and its key (the supervisor reads these; nothing publishes them).
+    if (entry.external === true) Object.assign(model, {file: null, external: true, tooLarge: false, endpoint: entry.endpoint, origin: entry.origin, remote: entry.remote === true,
+      requestModel: entry.model ?? null, apiKey: entry.apiKey ?? null});
+    models.push(model);
   }
   return models;
 }
+
+/** The models that are servers the player runs. */
+export const externalModels = models => (Array.isArray(models) ? models : []).filter(model => model?.external === true);
 
 /** The headroom profile ('standard' or 'lite') of a model: its tier; a Mature model's `good` is standard and its `lite` is lite; a custom model by size. */
 export const profileOf = (model, sizeMiB) => model.tier ?? (model.matureTier === 'good' ? 'standard' : model.matureTier === 'lite' ? 'lite' : sizeMiB >= BIG_MODEL_MIB ? 'standard' : 'lite');
@@ -90,14 +102,16 @@ const known = value => Number.isFinite(value);
 const byName = (a, b) => { const x = String(a.name).toLowerCase(), y = String(b.name).toLowerCase(); return x < y ? -1 : x > y ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0; };
 
 /** The models in the order of the settings page: file size, smallest first; an equal size by name. A new array. */
-export const sortLocalModels = (models, sizeOf = () => 0) => models.map(model => ({model, size: Number(sizeOf(model.file)) || 0}))
+export const sortLocalModels = (models, sizeOf = () => 0) => models.map(model => ({model, size: model.external ? 0 : Number(sizeOf(model.file)) || 0}))
   .sort((a, b) => a.size - b.size || byName(a.model, b.model)).map(entry => entry.model);
 
 /** Sizes, memory fit and the two ways of picking, shared by the choice and by the defaults the settings page shows. */
 function prepare({models, freeMiB, totalMiB, sizeOf}) {
-  const sized = models.map(model => { const sizeMiB = Number(sizeOf(model.file)) || 0; return {model, sizeMiB, profile: profileOf(model, sizeMiB)}; });
-  const tooLarge = item => item.model.custom === true && (item.model.tooLarge === true || (known(totalMiB) && totalMiB > 0 && modelNeedMiB(item.model, item.sizeMiB) > totalMiB));
-  const fits = item => !tooLarge(item) && (!known(freeMiB) || freeMiB >= modelNeedMiB(item.model, item.sizeMiB));
+  const sized = models.map(model => { const sizeMiB = model.external ? 0 : Number(sizeOf(model.file)) || 0; return {model, sizeMiB, profile: profileOf(model, sizeMiB)}; });
+  // A server the player runs takes none of our graphics memory: it is never too large and always fits.
+  const tooLarge = item => item.model.external !== true && item.model.custom === true
+    && (item.model.tooLarge === true || (known(totalMiB) && totalMiB > 0 && modelNeedMiB(item.model, item.sizeMiB) > totalMiB));
+  const fits = item => item.model.external === true || (!tooLarge(item) && (!known(freeMiB) || freeMiB >= modelNeedMiB(item.model, item.sizeMiB)));
   // Largest file first; an equal size keeps the order of the list (standard before lite before the Mature models).
   const bySize = list => list.map((item, index) => ({item, index})).sort((a, b) => b.item.sizeMiB - a.item.sizeMiB || a.index - b.index).map(entry => entry.item);
   const pick = list => {
@@ -109,7 +123,11 @@ function prepare({models, freeMiB, totalMiB, sizeOf}) {
   // anyway (the caller offloads layers). A custom uncensored model is never forced: with none of them fitting and no pack model, null.
   const pickMature = list => pick(list) ?? bySize(list.filter(item => item.model.matureTier)).at(-1) ?? null;
   const candidates = sized.filter(item => item.model.broken !== true && !tooLarge(item));
-  return {sized, fits, pick, pickMature, uncensored: candidates.filter(item => item.model.uncensored), ordinary: candidates.filter(item => !item.model.uncensored)};
+  // A group's candidates are its file models; the servers the player runs only when the group has no file model (the last resort).
+  const group = wanted => { const own = candidates.filter(item => item.model.external !== true && wanted(item)); return own.length ? own : candidates.filter(item => item.model.external === true && wanted(item)); };
+  // The last resort when no file model fits: a server the player runs (an uncensored one only with Mature content on, like any uncensored model).
+  const externals = candidates.filter(item => item.model.external === true);
+  return {sized, fits, pick, pickMature, externals, uncensored: group(item => item.model.uncensored), ordinary: group(item => !item.model.uncensored)};
 }
 
 /**
@@ -129,7 +147,7 @@ function prepare({models, freeMiB, totalMiB, sizeOf}) {
 export function chooseLocalModel({models = [], pin = AUTO_MODEL, matureOn = false, freeMiB = null, totalMiB = null, sizeOf = () => 0} = {}) {
   if (!models.length) throw new LocalAiUnavailable('not-installed', 'no model');
   if (matureOffBlocks(models, matureOn)) throw new LocalAiUnavailable('mature-off', 'only Mature models are installed and Mature content is off');
-  const {sized, fits, pick, pickMature, uncensored, ordinary} = prepare({models, freeMiB, totalMiB, sizeOf});
+  const {sized, fits, pick, pickMature, externals, uncensored, ordinary} = prepare({models, freeMiB, totalMiB, sizeOf});
   let fellBack = null, silent = false, want = pin;
   if (want !== AUTO_MODEL) {
     let item = sized.find(candidate => candidate.model.id === want);
@@ -151,7 +169,7 @@ export function chooseLocalModel({models = [], pin = AUTO_MODEL, matureOn = fals
   }
   // Mature content on with a Mature model installed: the fallback stays in the Mature pack (it never reaches a censored model).
   const mature = matureOn && uncensored.length > 0;
-  const chosen = (mature ? pickMature(uncensored) : null) ?? pick(ordinary);
+  const chosen = (mature ? pickMature(uncensored) : null) ?? pick(ordinary) ?? externals.find(item => matureOn || !item.model.uncensored) ?? null;
   if (!chosen) throw new LocalAiUnavailable('low-memory');
   // A silent migration, or the pinned model itself loaded anyway (it did not fit): nothing was replaced, so nothing is announced.
   if (silent || chosen.model.id === pin) fellBack = null;
@@ -202,12 +220,13 @@ export function stillSatisfies({loadedId, models = [], pin = AUTO_MODEL, matureO
  * the card is too small for it, {tooLarge: true}.
  */
 export const describeLocalModels = (models, sizeOf = () => 0) => sortLocalModels(models, sizeOf).slice(0, 24).map(model => {
-  const sizeMiB = Math.round(Number(sizeOf(model.file)) || 0);
+  const sizeMiB = model.external ? 0 : Math.round(Number(sizeOf(model.file)) || 0);
   const entry = {id: model.id, name: String(model.name).slice(0, 80), sizeMiB};
   if (model.custom) {
     entry.custom = true;
     entry.needMiB = sizeMiB > 0 ? modelNeedMiB(model, sizeMiB) : 0;
-    if (model.tooLarge) entry.tooLarge = true;
+    if (model.external) entry.external = true;   // only these fields leave this function: never the address or the key
+    else if (model.tooLarge) entry.tooLarge = true;
   }
   return entry;
 });

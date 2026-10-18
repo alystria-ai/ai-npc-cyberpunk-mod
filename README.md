@@ -178,7 +178,7 @@ Install neither, one or both. The **Local AI model** row lists what is installed
 
 - The model unloads after ten quiet minutes so the game gets its video memory back, and reloads in a few seconds when you talk again.
 - Short on memory, the mod steps down by itself and keeps your voice before the model: standard gives way to lite, and if lite does not fit either, the text comes from Mistral (with a saved key) or Convai, with one notice.
-- You can add a GGUF chat model of your own: see "Add your own model" in [LOCAL_AI.md](docs/LOCAL_AI.md).
+- You can add a GGUF chat model of your own, or use a server you already run (KoboldCpp, LM Studio, Ollama): see "Add your own model" and "Use your own server" in [LOCAL_AI.md](docs/LOCAL_AI.md).
 
 ### Mature content (18+)
 

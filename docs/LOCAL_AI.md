@@ -198,6 +198,73 @@ that the file is named `manifest.custom.json` (not `.txt`). An embedding model c
 an unusual header may pass the check and then fail to start, which the notice above covers. Whether a model has a chat template is not
 checked ahead of time.
 
+### Use your own server (KoboldCpp, LM Studio, Ollama)
+
+If you already run a model in a program of your own, Local AI can talk to it instead of loading a model itself. It works with KoboldCpp,
+LM Studio, Ollama, text-generation-webui, a llama.cpp `llama-server` and anything else with an OpenAI-compatible chat API (the `/v1`
+address). You do not need a Local AI pack for this: with only your own server listed, Local AI uses it.
+
+**1. Start your server** with its model loaded, and leave it running while you play.
+
+**2. List it in `manifest.custom.json`** (the same file as "Add your own model", in the same folder), with an `endpoint` instead of a `file`:
+
+```json
+{
+  "version": 1,
+  "models": [
+    {
+      "endpoint": "http://127.0.0.1:5001/v1",
+      "name": "KoboldCpp Qwen 9B",
+      "family": "qwen",
+      "uncensored": false,
+      "contextSize": 8192
+    }
+  ]
+}
+```
+
+Only `endpoint` is needed. The usual address of each program:
+
+| Program | `endpoint` | Notes |
+|---|---|---|
+| KoboldCpp | `http://127.0.0.1:5001/v1` | Nothing else needed. Add `"contextSize"` with the context you started it with. |
+| LM Studio | `http://127.0.0.1:1234/v1` | Start its local server (Developer tab). Add `"model"` with the model's name as LM Studio shows it when more than one model is loaded. |
+| Ollama | `http://127.0.0.1:11434/v1` | Add `"model"` with the name you pull (for example `"model": "qwen3:8b"`): Ollama needs it. |
+| llama.cpp `llama-server` | `http://127.0.0.1:8080/v1` | Its `--api-key`, if you set one, goes in `"apiKey"`. |
+
+| Key | Needed | Meaning |
+|---|---|---|
+| `endpoint` | yes (in place of `file`) | The server's address, `http://` or `https://`. The mod sends chats to `<endpoint>/chat/completions`. An address with no path gets `/v1`. No user name, query or `#` part. |
+| `name` | no | The name shown in the row, 1 to 60 characters. Default: the server's address. |
+| `model` | no | The model id sent with each request. Without it: the server's only listed model, else `local`. |
+| `apiKey` | no | For a server that asks for a key. It is sent only to this server, and never written to the log, the settings page or a support report. |
+| `remote` | no | `true` allows a server outside this computer and your home network. See below. |
+| `uncensored`, `family`, `contextSize` | no | As in "Add your own model". `contextSize` missing: the mod asks the server once (its model list, `/props`, or KoboldCpp's context question), and uses 8192 when none answers. A `contextSize` bigger than your server really has makes it refuse long prompts. |
+
+**Which addresses work.** This computer (`localhost`, `127.0.0.1`) and your home network (`192.168.x.x`, `10.x.x.x`, `172.16` to `172.31`,
+`169.254.x.x`, Tailscale's `100.64` to `100.127`, IPv6 `fc00::/7` and `fe80::/10`, names ending in `.local`, `.lan`, `.home.arpa` or `.internal`,
+and a plain name such as `gaming-pc`) need nothing more. Any other host is the internet: the entry must say `"remote": true` and use `https://`,
+so a typo cannot send your chats away unnoticed. Without the flag the entry is skipped and the log says so.
+
+**3. Choose it.** In Settings > Conversation provider, set the provider to Local, open **Local AI model**, pick "KoboldCpp Qwen 9B (custom)"
+and **Apply**. The mod looks at the server once when it is chosen (a short request to `/models`); nothing is polled afterwards and nothing of
+Local AI's own is loaded for it: if its own model was loaded, that model is unloaded. With no model chosen, the mod prefers a model of its own
+that fits; your server is used when you choose it, or when nothing of Local AI's own is installed or fits.
+
+**Share the graphics card on purpose.** Your server keeps its model in video memory beside Cyberpunk 2077, and the mod can no longer see how
+much of it that is. Size the model, its quantisation and its context (and KoboldCpp's or LM Studio's GPU layers) so the game keeps enough
+for itself: a model that fills the card makes the game stutter. The mod's own memory model for remembering past talks is small and runs
+on the processor: it keeps running when an installed pack provides it, and without a pack memory search works as it does without one.
+
+**If your server is not reachable.** When it is chosen but does not answer (not started yet, wrong address, wrong key), the mod says so once
+in the game, uses another Local AI model if you have one, and otherwise your cloud provider, as it does when a model does not start.
+Start your server, then pick another provider and Local again to try again. If it stops answering during play, the mod looks at it again
+before the next turn. For the cause, look in `bridge.stderr.log` for `[LocalAI] [local]` lines: `could not be reached (ECONNREFUSED)` is a server that
+is not running or the wrong port; `did not accept the API key` is a wrong `apiKey`; `answered HTTP 404 at /models` is an address that is missing its `/v1`.
+
+The same rules as for any model apply to a server: **Mature content** reads its `uncensored` and `family` entries, and the hard limits and the
+output screen run on its replies exactly as for a model of the pack.
+
 ### Which combination to pick
 
 Graphics memory (video memory) each part adds on top of what the game itself uses. These are estimates from measurements on one
@@ -395,6 +462,19 @@ setting), `requested` and `applied`; a switch happens only at an idle boundary. 
   AI is the provider; it reloads only when the loaded model no longer satisfies the choice, only with nothing in flight (`end()` re-checks,
   and a choice that changed during a start is checked 250 ms after it is ready), by `stop()` followed by `ensure()`. The older `tier`
   option still works and is strict (that tier or an error, no memory check). `server.modelId` is the loaded id; `status()` is unchanged.
+- A server the player runs (`endpoint` in `manifest.custom.json`, "Use your own server" above): `checkEndpoint`/`hostKind` in `bridge/custom-models.mjs` validate the address (http or
+  https; no user name, query or fragment; local or private network, else `"remote": true` and https) and the scanner lists it as a custom model with `external: true`, no
+  file, size 0 and its `apiKey`; the key never leaves the scan result except to the supervisor, and `describeLocalModels` publishes only `id`, `name`, `sizeMiB`, `custom`,
+  `needMiB` and `external`. `local-model-choice.mjs`: it always fits and is never too large; it is chosen when pinned, and otherwise only as the last resort of its group (an
+  installed file model that fits comes first; an uncensored server only with Mature content on). `local-llm-server.mjs`: when the choice is a server, `#startExternal` starts no
+  process, makes one `GET <endpoint>/models` (4 s, with the key), takes the context from the entry, the listing (`context_length`, `max_context_length`,
+  `loaded_context_length`, `n_ctx`; never `n_ctx_train`), `GET /props` or KoboldCpp's `/api/extra/true_max_context_length`, else 8192, and the model id from the entry or the only
+  listed model, else `local`. It sets no idle timer and runs no warm-up (nothing of ours is loaded); `tokenize` answers null (the estimate and the refusal it learns from stand); a
+  server that cannot be reached is `#modelFailed` like a custom file (`model-fallback` to the default, else `LocalAiUnavailable('start-failed')`: one notice, then the cloud
+  provider); with no pack, only servers count as installed (the bridge's `localAiStatus` and `prepareLocal`). `externalLost()` (called by the local route on a network failure)
+  forgets a server that stopped answering so the next `ensure()` looks again. The request goes through the same `localRoute` and `streamChat` as our own server, with
+  `requestModel` and `trustedOrigin` on the lease: `checkedEndpoint` accepts a non-loopback address only when it is exactly that origin, so the key reaches that one origin. The
+  embedder (`local-embed.mjs`) is separate and unchanged. `bridge/support-report.mjs` adds the manifest's `apiKey` values to the scrubber's secrets.
 - `bridge/convai-bridge.mjs`: `syncLocalModelChoice` runs on the settings poll (it reads `localModel` from `settings.json` and compares it
   with Mature content and the Mature pack's presence; it re-lists the installed models and republishes the status at most every 5 s). The
   fallback becomes the `local-model-fallback` notice (`MistralProvider.noteLocalModelFallback`, sent as `keyNotice` on the next reply),
@@ -721,7 +801,9 @@ routes, the prompt layout and the memory store (with a fake embedder). No test s
 `bridge/prompt-budget.test.mjs` covers the trimming and `bridge/local-context.test.mjs` the supervisor's context, the fitted turn, the cloud
 fallback and its notice. `bridge/local-model-choice.test.mjs` covers the model choice (with and without the Mature pack, Mature content on
 and off, a pin, a missing pin, the low-memory fallback) and `bridge/local-llm-server.test.mjs` the loaded model, the fallback event and the
-idle reload.
+idle reload. `bridge/external-endpoint.test.mjs` covers a server the player runs, against a fake OpenAI-compatible server on localhost: the address rules, detection with and
+without a pack, the choice, the one look at the server and its context, the fallback, a streamed reply through `TextProviderHost`, the key staying out of logs, status, lists, errors and
+the support report, and the Mature rules and hard-limit guard on its replies.
 
 ### Live checks (need the game and a GPU)
 

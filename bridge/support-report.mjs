@@ -215,6 +215,29 @@ export async function credentialSecrets(stateDirectory) {
   return found;
 }
 
+// The apiKey values of the servers listed in manifest.custom.json (a model server the player runs, docs/LOCAL_AI.md "Use your own server"): secrets like
+// any key file, scrubbed from every line of the report. The manifest itself is never copied into the report (only its file name is listed).
+export async function customServerSecrets({project, environment = process.env} = {}) {
+  const found = [];
+  const roots = new Set();
+  const named = name => (typeof environment?.[name] === 'string' && environment[name].trim() ? resolve(environment[name]) : null);
+  roots.add(named('CYBERPUNK_CONVAI_LOCAL_AI') ?? (project ? resolve(project, 'local-ai') : null));
+  roots.add(named('CYBERPUNK_CONVAI_LOCAL_AI_DEV'));
+  for (const root of roots) {
+    if (!root) continue;
+    try {
+      const path = join(root, 'manifest.custom.json');
+      const info = await stat(path);
+      if (!info.isFile() || info.size > 262144) continue;
+      const manifest = JSON.parse(await readFile(path, 'utf8'));
+      for (const entry of Array.isArray(manifest?.models) ? manifest.models : []) {
+        if (typeof entry?.apiKey === 'string' && entry.apiKey.trim()) { found.push(entry.apiKey.trim()); if (entry.apiKey.trim() !== entry.apiKey) found.push(entry.apiKey); }
+      }
+    } catch {}
+  }
+  return found;
+}
+
 export async function publishSupportPaths({game, modRoot, runtime, stateDirectory, now = Date.now}) {
   const logs = {};
   for (const entry of await locateLogs({game, modRoot, runtime, stateDirectory})) {
@@ -315,7 +338,9 @@ export async function localAiSection({runtime, project, environment = process.en
   let manifests = null;
   try { manifests = (await readdir(root)).filter(name => /^manifest.*\.json$/i.test(name)).sort(); } catch {}
   const models = Array.isArray(state.localModels) ? state.localModels.slice(0, 30).map(row => ({
-    id: clip(row?.id, 80), name: clip(row?.name, 80), sizeMiB: Number.isFinite(row?.sizeMiB) ? Math.round(row.sizeMiB) : undefined})) : null;
+    id: clip(row?.id, 80), name: clip(row?.name, 80), sizeMiB: Number.isFinite(row?.sizeMiB) ? Math.round(row.sizeMiB) : undefined,
+    // A model server the player runs: only that it is one. Its address and key are neither published by the bridge nor copied here.
+    ...(row?.external === true ? {external: true} : {})})) : null;
   return {
     state: read.error ?? 'present', stateModified: read.modified,
     localAi: typeof state.localAi === 'string' ? clip(state.localAi, 40) : null,
@@ -355,7 +380,7 @@ function companionProviders({settings, voice, routing, party}) {
 export async function collectReport(options) {
   const {game, runtime, stateDirectory, project, request, now = Date.now, bridge = {}, environment = process.env} = options;
   const modRoot = options.modRoot ?? resolve(runtime, '..');
-  const secrets = [...(options.secrets ?? []), ...await credentialSecrets(stateDirectory)];
+  const secrets = [...(options.secrets ?? []), ...await credentialSecrets(stateDirectory), ...await customServerSecrets({project: project ?? resolve(runtime, '..'), environment})];
   const redact = createRedactor({secrets, ids: options.knownIds ?? []});
   const logs = await locateLogs({game, modRoot, runtime, stateDirectory});
   const lua = sanitizeRequest(request ?? {});

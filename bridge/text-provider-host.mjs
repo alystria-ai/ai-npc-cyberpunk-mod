@@ -90,7 +90,8 @@ export function mistralRoute({provider, model = () => DEFAULT_MODELS, decisionMo
 }
 
 /**
- * The fully local AI: the supervised llama-server (bridge/local-llm-server.mjs). No pacing, no key of the player's: the
+ * The fully local AI: the supervised llama-server (bridge/local-llm-server.mjs), or a server the player runs themselves (an `endpoint` entry of
+ * the custom manifest; the supervisor then hands out its address, key and model id instead). No pacing, no key of the player's: the
  * supervisor's per-session key on a loopback port. Starting the server is part of `connect` (it waits for the model to load on the
  * first turn after an idle unload). Background work (summaries, facts) never starts the server: it runs only while it is loaded.
  */
@@ -119,7 +120,7 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
       const connection = await server.ensure({signal, background});
       // A request in flight keeps the server loaded; releasing it re-arms the idle timer.
       const done = typeof server.begin === 'function' ? server.begin() : null;
-      return {apiKey: connection.apiKey, endpoint: connection.endpoint, model: connection.model,
+      return {apiKey: connection.apiKey, endpoint: connection.endpoint, model: connection.model, requestModel: connection.requestModel, trustedOrigin: connection.trustedOrigin,
         release: () => { try { if (done) done(); else server.touch?.(); } catch { /* the idle timer is best effort */ } }};
     },
     // The closing chunk of a reply carries the server's own count of the prompt, which the token meter learns from.
@@ -135,6 +136,8 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     success() { /* nothing to clear */ },
     failure(error) {
       if (isLocalUnavailable(error)) provider?.noteLocalFailure?.(error.reason ?? 'start-failed');
+      // A server the player runs that did not answer (stopped, moved, asleep) is looked at again before the next turn: one short request, no polling.
+      else if (failureKind(error) === 'network') { try { server.externalLost?.(); } catch { /* best effort */ } }
       try { onFailure?.(error); } catch { /* an observer never fails a reply */ }
     },
     prewarm: messages => server.prewarm(messages),
@@ -214,8 +217,10 @@ export class TextProviderHost {
       let lastError;
       for (const item of usable.length ? usable : wanted.slice(0, 1)) {
         try {
-          return await route.chat({apiKey: lease.apiKey, model: item.id, messages, signal, endpoint: lease.endpoint ?? route.endpoint,
-            provider: route.provider, maxTokens: item.maxTokens ?? this.limits.maxTokens, temperature: this.limits.temperature,
+          // `lease.requestModel`: the model id a server the player runs is asked for (the local route only); `lease.trustedOrigin`: the one origin
+          // that server's key may go to (bridge/mistral-client.mjs). Neither exists for the other routes.
+          return await route.chat({apiKey: lease.apiKey, model: lease.requestModel ?? item.id, messages, signal, endpoint: lease.endpoint ?? route.endpoint,
+            provider: route.provider, ...(lease.trustedOrigin ? {trustedOrigin: lease.trustedOrigin} : {}), maxTokens: item.maxTokens ?? this.limits.maxTokens, temperature: this.limits.temperature,
             ...(route.chatDefaults ?? {}), ...rest, onHeaders: route.noteHeaders,
             onRetry: ({attempt, error, waitMs, ms}) => this.log(`${route.label} attempt ${attempt} failed after ${ms} ms (${error.kind}${error.status ? ` ${error.status}` : ''}${error.slow ? ', no answer in time' : ''}); asking again in ${waitMs} ms`),
             extraBody: {...route.cacheBody(profileKey), ...(item.body ?? {}), ...extraBody}});
