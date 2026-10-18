@@ -262,6 +262,8 @@ const mistral = await new MistralProvider({keyPath: resolve(stateDirectory, MIST
 let localPack = detectLocalAiPack({project});
 // Omni (the OmniVoice pack) loads first and the model tier is chosen from the graphics memory left (docs/LOCAL_AI.md): a wait of
 // at most two minutes inside the supervisor, then the tier that fits, else the cloud provider.
+// True once a settings poll has read the voice settings (playback on or off): until then `playbackEnabled` is only its default.
+let voiceSettingsRead = false;
 const omniSettled = () => localVoice.requestedProvider !== 'omni' || localVoice.provider === 'omni' || localVoice.omniPack?.installed === false;
 // Which installed model loads (docs/LOCAL_AI.md, "Choosing the model"): the localModel setting (auto or one model) and Mature content, read
 // when a start begins. A change while Local AI is the provider reloads at an idle moment (localModelChoiceChanged, on the settings poll).
@@ -1830,7 +1832,9 @@ async function resetLiveRoutes({cancelTurns = true} = {}) {
 // provider switch. Nothing else opens it until the next composer warm-up, so a turn that comes first would start Edge in front of its
 // voice (770 ms, then the renderer page: the live record of 2026-10-13, the turn after a provider switch). Open it again at once.
 function rewarmLocalVoice() {
-  if (mistral.active && localVoice.playbackEnabled !== false && !stopped) void realtime.prewarmLocal();
+  // Not before the first settings poll has read the playback setting: with voice playback Off a text provider needs no browser, and the
+  // default (On) would start one at launch that then lives for BROWSER_IDLE_MS for nothing. The poll calls this once it has read it.
+  if (voiceSettingsRead && mistral.active && localVoice.playbackEnabled !== false && !stopped) void realtime.prewarmLocal();
 }
 
 async function quiescePlayerMemory({signal, scope, profileKeys} = {}) {
@@ -2805,6 +2809,7 @@ async function pollSettings(checkShutdown = true) {
     if (localVoice.update(settings, preview, voiceBoundaryBusy())) {
       dropPrefetch(); prefetchObserved = '';
     }
+    if (!voiceSettingsRead) { voiceSettingsRead = true; rewarmLocalVoice(); }
     // A prepared reply was written under the previous Natural speech instructions.
     const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
     const followUpChanged = followUp.update(settings);
