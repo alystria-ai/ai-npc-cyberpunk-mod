@@ -422,6 +422,65 @@ double NowMillis()
 }
 } // namespace
 
+// The bridge-to-game hop on the worker's side: how long after the bridge replaces a watched file the
+// game thread's Revision() answers with the new revision. The worker used to find the change only on
+// its next poll (a 15 ms period, and the wait itself rounds up to the process's timer tick, 15.6 ms
+// unless something raised it); a directory change notification makes it a wake-up instead.
+TEST(io_worker_notices_a_replaced_file_within_a_few_ms)
+{
+    TempDir dir;
+    FileIo io;
+    CHECK(io.Start(dir.path));
+    ReplaceLikeTheBridge(dir, "reply.json", "{\"n\":0}");
+    CHECK(io.Watch("reply.json", 15, true));
+    io.Read("reply.json");
+    std::vector<double> latencies;
+    constexpr int kRounds = 40;
+    for (int round = 1; round <= kRounds; ++round)
+    {
+        const int32_t before = io.Revision("reply.json");
+        // Land at a different point of the worker's poll cycle each round.
+        SleepMs(20 + static_cast<unsigned>(round * 7 % 13));
+        ReplaceLikeTheBridge(dir, "reply.json", "{\"n\":" + std::to_string(round) + "}");
+        const double started = NowMillis();
+        double elapsed = 0;
+        while ((elapsed = NowMillis() - started) < 500.0 && io.Revision("reply.json") == before)
+        {
+        }
+        latencies.push_back(elapsed);
+    }
+    std::sort(latencies.begin(), latencies.end());
+    const double p50 = latencies[latencies.size() / 2];
+    const double p95 = latencies[latencies.size() * 95 / 100];
+    std::printf("    replaced file to new revision: p50 %.2f ms, p95 %.2f ms, max %.2f ms\n", p50, p95, latencies.back());
+    CHECK(latencies.back() < 500.0);
+    // A loaded machine (a build running beside the test) slows both paths; the notifications themselves are the proof.
+    CHECK(p50 < 12.0 && io.Stats().watchEvents >= static_cast<uint64_t>(kRounds / 2));
+    CHECK(p95 < 40.0);
+    io.Stop();
+}
+
+// A channel watched with a slow period is still noticed at once when its file changes.
+TEST(io_watch_with_a_slow_period_still_wakes_on_a_change)
+{
+    TempDir dir;
+    FileIo io;
+    CHECK(io.Start(dir.path));
+    WriteRaw(P(dir, "speech-stream.json"), "{\"n\":0}");
+    CHECK(io.Watch("speech-stream.json", 5000, true));
+    io.Read("speech-stream.json");
+    const int32_t revision = io.Revision("speech-stream.json");
+    ReplaceLikeTheBridge(dir, "speech-stream.json", "{\"n\":1}");
+    CHECK(WaitFor([&] { return io.Revision("speech-stream.json") != revision; }, 400));
+    CHECK_EQ(io.Read("speech-stream.json").content, std::string("{\"n\":1}"));
+    // A file that appears, and one that goes, are noticed just as fast.
+    DeleteFileW(P(dir, "speech-stream.json").c_str());
+    CHECK(WaitFor([&] { return io.Revision("speech-stream.json") < 0; }, 400));
+    ReplaceLikeTheBridge(dir, "speech-stream.json", "{\"n\":2}");
+    CHECK(WaitFor([&] { return io.Revision("speech-stream.json") > 0; }, 400));
+    io.Stop();
+}
+
 // The worker validates a big JSON file before it publishes it. That work must not hold the mutex the
 // game thread takes in Revision() and Read(): a 2 MB document is several ms of parsing.
 TEST(io_game_thread_never_waits_for_the_workers_json_check)

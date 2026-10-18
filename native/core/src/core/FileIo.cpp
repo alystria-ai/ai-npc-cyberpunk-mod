@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
 #include <cstring>
 #include <vector>
 
@@ -348,6 +349,23 @@ bool FileIo::Start(const std::wstring& aRuntimeDirectory)
         return false;
     }
     m_running = true;
+    // The change watcher is an extra: without it the worker's polls still find every change.
+    m_watchStop = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+    if (m_watchStop)
+    {
+        m_watcherExited = false;
+        try
+        {
+            m_watcher = std::thread([this] { WatcherMain(); });
+        }
+        catch (...)
+        {
+            m_watcherExited = true;
+            CloseHandle(static_cast<HANDLE>(m_watchStop));
+            m_watchStop = nullptr;
+            CONVAI_WARN("File IO: the change watcher could not start; polling only");
+        }
+    }
     const DWORD attributes = GetFileAttributesW(paths::LongPath(m_directory).c_str());
     if (attributes == INVALID_FILE_ATTRIBUTES || !(attributes & FILE_ATTRIBUTE_DIRECTORY))
     {
@@ -397,6 +415,31 @@ void FileIo::Stop(uint32_t aBudgetMs)
     {
         CONVAI_WARN("File IO: the worker did not finish within %u ms; leaving it", aBudgetMs);
         m_worker.detach();
+    }
+
+    // The watcher sits in a kernel wait on the directory and on this event; it needs no budget of its own.
+    if (m_watchStop)
+    {
+        SetEvent(static_cast<HANDLE>(m_watchStop));
+        const uint64_t watcherDeadline = NowMs() + 500;
+        while (!m_watcherExited.load() && NowMs() < watcherDeadline)
+        {
+            Sleep(1);
+        }
+        if (m_watcher.joinable())
+        {
+            if (m_watcherExited.load())
+            {
+                m_watcher.join();
+                CloseHandle(static_cast<HANDLE>(m_watchStop));
+                m_watchStop = nullptr;
+            }
+            else
+            {
+                CONVAI_WARN("File IO: the change watcher did not finish within 500 ms; leaving it");
+                m_watcher.detach(); // the event handle stays open on purpose: the thread may still wait on it
+            }
+        }
     }
 }
 
@@ -1046,6 +1089,199 @@ uint64_t FileIo::NextWake(uint64_t aNow)
         wait = std::min(wait, m_nextControlTick > aNow ? m_nextControlTick - aNow : 1);
     }
     return std::max<uint64_t>(wait, 1);
+}
+
+// A change to aNames (or to anything, aAll) makes the watched channels among them due now. Idle channels
+// (unread for 3 s) keep their back-off, a channel with queued operations is the worker's own business,
+// and the periodic poll still runs for everything, so a missed or late notification costs one period.
+void FileIo::NoteChanged(const std::vector<std::string>& aNames, bool aAll)
+{
+    bool woke = false;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        const uint64_t now = NowMs();
+        auto touch = [&](Channel& aChannel) {
+            if (!aChannel.watched || aChannel.pendingOps > 0 || now - aChannel.lastReadTick > kIdleAfterMs)
+            {
+                return;
+            }
+            ++m_stats.watchEvents;
+            // Due already is not awake yet: the worker may be sleeping out the rest of a timer tick.
+            aChannel.nextPollTick = std::min(aChannel.nextPollTick, now);
+            woke = true;
+        };
+        if (aAll)
+        {
+            for (auto& entry : m_channels)
+            {
+                touch(entry.second);
+            }
+        }
+        else
+        {
+            for (const std::string& name : aNames)
+            {
+                const auto it = m_channels.find(name);
+                if (it != m_channels.end())
+                {
+                    touch(it->second);
+                }
+            }
+        }
+    }
+    if (woke)
+    {
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            ++m_stats.watchWakes;
+        }
+        m_wake.notify_one();
+    }
+}
+
+// Blocks in ReadDirectoryChangesW on the runtime folder and turns each notification into NoteChanged. The
+// request is re-armed before the batch is processed, so no change falls between two requests; a
+// notification buffer that overflowed, or a folder that came and went, marks everything.
+void FileIo::WatcherMain()
+{
+    SetThreadDescription(GetCurrentThread(), L"CyberpunkConvai file watch");
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
+    struct Exited
+    {
+        std::atomic<bool>& flag;
+        ~Exited()
+        {
+            flag.store(true);
+        }
+    } exited{m_watcherExited};
+
+    constexpr DWORD kFilter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_LAST_WRITE |
+                              FILE_NOTIFY_CHANGE_CREATION;
+    const HANDLE stop = static_cast<HANDLE>(m_watchStop);
+    const std::wstring directory = paths::LongPath(m_directory);
+    HANDLE done = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+    if (!done)
+    {
+        CONVAI_WARN("File IO: the change watcher has no event; polling only");
+        return;
+    }
+    std::vector<unsigned char> buffer(64 * 1024);
+    std::vector<unsigned char> batch;
+    OVERLAPPED overlapped{};
+    HANDLE folder = INVALID_HANDLE_VALUE;
+    bool armed = false;
+    bool warned = false;
+
+    auto close = [&] {
+        if (folder != INVALID_HANDLE_VALUE)
+        {
+            if (armed)
+            {
+                CancelIoEx(folder, &overlapped);
+                DWORD ignored = 0;
+                GetOverlappedResult(folder, &overlapped, &ignored, TRUE); // the buffer is ours again
+            }
+            CloseHandle(folder);
+            folder = INVALID_HANDLE_VALUE;
+        }
+        armed = false;
+    };
+    auto arm = [&]() -> bool {
+        ZeroMemory(&overlapped, sizeof(overlapped));
+        overlapped.hEvent = done;
+        ResetEvent(done);
+        armed = ReadDirectoryChangesW(folder, buffer.data(), static_cast<DWORD>(buffer.size()), FALSE, kFilter,
+                                      nullptr, &overlapped, nullptr) != 0;
+        return armed;
+    };
+
+    while (true)
+    {
+        if (folder == INVALID_HANDLE_VALUE)
+        {
+            folder = CreateFileW(directory.c_str(), FILE_LIST_DIRECTORY,
+                                 FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
+                                 FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, nullptr);
+            if (folder == INVALID_HANDLE_VALUE || !arm())
+            {
+                if (!warned)
+                {
+                    warned = true;
+                    CONVAI_WARN("File IO: cannot watch %s for changes yet (error %lu); polling only until it can",
+                                paths::WideToUtf8(m_directory).c_str(), GetLastError());
+                }
+                close();
+                if (WaitForSingleObject(stop, 2000) == WAIT_OBJECT_0)
+                {
+                    break;
+                }
+                continue;
+            }
+            // Files may have changed while nobody watched.
+            NoteChanged({}, true);
+        }
+
+        const HANDLE handles[2] = {done, stop};
+        if (WaitForMultipleObjects(2, handles, FALSE, INFINITE) != WAIT_OBJECT_0)
+        {
+            break; // stop requested (or the wait failed)
+        }
+        DWORD bytes = 0;
+        const BOOL got = GetOverlappedResult(folder, &overlapped, &bytes, FALSE);
+        armed = false;
+        if (!got)
+        {
+            if (GetLastError() == ERROR_NOTIFY_ENUM_DIR)
+            {
+                NoteChanged({}, true); // the buffer overflowed: something changed, we do not know what
+                if (!arm())
+                {
+                    close();
+                }
+                continue;
+            }
+            close(); // the folder went away or the handle broke: reopen after a pause
+            if (WaitForSingleObject(stop, 2000) == WAIT_OBJECT_0)
+            {
+                break;
+            }
+            continue;
+        }
+        const bool overflow = bytes == 0;
+        batch.assign(buffer.begin(), buffer.begin() + bytes);
+        if (!arm())
+        {
+            close();
+        }
+        if (overflow)
+        {
+            NoteChanged({}, true);
+            continue;
+        }
+        std::vector<std::string> names;
+        size_t offset = 0;
+        while (offset + sizeof(FILE_NOTIFY_INFORMATION) <= batch.size())
+        {
+            const auto* info = reinterpret_cast<const FILE_NOTIFY_INFORMATION*>(batch.data() + offset);
+            const size_t nameBytes = info->FileNameLength;
+            if (offset + offsetof(FILE_NOTIFY_INFORMATION, FileName) + nameBytes > batch.size())
+            {
+                break;
+            }
+            names.push_back(paths::WideToUtf8(std::wstring_view(info->FileName, nameBytes / sizeof(wchar_t))));
+            if (info->NextEntryOffset == 0)
+            {
+                break;
+            }
+            offset += info->NextEntryOffset;
+        }
+        if (!names.empty())
+        {
+            NoteChanged(names, false);
+        }
+    }
+    close();
+    CloseHandle(done);
 }
 
 void FileIo::WorkerMain()

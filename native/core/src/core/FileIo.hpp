@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <condition_variable>
 #include <cstdint>
 #include <deque>
@@ -8,6 +9,7 @@
 #include <string_view>
 #include <thread>
 #include <unordered_map>
+#include <vector>
 
 // Asynchronous file IO for the bridge mailbox, lease and log files.
 //
@@ -26,6 +28,11 @@
 //     last write is under 50 ms old, and on a forced re-read every 1 s), and bumps the channel's
 //     revision when the bytes change. Unread channels back off to a 500 ms poll after 3 s.
 //     A channel's first Read is synchronous (one direct read), every later Read is a copy.
+//   - A directory change notification (ReadDirectoryChangesW on the runtime folder, one small
+//     thread blocked in the kernel) wakes the worker the moment a watched file changes, so the
+//     poll period is only the fallback: a replaced file shows up in a fraction of a millisecond
+//     instead of after up to one period plus the process's timer tick (15.6 ms by default).
+//     Idle channels ignore it, and when the notification cannot be set up the polls run alone.
 //   - Writes are write-through: a Read after a Write on the same channel returns the written
 //     bytes at once, and the poller leaves a channel alone while it has queued operations.
 //   - A JSON channel only publishes bytes that parse, so Lua never sees a half-written file.
@@ -55,6 +62,8 @@ struct FileIoStats
     uint64_t mainThreadReads = 0; // synchronous first reads
     uint64_t maxOpMicros = 0;     // slowest single disk operation on the worker
     uint64_t pending = 0;
+    uint64_t watchEvents = 0; // directory change notifications that named a watched channel
+    uint64_t watchWakes = 0;  // times the worker was woken for them (a poll was due or came due early)
 };
 
 class FileIo
@@ -148,6 +157,8 @@ private:
     };
 
     void WorkerMain();
+    void WatcherMain();
+    void NoteChanged(const std::vector<std::string>& aNames, bool aAll);
     void RunOp(Op& aOp);
     void PollDue(uint64_t aNow);
     void FlushAppends(bool aForce);
@@ -172,6 +183,9 @@ private:
     bool m_stopping = false;
     bool m_running = false;
     std::thread m_worker;
+    std::thread m_watcher;
+    void* m_watchStop = nullptr;         // HANDLE of the event that ends the watcher
+    std::atomic<bool> m_watcherExited{true};
     std::wstring m_directory;
     FileIoStats m_stats;
 
