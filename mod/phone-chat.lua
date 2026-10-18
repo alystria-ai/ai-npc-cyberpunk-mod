@@ -70,8 +70,18 @@ local function read(path)
     local ok, value = pcall(json.decode, raw)
     return ok and type(value) == 'table' and value or nil, raw
 end
-local function write(path, value)
+-- inPlace is for an exchange file (phone-chat-input.json): the bridge ships it as an empty placeholder and
+-- tolerates a partial read, so it is rewritten where it lies. Under Mod Organizer 2 a file that is deleted and
+-- renamed back is a new file and lands in Overwrite. phone-history.json is player data and keeps the
+-- temp + rename protection below.
+local function write(path, value, inPlace)
     local encoded, text = pcall(json.encode, value); if not encoded then return false end
+    if inPlace then
+        local f = io.open(path, 'wb'); if not f then return false end
+        local written, closed
+        local ok = pcall(function() written = f:write(text); closed = f:close() end)
+        return ok and written and closed and true or false
+    end
     local f = io.open(path .. '.tmp', 'wb'); if not f then return false end
     local written, closed
     local ok = pcall(function() written = f:write(text); closed = f:close() end)
@@ -108,7 +118,7 @@ local function publish(active)
     -- (bridge/phone-warm.mjs). It never selects, sends or stores anything.
     return write('runtime/phone-chat-input.json', {version = 2, world = M.world, active = active,
         saveIdentity = M.saveIdentity, updated = os.time() * 1000, request = M.pending,
-        chatContact = active and M.contact ~= nil and M.catalog[M.contact] and M.contact or nil})
+        chatContact = active and M.contact ~= nil and M.catalog[M.contact] and M.contact or nil}, true)
 end
 local function resetIdentity(value)
     return value.scope == 'all' and 'all' or 'character:' .. value.profileKey
