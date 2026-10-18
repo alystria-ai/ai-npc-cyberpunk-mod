@@ -227,6 +227,20 @@ async function remoteDispatcher() {
 const isCloud = url => { const {protocol, hostname} = new URL(url); return protocol === 'https:' && Object.values(HOSTS).includes(hostname); };
 
 /**
+ * `{dispatcher}` (the shared keep-alive pool above) for a request to a cloud provider's host made with the built-in fetch, else `{}`
+ * (another fetch, another host, or no pool). The cloud voice (bridge/voxtral-voice.mjs) asks for it too: its requests go to the same
+ * host, so they share the connections the composer's warm-up opened instead of opening their own (a new connection is DNS, TCP and TLS:
+ * about 50 to 90 ms more to the first audio, measured 2026-10-19). Never throws.
+ */
+export async function cloudFetchOptions(url, fetchImpl = globalThis.fetch) {
+  try {
+    if (fetchImpl !== globalThis.fetch || !isCloud(url)) return {};
+    const dispatcher = await remoteDispatcher();
+    return dispatcher ? {dispatcher} : {};
+  } catch { return {}; }
+}
+
+/**
  * Opens the connection to the provider ahead of the first turn, so that turn finds a ready connection (TLS done). One unauthenticated
  * `GET` of the provider's origin root: it carries no key (only the method, the host and the client's default headers leave), is not
  * an API call so it uses no quota, and answers with a body of about 100 bytes (JSON, 404 at Mistral) that is read to

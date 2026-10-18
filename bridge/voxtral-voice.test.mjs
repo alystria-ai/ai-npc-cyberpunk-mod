@@ -234,6 +234,56 @@ test('a stream that breaks after audio started ends that reply early instead of 
   } finally { await server.close(); }
 });
 
+test('a finished stream is read to its end, so the next request reuses its connection (no new DNS, TCP and TLS)', async () => {
+  // The body ends a moment after the last event (a separate write, as over a real network): cutting the stream at the event closed the connection.
+  const server = await serve((request, response) => { sse(response); response.write(delta(bytesOf(samples(2400)))); response.write(done); setTimeout(() => response.end(), 30); });
+  try {
+    const {voice} = voiceFor(server);
+    await voice.synthesizeStream('judy-alvarez', 'First line.', collect());
+    await wait(120);   // the body has ended (30 ms after its last event), inside the drain limit (250 ms)
+    await voice.synthesizeStream('judy-alvarez', 'Second line.', collect());
+    assert.equal(server.requests.length, 2);
+    assert.equal(server.requests[1].socket, server.requests[0].socket, 'the second request came over the first one\'s connection');
+  } finally { await server.close(); }
+});
+
+test('a stream that stays open after its last event is closed after drainMs, and the reply never waits for that', async () => {
+  let ended = null;
+  const server = await serve((request, response) => {
+    sse(response); response.write(delta(bytesOf(samples(2400)))); response.write(done);
+    response.on('close', () => { ended = performance.now(); });
+  });
+  try {
+    const {voice} = voiceFor(server, {limits: {drainMs: 150}});
+    const started = performance.now(), sink = collect();
+    const result = await voice.synthesizeStream('judy-alvarez', 'Hi.', sink);
+    const answered = performance.now();
+    assert.equal(result.frames, 2400); assert.equal(result.truncated, false); assert.equal(sink.packets.length, 1);
+    assert.ok(answered - started < 140, `the reply resolved at its last event (${Math.round(answered - started)} ms), not after the drain`);
+    await wait(400);
+    assert.ok(ended !== null, 'the open stream was closed');
+    assert.ok(ended - answered >= 100, `it was closed at the drain limit (${Math.round(ended - answered)} ms after the reply)`);
+  } finally { await server.close(); }
+});
+
+test('a speech request to Mistral goes through the text routes\' connection pool (fetchOptions); a test server or another fetch gets none', async () => {
+  const pool = {name: 'shared keep-alive pool'}, seen = [], asked = [];
+  const body = () => new ReadableStream({start(controller) { controller.enqueue(new TextEncoder().encode(delta(bytesOf(samples(2400))) + done)); controller.close(); }});
+  const fetchImpl = async (url, init) => { seen.push(init); return new Response(body(), {status: 200, headers: {'content-type': 'text/event-stream'}}); };
+  const voice = new VoxtralVoice({getKey: () => KEY, referenceRoot: resolve('fixture-references'), registry: registryOf(), read: async () => REFERENCE,
+    scheduler: fastScheduler(), fetchImpl, fetchOptions: async (url, impl) => { asked.push([url, impl === fetchImpl]); return {dispatcher: pool}; }});
+  await voice.synthesizeStream('judy-alvarez', 'Hi.', collect());
+  assert.deepEqual(asked, [['https://api.mistral.ai/v1/audio/speech', true]]);
+  assert.equal(seen[0].dispatcher, pool);
+  // The default rule (bridge/mistral-client.mjs cloudFetchOptions): only the built-in fetch to api.mistral.ai gets the pool.
+  const {cloudFetchOptions} = await import('./mistral-client.mjs');
+  assert.deepEqual(await cloudFetchOptions('http://127.0.0.1:9/v1/audio/speech'), {});
+  assert.deepEqual(await cloudFetchOptions('https://api.mistral.ai/v1/audio/speech', fetchImpl), {});
+  const shared = await cloudFetchOptions('https://api.mistral.ai/v1/audio/speech');
+  assert.ok(shared.dispatcher && typeof shared.dispatcher.dispatch === 'function', 'the built-in fetch to Mistral gets the keep-alive Agent');
+  assert.equal((await cloudFetchOptions('https://api.mistral.ai/v1/chat/completions')).dispatcher, shared.dispatcher, 'the same pool as the text routes');
+});
+
 test('cancelling the reply aborts the request and is neither a fallback nor a degradation', async () => {
   const server = await serve(async (request, response) => { await wait(500); response.destroy(); });
   try {

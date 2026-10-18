@@ -39,6 +39,7 @@ import {readFile, readdir} from 'node:fs/promises';
 import {resolve, sep} from 'node:path';
 import {cancelled, throwIfCancelled} from './transport-pool.mjs';
 import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
+import {cloudFetchOptions} from './mistral-client.mjs';
 import {RequestGate} from './request-gate.mjs';
 import {isVariantKey} from './voice-variants.mjs';
 
@@ -60,6 +61,10 @@ export const VOXTRAL_LIMITS = Object.freeze({
   splitMarginMs: 1500,       // the second request's audio is released this long before the first one's would run out
   splitGraceMs: 400,         // the second request is always given at least this long after the first part is done
   stallMs: 8000,             // silence this long inside a running stream ends it
+  // After `speech.audio.done` the rest of the stream (a few bytes) is read, in the background, for at most this long, so its connection goes
+  // back to the shared pool for the next request; a stream cut off instead closes its connection, and the next request (the rest of the
+  // reply, the next turn's first sentence) paid DNS, TCP and TLS again: about 50 to 90 ms of its first audio (measured 2026-10-19).
+  drainMs: 250,
   maxChars: 4000,            // longer text cannot be spoken (the model's context is 4,096 tokens): written reply
   maxQueueMs: 6000,          // waiting this long behind other Mistral requests: the reply is written
   frameSamples: 2400,        // 100 ms packets, the size Pocket's own packets are in the same range
@@ -292,13 +297,15 @@ export class VoxtralVoice {
    * registry ({profiles: {key: {reference, sha256}}}) or an ordered list of them (OmniVoice long, OmniVoice short, Pocket: the first
    * that has a usable clip for a voice wins); set later with setReferences. onChange: called when the voice becomes degraded or
    * recovers. fetchImpl, read, list, setTimer, clearTimer, now, endpoint: for tests.
+   * fetchOptions: (url, fetchImpl) => Promise<extra fetch options>: the shared keep-alive pool of the text routes for api.mistral.ai with the
+   * built-in fetch (bridge/mistral-client.mjs cloudFetchOptions), so a speech request uses the connections the composer's warm-up opened.
    */
   constructor({getKey, referenceRoot, registry, onChange = () => {}, onLog = () => {}, fetchImpl = globalThis.fetch,
     read = readFile, list = readdir, endpoint = VOXTRAL_ENDPOINT, limits = {}, setTimer = setTimeout, clearTimer = clearTimeout,
-    now = () => performance.now(), clock = Date.now, scheduler = mistralScheduler, prepare} = {}) {
+    now = () => performance.now(), clock = Date.now, scheduler = mistralScheduler, prepare, fetchOptions = cloudFetchOptions} = {}) {
     if (typeof getKey !== 'function') throw Error('Invalid Voxtral configuration');
     Object.assign(this, {getKey, referenceRoot, registries: [].concat(registry ?? []).filter(Boolean), onChange, onLog, fetchImpl, read, list, endpoint,
-      setTimer, clearTimer, now, clock, scheduler, prepare});
+      setTimer, clearTimer, now, clock, scheduler, prepare, fetchOptions});
     this.limits = Object.freeze({...VOXTRAL_LIMITS, ...limits});
     this.gate = new RequestGate({limit: this.limits.maxConcurrent, aheadLimit: this.limits.maxAhead, tightLimit: this.limits.tightConcurrent,
       tightMs: this.limits.tightMs, now: clock, setTimer, clearTimer});
@@ -669,7 +676,7 @@ export class VoxtralVoice {
       }
       if (from) pending = pending.slice(from);
     };
-    let release = null;
+    let release = null, events = null, finished = false;
     try {
       const gateStarted = this.now();
       try {
@@ -681,12 +688,15 @@ export class VoxtralVoice {
         throw fail('network', error?.message || 'is unreachable');
       }
       maxQueueMs = Math.max(1, maxQueueMs - (this.now() - gateStarted));
+      // The connection pool the text routes keep warm for this host (nothing for a test's server or another fetch).
+      let pooled = {};
+      try { pooled = (await this.fetchOptions?.(this.endpoint, this.fetchImpl)) ?? {}; } catch { pooled = {}; }
       try {
         response = await this.scheduler.schedule(() => {
           // The first-audio limit counts from the moment the request is sent, not from when it queued behind other Mistral requests.
           sentAt = this.now();
           arm(firstAudioMs, 'timeout');
-          return this.fetchImpl(this.endpoint, {method: 'POST', signal: controller.signal,
+          return this.fetchImpl(this.endpoint, {method: 'POST', signal: controller.signal, ...pooled,
             headers: {authorization: `Bearer ${apiKey}`, 'content-type': 'application/json', accept: 'text/event-stream'},
             body: JSON.stringify({model: VOXTRAL_MODEL, input: text, ref_audio: reference.base64, response_format: 'pcm', stream: true})});
         }, {priority: PRIORITY.TTS, signal: controller.signal, maxQueueMs});
@@ -712,8 +722,14 @@ export class VoxtralVoice {
       }
       if (!response.body) throw fail('request', 'answered without a stream');
       let done = false;
+      // Read by hand (not `for await`): leaving a `for await` cancels the body, which closes the connection; after the last event the
+      // rest of the body is read instead (drainRest), so the connection is reused.
+      events = sseEvents(response.body)[Symbol.asyncIterator]();
       try {
-        for await (const raw of sseEvents(response.body)) {
+        for (;;) {
+          const step = await events.next();
+          if (step.done) break;
+          const raw = step.value;
           let event; try { event = JSON.parse(raw); } catch { continue; }
           if (event?.type === 'speech.audio.delta' && typeof event.audio_data === 'string') {
             await push(Buffer.from(event.audio_data, 'base64'), false);
@@ -733,13 +749,31 @@ export class VoxtralVoice {
         try { await push(Buffer.alloc(0), true); } catch (flushError) { if (flushError.sink) throw flushError; }
       }
       if (!frames) throw fail('request', 'answered without audio');
+      finished = done;
       return {done, frames, firstMs, sentAt};
     } finally {
       this.clearTimer(timer);
       signal?.removeEventListener('abort', onAbort);
-      // Free the connection whichever way this ended.
-      if (!controller.signal.aborted) controller.abort(cancelled('Voxtral request completed'));
+      // A stream that ended with its last event: the rest of the body is read in the background so the connection is reused. Any other
+      // ending frees the connection at once, as before.
+      if (finished && events && !controller.signal.aborted) this.drainRest(events, controller);
+      else if (!controller.signal.aborted) controller.abort(cancelled('Voxtral request completed'));
       release?.();
     }
+  }
+
+  /**
+   * Reads what is left of a finished stream (after `speech.audio.done`) for at most `drainMs`, then aborts the request if the body has not
+   * ended by then (its connection is closed, as an abort always did). Runs in the background: nothing of the reply waits for it, and the
+   * speech request's slot is already given back. Never throws.
+   */
+  drainRest(events, controller) {
+    const timer = this.setTimer(() => { if (!controller.signal.aborted) controller.abort(cancelled('Voxtral request completed')); }, this.limits.drainMs);
+    timer?.unref?.();
+    void (async () => {
+      try { while (!(await events.next()).done) { /* the bytes after the last event */ } }
+      catch { /* aborted at the limit, or the stream failed: nothing to reuse */ }
+      finally { this.clearTimer(timer); }
+    })();
   }
 }
