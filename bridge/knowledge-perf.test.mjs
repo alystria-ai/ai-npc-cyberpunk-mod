@@ -2,7 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
-import {freshQuest} from './journal-history.mjs';
+import {freshQuest, parseJournalHistory} from './journal-history.mjs';
+import {configureKnowledgeParts, resolveKnowledgeParts} from './knowledge-parts.mjs';
 
 // Per-frame cost of the knowledge collectors (docs/PERFORMANCE_NATIVE_PLAN.md item 1): the compact pack cache, the
 // event-driven re-stamp of resting caches, the history quest-count skip, background pacing with a lift on demand, and
@@ -402,6 +403,113 @@ return {encoded=found.history.encoded}
   const data = JSON.parse(out.encoded);
   assert.deepEqual(Object.keys(data.quests).sort(), ['2', '3']);
   assert.equal(data.quests['2'].objectives[0].text, 'Leave the room.');
+});
+
+// A history scan still under way (the first after a load takes minutes when paced) used to travel inline: every row
+// copied and JSON-encoded on the turn's frame (630 KB for 208 quests in the 2026-10-19 live request). Its rows are now
+// encoded while resting and named by a provisional history part; the bridge rebuilds exactly what capture() returns.
+const partialFixture = historyFixture + `
+parts.encode=jsonEncode
+local files,writes={},0
+parts.open=function(path,mode) assert(mode=='wb'); return {write=function(_,text) files[path]=text; writes=writes+1; return true end,
+ close=function() return true end} end
+local rowEncodes=0
+local m=build({pace=true,encodeRow=function(value) rowEncodes=rowEncodes+1; return jsonEncode(value) end})
+m:update(context) -- binds the world (and takes the active lane's first page)
+local function stepHistory(n) for _=1,n do m:step('history',now) end end
+local function capture()
+ local header,list=m:capturePart(context)
+ assert(parts.publish(list))
+ return {header=header,full=jsonEncode(m:capture(context)),parts=#list}
+end
+`;
+
+const resolveFrom = (files, header) => {
+  configureKnowledgeParts({runtimeDir: 'runtime', readFile: path => {
+    const text = files[`runtime/${path.replace(/^.*[\\/]/, '')}`];
+    if (text === undefined) throw Object.assign(new Error('missing'), {code: 'ENOENT'});
+    return text;
+  }});
+  return resolveKnowledgeParts({journalHistory: header}).journalHistory;
+};
+
+test('a history scan under way is named by a provisional part encoded while resting, and the bridge rebuilds capture()', () => {
+  const out = run(partialFixture + `
+stepHistory(4) -- both roots and both quest tasks: no quest or phase task is left to add objectives
+assert(m.lanes.history.job and not m.lanes.history.cache,'still in its first scan')
+for _=1,4 do m:pump() end
+assert(rowEncodes==2,'each row encoded once while resting, got '..rowEncodes)
+local before=rowEncodes
+local first=capture()
+assert(rowEncodes==before,'the turn encodes no row')
+local text=files['runtime/knowledge-history.json']
+local writesFirst=writes
+local again=capture()
+assert(writes==writesFirst,'an unchanged scan keeps its provisional revision and writes nothing')
+stepHistory(1) -- an objective's children page that finds nothing changes no row
+local same=capture()
+-- a sub-objective found later changes one row: a new revision, that row encoded again
+childRows['30']={{id='31',nativeId='objective_c_sub',kind='objective',text='Hide.',state='failed'}}
+stepHistory(1); local encodesBefore=rowEncodes
+local changed=capture()
+return {first=first,again=again,same=same,changed=changed,text=text,changedText=files['runtime/knowledge-history.json'],
+ encodes=rowEncodes-encodesBefore}
+`);
+  const {first, again, same, changed} = out;
+  assert.ok(first.header.lanes.history, 'history rows named by a part');
+  assert.deepEqual(first.header.lanes.history.ids, ['2', '3']);
+  const inline = Array.isArray(first.header.quests) ? first.header.quests : Object.values(first.header.quests);
+  assert.ok(inline.every(row => row.lane === 'active'), 'no history row inline (the active lane, also in its first scan, stays inline)');
+  assert.equal(again.header.lanes.history.revision, first.header.lanes.history.revision);
+  assert.equal(same.header.lanes.history.revision, first.header.lanes.history.revision);
+  assert.ok(changed.header.lanes.history.revision > first.header.lanes.history.revision);
+  assert.equal(out.encodes, 1, 'only the changed row is encoded again');
+  const full = JSON.parse(first.full);
+  assert.equal(full.coverage.history.scanning, true);
+  const rebuilt = resolveFrom({'runtime/knowledge-history.json': out.text}, first.header);
+  assert.deepEqual(rebuilt, full);
+  assert.deepEqual(parseJournalHistory(rebuilt), parseJournalHistory(full));
+  assert.equal(parseJournalHistory(rebuilt).status, 'ready');
+  assert.ok(rebuilt.quests.every(row => row.objectivesComplete === false), 'scanning rows say their objectives may be incomplete');
+  const rebuiltChanged = resolveFrom({'runtime/knowledge-history.json': out.changedText}, changed.header);
+  assert.deepEqual(rebuiltChanged, JSON.parse(changed.full));
+  assert.equal(rebuiltChanged.quests.find(row => row.id === '3').objectives.length, 2);
+});
+
+test('the provisional part waits for settled objectives, falls back inline when a row cannot be encoded, and ends with the scan', () => {
+  const out = run(partialFixture + `
+stepHistory(3) -- quest 3's task is still queued: it can add objectives
+for _=1,4 do m:pump() end
+local early=rowEncodes
+-- a turn now encodes what it needs itself and still names the part
+local soon=capture(); assert(soon.header.lanes.history and rowEncodes==2)
+-- an encoder failure: rows travel inline as before, and the snapshot is unchanged
+local broken=build({encodeRow=function() error('no encoder') end}); broken:update(context)
+for _=1,4 do broken:step('history',now) end
+local header,list=broken:capturePart(context)
+assert(header.lanes==nil or header.lanes.history==nil,'no provisional part after a failure')
+assert(#header.quests==3 and header.quests[2].objectivesComplete==false,'all three rows inline')
+-- the scan finishes: the finished revision travels as before and the provisional tables are released
+m:demand({'active','history'},0)
+for _=1,30 do m:update(context); if m.lanes.history.cache then break end end
+local cache=m.lanes.history.cache
+assert(cache and cache.rowText==nil and cache.partial==nil)
+local finished=capture()
+return {early=early,finishedRevision=finished.header.lanes.history.revision,cacheRevision=cache.revision}
+`);
+  assert.equal(out.early, 0, 'nothing is encoded ahead while a quest or phase task can still add objectives');
+  assert.equal(out.finishedRevision, out.cacheRevision);
+});
+
+test('publish refuses a strict part it cannot splice instead of writing its stand-in data', () => {
+  const out = run(`
+local files={}
+parts.open=function(path) return {write=function(_,text) files[path]=text; return true end,close=function() return true end} end
+parts.encode=function() error('encoder down') end
+local ok=parts.publish({{name='history',revision=9,generation=1,worldToken='tok',data={},encoded='{"quests":{}}',strict=true}})
+return {ok=ok,written=files['runtime/knowledge-history.json'] or false}
+`);
+  assert.equal(out.ok, false); assert.equal(out.written, false);
 });
 
 // ---------------------------------------------------------------- parts

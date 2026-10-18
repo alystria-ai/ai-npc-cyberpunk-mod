@@ -126,6 +126,8 @@ journalHistory.pace = true
 if knowledgeParts and type(knowledgeParts.newEncoder) == 'function' then
     local function newEncoder(map) return knowledgeParts.newEncoder(map) end
     worldKnowledge.newEncoder, journalHistory.newEncoder = newEncoder, newEncoder
+    -- A history scan still under way travels as a provisional part, its rows encoded while resting (journal-history.lua).
+    journalHistory.encodeRow = function(value) return knowledgeParts.encode(value) end
 end
 
 -- Lease heartbeats (world-session, party-connections, relationship-state, companion-invitations,

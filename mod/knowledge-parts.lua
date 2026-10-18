@@ -70,6 +70,8 @@ function M.publish(parts)
                 else ok = false end
             end
             if not ok then
+                -- strict: a provisional part whose data table is not the rows (mod/journal-history.lua capturePart).
+                if part.strict then return false end
                 header.data = part.data
                 ok, raw = pcall(M.encode, header)
             end
