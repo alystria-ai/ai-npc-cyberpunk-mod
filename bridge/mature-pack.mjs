@@ -31,7 +31,8 @@ const MARKER_FILES = Object.freeze([MATURE_MARKERS.lite, MATURE_MARKERS.good, MA
 export const MATURE_TIERS = Object.freeze(['lite', 'good']);
 
 const fileExists = path => { try { return statSync(path).isFile(); } catch { return false; } };
-const readUtf8 = path => readFileSync(path, 'utf8');
+// A leading byte-order mark (Notepad and PowerShell can write one) is not part of the JSON.
+const readUtf8 = path => readFileSync(path, 'utf8').replace(/^\uFEFF/, '');
 
 // A path in the marker stays inside the pack: relative, no drive, no `..` segment.
 function inside(root, value) {

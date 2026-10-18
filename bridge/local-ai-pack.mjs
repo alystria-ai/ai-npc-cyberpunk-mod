@@ -27,7 +27,8 @@ import {readFileSync, readdirSync, statSync} from 'node:fs';
 import {basename, isAbsolute, resolve} from 'node:path';
 
 const fileExists = path => { try { return statSync(path).isFile(); } catch { return false; } };
-const readUtf8 = path => readFileSync(path, 'utf8');
+// A leading byte-order mark (Notepad and PowerShell can write one) is not part of the JSON.
+const readUtf8 = path => readFileSync(path, 'utf8').replace(/^\uFEFF/, '');
 const listNames = path => { try { return readdirSync(path); } catch { return []; } };
 
 export const LOCAL_AI_EMBED_DIMENSION = 384;

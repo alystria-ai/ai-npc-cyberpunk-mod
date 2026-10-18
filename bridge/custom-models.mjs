@@ -62,7 +62,8 @@ const TEMPLATE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/;
 const FAMILY_NAME = /^[A-Za-z0-9][A-Za-z0-9._ -]{0,39}$/;
 
 const fileExists = path => { try { return statSync(path).isFile(); } catch { return false; } };
-const readUtf8 = path => readFileSync(path, 'utf8');
+// A leading byte-order mark (Notepad and PowerShell can write one) is not part of the JSON.
+const readUtf8 = path => readFileSync(path, 'utf8').replace(/^\uFEFF/, '');
 const statFile = path => { try { const stat = statSync(path); return stat.isFile() ? {size: stat.size, mtimeMs: stat.mtimeMs} : null; } catch { return null; } };
 
 // Reads at most `length` bytes from the start of a file.
@@ -356,7 +357,9 @@ export class CustomModelScanner {
     const path = resolve(root, CUSTOM_MARKER);
     if (!this.exists(path)) return none;
     let manifest;
-    try { manifest = JSON.parse(this.readText(path)); } catch { this.#say(CUSTOM_MARKER + ' is not valid JSON; no custom models'); return {...none, present: true}; }
+    // Text copied from a web page can arrive with curly quotes; they are never valid JSON, so read them as straight quotes.
+    const parseLoose = text => { try { return JSON.parse(text); } catch (error) { const fixed = text.replace(/[\u201C\u201D\u201E\u201F\u2033]/g, '"').replace(/[\u2018\u2019]/g, "'"); if (fixed === text) throw error; return JSON.parse(fixed); } };
+    try { manifest = parseLoose(this.readText(path)); } catch { this.#say(CUSTOM_MARKER + ' is not valid JSON; no custom models'); return {...none, present: true}; }
     if (!manifest || typeof manifest !== 'object' || manifest.version !== 1 || !Array.isArray(manifest.models)) {
       this.#say(CUSTOM_MARKER + ' must be {"version": 1, "models": [...]}; no custom models');
       return {...none, present: true};

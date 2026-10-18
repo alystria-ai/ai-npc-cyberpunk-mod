@@ -685,3 +685,17 @@ test('the placeholder key is long enough for the client and is what a keyless se
   assert.equal(api.chats()[0].body.model, 'qwen3.5-9b');
   assert.equal(api.chats()[0].body.max_tokens, 1);
 });
+
+test('a manifest saved with a byte-order mark, or pasted with curly quotes from a web page, still lists the server', () => {
+  const root = mkdtempSync(join(tmpdir(), 'endpoint-bom-'));
+  try {
+    const localAi = join(root, 'local-ai');
+    mkdirSync(localAi, {recursive: true});
+    const entry = '{"version":1,"models":[{"endpoint":"http://127.0.0.1:5001/v1","name":"KoboldCpp Qwen 9B"}]}';
+    const scan = () => new CustomModelScanner({project: root, environment: {CYBERPUNK_CONVAI_LOCAL_AI: localAi}}).scan();
+    writeFileSync(join(localAi, 'manifest.custom.json'), '﻿' + entry);
+    assert.deepEqual(scan().models.map(model => model.name), ['KoboldCpp Qwen 9B']);
+    writeFileSync(join(localAi, 'manifest.custom.json'), entry.replace(/"/g, (_, at) => (at % 2 ? '”' : '“')));
+    assert.deepEqual(scan().models.map(model => model.name), ['KoboldCpp Qwen 9B']);
+  } finally { rmSync(root, {recursive: true, force: true}); }
+});
