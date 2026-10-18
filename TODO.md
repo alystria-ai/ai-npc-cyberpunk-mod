@@ -60,6 +60,8 @@ Nothing is parked.
 
 ## Captain's log
 
+**2026-10-18 ~17:30 IST (branch fix/system-edge 7268c47e, not merged or pushed): no bundled browser.** Hugging Face's ClamAV flagged Chrome for Testing's chrome.dll in the Runtime zip (false positive; `Win.Packed.Mikey-*`). The hidden browser is now the system's Edge (`msedge`), else Chrome (`bridge/system-browser.mjs`); `CYBERPUNK_CONVAI_BROWSER` stays a developer override; with neither, the supervisor fails with `browser-missing` (existing service-failed notice, one log line) and retries until one is installed. Chrome removed from `release.config.json`, `build-release.mjs`, `prepare-state.mjs`, docs and notices. Patched Runtime 0.2 zip (b9712264 contents, browser removed, 6 files changed, 1 added) in `%TEMP%untime-edge`, ClamAV 0 infected. Open: live test, merge, upload.
+
 **2026-10-18 ~15:45 IST (main b9712264, pushed; v0.2 Scripts and Runtime rebuild run 39118499418): launch state.** Merged and pushed:
 - world-talk (75ce5453), with **Talk to story characters off by default** (9a7af2e8: a missing key is off, a saved choice is kept; `Face.reds` `m_storyTalk` starts false);
 - the save-load crash fix: suspended from the player's detach until the save is restored, collect only while the old world exists, surviving party handles pinned, and `convaiTalkNative` cleared at an unload (97b1efd1, the leak that kept Jackie and Johnny alive);
