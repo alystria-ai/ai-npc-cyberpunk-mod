@@ -68,6 +68,15 @@ test('the clone rule is generic: any later roster row works without listing a cl
   assert(api.resolve(catalog, {record = 'NCA.Character.future_person', name = 'x', world = true, story = true}) == 'future-person')
 `));
 
+test('isCloneRecord: a record a record-cloning mod made, by its prefix, numbered copies included', () => run(`
+  local api = (function() ${catalogSource} end)()
+  assert(api.isCloneRecord('NCA.Character.lizzies_bouncer') == true and api.isCloneRecord('NCA.Character.Judy') == true)
+  assert(api.isCloneRecord('NCA.123456789') == true, 'a numbered copy')
+  assert(api.isCloneRecord('Character.lizzies_bouncer') == false and api.isCloneRecord('Character.Judy') == false, 'the game own records')
+  assert(api.isCloneRecord('NCA.') == false and api.isCloneRecord('') == false and api.isCloneRecord(nil) == false and api.isCloneRecord(5) == false)
+  assert(api.isCloneRecord('Other.Character.Judy') == false, 'only a known prefix')
+`));
+
 test('originalRecordName reads a clone as its original and refuses numbers and other families', () => run(`
   local api = (function() ${catalogSource} end)()
   assert(api.originalRecordName('Character.Judy') == 'Character.Judy')

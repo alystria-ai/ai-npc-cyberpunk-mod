@@ -637,6 +637,15 @@ function M.originalRecordName(text)
     return nil
 end
 
+-- True for a record name that a record-cloning mod made ("NCA.Character.Judy", "NCA.12345"): it starts with one of the prefixes.
+function M.isCloneRecord(text)
+    if type(text) ~= 'string' then return false end
+    for _, prefix in ipairs(M.CLONE_PREFIXES) do
+        if text:sub(1, #prefix) == prefix and #text > #prefix then return true end
+    end
+    return false
+end
+
 function M.build(profiles, archetypes)
     local catalog = {keys = {}, names = {}, records = {}, archetypes = archetypes}
     for _, profile in ipairs(profiles) do
