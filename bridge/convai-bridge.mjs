@@ -70,7 +70,8 @@ import {VendorMemory, vendorMemoryKey} from './vendor-memory.mjs';
 import {PlayerMemoryApi} from './player-memory-api.mjs';
 import {PlayerMemoryControl} from './player-memory-control.mjs';
 import {SupportReportControl} from './support-report.mjs';
-import {ErrorEvents, installCrashCapture} from './error-events.mjs';
+import {ErrorEvents, eventFromError, installCrashCapture} from './error-events.mjs';
+import {endIfIncomplete, installFileErrorGuard, readRequiredJson} from './runtime-files.mjs';
 import {SetupCheckControl, cachedBrowserName, cachedGraphicsCards, cachedModManagers, collectSetupCheck, findNestedPacks, readPackPlacement} from './setup-check.mjs';
 import {CharacterOverrides} from './character-overrides.mjs';
 import {CustomCharacters, isCustomKey, rosterIndex, releaseVoiceFiles} from './custom-characters.mjs';
@@ -111,7 +112,7 @@ import {LlamaEmbedder} from './local-embed.mjs';
 import {watchFiles, createWakeSignal, mergeHandlers} from './file-wake.mjs';
 import {GameStateSync} from './game-state.mjs';
 const leaseWake = createWakeSignal();
-import {PersonaBook, joinBlocks} from './mistral-prompt.mjs';
+import {PersonaBook, joinBlocks, worldBlocksInCacheOrder} from './mistral-prompt.mjs';
 import {LocalStt} from './local-stt.mjs';
 import {SpeechLanguage, LOCAL_PACKS, planRecording} from './speech-language.mjs';
 import {VoxtralStt} from './voxtral-stt.mjs';
@@ -128,6 +129,11 @@ const runtime = resolve(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyb
 // An uncaught exception or unhandled rejection is written down as the process ends (how it ends does not change); a failed turn that is
 // not the player's own doing and the setup check's problems are recorded after the fact, never on a turn's path. Off with the setting.
 installCrashCapture({stateDirectory, runtime});
+// A file read that nobody waits for and that fails because the folder changed under it (ENOENT, EPERM, EBUSY, ...) never ends the service
+// (bridge/runtime-files.mjs); any other unhandled rejection is the crash it always was. The data files the bridge reads at its start are
+// different: without one it cannot work, so `requiredJson` ends it at once with one plain line (the supervisor shows "Runtime incomplete").
+installFileErrorGuard({record: error => { try { errorEvents.record({...eventFromError(error, 'bridge-rejection'), detail: {handled: true}}); } catch {} }});
+const requiredJson = name => readRequiredJson(project, name).catch(endIfIncomplete);
 const errorEvents = new ErrorEvents({stateDirectory, runtime});
 const noteSetupProblems = document => { try { if (document) errorEvents.setupChecked(document); } catch { /* never fails start-up */ } };
 const keyFile = process.env.CYBERPUNK_CONVAI_KEY_FILE || resolve(stateDirectory, 'convai-key.txt');
@@ -137,7 +143,7 @@ const gameStateFolder = process.env.CYBERPUNK_CONVAI_GAME_STATE;
 const gameState = gameStateFolder ? new GameStateSync({runtime, durable: resolve(gameStateFolder), log: message => console.error('[GameState] ' + message)}) : null;
 // Named characters, then the generic NPC archetypes (docs/NPC_ARCHETYPES.md). The archetype roster is optional:
 // without it (or without their IDs in characters.json) unnamed NPCs simply have no profile.
-const roster = [...JSON.parse(await readFile(resolve(project, 'characters/roster.json'), 'utf8')),
+const roster = [...await requiredJson('characters/roster.json'),
   ...JSON.parse(await readFile(resolve(project, 'characters/archetype-roster.json'), 'utf8').catch(error => {
     if (error.code === 'ENOENT') return '[]';
     throw error;
@@ -512,8 +518,8 @@ const keyFailure = (error, input) => {
   return errorCode ? {errorCode, ...mistralExtrasFor(error), ...(errorDetail ? {errorDetail} : {})} : {};
 };
 
-const knowledgePack = JSON.parse(await readFile(resolve(project, 'characters/world-knowledge.json'), 'utf8'));
-const questCatalog = JSON.parse(await readFile(resolve(project, 'research/cyberpunk/generated/quest-catalog.json'), 'utf8'));
+const knowledgePack = await requiredJson('characters/world-knowledge.json');
+const questCatalog = await requiredJson('research/cyberpunk/generated/quest-catalog.json');
 const intrinsicHistory = await loadIntrinsicCharacterContext(project);
 if (intrinsicHistory.unavailable.length) console.error('[CyberpunkConvai] Optional intrinsic topic packs unavailable:', intrinsicHistory.unavailable.join(', '));
 // One local player ID is shared across all characters and saves. No save facts,
@@ -651,7 +657,7 @@ let phoneSessions = {};
 try { phoneSessions = JSON.parse(await readFile(phoneSessionPath, 'utf8')) || {}; } catch {}
 const phone = new PhoneChat({
   failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return providerFailureCode(code === 'daily-limit' || /^(mistral|local|custom)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? 'local-fallback' : undefined); },
-  contacts: JSON.parse(await readFile(resolve(project, 'characters/phone-contacts.json'), 'utf8')), ids,
+  contacts: await requiredJson('characters/phone-contacts.json'), ids,
   resetFor: profileKey => memoryControl.chatResets.phoneState(profileKey),
   contextFor: options => phoneKnowledge.prepareContext(options),
   contextCurrent: context => phoneKnowledge.current(context),
@@ -1126,9 +1132,14 @@ const joinedContext = blocks => blocks.map(item => item.text).filter(Boolean).jo
 const conversationContext = input => joinedContext(conversationBlocks(input));
 // {now, notes, world, volatile} for the text providers' prompt layout; only built while one of them answers.
 // `worldBlocks` lists the world blocks one by one (with their keys) so a small context can cut them in order of priority.
-const contextPartsOf = blocks => ({...Object.fromEntries(['now', 'notes', 'world', 'volatile']
-  .map(tier => [tier, joinBlocks(blocks.filter(item => item.tier === tier).map(item => item.text))])),
-  worldBlocks: blocks.filter(item => item.tier === 'world' && item.text).map(item => ({key: item.key, text: item.text}))});
+// The world blocks go in the order a prefix cache wants (worldBlocksInCacheOrder): the world facts that follow V's words come after the blocks
+// that only change on game events, so a turn re-reads the facts and not the whole world block.
+const contextPartsOf = blocks => {
+  const world = worldBlocksInCacheOrder(blocks.filter(item => item.tier === 'world'));
+  return {...Object.fromEntries(['now', 'notes', 'volatile'].map(tier => [tier, joinBlocks(blocks.filter(item => item.tier === tier).map(item => item.text))])),
+    world: joinBlocks(world.map(item => item.text)),
+    worldBlocks: world.filter(item => item.text).map(item => ({key: item.key, text: item.text}))};
+};
 const textProviderContext = input => {
   noteTurn(input);
   const blocks = conversationBlocks(input);

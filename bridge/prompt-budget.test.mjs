@@ -1,8 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {PersonaBook, buildMessages, PROMPT_SOURCE, systemHead} from './mistral-prompt.mjs';
-import {BUDGET, PromptTooLarge, TokenMeter, budgetedChat, describeFit, estimateTokens, fitMessages, templateTokens, textTokens} from './prompt-budget.mjs';
+import {PersonaBook, buildMessages, PROMPT_SOURCE, systemHead, worldBlocksInCacheOrder} from './mistral-prompt.mjs';
+import {BUDGET, PREFILL, PrefillMeter, PromptTooLarge, TokenMeter, budgetedChat, describeFit, estimateTokens, fitMessages, templateTokens, textTokens} from './prompt-budget.mjs';
 import {MistralError, errorCodeFor, mapFailure} from './mistral-client.mjs';
 import {conversationContextBlocks} from './quest-context.mjs';
 
@@ -208,5 +208,128 @@ test('llama-server\'s refusal of a long prompt is an overflow with the counted t
 test('the world blocks of a named character carry the keys the trimming order uses', () => {
   const blocks = conversationContextBlocks({profileKey: 'judy-alvarez', name: 'Judy Alvarez', channel: 'private', text: 'hi', requestId: 'r1'});
   const keys = blocks.filter(block => block.tier === 'world' && block.key).map(block => block.key);
-  assert.deepEqual(keys, ['knowledge', 'recency', 'history', 'jobs', 'journal', 'gear']);
+  assert.deepEqual(keys, ['knowledge', 'recency', 'history', 'jobs', 'journal', 'gear', 'authority']);
+});
+
+test('the world facts ranked by V\'s words come after the blocks that only change on game events, so a turn does not re-read the whole world block', () => {
+  const blocks = conversationContextBlocks({profileKey: 'judy-alvarez', name: 'Judy Alvarez', channel: 'private', text: 'hi', requestId: 'r1'});
+  const world = blocks.filter(block => block.tier === 'world');
+  assert.equal(world.find(block => block.key)?.key, 'knowledge', 'the Convai context keeps its own order');
+  const ordered = worldBlocksInCacheOrder(world);
+  assert.equal(ordered.length, world.length, 'nothing is added or dropped');
+  assert.deepEqual(ordered.filter(block => block.key).map(block => block.key), ['recency', 'history', 'jobs', 'journal', 'gear', 'knowledge', 'authority']);
+  assert.deepEqual(worldBlocksInCacheOrder([{key: 'gear', text: 'a'}, {text: 'b'}]), [{key: 'gear', text: 'a'}, {text: 'b'}], 'no knowledge block: as it was');
+  assert.deepEqual(worldBlocksInCacheOrder([{key: 'knowledge', text: 'k'}, {key: 'gear', text: 'g'}]).map(block => block.key), ['gear', 'knowledge'], 'no authority sentence: the facts go last');
+  assert.deepEqual(worldBlocksInCacheOrder(undefined), []);
+});
+
+test('two turns that differ only in the world facts share the system message up to those facts: the prompt cache keeps everything before them', () => {
+  const facts = text => WORLD_BLOCKS().map(block => block.key === 'knowledge' ? {...block, text} : block);
+  const system = blocks => buildMessages(turn({blocks: worldBlocksInCacheOrder(blocks), history: []}))[0].content;
+  const first = system(facts('WORLD FACTS\n- the first question was about Arasaka'));
+  const second = system(facts('WORLD FACTS\n- a different question, about the Afterlife and its prices'));
+  let shared = 0;
+  while (shared < first.length && first[shared] === second[shared]) shared++;
+  for (const block of WORLD_BLOCKS().filter(item => item.key && item.key !== 'knowledge')) {
+    assert(first.indexOf(block.text) >= 0 && first.indexOf(block.text) + block.text.length <= shared, `${block.key} is inside the shared prefix`);
+  }
+  assert(first.indexOf('FORMAT') < shared && first.indexOf(systemHead({persona: judy}).slice(-80)) < shared, 'the persona and the format notes are shared too');
+  // Placed first, as the Convai context has them, the facts end the shared prefix right after the persona and the format notes (the failure of the first reports).
+  const early = blocks => buildMessages(turn({blocks, history: []}))[0].content;
+  const a = early(facts('WORLD FACTS\n- the first question was about Arasaka')), b = early(facts('WORLD FACTS\n- a different question, about the Afterlife and its prices'));
+  let early_shared = 0;
+  while (early_shared < a.length && a[early_shared] === b[early_shared]) early_shared++;
+  assert(early_shared < shared - 1000, 'the old order shares far less');
+});
+
+test('PrefillMeter: learns the reading speed from the server\'s timings and from a request stuck on the prompt, and asks for a smaller prompt only on a slow machine', () => {
+  let clock = 0;
+  const meter = new PrefillMeter({now: () => clock});
+  assert.equal(meter.tokensPerSecond, null); assert.equal(meter.soft(), null, 'nothing known: the context is the only limit');
+  meter.observe({timings: {promptTokens: 100, cachedTokens: 4300, promptMs: 50}});
+  assert.equal(meter.tokensPerSecond, null, 'a prompt with few new tokens says nothing about the speed');
+  assert.equal(meter.cachedTokens, 4300);
+  meter.observe({timings: {promptTokens: 3000, cachedTokens: 4300, promptMs: 1500}});   // 2,000 tokens a second
+  assert.equal(meter.tokensPerSecond, 2000); assert.equal(meter.soft(), null, 'a fast machine is never held back');
+  clock += 11 * 60_000;
+  meter.observe({timings: {promptTokens: 3000, cachedTokens: 4300, promptMs: 15000}});  // 200 a second; the old measurement is no longer believed
+  assert.equal(meter.tokensPerSecond, 200);
+  const soft = meter.soft();
+  const limit = Math.floor(soft.contextTokens - soft.reserveTokens - Math.max(BUDGET.minMargin, soft.contextTokens * BUDGET.marginRatio));
+  assert.equal(limit, 4300 + 1300, 'the prompt less what the server holds is the 1,300 new tokens of the step');
+  // The target moves in steps, so a speed that wobbles does not move the early part of the prompt every turn.
+  const limitAt = rate => { const m = new PrefillMeter({now: () => clock}); m.observe({timings: {promptTokens: 3000, cachedTokens: 4300, promptMs: 3000 / rate * 1000}}); const s = m.soft(); return s && Math.floor(s.contextTokens - Math.max(BUDGET.minMargin, s.contextTokens * BUDGET.marginRatio)) - 4300; };
+  assert.equal(limitAt(210), 1300); assert.equal(limitAt(230), 1800, 'a little faster: the next step, not a new cut on every turn');
+  assert.equal(limitAt(5), 600, 'never below the floor');
+  assert.equal(limitAt(600), 3500, 'at most the top step');
+  // A request that was stuck on the prompt: what was read in the time the server had it. Never before it had it (a queue says nothing).
+  const before = meter.tokensPerSecond;
+  meter.observeFailure({headersMs: null, elapsedMs: 60000, progress: {processed: 0, total: 5000, cache: 0}});
+  meter.observeFailure({headersMs: 1000, elapsedMs: 3000, progress: {processed: 0, total: 5000, cache: 0}});
+  meter.observeFailure({headersMs: 1000, elapsedMs: 60000, progress: {processed: 5000, total: 5000, cache: 0}});
+  assert.equal(meter.tokensPerSecond, before, 'no headers, a short wait, or a prompt that was read: nothing learned');
+  meter.observeFailure({headersMs: 1000, elapsedMs: 61000, progress: {processed: 2802, total: 7592, cache: 2802}});   // not a single new token in a minute
+  assert(meter.tokensPerSecond < before / 1.5 && meter.tokensPerSecond > 0);
+  assert.equal(meter.cachedTokens, 2802);
+  // A model with layers on the CPU is taken to be slow before anything is measured.
+  const offloaded = new PrefillMeter({now: () => clock, offload: true});
+  assert.equal(offloaded.tokensPerSecond, PREFILL.offloadPrior); assert.equal(offloaded.soft(), null, 'but with nothing cached yet there is nothing to size it against');
+  offloaded.observe({timings: {promptTokens: 0, cachedTokens: 2000, promptMs: 0}});
+  assert(offloaded.soft(), 'once the server holds a prefix the prompt is sized');
+  const cold = new PrefillMeter({now: () => clock, offload: true});
+  assert(cold.soft(4000), 'or when the persona that has to be read first is known');
+  assert.equal(cold.soft(0), null);
+  assert.equal(cold.slow, true); assert.equal(new PrefillMeter({now: () => clock}).slow, false);
+});
+
+test('budgetedChat: on a machine seen to read slowly the prompt is cut below the context first; one that cannot reach that is still sent; a fast one is not held back', async () => {
+  const args = turn();
+  const full = estimateTokens(buildMessages(args));
+  const run = async cached => {
+    const speed = new PrefillMeter();
+    speed.observe({timings: {promptTokens: 3000, cachedTokens: cached, promptMs: 15000}});   // 200 tokens a second
+    const sent = [], fits = [];
+    const chat = budgetedChat(async options => { sent.push(estimateTokens(options.messages)); return {text: 'ok', trace: {timings: {promptTokens: 900, cachedTokens: cached, promptMs: 4500}}}; },
+      {budget: async () => ({contextTokens: 16384, meter: new TokenMeter(), speed}), onFit: fit => fits.push(fit)});
+    await chat({messages: buildMessages(args), provider: 'local'});
+    return {sent: sent[0], fits, speed};
+  };
+  const slow = await run(4300);
+  assert(full > 9000 && slow.sent < full - 2500, `cut from ${full} to ${slow.sent}`);
+  assert(slow.sent <= 4300 + 1300 + BUDGET.minMargin, 'to what the machine reads in a few seconds, on top of what the server holds');
+  assert.equal(slow.fits[0].target, 'soft');
+  assert(slow.fits[0].trimmed.length > 0 && slow.fits[0].fits);
+  // The request that came back is measured too: 900 new tokens in 4.5 s is 200 a second again.
+  assert.equal(Math.round(slow.speed.tokensPerSecond), 200);
+  // The server holds nothing of this persona (a new character, a model loaded again): the persona has to be read whatever the target is, so the allowance
+  // is added to the persona's own size and everything else is cut to it.
+  const head = estimateTokens([{role: 'system', content: systemHead({persona: judy})}]);
+  const cold = await run(0);
+  assert(cold.sent < full - 2500 && cold.sent <= head + 1300 + BUDGET.minMargin, `cold: from ${full} to ${cold.sent}, persona ${head}`);
+  // What cannot be cut (the format notes, the right-now block, V's words) is more than the allowance: the soft target cannot be reached, the context's
+  // limit is used as it always was, and the request is sent whole.
+  const heavy = turn(); heavy.contextParts.notes = 'FORMAT: ' + 'use a tag for a feeling, never read it aloud. '.repeat(65); heavy.text = 'Tell me everything. '.repeat(60);
+  const wide = estimateTokens(buildMessages(heavy));
+  const speed = new PrefillMeter(); speed.observe({timings: {promptTokens: 3000, cachedTokens: 4300, promptMs: 600_000}});   // 5 tokens a second: the lowest step, 600
+  const sent = [], fits = [];
+  await budgetedChat(async options => { sent.push(estimateTokens(options.messages)); return {text: 'ok'}; }, {budget: async () => ({contextTokens: 16384, meter: new TokenMeter(), speed}), onFit: fit => fits.push(fit)})({messages: buildMessages(heavy), provider: 'local'});
+  assert.equal(fits.length, 0, 'the soft target could not be reached: nothing was cut under it, and the hard limit asks for nothing');
+  assert.equal(sent[0], wide, 'a soft target never makes a request fail or cuts what the context allows');
+  // A fast machine: the context is the only limit.
+  const fast = new PrefillMeter(); fast.observe({timings: {promptTokens: 3000, cachedTokens: 4300, promptMs: 1000}});
+  const quick = [];
+  await budgetedChat(async options => { quick.push(estimateTokens(options.messages)); return {text: 'ok'}; }, {budget: async () => ({contextTokens: 16384, meter: new TokenMeter(), speed: fast})})({messages: buildMessages(args), provider: 'local'});
+  assert.equal(quick[0], full);
+});
+
+test('budgetedChat: a request that stalls on the prompt teaches the next turn how slow the machine is', async () => {
+  const args = turn();
+  const speed = new PrefillMeter();
+  speed.observe({timings: {promptTokens: 3000, cachedTokens: 4300, promptMs: 6000}});   // 500 a second: a little under fast
+  const chat = budgetedChat(async () => {
+    throw Object.assign(new MistralError('network', 'did not finish in time', {provider: 'local', slow: true, reason: 'prefill-stalled'}),
+      {trace: {headersMs: 500, elapsedMs: 60500, progress: {processed: 4300, total: 9000, cache: 4300}}});
+  }, {budget: async () => ({contextTokens: 16384, meter: new TokenMeter(), speed})});
+  await assert.rejects(chat({messages: buildMessages(args), provider: 'local'}), /did not finish in time/);
+  assert(speed.tokensPerSecond < 300, `now believed slow: ${speed.tokensPerSecond}`);
 });

@@ -6,7 +6,7 @@
 import {appendFileSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {BridgeSupervisor, parseSupervisorArguments} from '../bridge/bridge-supervisor.mjs';
+import {BridgeSupervisor, RUNTIME_DATA_FILES, parseSupervisorArguments} from '../bridge/bridge-supervisor.mjs';
 
 const defaultProject = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 let options;
@@ -16,7 +16,7 @@ try {
   process.stderr.write(`Conversation service supervisor: ${error.message}\n`);
   process.exit(2);
 }
-const supervisor = new BridgeSupervisor({...options, lifeline: options.lifeline === 'stdin' ? process.stdin : null, errorReports: true});
+const supervisor = new BridgeSupervisor({...options, lifeline: options.lifeline === 'stdin' ? process.stdin : null, errorReports: true, requiredFiles: RUNTIME_DATA_FILES});
 if (options.unknown.length) supervisor.log(`Ignored unknown arguments: ${options.unknown.join(' ')}`);
 for (const name of ['SIGINT', 'SIGTERM', 'SIGBREAK']) process.on(name, () => supervisor.requestExit('supervisor-stopped'));
 process.on('unhandledRejection', error => supervisor.log(`Unhandled rejection: ${error?.stack || error}`));
