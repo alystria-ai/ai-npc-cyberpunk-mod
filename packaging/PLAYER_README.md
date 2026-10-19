@@ -2,6 +2,18 @@
 
 Talk to Cyberpunk 2077 characters by voice or text, with companions who answer in their own voices.
 
+## What's new in 0.2.3
+
+- **Smaller update download**: with the 0.2.2 Runtime installed, get the Runtime update (about 22 MB) instead of the full Runtime.
+- **Faster first words**: the voice and Local AI processes get full priority while a reply is being made, so the game no longer slows them down (they drop back when idle).
+- **Microphone packs** for European and Asian languages with Local AI and Custom endpoints.
+- **15 more characters** with their own voices, and a new voice reference for Viktor.
+- **Either manager host**: Mod Configuration Menu 0.10.5 or newer, or Native Settings UI. One is enough. Pressing the manager key while seated tells you to stand up first.
+- **Browsers and PowerShell**: Brave and other Chromium browsers are found outside their usual folders too, and you can name yours in browser.txt next to launcher.ini. PowerShell is not needed.
+- **Pocket on Vortex**: Pocket voices (and V's voice) start on Vortex installs again. When a voice cannot start, Settings > Help says so.
+- **Local AI**: a crashed model server is restarted and the reply asked again; small-context servers of your own shorten the character description to fit; faster repeat turns.
+- **Clearer messages**: a partly extracted Runtime, missing Audioware or TweakXL each say what to do, and the CET console shows each problem once.
+
 ## What's new in 0.2.2
 
 - **The manager is back in Mod Configuration Menu**: with Mod Configuration Menu 0.10.5 or newer the Companion Manager is a page of its own there (Esc, Mods, or your manager shortcut). Native Settings UI works as the other choice. Both show the same settings.
@@ -38,13 +50,13 @@ You do not need to install anything else. The voice service, its voices and mode
 Close the game, then extract each download into your Cyberpunk 2077 folder (the folder that contains `bin`, `archive` and `r6`). Allow folders to merge. If Windows asks about files with the same names, choose Replace: it is always safe.
 
 1. **Scripts**: from Nexus Mods, with Vortex or by hand.
-2. **Runtime**: https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.2/AI-NPC-Cyberpunk-Mod-Runtime-0.2.2.zip (the mod's Hugging Face page, 0.2.2 folder). Use the same version number as the Scripts.
+2. **Runtime**: https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.3/AI-NPC-Cyberpunk-Mod-Runtime-0.2.3.zip (the mod's Hugging Face page, 0.2.3 folder). Use the same version number as the Scripts.
 
 The optional packs are on the same Hugging Face page, https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs, in a folder per version. Each pack is one zip file, so there is nothing to join, and each works on its own. Use the same version number as the Scripts and Runtime.
 
-3. **OmniVoice pack (optional)**: a higher-quality voice for NVIDIA graphics cards with at least 8 GB of video memory and a current driver. Download https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.2/AI-NPC-Cyberpunk-Mod-OmniPack-0.2.2.zip and extract it after the Runtime. Then choose an OmniVoice option in Settings > Voices.
+3. **OmniVoice pack (optional)**: a higher-quality voice for NVIDIA graphics cards with at least 8 GB of video memory and a current driver. Download https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.3/AI-NPC-Cyberpunk-Mod-OmniPack-0.2.3.zip and extract it after the Runtime. Then choose an OmniVoice option in Settings > Voices.
 
-4. **Local AI packs (optional)**: let the characters answer with an AI model that runs on your own graphics card, with no account and no internet connection. There are two, and you can install neither, one or both: **Local AI standard** (Gemma 4 E4B, about 5.3 GB, needs about 6 GB of free video memory) for the best replies, and **Local AI lite** (Bonsai 2 4B, about 1.4 GB, needs about 2 GB of free video memory) for smaller graphics cards. Download https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.2/AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.2.zip and https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.2/AI-NPC-Cyberpunk-Mod-LocalAI-Lite-0.2.2.zip (one or both) and extract each. Each pack includes the engine and the memory model it needs, so one alone is enough. Then choose Local AI in Settings > Conversation provider. See "Local AI" below to pick a combination.
+4. **Local AI packs (optional)**: let the characters answer with an AI model that runs on your own graphics card, with no account and no internet connection. There are two, and you can install neither, one or both: **Local AI standard** (Gemma 4 E4B, about 5.3 GB, needs about 6 GB of free video memory) for the best replies, and **Local AI lite** (Bonsai 2 4B, about 1.4 GB, needs about 2 GB of free video memory) for smaller graphics cards. Download https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.3/AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.3.zip and https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.3/AI-NPC-Cyberpunk-Mod-LocalAI-Lite-0.2.3.zip (one or both) and extract each. Each pack includes the engine and the memory model it needs, so one alone is enough. Then choose Local AI in Settings > Conversation provider. See "Local AI" below to pick a combination.
 
 5. **Microphone packs (optional)**: let you speak to the characters in your own language when the Conversation provider is Local AI or a Custom endpoint. You do not need one for English, and not for other languages with Mistral, which understands them by itself. There are two, and you can install neither, one or both: **European languages** (about 0.67 GB) understands Russian, Ukrainian, Polish, Czech, Hungarian, German, French, Spanish, Italian and Portuguese, and **Asian languages** (about 0.24 GB) understands Mandarin Chinese, Japanese and Korean. Download https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.3/AI-NPC-Cyberpunk-Mod-MicPack-European-0.2.3.zip and https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.3/AI-NPC-Cyberpunk-Mod-MicPack-Asian-0.2.3.zip (one or both) and extract each after the Runtime. There is nothing to switch on: when you speak, the mod uses the pack for the language you have been typing or speaking, or the game's language. A pack is loaded only while you use it, on the processor (not the graphics card), and leaves memory about a minute after your last recording. The very first recording after installing can take a minute while Windows checks the new file; later ones start in a few seconds. The words appear once you press the voice shortcut again, not while you speak. The packs are used under their own licences, see the notice inside each zip.
 
