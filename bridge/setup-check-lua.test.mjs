@@ -248,7 +248,7 @@ test('the browser, Local AI and the internet: every state has its own line and f
   local states = {
     {'ready', 'ok', 'Local AI is ready.'}, {'warming', 'ok', 'Local AI is warming up…'},
     {'not-installed', 'problem', 'No Local AI pack found. Download one from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, or choose another conversation provider.'},
-    {'no-memory', 'problem', 'Not enough graphics memory for Local AI. A cloud provider is used instead.'},
+    {'no-memory', 'problem', 'Not enough free graphics memory to start Local AI. Try a smaller model in Settings.'},
     {'mature-off', 'problem', 'Only Mature models found. Turn on Mature content to use them.'},
     {'no-gpu', 'problem', 'Local AI found no graphics card it can use. It needs an NVIDIA or AMD card with a current driver. Update the driver, or choose another conversation provider.'},
     {'start-failed', 'problem', 'Local AI could not start. Generate a report below and send it, or choose another conversation provider.'},
