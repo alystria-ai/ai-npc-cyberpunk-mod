@@ -1859,12 +1859,12 @@
   "characters": [
     {
       "key": "8ug8ear",
-      "words": 625,
+      "words": 627,
       "speakingStyleWords": 180,
       "sampleDialogueWords": 192,
       "voice": "Julia (Expressive Young-Adult American Female)",
       "sources": 2,
-      "researchRevision": "e0c45c45d2149e457cd1c66441e1be5531a926e0f003fecab75257f3aaa38df9"
+      "researchRevision": "f3a453934f77ecb7bd69e03df8de42d5ca12a788c675ffd22c7355556dd5509f"
     },
     {
       "key": "aaron",
@@ -1877,21 +1877,21 @@
     },
     {
       "key": "adam-smasher",
-      "words": 706,
+      "words": 716,
       "speakingStyleWords": 170,
       "sampleDialogueWords": 117,
       "voice": "John (Deep Calm Middle-Aged American Male)",
       "sources": 10,
-      "researchRevision": "0d87a1e0b82335998f0c73f4e579417aaf2873195ab3dc2d649f62afcf7fdb1b"
+      "researchRevision": "c7a4c148de55fc12d6749ee572245f9a1a480ac816a07e15b2d55faedc464c09"
     },
     {
       "key": "alan-noel",
-      "words": 717,
+      "words": 724,
       "speakingStyleWords": 137,
       "sampleDialogueWords": 119,
       "voice": "Harry (Deep Middle-Aged British Male)",
       "sources": 4,
-      "researchRevision": "7de49d19c06b02d6725c01a224b28cafd03812f71eee91ec1b58555422f50395"
+      "researchRevision": "6bed298549d880a45182dc002d1f4990c321c762ca0ddf25a144305d75ee2524"
     },
     {
       "key": "alex",
@@ -1922,12 +1922,12 @@
     },
     {
       "key": "arthur-jenkins",
-      "words": 572,
+      "words": 581,
       "speakingStyleWords": 175,
       "sampleDialogueWords": 151,
       "voice": "Mark (Bold Middle-Aged American Male)",
       "sources": 5,
-      "researchRevision": "b032f8c5f3a6567929b9cc9d16b0774a779204ccd71c6fb8cf470887ef898987"
+      "researchRevision": "1d6e3e091d9eb35a2120f5b5b94fa7ecd31b84fa3872a79c0a9d5fad287f14f0"
     },
     {
       "key": "babs-okoye",
@@ -1945,7 +1945,7 @@
       "sampleDialogueWords": 148,
       "voice": "Ethan (Calm Young-Adult American Male)",
       "sources": 4,
-      "researchRevision": "dda0b05f3f9f584bab88f3dec7ee9cf2bec25c6900b34a24a6842f3a63cf8800"
+      "researchRevision": "629044f73a6a71b39cf56740c03d2001ab2cf12cf13a55f1b29dabf1e318f4e3"
     },
     {
       "key": "blue-moon",
@@ -2030,12 +2030,12 @@
     },
     {
       "key": "dakota-smith",
-      "words": 914,
+      "words": 925,
       "speakingStyleWords": 149,
       "sampleDialogueWords": 205,
       "voice": "Sarah (Authoritative Middle-Aged American Female)",
       "sources": 18,
-      "researchRevision": "1d071ee1e0325df4ee788ec1e3e5cc83277a7ee82a61fed3cc256cc029e3893a"
+      "researchRevision": "82432324cfd65f93d13a3a0b5711e70e5c13f9ea67e5801b191942c480f15dd9"
     },
     {
       "key": "dennis-cranmer",
@@ -2786,12 +2786,12 @@
     },
     {
       "key": "anders-hellman",
-      "words": 816,
+      "words": 831,
       "speakingStyleWords": 211,
       "sampleDialogueWords": 186,
       "voice": "Oliver (Husky Middle-Aged British Male)",
       "sources": 7,
-      "researchRevision": "158b90173f2bc99a3bb698531afac37ea3162ac130e40b596f7c27d23a0ac282"
+      "researchRevision": "e71f453b582f2a4b1f670c843e1e223c981f49aaf45c7df42a6939f47af21c96"
     },
     {
       "key": "joshua-stephenson",
