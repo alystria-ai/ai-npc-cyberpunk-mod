@@ -97,7 +97,7 @@ Only characters the mod spawns join your party. Story characters you meet in the
 | You need | Details |
 |---|---|
 | Game | Cyberpunk 2077 version 2.31 on Windows 10 or 11 (64-bit). The mod was tested on 2.31 only. |
-| Other mods | Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and [Mod Configuration Menu](https://www.nexusmods.com/cyberpunk2077/mods/31640) 0.10.5 or newer, all from Nexus Mods. [Native Settings UI](https://www.nexusmods.com/cyberpunk2077/mods/3518) works in its place, if you prefer it. RED4ext starts the mod's background service with the game. |
+| Other mods | Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware, and either [Mod Configuration Menu](https://www.nexusmods.com/cyberpunk2077/mods/31640) 0.10.5 or newer or [Native Settings UI](https://www.nexusmods.com/cyberpunk2077/mods/3518), all from Nexus Mods. One of the two is enough; with both, the manager uses Mod Configuration Menu. RED4ext starts the mod's background service with the game. |
 | Disk space | About 3 GB for the main mod. The optional packs add more (see [Install](#install)). |
 | Internet | Needed while you talk with Convai, Mistral, a cloud Custom endpoint or the Voxtral voice. Not needed for Local AI, or a Custom server on your own PC, with a local voice. |
 | Graphics card | Not needed for the default setup (Convai or Mistral text, Pocket or Voxtral voice). Only OmniVoice (about 2 GB of video memory) and Local AI (lite about 1.8 GB, standard about 3.1 GB) use it; see [Smooth frames, fast replies](#smooth-frames-fast-replies). |
