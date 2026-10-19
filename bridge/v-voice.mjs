@@ -21,7 +21,9 @@
 //     and nothing in the game's single pending-request machinery changes.
 //   - The companion's reply is ready when its first audio exists. If V's line is audible by then, the companion's audio waits (it
 //     is buffered, silent and unpublished: ConvaiContinuousSpeech `hold`) until V has finished, so the two never overlap. If V's
-//     line is not yet audible, it is dropped; the reply never waits for synthesis.
+//     line is not yet audible, the reply waits for its first audio for at most V_GRACE_MS (a short, fixed grace, the only wait on
+//     V's synthesis); after that V is dropped and the reply goes on. Live 2026-10-19: V's first audio came 40 ms after the reply's
+//     and the line was lost for that.
 //   - A worker the companion's voice shares with V (the Pocket voice speaking both) works one job at a time. A V line still waiting for
 //     its first audio when the companion's own text-to-speech request goes out is stopped, so it never stands in front of the reply's
 //     voice. (A line that is already audible keeps going: the companion cannot be heard before it ends anyway.) A V line on its own
@@ -46,6 +48,23 @@ export const V_VOICE_KEYS = Object.freeze({male: 'v-male', female: 'v-female'});
  */
 const requestedHandoff = Number(process.env.CYBERPUNK_CONVAI_V_HANDOFF_MS);
 export const V_HANDOFF_LEAD_MS = Number.isFinite(requestedHandoff) && requestedHandoff >= 0 && requestedHandoff <= 2000 ? requestedHandoff : 300;
+/**
+ * How long a companion reply that is ready waits for V's first audio before V's line is dropped (docs/V_VOICE.md, "The grace"). It is the
+ * only wait on V's synthesis. 600 ms is the renderer's own start buffer (400 ms) plus about one Pocket chunk: it covers a line whose
+ * synthesis is nearly done when the reply is (live 2026-10-19: 40 ms late), while a voice that is seconds away (a cold one: 2.8 s) is not
+ * waited for. CYBERPUNK_CONVAI_V_GRACE_MS sets it (0: V is dropped the moment the reply is ready, as before; at most 2000).
+ */
+const requestedGrace = Number(process.env.CYBERPUNK_CONVAI_V_GRACE_MS);
+export const V_GRACE_MS = Number.isFinite(requestedGrace) && requestedGrace >= 0 && requestedGrace <= 2000 ? requestedGrace : 600;
+/**
+ * The most a rescued late line may add to the reply: the wait for its first audio plus the line itself (it no longer overlaps the model's
+ * wait, so the reply follows V's end). A line whose estimated length (V_WORDS_PER_SECOND, plus the 160 ms lead-in and 320 ms tail of
+ * bridge/pcm-edges.mjs) would push that past this is dropped at once, or waited for only as long as the budget allows: a long line that
+ * missed the reply is not worth seconds of silence before the companion speaks. A line that is audible in time is not affected.
+ */
+export const V_RESCUE_BUDGET_MS = 4000;
+export const V_WORDS_PER_SECOND = 2.8;
+const V_EDGES_MS = 480;
 export const V_MANIFEST = 'v-voice.json';
 /** The longest line V speaks; a longer one is cut at the last sentence or word that fits. */
 export const V_MAX_CHARS = 240;
@@ -132,9 +151,12 @@ export function vLineText(text, maxChars = V_MAX_CHARS) {
  */
 export class VLine {
   constructor({input, key, text, plan, volume, play, stream, render, local = true, clock = new TurnClock(), signal, log = () => {},
-    after, edges, token = 'v-' + randomBytes(8).toString('hex'), onSettled = () => {}, onAudible = () => {}, now = () => performance.now()}) {
+    after, edges, token = 'v-' + randomBytes(8).toString('hex'), onSettled = () => {}, onAudible = () => {}, onGrace = () => {},
+    graceMs = V_GRACE_MS, rescueMs = V_RESCUE_BUDGET_MS, now = () => performance.now()}) {
     Object.assign(this, {input, key, text, plan, volume, playHost: play, streamVoice: stream, renderVoice: render, local, clock, log,
-      after, edges, token, onSettled, onAudible, now});
+      after, edges, token, onSettled, onAudible, onGrace, graceMs, rescueMs, now});
+    // The grace (V_GRACE_MS): started once, by the first time the reply asks while V is not audible yet.
+    this.graceTimer = null; this.graceStarted = false; this.graceAt = 0; this.waitedMs = 0;
     this.state = 'synth';
     // How much of the line is left to be heard, from the renderer's last clock (Infinity until its whole audio is known).
     this.remainingMs = Infinity; this.remainingAt = 0; this.nearListeners = []; this.nearSignalled = false; this.nearReached = false;
@@ -151,18 +173,42 @@ export class VLine {
   }
 
   get blocking() { return this.state === 'playing'; }
+  /** The reply is ready, V is not audible yet and the grace is running: the reply waits for V's first audio (never longer than graceMs). */
+  get waiting() { return this.state === 'synth' && this.graceTimer !== null; }
   get settled() { return this.state === 'done' || this.state === 'dropped'; }
 
   /** Calls `fn` once when the line stops being audible or pending (at once if it already has). */
   whenClear(fn) { this.clear.then(fn, () => {}); }
 
   /**
-   * The companion's audio is ready: may it start? True while V is audible (the audio waits). A line that is not audible yet is
-   * dropped here, so the reply never waits for V's synthesis. Safe to call on every poll.
+   * The companion's audio is ready: may it start? True while V is audible (the audio waits), and for the grace (graceMs, counted from
+   * the first ask) while V's first audio is still being made. A line that is not audible when the grace is over is dropped, so the
+   * reply waits for V's synthesis for no longer than that. Safe to call on every poll.
    */
   holds() {
-    if (this.state === 'synth') this.drop('slower-than-reply');
-    return this.state === 'playing';
+    if (this.state === 'synth') this.startGrace();
+    return this.state === 'playing' || this.waiting;
+  }
+
+  /** The reply asked while V is not audible: start the one grace (or drop at once when it is 0). Later asks change nothing. */
+  startGrace() {
+    if (this.state !== 'synth' || this.graceStarted) return;
+    this.graceStarted = true;
+    // The wait is what the budget leaves after the line's own length; no room (a long line) is no wait.
+    const lineMs = this.text.split(/\s+/).filter(Boolean).length / V_WORDS_PER_SECOND * 1000 + V_EDGES_MS;
+    const wait = Math.min(this.graceMs, this.rescueMs - lineMs);
+    if (!(wait >= 50)) { this.drop('slower-than-reply'); return; }
+    this.graceAt = this.now();
+    this.clock.mark('graceStart');
+    try { this.onGrace(); } catch { /* a report never affects speech */ }
+    this.graceTimer = setTimeout(() => { this.endGrace(); this.drop('slower-than-reply'); }, wait);
+    this.graceTimer.unref?.();
+  }
+
+  endGrace() {
+    if (this.graceTimer === null) return;
+    clearTimeout(this.graceTimer); this.graceTimer = null;
+    this.waitedMs = Math.round(this.now() - this.graceAt);
   }
 
   /**
@@ -183,12 +229,12 @@ export class VLine {
    * last moments. Safe to call on every poll.
    */
   holdsPublish(leadMs = V_HANDOFF_LEAD_MS) {
-    if (this.state === 'synth') this.drop('slower-than-reply');
+    if (this.state === 'synth') this.startGrace();
     return this.holdsPublishPeek(leadMs);
   }
 
   /** holdsPublish() without its side effect. */
-  holdsPublishPeek(leadMs = V_HANDOFF_LEAD_MS) { return this.state === 'playing' && !this.nearEnd(leadMs); }
+  holdsPublishPeek(leadMs = V_HANDOFF_LEAD_MS) { return this.waiting || (this.state === 'playing' && !this.nearEnd(leadMs)); }
 
   /** Calls `fn` once when V's line comes within the hand-off lead of its end, or stops being audible or pending (at once if it has). */
   whenNearEnd(fn) {
@@ -218,6 +264,7 @@ export class VLine {
 
   drop(reason) {
     if (this.settled) return;
+    this.endGrace();
     this.state = 'dropped'; this.reason = reason;
     this.clock.mark('dropped');
     this.controller.abort();
@@ -233,12 +280,13 @@ export class VLine {
   summary() {
     const snapshot = this.clock.snapshot();
     return {result: this.state === 'done' ? 'played' : this.state === 'dropped' ? 'dropped' : this.state,
-      ...(this.reason ? {reason: this.reason} : {}), engine: this.plan.helper ? 'pocket-helper' : this.plan.engine, voice: this.key, chars: this.text.length,
+      ...(this.reason ? {reason: this.reason} : {}), ...(this.graceStarted ? {waitedMs: this.waitedMs} : {}), engine: this.plan.helper ? 'pocket-helper' : this.plan.engine, voice: this.key, chars: this.text.length,
       marks: snapshot.marks, totalMs: snapshot.totalMs};
   }
 
   onFrame(snapshot) {
     if (this.state === 'synth' && snapshot?.receivedFrames > 0) {
+      this.endGrace();
       this.state = 'playing';
       this.clock.mark('audible');
       try { this.onAudible(); } catch { /* a report never affects speech */ }
@@ -318,14 +366,21 @@ export class VVoice {
    *          whether it is the one in charge for this key, `ready` whether it is loaded.
    * cloud    {problem(key), stream(key, text, options), warm(key)} or null: the Voxtral cloud voice. `problem` is null when it can speak
    *          V's line now, else a short reason (no key, no clip, a limit cooling down); `warm` prepares V's reference clip.
+   * remember {gender, save(gender)} or null: V's gender kept between sessions (the bridge keeps it in the state folder). It lets the
+   *          voice that will speak be prepared before the first typed line of a session, when the game has not said yet who V is.
+   * graceMs  how long a ready reply waits for V's first audio (V_GRACE_MS)
    */
-  constructor({voices = {}, planFor, ready, stream, play, prepare, warm, isLocal = () => true, helper = null, cloud = null, log = () => {}, report = () => {}} = {}) {
-    Object.assign(this, {voices, planFor, ready, stream, play, prepare, warm, isLocal, helper, cloud, log, report});
+  constructor({voices = {}, planFor, ready, stream, play, prepare, warm, isLocal = () => true, helper = null, cloud = null, log = () => {}, report = () => {},
+    remember = null, graceMs = V_GRACE_MS} = {}) {
+    Object.assign(this, {voices, planFor, ready, stream, play, prepare, warm, isLocal, helper, cloud, log, report, remember, graceMs});
     this.enabled = false;
     this.engine = 'pocket';
     this.lastGender = null;
+    try { const known = remember?.gender; if (GENDERS.includes(known)) this.lastGender = known; } catch { /* a missing memory is just a first session */ }
     this.previous = null;
     this.logged = new Set();
+    // What happened to V's lines this session (the support report reads the log): counts only, no text.
+    this.tally = {played: 0, dropped: 0, reasons: {}, skipped: {}};
   }
 
   /**
@@ -350,7 +405,14 @@ export class VVoice {
    */
   noteGender(input) {
     const gender = vGenderOf(input?.turnContext);
-    if (gender) this.lastGender = gender;
+    if (gender) this.know(gender);
+  }
+
+  /** V's gender is known (from a turn): kept for the next session too, written only when it changed. */
+  know(gender) {
+    if (this.lastGender === gender) return;
+    this.lastGender = gender;
+    try { this.remember?.save?.(gender); } catch { /* a memory that cannot be written costs one cold line next session */ }
   }
 
   get available() { return GENDERS.some(gender => this.voices[gender]); }
@@ -396,7 +458,7 @@ export class VVoice {
         this.once('gender:' + gender, `V's voice skipped: ${gender ? `no ${gender} clip` : "V's gender is not known for this turn"}`);
         return null;
       }
-      this.lastGender = gender;
+      this.know(gender);
       const text = vLineText(input.text);
       if (!text) return null;
       const plan = this.planFor(input, voice.key);
@@ -404,30 +466,31 @@ export class VVoice {
       // Both engines speak English here (Pocket has no other language, the Mistral cloud voice is English only in this mod).
       if (plan.language && plan.language !== 'en') {
         this.once('language:' + plan.engine, `V's voice skipped: the ${plan.engine === 'voxtral' ? 'Voxtral' : 'Pocket'} voice speaks English only`);
-        return null;
+        return this.skip('not-english');
       }
       const volume = input.turnContext?.dialogueVolume;
-      if (typeof volume !== 'number' || !Number.isFinite(volume)) { this.once('volume', "V's voice skipped: the game's dialogue volume is not known"); return null; }
+      if (typeof volume !== 'number' || !Number.isFinite(volume)) { this.once('volume', "V's voice skipped: the game's dialogue volume is not known"); return this.skip('volume-unknown'); }
       if (volume <= 0.001) return null;
       let route;
       if (plan.engine === 'voxtral') {
         // The cloud voice shares no worker with anyone: nothing stops it, it is simply dropped if it is not audible when the reply is.
         const problem = this.cloud ? this.cloud.problem(voice.key) : 'not available';
-        if (problem !== null) { this.once('cloud:' + problem, `V's voice skipped: the Voxtral voice cannot speak it now (${problem})`); return null; }
+        if (problem !== null) { this.once('cloud:' + problem, `V's voice skipped: the Voxtral voice cannot speak it now (${problem})`); return this.skip('cloud-unavailable'); }
         route = {plan: {engine: 'voxtral', language: 'en'}, stream: (key, spoken, options) => this.cloud.stream(key, spoken, options), local: false};
       } else if (this.helper?.speaks(voice.key)) {
         // V's own Pocket worker (the companions use OmniVoice, a cloud voice or the Convai voice). Still loading, or failed: V is skipped,
         // the reply never waits for it. Asking also starts a due load.
-        if (!this.helper.ready(voice.key)) { this.log("V's line skipped: the Pocket voice for V is not loaded yet"); return null; }
+        if (!this.helper.ready(voice.key)) { this.log("V's line skipped: the Pocket voice for V is not loaded yet"); return this.skip('voice-not-loaded'); }
         route = {plan: {engine: 'pocket', helper: true, language: 'en'}, stream: (key, spoken, options) => this.helper.stream(key, spoken, options), local: false};
       } else {
         // The companions' Pocket worker speaks V too: one job at a time, so an unfinished V line steps aside for the reply's voice.
-        if (!this.ready(voice.key)) { this.once('ready:' + voice.key, `V's voice skipped: the Pocket voice has no ${voice.key} voice yet`); return null; }
+        if (!this.ready(voice.key)) { this.once('ready:' + voice.key, `V's voice skipped: the Pocket voice has no ${voice.key} voice yet`); return this.skip('voice-not-ready'); }
         route = {plan: {engine: 'pocket', language: 'en'}, stream: this.stream, local: this.isLocal()};
       }
       const line = new VLine({input, key: voice.key, text, plan: route.plan, volume: Math.min(1, volume), signal, log: this.log,
         play: (config, producer, options) => this.play(config, producer, options), stream: route.stream, local: route.local, after: this.previous,
-        onSettled: summary => { this.report(input, summary); }, onAudible: () => clock?.mark('vAudible')});
+        graceMs: this.graceMs, onSettled: summary => { this.count(summary); this.report(input, summary); },
+        onAudible: () => clock?.mark('vAudible'), onGrace: () => clock?.mark('vGrace')});
       this.previous = line.finished;
       line.whenClear(() => { clock?.mark(line.state === 'done' ? 'vEnded' : 'vDropped'); });
       // The companion's own voice request marks 'ttsSent' on the turn's clock.
@@ -440,28 +503,71 @@ export class VVoice {
   }
 
   /**
-   * The composer opened: warm the renderer page and the voice that was last used, so the first typed line is not the slow one. For the
-   * Voxtral voice that means V's reference clip is read and encoded now (cached in memory and on disk), not inside the first line.
+   * One line settled: count it, and write the running totals to the log when it was dropped (and for the first line of the session), so a
+   * support report shows how often V was heard. The last such line in the log is the current total.
    */
-  warmUp({signal} = {}) {
+  /** A typed line that would have had a V line but could not: counted by reason; the first of each reason also writes the totals. */
+  skip(reason) {
+    const first = !this.tally.skipped[reason];
+    this.tally.skipped[reason] = (this.tally.skipped[reason] ?? 0) + 1;
+    if (first) this.logTally();
+    return null;
+  }
+
+  logTally() {
+    const list = counts => Object.entries(counts).map(([reason, count]) => `${reason}=${count}`).join(' ');
+    const reasons = list(this.tally.reasons), skipped = list(this.tally.skipped);
+    this.log(`this session: ${this.tally.played} typed line(s) spoken, ${this.tally.dropped} not heard${reasons ? ` (${reasons})` : ''}`
+      + `${skipped ? `, ${Object.values(this.tally.skipped).reduce((sum, count) => sum + count, 0)} not started (${skipped})` : ''}`);
+  }
+
+  count(summary) {
+    const played = summary.result === 'played', dropped = summary.result === 'dropped';
+    if (!played && !dropped) return;
+    const first = this.tally.played + this.tally.dropped === 0;
+    if (played) this.tally.played++;
+    else { this.tally.dropped++; const reason = summary.reason ?? 'unknown'; this.tally.reasons[reason] = (this.tally.reasons[reason] ?? 0) + 1; }
+    if (dropped || first) this.logTally();
+  }
+
+  /**
+   * The voice keys to prepare ahead of a line, in order: the remembered or last-seen V's, else (a first session, nothing known) both, male first.
+   * A key is only worth preparing where something can speak it.
+   */
+  preparationKeys() {
+    const known = this.lastGender && this.voices[this.lastGender] ? [this.voices[this.lastGender].key]
+      : GENDERS.filter(name => this.voices[name]).map(name => this.voices[name].key);
+    return known;
+  }
+
+  /**
+   * The composer opened (or V's own Pocket worker finished loading): warm the renderer page and prepare the voice V will speak with, so
+   * the first typed line is not the slow one. For the Voxtral voice that means V's reference clip is read and encoded now (cached in
+   * memory and on disk), not inside the first line. For Pocket it is the voice's clone (the reference encoded once, about 2 s on a slow
+   * CPU); with V's gender known (a line this session, or remembered from an earlier one) that is one voice, else both, one after the
+   * other, and the second is skipped once a line says which V it is. Work happens in the background and only here, never per frame.
+   */
+  warmUp({signal, page = true} = {}) {
     if (!this.enabled || !this.available) return;
-    const keys = GENDERS.filter(name => this.voices[name]).map(name => this.voices[name].key);
+    const keys = this.preparationKeys();
     // An engine that cannot speak right now (no key, no worker) warms and prepares nothing.
     if (!keys.some(key => this.speakable(key))) return;
-    Promise.resolve().then(() => this.warm?.({signal})).catch(() => {});
-    const gender = this.lastGender && this.voices[this.lastGender] ? this.lastGender : GENDERS.find(name => this.voices[name]);
+    if (page) Promise.resolve().then(() => this.warm?.({signal})).catch(() => {});
     if (this.engine === 'voxtral') {
-      // The clip is small and cached, so with no line yet both are prepared (the gender is not known before the first typed line).
-      const wanted = this.lastGender && this.voices[this.lastGender] ? [this.voices[this.lastGender].key] : keys;
-      for (const key of wanted) { try { this.cloud?.warm?.(key); } catch { /* a warm-up never fails a turn */ } }
+      for (const key of keys) { try { this.cloud?.warm?.(key); } catch { /* a warm-up never fails a turn */ } }
       return;
     }
-    // With one clip, or after a first line, the voice to prepare is known; with two clips and no line yet it is not worth guessing.
-    if (gender && (this.lastGender || keys.length === 1)) {
-      const key = this.voices[gender].key;
+    void this.prepareVoices(keys, signal);
+  }
+
+  async prepareVoices(keys, signal) {
+    for (const key of keys) {
+      // A line (or a game report) has since said which V is playing: the other voice is not needed.
+      if (this.lastGender && this.voices[this.lastGender]?.key !== key) continue;
+      if (signal?.aborted) return;
       // V's own Pocket worker prepares it when it is the one in charge; otherwise the companions' Pocket worker does.
       const prepare = this.helper?.speaks(key) ? this.helper.prepare : this.prepare;
-      Promise.resolve().then(() => prepare?.(key, {signal})).catch(() => {});
+      try { await prepare?.(key, {signal}); } catch { /* a warm-up never fails a turn */ }
     }
   }
 }
