@@ -98,7 +98,7 @@ export const nativeSettingsFake = String.raw`
     container.children.offState = node({body = body()})
     container.children.onState = node({body = body()})
     local root = node({layout = node({container = container})})
-    function controller:GetRootWidget() return root end
+    function controller:GetRootWidget() if ns.brokenRoot then error('no root widget') end return root end
     controller.offStateBody = {node = container.children.offState.children.body}
     controller.onStateBody = {node = container.children.onState.children.body}
     ns.nsuiHideOnState(container.children.onState.children.body)
