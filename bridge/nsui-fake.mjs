@@ -105,6 +105,10 @@ export const nativeSettingsFake = String.raw`
     local function body() return node({button = node(), buttonBorder = node(), txtValue = node()}) end
     container.children.offState = node({body = body()})
     container.children.onState = node({body = body()})
+    -- The frame images of the button, under the container itself (bk is the rectangle behind them, already invisible).
+    container.children.bk_fill = node(); container.children.bk_fill.name = 'bk_fill'
+    container.children.bk_border = node(); container.children.bk_border.name = 'bk_border'
+    container.children.bk = node(); container.children.bk.visible = false; container.children.bk.name = 'bk'
     local root = node({layout = node({container = container})})
     function controller:GetRootWidget() if ns.brokenRoot then error('no root widget') end return root end
     controller.offStateBody = {node = container.children.offState.children.body}
@@ -126,6 +130,8 @@ export const nativeSettingsFake = String.raw`
         buttonBorder = body:GetWidgetByPath(BuildWidgetPath({'buttonBorder'})).visible,
         txtValue = body:GetWidgetByPath(BuildWidgetPath({'txtValue'})).visible}
     end
+    result.bkFill = container:GetWidgetByPath(BuildWidgetPath({'bk_fill'})).visible
+    result.bkBorder = container:GetWidgetByPath(BuildWidgetPath({'bk_border'})).visible
     return result
   end
   local function live(tabPath) return ns.screen ~= nil and ns.currentTab == tabPath end
