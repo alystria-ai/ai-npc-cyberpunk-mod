@@ -335,13 +335,22 @@ test('a rename that fails with EPERM twice then succeeds replaces the output and
 test('the default backoff outlasts a short lock and stays under about 400 ms in total', async t => {
   const {directory, output} = await fixture(t);
   let attempts = 0;
+  // The total is the sum of the delays the default backoff asks for, read from the timers it sets (they still run for real: the elapsed
+  // time keeps its lower bound). An upper bound on the elapsed wall time would only measure how busy the machine is.
+  const delays = [], realSetTimeout = globalThis.setTimeout;
+  globalThis.setTimeout = (callback, ms, ...rest) => { delays.push(ms); return realSetTimeout(callback, ms, ...rest); };
   const started = Date.now();
-  await assert.rejects(atomicFile(output, 'stale', {
-    files: {rename: () => { attempts++; throw failure('EBUSY'); }},
-  }), {code: 'EBUSY'});
+  try {
+    await assert.rejects(atomicFile(output, 'stale', {
+      files: {rename: () => { attempts++; throw failure('EBUSY'); }},
+    }), {code: 'EBUSY'});
+  } finally { globalThis.setTimeout = realSetTimeout; }
   const elapsed = Date.now() - started;
   assert.equal(attempts, 6);
-  assert.ok(elapsed >= 250 && elapsed < 1500, `backoff took ${elapsed} ms`);
+  assert.deepEqual(delays, [10, 20, 40, 80, 150]);
+  const requested = delays.reduce((sum, ms) => sum + ms, 0);
+  assert.ok(requested >= 250 && requested < 400, `backoff asks for ${requested} ms`);
+  assert.ok(elapsed >= 250, `backoff took ${elapsed} ms`);
   await onlyOutput(directory, output, 'original');
 });
 

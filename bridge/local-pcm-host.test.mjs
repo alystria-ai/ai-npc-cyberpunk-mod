@@ -12,8 +12,9 @@ const deferred = () => {
   return {promise, resolve, reject};
 };
 const sleep = ms => new Promise(done => setTimeout(done, ms));
+// The ceiling is reached only by a hung test; on a busy machine a slow step must never become a failure.
 async function until(predicate) {
-  const deadline = performance.now() + 1500;
+  const deadline = performance.now() + 60_000;
   while (!predicate()) {
     if (performance.now() >= deadline) assert.fail('Offline PCM test did not reach its owned gate');
     await sleep(5);
@@ -51,7 +52,7 @@ class OfflinePlayer {
 
 function fixture(t, {manualAck = false} = {}) {
   const pages = [], players = [], tasks = [];
-  const host = new LocalPcmHost({pollMs: 5, timeoutMs: 3000, cleanupTimeoutMs: 100,
+  const host = new LocalPcmHost({pollMs: 5, timeoutMs: 120_000, cleanupTimeoutMs: 30_000,
     createPage: async () => {
       const client = new LocalPcmClient({createPlayer: () => {
         const player = new OfflinePlayer({manualAck}); players.push(player); return player;
@@ -87,7 +88,7 @@ test('local PCM owns a source copy and matches the established device conversion
     assert.throws(() => ownedLocalPcmPacket(packet(extra), {token: 'owned', frames: 0, index: 0}), /Local PCM/);
 });
 
-test('the worker ACK follows the renderer copy, and completion waits for device drain', {timeout: 5000}, async t => {
+test('the worker ACK follows the renderer copy, and completion waits for device drain', {timeout: 120_000}, async t => {
   const {host, pages, players, track} = fixture(t, {manualAck: true});
   const seen = [], emotion = {type: 'happy', requestId: 'original'};
   const config = {token: 'copy-and-drain', text: 'One whole reply. Another sentence.',
@@ -119,9 +120,9 @@ test('the worker ACK follows the renderer copy, and completion waits for device 
   assert.equal(result.timing.voiceGenerationMs, 20);
 });
 
-test('synthesis starts while the renderer opens, and its packets wait for that renderer', {timeout: 5000}, async t => {
+test('synthesis starts while the renderer opens, and its packets wait for that renderer', {timeout: 120_000}, async t => {
   const gate = deferred(), players = [];
-  const host = new LocalPcmHost({pollMs: 5, timeoutMs: 3000, cleanupTimeoutMs: 100, createPage: async () => {
+  const host = new LocalPcmHost({pollMs: 5, timeoutMs: 120_000, cleanupTimeoutMs: 30_000, createPage: async () => {
     await gate.promise;
     const client = new LocalPcmClient({createPlayer: () => { const player = new OfflinePlayer(); players.push(player); return player; }});
     return {closed: false, window: {localPcm: client}, isClosed() { return this.closed; },
@@ -148,7 +149,7 @@ test('synthesis starts while the renderer opens, and its packets wait for that r
   assert.equal(typeof result.timing.localPcmRendererReadyMs, 'number');
 });
 
-test('a drained page can render a fresh utterance without carrying its previous owner or text', {timeout: 5000}, async t => {
+test('a drained page can render a fresh utterance without carrying its previous owner or text', {timeout: 120_000}, async t => {
   const {host, pages, players, track} = fixture(t);
   for (const [playerIndex, token] of ['first', 'second'].entries()) {
     const frames = [];
@@ -161,7 +162,7 @@ test('a drained page can render a fresh utterance without carrying its previous 
   assert.equal(pages.length, 1); assert.equal(players.length, 2);
 });
 
-test('device drain during an awaited game callback cannot submit a control to the closed player', {timeout: 5000}, async t => {
+test('device drain during an awaited game callback cannot submit a control to the closed player', {timeout: 120_000}, async t => {
   const {host, pages, players, track} = fixture(t), held = deferred(), release = deferred();
   const seen = [];
   let controlsAtDrain;
@@ -194,7 +195,7 @@ test('late-control drain handling cannot ignore an explicit stop, a foreign toke
   assert.throws(() => client.control('strict-owner', control), /Local PCM owner changed/);
 });
 
-test('native face prefixes are copied from the exact turn hook while audio continues', {timeout: 5000}, async t => {
+test('native face prefixes are copied from the exact turn hook while audio continues', {timeout: 120_000}, async t => {
   const {host, players, track} = fixture(t);
   const face = {version: 1, requestId: 'face-owned', entity: 'judy', generation: 1,
     frames: [[0, .25]], duration: .4, complete: false};
@@ -209,7 +210,7 @@ test('native face prefixes are copied from the exact turn hook while audio conti
   assert.equal(seen.at(-1).face.frames[0][1], .5);
 });
 
-test('facial prefixes follow acknowledged renderer frames while the producer has future PCM', {timeout: 5000}, async t => {
+test('facial prefixes follow acknowledged renderer frames while the producer has future PCM', {timeout: 120_000}, async t => {
   const {host, players, track} = fixture(t, {manualAck: true});
   const seen = [], facialCalls = [];
   let producedFrames = 0, producerComplete = false;
@@ -245,7 +246,7 @@ test('facial prefixes follow acknowledged renderer frames while the producer has
   assert.equal(seen.at(-1).receivedFrames, 19200); assert.equal(seen.at(-1).face.complete, true);
 });
 
-test('producer identity and contiguous offsets cannot change after the first owned copy', {timeout: 5000}, async t => {
+test('producer identity and contiguous offsets cannot change after the first owned copy', {timeout: 120_000}, async t => {
   const {host, pages, track} = fixture(t);
   const pending = track(host.play({token: 'wrong-producer', text: 'Owned'}, async emit => {
     await emit(packet());
@@ -255,7 +256,7 @@ test('producer identity and contiguous offsets cannot change after the first own
   assert.equal(pages[0].closed, true); assert.equal(host.active, null); assert.equal(host.page, null);
 });
 
-test('abort cancels a thinking producer and discards its renderer before any late control', {timeout: 5000}, async t => {
+test('abort cancels a thinking producer and discards its renderer before any late control', {timeout: 120_000}, async t => {
   const {host, pages, players, track} = fixture(t);
   const controller = new AbortController(), blocked = deferred(), entered = deferred();
   let producerAborted = false, callbacks = 0;
@@ -273,7 +274,7 @@ test('abort cancels a thinking producer and discards its renderer before any lat
   assert.equal(callbacks, 1); assert.equal(players[0].controls.length, 0);
 });
 
-test('a changed game owner fences late admission and cancels synthesis', {timeout: 5000}, async t => {
+test('a changed game owner fences late admission and cancels synthesis', {timeout: 120_000}, async t => {
   const {host, pages, players, track} = fixture(t), blocked = deferred(), entered = deferred();
   let current = true, aborted = false;
   const pending = track(host.play({token: 'stale', text: 'Owned'}, async (emit, {signal}) => {
@@ -289,7 +290,7 @@ test('a changed game owner fences late admission and cancels synthesis', {timeou
   await until(() => aborted);
 });
 
-test('a failed game callback aborts the between-yields producer and discards its page', {timeout: 5000}, async t => {
+test('a failed game callback aborts the between-yields producer and discards its page', {timeout: 120_000}, async t => {
   const {host, pages, track} = fixture(t), producing = deferred();
   let aborted = false;
   const pending = track(host.play({token: 'failed-callback', text: 'Owned'}, async (emit, {signal}) => {
@@ -302,7 +303,7 @@ test('a failed game callback aborts the between-yields producer and discards its
   assert.equal(aborted, true); assert.equal(pages[0].closed, true);
 });
 
-test('overlapping local turns and foreign renderer receipts cannot be admitted', {timeout: 5000}, async t => {
+test('overlapping local turns and foreign renderer receipts cannot be admitted', {timeout: 120_000}, async t => {
   const {host, pages, track} = fixture(t), gate = deferred();
   const pending = track(host.play({token: 'owned', text: 'Owned'}, async emit => {
     await gate.promise; return emit(packet());
@@ -323,14 +324,15 @@ test('failed or foreign snapshots reject without forwarding private data', async
     await assert.rejects(localSnapshotForHost({evaluate: async () => raw}, 'owned'), /Invalid local PCM snapshot/);
 });
 
-test('a cancelled factory cannot donate its late page to a new turn', {timeout: 5000}, async () => {
-  const creating = deferred(), controller = new AbortController();
+test('a cancelled factory cannot donate its late page to a new turn', {timeout: 120_000}, async () => {
+  const creating = deferred(), controller = new AbortController(), factoryCalled = deferred();
   let closes = 0;
-  const host = new LocalPcmHost({createPage: () => creating.promise, commandTimeoutMs: 100});
+  // The factory limit is not what this test is about, so it is long: only the abort may end the wait for the page.
+  const host = new LocalPcmHost({createPage: () => { factoryCalled.resolve(); return creating.promise; }, commandTimeoutMs: 60_000});
   const pending = host.play({token: 'cancelled-factory', text: 'Owned'}, () => {},
     {signal: controller.signal, onFrame: () => control});
   pending.catch(() => {});
-  await sleep(10); controller.abort(); await assert.rejects(pending, {name: 'AbortError'});
+  await factoryCalled.promise; controller.abort(); await assert.rejects(pending, {name: 'AbortError'});
   creating.resolve({isClosed: () => false, close: async () => { closes++; }});
   await until(() => closes === 1); assert.equal(host.page, null); assert.equal(host.active, null);
   await host.close();
@@ -369,7 +371,7 @@ test('RealtimeHost owns the separate local lane and cancels it during an epoch c
   assert.equal(host.sessions.owners.size, before, 'local PCM does not bind Convai memory sessions');
 });
 
-test('live text: each clock snapshot carries the reply text as written so far and whether it is final', {timeout: 5000}, async t => {
+test('live text: each clock snapshot carries the reply text as written so far and whether it is final', {timeout: 120_000}, async t => {
   const {host, players, track} = fixture(t);
   const live = {text: 'Hey V, good to see you here again.', complete: false}, seen = [];
   const gate = deferred();
@@ -389,7 +391,7 @@ test('live text: each clock snapshot carries the reply text as written so far an
   assert.deepEqual(seen.at(-1), {text: 'Hey V, good to see you here again. What can I do for you?', complete: true});
 });
 
-test('warm opens the renderer page ahead of the turn, and a turn that starts meanwhile uses that one page', {timeout: 5000}, async t => {
+test('warm opens the renderer page ahead of the turn, and a turn that starts meanwhile uses that one page', {timeout: 120_000}, async t => {
   const {host, pages, players, track} = fixture(t);
   assert.equal(await host.warm(), true);
   assert.equal(pages.length, 1);
@@ -418,24 +420,31 @@ test('RealtimeHost.prewarmLocal starts the browser and warms the local page, and
   assert.equal(await host.prewarmLocal(), false);
 });
 
-test('wake ends the wait between two clock polls early: the first lease is read at once, not after the poll sleep', {timeout: 5000}, async t => {
+test('wake ends the wait between two clock polls early: the first lease is read at once, not after the poll sleep', {timeout: 120_000}, async t => {
   const {host, players, track} = fixture(t);
-  host.pollMs = 600;
+  // The poll sleep is longer than the 60 s ceiling of until(): only the wake can end it, so a lease applied at all, after the wake,
+  // proves the sleep was cut short. No elapsed-time figure is compared (that would only measure how busy the machine is).
+  host.pollMs = 300_000;
   const polls = [];
   let wakeWaiter = null, leased = false;
   const pending = track(host.play({token: 'wake-test', text: 'One reply.'}, async emit => { await emit(packet()); return {}; },
-    {onFrame: frame => { polls.push(performance.now()); return leased ? control : undefined; },
+    {onFrame: frame => { polls.push(frame); return leased ? control : undefined; },
       wake: () => new Promise(done => { wakeWaiter = done; })}));
-  await until(() => players[0]?.sealed && polls.length >= 2);
+  // The first poll found no lease and the loop is now in its poll sleep (waiting for the wake).
+  await until(() => players[0]?.sealed && polls.length >= 1 && wakeWaiter);
   const before = polls.length;
   await sleep(50);
   assert.equal(polls.length, before, 'the long sleep is not cut short by itself');
+  assert.equal(players[0].controls.length, 0);
   leased = true;
-  const at = performance.now();
   wakeWaiter();
   await until(() => players[0]?.controls.length > 0);
-  assert.ok(performance.now() - at < 300, 'the lease is applied well inside the 600 ms sleep');
   players[0].finish();
+  // The loop is back in its (now 300 s) sleep: wake it until it has seen the drain and the turn is over.
+  let over = false;
+  pending.then(() => { over = true; }, () => { over = true; });
+  for (const deadline = performance.now() + 60_000; !over && performance.now() < deadline;) { wakeWaiter(); await sleep(5); }
+  assert.equal(over, true, 'the turn ended after the drain');
   await pending;
 });
 

@@ -197,11 +197,13 @@ test('policy cancellation closes registration without adding memory or touching 
 });
 
 test('ignored Core cancellation and excessive response sizes are bounded before registration',async t=>{
-  // The whole-pump budget must stay well above the request timeout: on a busy machine the
-  // qualification read can take longer than a tight budget and the pump would be cancelled first.
-  const f=await fixture(t,{options:{maxDurationMs:10000,requestTimeoutMs:40}});
-  f.helper.requestOverride=()=>new Promise(()=>{});const started=Date.now();
-  const result=await f.helper.pump();assert.ok(result.reasons.includes('CORE_TIMEOUT'));assert.ok(Date.now()-started<5000);
+  // The whole-pump budget (the largest the worker accepts) must stay far above the request timeout: on a busy machine the
+  // qualification read can take longer than a tight budget and the pump would be cancelled first. The hung request can only be
+  // ended by the 40 ms request limit; if that limit did not apply, the pump would be cancelled by its own budget instead, which
+  // shows as a cancelled pump without CORE_TIMEOUT. So the claim is asserted from the outcome, with no elapsed-time ceiling.
+  const f=await fixture(t,{options:{maxDurationMs:60000,requestTimeoutMs:40}});
+  f.helper.requestOverride=()=>new Promise(()=>{});
+  const result=await f.helper.pump();assert.ok(result.reasons.includes('CORE_TIMEOUT'));assert.notEqual(result.status,'cancelled','the request limit ended it, not the pump budget');
   f.helper.requestOverride=async()=>({data:'x'.repeat(4*1024*1024+1)});
   assert.ok((await f.helper.pump()).reasons.includes('CORE_RESPONSE_TOO_LARGE'));assert.equal(f.hosts.length,0);
 });
