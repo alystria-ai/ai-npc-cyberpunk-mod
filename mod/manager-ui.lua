@@ -1103,8 +1103,11 @@ local function pageSignature(snapshot)
     end
     return table.concat(parts, '\n')
 end
+-- Set by M.update when the game has no world (the main menu, a loading screen): Game.GetPlayer() can still hand back an object there,
+-- and the pages must not offer invitations without a loaded save.
+local noWorld = false
 local function schema()
-    local currentPlayer = player()
+    local currentPlayer = not noWorld and player() or nil
     owner = identity(currentPlayer)
     queue.bind(owner)
     local snapshot, party = manager.snapshot(currentPlayer), queue.list()
@@ -1963,6 +1966,8 @@ end
 -- The per-frame call of init.lua's update, with the screen closed or open: the slow tick (a quarter of a second) and a few
 -- comparisons.
 function M.update(currentPlayer, worldReady)
+    local withoutWorld = currentPlayer == nil and worldReady == false
+    if withoutWorld ~= noWorld then noWorld, refreshQueued = withoutWorld, true end
     local clock = os.clock()
     if worldReady ~= lastWorldReady then lastWorldReady, slowAt = worldReady, 0 end
     if flushDue or clock >= slowAt or slowAt - clock > SLOW_PERIOD * 2 then

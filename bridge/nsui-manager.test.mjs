@@ -592,11 +592,16 @@ test('at the main menu the buttons work: Settings opens, and the pages that need
     assert(not ns.find('Your party is empty'), page .. ': an empty party is not the answer without a save')
     titlePress('Back to Companion Manager')
   end
+  -- Game.GetPlayer() can still hand back an object at the main menu (seen live 2026-10-19): that is not a loaded save.
+  player = {hash = 'menu-object', GetEntityID = function(self) return {hash = self.hash} end}
+  titlePress('Characters to invite')
+  assert(ns.find('Characters and party'), 'a player object at the main menu is not a loaded save')
+  titlePress('Back to Companion Manager')
   -- The same pages with a save loaded have no such row.
   local source = player
   player = {hash = 'player-1', open = true, queue = {}, rows = {}, GetEntityID = function(self) return {hash = self.hash} end}
   frames(4)
-  titlePress('Current party')
+  press('Current party')  -- gameplay frames: init.lua passes the player once a save is loaded
   assert(not ns.find('Characters and party') and ns.find('Your party is empty'), shownOutline())
 `));
 
