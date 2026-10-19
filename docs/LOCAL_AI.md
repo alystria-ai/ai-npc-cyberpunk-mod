@@ -517,6 +517,13 @@ the model loaded in 13 s (42 s the first time, shaders included) and left 3.4 GB
   at the lower priority, and the game gets the CPU back for every reply. The embedder, a CPU process, is still lowered at spawn. A refused change leaves the model
   at normal priority and says so. `diagnostics().engine.priority` and the `[local] model ready:` line say which is in force. `promptStallMs` stays long (a reply
   written while the game keeps every core busy is slow at below-normal priority), and the turn budget ends the wait.
+- **A ready model is raised for a turn (2026-10-20, a player's report: 5 to 7 s extra before the first sound, gone after switching windows).** The same starvation
+  hits a below-normal server that is already loaded: its own thread tokenizes, feeds the card and streams the reply, and Windows gives the foreground game
+  longer time slices on top. So `LocalLlmServer.begin()` (a turn's request) calls `proc.raise()` (`LlamaProcess`, back to normal, only if it was lowered) and
+  `end()` lowers it again `priorityHoldMs` (5 s) after the last request ends; a persona warm-up and background work (`begin({background: true})`) leave it
+  below normal. The embedder loads at normal like the chat model, is lowered once it is up and is raised for the milliseconds of a query. Two system calls per
+  turn, nothing per frame. The Pocket worker (`bridge/pocket-voice-worker.py`, `PriorityGate`) and the speech recogniser (`bridge/local-stt-worker.py`,
+  `PriorityGate`) do the same to themselves, because the python.exe the bridge starts can be a launcher whose child is the real worker.
 - **Pack files (the letter's second part: a model row with one "uncensored" model, no warm-up notice with Mature content off).** With both packs in place the
   list has both models (tested). With the Local AI pack's marker (`manifest.standard.json`) or its model file missing it has one, the Mature model, and with
   Mature content off Local AI then cannot start (`mature-off`): no warm-up and no notice, and the turn goes to the fallback provider. A model file with no marker

@@ -270,8 +270,10 @@ export class RealtimeHost {
       // Edge, else an installed Chrome; CYBERPUNK_CONVAI_BROWSER (a developer's override) names an executable instead.
       browser = await launchSystemBrowser(browserChoice => this.launchBrowser({...browserChoice, headless: true,
         ...(this.muteBrowser ? {} : {ignoreDefaultArgs: ['--mute-audio']}),
-        args: ['--autoplay-policy=no-user-gesture-required', '--disable-background-timer-throttling',
-          ...(this.muteBrowser ? ['--mute-audio'] : [])]}),
+        // The hidden pages play the reply (and run the Convai connection) while the game window has the focus: Chromium must not treat them as
+        // background pages (timers throttled, the renderer's priority class lowered, a window it calls occluded paused), or a reply waits.
+        args: ['--autoplay-policy=no-user-gesture-required', '--disable-background-timer-throttling', '--disable-renderer-backgrounding',
+          '--disable-backgrounding-occluded-windows', ...(this.muteBrowser ? ['--mute-audio'] : [])]}),
       {executablePath: this.browserExecutable, log: line => console.error(`[CyberpunkConvai] ${line}`)});
       if (epoch !== this.epoch) throw cancelled('Conversation startup cancelled');
       this.browser = browser; this.server = server;

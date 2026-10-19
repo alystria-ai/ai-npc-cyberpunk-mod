@@ -403,7 +403,7 @@ export class PocketVoice {
         voiceFirstPcmReceivedMs: request.firstReceivedMs, voiceGenerationMs: frame.generationMs,
         voiceRoundTripMs: this.now() - request.started}});
   }
-  command(kind, profile, {signal, onPcm, text, queued = this.now()} = {}) {
+  command(kind, profile, {signal, onPcm, text, queued = this.now(), urgent = false} = {}) {
     throwIfCancelled(signal);
     if (this.closing || this.failure) return Promise.reject(this.failure || cancelled());
     const id = ++this.sequence, started = this.now();
@@ -416,7 +416,8 @@ export class PocketVoice {
       request.timer = this.timer(() => this.cancelRequest(request, Error('Pocket speech timed out')),
         kind === 'prepare' ? POCKET_LIMITS.prepareMs : POCKET_LIMITS.renderMs);
       this.publish(kind === 'prepare' ? 'warming' : 'speaking', {profile});
-      try { this.send({op: kind, id, profile, ...(text !== undefined ? {text} : {}), ...(this.keepPrepared ? {keep: true} : {})}); }
+      // `urgent`: a reply is waiting on this preparation, so the worker runs it at normal priority (warming a voice ahead of time stays below normal).
+      try { this.send({op: kind, id, profile, ...(text !== undefined ? {text} : {}), ...(this.keepPrepared ? {keep: true} : {}), ...(urgent ? {urgent: true} : {})}); }
       catch (error) { this.fail(error); }
       if (signal?.aborted) request.cancel();
     });
@@ -436,12 +437,12 @@ export class PocketVoice {
     if (!this.closing && !this.failure) this.publish('ready');
     if (error) request.reject(error); else request.resolve(result);
   }
-  async ensurePrepared(profile, signal) {
+  async ensurePrepared(profile, signal, {urgent = false} = {}) {
     throwIfCancelled(signal); await abortable(this.start(), signal); throwIfCancelled(signal);
     if (this.closing || this.failure) throw this.failure || cancelled();
     if (!this.hasProfile(profile)) throw Error('This character has no available Pocket voice');
     // The worker revalidates the exact source file before a cache hit as well.
-    const prepared = await this.command('prepare', profile, {signal}); throwIfCancelled(signal);
+    const prepared = await this.command('prepare', profile, {signal, urgent}); throwIfCancelled(signal);
     return prepared;
   }
   prepareProfile(profile, {signal} = {}) {
@@ -458,7 +459,7 @@ export class PocketVoice {
         || typeof onPcm !== 'function') return Promise.reject(Error('Pocket streaming requires valid reply text and a PCM consumer'));
     const queued = this.now();
     const operation = this.tail.then(async () => {
-      await this.ensurePrepared(profile, signal); throwIfCancelled(signal);
+      await this.ensurePrepared(profile, signal, {urgent: true}); throwIfCancelled(signal);
       return this.command('stream', profile, {text, signal, onPcm, queued});
     });
     this.tail = operation.catch(() => {}); return abortable(operation, signal);

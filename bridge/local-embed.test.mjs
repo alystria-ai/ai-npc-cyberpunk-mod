@@ -219,3 +219,16 @@ test('warm() does nothing without the embedding model', async t => {
   assert.equal(await embedder.warm(), false);
   assert.equal(calls.length, 0);
 });
+
+test('the embedding server loads at normal priority, is lowered once it is up, and runs at normal for the milliseconds of a query', async t => {
+  const levels = [];
+  const {embedder} = harness(t, {processOptions: {pollMs: 20, setPriorityImpl: (pid, level) => levels.push(level)}});
+  const {constants} = await import('node:os');
+  const {BELOW_NORMAL: below, NORMAL: normal} = {BELOW_NORMAL: constants.priority.PRIORITY_BELOW_NORMAL, NORMAL: constants.priority.PRIORITY_NORMAL};
+  await embedder.warm();
+  assert.deepEqual(levels, [below], 'a load under a busy game is not left at below normal: it is lowered only when the server is up');
+  await embedder.embed(['one query']);
+  assert.deepEqual(levels, [below, normal, below], 'raised for the query, lowered when none is left');
+  await Promise.all([embedder.embed(['a']), embedder.embed(['b'])]);
+  assert.deepEqual(levels, [below, normal, below, normal, below], 'two queries together: one raise, one lowering after the last');
+});

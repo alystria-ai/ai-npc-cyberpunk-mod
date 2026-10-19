@@ -363,4 +363,22 @@ done = subprocess.run([sys.executable, "-I", "-c", probe, sys.argv[1]], capture_
 check(done.returncode == 0, "utf-8 send: the worker survives non-ASCII text: %s" % done.stderr[-300:])
 check(json.loads(done.stdout.decode("utf-8"))["text"] == "\u041f\u0440\u0438\u0432\u0435\u0442 \u65e5\u672c\u8a9e \ud55c\uad6d\uc5b4",
       "utf-8 send: the text comes back whole")
+# The recording being decoded runs at normal priority and the worker goes back to below normal after the hold; --priority normal changes nothing.
+steps = []
+now = [50.0]
+gate = w.PriorityGate("below", hold=3.0, clock=lambda: now[0], apply=lambda level: steps.append(level) or True)
+check(gate.timeout() is None, "priority: nothing is waited for while nothing is raised")
+gate.active(); now[0] += 1; gate.active(); gate.active()
+check(steps == ["normal"], "priority: a recording raises once: %s" % steps)
+now[0] += 2.9; gate.settle()
+check(steps == ["normal"] and 0.05 <= gate.timeout() <= 0.2, "priority: still held shortly after the last message: %s %s" % (steps, gate.timeout()))
+now[0] += 0.2; gate.settle()
+check(steps == ["normal", "below"] and gate.timeout() is None, "priority: back to the base level once the hold passed: %s" % steps)
+steps.clear()
+resting = w.PriorityGate("normal", clock=lambda: now[0], apply=lambda level: steps.append(level) or True)
+resting.active(); now[0] += 60; resting.settle()
+check(steps == [], "priority: a worker started at normal is never changed: %s" % steps)
+refused = w.PriorityGate("below", clock=lambda: now[0], apply=lambda level: steps.append(level) or False)
+refused.active(); refused.active(); now[0] += 60; refused.settle()
+check(steps == ["normal", "normal"], "priority: a refused raise is tried again and nothing is lowered: %s" % steps)
 print("ok")

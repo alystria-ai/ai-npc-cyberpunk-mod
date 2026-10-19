@@ -286,3 +286,20 @@ test('a worker that keeps moving through its phases is not restarted, and a slow
   assert.equal(h.children[0].kills, 0, 'a worker that is ready is never judged by the startup limits');
   h.client.close(); h.children[0].emit('close', 0);
 });
+
+test('a preparation a reply waits on is urgent for the worker (normal priority), a voice warmed ahead of time is not', async () => {
+  const h = harness();
+  const warming = h.client.prepareProfile(profile); await tick();
+  const warm = h.requests.at(-1);
+  assert.equal(warm.op, 'prepare'); assert.equal('urgent' in warm, false, 'warming ahead of a reply stays below normal');
+  h.prepared(h.requests.length - 1); await warming;
+  const controller = new AbortController();
+  const synthesis = h.client.synthesizeStream(profile, 'A reply that is waiting.', {signal: controller.signal, onPcm: () => {}});
+  const rejected = assert.rejects(synthesis, {name: 'AbortError'}); await tick();
+  const prepare = h.requests.at(-1);
+  assert.equal(prepare.op, 'prepare'); assert.equal(prepare.urgent, true, 'the preparation of a reply is urgent');
+  h.prepared(h.requests.length - 1); await tick();
+  const stream = h.requests.at(-1); assert.equal(stream.op, 'stream');
+  controller.abort(); await rejected;
+  h.send({op: 'cancelled', id: stream.id, profile, ...h.profiles()}); await tick(); await h.close();
+});

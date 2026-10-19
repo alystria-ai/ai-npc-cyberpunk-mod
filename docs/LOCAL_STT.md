@@ -72,7 +72,9 @@ On a laptop in Silent power mode all numbers are slower; compare like with like.
 | "Listening", the player pauses (quiet 300 ms after speech) | one extra live-words decode at once, once per pause, at most 6 per recording, never while a decode runs, so the newest words are read before the key is pressed again |
 | Key pressed again | on the Mistral route, if the newest live decode read all the speech and the quiet after it, the reply is requested at once on its words and confirmed (or cancelled and asked again) when the final words are known (`docs/LATENCY_2026-10-14.md` 1.1); final decode if no live decode covered the recording |
 
-The worker runs at below-normal priority with one thread. Nothing runs on the game's side per frame: the Lua side is the existing
+The worker runs at below-normal priority with one thread while it waits, and at normal priority from the start of a recording until 3 s after its last
+message (`PriorityGate` in `local-stt-worker.py`, Windows only; a game that keeps every core busy otherwise starves the decode after the key is let
+go). Nothing runs on the game's side per frame: the Lua side is the existing
 state/words file poll.
 
 ## Audio path

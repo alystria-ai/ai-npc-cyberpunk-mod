@@ -430,7 +430,8 @@ test('packaged client assets preserve the exact route allowlist and loopback Hos
   await host.start();
   assert.deepEqual(launches, [{executablePath: executable, headless: true,
     ignoreDefaultArgs: ['--mute-audio'],
-    args: ['--autoplay-policy=no-user-gesture-required', '--disable-background-timer-throttling']}]);
+    args: ['--autoplay-policy=no-user-gesture-required', '--disable-background-timer-throttling', '--disable-renderer-backgrounding',
+      '--disable-backgrounding-occluded-windows']}]);
   const port = host.server.address().port;
   assert.equal(host.server.address().address, '127.0.0.1');
   for (const [name, contents] of assets) {
@@ -459,7 +460,7 @@ test('game mode keeps the browser audible and test mode launches it muted', asyn
   await muted.host.start();
   assert.equal(Object.hasOwn(muted.launches[0], 'ignoreDefaultArgs'), false);
   assert.deepEqual(muted.launches[0].args, ['--autoplay-policy=no-user-gesture-required',
-    '--disable-background-timer-throttling', '--mute-audio']);
+    '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows', '--mute-audio']);
 });
 
 test('the browser is muted under the Node test runner and by CYBERPUNK_CONVAI_MUTE_BROWSER, audible otherwise', () => {

@@ -336,22 +336,65 @@ def stream_request(model, state, text, commands, send, request_id, key, encode_p
             "generationMs": (now() - started) * 1000}
 
 
+NORMAL_PRIORITY_CLASS = 0x00000020
+BELOW_NORMAL_PRIORITY_CLASS = 0x00004000
+
+
+def set_priority_class(priority_class):
+    """Sets this process's Windows priority class. Best effort; False when it was not set."""
+    try:
+        import ctypes
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+        kernel32.SetPriorityClass.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+        kernel32.SetPriorityClass.restype = ctypes.c_int
+        return bool(kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), priority_class))
+    except Exception:  # noqa: BLE001 - priority is advisory only.
+        return False
+
+
 def lower_priority():
-    """Speech generation runs well ahead of playback (real-time factor about 0.4
-    on four threads), so the game's own threads win any contested core:
-    BelowNormal priority class on Windows, nice +5 elsewhere. Best effort."""
+    """While nothing is being voiced (starting up, preparing voices ahead of a reply, waiting), the game's own
+    threads win any contested core: BelowNormal priority class on Windows, nice +5 elsewhere. Best effort."""
     try:
         if os.name == "nt":
-            import ctypes
-            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-            kernel32.GetCurrentProcess.restype = ctypes.c_void_p
-            kernel32.SetPriorityClass.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
-            kernel32.SetPriorityClass.restype = ctypes.c_int
-            return bool(kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), 0x00004000))
+            return set_priority_class(BELOW_NORMAL_PRIORITY_CLASS)
         os.nice(5)
         return True
     except Exception:  # noqa: BLE001 - priority is advisory only.
         return False
+
+
+def raise_priority():
+    """Normal priority class, for the time a reply is being voiced. Only Windows can go back up (a raised nice
+    value needs privileges elsewhere), so nothing changes there."""
+    return os.name == "nt" and set_priority_class(NORMAL_PRIORITY_CLASS)
+
+
+class PriorityGate:
+    """A reply being voiced is a person waiting: the whole request (preparing the voice, the text, every chunk of audio) runs at
+    normal priority. A game that keeps every core busy otherwise starves a below-normal worker for seconds (Windows gives the
+    foreground game longer time slices on top), which showed as 5 to 7 s before the first sound until the player switched
+    windows. The worker goes back to below normal `hold` seconds after the last request, so it does not flap between the
+    sentences of one reply, and never raises for a request that only prepares a voice ahead of time. Nothing here runs per
+    frame: two system calls per reply."""
+
+    def __init__(self, raise_to=raise_priority, lower_to=lower_priority, hold=3.0, clock=time.monotonic):
+        self.raise_to, self.lower_to, self.hold, self.clock = raise_to, lower_to, hold, clock
+        self.raised = False
+        self.last = 0.0
+
+    def request(self):
+        """A reply's request starts or ends: normal priority now, and the hold starts over."""
+        self.last = self.clock()
+        if not self.raised and self.raise_to():
+            self.raised = True
+
+    def settle(self):
+        """Called while the worker waits for a command: back to below normal once the hold has passed."""
+        if self.raised and self.clock() - self.last >= self.hold:
+            self.lower_to()
+            self.raised = False
 
 
 def main():
@@ -362,6 +405,7 @@ def main():
     if re.fullmatch(r"[a-f0-9]{32}", args.owner) is None:
         raise ValueError("Invalid Pocket worker owner")
     lower_priority()
+    gate = PriorityGate()
     output = sys.stdout
     output_lock = threading.Lock()
 
@@ -453,6 +497,7 @@ def main():
             try:
                 request = commands.queue.get(timeout=.1)
             except queue.Empty:
+                gate.settle()
                 continue
             request_id, key = request["id"], request.get("profile")
             if request["op"] == "voices":
@@ -474,6 +519,9 @@ def main():
                     commands.finish(request_id)
                 continue
             commands.begin(request_id)
+            urgent = request["op"] == "stream" or request.get("urgent") is True
+            if urgent:
+                gate.request()
             synthesis_started = False
             timer = threading.Timer(MAX_AUDIO_SECONDS, commands.stop.set)
             timer.daemon = True
@@ -533,6 +581,8 @@ def main():
             finally:
                 timer.cancel()
                 commands.finish(request_id)
+                if urgent:
+                    gate.request()
         if commands.error:
             raise commands.error
         return 0

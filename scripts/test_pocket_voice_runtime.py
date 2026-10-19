@@ -618,5 +618,51 @@ class Producer(unittest.TestCase):
                     os.close(write_fd)
 
 
+class Priority(unittest.TestCase):
+    """A reply being voiced runs at normal priority; the worker is below normal while it waits."""
+
+    def gate(self, hold=3.0, raises=True):
+        self.now = 100.0
+        self.calls = []
+        def up():
+            self.calls.append('normal')
+            return raises
+        def down():
+            self.calls.append('below')
+            return True
+        return worker.PriorityGate(raise_to=up, lower_to=down, hold=hold, clock=lambda: self.now)
+
+    def test_a_request_raises_once_and_the_hold_lowers_it_after_the_last_one(self):
+        gate = self.gate()
+        gate.request(); self.now += 1.2; gate.request(); gate.request()
+        self.assertEqual(self.calls, ['normal'])
+        self.now += 2.9; gate.settle()
+        self.assertEqual(self.calls, ['normal'], 'still held between the sentences of one reply')
+        self.now += .2; gate.settle()
+        self.assertEqual(self.calls, ['normal', 'below'])
+        gate.settle(); self.assertEqual(self.calls, ['normal', 'below'], 'lowered once')
+        gate.request(); self.assertEqual(self.calls, ['normal', 'below', 'normal'], 'the next reply raises again')
+
+    def test_waiting_with_nothing_raised_changes_nothing(self):
+        gate = self.gate()
+        self.now += 60; gate.settle()
+        self.assertEqual(self.calls, [])
+
+    def test_a_refused_raise_is_retried_and_never_lowers(self):
+        gate = self.gate(raises=False)
+        gate.request(); gate.request(); self.now += 10; gate.settle()
+        self.assertEqual(self.calls, ['normal', 'normal'])
+
+    def test_a_stream_or_an_urgent_prepare_raises_the_worker_and_a_plain_prepare_does_not(self):
+        source = (ROOT / 'bridge/pocket-voice-worker.py').read_text(encoding='utf-8')
+        self.assertIn('urgent = request["op"] == "stream" or request.get("urgent") is True', source)
+        self.assertIn('if urgent:' + chr(10) + ' ' * 16 + 'gate.request()', source)
+        self.assertEqual(source.count('gate.request()'), 2, 'when a reply starts and when it ends')
+        self.assertIn('gate.settle()', source)
+
+    def test_the_classes_are_the_windows_values(self):
+        self.assertEqual((worker.NORMAL_PRIORITY_CLASS, worker.BELOW_NORMAL_PRIORITY_CLASS), (0x20, 0x4000))
+
+
 if __name__=='__main__':
     unittest.main()

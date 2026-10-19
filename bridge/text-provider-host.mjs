@@ -215,7 +215,7 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
         throw error;
       }
       // A request in flight keeps the server loaded; releasing it re-arms the idle timer.
-      const done = typeof server.begin === 'function' ? server.begin() : null;
+      const done = typeof server.begin === 'function' ? server.begin({background}) : null;
       return {apiKey: connection.apiKey, endpoint: connection.endpoint, model: connection.model, requestModel: connection.requestModel, trustedOrigin: connection.trustedOrigin, external: connection.external === true,
         release: () => { try { if (done) done(); else server.touch?.(); } catch { /* the idle timer is best effort */ } }};
     },
