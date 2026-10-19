@@ -929,7 +929,7 @@ return {
     ["Copy the base URL from your provider, for example https://openrouter.ai/api/v1, https://nano-gpt.com/api/v1 or http://localhost:11434/v1 (Ollama). It is read from the clipboard once and saved on this computer.\n\nOnly this computer and your home network may use http://. You can also fill in endpoint=, model= and api-key= in player-custom-endpoint.txt in the conversation service folder.\n\nNothing is sent until you choose this provider or press Test connection."] = "제공자의 기본 URL을 복사하세요. 예: https://openrouter.ai/api/v1, https://nano-gpt.com/api/v1 또는 http://localhost:11434/v1 (Ollama). 클립보드에서 한 번만 읽고 이 컴퓨터에 저장합니다.\n\nhttp://는 이 컴퓨터와 집 네트워크에서만 사용할 수 있습니다. 대화 서비스 폴더의 player-custom-endpoint.txt에 endpoint=, model=, api-key= 항목을 직접 적어 둘 수도 있습니다.\n\n이 제공자를 선택하거나 '연결 테스트'를 누르기 전까지는 아무것도 전송되지 않습니다.",
     ["Copy the model ID from your provider first, for example meta-llama/llama-3.1-8b-instruct on OpenRouter or llama3.2 on Ollama. It is read from the clipboard once and saved on this computer."] = "먼저 제공자에서 모델 ID를 복사하세요. 예: OpenRouter의 meta-llama/llama-3.1-8b-instruct 또는 Ollama의 llama3.2. 클립보드에서 한 번만 읽고 이 컴퓨터에 저장합니다.",
     ["Copy your API key from your provider first. It is read from the clipboard once and saved on this computer only. A server on your own computer, such as Ollama or LM Studio, usually needs no key."] = "먼저 제공자에서 API 키를 복사하세요. 클립보드에서 한 번만 읽고 이 컴퓨터에만 저장합니다. Ollama나 LM Studio처럼 내 컴퓨터에서 실행하는 서버는 보통 키가 필요하지 않습니다.",
-    ["Custom (OpenAI-compatible)"] = "사용자 (OpenAI-compatible)",
+    ["Custom (OpenAI-compatible)"] = "사용자 지정 (OpenAI 호환)",
     ["Custom API key"] = "사용자 지정 API 키",
     ["Custom endpoint URL"] = "사용자 지정 엔드포인트 URL",
     ["Custom model ID"] = "사용자 지정 모델 ID",
