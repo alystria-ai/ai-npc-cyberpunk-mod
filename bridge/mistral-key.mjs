@@ -31,6 +31,8 @@ export function parseMistralKey(text) {
 /** The only part of a key that may be shown. */
 export const keyTail = key => typeof key === 'string' && key.length >= 16 ? key.slice(-4) : null;
 
+// Mode 0600 protects the file on Linux and macOS only. On Windows the file takes the permissions of its folder (the data folder under
+// %LOCALAPPDATA%, open only to the player's account, SYSTEM and Administrators); a data folder kept in the game folder has the game folder's.
 export async function writePrivate(path, text) {
   const temporary = `${path}.${randomBytes(4).toString('hex')}.tmp`;
   try {
