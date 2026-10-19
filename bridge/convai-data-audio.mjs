@@ -10,6 +10,12 @@ const TYPES = new Set(['audio-data', 'chunked-neurosync-blendshapes',
   'blendshape-turn-stats', 'bot-started-speaking', 'bot-stopped-speaking',
   'bot-turn-completed', 'neurosync-blendshapes-cancel']);
 const MAX_WIRE_BYTES = 1048576;
+// Convai's declared duration is a rounded millisecond figure that may be summed per packet, so on a long reply it drifts from
+// bytes / (rate * channels * 2) by a few milliseconds (2026-10-20: one 0.2.2 turn failed on exactly this). The byte count is the
+// authority for playback, so the duration only has to be about right: this slack covers rounding, while a wrong sample rate or
+// channel count (an 8 percent error or more) still fails.
+const DURATION_SLACK_SECONDS = 0.03, DURATION_SLACK_FRACTION = 0.01;
+const durationSlack = seconds => DURATION_SLACK_SECONDS + DURATION_SLACK_FRACTION * seconds;
 const ownerFields = ['response_id', 'neurosync_turn_id', 'epoch'];
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 const integer = value => Number.isSafeInteger(value) && value >= 0;
@@ -262,13 +268,16 @@ export class ConvaiDataAudio {
       this.faceFault('Convai facial data exceeds its declared frame count');
     if (this.fps !== null && this.fps !== this.stats.fps) this.faceFault('Convai facial statistics use a different frame clock');
     const declaredSeconds = this.stats.total_audio_duration_ms / 1000;
-    if (Math.abs(this.stats.total_blendshapes / this.stats.fps - declaredSeconds) > 1 / this.stats.fps + 0.001)
+    if (Math.abs(this.stats.total_blendshapes / this.stats.fps - declaredSeconds) > 1 / this.stats.fps + 0.001 + durationSlack(declaredSeconds))
       this.faceFault('Convai facial duration does not match its speech');
     if (this.sampleRate) {
-      const align = this.channels * 2;
-      if (this.stats.total_audio_bytes % align
-          || Math.abs(this.stats.total_audio_bytes / (align * this.sampleRate) - declaredSeconds) > 1 / this.sampleRate + 0.001)
-        return this.fail('Convai PCM size does not match its declared duration');
+      const align = this.channels * 2, bytes = this.stats.total_audio_bytes;
+      const counted = bytes / (align * this.sampleRate);
+      const numbers = `${bytes} bytes, ${this.stats.total_audio_duration_ms} ms declared against ${(counted * 1000).toFixed(1)} ms counted, `
+        + `${this.sampleRate} Hz, ${this.channels} channel${this.channels === 1 ? '' : 's'}, ${this.packetCount} packets`;
+      if (bytes % align) return this.fail(`Convai PCM size is not a whole number of samples (${numbers})`);
+      if (Math.abs(counted - declaredSeconds) > 1 / this.sampleRate + 0.001 + durationSlack(declaredSeconds))
+        return this.fail(`Convai PCM size does not match its declared duration (${numbers})`);
     }
   }
 
