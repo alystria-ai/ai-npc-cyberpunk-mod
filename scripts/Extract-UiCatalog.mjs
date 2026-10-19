@@ -296,7 +296,7 @@ const templates = [
   ['page.memory', 'Clear {name}’s memories about conversations with you?', 'mod/manager-ui.lua', 'Clear ', '’s memories about conversations with you?'],
   ['page.memory', 'Clear {name}’s memories about conversations with you. Review an inline confirmation first.', 'mod/manager-ui.lua', '’s memories about conversations with you. Review an inline confirmation first.'],
   ['page.memory', 'Forget ({count} characters)', 'mod/manager-ui.lua', 'Forget (', ' characters)'],
-  ['mcm.navigation', 'Browse {section}. {query}', 'mod/manager-ui.lua', 'Browse '],
+  ['page.navigation', 'Browse {section}. {query}', 'mod/manager-ui.lua', 'Browse '],
   ['page.party', 'Add copy ({count})', 'mod/manager-ui.lua', 'Add copy ('],
   ['page.party', '{name} · invited copy', 'mod/manager-ui.lua', 'invited copy'],
   ['page.models', '{count} matching models', 'mod/manager-ui.lua', ' matching models'],
@@ -397,11 +397,11 @@ function references(text, onlyFile, trim = false) {
 
 for (const [file, tokens] of tokenByFile) {
   const native = file.endsWith('.reds');
-  const mcm = file === 'mod/manager-ui.lua';
+  const page = file === 'mod/manager-ui.lua';
   // keyRow(name, pasteHelp, removeHelp, ...) builds one API key row (mod/manager-ui.lua): its name and its two helps are source strings.
   // withInworld(row, extra) adds a paragraph about the Inworld voice to a help while developer mode is on: `extra` is a source string.
   // refused(text) turns a change down in M.apply: its text is a source string too.
-  const calls = mcm ? { readonly: [1, 2, 3], setting: [1, 5], action: [1, 2, 3], category: [1, 3], keyRow: [0, 1, 2], withInworld: [1], refused: [0] } : {};
+  const calls = page ? { readonly: [1, 2, 3], setting: [1, 5], action: [1, 2, 3], category: [1, 3], keyRow: [0, 1, 2], withInworld: [1], refused: [0] } : {};
   Object.assign(calls, { ConvaiPhoneFeedback: [0], SetDefaultText: [0] });
   if (file === 'mod/manager.lua') Object.assign(calls, { say: [0], savedFeedback: [0] });
   if (native) Object.assign(calls, {
@@ -424,13 +424,13 @@ for (const [file, tokens] of tokenByFile) {
     const positions = noticeSend ? [2] : calls[token.value];
     if (positions && tokens[index + 1]?.value === '(') {
       const args = argumentsAt(tokens, index + 1);
-      const context = mcm ? `page.${token.value}` : file === 'mod/manager.lua' ? 'manager.feedback'
+      const context = page ? `page.${token.value}` : file === 'mod/manager.lua' ? 'manager.feedback'
         : file.includes('Manager.reds') ? 'legacy.manager.native' : file.includes('Phone') || file.includes('phone') ? 'phone.native' : 'world.conversation';
       for (const position of positions) {
         const text = staticText(args[position]);
         if (text !== null) add(text, context, [`${file}:${args[position][0].line}`]);
       }
-      if (mcm && token.value === 'setting') {
+      if (page && token.value === 'setting') {
         const options = args[6];
         if (options?.[0]?.value === '{' && options.at(-1)?.value === '}'
           && options.slice(1, -1).every(item => item.kind === 'string' || item.value === ',')) {

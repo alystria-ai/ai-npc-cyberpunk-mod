@@ -50,7 +50,7 @@
   "counts": {
     "strings": 974,
     "dynamicTemplates": 55,
-    "contexts": 38
+    "contexts": 37
   },
   "strings": {
     "0 results": "0 results",
@@ -1230,9 +1230,6 @@
       "Use Confirm or Cancel for the current memory request.",
       "Your key was removed."
     ],
-    "mcm.navigation": [
-      "Browse {section}. {query}"
-    ],
     "memory.feedback": [
       "A previous memory request could not be read. The memory service must reconcile it before another clear.",
       "Character picker closed. Your selection is unchanged. Closing it deleted nothing.",
@@ -1357,6 +1354,7 @@
       "{count} matching models"
     ],
     "page.navigation": [
+      "Browse {section}. {query}",
       "Characters",
       "Companion Manager",
       "Current party",
@@ -2780,7 +2778,7 @@
     },
     "Browse {section}. {query}": {
       "contexts": [
-        "mcm.navigation",
+        "page.navigation",
         "ui.localized"
       ],
       "references": [
@@ -10413,7 +10411,7 @@
         "section"
       ],
       "contexts": [
-        "mcm.navigation"
+        "page.navigation"
       ],
       "references": [
         "mod/manager-ui.lua:1098"

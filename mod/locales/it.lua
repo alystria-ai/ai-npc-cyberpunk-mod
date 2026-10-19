@@ -20,7 +20,7 @@ return {
     ["Another AutoDrive activity took control."] = "Un’altra attività AutoDrive ha preso il controllo.",
     ["Another AutoDrive journey has control."] = "Un altro viaggio AutoDrive ha il controllo.",
     ["Auto"] = "Auto",
-    ["Auto-connect nearby characters"] = "Connetti automaticamente i personaggi vicini",
+    ["Auto-connect nearby characters"] = "Connetti auto i personaggi vicini",
     ["Continue from game dialogue"] = "Continua dai dialoghi del gioco",
     ["Automatic (game interface language)"] = "Automatica (lingua dell’interfaccia di gioco)",
     ["Automatic reactions"] = "Reazioni automatiche",

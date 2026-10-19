@@ -916,7 +916,7 @@ return {
     ["Model ID: {model}"] = "모델 ID: {model}",
     ["Only https:// works outside this computer and your home network."] = "이 컴퓨터와 집 네트워크 밖에서는 https://만 사용할 수 있습니다.",
     ["Paste API key"] = "API 키 붙여넣기",
-    ["Paste endpoint URL"] = "엔드포인트 URL 붙여넣기",
+    ["Paste endpoint URL"] = "URL 붙여넣기",
     ["Paste model ID"] = "모델 ID 붙여넣기",
     ["Sends one tiny message to your endpoint with the saved model ID and key, and shows how it answered. It uses next to nothing of your credits."] = "저장된 모델 ID와 키로 엔드포인트에 짧은 메시지를 한 번 보내고, 응답 결과를 표시합니다. 크레딧은 거의 쓰지 않습니다.",
     ["Test"] = "테스트",

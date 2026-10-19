@@ -155,30 +155,41 @@ end
 
 -- {kind, id, label, desc, ...} for one row of manager-ui.lua's page.
 local function describe(row)
-    local spec = {id = row.id, desc = fitDescription(row.description), ui = row.id:sub(1, 3) == 'ui:' or nil}
+    local spec = {id = row.id, ui = row.id:sub(1, 3) == 'ui:' or nil}
     local kind = row.type
+    -- What is cut from the row's own text is not lost: the whole text leads the description (which has room for it).
+    local whole
     if kind == 'bool' then
         spec.kind, spec.label = 'switch', fit(row.label, LAYOUT.labelUnits)
+        if spec.label ~= row.label then whole = row.label end
         spec.value, spec.default = row.value == true, row.defaultValue == true
     elseif kind == 'select' then
         spec.kind, spec.label = 'select', fit(row.label, LAYOUT.labelUnits)
+        if spec.label ~= row.label then whole = row.label end
         spec.elements = row.elements and #row.elements > 0 and row.elements or {''}
         spec.value = clampIndex(row.value, #spec.elements)
         spec.default = clampIndex(row.defaultValue or 1, #spec.elements)
     elseif kind == 'int' then
         spec.kind, spec.label = 'range', fit(row.label, LAYOUT.labelUnits)
+        if spec.label ~= row.label then whole = row.label end
         spec.min, spec.max, spec.step = row.min or 0, row.max or 100, row.step or 1
         spec.value = math.max(spec.min, math.min(spec.max, math.floor(tonumber(row.value) or spec.min)))
         spec.default = math.max(spec.min, math.min(spec.max, math.floor(tonumber(row.defaultValue) or spec.min)))
     elseif kind == 'action' then
         spec.kind, spec.text = 'button', fit(row.value, LAYOUT.buttonUnits)
         spec.label = fit(row.label, spec.text ~= '' and LAYOUT.buttonLabelUnits or LAYOUT.labelUnits)
+        if spec.text ~= tostring(row.value or '') then whole = row.label .. ': ' .. tostring(row.value)
+        elseif spec.label ~= row.label then whole = row.label end
     else
         -- A line of text: the label with its value after it, and nothing to press.
         spec.kind, spec.text, spec.readonly = 'button', '', true
         local value = tostring(row.value or '')
-        spec.label = fit(value ~= '' and (row.label .. ': ' .. value) or row.label, LAYOUT.labelUnits)
+        local line = value ~= '' and (row.label .. ': ' .. value) or row.label
+        spec.label = fit(line, LAYOUT.labelUnits)
+        if spec.label ~= line then whole = line end
     end
+    local description = tostring(row.description or '')
+    spec.desc = fitDescription(whole and (description ~= '' and (whole .. '\n\n' .. description) or whole) or description)
     -- What identifies the widget: everything about it except the value it holds.
     local parts = {spec.kind, spec.id, spec.label, spec.desc, spec.text or '', tostring(spec.min), tostring(spec.max), tostring(spec.step),
         table.concat(spec.elements or {}, '\1')}
