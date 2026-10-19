@@ -19,25 +19,36 @@ Install state: everything on `main` 07541c71 is installed in the game (2026-10-1
 - **0.2.2 player-text flags from the lint (2026-10-19, branch `lint/player-text`; not changed, the user decides):** 15 Inworld strings in player text (`localization/en.json`, from `mod/mcm.lua` and `mod/manager.lua`); "On the free shared plan" in the Johnny setting (`mod/mcm.lua:2178`); Mod Configuration Menu still named as a requirement in the live `mod/setup-check.lua:516` string and the docs (drop once Native Settings UI merges); "Mistral its free plan" with a missing verb (`mod/mcm.lua:1588-1589`); "Mistral or Local" for the provider called Local AI (`mod/character-editor.lua:80`, `:84`); 0.2.1 wording in `packaging/PLAYER_README.md:5`, `README.md:7` and `docs/NEXUS_PAGE.md:39,135,136` to update at the 0.2.2 release.
 
 ### 0.2.2 build checklist (Scripts + Runtime together; ships once the launch-feedback fixes land)
-- **Runtime additions for the patched build** (`scratchpad/patch-zip4.mjs`, all under `red4ext/plugins/AiNpcCyberpunkMod/`):
-  - `voices/v-voice/{v-voice.json,v-male.wav,v-female.wav}` from `assets/v-voice`; neither 0.2 nor 0.2.1 had them, so V was silent.
-  - `Make support report.bat` from `packaging/Make support report.bat`, CRLF.
-  - `app/bridge/make-support-report.mjs` and `app/bridge/offline-support-report.mjs`.
-  - `app/bridge/support-report.mjs`, replaced.
-  - The offline report needs `setup-check`, `key-codec`, `zip-writer`, `guarded-file` and `system-browser` in `app/bridge`.
-- **Install test checks the V clips and the .bat.**
-- **Merged for 0.2.2 on 2026-10-19:** `offline-report`, `fix/pack-overlap`, `fix/mo2-virtual-runtime`, `openai-compatible` and `fix/reds-safety`.
-- **Still to land before the build:**
-  - `nsui-manager`, which needs a live test.
-  - `docs-install-guide`, merged after nsui-manager because it says Esc > Mods.
-  - `fix/local-ai-mature-timeout`.
-  - `fix/face-replaced-model`.
-  - `release-0.2.2-prep`: patch-zip5 and the install-test checks.
+- **Build script:** `scratchpad/patch-zip5-mo2.mjs`. It is patch-zip5 (built from `git archive` of `RELEASE_REF`, with lists from main), plus the `launcher.ini` that starts Node through the usvfs bootstrap. Run it with `RELEASE_VERSION=0.2.2`. The Scripts come from `node packaging/build-release.mjs --version 0.2.2 --dry-run --packages scripts --source main`.
+- **What patch-zip5 already adds** (all under `red4ext/plugins/AiNpcCyberpunkMod/`):
+  - the V voice clips (`voices/v-voice/`);
+  - `Make support report.bat` and the offline report modules;
+  - the voice lists in `app/defaults`, with the Runtime's slots moved to `voices/prepared-runtime` and the three `full-cast-draft` clips dropped;
+  - the overlap gate (`packaging/check-pack-overlap.mjs`) and the Runtime contents check (`packaging/check-runtime-contents.mjs`, which is also in the install test).
+- **Still to add to the build:** `app/defaults/error-reports.json`, containing `{"version":1,"url":"<backend origin>","secret":"<signing secret>"}`. Take both values from `runtime/convai-auth.json` inside the script and never print them. Deploy the backend BEFORE the release ships, because it needs the new `/api/errors/report` endpoint.
+- **Merged for 0.2.2 on 2026-10-19:**
+  - `offline-report`, `fix/pack-overlap`, `fix/mo2-virtual-runtime`, `openai-compatible` and `fix/reds-safety`;
+  - `fix/face-replaced-model`, the locale QA and fit passes and `lint/player-text`;
+  - the review merges for the custom provider, the offline report, security, service start, pack overlap and redscript;
+  - `custom-provider-2`, `nsui-manager`, `perf/latency`, `perf/lua-heap`, `canon-audit-2`, `fix/first-turn-provider` and `qa/fresh-install`;
+  - `fix/local-ai-mature-timeout`, `fix/mo2-runtime-as-mod`, `fix/mo2-step3`, `auto-error-reports` and `release-0.2.2-prep`.
+- **Held for the live session:**
+  - `johnny-phase2b` and `v-talks`, both merged with main 32a04c09 and with their rows ported to Native Settings UI;
+  - `player-characters`, which is also getting voice clips in the character editor;
+  - `perf-study`, which needs a DLL rebuild;
+  - `cast-batch-2`, waiting on the GPU voice step;
+  - `docs-install-guide`, which says Esc > Mods.
+- **Needs the user's OK:**
+  - the backend redeploy (security L3 and the error-report endpoint);
+  - Convai re-provisioning of canon round 2's 19 characters (`deliverables/canon-audit/REPORT-2.md`);
+  - the 0.2.2 upload.
 - **Release-time text:**
-  - Bump the Hugging Face links from 0.2.1 to 0.2.2 in README, PLAYER_README and HF_MODEL_CARD, and in the tests that pin them.
+  - Bump the Hugging Face links from 0.2.1 to 0.2.2 in README, PLAYER_README, HF_MODEL_CARD and the tests that pin them.
   - Add the Replace line to the HF model card.
-  - The Nexus changes are collected in `deliverables/release-0.2.2/NEXUS_CHANGES.md`, with `INSTALL_GUIDE.bbcode` beside it.
-- **After shipping:** update the players in `deliverables/player-feedback.md`; the sticky's report path changes to Esc > Mods.
+  - The Nexus changes are in `deliverables/release-0.2.2/NEXUS_CHANGES.md`, beside `INSTALL_GUIDE.bbcode`. Add the Native Settings UI requirement, the Custom provider and the error-reports paragraph from the agents' reports.
+- **After shipping:**
+  - Update the players listed in `deliverables/player-feedback.md`, and thank Antrix (MCM).
+  - The sticky's report path changes to Esc > Mods.
 
 ### Release blockers (before Sun 18 Oct 11:00 UTC)
 - **Release build in the real game: done 2026-10-16.** A fresh-player install from the built Scripts and Runtime zips, with no key: Sign in with Convai, talk, mic, phone chat, holocall, settings layout and companions all work (see the log). Watch for the transient `CL.exe` crash in the CI native build.
