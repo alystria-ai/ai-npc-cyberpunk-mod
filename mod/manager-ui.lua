@@ -1394,8 +1394,10 @@ local function schema()
                 'Johnny Silverhand answers when you use the talk keys with nobody in front of you, as the voice in V’s head. He knows your jobs and your story so far, and what he thinks of you follows it.\n\nOnly while the story has him in V’s head. He stays quiet during scenes, calls, dialogue choices and fights, and when the game gives him a line.'),
             setting('johnnyRemarks', 'Johnny speaks up', 'select',
                 snapshot.settings.johnnyRemarks == 'normal' and 3 or snapshot.settings.johnnyRemarks == 'rare' and 2 or 1, 1,
-                'Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the Convai free tier each remark uses one of the day’s turns; remarks never take more than a tenth of them.',
+                'Johnny says something on his own after you meet someone he knows of, finish a job, a romance moves on, you arrive somewhere he knows, the Relic acts up, or a big fight ends. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the Convai free tier each remark uses one of the day’s turns; remarks never take more than a tenth of them.',
                 {'Off', 'Rare', 'Normal'}),
+            setting('johnnyHologram', 'Johnny’s hologram', 'bool', snapshot.settings.johnnyHologram == true, false,
+                'Now and then, when you sit down, Johnny shows himself a few steps away for a few seconds as a glitching hologram, the way the story shows him. Needs Johnny in your head.\n\nNever in scenes, calls, dialogue choices or fights, and at most once every ten minutes.'),
             setting('vTalks', 'V talks on their own', 'select',
                 snapshot.settings.vTalks == 'normal' and 3 or snapshot.settings.vTalks == 'rare' and 2 or 1, 1,
                 'Now and then V starts a short chat with a companion in your party, and the companion answers. Mostly after a fight or a finished job, sometimes on a quiet walk or ride.\n\nNeeds V’s voice for typed lines; with that off, V stays quiet. Never during scenes, calls, fights or while you talk.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the Convai free tier each answer uses one of the day’s turns, counted with Johnny’s remarks, which never take more than a tenth of them.',
@@ -1836,6 +1838,7 @@ function M.apply(changes)
             if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 then return refused('Choose how often Johnny speaks up.') end
             -- Order: 1 Off, 2 Rare, 3 Normal.
             values.johnnyRemarks = ({'off', 'rare', 'normal'})[change.value]
+        elseif key == 'johnnyHologram' then values.johnnyHologram = change.value
         elseif key == 'vTalks' then
             if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 then return refused('Choose how often V talks on their own.') end
             -- Order: 1 Off, 2 Rare, 3 Normal.

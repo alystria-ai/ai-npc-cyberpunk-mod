@@ -755,6 +755,8 @@ local function loadSettings()
     if settings.johnnyRemarks ~= 'off' and settings.johnnyRemarks ~= 'rare' and settings.johnnyRemarks ~= 'normal' then
         settings.johnnyRemarks, settingsNeedSave = 'off', true
     end
+    -- Off by default: now and then Johnny shows himself beside V as a glitching hologram (docs/JOHNNY_IN_YOUR_HEAD.md, phase 3).
+    if type(settings.johnnyHologram) ~= 'boolean' then settings.johnnyHologram, settingsNeedSave = false, true end
     -- Off by default: how often V starts a short talk with a companion unprompted (docs/V_TALKS.md): off, rare or normal.
     if settings.vTalks ~= 'off' and settings.vTalks ~= 'rare' and settings.vTalks ~= 'normal' then
         settings.vTalks, settingsNeedSave = 'off', true
@@ -937,6 +939,13 @@ end
 function M.johnnyRemarks()
     loadSettings()
     return settings.johnnyRemarks == 'rare' and 'rare' or settings.johnnyRemarks == 'normal' and 'normal' or 'off'
+end
+
+-- Johnny's hologram: a short glitching appearance beside V when V sits down (mod/johnny-hologram.lua). Read when V sits and while the
+-- appearance is waiting or showing, on the 0.5 s battle sample, never per frame.
+function M.johnnyHologram()
+    loadSettings()
+    return settings.johnnyHologram == true
 end
 
 -- V talks on their own: 'off', 'rare' or 'normal' (mod/v-talks.lua). Read once per 0.5 s observer sample and when a collector hands over an
@@ -1817,6 +1826,7 @@ function M.snapshot(player)
             storyConversations = settings.storyConversations == true,
             johnnyInHead = settings.johnnyInHead == true,
             johnnyRemarks = M.johnnyRemarks(),
+            johnnyHologram = settings.johnnyHologram == true,
             vTalks = M.vTalks(),
             uiLanguage = settings.uiLanguage,
             enabledByKey = enabled},
@@ -1897,6 +1907,9 @@ function M.applySettings(player, values)
         elseif key == 'johnnyRemarks' then
             if value ~= 'off' and value ~= 'rare' and value ~= 'normal' then return false, 'Choose how often Johnny speaks up.' end
             nextSettings.johnnyRemarks = value
+        elseif key == 'johnnyHologram' then
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
+            nextSettings.johnnyHologram = value
         elseif key == 'vTalks' then
             if value ~= 'off' and value ~= 'rare' and value ~= 'normal' then return false, 'Choose how often V talks on their own.' end
             nextSettings.vTalks = value

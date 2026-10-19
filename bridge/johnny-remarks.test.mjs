@@ -165,7 +165,7 @@ test('loader: nothing is loaded unless both settings are on; events reach the qu
     local manager = {johnnyInHead = function() return inHead end, johnnyRemarks = function() return level end}
     local real = (function() ${moduleSource} end)()
     function dofile(path) assert(path == 'johnny-remarks.lua'); loads = loads + 1; return real end
-    local function log(line) logged[#logged + 1] = line end
+    convaiLogLine = function(line) logged[#logged + 1] = line end
     print = function() end
     ${loader}
     convaiJohnnyRemarkNote('romance', 'sq030_judy_lover')
