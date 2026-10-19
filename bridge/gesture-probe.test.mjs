@@ -27,7 +27,8 @@ io={open=function(path,mode)
 end}
 json={encode=function(v) logs[#logs+1]=v;return '{}' end}
 local catalogSource=[==[${catalog}]==]
-dofile=function(path) assert(path=='gesture-catalog.lua');return load(catalogSource)() end
+local catalogLoads=0
+dofile=function(path) assert(path=='gesture-catalog.lua');catalogLoads=catalogLoads+1;return load(catalogSource)() end
 CName={new=function(v)return {value=v} end}
 Enum={new=function(k,v)return k..'.'..v end}
 NewObject=function(kind) return {kind=kind} end
@@ -209,4 +210,15 @@ test('without a test period the mailbox follows the game: once a second with Dev
   developer=true;step(4.1)
   send('bogus');step(1.1);assert(response():find('n2',1,true)==1,'no answer within a second with Developer mode on')
   convaiDevMailboxPeriod=nil
+`));
+
+test('the idle probe holds no catalog copy: the catalog is read on the first command, once, and again only after a reload', () => run(`
+  assert(catalogLoads==0,'loading the probe read the gesture catalog')
+  step(.3)
+  assert(catalogLoads==0,'an idle tick read the gesture catalog')
+  start()
+  assert(catalogLoads==1,'the first command reads the catalog once, not '..catalogLoads)
+  send('bogus');step(.3)
+  m.release(entry,'dismissed');start()
+  assert(catalogLoads==1,'later commands reuse the copy, not '..catalogLoads)
 `));

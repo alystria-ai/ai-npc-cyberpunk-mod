@@ -74,7 +74,7 @@ All of it is policy in `mod/v-talks.lua` (pure), driven from `mod/init.lua` on t
 
 | Package | Files |
 |---|---|
-| **Scripts** (Lua in the CET folder) | `mod/v-talks.lua` (new), `mod/init.lua` (service, sample, tick, delivery check, release, wrapper of the journal callback), `mod/manager.lua` (`vTalks`), `mod/mcm.lua` (the row and its apply), `mod/locales/*.lua` (3 strings x 15 languages), `packaging/release-plan.json` and `scripts/development-files.json` (ship and dev-install `v-talks.lua`) |
+| **Scripts** (Lua in the CET folder) | `mod/v-talks.lua` (new), `mod/init.lua` (service, sample, tick, delivery check, release, wrapper of the journal callback), `mod/manager.lua` (`vTalks`), `mod/manager-ui.lua` (the row under Johnny speaks up and its apply branch; the manager is a Native Settings UI page now), `mod/locales/*.lua` (3 strings x 15 languages), `packaging/release-plan.json` and `scripts/development-files.json` (ship and dev-install `v-talks.lua`) |
 | **Runtime** (the bridge) | `bridge/v-talks.mjs` (new), `bridge/protocol.mjs`, `bridge/battle-context.mjs`, `bridge/shared-key-guard.mjs`, `bridge/v-voice.mjs`, `bridge/convai-bridge.mjs`, `bridge/text-provider-host.mjs`, `bridge/mistral-prompt.mjs`, `packaging/release-plan.json` and `packaging/runtime-layout.mjs` (the new module in the runtime list) |
 | Not shipped | `localization/en.json` (developer catalog, regenerated), `bridge/*.test.mjs`, this document |
 

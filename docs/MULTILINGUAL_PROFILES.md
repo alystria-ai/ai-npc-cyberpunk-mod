@@ -351,7 +351,7 @@ character, so the comparison ignores keys ending in `min_credit_cost_e8`; they a
 Settings > Conversations > **Multilingual conversations**, off by default (`multilingualConversations` in
 `runtime/settings.json`). Code: `bridge/multilingual.mjs` (twin map, setting, per-turn voice),
 `bridge/reply-language.mjs` (language detection), `bridge/relationship-routing.mjs` (twin selection),
-`bridge/voice-selection.mjs` (no Pocket fallback while on), `mod/manager.lua` / `mod/mcm.lua` (setting, staged Apply).
+`bridge/voice-selection.mjs` (no Pocket fallback while on), `mod/manager.lua` / `mod/manager-ui.lua` (setting; a change is saved a moment after it is made).
 
 ### Routing
 

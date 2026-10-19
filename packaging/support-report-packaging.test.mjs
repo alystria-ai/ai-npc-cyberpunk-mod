@@ -78,6 +78,9 @@ test('the batch file is one the Runtime may carry: not a Lua file, a short path,
   assert.notEqual(runtime.forbiddenExtension, '.bat');
   const batch = await read(`packaging/${BATCH}`);
   assert.doesNotMatch(batch, /[A-Za-z]:\\|api-key|token|secret/i);
+  // A "!" in the game folder's path survives where the registry turns delayed expansion on (cmd /V:ON lost it and said node.exe was missing).
+  assert.match(batch, /^setlocal EnableExtensions DisableDelayedExpansion\r?$/m);
+  assert.match(batch, /^set "NODE_OPTIONS="\r?$/m, 'an inherited NODE_OPTIONS cannot load code into the tool');
 });
 
 test('the player texts give the way out in one short plain line, never recommend an option, and keep the wording rules', async () => {

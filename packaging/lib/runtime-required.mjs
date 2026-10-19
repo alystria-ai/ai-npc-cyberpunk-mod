@@ -5,8 +5,12 @@
 //     without them, so V's typed lines had no voice to clone.
 //   - "Make support report.bat" (release.config.json, layout.supportReportBatch) and the bridge modules it starts with the bundled Node,
 //     for a player the mod never loads for (a support report made with the game closed).
+//   - The Runtime's own OmniVoice lists in app/defaults, which the launcher reads before the OmniVoice pack's older copy (packaging/runtime/
+//     prepare-state.mjs; docs/PACKAGING.md, "Packs reused unchanged"). Without them a pack reused from an earlier version runs on its own
+//     older lists (0.2's lack the 30 voices 0.2.1 added), and a list an earlier Runtime left in app/defaults stays in charge.
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
+import {OMNI_CONFIGS} from '../runtime/prepare-state.mjs';
 
 export const V_VOICE_FOLDER = 'voices/v-voice';
 export const V_MANIFEST_SOURCE = 'assets/v-voice/v-voice.json';
@@ -28,6 +32,7 @@ export async function requiredRuntimeFiles(root) {
     "V's voice clips": ['v-voice.json', ...clips].map(file => `${plugin}/${V_VOICE_FOLDER}/${file}`),
     'support report batch file': [`${plugin}/${config.layout.supportReportBatch}`],
     'offline report code': OFFLINE_REPORT_MODULES.map(item => `${app}/bridge/${item}.mjs`),
+    "Runtime's OmniVoice lists": Object.values(OMNI_CONFIGS).map(name => `${app}/defaults/${name}`),
   };
 }
 

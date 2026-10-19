@@ -51,6 +51,7 @@ test('live group audience retains exact actor and profile ownership across reass
     local function sendRequest(input)sent[#sent+1]=input;pending=input;return true end
     local function beginFocus()return true end
     local function log()end
+    local function convaiFaceRequestLog() end -- the real one is defined earlier in init.lua, outside this slice
     ${adapter}
     -- Unchanged ownership admits the addressed copy and prepares the next.
     groupChat.start('normal',{person(judy,'judy'),person(panam,'panam')},'Hi')
@@ -432,6 +433,7 @@ test('a round with a spawned character runs through the same adapter: face reque
     local function sendRequest(input)sent[#sent+1]=input;pending=input;return true end
     local function beginFocus(_,actor)focused[#focused+1]=actor.id;return true end
     local function log()end
+    local function convaiFaceRequestLog() end -- the real one is defined earlier in init.lua, outside this slice
     ${adapter}
     groupChat.start('mixed',{person(spawnedJudy,'judy',true),person(panam,'panam')},'Hi both')
     updateGroup(player)

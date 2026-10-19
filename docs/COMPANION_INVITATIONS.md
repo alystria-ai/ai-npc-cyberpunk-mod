@@ -6,7 +6,7 @@ or phone pauses simulation. **Preparing memory**, **Connecting**, and **Ready to
 join** describe the actual preparation state. The copy is created only after both
 prerequisites finish and normal gameplay resumes.
 
-The phone and MCM use the same queue and capacity. Phone dismissal can cancel a
+The phone and the Companion Manager use the same queue and capacity. Phone dismissal can cancel a
 pending invitation. The queue can still change a pending copy's conversation
 profile (the manager no longer offers it); that invalidates the previous
 preparation before starting its replacement.

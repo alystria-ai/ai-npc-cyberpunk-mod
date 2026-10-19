@@ -320,7 +320,7 @@ async function main() {
     const required = await requiredRuntimeFiles(project);
     const installed = new Set(Object.values(required).flat().filter(rel => existsSync(join(game, rel))));
     const absent = missingRuntimeFiles(installed, required);
-    check("the Runtime carries V's voice clips, 'Make support report.bat' and the offline report code", Object.keys(absent).length === 0,
+    check("the Runtime carries V's voice clips, 'Make support report.bat', the offline report code and its OmniVoice lists", Object.keys(absent).length === 0,
       Object.keys(absent).length ? Object.entries(absent).map(([group, files]) => `${group}: ${files.map(file => file.split('/').pop()).join(', ')}`).join('; ') : `${Object.values(required).flat().length} files`);
     const vScript = join(work, 'v-voice-check.mjs');
     await writeFile(vScript, `

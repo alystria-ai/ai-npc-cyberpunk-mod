@@ -54,7 +54,7 @@ test("a file that does not parse is an error naming the file, not a silent zero"
 
 test("the Lua files the mod ships are found: mod/*.lua and every add-on's", () => {
   const files = luaFiles();
-  assert(files.includes("mod/init.lua") && files.includes("mod/mcm.lua"));
+  assert(files.includes("mod/init.lua") && files.includes("mod/manager-ui.lua") && files.includes("mod/nsui.lua"));
   // Skippy and Delamain live in their own repos since 2026-10-14; the example add-on stays here.
   assert(files.includes("addons/example/init.lua"));
 });

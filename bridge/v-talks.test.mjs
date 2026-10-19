@@ -856,9 +856,10 @@ test('shipping: both files ship and dev-install; the select has its row and the 
   }
   assert.match(read('../packaging/release-plan.json'), /"bridge\/v-talks\.mjs",\s+"bridge\/v-voice\.mjs",/);
   assert.match(read('../packaging/runtime-layout.mjs'), /'bridge\/v-talks\.mjs',\s+'bridge\/v-voice\.mjs',/);
-  const mcm = read('../mod/mcm.lua');
-  assert.match(mcm, /setting\('vTalks', 'V talks on their own', 'select',/);
-  assert.match(mcm, /elseif key == 'vTalks' then\s+if change\.value ~= 1 and change\.value ~= 2 and change\.value ~= 3 then return \{ok = false, error = ui\.t\('Choose how often V talks on their own\.'\)\}/);
+  const ui = read('../mod/manager-ui.lua');
+  assert.match(ui, /setting\('vTalks', 'V talks on their own', 'select',/);
+  assert.match(ui, /elseif key == 'vTalks' then\s+if change\.value ~= 1 and change\.value ~= 2 and change\.value ~= 3 then return refused\('Choose how often V talks on their own\.'\)/);
+  assert.match(ui, /values\.vTalks = \(\{'off', 'rare', 'normal'\}\)\[change\.value\]/);
   const en = JSON.parse(read('../localization/en.json')).strings;
   const keys = Object.keys(en).filter(key => /^V talks on their own$|^Choose how often V talks on their own\.$|^Now and then V starts a short chat/.test(key));
   assert.equal(keys.length, 3);

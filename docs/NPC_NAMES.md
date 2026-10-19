@@ -78,7 +78,7 @@ Valentinos: Javier Soto, Marisol Soto, Nallely Portillo. Tyger Claws: Naoki Goto
 | `characters/npc-name-pools.json` | Source of the pools and the blocked names. |
 | `scripts/Build-NpcNamePools.mjs` | Validates the data, writes the Lua, `--check`. |
 | `r6/scripts/CyberpunkConvai/NpcNames.reds` | `NPCPuppet.ConvaiApplyScannerName` (needs a game restart). |
-| `mod/init.lua`, `mod/manager.lua`, `mod/mcm.lua`, `mod/locales/*.lua` | Wiring (`convaiNpcNames`, the scanner observer, the talk-path name); no setting, no menu row, no strings. |
+| `mod/init.lua`, `mod/manager.lua`, `mod/manager-ui.lua`, `mod/locales/*.lua` | Wiring (`convaiNpcNames`, the scanner observer, the talk-path name); no setting, no menu row, no strings. |
 | `bridge/protocol.mjs` | `npcName` parsing and the context lines. |
 | `bridge/npc-names.test.mjs` | 25 tests: pools, determinism, trait mapping, no repeats in 500, no named-character names in 12,000, the gate, the service, scanner hook, vendor file and cap, context line, the setting gone. |
 

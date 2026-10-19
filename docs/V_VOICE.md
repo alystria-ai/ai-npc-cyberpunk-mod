@@ -324,7 +324,7 @@ actor says "assumed" where the subtitle says "assume" (the audio is clear).
 | Wiring | `bridge/convai-bridge.mjs` (`vVoice`, `runInput`, `continuousSpeech` hold, `publishResult`, settings poll, composer warm-up) |
 | Stage clock listener | `bridge/turn-clock.mjs` (`on`) |
 | Dialogue volume | `mod/turn-context.lua`, `bridge/turn-context.mjs` (`dialogueVolume`) |
-| Setting | `mod/manager.lua` (`vVoice`, `vVoiceChosen`, `vVoiceEngine`), `mod/mcm.lua` |
+| Setting | `mod/manager.lua` (`vVoice`, `vVoiceChosen`, `vVoiceEngine`), `mod/manager-ui.lua` |
 | Simulated measurement | `scripts/Measure-VVoice.mjs` (`--legacy`, `--runs`, `--prep`, `--json`) |
 | V's subtitle | `mod/subtitles.lua` (`showTyped`), `mod/init.lua` (the submission in `onUpdate`), `bridge/subtitles.test.mjs` |
 | Tests | `bridge/v-voice.test.mjs`, `bridge/v-helper-voice.test.mjs`, `bridge/manager.test.mjs`, `bridge/turn-context.test.mjs`, `bridge/addons.test.mjs` |

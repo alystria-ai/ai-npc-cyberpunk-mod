@@ -159,7 +159,7 @@ local modules={
  ['character-catalog.lua']={build=function()return {records={}}end,resolve=function(_,value)return value.managedKey,value.name end},
  ['manager.lua']={configure=noop,interfaceLanguage=function()return'auto'end,subtitleStyle=function()return'dialogue'end,profileEnabled=function()return true end,
   voiceNeedsConvai=function()return false end,reset=noop,update=noop,developerMode=function()return false end,battleReactions=function()return false end,lootReactions=function()return false end,vTalks=function()return'off' end},
- ['mcm.lua']={configure=noop,install=noop,update=noop,resetSession=noop,shutdown=noop},
+ ['nsui.lua']={configure=noop,install=noop,update=noop,resetSession=noop,shutdown=noop},
  ['phone-layout.lua']={install=noop,refresh=noop},['phone-chat-style.lua']={install=noop,refresh=noop},
  ['phone-chat.lua']={configure=function(_,_,options)phoneOptions=options end,update=noop,abandon=function()record('phone')end},
  ['quest-context.lua']={capture=function()return {version=1,status='untracked',serial=journalVersion}end},
@@ -170,7 +170,7 @@ local modules={
  ['loot-reactions.lua']={new=function()return {reset=noop,update=noop,status=function()return {pending=0}end,offer=noop}end},
  ['seated-look.lua']=(function()${seatedLookSource}end)(),
  ['companion-seating.lua']={classify=function()return 'none'end,new=function()error('companion-seating is not loaded in this fixture')end},
- ['manager-party.lua']={},['mcm-entry.lua']={},['companion-locomotion.lua']={install=noop},
+ ['manager-party.lua']={},['companion-locomotion.lua']={install=noop},
  ['composer-input.lua']={install=noop},['phone-input.lua']={install=noop},['movement-log.lua']={update=noop}}
 local speech=modules['speech.lua']
 speech.start=function(input,reply)
