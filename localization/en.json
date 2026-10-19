@@ -245,7 +245,7 @@
     "Convai free tier: limit used up": "Convai free tier: limit used up",
     "Convai free tier: {left} of {limit} left today": "Convai free tier: {left} of {limit} left today",
     "Convai has not confirmed your plan yet. Check it in Settings > Convai paid tier.": "Convai has not confirmed your plan yet. Check it in Settings > Convai paid tier.",
-    "Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local as the conversation provider in the settings.": "Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local as the conversation provider in the settings.",
+    "Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local AI as the conversation provider in the settings.": "Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local AI as the conversation provider in the settings.",
     "Convai paid tier": "Convai paid tier",
     "Convai voice": "Convai voice",
     "Convai voices · Local model unloaded": "Convai voices · Local model unloaded",
@@ -333,7 +333,7 @@
     "ENTER  Write / Send   /   ESC  Stop typing": "ENTER  Write / Send   /   ESC  Stop typing",
     "ENTER  Write message   /   ESC  Stop typing": "ENTER  Write message   /   ESC  Stop typing",
     "Each character marks its own feelings as it speaks, so the face changes at that word instead of being guessed from the text. Subtle, set by personality, only where a feeling really shifts.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.": "Each character marks its own feelings as it speaks, so the face changes at that word instead of being guessed from the text. Subtle, set by personality, only where a feeling really shifts.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.",
-    "Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral and Local, not Convai. Changes apply from the next reply.": "Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral and Local, not Convai. Changes apply from the next reply.",
+    "Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral and Local AI, not Convai. Changes apply from the next reply.": "Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral and Local AI, not Convai. Changes apply from the next reply.",
     "Edit characters": "Edit characters",
     "Edited": "Edited",
     "Error reports go to the developer automatically. Turn them off in Settings > Privacy.": "Error reports go to the developer automatically. Turn them off in Settings > Privacy.",
@@ -1049,7 +1049,7 @@
     "Your Convai plan is active. Conversations now use your Convai API key.": "Your Convai plan is active. Conversations now use your Convai API key.",
     "Your browser could not be opened.": "Your browser could not be opened.",
     "Your car has no free passenger seat for V.": "Your car has no free passenger seat for V.",
-    "Your changes work with Mistral and Local. They do not apply to Convai.": "Your changes work with Mistral and Local. They do not apply to Convai.",
+    "Your changes work with Mistral and Local AI. They do not apply to Convai.": "Your changes work with Mistral and Local AI. They do not apply to Convai.",
     "Your character": "Your character",
     "Your characters": "Your characters",
     "Your companion is driving to the selected waypoint.": "Your companion is driving to the selected waypoint.",
@@ -1376,7 +1376,7 @@
       "Copy report path",
       "Create",
       "Current plan",
-      "Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral and Local, not Convai. Changes apply from the next reply.",
+      "Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral and Local AI, not Convai. Changes apply from the next reply.",
       "Edit characters",
       "Find the log files and create a report to send to the developer if something goes wrong.",
       "Forget",
@@ -1882,7 +1882,7 @@
       "Convai free tier: limit used up",
       "Convai free tier: {left} of {limit} left today",
       "Convai has not confirmed your plan yet. Check it in Settings > Convai paid tier.",
-      "Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local as the conversation provider in the settings.",
+      "Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local AI as the conversation provider in the settings.",
       "Convai voice",
       "Convai · Cloud voice",
       "Convai: Local AI is not ready",
@@ -2345,7 +2345,7 @@
       "Your Convai plan is active. Choose Convai API key in Settings > Conversation provider.",
       "Your Convai plan is active. Conversations now use your Convai API key.",
       "Your browser could not be opened.",
-      "Your changes work with Mistral and Local. They do not apply to Convai.",
+      "Your changes work with Mistral and Local AI. They do not apply to Convai.",
       "Your character",
       "Your characters",
       "Your companion is driving to the selected waypoint.",
@@ -4044,7 +4044,7 @@
         "mod/manager-ui.lua:1864"
       ]
     },
-    "Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local as the conversation provider in the settings.": {
+    "Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local AI as the conversation provider in the settings.": {
       "contexts": [
         "ui.localized"
       ],
@@ -4579,7 +4579,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:320",
+        "mod/mcm-host.lua:324",
         "mod/nsui.lua:417"
       ]
     },
@@ -4778,7 +4778,7 @@
         "mod/manager-ui.lua:1480"
       ]
     },
-    "Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral and Local, not Convai. Changes apply from the next reply.": {
+    "Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral and Local AI, not Convai. Changes apply from the next reply.": {
       "contexts": [
         "page.action"
       ],
@@ -7188,7 +7188,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:309"
+        "mod/mcm-host.lua:313"
       ]
     },
     "Press again to restore": {
@@ -7196,7 +7196,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:219"
+        "mod/mcm-host.lua:223"
       ]
     },
     "Press your Group voice chat shortcut to finish recording.": {
@@ -7268,7 +7268,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:220"
+        "mod/mcm-host.lua:224"
       ]
     },
     "RED4ext is not loaded. Install it from Nexus Mods, then restart the game. It also starts the conversation service.": {
@@ -7521,7 +7521,7 @@
       "references": [
         "mod/manager-ui.lua:1803",
         "mod/manager.lua:35",
-        "mod/mcm-host.lua:245"
+        "mod/mcm-host.lua:249"
       ]
     },
     "Reset everything": {
@@ -7545,8 +7545,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:218",
-        "mod/mcm-host.lua:219"
+        "mod/mcm-host.lua:222",
+        "mod/mcm-host.lua:223"
       ]
     },
     "Return to Companion Manager.": {
@@ -10764,7 +10764,7 @@
         "mod/companion-chauffeur.lua:109"
       ]
     },
-    "Your changes work with Mistral and Local. They do not apply to Convai.": {
+    "Your changes work with Mistral and Local AI. They do not apply to Convai.": {
       "contexts": [
         "ui.localized"
       ],
@@ -10819,7 +10819,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:1549",
-        "mod/mcm-host.lua:331"
+        "mod/mcm-host.lua:335"
       ]
     },
     "Your group": {

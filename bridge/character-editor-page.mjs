@@ -534,7 +534,7 @@ export function editorClient() {
     document.title = T('Character editor');
     document.documentElement.lang = boot.language || 'en';
     $('title').textContent = T('Character editor');
-    $('sub').textContent = T('Your changes work with Mistral and Local. They do not apply to Convai.');
+    $('sub').textContent = T('Your changes work with Mistral and Local AI. They do not apply to Convai.');
     $('close').textContent = T('Close editor');
     $('search').placeholder = T('Search characters');
     $('search').setAttribute('aria-label', T('Search characters'));
@@ -543,7 +543,7 @@ export function editorClient() {
     make.textContent = T('New character');
     make.hidden = !model.state.custom;
     const banner = $('banner');
-    if (model.state.provider === 'convai') { banner.hidden = false; banner.textContent = T('Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local as the conversation provider in the settings.'); }
+    if (model.state.provider === 'convai') { banner.hidden = false; banner.textContent = T('Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local AI as the conversation provider in the settings.'); }
     else banner.hidden = true;
   };
   window.addEventListener('beforeunload', event => { if (dirtyFields().length) { event.preventDefault(); event.returnValue = ''; } });

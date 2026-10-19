@@ -64,7 +64,7 @@ test('the whole path: pick a character, edit and save each part, reset, and noth
   const {page} = e;
   assert.equal(await page.title(), 'Character editor');
   assert.equal(await page.locator('#banner').isHidden(), true, 'no warning when a text provider answers');
-  assert.match(await page.locator('#sub').textContent(), /Mistral and Local\. They do not apply to Convai\./);
+  assert.match(await page.locator('#sub').textContent(), /Mistral and Local AI\. They do not apply to Convai\./);
   assert.deepEqual(await page.locator('#list h3').allTextContents(), ['Story characters', 'Everyday people']);
   assert.equal(await page.locator('#list button.pick').count(), rows.length);
   await e.shot('01-start');
