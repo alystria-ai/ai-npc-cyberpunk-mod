@@ -25,22 +25,24 @@ Every file sits in the version folder (`0.2.1/`) with its `SHA256SUMS-*.txt` che
 |---|---|---|---|
 | `AI-NPC-Cyberpunk-Mod-Scripts-0.2.1.zip` | 2 MB | The mod itself, the in-game part. Also on Nexus Mods. | **Yes** |
 | `AI-NPC-Cyberpunk-Mod-Runtime-0.2.1.zip` | 1.0 GB | The background service: voices, lip sync, speech recognition, memory. | **Yes** |
-| `AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.1.zip` | 5.3 GB | Local AI, standard: Gemma 4 E4B. Free and offline, about 3.1 GB of video memory (6 GB free recommended). | Optional |
+| `AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.1.zip` | 5.3 GB | Local AI, standard: Gemma 4 E4B. Free and offline. Uses about 3.1 GB of video memory and needs about 6 GB free to start. | Optional |
 | `AI-NPC-Cyberpunk-Mod-LocalAI-Lite-0.2.1.zip` | 1.4 GB | Local AI, lite: Bonsai 2 4B. For smaller graphics cards, about 1.8 GB of video memory. | Optional |
 | `AI-NPC-Cyberpunk-Mod-OmniPack-0.2.1.zip` | 6.6 GB | OmniVoice: higher-quality local voices, 2 to 4 GB of video memory. Works with any text option. | Optional |
 | `AI-NPC-Cyberpunk-Mod-Mature-Lite-0.2.1.zip` | 2.9 GB | **18+.** An uncensored Local AI model (Qwen3.5 4B fine-tune). | Optional |
 | `AI-NPC-Cyberpunk-Mod-Mature-Standard-0.2.1.zip` | 5.5 GB | **18+.** An uncensored Local AI model (Gemma 4 E4B fine-tune). | Optional |
 
-**You can skip every optional pack.** The mod works out of the box with the Convai free tier (cloud, no cost to your frame rate) or Mistral (cloud, your own free key). The packs only add local options that run on your own graphics card.
+**You can skip every optional pack.** The mod works without them with Mistral (cloud, your own free key) or the Convai free tier (cloud, the default, nothing to set up), both at no cost to your frame rate. Local AI can also use a model server you already run (KoboldCpp, LM Studio, Ollama or any OpenAI-compatible one) with no pack; the steps are on the Nexus Mods page. The packs only add local options that run on your own graphics card.
 
 Text and voice are separate choices. Pick one text option (Convai, Mistral, Local AI, or Mature) and one voice option (the built-in voices, OmniVoice, or a cloud voice). Any combination works. Several text packs can be installed at once: only one model loads at a time, and you switch in Settings.
 
 ## Install
 
 1. Close the game.
-2. Extract each zip **into your Cyberpunk 2077 folder** (the one with `bin`, `archive` and `r6`), allowing folders to merge. Every zip already starts with the right folders (`red4ext\...` or `bin\...`).
-   - Don't extract into a new folder named after the zip (Windows' "Extract All" and 7-Zip's "Extract to *name*" do that by default). If it happens anyway, the mod moves the pack files into place by itself at the next start.
-3. Start the game. Open the Companion Manager, then Settings > Conversation provider to pick Local AI and a model, or Voice to pick OmniVoice.
+2. Extract each zip **into your Cyberpunk 2077 folder** (the one with `bin`, `archive` and `r6`), allowing folders to merge. Every zip already starts with the right folders (`bin`, `r6`, `archive` or `red4ext`). Use the same version of the Scripts and the Runtime, and extract the Runtime before the OmniVoice pack.
+   - Don't extract into a new folder named after the zip (Windows' "Extract All" and 7-Zip's "Extract to *name*" do that by default). If it happens anyway with an optional pack, the mod moves the pack files into place by itself at the next start. The Scripts and Runtime are not moved: extract them again into the game folder.
+3. Start the game. Open the Companion Manager, then Settings > Conversation provider to pick Local AI and a model, or Settings > Voices to pick OmniVoice.
+
+The Runtime runs its conversation page in an installed Chromium browser: Microsoft Edge, which comes with Windows, is enough, and Google Chrome, Brave, Vivaldi, Opera and other Chromium browsers work too (Firefox does not).
 
 Requirements, controls and troubleshooting are on the [Nexus Mods page](https://www.nexusmods.com/cyberpunk2077/mods/35436).
 
@@ -54,7 +56,7 @@ Each Mature pack works on its own: it includes the Local AI engine, so you need 
 
 ## Credits and licences
 
-Every model file is the unmodified upstream file, pinned by revision and SHA-256. Each pack carries its licence texts and a third-party notice.
+Every model file in the optional packs is the unmodified upstream file, pinned by revision and SHA-256. Each pack carries its licence texts and a third-party notice.
 
 | Component | Source | Licence |
 |---|---|---|
@@ -67,7 +69,7 @@ Every model file is the unmodified upstream file, pinned by revision and SHA-256
 | OmniVoice model | k2-fsa/OmniVoice | code Apache-2.0; weights CC-BY-NC (non-commercial) |
 | OmniVoice audio tokenizer | k2-fsa/OmniVoice | Boson Higgs Audio 2 Community License |
 | VoiceStudio adapter (OmniPack) | debpalash/VoiceStudio | AGPL-3.0-only |
-| Kyutai Pocket TTS (Runtime) | kyutai-labs/pocket-tts | MIT |
+| Kyutai Pocket TTS (Runtime; the voice model is adapted from Kyutai's weights) | kyutai-labs/pocket-tts | code MIT; weights CC-BY-4.0 |
 
 The mod's own code is under the AI NPC Cyberpunk Mod Use License 1.1. The full list of third-party components and their licence texts is in `THIRD-PARTY-NOTICES.txt` inside each package.
 

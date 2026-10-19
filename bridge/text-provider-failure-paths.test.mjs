@@ -360,18 +360,18 @@ test('a turn the host refuses at the door (no character, no words) is an error n
   } finally { await close(); }
 });
 
-test('a failure before the model is asked (no route for the provider, memory that cannot answer) fails the voice\'s stream too, so the voice does not wait for it', {todo: 'BUG (latent): reply() throws before its try block, so a caller-supplied ReplyStream is never failed and voiceStreamedReply awaits stream.headReady until the turn is aborted (bridge/text-provider-host.mjs, #candidates and memory.recall are outside the try)'}, async () => {
+test('a failure before the model is asked (no route for the provider, memory that cannot answer) fails the voice\'s stream too, so the voice does not wait for it', async () => {
   const {cloud, host, memory, close} = await cloudOnly(() => READY_LINE);
   try {
     const noRoute = new ReplyStream({name: 'Judy Alvarez'});
     host.provider.applied = 'local';   // the provider names a route this host does not have
     await assert.rejects(host.reply(turn('hello'), {stream: noRoute}));
-    assert.equal(noRoute.complete, true, 'no route: the stream is left open');
+    assert.equal(noRoute.complete, true, 'no route: the stream is failed, not left open');
     host.provider.applied = 'mistral';
     memory.recall = () => { throw Error('memory file unreadable'); };
     const broken = new ReplyStream({name: 'Judy Alvarez'});
     await assert.rejects(host.reply(turn('hello'), {stream: broken}));
-    assert.equal(broken.complete, true, 'memory fault: the stream is left open');
+    assert.equal(broken.complete, true, 'memory fault: the stream is failed, not left open');
     assert.equal(cloud.requests.length, 0);
   } finally { await close(); }
 });

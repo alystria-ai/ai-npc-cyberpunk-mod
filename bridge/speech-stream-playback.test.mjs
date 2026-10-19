@@ -22,7 +22,8 @@ local actor = {
  IsAttached=function() native(); return true end, IsDeadNoStatPool=function() native(); return false end,
  ConvaiFaceReady=function() native(); return true end, ConvaiFaceApply=function() native(); return true end,
  ConvaiFaceReset=function() native(); resets=resets+1; return true end}
-Game={GetPlayer=function() return player end, GetAllBlackboardDefs=function() return {UI_System={}} end,
+local players=0
+Game={GetPlayer=function() players=players+1; return player end, GetAllBlackboardDefs=function() return {UI_System={}} end,
  GetBlackboardSystem=function() return {Get=function() return {GetBool=function() return paused end} end} end}
 CName={new=function(x) return x end}; NewObject=function() return {} end
 convaiCompanions={owns=function(a) return a==actor end}
@@ -37,11 +38,19 @@ local function clone(value)
  if type(value)~='table' then return value end
  local copy={}; for key,item in pairs(value) do copy[key]=clone(item) end; return copy
 end
-json={encode=function(value) published=value; return '' end, decode=function() return clone(manifest) end}
+local decodes=0
+json={encode=function(value) published=value; return '' end, decode=function() decodes=decodes+1; return clone(manifest) end}
+-- The text the file holds follows the manifest the test edits: a changed manifest is a changed text, as a real rewrite would be.
+local function serialise(value)
+ if type(value)~='table' then return tostring(value) end
+ local keys={}; for key in pairs(value) do keys[#keys+1]=tostring(key) end; table.sort(keys)
+ local parts={}; for _,key in ipairs(keys) do parts[#parts+1]=key..'='..serialise(value[key] ~= nil and value[key] or value[tonumber(key)]) end
+ return '{'..table.concat(parts,',')..'}'
+end
 io.open=function(path,mode)
  if mode=='wb' then return {write=function() end,close=function() end} end
  if not manifest then return nil end
- return {read=function() return 'manifest' end,close=function() end}
+ return {read=function() return serialise(manifest) end,close=function() end}
 end
 local face=(function() ${facial} end)()
 dofile=function(path) return path=='facial-playback.lua' and face or captions end
@@ -140,4 +149,35 @@ test('text-only replies retain their target and dismissing another copy does not
  speech.clearEntity('Judy-2')
  assert(not speech.requestId and not speech.target and speech.state=='target-dismissed')
  assert(clearedEntities[#clearedEntities]=='Judy-2')
+`));
+
+test('an unchanged manifest is decoded once, not on every poll, and polling stops when every phrase has arrived', () => run(`
+ start()
+ local base=decodes
+ for step=1,30 do cursor=step*.05; speech.update(.1) end
+ assert(decodes-base==1, 'decoded '..(decodes-base)..' times for one unchanged manifest')
+ manifest.chunks[2]=chunk(2); manifest.complete=true
+ cursor=1.6; speech.update(.1)
+ assert(decodes-base==2, 'a changed manifest is decoded once more: '..(decodes-base))
+ cursor=1.7; for _=1,5 do speech.update(.1) end
+ assert(decodes-base==2, 'decoded again after every phrase was known: '..(decodes-base))
+`));
+
+test('a manifest that was refused is not decoded again until its text changes, and is accepted once it is right', () => run(`
+ start(); cursor=.2; speech.update(.1); cursor=2; speech.update(.1)
+ manifest.chunks[2]=chunk(2); manifest.complete=true; manifest.entity='Judy-1'
+ local before=decodes
+ for _=1,20 do speech.update(.1) end
+ assert(starts==1 and decodes-before==1, 'a refused manifest was decoded '..(decodes-before)..' times')
+ manifest.entity='Judy-2'; speech.update(.1)
+ assert(starts==2, 'the corrected manifest was not taken')
+`));
+
+test('with nothing playing the speech update makes no game call between its two-second heartbeats', () => run(`
+ for _=1,19 do speech.update(.1) end
+ assert(players==0, 'the player was fetched '..players..' times while idle')
+ speech.update(.1)
+ assert(players==1, 'the heartbeat fetches it once: '..players)
+ for _=1,10 do speech.update(.1) end
+ assert(players==1, 'and not again until the next heartbeat: '..players)
 `));

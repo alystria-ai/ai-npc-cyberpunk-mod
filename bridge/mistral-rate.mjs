@@ -108,6 +108,9 @@ export class MistralScheduler {
       }
     }
     const now = this.now();
+    // The minute that a 429 asked for is over: whatever slows the starts from here on is the headers' own, and a later "room again"
+    // may end it (a flag left from the 429 would keep it for its 30 s).
+    if (now >= this.slowUntil) this.slowFrom429 = false;
     if (empty) {
       const retry = read('retry-after');
       this.pausedUntil = Math.max(this.pausedUntil, now + Math.min(MAX_PAUSE_MS, retry !== null ? retry * 1000 : EMPTY_PAUSE_MS));
@@ -118,7 +121,6 @@ export class MistralScheduler {
     } else if (allowances.size && !this.slowFrom429) {
       this.slowUntil = 0;   // room again
     }
-    if (now >= this.slowUntil) this.slowFrom429 = false;
     this.pump();
   }
 

@@ -60,7 +60,7 @@ function parseRequest(raw) {
   const battle = parseBattle(value.battle);
   // Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): his own unprompted remark, only with his head field on his profile.
   const head = group ? null : parseHead(value.head);
-  const reaction = value.reaction?.kind === 'addon' ? parseAddonReaction(value.reaction, addon)
+  const reaction = value.reaction?.kind === 'addon' ? parseAddonReaction(value.reaction, addon, profileKey)
     : value.reaction?.kind === 'head' ? parseHeadReaction(value.reaction, head, profileKey)
       // V talks on their own (docs/V_TALKS.md): V's line is the request text; the reaction names the exchange, its step and the event.
       : value.reaction?.kind === 'vtalk' ? parseVTalkReaction(value.reaction, {text, profileKey, group})

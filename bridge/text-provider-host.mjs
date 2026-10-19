@@ -1,5 +1,5 @@
-// The text routes (docs/MISTRAL.md, docs/LOCAL_AI.md): Mistral and the fully local AI (llama.cpp's llama-server) both speak the
-// OpenAI chat-completions protocol, so one host serves them. `TextProviderHost.reply(config)` takes the same configuration the bridge
+// The text routes (docs/MISTRAL.md, docs/LOCAL_AI.md, docs/CUSTOM_PROVIDER.md): Mistral, the fully local AI (llama.cpp's llama-server) and the
+// player's own endpoint (OpenRouter, Nano-GPT, Ollama, LM Studio: "custom") all speak the OpenAI chat-completions protocol, so one host serves them. `TextProviderHost.reply(config)` takes the same configuration the bridge
 // hands the Convai realtime host for a turn and returns the same kind of result ({text, sessionID, timing, ...}, cleaned by the same
 // transformReply), so subtitles, Phone Chat, the local voices, the face, the emotion selector and group rounds see no difference.
 // `attachTextProvider(host, ...)` makes a RealtimeHost use this route for text turns while the provider is not Convai; everything
@@ -9,7 +9,7 @@
 // request fields), whether requests are paced (Mistral's free plan), how a failure is recorded on the provider, and whether a
 // failure may fall through to the next route (Local -> Mistral). Everything else (the prompt, streaming and the sentence cap, the
 // retry of a reply that broke character, memory, summaries, fact extraction) is shared and behaves identically on every route.
-import {streamChat, MistralError, DEFAULT_MODELS, failureKind} from './mistral-client.mjs';
+import {streamChat, MistralError, DEFAULT_MODELS, failureKind, newAdaptation} from './mistral-client.mjs';
 import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, provokesAiTalk, takesUpAiTalk, trimUnfinished,
   summaryMessages, factMessages, capWords, overWords, remarkTokens, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS} from './mistral-prompt.mjs';
 import {actionMenu, splitActions} from './text-actions.mjs';
@@ -54,6 +54,12 @@ export const HOLDING_LINES = Object.freeze([
   'Hold on. I lost you for a moment there. Say it again?',
 ]);
 
+// The custom provider is an endpoint nobody here has measured: a cloud model may queue for several seconds (OpenRouter's free models), and a server
+// on the player's own computer may be loading its model on the first turn. So the waits are longer than Mistral's, and a slow answer is an error
+// the player is told about (custom-unreachable), never an in-character holding line that would hide a wrong address for ever.
+export const CUSTOM_CLOUD_LIMITS = Object.freeze({firstByteMs: 20000, retryFirstByteMs: 25000, stallMs: 15000, totalMs: 70000, retries: 1, backoffMs: [300]});
+export const CUSTOM_SERVER_LIMITS = Object.freeze({firstByteMs: 90_000, retryFirstByteMs: 90_000, stallMs: 0, totalMs: 120_000, retries: 1, backoffMs: [400]});
+
 const LOCAL_UNAVAILABLE =/\[local:unavailable\]/;
 /** Is this error "the local AI cannot be used" (not installed, not enough graphics memory, would not start)? */
 export const isLocalUnavailable = error => LOCAL_UNAVAILABLE.test(typeof error?.message === 'string' ? error.message : '');
@@ -87,6 +93,49 @@ export function mistralRoute({provider, model = () => DEFAULT_MODELS, decisionMo
       try { onFailure?.(error); } catch { /* an observer never fails a reply */ }
     },
     label: 'Mistral'};
+}
+
+/**
+ * The custom provider: any OpenAI-compatible chat-completions endpoint the player named (bridge/custom-endpoint.mjs holds the address, the optional key
+ * and the model id). One model, no persona cache key (an unknown server may refuse unknown fields), no pacing: a 429 with a Retry-After is waited out when
+ * it is short and otherwise answered at once, and no request is made until it has passed (the next turns get the notice without waiting). A request field
+ * the server refuses is dropped and remembered (`adaptation`, bridge/mistral-client.mjs). Never the Mature layer: only the local AI has it (#matureLevel).
+ *   custom      the CustomEndpoint (address, key, model id)
+ */
+export function customRoute({provider, custom, chat = streamChat, now = () => Date.now(), onFailure, onSuccess} = {}) {
+  const adaptations = new Map();
+  const adaptation = () => {
+    const key = `${custom.origin}|${custom.model}`;
+    if (!adaptations.has(key)) adaptations.set(key, newAdaptation());
+    return adaptations.get(key);
+  };
+  let pausedUntil = 0, pausedOrigin = null;
+  return {name: 'custom', provider: 'custom', chat, gapMs: 0, blocked: new Map(), nextSlot: 0, holdingLines: false,
+    // A server on this computer or the home network answers one request at a time: the action decision does not overlap the reply.
+    get parallel() { return !custom.local; },
+    get chatDefaults() { return custom.local ? CUSTOM_SERVER_LIMITS : CUSTOM_CLOUD_LIMITS; },
+    models: () => [{id: custom.model ?? 'custom'}],
+    adaptation,
+    async connect() {
+      if (!custom.ready) throw new MistralError('request', 'is not set up', {provider: 'custom'});
+      const wait = pausedOrigin === custom.origin ? pausedUntil - now() : 0;
+      // The server asked to be left alone for a while: no request goes out before that (Retry-After), and the notice comes at once.
+      if (wait > 0) throw new MistralError('limit', 'asked for a pause between requests', {provider: 'custom', retryAfterMs: wait});
+      return {apiKey: custom.key ?? undefined, endpoint: custom.chatUrl, requestModel: custom.model, trustedOrigin: custom.origin,
+        headers: custom.extraHeaders, adapt: adaptation()};
+    },
+    cacheBody: () => ({}),
+    jsonBody: () => ({response_format: {type: 'json_object'}}),
+    summarizeAllowed: () => !(provider.limit && (provider.limit.kind === 'invalid' || provider.limit.kind === 'credits')),
+    fallsBack: () => false,
+    success() { pausedUntil = 0; provider.noteSuccess(); try { onSuccess?.(); } catch { /* an observer never fails a reply */ } },
+    failure(error) {
+      const kind = failureKind(error);
+      if (kind === 'limit' && error.retryAfterMs > 0) { pausedUntil = Math.max(pausedOrigin === custom.origin ? pausedUntil : 0, now() + error.retryAfterMs); pausedOrigin = custom.origin; }
+      provider.noteLimit(kind === 'limit' ? 'rate' : kind === 'key' ? 'invalid' : kind === 'model' ? 'model' : kind === 'credits' ? 'credits' : null);
+      try { onFailure?.(error); } catch { /* an observer never fails a reply */ }
+    },
+    label: 'The custom provider'};
 }
 
 /**
@@ -219,10 +268,12 @@ export class TextProviderHost {
       let lastError;
       for (const item of usable.length ? usable : wanted.slice(0, 1)) {
         try {
-          // `lease.requestModel`: the model id a server the player runs is asked for (the local route only); `lease.trustedOrigin`: the one origin
-          // that server's key may go to (bridge/mistral-client.mjs). Neither exists for the other routes.
+          // `lease.requestModel`: the model id a server the player runs is asked for (the local and custom routes); `lease.trustedOrigin`: the one origin
+          // that server's key may go to (bridge/mistral-client.mjs); `lease.headers` and `lease.adapt` (custom only): OpenRouter's two optional headers, and
+          // what the server has refused so far. None of them exists for the Mistral route.
           return await route.chat({apiKey: lease.apiKey, model: lease.requestModel ?? item.id, messages, signal, endpoint: lease.endpoint ?? route.endpoint,
-            provider: route.provider, ...(lease.trustedOrigin ? {trustedOrigin: lease.trustedOrigin} : {}), maxTokens: item.maxTokens ?? this.limits.maxTokens, temperature: this.limits.temperature,
+            provider: route.provider, ...(lease.trustedOrigin ? {trustedOrigin: lease.trustedOrigin} : {}),
+            ...(lease.headers ? {headers: lease.headers} : {}), ...(lease.adapt ? {adapt: lease.adapt} : {}), maxTokens: item.maxTokens ?? this.limits.maxTokens, temperature: this.limits.temperature,
             ...(route.chatDefaults ?? {}), ...rest, onHeaders: route.noteHeaders,
             onRetry: ({attempt, error, waitMs, ms}) => this.log(`${route.label} attempt ${attempt} failed after ${ms} ms (${error.kind}${error.status ? ` ${error.status}` : ''}${error.slow ? ', no answer in time' : ''}); asking again in ${waitMs} ms`),
             extraBody: {...route.cacheBody(profileKey), ...(item.body ?? {}), ...extraBody}});
@@ -255,7 +306,18 @@ export class TextProviderHost {
    * It is written as usual, but nothing is remembered and no companion action is handed to the game until `confirmed` resolves; when it rejects
    * (the final words differ) the reply ends there with that error and leaves no trace.
    */
-  async reply(config, {signal, stream, confirmed} = {}) {
+  async reply(config, options = {}) {
+    try {
+      return await this.#reply(config, options);
+    } catch (error) {
+      // A fault before the model is asked (no route for the provider, memory that cannot answer) must not leave the voice's stream open,
+      // or the voice waits for a head that never comes. A stream that already finished or failed ignores this.
+      try { options?.stream?.fail?.(error); } catch { /* a listener never breaks the turn */ }
+      throw error;
+    }
+  }
+
+  async #reply(config, {signal, stream, confirmed} = {}) {
     if (signal?.aborted) throw cancelled();
     const local = config?.local;
     if (!local || typeof local.profileKey !== 'string') throw new MistralError('request', 'turn has no character');
@@ -363,7 +425,8 @@ export class TextProviderHost {
   #standingReply(route, error, {reaction, config, text, memoryKey, feed, started, profileKey}) {
     if (!(error instanceof MistralError) || route.name === 'local') return null;
     const head = feed.committed ? feed.head : '';
-    if (!head && (reaction || !error.slow)) return null;
+    // A route with `holdingLines: false` (custom) never answers with a holding line: its slow answers are errors the player is told about.
+    if (!head && (reaction || !error.slow || route.holdingLines === false)) return null;
     const spoken = head || HOLDING_LINES[this.holdingTurns++ % HOLDING_LINES.length];
     // What the character really said is remembered; the holding line is not (it answers nothing).
     if (head && !reaction) { this.memory.record({...memoryKey, v: text, r: stripSpeechTags(head)}); this.#summarize(route, profileKey); }
@@ -647,7 +710,7 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
     const {local: _local, contextParts: _parts, ...rest} = config;
     return rest;
   };
-  const label = () => ({mistral: 'Mistral', local: 'the local AI'})[provider.route] ?? 'Mistral';
+  const label = () => ({mistral: 'Mistral', local: 'the local AI', custom: 'the custom provider'})[provider.route] ?? 'Mistral';
   host.reply = function reply(config, options) {
     return provider.active ? textHost.reply(config, options) : original.reply.call(this, withoutLocal(config), options);
   };
@@ -659,7 +722,7 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
     if (!provider.active) return original.warm.call(this, withoutLocal(config), options);
     if (provider.route === 'local') void textHost.prewarm?.(config);
     // A cloud route's connection is kept open for 60 s after its last use: opening the composer renews it (an unauthenticated request).
-    else if (warmCloud && provider.route === 'mistral') void warmCloud({provider: provider.route});
+    else if (warmCloud && (provider.route === 'mistral' || provider.route === 'custom')) void warmCloud({provider: provider.route});
     // The local voice's browser and renderer page open now, while V types or looks, not in front of the first reply.
     if (typeof prewarmVoice === 'function' ? prewarmVoice() : prewarmVoice) void this.prewarmLocal?.();
     return Promise.resolve({connectionMs: 0, provider: provider.route});

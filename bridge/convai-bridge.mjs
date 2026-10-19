@@ -45,7 +45,7 @@ import {VoiceSelection} from './voice-selection.mjs';
 import {VoxtralVoice} from './voxtral-voice.mjs';
 import {InworldVoice} from './inworld-voice.mjs';
 import {INWORLD_KEY_FILE, InworldKey} from './inworld-key.mjs';
-import {createReferencePreparer} from './voxtral-reference.mjs';
+import {createReferencePreparer, PREPARED_FOLDER, RUNTIME_PREPARED_FOLDER} from './voxtral-reference.mjs';
 import {VoiceRoutingLog, ROUTING_LOG_NAME, describeVoiceRoute} from './voice-routing-log.mjs';
 import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
@@ -94,13 +94,14 @@ import {readKeyFileText} from './key-codec.mjs';
 import {AUTH_CONFIG_FILE, INSTALL_FILE, TokenSource, loadInstallId, readAuthSettings} from './convai-credential.mjs';
 import {DAILY_LIMIT, LimitStore, RemarkAllowance, SharedKeyGuard, UsageStore, limitFromEnvironment, machineId} from './shared-key-guard.mjs';
 import {MISTRAL_KEY_FILE, MistralControl, MistralProvider} from './mistral-key.mjs';
-import {TextProviderHost, attachTextProvider, isLocalUnavailable, localRoute, mistralRoute} from './text-provider-host.mjs';
+import {CUSTOM_FILE, CustomControl, CustomEndpoint, testConnection as testCustomConnection} from './custom-endpoint.mjs';
+import {TextProviderHost, attachTextProvider, customRoute, isLocalUnavailable, localRoute, mistralRoute} from './text-provider-host.mjs';
 import {MEMORY_FILE as MISTRAL_MEMORY_FILE} from './mistral-memory.mjs';
 import {MemoryStore} from './memory-store.mjs';
 import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
 import {detectLocalAiPack} from './local-ai-pack.mjs';
 import {LocalLlmServer, nvidiaTotalMiB} from './local-llm-server.mjs';
-import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, normalisePin} from './local-model-choice.mjs';
+import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, matureOffBlocks, normalisePin} from './local-model-choice.mjs';
 import {CustomModelScanner} from './custom-models.mjs';
 import {LlamaEmbedder} from './local-embed.mjs';
 import {watchFiles, createWakeSignal} from './file-wake.mjs';
@@ -184,7 +185,8 @@ const jaliFace = await JaliFace.load(resolve(stateDirectory, 'lipsync-model')).c
 // OmniVoice long reference on the player's Mistral key. Pocket stays loaded as the fallback for any reply it cannot deliver in time.
 // The key is read from the Mistral provider on each call (it can be pasted or removed while the game runs); `mistral` is created below.
 // The reference clip is sent with every request, so a smaller one is a shorter wait for the first sound (bridge/voxtral-reference.mjs):
-// 24 kHz mono (the clone keeps only the bandwidth of its reference) and cut to about 8.5 s (Ogg Vorbis as well when ffmpeg is on the machine; MP3 stops at 11.3 kHz), prepared once per character and kept in <references>/prepared.
+// 24 kHz mono (the clone keeps only the bandwidth of its reference) and cut to about 8.5 s (Ogg Vorbis as well when ffmpeg is on the machine; MP3 stops at 11.3 kHz), prepared once per character and kept in <references>/prepared
+// (the Runtime's own pre-built slots are read from <references>/prepared-runtime when that one has none that fits).
 // CYBERPUNK_CONVAI_VOXTRAL_FULL_REFERENCE=1 sends the clips whole, as before.
 // Reply streaming (bridge/reply-stream.mjs): on unless settings.json "replyStreaming": false or this variable is 0. Kept up here, beside the other
 // environment reads, so the sections of this file that tests evaluate on their own never touch `process`.
@@ -194,7 +196,7 @@ const voxtralReferenceRoot = process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES || res
 const voxtralVoice = new VoxtralVoice({getKey: () => { try { return mistral.apiKey ?? null; } catch { return null; } },
   referenceRoot: voxtralReferenceRoot,
   prepare: process.env.CYBERPUNK_CONVAI_VOXTRAL_FULL_REFERENCE === '1' ? undefined
-    : createReferencePreparer({cacheDirectory: resolve(voxtralReferenceRoot, 'prepared'), onLog: message => process.stderr.write(`[Voxtral] ${message}\n`)}),
+    : createReferencePreparer({cacheDirectory: resolve(voxtralReferenceRoot, PREPARED_FOLDER), shippedDirectories: [resolve(voxtralReferenceRoot, RUNTIME_PREPARED_FOLDER)], onLog: message => process.stderr.write(`[Voxtral] ${message}\n`)}),
   onLog: message => process.stderr.write(message)});
 // The Inworld cloud voice (docs/CLOUD_VOICE_INWORLD.md): the same kind of choice, on the player's own Inworld key (player-inworld-key.txt in
 // the state folder, pasted in Settings). Each character is cloned once from the same reference clips; the voice ids are kept in
@@ -257,13 +259,18 @@ const quota = new QuotaWatch({keys});
 // The fully local AI (docs/LOCAL_AI.md) is the same kind of choice: a text provider that answers through the shared host
 // (bridge/text-provider-host.mjs). It is off until the setting names it. A saved setting of 'groq' (a provider removed on 2026-10-14)
 // names no provider, so it is the default, Convai (MistralProvider.setPreference); player-groq-key.txt is never read.
-const mistral = await new MistralProvider({keyPath: resolve(stateDirectory, MISTRAL_KEY_FILE), inworld: inworldKey}).load();
+// The player's custom OpenAI-compatible endpoint (docs/CUSTOM_PROVIDER.md): address, optional key and model id in player-custom-endpoint.txt in this state
+// folder. Reading it is a file read and nothing more: no request is made to the endpoint unless the player chooses this provider or presses Test connection.
+const customEndpoint = await new CustomEndpoint({path: resolve(stateDirectory, CUSTOM_FILE), log: message => console.error('[Custom] ' + message)}).load();
+const mistral = await new MistralProvider({keyPath: resolve(stateDirectory, MISTRAL_KEY_FILE), inworld: inworldKey, custom: customEndpoint}).load();
 // The optional Local AI packs (standard and lite) and the supervisor of the model server. Nothing starts here: the server is
 // started when the player chooses Local, and stops by itself after ten idle minutes. A developer points CYBERPUNK_CONVAI_LOCAL_AI_DEV
 // at a folder of models (docs/LOCAL_AI.md).
 let localPack = detectLocalAiPack({project});
 // Omni (the OmniVoice pack) loads first and the model tier is chosen from the graphics memory left (docs/LOCAL_AI.md): a wait of
 // at most two minutes inside the supervisor, then the tier that fits, else the cloud provider.
+// True once a settings poll has read the voice settings (playback on or off): until then `playbackEnabled` is only its default.
+let voiceSettingsRead = false;
 const omniSettled = () => localVoice.requestedProvider !== 'omni' || localVoice.provider === 'omni' || localVoice.omniPack?.installed === false;
 // Which installed model loads (docs/LOCAL_AI.md, "Choosing the model"): the localModel setting (auto or one model) and Mature content, read
 // when a start begins. A change while Local AI is the provider reloads at an idle moment (localModelChoiceChanged, on the settings poll).
@@ -519,7 +526,7 @@ const phoneSessionPath = resolve(stateDirectory, 'phone-sessions.json');
 let phoneSessions = {};
 try { phoneSessions = JSON.parse(await readFile(phoneSessionPath, 'utf8')) || {}; } catch {}
 const phone = new PhoneChat({
-  failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return code === 'daily-limit' || /^(mistral|local)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? 'local-fallback' : undefined; },
+  failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return code === 'daily-limit' || /^(mistral|local|custom)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? 'local-fallback' : undefined; },
   contacts: JSON.parse(await readFile(resolve(project, 'characters/phone-contacts.json'), 'utf8')), ids,
   resetFor: profileKey => memoryControl.chatResets.phoneState(profileKey),
   contextFor: options => phoneKnowledge.prepareContext(options),
@@ -663,6 +670,7 @@ const realtime = new RealtimeHost({onCompanionAction: packet => companionActions
 const textRoutes = {
   mistral: mistralRoute({provider: mistral, model: () => MISTRAL_MODELS, decisionModel: () => MISTRAL_DECISION_MODELS, scheduler: mistralScheduler, priorities: PRIORITY, cacheScope: createHash('sha256').update(stateDirectory).digest('hex').slice(0, 12)}),
   local: localRoute({server: localServer, provider: mistral, log: message => console.error('[TextProvider] ' + message)}),
+  custom: customRoute({provider: mistral, custom: customEndpoint}),
 };
 const providerOfCharacter = new Map();
 const profileOfCharacter = config => {
@@ -702,7 +710,10 @@ const mistralSpeech = createLocalSpeech({
   // The input device, its level and the words (or why they were ignored) of every recording, one line each.
   log: line => console.error('[CyberpunkConvai] Microphone: ' + line)});
 // Two side by side: the action decision and the reply of one turn are two requests at once (bridge/mistral-client.mjs, warmConnection).
-const warmTurnConnections = options => warmConnection({...options, connections: 2});
+// The custom provider warms its own https origin (none for a server on this computer or the home network, which has no TLS to open).
+const warmTurnConnections = options => options?.provider === 'custom'
+  ? (customEndpoint.warmOrigin ? warmConnection({...options, origin: customEndpoint.warmOrigin, connections: 2}) : Promise.resolve(false))
+  : warmConnection({...options, connections: 2});
 for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech, prewarmVoice: () => host === realtime && localVoice.playbackEnabled !== false, warmCloud: warmTurnConnections});
 // Add-on speakers (docs/ADDON_API.md) answer only through Mistral or the local AI, whatever the player's conversation provider is:
 // one text host per route (and whether the local AI may fall back to Mistral), made the first time an add-on speaker needs it. They
@@ -1835,7 +1846,9 @@ async function resetLiveRoutes({cancelTurns = true} = {}) {
 // provider switch. Nothing else opens it until the next composer warm-up, so a turn that comes first would start Edge in front of its
 // voice (770 ms, then the renderer page: the live record of 2026-10-13, the turn after a provider switch). Open it again at once.
 function rewarmLocalVoice() {
-  if (mistral.active && localVoice.playbackEnabled !== false && !stopped) void realtime.prewarmLocal();
+  // Not before the first settings poll has read the playback setting: with voice playback Off a text provider needs no browser, and the
+  // default (On) would start one at launch that then lives for BROWSER_IDLE_MS for nothing. The poll calls this once it has read it.
+  if (voiceSettingsRead && mistral.active && localVoice.playbackEnabled !== false && !stopped) void realtime.prewarmLocal();
 }
 
 async function quiescePlayerMemory({signal, scope, profileKeys} = {}) {
@@ -2661,13 +2674,15 @@ async function applyProviderChoice() {
   try {
     mistral.apply();
     // The cloud provider's connection (DNS, TCP, TLS) opens now, not in front of the first turn (docs/LATENCY_2026-10-13.md, 4.5/4.7).
-    if (mistral.active && mistral.route === 'mistral') void warmTurnConnections({provider: mistral.route});
+    if (mistral.active && (mistral.route === 'mistral' || mistral.route === 'custom')) void warmTurnConnections({provider: mistral.route});
     dropPrefetch(); prefetchObserved = '';
     await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
     sessions.clear(); realtimeSessions.clear();
     await phone.forgetSessions().catch(() => {});
     console.error(`[CyberpunkConvai] Conversation provider: ${mistral.applied}`);
     rewarmLocalVoice();
+    // What the custom provider is set to, for a support report: the host and the model id (never the address's path, a query or the key).
+    if (mistral.applied === 'custom') console.error(`[Custom] host ${customEndpoint.host}, model ${customEndpoint.model}, key ${customEndpoint.key ? 'saved' : 'none'}`);
     // Leaving the local AI gives its graphics memory back at once; arriving loads it (a first start compiles shaders for a while).
     if (mistral.applied === 'local') void localServer.ensure({background: true}).catch(() => {});
     else void localServer.stop().catch(() => {});
@@ -2737,12 +2752,26 @@ function syncLocalModelChoice(settings) {
     if (!first && matureContent.enabled && mistral.clearLocalFailure('mature-off')) prepareLocal();
   }
 }
+// The pack, or a model of the player's own, can appear while the game runs (the pack extracted after choosing Local, a model added to the
+// manifest). A start that was refused for what was missing is tried again at once, instead of staying on Convai until the player picks
+// another provider and then Local again. Looked at with the 5 s refresh below: property reads, no file and no process unless it retries.
+function retryLocalAfterInstall() {
+  const why = mistral.localBroken;
+  if (mistral.preference !== 'local' || (why !== 'not-installed' && why !== 'mature-off')) return;
+  const lifted = why === 'not-installed' ? localPack.installed || ownServerListed()
+    : !matureOffBlocks(listLocalModels({pack: localPack, matureModels: maturePackModels, customModels: customScan.models}), matureContent.enabled);
+  if (lifted && mistral.clearLocalFailure(why)) {
+    console.error(`[LocalAI] ${why === 'not-installed' ? 'a model was installed' : 'a model that needs no Mature content was installed'}: starting the local model`);
+    prepareLocal();
+  }
+}
 // The installed models and the defaults for the settings page, after the provider is applied so the card probe never holds a start back.
 async function publishLocalModelList() {
   if (Date.now() - localModelListCheckedAt >= 5000) {
     localModelListCheckedAt = Date.now();
     refreshLocalPack();
     scanCustomModels();
+    retryLocalAfterInstall();
     await learnCardTotal();
     const listKey = JSON.stringify([installedLocalModels(), localModelDefaults(), customModelProblems()]);
     if (listKey !== localModelListKey) { localModelListKey = listKey; await mistralControl.publishStatus().catch(() => {}); }
@@ -2777,6 +2806,8 @@ async function pollSettings(checkShutdown = true) {
       // Convai's free plans carry no multilingual support: conversations use the original characters, not the twins.
       if (keys.singleSession) settings = {...settings, multilingualConversations: false};
       // Conversation provider (docs/MISTRAL.md): the setting and the settings page's commands, then the switch itself.
+      // Choosing the custom provider reads its file again first: a player may have written the address by hand while the game ran.
+      if (settings.conversationProvider === 'custom' && mistral.preference !== 'custom') await customEndpoint.load().catch(() => {});
       if (mistral.setPreference(settings.conversationProvider)) {
         if (mistral.preference === 'local') prepareLocal();
         // Choosing another provider unloads the local model at once when it is not answering turns (it was loaded ahead by prepareLocal and
@@ -2785,6 +2816,7 @@ async function pollSettings(checkShutdown = true) {
         await mistralControl.publishStatus().catch(() => {});
       }
       await mistralControl.poll().catch(() => {});
+      await customControl.poll().catch(() => {});
       if (Date.now() - speechCheckedAt > 10000) {
         speechCheckedAt = Date.now();
         const stt = mistralSpeech?.available() === true;
@@ -2813,6 +2845,7 @@ async function pollSettings(checkShutdown = true) {
     if (localVoice.update(settings, preview, voiceBoundaryBusy())) {
       dropPrefetch(); prefetchObserved = '';
     }
+    if (!voiceSettingsRead) { voiceSettingsRead = true; rewarmLocalVoice(); }
     // A prepared reply was written under the previous Natural speech instructions.
     const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
     const followUpChanged = followUp.update(settings);
@@ -2871,7 +2904,12 @@ const paidTierControl = await new PaidTierControl({keys, commandPath: resolve(ru
 playerConnectionLimit = () => paidTierControl.connectionLimit();
 const mistralControl = await new MistralControl({provider: mistral, commandPath: resolve(runtime, 'mistral-key-command.json'),
   inworldCommandPath: resolve(runtime, 'inworld-key-command.json'), localStatus: localAiStatus, localReason: localAiReason, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, localModelDefaults, localModelProblems: customModelProblems, model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
-mistral.onChange(() => { void mistralControl.publishStatus().catch(() => {}); });
+// The custom provider's settings page: three pastes and a connection test (bridge/custom-endpoint.mjs). Idle until the page writes a command.
+const customControl = await new CustomControl({custom: customEndpoint, provider: mistral, commandPath: resolve(runtime, 'custom-provider-command.json'),
+  publish: value => atomic(resolve(runtime, 'custom-provider-state.json'), JSON.stringify(value)),
+  test: () => testCustomConnection(customEndpoint, {adapt: textRoutes.custom.adaptation()}),
+  log: message => console.error('[Custom] ' + message)}).open();
+mistral.onChange(() => { void mistralControl.publishStatus().catch(() => {}); void customControl.publishStatus().catch(() => {}); });
 const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
   commandPath: resolve(runtime, 'memory-command.json'),
   chatResetPath: resolve(runtime, 'memory-chat-resets.json'),
@@ -2895,6 +2933,9 @@ const setupCheck = await SetupCheckControl.open({runtime, log: message => consol
         matureOnly: pack.installed && !pack.tiers.standard && !pack.tiers.lite && matureInstalled, ownServer: ownServerListed(), models: maturePackModels};
     },
     omniPack: () => detectOmniPack({project, config: omniVoiceConfigs.long}),
+    // The saved endpoint of the custom provider (host, port), asked for only while that provider is chosen: its host is the one the internet check looks up.
+    custom: () => customEndpoint.ready ? {hostname: customEndpoint.address.hostname, host: customEndpoint.host, secure: customEndpoint.secure,
+      port: Number(new URL(customEndpoint.origin).port) || (customEndpoint.secure ? 443 : 80)} : null,
     browser: () => cachedBrowserName(), graphics: () => cachedGraphicsCards(), modManagers: () => cachedModManagers({game}),
     nestedPacks: () => findNestedPacks({game, modRoot: resolve(runtime, '..'), plugin: resolve(game, 'red4ext/plugins/AiNpcCyberpunkMod')}),
     placement: () => readPackPlacement({stateDirectory, startedAt: bridgeStartedAt})})});
