@@ -122,6 +122,7 @@ const runtime = resolve(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyb
 // not the player's own doing and the setup check's problems are recorded after the fact, never on a turn's path. Off with the setting.
 installCrashCapture({stateDirectory, runtime});
 const errorEvents = new ErrorEvents({stateDirectory, runtime});
+const noteSetupProblems = document => { try { if (document) errorEvents.setupChecked(document); } catch { /* never fails start-up */ } };
 const keyFile = process.env.CYBERPUNK_CONVAI_KEY_FILE || resolve(stateDirectory, 'convai-key.txt');
 // Named characters, then the generic NPC archetypes (docs/NPC_ARCHETYPES.md). The archetype roster is optional:
 // without it (or without their IDs in characters.json) unnamed NPCs simply have no profile.
@@ -403,10 +404,11 @@ const keyNotice = () => {
   // The fallback notice names the model that was used instead.
   return keyNotice ? {keyNotice, ...(keyNotice === 'local-model-fallback' && mistral.noticeModel ? {keyNoticeModel: mistral.noticeModel} : {})} : {};
 };
-// A failed turn for the automatic error reports (bridge/error-events.mjs decides whether it is the player's own doing). Called after the
-// failure reply is written; it defers its one file write, so the turn's path pays a function call.
-function noteTurnFailure(error, errorCode, {microphone = false} = {}) {
+// A failed turn for the automatic error reports (bridge/error-events.mjs decides whether it is the player's own doing, from the same code
+// the failure reply carries). Called after that reply is written; it defers its one file write, so the turn's path pays a function call.
+function noteTurnFailure(error, input, {microphone = false} = {}) {
   try {
+    const errorCode = input ? turnFailure(error, input).errorCode : undefined;
     errorEvents.turnFailed(error, {provider: mistral.route ?? 'convai', errorCode, microphone,
       localReason: errorCode === 'local-fallback' || errorCode === 'local-unavailable' ? mistral.localBroken || localServer.status().reason : undefined});
   } catch { /* a report is never worth a failure of its own */ }
@@ -1783,11 +1785,10 @@ const addonVoice = createAddonVoice({isSpeaker: key => addonHost.isSpeaker(key),
   answerError: async ({input, signal, current, error}) => {
     // The same answer a typed add-on turn gets from runInput: a message about the service, not about the microphone.
     console.error('[Addons] Voice turn failed:', error.message);
-    const failure = turnFailure(error, input);
     await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
-      error: 'The conversation service could not reply. Please try again.', ...failure}),
+      error: 'The conversation service could not reply. Please try again.', ...turnFailure(error, input)}),
       {signal, isCurrent: current, isCurrentSync: current.sync}).catch(() => {});
-    noteTurnFailure(error, failure.errorCode, {microphone: true});
+    noteTurnFailure(error, input, {microphone: true});
   }});
 
 const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => realtime.voiceChannel()),
@@ -1871,10 +1872,9 @@ const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => rea
     const silent = error?.code === 'MIC_SILENT';
     await atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state: silent ? 'silent' : noSpeech ? 'no-speech' : 'error', requestId: input.requestId,
       ...(silent ? {device: String(error.device ?? '').slice(0, 80)} : {}), updated: Date.now()}), {isCurrent: current, isCurrentSync: current.sync});
-    const failure = turnFailure(error, input);
     await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
-      entity: input.entity, error: 'Voice conversation failed. Check your microphone and try again.', ...failure}), {isCurrent: current, isCurrentSync: current.sync});
-    if (!noSpeech && !silent) noteTurnFailure(error, failure.errorCode, {microphone: true});
+      entity: input.entity, error: 'Voice conversation failed. Check your microphone and try again.', ...turnFailure(error, input)}), {isCurrent: current, isCurrentSync: current.sync});
+    if (!noSpeech && !silent) noteTurnFailure(error, input, {microphone: true});
   },
 });
 
@@ -2471,13 +2471,12 @@ async function runInput(request, prepared, clock) {
     if (companionActions.pending?.packet.requestId === input?.requestId) void companionActions.revoke();
     if (!await current()) return;
     await status('error', error.message, input ? {requestId: input.requestId} : null).catch(() => {});
-    const failure = input ? turnFailure(error, input) : {};
     if (input) await atomic(replyPath, JSON.stringify({requestId: input.requestId,
       generation: input.generation, entity: input.entity,
-      error: 'The conversation service could not reply. Please try again.', ...failure}), {signal: controller.signal, isCurrent: current, isCurrentSync: current.sync}).catch(() => {});
+      error: 'The conversation service could not reply. Please try again.', ...turnFailure(error, input)}), {signal: controller.signal, isCurrent: current, isCurrentSync: current.sync}).catch(() => {});
     console.error('[CyberpunkConvai] Bridge request failed:', error.message);
     // An automatic reaction that failed is a turn too; one cancelled by the player is not (reportableTurnFailure).
-    if (input && !controller.signal.aborted) noteTurnFailure(error, failure.errorCode);
+    if (input && !controller.signal.aborted) noteTurnFailure(error, input);
   } finally {
     if (knowledgeTurn && (controller.signal.aborted || !await current())) await cancelKnowledgeTurn(knowledgeTurn);
     if (active === request) active = null;
@@ -3008,8 +3007,7 @@ const editorControl = await EditorControl.open({server: new EditorServer({editor
 await companionActions.revoke();
 await status('waiting');
 await pollSettings(false);
-void setupCheck.run(null, {light: true}).catch(error => { console.error('[CyberpunkConvai] Setup check:', error.message); return null; })
-  .then(document => { try { if (document) errorEvents.setupChecked(document); } catch { /* the error reports never fail start-up */ } });
+void setupCheck.run(null, {light: true}).catch(error => { console.error('[CyberpunkConvai] Setup check:', error.message); return null; }).then(noteSetupProblems);
 // The saved provider is applied (or the settings file could not be read yet, and the default stands until a later poll): the status file
 // says so from here on.
 mistral.statusHeld = false;
