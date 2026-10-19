@@ -395,15 +395,17 @@ What the setup check does with it, and what still runs when a requirement is mis
 | Missing | Notice at the first load | What is left out |
 | --- | --- | --- |
 | Audioware | Audioware is missing (alone or in the list) | the voice played through Audioware (the OmniVoice phrases, and a holocall's voice where it uses Audioware); `speech.lua` stops offering audio to the service and says "Audioware is missing" when a voice does not start; the voices played in the browser are not affected |
-| Codeware | Codeware is missing | the speaking face (`Face.reds`), the save-bound knowledge state, the text box on the talk key (each press says so), the phone Chat tab (no contact is offered), the J and L keys and marks on the contact list, the holocall backdrop |
+| Codeware | Codeware is missing | the speaking face (`Face.reds`), the save-bound knowledge state, the text box on the talk key (each press says so), the phone Chat tab (no contact is offered), the J and L keys and marks on the contact list, the holocall backdrop (the live picture is then not cut out either) |
 | Codeware without UI modules | Codeware is too old | the text box, the Chat tab and the old Manager window |
 | TweakXL, Native Settings UI | their own text | nothing in the scripts: they use neither |
 | scripts did not compile | "Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load." | everything that needs a script (text box, phone, face, speech playback); the Lua side still loads and shows the notice |
 
 Two or more of RED4ext, Codeware, TweakXL and Audioware at once are one notice naming them (at most four; Native Settings UI keeps
 its own notice, its name being long). The CET console and `probe.log` get one English line per problem. Because a compile error also takes
-away the scripts the old checks relied on, the order now puts "scripts did not load" first and alone, and the framework lines turn
-Unknown instead of Problem while it is true. `onInit` (`mod/init.lua`) installs each hook set through `convaiGuarded`, so one hook that
+away the scripts the old checks relied on, the order now puts "scripts did not load" first and alone, after RED4ext only, and the
+Codeware, Audioware and TweakXL lines turn Unknown instead of Problem while it is true. RED4ext stays a Problem when nothing it loads
+answers, this mod's native plugin included (which does not depend on the compile): Codeware's scripts then never reach the compile, so
+RED4ext, not a mod the redscript log lists, is the cause to name. `onInit` (`mod/init.lua`) installs each hook set through `convaiGuarded`, so one hook that
 cannot be placed (it names a method of the missing scripts) no longer stops the Native Settings UI registration after it. Audioware
 needs Codeware itself: a game without it fails to compile because of Audioware, whatever this mod does, and
 the redscript popup then names it. Not covered by `ModuleExists`: a requirement that is installed but too old to have a class or method
