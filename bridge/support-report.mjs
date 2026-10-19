@@ -390,6 +390,25 @@ async function versions({game, modRoot, project, logs, now}) {
   return result;
 }
 
+// The model server's own record (bridge/local-llm-server.mjs diagnostics(): which file is loaded, its family, chat template length and hash, how the last turn
+// went) copied as plain data only: numbers, booleans, short strings and objects four deep. It holds file names, never a path, a key or a word of a reply.
+function plainData(value, depth = 0) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'boolean' || value === null) return value;
+  if (typeof value === 'string') return clip(value, 200);
+  if (value && typeof value === 'object' && !Array.isArray(value) && depth < 4) {
+    const out = {};
+    let count = 0;
+    for (const [key, item] of Object.entries(value)) {
+      if (++count > 30) break;
+      const copy = plainData(item, depth + 1);
+      if (copy !== undefined) out[clip(key, 40)] = copy;
+    }
+    return out;
+  }
+  return undefined;
+}
+
 // Local AI detection, as the service sees it. Only the fields named here are copied from runtime/mistral-state.json (which
 // also holds provider and key-status fields); the pack root and the manifest file names come from the folder itself.
 export async function localAiSection({runtime, project, environment = process.env}) {
@@ -408,6 +427,8 @@ export async function localAiSection({runtime, project, environment = process.en
     localAi: typeof state.localAi === 'string' ? clip(state.localAi, 40) : null,
     maturePack: typeof state.maturePack === 'boolean' ? state.maturePack : null,
     localModels: models,
+    // What is loaded and how the last local turns went (absent until a model was loaded): the cause of a turn that timed out is in lastTurn and template.
+    diagnostics: plainData(state.localDiagnostics) ?? null,
     root, rootSource: fromEnvironment ? 'CYBERPUNK_CONVAI_LOCAL_AI' : 'default (local-ai next to the bridge)',
     rootExists: manifests !== null, manifests: manifests ?? [],
   };

@@ -161,9 +161,9 @@ export function parseKeyCommand(raw, now = Date.now()) {
 export class MistralControl {
   constructor({provider, commandPath, publish, model, readClipboard = readClipboardText, validate = validateKey,
     read = path => readFile(path, 'utf8'), now = Date.now, localStatus, localReason,
-    maturePack, localModels, localModelDefaults, localModelProblems, inworldCommandPath, validateInworld = validateInworldKey} = {}) {
+    maturePack, localModels, localModelDefaults, localModelProblems, localDiagnostics, inworldCommandPath, validateInworld = validateInworldKey} = {}) {
     if (!provider || typeof commandPath !== 'string' || typeof publish !== 'function') throw Error('Invalid Mistral configuration');
-    Object.assign(this, {provider, commandPath, publish, model, readClipboard, validate, read, now, localStatus, localReason, maturePack, localModels, localModelDefaults, localModelProblems, inworldCommandPath, validateInworld});
+    Object.assign(this, {provider, commandPath, publish, model, readClipboard, validate, read, now, localStatus, localReason, maturePack, localModels, localModelDefaults, localModelProblems, localDiagnostics, inworldCommandPath, validateInworld});
     this.observed = ''; this.result = null; this.busy = false; this.writing = Promise.resolve();
     this.inworldObserved = ''; this.inworldResult = null; this.inworldBusy = false;
   }
@@ -193,6 +193,9 @@ export class MistralControl {
         ...(defaults?.default ? {localModelDefault: defaults.default} : {}), ...(defaults?.mature ? {localModelMatureDefault: defaults.mature} : {})}))(this.localModelDefaults()) : {}),
       // Custom models that cannot be used, [{name, reason}] with reason 'missing' | 'bad-gguf' | 'embedding' | 'unreadable' (bridge/custom-models.mjs); only when there are some.
       ...(typeof this.localModelProblems === 'function' && this.localModelProblems().length ? {localModelProblems: this.localModelProblems()} : {}),
+      // What the local model server loaded and how its turns went (bridge/local-llm-server.mjs diagnostics): file names, family, template length and hash, timings.
+      // Only for the support report; the settings page does not read it. Never a path, a key or a word of a reply. Absent until a model was loaded.
+      ...(typeof this.localDiagnostics === 'function' ? (diagnostics => (diagnostics ? {localDiagnostics: diagnostics} : {}))(this.localDiagnostics()) : {}),
       // Inworld (docs/CLOUD_VOICE_INWORLD.md): only the key status; never the key.
       ...(this.provider.inworld ? {inworld: {saved: !!this.provider.inworld.key, tail: this.provider.inworld.tail,
         ...(this.inworldResult ? {result: this.inworldResult} : {})}} : {})};
