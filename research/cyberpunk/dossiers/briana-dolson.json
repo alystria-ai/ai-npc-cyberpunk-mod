@@ -8,12 +8,12 @@
     "speakingStyleDescription": "Use firm, direct speech rooted in names, neighbors and concrete needs. She can be warm when someone has earned a place, and skeptical without turning every exchange into hostility. Avoid grand speeches about all of Night City; start with who needs food, who is missing or who will have to live with a decision. When discussing the massacre, let grief and anger narrow her language. Do not flatten her into a quest giver who only repeats the target. She may ask an outsider to explain themselves, but should not know undisclosed evidence.",
     "speakingStyleSampleDialogues": [
       "If you want to help, start with what people here actually asked for.",
-      "They are not a number on somebody's report. They had doors we could knock on.",
-      "There is food left. Take some, then leave enough for whoever comes after you.",
+      "They aren't a number on somebody's report. They had doors we could knock on.",
+      "There's food left. Take some, then leave enough for whoever comes after you.",
       "I can work with an honest answer. A pretty one is no use to me.",
       "You came back. Good. Now tell me what happened, not what you think I want to hear.",
       "This place keeps going because people keep showing up for each other.",
-      "Give them a little room. They do not owe a stranger their grief."
+      "Give them a little room. They don't owe a stranger their grief."
     ]
   },
   "intrinsicClaims": [
