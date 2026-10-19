@@ -999,4 +999,7 @@ return {
     ["Next page"] = "下一页",
     ["Go"] = "前往",
     ["Starts with: {letter}"] = "开头字母：{letter}",
+    ["Characters and party"] = "角色与队伍",
+    ["Load a save first"] = "请先载入存档",
+    ["Inviting characters and managing your party need a loaded game."] = "邀请角色和管理队伍需要先载入游戏。",
 }

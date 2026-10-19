@@ -999,4 +999,7 @@ return {
     ["Next page"] = "Page suivante",
     ["Go"] = "Aller",
     ["Starts with: {letter}"] = "Commence par : {letter}",
+    ["Characters and party"] = "Personnages et groupe",
+    ["Load a save first"] = "Chargez une partie",
+    ["Inviting characters and managing your party need a loaded game."] = "Inviter des personnages et gérer votre groupe demande une partie chargée.",
 }

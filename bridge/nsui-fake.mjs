@@ -68,6 +68,14 @@ export const nativeSettingsFake = String.raw`
     ns.optionCount = ns.optionCount + 1
     return name
   end
+  -- The controller of a spawned row: the two state bodies of the switch that a button is made from (a read-only row hides them).
+  function ns.newController(option)
+    local controller = {option = option}
+    for _, name in ipairs({'offStateBody', 'onStateBody'}) do
+      controller[name] = {visible = true, SetVisible = function(self, state) self.visible = state end}
+    end
+    return controller
+  end
   local function live(tabPath) return ns.screen ~= nil and ns.currentTab == tabPath end
 
   function ns.addTab(path, label, closed)
@@ -157,7 +165,7 @@ export const nativeSettingsFake = String.raw`
     end
     if live(tabPath) then
       fields.widgetName = nextName()
-      fields.controller = {option = fields}
+      fields.controller = ns.newController(fields)
       spawn({kind = 'option', name = fields.widgetName, option = fields}, placement)
     end
     return fields
@@ -228,14 +236,14 @@ export const nativeSettingsFake = String.raw`
       GetWidgetByIndex = function(_, index) return ns.screen.children[index + 1].widget end}}
     local tab = ns.data[tabPath]
     for _, option in pairs(tab.options) do
-      option.widgetName = nextName(); option.controller = {option = option}
+      option.widgetName = nextName(); option.controller = ns.newController(option)
       spawn({kind = 'option', name = option.widgetName, option = option})
     end
     for _, key in pairs(tab.keys) do
       local sub = tab.subcategories[key]
       spawn({kind = 'strip', name = key, label = sub.label})
       for _, option in pairs(sub.options) do
-        option.widgetName = nextName(); option.controller = {option = option}
+        option.widgetName = nextName(); option.controller = ns.newController(option)
         spawn({kind = 'option', name = option.widgetName, option = option})
       end
     end

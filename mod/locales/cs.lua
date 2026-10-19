@@ -999,4 +999,7 @@ return {
     ["Next page"] = "Další strana",
     ["Go"] = "Přejít",
     ["Starts with: {letter}"] = "Začíná na: {letter}",
+    ["Characters and party"] = "Postavy a skupina",
+    ["Load a save first"] = "Nejdřív načti save",
+    ["Inviting characters and managing your party need a loaded game."] = "Zvaní postav a správa skupiny potřebují načtenou hru.",
 }

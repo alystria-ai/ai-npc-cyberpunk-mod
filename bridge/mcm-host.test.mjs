@@ -459,3 +459,12 @@ test('MCM 0.10.5 hosts the page: no Native Settings UI tab is registered (MCM wo
     assert(ns.data[TAB] ~= nil and ns.callCount('addTab') == 1, 'the fallback registered the tab')
   `);
 });
+
+test('at the main menu the pages that need a save say so in a row, the same row as in Native Settings UI', () => withScreen(`
+  player = nil
+  frames(4)
+  press('Characters to invite')
+  assert(labels():find('Characters and party', 1, true), labels())
+  press('Back to Companion Manager'); press('Settings')
+  assert(labels():find('Interface language', 1, true) and not labels():find('Characters and party', 1, true), labels())
+`));

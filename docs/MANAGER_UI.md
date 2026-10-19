@@ -61,7 +61,7 @@ A row of the page is one of four kinds, built by `setting(...)`, `action(...)` a
 | `setting`, type `select` | string selector |
 | `setting`, type `int` | integer slider |
 | `action` | button (its text is the `value`) |
-| `readonly` | a button with no text and nothing to press: a line of text, "Label: value" |
+| `readonly` | a line of text with nothing to press. In NSUI it is a button whose frame is hidden (`hideFrames` in `mod/nsui.lua`): a short value is the button text ("Johnny's standing" ... "Grudging respect"), a long or missing value leaves the label alone, "Label: value" |
 
 **The first page.** The manager always opens on Home: after the player leaves the tab for another one, after the Mods screen closes,
 and on the shortcut. A hook on `SettingsMainGameController.OnInitialize` makes the tab ready on its first page before NSUI builds a
@@ -247,10 +247,19 @@ manager (see "The MCM host"). This is the case whether or not Native Settings UI
 4. The walk is done when the tab is shown. It gives up after 8 s with "The shortcut timed out. Choose AI NPC Cyberpunk Mod from the
    pause menu under Mods." (logged) and activates nothing else. Pressing the shortcut again during the walk changes nothing.
 5. **While the manager is open the shortcut closes it**, the way Esc does (`RequestClose`).
-6. **Closing returns to the game.** When the Settings screen that closes was showing this tab (matched by engine identity), the
-   adapter waits for that screen to detach, then activates the real **Resume** item (`OnClosePauseMenu`) once, so the game's own
-   scenario unpauses and releases its input contexts. It waits at most 3 s. The game's own Settings screen, another tab, a screen the
-   tab never showed on, a new Settings screen, a save reload and a reset never resume anything.
+6. **Closing returns to the game, when the shortcut opened the pause menu.** Only a walk that started in gameplay (the shortcut itself opened the
+   pause menu) hands the player back: when the Settings screen that the walk opened closes while this tab is on it (a `RequestClose`
+   for that screen's engine identity, or, if the game closes the screen by another route, its detach with the tab shown), the adapter
+   waits for the screen to detach, then activates the real **Resume** item (`OnClosePauseMenu`) once, so the game's own scenario
+   unpauses and releases its input contexts. If the pause menu is still up two seconds later it activates Resume once more, never a
+   third time. It waits at most 3 s for the item. A pause menu the player opened, a Mods screen the player opened by hand, the game's
+   own Settings screen, another tab, a new Settings screen, a save reload and a reset never resume anything. The decisions are logged
+   to `runtime/mcm.log` ("Manager exit: ...").
+
+**At the main menu** `init.lua`'s update has no world, and it still runs `managerUi.update(nil, false)` there (the manager's slow
+tick and a few comparisons), so a button of the page is answered with no save loaded: Settings, Help and Memory open. The pages that
+need a save (Characters to invite, Current party, Model browser) show a read-only row, "Characters and party: Load a save first",
+instead of working invite buttons; the same row is in MCM, which shares `manager-ui.lua`.
 
 **Without any host** (no MCM 0.10.5 or newer, and no NSUI, or an NSUI that lacks one of the functions the host calls: `addTab`,
 `addSubcategory`, `removeSubcategory`, `removeOption`, `addSwitch`, `addRangeInt`, `addSelectorString`, `addButton`, `setOption`,

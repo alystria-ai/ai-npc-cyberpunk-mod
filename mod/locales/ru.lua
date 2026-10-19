@@ -999,4 +999,7 @@ return {
     ["Next page"] = "Следующая страница",
     ["Go"] = "Перейти",
     ["Starts with: {letter}"] = "Начинается с: {letter}",
+    ["Characters and party"] = "Персонажи и группа",
+    ["Load a save first"] = "Загрузите сохранение",
+    ["Inviting characters and managing your party need a loaded game."] = "Приглашать персонажей и управлять группой можно только в загруженной игре.",
 }

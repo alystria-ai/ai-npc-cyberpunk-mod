@@ -57,6 +57,7 @@ local connectAt = 0
 local renderFailures = 0
 local hooksInstalled = false
 local fontScope, fontWork, fontsDue = nil, nil, false
+local framesDue = false             -- the frames of the read-only rows are hidden again on the next frame the tab is shown
 local lastError = ''
 -- The other hosts of the page (mod/mcm-host.lua, attached by init.lua): each draws core's page in its own settings screen and shares
 -- this module's core, so every host reads and writes the same saved settings. hostError: the last problem each one raised (logged once).
@@ -185,12 +186,17 @@ local function describe(row)
         if spec.text ~= tostring(row.value or '') then whole = row.label .. ': ' .. tostring(row.value)
         elseif spec.label ~= row.label then whole = row.label end
     else
-        -- A line of text: the label with its value after it, and nothing to press.
+        -- A line of text, nothing to press. A short value is the text where the button's would be (its frame is hidden, see
+        -- hideFrames); a line with a long value, or none, is the label alone: "label: value", cut if it is too long.
         spec.kind, spec.text, spec.readonly = 'button', '', true
         local value = tostring(row.value or '')
-        local line = value ~= '' and (row.label .. ': ' .. value) or row.label
-        spec.label = fit(line, LAYOUT.labelUnits)
-        if spec.label ~= line then whole = line end
+        if value ~= '' and core.optionUnits(value) <= LAYOUT.buttonUnits and core.optionUnits(row.label) <= LAYOUT.buttonLabelUnits then
+            spec.text, spec.label = value, row.label
+        else
+            local line = value ~= '' and (row.label .. ': ' .. value) or row.label
+            spec.label = fit(line, LAYOUT.labelUnits)
+            if spec.label ~= line then whole = line end
+        end
     end
     local description = tostring(row.description or '')
     spec.desc = fitDescription(whole and (description ~= '' and (whole .. '\n\n' .. description) or whole) or description)
@@ -273,7 +279,7 @@ local function reconcileRows(section, rows)
             syncValue(current, spec)
         else
             if current and current.opt then ns.removeOption(current.opt) end
-            section.rows[index] = {sig = spec.sig, id = spec.id, kind = spec.kind, opt = addRow(path, spec, index)}
+            section.rows[index] = {sig = spec.sig, id = spec.id, kind = spec.kind, readonly = spec.readonly, opt = addRow(path, spec, index)}
         end
     end
     for index = #section.rows, #rows + 1, -1 do
@@ -333,7 +339,7 @@ local function render()
     local model = core.model()
     savedValue = {}
     reconcile(sectionsOf(model))
-    fontsDue = true
+    fontsDue, framesDue = true, true
 end
 
 local function renderSafe()
@@ -410,6 +416,24 @@ local function onRestoreDefaults()
     end
     core.setFeedback(ui.t('Defaults restored.'))
     rebuildAt = os.clock()
+end
+
+-- ---- Read-only rows -------------------------------------------------------------------------------------------------------------
+-- Native Settings UI has no line of text, so a read-only row is its button without the button: the frame (the switch body that the
+-- button is made from, the two state bodies of the row's controller) is hidden and the text stays. The controller exists while the tab
+-- is on screen (Native Settings UI makes it when it spawns the row) and is made again each time the tab opens, so this runs after
+-- every draw and when the tab is shown, a few calls for a page, never per frame. A row whose controller does not answer stays as a
+-- button with its text, which is harmless.
+local function hideFrames()
+    for _, section in ipairs(rendered) do
+        for _, row in ipairs(section.rows) do
+            local controller = row.readonly and row.opt and row.opt.controller
+            if controller then
+                pcall(function() controller.offStateBody:SetVisible(false) end)
+                pcall(function() controller.onStateBody:SetVisible(false) end)
+            end
+        end
+    end
 end
 
 -- ---- Fonts --------------------------------------------------------------------------------------------------------------------------
@@ -522,7 +546,7 @@ local function newEntry()
             local index = tabIndex()
             if index then ns.lastNativeSettingsCategoryIndex = index end
         end,
-        select = selectTab, notify = notify})
+        select = selectTab, notify = notify, live = live})
 end
 
 local function installHooks()
@@ -661,7 +685,7 @@ function M.update(player, worldReady)
     if shown ~= wasLive then
         wasLive = shown
         entry.shown(shown and ns.settingsMainController or nil)
-        if shown then fontsDue = true
+        if shown then fontsDue, framesDue = true, true
         else
             -- Leaving the tab (another tab, or the screen closing): the next visit starts on the first page.
             fontRelease()
@@ -674,6 +698,11 @@ function M.update(player, worldReady)
     if shown then
         core.tick(player)
         if not flushAt and not rebuildAt and core.stale() then renderSafe() end
+        if framesDue then
+            framesDue = false
+            local hidden, problem = pcall(hideFrames)
+            if not hidden then lastError = 'Frames: ' .. tostring(problem) end
+        end
         if fontsDue or fontWork then
             local ok, problem = pcall(fontPass)
             if not ok then fontWork, fontsDue = nil, false; lastError = 'Fonts: ' .. tostring(problem) end

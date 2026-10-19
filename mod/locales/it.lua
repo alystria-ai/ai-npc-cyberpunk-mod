@@ -999,4 +999,7 @@ return {
     ["Next page"] = "Pagina successiva",
     ["Go"] = "Vai",
     ["Starts with: {letter}"] = "Inizia con: {letter}",
+    ["Characters and party"] = "Personaggi e gruppo",
+    ["Load a save first"] = "Carica prima un salvataggio",
+    ["Inviting characters and managing your party need a loaded game."] = "Invitare personaggi e gestire il gruppo richiede una partita caricata.",
 }

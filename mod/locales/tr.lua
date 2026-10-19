@@ -999,4 +999,7 @@ return {
     ["Next page"] = "Sonraki sayfa",
     ["Go"] = "Git",
     ["Starts with: {letter}"] = "Harfle başlar: {letter}",
+    ["Characters and party"] = "Karakterler ve ekip",
+    ["Load a save first"] = "Önce kayıt yükle",
+    ["Inviting characters and managing your party need a loaded game."] = "Karakter davet etmek ve ekibi yönetmek için yüklü bir oyun gerekir.",
 }

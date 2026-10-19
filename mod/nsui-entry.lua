@@ -1,8 +1,10 @@
 -- Open the Companion Manager through the game's own menus: the pause menu, Native Settings UI's "Mods" entry, and this mod's tab. The
 -- walk is the same one the player makes: it activates the real pause-menu item (the one NSUI adds beside Settings) and lets NSUI
 -- build its screen. This adapter neither simulates keys nor edits another mod's files, preferences, menu or input handlers.
--- It also hands the player back to the game when the manager is closed: closing the Mods screen while this mod's tab is the one shown
--- activates the real Resume item once the Settings screen has detached.
+-- It also hands the player back to the game when the manager is closed, but only when this walk opened the pause menu itself (the
+-- shortcut was pressed in gameplay): closing the Mods screen that the walk opened, while this mod's tab is the one shown, activates the
+-- real Resume item once the Settings screen has detached (and once more if the pause menu is still up two seconds later). A pause menu
+-- the player opened, and a Mods screen the player opened by hand, are never closed on their behalf.
 --
 -- Mod Configuration Menu (MCM) installed beside NSUI: by default MCM hides NSUI's pause-menu item (it stays in the list, with its
 -- widget hidden) and adds its own item, whose data is labelled "Mods" too but carries the event OnSwitchToMCM; activating NSUI's item
@@ -23,6 +25,7 @@ local WALK_SECONDS, EXIT_SECONDS = 8, 3
 --   ns()          the nativeSettings module, or nil while it is not loaded
 --   beforeOpen()  called once the walk is allowed to start (the host puts the tab on its first page and makes NSUI start on it)
 --   select()      one attempt to select the tab when NSUI opened on another one
+--   live()        whether this mod's tab is the one Native Settings UI shows right now (optional)
 --   notify(kind)  the walk stopped on a screen where the player has to pick the manager by hand: 'mcm-list' (MCM's list of mods)
 --   log(message)
 function M.new(options)
@@ -38,8 +41,11 @@ function M.new(options)
     -- The route of the walk (nsui or mcm), the Settings instance that MCM's screen opened on (the one whose close hands the player
     -- back to the game) and whether it has opened yet, and the last kind of notice asked for.
     local route, mcmKey, mcmOpened, lastNotice
+    -- pauseOwned: the walk opened the pause menu itself and has not yet met its Settings screen. walkKey: the Settings instance the
+    -- walk opened (only a close of that screen hands the player back to the game). verify: after a Resume, when to look again.
+    local pauseOwned, walkKey, verify, closeSeen = false, nil, nil, false
     local exitEvents = {initialized = 0, closeRequests = 0, matchedCloses = 0, uninitialized = 0, matchedDetachments = 0,
-        resumes = 0, identityFailures = 0}
+        fallbackCloses = 0, resumes = 0, retries = 0, identityFailures = 0}
     local function log(message) if options.log then options.log(message) end end
 
     local function controllerKey(controller)
@@ -60,7 +66,7 @@ function M.new(options)
 
     local function abort(reason)
         stage, deadline, pauseController, mcmOpened = 'idle', 0, nil, false
-        if reason then lastProblem = reason; log('Manager entry: ' .. reason) end
+        if reason then pauseOwned = false; lastProblem = reason; log('Manager entry: ' .. reason) end
     end
 
     -- Runtime-created CNames need not have a reverse string entry: compare the native name/hash, never its debug text.
@@ -134,7 +140,36 @@ function M.new(options)
         return Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu)
     end
 
+    -- The Resume item of the live pause menu: controller, index, item.
+    local function findResume()
+        local controller = livePauseController()
+        local list = controller and controller.menuListController
+        if not list then return end
+        for index = 0, list:Size() - 1 do
+            local widget = list:GetItemAt(index)
+            local target = widget and widget:GetController()
+            local data = target and target:GetData()
+            if data and hasEvent(data, EVENT_RESUME) then return controller, index, target end
+        end
+    end
+
     local function updateReturnToGame()
+        if verify then
+            local ok, err = pcall(function()
+                if inGameMenu() ~= true then verify = nil; return end
+                if os.time() < verify.at then return end
+                -- The pause menu is still up: the first activation did not take (the menu can still be rebuilding when the Settings
+                -- screen detaches). One more, with the live menu.
+                verify = nil
+                local controller, index, target = findResume()
+                if controller then
+                    exitEvents.retries = exitEvents.retries + 1
+                    log('Manager exit: the pause menu was still open; Resume activated once more.')
+                    controller:OnMenuItemActivated(index, target)
+                end
+            end)
+            if not ok then verify = nil; log('Manager exit: the second Resume failed: ' .. tostring(err)) end
+        end
         if not returnToGame then return end
         local ok, err = pcall(function()
             -- A real RequestClose is emitted for the Settings screen; wait for that instance to detach, so the close that is
@@ -148,28 +183,34 @@ function M.new(options)
                 return
             end
             if not returnToGame.detached then return end
-            local controller = livePauseController()
-            local list = controller and controller.menuListController
-            if not list then return end
-            for index = 0, list:Size() - 1 do
-                local widget = list:GetItemAt(index)
-                local target = widget and widget:GetController()
-                local data = target and target:GetData()
-                if data and (data.eventName == CName.new('OnClosePauseMenu') or data.eventName == 'OnClosePauseMenu') then
-                    -- Use the actual Resume item so the native scenario owns unpausing, input contexts and disposal. Consume
-                    -- first to prevent reentrant callbacks or later frames resuming twice.
-                    returnToGame = nil
-                    exitEvents.resumes = exitEvents.resumes + 1
-                    controller:OnMenuItemActivated(index, target)
-                    return
-                end
+            local controller, index, target = findResume()
+            if controller then
+                -- Use the actual Resume item so the native scenario owns unpausing, input contexts and disposal. Consume
+                -- first to prevent reentrant callbacks or later frames resuming twice.
+                returnToGame = nil
+                exitEvents.resumes = exitEvents.resumes + 1
+                verify = {at = os.time() + 2}
+                log('Manager exit: Resume activated.')
+                controller:OnMenuItemActivated(index, target)
             end
         end)
         if not ok then
-            returnToGame = nil
+            returnToGame, verify = nil, nil
             lastProblem = 'Could not resume after closing the manager: ' .. tostring(err)
             log('Manager exit: ' .. lastProblem)
         end
+    end
+
+    -- Whether a close of the Settings screen `key` is the player leaving the screen this walk opened with the pause menu it opened:
+    -- the screen is the walk's, and this mod's tab is on it (shown, per the host, or the tab Native Settings UI shows now).
+    local function ownsClose(key)
+        if not key or key ~= walkKey then return false end
+        if key == mcmKey or key == ownSettingsKey then return true end
+        if options.live then
+            local ok, shown = pcall(options.live)
+            return ok and shown == true
+        end
+        return false
     end
 
     function E.install()
@@ -184,9 +225,15 @@ function M.new(options)
         ObserveAfter('SettingsMainGameController', 'OnInitialize', function(this)
             -- A newly opened Settings screen supersedes any old exit. Never carry an auto-resume request into another menu or a
             -- new save.
-            ownSettingsKey, returnToGame, mcmKey = nil, nil, nil
+            ownSettingsKey, returnToGame, mcmKey, walkKey, verify, closeSeen = nil, nil, nil, nil, nil, false
             settingsController, settingsKey = this, controllerKey(this)
             exitEvents.initialized = exitEvents.initialized + 1
+            if stage == 'settings' or stage == 'mcm' then
+                -- The screen the walk's own activation opened: it is the one a close hands back to the game, when the walk also
+                -- opened the pause menu (a nil identity fails closed).
+                if pauseOwned then walkKey = settingsKey end
+                pauseOwned = false
+            end
             if stage == 'mcm' then
                 -- The screen that MCM's item opened. Its identity is what a later close is matched against (nil when the game does
                 -- not give one: the walk still ends, nothing is resumed).
@@ -196,10 +243,11 @@ function M.new(options)
         Observe('SettingsMainGameController', 'RequestClose', function(this)
             exitEvents.closeRequests = exitEvents.closeRequests + 1
             local key = controllerKey(this)
-            if not key or (ownSettingsKey ~= key and mcmKey ~= key) then return end
-            -- The tab was the one shown on this very Settings instance, or this is the screen that MCM's item opened for the
-            -- shortcut. Gameplay validation happens in update, outside this native callback.
+            if not ownsClose(key) then return end
+            -- The tab was the one shown on this very Settings instance (or this is the screen that MCM's item opened) and the
+            -- shortcut opened the pause menu. Gameplay validation happens in update, outside this native callback.
             exitEvents.matchedCloses = exitEvents.matchedCloses + 1
+            closeSeen = true
             returnToGame = {controllerKey = key, detached = false, deadline = os.time() + EXIT_SECONDS}
         end)
         Observe('SettingsMainGameController', 'OnUninitialize', function(this)
@@ -208,6 +256,12 @@ function M.new(options)
             if key and returnToGame and returnToGame.controllerKey == key then
                 returnToGame.controllerKey, returnToGame.detached = nil, true
                 exitEvents.matchedDetachments = exitEvents.matchedDetachments + 1
+            elseif not returnToGame and not closeSeen and ownsClose(key) then
+                -- The walk's screen went away with this mod's tab on it and no close request was seen for it (the game can close a
+                -- screen by a route other than RequestClose): the same exit, already detached.
+                exitEvents.fallbackCloses = exitEvents.fallbackCloses + 1
+                returnToGame = {detached = true, deadline = os.time() + EXIT_SECONDS}
+                log('Manager exit: the manager screen closed without a close request; returning to the game.')
             end
             if (key and settingsKey == key) or this == nil then
                 settingsController, settingsKey = nil, nil
@@ -215,6 +269,7 @@ function M.new(options)
             end
             if (key and ownSettingsKey == key) or this == nil then ownSettingsKey = nil end
             if (key and mcmKey == key) or this == nil then mcmKey = nil end
+            if (key and walkKey == key) or this == nil then walkKey = nil end
         end)
     end
 
@@ -247,7 +302,8 @@ function M.new(options)
                 if attached then
                     if options.beforeOpen then options.beforeOpen() end
                     pauseController, stage, deadline, startedAt, lastProblem, menuItems = attached, 'pause', os.time() + WALK_SECONDS, os.time(), '', {}
-                    route, lastNotice, selected = nil, nil, false
+                    -- The player opened this pause menu: closing the manager leaves it to them.
+                    route, lastNotice, selected, pauseOwned = nil, nil, false, false
                     return nil
                 end
                 return 'Close the current menu first, or choose Mods from the pause menu.'
@@ -259,7 +315,8 @@ function M.new(options)
             if scene:GetInt(defs.PlayerStateMachine.SceneTier) >= 3 then return 'Finish the scene first.' end
             if options.beforeOpen then options.beforeOpen() end
             stage, deadline, startedAt, lastProblem, menuItems = 'pause', os.time() + WALK_SECONDS, os.time(), '', {}
-            route, lastNotice, selected = nil, nil, false
+            -- The walk opens the pause menu itself: closing the manager hands the player back to the game.
+            route, lastNotice, selected, pauseOwned = nil, nil, false, true
             boards:Get(defs.MenuEventBlackboard):SetName(defs.MenuEventBlackboard.MenuEventToTrigger, 'OnOpenPauseMenu', true)
             return nil
         end)
@@ -315,11 +372,12 @@ function M.new(options)
         for key, value in pairs(exitEvents) do counters[key] = value end
         return {stage = stage, route = route, notice = lastNotice, problem = lastProblem, items = menuItems,
             capturedPause = pauseController ~= nil, shown = ownSettingsKey ~= nil, capturedSettings = settingsController ~= nil,
-            mcmScreen = mcmKey ~= nil, exitEvents = counters, returnToGame = returnToGame ~= nil,
+            mcmScreen = mcmKey ~= nil, walkScreen = walkKey ~= nil, pauseOwned = pauseOwned, exitEvents = counters, returnToGame = returnToGame ~= nil,
             settingsDetached = returnToGame and returnToGame.detached or false}
     end
     function E.reset()
         settingsController, settingsKey, ownSettingsKey, returnToGame, mcmKey = nil, nil, nil, nil, nil
+        walkKey, verify, pauseOwned, closeSeen = nil, nil, false, false
         route = nil
         abort()
     end

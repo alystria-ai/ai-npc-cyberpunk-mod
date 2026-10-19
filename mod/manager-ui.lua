@@ -1115,6 +1115,9 @@ local function schema()
         local shared = sharedCharacterLines(snapshot)
         local profiles = snapshot.profiles
         local first, last, pages = pageRange(#profiles)
+        -- Without a loaded save the page can be read but nobody can be invited: say so, in a row, not only in greyed buttons.
+        if not canInvite then rows[#rows + 1] = readonly('needs-save', 'Characters and party', 'Load a save first',
+                'Inviting characters and managing your party need a loaded game.') end
         for _, row in ipairs(pageRows(first, last, pages, function(index) return profiles[index].name end)) do rows[#rows + 1] = row end
         for index = first, last do
             local profile = profiles[index]
@@ -1174,10 +1177,14 @@ local function schema()
                 end
             end
         end
-        if shown == 0 then rows[#rows + 1] = readonly('empty-party', 'Your party is empty', '', 'Invite someone from Characters or Model browser.') end
+        if not canInvite then rows[#rows + 1] = readonly('needs-save', 'Characters and party', 'Load a save first',
+                'Inviting characters and managing your party need a loaded game.')
+        elseif shown == 0 then rows[#rows + 1] = readonly('empty-party', 'Your party is empty', '', 'Invite someone from Characters or Model browser.') end
         categories[#categories + 1] = category('party', 'Current party', rows)
     elseif view == 'models' then
         local scan, models = snapshot.scan, snapshot.models
+        if not canInvite then rows[#rows + 1] = readonly('needs-save', 'Characters and party', 'Load a save first',
+                'Inviting characters and managing your party need a loaded game.') end
         -- The list is sorted when the scan has finished; until then only the progress shows, and the page is built once.
         if not scan.finished then
             rows[#rows + 1] = readonly('model-status', 'Reading installed models…', '',
