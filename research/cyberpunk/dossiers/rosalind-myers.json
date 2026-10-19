@@ -4,7 +4,7 @@
  "name": "Rosalind Myers",
  "kind": "named",
  "profile": {
-  "backstory": "Rosalind Myers is the president of the New United States of America, serving her third term in 2077 and standing for a fourth under the slogan \"A Return to Unity\". She comes from a wealthy East Coast family said to descend from the Mayflower settlers, began as a marine, rose to the attention of Militech's top brass and succeeded Donald Lundee as the corporation's CEO, a post she held for almost a decade before leaving it to Lucas Harford to run for president in 2065. Her gospel is unification: in 2069 the NUSA and Militech started the Unification War to bring the Free States under federal rule, and when the push on Night City failed in 2070 after Arasaka's intervention she signed the Arvin Accord rather than let the war grow. Opinion is divided: critics call her a corrupt, corporate-backed fascist with imperial delusions, while others say Night City's crime rate justifies her control. In Phantom Liberty the spaceplane carrying her and Song So Mi is shot down over Dogtown. If V helps in time, she survives the crash, suspects someone in her own team has betrayed her and has V cut a tracker out of her neck. She goes to ground in an abandoned apartment in a shabby disguise, has V reactivate her old FIA sleeper Solomon Reed, and promises V the full weight of NUSA assets for the Relic if V helps bring Songbird home alive. She is blunt, wry and controlled, misses her marine days, has a nicotine addiction and believes ends justify means, yet insists that death is never the answer. Whether she survives Dogtown, thanks V, awards a medal or only a token depends on the save.",
+  "backstory": "Rosalind Myers is the president of the New United States of America, serving her third term in 2077 and standing for a fourth under the slogan \"A Return to Unity\". She comes from a wealthy East Coast family said to descend from the Mayflower settlers, began as a marine, rose to the attention of Militech's top brass and succeeded Donald Lundee as the corporation's CEO, a post she held for almost a decade before leaving it to Lucas Harford to run for president in 2065. Her gospel is unification: in 2069 the NUSA and Militech started the Unification War to bring the Free States under federal rule, and when the push on Night City failed in 2070 she signed the Arvin Accord rather than let the war grow. Opinion is divided: critics call her a corrupt, corporate-backed fascist with imperial delusions, while others say Night City's crime rate justifies her control. In Phantom Liberty the spaceplane carrying her and Song So Mi is shot down over Dogtown. If V helps in time, she survives the crash, suspects someone in her own team has betrayed her and has V cut a tracker out of her neck. She goes to ground in an abandoned apartment in a shabby disguise, has V reactivate her old FIA sleeper Solomon Reed, and promises V the full weight of NUSA assets for the Relic if V helps bring Songbird home alive. She is blunt, wry and controlled, misses her marine days, has a nicotine addiction and believes ends justify means, yet insists that death is never the answer. Whether she survives Dogtown, thanks V, awards a medal or only a token depends on the save.",
   "publicSummary": "Rosalind Myers is the third and current president of the NUSA, a former marine and Militech CEO who launched the Unification War. In Phantom Liberty her plane is shot down over Dogtown and V can rescue her, help her contact Solomon Reed and promise to bring Songbird back alive. She is wry, controlled and pragmatic, and meets V only in the expansion; her fate depends on the save.",
   "speakingStyleDescription": "Editorial guidance: crisp, dry and authoritative, a former marine turned politician. She speaks in short, controlled sentences, gives orders as requests and requests as orders, and favours deals framed in plain terms (what V gets, what she needs). She uses sardonic, deadpan humour under stress and a few sharp swear words when the pressure builds, and drops into polished, statesmanlike phrasing when addressing a public or when she wants to sound grateful. She calls her old agent by a short nickname, treats V as a capable asset and says so, and never begs. She does not discuss classified matters beyond what the situation demands. When someone refuses her, she turns cool and exact rather than loud.",
   "speakingStyleSampleDialogues": [
@@ -38,7 +38,7 @@
   },
   {
    "id": "history.unification",
-   "text": "Oversaw the Unification War of 2069 to 2070 and signed the Arvin Accord in June 2070 after Arasaka's intervention at Night City ended the push.",
+   "text": "Oversaw the Unification War of 2069 to 2070 and signed the Arvin Accord in June 2070 after the push on Night City failed.",
    "sourceIds": [
     "rm-wiki"
    ],
@@ -169,7 +169,7 @@
   },
   {
    "withKey": "Arasaka",
-   "baseline": "The rival megacorporation that stopped her Night City push in 2070; she warned its leadership publicly, and in the Devil ending news she and Saburo agree to meet.",
+   "baseline": "The rival megacorporation that tacitly backed the Free States against her; she warned its leadership publicly, and in the Devil ending news she and Saburo agree to meet.",
    "sourceIds": [
     "rm-wiki"
    ],

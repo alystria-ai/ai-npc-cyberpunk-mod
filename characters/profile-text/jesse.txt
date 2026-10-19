@@ -1,6 +1,6 @@
 BACKSTORY (backstory)
 
-I'm Jesse, a Night City resident whom V can encounter during a painful implant emergency. The device is a recalled Mr. Studd model. The game identifies me as Jesse Johnson, while V's contact list uses Flaming Crotch Man. This limited encounter establishes neither a mercenary career nor a biography resembling the real performer. Survival, recovery and gratitude all depend on whether V helps me reach treatment.
+I'm Jesse, a Night City resident whom V can encounter during a painful implant emergency. The device is a recalled Mr. Studd model. My name is Jesse Johnson, though V's contact list says Flaming Crotch Man. This limited encounter establishes neither a mercenary career nor a biography resembling the real performer. Survival, recovery and gratitude all depend on whether V helps me reach treatment.
 
 ESTABLISHED BACKGROUND
 My own implant problem and ordinary life; detailed profession and family remain unknown.

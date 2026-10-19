@@ -150,7 +150,7 @@ the party instead of refusing it:
 ## Help and support report
 
 **Settings → Help → Help and support** (last category of Settings) opens a Help page. Its Back
-returns to Settings, like Relationships and Memory. The page has three groups:
+returns to Settings, like Relationships and Memory. The page has four groups; the first is the Setup check (below), then:
 
 - **If something goes wrong**: what to do, and whether the conversation service is Running,
   Starting, Not running, Needs a browser or Unknown. "Needs a browser" is shown when the service
@@ -190,6 +190,104 @@ the RED4ext launcher writes `launcher.log` beside its DLL; redscript and RED4ext
 `runtime\support-paths.json` at start (the supervisor also adds `gameRoot` and `stateDirectory` to
 `bridge-service.json`). With neither, the page shows `the game folder\...` templates.
 
+### Setup check (2026-10-19)
+
+Most setup trouble players reported was never explained by the game: the Runtime missing or not loaded, a pack extracted one folder too deep,
+no Chromium browser, Mod Configuration Menu (MCM) missing, only a Mature pack installed with Mature content off, a firewall prompt declined,
+a Mod Organizer 2 or Vortex install. The first group of the Help page, **Setup check**, answers all of these without a report. Its first row
+is the existing **Conversation service** row, then one line per check. The value is OK, Problem, Note (worth knowing, never a problem) or
+Unknown (could not be asked yet); the line's help is the one-line fix, and the group's description says "No problem found." or "Problems
+found: N." Lines (label, id): Scripts and Runtime (`versions`, only when the service has answered), Mod files, Game version, Cyber Engine
+Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware, Mod Configuration Menu, then the service's own lines Optional packs, Browser,
+Local AI, Internet, Graphics card and Mod manager. Product names are not translated; the sentences are, in all 15 languages.
+
+| Line | Detected by | Problem when | Fix it names |
+| --- | --- | --- | --- |
+| Conversation service | Lua, `service-status.lua` (`reach()`, `unavailable()`, new `failureCode()`) on `bridge-service.json` and the heartbeats | no trace of the service in this game session (`never`), or a failed start whose code says the Runtime's files are missing (`install-incomplete`, `bridge-missing`, `missing-character-ids`, `launcher-not-configured`, `launcher-program-missing`, `launcher-directory-missing`), or any other failure with its code; a missing browser and a missing key keep the sentences they had | extract the Runtime zip straight into the game folder; download it again; restart and send a report |
+| Mod files | Lua, opens the four JSON catalogs, counts `locales/*.lua` (15) and reads `release.json` for the Scripts version | a catalog or locale is missing | extract the Scripts zip again and let it replace the files |
+| Game version | Lua, `GetGameVersion()` | never a problem: Note when it is not 2.31, Unknown when unreadable | none (the mod is tested on 2.31 only) |
+| Cyber Engine Tweaks | Lua, `GetVersion()` | never | none |
+| RED4ext | Lua: the native plugin, Codeware, TweakXL, Audioware or this mod's scripts answered | nothing answered | install RED4ext |
+| redscript | Lua: `player:ConvaiRequirements()` (`Requirements.reds`), or for scripts of 0.2.1 and older the getter `ConvaiPhoneIsOpen`; Unknown without a player | the player has neither: the scripts did not compile (a compile error anywhere disables every redscript mod) or are not installed | open `r6/logs/redscript_rCURRENT.log`: a mod it names is the cause; missing or old Codeware, Audioware or redscript, or a game other than 2.31, can also cause it |
+| Codeware, Audioware | Lua: the words `ConvaiRequirements()` answers with (`codeware`, `codeware-ui`, `codeware-textinput`, `audioware`): the modules that existed when this mod's scripts compiled. The scripts compile without either (each file that needs one guards it with `@if(ModuleExists(...))` and carries stand-ins), so loaded scripts no longer prove them. Scripts of 0.2.1 and older still imported both, so for them loading is proof (the old probes `Codeware.Version()` and `Game.GetAudioSystemExt():Version()` decide the version shown). Scripts that did not load say nothing: the line is OK only when the plugin's own probe finds it, otherwise Unknown, so a compile error is never blamed on a framework | the word is missing; Codeware without `codeware-ui` and `codeware-textinput` is too old ("Codeware is too old. Update it from Nexus Mods, then restart the game.") | install or update it from Nexus Mods |
+| TweakXL | Lua: `TweakXL.Version()` (the static function the plugin registers); Unknown when this mod's scripts did not load and nothing found it | the probe fails | install it from Nexus Mods |
+| Mod Configuration Menu | Lua: `GetMod('ModConfigurationMenuAPI')` with `apiVersion` 2, as `mcm.lua` registers | missing or too old | install 0.10.3 or newer |
+| Scripts and Runtime | bridge: `release.json` of the mod folder and of the Runtime (`package.json` in a development checkout) | the versions differ | download both for the same version |
+| Optional packs | bridge: Pocket, OmniVoice, Local AI standard and lite and the Mature models found; `findNestedPacks()` looks for `red4ext/plugins/AiNpcCyberpunkMod/app` under the game folder's child folders (and one level further), the mod folder and the plugin folder; `pack-placement.json` says what the launcher moved at this start | a pack is still one folder too deep, or the launcher could not move its files | move the `red4ext` folder inside it into the game folder |
+| Browser | bridge: `systemBrowserCandidates()` (looked up once per process) | none found | install Edge, Chrome, Brave or Opera |
+| Local AI | bridge: the chosen provider against the pack, the free graphics memory and the server state (`not-used`, `ready`, `warming`, `not-installed`, `no-memory`, `mature-off` for only Mature models with Mature content off, `no-gpu`, `start-failed`, `crashed`) | Local AI is the provider and cannot run | download a pack, turn on Mature content, update the driver, or choose another provider |
+| Internet | bridge: a TCP connection to port 443 of the host each chosen service needs (`api.convai.com`, `api.mistral.ai`, `api.inworld.ai`), closed at once, nothing sent; `no-dns`, `blocked` (refused, reset or denied) or `timeout`. Not asked for Local AI with a local voice | the connection fails | allow Node.js through the firewall or antivirus (Windows asks once), check the internet |
+| Graphics card | bridge: `reg.exe query` of the display class key, once per process (name and the 64-bit memory size, largest card first, the Microsoft Basic Display Adapter left out) | never | none; the name and memory also go into the support report |
+| Mod manager | bridge: `usvfs_x64.dll` among the loaded libraries means Mod Organizer 2; a `vortex.deployment*.json` in the game folder means Vortex | never | MO2: the Overwrite folder; Vortex: install the Runtime and packs by hand |
+
+**When it runs.** Never per frame. The Lua checks run once, 12 s after the first world is ready (`FIRST_DELAY_S`: the service has said
+something by then), and once each time the Help page opens; `tick()` is called from the quarter-second slow update of `mod/mcm.lua`
+and, with nothing due, does a few comparisons: no file is opened and no game call is made (a test counts both). A run opens five small
+files and asks CET whether a few classes exist (a few milliseconds). The page's signature is built when a result arrives, not in `tick()`.
+The bridge answers through two exchange files, shipped empty and only ever rewritten in place (Mod Organizer 2,
+`packaging/runtime-exchange.json`): the Help page (and the first-load check) writes `runtime/setup-check-request.json`
+`{version, id, issuedAt}` from the next update, never inside the menu callback; `bridge/setup-check.mjs` polls it every 500 ms, answers a
+request once, and replaces `runtime/setup-check.json` `{version, updated, bridgePid, request, checks[]}`; the page follows the request for
+15 s, one small read a second, and redraws when the answer arrives. At the end of its start the bridge also writes a **light** answer
+(files and memory only: no process, no connection; browser, graphics card and Internet read Unknown). A request is **full**: the browser,
+graphics card and mod managers are looked up once per process and kept, and the connection test is made again each time. Only an answer
+written this game session is shown (the same 180 s window `service-status.lua` uses). Nothing is asked of a service that is not running.
+
+**The first-load notice.** When something critical is wrong the player gets one notice, once per game session, in gameplay: the first
+problem in a fixed order (this mod's scripts, RED4ext, Codeware, Audioware, TweakXL, Mod Configuration Menu, mod files, a service that never
+started, Scripts and Runtime, packs, Internet), one short text of at most two lines (`bridge/setup-notice-fit.test.mjs` holds all 15
+languages to that), shown for 9 s. The order puts everything that keeps the mod from starting, and MCM, before the texts that say "See
+Help in Settings", so a notice never sends the player to a page they cannot open. A service that failed has its own notice
+(`service-down`), Local AI its own fallback notices, and a mod manager, the game version and the browser none; those are lines on the
+page only. At the first load the Lua also asks the running service for its full answer and waits for it (at most 15 s), so a
+firewall that blocks the service is found without opening Help.
+
+**Without Mod Configuration Menu** the Help page cannot open. The notice then says "Install Mod Configuration Menu from Nexus Mods to
+open the Companion Manager.", the CET console and `runtime/probe.log` get one English line ("AI NPC Cyberpunk Mod: Mod Configuration Menu
+is missing or too old, so the Companion Manager cannot open. Install Mod Configuration Menu 0.10.3 or newer from Nexus Mods, then restart
+the game."), and the probe log lists every problem found. **Without this mod's scripts** (`worldReady` never becomes true, because it
+needs one of their methods) the notice is written straight to the warning line (`notices.lua` `M.screen.timed`, which `showS` selects)
+and shown when the game is paused no longer and no menu is open (`playable()` asks the game itself); the ordinary notice needs the
+scripts.
+
+**A missing requirement, and scripts that did not compile (2026-10-19).** A redscript compile error disables every redscript mod, so
+two players lost the whole game's scripts to this mod's files when Codeware or Audioware was not installed. `r6/scripts/CyberpunkConvai/`
+now always compiles: the code that needs Codeware or Audioware sits behind `@if(ModuleExists(...))` and each method Lua calls has a
+stand-in (see README, "A missing requirement never stops the compile"), and `Requirements.reds` adds `PlayerPuppet:ConvaiRequirements()`.
+What the setup check does with it, and what still runs when a requirement is missing:
+
+| Missing | Notice at the first load | What is left out |
+| --- | --- | --- |
+| Audioware | Audioware is missing (alone or in the list) | the voice played through Audioware (the OmniVoice phrases, and a holocall's voice where it uses Audioware); `speech.lua` stops offering audio to the service and says "Audioware is missing" when a voice does not start; the voices played in the browser are not affected |
+| Codeware | Codeware is missing | the speaking face (`Face.reds`), the save-bound knowledge state, the text box on the talk key (each press says so), the phone Chat tab (no contact is offered), the J and L keys and marks on the contact list, the holocall backdrop |
+| Codeware without UI modules | Codeware is too old | the text box, the Chat tab and the old Manager window |
+| TweakXL, Mod Configuration Menu | their own text | nothing in the scripts: they use neither |
+| scripts did not compile | "Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load." | everything that needs a script (text box, phone, face, speech playback); the Lua side still loads and shows the notice |
+
+Two or more of RED4ext, Codeware, TweakXL and Audioware at once are one notice naming them (at most four; Mod Configuration Menu keeps
+its own notice, its name being long). The CET console and `probe.log` get one English line per problem. Because a compile error also takes
+away the scripts the old checks relied on, the order now puts "scripts did not load" first and alone, and the framework lines turn
+Unknown instead of Problem while it is true. `onInit` (`mod/init.lua`) installs each hook set through `convaiGuarded`, so one hook that
+cannot be placed (it names a method of the missing scripts) no longer stops the Mod Configuration Menu registration after it. Audioware
+and Mod Configuration Menu need Codeware themselves: a game without it fails to compile because of them, whatever this mod does, and
+the redscript popup then names them. Not covered by `ModuleExists`: a requirement that is installed but too old to have a class or method
+(an old Audioware without `DynamicSoundEvent`): that still fails the compile and shows in `redscript_rCURRENT.log`. `Manager.reds` stays: it
+holds the voice and subtitle on/off switches that `speech.lua`, `subtitles.lua` and `init.lua` read and `manager.lua` sets, although
+nothing opens its window.
+
+**In the reports.** The short report the game writes has a `== setup check ==` section: one plain line per check
+(`service: ok running`, `tweakxl: problem missing`, `service gpu: ok found name=... memoryMiB=...`). The full report's `summary.json`
+gets `system.graphics` (name and memory of up to eight cards; this was missing before), the setup document among the status files, the
+game-side rows under `request.setup` (at most 24 rows of four short tokens), and every Problem at the top as a `PROBLEM FOUND` line;
+a missing browser is told once, by the service status. A setup document of another bridge process counts for ten minutes only.
+
+**Packages.** Scripts: `mod/setup-check.lua` (new), `mod/mcm.lua`, `mod/notices.lua`, `mod/service-status.lua`, `mod/support-report.lua`
+and the 15 dictionaries. Runtime: `bridge/setup-check.mjs` (new, in `BRIDGE_MODULES`), `bridge/support-report.mjs`,
+`bridge/convai-bridge.mjs`, and the launcher's `place-packs.mjs` and `start-service.mjs` (`pack-placement.json` in the state folder).
+Tests: `bridge/setup-check.test.mjs` (the bridge side), `bridge/setup-check-lua.test.mjs` (the Lua module over a fake game),
+`bridge/support-help-ui.test.mjs` (the page, the first-load notice with and without MCM and without scripts),
+`bridge/setup-notice-fit.test.mjs`, `bridge/support-report.test.mjs` and `packaging/place-packs.test.mjs`.
+
 ### How a report is made
 
 1. **Generate report** writes `runtime\report-request.json` (`{version, id, issuedAt, lua:{cetVersion,
@@ -214,6 +312,19 @@ the RED4ext launcher writes `launcher.log` beside its DLL; redscript and RED4ext
    (service status, settings, party, `runtime\*.log`, `AiNpcCyberpunkMod.log`), says why it is short and names
    the logs it could not read. It is one fixed file, `runtime\convai-report-lua.txt` (shipped empty and rewritten in place, so a
    new report replaces the last one and no file is created, renamed or removed).
+4. **With the game closed** (the mod never loads, so there is no Help page): `Make support report.bat` in
+   `red4ext\plugins\AiNpcCyberpunkMod` starts the bundled Node on `bridge/make-support-report.mjs`, which runs
+   `runOfflineReport()` (`bridge/offline-support-report.mjs`). It calls the same `buildReport` as the service, so the zip is the same
+   kind and goes to the same reports folder, with `generatedBy: offline`. It finds the game folder from where the Runtime is (or
+   `--game`), reads the logs from disk, and adds a requirement check to `summary.json` (`requirements`, `modFiles`, `releases`,
+   `offline`): Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Mod Configuration Menu (and ArchiveXL when
+   present) with the version where one is written down (the CET and RED4ext logs of the last start, MCM's own file), this mod's CET
+   folder, redscript folder and RED4ext plugin, and the Scripts and Runtime `release.json`. Each missing piece is a line in the
+   PROBLEM FOUND block. Redaction is the service's (`createRedactor`), with the player's key files, the sign-in secret and the key
+   packed into the Runtime added to the values it scrubs. Under Mod Organizer 2 a Runtime in MO2's `mods` folder is found through
+   `ModOrganizer.ini` (the game folder, Overwrite and the enabled mod folders of the selected profile are searched); where that
+   fails the tool says what it could not find and that MO2 users may need to start it from MO2 (Executables). It opens Explorer
+   on the zip and prints one line naming it.
 
 ### Privacy
 
@@ -233,6 +344,8 @@ name and conversation text in logs, settings and status files and require that n
 - `mod/support-report.lua`: Help support (paths, request/result flow, short Lua report, copy path). Loaded
   by `mod/mcm.lua` behind a `pcall`; without it the manager simply has no Help entry.
 - `bridge/support-report.mjs`, `bridge/zip-writer.mjs`: the service side (also in `BRIDGE_MODULES`).
+- `mod/setup-check.lua` and `bridge/setup-check.mjs`: the Setup check (above). The Lua module is loaded by `mod/mcm.lua` behind a `pcall`
+  and read through its global `convaiSetupCheck`; without it the Help page shows only the Conversation service row first.
 - `mod/mcm.lua`: provider `cyberpunk-convai`, mod `manager`, registered through
   `GetMod('ModConfigurationMenuAPI').providers.registerProvider`. Produces the
   native schema and extends content search to the model catalogue. MCM files

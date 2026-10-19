@@ -18,6 +18,11 @@
 // man_average_sermo) and every NPC whose face is not one of the four crowd graphs keep the vanilla graph. Shared game resources are never
 // patched, zero inputs leave the native face unchanged, and this service keeps entity IDs and strings only, never a
 // live actor or component. There is no per-frame work here: one callback per NPC spawn, one call per conversation.
+// The speaking face needs Codeware (its script services, entity callbacks and resource references). Without Codeware the service and
+// the methods that use it are left out and each NPCPuppet method below has a plain stand-in at the end of this file, so these scripts
+// still compile (a compile error would disable every redscript mod) and the face simply never gets prepared.
+// mod/setup-check.lua tells the player Codeware is missing.
+@if(ModuleExists("Codeware"))
 public class ConvaiFaceService extends ScriptableService {
   private let m_names: array<String>;
   private let m_graphs: array<ResourceRef>;
@@ -566,12 +571,15 @@ public class ConvaiFaceService extends ScriptableService {
   }
 }
 
+@if(ModuleExists("Codeware"))
 @addField(NPCPuppet)
 private let m_convaiFacePrepared: Bool;
 
+@if(ModuleExists("Codeware"))
 @addField(NPCPuppet)
 private let m_convaiFaceStatus: String;
 
+@if(ModuleExists("Codeware"))
 @addMethod(NPCPuppet)
 public final func ConvaiFacePrepared(ready: Bool, status: String, opt graphPath: String) -> Void {
   this.m_convaiFacePrepared = ready;
@@ -579,16 +587,20 @@ public final func ConvaiFacePrepared(ready: Bool, status: String, opt graphPath:
   this.m_convaiFaceGraphPath = ready ? graphPath : "";
 }
 
+@if(ModuleExists("Codeware"))
 @addField(NPCPuppet)
 private let m_convaiFaceGraphPath: String;
 
 // Whether this dynamic entity is a character another mod or a spawner created (read once, then kept with the puppet).
+@if(ModuleExists("Codeware"))
 @addField(NPCPuppet)
 private let m_convaiSpawnedKnown: Bool;
 
+@if(ModuleExists("Codeware"))
 @addField(NPCPuppet)
 private let m_convaiSpawned: Bool;
 
+@if(ModuleExists("Codeware"))
 @addMethod(NPCPuppet)
 private final func ConvaiSpawnedElsewhere(dynamic: ref<DynamicEntitySystem>) -> Bool {
   if !this.m_convaiSpawnedKnown {
@@ -600,10 +612,12 @@ private final func ConvaiSpawnedElsewhere(dynamic: ref<DynamicEntitySystem>) -> 
 
 // The reason a conversation start refused this NPC (a dialogue, a quest, a commanded AI): the layer stays inert and
 // unwritten. Empty when it was never refused, or when the latest start cleared it.
+@if(ModuleExists("Codeware"))
 @addField(NPCPuppet)
 private let m_convaiFaceRefusal: String;
 
 // What the Lua log shows: the refusal while there is one, otherwise how the face was prepared.
+@if(ModuleExists("Codeware"))
 @addMethod(NPCPuppet)
 public final func ConvaiFaceStatus() -> String {
   if !Equals(this.m_convaiFaceRefusal, "") { return this.m_convaiFaceRefusal; };
@@ -623,6 +637,7 @@ public final func ConvaiFaceStatus() -> String {
   return this.m_convaiFaceStatus;
 }
 
+@if(ModuleExists("Codeware"))
 @addMethod(NPCPuppet)
 public final func ConvaiFaceReady() -> Bool {
   if !this.IsAttached() || this.IsDeadNoStatPool() { return false; };
@@ -649,6 +664,7 @@ public final func ConvaiFaceReady() -> Bool {
 // A world NPC is prepared at its spawn (OnWorldInitialize), which sets the flag. This only recognizes a face that
 // already runs one of our graphs without the flag (an NPC prepared before a script reload). Called only for the
 // current speaker while it is not yet prepared.
+@if(ModuleExists("Codeware"))
 @addMethod(NPCPuppet)
 private final func ConvaiFaceAdoptWorld() -> Bool {
   let face = this.FindComponentByName(n"face_rig") as AnimatedComponent;
@@ -662,6 +678,7 @@ private final func ConvaiFaceAdoptWorld() -> Bool {
 // The talk target asks for the layer (init.lua, when a conversation opens). Nothing is built here: an ordinary NPC
 // was prepared at its spawn or it was not, and the answer is the status of that decision plus the talk-time guards.
 // "managed" for a dynamic entity, "prepared:<graph>" when the mouth can follow the voice, otherwise why not.
+@if(ModuleExists("Codeware"))
 @addMethod(NPCPuppet)
 public final func ConvaiFaceRequest() -> String {
   let service = GameInstance.GetScriptableServiceContainer().GetService(n"ConvaiFaceService") as ConvaiFaceService;
@@ -685,6 +702,7 @@ public final func ConvaiFaceRequest() -> String {
   return this.ConvaiFaceStatus();
 }
 
+@if(ModuleExists("Codeware"))
 @addMethod(NPCPuppet)
 public final func ConvaiFaceApply(feature: ref<ConvaiFaceFeature>) -> Bool {
   // Readiness carries the ownership check (companion tag or prepared world NPC).
@@ -693,7 +711,39 @@ public final func ConvaiFaceApply(feature: ref<ConvaiFaceFeature>) -> Bool {
   return true;
 }
 
+@if(ModuleExists("Codeware"))
 @addMethod(NPCPuppet)
 public final func ConvaiFaceReset() -> Bool {
   return this.ConvaiFaceApply(new ConvaiFaceFeature());
+}
+
+// Stand-ins without Codeware: nothing was prepared, so the face is never ready and Lua writes no mouth movement.
+@if(!ModuleExists("Codeware"))
+@addMethod(NPCPuppet)
+public final func ConvaiFaceStatus() -> String {
+  return "codeware-missing";
+}
+
+@if(!ModuleExists("Codeware"))
+@addMethod(NPCPuppet)
+public final func ConvaiFaceReady() -> Bool {
+  return false;
+}
+
+@if(!ModuleExists("Codeware"))
+@addMethod(NPCPuppet)
+public final func ConvaiFaceRequest() -> String {
+  return "codeware-missing";
+}
+
+@if(!ModuleExists("Codeware"))
+@addMethod(NPCPuppet)
+public final func ConvaiFaceApply(feature: ref<ConvaiFaceFeature>) -> Bool {
+  return false;
+}
+
+@if(!ModuleExists("Codeware"))
+@addMethod(NPCPuppet)
+public final func ConvaiFaceReset() -> Bool {
+  return false;
 }

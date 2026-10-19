@@ -488,3 +488,110 @@ test('a service that never started because no browser was found says so plainly 
     assert(!('problems' in (await make()).summary), 'only the browser fault is reported this way');
   } finally { await f.cleanup(); }
 });
+
+test('the report names the graphics card and its memory, at most eight cards, and a failing lookup never stops the report', async () => {
+  const f = await plantedInstall();
+  try {
+    const make = graphics => collectReport({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      request: {id: 'r-gpu', issuedAt: Date.now()}, secrets: [], graphics});
+    const {summary, entries} = await make(async () => [{name: 'NVIDIA GeForce RTX 4070 Laptop GPU', memoryMiB: 8188.4}, {name: 'Intel(R) UHD Graphics', memoryMiB: null}]);
+    assert.deepEqual(summary.system, {graphics: [{name: 'NVIDIA GeForce RTX 4070 Laptop GPU', memoryMiB: 8188}, {name: 'Intel(R) UHD Graphics', memoryMiB: null}]});
+    assert(Object.keys(summary).indexOf('system') > Object.keys(summary).indexOf('versions'), 'the card is listed beside the versions');
+    assert.match(entries.find(entry => entry.name === 'README.txt').data, /summary\.json {3}versions, graphics card, service status, setup check/);
+    // hostile values: no name, a long name, a negative or text size, more than eight cards
+    const many = Array.from({length: 12}, (_, index) => ({name: `Card ${index}`, memoryMiB: 1024}));
+    assert.equal((await make(async () => many)).summary.system.graphics.length, 8);
+    const odd = (await make(async () => [{name: ''}, {name: 'x'.repeat(500), memoryMiB: -5}, {name: 'Radeon', memoryMiB: 'lots'}, null, 'text'])).summary.system.graphics;
+    assert.deepEqual(odd, [{name: 'x'.repeat(120), memoryMiB: null}, {name: 'Radeon', memoryMiB: null}]);
+    // nothing found, a rejected lookup and a value that is not a list
+    assert.deepEqual((await make(async () => [])).summary.system, {graphics: []});
+    assert.deepEqual((await make(async () => { throw new Error('reg.exe is not here'); })).summary.system, {graphics: []});
+    assert.deepEqual((await make(() => 'none')).summary.system, {graphics: []});
+    // the Windows account name in a card's name is removed like anywhere else
+    const named = (await make(async () => [{name: `Card in C:\\Users\\${PLANTED.windowsUser}\\x`, memoryMiB: 1}])).summary.system.graphics[0].name;
+    assert(!named.includes(PLANTED.windowsUser), named);
+  } finally { await f.cleanup(); }
+});
+
+test('the control hands its graphics source to the report it builds, and the zip names the card', async () => {
+  const f = await plantedInstall();
+  try {
+    const requestPath = join(f.runtime, 'report-request.json'), resultPath = join(f.runtime, 'report-result.json');
+    let handed;
+    const control = await SupportReportControl.open({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      secrets: () => [], knownIds: () => [], bridge: () => ({busy: false}), graphics: async () => [{name: 'AMD Radeon RX 7800 XT', memoryMiB: 16368}],
+      build: async options => { handed = options.graphics; return buildReport(options); }});
+    await writeFile(requestPath, JSON.stringify({version: 1, id: 'r1800000000-1', issuedAt: Date.now(), lua: {view: 'help', party: []}}));
+    await control.poll();
+    assert.equal(typeof handed, 'function');
+    const result = JSON.parse(await readFile(resultPath, 'utf8'));
+    assert.equal(result.state, 'ready');
+    const summary = JSON.parse((await zipText(result.path)).find(entry => entry.name === 'summary.json').text);
+    assert.deepEqual(summary.system, {graphics: [{name: 'AMD Radeon RX 7800 XT', memoryMiB: 16368}]});
+    control.close();
+  } finally { await f.cleanup(); }
+});
+
+test('setup problems found this session are listed at the top of the report; those from an earlier session or another process are not', async () => {
+  const f = await plantedInstall();
+  try {
+    const now = Date.now();
+    const document = (checks, extra = {}) => JSON.stringify({version: 1, updated: now, bridgePid: process.pid, request: null, checks, ...extra});
+    const make = (request = {}) => collectReport({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      request: {id: 'r-setup', issuedAt: now, ...request}, secrets: [], graphics: async () => [], now: () => now});
+    const file = join(f.runtime, 'setup-check.json');
+    assert(!('problems' in (await make()).summary), 'no setup document, no problem');
+    await f.put(file, document([{id: 'versions', state: 'problem', code: 'mismatch', scripts: '0.2', runtime: '0.2.1'},
+      {id: 'packs', state: 'problem', code: 'nested', nested: [{pack: 'OmniVoice', folder: 'AI-NPC-OmniVoice-0.2.1'}, {pack: 'Mature lite', folder: 'x'}]},
+      {id: 'internet', state: 'problem', code: 'blocked', service: 'mistral', host: 'api.mistral.ai'},
+      {id: 'gpu', state: 'ok', code: 'found', name: 'NVIDIA'}, {id: 'browser', state: 'ok', code: 'found', name: 'Edge'}]));
+    let {summary, entries} = await make();
+    assert.deepEqual(summary.problems, ['Setup check: versions mismatch (Scripts 0.2, Runtime 0.2.1)',
+      'Setup check: packs nested (OmniVoice in AI-NPC-OmniVoice-0.2.1, Mature lite in x)', 'Setup check: internet blocked (mistral: api.mistral.ai)']);
+    assert.equal(Object.keys(summary)[1], 'problems');
+    assert(entries.find(entry => entry.name === 'README.txt').data.includes('PROBLEM FOUND:\n  Setup check: versions mismatch'));
+    assert(summary.bridge.status['setup-check.json']?.value, 'the document is among the status files');
+    // a missing browser is already told by the service status: not twice
+    await f.put(join(f.runtime, 'bridge-service.json'), JSON.stringify({state: 'failed', code: 'browser-missing', updated: now}));
+    await f.put(file, document([{id: 'browser', state: 'problem', code: 'missing'}]));
+    ({summary} = await make());
+    assert.equal(summary.problems.length, 1);
+    assert.match(summary.problems[0], /browser-missing/);
+    await rm(join(f.runtime, 'bridge-service.json'), {force: true});
+    // another process's document counts for ten minutes only; this process's, always
+    await f.put(file, document([{id: 'files', state: 'problem', code: 'missing'}], {bridgePid: process.pid + 1, updated: now - 11 * 60 * 1000}));
+    assert(!('problems' in (await make()).summary), 'an old document of another process says nothing about now');
+    await f.put(file, document([{id: 'files', state: 'problem', code: 'missing'}], {bridgePid: process.pid + 1, updated: now - 60 * 1000}));
+    assert.deepEqual((await make()).summary.problems, ['Setup check: files missing']);
+    await f.put(file, document([{id: 'files', state: 'problem', code: 'missing'}], {updated: now - 3 * 60 * 60 * 1000}));
+    assert.deepEqual((await make()).summary.problems, ['Setup check: files missing'], 'this bridge process is still running');
+    // wrong shapes are ignored
+    for (const wrong of ['', 'not json', '[]', JSON.stringify({version: 1, checks: 'no'}), JSON.stringify({version: 1, updated: now, bridgePid: process.pid, checks: [null, 5, {id: 7}, {id: 'x'}]})]) {
+      await f.put(file, wrong);
+      assert(!('problems' in (await make()).summary), wrong);
+    }
+  } finally { await f.cleanup(); }
+});
+
+test('the game side checks the Help page sends are kept short, at most 24 rows, and a problem among them is listed', async () => {
+  const f = await plantedInstall();
+  try {
+    const now = Date.now();
+    const setup = [{id: 'tweakxl', state: 'problem', code: 'missing'}, {id: 'codeware', state: 'ok', code: 'found', version: '1.20.5'},
+      {id: 'row of words '.repeat(10), state: 'bad state '.repeat(10), code: 'a long code '.repeat(20), version: 'version words '.repeat(10), extra: 'dropped'}, ...Array.from({length: 40}, (_, index) => ({id: `row${index}`, state: 'ok', code: 'found'}))];
+    const {summary} = await collectReport({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      request: {id: 'r-lua', issuedAt: now, lua: {cetVersion: '1.37.1', setup}}, secrets: [], graphics: async () => [], now: () => now});
+    assert.equal(summary.request.setup.length, 24);
+    assert.deepEqual(summary.request.setup[0], {id: 'tweakxl', state: 'problem', code: 'missing', version: undefined});
+    assert.deepEqual(summary.request.setup[1], {id: 'codeware', state: 'ok', code: 'found', version: '1.20.5'});
+    assert.deepEqual(Object.keys(summary.request.setup[2]).sort(), ['code', 'id', 'state', 'version']);
+    assert(summary.request.setup[2].id.length <= 40 && summary.request.setup[2].state.length <= 20 && summary.request.setup[2].code.length <= 60 && summary.request.setup[2].version.length <= 40 && summary.request.setup[2].code.length > 30);
+    assert.equal(summary.problems[0], 'Setup check (game): tweakxl missing');
+    // no setup rows, a request of another shape
+    for (const lua of [{}, {setup: 'text'}, {setup: null}, {setup: [null, 3, 'x']}]) {
+      const result = await collectReport({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+        request: {id: 'r-lua2', issuedAt: now, lua}, secrets: [], graphics: async () => [], now: () => now});
+      assert(!('problems' in result.summary), JSON.stringify(lua));
+    }
+  } finally { await f.cleanup(); }
+});

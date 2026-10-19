@@ -100,6 +100,19 @@ const composites = {
     byStart('Copy your free key from Mistral first'),
     'You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited), then Apply.',
   ],
+  // The Custom (OpenAI-compatible) rows (mod/custom-provider.lua): the URL help with a failed paste's message first, the helps of a saved row, the long
+  // model id, and the failed test with the wait and the provider's own words (at most 160 letters) before the row's own help.
+  'Custom endpoint URL (failed paste)': ['Use the base URL only: no password, query or #.', byStart('Copy the base URL from your provider')],
+  'Custom endpoint URL (saved, not encrypted)': [byStart('Deletes the saved endpoint URL'), 'This address is not encrypted, which is fine on your own computer or home network.'],
+  'Custom API key (failed paste)': ['The clipboard does not hold an API key.', byStart('Copy your API key from your provider first.')],
+  'Custom API key (saved)': [byStart('Deletes the saved key. Replies'), 'Saved on this computer only. Only the last four characters are ever shown.'],
+  'Custom model ID (failed paste)': ['The clipboard does not hold a model ID.', byStart('Copy the model ID from your provider first')],
+  'Custom model ID (saved)': ['Model ID: {model}', byStart('Deletes the saved model ID')],
+  'Test connection (failed, rate limit with a wait and the provider’s words)': [
+    'The endpoint is rate limiting you. Wait about {seconds} seconds, then try again.', 'The provider said: {detail}', byStart('Sends one tiny message')],
+  'Test connection (failed, the longest sentence)': [
+    'The endpoint refused the request. Check the model ID and the address.', 'The provider said: {detail}', byStart('Sends one tiny message')],
+  'Test connection (service not running)': [byStart('The conversation service is not running, so nothing can be tested.'), byStart('Sends one tiny message')],
   'Inworld API key (failed paste)': ['The clipboard could not be read.', byStart('Copy your key from Inworld first.')],
   'Inworld API key (saved)': ['Mistral did not accept that key.', 'Deletes the saved key. The Inworld cloud voice stops until you add a key again.', 'Saved on this computer only. Only the last four characters are ever shown.'],
   // Developer mode adds a paragraph about the Inworld voice to these helps.
@@ -150,6 +163,10 @@ const translatePart = (part, translate) => {
   if (part.startsWith('Not usable:')) return translate('Not usable: {models}. See the Local AI notes, "Add your own model".').replace('{models}', 'Embedder: an embedding model, not a chat model; Gone: file not found');
   if (part.startsWith('You have used today’s {limit}')) return translate(part).replace('{limit}', '100');
   if (part.startsWith('Convai free tier: {left}')) return translate(part).replace('{left}', '87').replace('{limit}', '100');
+  // The longest values the Custom rows are given: a model id of 120 characters, a wait of two digits, the provider's words (160 characters).
+  if (part.startsWith('Model ID: {model}')) return translate(part).replace('{model}', 'meta-llama/llama-3.1-8b-instruct:extended-with-a-long-name-0123456789-0123456789-0123456789-0123456789-0123456789-012345');
+  if (part.startsWith('The endpoint is rate limiting you. Wait about {seconds}')) return translate(part).replace('{seconds}', '30');
+  if (part.startsWith('The provider said: {detail}')) return translate(part).replace('{detail}', 'Your credits are used up for this month. Add credits or wait until the next billing period starts, then try the same request again. Contact us if this keeps happening.');
   return translate(part);
 };
 

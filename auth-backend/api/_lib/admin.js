@@ -98,7 +98,10 @@ export function createAdminConfigHandler(options = {}) {
     let change; // undefined: no change, null: remove, number: set
     let plansChange; // undefined: no change, null: remove, object: set
     if (request.method === 'POST') {
-      const raw = await readRawBody(request, 8192);
+      let raw;
+      try {
+        raw = await readRawBody(request, 8192);
+      } catch { /* the stream failed while being read: reported below as an unreadable body */ }
       let parsed = null;
       try { parsed = JSON.parse(raw ?? ''); } catch { /* reported below */ }
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || !('dailyInteractionLimit' in parsed || 'paidPlans' in parsed)) {

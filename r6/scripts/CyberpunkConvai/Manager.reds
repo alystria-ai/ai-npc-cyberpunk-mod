@@ -1,6 +1,8 @@
 module CyberpunkConvai
 
+@if(ModuleExists("Codeware.UI"))
 import Codeware.UI.*
+@if(ModuleExists("Codeware.UI.TextInput"))
 import Codeware.UI.TextInput.*
 
 // Lua owns discovery, filtering and actions. Native code holds only one page.
@@ -32,6 +34,11 @@ public class ConvaiManagerViewData {
 
 // Keep native selection, clipboard and caret behavior. Queue keys while the
 // Codeware glyph measurer is busy instead of losing fast search input.
+// The old native manager window is built on Codeware's text input and popup. Without Codeware (or with one too old to have them)
+// the window, its search box and the methods that open or close it are left out (each method has a stand-in below: closed, never
+// opens), so these scripts still compile: a compile error would disable every redscript mod. The voice and subtitle switches
+// and the data methods further down need no Codeware and always exist.
+@if(ModuleExists("Codeware.UI.TextInput"))
 public class ConvaiManagerSearchInput extends HubTextInput {
     private let m_pendingKeys: array<ref<inkKeyInputEvent>>;
 
@@ -78,6 +85,7 @@ public class ConvaiManagerSearchInput extends HubTextInput {
     }
 }
 
+@if(ModuleExists("Codeware.UI.TextInput"))
 public class ConvaiManagerControl {
     public let root: wref<inkCanvas>;
     public let fill: wref<inkRectangle>;
@@ -101,6 +109,7 @@ public class ConvaiManagerControl {
 
 // Full native manager. Its root, input and eight list rows live for one popup;
 // refreshes update text/state without recreating widgets or stealing text focus.
+@if(ModuleExists("Codeware.UI.TextInput"))
 public class ConvaiManagerPopup extends InGamePopup {
     private let m_player: wref<PlayerPuppet>;
     private let m_header: ref<InGamePopupHeader>;
@@ -677,6 +686,7 @@ public final func ConvaiManagerSetPartyStatus(text: String) -> Void {
     this.m_convaiManagerView.partyStatus = text;
 }
 
+@if(ModuleExists("Codeware.UI.TextInput"))
 @addMethod(PlayerPuppet)
 public final func ConvaiManagerRefresh() -> Void {
     if IsDefined(this.m_convaiManagerPopup) {
@@ -741,6 +751,7 @@ public final func ConvaiManagerRequestSearch(text: String) -> Void {
     };
 }
 
+@if(ModuleExists("Codeware.UI.TextInput"))
 @addMethod(PlayerPuppet)
 public final func ConvaiManagerDidClose(popup: ref<ConvaiManagerPopup>) -> Void {
     // A late animation callback from an old screen cannot clear a newer one.
@@ -751,6 +762,7 @@ public final func ConvaiManagerDidClose(popup: ref<ConvaiManagerPopup>) -> Void 
 }
 
 // Legacy configuration API retained for existing CET callers.
+@if(ModuleExists("Codeware.UI.TextInput"))
 @addField(PlayerPuppet)
 private let m_convaiManagerPopup: wref<ConvaiManagerPopup>;
 
@@ -794,6 +806,7 @@ private final func ConvaiManagerEnsure() -> Void {
     this.m_convaiManagerSubtitles = true;
 }
 
+@if(ModuleExists("Codeware.UI.TextInput"))
 @addMethod(PlayerPuppet)
 public final func ConvaiOpenManager() -> Bool {
     this.ConvaiManagerEnsure();
@@ -818,6 +831,7 @@ public final func ConvaiOpenManager() -> Bool {
     return true;
 }
 
+@if(ModuleExists("Codeware.UI.TextInput"))
 @addMethod(PlayerPuppet)
 public final func ConvaiCloseManager() -> Bool {
     if !IsDefined(this.m_convaiManagerPopup) {
@@ -828,6 +842,7 @@ public final func ConvaiCloseManager() -> Bool {
     return true;
 }
 
+@if(ModuleExists("Codeware.UI.TextInput"))
 @addMethod(PlayerPuppet)
 public final func ConvaiManagerIsOpen() -> Bool {
     return IsDefined(this.m_convaiManagerPopup) && !this.m_convaiManagerPopup.IsClosing();
@@ -906,4 +921,28 @@ public final func ConvaiManagerSetSubtitles(enabled: Bool) -> Void {
 public final func ConvaiManagerRevision() -> Int32 {
     this.ConvaiManagerEnsure();
     return this.m_convaiManagerRevision;
+}
+
+// Stand-ins without the window: nothing is open and nothing can be opened.
+@if(!ModuleExists("Codeware.UI.TextInput"))
+@addMethod(PlayerPuppet)
+public final func ConvaiManagerRefresh() -> Void {
+}
+
+@if(!ModuleExists("Codeware.UI.TextInput"))
+@addMethod(PlayerPuppet)
+public final func ConvaiOpenManager() -> Bool {
+    return false;
+}
+
+@if(!ModuleExists("Codeware.UI.TextInput"))
+@addMethod(PlayerPuppet)
+public final func ConvaiCloseManager() -> Bool {
+    return false;
+}
+
+@if(!ModuleExists("Codeware.UI.TextInput"))
+@addMethod(PlayerPuppet)
+public final func ConvaiManagerIsOpen() -> Bool {
+    return false;
 }

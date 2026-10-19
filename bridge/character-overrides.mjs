@@ -6,7 +6,7 @@
 // A file holds only the fields that differ from the shipped profile ("reset" removes a field or the whole file). Everything is
 // validated against LIMITS before it is stored, so the prompt of the 8b model stays about as long as the longest shipped profile.
 // `CharacterOverrides.get` is a plain map lookup: the prompt builder calls it on every turn and nothing here touches the disk then.
-import {readFile, readdir, rm, mkdir} from 'node:fs/promises';
+import {readFile, readdir, rename, rm, mkdir} from 'node:fs/promises';
 import {join, dirname} from 'node:path';
 import {atomicFile} from './guarded-file.mjs';
 
@@ -117,20 +117,23 @@ const defaultIo = {
   read: file => readFile(file, 'utf8'),
   write: async (file, text) => { await mkdir(dirname(file), {recursive: true}); return atomicFile(file, text); },
   readdir: dir => readdir(dir),
+  rename: (from, to) => rename(from, to),
   remove: file => rm(file, {force: true}),
 };
 
 export class CharacterOverrides {
-  /** Loads every file of the folder into memory (a missing folder is an empty set). Damaged files are skipped and left on disk. */
+  /** Loads every file of the folder into memory (a missing folder is an empty set). Damaged files are skipped and left on disk until the
+   * player saves that character again, which keeps the old file as <key>.json.corrupt (the name VendorMemory uses) before writing. */
   static async open(options = {}) {
     const store = new CharacterOverrides(options);
     await store.#load();
     return store;
   }
   constructor({dir, now = Date.now, limits = EDIT_LIMITS, read = defaultIo.read, write = defaultIo.write, readdir: list = defaultIo.readdir,
-    remove = defaultIo.remove, log = () => {}} = {}) {
-    Object.assign(this, {dir, now, limits, read, write, listDir: list, remove, log});
+    rename = defaultIo.rename, remove = defaultIo.remove, log = () => {}} = {}) {
+    Object.assign(this, {dir, now, limits, read, write, listDir: list, rename, remove, log});
     this.rows = new Map();
+    this.damaged = new Set();   // characters whose file could not be used: moved aside before a save or a reset writes over or removes it
     this.chain = Promise.resolve();
   }
   #path(key) { return join(this.dir, key + '.json'); }
@@ -141,13 +144,31 @@ export class CharacterOverrides {
     for (const name of names) {
       const match = FILE.exec(name);
       if (!match) continue;
+      let raw = null;
       try {
-        const value = JSON.parse(await this.read(join(this.dir, name)));
-        if (!plain(value) || value.version !== 1 || value.key !== match[1]) continue;
-        const row = readOverride(value, this.limits);
-        if (Object.keys(row).length) this.rows.set(match[1], Object.freeze(row));
-      } catch { this.log(`character edits of ${match[1]} could not be read; they are left as they are`); }
+        raw = await this.read(join(this.dir, name));
+        const value = JSON.parse(raw);
+        if (plain(value) && value.version === 1 && value.key === match[1]) {
+          const row = readOverride(value, this.limits);
+          if (Object.keys(row).length) this.rows.set(match[1], Object.freeze(row));
+          continue;
+        }
+      } catch { /* damaged, or not a file */ }
+      // A file that was read but is not usable (not a folder, a locked file or an empty one) holds the player's words: see #keepAside.
+      const keep = typeof raw === 'string' && raw.trim() !== '';
+      if (keep) this.damaged.add(match[1]);
+      this.log(`character edits of ${match[1]} could not be read; they are left as they are` + (keep ? `, and kept as ${name}.corrupt if you save this character again` : ''));
     }
+  }
+  // The damaged file is moved to <key>.json.corrupt (an older copy there is replaced) before the first save or reset of that character writes
+  // over it or removes it. A file that is already gone is nothing to keep; any other failure fails that save, which can be tried again.
+  async #keepAside(key) {
+    if (!this.damaged.has(key)) return;
+    const path = this.#path(key);
+    try { await this.remove(path + '.corrupt'); await this.rename(path, path + '.corrupt'); }
+    catch (error) { if (error?.code !== 'ENOENT') throw error; }
+    this.damaged.delete(key);
+    this.log(`character edits of ${key} were damaged: kept as ${key}.json.corrupt`);
   }
   /** The stored fields of a character, or null. A map lookup: safe on the prompt path. */
   get(key) { return this.rows.get(key) ?? null; }
@@ -162,6 +183,7 @@ export class CharacterOverrides {
     const row = readOverride(fields, this.limits), empty = Object.keys(row).length === 0;
     const job = this.chain.catch(() => {}).then(async () => {
       if (!this.dir) { if (empty) this.rows.delete(key); else this.rows.set(key, Object.freeze(row)); return empty ? null : this.rows.get(key); }
+      await this.#keepAside(key);
       if (empty) await this.remove(this.#path(key));
       else if (!await this.write(this.#path(key), JSON.stringify({version: 1, key, updated: this.now(), ...row}, null, 1))) throw Error('could not save');
       if (empty) this.rows.delete(key); else this.rows.set(key, Object.freeze(row));

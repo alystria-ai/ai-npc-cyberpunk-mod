@@ -79,7 +79,14 @@ export function createTokenHandler(options = {}) {
       return;
     }
 
-    const body = await readRawBody(request);
+    let body;
+    try {
+      body = await readRawBody(request);
+    } catch {
+      // The client went away or the stream failed while the body was being read: answer, do not reject the handler.
+      sendJson(response, 400, { error: 'bad_request' });
+      return;
+    }
     if (body === null) {
       sendJson(response, 413, { error: 'too_large' });
       return;

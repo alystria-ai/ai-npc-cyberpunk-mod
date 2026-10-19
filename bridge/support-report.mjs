@@ -6,6 +6,7 @@ import {spawn} from 'node:child_process';
 import {createZip} from './zip-writer.mjs';
 import {atomicFile} from './guarded-file.mjs';
 import {NO_BROWSER_MESSAGE} from './system-browser.mjs';
+import {cachedGraphicsCards} from './setup-check.mjs';
 
 // Support report: one redacted zip a player can send to the developer after an
 // error. The Help page in Companion Manager writes runtime/report-request.json;
@@ -271,16 +272,47 @@ export async function publishSupportPaths({game, modRoot, runtime, stateDirector
 
 // ------------------------------------------------------------------ report
 
-// A fault the player can fix, stated plainly at the top of the report (the service status code says which).
-function knownProblems(raw) {
+// A setup-check.json is read as this bridge's own while its bridgePid is this process, or (written by another process) while it is under
+// ten minutes old: a document an earlier game session left behind says nothing about this one.
+const SETUP_FRESH_MS = 10 * 60 * 1000;
+function setupLine(row) {
+  const id = clip(row?.id, 40), code = clip(row?.code, 40);
+  if (!id || !code) return null;
+  const detail = [];
+  if (id === 'versions' && row.code === 'mismatch') detail.push(`Scripts ${clip(row.scripts, 40)}, Runtime ${clip(row.runtime, 40)}`);
+  else if (id === 'packs' && row.code === 'nested') {
+    detail.push((Array.isArray(row.nested) ? row.nested : []).slice(0, 8).map(item => `${clip(item?.pack, 60)} in ${clip(item?.folder, 200)}`).join(', '));
+  } else if (id === 'packs' && row.code === 'conflict') detail.push('the launcher could not finish moving pack files into place');
+  else if (id === 'internet' && row.host) detail.push(`${clip(row.service, 20)}: ${clip(row.host, 80)}`);
+  const text = detail.filter(Boolean).join('; ');
+  return `Setup check: ${id} ${code}${text ? ` (${text})` : ''}`;
+}
+
+// A fault the player can fix, stated plainly at the top of the report (the service status code says which). `lua.setup` is the game-side
+// checks the Help page sent with the request.
+function knownProblems(raw, {lua = {}, now = Date.now} = {}) {
   const problems = [];
-  if (raw['bridge-service.json']?.code === 'browser-missing') problems.push(`The conversation service could not start: ${NO_BROWSER_MESSAGE} (service status code browser-missing).`);
+  const browserMissing = raw['bridge-service.json']?.code === 'browser-missing';
+  if (browserMissing) problems.push(`The conversation service could not start: ${NO_BROWSER_MESSAGE} (service status code browser-missing).`);
+  const check = raw['setup-check.json'];
+  const fresh = check && typeof check === 'object' && Array.isArray(check.checks)
+    && (check.bridgePid === process.pid || (Number.isFinite(check.updated) && Math.abs(now() - check.updated) <= SETUP_FRESH_MS));
+  if (fresh) {
+    for (const row of check.checks.slice(0, 16)) {
+      if (row?.state !== 'problem' || (browserMissing && row.id === 'browser')) continue;
+      const line = setupLine(row);
+      if (line) problems.push(line);
+    }
+  }
+  for (const row of Array.isArray(lua.setup) ? lua.setup : []) {
+    if (row?.state === 'problem' && row.id && row.code) problems.push(`Setup check (game): ${row.id} ${row.code}`);
+  }
   return problems;
 }
 
 const STATUS_FILES = ['bridge-service.json', 'bridge-status.json', 'knowledge-status.json', 'local-voice-state.json',
   'party-connection-state.json', 'party-connections.json', 'companion-invitations-state.json', 'memory-status.json',
-  'relationship-routing.json', 'world-session.json', 'bridge-latency.json'];
+  'relationship-routing.json', 'world-session.json', 'bridge-latency.json', 'setup-check.json'];
 const ERROR_LINE = /\b(?:error|exception|failed|failure|fatal|crash(?:ed)?|traceback|panic|unhandled|assert(?:ion)?)\b/i;
 // Routine lines that merely mention the word ("no error reported", "error=false").
 const NOT_AN_ERROR = /\b(?:no|zero|0)\s+(?:scene\s+)?errors?\b|\berrors?\s*[=:]\s*(?:false|0|none|null)\b|\bfailures?\s*[=:]\s*0\b|\bwithout (?:an? )?error/i;
@@ -309,8 +341,11 @@ function sanitizeRequest(request) {
     profile: clip(row?.profile, 80), key: clip(row?.key, 80), name: clip(row?.name, 80),
     state: clip(row?.state, 40), error: clip(row?.error, 160),
   })) : [];
+  // The game-side setup checks (files, game, CET, RED4ext...): short tokens only, at most 24 rows.
+  const setup = Array.isArray(lua.setup) ? lua.setup.slice(0, 24).map(row => ({id: clip(row?.id, 40), state: clip(row?.state, 20),
+    code: clip(row?.code, 60), version: clip(row?.version, 40)})) : undefined;
   return {cetVersion: clip(lua.cetVersion, 40), language: clip(lua.language, 20), view: clip(lua.view, 40),
-    developerMode: typeof lua.developerMode === 'boolean' ? lua.developerMode : undefined, party};
+    developerMode: typeof lua.developerMode === 'boolean' ? lua.developerMode : undefined, party, setup};
 }
 
 async function versions({game, modRoot, project, logs, now}) {
@@ -378,6 +413,25 @@ export async function localAiSection({runtime, project, environment = process.en
   };
 }
 
+/**
+ * Which conversation provider is chosen and in use, and for the custom OpenAI-compatible provider its host and model id (docs/CUSTOM_PROVIDER.md). From
+ * the two status files the bridge publishes; only the fields named here are copied. Never the address's path or query, never the key (not even its tail).
+ */
+export async function conversationSection({runtime, settings}) {
+  const chosen = ['convai', 'mistral', 'local', 'custom'].includes(settings?.conversationProvider) ? settings.conversationProvider : 'convai';
+  const provider = await readSmallJson(join(runtime, 'mistral-state.json'));
+  const custom = await readSmallJson(join(runtime, 'custom-provider-state.json'));
+  const state = custom.value && typeof custom.value === 'object' ? custom.value : {};
+  const test = state.test && typeof state.test === 'object' ? state.test : null;
+  return {provider: chosen,
+    effective: ['convai', 'mistral', 'local', 'custom'].includes(provider.value?.effective) ? provider.value.effective : null,
+    ...(chosen === 'custom' || state.ready === true ? {custom: {
+      host: clip(typeof state.host === 'string' ? state.host.replace(/[/?#].*$/, '') : null, 80) ?? null, model: clip(state.model, 120) ?? null,
+      ready: state.ready === true, keySaved: state.keySaved === true, secure: state.secure === true, local: state.local === true,
+      limit: typeof state.limit === 'string' ? clip(state.limit, 20) : null,
+      ...(test ? {lastTest: {state: clip(test.state, 20), code: clip(test.code, 20), status: Number.isInteger(test.status) ? test.status : undefined}} : {})}} : {})};
+}
+
 function companionProviders({settings, voice, routing, party}) {
   const routed = new Set(Array.isArray(voice?.routedProfiles) ? voice.routedProfiles : []);
   const routes = new Map((Array.isArray(routing?.routes) ? routing.routes : []).map(row => [row?.profileKey, row]));
@@ -403,13 +457,26 @@ function companionProviders({settings, voice, routing, party}) {
     companions: rows};
 }
 
-/** Builds the report in memory. Nothing is written here. */
+/**
+ * Builds the report in memory. Nothing is written here.
+ *
+ * Offline mode (Make support report.bat, bridge/offline-support-report.mjs: the game is closed and no service runs) passes four
+ * more options; the service never does, and without them nothing here changes:
+ *   offline         true: the README and summary say the report was made with the game closed, and no bridge process is described
+ *   logs            the located log list to use instead of locateLogs (the offline tool looks in more than one folder)
+ *   extraProblems   more lines for the PROBLEM FOUND block, after the ones the status files give
+ *   extraSummary    an object merged into summary.json (it goes through the same redactor as everything else)
+ */
 export async function collectReport(options) {
   const {game, runtime, stateDirectory, project, request, now = Date.now, bridge = {}, environment = process.env} = options;
+  const offline = options.offline === true;
   const modRoot = options.modRoot ?? resolve(runtime, '..');
+  // The graphics cards (reg.exe, once per process) are looked up while the logs are read, so the report is not slower for it.
+  const graphicsSource = options.graphics ?? (() => cachedGraphicsCards());
+  const graphicsPending = Promise.resolve().then(() => typeof graphicsSource === 'function' ? graphicsSource() : graphicsSource).catch(() => []);
   const secrets = [...(options.secrets ?? []), ...await credentialSecrets(stateDirectory), ...await customServerSecrets({project: project ?? resolve(runtime, '..'), environment})];
   const redact = createRedactor({secrets, ids: options.knownIds ?? []});
-  const logs = await locateLogs({game, modRoot, runtime, stateDirectory});
+  const logs = Array.isArray(options.logs) ? options.logs : await locateLogs({game, modRoot, runtime, stateDirectory});
   const lua = sanitizeRequest(request ?? {});
   const entries = [], index = [], errors = [];
 
@@ -456,30 +523,41 @@ export async function collectReport(options) {
     for (const profile of raw['party-connections.json'].profiles.slice(0, 12)) party.push({profile: clip(profile, 80), state: 'connected'});
   }
   const versionInfo = await versions({game, modRoot, project: project ?? resolve(runtime, '..'), logs, now});
-  const problems = knownProblems(raw);
+  const problems = [...knownProblems(raw, {lua, now}),
+    ...(Array.isArray(options.extraProblems) ? options.extraProblems.filter(line => typeof line === 'string' && line).slice(0, 40) : [])];
+  const cards = await graphicsPending;
+  const graphics = (Array.isArray(cards) ? cards : []).slice(0, 8)
+    .map(card => ({name: clip(card?.name, 120), memoryMiB: Number.isFinite(card?.memoryMiB) && card.memoryMiB > 0 ? Math.round(card.memoryMiB) : null}))
+    .filter(card => card.name);
   const summary = redact.value({
-    schema: 1, ...(problems.length ? {problems} : {}), reportId: options.reportId, generatedBy: 'bridge', generatedAt: new Date(now()).toISOString(),
+    schema: 1, ...(problems.length ? {problems} : {}), reportId: options.reportId, generatedBy: offline ? 'offline' : 'bridge', generatedAt: new Date(now()).toISOString(),
     privacy: {notes: ['No API keys, tokens, audio, voice references, model files or conversation text are included.',
       'IDs are replaced by short hashes; key and token patterns, long secrets and your Windows account name are removed from every log.'],
       redactions: undefined},
     versions: versionInfo,
+    ...(options.extraSummary && typeof options.extraSummary === 'object' ? options.extraSummary : {}),
+    system: {graphics},
     request: {cetVersion: lua.cetVersion, language: lua.language, view: lua.view, developerMode: lua.developerMode,
-      ageMs: Number.isFinite(request?.issuedAt) ? Math.max(0, now() - request.issuedAt) : null},
-    bridge: {pid: process.pid, uptimeSeconds: Math.round(process.uptime()), ...bridge, status},
+      ageMs: Number.isFinite(request?.issuedAt) ? Math.max(0, now() - request.issuedAt) : null, setup: lua.setup},
+    // Offline, this is the status the last game session left behind, and no process of this report's own is described.
+    bridge: offline ? {offline: true, ...bridge, status} : {pid: process.pid, uptimeSeconds: Math.round(process.uptime()), ...bridge, status},
     settings: settingsView,
     localAi: await localAiSection({runtime, project: project ?? resolve(runtime, '..'), environment}),
     party: {companions: party, connections: raw['party-connection-state.json']
       ? redact.value(compactStatus('party-connection-state.json', raw['party-connection-state.json'])) : null},
+    conversation: await conversationSection({runtime, settings}),
     providers: companionProviders({settings, voice: raw['local-voice-state.json'], routing: raw['relationship-routing.json'], party}),
     recentErrors, logs: index,
   });
   summary.privacy.redactions = {...redact.stats};
   const readme = [
-    'AI NPC Cyberpunk Mod support report',
+    offline ? 'AI NPC Cyberpunk Mod support report (made with the game closed)' : 'AI NPC Cyberpunk Mod support report',
     `Created ${summary.generatedAt}  (report ${options.reportId})`, '',
-    ...(problems.length ? ['PROBLEM FOUND:', ...problems.map(line => `  ${line}`), ''] : []),
+    ...(problems.length ? ['PROBLEM FOUND:', ...problems.map(line => `  ${redact.text(line)}`), ''] : []),
     'Send this one file to the developer. It contains:',
-    '  summary.json   versions, service status, settings, Local AI detection, party, provider per companion, recent errors',
+    offline
+      ? '  summary.json   versions, the requirement check, where the mod files are, service status from the last game start, settings, Local AI detection, recent errors'
+      : '  summary.json   versions, graphics card, service status, setup check, settings, Local AI detection, party, provider per companion, recent errors',
     '  logs/*.txt     the end of each mod, service, CET, redscript and RED4ext log (last 2000 lines each);',
     '                 voice-routing.txt lists which voice spoke each reply and why (no reply text)', '',
     'It does NOT contain API keys or tokens, microphone audio, voice references, model files',
@@ -573,8 +651,8 @@ export class SupportReportControl {
     return control;
   }
   constructor({game, runtime, stateDirectory, project, requestPath, resultPath, secrets, knownIds, bridge,
-    now = Date.now, build = buildReport, clipboardPath, copy = copyToClipboard}) {
-    Object.assign(this, {game, runtime, stateDirectory, project, secrets, knownIds, bridge, now, build, copy});
+    now = Date.now, build = buildReport, clipboardPath, copy = copyToClipboard, graphics}) {
+    Object.assign(this, {game, runtime, stateDirectory, project, secrets, knownIds, bridge, now, build, copy, graphics});
     this.clipboardPath = clipboardPath ?? join(runtime, 'clipboard-request.json');
     this.clipboardObserved = ''; this.copied = new Set();
     this.requestPath = requestPath ?? join(runtime, 'report-request.json');
@@ -614,7 +692,7 @@ export class SupportReportControl {
         const knownIds = typeof this.knownIds === 'function' ? await this.knownIds() : this.knownIds ?? [];
         const bridge = typeof this.bridge === 'function' ? await this.bridge() : this.bridge ?? {};
         const result = await this.build({game: this.game, runtime: this.runtime, stateDirectory: this.stateDirectory,
-          project: this.project, request, secrets, knownIds, bridge, now: this.now});
+          project: this.project, request, secrets, knownIds, bridge, now: this.now, graphics: this.graphics});
         await publishSupportPaths(this.layout()).catch(() => {});
         await this.publish({id: request.id, state: 'ready', mode: 'bridge', path: result.path, fileName: result.name,
           bytes: result.bytes, entries: result.entries});

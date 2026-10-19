@@ -18,6 +18,8 @@ import {ADDON_MANIFEST, CET_MODS, validateManifest} from '../bridge/addons.mjs';
 
 /** Files an add-on may ship: its CET Lua, its manifest and data, its bridge module, voice references and notes. */
 const SHIPPED = /\.(?:lua|json|mjs|js|wav|txt|md)$/i;
+/** The voice folder: its files are cut from game audio and kept out of git, so only a reference the manifest names ships from it. */
+const VOICE_FOLDER = /(?:^|\/)voice\//;
 /** Never shipped: tests, evaluation scripts (eval/), dotfiles, dependency folders. */
 const SKIPPED = rel => /(?:^|\/)(?:\.|node_modules\/|test\/|tests\/|eval\/)/.test(rel) || /\.test\.m?js$/i.test(rel);
 
@@ -54,16 +56,18 @@ export async function addonEntries(dir) {
   const files = (await walk(root)).filter(rel => !SKIPPED(rel));
   const refused = files.filter(rel => !SHIPPED.test(rel));
   if (refused.length) throw Error(`add-on ${manifest.id} has files an add-on cannot ship: ${refused.join(', ')}`);
-  const listed = new Set(files);
+  const need = [manifest.bridge, ...manifest.speakers.map(speaker => speaker.voice?.reference)].filter(Boolean)
+    .map(path => relative(root, path).split(sep).join('/'));
+  // A stray clip or a *.voice.json note in voice/ is not part of the add-on: only the references the manifest names go in the zip.
+  const shipping = files.filter(rel => !VOICE_FOLDER.test(rel) || need.includes(rel));
+  const listed = new Set(shipping);
   if (!listed.has('init.lua')) throw Error(`add-on ${manifest.id} has no init.lua (CET runs it)`);
-  const need = [manifest.bridge, ...manifest.speakers.map(speaker => speaker.voice?.reference)].filter(Boolean);
-  for (const path of need) {
-    const rel = relative(root, path).split(sep).join('/');
+  for (const rel of need) {
     if (!listed.has(rel)) throw Error(`add-on ${manifest.id}: ${rel} is named in ${ADDON_MANIFEST} but not shipped`);
   }
   const folder = addonFolderName(manifest.id);
   if (folder === MAIN_FOLDER) throw Error('an add-on cannot use the main mod folder');
-  return {manifest, entries: files.map(rel => ({name: `${CET_MODS}/${folder}/${rel}`, source: resolve(root, rel)}))};
+  return {manifest, entries: shipping.map(rel => ({name: `${CET_MODS}/${folder}/${rel}`, source: resolve(root, rel)}))};
 }
 
 /** Writes the zip into `out` and returns {path, manifest, names}. */

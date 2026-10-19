@@ -46,7 +46,7 @@ export const CET_MODS = 'bin/x64/plugins/cyber_engine_tweaks/mods';
 export const ADDON_LIMITS = Object.freeze({addons: 8, speakers: 4, persona: 12000, samples: 12, rules: 12, line: 600,
   blocks: 8, blockText: 1500, blocksTotal: 4000, facts: 4000, eventText: 600, companionBlocks: 4, companionText: 600,
   referenceBytes: 8 * 1024 * 1024, referenceSeconds: 20, transcript: 2000, hookMs: 5, modes: 4, recentLines: 12, recentShown: 6,
-  recentChecked: 8, heard: 240, talkWordsMin: 8, talkWordsMax: 60, retryMs: 250, retryShare: 1.25, retryGuessMs: 900, memories: 12, memoriesShown: 6, memoryText: 300,
+  recentChecked: 8, moduleMs: 5000, heard: 240, talkWordsMin: 8, talkWordsMax: 60, retryMs: 250, retryShare: 1.25, retryGuessMs: 900, memories: 12, memoriesShown: 6, memoryText: 300,
   // Stock (bridge/addon-stock.mjs); the game side keeps the same numbers in mod/addons.lua STOCK.
   stockKeys: 12, stockText: 600, stockSlots: 8, stockSlotName: 48, stockBlocks: 4, stockBlocksText: 3000});
 
@@ -203,7 +203,7 @@ export async function discoverAddons({roots = [], version = ADDON_API_VERSION, f
     try { entries = await files.readdir(root.path, {withFileTypes: true}); } catch { continue; }
     for (const entry of entries) if (entry.isDirectory()) folders.push(resolve(root.path, entry.name));
   }
-  const addons = [], problems = [], ids = new Set();
+  const addons = [], problems = [], ids = new Set(), profileKeys = new Set();
   for (const dir of [...new Set(folders)].sort()) {
     let raw;
     try { raw = await files.readFile(resolve(dir, ADDON_MANIFEST), 'utf8'); }
@@ -221,8 +221,14 @@ export async function discoverAddons({roots = [], version = ADDON_API_VERSION, f
       continue;
     }
     if (ids.has(manifest.id)) { problems.push({dir, id: manifest.id, name: manifest.name, status: 'duplicate', reason: 'another add-on uses this id'}); continue; }
+    // "addon-<id>-<speaker>" joins two names with a dash, so add-on "ab" with speaker "c-d" and add-on "ab-c" with speaker "d" share
+    // one key: the later add-on would silently take the earlier one's profile over.
+    if (manifest.speakers.some(speaker => profileKeys.has(speaker.profileKey))) {
+      problems.push({dir, id: manifest.id, name: manifest.name, status: 'duplicate', reason: 'a speaker of this add-on has the same profile key as one of another add-on'}); continue;
+    }
     if (addons.length >= ADDON_LIMITS.addons) { problems.push({dir, id: manifest.id, name: manifest.name, status: 'skipped', reason: 'too many add-ons'}); continue; }
     ids.add(manifest.id); addons.push(manifest);
+    for (const speaker of manifest.speakers) profileKeys.add(speaker.profileKey);
   }
   return {addons, problems};
 }
@@ -311,14 +317,19 @@ export function parseAddonStock(list) {
   return rows;
 }
 
-/** The reaction of an automatic add-on remark: {kind: 'addon', addon, speaker, event, expiresAt}, or null when malformed. */
-export function parseAddonReaction(value, addon) {
+/**
+ * The reaction of an automatic add-on remark: {kind: 'addon', addon, speaker, event, expiresAt}, or null when malformed. With the
+ * request's `profileKey` it must be the profile of the very speaker the remark names (only mod/addons.lua writes these requests, with
+ * exactly that key): an add-on remark can never be asked of a main character or of another add-on's speaker.
+ */
+export function parseAddonReaction(value, addon, profileKey) {
   if (!object(value) || value.kind !== 'addon' || typeof value.addon !== 'string' || !ADDON_ID.test(value.addon)
       || typeof value.speaker !== 'string' || !SPEAKER_ID.test(value.speaker)
       || typeof value.event !== 'string' || !EVENT_NAME.test(value.event)
       || !Number.isSafeInteger(value.expiresAt) || value.expiresAt <= 0) return null;
   // The remark's event data must name the same speaker.
   if (!addon || addon.id !== value.addon || addon.speaker !== value.speaker) return null;
+  if (profileKey !== undefined && profileKey !== speakerProfileKey(value.addon, value.speaker)) return null;
   return {kind: 'addon', addon: value.addon, speaker: value.speaker, event: value.event, expiresAt: value.expiresAt,
     ...(Number.isInteger(value.priority) && value.priority >= 1 && value.priority <= 5 ? {priority: value.priority} : {}),
     // The word limit of the remark, so the text host can stop, cap and size the request to it (bridge/text-provider-host.mjs).
@@ -543,21 +554,29 @@ export class AddonHost {
     }
   }
 
-  /** Imports each add-on's bridge module. A module that fails to load leaves its add-on working without hooks. */
-  async loadModules({importModule = path => import(pathToFileURL(path).href)} = {}) {
+  /**
+   * Imports each add-on's bridge module. A module that fails to load, or whose import or activate does not finish within
+   * `timeoutMs`, leaves its add-on working without hooks: one add-on must never hold up the bridge start.
+   */
+  async loadModules({importModule = path => import(pathToFileURL(path).href), timeoutMs = ADDON_LIMITS.moduleMs} = {}) {
+    const within = (work, what) => {
+      let timer;
+      const limit = new Promise((_, reject) => { timer = setTimeout(() => reject(Error(`${what} did not finish within ${timeoutMs / 1000} s`)), timeoutMs); timer.unref?.(); });
+      return Promise.race([work, limit]).finally(() => clearTimeout(timer));
+    };
     for (const addon of this.addons) {
       if (!addon.bridge) continue;
       try {
-        const module = await importModule(addon.bridge);
+        const module = await within(importModule(addon.bridge), 'loading the bridge module');
         if (module?.apiVersion !== undefined && !apiCompatible(String(module.apiVersion))) throw Error(`bridge module needs add-on API ${module.apiVersion}`);
         this.modules.set(addon.id, module);
         if (typeof module.activate === 'function') {
-          await module.activate(Object.freeze({version: ADDON_API_VERSION, addon: Object.freeze({id: addon.id, name: addon.name, version: addon.version,
+          await within(module.activate(Object.freeze({version: ADDON_API_VERSION, addon: Object.freeze({id: addon.id, name: addon.name, version: addon.version,
             speakers: addon.speakers.map(speaker => Object.freeze({id: speaker.id, name: speaker.name, profileKey: speaker.profileKey}))}),
           log: message => this.log(`[${addon.id}] ${String(message).slice(0, 400)}`),
           settings: () => ({...(this.settings[addon.id] ?? {})}),
           state: () => this.state.addons[addon.id]?.state ?? null,
-          character: value => this.characterInfo(value)}));
+          character: value => this.characterInfo(value)})), 'activate');
         }
       } catch (error) {
         this.modules.delete(addon.id);
@@ -1067,10 +1086,16 @@ export class AddonHost {
   /** Files the bridge should re-read when the game replaces them (bridge/file-wake.mjs). Empty with no add-ons. */
   watchHandlers(runtime, {read = path => readFile(path, 'utf8')} = {}) {
     if (!this.active) return {};
-    // A file that cannot be read, or reads empty, keeps what was last seen: the game writes addon-state.json in place (it is
-    // empty for a moment between the file being opened and its text arriving, and empty until the first save), and an empty
-    // document would drop every mode and prepared stock line. The game never saves an empty document: even "nothing" is JSON.
-    const reader = (name, apply) => () => read(resolve(runtime, name)).then(raw => typeof raw === 'string' && raw.trim() === '' ? undefined : apply(raw), () => undefined);
+    // A file that cannot be read, reads empty or reads cut off keeps what was last seen: the game writes addon-state.json in place
+    // (it is empty for a moment between the file being opened and its text arriving, and a document with stock lines is far bigger
+    // than one buffer, so a read can land halfway), and an empty or torn document would drop every mode and prepared stock line.
+    // The game never saves an empty document: even "nothing" is JSON.
+    const reader = (name, apply) => () => read(resolve(runtime, name)).then(raw => {
+      if (typeof raw !== 'string' || raw.trim() === '') return undefined;
+      let value;
+      try { value = JSON.parse(raw); } catch { return undefined; }
+      return apply(value);
+    }, () => undefined);
     return {[ADDON_STATE_FILE]: reader(ADDON_STATE_FILE, raw => this.observeState(raw)),
       [ADDON_SETTINGS_FILE]: reader(ADDON_SETTINGS_FILE, raw => this.observeSettings(raw))};
   }
