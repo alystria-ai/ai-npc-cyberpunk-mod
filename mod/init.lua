@@ -424,7 +424,15 @@ do
     if f then
         local ok, decoded = pcall(json.decode, f:read('*a')); f:close()
         if ok and type(decoded) == 'table' then profiles = decoded end
-        for _, profile in ipairs(profiles) do supportedProfiles[profile.key] = true end
+        -- The roster carries the bridge's research text (backstory, sources, speaking style, uncertainty notes, native
+        -- intrinsics: about 1.1 MB of the 1.4 MB file) that no game-side code reads. Dropped once here, so the session keeps
+        -- about 0.25 MB of roster tables in the shared Lua heap instead of about 1.3 MB (deliverables/perf/LUA_HEAP.md).
+        local bridgeOnly = {'backstory', 'sources', 'speakingStyleDescription', 'speakingStyleSampleDialogues', 'uncertainty',
+            'nativeIntrinsic'}
+        for _, profile in ipairs(profiles) do
+            supportedProfiles[profile.key] = true
+            if type(profile) == 'table' then for _, field in ipairs(bridgeOnly) do profile[field] = nil end end
+        end
     end
 end
 -- Generic NPC archetypes (docs/NPC_ARCHETYPES.md): talk-only profiles chosen
@@ -1221,6 +1229,36 @@ function convaiFaceRequestLog(actor, identity, ok, status)
         if noted and type(text) == 'string' then note = text end
     end
     log('Face request: actor=' .. tostring(identity) .. ' status=' .. tostring(status) .. note)
+end
+-- On-demand Lua heap report (mod/lua-heap-probe.lua writes runtime/lua-heap.json): runs once per 'lua-heap:<nonce>' request in
+-- the developer mailbox (scripts/Request-LuaHeap.ps1), never per frame, and the probe file is not kept loaded. The roots are the
+-- tables this file keeps only as locals; the probe adds the mod's convai* globals. A global, so onUpdate gains no upvalue.
+do
+    local loadedAt = os.time()
+    convaiLuaHeapReport = function(nonce)
+        local loaded, probe = pcall(dofile, 'lua-heap-probe.lua')
+        if not loaded or type(probe) ~= 'table' or type(probe.run) ~= 'function' then
+            log('Lua heap report failed to load: ' .. tostring(probe))
+            return false
+        end
+        local roots = {{'profiles', profiles}, {'catalog', catalog}, {'archetypes', archetypes},
+            {'supportedProfiles', supportedProfiles}, {'companions', companions}, {'manager', manager},
+            {'speech', speech}, {'subtitles', subtitles}, {'microphone', microphone}, {'groupChat', groupChat},
+            {'phoneChat', phoneChat}, {'questContext', questContext}, {'battles', battles}, {'tactics', tactics},
+            {'relationshipState', relationshipState}, {'worldKnowledge', worldKnowledge}, {'journalHistory', journalHistory},
+            {'movementLog', movementLog}, {'characterCatalog', characterCatalog}, {'invitations', invitations}}
+        local ok, report = pcall(probe.run, {nonce = nonce, roots = roots, environment = _G, loadedAt = loadedAt,
+            sentinel = companions})
+        if not ok or type(report) ~= 'table' then
+            log('Lua heap report failed: ' .. tostring(report))
+            return false
+        end
+        local function mb(kb) return type(kb) == 'number' and string.format('%.1f MB', kb / 1024) or '-' end
+        log('Lua heap: ' .. mb(report.heapBeforeKB) .. ' before, ' .. mb(report.heapAfterKB) .. ' after a full collect ('
+            .. string.format('%.0f ms', report.collectMs or 0) .. '); this mod about ' .. mb(report.modKB) .. '; loads alive '
+            .. tostring(report.loadsAlive or '-') .. ' (runtime/lua-heap.json)')
+        return true
+    end
 end
 -- Names for nameless ordinary NPCs (docs/NPC_NAMES.md, mod/npc-names.lua). One generator serves the scanner and the talk path.
 -- The gate is the rule above: not ours, not protected (named, quest-bound, story record), a resolved ordinary profile (an archetype
@@ -3889,8 +3927,10 @@ registerForEvent('onUpdate', function(delta)
             request:close()
             if nonce and #nonce > 0 and nonce ~= lastDiagnosticRequest then
                 lastDiagnosticRequest = nonce
-                -- "notice:<id>:<nonce>" shows one notice on demand (Developer mode only); anything else is a diagnostic capture.
-                if nonce:find('^notice:') then pcall(speech.devNotice, nonce) else captureDiagnostic() end
+                -- "lua-heap:<nonce>" writes the Lua heap report (runtime/lua-heap.json, see convaiLuaHeapReport), "notice:<id>:<nonce>"
+                -- shows one notice on demand (Developer mode only); anything else is a diagnostic capture.
+                if nonce:find('^lua%-heap:') then pcall(convaiLuaHeapReport, nonce)
+                elseif nonce:find('^notice:') then pcall(speech.devNotice, nonce) else captureDiagnostic() end
                 local response = io.open('runtime/diagnostic-response.txt', 'wb')
                 if response then response:write(nonce); response:close() end
             end
@@ -4258,6 +4298,10 @@ registerForEvent('onShutdown', function()
     focusEntity = nil
     log('Game adapter shut down')
     convaiLogFlush() -- the buffered probe.log lines (a CET reload or exit follows)
+    -- The Developer-mode perf probe wraps json, io and os functions (perf-probe.lua). They are put back here, so no wrapper (and
+    -- through it this load's whole environment, about 15 MB) can stay reachable from a table CET keeps across a reload
+    -- (deliverables/perf/LUA_HEAP.md). Nothing runs after onShutdown, so nothing else changes.
+    if type(convaiPerfProbe) == 'table' and type(convaiPerfProbe.uninstall) == 'function' then pcall(convaiPerfProbe.uninstall) end
 end)
 
 -- GetMod('AiNpcCyberpunkMod') returns this table to other CET mods. `addons` is the add-on API (docs/ADDON_API.md).

@@ -230,6 +230,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/gesture-probe.lua"
         },
         {
+          "source": "mod/lua-heap-probe.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/lua-heap-probe.lua"
+        },
+        {
           "source": "mod/companion-space.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-space.lua"
         },
