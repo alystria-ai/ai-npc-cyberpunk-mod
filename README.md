@@ -58,7 +58,7 @@ Scripts come from Nexus Mods (the same file is on Hugging Face too). The Runtime
 
 The first start after installing takes a little longer while the service prepares itself.
 
-**Update.** Close the game and extract the new Scripts and Runtime (and any optional packs you use) over the old ones. Your conversations, memories and settings stay. If an older version kept the service's data inside the mod's folder, the first start moves it to the place below.
+**Update.** Close the game and extract the new Scripts and Runtime (and any optional packs you use) over the old ones. Your conversations, memories and settings stay. If you have the previous version of the Runtime, you can download the small **Runtime update** (`AI-NPC-Cyberpunk-Mod-Runtime-Update-<your version>-to-<new version>.zip`, from the same Hugging Face page) instead of the full Runtime and extract it over your existing Runtime; choose Replace if Windows asks, which is always safe. Files the new version no longer needs are removed by the mod itself at the next start, so you never delete anything. With any other version, or if you are unsure, use the full Runtime. If an older version kept the service's data inside the mod's folder, the first start moves it to the place below.
 
 **Where your data is.** The background service keeps the memories stored on your computer, your saved keys, its logs and your reports in `%LOCALAPPDATA%\AiNpcCyberpunkMod`, outside the game folder. Your settings and Phone Chat history stay in the mod's own folder.
 
