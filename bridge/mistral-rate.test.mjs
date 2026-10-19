@@ -196,3 +196,16 @@ test('while slowed, a reply still goes before speech and background work', async
   await Promise.all(jobs);
   assert.deepEqual(order, ['text', 'tts', 'background']);
 });
+
+// The tests above run on a manual clock. This one keeps the real clock and the real timers (the defaults of the class) in play, with a lower bound only:
+// a busy machine can make the wait longer, never shorter, so it cannot fail for load.
+test('with the real clock and timers, a spaced start waits out its spacing and a pause holds a start', async () => {
+  const scheduler = new MistralScheduler({spacingMs: 40}), starts = [];
+  const jobs = [0, 1].map(() => scheduler.schedule(async ({sentAt}) => { starts.push(sentAt); }));
+  await Promise.all(jobs);
+  assert.ok(starts[1] - starts[0] >= 38, `spacing kept: ${starts}`);
+  const began = performance.now();
+  scheduler.pause(60);
+  await scheduler.schedule(async () => {});
+  assert.ok(performance.now() - began >= 55, 'held for the pause');
+});
