@@ -420,35 +420,42 @@ end
 
 -- ---- Read-only rows -------------------------------------------------------------------------------------------------------------
 -- Native Settings UI has no line of text, so a read-only row is its button without the button: the art of the switch the button is
--- made from is hidden and the text stays. That art is the "button" and "buttonBorder" (and the value text, "txtValue") of the two
--- state bodies, layout/container/offState/body and layout/container/onState/body, of the row's widget. Native Settings UI hides the
--- parts of the onState body only (its "off" path points at the onState body as well), so the offState body is what still draws the
--- frame of a real button, and a row of ours hides both. The controller's offStateBody and onStateBody fields are inkWidgetRef
--- values: a method call on them does nothing, the static inkWidgetRef.SetVisible reaches the widget (tried too, as a fallback).
--- The controller exists while the tab is on screen (Native Settings UI makes it when it spawns the row) and is made again each time
--- the tab opens, so this runs after every draw and when the tab is shown, a few calls for a page, never per frame. A row whose
--- widgets do not answer stays as a button with its text, which is harmless.
+-- made from is hidden and the text stays. The text is not part of that art: Native Settings UI puts it in a canvas under
+-- layout/container itself, beside the switch's two states, layout/container/offState and layout/container/onState. Each state holds
+-- a body (and the body the button, buttonBorder and txtValue). Hiding the parts one by one left a thin outline (the body's own
+-- border), and Native Settings UI hides the onState parts only (its "off" path points at the onState body as well), so a row of ours
+-- hides both state widgets whole. If a path is missing, the body, then its parts, are hidden instead; the controller's
+-- offStateBody and onStateBody fields are inkWidgetRef values (a method call on them does nothing, the static
+-- inkWidgetRef.SetVisible reaches the widget) and are tried last. The controller exists while the tab is on screen and is made again
+-- each time the tab opens, so this runs after every draw and when the tab is shown, a few calls for a page, never per frame. A row
+-- whose widgets do not answer stays as a button with its text, which is harmless. A real button is never touched.
 local FRAME_PARTS = {'button', 'buttonBorder', 'txtValue'}
 
-local function hidePart(widget, name)
-    pcall(function()
-        local part = widget:GetWidgetByPath(BuildWidgetPath({name}))
-        if part then part:SetVisible(false) end
-    end)
+local function widgetAt(parent, ...)
+    local path = {...}
+    local ok, widget = pcall(function() return parent:GetWidgetByPath(BuildWidgetPath(path)) end)
+    if ok then return widget end
+    return nil
+end
+
+local function hideWidget(widget)
+    if widget then pcall(function() widget:SetVisible(false) end) end
 end
 
 local function hideFrame(controller)
-    pcall(function()
-        local container = controller:GetRootWidget():GetWidgetByPath(BuildWidgetPath({'layout', 'container'}))
-        if not container then return end
-        for _, state in ipairs({'offState', 'onState'}) do
-            pcall(function()
-                local body = container:GetWidgetByPath(BuildWidgetPath({state, 'body'}))
-                if not body then return end
-                for _, name in ipairs(FRAME_PARTS) do hidePart(body, name) end
-            end)
-        end
+    local okRoot, container = pcall(function()
+        return controller:GetRootWidget():GetWidgetByPath(BuildWidgetPath({'layout', 'container'}))
     end)
+    if okRoot and container then
+        for _, state in ipairs({'offState', 'onState'}) do
+            hideWidget(widgetAt(container, state))
+            local body = widgetAt(container, state, 'body')
+            hideWidget(body)
+            if body then
+                for _, name in ipairs(FRAME_PARTS) do hideWidget(widgetAt(body, name)) end
+            end
+        end
+    end
     for _, field in ipairs({'offStateBody', 'onStateBody'}) do
         pcall(function() inkWidgetRef.SetVisible(controller[field], false) end)
     end

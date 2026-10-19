@@ -616,6 +616,11 @@ test('init.lua runs the manager from the frames that have no world, so a button 
 
 test('a read-only row shows its value (or its line) where a button would be, and its frame is hidden; real buttons keep theirs', () => run(`${harness()}
   local function bare(row)
+    local container = row.controller:GetRootWidget():GetWidgetByPath(BuildWidgetPath({'layout', 'container'}))
+    for _, state in ipairs({'offState', 'onState'}) do
+      assert(container:GetWidgetByPath(BuildWidgetPath({state})).visible == false, state .. ' widget hidden whole')
+      assert(container:GetWidgetByPath(BuildWidgetPath({state, 'body'})).visible == false, state .. ' body hidden')
+    end
     local parts = ns.parts(row.controller)
     for _, state in ipairs({'off', 'on'}) do
       assert(parts[state].button == false and parts[state].buttonBorder == false and parts[state].txtValue == false, 'frame of ' .. state .. ' body hidden')
@@ -630,6 +635,8 @@ test('a read-only row shows its value (or its line) where a button would be, and
   local button = assert(ns.find('Forget all memories'))
   local kept = ns.parts(button.controller)
   assert(kept.off.button and kept.off.buttonBorder, 'a real button keeps its frame')
+  local realContainer = button.controller:GetRootWidget():GetWidgetByPath(BuildWidgetPath({'layout', 'container'}))
+  assert(realContainer:GetWidgetByPath(BuildWidgetPath({'offState'})).visible and realContainer:GetWidgetByPath(BuildWidgetPath({'offState', 'body'})).visible, 'a real button keeps its states')
   assert(button.controller.offStateBody.node.visible and button.controller.onStateBody.node.visible, 'a real button keeps its bodies')
   -- A line with a long value is the label alone, still without a frame.
   bare(assert(ns.find('Player memory')))
@@ -644,4 +651,11 @@ test('a read-only row shows its value (or its line) where a button would be, and
   fresh.controller.offStateBody = nil
   press('Back to settings'); press('Memory')
   assert(managerUi.inspect().error == '' or managerUi.inspect().error == nil, tostring(managerUi.inspect().error))
+  -- No widget paths at all (the root widget does not answer): the state bodies are still hidden through the static reference.
+  ns.brokenRoot = true
+  press('Back to settings'); press('Memory')
+  local noPaths = ns.find('Memory service')
+  assert(noPaths.controller.offStateBody.node.visible == false and noPaths.controller.onStateBody.node.visible == false, 'the static fallback hides the bodies')
+  assert(managerUi.inspect().error == '' or managerUi.inspect().error == nil, tostring(managerUi.inspect().error))
+  ns.brokenRoot = false
 `));
