@@ -21,8 +21,9 @@
 //
 // --prepare-only does everything except starting the service and prints a summary.
 import {appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
+import {homedir} from 'node:os';
 import {dirname, relative, resolve, isAbsolute} from 'node:path';
-import {fileURLToPath} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 
 const appDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2);
@@ -70,14 +71,35 @@ const runtimeAt = (() => {
 const viewSummary = `usvfs ${insideVfs}; Runtime ${runtimeAt} the game folder; init.lua ${canReachGame ? 'visible' : 'not visible'}`;
 
 // One short sentence for the game to show: Node's error code and message, every folder path cut down to its file name (a path can hold
-// the player's user name, and folders with spaces in them are common), never longer than 140 characters. A quoted path ends at its
-// quote; a path that is not quoted runs to the end of the line, because where it ends cannot be told when a folder name has a space.
+// the player's user name, and folders with spaces in them are common), never longer than 140 characters.
+// First the folders that hold the player's names (the game, the Runtime, the data home, the profile, %LOCALAPPDATA%, the temporary
+// folder) are cut out wherever they appear, as paths or file:/// URLs, in any case: whatever a folder name holds, a quote or an
+// apostrophe ("C:\Users\O'Brien"), none of it is left. Then any other path, from its drive, share or file:/// to where it ends,
+// becomes its last name: an apostrophe ends a path only where a closing quote would (before a space, punctuation or the end), and a
+// path that is not quoted runs to the end of the line, because where it ends cannot be told when a folder name has a space.
+const PRIVATE_FOLDERS = (() => { try {
+  const escape = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = folder => folder.split(/[\\/]/).filter(Boolean).map(escape).join('[\\\\/]+');
+  const folders = [gameRoot, appDirectory, process.env.CYBERPUNK_CONVAI_DATA_HOME, process.env.LOCALAPPDATA, process.env.APPDATA,
+    process.env.USERPROFILE, process.env.TEMP, process.env.TMP, (() => { try { return homedir(); } catch { return null; } })()]
+    .filter(folder => typeof folder === 'string' && isAbsolute(folder)).map(folder => resolve(folder))
+    .filter(folder => folder.split(/[\\/]/).filter(Boolean).length >= 2);
+  return [...new Set(folders)].sort((a, b) => b.length - a.length).map(folder => {
+    let url = null;
+    try { url = pathToFileURL(folder).href.replace(/^file:\/+/, ''); } catch {}
+    const forms = [pattern(folder), ...(url ? [pattern(url)] : [])];
+    return {drive: /^[A-Za-z]:/.test(folder) ? folder.slice(0, 2) : 'C:',
+      match: new RegExp(`(?:file:/+)?(?:${forms.join('|')})(?=[\\\\/'"\\s]|$)`, 'gi')};
+  });
+} catch { return []; } })(); // this runs before the guards below: it must not be what ends the start without a word
 function shortReason(error) {
   const code = typeof error?.code === 'string' ? error.code : '';
   const last = path => path.split(/[\\/]/).filter(Boolean).pop() ?? '';
   let text = String(error?.message ?? error ?? '').split('\n')[0];
-  text = text.replace(/'([^']*[\\/][^']*)'/g, (_, path) => `'${last(path)}'`)
-    .replace(/(?:file:\/\/\/)?(?:[A-Za-z]:[\\/]|\\\\)[^'"<>|*?\r\n]*/g, path => last(path)).replace(/\s+/g, ' ').trim();
+  // A private folder becomes its drive alone, so what follows it is still a path for the step after.
+  for (const {drive, match} of PRIVATE_FOLDERS) text = text.replace(match, drive);
+  text = text.replace(/(?:file:\/\/\/)?(?:[A-Za-z]:[\\/]|\\\\)(?:[^"<>|*?\r\n']|'(?![\s,.;:)\]]|$))*/g, path => last(path))
+    .replace(/'([^']*[\\/][^']*)'/g, (_, path) => `'${last(path)}'`).replace(/\s+/g, ' ').trim();
   const body = code && !text.includes(code) ? `${code}: ${text}` : text;
   return (body || 'unknown error').slice(0, 140);
 }

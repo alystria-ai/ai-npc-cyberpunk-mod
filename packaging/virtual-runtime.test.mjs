@@ -40,8 +40,8 @@ async function tree(path, rel = '') {
 
 // A game folder with the CET mod's init.lua, and a Runtime in an MO2 mod folder far from it (`inGame: true` puts it in the game, as a
 // physical install does). The data home is a folder of its own, as %LOCALAPPDATA%\AiNpcCyberpunkMod is.
-async function install({inGame = false, withInit = true} = {}) {
-  const root = await mkdtemp(join(tmpdir(), 'ai npc virtual runtime Ünï '));
+async function install({inGame = false, withInit = true, name = 'ai npc virtual runtime Ünï '} = {}) {
+  const root = await mkdtemp(join(tmpdir(), name));
   const game = join(root, 'Games', 'Cyberpunk 2077');
   const modFolder = join(root, 'Modlists', 'Ultraviolence', 'mods', 'AI NPC Cyberpunk Mod Runtime');
   const app = join(inGame ? game : modFolder, APP);
@@ -153,6 +153,27 @@ test('an error nobody caught ends in a failed status too', async () => {
     assert.doesNotMatch(status.reason, /secret folder/);
     assert.match(await read(join(f.state, 'bridge-service.log')), /The conversation service stopped: Error: boom in/, 'the log has the full error, the usual place');
   } finally { await f.cleanup(); }
+});
+
+// The reason is shown in game and in the short report, so no folder name may reach it: a Windows user folder or a game folder can hold an
+// apostrophe (C:\Users\O'Brien, "Chris' Games"), which used to end the quoted path early and let most of it, the user name included, through.
+test('a folder name with an apostrophe never reaches the reason, wherever the path is', async () => {
+  for (const inGame of [true, false]) {
+    const f = await install({inGame, name: "Sean O'Brien's Chris' PC "});
+    try {
+      await rm(join(f.app, 'launcher/place-packs.mjs'));
+      assert.equal(start(f, '--game-pid', GAME).status, 1);
+      const {reason} = await readStatus(f.game);
+      assert.match(reason, /^ERR_MODULE_NOT_FOUND: Cannot find module 'place-packs\.mjs' imported from start-service\.mjs$/, reason);
+      // A path outside every folder the script knows (a module that throws names it): only its last name is left. (Outside those
+      // folders an apostrophe before a space cannot be told from a closing quote; inside them, as above, the whole folder goes.)
+      await put(join(f.app, 'launcher/place-packs.mjs'), `throw new Error("boom in 'D:/Other/Dana O'Neil/x.mjs' and D:\\\\Mods\\\\O'Hara's\\\\y.mjs");\n`);
+      assert.equal(start(f, '--game-pid', GAME).status, 1);
+      const caught = (await readStatus(f.game)).reason;
+      assert.doesNotMatch(caught, /Brien|Chris|Dana|Neil|Other|Hara|Mods|[A-Za-z]:[\\/]/, caught);
+      assert.match(caught, /'x\.mjs'.*y\.mjs/, caught);
+    } finally { await f.cleanup(); }
+  }
 });
 
 test('a stage that never finishes leaves a fresh "starting" naming the stage, written by the script itself, in the file the game reads', async () => {
