@@ -216,6 +216,7 @@ return {
     ["You: {text}"] = "Sen: {text}",
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "Konuşma algılanmadı - Dinleniyor yazısını bekle, sonra bitirmeden önce konuş.",
     ["The microphone {name} sends no sound. Check your Windows input device."] = "{name} mikrofonu hiç ses göndermiyor. Windows giriş aygıtını kontrol et.",
+    ["Voice input only understands English for now. Typing works in any language."] = "Sesli giriş şimdilik yalnızca İngilizce anlıyor. Yazarak her dilde konuşabilirsin.",
     ["None yet"] = "Henüz yok",
     ["Not configured"] = "Yapılandırılmadı",
     ["Not running"] = "Çalışmıyor",

@@ -793,8 +793,9 @@ export class TextProviderHost {
  *   voiceChannel  a channel that refuses with a message the voice key turns into a notice (until local speech recognition exists)
  * `prewarmVoice` (default true; a boolean or a function asked at each warm-up): a warm-up also opens the host's local voice renderer (the phone host has none to open; with voice playback Off the bridge says no).
  * `speech` is an optional hook for local speech recognition (bridge/local-stt.mjs): {available(): boolean, voiceChannel({reply})}.
+ * `onPlayerText(text)` is told the text of each typed turn (not a reaction), for the microphone's language.
  */
-export function attachTextProvider(host, {provider, mistral, speech, prewarmVoice = true, warmCloud} = {}) {
+export function attachTextProvider(host, {provider, mistral, speech, prewarmVoice = true, warmCloud, onPlayerText} = {}) {
   const textHost = mistral;
   const original = {reply: host.reply, prepare: host.prepare, warm: host.warm, readiness: host.readiness, lateEmotion: host.lateEmotion,
     refreshIdle: host.refreshIdle, voiceChannel: host.voiceChannel};
@@ -805,6 +806,9 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
   };
   const label = () => ({mistral: 'Mistral', local: 'the local AI', custom: 'the custom provider'})[provider.route] ?? 'Mistral';
   host.reply = function reply(config, options) {
+    // The language of what the player types tells the microphone which language to expect (bridge/speech-language.mjs). Automatic
+    // reactions carry a `reaction` and English prompts of the mod's own: they say nothing about the player.
+    if (provider.active && onPlayerText && !config?.reaction && typeof config?.text === 'string') { try { onPlayerText(config.text); } catch { /* an observer never breaks a turn */ } }
     return provider.active ? textHost.reply(config, options) : original.reply.call(this, withoutLocal(config), options);
   };
   host.prepare = function prepare(config, options) {

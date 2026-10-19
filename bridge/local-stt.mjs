@@ -25,6 +25,8 @@ import {SpeechActivity} from './stt-activity.mjs';
 export const LOCAL_STT_ENGINE = 'moonshine-tiny-en-int8';
 export const MODEL_FILES = Object.freeze(['preprocess.onnx', 'encode.int8.onnx', 'uncached_decode.int8.onnx',
   'cached_decode.int8.onnx', 'tokens.txt']);
+// The English default engine as a descriptor, like the multilingual packs of bridge/speech-language.mjs (LOCAL_PACKS): {id, kind, files}.
+export const MOONSHINE_ENGINE = Object.freeze({id: LOCAL_STT_ENGINE, kind: 'moonshine', files: MODEL_FILES});
 export const SAMPLE_RATE = 16000;
 export const LOCAL_STT_LIMITS = Object.freeze({
   threads: 1, maxThreads: 4,   // one thread: onnxruntime's pools spin-wait, so 2 threads decode only ~30% faster for ~3x the CPU
@@ -54,12 +56,15 @@ export const DEFAULT_FIXUPS = Object.freeze([
   [/\bsilver\s*hand\b/gi, 'Silverhand'],
 ]);
 
-export function resolveLocalSttPaths({project, environment = process.env, pythonExecutable} = {}) {
+// engine: the English Moonshine model by default; a multilingual pack (bridge/speech-language.mjs LOCAL_PACKS) is looked for in
+// models/stt/<id> (packaged), runtime/stt-model/<id> (development) or <CYBERPUNK_CONVAI_STT_PACKS>/<id>.
+export function resolveLocalSttPaths({project, environment = process.env, pythonExecutable, engine = MOONSHINE_ENGINE} = {}) {
   const python = environment.CYBERPUNK_CONVAI_LOCAL_STT_PYTHON || pythonExecutable || environment.CYBERPUNK_CONVAI_PYTHON || null;
-  const candidates = [environment.CYBERPUNK_CONVAI_STT_MODEL,
-    project && resolve(project, 'models/stt', LOCAL_STT_ENGINE),
-    project && resolve(project, 'runtime/stt-model', LOCAL_STT_ENGINE)].filter(Boolean);
-  const modelDirectory = candidates.find(path => MODEL_FILES.every(name => existsSync(resolve(path, name)))) ?? candidates[0] ?? null;
+  const english = engine.kind === 'moonshine';
+  const candidates = [english ? environment.CYBERPUNK_CONVAI_STT_MODEL : environment.CYBERPUNK_CONVAI_STT_PACKS && resolve(environment.CYBERPUNK_CONVAI_STT_PACKS, engine.id),
+    project && resolve(project, 'models/stt', engine.id),
+    project && resolve(project, 'runtime/stt-model', engine.id)].filter(Boolean);
+  const modelDirectory = candidates.find(path => engine.files.every(name => existsSync(resolve(path, name)))) ?? candidates[0] ?? null;
   return {python, modelDirectory, worker: project ? resolve(project, 'bridge/local-stt-worker.py') : null};
 }
 
@@ -76,11 +81,11 @@ export class LocalStt extends EventEmitter {
   constructor({project, pythonExecutable, environment = process.env, threads = LOCAL_STT_LIMITS.threads,
       partials = true, partialIntervalMs = LOCAL_STT_LIMITS.partialIntervalMs, idleMs = LOCAL_STT_LIMITS.idleMs,
       startupMs = LOCAL_STT_LIMITS.startupMs, finishMs = LOCAL_STT_LIMITS.finishMs, fixups = DEFAULT_FIXUPS,
-      spawnImpl = spawn, exists = existsSync, setTimer = setTimeout, clearTimer = clearTimeout,
-      paths = resolveLocalSttPaths({project, environment, pythonExecutable}), lowerPriority = true,
+      engine = MOONSHINE_ENGINE, spawnImpl = spawn, exists = existsSync, setTimer = setTimeout, clearTimer = clearTimeout,
+      paths = resolveLocalSttPaths({project, environment, pythonExecutable, engine}), lowerPriority = true,
       priority = 'below', pausePartials = true, pauseMs = LOCAL_STT_LIMITS.pauseMs, exitMs = 2000} = {}) {
     super();
-    Object.assign(this, {paths, threads: Math.max(1, Math.min(LOCAL_STT_LIMITS.maxThreads, threads | 0 || 1)), partials,
+    Object.assign(this, {engine, paths, threads: Math.max(1, Math.min(LOCAL_STT_LIMITS.maxThreads, threads | 0 || 1)), partials,
       partialIntervalMs, idleMs, startupMs, finishMs, fixups, spawnImpl, exists, setTimer, clearTimer, lowerPriority,
       pausePartials, pauseMs, exitMs, priority: ['normal', 'below', 'idle'].includes(priority) ? priority : 'below'});
     this.worker = null;       // {child, ready, readyPromise, buffer}
@@ -93,7 +98,7 @@ export class LocalStt extends EventEmitter {
     const {python, modelDirectory, worker} = this.paths;
     if (!python || !this.exists(python)) return {available: false, reason: 'python-missing'};
     if (!worker || !this.exists(worker)) return {available: false, reason: 'worker-missing'};
-    if (!modelDirectory || !MODEL_FILES.every(name => this.exists(resolve(modelDirectory, name))))
+    if (!modelDirectory || !this.engine.files.every(name => this.exists(resolve(modelDirectory, name))))
       return {available: false, reason: 'model-missing'};
     // The interpreter's site-packages hold sherpa-onnx (embedded: <root>/Lib/site-packages; venv: <root>/Lib/site-packages).
     const roots = [dirname(python), dirname(dirname(python))];
@@ -115,7 +120,7 @@ export class LocalStt extends EventEmitter {
       return Promise.reject(error);
     }
     const {python, modelDirectory, worker: script} = this.paths;
-    const child = this.spawnImpl(python, ['-B', '-I', script, '--model', modelDirectory, '--threads', String(this.threads), '--priority', this.priority],
+    const child = this.spawnImpl(python, ['-B', '-I', script, ...(this.engine.kind === 'moonshine' ? [] : ['--kind', this.engine.kind]), '--model', modelDirectory, '--threads', String(this.threads), '--priority', this.priority],
       {stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, env: {...process.env, PYTHONNOUSERSITE: '1', PYTHONUTF8: '1',
         OMP_NUM_THREADS: String(this.threads)}});
     const state = {child, ready: false, buffer: '', exited: false, info: null};

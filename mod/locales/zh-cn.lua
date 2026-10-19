@@ -155,6 +155,7 @@ return {
     ["You: {text}"] = "你：{text}",
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "没有听到语音，请等待“正在聆听”后再说话，结束前要开口。",
     ["The microphone {name} sends no sound. Check your Windows input device."] = "麦克风 {name} 没有传出任何声音。请检查你的 Windows 输入设备。",
+    ["Voice input only understands English for now. Typing works in any language."] = "语音输入目前只能识别英语。打字可以使用任何语言。",
     ["Not configured"] = "未配置",
     ["Off"] = "关",
     ["On"] = "开",

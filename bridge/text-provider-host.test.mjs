@@ -441,6 +441,23 @@ test('warm on an attached host asks the host to open its local voice page', asyn
   } finally { await close(); }
 });
 
+test('the text of each typed turn (not a reaction, not while Convai answers) is told to onPlayerText for the microphone\'s language', async () => {
+  const {host, provider, close} = await harness(() => 'x');
+  try {
+    const heard = [];
+    const original = {reply: async () => ({text: 'convai'}), prepare: async () => ({}), warm: async () => ({}), readiness: async () => ({}), lateEmotion: async () => ({}),
+      refreshIdle: async () => true, voiceChannel: () => ({})};
+    attachTextProvider(original, {provider, mistral: host, onPlayerText: text => { heard.push(text); if (text === 'boom') throw Error('an observer fault'); }});
+    await original.reply(turn('Привет, как дела?'));
+    await original.reply({...turn('The player is near the Afterlife.'), reaction: {kind: 'battle'}});
+    await original.reply(turn('boom'));
+    assert.deepEqual(heard, ['Привет, как дела?', 'boom'], 'a reaction says nothing about the player, and a faulty observer never breaks the turn');
+    provider.setPreference('convai'); provider.apply();
+    await original.reply(turn('while Convai answers'));
+    assert.equal(heard.length, 2);
+  } finally { await close(); }
+});
+
 test('facts: the character\'s own passing claims about what it was doing are never kept as memories', () => {
   const raw = JSON.stringify({facts: [
     {text: 'I mentioned tweaking old dolls and Clouds leftovers.', kind: 'event', importance: 0.5, replaces: null},

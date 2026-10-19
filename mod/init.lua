@@ -3904,6 +3904,8 @@ registerForEvent('onUpdate', function(delta)
     mark('init:ui')
     ui.configure(manager.interfaceLanguage())
     local localeChanged = ui.update(tonumber(delta) or 0)
+    -- The bridge's speech recognition needs the language to expect (runtime/ui-language.txt): written on a change and once at the start.
+    if localeChanged or not convaiUiLanguageSent then convaiUiLanguageSent = true; pcall(microphone.publishLanguage, ui.current()) end
     if menuPlayer and convaiComposerInput then
         if convaiComposerInput.update then pcall(convaiComposerInput.update)
         elseif localeChanged and convaiComposerInput.refresh then pcall(convaiComposerInput.refresh) end

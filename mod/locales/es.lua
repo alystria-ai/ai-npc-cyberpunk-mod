@@ -157,6 +157,7 @@ return {
     ["You: {text}"] = "Tú: {text}",
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "No se oyó ninguna voz - espera a «Escuchando» y habla antes de terminar.",
     ["The microphone {name} sends no sound. Check your Windows input device."] = "El micrófono {name} no envía sonido. Revisa tu dispositivo de entrada de Windows.",
+    ["Voice input only understands English for now. Typing works in any language."] = "La entrada de voz solo entiende inglés por ahora. Escribir funciona en cualquier idioma.",
     ["Not configured"] = "Sin configurar",
     ["Off"] = "Desactivado",
     ["On"] = "Activado",

@@ -297,3 +297,44 @@ test('finish carries what the microphone gave and why words were held back, for 
   const older = await (async () => { const stt = make(fakeWorker()); await stt.start('r3'); stt.pushAudio(pcm(100), 'r3'); return stt.finish('r3'); })();
   assert.deepEqual([older.peakDb, older.rejected], [null, null], 'a worker that reports nothing about levels leaves them unknown');
 });
+
+// ---- the multilingual packs (bridge/speech-language.mjs LOCAL_PACKS), run by the same class ----
+import {LOCAL_PACKS} from './speech-language.mjs';
+
+test('a pack is looked for in its own folder, needs its own files, and starts the worker with --kind', async () => {
+  const parakeet = LOCAL_PACKS.find(pack => pack.kind === 'nemo-transducer'), sense = LOCAL_PACKS.find(pack => pack.kind === 'sense-voice');
+  const folder = '/app/models/stt/' + parakeet.id;
+  const files = new Set(['/py/python.exe', '/app/bridge/local-stt-worker.py', '/py/Lib/site-packages/sherpa_onnx', ...parakeet.files.map(name => folder + '/' + name)]);
+  const resolved = resolveLocalSttPaths({project: '/app', environment: {}, pythonExecutable: '/py/python.exe', engine: parakeet});
+  assert.ok(resolved.modelDirectory.replaceAll('\\', '/').endsWith('/app/models/stt/' + parakeet.id), 'packaged folder first');
+  // The English model's own variable does not point a pack at the English folder.
+  const english = resolveLocalSttPaths({project: '/app', environment: {CYBERPUNK_CONVAI_STT_MODEL: '/english'}, engine: parakeet});
+  assert.ok(!english.modelDirectory.startsWith('/english'));
+  assert.equal(resolveLocalSttPaths({project: '/app', environment: {CYBERPUNK_CONVAI_STT_PACKS: '/packs'}, engine: sense}).modelDirectory.replaceAll('\\', '/').replace(/^[A-Za-z]:/, ''), '/packs/' + sense.id);
+
+  const worker = fakeWorker();
+  const stt = new LocalStt({project: '/app', pythonExecutable: '/py/python.exe', engine: parakeet, environment: {}, exists: existsIn(files), spawnImpl: worker.spawnImpl,
+    partials: false, pausePartials: false, lowerPriority: false, idleMs: 60});
+  assert.equal(stt.available(), true);
+  assert.equal(new LocalStt({project: '/app', pythonExecutable: '/py/python.exe', engine: sense, environment: {}, exists: existsIn(files)}).availability().reason, 'model-missing',
+    'the other pack has no files here');
+  assert.equal(new LocalStt({project: '/app', pythonExecutable: '/py/python.exe', environment: {}, exists: existsIn(files)}).availability().reason, 'model-missing',
+    'and neither does the English recogniser');
+  await stt.start('r1');
+  const args = worker.spawned[0].args;
+  assert.deepEqual(args.slice(args.indexOf('--kind'), args.indexOf('--kind') + 2), ['--kind', 'nemo-transducer']);
+  assert.ok(args.indexOf('--kind') < args.indexOf('--model'));
+  stt.pushAudio(pcm(300), 'r1');
+  assert.equal((await stt.finish('r1')).text, 'hello judy');
+  await tick(30);
+  assert.equal(worker.spawned[0].lines.filter(line => line.op === 'partial').length, 0, 'a pack decodes once, at the end');
+  await stt.close();
+});
+
+test('the English recogniser is started exactly as before: no --kind', async () => {
+  const worker = fakeWorker();
+  const stt = make(worker);
+  await stt.start('r1');
+  assert.ok(!worker.spawned[0].args.includes('--kind'));
+  await stt.close();
+});

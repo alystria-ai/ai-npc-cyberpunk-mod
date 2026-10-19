@@ -92,6 +92,19 @@ function M.press()
     return 'finish'
 end
 
+-- The language the mod resolved for its interface (the game's own language under Automatic), for the bridge's speech recognition
+-- (bridge/speech-language.mjs reads runtime/ui-language.txt when a recording opens). Written when it changes: the caller passes it from
+-- the one place that already learns of a change, never per frame. A failed write is ignored (the bridge then assumes English).
+local publishedLanguage
+function M.publishLanguage(language)
+    if type(language) ~= 'string' or language == '' or language == publishedLanguage then return false end
+    local f = io.open('runtime/ui-language.txt', 'wb')
+    if not f then return false end
+    f:write(language); f:close()
+    publishedLanguage = language
+    return true
+end
+
 function M.begin(context, targetValid, source)
     M.cancel('replaced')
     if not capture(context) then return false end
@@ -193,9 +206,17 @@ function M.update(player)
                 M.state = 'recording'; M.started = os.time(); M.recordingAt = M.clock()
                 local shortcut = ui.boundKey(M.context.group
                     and 'cyberpunk_convai_group_voice' or 'cyberpunk_convai_voice')
-                convaiNotices.send(player, 'mic-listening', shortcut
+                local listening = shortcut
                     and ui.t('Listening - press {key} again to finish', {key = shortcut})
-                    or ui.t('Listening - press the same voice chat shortcut again to finish'))
+                    or ui.t('Listening - press the same voice chat shortcut again to finish')
+                if value.note == 'english-only' then
+                    -- The language is not English and nothing on this setup recognises it (bridge/speech-language.mjs): once per game
+                    -- session, under the Listening line in one notice.
+                    convaiNotices.sendLines(player, {{id = 'mic-listening', text = listening},
+                        {id = 'mic-english-only', text = ui.t('Voice input only understands English for now. Typing works in any language.')}})
+                else
+                    convaiNotices.send(player, 'mic-listening', listening)
+                end
             elseif value.state == 'no-speech' then
                 convaiNotices.send(player, 'mic-no-speech', ui.t('No speech was heard. Wait for Listening, then speak before you finish.'))
                 M.cancel('no-speech')
@@ -204,6 +225,10 @@ function M.update(player)
                 local name = type(value.device) == 'string' and value.device ~= '' and value.device:sub(1, 80) or '?'
                 convaiNotices.send(player, 'mic-silent', ui.t('The microphone {name} sends no sound. Check your Windows input device.', {name = name}))
                 M.cancel('microphone-silent')
+            elseif value.state == 'error' and value.reason == 'language' then
+                -- Mistral could not take a recording in another language and nothing local could read it (bridge/local-stt-capture.mjs).
+                convaiNotices.send(player, 'mic-english-only', ui.t('Voice input only understands English for now. Typing works in any language.'))
+                M.cancel('microphone-language')
             elseif value.state == 'error' then
                 convaiNotices.send(player, 'mic-error', ui.t('Microphone unavailable. Check your Windows input device.'))
                 M.cancel('microphone-error')
