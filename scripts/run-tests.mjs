@@ -9,7 +9,7 @@
 // Usage: node scripts/run-tests.mjs [extra node --test args, e.g. --test-reporter=dot]
 
 import { spawn } from "node:child_process";
-import { readdirSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -23,20 +23,14 @@ const NODE_TEST_FLAGS = ["--test", "--test-concurrency=8"];
 // batching is a safety net for when the suite grows past it.
 const MAX_ARG_CHARS = 20000;
 
-// Test files that exist in the repo but are deliberately NOT run by `npm test`.
+// Test files that exist in the repo but are deliberately NOT run by `npm test`. Each entry names its file and says why on the same line
+// (scripts/run-tests.test.mjs checks both). The list is empty: every test file runs.
 export const EXCLUDE = new Set([
-  "bridge/companion-gestures.test.mjs", // not in the npm test list as of 2026-10-13
-  "bridge/companion-seating.test.mjs", // not in the npm test list as of 2026-10-13
-  "bridge/gesture-probe.test.mjs", // not in the npm test list as of 2026-10-13
-  "bridge/gesture-seat-endless.test.mjs", // not in the npm test list as of 2026-10-13
-  "bridge/gesture-selection.test.mjs", // not in the npm test list as of 2026-10-13
-  "bridge/multilingual-profiles.test.mjs", // not in the npm test list as of 2026-10-13
-  "bridge/seated-look.test.mjs", // not in the npm test list as of 2026-10-13
-  "packaging/release.test.mjs", // not in the npm test list as of 2026-10-13
-  "scripts/reference-picker/natural-speech-page.test.mjs", // not in the npm test list as of 2026-10-13
 ]);
 
 function walk(dir, out) {
+  // A checkout may lack one of the search folders (an add-on repository removes addons/): skip it instead of ending the run.
+  if (!existsSync(path.join(ROOT, dir))) return out;
   for (const entry of readdirSync(path.join(ROOT, dir), { withFileTypes: true })) {
     if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
     const rel = `${dir}/${entry.name}`;

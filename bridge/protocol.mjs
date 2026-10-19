@@ -59,7 +59,7 @@ function parseRequest(raw) {
   const battle = parseBattle(value.battle);
   // Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): his own unprompted remark, only with his head field on his profile.
   const head = group ? null : parseHead(value.head);
-  const reaction = value.reaction?.kind === 'addon' ? parseAddonReaction(value.reaction, addon)
+  const reaction = value.reaction?.kind === 'addon' ? parseAddonReaction(value.reaction, addon, profileKey)
     : value.reaction?.kind === 'head' ? parseHeadReaction(value.reaction, head, profileKey)
       : parseReaction(value.reaction, battle, loot);
   if (reaction === null) return null;

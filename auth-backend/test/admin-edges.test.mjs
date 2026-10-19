@@ -2,6 +2,7 @@
 // credential look-alikes, methods and cross-origin preflights, odd request bodies and queries, and a store that is down or absent.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { Readable } from 'node:stream';
 import { createAdminConfigHandler, createAdminTurnsHandler, createReadyHandler, healthHandler } from '../api/_lib/admin.js';
 import { ENV_NAMES } from '../api/_lib/config.js';
 import { createPlansHandler } from '../api/_lib/plans.js';
@@ -268,4 +269,18 @@ test('/readyz edges: a blank deploy is all false, a store outage is invisible to
   const reply = await call(strange, { url: '/api/readyz?ping=1', headers: asAdmin });
   assert.equal(reply.json.store, 'unexpected');
   assert.ok(!reply.text.includes('NOPE'));
+});
+
+test('an admin write whose body fails while being read (the client went away) gets the 400 of any unreadable body instead of a rejected handler', async () => {
+  const world = createWorld();
+  const admin = createAdminConfigHandler({ env: world.env, store: world.store });
+  const broken = new Readable({ read() { this.destroy(new Error('aborted')); } });
+  broken.method = 'POST';
+  broken.url = '/api/admin/config';
+  broken.headers = asAdmin;
+  const response = mockResponse();
+  await admin(broken, response);
+  assert.equal(response.statusCode, 400);
+  assert.equal(response.json.error, 'bad_request');
+  assert.equal(world.store.commands, 0, 'nothing was written');
 });

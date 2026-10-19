@@ -278,6 +278,7 @@ public final func ConvaiHolocallBacking(visible: Bool) -> Void {
     if IsDefined(this.m_AvatarController) { this.m_AvatarController.ConvaiHolocallBacking(visible); };
 }
 
+@if(ModuleExists("Codeware"))
 @addMethod(HudPhoneAvatarController)
 public final func ConvaiHolocallBacking(visible: Bool) -> Void {
     let image = inkImageRef.Get(this.m_HolocallRenderTexture);
@@ -308,6 +309,12 @@ public final func ConvaiHolocallBacking(visible: Bool) -> Void {
     backing.SetMargin(image.GetMargin());
     backing.SetOpacity(image.GetOpacity());
     backing.SetVisible(visible);
+}
+
+// Without Codeware (widget parents are read through it) the window keeps the game's own backdrop: this cosmetic part is left out.
+@if(!ModuleExists("Codeware"))
+@addMethod(HudPhoneAvatarController)
+public final func ConvaiHolocallBacking(visible: Bool) -> Void {
 }
 
 @wrapMethod(NewHudPhoneGameController)

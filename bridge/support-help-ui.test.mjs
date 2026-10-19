@@ -622,7 +622,43 @@ test('without this mod’s scripts the notice is written to the warning line its
   menu = false
   pump(false, 2)
   assert(#written == 1 and #popups == 0, 'written to the warning line, not through this mod’s scripts')
-  assert(written[1].message == 'This mod’s scripts did not load. Install redscript, then restart the game.' and written[1].isShown == true and written[1].duration == 9, written[1].message)
+  assert(written[1].message == 'Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load.' and written[1].isShown == true and written[1].duration == 9, written[1].message)
   pump(false, 60)
+  assert(#written == 1, 'once')
+`));
+
+test('a player with none of the scripts’ methods: the menu update and the manager run quietly every frame, the Help page names the scripts, and the notice reaches the screen', () => run(`${helpFixture(true, true)}
+  ${setupWorld}
+  -- every method this mod's scripts add is gone (they did not compile); the game's own methods stay
+  for key in pairs(player) do if key:find('^Convai') then player[key] = nil end end
+  assert(player.ConvaiManagerSetVoice == nil and player.ConvaiPhoneIsOpen == nil and player.ConvaiComposerOpen == nil)
+  local written, menu = {}, true
+  local board = {SetVariant = function(_, id, value) written[#written + 1] = value end, GetBool = function() return menu end}
+  Game.GetAllBlackboardDefs = function() return {UI_Notifications = {WarningMessage = 'warning'}, UI_System = {IsInMenu = 'menu'}} end
+  Game.GetBlackboardSystem = function() return {Get = function() return board end} end
+  SimpleScreenMessage = {new = function() return {} end}
+  Enum = {new = function(name, value) return name .. '.' .. value end}
+  ToVariant = function(value) return value end
+  files['runtime/knowledge-status.json'] = nil
+  -- the manager's tick, as init.lua makes it, and the menu's update: neither may raise, on any of 60 frames
+  local function frames(count)
+    for _ = 1, count do
+      advance(0.5)
+      local managed, why = pcall(manager.update, player, 0.1)
+      assert(managed, tostring(why))
+      mcm.update(player, false)
+    end
+  end
+  frames(60)
+  assert(#written == 0, 'a menu is open: nothing is shown yet')
+  assert(invoke('tab:settings').ok and invoke('help').ok, 'the settings and the Help page still open')
+  assert(setupRow('redscript').value == 'Problem' and setupRow('redscript').description:find('r6/logs/redscript_rCURRENT.log', 1, true), setupRow('redscript').description)
+  assert(setupRow('redscript').description:find('If the error names another mod, that mod is the problem.', 1, true))
+  for _, id in ipairs({'codeware', 'audioware'}) do assert(setupRow(id).value == 'OK' or setupRow(id).value == 'Unknown', id) end
+  menu = false
+  frames(4)
+  assert(#written == 1 and written[1].message == 'Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load.', written[1] and written[1].message or 'no notice')
+  assert(consoleHas("this mod's scripts did not load. Open r6/logs/redscript_rCURRENT.log."), table.concat(consoleLines, ' | '))
+  frames(60)
   assert(#written == 1, 'once')
 `));

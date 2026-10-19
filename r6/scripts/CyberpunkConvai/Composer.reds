@@ -1,5 +1,6 @@
 module CyberpunkConvai
 
+@if(ModuleExists("Codeware.UI"))
 import Codeware.UI.*
 
 // Movement-key tracker. A movement key that is released while a popup owns input
@@ -97,6 +98,7 @@ private let m_convaiSubmissionReady: Bool;
 @addField(PlayerPuppet)
 private let m_convaiCloseInfo: String;
 
+@if(ModuleExists("Codeware.UI"))
 @addMethod(PlayerPuppet)
 public final func ConvaiOpenComposer(characterName: String) -> Bool {
     if IsDefined(this.m_convaiComposerToken) {
@@ -128,6 +130,7 @@ public final func ConvaiOpenComposer(characterName: String) -> Bool {
     return true;
 }
 
+@if(ModuleExists("Codeware.UI"))
 @addMethod(PlayerPuppet)
 protected cb func OnConvaiComposerClosed(data: ref<inkGameNotificationData>) -> Bool {
     let result = data as GenericMessageNotificationCloseData;
@@ -148,6 +151,14 @@ protected cb func OnConvaiComposerClosed(data: ref<inkGameNotificationData>) -> 
         this.m_convaiCloseInfo = "closed:" + IntToString(EnumInt(result.result));
     };
     return true;
+}
+
+// Without Codeware's text input box this mod's scripts still compile (a compile error would disable every redscript mod): the box
+// cannot open, so the request is refused and mod/setup-check.lua tells the player Codeware is missing.
+@if(!ModuleExists("Codeware.UI"))
+@addMethod(PlayerPuppet)
+public final func ConvaiOpenComposer(characterName: String) -> Bool {
+    return false;
 }
 
 @addMethod(PlayerPuppet)

@@ -316,9 +316,19 @@ export class VoxtralVoice {
     this.owner = randomBytes(16).toString('hex'); this.sequence = 0;
     // degraded: why the last attempt fell back (null: working or not tried). until: no request before this time (a limit or a refused key).
     this.degraded = null; this.until = 0; this.spoke = 0; this.fellBack = 0;
+    this.lastKey = undefined;         // the key the cool-down (until) belongs to
   }
   setReferences(registry) { this.registries = [].concat(registry ?? []).filter(Boolean); this.references.clear(); }
-  get hasKey() { return !!this.getKey(); }
+  /** The key now. A refused-key or limit cool-down belongs to the key that earned it: a key saved in its place is tried at once. */
+  #key() {
+    const apiKey = this.getKey();
+    if (apiKey !== this.lastKey) {
+      if (this.lastKey !== undefined) this.until = 0;
+      this.lastKey = apiKey;
+    }
+    return apiKey;
+  }
+  get hasKey() { return !!this.#key(); }
   /** Whether a request may be made now (a key, and not inside a limit or refused-key cool-down). */
   get ready() { return this.hasKey && this.clock() >= this.until; }
   /** Does a registry name a reference clip for this voice key (without reading it)? Clips extracted for a character are found only when read. */
@@ -419,7 +429,7 @@ export class VoxtralVoice {
   async synthesizeStream(key, text, {signal, onPcm, continuation = false, firstAudioMs, ahead = false} = {}) {
     throwIfCancelled(signal);
     if (typeof onPcm !== 'function') throw Error('Voxtral streaming requires a PCM consumer');
-    const apiKey = this.getKey();
+    const apiKey = this.#key();
     const fail = (kind, detail, extra) => new VoxtralError(kind, detail, {apiKey, ...extra});
     try {
       if (typeof text !== 'string' || !text.trim() || text.length > this.limits.maxChars
@@ -433,25 +443,28 @@ export class VoxtralVoice {
       const {partFailure, ...result} = await this.stream({key, text, apiKey, reference, signal, onPcm, queued, fail, continuation, firstAudioMs, ahead});
       this.spoke++;
       // The second request of a split reply can fail on its own: the reply ends after the part already spoken (result.truncated).
-      if (partFailure) this.noteFailure(partFailure, 'the rest of the reply');
+      if (partFailure) this.noteFailure(partFailure, 'the rest of the reply', apiKey);
       else this.note(null);
       return result;
     } catch (error) {
-      if (error instanceof VoxtralError) this.noteFailure(error, continuation ? 'the rest of the reply' : '');
+      if (error instanceof VoxtralError) this.noteFailure(error, continuation ? 'the rest of the reply' : '', apiKey);
       throw error;
     }
   }
 
   /** Records why Voxtral could not deliver (a limit or a refused key pauses requests) and says so in the log. */
-  noteFailure(error, scope = '') {
+  noteFailure(error, scope = '', apiKey = this.lastKey) {
     // The server's guardrail refused this one line: no pause (the next reply's voice is asked as usual), no degraded state (that would
     // publish a fallback to the Convai voice that does not happen) and one line, with no key wording. The written reply stands.
     if (error.kind === 'content') {
       this.log(scope ? `refused the rest of this reply (guardrail), the reply ends after the part already heard` : 'refused this line (guardrail); shown as text');
       return;
     }
-    if (error.kind === 'limit' && error.status === 429) this.until = this.clock() + (error.retryAfterMs ?? this.limits.limitCooldownMs);
-    if (error.kind === 'key') this.until = this.clock() + (error.status === 403 ? this.limits.forbiddenCooldownMs : this.limits.keyCooldownMs);
+    // A key saved while the request was in flight is another key: the old one's refusal or limit does not pause it.
+    if (apiKey === this.lastKey) {
+      if (error.kind === 'limit' && error.status === 429) this.until = this.clock() + (error.retryAfterMs ?? this.limits.limitCooldownMs);
+      if (error.kind === 'key') this.until = this.clock() + (error.status === 403 ? this.limits.forbiddenCooldownMs : this.limits.keyCooldownMs);
+    }
     // A voice without a reference, or text that cannot be spoken, is that reply's problem, not the service's.
     if (error.kind !== 'text' && error.kind !== 'no-reference') this.note(error.kind);
     // The message is already scrubbed of the key; its detail says which limit was hit (for example how long it waited).

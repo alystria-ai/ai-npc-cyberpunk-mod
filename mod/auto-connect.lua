@@ -155,7 +155,8 @@ function M.new(options)
         if type(options.log) == 'function' then pcall(options.log, line) end
     end
 
-    -- True while a text provider (Mistral or the local AI) answers turns: no Convai connection exists, so none is waited for.
+    -- True while a text provider (Mistral, the local AI or a custom OpenAI-compatible endpoint) answers turns: no Convai connection
+    -- exists, so none is waited for.
     local function noConnection()
         if type(options.noConnection) ~= 'function' then return false end
         local ok, value = pcall(options.noConnection)

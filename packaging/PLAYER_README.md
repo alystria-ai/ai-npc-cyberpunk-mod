@@ -2,7 +2,7 @@
 
 Talk to Cyberpunk 2077 characters by voice or text, with companions who answer in their own voices.
 
-## What's new in 0.2
+## What's new in 0.2.1
 
 - **Three ways to talk, all free**: fully local on your own PC with Local AI (no account, no internet, no limit), Mistral with a free account (about 5,000 turns a day), or the Convai free tier (no setup, the default, 100 turns a day). Choose in Settings > Conversation provider.
 - **Holocalls**: call a character from the phone's Chat tab and they pick up live on screen.
@@ -14,18 +14,25 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - **Sign in with Convai** connects your own Convai account in a few clicks.
 - **Alt Cunningham** joins the cast as a companion you can talk to, with her own voice and look.
 - **Many more people to talk to**: ordinary NPCs, vendors and faction members talk through character profiles of their own kind, with several voices each, and shopkeepers you return to remember you. The party has no size limit; only characters the mod spawns join it. The game's own story characters, such as Judy or Jackie, answer where they stand in their own voice, and their face follows what they say, once you turn it on (Settings > Conversations > Talk to story characters, off by default; reload your save after switching it); nothing else about them changes.
+- **More named characters** to invite from the Companion Manager and talk to, each with their own voice, profile and memory.
+- **Night City Allies followers**: when that mod brings Lucy or Rita Wheeler along, they talk with their own voice, profile and memory, while Night City Allies keeps their following, fighting and driving (they are not in the Companion Manager). Its other followers who are copies of characters this mod knows talk as those characters, its mercs talk as ordinary people, and your companions leave its followers' seats in V's car free.
+- **Johnny in your head** (Settings > Conversations, off by default): talk by text or voice with nobody in front of you and Johnny Silverhand answers as the voice in V's head, from the end of Playing for Time until an ending. He stays quiet during scenes, calls, dialogue choices and fights. **Johnny speaks up** (Off, Rare or Normal; Off by default) lets him say something on his own; on the Convai free tier each remark uses one of the day's turns.
 - **Companions sit with you** on couches, benches, chairs and bar stools, and you can look around freely while seated.
 - **Body and face**: calmer talking gestures timed to the phrase, varied idles with props (a cigarette, a cup, a pair of shades) that ease in and out, whole-face emotions and a smoother mouth.
 - **Conversation**: characters can continue from the game's own dialogue, speak in the first person, remember what you did together, ask you questions and know what V is wearing and carrying.
 - **Phone chat**: the first reply arrives in a second or two when you wait a moment after opening a chat.
 - **Fewer notices**: you only see when a companion has joined or when something fails.
 - **Smoother game**: the Runtime download includes a small RED4ext plugin that takes some of the mod's work off the game's script thread. If it cannot load, the mod runs from its scripts as before.
+- **Local AI on your own model server**: if you already run a model in KoboldCpp, LM Studio, Ollama, llama.cpp or another program with an OpenAI-compatible API, Local AI can use it, with no Local AI pack (see "Local AI" below).
+- **More browsers**: the conversation service runs in Microsoft Edge, which comes with Windows, or in another Chromium browser such as Google Chrome, Brave, Vivaldi or Opera. If there is none, Settings says "Needs a browser".
+- **Your data outside the game folder**: memories, conversation history, logs and reports are kept in `%LOCALAPPDATA%\AiNpcCyberpunkMod`; an earlier install's are moved there by themselves at the first start.
 
 ## Requirements
 
 - Cyberpunk 2077 2.31 on Windows 10 or 11 (64-bit)
 - Install these from Nexus Mods first: Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Mod Configuration Menu
-- An internet connection while you talk with Convai, Mistral or the Voxtral voice (Local AI with a local voice needs none)
+- A Chromium browser for the conversation service: Microsoft Edge, which comes with Windows, is enough. Google Chrome, Brave, Vivaldi, Opera and other Chromium browsers work too; Firefox does not
+- An internet connection while you talk with Convai, Mistral, a cloud Custom endpoint or the Voxtral voice (Local AI, or a Custom server on your own PC, with a local voice needs none)
 - About 3 GB of free disk space (about 15 GB more while installing the optional OmniVoice pack, 9 GB once installed)
 - Optional Local AI packs: about 5.3 GB for standard and about 1.4 GB for lite (about 11 GB free while installing the standard one, which counts the downloaded zip)
 
@@ -35,28 +42,44 @@ You do not need to install anything else. The voice service, its voices and mode
 
 ## Install
 
-Close the game, then extract each download into your Cyberpunk 2077 folder (the folder that contains `bin`, `archive` and `r6`). Allow folders to merge.
+Close the game, then extract each download into your Cyberpunk 2077 folder (the folder that contains `bin`, `archive` and `r6`). Allow folders to merge. If Windows asks about files with the same names, choose Replace: it is always safe.
 
 1. **Scripts**: from Nexus Mods, with Vortex or by hand.
 2. **Runtime**: https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.1/AI-NPC-Cyberpunk-Mod-Runtime-0.2.1.zip (the mod's Hugging Face page, 0.2.1 folder). Use the same version number as the Scripts.
 
 The optional packs are on the same Hugging Face page, https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs, in a folder per version. Each pack is one zip file, so there is nothing to join, and each works on its own. Use the same version number as the Scripts and Runtime.
 
-3. **OmniVoice pack (optional)**: a higher-quality voice for NVIDIA graphics cards with at least 8 GB of video memory and a current driver. Download https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.1/AI-NPC-Cyberpunk-Mod-OmniPack-0.2.1.zip and extract it. Then choose an OmniVoice option in Settings > Voices.
+3. **OmniVoice pack (optional)**: a higher-quality voice for NVIDIA graphics cards with at least 8 GB of video memory and a current driver. Download https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.1/AI-NPC-Cyberpunk-Mod-OmniPack-0.2.1.zip and extract it after the Runtime. Then choose an OmniVoice option in Settings > Voices.
 
-4. **Local AI packs (optional)**: let the characters answer with an AI model that runs on your own graphics card, with no account and no internet connection. There are two, and you can install neither, one or both: **Local AI standard** (Gemma 4 E4B, about 5.3 GB, needs about 6 GB of free video memory) for the best replies, and **Local AI lite** (Bonsai 2 4B, about 1.4 GB, needs about 2 GB of free video memory) for smaller graphics cards. Download https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.1/AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.1.zip and https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.1/AI-NPC-Cyberpunk-Mod-LocalAI-Lite-0.2.1.zip (one or both) and extract each. Each pack includes the engine and the memory model it needs, so one alone is enough. Then choose Local as the Conversation provider in Settings > Conversation provider. See "Local AI" below to pick a combination.
+4. **Local AI packs (optional)**: let the characters answer with an AI model that runs on your own graphics card, with no account and no internet connection. There are two, and you can install neither, one or both: **Local AI standard** (Gemma 4 E4B, about 5.3 GB, needs about 6 GB of free video memory) for the best replies, and **Local AI lite** (Bonsai 2 4B, about 1.4 GB, needs about 2 GB of free video memory) for smaller graphics cards. Download https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.1/AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.1.zip and https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.1/AI-NPC-Cyberpunk-Mod-LocalAI-Lite-0.2.1.zip (one or both) and extract each. Each pack includes the engine and the memory model it needs, so one alone is enough. Then choose Local AI in Settings > Conversation provider. See "Local AI" below to pick a combination.
 
 Start the game. The first start after installing takes a little longer while the voice service prepares itself.
 
 If Windows reports an error while extracting, use 7-Zip (https://www.7-zip.org) instead of the built-in extractor.
 
+If an optional pack ended up in a folder of its own named after the zip, the mod moves the pack's files into place at the next start. The Scripts and Runtime are not moved: extract those again, into the Cyberpunk 2077 folder itself.
+
 ## Local AI
 
-Convai free tier works out of the box with no setup and gives better quality responses. Local AI is for playing without an account or without the internet. It needs a separate graphics card that supports Vulkan (NVIDIA or AMD), at least 16 GB of system memory (32 GB is better) and about 5 GB more than usual while it runs. The first start after installing takes about a minute while your graphics card prepares the model; the Local AI model row in Settings > Conversation provider shows "Warming up" and then "Ready". The model is unloaded after ten minutes without a conversation.
+Convai free tier works out of the box with no setup and gives better quality responses. Local AI is for playing without an account or without the internet. It needs a separate graphics card that supports Vulkan (NVIDIA or AMD), at least 16 GB of system memory (32 GB is better) and about 5 GB more than usual while it runs. The first start after installing takes about a minute while your graphics card prepares the model; the Local AI model row in Settings > Conversation provider shows "Warming up" until the model is ready. The model is unloaded after ten minutes without a conversation.
 
-**Your own model (advanced, optional).** You can add a chat model of your own: put its `.gguf` file in a `custom` folder inside the Local AI folder (`red4ext\plugins\AiNpcCyberpunkMod\app\local-ai\`), list it in a small `manifest.custom.json` next to the other manifests, and it appears in the **Local AI model** row marked "(custom)". It is listed with the others from the smallest model to the largest and takes part in the default choice by its size. It must be a GGUF instruct or chat model that llama.cpp supports (Q4_K_M is a good choice), and it needs about its file size plus 1 GB of free graphics memory; one too large for your card is shown as such and never used. If it does not show up, the reason is in `bridge.stderr.log` (in `%LOCALAPPDATA%\AiNpcCyberpunkMod\data`; paste that into the Explorer address bar), on lines with `[custom models]`. The full steps and an example are in `docs/LOCAL_AI.md`, "Add your own model".
+**Your own model (advanced, optional).** You can add a chat model of your own: put its `.gguf` file in a `custom` folder inside the Local AI folder (`red4ext\plugins\AiNpcCyberpunkMod\app\local-ai\`), list it in a small `manifest.custom.json` next to the other manifests, and it appears in the **Local AI model** row marked "(custom)". It is listed with the others from the smallest model to the largest and takes part in the default choice by its size. It must be a GGUF instruct or chat model that llama.cpp supports (Q4_K_M is a good choice), and it needs about its file size plus 1 GB of free graphics memory; one too large for your card is shown as such and never used. If it does not show up, the reason is in `bridge.stderr.log` (in `%LOCALAPPDATA%\AiNpcCyberpunkMod\data`; paste that into the Explorer address bar), on lines with `[custom models]`. Your own model runs on the mod's own engine, so a Local AI pack must be installed. The full steps, with an example, are on the mod's Nexus Mods page.
+
+**Your own model server (advanced, optional).** If you already run a model in KoboldCpp, LM Studio, Ollama, a llama.cpp server or any program with an OpenAI-compatible API, Local AI can use it, with no Local AI pack. Put the server's address in the same `manifest.custom.json` as an `endpoint`, for example `{"version":1,"models":[{"endpoint":"http://127.0.0.1:5001/v1","name":"My Server"}]}`. Start the server before the game, then choose it by name in the Local AI model row, where it is marked "(custom)". A server on this computer or your home network needs nothing more; any other needs `"remote": true` and an `https://` address. The usual addresses and the other options are on the mod's Nexus Mods page.
 
 If your graphics card is short of memory the mod steps down by itself and keeps your voice before it keeps the model: the standard model gives way to the lite model, and if the lite model does not fit either, the text comes from Mistral or Convai, with one notice. Your voice only changes as a last resort. The standard model checks that about 6 GB of video memory is free when it starts; with less, the lite model is used.
+
+## Custom provider (advanced, optional)
+
+Settings > Conversation provider > **Custom (OpenAI-compatible)** uses any endpoint that speaks the OpenAI chat-completions protocol: OpenRouter, Nano-GPT, or a server on your own computer such as Ollama or LM Studio. The Custom rows sit under the Mistral row. Use their three Paste buttons in order, each after copying the value from your provider:
+
+1. **Paste endpoint URL**, the endpoint's base address. OpenRouter: `https://openrouter.ai/api/v1`. Nano-GPT: `https://nano-gpt.com/api/v1`. Ollama: `http://localhost:11434/v1`. LM Studio: `http://localhost:1234/v1`.
+2. The second button, for the access code of your account. A server on your own computer needs none.
+3. **Paste model ID**, a model name from the provider's list: for example `meta-llama/llama-3.1-8b-instruct` on OpenRouter, or `llama3.2` on Ollama.
+4. Press **Test connection**. It sends one tiny request and says OK, or what the provider answered.
+5. Choose **Custom (OpenAI-compatible)** as the provider and **Apply**.
+
+Each paste reads the clipboard once, checks it and saves it on your computer; **Remove** deletes it. Only the last four characters of the access code are ever shown, and it goes to that endpoint and nowhere else. An `http://` address works only for your own computer or home network; any other host needs `https://`. A server on your own PC must be running before the game starts. Nothing is sent until you choose the provider or press Test connection. Without an address and a model ID, conversations use Convai and one notice says so. The replies, their price and their limits are your provider's, and your lines go to it. The values are kept in `player-custom-endpoint.txt` in `%LOCALAPPDATA%AiNpcCyberpunkModdata`; its three lines are described in docs/CUSTOM_PROVIDER.md in the mod's repository.
 
 ## Choosing a setup
 
@@ -84,17 +107,20 @@ Extra video memory each setup uses on top of the game's own:
 
 ## Update
 
-Close the game and extract the new Scripts and Runtime (and any optional packs you use) over the old ones. Your conversations, memories and settings are kept.
+Close the game and extract the new Scripts and Runtime over the old ones (the same version for both), then any optional packs you use, in that order: the OmniVoice pack goes after the Runtime. Your conversations, memories and settings are kept. The first start after updating moves your memories, conversation history and logs out of the game folder into `%LOCALAPPDATA%\AiNpcCyberpunkMod\data`.
 
 ## Uninstall
 
 Delete these folders from your Cyberpunk 2077 folder:
 
-- `bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod` (this also deletes your conversations and settings)
+- `bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod` (this also deletes your settings and phone chats)
 - `red4ext\plugins\AiNpcCyberpunkMod` (this also removes the OmniVoice and Local AI packs)
 - `red4ext\plugins\AiNpcCyberpunkModNative`
 - `r6\scripts\CyberpunkConvai` and `r6\audioware\CyberpunkConvai` (the scripts and speech files; internal names)
 - `archive\pc\mod\convai_facial.archive`, `convai_gestures.archive` and `cyberpunk_convai_ambient_driver_guard.archive`
+- `HOW TO INSTALL - extract into your Cyberpunk 2077 folder.txt`, if it is still there
+
+Then delete `%LOCALAPPDATA%\AiNpcCyberpunkMod` (paste that into the Explorer address bar). It is outside the game folder and holds your memories, conversation history, logs and reports, so a mod manager leaves it behind too.
 
 ## Licence
 
@@ -102,6 +128,8 @@ AI NPC Cyberpunk Mod is released under the AI NPC Cyberpunk Mod Use License (see
 
 ## Help
 
-Open Settings > Help > Help and support in game. It shows the service status and can create a report to share when asking for help.
+Open Settings > Help > Help and support in game. It shows the service status and can create a report to share when asking for help. Generate report saves it in `%LOCALAPPDATA%\AiNpcCyberpunkMod\reports`. If the conversation service is not running, it writes a shorter report at once instead: `runtime\convai-report-lua.txt` in the mod folder (`bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod`). If the service row says "Needs a browser", install a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera, then restart the game.
+
+The mod does not load, or the manager will not open? Close the game and double-click `Make support report.bat` in `red4ext\plugins\AiNpcCyberpunkMod`. It saves one report with the game closed and opens its folder: send that file. With Mod Organizer 2, start it from MO2 (add it under Executables).
 
 Known issue: if V keeps walking in one direction after you type a message, tap that direction (W, A, S or D) once.

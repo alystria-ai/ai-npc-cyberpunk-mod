@@ -185,7 +185,9 @@ function M.new(modName, isAvailable, log, isOwnPage)
                 end
                 return 'Close the current menu first, or choose Mods from the pause menu.'
             end
-            if player:ConvaiComposerOpen() then return 'Close the text box first.' end
+            -- A player without the method (this mod's scripts did not compile) has no text box open.
+            local boxOk, boxOpen = pcall(function() return player:ConvaiComposerOpen() end)
+            if boxOk and boxOpen then return 'Close the text box first.' end
             local scene = boards:GetLocalInstanced(player:GetEntityID(), defs.PlayerStateMachine)
             if scene:GetInt(defs.PlayerStateMachine.SceneTier) >= 3 then return 'Finish the scene first.' end
             stage, deadline, lastProblem, menuItems = 'pause', os.time() + 8, '', {}

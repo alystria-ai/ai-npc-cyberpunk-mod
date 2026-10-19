@@ -454,6 +454,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/convai-paid-tier.lua"
     },
     {
+      "source": "mod/custom-provider.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/custom-provider.lua"
+    },
+    {
       "source": "mod/movement-log.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/movement-log.lua"
     },
@@ -476,6 +480,10 @@
     {
       "source": "r6/scripts/CyberpunkConvai/Manager.reds",
       "target": "r6/scripts/CyberpunkConvai/Manager.reds"
+    },
+    {
+      "source": "r6/scripts/CyberpunkConvai/Requirements.reds",
+      "target": "r6/scripts/CyberpunkConvai/Requirements.reds"
     },
     {
       "source": "r6/scripts/CyberpunkConvai/PhoneContacts.reds",
