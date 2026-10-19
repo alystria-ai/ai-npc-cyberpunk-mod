@@ -11,6 +11,8 @@
 //   server.on('failed', ({reason}) => ...)                                     // once per failure episode
 //   server.on('model-fallback', ({pin, reason, model}) => ...)                 // the chosen model was missing, did not fit or did not start; `model` (its name) was used instead
 //   await server.reselect()                                                    // the model choice changed: reload at an idle moment
+//   server.diagnostics()                                                       // what is loaded and how the turns went (model file, family, template, timings); for the log and the support report
+//   server.noteTurn({ok, trace, error, detail})                                // the host reports each local turn: kept in diagnostics(), a 'diagnostics' event on a failure and on the first turn after a start
 //   await server.stop(); server.killSync();                                    // bridge shutdown / process exit
 //
 // A server the player already runs (an `endpoint` entry of the custom manifest, bridge/custom-models.mjs; docs/LOCAL_AI.md, "Use your own server") is
@@ -25,11 +27,11 @@
 // (`--api-key-file`), never the command line, and is never logged, in an error message, status() or an event.
 import {EventEmitter} from 'node:events';
 import {spawn, execFile} from 'node:child_process';
-import {randomBytes} from 'node:crypto';
+import {createHash, randomBytes} from 'node:crypto';
 import {mkdtempSync, readFileSync, renameSync, rmSync, statSync, writeFileSync} from 'node:fs';
 import {createServer} from 'node:net';
-import {tmpdir, freemem, setPriority, constants as osConstants} from 'node:os';
-import {join} from 'node:path';
+import {tmpdir, freemem, totalmem, setPriority, constants as osConstants} from 'node:os';
+import {basename, join} from 'node:path';
 import {chooseLocalModel, externalModels, listLocalModels, normalisePin, stillSatisfies} from './local-model-choice.mjs';
 
 const REASON_TEXT = Object.freeze({
@@ -74,6 +76,38 @@ export const LOCAL_LLM_LIMITS = Object.freeze({
 /** The key sent to a server the player runs that needs none (streamChat wants a key of 8 characters; such a server ignores the header). */
 export const NO_KEY = 'no-key-needed';
 
+// ---------------------------------------------------------------------------------------------------------------
+// What is loaded (for the log and the support report: docs/LOCAL_AI.md, "When a local turn fails")
+
+/** The family of a model for diagnostics: the manifest's own word, else read from the name or file name; null when unknown. */
+export function modelFamily({family, name, file} = {}) {
+  if (typeof family === 'string' && family.trim()) return family.trim().slice(0, 40);
+  const text = String(name ?? '') + ' ' + basename(String(file ?? ''));
+  if (/gemma[-_ ]?4/i.test(text)) return 'gemma-4';
+  if (/gemma/i.test(text)) return 'gemma';
+  if (/qwen|hauhau/i.test(text)) return 'qwen';
+  if (/bonsai/i.test(text)) return 'bonsai';
+  if (/ministral|mistral/i.test(text)) return 'mistral';
+  if (/llama/i.test(text)) return 'llama';
+  return null;
+}
+
+const oneLine = (value, limit) => String(value ?? '').replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, limit);
+
+/** {chars, sha, head} of a chat template (the text llama-server reports in /props): its length, 8 hex digits of its SHA-256 and its first 60 characters; null when there is none. */
+export function describeTemplate(text) {
+  if (typeof text !== 'string' || !text.trim()) return null;
+  return {chars: text.length, sha: createHash('sha256').update(text).digest('hex').slice(0, 8), head: oneLine(text, 60)};
+}
+
+// The parts of llama-server's GET /props the diagnostics keep. Never the whole template, never a path.
+export function describeProps(body) {
+  if (!body || typeof body !== 'object') return {};
+  const token = value => (typeof value === 'string' && value ? oneLine(value, 40) : null);
+  return {template: describeTemplate(body.chat_template), bos: token(body.bos_token), eos: token(body.eos_token),
+    build: typeof body.build_info === 'string' ? oneLine(body.build_info, 40) : null, ftype: typeof body.model_ftype === 'string' ? oneLine(body.model_ftype, 20) : null};
+}
+
 // The llama-server command line for the chat model. Pure; the key goes in a file, never on the command line.
 // `chatTemplate` (a model the player added, bridge/custom-models.mjs) is the name of a llama.cpp built-in template: `--chat-template`.
 // `offload` (a Mature model that does not fully fit the free graphics memory, bridge/local-model-choice.mjs): no layer count is given and the fit
@@ -112,14 +146,23 @@ export function isIntegratedGpu(name) {
   return /Intel.*(Graphics|UHD|Iris)|Microsoft|llvmpipe|SwiftShader/i.test(text);
 }
 
-// The discrete device with the most memory, or null when there is none.
+// AMD's integrated graphics (the Ryzen APUs) is named "AMD Radeon(TM) Graphics", "AMD Radeon(TM) 780M Graphics" or "Radeon(TM) Vega 8 Graphics": no card model
+// (RX, Pro, ...) in it. It shares the computer's memory, so it reports a memory size as large as the system's and would win a "most memory" pick over the
+// graphics card of a laptop (an Intel iGPU is skipped for good; this one is only the last resort, because a Ryzen computer with no card may still run a small model on it).
+export function isAmdApu(name) {
+  const text = String(name);
+  return /\bRadeon(?:\(TM\))?\s+(?:(?:Vega\s+\d+|\d{3}M)\s+)?Graphics\b/i.test(text) || /\bRadeon(?:\(TM\))?\s+\d{3}M\b/i.test(text);
+}
+
+// The discrete device with the most memory; an AMD APU only when nothing else is there; null when there is no device to use.
 export function pickDevice(devices) {
-  let best = null;
+  let best = null, apu = null;
   for (const device of devices) {
     if (isIntegratedGpu(device.name)) continue;
+    if (isAmdApu(device.name)) { if (!apu || device.totalMiB > apu.totalMiB) apu = device; continue; }
     if (!best || device.totalMiB > best.totalMiB) best = device;
   }
-  return best;
+  return best ?? apu;
 }
 
 // The prompt-cache size (MiB of system RAM) from the free system RAM: 4096 from 12 GB free, 2048 from 8 GB, else 1024.
@@ -199,6 +242,10 @@ function startError(code, message) {
 //   proc.apiKey / proc.baseUrl / proc.running / proc.pid / proc.tail()
 //   proc.on('exit', ({code, signal, expected}) => ...)
 //   await proc.stop();  proc.killSync();
+//   proc.lower()   -> sets the child's priority class below normal (true when it is, or was); with `lowerAfter: 'ready'` the child runs at normal priority until this is called
+// `lowerPriority` (default true) lowers the child below normal so the game keeps its CPU: at once (`lowerAfter: 'spawn'`, the default: the embedder and any
+// CPU process) or when the owner calls lower() (`lowerAfter: 'ready'`: the chat model, which loads at normal priority because a load under a game that keeps every
+// core busy starved for minutes at below normal, and is lowered once it is loaded and warm, because generation runs on the graphics card).
 // `command` + `argsPrefix` let tests run `node fake-llama-server.mjs ...` instead of an .exe.
 export class LlamaProcess extends EventEmitter {
   #key = null; #keyDir = null; #child = null; #port = 0; #startPromise = null;
@@ -206,12 +253,12 @@ export class LlamaProcess extends EventEmitter {
   #exitPromise; #resolveExit; #settleWait = null;
 
   constructor({command, argsPrefix = [], buildArgs, spawnImpl = spawn, fetchImpl = fetch, startupMs = LOCAL_LLM_LIMITS.startupMs,
-      tmpDir = tmpdir(), setTimer = setTimeout, clearTimer = clearTimeout, log = () => {}, lowerPriority = true, pollMs = 200,
+      tmpDir = tmpdir(), setTimer = setTimeout, clearTimer = clearTimeout, log = () => {}, lowerPriority = true, lowerAfter = 'spawn', setPriorityImpl = setPriority, pollMs = 200,
       healthTimeoutMs = 2000, env = {}, tailChars = 6000, findPort = freePort, label = 'llama-server'} = {}) {
     super();
     if (!command || typeof buildArgs !== 'function') throw TypeError('command and buildArgs are required');
     Object.assign(this, {command, argsPrefix, buildArgs, spawnImpl, fetchImpl, startupMs, tmpDir, setTimer, clearTimer, log,
-      lowerPriority, pollMs, healthTimeoutMs, env, tailChars, findPort, label});
+      lowerPriority, lowerAfter, setPriorityImpl, pollMs, healthTimeoutMs, env, tailChars, findPort, label});
     this.#exitPromise = new Promise(resolveExit => { this.#resolveExit = resolveExit; });
   }
 
@@ -222,6 +269,13 @@ export class LlamaProcess extends EventEmitter {
   get alive() { return Boolean(this.#child) && !this.#exited; }
   get running() { return this.alive && this.#healthy; }
   get exited() { return this.#exited; }
+
+  // Lowers the child below normal priority (best effort: a refusal leaves it at normal). True when it is lowered.
+  lower() {
+    const pid = this.#child?.pid;
+    if (!this.lowerPriority || !pid || this.#exited) return false;
+    try { this.setPriorityImpl(pid, osConstants.priority.PRIORITY_BELOW_NORMAL); return true; } catch { return false; }
+  }
 
   // The last few KB of the child's output, for diagnostics only. The key is redacted.
   tail() { return this.#redact(this.#tail); }
@@ -245,7 +299,7 @@ export class LlamaProcess extends EventEmitter {
       throw error?.code === 'stopped' ? error : startError('spawn-failed', 'could not be started (' + (error?.code || error?.message || 'error') + ')');
     }
     this.#child = child;
-    try { if (this.lowerPriority && child.pid) setPriority(child.pid, osConstants.priority.PRIORITY_BELOW_NORMAL); } catch { /* best effort */ }
+    if (this.lowerAfter === 'spawn') this.lower();
     for (const stream of [child.stdout, child.stderr]) {
       stream?.setEncoding?.('utf8');
       stream?.on('data', text => this.#append(text));   // always drained, or a chatty child blocks
@@ -387,6 +441,7 @@ export class LocalLlmServer extends EventEmitter {
   #state = 'stopped'; #reason = null; #tier = null; #model = null; #firstTime = false;
   #proc = null; #info = null; #starting = null; #generation = 0; #inflight = 0; #idleTimer = null;
   #keyNoted = false; #warmed = new Set(); #contextSize = 0; #modelId = null; #reselectPending = false; #hints = null; #totalMiB = null; #lastFreeMiB = null; #failedPin = null; #broken = new Map();
+  #loaded = null; #lastExit = null; #lastTurn = null; #turns = {ok: 0, failed: 0, sinceStart: 0};
 
   // command/argsPrefix replace pack.server when spawning (tests); processOptions go to LlamaProcess (tests).
   // contextSize: a fixed context (tests, CYBERPUNK_CONVAI_LOCAL_CTX); without it each start takes the ladder's largest that fits.
@@ -522,6 +577,9 @@ export class LocalLlmServer extends EventEmitter {
       throw new LocalAiUnavailable('start-failed', 'could not list the graphics devices');
     }
     const device = pickDevice(devices);
+    // Which cards the computer has and which one was taken: a model that "loads but never answers" on the wrong adapter is slow, not broken.
+    this.log('[local] graphics devices: ' + (devices.map(item => `${item.id} ${String(item.name).slice(0, 60)} (${item.totalMiB} MiB${isIntegratedGpu(item.name) ? ', integrated: not used' : isAmdApu(item.name) ? ', integrated AMD: last resort' : ''})`).join('; ') || 'none')
+      + (device ? '; using ' + device.id : '; none usable'));
     if (!device) throw new LocalAiUnavailable('no-gpu');
     let freeMiB = Number.isFinite(device.freeMiB) ? device.freeMiB : null;
     if (/NVIDIA/i.test(device.name)) {
@@ -662,8 +720,14 @@ export class LocalLlmServer extends EventEmitter {
     this.#firstTime = this.warmup && !this.#warmed.has(signature);
     this.#emitStatus();
 
+    this.#loaded = {id: tier.id, name: tier.loadedName ?? tier.name, file: basename(String(tier.file)), family: modelFamily({family: tier.family, name: tier.name, file: tier.file}),
+      tier: tierKey, sizeMiB: Math.round(Number(choice.sizeMiB) || 0), device: {id: device.id, name: device.name, freeMiB: Number.isFinite(freeMiB) ? Math.round(freeMiB) : null},
+      contextSize, cacheRamMiB, priority: 'normal', ram: {freeMiB: Math.round(Number(this.freeMemMiB())) || null, totalMiB: Math.round(totalmem() / 1048576)}, offload: choice.offload === true, custom: tier.custom === true, templateFlag: tier.chatTemplate ? String(tier.chatTemplate) : null,
+      template: null, bos: null, eos: null, build: null, ftype: null, loadMs: null, warmMs: null, firstTime: this.#firstTime, readyAt: null};
+    this.#turns.sinceStart = 0;
+    const began = this.now();
     const proc = new LlamaProcess({command: this.command, argsPrefix: this.argsPrefix, spawnImpl: this.spawnImpl, fetchImpl: this.fetchImpl,
-      startupMs: this.startupMs, log: this.log, label: 'llama-server',
+      startupMs: this.startupMs, log: this.log, label: 'llama-server', lowerAfter: 'ready',
       buildArgs: ({port, keyFile}) => buildServerArgs({model: tier.file, port, keyFile, device: device.id, contextSize, cacheRamMiB, chatTemplate: tier.chatTemplate, offload: choice.offload === true}),
       ...this.processOptions});
     this.#proc = proc;
@@ -674,30 +738,43 @@ export class LocalLlmServer extends EventEmitter {
       if (this.#proc === proc) this.#proc = null;
       await proc.stop();
       this.#guard(generation);
-      this.log('[local] llama-server did not start: ' + (error?.code || error?.message));
+      this.log('[local] llama-server did not start: ' + (error?.code || error?.message) + ' (' + this.#loaded.file + ', context ' + contextSize + ')');
+      this.#logTail(proc, 'it did not start');
       if (tier.custom && error?.code !== 'stopped') { this.#modelFailed(tier, error?.code || 'error'); return this.#startOnce(); }
       throw new LocalAiUnavailable('start-failed', error?.code);
     }
     this.#guard(generation);
-    const serverContext = await this.#readContext(proc, contextSize);
+    const props = await this.#readProps(proc, contextSize);
+    const serverContext = props.contextSize;
     this.#guard(generation);
     this.#info = {endpoint: proc.baseUrl + '/v1/chat/completions', base: proc.baseUrl, apiKey: proc.apiKey, contextSize: serverContext};
     this.#contextSize = serverContext;
+    Object.assign(this.#loaded, {contextSize: serverContext, template: props.template ?? null, bos: props.bos ?? null, eos: props.eos ?? null, build: props.build ?? null,
+      ftype: props.ftype ?? null, loadMs: this.now() - began});
     this.#setState('warming');
 
     if (this.warmup) {
+      const warmBegan = this.now();
       const warmed = await this.#warmUp(proc, generation, this.#firstTime);
+      this.#loaded.warmMs = this.now() - warmBegan;
       if (warmed && this.#firstTime) this.#saveWarmed(signature);
     }
     this.#guard(generation);
     if (!proc.running) {
       if (this.#proc === proc) this.#proc = null;
       await proc.stop();
+      this.#logTail(proc, 'it stopped while warming up');
       if (tier.custom) { this.#modelFailed(tier, 'stopped while warming up'); return this.#startOnce(); }
       throw new LocalAiUnavailable('crashed');
     }
+    // Loaded and warm (the shader compile of a first start and the first prompts are CPU work too): now the game gets the CPU back, and generation, which
+    // runs on the graphics card, keeps its speed at the lower priority.
+    this.#loaded.priority = proc.lower() ? 'below-normal' : 'normal';
+    this.#loaded.readyAt = this.now();
     this.#setState('ready');
     this.#arm();
+    this.log('[local] model ready: ' + this.#describeLoaded());
+    this.emit('diagnostics', this.diagnostics());
     // A choice that changed while it was loading is checked a moment later, after the turn that waited for it has marked itself in flight.
     if (this.#reselectPending) { const timer = this.setTimer(() => { void this.#reloadIfIdle(); }, 250); timer?.unref?.(); }
     return this.#handle();
@@ -707,6 +784,10 @@ export class LocalLlmServer extends EventEmitter {
   async #startExternal(model, failedPin, generation) {
     if (failedPin) this.emit('model-fallback', {pin: failedPin, reason: 'start-failed', model: model.name});
     this.#tier = null; this.#model = model.loadedName ?? model.name; this.#modelId = model.id; this.#contextSize = model.contextSize ?? 0;
+    this.#loaded = {id: model.id, name: model.loadedName ?? model.name, file: null, family: modelFamily({family: model.family, name: model.name}), tier: null, sizeMiB: 0, device: null,
+      contextSize: model.contextSize ?? 0, cacheRamMiB: null, offload: false, custom: true, external: true, templateFlag: null, template: null, bos: null, eos: null, build: null, ftype: null,
+      loadMs: null, warmMs: null, firstTime: false, readyAt: null};
+    this.#turns.sinceStart = 0;
     this.#hints = {uncensored: model.uncensored === true, family: model.family ?? null};
     this.#firstTime = false;
     this.#keyNoted = false;
@@ -786,15 +867,78 @@ export class LocalLlmServer extends EventEmitter {
     return true;
   }
 
-  // The context the server really has (n_ctx per slot, GET /props); the one it was asked for when it does not say.
-  async #readContext(proc, requested) {
+  // What the server says about itself (GET /props, once per start): the context it really has (n_ctx per slot; the one it was asked for when it does
+  // not say) and, for the diagnostics, its chat template (length, hash and first words), bos/eos tokens, build and quantisation.
+  async #readProps(proc, requested) {
+    const result = {contextSize: requested};
     try {
       const response = await this.fetchImpl(proc.baseUrl + '/props', {headers: {authorization: 'Bearer ' + proc.apiKey}, signal: AbortSignal.timeout(3000)});
       const body = response.ok ? await response.json() : null;
       const value = Number(body?.default_generation_settings?.n_ctx ?? body?.n_ctx);
-      if (Number.isFinite(value) && value >= 512) return value;
+      if (Number.isFinite(value) && value >= 512) result.contextSize = value;
+      Object.assign(result, describeProps(body));
     } catch { /* an older server or a fake one: use what was asked for */ }
-    return requested;
+    return result;
+  }
+
+  // One line for the log: which file is loaded and how, in words a report reader can match to a model.
+  #describeLoaded() {
+    const loaded = this.#loaded;
+    if (!loaded) return 'nothing';
+    const template = loaded.template ? `${loaded.templateFlag ? 'flag:' + loaded.templateFlag : 'gguf'} ${loaded.template.chars} chars sha ${loaded.template.sha}` : (loaded.templateFlag ? 'flag:' + loaded.templateFlag : 'not reported');
+    return [`file ${loaded.file ?? 'a server you run'}`, `name "${loaded.name}"`, `id ${loaded.id}`, `family ${loaded.family ?? 'unknown'}`,
+      loaded.sizeMiB ? `${loaded.sizeMiB} MiB` : null, `context ${loaded.contextSize}`, loaded.offload ? 'part on the CPU' : null,
+      loaded.device ? `device ${loaded.device.id}${loaded.device.freeMiB === null ? '' : ' (' + loaded.device.freeMiB + ' MiB free before)'}` : null,
+      loaded.priority === 'below-normal' ? 'process priority normal while it loaded, below normal now (the game keeps the CPU)' : null, loaded.ram?.freeMiB ? `system memory ${loaded.ram.freeMiB} of ${loaded.ram.totalMiB} MiB free` : null, `template ${template}`, loaded.template ? `"${loaded.template.head}"` : null, loaded.eos ? `eos ${loaded.eos}` : null, loaded.build ? `build ${loaded.build}` : null,
+      loaded.loadMs === null ? null : `loaded in ${(loaded.loadMs / 1000).toFixed(1)} s`, loaded.warmMs === null ? null : `warm-up ${(loaded.warmMs / 1000).toFixed(1)} s${loaded.firstTime ? ' (first time)' : ''}`]
+      .filter(Boolean).join(', ');
+  }
+
+  // The last lines the child printed (the key is redacted), for a start that failed or a server that stopped: why is in there (an allocation that failed, a model it cannot read).
+  #logTail(proc, why) {
+    let lines = [];
+    try { lines = String(proc?.tail?.() ?? '').split(/\r?\n/).map(line => line.trim()).filter(Boolean).slice(-10).map(line => line.slice(0, 220)); } catch { /* best effort */ }
+    if (lines.length) this.log('[local] last llama-server output (' + why + '): ' + lines.join(' | ').slice(0, 1800));
+  }
+
+  /**
+   * What is loaded and how the turns went, for the log and the support report: plain data, no path (file names only), no key, no text of any reply.
+   * {state, model: {id, name, file, family, tier, sizeMiB, offload, custom, external}, engine: {build, ftype, device, contextSize, cacheRamMiB, priority, ram: {freeMiB, totalMiB}}, template: {source, chars,
+   * sha, head}, tokens: {bos, eos}, start: {loadMs, warmMs, firstTime, readyAt}, turns: {ok, failed}, lastTurn, lastExit}. null when nothing was loaded yet.
+   */
+  diagnostics() {
+    const loaded = this.#loaded;
+    if (!loaded) return null;
+    return {state: this.#state, ...(this.#reason ? {reason: this.#reason} : {}),
+      model: {id: loaded.id, name: String(loaded.name ?? '').slice(0, 80), file: loaded.file, family: loaded.family, tier: loaded.tier, sizeMiB: loaded.sizeMiB, offload: loaded.offload,
+        custom: loaded.custom, ...(loaded.external ? {external: true} : {})},
+      engine: {build: loaded.build, ftype: loaded.ftype, device: loaded.device ? {id: loaded.device.id, name: String(loaded.device.name ?? '').slice(0, 60), freeMiB: loaded.device.freeMiB} : null,
+        contextSize: loaded.contextSize, cacheRamMiB: loaded.cacheRamMiB, priority: loaded.priority ?? null, ram: loaded.ram ?? null},
+      template: loaded.template ? {source: loaded.templateFlag ? 'flag:' + loaded.templateFlag : 'gguf', ...loaded.template} : {source: loaded.templateFlag ? 'flag:' + loaded.templateFlag : 'not reported'},
+      tokens: {bos: loaded.bos, eos: loaded.eos},
+      start: {loadMs: loaded.loadMs, warmMs: loaded.warmMs, firstTime: loaded.firstTime, readyAt: loaded.readyAt ? new Date(loaded.readyAt).toISOString() : null},
+      turns: {ok: this.#turns.ok, failed: this.#turns.failed}, lastTurn: this.#lastTurn, lastExit: this.#lastExit};
+  }
+
+  /**
+   * The host reports how a local turn went: {ok: true, trace} or {ok: false, error, detail}. Kept for diagnostics(); a 'diagnostics' event follows a
+   * failure and the first turn after each start (not every turn: the report file is written only then). Returns {first}: whether this was the first
+   * turn since the model was loaded, which the host logs with its timings. Never throws.
+   */
+  noteTurn({ok, trace, error, detail} = {}) {
+    try {
+      const first = this.#turns.sinceStart === 0;
+      this.#turns.sinceStart++;
+      if (ok) this.#turns.ok++; else this.#turns.failed++;
+      const t = trace ?? error?.trace ?? null;
+      this.#lastTurn = {at: new Date(this.now()).toISOString(), ok: ok === true, ...(ok ? {} : {reason: String(error?.reason ?? error?.kind ?? 'error').slice(0, 30), detail: oneLine(detail ?? '', 160)}),
+        ...(t ? {headersMs: t.headersMs, firstWordMs: t.firstTokenMs, pieces: t.pieces, thinkingPieces: t.reasoning, elapsedMs: t.elapsedMs,
+          ...(t.progress ? {promptProgress: `${t.progress.processed}/${t.progress.total}`} : {}),
+          ...(t.timings ? {promptTokens: t.timings.promptTokens, cachedTokens: t.timings.cachedTokens, tokensPerSecond: Number.isFinite(t.timings.tokensPerSecond) ? Math.round(t.timings.tokensPerSecond * 10) / 10 : null} : {}),
+          ...(t.finishReason ? {finishReason: t.finishReason} : {})} : {})};
+      if (!ok || first) this.emit('diagnostics', this.diagnostics());
+      return {first};
+    } catch { return {first: false}; }
   }
 
   /**
@@ -833,20 +977,29 @@ export class LocalLlmServer extends EventEmitter {
   // A non-streaming one-token request. The reply is read and dropped.
   async #complete(info, messages, {signal, timeoutMs = 60_000, cachePrompt = true} = {}) {
     const timeout = AbortSignal.timeout(timeoutMs);
-    const response = await this.fetchImpl(info.endpoint, {method: 'POST', signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
-      headers: {'content-type': 'application/json', authorization: 'Bearer ' + info.apiKey},
-      body: JSON.stringify({model: info.requestModel ?? this.#model ?? 'local', messages, max_tokens: 1, stream: false, temperature: 0, cache_prompt: cachePrompt})});
-    await response.arrayBuffer?.().catch(() => {});
-    if (!response.ok) throw Error('HTTP ' + response.status);
+    try {
+      const response = await this.fetchImpl(info.endpoint, {method: 'POST', signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+        headers: {'content-type': 'application/json', authorization: 'Bearer ' + info.apiKey},
+        body: JSON.stringify({model: info.requestModel ?? this.#model ?? 'local', messages, max_tokens: 1, stream: false, temperature: 0, cache_prompt: cachePrompt})});
+      await response.arrayBuffer?.().catch(() => {});
+      if (!response.ok) throw Error('HTTP ' + response.status);
+    } catch (error) {
+      // The platform's own text for a timeout ("The operation was aborted due to timeout") says nothing: say how long it waited.
+      if (timeout.aborted && !signal?.aborted) throw Error('no answer in ' + Math.round(timeoutMs / 1000) + ' s (the server was still reading the prompt, or stuck)');
+      throw error;
+    }
   }
 
-  #onExit(proc, {expected}) {
+  #onExit(proc, {expected, code, signal}) {
     if (this.#proc !== proc || expected) return;
+    this.#lastExit = {code: code ?? null, signal: signal ?? null, at: new Date(this.now()).toISOString(), state: this.#state};
     // While starting or warming, #startOnce sees the death itself.
     if (this.#state !== 'ready') return;
     this.#proc = null; this.#info = null;
     this.#disarm();
-    this.log('[local] llama-server stopped unexpectedly');
+    this.log('[local] llama-server stopped unexpectedly (exit ' + (code ?? signal ?? '?') + ')');
+    this.#logTail(proc, 'it stopped unexpectedly');
+    this.emit('diagnostics', this.diagnostics());
     this.#setState('starting');
     this.#launch(true);
   }

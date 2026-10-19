@@ -81,22 +81,35 @@ test('each missing framework is a Problem with its own fix, and the most fundame
   assert(lineOf('redscript').state == 'unknown' and lineOf('redscript').value == 'Unknown' and #check.problems() == 0)
 `));
 
-test('Native Settings UI: present, too old, or missing, each with its own code; Mod Configuration Menu is not looked for', () => run(String.raw`
+test('the Companion Manager host: Mod Configuration Menu 0.10.5 or newer, or Native Settings UI; too old or missing is a problem with its own code and words', () => run(String.raw`
   installFiles(); serviceRunning()
   check.run()
   assert(lineOf('nsui').state == 'ok')
   env.nsui = 'old'; applyEnv(); check.run()
   assert(lineOf('nsui').state == 'problem' and table.concat(check.problems(), ',') == 'nsui')
-  assert(lineOf('nsui').description == 'Native Settings UI is too old. Install version 1.96 from Nexus Mods, then restart the game.')
+  assert(lineOf('nsui').description == 'The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game.')
   local old = table.concat(check.reportLines(), '\n')
   assert(old:find('nsui: problem old', 1, true), old)
   env.nsui = 'none'; applyEnv(); check.run()
-  assert(lineOf('nsui').description == 'Native Settings UI is missing. Install it from Nexus Mods, then restart the game.')
+  assert(lineOf('nsui').description == 'The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game.')
   assert(table.concat(check.reportLines(), '\n'):find('nsui: problem missing', 1, true))
-  -- With Mod Configuration Menu installed (it does not hide the tab from its own list) nothing is a problem and no line mentions it.
+  -- Mod Configuration Menu 0.10.5 is the default host: it meets the requirement alone, and its line names it with its version.
+  env.nsui, env.mcm = 'none', 'ok'; applyEnv(); check.run()
+  assert(lineOf('nsui').state == 'ok' and lineOf('nsui').label == 'Mod Configuration Menu' and lineOf('nsui').description == 'Version 0.10.5.', tostring(lineOf('nsui').description))
+  assert(#check.problems() == 0 and table.concat(check.reportLines(), '\n'):find('nsui: ok mcm 0.10.5', 1, true), table.concat(check.reportLines(), '\n'))
+  -- Both installed: Mod Configuration Menu is the one named, Native Settings UI is the alternative and is not a problem either way.
   env.nsui = 'ok'; applyEnv(); check.run()
-  local lines = table.concat(check.reportLines(), '\n')
-  assert(not lines:lower():find('mcm', 1, true) and #check.problems() == 0, lines)
+  assert(lineOf('nsui').label == 'Mod Configuration Menu' and #check.problems() == 0)
+  env.nsui, env.mcm = 'old', 'ok'; applyEnv(); check.run()
+  assert(#check.problems() == 0, 'an old Native Settings UI does not matter beside MCM 0.10.5')
+  -- An older Mod Configuration Menu alone (no public interface for the page): update it. Beside a working Native Settings UI it is no problem.
+  env.nsui, env.mcm = 'none', 'old'; applyEnv(); check.run()
+  assert(lineOf('nsui').state == 'problem' and lineOf('nsui').label == 'Mod Configuration Menu' and table.concat(check.problems(), ',') == 'nsui')
+  assert(lineOf('nsui').description == 'Mod Configuration Menu is too old. Update it to 0.10.5 or newer from Nexus Mods, then restart the game.', lineOf('nsui').description)
+  assert(table.concat(check.reportLines(), '\n'):find('nsui: problem mcm-old', 1, true))
+  env.nsui = 'ok'; applyEnv(); check.run()
+  assert(#check.problems() == 0 and lineOf('nsui').label == 'Native Settings UI', 'Native Settings UI carries it when MCM is too old')
+  env.nsui, env.mcm = 'ok', 'none'; applyEnv(); check.run()
 `));
 
 test('mod files: a missing catalog or locale, an unreadable folder, and the Scripts version', () => run(String.raw`
@@ -248,7 +261,7 @@ test('the browser, Local AI and the internet: every state has its own line and f
   local states = {
     {'ready', 'ok', 'Local AI is ready.'}, {'warming', 'ok', 'Local AI is warming up…'},
     {'not-installed', 'problem', 'No Local AI pack found. Download one from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, or choose another conversation provider.'},
-    {'no-memory', 'problem', 'Not enough graphics memory for Local AI. A cloud provider is used instead.'},
+    {'no-memory', 'problem', 'Not enough free graphics memory to start Local AI. Try a smaller model in Settings.'},
     {'mature-off', 'problem', 'Only Mature models found. Turn on Mature content to use them.'},
     {'no-gpu', 'problem', 'Local AI found no graphics card it can use. It needs an NVIDIA or AMD card with a current driver. Update the driver, or choose another conversation provider.'},
     {'start-failed', 'problem', 'Local AI could not start. Generate a report below and send it, or choose another conversation provider.'},
@@ -370,12 +383,12 @@ test('the first load: nothing for twelve seconds, then one notice for the first 
   answer({}, request.id)
   advance(1)
   local notice = check.tick(true, true)
-  assert(notice == 'The Companion Manager needs Native Settings UI (Nexus Mods)', tostring(notice))
+  assert(notice == 'The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI', tostring(notice))
   assert(check.inspect().firstDone)
   -- without Native Settings UI the CET console and probe.log say it too, in English
-  assert(#console == 1 and console[1] == '[AiNpcCyberpunkMod] AI NPC Cyberpunk Mod: Native Settings UI is missing or too old, so the Companion Manager cannot open. Install Native Settings UI 1.96 or newer from Nexus Mods (https://www.nexusmods.com/cyberpunk2077/mods/3518), then restart the game.', console[1])
+  assert(#console == 1 and console[1] == '[AiNpcCyberpunkMod] AI NPC Cyberpunk Mod: the Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer, and neither was found. Install Mod Configuration Menu (https://www.nexusmods.com/cyberpunk2077/mods/31640) or Native Settings UI (https://www.nexusmods.com/cyberpunk2077/mods/3518) from Nexus Mods, then restart the game.', console[1])
   local log = files['runtime/probe.log']
-  assert(log:find('Setup check: problems: nsui', 1, true) and log:find('Native Settings UI is missing or too old', 1, true), log)
+  assert(log:find('Setup check: problems: nsui', 1, true) and log:find('neither was found', 1, true), log)
   -- once per game session
   for _ = 1, 50 do advance(1); assert(check.tick(true, true) == nil) end
   assert(#console == 1)
@@ -402,7 +415,7 @@ test('the first load announces one problem: the most fundamental, in the fixed o
   assert(notice == 'TweakXL is missing. Install it from Nexus Mods, then restart the game.', tostring(notice))
   -- the console says each of them once, in English: the missing requirement and Native Settings UI
   assert(#console == 2 and console[1] == '[AiNpcCyberpunkMod] AI NPC Cyberpunk Mod: TweakXL is missing. Install it from Nexus Mods, then restart the game.', console[1])
-  assert(console[2]:find('Native Settings UI is missing or too old', 1, true))
+  assert(console[2]:find('neither was found', 1, true))
   assert(table.concat(check.problems(), ',') == 'tweakxl,nsui', table.concat(check.problems(), ','))
 `));
 

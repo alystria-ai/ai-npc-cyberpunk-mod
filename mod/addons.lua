@@ -30,6 +30,7 @@ local flight = nil                   -- the add-on request in flight (one at a t
 local pendingNotices = {}            -- notices waiting for gameplay
 local noticeAt = {}                  -- text -> clock of the last time it was shown
 local settingsValues = nil           -- {addonId = {id = value}}, loaded on the first registration
+local settingsPending = false        -- addon-settings.json was missing or empty while the service may still have been restoring its copy
 local staged = nil                   -- changes waiting for the main settings save
 local stateDirty, stateWrittenAt = false, -10
 local watch = {}                     -- last seen game facts, for events
@@ -145,6 +146,8 @@ local KEPT_FILES = {['addon-settings.json'] = true}
 
 local function writeFile(name, text)
     local path = 'runtime/' .. name
+    -- Never while the saved settings may still be on their way back from the service's copy (mod/state-restore.lua): what is written would replace them.
+    if KEPT_FILES[name] and settingsPending then return false end
     if not KEPT_FILES[name] then
         local file = io.open(path, 'wb')
         if not file then return false end
@@ -464,14 +467,30 @@ local function guard(name, fn)
     end
 end
 
+-- Asked only when addon-settings.json is missing or empty, never on an ordinary start. No answer (the module did not load) is "no".
+local function restorePending()
+    local restore = convaiStateRestore
+    return restore ~= nil and restore.waiting() == true
+end
+
+-- The first load, and the one more read after the service's restore when the file was missing or empty while that was still going on
+-- (mod/state-restore.lua): the saved values then fill in the add-ons that registered with defaults in the meantime.
 local function loadSettings()
-    if settingsValues then return end
-    settingsValues = {}
-    local doc = decode(readFile('addon-settings.json'))
+    if settingsValues and not settingsPending then return end
+    if settingsPending and restorePending() then return end
+    local late = settingsValues ~= nil
+    settingsValues, settingsPending = settingsValues or {}, false
+    local text = readFile('addon-settings.json')
+    local doc = decode(text)
     if type(doc) == 'table' and doc.version == 1 and type(doc.addons) == 'table' then
         for id, values in pairs(doc.addons) do
-            if type(id) == 'string' and type(values) == 'table' then settingsValues[id] = values end
+            if type(id) == 'string' and type(values) == 'table' then
+                settingsValues[id] = values
+                if late and addons[id] then for key, value in pairs(values) do addons[id].values[key] = value end end
+            end
         end
+    else
+        settingsPending = (text == nil or text == '') and restorePending()
     end
 end
 
@@ -1689,6 +1708,7 @@ end
 
 --- One section per add-on with settings, in registration order.
 function M.settingsSections()
+    if settingsPending then loadSettings() end
     local sections = {}
     for _, id in ipairs(order) do
         local addon = addons[id]
@@ -1772,6 +1792,7 @@ function M.discardSettings() staged = nil end
 
 --- Saves the held changes (runtime/addon-settings.json) and tells each add-on.
 function M.commitSettings()
+    if settingsPending then loadSettings() end
     local changes = staged
     staged = nil
     if not changes or #changes == 0 then return true end

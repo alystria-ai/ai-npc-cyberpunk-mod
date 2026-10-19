@@ -338,6 +338,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/nsui.lua"
     },
     {
+      "source": "mod/mcm-host.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mcm-host.lua"
+    },
+    {
       "source": "mod/nsui-entry.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/nsui-entry.lua"
     },
@@ -364,6 +368,10 @@
     {
       "source": "mod/spawned-characters.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/spawned-characters.lua"
+    },
+    {
+      "source": "mod/custom-characters.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/custom-characters.lua"
     },
     {
       "source": "mod/world-talk.lua",
@@ -472,6 +480,14 @@
     {
       "source": "mod/setup-check.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/setup-check.lua"
+    },
+    {
+      "source": "mod/state-restore.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/state-restore.lua"
+    },
+    {
+      "source": "mod/error-reports.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/error-reports.lua"
     },
     {
       "source": "mod/character-editor.lua",

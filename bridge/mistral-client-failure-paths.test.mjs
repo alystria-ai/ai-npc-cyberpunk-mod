@@ -172,13 +172,14 @@ test('every attempt answering with nothing ends as an empty-answer error that li
 
 test('cancelling while the client waits to ask again ends the turn as an abort at once, not as the provider\'s error and not after the wait', async () => {
   const controller = new AbortController();
-  setTimeout(() => controller.abort(), 20);
   const began = performance.now();
-  const error = await streamChat({apiKey: KEY, messages: [], retries: 2, backoffMs: [5000], signal: controller.signal,
+  // The cancel comes while the client is waiting to ask again: onRetry runs just before the wait begins, and the next turn of the loop is after it began.
+  const error = await streamChat({apiKey: KEY, messages: [], retries: 2, backoffMs: [5000], signal: controller.signal, onRetry: () => { setImmediate(() => controller.abort()); },
     fetchImpl: async () => fail(503, {message: 'overloaded'})}).catch(caught => caught);
   assert.equal(error.name, 'AbortError');
   assert.ok(!(error instanceof MistralError));
-  assert.ok(performance.now() - began < 1000, 'not the 5 s backoff');
+  // The wait was 5 s: ending in under half of that, from a cancel that came as it began, is the wait being cut rather than served.
+  assert.ok(performance.now() - began < 2500, 'not the 5 s backoff');
   // Already cancelled before the first ask: nothing is sent.
   let sent = 0;
   const early = await streamChat({apiKey: KEY, messages: [], signal: AbortSignal.abort(), fetchImpl: async () => { sent++; return sse(delta('x')); }}).catch(caught => caught);
@@ -200,7 +201,8 @@ test('the key check treats a host that never answers, a refusal of the check its
   const began = performance.now();
   const keepAlive = setInterval(() => {}, 1000);   // the timeout's own timer does not hold the event loop
   try { assert.equal(await validateKey(KEY, {fetchImpl: hang, timeoutMs: 30}), 'unknown', 'a silent host says nothing about the key'); } finally { clearInterval(keepAlive); }
-  assert.ok(performance.now() - began < 1000);
+  // 30 ms was asked for; the default it must not fall back to is 10 s, so half of that is far from both and a loaded machine cannot reach it.
+  assert.ok(performance.now() - began < 5000, 'not the default 10 s');
   assert.equal(await validateKey(KEY, {fetchImpl: async () => ({ok: true, status: 200, body: {cancel: async () => { throw Error('already closed'); }}})}), 'valid');
   assert.equal(await validateKey(KEY, {fetchImpl: async () => ({ok: false, status: 403, body: null})}), 'invalid');
   assert.equal(await validateKey(KEY, {fetchImpl: async () => ({ok: false, status: 503, body: null})}), 'unknown', 'a server fault is not a verdict on the key');

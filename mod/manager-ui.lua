@@ -34,6 +34,9 @@ local voicePreviewModule = dofile('voice-preview.lua')
 local VOICE_CHOICES = voicePreviewModule.CHOICES
 -- The Companion voices list of the page on screen: how many entries it has (Inworld is listed only in developer mode) and their texts.
 local voiceMenuSize, voiceLabelsShown = 0, {}
+-- The entries of that list that cannot be chosen now (OmniVoice while its pack is missing), by position: M.apply refuses them. A host
+-- that can grey an entry out reads them from the row (`disabledElements`).
+local voiceDisabledShown = {}
 -- Help page: log locations and the shareable support report. Optional: the manager works without it, and a load failure only hides
 -- the Help entry.
 local support, supportSignature
@@ -261,20 +264,47 @@ local function groupOf(name)
     return first
 end
 
--- The models by letter group, built once for a finished scan (the list never changes after it): the groups in order, and the models
--- of each, in the order the scan sorted them. A page build then reads twelve rows, not the whole catalogue.
+-- Game records the browser does not list: the ones the game's own data marks as retired, "!OBSOLETE - ..." (a leading "!" is the
+-- developers' sort-to-top mark for it), and any name that says OBSOLETE as a word.
+local function retiredModel(model)
+    local name = tostring(model.name or '')
+    return name:find('^%s*!') ~= nil or name:upper():find('%f[%a]OBSOLETE%f[%A]') ~= nil
+end
+-- A record that has no name of its own (an unnamed model, or the record id shown instead of a name) or a name that is only an internal code
+-- (no lowercase letter, a digit or a dash in it: "1H-DNC-LAÖ"). They are listed after the real names.
+local function placeholderModel(model)
+    local name = tostring(model.name or '')
+    if model.unnamedIndex or (model.record ~= nil and name == model.record) then return true end
+    -- Capital letters with an accent (Latin-1, A-grave to Thorn) are letters of a code like any other; any other non-ASCII letter
+    -- belongs to a real name.
+    local plain = name:gsub('\195[\128-\158]', '')
+    return not plain:find('[%l\128-\255]') and plain:find('[%d%-_]') ~= nil
+end
+M.retiredModel, M.placeholderModel = retiredModel, placeholderModel
+
+-- The models by letter group, built once for a finished scan (the list never changes after it): the models the browser lists (retired
+-- records left out, placeholders after the real names, each in the order the scan sorted them), the groups in order, and the models of
+-- each. A page build then reads twelve rows, not the whole catalogue.
 local modelGroupsCache = {}
 local function modelGroups(models)
     if modelGroupsCache.models ~= models or modelGroupsCache.count ~= #models then
-        local lists, order = {}, {}
+        local real, later = {}, {}
         for _, model in ipairs(models) do
+            if not retiredModel(model) then
+                local list = placeholderModel(model) and later or real
+                list[#list + 1] = model
+            end
+        end
+        for _, model in ipairs(later) do real[#real + 1] = model end
+        local lists, order = {}, {}
+        for _, model in ipairs(real) do
             local group = groupOf(model.name)
             local list = lists[group]
             if not list then list = {}; lists[group] = list; order[#order + 1] = group end
             list[#list + 1] = model
         end
         table.sort(order)
-        modelGroupsCache = {models = models, count = #models, order = order, lists = lists}
+        modelGroupsCache = {models = models, count = #models, order = order, lists = lists, all = real}
     end
     return modelGroupsCache
 end
@@ -415,7 +445,7 @@ end
 -- An OmniVoice entry stays in the list while the optional pack is missing (the row's name says "no Omni pack"), and M.apply refuses
 -- it (the bridge would fall back to Pocket TTS anyway): the row goes back to the voice that is saved, with the reason on the page.
 local function voiceMenuLabels(pack, mistral, developer)
-    local elements = {}
+    local elements, disabled = {}, {}
     for index, choice in ipairs(VOICE_CHOICES) do
         -- Short (OPTION_BUDGET), so the entry does not run over the arrows or the key boxes of a focused row; the voice description says
         -- what the pack and the keys are. The two cloud voices have a menu name of their own: the full one ("Mistral cloud voice
@@ -428,11 +458,12 @@ local function voiceMenuLabels(pack, mistral, developer)
                 label = ((mistral or {}).inworld or {}).saved and ui.t('Inworld · Cloud voice') or ui.t('Inworld · needs key')
             else
                 label = manager.voiceLabel(choice.provider, choice.steps, choice.reference)
+                if choice.provider == 'omni' and not (pack or {}).installed then disabled[#elements + 1] = true end
             end
             elements[#elements + 1] = label
         end
     end
-    voiceMenuSize, voiceLabelsShown = #elements, elements
+    voiceMenuSize, voiceLabelsShown, voiceDisabledShown = #elements, elements, disabled
     return elements
 end
 local function voiceStatusText(snapshot)
@@ -838,7 +869,7 @@ local function ownKeyRows(snapshot)
         end
         status = status or serviceNote
         if status then modelHelp = status .. '\n\n' .. modelHelp end
-        modelRow = setting('localModel', label, 'select', selected, 1, modelHelp, labels, {elements = true, description = true, label = true})
+        modelRow = setting('localModel', label, 'select', selected, modelIndexOf('auto') or 1, modelHelp, labels, {elements = true, description = true, label = true})
     end
     local rows = {
         setting('conversationProvider', 'Conversation provider', 'select', providerIndexOf(snapshot.settings), 1, providerHelp,
@@ -884,7 +915,7 @@ local function ownKeyRows(snapshot)
     end
     if editor then
         rows[#rows + 1] = action('character-editor:open', 'Edit characters', 'Open',
-            'Edit a character’s bio, speaking style, speaking rules and memories in your browser.\n\nWorks with Mistral and Local, not Convai. Changes apply from the next reply.',
+            'Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral and Local AI, not Convai. Changes apply from the next reply.',
             function() return editor.request() end)
     end
     -- The Inworld key belongs to the Inworld cloud voice, which is a developer-mode voice: its row sits in Settings > Development.
@@ -1037,6 +1068,7 @@ local function pageSignature(snapshot)
         local own = snapshot.ownKey
         add(table.concat({'paid', tostring(own.saved), own.tail or '', own.result or '', paidTier.signature()}, '|'))
     end
+    if view == 'relationships' then add(settingsDigest(snapshot.settings)) end
     if view == 'settings' then
         -- The key rows change when the bridge answers a Paste or Remove, or reports a used-up plan; the provider rows when its
         -- state changes (Local AI warming up and ready); the voice list when the OmniVoice pack appears; the voice status line
@@ -1072,8 +1104,28 @@ local function pageSignature(snapshot)
     end
     return table.concat(parts, '\n')
 end
+-- Set by M.update when the game has no world (the main menu, a loading screen): Game.GetPlayer() can still hand back an object there,
+-- and the pages must not offer invitations without a loaded save.
+local noWorld = false
+-- Relationships: who speaks as a partner. The saved values stay auto / on / off; only the labels read Romantic (Casual for Meredith) /
+-- Ordinary. A page of its own, opened from the Conversations section of Settings (both hosts draw it from here).
+local function relationshipRows(snapshot)
+    local rows = {}
+    for _, profile in ipairs(manager.relationshipChoices()) do
+        local mode = snapshot.settings.relationshipModes[profile.key]
+        local casual = profile.key == 'meredith-stout'
+        local description = casual
+            and 'Auto: follows the completed encounter in this save.\n\nCasual: speaks with that familiarity.\n\nOrdinary: keeps her usual manner.\n\nIt does not imply an ongoing relationship.'
+            or 'Auto: follows the relationship in this save.\n\nRomantic: speaks to V as a partner.\n\nOrdinary: keeps their usual manner.\n\nOnly changes how they talk, never your game choices.'
+        rows[#rows + 1] = setting('relationship:' .. profile.key, profile.name, 'select',
+            mode == 'on' and 2 or mode == 'off' and 3 or 1, 1, description,
+            {'Auto', casual and 'Casual' or 'Romantic', 'Ordinary'})
+    end
+    return rows
+end
+
 local function schema()
-    local currentPlayer = player()
+    local currentPlayer = not noWorld and player() or nil
     owner = identity(currentPlayer)
     queue.bind(owner)
     local snapshot, party = manager.snapshot(currentPlayer), queue.list()
@@ -1088,7 +1140,7 @@ local function schema()
     -- The first section of every page: the way back (or, on the home page, the four destinations) and the line of the last action.
     local nav = {}
     local BACK = {characters = 'home', party = 'home', models = 'home', settings = 'home', memory = 'settings', help = 'settings',
-        ['paid-tier'] = 'settings'}
+        ['paid-tier'] = 'settings', relationships = 'settings'}
     if view == 'home' then
         for _, tab in ipairs({{'characters', 'Characters to invite'}, {'party', 'Current party'},
             {'models', 'Model browser'}, {'settings', 'Settings'}}) do
@@ -1111,6 +1163,9 @@ local function schema()
         local shared = sharedCharacterLines(snapshot)
         local profiles = snapshot.profiles
         local first, last, pages = pageRange(#profiles)
+        -- Without a loaded save the page can be read but nobody can be invited: say so, in a row, not only in greyed buttons.
+        if not canInvite then rows[#rows + 1] = readonly('needs-save', 'Characters and party', 'Load a save first',
+                'Inviting characters and managing your party need a loaded game.') end
         for _, row in ipairs(pageRows(first, last, pages, function(index) return profiles[index].name end)) do rows[#rows + 1] = row end
         for index = first, last do
             local profile = profiles[index]
@@ -1170,10 +1225,14 @@ local function schema()
                 end
             end
         end
-        if shown == 0 then rows[#rows + 1] = readonly('empty-party', 'Your party is empty', '', 'Invite someone from Characters or Model browser.') end
+        if not canInvite then rows[#rows + 1] = readonly('needs-save', 'Characters and party', 'Load a save first',
+                'Inviting characters and managing your party need a loaded game.')
+        elseif shown == 0 then rows[#rows + 1] = readonly('empty-party', 'Your party is empty', '', 'Invite someone from Characters or Model browser.') end
         categories[#categories + 1] = category('party', 'Current party', rows)
     elseif view == 'models' then
         local scan, models = snapshot.scan, snapshot.models
+        if not canInvite then rows[#rows + 1] = readonly('needs-save', 'Characters and party', 'Load a save first',
+                'Inviting characters and managing your party need a loaded game.') end
         -- The list is sorted when the scan has finished; until then only the progress shows, and the page is built once.
         if not scan.finished then
             rows[#rows + 1] = readonly('model-status', 'Reading installed models…', '',
@@ -1185,7 +1244,7 @@ local function schema()
             local groupElements = {ui.t('All')}
             for _, group in ipairs(groups) do groupElements[#groupElements + 1] = group end
             listGroup = math.max(1, math.min(listGroup, #groupElements))
-            local matches = listGroup == 1 and models or cache.lists[groupElements[listGroup]] or {}
+            local matches = listGroup == 1 and cache.all or cache.lists[groupElements[listGroup]] or {}
             local talking = 0
             for _, model in ipairs(matches) do if model.profileName then talking = talking + 1 end end
             rows[#rows + 1] = readonly('model-status', ui.t('{count} matching models', {count = #matches}), '',
@@ -1302,6 +1361,9 @@ local function schema()
         }, 'Send the generated report rather than raw log files. Open these locations only if the developer asks for a specific file.')
     elseif view == 'paid-tier' and paidTier then
         for _, section in ipairs(paidTierRows(snapshot)) do categories[#categories + 1] = section end
+    elseif view == 'relationships' then
+        local rows = relationshipRows(snapshot)
+        if #rows > 0 then categories[#categories + 1] = category('relationships', 'Relationships', rows) end
     elseif view == 'settings' then
         -- The Inworld cloud voice is a developer-mode voice (Settings > Development): its name appears in the help of a setting only
         -- while developer mode is on, as one more paragraph after the help that holds for everybody.
@@ -1347,6 +1409,12 @@ local function schema()
             setting('holocallLiveImage', 'Live holocall picture', 'bool', snapshot.settings.holocallLiveImage == true, true,
                 'Shows the character live in a holocall instead of their portrait.\n\nIf she cannot be shown, the call goes on with the portrait.'),
         })
+        -- Who speaks as a partner: a page of its own (one row per character who can), a button beside Memory, so Conversations stays short.
+        if #relationshipRows(snapshot) > 0 then
+            table.insert(conversations.settings, 2, action('relationships', 'Relationships', 'Open',
+                'Choose, character by character, who speaks to V as a partner.\n\nAuto follows the relationship in this save. It only changes how they talk, never your game choices.',
+                function() return navigate('relationships') end))
+        end
         -- Johnny's standing in this save's story, right under his setting while it is on (read from the save as the page is drawn).
         local standing = johnnyStandingRow(snapshot)
         if standing then
@@ -1355,20 +1423,6 @@ local function schema()
             end
         end
         categories[#categories + 1] = conversations
-        -- Relationships: who speaks as a partner. The saved values stay auto / on / off; only the labels read Romantic (Casual for
-        -- Meredith) / Ordinary.
-        local relationshipRows = {}
-        for _, profile in ipairs(manager.relationshipChoices()) do
-            local mode = snapshot.settings.relationshipModes[profile.key]
-            local casual = profile.key == 'meredith-stout'
-            local description = casual
-                and 'Auto: follows the completed encounter in this save.\n\nCasual: speaks with that familiarity.\n\nOrdinary: keeps her usual manner.\n\nIt does not imply an ongoing relationship.'
-                or 'Auto: follows the relationship in this save.\n\nRomantic: speaks to V as a partner.\n\nOrdinary: keeps their usual manner.\n\nOnly changes how they talk, never your game choices.'
-            relationshipRows[#relationshipRows + 1] = setting('relationship:' .. profile.key, profile.name, 'select',
-                mode == 'on' and 2 or mode == 'off' and 3 or 1, 1, description,
-                {'Auto', casual and 'Casual' or 'Romantic', 'Ordinary'})
-        end
-        if #relationshipRows > 0 then categories[#categories + 1] = category('relationships', 'Relationships', relationshipRows) end
         -- Settings > Conversation provider: who writes the replies, Mature content, Local AI and the provider keys (the Inworld key is in
         -- Development).
         local providerRows, inworldKeyRow = ownKeyRows(snapshot)
@@ -1436,6 +1490,9 @@ local function schema()
                 {ui.t('Pocket · On your PC'), (snapshot.mistral or {}).saved and ui.t('Voxtral · Mistral cloud') or ui.t('Voxtral · needs Mistral key')},
                 {elements = true}),
         })
+        for _, voiceRow in ipairs(voicesCategory.settings) do
+            if voiceRow.id == 'voiceProvider' and next(voiceDisabledShown) then voiceRow.disabledElements = voiceDisabledShown end
+        end
         categories[#categories + 1] = voicesCategory
         categories[#categories + 1] = category('subtitles', 'Subtitles', {
             setting('subtitles', 'Subtitles', 'bool', snapshot.settings.subtitles, true, 'Shows companion replies as text.\n\nWith Voice playback off as well, automatic reactions stay silent.'),
@@ -1461,6 +1518,11 @@ local function schema()
                 categories[#categories + 1] = {id = section.id, name = section.title, description = section.description, settings = list}
             end
         end
+        -- Automatic error reports (docs/ERROR_REPORTS.md, mod/error-reports.lua): on by default; the help says what is sent and what never is.
+        categories[#categories + 1] = category('privacy', 'Privacy', {
+            setting('errorReports', 'Send error reports automatically', 'bool', snapshot.settings.errorReports ~= false, true,
+                'When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.'),
+        })
         -- Developer mode lists the Inworld cloud voice (in Voices) and puts its key here.
         local development = {
             setting('developerMode', 'Developer mode', 'bool', snapshot.settings.developerMode, false,
@@ -1512,7 +1574,10 @@ function M.configure(domain, companions, queueFactory, readiness)
     end
     if editorLoaded and type(editorFactory) == 'table' and type(editorFactory.new) == 'function' then
         local created, instance = pcall(editorFactory.new, {ui = ui,
-            serviceState = function() return support and support.serviceState() or 'unknown' end})
+            serviceState = function() return support and support.serviceState() or 'unknown' end,
+            -- The character V faces and the list of the player's own characters live in init.lua (globals): asked once, when Open is chosen.
+            facing = function() return type(convaiFacingCharacter) == 'function' and convaiFacingCharacter() or nil end,
+            watch = function() if convaiCustomCharacters then convaiCustomCharacters.watch() end end})
         if created and type(instance) == 'table' then editor = instance end
     end
     if paidTierLoaded and type(paidTierFactory) == 'table' and type(paidTierFactory.new) == 'function' then
@@ -1530,9 +1595,14 @@ M.LABEL, M.PAGE_SIZE = LABEL, PAGE_SIZE
 
 -- ---- What the host (mod/nsui.lua) calls -------------------------------------------------------------------------------------------
 
-local PAGES = {home = true, characters = true, party = true, models = true, settings = true, memory = true, help = true, ['paid-tier'] = true}
+local PAGES = {home = true, characters = true, party = true, models = true, settings = true, memory = true, help = true, ['paid-tier'] = true,
+    relationships = true}
 
 function M.view() return view end
+
+-- The page on screen as one short text (the view, the page of its long list and the letter group): a host that scrolls to the top on a
+-- new page compares it.
+function M.pageId() return view .. '|' .. tostring(listPage) .. '|' .. tostring(listGroup) end
 
 -- The page to show. The manager opens on Home (the host calls this when the screen opens). Returns whether anything changed.
 function M.setView(name)
@@ -1636,21 +1706,26 @@ end
 -- The Local AI model has no default of its own (nothing chosen: the largest that fits), so it goes to the model shown as the default.
 function M.defaults()
     local previous = view
-    view = 'settings'
-    local ok, model = pcall(schema)
-    view = previous
     local changes = {}
-    if not ok then lastError = tostring(model); return changes end
-    for _, section in ipairs(model.categories) do
-        for _, row in ipairs(section.settings) do
-            local kind = row.type
-            if (kind == 'bool' or kind == 'select' or kind == 'int') and row.defaultValue ~= nil and not row.id:match('^ui:') then
-                local target = row.defaultValue
-                if row.id == 'localModel' then target = modelIndexOf('auto') or row.value end
-                if row.value ~= target then changes[#changes + 1] = {id = row.id, value = target} end
+    -- Settings, and the Relationships page that opens from it.
+    for _, name in ipairs({'settings', 'relationships'}) do
+        view = name
+        local ok, model = pcall(schema)
+        if not ok then lastError = tostring(model); break end
+        for _, section in ipairs(model.categories) do
+            for _, row in ipairs(section.settings) do
+                local kind = row.type
+                if (kind == 'bool' or kind == 'select' or kind == 'int') and row.defaultValue ~= nil and not row.id:match('^ui:') then
+                    local target = row.defaultValue
+                    if row.id == 'localModel' then target = modelIndexOf('auto') or row.value end
+                    if row.value ~= target then changes[#changes + 1] = {id = row.id, value = target} end
+                end
             end
         end
     end
+    -- Drawing the other pages replaced the page's actions and signature: the page on screen is built again.
+    view = previous
+    pcall(schema)
     return changes
 end
 
@@ -1679,7 +1754,7 @@ function M.apply(changes)
             or key == 'autoConnectNearby' or key == 'holocallLiveImage' or key == 'naturalSpeech'
             or key == 'gameDialogueContext'
             or key == 'expressiveEmotions' or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations'
-            or key == 'matureContent' then values[key] = change.value
+            or key == 'matureContent' or key == 'errorReports' then values[key] = change.value
         elseif key == 'voiceVolume' then
             if type(change.value) ~= 'number' then return refused('Choose a voice volume from 50 to 200 percent.') end
             values.voiceVolume = change.value
@@ -1843,6 +1918,11 @@ function M.slowUpdate(currentPlayer, worldReady)
         local checked, setupNotice = pcall(convaiSetupCheck.tick, worldReady == true, currentPlayer ~= nil)
         if checked and setupNotice then log(setupNotice); messages[#messages + 1] = {id = 'setup-problem', text = setupNotice} end
     end
+    -- Automatic error reports (mod/error-reports.lua): the one notice that says they are sent, once, in gameplay. One test once decided.
+    if convaiErrorReports then
+        local ticked, reportsNotice = pcall(convaiErrorReports.tick, worldReady == true)
+        if ticked and reportsNotice then log(reportsNotice); messages[#messages + 1] = {id = 'error-reports-on', text = reportsNotice} end
+    end
     if worldReady then
         -- A voice that could not run is announced once, in gameplay.
         local voiceNotice = manager.takeVoiceFallbackNotice()
@@ -1908,6 +1988,8 @@ end
 -- The per-frame call of init.lua's update, with the screen closed or open: the slow tick (a quarter of a second) and a few
 -- comparisons.
 function M.update(currentPlayer, worldReady)
+    local withoutWorld = currentPlayer == nil and worldReady == false
+    if withoutWorld ~= noWorld then noWorld, refreshQueued = withoutWorld, true end
     local clock = os.clock()
     if worldReady ~= lastWorldReady then lastWorldReady, slowAt = worldReady, 0 end
     if flushDue or clock >= slowAt or slowAt - clock > SLOW_PERIOD * 2 then

@@ -54,13 +54,12 @@ tool `test-release-install.mjs` matches package files by exact version, so 0.2 n
 ```
 red4ext/plugins/AiNpcCyberpunkMod/
   CyberpunkConvai.dll        launcher (native/autostart, compiled in the build)
-  launcher.ini               UTF-16: %PLUGIN%\app\node\node.exe app\launcher\start-service.mjs
-  Make support report.bat    double-click tool: a support report made with the game closed (CRLF, written by the build)
+  launcher.ini               UTF-16: %PLUGIN%\app\node\node.exe --eval <bootstrap> app\launcher\start-service.mjs (packaging/lib/launcher-ini.mjs)
   app/                       the application, replaced by every update
     node/node.exe            official Node.js (node.exe and LICENSE only)
     python/                  official CPython 3.12 embeddable + hash-locked wheels (Pocket worker)
     pocket-tts/              Kyutai pocket-tts source at the pinned revision (tree hash verified)
-    bridge/                  production import closure + worker scripts + the supervisor + make-support-report.mjs (what the .bat starts)
+    bridge/                  production import closure + worker scripts + the supervisor
     node_modules/            playwright and playwright-core only
     assets/                  fresh realtime-client.js bundle + PCM player modules
     characters/, research/   data the bridge reads (roster, world knowledge, quest catalog, intrinsic packs)
@@ -87,6 +86,7 @@ archive/pc/mod/              convai_facial, convai_gestures, cyberpunk_convai_am
 
 %LOCALAPPDATA%/AiNpcCyberpunkMod/   outside the game folder (packaging/runtime/state-home.mjs)
   data/                      player state, created on first start (before this change: mods/AiNpcCyberpunkMod/data)
+    game-state/              copies of the player's files in runtime/ (settings, phone chats, ...), written back at start (see "the player's state")
 ```
 
 RED4ext loads DLLs only from `red4ext/plugins/*.dll` and `red4ext/plugins/<name>/*.dll`
@@ -98,8 +98,9 @@ entry whose game-relative path would exceed 255 characters under a 70-character 
 ## How it starts
 
 1. RED4ext loads `CyberpunkConvai.dll`. It checks that CET and the CET mod are present, reads
-   `launcher.ini` and starts `app\node\node.exe app\launcher\start-service.mjs` hidden, with a pipe
-   whose closing tells the service that the game ended.
+   `launcher.ini` and starts `app\node\node.exe --eval <bootstrap> app\launcher\start-service.mjs` hidden, with a pipe
+   whose closing tells the service that the game ended. The bootstrap (`packaging/lib/launcher-ini.mjs`) loads the script where it is,
+   or from its real place when Node's stat cannot see it (a Runtime installed as a Mod Organizer 2 mod, below).
 2. `start-service.mjs` prepares `data/` (below), joins split files left by an earlier release on the first start
    (verifying their SHA-256; current packs have none), and sets every path explicitly:
    `CYBERPUNK_CONVAI_CLIENT_ASSETS`, the four `CYBERPUNK_CONVAI_OMNI_*`
@@ -250,7 +251,9 @@ rebuilt, remake the listing from Hugging Face without downloading them (HTTP ran
 node packaging/check-pack-overlap.mjs listing packaging/pack-listings/packs-<version>.json OmniPack=<zip or URL> LocalAI-Standard=<zip or URL> LocalAI-Lite=<zip or URL> Mature-Standard=<zip or URL> Mature-Lite=<zip or URL>
 ```
 
-**Checking what a Runtime must contain.** `node packaging/check-runtime-contents.mjs <Runtime zip>...` reads only the zip's directory and fails when V's voice clips (`voices/v-voice/`: the manifest and the clips `assets/v-voice/v-voice.json` names), `Make support report.bat`, the bridge modules it starts or the Runtime's own OmniVoice lists in `app/defaults/` are missing (the names come from `packaging/lib/runtime-required.mjs`; the 0.2 and 0.2.1 Runtimes shipped without the clips, and 0.2.1 without the batch file). `packaging/test-release-install.mjs` checks the same on the extracted install and loads the clips with the packaged bridge's own loader. Run it beside the overlap check on every Runtime zip before upload; `packaging/runtime-contents.test.mjs` keeps both from drifting.
+**Checking what a Runtime must contain.** `node packaging/check-runtime-contents.mjs <Runtime zip>...` reads only the zip's directory and fails when V's voice clips (`voices/v-voice/`: the manifest and the clips `assets/v-voice/v-voice.json` names) or the Runtime's own OmniVoice lists in `app/defaults/` are missing (the names come from `packaging/lib/runtime-required.mjs`; the 0.2 and 0.2.1 Runtimes shipped without the clips). `packaging/test-release-install.mjs` checks the same on the extracted install and loads the clips with the packaged bridge's own loader. Run it beside the overlap check on every Runtime zip before upload; `packaging/runtime-contents.test.mjs` keeps both from drifting.
+
+**Removed in 0.2.3:** the double-click `Make support report.bat` (with its bridge entry and offline report code) is no longer built or shipped, because players are not comfortable running a batch file; the in-game report and the automatic error reports are the report paths (`packaging/support-report-packaging.test.mjs` keeps it out).
 
 ### Player state (`data/`)
 
@@ -270,8 +273,8 @@ ever modify or replace them (no player usvfs log was available; the design works
 
 - **`packaging/runtime-exchange.json`** classifies every `runtime/` file name the shipped Lua and the bridge use: `exchange` (about 70
   files; shipped as **empty placeholders in the Scripts package** by `scriptsPackage`), `state` (settings, chat history, witness
-  receipts, decision ledger, add-on settings: never shipped, an update would wipe the player's data; their writers keep the temp-file
-  and backup protection), `optional` (switch and probe files made by hand, and the knowledge-service files that the shipped bridge never
+  receipts, decision ledger, add-on settings, NPC names: never shipped, an update would wipe the player's data; their writers keep the
+  temp-file and backup protection, and the service keeps a copy outside the game folder, see "the player's state" below), `optional` (switch and probe files made by hand, and the knowledge-service files that the shipped bridge never
   runs: a missing file is harmless) and `elsewhere` (names that are not in the mod folder). `packaging/runtime-exchange.test.mjs` fails
   when a new `runtime/` name appears unclassified, when shipped Lua that uses exchange files calls `os.remove`/`os.rename` or names a
   `.tmp` (the three files that also write state are listed with the reason), and when the bridge deletes an exchange file.
@@ -289,20 +292,109 @@ ever modify or replace them (no player usvfs log was available; the design works
   in place.
 - **Legacy carry-over** (`migrate-legacy.mjs`): an empty file at the new place is a placeholder and takes the old content in place
   (nothing is displaced); the volatile files it purges from the new `runtime/` are emptied, not deleted.
-- **Not covered:** the `state` files above are created by their first write (Overwrite under MO2, so those settings do not persist
-  across launches there; see TODO.md); the `.native-tmp` file of the optional native plugin's atomic write; the Audioware reply
+- **Not covered:** the Lua's own temp-file, backup and swap protocol for the `state` files is unchanged (what it leaves in
+  `runtime/` is kept by the service's copy, see "the player's state" below); the `.native-tmp` file of the optional native plugin's atomic write; the Audioware reply
   bank (`r6/audioware/CyberpunkConvai`) already ships its slot files and `speech.yml`, and only the transient `reply-pre-*.tmp` is new;
   `knowledge-fact-commits/<generation>.json` (run-time names; dormant); CET's own `AiNpcCyberpunkMod.log`.
 - **Live check on MO2** (not done): install Scripts and Runtime physically, start the game from MO2 with the service on, talk to a
   companion, quit; Overwrite should hold only CET's `AiNpcCyberpunkMod.log` and the `state` files. Start again: the mod loads and
   talking works from the first turn.
 
+### Mod Organizer 2: the player's state (settings, phone chats)
+
+The `state` files cannot be shipped as placeholders (a zip extracted over an install would wipe the player's data) and, created by the
+game or the service under MO2, they would not survive a launch. So the service keeps a durable copy of each in
+`%LOCALAPPDATA%\AiNpcCyberpunkMod\data\game-state\` and writes it back before the game's Lua reads it. The set (`GAME_STATE_FILES` in
+`bridge/game-state.mjs`, kept equal to the manifest's `state` class by a test): `settings.json`, `phone-history.json` (each with its
+`.previous`), `memory-chat-resets.json`, `witness-receipts.json`, `decision-ledger.json`, `addon-settings.json` and `npc-names.json`.
+`npc-names.json` belongs to the set: the Lua used to write it next to `init.lua`, outside the manifest, which under MO2 is a new file in
+the mod folder's root; it is now `runtime/npc-names.json` (a store saved next to `init.lua` by an earlier version is read until one exists
+there).
+
+- **At start (Runtime package, `start-service.mjs`).** `restoreGameState` runs first, right after the layout is known (and after the check that this process can see the CET mod's `init.lua`, which stops the start before anything is written) and before the
+  legacy carry-over, the data move and `prepareState`. Per file: a real, non-empty file always wins and refreshes the copy (when it is more
+  than 2 s older than the copy it replaces, that copy is kept in `game-state/older/`, one slot per file); a missing or an empty file gets the
+  copy written into it in place (an existing file is modified, never swapped; a missing one is created, which under MO2 lands in Overwrite
+  and is visible for this session); JSON that does not parse is neither copied nor restored. A start with nothing to do is two stats per file,
+  and a read only when size or time differ (a copy carries the time of the file it came from). Then it writes `runtime/state-restore.json`
+  (`{version, state: "done", written, restored, refreshed, errors}`, an exchange file shipped empty in the Scripts package). Without a data
+  home outside the game folder (`CYBERPUNK_CONVAI_DATA_HOME` unset and no `%LOCALAPPDATA%`) nothing is restored and no signal is written.
+- **While the service runs (Runtime package, `bridge/game-state.mjs` `GameStateSync`).** The 500 ms settings poll stats each file and a
+  directory watcher runs the same pass a few milliseconds after a save (`bridge/file-wake.mjs`); only a changed file is read, and it is
+  copied only when it is not empty and parses (temporary file, rename, time set). A pass at shutdown copies the Lua's last save. It never
+  fills a file in, never deletes a main file's copy, and drops a `.previous` copy only after it saw the backup go. On when the launcher
+  sets `CYBERPUNK_CONVAI_GAME_STATE` (the copies folder; only with a data home); a development bridge does nothing.
+- **Startup order, and how the restore beats the first read.** The RED4ext launcher starts the service when the game process starts;
+  CET loads the mod only once the engine and its scripts are up (seconds to tens of seconds later), so the restore (a few stats and
+  writes in a Node process that has just started) almost always finishes first. That is not measured, so the Lua does not rely on it
+  (`mod/state-restore.lua`, a global `convaiStateRestore` that `init.lua` sets before anything reads these files): a reader that finds its
+  file **missing or empty** asks `waiting()`. While it is true the reader uses defaults in memory only, saves nothing, and asks again
+  later; when it turns false the file is read again. A signal counts only if it was written after this game session began
+  (`os.time() - os.clock()`; the file is shipped empty and modified in place, so last session's signal is still there at the next launch).
+  With no signal at all (an older Runtime, the service not started) waiting ends 120 s after the first question and the reader carries on
+  as it always did. A file that is there is never waited for, and nothing is asked per frame.
+  `manager.lua`: the settings stay in memory (`settingsDeferred`); `saveSettings` refuses; the next `loadSettings` after the restore reads
+  the file, and `initialize` hands the restored voice, subtitle and enabled values to the game again. `phone-chat.lua`: the store is empty
+  in memory (`storePending`), nothing binds to a world and nothing is saved until the restore is over, then it is read again (checked on
+  the 10 Hz tick). `addons.lua`: the add-ons register with defaults, the commit refuses to write, and the saved values are merged in after
+  the restore. `npc-names.lua`: a vendor name is made but not kept. Values other modules cached before a late restore (the story-talk
+  setting handed to the face service in `onInit`) are not pushed again.
+- **What MO2 does with it.** The service's writes into the mod folder are redirected into Overwrite and are visible during the session
+  (USVFS shares the virtual tree between the processes it hooks); at the next launch the files are gone (or, if Overwrite is mapped, there
+  and real), and the start-up restore settles them either way. Not measured on MO2 (see the live check below).
+- **Packages.** Scripts: `mod/state-restore.lua` (new), `init.lua`, `manager.lua`, `phone-chat.lua`, `addons.lua`, `npc-names.lua`, and the
+  empty `runtime/state-restore.json` placeholder. Runtime: `bridge/game-state.mjs` (new), `bridge/file-wake.mjs`, `bridge/convai-bridge.mjs`,
+  `packaging/runtime/start-service.mjs`, `packaging/runtime/prepare-state.mjs`. Scripts new with Runtime old: no signal, so a first-ever
+  launch (the only time a file is missing) holds the defaults for 120 s, then behaves as before. Runtime new with Scripts old: the restore
+  works; an old Lua that happened to read first could save defaults, and that real file then wins (the copy it replaces is kept in `older/`).
+- **Not covered.** The Lua's save protocol for these files (temp file, backup, swap) is unchanged; how USVFS treats that swap on a file
+  that lives in Overwrite is unproven, and the copy is of whatever ends up on disk. A service that starts after the Lua gave up waiting
+  (more than 120 s late) finds the defaults the Lua saved, and that real file wins over the copy (kept in `older/`). Two game installs on
+  one Windows account share `game-state/` as they share `data/`. Deleting a state file by hand to reset it now brings the copy back at the
+  next start (a missing file is what MO2 leaves behind, so the two cannot be told apart): delete the same file in `game-state/` too, or
+  that whole folder.
+- **Tests.** `bridge/game-state.test.mjs` (restore order, newer wins, empty files, the sync), `packaging/game-state-restore.test.mjs`
+  (the launcher end to end, before the slow work, the signal), `bridge/state-restore-lua.test.mjs` (the module and the three readers),
+  `bridge/npc-names.test.mjs` (the vendor file), and the manifest and package tests.
+- **Live check, MO2** (not done): install Scripts and Runtime physically; start from MO2, change a setting (a voice option) and send one
+  phone message, quit. Start again: the setting and the phone chat are there, and `bridge-service.log` says `Player state in runtime/: ...
+  restored (...)`. Overwrite should hold only CET's log and the `state` files. Also look at `game-state/` in the data folder.
+- **Live check, normal install:** the same two steps without MO2: nothing changes for the player; `game-state/` holds the copies
+  (up to nine small files) and `runtime/state-restore.json` has a recent `written`.
+
 ### Mod Organizer 2: the Runtime as a mod folder
 
 A player on the Ultraviolence modlist installed the Runtime and the Scripts as MO2 mods: no Runtime file is in the game folder, and the
 game read only the launcher's `starting` in `runtime/bridge-service.json`, for good. The Runtime's real place is then a mod folder in
 the MO2 instance (`mods\<name>\red4ext\plugins\AiNpcCyberpunkMod\...`); the launcher, `node.exe` and the service all reach it through
-USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `bridge/supervisor-lock-status.test.mjs`):
+USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `bridge/supervisor-lock-status.test.mjs`,
+`packaging/usvfs-compat.test.mjs`, `packaging/usvfs-runtime.test.mjs`):
+
+- **The cause (live MO2 test, 2026-10-19, `deliverables/mo2/REPRO.md`).** MO2 2.5.2 (usvfs 0.5.6.1) on Windows 11 25H2, Scripts and
+  Runtime 0.2.2-pre as MO2 mods: the launcher started `node.exe` (injected by usvfs, as every child of the game is) and Node ended at
+  once with `Cannot find module ...\app\launcher\start-service.mjs`, exit code 1, before any line of ours ran. The bundled Node 24
+  (libuv 1.52) cannot `stat`, `lstat`, `exists` or JavaScript-`realpath` a file that exists only in an MO2 mod folder (ENOENT),
+  while `open`, `readFile`, `readdir`, `access` and `realpathSync.native` of the same path work; Node's entry lookup uses stat.
+  Most likely libuv's stat goes through the Windows 11 24H2 `GetFileInformationByName` call, which usvfs 0.5.6.1 does not hook. The
+  bundled Python 3.12 has the same stat, and usvfs also answers `GetModuleFileNameW` with the virtual path, so Python started from its
+  real place still took the virtual folder for its home ("No module named 'encodings'").
+- **The fix** (only inside usvfs; a physical install runs none of it, and its launcher.ini change only adds the bootstrap's one stat):
+  `launcher.ini` starts Node with a bootstrap that loads `start-service.mjs` from its real place (`realpathSync.native`) when stat
+  cannot see it, keeping `process.argv` as before. `start-service.mjs` finds usvfs among its loaded libraries and puts in the stat
+  fallbacks of `app/launcher/usvfs-compat.mjs` before it looks at the game folder: `stat`, `lstat`, `exists`, `mkdir -p` and the
+  JavaScript `realpath` fall back to an opened handle and `fstat`, `access`, and the path itself, when the plain call says ENOENT (a
+  really missing file still says ENOENT). The game side (the CET mod's `runtime/`) stays at its virtual place, where the game, the
+  Scripts mod, the Runtime mod and Overwrite meet; the Runtime's own files run from their real place, so Python, llama-server and the
+  bridge get real paths. The optional packs are looked up at their virtual place (`app/local-ai`, `app/omni`) and used from their
+  real one, so a pack installed as its own MO2 mod is found. The bridge and every Node process it starts get the same fallbacks through
+  `NODE_OPTIONS=--import=<file URL of usvfs-compat.mjs>`: the supervisor drops any inherited `NODE_OPTIONS` and puts back only that one
+  module, named in `CYBERPUNK_CONVAI_USVFS_IMPORT` (`usvfsCompatImport`). The bundled Pythons' `python3XX._pth` lines become absolute
+  real paths (`pinPythonPaths`; the package text is kept beside it as `python3XX._pth.package`, so a moved MO2 instance is pinned
+  again and an update's file is taken as the new package text). The `View:` line says `(stat fallbacks on)` and
+  `the Runtime is in an MO2 mod folder (<real app>, started as <virtual app>)`.
+- **Packs and MO2.** The Local AI and OmniVoice packs work as their own MO2 mods (their roots are resolved separately); the OmniVoice
+  pack's voice clips under `voices/` are found only when that pack is merged into the Runtime's MO2 mod (or installed in the game folder),
+  because `voices/` is read from the Runtime's real folder.
 
 - **No path comparison on the start path.** `installLayout` (`prepare-state.mjs`) takes the game's folders from `--game-root` and the
   Runtime's from the script's own place; nothing resolves a link or compares a resolved path with the game root.
@@ -342,11 +434,14 @@ USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `br
 - **Where to look.** `%LOCALAPPDATA%\AiNpcCyberpunkMod\data\bridge-service.log` (the `View:` line; the data home does not depend on MO2),
   `bridge.stderr.log` beside it, and `launcher.log`: in the Runtime mod's folder (`mods\<Runtime mod>\red4ext\plugins\AiNpcCyberpunkMod\`)
   because the packaged one is an existing file, or in `overwrite\red4ext\plugins\AiNpcCyberpunkMod\` when the Runtime has none. The
-  launcher takes `%PLUGIN%` from `GetModuleFileNameW` of its own DLL, which may be the virtual or the real path; both work while the
-  service is inside the virtual file system, and only the real one when it is not.
+  launcher takes `%PLUGIN%` from `GetModuleFileNameW` of its own DLL, which usvfs answers with the virtual path (seen in the MO2 test);
+  both work while the service is inside the virtual file system, and only the real one when it is not.
 - **Not done:** the launcher (native, `CyberpunkConvaiLauncher.c`) cannot say that the process it started ended at once, or with what
-  code; that needs a watcher thread and a rebuilt DLL. A service that runs outside the virtual file system cannot be made to talk to
-  the game by the Runtime alone.
+  code; that needs a watcher thread and a rebuilt DLL (the MO2 cause above was found from the usvfs debug log and a probe instead). A
+  service that runs outside the virtual file system cannot be made to talk to the game by the Runtime alone. Under MO2 the launcher's
+  `CREATE_BREAKAWAY_FROM_JOB` is refused (MO2 keeps its own job) and it falls back to a plain start, which is fine.
+
+### Player state (`data/`), continued
 
 - **Override:** `CYBERPUNK_CONVAI_DATA_HOME` (an absolute path) is the folder that holds `data/`, for development or a player who
   wants it elsewhere; a relative value is ignored (one line in `bridge-service.log`). Without `%LOCALAPPDATA%` the data stays in the

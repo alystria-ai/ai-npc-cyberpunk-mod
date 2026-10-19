@@ -5,6 +5,7 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {QuestMemoryLedger} from './quest-memory.mjs';
 import {QuestMemorySync} from './quest-memory-sync.mjs';
+import {fakeClock} from './fixtures/fake-clock.mjs';
 
 const NOW = 100000;
 const MODEL = 'fast-gemma-4-31b-it';
@@ -212,9 +213,14 @@ test('accepted response after restore acknowledges only old lease, leaving new n
 });
 
 test('ignored cancellation in registration is bounded and cannot dispatch later',async t=>{
-  const f=await fixture(t,{syncOptions:{maxDurationMs:80}}),pending=deferred();let args;
-  f.sync.registerScope=input=>{args=input;return pending.promise;};
-  const start=Date.now(),result=await f.sync.pump();assert.equal(result.status,'cancelled');assert.ok(Date.now()-start<1500);
+  // The 80 ms budget runs on a fake clock: a busy machine cannot spend it before the callback is reached or make the bound a race.
+  const clock=fakeClock();
+  const f=await fixture(t,{syncOptions:{maxDurationMs:80,setTimer:clock.setTimer,clearTimer:clock.clearTimer}}),pending=deferred(),reached=deferred();let args,settled=false;
+  f.sync.registerScope=input=>{args=input;reached.resolve();return pending.promise;};
+  const running=f.sync.pump().then(value=>{settled=true;return value;});await reached.promise;
+  assert.equal(clock.pending(),1);await clock.advance(79);assert.equal(settled,false,'still inside the budget');
+  await clock.advance(1);assert.equal(settled,true,'the budget ended the pump although the callback ignores cancellation and is still pending');
+  const result=await running;assert.equal(result.status,'cancelled');
   pending.resolve({ready:true,registration:{verified:true,endUserId:args.endUserId,characterId:args.characterId}});
   await new Promise(resolve=>setImmediate(resolve));assert.equal(f.log.some(row=>row[0]==='add'),false);
   assert.equal(f.ledger.pending()[0].attempts,0);

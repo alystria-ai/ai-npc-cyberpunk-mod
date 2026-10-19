@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile} from 'node:fs/promises';
-import {readFileSync, statSync} from 'node:fs';
+import {readFileSync, renameSync, statSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
 import {tmpdir} from 'node:os';
@@ -53,9 +53,10 @@ test('atomicFile over a folder rejects, keeps the folder and leaves no temporary
   const target = join(directory, 'state.json');
   await mkdir(target);
   await writeFile(join(target, 'inside.txt'), 'kept');
-  const started = Date.now();
-  await assert.rejects(atomicFile(target, '{}'));
-  assert.ok(Date.now() - started < 3000, 'the retry backoff is bounded');
+  // The retry is bounded by its attempt count (six tries), not by a wall-clock figure a busy machine could exceed.
+  let renames = 0;
+  await assert.rejects(atomicFile(target, '{}', {files: {rename: (...args) => { renames++; return renameSync(...args); }}}));
+  assert.ok(renames >= 1 && renames <= 6, 'the retry is bounded: ' + renames + ' rename attempts');
   assert.deepEqual(await names(directory), ['state.json']);
   assert.equal((await stat(target)).isDirectory(), true);
   assert.equal(await readFile(join(target, 'inside.txt'), 'utf8'), 'kept');
@@ -92,7 +93,8 @@ test('a reader that polls while a file is replaced again and again never sees ha
     }
   })();
   try {
-    for (let revision = 1; revision <= 40; revision++) {
+    // At least 40 replacements, and on a starved machine as many more as it takes for the reader to have been scheduled at all.
+    for (let revision = 1; revision <= 40 || (seen.whole === 0 && revision <= 4000); revision++) {
       // Windows can refuse the rename while the reader has the file open (about one write in thirty here); atomicFile retries for
       // about 300 ms and then throws, and its callers catch that (see guarded-file.mjs). A write that loses the race must leave the
       // previous whole document and no temporary file, which the checks below assert; it must not be any other kind of error.

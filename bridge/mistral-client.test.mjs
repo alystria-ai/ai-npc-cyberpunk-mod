@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {streamChat, sseData, mapFailure, MistralError, failureKind, errorCodeFor, redact, validateKey, MISTRAL_ENDPOINT, MISTRAL_MODELS_ENDPOINT,
   DEFAULT_MODEL, retryable, warmConnection, KEEP_ALIVE_MS} from './mistral-client.mjs';
+import {fakeClock} from './fixtures/fake-clock.mjs';
 
 const KEY = 'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL';
 const encoder = new TextEncoder();
@@ -11,6 +12,21 @@ const collect = async stream => { const out = []; for await (const data of sseDa
 const delta = (content, extra = {}) => `data: ${JSON.stringify({id: 'x', object: 'chat.completion.chunk', model: 'mistral-small-latest', choices: [{index: 0, delta: {content}, finish_reason: null}], ...extra})}\n\n`;
 const sse = (...events) => ({ok: true, status: 200, headers: new Headers(), body: body(events)});
 const fail = (status, error, headers = {}) => ({ok: false, status, headers: new Headers(headers), json: async () => ({object: 'error', code: status, ...error})});
+
+// A thing that has to happen is waited for until it does (the ceiling is reached only by a hung test), never for a pause of a guessed length.
+const eventually = async (check, label, ceilingMs = 60_000) => {
+  for (const until = Date.now() + ceilingMs; ;) {
+    if (check()) return;
+    if (Date.now() > until) throw new Error(`gave up waiting for ${label}`);
+    await new Promise(resolve => setTimeout(resolve, 2));
+  }
+};
+const within = (promise, label, ceilingMs = 60_000) => new Promise((resolve, reject) => {
+  const timer = setTimeout(() => reject(new Error(`gave up waiting for ${label}`)), ceilingMs);
+  promise.then(value => { clearTimeout(timer); resolve(value); }, error => { clearTimeout(timer); reject(error); });
+});
+const watch = promise => { const state = {done: false}; promise.then(() => { state.done = true; }, () => { state.done = true; }); return state; };
+const onClock = clock => ({now: clock.now, setTimer: clock.setTimer, clearTimer: clock.clearTimer});
 
 test('the SSE parser handles CRLF, comments, split chunks, multi-line data and UTF-8 cut between chunks', async () => {
   const text = ': keep-alive\r\n\r\ndata: {"a":1}\r\n\r\ndata: line1\r\ndata: line2\r\n\r\n: keep-alive\n\ndata: [DONE]\n\n';
@@ -240,19 +256,38 @@ test('a daily limit is not retried, and a short per-second one is', () => {
 const hangs = (url, init) => new Promise((resolve, reject) => init.signal.addEventListener('abort', () => reject(Object.assign(Error('aborted'), {name: 'AbortError'}))));
 
 test('a hung first ask is cut at firstByteMs and the retry has its own limit; the attempts that failed are listed and reported', async () => {
+  // Every limit runs on a manual clock (bridge/fixtures/fake-clock.mjs): an ask is cut when the test moves the clock to its limit, never because the machine was slow.
+  const clock = fakeClock();
   let calls = 0;
-  const retries = [], began = performance.now();
-  const result = await streamChat({apiKey: KEY, messages: [], firstByteMs: 60, retryFirstByteMs: 500, retries: 1, backoffMs: [5], sleepImpl: async () => {},
+  const retries = [];
+  const pending = streamChat({apiKey: KEY, messages: [], firstByteMs: 60, retryFirstByteMs: 500, retries: 1, backoffMs: [5], sleepImpl: async () => {}, ...onClock(clock),
     onRetry: info => retries.push(info), fetchImpl: async (url, init) => { calls++; return calls === 1 ? hangs(url, init) : sse(delta('Here.')); }});
-  assert.equal(result.text, 'Here.'); assert.equal(result.attempts, 2); assert.equal(calls, 2);
-  assert.ok(performance.now() - began < 400, 'the hung ask cost its own short limit, not the default');
-  assert.equal(result.failed.length, 1); assert.equal(result.failed[0].kind, 'network'); assert.ok(result.failed[0].ms >= 50);
+  await eventually(() => calls === 1, 'the first ask to be sent');
+  await clock.advance(59);
+  assert.equal(calls, 1, 'the hung ask is still waited for inside its limit');
+  await clock.advance(1);
+  assert.equal(calls, 2, 'the hung ask was cut at its own short limit (60 ms) and asked again, not left to the default');
+  const result = await within(pending, 'the retry to answer');
+  assert.equal(result.text, 'Here.'); assert.equal(result.attempts, 2);
+  assert.equal(result.failed.length, 1); assert.equal(result.failed[0].kind, 'network'); assert.equal(result.failed[0].ms, 60);
   assert.equal(retries.length, 1); assert.equal(retries[0].attempt, 1); assert.equal(retries[0].error.slow, true); assert.equal(retries[0].waitMs, 5);
   // The retry limit is its own: a retry slower than firstByteMs but inside retryFirstByteMs still answers.
   calls = 0;
-  const slowRetry = await streamChat({apiKey: KEY, messages: [], firstByteMs: 40, retryFirstByteMs: 400, retries: 1, backoffMs: [1], sleepImpl: async () => {},
-    fetchImpl: async (url, init) => { calls++; if (calls === 1) return hangs(url, init); await new Promise(done => setTimeout(done, 150)); return sse(delta('Late but fine.')); }});
-  assert.equal(slowRetry.text, 'Late but fine.');
+  const slowRetry = streamChat({apiKey: KEY, messages: [], firstByteMs: 40, retryFirstByteMs: 400, retries: 1, backoffMs: [1], sleepImpl: async () => {}, ...onClock(clock),
+    fetchImpl: (url, init) => {
+      calls++;
+      if (calls === 1) return hangs(url, init);
+      // Like a real request, it fails when it is aborted; its answer comes 150 ms (clock time) after it was sent.
+      return new Promise((resolve, reject) => {
+        init.signal.addEventListener('abort', () => reject(Object.assign(Error('aborted'), {name: 'AbortError'})));
+        clock.sleep(150).then(() => resolve(sse(delta('Late but fine.'))));
+      });
+    }});
+  await eventually(() => calls === 1, 'the first ask to be sent');
+  await clock.advance(40);
+  assert.equal(calls, 2);
+  await clock.advance(150);
+  assert.equal((await within(slowRetry, 'the slow retry to answer')).text, 'Late but fine.');
 });
 
 test('every ask hanging ends with a slow network error that lists each attempt', async () => {
@@ -273,10 +308,19 @@ test('a stream that starts and then goes quiet is cut after stallMs, not after t
     controller.enqueue(encoder.encode(delta('Hey V, come in.')));
     init.signal.addEventListener('abort', () => controller.error(Object.assign(Error('aborted'), {name: 'AbortError'})));
   }})});
-  const began = performance.now();
-  const error = await streamChat({apiKey: KEY, messages: [], retries: 0, firstByteMs: 2000, stallMs: 60, totalMs: 5000, fetchImpl: async (url, init) => quietAfterFirst(init)}).catch(e => e);
+  // The limits run on a manual clock: the silence lasts exactly as long as the test lets the clock run.
+  const clock = fakeClock();
+  let gotFirst = false;
+  const pending = streamChat({apiKey: KEY, messages: [], retries: 0, firstByteMs: 2000, stallMs: 60, totalMs: 5000, ...onClock(clock),
+    onDelta: () => { gotFirst = true; }, fetchImpl: async (url, init) => quietAfterFirst(init)}).catch(e => e);
+  const outcome = watch(pending);
+  await eventually(() => gotFirst, 'the first piece of the reply');
+  await clock.advance(59);
+  assert.equal(outcome.done, false, 'the silence is waited for inside stallMs');
+  await clock.advance(1);
+  assert.equal(outcome.done, true, 'cut after stallMs (60 ms), long before the first-byte (2 s) or whole-request (5 s) limit');
+  const error = await pending;
   assert.equal(error.kind, 'network'); assert.equal(error.slow, true); assert.match(error.message, /went quiet/);
-  assert.ok(performance.now() - began < 1000);
   // With stallMs off the old behaviour stays: only the first-byte and total limits apply.
   const steady = await streamChat({apiKey: KEY, messages: [], retries: 0, fetchImpl: async () => sse(delta('A'), delta('B'), 'data: [DONE]\n\n')});
   assert.equal(steady.text, 'AB'); assert.deepEqual(steady.failed, []);
@@ -307,11 +351,13 @@ const ask = (endpoint, extra = {}) => streamChat({apiKey: KEY, endpoint, message
 test('the body is read to its end after [DONE], so the next turn reuses the socket', async () => {
   // The end of the body arrives a little after [DONE], as a chunked response's last chunk does when it is a separate packet.
   const server = await socketServer(res => setTimeout(() => res.end(), 30));
+  // The drain limit runs on a manual clock that never moves, so a stalled event loop cannot give up on the end of the body before it arrives.
+  const clock = fakeClock();
   try {
     for (let turn = 1; turn <= 3; turn++) {
       // A pause like the one between two real turns: a request sent in the same tick as the previous one's end can be given a new connection.
       await new Promise(resolve => setTimeout(resolve, 50));
-      assert.equal((await ask(server.endpoint)).text, 'Over here.', `turn ${turn}`);
+      assert.equal((await ask(server.endpoint, onClock(clock))).text, 'Over here.', `turn ${turn}`);
     }
     assert.equal(server.requests, 3);
     assert.equal(server.sockets, 1, 'three turns, one connection');
@@ -322,16 +368,20 @@ test('the body is read to its end after [DONE], so the next turn reuses the sock
 test('a body that never ends after [DONE] does not hold the turn: it is cut after the drain limit and the connection is closed', async () => {
   const server = await socketServer(() => { /* the response is never ended */ });
   try {
-    const began = performance.now();
-    const result = await ask(server.endpoint);
-    const took = performance.now() - began;
+    // The drain limit (250 ms) runs on a manual clock; the whole-request limit (70 s) is on it too and stays out of reach.
+    const clock = fakeClock(), pieces = [];
+    const pending = ask(server.endpoint, {...onClock(clock), onDelta: piece => pieces.push(piece)});
+    await eventually(() => pieces.join('') === 'Over here.', 'the whole reply'); // [DONE] comes in the same write as the last piece
+    await clock.settle();
+    await clock.advance(5000);
+    const result = await within(pending, 'the turn to be cut at the drain limit');
     assert.equal(result.text, 'Over here.');
-    assert(took < 1000, `took ${Math.round(took)} ms`);
     // The cut body closes its connection; the next turn opens a new one.
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await eventually(() => server.closed === 1, 'the connection of the cut body to close');
     assert.equal(server.closed, 1);
     assert.equal((await ask(server.endpoint)).text, 'Over here.');
-    assert.equal(server.sockets, 2);
+    // A spare connection may be opened under load, so the count is not pinned: the first one is gone (closed above) and this turn was answered.
+    assert.ok(server.sockets >= 2, `sockets: ${server.sockets}`);
   } finally { await server.stop(); }
 });
 
@@ -341,7 +391,7 @@ test('the caller cancelling a turn that is still streaming aborts the request an
     const controller = new AbortController();
     const pending = ask(server.endpoint, {signal: controller.signal, onDelta: () => controller.abort()});
     await assert.rejects(pending, error => error.name === 'AbortError' && !(error instanceof MistralError));
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await eventually(() => server.closed >= 1, 'the cancelled request to close its connection');
     assert.equal(server.closed, 1);
   } finally { await server.stop(); }
 });
@@ -360,12 +410,16 @@ test('sseData drains only after [DONE]: a body that ends is read to the end, one
   let s = stream(['data: a\n\n', 'data: [DONE]\n\n']);
   await consume(s.readable, {drainMs: 100}, '[DONE]');
   assert.equal(s.state.cancelled, false);
-  // [DONE], then a body that never ends: cancelled after the limit, and not much later.
+  // [DONE], then a body that never ends: cancelled after the limit (on a manual clock), and not before it.
   s = stream(['data: [DONE]\n\n'], {end: false});
-  const began = performance.now();
-  await consume(s.readable, {drainMs: 40}, '[DONE]');
+  const clock = fakeClock();
+  const draining = watch(consume(s.readable, {drainMs: 40, setTimer: clock.setTimer, clearTimer: clock.clearTimer}, '[DONE]'));
+  await clock.advance(39);
+  assert.equal(draining.done, false, 'the end of the body is still waited for inside the limit');
+  assert.equal(s.state.cancelled, false);
+  await clock.advance(1);
+  assert.equal(draining.done, true, 'cut at the drain limit');
   assert.equal(s.state.cancelled, true);
-  assert(performance.now() - began < 500);
   // drainMs 0 (the default): cancelled at once.
   s = stream(['data: [DONE]\n\n'], {end: false});
   await consume(s.readable, {}, '[DONE]');
@@ -422,5 +476,6 @@ test('warmConnection sends one unauthenticated GET to the provider host, and nev
   const began = performance.now();
   const keepAlive = setInterval(() => {}, 1000); // the timeout timer alone does not hold the event loop
   try { assert.equal(await warmConnection({provider: 'mistral', fetchImpl: hang, timeoutMs: 30}), false); } finally { clearInterval(keepAlive); }
-  assert(performance.now() - began < 1000);
+  // 30 ms was asked for; the default it must not fall back to is 5 s, so a bound of half of that is far from both and a loaded machine cannot reach it.
+  assert(performance.now() - began < 2500, `took ${Math.round(performance.now() - began)} ms`);
 });

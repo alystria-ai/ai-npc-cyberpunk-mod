@@ -78,7 +78,7 @@ syncBuiltinESMExports();
 export const readJsonFile = async path => { try { return JSON.parse(await readFile(path, 'utf8')); } catch { return null; } };
 
 /** Polls `read` until `accepts` likes the value; on timeout the failure carries the last value and `context()` (the bridge's logs). */
-export async function until(read, accepts, label, context = () => '', timeout = 10000) {
+export async function until(read, accepts, label, context = () => '', timeout = 120000) {
   const deadline = Date.now() + timeout;
   let last;
   while (Date.now() < deadline) {

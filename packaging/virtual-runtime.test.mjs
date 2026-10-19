@@ -23,7 +23,7 @@ import {findCandidates, placeMisplacedPacks} from './runtime/place-packs.mjs';
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const MOD = 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod';
 const APP = 'red4ext/plugins/AiNpcCyberpunkMod/app';
-const LAUNCHER_FILES = ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs', 'state-home.mjs'];
+const LAUNCHER_FILES = ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs', 'state-home.mjs', 'usvfs-compat.mjs'];
 const put = async (path, text) => { await mkdir(dirname(path), {recursive: true}); await writeFile(path, text); };
 const read = path => readFile(path, 'utf8');
 const exists = path => stat(path).then(() => true, () => false);

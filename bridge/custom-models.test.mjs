@@ -199,7 +199,7 @@ test('a split model counts all its parts for the size', t => {
 
 test('a missing, unreadable, foreign or empty manifest means no custom models and never throws', t => {
   const f = folder(t);
-  assert.deepEqual(f.scanner().scan(), {present: false, root: f.directory, models: [], problems: []});
+  assert.deepEqual(f.scanner().scan(), {present: false, root: f.directory, models: [], problems: [], folders: [{where: 'mod', present: false, models: 0, problems: 0}]});
   f.manifest('{ not json');
   assert.deepEqual(f.scanner().scan().models, []);
   assert.ok(f.logs.some(line => /not valid JSON/.test(line)));

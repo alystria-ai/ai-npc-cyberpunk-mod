@@ -68,6 +68,72 @@ export const nativeSettingsFake = String.raw`
     ns.optionCount = ns.optionCount + 1
     return name
   end
+  -- The controller of a spawned row, modelled on NSUI 1.96 spawnButton: the switch ("settingsSelectorBool") has a layout/container with
+  -- an offState and an onState, each with a body that holds the button art (button, buttonBorder, txtValue). NSUI hides the parts of
+  -- the onState body only (its "off" path points at the onState body too), so the offState body keeps drawing the frame. The two
+  -- state bodies of the controller are inkWidgetRef fields: a method call on them fails as it does in the game, only the static
+  -- inkWidgetRef.SetVisible(ref, state) reaches the widget.
+  local function node(children)
+    local self = {visible = true, children = children or {}}
+    for name, child in pairs(self.children) do child.name = name end
+    function self:SetVisible(state) self.visible = state end
+    function self:IsVisible() return self.visible end
+    function self:GetName() return self.name or 'root' end
+    function self:GetClassName() return 'inkWidget' end
+    function self:GetOpacity() return 1.0 end
+    local function names() local list = {} for name in pairs(self.children) do list[#list + 1] = name end table.sort(list) return list end
+    function self:GetNumChildren() return #names() end
+    function self:GetWidgetByIndex(index) return self.children[names()[index + 1]] end
+    function self:GetWidgetByPath(path)
+      local current = self
+      for _, name in ipairs(path.parts) do
+        current = current.children[name]
+        if not current then return nil end
+      end
+      return current
+    end
+    return self
+  end
+  BuildWidgetPath = function(parts) return {parts = parts} end
+  inkWidgetRef = {
+    SetVisible = function(ref, state) ref.node:SetVisible(state) end,
+    IsVisible = function(ref) return ref.node.visible end,
+  }
+  function ns.newController(option)
+    local controller = {option = option}
+    local container = node()
+    local function body() return node({button = node(), buttonBorder = node(), txtValue = node()}) end
+    container.children.offState = node({body = body()})
+    container.children.onState = node({body = body()})
+    -- The frame images of the button, under the container itself (bk is the rectangle behind them, already invisible).
+    container.children.bk_fill = node(); container.children.bk_fill.name = 'bk_fill'
+    container.children.bk_border = node(); container.children.bk_border.name = 'bk_border'
+    container.children.bk = node(); container.children.bk.visible = false; container.children.bk.name = 'bk'
+    local root = node({layout = node({container = container})})
+    function controller:GetRootWidget() if ns.brokenRoot then error('no root widget') end return root end
+    controller.offStateBody = {node = container.children.offState.children.body}
+    controller.onStateBody = {node = container.children.onState.children.body}
+    ns.nsuiHideOnState(container.children.onState.children.body)
+    return controller
+  end
+  -- NSUI's own hiding in spawnButton (the onState body, twice).
+  function ns.nsuiHideOnState(body)
+    for _, name in ipairs({'button', 'txtValue', 'buttonBorder'}) do body.children[name]:SetVisible(false) end
+  end
+  -- The parts of the two bodies of a controller, for a test: {off = {button, buttonBorder, txtValue}, on = {...}} as visible flags.
+  function ns.parts(controller)
+    local container = controller:GetRootWidget():GetWidgetByPath(BuildWidgetPath({'layout', 'container'}))
+    local result = {}
+    for key, state in pairs({off = 'offState', on = 'onState'}) do
+      local body = container:GetWidgetByPath(BuildWidgetPath({state, 'body'}))
+      result[key] = {button = body:GetWidgetByPath(BuildWidgetPath({'button'})).visible,
+        buttonBorder = body:GetWidgetByPath(BuildWidgetPath({'buttonBorder'})).visible,
+        txtValue = body:GetWidgetByPath(BuildWidgetPath({'txtValue'})).visible}
+    end
+    result.bkFill = container:GetWidgetByPath(BuildWidgetPath({'bk_fill'})).visible
+    result.bkBorder = container:GetWidgetByPath(BuildWidgetPath({'bk_border'})).visible
+    return result
+  end
   local function live(tabPath) return ns.screen ~= nil and ns.currentTab == tabPath end
 
   function ns.addTab(path, label, closed)
@@ -157,7 +223,7 @@ export const nativeSettingsFake = String.raw`
     end
     if live(tabPath) then
       fields.widgetName = nextName()
-      fields.controller = {option = fields}
+      fields.controller = ns.newController(fields)
       spawn({kind = 'option', name = fields.widgetName, option = fields}, placement)
     end
     return fields
@@ -228,14 +294,14 @@ export const nativeSettingsFake = String.raw`
       GetWidgetByIndex = function(_, index) return ns.screen.children[index + 1].widget end}}
     local tab = ns.data[tabPath]
     for _, option in pairs(tab.options) do
-      option.widgetName = nextName(); option.controller = {option = option}
+      option.widgetName = nextName(); option.controller = ns.newController(option)
       spawn({kind = 'option', name = option.widgetName, option = option})
     end
     for _, key in pairs(tab.keys) do
       local sub = tab.subcategories[key]
       spawn({kind = 'strip', name = key, label = sub.label})
       for _, option in pairs(sub.options) do
-        option.widgetName = nextName(); option.controller = {option = option}
+        option.widgetName = nextName(); option.controller = ns.newController(option)
         spawn({kind = 'option', name = option.widgetName, option = option})
       end
     end

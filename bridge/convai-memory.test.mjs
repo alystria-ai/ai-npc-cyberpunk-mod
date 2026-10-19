@@ -75,11 +75,14 @@ test('5xx and transport failures are uncertain writes; definitive rejection is n
   assert.equal(calls.length,1);
   await assert.rejects(adapter.list(identity),{code:'NETWORK_ERROR',writeUncertain:false,retryable:true});
 });
-test('deadline bounds transport and body reads even when injected operations ignore cancellation',async()=>{
+// The operations below never settle, so only the deadline can end them: a TIMEOUT rejection is the proof that the limit bounded the call.
+// No elapsed-time ceiling (a busy machine would turn it into a coin flip); a hung test is stopped by the 60 s test timeout, and the
+// deadline is shown to be the configured 20 ms limit and not an instant failure by a lower bound.
+test('deadline bounds transport and body reads even when injected operations ignore cancellation',{timeout:60000},async()=>{
   const {adapter,calls}=fake(()=>new Promise(()=>{}),{timeoutMs:20});
   const start=Date.now();
   await assert.rejects(adapter.add({...identity,memories:['fact']}),{code:'TIMEOUT',writeUncertain:true});
-  assert.ok(Date.now()-start<1000);assert.equal(calls.length,1);
+  assert.ok(Date.now()-start>=15,'the configured deadline ended it, not an instant failure');assert.equal(calls.length,1);
   const hanging=new ReadableStream({pull(){return new Promise(()=>{});},cancel(){return new Promise(()=>{});}});
   const other=fake(()=>new Response(hanging),{timeoutMs:20}).adapter;
   await assert.rejects(other.list(identity),{code:'TIMEOUT',writeUncertain:false});

@@ -21,7 +21,8 @@ local fontLibrary = dofile('ui-fonts.lua')
 
 local TAB, TAB_LABEL = 'aiNpcCyberpunkMod', 'AI NPC Cyberpunk Mod'
 local TAB_PATH = '/' .. TAB
-local NEEDS_NSUI = 'The Companion Manager needs Native Settings UI (Nexus Mods)'
+local NEEDS_HOST = 'The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI'
+local MCM_OLD = 'Update Mod Configuration Menu to 0.10.5 or newer to use the Companion Manager'
 
 -- What the widgets of Native Settings UI can show. Their geometry is the game's (the row template of the Settings screen), not ours,
 -- so these are estimates in the units of manager-ui.lua's optionUnits (an average lowercase letter is 1): a label that is longer is
@@ -56,7 +57,11 @@ local connectAt = 0
 local renderFailures = 0
 local hooksInstalled = false
 local fontScope, fontWork, fontsDue = nil, nil, false
+local framesDue = false             -- the frames of the read-only rows are hidden again on the next frame the tab is shown
 local lastError = ''
+-- The other hosts of the page (mod/mcm-host.lua, attached by init.lua): each draws core's page in its own settings screen and shares
+-- this module's core, so every host reads and writes the same saved settings. hostError: the last problem each one raised (logged once).
+local hosts, hostError = {}, {}
 
 local function log(message)
     local file = io.open('runtime/mcm.log', 'a')
@@ -181,12 +186,17 @@ local function describe(row)
         if spec.text ~= tostring(row.value or '') then whole = row.label .. ': ' .. tostring(row.value)
         elseif spec.label ~= row.label then whole = row.label end
     else
-        -- A line of text: the label with its value after it, and nothing to press.
+        -- A line of text, nothing to press. A short value is the text where the button's would be (its frame is hidden, see
+        -- hideFrames); a line with a long value, or none, is the label alone: "label: value", cut if it is too long.
         spec.kind, spec.text, spec.readonly = 'button', '', true
         local value = tostring(row.value or '')
-        local line = value ~= '' and (row.label .. ': ' .. value) or row.label
-        spec.label = fit(line, LAYOUT.labelUnits)
-        if spec.label ~= line then whole = line end
+        if value ~= '' and core.optionUnits(value) <= LAYOUT.buttonUnits and core.optionUnits(row.label) <= LAYOUT.buttonLabelUnits then
+            spec.text, spec.label = value, row.label
+        else
+            local line = value ~= '' and (row.label .. ': ' .. value) or row.label
+            spec.label = fit(line, LAYOUT.labelUnits)
+            if spec.label ~= line then whole = line end
+        end
     end
     local description = tostring(row.description or '')
     spec.desc = fitDescription(whole and (description ~= '' and (whole .. '\n\n' .. description) or whole) or description)
@@ -269,7 +279,7 @@ local function reconcileRows(section, rows)
             syncValue(current, spec)
         else
             if current and current.opt then ns.removeOption(current.opt) end
-            section.rows[index] = {sig = spec.sig, id = spec.id, kind = spec.kind, opt = addRow(path, spec, index)}
+            section.rows[index] = {sig = spec.sig, id = spec.id, kind = spec.kind, readonly = spec.readonly, opt = addRow(path, spec, index)}
         end
     end
     for index = #section.rows, #rows + 1, -1 do
@@ -329,7 +339,7 @@ local function render()
     local model = core.model()
     savedValue = {}
     reconcile(sectionsOf(model))
-    fontsDue = true
+    fontsDue, framesDue = true, true
 end
 
 local function renderSafe()
@@ -394,7 +404,7 @@ end
 local function onRestoreDefaults()
     -- Everything waiting is dropped: the defaults replace it.
     pending, flushAt, flushFirst = {}, nil, nil
-    if core.view() ~= 'settings' then
+    if core.view() ~= 'settings' and core.view() ~= 'relationships' then
         core.setFeedback(ui.t('Open Settings to restore its defaults.'))
         rebuildAt = os.clock()
         return
@@ -406,6 +416,74 @@ local function onRestoreDefaults()
     end
     core.setFeedback(ui.t('Defaults restored.'))
     rebuildAt = os.clock()
+end
+
+-- ---- Read-only rows -------------------------------------------------------------------------------------------------------------
+-- Native Settings UI has no line of text, so a read-only row is its button without the button: the art of the switch the button is
+-- made from is hidden and the text stays. The text is not part of that art: Native Settings UI puts it in a canvas under
+-- layout/container itself, beside the switch's two states, layout/container/offState and layout/container/onState. Each state holds
+-- a body (and the body the button, buttonBorder and txtValue). Hiding the parts one by one left a thin outline (the body's own
+-- border), and Native Settings UI hides the onState parts only (its "off" path points at the onState body as well), so a row of ours
+-- hides both state widgets whole (and the two frame images, below). If a path is missing, the body, then its parts, are hidden instead; the controller's
+-- offStateBody and onStateBody fields are inkWidgetRef values (a method call on them does nothing, the static
+-- inkWidgetRef.SetVisible reaches the widget) and are tried last. The controller exists while the tab is on screen and is made again
+-- each time the tab opens, so this runs after every draw and when the tab is shown, a few calls for a page, never per frame. A row
+-- whose widgets do not answer stays as a button with its text, which is harmless. A real button is never touched.
+local FRAME_PARTS = {'button', 'buttonBorder', 'txtValue'}
+
+local function widgetAt(parent, ...)
+    local path = {...}
+    local ok, widget = pcall(function() return parent:GetWidgetByPath(BuildWidgetPath(path)) end)
+    if ok then return widget end
+    return nil
+end
+
+local function hideWidget(widget)
+    if widget then pcall(function() widget:SetVisible(false) end) end
+end
+
+-- The frame of a button is two images under layout/container itself, bk_fill and bk_border, besides the two states (seen live: they
+-- stayed visible after the states were hidden, as a thin outline). A read-only row hides them; the row's text is in the canvas
+-- Native Settings UI adds, which none of this touches. A real button needs its fill and border and is never given to this.
+local FRAME_IMAGES = {'bk_fill', 'bk_border'}
+local framesProblem = false  -- a failure to hide is logged once per session
+
+local function hideFrame(controller)
+    local problems = {}
+    local okRoot, container = pcall(function()
+        return controller:GetRootWidget():GetWidgetByPath(BuildWidgetPath({'layout', 'container'}))
+    end)
+    if not (okRoot and container) then problems[#problems + 1] = 'layout/container not found' end
+    if okRoot and container then
+        for _, name in ipairs(FRAME_IMAGES) do
+            local image = widgetAt(container, name)
+            if image then hideWidget(image) else problems[#problems + 1] = name .. ' not found' end
+        end
+        for _, state in ipairs({'offState', 'onState'}) do
+            hideWidget(widgetAt(container, state))
+            local body = widgetAt(container, state, 'body')
+            hideWidget(body)
+            if body then
+                for _, name in ipairs(FRAME_PARTS) do hideWidget(widgetAt(body, name)) end
+            end
+        end
+    end
+    for _, field in ipairs({'offStateBody', 'onStateBody'}) do
+        pcall(function() inkWidgetRef.SetVisible(controller[field], false) end)
+    end
+    if #problems > 0 and not framesProblem then
+        framesProblem = true
+        pcall(log, 'Read-only row frame not fully hidden: ' .. table.concat(problems, '; '))
+    end
+end
+
+local function hideFrames()
+    for _, section in ipairs(rendered) do
+        for _, row in ipairs(section.rows) do
+            local controller = row.readonly and row.opt and row.opt.controller
+            if controller then hideFrame(controller) end
+        end
+    end
 end
 
 -- ---- Fonts --------------------------------------------------------------------------------------------------------------------------
@@ -497,6 +575,18 @@ local function selectTab()
     if controller and index and controller.selectorCtrl then controller.selectorCtrl:SetToggledIndex(index) end
 end
 
+-- The walk stopped on the list of mods of Mod Configuration Menu, which hides Native Settings UI's own Mods screen when it is
+-- installed: its public API cannot choose a mod in that screen, so the player is told where the manager is (mod/nsui-entry.lua).
+local function notify(kind)
+    if kind ~= 'mcm-list' then return end
+    pcall(function()
+        local player = Game.GetPlayer()
+        if player and type(convaiNotices) == 'table' then
+            convaiNotices.sendLines(player, {{id = 'manager-in-mcm-list', text = ui.t('Open AI NPC Cyberpunk Mod in the Mods list.')}})
+        end
+    end)
+end
+
 -- The walk of the shortcut: it asks for the first page, a page built from what is true now, and tells Native Settings UI to start on
 -- this tab.
 local function newEntry()
@@ -506,7 +596,7 @@ local function newEntry()
             local index = tabIndex()
             if index then ns.lastNativeSettingsCategoryIndex = index end
         end,
-        select = selectTab})
+        select = selectTab, notify = notify, live = live})
 end
 
 local function installHooks()
@@ -524,8 +614,21 @@ local function installHooks()
     if not ok then log('Manager: could not watch the Settings screen: ' .. tostring(problem)) end
 end
 
-local function connect()
+-- Whether another host has the page (Mod Configuration Menu 0.10.5 or newer registered it). The tab of this host is then not registered:
+-- Mod Configuration Menu would list it a second time through its Native Settings UI bridge, and Native Settings UI cannot remove a
+-- tab once it is added. Hosts are installed (and so detected) before this runs at CET's onInit, where every mod is already loaded.
+local function otherHostReady()
+    for _, host in ipairs(hosts) do
+        local ok, ready = pcall(host.ready)
+        if ok and ready then return true end
+    end
+    return false
+end
+
+-- `force`: register the tab although another host has the page (the shortcut could not open that host and falls back to this one).
+local function connect(force)
     if ns then return true end
+    if not force and otherHostReady() then return false end
     local found = nativeSettings()
     if not found then return false end
     entry = entry or newEntry()
@@ -552,34 +655,73 @@ function M.configure(domain, companions, queueFactory, readiness)
     entry = newEntry()
 end
 
+-- Another host of the page (mod/mcm-host.lua). It gets the page logic this module draws (the same instance), and is installed,
+-- updated, reset and shut down with it. A host that raises an error is told apart from the others and logged once per problem.
+function M.attach(host)
+    hosts[#hosts + 1] = host
+    host.configure(core, {log = log})
+end
+
+local function eachHost(name, ...)
+    for index, host in ipairs(hosts) do
+        local ok, problem = pcall(host[name], ...)
+        if not ok and hostError[index] ~= tostring(problem) then
+            hostError[index] = tostring(problem)
+            log('Manager: a settings host failed in ' .. name .. ': ' .. tostring(problem))
+        end
+    end
+end
+
 -- At CET's onInit. Native Settings UI is read with GetMod there, as it documents; a copy that loads after this mod is found by the
 -- once-a-second look in update.
 function M.install()
     connectAt = os.time() + 1
+    eachHost('install')
     return connect()
 end
 
-local function postNeedsNsui()
+-- The shortcut found neither host: the notice says what to install (or, when the only Mod Configuration Menu is older than 0.10.5,
+-- to update it).
+local function postNeedsHost(old)
     pcall(function()
         local player = Game.GetPlayer()
         if player and type(convaiNotices) == 'table' then
-            convaiNotices.sendLines(player, {{id = 'manager-needs-nsui', text = ui.t('The Companion Manager needs Native Settings UI (Nexus Mods)')}})
+            local text = old and ui.t('Update Mod Configuration Menu to 0.10.5 or newer to use the Companion Manager')
+                or ui.t('The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI')
+            convaiNotices.sendLines(player, {{id = 'manager-needs-nsui', text = text}})
         end
     end)
 end
 
--- The manager shortcut. Returns true, or false and the reason.
+-- The manager shortcut. Returns true, or false and the reason. Mod Configuration Menu 0.10.5 or newer, when it hosts the page, is
+-- opened straight on it with its public open call. Otherwise Native Settings UI's walk (mod/nsui-entry.lua), which beside an older
+-- Mod Configuration Menu stops at its list with one notice.
 function M.open()
-    if not ns then connect() end
+    for _, host in ipairs(hosts) do
+        if host.ready() then
+            local ok, opened, reason, gameState = pcall(host.open)
+            if ok and opened then return true end
+            if not ok then reason = tostring(opened) end
+            -- A refusal by the game (no save loaded, a scene) is the answer; any other failure leaves Native Settings UI's walk.
+            if ok and gameState then return false, reason end
+            if not ns then connect(true) end
+            if not ns then return false, reason end
+            break
+        end
+    end
+    if not ns then connect(true) end
     if not ns then
-        postNeedsNsui()
-        return false, NEEDS_NSUI
+        local old = false
+        for _, host in ipairs(hosts) do if host.availability() == 'old' then old = true end end
+        postNeedsHost(old)
+        return false, old and MCM_OLD or NEEDS_HOST
     end
     return entry.open()
 end
 
 function M.update(player, worldReady)
     core.update(player, worldReady)
+    if hosts[1] then eachHost('update', player, worldReady) end
     if not ns then
         if os.time() >= connectAt then connectAt = os.time() + 1; connect() end
         return
@@ -593,7 +735,7 @@ function M.update(player, worldReady)
     if shown ~= wasLive then
         wasLive = shown
         entry.shown(shown and ns.settingsMainController or nil)
-        if shown then fontsDue = true
+        if shown then fontsDue, framesDue = true, true
         else
             -- Leaving the tab (another tab, or the screen closing): the next visit starts on the first page.
             fontRelease()
@@ -606,6 +748,11 @@ function M.update(player, worldReady)
     if shown then
         core.tick(player)
         if not flushAt and not rebuildAt and core.stale() then renderSafe() end
+        if framesDue then
+            framesDue = false
+            local hidden, problem = pcall(hideFrames)
+            if not hidden then lastError = 'Frames: ' .. tostring(problem) end
+        end
         if fontsDue or fontWork then
             local ok, problem = pcall(fontPass)
             if not ok then fontWork, fontsDue = nil, false; lastError = 'Fonts: ' .. tostring(problem) end
@@ -618,11 +765,13 @@ function M.resetSession()
     core.resetSession()
     pending, flushAt, flushFirst, rebuildAt, presses = {}, nil, nil, nil, {}
     if entry then entry.reset() end
+    eachHost('resetSession')
     if ns and not live() then renderSafe() end
 end
 function M.shutdown(worldReady)
     core.shutdown()
     if entry then entry.reset() end
+    eachHost('shutdown', worldReady)
 end
 
 function M.inspect()
@@ -630,11 +779,16 @@ function M.inspect()
     for _, section in ipairs(rendered) do sections[#sections + 1] = {id = section.id, name = section.name, rows = #section.rows} end
     local inspected = core.inspect()
     inspected.available, inspected.live, inspected.sections = ns ~= nil, live(), sections
+    inspected.hosts = {}
+    for index, host in ipairs(hosts) do
+        local ok, state = pcall(host.inspect)
+        inspected.hosts[index] = ok and state or {error = tostring(state)}
+    end
     inspected.pending, inspected.entry, inspected.error = pending, entry and entry.inspect() or nil, lastError ~= '' and lastError or inspected.error
     return inspected
 end
 
 -- Tests only.
-M._test = {core = core, describe = describe, tabIndex = tabIndex, flush = function() flushNow() end, render = render}
+M._test = {connect = function() return connect(true) end, core = core, describe = describe, tabIndex = tabIndex, flush = function() flushNow() end, render = render, notify = notify}
 
 return M

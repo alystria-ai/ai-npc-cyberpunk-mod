@@ -270,6 +270,23 @@ Filled 2026-10-19 on branch `johnny-lore` (merged in) through the reviewed claim
 
 ## Live check owed
 
+### Quick live check for `johnny-phase2b` (short; the long list below is the full one)
+
+Branch state: `main` (7ec1232d) merged in on 2026-10-19; the two new rows live in `mod/manager-ui.lua` and show in both hosts (Native Settings UI and Mod Configuration Menu). Setup: the Scripts install (every committed `mod/` file, Lua and `.json`, never `diagnostics.lua`), a CET reload, a bridge restart, a save after Playing for Time and before the point of no return, Developer mode on only for step 9.
+
+1. Open the Companion Manager (Native Settings UI: Mods > the tab > Settings; Mod Configuration Menu: the mod's page). Conversations shows, in this order, **Johnny in your head**, **Johnny speaks up**, **Johnny's hologram**; the hologram row is a switch, **Off** by default. Johnny speaks up is Off by default. In MCM nothing is purple at the defaults; **Restore defaults** (twice) puts all three back to Off. Check both hosts.
+2. All Off: sit down, walk into the Afterlife, fight. `probe.log` has no `Johnny speaks up` and no `Johnny hologram` line.
+3. Turn on **Johnny in your head** and **Johnny speaks up: Normal**, Apply. Walk into the Afterlife (or Pacifica, the Badlands): about 10 s after arriving, with nothing else going on, Johnny says one short line about the place in his voice (centred, his subtitle). `probe.log`: `Johnny speaks up: noted place:<key>`. The same place again: nothing.
+4. A fight with three or more enemies lasting 8 s or more: after it ends (4 s of calm and 10 s of quiet) one remark about it. Not during the fight.
+5. Quiet: open the text box, hold the voice key, start a call or a cutscene, or have a dialogue choice open: no remark starts; one that was running stops (`Automatic reaction released: head-...`).
+6. Story gate: on a save before Playing for Time is done, nothing of the above happens (no remark, no hologram), with the settings on.
+7. Turn on **Johnny's hologram**, Apply. Sit on a couch or chair in the open (V's apartment couch counts): 4 to 6 s later a glitching Johnny stands a few steps away facing V, silent; after about 5 s he flickers out. Standing up removes him at once. Sit again within 10 minutes: nothing. Not during a call, a dialogue choice or a fight. `probe.log`: `Johnny hologram: spawning look=D`, `gone reason=done`.
+8. Free shared key: each remark lowers "x of y left today" by one; after 10 remarks in a day the next stop silently. The hologram uses none.
+9. Developer mode on, then `powershell -File scriptsSend-JohnnyProbe.ps1 relic start`, play until V coughs blood in the open world, `relic status`: report what `candidates` shows (the open-world episode may not be a status effect).
+10. Turn everything Off and Apply: no further remark, no hologram. Perf probe with the settings on: no new per-frame row.
+
+### The full list
+
 Needs the Scripts install (all committed `mod/` files, including the new `mod/johnny-head.lua` and `mod/johnny-remarks.lua`, and the `.json` data), a CET reload and a bridge restart (the bridge runs from the main checkout, so after the merge). No archive, no redscript, no game restart. Use a save after Playing for Time and before the point of no return.
 
 1. Settings > Conversations: **Johnny in your head** is there, Off. Turn it on and Apply. Under it **Johnny's standing** appears with a value (Wary on an early Act 2 save; Friends or Close friends after the oil fields). Turn it off: the standing row goes. Check one other language for cut-off text.

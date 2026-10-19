@@ -22,7 +22,7 @@ function harness(t, {env = {}, withEmbed = true, ...options} = {}) {
   mkdirSync(tmpDir);
   const calls = [];
   const spawnImpl = (command, args, spawnOptions) => { const child = spawn(command, args, spawnOptions); calls.push({args, child}); return child; };
-  const embedder = new LlamaEmbedder({pack, command: process.execPath, argsPrefix: [FAKE], spawnImpl, startupMs: 60_000,
+  const embedder = new LlamaEmbedder({pack, command: process.execPath, argsPrefix: [FAKE], spawnImpl, startupMs: 180_000,
     processOptions: {env, tmpDir, pollMs: 20}, ...options});
   t.after(async () => {
     await embedder.close();

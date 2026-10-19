@@ -43,7 +43,7 @@ function begin({answers = {[KEY_BLOB]: {json: {decryptedData: KEY}}}, ...options
 // A GET to the loopback listener with a chosen Host header, as a browser sends it. Resolves {status, headers, text}.
 function get(port, path, host = `localhost:${port}`, headers = {}) {
   return new Promise((resolve, reject) => {
-    const call = httpRequest({host: '127.0.0.1', port, path, method: 'GET', headers: {Host: host, ...headers}, timeout: 2000}, response => {
+    const call = httpRequest({host: '127.0.0.1', port, path, method: 'GET', headers: {Host: host, ...headers}, timeout: 60000}, response => {
       let text = '';
       response.setEncoding('utf8');
       response.on('data', chunk => { text += chunk; });

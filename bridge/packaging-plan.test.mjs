@@ -30,7 +30,7 @@ test('package destinations are relative game-root paths and never include a wrap
     assert(relative(file.source), file.source); assert(relative(file.target), file.target);
     assert.match(file.target, /^(bin|r6|archive)\//);
   }
-  // red4ext/plugins/AiNpcCyberpunkMod holds the launcher, which the build compiles, and "Make support report.bat".
+  // red4ext/plugins/AiNpcCyberpunkMod holds the launcher, which the build compiles.
   for (const component of runtime.plannedComponents) {
     assert(relative(component.destination), component.id);
     assert.match(component.destination, /^(bin|r6|archive|red4ext)\//);

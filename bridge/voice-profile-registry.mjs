@@ -10,11 +10,22 @@ export const VOICE_PROFILE_LIMITS = Object.freeze({profiles: 1024, transcript: 1
 const object = value => value && typeof value === 'object' && !Array.isArray(value);
 const keyValid = value => typeof value === 'string' && /^[a-z0-9][a-z0-9-]{0,79}$/.test(value)
   && !['constructor', 'prototype', '__proto__'].includes(value);
+// A player's own reference clip for a character (a story character, or one the player made) lives in the player's data folder and
+// never in the game folder, so its descriptor names this second, fixed namespace; every voice worker resolves it only inside its own
+// configured player folder (`playerVoiceDirectory`, `playerRoot`). One plain file name, no sub-folders: <key>.wav.
+export const PLAYER_REFERENCE_PREFIX = 'runtime/player-voices/';
+const PLAYER_REFERENCE = /^runtime\/player-voices\/[a-z0-9][a-z0-9-]{0,79}\.wav$/;
+export const isPlayerReference = value => typeof value === 'string' && value.startsWith(PLAYER_REFERENCE_PREFIX);
+export const playerReferenceValid = value => typeof value === 'string' && PLAYER_REFERENCE.test(value);
 const referenceValid = value => typeof value === 'string' && value.length <= VOICE_PROFILE_LIMITS.path
-  && value.startsWith('runtime/voice-references/') && value.endsWith('.wav')
+  && (value.startsWith('runtime/voice-references/') || PLAYER_REFERENCE.test(value)) && value.endsWith('.wav')
   && !/[\\\x00-\x1f\x7f:]/.test(value) && !value.split('/').some(part => !part || part === '.' || part === '..');
 const transcriptValid = value => typeof value === 'string' && value.trim().length > 0
   && value.length <= VOICE_PROFILE_LIMITS.transcript && !/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(value);
+// The same two checks for a caller that merges a descriptor into a configuration (bridge/addons.mjs): one bad descriptor makes the
+// whole configuration throw, so a player-supplied key or transcript is checked before it gets in.
+export const voiceKeyValid = keyValid;
+export const voiceTranscriptValid = transcriptValid;
 
 export function createVoiceProfileRegistry(config = {}) {
   if (!object(config)) throw Error('Invalid local voice configuration');
@@ -63,4 +74,45 @@ export function createVoiceProfileRegistry(config = {}) {
   return Object.freeze({profiles, unavailable, keys, preparation: policy,
     has: key => Object.hasOwn(profiles, key),
     status: key => Object.hasOwn(profiles, key) ? 'ready' : unavailable[key] ?? 'missing'});
+}
+
+// ---- Changing voices while a worker runs (a player gave a character a clip, or took it away: docs/CHARACTER_EDITOR.md, "Voice clips") ----
+// A voice table is a registry's voices as plain descriptors, {key: {reference, sha256, transcript} | {status}}: what a worker holds.
+// The clients (bridge/pocket-voice.mjs, bridge/resident-voice.mjs) keep the table their worker holds, and when the voices they should have
+// differ they send the worker only the difference, a few keys at a time.
+export const VOICE_CHANGE_BATCH = 20;
+/** The voices of a registry as descriptors (a voice that is not ready as {status}). */
+export function voiceTable(registry) {
+  const table = Object.create(null);
+  for (const [key, status] of Object.entries(registry.unavailable)) table[key] = {status};
+  for (const [key, value] of Object.entries(registry.profiles)) table[key] = {reference: value.reference, sha256: value.sha256, transcript: value.transcript};
+  return table;
+}
+const sameDescriptor = (a, b) => (a?.status ?? 'ready') === (b?.status ?? 'ready') && a?.reference === b?.reference
+  && a?.sha256 === b?.sha256 && a?.transcript === b?.transcript;
+/** What to send a worker that holds `from` so that it holds `to`: {set: {key: descriptor}, remove: [key]}. Empty when they are the same. */
+export function diffVoiceTables(from, to) {
+  const set = [], remove = [];
+  for (const key of Object.keys(to)) if (!sameDescriptor(from[key], to[key])) set.push([key, to[key]]);
+  for (const key of Object.keys(from)) if (!Object.hasOwn(to, key)) remove.push(key);
+  return {set: Object.fromEntries(set), remove};
+}
+/** The same difference as batches of at most `size` keys, each with the table the worker holds once it has applied it. */
+export function voiceChangeBatches(from, to, size = VOICE_CHANGE_BATCH) {
+  const {set, remove} = diffVoiceTables(from, to);
+  const entries = [...Object.entries(set).map(([key, value]) => ['set', key, value]), ...remove.map(key => ['remove', key])];
+  const batches = [], table = {...from};
+  for (let at = 0; at < entries.length; at += size) {
+    const part = {set: {}, remove: []};
+    for (const [kind, key, value] of entries.slice(at, at + size)) {
+      if (kind === 'set') { part.set[key] = value; table[key] = value; } else { part.remove.push(key); delete table[key]; }
+    }
+    batches.push({...part, table: {...table}});
+  }
+  return batches;
+}
+/** A registry for a voice table (the cache limit of `like`; no start-up profiles: nothing a player changes is prepared at start). */
+export function registryFromTable(table, like) {
+  return createVoiceProfileRegistry({version: 2, provider: 'hybrid', engine: 'omnivoice', voices: table,
+    preparation: {mode: 'lazy', startupProfiles: [], maxCachedProfiles: like?.preparation?.maxCachedProfiles ?? VOICE_PROFILE_LIMITS.cachedProfiles}});
 }

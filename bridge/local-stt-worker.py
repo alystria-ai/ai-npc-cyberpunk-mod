@@ -1,6 +1,10 @@
 """Local speech-to-text worker: Moonshine Tiny (English, MIT) through sherpa-onnx, on the CPU.
 
-Started by bridge/local-stt.mjs only while the Mistral text provider needs the microphone. It speaks JSON lines on
+With --kind it loads one of the optional multilingual packs instead (bridge/speech-language.mjs LOCAL_PACKS): `nemo-transducer`
+(NVIDIA Parakeet TDT 0.6B v3 int8: ru, uk, pl, cs, hu, de, fr, es, it, pt) or `sense-voice` (SenseVoice Small int8: zh, ja, ko). The
+protocol, the sound gate and the refusal of words that are not speech are the same for every kind; docs/LOCAL_STT.md, "Other languages".
+
+Started by bridge/local-stt.mjs only while a text provider needs the microphone. It speaks JSON lines on
 stdin/stdout (one object per line) and never touches the network:
 
     in   {"op":"begin","id":"r1"}                         start a recording (drops any earlier one)
@@ -33,6 +37,11 @@ import time
 SAMPLE_RATE = 16000
 ENGINE = "moonshine-tiny-en-int8"
 MODEL_FILES = ("preprocess.onnx", "encode.int8.onnx", "uncached_decode.int8.onnx", "cached_decode.int8.onnx", "tokens.txt")
+PACK_FILES = {
+    "nemo-transducer": ("encoder.int8.onnx", "decoder.int8.onnx", "joiner.int8.onnx", "tokens.txt"),
+    "sense-voice": ("model.int8.onnx", "tokens.txt"),
+}
+KINDS = ("moonshine",) + tuple(PACK_FILES)
 MAX_SECONDS = 60          # a recording is cut here (the game finishes one at 30 s)
 PARTIAL_WINDOW = 8.0      # seconds decoded for a partial, newest audio only
 SEGMENT_TARGET = 18.0     # a longer final decode is split at the quietest point near here
@@ -257,19 +266,43 @@ def tidy(text: str) -> str:
 
 
 class Engine:
-    def __init__(self, model: str, threads: int):
+    def __init__(self, model: str, threads: int, kind: str = "moonshine"):
         import sherpa_onnx
-        for name in MODEL_FILES:
+        self.kind = kind
+        files = MODEL_FILES if kind == "moonshine" else PACK_FILES[kind]
+        for name in files:
             if not os.path.isfile(os.path.join(model, name)):
                 raise FileNotFoundError(f"model file missing: {name}")
-        self.recognizer = sherpa_onnx.OfflineRecognizer.from_moonshine(
-            preprocessor=os.path.join(model, "preprocess.onnx"),
-            encoder=os.path.join(model, "encode.int8.onnx"),
-            uncached_decoder=os.path.join(model, "uncached_decode.int8.onnx"),
-            cached_decoder=os.path.join(model, "cached_decode.int8.onnx"),
-            tokens=os.path.join(model, "tokens.txt"),
-            num_threads=threads,
-        )
+        path = lambda name: os.path.join(model, name)  # noqa: E731
+        if kind == "moonshine":
+            self.recognizer = sherpa_onnx.OfflineRecognizer.from_moonshine(
+                preprocessor=path("preprocess.onnx"),
+                encoder=path("encode.int8.onnx"),
+                uncached_decoder=path("uncached_decode.int8.onnx"),
+                cached_decoder=path("cached_decode.int8.onnx"),
+                tokens=path("tokens.txt"),
+                num_threads=threads,
+            )
+        elif kind == "nemo-transducer":
+            # Parakeet TDT: a transducer with automatic language detection over 25 European languages; the feature size is read from the model.
+            self.recognizer = sherpa_onnx.OfflineRecognizer.from_transducer(
+                encoder=path("encoder.int8.onnx"),
+                decoder=path("decoder.int8.onnx"),
+                joiner=path("joiner.int8.onnx"),
+                tokens=path("tokens.txt"),
+                num_threads=threads,
+                decoding_method="greedy_search",
+                model_type="nemo_transducer",
+            )
+        else:
+            # SenseVoice: zh, en, ja, ko, yue. "auto" picks the language; inverse text normalisation writes numbers as digits.
+            self.recognizer = sherpa_onnx.OfflineRecognizer.from_sense_voice(
+                model=path("model.int8.onnx"),
+                tokens=path("tokens.txt"),
+                num_threads=threads,
+                language="auto",
+                use_itn=True,
+            )
 
     def read(self, samples):
         """(words, proof, why): the words in a recording or its newest window, each piece of sound decoded on its own (see
@@ -436,6 +469,7 @@ def settle(batch):
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True)
+    parser.add_argument("--kind", choices=KINDS, default="moonshine")
     parser.add_argument("--threads", type=int, default=1)
     parser.add_argument("--priority", choices=sorted(PRIORITY_CLASSES), default="below")
     args = parser.parse_args()
@@ -444,14 +478,14 @@ def main() -> int:
     started = time.perf_counter()
     try:
         import numpy as np
-        engine = Engine(args.model, threads)
+        engine = Engine(args.model, threads, args.kind)
         # The first decode pays for the runtime's one-off set-up; do it before the first recording needs it.
         engine.decode((np.random.default_rng(1).standard_normal(SAMPLE_RATE) * 600).astype(np.int16))
     except Exception as error:  # noqa: BLE001
         send({"type": "error", "message": f"load failed: {type(error).__name__}: {error}"})
         return 3
     worker = Worker(engine)
-    send({"type": "ready", "engine": ENGINE, "threads": threads, "loadMs": round((time.perf_counter() - started) * 1000)})
+    send({"type": "ready", "engine": ENGINE if args.kind == "moonshine" else os.path.basename(os.path.normpath(args.model)), "kind": args.kind, "threads": threads, "loadMs": round((time.perf_counter() - started) * 1000)})
     messages: "queue.Queue[dict | None]" = queue.Queue()
     threading.Thread(target=reader, args=(messages,), daemon=True).start()
     while True:

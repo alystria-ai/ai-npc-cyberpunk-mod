@@ -769,9 +769,9 @@ test('the README and the release notes send players to Hugging Face for every op
   const hf = 'https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs';
   const readme = (await readFile(resolve(project, 'README.md'), 'utf8')).replaceAll('\r\n', '\n');
   const player = (await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8')).replaceAll('\r\n', '\n');
-  const files = ['OmniPack', 'LocalAI-Standard', 'LocalAI-Lite', 'Mature-Lite', 'Mature-Standard'].map(name => `AI-NPC-Cyberpunk-Mod-${name}-0.2.1.zip`);
-  for (const file of files) assert(readme.includes(hf + '/blob/main/0.2.1/' + file), 'the README links ' + file);
-  for (const file of files.filter(name => !/Mature/.test(name))) assert(player.includes(hf + '/blob/main/0.2.1/' + file), 'the release notes link ' + file);
+  const files = ['OmniPack', 'LocalAI-Standard', 'LocalAI-Lite', 'Mature-Lite', 'Mature-Standard'].map(name => `AI-NPC-Cyberpunk-Mod-${name}-0.2.2.zip`);
+  for (const file of files) assert(readme.includes(hf + '/blob/main/0.2.2/' + file), 'the README links ' + file);
+  for (const file of files.filter(name => !/Mature/.test(name))) assert(player.includes(hf + '/blob/main/0.2.2/' + file), 'the release notes link ' + file);
   assert(readme.includes(hf + ')'), 'and the repository page');
   // The Install section sits before Requirements and the long feature list, right after the intro.
   const heading = text => readme.indexOf('\n## ' + text + '\n');

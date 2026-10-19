@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import {open, readFile, readdir, rm, stat, mkdir} from 'node:fs/promises';
+import {readPlayerVoiceSummary} from './player-voice-summary.mjs';
 import {resolve, join, dirname, basename} from 'node:path';
 import os from 'node:os';
 import {spawn} from 'node:child_process';
@@ -7,6 +8,9 @@ import {createZip} from './zip-writer.mjs';
 import {atomicFile} from './guarded-file.mjs';
 import {NO_BROWSER_MESSAGE} from './system-browser.mjs';
 import {cachedGraphicsCards} from './setup-check.mjs';
+import {describePackFiles} from './local-ai-pack.mjs';
+import {customManifestFolders, describeCustomFolders, parseManifestText} from './custom-manifest-folders.mjs';
+import {errorReportStatus} from './error-events.mjs';
 
 // Support report: one redacted zip a player can send to the developer after an
 // error. The Help page in Companion Manager writes runtime/report-request.json;
@@ -61,7 +65,7 @@ const escapeRegExp = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 export const shortHash = value => createHash('sha256').update(String(value)).digest('hex').slice(0, 8);
 
 /**
- * `accounts`: the player's Windows account names (offline report: %USERNAME% and the profile folder's name). Any path part that is exactly
+ * `accounts`: the player's Windows account names (%USERNAME% and the profile folder's name). Any path part that is exactly
  * one of them becomes <user> as well, for a profile outside C:\Users or a folder named after the player (D:\Jane\Games\Cyberpunk 2077).
  */
 export function createRedactor({secrets = [], ids = [], accounts = []} = {}) {
@@ -269,19 +273,16 @@ export async function credentialSecrets(stateDirectory) {
 
 // The apiKey values of the servers listed in manifest.custom.json (a model server the player runs, docs/LOCAL_AI.md "Use your own server"): secrets like
 // any key file, scrubbed from every line of the report. The manifest itself is never copied into the report (only its file name is listed).
+// Read from every place a custom manifest can be: the outside folder (%LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai), the mod's Local AI folder and the developer's.
 export async function customServerSecrets({project, environment = process.env} = {}) {
   const found = [];
-  const roots = new Set();
-  const named = name => (typeof environment?.[name] === 'string' && environment[name].trim() ? resolve(environment[name]) : null);
-  roots.add(named('CYBERPUNK_CONVAI_LOCAL_AI') ?? (project ? resolve(project, 'local-ai') : null));
-  roots.add(named('CYBERPUNK_CONVAI_LOCAL_AI_DEV'));
+  const roots = new Set(customManifestFolders({project, environment}).map(folder => folder.root));
   for (const root of roots) {
-    if (!root) continue;
     try {
       const path = join(root, 'manifest.custom.json');
       const info = await stat(path);
       if (!info.isFile() || info.size > 262144) continue;
-      const manifest = JSON.parse(await readFile(path, 'utf8'));
+      const manifest = parseManifestText((await readFile(path, 'utf8')).replace(/^﻿/, ''));
       for (const entry of Array.isArray(manifest?.models) ? manifest.models : []) {
         if (typeof entry?.apiKey === 'string' && entry.apiKey.trim()) { found.push(entry.apiKey.trim()); if (entry.apiKey.trim() !== entry.apiKey) found.push(entry.apiKey); }
       }
@@ -320,7 +321,7 @@ export async function publishSupportPaths({game, modRoot, runtime, stateDirector
 // A setup-check.json is read as this bridge's own while its bridgePid is this process, or (written by another process) while it is under
 // ten minutes old: a document an earlier game session left behind says nothing about this one.
 const SETUP_FRESH_MS = 10 * 60 * 1000;
-function setupLine(row) {
+export function setupLine(row) {
   const id = clip(row?.id, 40), code = clip(row?.code, 40);
   if (!id || !code) return null;
   const detail = [];
@@ -435,9 +436,29 @@ async function versions({game, modRoot, project, logs, now}) {
   return result;
 }
 
+// The model server's own record (bridge/local-llm-server.mjs diagnostics(): which file is loaded, its family, chat template length and hash, how the last turn
+// went) and the folder description copied as plain data only: numbers, booleans, short strings, objects and lists of at most 24, six deep. It holds file names, never a path, a key or a word of a reply.
+function plainData(value, depth = 0) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'boolean' || value === null) return value;
+  if (typeof value === 'string') return clip(value, 200);
+  if (Array.isArray(value) && depth < 6) return value.slice(0, 24).map(item => plainData(item, depth + 1)).filter(item => item !== undefined);
+  if (value && typeof value === 'object' && !Array.isArray(value) && depth < 6) {
+    const out = {};
+    let count = 0;
+    for (const [key, item] of Object.entries(value)) {
+      if (++count > 30) break;
+      const copy = plainData(item, depth + 1);
+      if (copy !== undefined) out[clip(key, 40)] = copy;
+    }
+    return out;
+  }
+  return undefined;
+}
+
 // Local AI detection, as the service sees it. Only the fields named here are copied from runtime/mistral-state.json (which
 // also holds provider and key-status fields); the pack root and the manifest file names come from the folder itself.
-export async function localAiSection({runtime, project, environment = process.env}) {
+export async function localAiSection({runtime, project, environment = process.env, describeFiles = describePackFiles}) {
   const read = await readSmallJson(join(runtime, 'mistral-state.json'));
   const state = read.value && typeof read.value === 'object' ? read.value : {};
   const fromEnvironment = typeof environment.CYBERPUNK_CONVAI_LOCAL_AI === 'string' && environment.CYBERPUNK_CONVAI_LOCAL_AI.trim() !== '';
@@ -453,7 +474,14 @@ export async function localAiSection({runtime, project, environment = process.en
     localAi: typeof state.localAi === 'string' ? clip(state.localAi, 40) : null,
     maturePack: typeof state.maturePack === 'boolean' ? state.maturePack : null,
     localModels: models,
+    // What is loaded and how the last local turns went (absent until a model was loaded): the cause of a turn that timed out is in lastTurn and template.
+    diagnostics: plainData(state.localDiagnostics) ?? null,
+    // Which markers the folder holds, the model files each names (there or not, with sizes) and the .gguf files of models/: a pack that was not fully extracted shows here.
+    packFiles: (() => { try { return plainData(describeFiles({project, environment})); } catch { return null; } })() ?? null,
     root, rootSource: fromEnvironment ? 'CYBERPUNK_CONVAI_LOCAL_AI' : 'default (local-ai next to the bridge)',
+    // The folders a custom model can be added in (docs/LOCAL_AI.md, "Add your own model"): the outside one (%LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai), the
+    // mod's Local AI folder and the developer's (only when it has a manifest), each with whether it and its manifest are there and how many models it lists. No paths.
+    customFolders: (() => { try { return describeCustomFolders({project, environment}); } catch { return null; } })(),
     rootExists: manifests !== null, manifests: manifests ?? [],
   };
 }
@@ -504,25 +532,16 @@ function companionProviders({settings, voice, routing, party}) {
 
 /**
  * Builds the report in memory. Nothing is written here.
- *
- * Offline mode (Make support report.bat, bridge/offline-support-report.mjs: the game is closed and no service runs) passes five
- * more options; the service never does, and without them nothing here changes:
- *   offline         true: the README and summary say the report was made with the game closed, and no bridge process is described
- *   logs            the located log list to use instead of locateLogs (the offline tool looks in more than one folder)
- *   extraProblems   more lines for the PROBLEM FOUND block, after the ones the status files give
- *   extraSummary    an object merged into summary.json (it goes through the same redactor as everything else)
- *   accounts        the player's Windows account names, hidden in every path as well (createRedactor)
  */
 export async function collectReport(options) {
   const {game, runtime, stateDirectory, project, request, now = Date.now, bridge = {}, environment = process.env} = options;
-  const offline = options.offline === true;
   const modRoot = options.modRoot ?? resolve(runtime, '..');
   // The graphics cards (reg.exe, once per process) are looked up while the logs are read, so the report is not slower for it.
   const graphicsSource = options.graphics ?? (() => cachedGraphicsCards());
   const graphicsPending = Promise.resolve().then(() => typeof graphicsSource === 'function' ? graphicsSource() : graphicsSource).catch(() => []);
   const secrets = [...(options.secrets ?? []), ...await credentialSecrets(stateDirectory), ...await customServerSecrets({project: project ?? resolve(runtime, '..'), environment})];
-  const redact = createRedactor({secrets, ids: options.knownIds ?? [], accounts: Array.isArray(options.accounts) ? options.accounts : []});
-  const logs = Array.isArray(options.logs) ? options.logs : await locateLogs({game, modRoot, runtime, stateDirectory});
+  const redact = createRedactor({secrets, ids: options.knownIds ?? []});
+  const logs = await locateLogs({game, modRoot, runtime, stateDirectory});
   const lua = sanitizeRequest(request ?? {});
   const entries = [], index = [], errors = [];
 
@@ -569,45 +588,46 @@ export async function collectReport(options) {
     for (const profile of raw['party-connections.json'].profiles.slice(0, 12)) party.push({profile: clip(profile, 80), state: 'connected'});
   }
   const versionInfo = await versions({game, modRoot, project: project ?? resolve(runtime, '..'), logs, now});
-  const problems = [...knownProblems(raw, {lua, now}),
-    ...(Array.isArray(options.extraProblems) ? options.extraProblems.filter(line => typeof line === 'string' && line).slice(0, 40) : [])];
+  const problems = knownProblems(raw, {lua, now});
+  // The player's voice clips (bridge/player-voices.mjs): how many and how long each is, never the audio, the words or a path.
+  const voiceClips = await readPlayerVoiceSummary(stateDirectory).catch(() => ({count: 0, clips: []}));
   const cards = await graphicsPending;
   const graphics = (Array.isArray(cards) ? cards : []).slice(0, 8)
     .map(card => ({name: clip(card?.name, 120), memoryMiB: Number.isFinite(card?.memoryMiB) && card.memoryMiB > 0 ? Math.round(card.memoryMiB) : null}))
     .filter(card => card.name);
   const summary = redact.value({
-    schema: 1, ...(problems.length ? {problems} : {}), reportId: options.reportId, generatedBy: offline ? 'offline' : 'bridge', generatedAt: new Date(now()).toISOString(),
-    privacy: {notes: ['No API keys, tokens, audio, voice references, model files or conversation text are included.',
+    schema: 1, ...(problems.length ? {problems} : {}), reportId: options.reportId, generatedBy: 'bridge', generatedAt: new Date(now()).toISOString(),
+    privacy: {notes: ['No API keys, tokens, audio, voice references, voice clips, model files or conversation text are included.',
       'IDs are replaced by short hashes; key and token patterns, long secrets and your Windows account name are removed from every log.'],
       redactions: undefined},
     versions: versionInfo,
-    ...(options.extraSummary && typeof options.extraSummary === 'object' ? options.extraSummary : {}),
     system: {graphics},
     request: {cetVersion: lua.cetVersion, language: lua.language, view: lua.view, developerMode: lua.developerMode,
       ageMs: Number.isFinite(request?.issuedAt) ? Math.max(0, now() - request.issuedAt) : null, setup: lua.setup},
-    // Offline, this is the status the last game session left behind, and no process of this report's own is described.
-    bridge: offline ? {offline: true, ...bridge, status} : {pid: process.pid, uptimeSeconds: Math.round(process.uptime()), ...bridge, status},
+    bridge: {pid: process.pid, uptimeSeconds: Math.round(process.uptime()), ...bridge, status},
     settings: settingsView,
+    // Settings > Privacy > Send error reports automatically (docs/ERROR_REPORTS.md): on or off, and counts only.
+    errorReports: await errorReportStatus({runtime, stateDirectory, now: now()}).catch(() => null),
     localAi: await localAiSection({runtime, project: project ?? resolve(runtime, '..'), environment}),
     party: {companions: party, connections: raw['party-connection-state.json']
       ? redact.value(compactStatus('party-connection-state.json', raw['party-connection-state.json'])) : null},
     conversation: await conversationSection({runtime, settings}),
     providers: companionProviders({settings, voice: raw['local-voice-state.json'], routing: raw['relationship-routing.json'], party}),
+    voiceClips,
     recentErrors, logs: index,
   });
   summary.privacy.redactions = {...redact.stats};
   const readme = [
-    offline ? 'AI NPC Cyberpunk Mod support report (made with the game closed)' : 'AI NPC Cyberpunk Mod support report',
+    'AI NPC Cyberpunk Mod support report',
     `Created ${summary.generatedAt}  (report ${options.reportId})`, '',
     ...(problems.length ? ['PROBLEM FOUND:', ...problems.map(line => `  ${redact.text(line)}`), ''] : []),
     'Send this one file to the developer. It contains:',
-    offline
-      ? '  summary.json   versions, the requirement check, where the mod files are, service status from the last game start, settings, Local AI detection, recent errors'
-      : '  summary.json   versions, graphics card, service status, setup check, settings, Local AI detection, party, provider per companion, recent errors',
+    '  summary.json   versions, graphics card, service status, setup check, settings, Local AI detection, party, provider per companion, recent errors',
     '  logs/*.txt     the end of each mod, service, CET, redscript and RED4ext log (last 2000 lines each);',
     '                 voice-routing.txt lists which voice spoke each reply and why (no reply text)', '',
-    'It does NOT contain API keys or tokens, microphone audio, voice references, model files',
-    'or conversation text. IDs are shown as short hashes and your Windows account name is hidden.',
+    'It does NOT contain API keys or tokens, microphone audio, voice references, your own voice clips',
+    '(only how many there are and how long each is), model files or conversation text.',
+    'IDs are shown as short hashes and your Windows account name is hidden.',
     'You can open the zip and read every file before you send it.', ''].join('\n');
   return {entries: [{name: 'README.txt', data: readme}, {name: 'summary.json', data: JSON.stringify(summary, null, 2) + '\n'}, ...entries],
     summary};

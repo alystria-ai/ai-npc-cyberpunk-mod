@@ -300,4 +300,52 @@ for text in ("no no no", "Go to the market and buy the red one", "I said no, no,
 hiss = {"peakDb": -9.0, "soundMs": 7000, "spanMs": 9000, "voicedMs": 2200}
 check(w.judge("Interesting just into the", hiss) == "not-voiced" and w.acoustic(hiss) == "not-voiced", "7 s of sound with 2.2 s voiced is not speech")
 check(w.judge("Interesting just into the", {**hiss, "voicedMs": 4300}) is None, "7 s of sound with 4.3 s voiced is speech")
+
+# the multilingual packs: each kind builds its own recogniser from its own files (a stand-in sherpa_onnx records the calls), and a
+# missing file is a load failure that names the file
+import os
+import tempfile
+import types
+
+calls = []
+
+
+class FakeRecognizer:
+    pass
+
+
+class FakeOffline:
+    @staticmethod
+    def from_moonshine(**kw):
+        calls.append(("moonshine", kw)); return FakeRecognizer()
+
+    @staticmethod
+    def from_transducer(**kw):
+        calls.append(("transducer", kw)); return FakeRecognizer()
+
+    @staticmethod
+    def from_sense_voice(**kw):
+        calls.append(("sense-voice", kw)); return FakeRecognizer()
+
+
+sys.modules["sherpa_onnx"] = types.SimpleNamespace(OfflineRecognizer=FakeOffline)
+for kind, names in w.PACK_FILES.items():
+    with tempfile.TemporaryDirectory() as folder:
+        try:
+            w.Engine(folder, 1, kind)
+            check(False, "%s: a folder with no files must not load" % kind)
+        except FileNotFoundError as error:
+            check(names[0] in str(error), "%s: the missing file is named: %s" % (kind, error))
+        for name in names:
+            open(os.path.join(folder, name), "wb").close()
+        calls.clear()
+        engine = w.Engine(folder, 2, kind)
+        check(len(calls) == 1 and engine.kind == kind, "%s: one recogniser built" % kind)
+        how, kw = calls[0]
+        check(kw["num_threads"] == 2 and kw["tokens"].endswith("tokens.txt"), "%s: threads and tokens passed: %s" % (kind, kw))
+        if kind == "nemo-transducer":
+            check(how == "transducer" and kw["model_type"] == "nemo_transducer" and kw["joiner"].endswith("joiner.int8.onnx"), "parakeet loads as a NeMo transducer: %s" % kw)
+        else:
+            check(how == "sense-voice" and kw["language"] == "auto" and kw["model"].endswith("model.int8.onnx"), "sense voice loads with automatic language: %s" % kw)
+check(w.KINDS == ("moonshine", "nemo-transducer", "sense-voice"), "the kinds the bridge may ask for")
 print("ok")
