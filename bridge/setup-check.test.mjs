@@ -297,15 +297,15 @@ const KEYS = {
   versions: ['id', 'state', 'code', 'scripts', 'runtime'], packs: ['id', 'state', 'code', 'found', 'nested', 'moved', 'omniMissing'],
   browser: ['id', 'state', 'code', 'name'], 'local-ai': ['id', 'state', 'code', 'selected', 'installed'],
   internet: ['id', 'state', 'code', 'service', 'host'], gpu: ['id', 'state', 'code', 'name', 'memoryMiB', 'adapters'],
-  'mod-manager': ['id', 'state', 'code', 'managers'],
+  'mod-manager': ['id', 'state', 'code', 'managers'], compiler: ['id', 'state', 'code'],
 };
 
-test('the document has exactly the agreed shape: seven checks in order, each with its own fields', async () => temp(async root => {
+test('the document has exactly the agreed shape: eight checks in order, each with its own fields', async () => temp(async root => {
   const document = await collectSetupCheck(options(await install(root), {request: 'r-1'}));
   assert.deepEqual(Object.keys(document), ['version', 'updated', 'bridgePid', 'request', 'checks']);
   assert.equal(document.version, 1); assert.equal(document.updated, 1_800_000_000_000);
   assert.equal(document.bridgePid, process.pid); assert.equal(document.request, 'r-1');
-  assert.deepEqual(document.checks.map(check => check.id), ['versions', 'packs', 'browser', 'local-ai', 'internet', 'gpu', 'mod-manager']);
+  assert.deepEqual(document.checks.map(check => check.id), ['versions', 'packs', 'browser', 'local-ai', 'internet', 'gpu', 'mod-manager', 'compiler']);
   for (const check of document.checks) assert.deepEqual(Object.keys(check), KEYS[check.id], check.id);
   assert.deepEqual(byId(document).versions, {id: 'versions', state: 'ok', code: 'match', scripts: '0.2.0', runtime: '0.2.0'});
   assert.deepEqual(byId(document).browser, {id: 'browser', state: 'ok', code: 'found', name: 'Microsoft Edge'});
@@ -314,7 +314,7 @@ test('the document has exactly the agreed shape: seven checks in order, each wit
   assert.deepEqual(byId(document)['mod-manager'], {id: 'mod-manager', state: 'ok', code: 'none', managers: []});
   assert.deepEqual(byId(document)['local-ai'], {id: 'local-ai', state: 'ok', code: 'not-used', selected: false, installed: false});
   assert.deepEqual(byId(document).internet, {id: 'internet', state: 'ok', code: 'reachable', service: 'convai', host: 'api.convai.com'});
-  assert.equal(JSON.parse(JSON.stringify(document)).checks.length, 7, 'plain JSON');
+  assert.equal(JSON.parse(JSON.stringify(document)).checks.length, 8, 'plain JSON');
   assert.equal((await collectSetupCheck(options(await install(root), {request: '../../etc'}))).request, null, 'only a well-formed id is echoed');
   assert.equal((await collectSetupCheck(options(await install(root)))).request, null);
 }));
@@ -462,7 +462,7 @@ test('a detector that fails turns only its own check into unknown', async () => 
   for (const [name, over, id] of [['browser', {browser: boom}, 'browser'], ['graphics', {graphics: reject}, 'gpu'], ['localAi', {localAi: boom}, 'local-ai'],
     ['modManagers', {modManagers: reject}, 'mod-manager'], ['nestedPacks', {nestedPacks: reject}, 'packs']]) {
     const document = await collectSetupCheck(options(paths, over));
-    assert.equal(document.checks.length, 7, name);
+    assert.equal(document.checks.length, 8, name);
     assert.deepEqual(byId(document)[id], unknown(id), name);
     for (const other of document.checks) {
       if (other.id !== id) assert(!(other.state === 'unknown' && other.code === 'unknown'), `${name}: ${other.id} is unaffected`);
@@ -483,7 +483,7 @@ test('a light run starts no process and makes no connection', async () => temp(a
   const paths = await install(root);
   const trap = name => () => assert.fail(`${name} must not run in a light run`);
   const light = await collectSetupCheck(options(paths, {light: true, request: 'r-2', browser: trap('browser'), graphics: trap('graphics'), reach: trap('reach')}));
-  assert.deepEqual(light.checks.map(check => check.id), ['versions', 'packs', 'browser', 'local-ai', 'internet', 'gpu', 'mod-manager']);
+  assert.deepEqual(light.checks.map(check => check.id), ['versions', 'packs', 'browser', 'local-ai', 'internet', 'gpu', 'mod-manager', 'compiler']);
   assert.deepEqual(byId(light).browser, {id: 'browser', state: 'unknown', code: 'unknown', name: null});
   assert.deepEqual(byId(light).gpu, {id: 'gpu', state: 'unknown', code: 'unknown', name: null, memoryMiB: null, adapters: []});
   assert.deepEqual(byId(light).internet, {id: 'internet', state: 'unknown', code: 'unknown', service: 'convai', host: 'api.convai.com'});
@@ -565,7 +565,7 @@ test('a request left by an earlier session is never answered; a new one is answe
   await f.instance.poll();
   assert.deepEqual(collects(f.calls).map(call => [call[1], call[2]]), [['s-1', {light: false}]], 'a request is a full run');
   const answer = JSON.parse(await readFile(resultPath, 'utf8'));
-  assert.equal(answer.request, 's-1'); assert.equal(answer.version, 1); assert.equal(answer.checks.length, 7);
+  assert.equal(answer.request, 's-1'); assert.equal(answer.version, 1); assert.equal(answer.checks.length, 8);
   assert.equal(await readFile(requestPath, 'utf8'), asked, 'the request file is left exactly as the game wrote it');
 
   await f.instance.poll(); await f.instance.poll();

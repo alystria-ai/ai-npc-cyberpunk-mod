@@ -111,7 +111,7 @@ test('handle API: a wrong or oversized argument is refused with its reason, a nu
     local section = M.settingsSections()[1]
     assert(#section.title == 60, 'the title is cut to 60')
     local custom = {}
-    for _, entry in ipairs(section.items) do if entry.mcmId:find('^addon:skippy:item') or entry.mcmId:find(':pick') then custom[#custom + 1] = entry end end
+    for _, entry in ipairs(section.items) do if entry.rowId:find('^addon:skippy:item') or entry.rowId:find(':pick') then custom[#custom + 1] = entry end end
     assert(#custom == 24, 'at most 24 items: ' .. #custom)
     assert(#custom[1].label == 80, 'labels are cut to 80')
     assert(handle:setting('pick') == 3 and handle:setting('pick_low') == 1, 'a select default is clamped into its elements')

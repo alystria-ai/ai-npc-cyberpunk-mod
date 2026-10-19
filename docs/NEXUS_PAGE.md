@@ -26,7 +26,7 @@
 [size=4][b]Requirements[/b][/size]
 [list]
 [*]Cyberpunk 2077 version 2.31 on Windows 10 or 11 (64-bit).
-[*]These mods from Nexus Mods, installed first: [url=https://www.nexusmods.com/cyberpunk2077/mods/107]Cyber Engine Tweaks[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/2380]RED4ext[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/1511]redscript[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/7780]Codeware[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/4197]TweakXL[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/12001]Audioware[/url] and [url=https://www.nexusmods.com/cyberpunk2077/mods/31640]Mod Configuration Menu[/url]. Tested with Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5, TweakXL 1.11.4, Audioware 1.9.9 and Mod Configuration Menu 0.10.3.
+[*]These mods from Nexus Mods, installed first: [url=https://www.nexusmods.com/cyberpunk2077/mods/107]Cyber Engine Tweaks[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/2380]RED4ext[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/1511]redscript[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/7780]Codeware[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/4197]TweakXL[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/12001]Audioware[/url] and [url=https://www.nexusmods.com/cyberpunk2077/mods/3518]Native Settings UI[/url]. Tested with Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5, TweakXL 1.11.4, Audioware 1.9.9 and Native Settings UI 1.96.
 [*]A Chromium browser such as Microsoft Edge (Windows 10 and 11 include it), Google Chrome, Brave or Opera. The voice service runs a hidden copy of it. Firefox does not work.
 [*]About 3 GB of free disk space, plus more for the optional packs.
 [*]Internet for Convai, Mistral or the Voxtral voice. Local AI with a local voice needs none.
@@ -76,9 +76,10 @@ All on the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-pac
 [size=4][b]Fully local setup (no internet, no account)[/b][/size]
 [list=1]
 [*]Install the Scripts and Runtime, plus one Local AI pack (or a Mature pack).
-[*]Companion Manager > Settings > Conversation provider: choose [b]Local AI[/b] and press Apply. With only a Mature pack, also turn on [b]Mature content[/b].
+[*]Companion Manager > Settings > Conversation provider: choose [b]Local AI[/b]. With only a Mature pack, also turn on [b]Mature content[/b].
 [*]Local AI speaks with Pocket TTS, already in the Runtime (English). For voices that sound like the game characters, and for other languages, add the OmniVoice pack and choose it in Settings > Voices.
-[*]If Windows asks whether node.js may use the network, you can decline: Local AI and the local voices only talk inside your PC.
+[*]If Windows asks whether Node.js may use the network, you can decline: Local AI and the local voices only talk inside your PC.
+[*]For no network traffic at all, also turn off [b]Settings > Privacy > Send error reports automatically[/b].
 [/list]
 
 [size=4][b]Use your own AI model or model server[/b][/size]
@@ -92,7 +93,7 @@ Usual addresses: KoboldCpp http://127.0.0.1:5001/v1, LM Studio http://127.0.0.1:
 [code]{"version":1,"models":[{"file":"custom/MyModel-Q4_K_M.gguf","name":"My Model"}]}[/code]
 This runs on the mod's own engine, so a Local AI or Mature pack must be installed.
 
-Then in game: Settings > Conversation provider, choose Local AI, pick your model in the Local AI model row and press Apply. List several models in the same file, separated by commas. Your model shares the graphics card with the game, so pick a size that leaves the game enough video memory.
+Then in game: Settings > Conversation provider, choose Local AI, pick your model in the Local AI model row. List several models in the same file, separated by commas. Your model shares the graphics card with the game, so pick a size that leaves the game enough video memory.
 
 [size=4][b]FAQ[/b][/size]
 [b]Will it slow my game down?[/b]
@@ -104,12 +105,20 @@ No. Companions are temporary copies that the mod owns. The game's own story char
 [b]What leaves my computer?[/b]
 With Convai, your lines go to Convai, along with a recent picture of only the game window so characters can see where you are. It is taken only while someone you can talk to is near, kept in memory for a few seconds and never saved. With Mistral, your lines go to Mistral. With Local AI, nothing leaves your computer for replies.
 
+[b]Error reports[/b]
+When something in the mod fails, a short report goes to the developer so it can be fixed without asking you for logs. It is on by default; turn it off in [b]Settings > Privacy > Send error reports automatically[/b].
+[list]
+[*][b]Sent:[/b] the error, the mod and requirement versions, your provider, voice and Local AI model choices, Mature content on or off, your graphics card, the setup check, and up to 150 log lines around the error, with keys, IDs and your Windows user name removed.
+[*][b]Never sent:[/b] keys, what you or the characters say, memories, audio, your Windows user name or your IP address.
+[*]At most one report per kind of error a day and five a day in all; kept for 30 days.
+[/list]
+
 [b]What languages can I use?[/b]
 Menus come in sixteen languages. Turn on Multilingual conversations to talk in any language. Pocket and Voxtral speak English only, so those replies use OmniVoice, or Convai's cloud voice without the pack. The Convai microphone expects English, so type in other languages.
 
 [size=4][b]Troubleshooting[/b][/size]
 [b]The Companion Manager doesn't show up.[/b]
-It lives inside Mod Configuration Menu: press Esc and open MCM > Companion Manager (the manager key jumps there). No MCM entry in the pause menu? Install or update Mod Configuration Menu.
+Press Esc, then Mods > AI NPC Cyberpunk Mod, or press your manager key. No Mods entry in the pause menu? Install or update Native Settings UI.
 
 [b]Settings says it needs a browser, or the service does not start.[/b]
 Install or repair Microsoft Edge (free from [url=https://www.microsoft.com/edge]microsoft.com/edge[/url]) or install Google Chrome, then restart the game. Some Windows tweak tools remove Edge.

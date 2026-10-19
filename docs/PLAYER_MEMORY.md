@@ -195,7 +195,7 @@ damaged copy is kept), never text. Tests: `bridge/vendor-memory.test.mjs`.
 - `bridge/player-memory-api.mjs`: verified ownership and bounded Core API calls.
 - `bridge/player-knowledge.mjs`: fresh current-world and audience routing.
 - `bridge/player-phone-knowledge.mjs`: immutable phone request/session ownership.
-- `bridge/player-memory-control.mjs`: native MCM command/result IPC.
+- `bridge/player-memory-control.mjs`: native Companion Manager command/result IPC.
 - `bridge/vendor-memory.mjs`: local per-shop memory (see Vendor memory).
 - `bridge/chat-memory-resets.mjs`: confirmed aggregate reset journal and local
   reconciliation.

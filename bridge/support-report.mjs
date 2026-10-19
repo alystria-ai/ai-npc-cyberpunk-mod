@@ -7,6 +7,8 @@ import {createZip} from './zip-writer.mjs';
 import {atomicFile} from './guarded-file.mjs';
 import {NO_BROWSER_MESSAGE} from './system-browser.mjs';
 import {cachedGraphicsCards} from './setup-check.mjs';
+import {describePackFiles} from './local-ai-pack.mjs';
+import {errorReportStatus} from './error-events.mjs';
 
 // Support report: one redacted zip a player can send to the developer after an
 // error. The Help page in Companion Manager writes runtime/report-request.json;
@@ -49,15 +51,29 @@ const RULES = [
 const UUID = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
 const LONG_HEX = /\b[0-9a-f]{32,}\b/gi;
 const LONG_RUN = /[A-Za-z0-9+_=-]{40,}/g;
-const USER_PATH = /([A-Za-z]:[\\/]+Users[\\/]+)[^\\/\s"'<>|:*?]+/gi;
+// The Windows account name in a profile path, in every spelling a log uses: C:\Users\<name>, c:/users/<name>, \\?\C:\Users, \\host\c$\Users,
+// JSON-escaped (C:\\Users\\) and URL-encoded (C%3A%5CUsers%5C). A name with spaces ("John Smith") is taken whole up to the next separator, quote
+// or the end; past 64 characters with none, only its first word is (the old rule). A Windows account name never holds , ; = + [ ] or those.
+const PATH_SEPARATOR = String.raw`(?:[\\/]|%5c|%2f)`;
+const NOT_IN_NAME = String.raw`\r\n"'<>|:*?,;=+\[\]`;
+const USER_PATH = new RegExp(String.raw`((?:^|[\\/:]|%5c|%2f|%3a)Users${PATH_SEPARATOR}+)`
+  + String.raw`(?:[^\\/${NOT_IN_NAME}]{1,64}?(?=${PATH_SEPARATOR}|[${NOT_IN_NAME}]|$)|[^\\/\s"'<>|:*?]+)`, 'gi');
+const escapeRegExp = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 export const shortHash = value => createHash('sha256').update(String(value)).digest('hex').slice(0, 8);
 
-export function createRedactor({secrets = [], ids = []} = {}) {
+/**
+ * `accounts`: the player's Windows account names (offline report: %USERNAME% and the profile folder's name). Any path part that is exactly
+ * one of them becomes <user> as well, for a profile outside C:\Users or a folder named after the player (D:\Jane\Games\Cyberpunk 2077).
+ */
+export function createRedactor({secrets = [], ids = [], accounts = []} = {}) {
   const literal = [...new Set(secrets.filter(value => typeof value === 'string' && value.trim().length >= 6)
     .flatMap(value => [value, value.trim()]))].sort((a, b) => b.length - a.length);
   const known = [...new Set(ids.filter(value => typeof value === 'string' && value.length >= 6))].sort((a, b) => b.length - a.length);
   const stats = {secrets: 0, ids: 0, patterns: 0, paths: 0};
+  const names = [...new Set(accounts.filter(name => typeof name === 'string').map(name => name.trim())
+    .filter(name => name.length >= 2 && name.length <= 64 && !/[\\/\r\n]/.test(name)))].sort((a, b) => b.length - a.length);
+  const account = names.length ? new RegExp(String.raw`(^|${PATH_SEPARATOR})(?:${names.map(escapeRegExp).join('|')})(?=${PATH_SEPARATOR}|[\s${NOT_IN_NAME})]|$)`, 'gi') : null;
   const replaceAll = (text, needle, replacement, counter) => {
     if (!text.includes(needle)) return text;
     stats[counter] += text.split(needle).length - 1;
@@ -77,6 +93,7 @@ export function createRedactor({secrets = [], ids = []} = {}) {
       stats.patterns++; return '[token-redacted]';
     });
     value = value.replace(USER_PATH, (_, prefix) => { stats.paths++; return `${prefix}<user>`; });
+    if (account) value = value.replace(account, (_, prefix) => { stats.paths++; return `${prefix}<user>`; });
     return value;
   };
   const walk = (value, key = '', depth = 0) => {
@@ -202,11 +219,41 @@ export async function locateLogs({game, modRoot, runtime, stateDirectory}) {
   return result;
 }
 
+// The custom (OpenAI-compatible) provider's settings file (bridge/custom-endpoint.mjs CUSTOM_FILE): its `api-key=` line is a secret, its
+// address and model id are not (they are diagnostics, and redacting them would hide the host from the report).
+export const CUSTOM_ENDPOINT_FILE = 'player-custom-endpoint.txt';
+
+/** The value of every `api-key=` / `key=` / `token=` / `secret=` line of a settings file, as written and without quotes. */
+export function keyLineValues(text) {
+  const found = [];
+  for (const line of String(text ?? '').replace(/^﻿/, '').split(/\r\n|\r|\n/)) {
+    const match = /^\s*(?:api[-_ ]?key|apikey|key|token|secret)\s*[=:]\s*(\S+)\s*$/i.exec(line);
+    if (!match) continue;
+    found.push(match[1]);
+    const bare = match[1].replace(/^bearer\s+/i, '').replace(/^["'`<]+|["'`>]+$/g, '');
+    if (bare && bare !== match[1]) found.push(bare);
+  }
+  return found;
+}
+
 export async function credentialSecrets(stateDirectory) {
   const found = [];
   if (!stateDirectory) return found;
   const names = ['convai-key.txt', 'kaggle-access-token.txt'];
-  try { for (const name of await readdir(stateDirectory)) if (/^huggingface-.*\.txt$/i.test(name)) names.push(name); } catch { return found; }
+  let custom = false;
+  try {
+    for (const name of await readdir(stateDirectory)) {
+      // Every saved key file (player-convai-key.txt, player-mistral-key.txt, player-inworld-key.txt...), also one the service did not load.
+      if (/^huggingface-.*\.txt$/i.test(name) || (/-key\.txt$/i.test(name) && !names.includes(name))) names.push(name);
+      if (name.toLowerCase() === CUSTOM_ENDPOINT_FILE) custom = name;
+    }
+  } catch { return found; }
+  if (custom) {
+    try {
+      const info = await stat(join(stateDirectory, custom));
+      if (info.isFile() && info.size <= 16384) found.push(...keyLineValues(await readFile(join(stateDirectory, custom), 'utf8')));
+    } catch {}
+  }
   for (const name of names) {
     try {
       const info = await stat(join(stateDirectory, name));
@@ -275,7 +322,7 @@ export async function publishSupportPaths({game, modRoot, runtime, stateDirector
 // A setup-check.json is read as this bridge's own while its bridgePid is this process, or (written by another process) while it is under
 // ten minutes old: a document an earlier game session left behind says nothing about this one.
 const SETUP_FRESH_MS = 10 * 60 * 1000;
-function setupLine(row) {
+export function setupLine(row) {
   const id = clip(row?.id, 40), code = clip(row?.code, 40);
   if (!id || !code) return null;
   const detail = [];
@@ -390,9 +437,29 @@ async function versions({game, modRoot, project, logs, now}) {
   return result;
 }
 
+// The model server's own record (bridge/local-llm-server.mjs diagnostics(): which file is loaded, its family, chat template length and hash, how the last turn
+// went) and the folder description copied as plain data only: numbers, booleans, short strings, objects and lists of at most 24, six deep. It holds file names, never a path, a key or a word of a reply.
+function plainData(value, depth = 0) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'boolean' || value === null) return value;
+  if (typeof value === 'string') return clip(value, 200);
+  if (Array.isArray(value) && depth < 6) return value.slice(0, 24).map(item => plainData(item, depth + 1)).filter(item => item !== undefined);
+  if (value && typeof value === 'object' && !Array.isArray(value) && depth < 6) {
+    const out = {};
+    let count = 0;
+    for (const [key, item] of Object.entries(value)) {
+      if (++count > 30) break;
+      const copy = plainData(item, depth + 1);
+      if (copy !== undefined) out[clip(key, 40)] = copy;
+    }
+    return out;
+  }
+  return undefined;
+}
+
 // Local AI detection, as the service sees it. Only the fields named here are copied from runtime/mistral-state.json (which
 // also holds provider and key-status fields); the pack root and the manifest file names come from the folder itself.
-export async function localAiSection({runtime, project, environment = process.env}) {
+export async function localAiSection({runtime, project, environment = process.env, describeFiles = describePackFiles}) {
   const read = await readSmallJson(join(runtime, 'mistral-state.json'));
   const state = read.value && typeof read.value === 'object' ? read.value : {};
   const fromEnvironment = typeof environment.CYBERPUNK_CONVAI_LOCAL_AI === 'string' && environment.CYBERPUNK_CONVAI_LOCAL_AI.trim() !== '';
@@ -408,6 +475,10 @@ export async function localAiSection({runtime, project, environment = process.en
     localAi: typeof state.localAi === 'string' ? clip(state.localAi, 40) : null,
     maturePack: typeof state.maturePack === 'boolean' ? state.maturePack : null,
     localModels: models,
+    // What is loaded and how the last local turns went (absent until a model was loaded): the cause of a turn that timed out is in lastTurn and template.
+    diagnostics: plainData(state.localDiagnostics) ?? null,
+    // Which markers the folder holds, the model files each names (there or not, with sizes) and the .gguf files of models/: a pack that was not fully extracted shows here.
+    packFiles: (() => { try { return plainData(describeFiles({project, environment})); } catch { return null; } })() ?? null,
     root, rootSource: fromEnvironment ? 'CYBERPUNK_CONVAI_LOCAL_AI' : 'default (local-ai next to the bridge)',
     rootExists: manifests !== null, manifests: manifests ?? [],
   };
@@ -460,12 +531,13 @@ function companionProviders({settings, voice, routing, party}) {
 /**
  * Builds the report in memory. Nothing is written here.
  *
- * Offline mode (Make support report.bat, bridge/offline-support-report.mjs: the game is closed and no service runs) passes four
+ * Offline mode (Make support report.bat, bridge/offline-support-report.mjs: the game is closed and no service runs) passes five
  * more options; the service never does, and without them nothing here changes:
  *   offline         true: the README and summary say the report was made with the game closed, and no bridge process is described
  *   logs            the located log list to use instead of locateLogs (the offline tool looks in more than one folder)
  *   extraProblems   more lines for the PROBLEM FOUND block, after the ones the status files give
  *   extraSummary    an object merged into summary.json (it goes through the same redactor as everything else)
+ *   accounts        the player's Windows account names, hidden in every path as well (createRedactor)
  */
 export async function collectReport(options) {
   const {game, runtime, stateDirectory, project, request, now = Date.now, bridge = {}, environment = process.env} = options;
@@ -475,7 +547,7 @@ export async function collectReport(options) {
   const graphicsSource = options.graphics ?? (() => cachedGraphicsCards());
   const graphicsPending = Promise.resolve().then(() => typeof graphicsSource === 'function' ? graphicsSource() : graphicsSource).catch(() => []);
   const secrets = [...(options.secrets ?? []), ...await credentialSecrets(stateDirectory), ...await customServerSecrets({project: project ?? resolve(runtime, '..'), environment})];
-  const redact = createRedactor({secrets, ids: options.knownIds ?? []});
+  const redact = createRedactor({secrets, ids: options.knownIds ?? [], accounts: Array.isArray(options.accounts) ? options.accounts : []});
   const logs = Array.isArray(options.logs) ? options.logs : await locateLogs({game, modRoot, runtime, stateDirectory});
   const lua = sanitizeRequest(request ?? {});
   const entries = [], index = [], errors = [];
@@ -542,6 +614,8 @@ export async function collectReport(options) {
     // Offline, this is the status the last game session left behind, and no process of this report's own is described.
     bridge: offline ? {offline: true, ...bridge, status} : {pid: process.pid, uptimeSeconds: Math.round(process.uptime()), ...bridge, status},
     settings: settingsView,
+    // Settings > Privacy > Send error reports automatically (docs/ERROR_REPORTS.md): on or off, and counts only.
+    errorReports: await errorReportStatus({runtime, stateDirectory, now: now()}).catch(() => null),
     localAi: await localAiSection({runtime, project: project ?? resolve(runtime, '..'), environment}),
     party: {companions: party, connections: raw['party-connection-state.json']
       ? redact.value(compactStatus('party-connection-state.json', raw['party-connection-state.json'])) : null},
@@ -617,7 +691,13 @@ export function parseReportRequest(raw, now = Date.now()) {
 // Copy Report path: the game side cannot always reach the Windows clipboard, so
 // it asks the service. Only the path of a report file is ever copied.
 export const CLIPBOARD_REQUEST_MAX_AGE_MS = 15_000;
-export function parseClipboardRequest(raw, now = Date.now()) {
+const sameFolder = (a, b) => process.platform === 'win32' ? resolve(a).toLowerCase() === resolve(b).toLowerCase() : resolve(a) === resolve(b);
+/**
+ * `folders` (the service passes the reports folder and runtime/): the text must then be an absolute path to a file directly in one of them.
+ * Without it only the file name is checked. Either way nothing but a report's path reaches the clipboard: a request that names something
+ * else (a command line that merely ends in a report's name) is refused.
+ */
+export function parseClipboardRequest(raw, now = Date.now(), {folders} = {}) {
   let value;
   if (typeof raw !== 'string' || Buffer.byteLength(raw, 'utf8') > 4096) return null;
   try { value = JSON.parse(raw); } catch { return null; }
@@ -626,6 +706,11 @@ export function parseClipboardRequest(raw, now = Date.now()) {
   if (typeof value.text !== 'string' || value.text.length > 1024 || /[\u0000-\u001f]/.test(value.text)) return null;
   const file = basename(value.text.replaceAll('\\', '/'));
   if (!REPORT_NAME.test(file) && file !== LUA_REPORT_NAME) return null;
+  if (Array.isArray(folders)) {
+    // A drive path or a UNC path, with none of the characters Windows refuses in a file or folder name.
+    if (!/^(?:[A-Za-z]:[\\/]|[\\/]{2}[^\\/])/.test(value.text) || /[<>"|?*]/.test(value.text.slice(2))) return null;
+    if (!folders.some(folder => typeof folder === 'string' && folder && sameFolder(dirname(resolve(value.text)), folder))) return null;
+  }
   return {id: value.id, text: value.text};
 }
 // clip.exe reads UTF-16 text that starts with a byte-order mark, so a Windows
@@ -669,7 +754,8 @@ export class SupportReportControl {
     const raw = await readFile(this.clipboardPath, 'utf8').catch(() => '');
     if (raw === this.clipboardObserved) return;
     this.clipboardObserved = raw;
-    const request = parseClipboardRequest(raw, this.now());
+    const folders = [reportsDirectoryFor({runtime: this.runtime, stateDirectory: this.stateDirectory}), this.runtime];
+    const request = parseClipboardRequest(raw, this.now(), {folders});
     if (!request || this.copied.has(request.id)) return;
     this.copied.add(request.id);
     try { await this.copy(request.text); } catch { /* The game still shows the path on the Last report row. */ }

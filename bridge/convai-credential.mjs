@@ -63,6 +63,30 @@ export async function readAuthSettings({env = process.env, readText = path => re
   return {enabled: true, url: parsedUrl.href, secret, fallback, problem: null};
 }
 
+/**
+ * The sign-in backend's address and request-signing secret as configured, whether or not backend mode is on: the automatic error
+ * reports (bridge/error-reports.mjs) go to the same deployment. Same sources and order as readAuthSettings (environment, then
+ * convai-auth.json, then a secret compiled into a release). Returns {url, secret} (url '' when none is set, or when it is not https
+ * and not a local address), or null when there is no secret.
+ */
+export async function readBackendAddress({env = process.env, readText = path => readFile(path, 'utf8'), path} = {}) {
+  let file = {};
+  if (path) {
+    try { const parsed = JSON.parse((await readText(path)).replace(/^﻿/, '')); if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) file = parsed; }
+    catch { /* none, or unreadable: the file is optional */ }
+  }
+  const secret = String(env.CYBERPUNK_CONVAI_AUTH_SECRET || (typeof file.secret === 'string' ? file.secret : '') || EMBEDDED_SECRET || '').trim();
+  if (secret.length < 16) return null;
+  const raw = String(env.CYBERPUNK_CONVAI_AUTH_URL || (typeof file.url === 'string' ? file.url : '') || '').trim();
+  let url = '';
+  try {
+    const parsed = new URL(raw);
+    const local = ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname);
+    if (parsed.protocol === 'https:' || (parsed.protocol === 'http:' && local)) url = parsed.href;
+  } catch { /* none set */ }
+  return {url, secret};
+}
+
 async function writePrivate(path, text) {
   const temporary = `${path}.${randomUUID().slice(0, 8)}.tmp`;
   try { await writeFile(temporary, text, {encoding: 'utf8', mode: 0o600}); await rename(temporary, path); }

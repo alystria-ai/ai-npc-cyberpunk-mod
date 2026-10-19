@@ -1,254 +1,405 @@
-# Companion Manager in MCM
+# Companion Manager in Native Settings UI
 
-The manager uses **Mod Configuration Menu 0.10.3 / API v2**, inside the game's
-native settings host. The user rejected the earlier HUD popup and suggested
-MCM. Its source remains for compatibility, but the manager shortcut and diagnostic
-no longer open it.
+The manager is one tab, **AI NPC Cyberpunk Mod**, on the Mods screen of **Native Settings UI** (NSUI: the CET mod
+`nativeSettings`, [Nexus Mods 3518](https://www.nexusmods.com/cyberpunk2077/mods/3518), developed against 1.96). The player opens
+it with **Esc, Mods, AI NPC Cyberpunk Mod** or with the manager shortcut. Every control is one of NSUI's own widgets (switch,
+selector, slider, button); nothing is drawn with ImGui, and no file or saved preference of NSUI or of any other mod is edited.
+
+Native Settings UI is the one requirement of the manager. Mod Configuration Menu (MCM) is not required; having it installed is fine
+(see "Beside MCM").
+
+**2026-10-19: moved from MCM to Native Settings UI.** The manager used to be a Mod Configuration Menu provider (`mod/mcm.lua`). The
+reasons were player reports that the manager did not show, that MCM takes over the Native Settings UI and Mod Settings screens, and
+that sub-pages stuck. The page logic moved to `mod/manager-ui.lua`, the NSUI host is `mod/nsui.lua`, the shortcut is
+`mod/nsui-entry.lua`. `mod/mcm.lua`, `mod/mcm-entry.lua` and `mod/mcm-fonts.lua` no longer exist. The log file keeps its old name,
+`runtime/mcm.log`, so reports and tools keep working.
+
+## Page layout
+
+```
+Mods screen (Esc > Mods)
+ +-- tab "AI NPC Cyberpunk Mod"            id aiNpcCyberpunkMod; one tab for the whole manager
+      +-- section "Companion Manager"      first section of every page, kept when the page changes
+      |     Home:         Characters to invite, Current party, Model browser, Settings   (button "Open")
+      |     other pages:  the Back row at the TOP                                         (button "Back")
+      |     then, only when there is something to say: one feedback line
+      +-- the sections of the page that is open (table below)
+```
+
+| Page | Back goes to | Sections |
+| --- | --- | --- |
+| Home | none | none: the four destinations are the page |
+| Characters to invite | Home | Characters to invite |
+| Current party | Home | Your group (only while a companion drives), Current party |
+| Model browser | Home | Installed character models |
+| Settings | Home | Interface, Conversations, Relationships, Conversation provider, Companion behavior, Voices, Subtitles, Automatic reactions, one section per installed add-on, Development, Help |
+| Memory | Settings | Memory, Whose memories |
+| Help and support | Settings | Setup check, If something goes wrong, Report for the developer, Where the logs are |
+| Convai paid tier | Settings | Convai paid tier, Plans |
+
+The Back row reads "Back to Companion Manager" on the first four pages and "Back to settings" on the other three. It is the first row of
+the first section, so it is always the first row of the page. Memory is a row (Manage) of Settings > Conversations, Help and support is
+the one row of Settings > Help, and Convai paid tier is a row of Settings > Conversation provider under the Convai API key row. The Help
+entry is absent when `mod/support-report.lua` did not load, the paid tier entry when `mod/convai-paid-tier.lua` did not (both are loaded
+behind `pcall`). Relationships is absent when no character has a relationship setting.
+
+A row of the page is one of four kinds, built by `setting(...)`, `action(...)` and `readonly(...)` in `mod/manager-ui.lua`:
+
+| Kind | NSUI widget |
+| --- | --- |
+| `setting`, type `bool` | switch |
+| `setting`, type `select` | string selector |
+| `setting`, type `int` | integer slider |
+| `action` | button (its text is the `value`) |
+| `readonly` | a button with no text and nothing to press: a line of text, "Label: value" |
+
+**The first page.** The manager always opens on Home: after the player leaves the tab for another one, after the Mods screen closes,
+and on the shortcut. A hook on `SettingsMainGameController.OnInitialize` makes the tab ready on its first page before NSUI builds a
+Mods screen that was opened by hand; it does nothing for the game's own Settings screen. A save load resets the page too.
 
 ## Player flow
 
-- **Manager shortcut (currently F4 locally):** requests the real pause menu's MCM entry and selects **Companion
-  Manager**. **Esc → MCM → Companion Manager** is also available.
-- **Home:** four destination actions open Characters to invite, Current party, Model browser
-  and Settings. The destination list appears only on this home page.
-- **Characters to invite** (named "Characters" until 2026-10-14; the pages that sounded alike are now
-  Characters to invite and, under Memory, Whose memories; the "Who can talk" page was removed later, see Settings): searchable researched profiles, including Johnny Silverhand
-  and Adam Smasher, with Invite / Add copy actions for available models.
-  This catalogue is independent of phone contacts and quest unlocks.
-- **Current party:** one row per actual or invited copy, "Name #number" with
-  **Dismiss** (or **Cancel invitation**) on the right. It is the same native action
-  row as Back, so the name uses the same font role and size. The page shows no
-  status text, party count, per-copy conversation entry or last-action line.
-  A dismissed copy leaves the list at once, even while the game is paused; the
-  world deletion is queued and runs after gameplay resumes. If the game refuses
-  it, the row returns with the reason beside it. The party has no size limit and
-  nothing on the page shows or enforces one (see Party size below).
-- **Model browser:** discovers installed Character records in batches of 48,
-  shows at most 18 model results per page and searches the full discovered
-  catalogue by name or record. Use MCM's **Search settings** field. It is visible to
-  every player: it lets you invite any game character model, including characters
-  without conversation support, which join as followers and do not talk.
-- **Settings:** Memory and Relationships submenus (there is no "Who can talk" row or page; every character may talk by default, and one the
-  player muted earlier stays muted, since nothing resets the saved value),
-  **Auto-connect nearby characters** (on by default and silent, see below), eye contact height, head tracking strength
-  (Eyes only / Subtle / Gentle (default) / Strong), **Body gestures (experimental)** (on by default since 2026-10-11), voice playback,
-  **V's voice for typed lines** (on by default; speaks what you type in V's cloned voice before the companion answers; see `docs/V_VOICE.md`) and, right under it, **V's voice engine** (a select, Pocket by default or Voxtral; Pocket runs on the processor, Voxtral is the Mistral cloud voice with the player's Mistral key and loads nothing locally; Voxtral reads "Voxtral · needs Mistral key" and is refused on Apply until a key is saved, and it is refused with Mature content on, which keeps the typed line off the cloud; the companions' voice does not matter, any mix works),
-  **Keep prepared voices** (on by default), subtitles, automatic reactions, interface language and
-  Developer mode (routine popups, a movement trace file, gesture logs and the setting in support reports; leave it off
-  for normal play). The global voice choices are **Pocket · Performance (the default), OmniVoice · Balanced,
-  OmniVoice · Quality, OmniVoice · High Quality, OmniVoice · Ultra Quality, Voxtral · Mistral cloud and Convai · Cloud voice**, in that
-  order, plus the Inworld cloud voice as the last entry in Developer mode only, with service readiness alongside. Without the optional
-  OmniVoice pack the four OmniVoice entries are greyed out (no pack row any more), the row name gains " (no Omni pack)" and Apply refuses
-  them; see "Greyed-out entries" below.
-  **Cloud voice and the tag settings** (`manager.applySettings`, `honourCloudVoice`; 2026-10-11): choosing Convai · Cloud voice
-  always keeps it. Natural speech and Expressive emotions would make it read their tags aloud, so both are turned off. A
-  notice ("The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off.") is shown only
-  when a setting the player had set was turned off: Natural speech on, or Expressive emotions that an Apply ever carried
-  (`expressiveEmotionsChosen` in `runtime/settings.json`). If only the Expressive emotions default was on, nothing is said, and
-  `applySettings` returns a fourth value so the open page reloads and the toggle shows Off. Turning a tag setting on while the
-  cloud voice is already saved still moves the voice to Pocket · Performance with the "needs a local voice" notice. One Apply that
-  changes the voice to the cloud voice and turns a tag setting on: the voice wins (tag off, notice). A saved cloud voice with a
-  tag setting on (older save) loads with the tag settings off and the voice kept, silently. Multilingual conversations follows the same
-  rule (the voice is kept, never moved, when the player chooses it). If the chosen voice cannot run, the status line
-  names the voice in use (for example "Ready · Using Pocket · Performance, OmniVoice · Balanced
-  unavailable") and one gameplay notice says so once. Relationship choices read Auto / Romantic / Ordinary
-  (Auto / Casual / Ordinary for Meredith Stout); the saved values stay `auto`, `on` and `off`.
-  MCM owns setting drafts, saving, discarding, defaults and draft guards.
-  **Every setting waits for Apply, even under MCM's Auto Apply.** The installed MCM had
-  `"autoApply": true` in its own `config.json` (a global player preference we never change):
-  the banner read "Applied 1 change(s)" and there was no Apply bar. MCM's Auto Apply is
-  only the UI calling `api.setDraft` and then `api.apply` back to back. The provider
-  subscribes to `drafts.changed` and records the time; an `applyBatch` that arrives within
-  0.25 s of a draft change is the automatic apply and is refused ("Change pending. Choose
-  Apply to use it, or Revert to discard it."), so MCM keeps its own pending drafts. That
-  gives, natively and for every setting type: the changed-row marker, **Revert** and **Apply**
-  buttons, **Defaults** (staged, then Apply), a confirmation modal when leaving the mod or
-  closing Settings with pending drafts ("Unsaved changes ... has unapplied changes. Apply
-  them before leaving?" with Apply, Discard and Cancel; Cancel stays on the page), and a
-  close guard on Esc. Our own action rows (the Back rows) are refused while drafts are
-  pending ("Apply or revert pending changes before running this action"). A person's Apply
-  arrives later and commits everything in one atomic `applyBatch`. Nothing is saved, written
-  for the service, or prepared before that: no `settings.json` write and no voice-preview
-  lease. While a different voice is pending, the voice status row reads "Pending: <voice>". With a voice that loads no local model the bridge reports state `remote`; the row names the voice from `cloudVoice` ("Voxtral cloud voice · Local model unloaded", "Inworld cloud voice · Local model unloaded", otherwise "Convai voices · Local model unloaded"). Before 2026-10-16 every cloud voice read "Convai voices".
-  **Leaving with pending changes.** MCM's own dialog is tied to its `cancel` key handler, which
-  the live Esc did not reach (the page closed without asking). The provider therefore overrides
-  `SettingsMainGameController.RequestClose`, the one call that Esc, the pause menu's back and F4
-  all end in: with drafts pending it calls MCM's `McmUiEmitClosing`, so MCM shows its "Unsaved
-  changes" dialog and resumes the close itself after Apply or Discard (Cancel stays). With
-  nothing pending the close passes through untouched, other mods' pages are never held, and
-  the guard lets a close through after repeated requests or if the dialog cannot open, so the
-  player is never trapped. Each held close is logged in `runtime/mcm.log`.
-  Limits: MCM's status line shows our refusal text for each change, and the confirmation
-  popup wording and layout are MCM's own (not the game's "Settings" popup).
-  (`bridge/voice-preview.mjs`, `mod/voice-preview.lua` and `previewSettleMs` remain but are
-  unused by this page.)
+- **Home:** four destinations: Characters to invite, Current party, Model browser, Settings.
+- **Characters to invite** (named "Characters" until 2026-10-14): the researched profiles, including Johnny Silverhand and Adam
+  Smasher, one row each with **Invite**, **Add copy (n)** once a copy is in the party, or **Profile only** when the character has no
+  model to spawn. The help of a row shows the character's summary, voice, conversation state, relationship mode, the shared settings in
+  effect (speech, multilingual, memory) and, for a character in the party, how many copies. This catalogue is independent of phone
+  contacts and quest unlocks. There is no search box (NSUI has none); the list pages (see "How lists page").
+- **Current party:** one row per actual or invited copy, "Name #number", with **Dismiss** (or **Cancel invitation** while it is only
+  invited). A copy that is dismissed leaves the list at once, even while the game is paused; the world deletion is queued and runs after
+  gameplay resumes, and if the game refuses it the row returns with the reason on a line below it. A failed invitation shows its
+  reason the same way. An empty party shows "Your party is empty". While a companion drives (the chauffeur), the section **Your group**
+  holds the trip state and **Stop trip**. The party has no size limit (see "Party size").
+- **Model browser:** every Character record in the game, so any model can be invited, including characters without conversation
+  support, which join as followers and do not talk. Each row's help names the record and the conversation profile, if any.
+- **Settings:** the sections of the page table above, in that order. Rows by section:
+  - Interface: Interface language.
+  - Conversations: Memory (opens the Memory page), Talk to ordinary NPCs, Talk to story characters, Johnny in your head (with a
+    read-only "Johnny's standing" line under it while it is on), Johnny speaks up, Multilingual conversations, Auto-connect nearby
+    characters, Continue from game dialogue, Live holocall picture.
+  - Relationships: one selector per character that has the setting (Auto, Romantic, Ordinary; Auto, Casual, Ordinary for Meredith
+    Stout). The saved values stay `auto`, `on` and `off`. There is no "Who can talk" row: every character may talk by default, and
+    one the player muted earlier stays muted, since nothing resets the saved value.
+  - Conversation provider: the provider selector, Mature content, Local AI model, Mistral free API key, the Custom
+    (OpenAI-compatible) rows, Convai API key, Convai paid tier, Edit characters.
+  - Companion behavior: Eye contact height, Head tracking strength (Eyes only, Subtle, Gentle (default), Strong), Body gestures
+    (on by default since 2026-10-11, no longer called experimental).
+  - Voices: Voice playback, Companion voices, Voice status, Lip sync delay (Bluetooth), Voice volume (%), Natural speech, Expressive
+    emotions, Follow-up questions, V's voice for typed lines (on by default, `docs/V_VOICE.md`) and V's voice engine (Pocket by
+    default, or Voxtral).
+  - Subtitles; Automatic reactions (React to battles, React to collected loot); one section per installed add-on that has settings
+    (see [ADDON_API.md](ADDON_API.md); the add-on wrote its own labels); Development (Developer mode); Help.
 
-**Back** is an MCM-styled button in the bottom action row, with Revert, Apply, Defaults and
-Modified. MCM has no provider API for that row, so after each render (top-level update, from the
-widgets the styling pass already found) the provider adds one native bottom action with
-`McmUiAddBottomActionAt` at the rightmost place (`actionRightX`, the bar line `bottomActionY`)
-and shifts the other 46-unit-high buttons left by its width plus the 20-unit gap. With no other
-buttons, Back takes the place where the last button would be. It is added again after every
-render, so it follows drafts appearing or clearing and page changes, and it exists on every
-non-root page, including the one MCM restores on reopen. Its click arrives through
-`McmUiEmitAction`; it returns to the parent page. **With pending changes it behaves exactly like Esc:** it
-opens the same "Unsaved changes" dialog through `McmUiEmitClosing` (the shared `holdForDrafts` in
-`mod/mcm.lua`: at most once in 2 s, never while the dialog is open, never more than five times in a row so
-the player is not trapped) instead of doing nothing. If the
-button cannot be added, Back is the last row of the page (`inspect().backMode == 'list'`).
-Settings and Relationships start with a status line, the row
-"Changes wait until you choose Apply.", which changes in place to "Change pending. Choose Apply to
-use it, or Revert to discard it." while changes are pending.
+  Defaults and saved keys are in the README table. The Companion voices list, in order: **Pocket · Performance (the default),
+  OmniVoice · Balanced, OmniVoice · Quality, OmniVoice · High Quality, OmniVoice · Ultra Quality, Voxtral · Mistral cloud and Convai
+  · Cloud voice**, plus the Inworld cloud voice as the last entry in Developer mode only. Without the optional OmniVoice pack the
+  entries stay listed, the row's name gains " (no Omni pack)", and choosing one is refused (the row goes back to the saved voice).
+  Voice status names the voice service state, the voice in use when the chosen one cannot run ("Ready · Using Pocket · Performance,
+  OmniVoice · Balanced unavailable"; one gameplay notice says so once), "Changing after the current reply" while a change waits, and,
+  for a voice that loads no local model (bridge state `remote`, named from `cloudVoice`), "Voxtral cloud voice · Local model
+  unloaded", "Inworld cloud voice · ..." or "Convai voices · ...".
+- **Memory:** the memory controls (player memory, service state, how many characters the player has talked to, the selected character,
+  Forget selected character, Forget all memories with an inline confirmation) and, in the second section, **Whose memories**, a paged
+  list that selects the character. Selecting does not invite anyone or change conversation settings.
+- **Convai paid tier** (`docs/CONVAI_PAID_TIER.md`): the player's plan, sign-in and key rows, one row per plan, Check my plan and
+  Manage or cancel plan. The status of a purchase being followed is the feedback line for up to seven minutes.
+- **Help and support:** see "Help and support report".
 
-**MCM's status line** (the green or red text at the bottom left) is moved to the top left, under
-the header subtitle, while the page is open (its margin is changed, and restored when another
-page is shown). Routine "Completed: <page>" navigation messages are dropped; an action's own
-result, preparation progress and errors still show. If the top line can be updated in place, the
-refusal text is also kept out of that line.
+Invitations and dismissals are queued while the page pauses gameplay. Their pending state shows at once and they run once after the
+player returns to gameplay; paused spawn timers do not advance. Closing the manager returns to gameplay (see "How the shortcut works").
 
-Esc probes: `runtime/mcm.log` records "Probe:" lines for the close key events and candidate close
-handlers while the page is open (at most 60 per session), and for a close with unapplied changes.
-Live result: with no changes Esc fires `OnButtonRelease` (`UI_Cancel`, `cancel`, `back`), then
-`SettingsMainGameController.OnBack`, then `RequestClose`; the key guard asks before that.
+### Settings notes
 
-Every inner page ends with one **Back** action. Characters to invite, Current party,
-Model browser and Settings return to the manager home; Relationships, Memory
-and Prepared voices return to Settings. The memory character picker
-(Whose memories) returns to Memory, and the removed per-copy conversation page no longer exists. Navigation clears the previous page's search.
-The parent Back action remains visible when a search has no matching results.
-**Your group** (the Back action and the companion driver's trip status) appears only
-on Current party. Invitation actions still show their immediate native action
-banner on the catalogue page.
+- **Provider selector and migration.** Five entries: Convai free tier (default), Convai API key, Mistral (free plan), Local AI, Custom
+  (OpenAI-compatible). "Convai API key" stores `conversationProvider = 'convai'` with `useOwnConvaiKey = true`; the other entries store
+  `convai`, `mistral`, `local` or `custom`. A one-time migration on load (marker `convaiProviderChoice` in `settings.json`) maps the old
+  switch: on with a key saved becomes "Convai API key", anything else "Convai free tier".
+- **One key button per key.** The Convai key and the Mistral key (Settings > Conversation provider) and the Inworld key (Settings >
+  Development, Developer mode only) each have one row. Its button reads "Paste" while no key is saved and "Remove" once one is. The
+  status is in brackets in the row name: "Convai API key (...a1F9)" (the last four characters, the only part of a key ever shown),
+  "(Added)", "(Checking...)" or "(Not added)" after a failed paste, when the failure message is the first paragraph of the row's help.
+- **Where the status went.** The Local AI model row's name gets a bracket while the model is not ready ("(Warming up)", "(Not enough
+  memory)", "(Unavailable)") and its help starts with the loading sentence. The provider notes (Mistral limit reached, key not accepted
+  or model unavailable; the Convai free tier's "x of y left today" or limit reached; your key's plan limit, rejected, no memory room;
+  "Waiting for the conversation to end"; fallbacks such as "Convai: Local AI is not ready") are the first paragraph of the Conversation
+  provider row's help.
+- **Inworld is a developer-mode voice.** Companion voices lists it, as the last entry, only while Developer mode is on, as "Inworld ·
+  Cloud voice" or "Inworld · needs key". A saved Inworld voice reads as Pocket while Developer mode is off. The Inworld sentences in the
+  helps of Companion voices, Natural speech, Expressive emotions and Multilingual conversations show only in Developer mode.
+- **Gone:** Prepared voices (always kept; a saved `keepPreparedVoices = false` is read as on and written back as on;
+  `bridge/prepared-voices.mjs` stays only for `scripts/Clear-PreparedVoices.mjs`), the "Who can talk" page, the OmniVoice pack row,
+  and Groq as a provider (a saved `groq` reads as `convai`; `player-groq-key.txt` is never read).
+- **Add-ons** can hide **Most remarks per fight** with `remarkCap = false` in `handle:settings` (Delamain does; the default guard of
+  30 stays). Add-on rows are sections of the Settings page; the add-on API (`docs/ADDON_API.md`) did not change.
 
-Invitations and dismissals are queued while the page pauses gameplay. Their
-pending state appears immediately. They run once after the player returns to
-gameplay; paused spawn timers do not advance. Closing Companion Manager now
-returns to gameplay. The adapter waits for native Settings to accept the close
-and detach, then activates the real pause-menu Resume item once. MCM retains
-its unsaved-settings prompt; cancelling that prompt stays in Settings. Other
-providers and native settings retain their own exit behavior.
+## How a change is applied
+
+There is no Apply button, no draft and no Revert: NSUI has none, and a change is applied for real. `mod/nsui.lua` records what the
+widgets report (a callback only records; the work is done by the next frame's update) and applies it after a short wait:
+
+| Widget | Wait after the last change |
+| --- | --- |
+| switch | 0.3 s |
+| selector | 0.4 s |
+| slider | 0.6 s |
+| page slider, letter group (redraw only) | 0.25 s |
+
+Each new change restarts the wait, but a batch is applied at most 2 s after its first change. Changes equal to the saved value are
+dropped. A button pressed after a change applies the waiting changes first; leaving the tab or closing the screen applies them at once.
+
+The batch goes through `manager-ui.lua` `M.apply` and then `manager.applySettings` as **one validated, atomic transaction**: unknown
+keys and invalid values are rejected, `settings.json` is saved once (a temporary file and its swap), and a failed save changes nothing
+("The settings could not be saved. Nothing was changed."). If a batch of several changes is refused, each change is tried by itself,
+so the changes that can be made are made and the first refusal is the one told. Add-on settings are staged and committed only after
+the main settings saved.
+
+After every apply the page is drawn again. **What the rules did is shown on the rows in place**, with one line under Back:
+
+- A change a rule **refuses** goes back to the saved value on its row, and the line says why ("Requires a Mistral key (add it in
+  Settings > Conversation provider)", "Requires the optional OmniVoice pack (GPU)", "Requires an Inworld key (add it in Settings >
+  Development)", "Needs Local AI."). The other changes of the same moment are kept.
+- A rule that **moves other rows** corrects them in place, and the line names what moved:
+  - **Mature content** needs Local AI and never stands beside a cloud provider. Turning it on also selects, in the same transaction, the
+    Local AI provider, the largest uncensored model that fits (when one is installed) and, when the companion voice is a cloud voice,
+    Pocket TTS (a local voice is left as it is; with Multilingual conversations on, OmniVoice Balanced is used instead, and nothing
+    moves when its pack is missing). Without the Local AI pack it cannot be on and the switch goes back to off ("Needs Local AI.").
+    What it changed is kept in `settings.json` (`matureRestore`: `{conversationProvider, localModel, voice}` each as `{before, set}`),
+    so turning it off puts back what it changed, except anything the player changed since; choosing a cloud provider turns it off the
+    same way. The line reads "Also changed: ...".
+  - **Cloud voice and the tag settings** (`manager.applySettings`, `honourCloudVoice`; 2026-10-11): choosing Convai · Cloud voice keeps
+    it and turns Natural speech and Expressive emotions off (they would be read aloud). One notice ("The Convai cloud voice cannot use
+    Natural speech or Expressive emotions, so they were turned off.") shows only when the player had set one of them
+    (`expressiveEmotionsChosen` in `runtime/settings.json`). Turning a tag setting on while the cloud voice is saved moves the voice to
+    Pocket · Performance with the "needs a local voice" notice. If one batch picks the cloud voice and turns a tag setting on, the voice
+    wins. Multilingual conversations follows the same rule (the voice is kept when the player chooses it) and never keeps Pocket or
+    Voxtral, which speak English only: it switches to OmniVoice · Balanced, or to the Convai cloud voice without the pack.
+  - V's voice engine Voxtral is refused without a Mistral key and while Mature content is on.
+- **Restore defaults** is NSUI's own button, registered for this tab. On the Settings page it applies every saved row that is not at
+  its default through the same path (the Local AI model goes to the model shown as the default, the largest that fits), then says
+  "Defaults restored."; a default a rule would refuse is not forced. On any other page it changes nothing and says "Open Settings to
+  restore its defaults."
+
+On the bridge side a changed value takes effect at a safe boundary, not mid-reply (README, "How a change applies").
+
+## How lists page
+
+A long list (characters, models, the party, the memory picker) is one **page of at most 12 rows** (`PAGE_SIZE`), so a page never puts
+more than a screenful of widgets on the screen. Above the rows: a **Page** slider (only with more than one page), then a line "Page n / m"
+with the names the page starts and ends with. Moving the slider changes the page after 0.25 s; **only the rows below the controls are
+replaced**, the slider stays the same widget (the player is holding it), and the Back row and the other sections are untouched. Opening
+another page starts its list on page 1. The Model browser first shows only "Reading installed models..." while the scan runs (a bounded
+batch of 48 records a frame while the page is shown). Then it shows "N matching models" (and how many can talk), a **Starts with**
+selector (All first, then the letters in use: a plain letter upper-cased, digits and symbols together as #, a letter of another script as
+itself; left out when there are more than 40 groups) and the paged rows. The groups are built once per finished scan.
+
+**The tab and NSUI's list.** NSUI keeps a hole in its section list when a section in the middle is removed. The host therefore
+removes sections only from the end (last first) and adds the new ones; a change inside a page replaces only the rows that differ.
+A row's signature is everything about it except the value it holds (kind, id, label, description, button text, range, elements): a
+row with the same signature only gets its value brought up to date through NSUI's own setter (its callback is switched off for the
+call, so the host does not take it for the player), a row with another signature is removed and added again in its place.
+
+### Rules the host keeps
+
+- Nothing runs per frame while the Mods screen is closed (tested: no page built, nothing sent to NSUI, no page state read; the
+  slow tick of the manager's queue and notices, a quarter second, runs as before). One draw when the tab is left puts Home back. The
+  look for a copy of NSUI that loads after this mod is once a second.
+- While the tab is shown the page is checked about once a second and drawn again only when what it shows has changed (its
+  signature). An unchanged page is never drawn again (tested).
+- NSUI callbacks never build, draw or call the game: they record. Native widget work (fonts) runs from update in bounded batches.
+  CET's RTTI executor uses a 1 MiB scratch allocator shared by nested calls and does not check for failed allocation, so repeated
+  per-row widget walks inside an observer exhausted it and crashed the earlier MCM page (2026-09-30 crash dump); no walk happens
+  inside a native callback now.
+- A native object has no equality in CET (each callback gets a fresh wrapper), so identities are compared with `CalcSeed`, and a
+  missing identity fails closed.
+
+## How the shortcut works
+
+The manager shortcut is the CET hotkey `cyberpunk_convai_manager` ("AI NPC Cyberpunk Mod: companion manager"), bound by the player in
+CET's Bindings (the mod never assigns keys; the development install binds F4 when the binding is missing,
+`scripts/Set-DevelopmentBindings.ps1`). `mod/nsui-entry.lua` walks the real menus, as the player would, by activating real menu
+items; it simulates no key and edits no other mod's files, menu or input handlers.
+
+1. It refuses, and logs why, without Native Settings UI (see below), with no save loaded ("Load a save first."), while the text box is
+   open, during a scene ("Finish the scene first.") and with another menu open ("Close the current menu first, or choose Mods from the
+   pause menu."). In gameplay it asks the game to open the pause menu (menu event `OnOpenPauseMenu`); with the pause menu already open
+   it starts from there.
+2. The host puts the manager on its first page and tells NSUI which tab to start on (`lastNativeSettingsCategoryIndex`).
+3. In the pause menu it finds the item labelled "Mods" whose event is `OnSwitchToSettings` (the item NSUI adds beside Settings; the
+   game's own Settings item has the localized word) and activates it with `OnMenuItemActivated`, so NSUI marks the screen as its own
+   and builds its tabs. If NSUI still opens on another tab, the tab is selected once after 2 s. (With Mod Configuration Menu installed
+   the item is MCM's own: see "Beside MCM".)
+4. The walk is done when the tab is shown. It gives up after 8 s with "The shortcut timed out. Choose AI NPC Cyberpunk Mod from the
+   pause menu under Mods." (logged) and activates nothing else. Pressing the shortcut again during the walk changes nothing.
+5. **While the manager is open the shortcut closes it**, the way Esc does (`RequestClose`).
+6. **Closing returns to the game.** When the Settings screen that closes was showing this tab (matched by engine identity), the
+   adapter waits for that screen to detach, then activates the real **Resume** item (`OnClosePauseMenu`) once, so the game's own
+   scenario unpauses and releases its input contexts. It waits at most 3 s. The game's own Settings screen, another tab, a screen the
+   tab never showed on, a new Settings screen, a save reload and a reset never resume anything.
+
+**Without NSUI** (or with a copy that lacks one of the functions the host calls: `addTab`, `addSubcategory`, `removeSubcategory`,
+`removeOption`, `addSwitch`, `addRangeInt`, `addSelectorString`, `addButton`, `setOption`, `registerRestoreDefaultsCallback`) the
+shortcut shows the notice "The Companion Manager needs Native Settings UI (Nexus Mods)" (notice id `manager-needs-nsui`, player class, at
+most every 10 s) and starts no walk. The setup check names it too (see below). NSUI is found with `GetMod('nativeSettings')` (or
+`'NativeSettings'`) at CET's `onInit`; a copy that loads after this mod is found by a once-a-second look, and the tab is registered then.
+
+### Beside MCM
+
+Found by reading MCM 0.10.3 (`ModConfigurationMenu/mcm_ui/mcm_menu_bridge.lua` and `mcm_controller.lua`,
+`ModConfigurationMenuAPI/bridges/native_settings/provider.lua`, `00_MCMNativeSettingsLifecycle/init.lua`), **not yet confirmed in game**;
+MCM 0.10.4 (not read) changed its internals, and its author keeps only the public API stable, so the walk relies on as little of them
+as it can. With MCM's setting "Redirect Framework Menu Entries" on (the default) MCM keeps NSUI's Mods item in the pause menu's list but hides its
+widget (`SetVisible(false)`), adds its own item (data labelled "Mods" like NSUI's, event `OnSwitchToMCM`, shown as "MCM" or "Mods" by
+MCM's own setting), turns an activation of NSUI's item into MCM's screen too, and imports NSUI's tabs through a snapshot, so the manager
+is a row of MCM's list of mods (`AI NPC Cyberpunk Mod`, with the prefix `[CET]` when MCM shows provider prefixes). MCM's public API
+cannot select a row of that list (`openMod` only sets the API's own active mod; the screen keeps its own selection), and the entry never
+calls or hooks MCM's `McmUi*` functions, so the shortcut ends at the list: it reads the pause menu's list, takes NSUI's item unless MCM's item is there and NSUI's widget is hidden (or
+the game does not say), in which case it activates MCM's item with `OnMenuItemActivated`, as the player would (an item still labelled
+"Mods" and visible, not NSUI's, Resume or Mod Settings'/RCF's, is taken for it if a later MCM renames the event); when MCM's Settings
+screen has opened the walk is done and the host posts the notice "Open AI NPC Cyberpunk Mod in the Mods list." (id `manager-in-mcm-list`,
+15 translations; it is posted from the pause menu, where the game may hide the warning line, so whether the player sees it is a live
+check). The 8 s guard, the logged timeout sentence and "pressing the shortcut again" are the same, and closing the MCM screen that the
+shortcut opened returns to the game like the Mods screen does (matched by engine identity, Resume once after the detach; the shortcut
+closes it while it is open). With MCM's redirect off NSUI's item stays visible and the walk is the plain one, and without MCM nothing
+changed. Tests: a fake MCM item in `bridge/nsui-entry.test.mjs` (MCM at its default, redirect off, event renamed, no item, timeout, close
+and resume) and the real host in `bridge/nsui-manager.test.mjs`.
+
+## Fonts and widths
+
+The widgets are the game's own, with the game's geometry, so their widths are estimates in the units of `optionUnits()` (an average
+lowercase letter is 1; space 0.5; `i l . , : ; ' | !` 0.45; `t f r I ( ) - / [ ]` 0.65; `m w` 1.45; `M W` 1.6; other capitals and
+digits 1.15; a Chinese, Japanese or Korean character 2). `LAYOUT` in `mod/nsui.lua`:
+
+| What | Limit |
+| --- | --- |
+| label of a row with no button text | 36 units |
+| label of a row with a button text | 29 units |
+| section name | 70 units |
+| button text | 18 units (up to 9 units at text size 45, longer at 34) |
+| description | 420 characters |
+| select option | 26 units (`OPTION_BUDGET`) |
+
+A label, button text or text line that does not fit is cut with an ellipsis, **and its whole text leads the description**, so nothing is
+lost. A description over its limit keeps whole paragraphs while they fit, otherwise the first paragraph cut at the last full sentence
+(or word) before the limit; the descriptions put what a player must read first (Mature content's rules, who answers right now).
+`bridge/nsui-labels.test.mjs` builds every page with the real host in all 16 languages (English and the 15 translations) and holds it
+to this: only text lines may be cut, a switch, selector, slider or button never is (a translation that does not fit must be
+shortened). `bridge/description-fit.test.mjs` holds every description in every language to the 420 characters.
+
+**Select labels.** A selector shows its value between two arrows in a box of fixed width (about 32 units) that the mod cannot change,
+and a focused row draws a key box ("A", "D") over each arrow, covering the first and last letters; each box is taken as 3 units
+(`KEY_HINT_UNITS`), which leaves 26 for the text. Neither NSUI nor the game scripts shipped with the mod carry the geometry, so this is
+an estimate: if a focused label still runs under a key box in the game, raise `KEY_HINT_UNITS`. The built-in entries are short
+(`Voxtral · Mistral cloud`, `Voxtral · needs Mistral key`, `Inworld · Cloud voice`, `Inworld · needs key`, `Qwen3.5-4B · uncensored`,
+`Gemma 4 E4B · uncensored`; the word "uncensored" stays because `bridge/local-model-choice.mjs` recognises models by it). A model the
+player adds shows its own name, `(custom)` or `(custom · too large)`, and `fitOption()` cuts a label built at run time (keeping a
+trailing `(...)` or ` · ...` part). `bridge/select-labels.test.mjs` checks every select text in all languages.
+
+**Fonts.** The rows take the font of the game's language. A language of this mod that has a font family of its own (Russian,
+Ukrainian, Chinese, Japanese, Korean; `mod/ui-fonts.lua`) needs that family when the game runs in another language, so the rows and the
+description area get it, in bounded batches from update, after a draw and when the tab opens; the description area's font goes back
+when the tab is left. Latin languages (Italian, Polish, Czech, Hungarian and Turkish included, which the game ships with its ordinary
+Latin family) get nothing, and no widget is walked (tested).
 
 ## Party size
 
-The party has no size limit. The menu, the phone, the follow action ("come with me"), undoing a
-dismissal and the bridge never refuse a companion because of how many are already travelling, and
-no text mentions a capacity. The old refusals and their strings (`party-full`, "There is no room for
-another companion", "Cancel an invitation first; the party is full.", "Party full: ...",
-"Party: {count} / 8") are gone. The technical bounds that remain are resource guards that scale with
-the party instead of refusing it:
+The party has no size limit. The menu, the phone, the follow action ("come with me"), undoing a dismissal and the bridge never refuse a
+companion because of how many are already travelling, and no text mentions a capacity. The old refusals and their strings
+(`party-full`, "There is no room for another companion", "Party full: ...", "Party: {count} / 8") are gone. The technical bounds that
+remain are resource guards that scale with the party instead of refusing it:
 
 | Bound | Where | What happens in a larger party |
 | --- | --- | --- |
 | Formation places | `mod/companion-space.lua` | The eight authored places keep their geometry. Place 9 and later continue the formation in staggered rows of two, 1.2 m further back each row, generated on demand. Lanes, the stand-off distance and the "near group" radius follow. |
 | Route planning and physics queries | `mod/companions.lua`, `mod/companion-clearance.lua` | Unchanged: 192 spatial queries per update and two new route plans per update, started round-robin. A larger party is planned over more updates; nobody is refused or starved. |
-| Warm Convai connections | `bridge/party-connections.mjs` | At most 8 private connections stay warm (`WARM_PARTY_LIMIT`), inside the 11 browser pages (8 plus 3 for the talk target, group chat, partners and nearby). With more members, pending invitations come first (a copy cannot appear before its connection is ready), then the members V talked to most recently. Everyone else connects when V talks to them: the request target takes one of the optional pages and the longest-idle warm member gives theirs up. The first reply to a member who was not warm waits for a connection. |
-| Invitations preparing at once | `bridge/companion-invitations.mjs` | At most 8 characters have their memory and voice prepared at the same time (`PREPARATION_LIMIT`). More invitations wait in "Preparing" and start as earlier ones finish. An invitation whose connection has no warm place yet stays in "Connecting" until an earlier one joins; it does not fail. |
+| Warm Convai connections | `bridge/party-connections.mjs` | At most 8 private connections stay warm (`WARM_PARTY_LIMIT`), inside the 11 browser pages (8 plus 3 for the talk target, group chat, partners and nearby). With more members, pending invitations come first, then the members V talked to most recently. Everyone else connects when V talks to them; the first reply to a member who was not warm waits for a connection. |
+| Invitations preparing at once | `bridge/companion-invitations.mjs` | At most 8 characters have their memory and voice prepared at the same time (`PREPARATION_LIMIT`). More invitations wait in "Preparing" and start as earlier ones finish; one whose connection has no warm place yet stays in "Connecting" until an earlier one joins; it does not fail. |
 | Spawning | `mod/manager-party.lua`, `mod/companion-placement.lua` | Placement spends the shared per-update query budget. When it is spent the invitation is retried on a later update. |
-| Group chat | `mod/group-chat.lua` | Three speakers per round. This is a conversation size (three group connections), not a party size; any members can be chosen. |
-| Party cars | `mod/companion-vehicles.lua` | A runaway guard on cars the mod may create: at least 8 cars in all (V's and 7 more, seating 31), growing to 2 plus one car per 4 people travelling, so a larger party still gets the cars it needs. |
+| Group chat | `mod/group-chat.lua` | Three speakers per round: a conversation size, not a party size; any members can be chosen. |
+| Party cars | `mod/companion-vehicles.lua` | A runaway guard on cars the mod may create: at least 8 cars in all (V's and 7 more, seating 31), growing to 2 plus one car per 4 people travelling. |
 
 ## Help and support report
 
-**Settings → Help → Help and support** (last category of Settings) opens a Help page. Its Back
-returns to Settings, like Relationships and Memory. The page has four groups; the first is the Setup check (below), then:
+**Settings, Help, Help and support** opens the Help page (Back to settings at the top). Its sections:
 
-- **If something goes wrong**: what to do, and whether the conversation service is Running,
-  Starting, Not running, Needs a browser or Unknown. "Needs a browser" is shown when the service
-  never started because no Chromium browser (Edge, Chrome, Brave, Opera and others) is installed
-  (`bridge-service.json` code `browser-missing`); the row's help then says "The conversation service
-  needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, then
-  restart the game." The same sentence is the in-game notice, the help of the Voice status row (whose
-  value reads "Needs a browser" instead of "Waiting for voice service") and the first lines of the short
-  report. While the service is not running or starting and no model is listed, the Local AI model row
-  reads "Service not running" or "Service starting" (with the service's own sentence at the top of its
-  help) instead of "No model installed", which stays for a service whose state is unknown.
-- **Report for the developer**: **Generate report**, the **Last report** row (file name as the
-  value; the description and the banner show a shortened path, `…
-untime
-eports\` then the
-  file name on its own line, so a long path never overflows) and **Copy report path**, a
-  button that is always offered. It writes `runtime/clipboard-request.json`; the conversation
-  service puts the full path on the Windows clipboard with `clip.exe` (only the path of a
-  `convai-report-*` file, or the short report `convai-report-lua.txt`, is accepted). The game's own `ImGui.SetClipboardText` is tried too,
-  from the next top-level update rather than inside the menu callback. While no service is answering the button cannot copy (no
-  request file is written): the banner and the row's help text show the whole path instead, broken after folder separators, so it
-  can be found by hand. The "Support report
-  saved" popup appears only in Developer mode (once, when gameplay resumes).
-- **Where the logs are**: absolute paths for the mod's `runtime\` logs (`probe.log`, `mcm.log`),
-  the conversation service logs (`bridge.stderr.log`, `bridge.stdout.log`, `bridge-service.log`),
-  `launcher.log` (`red4ext\plugins\AiNpcCyberpunkMod`), the CET logs (`cyber_engine_tweaks.log`,
-  `scripting.log`), `r6\logs\redscript_rCURRENT.log`, `red4ext\logs`, and the reports folder.
+- **Setup check** (below): the **Conversation service** row first (Running, Starting, Not running, Needs a browser or Unknown), then one
+  line per check. "Needs a browser" is shown when the service never started because no Chromium browser (Edge, Chrome, Brave, Opera and
+  others) is installed (`bridge-service.json` code `browser-missing`); the row's help, the in-game notice, the help of the Voice status
+  row (whose value reads "Needs a browser") and the first lines of the short report then say "The conversation service needs a
+  Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, then restart the game." While the service is not
+  running or starting and no model is listed, the Local AI model row reads "Service not running" or "Service starting" instead of "No
+  model installed", which stays for a service whose state is unknown.
+- **If something goes wrong**: one line saying what to do.
+- **Report for the developer**: **Generate report**, **Last report** (the file name as the value; the description holds the shortened
+  path) and **Copy report path**. The copy button writes `runtime/clipboard-request.json`; the conversation service puts the full path
+  on the Windows clipboard with `clip.exe` (only the path of a `convai-report-*` file, or the short report `convai-report-lua.txt`, is
+  accepted). While no service answers the button cannot copy, and the help shows the whole path instead. The "Support report saved"
+  popup appears only in Developer mode (once, when gameplay resumes).
+- **Where the logs are**: absolute paths for the mod's `runtime\` logs (`probe.log`, `mcm.log`), the conversation service logs
+  (`bridge.stderr.log`, `bridge.stdout.log`, `bridge-service.log`), `launcher.log` (`red4ext\plugins\AiNpcCyberpunkMod`), the CET logs
+  (`cyber_engine_tweaks.log`, `scripting.log`), `r6\logs\redscript_rCURRENT.log`, `red4ext\logs` and the reports folder.
 
-Where each log is written (verified in code): `mod/init.lua` and `mod/phone-layout.lua` append to
-`<mod>\runtime\probe.log`; `mod/mcm.lua` to `<mod>\runtime\mcm.log`; CET writes
-`<mod>\AiNpcCyberpunkMod.log`, `bin\x64\plugins\cyber_engine_tweaks\cyber_engine_tweaks.log` and
-`scripting.log`; the supervisor (`bridge/bridge-supervisor.mjs`) writes `bridge-service.log`,
-`bridge.stdout.log` and `bridge.stderr.log` (previous run: `.previous`) to the **state folder**
-(development: the project's `runtime\`; packaged: `%LOCALAPPDATA%\AiNpcCyberpunkMod\data`, in 0.2 `<mod>\data`; the old bootstrap used `data\logs\`);
-the RED4ext launcher writes `launcher.log` beside its DLL; redscript and RED4ext write to `r6\logs` and
-`red4ext\logs`. Lua cannot see outside the mod folder, so the service publishes the real absolute paths in
-`runtime\support-paths.json` at start (the supervisor also adds `gameRoot` and `stateDirectory` to
-`bridge-service.json`). With neither, the page shows `the game folder\...` templates.
+Where each log is written (verified in code): `mod/init.lua`, `mod/phone-layout.lua` and the setup check append to
+`<mod>\runtime\probe.log`; `mod/nsui.lua`, `mod/manager-ui.lua` and `mod/init.lua` (notices) append to `<mod>\runtime\mcm.log` (the
+manager's log, named for the old page, kept so reports and tools work); CET writes `<mod>\AiNpcCyberpunkMod.log` and its own logs; the
+supervisor (`bridge/bridge-supervisor.mjs`) writes `bridge-service.log`, `bridge.stdout.log` and `bridge.stderr.log` (previous run:
+`.previous`) to the **state folder** (development: the project's `runtime\`; packaged: `%LOCALAPPDATA%\AiNpcCyberpunkMod\data`, in 0.2
+`<mod>\data`); the RED4ext launcher writes `launcher.log` beside its DLL. Lua cannot see outside the mod folder, so the service publishes
+the real absolute paths in `runtime\support-paths.json` at start; without it the page shows `the game folder\...` templates.
 
 ### Setup check (2026-10-19)
 
-Most setup trouble players reported was never explained by the game: the Runtime missing or not loaded, a pack extracted one folder too deep,
-no Chromium browser, Mod Configuration Menu (MCM) missing, only a Mature pack installed with Mature content off, a firewall prompt declined,
-a Mod Organizer 2 or Vortex install. The first group of the Help page, **Setup check**, answers all of these without a report. Its first row
-is the existing **Conversation service** row, then one line per check. The value is OK, Problem, Note (worth knowing, never a problem) or
-Unknown (could not be asked yet); the line's help is the one-line fix, and the group's description says "No problem found." or "Problems
-found: N." Lines (label, id): Scripts and Runtime (`versions`, only when the service has answered), Mod files, Game version, Cyber Engine
-Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware, Mod Configuration Menu, then the service's own lines Optional packs, Browser,
-Local AI, Internet, Graphics card and Mod manager. Product names are not translated; the sentences are, in all 15 languages.
+Most setup trouble players reported was never explained by the game: the Runtime missing or not loaded, a pack extracted one folder too
+deep, no Chromium browser, Native Settings UI missing, only a Mature pack installed with Mature content off, a firewall prompt declined,
+a Mod Organizer 2 or Vortex install. The first section of the Help page answers all of these without a report. The value is OK, Problem,
+Note (worth knowing, never a problem) or Unknown (could not be asked yet); the line's help is the one-line fix, and the group's
+description says "No problem found." or "Problems found: N." Lines: Scripts and Runtime (`versions`, only when the service has
+answered), Mod files, Game version, Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware, **Native Settings UI**, then the
+service's own lines Optional packs, Browser, Local AI, Internet, Graphics card and Mod manager. Product names are not translated; the
+sentences are, in all 15 languages. **Mod Configuration Menu is not checked and never produces a problem line.**
 
 | Line | Detected by | Problem when | Fix it names |
 | --- | --- | --- | --- |
-| Conversation service | Lua, `service-status.lua` (`reach()`, `unavailable()`, new `failureCode()`) on `bridge-service.json` and the heartbeats | no trace of the service in this game session (`never`), or a failed start whose code says the Runtime's files are missing (`install-incomplete`, `bridge-missing`, `missing-character-ids`, `launcher-not-configured`, `launcher-program-missing`, `launcher-directory-missing`), or any other failure with its code; a missing browser and a missing key keep the sentences they had | extract the Runtime zip straight into the game folder; download it again; restart and send a report |
-| Mod files | Lua, opens the four JSON catalogs, counts `locales/*.lua` (15) and reads `release.json` for the Scripts version | a catalog or locale is missing | extract the Scripts zip again and let it replace the files |
-| Game version | Lua, `GetGameVersion()` | never a problem: Note when it is not 2.31, Unknown when unreadable | none (the mod is tested on 2.31 only) |
-| Cyber Engine Tweaks | Lua, `GetVersion()` | never | none |
+| Conversation service | Lua, `service-status.lua` (`reach()`, `unavailable()`, `failureCode()`) on `bridge-service.json` and the heartbeats | no trace of the service in this game session (`never`), or a failed start whose code says the Runtime's files are missing (`install-incomplete`, `bridge-missing`, `missing-character-ids`, `launcher-not-configured`, `launcher-program-missing`, `launcher-directory-missing`), or any other failure with its code; a missing browser and a missing key keep their sentences | extract the Runtime zip straight into the game folder; download it again; restart and send a report |
+| Mod files | Lua, opens the four JSON catalogs, counts `locales/*.lua` (15), reads `release.json` for the Scripts version | a catalog or locale is missing | extract the Scripts zip again and let it replace the files |
+| Game version, Cyber Engine Tweaks | Lua, `GetGameVersion()` and `GetVersion()` | never: Note when the game is not 2.31 (the mod is tested on 2.31 only), Unknown when unreadable | none |
 | RED4ext | Lua: the native plugin, Codeware, TweakXL, Audioware or this mod's scripts answered | nothing answered | install RED4ext |
-| redscript | Lua: `player:ConvaiRequirements()` (`Requirements.reds`), or for scripts of 0.2.1 and older the getter `ConvaiPhoneIsOpen`; Unknown without a player | the player has neither: the scripts did not compile (a compile error anywhere disables every redscript mod) or are not installed | open `r6/logs/redscript_rCURRENT.log`: a mod it names is the cause; missing or old Codeware, Audioware or redscript, or a game other than 2.31, can also cause it |
+| redscript | Lua: `player:ConvaiRequirements()` (`Requirements.reds`), or for scripts of 0.2.1 and older the getter `ConvaiPhoneIsOpen`; Unknown without a player | the player has neither: the scripts did not compile (a compile error anywhere disables every redscript mod) or are not installed. When the service's `compiler` check (`bridge/setup-check.mjs`: is `engine/tools/scc.exe` there?) says the compiler is missing, there is no compile log to open and the line, the notice and the console say "redscript is missing" with the sentence of any missing requirement | open `r6/logs/redscript_rCURRENT.log`: a mod it names is the cause; missing or old Codeware, Audioware or redscript, or a game other than 2.31, can also cause it. With the compiler missing: install redscript |
 | Codeware, Audioware | Lua: the words `ConvaiRequirements()` answers with (`codeware`, `codeware-ui`, `codeware-textinput`, `audioware`): the modules that existed when this mod's scripts compiled. The scripts compile without either (each file that needs one guards it with `@if(ModuleExists(...))` and carries stand-ins), so loaded scripts no longer prove them. Scripts of 0.2.1 and older still imported both, so for them loading is proof (the old probes `Codeware.Version()` and `Game.GetAudioSystemExt():Version()` decide the version shown). Scripts that did not load say nothing: the line is OK only when the plugin's own probe finds it, otherwise Unknown, so a compile error is never blamed on a framework | the word is missing; Codeware without `codeware-ui` and `codeware-textinput` is too old ("Codeware is too old. Update it from Nexus Mods, then restart the game.") | install or update it from Nexus Mods |
 | TweakXL | Lua: `TweakXL.Version()` (the static function the plugin registers); Unknown when this mod's scripts did not load and nothing found it | the probe fails | install it from Nexus Mods |
-| Mod Configuration Menu | Lua: `GetMod('ModConfigurationMenuAPI')` with `apiVersion` 2, as `mcm.lua` registers | missing or too old | install 0.10.3 or newer |
-| Scripts and Runtime | bridge: `release.json` of the mod folder and of the Runtime (`package.json` in a development checkout) | the versions differ | download both for the same version |
-| Optional packs | bridge: Pocket, OmniVoice, Local AI standard and lite and the Mature models found; `findNestedPacks()` looks for `red4ext/plugins/AiNpcCyberpunkMod/app` under the game folder's child folders (and one level further), the mod folder and the plugin folder; `pack-placement.json` says what the launcher moved at this start | a pack is still one folder too deep, or the launcher could not move its files | move the `red4ext` folder inside it into the game folder |
+| Native Settings UI | Lua: `GetMod('nativeSettings')` (or `'NativeSettings'`) with its `data` table and the ten functions the host calls (`mod/setup-check.lua`) | missing, or present but too old | install 1.96 or newer from Nexus Mods |
+| Scripts and Runtime | bridge: `release.json` of the mod folder and of the Runtime (`package.json` in a development checkout). A running service that gave no answer to the request, with none earlier this game session (the bridge writes one when it starts), is a Runtime from before the setup check existed (0.2.1 and older cannot say their version): Lua marks the service silent and the line says the Runtime is probably older. Not claimed for a service that is not running or has stopped since the request | the versions differ, or the service is silent | download both for the same version |
+| Optional packs | bridge: Pocket, OmniVoice, Local AI standard and lite and the Mature models found; `findNestedPacks()` looks for `red4ext/plugins/AiNpcCyberpunkMod/app` under the game folder's child folders (and one level further), the mod folder and the plugin folder; `pack-placement.json` says what the launcher moved at this start | a pack is still one folder too deep, or the launcher could not move its files | restart the game (the launcher moves the pack at its start; the line says so), and if it is still there move the `red4ext` folder inside it into the game folder |
 | Browser | bridge: `systemBrowserCandidates()` (looked up once per process) | none found | install Edge, Chrome, Brave or Opera |
-| Local AI | bridge: the chosen provider against the pack, the free graphics memory and the server state (`not-used`, `ready`, `warming`, `not-installed`, `no-memory`, `mature-off` for only Mature models with Mature content off, `no-gpu`, `start-failed`, `crashed`) | Local AI is the provider and cannot run | download a pack, turn on Mature content, update the driver, or choose another provider |
-| Internet | bridge: a TCP connection to port 443 of the host each chosen service needs (`api.convai.com`, `api.mistral.ai`, `api.inworld.ai`), closed at once, nothing sent; `no-dns`, `blocked` (refused, reset or denied) or `timeout`. Not asked for Local AI with a local voice | the connection fails | allow Node.js through the firewall or antivirus (Windows asks once), check the internet |
-| Graphics card | bridge: `reg.exe query` of the display class key, once per process (name and the 64-bit memory size, largest card first, the Microsoft Basic Display Adapter left out) | never | none; the name and memory also go into the support report |
+| Local AI | bridge: the chosen provider against the pack, the free graphics memory and the server state (`not-used`, `ready`, `warming`, `not-installed`, `no-memory`, `mature-off`, `no-gpu`, `start-failed`, `crashed`) | Local AI is the provider and cannot run | download a pack, turn on Mature content, update the driver, or choose another provider |
+| Internet | bridge: a TCP connection to port 443 of the host each chosen service needs (`api.convai.com`, `api.mistral.ai`, `api.inworld.ai`), closed at once, nothing sent. Not asked for Local AI with a local voice | the connection fails (`no-dns`, `blocked`, `timeout`) | allow Node.js through the firewall or antivirus, check the internet |
+| Graphics card | bridge: `reg.exe query` of the display class key, once per process | never | none; the name and memory also go into the support report |
 | Mod manager | bridge: `usvfs_x64.dll` among the loaded libraries means Mod Organizer 2; a `vortex.deployment*.json` in the game folder means Vortex | never | MO2: the Overwrite folder; Vortex: install the Runtime and packs by hand |
 
-**When it runs.** Never per frame. The Lua checks run once, 12 s after the first world is ready (`FIRST_DELAY_S`: the service has said
-something by then), and once each time the Help page opens; `tick()` is called from the quarter-second slow update of `mod/mcm.lua`
-and, with nothing due, does a few comparisons: no file is opened and no game call is made (a test counts both). A run opens five small
-files and asks CET whether a few classes exist (a few milliseconds). The page's signature is built when a result arrives, not in `tick()`.
-The bridge answers through two exchange files, shipped empty and only ever rewritten in place (Mod Organizer 2,
-`packaging/runtime-exchange.json`): the Help page (and the first-load check) writes `runtime/setup-check-request.json`
-`{version, id, issuedAt}` from the next update, never inside the menu callback; `bridge/setup-check.mjs` polls it every 500 ms, answers a
-request once, and replaces `runtime/setup-check.json` `{version, updated, bridgePid, request, checks[]}`; the page follows the request for
-15 s, one small read a second, and redraws when the answer arrives. At the end of its start the bridge also writes a **light** answer
-(files and memory only: no process, no connection; browser, graphics card and Internet read Unknown). A request is **full**: the browser,
-graphics card and mod managers are looked up once per process and kept, and the connection test is made again each time. Only an answer
-written this game session is shown (the same 180 s window `service-status.lua` uses). Nothing is asked of a service that is not running.
+**When it runs.** Never per frame. The Lua checks run once, 12 s after the first world is ready (`FIRST_DELAY_S`) and once each time the
+Help page opens (a few milliseconds: five small files and a few class lookups); `tick()` is called from the quarter-second slow update of
+`mod/manager-ui.lua` and, with nothing due, does a few comparisons (a test counts file opens and game calls). The bridge answers through
+two exchange files, shipped empty and only ever rewritten in place (Mod Organizer 2, `packaging/runtime-exchange.json`): the Help page
+(and the first-load check) writes `runtime/setup-check-request.json` from the next update, never inside the menu callback;
+`bridge/setup-check.mjs` polls it every 500 ms and replaces `runtime/setup-check.json`; the page follows the request for 15 s, one small
+read a second, and redraws when the answer arrives. At the end of its start the bridge also writes a **light** answer (files and memory
+only); a request is **full** (browser, graphics card and mod managers looked up once per process, the connection test made again each
+time). Only an answer written this game session is shown (a 180 s window, as `service-status.lua`).
 
 **The first-load notice.** When something critical is wrong the player gets one notice, once per game session, in gameplay: the first
-problem in a fixed order (this mod's scripts, RED4ext, Codeware, Audioware, TweakXL, Mod Configuration Menu, mod files, a service that never
+problem in a fixed order (this mod's scripts, RED4ext, Codeware, Audioware, TweakXL, Native Settings UI, mod files, a service that never
 started, Scripts and Runtime, packs, Internet), one short text of at most two lines (`bridge/setup-notice-fit.test.mjs` holds all 15
-languages to that), shown for 9 s. The order puts everything that keeps the mod from starting, and MCM, before the texts that say "See
+languages to that), shown for 9 s. The order puts everything that keeps the mod from starting, and Native Settings UI, before the texts that say "See
 Help in Settings", so a notice never sends the player to a page they cannot open. A service that failed has its own notice
 (`service-down`), Local AI its own fallback notices, and a mod manager, the game version and the browser none; those are lines on the
 page only. At the first load the Lua also asks the running service for its full answer and waits for it (at most 15 s), so a
 firewall that blocks the service is found without opening Help.
 
-**Without Mod Configuration Menu** the Help page cannot open. The notice then says "Install Mod Configuration Menu from Nexus Mods to
-open the Companion Manager.", the CET console and `runtime/probe.log` get one English line ("AI NPC Cyberpunk Mod: Mod Configuration Menu
-is missing or too old, so the Companion Manager cannot open. Install Mod Configuration Menu 0.10.3 or newer from Nexus Mods, then restart
-the game."), and the probe log lists every problem found. **Without this mod's scripts** (`worldReady` never becomes true, because it
-needs one of their methods) the notice is written straight to the warning line (`notices.lua` `M.screen.timed`, which `showS` selects)
-and shown when the game is paused no longer and no menu is open (`playable()` asks the game itself); the ordinary notice needs the
-scripts.
+**Without Native Settings UI** the manager, and so the Help page, cannot open. The notice says "The Companion Manager needs Native
+Settings UI (Nexus Mods)", the CET console and `runtime/probe.log` get one English line ("AI NPC Cyberpunk Mod: Native Settings UI is
+missing or too old, so the Companion Manager cannot open. Install Native Settings UI 1.96 or newer from Nexus Mods
+(https://www.nexusmods.com/cyberpunk2077/mods/3518), then restart the game."), and the probe log lists every problem found. **Without
+this mod's scripts** (`worldReady` never becomes true) the notice is written straight to the warning line (`notices.lua`
+`M.screen.timed`) and shown when the game is no longer paused and no menu is open.
 
 **A missing requirement, and scripts that did not compile (2026-10-19).** A redscript compile error disables every redscript mod, so
 two players lost the whole game's scripts to this mod's files when Codeware or Audioware was not installed. `r6/scripts/CyberpunkConvai/`
@@ -259,18 +410,20 @@ What the setup check does with it, and what still runs when a requirement is mis
 | Missing | Notice at the first load | What is left out |
 | --- | --- | --- |
 | Audioware | Audioware is missing (alone or in the list) | the voice played through Audioware (the OmniVoice phrases, and a holocall's voice where it uses Audioware); `speech.lua` stops offering audio to the service and says "Audioware is missing" when a voice does not start; the voices played in the browser are not affected |
-| Codeware | Codeware is missing | the speaking face (`Face.reds`), the save-bound knowledge state, the text box on the talk key (each press says so), the phone Chat tab (no contact is offered), the J and L keys and marks on the contact list, the holocall backdrop |
+| Codeware | Codeware is missing | the speaking face (`Face.reds`), the save-bound knowledge state, the text box on the talk key (each press says so), the phone Chat tab (no contact is offered), the J and L keys and marks on the contact list, the holocall backdrop (the live picture is then not cut out either) |
 | Codeware without UI modules | Codeware is too old | the text box, the Chat tab and the old Manager window |
-| TweakXL, Mod Configuration Menu | their own text | nothing in the scripts: they use neither |
+| TweakXL, Native Settings UI | their own text | nothing in the scripts: they use neither |
 | scripts did not compile | "Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load." | everything that needs a script (text box, phone, face, speech playback); the Lua side still loads and shows the notice |
 
-Two or more of RED4ext, Codeware, TweakXL and Audioware at once are one notice naming them (at most four; Mod Configuration Menu keeps
+Two or more of RED4ext, Codeware, TweakXL and Audioware at once are one notice naming them (at most four; Native Settings UI keeps
 its own notice, its name being long). The CET console and `probe.log` get one English line per problem. Because a compile error also takes
-away the scripts the old checks relied on, the order now puts "scripts did not load" first and alone, and the framework lines turn
-Unknown instead of Problem while it is true. `onInit` (`mod/init.lua`) installs each hook set through `convaiGuarded`, so one hook that
-cannot be placed (it names a method of the missing scripts) no longer stops the Mod Configuration Menu registration after it. Audioware
-and Mod Configuration Menu need Codeware themselves: a game without it fails to compile because of them, whatever this mod does, and
-the redscript popup then names them. Not covered by `ModuleExists`: a requirement that is installed but too old to have a class or method
+away the scripts the old checks relied on, the order now puts "scripts did not load" first and alone, after RED4ext only, and the
+Codeware, Audioware and TweakXL lines turn Unknown instead of Problem while it is true. RED4ext stays a Problem when nothing it loads
+answers, this mod's native plugin included (which does not depend on the compile): Codeware's scripts then never reach the compile, so
+RED4ext, not a mod the redscript log lists, is the cause to name. `onInit` (`mod/init.lua`) installs each hook set through `convaiGuarded`, so one hook that
+cannot be placed (it names a method of the missing scripts) no longer stops the Native Settings UI registration after it. Audioware
+needs Codeware itself: a game without it fails to compile because of Audioware, whatever this mod does, and
+the redscript popup then names it. Not covered by `ModuleExists`: a requirement that is installed but too old to have a class or method
 (an old Audioware without `DynamicSoundEvent`): that still fails the compile and shows in `redscript_rCURRENT.log`. `Manager.reds` stays: it
 holds the voice and subtitle on/off switches that `speech.lua`, `subtitles.lua` and `init.lua` read and `manager.lua` sets, although
 nothing opens its window.
@@ -281,12 +434,8 @@ gets `system.graphics` (name and memory of up to eight cards; this was missing b
 game-side rows under `request.setup` (at most 24 rows of four short tokens), and every Problem at the top as a `PROBLEM FOUND` line;
 a missing browser is told once, by the service status. A setup document of another bridge process counts for ten minutes only.
 
-**Packages.** Scripts: `mod/setup-check.lua` (new), `mod/mcm.lua`, `mod/notices.lua`, `mod/service-status.lua`, `mod/support-report.lua`
-and the 15 dictionaries. Runtime: `bridge/setup-check.mjs` (new, in `BRIDGE_MODULES`), `bridge/support-report.mjs`,
-`bridge/convai-bridge.mjs`, and the launcher's `place-packs.mjs` and `start-service.mjs` (`pack-placement.json` in the state folder).
-Tests: `bridge/setup-check.test.mjs` (the bridge side), `bridge/setup-check-lua.test.mjs` (the Lua module over a fake game),
-`bridge/support-help-ui.test.mjs` (the page, the first-load notice with and without MCM and without scripts),
-`bridge/setup-notice-fit.test.mjs`, `bridge/support-report.test.mjs` and `packaging/place-packs.test.mjs`.
+Tests: `bridge/setup-check.test.mjs`, `bridge/setup-check-lua.test.mjs` (the Lua module over a fake game),
+`bridge/support-help-ui.test.mjs`, `bridge/setup-notice-fit.test.mjs`, `bridge/support-report.test.mjs`.
 
 ### How a report is made
 
@@ -317,502 +466,170 @@ Tests: `bridge/setup-check.test.mjs` (the bridge side), `bridge/setup-check-lua.
    `runOfflineReport()` (`bridge/offline-support-report.mjs`). It calls the same `buildReport` as the service, so the zip is the same
    kind and goes to the same reports folder, with `generatedBy: offline`. It finds the game folder from where the Runtime is (or
    `--game`), reads the logs from disk, and adds a requirement check to `summary.json` (`requirements`, `modFiles`, `releases`,
-   `offline`): Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Mod Configuration Menu (and ArchiveXL when
-   present) with the version where one is written down (the CET and RED4ext logs of the last start, MCM's own file), this mod's CET
-   folder, redscript folder and RED4ext plugin, and the Scripts and Runtime `release.json`. Each missing piece is a line in the
-   PROBLEM FOUND block. Redaction is the service's (`createRedactor`), with the player's key files, the sign-in secret and the key
-   packed into the Runtime added to the values it scrubs. Under Mod Organizer 2 a Runtime in MO2's `mods` folder is found through
-   `ModOrganizer.ini` (the game folder, Overwrite and the enabled mod folders of the selected profile are searched); where that
-   fails the tool says what it could not find and that MO2 users may need to start it from MO2 (Executables). It opens Explorer
-   on the zip and prints one line naming it.
+   `offline`): Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Native Settings UI (CET mod folder
+   `nativeSettings`; ArchiveXL too when present) with the version where one is written down (the CET and RED4ext logs of the last start,
+   and the `version = ...` line of Native Settings UI's own `init.lua`), this mod's CET folder, redscript folder and RED4ext plugin, and
+   the Scripts and Runtime `release.json`. Mod Configuration Menu is not checked. Each missing piece is a line in the PROBLEM FOUND block, and the same lines are printed in the window (a player who
+   double-clicks the file sees what is missing, not only where the zip is; "No missing mods or mod files were found." when there is none).
+   A mod extracted into a folder inside the game folder ("Extract to <zip name>") is named as that: when the tool itself sits in such a
+   folder, the game folder is the one above it, and `findMisplaced()` looks one and two folders below the game folder (never in its own
+   folders) for the CET folder's `init.lua`, the redscript folder and the plugin's DLL of a piece that is missing where it belongs; the move
+   is the player's to make. Redaction is the service's (`createRedactor`), with the player's key files, the Custom provider's key
+   (`player-custom-endpoint.txt`), the sign-in secret and the key packed into the Runtime added to the values it scrubs, and
+   `%USERNAME%` hidden in any path as well. Under Mod Organizer 2 a Runtime in MO2's `mods` folder is found through
+   `ModOrganizer.ini`, above the mods folder (portable) or in `%LOCALAPPDATA%\ModOrganizer\<instance>` (global, base directory
+   anywhere); Overwrite, the enabled mod folders of the selected profile and the game folder are searched in the order the game
+   sees them, and for each log the newest copy wins. Where that fails the tool says what it could not find and that MO2 users may
+   need to start it from MO2 (Executables). It opens Explorer on the zip, prints one line naming it, and exits with 0 (1 when no
+   report was made, also from the batch file).
 
 ### Privacy
 
-Only named files are ever opened, so credential files, audio, voice references, model files, chat history
-and conversation transcripts cannot enter a report (log names that suggest conversation content are
-skipped). Credential files (`convai-key.txt`, `kaggle-access-token.txt`, `huggingface-*.txt`) are read only to
-learn the secret values to scrub. Every line passes a redactor: known secrets, `Authorization` and
-`key/token/secret/password/cookie` assignments, `Bearer` tokens, `?token=` parameters, well-known key
-prefixes, hex runs of 32+ characters, 40+ character token-like runs, UUIDs and provider IDs (hashed to 8 hex
-characters), and the Windows account name in `C:\Users\<name>`. Structured values are also redacted by key
-name (`apiKey`, `token`, `endUserId`, `sessionId`, ...). `bridge/support-report.test.mjs`,
-`bridge/support-report-lua.test.mjs` and `bridge/support-help-ui.test.mjs` plant fake keys, IDs, a Windows
-name and conversation text in logs, settings and status files and require that none reaches either report.
+Only named files are ever opened, so credential files, audio, voice references, model files, chat history and conversation transcripts
+cannot enter a report. Credential files (`convai-key.txt`, `kaggle-access-token.txt`, `huggingface-*.txt`) are read only to learn the
+secret values to scrub. Every line passes a redactor: known secrets, `Authorization` and `key/token/secret/password/cookie` assignments,
+`Bearer` tokens, `?token=` parameters, well-known key prefixes, hex runs of 32+ characters, 40+ character token-like runs, UUIDs and
+provider IDs (hashed to 8 hex characters), and the Windows account name. Structured values are also redacted by key name.
+`bridge/support-report.test.mjs`, `bridge/support-report-lua.test.mjs` and `bridge/support-help-ui.test.mjs` plant fake keys, IDs, a
+Windows name and conversation text and require that none reaches either report.
 
-## Ownership
+## Invitation notices
 
-- `mod/support-report.lua`: Help support (paths, request/result flow, short Lua report, copy path). Loaded
-  by `mod/mcm.lua` behind a `pcall`; without it the manager simply has no Help entry.
-- `bridge/support-report.mjs`, `bridge/zip-writer.mjs`: the service side (also in `BRIDGE_MODULES`).
-- `mod/setup-check.lua` and `bridge/setup-check.mjs`: the Setup check (above). The Lua module is loaded by `mod/mcm.lua` behind a `pcall`
-  and read through its global `convaiSetupCheck`; without it the Help page shows only the Conversation service row first.
-- `mod/mcm.lua`: provider `cyberpunk-convai`, mod `manager`, registered through
-  `GetMod('ModConfigurationMenuAPI').providers.registerProvider`. Produces the
-  native schema and extends content search to the model catalogue. MCM files
-  and preferences are never edited.
-- `mod/mcm-entry.lua`: manager shortcut entry state machine. Activates the real
-  `OnSwitchToMCM` item after the pause host is established, then invokes the
-  actual sidebar action observed for Companion Manager. No simulated keys.
-  Pause/input ownership stays with MCM and vanilla. A bounded timeout leaves
-  the player in a working menu.
-- `mod/manager-party.lua`: in-memory queue with distinct copy IDs and capacity
-  reservations. The companion system rechecks capacity at execution. Deletions
-  precede spawns. Accepted requests are tracked through attachment; ready/failure
-  notices appear once in gameplay and remain in the manager feedback row.
-  Failures are reported and never retried every frame.
-  Player/save changes and CET shutdown discard pending requests.
-- `mod/manager.lua`: shared catalogue, settings storage, discovery and native
-  playback flags. Settings are validated and saved as one transaction before
-  their values are exposed; a failed save leaves playback unchanged.
-- `mod/companions.lua`: owns actual entities, copy serials, formation slots and
-  connection membership. Manager operations never adopt quest/ambient actors.
+An invitation is ready, and the companion spawns and is announced as joined, only once her Convai connection is open. On a player's own
+Convai key (one connection at a time) the invitation opens her connection alone, one invitation at a time; the other members'
+connections open when V talks to them, which is when the `Preparing connection to {name}...` notice can show.
 
-MCM updates run outside the game-time poll so the page stays interactive when
-simulation delta is zero. World changes and follower updates wait for unpaused
-gameplay. Schema refresh waits while MCM has unsaved drafts. Discovery is lazy,
-and file-backed readiness checks are throttled.
+While an invitation prepares for longer than 1.5 s, the loading notice (held on screen, `docs/NOTIFICATIONS.md`) shows **Preparing
+{name}: waiting for ...** with the step that blocks her (the conversation service, the memory service, the voice model, her connection,
+or the game placing her), kept until she has spawned or failed; the notice board then posts **{name} joined your group.** The line under
+Back shows nothing for progress; a preparation failure shows there (**{name}: preparation failed. Cancel and invite again.**). It tracks
+the latest requested pending copy, cancelling or spawning that copy or resetting the world clears it, and a memory, dismissal or trip
+result replaces it. `manager-party.lua` exposes a read-only snapshot (`preparationFeedback`) that `manager-ui.lua` samples about once a
+second; no widget work is involved. Manager invitations also post the game's blue neutral warning notification, through the same
+`PlayerPuppet.ConvaiPhoneFeedback` method as phone invitations; the manager creates no HUD widget of its own.
 
-The native MCM action banner is scoped to this provider's page: invitation and
-dismissal actions describe their queued work instead of the stock "Completed"
-text. Other providers and failure messages retain MCM's ordinary rendering.
-No MCM source or saved preferences are modified.
-
-An invitation is ready, and the companion spawns and is announced as joined, only once her Convai connection is open. On a player's own Convai key (one connection at a time) the invitation opens her connection alone, one invitation at a time; the other party members' connections open when V talks to them, which is when the `Preparing connection to {name}…` notice can show. The notice never shows from looking at a character.
-
-While an invitation prepares for longer than 1.5 s, the loading notice (held on screen, docs/NOTIFICATIONS.md) shows **Preparing {name}: waiting for …** with the step that blocks her (the conversation service, the memory service, the voice model, her connection, or the game placing her), updated as the step changes and kept until she has spawned or failed; the notice board posts **{name} joined your group.** when she has joined; the lines below describe what the in-menu banner shows. While an invitation prepares with the manager open, the status banner shows nothing for it: the progress lines (**Preparing**, **Connecting**, **ready to join**) are removed in every mode. A preparation failure still shows there (**{name}: preparation failed. Cancel and invite again.**). The banner tracks the latest requested pending copy and revision; cancelling that copy, spawning it or resetting the world clears it, and it does not restore an older copy's banner after cancellation. Memory, dismissal and trip results keep priority over the banner.
-
-`manager-party.lua` exposes this as a read-only preparation snapshot, separate
-from notices delivered after gameplay resumes. MCM samples it from top-level
-update, then changes only its own existing `status` text inside `MCMRenderRoot`.
-The render observer records Lua arguments and provider ownership, including
-MCM's provisional title; it never traverses or edits native widgets. Duplicate
-states do not repaint, and an open settings draft does not cause a page reload.
-The regression harness covers those paused transitions, rebuilds, cancellation,
-native errors, memory results, foreign pages and detached controllers. Live
-notification visibility still needs the installed game check.
-
-Manager invitations can also post the game's blue neutral warning notifications,
-using the same `PlayerPuppet.ConvaiPhoneFeedback` method as phone invitations.
-That native method calls `SetWarningMessage(message, SimpleMessageType.Neutral)`;
-the manager does not create a new HUD widget. These popups track the latest
-manager-requested copy independently of the footer and other manager actions.
-Direct phone invitations use the same rules.
-
-**Which notices a player sees** (the same in every mode, Developer mode included). A player is told what a companion is still waiting for (**Preparing {name}: waiting for the voice model to load…** and its siblings, one held line per companion, shown after 1.5 s and kept until she has spawned), that she joined, and about failures (with what failed and what to do). Companion invitations post no other progress lines, for manager and phone invitations alike: no **Connecting**, **ready to join** or **is joining your party** text. The Current party list shows each copy's stage (preparing, connecting, ready, joining) as its row state, and the mod log keeps every stage.
-
-- **joined your group**, for every companion that arrives, quick or slow (developers see it too);
-- every failure and error, including a driving failure and the reply to Stop trip.
-
-These are Developer mode only:
-
-- the **dismissed** result (the in-menu feedback line still reports it, and a
-  failed dismissal is always shown);
-- the routine driving instructions (boarding, driving, exit);
-- companion tactic outcomes ("could not engage the target") and the
-  popup after a Settings Apply that switched the voice (the Settings status line says it).
-
-Turning Developer mode on changes nothing for invitations. The native phone script's own "{name}: invite
-queued." / "dismiss queued." popup is no longer shown at all (2026-10-09): it only
-surfaced after the phone closed and repeated the row's "INVITE QUEUED - CLOSE PHONE";
-its "will leave when you return to the game" reply to a dismissal request is Developer
-mode only. The complete list of every notice, with its class and repeat window, is
-`docs/NOTIFICATIONS.md`; `mod/notices.lua` is the one gate.
+**Which notices a player sees** (the same in every mode, Developer mode included): what a companion is still waiting for (one held line
+each, after 1.5 s), that she **joined your group**, and every failure and error (including a driving failure and the reply to Stop trip).
+No **Connecting**, **ready to join** or **is joining your party** text is posted; the Current party list shows each copy's stage as its row
+state and the mod log keeps every stage. Developer mode only: the **dismissed** result (the feedback line still reports it, and a failed
+dismissal is always shown), the routine driving instructions, companion tactic outcomes and the popup after a settings change that
+switched the voice. The native phone script's own "{name}: invite queued." popup is no longer shown (2026-10-09). The full list, with
+class and repeat window, is `docs/NOTIFICATIONS.md`; `mod/notices.lua` is the one gate.
 
 ### One merged notice for invitations made together
 
-Manager and phone invitations share one **notice board** (`M.newBoard` in
-`mod/manager-party.lua`, reached as `queue.board()`). Every invitation in flight is an entry;
-the board turns all of them into ONE compact notice that replaces the previous one instead of
-a stream of per-character popups:
+Manager and phone invitations share one **notice board** (`M.newBoard` in `mod/manager-party.lua`, `queue.board()`). Every invitation in
+flight is an entry, and the board turns all of them into ONE compact notice that replaces the previous one:
 
-- One invitation that waits longer than 1.5 s reads `Preparing Judy: waiting for the voice model to load…` (the step that blocks her, held and updated in place until she has spawned) and then `Judy joined your group.`; a quick one shows only the joined line. Several companions preparing together share the held notice with a line each.
-- Several at once end in one notice: `Judy and Johnny joined your group.`. Up to three names are listed;
-  more are summarised (`Judy, Johnny and 3 others joined your group.`).
-- A failure is mentioned beside the successes in the same notice (`Johnny joined your group.` /
-  `Judy could not join: ...`); more than two failures end with `N more companions also failed.`
-- A posted notice stays up for at least 3 s (`MIN_SHOW_MS`), and 5 s after a final outcome
-  (`FINAL_SHOW_MS`, so a joined notice is never cut short): a change arriving sooner is held, and
-  whatever is true when the time is up is posted instead. Only a new failure is exempt.
-- When one companion has joined and the others of the same burst are still going, the joined line
-  waits up to 4 s (`JOIN_HOLD_MS`) for them, so the usual result is one merged `Judy and Johnny joined
-  your group.`; if the others are still going after that, `Judy joined your group.` shows, and the burst
-  ends with a merged line once the rest have arrived. The game's own notice length (`SetWarningMessage`)
-  could not be read from the installed files, so the 3 s and 5 s are estimates of how long the default
-  notice stays up (unverified). A stage never moves backwards within one attempt (a stale or missing
-  receipt reads as `memory` for a moment; the board ignores it and logs it). Every posted notice
-  is logged to `runtime/mcm.log` with each invitation's stage. A joined or failed outcome that the
-  paused menu hides is shown once more in gameplay, and nothing is replayed after cancellation or a
-  world change (`queue.bind` resets the board).
-- Visibility: the preparing line (once per join), joined and every failure show in every mode; no other progress is posted in any mode.
-- `mod/mcm.lua` posts the board's note from its top-level update (and commits it only after the
-  native call succeeded); `mod/init.lua` (`updatePhoneInvitationFeedback`) asks the same board for
-  phone invitations, so whichever runs first posts and the other finds nothing new.
+- One invitation reads `Preparing Judy: waiting for the voice model to load...` and then `Judy joined your group.`; a quick one shows only
+  the joined line. Several companions preparing together share the held notice, a line each.
+- Several at once end in one notice: `Judy and Johnny joined your group.` Up to three names are listed; more are summarised (`Judy,
+  Johnny and 3 others joined your group.`). A failure is mentioned beside the successes (`Judy could not join: ...`); more than two
+  failures end with `N more companions also failed.`
+- A posted notice stays up at least 3 s (`MIN_SHOW_MS`) and 5 s after a final outcome (`FINAL_SHOW_MS`); a change arriving sooner is held
+  and whatever is true when the time is up is posted. Only a new failure is exempt. When one companion has joined and the others of the
+  burst are still going, the joined line waits up to 4 s (`JOIN_HOLD_MS`) for them. The game's own notice length could not be read from
+  the installed files, so the 3 s and 5 s are estimates. A stage never moves backwards within one attempt.
+- Every posted notice is logged to `runtime/mcm.log` with each invitation's stage. An outcome that a menu hides is shown once more in
+  gameplay; nothing is replayed after cancellation or a world change (`queue.bind` resets the board). `mod/manager-ui.lua` posts the
+  board's note from its top-level update (committing it only after the native call succeeded); `mod/init.lua`
+  (`updatePhoneInvitationFeedback`) asks the same board for phone invitations.
 
-Each joined notice and failure is posted once while paused. Because the menu may hide native
-notifications, the first gameplay frame samples the current state again and presents it once there. It
-retains no backlog.
-
-A preparation failure is the exception and is never gated: each failed attempt
-posts exactly one gameplay notice in total, shared by the manager, the phone and
-the queue's detailed notice, and stays failed until the player cancels or chooses
-the profile again. The paused menu, the open phone and the manager banner never
-consume that notice: a failure first seen while paused is only shown in the
-banner, and the notice is posted once when gameplay resumes. An immediate
-failure posts its detailed notice at the same moment, and the phone no longer
-posts a second copy while it is open.
-A ticket already spawning reports no text (the party list shows its stage), and completed attachment
-uses the existing **joined your group** notice (shown to every player when the companion arrives, quick or
-slow). Cancelled, removed and reset tickets cannot replay preparation messages. Native calls run only from
-top-level update, never inside a native callback; same-frame failure notices for one ticket are combined
-without duplicates.
-The popup tests cover menu return within the same clock second, copy/revision deduplication, Developer mode
-on and off (no progress in either), immediate and asynchronous failure notices (including one first seen
-while paused), cancellation, phone ownership and already joined tickets. A world spawn deferred by the shared
-query budget keeps the same joined notification when admission later succeeds.
-Their visibility in the running game remains the live acceptance gate.
+A preparation failure is never gated: each failed attempt posts exactly one gameplay notice in total, shared by the manager, the phone
+and the queue's detailed notice, and stays failed until the player cancels or chooses the profile again. One first seen while the menu
+is open shows on the feedback line, and the notice is posted once when gameplay resumes. Native calls run only from top-level update,
+never inside a native callback. The popup tests cover deduplication, Developer mode on and off, immediate and asynchronous failures,
+cancellation, phone ownership and already joined tickets; their visibility in the running game remains the live acceptance gate.
 
 ## Auto-connect nearby characters
 
-**Settings → Conversations → Auto-connect nearby characters** (default **On**, silent). The talk key already
-works on any NPC within 8 m whose record or name resolves to a profile (`profileIdentity` →
-`characterCatalog.resolve`), so the game's own Judy met in the world can talk. The connection used to
-open only when the chat did (`warmConversation` → `runtime/conversation-prewarm.json`), which costs a wait on
-the first reply.
+**Settings, Conversations, Auto-connect nearby characters** (default **On**, silent). The talk key already works on any NPC within 8 m
+whose record or name resolves to a profile (`profileIdentity`, `characterCatalog.resolve`), so the game's own Judy met in the world can
+talk. The connection used to open only when the chat did (`warmConversation`, `runtime/conversation-prewarm.json`), which costs a wait
+on the first reply.
 
-- **Off:** connect on talk, as before. Starting a text or voice chat with a world character that is not
-  connected yet shows `Preparing connection to Judy…`, a party copy that is still connecting included (there is no hint about the setting any more). With the
-  setting **On** the same notice shows at the start of the conversation only: looking at a character and her warm-up are silent, and no connecting or ready notice announces a warm-up. A character already connected (a copy in the party, or one the bridge reports ready in
-  `runtime/party-connection-state.json`) shows nothing. Group chat shows no wait notice. With a voice chat
-  the line is joined to `Connecting microphone - wait for Listening`.
-- **On** (`mod/auto-connect.lua`): a character with a profile that V looks at for 0.6 s (the existing gaze
-  sample in `updateGaze`), or stands within 5 m of (a 1 Hz `GetTargetParts` scan, the idiom of
-  `companion-marking.lua`), is warmed: the Lua side publishes up to **two** profile keys to
-  `runtime/nearby-connections.json` (`{updated, profiles}`, rewritten on change and every 2 s) and
-  `bridge/nearby-warm.mjs` opens their private connection (`PartyConnections.setNearby`, role `nearby`, the
-  lowest priority: it takes optional group slots and never evicts a party, invitation or composer connection)
-  and prepares their local voice with `localVoice.prepareProfile` (one voice at a time, only while no turn,
-  microphone or voice change is running; a failed voice is retried after 30 s).
-- **Limits:** at most 2 warm at once; one new start every 3 s; no new start in combat, a scripted scene, a
-  call, a dialogue or a vehicle (the same `battleSample` gate as automatic reactions) and not while a menu
-  pauses the game; a looked-at character may replace the idlest unwanted one; a character is released 40 s after
-  it stops being wanted, or after 10 minutes without a conversation, and then waits 20 s (3 minutes after the age
-  release) before it can be warmed again. Party members are never listed here.
-- **Ranking:** a looked-at character first (looking is intent), then nearby characters by prominence (tier-1
-  named, other named, generic residents and archetypes; `autoConnect.prominence`, from the catalogue `kind` and the
-  tier-1 list, or a profile's own `tier`/`prominence` field), then by distance.
-- **Conversation partner:** a world character V talks to (not a party member) becomes a partner, a role of its own
-  that does not use one of the two slots (published as `partners` in the same file; `PartyConnections.setPartners`,
-  role `partner`, below the party, invitations and the current target, above nearby). The private connection is the
-  one the conversation opened (same profile and scope), so no second connection is made. It stays warm (connection
-  and voice) while V stays with it and is released when they part: more than 15 m away for 20 s, 3 minutes without
-  an exchange, the character despawns, or a scene or game dialogue starts (config `partnerRange`, `partnerAway`,
-  `partnerIdle`). Talking to someone else makes them the partner and gives the previous one 30 s (`partnerGrace`); at
-  most 2 at once (a group chat). Promotion to the party: `convaiAutoConnect.promote(key)` (or the character being in
-  the party) ends the role. Ambient residents keyed per entity cannot be warmed without their entity, so they are not
-  kept as partners.
-- **Release:** the setting turned off, a world change and CET shutdown publish an empty list at once; the bridge
-  also treats a list not refreshed for 8 s as empty (a paused, crashed or closed game), which closes the
-  connections. The composer hint (`conversation-prewarm.json`) is untouched and still wins for the character
-  being talked to.
-- **Not done by it:** it sends no message, creates no memory and records no contact; it is a connection and
-  voice warm-up, like the composer hint.
-- Tests: `bridge/auto-connect.test.mjs` (policy, prominence, partners), `bridge/nearby-warm.test.mjs`,
-  `bridge/conversation-partner.test.mjs` and the nearby cases in `bridge/party-connections.test.mjs` (bridge), `bridge/world-lifecycle.test.mjs` (the talk notice and the real
-  adapter's gaze warm-up) and the setting in `bridge/manager.test.mjs`.
+- **Off:** connect on talk. Starting a chat with a world character that is not connected yet shows `Preparing connection to Judy...`
+  (a party copy that is still connecting included); with a voice chat the line is joined to `Connecting microphone - wait for
+  Listening`. With the setting **On** the same notice shows at the start of the conversation only; looking at a character and her
+  warm-up are silent. A character already connected shows nothing. Group chat shows no wait notice.
+- **On** (`mod/auto-connect.lua`): a character with a profile that V looks at for 0.6 s, or stands within 5 m of (a 1 Hz `GetTargetParts`
+  scan), is warmed: the Lua side publishes up to **two** profile keys to `runtime/nearby-connections.json` (rewritten on change and every
+  2 s) and `bridge/nearby-warm.mjs` opens their private connection (`PartyConnections.setNearby`, role `nearby`, the lowest priority: it
+  never evicts a party, invitation or composer connection) and prepares their local voice (`localVoice.prepareProfile`: one voice at a
+  time, only while no turn, microphone or voice change is running; a failed voice is retried after 30 s).
+- **Limits:** at most 2 warm at once; one new start every 3 s; none in combat, a scripted scene, a call, a dialogue or a vehicle, and not
+  while a menu pauses the game; a looked-at character may replace the idlest unwanted one; a character is released 40 s after it stops
+  being wanted, or after 10 minutes without a conversation, and waits 20 s (3 minutes after the age release) before it can be warmed
+  again. Party members are never listed. **Ranking:** a looked-at character first, then nearby characters by prominence (tier-1 named,
+  other named, generic residents and archetypes; `autoConnect.prominence`), then by distance.
+- **Conversation partner:** a world character V talks to becomes a partner, a role of its own that does not use one of the two slots
+  (`partners` in the same file; role `partner`, below the party, invitations and the current target, above nearby). The private
+  connection is the one the conversation opened, so no second connection is made. It stays warm while V stays with it and is released
+  when they part: more than 15 m away for 20 s, 3 minutes without an exchange, the character despawns, or a scene or game dialogue
+  starts (`partnerRange`, `partnerAway`, `partnerIdle`). Talking to someone else gives the previous one 30 s (`partnerGrace`); at most 2 at
+  once. Ambient residents keyed per entity cannot be warmed without their entity.
+- **Release:** the setting turned off, a world change and CET shutdown publish an empty list at once; the bridge also treats a list not
+  refreshed for 8 s as empty. The composer hint (`conversation-prewarm.json`) is untouched and still wins for the character being talked
+  to. It sends no message, creates no memory and records no contact.
+- Tests: `bridge/auto-connect.test.mjs`, `bridge/nearby-warm.test.mjs`, `bridge/conversation-partner.test.mjs`,
+  `bridge/world-lifecycle.test.mjs` and the nearby cases in `bridge/party-connections.test.mjs`.
 
-## Native section and option styling — October 2
+## Ownership
 
-Companion Manager uses one left edge. Section names bind to the native white
-heading token (`MainColors.White`) above the category template's cyan rule.
-Actions, read-only rows, toggles and selectors keep MCM's default red option label
-token (`MainColors.Red`). Controls, selected/disabled values, hover feedback and
-unsaved-change markers keep their native behaviour.
+- `mod/nsui.lua`: the NSUI host. Registers the tab (`addTab`, the restore-defaults callback), draws the page, keeps it equal to the
+  state, debounces and applies changes, fits texts, applies fonts. Knows nothing about what a setting means.
+- `mod/manager-ui.lua`: the pages, rows, actions and rules (`schema()`, `M.apply`, `stageMature`, paging, feedback line), with no
+  knowledge of the screen that shows them.
+- `mod/nsui-entry.lua`: the shortcut's walk through the pause menu and the return to gameplay on close (above). Pause and input
+  ownership stay with the game and NSUI; a bounded timeout leaves the player in a working menu.
+- `mod/support-report.lua`: Help support (paths, request/result flow, short Lua report, copy path). Loaded behind a `pcall`; without it
+  the manager simply has no Help entry. `bridge/support-report.mjs`, `bridge/zip-writer.mjs`: the service side.
+- `mod/setup-check.lua` and `bridge/setup-check.mjs`: the Setup check. Loaded behind a `pcall` and read through its global
+  `convaiSetupCheck`; without it the Help page shows only the Conversation service row first.
+- `mod/manager-party.lua`: in-memory queue with distinct copy IDs and reservations for places. Deletions precede spawns. Accepted
+  requests are tracked through attachment; ready and failure notices appear once in gameplay and remain on the feedback line. Failures
+  are reported and never retried every frame. A player or save change and CET shutdown discard pending requests.
+- `mod/manager.lua`: shared catalogue, settings storage, discovery and native playback flags. Settings are validated and saved as one
+  transaction before their values are exposed; a failed save leaves playback unchanged.
+- `mod/companions.lua`: owns actual entities, copy serials, formation slots and connection membership. Manager operations never adopt
+  quest or ambient actors.
+- `r6/scripts/CyberpunkConvai/Manager.reds`: the older native screen is still in the tree, but nothing opens it. Its player methods
+  still carry the voice, subtitle and legacy enabled flags that `mod/manager.lua` sets.
 
-The differing indentation came from the installed renderer: managed controls
-reserve a marker gutter and start their text at 48 units, actions start at 20,
-and read-only rows add a list-label inset inside a surface at 20. The adapter
-normalizes only its own rendered rows to 20 units, preserves the label's right
-edge, and keeps draft markers in the outer gutter. Scaled category labels are
-aligned using their cumulative parent scale. Resting option labels bind to the
-native red token; section rules, cyan option controls and MCM's global theme are
-not modified.
+Updates run outside the game-time poll so the page stays interactive when the simulation delta is zero. World changes and follower
+updates wait for unpaused gameplay. Discovery is lazy, and file-backed readiness checks are throttled. `mod/nsui.lua` `M.inspect()`
+returns the view, the sections drawn, pending changes, the entry state and the last error.
 
-The first installed attempt was ineffective: the real renderer calls
-`McmUiBegin` with a provisional title, creates the rows, then publishes
-`McmUiSetContentTitle`. The live probe confirmed x=48 managed labels, x=24
-read-only labels and purple saved nondefault labels after that attempt.
-The final-title boundary now queues styling, with both exact title and active
-provider ownership checked. Begin clears ownership, including on MCM's global
-routes that retain the prior selected-mod key. Top-level `onUpdate` performs one
-bounded content lookup and one direct-child map; no widget lookup or setter runs
-inside a native observer. Hover-out queues another pass for the same controller;
-current hover highlights and cyan value controls are retained.
+## Adding a row
 
-The row-lifecycle harness covers the real provisional-title/rows/final-title/
-update order, rejects widget access inside native observers, and rejects more
-than one root lookup per pass. It also covers scaled headings, row shapes,
-hover/restyling, draft markers, cyan values and leaving other providers alone.
-The navigation harness traverses all parent links, rejects stale page actions,
-checks that only Current party exposes party status, and confirms Back from
-profile selection leaves the invitation unchanged. The installed MCM API gate
-exercises the same navigation with its actual draft guard and the installed
-renderer filter checks Back visibility on searched catalogues. This checks the
-adapter and scoping; visual acceptance of the October 2 hierarchy and white
-headings still requires opening the installed manager in game after CET reload.
+A row is one call in `mod/manager-ui.lua`, placed in the right `category(...)` of the page. Nothing in `mod/nsui.lua` changes.
 
-The exit adapter also uses the final title and provider ownership. A close
-request alone does not resume gameplay: the same settings controller must
-actually detach. Reset, another Settings screen, a new world or a bounded
-timeout cancels pending resume. Nine focused lifecycle checks cover these
-paths; actual Escape and draft-modal behavior still need the in-game check.
+1. `setting(id, label, 'bool' | 'select' | 'int', value, default, help, elements?, raw?)` for a saved setting (`raw`: `min`, `max`,
+   `step` for a slider; `elements` is the list for a select), `action(id, label, buttonText, help, callback, enabled?)` for a button, or
+   `readonly(id, label, value, help)` for a line of text.
+2. A saved setting also needs its key in `M.apply`: add it to the pass-through list for plain values, or to an `elseif` branch that
+   validates the value and refuses with a sentence (`refused('...')`). A new saved key also needs its default in `loadSettings` and its
+   branch in `manager.applySettings` (`mod/manager.lua`), which refuses a key it does not know ("Unknown setting").
+3. Run `node scripts/Extract-UiCatalog.mjs` (it rebuilds `localization/en.json` from the calls) and add the translations in
+   `mod/locales/*.lua`.
+4. Run `node --test bridge/ui-catalog.test.mjs bridge/nsui-labels.test.mjs bridge/description-fit.test.mjs`.
 
-The first live exit check still returned to Pause. CET creates a fresh Lua
-`WeakReference` wrapper for each native callback and does not implement equality
-between wrappers of the same native object. Comparing captured wrappers missed
-both accepted close and detach. The adapter now correlates the engine's
-`CalcSeed` identity, as the installed MCM menu integration does. Styling hover
-and detach use that same identity rule; a missing identity fails closed.
-The fixtures now send different wrappers for render, hover, close and detach,
-reject other controllers, and verify queued styling never touches a detached
-menu. Exit counters expose which lifecycle boundary was reached without retaining
-extra native objects. Gameplay validation and Resume activation still run in
-top-level update. All 40 focused manager/exit checks pass, including the installed
-MCM API integration. After CET reload of `9d4320d`, the user confirmed Esc
-returns directly to gameplay. The read-only probe agrees: one matched close,
-one matched detach, one native Resume, zero identity failures, and no retained
-settings or presentation controller. The private receipt is
-`runtime/mcm-escape-accepted.json`. The draft-dialog flow has fixture coverage;
-the live acceptance was an ordinary settings close with no pending drafts.
+Keep the label within the units above, the button text short, the help under 420 characters with what matters first, and select
+options within 26 units. A refusal goes back to the saved value on its own; a rule that moves other rows belongs in `M.apply` (see
+`stageMature`), not in the page.
 
-### Native crash and correction
+## What is not verified in game
 
-The first final-title implementation (`4fe8a9b`) crashed on F4 after CET reload.
-It was reverted in `c6ef43b`, installed and relaunched; the user confirmed the
-previous manager opens normally. The separate close-approach correction remains.
+The manager is tested over a fake NSUI (`bridge/nsui-fake.mjs`, which re-implements NSUI 1.96's public contract, its path rules and the
+hole it leaves in its section list, and checks that the widgets on screen are what its data says) and a fake game, in
+`bridge/nsui-manager.test.mjs`, `bridge/nsui-entry.test.mjs` and `bridge/nsui-labels.test.mjs`; the page rules are in
+`bridge/manager.test.mjs`. The branch still needs its live test. In particular:
 
-The September 30 13:37 crash dump shows a reflected value constructor writing
-through a null destination (`Cyberpunk2077.exe+0x149340`, called from CET).
-[CET's RTTI executor](https://raw.githubusercontent.com/maximegmd/CyberEngineTweaks/v1.37.1/src/reverse/RTTIHelper.cpp)
-uses a 1 MiB scratch allocator shared by nested calls; its return construction
-does not check for failed allocation. The
-[allocator implementation](https://raw.githubusercontent.com/tiltedphoques/TiltedCore/v0.2.7/Code/core/src/ScratchAllocator.cpp)
-returns null when full and frees its space only at Reset. Repeated per-row tree
-walks inside the final-title observer fit that failure mechanism. The corrected
-version (`2e2a07a`) defers widget operations and removes the repeated walks. (2026-10-13: the draw hooks
-described under "Changing a value does not flash the page" do a small, bounded amount of widget work, about
-50 native calls per hook at most, never a walk; a hook that would exceed it fails and the page falls back to
-the deferred pass.)
-The dump's sole used matching scratch allocator has 12 bytes remaining out of
-1,048,576; the faulting reflected type requires 16 bytes aligned to 8. This
-confirms exhaustion rather than an ordinary Lua exception.
-
-Thirty-seven focused manager/exit checks, including installed MCM integration,
-pass. After CET reload the user confirmed the manager opens normally and both
-colour and indentation are correct. The live widget readback agrees: all
-displayed labels, including scaled section headings, sit at x=20 (floating-point
-rounding on headings) with the native red RGBA values. It reports 17 styled rows,
-no pending style work or error, and the previously saved On preference retained.
-The private receipt is `runtime/mcm-style-after-deferred.json`. Esc and close-face
-behavior are separate live checks and are not implied by this UI acceptance.
-
-The existing native voice/subtitle and legacy enabled flags remain compatible.
-No new redscript is required: **CET Reload All Mods** activates the adapter with
-the installed dependencies. The separate dry-emitter change remains staged.
-
-## Verification — September 28
-
-All **72 automated checks passed**, including the installed MCM 0.10.3 API's
-real core/catalogue/draft/action modules executed in a local Lua harness.
-The integration gate covers registration, dynamic schemas, queued actions,
-rejection of actions with drafts, multi-setting apply and readback. It does
-not modify MCM's installed data files.
-
-Set `CYBERPUNK_MCM_API` to the installed `ModConfigurationMenuAPI` directory
-before `npm test` to include that local gate. Without it, ordinary tests still
-run and the installed-API check is explicitly skipped.
-
-Lua and catalogues were installed and SHA-256 verified; the previous installed
-Lua is in ignored `backups/mcm-lua-20260928-163622/`. The user reloaded CET and
-confirmed the manager appears in MCM. Their screenshots show the native
-Characters (now Characters to invite), empty Current party and Settings pages, including Invite controls
-and the 32-step default. The controller-readiness and runtime CName lookup
-fixes are installed. On September 29 the user confirmed **F4 opened the menu**
-and Iris joined through Invite. Johnny's apparently absent model was traced to
-his native phantom visibility controller; the user confirmed the live repair.
-The initial floor concern and crash after V died prompted the work in
-[COMPANION_BEHAVIOR.md](COMPANION_BEHAVIOR.md). The latest combined suite passes
-90 checks. The user then reloaded CET and confirmed a fresh Johnny is visible
-and the post-join confirmation appears. Save reload, model search, settings
-apply/revert and repeated close/reopen still need acceptance.
-
-The manager setup default is F4. `Set-DevelopmentBindings.ps1` fills only missing
-bindings and preserves existing F4 or custom choices. The game's QuickSave mapping
-is not altered. F6/F7 select private text/voice and F8/F9 select group text/voice;
-phone invitation controls use J/L.
-
-The one-shot `mcm-state:<nonce>` diagnostic writes `runtime/mcm-state.json`
-inside the installed mod. It reports the section, entry stage, party, feedback
-and API availability without opening a menu or creating a companion.
-
-## Changing a value does not flash the page (2026-10-13)
-
-Every change of a slider, option or toggle makes MCM draw the whole Settings screen again (`drafts.changed` queues a render, and
-`handleStep` / `handleNumber` in MCM's own surface queue one too; there is no in-place update). MCM draws from its own `onUpdate`, which
-runs after this mod's in the same frame, so the new rows showed in MCM's default look (cyan, unaligned) for at least one frame before
-this module could style them, then were hidden by the page veil, then shown: a flash on every tick of a slider.
-
-The content is now created hidden, in the same call that creates it. `mod/mcm.lua` overrides `McmUiBeginContent` for the manager's own page
-and passes `contentReady = false` (MCM then hides the scroll wrapper itself; no widget is touched in the hook). When the page is styled
-the veil lifts and the wrapper is shown again in the same update that places the Back button. A hold that was never released (the style job
-never started, the page stopped being ours) is released by `M.update` after 1.5 s, and if the wrapper cannot be found the hold is switched
-off for the session and the page is drawn again without it, so the page can never stay empty. Only the manager's own page is held; another
-mod's page, and a page for which MCM itself asks for hidden content, are passed through unchanged. Cost: one comparison per frame while
-nothing is held; nothing is walked in the observer.
-
-That first fix (`81ecce03`) still showed a blank page for one to three frames, and the status line and the bottom buttons, placed after the
-styling, jumped into place.
-
-### The page is given its final look while MCM draws it (early style)
-
-Root cause: MCM draws from its own update, after this module's in the frame, so anything done from `M.update` is at least one frame late.
-The fix moves the styling into the draw itself, with no per-row walk (`mod/mcm.lua`, block "Early style"):
-
-- `McmUiCreateText` is overridden (arguments only) while one of the three row builders (`McmUiAddManagedLabel`, `McmUiAddActionSetting`,
-  `McmUiAddReadonly`, also overridden to say which row is being built) runs: the label, marker and read-only label are created with the geometry,
-  font size and red label colour the styling pass would give them (`earlyRowText` is the same rule as `styleRow`).
-- The section headings are styled right after they are created (`SettingsCategoryController.McmUiSetup` + `McmUiAddCategory`, observers; a few
-  native calls each, a budget error otherwise).
-- `McmUiAddBottomActionAt` is overridden: the buttons on the bar line are held back and created together at the end of the draw, shifted left,
-  with Back at the right end, so the bar never jumps. Whatever happens every held button is created (the end of the draw, a failure, or
-  `M.update` half a second after a draw that never ended).
-- At the end of the draw (`McmUiSetContentTitle`) the status line is moved under the mod list (about 15 native calls), and the content, created
-  hidden by the first fix, is shown in that same call.
-
-The content is shown there only if every step is known to have worked in this very draw: the hooks fired and agree with MCM's own count (one
-`McmUiSetManagedLabelState` per managed row), nothing failed, the first label has margin 20, the status line, the scroll wrapper, the render root and
-the mod list were seen, and no font has to be applied (a Russian, Ukrainian, Chinese, Japanese or Korean interface, or a language chosen but not yet
-applied, keeps the font pass). Otherwise the page stays hidden and the older pass (`veilPage` / `styleCompletedPage`, idempotent over what the early
-style left) styles and shows it exactly as before. So a hook that is missing or does nothing on some game version costs only the old behaviour;
-three draws in a row that could not complete switch the early style off for the session. While idle there is no cost: the overrides act only
-between `McmUiBegin` and `McmUiSetContentTitle` of the manager's own page, and `M.update` adds a nil check.
-
-`runtime/mcm.log`: `Probe: early style shown: rows=N categories=N bar=N back=true` per draw (twelve at most) or `Probe: early style held: <reason>`;
-`Early style hook not installed: <method>` if an override could not be registered (then the early style is off).
-
-Other mods' pages are not touched: the overrides check that the page being drawn is the manager's.
-
-### The scroll position survives a redraw
-
-MCM captures the content scroll position before it draws and passes it to `McmUiBeginContent`, which sets it on a scroll area that is still empty
-(and, with the hold, hidden). A redraw nevertheless came back at the top. The provider now (a) reads the old page's position once in `McmUiBegin`
-(`McmUiGetContentScrollPosition`, only when the page being drawn is the one drawn last: same view, search and model page), (b) uses it when MCM's
-own argument is zero, and (c) sets the position again on the scroll wrapper's controller (`GetScrollPosition`, then `SetScrollPosition` only when it
-differs) in the call that shows the content: at the end of the early draw, or when the older pass or the stale-hold release shows the page. A page
-that is opened afresh starts at the top (below). `Probe: scroll position restored A -> B` in `runtime/mcm.log` says when it was needed (twelve at
-most). Not avoidable from a provider: MCM draws the whole screen again on every change (`drafts.changed` queues a render, and
-`handleStep` / `handleNumber` queue one too).
-
-#### A page opened afresh starts at the top
-
-MCM keeps ONE content scroll position for the whole mod, not one per page of the manager: before every draw it reads the page on screen (same mod, so
-the same scroll context), and it keeps the last position when the screen closes or another mod is shown. So a sub-page opened from a scrolled page, a page
-reached again with Back, the screen opened again, and the mod picked again after another mod all opened scrolled where the previous page had been. A draw of a
-page that is not the one drawn last (`lastDrawKey` differs from the page key: another view, search or model page, nothing drawn since the screen opened or
-another mod was shown) sets `drawFresh` in `McmUiBegin`; `McmUiBeginContent` then passes 0 instead of MCM's position, once. A redraw of the open page
-(Apply, a value change, a refresh) is not fresh and keeps its position as above. No native call is added and nothing runs per frame. MCM's own stored position
-is left alone: it is read again from the page before the next draw.
-
-### Mature content stages its companions as pending changes
-
-The Local AI provider, the Local AI model and Mature content sit in one group on Settings > Conversation provider (provider, Mature content, model, in that
-order). Turning **Mature content on** also stages, as pending changes before Apply (`api.setDraft`, from `M.update` after a `drafts.changed`
-event, never in a hook): the provider = Local AI (only when the Local AI pack is present; without it nothing else is touched and the notice and the
-help say Local AI is needed), the model = the largest uncensored model that fits (only when one is installed; otherwise the model is left alone), and, when the companion voice is a cloud voice (Voxtral, Inworld or Convai), Pocket TTS (a voice that is
-already local, Pocket or any OmniVoice choice, is never changed; with Multilingual conversations on, where Pocket is refused, OmniVoice Balanced is
-used instead, and nothing is staged when its pack is not installed). One line names what was staged and replaces MCM's "Pending: ..." status for eight seconds. Turning it **off** puts the provider,
-model and voice back, except any the player changed since. What was staged is kept in memory while the drafts are pending and, on Apply, in
-`settings.json` (`matureRestore`: `{conversationProvider = {before, set}, localModel = {before, set}, voice = {before, set}}`, validated on load and
-on Apply, dropped when Mature content is off; an older record whose model `set` is `auto` still restores). The Local AI model row has no Auto
-entry: it lists the installed models from the smallest file to the largest and shows the default (the largest that fits the free graphics memory)
-as selected until a model is chosen; Apply then saves that model's id (docs/LOCAL_AI.md, "Choosing the model"). Revert or Apply forgets the in-memory staging.
-
-**Mature content and cloud providers exclude each other.** While the provider is any cloud one (Convai free tier, Convai API key, Mistral), Mature
-content is off, and load and Apply force it off. Choosing a cloud provider while Mature content is on turns Mature content off in the drafts
-and puts back what turning it on had changed, from the same restore record (its provider id can now be `convai-key`, Convai with the player's
-own key). Turning Mature content on still selects Local AI, the uncensored model and a local voice. Mature content without the Local AI pack
-bounces back to off. Its help ends "Choosing a cloud provider turns it off."
-
-### Select labels and the description panel (2026-10-14)
-
-**Select labels.** A select row (`settingsSelectorStringList`) shows its value between two arrows in a box of fixed width that the mod cannot change.
-A longer text runs over the arrows. `mod/mcm.lua` therefore keeps every option within `OPTION_BUDGET` = 26 "average lowercase letters"
-(32 before the focused-row key boxes, see below; `optionUnits`: space 0.5; `i l . , : ; ' | !` 0.45; `t f r I ( ) - / [ ]` 0.65; `m w` 1.45; `M W` 1.6; other capitals and digits 1.15; a Chinese,
-Japanese or Korean character 2). Seen running over the arrows: Inworld (about 33), Voxtral (about 40) and the Mature pack's model name (about 41);
-the longest entry reported to fit was an OmniVoice one (about 36 by this estimate), so 32 sat below all of them. The built-in entries are now:
-`Voxtral · Mistral cloud`, `Voxtral · needs Mistral key`, `Inworld · Cloud voice`, `Inworld · needs key`, and the OmniVoice names without a
-" · needs pack" suffix (the missing pack is shown by greying them out, see below; a voice name that appears in sentences and notices keeps its full name), and the Mature pack models `Qwen3.5-4B · uncensored` and
-`Gemma 4 E4B · uncensored` (the word stays: `bridge/local-model-choice.mjs` recognises uncensored models by it). A model the player adds shows its
-own name, `(custom)` or `(custom · too large)`, and `fitOption()` is the last resort: a label still over the budget keeps its trailing
-`(...)` or ` · ...` part and ends its name with an ellipsis. The 15 translations are held to the same budget. `bridge/select-labels.test.mjs`
-checks every select text in English and in each language, the built-in model names and the estimate; `bridge/manager.test.mjs` checks the
-live menus in the worst case and the truncation.
-
-**Focused rows and the key boxes (2026-10-14).** The game draws an "A" and a "D" key box at the left and right arrows of a focused selector, over
-the option text. Their width could not be measured, so each is assumed to take 3 units (`KEY_HINT_UNITS`) of the 32 (`OPTION_BOX_UNITS`);
-`OPTION_BUDGET` is what is left, 32 - 2 * 3 = 26. Every option text of every select (English and the 15 translations) and the built-in model names
-must fit 26, which `bridge/select-labels.test.mjs` enforces; some labels were shortened in several languages for it
-(for example "No model installed"). The Mature model names (21.6 and 23.0 units) and the Inworld names already fit and are unchanged. The 3-unit
-width is an assumption: if a focused label still runs under a key box in the game, raise `KEY_HINT_UNITS`.
-
-**Greyed-out entries (not yet verified in the game).** While the OmniVoice pack is missing, the four OmniVoice entries of Companion voices are
-greyed out. The MCM settings library has no per-option disabled flag, so this mod dims the shown value text, the arrow or stepper skips those
-entries and stops at the ends of the list, and Apply still refuses choosing one.
-
-**Description panel.** The text on the right of the page is MCM's `description_text` (an `inkRichTextBox`, 382 wide, in a viewport that cannot
-scroll), so what does not fit is cut off at the bottom. `mod/mcm-fonts.lua` draws our descriptions at size 22 (`DESCRIPTION_FONT_SIZE`; the game
-uses 20) and restores the original size for text that is not ours. The descriptions were rewritten to say only what a player could not guess
-(trade-offs, requirements, what a setting selects or turns off, the engineering reason behind a default), in short blocks separated by a blank line.
-`bridge/description-fit.test.mjs` estimates the height (32 letters a line, at most 26 lines at size 22) for every description, English and the 15
-translations, including the longest composites (Mature content and Local AI model with every optional paragraph present). It estimates; the
-live check is to open each page and look for cut-off text.
-
-### Settings sections after the 2026-10-14 restructure
-
-Order on the Settings tab: Interface, Conversations, **Conversation provider**, Companion behavior, Voices, Subtitles, Automatic reactions,
-add-on sections, Development, Help.
-
-- **Conversation provider** (new): the provider selector (four entries: Convai free tier (default), Convai API key, Mistral (free plan), Local (needs
-  Local AI pack)), Mature content, Local AI model, the **Mistral free API key** row (above the Convai one), the Convai key row (always listed, also with Mistral or Local chosen), the Convai paid tier entry, Edit characters.
-  Everything that decides who answers is here. The old rows "Use my own Convai API key", "Conversations use" and the Local AI status row are gone
-  (see "One key button per key" and "Where the status went" below).
-- **Voices**: Voice playback, Companion voices, **Voice status** (moved up to sit right under Companion voices), Lip sync delay, **Voice volume (%)**
-  (a native MCM slider, type `int`, 50 to 200 in steps of 5, 100 by default; MCM shows only the number, so the unit is in the name; stored as
-  `voiceVolume` in `runtime/settings.json`; the bridge polls it, so the next reply after Apply uses it, no restart; see `docs/DIALOGUE_LEVEL.md`),
-  Natural speech, Expressive emotions, Follow-up questions, V's voice for typed lines, **V's voice engine** (2026-10-17). The OmniVoice pack row and the Inworld key rows are gone from here.
-- **Development** holds Developer mode and, in Developer mode only, the Inworld key row right after it.
-
-**Provider selector and migration.** "Convai API key" stores `conversationProvider = 'convai'` with `useOwnConvaiKey = true`; the other entries store
-`convai`, `mistral` or `local` as before. A one-time migration on load (marker `convaiProviderChoice` in `settings.json`) maps the old switch: on
-with a key saved becomes "Convai API key", anything else "Convai free tier"; a saved Mistral or Local choice is untouched.
-
-**One key button per key.** The Convai key and the Mistral key (Settings > Conversation provider) and the Inworld key (Settings > Development,
-Developer mode only) each have one row. Its button reads "Paste" while no key is saved and "Remove" once one is. The status is in brackets in the
-row name: "Convai API key (...a1F9)" (the last four characters), "(Added)" when a key is saved but no tail is known, "(Checking...)" while it is checked
-and "(Not added)" after a failed paste, when the failure message is the first paragraph of the row's help. Only the last four characters of a key
-are ever shown. The old separate paste, remove and status rows for all three keys, "Your own key" and "Conversations use" no longer exist.
-
-**Where the status went.** The Local AI model row's name gets a bracket while the model is not ready ("(Warming up)", "(Not enough memory)",
-"(Unavailable)") and its help starts with the loading sentence. The provider notes (Mistral limit reached, key not accepted or model unavailable; the
-Convai free tier's "x of y left today" or limit reached; your key's plan limit, rejected, no memory room or running without memory; "Waiting for the
-conversation to end"; fallbacks such as "Convai: Local AI is not ready") are the last paragraph of the Conversation provider row's help. Ready and
-not-installed states need no words.
-
-**Inworld is a developer-mode voice.** Companion voices lists it, as the last (eighth) entry, only while Developer mode is on (seven entries
-otherwise), as "Inworld · Cloud voice" or "Inworld · needs key". A saved Inworld voice reads as Pocket while Developer mode is off. The Inworld
-sentences in the helps of Companion voices, Natural speech, Expressive emotions and Multilingual conversations, and the Works-with sentence, show
-only in Developer mode. The refusal text is "Requires an Inworld key (add it in Settings > Development)".
-- **Prepared voices** have no switch, no disk row, no Clear action and no page: they are always kept, and a saved `keepPreparedVoices = false`
-  is read as on and written back as on. `bridge/prepared-voices.mjs` stays only for `scripts/Clear-PreparedVoices.mjs`.
-- **Groq** is no longer a provider. A saved `groq` is read as `convai` (the default), in the bridge and in the Lua settings alike; `player-groq-key.txt` is never read.
-- **Add-ons** can hide **Most remarks per fight** with `remarkCap = false` in `handle:settings` (Delamain does; the default guard of 30 stays).
-- **Body gestures** is shown without "(experimental)".
+- The whole tab in the running game: the shortcut's walk through the real pause menu, the Resume on close, the first page on every
+  opening, Restore defaults, and rows replaced in place under a held slider.
+- Text fit: every width above, the 26-unit select budget with its assumed key boxes, and the 420 characters of a description are
+  estimates; the size of NSUI's description area cannot be read from the files this repository may use.
+- Fonts of the Russian, Ukrainian, Chinese, Japanese and Korean rows when the game runs in another language.
+- How it behaves beside MCM (see "Beside MCM").
+- The debounce times (0.3, 0.4 and 0.6 s, at most 2 s) are chosen, not measured against real widget callbacks.
+- The visibility and timing of the invitation notices (the 3 s and 5 s stays) in the running game.

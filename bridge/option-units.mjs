@@ -1,4 +1,4 @@
-// The width estimate of a select option, the JavaScript twin of optionUnits() in mod/mcm.lua (see the comment there).
+// The width estimate of a select option, the JavaScript twin of optionUnits() in mod/manager-ui.lua (see the comment there).
 export function optionUnits(text) {
   let units = 0;
   for (const char of text) {

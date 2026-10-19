@@ -30,7 +30,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 ## Requirements
 
 - Cyberpunk 2077 2.31 on Windows 10 or 11 (64-bit)
-- Install these from Nexus Mods first: Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Mod Configuration Menu
+- Install these from Nexus Mods first: Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Native Settings UI (https://www.nexusmods.com/cyberpunk2077/mods/3518, tested with 1.96)
 - A Chromium browser for the conversation service: Microsoft Edge, which comes with Windows, is enough. Google Chrome, Brave, Vivaldi, Opera and other Chromium browsers work too; Firefox does not
 - An internet connection while you talk with Convai, Mistral, a cloud Custom endpoint or the Voxtral voice (Local AI, or a Custom server on your own PC, with a local voice needs none)
 - About 3 GB of free disk space (about 15 GB more while installing the optional OmniVoice pack, 9 GB once installed)
@@ -77,9 +77,9 @@ Settings > Conversation provider > **Custom (OpenAI-compatible)** uses any endpo
 2. The second button, for the access code of your account. A server on your own computer needs none.
 3. **Paste model ID**, a model name from the provider's list: for example `meta-llama/llama-3.1-8b-instruct` on OpenRouter, or `llama3.2` on Ollama.
 4. Press **Test connection**. It sends one tiny request and says OK, or what the provider answered.
-5. Choose **Custom (OpenAI-compatible)** as the provider and **Apply**.
+5. Choose **Custom (OpenAI-compatible)** as the provider.
 
-Each paste reads the clipboard once, checks it and saves it on your computer; **Remove** deletes it. Only the last four characters of the access code are ever shown, and it goes to that endpoint and nowhere else. An `http://` address works only for your own computer or home network; any other host needs `https://`. A server on your own PC must be running before the game starts. Nothing is sent until you choose the provider or press Test connection. Without an address and a model ID, conversations use Convai and one notice says so. The replies, their price and their limits are your provider's, and your lines go to it. The values are kept in `player-custom-endpoint.txt` in `%LOCALAPPDATA%AiNpcCyberpunkModdata`; its three lines are described in docs/CUSTOM_PROVIDER.md in the mod's repository.
+Each paste reads the clipboard once, checks it and saves it on your computer; **Remove** deletes it. Only the last four characters of the access code are ever shown, and it goes to that endpoint and nowhere else. An `http://` address works only for your own computer or home network; any other host needs `https://`. A server on your own PC must be running before the game starts. Nothing is sent until you choose the provider or press Test connection. Without an address and a model ID, conversations use Convai and one notice says so. The replies, their price and their limits are your provider's, and your lines go to it. The values are kept in `player-custom-endpoint.txt` in `%LOCALAPPDATA%\AiNpcCyberpunkMod\data`; its three lines are described in docs/CUSTOM_PROVIDER.md in the mod's repository.
 
 ## Choosing a setup
 
@@ -122,6 +122,14 @@ Delete these folders from your Cyberpunk 2077 folder:
 
 Then delete `%LOCALAPPDATA%\AiNpcCyberpunkMod` (paste that into the Explorer address bar). It is outside the game folder and holds your memories, conversation history, logs and reports, so a mod manager leaves it behind too.
 
+## Error reports
+
+When something in the mod goes wrong, it sends a short error report to the developer's server, so problems can be fixed without asking you for logs. It is on by default. Settings > Privacy > Send error reports automatically turns it off; then nothing is recorded or sent. The first time you load the game after updating, a notice says so once.
+
+A report holds: the error and where in the code it happened; the versions of the mod, the game and the required mods; your conversation provider, voice and Local AI model choices and a few other settings (on or off); your graphics card's name and memory; the setup check's lines; and up to 150 log lines from around the error, with access codes, IDs and your Windows user name removed. Your installation is identified only by a random number hashed twice.
+
+A report never holds: access codes or passwords, what you or the characters say, typed lines, character memories, microphone audio, or your Windows user name. Your IP address is not stored. At most one report per kind of error per day and five a day in all are sent, in the background, never while a character is answering. Reports are kept for 30 days.
+
 ## Licence
 
 AI NPC Cyberpunk Mod is released under the AI NPC Cyberpunk Mod Use License (see `LICENSE.txt`): you may use, modify and share it, including commercially, as long as modified versions that offer AI character conversations keep Convai available as a selectable option. You do not have to use Convai. Bundled components keep their own licences (see `THIRD-PARTY-NOTICES.txt`), and Cyberpunk 2077 and its assets belong to their owners.
@@ -130,6 +138,6 @@ AI NPC Cyberpunk Mod is released under the AI NPC Cyberpunk Mod Use License (see
 
 Open Settings > Help > Help and support in game. It shows the service status and can create a report to share when asking for help. Generate report saves it in `%LOCALAPPDATA%\AiNpcCyberpunkMod\reports`. If the conversation service is not running, it writes a shorter report at once instead: `runtime\convai-report-lua.txt` in the mod folder (`bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod`). If the service row says "Needs a browser", install a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera, then restart the game.
 
-The mod does not load, or the manager will not open? Close the game and double-click `Make support report.bat` in `red4ext\plugins\AiNpcCyberpunkMod`. It saves one report with the game closed and opens its folder: send that file. With Mod Organizer 2, start it from MO2 (add it under Executables).
+The mod does not load, or the manager will not open? Close the game and double-click `Make support report.bat` in `red4ext\plugins\AiNpcCyberpunkMod`. Its window lists what is missing, for example a required mod or a folder the zip was extracted into by mistake. It saves one report with the game closed and opens its folder: send that file. With Mod Organizer 2, start it from MO2 (add it under Executables).
 
 Known issue: if V keeps walking in one direction after you type a message, tap that direction (W, A, S or D) once.

@@ -79,3 +79,48 @@ test('isolated local headless renderer streams, drains during a pending game cal
     await rm(root, {recursive: true, force: true});
   }
 });
+
+// docs/perf LATENCY.md: the renderer's output device is opened at the turn start (RealtimeHost.standbyLocal) instead of after the voice
+// was asked, so a turn's renderer is ready at once. Real headless renderer, muted, zero PCM.
+test('a spare output device opened at the turn start is the device the next turn plays on (real headless renderer)', {timeout: 180000}, async () => {
+  const root = await mkdtemp(join(tmpdir(), 'cyberpunk-local-pcm-'));
+  const modules = ['continuous-pcm-player.mjs', 'continuous-pcm-worklet.mjs', 'continuous-pcm-core.mjs', 'local-pcm-client.mjs'];
+  for (const name of modules) await writeFile(join(root, name), await readFile(new URL(name, import.meta.url)));
+  await writeFile(join(root, 'realtime-client.js'), 'throw Error("Convai must not run in the local PCM page");');
+  const pages = [];
+  const host = new RealtimeHost({clientAssetsDirectory: root, launchBrowser: async options => {
+    const browser = await chromium.launch({...options, args: [...options.args, '--mute-audio']});
+    const newPage = browser.newPage.bind(browser);
+    browser.newPage = async (...args) => { const page = await newPage(...args); pages.push(page); return page; };
+    return browser;
+  }});
+  const packet = (index, offsetFrames, count) => ({version: 1, engine: 'pocket-tts', sampleRate: 24000, channels: 1, format: 'f32le',
+    owner: '1'.repeat(32), id: 1, profile: 'johnny', modelSha256: '2'.repeat(64), index, offsetFrames, frames: count, pcm: new Float32Array(count)});
+  const turn = async token => {
+    let device;
+    const result = await host.playLocalPcm({token, text: 'One short reply.'}, async emit => {
+      device = await pages[0].evaluate(() => window.localPcm.active?.player.token);
+      await emit(packet(1, 0, 4800));
+      return {timing: {voiceProvider: 'pocket'}};
+    }, {onFrame: async () => ({allow: true, paused: false, volume: 0, pan: 0})});
+    return {device, rendererReadyMs: result.timing.localPcmRendererReadyMs};
+  };
+  try {
+    assert.equal(await host.prewarmLocal(), true);
+    const ordinary = await turn('turn-without-spare');
+    assert.equal(ordinary.device, 'turn-without-spare', 'without a spare the turn opens its own device');
+    assert.equal(await host.standbyLocal(), true);
+    assert.equal(await pages[0].evaluate(() => window.localPcm.spare?.standby === true && window.localPcm.spare.opened === true), true,
+      'the spare device is running, silent, before the turn');
+    const spared = await turn('turn-with-spare');
+    assert.match(spared.device, /^spare-/, 'the turn played on the spare device');
+    assert.equal(pages.length, 1);
+    assert.equal(await pages[0].evaluate(() => window.localPcm.spare), null);
+    console.log(`[standby] renderer ready ${ordinary.rendererReadyMs.toFixed(1)} ms without a spare, ${spared.rendererReadyMs.toFixed(1)} ms with one`);
+  } finally {
+    await host.close();
+    assert.equal(dirname(resolve(root)), resolve(tmpdir()));
+    assert(basename(root).startsWith('cyberpunk-local-pcm-'));
+    await rm(root, {recursive: true, force: true});
+  }
+});

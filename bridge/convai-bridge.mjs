@@ -69,6 +69,7 @@ import {VendorMemory, vendorMemoryKey} from './vendor-memory.mjs';
 import {PlayerMemoryApi} from './player-memory-api.mjs';
 import {PlayerMemoryControl} from './player-memory-control.mjs';
 import {SupportReportControl} from './support-report.mjs';
+import {ErrorEvents, installCrashCapture} from './error-events.mjs';
 import {SetupCheckControl, cachedBrowserName, cachedGraphicsCards, cachedModManagers, collectSetupCheck, findNestedPacks, readPackPlacement} from './setup-check.mjs';
 import {CharacterOverrides} from './character-overrides.mjs';
 import {CharacterEditor} from './character-editor.mjs';
@@ -98,17 +99,18 @@ import {TextProviderHost, attachTextProvider, customRoute, isLocalUnavailable, l
 import {MEMORY_FILE as MISTRAL_MEMORY_FILE} from './mistral-memory.mjs';
 import {MemoryStore} from './memory-store.mjs';
 import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
-import {detectLocalAiPack} from './local-ai-pack.mjs';
+import {detectLocalAiPack, describePackFiles, packFileProblems} from './local-ai-pack.mjs';
 import {LocalLlmServer, nvidiaTotalMiB} from './local-llm-server.mjs';
 import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, matureOffBlocks, normalisePin} from './local-model-choice.mjs';
 import {CustomModelScanner} from './custom-models.mjs';
 import {LlamaEmbedder} from './local-embed.mjs';
-import {watchFiles, createWakeSignal} from './file-wake.mjs';
+import {watchFiles, createWakeSignal, mergeHandlers} from './file-wake.mjs';
+import {GameStateSync} from './game-state.mjs';
 const leaseWake = createWakeSignal();
 import {PersonaBook, joinBlocks} from './mistral-prompt.mjs';
 import {LocalStt} from './local-stt.mjs';
 import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-capture.mjs';
-import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, warmConnection} from './mistral-client.mjs';
+import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, errorExtrasFor as mistralExtrasFor, failureDetail as localFailureDetail, warmConnection} from './mistral-client.mjs';
 import {TurnClock, withClock, markStage} from './turn-clock.mjs';
 import {AddonHost, LOCAL_REMARK_GAP_S, fixedProvider, rosterLookup, sharedMemory} from './addons.mjs';
 
@@ -116,7 +118,17 @@ const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
 const game = process.env.CYBERPUNK_CONVAI_GAME || 'E:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077';
 const runtime = resolve(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/runtime');
+// Automatic error reports (docs/ERROR_REPORTS.md): this process only records (bridge/error-events.mjs); the service's supervisor sends.
+// An uncaught exception or unhandled rejection is written down as the process ends (how it ends does not change); a failed turn that is
+// not the player's own doing and the setup check's problems are recorded after the fact, never on a turn's path. Off with the setting.
+installCrashCapture({stateDirectory, runtime});
+const errorEvents = new ErrorEvents({stateDirectory, runtime});
+const noteSetupProblems = document => { try { if (document) errorEvents.setupChecked(document); } catch { /* never fails start-up */ } };
 const keyFile = process.env.CYBERPUNK_CONVAI_KEY_FILE || resolve(stateDirectory, 'convai-key.txt');
+// The player's own state files in runtime/ (settings, phone chats, add-on settings, NPC names, ...): a copy is kept outside the game folder,
+// where Mod Organizer 2 cannot lose it (bridge/game-state.mjs). Only the packaged launcher turns this on, with the folder the copies are in.
+const gameStateFolder = process.env.CYBERPUNK_CONVAI_GAME_STATE;
+const gameState = gameStateFolder ? new GameStateSync({runtime, durable: resolve(gameStateFolder), log: message => console.error('[GameState] ' + message)}) : null;
 // Named characters, then the generic NPC archetypes (docs/NPC_ARCHETYPES.md). The archetype roster is optional:
 // without it (or without their IDs in characters.json) unnamed NPCs simply have no profile.
 const roster = [...JSON.parse(await readFile(resolve(project, 'characters/roster.json'), 'utf8')),
@@ -185,7 +197,7 @@ const jaliFace = await JaliFace.load(resolve(stateDirectory, 'lipsync-model')).c
 // The key is read from the Mistral provider on each call (it can be pasted or removed while the game runs); `mistral` is created below.
 // The reference clip is sent with every request, so a smaller one is a shorter wait for the first sound (bridge/voxtral-reference.mjs):
 // 24 kHz mono (the clone keeps only the bandwidth of its reference) and cut to about 8.5 s (Ogg Vorbis as well when ffmpeg is on the machine; MP3 stops at 11.3 kHz), prepared once per character and kept in <references>/prepared
-// (the Runtime's own pre-built slots are read from <references>/prepared-runtime when that one has none that fits).
+// (the Runtime's own pre-built slots are read from <references>/prepared-runtime when that one has none that fits, or only a WAV or MP3 where the Runtime has the Ogg).
 // CYBERPUNK_CONVAI_VOXTRAL_FULL_REFERENCE=1 sends the clips whole, as before.
 // Reply streaming (bridge/reply-stream.mjs): on unless settings.json "replyStreaming": false or this variable is 0. Kept up here, beside the other
 // environment reads, so the sections of this file that tests evaluate on their own never touch `process`.
@@ -262,6 +274,9 @@ const quota = new QuotaWatch({keys});
 // folder. Reading it is a file read and nothing more: no request is made to the endpoint unless the player chooses this provider or presses Test connection.
 const customEndpoint = await new CustomEndpoint({path: resolve(stateDirectory, CUSTOM_FILE), log: message => console.error('[Custom] ' + message)}).load();
 const mistral = await new MistralProvider({keyPath: resolve(stateDirectory, MISTRAL_KEY_FILE), inworld: inworldKey, custom: customEndpoint}).load();
+// runtime/mistral-state.json is not written until the first settings poll has applied the saved provider (released after it, at the end of
+// start-up): until then the provider is the default, Convai, and the game would read that as the player's choice for a moment.
+mistral.statusHeld = true;
 // The optional Local AI packs (standard and lite) and the supervisor of the model server. Nothing starts here: the server is
 // started when the player chooses Local, and stops by itself after ten idle minutes. A developer points CYBERPUNK_CONVAI_LOCAL_AI_DEV
 // at a folder of models (docs/LOCAL_AI.md).
@@ -284,7 +299,14 @@ const localServer = new LocalLlmServer({pack: localPack, stateFile: resolve(stat
   beforeStart: async () => { for (let waited = 0; !omniSettled() && waited < 120000; waited += 500) await new Promise(done => setTimeout(done, 500)); },
   log: message => console.error('[LocalAI] ' + message)});
 scanCustomModels();   // once now; then on the settings poll and when a model is about to load
-localServer.on('failed', ({reason}) => mistral.noteLocalFailure(reason));
+localServer.on('failed', ({reason}) => {
+  mistral.noteLocalFailure(reason);
+  // Nobody can take the turns over (no Mistral key, Convai's free day used up): they stay on Local AI and each says why. One line per failure.
+  if (mistral.localDown) logLocalDown();
+});
+function logLocalDown() {
+  console.error(`[LocalAI] Local AI is unavailable (${mistral.localBroken}) and Convai's free turns for today are used: turns stay on Local AI and the game names the reason`);
+}
 // A chosen model that is missing, does not fit or did not start: another was used (the event names it), and the game says so once per choice (not at every later start).
 let localModelFallbackNoted = '';
 localServer.on('model-fallback', ({pin, reason, model}) => {
@@ -293,6 +315,14 @@ localServer.on('model-fallback', ({pin, reason, model}) => {
   localModelFallbackNoted = key; mistral.noteLocalModelFallback(model);
 });
 localServer.on('state', () => { try { void mistralControl.publishStatus().catch(() => {}); } catch { /* the control is created further down */ } });
+// What the model server loaded and how its last turn went goes into the status file (the support report reads it): after a start, after the first turn on a model and
+// after a turn that failed (the supervisor says so with this event), bundled within half a second. Nothing runs between those moments.
+let diagnosticsTimer = null;
+localServer.on('diagnostics', () => {
+  if (diagnosticsTimer) return;
+  diagnosticsTimer = setTimeout(() => { diagnosticsTimer = null; try { void mistralControl.publishStatus().catch(() => {}); } catch { /* the control is created further down */ } }, 500);
+  diagnosticsTimer.unref?.();
+});
 const localEmbedder = new LlamaEmbedder({pack: localPack, log: message => console.error('[LocalAI] ' + message)});
 // The pack can be installed while the game runs: look again whenever Local is chosen and while the settings page asks.
 let localPackCheckedAt = 0;
@@ -361,6 +391,15 @@ const remarkAllowance = await new RemarkAllowance({guard: turnGuard,
 const hostGuard = {check: config => { turnGuard.check(); remarkAllowance.check(config); if (tokenSource) keys.assertAllowed(); },
   consume: config => { turnGuard.consume(); remarkAllowance.consume(config); }};
 if (dailyLimit > 0) console.error(`[CyberpunkConvai] Shared conversation allowance: ${dailyLimit} turns a day, ${turnGuard.snapshot()?.left ?? dailyLimit} left today`);
+// Convai's free tier cannot take a turn today: the shared key's day is used up (the local count, or the sign-in backend's answer). A Local AI that
+// cannot start then keeps its turns instead of handing them to Convai, where each would only meet the daily limit (MistralProvider.convaiAvailable).
+// Memory reads only; asked by the settings poll (applyProviderChoice) and the status file, never per frame.
+const convaiDayUsed = () => {
+  if (keys.source !== 'shared') return false;
+  if (turnGuard.snapshot()?.blocked === true) return true;
+  try { keys.assertAllowed(); return false; } catch { return true; }
+};
+mistral.convaiAvailable = () => !convaiDayUsed();
 const currentKey = () => keys.current();
 // A player's key pre-opens no connections and speculates on nothing (its plan's interactions and its one-connection free plan).
 // With Mistral there is no Convai connection to pre-open or to speculate on either. Group look-ahead is the exception on a
@@ -378,13 +417,34 @@ const keyNotice = () => {
   // The fallback notice names the model that was used instead.
   return keyNotice ? {keyNotice, ...(keyNotice === 'local-model-fallback' && mistral.noticeModel ? {keyNoticeModel: mistral.noticeModel} : {})} : {};
 };
+// A failed turn for the automatic error reports (bridge/error-events.mjs decides whether it is the player's own doing, from the same code
+// the failure reply carries). Called after that reply is written; it defers its one file write, so the turn's path pays a function call.
+function noteTurnFailure(error, input, {microphone = false} = {}) {
+  try {
+    const errorCode = input ? turnFailure(error, input).errorCode : undefined;
+    errorEvents.turnFailed(error, {provider: mistral.route ?? 'convai', errorCode, microphone,
+      localReason: errorCode === 'local-fallback' || errorCode === 'local-unavailable' ? mistral.localBroken || localServer.status().reason : undefined});
+  } catch { /* a report is never worth a failure of its own */ }
+}
+// While Local AI is chosen and cannot start, a failed turn names Local AI's problem ('local-no-memory', 'local-unavailable'), never a Convai one
+// (MistralProvider.failureCode: no 'local-fallback' when nobody takes over, no 'daily-limit' for a turn that fell back to Convai). Others pass.
+const providerFailureCode = code => mistral.failureCode(code);
+// keyFailure (below) with that correction: what every failed turn's reply carries.
+const turnFailure = (error, input) => {
+  const failure = keyFailure(error, input), errorCode = providerFailureCode(failure.errorCode);
+  return errorCode === failure.errorCode ? failure : {...failure, errorCode};
+};
 // The game's notice for a failure (docs/NOTIFICATIONS.md). An automatic reaction that hit the daily cap just stops: no notice.
 const keyFailure = (error, input) => {
   // A Mistral failure says what to do about it (key, free limit, model); an automatic reaction (battle, loot) just stops.
   // The local AI that could not start: the next turns use the cloud provider, and the game says so once (local-fallback).
   const errorCode = (input?.reaction ? undefined : isLocalUnavailable(error) ? 'local-fallback' : mistralCodeFor(error))
     ?? quota.codeFor(error, {automatic: !!input?.reaction});
-  return errorCode ? {errorCode} : {};
+  // A local turn that failed says what the model was waiting for: one plain English phrase (bridge/mistral-client.mjs failureDetail), which the game shows
+  // after its own sentence (docs/NOTIFICATIONS.md, local-failed). Never a word of the reply, a path or a key. The corrections of turnFailure (below Local AI's
+  // own 'local-no-memory' / 'local-unavailable') leave 'local-failed' alone: a model that started and failed a turn has this reason, not a start problem.
+  const errorDetail = errorCode === 'local-failed' ? localFailureDetail(error) : undefined;
+  return errorCode ? {errorCode, ...mistralExtrasFor(error), ...(errorDetail ? {errorDetail} : {})} : {};
 };
 
 const knowledgePack = JSON.parse(await readFile(resolve(project, 'characters/world-knowledge.json'), 'utf8'));
@@ -525,7 +585,7 @@ const phoneSessionPath = resolve(stateDirectory, 'phone-sessions.json');
 let phoneSessions = {};
 try { phoneSessions = JSON.parse(await readFile(phoneSessionPath, 'utf8')) || {}; } catch {}
 const phone = new PhoneChat({
-  failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return code === 'daily-limit' || /^(mistral|local|custom)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? 'local-fallback' : undefined; },
+  failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return providerFailureCode(code === 'daily-limit' || /^(mistral|local|custom)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? 'local-fallback' : undefined); },
   contacts: JSON.parse(await readFile(resolve(project, 'characters/phone-contacts.json'), 'utf8')), ids,
   resetFor: profileKey => memoryControl.chatResets.phoneState(profileKey),
   contextFor: options => phoneKnowledge.prepareContext(options),
@@ -1363,7 +1423,10 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
       if(late.settled)refine();
       else{const shared=result.expressionPlan;late.promise?.then(()=>{if(refine()&&shared&&result.expressionPlan!==shared)Object.assign(shared,result.expressionPlan);},()=>{});}
       logVoiceRoute(input, profile, voice, {lipText: !!generated.timing?.lipText});
-      return {...result,...generated,text:result.text,timing:{...result.timing,...generated.timing},
+      // The record says whether the first phrase rendered while the model wrote was used (a voice tag in it, Natural speech, makes the
+      // finished reply's first phrase differ and the phrase is rendered again: docs/perf, LATENCY.md).
+      return {...result,...generated,text:result.text,timing:{...result.timing,...generated.timing,
+          ...(omniSpeculation?{omniSpeculation:reuse?'reused':'dropped'}:{})},
         streamPlan:phrases.length>1?{phrases,speech:voiced,steps,language,voiceKey,lookahead:{promise:second,cancel:cancelLookahead},
           expressionPlan:result.expressionPlan,spans}:undefined};
     }catch(error){
@@ -1430,9 +1493,13 @@ async function synthesizeOmniPhrase(profile,text,{preStore=false,...options}={})
 
 // Status writes are queued in call order, so a caller may leave one unawaited (a turn's 'thinking' no longer holds up the
 // provider request) without an older state ever landing after a newer one.
+// `turn` ({requestId, provider}) names the turn a 'thinking' is for and the provider that took it: the game reads it once, when a turn it
+// sent has had no reply for 90 s, to say why (taken by Local AI still loading, by Convai in place of a Local AI that is not ready, or never
+// taken at all) instead of guessing that the service is not running (mod/service-status.lua noReplyMessage).
 let statusWriting = Promise.resolve();
-async function status(state, detail = '') {
-  const text = JSON.stringify({state, detail: detail.slice(0, 200), updated: Date.now()});
+async function status(state, detail = '', turn = null) {
+  const named = turn && typeof turn.requestId === 'string' ? {requestId: turn.requestId.slice(0, 160), provider: turn.provider} : {};
+  const text = JSON.stringify({state, detail: detail.slice(0, 200), updated: Date.now(), ...named});
   const job = statusWriting.catch(() => {}).then(() => atomic(statusPath, text));
   statusWriting = job;
   return job;
@@ -1451,9 +1518,11 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
     // A look-ahead turn buffers silently until the game submits it. Once its
     // complete text is known (and it is no longer held), the next group speaker
     // may be prepared from that text.
-    // V's typed line, when it is audible, holds the reply the same way until it ends (bridge/v-voice.mjs).
-    hold: () => ahead?.isHeld() === true || current.vLine?.()?.holds() === true,
-    holdPeek: () => ahead?.isHeld() === true || current.vLine?.()?.blocking === true,
+    // V's typed line, when it is audible, holds the reply the same way: it is published to the game shortly before V's line ends (the
+    // game's round trip overlaps V's last moments, V_HANDOFF_LEAD_MS) and its sound starts when V has ended (bridge/v-voice.mjs).
+    hold: () => ahead?.isHeld() === true || current.vLine?.()?.holdsPublish() === true,
+    holdPeek: () => ahead?.isHeld() === true || current.vLine?.()?.holdsPublishPeek() === true,
+    holdSound: () => current.vLine?.()?.blocking === true,
     onHeld: (bufferedSeconds, textComplete) => { if (bufferedSeconds >= 0.4 && textComplete) ahead?.markReady(); },
     pace: local && localVoice.cloudActive ? cloudPace : null,
     // One record per line of how it played (underruns: how often its audio ran dry), and one log line when it broke.
@@ -1474,8 +1543,11 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
     // The game's adapter says how it reads the timeline file: segments (decoded by changed segment), a plain document or not at all.
     faceFile: async () => { const state = await readSpeechStateCached(); return state.continuousFaceSegments === true ? 'segments' : state.continuousFaceFile === true; },
     writeReply: value => atomic(replyPath, JSON.stringify({...value, ...keyNotice()}), options),
+    // The record is written in the background (still in order): the poll that reads the game's lease does not wait for a 25 KB file.
     onPublished: timing => { markPublished(input.requestId, timing.publishedAt);
-      return measure(input, {...timing, stream: {mode: local ? 'pocket-continuous' : 'convai-continuous'}, nativePlaybackObserved: false}); },
+      note(input, {...timing, stream: {mode: local ? 'pocket-continuous' : 'convai-continuous'}, nativePlaybackObserved: false}); },
+    // The game's first lease reached the bridge (the turn's record: published -> leaseRead is the game's half of the hand-off).
+    onLease: () => turnMark(input.requestId, 'leaseRead'),
     // The first renderer state with audio in it: the moment the sound can start (the turn's record, bridge/turn-clock.mjs).
     onAudio: () => { turnMark(input.requestId, 'firstPcmAccepted'); turnMark(input.requestId, 'firstFrame'); },
     onStarted: timing => { turnMark(input.requestId, 'playbackObserved', timing.continuousPlaybackFirstObservedAt);
@@ -1497,8 +1569,9 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
       stagedKnowledgeTurn(receiptPrepared, {replyText: text});
     },
   });
-  // Poll the buffered turn at once when the game submits it, or when V's line ends.
+  // Poll the buffered turn at once when the game submits it, when V's line nears its end (publish) and when it ends (sound).
   ahead?.claimed.then(() => speech.wakeUp(), () => {});
+  current.vLine?.()?.whenNearEnd?.(() => speech.wakeUp());
   current.vLine?.()?.whenClear(() => speech.wakeUp());
   return speech;
 }
@@ -1626,7 +1699,7 @@ async function publishResult(input, profile, result, current = async () => true,
     await measure(input, {transport: 'realtime', timing: result.timing,
       stream: {id: result.liveDelivery.id, mode: result.timing?.voiceProvider === 'pocket' ? 'pocket-continuous' : 'convai-continuous', complete: true},
       continuousPlaybackCompleteAt: Date.now()});
-    await status('ready', profile.name);
+    await status('ready', profile.name, {requestId: input.requestId});
     return true;
   }
   const preparationStartedAt = Date.now();
@@ -1676,7 +1749,7 @@ async function publishResult(input, profile, result, current = async () => true,
     audioStoreMs: Date.now() - preparationStartedAt, publishedAt: Date.now(), audioDurationSeconds: audio?.duration,
     stream:stream?{id:stream.manifest.streamId,chunks:stream.phrases.length,mode:'omni-phrases'}:undefined,
     nativePlaybackObserved: false});
-  await status('ready', profile.name);
+  await status('ready', profile.name, {requestId: input.requestId});
   if(stream){
     streaming++;
     try{
@@ -1730,8 +1803,9 @@ const addonVoice = createAddonVoice({isSpeaker: key => addonHost.isSpeaker(key),
     // The same answer a typed add-on turn gets from runInput: a message about the service, not about the microphone.
     console.error('[Addons] Voice turn failed:', error.message);
     await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
-      error: 'The conversation service could not reply. Please try again.', ...keyFailure(error, input)}),
+      error: 'The conversation service could not reply. Please try again.', ...turnFailure(error, input)}),
       {signal, isCurrent: current, isCurrentSync: current.sync}).catch(() => {});
+    noteTurnFailure(error, input, {microphone: true});
   }});
 
 const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => realtime.voiceChannel()),
@@ -1816,7 +1890,8 @@ const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => rea
     await atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state: silent ? 'silent' : noSpeech ? 'no-speech' : 'error', requestId: input.requestId,
       ...(silent ? {device: String(error.device ?? '').slice(0, 80)} : {}), updated: Date.now()}), {isCurrent: current, isCurrentSync: current.sync});
     await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
-      entity: input.entity, error: 'Voice conversation failed. Check your microphone and try again.', ...keyFailure(error, input)}), {isCurrent: current, isCurrentSync: current.sync});
+      entity: input.entity, error: 'Voice conversation failed. Check your microphone and try again.', ...turnFailure(error, input)}), {isCurrent: current, isCurrentSync: current.sync});
+    if (!noSpeech && !silent) noteTurnFailure(error, input, {microphone: true});
   },
 });
 
@@ -2006,6 +2081,10 @@ async function pollMicrophone() {
           await cancelKnowledgeTurn(prepared); return;
         }
         void mic.start(prepared.input, realtimeConfig(prepared.input)).catch(error => console.error(error.message));
+        // A reply the local renderer will voice (Pocket, Voxtral): its output device opens while V talks (RealtimeHost.standbyLocal; an
+        // unused one closes itself after 30 s). Routing is read without fixing this turn's voice plan, which waits for the words.
+        const choice = localChoice(prepared.input.profileKey);
+        if (choice.uses && choice.provider === 'pocket' && localVoice.playbackEnabled !== false) void realtime.standbyLocal?.()?.catch(() => {});
       }
     }
     const recording = mic.current;
@@ -2113,6 +2192,8 @@ async function tick() {
     const held = lookahead.claim(input, owner);
     if (held) {
       active = held; void cancelMicrophone();
+      // The submitted turn is this one now: the status names it, as runInput's 'thinking' does for a turn that starts here.
+      void status('thinking', profileFor(input, roster)?.name ?? '', {requestId: input.requestId, provider: mistral.active ? mistral.route : 'convai'}).catch(() => {});
       void measure(held.input, {claimedAt: Date.now(), lookahead: lookahead.stats(held.lookahead)});
       return;
     }
@@ -2230,7 +2311,7 @@ async function runAddonTurn(request, input, profile, current, clock, {userText =
   let published = false;
   try {
   note(input, {receivedAt: request.receivedAt, preparation: {mode: ahead ? 'lookahead' : 'none'}, reaction: input.reaction?.phase, addonRoute: route});
-  if (!ahead) void status('thinking', profile.name).catch(() => {});
+  if (!ahead) void status('thinking', profile.name, {requestId: input.requestId, provider: route}).catch(() => {});
   clock.mark('admitted');
   const host = addonTextHost(route, profile.key);
   // A remark that asked for stock uses a line the model wrote ahead (filled with this moment's numbers) when one is ready; with
@@ -2282,7 +2363,7 @@ async function runAddonTurn(request, input, profile, current, clock, {userText =
   if (!await current()) return;
   // A spoken turn carries the recognised words: a group round hands them to the next speakers (mod/group-chat.lua received).
   if (userText) result = {...result, userText};
-  await measure(input, {resultReadyAt: Date.now(), requestToResultMs: Date.now() - request.receivedAt});
+  note(input, {resultReadyAt: Date.now(), requestToResultMs: Date.now() - request.receivedAt});
   if (await publishResult(input, profile, result, current, signal)) { published = true; addonHost.afterReply(input, result.text); }
   } finally {
     if (paceToken && !published && addonHost.remarkRefunded(paceToken)) {
@@ -2367,7 +2448,9 @@ async function runInput(request, prepared, clock) {
     note(input, {receivedAt: request.receivedAt, preparation: {mode: ahead ? 'lookahead' : prepared ? 'claimed' : 'none'},
       journalStatus: input.journal?.status || 'not-supplied', journalObjectives: input.journal?.quest?.objectives.length || 0,
       battleStatus: input.battle?.status || 'not-supplied', reaction: input.reaction?.phase});
-    if (!ahead) void status('thinking', profile.name).catch(() => {});
+    if (!ahead) void status('thinking', profile.name, {requestId: input.requestId, provider: mistral.active ? mistral.route : 'convai'}).catch(() => {});
+    // A fresh read, not the cached copy: the copy can be about a second old, and a heartbeat that was due just then would read as
+    // stale and skip the connection hand-over (the group look-ahead tests caught it).
     const canWarm = await audioReady(runtime);
     throwIfCancelled(controller.signal);
     // How warm this turn's page already was (opened at the talk key, the composer, a look or a partner).
@@ -2376,6 +2459,11 @@ async function runInput(request, prepared, clock) {
     if (canWarm && !ahead) await connections.setRequest(input, turnRoute);
     if (canWarm && !ahead && keys.singleSession && input.group?.index === 1 && groupLookaheadAllowed()) void warmRoundAhead(input, controller.signal);
     throwIfCancelled(controller.signal);
+    // A reply the local renderer will voice (Pocket, Voxtral): its page and a silent output device open now, while the model thinks,
+    // instead of after the first sentence (0.15 to 0.75 s under the game in the live records). Not awaited; does nothing while the
+    // renderer is busy with another reply.
+    if (!ahead && canWarm && localVoice.playbackEnabled !== false && turnVoice(input).engine === 'pocket'
+      && (await readSpeechStateCached()).continuousAvailable === true) void realtime.standbyLocal?.()?.catch(() => {});
     clock.mark('transport');
     note(input, {transportRequestedAt: Date.now(), connectionWarm,
       submissionStages: {...stages, beforeTransportMs: performance.now() - preparationStarted}});
@@ -2390,7 +2478,8 @@ async function runInput(request, prepared, clock) {
       await knowledgeRouter.activity(knowledgeTurn, 'generated-reply', {replyText: result.text});
       stagedKnowledgeTurn(knowledgeTurn, {replyText: result.text});
     }
-    await measure(input, {resultReadyAt: Date.now(), requestToResultMs: Date.now() - request.receivedAt});
+    // Not awaited: a reply published as a whole (OmniVoice) goes to the game without waiting for the record's file write.
+    note(input, {resultReadyAt: Date.now(), requestToResultMs: Date.now() - request.receivedAt});
     await publishResult(input, profile, result, current, controller.signal);
   } catch (error) {
     // A look-ahead that fails before the game submits it publishes nothing;
@@ -2398,11 +2487,13 @@ async function runInput(request, prepared, clock) {
     if (ahead?.isHeld()) { lookahead.fail(ahead); console.error('[CyberpunkConvai] Look-ahead turn failed:', error.message); return; }
     if (companionActions.pending?.packet.requestId === input?.requestId) void companionActions.revoke();
     if (!await current()) return;
-    await status('error', error.message).catch(() => {});
+    await status('error', error.message, input ? {requestId: input.requestId} : null).catch(() => {});
     if (input) await atomic(replyPath, JSON.stringify({requestId: input.requestId,
       generation: input.generation, entity: input.entity,
-      error: 'The conversation service could not reply. Please try again.', ...keyFailure(error, input)}), {signal: controller.signal, isCurrent: current, isCurrentSync: current.sync}).catch(() => {});
+      error: 'The conversation service could not reply. Please try again.', ...turnFailure(error, input)}), {signal: controller.signal, isCurrent: current, isCurrentSync: current.sync}).catch(() => {});
     console.error('[CyberpunkConvai] Bridge request failed:', error.message);
+    // An automatic reaction that failed is a turn too; one cancelled by the player is not (reportableTurnFailure).
+    if (input && !controller.signal.aborted) noteTurnFailure(error, input);
   } finally {
     if (knowledgeTurn && (controller.signal.aborted || !await current())) await cancelKnowledgeTurn(knowledgeTurn);
     if (active === request) active = null;
@@ -2660,6 +2751,8 @@ async function applyProviderChoice() {
     await phone.forgetSessions().catch(() => {});
     console.error(`[CyberpunkConvai] Conversation provider: ${mistral.applied}`);
     rewarmLocalVoice();
+    // Local AI is chosen and down, and nobody can take its turns (no Mistral key, Convai's free day used up): they stay here and say why.
+    if (mistral.localDown) logLocalDown();
     // What the custom provider is set to, for a support report: the host and the model id (never the address's path, a query or the key).
     if (mistral.applied === 'custom') console.error(`[Custom] host ${customEndpoint.host}, model ${customEndpoint.model}, key ${customEndpoint.key ? 'saved' : 'none'}`);
     // Leaving the local AI gives its graphics memory back at once; arriving loads it (a first start compiles shaders for a while).
@@ -2706,7 +2799,24 @@ const installedLocalModels = () => describeLocalModels(listLocalModels({pack: lo
 // The free memory is what the last start saw before it loaded its model; until there was a start, the card's total stands in.
 const localModelDefaults = () => defaultModelIds({models: listLocalModels({pack: localPack, matureModels: maturePackModels, customModels: customScan.models}),
   matureOn: matureContent.enabled, freeMiB: localServer.lastFreeMiB ?? localServer.totalVramMiB ?? cardTotalMiB, totalMiB: localServer.totalVramMiB ?? cardTotalMiB, sizeOf: localModelSizeMiB});
-const customModelProblems = () => customScan.problems.map(({name, reason}) => ({name: String(name).slice(0, 60), reason}));
+// Models a pack's marker names whose file is not there (a zip that was not fully extracted): they are not in the list, and with only Mature models left and
+// Mature content off Local AI cannot start, so the model row says which model is missing (docs/LOCAL_AI.md, "When a local turn fails"). A few stat calls at
+// most every 5 s, and one log line when the answer changes.
+let packIssues = [], packIssuesAt = 0, packIssuesKey = '';
+function packFileIssues() {
+  if (Date.now() - packIssuesAt < 5000) return packIssues;
+  packIssuesAt = Date.now();
+  try {
+    packIssues = packFileProblems(describePackFiles({project}));
+    const key = JSON.stringify(packIssues);
+    if (key !== packIssuesKey) {
+      packIssuesKey = key;
+      if (packIssues.length) console.error('[LocalAI] the Local AI folder is incomplete: ' + packIssues.map(item => item.name).join(', ') + ' (named by a manifest, the model file is not there; a pack that was not fully extracted)');
+    }
+  } catch { packIssues = []; }
+  return packIssues;
+}
+const customModelProblems = () => [...customScan.problems.map(({name, reason}) => ({name: String(name).slice(0, 60), reason})), ...packFileIssues()].slice(0, 8);
 // The card's total memory marks a custom model that can never fit, and stands in for the free memory in the model the page shows as
 // selected. The first start reads it from llama-server; before that one nvidia-smi call (once a minute at most, and only while more than
 // one model is installed) stands in.
@@ -2716,6 +2826,8 @@ async function learnCardTotal() {
   cardTotalMiB = await nvidiaTotalMiB().catch(() => null);
 }
 let localModelChoiceKey = null, localModelListKey = '', localModelListCheckedAt = 0;
+// Local AI failures a changed model choice (or Mature setting) may cure: tried again when the choice changes (syncLocalModelChoice).
+const RETRY_ON_CHOICE = new Set(['low-memory', 'start-failed', 'crashed']);
 // The poll calls this before it applies the saved provider (and reads Mature content just before): the first Local AI start takes the model
 // choice and Mature content when it begins, and nothing reloads it afterwards (the first sync only records the choice). Cheap: no file, no process.
 function syncLocalModelChoice(settings) {
@@ -2729,6 +2841,9 @@ function syncLocalModelChoice(settings) {
     if (!first && mistral.applied === 'local') void localServer.reselect().catch(() => {});
     // A Mature-only install could not start Local AI while Mature content was off ('mature-off'); turning it on lifts that: try again.
     if (!first && matureContent.enabled && mistral.clearLocalFailure('mature-off')) prepareLocal();
+    // A start that failed for want of graphics memory, or did not start or crashed, may work with another model: the player was told to pick a
+    // smaller one ('local-no-memory'), so the new choice is tried at once instead of the failure standing until another provider is chosen.
+    else if (!first && RETRY_ON_CHOICE.has(mistral.localBroken) && mistral.clearLocalFailure(mistral.localBroken)) prepareLocal();
   }
 }
 // The pack, or a model of the player's own, can appear while the game runs (the pack extracted after choosing Local, a model added to the
@@ -2882,7 +2997,7 @@ const paidTierControl = await new PaidTierControl({keys, commandPath: resolve(ru
   log: message => console.error('[CyberpunkConvai] ' + message)}).open();
 playerConnectionLimit = () => paidTierControl.connectionLimit();
 const mistralControl = await new MistralControl({provider: mistral, commandPath: resolve(runtime, 'mistral-key-command.json'),
-  inworldCommandPath: resolve(runtime, 'inworld-key-command.json'), localStatus: localAiStatus, localReason: localAiReason, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, localModelDefaults, localModelProblems: customModelProblems, model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
+  inworldCommandPath: resolve(runtime, 'inworld-key-command.json'), localStatus: localAiStatus, localReason: localAiReason, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, localModelDefaults, localModelProblems: customModelProblems, localDiagnostics: () => localServer.diagnostics(), model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
 // The custom provider's settings page: three pastes and a connection test (bridge/custom-endpoint.mjs). Idle until the page writes a command.
 const customControl = await new CustomControl({custom: customEndpoint, provider: mistral, commandPath: resolve(runtime, 'custom-provider-command.json'),
   publish: value => atomic(resolve(runtime, 'custom-provider-state.json'), JSON.stringify(value)),
@@ -2926,7 +3041,12 @@ const editorControl = await EditorControl.open({server: new EditorServer({editor
 await companionActions.revoke();
 await status('waiting');
 await pollSettings(false);
-void setupCheck.run(null, {light: true}).catch(error => console.error('[CyberpunkConvai] Setup check:', error.message));
+void setupCheck.run(null, {light: true}).catch(error => { console.error('[CyberpunkConvai] Setup check:', error.message); return null; }).then(noteSetupProblems);
+void gameState?.poll();
+// The saved provider is applied (or the settings file could not be read yet, and the default stands until a later poll): the status file
+// says so from here on.
+mistral.statusHeld = false;
+await mistralControl.publishStatus().catch(() => {});
 await pollKnowledge();
 void localVoice.start().catch(error => console.error('[CyberpunkConvai] Local voice startup:', error.message));
 // A text route (Mistral, the local AI) opens no Convai connection, so nothing else starts the hidden browser that renders the
@@ -2943,7 +3063,10 @@ const lookaheadTimer = setInterval(() => { void pollLookahead().catch(error => c
 const addonTimer = addonHost.active ? setInterval(() => { for (const read of Object.values(addonHost.watchHandlers(runtime))) void read(); }, 1000) : null;
 addonTimer?.unref?.();
 // A poll that is still running when the service closes is rejected with 'Voice service is closed': expected at shutdown, not a fault.
-const settingsTimer = setInterval(() => { void pollSettings().catch(error => { if (!stopped) console.error('[CyberpunkConvai] Settings poll:', error.message); }); }, 500);
+const settingsTimer = setInterval(() => {
+  void gameState?.poll();   // a stat of each state file (bridge/game-state.mjs); a copy only when one changed
+  void pollSettings().catch(error => { if (!stopped) console.error('[CyberpunkConvai] Settings poll:', error.message); });
+}, 500);
 const phoneTimer = setInterval(() => { void pollPhone().catch(error => console.error('[CyberpunkConvai] Phone poll:', error.message)); }, 150);
 // The status file the game reads can be held open by the game for a moment (Windows refuses the rename: EPERM/EBUSY); the next poll
 // writes it again, so the same message is logged at most once a minute, with how many were left out.
@@ -2971,12 +3094,17 @@ watchFiles(runtime, {
   'phone-chat-input.json': () => pollPhone().catch(error => console.error('[CyberpunkConvai] Phone poll:', error.message)),
   // The game's playback lease releases the first sound: the playback pump polls the moment it is written (docs/LATENCY_2026-10-13.md, 4.2).
   'continuous-control.json': () => leaseWake.fire(),
-  // The add-on state and settings the game writes (docs/ADDON_API.md); no entries without add-ons.
-  ...addonHost.watchHandlers(runtime),
-}, {log: message => console.error('[CyberpunkConvai] ' + message)});
+  // The add-on state and settings the game writes (docs/ADDON_API.md); no entries without add-ons. The player's state files too: the copy
+  // outside the game folder follows a save within milliseconds (no entries unless the launcher turned it on). addon-settings.json is both.
+  ...mergeHandlers(addonHost.watchHandlers(runtime), gameState ? gameState.watchHandlers() : {}),
+  // The lease (about 250 bytes) is read on the next turn of the event loop, not after a 4 ms timer (up to 15.6 ms on Windows): its
+  // reader keeps its last good copy when it meets a half-written file and the wake is a latch (bridge/file-wake.mjs `delays`). The
+  // request keeps the short delay: Lua rewrites that large file in place under Mod Organizer 2.
+}, {delays: {'continuous-control.json': 0}, log: message => console.error('[CyberpunkConvai] ' + message)});
 const editorTimer = setInterval(() => { void editorControl.poll().catch(error => console.error('[CyberpunkConvai] Character editor:', error.message)); }, 500);
 async function shutdown() {
   if (stopped) return;
+  await gameState?.flush().catch(() => {});   // the Lua's last save is copied before anything else closes
   await companionActions.revoke();
   stopped = true; active?.controller.abort(); dropPrefetch(); audioWatch.stop(); tokenSource?.stop();
   companionVision.stop();

@@ -7,6 +7,9 @@ local legacyKeys = {'viktor-vektor', 'misty-olszewski', 'judy-alvarez',
     'panam-palmer', 'resident-male', 'resident-female'}
 local companions, profiles, byKey, byRecord = nil, {}, {}, {}
 local settings, settingsLoaded, settingsNeedSave = nil, false, false
+-- settings.json was missing or unreadable while the service may still have been restoring the copy it keeps outside the game folder
+-- (mod/state-restore.lua): the settings are defaults in memory only, nothing is saved, and the file is read again once that is over.
+local settingsDeferred = false
 local playerIdentity, initialized = nil, false
 local tab, query, page, selected = 'characters', '', 1, nil
 local assigning, returnQuery, returnPage = nil, '', 1
@@ -268,7 +271,7 @@ end
 
 local function writeMemoryCommand(value) return writeCommandFile('runtime/memory-command.json', value) end
 
--- For the Custom provider module (custom-provider.lua, drawn by mod/mcm.lua): the same in-place command file write, and the id of this game
+-- For the Custom provider module (custom-provider.lua, drawn by mod/manager-ui.lua): the same in-place command file write, and the id of this game
 -- session, which every command id of that channel carries (made on first use, like the key commands below).
 function M.writeCommand(target, value) return writeCommandFile(target, value) end
 function M.commandSession()
@@ -629,10 +632,23 @@ local function normalizeVoiceProvider(value)
     return DEFAULT_VOICE_PROVIDER
 end
 
+-- Asked only when settings.json is missing or unreadable, never on an ordinary start. No answer (the module did not load) is "no".
+local function restorePending()
+    local restore = convaiStateRestore
+    return restore ~= nil and restore.waiting() == true
+end
+
 local function loadSettings()
-    if settingsLoaded then return end
+    if settingsLoaded then
+        -- Deferred settings are read again once the restore is over (a getter asks, so this costs nothing while they are loaded). The next
+        -- initialize() hands the restored voice, subtitle and enabled values to the game, and saves what a new file needs.
+        if not settingsDeferred or restorePending() then return end
+        settingsDeferred, initialized = false, false
+    end
     settingsLoaded = true
-    settings = readJSON('runtime/settings.json') or readJSON('runtime/settings.json.previous') or {}
+    settings = readJSON('runtime/settings.json') or readJSON('runtime/settings.json.previous')
+    settingsDeferred = settings == nil and restorePending()
+    settings = settings or {}
     settingsNeedSave = settings.version ~= 2 or type(settings.enabledByKey) ~= 'table'
     settings.version = 2
     if settings.uiLanguage ~= 'auto' and not isChoice(settings.uiLanguage, ui.supported()) then
@@ -641,6 +657,8 @@ local function loadSettings()
     ui.configure(settings.uiLanguage)
     if type(settings.voice) ~= 'boolean' then settings.voice = true end
     if type(settings.subtitles) ~= 'boolean' then settings.subtitles = true end
+    -- Automatic error reports (docs/ERROR_REPORTS.md): on unless the player turned them off. The service reads a missing key as on too.
+    if type(settings.errorReports) ~= 'boolean' then settings.errorReports = true end
     if settings.subtitleStyle ~= 'overhead' and settings.subtitleStyle ~= 'dialogue' then
         settings.subtitleStyle, settingsNeedSave = 'dialogue', true
     end
@@ -809,6 +827,8 @@ local function loadSettings()
 end
 
 local function saveSettings()
+    -- Never while the settings are defaults held back for a restore: they would replace the player's saved ones.
+    if settingsDeferred then return false end
     -- Preserve unknown settings and the old six-key projection for reloads.
     settings.enabled = {}
     for index, key in ipairs(legacyKeys) do settings.enabled[index] = settings.enabledByKey[key] ~= false end
@@ -845,7 +865,7 @@ end
 -- read again (at most every 1.5 s, never per frame) and does nothing but compare two strings while the choice is valid; a failed save is not retried.
 local goneModelSaveFailed = false
 repairGoneLocalModel = function()
-    if goneModelSaveFailed or not settings or not settingsLoaded then return end
+    if goneModelSaveFailed or not settings or not settingsLoaded or settingsDeferred then return end
     local replacement = goneLocalModelReplacement(settings.localModel, mistralState)
     if not replacement then return end
     local previous = settings.localModel
@@ -864,6 +884,29 @@ function M.configureArchetypes(keys, classify, label)
     for key in pairs(keys or {}) do archetypeKeys[key] = true end
     classifyRecord = type(classify) == 'function' and classify or nil
     archetypeLabel = type(label) == 'function' and label or nil
+end
+
+-- Settings > Privacy > Send error reports automatically (docs/ERROR_REPORTS.md). Read when the game records an error event (a few times a
+-- session at most), never per frame.
+function M.errorReports()
+    loadSettings()
+    return settings.errorReports ~= false
+end
+
+-- The one-time notice that error reports are sent (mod/error-reports.lua): due while the setting is on and the notice was never shown.
+function M.errorReportsNoticeDue()
+    loadSettings()
+    return settings.errorReports ~= false and settings.errorReportsNoticed ~= true
+end
+
+-- Remembers that the notice was shown, in settings.json. A save that fails leaves it due, so it may show once more at the next load.
+function M.markErrorReportsNoticed()
+    loadSettings()
+    if settings.errorReportsNoticed == true then return true end
+    settings.errorReportsNoticed = true
+    if saveSettings() then return true end
+    settings.errorReportsNoticed = nil
+    return false
 end
 
 function M.archetypeConversations()
@@ -1237,7 +1280,7 @@ function M.configure(companionApi, profileList)
 end
 
 function M.reset()
-    playerIdentity, initialized, settingsLoaded, settings, settingsNeedSave = nil, false, false, nil, false
+    playerIdentity, initialized, settingsLoaded, settings, settingsNeedSave, settingsDeferred = nil, false, false, nil, false, false
     tab, query, page, selected = 'characters', '', 1, nil
     assigning, returnQuery, returnPage = nil, '', 1
     models, modelRows, modelSeen, modelIndex = {}, nil, {}, 1
@@ -1317,7 +1360,7 @@ local function initialize(player)
             pcall(function() player:ConvaiManagerSetEnabled(index - 1, settings.enabledByKey[key] ~= false) end)
         end
         initialized, dirty = true, true
-        if settingsNeedSave then
+        if settingsNeedSave and not settingsDeferred then
             settingsNeedSave = false
             if not saveSettings() then say('Settings are active, but could not be saved for next time.') end
         end
@@ -1700,7 +1743,7 @@ function M.prepare(player)
     return ok
 end
 
--- MCM reads the same catalogue and saved settings as the conversation runtime.
+-- The Companion Manager page reads the same catalogue and saved settings as the conversation runtime.
 -- This interface does not create the retired HUD popup or touch world actors.
 function M.snapshot(player)
     if player then initialize(player) else loadSettings() end
@@ -1726,6 +1769,7 @@ function M.snapshot(player)
             gameDialogueContext = settings.gameDialogueContext,
             decisionLedger = settings.decisionLedger,
             witnessReceipts = settings.witnessReceipts,
+            errorReports = settings.errorReports ~= false,
             eyeContactHeight = settings.eyeContactHeight,
             headFollowStrength = settings.headFollowStrength,
             audioDelay = settings.audioDelay,
@@ -1777,7 +1821,7 @@ end
 function M.applySettings(player, values)
     loadSettings()
     -- Validate and save the complete transaction before exposing any changed
-    -- values to native playback. A failed save leaves the MCM draft intact.
+    -- values to native playback. A failed save changes nothing.
     if type(values) ~= 'table' then return false, 'No settings were supplied.' end
     local nextSettings = {}
     for key, value in pairs(settings) do nextSettings[key] = value end
@@ -1793,7 +1837,7 @@ function M.applySettings(player, values)
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
             or key == 'holocallLiveImage'
             or key == 'gameDialogueContext' or key == 'decisionLedger' or key == 'witnessReceipts'
-            or key == 'naturalSpeech' or key == 'expressiveEmotions'
+            or key == 'naturalSpeech' or key == 'expressiveEmotions' or key == 'errorReports'
             or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
@@ -1801,7 +1845,7 @@ function M.applySettings(player, values)
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.matureContent = value
         elseif key == 'matureRestore' then
-            -- What turning Mature content on changed (mod/mcm.lua), kept so turning it off can put it back; false clears it.
+            -- What turning Mature content on changed (mod/manager-ui.lua), kept so turning it off can put it back; false clears it.
             if value ~= false and cleanMatureRestore(value) == nil then return false, 'Invalid Mature content settings.' end
             nextSettings.matureRestore = value and cleanMatureRestore(value) or nil
         elseif key == 'localModel' then
@@ -1930,7 +1974,7 @@ function M.applySettings(player, values)
     settings = nextSettings
     if not saveSettings() then
         settings = previous
-        return false, 'The settings could not be saved. Your changes are still pending.'
+        return false, 'The settings could not be saved. Nothing was changed.'
     end
     ui.configure(settings.uiLanguage)
     if player then

@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { pseudonym, signBody } from '../api/_lib/crypto.js';
+import { addressBucket } from '../api/_lib/http.js';
 import { createTokenHandler } from '../api/_lib/token-handler.js';
 import { FAKE_API_KEY, SIGNING_SECRET, START, captureErrors, createWorld, makeEnv, mockResponse } from '../testkit/harness.mjs';
 
@@ -291,6 +292,27 @@ test('who counts as one caller: the platform address beats a header the caller c
   assert.equal((await anonymous()).statusCode, 200);
   assert.equal((await anonymous()).statusCode, 200);
   assert.equal((await anonymous()).json.error, 'rate', 'every request with no address at all shares one bucket');
+});
+
+test('an IPv6 caller counts as its /64: stepping through the addresses of one line does not get round the per-address limits', async () => {
+  assert.equal(addressBucket('2001:db8:1:2::1'), '2001:db8:1:2::/64');
+  assert.equal(addressBucket('2001:0DB8:0001:0002:ffff:ffff:ffff:ffff'), '2001:db8:1:2::/64');
+  assert.equal(addressBucket('[2001:db8:1:2:3:4:5:6]'), '2001:db8:1:2::/64');
+  assert.equal(addressBucket('fe80::1%eth0'), 'fe80:0:0:0::/64');
+  assert.equal(addressBucket('::ffff:198.51.100.5'), '198.51.100.5', 'an IPv4 address written as IPv6 is the IPv4 address');
+  assert.equal(addressBucket('::ffff:c633:6405'), '198.51.100.5');
+  assert.equal(addressBucket('198.51.100.5'), '198.51.100.5');
+  for (const odd of ['unknown', '', 'not:an::address::', '1:2:3:4:5:6:7:8:9', '2001:db8::zz']) assert.equal(addressBucket(odd), odd, odd);
+
+  const world = createWorld({ CONVAI_AUTH_IP_PER_HOUR: '2' });
+  for (const ip of ['2001:db8:1:2::1', '2001:db8:1:2::2']) assert.equal((await world.send({ installId: randomUUID(), ip })).statusCode, 200, ip);
+  const stepped = await world.send({ installId: randomUUID(), ip: '2001:db8:1:2:aaaa:bbbb:cccc:dddd' });
+  assert.equal(stepped.json.error, 'rate', 'another address of the same /64 is the same caller');
+  assert.equal((await world.send({ installId: randomUUID(), ip: '2001:db8:1:3::1' })).statusCode, 200, 'the next /64 is another caller');
+
+  const mapped = createWorld({ CONVAI_AUTH_IP_PER_HOUR: '1' });
+  assert.equal((await mapped.send({ installId: randomUUID(), ip: '198.51.100.5' })).statusCode, 200);
+  assert.equal((await mapped.send({ installId: randomUUID(), ip: '::ffff:198.51.100.5' })).json.error, 'rate');
 });
 
 test('a request body that fails while being read (the client went away) gets a controlled answer instead of a rejected handler', async () => {

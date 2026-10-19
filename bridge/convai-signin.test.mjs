@@ -41,9 +41,9 @@ function begin({answers = {[KEY_BLOB]: {json: {decryptedData: KEY}}}, ...options
 }
 
 // A GET to the loopback listener with a chosen Host header, as a browser sends it. Resolves {status, headers, text}.
-function get(port, path, host = `localhost:${port}`) {
+function get(port, path, host = `localhost:${port}`, headers = {}) {
   return new Promise((resolve, reject) => {
-    const call = httpRequest({host: '127.0.0.1', port, path, method: 'GET', headers: {Host: host}, timeout: 60000}, response => {
+    const call = httpRequest({host: '127.0.0.1', port, path, method: 'GET', headers: {Host: host, ...headers}, timeout: 60000}, response => {
       let text = '';
       response.setEncoding('utf8');
       response.on('data', chunk => { text += chunk; });
@@ -131,6 +131,27 @@ test('requests with another Host, another path, a missing value or a second /con
     assert.equal((await convaiRedirects(value, 'api_key=U2FsdGVkX1+second/attempt==')).status, 404, 'one sign-in only');
     assert.equal(await session.key, KEY);
     assert.deepEqual(calls, [{data: KEY_BLOB}]);
+  } finally { session.cancel(); }
+});
+
+test('only a browser navigation is answered: an image, a frame or a fetch another page makes cannot hand over its own values', async () => {
+  const {session, calls, port} = begin();
+  try {
+    const value = await port();
+    const path = `/control?api_key=${KEY_BLOB}`, host = `localhost:${value}`;
+    // How a web page open in the player's browser would look for the port and slip in its own Convai account's values.
+    for (const headers of [{'Sec-Fetch-Mode': 'no-cors', 'Sec-Fetch-Dest': 'image'}, {'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Dest': 'iframe'},
+      {'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Dest': 'empty'}, {'Sec-Fetch-Mode': 'no-cors', 'Sec-Fetch-Dest': 'script'}, {'Sec-Fetch-Dest': 'image'},
+      {'Sec-Fetch-Mode': 'no-cors'}]) {
+      assert.equal((await get(value, path, host, headers)).status, 403, JSON.stringify(headers));
+    }
+    assert.equal(calls.length, 0, 'nothing was sent to Convai');
+    // Convai's page sending the browser here: a top-level navigation.
+    const first = await get(value, path, host, {'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Site': 'cross-site'});
+    assert.equal(first.status, 303);
+    assert.equal(await session.key, KEY);
+    const done = await get(value, '/done', host, {'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Site': 'same-origin'});
+    assert.match(done.text, /Signed in/);
   } finally { session.cancel(); }
 });
 

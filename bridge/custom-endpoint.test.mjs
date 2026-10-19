@@ -71,6 +71,33 @@ test('a model id: letters, digits and . _ : / @ + -', () => {
   for (const bad of ['', 'two words', 'https://openrouter.ai', '-leading', 'a'.repeat(130), 'with;semicolon', 'a<b', undefined]) assert.equal(parseModelId(bad), null, String(bad).slice(0, 30));
 });
 
+test('a model id may start with @ (Cloudflare), and an API key is never taken for one: it would be shown, logged and published as the model', () => {
+  for (const id of ['@cf/meta/llama-3.1-8b-instruct', '@hf/thebloke/zephyr-7b-beta-awq', 'hf.co/bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M',
+    'skyfall-36b-v2', 'deepseek/deepseek-r1-0528:free', 'accounts/fireworks/models/llama-v3p1-8b-instruct']) assert.equal(parseModelId(id), id, id);
+  // Key shapes built at run time: a known prefix, or a long run of letters and digits (a Mistral key, OpenRouter's hex tail).
+  for (const key of [KEY, 'sk-or-v1-' + '0123456789abcdef'.repeat(4), 'sk-proj-' + 'Ab_1-'.repeat(8), 'gsk_' + 'Ab1'.repeat(18), 'xai-' + 'Zz9'.repeat(10),
+    'Ab12'.repeat(8)]) {
+    assert.equal(parseModelId(key), null, key.slice(0, 12));
+    assert.equal(parseModelId(`model=${key}`), null);
+    assert.deepEqual(parseCustomFile(`model=${key}\n`).problems, ['model'], 'a key in the model line is left out and only its name reported');
+  }
+});
+
+test('a paste in curly quotes (a web page, a chat app) is read like one in straight quotes', () => {
+  assert.equal(parseEndpointUrl('“https://openrouter.ai/api/v1”').endpoint, 'https://openrouter.ai/api/v1');
+  assert.equal(parseModelId('‘llama3.2’'), 'llama3.2');
+  assert.equal(parseCustomKey(`“${KEY}”`), KEY);
+  assert.equal(parseCustomKey(`“${KEY} more”`), null);
+});
+
+test('the file: a # after a space ends a line\'s value, as the doc says; a # inside a value stays', () => {
+  const parsed = parseCustomFile(`endpoint=http://localhost:11434/v1   # Ollama\r\nmodel=llama3.2:3b\t# the small one\r\napi-key=${KEY} # mine\r\n`);
+  assert.deepEqual([parsed.endpoint?.host, parsed.model, parsed.key, parsed.problems], ['localhost:11434', 'llama3.2:3b', KEY, []]);
+  const hashed = 'ab#' + 'c'.repeat(12);
+  assert.equal(parseCustomFile(`api-key=${hashed}\n`).key, hashed);
+  assert.equal(parseCustomFile(`api-key = ${hashed}\n`).key, hashed);
+});
+
 test('the file: three lines in any order, comments allowed, a bad line is left out and only its name is reported', () => {
   const text = `# my setup\n\nmodel = meta-llama/llama-3.1-8b-instruct\napi-key=${KEY}\nendpoint=https://openrouter.ai/api/v1\nunknown=1\n`;
   const parsed = parseCustomFile(text);
@@ -96,7 +123,7 @@ test('the file: three lines in any order, comments allowed, a bad line is left o
 function store(initial = null) {
   const calls = {writes: [], removed: 0};
   let text = initial;
-  const endpoint = new CustomEndpoint({path: 'p.txt', readText: async () => { if (text === null) throw Error('missing'); return text; },
+  const endpoint = new CustomEndpoint({path: 'p.txt', readText: async () => { if (text === null) throw Object.assign(Error('missing'), {code: 'ENOENT'}); return text; },
     writeText: async (_path, value) => { calls.writes.push(value); text = value; }, removeFile: async () => { calls.removed++; text = null; }});
   return {endpoint, calls, get text() { return text; }, set text(value) { text = value; }};
 }
@@ -172,6 +199,33 @@ test('a file with a bad field keeps the good ones, and a disk that fails keeps w
   const none = new CustomEndpoint({path: 'p', readText: async () => { throw Object.assign(Error('gone'), {code: 'ENOENT'}); }});
   await none.load();
   assert.equal(none.ready, false);
+});
+
+test('a file that exists but cannot be read for a moment (locked, no permission) keeps what was saved, and no paste writes it over', async () => {
+  let text = `endpoint=http://localhost:11434/v1\nmodel=llama3.2\napi-key=${KEY}\n`, locked = null;
+  const writes = [], logs = [];
+  const endpoint = new CustomEndpoint({path: 'p', log: line => logs.push(line),
+    readText: async () => { if (locked) throw Object.assign(Error('locked'), {code: locked}); return text; },
+    writeText: async (_path, value) => { writes.push(value); text = value; }});
+  await endpoint.load();
+  assert.equal(endpoint.ready, true);
+  let changed = 0;
+  endpoint.onChange(() => { changed++; });
+  // Test connection and choosing the provider read the file again: a lock does not wipe the settings.
+  locked = 'EBUSY';
+  await endpoint.load();
+  assert.deepEqual([endpoint.host, endpoint.model, endpoint.key, changed], ['localhost:11434', 'llama3.2', KEY, 0]);
+  assert.match(logs.join('\n'), /could not be read \(EBUSY\)/);
+  assert.ok(!logs.join('\n').includes(KEY));
+  // A paste while it is still locked is refused: writing now would drop what the file holds.
+  locked = 'EPERM';
+  await assert.rejects(endpoint.setModel('qwen2.5'), /not written over/);
+  assert.deepEqual([writes.length, endpoint.model], [0, 'llama3.2']);
+  // Readable again (and edited by hand meanwhile): the paste reads it first and keeps every other line.
+  locked = null; text = `endpoint=http://localhost:11434/api/v1\nmodel=llama3.2\napi-key=${KEY}\n`;
+  await endpoint.setModel('qwen2.5');
+  assert.equal(writes.length, 1);
+  assert.deepEqual([parseCustomFile(text).endpoint.endpoint, parseCustomFile(text).model, parseCustomFile(text).key], ['http://localhost:11434/api/v1', 'qwen2.5', KEY]);
 });
 
 test('the real file is written with the key in it, nowhere else, and is read back by a new process', async () => {
@@ -252,6 +306,10 @@ test('the settings page: three pastes, each checked and saved, and the status it
   assert.deepEqual([status.result.field, status.result.state, status.result.reason, status.tail], ['key', 'invalid', 'not-a-key', KEY.slice(-4)]);
   c.clipboard(async () => 'bad model'); status = await c.send('paste-model');
   assert.deepEqual([status.result.state, status.result.reason, status.model], ['invalid', 'not-a-model', 'meta-llama/llama-3.1-8b-instruct']);
+  // The key still on the clipboard and "Paste model ID" pressed: refused, so the key is never shown, published or logged as the model.
+  c.clipboard(async () => `${KEY}\r\n`); status = await c.send('paste-model');
+  assert.deepEqual([status.result.state, status.result.reason, status.model], ['invalid', 'not-a-model', 'meta-llama/llama-3.1-8b-instruct']);
+  assert.ok(!JSON.stringify(c.published).includes(KEY));
   c.clipboard(async () => '   '); assert.equal((await c.send('paste-key')).result.reason, 'empty');
   c.clipboard(async () => { throw Error('no clipboard'); }); assert.equal((await c.send('paste-key')).result.state, 'unreadable');
   // Each part is removed on its own.
@@ -283,12 +341,15 @@ test('Test connection runs in the background: "testing" is published at once, th
   const c = await control({file: 'endpoint=http://localhost:11434/v1\nmodel=llama3.2\n', test: async () => { runs++; await gate; return {state: 'ok', ms: 12}; }});
   const status = await c.send('test');
   assert.deepEqual([status.test.state, status.test.id], ['testing', 's:cust:1']);
-  await c.send('test');
-  assert.equal(runs, 1, 'a second press while one runs is ignored');
+  // A second press while one runs (the page stops showing "Testing..." before a 90 s test of a server on this computer ends) sends no second
+  // request, but the running test answers to it: the page shows only the answer to its latest command.
+  const again = await c.send('test');
+  assert.equal(runs, 1, 'a second press while one runs sends nothing');
+  assert.deepEqual([again.test.state, again.test.id], ['testing', 's:cust:2']);
   release();
   // The answer is published when the test request ends: wait for that, not for a pause of a guessed length.
   for (const until = Date.now() + 60_000; c.published.at(-1).test?.state !== 'ok' && Date.now() < until;) await new Promise(resolve => setTimeout(resolve, 2));
-  assert.deepEqual(c.published.at(-1).test, {id: 's:cust:1', state: 'ok', ms: 12});
+  assert.deepEqual(c.published.at(-1).test, {id: 's:cust:2', state: 'ok', ms: 12});
   // A change of the settings drops the old result: it says nothing about the new ones.
   c.clipboard(async () => 'https://example.com/v1');
   assert.equal((await c.send('paste-url')).test, undefined);
@@ -354,4 +415,163 @@ test('an unreachable server and a timeout are told apart', async () => {
   assert.deepEqual(describeFailure(new MistralError('network', 'went quiet before the reply was finished', {provider: 'custom'})).code, 'timeout');
   assert.deepEqual(describeFailure(Error('boom')).code, 'unreachable');
   assert.equal(describeFailure(new MistralError('limit', 'x', {provider: 'custom', status: 429, retryAfterMs: 1500})).waitS, 2);
+});
+
+// ---- The key stays with the address it was saved for ------------------------------------------------------------------------------
+
+const OPENROUTER = parseEndpointUrl('https://openrouter.ai/api/v1');
+const NANO = parseEndpointUrl('https://nano-gpt.com/api/v1');
+const OLLAMA = parseEndpointUrl('http://localhost:11434/v1');
+const lastWrite = s => s.calls.writes.at(-1);
+
+test('a new address on another host forgets the saved key, and says so for a remote one; the same host with another path keeps it', async () => {
+  const s = store();
+  await s.endpoint.load();
+  await s.endpoint.setUrl(OPENROUTER); await s.endpoint.setModel('a/b:free'); await s.endpoint.setKey(KEY);
+  assert.match(lastWrite(s), /^key-origin=https:\/\/openrouter\.ai$/m, 'the key is saved with the address it belongs to');
+  assert.equal(s.endpoint.keyOrigin, 'https://openrouter.ai');
+  // Another path on the same origin (/v1 instead of /api/v1, a trailing path): the key stays.
+  await s.endpoint.setUrl(parseEndpointUrl('https://openrouter.ai/v1'));
+  assert.deepEqual([s.endpoint.key, s.endpoint.keyForgotten, s.endpoint.endpoint ?? s.endpoint.address.endpoint], [KEY, false, 'https://openrouter.ai/v1']);
+  await s.endpoint.setUrl(parseEndpointUrl('https://openrouter.ai'));
+  assert.equal(s.endpoint.key, KEY);
+  // Another host: the key is forgotten, in memory and in the file, and the settings page is told to ask for it again.
+  await s.endpoint.setUrl(NANO);
+  assert.deepEqual([s.endpoint.key, s.endpoint.keyOrigin, s.endpoint.keyForgotten, s.endpoint.host, s.endpoint.tail], [null, null, true, 'nano-gpt.com', null]);
+  assert.doesNotMatch(s.text, /api-key|key-origin/);
+  assert.ok(!s.text.includes(KEY));
+  assert.deepEqual(s.endpoint.secrets(), []);
+  // Pasting the key for the new address saves it for that address, and the notice goes away.
+  await s.endpoint.setKey(OTHER);
+  assert.deepEqual([s.endpoint.key, s.endpoint.keyForgotten, s.endpoint.keyOrigin], [OTHER, false, 'https://nano-gpt.com']);
+  assert.match(s.text, /^key-origin=https:\/\/nano-gpt\.com$/m);
+  // A new port, or http against https on the same host, is another origin.
+  await s.endpoint.setUrl(parseEndpointUrl('https://nano-gpt.com:8443/api/v1'));
+  assert.deepEqual([s.endpoint.key, s.endpoint.keyForgotten], [null, true]);
+  // Removing the address and entering one on another host forgets the key as well (the remove button is no way round it).
+  await s.endpoint.setUrl(OPENROUTER); await s.endpoint.setKey(KEY);
+  await s.endpoint.clearUrl();
+  assert.equal(s.endpoint.key, KEY, 'removing the address alone leaves the key where it is');
+  await s.endpoint.setUrl(OPENROUTER);
+  assert.equal(s.endpoint.key, KEY, 'the same host again: the key is still its own');
+  await s.endpoint.clearUrl();
+  await s.endpoint.setUrl(NANO);
+  assert.deepEqual([s.endpoint.key, s.endpoint.keyForgotten], [null, true]);
+  // The notice stays until a key is saved or removed; an address that needs none ends it.
+  await s.endpoint.setUrl(OPENROUTER);
+  assert.equal(s.endpoint.keyForgotten, true, 'still no key for a remote address');
+  await s.endpoint.setUrl(OLLAMA);
+  assert.equal(s.endpoint.keyForgotten, false, 'a server on this computer needs no key');
+});
+
+test('a server on this computer needs no key: the old key is forgotten without the notice; a key pasted before the address belongs to the first address', async () => {
+  const s = store();
+  await s.endpoint.load();
+  await s.endpoint.setUrl(OPENROUTER); await s.endpoint.setKey(KEY);
+  await s.endpoint.setUrl(OLLAMA);
+  assert.deepEqual([s.endpoint.key, s.endpoint.keyForgotten, s.endpoint.host], [null, false, 'localhost:11434']);
+  // The key first, the address after it: the key goes to that address, and to no other afterwards.
+  const first = store();
+  await first.endpoint.load();
+  await first.endpoint.setKey(KEY);
+  assert.equal(first.endpoint.keyOrigin, null);
+  await first.endpoint.setUrl(OPENROUTER);
+  assert.deepEqual([first.endpoint.key, first.endpoint.keyOrigin, first.endpoint.keyForgotten], [KEY, 'https://openrouter.ai', false]);
+  await first.endpoint.setUrl(NANO);
+  assert.equal(first.endpoint.key, null);
+  // A write that fails changes nothing: the key is still saved for its address.
+  let fail = false;
+  const failing = new CustomEndpoint({path: 'p', readText: async () => `endpoint=https://openrouter.ai/api/v1\nmodel=a\napi-key=${KEY}\nkey-origin=https://openrouter.ai\n`,
+    writeText: async () => { if (fail) throw Error('disk full'); }});
+  await failing.load();
+  fail = true;
+  await assert.rejects(failing.setUrl(NANO), /disk full/);
+  assert.deepEqual([failing.key, failing.host, failing.keyOrigin, failing.keyForgotten], [KEY, 'openrouter.ai', 'https://openrouter.ai', false]);
+});
+
+test('the file alternative: an address edited into the file on another host does not keep the key it had, at the next read or at the next start', async () => {
+  const s = store(formatCustomFile({endpoint: OPENROUTER.endpoint, model: 'a/b:free', key: KEY, keyOrigin: OPENROUTER.origin}));
+  const logs = [];
+  s.endpoint.log = line => logs.push(line);
+  await s.endpoint.load();
+  assert.deepEqual([s.endpoint.key, s.endpoint.keyOrigin], [KEY, 'https://openrouter.ai']);
+  let changed = 0;
+  s.endpoint.onChange(() => { changed++; });
+  // The player edits endpoint= and leaves the api-key line: read again (Test connection, choosing the provider), the key is forgotten and the file is written without it.
+  s.text = `endpoint=https://nano-gpt.com/api/v1\nmodel=a/b:free\napi-key=${KEY}\nkey-origin=https://openrouter.ai\n`;
+  await s.endpoint.load();
+  assert.deepEqual([s.endpoint.key, s.endpoint.host, s.endpoint.keyForgotten, changed], [null, 'nano-gpt.com', true, 1]);
+  assert.doesNotMatch(s.text, /api-key|key-origin/, 'the file no longer holds the key');
+  assert.equal(parseCustomFile(s.text).endpoint.host, 'nano-gpt.com', 'the address the player wrote is kept');
+  assert.ok(logs.some(line => /key was for another address and is forgotten/.test(line)));
+  assert.ok(!logs.join('\n').includes(KEY));
+  // The service was off while the file was edited: the line that records the address says the key is not for this one.
+  const restarted = new CustomEndpoint({path: 'p', readText: async () => `endpoint=https://nano-gpt.com/api/v1\nmodel=a\napi-key=${KEY}\nkey-origin=https://openrouter.ai\n`, writeText: async () => {}});
+  await restarted.load();
+  assert.deepEqual([restarted.key, restarted.keyForgotten], [null, true]);
+  // A key typed into the file together with the address is the player's word for it, even when the old key-origin line was left behind.
+  const live = store(formatCustomFile({endpoint: OPENROUTER.endpoint, model: 'a', key: KEY, keyOrigin: OPENROUTER.origin}));
+  await live.endpoint.load();
+  live.text = `endpoint=https://nano-gpt.com/api/v1\nmodel=a\napi-key=${OTHER}\nkey-origin=https://openrouter.ai\n`;
+  await live.endpoint.load();
+  assert.deepEqual([live.endpoint.key, live.endpoint.keyOrigin, live.endpoint.keyForgotten], [OTHER, 'https://nano-gpt.com', false]);
+  // Another path on the same host in the file keeps the key; a server on this computer takes none and gets no notice.
+  const same = store(formatCustomFile({endpoint: OPENROUTER.endpoint, model: 'a', key: KEY, keyOrigin: OPENROUTER.origin}));
+  await same.endpoint.load();
+  same.text = `endpoint=https://openrouter.ai/v1\nmodel=a\napi-key=${KEY}\nkey-origin=https://openrouter.ai\n`;
+  await same.endpoint.load();
+  assert.deepEqual([same.endpoint.key, same.endpoint.keyForgotten], [KEY, false]);
+  same.text = `endpoint=http://localhost:11434/v1\nmodel=a\napi-key=${KEY}\nkey-origin=https://openrouter.ai\n`;
+  await same.endpoint.load();
+  assert.deepEqual([same.endpoint.key, same.endpoint.keyForgotten, same.endpoint.host], [null, false, 'localhost:11434']);
+  // A file written by hand has no key-origin line: its key belongs to the address beside it, in this service, until that address changes.
+  const hand = store(`endpoint=https://openrouter.ai/api/v1\nmodel=a\napi-key=${KEY}\n`);
+  await hand.endpoint.load();
+  assert.deepEqual([hand.endpoint.key, hand.endpoint.keyOrigin], [KEY, 'https://openrouter.ai']);
+  hand.text = `endpoint=https://nano-gpt.com/api/v1\nmodel=a\napi-key=${KEY}\n`;
+  await hand.endpoint.load();
+  assert.deepEqual([hand.endpoint.key, hand.endpoint.keyForgotten], [null, true]);
+  // The record of the address is read and written like the other lines: bad ones are left out, none is needed.
+  assert.equal(parseCustomFile(`key-origin=https://openrouter.ai/api/v1\n`).keyOrigin, undefined);
+  assert.equal(parseCustomFile(`key-origin=https://OpenRouter.ai:443\n`).keyOrigin, 'https://openrouter.ai');
+  assert.equal(parseCustomFile(`key-origin=nonsense\n`).keyOrigin, undefined);
+  assert.doesNotMatch(formatCustomFile({endpoint: OLLAMA.endpoint, model: 'a', keyOrigin: OLLAMA.origin}), /key-origin/, 'no key, no record');
+  assert.match(formatCustomFile({endpoint: OPENROUTER.endpoint, model: 'a', key: KEY, keyOrigin: OPENROUTER.origin}), /^key-origin=https:\/\/openrouter\.ai$/m);
+});
+
+test('the settings page: pasting an address on another host forgets the key and the page is told; the status never holds the key', async () => {
+  const c = await control({file: formatCustomFile({endpoint: OPENROUTER.endpoint, model: 'a/b:free', key: KEY, keyOrigin: OPENROUTER.origin})});
+  assert.equal(c.published.at(-1).keySaved, true);
+  assert.equal('keyForgotten' in c.published.at(-1), false);
+  // The same host again, with another path: nothing is lost.
+  c.clipboard(async () => 'https://openrouter.ai/v1');
+  let status = await c.send('paste-url');
+  assert.deepEqual([status.result.state, status.keySaved, 'keyForgotten' in status], ['saved', true, false]);
+  // Another host: saved, the key forgotten, and the status says why the key row is empty.
+  c.clipboard(async () => 'https://nano-gpt.com/api/v1');
+  status = await c.send('paste-url');
+  assert.deepEqual([status.result.state, status.host, status.keySaved, status.keyForgotten, status.tail], ['saved', 'nano-gpt.com', false, true, null]);
+  assert.ok(!JSON.stringify(c.published).includes(KEY));
+  assert.ok(!c.s.text.includes(KEY));
+  // Pasting the key for it ends the notice.
+  c.clipboard(async () => OTHER);
+  status = await c.send('paste-key');
+  assert.deepEqual([status.keySaved, 'keyForgotten' in status], [true, false]);
+  // An address on this computer: the key is gone, and nothing asks for another.
+  c.clipboard(async () => 'http://localhost:11434/v1');
+  status = await c.send('paste-url');
+  assert.deepEqual([status.result.state, status.keySaved, 'keyForgotten' in status], ['saved', false, false]);
+});
+
+test('the status names the limit that is on while Custom answers: rate, daily, invalid, model or credits; nothing else, and nothing while another provider answers', async () => {
+  const c = await control({file: 'endpoint=https://openrouter.ai/api/v1\nmodel=a/b:free\n'});
+  c.provider.setPreference('custom'); c.provider.apply();
+  assert.equal(c.provider.applied, 'custom');
+  for (const [kind, shown] of [['rate', 'rate'], ['daily', 'daily'], ['invalid', 'invalid'], ['model', 'model'], ['credits', 'credits'], ['sometimes', null]]) {
+    c.provider.noteLimit(kind);
+    assert.equal(c.instance.status().limit, shown, kind);
+  }
+  c.provider.noteLimit('daily');
+  c.provider.applied = 'mistral';
+  assert.equal(c.instance.status().limit, null, 'a limit of another provider is not Custom\'s');
 });

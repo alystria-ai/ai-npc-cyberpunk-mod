@@ -236,7 +236,7 @@ Kaggle (user decision: these characters do not merit it).
 
 ## Install
 
-Development install (second batch, install at a break in testing: CET reload for `mod/character-catalog.lua`, `mod/mcm.lua`
+Development install (second batch, install at a break in testing: CET reload for `mod/character-catalog.lua`, `mod/manager-ui.lua`
 and the 15 locale files; bridge restart for `bridge/` and the new `runtime/` data; the live bridge keeps running the old build
 until restarted): `.\scripts\Install-DevelopmentMod.ps1` (the changed mod files are already in
 `scripts/development-files.json`), then restart the conversation bridge so it loads the archetype roster, the 44

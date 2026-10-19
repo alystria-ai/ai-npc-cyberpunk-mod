@@ -148,6 +148,11 @@ test('setup check: only the chosen endpoint\'s host is looked up, with its port,
   const result = (await collectSetupCheck(setupOptions(paths, {settings: {conversationProvider: 'custom'}, reach: async (host, extra) => { seen.push([host, extra?.port]); return 'blocked'; }, custom: local}))).checks.find(check => check.id === 'internet');
   assert.deepEqual(result, {id: 'internet', state: 'problem', code: 'blocked', service: 'custom', host: 'localhost:11434'});
   assert.deepEqual(seen, [['localhost', 11434]]);
+  // An IPv6 address (the bridge hands over the URL's hostname, in brackets): looked up and connected to without them, shown as written.
+  seen.length = 0;
+  const six = () => ({hostname: '[::1]', host: '[::1]:11434', port: 11434, secure: false});
+  const ipv6 = (await collectSetupCheck(setupOptions(paths, {settings: {conversationProvider: 'custom'}, reach, custom: six}))).checks.find(check => check.id === 'internet');
+  assert.deepEqual([ipv6.code, ipv6.host, seen], ['reachable', '[::1]:11434', [['::1', 11434]]]);
   // Chosen but not set up (the bridge has no endpoint to give): Convai answers, so Convai is what is checked.
   const none = (await collectSetupCheck(setupOptions(paths, {settings: {conversationProvider: 'custom'}, reach, custom: () => null}))).checks.find(check => check.id === 'internet');
   assert.equal(none.service, 'convai');
