@@ -332,3 +332,9 @@ test('the entry never simulates input and never touches another mod\'s files or 
   assert.match(code, /OnMenuItemActivated/);
   assert.match(code, /OnOpenPauseMenu/);
 });
+
+test('a player without this mod\'s scripts (no text-box method) can still start the walk', () => run(`
+  player.ConvaiComposerOpen = nil
+  local ok = entry.open()
+  assert(ok == true and entry.state() == 'pause' and beforeOpens == 1)
+`));
