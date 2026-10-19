@@ -115,10 +115,31 @@ async function syncManaged(layout, log) {
 // pack's copy (app/omni/defaults/) is the fallback, for a Runtime that ships none. They are different paths on purpose: a pack zip that a
 // new version reuses unchanged must never share a path with the Runtime and carry other bytes, because Windows would offer to replace the
 // newer file with the older one (docs/PACKAGING.md, "Packs reused unchanged").
+// Nothing deletes an old version's files, so the Runtime's folder can hold a list an EARLIER Runtime left there. A list that names another
+// OmniVoice model revision than the installed pack's model (omni-pack.json "model": "<repository>@<revision>") is passed over for one that
+// names it, since the voice worker refuses a list for another model; a list that cannot be read as JSON is passed over too.
 export async function readOmniTemplate(layout, name) {
-  const found = await readOptional(resolve(layout.defaults, name)) ?? await readOptional(resolve(layout.omniDefaults, name));
-  if (!found) throw Object.assign(Error(`The OmniVoice list ${name} is in neither ${layout.defaults} nor ${layout.omniDefaults}.`), {code: 'ENOENT'});
-  return JSON.parse(found.toString('utf8'));
+  const revision = await omniPackRevision(layout);
+  let fallback = null;
+  for (const folder of [layout.defaults, layout.omniDefaults]) {
+    const found = await readOptional(resolve(folder, name));
+    if (!found) continue;
+    let template;
+    try { template = JSON.parse(found.toString('utf8').replace(/^\uFEFF/, '')); } catch { continue; }
+    if (!template || typeof template !== 'object') continue;
+    if (!revision || template.revision === revision) return template;
+    fallback ??= template;
+  }
+  if (fallback) return fallback;
+  throw Object.assign(Error(`The OmniVoice list ${name} is in neither ${layout.defaults} nor ${layout.omniDefaults} (or cannot be read).`), {code: 'ENOENT'});
+}
+
+// The OmniVoice model revision the installed pack carries, or null when its omni-pack.json does not say.
+export async function omniPackRevision(layout) {
+  try {
+    const model = JSON.parse((await readFile(resolve(layout.omni, 'omni-pack.json'), 'utf8')).replace(/^\uFEFF/, ''))?.model;
+    return (typeof model === 'string' && /@([0-9a-f]{7,64})$/i.exec(model)?.[1]) || null;
+  } catch { return null; }
 }
 
 export async function omniPackInstalled(layout) {

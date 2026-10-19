@@ -120,6 +120,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/quest-context.mjs',
   'bridge/quest-overview.mjs',
   'bridge/realtime-host.mjs',
+  'bridge/reasoning.mjs',
   'bridge/relationship-routing.mjs',
   'bridge/reply-language.mjs',
   'bridge/reply-stream.mjs',

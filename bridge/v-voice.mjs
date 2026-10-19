@@ -37,6 +37,15 @@ import {voiceVolumeDb} from './dialogue-level.mjs';
 import {TurnClock, withClock} from './turn-clock.mjs';
 
 export const V_VOICE_KEYS = Object.freeze({male: 'v-male', female: 'v-female'});
+/**
+ * The hand-off to the companion (docs/perf, LATENCY.md). A companion reply held behind V's audible line is published to the game this
+ * long before V's line ends (its sound stays held until the end), so the game's round trip (plugin poll, Lua probe, lease write: 120 to
+ * 230 ms in the live records) runs during V's last moments instead of after them. 300 ms falls inside the 320 ms of silence V's line ends
+ * with (bridge/pcm-edges.mjs tailMs), so the companion's caption replaces V's only after V's last word. CYBERPUNK_CONVAI_V_HANDOFF_MS
+ * sets it (0: publish only when V has ended, as before).
+ */
+const requestedHandoff = Number(process.env.CYBERPUNK_CONVAI_V_HANDOFF_MS);
+export const V_HANDOFF_LEAD_MS = Number.isFinite(requestedHandoff) && requestedHandoff >= 0 && requestedHandoff <= 2000 ? requestedHandoff : 300;
 export const V_MANIFEST = 'v-voice.json';
 /** The longest line V speaks; a longer one is cut at the last sentence or word that fits. */
 export const V_MAX_CHARS = 240;
@@ -123,10 +132,12 @@ export function vLineText(text, maxChars = V_MAX_CHARS) {
  */
 export class VLine {
   constructor({input, key, text, plan, volume, play, stream, render, local = true, clock = new TurnClock(), signal, log = () => {},
-    after, edges, token = 'v-' + randomBytes(8).toString('hex'), onSettled = () => {}, onAudible = () => {}}) {
+    after, edges, token = 'v-' + randomBytes(8).toString('hex'), onSettled = () => {}, onAudible = () => {}, now = () => performance.now()}) {
     Object.assign(this, {input, key, text, plan, volume, playHost: play, streamVoice: stream, renderVoice: render, local, clock, log,
-      after, edges, token, onSettled, onAudible});
+      after, edges, token, onSettled, onAudible, now});
     this.state = 'synth';
+    // How much of the line is left to be heard, from the renderer's last clock (Infinity until its whole audio is known).
+    this.remainingMs = Infinity; this.remainingAt = 0; this.nearListeners = []; this.nearSignalled = false; this.nearReached = false;
     this.reason = null;
     this.controller = new AbortController();
     this.watchers = [];
@@ -154,6 +165,43 @@ export class VLine {
     return this.state === 'playing';
   }
 
+  /**
+   * V's audible line ends within `leadMs` (by the renderer's clock, counted on since its last report). Once true it stays true while the
+   * line plays: a later clock report a few ms off never takes back a reply that was already published.
+   */
+  nearEnd(leadMs = V_HANDOFF_LEAD_MS) {
+    if (this.state !== 'playing') return false;
+    if (this.nearReached) return true;
+    if (this.remainingMs - (this.now() - this.remainingAt) > leadMs) return false;
+    this.nearReached = true;
+    return true;
+  }
+
+  /**
+   * May a continuous companion reply be published to the game now (its sound is still held while V is audible: `blocking`)? Like
+   * holds(), a line that is not audible yet is dropped here. False from `leadMs` before V's end on, so the game's round trip overlaps V's
+   * last moments. Safe to call on every poll.
+   */
+  holdsPublish(leadMs = V_HANDOFF_LEAD_MS) {
+    if (this.state === 'synth') this.drop('slower-than-reply');
+    return this.holdsPublishPeek(leadMs);
+  }
+
+  /** holdsPublish() without its side effect. */
+  holdsPublishPeek(leadMs = V_HANDOFF_LEAD_MS) { return this.state === 'playing' && !this.nearEnd(leadMs); }
+
+  /** Calls `fn` once when V's line comes within the hand-off lead of its end, or stops being audible or pending (at once if it has). */
+  whenNearEnd(fn) {
+    if (this.nearSignalled || this.settled) { try { fn(); } catch { /* a listener never fails V */ } return; }
+    this.nearListeners.push(fn);
+  }
+
+  signalNear() {
+    if (this.nearSignalled) return;
+    this.nearSignalled = true;
+    for (const fn of this.nearListeners.splice(0)) { try { fn(); } catch { /* a listener never fails V */ } }
+  }
+
   /** The same decision for a reply that is published as a whole (OmniVoice): resolves when V is out of the way. Never rejects. */
   async waitClear(signal) {
     if (!this.holds()) return;
@@ -178,6 +226,7 @@ export class VLine {
 
   settle() {
     this.resolveClear();
+    this.signalNear();
     try { this.onSettled(this.summary()); } catch { /* a report never affects speech */ }
   }
 
@@ -193,6 +242,12 @@ export class VLine {
       this.state = 'playing';
       this.clock.mark('audible');
       try { this.onAudible(); } catch { /* a report never affects speech */ }
+    }
+    // The time left to hear, once the whole line is in the renderer (its silent tail included).
+    if (snapshot?.sourceComplete === true && Number.isFinite(snapshot.positionSeconds) && snapshot.receivedFrames > 0) {
+      const rate = Number.isFinite(snapshot.sampleRate) && snapshot.sampleRate > 0 ? snapshot.sampleRate : 24000;
+      this.remainingMs = Math.max(0, snapshot.receivedFrames / rate - snapshot.positionSeconds) * 1000; this.remainingAt = this.now();
+      if (this.state === 'playing' && this.nearEnd()) this.signalNear();
     }
     if (snapshot?.ended && this.state === 'playing') {
       // The audible end: the companion may start now. The page is still being released; nothing waits for that.

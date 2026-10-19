@@ -151,3 +151,22 @@ test('a wake signal resolves its waiters when fired, and a fire nobody waited fo
   await new Promise(done => setTimeout(done, 5));
   assert.equal(pending, false);
 });
+
+test('a file with delay 0 runs its handler on the next turn of the event loop, never on a timer, and close() cancels it', async () => {
+  const fs = fakeWatch(), clock = fakeTimers();
+  const calls = [];
+  const wake = watchFiles('R', {'continuous-control.json': () => calls.push('lease'), 'last-input.json': () => calls.push('input')},
+    {watch: fs.watch, setTimer: clock.setTimer, clearTimer: clock.clearTimer, delays: {'continuous-control.json': 0}});
+  fs.listener('change', 'continuous-control.json');
+  fs.listener('change', 'continuous-control.json');
+  fs.listener('change', 'last-input.json');
+  assert.equal(clock.timers.length, 1, 'only the request file waits on a timer');
+  assert.equal(clock.timers[0].ms, 4);
+  assert.deepEqual(calls, [], 'nothing runs inside the watcher callback');
+  await new Promise(done => setImmediate(done));
+  assert.deepEqual(calls, ['lease'], 'one run for the burst, on the next turn of the loop');
+  fs.listener('change', 'continuous-control.json');
+  wake.close();
+  await new Promise(done => setImmediate(done));
+  assert.deepEqual(calls, ['lease'], 'a pending immediate wake is cancelled by close()');
+});

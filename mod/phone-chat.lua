@@ -14,9 +14,13 @@ local MISTRAL_STATUS = {
     ['custom-credits'] = 'The custom provider says your account is out of credits. Add credits there, then try again.',
     ['custom-model'] = 'The custom provider does not know that model ID. Check it in Settings.',
     ['custom-limit'] = 'The custom provider is rate limiting you. Try again in a moment.',
+    ['custom-daily'] = 'The free daily limit for this model was reached. Try again after it resets.',
+    ['custom-reasoning'] = 'This model spends its reply on thinking. Choose a non-reasoning model in Settings.',
     ['custom-unreachable'] = 'The custom provider did not answer. Check its address in Settings, or try again.',
     ['local-fallback'] = 'Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.',
     ['local-failed'] = 'Local AI could not answer that. Try again in a moment.',
+    ['local-unavailable'] = 'Local AI could not start. Check Local AI in Settings > Conversation provider.',
+    ['local-no-memory'] = 'Not enough free graphics memory to start Local AI. Try a smaller model in Settings.',
 }
 local function copy(value)
     if type(value) ~= 'table' then return value end

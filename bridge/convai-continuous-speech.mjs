@@ -10,6 +10,7 @@ import {displayText} from './natural-speech.mjs';
 import {captionCues, cueSignature} from './caption-cues.mjs';
 import {activeMakeupDb, dialogueLevel} from './dialogue-level.mjs';
 import {audioDelayMs} from './audio-delay.mjs';
+import {createWakeSignal} from './file-wake.mjs';
 
 const SHARING_ERRORS = new Set(['EPERM', 'EACCES', 'EBUSY']);
 const finite = value => typeof value === 'number' && Number.isFinite(value);
@@ -32,7 +33,8 @@ export class ConvaiContinuousSpeech {
   constructor({input, profile, current, signal, readControl, writeState, writeReply, writeFace, faceFile,
     onPublished = async () => {}, onStarted = async () => {}, onGenerated = async () => {}, onTimeline = () => {},
     // onAudio(): once, the first renderer state that holds audio was accepted (the turn's latency record).
-    onAudio = () => {},
+    // onLease(): once, the game's first valid lease was read (the turn's latency record: the game's half of the hand-off).
+    onAudio = () => {}, onLease = () => {},
     // hold(): true while this turn is a look-ahead that must keep buffering and
     // publish nothing. onText(text, userText): the complete reply text is known.
     hold = () => false, onHeld = () => {}, onText = () => {},
@@ -42,6 +44,10 @@ export class ConvaiContinuousSpeech {
     // holdPeek(): the same question without side effects. The host's pollMs/wake run on every poll from the stream's start, before any
     // audio exists; hold() may drop a V line that is still being synthesized (bridge/v-voice.mjs), so only frame() may call it.
     holdPeek = undefined,
+    // holdSound(): true while a reply that is already published must stay silent (V's typed line is still audible: the reply was
+    // published shortly before V's end so the game's round trip overlaps it, bridge/v-voice.mjs V_HANDOFF_LEAD_MS). The game's lease
+    // is read and kept meanwhile; the renderer gets the quiet control. No side effects.
+    holdSound = () => false,
     // leaseWake(): a promise that resolves when the game's lease file is replaced (bridge/file-wake.mjs), so the host's clock poll that
     // is waiting for the first lease runs at once instead of after its 40 ms sleep (docs/LATENCY_2026-10-13.md, 4.2).
     leaseWake,
@@ -52,9 +58,12 @@ export class ConvaiContinuousSpeech {
     this.readControl = readControl; this.writeState = writeState; this.writeReply = writeReply;
     this.writeFace = writeFace; this.faceFile = faceFile; this.faceRevision = 0; this.faceWritten = 0;
     this.onPublished = onPublished; this.onStarted = onStarted; this.onGenerated = onGenerated; this.onAudio = onAudio; this.audioSeen = false;
+    this.onLease = onLease;
     this.pace = pace; this.onEnded = onEnded;
     this.hold = hold; this.holdPeek = holdPeek || hold; this.onHeld = onHeld; this.onText = onText; this.textAnnounced = false;
-    this.woken = new Promise(resolve => { this.resolveWake = resolve; });
+    this.holdSound = holdSound;
+    // A latch, not a one-shot promise: a hold can now be woken twice (V near its end publishes, V's end starts the sound).
+    this.wakes = createWakeSignal();
     this.faceBuilder = faceBuilder || ((snapshot, input, jali) => buildProviderFacialTimeline(snapshot, input, jali));
     // Optional game-trained model on an analysis copy of the same PCM. The
     // track layout is fixed for the whole stream; provider poses remain the
@@ -70,16 +79,29 @@ export class ConvaiContinuousSpeech {
     return {token: this.token, onFrame: snapshot => this.frame(snapshot), pcmCursor: () => this.pcmCursor(),
       // A held look-ahead turn only buffers: the host may poll it less often.
       pollMs: () => this.holdPeek() ? 120 : undefined,
-      // Held: until the game submits the turn. Admitted but no lease read yet: until the game writes its lease. Afterwards the 40 ms poll
-      // alone carries the stream (a wake on every lease refresh would only add polls).
-      wake: () => this.holdPeek() ? this.woken : this.controlAt === undefined ? this.leaseWake?.() : undefined};
+      // Held: until the game submits the turn. Admitted but no lease read yet: until the game writes its lease. Published with its sound
+      // held: also until the hold ends. Afterwards the 40 ms poll alone carries the stream (a wake on every lease refresh would only add
+      // polls).
+      wake: () => {
+        if (this.holdPeek()) return this.wakes.next();
+        const lease = this.controlAt === undefined ? this.leaseWake?.() : undefined;
+        if (!this.published || !this.holdSound()) return lease;
+        const held = this.wakes.next();
+        return lease ? Promise.race([lease, held]) : held;
+      }};
   }
 
   // Next analysis frame wanted from the renderer, or undefined (no model).
   pcmCursor() { return this.model && !this.model.failed && !this.modelFinished ? this.pcmFrames : undefined; }
 
-  // The hold ended: let the host poll immediately instead of finishing its slow wait.
-  wakeUp() { this.resolveWake?.(); }
+  // The hold ended (or changed): let the host poll immediately instead of finishing its slow wait.
+  wakeUp() { this.wakes.fire(); }
+
+  // The game's lease, or the quiet control while the published reply's sound is still held.
+  async granted() {
+    const lease = await this.control();
+    return this.holdSound() ? quiet() : lease;
+  }
 
   dropModel() { this.model?.close(); this.model = null; this.modelDropped = true; }
 
@@ -126,6 +148,7 @@ export class ConvaiContinuousSpeech {
       && typeof value.allow === 'boolean' && typeof value.paused === 'boolean'
       && finite(value.volume) && value.volume >= 0 && value.volume <= 1
       && finite(value.pan) && Math.abs(value.pan) <= 1) {
+      if (this.controlAt === undefined) { try { this.onLease(); } catch { /* a report never affects playback */ } }
       this.controlSequence = value.sequence; this.controlAt = now;
       this.lastControl = {allow: value.allow, paused: value.paused, volume: value.volume, pan: value.pan};
       // Dialogue level (docs/DIALOGUE_LEVEL.md): the speaker distance the game
@@ -264,7 +287,7 @@ export class ConvaiContinuousSpeech {
     if (stateCommitted === false) throw Error('Continuous speech state could not be committed');
     if (!await this.valid()) throw Error('Continuous speech owner changed');
     // A file the game was reading at that instant: publish on the next poll.
-    if (stateCommitted === null) return this.published ? this.control() : quiet();
+    if (stateCommitted === null) return this.published ? this.granted() : quiet();
     if (first) {
       const reply = {requestId: this.input.requestId, generation: this.input.generation,
         entity: this.input.entity, profile: this.profile.key, text: snapshot.text,
@@ -298,7 +321,7 @@ export class ConvaiContinuousSpeech {
       return quiet();
     }
     if (!await this.valid()) throw Error('Continuous speech owner changed');
-    return this.control();
+    return this.granted();
   }
 
   // Writes the facial timeline file when its revision changed (the state then carries `faceRevision`).

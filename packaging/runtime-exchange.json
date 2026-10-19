@@ -97,6 +97,7 @@
     "knowledge-provider-users.json",
     "knowledge-state.json",
     "locomotion-engine-hook.txt",
+    "lua-heap.json",
     "movement-trace.ndjson",
     "movement-trace.previous.ndjson",
     "native-handshake.txt",

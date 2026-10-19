@@ -25,7 +25,7 @@ Why this split: Nexus Mods scans every upload and holds files that its scanners 
 review (help.nexusmods.com articles 128 and 117); it has no blanket rule against DLLs or
 executables, but a text-only file never needs that review and is never quarantined. The Nexus page
 must list RED4ext among the requirements (with CET, redscript, Codeware, TweakXL, Audioware and
-Mod Configuration Menu): the Runtime package's launcher and native plugin are RED4ext plugins. The large,
+Native Settings UI): the Runtime package's launcher and native plugin are RED4ext plugins. The large,
 binary runtime goes to the GitHub release as plain zips, which is how the core frameworks
 (RED4ext, Codeware, TweakXL, Audioware) are distributed too; RED4ext also builds in Actions and
 publishes SHA-256 values with each release, which this pipeline does as well.
@@ -196,7 +196,8 @@ looks first.
   is installed, else the short one, else Pocket's), in `voices/prepared/`; a slot identical to the Runtime package's is not repeated.
   A slot is keyed by the clip's hash (its signature), so the bridge (`createReferencePreparer`: `prepared/` first, then
   `prepared-runtime/`, a hit only when the signature fits) finds the right one whichever folder holds it and whatever the extraction
-  order. With a mismatch it encodes the clip with ffmpeg (or sends the larger WAV) and writes the slot into `prepared/`; the Runtime's
+  order. Of the slots that fit, the best format wins (Ogg, then MP3, then WAV), so a WAV the bridge wrote on a machine without ffmpeg never
+  hides the Runtime's Ogg for the same clip. With a mismatch it encodes the clip with ffmpeg (or sends the larger WAV) and writes the slot into `prepared/`; the Runtime's
   folder is never written. (Until 0.2.1 the Runtime's slots were in `prepared/` too: 289 files that the OmniVoice pack also had, with other
   bytes, which is what made Windows report 437 conflicts. See "Packs reused unchanged".)
 - The build needs `ffmpeg` on `PATH` (or `CYBERPUNK_CONVAI_FFMPEG`) and fails without it. The workflow installs it.
@@ -222,6 +223,16 @@ The live-list pointer is not a shipped file: `voice-configs.json` in the data fo
 (Runtime), from the Runtime's list or the pack's. Nothing of it is in the Scripts. The state folder's copies of the lists are generated
 from the template, so a newer template reaches the bridge at the next start.
 
+**Updating over an older install.** Nothing deletes an earlier version's files, so "read first" must never let a leftover win:
+- Every Runtime carries its own lists in `app/defaults/` (`build-release.mjs` writes them with the pack's text; `check-runtime-contents.mjs`
+  fails a Runtime without them), so an older Runtime's lists there are always replaced. `readOmniTemplate` also passes over a list that names
+  another OmniVoice model revision than the installed pack's `omni-pack.json` (the voice worker would refuse it), or that is not valid JSON.
+- 0.2.1 left its lists in `app/omni/defaults/` (the pack's path; re-extracting the pack puts the pack's older lists back there). Either
+  way `app/defaults/` wins while it names the pack's model.
+- 0.2.1 left its Runtime slots (Pocket clips) in `prepared/`, and a 0.2.1 player whose extraction order let one package replace the other's
+  slots has the other ones there. They are read first but used only when the signature fits, which means the same clip with the same
+  settings, so the result is the same reference; the format rule above stops a cached WAV from hiding the Runtime's Ogg.
+
 Also true, and checked: the Runtime and Scripts put nothing in a tree only the OmniVoice pack writes (`app/omni/python/`, `voicestudio/`,
 `model/`); the 0.2.1 Runtime's three unused `voices/full-cast-draft/<key>/reference.wav` clips (coach-fred, jim-jarry, life-coach; the pack has them
 for its older lists) are left out (`RUNTIME_DROPS`); the five packs share files only byte for byte (the Local AI and Mature engine files, the licence texts); and
@@ -230,7 +241,8 @@ the packs are rebuilt.
 
 **Checking a build.** `node packaging/check-pack-overlap.mjs check <zip>...` reads only the zip's directory and compares every shared path
 with `packaging/pack-listings/packs-0.2.1.json` (path, size and CRC-32 of the five 0.2.1 packs); it exits 1 and groups the offenders by
-folder. Run it on every Runtime and Scripts zip before upload. `packaging/pack-overlap.test.mjs` runs the same comparison on the real Scripts
+folder. It reads ZIP64 directories (the OmniVoice pack is one) and also fails a zip that holds one path twice with different bytes (a
+patched zip can; `ZipWriter` refuses it); a pack with a path twice cannot be listed. Run it on every Runtime and Scripts zip before upload. `packaging/pack-overlap.test.mjs` runs the same comparison on the real Scripts
 build and on the 0.2.1 Runtime's shared files (`runtime-0.2.1-shared.json`, to show the cause and the fix). When the packs are
 rebuilt, remake the listing from Hugging Face without downloading them (HTTP range requests: the directory of the 6.5 GB OmniVoice pack is
 3.5 MB; a URL is a pack's resolve/main/<version>/<file> link on the Hugging Face page, public, no token):
@@ -239,7 +251,7 @@ rebuilt, remake the listing from Hugging Face without downloading them (HTTP ran
 node packaging/check-pack-overlap.mjs listing packaging/pack-listings/packs-<version>.json OmniPack=<zip or URL> LocalAI-Standard=<zip or URL> LocalAI-Lite=<zip or URL> Mature-Standard=<zip or URL> Mature-Lite=<zip or URL>
 ```
 
-**Checking what a Runtime must contain.** `node packaging/check-runtime-contents.mjs <Runtime zip>...` reads only the zip's directory and fails when V's voice clips (`voices/v-voice/`: the manifest and the clips `assets/v-voice/v-voice.json` names), `Make support report.bat` or the bridge modules it starts are missing (the names come from `packaging/lib/runtime-required.mjs`; the 0.2 and 0.2.1 Runtimes shipped without the clips, and 0.2.1 without the batch file). `packaging/test-release-install.mjs` checks the same on the extracted install and loads the clips with the packaged bridge's own loader. Run it beside the overlap check on every Runtime zip before upload; `packaging/runtime-contents.test.mjs` keeps both from drifting.
+**Checking what a Runtime must contain.** `node packaging/check-runtime-contents.mjs <Runtime zip>...` reads only the zip's directory and fails when V's voice clips (`voices/v-voice/`: the manifest and the clips `assets/v-voice/v-voice.json` names), `Make support report.bat`, the bridge modules it starts or the Runtime's own OmniVoice lists in `app/defaults/` are missing (the names come from `packaging/lib/runtime-required.mjs`; the 0.2 and 0.2.1 Runtimes shipped without the clips, and 0.2.1 without the batch file). `packaging/test-release-install.mjs` checks the same on the extracted install and loads the clips with the packaged bridge's own loader. Run it beside the overlap check on every Runtime zip before upload; `packaging/runtime-contents.test.mjs` keeps both from drifting.
 
 ### Player state (`data/`)
 
@@ -297,7 +309,7 @@ game or the service under MO2, they would not survive a launch. So the service k
 the mod folder's root; it is now `runtime/npc-names.json` (a store saved next to `init.lua` by an earlier version is read until one exists
 there).
 
-- **At start (Runtime package, `start-service.mjs`).** `restoreGameState` runs first, right after the layout is known and before the
+- **At start (Runtime package, `start-service.mjs`).** `restoreGameState` runs first, right after the layout is known (and after the check that this process can see the CET mod's `init.lua`, which stops the start before anything is written) and before the
   legacy carry-over, the data move and `prepareState`. Per file: a real, non-empty file always wins and refreshes the copy (when it is more
   than 2 s older than the copy it replaces, that copy is kept in `game-state/older/`, one slot per file); a missing or an empty file gets the
   copy written into it in place (an existing file is modified, never swapped; a missing one is created, which under MO2 lands in Overwrite
@@ -366,8 +378,15 @@ USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `br
   report carries what the service sees), refreshed every 5 s for at most 5 minutes while it prepares. Its own modules load inside a
   guard, and an error nobody caught ends in `failed` with a `reason`: `install-incomplete` (a file is missing or cannot be read),
   `service-error`, `game-folder-not-visible`. The reason is Node's error code and message with every path cut to its file name, 140
-  characters at most. The supervisor writes its own `starting` before it waits for the previous session's lock, and after 5 s of
-  waiting says `waiting-for-previous-service` (kept fresh by the heartbeat); its crash status carries a reason too.
+  characters at most. The supervisor writes its own `starting` as soon as it holds the previous session's lock; a wait for that lock
+  keeps the start script's last status for 5 s and then says `waiting-for-previous-service` (kept fresh by the heartbeat); its crash
+  status carries a reason too.
+- **Only the running game's processes write the status.** A player who restarts the game at once (what the failure notice tells them)
+  starts the next session while the previous one is still stopping. Every writer puts its game's PID in the file (`gamePid`): a start
+  script whose game has ended publishes nothing more (`--game-pid` is checked as the supervisor checks it), and a supervisor whose game
+  has ended still reports `stopping` and `stopped` unless the file already holds another game's PID, which it then leaves alone (one
+  log line). A failure of the new session's start is therefore not hidden behind the old session's stop
+  (`packaging/virtual-runtime.test.mjs`, `bridge/supervisor-lock-status.test.mjs`).
 - **The service must see what the game sees.** The launcher starts the service only after it saw the CET mod's `init.lua`; a service
   that cannot see it runs outside the virtual file system (or in another one), and nothing it writes under the game folder would reach
   the game. It logs that and stops (`game-folder-not-visible`, exit code 3) without creating a folder in the game folder. Its first log
@@ -375,10 +394,14 @@ USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `br
   `runtime/` are visible.
 - **The game says what it can see** (`mod/service-status.lua`, Scripts only, works with any Runtime). A `starting` that only the launcher
   or the start script wrote (`source` `launcher` or `service`) and nothing refreshed is a service coming up for 90 s and a service that
-  never came up after that: kind `failed`, code `service-silent`. The notice, a blocked talk and the Help row end with the status's
-  own words in brackets, in English: `(service-silent after launcher-started)`, `(install-incomplete at loading-modules: ERR_MODULE_NOT_FOUND: ...)`.
-  The short report's second line is `PROBLEM: the conversation service did not come up (...)` with where the logs are, and its
-  `service status` section prints `stage` and `reason`.
+  never came up after that: kind `failed`, code `service-silent`. The notices (the one-time notice, a blocked talk, a request the
+  service dropped) keep the plain sentence "could not start. Restart the game, or see Help in Settings.": they are the game's warning
+  line, which holds two lines, and that sentence fills them (docs/NOTIFICATIONS.md, "How much a notice can say"). The Help page's
+  Conversation service row names the code (`could not start (service-silent)`), and the status's own words, in English, are in
+  `failureDetail()` and the rows that have room (`message(kind, detail)`): `service-silent after launcher-started`,
+  `install-incomplete at loading-modules: ERR_MODULE_NOT_FOUND: ...`. The short report's second line is
+  `PROBLEM: the conversation service did not come up (...)` with those words and where the logs are, and its `service status` section
+  prints `stage` and `reason`.
 - **Where to look.** `%LOCALAPPDATA%\AiNpcCyberpunkMod\data\bridge-service.log` (the `View:` line; the data home does not depend on MO2),
   `bridge.stderr.log` beside it, and `launcher.log`: in the Runtime mod's folder (`mods\<Runtime mod>\red4ext\plugins\AiNpcCyberpunkMod\`)
   because the packaged one is an existing file, or in `overwrite\red4ext\plugins\AiNpcCyberpunkMod\` when the Runtime has none. The

@@ -31,14 +31,14 @@ local pendingNotices = {}            -- notices waiting for gameplay
 local noticeAt = {}                  -- text -> clock of the last time it was shown
 local settingsValues = nil           -- {addonId = {id = value}}, loaded on the first registration
 local settingsPending = false        -- addon-settings.json was missing or empty while the service may still have been restoring its copy
-local staged = nil                   -- MCM changes waiting for the main Apply
+local staged = nil                   -- changes waiting for the main settings save
 local stateDirty, stateWrittenAt = false, -10
 local watch = {}                     -- last seen game facts, for events
 local partyDirty, partyKnown = false, nil
 local outputsCache, outputsAt = nil, -10
 local lastSpeechEndAt, sessionOpen = -10, false
 local bridgeStatusRead = false       -- runtime/addons-status.json is read once, at the first gameplay tick with an add-on
-local settingEvents = {}             -- settingChanged events, sent on the next tick (never inside the menu's Apply)
+local settingEvents = {}             -- settingChanged events, sent on the next tick (never inside the menu's own call)
 local lineRulesDeclared = false      -- some add-on declared a replaceGameLines rule (mod/game-dialogue.lua asks, once per game line)
 local CAPTION_TAG = ' (AI)'          -- what "Mark our lines" adds after the speaker's name in its subtitles
 local heldRequest, menuRequest = nil, nil   -- the remark speech.lua keeps paused (hold) / lets play while a menu is open (menus)
@@ -1704,7 +1704,7 @@ function M.replyError(context, reply)
     end
 end
 
--- ---- Settings (mod/mcm.lua) ----------------------------------------------------------------------------------------------
+-- ---- Settings (mod/manager-ui.lua) ----------------------------------------------------------------------------------------------
 
 --- One section per add-on with settings, in registration order.
 function M.settingsSections()
@@ -1718,20 +1718,20 @@ function M.settingsSections()
             local gaps, caps = {}, {}
             for index, seconds in ipairs(GAPS) do gaps[index] = seconds .. ' s' end
             for index, count in ipairs(CAPS) do caps[index] = count == math.huge and 'No limit' or tostring(count) end
-            items[1] = {mcmId = 'addon:' .. id .. ':remarkGap', label = 'Time between remarks', kind = 'select', elements = gaps,
+            items[1] = {rowId = 'addon:' .. id .. ':remarkGap', label = 'Time between remarks', kind = 'select', elements = gaps,
                 value = addon.values.remarkGap, default = GAP_DEFAULT,
                 description = 'The shortest quiet time between two remarks of ' .. addon.name .. ', counted from the end of the last one. '
                     .. 'The biggest moments need only half of it. While its text comes from the Local AI '
                     .. 'and you keep the default, ' .. addon.name .. ' waits about 20 seconds between remarks to keep the graphics card free for the game.'}
             if not (def and def.remarkCap == false) then
-                items[#items + 1] = {mcmId = 'addon:' .. id .. ':remarkCap', label = 'Most remarks per fight', kind = 'select', elements = caps,
+                items[#items + 1] = {rowId = 'addon:' .. id .. ':remarkCap', label = 'Most remarks per fight', kind = 'select', elements = caps,
                     value = addon.values.remarkCap, default = CAP_DEFAULT,
                     description = 'How many remarks ' .. addon.name .. ' may make in one fight (outside combat: in five minutes). '
                         .. 'The last one is kept for a big moment.'}
             end
             local fixed = def and def.fixed or {}
             if #addon.lineRules > 0 and fixed.replaceGameLines == nil then
-                items[#items + 1] = {mcmId = 'addon:' .. id .. ':replaceGameLines', label = 'Replace the game\'s own lines', kind = 'bool',
+                items[#items + 1] = {rowId = 'addon:' .. id .. ':replaceGameLines', label = 'Replace the game\'s own lines', kind = 'bool',
                     value = addon.values.replaceGameLines, default = true,
                     description = 'Silences the game\'s own voice and subtitle lines of ' .. addon.name .. ' (the ones the game plays by itself) so '
                         .. 'that only ' .. addon.name .. '\'s own AI lines are heard. Only the voice and the subtitle are silenced: the scene, the '
@@ -1739,7 +1739,7 @@ function M.settingsSections()
                         .. ' waits for it to end.'}
             end
             if fixed.markLines == nil then
-                items[#items + 1] = {mcmId = 'addon:' .. id .. ':markLines', label = 'Mark our lines in the subtitles', kind = 'bool',
+                items[#items + 1] = {rowId = 'addon:' .. id .. ':markLines', label = 'Mark our lines in the subtitles', kind = 'bool',
                     value = addon.values.markLines, default = true,
                     description = 'Adds (AI) after ' .. addon.name .. '\'s name in the subtitles of its own lines, so you can tell them from the '
                         .. 'game\'s own lines. Turn it off once the game\'s own lines are replaced.'}
@@ -1747,7 +1747,7 @@ function M.settingsSections()
         end
         if #items > 0 or (def and #def.items > 0) then
             for _, item in ipairs(def and def.items or {}) do
-                items[#items + 1] = {mcmId = 'addon:' .. id .. ':' .. item.id, label = item.label, kind = item.kind,
+                items[#items + 1] = {rowId = 'addon:' .. id .. ':' .. item.id, label = item.label, kind = item.kind,
                     description = item.description, value = addon.values[item.id], default = item.default, elements = item.elements}
             end
             sections[#sections + 1] = {id = 'addon-' .. id, title = def and def.title or addon.name, description = def and def.description or '', items = items}
@@ -1756,9 +1756,9 @@ function M.settingsSections()
     return sections
 end
 
-local function settingFor(mcmId)
-    if type(mcmId) ~= 'string' then return nil end
-    local id, key = mcmId:match('^addon:([%w%-]+):([%w_]+)$')
+local function settingFor(rowId)
+    if type(rowId) ~= 'string' then return nil end
+    local id, key = rowId:match('^addon:([%w%-]+):([%w_]+)$')
     local addon = id and addons[id]
     if not addon then return nil end
     if key == 'remarkGap' and next(addon.speakers) ~= nil then return addon, {id = 'remarkGap', kind = 'select', elements = GAPS} end
@@ -1775,9 +1775,9 @@ local function settingFor(mcmId)
     return nil
 end
 
---- Checks one MCM change and holds it until the main Apply succeeds.
-function M.stageSetting(mcmId, value)
-    local addon, item = settingFor(mcmId)
+--- Checks one setting change and holds it until the main settings save succeeds.
+function M.stageSetting(rowId, value)
+    local addon, item = settingFor(rowId)
     if not addon then return false, 'That add-on setting is no longer available.' end
     if item.kind == 'bool' and type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
     if item.kind == 'select' and (type(value) ~= 'number' or value % 1 ~= 0 or value < 1 or value > #item.elements) then
@@ -1814,7 +1814,7 @@ end
 function M.signature()
     local parts = {}
     for _, section in ipairs(M.settingsSections()) do
-        for _, item in ipairs(section.items) do parts[#parts + 1] = item.mcmId .. '=' .. tostring(item.value) end
+        for _, item in ipairs(section.items) do parts[#parts + 1] = item.rowId .. '=' .. tostring(item.value) end
     end
     return table.concat(parts, ',')
 end

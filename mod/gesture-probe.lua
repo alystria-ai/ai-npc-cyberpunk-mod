@@ -7,11 +7,20 @@
 -- workspot, movement waits (observe returns true) exactly like the holster
 -- handoff. Leaving the settled stance or combat ends the workspot (guard).
 local M = convaiGestureProbe or {}
-local catalog = dofile('gesture-catalog.lua')
--- Catalog v1 (one hands-at-sides family) or v2 (stance families + characters).
-if not catalog.families then
-    catalog = {version = 1, device = catalog.device, idleComponents = catalog.idleComponents, characters = {},
-        families = {on_sides = {component = catalog.component, idle = catalog.idle, clips = catalog.clips, rigs = catalog.rigs}}}
+-- The gesture catalog (1.4 MB of generated Lua, about 1.2 MB of tables in the Lua heap) is read on the probe's first
+-- command, not when the file loads: an idle probe used to hold its own whole copy for the session beside the gesture
+-- controller's. A 'reload' runs this file again, so the next command reads the catalog afresh, as before.
+local catalogValue
+local function catalogData()
+    if catalogValue then return catalogValue end
+    local catalog = dofile('gesture-catalog.lua')
+    -- Catalog v1 (one hands-at-sides family) or v2 (stance families + characters).
+    if not catalog.families then
+        catalog = {version = 1, device = catalog.device, idleComponents = catalog.idleComponents, characters = {},
+            families = {on_sides = {component = catalog.component, idle = catalog.idle, clips = catalog.clips, rigs = catalog.rigs}}}
+    end
+    catalogValue = catalog
+    return catalog
 end
 local TAG = 'CyberpunkConvaiGestureDevice'
 local REQUEST, RESPONSE, LOG = 'runtime/gesture-probe-request.txt', 'runtime/gesture-probe-response.txt', 'runtime/gesture-probe.log'
@@ -64,12 +73,12 @@ local function inWorkspot(npc)
     return value
 end
 local function character(entry)
-    local known = catalog.characters[entry.record]
+    local known = catalogData().characters[entry.record]
     if known then return known end
     return {rig = rigByRecord[entry.record] or 'unknown', idle = idleByRecord[entry.record], key = idleByRecord[entry.record], talk = 'on_sides'}
 end
 local function rigOf(entry) return character(entry).rig end
-local function familyOf(s) return catalog.families[s.familyKey or 'on_sides'] or catalog.families.on_sides end
+local function familyOf(s) return catalogData().families[s.familyKey or 'on_sides'] or catalogData().families.on_sides end
 local function clipsFor(s)
     local list, family, key = {}, familyOf(s), s.characterKey
     for index, clip in ipairs(family.clips) do
@@ -87,7 +96,7 @@ local function findClip(s, token)
         if item.index == number or item.clip.name == token or item.clip.name:find(token, 1, true) then return item end
     end
     -- Explicit request for a clip this rig lacks (T-pose/skip test), any family.
-    for _, other in pairs(catalog.families) do
+    for _, other in pairs(catalogData().families) do
         for index, clip in ipairs(other.clips) do
             if clip.name == token or clip.name:find(token, 1, true) then
                 return {index = index, clip = clip, duration = 3, missing = true}
@@ -152,9 +161,9 @@ end
 local function spawnDevice(s, npc)
     local system = Game.GetDynamicEntitySystem()
     local spec = NewObject('DynamicEntitySpec')
-    local assigned = pcall(function() spec.templatePath = catalog.device end)
+    local assigned = pcall(function() spec.templatePath = catalogData().device end)
     if not assigned then
-        assigned = pcall(function() spec.templatePath = ResRef.FromString(catalog.device) end)
+        assigned = pcall(function() spec.templatePath = ResRef.FromString(catalogData().device) end)
     end
     if not assigned then error('Could not assign the device template path') end
     spec.position = npc:GetWorldPosition()
@@ -371,10 +380,10 @@ local function begin(s, words)
     if HOLDING[s.phase] then return false, 'already ' .. s.phase end
     local which = option(words, 'component', 'gestures')
     s.familyKey = option(words, 'family', character(entry).talk or 'on_sides')
-    if not catalog.families[s.familyKey] then return false, 'unknown family ' .. s.familyKey end
+    if not catalogData().families[s.familyKey] then return false, 'unknown family ' .. s.familyKey end
     if which == 'gestures' or which == 'talk' then s.component = familyOf(s).component
-    elseif which == 'idle' then s.component = catalog.idleComponents[character(entry).idle or 'generic']
-    else s.component = catalog.idleComponents[(which:gsub('^idle%-', ''))] end
+    elseif which == 'idle' then s.component = catalogData().idleComponents[character(entry).idle or 'generic']
+    else s.component = catalogData().idleComponents[(which:gsub('^idle%-', ''))] end
     if not s.component then return false, 'unknown component ' .. which end
     s.variant = option(words, 'variant', 'keep')
     s.api = option(words, 'api', 'auto')
@@ -416,12 +425,12 @@ COMMANDS.list = function()
         local entry = row.entry
         local s = M.states[entry.serial]
         rows[#rows + 1] = {serial = entry.serial, name = entry.name, record = entry.record, rig = rigOf(entry),
-            talk = character(entry).talk, idleComponent = catalog.idleComponents[character(entry).idle or 'generic'], phase = s and s.phase or 'off',
+            talk = character(entry).talk, idleComponent = catalogData().idleComponents[character(entry).idle or 'generic'], phase = s and s.phase or 'off',
             behaviour = entry.person and entry.person.phase, transport = row.transport, inWorkspot = inWorkspot(entry.npc)}
     end
     local families = {}
-    for key, family in pairs(catalog.families) do families[key] = #family.clips end
-    return true, {companions = rows, guard = M.guard, families = families, catalog = catalog.version}
+    for key, family in pairs(catalogData().families) do families[key] = #family.clips end
+    return true, {companions = rows, guard = M.guard, families = families, catalog = catalogData().version}
 end
 COMMANDS.clips = function(words)
     local rig = words[2] or 'woman_base'

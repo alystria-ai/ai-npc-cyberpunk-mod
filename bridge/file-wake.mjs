@@ -12,6 +12,10 @@
 // A handler runs `delayMs` after the first event of a burst (not reset by later ones, so the wait is bounded): a file written
 // in place without the native plugin raises an event when it is truncated, and the short delay lets the write finish. The
 // handlers are the polls themselves, which already ignore an unchanged file and guard against running twice at once.
+// `delays` sets another delay for one file. 0 runs its handler on the next turn of the event loop (setImmediate), not on a
+// timer: on Windows a 4 ms timer fires on the next 15.6 ms clock tick, so the game's playback lease (whose reader keeps its last
+// good copy when it meets a half-written file, and whose wake is a latch that a second event fires again) waited 4 to 16 ms
+// for nothing on every reply.
 import {watch as fsWatch} from 'node:fs';
 import {basename} from 'node:path';
 
@@ -52,8 +56,8 @@ export function mergeHandlers(...sets) {
   return merged;
 }
 
-export function watchFiles(directory, handlers, {watch = fsWatch, delayMs = FILE_WAKE_DELAY_MS, setTimer = setTimeout,
-  clearTimer = clearTimeout, log = () => {}} = {}) {
+export function watchFiles(directory, handlers, {watch = fsWatch, delayMs = FILE_WAKE_DELAY_MS, delays = {}, setTimer = setTimeout,
+  clearTimer = clearTimeout, setSoon = setImmediate, clearSoon = clearImmediate, log = () => {}} = {}) {
   const names = new Set(Object.keys(handlers ?? {}).filter(name => typeof handlers[name] === 'function'));
   const pending = new Map();
   let watcher = null, closed = false;
@@ -67,13 +71,19 @@ export function watchFiles(directory, handlers, {watch = fsWatch, delayMs = FILE
     if (closed || filename === null || filename === undefined) return;
     const name = basename(String(filename));
     if (!names.has(name) || pending.has(name)) return;
-    const timer = setTimer(() => fire(name), delayMs);
+    const delay = Number.isFinite(delays?.[name]) && delays[name] >= 0 ? delays[name] : delayMs;
+    if (delay === 0) {
+      const soon = setSoon(() => fire(name));
+      pending.set(name, () => clearSoon(soon));
+      return;
+    }
+    const timer = setTimer(() => fire(name), delay);
     timer?.unref?.();
-    pending.set(name, timer);
+    pending.set(name, () => clearTimer(timer));
   };
   function close() {
     closed = true;
-    for (const timer of pending.values()) clearTimer(timer);
+    for (const cancel of pending.values()) cancel();
     pending.clear();
     try { watcher?.close(); } catch { /* already closed */ }
     watcher = null;

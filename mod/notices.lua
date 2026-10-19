@@ -35,6 +35,7 @@ M.catalog = {
     -- Conversation service and replies
     ['service-down'] = {class = PLAYER},               -- once per failure
     ['setup-problem'] = {class = PLAYER},              -- the setup check's first-load notice: the first critical install problem, once per game session (mod/setup-check.lua)
+    ['manager-needs-nsui'] = {class = PLAYER, repeatS = 10}, -- the Companion Manager key was pressed and Native Settings UI is missing or too old (mod/nsui.lua)
     ['service-blocked'] = {class = PLAYER, repeatS = 15},
     ['conversation-timeout'] = {class = PLAYER, repeatS = 15},
     ['reply-error'] = {class = PLAYER, repeatS = 15},
@@ -55,6 +56,8 @@ M.catalog = {
     ['custom-credits'] = {class = PLAYER, repeatS = 60},    -- the account at the endpoint is out of credits
     ['custom-model'] = {class = PLAYER, repeatS = 60},      -- the endpoint does not know the saved model ID
     ['custom-limit'] = {class = PLAYER, repeatS = 60},      -- the endpoint is rate limiting the player
+    ['custom-daily'] = {class = PLAYER, repeatS = 60},      -- the endpoint's daily allowance is used up (OpenRouter's free models); says when it resets if the endpoint did
+    ['custom-reasoning'] = {class = PLAYER, repeatS = 60},  -- the model spent its whole reply on thinking, even with more room: choose a model that does not think first
     ['custom-unreachable'] = {class = PLAYER, repeatS = 60}, -- the endpoint did not answer
     ['custom-no-setup'] = {class = PLAYER, repeatS = 86400}, -- Custom is chosen but the endpoint URL or the model ID is missing, so Convai is used: once per game session
     ['custom-voice'] = {class = PLAYER, repeatS = 86400},   -- the Convai cloud voice is chosen: a local voice speaks Custom replies, once per game session
@@ -62,6 +65,8 @@ M.catalog = {
     ['local-failed'] = {class = PLAYER, repeatS = 30},      -- a local turn could not be answered and no cloud provider took it over: say so on every attempt, not more than twice a minute
     ['local-turn-fallback'] = {class = PLAYER, repeatS = 600}, -- a local turn was answered by the cloud provider instead: about once per ten minutes
     ['local-model-fallback'] = {class = PLAYER, repeatS = 60},    -- the Local AI model the player chose is missing, does not fit or did not start, so the largest model that fits was used (the bridge sends it once per choice)
+    ['local-unavailable'] = {class = PLAYER, repeatS = 30}, -- Local AI is chosen, could not start and nobody took the turn over (no Mistral key, Convai's free day used up): every attempt, at most twice a minute
+    ['local-no-memory'] = {class = PLAYER, repeatS = 30},   -- the same, for want of free graphics memory: a smaller model is the cure
     -- Starting a conversation
     ['talk-no-target'] = {class = PLAYER, repeatS = 20},
     ['talk-no-profile'] = {class = PLAYER, repeatS = 20},
