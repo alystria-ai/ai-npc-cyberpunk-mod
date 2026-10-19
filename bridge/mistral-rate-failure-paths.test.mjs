@@ -4,26 +4,33 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {MistralScheduler, SLOW_SPACING_MS} from './mistral-rate.mjs';
+import {fakeClock} from './fixtures/fake-clock.mjs';
 
-const wait = ms => new Promise(done => setTimeout(done, ms));
+// The waits run on a manual clock (bridge/fixtures/fake-clock.mjs), so a loaded machine cannot let a retry-after run out between two lines.
+const withClock = (options = {}, clock = fakeClock()) => ({clock, scheduler: new MistralScheduler({now: clock.now, setTimer: clock.setTimer, clearTimer: clock.clearTimer, ...options})});
 const headers = values => ({get: name => values[name] ?? null, forEach: callback => { for (const [name, value] of Object.entries(values)) callback(value, name); }});
 const limited = (retryAfterMs, extra = {}) => Object.assign(Error('rate limited'), {status: 429, retryAfterMs, ...extra});
 
 test('a request cancelled while it waits for its 429 retry is rejected as a cancellation, leaves the queue empty and does not stop later requests', async () => {
-  const scheduler = new MistralScheduler();
+  const {clock, scheduler} = withClock();
   const controller = new AbortController();
   let calls = 0;
   const first = scheduler.schedule(async () => { calls++; throw limited(120); }, {retries: 2, signal: controller.signal});
   first.catch(() => {});
-  await wait(30);
+  await clock.advance(30);
   assert.equal(scheduler.stats().queued, 1, 'the retry is queued behind the server\'s retry-after');
   controller.abort();
   await assert.rejects(first, error => error.name === 'AbortError' || /cancel/i.test(error.message));
   assert.equal(scheduler.stats().queued, 0);
   assert.equal(calls, 1, 'the cancelled retry never ran');
-  const began = performance.now();
-  assert.equal(await scheduler.schedule(async () => 'next'), 'next');
-  assert.ok(performance.now() - began >= 60, 'the pause for the 429 still holds for everyone else');
+  const began = clock.now();
+  let sentAt = null;
+  const next = scheduler.schedule(async ({sentAt: at}) => { sentAt = at; return 'next'; });
+  await clock.advance(89);   // 119 ms after the 429: its 120 ms pause is not over yet
+  assert.equal(sentAt, null, 'the pause for the 429 still holds for everyone else');
+  await clock.runUntilIdle();
+  assert.equal(await next, 'next');
+  assert.ok(sentAt - began >= 90, `the next request started ${sentAt - began} ms after the pause was checked`);
 });
 
 test('a task that fails with a 429 after its own signal was cancelled is not asked again: the error comes back as it is', async () => {
