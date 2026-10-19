@@ -262,6 +262,9 @@ const quota = new QuotaWatch({keys});
 // folder. Reading it is a file read and nothing more: no request is made to the endpoint unless the player chooses this provider or presses Test connection.
 const customEndpoint = await new CustomEndpoint({path: resolve(stateDirectory, CUSTOM_FILE), log: message => console.error('[Custom] ' + message)}).load();
 const mistral = await new MistralProvider({keyPath: resolve(stateDirectory, MISTRAL_KEY_FILE), inworld: inworldKey, custom: customEndpoint}).load();
+// runtime/mistral-state.json is not written until the first settings poll has applied the saved provider (released after it, at the end of
+// start-up): until then the provider is the default, Convai, and the game would read that as the player's choice for a moment.
+mistral.statusHeld = true;
 // The optional Local AI packs (standard and lite) and the supervisor of the model server. Nothing starts here: the server is
 // started when the player chooses Local, and stops by itself after ten idle minutes. A developer points CYBERPUNK_CONVAI_LOCAL_AI_DEV
 // at a folder of models (docs/LOCAL_AI.md).
@@ -284,7 +287,14 @@ const localServer = new LocalLlmServer({pack: localPack, stateFile: resolve(stat
   beforeStart: async () => { for (let waited = 0; !omniSettled() && waited < 120000; waited += 500) await new Promise(done => setTimeout(done, 500)); },
   log: message => console.error('[LocalAI] ' + message)});
 scanCustomModels();   // once now; then on the settings poll and when a model is about to load
-localServer.on('failed', ({reason}) => mistral.noteLocalFailure(reason));
+localServer.on('failed', ({reason}) => {
+  mistral.noteLocalFailure(reason);
+  // Nobody can take the turns over (no Mistral key, Convai's free day used up): they stay on Local AI and each says why. One line per failure.
+  if (mistral.localDown) logLocalDown();
+});
+function logLocalDown() {
+  console.error(`[LocalAI] Local AI is unavailable (${mistral.localBroken}) and Convai's free turns for today are used: turns stay on Local AI and the game names the reason`);
+}
 // A chosen model that is missing, does not fit or did not start: another was used (the event names it), and the game says so once per choice (not at every later start).
 let localModelFallbackNoted = '';
 localServer.on('model-fallback', ({pin, reason, model}) => {
@@ -361,6 +371,15 @@ const remarkAllowance = await new RemarkAllowance({guard: turnGuard,
 const hostGuard = {check: config => { turnGuard.check(); remarkAllowance.check(config); if (tokenSource) keys.assertAllowed(); },
   consume: config => { turnGuard.consume(); remarkAllowance.consume(config); }};
 if (dailyLimit > 0) console.error(`[CyberpunkConvai] Shared conversation allowance: ${dailyLimit} turns a day, ${turnGuard.snapshot()?.left ?? dailyLimit} left today`);
+// Convai's free tier cannot take a turn today: the shared key's day is used up (the local count, or the sign-in backend's answer). A Local AI that
+// cannot start then keeps its turns instead of handing them to Convai, where each would only meet the daily limit (MistralProvider.convaiAvailable).
+// Memory reads only; asked by the settings poll (applyProviderChoice) and the status file, never per frame.
+const convaiDayUsed = () => {
+  if (keys.source !== 'shared') return false;
+  if (turnGuard.snapshot()?.blocked === true) return true;
+  try { keys.assertAllowed(); return false; } catch { return true; }
+};
+mistral.convaiAvailable = () => !convaiDayUsed();
 const currentKey = () => keys.current();
 // A player's key pre-opens no connections and speculates on nothing (its plan's interactions and its one-connection free plan).
 // With Mistral there is no Convai connection to pre-open or to speculate on either. Group look-ahead is the exception on a
@@ -377,6 +396,14 @@ const keyNotice = () => {
   const keyNotice = keys.takeNotice() ?? mistral.takeNotice({cloudVoice: localVoice.requestedProvider === 'convai'});
   // The fallback notice names the model that was used instead.
   return keyNotice ? {keyNotice, ...(keyNotice === 'local-model-fallback' && mistral.noticeModel ? {keyNoticeModel: mistral.noticeModel} : {})} : {};
+};
+// While Local AI is chosen and cannot start, a failed turn names Local AI's problem ('local-no-memory', 'local-unavailable'), never a Convai one
+// (MistralProvider.failureCode: no 'local-fallback' when nobody takes over, no 'daily-limit' for a turn that fell back to Convai). Others pass.
+const providerFailureCode = code => mistral.failureCode(code);
+// keyFailure (below) with that correction: what every failed turn's reply carries.
+const turnFailure = (error, input) => {
+  const failure = keyFailure(error, input), errorCode = providerFailureCode(failure.errorCode);
+  return errorCode === failure.errorCode ? failure : {...failure, errorCode};
 };
 // The game's notice for a failure (docs/NOTIFICATIONS.md). An automatic reaction that hit the daily cap just stops: no notice.
 const keyFailure = (error, input) => {
@@ -525,7 +552,7 @@ const phoneSessionPath = resolve(stateDirectory, 'phone-sessions.json');
 let phoneSessions = {};
 try { phoneSessions = JSON.parse(await readFile(phoneSessionPath, 'utf8')) || {}; } catch {}
 const phone = new PhoneChat({
-  failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return code === 'daily-limit' || /^(mistral|local|custom)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? 'local-fallback' : undefined; },
+  failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return providerFailureCode(code === 'daily-limit' || /^(mistral|local|custom)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? 'local-fallback' : undefined); },
   contacts: JSON.parse(await readFile(resolve(project, 'characters/phone-contacts.json'), 'utf8')), ids,
   resetFor: profileKey => memoryControl.chatResets.phoneState(profileKey),
   contextFor: options => phoneKnowledge.prepareContext(options),
@@ -1433,9 +1460,13 @@ async function synthesizeOmniPhrase(profile,text,{preStore=false,...options}={})
 
 // Status writes are queued in call order, so a caller may leave one unawaited (a turn's 'thinking' no longer holds up the
 // provider request) without an older state ever landing after a newer one.
+// `turn` ({requestId, provider}) names the turn a 'thinking' is for and the provider that took it: the game reads it once, when a turn it
+// sent has had no reply for 90 s, to say why (taken by Local AI still loading, by Convai in place of a Local AI that is not ready, or never
+// taken at all) instead of guessing that the service is not running (mod/service-status.lua noReplyMessage).
 let statusWriting = Promise.resolve();
-async function status(state, detail = '') {
-  const text = JSON.stringify({state, detail: detail.slice(0, 200), updated: Date.now()});
+async function status(state, detail = '', turn = null) {
+  const named = turn && typeof turn.requestId === 'string' ? {requestId: turn.requestId.slice(0, 160), provider: turn.provider} : {};
+  const text = JSON.stringify({state, detail: detail.slice(0, 200), updated: Date.now(), ...named});
   const job = statusWriting.catch(() => {}).then(() => atomic(statusPath, text));
   statusWriting = job;
   return job;
@@ -1635,7 +1666,7 @@ async function publishResult(input, profile, result, current = async () => true,
     await measure(input, {transport: 'realtime', timing: result.timing,
       stream: {id: result.liveDelivery.id, mode: result.timing?.voiceProvider === 'pocket' ? 'pocket-continuous' : 'convai-continuous', complete: true},
       continuousPlaybackCompleteAt: Date.now()});
-    await status('ready', profile.name);
+    await status('ready', profile.name, {requestId: input.requestId});
     return true;
   }
   const preparationStartedAt = Date.now();
@@ -1685,7 +1716,7 @@ async function publishResult(input, profile, result, current = async () => true,
     audioStoreMs: Date.now() - preparationStartedAt, publishedAt: Date.now(), audioDurationSeconds: audio?.duration,
     stream:stream?{id:stream.manifest.streamId,chunks:stream.phrases.length,mode:'omni-phrases'}:undefined,
     nativePlaybackObserved: false});
-  await status('ready', profile.name);
+  await status('ready', profile.name, {requestId: input.requestId});
   if(stream){
     streaming++;
     try{
@@ -1739,7 +1770,7 @@ const addonVoice = createAddonVoice({isSpeaker: key => addonHost.isSpeaker(key),
     // The same answer a typed add-on turn gets from runInput: a message about the service, not about the microphone.
     console.error('[Addons] Voice turn failed:', error.message);
     await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
-      error: 'The conversation service could not reply. Please try again.', ...keyFailure(error, input)}),
+      error: 'The conversation service could not reply. Please try again.', ...turnFailure(error, input)}),
       {signal, isCurrent: current, isCurrentSync: current.sync}).catch(() => {});
   }});
 
@@ -1825,7 +1856,7 @@ const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => rea
     await atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state: silent ? 'silent' : noSpeech ? 'no-speech' : 'error', requestId: input.requestId,
       ...(silent ? {device: String(error.device ?? '').slice(0, 80)} : {}), updated: Date.now()}), {isCurrent: current, isCurrentSync: current.sync});
     await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
-      entity: input.entity, error: 'Voice conversation failed. Check your microphone and try again.', ...keyFailure(error, input)}), {isCurrent: current, isCurrentSync: current.sync});
+      entity: input.entity, error: 'Voice conversation failed. Check your microphone and try again.', ...turnFailure(error, input)}), {isCurrent: current, isCurrentSync: current.sync});
   },
 });
 
@@ -2126,6 +2157,8 @@ async function tick() {
     const held = lookahead.claim(input, owner);
     if (held) {
       active = held; void cancelMicrophone();
+      // The submitted turn is this one now: the status names it, as runInput's 'thinking' does for a turn that starts here.
+      void status('thinking', profileFor(input, roster)?.name ?? '', {requestId: input.requestId, provider: mistral.active ? mistral.route : 'convai'}).catch(() => {});
       void measure(held.input, {claimedAt: Date.now(), lookahead: lookahead.stats(held.lookahead)});
       return;
     }
@@ -2243,7 +2276,7 @@ async function runAddonTurn(request, input, profile, current, clock, {userText =
   let published = false;
   try {
   note(input, {receivedAt: request.receivedAt, preparation: {mode: ahead ? 'lookahead' : 'none'}, reaction: input.reaction?.phase, addonRoute: route});
-  if (!ahead) void status('thinking', profile.name).catch(() => {});
+  if (!ahead) void status('thinking', profile.name, {requestId: input.requestId, provider: route}).catch(() => {});
   clock.mark('admitted');
   const host = addonTextHost(route, profile.key);
   // A remark that asked for stock uses a line the model wrote ahead (filled with this moment's numbers) when one is ready; with
@@ -2380,7 +2413,7 @@ async function runInput(request, prepared, clock) {
     note(input, {receivedAt: request.receivedAt, preparation: {mode: ahead ? 'lookahead' : prepared ? 'claimed' : 'none'},
       journalStatus: input.journal?.status || 'not-supplied', journalObjectives: input.journal?.quest?.objectives.length || 0,
       battleStatus: input.battle?.status || 'not-supplied', reaction: input.reaction?.phase});
-    if (!ahead) void status('thinking', profile.name).catch(() => {});
+    if (!ahead) void status('thinking', profile.name, {requestId: input.requestId, provider: mistral.active ? mistral.route : 'convai'}).catch(() => {});
     // A fresh read, not the cached copy: the copy can be about a second old, and a heartbeat that was due just then would read as
     // stale and skip the connection hand-over (the group look-ahead tests caught it).
     const canWarm = await audioReady(runtime);
@@ -2419,10 +2452,10 @@ async function runInput(request, prepared, clock) {
     if (ahead?.isHeld()) { lookahead.fail(ahead); console.error('[CyberpunkConvai] Look-ahead turn failed:', error.message); return; }
     if (companionActions.pending?.packet.requestId === input?.requestId) void companionActions.revoke();
     if (!await current()) return;
-    await status('error', error.message).catch(() => {});
+    await status('error', error.message, input ? {requestId: input.requestId} : null).catch(() => {});
     if (input) await atomic(replyPath, JSON.stringify({requestId: input.requestId,
       generation: input.generation, entity: input.entity,
-      error: 'The conversation service could not reply. Please try again.', ...keyFailure(error, input)}), {signal: controller.signal, isCurrent: current, isCurrentSync: current.sync}).catch(() => {});
+      error: 'The conversation service could not reply. Please try again.', ...turnFailure(error, input)}), {signal: controller.signal, isCurrent: current, isCurrentSync: current.sync}).catch(() => {});
     console.error('[CyberpunkConvai] Bridge request failed:', error.message);
   } finally {
     if (knowledgeTurn && (controller.signal.aborted || !await current())) await cancelKnowledgeTurn(knowledgeTurn);
@@ -2681,6 +2714,8 @@ async function applyProviderChoice() {
     await phone.forgetSessions().catch(() => {});
     console.error(`[CyberpunkConvai] Conversation provider: ${mistral.applied}`);
     rewarmLocalVoice();
+    // Local AI is chosen and down, and nobody can take its turns (no Mistral key, Convai's free day used up): they stay here and say why.
+    if (mistral.localDown) logLocalDown();
     // What the custom provider is set to, for a support report: the host and the model id (never the address's path, a query or the key).
     if (mistral.applied === 'custom') console.error(`[Custom] host ${customEndpoint.host}, model ${customEndpoint.model}, key ${customEndpoint.key ? 'saved' : 'none'}`);
     // Leaving the local AI gives its graphics memory back at once; arriving loads it (a first start compiles shaders for a while).
@@ -2737,6 +2772,8 @@ async function learnCardTotal() {
   cardTotalMiB = await nvidiaTotalMiB().catch(() => null);
 }
 let localModelChoiceKey = null, localModelListKey = '', localModelListCheckedAt = 0;
+// Local AI failures a changed model choice (or Mature setting) may cure: tried again when the choice changes (syncLocalModelChoice).
+const RETRY_ON_CHOICE = new Set(['low-memory', 'start-failed', 'crashed']);
 // The poll calls this before it applies the saved provider (and reads Mature content just before): the first Local AI start takes the model
 // choice and Mature content when it begins, and nothing reloads it afterwards (the first sync only records the choice). Cheap: no file, no process.
 function syncLocalModelChoice(settings) {
@@ -2750,6 +2787,9 @@ function syncLocalModelChoice(settings) {
     if (!first && mistral.applied === 'local') void localServer.reselect().catch(() => {});
     // A Mature-only install could not start Local AI while Mature content was off ('mature-off'); turning it on lifts that: try again.
     if (!first && matureContent.enabled && mistral.clearLocalFailure('mature-off')) prepareLocal();
+    // A start that failed for want of graphics memory, or did not start or crashed, may work with another model: the player was told to pick a
+    // smaller one ('local-no-memory'), so the new choice is tried at once instead of the failure standing until another provider is chosen.
+    else if (!first && RETRY_ON_CHOICE.has(mistral.localBroken) && mistral.clearLocalFailure(mistral.localBroken)) prepareLocal();
   }
 }
 // The pack, or a model of the player's own, can appear while the game runs (the pack extracted after choosing Local, a model added to the
@@ -2948,6 +2988,10 @@ await companionActions.revoke();
 await status('waiting');
 await pollSettings(false);
 void setupCheck.run(null, {light: true}).catch(error => console.error('[CyberpunkConvai] Setup check:', error.message));
+// The saved provider is applied (or the settings file could not be read yet, and the default stands until a later poll): the status file
+// says so from here on.
+mistral.statusHeld = false;
+await mistralControl.publishStatus().catch(() => {});
 await pollKnowledge();
 void localVoice.start().catch(error => console.error('[CyberpunkConvai] Local voice startup:', error.message));
 // A text route (Mistral, the local AI) opens no Convai connection, so nothing else starts the hidden browser that renders the

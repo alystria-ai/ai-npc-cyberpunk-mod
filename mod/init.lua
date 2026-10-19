@@ -3018,6 +3018,13 @@ local function keyReplyNotice(reply)
     elseif reply.errorCode == 'custom-unreachable' then
         return 'custom-unreachable', ui.t('The custom provider did not answer. Check its address in Settings, or try again.')
     end
+    -- Local AI is chosen and could not start, and nobody took the turn over (no Mistral key, Convai's free turns for today used): its own reason,
+    -- never the Convai limit the player did not choose (bridge/convai-bridge.mjs providerFailureCode).
+    if reply.errorCode == 'local-no-memory' then
+        return 'local-no-memory', ui.t('Not enough free graphics memory to start Local AI. Try a smaller model in Settings.')
+    elseif reply.errorCode == 'local-unavailable' then
+        return 'local-unavailable', ui.t('Local AI could not start. Check Local AI in Settings > Conversation provider.')
+    end
     -- Local AI could not start, so the bridge used Convai: the same line whether it rode on a failed turn or on the first reply.
     if reply.errorCode == 'local-fallback' or reply.keyNotice == 'local-fallback' then
         return 'local-fallback', ui.t('Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.')
@@ -4033,6 +4040,12 @@ registerForEvent('onUpdate', function(delta)
         gameplayActions.revoke('reply-timeout', expired.requestId)
         if not expired.reaction then
             local explained = serviceLost or serviceCall('blockedMessage', os.time())
+            -- The service is up: what it did with this turn (never taken, Local AI still loading or too slow, Convai in place of a Local AI
+            -- that was not ready), read once now (mod/service-status.lua noReplyMessage), instead of guessing that it is not running.
+            if not explained then
+                local stateOk, providerState = pcall(manager.mistral)
+                explained = serviceCall('noReplyMessage', expired.requestId, stateOk and providerState or nil, 90)
+            end
             convaiNotices.send(player, 'conversation-timeout', explained or ui.t('No reply arrived. The conversation service may not be running.'))
         end
         log((serviceLost and 'Conversation retired after the service exited: generation=' or 'Conversation timed out: generation=')
@@ -4101,6 +4114,11 @@ registerForEvent('onUpdate', function(delta)
                         -- A local turn failed and nothing took it over: the same rule, its own notice.
                         elseif keyId == 'local-failed' then
                             if not pending.reaction then convaiNotices.send(player, 'local-failed', keyText) end
+                        -- Local AI could not start and nobody took the turn over: the same rule, with Local AI's own reason.
+                        elseif keyId == 'local-unavailable' then
+                            if not pending.reaction then convaiNotices.send(player, 'local-unavailable', keyText) end
+                        elseif keyId == 'local-no-memory' then
+                            if not pending.reaction then convaiNotices.send(player, 'local-no-memory', keyText) end
                         elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' then
                             sendProviderNotice(player, keyId, keyText)
                             if not pending.reaction then convaiNotices.send(player, 'reply-error', reply.error) end

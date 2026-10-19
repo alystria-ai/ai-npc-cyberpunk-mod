@@ -43,7 +43,12 @@ do anything:
 3. The voice is only changed as a last resort.
 
 If the pack is missing or the model cannot start, the same fallback applies. To try again, choose another provider and Apply, then choose
-Local AI and Apply again.
+Local AI and Apply again, or choose another Local AI model (a new model choice, or turning Mature content on or off, tries the start again).
+
+Convai takes the turns only while it can answer them. When you have no Mistral key and Convai's free tier has used today's turns, the turns
+stay on Local AI and each one says why it could not be answered: "Not enough free graphics memory to start Local AI. Try a smaller model in
+Settings." or "Local AI could not start. Check Local AI in Settings > Conversation provider." (never the Convai daily limit, which would tell
+you to try the Local AI you already chose).
 
 ### Choosing the model
 
@@ -365,7 +370,12 @@ Omni loads first and the tier is chosen from what is left: the supervisor's `bef
 at most two minutes, until the requested voice has settled, and then reads the free video memory. Standard fits if free memory is at
 least its file size plus 1.2 GB, else lite if it is at least its file size plus 0.7 GB, else the supervisor fails with `low-memory`,
 `MistralProvider.noteLocalFailure` is called once, and the provider falls back to Mistral (with a key) or Convai at the next idle boundary
-with the single `local-fallback` notice.
+with the single `local-fallback` notice. Convai only while it can answer (`MistralProvider.convaiAvailable`, which the bridge points at the shared
+key's day: the local count or the sign-in backend's answer): with that day used up and no Mistral key the provider stays `local`
+(`localDown`), a failed turn carries `local-no-memory` or `local-unavailable` instead of `local-fallback` or `daily-limit`
+(`MistralProvider.failureCode`), and the bridge logs `[LocalAI] Local AI is unavailable (<reason>) and Convai's free turns for today are used`.
+A change of the model choice or of Mature content clears a `low-memory`, `start-failed` or `crashed` failure and starts again
+(`syncLocalModelChoice`).
 
 ### Context budget
 

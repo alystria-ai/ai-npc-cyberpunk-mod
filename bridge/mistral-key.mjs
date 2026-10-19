@@ -49,7 +49,8 @@ export const PROVIDERS = Object.freeze(['convai', 'mistral', 'local', 'custom'])
  * when a key is saved, and the custom provider only when its address and model id are saved (without them the setting falls back to Convai and
  * says so once); the local AI is `requested` unless it has
  * failed (not installed, not enough graphics memory, would not start), in which case Convai is used and one notice says so until
- * the setting is changed again; `applied` is what turns use. `active` means a text provider (Mistral or local) answers.
+ * the setting is changed again (only while Convai can answer: with its free tier's day used up the turns stay on Local AI and fail with
+ * Local AI's own reason, `localDown`); `applied` is what turns use. `active` means a text provider (Mistral or local) answers.
  */
 export class MistralProvider {
   constructor({keyPath, readText = path => readFile(path, 'utf8'), writeText = writePrivate, removeFile = path => rm(path, {force: true}), inworld = null, custom = null} = {}) {
@@ -58,6 +59,13 @@ export class MistralProvider {
     this.noKeyPending = false; this.noSetupPending = false; this.voicePending = false; this.limit = null; this.sttAvailable = false;
     this.localTurnNoticePending = false; this.localModelNoticePending = false; this.localModelNoticeName = ''; this.lastNoticeModel = '';
     this.localBroken = null; this.localNoticePending = false; // why the local AI cannot be used (null: it can), and the one notice for it
+    // May Convai take a turn now? The bridge sets this (false while the shared free tier's day is used up). A Local AI that cannot be used
+    // hands its turns to Convai only while Convai can answer them; otherwise they stay on Local AI, whose failure names the real problem
+    // instead of a Convai limit the player did not choose (2026-10-19 report: Local AI saved, the first turn showed the Convai daily limit).
+    this.convaiAvailable = () => true;
+    // The bridge holds the status file until its first settings poll has applied the saved provider, so the game never reads the defaults
+    // (Convai) as the player's choice in the moment between the start and that poll.
+    this.statusHeld = false;
     this.listeners = new Set();
     // What the player enters for the custom provider changes which provider is requested. A new address, key or model ID also ends what the
     // old one was refused for ("key not accepted", "out of credits", ...): the settings page stops saying so and summaries may run again.
@@ -88,9 +96,25 @@ export class MistralProvider {
   get requested() {
     if (this.preference === 'mistral' && this.key) return 'mistral';
     if (this.preference === 'custom') return this.custom?.ready ? 'custom' : 'convai';
-    // The local AI could not be used (pack missing, no room beside the voice, crashed): a cloud provider with a key answers, else Convai.
-    if (this.preference === 'local') return !this.localBroken ? 'local' : this.key ? 'mistral' : 'convai';
+    // The local AI could not be used (pack missing, no room beside the voice, crashed): a cloud provider with a key answers, else Convai, but
+    // only while Convai can take the turn (its free tier's day not used up); with nobody to take over the turns stay on Local AI and fail with its reason.
+    if (this.preference === 'local') return !this.localBroken ? 'local' : this.key ? 'mistral' : this.#convaiOpen() ? 'convai' : 'local';
     return 'convai';
+  }
+  #convaiOpen() { try { return this.convaiAvailable() !== false; } catch { return true; } }
+  /** Local AI is chosen and cannot answer (why: `localBroken`), and no other provider takes its turns: they fail with that reason. */
+  get localDown() { return this.preference === 'local' && !!this.localBroken && this.requested === 'local'; }
+  /** The game's notice code for a turn Local AI could not take: 'local-no-memory' (not enough free graphics memory) or 'local-unavailable'; undefined while it can. */
+  get localFailureCode() { return !this.localBroken ? undefined : this.localBroken === 'low-memory' ? 'local-no-memory' : 'local-unavailable'; }
+  /**
+   * The game's notice code for a failed turn (`code`, what the failure alone says), corrected while Local AI is chosen and cannot start, so the
+   * player hears Local AI's problem and never a Convai one: 'local-fallback' says a cloud provider takes over, untrue when none can (`localDown`),
+   * and 'daily-limit' met by a turn that fell back to Convai would tell them to try the Local AI they already chose. Any other code is kept.
+   */
+  failureCode(code) {
+    if (code === 'local-fallback' && this.localDown) return this.localFailureCode;
+    if (code === 'daily-limit' && this.preference === 'local' && this.localBroken) return this.localFailureCode;
+    return code;
   }
   get pending() { return this.requested !== this.applied; }
   /**
@@ -216,6 +240,8 @@ export class MistralControl {
         ...(this.inworldResult ? {result: this.inworldResult} : {})}} : {})};
   }
   publishStatus() {
+    // Held until the bridge's first settings poll (MistralProvider.statusHeld): the file keeps what the last session wrote meanwhile.
+    if (this.provider.statusHeld === true) return this.writing;
     this.writing = this.writing.catch(() => {}).then(() => this.publish(this.status()));
     return this.writing;
   }

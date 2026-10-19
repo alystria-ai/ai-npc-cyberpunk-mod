@@ -17,6 +17,8 @@ local MISTRAL_STATUS = {
     ['custom-unreachable'] = 'The custom provider did not answer. Check its address in Settings, or try again.',
     ['local-fallback'] = 'Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.',
     ['local-failed'] = 'Local AI could not answer that. Try again in a moment.',
+    ['local-unavailable'] = 'Local AI could not start. Check Local AI in Settings > Conversation provider.',
+    ['local-no-memory'] = 'Not enough free graphics memory to start Local AI. Try a smaller model in Settings.',
 }
 local function copy(value)
     if type(value) ~= 'table' then return value end
