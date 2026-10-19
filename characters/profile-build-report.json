@@ -2669,12 +2669,12 @@
     },
     {
       "key": "brendan",
-      "words": 660,
+      "words": 662,
       "speakingStyleWords": 194,
       "sampleDialogueWords": 138,
       "voice": "Ryan (Expressive Young-Adult American Male)",
       "sources": 2,
-      "researchRevision": "ec3c348cdfc723098b72941c6569b885fcf88992e3992ca2f5d0c1208d054b9e"
+      "researchRevision": "375b235fd511ad87304e9cf6cdc8b8b775ca49466f0746560f20b887162ab67c"
     },
     {
       "key": "anthony-gilchrist",
