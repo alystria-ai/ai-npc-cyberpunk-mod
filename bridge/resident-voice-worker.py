@@ -32,6 +32,10 @@ MAX_REFERENCE_BYTES = 32 * 1024 * 1024
 WARM_PHRASE = 'Ready when you are, V.'
 MODEL_REVISION = 'c5fdb5ccb189668d56333f77ba2629f4cd7535f4'
 ADAPTER_REVISION = '08a1592e3cb9b4c36beef5fa3185ec2313bb1fea'
+# A player's own clip for a character lives in the player's data folder (`playerVoiceDirectory` in the configuration), never beside the
+# shipped references: a descriptor naming this fixed second namespace resolves only inside that folder.
+PLAYER_PREFIX = 'runtime/player-voices'
+PLAYER_REFERENCE = re.compile(r'runtime/player-voices/[a-z0-9][a-z0-9-]{0,79}\.wav')
 PATH_OVERRIDES = {
     'modelDirectory': 'CYBERPUNK_CONVAI_OMNI_MODEL',
     'adapterDirectory': 'CYBERPUNK_CONVAI_OMNI_ADAPTER',
@@ -173,17 +177,55 @@ def contained_file(root, relative, prefix, *, suffix=None):
     return asset_file(root, relative, prefix)
 
 
-def validate_reference(root, descriptor, *, reference_root=None):
+def player_reference(relative):
+    return isinstance(relative, str) and relative.startswith(PLAYER_PREFIX + '/')
+
+
+def checked_player_directory(value, root, paths):
+    """The optional folder of the player's own clips: absolute, no links, and never mixed with application files, shipped references or cache.
+
+    A missing folder is fine (those profiles are then unavailable); an overlap would let a clip resolve through, or be written over by,
+    another tree, so it fails the configuration like the other path overlaps do.
+    """
+    if value is None:
+        return None
+    player = checked_absolute_directory(value, 'playerVoiceDirectory')
+    others = []
+    if paths:
+        others = [paths[field] for field in ('referenceDirectory', 'cacheDirectory') if paths.get(field) is not None]
+        # A development checkout keeps its data under the application directory; a package must not.
+        if paths['portable']:
+            others.append(paths['applicationDirectory'])
+    if any(player.is_relative_to(other) or other.is_relative_to(player) for other in others):
+        raise ValueError('Player voice clips must be separate from application files, references and cache')
+    return player
+
+
+def validate_reference(root, descriptor, *, reference_root=None, player_root=None):
     if not isinstance(descriptor, dict) or not valid_transcript(descriptor.get('transcript')):
         raise ValueError('Invalid local reference transcript')
     if not isinstance(descriptor.get('sha256'), str) or not re.fullmatch(r'[a-f0-9]{64}', descriptor['sha256']):
         raise ValueError('Invalid local reference hash')
     relative = descriptor.get('reference')
-    validate_asset_path(relative, 'runtime/voice-references', suffix='.wav')
-    if reference_root is not None:
-        reference_root = checked_absolute_directory(str(reference_root), 'voice reference directory')
-    path = (asset_file(reference_root, relative[len('runtime/voice-references/'):])
-            if reference_root is not None else contained_file(root, relative, 'runtime/voice-references', suffix='.wav'))
+    if player_reference(relative):
+        # One plain <key>.wav inside the player's own folder, nothing else; without that folder the profile is unavailable, not an error.
+        if not PLAYER_REFERENCE.fullmatch(relative):
+            raise ValueError('Invalid local asset path')
+        if player_root is None:
+            raise ReferenceUnavailable('No player voice folder is configured')
+        try:
+            path = asset_file(checked_absolute_directory(str(player_root), 'player voice directory'), relative[len(PLAYER_PREFIX) + 1:])
+        except ReferenceUnavailable:
+            raise
+        except ValueError as error:
+            # The folder is the player's own: a link or an escape in it withdraws that one character, it never takes every voice down.
+            raise ReferenceUnavailable('Player voice clip is linked or outside its folder') from error
+    else:
+        validate_asset_path(relative, 'runtime/voice-references', suffix='.wav')
+        if reference_root is not None:
+            reference_root = checked_absolute_directory(str(reference_root), 'voice reference directory')
+        path = (asset_file(reference_root, relative[len('runtime/voice-references/'):])
+                if reference_root is not None else contained_file(root, relative, 'runtime/voice-references', suffix='.wav'))
     if not 44 <= path.stat().st_size <= MAX_REFERENCE_BYTES:
         raise ReferenceUnavailable('Local reference exceeded supported byte limits')
     with path.open('rb') as handle:
@@ -219,6 +261,7 @@ def validate_config(config, root=ROOT, *, paths=None):
         raise ValueError('Invalid local voice registry')
     if config.get('version', 1) == 1 and set(voices) != set(LEGACY_KEYS):
         raise ValueError('New cast profiles require configuration version2')
+    player_root = checked_player_directory(config.get('playerVoiceDirectory'), root, paths)
     refs, unavailable, descriptors = {}, {}, {}
     for key, descriptor in voices.items():
         if not valid_key(key) or not isinstance(descriptor, dict):
@@ -230,7 +273,8 @@ def validate_config(config, root=ROOT, *, paths=None):
             unavailable[key] = status
             continue
         try:
-            refs[key] = validate_reference(root, descriptor, reference_root=paths['referenceDirectory'] if paths else None)
+            refs[key] = validate_reference(root, descriptor, reference_root=paths['referenceDirectory'] if paths else None,
+                                           player_root=player_root)
         except ReferenceUnavailable:
             unavailable[key] = 'unavailable'
         descriptors[key] = {name: descriptor[name] for name in ('reference', 'sha256', 'transcript')}
@@ -255,7 +299,7 @@ def validate_config(config, root=ROOT, *, paths=None):
     model_file = (asset_file(paths['modelDirectory'], 'model.safetensors')
                   if paths and paths['portable'] else contained_file(root, model_relative, 'vendor/voice-models'))
     return {'refs': refs, 'descriptors': descriptors, 'root': root,
-            'paths': paths, 'referenceRoot': paths['referenceDirectory'] if paths else None,
+            'paths': paths, 'referenceRoot': paths['referenceDirectory'] if paths else None, 'playerRoot': player_root,
             'referenceHashes': {key: descriptors[key]['sha256'] for key in refs},
             'transcriptHashes': {key: hashlib.sha256(descriptors[key]['transcript'].encode('utf-8')).hexdigest() for key in refs},
             'configuredProfiles': sorted(voices), 'unavailableProfiles': unavailable,
@@ -294,7 +338,7 @@ class ProfileSession:
     def validate_profile_reference(self, key):
         try:
             validate_reference(self.registry['root'], self.registry['descriptors'][key],
-                               reference_root=self.registry.get('referenceRoot'))
+                               reference_root=self.registry.get('referenceRoot'), player_root=self.registry.get('playerRoot'))
         except Exception:
             # A changed/missing recording invalidates every logical alias of
             # that file. Leave the actual adapter cache under its normal owner.

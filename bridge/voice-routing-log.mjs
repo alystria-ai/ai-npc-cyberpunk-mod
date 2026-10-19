@@ -19,6 +19,16 @@ import {dirname} from 'node:path';
 export const ROUTING_LOG_NAME = 'voice-routing.log';
 export const ROUTING_LOG_MAX_LINES = 500;
 const REFERENCE_ROOT = 'runtime/voice-references/';
+// The player's own clip for a character (docs/CHARACTER_EDITOR.md): reported as the set `player`, never by its file name or transcript.
+const PLAYER_ROOT = 'runtime/player-voices/';
+const PLAYER_SET = 'player';
+
+/** The set a reference path belongs to: `player` for the player's own clip, else the folder under runtime/voice-references. */
+function setOf(path) {
+  if (path.startsWith(PLAYER_ROOT)) return PLAYER_SET;
+  const set = path.startsWith(REFERENCE_ROOT) ? path.slice(REFERENCE_ROOT.length).split('/').slice(0, -1).join('/') : '';
+  return set || path.split('/').at(-2) || 'reference';
+}
 // Matches the Settings menu (mod/manager.lua OMNI_LABELS).
 const OMNI_TIERS = {'16:short': 'Balanced', '16:long': 'Quality', '32:short': 'High Quality', '32:long': 'Ultra Quality'};
 
@@ -46,10 +56,9 @@ export function referenceOf(voice, backend, key, sources = {}) {
   const entry = registry?.profiles?.[key];
   if (!entry?.reference) return null;
   const path = String(entry.reference);
-  const set = path.startsWith(REFERENCE_ROOT) ? path.slice(REFERENCE_ROOT.length).split('/').slice(0, -1).join('/') : '';
   const raw = backend === 'omni' ? sources.omni?.[voice.omniReference] : sources.pocket;
-  const seconds = secondsOf(raw?.voices?.[key]);
-  return {set: set || path.split('/').at(-2) || 'reference', ...(seconds === undefined ? {} : {seconds})};
+  const set = setOf(path), seconds = set === PLAYER_SET ? undefined : secondsOf(raw?.voices?.[key]);
+  return {set, ...(seconds === undefined ? {} : {seconds})};
 }
 
 /**
@@ -64,9 +73,9 @@ export function cloudReferenceOf(voice, key, sources = {}) {
     const entry = registry?.profiles?.[key];
     if (!entry?.reference) continue;
     const path = String(entry.reference);
-    const set = path.startsWith(REFERENCE_ROOT) ? path.slice(REFERENCE_ROOT.length).split('/').slice(0, -1).join('/') : '';
-    const seconds = secondsOf(raw?.voices?.[key]);
-    return {set: set || path.split('/').at(-2) || 'reference', ...(seconds === undefined ? {} : {seconds})};
+    // A player's own clip has no recorded length here (the entry in `raw` may still be the shipped voice's).
+    const set = setOf(path), seconds = set === PLAYER_SET ? undefined : secondsOf(raw?.voices?.[key]);
+    return {set, ...(seconds === undefined ? {} : {seconds})};
   }
   return null;
 }

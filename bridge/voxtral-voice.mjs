@@ -41,6 +41,7 @@ import {cancelled, throwIfCancelled} from './transport-pool.mjs';
 import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
 import {RequestGate} from './request-gate.mjs';
 import {isVariantKey} from './voice-variants.mjs';
+import {PLAYER_REFERENCE_PREFIX, isPlayerReference, playerReferenceValid} from './voice-profile-registry.mjs';
 
 export const VOXTRAL_ENDPOINT = 'https://api.mistral.ai/v1/audio/speech';
 export const VOXTRAL_MODEL = 'voxtral-mini-tts-latest';
@@ -288,16 +289,18 @@ export async function* sseEvents(body) {
 
 export class VoxtralVoice {
   /**
-   * getKey: () => the Mistral key or null. referenceRoot: the folder 'runtime/voice-references/' maps to. registry: a voice
+   * getKey: () => the Mistral key or null. referenceRoot: the folder 'runtime/voice-references/' maps to. playerRoot: the folder
+   * 'runtime/player-voices/' maps to (the player's own clips, in the data folder; an absolute folder or null: a player entry then has no
+   * reference). registry: a voice
    * registry ({profiles: {key: {reference, sha256}}}) or an ordered list of them (OmniVoice long, OmniVoice short, Pocket: the first
    * that has a usable clip for a voice wins); set later with setReferences. onChange: called when the voice becomes degraded or
    * recovers. fetchImpl, read, list, setTimer, clearTimer, now, endpoint: for tests.
    */
-  constructor({getKey, referenceRoot, registry, onChange = () => {}, onLog = () => {}, fetchImpl = globalThis.fetch,
+  constructor({getKey, referenceRoot, playerRoot = null, registry, onChange = () => {}, onLog = () => {}, fetchImpl = globalThis.fetch,
     read = readFile, list = readdir, endpoint = VOXTRAL_ENDPOINT, limits = {}, setTimer = setTimeout, clearTimer = clearTimeout,
     now = () => performance.now(), clock = Date.now, scheduler = mistralScheduler, prepare} = {}) {
     if (typeof getKey !== 'function') throw Error('Invalid Voxtral configuration');
-    Object.assign(this, {getKey, referenceRoot, registries: [].concat(registry ?? []).filter(Boolean), onChange, onLog, fetchImpl, read, list, endpoint,
+    Object.assign(this, {getKey, referenceRoot, playerRoot, registries: [].concat(registry ?? []).filter(Boolean), onChange, onLog, fetchImpl, read, list, endpoint,
       setTimer, clearTimer, now, clock, scheduler, prepare});
     this.limits = Object.freeze({...VOXTRAL_LIMITS, ...limits});
     this.gate = new RequestGate({limit: this.limits.maxConcurrent, aheadLimit: this.limits.maxAhead, tightLimit: this.limits.tightConcurrent,
@@ -325,7 +328,13 @@ export class VoxtralVoice {
   /** Whether a request may be made now (a key, and not inside a limit or refused-key cool-down). */
   get ready() { return this.hasKey && this.clock() >= this.until; }
   /** Does a registry name a reference clip for this voice key (without reading it)? Clips extracted for a character are found only when read. */
-  hasReference(key) { return this.registries.some(registry => !!registry?.profiles?.[key]?.reference); }
+  hasReference(key) {
+    return this.registries.some(registry => {
+      const reference = registry?.profiles?.[key]?.reference;
+      // A player's own clip can be read only when the player folder is known: without it the voice has no reference (written reply).
+      return !!reference && (!isPlayerReference(reference) || !!this.playerRoot);
+    });
+  }
   log(message) { try { this.onLog(`[Voxtral] ${message}\n`); } catch { /* a log line never affects speech */ } }
   note(reason) {
     const changed = (this.degraded?.reason ?? null) !== (reason ?? null);
@@ -354,15 +363,17 @@ export class VoxtralVoice {
    * Builds the reference of a voice. Order: the registries in turn (OmniVoice long, OmniVoice short, Pocket), each entry's file
    * checked against its recorded hash; then any clips extracted for the character under runtime/voice-references/extracted/,
    * joined up to the working length. A voice with none of these has no reference (the reply is written only).
+   * An entry that names the player's own clip (runtime/player-voices/<key>.wav) is read from `playerRoot` only, and `prepare` is told
+   * `player: true` so the bridge keeps that clip's prepared slot in the player's data folder, never beside the shipped ones.
    */
   async build(key) {
     // `prepare` (bridge/voxtral-reference.mjs): a smaller clip to send instead (every request carries the reference, and the upload is
     // most of the first-audio wait). A clip it cannot make smaller is sent as it is.
-    const finish = async (bytes, source, sha256) => {
+    const finish = async (bytes, source, sha256, player = false) => {
       bytes = capWav(bytes, this.limits.maxReferenceSeconds);
       if (this.prepare) {
         try {
-          const made = await this.prepare(bytes, {key, ...(sha256 ? {sha256} : {}), ...(this.safeFormat ? {safeFormat: true} : {})});
+          const made = await this.prepare(bytes, {key, ...(sha256 ? {sha256} : {}), ...(player ? {player: true} : {}), ...(this.safeFormat ? {safeFormat: true} : {})});
           if (made?.bytes?.length && made.bytes.length < bytes.length) {
             return {base64: made.bytes.toString('base64'), bytes: made.bytes.length, source, format: made.format, originalBytes: bytes.length, cached: made.cached === true};
           }
@@ -370,24 +381,30 @@ export class VoxtralVoice {
       }
       return bytes.length > this.limits.maxReferenceBytes ? null : {base64: bytes.toString('base64'), bytes: bytes.length, source, format: 'wav'};
     };
-    if (!this.referenceRoot) return null;
-    const root = resolve(this.referenceRoot);
-    const inside = path => path === root || path.startsWith(root + sep);
+    const root = this.referenceRoot ? resolve(this.referenceRoot) : null;
+    const playerRoot = this.playerRoot ? resolve(this.playerRoot) : null;
+    const within = (base, path) => path === base || path.startsWith(base + sep);
     const prefix = 'runtime/voice-references/';
     for (const [index, registry] of this.registries.entries()) {
       const entry = registry?.profiles?.[key];
-      if (!entry?.reference || !entry.reference.startsWith(prefix)) continue;
-      const path = resolve(root, entry.reference.slice(prefix.length));
-      if (!inside(path)) continue;
+      if (!entry?.reference) continue;
+      // The player's own clip: one plain <key>.wav inside the player folder, and only there (a descriptor never chooses another path).
+      const player = isPlayerReference(entry.reference);
+      if (player ? !playerRoot || !playerReferenceValid(entry.reference) || !entry.sha256 : !root || !entry.reference.startsWith(prefix)) continue;
+      const base = player ? playerRoot : root;
+      const path = resolve(base, entry.reference.slice((player ? PLAYER_REFERENCE_PREFIX : prefix).length));
+      if (!within(base, path)) continue;
       try {
         const bytes = await this.read(path);
         if (bytes.length > this.limits.maxReferenceBytes * 4) continue;
         // The registry carries the file's hash: a changed file is not the reference that was validated.
         if (entry.sha256 && createHash('sha256').update(bytes).digest('hex') !== entry.sha256) continue;
-        const found = await finish(bytes, REFERENCE_SOURCES[index] ?? 'registry', entry.sha256 || undefined);
+        const found = await finish(bytes, player ? 'player' : REFERENCE_SOURCES[index] ?? 'registry', entry.sha256 || undefined, player);
         if (found) return found;
       } catch { /* this entry's file is unusable: try the next source */ }
     }
+    if (!root) return null;
+    const inside = path => within(root, path);
     // A variant key (a second voice of an ambient profile) is a different voice from its profile: never borrow the profile's clips.
     if (isVariantKey(key) || !SAFE_VOICE_KEY.test(key)) return null;
     const directory = resolve(root, 'extracted', key);
