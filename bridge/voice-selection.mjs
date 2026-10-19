@@ -69,6 +69,9 @@ export class VoiceSelection {
     this.availabilities={pocket:new Set(pocketRegistry.keys),convai:new Set()};
     // The optional OmniVoice pack (worker Python, model weights): a function or a fixed {installed, missing}.
     this.omniPackSource=options.omniPack||(()=>({installed:true,missing:[]}));
+    // A character the player made (bridge/custom-characters.mjs) has a voice of its own only when it was given a clip before the service
+    // started; `aliases(key)` names the voice that speaks it until then and when it has none (the resident voice of its gender).
+    this.aliases=typeof options.aliases==='function'?options.aliases:null;
     // The Mistral cloud voice: `cloud` is the committed choice, `requestedCloud` the saved setting waiting for an idle boundary.
     this.cloud=this.requestedCloud=null;
     this.voxtral=options.voxtral||null;
@@ -220,7 +223,7 @@ export class VoiceSelection {
   // Why a character is on Convai: chosen, or the local voice cannot serve it.
   convaiReason(profile){
     if(this.requestedProvider==='convai')return 'selected';
-    const status=this.registries.pocket.status(profile);
+    const status=this.registries.pocket.status(this.voiceOf(profile,this.registries.pocket));
     return status==='ready'?'unavailable':status;
   }
   // Can the chosen voice speak this character in a language other than English? Only OmniVoice can.
@@ -232,18 +235,25 @@ export class VoiceSelection {
   get steps(){return this.provider==='omni'?this.omniSteps:undefined;}
   // Profiles only: the extra voices of a profile (bridge/voice-variants.mjs) stay in the registries and the workers.
   get profileKeys() { return withoutVariants(new Set([...this.registries.pocket.keys,...this.registries.omni.keys])).sort(); }
-  hasProfile(key) { return this.registry.has(key) && this.availability.has(key); }
+  // The key whose voice speaks `key`: itself, or (a key with no voice of its own that has an alias) the alias.
+  voiceOf(key, registry = this.registry) {
+    if (!this.aliases || registry.has(key)) return key;
+    try { return this.aliases(key) || key; } catch { return key; }
+  }
+  hasProfile(key) { const voice = this.voiceOf(key); return this.registry.has(voice) && this.availability.has(voice); }
   usesProfile(key) { return local(this.provider) && this.configured && this.hasProfile(key); }
   // The voice that speaks one NPC of a local profile: the profile's own key, or one of its variants chosen from the
   // NPC's stable identity among the variants the current backend can speak. The caller decides once per turn and keeps
   // routing (usesProfile, profileReady, provider) on the BASE key. Anything not spoken locally keeps its key.
   voiceKeyFor(profile, seed) {
     if (!this.usesProfile(profile)) return profile;
-    return pickVoiceKey(profile, seed, [...this.availability].filter(key => this.registry.has(key)));
+    const voice = this.voiceOf(profile);
+    // A character with no clip of its own keeps one voice of its alias for good: the seed is its own key, not the body that speaks today.
+    return pickVoiceKey(voice, voice === profile ? seed : profile, [...this.availability].filter(key => this.registry.has(key)));
   }
   // A cloud voice has no worker to wait for: a character is ready when it can be routed (its key and clip are checked per reply).
   profileReady(key) { return !this.closed&&this.usesProfile(key)&&(this.cloudActive||(this.clientBackend===this.provider
-    &&!this.client?.failure&&!this.client?.closing&&this.client?.profileReady(key)===true)); }
+    &&!this.client?.failure&&!this.client?.closing&&this.client?.profileReady(this.voiceOf(key))===true)); }
   request(settings) {
     if(typeof settings?.voice==='boolean'&&settings.voice!==this.playbackEnabled){
       this.playbackEnabled=settings.voice;this.routeRevision++;
@@ -683,6 +693,7 @@ export class VoiceSelection {
   vHelperPrepare(key, options = {}) { return this.vHelper.prepare(key, options); }
   async synthesizeStream(profile, text, options = {}) {
     if (this.provider!=='pocket'||!this.usesProfile(profile))throw Error('This character does not use Pocket streaming');
+    profile = this.voiceOf(profile);
     // Pocket cannot render voice tags and would read them aloud: a last line of defence behind the display strip. The same
     // goes for the cloud voice.
     const spoken = stripSpeechTags(text);
@@ -782,6 +793,7 @@ export class VoiceSelection {
   // `language` (ISO 639-1, e.g. 'es') reaches the worker for a reply that is not in English.
   async synthesize(profile,text,options={}){
     if(this.provider!=='omni'||!this.usesProfile(profile))throw Error('This character does not use OmniVoice');
+    profile=this.voiceOf(profile);
     const steps=options.steps??this.omniSteps;
     await abortable(this.start(),options.signal);throwIfCancelled(options.signal);
     const client=this.client;
@@ -799,7 +811,8 @@ export class VoiceSelection {
       throwIfCancelled(options.signal);
       if (this.closed) throw Error('Voice service is closed');
       if (this.provider === 'convai') return remote(this.convaiReason(profile));
-      if (!this.configured || !this.registry.has(profile)) return remote(this.registry.status(profile));
+      const voice = this.voiceOf(profile);
+      if (!this.configured || !this.registry.has(voice)) return remote(this.registry.status(voice));
       // Playback Off: no worker is kept for the companions, and nobody is waited on for one. The character is ready to join; loading
       // begins when playback is turned on (the poll after it). `muted` lets the caller accept a receipt that has no loaded worker behind it.
       // Not when V's voice is on and the voice is Pocket or a cloud voice: V's line uses it, so it is prepared (or warmed) as usual.
@@ -807,8 +820,8 @@ export class VoiceSelection {
       // A cloud voice has no local model to prepare: the character is ready when it is routed. Its reference clip is read, cut and
       // encoded now (the Inworld voice is found or cloned now), so the first reply is not waiting for it.
       if (this.cloudActive) {
-        if (this.cloud === 'voxtral' && this.voxtral?.ready) void this.voxtral.reference(profile);
-        if (this.cloud === 'inworld') this.inworld.warm?.(profile);
+        if (this.cloud === 'voxtral' && this.voxtral?.ready) void this.voxtral.reference(voice);
+        if (this.cloud === 'inworld') this.inworld.warm?.(voice);
         return {provider: 'pocket', ready: true, profile, cloudVoice: this.cloud};
       }
       const startingBackend=this.provider;let startedClient;
@@ -842,7 +855,7 @@ export class VoiceSelection {
       const phonePreparing=this.provider==='pocket'&&this.playbackEnabled!==false&&this.phoneAnalysis
         ?this.phoneAnalysis.prepare(options).catch(error=>{throwIfCancelled(options.signal);return{ready:false};}):null;
       phonePreparing?.catch(()=>{});
-      try { receipt = await client.prepareProfile(profile, options); }
+      try { receipt = await client.prepareProfile(voice, options); }
       catch (error) {
         throwIfCancelled(options.signal);
         if (!this.closed && this.provider === 'convai') return remote(this.convaiReason(profile));
