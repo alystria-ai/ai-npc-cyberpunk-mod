@@ -25,7 +25,17 @@ Install state: everything on `main` 07541c71 is installed in the game (2026-10-1
   - `app/bridge/support-report.mjs`, replaced.
   - The offline report needs `setup-check`, `key-codec`, `zip-writer`, `guarded-file` and `system-browser` in `app/bridge`.
 - **Install test checks the V clips and the .bat.**
-- **Pending branches before the build:** `nsui-manager` (needs a live test), `fix/reds-safety`, `openai-compatible`, `fix/pack-overlap` (its Runtime path rules), `fix/mo2-virtual-runtime`, `fix/local-ai-mature-timeout`, `fix/face-replaced-model`.
+- **Merged for 0.2.2 on 2026-10-19:** `offline-report`, `fix/pack-overlap`, `fix/mo2-virtual-runtime`, `openai-compatible` and `fix/reds-safety`.
+- **Still to land before the build:**
+  - `nsui-manager`, which needs a live test.
+  - `docs-install-guide`, merged after nsui-manager because it says Esc > Mods.
+  - `fix/local-ai-mature-timeout`.
+  - `fix/face-replaced-model`.
+  - `release-0.2.2-prep`: patch-zip5 and the install-test checks.
+- **Release-time text:**
+  - Bump the Hugging Face links from 0.2.1 to 0.2.2 in README, PLAYER_README and HF_MODEL_CARD, and in the tests that pin them.
+  - Add the Replace line to the HF model card.
+  - The Nexus changes are collected in `deliverables/release-0.2.2/NEXUS_CHANGES.md`, with `INSTALL_GUIDE.bbcode` beside it.
 - **After shipping:** update the players in `deliverables/player-feedback.md`; the sticky's report path changes to Esc > Mods.
 
 ### Release blockers (before Sun 18 Oct 11:00 UTC)
