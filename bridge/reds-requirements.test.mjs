@@ -137,13 +137,14 @@ test('scripts that did not compile: announced first and alone, with the log to r
   ${firstLoad}
   installFiles(); serviceRunning()
   -- Neither ConvaiRequirements nor the older ConvaiPhoneIsOpen answers: the player has none of this mod's methods. The frameworks the
-  -- probes cannot see are exactly what a compile error hides (every redscript mod is off), so they are Unknown, never Missing.
+  -- probes do not see cannot be judged from scripts that did not load, so they are Unknown, never Missing. RED4ext is loaded: this
+  -- mod's native plugin answers (it does not depend on the script compile).
   env.scripts, env.requirements = false, nil
-  env.codeware, env.audioware, env.tweakxl, env.native = nil, nil, nil, false
+  env.codeware, env.audioware, env.tweakxl, env.native = nil, nil, nil, true
   applyEnv(); check.run()
   assert(table.concat(check.problems(), ',') == 'redscript', table.concat(check.problems(), ','))
-  assert(lineOf('redscript').state == 'problem')
-  for _, id in ipairs({'red4ext', 'codeware', 'audioware', 'tweakxl'}) do assert(lineOf(id).state == 'unknown', id) end
+  assert(lineOf('redscript').state == 'problem' and lineOf('red4ext').state == 'ok')
+  for _, id in ipairs({'codeware', 'audioware', 'tweakxl'}) do assert(lineOf(id).state == 'unknown', id) end
   local help = lineOf('redscript').description
   assert(help:find('r6/logs/redscript_rCURRENT.log', 1, true) and help:find('If the error names another mod, that mod is the problem.', 1, true), help)
   assert(help:find('Missing or old Codeware, Audioware or redscript, or a game version other than 2.31, can also cause it.', 1, true))
@@ -163,10 +164,33 @@ test('scripts that did not compile come first even when every other requirement 
   installFiles(); serviceRunning()
   files['phone-contacts.json'] = nil
   env.mcm, env.scripts, env.requirements = 'none', false, nil
-  env.codeware, env.audioware, env.tweakxl, env.native = nil, nil, nil, false
+  env.codeware, env.audioware, env.tweakxl, env.native = nil, nil, nil, true
   applyEnv(); check.run()
   assert(table.concat(check.problems(), ',') == 'redscript,mcm,files', table.concat(check.problems(), ','))
   assert(notice() == 'Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load.')
+`));
+
+// Without RED4ext nothing it loads answers (this mod's native plugin, Codeware, TweakXL, Audioware), and Codeware's scripts never reach
+// the compile, so Audioware's and Mod Configuration Menu's imports of it fail the whole compile and the redscript log lists those two
+// mods. The cause to name is RED4ext, not a mod the log lists.
+test('RED4ext not loaded and scripts that did not compile: RED4ext is named first, and the log advice is still on the console', () => run(String.raw`
+  ${firstLoad}
+  installFiles(); serviceRunning()
+  env.scripts, env.requirements = false, nil
+  env.codeware, env.audioware, env.tweakxl, env.native = nil, nil, nil, false
+  applyEnv(); check.run()
+  assert(table.concat(check.problems(), ',') == 'red4ext,redscript', table.concat(check.problems(), ','))
+  assert(lineOf('red4ext').state == 'problem' and lineOf('redscript').state == 'problem')
+  for _, id in ipairs({'codeware', 'audioware', 'tweakxl'}) do assert(lineOf(id).state == 'unknown', id) end
+  local shown = notice()
+  assert(shown == 'RED4ext is missing. Install it from Nexus Mods, then restart the game.', tostring(shown))
+  assert(#console == 2, table.concat(console, ' | '))
+  assert(console[1] == '[AiNpcCyberpunkMod] AI NPC Cyberpunk Mod: RED4ext is missing. Install it from Nexus Mods, then restart the game.', console[1])
+  assert(console[2]:find("this mod's scripts did not load. Open r6/logs/redscript_rCURRENT.log.", 1, true), console[2])
+  assert(files['runtime/probe.log']:find('Setup check: problems: red4ext, redscript', 1, true))
+  -- once per game session
+  for _ = 1, 40 do advance(1); assert(check.tick(true, true) == nil) end
+  assert(#console == 2)
 `));
 
 test('ConvaiRequirements that raises or answers a non-string is read as scripts of an older version: they loaded, the frameworks are implied', () => run(String.raw`

@@ -39,12 +39,20 @@ test('each missing framework is a Problem with its own fix, and the most fundame
   for _, id in ipairs({'codeware', 'tweakxl', 'audioware'}) do assert(lineOf(id).state == 'problem', id) end
   assert(table.concat(check.problems(), ',') == 'red4ext,codeware,audioware,tweakxl', table.concat(check.problems(), ','))
   assert(check.problemCount() == 4)
-  -- the scripts did not compile either (a compile error anywhere): nothing can be judged from them, so only the scripts are a problem
+  -- the scripts did not compile either: the frameworks cannot be judged from them (Unknown), but nothing RED4ext loads answers, not even
+  -- this mod's native plugin, so RED4ext is still not loaded, and it comes first: without it Codeware's scripts never reach the compile
   env.scripts, env.requirements = false, nil
   applyEnv(); check.run()
+  assert(table.concat(check.problems(), ',') == 'red4ext,redscript', table.concat(check.problems(), ','))
+  assert(lineOf('red4ext').state == 'problem' and lineOf('red4ext').description:find('RED4ext is not loaded', 1, true))
+  for _, id in ipairs({'codeware', 'tweakxl', 'audioware'}) do assert(lineOf(id).state == 'unknown' and lineOf(id).description == '', id) end
+  assert(check.problemCount() == 2)
+  -- the native plugin answers: RED4ext is loaded, and the scripts are the one problem
+  env.native = true; applyEnv(); check.run()
   assert(table.concat(check.problems(), ',') == 'redscript', table.concat(check.problems(), ','))
-  for _, id in ipairs({'red4ext', 'codeware', 'tweakxl', 'audioware'}) do assert(lineOf(id).state == 'unknown' and lineOf(id).description == '', id) end
-  assert(check.problemCount() == 1)
+  assert(lineOf('red4ext').state == 'ok')
+  for _, id in ipairs({'codeware', 'tweakxl', 'audioware'}) do assert(lineOf(id).state == 'unknown', id) end
+  env.native = false
   env.scripts = true
   -- only TweakXL missing: the others stay OK and the fix names it
   env.codeware, env.tweakxl, env.audioware, env.scripts = '1.20.5', nil, '1.9.9', true

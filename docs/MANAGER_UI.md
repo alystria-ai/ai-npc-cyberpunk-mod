@@ -266,8 +266,10 @@ What the setup check does with it, and what still runs when a requirement is mis
 
 Two or more of RED4ext, Codeware, TweakXL and Audioware at once are one notice naming them (at most four; Mod Configuration Menu keeps
 its own notice, its name being long). The CET console and `probe.log` get one English line per problem. Because a compile error also takes
-away the scripts the old checks relied on, the order now puts "scripts did not load" first and alone, and the framework lines turn
-Unknown instead of Problem while it is true. `onInit` (`mod/init.lua`) installs each hook set through `convaiGuarded`, so one hook that
+away the scripts the old checks relied on, the order now puts "scripts did not load" first and alone, after RED4ext only, and the
+Codeware, Audioware and TweakXL lines turn Unknown instead of Problem while it is true. RED4ext stays a Problem when nothing it loads
+answers, this mod's native plugin included (which does not depend on the compile): Codeware's scripts then never reach the compile, so
+RED4ext, not a mod the redscript log lists, is the cause to name. `onInit` (`mod/init.lua`) installs each hook set through `convaiGuarded`, so one hook that
 cannot be placed (it names a method of the missing scripts) no longer stops the Mod Configuration Menu registration after it. Audioware
 and Mod Configuration Menu need Codeware themselves: a game without it fails to compile because of them, whatever this mod does, and
 the redscript popup then names them. Not covered by `ModuleExists`: a requirement that is installed but too old to have a class or method

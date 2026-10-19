@@ -31,10 +31,13 @@ local LOCALE_COUNT = 15
 -- start-service.mjs in the packaging folder, native/autostart/CyberpunkConvaiLauncher.c).
 local INCOMPLETE = {['install-incomplete'] = true, ['bridge-missing'] = true, ['missing-character-ids'] = true,
     ['launcher-not-configured'] = true, ['launcher-program-missing'] = true, ['launcher-directory-missing'] = true}
--- The order of the game-side lines on the page and in the notice's choice (the first critical problem is the one announced). This
--- mod's scripts come first: when they did not load (a compile error anywhere disables every redscript mod), nothing below can be
--- judged from them and the log, not a missing framework, is the thing to read.
-local CRITICAL = {'redscript', 'red4ext', 'codeware', 'audioware', 'tweakxl', 'mcm', 'files', 'service', 'versions', 'packs', 'internet'}
+-- The order of the game-side lines on the page and in the notice's choice (the first critical problem is the one announced). RED4ext
+-- comes first: it is a Problem only when nothing it loads answers (this mod's native plugin, which does not depend on the script
+-- compile, and the probes of Codeware, TweakXL and Audioware), and without it Codeware's scripts never reach the compile, which alone
+-- fails it (Audioware and Mod Configuration Menu import Codeware). This mod's scripts come next: when they did not load (a compile
+-- error anywhere disables every redscript mod), nothing below can be judged from them and the log, not a missing framework, is the
+-- thing to read.
+local CRITICAL = {'red4ext', 'redscript', 'codeware', 'audioware', 'tweakxl', 'mcm', 'files', 'service', 'versions', 'packs', 'internet'}
 -- The requirements one first-load notice names together (Mod Configuration Menu has its own notice: its name is long and the notice
 -- fits two lines), and at most this many names in one notice.
 local REQUIREMENT_IDS = {red4ext = true, codeware = true, audioware = true, tweakxl = true}
@@ -231,7 +234,8 @@ function M.run(now)
     --     no longer proves it). Codeware without its UI or text input parts is too old for this mod.
     --   scripts of 0.2.1 and older (ConvaiPhoneIsOpen only): they imported Codeware and Audioware, so loading proves both.
     --   scripts that did not load: nothing is known from them, so a framework is OK when its own probe finds it and Unknown
-    --     otherwise (a compile error disables every redscript mod, the framework's own scripts too: its probe fails then).
+    --     otherwise (the probes have not been confirmed in a game whose compile failed, and which mod broke the compile is the
+    --     redscript log's to say). RED4ext below is the exception: this mod's own native plugin also answers for it.
     --   no player yet: its own probe alone.
     local function framework(id, present, version)
         if words and (id == 'codeware' or id == 'audioware') then
@@ -253,11 +257,13 @@ function M.run(now)
     elseif scripts == false then checks.redscript = {state = 'problem', code = 'missing'}
     else checks.redscript = {state = 'unknown', code = 'unknown'} end
     -- RED4ext loads Codeware, TweakXL, Audioware and this mod's native plugin; any one of them that answers proves it, and so do
-    -- the scripts of 0.2.1 (they could not load without it) and scripts that were compiled against Codeware or Audioware.
+    -- the scripts of 0.2.1 (they could not load without it) and scripts that were compiled against Codeware or Audioware. When none
+    -- answers it is not loaded, also when this mod's scripts did not load: this mod's native plugin does not depend on the script
+    -- compile, and a game without RED4ext cannot compile Audioware's or Mod Configuration Menu's scripts (the Codeware they import is
+    -- never added), so RED4ext is then the cause to name, not a mod the redscript log lists.
     local red4ext = found.native or found.codeware or found.tweakxl or found.audioware
         or (words ~= nil and (words.codeware or words.audioware) == true) or (scripts == true and words == nil)
     if red4ext then checks.red4ext = {state = 'ok', code = 'loaded'}
-    elseif scripts == false then checks.red4ext = {state = 'unknown', code = 'unknown'}
     else checks.red4ext = {state = 'problem', code = 'missing'} end
     if found.mcm then checks.mcm = {state = 'ok', code = 'found'}
     else checks.mcm = {state = 'problem', code = found.mcmPresent and 'old' or 'missing'} end
@@ -548,8 +554,9 @@ end
 -- line's frame, docs/NOTIFICATIONS.md); the others are in the log and on the Help page. nil when nothing critical is wrong. The order
 -- of CRITICAL puts everything that stops the mod, and Mod Configuration Menu, before the checks that need the Help page, so the text
 -- never sends the player to a page they cannot open.
--- Scripts that did not load come first and alone: nothing else is blamed while the compile error is unread. Missing requirements
--- (RED4ext, Codeware, Audioware, TweakXL) are one notice naming them all, up to MAX_NAMES; Mod Configuration Menu has its own.
+-- RED4ext that is not loaded comes first (it is also why scripts that need Codeware cannot compile). Otherwise scripts that did not load
+-- come first and alone: no framework is blamed while the compile error is unread. Missing requirements (RED4ext, Codeware, Audioware,
+-- TweakXL) are one notice naming them all, up to MAX_NAMES; Mod Configuration Menu has its own.
 local function firstLoad()
     local problems = M.problems()
     if #problems == 0 then
