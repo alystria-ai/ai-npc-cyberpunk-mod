@@ -7,6 +7,22 @@
 
 [youtube]7hoYG5tmZ98[/youtube]
 
+[size=4][b]Recommended settings[/b][/size]
+[b]1. Cloud: the best option[/b] (fastest replies, voices closest to the characters, light on your PC)
+[list]
+[*]Make a free [url=https://console.mistral.ai]Mistral[/url] account and create an API key.
+[*]Companion Manager > Settings > Conversation provider: choose [b]Mistral[/b] and paste the key (about 5,000 turns a day, free).
+[*]Settings > Voices > Companion voices: choose [b]Voxtral[/b]. The same key covers it.
+[*]No extra downloads, no video memory used.
+[/list]
+[b]2. Local: no internet, no account[/b]
+[list]
+[*]Install a Local AI pack from Hugging Face: [b]Local AI standard[/b], or [b]Local AI lite[/b] for smaller graphics cards.
+[*]Settings > Conversation provider: choose [b]Local AI[/b].
+[*]Voice: [b]Pocket[/b] (already in the Runtime), or [b]OmniVoice[/b] with its pack on an NVIDIA card with 8 GB of video memory or more.
+[*]It shares your graphics card with the game, so it is slower than the cloud on most PCs.
+[/list]
+
 [size=4][b]Key features[/b][/size]
 [list]
 [*][b]Talk by voice or text.[/b] Face someone and press your talk key: hold it while you speak, tap to start and stop, or type. They answer out loud in their own voice, with subtitles, and now and then ask you something back.
