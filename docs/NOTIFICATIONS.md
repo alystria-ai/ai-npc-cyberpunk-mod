@@ -54,7 +54,8 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 | `service-down` | Player | The conversation service could not start. Restart the game, or see Help in Settings. | Once per supervisor failure, in gameplay | once |
 | `setup-problem` | Player | {name} is missing. Install it from Nexus Mods, then restart the game. ({name}: RED4ext, Codeware, TweakXL or Audioware) | The setup check (`mod/setup-check.lua`) found a critical problem 12 s after the first world, once per game session; only the first problem in its fixed order, written to the warning line without this mod’s scripts, 9 s | once |
 | `setup-problem` | Player | This mod’s scripts did not load. Install redscript, then restart the game. | Same as the first `setup-problem` row | once |
-| `setup-problem` | Player | Install Mod Configuration Menu from Nexus Mods to open the Companion Manager. | Same as the first `setup-problem` row | once |
+| `setup-problem` | Player | The Companion Manager needs Native Settings UI (Nexus Mods) | Same as the first `setup-problem` row | once |
+| `manager-needs-nsui` | Player | The Companion Manager needs Native Settings UI (Nexus Mods) | The player pressed the Companion Manager key (default `cyberpunk_convai_manager`) and Native Settings UI is not installed or too old (`mod/nsui.lua`) | 10 |
 | `setup-problem` | Player | Some mod files are missing. Extract the Scripts zip again. See Help in Settings. | Same as the first `setup-problem` row | once |
 | `setup-problem` | Player | The conversation service did not start. Is the Runtime installed? See Help in Settings. | Same as the first `setup-problem` row | once |
 | `setup-problem` | Player | The Scripts and Runtime versions do not match. Install the same version of both. | Same as the first `setup-problem` row | once |
