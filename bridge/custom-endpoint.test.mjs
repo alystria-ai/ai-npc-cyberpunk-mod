@@ -71,6 +71,33 @@ test('a model id: letters, digits and . _ : / @ + -', () => {
   for (const bad of ['', 'two words', 'https://openrouter.ai', '-leading', 'a'.repeat(130), 'with;semicolon', 'a<b', undefined]) assert.equal(parseModelId(bad), null, String(bad).slice(0, 30));
 });
 
+test('a model id may start with @ (Cloudflare), and an API key is never taken for one: it would be shown, logged and published as the model', () => {
+  for (const id of ['@cf/meta/llama-3.1-8b-instruct', '@hf/thebloke/zephyr-7b-beta-awq', 'hf.co/bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M',
+    'skyfall-36b-v2', 'deepseek/deepseek-r1-0528:free', 'accounts/fireworks/models/llama-v3p1-8b-instruct']) assert.equal(parseModelId(id), id, id);
+  // Key shapes built at run time: a known prefix, or a long run of letters and digits (a Mistral key, OpenRouter's hex tail).
+  for (const key of [KEY, 'sk-or-v1-' + '0123456789abcdef'.repeat(4), 'sk-proj-' + 'Ab_1-'.repeat(8), 'gsk_' + 'Ab1'.repeat(18), 'xai-' + 'Zz9'.repeat(10),
+    'Ab12'.repeat(8)]) {
+    assert.equal(parseModelId(key), null, key.slice(0, 12));
+    assert.equal(parseModelId(`model=${key}`), null);
+    assert.deepEqual(parseCustomFile(`model=${key}\n`).problems, ['model'], 'a key in the model line is left out and only its name reported');
+  }
+});
+
+test('a paste in curly quotes (a web page, a chat app) is read like one in straight quotes', () => {
+  assert.equal(parseEndpointUrl('“https://openrouter.ai/api/v1”').endpoint, 'https://openrouter.ai/api/v1');
+  assert.equal(parseModelId('‘llama3.2’'), 'llama3.2');
+  assert.equal(parseCustomKey(`“${KEY}”`), KEY);
+  assert.equal(parseCustomKey(`“${KEY} more”`), null);
+});
+
+test('the file: a # after a space ends a line\'s value, as the doc says; a # inside a value stays', () => {
+  const parsed = parseCustomFile(`endpoint=http://localhost:11434/v1   # Ollama\r\nmodel=llama3.2:3b\t# the small one\r\napi-key=${KEY} # mine\r\n`);
+  assert.deepEqual([parsed.endpoint?.host, parsed.model, parsed.key, parsed.problems], ['localhost:11434', 'llama3.2:3b', KEY, []]);
+  const hashed = 'ab#' + 'c'.repeat(12);
+  assert.equal(parseCustomFile(`api-key=${hashed}\n`).key, hashed);
+  assert.equal(parseCustomFile(`api-key = ${hashed}\n`).key, hashed);
+});
+
 test('the file: three lines in any order, comments allowed, a bad line is left out and only its name is reported', () => {
   const text = `# my setup\n\nmodel = meta-llama/llama-3.1-8b-instruct\napi-key=${KEY}\nendpoint=https://openrouter.ai/api/v1\nunknown=1\n`;
   const parsed = parseCustomFile(text);
@@ -96,7 +123,7 @@ test('the file: three lines in any order, comments allowed, a bad line is left o
 function store(initial = null) {
   const calls = {writes: [], removed: 0};
   let text = initial;
-  const endpoint = new CustomEndpoint({path: 'p.txt', readText: async () => { if (text === null) throw Error('missing'); return text; },
+  const endpoint = new CustomEndpoint({path: 'p.txt', readText: async () => { if (text === null) throw Object.assign(Error('missing'), {code: 'ENOENT'}); return text; },
     writeText: async (_path, value) => { calls.writes.push(value); text = value; }, removeFile: async () => { calls.removed++; text = null; }});
   return {endpoint, calls, get text() { return text; }, set text(value) { text = value; }};
 }
@@ -172,6 +199,33 @@ test('a file with a bad field keeps the good ones, and a disk that fails keeps w
   const none = new CustomEndpoint({path: 'p', readText: async () => { throw Object.assign(Error('gone'), {code: 'ENOENT'}); }});
   await none.load();
   assert.equal(none.ready, false);
+});
+
+test('a file that exists but cannot be read for a moment (locked, no permission) keeps what was saved, and no paste writes it over', async () => {
+  let text = `endpoint=http://localhost:11434/v1\nmodel=llama3.2\napi-key=${KEY}\n`, locked = null;
+  const writes = [], logs = [];
+  const endpoint = new CustomEndpoint({path: 'p', log: line => logs.push(line),
+    readText: async () => { if (locked) throw Object.assign(Error('locked'), {code: locked}); return text; },
+    writeText: async (_path, value) => { writes.push(value); text = value; }});
+  await endpoint.load();
+  assert.equal(endpoint.ready, true);
+  let changed = 0;
+  endpoint.onChange(() => { changed++; });
+  // Test connection and choosing the provider read the file again: a lock does not wipe the settings.
+  locked = 'EBUSY';
+  await endpoint.load();
+  assert.deepEqual([endpoint.host, endpoint.model, endpoint.key, changed], ['localhost:11434', 'llama3.2', KEY, 0]);
+  assert.match(logs.join('\n'), /could not be read \(EBUSY\)/);
+  assert.ok(!logs.join('\n').includes(KEY));
+  // A paste while it is still locked is refused: writing now would drop what the file holds.
+  locked = 'EPERM';
+  await assert.rejects(endpoint.setModel('qwen2.5'), /not written over/);
+  assert.deepEqual([writes.length, endpoint.model], [0, 'llama3.2']);
+  // Readable again (and edited by hand meanwhile): the paste reads it first and keeps every other line.
+  locked = null; text = `endpoint=http://localhost:1234/v1\nmodel=llama3.2\napi-key=${KEY}\n`;
+  await endpoint.setModel('qwen2.5');
+  assert.equal(writes.length, 1);
+  assert.deepEqual([parseCustomFile(text).endpoint.host, parseCustomFile(text).model, parseCustomFile(text).key], ['localhost:1234', 'qwen2.5', KEY]);
 });
 
 test('the real file is written with the key in it, nowhere else, and is read back by a new process', async () => {
@@ -252,6 +306,10 @@ test('the settings page: three pastes, each checked and saved, and the status it
   assert.deepEqual([status.result.field, status.result.state, status.result.reason, status.tail], ['key', 'invalid', 'not-a-key', KEY.slice(-4)]);
   c.clipboard(async () => 'bad model'); status = await c.send('paste-model');
   assert.deepEqual([status.result.state, status.result.reason, status.model], ['invalid', 'not-a-model', 'meta-llama/llama-3.1-8b-instruct']);
+  // The key still on the clipboard and "Paste model ID" pressed: refused, so the key is never shown, published or logged as the model.
+  c.clipboard(async () => `${KEY}\r\n`); status = await c.send('paste-model');
+  assert.deepEqual([status.result.state, status.result.reason, status.model], ['invalid', 'not-a-model', 'meta-llama/llama-3.1-8b-instruct']);
+  assert.ok(!JSON.stringify(c.published).includes(KEY));
   c.clipboard(async () => '   '); assert.equal((await c.send('paste-key')).result.reason, 'empty');
   c.clipboard(async () => { throw Error('no clipboard'); }); assert.equal((await c.send('paste-key')).result.state, 'unreadable');
   // Each part is removed on its own.
@@ -283,11 +341,14 @@ test('Test connection runs in the background: "testing" is published at once, th
   const c = await control({file: 'endpoint=http://localhost:11434/v1\nmodel=llama3.2\n', test: async () => { runs++; await gate; return {state: 'ok', ms: 12}; }});
   const status = await c.send('test');
   assert.deepEqual([status.test.state, status.test.id], ['testing', 's:cust:1']);
-  await c.send('test');
-  assert.equal(runs, 1, 'a second press while one runs is ignored');
+  // A second press while one runs (the page stops showing "Testing..." before a 90 s test of a server on this computer ends) sends no second
+  // request, but the running test answers to it: the page shows only the answer to its latest command.
+  const again = await c.send('test');
+  assert.equal(runs, 1, 'a second press while one runs sends nothing');
+  assert.deepEqual([again.test.state, again.test.id], ['testing', 's:cust:2']);
   release();
   await new Promise(resolve => setTimeout(resolve, 20));
-  assert.deepEqual(c.published.at(-1).test, {id: 's:cust:1', state: 'ok', ms: 12});
+  assert.deepEqual(c.published.at(-1).test, {id: 's:cust:2', state: 'ok', ms: 12});
   // A change of the settings drops the old result: it says nothing about the new ones.
   c.clipboard(async () => 'https://example.com/v1');
   assert.equal((await c.send('paste-url')).test, undefined);

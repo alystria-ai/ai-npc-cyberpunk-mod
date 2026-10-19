@@ -320,11 +320,14 @@ Tests: `bridge/setup-check.test.mjs` (the bridge side), `bridge/setup-check-lua.
    `offline`): Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Mod Configuration Menu (and ArchiveXL when
    present) with the version where one is written down (the CET and RED4ext logs of the last start, MCM's own file), this mod's CET
    folder, redscript folder and RED4ext plugin, and the Scripts and Runtime `release.json`. Each missing piece is a line in the
-   PROBLEM FOUND block. Redaction is the service's (`createRedactor`), with the player's key files, the sign-in secret and the key
-   packed into the Runtime added to the values it scrubs. Under Mod Organizer 2 a Runtime in MO2's `mods` folder is found through
-   `ModOrganizer.ini` (the game folder, Overwrite and the enabled mod folders of the selected profile are searched); where that
-   fails the tool says what it could not find and that MO2 users may need to start it from MO2 (Executables). It opens Explorer
-   on the zip and prints one line naming it.
+   PROBLEM FOUND block. Redaction is the service's (`createRedactor`), with the player's key files, the Custom provider's key
+   (`player-custom-endpoint.txt`), the sign-in secret and the key packed into the Runtime added to the values it scrubs, and
+   `%USERNAME%` hidden in any path as well. Under Mod Organizer 2 a Runtime in MO2's `mods` folder is found through
+   `ModOrganizer.ini`, above the mods folder (portable) or in `%LOCALAPPDATA%\ModOrganizer\<instance>` (global, base directory
+   anywhere); Overwrite, the enabled mod folders of the selected profile and the game folder are searched in the order the game
+   sees them, and for each log the newest copy wins. Where that fails the tool says what it could not find and that MO2 users may
+   need to start it from MO2 (Executables). It opens Explorer on the zip, prints one line naming it, and exits with 0 (1 when no
+   report was made, also from the batch file).
 
 ### Privacy
 
