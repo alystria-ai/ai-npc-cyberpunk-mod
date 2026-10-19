@@ -862,7 +862,7 @@ test('with Mistral or the local AI answering turns there is no connection to wai
     assert(auto.talkNotice('judy', 'Judy') == nil and auto.ready('judy') == true)
   `);
   const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
-  assert.match(init, /noConnection = function\(\)\s+local ok, state = pcall\(manager\.mistral\)\s+return ok and type\(state\) == 'table' and \(state\.effective == 'mistral' or state\.effective == 'local'\)/);
+  assert.match(init, /noConnection = function\(\)\s+local ok, state = pcall\(manager\.mistral\)\s+return ok and type\(state\) == 'table' and \(state\.effective == 'mistral' or state\.effective == 'local' or state\.effective == 'custom'\)/);
   assert.match(source, /if not key or ready\(key\) or noConnection\(\) then return nil end/);
 });
 

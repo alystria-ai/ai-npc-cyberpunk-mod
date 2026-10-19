@@ -1241,78 +1241,6 @@ test('Mature content is a settings row with or without the Mature pack: the help
   `);
 });
 
-// Turning Mature content on stages the Local AI provider, the uncensored model and a local voice as pending changes (mod/mcm.lua,
-// syncMature); turning it off puts back what that changed. A fake MCM keeps the drafts and emits 'drafts.changed' like the real one.
-const matureFixture = `
-  local clock = 1000
-  os.clock = function() return clock end
-  os.time = function() return clock end
-  local PREFIX = 'cyberpunk-convai:manager:'
-  local listeners, pending = {}, {}
-  nativeApi.subscribe = function(name, callback) listeners[#listeners + 1] = callback; return #listeners end
-  nativeApi.unsubscribe = function() return true end
-  managerUi.shutdown(); managerUi.install()
-  local function emit()
-    local count = 0
-    for _ in pairs(pending) do count = count + 1 end
-    for _, callback in ipairs(listeners) do callback({modKey = 'cyberpunk-convai:manager', count = count}) end
-  end
-  nativeApi.getValue = function(id)
-    local key = id:sub(#PREFIX + 1)
-    if pending[key] ~= nil then return pending[key] end
-    local found = row(key)
-    return found and found.value
-  end
-  nativeApi.setDraft = function(id, value)
-    local key = id:sub(#PREFIX + 1)
-    local found = row(key)
-    if not found then return false, 'unknown setting' end
-    if found.value == value then pending[key] = nil else pending[key] = value end
-    emit()
-    return true
-  end
-  nativeApi.hasDrafts = function() return next(pending) ~= nil end
-  local function state(tag, value)
-    jsonFixtures['mature-' .. tag] = value
-    files['runtime/mistral-state.json'] = 'mature-' .. tag
-    clock = clock + 2
-    manager.snapshot(player)
-    loaded = registered.loadMod('manager')
-  end
-  local function voices(installed)
-    clock = clock + 20
-    jsonFixtures['voice-' .. tostring(installed) .. clock] = {state = 'ready', provider = 'pocket', omniPack = {installed = installed, missing = {}}, updated = clock * 1000}
-    files['runtime/local-voice-state.json'] = 'voice-' .. tostring(installed) .. clock
-    manager.snapshot(player)
-  end
-  -- The player's own change of one setting (a draft), and an Apply that commits some.
-  local function user(key, value) assert(nativeApi.setDraft(PREFIX .. key, value)); managerUi.update(player, false) end
-  local function apply(changes)
-    clock = clock + 2
-    local result = registered.applyBatch('manager', changes)
-    pending = {}
-    loaded = registered.loadMod('manager')
-    emit()
-    managerUi.update(player, false)
-    return result
-  end
-  local function drafts() local list = {}; for key, value in pairs(pending) do list[#list + 1] = key .. '=' .. tostring(value) end; table.sort(list); return table.concat(list, ',') end
-  -- Mistral answers with a pinned model and the Mistral cloud voice; Local AI and the OmniVoice pack are installed.
-  local function startFrom(options)
-    options = options or {}
-    local report = {provider = 'mistral', effective = 'mistral', saved = true, localAi = 'ready',
-      localModels = {{id = 'standard', name = 'Gemma', sizeMiB = 5000}, {id = 'mature:unc', name = 'Gemma uncensored', sizeMiB = 5200}, {id = 'lite', name = 'Qwen', sizeMiB = 1300}},
-      localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'}
-    if options.noMature then report.localModelMatureDefault = nil end
-    if options.noPack then report.localAi = nil end
-    state('ready', report)
-    voices(options.omni ~= false)
-    assert(invoke('tab:settings').ok)
-    loaded = registered.loadMod('manager')
-    assert(apply({{id = 'conversationProvider', value = 3}, {id = 'localModel', value = 2}, {id = 'voiceProvider', value = options.voice or 6}}).ok)
-    assert(saved.conversationProvider == 'mistral' and saved.localModel == 'standard' and not saved.matureContent)
-  end
-`;
 
 test('the saved way back is checked on load and on Apply, and is dropped with Mature content', () => {
   run(`${nsuiFixture}
@@ -1939,7 +1867,7 @@ test('a saved Groq provider (the option was removed) reads as Convai free tier, 
     manager.configure(api, profiles)
     assert(manager.snapshot(player).settings.conversationProvider == 'convai', 'a saved groq was kept')
     assert(saved and saved.conversationProvider == 'convai', 'the file was not corrected')
-    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 5}}).ok == false, 'there is no fifth provider')
+    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 6}}).ok == false, 'there is no sixth provider')
     assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 0}}).ok == false, 'there is no zeroth provider')
   `);
 });
@@ -4026,7 +3954,8 @@ test('Settings sections: Relationships follow Conversations, Conversation provid
     for _, id in ipairs(voices) do assert(not id:find('inworld', 1, true) and id ~= 'voice-pack', id .. ' is in Voices') end
     for _, id in ipairs({'groq-key-status', 'groq-key:paste', 'groq-key:remove', 'permissions', 'enabled:person-1'}) do assert(row(id) == nil, id .. ' is still offered') end
     local elements = row('conversationProvider').elements
-    assert(#elements == 4 and elements[1] == 'Convai free tier' and elements[2] == 'Convai API key' and elements[3] == 'Mistral (free plan)' and elements[4] == 'Local AI')
+    assert(#elements == 5 and elements[1] == 'Convai free tier' and elements[2] == 'Convai API key' and elements[3] == 'Mistral (free plan)' and elements[4] == 'Local AI'
+      and elements[5] == 'Custom (OpenAI-compatible)')
     assert(not tostring(row('conversationProvider').description):find('Groq', 1, true))
     -- Developer mode: the Inworld key is the row after Developer mode.
     assert(registered.applyBatch('manager', {{id = 'developerMode', value = true}}).ok); loaded = registered.loadMod('manager')
@@ -4252,8 +4181,8 @@ test('The Conversation provider section offers the provider, Mature content, the
     assert(invoke('tab:settings').ok)
     local provider = row('conversationProvider')
     assert(provider and provider.type == 'select' and provider.value == 1 and provider.defaultValue == 1)
-    assert(#provider.elements == 4 and provider.elements[1] == 'Convai free tier' and provider.elements[2] == 'Convai API key'
-      and provider.elements[3] == 'Mistral (free plan)' and provider.elements[4] == 'Local AI')
+    assert(#provider.elements == 5 and provider.elements[1] == 'Convai free tier' and provider.elements[2] == 'Convai API key'
+      and provider.elements[3] == 'Mistral (free plan)' and provider.elements[4] == 'Local AI' and provider.elements[5] == 'Custom (OpenAI-compatible)')
     assert(provider.description:find('memory stays on this computer', 1, true) and provider.description:find('Convai API key uses your own key', 1, true))
     assert(not provider.description:lower():find('text only', 1, true), 'Mistral is not described as text only')
     assert(provider.description:find('local voice', 1, true) and provider.description:find('until no conversation is running', 1, true))
@@ -4383,25 +4312,33 @@ test('The Conversation provider section offers the provider, Mature content, the
   `);
 });
 
-test('the Conversation provider setting: four entries stored as a provider and the own-key choice, Convai free tier by default, saved like the other settings, validated', () => {
+test('the Conversation provider setting: five entries stored as a provider and the own-key choice, Convai free tier by default, saved like the other settings, validated', () => {
   run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     local function settings() return manager.snapshot(player).settings end
     assert(invoke('tab:settings').ok)
     assert(settings().conversationProvider == 'convai' and settings().useOwnConvaiKey == false)
-    -- 1 Convai free tier, 2 Convai API key, 3 Mistral, 4 Local.
+    -- 1 Convai free tier, 2 Convai API key, 3 Mistral, 4 Local, 5 Custom.
     assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 3}}).ok)
     assert(settings().conversationProvider == 'mistral' and saved.conversationProvider == 'mistral' and saved.useOwnConvaiKey == false)
-    for _, bad in ipairs({5, 0, -1, 2.5, 'mistral', 'local', 'groq', true}) do
+    for _, bad in ipairs({6, 0, -1, 2.5, 'mistral', 'local', 'custom', 'groq', true}) do
       assert(not registered.applyBatch('manager', {{id = 'conversationProvider', value = bad}}).ok, tostring(bad))
     end
     assert(not manager.applySettings(player, {conversationProvider = 'other'}))
     assert(settings().conversationProvider == 'mistral', 'a refused value changes nothing')
     assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 4}}).ok)
     assert(settings().conversationProvider == 'local' and saved.conversationProvider == 'local' and saved.useOwnConvaiKey == false)
-    assert(not registered.applyBatch('manager', {{id = 'conversationProvider', value = 5}}).ok, 'there is no fifth provider: Groq was removed')
+    assert(not registered.applyBatch('manager', {{id = 'conversationProvider', value = 6}}).ok, 'there is no sixth provider')
     assert(not manager.applySettings(player, {conversationProvider = 'groq'}), 'a Groq provider is refused')
     assert(settings().conversationProvider == 'local', 'a refused value changes nothing')
+    -- Custom (OpenAI-compatible): the fifth entry, stored as 'custom'; the own-key choice is left as it was.
+    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 5}}).ok)
+    assert(settings().conversationProvider == 'custom' and saved.conversationProvider == 'custom' and saved.useOwnConvaiKey == false)
+    loaded = registered.loadMod('manager')
+    assert(row('conversationProvider').value == 5, 'a saved custom provider reads as the fifth entry')
+    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 4}}).ok)
+    assert(manager.applySettings(player, {conversationProvider = 'custom'}) and settings().conversationProvider == 'custom')
+    assert(manager.applySettings(player, {conversationProvider = 'local'}) and settings().conversationProvider == 'local')
     -- Convai API key: stored as 'convai' with the own-key choice on; Convai free tier turns it off again.
     assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 2}}).ok)
     assert(settings().conversationProvider == 'convai' and settings().useOwnConvaiKey == true and saved.conversationProvider == 'convai' and saved.useOwnConvaiKey == true)
@@ -4682,270 +4619,6 @@ test('a notice is held at most one tick: a voice switch reaches the player once 
     assert(frames <= 16, 'the notice waited ' .. frames .. ' frames')
     for _ = 1, 60 do managerUi.update(player, true); clock = clock + 1 / 60 end
     assert(#sent == 1, 'the notice repeated')
-  `);
-});
-
-const stylingFixture = `
-  CName = {new = function(value) return value end}
-  NameToString = function(value) return value end
-  local counters = {binds = {}, content = 0, indexed = 0}
-  local function widget(name, left, children)
-    local value = {name = name, left = left or 0, width = 200, children = children or {}}
-    function value:GetName() return self.name end
-    function value:GetNumChildren() if self == counters.contentWidget then counters.content = counters.content + 1 end return #self.children end
-    function value:GetWidgetByIndex(index) counters.indexed = counters.indexed + 1; return self.children[index + 1] end
-    function value:GetMargin() return {left = self.left, top = 48, right = 0, bottom = 0} end
-    function value:SetMargin(margin) self.left = margin.left end
-    function value:GetWidth() return self.width end
-    function value:GetHeight() return 10 end
-    function value:SetWidth(width) self.width = width end
-    function value:GetScale() return {X = 1, Y = 1} end
-    function value:GetController() return nil end
-    function value:BindProperty(property, color)
-      self.color = color; counters.binds[self.name] = (counters.binds[self.name] or 0) + 1
-    end
-    return value
-  end
-  local content = widget('mcm_content_scroll_content')
-  counters.contentWidget = content
-  local status = widget('status')
-  local sidebar = widget('mcm_sidebar_scroll_content', 0, {widget('mod-entry')})
-  local render = widget('MCMRenderRoot', 0, {content, status, sidebar})
-  local root = widget('root', 0, {render})
-  function controller:GetRootWidget() return root end
-  local function reference() return setmetatable({nativeIdentity = 101}, {__index = controller}) end
-  local function open()
-    handlers.McmUiBegin(reference(), 'MCM', '', 'Mods', 'Mods', '', 0, '', true, true, 0, function() end)
-    handlers.McmUiSetContentTitle(reference(), 'Companion Manager')
-  end
-`;
-
-// Settings flicker: a drawn page is hidden until styled, and a page is drawn again only when what it shows changed.
-const opacityFixture = `
-  content.opacity = 1
-  local opacities = {}
-  function content:GetOpacity() return self.opacity end
-  function content:SetOpacity(value) self.opacity = value; opacities[#opacities + 1] = value end
-`;
-
-// A value change (slider, option, toggle) makes MCM draw the whole page again from its own update, after this module's in the
-// frame. The new page's content must never show in MCM's default look: it is created hidden, in the same call, and shown when
-// it is styled.
-const valueChangeFixture = `
-  local clock = 10
-  os.clock = function() return clock end
-  ${opacityFixture}
-`;
-const drawFixture = `
-  local wrapper = {visible = true, sets = {}}
-  function wrapper:SetVisible(value) self.visible = value; self.sets[#self.sets + 1] = value end
-  local scroll = {GetParentWidget = function() return wrapper end}
-  content.GetParentWidget = function() return scroll end
-  local passed = {}
-  -- What MCM does for one draw, in its own order; wrapper starts visible like a freshly created scroll area.
-  local function draw(title, text, kind)
-    wrapper.visible = true
-    content.opacity = 1
-    handlers.McmUiBegin(reference(), 'MCM', '', 'Mods', title or 'Companion Manager', text or '', kind or 0, '', true, true, 0,
-      function(_, _, _, _, statusArg) passed.status = statusArg end)
-    handlers.McmUiBeginContent(reference(), 400, 0.25, true, function(height, scrollPosition, ready)
-      passed.ready, passed.height, passed.scroll = ready, height, scrollPosition
-      wrapper.visible = ready
-    end)
-    handlers.McmUiSetContentTitle(reference(), 'Companion Manager')
-  end
-  local function fill(count)
-    content.children = {}
-    for index = 1, count do content.children[index] = widget('r' .. index .. '_managed_label', 48) end
-  end
-`;
-
-// The early style (mod/mcm.lua, "Early style"): a page MCM draws again after a value change is given its final look while it is
-// drawn and shown in the same call, so there is no frame of the default look, no blank page and no jump of the status line or the
-// bottom buttons. This fixture plays MCM's draw in its own order through the handlers the module registers.
-const earlyFixture = `
-  CName = {new = function(value) return value end}
-  NameToString = function(value) return value end
-  IsDefined = function(value) return value ~= nil end
-  textWrappingPolicy = {Default = 0}
-  textVerticalAlignment = {Top = 'top'}
-  local clock = 10
-  os.clock = function() return clock end
-  -- Every widget method the module calls is counted: work on widgets shows up as a changed count.
-  local calls = 0
-  local methods = {}
-  local meta = {__index = function(_, key)
-    local method = methods[key]
-    if method then calls = calls + 1 end
-    return method
-  end}
-  local function widget(name, left, top, width, height, children, size)
-    return setmetatable({name = name, margin = {left = left or 0, top = top or 0}, width = width or 100, height = height or 40,
-      children = children or {}, fontSize = size or 22, scale = 1, opacity = 1, sets = 0}, meta)
-  end
-  methods.GetName = function(self) return self.name end
-  methods.GetMargin = function(self) return {left = self.margin.left, top = self.margin.top, right = 0, bottom = 0} end
-  methods.SetMargin = function(self, m) self.margin = {left = m.left, top = m.top} end
-  methods.GetWidth = function(self) return self.width end
-  methods.SetWidth = function(self, v) self.width = v end
-  methods.GetHeight = function(self) return self.height end
-  methods.SetHeight = function(self, v) self.height = v end
-  methods.GetNumChildren = function(self) return #self.children end
-  methods.GetWidgetByIndex = function(self, i) return self.children[i + 1] end
-  methods.GetParentWidget = function(self) return self.parent end
-  methods.Reparent = function(self, parent)
-    local old = self.parent
-    if old then for i, child in ipairs(old.children) do if child == self then table.remove(old.children, i) break end end end
-    self.parent = parent; parent.children[#parent.children + 1] = self
-  end
-  methods.SetVerticalAlignment = function() end
-  methods.GetFontSize = function(self) return self.fontSize end
-  methods.SetFontSize = function(self, v) self.fontSize = v end
-  methods.SetWrapping = function() end
-  methods.BindProperty = function(self, _, color) self.color = color end
-  methods.GetScale = function(self) return {X = self.scale, Y = self.scale} end
-  methods.GetController = function() return nil end
-  methods.SetVisible = function(self, v) self.visible = v; self.sets = self.sets + 1 end
-  methods.GetOpacity = function(self) return self.opacity end
-  methods.SetOpacity = function(self, v) self.opacity = v end
-  -- What the game's McmUiCreateText makes.
-  local function rawText(parent, name, value, x, y, width, height, size, color)
-    local text = widget(name, x, y, width, height, nil, size)
-    text.color, text.text = color, value
-    text.parent = parent; parent.children[#parent.children + 1] = text
-    return text
-  end
-  local ref = setmetatable({nativeIdentity = 101}, {__index = controller})
-  controller.McmUiGetLayoutMetric = function(_, metric) return ({[13] = 320, [20] = 100, [23] = 800, [27] = 1000, [28] = 900})[metric] or -1 end
-  local page
-  function controller:GetRootWidget() return page.root end
-  -- The content scroll position: what the page being replaced reports, and what is set on the new scroll controller.
-  local scrollNow, scrolls = 0, 0
-  controller.McmUiGetContentScrollPosition = function() return scrollNow end
-  -- One draw of the manager's page, in MCM's order. Options: rows = {managed, action, readonly}, categories, bar (labels of the
-  -- buttons on the bar line), plain (the text override does nothing: the creations bypass it), ignoresX (the game ignores the
-  -- x it is given for a managed label), noState (no managed-label state call), badCategory, finish = false (the draw never ends),
-  -- title and status.
-  local function draw(o)
-    o = o or {}
-    local p = {render = widget('MCMRenderRoot', 0, 0, 1920, 1080), list = widget('mcm_sidebar_scroll_content', 0, 0, 340, 126),
-      content = widget('mcm_content_scroll_content', 0, 0, 800, 2000), wrapper = widget('mcm_content_scroll', 100, 200, 800, 700),
-      viewport = widget('scroll_area', 0, 0, 800, 700), texts = {}, markers = {}, labels = {}, actions = {}, readonly = {},
-      values = {}, headings = {}, passed = {}}
-    p.root = widget('root', 0, 0, 1920, 1080, {p.render}); p.render.parent = p.root
-    p.scroll = 0
-    p.wrapper.GetController = function()
-      return {GetScrollPosition = function() return p.scroll end,
-        SetScrollPosition = function(_, value) p.scroll = value; scrolls = scrolls + 1 end}
-    end
-    if o.badScroller then p.wrapper.GetController = function() error('no controller') end end
-    for i = 0, 2 do
-      local entry = widget('mcm_entry_' .. i, 20, i * 42, 300, 42); entry.parent = p.list; p.list.children[i + 1] = entry
-    end
-    page = p
-    local raw = rawText
-    if o.ignoresX then
-      raw = function(parent, name, value, x, ...) return rawText(parent, name, value, name:find('_managed_label', 1, true) and 48 or x, ...) end
-    end
-    local function mk(parent, name, value, x, width, size, color)
-      if o.plain then return raw(parent, name, value, x, 0, width, 42, size or 22, color or 'native-secondary', 0) end
-      return handlers.McmUiCreateText(ref, parent, name, value, x, 0, width, 42, size or 22, color or 'native-secondary', 0, raw)
-    end
-    handlers.McmUiBegin(ref, 'MCM', '', 'Mods', o.title or 'Companion Manager', o.status or 'Pending: Voice', 0, '', true, true, 0, function()
-      for _, name in ipairs({'title', 'subtitle', 'sidebar_title', 'content_title', 'status'}) do
-        local text = mk(p.render, name, name, 10, 200, 24, 'native-blue')
-        if name == 'status' then p.status = text else p.texts[name] = text end
-      end
-    end)
-    handlers.McmUiCreateScrollArea(ref, p.render, 'mcm_sidebar_scroll', 0, 0, 340, 700, 700, function()
-      local sidebar = widget('sidebar_wrapper')
-      sidebar.children, p.list.parent, sidebar.parent = {p.list}, sidebar, p.render
-      p.render.children[#p.render.children + 1] = sidebar
-      return {content = p.list, wrapper = sidebar}
-    end)
-    handlers.McmUiBeginContent(ref, 400, o.scroll or 0, true, function(height, scroll, ready)
-      p.beginScroll = scroll
-      p.scroll = o.sticks and scroll or 0
-      handlers.McmUiCreateScrollArea(ref, p.render, 'mcm_content_scroll', 100, 200, 800, 700, 2000, function()
-        p.wrapper.children, p.viewport.children = {p.viewport}, {p.content}
-        p.content.parent, p.viewport.parent, p.wrapper.parent = p.viewport, p.wrapper, p.render
-        p.render.children[#p.render.children + 1] = p.wrapper
-        return {content = p.content, wrapper = p.wrapper}
-      end)
-      p.wrapper.visible = ready
-    end)
-    local rows = o.rows or {}
-    for i = 1, (o.categories or 0) do
-      local label = widget('label', 20, 0, 1600, 40, nil, 30); label.color = 'native-heading'
-      if o.badCategory then label.BindProperty = function() error('native failure') end end
-      local category = widget('settingsCategory', 0, 100 * i, 1800, 80, {widget('line', 0, 0, 1800, 4), label})
-      category.scale = 0.5; category.parent = p.content; p.content.children[#p.content.children + 1] = category
-      p.headings[i] = {root = category, label = label, line = category.children[1]}
-      handlers.McmUiSetup({GetRootWidget = function() return category end})
-      handlers.McmUiAddCategory(ref, 'category' .. i, 'Heading', 'd', '')
-    end
-    for i = 1, (rows.managed or 0) do
-      local id = 'mcm_1_' .. i
-      handlers.McmUiAddManagedLabel(ref, id, 'Label', '*', false, 0, function()
-        p.markers[i] = mk(p.content, id .. '_managed_marker', '*', 100, 40, 22, 'native-purple')
-        p.labels[i] = mk(p.content, id .. '_managed_label', 'Label', 48, 300, 22, 'native-secondary')
-      end)
-      if not o.noState then handlers.McmUiSetManagedLabelState(ref, id, false, false) end
-    end
-    for i = 1, (rows.action or 0) do
-      local id = 'mcm_2_' .. i
-      handlers.McmUiAddActionSetting(ref, id, 'Label', 'd', 'Open', function()
-        p.actions[i] = mk(p.content, id .. '_label', 'Label', 20, 300, 22, 'native-secondary')
-      end)
-    end
-    for i = 1, (rows.readonly or 0) do
-      local id = 'mcm_3_' .. i
-      handlers.McmUiAddReadonly(ref, id, 'Label', 'd', 'value', function()
-        local surface = widget('mcm_action_' .. id, 20, 0, 400, 42)
-        surface.parent = p.content; p.content.children[#p.content.children + 1] = surface
-        p.readonly[i] = mk(surface, 'label', 'Label', 30, 340, 26, 'native-secondary')
-        p.values[i] = mk(p.content, id .. '_value', 'value', 500, 360, 22, 'native-muted')
-      end)
-    end
-    for index, label in ipairs(o.bar or {}) do
-      handlers.McmUiAddBottomActionAt(ref, 'bar' .. index, label, 300 + (index - 1) * 160, 1000, 140, false, function(...)
-        p.passed[#p.passed + 1] = table.pack(...)
-      end)
-    end
-    if o.finish ~= false then handlers.McmUiSetContentTitle(ref, o.title or 'Companion Manager') end
-    return p
-  end
-  -- Frames until the older pass has styled and shown a page that was held back.
-  local function settle()
-    local frames = 0
-    while frames < 40 and (page.wrapper.visible ~= true or managerUi.inspect().presentation.pending) do
-      managerUi.update(player, false); frames = frames + 1
-    end
-    assert(page.wrapper.visible == true and not managerUi.inspect().presentation.pending, 'the older pass did not show the page')
-    return frames
-  end
-  local function backs()
-    local count = 0
-    for _, button in ipairs(bottomActions) do if button.id == 'convai-bottom-back' then count = count + 1 end end
-    return count
-  end
-`;
-
-test('the models page follows the scan by the number of models found, not by the clock, and stops when it is finished', () => {
-  run(`${nsuiFixture}
-    local clock = 1000
-    os.time = function() return clock end
-    os.clock = function() return clock end
-    managerUi.update(player, false); reloads = 0
-    assert(invoke('tab:models').ok)
-    local ticks = 0
-    while not manager.snapshot(player).scan.finished and ticks < 200 do clock = clock + 1; managerUi.update(player, false); ticks = ticks + 1 end
-    assert(manager.snapshot(player).scan.finished, 'the scan did not finish')
-    assert(reloads <= ticks + 1, 'drawn ' .. reloads .. ' times in ' .. ticks .. ' seconds')
-    clock = clock + 1; managerUi.update(player, false); clock = clock + 1; managerUi.update(player, false)
-    local settled = reloads
-    for _ = 1, 8 do clock = clock + 1; managerUi.update(player, false) end
-    assert(reloads == settled, 'a finished scan kept drawing the page')
   `);
 });
 

@@ -30,6 +30,8 @@ AI NPC Cyberpunk Mod gives the game's named characters, from Panam and Johnny to
 - **Mistral with a free account.** Make a free Mistral account, paste its key once, and get the fastest cloud replies, about 5,000 turns a day. The same key unlocks **Voxtral**, each character's voice made in the cloud, so neither the text nor the voice costs your PC anything.
 - **Convai free tier, no setup.** It is what you get the moment you install: no account, no key, nothing to set up, 100 turns a day. Install, start the game, talk.
 
+Already pay for OpenRouter or Nano-GPT, or run Ollama or LM Studio on your PC? The **Custom (OpenAI-compatible)** provider uses any of them: paste an address, a model ID and, for most, a key ([details](#custom-openai-compatible)).
+
 The voices are free too. The default, **Pocket TTS**, gives every character a voice that sounds like them in the game, running right on your processor, so a fresh install sounds like Night City from the first line. With a Mistral key, **Voxtral** does the same in the cloud.
 
 **On this page:** [Install](#install) · [What you can do](#what-you-can-do) · [Requirements](#requirements) · [First run](#first-run) · [Controls](#controls) · [Conversation providers](#pick-a-brain-conversation-providers) · [Voices](#pick-a-voice) · [Latency and FPS](#smooth-frames-fast-replies) · [Settings](#settings) · [Troubleshooting](#troubleshooting) · [Add-ons](#add-ons) · [For developers](#for-developers) · [Credits and licence](#credits-and-licence)
@@ -38,7 +40,7 @@ The voices are free too. The default, **Pocket TTS**, gives every character a vo
 
 ## Install
 
-Close the game. Extract each download into your Cyberpunk 2077 folder (the one with `bin`, `archive` and `r6`) and let the folders merge. Install the mods under [Requirements](#requirements) first.
+Close the game. Extract each download into your Cyberpunk 2077 folder (the one with `bin`, `archive` and `r6`) and let the folders merge. If Windows asks about files with the same names, choose Replace: it is always safe. Install the mods under [Requirements](#requirements) first.
 
 | # | Download | Where from | Size | Needed? |
 |---|---|---|---|---|
@@ -95,7 +97,7 @@ Only characters the mod spawns join your party. Story characters you meet in the
 | Game | Cyberpunk 2077 version 2.31 on Windows 10 or 11 (64-bit). The mod was tested on 2.31 only. |
 | Other mods | Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Mod Configuration Menu, all from Nexus Mods. RED4ext starts the mod's background service with the game. |
 | Disk space | About 3 GB for the main mod. The optional packs add more (see [Install](#install)). |
-| Internet | Needed while you talk with Convai, Mistral or the Voxtral voice. Not needed for Local AI with a local voice. |
+| Internet | Needed while you talk with Convai, Mistral, a cloud Custom endpoint or the Voxtral voice. Not needed for Local AI, or a Custom server on your own PC, with a local voice. |
 | Graphics card | Not needed for the default setup (Convai or Mistral text, Pocket or Voxtral voice). Only OmniVoice (about 2 GB of video memory) and Local AI (lite about 1.8 GB, standard about 3.1 GB) use it; see [Smooth frames, fast replies](#smooth-frames-fast-replies). |
 | Web browser | A Chromium browser such as Microsoft Edge (which Windows 10 and 11 include), Google Chrome, Brave, Vivaldi or Opera. Firefox cannot be used. The mod's background service runs a hidden copy of it for audio and the Convai connection; it ships no browser of its own. Without one the service does not start, and the game says **Needs a browser** on the Help page and in Settings > Voices > Voice status. |
 
@@ -129,21 +131,21 @@ The microphone only ever starts when you press the key. A recording stops by its
 
 **Companion Manager > Settings > Conversation provider** chooses who writes your characters' replies. A change waits until no conversation is running and you choose **Apply**.
 
-|  | **Local AI** | **Mistral (free plan)** | **Convai free tier** (default) | **Convai API key** |
-| --- | --- | --- | --- | --- |
-| **Setup** | Download a Local AI pack | Free Mistral account, paste its key | None | Paste your own Convai key |
-| **Cost** | Free | Free | Free | Your Convai plan |
-| **Internet** | **Not needed** | Needed | Needed | Needed |
-| **Limit** | None | About 1 message a second, about 5,000 turns a day | 100 turns a day (the service can change this), 12 a minute | Your Convai plan's limits |
-| **Replies** | Standard: close to the free options. Lite: a little less grounded | Plainer. Smaller models hold a character less tightly and sometimes invent details | Most refined: stays in character best | Same as the free tier |
-| **Reply speed** | Fast once the model is warm. The first reply after idle is slower | Fastest cloud text: the voice can start a second or two after you send | A few seconds (2 to 3.5 s measured) | Same |
-| **Memory kept** | On your computer | On your computer | On Convai's servers | On Convai's servers |
-| **Microphone** | Recognised on your computer (English) | Recognised on your computer (English) | Recognised by Convai | Recognised by Convai |
-| **Voices** | Pocket or OmniVoice | Pocket, OmniVoice or Voxtral | Any, including Convai's cloud voice | Any, including Convai's cloud voice |
-| **Sees your surroundings** | No | No | Yes | Yes |
-| **Graphics card** | Needed (NVIDIA or AMD, with Vulkan) | Not needed | Not needed | Not needed |
+|  | **Local AI** | **Mistral (free plan)** | **Convai free tier** (default) | **Convai API key** | **Custom (OpenAI-compatible)** |
+| --- | --- | --- | --- | --- | --- |
+| **Setup** | Download a Local AI pack | Free Mistral account, paste its key | None | Paste your own Convai key | Paste an endpoint URL, a model ID and (for most) a key |
+| **Cost** | Free | Free | Free | Your Convai plan | What your provider charges; a server on your PC is free |
+| **Internet** | **Not needed** | Needed | Needed | Needed | Needed for a cloud endpoint, not for a server on your PC |
+| **Limit** | None | About 1 message a second, about 5,000 turns a day | 100 turns a day (the service can change this), 12 a minute | Your Convai plan's limits | Your provider's |
+| **Replies** | Standard: close to the free options. Lite: a little less grounded | Plainer. Smaller models hold a character less tightly and sometimes invent details | Most refined: stays in character best | Same as the free tier | Depends on the model you choose |
+| **Reply speed** | Fast once the model is warm. The first reply after idle is slower | Fastest cloud text: the voice can start a second or two after you send | A few seconds (2 to 3.5 s measured) | Same | Depends on the endpoint and model |
+| **Memory kept** | On your computer | On your computer | On Convai's servers | On Convai's servers | On your computer |
+| **Microphone** | Recognised on your computer (English) | Recognised on your computer (English) | Recognised by Convai | Recognised by Convai | Recognised on your computer (English) |
+| **Voices** | Pocket or OmniVoice | Pocket, OmniVoice or Voxtral | Any, including Convai's cloud voice | Any, including Convai's cloud voice | Pocket, OmniVoice or Voxtral |
+| **Sees your surroundings** | No | No | Yes | Yes | No |
+| **Graphics card** | Needed (NVIDIA or AMD, with Vulkan) | Not needed | Not needed | Not needed | Not needed (a server on your PC uses its own) |
 
-Measured on one laptop; yours will differ, and Mistral's allowance is Mistral's to change.
+Measured on one laptop; yours will differ, and Mistral's allowance is Mistral's to change. The Custom column is whatever you point it at, so it has no figures of its own.
 
 ### Local AI
 
@@ -175,6 +177,19 @@ Install neither, one or both. The **Local AI model** row lists what is installed
 3. Choose **Mistral (free plan)** as the provider and **Apply**.
 
 Quick and free, with plainer replies than Convai's. Memory stays on your computer, and the microphone is recognised on your computer, in English. The same key also unlocks the **Voxtral** voice ([Pick a voice](#pick-a-voice)): with both, the whole conversation runs in the cloud. With Mistral chosen but no key saved, conversations use Convai and you see one notice.
+
+### Custom (OpenAI-compatible)
+
+Any endpoint that speaks the OpenAI chat-completions protocol: OpenRouter, Nano-GPT, or a server on your own computer such as Ollama or LM Studio. It is the fifth entry of the provider selector and the last in the list.
+
+1. Open **Settings > Conversation provider**. The four Custom rows sit under the Mistral key row.
+2. Copy the endpoint's base address and press **Paste endpoint URL**: `https://openrouter.ai/api/v1` for OpenRouter, `https://nano-gpt.com/api/v1` for Nano-GPT, `http://localhost:11434/v1` for Ollama, `http://localhost:1234/v1` for LM Studio.
+3. Copy your API key and press **Paste API key**. A server on your own computer needs none.
+4. Copy a model ID from the provider's list and press **Paste model ID**, for example `meta-llama/llama-3.1-8b-instruct` on OpenRouter or `llama3.2` on Ollama.
+5. Press **Test connection**: it sends one tiny request and says OK, or what the provider answered, in plain words.
+6. Choose **Custom (OpenAI-compatible)** as the provider and **Apply**.
+
+Each paste reads the clipboard once, checks it and saves it on your computer; **Remove** deletes it. You can also write the three values into `player-custom-endpoint.txt` in `%LOCALAPPDATA%\AiNpcCyberpunkMod\data`. Only the last four characters of a key are ever shown, and the key goes to that endpoint and nowhere else. An `http://` address works only for your own computer or home network; any other host needs `https://`. Nothing is sent until you choose the provider or press **Test connection**. Without an address and a model ID, conversations use Convai and one notice says so. When the provider answers with an error you see a notice that says what to do: key not accepted, out of credits, unknown model ID, rate limited, or no answer. Memory stays on your computer, the microphone is recognised on your computer in English, and the voices are the same as with Mistral (the Voxtral voice still needs a Mistral key). Mature content stays with Local AI. The whole story is in [CUSTOM_PROVIDER.md](docs/CUSTOM_PROVIDER.md).
 
 ### Convai free tier
 
@@ -311,7 +326,9 @@ A few worth knowing:
 
 **Does it change the story?** No. Companions are temporary copies that the mod owns. They never recruit, revive or alter story characters. A story character in the world only answers when you talk to it, with its voice and face, and the mod stays out of scenes, quest conversations, fights and rides.
 
-**Which of my data leaves my computer?** With Convai your lines go to Convai, along with a recent picture of the game window, taken only while someone you can talk to is near, kept in memory for a few seconds and never saved. With Mistral your lines go to Mistral. With Local AI nothing leaves your computer for replies, unless you point it at a model server on another computer (see [LOCAL_AI.md](docs/LOCAL_AI.md)). Voxtral sends the text to be spoken and a short reference clip of the character to Mistral.
+**Which of my data leaves my computer?** With Convai your lines go to Convai, along with a recent picture of the game window, taken only while someone you can talk to is near, kept in memory for a few seconds and never saved. With Mistral your lines go to Mistral. With a Custom endpoint they go to the endpoint you chose, and only after you choose it (a server on your own computer keeps them there). With Local AI nothing leaves your computer for replies, unless you point it at a model server on another computer (see [LOCAL_AI.md](docs/LOCAL_AI.md)). Voxtral sends the text to be spoken and a short reference clip of the character to Mistral.
+
+**The mod does not load, or the manager will not open?** Close the game and double-click **Make support report.bat** in `red4ext\plugins\AiNpcCyberpunkMod`. It checks that the required mods are installed, adds the logs, saves one report with the game closed and opens its folder. Send that file. With Mod Organizer 2, start it from MO2 (add it under Executables).
 
 **Something else looks off?** This is the first public release, and reports help it grow fast. Open **Companion Manager > Settings > Help > Help and support** and choose **Generate report**. It saves one file with versions, settings and recent log lines, never your keys, voice recordings or conversation text. Send that file along with what you were doing. The five newest reports are kept.
 
@@ -338,7 +355,7 @@ The mod is a set of cooperating programs, because no single one of them could do
 
 - **Inside the game:** a Cyber Engine Tweaks (CET) Lua mod does the sensing, the interface and the animation work, redscript adds native-looking UI and animation hooks, and a RED4ext native plugin takes the mod's heaviest per-tick work off the game's script thread.
 - **Beside the game:** a hidden Node.js service (the bridge) talks to the conversation providers, runs the voices and speech recognition, and prepares lip-sync and facial data. It is started and stopped with the game.
-- **In the cloud:** only what the player chooses: Convai, Mistral (text and the Voxtral voice) and, for the free tier's daily limit, a small sign-in backend.
+- **In the cloud:** only what the player chooses: Convai, Mistral (text and the Voxtral voice), a custom OpenAI-compatible endpoint and, for the free tier's daily limit, a small sign-in backend.
 
 ```text
 mod/                      CET Lua mod: the in-game adapter (90 files; entry point init.lua)
@@ -542,15 +559,16 @@ The Lua side (`mod/`, loaded by `init.lua`) is deliberately thin: it reads the g
 
 ### Conversation providers
 
-The provider chooses who writes a character's reply. It is `conversationProvider` in `runtime/settings.json` (`convai`, `mistral` or `local`) plus `useOwnConvaiKey`, which makes the Settings entry "Convai API key" (Convai with the player's own key). Any other saved value, including a removed provider, reads as `convai`. A change applies only when no conversation is running. The bridge polls settings every 500 ms and publishes `runtime/mistral-state.json` (`provider`, `effective`, `localAi`, `localModels`, `localModelDefault`, `maturePack`, `stt`, `limit`), which the Settings page reads.
+The provider chooses who writes a character's reply. It is `conversationProvider` in `runtime/settings.json` (`convai`, `mistral`, `local` or `custom`) plus `useOwnConvaiKey`, which makes the Settings entry "Convai API key" (Convai with the player's own key). Any other saved value, including a removed provider, reads as `convai`. A change applies only when no conversation is running. The bridge polls settings every 500 ms and publishes `runtime/mistral-state.json` (`provider`, `effective`, `localAi`, `localModels`, `localModelDefault`, `maturePack`, `stt`, `limit`), which the Settings page reads.
 
 | Provider | Route in the bridge | Memory | Voice input | Vision |
 |---|---|---|---|---|
 | Convai free tier / API key | `bridge/realtime-client.mjs` in the hidden browser; Convai writes the reply, its own audio and facial data | Convai long-term memory | Convai's recognition | yes |
 | Mistral | `TextProviderHost` to `bridge/mistral-client.mjs` | local (`bridge/mistral-memory.mjs`) | local recognition | no |
 | Local AI | `TextProviderHost` to `bridge/local-llm-server.mjs` | local (embedder + files) | local recognition | no |
+| Custom (OpenAI-compatible) | `TextProviderHost` to `bridge/mistral-client.mjs` (`provider: 'custom'`), settings in `bridge/custom-endpoint.mjs` | local (embedder + files) | local recognition | no |
 
-`bridge/text-provider-host.mjs` (`TextProviderHost.reply`) sends a turn to the Mistral or the Local AI route; the stream then goes through `cleanReply`, `transformReply`, the voice and the subtitles. A failed route falls back to the other cloud route with one notice. Add-on speakers can use only Mistral or Local AI, never Convai (see [Add-on API](#add-on-api)).
+`bridge/text-provider-host.mjs` (`TextProviderHost.reply`) sends a turn to the Mistral or the Local AI route; the stream then goes through `cleanReply`, `transformReply`, the voice and the subtitles. A failed route falls back to the other cloud route with one notice (the Custom route never falls back: its failures are its own notices, [CUSTOM_PROVIDER.md](docs/CUSTOM_PROVIDER.md)). Add-on speakers can use only Mistral or Local AI, never Convai or Custom (see [Add-on API](#add-on-api)).
 
 #### Convai
 
@@ -1161,6 +1179,8 @@ Developer mode (`developerMode`) shows routine popups (joining steps, dismissals
 
 Settings, Help, Help and support shows what to do, the service status, three buttons and the log locations (`mod/support-report.lua`, loaded behind `pcall`; without it the Help entry is simply absent). Generate report writes `runtime/report-request.json`. `bridge/support-report.mjs` polls every 500 ms, answers in `runtime/report-result.json` and writes `%LOCALAPPDATA%/AiNpcCyberpunkMod/reports/convai-report-YYYYMMDD-HHMMSS.zip` (outside the game folder, five newest kept, 40 MiB cap) using `bridge/zip-writer.mjs`. The zip holds `README.txt`, `summary.json` (versions, graphics card, service status, setup check, settings with the per-character switches reduced to a count, party, provider per companion, recent errors, log index) and `logs/NN-<id>.txt`, the last 2,000 lines or 1 MiB of each mod, service, CET, redscript and RED4ext log. If the service is stopped, silent for 6 s (30 s once it reports building) or failed, Lua writes a shorter text report itself, always into the one file `runtime/convai-report-lua.txt`. Copy report path sends the path to the service, which puts it on the clipboard.
 
+With the game closed (the mod never loads, so there is no Help page), `Make support report.bat` in `red4ext/plugins/AiNpcCyberpunkMod` starts the bundled Node on `bridge/make-support-report.mjs`, which runs `bridge/offline-support-report.mjs`. It builds the same zip with the same `buildReport` and redactor, from the files on disk, and adds a requirement check (Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware, Mod Configuration Menu, ArchiveXL when present), this mod's three pieces, the Scripts and Runtime versions and one PROBLEM line for each missing piece. It finds a Runtime that lives in a Mod Organizer 2 mods folder through `ModOrganizer.ini`; options `--game <folder>`, `--out <folder>`, `--no-open`.
+
 The Help page opens with a **Setup check**: one line per check (OK, Problem or Note, with a one-line fix) for this mod's files, the game version, RED4ext, redscript, Codeware, TweakXL, Audioware and Mod Configuration Menu (read by `mod/setup-check.lua` with no service running), and, when the service answers, the Scripts and Runtime versions, optional packs (found, or extracted one folder too deep), the browser, Local AI and why it is down, whether the chosen provider's host can be reached, the graphics card and any Mod Organizer 2 or Vortex install (`bridge/setup-check.mjs`, through `runtime/setup-check-request.json` and `runtime/setup-check.json`). It runs once at load and when the page opens, never per frame, and one short notice names the first critical problem at the first load. Details and the full list: the Setup check section of [docs/MANAGER_UI.md](docs/MANAGER_UI.md).
 
 Redaction is applied to every line and every structured value. Known secret values read from the key files, `Authorization` headers, key, token, secret, password and cookie assignments, `Bearer` tokens, URL token parameters, well-known key prefixes, hex runs of 32 or more characters, long token-like runs, UUIDs and provider IDs (shown as short hashes) and the Windows account name are replaced. Only named files are opened, so key files, microphone audio, voice references, model files, chat history and conversation text never enter a report. `bridge/support-report.test.mjs`, `bridge/support-report-lua.test.mjs` and `bridge/support-help-ui.test.mjs` plant fake secrets and conversation text and require that none reaches either report format.
@@ -1358,6 +1378,7 @@ node packaging/build-release.mjs --version 0.2 --dry-run                        
 node packaging/build-release.mjs --version 0.2 --dry-run --packages scripts,runtime
 node packaging/build-release.mjs --version 0.2 --dry-run --packages localai-lite,mature-lite   # optional packs: one zip each
 node packaging/test-release-install.mjs --version 0.2 --packages dist/release/packages [--omni] [--local-ai]
+node packaging/check-pack-overlap.mjs check <Runtime or Scripts zip>   # no path shared with a published pack may have other bytes (docs/PACKAGING.md)
 node --test packaging/release.test.mjs
 ```
 

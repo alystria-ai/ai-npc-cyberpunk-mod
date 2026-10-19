@@ -17,7 +17,8 @@
 //   AI-NPC-Cyberpunk-Mod-Mature-Standard-<v>.zip    optional Mature standard pack, one uncensored model (Gemma 4 E4B); only with --packages mature-standard
 // Only the Scripts (Nexus) and Runtime (GitHub release) packages may still be split into several zips (writeArchives).
 // plus SHA256SUMS.txt and release-manifest.json. The Runtime package also carries the native plugin
-// (red4ext/plugins/AiNpcCyberpunkModNative) and runtime/native-off.txt. See docs/PACKAGING.md.
+// (red4ext/plugins/AiNpcCyberpunkModNative), runtime/native-off.txt and "Make support report.bat" (a support report made with the game
+// closed, in red4ext/plugins/AiNpcCyberpunkMod). See docs/PACKAGING.md.
 //
 // Options:
 //   --version V        release version, 2077.N or 2077.N.M (required)
@@ -48,6 +49,7 @@ import {importClosure, checkLuaPartition} from './lib/closure.mjs';
 import {loadRuntimeExchange} from './lib/runtime-exchange.mjs';
 import {packagedKeyText} from './lib/packaged-key.mjs';
 import {copyInto, download, exists, extractZip, posix, readJson, run, sha256Buffer, sha256File, walk, writeText} from './lib/files.mjs';
+import {RUNTIME_PREPARED_FOLDER} from './lib/pack-overlap.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const started = Date.now();
@@ -120,19 +122,20 @@ async function prepareSource() {
 }
 
 // Every package carries this note at its top level, so a player who opens the zip sees where it goes before extracting.
-// The same text in every package, so extracting several over one another is harmless.
+// The same text in every package, so extracting several over one another is harmless. THE TEXT IS FIXED: the Mature packs already published
+// on Hugging Face (reused unchanged by later versions) carry this exact file (574 bytes), and a Scripts or Runtime zip with other words in
+// it would make Windows ask whether to replace it. Change it only together with a rebuild of every pack
+// (packaging/pack-overlap.test.mjs fails when the text drifts from the packs' copy).
 const INSTALL_NOTE_NAME = 'HOW TO INSTALL - extract into your Cyberpunk 2077 folder.txt';
 const INSTALL_NOTE = [
   'AI NPC Cyberpunk Mod',
   '',
   'Extract this zip INTO your Cyberpunk 2077 folder (the folder that has bin, archive and r6 in it), and allow folders to merge.',
-  'The zip already starts with the right folders (bin, r6, archive or red4ext).',
-  'Use the same version of the Scripts and the Runtime, and extract the Runtime before the OmniVoice pack.',
+  'The zip already starts with the right folders (red4ext or bin).',
   '',
   'Do not extract it into a new folder named after the zip. Windows "Extract All" and 7-Zip "Extract to <name>" do that by default:',
-  'change the destination to the Cyberpunk 2077 folder itself. If it happened anyway with an optional pack, the mod moves the pack\'s',
-  'files into place by itself the next time the game starts. The Scripts and Runtime are not moved: extract them again into the',
-  'Cyberpunk 2077 folder.',
+  'change the destination to the Cyberpunk 2077 folder itself. If it happened anyway, the mod moves its optional pack files into',
+  'place by itself the next time the game starts.',
   '',
   'You can delete this text file after installing.',
   ''].join('\r\n');
@@ -357,6 +360,11 @@ async function runtimePackage(source, config, models, key) {
   pkg.text(`${plugin}/launcher.log`, '');
   pkg.text(`${plugin}/README.txt`, await readFile(resolve(source.root, 'packaging/PLAYER_README.md'), 'utf8'));
   pkg.text(`${plugin}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
+  // The double-click tool for a player whose game never loads the mod: a support report made with the game closed. It starts
+  // app/node/node.exe on app/bridge/make-support-report.mjs (the bridge closure below carries that and the code it calls).
+  // A batch file needs CRLF line ends, whatever the checkout used.
+  const supportBatch = config.layout.supportReportBatch;
+  pkg.text(`${plugin}/${supportBatch}`, (await readFile(resolve(source.root, 'packaging', supportBatch), 'utf8')).replace(/\r?\n/g, '\r\n'));
 
   // The vision helper sits beside the bridge (bridge/vision-capture.mjs looks for app/vision/CyberpunkConvaiVision.exe).
   const visionExe = await buildVision(source);
@@ -464,10 +472,12 @@ async function runtimePackage(source, config, models, key) {
   const vVoiceFiles = await vVoiceReferenceFiles();
   for (const [rel, path] of vVoiceFiles) pkg.file(`${plugin}/voices/v-voice/${rel}`, path);
   log(vVoiceFiles.size ? `V voice: ${vVoiceFiles.size - 1} reference clips in the Runtime package.` : 'V voice: assets/v-voice has no clips; this build ships none (the setting stays silent).');
-  // The Mistral voice's reference clips, already cut and encoded as MP3, where the bridge's cache looks first (voices/prepared).
+  // The Mistral voice's reference clips, already cut and encoded, in the Runtime's own slot folder (voices/prepared-runtime, which the bridge reads
+  // after its cache in voices/prepared). The OmniVoice pack ships slots for its clips in voices/prepared, so the Runtime must not: the same path
+  // with other bytes would make Windows offer to replace one with the other.
   const voxtral = await voxtralCache(source, models, resolve(stage, 'voxtral-prepared'), [{version: 2, provider: 'hybrid', engine: 'omnivoice', voices: pocketConfig.voices}],
     {label: 'Voxtral references (Pocket clips)'});
-  await pkg.tree(`${plugin}/voices/prepared`, voxtral.directory);
+  await pkg.tree(`${plugin}/${RUNTIME_PREPARED_FOLDER}`, voxtral.directory);
   log(`Voxtral references: ${voxtral.keys.length} voices, ${(voxtral.bytes / 1e6).toFixed(2)} MB in the Runtime package.`);
 
   // Launcher scripts, application metadata and notices.
@@ -651,6 +661,7 @@ async function omniPackage(source, config, models) {
     const value = values[name] = JSON.parse(await readFile(models.files.get(configs.bucket + name), 'utf8'));
     if (value.revision !== model.revision) throw Error(`${name} names OmniVoice ${value.revision}, not the packaged ${model.revision}.`);
     const copy = structuredClone(value); delete copy.proposal;
+    // The Runtime may carry a newer copy of this list in app/defaults, which the launcher prefers (packaging/runtime/prepare-state.mjs).
     pkg.json(`${omni}/defaults/${name}`, copy);
     for (const [rel, path] of await referencesOf(value, models)) {
       if (seen.has(rel)) continue;
@@ -658,8 +669,9 @@ async function omniPackage(source, config, models) {
     }
   }
   // The Mistral voice clones from the OmniVoice clips (long first, then short, then Pocket's) when this pack is installed, and its
-  // prepared reference is kept per voice by the clip's hash. The Runtime package carries the slots for the Pocket clips; this pack
-  // overwrites the ones whose clip differs. Slots the Runtime package already holds (same clip) are not repeated.
+  // prepared reference is kept per voice by the clip's hash. The Runtime package carries the slots for the Pocket clips in its own folder
+  // (voices/prepared-runtime); this pack's slots, for the clips whose hash differs, go in voices/prepared, and the bridge finds either by
+  // signature. Slots the Runtime package already holds (same clip) are not repeated.
   const pocketConfig = JSON.parse(await readFile(models.files.get(configs.bucket + 'pocket-voices.autobest.json'), 'utf8'));
   const shipped = new Map();
   await voxtralCache(source, models, resolve(stage, 'voxtral-pocket'), [{version: 2, provider: 'hybrid', engine: 'omnivoice', voices: pocketConfig.voices}],

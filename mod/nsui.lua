@@ -91,6 +91,24 @@ local function head(text, count)
     return text
 end
 
+-- The byte at which the last sentence of a text ends: a full stop, question or exclamation mark before a space or at the end, or one of
+-- the full-width marks of Chinese and Japanese (three bytes each, so they are looked for as whole strings, never as a set of bytes).
+local function lastSentenceEnd(text)
+    local best
+    for _, mark in ipairs({'。', '！', '？'}) do
+        local from = 1
+        while true do
+            local at = text:find(mark, from, true)
+            if not at then break end
+            best = math.max(best or 0, at + #mark - 1)
+            from = at + 1
+        end
+    end
+    for at in text:gmatch('()[%.%?!]%s') do best = math.max(best or 0, at) end
+    if text:match('[%.%?!]$') then best = math.max(best or 0, #text) end
+    return best
+end
+
 -- A description that fits the description area: whole paragraphs while they fit, otherwise the first paragraph cut at the last full
 -- sentence (or word) before the limit, ending in an ellipsis.
 local function fitDescription(text)
@@ -105,7 +123,8 @@ local function fitDescription(text)
         if used + add > limit then
             if #kept == 0 then
                 local cut = head(paragraph, limit - 1)
-                local sentence = cut:match('^(.*[%.%?!。！？])[^%.%?!。！？]*$')
+                local ends = lastSentenceEnd(cut)
+                local sentence = ends and cut:sub(1, ends)
                 if sentence and characters(sentence) >= limit * 0.4 then cut = sentence
                 else
                     local word = cut:match('^(.*)%s%S*$')

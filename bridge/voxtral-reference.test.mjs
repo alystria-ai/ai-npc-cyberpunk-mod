@@ -192,3 +192,40 @@ test('a player without ffmpeg reads the Ogg slot the release shipped (no encode,
   assert.equal(other.format, 'wav'); assert.equal(other.cached, false);
   assert(other.bytes.length > read.bytes.length);
 });
+
+test("the Runtime's own slot folder is read after the cache folder, is never written to, and only a slot with the right signature counts", async t => {
+  const cache = await mkdtemp(join(tmpdir(), 'voxtral-cache-')), shipped = await mkdtemp(join(tmpdir(), 'voxtral-shipped-'));
+  t.after(() => Promise.all([rm(cache, {recursive: true, force: true}), rm(shipped, {recursive: true, force: true})]));
+  const source = clip(), changed = clip(11);
+  // The Runtime's slot for judy-alvarez, made from `source` (the Pocket clip) the way the release builder makes it.
+  await createReferencePreparer({cacheDirectory: shipped, ffmpeg: async () => 'ffmpeg', encode: async () => FAKE_OGG})(source, {key: 'judy-alvarez'});
+  const before = await Promise.all((await readdir(shipped)).sort().map(async name => [name, (await readFile(join(shipped, name))).toString('base64')]));
+  let encoded = 0;
+  const player = (directory = cache, extra = {}) => createReferencePreparer({cacheDirectory: directory, shippedDirectories: [shipped], ffmpeg: async () => null,
+    encode: async () => { encoded++; throw Error('must not encode'); }, ...extra});
+
+  // The cache folder has nothing: the Runtime's slot is used, with no ffmpeg and no write.
+  const hit = await player()(source, {key: 'judy-alvarez'});
+  assert.equal(hit.cached, true); assert.equal(hit.format, 'ogg'); assert.deepEqual(hit.bytes, FAKE_OGG);
+  assert.deepEqual(await readdir(cache), [], 'nothing is written when a shipped slot fits');
+  // With no cache folder at all, the same.
+  assert.deepEqual((await player(null)(source, {key: 'judy-alvarez'})).bytes, FAKE_OGG);
+
+  // A slot in the cache folder that fits wins (the OmniVoice pack's, or one the bridge wrote): it is looked at first.
+  const other = Buffer.concat([Buffer.from('OggS'), Buffer.alloc(3000, 9)]);
+  await createReferencePreparer({cacheDirectory: cache, ffmpeg: async () => 'ffmpeg', encode: async () => other})(source, {key: 'judy-alvarez'});
+  assert.deepEqual((await player()(source, {key: 'judy-alvarez'})).bytes, other);
+
+  // A different clip for the key (the OmniVoice clip, say) does not fit the Runtime's slot: it is prepared again, written to the cache folder only.
+  await rm(cache, {recursive: true, force: true});
+  const made = await player()(changed, {key: 'judy-alvarez'});
+  assert.equal(made.cached, false); assert.equal(made.format, 'wav');
+  assert.deepEqual((await readdir(cache)).sort(), ['judy-alvarez.json', 'judy-alvarez.wav']);
+  assert.equal(encoded, 0);
+  const after = await Promise.all((await readdir(shipped)).sort().map(async name => [name, (await readFile(join(shipped, name))).toString('base64')]));
+  assert.deepEqual(after, before, "the Runtime's folder is read-only to the bridge");
+  // ...and the next ask for that clip is a hit in the cache folder.
+  assert.equal((await player()(changed, {key: 'judy-alvarez'})).cached, true);
+  // An unusable shipped folder is ignored, not an error.
+  assert.equal((await player(cache, {shippedDirectories: [join(shipped, 'missing')]})(source, {key: 'panam-palmer'})).format, 'wav');
+});

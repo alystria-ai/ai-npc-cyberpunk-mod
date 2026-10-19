@@ -6,10 +6,6 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/ui-fonts.lua"
     },
     {
-      "source": "mod/mcm-fonts.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mcm-fonts.lua"
-    },
-    {
       "source": "mod/ui-locale.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/ui-locale.lua"
     },
@@ -330,12 +326,16 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-passage.lua"
     },
     {
-      "source": "mod/mcm.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mcm.lua"
+      "source": "mod/manager-ui.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/manager-ui.lua"
     },
     {
-      "source": "mod/mcm-entry.lua",
-      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mcm-entry.lua"
+      "source": "mod/nsui.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/nsui.lua"
+    },
+    {
+      "source": "mod/nsui-entry.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/nsui-entry.lua"
     },
     {
       "source": "mod/manager-party.lua",
@@ -452,6 +452,10 @@
     {
       "source": "mod/convai-paid-tier.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/convai-paid-tier.lua"
+    },
+    {
+      "source": "mod/custom-provider.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/custom-provider.lua"
     },
     {
       "source": "mod/movement-log.lua",

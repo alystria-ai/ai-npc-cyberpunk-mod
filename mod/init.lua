@@ -1460,11 +1460,12 @@ do
             end,
             -- Every speaker of a running group round counts as an exchange for a partner (convaiRoundKeys).
             roundKeys = function() return convaiRoundKeys() end,
-            -- Mistral or the local AI answers turns: no Convai connection is opened or waited for, so no "Preparing connection" notice.
-            -- The bridge's applied provider (runtime/mistral-state.json, read at most every 1.5 s), asked only on a talk start.
+            -- Mistral, the local AI or a custom OpenAI-compatible endpoint answers turns: no Convai connection is opened or waited for,
+            -- so no "Preparing connection" notice. The bridge's applied provider (runtime/mistral-state.json, read at most every 1.5 s),
+            -- asked only on a talk start.
             noConnection = function()
                 local ok, state = pcall(manager.mistral)
-                return ok and type(state) == 'table' and (state.effective == 'mistral' or state.effective == 'local')
+                return ok and type(state) == 'table' and (state.effective == 'mistral' or state.effective == 'local' or state.effective == 'custom')
             end,
             log = function(line) log(line) end})
         -- convaiAutoConnect.promote(key): a conversation partner asked to follow leaves the partner role.
@@ -2959,6 +2960,19 @@ local function keyReplyNotice(reply)
     elseif reply.errorCode == 'mistral-model' then
         return 'mistral-model', ui.t('The Mistral model is unavailable right now. Try again in a minute.')
     end
+    -- Custom (OpenAI-compatible): five failures the bridge names (the same sentences as mod/custom-provider.lua's notice(), which a test
+    -- keeps equal), and two one-time notices on the first reply.
+    if reply.errorCode == 'custom-key' then
+        return 'custom-key', ui.t('The custom provider did not accept your key. Check it in Settings > Conversation provider.')
+    elseif reply.errorCode == 'custom-credits' then
+        return 'custom-credits', ui.t('The custom provider says your account is out of credits. Add credits there, then try again.')
+    elseif reply.errorCode == 'custom-model' then
+        return 'custom-model', ui.t('The custom provider does not know that model ID. Check it in Settings.')
+    elseif reply.errorCode == 'custom-limit' then
+        return 'custom-limit', ui.t('The custom provider is rate limiting you. Try again in a moment.')
+    elseif reply.errorCode == 'custom-unreachable' then
+        return 'custom-unreachable', ui.t('The custom provider did not answer. Check its address in Settings, or try again.')
+    end
     -- Local AI could not start, so the bridge used Convai: the same line whether it rode on a failed turn or on the first reply.
     if reply.errorCode == 'local-fallback' or reply.keyNotice == 'local-fallback' then
         return 'local-fallback', ui.t('Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.')
@@ -2981,16 +2995,22 @@ local function keyReplyNotice(reply)
         return 'mistral-no-key', ui.t('Mistral has no key yet, so Convai is used. Add your key in Settings > Conversation provider.')
     elseif reply.keyNotice == 'mistral-voice' then
         return 'mistral-voice', ui.t('Mistral replies are spoken by a local voice instead of the Convai cloud voice.')
+    elseif reply.keyNotice == 'custom-no-setup' then
+        return 'custom-no-setup', ui.t('The custom provider is not set up, so Convai is used. Add its URL and model ID in Settings.')
+    elseif reply.keyNotice == 'custom-voice' then
+        return 'custom-voice', ui.t('Custom provider replies are spoken by a local voice instead of the Convai cloud voice.')
     end
     local text = keyNoticeText(reply.errorCode)
     if text then return 'quota-exhausted', text end
     return nil
 end
 
--- The one-time information the bridge puts on the first reply of a game session when Mistral is chosen.
+-- The one-time information the bridge puts on the first reply of a game session when Mistral or Custom is chosen.
 local function sendProviderNotice(player, keyId, keyText)
     if keyId == 'mistral-no-key' then convaiNotices.send(player, 'mistral-no-key', keyText)
     elseif keyId == 'mistral-voice' then convaiNotices.send(player, 'mistral-voice', keyText)
+    elseif keyId == 'custom-no-setup' then convaiNotices.send(player, 'custom-no-setup', keyText)
+    elseif keyId == 'custom-voice' then convaiNotices.send(player, 'custom-voice', keyText)
     elseif keyId == 'local-fallback' then convaiNotices.send(player, 'local-fallback', keyText)
     elseif keyId == 'local-turn-fallback' then convaiNotices.send(player, 'local-turn-fallback', keyText)
     elseif keyId == 'local-model-fallback' then convaiNotices.send(player, 'local-model-fallback', keyText) end
@@ -4007,13 +4027,24 @@ registerForEvent('onUpdate', function(delta)
                             if not pending.reaction then convaiNotices.send(player, 'mistral-limit', keyText) end
                         elseif keyId == 'mistral-model' then
                             if not pending.reaction then convaiNotices.send(player, 'mistral-model', keyText) end
+                        -- Custom (OpenAI-compatible) failures: the same rule.
+                        elseif keyId == 'custom-key' then
+                            if not pending.reaction then convaiNotices.send(player, 'custom-key', keyText) end
+                        elseif keyId == 'custom-credits' then
+                            if not pending.reaction then convaiNotices.send(player, 'custom-credits', keyText) end
+                        elseif keyId == 'custom-model' then
+                            if not pending.reaction then convaiNotices.send(player, 'custom-model', keyText) end
+                        elseif keyId == 'custom-limit' then
+                            if not pending.reaction then convaiNotices.send(player, 'custom-limit', keyText) end
+                        elseif keyId == 'custom-unreachable' then
+                            if not pending.reaction then convaiNotices.send(player, 'custom-unreachable', keyText) end
                         -- Local AI could not start and the turn failed: the notice for a turn V asked for, like the Mistral failures.
                         elseif keyId == 'local-fallback' then
                             if not pending.reaction then convaiNotices.send(player, 'local-fallback', keyText) end
                         -- A local turn failed and nothing took it over: the same rule, its own notice.
                         elseif keyId == 'local-failed' then
                             if not pending.reaction then convaiNotices.send(player, 'local-failed', keyText) end
-                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' then
+                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' then
                             sendProviderNotice(player, keyId, keyText)
                             if not pending.reaction then convaiNotices.send(player, 'reply-error', reply.error) end
                         elseif keyId then convaiNotices.send(player, 'quota-exhausted', keyText)
