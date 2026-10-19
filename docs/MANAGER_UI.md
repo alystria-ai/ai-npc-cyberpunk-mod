@@ -226,7 +226,8 @@ items; it simulates no key and edits no other mod's files, menu or input handler
 2. The host puts the manager on its first page and tells NSUI which tab to start on (`lastNativeSettingsCategoryIndex`).
 3. In the pause menu it finds the item labelled "Mods" whose event is `OnSwitchToSettings` (the item NSUI adds beside Settings; the
    game's own Settings item has the localized word) and activates it with `OnMenuItemActivated`, so NSUI marks the screen as its own
-   and builds its tabs. If NSUI still opens on another tab, the tab is selected once after 2 s.
+   and builds its tabs. If NSUI still opens on another tab, the tab is selected once after 2 s. (With Mod Configuration Menu installed
+   the item is MCM's own: see "Beside MCM".)
 4. The walk is done when the tab is shown. It gives up after 8 s with "The shortcut timed out. Choose AI NPC Cyberpunk Mod from the
    pause menu under Mods." (logged) and activates nothing else. Pressing the shortcut again during the walk changes nothing.
 5. **While the manager is open the shortcut closes it**, the way Esc does (`RequestClose`).
@@ -243,10 +244,24 @@ most every 10 s) and starts no walk. The setup check names it too (see below). N
 
 ### Beside MCM
 
-Expected, found by reading MCM's code and **not yet confirmed in game**: with MCM installed, MCM hides NSUI's own Mods button in the
-pause menu and shows its own screen; MCM imports NSUI's tabs, so the manager still appears there, under its mod list, and the shortcut
-is expected to land there. Without MCM the way is Esc, Mods, AI NPC Cyberpunk Mod. The tests only show that an MCM API present in the
-game changes nothing in the host and that no setup check names MCM.
+Found by reading MCM 0.10.3 (`ModConfigurationMenu/mcm_ui/mcm_menu_bridge.lua` and `mcm_controller.lua`,
+`ModConfigurationMenuAPI/bridges/native_settings/provider.lua`, `00_MCMNativeSettingsLifecycle/init.lua`), **not yet confirmed in game**;
+MCM 0.10.4 (not read) changed its internals, and its author keeps only the public API stable, so the walk relies on as little of them
+as it can. With MCM's setting "Redirect Framework Menu Entries" on (the default) MCM keeps NSUI's Mods item in the pause menu's list but hides its
+widget (`SetVisible(false)`), adds its own item (data labelled "Mods" like NSUI's, event `OnSwitchToMCM`, shown as "MCM" or "Mods" by
+MCM's own setting), turns an activation of NSUI's item into MCM's screen too, and imports NSUI's tabs through a snapshot, so the manager
+is a row of MCM's list of mods (`AI NPC Cyberpunk Mod`, with the prefix `[CET]` when MCM shows provider prefixes). MCM's public API
+cannot select a row of that list (`openMod` only sets the API's own active mod; the screen keeps its own selection), and the entry never
+calls or hooks MCM's `McmUi*` functions, so the shortcut ends at the list: it reads the pause menu's list, takes NSUI's item unless MCM's item is there and NSUI's widget is hidden (or
+the game does not say), in which case it activates MCM's item with `OnMenuItemActivated`, as the player would (an item still labelled
+"Mods" and visible, not NSUI's, Resume or Mod Settings'/RCF's, is taken for it if a later MCM renames the event); when MCM's Settings
+screen has opened the walk is done and the host posts the notice "Open AI NPC Cyberpunk Mod in the Mods list." (id `manager-in-mcm-list`,
+15 translations; it is posted from the pause menu, where the game may hide the warning line, so whether the player sees it is a live
+check). The 8 s guard, the logged timeout sentence and "pressing the shortcut again" are the same, and closing the MCM screen that the
+shortcut opened returns to the game like the Mods screen does (matched by engine identity, Resume once after the detach; the shortcut
+closes it while it is open). With MCM's redirect off NSUI's item stays visible and the walk is the plain one, and without MCM nothing
+changed. Tests: a fake MCM item in `bridge/nsui-entry.test.mjs` (MCM at its default, redirect off, event renamed, no item, timeout, close
+and resume) and the real host in `bridge/nsui-manager.test.mjs`.
 
 ## Fonts and widths
 

@@ -504,3 +504,66 @@ test('Inworld shows only in Developer mode, and no row on any page speaks of a s
   assert(on:find('inworld · needs key', 1, true) and on:find('inworld api key', 1, true), 'Developer mode lists the Inworld voice and its key row')
   assert(not on:find('recommend', 1, true) and not on:find('shared key', 1, true) and not on:find('shared plan', 1, true))
 `));
+
+// ---- The shortcut beside Mod Configuration Menu (mod/nsui-entry.lua, docs/MANAGER_UI.md "Beside MCM") -------------------------------------
+// The pause menu with Mod Configuration Menu installed: NSUI's Mods item is in the list with its widget hidden, MCM's own item (data
+// labelled "Mods", event OnSwitchToMCM) is the one the walk activates. The host (mod/nsui.lua) turns the walk's stop into the notice.
+const mcmMenu = (options = {}) => harness({screen: false, ...options}) + `
+  local popups = {}
+  function player:ConvaiPhoneFeedback(message) popups[#popups + 1] = message end
+  function player:IsAttached() return true end
+  function player:ConvaiComposerOpen() return false end
+  NameToString = function(value) return value end
+  CName = {new = function(value) return value end}
+  CalcSeed = function(value) return value.nativeId or value.nativeIdentity end
+  local function item(label, event) return {GetData = function() return {label = label, eventName = event} end, label = label} end
+  local items = {item('Save', 'OnSwitchToSaveGame'), item('Settings', 'OnSwitchToSettings'), item('Mods', 'OnSwitchToSettings'),
+    item('Mods', 'OnSwitchToMCM'), item('Resume', 'OnClosePauseMenu')}
+  local nsuiHidden, activated = true, {}
+  local pause = {IsA = function(_, class) return class == 'PauseMenuGameController' end,
+    menuListController = {Size = function() return #items end, GetItemAt = function(_, index)
+      return {GetController = function() return items[index + 1] end, IsVisible = function() return not (nsuiHidden and index == 2) end}
+    end},
+    OnMenuItemActivated = function(_, index, target) activated[#activated + 1] = index .. ':' .. target.label end}
+  local defs = {UI_System = {IsInMenu = 'isInMenu'}}
+  Game = {GetPlayer = function() return player end,
+    GetSystemRequestsHandler = function() return {IsPreGame = function() return false end} end,
+    GetAllBlackboardDefs = function() return defs end,
+    GetBlackboardSystem = function() return {Get = function() return {GetBool = function() return true end} end} end,
+    GetInkSystem = function() return {GetLayers = function() return {{GetGameControllers = function() return {pause} end}} end} end}
+`;
+
+test('beside MCM the real host walks to MCM\'s item, and once MCM\'s screen is up posts the notice once, under its own id', () => run(`${mcmMenu()}
+  local ok = managerUi.open()
+  assert(ok == true and #activated == 0)
+  frames(3)
+  assert(#activated == 1 and activated[1] == '3:Mods', table.concat(activated, ','))
+  assert(managerUi.inspect().entry.route == 'mcm' and #popups == 0, 'no notice before MCM\\'s screen is up')
+  ns.fire('SettingsMainGameController.OnInitialize', {nativeId = 901})
+  frames(2)
+  assert(#popups == 1 and popups[1] == 'Open AI NPC Cyberpunk Mod in the Mods list.', tostring(popups[1]))
+  assert(managerUi.inspect().entry.stage == 'idle' and managerUi.inspect().entry.notice == 'mcm-list')
+  -- Nothing else on NSUI\\'s side was touched by the walk: the tab was not selected, no widget was built.
+  assert(ns.screen == nil and ns.currentTab == '' and ns.callCount('setOption') == 0)
+  -- The same notice is not repeated inside its window, and is shown again after it.
+  managerUi._test.notify('mcm-list'); assert(#popups == 1)
+  clock = clock + 11; managerUi._test.notify('mcm-list'); assert(#popups == 2)
+  managerUi._test.notify('other'); assert(#popups == 2, 'only the one kind of notice exists')
+`));
+
+test('beside MCM with its redirect off the real host walks through NSUI\'s item to the tab and posts no notice', () => run(`${mcmMenu()}
+  nsuiHidden = false
+  assert(managerUi.open() == true)
+  frames(3)
+  assert(#activated == 1 and activated[1] == '2:Mods' and managerUi.inspect().entry.route == 'nsui', table.concat(activated, ','))
+  ns.openScreen(TAB); frames(3); ns.verify()
+  assert(managerUi.inspect().entry.stage == 'idle' and managerUi.inspect().entry.shown and #popups == 0)
+`));
+
+test('beside MCM the notice is in the player\'s language and a translation never loses the name of the mod', () => {
+  for (const code of ['de', 'ja', 'ru']) run(`${mcmMenu({locale: code})}
+    convaiUiLocale.configure('${code}'); convaiUiLocale.update(0); assert(convaiUiLocale.current() == '${code}')
+    managerUi._test.notify('mcm-list')
+    assert(#popups == 1 and popups[1] ~= 'Open AI NPC Cyberpunk Mod in the Mods list.' and popups[1]:find('AI NPC Cyberpunk Mod', 1, true), tostring(popups[1]))
+  `);
+});

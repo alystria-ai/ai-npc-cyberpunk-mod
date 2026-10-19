@@ -983,6 +983,7 @@ return {
     ["Show only the models whose name starts with this letter."] = "只顯示名稱以此字母開頭的模型。",
     ["Starts with"] = "開頭字母",
     ["The Companion Manager needs Native Settings UI (Nexus Mods)"] = "夥伴管理器需要 Native Settings UI（Nexus Mods）",
+    ["Open AI NPC Cyberpunk Mod in the Mods list."] = "請在模組清單中開啟 AI NPC Cyberpunk Mod。",
     ["The settings could not be saved. Nothing was changed."] = "無法儲存設定。未變更任何內容。",
     ["You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited)."] = "你今天的 {limit} 輪對話已用完。明天會恢復。若要立即繼續，請選擇 Mistral（免費金鑰，估計每天約 5,000 輪）或 Local AI（沒有限制）。",
     ["Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the Convai free tier each remark uses one of the day’s turns; remarks never take more than a tenth of them."] = "當你遇到他認識的人、完成任務或戀愛關係推進時，Johnny 會自己說點什麼。需要腦中的 Johnny。\n\n很少：每小時最多兩次。正常：每小時最多六次，間隔不少於五分鐘。\n\n在 Convai 免費方案中，每則發言消耗當天的一個回合；發言消耗的回合永遠不會超過全部回合的十分之一。",

@@ -49,7 +49,7 @@
     ]
   },
   "counts": {
-    "strings": 992,
+    "strings": 993,
     "dynamicTemplates": 55,
     "contexts": 37
   },
@@ -534,6 +534,7 @@
     "Only Mature models found. Turn on Mature content to use them.": "Only Mature models found. Turn on Mature content to use them.",
     "Only https:// works outside this computer and your home network.": "Only https:// works outside this computer and your home network.",
     "Open": "Open",
+    "Open AI NPC Cyberpunk Mod in the Mods list.": "Open AI NPC Cyberpunk Mod in the Mods list.",
     "Open Settings to restore its defaults.": "Open Settings to restore its defaults.",
     "Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load.": "Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load.",
     "Opened in your browser.": "Opened in your browser.",
@@ -1938,6 +1939,7 @@
       "OmniVoice voice is ready.",
       "Only Mature models found. Turn on Mature content to use them.",
       "Only https:// works outside this computer and your home network.",
+      "Open AI NPC Cyberpunk Mod in the Mods list.",
       "Open Settings to restore its defaults.",
       "Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load.",
       "Opened in your browser.",
@@ -6280,6 +6282,14 @@
         "mod/manager-ui.lua:972"
       ]
     },
+    "Open AI NPC Cyberpunk Mod in the Mods list.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/nsui.lua:507"
+      ]
+    },
     "Open Settings to restore its defaults.": {
       "contexts": [
         "ui.localized"
@@ -7843,7 +7853,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/nsui.lua:566",
+        "mod/nsui.lua:578",
         "mod/setup-check.lua:567"
       ]
     },

@@ -497,6 +497,18 @@ local function selectTab()
     if controller and index and controller.selectorCtrl then controller.selectorCtrl:SetToggledIndex(index) end
 end
 
+-- The walk stopped on the list of mods of Mod Configuration Menu, which hides Native Settings UI's own Mods screen when it is
+-- installed: its public API cannot choose a mod in that screen, so the player is told where the manager is (mod/nsui-entry.lua).
+local function notify(kind)
+    if kind ~= 'mcm-list' then return end
+    pcall(function()
+        local player = Game.GetPlayer()
+        if player and type(convaiNotices) == 'table' then
+            convaiNotices.sendLines(player, {{id = 'manager-in-mcm-list', text = ui.t('Open AI NPC Cyberpunk Mod in the Mods list.')}})
+        end
+    end)
+end
+
 -- The walk of the shortcut: it asks for the first page, a page built from what is true now, and tells Native Settings UI to start on
 -- this tab.
 local function newEntry()
@@ -506,7 +518,7 @@ local function newEntry()
             local index = tabIndex()
             if index then ns.lastNativeSettingsCategoryIndex = index end
         end,
-        select = selectTab})
+        select = selectTab, notify = notify})
 end
 
 local function installHooks()
@@ -635,6 +647,6 @@ function M.inspect()
 end
 
 -- Tests only.
-M._test = {core = core, describe = describe, tabIndex = tabIndex, flush = function() flushNow() end, render = render}
+M._test = {core = core, describe = describe, tabIndex = tabIndex, flush = function() flushNow() end, render = render, notify = notify}
 
 return M
