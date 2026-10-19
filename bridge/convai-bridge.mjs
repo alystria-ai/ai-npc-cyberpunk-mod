@@ -69,6 +69,7 @@ import {VendorMemory, vendorMemoryKey} from './vendor-memory.mjs';
 import {PlayerMemoryApi} from './player-memory-api.mjs';
 import {PlayerMemoryControl} from './player-memory-control.mjs';
 import {SupportReportControl} from './support-report.mjs';
+import {ErrorEvents, installCrashCapture} from './error-events.mjs';
 import {SetupCheckControl, cachedBrowserName, cachedGraphicsCards, cachedModManagers, collectSetupCheck, findNestedPacks, readPackPlacement} from './setup-check.mjs';
 import {CharacterOverrides} from './character-overrides.mjs';
 import {CharacterEditor} from './character-editor.mjs';
@@ -116,6 +117,11 @@ const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
 const game = process.env.CYBERPUNK_CONVAI_GAME || 'E:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077';
 const runtime = resolve(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/runtime');
+// Automatic error reports (docs/ERROR_REPORTS.md): this process only records (bridge/error-events.mjs); the service's supervisor sends.
+// An uncaught exception or unhandled rejection is written down as the process ends (how it ends does not change); a failed turn that is
+// not the player's own doing and the setup check's problems are recorded after the fact, never on a turn's path. Off with the setting.
+installCrashCapture({stateDirectory, runtime});
+const errorEvents = new ErrorEvents({stateDirectory, runtime});
 const keyFile = process.env.CYBERPUNK_CONVAI_KEY_FILE || resolve(stateDirectory, 'convai-key.txt');
 // Named characters, then the generic NPC archetypes (docs/NPC_ARCHETYPES.md). The archetype roster is optional:
 // without it (or without their IDs in characters.json) unnamed NPCs simply have no profile.
@@ -378,6 +384,14 @@ const keyNotice = () => {
   // The fallback notice names the model that was used instead.
   return keyNotice ? {keyNotice, ...(keyNotice === 'local-model-fallback' && mistral.noticeModel ? {keyNoticeModel: mistral.noticeModel} : {})} : {};
 };
+// A failed turn for the automatic error reports (bridge/error-events.mjs decides whether it is the player's own doing). Called after the
+// failure reply is written; it defers its one file write, so the turn's path pays a function call.
+function noteTurnFailure(error, errorCode, {microphone = false} = {}) {
+  try {
+    errorEvents.turnFailed(error, {provider: mistral.route ?? 'convai', errorCode, microphone,
+      localReason: errorCode === 'local-fallback' ? localServer.status().reason : undefined});
+  } catch { /* a report is never worth a failure of its own */ }
+}
 // The game's notice for a failure (docs/NOTIFICATIONS.md). An automatic reaction that hit the daily cap just stops: no notice.
 const keyFailure = (error, input) => {
   // A Mistral failure says what to do about it (key, free limit, model); an automatic reaction (battle, loot) just stops.
@@ -1729,9 +1743,11 @@ const addonVoice = createAddonVoice({isSpeaker: key => addonHost.isSpeaker(key),
   answerError: async ({input, signal, current, error}) => {
     // The same answer a typed add-on turn gets from runInput: a message about the service, not about the microphone.
     console.error('[Addons] Voice turn failed:', error.message);
+    const failure = keyFailure(error, input);
     await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
-      error: 'The conversation service could not reply. Please try again.', ...keyFailure(error, input)}),
+      error: 'The conversation service could not reply. Please try again.', ...failure}),
       {signal, isCurrent: current, isCurrentSync: current.sync}).catch(() => {});
+    noteTurnFailure(error, failure.errorCode, {microphone: true});
   }});
 
 const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => realtime.voiceChannel()),
@@ -1815,8 +1831,10 @@ const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => rea
     const silent = error?.code === 'MIC_SILENT';
     await atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state: silent ? 'silent' : noSpeech ? 'no-speech' : 'error', requestId: input.requestId,
       ...(silent ? {device: String(error.device ?? '').slice(0, 80)} : {}), updated: Date.now()}), {isCurrent: current, isCurrentSync: current.sync});
+    const failure = keyFailure(error, input);
     await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
-      entity: input.entity, error: 'Voice conversation failed. Check your microphone and try again.', ...keyFailure(error, input)}), {isCurrent: current, isCurrentSync: current.sync});
+      entity: input.entity, error: 'Voice conversation failed. Check your microphone and try again.', ...failure}), {isCurrent: current, isCurrentSync: current.sync});
+    if (!noSpeech && !silent) noteTurnFailure(error, failure.errorCode, {microphone: true});
   },
 });
 
@@ -2399,10 +2417,13 @@ async function runInput(request, prepared, clock) {
     if (companionActions.pending?.packet.requestId === input?.requestId) void companionActions.revoke();
     if (!await current()) return;
     await status('error', error.message).catch(() => {});
+    const failure = input ? keyFailure(error, input) : {};
     if (input) await atomic(replyPath, JSON.stringify({requestId: input.requestId,
       generation: input.generation, entity: input.entity,
-      error: 'The conversation service could not reply. Please try again.', ...keyFailure(error, input)}), {signal: controller.signal, isCurrent: current, isCurrentSync: current.sync}).catch(() => {});
+      error: 'The conversation service could not reply. Please try again.', ...failure}), {signal: controller.signal, isCurrent: current, isCurrentSync: current.sync}).catch(() => {});
     console.error('[CyberpunkConvai] Bridge request failed:', error.message);
+    // An automatic reaction that failed is a turn too; one cancelled by the player is not (reportableTurnFailure).
+    if (input && !controller.signal.aborted) noteTurnFailure(error, failure.errorCode);
   } finally {
     if (knowledgeTurn && (controller.signal.aborted || !await current())) await cancelKnowledgeTurn(knowledgeTurn);
     if (active === request) active = null;
@@ -2926,7 +2947,8 @@ const editorControl = await EditorControl.open({server: new EditorServer({editor
 await companionActions.revoke();
 await status('waiting');
 await pollSettings(false);
-void setupCheck.run(null, {light: true}).catch(error => console.error('[CyberpunkConvai] Setup check:', error.message));
+void setupCheck.run(null, {light: true}).catch(error => { console.error('[CyberpunkConvai] Setup check:', error.message); return null; })
+  .then(document => { try { if (document) errorEvents.setupChecked(document); } catch { /* the error reports never fail start-up */ } });
 await pollKnowledge();
 void localVoice.start().catch(error => console.error('[CyberpunkConvai] Local voice startup:', error.message));
 // A text route (Mistral, the local AI) opens no Convai connection, so nothing else starts the hidden browser that renders the

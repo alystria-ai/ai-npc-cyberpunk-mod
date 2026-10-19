@@ -289,7 +289,7 @@ legacyCleanup(45_000);
 let supervisor;
 try {
   supervisor = new BridgeSupervisor({...options, nodeExecutable: process.execPath,
-    lifeline: options.lifeline === 'stdin' ? process.stdin : null});
+    lifeline: options.lifeline === 'stdin' ? process.stdin : null, errorReports: true});
 } catch (error) {
   log(`The supervisor could not be created: ${error?.stack || error}`);
   publishFailure('service-error', shortReason(error));

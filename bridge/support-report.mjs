@@ -7,6 +7,7 @@ import {createZip} from './zip-writer.mjs';
 import {atomicFile} from './guarded-file.mjs';
 import {NO_BROWSER_MESSAGE} from './system-browser.mjs';
 import {cachedGraphicsCards} from './setup-check.mjs';
+import {errorReportStatus} from './error-events.mjs';
 
 // Support report: one redacted zip a player can send to the developer after an
 // error. The Help page in Companion Manager writes runtime/report-request.json;
@@ -275,7 +276,7 @@ export async function publishSupportPaths({game, modRoot, runtime, stateDirector
 // A setup-check.json is read as this bridge's own while its bridgePid is this process, or (written by another process) while it is under
 // ten minutes old: a document an earlier game session left behind says nothing about this one.
 const SETUP_FRESH_MS = 10 * 60 * 1000;
-function setupLine(row) {
+export function setupLine(row) {
   const id = clip(row?.id, 40), code = clip(row?.code, 40);
   if (!id || !code) return null;
   const detail = [];
@@ -542,6 +543,8 @@ export async function collectReport(options) {
     // Offline, this is the status the last game session left behind, and no process of this report's own is described.
     bridge: offline ? {offline: true, ...bridge, status} : {pid: process.pid, uptimeSeconds: Math.round(process.uptime()), ...bridge, status},
     settings: settingsView,
+    // Settings > Privacy > Send error reports automatically (docs/ERROR_REPORTS.md): on or off, and counts only.
+    errorReports: await errorReportStatus({runtime, stateDirectory, now: now()}).catch(() => null),
     localAi: await localAiSection({runtime, project: project ?? resolve(runtime, '..'), environment}),
     party: {companions: party, connections: raw['party-connection-state.json']
       ? redact.value(compactStatus('party-connection-state.json', raw['party-connection-state.json'])) : null},
