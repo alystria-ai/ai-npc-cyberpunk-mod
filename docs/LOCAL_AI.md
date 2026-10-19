@@ -110,13 +110,15 @@ Local AI stays the chosen provider either way.
 
 You can add chat models of your own to the **Local AI model** row. There is no screen for it: you copy the model file into a folder and
 list it in a small text file. The model then appears in the row among the others (sorted by file size), marked "(custom)", and you can pick it there.
+There are two folders you can use; the first survives reinstalls and mod managers.
 Only one model is ever loaded, so nothing else changes. Your model runs on the engine of an installed pack, so a Local AI pack (a Mature pack carries the same engine) is needed; without one the model is listed but cannot start.
 
-**1. Find the Local AI folder.** In a normal install it is `red4ext\plugins\AiNpcCyberpunkMod\app\local-ai\` inside your Cyberpunk 2077
-folder (the same folder the Local AI packs unpack into; it contains `manifest.standard.json` or `manifest.lite.json`). Make a folder
-called `custom` inside it. Put your model file there. The mod never copies, moves or deletes your files.
+**1. Open your models folder** (it survives reinstalls and mod managers): `%LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai\`. Paste that into the Explorer
+address bar; if Windows says the folder does not exist, make it (`AiNpcCyberpunkMod` is the folder that already holds your memories and logs; make `local-ai`
+inside it). It is outside your Cyberpunk 2077 folder, so a clean reinstall, an update or removing the mod never touches it, and Mod Organizer 2 neither
+redirects it nor collects it in Overwrite. Make a folder called `custom` inside it and put your model file there. The mod never copies, moves or deletes your files.
 
-**2. Write `manifest.custom.json`** next to the other manifests (a plain text file; a text editor is enough). Use straight quotes (`"`) and forward slashes (`/`) in paths (a single `\` breaks the JSON). The Runtime also reads a file saved with a byte-order mark ("UTF-8 with BOM", as Notepad can save and PowerShell does) and curly double quotes (“ ”) pasted from a web page. Do not save it as "Unicode" (UTF-16).
+**2. Write `manifest.custom.json`** in that same folder (a plain text file; a text editor is enough). Use straight quotes (`"`) and forward slashes (`/`) in paths (a single `\` breaks the JSON). The Runtime also reads a file saved with a byte-order mark ("UTF-8 with BOM", as Notepad can save and PowerShell does) and curly double quotes (“ ”) pasted from a web page. Do not save it as "Unicode" (UTF-16).
 
 ```json
 {
@@ -136,7 +138,7 @@ called `custom` inside it. Put your model file there. The mod never copies, move
 
 | Key | Needed | Meaning |
 |---|---|---|
-| `file` | yes | Path of the `.gguf` file, relative to the Local AI folder, inside it (no drive letter, no `..`). |
+| `file` | yes | Path of the `.gguf` file, relative to the folder of the manifest, inside it (no `..`). In the `%LOCALAPPDATA%` folder only, a full path such as `"D:/Models/MyModel-Q4_K_M.gguf"` also works, for a model you keep somewhere else. |
 | `name` | no | The name shown in the row, 1 to 60 characters. Default: the file name. |
 | `uncensored` | no | `true` only if the model really has no content limits of its own. With **Mature content** on, the content rules read this flag (never the file name); the hard limits and the output screen still apply. Default `false`. |
 | `auto` | no | Obsolete. Older versions used it to let the "Auto" entry pick the model. It is accepted without a message and ignored: every model takes part in the default choice by its size. You can delete it. |
@@ -144,11 +146,27 @@ called `custom` inside it. Put your model file there. The mod never copies, move
 | `contextSize` | no | The context (in tokens, 2048 to 262144) the model starts with. A bigger context uses more graphics memory. Default: the same automatic choice as the built-in models (16,384 when it fits). |
 | `chatTemplate` | no | The name of a built-in llama.cpp chat template (for example `chatml`, `llama3`, `gemma`), for a file that has no usable template of its own. Leave it out when the model has one. |
 
-You can list up to 16 models. A wrong entry is skipped and the rest still work. Changes are picked up within a few seconds while the
+You can list up to 16 models in all. A wrong entry is skipped and the rest still work. Changes are picked up within a few seconds while the
 game runs (the settings page shows the new list the next time it refreshes), and a model you pick loads the next time Local AI starts
 or at the next idle moment.
 
 **3. Choose it.** In Settings > Conversation provider, open **Local AI model** and pick "My Model (custom)", then **Apply**.
+
+**The other way: inside the mod folder.** This is how it worked before, and it still works exactly the same. Use the Local AI folder of the mod,
+`red4ext\plugins\AiNpcCyberpunkMod\app\local-ai\` inside your Cyberpunk 2077 folder (the folder the Local AI packs unpack into; it contains
+`manifest.standard.json` or `manifest.lite.json`): put the model in a `custom` folder there and write `manifest.custom.json` next to the other
+manifests, with paths relative to that folder and no full paths. That folder belongs to the mod's files, so a clean reinstall deletes it, and under Mod
+Organizer 2 your files end up in Overwrite (or in the mod you extracted the Runtime into).
+
+**If both folders have a manifest**, both are read, the `%LOCALAPPDATA%` one first. The models of both appear in the row. When the same model is in both
+(the same file name, or the same server address and model ID), it is listed once and the `%LOCALAPPDATA%` entry wins; the log says so once, in a
+line like `[LocalAI] [custom models] mod folder: skipped "custom/x.gguf": "X" is also in the outside folder, whose entry is used`. The limit of 16 models counts both
+folders together.
+
+**Moving a setup you already have** into the `%LOCALAPPDATA%` folder: copy the `custom` folder and `manifest.custom.json` from
+`...\app\local-ai\` to `%LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai\`. The paths inside the manifest stay as they are, and the model keeps its
+name and its place in the row (its identity comes from its file name, so a model you picked stays picked). When it works, delete the old copy, or leave it:
+the duplicates are ignored.
 
 **What the mod checks.** When it looks at your manifest it checks, without loading anything:
 
@@ -202,10 +220,10 @@ example:
 - `"My Model" is not usable: the file x.gguf was not found` - the path or the file name is wrong (Windows hides extensions: check
   that the file is not called `x.gguf.gguf` or `x.gguf.txt`);
 - `"My Model" is too large for this graphics card` - pick a smaller model or quant;
-- `manifest.custom.json is not valid JSON` - a comma or a quote is wrong; a free JSON checker finds it quickly;
+- `manifest.custom.json is not valid JSON` - a comma or a quote is wrong; a free JSON checker finds it quickly (when both folders have a manifest the line starts with `outside folder:` or `mod folder:`, which says which file);
 - `manifest.custom.json must be {"version": 1, "models": [...]}` - the outer part of the file is missing or misspelt.
 
-Make sure a pack with the engine is installed (the **Local AI model** row only matters when Local AI is the Conversation provider) and that the file is named exactly `manifest.custom.json`. A file saved as `manifest.custom.json.txt` (Notepad adds `.txt` while Windows hides extensions) is not read, and the log says nothing about it. An embedding model can only be spotted when its header says so; a file with an unusual header may pass the check and then fail to start, which the notice above covers. Whether a model has a chat template is not checked ahead of time.
+The support report (Settings > Help > Help and support, or `Make support report.bat` with the game closed) lists both folders under `localAi.customFolders` in `summary.json`: whether each folder and its `manifest.custom.json` was found, and how many models the manifest lists (no paths, names or keys). Make sure a pack with the engine is installed (the **Local AI model** row only matters when Local AI is the Conversation provider) and that the file is named exactly `manifest.custom.json`. A file saved as `manifest.custom.json.txt` (Notepad adds `.txt` while Windows hides extensions) is not read, and the log says nothing about it. An embedding model can only be spotted when its header says so; a file with an unusual header may pass the check and then fail to start, which the notice above covers. Whether a model has a chat template is not checked ahead of time.
 
 ### Use your own server (KoboldCpp, LM Studio, Ollama)
 
@@ -215,7 +233,7 @@ address). You do not need a Local AI pack for this: with only your own server li
 
 **1. Start your server** with its model loaded, and leave it running while you play.
 
-**2. List it in `manifest.custom.json`** (the same file as "Add your own model", in the same folder; if there is no `local-ai` folder yet, make one in `red4ext\plugins\AiNpcCyberpunkMod\app\`), with an `endpoint` instead of a `file`:
+**2. List it in `manifest.custom.json`** (the same file as "Add your own model", in the same folder: `%LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai\`, which survives reinstalls, or `red4ext\plugins\AiNpcCyberpunkMod\app\local-ai\` as before; if the folder does not exist yet, make it), with an `endpoint` instead of a `file`:
 
 ```json
 {
@@ -572,8 +590,15 @@ setting), `requested` and `applied`; a switch happens only at an idle boundary. 
   fallback becomes the `local-model-fallback` notice (`MistralProvider.noteLocalModelFallback`, sent as `keyNotice` on the next reply),
   once per distinct pin and reason until the pin changes.
 - Custom models (`bridge/custom-models.mjs`, tests `custom-models.test.mjs`, `custom-model-choice.test.mjs` and the custom block at the end
-  of `local-llm-server.test.mjs`): `CustomModelScanner.scan({totalVramMiB})` reads `manifest.custom.json` (the Local AI folder, else the
-  dev folder when only that has it, like the Mature marker), validates each entry strictly (relative path inside the folder, `.gguf`, name
+  of `local-llm-server.test.mjs`): `CustomModelScanner.scan({totalVramMiB})` reads `manifest.custom.json` from two folders, the outside one first
+  (`outsideLocalAiRoot(env)` = `<data home>/local-ai`, the data home of `packaging/runtime/state-home.mjs`: `CYBERPUNK_CONVAI_DATA_HOME` or
+  `%LOCALAPPDATA%\AiNpcCyberpunkMod`; the constructor's `outside` option overrides it, `null` turns it off) and the mod's Local AI folder (else the
+  dev folder when only that has it, like the Mature marker). A model already listed from the earlier folder (same id: the lower-cased file name
+  without `.gguf`, or the `ep-<host>-<model>` id of a server) is skipped before any file is looked at, with one `mod folder: skipped ...` log line, so the outside
+  folder wins; the 16-model limit and the id suffixes count across both. Only the outside manifest accepts a full path with a drive letter (`validateEntry(root, raw, {allowAbsolute: true})`).
+  `scan()` also returns `folders: [{where: 'outside' | 'mod', present, models, problems}]`; `describeCustomFolders({project, environment})` is the
+  disk-only view the support report puts in `localAi.customFolders` (counts, no paths), and `customServerSecrets` scrubs the `apiKey` of both manifests.
+  Each entry is validated strictly (relative path inside the folder, `.gguf`, name
   of 1 to 60 characters, boolean `uncensored` (`auto` is obsolete: accepted whatever its value and dropped), `family` label, integer `contextSize` 2048 to 262144, `chatTemplate` name; at most
   16) and logs every bad entry once as `[custom models] ...` (a repeat of the same line is not logged again; nothing throws). Per file it
   stats (every look) and reads the first 2 MiB only when the size or time changed: the GGUF magic and version (2 or 3), then the

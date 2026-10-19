@@ -289,7 +289,7 @@ const omniSettled = () => localVoice.requestedProvider !== 'omni' || localVoice.
 // Which installed model loads (docs/LOCAL_AI.md, "Choosing the model"): the localModel setting (auto or one model) and Mature content, read
 // when a start begins. A change while Local AI is the provider reloads at an idle moment (localModelChoiceChanged, on the settings poll).
 let localModelPin = 'auto';
-// Models the player added by hand (manifest.custom.json, docs/LOCAL_AI.md "Add your own model"): a few stats and one small JSON read, with
+// Models the player added by hand (manifest.custom.json in %LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai and in the Local AI folder, docs/LOCAL_AI.md "Add your own model"): a few stats and one small JSON read each, with
 // the GGUF header read only for a file that changed. Looked at on the settings poll (at most every 5 s) and when a model is about to load.
 const customScanner = new CustomModelScanner({project, log: message => console.error('[LocalAI] ' + message)});
 let customScan = {models: [], problems: []}, cardTotalMiB = null, cardAskedAt = 0;
