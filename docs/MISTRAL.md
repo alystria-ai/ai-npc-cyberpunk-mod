@@ -183,7 +183,7 @@ Replies are spoken by Pocket or Omni like any text. If the voice setting is the 
 one-time notice says so. Phone Chat works.
 
 The microphone needs speech recognition, which Convai does server side. With Mistral the voice key uses the local engine in
-`bridge/local-stt.mjs` when it is available (docs/LOCAL_STT.md); otherwise the key shows "needs Convai for now" and nothing is
+`bridge/local-stt.mjs` for English when it is available (docs/LOCAL_STT.md), and Mistral's own transcription with the same key for any other language ("Other languages" there); otherwise the key shows "needs Convai for now" and nothing is
 recorded. The bridge publishes `stt` in `runtime/mistral-state.json` (refreshed every 10 s) and the game reads it on a key press only.
 
 Hook contract (the object `mistralSpeech` in `bridge/convai-bridge.mjs`): `available()` returns whether local recognition can run now;

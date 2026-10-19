@@ -20,7 +20,7 @@ import time
 
 from pocket_voice_runtime import (
     MAX_AUDIO_SECONDS, MAX_COMMAND_BYTES, PREPARED_FORMAT, PROTOCOL_VERSION, SOURCE_REVISION,
-    SOURCE_SHA256, PreparedVoiceStore, ReferenceCache, cpu_environment, read_json, text_valid,
+    SOURCE_SHA256, PreparedVoiceStore, ReferenceCache, apply_voices, cpu_environment, read_json, text_valid,
     validate_config,
 )
 
@@ -198,7 +198,7 @@ class Commands:
                             self.ack.set()
                         elif request_id > self.last_id:
                             raise ValueError("Pocket acknowledgement has no owner")
-                    elif op in ("prepare", "stream"):
+                    elif op in ("prepare", "stream", "voices"):
                         if request_id <= self.last_id or self.active is not None or self.pending is not None:
                             raise ValueError("Pocket accepts one serial command at a time")
                         self.pending = request_id
@@ -455,6 +455,24 @@ def main():
             except queue.Empty:
                 continue
             request_id, key = request["id"], request.get("profile")
+            if request["op"] == "voices":
+                # A change to the voices of a running worker (bridge/pocket-voice.mjs setVoices): serial like every other command, so it
+                # never lands in the middle of a reply. Checked as a whole first; a refused change leaves everything as it was.
+                commands.begin(request_id)
+                try:
+                    with redirect_stdout(sys.stderr):
+                        changed = apply_voices(registry, request, cache)
+                    commands.finish(request_id)
+                    send({"op": "voices", "id": request_id, "changed": changed, **profiles(),
+                          "referenceHashes": {name: registry["descriptors"][name]["sha256"] for name in registry["refs"]}})
+                except Exception as error:
+                    print(f"Pocket voice change refused: {type(error).__name__}: {error}", file=sys.stderr, flush=True)
+                    commands.finish(request_id)
+                    send({"op": "error", "id": request_id, "message": "Pocket voices could not be changed.",
+                          "terminal": False, **profiles()})
+                finally:
+                    commands.finish(request_id)
+                continue
             commands.begin(request_id)
             synthesis_started = False
             timer = threading.Timer(MAX_AUDIO_SECONDS, commands.stop.set)

@@ -134,3 +134,53 @@ function devLayout(devRoot, environment, exists, list) {
 }
 
 export const LOCAL_AI_PACK_MISSING_MESSAGE = 'Requires the optional Local AI pack';
+
+const sizeMiBOf = path => { try { return Math.round(statSync(path).size / 1048576); } catch { return null; } };
+const MARKER_NAMES = Object.freeze(['manifest.json', 'manifest.standard.json', 'manifest.lite.json', ...MATURE_ENGINE_MARKERS]);
+
+/**
+ * What the Local AI folder holds, for the model list's notes and the support report: every marker (manifest.*.json) with the model files it names and
+ * whether each one is there, and the .gguf files of models/ with their sizes and whether a marker names them. A marker whose model file is absent is an
+ * install that did not finish (a zip not fully extracted, a file moved elsewhere): the model it stands for is missing from the list, and with only Mature
+ * models left and Mature content off nothing starts. Names and sizes only, never the contents of a file. Never throws; bounded (12 markers, 24 files).
+ * Returns {markers: [{name, mature, declares: [{tier, name, file, present, sizeMiB}]}], files: [{file, sizeMiB, named}]}.
+ */
+export function describePackFiles({project, environment = process.env, exists = fileExists, readText = readUtf8, list = listNames, sizeOf = sizeMiBOf} = {}) {
+  const root = environment[LOCAL_AI_ENV.root] ? resolve(environment[LOCAL_AI_ENV.root]) : resolve(project ?? '.', 'local-ai');
+  const markers = [], named = new Set();
+  for (const name of MARKER_NAMES) {
+    if (markers.length >= 12) break;
+    const path = resolve(root, name);
+    let marker;
+    try { if (!exists(path)) continue; marker = JSON.parse(readText(path)); } catch { continue; }
+    if (!marker || typeof marker !== 'object' || marker.version !== 1) continue;
+    const declares = [];
+    for (const tier of ['standard', 'lite', 'good']) {
+      const entry = marker[tier], file = packPath(root, entry?.file);
+      if (!file) continue;
+      const present = exists(file);
+      named.add(basename(file).toLowerCase());
+      declares.push({tier, name: typeof entry.name === 'string' && entry.name ? entry.name.slice(0, 80) : modelName(file), file: String(entry.file).slice(0, 120), present, sizeMiB: present ? sizeOf(file) : null});
+    }
+    const embed = packPath(root, marker.embed?.file);
+    if (embed) named.add(basename(embed).toLowerCase());
+    markers.push({name, mature: marker.pack === 'mature', declares});
+  }
+  const files = list(resolve(root, 'models')).filter(name => /\.gguf$/i.test(name)).sort().slice(0, 24)
+    .map(file => ({file, sizeMiB: sizeOf(resolve(root, 'models', file)), named: named.has(file.toLowerCase())}));
+  return {markers, files};
+}
+
+/** The models a marker names whose file is not there, as the notes of the model list ({name, reason: 'missing'}, the reason code of a model that cannot be used). */
+export function packFileProblems(description) {
+  const seen = new Set(), problems = [];
+  for (const marker of Array.isArray(description?.markers) ? description.markers : []) {
+    for (const item of marker.declares ?? []) {
+      if (item.present !== false || seen.has(item.name)) continue;
+      seen.add(item.name);
+      problems.push({name: item.name, reason: 'missing'});
+    }
+  }
+  return problems.slice(0, 8);
+}
+

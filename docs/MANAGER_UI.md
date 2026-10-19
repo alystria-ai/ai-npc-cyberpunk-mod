@@ -1,12 +1,22 @@
-# Companion Manager in Native Settings UI
+# Companion Manager in Mod Configuration Menu and Native Settings UI
 
-The manager is one tab, **AI NPC Cyberpunk Mod**, on the Mods screen of **Native Settings UI** (NSUI: the CET mod
-`nativeSettings`, [Nexus Mods 3518](https://www.nexusmods.com/cyberpunk2077/mods/3518), developed against 1.96). The player opens
-it with **Esc, Mods, AI NPC Cyberpunk Mod** or with the manager shortcut. Every control is one of NSUI's own widgets (switch,
-selector, slider, button); nothing is drawn with ImGui, and no file or saved preference of NSUI or of any other mod is edited.
+The manager has two hosts that draw the same pages (`mod/manager-ui.lua`) and read and write the same saved settings:
 
-Native Settings UI is the one requirement of the manager. Mod Configuration Menu (MCM) is not required; having it installed is fine
-(see "Beside MCM").
+- **Mod Configuration Menu** (MCM, the CET mod `ModConfigurationMenuAPI`, [Nexus Mods 31640](https://www.nexusmods.com/cyberpunk2077/mods/31640)),
+  version **0.10.5 or newer**: the default. The manager is a mod of MCM named **AI NPC Cyberpunk Mod** (see "The MCM host").
+- **Native Settings UI** (NSUI: the CET mod `nativeSettings`, [Nexus Mods 3518](https://www.nexusmods.com/cyberpunk2077/mods/3518),
+  developed against 1.96): optional, for players who prefer it. The manager is one tab, **AI NPC Cyberpunk Mod**, on its Mods screen.
+  Every control is one of NSUI's own widgets (switch, selector, slider, button); nothing is drawn with ImGui.
+
+No file or saved preference of NSUI, MCM or any other mod is edited. The manager needs one of the two: Mod Configuration Menu 0.10.5 or
+newer, or Native Settings UI. With both installed, MCM hosts it and the Native Settings UI tab is not registered (see "Both installed"); both hosts still read and write the same saved settings. The player opens
+it with the manager shortcut, with **Esc, Mods, AI NPC Cyberpunk Mod** (NSUI), or from MCM's own list.
+
+The page below ("Page layout", "Player flow") is the same in both hosts. "How a change is applied" and "How lists page" describe the
+NSUI host; the MCM host differs where it says so ("The MCM host").
+
+Thanks to Antrix, the author of MCM, who exposed the calls this host needs through MCM's public API in 0.10.5 and wrote a reference
+port of the manager to it. This host follows his port and the 0.10.5 source of the public API.
 
 **2026-10-19: moved from MCM to Native Settings UI.** The manager used to be a Mod Configuration Menu provider (`mod/mcm.lua`). The
 reasons were player reports that the manager did not show, that MCM takes over the Native Settings UI and Mod Settings screens, and
@@ -32,13 +42,13 @@ Mods screen (Esc > Mods)
 | Characters to invite | Home | Characters to invite |
 | Current party | Home | Your group (only while a companion drives), Current party |
 | Model browser | Home | Installed character models |
-| Settings | Home | Interface, Conversations, Relationships, Conversation provider, Companion behavior, Voices, Subtitles, Automatic reactions, one section per installed add-on, Development, Help |
+| Settings | Home | Interface, Conversations, Conversation provider, Companion behavior, Voices, Subtitles, Automatic reactions, one section per installed add-on, Development, Help |
 | Memory | Settings | Memory, Whose memories |
 | Help and support | Settings | Setup check, If something goes wrong, Report for the developer, Where the logs are |
 | Convai paid tier | Settings | Convai paid tier, Plans |
 
-The Back row reads "Back to Companion Manager" on the first four pages and "Back to settings" on the other three. It is the first row of
-the first section, so it is always the first row of the page. Memory is a row (Manage) of Settings > Conversations, Help and support is
+The Back row reads "Back to Companion Manager" on the first four pages and "Back to settings" on the other four (Memory, Relationships, Help, paid tier). It is the first row of
+the first section, so it is always the first row of the page. Memory (Manage) and Relationships (Open) are rows of Settings > Conversations, Help and support is
 the one row of Settings > Help, and Convai paid tier is a row of Settings > Conversation provider under the Convai API key row. The Help
 entry is absent when `mod/support-report.lua` did not load, the paid tier entry when `mod/convai-paid-tier.lua` did not (both are loaded
 behind `pcall`). Relationships is absent when no character has a relationship setting.
@@ -51,7 +61,7 @@ A row of the page is one of four kinds, built by `setting(...)`, `action(...)` a
 | `setting`, type `select` | string selector |
 | `setting`, type `int` | integer slider |
 | `action` | button (its text is the `value`) |
-| `readonly` | a button with no text and nothing to press: a line of text, "Label: value" |
+| `readonly` | a line of text with nothing to press. In NSUI it is a button whose frame is hidden (`hideFrames` in `mod/nsui.lua`): a short value is the button text ("Johnny's standing" ... "Grudging respect"), a long or missing value leaves the label alone, "Label: value" |
 
 **The first page.** The manager always opens on Home: after the player leaves the tab for another one, after the Mods screen closes,
 and on the shortcut. A hook on `SettingsMainGameController.OnInitialize` makes the tab ready on its first page before NSUI builds a
@@ -77,7 +87,7 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
   - Conversations: Memory (opens the Memory page), Talk to ordinary NPCs, Talk to story characters, Johnny in your head (with a
     read-only "Johnny's standing" line under it while it is on), Johnny speaks up, Multilingual conversations, Auto-connect nearby
     characters, Continue from game dialogue, Live holocall picture.
-  - Relationships: one selector per character that has the setting (Auto, Romantic, Ordinary; Auto, Casual, Ordinary for Meredith
+  - Relationships (a page of its own, opened by the Relationships row of Conversations): one selector per character that has the setting (Auto, Romantic, Ordinary; Auto, Casual, Ordinary for Meredith
     Stout). The saved values stay `auto`, `on` and `off`. There is no "Who can talk" row: every character may talk by default, and
     one the player muted earlier stays muted, since nothing resets the saved value.
   - Conversation provider: the provider selector, Mature content, Local AI model, Mistral free API key, the Custom
@@ -134,7 +144,8 @@ player returns to gameplay; paused spawn timers do not advance. Closing the mana
 
 ## How a change is applied
 
-There is no Apply button, no draft and no Revert: NSUI has none, and a change is applied for real. `mod/nsui.lua` records what the
+**In Native Settings UI** there is no Apply button, no draft and no Revert: NSUI has none, and a change is applied for real. (MCM has
+drafts and Apply: see "The MCM host".) `mod/nsui.lua` records what the
 widgets report (a callback only records; the work is done by the next frame's update) and applies it after a short wait:
 
 | Widget | Wait after the last change |
@@ -174,7 +185,8 @@ After every apply the page is drawn again. **What the rules did is shown on the 
     wins. Multilingual conversations follows the same rule (the voice is kept when the player chooses it) and never keeps Pocket or
     Voxtral, which speak English only: it switches to OmniVoice · Balanced, or to the Convai cloud voice without the pack.
   - V's voice engine Voxtral is refused without a Mistral key and while Mature content is on.
-- **Restore defaults** is NSUI's own button, registered for this tab. On the Settings page it applies every saved row that is not at
+- **Restore defaults** is NSUI's own button, registered for this tab (in MCM it is a footer button of the host, pressed twice). On the Settings
+  page and the Relationships page it applies every saved row of both pages that is not at
   its default through the same path (the Local AI model goes to the model shown as the default, the largest that fits), then says
   "Defaults restored."; a default a rule would refuse is not forced. On any other page it changes nothing and says "Open Settings to
   restore its defaults."
@@ -219,6 +231,11 @@ CET's Bindings (the mod never assigns keys; the development install binds F4 whe
 `scripts/Set-DevelopmentBindings.ps1`). `mod/nsui-entry.lua` walks the real menus, as the player would, by activating real menu
 items; it simulates no key and edits no other mod's files, menu or input handlers.
 
+**With MCM 0.10.5 or newer hosting the page the shortcut does not walk any menu**: `mod/nsui.lua` `M.open` asks the MCM host, which
+calls MCM's public `api.ui.open('cyberpunk-convai:manager')`; MCM's own update takes the request, opens its screen and selects the
+manager (see "The MCM host"). This is the case whether or not Native Settings UI is installed. Only when MCM is absent, older than
+0.10.5 or refuses the request does the walk below run (Native Settings UI), and without a host the shortcut shows its notice.
+
 1. It refuses, and logs why, without Native Settings UI (see below), with no save loaded ("Load a save first."), while the text box is
    open, during a scene ("Finish the scene first.") and with another menu open ("Close the current menu first, or choose Mods from the
    pause menu."). In gameplay it asks the game to open the pause menu (menu event `OnOpenPauseMenu`); with the pause menu already open
@@ -226,27 +243,120 @@ items; it simulates no key and edits no other mod's files, menu or input handler
 2. The host puts the manager on its first page and tells NSUI which tab to start on (`lastNativeSettingsCategoryIndex`).
 3. In the pause menu it finds the item labelled "Mods" whose event is `OnSwitchToSettings` (the item NSUI adds beside Settings; the
    game's own Settings item has the localized word) and activates it with `OnMenuItemActivated`, so NSUI marks the screen as its own
-   and builds its tabs. If NSUI still opens on another tab, the tab is selected once after 2 s.
+   and builds its tabs. If NSUI still opens on another tab, the tab is selected once after 2 s. (With Mod Configuration Menu installed
+   the item is MCM's own: see "Beside MCM".)
 4. The walk is done when the tab is shown. It gives up after 8 s with "The shortcut timed out. Choose AI NPC Cyberpunk Mod from the
    pause menu under Mods." (logged) and activates nothing else. Pressing the shortcut again during the walk changes nothing.
 5. **While the manager is open the shortcut closes it**, the way Esc does (`RequestClose`).
-6. **Closing returns to the game.** When the Settings screen that closes was showing this tab (matched by engine identity), the
-   adapter waits for that screen to detach, then activates the real **Resume** item (`OnClosePauseMenu`) once, so the game's own
-   scenario unpauses and releases its input contexts. It waits at most 3 s. The game's own Settings screen, another tab, a screen the
-   tab never showed on, a new Settings screen, a save reload and a reset never resume anything.
+6. **Closing returns to the game, when the shortcut opened the pause menu.** Only a walk that started in gameplay (the shortcut itself opened the
+   pause menu) hands the player back: when the Settings screen that the walk opened closes while this tab is on it (a `RequestClose`
+   for that screen's engine identity, or, if the game closes the screen by another route, its detach with the tab shown), the adapter
+   waits for the screen to detach, then activates the real **Resume** item (`OnClosePauseMenu`) once, so the game's own scenario
+   unpauses and releases its input contexts. If the pause menu is still up two seconds later it activates Resume once more, never a
+   third time. It waits at most 3 s for the item. A pause menu the player opened, a Mods screen the player opened by hand, the game's
+   own Settings screen, another tab, a new Settings screen, a save reload and a reset never resume anything. The decisions are logged
+   to `runtime/mcm.log` ("Manager exit: ...").
 
-**Without NSUI** (or with a copy that lacks one of the functions the host calls: `addTab`, `addSubcategory`, `removeSubcategory`,
-`removeOption`, `addSwitch`, `addRangeInt`, `addSelectorString`, `addButton`, `setOption`, `registerRestoreDefaultsCallback`) the
-shortcut shows the notice "The Companion Manager needs Native Settings UI (Nexus Mods)" (notice id `manager-needs-nsui`, player class, at
-most every 10 s) and starts no walk. The setup check names it too (see below). NSUI is found with `GetMod('nativeSettings')` (or
+**At the main menu** `init.lua`'s update has no world, and it still runs `managerUi.update(nil, false)` there (the manager's slow
+tick and a few comparisons), so a button of the page is answered with no save loaded: Settings, Help and Memory open. The pages that
+need a save (Characters to invite, Current party, Model browser) show a read-only row, "Characters and party: Load a save first",
+instead of working invite buttons; the same row is in MCM, which shares `manager-ui.lua`.
+
+**Without any host** (no MCM 0.10.5 or newer, and no NSUI, or an NSUI that lacks one of the functions the host calls: `addTab`,
+`addSubcategory`, `removeSubcategory`, `removeOption`, `addSwitch`, `addRangeInt`, `addSelectorString`, `addButton`, `setOption`,
+`registerRestoreDefaultsCallback`) the shortcut shows the notice "The Companion Manager needs Mod Configuration Menu 0.10.5 or newer,
+or Native Settings UI" (notice id `manager-needs-nsui`, player class, at most every 10 s) and starts no walk; when the only Mod
+Configuration Menu is older than 0.10.5 the notice is "Update Mod Configuration Menu to 0.10.5 or newer to use the Companion Manager".
+The setup check names them too (see below). NSUI is found with `GetMod('nativeSettings')` (or
 `'NativeSettings'`) at CET's `onInit`; a copy that loads after this mod is found by a once-a-second look, and the tab is registered then.
 
 ### Beside MCM
 
-Expected, found by reading MCM's code and **not yet confirmed in game**: with MCM installed, MCM hides NSUI's own Mods button in the
-pause menu and shows its own screen; MCM imports NSUI's tabs, so the manager still appears there, under its mod list, and the shortcut
-is expected to land there. Without MCM the way is Esc, Mods, AI NPC Cyberpunk Mod. The tests only show that an MCM API present in the
-game changes nothing in the host and that no setup check names MCM.
+**Since the MCM host (below), this section only applies to an MCM older than 0.10.5 beside NSUI**: from 0.10.5 the manager is
+registered with MCM through its public API and the shortcut opens MCM on it directly, so the walk and its notice are the fallback.
+
+Found by reading MCM 0.10.3 (`ModConfigurationMenu/mcm_ui/mcm_menu_bridge.lua` and `mcm_controller.lua`,
+`ModConfigurationMenuAPI/bridges/native_settings/provider.lua`, `00_MCMNativeSettingsLifecycle/init.lua`), **not yet confirmed in game**;
+MCM 0.10.4 (not read) changed its internals, and its author keeps only the public API stable, so the walk relies on as little of them
+as it can. With MCM's setting "Redirect Framework Menu Entries" on (the default) MCM keeps NSUI's Mods item in the pause menu's list but hides its
+widget (`SetVisible(false)`), adds its own item (data labelled "Mods" like NSUI's, event `OnSwitchToMCM`, shown as "MCM" or "Mods" by
+MCM's own setting), turns an activation of NSUI's item into MCM's screen too, and imports NSUI's tabs through a snapshot, so the manager
+is a row of MCM's list of mods (`AI NPC Cyberpunk Mod`, with the prefix `[CET]` when MCM shows provider prefixes). MCM's public API
+cannot select a row of that list (`openMod` only sets the API's own active mod; the screen keeps its own selection), and the entry never
+calls or hooks MCM's `McmUi*` functions, so the shortcut ends at the list: it reads the pause menu's list, takes NSUI's item unless MCM's item is there and NSUI's widget is hidden (or
+the game does not say), in which case it activates MCM's item with `OnMenuItemActivated`, as the player would (an item still labelled
+"Mods" and visible, not NSUI's, Resume or Mod Settings'/RCF's, is taken for it if a later MCM renames the event); when MCM's Settings
+screen has opened the walk is done and the host posts the notice "Open AI NPC Cyberpunk Mod in the Mods list." (id `manager-in-mcm-list`,
+15 translations; it is posted from the pause menu, where the game may hide the warning line, so whether the player sees it is a live
+check). The 8 s guard, the logged timeout sentence and "pressing the shortcut again" are the same, and closing the MCM screen that the
+shortcut opened returns to the game like the Mods screen does (matched by engine identity, Resume once after the detach; the shortcut
+closes it while it is open). With MCM's redirect off NSUI's item stays visible and the walk is the plain one, and without MCM nothing
+changed. Tests: a fake MCM item in `bridge/nsui-entry.test.mjs` (MCM at its default, redirect off, event renamed, no item, timeout, close
+and resume) and the real host in `bridge/nsui-manager.test.mjs`.
+
+## The MCM host
+
+`mod/mcm-host.lua` registers one provider (id `cyberpunk-convai`, registration key `cyberpunk-convai.manager.v1`, API version 2, one
+mod `manager`) with MCM and gives MCM the page that `manager-ui.lua` builds. `mod/init.lua` attaches it next to the NSUI host
+(`managerUi.attach(dofile('mcm-host.lua'))`); `mod/nsui.lua` hands it the same `manager-ui.lua` instance and calls its `install`,
+`update`, `resetSession` and `shutdown`, so the two hosts share one page state and one set of saved settings.
+
+**Detection.** `GetMod('ModConfigurationMenuAPI')` is looked for at CET's `onInit` and then once a second (every 5 s after 30 tries).
+The host registers only when the answer has `apiVersion` 2, a `providers.registerProvider`, a `version` of 0.10.5 or newer (compared
+as numbers: 0.10.10 is newer than 0.10.5) and the public UI extension `ui` with `apiVersion` 1 and every call the host makes (`setApplyPolicy`,
+`setPresentation`, `setNavigation`, `setFooterActions`, `setChoiceStates`, `setStatus`, `getContext`, `open`, `clear`, and `hasDrafts`,
+`reloadMod`, `revert`, `refreshProvider`). Otherwise it logs one line to `runtime/mcm.log` and the console ("... Mod Configuration Menu cannot
+host the page (MCM 0.10.3 is older than 0.10.5 ...)") and stays out. No MCM function is overridden or observed, no MCM widget or
+internal table is read; `bridge/mcm-host.test.mjs` checks that the file contains no `Observe`, `Override`, `McmUi` or `require`.
+
+**The page.** Every category of the page is a category of MCM, each row a setting: `bool`, `select`, `int` rows are drafts
+(capabilities read, write, draft; NO default: MCM draws a row purple only when it has a default and differs from it, and the same rows
+look alike without it; MCM's own Defaults button and Modified counter go with the defaults, so the host has its own **Restore defaults**
+footer button on Settings and Relationships, pressed twice because MCM's public API has no confirmation, applying `manager-ui.lua`
+`M.defaults()` through `M.apply`), actions are MCM actions (with `disabled` rows not runnable), read-only rows are `string` settings
+without write, except on the Settings page where Voice status and Johnny's standing are status buttons (an action with the value as its
+text that does nothing: MCM draws a read-only line at size 26 and every other row at 22). Two alignments remain that no public option
+changes: a setting's label is in MCM's marker column (x 48, `MCMLayout.reds` `contentLabelX`) and an action's is flush left (x 20).
+Relationships is a page of its own (view `relationships`, back to Settings), opened by a Relationships button in Conversations. The line under the way back (the result of the last action) is MCM's
+status line (`api.ui.setStatus`, kind info), sent only when it changes. The way back is the page's back action: `setNavigation` gives
+it as `backActionId` (Escape goes back) and `setFooterActions` puts it in MCM's footer; the `pageId` is `view|page|group`, so MCM scrolls to
+the top of a new page. The OmniVoice entries of Companion voices are disabled choices (`setChoiceStates`, reason "Requires the optional
+OmniVoice pack (GPU)") while its pack is missing. A long list is turned with buttons, because MCM has no setting that changes the page
+without a draft: **Previous page**, **Next page** (disabled at the ends) and, in the model browser, **Starts with: B** (the next letter
+group, the last one goes round to All).
+
+**Draft and Apply.** The apply policy is `explicit` (MCM's own Auto Apply is not used): a change is a draft until the player presses
+Apply (or Revert drops it). MCM hands the drafts to `applyBatch` as `{id, value}`, and the host runs
+`manager-ui.lua` `M.apply`: ONE validated, saved transaction with the same rules as the NSUI host (Mature content turns on Local AI,
+the uncensored model and a local voice with it; a value the rules refuse is refused with the reason). `appliedIds` are the ids MCM
+asked for, not the extra ones the rules saved. MCM loads the page again and the rows show what was saved. If the rules did not keep a
+requested value (Mature content without Local AI), MCM would keep that draft as unapplied: the host reverts it from the next tick and
+the status line gives the reason. MCM refuses a button while changes are pending ("Apply or revert pending changes ..."); that is MCM's
+own rule.
+
+**Staying equal to what is true.** While MCM shows the page, the host runs `manager-ui.lua`'s `tick` and, when `stale()` says something
+the page shows changed (a new party member, a model scan that finished, the voice service state, a language change), loads the page
+again with `api.reloadMod`, unless changes are pending (MCM refuses; the redraw waits for Apply or Revert), and backs off for 5 s after
+a reload MCM refused. A language change gives MCM the new locale (`setPresentation`) and the new mod name (`refreshProvider`). The next visit
+starts on Home (`closeMod` puts the page back).
+
+**Cost.** Closed: one clock comparison per frame. Every 0.25 s: one read of `api.ui.getContext()`; while the manager is shown also the
+page logic's own once-a-second look. The model browser's scan runs a bounded batch a frame only while the browser is shown.
+
+**The shortcut.** `M.open` refuses like the NSUI walk ("Load a save first.", "Close the text box first.", "Finish the scene first.")
+and otherwise calls `api.ui.open`. MCM has no public call to close its screen, so pressing the shortcut again while it is open does
+nothing (Esc and MCM's own close work as usual).
+
+**Both installed.** MCM imports Native Settings UI's tabs into its own list through its bridge, and Native Settings UI cannot remove a tab
+once it is added, so `mod/nsui.lua` does not register the tab while the MCM host has registered the page (hosts are installed first at CET's
+`onInit`, where every mod is loaded, so there is no waiting and no per-frame look). An install with Native Settings UI alone, or beside an
+MCM older than 0.10.5, registers the tab as before. If MCM is installed but the shortcut cannot open it (for example it refuses the open
+request), the shortcut registers the tab then and falls back to the Native Settings UI walk. An MCM that only appears after
+CET's `onInit` leaves a tab that was already registered where it is (bridged into MCM's list).
+
+Tests: `bridge/mcm-host.test.mjs` over `bridge/mcm-fake.mjs`, a fake MCM that keeps the rules of MCM's own modules for providers,
+schemas, drafts, Apply (including the exact `appliedIds` check), actions and the public UI extension; the setup check in
+`bridge/setup-check-lua.test.mjs`.
 
 ## Fonts and widths
 
@@ -446,27 +556,6 @@ Tests: `bridge/setup-check.test.mjs`, `bridge/setup-check-lua.test.mjs` (the Lua
    (service status, settings, party, `runtime\*.log`, `AiNpcCyberpunkMod.log`), says why it is short and names
    the logs it could not read. It is one fixed file, `runtime\convai-report-lua.txt` (shipped empty and rewritten in place, so a
    new report replaces the last one and no file is created, renamed or removed).
-4. **With the game closed** (the mod never loads, so there is no Help page): `Make support report.bat` in
-   `red4ext\plugins\AiNpcCyberpunkMod` starts the bundled Node on `bridge/make-support-report.mjs`, which runs
-   `runOfflineReport()` (`bridge/offline-support-report.mjs`). It calls the same `buildReport` as the service, so the zip is the same
-   kind and goes to the same reports folder, with `generatedBy: offline`. It finds the game folder from where the Runtime is (or
-   `--game`), reads the logs from disk, and adds a requirement check to `summary.json` (`requirements`, `modFiles`, `releases`,
-   `offline`): Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Native Settings UI (CET mod folder
-   `nativeSettings`; ArchiveXL too when present) with the version where one is written down (the CET and RED4ext logs of the last start,
-   and the `version = ...` line of Native Settings UI's own `init.lua`), this mod's CET folder, redscript folder and RED4ext plugin, and
-   the Scripts and Runtime `release.json`. Mod Configuration Menu is not checked. Each missing piece is a line in the PROBLEM FOUND block, and the same lines are printed in the window (a player who
-   double-clicks the file sees what is missing, not only where the zip is; "No missing mods or mod files were found." when there is none).
-   A mod extracted into a folder inside the game folder ("Extract to <zip name>") is named as that: when the tool itself sits in such a
-   folder, the game folder is the one above it, and `findMisplaced()` looks one and two folders below the game folder (never in its own
-   folders) for the CET folder's `init.lua`, the redscript folder and the plugin's DLL of a piece that is missing where it belongs; the move
-   is the player's to make. Redaction is the service's (`createRedactor`), with the player's key files, the Custom provider's key
-   (`player-custom-endpoint.txt`), the sign-in secret and the key packed into the Runtime added to the values it scrubs, and
-   `%USERNAME%` hidden in any path as well. Under Mod Organizer 2 a Runtime in MO2's `mods` folder is found through
-   `ModOrganizer.ini`, above the mods folder (portable) or in `%LOCALAPPDATA%\ModOrganizer\<instance>` (global, base directory
-   anywhere); Overwrite, the enabled mod folders of the selected profile and the game folder are searched in the order the game
-   sees them, and for each log the newest copy wins. Where that fails the tool says what it could not find and that MO2 users may
-   need to start it from MO2 (Executables). It opens Explorer on the zip, prints one line naming it, and exits with 0 (1 when no
-   report was made, also from the batch file).
 
 ### Privacy
 
@@ -561,7 +650,10 @@ on the first reply.
 
 ## Ownership
 
-- `mod/nsui.lua`: the NSUI host. Registers the tab (`addTab`, the restore-defaults callback), draws the page, keeps it equal to the
+- `mod/mcm-host.lua`: the MCM host (above). Registers the provider, converts the page to MCM's schema, answers MCM's calls (`loadMod`,
+  `invokeAction`, `applyBatch`, `closeMod`), keeps the page current. Knows nothing about what a setting means.
+- `mod/nsui.lua`: the NSUI host, and the one object `init.lua` talks to: it owns the page logic instance, fans `install`, `update`,
+  `resetSession` and `shutdown` out to the attached hosts and chooses the host for the shortcut. Registers the tab (`addTab`, the restore-defaults callback), draws the page, keeps it equal to the
   state, debounces and applies changes, fits texts, applies fonts. Knows nothing about what a setting means.
 - `mod/manager-ui.lua`: the pages, rows, actions and rules (`schema()`, `M.apply`, `stageMature`, paging, feedback line), with no
   knowledge of the screen that shows them.
@@ -615,6 +707,10 @@ hole it leaves in its section list, and checks that the widgets on screen are wh
 - Text fit: every width above, the 26-unit select budget with its assumed key boxes, and the 420 characters of a description are
   estimates; the size of NSUI's description area cannot be read from the files this repository may use.
 - Fonts of the Russian, Ukrainian, Chinese, Japanese and Korean rows when the game runs in another language.
-- How it behaves beside MCM (see "Beside MCM").
+- How it behaves beside MCM older than 0.10.5 (see "Beside MCM").
+- The MCM host in the running game with MCM 0.10.5: that the screen opens on the manager from the shortcut in gameplay and from the
+  pause menu, that Apply, Revert and Defaults behave as the fake says, the status line, the footer back button and Escape-back, the
+  disabled OmniVoice entries, the page buttons, how it looks (the fake knows no layout: the label width, font sizes and the description
+  area are MCM's), and that no Native Settings UI tab is listed in MCM when both are installed.
 - The debounce times (0.3, 0.4 and 0.6 s, at most 2 s) are chosen, not measured against real widget callbacks.
 - The visibility and timing of the invitation notices (the 3 s and 5 s stays) in the running game.

@@ -1,6 +1,10 @@
 // V's line beside the companion's reply, with simulated provider timings (docs/V_VOICE.md, "Timing, measured").
 //
-//   node scripts/Measure-VVoice.mjs [--runs 5] [--prep 180] [--root <checkout>] [--json out.json]
+//   node scripts/Measure-VVoice.mjs [--runs 5] [--prep 180] [--grace 600] [--vpocket 250] [--text 900] [--root <checkout>] [--json out.json]
+//   --grace    how long a ready reply waits for V's first audio before V is dropped (bridge/v-voice.mjs V_GRACE_MS; 0 is the rule before 2026-10-19)
+//   --vpocket  Pocket's first audio for V in ms: 250 is a warm voice, about 2800 is the cold first line of a session on a slow CPU (live 2026-10-19)
+//   --only     run the scenarios whose label contains this text (e.g. "Voxtral companions, V on Pocket"); --early runs only the current order
+//   --text     the companion's first sentence is ready this long after the text request (live 2026-10-19 with Mistral: about 1100)
 //   node scripts/Measure-VVoice.mjs --legacy --root "<main checkout at cf97b9aa>"     the contract before V's own voice engine existed
 //
 // What is real: VVoice and VLine (the gate, the hold, the drop rules, PcmEdges' lead-in and tail) and the TurnClock that records
@@ -25,6 +29,7 @@ const here = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const root = resolve(option('--root', here));
 const legacy = args.includes('--legacy');
 const RUNS = Number(option('--runs', 5));
+const GRACE = option('--grace') === undefined ? undefined : Number(option('--grace'));
 const PREP = Number(option('--prep', 180));       // received -> transport: knowledge (about 1 ms), admission (5 to 35 ms), the transport hand-over (docs/LATENCY_2026-10-12.md: transport at 162 ms)
 const load = path => import(pathToFileURL(resolve(root, path)).href);
 const {VVoice} = await load('bridge/v-voice.mjs');
@@ -35,10 +40,10 @@ const now = () => performance.now();
 const median = values => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
 
 // ---- the simulated pieces ------------------------------------------------------------------------------------------------------
-const TEXT_MS = 900;                // the companion's first sentence is ready this long after the text request is sent (docs/V_VOICE.md: 0.9 to 1.1 s)
+const TEXT_MS = Number(option('--text', 900));                // the companion's first sentence is ready this long after the text request is sent (docs/V_VOICE.md: 0.9 to 1.1 s)
 const LINE_SECONDS = 2.0;           // "Hey Judy, how are you holding up?"
 const COMPANION_FIRST_AUDIO = {pocket: 250, voxtral: 1100, omni: 1300};      // the companion's voice: Pocket audible at 0.2 to 0.26 s, Voxtral 1.0 to 1.3 s, OmniVoice 1.3 s at 16 steps
-const V_FIRST_AUDIO = {pocket: 250, voxtral: 1100};
+const V_FIRST_AUDIO = {pocket: Number(option('--vpocket', 250)), voxtral: 1100};
 const RENDERER_MS = 40;             // first packet -> the renderer holds audio (the page is warm)
 
 const packet = frames => ({version: 1, engine: 'pocket-tts', sampleRate: 24000, channels: 1, format: 'f32le', owner: '1'.repeat(32), id: 1,
@@ -90,7 +95,7 @@ function build({vEngine, companion}) {
     const helper = {speaks: () => !mainPocket, ready: () => true, stream: engine(V_FIRST_AUDIO.pocket), prepare: async () => {}};
     const cloud = {problem: () => null, stream: engine(V_FIRST_AUDIO.voxtral), warm: () => {}};
     voice = new VVoice({...common, planFor: () => ({engine: vEngine, language: 'en'}), ready: () => mainPocket, isLocal: () => true,
-      stream: engine(V_FIRST_AUDIO.pocket), helper, cloud});
+      stream: engine(V_FIRST_AUDIO.pocket), helper, cloud, ...(GRACE === undefined ? {} : {graceMs: GRACE})});
     voice.update({vVoice: true, vVoiceEngine: vEngine});
   }
   return voice;
@@ -123,7 +128,7 @@ async function turn({companion, vEngine, startV}) {
 }
 
 // ---- the scenarios ----------------------------------------------------------------------------------------------------------------
-const scenarios = legacy
+const scenarioList = legacy
   ? [{label: 'Pocket companions, V on Pocket', companion: 'pocket', vEngine: 'pocket'},
      {label: 'Voxtral companions, V on Voxtral', companion: 'voxtral', vEngine: 'voxtral'},
      {label: 'OmniVoice companions, V on the Pocket helper', companion: 'omni', vEngine: 'pocket'}]
@@ -133,7 +138,9 @@ const scenarios = legacy
      {label: 'Voxtral companions, V on Voxtral', companion: 'voxtral', vEngine: 'voxtral'},
      {label: 'OmniVoice companions, V on Pocket (helper)', companion: 'omni', vEngine: 'pocket'},
      {label: 'OmniVoice companions, V on Voxtral', companion: 'omni', vEngine: 'voxtral'}];
-const orders = legacy ? ['late'] : ['late', 'early'];
+const only = option('--only');
+const scenarios = only ? scenarioList.filter(item => item.label.includes(only)) : scenarioList;
+const orders = legacy ? ['late'] : args.includes('--early') ? ['early'] : ['late', 'early'];
 
 const rows = [];
 for (const scenario of scenarios) {

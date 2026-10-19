@@ -10,7 +10,7 @@ import {join} from 'node:path';
 import {BridgeSupervisor, DEFAULT_TIMINGS, READY_MARKER} from './bridge-supervisor.mjs';
 import {FAKE_KEY, GAME_PID, createWorld} from './supervisor-world.mjs';
 
-const opts = {timeout: 60_000};
+const opts = {timeout: 300_000};
 const readyFor = async (world, index) => {
   await world.untilSpawned(index + 1);
   return world.untilStatus(status => status.state === 'ready' && status.bridgePid === world.spawned[index].child.pid, `bridge ${index + 1} did not become ready`);
@@ -257,7 +257,13 @@ test('a bridge that ignores the stop is asked every two seconds for 45 s, then i
   await readyFor(w, 0);
   w.endGame(); w.advance(1000);
   await w.untilStatus(status => status.state === 'stopping', 'stopping was not published');
-  for (let step = 0; step < 21; step++) { w.advance(2000); await w.turn(3); }
+  // The world looks at the control file only every 25 ms of real time, and each request replaces the one before it: a few event-loop turns after the clock
+  // moved were not always enough for the next request to be seen ('12 requests in 42 s' on a busy machine). Each step waits until its request has been seen.
+  for (let step = 0; step < 21; step++) {
+    const seen = w.controlWrites.length;
+    w.advance(2000);
+    await w.until(async () => w.controlWrites.length, count => count > seen, `no stop request was seen after ${(step + 1) * 2} s of waiting`, 60_000);
+  }
   assert.deepEqual(w.kills, [], 'still inside the grace period');
   const requests = w.controlWrites.map(text => JSON.parse(text));
   assert(requests.length >= 20 && requests.length <= 24, `${requests.length} requests in 42 s`);

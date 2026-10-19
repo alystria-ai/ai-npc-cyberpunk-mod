@@ -41,13 +41,17 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/convai-signin.mjs',
   'bridge/convai-vision.mjs',
   'bridge/conversation-style.mjs',
+  'bridge/custom-characters.mjs',
   'bridge/custom-endpoint.mjs',
+  'bridge/custom-manifest-folders.mjs',
   'bridge/custom-models.mjs',
+  'bridge/custom-voice-clip.mjs',
   'bridge/dialogue-level.mjs',
   'bridge/emotion-analysis.mjs',
   'bridge/emotion-lexicon.mjs',
   'bridge/emotion-selector.mjs',
   'bridge/emotion-tags.mjs',
+  'bridge/error-events.mjs',
   'bridge/expression-timeline.mjs',
   'bridge/expressive-emotions.mjs',
   'bridge/facial-timeline.mjs',
@@ -55,6 +59,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/follow-up.mjs',
   'bridge/game-dialogue.mjs',
   'bridge/game-launch.mjs',
+  'bridge/game-state.mjs',
   'bridge/group-context.mjs',
   'bridge/group-lookahead.mjs',
   'bridge/group-prefetch.mjs',
@@ -71,6 +76,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/key-codec.mjs',
   'bridge/knowledge-decisions.mjs',
   'bridge/knowledge-parts.mjs',
+  'bridge/live-voices.mjs',
   'bridge/local-ai-pack.mjs',
   'bridge/local-embed.mjs',
   'bridge/local-llm-server.mjs',
@@ -111,6 +117,8 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/player-memory-control.mjs',
   'bridge/player-memory.mjs',
   'bridge/player-phone-knowledge.mjs',
+  'bridge/player-voice-summary.mjs',
+  'bridge/player-voices.mjs',
   'bridge/pocket-facial-stream.mjs',
   'bridge/pocket-speech.mjs',
   'bridge/pocket-voice.mjs',
@@ -132,6 +140,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/setup-check.mjs',
   'bridge/shared-key-guard.mjs',
   'bridge/speech-audio.mjs',
+  'bridge/speech-language.mjs',
   'bridge/speech-pace.mjs',
   'bridge/speech-state-cache.mjs',
   'bridge/speech-stream.mjs',
@@ -159,6 +168,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/voice-utterance.mjs',
   'bridge/voice-variants.mjs',
   'bridge/voxtral-reference.mjs',
+  'bridge/voxtral-stt.mjs',
   'bridge/voxtral-voice.mjs',
   'bridge/witness-receipts.mjs',
   'bridge/world-knowledge.mjs',
@@ -181,10 +191,11 @@ export const BRIDGE_AUXILIARY_FILES = Object.freeze([
   'bridge/phone-analysis-worker.py',
   'bridge/local-stt-worker.py',
   'bridge/audio-output-probe.ps1', // Lip sync delay Auto: default output device
-  // "Make support report.bat" (red4ext/plugins/AiNpcCyberpunkMod) starts the first with the bundled Node when the game is closed; the
-  // second is the report code it calls. Neither is imported by the service.
-  'bridge/make-support-report.mjs',
-  'bridge/offline-support-report.mjs',
+  // The automatic error reports' sender: the service's supervisor (bridge/bridge-supervisor.mjs) loads it with a dynamic import, so a
+  // problem in it can never stop the service. The bridge itself only records (bridge/error-events.mjs, above). Its helper for the
+  // values to scrub and the RED4ext plugin versions is loaded the same way.
+  'bridge/error-reports.mjs',
+  'bridge/report-secrets.mjs',
 ]);
 // These are the pinned external package entry points, not a replacement for the
 // full reviewed Playwright distributions and their transitive source/notices.

@@ -14,9 +14,14 @@ import {LocalStt, MODEL_FILES} from './local-stt.mjs';
 import {createLocalSpeech} from './local-stt-capture.mjs';
 import {AudioOutputWatch} from './audio-delay.mjs';
 import {syntheticModel, speechLike} from './jali-face-fixture.mjs';
+import {fakeClock} from './fixtures/fake-clock.mjs';
 
 const tick = () => new Promise(done => setImmediate(done));
-const until = async (predicate, label) => { for (let at = 0; at < 300; at++) { if (predicate()) return; await tick(); } assert.fail('timed out waiting for ' + label); };
+// Waits on the state, with a ceiling that only a hung test reaches (counting event-loop turns would depend on how fast the machine is).
+const until = async (predicate, label) => {
+  for (const deadline = Date.now() + 60_000; Date.now() < deadline;) { if (predicate()) return; await tick(); }
+  assert.fail('timed out waiting for ' + label);
+};
 
 // ---- Voice playback Off releases the local voice worker ------------------------------------------------------------------------
 
@@ -232,7 +237,7 @@ test('a Convai page in the pool keeps the browser', async t => {
 
 const ALL = new Set(['/py/python.exe', '/app/bridge/local-stt-worker.py', '/py/Lib/site-packages/sherpa_onnx', ...MODEL_FILES.map(name => '/model/' + name)]);
 const existsIn = files => path => files.has(String(path).replace(/^[A-Za-z]:/, '').replaceAll('\\', '/'));
-function sttFixture({exitsOnQuit = true} = {}) {
+function sttFixture({exitsOnQuit = true} = {}, clock = fakeClock()) {
   const spawned = [];
   const spawnImpl = () => {
     const child = new EventEmitter();
@@ -249,20 +254,25 @@ function sttFixture({exitsOnQuit = true} = {}) {
     spawned.push(child); return child;
   };
   const stt = new LocalStt({paths: {python: '/py/python.exe', worker: '/app/bridge/local-stt-worker.py', modelDirectory: '/model'},
-    exists: existsIn(ALL), spawnImpl, lowerPriority: false, idleMs: 25, exitMs: 30});
-  return {stt, spawned};
+    exists: existsIn(ALL), spawnImpl, lowerPriority: false, idleMs: 25, exitMs: 30, setTimer: clock.setTimer, clearTimer: clock.clearTimer});
+  return {stt, spawned, clock};
 }
 
 test('the recogniser leaves after its idle time and the microphone page is closed with it', async () => {
-  const {stt, spawned} = sttFixture();
+  // The idle and exit limits run on a fake clock: they fire exactly when the test moves the clock to them, however busy the machine is
+  // (a real 25 ms idle timer and 30 ms kill timer raced the fake process's exit and the test's own wait).
+  const {stt, spawned, clock} = sttFixture();
   let captured = 0;
   const speech = createLocalSpeech({stt, capture: {close: async () => { captured++; }}});
   await stt.start('r1'); await stt.cancel('r1');
   assert.equal(spawned.length, 1);
-  await new Promise(done => setTimeout(done, 90));
+  await clock.advance(24);
+  assert.equal(captured, 0, 'the recogniser stays until its idle time is over');
+  await clock.advance(1);
   assert.equal(captured, 1, 'the capture page is closed when the recogniser idles');
-  assert.equal(spawned[0].killed, false, 'it left by itself on quit, nothing was killed');
   assert.equal(stt.worker, null);
+  await until(() => clock.pending() === 0, 'the process to exit on quit (which clears its kill timers)');
+  assert.equal(spawned[0].killed, false, 'it left by itself on quit, nothing was killed');
   await speech.close();
 });
 
@@ -273,10 +283,14 @@ test('closing the recogniser waits for the process to exit and kills one that ig
   assert.equal(polite.spawned[0].killed, false);
   const stubborn = sttFixture({exitsOnQuit: false});
   await stubborn.stt.start('r1');
-  const started = Date.now();
-  await stubborn.stt.close();
+  let closed = false;
+  const closing = stubborn.stt.close().then(() => { closed = true; });
+  await stubborn.clock.advance(29);
+  assert.equal(stubborn.spawned[0].killed, false, 'not killed before exitMs (30 ms) is over');
+  assert.equal(closed, false, 'close waits for the process');
+  await stubborn.clock.advance(1);
   assert.equal(stubborn.spawned[0].killed, true, 'a worker that does not leave on quit is killed after exitMs');
-  assert.ok(Date.now() - started >= 25);
+  await closing;
 });
 
 // ---- The audio-output probe ------------------------------------------------------------------------------------------------------

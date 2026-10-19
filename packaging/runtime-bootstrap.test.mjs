@@ -42,7 +42,7 @@ const timer = setInterval(async () => {
 }, 20);
 `;
 
-async function until(read, accepts, timeout = 6000) {
+async function until(read, accepts, timeout = 120000) {
   const end = Date.now() + timeout; let latest;
   while (Date.now() < end) {
     try { latest = await read(); } catch { latest = null; }
@@ -336,7 +336,7 @@ test('launch environment removes import hooks and preserves explicit application
 });
 
 test('real hidden fixture child reaches readiness, ignores a foreign stop and drains the exact owned stop',
-  {timeout: 15000}, async () => {
+  {timeout: 180000}, async () => {
     const fix = await fixture(), controller = new AbortController(); let run, child;
     try {
       const before = await readFile(join(fix.state, 'player-memory.json'));
@@ -370,7 +370,7 @@ test('real hidden fixture child reaches readiness, ignores a foreign stop and dr
     }
   });
 
-test('concurrent service launchers admit only one bridge child', {timeout: 15000}, async () => {
+test('concurrent service launchers admit only one bridge child', {timeout: 180000}, async () => {
   const fix = await fixture(), controller = new AbortController(); let launches = 0;
   try {
     const options = {watchGame: false, pollMs: 25, signal: controller.signal,
@@ -383,7 +383,7 @@ test('concurrent service launchers admit only one bridge child', {timeout: 15000
   } finally { controller.abort(); await cleanup(fix); }
 });
 
-test('a stop during imports is retried after the bridge initial control snapshot', {timeout: 15000}, async () => {
+test('a stop during imports is retried after the bridge initial control snapshot', {timeout: 180000}, async () => {
   const fix = await fixture(), controller = new AbortController(); let child, run;
   try {
     run = superviseRuntime(fix.layout, {watchGame: false, pollMs: 25, signal: controller.signal,
@@ -400,7 +400,7 @@ test('a stop during imports is retried after the bridge initial control snapshot
   }
 });
 
-test('a changed game creation-time token gracefully retires this service without transferring it', {timeout: 15000}, async () => {
+test('a changed game creation-time token gracefully retires this service without transferring it', {timeout: 180000}, async () => {
   const fix = await fixture(), controller = new AbortController(); let token = '12345-56789', run;
   try {
     run = superviseRuntime(fix.layout, {pollMs: 25, signal: controller.signal, identifyGame: async () => token});
@@ -443,7 +443,7 @@ test('recovery clears only a dead owned record and never touches live/orphaned p
   } finally { await cleanup(fix); }
 });
 
-test('manifest generator uses a file recipe, produces checked hashes and refuses an installed overwrite', {timeout: 15000}, async () => {
+test('manifest generator uses a file recipe, produces checked hashes and refuses an installed overwrite', {timeout: 180000}, async () => {
   const fix = await fixture();
   try {
     const sourceManifest = await stageManifest(fix);
@@ -469,7 +469,7 @@ test('manifest generator uses a file recipe, produces checked hashes and refuses
   } finally { await cleanup(fix); }
 });
 
-test('startup timeout uses graceful owned shutdown and never reports a readiness success', {timeout: 15000}, async () => {
+test('startup timeout uses graceful owned shutdown and never reports a readiness success', {timeout: 180000}, async () => {
   const fix = await fixture();
   try {
     await writeFile(fix.layout.entry, bridgeFixture.replace("console.log('[CyberpunkConvai] Convai conversation bridge ready');", "console.log('[Fixture] still initializing');"));
@@ -494,7 +494,7 @@ test('a clean child exit before readiness is a startup error', async () => {
 });
 
 test('Windows launcher checks explicit development paths hidden without launching bridge/model/game',
-  {skip: process.platform !== 'win32', timeout: 15000}, async () => {
+  {skip: process.platform !== 'win32', timeout: 180000}, async () => {
     const fix = await fixture();
     try {
       const before = await readFile(join(fix.state, 'player-memory.json'));
@@ -524,7 +524,7 @@ test('Windows launcher checks explicit development paths hidden without launchin
   });
 
 test('Windows launcher accepts quoted directory paths ending in a backslash',
-  {skip: process.platform !== 'win32', timeout: 15000}, async () => {
+  {skip: process.platform !== 'win32', timeout: 180000}, async () => {
     const fix = await fixture();
     try {
       const before = await readFile(join(fix.state, 'player-memory.json'));

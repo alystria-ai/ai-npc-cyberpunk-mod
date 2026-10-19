@@ -46,7 +46,7 @@ Never a named game character: the generator re-rolls (up to seven times) when `F
 
 ## Vendors keep their name across sessions
 
-A one-shop vendor (the catalog's `memoryKey`: a vendor with a record of their own, like `wat_kab_ripperdoc_01`) is seeded by that record, not the entity, and the name is stored in `npc-names.json` next to the other runtime files of the CET mod (128 shops at most, the oldest dropped; no two stored shops share a name). A later session, a respawned entity or a changed pool gives the same shopkeeper the same name. Crowd peds and shared street-stall records are never written to disk.
+A one-shop vendor (the catalog's `memoryKey`: a vendor with a record of their own, like `wat_kab_ripperdoc_01`) is seeded by that record, not the entity, and the name is stored in `runtime/npc-names.json` with the other player state of the CET mod (an earlier version kept it next to `init.lua`; that file is still read until the new one exists; the service keeps a copy outside the game folder so the names survive under Mod Organizer 2, docs/PACKAGING.md; 128 shops at most, the oldest dropped; no two stored shops share a name). A later session, a respawned entity or a changed pool gives the same shopkeeper the same name. Crowd peds and shared street-stall records are never written to disk.
 
 ## The scanner hook
 

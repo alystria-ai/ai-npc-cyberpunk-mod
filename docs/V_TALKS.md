@@ -1,6 +1,6 @@
 # V talks on their own
 
-Written 2026-10-19 on branch `v-talks` (from `main` 120bc54f). Built, unit-tested, not merged, not installed, not seen in the game.
+Written 2026-10-19 on branch `v-talks`; main merged in again the same day (7ec1232d: the manager runs on `mod/manager-ui.lua` with the Mod Configuration Menu and Native Settings UI hosts). Built, unit-tested, not merged into main, not installed, not seen in the game.
 
 ## The request
 
@@ -84,6 +84,21 @@ A Scripts-only install shows the setting but nothing answers it (an older bridge
 
 `bridge/v-talks.test.mjs` (27 tests): the bank's safety scan; the events; the gate; the speaker; the rate at Normal and Rare, Off, expiry and the queue's bound, the repeat rule, the calm spell; the exchange's two lengths and its end; V's line choice (no repeat among the last eight, lifepath, titles); `init.lua` run for real against stubs (the loader, Off, V's voice off, a fight to a two-line exchange, a four-line exchange, every gate, every release, a calm ride and walk, the mute); the wiring text; the bridge's parser, trigger, ledger and the text providers' header; V's required line (held up to its deadline, dropped after); the bridge's order (allowance, then V, then the model); the shared key's one cap for Johnny's remarks and these exchanges together; shipping and the 15 translations. `bridge/manager.test.mjs` has the setting's test; `bridge/startup-lua-fixture.mjs` lists the new default.
 
+## Quick live check (short; the long list below is the full one)
+
+Setup: the Scripts install (every committed `mod/` file, Lua and `.json`, never `diagnostics.lua`) and the Runtime from this branch, a CET reload, a bridge restart. A save with one companion in the party (a copy invited in the Companion Manager), V's voice for typed lines on (the default), the free shared Convai key.
+
+1. Open the Companion Manager (Native Settings UI: Mods > the tab > Settings; Mod Configuration Menu: the mod's page). Conversations has **V talks on their own** right under **Johnny speaks up**, set to **Off**, choices Off, Rare, Normal. Check it in both hosts if both are installed; the row looks like its neighbours (in MCM nothing is purple at Off). Set it to Rare, press **Restore defaults** twice: it is Off again.
+2. Off: play five minutes with a companion beside you, fight once. `probe.log` has no `V talks on their own` line.
+3. Set **Normal**, Apply. Fight for 30 s or more beside the companion. About 8 to 15 s after the last shot V says a short line in V's voice (subtitle too) and the companion answers in one line. No line says who won. `probe.log`: `V talks on their own: noted fight:`, then `part 1 of ...`.
+4. Ask for the rate: a second fight within 30 minutes gives nothing; no two exchanges less than 5 minutes apart.
+5. Never while: open the text box (or hold the voice key, or start a phone call, or enter a cutscene) and wait: nothing starts; if one is running it stops (`Automatic reaction released: vtalk-...`).
+6. Turn **V's voice for typed lines** off, Apply: V stays silent. Back on: it resumes with no reload.
+7. Finish a main or side job: within a minute or so of the journal update V says a line. A gig does nothing.
+8. Free shared key: each companion answer lowers "left today" by one; Johnny's remarks and these exchanges share one tenth of the day.
+9. Set **Off** again, Apply: nothing further happens and nothing new shows in `probe.log`.
+10. Perf probe: no new per-frame row with the setting on.
+
 ## Live checks owed
 
 Needs the Scripts install (all committed `mod/` files, including the new `mod/v-talks.lua`, and the `.json` data), the Runtime (bridge) from this branch, a CET reload and a bridge restart. A save with at least one companion in the party, V's voice for typed lines on (the default) and the V reference clips present. With the free shared Convai key unless a step says otherwise.
@@ -104,7 +119,7 @@ Needs the Scripts install (all committed `mod/` files, including the new `mod/v-
 
 ## Open questions for the user
 
-1. **Strict "never two in a row".** Half an hour (the default, recommended) or forever until another trigger happens.
+1. **Strict "never two in a row".** Half an hour (the default) or forever until another trigger happens.
 2. **Calm talks at all.** On (the default) or only after fights and jobs.
 3. **A longer bank, or a model-written V.** Later, with Mistral or Local AI only: V's second line written by the model from the companion's answer, with the same persona and the same bans. Not built. The bank has 57 lines (10 after a fight, 6 to 8 after a job, 10 to 12 on a walk, 6 to 7 in a ride, 8 follow-ups); a line is not repeated within V's last eight, and the companion's answer is new every time.
 4. **Nexus page.** One sentence for the main page once this ships; not added to `docs/NEXUS_PAGE.md` yet.

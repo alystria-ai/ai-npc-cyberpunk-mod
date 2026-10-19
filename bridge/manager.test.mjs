@@ -466,7 +466,13 @@ test('manager home owns the four destinations and every inner page has one paren
     assert(invoke('tab:settings').ok)
     assert(not row('permissions'), 'Who can talk is gone from the Settings page')
     assert(not invoke('permissions').ok and managerUi.inspect().view == 'settings', 'the removed permissions page stayed callable')
-    assert(not row('relationships') and not invoke('relationships').ok, 'Relationships is a section of Settings, not a page')
+    -- Relationships is a page that opens from Conversations (a button beside Memory), with one Back to Settings.
+    local open = row('relationships')
+    assert(open and open.type == 'action' and open.value == 'Open' and not open.disabled and not row('relationship:judy-alvarez'))
+    assert(invoke('relationships').ok)
+    inner('relationships', 'relationships:back')
+    assert(row('relationship:judy-alvarez') and not row('relationships') and not row('archetypeConversations'))
+    assert(invoke('relationships:back').ok and managerUi.inspect().view == 'settings' and not row('relationship:judy-alvarez'))
     assert(invoke('memory').ok)
     inner('memory', 'memory:settings')
     assert(not row('memory:choose') and row('memory-selected'), 'the memory picker is part of the Memory page')
@@ -2078,8 +2084,9 @@ test('Memory permits deliberate local Chat clearing with zero contacted provider
   assert(memoryRequest().profileKey=='person-20')
 `));
 
-test('Relationships are a section of Settings and only applied selections reach saved modes', () => run(`${nsuiFixture}
-  assert(invoke('tab:settings').ok and not row('relationships') and not invoke('relationships').ok)
+test('Relationships are a page that opens from Conversations and only applied selections reach saved modes', () => run(`${nsuiFixture}
+  assert(invoke('tab:settings').ok and row('relationships').value=='Open' and not row('relationship:judy-alvarez'))
+  assert(invoke('relationships').ok and row('relationships:back').value=='Back')
   local selected=row('relationship:judy-alvarez')
   assert(selected and selected.value==1 and selected.defaultValue==1)
   assert(selected.elements[1]=='Auto' and selected.elements[2]=='Romantic' and selected.elements[3]=='Ordinary')
@@ -2508,6 +2515,38 @@ test('gaze controls use ordinary selectors and persist', () => {
     assert(row('eyeContactHeight').value==3 and row('headFollowStrength').value==3)
     drafts=true; managerUi.update(player,false)
     assert(reloads==before,'ordinary gaze settings disturbed the open page')
+  `);
+});
+
+test('the model browser leaves out the game\'s retired records ("!OBSOLETE ..."), lists unnamed records and internal codes after the real names, and counts what it lists', () => {
+  run(`${nsuiFixture}
+    local names = {'!OBSOLETE', '!OBSOLETE - 6th Street Soldier', 'Zed', '1H-DNC-LAÖ', 'Anna', 'T-Bug', 'Judy', 'Саша-2', '  !hidden', 'Old OBSOLETE Guard'}
+    local byId = {}
+    function TweakDB:GetRecords(kind)
+      local result = {}
+      for index, name in ipairs(names) do
+        local id = 'Character.Rec_' .. index
+        byId[id] = name
+        result[index] = {GetID = function() return id end}
+      end
+      return result
+    end
+    function TweakDB:GetFlat(flat) local id = flat:gsub('%.displayName$', ''); return byId[id] or id end
+    assert(invoke('tab:models').ok)
+    for _ = 1, 8 do managerUi.update(player, false) end
+    loaded = registered.loadMod('manager')
+    assert(row('model-status').label == '6 matching models', 'the count is what is listed: ' .. tostring(row('model-status').label))
+    local listed = {}
+    for _, category in ipairs(loaded.categories) do
+      for _, item in ipairs(category.settings) do if item.id:sub(1, 7) == 'invite:' then listed[#listed + 1] = item.label end end
+    end
+    assert(table.concat(listed, ' | ') == 'Anna | Judy | T-Bug | Zed | Саша-2 | 1H-DNC-LAÖ', table.concat(listed, ' | '))
+    assert(core.retiredModel({name = '!OBSOLETE'}) and not core.retiredModel({name = 'Judy Alvarez'}))
+    assert(not core.placeholderModel({name = 'V'}) and not core.placeholderModel({name = 'NCPD'}) and not core.placeholderModel({name = 'Saša'}))
+    assert(core.placeholderModel({name = 'DNC-12'}) and core.placeholderModel({name = 'Character.X', record = 'Character.X'}))
+    -- A letter group counts the same way: the codes are in the # group, and the retired records in none.
+    local groups = row('ui:group').elements
+    assert(groups[2] == '#' and table.concat(groups, ','):find('!', 1, true) == nil, table.concat(groups, ','))
   `);
 });
 
@@ -3958,13 +3997,13 @@ test('the Convai and Mistral key rows are always listed, whichever provider is c
   `);
 });
 
-test('Settings sections: Relationships follow Conversations, Conversation provider sits after them and before Voices, Development keeps Developer mode (and the Inworld key with it on), Voice status follows Companion voices', () => {
+test('Settings sections: Relationships is a button in Conversations, Conversation provider follows Conversations and sits before Voices, Development keeps Developer mode (and the Inworld key with it on), Voice status follows Companion voices', () => {
   run(`${nsuiFixture}
     assert(invoke('tab:settings').ok)
     local order = {}
     for _, category in ipairs(loaded.categories) do order[#order + 1] = category.id end
     local joined = table.concat(order, ',')
-    assert(joined:find('navigation,interface,conversation-controls,relationships,conversation-provider,companion-behavior,voices,', 1, true), joined)
+    assert(joined:find('navigation,interface,conversation-controls,conversation-provider,companion-behavior,voices,', 1, true) and not joined:find('relationships', 1, true), joined)
     local function idsOf(categoryId)
       for _, category in ipairs(loaded.categories) do
         if category.id == categoryId then
@@ -4277,7 +4316,7 @@ test('The Conversation provider section offers the provider, Mature content, the
     -- Local AI: the state is on the Local AI model row (its name in brackets, its help starting with the loading sentence);
     -- an unknown value never invents a state.
     local WAIT = {warming = {'Local AI model (Warming up)', 'Local AI is warming up…'},
-      ['no-memory'] = {'Local AI model (Not enough memory)', 'Not enough graphics memory for Local AI. A cloud provider is used instead.'},
+      ['no-memory'] = {'Local AI model (Not enough memory)', 'Not enough free graphics memory to start Local AI. Try a smaller model in Settings.'},
       failed = {'Local AI model (Unavailable)', 'Local AI could not start. Check Local AI in Settings > Conversation provider.'}}
     for value, expected in pairs({ready = false, warming = WAIT.warming, ['no-memory'] = WAIT['no-memory'], failed = WAIT.failed,
         ['not-installed'] = false, sometimes = false, [7] = false}) do
@@ -4765,7 +4804,7 @@ test('Local AI warming up is one held notice while Local is the provider, with a
     -- A server that was unloaded after idle time warms up again when it is needed.
     mistral.localAi = 'warming'; step(3); assert(posts[#posts].text == 'Local AI is warming up…' and #posts == 2)
     mistral.localAi = 'no-memory'; step(2)
-    assert(shown[#shown] == 'Not enough graphics memory for Local AI. A cloud provider is used instead.', tostring(shown[#shown]))
+    assert(shown[#shown] == 'Not enough free graphics memory to start Local AI. Try a smaller model in Settings.', tostring(shown[#shown]))
     mistral.localAi = 'warming'; step(3); mistral.localAi = 'failed'; step(2)
     assert(shown[#shown] == 'Local AI could not start. Check Local AI in Settings > Conversation provider.', tostring(shown[#shown]))
   `);
@@ -4912,3 +4951,17 @@ test('the developer notice trigger shows the daily-limit notice only with Develo
     assert(speech.devNotice('notice:daily-limit:2') == false and #sent == 1, 'no player yet: nothing is shown')
   `);
 });
+
+test('error reports are on by default, apply as on or off only, and the one-time notice is remembered in settings.json', () => run(`${managerFixture}
+  manager.configure(api, profiles)
+  assert(manager.snapshot(player).settings.errorReports == true and manager.errorReports() == true, 'on by default')
+  assert(manager.errorReportsNoticeDue() == true, 'the notice is due once')
+  assert(manager.markErrorReportsNoticed() == true and saved.errorReportsNoticed == true)
+  assert(manager.errorReportsNoticeDue() == false)
+  assert(manager.applySettings(player, {errorReports = 'no'}) == false, 'on or off only')
+  assert(manager.errorReports() == true)
+  assert(manager.applySettings(player, {errorReports = false}) and saved.errorReports == false)
+  assert(manager.errorReports() == false and manager.snapshot(player).settings.errorReports == false)
+  assert(manager.errorReportsNoticeDue() == false, 'never due while off')
+  assert(manager.applySettings(player, {errorReports = true}) and saved.errorReports == true and saved.errorReportsNoticed == true)
+`));

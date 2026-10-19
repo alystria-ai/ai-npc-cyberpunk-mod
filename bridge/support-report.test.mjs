@@ -674,3 +674,23 @@ test('the game side checks the Help page sends are kept short, at most 24 rows, 
     }
   } finally { await f.cleanup(); }
 });
+
+test('the player\'s voice clips appear only as a count and a length each: no audio, no words, no path, no custom name', async () => {
+  const {PlayerVoices} = await import('./player-voices.mjs');
+  const {speechWav} = await import('./voice-clip-fixture.mjs');
+  const f = await fakeInstall();
+  try {
+    const voices = await PlayerVoices.open({dir: f.state});
+    await voices.set('judy-alvarez', speechWav({seconds: 12}), 'Words nobody else should read, said by the player.');
+    await voices.set('custom-rebecca-abcd', speechWav({seconds: 8}), 'More private words for the character called Rebecca.');
+    // Even a log line that named the clip's file would not carry the words; the words never reach a log in the first place.
+    await writeFile(join(f.state, 'bridge.stderr.log'), '[PlayerVoices] the voice clip of judy-alvarez is not used: ENOENT\n');
+    const report = await collectReport({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project, reportId: 'r-clips', environment: {}});
+    assert.deepEqual(report.summary.voiceClips, {count: 2, clips: [{character: 'custom', seconds: 8}, {character: 'judy-alvarez', seconds: 12}]});
+    const text = report.entries.map(row => typeof row.data === 'string' ? row.data : row.data.toString('latin1')).join('\n');
+    for (const secret of ['Words nobody else', 'More private words', 'rebecca', 'Rebecca', 'player-voices.json', voices.get('judy-alvarez').sha256])
+      assert.equal(text.includes(secret), false, `${secret} leaked`);
+    assert.equal(report.entries.some(row => /\.wav$/i.test(row.name)), false, 'no audio file is ever an entry');
+    assert.match(report.entries.find(row => row.name === 'README.txt').data, /your own voice clips\n\(only how many there are and how long each is\)/);
+  } finally { await f.cleanup(); }
+});

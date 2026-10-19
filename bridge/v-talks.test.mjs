@@ -773,14 +773,21 @@ test('V\'s voice: a required line holds the answer while it is made (up to its d
   const never = () => new Promise(() => {});
   const make = extra => new VLine({input: typed(), key: 'v-female', text: 'Hello.', plan: {engine: 'pocket', language: 'en'}, volume: 0.5,
     play: async (config, producer, options) => { await never(); }, stream: async () => ({}), ...extra});
-  const ordinary = make({});
+  // An ordinary line gets the grace of the typed-line path (V_GRACE_MS, main); with no grace it is dropped at once.
+  const ordinary = make({graceMs: 0});
   assert.equal(ordinary.holds(), false);
   assert.equal(ordinary.state, 'dropped'); assert.equal(ordinary.reason, 'slower-than-reply');
+  const graced = make({graceMs: 80});
+  assert.equal(graced.holds(), true, 'the grace holds the answer for an ordinary line');
+  assert.equal(graced.waiting, true);
+  await sleep(160);
+  assert.equal(graced.state, 'dropped'); assert.equal(graced.reason, 'slower-than-reply');
   const required = make({required: true, waitMs: 40});
   assert.equal(required.state, 'synth');
   assert.equal(required.holds(), true, 'the answer waits for V');
   assert.equal(required.blocking, true);
   assert.equal(required.state, 'synth', 'and V is not dropped');
+  assert.equal(required.waiting, false, 'a required line has its deadline, not the grace');
   await sleep(80);
   assert.equal(required.state, 'dropped'); assert.equal(required.reason, 'too-slow');
   assert.equal(required.holds(), false, 'past its deadline the answer goes on alone');

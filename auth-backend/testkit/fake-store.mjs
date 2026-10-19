@@ -24,6 +24,50 @@ export class FakeStore {
     return entry;
   }
 
+  /** The entry under `key` when it holds `type`, undefined when absent; throws like Redis when it holds something else. */
+  #typed(key, type) {
+    const entry = this.#live(key);
+    if (entry && entry.type !== type) throw new Error('WRONGTYPE Operation against a key holding the wrong kind of value');
+    return entry;
+  }
+
+  #create(key, type, value) {
+    const entry = { type, value, expiresAt: null };
+    this.data.set(key, entry);
+    return entry;
+  }
+
+  /** Redis removes a hash, list or zset that has become empty (and its expiry with it). */
+  #tidy(key) {
+    const entry = this.data.get(key);
+    if (!entry || entry.type === 'string') return;
+    if ((entry.type === 'list' ? entry.value.length : entry.value.size) === 0) this.data.delete(key);
+  }
+
+  /** A zset's members by ascending score, ties by member, as Redis orders them. */
+  static #ascending(entry) {
+    return [...entry.value].sort((a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+  }
+
+  /** A score bound as ZREMRANGEBYSCORE takes it: -inf, +inf, a number, or '(' + number for "not including". */
+  static #bound(text) {
+    const lower = text.toLowerCase();
+    if (lower === '-inf') return { value: -Infinity, exclusive: false };
+    if (lower === '+inf' || lower === 'inf') return { value: Infinity, exclusive: false };
+    const exclusive = text.startsWith('(');
+    const value = Number(exclusive ? text.slice(1) : text);
+    if (Number.isNaN(value)) throw new Error(`min or max is not a float: ${text}`);
+    return { value, exclusive };
+  }
+
+  /** The inclusive index range start..stop of a list of `length` items (negative counts from the end), as a [from, to) slice. */
+  static #range(length, start, stop) {
+    let from = Number(start), to = Number(stop);
+    if (from < 0) from = Math.max(0, length + from);
+    if (to < 0) to = length + to;
+    return [from, Math.min(length - 1, to) + 1];
+  }
+
   /** The Redis commands this fake knows. Returns what Redis would: integers as numbers, bulk strings as strings, nil as null. */
   exec(args) {
     const [name, key, ...rest] = args.map(String);
@@ -61,8 +105,16 @@ export class FakeStore {
         this.data.set(key, { type: 'string', value, expiresAt });
         return 'OK';
       }
-      case 'DEL':
-        return this.data.delete(key) ? 1 : 0;
+      case 'DEL': {
+        let removed = 0;
+        for (const name of [key, ...rest]) {
+          if (this.#live(name)) {
+            this.data.delete(name);
+            removed += 1;
+          }
+        }
+        return removed;
+      }
       case 'ZINCRBY': {
         const entry = this.#live(key) ?? { type: 'zset', value: new Map(), expiresAt: null };
         const [increment, member] = rest;
@@ -76,10 +128,139 @@ export class FakeStore {
       case 'ZREVRANGE': {
         const entry = this.#live(key);
         if (!entry) return [];
-        const sorted = [...entry.value].sort((a, b) => b[1] - a[1]);
+        const sorted = FakeStore.#ascending(entry).reverse();
         const stop = Number(rest[1]);
         const slice = sorted.slice(Number(rest[0]), stop < 0 ? undefined : stop + 1);
         return rest.includes('WITHSCORES') ? slice.flatMap(([member, score]) => [member, String(score)]) : slice.map(([member]) => member);
+      }
+      case 'HSET': {
+        if (!rest.length || rest.length % 2) throw new Error('wrong number of arguments for HSET');
+        const entry = this.#typed(key, 'hash') ?? this.#create(key, 'hash', new Map());
+        let added = 0;
+        for (let index = 0; index < rest.length; index += 2) {
+          if (!entry.value.has(rest[index])) added += 1;
+          entry.value.set(rest[index], rest[index + 1]);
+        }
+        return added;
+      }
+      case 'HSETNX': {
+        const entry = this.#typed(key, 'hash') ?? this.#create(key, 'hash', new Map());
+        if (entry.value.has(rest[0])) return 0;
+        entry.value.set(rest[0], rest[1]);
+        return 1;
+      }
+      case 'HGET':
+        return this.#typed(key, 'hash')?.value.get(rest[0]) ?? null;
+      case 'HEXISTS':
+        return this.#typed(key, 'hash')?.value.has(rest[0]) ? 1 : 0;
+      case 'HLEN':
+        return this.#typed(key, 'hash')?.value.size ?? 0;
+      case 'HGETALL':
+        // The flat [field, value, ...] list Upstash's REST interface returns.
+        return [...(this.#typed(key, 'hash')?.value ?? [])].flat();
+      case 'HINCRBY': {
+        const entry = this.#typed(key, 'hash') ?? this.#create(key, 'hash', new Map());
+        const current = Number(entry.value.get(rest[0]) ?? 0);
+        if (!Number.isInteger(current) || !Number.isInteger(Number(rest[1]))) throw new Error('hash value is not an integer');
+        const next = current + Number(rest[1]);
+        entry.value.set(rest[0], String(next));
+        return next;
+      }
+      case 'HDEL': {
+        const entry = this.#typed(key, 'hash');
+        if (!entry) return 0;
+        const removed = rest.filter(field => entry.value.delete(field)).length;
+        this.#tidy(key);
+        return removed;
+      }
+      case 'LPUSH': {
+        const entry = this.#typed(key, 'list') ?? this.#create(key, 'list', []);
+        for (const item of rest) entry.value.unshift(item);
+        return entry.value.length;
+      }
+      case 'RPOP': {
+        const entry = this.#typed(key, 'list');
+        if (!entry) return null;
+        const item = entry.value.pop() ?? null;
+        this.#tidy(key);
+        return item;
+      }
+      case 'LLEN':
+        return this.#typed(key, 'list')?.value.length ?? 0;
+      case 'LINDEX': {
+        const list = this.#typed(key, 'list')?.value ?? [];
+        const at = Number(rest[0]);
+        return list[at < 0 ? list.length + at : at] ?? null;
+      }
+      case 'LRANGE': {
+        const list = this.#typed(key, 'list')?.value ?? [];
+        const [from, to] = FakeStore.#range(list.length, rest[0], rest[1]);
+        return list.slice(from, to);
+      }
+      case 'LREM': {
+        const entry = this.#typed(key, 'list');
+        if (!entry) return 0;
+        const limit = Number(rest[0]);
+        const wanted = Math.abs(limit) || Infinity;
+        let removed = 0;
+        const order = [...entry.value.keys()];
+        if (limit < 0) order.reverse();
+        const drop = new Set();
+        for (const position of order) {
+          if (removed >= wanted) break;
+          if (entry.value[position] === rest[1]) {
+            drop.add(position);
+            removed += 1;
+          }
+        }
+        entry.value = entry.value.filter((_, position) => !drop.has(position));
+        this.#tidy(key);
+        return removed;
+      }
+      case 'ZADD': {
+        if (!rest.length || rest.length % 2 || rest.some((part, index) => index % 2 === 0 && Number.isNaN(Number(part)))) {
+          throw new Error('ZADD form not supported by the fake (only score member pairs)');
+        }
+        const entry = this.#typed(key, 'zset') ?? this.#create(key, 'zset', new Map());
+        let added = 0;
+        for (let index = 0; index < rest.length; index += 2) {
+          if (!entry.value.has(rest[index + 1])) added += 1;
+          entry.value.set(rest[index + 1], Number(rest[index]));
+        }
+        return added;
+      }
+      case 'ZREM': {
+        const entry = this.#typed(key, 'zset');
+        if (!entry) return 0;
+        const removed = rest.filter(member => entry.value.delete(member)).length;
+        this.#tidy(key);
+        return removed;
+      }
+      case 'ZREMRANGEBYSCORE': {
+        const entry = this.#typed(key, 'zset');
+        if (!entry) return 0;
+        const low = FakeStore.#bound(rest[0]), high = FakeStore.#bound(rest[1]);
+        let removed = 0;
+        for (const [member, score] of [...entry.value]) {
+          const above = low.exclusive ? score > low.value : score >= low.value;
+          const below = high.exclusive ? score < high.value : score <= high.value;
+          if (above && below) {
+            entry.value.delete(member);
+            removed += 1;
+          }
+        }
+        this.#tidy(key);
+        return removed;
+      }
+      case 'ZREMRANGEBYRANK': {
+        const entry = this.#typed(key, 'zset');
+        if (!entry) return 0;
+        const ordered = FakeStore.#ascending(entry);
+        const [from, to] = FakeStore.#range(ordered.length, rest[0], rest[1]);
+        const doomed = ordered.slice(from, to);
+        for (const [member] of doomed) entry.value.delete(member);
+        this.#tidy(key);
+        return doomed.length;
       }
       case 'PING':
         return 'PONG';

@@ -215,6 +215,70 @@ class WorkerProfiles(Fixtures):
         with self.assertRaises(ValueError):
             worker.validate_config({**config, 'voices': {f'voice-{i}': {'status': 'unprepared'} for i in range(129)}}, self.root)
 
+    def player_clip(self, key='sam-hill', seconds=.3):
+        """A player's own clip in a folder of its own (never under runtime/voice-references): a short 24 kHz sine."""
+        folder = self.root / 'player-data/player-voices'
+        folder.mkdir(parents=True, exist_ok=True)
+        path = folder / f'{key}.wav'
+        with wave.open(str(path), 'wb') as output:
+            output.setnchannels(1)
+            output.setsampwidth(2)
+            output.setframerate(24000)
+            output.writeframes(b'\x10\x20' * round(seconds * 24000))
+        return folder, path, {'reference': f'runtime/player-voices/{key}.wav', 'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+                              'transcript': 'The player typed this line.'}
+
+    def test_player_reference_resolves_inside_the_player_folder_only_with_the_same_byte_and_length_checks(self):
+        folder, path, descriptor = self.player_clip()
+        self.assertEqual(worker.validate_reference(self.root, descriptor, player_root=folder), (str(folder.resolve() / 'sam-hill.wav'), descriptor['transcript']))
+        # Without a player folder the profile is unavailable (never an error that would take the other voices down).
+        with self.assertRaises(worker.ReferenceUnavailable):
+            worker.validate_reference(self.root, descriptor)
+        with self.assertRaises(worker.ReferenceUnavailable):
+            worker.validate_reference(self.root, descriptor, player_root=self.root / 'never-made')
+        with self.assertRaises(worker.ReferenceUnavailable):
+            worker.validate_reference(self.root, {**descriptor, 'sha256': 'c' * 64}, player_root=folder)
+        with self.assertRaises(worker.ReferenceUnavailable):
+            worker.validate_reference(self.root, descriptor, player_root=folder / 'elsewhere')
+        # More than twenty seconds is unavailable, like any other reference.
+        _, _, long = self.player_clip('long-one', seconds=21)
+        with self.assertRaises(worker.ReferenceUnavailable):
+            worker.validate_reference(self.root, long, player_root=folder)
+        # Spelling that is not <key>.wav in one plain segment is refused outright, whatever folder is given.
+        for reference in ('runtime/player-voices/../sam-hill.wav', 'runtime/player-voices/a/sam-hill.wav', 'runtime/player-voices/Sam-Hill.wav',
+                          'runtime/player-voices\\sam-hill.wav', 'runtime/player-voices/sam-hill.wav:x'):
+            with self.subTest(reference=reference), self.assertRaisesRegex(ValueError, 'asset path'):
+                worker.validate_reference(self.root, {**descriptor, 'reference': reference}, player_root=folder)
+        # A link in the clip's place withdraws that character only.
+        real = Path.is_symlink
+        with patch.object(Path, 'is_symlink', lambda link: link.name == 'sam-hill.wav' or real(link)):
+            with self.assertRaises(worker.ReferenceUnavailable):
+                worker.validate_reference(self.root, descriptor, player_root=folder)
+
+    def test_a_configuration_with_a_player_folder_keeps_the_other_voices_and_a_session_revalidates_the_clip(self):
+        folder, path, descriptor = self.player_clip()
+        config = self.config()
+        config.update(version=2, playerVoiceDirectory=str(folder))
+        config['voices']['sam-hill'] = descriptor
+        config['preparation'] = {'mode': 'lazy', 'startupProfiles': ['johnny-silverhand']}
+        session, frames, renders = self.session(config)
+        self.assertEqual(session.registry['playerRoot'], folder.resolve())
+        session.startup()
+        self.assertEqual([render[0] for render in renders], ['johnny-silverhand'], 'the player voice is not prepared at start')
+        self.assertIn('sam-hill', frames[-1]['profiles'])
+        session.handle({'op': 'synthesize', 'id': 1, 'profile': 'sam-hill', 'text': 'Hi.', 'steps': 32})
+        self.assertEqual(frames[-1]['op'], 'audio')
+        path.write_bytes(path.read_bytes()[:-2] + b'\x01\x02')
+        count = len(renders)
+        session.handle({'op': 'synthesize', 'id': 2, 'profile': 'sam-hill', 'text': 'Hi.', 'steps': 32})
+        self.assertEqual(frames[-1]['op'], 'error')
+        self.assertEqual(len(renders), count, 'a changed clip is never rendered from')
+        # Without the folder the same configuration still loads; only that voice is unavailable.
+        config.pop('playerVoiceDirectory')
+        registry = worker.validate_config(config, self.root)
+        self.assertEqual(registry['unavailableProfiles'], {'sam-hill': 'unavailable'})
+        self.assertEqual(set(registry['refs']), set(worker.LEGACY_KEYS))
+
     def test_worker_config_json_bound_and_duplicate_keys(self):
         config_path = self.root / 'runtime/config.json'
         config_path.parent.mkdir(parents=True, exist_ok=True)

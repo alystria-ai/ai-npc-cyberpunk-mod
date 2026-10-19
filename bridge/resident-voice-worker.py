@@ -32,6 +32,10 @@ MAX_REFERENCE_BYTES = 32 * 1024 * 1024
 WARM_PHRASE = 'Ready when you are, V.'
 MODEL_REVISION = 'c5fdb5ccb189668d56333f77ba2629f4cd7535f4'
 ADAPTER_REVISION = '08a1592e3cb9b4c36beef5fa3185ec2313bb1fea'
+# A player's own clip for a character lives in the player's data folder (`playerVoiceDirectory` in the configuration), never beside the
+# shipped references: a descriptor naming this fixed second namespace resolves only inside that folder.
+PLAYER_PREFIX = 'runtime/player-voices'
+PLAYER_REFERENCE = re.compile(r'runtime/player-voices/[a-z0-9][a-z0-9-]{0,79}\.wav')
 PATH_OVERRIDES = {
     'modelDirectory': 'CYBERPUNK_CONVAI_OMNI_MODEL',
     'adapterDirectory': 'CYBERPUNK_CONVAI_OMNI_ADAPTER',
@@ -173,17 +177,55 @@ def contained_file(root, relative, prefix, *, suffix=None):
     return asset_file(root, relative, prefix)
 
 
-def validate_reference(root, descriptor, *, reference_root=None):
+def player_reference(relative):
+    return isinstance(relative, str) and relative.startswith(PLAYER_PREFIX + '/')
+
+
+def checked_player_directory(value, root, paths):
+    """The optional folder of the player's own clips: absolute, no links, and never mixed with application files, shipped references or cache.
+
+    A missing folder is fine (those profiles are then unavailable); an overlap would let a clip resolve through, or be written over by,
+    another tree, so it fails the configuration like the other path overlaps do.
+    """
+    if value is None:
+        return None
+    player = checked_absolute_directory(value, 'playerVoiceDirectory')
+    others = []
+    if paths:
+        others = [paths[field] for field in ('referenceDirectory', 'cacheDirectory') if paths.get(field) is not None]
+        # A development checkout keeps its data under the application directory; a package must not.
+        if paths['portable']:
+            others.append(paths['applicationDirectory'])
+    if any(player.is_relative_to(other) or other.is_relative_to(player) for other in others):
+        raise ValueError('Player voice clips must be separate from application files, references and cache')
+    return player
+
+
+def validate_reference(root, descriptor, *, reference_root=None, player_root=None):
     if not isinstance(descriptor, dict) or not valid_transcript(descriptor.get('transcript')):
         raise ValueError('Invalid local reference transcript')
     if not isinstance(descriptor.get('sha256'), str) or not re.fullmatch(r'[a-f0-9]{64}', descriptor['sha256']):
         raise ValueError('Invalid local reference hash')
     relative = descriptor.get('reference')
-    validate_asset_path(relative, 'runtime/voice-references', suffix='.wav')
-    if reference_root is not None:
-        reference_root = checked_absolute_directory(str(reference_root), 'voice reference directory')
-    path = (asset_file(reference_root, relative[len('runtime/voice-references/'):])
-            if reference_root is not None else contained_file(root, relative, 'runtime/voice-references', suffix='.wav'))
+    if player_reference(relative):
+        # One plain <key>.wav inside the player's own folder, nothing else; without that folder the profile is unavailable, not an error.
+        if not PLAYER_REFERENCE.fullmatch(relative):
+            raise ValueError('Invalid local asset path')
+        if player_root is None:
+            raise ReferenceUnavailable('No player voice folder is configured')
+        try:
+            path = asset_file(checked_absolute_directory(str(player_root), 'player voice directory'), relative[len(PLAYER_PREFIX) + 1:])
+        except ReferenceUnavailable:
+            raise
+        except ValueError as error:
+            # The folder is the player's own: a link or an escape in it withdraws that one character, it never takes every voice down.
+            raise ReferenceUnavailable('Player voice clip is linked or outside its folder') from error
+    else:
+        validate_asset_path(relative, 'runtime/voice-references', suffix='.wav')
+        if reference_root is not None:
+            reference_root = checked_absolute_directory(str(reference_root), 'voice reference directory')
+        path = (asset_file(reference_root, relative[len('runtime/voice-references/'):])
+                if reference_root is not None else contained_file(root, relative, 'runtime/voice-references', suffix='.wav'))
     if not 44 <= path.stat().st_size <= MAX_REFERENCE_BYTES:
         raise ReferenceUnavailable('Local reference exceeded supported byte limits')
     with path.open('rb') as handle:
@@ -219,6 +261,7 @@ def validate_config(config, root=ROOT, *, paths=None):
         raise ValueError('Invalid local voice registry')
     if config.get('version', 1) == 1 and set(voices) != set(LEGACY_KEYS):
         raise ValueError('New cast profiles require configuration version2')
+    player_root = checked_player_directory(config.get('playerVoiceDirectory'), root, paths)
     refs, unavailable, descriptors = {}, {}, {}
     for key, descriptor in voices.items():
         if not valid_key(key) or not isinstance(descriptor, dict):
@@ -230,7 +273,8 @@ def validate_config(config, root=ROOT, *, paths=None):
             unavailable[key] = status
             continue
         try:
-            refs[key] = validate_reference(root, descriptor, reference_root=paths['referenceDirectory'] if paths else None)
+            refs[key] = validate_reference(root, descriptor, reference_root=paths['referenceDirectory'] if paths else None,
+                                           player_root=player_root)
         except ReferenceUnavailable:
             unavailable[key] = 'unavailable'
         descriptors[key] = {name: descriptor[name] for name in ('reference', 'sha256', 'transcript')}
@@ -255,12 +299,90 @@ def validate_config(config, root=ROOT, *, paths=None):
     model_file = (asset_file(paths['modelDirectory'], 'model.safetensors')
                   if paths and paths['portable'] else contained_file(root, model_relative, 'vendor/voice-models'))
     return {'refs': refs, 'descriptors': descriptors, 'root': root,
-            'paths': paths, 'referenceRoot': paths['referenceDirectory'] if paths else None,
+            'paths': paths, 'referenceRoot': paths['referenceDirectory'] if paths else None, 'playerRoot': player_root,
             'referenceHashes': {key: descriptors[key]['sha256'] for key in refs},
             'transcriptHashes': {key: hashlib.sha256(descriptors[key]['transcript'].encode('utf-8')).hexdigest() for key in refs},
             'configuredProfiles': sorted(voices), 'unavailableProfiles': unavailable,
             'startupProfiles': [key for key in startup if key in refs], 'maxCachedProfiles': limit, 'mode': mode,
             'model': model_file.parent, 'version': config.get('version', 1)}
+
+
+MAX_VOICE_CHANGES = 24
+
+
+def refresh_identity(registry):
+    """The (file, words) -> (file hash, words hash) table the prompt-cache key reads (install_cache_identity)."""
+    registry['identity'] = {(os.path.abspath(ref[0]), ref[1]): (registry['referenceHashes'][key], registry['transcriptHashes'][key])
+                            for key, ref in registry['refs'].items()}
+
+
+def apply_voice_change(registry, request):
+    """Changes some voices of a running worker without reloading the model (a player gave a character a clip, or took it away).
+
+    `request` is {"set": {key: descriptor}, "remove": [key, ...], "playerVoiceDirectory": absolute folder or None}. Everything is checked
+    before anything changes, so a refused change leaves the registry exactly as it was. A descriptor is checked like the configuration's
+    (the same `validate_reference`: the file, its hash, its length); a file that is gone or changed withdraws only that voice. Returns
+    (changed keys, [(file, words, file hash, words hash) of each reference that was replaced or removed]) so the caller can drop those
+    prompts from the model's cache.
+    """
+    voices, removed = request.get('set', {}), request.get('remove', [])
+    if (not isinstance(voices, dict) or not isinstance(removed, list) or len(voices) + len(removed) > MAX_VOICE_CHANGES
+            or len(set(registry['descriptors']) | set(registry['unavailableProfiles']) | set(voices)) > MAX_PROFILES
+            or any(not valid_key(key) for key in (*voices, *removed)) or set(voices) & set(removed)):
+        raise ValueError('Invalid local voice change')
+    folder, paths, player_root = request.get('playerVoiceDirectory'), registry.get('paths'), registry.get('playerRoot')
+    if folder is not None:
+        wanted = checked_player_directory(folder, registry['root'], paths)
+        if player_root not in (None, wanted):
+            raise ValueError('The player voice folder cannot change while running')
+        player_root = wanted
+    reference_root = registry.get('referenceRoot')
+    checked = {}
+    for key, descriptor in voices.items():
+        if not isinstance(descriptor, dict):
+            raise ValueError('Invalid local voice profile')
+        status = descriptor.get('status', 'ready')
+        if status not in ('ready', 'unprepared', 'unavailable'):
+            raise ValueError('Invalid local voice profile status')
+        if status != 'ready':
+            checked[key] = (None, None, status)
+            continue
+        try:
+            ref = validate_reference(registry['root'], descriptor, reference_root=reference_root, player_root=player_root)
+            checked[key] = ({name: descriptor[name] for name in ('reference', 'sha256', 'transcript')}, ref, 'ready')
+        except ReferenceUnavailable:
+            checked[key] = ({name: descriptor[name] for name in ('reference', 'sha256', 'transcript')}, None, 'unavailable')
+    registry['playerRoot'] = player_root
+    changed, dropped = [], []
+
+    def forget(key):
+        ref, old = registry['refs'].pop(key, None), registry['descriptors'].pop(key, None)
+        registry['referenceHashes'].pop(key, None)
+        registry['transcriptHashes'].pop(key, None)
+        known = ref is not None or old is not None or registry['unavailableProfiles'].pop(key, None) is not None
+        registry['unavailableProfiles'].pop(key, None)
+        if ref is not None and old is not None:
+            dropped.append((os.path.abspath(ref[0]), ref[1], old['sha256'], hashlib.sha256(old['transcript'].encode('utf-8')).hexdigest()))
+        return known
+
+    for key in removed:
+        if forget(key):
+            changed.append(key)
+    for key, (descriptor, ref, status) in checked.items():
+        forget(key)
+        if descriptor is not None:
+            registry['descriptors'][key] = descriptor
+            if ref is not None:
+                registry['refs'][key] = ref
+                registry['referenceHashes'][key] = descriptor['sha256']
+                registry['transcriptHashes'][key] = hashlib.sha256(descriptor['transcript'].encode('utf-8')).hexdigest()
+        if status != 'ready':
+            registry['unavailableProfiles'][key] = status
+        changed.append(key)
+    registry['configuredProfiles'] = sorted(set(registry['descriptors']) | set(registry['unavailableProfiles']))
+    registry['startupProfiles'] = [key for key in registry['startupProfiles'] if key in registry['refs']]
+    refresh_identity(registry)
+    return changed, dropped
 
 
 class ProfileSession:
@@ -270,11 +392,24 @@ class ProfileSession:
     readiness stays bounded and is removed when that actual prompt is evicted;
     no unrequested alias is advertised merely because another key prepared it.
     """
-    def __init__(self, registry, render, encode, send, model_info, memory_info, prepared_snapshot=None):
+    def __init__(self, registry, render, encode, send, model_info, memory_info, prepared_snapshot=None, evict=None):
         self.registry, self.render, self.encode, self.send = registry, render, encode, send
         self.model_info, self.memory_info = model_info, memory_info
         self.prepared_snapshot = prepared_snapshot
+        self.evict = evict
         self.prepared = OrderedDict()
+
+    def apply_voices(self, request):
+        """One voice change (apply_voice_change); the changed voices leave the prepared list and, when a reference was replaced or
+        removed, its prompt leaves the model's cache. Every other voice stays prepared."""
+        changed, dropped = apply_voice_change(self.registry, request)
+        for key in changed:
+            self.prepared.pop(key, None)
+        if self.evict is not None:
+            for entry in dropped:
+                self.evict(*entry)
+        self.sync_prepared()
+        return changed
 
     def sync_prepared(self):
         if self.prepared_snapshot is not None:
@@ -294,7 +429,7 @@ class ProfileSession:
     def validate_profile_reference(self, key):
         try:
             validate_reference(self.registry['root'], self.registry['descriptors'][key],
-                               reference_root=self.registry.get('referenceRoot'))
+                               reference_root=self.registry.get('referenceRoot'), player_root=self.registry.get('playerRoot'))
         except Exception:
             # A changed/missing recording invalidates every logical alias of
             # that file. Leave the actual adapter cache under its normal owner.
@@ -342,6 +477,22 @@ class ProfileSession:
         if request.get('op') == 'shutdown':
             return False
         request_id, key = request.get('id'), request.get('profile')
+        if request.get('op') == 'voices':
+            try:
+                if type(request_id) is not int or not 0 < request_id <= 2**53 - 1:
+                    raise ValueError('Invalid local voice selection')
+                changed = self.apply_voices(request)
+                self.send({'op': 'voices', 'id': request_id, 'changed': changed, 'profiles': sorted(self.registry['refs']),
+                           'configuredProfiles': self.registry['configuredProfiles'],
+                           'unavailableProfiles': self.registry['unavailableProfiles'],
+                           'referenceHashes': self.registry['referenceHashes'],
+                           'transcriptHashes': self.registry['transcriptHashes'],
+                           'preparedProfiles': list(self.prepared), **self.model_info, **self.memory_info()})
+            except Exception as error:
+                print(f'Local voice change refused: {type(error).__name__}: {error}', file=sys.stderr, flush=True)
+                self.send({'op': 'error', 'id': request_id, 'message': 'Local voices could not be changed.',
+                           'profiles': sorted(self.registry['refs']), 'preparedProfiles': list(self.prepared)})
+            return True
         try:
             if (type(request_id) is not int or not 0 < request_id <= 2**53 - 1
                     or not isinstance(key, str) or key not in self.registry['refs']):
@@ -393,11 +544,11 @@ def install_cache_identity(adapter, registry):
     original = adapter._clone_prompt_key
     if registry['version'] < 2:
         return original
-    identity = {(os.path.abspath(ref[0]), ref[1]): (registry['referenceHashes'][key], registry['transcriptHashes'][key])
-                for key, ref in registry['refs'].items()}
+    refresh_identity(registry)
     def fingerprinted(ref_audio, ref_text, preprocess_prompt=True, *, passage=None):
         key = original(ref_audio, ref_text, preprocess_prompt, passage=passage)
-        fingerprints = identity.get((os.path.abspath(ref_audio), ref_text))
+        # Read from the registry on every call: a voice the player changed while the worker runs is registered there (apply_voice_change).
+        fingerprints = registry['identity'].get((os.path.abspath(ref_audio), ref_text))
         if fingerprints is None:
             raise ValueError('Unregistered reference cannot enter the prompt cache')
         return (*key, 'cyberpunk-voice-profile-v2', MODEL_REVISION, ADAPTER_REVISION, *fingerprints)
@@ -579,8 +730,17 @@ def run_worker(registry):
             sf.write(audio, values, backend.sample_rate, format='WAV', subtype='PCM_16')
             return base64.b64encode(audio.getvalue()).decode('ascii')
 
+        def evict(path, transcript, reference_hash, transcript_hash):
+            """Drops one replaced or removed reference's prompt from the adapter's memory cache (its disk copy is keyed by the same
+            hashes, so a new reference never reads it)."""
+            with tts_backend._prompt_cache_lock:
+                for cache_key in list(tts_backend._prompt_cache):
+                    if (isinstance(cache_key, tuple) and len(cache_key) >= 4 and (cache_key[0], cache_key[2]) == (path, transcript)
+                            and tuple(cache_key[-2:]) == (reference_hash, transcript_hash)):
+                        tts_backend._prompt_cache.pop(cache_key, None)
+
         session = ProfileSession(registry, render, encode, send, model_info, memory_info,
-                                 prepared_snapshot=lambda: cached_profiles(tts_backend, registry))
+                                 prepared_snapshot=lambda: cached_profiles(tts_backend, registry), evict=evict)
         session.startup()
         while True:
             line = sys.stdin.readline(MAX_INPUT + 1)

@@ -188,7 +188,7 @@ test('Settings offers Edit characters, and Open writes one fresh command with ev
   local open = row('character-editor:open')
   assert(open and open.type == 'action' and open.value == 'Open' and not open.disabled, 'the Open row is offered')
   assert(open.label == 'Edit characters', 'the row label')
-  assert(open.description:find('Mistral and Local, not Convai', 1, true), 'the row says the editor does not apply to Convai')
+  assert(open.description:find('Mistral and Local AI, not Convai', 1, true), 'the row says the editor does not apply to Convai')
   local writesBefore = #fileWrites
   local result = invoke('character-editor:open')
   assert(result.ok, tostring(result.error))
@@ -199,7 +199,7 @@ test('Settings offers Edit characters, and Open writes one fresh command with ev
   local count = 0
   for source, text in pairs(command.strings) do count = count + 1; assert(type(source) == 'string' and text == source, 'English shows the source: ' .. source) end
   assert(count == ${pageSources.length}, 'every sentence of the page is sent, got ' .. count)
-  assert(command.strings['Save'] and command.strings['Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local as the conversation provider in the settings.'])
+  assert(command.strings['Save'] and command.strings['Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local AI as the conversation provider in the settings.'])
   local first = command.id
   advance(1)
   assert(invoke('character-editor:open').ok)
@@ -429,12 +429,12 @@ test('without Native Settings UI the CET console, probe.log and a game notificat
   end
   files['runtime/knowledge-status.json'] = nil
   pump(true, 30)
-  assert(consoleHas('AI NPC Cyberpunk Mod: Native Settings UI is missing or too old, so the Companion Manager cannot open. Install Native Settings UI 1.96 or newer from Nexus Mods (https://www.nexusmods.com/cyberpunk2077/mods/3518), then restart the game.'), table.concat(consoleLines, ' | '))
+  assert(consoleHas('AI NPC Cyberpunk Mod: the Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer, and neither was found. Install Mod Configuration Menu (https://www.nexusmods.com/cyberpunk2077/mods/31640) or Native Settings UI (https://www.nexusmods.com/cyberpunk2077/mods/3518) from Nexus Mods, then restart the game.'), table.concat(consoleLines, ' | '))
   local lines = 0
-  for _, line in ipairs(consoleLines) do if line:find('Native Settings UI is missing or too old', 1, true) then lines = lines + 1 end end
+  for _, line in ipairs(consoleLines) do if line:find('neither was found', 1, true) then lines = lines + 1 end end
   assert(lines == 1, 'one clear line, not one per update')
-  assert(table.concat(probe):find('Native Settings UI is missing or too old', 1, true), 'probe.log has the line')
-  assert(#popups == 1 and popups[1] == 'The Companion Manager needs Native Settings UI (Nexus Mods)', popups[1] or 'no popup')
+  assert(table.concat(probe):find('neither was found', 1, true), 'probe.log has the line')
+  assert(#popups == 1 and popups[1] == 'The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI', popups[1] or 'no popup')
 `));
 
 test('without this mod’s scripts the notice is written to the warning line itself, once, when gameplay is on screen', () => run(`${helpFixture(true, true)}

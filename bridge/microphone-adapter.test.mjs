@@ -337,3 +337,39 @@ test('the microphone command file is rewritten in place for every command, never
  for _,path in ipairs(opened)do assert(path=='runtime/microphone-command.json','wrote '..path)end
  assert(#removed==0 and #renamed==0)
 `));
+
+test('a recording in a language nothing here hears says so under the Listening line', () => check(`
+ local context=input(false);assert(mic.begin(context))
+ files['runtime/microphone-state.json']=json.encode({requestId='voice-1',state='recording',note='english-only'})
+ mic.update(player)
+ assert(mic.state=='recording')
+ local want='Listening - press the same voice chat shortcut again to finish'..string.char(10)..'Voice input only understands English for now. Typing works in any language.'
+ assert(feedback[#feedback]==want,feedback[#feedback])
+`));
+
+test('an unknown note adds no English-only line', () => check(`
+ assert(mic.begin(input(false)));files['runtime/microphone-state.json']=json.encode({requestId='voice-1',state='recording',note='something-else'})
+ mic.update(player)
+ assert(feedback[#feedback]=='Listening - press the same voice chat shortcut again to finish',feedback[#feedback])
+`));
+
+test('Mistral failed and no local engine could read the recording: the same sentence, alone; a plain device error is still a device error', () => check(`
+ assert(mic.begin(input(false)));state('recording');mic.update(player);now=now+3;assert(mic.finish('private'))
+ files['runtime/microphone-state.json']=json.encode({requestId='voice-1',state='error',reason='language'})
+ assert(mic.update(player)==nil)
+ assert(feedback[#feedback]=='Voice input only understands English for now. Typing works in any language.',feedback[#feedback])
+ assert(not mic.context and cancellations[#cancellations].reason=='microphone-language')
+ assert(mic.begin(input(false)));state('recording');mic.update(player);now=now+3;assert(mic.finish('private'))
+ state('error');assert(mic.update(player)==nil)
+ assert(feedback[#feedback]=='Microphone unavailable. Check your Windows input device.',feedback[#feedback])
+`));
+
+test('the language the mod resolved is published for the bridge only when it changes', () => check(`
+ assert(mic.publishLanguage('ru')==true and files['runtime/ui-language.txt']=='ru')
+ files['runtime/ui-language.txt']=nil
+ assert(mic.publishLanguage('ru')==false and files['runtime/ui-language.txt']==nil,'an unchanged language writes nothing')
+ assert(mic.publishLanguage('pt-br')==true and files['runtime/ui-language.txt']=='pt-br')
+ assert(mic.publishLanguage('')==false and mic.publishLanguage(nil)==false and mic.publishLanguage(42)==false)
+ available=false;assert(mic.publishLanguage('de')==false,'a failed write is ignored')
+ available=true;assert(mic.publishLanguage('de')==true and files['runtime/ui-language.txt']=='de','and tried again next time')
+`));

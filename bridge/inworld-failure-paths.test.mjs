@@ -8,6 +8,7 @@ import {resolve} from 'node:path';
 import {InworldVoice, InworldError, INWORLD_LIMITS} from './inworld-voice.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {LOCAL_VOICE_KEYS} from './resident-voice.mjs';
+import {manualTimers, track, until} from './fixtures/test-waits.mjs';
 
 // A Base64 text of the shape the Inworld portal copies (never a real key).
 const KEY = Buffer.from('test-key-id-0123456789:test-key-secret-abcdefghijklmnopqrstuvwxyz').toString('base64');
@@ -219,15 +220,21 @@ test('an error line that says the plan is used up, before any audio, pauses the 
 test('a stream that goes quiet after its audio began is cut at the stall limit; a stream with no body, no audio or only noise is an error before any audio', async () => {
   const quiet = await serve({'POST /speech': (request, response) => { response.writeHead(200); response.write(line(bytesOf(ints(5000)))); /* then silence */ }});
   try {
-    const {voice} = voiceFor(quiet, {limits: {stallMs: 60}});
+    // The stall limit is a timer of the voice on a manual clock, moved once the audio has been handed on and the voice is waiting for more. The
+    // server never writes again, so nothing but the limit can end the reply: it ends when the clock reaches 60 ms, not a moment before.
+    const timers = manualTimers();
+    const {voice} = voiceFor(quiet, {...timers.hooks, limits: {stallMs: 60}}), sink = collect();
     await voice.ensureVoice('judy-alvarez');
-    const began = performance.now();
-    const result = await voice.synthesizeStream('judy-alvarez', 'A long reply.', collect());
-    assert.ok(performance.now() - began < 800);
-    assert.equal(result.truncated, true);
-    assert.equal(result.frames, 5000);
-    await wait(40);
-    assert.equal(quiet.requests.find(item => item.path === '/speech').closed, true);
+    const call = track(voice.synthesizeStream('judy-alvarez', 'A long reply.', sink));
+    await until(() => timers.limits().includes(60), 'the stall limit to be set after the first audio');
+    await timers.clock.advance(59);
+    assert.equal(call.done, false, 'left open until the stall limit');
+    await timers.clock.advance(1);
+    await until(() => call.done, 'the reply to end at the stall limit');
+    assert.equal(call.error, undefined, String(call.error));
+    assert.equal(call.value.truncated, true);
+    assert.equal(call.value.frames, 5000);
+    await until(() => quiet.requests.find(item => item.path === '/speech')?.closed === true, 'the request to be dropped');
   } finally { await quiet.close(); }
   for (const body of ['', '\n\n', 'noise\nmore noise\n', JSON.stringify({result: {audioContent: ''}}) + '\n', JSON.stringify({result: {usage: {}}}) + '\n']) {
     const empty = await serve({'POST /speech': (request, response) => { response.writeHead(200); response.end(body); }});
@@ -257,10 +264,10 @@ test('a key removed or replaced while a clone waits for its slot is not used for
     const {voice} = voiceFor(server, {getKey: () => key, clock: () => clock, setTimer: (fn, ms) => { timers.push({fn, ms}); return {unref() {}}; }, clearTimer() {}});
     // Two clones use the plan's minute; the third waits for a slot.
     const first = [voice.ensureVoice('a-one'), voice.ensureVoice('b-two')];
-    for (let spin = 0; spin < 40 && server.count('POST', '/clone') < 2; spin++) await wait(10);
+    await until(() => server.count('POST', '/clone') >= 2, 'the first two clones to be sent');
     const third = voice.ensureVoice('c-three');
     third.catch(() => {});
-    for (let spin = 0; spin < 40 && !timers.some(timer => timer.ms > 50_000); spin++) await wait(10);
+    await until(() => timers.some(timer => timer.ms > 50_000), 'the third clone to wait for its slot');
     await Promise.all(first);
     key = null;   // the player removed the Inworld key while the third clone waited
     clock += 61_000;

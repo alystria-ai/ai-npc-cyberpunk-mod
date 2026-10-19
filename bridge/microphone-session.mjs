@@ -30,11 +30,12 @@ export class MicrophoneSession {
     if (this.current !== session || session.intent === 'cancel') return;
     session.opening = session.host.beginVoice(config);
     try {
-      await session.opening;
+      const opened = await session.opening;
       if (this.current !== session || session.intent === 'cancel') { await session.host.close(); return; }
       session.opened = Date.now();
       if (session.intent === 'finish') return this.finish(session.requestId);
-      await this.onState('recording', input);
+      // What the channel says about the recording (a `note` such as 'english-only', bridge/local-stt-capture.mjs) goes to the state the game reads.
+      await this.onState('recording', input, opened);
     } catch (error) {
       if (this.current === session && session.intent !== 'cancel') { this.current = null; await session.host.close(); await this.onError(session.input, error); }
     }

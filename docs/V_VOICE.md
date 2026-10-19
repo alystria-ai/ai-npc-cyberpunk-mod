@@ -19,12 +19,90 @@ reply (the add-on's text host cuts them: `bridge/mistral-prompt.mjs` `stripPlaye
    is your own voice, not a game utterance. Its words are shown as **V's subtitle** (below).
 3. When the companion's reply is ready, its audio waits (silently, buffered) only while V's line is still playing, then starts.
    The two never overlap.
-4. **If V's line is not audible yet when the reply is ready, V's line is dropped.** The reply is never delayed to wait for V.
-   The first line after a cold start can be dropped for this reason (the voice has to be prepared once); the composer warms
-   the voice and the renderer page when it opens, so later lines are normally in time.
+4. **If V's line is not audible yet when the reply is ready, the reply waits for V's first audio for at most 600 ms (the grace,
+   below), then V's line is dropped** and the reply goes on at once. Before 2026-10-19 V was dropped the moment the reply was ready.
+   The first line after a cold start used to be lost for this reason (the voice has to be prepared once); the voice is now prepared
+   before the first line (below), and the composer warms the renderer page when it opens.
 
 Any failure (a clone that cannot be made, a voice error, no audio in time) skips V's line, writes one `[VVoice]` log line and
 never touches the conversation.
+
+## The grace, the warm voice and the totals (2026-10-19, branch `fix/v-voice-typed`)
+
+**Live finding (Silent power mode, V on Pocket on the CPU, companion voice Voxtral, Mistral).** V's typed line to Johnny was never
+heard: `engine=pocket-helper result=dropped reason=slower-than-reply marks={"voiceStart":1,"playStart":13,"ttsSent":220.7,
+"rendererReady":831.7,"firstPcm":3006.1,"dropped":3046.1}`, the companion's `firstFrame` at 3053 ms on the turn's clock.
+
+**What the marks say.** V's marks are on V's own clock, which starts when V's line starts: V's `dropped` (3046) is 3082 on the turn's
+clock (`vDropped`), so V started about 36 ms into the turn, at the top of `runInput`, in parallel with the model request. It did not
+wait for the companion's `voiceStart` (1340 ms, that is the companion's clock). Nothing needed to start earlier. The time went to
+Pocket: `ttsSent` 220 ms, the voice's first PCM at 3006 ms, about 2.8 s of synthesis where a warm Pocket needs 0.2 to 0.3 s. The renderer
+page (831 ms) was ready in parallel and was not the bottleneck. A warm Pocket line is audible long before any reply (the model's first
+sentence alone takes 1.1 s), so this one was cold, and the reply's first audio (1.4 s of Voxtral after `ttsSent` 1492) beat it by 40 ms.
+
+**Cause 1: the first Pocket line of a session paid the voice's preparation.** Pocket clones a voice by encoding its reference clip once
+(seconds on a slow CPU; `ensurePrepared` runs inside the first `synthesizeStream`). The composer's warm-up (`VVoice.warmUp`) prepared the
+voice only when it knew which V is playing, and the game does not say before the first typed turn: with two clips and no line yet
+the code deliberately prepared nothing. So the first line of every session was cold, and a worker still loading when the composer opened
+(`ready(key)` false) prepared nothing either.
+
+**Cause 2: the drop rule had no tolerance.** `VLine.holds()` and `holdsPublish()` (called by the continuous speech for every frame, and
+by `waitClear` for a reply published as a whole) dropped a line that was in `synth` state on the first ask, so a V line that was 40 ms
+from audible was lost like one that was seconds away.
+
+**The fix.**
+
+- **V's voice is prepared before the first line.** (a) V's gender is remembered between sessions (`v-voice-gender.json` in the
+  state folder, written only when it changes), so the first composer of a session prepares that one voice. (b) With nothing known (a
+  first session) both voices are prepared one after the other, male first, and the second is skipped as soon as a typed turn says which V
+  it is; the choice is remembered from then on. (c) When V's own Pocket worker finishes loading it prepares V's voice at once
+  (`VHelperVoice.onReady`, `VoiceSelection` option `onVHelperReady`, `warmUp({page: false})`): no renderer page is opened for this, and
+  nothing runs per frame. With "Keep prepared voices" on, the worker also saves the prepared voice to disk, so later sessions pay almost
+  nothing. The preparation runs in the below-normal-priority worker process, never on the game's thread.
+- **A bounded grace instead of an instant drop (`V_GRACE_MS`, 600 ms).** The first time the reply asks while V is not audible, the
+  reply's publish and sound are held and a timer starts; V becoming audible inside it plays as usual (the reply then follows V's end), the
+  timer running out drops V (`slower-than-reply`, `waitedMs` in the line's summary), and the reply goes on. Later asks never extend it.
+  A turn ending or a failure cancels it. The stage clock shows it: V's `graceStart`, and on the turn's clock `vGrace`, then `vAudible` or
+  `vDropped`. **Why 600 ms:** it is the renderer's 400 ms start buffer plus about one Pocket chunk, which covers the near miss seen
+  live (40 ms) and ordinary jitter, while a voice that really is seconds away (a cold one, 2.8 s) is not waited for beyond it.
+  `CYBERPUNK_CONVAI_V_GRACE_MS` sets it (0 restores the old instant drop, at most 2000).
+  **What a rescue really costs, and its budget.** Waiting is the small part. A line that becomes audible after the reply is ready no
+  longer overlaps the model's wait, so the reply then follows V's whole line (its speech, 160 ms lead-in and 320 ms tail): in the
+  live case about 0.3 s of wait plus 2.5 s of V, and the numbers below show it. A warm V is audible in 0.3 s and the same line costs the
+  reply almost nothing. So the grace is capped by `V_RESCUE_BUDGET_MS` (4 s): the line's length is estimated from its words (2.8 a
+  second, the pace V speaks) plus the 480 ms of edges, and the wait is only what is left of the budget after that. Up to eight words get
+  the whole 600 ms, nine get about 300 ms, ten words and more get none and are dropped at once as before. The budget is
+  the answer to "never delay the reply more than a bound": it bounds the wait plus the line, about 4 s, the reply latency a player
+  already sees on a slow turn.
+- **Totals in the log (and so in a support report).** Each V line that settles is counted. The first line of the session, and every dropped
+  line, writes `[VVoice] this session: 3 typed line(s) spoken, 1 not heard (slower-than-reply=1), 2 not started (voice-not-loaded=2)`; the
+  last such line is the current total. A typed line that could not start (`voice-not-loaded`, `voice-not-ready`, `cloud-unavailable`,
+  `not-english`, `volume-unknown`) is counted by reason and the first of each reason writes the totals. Counts only, no text. The
+  per-line `[VVoice] ... result=...` records and `runtime/bridge-latency.json` `vVoice` already existed; both are in a report.
+
+**Measured 2026-10-19 (stage clock, `scripts/Measure-VVoice.mjs --early --runs 3 --prep 250 --text 1150 --only "Voxtral companions, V on Pocket"`;
+simulated providers, the real `VVoice`, `VLine` and `TurnClock`; the reply's first audio is ready at about 2520 ms, the live shape;
+milliseconds after the send; seven-word line).** "Delay" is when the reply starts minus when it would start with V off.
+
+| V's Pocket first audio | Grace | V audible | V | Reply starts | Reply delay |
+|---|---|---:|---|---:|---:|
+| 250 (warm, Pocket's usual) | 600 | 323 | heard | 2791 | +265 |
+| 1500 (slow CPU, voice prepared) | 0 (old rule) | 1566 | heard | 4039 | +1514 |
+| 1500 | 600 | 1571 | heard | 4040 | +1522 |
+| 2800 (the cold first line seen live) | 0 (old rule) | never | **dropped** | 2526 | +2 |
+| 2800 | 600 | 2864 | heard (320 ms after the reply was ready) | 5349 | +2824 |
+
+So the warm voice is the real fix: the same line is heard at 323 ms and costs the reply 265 ms, against 2824 ms for a rescued cold
+line. The grace only turns a lost line into a heard one in the narrow band where V is within 600 ms behind the reply, at the price of
+the reply following V's line; it never holds the reply for more than the grace when V is later than that (budget above). The
+simulated "Keep prepared voices" and the real Pocket prepare time were not measured live in this change: the live check is in TODO.md.
+(The cold 2800 ms figure is the live mark; the 2 s of it that is voice preparation is what the new warm-up removes.)
+
+**Not changed, on purpose.** V still starts first (top of `runInput`), the reply is still never held for a V line that is not
+coming, no second Pocket worker or extra model is loaded, and an unfinished V line on the shared Pocket worker still steps aside when the
+companion's text-to-speech request goes out (the worker does one job at a time). The 200 ms between V's `playStart` and `ttsSent` in the
+live marks is the bridge's event loop busy with the turn's other start-up work (knowledge, admission) on a slow CPU; it was not
+touched.
 
 ## V's subtitle (2026-10-15)
 
@@ -153,7 +231,8 @@ Latency is as important as FPS here, so V never stands in front of anything:
 - The companion's audio is held with the existing `hold` of the continuous speech (the one a look-ahead uses): the renderer
   keeps buffering and gets the quiet control, nothing is published to the game, so the subtitle and the face start exactly when
   the companion's voice does. A reply published as a whole (OmniVoice) waits in `publishResult` for the same signal.
-- "Audible" means the V renderer holds audio. If the reply is ready first, V is dropped on the spot.
+- "Audible" means the V renderer holds audio. If the reply is ready first, the reply waits for V's first audio for the grace (600 ms)
+  and V is then dropped (2026-10-19; before, on the spot).
 - Pocket and OmniVoice workers do one job at a time. When the companion's own text-to-speech request goes out (`ttsSent` on the
   turn's stage clock) and V's line is still waiting for its first audio, V is stopped so it is not in front of the reply's voice.
   A line that is already audible keeps going (the companion cannot be heard before it ends anyway). The cloud voices share no
@@ -248,9 +327,10 @@ line, and the same record in `runtime/bridge-latency.json` under `vVoice`:
 `[VVoice] profile=judy-alvarez voice=v-male engine=pocket result=played marks={"voiceStart":0,"ttsSent":2.1,"firstPcm":...}`
 
 Marks, in milliseconds after V's line started: `voiceStart`, `playStart`, `rendererReady`, `ttsSent` (the voice asked),
-`firstPcm`, `firstPcmAccepted`, `audible` (the renderer holds audio), `synthDone`, `ended`, or `dropped` with a `reason`
-(`slower-than-reply`, `reply-voice-started`, `turn-ended`, `failed`, `no-audio`). The companion's own clock also gets
-`vAudible`, `vEnded` or `vDropped`, so the wait V caused (if any) is visible in its record.
+`firstPcm`, `firstPcmAccepted`, `audible` (the renderer holds audio), `synthDone`, `graceStart` (the reply was ready and waited for V's
+first audio), `ended`, or `dropped` with a `reason` (`slower-than-reply`, `reply-voice-started`, `turn-ended`, `failed`, `no-audio`). The
+summary carries `waitedMs` (how long the reply waited, when it did). The companion's own clock also gets `vGrace`, `vAudible`, `vEnded`
+or `vDropped`, so the wait V caused (if any) is visible in its record.
 
 ## The reference clips
 
@@ -327,6 +407,7 @@ actor says "assumed" where the subtitle says "assume" (the audio is clear).
 | Setting | `mod/manager.lua` (`vVoice`, `vVoiceChosen`, `vVoiceEngine`), `mod/manager-ui.lua` |
 | Simulated measurement | `scripts/Measure-VVoice.mjs` (`--legacy`, `--runs`, `--prep`, `--json`) |
 | V's subtitle | `mod/subtitles.lua` (`showTyped`), `mod/init.lua` (the submission in `onUpdate`), `bridge/subtitles.test.mjs` |
+| Grace, totals, remembered gender | `bridge/v-voice.mjs` (`V_GRACE_MS`, `VLine.startGrace`, `VVoice.count`, `VVoice.know`), `bridge/convai-bridge.mjs` (`vGenderMemory`, `onVHelperReady`) |
 | Tests | `bridge/v-voice.test.mjs`, `bridge/v-helper-voice.test.mjs`, `bridge/manager.test.mjs`, `bridge/turn-context.test.mjs`, `bridge/addons.test.mjs` |
 
 ## Live check
