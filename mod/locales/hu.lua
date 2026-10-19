@@ -1075,4 +1075,7 @@ return {
     ["Previous page"] = "Előző oldal",
     ["Next page"] = "Következő oldal",
     ["Starts with: {letter}"] = "Kezdőbetű: {letter}",
+    ["Characters and party"] = "Karakterek és csapat",
+    ["Load a save first"] = "Előbb tölts be mentést",
+    ["Inviting characters and managing your party need a loaded game."] = "A karakterek meghívásához és a csapat kezeléséhez betöltött játék kell.",
 }

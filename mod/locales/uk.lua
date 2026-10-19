@@ -1075,4 +1075,7 @@ return {
     ["Previous page"] = "Попередня сторінка",
     ["Next page"] = "Наступна сторінка",
     ["Starts with: {letter}"] = "Починається з: {letter}",
+    ["Characters and party"] = "Персонажі та група",
+    ["Load a save first"] = "Завантаж збереження",
+    ["Inviting characters and managing your party need a loaded game."] = "Запрошувати персонажів і керувати групою можна лише в завантаженій грі.",
 }

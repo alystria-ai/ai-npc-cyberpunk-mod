@@ -91,10 +91,12 @@ Game = {
 }
 local nsPresent, beforeOpens, selects = true, 0, 0
 local notices, noticeRaises = {}, false
+local liveTab = false   -- what the host says about the tab Native Settings UI shows now
 local entry = (function() ${source} end)().new({
     ns = function() return nsPresent and {} or nil end,
     beforeOpen = function() beforeOpens = beforeOpens + 1 end,
     select = function() selects = selects + 1 end,
+    live = function() return liveTab end,
     notify = function(kind) if noticeRaises then error('notice unavailable') end notices[#notices + 1] = kind end,
     log = function(message) logs[#logs + 1] = message end,
 })
@@ -104,6 +106,19 @@ emit('OnInitialize', settings)
 -- The host says which Settings instance shows the tab; closing and detaching are the game's events.
 local function render() entry.shown(settings) end
 local function closeAndDetach() emit('RequestClose', settings); emit('OnUninitialize', settings) end
+-- The shortcut pressed in gameplay: the walk opens the pause menu itself, activates the Mods item and the Settings screen opens.
+local function openFromGameplay()
+    inMenu = false
+    assert(entry.open() == true)
+    inMenu = true; controllers = {pause}
+end
+-- The whole walk to a Settings screen (a tab shown on it is the test's to say with render()).
+local function walk(screen)
+    openFromGameplay()
+    entry.update()
+    emit('OnInitialize', screen or settings)
+    activated, menuWrites = {}, {}
+end
 local function resumeCount() local count = 0; for _, entry in ipairs(activated) do if entry:find(':Resume', 1, true) then count = count + 1 end end; return count end
 local function otherCount() return #activated - resumeCount() end
 `;
@@ -210,8 +225,7 @@ test('when the Settings screen opens on another tab, the tab is selected once af
 `));
 
 test('accepted manager close activates the genuine Resume item only after Settings detaches', () => run(`
-  -- Includes manually opening Companion Manager from Esc > Mods; the shortcut is not required.
-  render()
+  walk(); render()
   emit('RequestClose', settings)
   assert(entry.inspect().returnToGame)
   inMenu = true; controllers = {pause}
@@ -226,11 +240,11 @@ test('accepted manager close activates the genuine Resume item only after Settin
 `));
 
 test('the host saying the tab is no longer shown between the close and the detach does not lose an accepted exit', () => run(`
-  render()
+  walk(); render()
   emit('RequestClose', settings)
   entry.shown(nil)
   emit('OnUninitialize', settings)
-  inMenu = true; entry.update()
+  controllers = {}; inMenu = true; entry.update()
   assert(resumeCount() == 0 and entry.inspect().returnToGame)
   controllers = {pause}
   entry.update()
@@ -242,7 +256,7 @@ test('fresh CET wrappers for one native Settings instance still match show, clos
   -- equality fails.
   local created, shown, closing, detached = {nativeId = 701}, {nativeId = 701}, {nativeId = 701}, {nativeId = 701}
   assert(created ~= shown and shown ~= closing and closing ~= detached)
-  emit('OnInitialize', created)
+  walk(created)
   entry.shown(shown)
   assert(entry.inspect().shown)
   emit('RequestClose', closing)
@@ -257,7 +271,7 @@ test('fresh CET wrappers for one native Settings instance still match show, clos
 `));
 
 test('another native Settings instance cannot close or detach the shown tab', () => run(`
-  settings.nativeId = 901; emit('OnInitialize', settings); render()
+  settings.nativeId = 901; walk(); render()
   emit('RequestClose', {nativeId = 902})
   emit('OnUninitialize', {nativeId = 902})
   assert(entry.inspect().shown and entry.inspect().capturedSettings)
@@ -270,7 +284,7 @@ test('another native Settings instance cannot close or detach the shown tab', ()
 
 test('missing native identity fails closed instead of trusting wrapper strings or nil equality', () => run(`
   local bad = {nilIdentity = true}
-  emit('OnInitialize', bad)
+  walk(bad)
   entry.shown(bad)
   emit('RequestClose', bad); emit('OnUninitialize', bad)
   inMenu = true; controllers = {pause}; entry.update()
@@ -286,39 +300,39 @@ test('the game\'s own Settings screen, another tab and a screen the tab never sh
   -- The tab is not shown (another tab, or the game's own Settings): closing the screen is the player's own business.
   closeAndDetach(); entry.update()
   assert(resumeCount() == 0)
-  emit('OnInitialize', settings); render(); entry.shown(nil); closeAndDetach(); entry.update()
+  walk(); render(); entry.shown(nil); closeAndDetach(); entry.update()
   assert(resumeCount() == 0, 'the tab was left before the screen closed')
   -- Shown on one instance, closed on another.
   local other = {nativeId = 555}
-  emit('OnInitialize', settings); render(); emit('RequestClose', other); emit('OnUninitialize', other); entry.update()
+  walk(); render(); emit('RequestClose', other); emit('OnUninitialize', other); entry.update()
   assert(resumeCount() == 0 and not entry.inspect().returnToGame)
 `));
 
 test('a new Settings screen opened after a close cancels the pending resume, and so does a reset', () => run(`
   inMenu = true; controllers = {pause}
-  render(); closeAndDetach(); emit('OnInitialize', {}); entry.update()
+  walk(); render(); closeAndDetach(); emit('OnInitialize', {}); entry.update()
   assert(resumeCount() == 0 and not entry.inspect().returnToGame)
-  emit('OnInitialize', settings); render(); closeAndDetach(); entry.reset(); entry.update()
+  walk(); render(); closeAndDetach(); entry.reset(); entry.update()
   assert(resumeCount() == 0 and not entry.inspect().returnToGame)
 `));
 
 test('teardown, a save reload, pre-game and leaving the menu without an accepted close cannot auto-resume', () => run(`
   inMenu = true; controllers = {pause}
-  render(); emit('OnUninitialize', settings); entry.update()
+  -- The screen goes away with the menu gone too (a teardown): nothing is resumed.
+  walk(); render(); inMenu = false; emit('OnUninitialize', settings); entry.update(); inMenu = true; entry.update()
   assert(resumeCount() == 0 and not entry.inspect().returnToGame)
-  emit('OnInitialize', settings); render(); closeAndDetach(); attached = false
+  walk(); render(); closeAndDetach(); attached = false
   entry.update(); attached = true; entry.update()
   assert(resumeCount() == 0 and not entry.inspect().returnToGame)
-  emit('OnInitialize', settings); render(); closeAndDetach(); preGame = true; entry.update(); preGame = false
+  walk(); render(); closeAndDetach(); preGame = true; entry.update(); preGame = false
   assert(resumeCount() == 0 and not entry.inspect().returnToGame)
-  emit('OnInitialize', settings); render(); closeAndDetach(); inMenu = false; entry.update(); inMenu = true
+  walk(); render(); closeAndDetach(); inMenu = false; entry.update(); inMenu = true
   assert(resumeCount() == 0 and not entry.inspect().returnToGame)
 `));
 
 test('an absent native Resume times out without selecting a different action; a failing activation is consumed once', () => {
   run(`
-    inMenu = true; controllers = {pause}
-    render(); closeAndDetach()
+    walk(); render(); closeAndDetach()
     items[4] = target('Load', 'OnSwitchToLoadGame')
     entry.update(); assert(resumeCount() == 0 and otherCount() == 0 and entry.inspect().returnToGame)
     clock = clock + 4; entry.update()
@@ -327,12 +341,97 @@ test('an absent native Resume times out without selecting a different action; a 
     assert(resumeCount() == 0 and otherCount() == 0)
   `);
   run(`
-    inMenu = true; controllers = {pause}
-    render(); closeAndDetach()
+    walk(); render(); closeAndDetach()
     local attempted = 0
     pause.OnMenuItemActivated = function() attempted = attempted + 1; error('unavailable') end
     entry.update(); entry.update()
-    assert(attempted == 1 and #logs == 1 and not entry.inspect().returnToGame)
+    assert(attempted == 1 and not entry.inspect().returnToGame and logs[#logs]:find('Could not resume', 1, true))
+    -- A failed activation is not tried again.
+    clock = clock + 5; entry.update(); assert(attempted == 1)
+  `);
+});
+
+test('a pause menu the player opened, and a Mods screen opened by hand, are never closed on their behalf', () => run(`
+  -- The shortcut pressed from the pause menu the player opened: the tab is shown, closed, detached; nothing is resumed.
+  inMenu = true; controllers = {pause}
+  entry.open(); entry.update()
+  emit('OnInitialize', settings); render()
+  assert(entry.inspect().pauseOwned == false and not entry.inspect().walkScreen)
+  closeAndDetach(); entry.update(); entry.update()
+  assert(resumeCount() == 0 and not entry.inspect().returnToGame)
+  -- A Mods screen opened by hand (no walk at all).
+  emit('OnInitialize', settings); render(); closeAndDetach(); entry.update()
+  assert(resumeCount() == 0 and not entry.inspect().returnToGame)
+  -- A walk from gameplay that never found its screen (it timed out) leaves nothing armed for a screen opened by hand later.
+  entry.reset(); inMenu = false; controllers = {}
+  entry.open(); assert(entry.inspect().pauseOwned)
+  clock = clock + 9; entry.update()
+  assert(entry.state() == 'idle' and not entry.inspect().pauseOwned)
+  inMenu = true; controllers = {pause}
+  emit('OnInitialize', settings); render(); closeAndDetach(); entry.update()
+  assert(resumeCount() == 0)
+`));
+
+test('the shortcut in gameplay opened the pause menu: closing the tab it showed goes straight back to the game, once', () => run(`
+  walk(); render()
+  assert(entry.inspect().walkScreen and not entry.inspect().pauseOwned)
+  closeAndDetach(); entry.update()
+  assert(resumeCount() == 1 and otherCount() == 0 and activated[1] == '3:Resume', table.concat(activated, ','))
+  entry.update(); entry.update(); assert(resumeCount() == 1)
+`));
+
+test('a close the game made without RequestClose still hands the player back, and a close request seen first is not counted twice', () => run(`
+  walk(); render()
+  -- The screen goes away, no close request (the game closes it by another route), with the tab shown.
+  emit('OnUninitialize', settings); entry.update()
+  assert(resumeCount() == 1 and entry.inspect().exitEvents.fallbackCloses == 1 and entry.inspect().exitEvents.matchedCloses == 0)
+  assert(logs[1]:find('without a close request', 1, true), logs[1])
+  -- With a close request first, the detach is the matched one and the fallback does not run.
+  entry.reset(); activated, logs = {}, {}
+  walk(); render(); closeAndDetach(); entry.update()
+  local events = entry.inspect().exitEvents
+  assert(resumeCount() == 1 and events.fallbackCloses == 1 and events.matchedCloses == 1, 'one more resume, no second fallback')
+  -- The tab was left before the screen went away: nothing is resumed.
+  entry.reset(); activated = {}
+  walk(); render(); entry.shown(nil); emit('OnUninitialize', settings); entry.update()
+  assert(resumeCount() == 0 and not entry.inspect().returnToGame)
+`));
+
+test('a host that reports the tab as shown is enough when the entry was never told which screen shows it', () => run(`
+  walk()
+  -- No render(): the entry was not told. Another tab is on screen: not ours.
+  liveTab = false
+  closeAndDetach(); entry.update()
+  assert(resumeCount() == 0 and not entry.inspect().returnToGame)
+  walk(); liveTab = true
+  closeAndDetach(); entry.update()
+  assert(resumeCount() == 1, 'the tab is shown (per the host) on the screen the walk opened')
+  -- Never on a screen that is not the walk is.
+  entry.reset(); activated = {}
+  emit('OnInitialize', settings); liveTab = true
+  closeAndDetach(); entry.update()
+  assert(resumeCount() == 0)
+`));
+
+test('a Resume that did not take is repeated once, two seconds later, only while the pause menu is still up', () => {
+  run(`
+    walk(); render(); closeAndDetach(); entry.update()
+    assert(resumeCount() == 1)
+    clock = clock + 1; entry.update(); assert(resumeCount() == 1, 'too early')
+    clock = clock + 2; entry.update()
+    assert(resumeCount() == 2 and entry.inspect().exitEvents.retries == 1, 'the menu is still up: Resume once more')
+    clock = clock + 10; entry.update(); entry.update(); assert(resumeCount() == 2, 'never a third')
+  `);
+  run(`
+    walk(); render(); closeAndDetach(); entry.update()
+    assert(resumeCount() == 1)
+    inMenu = false   -- the first Resume took
+    clock = clock + 3; entry.update(); inMenu = true; clock = clock + 3; entry.update()
+    assert(resumeCount() == 1 and entry.inspect().exitEvents.retries == 0)
+    -- A new Settings screen ends the check as well.
+    walk(); render(); closeAndDetach(); entry.update(); assert(resumeCount() == 1)
+    emit('OnInitialize', {}); clock = clock + 3; entry.update()
+    assert(resumeCount() == 1)
   `);
 });
 
@@ -509,8 +608,7 @@ test('with MCM, an activation that raises ends the walk with the reason, once, a
 
 test('a notice that cannot be shown does not break the walk or the way back to the game', () => run(`
   installMcm(); noticeRaises = true
-  inMenu = true; controllers = {pause}
-  entry.open(); entry.update()
+  openFromGameplay(); entry.update()
   local screen = {nativeId = 821}
   emit('OnInitialize', screen); entry.update()
   assert(entry.state() == 'idle' and entry.inspect().problem == '' and #notices == 0 and entry.inspect().mcmScreen)
@@ -520,8 +618,7 @@ test('a notice that cannot be shown does not break the walk or the way back to t
 
 test('closing MCM\'s screen that the shortcut opened activates the genuine Resume item once, after the screen has detached', () => run(`
   installMcm()
-  inMenu = true; controllers = {pause}
-  entry.open(); entry.update()
+  openFromGameplay(); entry.update()
   local screen = {nativeId = 831}
   emit('OnInitialize', screen); entry.update()
   assert(entry.inspect().mcmScreen and not entry.inspect().returnToGame)
@@ -538,8 +635,7 @@ test('closing MCM\'s screen that the shortcut opened activates the genuine Resum
 
 test('with MCM, another Settings screen, a screen opened by hand and a reset never resume', () => run(`
   installMcm()
-  inMenu = true; controllers = {pause}
-  entry.open(); entry.update()
+  openFromGameplay(); entry.update()
   local screen = {nativeId = 841}
   emit('OnInitialize', screen); entry.update()
   -- Another Settings instance closes or detaches: the screen of the shortcut is untouched.
@@ -553,14 +649,14 @@ test('with MCM, another Settings screen, a screen opened by hand and a reset nev
   assert(resumeCount() == 0 and not entry.inspect().returnToGame)
   -- A reset (a save reload) between an accepted close and the detach cancels the exit.
   entry.reset(); activated = {}
-  entry.open(); entry.update()
+  openFromGameplay(); entry.update()
   local again = {nativeId = 844}
   emit('OnInitialize', again); entry.update(); emit('RequestClose', again)
   assert(entry.inspect().returnToGame)
   entry.reset(); emit('OnUninitialize', again); entry.update()
   assert(resumeCount() == 0 and not entry.inspect().returnToGame)
   -- Leaving the menu before the detach (an accepted close that did not end in the pause menu) cancels it as well.
-  entry.open(); entry.update()
+  openFromGameplay(); entry.update()
   local third = {nativeId = 845}
   emit('OnInitialize', third); entry.update(); emit('RequestClose', third); inMenu = false; entry.update(); inMenu = true
   emit('OnUninitialize', third); entry.update()

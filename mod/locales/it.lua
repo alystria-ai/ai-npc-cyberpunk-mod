@@ -1075,4 +1075,7 @@ return {
     ["Previous page"] = "Pagina precedente",
     ["Next page"] = "Pagina successiva",
     ["Starts with: {letter}"] = "Inizia con: {letter}",
+    ["Characters and party"] = "Personaggi e gruppo",
+    ["Load a save first"] = "Carica prima un salvataggio",
+    ["Inviting characters and managing your party need a loaded game."] = "Invitare personaggi e gestire il gruppo richiede una partita caricata.",
 }

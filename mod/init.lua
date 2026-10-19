@@ -3923,6 +3923,13 @@ registerForEvent('onUpdate', function(delta)
     if not sessionOk or not sessionReady then
         if sessionHasState then abandonSession('world unavailable',fastTravelActive~=nil) end
         if not knowledgeInvalidated then invalidateKnowledge('world unavailable') end
+        -- No world (the main menu, a loading screen): the manager's page still has to answer its buttons here. The Settings page and the
+        -- rest of the Mods screen work without a save; one quarter-second slow tick and a few comparisons, never in gameplay.
+        local titleOk, titleError = pcall(managerUi.update, nil, false)
+        if not titleOk and convaiHeartbeat.titleManagerError ~= tostring(titleError) then
+            convaiHeartbeat.titleManagerError = tostring(titleError)
+            log('Manager update failed without a world: ' .. tostring(titleError))
+        end
         return
     end
     if fastTravelActive and fastTravelActive.finished then fastTravelActive=nil end

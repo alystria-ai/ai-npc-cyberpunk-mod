@@ -1075,4 +1075,7 @@ return {
     ["Previous page"] = "上一頁",
     ["Next page"] = "下一頁",
     ["Starts with: {letter}"] = "開頭字母：{letter}",
+    ["Characters and party"] = "角色與隊伍",
+    ["Load a save first"] = "請先載入存檔",
+    ["Inviting characters and managing your party need a loaded game."] = "邀請角色和管理隊伍需要先載入遊戲。",
 }

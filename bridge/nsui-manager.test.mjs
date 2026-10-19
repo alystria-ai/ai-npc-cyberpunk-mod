@@ -392,7 +392,10 @@ test('a long label, button text or text line is cut to what the row can show, an
   local short = describe({id = 'y', type = 'action', label = 'Settings', value = 'Open', description = 'Opens the settings.'})
   assert(short.label == 'Settings' and short.text == 'Open' and short.desc == 'Opens the settings.')
   local note = describe({id = 'z', type = 'string', label = 'Memory service', value = 'Ready', description = 'x'})
-  assert(note.kind == 'button' and note.text == '' and note.label == 'Memory service: Ready' and note.readonly and note.desc == 'x')
+  -- A short value is the text where the button's would be (its frame is hidden); a long one, or none, stays in the label.
+  assert(note.kind == 'button' and note.text == 'Ready' and note.label == 'Memory service' and note.readonly and note.desc == 'x')
+  local bare = describe({id = 'z0', type = 'string', label = 'Your party is empty', value = '', description = 'x'})
+  assert(bare.text == '' and bare.label == 'Your party is empty' and bare.readonly)
   -- A text line that is too long: the whole line leads the description.
   local value = 'Shared across your saves and kept until you clear it from the manager'
   local line = describe({id = 'z2', type = 'string', label = 'Player memory', value = value, description = 'Help.'})
@@ -567,3 +570,63 @@ test('beside MCM the notice is in the player\'s language and a translation never
     assert(#popups == 1 and popups[1] ~= 'Open AI NPC Cyberpunk Mod in the Mods list.' and popups[1]:find('AI NPC Cyberpunk Mod', 1, true), tostring(popups[1]))
   `);
 });
+
+// ---- The main menu (no world), read-only rows ------------------------------------------------------------------------------------------
+
+test('at the main menu the buttons work: Settings opens, and the pages that need a save say so in a row', () => run(`${harness()}
+  -- init.lua's update runs the manager with no player and no world while there is no save loaded (managerUi.update(nil, false)).
+  player = nil
+  local function titleFrames(count) for _ = 1, count or 6 do clock = clock + 0.1; managerUi.update(nil, false) end end
+  titleFrames(4)
+  local function titlePress(label) ns.interact.press(assert(ns.find(label), 'no row: ' .. label)); titleFrames(6); ns.verify() end
+  -- Pages that need no save open.
+  titlePress('Settings')
+  assert(ns.sections()[2].label == 'Interface' and ns.find('Interface language'), shownOutline())
+  titlePress('Back to Companion Manager')
+  assert(#ns.sections() == 1 and ns.sections()[1].options[1].label == 'Characters to invite', shownOutline())
+  -- Pages that need one say so, visibly, and their invite buttons are not offered as if they worked.
+  for _, page in ipairs({'Characters to invite', 'Current party', 'Model browser'}) do
+    titlePress(page)
+    local note = assert(ns.find('Characters and party'), page .. ': no row that says a save is needed')
+    assert(note.type == 'button' and note.buttonText == 'Load a save first', page)
+    assert(not ns.find('Your party is empty'), page .. ': an empty party is not the answer without a save')
+    titlePress('Back to Companion Manager')
+  end
+  -- The same pages with a save loaded have no such row.
+  local source = player
+  player = {hash = 'player-1', open = true, queue = {}, rows = {}, GetEntityID = function(self) return {hash = self.hash} end}
+  frames(4)
+  titlePress('Current party')
+  assert(not ns.find('Characters and party') and ns.find('Your party is empty'), shownOutline())
+`));
+
+test('init.lua runs the manager from the frames that have no world, so a button of the page is answered at the main menu', () => {
+  const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+  const branch = init.match(/if not sessionOk or not sessionReady then([\s\S]*?)\n    end\n    if fastTravelActive/);
+  assert.ok(branch, 'the branch of onUpdate for frames without a world');
+  assert.match(branch[1], /pcall\(managerUi\.update, nil, false\)/);
+  assert.match(branch[1], /\n        return\n?$/, 'it still returns before any gameplay work');
+  assert.ok(branch[1].indexOf('managerUi.update') < branch[1].lastIndexOf('return'));
+});
+
+test('a read-only row shows its value (or its line) where a button would be, and its frame is hidden; real buttons keep theirs', () => run(`${harness()}
+  press('Settings'); press('Memory')
+  local line = assert(ns.find('Memory service'))
+  assert(line.buttonText == 'Ready' or line.buttonText == 'Unavailable', line.buttonText)
+  assert(line.controller.offStateBody.visible == false and line.controller.onStateBody.visible == false, 'the frame of a text line is hidden')
+  local button = assert(ns.find('Forget all memories'))
+  assert(button.controller.offStateBody.visible == true and button.controller.onStateBody.visible == true, 'a real button keeps its frame')
+  -- A line with a long value is the label alone, still without a frame.
+  local identity = assert(ns.find('Player memory'))
+  assert(identity.controller.offStateBody.visible == false)
+  -- The screen is closed and opened again: the rows are made again, and the frames are hidden again.
+  ns.closeScreen(); frames(3)
+  ns.openScreen(TAB); frames(2)
+  press('Settings'); press('Memory')
+  assert(ns.find('Memory service').controller.offStateBody.visible == false)
+  assert(ns.find('Forget all memories').controller.offStateBody.visible == true)
+  -- A controller that does not answer is harmless.
+  ns.find('Memory service').controller.offStateBody = nil
+  press('Back to settings'); press('Memory')
+  assert(managerUi.inspect().error == '' or managerUi.inspect().error == nil, tostring(managerUi.inspect().error))
+`));

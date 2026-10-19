@@ -1075,4 +1075,7 @@ return {
     ["Previous page"] = "이전 페이지",
     ["Next page"] = "다음 페이지",
     ["Starts with: {letter}"] = "첫 글자: {letter}",
+    ["Characters and party"] = "캐릭터와 파티",
+    ["Load a save first"] = "먼저 세이브 불러오기",
+    ["Inviting characters and managing your party need a loaded game."] = "캐릭터 초대와 파티 관리는 게임을 불러온 뒤에 할 수 있습니다.",
 }

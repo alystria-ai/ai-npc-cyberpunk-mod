@@ -1075,4 +1075,7 @@ return {
     ["Previous page"] = "前のページ",
     ["Next page"] = "次のページ",
     ["Starts with: {letter}"] = "先頭文字：{letter}",
+    ["Characters and party"] = "キャラと仲間",
+    ["Load a save first"] = "セーブを読み込む",
+    ["Inviting characters and managing your party need a loaded game."] = "キャラの招待や仲間の管理には、読み込み済みのゲームが必要です。",
 }
