@@ -96,9 +96,12 @@ function M.busy(sample, spoken)
     if type(sample) ~= 'table' or sample.available ~= true then return 'unreadable' end
     if sample.replacer == true then return 'replacer' end
     if sample.call == true then return 'call' end
-    if sample.dialogue == true then return 'dialogue' end
+    -- V sits in an ordinary seat (sample.sitting, mod/seated-look.lua M.plain): a scene sit is scene tier 3 with the dialogue and choice flags
+    -- up, and no cutscene (no game line since V sat, no call, no fight): Johnny may talk to V there.
+    local seated = sample.sitting == true
+    if sample.dialogue == true and not seated then return 'dialogue' end
     local tier = tonumber(sample.tier)
-    if (tier ~= nil and tier >= 3) or (tier == nil and sample.choices == true) then return 'scene' end
+    if not seated and ((tier ~= nil and tier >= 3) or (tier == nil and sample.choices == true)) then return 'scene' end
     if sample.combat == true then return 'combat' end
     if spoken == true then return 'johnny-speaking' end
     return nil

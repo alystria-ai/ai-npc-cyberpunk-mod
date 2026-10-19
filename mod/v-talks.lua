@@ -20,9 +20,10 @@ M.LEVELS = {rare = {gap = 900, hour = 2}, normal = {gap = 300, hour = 6}}
 M.CALM_SECONDS = {rare = 1200, normal = 600}
 M.CALM_JITTER = 0.5
 M.CALM_MOVED = 40
-M.TTL = {fight = 90, job = 240}              -- how long an event waits for its moment (scenes, calls and talk come first)
+M.TTL = {fight = 150, job = 240}             -- how long an event waits for its moment (scenes, calls, the battle line and Johnny's remark come first)
 M.QUIET_SECONDS = {fight = 8, job = 15}      -- never sooner than this after the event (the fight's last shot, the job's last line)
-M.FIGHT_MIN_SECONDS = 20                     -- a fight shorter than this is a scuffle, not "something intense"
+M.FIGHT_MIN_SECONDS = 10                     -- seconds of combat (not the encounter's four-second settle): shorter is a scuffle, not "something intense"
+M.FIGHT_SETTLE = 4                           -- the battle state machine's quiet settle, added to the encounter's length (battle-reactions.lua)
 M.LINE_SECONDS = 10                          -- never within 10 s of a game line (a scene or an ambient line is still going on)
 M.AFTER_REACTION = 15                        -- never within 15 s of the end of another automatic reaction
 M.SEND_SECONDS = 60                          -- an exchange step that was sent must be heard within this (the reaction's deadline)
@@ -126,13 +127,18 @@ local function clean(value, limit)
 end
 
 -- A fight the encounter state (mod/battle-reactions.lua capture) says is over and long enough to count -> subject, facts, witnesses (a set
--- of profile keys that were near V when it started), or nil. Pure.
+-- of profile keys that were near V when it started). Otherwise nil, and for a fight that was seen but does not count a second value says why
+-- (the caller logs it once). Pure. Combat time is what counts: the live fight of 2026-10-19 was 15 s of combat and 19 s as an encounter, and
+-- the encounter's length (settle included) was compared with 20 s, so a fight the player heard three reactions to was dropped without a word.
 function M.fightEvent(capture)
     if type(capture) ~= 'table' or capture.status ~= 'ended' or type(capture.encounter) ~= 'string'
         or not capture.encounter:match('^battle%-%d+$') then return nil end
-    if (tonumber(capture.durationSeconds) or 0) < M.FIGHT_MIN_SECONDS then return nil end
+    local combat = tonumber(capture.combatSeconds) or math.max(0, (tonumber(capture.durationSeconds) or 0) - M.FIGHT_SETTLE)
+    if combat < M.FIGHT_MIN_SECONDS then
+        return nil, capture.encounter .. ' not counted: ' .. math.floor(combat) .. ' s of combat, a scuffle under ' .. M.FIGHT_MIN_SECONDS .. ' s'
+    end
     -- One that ended long ago is not news (the setting may have just been switched on): it would be dropped as expired anyway.
-    if (tonumber(capture.ageSeconds) or 0) > M.TTL.fight then return nil end
+    if (tonumber(capture.ageSeconds) or 0) > M.TTL.fight then return nil, capture.encounter .. ' not counted: it ended long ago' end
     local witnesses = {}
     if type(capture.witnesses) == 'table' then
         for _, key in ipairs(capture.witnesses) do if type(key) == 'string' then witnesses[key] = true end end
@@ -212,19 +218,21 @@ function M.moved(from, where)
     return square ~= nil and square >= M.CALM_MOVED * M.CALM_MOVED
 end
 
--- options.level(): 'off', 'rare' or 'normal'. options.random(): a number in [0, 1). Times are os.time seconds, passed in.
+-- options.level(): 'off', 'rare' or 'normal'. options.random(): a number in [0, 1). options.log(line): where the service says why it does not
+-- start (below: one line per reason and waiting spell, never per tick). Times are os.time seconds, passed in.
 function M.new(options)
     options = type(options) == 'table' and options or {}
     local random = type(options.random) == 'function' and options.random or math.random
     local service = {queue = {}, said = {}, subjects = {}, used = {}, serial = 0}
 
     local function levelName() local ok, value = pcall(options.level); return ok and M.LEVELS[value] and value or nil end
+    local function say(line) if type(options.log) == 'function' then pcall(options.log, line) end end
 
     -- Keep an event (kind: 'fight' or 'job'). False when the select is Off, the subject was talked about in the last hour, or it is malformed.
     function service:note(kind, subject, facts, now, prefer)
         if not levelName() or not M.TTL[kind] or type(subject) ~= 'string' or type(facts) ~= 'table' or type(now) ~= 'number' then return false end
         local last = self.subjects[subject]
-        if last and now - last < M.SUBJECT_SECONDS then return false end
+        if last and now - last < M.SUBJECT_SECONDS then say(subject .. ' not kept: talked about in the last hour'); return false end
         for _, entry in ipairs(self.queue) do if entry.subject == subject then return false end end
         if #self.queue >= M.MAX_QUEUE then table.remove(self.queue, 1) end
         self.queue[#self.queue + 1] = {kind = kind, subject = subject, facts = facts, prefer = prefer, at = now}
@@ -244,26 +252,46 @@ function M.new(options)
         self.calmFrom = ok and type(where) == 'table' and where or nil
     end
 
+    -- Is something waiting for its moment (an exchange between its parts, a kept event, a calm spell that has run its time)? A few comparisons.
+    function service:waiting(now)
+        if self.exchange then return self.exchange.state == 'between' end
+        return #self.queue > 0 or (self.calmDue ~= nil and now >= self.calmDue)
+    end
+
     -- Anything that could be offered soon (a few comparisons: the 0.1 s tick asks this before anything else).
     function service:active(now)
         if self.exchange then return self.exchange.state == 'between' end
-        if #self.queue > 0 or (self.calmDue ~= nil and now >= self.calmDue) then return self:allowed(now) end
+        if #self.queue > 0 or (self.calmDue ~= nil and now >= self.calmDue) then return (self:allowed(now)) end
         return false
     end
 
-    -- The rate limit: the gap since the last exchange began, and the count in the last hour.
+    -- The rate limit: the gap since the last exchange began, and the count in the last hour. A refusal says which limit (a fixed phrase).
     function service:allowed(now)
         local name = levelName()
         local cfg = name and M.LEVELS[name]
-        if not cfg then return false end
-        if self.mutedUntil and now < self.mutedUntil then return false end
+        if not cfg then return false, 'the setting is off' end
+        if self.mutedUntil and now < self.mutedUntil then return false, 'muted: V\'s voice could not speak the last line' end
         local recent = 0
         for index = #self.said, 1, -1 do
             if now - self.said[index] < 3600 then recent = recent + 1 else table.remove(self.said, index) end
         end
         local last = self.said[#self.said]
-        return recent < cfg.hour and (not last or now - last >= cfg.gap)
+        if recent >= cfg.hour then return false, 'the hourly limit is used (' .. cfg.hour .. ' an hour at ' .. name .. ')' end
+        if last and now - last < cfg.gap then return false, 'the gap since the last exchange (' .. cfg.gap .. ' s at ' .. name .. ')' end
+        return true
     end
+
+    -- Why an event that is waiting does not start: one line per reason and waiting spell (settled() ends the spell). Returns false, so a
+    -- caller can `return service:decline(...)`.
+    function service:decline(reason)
+        self.declined = self.declined or {}
+        if not self.declined[reason] then
+            self.declined[reason] = true
+            say('waiting, not starting: ' .. reason)
+        end
+        return false
+    end
+    function service:settled() self.declined = nil end
 
     -- The same trigger twice in a row is refused (within REPEAT_SECONDS of the last one).
     local function repeated(self, kind, now)
@@ -273,28 +301,37 @@ function M.new(options)
     -- The exchange to start now, or nil: expired events are dropped first; then the oldest event past its quiet time whose trigger is not the
     -- last one; then a calm walk or ride when V has been quiet long enough and has really been travelling. ctx.ride: V is in a vehicle;
     -- ctx.where(): V's position now (read only when a calm talk is about to be offered).
+    -- Returns the entry, or nil and why not (a fixed phrase; nil when there is nothing to offer).
     function service:offer(now, ctx)
-        if self.exchange then return nil end
+        if self.exchange then return nil, 'an exchange is running' end
         for index = #self.queue, 1, -1 do
-            if now - self.queue[index].at > M.TTL[self.queue[index].kind] then table.remove(self.queue, index) end
+            local entry = self.queue[index]
+            if now - entry.at > M.TTL[entry.kind] then
+                table.remove(self.queue, index)
+                say(entry.subject .. ' dropped unsaid: it waited longer than ' .. M.TTL[entry.kind] .. ' s')
+            end
         end
-        if not self:allowed(now) then return nil end
+        local allowed, why = self:allowed(now)
+        if not allowed then return nil, why end
+        local waiting
         for _, entry in ipairs(self.queue) do
-            if now - entry.at >= M.QUIET_SECONDS[entry.kind] and not repeated(self, entry.kind, now) then return entry end
+            if now - entry.at < M.QUIET_SECONDS[entry.kind] then waiting = waiting or 'the quiet time after the ' .. entry.kind
+            elseif repeated(self, entry.kind, now) then waiting = waiting or 'the same trigger (' .. entry.kind .. ') started the last exchange'
+            else return entry end
         end
         if self.calmDue and now >= self.calmDue then
             ctx = type(ctx) == 'table' and ctx or {}
             local kind = ctx.ride == true and 'ride' or 'walk'
-            if repeated(self, kind, now) then return nil end
+            if repeated(self, kind, now) then return nil, waiting or ('the same trigger (' .. kind .. ') started the last exchange') end
             local ok, where = pcall(ctx.where or function() return nil end)
             if not (ok and M.moved(self.calmFrom, where)) then
                 -- Standing still: not a walk. The spell starts over from here.
                 self.calmSince, self.calmDue, self.calmFrom = nil, nil, nil
-                return nil
+                return nil, waiting or 'a calm spell without travelling (standing still is not a walk)'
             end
             return {kind = kind, subject = kind, facts = {ride = kind == 'ride'}, at = now}
         end
-        return nil
+        return nil, waiting
     end
 
     -- The lines V may say for this exchange's first part.
@@ -354,6 +391,7 @@ function M.new(options)
                 if other == exchange.entry then table.remove(self.queue, index); break end
             end
         end
+        self.declined = nil
         exchange.previousKind, exchange.previousAt, exchange.claimedAt = self.lastKind, self.lastAt, now
         self.subjects[exchange.subject] = now
         self.said[#self.said + 1] = now
@@ -364,6 +402,7 @@ function M.new(options)
 
     -- A step could not be sent: it is dropped (its event too, so a failing write is not retried every tick).
     function service:abandon(exchange)
+        self.declined = nil
         if exchange.entry then
             for index, other in ipairs(self.queue) do
                 if other == exchange.entry then table.remove(self.queue, index); break end
@@ -411,7 +450,7 @@ function M.new(options)
 
     -- A world change (save load) forgets the queue, the calm spell and the exchange; what was said and the subjects stay (real time).
     function service:reset()
-        self.queue, self.exchange, self.fightSeen, self.sampleAt = {}, nil, nil, nil
+        self.queue, self.exchange, self.fightSeen, self.sampleAt, self.declined = {}, nil, nil, nil, nil
         self.calmSince, self.calmDue, self.calmFrom = nil, nil, nil
     end
     return service

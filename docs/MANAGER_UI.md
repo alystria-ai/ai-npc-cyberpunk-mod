@@ -237,7 +237,8 @@ manager (see "The MCM host"). This is the case whether or not Native Settings UI
 0.10.5 or refuses the request does the walk below run (Native Settings UI), and without a host the shortcut shows its notice.
 
 1. It refuses, and logs why, without Native Settings UI (see below), with no save loaded ("Load a save first."), while the text box is
-   open, during a scene ("Finish the scene first.") and with another menu open ("Close the current menu first, or choose Mods from the
+   open, during a scene ("Finish the scene first."; a plain sit on a couch or chair is scene tier 3 but no scene: the shortcut opens
+   there, `convaiPlainSitting` in `init.lua`, while a game line, a call, a fight or scene tier 4 still count) and with another menu open ("Close the current menu first, or choose Mods from the
    pause menu."). In gameplay it asks the game to open the pause menu (menu event `OnOpenPauseMenu`); with the pause menu already open
    it starts from there.
 2. The host puts the manager on its first page and tells NSUI which tab to start on (`lastNativeSettingsCategoryIndex`).

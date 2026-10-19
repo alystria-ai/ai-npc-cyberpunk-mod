@@ -687,6 +687,26 @@ test('the shortcut leaves the game\'s state to the game: no save, no text box, n
   `);
 });
 
+test('a plain sit is scene tier 3 but no cutscene: the shortcut opens the page on a couch; a real scene still refuses with the same words', () => {
+  const sitting = answer => `${harness({screen: false, nsui: false})}
+    ${posted}
+    local tier = 3
+    Game = {GetPlayer = function() return {IsAttached = function() return true end, ConvaiComposerOpen = function() return false end,
+        GetEntityID = function() return 'player' end} end,
+      GetSystemRequestsHandler = function() return {IsPreGame = function() return false end} end,
+      GetAllBlackboardDefs = function() return {PlayerStateMachine = {SceneTier = 'tier'}} end,
+      GetBlackboardSystem = function() return {GetLocalInstanced = function() return {GetInt = function() return tier end} end} end}
+    convaiPlainSitting = ${answer}
+    local calls = #mcm.calls
+    local ok, reason = managerUi.open()
+    ${answer === 'function() return true end'
+      ? "assert(reason ~= 'Finish the scene first.', tostring(reason))"
+      : "assert(ok == false and reason == 'Finish the scene first.' and #mcm.calls == calls, tostring(reason))"}
+  `;
+  run(sitting('function() return true end'));
+  for (const answer of ['nil', 'function() return false end', 'function() error("unreadable") end']) run(sitting(answer));
+});
+
 test('without any host the shortcut says what to install: MCM 0.10.5 first, Native Settings UI as the alternative; an older MCM is to be updated', () => {
   run(`${harness({screen: false, nsui: false, mcm: null})}
     ${posted}

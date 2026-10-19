@@ -151,6 +151,27 @@ test('the shortcut from the pause menu does not write to the menu blackboard and
   assert(activated[1] == '2:Mods' and entry.state() == 'settings')
 `));
 
+test('a plain sit is scene tier 3 but no cutscene: the shortcut opens the manager on a couch; a real scene, or an unreadable sit, still refuses', () => {
+  run(`
+    sceneTier = 3
+    convaiPlainSitting = function() return true end
+    local ok, reason = entry.open()
+    assert(ok == true and entry.state() == 'pause', tostring(reason))
+  `);
+  for (const answer of ['nil', 'function() return false end', 'function() return nil end', 'function() error("unreadable") end', 'function() return "yes" end']) {
+    run(`
+      sceneTier = 3
+      convaiPlainSitting = ${answer}
+      local ok, reason = entry.open()
+      assert(ok == false and reason == 'Finish the scene first.' and entry.state() == 'idle', ${JSON.stringify(answer)} .. ': ' .. tostring(reason))
+      sceneTier = 4
+      convaiPlainSitting = function() return false end
+      ok, reason = entry.open()
+      assert(ok == false and reason == 'Finish the scene first.', tostring(reason))
+    `);
+  }
+});
+
 test('the shortcut says why it cannot start and leaves everything alone: no Native Settings UI, no save, a text box, a scene, another menu', () => run(`
   nsPresent = false
   local ok, reason = entry.open()

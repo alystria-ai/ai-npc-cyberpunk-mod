@@ -13,6 +13,10 @@
 -- anyone (the crowd aside) in the last LINE_QUIET seconds or since the sit, none from the game's Johnny in the last JOHNNY_QUIET seconds,
 -- V not talking to anyone, at most once per sit and once every COOLDOWN seconds. Right before he appears, one targeting query looks for
 -- the game's own Johnny near V (by his records); if he is there, ours does not come.
+-- A plain sit looks like a scene: V's chairs and couches are scene sits at tier 3, and the first live test (2026-10-19) skipped both sits as
+-- "dialogue" (the dialogue or the choice flag was up). While the sample says V sits in an ordinary seat (sample.sitting, from
+-- mod/seated-look.lua M.plain: no call, fight, replacer or vehicle, tier 3 or below, no game line since V sat), those two flags are the sit's
+-- own and do not count; the lines, the tier, a call, a fight and the rest still do. Every skip, spawn and departure logs the flags it saw.
 --
 -- Cost: nothing while either setting is off (init.lua loads this file only with both on). A sit is one table write. From the sit until
 -- he is gone (at most ARM_SECONDS, then VISIBLE plus a second) the existing 0.5 s battle sample calls tick: the policy on that sample, at
@@ -120,7 +124,7 @@ function M.decide(moment, sample, context)
     if type(sample) ~= 'table' or sample.available ~= true then return 'unreadable', false end
     if sample.replacer == true then return 'replacer', true end
     if sample.combat == true then return 'combat', true end
-    if sample.dialogue == true or sample.choices == true then return 'dialogue', true end
+    if (sample.dialogue == true or sample.choices == true) and sample.sitting ~= true then return 'dialogue', true end
     if sample.vehicle == true then return 'vehicle', true end
     if sample.call == true then return 'call', false end
     local tier = tonumber(sample.tier)
@@ -141,11 +145,19 @@ function M.interrupt(sample, maxTier)
     if type(sample) ~= 'table' or sample.available ~= true then return 'unreadable' end
     if sample.combat == true then return 'combat' end
     if sample.replacer == true then return 'replacer' end
-    if sample.dialogue == true or sample.choices == true or sample.call == true then return 'scene' end
+    if ((sample.dialogue == true or sample.choices == true) and sample.sitting ~= true) or sample.call == true then return 'scene' end
     if sample.vehicle == true then return 'vehicle' end
     local tier = tonumber(sample.tier)
     if tier == nil or tier > (maxTier or 3) then return 'scene' end
     return nil
+end
+
+-- The sample's scene facts for a log line (what the next live check reads to see why he came, stayed or went): ' (dialogue=.. choices=.. ...)',
+-- or '' without a sample. Pure.
+function M.flags(sample)
+    if type(sample) ~= 'table' then return '' end
+    return string.format(' (dialogue=%s choices=%s tier=%s call=%s combat=%s sitting=%s)', tostring(sample.dialogue), tostring(sample.choices),
+        tostring(sample.tier), tostring(sample.call), tostring(sample.combat), tostring(sample.sitting == true))
 end
 
 -- The spots round V, in M.SPOTS order (or `spots`): rows {x, y, z, angle, distance}. forward: V's facing {x, y}; the game's forward at yaw
@@ -382,10 +394,10 @@ function M.new(options)
         return a, b
     end
 
-    local function drop(reason)
+    local function drop(reason, sample)
         local pending = service.pending
         service.pending = nil
-        if pending then log('skipped ' .. pending.event .. ' kind=' .. tostring(pending.kind) .. ' reason=' .. reason) end
+        if pending then log('skipped ' .. pending.event .. ' kind=' .. tostring(pending.kind) .. ' reason=' .. reason .. M.flags(sample)) end
         return false
     end
 
@@ -412,7 +424,7 @@ function M.new(options)
         end
     end
 
-    local function appear(pending, at)
+    local function appear(pending, at, sample)
         service.pending = nil
         -- The cooldown starts with the attempt, so a spawn that fails is not tried again on every sit.
         service.lastShown = at
@@ -425,8 +437,8 @@ function M.new(options)
         service.serial = service.serial + 1
         service.visit = {id = id, serial = service.serial, state = 'spawning', at = at, wall = now(), look = service.look,
             event = pending.event, kind = pending.kind, maxTier = M.MOMENTS[pending.event].maxTier, spot = spot}
-        log(string.format('spawning look=%s %s kind=%s at=%.1fm angle=%d', service.look, pending.event, tostring(pending.kind),
-            spot.distance or 0, spot.angle or 0))
+        log(string.format('spawning look=%s %s kind=%s at=%.1fm angle=%d%s', service.look, pending.event, tostring(pending.kind),
+            spot.distance or 0, spot.angle or 0, M.flags(sample)))
         return true
     end
 
@@ -453,13 +465,14 @@ function M.new(options)
     function service:owns(entity) return self.visit ~= nil and self.visit.entity ~= nil and self.visit.entity == entity end
 
     -- He goes now: the delete (only ours), V's screen glitch off. reason for the log.
-    function service:finish(reason)
+    function service:finish(reason, sample)
         local visit = self.visit
         if not visit then return false end
         self.visit = nil
         if visit.screenAt then call('screen', false) end
         local deleted = call('delete', visit.id)
-        log(string.format('gone reason=%s shown=%.1fs deleted=%s', reason, visit.shownAt and clock() - visit.shownAt or 0, tostring(deleted == true)))
+        log(string.format('gone reason=%s shown=%.1fs deleted=%s%s', reason, visit.shownAt and clock() - visit.shownAt or 0, tostring(deleted == true),
+            M.flags(sample)))
         return true
     end
 
@@ -471,7 +484,7 @@ function M.new(options)
             local _, johnny, after = M.lineAges(read(options.lines), now(), visit.wall)
             if after then why = 'line' elseif johnny ~= nil and johnny <= now() - visit.wall then why = 'johnny-line' end
         end
-        if why then return service:finish(why) end
+        if why then return service:finish(why, sample) end
         if visit.state == 'spawning' then
             local npc = call('entity', visit.id)
             if npc == nil then
@@ -512,7 +525,7 @@ function M.new(options)
         local at = clock()
         local reason, final = M.decide(pending, sample, {enabled = read(options.enabled) == true, story = read(options.story),
             now = at, wall = now(), lastShown = self.lastShown, lines = read(options.lines), talking = talking == true})
-        if final then return drop(reason) end
+        if final then return drop(reason, sample) end
         if at - pending.at >= M.SEARCH_AFTER then search(player) end
         if reason then return true end
         if not pending.spot then
@@ -522,7 +535,7 @@ function M.new(options)
         -- The game's own Johnny near V: ours does not come. An unanswered query counts as yes.
         local near = call('gameJohnnyNear', player, M.GAME_JOHNNY_RADIUS)
         if near ~= false then return drop(near == true and 'game-johnny' or 'game-johnny-unreadable') end
-        return appear(pending, at)
+        return appear(pending, at, sample)
     end
 
     -- Copies left by a reload or a crash, deleted by tag (once per session, from init.lua's start-up check). The number asked.

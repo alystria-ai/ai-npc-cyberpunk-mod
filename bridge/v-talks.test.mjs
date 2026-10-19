@@ -88,11 +88,26 @@ test('every line the bank can produce passes the bridge\'s own check of V\'s lin
 // ---------------------------------------------------------------------------------------------------------------------
 // The events and the small pure rules.
 
+test('events: combat time counts, not the encounter\'s settle: the live fight (15 s of combat, 19 s as an encounter) counts; a scuffle says why', () => withModule(`
+  -- 2026-10-19 live: 15 s of combat plus the four-second settle = 19 s, under the old 20 s rule, dropped without a word.
+  local subject = R.fightEvent({status = 'ended', encounter = 'battle-1', durationSeconds = 19, combatSeconds = 15, witnesses = {'alex'}})
+  assert(subject == 'fight:battle-1', 'the live fight counts')
+  assert(R.fightEvent({status = 'ended', encounter = 'battle-1', durationSeconds = 14, combatSeconds = R.FIGHT_MIN_SECONDS}) ~= nil, 'exactly the minimum')
+  local none, why = R.fightEvent({status = 'ended', encounter = 'battle-2', durationSeconds = 13, combatSeconds = 9})
+  assert(none == nil and why:find('battle%-2 not counted: 9 s of combat'), why)
+  local old, oldWhy = R.fightEvent({status = 'ended', encounter = 'battle-3', durationSeconds = 60, combatSeconds = 50, ageSeconds = R.TTL.fight + 1})
+  assert(old == nil and oldWhy:find('ended long ago'), oldWhy)
+  assert(R.TTL.fight >= 150, 'a battle line and Johnny\\'s remark may come first, then fifteen quiet seconds each')
+  local silent, noReason = R.fightEvent({status = 'fighting', encounter = 'battle-4', durationSeconds = 60})
+  assert(silent == nil and noReason == nil, 'a fight in progress is not a fight that was seen and rejected')
+`));
+
 test('events: a fight that counted (ended, long enough), a finished main or side job; nothing else', () => withModule(`
   local subject, facts, witnesses = R.fightEvent({status = 'ended', encounter = 'battle-4', durationSeconds = 45, witnesses = {'judy-alvarez', 'panam-palmer'}})
   assert(subject == 'fight:battle-4' and facts.encounter == 'battle-4' and witnesses['judy-alvarez'] and witnesses['panam-palmer'] and not witnesses['river-ward'])
-  assert(R.fightEvent({status = 'ended', encounter = 'battle-4', durationSeconds = 19}) == nil, 'a scuffle is not intense')
-  assert(R.fightEvent({status = 'ended', encounter = 'battle-4', durationSeconds = 20}) ~= nil)
+  -- Without combatSeconds (an older capture) the encounter's four-second settle is taken off its length.
+  assert(R.fightEvent({status = 'ended', encounter = 'battle-4', durationSeconds = 13}) == nil, 'a scuffle is not intense')
+  assert(R.fightEvent({status = 'ended', encounter = 'battle-4', durationSeconds = 14}) ~= nil)
   assert(R.fightEvent({status = 'ended', encounter = 'battle-4', durationSeconds = 60, ageSeconds = R.TTL.fight}) ~= nil)
   assert(R.fightEvent({status = 'ended', encounter = 'battle-4', durationSeconds = 60, ageSeconds = R.TTL.fight + 1}) == nil, 'it ended long ago: not news')
   assert(R.fightEvent({status = 'fighting', encounter = 'battle-4', durationSeconds = 60}) == nil, 'still going on')
@@ -474,6 +489,53 @@ test('init.lua: Off loads nothing; V\'s voice off keeps it silent; events are no
   assert(own() == false and offer() == false and #sent == 0)
 `));
 
+test('init.lua: the 2026-10-19 fight (15 s of combat) is noted, Johnny\'s remark does not starve it, and every wait says why once', () => scenario(`
+  capture = {version = 1, status = 'ended', encounter = 'battle-1', ageSeconds = 1, durationSeconds = 19, combatSeconds = 15,
+    opponents = {}, witnesses = {'judy-alvarez'}}
+  fighting = {state = 'ended', encounter = 'battle-1'}
+  convaiVTalkSample(battleSample); convaiVTalkSample(battleSample)
+  assert(#convaiVTalks.queue == 1 and logs[#logs] == 'V talks on their own: noted fight:battle-1', tostring(logs[#logs]))
+  -- The battle line ended at 1000, Johnny's remark (kind head) ended at 1005: V's turn waits for fifteen seconds after it. Once per reason.
+  lastAutomatic = {at = now - 3, requestId = 'johnny', kind = 'head', finishedAt = now + 5}
+  now = 1009
+  for _ = 1, 40 do assert(offer() == false) end
+  local waits = {}
+  for _, line in ipairs(logs) do if line:find('waiting, not starting', 1, true) then waits[#waits + 1] = line end end
+  assert(#waits == 1 and waits[1]:find('another automatic reaction (head) ended less than 15 s ago', 1, true), table.concat(waits, ' | '))
+  now = 1015; assert(offer() == false and #sent == 0, 'ten seconds after Johnny is too soon')
+  now = 1030
+  assert(offer() == true and #sent == 1 and sent[1].reaction.event == 'fight', 'the fight talk starts after Johnny\\'s remark, inside its 150 s')
+  -- A pending reply is another turn in progress: said once, the spell ends when the event is taken.
+  assert(convaiVTalks.declined == nil, 'a started exchange ends the waiting spell')
+`));
+
+test('init.lua: a scuffle says once why it does not count; a rate limit and a muted voice say which, once', () => scenario(`
+  capture = {version = 1, status = 'ended', encounter = 'battle-4', ageSeconds = 1, durationSeconds = 9, combatSeconds = 5, opponents = {}, witnesses = {}}
+  fighting = {state = 'ended', encounter = 'battle-4'}
+  convaiVTalkSample(battleSample); convaiVTalkSample(battleSample); convaiVTalkSample(battleSample)
+  local lines = 0
+  for _, line in ipairs(logs) do if line:find('fight battle-4 not counted: 5 s of combat', 1, true) then lines = lines + 1 end end
+  assert(lines == 1 and #convaiVTalks.queue == 0, 'once per encounter, not per sample')
+  convaiVTalkNote('job', {{id = '9', title = 'Ghost Town', state = 'succeeded', questType = 'MainQuest'}})
+  convaiVTalks:silenced(now)
+  now = 1100
+  for _ = 1, 30 do assert(offer() == false) end
+  local waits = {}
+  for _, line in ipairs(logs) do if line:find('waiting, not starting', 1, true) then waits[#waits + 1] = line end end
+  assert(#waits == 1 and waits[1]:find('muted', 1, true), table.concat(waits, ' | '))
+  convaiVTalks.mutedUntil = nil; convaiVTalks.said = {now - 30}
+  for _ = 1, 30 do assert(offer() == false) end
+  waits = {}
+  for _, line in ipairs(logs) do if line:find('waiting, not starting', 1, true) then waits[#waits + 1] = line end end
+  assert(#waits == 2 and waits[2]:find('the gap since the last exchange', 1, true), table.concat(waits, ' | '))
+  -- Expiry says so too, once.
+  now = 1100 + 300
+  assert(offer() == false)
+  local expired = 0
+  for _, line in ipairs(logs) do if line:find('job:9 dropped unsaid', 1, true) then expired = expired + 1 end end
+  assert(expired == 1 and #convaiVTalks.queue == 0)
+`));
+
 test('init.lua: a fight ends; after its quiet time one exchange of two lines starts with a companion who was there, V\'s subtitle shows, the request is complete', () => scenario(`
   fighting = {state = 'ended', encounter = 'battle-3'}
   convaiVTalkSample(battleSample)
@@ -841,13 +903,23 @@ test('shared key: an exchange\'s companion turns count like Johnny\'s remarks, i
   const remarks = new RemarkAllowance({guard});
   const head = {reaction: {kind: 'head'}}, talk = {reaction: {kind: 'vtalk'}}, battle = {reaction: {kind: 'battle'}}, typedTurn = {};
   const admit = config => { guard.check(); remarks.check(config); guard.consume(); remarks.consume(config); };
-  for (let i = 0; i < 5; i++) { admit(head); admit(talk); }
+  for (let i = 0; i < 3; i++) admit(head);
+  for (let i = 0; i < 7; i++) admit(talk);
   assert.equal(remarks.count, 10); assert.equal(remarks.cap, remarkCap(100));
   assert.throws(() => admit(talk), TurnLimitError, 'the eleventh turn of the two together is refused');
   assert.throws(() => admit(head), TurnLimitError);
   assert.equal(guard.count, 10);
   admit(typedTurn); admit(battle);
   assert.equal(guard.count, 12, 'V\'s own talk and the battle reactions go on');
+  // Neither kind starves the other: a chatty Johnny stops at 7 of the 10 and V's exchanges still have the last three; V's exchanges alone may use all ten.
+  shared = true; now += 24 * 3600 * 1000;
+  for (let i = 0; i < 7; i++) admit(head);
+  assert.throws(() => admit(head), TurnLimitError, 'Johnny\'s eighth remark of the day is refused');
+  for (let i = 0; i < 3; i++) admit(talk);
+  assert.throws(() => admit(talk), TurnLimitError, 'the pool is used up');
+  now += 24 * 3600 * 1000;
+  for (let i = 0; i < 10; i++) admit(talk);
+  assert.throws(() => admit(talk), TurnLimitError, 'V\'s exchanges alone may use the whole pool');
   shared = false; remarks.count = 999;
   assert.doesNotThrow(() => admit(talk), 'a player\'s own key is never limited');
   shared = true; now += 24 * 3600 * 1000;

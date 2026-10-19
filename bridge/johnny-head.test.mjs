@@ -82,6 +82,21 @@ test('stage: wary, grudging, friends and close follow the shared milestones; the
 // ---------------------------------------------------------------------------------------------------------------------
 // The busy gate.
 
+test('busy: V sits in an ordinary seat (scene tier 3 with the dialogue and choice flags up, the worst case of the live sit of 2026-10-19): Johnny may talk; a call, a fight, tier 4 and a replacer still hold him back', () => withModule(`
+  local function sample(over)
+    local s = {available = true, tier = 3, dialogue = true, choices = true, call = false, combat = false, replacer = false, vehicle = false, sitting = true}
+    for k, v in pairs(over or {}) do s[k] = v end
+    return s
+  end
+  assert(J.busy(sample()) == nil, 'a couch sit')
+  assert(J.busy(sample({sitting = false})) == 'dialogue', 'the same flags in a cutscene (no plain sit)')
+  assert(J.busy(sample({sitting = false, dialogue = false})) == 'scene')
+  local noInfo = sample(); noInfo.sitting = nil
+  assert(J.busy(noInfo) == 'dialogue', 'no sit information: as before')
+  assert(J.busy(sample({call = true})) == 'call' and J.busy(sample({combat = true})) == 'combat' and J.busy(sample({replacer = true})) == 'replacer')
+  assert(J.busy(sample(), true) == 'johnny-speaking', 'the game\\'s own Johnny keeps him quiet through his line')
+`));
+
 test('busy: the game has the floor in a scene, a call, a quest conversation, a fight, a replacer, or right after a line of his', () => withModule(`
   local function sample(over)
     local s = {available = true, tier = 1, dialogue = false, choices = false, call = false, combat = false, replacer = false, vehicle = false}

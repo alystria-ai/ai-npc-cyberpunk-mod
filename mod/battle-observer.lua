@@ -31,6 +31,12 @@ function M.sample(player)
         -- IsEntityInScene can remain true in ordinary tier-one gameplay.
         sample.blocked = sample.tier ~= 1 or sample.dialogue or sample.choices or sample.call or sample.vehicle or sample.replacer
         sample.reason = sample.blocked and 'Scripted scene, call or vehicle' or 'Open gameplay'
+        -- sample.sitting: V sits in an ordinary seat (mod/seated-look.lua M.plain): the scene flags above are then the sit's own, not a
+        -- cutscene's. A hook the main script sets; nil here until it does. It never changes `blocked`; only the callers that name it use it.
+        if M.sitProbe then
+            local sitOk, sitting = pcall(M.sitProbe, sample)
+            sample.sitting = sitOk and sitting == true or nil
+        end
         if not sample.combat then return end
         -- Record only a hostile NPC V is actually looking at, not every actor
         -- in the district. No names from hidden assets, kills, or victory guesses.

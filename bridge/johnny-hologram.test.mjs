@@ -12,6 +12,7 @@ const moduleSource = read('../mod/johnny-hologram.lua');
 const probeSource = read('../mod/johnny-hologram-probe.lua');
 const lookSource = read('../mod/seated-look.lua');
 const headSource = read('../mod/johnny-head.lua');
+const observerSource = read('../mod/battle-observer.lua');
 const init = read('../mod/init.lua');
 const between = (from, to, source = init) => {
   const start = source.indexOf(from), end = source.indexOf(to, start);
@@ -98,6 +99,42 @@ test('decide: what ends a moment for good, and what only makes it wait', () => w
   -- Order: a fight beats a call, the story beats everything but the switch.
   check(momentOf(), sampleOf({combat = true, call = true}), context(), 'combat', true)
   check(momentOf(), sampleOf({combat = true}), context({story = 'after'}), 'story-after', true)
+`));
+
+test('decide: the live sit of 2026-10-19 (scene tier 3, dialogue and choice flags up, V sitting) lets him appear; the same flags in a cutscene do not', () => withModule(`${policy}
+  local live = sampleOf({tier = 3, dialogue = true, choices = true, sitting = true})
+  assert(why(momentOf({kind = 'scene'}), live, context()) == nil, 'a plain sit on a couch is tier 3 with both flags up')
+  for _, flags in ipairs({{dialogue = true}, {choices = true}}) do
+    local sample = sampleOf({tier = 3, sitting = true}); for k, v in pairs(flags) do sample[k] = v end
+    assert(why(momentOf({kind = 'bench'}), sample, context()) == nil)
+  end
+  local reason, final = why(momentOf({kind = 'scene'}), sampleOf({tier = 3, dialogue = true, choices = true}), context())
+  assert(reason == 'dialogue' and final == true, 'no sitting verdict (a cutscene): as before')
+  reason, final = why(momentOf({kind = 'scene'}), sampleOf({tier = 3, dialogue = true, choices = true, sitting = false}), context())
+  assert(reason == 'dialogue' and final == true)
+  -- What still holds him back while V sits: the tier, a call, a fight, a vehicle, a replacer, the lines, the story.
+  assert(why(momentOf({kind = 'scene'}), sampleOf({tier = 4, dialogue = true, sitting = true}), context()) == 'scene')
+  assert(why(momentOf({kind = 'scene'}), sampleOf({tier = 3, dialogue = true, sitting = true, combat = true}), context()) == 'combat')
+  assert(why(momentOf({kind = 'scene'}), sampleOf({tier = 3, dialogue = true, sitting = true, replacer = true}), context()) == 'replacer')
+  assert(why(momentOf({kind = 'scene'}), sampleOf({tier = 3, dialogue = true, sitting = true, vehicle = true}), context()) == 'vehicle')
+  assert(why(momentOf({kind = 'scene'}), sampleOf({tier = 3, dialogue = true, sitting = true, call = true}), context()) == 'call')
+  assert(why(momentOf({kind = 'scene'}), live, context({story = 'before'})) == 'story-before')
+  assert(why(momentOf({kind = 'scene'}), live, context({lines = {{at = 995, profileKey = 'judy-alvarez', channel = 'scene'}}})) == 'scene-lines')
+`));
+
+test('interrupt: a plain sit\'s own scene flags do not send him away; a call, tier 4 and a cutscene do', () => withModule(`${policy}
+  local live = sampleOf({tier = 3, dialogue = true, choices = true, sitting = true})
+  assert(R.interrupt(live) == nil and R.interrupt(sampleOf({tier = 3, dialogue = true, choices = true})) == 'scene')
+  assert(R.interrupt(sampleOf({tier = 3, dialogue = true, choices = true, sitting = false})) == 'scene')
+  assert(R.interrupt(sampleOf({tier = 3, dialogue = true, sitting = true, call = true})) == 'scene')
+  assert(R.interrupt(sampleOf({tier = 4, dialogue = true, sitting = true})) == 'scene' and R.interrupt(sampleOf({tier = 3, sitting = true}), 2) == 'scene')
+  assert(R.interrupt(sampleOf({tier = 3, sitting = true, combat = true})) == 'combat')
+`));
+
+test('flags: the scene facts for a log line, so the next live check shows why he came, stayed or went', () => withModule(`
+  assert(R.flags(nil) == '' and R.flags('x') == '')
+  assert(R.flags({dialogue = true, choices = false, tier = 3, call = false, combat = false, sitting = true}) == ' (dialogue=true choices=false tier=3 call=false combat=false sitting=true)')
+  assert(R.flags({tier = 1}) == ' (dialogue=nil choices=nil tier=1 call=nil combat=nil sitting=false)')
 `));
 
 test('interrupt: what makes a hologram that is there go at once', () => withModule(`${policy}
@@ -220,6 +257,118 @@ serviceTest('service: a sit becomes one pending moment; spots are searched after
   assert(#state.looks == 1 and state.looks[1] == R.LOOKS[R.DEFAULT_LOOK] and #state.screens == 0, 'the look is applied; V\\'s screen is left alone by default')
   assert(lastLog():find('shown look=' .. R.DEFAULT_LOOK, 1, true), lastLog())
 `);
+
+// The whole chain of the live failure (2026-10-19, "skipped sit kind=scene reason=dialogue" twice): the real seated-look controller hears the
+// sit, the real observer reads a tier 3 scene whose dialogue and choice flags are up, init.lua's probe turns that into sample.sitting.
+const sitProbeBlock = between('battleObserver.sitProbe = function(sample)', "local battles = dofile('battle-reactions.lua')");
+const chain = `
+  local observer = (function() ${observerSource} end)()
+  local look = (function() ${lookSource} end)()
+  local tier, dialogue, choices, call, combat = 3, true, {1}, nil, false
+  local player = {IsAttached = function() return true end, IsDeadNoStatPool = function() return false end, IsInCombat = function() return combat end,
+    GetEntityID = function() return 1 end, GetMountedVehicle = function() return nil end, IsReplacer = function() return false end}
+  PlayerPuppet = {GetSceneTier = function() return tier end}
+  FromVariant = function(v) return v end
+  Enum = {new = function(_, v) return v end}
+  Game = {GetSceneSystem = function() return {GetScriptInterface = function() return {
+      IsEntityInDialogue = function() return dialogue end, IsEntityInScene = function() return true end} end} end,
+    GetAllBlackboardDefs = function() return {UI_ComDevice = {PhoneCallInformation = 'call'}, UIInteractions = {DialogChoiceHubs = 'choices'}} end,
+    GetBlackboardSystem = function() return {Get = function() return {GetVariant = function(_, field)
+      if field == 'call' then return call end
+      return {choiceHubs = choices} end} end} end}
+  local battleObserver = observer
+  convaiSeatedLookModule = look
+  ${sitProbeBlock}
+  local function sit(S)
+    convaiSeatedLook = look.new({seat = function() return {tier = 3, vehicle = 0} end, classify = function() return nil end,
+      queue = function() end, delay = function() return 1 end, cancel = function() end, now = function() return wallNow end,
+      onSit = function(kind, seat) S:moment('sit', kind, seat) end, onStand = function() S:stand() end})
+    return convaiSeatedLook.entered()
+  end
+  local function sampleNow() return observer.sample(player) end
+`;
+
+serviceTest('chain: a plain couch sit (tier 3, dialogue and choice flags up) is recognised as a sit, and he appears; before this fix both sits were skipped as dialogue', `${chain}
+  convaiGameDialogue = {lines = rows}
+  local S = make()
+  assert(sit(S) == true and convaiSeatedLook.sitting == 'scene' and convaiSeatedLook.sitAt == wallNow)
+  local live = sampleNow()
+  assert(live.tier == 3 and live.dialogue == true and live.choices == true and live.blocked == true, 'both scene flags up, as the worst case of what the log showed (reason=dialogue)')
+  assert(live.sitting == true, 'and still a plain sit')
+  for _ = 1, 14 do tick(S, 0.5, sampleNow()) end
+  assert(state.spawned ~= nil, 'he was created: ' .. lastLog())
+  assert(lastLog():find('spawning', 1, true) and lastLog():find('dialogue=true choices=true tier=3', 1, true) and lastLog():find('sitting=true', 1, true), lastLog())
+  state.attached = true
+  tick(S, 0.5, sampleNow())
+  assert(S:visible(), 'the sit flags do not send him away: ' .. lastLog())
+  tick(S, 1, sampleNow()); tick(S, 1, sampleNow())
+  assert(S:visible(), 'still there two seconds on')
+  -- V stands up: he goes at once.
+  convaiSeatedLook.left()
+  assert(not S:active() and lastLog():find('gone reason=stood', 1, true), lastLog())
+`);
+
+serviceTest('chain: the same flags in a cutscene (a line since V sat, a call, tier 4, no sit at all) keep him away', `${chain}
+  convaiGameDialogue = {lines = rows}
+  local S = make()
+  sit(S)
+  rows[#rows + 1] = {at = wallNow, channel = 'scene', profileKey = 'judy-alvarez'}
+  local scene = sampleNow()
+  assert(scene.sitting == nil and scene.dialogue == true, 'a game line since V sat: not a plain sit')
+  tick(S, 0.5, scene)
+  assert(not S:active() and state.spawned == nil and lastLog():find('skipped sit kind=scene reason=dialogue', 1, true)
+    and lastLog():find('sitting=false', 1, true), lastLog())
+  rows[#rows] = nil
+  local T = make()
+  sit(T)
+  call = {callPhase = 'StartCall'}
+  assert(sampleNow().sitting == nil)
+  call = nil; tier = 4
+  assert(sampleNow().sitting == nil, 'tier 4')
+  tier = 3; combat = true
+  assert(sampleNow().sitting == nil, 'a fight')
+  combat = false
+  convaiSeatedLook.left()
+  assert(convaiSeatedLook.sitting == nil and sampleNow().sitting == nil, 'standing: no sit, so the flags count again')
+`);
+
+serviceTest('chain: a line that arrives while he is there sends him away at once, and the log says what the flags were', `${chain}
+  convaiGameDialogue = {lines = rows}
+  local S = make()
+  sit(S)
+  for _ = 1, 14 do tick(S, 0.5, sampleNow()) end
+  state.attached = true
+  tick(S, 0.5, sampleNow())
+  assert(S:visible())
+  rows[#rows + 1] = {at = wallNow, channel = 'scene', profileKey = 'judy-alvarez'}
+  tick(S, 0.5, sampleNow())
+  assert(not S:active() and lastLog():find('gone reason=scene', 1, true) and lastLog():find('sitting=false', 1, true), lastLog())
+`);
+
+test('convaiPlainSitting (the manager shortcut asks it at scene tier 3): yes only while the controller says V sits and the sample agrees; a no is logged, at most every five seconds, with the facts', () => {
+  const block = between('function convaiPlainSitting()', "-- V sat down (the seated-look module's onSit)");
+  run(`
+    local clock, logs, sample = 100, {}, {available = true, tier = 3, dialogue = true, choices = true, call = false, combat = false, sitting = true}
+    os.clock = function() return clock end
+    convaiLogLine = function(line) logs[#logs + 1] = line end
+    Game = {GetPlayer = function() return {} end}
+    local battleObserver = {sample = function() return sample end}
+    ${block}
+    convaiSeatedLook = nil
+    assert(convaiPlainSitting() == false and #logs == 1 and logs[1]:find('sitting=nil', 1, true) and logs[1]:find('dialogue=true choices=true tier=3', 1, true), logs[1])
+    clock = 102; assert(convaiPlainSitting() == false and #logs == 1, 'within five seconds: not again')
+    convaiSeatedLook = {sitting = 'scene'}
+    clock = 110; assert(convaiPlainSitting() == true and #logs == 1, 'a plain sit: yes, nothing logged')
+    sample.sitting = nil
+    assert(convaiPlainSitting() == false and #logs == 2 and logs[2]:find('sitting=scene', 1, true), 'a cutscene while the controller still holds a sit')
+    sample.sitting = true; convaiSeatedLook = {sitting = nil}; clock = 120
+    assert(convaiPlainSitting() == false and #logs == 3)
+    convaiSeatedLook = {sitting = 'couch'}; battleObserver.sample = function() error('unreadable') end; clock = 130
+    assert(convaiPlainSitting() == false and #logs == 4 and logs[4]:find('unreadable', 1, true), logs[4])
+    Game.GetPlayer = function() return nil end; clock = 140
+    assert(convaiPlainSitting() == false)
+  `);
+});
 
 serviceTest('service: he stays VISIBLE seconds, flickers out for a flicker look, then is deleted by id; the cooldown starts with the attempt', `
   local S = make({look = 'D'})
@@ -681,7 +830,7 @@ test('seated look: a sit calls onSit with its kind and seat, standing calls onSt
 `));
 
 test('seated look: the install hands the two callbacks to the controller, init.lua passes them on', () => {
-  assert.match(lookSource, /native = \{classify = options\.classify, log = options\.log, onSit = options\.onSit, onStand = options\.onStand\}/);
+  assert.match(lookSource, /native = \{classify = options\.classify, log = options\.log, onSit = options\.onSit, onStand = options\.onStand, now = options\.now\}/);
   assert.match(init, /onSit = function\(kind, seat\) convaiJohnnyHologramMoment\(kind, seat\) end,\s+onStand = function\(\) convaiJohnnyHologramStand\(\) end,/);
 });
 

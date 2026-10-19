@@ -33,6 +33,14 @@
 local M = {}
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 
+-- V sits in an ordinary seat (init.lua convaiPlainSitting): V's chairs and couches are scene sits at scene tier 3, which is no cutscene and
+-- must not stop the manager (live 2026-10-19: the shortcut answered "Finish the scene first." on a couch). False where that is not defined.
+local function sittingPlainly()
+    if type(convaiPlainSitting) ~= 'function' then return false end
+    local ok, value = pcall(convaiPlainSitting)
+    return ok and value == true
+end
+
 local PROVIDER, MOD = 'cyberpunk-convai', 'manager'
 local MOD_KEY = PROVIDER .. ':' .. MOD
 local MIN_VERSION = {0, 10, 5}
@@ -474,7 +482,7 @@ local function refusal()
     if boxOk and boxOpen then return 'Close the text box first.' end
     local defs, boards = Game.GetAllBlackboardDefs(), Game.GetBlackboardSystem()
     local scene = boards:GetLocalInstanced(player:GetEntityID(), defs.PlayerStateMachine)
-    if scene:GetInt(defs.PlayerStateMachine.SceneTier) >= 3 then return 'Finish the scene first.' end
+    if scene:GetInt(defs.PlayerStateMachine.SceneTier) >= 3 and not sittingPlainly() then return 'Finish the scene first.' end
     return nil
 end
 

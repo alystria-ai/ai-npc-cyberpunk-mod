@@ -15,6 +15,14 @@
 -- the game, as the Mods screen does. When MCM's redirect setting is off NSUI's item stays visible and the walk is the plain one.
 local M = {}
 
+-- V sits in an ordinary seat (init.lua convaiPlainSitting): V's chairs and couches are scene sits at scene tier 3, which is no cutscene and
+-- must not stop the manager (live 2026-10-19: the shortcut answered "Finish the scene first." on a couch). False where that is not defined.
+local function sittingPlainly()
+    if type(convaiPlainSitting) ~= 'function' then return false end
+    local ok, value = pcall(convaiPlainSitting)
+    return ok and value == true
+end
+
 local EVENT_SETTINGS, EVENT_MCM, EVENT_RESUME = 'OnSwitchToSettings', 'OnSwitchToMCM', 'OnClosePauseMenu'
 -- The other frameworks' pause-menu items, which MCM hides and redirects too: never taken for MCM's own item.
 local OTHER_FRAMEWORK_EVENTS = {'OnSwitchToModSettings', 'OnSwitchToRCFSettings'}
@@ -312,7 +320,7 @@ function M.new(options)
             local boxOk, boxOpen = pcall(function() return player:ConvaiComposerOpen() end)
             if boxOk and boxOpen then return 'Close the text box first.' end
             local scene = boards:GetLocalInstanced(player:GetEntityID(), defs.PlayerStateMachine)
-            if scene:GetInt(defs.PlayerStateMachine.SceneTier) >= 3 then return 'Finish the scene first.' end
+            if scene:GetInt(defs.PlayerStateMachine.SceneTier) >= 3 and not sittingPlainly() then return 'Finish the scene first.' end
             if options.beforeOpen then options.beforeOpen() end
             stage, deadline, startedAt, lastProblem, menuItems = 'pause', os.time() + WALK_SECONDS, os.time(), '', {}
             -- The walk opens the pause menu itself: closing the manager hands the player back to the game.
