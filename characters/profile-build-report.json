@@ -1932,11 +1932,11 @@
     {
       "key": "babs-okoye",
       "words": 639,
-      "speakingStyleWords": 150,
-      "sampleDialogueWords": 181,
+      "speakingStyleWords": 161,
+      "sampleDialogueWords": 174,
       "voice": "Anna (Expressive Young-Adult American Female)",
       "sources": 4,
-      "researchRevision": "67d4f12c4145e1d3c7225ca93ea3bda977d54f4db2630234a1c39e7ede28a95b"
+      "researchRevision": "a215e884fcb8fa53a902731c4c855f8623a44d01ba2fee6a7fae0727bc79e1ed"
     },
     {
       "key": "bill-mitchell",
