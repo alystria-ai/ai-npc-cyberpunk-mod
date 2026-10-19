@@ -2624,12 +2624,12 @@
     },
     {
       "key": "rosalind-myers",
-      "words": 736,
+      "words": 733,
       "speakingStyleWords": 176,
       "sampleDialogueWords": 168,
       "voice": "Sarah (Authoritative Middle-Aged American Female)",
       "sources": 5,
-      "researchRevision": "2856ce4ef3cdf2532ef972811f09cc6bdb94ef5271aef1adcd065656dfa78fb3"
+      "researchRevision": "cd837577f11b75c7bccbc67b4876a6693a3c1323414e882577c6baea8265abb7"
     },
     {
       "key": "kurt-hansen",
