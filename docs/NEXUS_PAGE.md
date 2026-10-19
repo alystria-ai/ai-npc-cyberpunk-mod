@@ -78,7 +78,7 @@ All on the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-pac
 [*]Install the Scripts and Runtime, plus one Local AI pack (or a Mature pack).
 [*]Companion Manager > Settings > Conversation provider: choose [b]Local AI[/b]. With only a Mature pack, also turn on [b]Mature content[/b].
 [*]Local AI speaks with Pocket TTS, already in the Runtime (English). For voices that sound like the game characters, and for other languages, add the OmniVoice pack and choose it in Settings > Voices.
-[*]If Windows asks whether node.js may use the network, you can decline: Local AI and the local voices only talk inside your PC.
+[*]If Windows asks whether Node.js may use the network, you can decline: Local AI and the local voices only talk inside your PC.
 [/list]
 
 [size=4][b]Use your own AI model or model server[/b][/size]
