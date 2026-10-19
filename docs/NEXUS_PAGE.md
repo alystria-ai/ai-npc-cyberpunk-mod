@@ -43,6 +43,15 @@
 [/list]
 Updating: extract the new Scripts and Runtime over the old ones. Your settings and memories are kept.
 
+[size=4][b]What companions can do[/b][/size]
+Invite someone from Companion Manager > Characters to invite. Party members follow you everywhere, sit with you when you sit (couches, benches, bar stools), ride along in your car and fight with you. A few things you just ask for in conversation, in your own words:
+[list]
+[*][b]Drive you somewhere:[/b] set a waypoint on the map and have your car nearby (call it, or stand within 20 m of one of your cars). Ask them to drive, for example "can you drive us to the waypoint?". They walk to the car and take the wheel; get in the passenger seat yourself within a few minutes. Change the waypoint and they follow it. Stop trip in the Companion Manager ends it; fast travel or loading a save does too.
+[*][b]Fight someone:[/b] tag the enemy with your scanner (or look right at them) and tell them to attack. They fight on their own anyway when a fight starts.
+[*][b]Leave:[/b] tell them to go home or leave the party, or use Dismiss in Companion Manager > Current party.
+[/list]
+They can't wait, stay or sit on command yet.
+
 [size=4][b]How it runs[/b][/size]
 Three ways, all free. Pick one in Companion Manager > Settings > Conversation provider.
 [list]

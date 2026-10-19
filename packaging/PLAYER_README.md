@@ -51,6 +51,16 @@ If Windows reports an error while extracting, use 7-Zip (https://www.7-zip.org) 
 
 If an optional pack ended up in a folder of its own named after the zip, the mod moves the pack's files into place at the next start. The Scripts and Runtime are not moved: extract those again, into the Cyberpunk 2077 folder itself.
 
+## What companions can do
+
+Invite someone from Companion Manager > Characters to invite. Party members follow you everywhere, sit with you when you sit (couches, benches, bar stools), ride along in your car and fight with you. A few things you just ask for in conversation, in your own words:
+
+- **Drive you somewhere:** set a waypoint on the map and have your car nearby (call it, or stand within 20 m of one of your cars). Ask them to drive, for example "can you drive us to the waypoint?". They walk to the car and take the wheel; get in the passenger seat yourself within a few minutes. Change the waypoint and they follow it. Stop trip in the Companion Manager ends it; fast travel or loading a save does too.
+- **Fight someone:** tag the enemy with your scanner (or look right at them) and tell them to attack. They fight on their own anyway when a fight starts.
+- **Leave:** tell them to go home or leave the party, or use Dismiss in Companion Manager > Current party.
+
+They can't wait, stay or sit on command yet.
+
 ## Local AI
 
 Convai free tier works out of the box with no setup and gives better quality responses. Local AI is for playing without an account or without the internet. It needs a separate graphics card that supports Vulkan (NVIDIA or AMD), at least 16 GB of system memory (32 GB is better) and about 5 GB more than usual while it runs. The first start after installing takes about a minute while your graphics card prepares the model; the Local AI model row in Settings > Conversation provider shows "Warming up" until the model is ready. The model is unloaded after ten minutes without a conversation.
