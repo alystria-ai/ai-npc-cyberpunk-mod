@@ -1363,7 +1363,10 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
       if(late.settled)refine();
       else{const shared=result.expressionPlan;late.promise?.then(()=>{if(refine()&&shared&&result.expressionPlan!==shared)Object.assign(shared,result.expressionPlan);},()=>{});}
       logVoiceRoute(input, profile, voice, {lipText: !!generated.timing?.lipText});
-      return {...result,...generated,text:result.text,timing:{...result.timing,...generated.timing},
+      // The record says whether the first phrase rendered while the model wrote was used (a voice tag in it, Natural speech, makes the
+      // finished reply's first phrase differ and the phrase is rendered again: docs/perf, LATENCY.md).
+      return {...result,...generated,text:result.text,timing:{...result.timing,...generated.timing,
+          ...(omniSpeculation?{omniSpeculation:reuse?'reused':'dropped'}:{})},
         streamPlan:phrases.length>1?{phrases,speech:voiced,steps,language,voiceKey,lookahead:{promise:second,cancel:cancelLookahead},
           expressionPlan:result.expressionPlan,spans}:undefined};
     }catch(error){
@@ -1451,9 +1454,11 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
     // A look-ahead turn buffers silently until the game submits it. Once its
     // complete text is known (and it is no longer held), the next group speaker
     // may be prepared from that text.
-    // V's typed line, when it is audible, holds the reply the same way until it ends (bridge/v-voice.mjs).
-    hold: () => ahead?.isHeld() === true || current.vLine?.()?.holds() === true,
-    holdPeek: () => ahead?.isHeld() === true || current.vLine?.()?.blocking === true,
+    // V's typed line, when it is audible, holds the reply the same way: it is published to the game shortly before V's line ends (the
+    // game's round trip overlaps V's last moments, V_HANDOFF_LEAD_MS) and its sound starts when V has ended (bridge/v-voice.mjs).
+    hold: () => ahead?.isHeld() === true || current.vLine?.()?.holdsPublish() === true,
+    holdPeek: () => ahead?.isHeld() === true || current.vLine?.()?.holdsPublishPeek() === true,
+    holdSound: () => current.vLine?.()?.blocking === true,
     onHeld: (bufferedSeconds, textComplete) => { if (bufferedSeconds >= 0.4 && textComplete) ahead?.markReady(); },
     pace: local && localVoice.cloudActive ? cloudPace : null,
     // One record per line of how it played (underruns: how often its audio ran dry), and one log line when it broke.
@@ -1500,8 +1505,9 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
       stagedKnowledgeTurn(receiptPrepared, {replyText: text});
     },
   });
-  // Poll the buffered turn at once when the game submits it, or when V's line ends.
+  // Poll the buffered turn at once when the game submits it, when V's line nears its end (publish) and when it ends (sound).
   ahead?.claimed.then(() => speech.wakeUp(), () => {});
+  current.vLine?.()?.whenNearEnd?.(() => speech.wakeUp());
   current.vLine?.()?.whenClear(() => speech.wakeUp());
   return speech;
 }
@@ -2009,6 +2015,10 @@ async function pollMicrophone() {
           await cancelKnowledgeTurn(prepared); return;
         }
         void mic.start(prepared.input, realtimeConfig(prepared.input)).catch(error => console.error(error.message));
+        // A reply the local renderer will voice (Pocket, Voxtral): its output device opens while V talks (RealtimeHost.standbyLocal; an
+        // unused one closes itself after 30 s). Routing is read without fixing this turn's voice plan, which waits for the words.
+        const choice = localChoice(prepared.input.profileKey);
+        if (choice.uses && choice.provider === 'pocket' && localVoice.playbackEnabled !== false) void realtime.standbyLocal?.()?.catch(() => {});
       }
     }
     const recording = mic.current;
@@ -2371,8 +2381,9 @@ async function runInput(request, prepared, clock) {
       journalStatus: input.journal?.status || 'not-supplied', journalObjectives: input.journal?.quest?.objectives.length || 0,
       battleStatus: input.battle?.status || 'not-supplied', reaction: input.reaction?.phase});
     if (!ahead) void status('thinking', profile.name).catch(() => {});
-    // The cached heartbeat (at most 1 s old, the same 5 s rule): no file read in front of the model request.
-    const canWarm = audioAvailable(await readSpeechStateCached());
+    // A fresh read, not the cached copy: the copy can be about a second old, and a heartbeat that was due just then would read as
+    // stale and skip the connection hand-over (the group look-ahead tests caught it).
+    const canWarm = await audioReady(runtime);
     throwIfCancelled(controller.signal);
     // How warm this turn's page already was (opened at the talk key, the composer, a look or a partner).
     const turnRoute = realtimeConfig(input), connectionWarm = connections.warmState(input, turnRoute);
@@ -2384,7 +2395,7 @@ async function runInput(request, prepared, clock) {
     // instead of after the first sentence (0.15 to 0.75 s under the game in the live records). Not awaited; does nothing while the
     // renderer is busy with another reply.
     if (!ahead && canWarm && localVoice.playbackEnabled !== false && turnVoice(input).engine === 'pocket'
-      && (await readSpeechStateCached()).continuousAvailable === true) void realtime.standbyLocal().catch(() => {});
+      && (await readSpeechStateCached()).continuousAvailable === true) void realtime.standbyLocal?.()?.catch(() => {});
     clock.mark('transport');
     note(input, {transportRequestedAt: Date.now(), connectionWarm,
       submissionStages: {...stages, beforeTransportMs: performance.now() - preparationStarted}});

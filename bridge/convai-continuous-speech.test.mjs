@@ -439,11 +439,16 @@ test('the playback wake: held turns wake on release, admitted turns wake on the 
   assert.equal(f.stream.options.wake(), undefined, 'a lease was read: the 40 ms poll alone carries the stream');
   assert.equal(leases, 1);
   const held = heldFixture(owner);
-  assert.equal(held.stream.options.wake(), held.stream.woken, 'a held look-ahead still wakes on its release');
+  const heldWake = held.stream.options.wake();
+  let released = false; heldWake.then(() => { released = true; });
+  await new Promise(done => setTimeout(done, 5));
+  assert.equal(released, false, 'a held look-ahead waits for its release');
+  held.stream.wakeUp(); await heldWake;
+  assert.equal(released, true, 'a held look-ahead still wakes on its release');
   assert.equal(fixture(owner).stream.options.wake(), undefined, 'no lease latch: nothing to wake on');
 });
 
-test('the host polls never call hold(): only a frame with audio may decide (a V line still being synthesized survives)', () => {
+test('the host polls never call hold(): only a frame with audio may decide (a V line still being synthesized survives)', async () => {
   let holdCalls = 0, peek = false;
   const stream = new ConvaiContinuousSpeech({input: owner, profile: {key: 'judy-alvarez'}, token: 'continuous-1',
     current: async () => true, readControl: async () => '{}', writeState: async () => true, writeReply: async () => true,
@@ -452,7 +457,9 @@ test('the host polls never call hold(): only a frame with audio may decide (a V 
   assert.equal(holdCalls, 0);
   peek = true;
   assert.equal(stream.options.pollMs(), 120);
-  assert.equal(stream.options.wake(), stream.woken);
+  const wake = stream.options.wake();
+  assert.ok(wake instanceof Promise, 'held: the poll waits for the hold to change');
+  stream.wakeUp(); await wake;
   assert.equal(holdCalls, 0);
 });
 
