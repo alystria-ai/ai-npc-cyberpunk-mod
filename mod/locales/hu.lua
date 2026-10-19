@@ -218,6 +218,7 @@ return {
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "Nem hallottunk beszédet - várd meg a Hallgatás jelzést, majd beszélj a befejezés előtt.",
     ["The microphone {name} sends no sound. Check your Windows input device."] = "A(z) {name} mikrofon nem küld hangot. Ellenőrizd a Windows bemeneti eszközét.",
     ["Voice input only understands English for now. Typing works in any language."] = "A hangbemenet egyelőre csak angolul ért. Gépelni bármilyen nyelven lehet.",
+    ["Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language."] = "A hangbemenet ezen a nyelven a mod oldaláról letölthető választható Mikrofon csomagot igényli. Gépelni bármilyen nyelven lehet.",
     ["None yet"] = "Még nincs",
     ["Not configured"] = "Nincs beállítva",
     ["Not running"] = "Nem fut",

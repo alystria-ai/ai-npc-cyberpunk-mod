@@ -15,7 +15,8 @@
 # CMake at the commit pinned in native/core/CMakeLists.txt). The OmniVoice pack, the two Local AI
 # packs and the two Mature packs are built by their own jobs and uploaded to the Hugging Face repository HF_PACKS_REPO,
 # one zip each (no parts), in a folder per version, with a SHA256SUMS-<pack>.txt beside it; they are not attached to the GitHub
-# release. The Mature packs have an opt-in job (the `mature` input, off by default, never on a tag push). See docs/PACKAGING.md.
+# release. The Mature packs have an opt-in job (the `mature` input, off by default, never on a tag push), and so do the two voice-input
+# packs, MicPack-European and MicPack-Asian (the `micpacks` input, same rules). See docs/PACKAGING.md.
 name: Release
 
 on:
@@ -34,6 +35,10 @@ on:
         default: true
       mature:
         description: Also build the two optional Mature packs, lite and standard (uploaded to Hugging Face)
+        type: boolean
+        default: false
+      micpacks:
+        description: Also build the two optional voice-input packs, MicPack-European and MicPack-Asian (uploaded to Hugging Face)
         type: boolean
         default: false
       publish:
@@ -288,6 +293,60 @@ jobs:
         run: |
           python packaging/upload-packs.py --version "${{ needs.runtime.outputs.version }}" --pack "mature-${{ matrix.tier }}" --packages "$env:OUT\packages"
           if ($LASTEXITCODE -ne 0) { throw "Uploading the Mature pack to Hugging Face failed (the HF_PACKS_TOKEN secret needs write access to $env:HF_PACKS_REPO)." }
+
+  # The optional voice-input packs (docs/LOCAL_STT.md, "The optional packs"): opt-in only (the `micpacks` input, default off), so never on a tag push.
+  # Two packs, MicPack-European and MicPack-Asian, one job each; they live on Hugging Face only, never Nexus and not the GitHub release. The model
+  # files are downloaded from the pinned sherpa-onnx release archive and checked against the SHA-256 in packaging/release.config.json, so the build needs
+  # no secret: no --models hf, no HF_TOKEN (only the upload uses HF_PACKS_TOKEN).
+  micpacks:
+    name: Voice-input pack (${{ matrix.pack }})
+    needs: runtime
+    if: inputs.micpacks
+    runs-on: windows-2025
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        pack: [european, asian]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Build tools
+        shell: pwsh
+        run: python -m pip install --disable-pip-version-check "pip==$env:PIP_VERSION" "huggingface_hub==$env:HF_HUB_VERSION"
+
+      - name: Check the Hugging Face upload access
+        if: inputs.publish
+        shell: pwsh
+        env:
+          HF_PACKS_TOKEN: ${{ secrets.HF_PACKS_TOKEN }}
+        run: |
+          python packaging/upload-packs.py --check
+          if ($LASTEXITCODE -ne 0) { throw "The HF_PACKS_TOKEN secret needs write access to the Hugging Face repository $env:HF_PACKS_REPO." }
+
+      - name: Build the voice-input pack
+        shell: pwsh
+        run: |
+          Get-PSDrive C | Format-Table Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
+          node packaging/build-release.mjs --version "${{ needs.runtime.outputs.version }}" --packages "micpack-${{ matrix.pack }}" `
+            --out $env:OUT --cache $env:CACHE
+          Remove-Item -Recurse -Force "$env:OUT\stage" -ErrorAction SilentlyContinue
+          Get-ChildItem "$env:OUT\packages" -Filter *.zip | Format-Table Name, @{n='GB';e={[math]::Round($_.Length/1GB,2)}}
+
+      - name: Upload the voice-input pack to Hugging Face
+        if: inputs.publish
+        shell: pwsh
+        env:
+          HF_PACKS_TOKEN: ${{ secrets.HF_PACKS_TOKEN }}
+        run: |
+          python packaging/upload-packs.py --version "${{ needs.runtime.outputs.version }}" --pack "micpack-${{ matrix.pack }}" --packages "$env:OUT\packages"
+          if ($LASTEXITCODE -ne 0) { throw "Uploading the voice-input pack to Hugging Face failed (the HF_PACKS_TOKEN secret needs write access to $env:HF_PACKS_REPO)." }
 
   localai:
     name: Local AI pack (${{ matrix.tier }})

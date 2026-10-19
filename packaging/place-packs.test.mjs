@@ -414,3 +414,162 @@ test('the placement report is one small file in the state folder, replaced at ev
     assert.match(source, /try \{ await recordPlacement\(\{state: layout\.state, report: placed\}\); \}\s*catch \(error\) \{ log\(/, 'the launcher catches a failed write and carries on');
   } finally { await f.cleanup(); }
 });
+
+// ---------------------------------------------------------------- the voice-input packs (MicPack-European, MicPack-Asian)
+const EUROPEAN = 'parakeet-tdt-0.6b-v3-int8', ASIAN = 'sense-voice-int8';
+const STT = `${APP}/models/stt`;
+async function micPack(base, id, {marker = true, model = `MODEL-${id}`} = {}) {
+  const folder = join(base, STT, id);
+  for (const name of id === EUROPEAN ? ['encoder.int8.onnx', 'decoder.int8.onnx', 'joiner.int8.onnx', 'tokens.txt'] : ['model.int8.onnx', 'tokens.txt']) {
+    await put(join(folder, name), name === 'tokens.txt' ? 'tokens' : model);
+  }
+  await put(join(folder, 'NOTICE.txt'), 'notice');
+  await put(join(folder, 'LICENSE-mod.txt'), 'licence');
+  if (marker) await put(join(folder, 'mic-pack.json'), `{"pack":"${id}"}`);
+}
+const RUNTIME_MOONSHINE = 'models/stt/moonshine-tiny-en-int8';
+const moonshine = (base, text) => put(join(base, APP, RUNTIME_MOONSHINE, 'encode.int8.onnx'), text);
+
+test('the voice-input pack ids and marker are the ones the build writes and the bridge looks for', async () => {
+  const config = JSON.parse(await read(join(project, 'packaging/release.config.json')));
+  const {MIC_PACKS} = await import('./runtime/place-packs.mjs');
+  assert.deepEqual(Object.fromEntries(Object.values(config.micPacks.packs).map(pack => [pack.id, pack.title])), MIC_PACKS);
+  assert.equal(config.micPacks.markerFile, 'mic-pack.json');
+  assert.equal(config.micPacks.directory, 'app/models/stt');
+  const {LOCAL_PACKS} = await import('../bridge/speech-language.mjs');
+  assert.deepEqual(Object.keys(MIC_PACKS).sort(), LOCAL_PACKS.map(pack => pack.id).sort());
+});
+
+test('a voice-input pack extracted into a wrapper folder moves into app/models/stt/<id>, beside the Runtime\'s own Moonshine folder', async () => {
+  const f = await fakeGame();
+  try {
+    await moonshine(f.game, 'RUNTIME-MOONSHINE');
+    const wrapper = join(f.game, 'AI-NPC-Cyberpunk-Mod-MicPack-European-0.2.3');
+    await micPack(wrapper, EUROPEAN);
+    const log = lines();
+    const report = await placeMisplacedPacks({layout: f.layout, log: log.log});
+    assert.deepEqual(log, ['Moved the MicPack-European files into place from AI-NPC-Cyberpunk-Mod-MicPack-European-0.2.3']);
+    assert.deepEqual(report.fixed, [{pack: 'MicPack-European', from: 'AI-NPC-Cyberpunk-Mod-MicPack-European-0.2.3'}]);
+    assert.deepEqual(await tree(join(f.game, STT, EUROPEAN)), ['decoder.int8.onnx', 'encoder.int8.onnx', 'joiner.int8.onnx', 'LICENSE-mod.txt', 'mic-pack.json', 'NOTICE.txt', 'tokens.txt']);
+    assert.equal(await read(join(f.game, STT, EUROPEAN, 'encoder.int8.onnx')), `MODEL-${EUROPEAN}`);
+    assert.equal(await read(join(f.game, APP, RUNTIME_MOONSHINE, 'encode.int8.onnx')), 'RUNTIME-MOONSHINE', 'the Runtime\'s own speech model is untouched');
+    assert.equal(await exists(wrapper), false, 'the wrapper and the empty models/stt folders are removed');
+    assert.equal(await read(join(f.game, APP, 'launcher/start-service.mjs')), '// the real launcher');
+    const again = lines();
+    assert.deepEqual((await placeMisplacedPacks({layout: f.layout, log: again.log})).fixed, []);
+    assert.deepEqual(again, []);
+  } finally { await f.cleanup(); }
+});
+
+test('both voice-input packs, wrapped two folders deep beside a Local AI pack, are each moved with one line', async () => {
+  const f = await fakeGame();
+  try {
+    const wrapper = join(f.game, 'Both', 'Both');
+    await micPack(wrapper, EUROPEAN); await micPack(wrapper, ASIAN); await standardPack(wrapper);
+    const log = lines();
+    await placeMisplacedPacks({layout: f.layout, log: log.log});
+    const from = join('Both', 'Both');
+    assert.deepEqual([...log].sort(), ['Local AI standard', 'MicPack-Asian', 'MicPack-European'].map(name => `Moved the ${name} files into place from ${from}`).sort());
+    assert.equal(await read(join(f.game, STT, ASIAN, 'model.int8.onnx')), `MODEL-${ASIAN}`);
+    assert.equal(await read(join(f.game, STT, EUROPEAN, 'tokens.txt')), 'tokens');
+    assert.equal(await read(join(f.game, APP, 'local-ai/models/chat.gguf')), 'MODEL-BYTES-standard');
+    assert.equal(await exists(join(f.game, 'Both')), false);
+  } finally { await f.cleanup(); }
+});
+
+test('a wrapped Runtime-shaped tree with a Moonshine folder is not a pack, and beside a voice-input pack only that pack moves', async () => {
+  const f = await fakeGame();
+  try {
+    await moonshine(f.game, 'RUNTIME-MOONSHINE');
+    const old = join(f.game, 'Runtime-0.2');
+    await moonshine(old, 'OLDER-MOONSHINE');
+    await put(join(old, APP, 'launcher/start-service.mjs'), '// an older launcher');
+    const before = await tree(f.game);
+    const log = lines();
+    await placeMisplacedPacks({layout: f.layout, log: log.log});
+    assert.deepEqual(log, [], 'a Moonshine folder is no marker');
+    assert.deepEqual(await tree(f.game), before);
+    // The same wrapper, now with a voice-input pack too.
+    await micPack(old, ASIAN);
+    await placeMisplacedPacks({layout: f.layout, log: log.log});
+    assert.deepEqual(log, ['Moved the MicPack-Asian files into place from Runtime-0.2']);
+    assert.equal(await read(join(f.game, STT, ASIAN, 'mic-pack.json')), `{"pack":"${ASIAN}"}`);
+    assert.equal(await read(join(old, APP, RUNTIME_MOONSHINE, 'encode.int8.onnx')), 'OLDER-MOONSHINE', 'the older Runtime\'s Moonshine copy stays where it is');
+    assert.equal(await read(join(f.game, APP, RUNTIME_MOONSHINE, 'encode.int8.onnx')), 'RUNTIME-MOONSHINE');
+    assert.equal(await read(join(old, APP, 'launcher/start-service.mjs')), '// an older launcher');
+    assert.equal(await exists(join(old, STT, ASIAN)), false);
+  } finally { await f.cleanup(); }
+});
+
+test('a voice-input folder with no marker, or for an id the mod does not know, is left alone', async () => {
+  const f = await fakeGame();
+  try {
+    await micPack(join(f.game, 'NoMarker'), EUROPEAN, {marker: false});
+    await put(join(f.game, 'Other', STT, 'some-other-model-int8', 'mic-pack.json'), '{}');
+    await put(join(f.game, 'Other', STT, 'some-other-model-int8', 'model.onnx'), 'x');
+    const before = await tree(f.game);
+    const log = lines();
+    await placeMisplacedPacks({layout: f.layout, log: log.log});
+    assert.deepEqual(log, []);
+    assert.deepEqual(await tree(f.game), before);
+  } finally { await f.cleanup(); }
+});
+
+test('a voice-input pack: a same-size file in place is kept and the stray one dropped, a different size leaves both, and nothing is overwritten', async () => {
+  const f = await fakeGame();
+  try {
+    await put(join(f.game, STT, EUROPEAN, 'tokens.txt'), 'TOKENS'); // same size as 'tokens', other bytes
+    await put(join(f.game, STT, EUROPEAN, 'encoder.int8.onnx'), 'A-LONGER-ENCODER-ALREADY-IN-PLACE');
+    await micPack(join(f.game, 'W'), EUROPEAN);
+    const log = lines();
+    await placeMisplacedPacks({layout: f.layout, log: log.log});
+    assert.equal(await read(join(f.game, STT, EUROPEAN, 'tokens.txt')), 'TOKENS');
+    assert.equal(await read(join(f.game, STT, EUROPEAN, 'encoder.int8.onnx')), 'A-LONGER-ENCODER-ALREADY-IN-PLACE');
+    assert.equal(await read(join(f.game, 'W', STT, EUROPEAN, 'encoder.int8.onnx')), `MODEL-${EUROPEAN}`, 'the different stray copy is left for the player');
+    assert.equal(await read(join(f.game, STT, EUROPEAN, 'decoder.int8.onnx')), `MODEL-${EUROPEAN}`);
+    assert.ok(log.some(line => /^Left 1 file in W because a different file is already in place \(for example models\/stt\/parakeet-tdt-0\.6b-v3-int8\/encoder\.int8\.onnx\)/.test(line)), log.join('\n'));
+    assert.deepEqual(await tree(join(f.game, 'W')), [`${STT}/${EUROPEAN}/encoder.int8.onnx`]);
+  } finally { await f.cleanup(); }
+});
+
+test('a refused rename of a voice-input pack keeps its marker back for a retry, and the next start finishes', async () => {
+  const f = await fakeGame();
+  try {
+    const wrapper = join(f.game, 'W');
+    await micPack(wrapper, ASIAN);
+    let refuse = true;
+    const fs = {...realFs, async rename(from, to) {
+      if (refuse && /model\.int8\.onnx$/.test(from)) throw Object.assign(new Error('EPERM: operation not permitted'), {code: 'EPERM'});
+      return realFs.rename(from, to);
+    }};
+    const log = lines();
+    const report = await placeMisplacedPacks({layout: f.layout, log: log.log, fs});
+    assert.equal(report.fixed.length, 0);
+    assert.match(log[0], /^Could not finish moving the MicPack-Asian files into place from W: .*EPERM.*left where they are/);
+    assert.equal(await exists(join(f.game, STT, ASIAN, 'mic-pack.json')), false, 'the pack is never seen half-placed');
+    assert.equal(await exists(join(wrapper, STT, ASIAN, 'mic-pack.json')), true);
+    refuse = false;
+    const next = lines();
+    await placeMisplacedPacks({layout: f.layout, log: next.log, fs});
+    assert.deepEqual(next, ['Moved the MicPack-Asian files into place from W']);
+    assert.equal(await read(join(f.game, STT, ASIAN, 'model.int8.onnx')), `MODEL-${ASIAN}`);
+    assert.equal(await exists(wrapper), false);
+  } finally { await f.cleanup(); }
+});
+
+test('across volumes (EXDEV) a voice-input pack is copied, verified by size, then deleted', async () => {
+  const f = await fakeGame();
+  try {
+    const wrapper = join(f.game, 'W');
+    await micPack(wrapper, EUROPEAN);
+    const fs = {...realFs, async rename(from, to) {
+      if (from.startsWith(wrapper)) throw Object.assign(new Error('EXDEV: cross-device link not permitted'), {code: 'EXDEV'});
+      return realFs.rename(from, to);
+    }};
+    const log = lines();
+    await placeMisplacedPacks({layout: f.layout, log: log.log, fs});
+    assert.deepEqual(log, ['Moved the MicPack-European files into place from W']);
+    assert.equal(await read(join(f.game, STT, EUROPEAN, 'joiner.int8.onnx')), `MODEL-${EUROPEAN}`);
+    assert.equal(await exists(wrapper), false);
+  } finally { await f.cleanup(); }
+});

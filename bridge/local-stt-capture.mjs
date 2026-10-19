@@ -222,8 +222,8 @@ export function describeRemote(heard, device) {
 //              {mode: 'pack', stt}                      a LocalStt running a multilingual pack (no live words)
 //              {mode: 'voxtral', hint, fallback: [..]}  the audio is kept and sent to `transcriber` when the key is pressed again; if that fails
 //                                                       each entry of `fallback` ({mode:'pack', stt} | {mode:'english'}) is tried on the kept audio
-//            and may carry `note` ('english-only': the language is not English but nothing here hears it), which beginVoice returns so the
-//            game can tell the player once.
+//            and may carry `note` ('english-only': the language is not English but nothing here hears it; 'pack-available': an optional microphone
+//            pack hears it but is not installed), which beginVoice returns so the game can tell the player once.
 //   transcriber  a VoxtralStt (bridge/voxtral-stt.mjs); onLanguage(code) is told the language Mistral reported.
 //   reply    optional async (config, options) => result, the text provider's reply function (the same call a typed turn
 //            makes). It receives the turn's configuration with `text` set to the transcript, and options.signal, and returns
@@ -362,6 +362,7 @@ export function createLocalSttChannel({stt, capture, reply, now = Date.now, spec
         try {
           log(describeInput(info));
           if (plan.mode === 'pack') log('speech language ' + (plan.language ?? '?') + ' (' + (plan.source ?? '?') + '): local pack ' + clip(engine.engine?.id, 60) + ', no live words');
+          else if (plan.note === 'pack-available') log('speech language ' + (plan.language ?? '?') + ' (' + (plan.source ?? '?') + '): the optional microphone pack that hears it is not installed, English recogniser used (' + plan.note + ')');
           else if (plan.note) log('speech language ' + (plan.language ?? '?') + ' (' + (plan.source ?? '?') + '): nothing here recognises it, English recogniser used (' + plan.note + ')');
         } catch { /* a log line never breaks a recording */ }
         if (closed) { await capture.abort(); await engine.cancel(requestId); throw Error('Microphone startup cancelled'); }

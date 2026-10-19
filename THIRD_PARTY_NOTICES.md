@@ -98,6 +98,30 @@ Apache-2.0 and MIT both allow redistribution, including commercially, if the lic
 copyright notice travel with the files, which the packs do. The models are unmodified, so no
 change statement is needed. The packs are separate from the Runtime package.
 
+## Bundled in the optional voice-input packs
+
+Two optional downloads, "MicPack-European" and "MicPack-Asian" (`docs/LOCAL_STT.md`, "The optional packs"), hosted on Hugging Face only. Each
+unpacks into `red4ext/plugins/AiNpcCyberpunkMod/app/models/stt/<pack id>/` (beside the Runtime's own Moonshine folder, which it never touches) and
+carries its model files, a `NOTICE.txt` with the model's licence and attribution, `LICENSE-mod.txt` (this project's own licence) and a
+`mic-pack.json` marker. The model files are the unmodified files of the sherpa-onnx release archives named below, pinned by size and SHA-256 in
+`packaging/release.config.json` (`micPacks`). The mod uses these models only to turn the player's own speech into text on the player's computer.
+Neither pack is part of the Runtime package.
+
+| Component | Version | Licence | Where the licence text is |
+|---|---|---|---|
+| NVIDIA Parakeet TDT 0.6B v3 (`nvidia/parakeet-tdt-0.6b-v3`), int8 ONNX files `encoder.int8.onnx`, `decoder.int8.onnx`, `joiner.int8.onnx`, `tokens.txt` (MicPack-European, pack id `parakeet-tdt-0.6b-v3-int8`) | the `sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8` archive of the sherpa-onnx `asr-models` release | CC-BY-4.0, Copyright (c) NVIDIA Corporation | https://creativecommons.org/licenses/by/4.0/ (linked from `app/models/stt/parakeet-tdt-0.6b-v3-int8/NOTICE.txt`); model card: https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3 |
+| SenseVoice Small (FunAudioLLM, Alibaba Group), int8 ONNX files `model.int8.onnx`, `tokens.txt` (MicPack-Asian, pack id `sense-voice-int8`) | the `sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17` archive of the sherpa-onnx `asr-models` release | FunASR Model Open Source License Agreement, Version 1.1 | https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE (linked from `app/models/stt/sense-voice-int8/NOTICE.txt`, not copied into the pack); source: https://github.com/FunAudioLLM/SenseVoice and https://github.com/modelscope/FunASR |
+
+- **Parakeet (CC-BY-4.0).** Attribution is required: NVIDIA Parakeet TDT 0.6B v3, Copyright (c) NVIDIA Corporation, with the licence link and an
+  indication of changes. The changes are the conversion to ONNX and the int8 quantisation done by the k2-fsa sherpa-onnx project
+  (https://github.com/k2-fsa/sherpa-onnx, Apache-2.0); the model is run through sherpa-onnx. NVIDIA does not endorse this mod. The pack's
+  `NOTICE.txt` carries this text.
+- **SenseVoice (FunASR Model Open Source License 1.1).** The licence lets the model be used, copied, modified and shared; the source and the author
+  must be attributed and the model's name (SenseVoice) kept with it; the model is provided as is, with no liability for Alibaba Group. The licence
+  text is linked, not bundled; the pack's `NOTICE.txt` names the licence and gives the link. This pack's use in the mod is speech in Mandarin Chinese,
+  Japanese and Korean (the other languages of the model are not used).
+- sherpa-onnx itself (Apache-2.0) runs both models; it is in the Runtime package (see the table at the top).
+
 ## Installed separately by players
 
 Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Mod Configuration Menu

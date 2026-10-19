@@ -70,6 +70,17 @@ def log(message: str) -> None:
     print(message, file=sys.stderr, flush=True)
 
 
+def use_utf8() -> None:
+    """The protocol is UTF-8 JSON. The process runs with -I, which ignores PYTHONUTF8 / PYTHONIOENCODING, so on Windows the standard streams
+    would be the console code page and a transcript in Russian, Japanese or Korean would crash `send` (found with the real multilingual
+    models, 2026-10-19). Reconfigure them here, before anything is read or written."""
+    for stream in (sys.stdin, sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:  # noqa: BLE001
+            pass
+
+
 def send(payload: dict) -> None:
     sys.stdout.write(json.dumps(payload, ensure_ascii=False) + "\n")
     sys.stdout.flush()
@@ -473,6 +484,7 @@ def main() -> int:
     parser.add_argument("--threads", type=int, default=1)
     parser.add_argument("--priority", choices=sorted(PRIORITY_CLASSES), default="below")
     args = parser.parse_args()
+    use_utf8()
     threads = max(1, min(4, args.threads))
     lower_priority(args.priority)
     started = time.perf_counter()

@@ -15,6 +15,9 @@
 //   AI-NPC-Cyberpunk-Mod-Mature-Lite-<v>.zip    optional Mature lite pack, one uncensored model (Qwen3.5-4B); only with --packages mature-lite,
 //                                          never in the default set, never Nexus; it carries its own marker, so it works alone
 //   AI-NPC-Cyberpunk-Mod-Mature-Standard-<v>.zip    optional Mature standard pack, one uncensored model (Gemma 4 E4B); only with --packages mature-standard
+//   AI-NPC-Cyberpunk-Mod-MicPack-European-<v>.zip   optional voice-input pack, NVIDIA Parakeet TDT 0.6B v3 (int8); only with --packages micpack-european
+//   AI-NPC-Cyberpunk-Mod-MicPack-Asian-<v>.zip      optional voice-input pack, SenseVoice Small (int8), Chinese, Japanese, Korean; only with --packages micpack-asian
+//                                          (neither is in the default set or on Nexus; the model files come from the pinned sherpa-onnx archive, or --mic-pack-source)
 // Only the Scripts (Nexus) and Runtime (GitHub release) packages may still be split into several zips (writeArchives).
 // plus SHA256SUMS.txt and release-manifest.json. The Runtime package also carries the native plugin
 // (red4ext/plugins/AiNpcCyberpunkModNative) and runtime/native-off.txt. See docs/PACKAGING.md.
@@ -23,7 +26,7 @@
 //   --version V        release version, 2077.N or 2077.N.M (required)
 //   --dry-run          local build: models from the developer runtime/ folder, no key embedded
 //   --models local|hf  where trained models come from (default: hf, or local with --dry-run)
-//   --packages LIST    comma list of scripts,runtime,omni,localai-standard,localai-lite,mature-lite,mature-standard (default: the first five)
+//   --packages LIST    comma list of scripts,runtime,omni,localai-standard,localai-lite,mature-lite,mature-standard,micpack-european,micpack-asian (default: the first five)
 //   --source REF       git ref to package (default HEAD); --worktree packages the working tree instead
 //   --key-env NAME     embed the Convai key from this environment variable (never printed)
 //   --key-file PATH    embed the Convai key from this file (local testing only)
@@ -34,10 +37,13 @@
 //   --no-vision        leave the "Companions can see" picture helper out (turns then carry no picture)
 //   --local-ai-source DIR  with --models local: a folder shaped like the Local AI developer folder
 //                      (default: CYBERPUNK_CONVAI_LOCAL_AI_DEV); a file missing there is downloaded
+//   --mic-pack-source DIR  the voice-input packs' model files from a developer folder DIR/<pack id>/<file> instead of the pinned
+//                      download (default: CYBERPUNK_CONVAI_MIC_PACKS_DEV); every file is checked against its pinned size and SHA-256
+//   --release-config PATH  read the pinned inputs from this file instead of packaging/release.config.json (for the packaging tests)
 //   --python EXE       host CPython used to run pip (default: python)
 //   --out DIR, --cache DIR   output and download-cache folders (default dist/release, dist/release-cache)
 import {createHash} from 'node:crypto';
-import {mkdir, readFile, readdir, rename, rm, stat, writeFile, copyFile} from 'node:fs/promises';
+import {lstat, mkdir, readFile, readdir, rename, rm, stat, writeFile, copyFile} from 'node:fs/promises';
 import {existsSync, readFileSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
 import {basename, dirname, join, relative, resolve} from 'node:path';
@@ -47,7 +53,7 @@ import {isReleaseVersion, npmVersion} from './lib/version.mjs';
 import {importClosure, checkLuaPartition} from './lib/closure.mjs';
 import {loadRuntimeExchange} from './lib/runtime-exchange.mjs';
 import {packagedKeyText} from './lib/packaged-key.mjs';
-import {copyInto, download, exists, extractZip, posix, readJson, run, sha256Buffer, sha256File, walk, writeText} from './lib/files.mjs';
+import {copyInto, download, exists, extractZip, inside, posix, readJson, run, sha256Buffer, sha256File, walk, writeText} from './lib/files.mjs';
 import {RUNTIME_PREPARED_FOLDER} from './lib/pack-overlap.mjs';
 import {launcherIni} from './lib/launcher-ini.mjs';
 
@@ -66,10 +72,11 @@ if (!isReleaseVersion(version)) {
 const dryRun = flag('--dry-run');
 const modelSource = value('--models', dryRun ? 'local' : 'hf');
 // 'mature-lite' and 'mature-standard' are the two separate adult-flagged Mature packs (packaging/MATURE_PACK_README.md), one model each: built only
-// when asked for, never in the default set. The optional packs (OPTIONAL_PACKAGE_IDS) are hosted on Hugging Face as one zip each.
-const PACKAGE_IDS = ['scripts', 'runtime', 'omni', 'localai-standard', 'localai-lite', 'mature-lite', 'mature-standard'];
-const DEFAULT_PACKAGE_IDS = PACKAGE_IDS.filter(id => !id.startsWith('mature'));
-const OPTIONAL_PACKAGE_IDS = new Set(['omni', 'localai-standard', 'localai-lite', 'mature-lite', 'mature-standard']);
+// when asked for, never in the default set. 'micpack-european' and 'micpack-asian' are the two voice-input packs (docs/LOCAL_STT.md), opt-in the same way.
+// The optional packs (OPTIONAL_PACKAGE_IDS) are hosted on Hugging Face as one zip each.
+const PACKAGE_IDS = ['scripts', 'runtime', 'omni', 'localai-standard', 'localai-lite', 'mature-lite', 'mature-standard', 'micpack-european', 'micpack-asian'];
+const DEFAULT_PACKAGE_IDS = PACKAGE_IDS.filter(id => !id.startsWith('mature') && !id.startsWith('micpack'));
+const OPTIONAL_PACKAGE_IDS = new Set(['omni', 'localai-standard', 'localai-lite', 'mature-lite', 'mature-standard', 'micpack-european', 'micpack-asian']);
 const packages = new Set(value('--packages', DEFAULT_PACKAGE_IDS.join(',')).split(',').map(item => item.trim()).filter(Boolean));
 const localAiSource = value('--local-ai-source', process.env.CYBERPUNK_CONVAI_LOCAL_AI_DEV);
 const out = resolve(value('--out', resolve(project, 'dist/release')));
@@ -818,6 +825,80 @@ async function maturePackage(source, config, tierKey) {
   return pkg;
 }
 
+// ---------------------------------------------------------------- the voice-input packs (docs/LOCAL_STT.md, "The optional packs")
+// Two optional downloads, MicPack-European (NVIDIA Parakeet TDT 0.6B v3, int8) and MicPack-Asian (SenseVoice Small, int8: Mandarin Chinese, Japanese, Korean),
+// each ONE zip on Hugging Face like the other optional packs (built only on request, never in the default set, never Nexus). A pack holds the model files
+// of one entry of bridge/speech-language.mjs LOCAL_PACKS in app/models/stt/<id>/, where bridge/local-stt.mjs resolveLocalSttPaths looks for it, beside the
+// Runtime's own app/models/stt/moonshine-tiny-en-int8/ (a path the packs never use), plus mic-pack.json (the marker packaging/runtime/place-packs.mjs
+// recognises), NOTICE.txt (the model's licence and attribution) and LICENSE-mod.txt (the mod's own licence, one copy per pack folder, so the two packs share no path).
+// The model files are the unmodified files of the sherpa-onnx release archive pinned in release.config.json (micPacks), checked against their recorded size
+// and SHA-256. A licence that is only LINKED (the FunASR Model Open Source License of SenseVoice) is linked in NOTICE.txt and is not copied into the pack:
+// the link is the licence, and the notice says so; the build refuses a notice that does not carry the pinned licence link.
+const micSource = value('--mic-pack-source', process.env.CYBERPUNK_CONVAI_MIC_PACKS_DEV);
+const MIC_TAR = process.platform === 'win32' ? resolve(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe') : 'tar';
+
+// A file of a voice-input pack, checked against its pinned size and SHA-256 (a link or a missing file is refused).
+async function verifiedMicFile(path, name, spec, where) {
+  const info = await lstat(path).catch(() => null);
+  if (!info?.isFile()) throw Error(`${where}: ${name} is missing or is not a plain file.`);
+  if (info.size !== spec.size || await sha256File(path) !== spec.sha256) throw Error(`${where}: ${name} differs from the pinned file (${spec.size} bytes, SHA-256 ${spec.sha256}).`);
+  return path;
+}
+
+// Map of file name -> local path for one pack: from the developer folder (DIR/<local>/<file>) when --mic-pack-source or CYBERPUNK_CONVAI_MIC_PACKS_DEV
+// is set, else from the pinned archive. The archive is untrusted data: it is listed first and an entry outside its own folder (an absolute path, a
+// drive, a backslash or a .. part) stops the build, only the files the pack ships are extracted (into a fresh folder of the cache, with the system tar),
+// each is checked against its pin, and nothing in it is ever run.
+async function micPackFiles(pack) {
+  const files = new Map();
+  if (micSource) {
+    const folder = resolve(micSource, pack.local ?? pack.id);
+    for (const [name, spec] of Object.entries(pack.files)) files.set(name, await verifiedMicFile(resolve(folder, name), name, spec, folder));
+    return files;
+  }
+  const {url, size, sha256, folder} = pack.archive;
+  const archive = await download(url, resolve(cache, 'mic-packs', basename(new URL(url).pathname)), sha256, log);
+  if ((await stat(archive)).size !== size) throw Error(`${basename(archive)} is not ${size} bytes.`);
+  const listed = spawnSync(MIC_TAR, ['-tjf', archive], {encoding: 'utf8', maxBuffer: 256 * 1024 * 1024});
+  if (listed.status !== 0) throw Error(`Could not list ${basename(archive)}: ${String(listed.stderr).slice(-400)}`);
+  const entries = listed.stdout.split(/\r?\n/).filter(Boolean).map(entry => entry.replace(/\/$/, ''));
+  for (const entry of entries) {
+    if (/^[\\/]|^[A-Za-z]:|\\|(?:^|\/)\.\.(?:\/|$)/.test(entry) || !(entry === folder || entry.startsWith(`${folder}/`))) {
+      throw Error(`${basename(archive)} holds an entry outside ${folder}/: ${entry}`);
+    }
+  }
+  const members = Object.keys(pack.files).map(name => `${folder}/${name}`);
+  for (const member of members) if (!entries.includes(member)) throw Error(`${basename(archive)} has no ${member}.`);
+  const extracted = resolve(cache, 'extract', `mic-pack-${pack.id}`);
+  await rm(extracted, {recursive: true, force: true});
+  await mkdir(extracted, {recursive: true});
+  log(`Extracting ${members.length} files of ${basename(archive)}.`);
+  await run(MIC_TAR, ['-xjf', archive, '-C', extracted, ...members], {quiet: true});
+  for (const [name, spec] of Object.entries(pack.files)) {
+    const path = resolve(extracted, folder, name);
+    if (!inside(extracted, path)) throw Error(`${name} left the extraction folder.`);
+    files.set(name, await verifiedMicFile(path, name, spec, extracted));
+  }
+  return files;
+}
+
+async function micPackage(source, config, packKey) {
+  const spec = config.micPacks, pack = spec.packs?.[packKey];
+  if (!pack) throw Error(`Unknown voice-input pack ${packKey} (micPacks.packs in packaging/release.config.json).`);
+  if (spec.directory !== 'app/models/stt' || !/^[a-z0-9][a-z0-9.-]*$/.test(pack.id)) throw Error(`${pack.packageId}: the pack id or folder is not one bridge/local-stt.mjs looks for.`);
+  const pkg = new Package(pack.packageId);
+  const folder = `${config.layout.pluginDirectory}/${spec.directory}/${pack.id}`;
+  for (const [name, path] of await micPackFiles(pack)) pkg.file(`${folder}/${name}`, path);
+  const notice = (await readFile(resolve(source.root, pack.noticeSource), 'utf8')).replace(/\r?\n/g, '\r\n');
+  if (!notice.includes(pack.licenseUrl)) throw Error(`${pack.noticeSource} does not carry the licence link ${pack.licenseUrl}.`);
+  pkg.text(`${folder}/${spec.noticeFile}`, notice);
+  pkg.text(`${folder}/${spec.modLicenceFile}`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
+  pkg.json(`${folder}/${spec.markerFile}`, {product: config.product, package: pack.packageId, version, commit: '' + source.commit, pack: pack.id,
+    languages: pack.languages, model: pack.model, source: pack.archive.url, archiveSha256: pack.archive.sha256, license: pack.license,
+    licenseUrl: pack.licenseUrl, attribution: pack.attribution});
+  return pkg;
+}
+
 // ---------------------------------------------------------------- archives
 // No file is split any more. The optional packs are hosted on Hugging Face as ONE zip each (no limit there to stay under), and the
 // Scripts and Runtime packages carry no file near the GitHub per-file limit: one that is over it would break the upload, so it stops the build.
@@ -871,7 +952,7 @@ async function main() {
   log(`Building ${[...packages].join(', ')} ${version}${dryRun ? ' (dry run)' : ''}; models from ${modelSource}; Convai key ${key ? 'embedded' : 'not embedded'}.`);
   const source = await prepareSource();
   log(`Source: ${source.commit}`);
-  const config = await readJson(resolve(source.root, 'packaging/release.config.json'));
+  const config = await readJson(value('--release-config') ? resolve(value('--release-config')) : resolve(source.root, 'packaging/release.config.json'));
   const timestamp = new Date(source.time * 1000);
   const models = (packages.has('runtime') || packages.has('omni')) ? await resolveModels(config, source) : null;
   const report = {product: config.product, version, commit: source.commit, dryRun, models: modelSource,
@@ -885,8 +966,11 @@ async function main() {
     'localai-lite': () => localAiPackage(source, config, 'lite'),
     'mature-lite': () => maturePackage(source, config, 'lite'),
     'mature-standard': () => maturePackage(source, config, 'good'),
+    'micpack-european': () => micPackage(source, config, 'european'),
+    'micpack-asian': () => micPackage(source, config, 'asian'),
   };
-  const titles = {scripts: 'Scripts', runtime: 'Runtime', omni: 'OmniPack', 'localai-standard': 'LocalAI-Standard', 'localai-lite': 'LocalAI-Lite', 'mature-lite': 'Mature-Lite', 'mature-standard': 'Mature-Standard'};
+  const titles = {scripts: 'Scripts', runtime: 'Runtime', omni: 'OmniPack', 'localai-standard': 'LocalAI-Standard', 'localai-lite': 'LocalAI-Lite', 'mature-lite': 'Mature-Lite', 'mature-standard': 'Mature-Standard',
+    'micpack-european': 'MicPack-European', 'micpack-asian': 'MicPack-Asian'};
   for (const id of PACKAGE_IDS) {
     if (!packages.has(id)) continue;
     log(`Staging the ${titles[id]} package.`);

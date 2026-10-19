@@ -157,6 +157,7 @@ return {
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "Aucune parole entendue — attendez Écoute, puis parlez avant de terminer.",
     ["The microphone {name} sends no sound. Check your Windows input device."] = "Le microphone {name} n'envoie aucun son. Vérifiez votre périphérique d'entrée Windows.",
     ["Voice input only understands English for now. Typing works in any language."] = "La saisie vocale ne comprend que l'anglais pour le moment. L'écriture fonctionne dans toutes les langues.",
+    ["Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language."] = "La saisie vocale dans cette langue nécessite le pack Microphone facultatif de la page du mod. L'écriture fonctionne dans toutes les langues.",
     ["Not configured"] = "Non configuré",
     ["Off"] = "Désactivé",
     ["On"] = "Activé",

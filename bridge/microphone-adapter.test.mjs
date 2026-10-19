@@ -347,6 +347,15 @@ test('a recording in a language nothing here hears says so under the Listening l
  assert(feedback[#feedback]==want,feedback[#feedback])
 `));
 
+test('a recording in a language an optional pack hears (not installed) names the pack under the Listening line', () => check(`
+ local context=input(false);assert(mic.begin(context))
+ files['runtime/microphone-state.json']=json.encode({requestId='voice-1',state='recording',note='pack-available'})
+ mic.update(player)
+ assert(mic.state=='recording')
+ local want='Listening - press the same voice chat shortcut again to finish'..string.char(10)..'Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.'
+ assert(feedback[#feedback]==want,feedback[#feedback])
+`));
+
 test('an unknown note adds no English-only line', () => check(`
  assert(mic.begin(input(false)));files['runtime/microphone-state.json']=json.encode({requestId='voice-1',state='recording',note='something-else'})
  mic.update(player)

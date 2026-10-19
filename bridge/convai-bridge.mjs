@@ -836,9 +836,11 @@ const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemo
 const speechLanguage = new SpeechLanguage({readUiFile: () => readFile(resolve(runtime, 'ui-language.txt'), 'utf8')});
 const voxtralStt = new VoxtralStt({getKey: () => { try { return mistral.apiKey ?? null; } catch { return null; } }, onLog: message => process.stderr.write(message)});
 const englishStt = new LocalStt({project, pythonExecutable: voiceConfig.runtime?.pythonExecutable});
-// A pack decodes once per recording (no live words) and is a big model: it leaves memory 60 s after its last recording.
+// A pack decodes once per recording (no live words) and is a big model: it leaves memory 60 s after its last recording. The first load after
+// the files were written reads a 650 MB model that Windows is still scanning: measured 68 s (4.9 s from the second load on), so a load may
+// take 150 s before it counts as failed.
 const packStts = new Map(LOCAL_PACKS.map(pack => [pack.id, new LocalStt({project, pythonExecutable: voiceConfig.runtime?.pythonExecutable, engine: pack,
-  partials: false, pausePartials: false, idleMs: 60_000, startupMs: 60_000, finishMs: 30_000})]));
+  partials: false, pausePartials: false, idleMs: 60_000, startupMs: 150_000, finishMs: 30_000})]));
 const installedPackIds = () => LOCAL_PACKS.filter(pack => packStts.get(pack.id).available()).map(pack => pack.id);
 async function routeRecording() {
   const {language, source} = await speechLanguage.current();
