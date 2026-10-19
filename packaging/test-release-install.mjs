@@ -31,6 +31,7 @@ import {join, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {childEnv, sha256File} from './lib/files.mjs';
 import {loadRuntimeExchange} from './lib/runtime-exchange.mjs';
+import {missingRuntimeFiles, requiredRuntimeFiles, V_VOICE_FOLDER} from './lib/runtime-required.mjs';
 
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const argv = process.argv.slice(2);
@@ -314,6 +315,27 @@ async function main() {
     const written = existsSync(reportOut) ? (await readdir(reportOut)).filter(name => /^convai-report-\d{8}-\d{6}\.zip$/.test(name)) : [];
     check('the support report can be made with the game closed', made.status === 0 && written.length === 1 && /send that file/.test(made.stdout || ''),
       (made.stdout || made.stderr || '').trim().split('\n').at(-1)?.slice(0, 160));
+    // What the Runtime must carry for its features (packaging/lib/runtime-required.mjs): V's voice clips, the batch file above and the report code
+    // it starts. A Runtime without them (0.2 and 0.2.1 had no V clips) fails here, and so does one whose clips the bridge's own loader rejects.
+    const required = await requiredRuntimeFiles(project);
+    const installed = new Set(Object.values(required).flat().filter(rel => existsSync(join(game, rel))));
+    const absent = missingRuntimeFiles(installed, required);
+    check("the Runtime carries V's voice clips, 'Make support report.bat' and the offline report code", Object.keys(absent).length === 0,
+      Object.keys(absent).length ? Object.entries(absent).map(([group, files]) => `${group}: ${files.map(file => file.split('/').pop()).join(', ')}`).join('; ') : `${Object.values(required).flat().length} files`);
+    const vScript = join(work, 'v-voice-check.mjs');
+    await writeFile(vScript, `
+import {pathToFileURL} from 'node:url';
+import {resolve} from 'node:path';
+const {loadVVoiceReferences} = await import(pathToFileURL(resolve(${JSON.stringify(app)}, 'bridge/v-voice.mjs')).href);
+const log = [];
+const found = await loadVVoiceReferences([${JSON.stringify(join(plugin, V_VOICE_FOLDER))}], {log: message => log.push(message)});
+console.log(JSON.stringify({genders: Object.keys(found?.voices ?? {}).sort(), log}));
+`);
+    const vLoad = spawnSync(node, [vScript], {env: cleanEnv(), encoding: 'utf8'});
+    let vResult = {};
+    try { vResult = JSON.parse(vLoad.stdout.trim().split('\n').pop()); } catch { /* reported below */ }
+    check("the packaged bridge loads both of V's voice clips (names and hashes match the manifest)", vLoad.status === 0 && vResult.genders?.join() === 'female,male' && !vResult.log?.length,
+      vLoad.status === 0 ? `${vResult.genders?.join(', ') || 'none'}${vResult.log?.length ? `; ${vResult.log.join('; ')}` : ''}` : (vLoad.stderr || '').slice(-300));
     const nativeDll = join(plugins, 'AiNpcCyberpunkModNative/CyberpunkConvaiNative.dll');
     const nativeOff = join(mod, 'runtime/native-off.txt');
     const release = JSON.parse(await readFile(join(app, 'release.json'), 'utf8'));
