@@ -2629,7 +2629,7 @@
       "sampleDialogueWords": 168,
       "voice": "Sarah (Authoritative Middle-Aged American Female)",
       "sources": 5,
-      "researchRevision": "cd837577f11b75c7bccbc67b4876a6693a3c1323414e882577c6baea8265abb7"
+      "researchRevision": "cbcae458a58a55ba144021fa266df74dbf7541278b4ea42d0c6693150b79f4d2"
     },
     {
       "key": "kurt-hansen",
@@ -2714,12 +2714,12 @@
     },
     {
       "key": "weyland",
-      "words": 663,
+      "words": 635,
       "speakingStyleWords": 185,
       "sampleDialogueWords": 150,
       "voice": "Noah (Confident Adult American Male)",
       "sources": 4,
-      "researchRevision": "3f58964cdfbca4c7a4c18b33ad6bebd2995d1dc83b3cbc33e14500b410b04591"
+      "researchRevision": "1a611b9da3add38b7d3976a284513217052e6a106ef07e13a4b8e70d6d4a7602"
     },
     {
       "key": "oda",
