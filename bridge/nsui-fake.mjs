@@ -68,13 +68,57 @@ export const nativeSettingsFake = String.raw`
     ns.optionCount = ns.optionCount + 1
     return name
   end
-  -- The controller of a spawned row: the two state bodies of the switch that a button is made from (a read-only row hides them).
+  -- The controller of a spawned row, modelled on NSUI 1.96 spawnButton: the switch ("settingsSelectorBool") has a layout/container with
+  -- an offState and an onState, each with a body that holds the button art (button, buttonBorder, txtValue). NSUI hides the parts of
+  -- the onState body only (its "off" path points at the onState body too), so the offState body keeps drawing the frame. The two
+  -- state bodies of the controller are inkWidgetRef fields: a method call on them fails as it does in the game, only the static
+  -- inkWidgetRef.SetVisible(ref, state) reaches the widget.
+  local function node(children)
+    local self = {visible = true, children = children or {}}
+    function self:SetVisible(state) self.visible = state end
+    function self:GetWidgetByPath(path)
+      local current = self
+      for _, name in ipairs(path.parts) do
+        current = current.children[name]
+        if not current then return nil end
+      end
+      return current
+    end
+    return self
+  end
+  BuildWidgetPath = function(parts) return {parts = parts} end
+  inkWidgetRef = {
+    SetVisible = function(ref, state) ref.node:SetVisible(state) end,
+    IsVisible = function(ref) return ref.node.visible end,
+  }
   function ns.newController(option)
     local controller = {option = option}
-    for _, name in ipairs({'offStateBody', 'onStateBody'}) do
-      controller[name] = {visible = true, SetVisible = function(self, state) self.visible = state end}
-    end
+    local container = node()
+    local function body() return node({button = node(), buttonBorder = node(), txtValue = node()}) end
+    container.children.offState = node({body = body()})
+    container.children.onState = node({body = body()})
+    local root = node({layout = node({container = container})})
+    function controller:GetRootWidget() return root end
+    controller.offStateBody = {node = container.children.offState.children.body}
+    controller.onStateBody = {node = container.children.onState.children.body}
+    ns.nsuiHideOnState(container.children.onState.children.body)
     return controller
+  end
+  -- NSUI's own hiding in spawnButton (the onState body, twice).
+  function ns.nsuiHideOnState(body)
+    for _, name in ipairs({'button', 'txtValue', 'buttonBorder'}) do body.children[name]:SetVisible(false) end
+  end
+  -- The parts of the two bodies of a controller, for a test: {off = {button, buttonBorder, txtValue}, on = {...}} as visible flags.
+  function ns.parts(controller)
+    local container = controller:GetRootWidget():GetWidgetByPath(BuildWidgetPath({'layout', 'container'}))
+    local result = {}
+    for key, state in pairs({off = 'offState', on = 'onState'}) do
+      local body = container:GetWidgetByPath(BuildWidgetPath({state, 'body'}))
+      result[key] = {button = body:GetWidgetByPath(BuildWidgetPath({'button'})).visible,
+        buttonBorder = body:GetWidgetByPath(BuildWidgetPath({'buttonBorder'})).visible,
+        txtValue = body:GetWidgetByPath(BuildWidgetPath({'txtValue'})).visible}
+    end
+    return result
   end
   local function live(tabPath) return ns.screen ~= nil and ns.currentTab == tabPath end
 
