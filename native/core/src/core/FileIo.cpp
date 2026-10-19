@@ -1145,7 +1145,8 @@ void FileIo::NoteChanged(const std::vector<std::string>& aNames, bool aAll)
 void FileIo::WatcherMain()
 {
     SetThreadDescription(GetCurrentThread(), L"CyberpunkConvai file watch");
-    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
+    // Normal priority, like the worker below: it sleeps in ReadDirectoryChangesW and wakes only on a change.
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_NORMAL);
     struct Exited
     {
         std::atomic<bool>& flag;
@@ -1287,8 +1288,10 @@ void FileIo::WatcherMain()
 void FileIo::WorkerMain()
 {
     SetThreadDescription(GetCurrentThread(), L"CyberpunkConvai file IO");
-    // Below the game's threads: this work is never urgent at the millisecond scale.
-    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
+    // Normal priority: every reply, speech stream and playback lease passes through here, and below normal a game that keeps
+    // every core busy starved it for seconds (2026-10-20 report: replies 5-7 s late in the foreground, 1-2 s after alt-tab).
+    // The thread sleeps on its condition variable between requests, so it costs nothing while idle.
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_NORMAL);
 
     std::unique_lock<std::mutex> lock(m_mutex);
     while (true)
