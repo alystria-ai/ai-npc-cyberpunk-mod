@@ -7,12 +7,12 @@ import {existsSync} from 'node:fs';
 import {mkdtemp, mkdir, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {spawnSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
-import {join, resolve} from 'node:path';
+import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {ZipWriter, listZip} from './lib/zip.mjs';
 import {sha256Buffer, walk} from './lib/files.mjs';
 import {checkLuaPartition, importClosure} from './lib/closure.mjs';
-import {chooseKeyFile, installLayout, MANAGED_FILES, pocketConfigFor, prepareState, serviceEnvironment} from './runtime/prepare-state.mjs';
+import {chooseKeyFile, installLayout, MANAGED_FILES, OMNI_CONFIGS, pocketConfigFor, prepareState, serviceEnvironment} from './runtime/prepare-state.mjs';
 import {assembleParts} from './runtime/assemble-parts.mjs';
 import {packagedKeyText} from './lib/packaged-key.mjs';
 import {readKeyFileText} from '../bridge/key-codec.mjs';
@@ -132,6 +132,86 @@ test('state preparation fills install paths, follows managed defaults and keeps 
     await prepareState(f.layout);
     assert.equal(JSON.parse(await readFile(join(f.layout.state, 'characters.json'), 'utf8')).v, 2);
     assert.deepEqual(JSON.parse(await readFile(join(f.layout.state, 'multilingual-profiles.json'), 'utf8')), {mine: true});
+  } finally { await rm(f.root, {recursive: true, force: true}); }
+});
+
+test("the OmniVoice lists come from the Runtime's app/defaults first, the pack's app/omni/defaults is the fallback, and with no pack nothing is written", async () => {
+  const f = await fakeInstall();
+  const put = async (directory, name, value) => { await mkdir(directory, {recursive: true}); await writeFile(join(directory, name), JSON.stringify(value)); };
+  const live = async name => JSON.parse(await readFile(join(f.layout.state, name), 'utf8'));
+  try {
+    // No OmniVoice pack: the Runtime's lists are not needed, so no list reaches the data folder (voice-configs.json still names them).
+    for (const name of Object.values(OMNI_CONFIGS)) await put(f.layout.defaults, name, {from: 'runtime', proposal: {x: 1}});
+    assert.equal((await prepareState(f.layout)).omni, false);
+    assert.deepEqual((await readdir(f.layout.state)).filter(name => name.startsWith('local-voices')), []);
+    // The pack, older than the Runtime (it was reused unchanged from an earlier version): its lists are in app/omni/defaults and the Runtime's win.
+    await put(join(f.layout.omni, 'python'), 'python.exe', {});
+    await writeFile(join(f.layout.omni, 'omni-pack.json'), '{}');
+    for (const name of Object.values(OMNI_CONFIGS)) await put(f.layout.omniDefaults, name, {from: 'pack'});
+    assert.equal((await prepareState(f.layout)).omni, true);
+    for (const name of Object.values(OMNI_CONFIGS)) assert.deepEqual(await live(name), {from: 'runtime'}, 'the template is cleaned like the pack\'s was');
+    // The Runtime's list changes: the data folder follows at the next start.
+    for (const name of Object.values(OMNI_CONFIGS)) await put(f.layout.defaults, name, {from: 'runtime', v: 2});
+    await prepareState(f.layout);
+    assert.deepEqual(await live(OMNI_CONFIGS.long), {from: 'runtime', v: 2});
+    // A Runtime with no lists of its own: the pack's are used, as before.
+    for (const name of Object.values(OMNI_CONFIGS)) await rm(join(f.layout.defaults, name));
+    await prepareState(f.layout);
+    for (const name of Object.values(OMNI_CONFIGS)) assert.deepEqual(await live(name), {from: 'pack'});
+    // The two lists live in different folders, so the pack's and the Runtime's can never be the same path.
+    assert.notEqual(f.layout.defaults, f.layout.omniDefaults);
+    // Neither: a clear error naming both folders.
+    for (const name of Object.values(OMNI_CONFIGS)) await rm(join(f.layout.omniDefaults, name));
+    await assert.rejects(prepareState(f.layout), error => error.code === 'ENOENT' && /neither/.test(error.message) && error.message.includes(f.layout.omniDefaults));
+  } finally { await rm(f.root, {recursive: true, force: true}); }
+});
+
+test("a list an earlier Runtime left in app/defaults does not win over the pack's when it names another OmniVoice model, or cannot be read", async () => {
+  // Nothing deletes an old version's files: a Runtime that ships no lists (or other ones) leaves the previous Runtime's in app/defaults. With a
+  // pack for a newer OmniVoice model, that list would make the voice worker refuse the whole list ("Expected the pinned base OmniVoice model").
+  const f = await fakeInstall();
+  const put = async (directory, name, value) => { await mkdir(directory, {recursive: true}); await writeFile(join(directory, name), typeof value === 'string' ? value : JSON.stringify(value)); };
+  const live = async name => JSON.parse(await readFile(join(f.layout.state, name), 'utf8'));
+  const OLD = 'c5fdb5ccb189668d56333f77ba2629f4cd7535f4', NEW = '0123456789abcdef0123456789abcdef01234567';
+  const pack = model => writeFile(join(f.layout.omni, 'omni-pack.json'), JSON.stringify({package: 'omni', version: '0.3', model}));
+  try {
+    await put(join(f.layout.omni, 'python'), 'python.exe', {});
+    for (const name of Object.values(OMNI_CONFIGS)) {
+      await put(f.layout.defaults, name, {from: 'old runtime', revision: OLD});
+      await put(f.layout.omniDefaults, name, {from: 'new pack', revision: NEW});
+    }
+    // A pack for another model: its own list, which names that model, is used.
+    await pack(`k2-fsa/OmniVoice@${NEW}`);
+    assert.equal((await prepareState(f.layout)).omni, true);
+    for (const name of Object.values(OMNI_CONFIGS)) assert.deepEqual(await live(name), {from: 'new pack', revision: NEW});
+    // The same model (every 0.2.x pack and Runtime): the Runtime's list wins, as designed.
+    await pack(`k2-fsa/OmniVoice@${OLD}`);
+    await prepareState(f.layout);
+    for (const name of Object.values(OMNI_CONFIGS)) assert.deepEqual(await live(name), {from: 'old runtime', revision: OLD});
+    // A new Runtime's list for the new model wins again over the pack's.
+    for (const name of Object.values(OMNI_CONFIGS)) await put(f.layout.defaults, name, {from: 'new runtime', revision: NEW});
+    await pack(`k2-fsa/OmniVoice@${NEW}`);
+    await prepareState(f.layout);
+    for (const name of Object.values(OMNI_CONFIGS)) assert.deepEqual(await live(name), {from: 'new runtime', revision: NEW});
+    // A pack marker that names no model (or is not JSON): the Runtime's list, as before.
+    for (const name of Object.values(OMNI_CONFIGS)) await put(f.layout.defaults, name, {from: 'old runtime', revision: OLD});
+    for (const marker of ['{}', 'not json']) {
+      await writeFile(join(f.layout.omni, 'omni-pack.json'), marker);
+      await prepareState(f.layout);
+      for (const name of Object.values(OMNI_CONFIGS)) assert.deepEqual(await live(name), {from: 'old runtime', revision: OLD}, marker);
+    }
+    // Neither names the pack's model: the Runtime's, as before (the worker reports it).
+    await pack(`k2-fsa/OmniVoice@${'f'.repeat(40)}`);
+    await prepareState(f.layout);
+    assert.deepEqual(await live(OMNI_CONFIGS.short), {from: 'old runtime', revision: OLD});
+    // A damaged Runtime list (a cut-off write) does not stop the service start: the pack's list is used. A byte-order mark is read through.
+    await pack(`k2-fsa/OmniVoice@${NEW}`);
+    for (const name of Object.values(OMNI_CONFIGS)) await put(f.layout.defaults, name, '{"from": "new runtime", "revis');
+    await prepareState(f.layout);
+    for (const name of Object.values(OMNI_CONFIGS)) assert.deepEqual(await live(name), {from: 'new pack', revision: NEW});
+    for (const name of Object.values(OMNI_CONFIGS)) await put(f.layout.defaults, name, '\uFEFF' + JSON.stringify({from: 'bom runtime', revision: NEW}));
+    await prepareState(f.layout);
+    for (const name of Object.values(OMNI_CONFIGS)) assert.deepEqual(await live(name), {from: 'bom runtime', revision: NEW});
   } finally { await rm(f.root, {recursive: true, force: true}); }
 });
 
@@ -711,9 +791,9 @@ test('the README and the release notes send players to Hugging Face for every op
   assert.equal(readme.slice(0, readme.indexOf('# For developers')).split('Convai paid tier').length - 1, 1, 'the paid Convai tier appears in one spot');
   assert.doesNotMatch(player, /\b(?:api[- ]?key|key|token|secret|credential)s?\b|\brecommended\b|inworld/i);
   // The Mature help text in the settings page names the Hugging Face page, in every language.
-  const mcm = await readFile(resolve(project, 'mod/mcm.lua'), 'utf8');
-  assert.match(mcm, /Pack: not installed \(optional, on this mod’s Hugging Face page\)\./);
-  assert.doesNotMatch(mcm, /GitHub page/);
+  const page = await readFile(resolve(project, 'mod/manager-ui.lua'), 'utf8');
+  assert.match(page, /Pack: not installed \(optional, on this mod’s Hugging Face page\)\./);
+  assert.doesNotMatch(page, /GitHub page/);
   const key = 'Pack: not installed (optional, on this mod’s Hugging Face page).';
   for (const name of (await readdir(resolve(project, 'mod/locales'))).filter(file => file.endsWith('.lua'))) {
     const lua = await readFile(resolve(project, 'mod/locales', name), 'utf8');
@@ -766,7 +846,8 @@ test('the build pre-encodes the Mistral voice references with the bridge code an
   assert.match(builder, /voxtral-voice\.mjs/); assert.match(builder, /voxtral-reference\.mjs/);
   assert(builder.includes('voice.build(name)'), 'the references are made by the call a conversation makes');
   assert(builder.includes('${plugin}/voices/prepared'));
-  // Runtime holds the Pocket clips' slots; the OmniVoice pack the slots whose clip differs.
+  assert(builder.includes('${plugin}/${RUNTIME_PREPARED_FOLDER}'));
+  // Runtime holds the Pocket clips' slots (in its own folder, voices/prepared-runtime); the OmniVoice pack the slots whose clip differs (voices/prepared).
   assert.equal(builder.split('await voxtralCache(').length - 1, 3);
   assert.match(builder, /was not compressed/);
   const workflow = await readFile(resolve(project, '.github/workflows/release.yml'), 'utf8');

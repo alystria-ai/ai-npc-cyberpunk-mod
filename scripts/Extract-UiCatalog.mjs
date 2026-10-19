@@ -9,12 +9,12 @@ import path from 'node:path';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const files = [
-  'mod/mcm.lua', 'mod/manager.lua', 'mod/manager-party.lua', 'mod/init.lua', 'mod/auto-connect.lua',
+  'mod/manager-ui.lua', 'mod/nsui.lua', 'mod/manager.lua', 'mod/manager-party.lua', 'mod/init.lua', 'mod/auto-connect.lua',
   'mod/companions.lua', 'mod/companion-vehicles.lua', 'mod/companion-vehicle-native.lua', 'mod/companion-chauffeur.lua',
   'mod/companion-chauffeur-native.lua', 'mod/gameplay-actions.lua', 'mod/companion-adoption.lua',
   'mod/companion-clearance.lua', 'mod/companion-placement.lua',
   'mod/phone-chat.lua', 'mod/phone-chat-style.lua', 'mod/phone-input.lua', 'mod/holocall.lua',
-  'mod/composer-input.lua', 'mod/microphone.lua', 'mod/service-status.lua', 'mod/support-report.lua', 'mod/setup-check.lua', 'mod/character-editor.lua', 'mod/convai-paid-tier.lua',
+  'mod/composer-input.lua', 'mod/microphone.lua', 'mod/service-status.lua', 'mod/support-report.lua', 'mod/setup-check.lua', 'mod/character-editor.lua', 'mod/convai-paid-tier.lua', 'mod/custom-provider.lua',
   'r6/scripts/CyberpunkConvai/Composer.reds',
   'r6/scripts/CyberpunkConvai/PhoneContacts.reds',
   'r6/scripts/CyberpunkConvai/PhoneChat.reds',
@@ -124,40 +124,38 @@ function staticText(tokens) {
 // These allowlists cover alternative labels and stored feedback whose final
 // sink is indirect. Each item must still exist as an exact source literal.
 const reviewed = {
-  'mcm.navigation': [
+  'page.navigation': [
     'Companion Manager', 'Characters', 'Current party', 'Model browser', 'Settings', 'Selected', 'Open',
     'Your companions, character models and conversation settings.',
-    'Invite characters, manage your group, browse game models and configure conversations.',
-  ],
-  'mcm.voice-status': [
+    ],
+  'page.voice-status': [
     'Convai voice', 'On', 'Off', 'Ready', 'Loading', 'Preparing voices', 'Preparing a reply',
     'Unavailable', 'Waiting for voice service', 'Not configured', 'Stopped',
     'Releasing local voice memory', 'Convai voices · Local model unloaded',
     'Voxtral cloud voice · Local model unloaded', 'Inworld cloud voice · Local model unloaded',
-    'Changing after the current reply', 'Ready · Unsaved selection',
-    'OmniVoice · Balanced', 'OmniVoice · Quality', 'OmniVoice · High Quality', 'OmniVoice · Ultra Quality',
+    'Changing after the current reply', 'OmniVoice · Balanced', 'OmniVoice · Quality', 'OmniVoice · High Quality', 'OmniVoice · Ultra Quality',
   ],
-  'mcm.memory': [
+  'page.memory': [
     'Choose a character', 'Unavailable', 'Memories can be managed here.',
     'Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.',
     'Choose a character before clearing their memories about you.',
     'Your player identity stays the same. Matching Phone Chat messages and drafts are also cleared.',
   ],
-  'mcm.relationships': [
+  'page.relationships': [
     'Auto', 'Romantic', 'Casual', 'Ordinary',
     'Auto: follows the completed encounter in this save.\n\nCasual: speaks with that familiarity.\n\nOrdinary: keeps her usual manner.\n\nIt does not imply an ongoing relationship.',
     'Auto: follows the relationship in this save.\n\nRomantic: speaks to V as a partner.\n\nOrdinary: keeps their usual manner.\n\nOnly changes how they talk, never your game choices.',
   ],
-  'mcm.party': [
+  'page.party': [
     'Invite', 'Profile only', 'Dismiss', 'Cancel invitation',
     'Remove only this copy from your group.',
   ],
-  'mcm.models': [
+  'page.models': [
     'Reading installed models…',
     'No conversation profile. This model joins as a follower without AI conversations.',
     'Some game models have special rigs or roles and may not behave as ordinary companions.',
   ],
-  'mcm.validation': [
+  'page.validation': [
     'Reopen the manager; that action is no longer available.', 'Choose one of the listed subtitle displays.',
     'Choose one of the listed companion voices.', 'Requires the optional OmniVoice pack (GPU)', 'Choose 16 or 32 voice steps.',
     'Choose a short or a long voice reference.', 'Choose an eye contact option.', 'That setting is read-only.',
@@ -254,6 +252,11 @@ const reviewed = {
     'Mistral did not accept your key. Check it in Settings > Conversation provider.',
     'Mistral’s free limit is reached for now. Try again in a moment.',
     'The Mistral model is unavailable right now. Try again in a minute.',
+    'The custom provider did not accept your key. Check it in Settings > Conversation provider.',
+    'The custom provider says your account is out of credits. Add credits there, then try again.',
+    'The custom provider does not know that model ID. Check it in Settings.',
+    'The custom provider is rate limiting you. Try again in a moment.',
+    'The custom provider did not answer. Check its address in Settings, or try again.',
     'Write a message...  /  Enter to send  /  Esc to stop typing',
     'Press Enter to write  /  Esc to stop typing',
   ],
@@ -285,22 +288,20 @@ const reviewed = {
 // Tokens are values only: names, numbers, state labels or sanitized errors.
 // No arbitrary runtime dialogue, biography or provider response is eligible.
 const templates = [
-  ['mcm.voice-status', 'Voice: {voice}', 'mod/mcm.lua', '\n\nVoice: '],
-  ['mcm.voice-status', 'Conversation: {state}', 'mod/mcm.lua', '\nConversation: '],
-  ['mcm.voice-status', '{status} · After current reply', 'mod/mcm.lua', ' · After current reply'],
-  ['mcm.memory', '{count} · Last reported', 'mod/mcm.lua', ' · Last reported'],
-  ['mcm.memory', 'Clear memories about you for all {count} characters you have talked to?', 'mod/mcm.lua', 'Clear memories about you for all ', ' characters you have talked to?'],
-  ['mcm.memory', 'Clear {name}’s memories about conversations with you?', 'mod/mcm.lua', 'Clear ', '’s memories about conversations with you?'],
-  ['mcm.memory', 'Clear {name}’s memories about conversations with you. Review an inline confirmation first.', 'mod/mcm.lua', '’s memories about conversations with you. Review an inline confirmation first.'],
-  ['mcm.memory', 'Forget ({count} characters)', 'mod/mcm.lua', 'Forget (', ' characters)'],
-  ['mcm.navigation', 'Browse {section}. {query}', 'mod/mcm.lua', 'Browse '],
-  ['mcm.party', 'Add copy ({count})', 'mod/mcm.lua', 'Add copy ('],
-  ['mcm.party', '{name} · invited copy', 'mod/mcm.lua', 'invited copy'],
-  ['mcm.models', '{count} matching models', 'mod/mcm.lua', ' matching models'],
-  ['mcm.models', 'Page {page} / {pages}', 'mod/mcm.lua', 'Page ', ' / '],
-  ['mcm.models', 'Search by character name or model record using Search settings. {query}', 'mod/mcm.lua', 'Search by character name or model record using Search settings. '],
-  ['mcm.memory', 'Search by character name using Search settings. {query}\nThe character can be outside your current party.', 'mod/mcm.lua', 'Search by character name using Search settings. ', '\nThe character can be outside your current party.'],
-  ['mcm.memory', 'Select {name} for memory controls. This does not invite them or change their conversation settings.', 'mod/mcm.lua', 'Select ', ' for memory controls. This does not invite them or change their conversation settings.'],
+  ['page.voice-status', 'Voice: {voice}', 'mod/manager-ui.lua', '\n\nVoice: '],
+  ['page.voice-status', 'Conversation: {state}', 'mod/manager-ui.lua', '\nConversation: '],
+  ['page.voice-status', '{status} · After current reply', 'mod/manager-ui.lua', ' · After current reply'],
+  ['page.memory', '{count} · Last reported', 'mod/manager-ui.lua', ' · Last reported'],
+  ['page.memory', 'Clear memories about you for all {count} characters you have talked to?', 'mod/manager-ui.lua', 'Clear memories about you for all ', ' characters you have talked to?'],
+  ['page.memory', 'Clear {name}’s memories about conversations with you?', 'mod/manager-ui.lua', 'Clear ', '’s memories about conversations with you?'],
+  ['page.memory', 'Clear {name}’s memories about conversations with you. Review an inline confirmation first.', 'mod/manager-ui.lua', '’s memories about conversations with you. Review an inline confirmation first.'],
+  ['page.memory', 'Forget ({count} characters)', 'mod/manager-ui.lua', 'Forget (', ' characters)'],
+  ['page.navigation', 'Browse {section}. {query}', 'mod/manager-ui.lua', 'Browse '],
+  ['page.party', 'Add copy ({count})', 'mod/manager-ui.lua', 'Add copy ('],
+  ['page.party', '{name} · invited copy', 'mod/manager-ui.lua', 'invited copy'],
+  ['page.models', '{count} matching models', 'mod/manager-ui.lua', ' matching models'],
+  ['page.models', 'Page {page} / {pages}', 'mod/manager-ui.lua', 'Page ', ' / '],
+  ['page.memory', 'Select {name} for memory controls. This does not invite them or change their conversation settings.', 'mod/manager-ui.lua', 'Select ', ' for memory controls. This does not invite them or change their conversation settings.'],
   ['memory.feedback', 'Clearing memories for {target}…', 'mod/manager.lua', 'Clearing memories for '],
   ['memory.feedback', 'Waiting for the result of clearing memories for {target}. Reopen this page after the memory service reconnects.', 'mod/manager.lua', 'Waiting for the result of clearing memories for ', '. Reopen this page after the memory service reconnects.'],
   ['memory.feedback', 'Memory clear confirmed for {target}.', 'mod/manager.lua', 'Memory clear confirmed for '],
@@ -359,9 +360,9 @@ const nativeHandling = [
   { surface: 'phone.contacts', files: ['r6/scripts/CyberpunkConvai/PhoneContacts.reds'],
     note: 'Immediate queued/unavailable feedback is created in redscript before Lua replies. It needs the same dictionary through a native bridge or a scoped Lua hook. J/L key textures and button codes are not translation strings.' },
   { surface: 'manager.legacy', files: ['r6/scripts/CyberpunkConvai/Manager.reds', 'mod/manager.lua'],
-    note: 'Legacy native manager strings are inventoried for completeness; MCM is the active manager. Do not expose or revive this retired screen just to prove localization. Its F5 footer is historical.' },
-  { surface: 'mcm.framework', files: ['mod/mcm.lua'],
-    note: 'MCM owns Apply/Revert, search placeholders and framework status such as Completed. Provider-owned schema strings can be localized here; framework strings require MCM localization. Do not match a translated Completed prefix to decide success.' },
+    note: 'Legacy native manager strings are inventoried for completeness; the Native Settings UI tab is the active manager. Do not expose or revive this retired screen just to prove localization. Its F5 footer is historical.' },
+  { surface: 'nsui.host', files: ['mod/manager-ui.lua', 'mod/nsui.lua'],
+    note: 'The Companion Manager is a tab of Native Settings UI. Page strings are localized here and set on its widgets; its own strings (the Mods menu entry, Restore defaults) belong to the game and that mod. A change is applied as it is made, so no framework text decides success.' },
   { surface: 'characters', files: ['mod/manager.lua', 'mod/init.lua'],
     note: 'Catalogue names, summaries, model records, AI replies, provider errors, and game-localized character names are not blindly translated. Translate a curated UI error at its origin; preserve arbitrary inserted content as data.' },
 ];
@@ -396,10 +397,11 @@ function references(text, onlyFile, trim = false) {
 
 for (const [file, tokens] of tokenByFile) {
   const native = file.endsWith('.reds');
-  const mcm = file === 'mod/mcm.lua';
-  // keyRow(name, pasteHelp, removeHelp, ...) builds one API key row (mod/mcm.lua): its name and its two helps are source strings.
+  const page = file === 'mod/manager-ui.lua';
+  // keyRow(name, pasteHelp, removeHelp, ...) builds one API key row (mod/manager-ui.lua): its name and its two helps are source strings.
   // withInworld(row, extra) adds a paragraph about the Inworld voice to a help while developer mode is on: `extra` is a source string.
-  const calls = mcm ? { readonly: [1, 2, 3], setting: [1, 5], action: [1, 2, 3], category: [1, 3], keyRow: [0, 1, 2], withInworld: [1] } : {};
+  // refused(text) turns a change down in M.apply: its text is a source string too.
+  const calls = page ? { readonly: [1, 2, 3], setting: [1, 5], action: [1, 2, 3], category: [1, 3], keyRow: [0, 1, 2], withInworld: [1], refused: [0] } : {};
   Object.assign(calls, { ConvaiPhoneFeedback: [0], SetDefaultText: [0] });
   if (file === 'mod/manager.lua') Object.assign(calls, { say: [0], savedFeedback: [0] });
   if (native) Object.assign(calls, {
@@ -422,17 +424,17 @@ for (const [file, tokens] of tokenByFile) {
     const positions = noticeSend ? [2] : calls[token.value];
     if (positions && tokens[index + 1]?.value === '(') {
       const args = argumentsAt(tokens, index + 1);
-      const context = mcm ? `mcm.${token.value}` : file === 'mod/manager.lua' ? 'manager.feedback'
+      const context = page ? `page.${token.value}` : file === 'mod/manager.lua' ? 'manager.feedback'
         : file.includes('Manager.reds') ? 'legacy.manager.native' : file.includes('Phone') || file.includes('phone') ? 'phone.native' : 'world.conversation';
       for (const position of positions) {
         const text = staticText(args[position]);
         if (text !== null) add(text, context, [`${file}:${args[position][0].line}`]);
       }
-      if (mcm && token.value === 'setting') {
+      if (page && token.value === 'setting') {
         const options = args[6];
         if (options?.[0]?.value === '{' && options.at(-1)?.value === '}'
           && options.slice(1, -1).every(item => item.kind === 'string' || item.value === ',')) {
-          for (const option of options.filter(item => item.kind === 'string')) add(option.value, 'mcm.options', [`${file}:${option.line}`]);
+          for (const option of options.filter(item => item.kind === 'string')) add(option.value, 'page.options', [`${file}:${option.line}`]);
         }
       }
     }

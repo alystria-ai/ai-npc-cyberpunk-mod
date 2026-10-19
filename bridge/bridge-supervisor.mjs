@@ -9,7 +9,7 @@
 // It never kills a process it did not start. The bridge keeps its existing
 // protocol: the ready line on stdout and PID-addressed bridge-control.json.
 import {spawn as spawnProcess, execFile} from 'node:child_process';
-import {appendFileSync, closeSync, constants, fstatSync, ftruncateSync, openSync, readSync,
+import {appendFileSync, closeSync, constants, fstatSync, ftruncateSync, openSync, readFileSync, readSync,
   renameSync, statSync, writeSync} from 'node:fs';
 import {mkdir, readFile, stat, writeFile} from 'node:fs/promises';
 import {randomUUID} from 'node:crypto';
@@ -29,7 +29,7 @@ export const DEFAULT_TIMINGS = Object.freeze({
   pollMs: 250, gamePollMs: 1000, heartbeatMs: 5000, readyTimeoutMs: 180_000,
   shutdownGraceMs: 45_000, shutdownRepeatMs: 2000, killWaitMs: 10_000,
   crashWindowMs: 600_000, maxCrashes: 5, backoffMs: [2000, 5000, 10_000, 20_000, 30_000],
-  crashCooldownMs: 180_000, adoptFreshMs: 15_000, adoptCheckMs: 5000, setupRetryMs: 10_000, lockRetryMs: 1000,
+  crashCooldownMs: 180_000, adoptFreshMs: 15_000, adoptCheckMs: 5000, setupRetryMs: 10_000, lockRetryMs: 1000, lockStatusAfterMs: 5000,
   buildTimeoutMs: 180_000, logLimitBytes: 1_000_000,
 });
 
@@ -155,8 +155,12 @@ export class BridgeSupervisor {
     }
   }
 
+  // The lock is released by the kernel when its holder exits, so waiting for it ends when the previous session's supervisor is gone. The
+  // wait used to be silent, and a start that waited for a holder that never let go left the game with the launcher's "starting" for good.
+  // A wait that lasts past lockStatusAfterMs (an earlier session stopping its bridge takes a few seconds, not longer) publishes a status
+  // of its own, kept fresh by the heartbeat, so the game sees a service that is alive and what it is waiting for.
   async acquireLock() {
-    let announced = false;
+    let announced = false, waitingSince = null, published = false;
     for (;;) {
       try {
         this.lockFd = openSync(this.paths.lock, constants.O_RDWR | constants.O_CREAT | EXCLUSIVE);
@@ -164,10 +168,17 @@ export class BridgeSupervisor {
         return true;
       } catch (error) {
         if (!['EBUSY', 'EPERM', 'EACCES'].includes(error.code)) throw error;
-        if (this.gameGone()) return false;
+        if (this.gameGone()) { clearInterval(this.heartbeat); this.heartbeat = null; return false; }
         if (!announced) {
-          announced = true;
+          announced = true; waitingSince = this.now();
           this.log('Another supervisor still owns the bridge (for example, still stopping the previous game session). Waiting for it.');
+        }
+        if (!published && this.now() - waitingSince >= this.timings.lockStatusAfterMs) {
+          published = true;
+          this.log('Still waiting for the earlier supervisor to let go of the bridge.');
+          await mkdir(dirname(this.paths.status), {recursive: true}).catch(() => {});
+          await this.setStatus('starting', 'waiting-for-previous-service');
+          this.startHeartbeat();
         }
         await this.sleep(this.timings.lockRetryMs);
       }
@@ -458,9 +469,10 @@ export class BridgeSupervisor {
     await this.setStatus('stopped', reason);
   }
 
-  async setStatus(state, code) {
-    if (state !== this.status?.state || code !== this.status?.code) {
-      this.status = {state, code, since: state === this.status?.state ? this.status.since : this.now()};
+  // `reason` is an optional short sentence for the game to show beside a failure's code (never a path or a secret).
+  async setStatus(state, code, reason) {
+    if (state !== this.status?.state || code !== this.status?.code || reason !== this.status?.reason) {
+      this.status = {state, code, since: state === this.status?.state ? this.status.since : this.now(), ...(reason ? {reason} : {})};
     }
     return this.writeStatus();
   }
@@ -471,8 +483,9 @@ export class BridgeSupervisor {
     if (!this.status) return Promise.resolve();
     this.lastStatusWrite = this.now();
     this.statusWriting = (this.statusWriting || Promise.resolve()).then(() => {
+      if (this.nextSessionOwnsStatus()) return;
       const value = {version: 1, state: this.status.state, code: this.status.code, since: this.status.since,
-        updated: this.now(), supervisorPid: process.pid, bridgePid: this.childPid ?? this.adoptedPid ?? null,
+        ...(this.status.reason ? {reason: this.status.reason} : {}), updated: this.now(), supervisorPid: process.pid, bridgePid: this.childPid ?? this.adoptedPid ?? null,
         adopted: !!this.adoptedPid, restarts: this.restarts, gamePid: this.gamePid ?? null,
         // Where the service logs are, for the in-game Help page when the bridge never started.
         gameRoot: this.gameRoot, stateDirectory: this.stateDirectory};
@@ -482,9 +495,25 @@ export class BridgeSupervisor {
     return this.statusWriting;
   }
 
+  // After its game has exited this supervisor still reports its own stop ('stopping' while the bridge drains, then 'stopped'), but the
+  // player may have started the game again meanwhile: the next session's launcher, start script and supervisor write the same file, each
+  // with its own game's PID. Their status (a failure above all, which the game would otherwise never see) is not written over.
+  nextSessionOwnsStatus() {
+    if (!this.gamePid || this.exitReason !== 'game-exited') return false;
+    let other = null;
+    try { other = JSON.parse(readFileSync(this.paths.status, 'utf8'))?.gamePid; } catch { return false; }
+    if (!Number.isSafeInteger(other) || other <= 0 || other === this.gamePid) return false;
+    if (!this.yieldedStatus) {
+      this.yieldedStatus = true;
+      this.log(`The service status now belongs to the next game session (game PID ${other}); this supervisor no longer writes it.`);
+    }
+    return true;
+  }
+
   // The heartbeat runs on its own timer so the status stays current during a
   // long build or a bridge that is slow to stop.
   startHeartbeat() {
+    if (this.heartbeat) return;
     this.heartbeat = setInterval(() => {
       if (this.status && this.now() - this.lastStatusWrite >= this.timings.heartbeatMs) void this.writeStatus();
     }, Math.min(1000, this.timings.heartbeatMs));

@@ -242,6 +242,10 @@ function startError(code, message) {
 //   proc.apiKey / proc.baseUrl / proc.running / proc.pid / proc.tail()
 //   proc.on('exit', ({code, signal, expected}) => ...)
 //   await proc.stop();  proc.killSync();
+//   proc.lower()   -> sets the child's priority class below normal (true when it is, or was); with `lowerAfter: 'ready'` the child runs at normal priority until this is called
+// `lowerPriority` (default true) lowers the child below normal so the game keeps its CPU: at once (`lowerAfter: 'spawn'`, the default: the embedder and any
+// CPU process) or when the owner calls lower() (`lowerAfter: 'ready'`: the chat model, which loads at normal priority because a load under a game that keeps every
+// core busy starved for minutes at below normal, and is lowered once it is loaded and warm, because generation runs on the graphics card).
 // `command` + `argsPrefix` let tests run `node fake-llama-server.mjs ...` instead of an .exe.
 export class LlamaProcess extends EventEmitter {
   #key = null; #keyDir = null; #child = null; #port = 0; #startPromise = null;
@@ -249,12 +253,12 @@ export class LlamaProcess extends EventEmitter {
   #exitPromise; #resolveExit; #settleWait = null;
 
   constructor({command, argsPrefix = [], buildArgs, spawnImpl = spawn, fetchImpl = fetch, startupMs = LOCAL_LLM_LIMITS.startupMs,
-      tmpDir = tmpdir(), setTimer = setTimeout, clearTimer = clearTimeout, log = () => {}, lowerPriority = true, pollMs = 200,
+      tmpDir = tmpdir(), setTimer = setTimeout, clearTimer = clearTimeout, log = () => {}, lowerPriority = true, lowerAfter = 'spawn', setPriorityImpl = setPriority, pollMs = 200,
       healthTimeoutMs = 2000, env = {}, tailChars = 6000, findPort = freePort, label = 'llama-server'} = {}) {
     super();
     if (!command || typeof buildArgs !== 'function') throw TypeError('command and buildArgs are required');
     Object.assign(this, {command, argsPrefix, buildArgs, spawnImpl, fetchImpl, startupMs, tmpDir, setTimer, clearTimer, log,
-      lowerPriority, pollMs, healthTimeoutMs, env, tailChars, findPort, label});
+      lowerPriority, lowerAfter, setPriorityImpl, pollMs, healthTimeoutMs, env, tailChars, findPort, label});
     this.#exitPromise = new Promise(resolveExit => { this.#resolveExit = resolveExit; });
   }
 
@@ -265,6 +269,13 @@ export class LlamaProcess extends EventEmitter {
   get alive() { return Boolean(this.#child) && !this.#exited; }
   get running() { return this.alive && this.#healthy; }
   get exited() { return this.#exited; }
+
+  // Lowers the child below normal priority (best effort: a refusal leaves it at normal). True when it is lowered.
+  lower() {
+    const pid = this.#child?.pid;
+    if (!this.lowerPriority || !pid || this.#exited) return false;
+    try { this.setPriorityImpl(pid, osConstants.priority.PRIORITY_BELOW_NORMAL); return true; } catch { return false; }
+  }
 
   // The last few KB of the child's output, for diagnostics only. The key is redacted.
   tail() { return this.#redact(this.#tail); }
@@ -288,7 +299,7 @@ export class LlamaProcess extends EventEmitter {
       throw error?.code === 'stopped' ? error : startError('spawn-failed', 'could not be started (' + (error?.code || error?.message || 'error') + ')');
     }
     this.#child = child;
-    try { if (this.lowerPriority && child.pid) setPriority(child.pid, osConstants.priority.PRIORITY_BELOW_NORMAL); } catch { /* best effort */ }
+    if (this.lowerAfter === 'spawn') this.lower();
     for (const stream of [child.stdout, child.stderr]) {
       stream?.setEncoding?.('utf8');
       stream?.on('data', text => this.#append(text));   // always drained, or a chatty child blocks
@@ -711,12 +722,12 @@ export class LocalLlmServer extends EventEmitter {
 
     this.#loaded = {id: tier.id, name: tier.loadedName ?? tier.name, file: basename(String(tier.file)), family: modelFamily({family: tier.family, name: tier.name, file: tier.file}),
       tier: tierKey, sizeMiB: Math.round(Number(choice.sizeMiB) || 0), device: {id: device.id, name: device.name, freeMiB: Number.isFinite(freeMiB) ? Math.round(freeMiB) : null},
-      contextSize, cacheRamMiB, priority: this.processOptions?.lowerPriority === false ? 'normal' : 'below-normal', ram: {freeMiB: Math.round(Number(this.freeMemMiB())) || null, totalMiB: Math.round(totalmem() / 1048576)}, offload: choice.offload === true, custom: tier.custom === true, templateFlag: tier.chatTemplate ? String(tier.chatTemplate) : null,
+      contextSize, cacheRamMiB, priority: 'normal', ram: {freeMiB: Math.round(Number(this.freeMemMiB())) || null, totalMiB: Math.round(totalmem() / 1048576)}, offload: choice.offload === true, custom: tier.custom === true, templateFlag: tier.chatTemplate ? String(tier.chatTemplate) : null,
       template: null, bos: null, eos: null, build: null, ftype: null, loadMs: null, warmMs: null, firstTime: this.#firstTime, readyAt: null};
     this.#turns.sinceStart = 0;
     const began = this.now();
     const proc = new LlamaProcess({command: this.command, argsPrefix: this.argsPrefix, spawnImpl: this.spawnImpl, fetchImpl: this.fetchImpl,
-      startupMs: this.startupMs, log: this.log, label: 'llama-server',
+      startupMs: this.startupMs, log: this.log, label: 'llama-server', lowerAfter: 'ready',
       buildArgs: ({port, keyFile}) => buildServerArgs({model: tier.file, port, keyFile, device: device.id, contextSize, cacheRamMiB, chatTemplate: tier.chatTemplate, offload: choice.offload === true}),
       ...this.processOptions});
     this.#proc = proc;
@@ -756,6 +767,9 @@ export class LocalLlmServer extends EventEmitter {
       if (tier.custom) { this.#modelFailed(tier, 'stopped while warming up'); return this.#startOnce(); }
       throw new LocalAiUnavailable('crashed');
     }
+    // Loaded and warm (the shader compile of a first start and the first prompts are CPU work too): now the game gets the CPU back, and generation, which
+    // runs on the graphics card, keeps its speed at the lower priority.
+    this.#loaded.priority = proc.lower() ? 'below-normal' : 'normal';
     this.#loaded.readyAt = this.now();
     this.#setState('ready');
     this.#arm();
@@ -875,7 +889,7 @@ export class LocalLlmServer extends EventEmitter {
     return [`file ${loaded.file ?? 'a server you run'}`, `name "${loaded.name}"`, `id ${loaded.id}`, `family ${loaded.family ?? 'unknown'}`,
       loaded.sizeMiB ? `${loaded.sizeMiB} MiB` : null, `context ${loaded.contextSize}`, loaded.offload ? 'part on the CPU' : null,
       loaded.device ? `device ${loaded.device.id}${loaded.device.freeMiB === null ? '' : ' (' + loaded.device.freeMiB + ' MiB free before)'}` : null,
-      loaded.priority === 'below-normal' ? 'process priority below normal (the game keeps the CPU)' : null, loaded.ram?.freeMiB ? `system memory ${loaded.ram.freeMiB} of ${loaded.ram.totalMiB} MiB free` : null, `template ${template}`, loaded.template ? `"${loaded.template.head}"` : null, loaded.eos ? `eos ${loaded.eos}` : null, loaded.build ? `build ${loaded.build}` : null,
+      loaded.priority === 'below-normal' ? 'process priority normal while it loaded, below normal now (the game keeps the CPU)' : null, loaded.ram?.freeMiB ? `system memory ${loaded.ram.freeMiB} of ${loaded.ram.totalMiB} MiB free` : null, `template ${template}`, loaded.template ? `"${loaded.template.head}"` : null, loaded.eos ? `eos ${loaded.eos}` : null, loaded.build ? `build ${loaded.build}` : null,
       loaded.loadMs === null ? null : `loaded in ${(loaded.loadMs / 1000).toFixed(1)} s`, loaded.warmMs === null ? null : `warm-up ${(loaded.warmMs / 1000).toFixed(1)} s${loaded.firstTime ? ' (first time)' : ''}`]
       .filter(Boolean).join(', ');
   }

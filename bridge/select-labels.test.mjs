@@ -1,6 +1,6 @@
 // The value of a select row in Settings sits between the game's two arrows in a fixed-width box; a longer text runs over the arrows.
 // This test keeps every option text of every select (English and the 15 translations), and the names of the built-in models, within
-// the budget of mod/mcm.lua (OPTION_BUDGET, in the units of optionUnits()). The budget is the box minus the two key boxes ("A" at the
+// the budget of mod/manager-ui.lua (OPTION_BUDGET, in the units of optionUnits()). The budget is the box minus the two key boxes ("A" at the
 // left arrow, "D" at the right one) that the game draws over a FOCUSED selector row, so a label that passes here fits focused as well
 // as unfocused. The Lua side is checked in bridge/manager.test.mjs (the live menus in the worst case, the truncation of a custom
 // model's name); here the units are re-derived in JavaScript and the two are compared on sample strings there.
@@ -14,18 +14,18 @@ const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const read = file => readFileSync(new URL(file, import.meta.url), 'utf8');
 const catalog = JSON.parse(read('../localization/en.json'));
 const releaseConfig = JSON.parse(read('../packaging/release.config.json'));
-const mcmSource = read('../mod/mcm.lua');
+const pageSource = read('../mod/manager-ui.lua');
 const codes = ['zh-cn', 'zh-tw', 'es', 'pt-br', 'fr', 'de', 'it', 'pl', 'cs', 'hu', 'tr', 'ru', 'uk', 'ja', 'ko'];
 
-const [, boxUnits, keyHintUnits] = /local OPTION_BOX_UNITS, KEY_HINT_UNITS = (\d+), (\d+)/.exec(mcmSource).map(Number);
-assert(/local OPTION_BUDGET = OPTION_BOX_UNITS - 2 \* KEY_HINT_UNITS/.test(mcmSource), 'the budget is the box minus two key boxes');
+const [, boxUnits, keyHintUnits] = /local OPTION_BOX_UNITS, KEY_HINT_UNITS = (\d+), (\d+)/.exec(pageSource).map(Number);
+assert(/local OPTION_BUDGET = OPTION_BOX_UNITS - 2 \* KEY_HINT_UNITS/.test(pageSource), 'the budget is the box minus two key boxes');
 const budget = boxUnits - 2 * keyHintUnits;
 
-// Every English text that reaches a select row through ui.t, as it is built in mod/mcm.lua and mod/manager.lua.
+// Every English text that reaches a select row through ui.t, as it is built in mod/manager-ui.lua and mod/manager.lua.
 const OMNI = ['OmniVoice · Balanced', 'OmniVoice · Quality', 'OmniVoice · High Quality', 'OmniVoice · Ultra Quality'];
 const STATIC_OPTIONS = [
   '10 cm higher', '10 cm lower', '5 cm higher', '5 cm lower', 'Above the speaker', 'Auto', 'Casual', 'Cinematic subtitles', 'Convai API key', 'Convai free tier',
-  'Default', 'Eyes only', 'Gentle (default)', 'Local AI', 'Mistral (free plan)', 'No model installed', 'Service not running', 'Service starting',
+  'Custom (OpenAI-compatible)', 'Default', 'Eyes only', 'Gentle (default)', 'Local AI', 'Mistral (free plan)', 'No model installed', 'Service not running', 'Service starting',
   'Off', 'Ordinary', 'Romantic', 'Strong', 'Subtle', 'Rare', 'Normal',
   'Pocket · Performance', ...OMNI, 'Convai · Cloud voice',
   'Voxtral · Mistral cloud', 'Voxtral · needs Mistral key', 'Inworld · Cloud voice', 'Inworld · needs key',
@@ -51,7 +51,7 @@ const labelsIn = translate => STATIC_OPTIONS.map(text => ({text, shown: translat
 test('the English option texts are the strings of the catalog, and every option string of the catalog is checked here', () => {
   for (const text of STATIC_OPTIONS) assert(text in catalog.strings, `not in the catalog: ${text}`);
   const checked = new Set(STATIC_OPTIONS);
-  for (const text of catalog.contexts['mcm.options']) assert(checked.has(text), `an option text of the catalog is not checked here: ${text}`);
+  for (const text of catalog.contexts['page.options']) assert(checked.has(text), `an option text of the catalog is not checked here: ${text}`);
 });
 
 test('every English select option fits the budget', () => {

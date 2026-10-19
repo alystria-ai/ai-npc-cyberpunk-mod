@@ -15,7 +15,7 @@ hooks have been seen firing in game yet**; see the check list at the end.
 | --- | --- | --- |
 | Capture adapter | `mod/game-dialogue.lua` | Hooks the game's subtitle feed and dialogue choices, keeps a bounded buffer of plain strings, returns a snapshot. |
 | Wiring | `mod/init.lua`, `mod/group-chat.lua`, `mod/microphone.lua`, `mod/phone-chat.lua` | Attach `gameDialogue` to F6 text, F7/F8 voice, group rounds and Phone Chat sends. Reset on load/death/detach. |
-| Setting | `mod/manager.lua`, `mod/mcm.lua`, 15 locales | Settings > Conversations > **Continue from game dialogue** (On by default). |
+| Setting | `mod/manager.lua`, `mod/manager-ui.lua`, 15 locales | Settings > Conversations > **Continue from game dialogue** (On by default). |
 | Validation, scoping, text | `bridge/game-dialogue.mjs` | Parses the snapshot, selects the lines this turn may use, renders the context block. |
 | Bridge wiring | `bridge/protocol.mjs`, `bridge/quest-context.mjs`, `bridge/phone-chat.mjs`, `bridge/group-lookahead.mjs` | Parse the field, add the block to the per-turn dynamic context, keep group look-ahead claims exact. |
 | Tests | `bridge/game-dialogue.test.mjs` | Bridge scoping/text, and the Lua adapter with mocked native calls. |
@@ -181,7 +181,7 @@ cleared and no turn carries the field. Label and description are in
 ## Install
 
 - CET reload: `mod/game-dialogue.lua` (new), `mod/init.lua`, `mod/group-chat.lua`,
-  `mod/microphone.lua`, `mod/phone-chat.lua`, `mod/manager.lua`, `mod/mcm.lua`,
+  `mod/microphone.lua`, `mod/phone-chat.lua`, `mod/manager.lua`, `mod/manager-ui.lua`,
   `mod/locales/*.lua`. A CET reload is needed rather than a hot-load, because the
   hooks register in `onInit`.
 - Bridge restart: `bridge/game-dialogue.mjs` (new), `bridge/protocol.mjs`,

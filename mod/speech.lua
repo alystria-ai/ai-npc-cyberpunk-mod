@@ -87,6 +87,14 @@ local function voiceEnabled(player)
     local ok, enabled = pcall(function() return player:ConvaiManagerVoice() end)
     return not ok or enabled
 end
+-- Whether this mod's scripts were compiled without Audioware (Speech.reds then has stand-ins that never start a voice). The setup check
+-- answers from the scripts' own list, read once and kept; false while that is not known, so nothing changes for older scripts.
+local function audiowareMissing(player)
+    local check = convaiSetupCheck
+    if type(check) ~= 'table' or type(check.requirement) ~= 'function' then return false end
+    local ok, present = pcall(check.requirement, 'audioware', player)
+    return ok and present == false
+end
 local function validAudio(audio)
     return type(audio) == 'table' and type(audio.slot) == 'number'
         and audio.slot >= 0 and audio.slot <= 7 and audio.slot % 1 == 0
@@ -292,7 +300,7 @@ local function beginChunk(audio, text, timeline, startSeconds)
     end
     local ok, started = pcall(function() return M.player:ConvaiSpeechStart(emitter, CName.new(audio.event)) end)
     if not ok or not started then
-        M.error = tostring(started)
+        M.error = ok and audiowareMissing(M.player) and 'Audioware is missing' or tostring(started)
         fallback('playback-failed', M.text); return false
     end
     noteHolocallVoice('audioware', emitter)
@@ -664,7 +672,10 @@ local function updateSpeech(delta)
     if beat then
         M.heartbeat = 0
         continuousAdapter()
-        if not M.continuous then M.available = player ~= nil and pcall(function() player:ConvaiSpeechPosition() end) end
+        -- Audio the game cannot play is not offered: the service reads this flag (speech-state.json) to decide whether to make it.
+        if not M.continuous then
+            M.available = player ~= nil and pcall(function() player:ConvaiSpeechPosition() end) and not audiowareMissing(player)
+        end
         publish()
     end
     if not M.requestId then return end

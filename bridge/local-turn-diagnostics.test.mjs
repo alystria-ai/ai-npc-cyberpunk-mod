@@ -12,7 +12,8 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import fengari from 'fengari';
 import {streamChat, MistralError, failureDetail, stallReason, newTrace, errorCodeFor, retryable, MIN_ATTEMPT_MS} from './mistral-client.mjs';
-import {LocalLlmServer, modelFamily, describeTemplate, describeProps, isAmdApu, isIntegratedGpu, parseDeviceList, pickDevice} from './local-llm-server.mjs';
+import {constants as osConstants} from 'node:os';
+import {LlamaProcess, LocalLlmServer, modelFamily, describeTemplate, describeProps, isAmdApu, isIntegratedGpu, parseDeviceList, pickDevice} from './local-llm-server.mjs';
 import {TextProviderHost, localRoute, describeLocalTurn, LOCAL_CHAT_LIMITS, LOCAL_TURN_BUDGET_MS, LOCAL_STOP_STRINGS, SLOW_FIRST_WORD_MS} from './text-provider-host.mjs';
 import {MistralMemory} from './mistral-memory.mjs';
 import {MistralProvider, MistralControl} from './mistral-key.mjs';
@@ -195,7 +196,7 @@ test('failureDetail: one plain sentence per way a local turn fails, nothing for 
 const DEVICES = 'Available devices:\n  Vulkan0: NVIDIA GeForce RTX 4080 Laptop GPU (11997 MiB, 11229 MiB free)\n';
 const TEMPLATE = '{#\n  Template: Google Gemma 4 Canonical Chat Template\n#}{%- for message in messages -%}<|turn>{{ message.role }}\n{{ message.content }}<turn|>\n{%- endfor -%}';
 
-function rig(t, {env = {}, names = {}, ...options} = {}) {
+function rig(t, {env = {}, names = {}, processExtra = {}, ...options} = {}) {
   const directory = mkdtempSync(join(tmpdir(), 'local-turn-diag-'));
   const write = name => { const path = join(directory, name); writeFileSync(path, name); return path; };
   const pack = {installed: true, missing: [], root: directory, server: write('llama-server.exe'),
@@ -207,7 +208,7 @@ function rig(t, {env = {}, names = {}, ...options} = {}) {
   mkdirSync(tmpDir);
   const logs = [];
   const server = new LocalLlmServer({pack, listDevices: async () => DEVICES, freeVramMiB: () => null, fileSizeMiB: () => 5088, command: process.execPath, argsPrefix: [FAKE],
-    spawnImpl, log: line => logs.push(line), backoffMs: 10, startupMs: 180_000, warmup: false, contextSize: 16384, processOptions: {env, tmpDir, pollMs: 20}, ...options});
+    spawnImpl, log: line => logs.push(line), backoffMs: 10, startupMs: 180_000, warmup: false, contextSize: 16384, processOptions: {env, tmpDir, pollMs: 20, ...processExtra}, ...options});
   t.after(async () => { await server.stop(); for (const child of children) if (child.exitCode === null) child.kill(); rmSync(directory, {recursive: true, force: true}); });
   return {server, directory, logs, pack};
 }
@@ -251,7 +252,7 @@ test('after the start the supervisor can say which file is loaded, its family, i
   assert.doesNotMatch(text, /api-key|Bearer/);
   const line = logs.find(entry => entry.startsWith('[local] model ready:'));
   assert(line, 'the log says what is loaded');
-  assert.match(line, /file Gemma4-E4B-MiniFantasy-V1-Q4_K_M\.gguf/); assert.match(line, /family gemma-4/); assert.match(line, /process priority below normal/); assert.match(line, /template gguf \d+ chars sha [0-9a-f]{8}/); assert.match(line, /eos <eos>/); assert.match(line, /context 16384/);
+  assert.match(line, /file Gemma4-E4B-MiniFantasy-V1-Q4_K_M\.gguf/); assert.match(line, /family gemma-4/); assert.match(line, /process priority normal while it loaded, below normal now/); assert.match(line, /template gguf \d+ chars sha [0-9a-f]{8}/); assert.match(line, /eos <eos>/); assert.match(line, /context 16384/);
   assert.equal(line.includes(directory), false);
 });
 
@@ -651,4 +652,74 @@ test('the support report carries the folder description and the bridge puts a mi
   const bridge = await readFile(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(bridge, /packFileProblems\(describePackFiles\(\{project\}\)\)/);
   assert.match(bridge, /const customModelProblems = \(\) => \[\.\.\.customScan\.problems\.map/);
+});
+
+// ---- the model loads at normal priority and is lowered when it is ready ------------------------------------------------------------------
+
+const BELOW_NORMAL = osConstants.priority.PRIORITY_BELOW_NORMAL;
+
+test('LlamaProcess: lowered at spawn by default (the embedder), left at normal until lower() with lowerAfter ready (the chat model), never with lowerPriority false, a refusal is not an error', async t => {
+  const directory = mkdtempSync(join(tmpdir(), 'llama-priority-'));
+  t.after(() => rmSync(directory, {recursive: true, force: true}));
+  const make = options => {
+    const calls = [];
+    const proc = new LlamaProcess({command: process.execPath, argsPrefix: [FAKE], tmpDir: directory, pollMs: 20, startupMs: 180_000, setPriorityImpl: (pid, level) => calls.push([pid, level]),
+      buildArgs: ({port, keyFile}) => ['--host', '127.0.0.1', '--port', String(port), '--api-key-file', keyFile, '-m', 'x.gguf'], ...options});
+    t.after(() => proc.stop());
+    return {proc, calls};
+  };
+  const lowered = make();
+  await lowered.proc.start();
+  assert.deepEqual(lowered.calls, [[lowered.proc.pid, BELOW_NORMAL]], 'a CPU process is lowered at spawn, as before');
+
+  const loading = make({lowerAfter: 'ready'});
+  await loading.proc.start();
+  assert.deepEqual(loading.calls, [], 'the model loaded at normal priority: nothing was changed while it started');
+  assert.equal(loading.proc.lower(), true);
+  assert.deepEqual(loading.calls, [[loading.proc.pid, BELOW_NORMAL]]);
+
+  const never = make({lowerAfter: 'ready', lowerPriority: false});
+  await never.proc.start();
+  assert.equal(never.proc.lower(), false); assert.deepEqual(never.calls, []);
+
+  const refused = make({lowerAfter: 'ready', setPriorityImpl() { throw Error('access denied'); }});
+  await refused.proc.start();
+  assert.equal(refused.proc.lower(), false, 'a priority is an optimisation, never a failure');
+  const notStarted = new LlamaProcess({command: process.execPath, buildArgs: () => []});
+  assert.equal(notStarted.lower(), false, 'no child, nothing to lower');
+});
+
+test('the chat model starts at normal priority, stays there through the warm-up, and is lowered below normal just before it is ready; a failed start is never lowered', async t => {
+  const timeline = [];
+  let chatRequests = 0, server;
+  const counted = async (url, init) => { if (String(url).endsWith('/v1/chat/completions')) chatRequests++; return fetch(url, init); };
+  const made = rig(t, {warmup: true, stateFile: join(tmpdir(), 'local-turn-priority-' + process.pid + '.json'), fetchImpl: counted,
+    processExtra: {setPriorityImpl: (pid, level) => timeline.push({pid, level, state: server.status().state, warmUpRequests: chatRequests})}});
+  server = made.server;
+  t.after(() => rmSync(join(tmpdir(), 'local-turn-priority-' + process.pid + '.json'), {force: true}));
+  assert.deepEqual(timeline, []);
+  await server.ensure();
+  assert.equal(timeline.length, 1, 'once');
+  assert.equal(timeline[0].level, BELOW_NORMAL);
+  assert.equal(timeline[0].state, 'warming', 'before the state is ready: the load and the warm-up ran at normal priority');
+  assert.ok(timeline[0].warmUpRequests >= 1, 'after the warm-up requests, which are CPU work too (the shader compile of a first start)');
+  assert.equal(server.status().state, 'ready');
+  assert.equal(server.diagnostics().engine.priority, 'below-normal');
+  assert.match(made.logs.find(line => line.startsWith('[local] model ready:')), /process priority normal while it loaded, below normal now/);
+  // A second turn on the same model does not touch it again.
+  await server.prewarm([{role: 'user', content: 'hi'}]);
+  assert.equal(timeline.length, 1);
+
+  // A start that fails never reaches the lowering.
+  const failing = [];
+  const dead = rig(t, {env: {FAKE_LLAMA_EXIT_AT_START: '3'}, processExtra: {setPriorityImpl: (pid, level) => failing.push([pid, level])}});
+  await assert.rejects(dead.server.ensure());
+  assert.deepEqual(failing, []);
+
+  // The player's server and a refused change: the model is ready anyway, and says it is at normal priority.
+  const refused = rig(t, {processExtra: {setPriorityImpl() { throw Error('access denied'); }}});
+  await refused.server.ensure();
+  assert.equal(refused.server.status().state, 'ready');
+  assert.equal(refused.server.diagnostics().engine.priority, 'normal');
+  assert.doesNotMatch(refused.logs.find(line => line.startsWith('[local] model ready:')), /process priority/);
 });

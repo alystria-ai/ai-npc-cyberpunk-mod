@@ -479,9 +479,12 @@ the model loaded in 13 s (42 s the first time, shaders included) and left 3.4 GB
   normal priority under the same load it loaded in 38 s and answered with a first word after 9.3 s cold and 3.7 s warm, at 11 to 12 tokens/s (72 to 75
   idle). On the Silent profile with the machine's other load, a first run at below-normal priority loaded in 590 s, its first turn had read 0 of 4,824 prompt
   tokens after 25 s, and the next took 29 s to the first word at 3 tokens/s. So a game that keeps every core busy can turn "slow" into "never answers" for a
-  server at below-normal priority: `promptStallMs` is long for that reason, and the turn budget ends the wait. Not changed, a decision for the user (frame
-  rate comes first, and a normal-priority server takes CPU from the game while it writes): raise the priority to normal only while a reply is being written
-  (`os.setPriority` in `begin()`/`end()`), or for the first load. `diagnostics().engine.priority` and the `[local] model ready:` line say which is in force.
+  server at below-normal priority, so (the user's decision, 2026-10-19) **the chat model now loads at normal priority and is lowered to below normal when it is
+  ready**: `LocalLlmServer` starts it with `lowerAfter: 'ready'` (`LlamaProcess`: nothing is changed at spawn) and calls `proc.lower()` just before the state becomes
+  ready, after the warm-up (the shader compile of a first start and the first prompts are CPU work too). Generation runs on the graphics card, so it keeps its speed
+  at the lower priority, and the game gets the CPU back for every reply. The embedder, a CPU process, is still lowered at spawn. A refused change leaves the model
+  at normal priority and says so. `diagnostics().engine.priority` and the `[local] model ready:` line say which is in force. `promptStallMs` stays long (a reply
+  written while the game keeps every core busy is slow at below-normal priority), and the turn budget ends the wait.
 - **Pack files (the letter's second part: a model row with one "uncensored" model, no warm-up notice with Mature content off).** With both packs in place the
   list has both models (tested). With the Local AI pack's marker (`manifest.standard.json`) or its model file missing it has one, the Mature model, and with
   Mature content off Local AI then cannot start (`mature-off`): no warm-up and no notice, and the turn goes to the fallback provider. A model file with no marker
@@ -495,7 +498,7 @@ the model loaded in 13 s (42 s the first time, shaders included) and left 3.4 GB
   the token limit. A Gemma thought channel (`<|channel>thought ... <channel|>`) left in a reply is removed.
 - **Not changed.** A pinned model is used whatever Mature content says (`bridge/local-model-choice.mjs`): with the pin `standard` and the Mature pack
   installed, the normal Gemma 4 loads with the Mature layer on it. The settings page selects the uncensored model when Mature content is turned on
-  (`mod/mcm.lua`), and 0.2.1's first start of a launch ignored both (fixed by `20fa585c`, already on main).
+  (`mod/manager-ui.lua`), and 0.2.1's first start of a launch ignored both (fixed by `20fa585c`, already on main).
 - **Tests.** `bridge/local-turn-diagnostics.test.mjs` (fake llama-server: stall after the role chunk, stall while reading the prompt, a reply that stops
   partway, a model that only thinks, a model still loading, the budget, the request fields, the diagnostics, the log lines, the support report, the
   notice's Lua). No model is loaded by any test. `docs/NOTIFICATIONS.md` has the notice.
@@ -515,7 +518,7 @@ reader is to read through the native core.
 
 ### Provider state
 
-`conversationProvider` is `convai | mistral | local` (a saved `groq` from before 2026-10-14 reads as `convai`). `MistralProvider` (`bridge/mistral-key.mjs`) keeps `preference` (the
+`conversationProvider` is `convai | mistral | local | custom` (a saved `groq` from before 2026-10-14 reads as `convai`; `custom` is the OpenAI-compatible endpoint of docs/CUSTOM_PROVIDER.md, which never gets Mature content). `MistralProvider` (`bridge/mistral-key.mjs`) keeps `preference` (the
 setting), `requested` and `applied`; a switch happens only at an idle boundary. `local` is requested while it works; after
 `noteLocalFailure(reason)` it is Mistral when a key exists, else Convai, until the setting is chosen again. The status file
 `runtime/mistral-state.json` carries `localAi`: `ready | warming | not-installed | no-memory | failed`, `localReason` (only `mature-off`, beside `failed`: only Mature models are usable while Mature content is off, so the model row says to turn it on), and `localModels`:
@@ -568,7 +571,7 @@ setting), `requested` and `applied`; a switch happens only at an idle boundary. 
   model whose header gives neither away. A model whose file plus the tier headroom is more than the card's total memory is listed with
   `tooLarge` (the total comes from `llama-server --list-devices` after the first start, else from one `nvidia-smi` call at most once a
   minute while the manifest lists models); `chooseLocalModel` never picks it, and a pin on it falls back with `low-memory`. The published
-  list entry of a custom model also carries `custom: true` and `needMiB`, and `mcm.lua` adds the "(custom)" label and the memory line to the
+  list entry of a custom model also carries `custom: true` and `needMiB`, and `manager-ui.lua` adds the "(custom)" label and the memory line to the
   help. Ids are `custom:<file name>`. A custom model takes part in the default choice and the fallback like any other model (`autoEligible`
   and the `auto` flag are gone); with Mature content on, the uncensored models are tried first. The server starts a custom model with its `contextSize` (else the ladder) and
   `--chat-template`; the loaded server's `modelHints` (`{uncensored, family}`) reach `allowanceFor(name, hints)`, where the flag decides
@@ -587,9 +590,9 @@ setting), `requested` and `applied`; a switch happens only at an idle boundary. 
   default with no notice. The `model-fallback` event carries `model` (the name used); `MistralProvider.noteLocalModelFallback(model)` keeps
   it and the reply carries `keyNoticeModel` beside `keyNotice: 'local-model-fallback'`.
 - Lua: `localModel` (an id, or `auto` for nothing chosen; `manager.lua` validates ids and `localModelChoices()` has no Auto entry).
-  `mcm.lua` builds the row from `manager.localModelChoices()`, shows `manager.localModelDefaultId()` as selected for `auto` or a saved
-  model that is gone (the saved value stays until Apply), and maps the selected position back to an id. `applySettings` replaces a saved or
-  staged `auto` by the default model's id on any Apply (silently; with no model installed it stays `auto`). `matureTurnedOn` stages
+  `manager-ui.lua` builds the row from `manager.localModelChoices()`, shows `manager.localModelDefaultId()` as selected for `auto` or a saved
+  model that is gone (the saved value stays until the player changes it), and maps the selected position back to an id. `applySettings` replaces a saved
+  `auto` by the default model's id on any save (silently; with no model installed it stays `auto`). `matureTurnedOn` stages
   `manager.localModelMatureId()` (record `{before, set = <that id>}`), or nothing; a legacy Mature record with `set = 'auto'` is matched
   against the default model's position when turning Mature off. With no model installed the row has one placeholder, "No model installed".
 
@@ -642,7 +645,7 @@ with Mature content on the default choice and the fallback prefer the largest on
   `MatureContent` has two inputs, `requested` (the settings file) and `pack` (the scan); `enabled` is `requested`. Finding or losing the
   pack changes only the pack flag (`setPack` says whether it changed), never the layer, the guard or the prepared replies.
 - Lua: the bridge publishes `maturePack` in `runtime/mistral-state.json` (`MistralControl.status`); `manager.mistral().maturePack` reads it.
-  `mod/mcm.lua` always builds the "Mature content" row. Its help ends with three plain sentences: that a safety check on messages and
+  `mod/manager-ui.lua` always builds the "Mature content" row. Its help ends with three plain sentences: that a safety check on messages and
   replies refuses anything romantic or sexual involving minors on every model, and either "The Mature pack (uncensored models) is
   installed." or "... is not installed. It is an optional download on the Hugging Face page of this mod.", plus "Choosing a cloud provider turns it off."
   (the old "Not using Local AI right now: no effect yet." line is gone, see below). `manager.applySettings` accepts `matureContent` whatever the pack says, and the snapshot reports the file's value.

@@ -35,6 +35,7 @@ M.catalog = {
     -- Conversation service and replies
     ['service-down'] = {class = PLAYER},               -- once per failure
     ['setup-problem'] = {class = PLAYER},              -- the setup check's first-load notice: the first critical install problem, once per game session (mod/setup-check.lua)
+    ['manager-needs-nsui'] = {class = PLAYER, repeatS = 10}, -- the Companion Manager key was pressed and Native Settings UI is missing or too old (mod/nsui.lua)
     ['service-blocked'] = {class = PLAYER, repeatS = 15},
     ['conversation-timeout'] = {class = PLAYER, repeatS = 15},
     ['reply-error'] = {class = PLAYER, repeatS = 15},
@@ -50,6 +51,14 @@ M.catalog = {
     ['mistral-model'] = {class = PLAYER, repeatS = 60},     -- the Mistral model is unavailable
     ['mistral-no-key'] = {class = PLAYER, repeatS = 86400}, -- Mistral is chosen but no key is saved, so Convai is used: once per game session
     ['mistral-voice'] = {class = PLAYER, repeatS = 86400},  -- the Convai cloud voice is chosen: a local voice speaks Mistral replies, once per game session
+    -- Custom (OpenAI-compatible) as the conversation provider (mod/custom-provider.lua): the same shape as Mistral's
+    ['custom-key'] = {class = PLAYER, repeatS = 60},        -- the endpoint did not accept the saved API key
+    ['custom-credits'] = {class = PLAYER, repeatS = 60},    -- the account at the endpoint is out of credits
+    ['custom-model'] = {class = PLAYER, repeatS = 60},      -- the endpoint does not know the saved model ID
+    ['custom-limit'] = {class = PLAYER, repeatS = 60},      -- the endpoint is rate limiting the player
+    ['custom-unreachable'] = {class = PLAYER, repeatS = 60}, -- the endpoint did not answer
+    ['custom-no-setup'] = {class = PLAYER, repeatS = 86400}, -- Custom is chosen but the endpoint URL or the model ID is missing, so Convai is used: once per game session
+    ['custom-voice'] = {class = PLAYER, repeatS = 86400},   -- the Convai cloud voice is chosen: a local voice speaks Custom replies, once per game session
     ['local-fallback'] = {class = PLAYER, repeatS = 86400}, -- Local AI is chosen but could not start, so Convai is used: once per game session
     ['local-failed'] = {class = PLAYER, repeatS = 30},      -- a local turn could not be answered and no cloud provider took it over: say so on every attempt, not more than twice a minute
     ['local-turn-fallback'] = {class = PLAYER, repeatS = 600}, -- a local turn was answered by the cloud provider instead: about once per ten minutes

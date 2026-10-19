@@ -524,7 +524,7 @@ The bridge turn-context diagnostic ends with `holocall=audio` or `holocall=holo`
 - `r6/scripts/CyberpunkConvai/Holocall.reds` (new)
 - `PhoneChatTabs.reds` and `PhoneChat.reds` (the Chat tab's call entry points: the Call key in a chat, the Call action and hints on the list)
 - `mod/holocall.lua` (new)
-- `mod/init.lua`, `speech.lua`, `continuous-speech.lua`, `subtitles.lua`, `manager.lua`, `mcm.lua`,
+- `mod/init.lua`, `speech.lua`, `continuous-speech.lua`, `subtitles.lua`, `manager.lua`, `manager-ui.lua`,
   `notices.lua`
 - `bridge/protocol.mjs`, `turn-context.mjs`, `mistral-prompt.mjs`
 - Tests: `bridge/holocall.test.mjs` covers the protocol, the turn context, static checks on the reds,

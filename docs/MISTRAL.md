@@ -14,6 +14,8 @@ text is the same code. Local speech-to-text for the voice key is documented in `
 3. **Conversation provider** > Mistral (free plan), then Apply. The switch waits until no conversation is running, so a conversation
    never mixes two providers.
 
+Any other OpenAI-style endpoint (OpenRouter, Nano-GPT, Ollama, LM Studio) is the Custom provider, which shares this route's prompt, memory, streaming and reply checks: see [CUSTOM_PROVIDER.md](CUSTOM_PROVIDER.md).
+
 This is the free route the daily-limit notice points to (a fully local option is planned). A player's own Convai key (docs/OWN_CONVAI_KEY.md)
 is the provider entry "Convai API key" in the same selector; the daily-limit notice and the player documents do not promote it.
 
@@ -22,7 +24,7 @@ is the provider entry "Convai API key" in the same selector; the daily-limit not
 | Item | Where |
 |---|---|
 | Provider setting | `conversationProvider` in `settings.json` (`convai` default, `mistral`, `local` for the optional Local AI pack; anything else reads as `convai`, including the `groq` of an old settings file: Groq was removed as a provider by the user on 2026-10-14, and a saved `player-groq-key.txt` is left alone and never read) |
-| Key | `<state folder>/player-mistral-key.txt`, written with mode 0600 through a temporary file |
+| Key | `<state folder>/player-mistral-key.txt`, written through a temporary file; on Windows it is protected by the state folder's permissions (%LOCALAPPDATA%: only the player's account), not by a file mode |
 | Paste / Remove commands | `runtime/mistral-key-command.json` (the game writes, the bridge reads; ids `<session>:mkey:<n>`; the same protocol as the Convai key) |
 | Status for the settings page | `runtime/mistral-state.json`: `{version, updated, provider, effective, saved, tail, pending, result, limit, model, stt, localAi}` (`provider` and `effective` are `convai`, `mistral` or `local`; `localAi` is `ready`, `warming`, `not-installed`, `no-memory` or `failed`, shown as a bracket in the Local AI model row's name when not ready) |
 | Local memory | `<state folder>/mistral-memory.json` (bounded, see Memory) |

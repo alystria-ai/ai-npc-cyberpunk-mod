@@ -186,15 +186,27 @@ export class ZipWriter {
   }
 }
 
-// Reads an archive's central directory (names, sizes, methods). Used by tests and the
-// install check to inspect exactly what a player downloads.
-export async function listZip(path) {
+// A reader over a local file for listZip: {size, label, read(position, length) -> Buffer, close()}. Another reader (the release tools use
+// one that asks a web server for byte ranges, so a pack on Hugging Face is listed without downloading it) has the same shape.
+export async function fileReader(path) {
   const handle = await open(path, 'r');
+  const {size} = await handle.stat();
+  return {size, label: path, close: () => handle.close(), async read(position, length) {
+    const buffer = Buffer.alloc(length);
+    await handle.read(buffer, 0, length, position);
+    return buffer;
+  }};
+}
+
+// Reads an archive's central directory (names, sizes, methods, CRC-32). Used by tests and the install check to inspect exactly what a
+// player downloads. `source` is a path or a reader (fileReader); only the end record, the ZIP64 records and the directory are read.
+export async function listZip(source) {
+  const reader = typeof source === 'string' ? await fileReader(source) : source;
+  const path = reader.label ?? 'the archive';
   try {
-    const {size} = await handle.stat();
+    const {size} = reader;
     const tailLength = Math.min(size, 22 + 0xFFFF);
-    const tail = Buffer.alloc(tailLength);
-    await handle.read(tail, 0, tailLength, size - tailLength);
+    const tail = await reader.read(size - tailLength, tailLength);
     const at = tail.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
     if (at < 0) throw Error(`${path} is not a ZIP archive.`);
     let count = tail.readUInt16LE(at + 10), length = tail.readUInt32LE(at + 12), offset = tail.readUInt32LE(at + 16);
@@ -202,13 +214,11 @@ export async function listZip(path) {
       // ZIP64: the locator sits just before the end record and points at the ZIP64 end record with the real values.
       const locator = at - 20;
       if (locator < 0 || tail.readUInt32LE(locator) !== 0x07064b50) throw Error(`${path} has a damaged ZIP64 directory.`);
-      const record = Buffer.alloc(56);
-      await handle.read(record, 0, 56, Number(tail.readBigUInt64LE(locator + 8)));
+      const record = await reader.read(Number(tail.readBigUInt64LE(locator + 8)), 56);
       if (record.readUInt32LE(0) !== 0x06064b50) throw Error(`${path} has a damaged ZIP64 directory.`);
       count = Number(record.readBigUInt64LE(32)); length = Number(record.readBigUInt64LE(40)); offset = Number(record.readBigUInt64LE(48));
     }
-    const directory = Buffer.alloc(length);
-    await handle.read(directory, 0, length, offset);
+    const directory = await reader.read(offset, length);
     const entries = [];
     for (let position = 0, index = 0; index < count; index++) {
       if (directory.readUInt32LE(position) !== 0x02014b50) throw Error(`${path} has a damaged directory.`);
@@ -233,5 +243,5 @@ export async function listZip(path) {
       position += 46 + nameLength + extra + comment;
     }
     return entries;
-  } finally { await handle.close(); }
+  } finally { if (typeof source === 'string') await reader.close(); }
 }

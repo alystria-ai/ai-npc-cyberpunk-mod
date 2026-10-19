@@ -32,6 +32,14 @@ import {execFile} from 'node:child_process';
 import {mkdir, readFile, rename, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 
+// The folders of <references> that hold prepared slots. The bridge keeps its own cache in PREPARED_FOLDER and the OmniVoice pack ships its
+// slots there (the clips it adds). The Runtime ships its slots (the Pocket clips) in RUNTIME_PREPARED_FOLDER, which only the Runtime writes
+// and the bridge never does: a pack's slot for the same voice would otherwise be a different file at the same path, and Windows would ask
+// whether to replace it (docs/PACKAGING.md, "Packs reused unchanged"). A slot is found by its signature, so the answer is the same
+// whichever folder holds it.
+export const PREPARED_FOLDER = 'prepared';
+export const RUNTIME_PREPARED_FOLDER = 'prepared-runtime';
+
 export const REFERENCE_PREPARATION = Object.freeze({
   version: 4,            // 4: Ogg Vorbis q2 (a full-band 24 kHz clip; MP3 stops at 10.5 to 11.3 kHz and sounded dull). 3: 24 kHz MP3 40k. 2: 32 kbit/s, not 64
   maxSeconds: 8.5,       // the clip is cut at the quietest moment inside its last 2.5 s before this
@@ -231,11 +239,12 @@ const FORMAT_OF = {vorbis: 'ogg', mp3: 'mp3'};
  * Returns async (bytes, {key, sha256, safeFormat}) => {bytes, format: 'ogg'|'mp3'|'wav', seconds, cached} for a reference clip, or null
  * when the clip cannot be decoded (the caller then sends it as it is). The result is kept in `cacheDirectory` as <key>.<format> next to
  * a <key>.json that names the source clip's hash and the settings; a changed clip or setting is prepared again. A cache that cannot
- * be read or written is ignored. `compress`: encode with ffmpeg when it is there (default true): the settings' codec first, then MP3,
+ * be read or written is ignored. `shippedDirectories`: more folders slots are read from when `cacheDirectory` has none that matches, or only one in
+ * a worse format (the Runtime's own, RUNTIME_PREPARED_FOLDER); nothing is ever written to them. `compress`: encode with ffmpeg when it is there (default true): the settings' codec first, then MP3,
  * then the WAV. `safeFormat` (per call): skip Ogg and use MP3 (the server refused an Ogg reference). Concurrent calls for one key
  * share one job. `.signature(sha256, {safeFormat})` is the cache signature a clip's slot carries (the release builder compares it).
  */
-export function createReferencePreparer({cacheDirectory, settings = REFERENCE_PREPARATION, compress = true, mp3, ffmpeg = findFfmpeg, encode = encodeReference,
+export function createReferencePreparer({cacheDirectory, shippedDirectories = [], settings = REFERENCE_PREPARATION, compress = true, mp3, ffmpeg = findFfmpeg, encode = encodeReference,
   read = readFile, write = writeFile, makeDirectory = mkdir, move = rename, onLog = () => {}} = {}) {
   if (mp3 === false) compress = false;                    // the name of version 3's option
   const jobs = new Map();
@@ -244,15 +253,33 @@ export function createReferencePreparer({cacheDirectory, settings = REFERENCE_PR
   const ladder = safeFormat => !compress ? [] : settings.codec === 'vorbis' && !safeFormat ? ['vorbis', 'mp3'] : ['mp3'];
   const signature = (sha256, {safeFormat = false} = {}) => createHash('sha256').update(JSON.stringify(
     [sha256, settings.version, settings.maxSeconds, settings.targetRate, ladder(safeFormat).map(codec => codec === 'vorbis' ? ['vorbis', settings.vorbisQuality] : ['mp3', settings.mp3Bitrate])])).digest('hex').slice(0, 24);
-  async function fromCache(key, sig) {
-    if (!cacheDirectory || !safe(key)) return null;
+  async function fromFolder(directory, key, sig) {
     try {
-      const meta = JSON.parse(await read(join(cacheDirectory, key + '.json'), 'utf8'));
+      const meta = JSON.parse(await read(join(directory, key + '.json'), 'utf8'));
       if (meta?.signature !== sig || !MAGIC[meta.format]) return null;
-      const bytes = await read(join(cacheDirectory, key + '.' + meta.format));
+      const bytes = await read(join(directory, key + '.' + meta.format));
       if (bytes.length !== meta.bytes || !MAGIC[meta.format](bytes)) return null;
       return {bytes, format: meta.format, seconds: meta.seconds, cached: true};
     } catch { return null; }
+  }
+  // A slot that fits (the signature names the clip and the settings) is the same reference in any folder, except for its format: the cache
+  // folder can hold a WAV (or an MP3) that this machine made without ffmpeg (or without libvorbis) for a clip the Runtime ships as Ogg. Until
+  // 0.2.1 the Runtime's slots shared that folder, so extracting a new Runtime replaced such a slot; now they are in their own folder, read
+  // second, and nothing deletes it. So the first slot in the ladder's first format wins, else the best format found: the 38 KB Ogg, not the 408 KB WAV.
+  const rank = (format, safeFormat) => {
+    const order = [...ladder(safeFormat).map(codec => FORMAT_OF[codec]), 'wav'], at = order.indexOf(format);
+    return at < 0 ? order.length : at;
+  };
+  async function fromCache(key, sig, safeFormat) {
+    if (!safe(key)) return null;
+    let best = null;
+    for (const directory of [cacheDirectory, ...shippedDirectories]) {
+      if (!directory) continue;
+      const hit = await fromFolder(directory, key, sig);
+      if (hit && (!best || rank(hit.format, safeFormat) < rank(best.format, safeFormat))) best = hit;
+      if (best && rank(best.format, safeFormat) === 0) break;
+    }
+    return best;
   }
   async function toCache(key, sig, made) {
     if (!cacheDirectory || !safe(key)) return;
@@ -266,7 +293,7 @@ export function createReferencePreparer({cacheDirectory, settings = REFERENCE_PR
   }
   async function build(bytes, key, sha256, safeFormat) {
     const sig = signature(sha256, {safeFormat});
-    const hit = await fromCache(key, sig);
+    const hit = await fromCache(key, sig, safeFormat);
     if (hit) return hit;
     let prepared;
     try { prepared = prepareReference(bytes, settings); } catch { return null; }

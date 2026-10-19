@@ -26,7 +26,7 @@
 [size=4][b]Requirements[/b][/size]
 [list]
 [*]Cyberpunk 2077 version 2.31 on Windows 10 or 11 (64-bit).
-[*]These mods from Nexus Mods, installed first: [url=https://www.nexusmods.com/cyberpunk2077/mods/107]Cyber Engine Tweaks[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/2380]RED4ext[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/1511]redscript[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/7780]Codeware[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/4197]TweakXL[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/12001]Audioware[/url] and [url=https://www.nexusmods.com/cyberpunk2077/mods/31640]Mod Configuration Menu[/url]. Tested with Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5, TweakXL 1.11.4, Audioware 1.9.9 and Mod Configuration Menu 0.10.3.
+[*]These mods from Nexus Mods, installed first: [url=https://www.nexusmods.com/cyberpunk2077/mods/107]Cyber Engine Tweaks[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/2380]RED4ext[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/1511]redscript[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/7780]Codeware[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/4197]TweakXL[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/12001]Audioware[/url] and [url=https://www.nexusmods.com/cyberpunk2077/mods/3518]Native Settings UI[/url]. Tested with Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5, TweakXL 1.11.4, Audioware 1.9.9 and Native Settings UI 1.96.
 [*]A Chromium browser such as Microsoft Edge (Windows 10 and 11 include it), Google Chrome, Brave or Opera. The voice service runs a hidden copy of it. Firefox does not work.
 [*]About 3 GB of free disk space, plus more for the optional packs.
 [*]Internet for Convai, Mistral or the Voxtral voice. Local AI with a local voice needs none.
@@ -37,7 +37,7 @@
 [list=1]
 [*]Install the mods in Requirements.
 [*]Download [b]Scripts 0.2.1[/b] from this page (Vortex or by hand) and the [b]Runtime 0.2.1[/b] from the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/0.2.1]Hugging Face page (0.2.1 folder)[/url]. Use the same version for both.
-[*]Close the game. Extract both zips into your [b]Cyberpunk 2077 folder[/b] (the one with bin, archive and r6) and let the folders merge. Don't extract into a new folder named after the zip: Windows' "Extract All" and 7-Zip's "Extract to" suggest one. Extract the Runtime before the OmniVoice pack.
+[*]Close the game. Extract both zips into your [b]Cyberpunk 2077 folder[/b] (the one with bin, archive and r6) and let the folders merge. If Windows asks about files with the same names, choose Replace: it is always safe. Don't extract into a new folder named after the zip: Windows' "Extract All" and 7-Zip's "Extract to" suggest one. Extract the Runtime before the OmniVoice pack.
 [*]Start the game. The first start takes a little longer while the voice service prepares itself.
 [*]Open Cyber Engine Tweaks' [b]Bindings[/b] and give a key to each AI NPC Cyberpunk Mod action: talk by text, talk by voice, Group Chat and the companion manager. The mod never sets keys for you.
 [/list]
@@ -76,9 +76,9 @@ All on the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-pac
 [size=4][b]Fully local setup (no internet, no account)[/b][/size]
 [list=1]
 [*]Install the Scripts and Runtime, plus one Local AI pack (or a Mature pack).
-[*]Companion Manager > Settings > Conversation provider: choose [b]Local AI[/b] and press Apply. With only a Mature pack, also turn on [b]Mature content[/b].
+[*]Companion Manager > Settings > Conversation provider: choose [b]Local AI[/b]. With only a Mature pack, also turn on [b]Mature content[/b].
 [*]Local AI speaks with Pocket TTS, already in the Runtime (English). For voices that sound like the game characters, and for other languages, add the OmniVoice pack and choose it in Settings > Voices.
-[*]If Windows asks whether node.js may use the network, you can decline: Local AI and the local voices only talk inside your PC.
+[*]If Windows asks whether Node.js may use the network, you can decline: Local AI and the local voices only talk inside your PC.
 [/list]
 
 [size=4][b]Use your own AI model or model server[/b][/size]
@@ -92,7 +92,7 @@ Usual addresses: KoboldCpp http://127.0.0.1:5001/v1, LM Studio http://127.0.0.1:
 [code]{"version":1,"models":[{"file":"custom/MyModel-Q4_K_M.gguf","name":"My Model"}]}[/code]
 This runs on the mod's own engine, so a Local AI or Mature pack must be installed.
 
-Then in game: Settings > Conversation provider, choose Local AI, pick your model in the Local AI model row and press Apply. List several models in the same file, separated by commas. Your model shares the graphics card with the game, so pick a size that leaves the game enough video memory.
+Then in game: Settings > Conversation provider, choose Local AI, pick your model in the Local AI model row. List several models in the same file, separated by commas. Your model shares the graphics card with the game, so pick a size that leaves the game enough video memory.
 
 [size=4][b]FAQ[/b][/size]
 [b]Will it slow my game down?[/b]
@@ -109,13 +109,16 @@ Menus come in sixteen languages. Turn on Multilingual conversations to talk in a
 
 [size=4][b]Troubleshooting[/b][/size]
 [b]The Companion Manager doesn't show up.[/b]
-It lives inside Mod Configuration Menu: press Esc and open MCM > Companion Manager (the manager key jumps there). No MCM entry in the pause menu? Install or update Mod Configuration Menu.
+Press Esc, then Mods > AI NPC Cyberpunk Mod, or press your manager key. No Mods entry in the pause menu? Install or update Native Settings UI.
 
 [b]Settings says it needs a browser, or the service does not start.[/b]
 Install or repair Microsoft Edge (free from [url=https://www.microsoft.com/edge]microsoft.com/edge[/url]) or install Google Chrome, then restart the game. Some Windows tweak tools remove Edge.
 
 [b]Settings says "No model installed" for Local AI.[/b]
 The pack was probably extracted into an extra folder named after the zip. Extract it again into the Cyberpunk 2077 folder itself (the mod also moves misplaced packs into place at the next start). With only a Mature pack, turn on Mature content in Settings > Conversation provider.
+
+[b]The mod does not load, or the manager will not open.[/b]
+Close the game and double-click [b]Make support report.bat[/b] in Cyberpunk 2077\red4ext\plugins\AiNpcCyberpunkMod\. It checks that the required mods are installed, saves one report with the game closed and opens its folder. Send that file. With Mod Organizer 2, start it from MO2 (add it under Executables).
 
 [b]Something else?[/b]
 In game, open Companion Manager > Settings > Help > Help and support, choose [b]Generate report[/b], and send that file with what you were doing.

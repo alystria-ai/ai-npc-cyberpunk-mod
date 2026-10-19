@@ -14,11 +14,12 @@ const source = read('../mod/setup-check.lua').replace(/\r\n/g, '\n');
 const catalog = JSON.parse(read('../localization/en.json')).strings;
 
 // The sentences shortText can return: every ui.t('...') inside that function.
-const body = /local function shortText\(id\)([\s\S]*?)\nend\n/.exec(source);
+const body = /local function shortText\(id, names, old\)([\s\S]*?)\nend\n/.exec(source);
 assert(body, 'shortText moved');
 const notices = [...body[1].matchAll(/ui\.t\('((?:[^'\\]|\\.)*)'/g)].map(match => match[1].replace(/\\'/g, "'"));
-// {name} is RED4ext, Codeware, TweakXL or Audioware (a product name that stays English in every language).
-const filled = text => text.replace('{name}', 'Audioware');
+// {name} is RED4ext, Codeware, TweakXL or Audioware (a product name that stays English in every language); {names} is the widest
+// list the notice can name: four of them (MAX_NAMES in the module), never Native Settings UI.
+const filled = text => text.replace('{name}', 'Audioware').replace('{names}', 'RED4ext, Codeware, Audioware, TweakXL');
 
 function localeTable(code) {
   const vm = lauxlib.luaL_newstate();
@@ -35,8 +36,8 @@ function localeTable(code) {
   return rows;
 }
 
-test('the notice is one of eight short sentences, each catalogued and each within the English budget', () => {
-  assert.equal(notices.length, 8, notices.join('\n'));
+test('the notice is one of eleven short sentences, each catalogued and each within the English budget', () => {
+  assert.equal(notices.length, 11, notices.join('\n'));
   for (const text of notices) {
     assert.equal(catalog[text], text, `missing from localization/en.json: ${text}`);
     assert.deepEqual(noticeProblems(filled(text), {english: true}), [], text);
@@ -48,8 +49,13 @@ test('the notice is one of eight short sentences, each catalogued and each withi
 test('only the first critical problem is announced: shortText is the whole notice, with no second line', () => {
   const first = /local function firstLoad\(\)([\s\S]*?)\nend\n/.exec(source);
   assert(first, 'firstLoad moved');
-  assert(/return shortText\(problems\[1\]\)/.test(first[1]), 'the notice is the first problem alone');
-  assert(!/\\n/.test(first[1].replace(/--.*$/gm, '')), 'no line break is built here');
+  const code = first[1].replace(/--.*$/gm, '');
+  // Every way out is nil or one shortText sentence: the first problem alone, or the requirements that are missing together named in one.
+  const returns = [...code.matchAll(/return ([^\n]*)/g)].map(match => match[1]);
+  assert(returns.length >= 3, returns.join('\n'));
+  for (const value of returns) assert(/^(nil|shortText\()/.test(value) || /then return shortText\(/.test(value), `a return that is not one sentence: ${value}`);
+  assert(/return shortText\(first\)/.test(code), 'the notice is the first problem alone');
+  assert(!/\\n/.test(code), 'no line break is built here');
 });
 
 for (const code of codes) {
