@@ -1230,6 +1230,36 @@ function convaiFaceRequestLog(actor, identity, ok, status)
     end
     log('Face request: actor=' .. tostring(identity) .. ' status=' .. tostring(status) .. note)
 end
+-- On-demand Lua heap report (mod/lua-heap-probe.lua writes runtime/lua-heap.json): runs once per 'lua-heap:<nonce>' request in
+-- the developer mailbox (scripts/Request-LuaHeap.ps1), never per frame, and the probe file is not kept loaded. The roots are the
+-- tables this file keeps only as locals; the probe adds the mod's convai* globals. A global, so onUpdate gains no upvalue.
+do
+    local loadedAt = os.time()
+    convaiLuaHeapReport = function(nonce)
+        local loaded, probe = pcall(dofile, 'lua-heap-probe.lua')
+        if not loaded or type(probe) ~= 'table' or type(probe.run) ~= 'function' then
+            log('Lua heap report failed to load: ' .. tostring(probe))
+            return false
+        end
+        local roots = {{'profiles', profiles}, {'catalog', catalog}, {'archetypes', archetypes},
+            {'supportedProfiles', supportedProfiles}, {'companions', companions}, {'manager', manager},
+            {'speech', speech}, {'subtitles', subtitles}, {'microphone', microphone}, {'groupChat', groupChat},
+            {'phoneChat', phoneChat}, {'questContext', questContext}, {'battles', battles}, {'tactics', tactics},
+            {'relationshipState', relationshipState}, {'worldKnowledge', worldKnowledge}, {'journalHistory', journalHistory},
+            {'movementLog', movementLog}, {'characterCatalog', characterCatalog}, {'invitations', invitations}}
+        local ok, report = pcall(probe.run, {nonce = nonce, roots = roots, environment = _G, loadedAt = loadedAt,
+            sentinel = companions})
+        if not ok or type(report) ~= 'table' then
+            log('Lua heap report failed: ' .. tostring(report))
+            return false
+        end
+        local function mb(kb) return type(kb) == 'number' and string.format('%.1f MB', kb / 1024) or '-' end
+        log('Lua heap: ' .. mb(report.heapBeforeKB) .. ' before, ' .. mb(report.heapAfterKB) .. ' after a full collect ('
+            .. string.format('%.0f ms', report.collectMs or 0) .. '); this mod about ' .. mb(report.modKB) .. '; loads alive '
+            .. tostring(report.loadsAlive or '-') .. ' (runtime/lua-heap.json)')
+        return true
+    end
+end
 -- Names for nameless ordinary NPCs (docs/NPC_NAMES.md, mod/npc-names.lua). One generator serves the scanner and the talk path.
 -- The gate is the rule above: not ours, not protected (named, quest-bound, story record), a resolved ordinary profile (an archetype
 -- or the two residents), an adult human. Read on demand (a scan, a conversation start), never per frame.
@@ -3890,8 +3920,10 @@ registerForEvent('onUpdate', function(delta)
             request:close()
             if nonce and #nonce > 0 and nonce ~= lastDiagnosticRequest then
                 lastDiagnosticRequest = nonce
-                -- "notice:<id>:<nonce>" shows one notice on demand (Developer mode only); anything else is a diagnostic capture.
-                if nonce:find('^notice:') then pcall(speech.devNotice, nonce) else captureDiagnostic() end
+                -- "lua-heap:<nonce>" writes the Lua heap report (runtime/lua-heap.json, see convaiLuaHeapReport), "notice:<id>:<nonce>"
+                -- shows one notice on demand (Developer mode only); anything else is a diagnostic capture.
+                if nonce:find('^lua%-heap:') then pcall(convaiLuaHeapReport, nonce)
+                elseif nonce:find('^notice:') then pcall(speech.devNotice, nonce) else captureDiagnostic() end
                 local response = io.open('runtime/diagnostic-response.txt', 'wb')
                 if response then response:write(nonce); response:close() end
             end
