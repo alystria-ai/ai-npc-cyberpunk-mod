@@ -10,6 +10,7 @@ import {CharacterEditor} from './character-editor.mjs';
 import {EditorServer} from './character-editor-server.mjs';
 import {MemoryStore} from './memory-store.mjs';
 import {PersonaBook} from './mistral-prompt.mjs';
+import {CustomCharacters, rosterIndex} from './custom-characters.mjs';
 
 // The real page in real Edge, muted and headless (no sound, nothing leaves 127.0.0.1): the player's whole path through the editor,
 // and the checks that make the page safe (no outside request, no markup from a bio, a warning before unsaved text is lost).
@@ -30,16 +31,18 @@ async function bench({route = 'local'} = {}) {
       {id: 'b', kind: 'promise', text: 'I promised V a free check-up next week.', created: 1, updated: 3, importance: 0.6, pinned: false, source: 'chat', v: ''}]}));
   const overrides = await CharacterOverrides.open({dir: join(dir, 'character-overrides')});
   const memory = await MemoryStore.open({dir: join(dir, 'local-memory')});
-  const personas = new PersonaBook(rows, {overrides});
+  await mkdir(join(dir, 'runtime'), {recursive: true});
+  const custom = await CustomCharacters.open({dir: join(dir, 'state'), exchangePath: join(dir, 'runtime', 'custom-characters.json'), roster: rosterIndex(rows)});
+  const personas = new PersonaBook(rows, {overrides, custom});
   const state = {route};
-  const server = new EditorServer({editor: new CharacterEditor({personas, overrides, memory, route: () => state.route})});
-  return {dir, overrides, memory, server, state, async done() { await server.stop(); await rm(dir, {recursive: true, force: true}); }};
+  const server = new EditorServer({editor: new CharacterEditor({personas, overrides, memory, route: () => state.route, custom})});
+  return {dir, overrides, memory, server, state, custom, personas, async done() { await server.stop(); await rm(dir, {recursive: true, force: true}); }};
 }
-async function open(t, {route, strings = {}, language = 'en', viewport = {width: 1280, height: 900}, scheme = 'dark'} = {}) {
+async function open(t, {route, strings = {}, language = 'en', viewport = {width: 1280, height: 900}, scheme = 'dark', facing = null} = {}) {
   const b = await bench({route});
   const browser = await chromium.launch({executablePath: executable, headless: true, args: ['--mute-audio']});
   t.after(async () => { await browser.close(); await b.done(); });
-  const url = await b.server.start({strings, language});
+  const url = await b.server.start({strings, language, facing});
   const context = await browser.newContext({viewport, colorScheme: scheme, acceptDownloads: false});
   const requests = [], problems = [], dialogs = [];
   const page = await context.newPage();
@@ -223,4 +226,112 @@ test('Close editor stops the server and says so; the page works at phone width a
   await page.waitForTimeout(500);
   assert.equal(e.server.running, false);
   assert.deepEqual(e.problems.filter(message => !/Failed to load resource|net::ERR/.test(message)), []);
+});
+
+// ---- the player's own characters
+
+function speechClip(seconds = 12, rate = 24000) {
+  const frames = Math.round(seconds * rate), bytes = Buffer.alloc(44 + frames * 2);
+  bytes.write('RIFF', 0); bytes.writeUInt32LE(bytes.length - 8, 4); bytes.write('WAVEfmt ', 8); bytes.writeUInt32LE(16, 16); bytes.writeUInt16LE(1, 20); bytes.writeUInt16LE(1, 22);
+  bytes.writeUInt32LE(rate, 24); bytes.writeUInt32LE(rate * 2, 28); bytes.writeUInt16LE(2, 32); bytes.writeUInt16LE(16, 34); bytes.write('data', 36); bytes.writeUInt32LE(frames * 2, 40);
+  for (let i = 0; i < frames; i++) {
+    const t = i / rate, on = Math.sin(2 * Math.PI * 2.2 * t) > -0.7 ? 1 : 0;
+    bytes.writeInt16LE(Math.round(on * 0.4 * Math.sin(2 * Math.PI * 180 * t) * 32767), 44 + i * 2);
+  }
+  return bytes;
+}
+
+test('the player makes a character: fill the form, save, give it a voice clip, use the character they face, delete it', {skip, timeout: 180000}, async t => {
+  const e = await open(t, {facing: {record: 'Character.Rebecca', name: 'Rebecca', gender: 'female'}});
+  const {page} = e;
+  assert.equal(await page.locator('#new').isVisible(), true);
+  assert.equal(await page.locator('#new').textContent(), 'New character');
+  await page.locator('#new').click();
+  await page.waitForSelector('#f-name');
+  assert.equal(await page.locator('#main h2').textContent(), 'New character');
+  assert.equal(await page.locator('.chip').textContent(), 'Your character');
+  assert.match(await page.locator('#main .panel p.help').first().textContent(), /only with Mistral or Local AI\. With Convai they speak as an ordinary person\./);
+  await e.shot('10-new-character');
+
+  // Nothing filled in: the page says what is missing, and nothing is stored.
+  await page.getByRole('button', {name: 'Save', exact: true}).first().click();
+  await toast(page).waitFor();
+  assert.equal(await toast(page).textContent(), 'Give the character a name.');
+  assert.equal(e.custom.size, 0);
+
+  // The character the player was facing when they opened the editor fills in the match rule and the name.
+  await page.getByRole('button', {name: 'Use the character I’m facing'}).click();
+  await page.waitForFunction(() => document.getElementById('f-name').value === 'Rebecca');
+  assert.equal(await page.inputValue('#f-gender'), 'female');
+  assert.equal(await page.getByLabel('Record names 1').inputValue(), 'Character.Rebecca');
+  assert.equal(await page.getByLabel('Display names 1').inputValue(), 'Rebecca');
+  assert.match(await toast(page).textContent(), /Filled in from the character you were facing: Rebecca\./);
+  await page.getByRole('button', {name: 'Use the character I’m facing'}).click();
+  await page.waitForTimeout(150);
+  assert.equal(await page.getByLabel('Record names 2').count(), 0, 'facing the same character twice adds nothing');
+
+  await page.fill('#f-bio', 'I am Rebecca, a small, loud, trigger-happy runner who grew up in Pacifica and still thinks every plan needs more explosions.');
+  await page.fill('#f-style', 'Fast, loud, a little rude.');
+  await page.getByRole('button', {name: 'Add a line'}).click();
+  await page.getByLabel('Example lines 1').fill('Boom. That is how I solve it.');
+  await page.getByRole('button', {name: 'Add a memory'}).click();
+  await page.getByLabel('Things they always know 1').fill('V once lent me a gun.');
+  // The same record as a character of the mod is refused with a plain sentence.
+  await page.getByLabel('Record names 1').fill('Character.Judy');
+  await page.getByRole('button', {name: 'Save', exact: true}).first().click();
+  await page.waitForFunction(() => /already has a profile in the mod/.test(document.getElementById('note').textContent));
+  assert.equal(e.custom.size, 0);
+  await page.getByLabel('Record names 1').fill('Character.Rebecca');
+  await page.getByRole('button', {name: 'Save', exact: true}).first().click();
+  await page.waitForFunction(() => document.querySelector('#main h2').textContent === 'Rebecca' && !!document.getElementById('f-clip'));
+  assert.equal(e.custom.size, 1);
+  const key = e.custom.list()[0].key;
+  assert.deepEqual(await page.locator('#list h3').allTextContents(), ['Your characters', 'Story characters', 'Everyday people']);
+  assert.equal(await page.locator('#list button.pick').first().textContent(), 'Rebecca');
+  assert.equal(e.personas.persona(key).name, 'Rebecca', 'the prompt reads it from the next reply');
+  await e.shot('11-saved');
+
+  // A voice clip: the words said in it first, then the recording (checked on the server).
+  await page.locator('#f-clip').setInputFiles({name: 'rebecca.wav', mimeType: 'audio/wav', buffer: speechClip(2)});
+  await page.getByRole('button', {name: 'Save', exact: true}).first().click();
+  await page.waitForFunction(() => /at least 8 characters/.test(document.getElementById('note').textContent));
+  await page.fill('#f-voiceText', 'Hello there, this is me talking. Nothing more to it.');
+  await page.getByRole('button', {name: 'Save', exact: true}).first().click();
+  await page.waitForFunction(() => /too short/.test(document.getElementById('note').textContent));
+  assert.equal(e.custom.get(key).voice, null, 'a clip that is too short is not kept');
+  await page.locator('#f-clip').setInputFiles({name: 'rebecca.wav', mimeType: 'audio/wav', buffer: speechClip(12)});
+  assert.match(await page.locator('#main .help[role=status]').textContent(), /Chosen file: rebecca\.wav/);
+  await page.getByRole('button', {name: 'Save', exact: true}).first().click();
+  await page.waitForFunction(() => /Saved clip: 12 seconds\./.test(document.querySelector('#main').textContent));
+  assert.equal(e.custom.get(key).voice.seconds, 12);
+  assert.equal(e.custom.get(key).voiceText, 'Hello there, this is me talking. Nothing more to it.');
+  assert.equal(await page.getByRole('button', {name: 'Remove clip'}).count(), 1);
+  await e.shot('12-voice');
+
+  // Unsaved changes ask before they are lost; deleting asks too, and takes the clip with it.
+  await page.fill('#f-style', 'Changed but not saved.');
+  e.dialogs.length = 0;
+  await page.locator('#new').click();
+  assert.deepEqual(e.dialogs, ['You have changes that are not saved. Leave without saving?']);
+  await page.waitForFunction(() => document.querySelector('#main h2').textContent === 'New character');
+  await page.locator('#list button.pick').first().click();
+  await page.waitForFunction(() => document.querySelector('#main h2').textContent === 'Rebecca');
+  e.dialogs.length = 0;
+  await page.getByRole('button', {name: 'Delete character'}).click();
+  await page.waitForFunction(() => !document.getElementById('f-name'));
+  assert.deepEqual(e.dialogs, ['Delete Rebecca? The character, its voice clip and what it remembers of you are removed.']);
+  assert.equal(e.custom.size, 0);
+  assert.deepEqual(await page.locator('#list h3').allTextContents(), ['Story characters', 'Everyday people']);
+  // The only console lines are the browser's own note of the refusals the test provoked (422): no script error, no outside request.
+  assert.deepEqual(e.problems.filter(text => !/status of 422/.test(text)), []);
+  assert(e.requests.every(url => url.startsWith(e.url.slice(0, e.url.indexOf('/editor')))), 'nothing left this computer: ' + e.requests.join(', '));
+});
+
+test('the new-character form works at phone width and in the light theme', {skip, timeout: 120000}, async t => {
+  const e = await open(t, {viewport: {width: 375, height: 800}, scheme: 'light'});
+  await e.page.locator('#new').click();
+  await e.page.waitForSelector('#f-name');
+  const overflow = await e.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  assert(overflow <= 1, 'no sideways scroll, got ' + overflow);
+  await e.shot('13-phone');
 });

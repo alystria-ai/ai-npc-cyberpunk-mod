@@ -8,12 +8,15 @@
 //   - the page needs a random per-session code in its address; the page script then sends the same code in a header on every call
 //     (a header the browser never sends on its own, so another site cannot forge a call), compared in constant time;
 //   - a call that carries an Origin must come from this server's own origin;
-//   - JSON bodies only, at most 128 KiB; only the character keys of the roster are accepted, and no file name is ever built from input;
+//   - JSON bodies only, at most 128 KiB; only the character keys of the roster (and the keys the service made for the player's own
+//     characters, custom-<name>-<letters>) are accepted, and no file name is ever built from input. The one exception to JSON is a
+//     character's voice clip: a WAV, at most 16 MiB, checked as a recording before anything is kept (bridge/custom-voice-clip.mjs);
 //   - the page runs under a policy that allows this one script and style and connects to nothing but this server.
 import {createServer} from 'node:http';
 import {randomBytes, timingSafeEqual} from 'node:crypto';
 import {renderEditorPage} from './character-editor-page.mjs';
 import {EditorError} from './character-editor.mjs';
+import {CLIP} from './custom-voice-clip.mjs';
 
 const BODY_LIMIT = 128 * 1024;
 const STRING_LIMITS = {entries: 400, key: 400, value: 1200};
@@ -34,6 +37,19 @@ export function cleanStrings(value) {
   return out;
 }
 
+const FACING_GENDERS = new Set(['female', 'male']);
+/**
+ * The character V faced when the editor was opened ({record, name, gender}), as the game described it: short plain text only. Null when
+ * the game named nobody. It only fills the "New character" form; nothing is stored until the player saves.
+ */
+export function cleanFacing(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const text = (item, limit) => typeof item === 'string' ? item.replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, limit) : '';
+  const record = /^[A-Za-z0-9_][A-Za-z0-9_.-]{2,119}$/.test(String(value.record ?? '').trim()) ? String(value.record).trim() : '';
+  const name = text(value.name, 60), gender = FACING_GENDERS.has(String(value.gender ?? '').toLowerCase()) ? String(value.gender).toLowerCase() : '';
+  return record || name ? {record, name, gender} : null;
+}
+
 export class EditorServer {
   /**
    *   editor     CharacterEditor
@@ -43,15 +59,16 @@ export class EditorServer {
   constructor({editor, idleMs = 30 * 60 * 1000, log = () => {}, setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
     Object.assign(this, {editor, idleMs, log, setTimer, clearTimer});
     this.server = null; this.starting = null; this.token = ''; this.port = 0; this.idle = null;
-    this.strings = {}; this.language = 'en';
+    this.strings = {}; this.language = 'en'; this.facing = null;
   }
   get running() { return !!this.server; }
   /** The address of the page, or null when the server is closed. */
   get url() { return this.server ? `http://127.0.0.1:${this.port}/editor?t=${this.token}` : null; }
 
   /** Starts the server (or, when it already runs, only refreshes the translations) and resolves to the page address. */
-  async start({strings = {}, language = 'en'} = {}) {
+  async start({strings = {}, language = 'en', facing = null} = {}) {
     this.strings = cleanStrings(strings);
+    this.facing = cleanFacing(facing);
     this.language = typeof language === 'string' && /^[A-Za-z0-9-]{2,12}$/.test(language) ? language : 'en';
     if (this.server) { this.#touch(); return this.url; }
     if (this.starting) { await this.starting; return this.url; }
@@ -105,6 +122,19 @@ export class EditorServer {
     try { return JSON.parse(Buffer.concat(chunks).toString('utf8') || 'null'); } catch { throw new EditorError(400, 'bad-request'); }
   }
 
+  // A voice clip: raw bytes of a WAV. Too long a body is read to its end and thrown away, so the answer can still reach the page.
+  async #bytes(request) {
+    if (!/^(?:audio\/(?:wav|x-wav|wave|vnd\.wave)|application\/octet-stream)\b/i.test(request.headers['content-type'] ?? '')) throw new EditorError(415, 'bad-request');
+    const chunks = [];
+    let size = 0;
+    for await (const chunk of request) {
+      size += chunk.length;
+      if (size <= CLIP.maxUploadBytes) chunks.push(chunk);
+    }
+    if (size > CLIP.maxUploadBytes) throw new EditorError(413, 'invalid', [{field: 'voice', code: 'clip-big'}]);
+    return Buffer.concat(chunks);
+  }
+
   async #handle(request, response) {
     const origin = `http://127.0.0.1:${this.port}`;
     if (!this.server || request.headers.host !== `127.0.0.1:${this.port}`) { response.writeHead(403).end(); return; }
@@ -136,6 +166,8 @@ export class EditorServer {
     const method = request.method, parts = url.pathname.split('/').slice(2).map(part => { try { return decodeURIComponent(part); } catch { throw new EditorError(400, 'bad-request'); } });
     if (method === 'GET' && parts[0] === 'state' && parts.length === 1) return {...this.editor.state(), strings: this.strings, language: this.language};
     if (method === 'POST' && parts[0] === 'close' && parts.length === 1) { this.setTimer(() => { void this.stop(); }, 250).unref?.(); return {ok: true}; }
+    if (method === 'GET' && parts[0] === 'facing' && parts.length === 1) return {facing: this.facing};
+    if (parts[0] === 'custom') return this.#customRoute(request, method, parts.slice(1));
     if (parts[0] !== 'character' || !parts[1]) throw new EditorError(404, 'not-found');
     const key = parts[1], rest = parts.slice(2);
     if (!rest.length) {
@@ -149,6 +181,20 @@ export class EditorServer {
     } else if (rest[0] === 'memory' && rest.length === 2) {
       if (method === 'PUT') return this.editor.editRecord(key, rest[1], (await this.#body(request))?.text);
       if (method === 'DELETE') return this.editor.deleteRecord(key, rest[1]);
+    }
+    throw new EditorError(404, 'not-found');
+  }
+
+  // The characters the player makes: /api/custom (create), /api/custom/<key> (save, delete), /api/custom/<key>/voice (clip, remove clip).
+  async #customRoute(request, method, parts) {
+    if (!parts.length) {
+      if (method === 'POST') return this.editor.createCustom(await this.#body(request));
+    } else if (parts.length === 1) {
+      if (method === 'PUT') return this.editor.saveCustom(parts[0], await this.#body(request));
+      if (method === 'DELETE') return this.editor.deleteCustom(parts[0]);
+    } else if (parts.length === 2 && parts[1] === 'voice') {
+      if (method === 'PUT') return this.editor.setCustomVoice(parts[0], await this.#bytes(request));
+      if (method === 'DELETE') return this.editor.clearCustomVoice(parts[0]);
     }
     throw new EditorError(404, 'not-found');
   }

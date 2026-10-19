@@ -11,12 +11,13 @@ import {EditorControl, parseEditorCommand} from './character-editor-control.mjs'
 import {renderEditorPage} from './character-editor-page.mjs';
 import {MemoryStore} from './memory-store.mjs';
 import {PersonaBook, systemHead} from './mistral-prompt.mjs';
+import {CustomCharacters, rosterIndex} from './custom-characters.mjs';
 
 const rows = [...JSON.parse(await readFile(new URL('../characters/roster.json', import.meta.url), 'utf8')),
   ...JSON.parse(await readFile(new URL('../characters/archetype-roster.json', import.meta.url), 'utf8'))];
 
 // A whole editor over a temporary state folder: the same files the bridge uses (character-overrides/, local-memory/player/).
-async function workbench({route = 'local', seed = true} = {}) {
+async function workbench({route = 'local', seed = true, custom = false} = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'character-editor-'));
   const memoryDir = join(dir, 'local-memory');
   if (seed) {
@@ -28,11 +29,14 @@ async function workbench({route = 'local', seed = true} = {}) {
   }
   const overrides = await CharacterOverrides.open({dir: join(dir, 'character-overrides')});
   const memory = await MemoryStore.open({dir: memoryDir});
-  const personas = new PersonaBook(rows, {overrides});
+  // custom: the characters the player makes (state/custom-characters.json, state/custom-voices/), with the game's list in runtime/.
+  await mkdir(join(dir, 'runtime'), {recursive: true});
+  const made = custom ? await CustomCharacters.open({dir: join(dir, 'state'), exchangePath: join(dir, 'runtime', 'custom-characters.json'), roster: rosterIndex(rows)}) : null;
+  const personas = new PersonaBook(rows, {overrides, custom: made});
   const state = {route};
-  const editor = new CharacterEditor({personas, overrides, memory, route: () => state.route});
+  const editor = new CharacterEditor({personas, overrides, memory, route: () => state.route, custom: made});
   const server = new EditorServer({editor});
-  return {dir, overrides, memory, personas, editor, server, state,
+  return {dir, overrides, memory, personas, editor, server, state, custom: made,
     async done() { await server.stop(); await memory.flush().catch(() => {}); await rm(dir, {recursive: true, force: true}); }};
 }
 // One request to the server: Node's own client, so the headers can be set exactly (fetch will not let a test lie about Host).
@@ -307,7 +311,13 @@ test('translations from the game are plain strings, bounded', () => {
 test('a command is accepted only when it is a fresh, well formed Open', () => {
   const now = 1_700_000_000_000;
   const valid = {version: 1, id: 'e1700000000-1', action: 'open', issuedAt: now - 1000, language: 'fr', strings: {Save: 'Enregistrer', bad: 3}};
-  assert.deepEqual(parseEditorCommand(JSON.stringify(valid), now), {id: 'e1700000000-1', action: 'open', language: 'fr', strings: {Save: 'Enregistrer'}});
+  assert.deepEqual(parseEditorCommand(JSON.stringify(valid), now), {id: 'e1700000000-1', action: 'open', language: 'fr', strings: {Save: 'Enregistrer'}, facing: null});
+  // The character V faced when the player chose Open: plain short text, or nothing.
+  const facing = parseEditorCommand(JSON.stringify({...valid, facing: {record: 'Character.Rebecca', name: '  Rebecca  ', gender: 'FEMALE', extra: 'x'}}), now).facing;
+  assert.deepEqual(facing, {record: 'Character.Rebecca', name: 'Rebecca', gender: 'female'});
+  assert.deepEqual(parseEditorCommand(JSON.stringify({...valid, facing: {record: 'has a space!', name: '', gender: 'robot'}}), now).facing, null);
+  assert.deepEqual(parseEditorCommand(JSON.stringify({...valid, facing: {name: 'N'.repeat(200)}}), now).facing, {record: '', name: 'N'.repeat(60), gender: ''});
+  for (const bad of [7, 'Rebecca', [], null]) assert.equal(parseEditorCommand(JSON.stringify({...valid, facing: bad}), now).facing, null);
   for (const change of [{version: 2}, {id: 'bad id'}, {id: 7}, {action: 'copy'}, {action: 'delete'}, {issuedAt: now - 31_000}, {issuedAt: now + 6000}, {issuedAt: 'now'}])
     assert.equal(parseEditorCommand(JSON.stringify({...valid, ...change}), now), null, JSON.stringify(change));
   assert.equal(parseEditorCommand('', now), null);
@@ -361,4 +371,181 @@ test('a browser that cannot be opened is reported as failed, and the page stays 
   assert.equal(JSON.parse(await readFile(statusPath, 'utf8')).state, 'failed');
   assert.match(logged.join('\n'), /ENOENT/);
   await control.close();
+});
+
+// ---- the characters the player makes (docs/CHARACTER_EDITOR.md, "Your own characters")
+
+const BIO = 'I am Rebecca, a small, loud, trigger-happy runner who grew up in Pacifica and still thinks every plan needs more explosions. I trust few people.';
+const input = (extra = {}) => ({name: 'Rebecca', gender: 'female', records: ['Character.Rebecca'], names: ['Rebecca'], bio: BIO, style: 'Fast, loud.',
+  examples: ['Boom. That is how I solve it.'], memories: ['V once lent me a gun.'], voiceText: '', ...extra});
+// A mono 16-bit clip that sounds like speech to the checks: a voiced tone in bursts with short pauses.
+function clip(seconds = 12, rate = 24000) {
+  const frames = Math.round(seconds * rate), bytes = Buffer.alloc(44 + frames * 2);
+  bytes.write('RIFF', 0); bytes.writeUInt32LE(bytes.length - 8, 4); bytes.write('WAVEfmt ', 8); bytes.writeUInt32LE(16, 16); bytes.writeUInt16LE(1, 20); bytes.writeUInt16LE(1, 22);
+  bytes.writeUInt32LE(rate, 24); bytes.writeUInt32LE(rate * 2, 28); bytes.writeUInt16LE(2, 32); bytes.writeUInt16LE(16, 34); bytes.write('data', 36); bytes.writeUInt32LE(frames * 2, 40);
+  for (let i = 0; i < frames; i++) {
+    const t = i / rate, on = Math.sin(2 * Math.PI * 2.2 * t) > -0.7 ? 1 : 0;
+    bytes.writeInt16LE(Math.round(on * 0.4 * Math.sin(2 * Math.PI * 180 * t) * 32767), 44 + i * 2);
+  }
+  return bytes;
+}
+const upload = (bench, key, bytes, headers = {}) => call(bench.server, 'PUT', `/api/custom/${key}/voice`, {raw: bytes, headers: {'Content-Type': 'audio/wav', ...headers}});
+
+test('the catalogue lists the player\'s own characters first, and the state tells the page what a character may hold', async t => {
+  const bench = await workbench({custom: true}); t.after(bench.done);
+  assert.equal(bench.editor.state().custom.count, 0);
+  const made = await bench.editor.createCustom(input());
+  const list = bench.editor.catalog();
+  assert.deepEqual(list[0], {key: made.key, name: 'Rebecca', group: 'custom', edited: false, voice: false});
+  assert.equal(list.length, rows.length + 1);
+  assert(list.slice(1).every(item => item.group !== 'custom'));
+  const state = bench.editor.state();
+  assert.equal(state.custom.count, 1);
+  assert.equal(state.custom.limits.bio, EDIT_LIMITS.bio);
+  assert.equal(state.custom.limits.records, 6);
+  assert.deepEqual(state.custom.clip, {minSeconds: 5, maxSeconds: 20, goodMin: 10, goodMax: 18, transcript: 600, maxUploadBytes: 16 * 1024 * 1024});
+  const none = await workbench(); t.after(none.done);
+  assert.equal(none.editor.state().custom, null, 'without the store there is no New character');
+  await assert.rejects(none.editor.createCustom(input()), {status: 404});
+});
+
+test('a character is made, opened, changed and deleted, and the prompt reads it from the next reply', async t => {
+  const bench = await workbench({custom: true}); t.after(bench.done);
+  const made = await bench.editor.createCustom(input());
+  assert.match(made.key, /^custom-rebecca-[a-z0-9]{4}$/);
+  assert.equal(made.group, 'custom');
+  assert.deepEqual(made.custom, {name: 'Rebecca', gender: 'female', records: ['Character.Rebecca'], names: ['Rebecca'], bio: BIO, style: 'Fast, loud.',
+    examples: ['Boom. That is how I solve it.'], memories: ['V once lent me a gun.'], voiceText: '', voice: null});
+  assert.equal(bench.editor.details(made.key).name, 'Rebecca');
+  assert.match(systemHead({persona: bench.personas.persona(made.key)}), /I am Rebecca/);
+  const saved = await bench.editor.saveCustom(made.key, input({name: 'Rebecca Two', bio: BIO + ' She hates rain.', names: ['Rebecca', 'Becca']}));
+  assert.equal(saved.name, 'Rebecca Two');
+  assert.match(systemHead({persona: bench.personas.persona(made.key)}), /She hates rain/);
+  assert.match(systemHead({persona: bench.personas.persona(made.key)}), /You are Rebecca Two,/);
+  // Memories picked up in talks are edited the same way as a roster character's.
+  bench.memory.setSummary(made.key, 'V asked me about Pacifica.');
+  assert.equal(bench.editor.details(made.key).memory.summary, 'V asked me about Pacifica.');
+  assert.equal(bench.editor.setSummary(made.key, 'V and I share a gun.').memory.summary, 'V and I share a gun.');
+  // Deleting forgets the character, its clip and what it remembered.
+  const left = await bench.editor.deleteCustom(made.key);
+  assert.equal(left.deleted, true);
+  assert.equal(left.characters.some(item => item.group === 'custom'), false);
+  assert.equal(bench.memory.recall({profileKey: made.key, channel: 'private'}).summary, '');
+  assert.equal(bench.personas.persona(made.key).known, false);
+  assert.throws(() => bench.editor.details(made.key), {status: 404});
+  await assert.rejects(bench.editor.deleteCustom(made.key), {status: 404});
+  assert.equal(bench.editor.details('judy-alvarez').group, 'story', 'shipped characters are unchanged');
+});
+
+test('what the player gets wrong comes back as 422 with codes, and nothing is stored', async t => {
+  const bench = await workbench({custom: true}); t.after(bench.done);
+  const codes = async patch => { try { await bench.editor.createCustom(input(patch)); return []; } catch (error) { assert.equal(error.status, 422); return error.errors.map(item => item.code); } };
+  assert.deepEqual(await codes({name: ''}), ['name-empty']);
+  assert.deepEqual(await codes({records: [], names: []}), ['match-empty']);
+  assert.deepEqual(await codes({records: ['Character.Judy']}), ['match-roster']);
+  assert.deepEqual(await codes({names: ['Judy Alvarez'], records: []}), ['match-roster']);
+  assert.deepEqual(await codes({bio: 'short'}), ['bio-short']);
+  assert.equal(bench.custom.size, 0);
+  await bench.editor.createCustom(input());
+  assert.deepEqual(await codes({name: 'Copy'}), ['match-taken', 'match-taken']);
+  assert.equal(bench.custom.size, 1);
+  await assert.rejects(bench.editor.saveCustom('judy-alvarez', input()), {status: 404});
+  await assert.rejects(bench.editor.saveCustom('custom-ghost-abcd', input()), {status: 404});
+  await assert.rejects(bench.editor.setCustomVoice('custom-ghost-abcd', clip(), 'x'), {status: 404});
+});
+
+test('a voice clip goes through the server as a checked recording, and the words said in it come first', async t => {
+  const bench = await workbench({custom: true}); t.after(bench.done);
+  await bench.server.start();
+  const made = (await call(bench.server, 'POST', '/api/custom', {body: input()})).json;
+  assert.equal(made.group, 'custom');
+  const key = made.key;
+  // Without the words said in the clip it is refused, with a recording that is not one, and with the wrong kind of request.
+  assert.deepEqual((await upload(bench, key, clip())).json, {error: 'invalid', errors: [{field: 'voiceText', code: 'voice-text-short', min: 8}]});
+  await call(bench.server, 'PUT', `/api/custom/${key}`, {body: input({voiceText: 'Hello there, this is me talking.'})});
+  const bad = await upload(bench, key, Buffer.from('this is not a recording, but it is long enough to be read as a file of some kind'));
+  assert.equal(bad.status, 422);
+  assert.deepEqual(bad.json.errors, [{field: 'voice', code: 'clip-format'}]);
+  assert.equal((await upload(bench, key, clip(3))).json.errors[0].code, 'clip-short');
+  assert.deepEqual((await upload(bench, key, clip(25))).json.errors, [{field: 'voice', code: 'clip-long', max: 20}]);
+  assert.equal((await call(bench.server, 'PUT', `/api/custom/${key}/voice`, {raw: clip(), headers: {'Content-Type': 'application/json'}})).status, 415);
+  assert.equal((await call(bench.server, 'PUT', `/api/custom/${key}/voice`, {raw: clip(), token: false, headers: {'Content-Type': 'audio/wav'}})).status, 401);
+  assert.equal(bench.custom.get(key).voice, null, 'nothing was kept so far');
+  // A good one.
+  const done = await upload(bench, key, clip(11, 22050));
+  assert.equal(done.status, 200);
+  assert.deepEqual([done.json.custom.voice, done.json.clip], [{seconds: 11, rate: 22050}, {seconds: 11, rate: 22050, notes: []}]);
+  assert.deepEqual(await readdir(join(bench.dir, 'state', 'custom-voices')), [`${key}.wav`]);
+  assert.equal((await call(bench.server, 'GET', '/api/state')).json.characters[0].voice, true);
+  assert.equal((await call(bench.server, 'GET', `/api/character/${key}`)).json.custom.voice.seconds, 11);
+  const removed = await call(bench.server, 'DELETE', `/api/custom/${key}/voice`);
+  assert.equal(removed.json.custom.voice, null);
+  assert.deepEqual(await readdir(join(bench.dir, 'state', 'custom-voices')), []);
+});
+
+test('a clip that is too big is read to its end and refused', async t => {
+  const bench = await workbench({custom: true}); t.after(bench.done);
+  await bench.server.start();
+  const key = (await call(bench.server, 'POST', '/api/custom', {body: input({voiceText: 'Hello there, this is me talking.'})})).json.key;
+  const answer = await upload(bench, key, Buffer.alloc(16 * 1024 * 1024 + 10));
+  assert.equal(answer.status, 413);
+  assert.deepEqual(answer.json.errors, [{field: 'voice', code: 'clip-big'}]);
+});
+
+test('the routes of the player\'s own characters need the session code, take only their own keys, and leave the shipped characters alone', async t => {
+  const bench = await workbench({custom: true}); t.after(bench.done);
+  await bench.server.start({facing: {record: 'Character.Rebecca', name: 'Rebecca', gender: 'female'}});
+  assert.equal((await call(bench.server, 'POST', '/api/custom', {body: input(), token: false})).status, 401);
+  assert.equal((await call(bench.server, 'POST', '/api/custom', {body: input(), headers: {Origin: 'http://evil.example'}})).status, 403);
+  assert.equal((await call(bench.server, 'POST', '/api/custom', {raw: '{broken', headers: {'Content-Type': 'application/json'}})).status, 400);
+  const first = await call(bench.server, 'POST', '/api/custom', {body: input()});
+  assert.equal(first.status, 200);
+  const key = first.json.key;
+  assert.equal((await call(bench.server, 'PUT', `/api/custom/${key}`, {body: input({style: 'Calm.'})})).json.custom.style, 'Calm.');
+  assert.equal((await call(bench.server, 'PUT', `/api/custom/${key}`, {body: input({gender: 'x'})})).json.errors[0].code, 'gender-bad');
+  for (const wrong of ['judy-alvarez', '..%2Fx', 'custom-', 'CUSTOM-A', 'custom-ghost-abcd']) {
+    assert.equal((await call(bench.server, 'PUT', `/api/custom/${wrong}`, {body: input()})).status, 404, wrong);
+    assert.equal((await call(bench.server, 'DELETE', `/api/custom/${wrong}`)).status, 404, wrong);
+  }
+  assert.equal((await call(bench.server, 'PATCH', `/api/custom/${key}`, {body: {}})).status, 404);
+  assert.equal((await call(bench.server, 'GET', '/api/custom')).status, 404);
+  assert.deepEqual((await call(bench.server, 'GET', '/api/facing')).json, {facing: {record: 'Character.Rebecca', name: 'Rebecca', gender: 'female'}});
+  // Memory edits work for the player's own characters too.
+  bench.memory.setSummary(key, 'Talked about guns.');
+  assert.equal((await call(bench.server, 'PUT', `/api/character/${key}/summary`, {body: {text: 'Talked about rain.'}})).json.memory.summary, 'Talked about rain.');
+  const gone = await call(bench.server, 'DELETE', `/api/custom/${key}`);
+  assert.equal(gone.json.characters.some(item => item.key === key), false);
+  assert.equal(JSON.parse(await readFile(join(bench.dir, 'runtime', 'custom-characters.json'), 'utf8')).characters.length, 0, 'the game list follows');
+  // A server without the store has none of these routes working.
+  const plain = await workbench(); t.after(plain.done);
+  await plain.server.start();
+  assert.equal((await call(plain.server, 'POST', '/api/custom', {body: input()})).status, 404);
+  assert.equal((await call(plain.server, 'GET', '/api/facing')).json.facing, null);
+});
+
+test('the facing character is plain short text and goes when the server is started again without one', async t => {
+  const bench = await workbench({custom: true}); t.after(bench.done);
+  await bench.server.start({facing: {record: 'NCA.Character.Rebecca', name: 'Rebecca', gender: 'Female'}});
+  assert.deepEqual((await call(bench.server, 'GET', '/api/facing')).json.facing, {record: 'NCA.Character.Rebecca', name: 'Rebecca', gender: 'female'});
+  await bench.server.start({facing: {record: '<script>', name: '<b>x</b>'.repeat(30), gender: 7}});
+  assert.equal((await call(bench.server, 'GET', '/api/facing')).json.facing.record, '');
+  assert.equal((await call(bench.server, 'GET', '/api/facing')).json.facing.name.length, 60);
+  await bench.server.start();
+  assert.equal((await call(bench.server, 'GET', '/api/facing')).json.facing, null);
+  assert.match(renderEditorPage({nonce: 'n', token: 't'}), /id="new"/);
+});
+
+test('Open passes the facing character on, and a newly made character reaches the game\'s list and the persona book in one step', async t => {
+  const bench = await workbench({custom: true}); t.after(bench.done);
+  const commandPath = join(bench.dir, 'editor-command.json'), statusPath = join(bench.dir, 'editor-status.json');
+  const clock = 1_700_000_000_000;
+  await writeFile(commandPath, '');
+  const control = await EditorControl.open({server: bench.server, commandPath, statusPath, now: () => clock, open: async () => {}});
+  await writeFile(commandPath, JSON.stringify({version: 1, id: 'e1', action: 'open', issuedAt: clock, language: 'en', strings: {}, facing: {record: 'Character.Rebecca', name: 'Rebecca', gender: 'female'}}));
+  await control.poll();
+  assert.deepEqual((await call(bench.server, 'GET', '/api/facing')).json.facing, {record: 'Character.Rebecca', name: 'Rebecca', gender: 'female'});
+  const made = (await call(bench.server, 'POST', '/api/custom', {body: input()})).json;
+  const game = JSON.parse(await readFile(join(bench.dir, 'runtime', 'custom-characters.json'), 'utf8'));
+  assert.deepEqual(game.characters.map(row => [row.key, row.records, row.names, row.gender]), [[made.key, ['Character.Rebecca'], ['Rebecca'], 'female']]);
+  assert.equal(bench.personas.has(made.key), true);
 });
