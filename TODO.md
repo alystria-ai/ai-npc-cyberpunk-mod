@@ -16,6 +16,7 @@ Install state: everything on `main` 07541c71 is installed in the game (2026-10-1
 
 ### Needs the user (decisions and approvals)
 - **Going public is the user's call** (2026-10-17: "don't worry about public stuff"). Both repos are still private; don't remind. Players need `alystria-ai/ai-npc-cyberpunk-mod` and `alystria-ai/ai-npc-cyberpunk-mod-packs` public before the README links and the in-mod pack downloads work.
+- **0.2.2 player-text flags from the lint (2026-10-19, branch `lint/player-text`; not changed, the user decides):** 15 Inworld strings in player text (`localization/en.json`, from `mod/mcm.lua` and `mod/manager.lua`); "On the free shared plan" in the Johnny setting (`mod/mcm.lua:2178`); Mod Configuration Menu still named as a requirement in the live `mod/setup-check.lua:516` string and the docs (drop once Native Settings UI merges); "Mistral its free plan" with a missing verb (`mod/mcm.lua:1588-1589`); "Mistral or Local" for the provider called Local AI (`mod/character-editor.lua:80`, `:84`); 0.2.1 wording in `packaging/PLAYER_README.md:5`, `README.md:7` and `docs/NEXUS_PAGE.md:39,135,136` to update at the 0.2.2 release.
 
 ### 0.2.2 build checklist (Scripts + Runtime together; ships once the launch-feedback fixes land)
 - **Runtime additions for the patched build** (`scratchpad/patch-zip4.mjs`, all under `red4ext/plugins/AiNpcCyberpunkMod/`):
@@ -95,6 +96,9 @@ Nothing is parked.
 - Lip sync for vendors and ordinary NPCs by an appearance hop (2026-10-10): superseded by the gated crowd face graph (live check above).
 
 ## Captain's log
+
+**2026-10-19 (player-text lint for 0.2.2; branch `lint/player-text` from main `881ef100`; committed, NOT pushed, NOT merged).** Checked the player-facing text in `localization/en.json` (all 544 literal `ui.t` strings are in it), the player sections of the README, `packaging/PLAYER_README.md`, `packaging/HF_MODEL_CARD.md`, `docs/NEXUS_PAGE.md` and the deliverables. Fixed: `packaging/PLAYER_README.md` custom-provider path (`%LOCALAPPDATA%AiNpcCyberpunkModdata` to `%LOCALAPPDATA%\AiNpcCyberpunkMod\data`), and `docs/NEXUS_PAGE.md` "node.js" to "Node.js". No BBCode was broken in the Nexus blocks. Flags are under "Needs the user". `node scripts/Extract-UiCatalog.mjs --check` passes, and `node --test packaging/release.test.mjs` gave 41 pass, 0 fail.
+- **Noticed, not changed:** the `NEXUS_CHANGES.md` snippets have `[*]` outside a list by design (they are for pasting into an existing list).
 
 **2026-10-19 (morning, launch feedback round 2; main `1f010749`): canon audit merged and 14 characters updated on Convai, sign-in backend redeployed, six fix branches started. 0.2.2 waits for these fixes (the user: "once we fix the bugs mentioned now").** Players and where they posted: `deliverables/player-feedback.md`.
 - **V silent on typed lines (gutekx, chiefertain, Nexus).** Report `deliverables/player-reports/gutekx-20261019-013414` says "V's voice is on but the reference clips are missing (assets/v-voice)". Neither the update-3 base Runtime nor 0.2.1 has `red4ext/plugins/AiNpcCyberpunkMod/voices/v-voice/` (the base was built without the git-ignored `assets/v-voice/*.wav`). **0.2.2 Runtime must add `voices/v-voice/{v-voice.json,v-male.wav,v-female.wav}` from `assets/v-voice`** (patch-zip4), and the install test should check them.
