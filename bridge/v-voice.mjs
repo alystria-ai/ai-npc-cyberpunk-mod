@@ -27,6 +27,9 @@
 //     voice. (A line that is already audible keeps going: the companion cannot be heard before it ends anyway.) A V line on its own
 //     worker or on the cloud shares nothing with the companion, so nothing stops it.
 //   - Any failure drops the line, writes one log line and never touches the conversation.
+// V talks on their own (docs/V_TALKS.md) is the one exception to "typed lines only": the game side writes V's line as the text of an automatic
+// reaction {kind: 'vtalk'}. That line is the whole point of the turn, so it is `required`: the companion's answer waits for it while it is still
+// being made (up to REQUIRED_WAIT_MS), instead of the line being dropped to spare the reply.
 // V's line runs under a TurnClock of its own (the stage clock, bridge/turn-clock.mjs), so its marks never mix into the companion's.
 import {randomBytes} from 'node:crypto';
 import {readFile as readFileDefault} from 'node:fs/promises';
@@ -40,6 +43,8 @@ export const V_VOICE_KEYS = Object.freeze({male: 'v-male', female: 'v-female'});
 export const V_MANIFEST = 'v-voice.json';
 /** The longest line V speaks; a longer one is cut at the last sentence or word that fits. */
 export const V_MAX_CHARS = 240;
+/** How long a required line (V talks on their own) may take to become audible before it is dropped and the reply goes on alone. */
+export const REQUIRED_WAIT_MS = 6000;
 const GENDERS = Object.keys(V_VOICE_KEYS);
 /** The engines V's line can be asked of (runtime/settings.json `vVoiceEngine`); Pocket is the default. */
 export const V_ENGINES = Object.freeze(['pocket', 'voxtral']);
@@ -123,9 +128,10 @@ export function vLineText(text, maxChars = V_MAX_CHARS) {
  */
 export class VLine {
   constructor({input, key, text, plan, volume, play, stream, render, local = true, clock = new TurnClock(), signal, log = () => {},
-    after, edges, token = 'v-' + randomBytes(8).toString('hex'), onSettled = () => {}, onAudible = () => {}}) {
+    after, edges, token = 'v-' + randomBytes(8).toString('hex'), onSettled = () => {}, onAudible = () => {}, required = false,
+    waitMs = REQUIRED_WAIT_MS}) {
     Object.assign(this, {input, key, text, plan, volume, playHost: play, streamVoice: stream, renderVoice: render, local, clock, log,
-      after, edges, token, onSettled, onAudible});
+      after, edges, token, onSettled, onAudible, required});
     this.state = 'synth';
     this.reason = null;
     this.controller = new AbortController();
@@ -136,10 +142,16 @@ export class VLine {
       const cancel = () => this.drop('turn-ended');
       if (signal.aborted) cancel(); else signal.addEventListener('abort', cancel, {once: true});
     }
+    // A required line gets a deadline: audible within waitMs or dropped (the reply never waits longer than that for it).
+    if (required && this.state === 'synth') {
+      const deadline = setTimeout(() => { if (this.state === 'synth') this.drop('too-slow'); }, waitMs);
+      deadline.unref?.();
+      this.clear.then(() => clearTimeout(deadline), () => {});
+    }
     this.finished = this.state === 'dropped' ? Promise.resolve() : this.run();
   }
 
-  get blocking() { return this.state === 'playing'; }
+  get blocking() { return this.state === 'playing' || (this.required && this.state === 'synth'); }
   get settled() { return this.state === 'done' || this.state === 'dropped'; }
 
   /** Calls `fn` once when the line stops being audible or pending (at once if it already has). */
@@ -150,8 +162,8 @@ export class VLine {
    * dropped here, so the reply never waits for V's synthesis. Safe to call on every poll.
    */
   holds() {
-    if (this.state === 'synth') this.drop('slower-than-reply');
-    return this.state === 'playing';
+    if (this.state === 'synth' && !this.required) this.drop('slower-than-reply');
+    return this.state === 'playing' || (this.required && this.state === 'synth');
   }
 
   /** The same decision for a reply that is published as a whole (OmniVoice): resolves when V is out of the way. Never rejects. */
@@ -308,11 +320,12 @@ export class VVoice {
   /**
    * Why this turn does not get a V line, or null when it does. Typed lines only: a spoken line is never replayed. A line typed to an
    * add-on's voice (a cab, a gun: input.addon names the speaker, input.reaction is not set) is a typed line like any other and gets V's
-   * voice (live 2026-10-16: V was silent in the Delamain cab); an add-on remark carries a reaction and never does.
+   * voice (live 2026-10-16: V was silent in the Delamain cab); an add-on remark carries a reaction and never does. The one reaction that
+   * does is V's own opener of an exchange V started (kind 'vtalk', docs/V_TALKS.md): its text is V's line.
    */
   skipReason(input) {
     if (!this.enabled) return 'off';
-    if (!input || input.reaction || input.source !== undefined || input.channel === 'phone') return 'not-typed';
+    if (!input || (input.reaction && input.reaction.kind !== 'vtalk') || input.source !== undefined || input.channel === 'phone') return 'not-typed';
     if (input.group && input.group.index !== 1) return 'later-group-speaker';
     if (!this.available) return 'no-clips';
     return null;
@@ -371,6 +384,7 @@ export class VVoice {
         route = {plan: {engine: 'pocket', language: 'en'}, stream: this.stream, local: this.isLocal()};
       }
       const line = new VLine({input, key: voice.key, text, plan: route.plan, volume: Math.min(1, volume), signal, log: this.log,
+        required: input.reaction?.kind === 'vtalk',
         play: (config, producer, options) => this.play(config, producer, options), stream: route.stream, local: route.local, after: this.previous,
         onSettled: summary => { this.report(input, summary); }, onAudible: () => clock?.mark('vAudible')});
       this.previous = line.finished;
