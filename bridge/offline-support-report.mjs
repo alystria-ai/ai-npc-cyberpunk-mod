@@ -3,7 +3,7 @@ import {basename, dirname, isAbsolute, join, relative, resolve} from 'node:path'
 import {spawn} from 'node:child_process';
 import os from 'node:os';
 import {readKeyFileText} from './key-codec.mjs';
-import {buildReport, locateLogs, reportsDirectoryFor, tailFile} from './support-report.mjs';
+import {CUSTOM_ENDPOINT_FILE, buildReport, keyLineValues, locateLogs, reportsDirectoryFor, tailFile} from './support-report.mjs';
 import {detectModManagers} from './setup-check.mjs';
 
 // Support report with the game closed: "Make support report.bat" in red4ext/plugins/AiNpcCyberpunkMod starts bridge/make-support-report.mjs
@@ -345,7 +345,8 @@ export function offlineProblems({layout, rows, files, errors = 0, managers = []}
 
 // Values that must be scrubbed from every line, besides the ones collectReport already reads (convai-key.txt, the Hugging Face and Kaggle
 // tokens, the custom model servers' keys): every other key file of the data folder (player-convai-key.txt, player-mistral-key.txt,
-// player-inworld-key.txt...), the sign-in file's secret and the key packed into the Runtime (app/defaults/service.txt). They are only
+// player-inworld-key.txt...), the custom provider's key (player-custom-endpoint.txt), the sign-in file's secret and the key packed into
+// the Runtime (app/defaults/service.txt). They are only
 // returned to the redactor; nothing here writes, logs or prints one.
 export async function offlineSecrets({stateDirectory, project}) {
   const found = [];
@@ -362,6 +363,12 @@ export async function offlineSecrets({stateDirectory, project}) {
   let names = [];
   try { names = stateDirectory ? await readdir(stateDirectory) : []; } catch {}
   for (const name of names) {
+    // The custom provider's settings file: only its key line is a secret (bridge/custom-endpoint.mjs).
+    if (name.toLowerCase() === CUSTOM_ENDPOINT_FILE) {
+      const raw = await readSmall(join(stateDirectory, name), 16384);
+      if (raw !== null) for (const value of keyLineValues(raw)) add(value);
+      continue;
+    }
     const isKey = /-key\.txt$/i.test(name), isAuth = /^convai-auth\.json$/i.test(name);
     if (!isKey && !isAuth) continue;
     const raw = await readSmall(join(stateDirectory, name), 8192);

@@ -18,6 +18,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repo = dirname(here);
 // Fake secrets are made at run time, never written out as literals (a key-shaped string trips GitHub push protection).
 const SECRET_PLAYER = 'test' + 'x'.repeat(28), SECRET_MISTRAL = 'test' + 'y'.repeat(28), SECRET_SHARED = 'test' + 'z'.repeat(28), SECRET_AUTH = 'test' + 'w'.repeat(28);
+const SECRET_CUSTOM = 'test' + 'v'.repeat(28);
 const CHAT = 'PLANTED CONVERSATION TEXT about the heist';
 const USER = 'PlantedPlayerName';
 
@@ -371,11 +372,13 @@ test('planted secrets, conversation text and the Windows account name never reac
     await f.put(join(data, 'player-convai-key.txt'), `api-key=${SECRET_PLAYER}\n`);
     await f.put(join(data, 'player-mistral-key.txt'), `api-key=${SECRET_MISTRAL}\n`);
     await f.put(join(data, 'convai-auth.json'), JSON.stringify({enabled: true, url: 'https://example.invalid', secret: SECRET_AUTH}));
+    // The custom provider's settings file: its key line is a secret; its address and model id are not.
+    await f.put(join(data, 'player-custom-endpoint.txt'), `endpoint=https://example.invalid/v1\nmodel=vendor/model:free\napi-key=${SECRET_CUSTOM}\n`);
     await f.put(join(f.app, 'defaults', 'service.txt'), packKey(SECRET_SHARED));
     await f.put(join(data, 'huggingface-token.txt'), `${PLANTED.hfToken}\n`);
     const userPath = `C:\\Users\\${USER}\\Desktop\\Code Palace`;
     const dirty = [`[Bridge] starting in ${userPath}`, `Authorization: Bearer ${PLANTED.hexKey}`, `plain mention of ${SECRET_PLAYER} and ${SECRET_MISTRAL}`,
-      `again ${SECRET_SHARED} then ${SECRET_AUTH}`, `hf ${PLANTED.hfToken}`, `session ${PLANTED.sessionId} user ${PLANTED.userId}`, 'error: the bridge failed to start', ''].join('\n');
+      `again ${SECRET_SHARED} then ${SECRET_AUTH}`, `[Custom] request with ${SECRET_CUSTOM} to example.invalid`, `hf ${PLANTED.hfToken}`, `session ${PLANTED.sessionId} user ${PLANTED.userId}`, 'error: the bridge failed to start', ''].join('\n');
     await f.put(join(f.game, ...MOD.split('/'), 'AiNpcCyberpunkMod.log'), dirty);
     await f.put(join(f.game, 'red4ext', 'logs', 'red4ext-2026-10-19-04-31-33.log'), dirty + RED4EXT_LOG);
     await f.put(join(data, 'bridge.stderr.log'), dirty);
@@ -386,12 +389,13 @@ test('planted secrets, conversation text and the Windows account name never reac
     assert.equal(result.ok, true);
     const entries = await unzip(result.path);
     const everything = entries.map(entry => `${entry.name}\n${entry.text}`).join('\n');
-    for (const [name, value] of Object.entries({SECRET_PLAYER, SECRET_MISTRAL, SECRET_SHARED, SECRET_AUTH, hfToken: PLANTED.hfToken, hexKey: PLANTED.hexKey,
+    for (const [name, value] of Object.entries({SECRET_PLAYER, SECRET_MISTRAL, SECRET_SHARED, SECRET_AUTH, SECRET_CUSTOM, hfToken: PLANTED.hfToken, hexKey: PLANTED.hexKey,
       userId: PLANTED.userId, sessionId: PLANTED.sessionId, windowsUser: USER, chat: CHAT})) assert(!everything.includes(value), `${name} appears in the report`);
     assert(!entries.some(entry => /chat|transcript/i.test(entry.name)), 'no content-like log is listed');
     assert.match(everything, /\[secret-redacted\]/, 'the key values were scrubbed by value');
     assert(everything.includes('<user>'), 'the account name in a profile path is replaced');
     assert(everything.includes('the bridge failed to start'), 'ordinary log text is kept');
+    assert(everything.includes('to example.invalid'), 'the custom endpoint\'s host is not a secret');
     const summary = summaryOf(entries);
     assert(summary.privacy.redactions.secrets >= 4, JSON.stringify(summary.privacy.redactions));
   } finally { await f.cleanup(); }
