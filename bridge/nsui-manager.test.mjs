@@ -622,6 +622,7 @@ test('a read-only row shows its value (or its line) where a button would be, and
       assert(container:GetWidgetByPath(BuildWidgetPath({state, 'body'})).visible == false, state .. ' body hidden')
     end
     local parts = ns.parts(row.controller)
+    assert(parts.bkFill == false and parts.bkBorder == false, 'bk_fill and bk_border (the outline) hidden')
     for _, state in ipairs({'off', 'on'}) do
       assert(parts[state].button == false and parts[state].buttonBorder == false and parts[state].txtValue == false, 'frame of ' .. state .. ' body hidden')
     end
@@ -635,6 +636,7 @@ test('a read-only row shows its value (or its line) where a button would be, and
   local button = assert(ns.find('Forget all memories'))
   local kept = ns.parts(button.controller)
   assert(kept.off.button and kept.off.buttonBorder, 'a real button keeps its frame')
+  assert(kept.bkFill and kept.bkBorder, 'a real button keeps its fill and border')
   local realContainer = button.controller:GetRootWidget():GetWidgetByPath(BuildWidgetPath({'layout', 'container'}))
   assert(realContainer:GetWidgetByPath(BuildWidgetPath({'offState'})).visible and realContainer:GetWidgetByPath(BuildWidgetPath({'offState', 'body'})).visible, 'a real button keeps its states')
   assert(button.controller.offStateBody.node.visible and button.controller.onStateBody.node.visible, 'a real button keeps its bodies')
@@ -645,7 +647,8 @@ test('a read-only row shows its value (or its line) where a button would be, and
   ns.openScreen(TAB); frames(2)
   press('Settings'); press('Memory')
   bare(ns.find('Memory service'))
-  assert(ns.parts(ns.find('Forget all memories').controller).off.button, 'a real button keeps its frame after a redraw')
+  local realAgain = ns.parts(ns.find('Forget all memories').controller)
+  assert(realAgain.off.button and realAgain.bkFill and realAgain.bkBorder, 'a real button keeps its frame after a redraw')
   -- A controller whose fields or widgets do not answer is harmless; the paths alone still hide the frame.
   local fresh = ns.find('Memory service')
   fresh.controller.offStateBody = nil
@@ -657,5 +660,11 @@ test('a read-only row shows its value (or its line) where a button would be, and
   local noPaths = ns.find('Memory service')
   assert(noPaths.controller.offStateBody.node.visible == false and noPaths.controller.onStateBody.node.visible == false, 'the static fallback hides the bodies')
   assert(managerUi.inspect().error == '' or managerUi.inspect().error == nil, tostring(managerUi.inspect().error))
+  press('Back to settings'); press('Memory')
+  local problemLines = 0
+  for _, write in ipairs(fileWrites) do
+    if write.path == 'runtime/mcm.log' and write.value:find('Read-only row frame not fully hidden', 1, true) then problemLines = problemLines + 1 end
+  end
+  assert(problemLines == 1, 'a failure to hide is logged once, got ' .. problemLines)
   ns.brokenRoot = false
 `));

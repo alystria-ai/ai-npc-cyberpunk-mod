@@ -43,7 +43,8 @@ export const storage = `
       return {read = function() return files[path] end, close = function() return true end}
     end
     if failSave then return nil end
-    return {write = function(_, value)
+    return {write = function(_, ...)
+      local value = table.concat({...})
       fileWrites[#fileWrites + 1] = {path = path, value = value}
       files[path] = value; return true
     end, close = function() return true end}

@@ -6739,7 +6739,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/nsui.lua:569"
+        "mod/nsui.lua:585"
       ]
     },
     "Open Settings to restore its defaults.": {
@@ -8428,7 +8428,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/nsui.lua:674",
+        "mod/nsui.lua:690",
         "mod/setup-check.lua:597"
       ]
     },
@@ -9977,7 +9977,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/nsui.lua:673",
+        "mod/nsui.lua:689",
         "mod/setup-check.lua:598"
       ]
     },

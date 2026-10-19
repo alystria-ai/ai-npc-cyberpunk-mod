@@ -424,7 +424,7 @@ end
 -- layout/container itself, beside the switch's two states, layout/container/offState and layout/container/onState. Each state holds
 -- a body (and the body the button, buttonBorder and txtValue). Hiding the parts one by one left a thin outline (the body's own
 -- border), and Native Settings UI hides the onState parts only (its "off" path points at the onState body as well), so a row of ours
--- hides both state widgets whole. If a path is missing, the body, then its parts, are hidden instead; the controller's
+-- hides both state widgets whole (and the two frame images, below). If a path is missing, the body, then its parts, are hidden instead; the controller's
 -- offStateBody and onStateBody fields are inkWidgetRef values (a method call on them does nothing, the static
 -- inkWidgetRef.SetVisible reaches the widget) and are tried last. The controller exists while the tab is on screen and is made again
 -- each time the tab opens, so this runs after every draw and when the tab is shown, a few calls for a page, never per frame. A row
@@ -442,11 +442,23 @@ local function hideWidget(widget)
     if widget then pcall(function() widget:SetVisible(false) end) end
 end
 
+-- The frame of a button is two images under layout/container itself, bk_fill and bk_border, besides the two states (seen live: they
+-- stayed visible after the states were hidden, as a thin outline). A read-only row hides them; the row's text is in the canvas
+-- Native Settings UI adds, which none of this touches. A real button needs its fill and border and is never given to this.
+local FRAME_IMAGES = {'bk_fill', 'bk_border'}
+local framesProblem = false  -- a failure to hide is logged once per session
+
 local function hideFrame(controller)
+    local problems = {}
     local okRoot, container = pcall(function()
         return controller:GetRootWidget():GetWidgetByPath(BuildWidgetPath({'layout', 'container'}))
     end)
+    if not (okRoot and container) then problems[#problems + 1] = 'layout/container not found' end
     if okRoot and container then
+        for _, name in ipairs(FRAME_IMAGES) do
+            local image = widgetAt(container, name)
+            if image then hideWidget(image) else problems[#problems + 1] = name .. ' not found' end
+        end
         for _, state in ipairs({'offState', 'onState'}) do
             hideWidget(widgetAt(container, state))
             local body = widgetAt(container, state, 'body')
@@ -458,6 +470,10 @@ local function hideFrame(controller)
     end
     for _, field in ipairs({'offStateBody', 'onStateBody'}) do
         pcall(function() inkWidgetRef.SetVisible(controller[field], false) end)
+    end
+    if #problems > 0 and not framesProblem then
+        framesProblem = true
+        pcall(log, 'Read-only row frame not fully hidden: ' .. table.concat(problems, '; '))
     end
 end
 
