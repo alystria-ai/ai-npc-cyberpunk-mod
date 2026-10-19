@@ -469,3 +469,114 @@ test('the first accepted audio ends the poll sleep: the snapshot that publishes 
   host.pollMs = 5;
   await pending;
 });
+
+// A player with the standby states of ContinuousPcmPlayer (open on standby, arm, stop), for the spare device opened ahead of a turn.
+class StandbyPlayer extends OfflinePlayer {
+  constructor(options = {}, {opening} = {}) { super(); this.options = options; this.opening = opening; this.opens = 0; this.arms = 0; }
+  async open(value) {
+    this.opens++; this.token = value.token; this.format = value; this.standby = value.standby === true;
+    if (this.opening) await this.opening;
+    if (this.failOpen) throw Error('no audio device');
+    this.opened = true;
+  }
+  async arm() { if (!this.standby || this.stopped) throw Error('PCM player is not on standby'); this.arms++; this.standby = false; }
+  async stop() { this.stopped = true; await super.stop(); }
+}
+
+test('a spare device opened ahead of the turn is armed by begin(): one device, no second open', async () => {
+  const players = [];
+  const client = new LocalPcmClient({createPlayer: options => { const player = new StandbyPlayer(options); players.push(player); return player; }});
+  assert.equal(await client.standby(), true);
+  assert.equal(players.length, 1);
+  assert.equal(players[0].format.standby, true, 'opened silent, with no lease');
+  assert.equal(players[0].options.standbyMs, 30000, 'an unused spare closes itself after 30 s');
+  assert.equal(await client.standby(), true, 'a second call keeps the same spare');
+  assert.equal(players.length, 1);
+  const snapshot = await client.begin({token: 'turn-1', text: 'Hey V.'});
+  assert.equal(snapshot.token, 'turn-1');
+  assert.equal(players.length, 1, 'the turn used the spare');
+  assert.equal(players[0].arms, 1);
+  assert.equal(players[0].opens, 1);
+  assert.equal(client.spare, null);
+  assert.equal(await client.standby(), false, 'a turn that owns the renderer has its own device: nothing more is opened');
+  assert.equal(players.length, 1);
+  await client.stop('turn-1');
+  assert.equal(players[0].stopped, true);
+});
+
+test('a spare that failed or expired is replaced by a device opened the ordinary way', async () => {
+  const players = [];
+  const client = new LocalPcmClient({createPlayer: options => { const player = new StandbyPlayer(options); players.push(player); return player; }});
+  assert.equal(await client.standby(), true);
+  players[0].stopped = true;   // the standby ceiling closed it
+  await client.begin({token: 'turn-1', text: 'Hey V.'});
+  assert.equal(players.length, 2);
+  assert.notEqual(players[1].format.standby, true, 'the turn opened its own device');
+  assert.equal(players[1].format.token, 'turn-1');
+  await client.stop('turn-1');
+  // A spare whose device could not open is dropped at once, and the turn opens one itself.
+  const failing = [];
+  const other = new LocalPcmClient({createPlayer: options => {
+    const player = new StandbyPlayer(options); if (!failing.length) player.failOpen = true; failing.push(player); return player; }});
+  assert.equal(await other.standby(), false);
+  assert.equal(other.spare, null);
+  await other.begin({token: 'turn-2', text: 'Hey V.'});
+  assert.equal(failing.length, 2);
+  assert.notEqual(failing[1].format.standby, true);
+});
+
+test('a turn that starts while its spare is still opening waits for that device instead of opening a second one', async () => {
+  const players = [], gate = deferred();
+  const client = new LocalPcmClient({createPlayer: options => {
+    const player = new StandbyPlayer(options, {opening: players.length ? undefined : gate.promise}); players.push(player); return player; }});
+  const standby = client.standby();
+  const beginning = client.begin({token: 'turn-1', text: 'Hey V.'});
+  await sleep(10);
+  assert.equal(players.length, 1);
+  gate.resolve();
+  assert.equal(await standby, true);
+  await beginning;
+  assert.equal(players.length, 1, 'still one device');
+  assert.equal(players[0].arms, 1);
+  // Stopped while its spare was being armed: the turn is cancelled and the device closed.
+  const late = deferred(), owned = [];
+  const second = new LocalPcmClient({createPlayer: options => { const player = new StandbyPlayer(options, {opening: late.promise}); owned.push(player); return player; }});
+  void second.standby();
+  const starting = second.begin({token: 'turn-2', text: 'Hey V.'});
+  await second.stop('turn-2');
+  late.resolve();
+  await assert.rejects(starting, /cancelled|not on standby/);
+  assert.ok(owned.every(player => player.stopped), 'no device is left open');
+  assert.equal(second.active, null);
+});
+
+test('LocalPcmHost.standby opens the page and a spare device; the next turn uses both, and standby never interrupts a turn', {timeout: 5000}, async t => {
+  const pages = [], players = [];
+  const host = new LocalPcmHost({pollMs: 5, timeoutMs: 3000, cleanupTimeoutMs: 100, createPage: async () => {
+    const client = new LocalPcmClient({createPlayer: options => { const player = new StandbyPlayer(options); players.push(player); return player; }});
+    const page = {closed: false, window: {localPcm: client}, isClosed() { return this.closed; },
+      async close() { this.closed = true; if (client.active) await client.stop(client.active.token); },
+      async evaluate(fn, payload) {
+        if (this.closed) throw Error('Offline page is closed');
+        return runInNewContext(`(${fn.toString()})(payload)`, {window: this.window, payload});
+      }};
+    pages.push(page); return page;
+  }});
+  t.after(() => host.close());
+  assert.equal(await host.standby(), true);
+  assert.equal(pages.length, 1);
+  assert.equal(players.length, 1);
+  assert.equal(players[0].format.standby, true);
+  const pending = host.play({token: 'standby-turn', text: 'One reply.'}, async emit => { await emit(packet()); return {}; },
+    {onFrame: () => control});
+  await until(() => players[0].sealed);
+  assert.equal(await host.standby(), false, 'a turn owns the renderer');
+  players[0].finish();
+  await pending;
+  assert.equal(pages.length, 1, 'the warmed page');
+  assert.equal(players.length, 1, 'the spare device: none was opened during the turn');
+  assert.equal(players[0].arms, 1);
+  // A page that cannot be evaluated is reported as no spare, never thrown.
+  pages[0].evaluate = async () => { throw Error('renderer gone'); };
+  assert.equal(await host.standby(), false);
+});

@@ -2380,6 +2380,11 @@ async function runInput(request, prepared, clock) {
     if (canWarm && !ahead) await connections.setRequest(input, turnRoute);
     if (canWarm && !ahead && keys.singleSession && input.group?.index === 1 && groupLookaheadAllowed()) void warmRoundAhead(input, controller.signal);
     throwIfCancelled(controller.signal);
+    // A reply the local renderer will voice (Pocket, Voxtral): its page and a silent output device open now, while the model thinks,
+    // instead of after the first sentence (0.15 to 0.75 s under the game in the live records). Not awaited; does nothing while the
+    // renderer is busy with another reply.
+    if (!ahead && canWarm && localVoice.playbackEnabled !== false && turnVoice(input).engine === 'pocket'
+      && (await readSpeechStateCached()).continuousAvailable === true) void realtime.standbyLocal().catch(() => {});
     clock.mark('transport');
     note(input, {transportRequestedAt: Date.now(), connectionWarm,
       submissionStages: {...stages, beforeTransportMs: performance.now() - preparationStarted}});

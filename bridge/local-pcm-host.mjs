@@ -283,6 +283,20 @@ export class LocalPcmHost {
     return this.warming;
   }
 
+  // Opens the renderer page if needed and a silent output device on it (LocalPcmClient.standby), so the next turn's renderer is ready
+  // the moment its voice is asked for. Called when a turn that will use this voice starts, while the model is still thinking. Never
+  // interrupts a turn (a turn that owns the page has its own device) and never throws.
+  async standby() {
+    if (this.active || this.closing || this.failure) return false;
+    if (!await this.warm()) return false;
+    const page = this.page;
+    if (!page || page.isClosed?.() || this.active || this.closing) return false;
+    try {
+      return await this.bounded(Promise.resolve().then(() => page.evaluate(() => window.localPcm.standby?.() ?? false)),
+        this.commandTimeoutMs, 'Local PCM standby timed out') === true;
+    } catch { return false; }
+  }
+
   close() {
     if (this.closing) return this.closing;
     this.epoch++; const turn = this.active, page = this.page || turn?.page;
