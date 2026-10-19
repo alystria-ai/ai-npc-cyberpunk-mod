@@ -117,6 +117,9 @@ Install or repair Microsoft Edge (free from [url=https://www.microsoft.com/edge]
 [b]Settings says "No model installed" for Local AI.[/b]
 The pack was probably extracted into an extra folder named after the zip. Extract it again into the Cyberpunk 2077 folder itself (the mod also moves misplaced packs into place at the next start). With only a Mature pack, turn on Mature content in Settings > Conversation provider.
 
+[b]The mod does not load, or the manager will not open.[/b]
+Close the game and double-click [b]Make support report.bat[/b] in Cyberpunk 2077\red4ext\plugins\AiNpcCyberpunkMod\. It checks that the required mods are installed, saves one report with the game closed and opens its folder. Send that file. With Mod Organizer 2, start it from MO2 (add it under Executables).
+
 [b]Something else?[/b]
 In game, open Companion Manager > Settings > Help > Help and support, choose [b]Generate report[/b], and send that file with what you were doing.
 

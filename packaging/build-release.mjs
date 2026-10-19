@@ -17,7 +17,8 @@
 //   AI-NPC-Cyberpunk-Mod-Mature-Standard-<v>.zip    optional Mature standard pack, one uncensored model (Gemma 4 E4B); only with --packages mature-standard
 // Only the Scripts (Nexus) and Runtime (GitHub release) packages may still be split into several zips (writeArchives).
 // plus SHA256SUMS.txt and release-manifest.json. The Runtime package also carries the native plugin
-// (red4ext/plugins/AiNpcCyberpunkModNative) and runtime/native-off.txt. See docs/PACKAGING.md.
+// (red4ext/plugins/AiNpcCyberpunkModNative), runtime/native-off.txt and "Make support report.bat" (a support report made with the game
+// closed, in red4ext/plugins/AiNpcCyberpunkMod). See docs/PACKAGING.md.
 //
 // Options:
 //   --version V        release version, 2077.N or 2077.N.M (required)
@@ -357,6 +358,11 @@ async function runtimePackage(source, config, models, key) {
   pkg.text(`${plugin}/launcher.log`, '');
   pkg.text(`${plugin}/README.txt`, await readFile(resolve(source.root, 'packaging/PLAYER_README.md'), 'utf8'));
   pkg.text(`${plugin}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
+  // The double-click tool for a player whose game never loads the mod: a support report made with the game closed. It starts
+  // app/node/node.exe on app/bridge/make-support-report.mjs (the bridge closure below carries that and the code it calls).
+  // A batch file needs CRLF line ends, whatever the checkout used.
+  const supportBatch = config.layout.supportReportBatch;
+  pkg.text(`${plugin}/${supportBatch}`, (await readFile(resolve(source.root, 'packaging', supportBatch), 'utf8')).replace(/\r?\n/g, '\r\n'));
 
   // The vision helper sits beside the bridge (bridge/vision-capture.mjs looks for app/vision/CyberpunkConvaiVision.exe).
   const visionExe = await buildVision(source);

@@ -729,7 +729,9 @@
             "bridge/pocket_voice_runtime.py",
             "bridge/phone-analysis-worker.py",
             "bridge/local-stt-worker.py",
-            "bridge/audio-output-probe.ps1"
+            "bridge/audio-output-probe.ps1",
+            "bridge/make-support-report.mjs",
+            "bridge/offline-support-report.mjs"
           ]
         },
         {
@@ -806,6 +808,15 @@
             "packaging/Start-Runtime.ps1",
             "packaging/Create-RuntimeManifest.mjs"
           ]
+        },
+        {
+          "id": "support-report",
+          "destination": "red4ext/plugins/AiNpcCyberpunkMod",
+          "sourceFiles": [
+            "packaging/Make support report.bat"
+          ],
+          "selection": "the double-click tool that makes a support report with the game closed; it starts app/node/node.exe on app/bridge/make-support-report.mjs (listed in the bridge component above), and the builder writes it with CRLF line ends",
+          "status": "source-and-fixture-tested"
         },
         {
           "id": "public-catalog",

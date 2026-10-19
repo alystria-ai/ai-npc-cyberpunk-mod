@@ -55,11 +55,12 @@ tool `test-release-install.mjs` matches package files by exact version, so 0.2 n
 red4ext/plugins/AiNpcCyberpunkMod/
   CyberpunkConvai.dll        launcher (native/autostart, compiled in the build)
   launcher.ini               UTF-16: %PLUGIN%\app\node\node.exe app\launcher\start-service.mjs
+  Make support report.bat    double-click tool: a support report made with the game closed (CRLF, written by the build)
   app/                       the application, replaced by every update
     node/node.exe            official Node.js (node.exe and LICENSE only)
     python/                  official CPython 3.12 embeddable + hash-locked wheels (Pocket worker)
     pocket-tts/              Kyutai pocket-tts source at the pinned revision (tree hash verified)
-    bridge/                  production import closure + worker scripts + the supervisor
+    bridge/                  production import closure + worker scripts + the supervisor + make-support-report.mjs (what the .bat starts)
     node_modules/            playwright and playwright-core only
     assets/                  fresh realtime-client.js bundle + PCM player modules
     characters/, research/   data the bridge reads (roster, world knowledge, quest catalog, intrinsic packs)

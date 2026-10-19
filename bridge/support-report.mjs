@@ -438,16 +438,26 @@ function companionProviders({settings, voice, routing, party}) {
     companions: rows};
 }
 
-/** Builds the report in memory. Nothing is written here. */
+/**
+ * Builds the report in memory. Nothing is written here.
+ *
+ * Offline mode (Make support report.bat, bridge/offline-support-report.mjs: the game is closed and no service runs) passes four
+ * more options; the service never does, and without them nothing here changes:
+ *   offline         true: the README and summary say the report was made with the game closed, and no bridge process is described
+ *   logs            the located log list to use instead of locateLogs (the offline tool looks in more than one folder)
+ *   extraProblems   more lines for the PROBLEM FOUND block, after the ones the status files give
+ *   extraSummary    an object merged into summary.json (it goes through the same redactor as everything else)
+ */
 export async function collectReport(options) {
   const {game, runtime, stateDirectory, project, request, now = Date.now, bridge = {}, environment = process.env} = options;
+  const offline = options.offline === true;
   const modRoot = options.modRoot ?? resolve(runtime, '..');
   // The graphics cards (reg.exe, once per process) are looked up while the logs are read, so the report is not slower for it.
   const graphicsSource = options.graphics ?? (() => cachedGraphicsCards());
   const graphicsPending = Promise.resolve().then(() => typeof graphicsSource === 'function' ? graphicsSource() : graphicsSource).catch(() => []);
   const secrets = [...(options.secrets ?? []), ...await credentialSecrets(stateDirectory), ...await customServerSecrets({project: project ?? resolve(runtime, '..'), environment})];
   const redact = createRedactor({secrets, ids: options.knownIds ?? []});
-  const logs = await locateLogs({game, modRoot, runtime, stateDirectory});
+  const logs = Array.isArray(options.logs) ? options.logs : await locateLogs({game, modRoot, runtime, stateDirectory});
   const lua = sanitizeRequest(request ?? {});
   const entries = [], index = [], errors = [];
 
@@ -494,21 +504,24 @@ export async function collectReport(options) {
     for (const profile of raw['party-connections.json'].profiles.slice(0, 12)) party.push({profile: clip(profile, 80), state: 'connected'});
   }
   const versionInfo = await versions({game, modRoot, project: project ?? resolve(runtime, '..'), logs, now});
-  const problems = knownProblems(raw, {lua, now});
+  const problems = [...knownProblems(raw, {lua, now}),
+    ...(Array.isArray(options.extraProblems) ? options.extraProblems.filter(line => typeof line === 'string' && line).slice(0, 40) : [])];
   const cards = await graphicsPending;
   const graphics = (Array.isArray(cards) ? cards : []).slice(0, 8)
     .map(card => ({name: clip(card?.name, 120), memoryMiB: Number.isFinite(card?.memoryMiB) && card.memoryMiB > 0 ? Math.round(card.memoryMiB) : null}))
     .filter(card => card.name);
   const summary = redact.value({
-    schema: 1, ...(problems.length ? {problems} : {}), reportId: options.reportId, generatedBy: 'bridge', generatedAt: new Date(now()).toISOString(),
+    schema: 1, ...(problems.length ? {problems} : {}), reportId: options.reportId, generatedBy: offline ? 'offline' : 'bridge', generatedAt: new Date(now()).toISOString(),
     privacy: {notes: ['No API keys, tokens, audio, voice references, model files or conversation text are included.',
       'IDs are replaced by short hashes; key and token patterns, long secrets and your Windows account name are removed from every log.'],
       redactions: undefined},
     versions: versionInfo,
+    ...(options.extraSummary && typeof options.extraSummary === 'object' ? options.extraSummary : {}),
     system: {graphics},
     request: {cetVersion: lua.cetVersion, language: lua.language, view: lua.view, developerMode: lua.developerMode,
       ageMs: Number.isFinite(request?.issuedAt) ? Math.max(0, now() - request.issuedAt) : null, setup: lua.setup},
-    bridge: {pid: process.pid, uptimeSeconds: Math.round(process.uptime()), ...bridge, status},
+    // Offline, this is the status the last game session left behind, and no process of this report's own is described.
+    bridge: offline ? {offline: true, ...bridge, status} : {pid: process.pid, uptimeSeconds: Math.round(process.uptime()), ...bridge, status},
     settings: settingsView,
     localAi: await localAiSection({runtime, project: project ?? resolve(runtime, '..'), environment}),
     party: {companions: party, connections: raw['party-connection-state.json']
@@ -518,11 +531,13 @@ export async function collectReport(options) {
   });
   summary.privacy.redactions = {...redact.stats};
   const readme = [
-    'AI NPC Cyberpunk Mod support report',
+    offline ? 'AI NPC Cyberpunk Mod support report (made with the game closed)' : 'AI NPC Cyberpunk Mod support report',
     `Created ${summary.generatedAt}  (report ${options.reportId})`, '',
     ...(problems.length ? ['PROBLEM FOUND:', ...problems.map(line => `  ${redact.text(line)}`), ''] : []),
     'Send this one file to the developer. It contains:',
-    '  summary.json   versions, graphics card, service status, setup check, settings, Local AI detection, party, provider per companion, recent errors',
+    offline
+      ? '  summary.json   versions, the requirement check, where the mod files are, service status from the last game start, settings, Local AI detection, recent errors'
+      : '  summary.json   versions, graphics card, service status, setup check, settings, Local AI detection, party, provider per companion, recent errors',
     '  logs/*.txt     the end of each mod, service, CET, redscript and RED4ext log (last 2000 lines each);',
     '                 voice-routing.txt lists which voice spoke each reply and why (no reply text)', '',
     'It does NOT contain API keys or tokens, microphone audio, voice references, model files',

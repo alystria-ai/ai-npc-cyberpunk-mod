@@ -305,6 +305,15 @@ async function main() {
     // Mod Organizer 2: the files the game and the service exchange exist from the start, and so does launcher.log, so nothing creates them new.
     const placeholders = (await loadRuntimeExchange(project)).exchange.filter(name => !existsSync(join(mod, 'runtime', name)));
     check('runtime/ exchange placeholders and launcher.log are installed', placeholders.length === 0 && existsSync(join(plugin, 'launcher.log')), placeholders.slice(0, 8).join(', '));
+    // A support report made with the game closed (Make support report.bat, for a player the mod never loads for): the batch file is
+    // installed with CRLF line ends, and the packaged Node makes a report from the installed files.
+    const batch = join(plugin, 'Make support report.bat');
+    check('"Make support report.bat" is installed with CRLF line ends', existsSync(batch) && !/(?<!\r)\n/.test(await readFile(batch, 'latin1')));
+    const reportOut = join(work, 'offline-report');
+    const made = spawnSync(node, [join(app, 'bridge/make-support-report.mjs'), '--no-open', '--out', reportOut], {env: cleanEnv(), encoding: 'utf8'});
+    const written = existsSync(reportOut) ? (await readdir(reportOut)).filter(name => /^convai-report-\d{8}-\d{6}\.zip$/.test(name)) : [];
+    check('the support report can be made with the game closed', made.status === 0 && written.length === 1 && /send that file/.test(made.stdout || ''),
+      (made.stdout || made.stderr || '').trim().split('\n').at(-1)?.slice(0, 160));
     const nativeDll = join(plugins, 'AiNpcCyberpunkModNative/CyberpunkConvaiNative.dll');
     const nativeOff = join(mod, 'runtime/native-off.txt');
     const release = JSON.parse(await readFile(join(app, 'release.json'), 'utf8'));
