@@ -866,7 +866,7 @@ function convaiJohnnyFightSample(sample)
     end
 end
 -- Johnny's hologram (phase 3, mod/johnny-hologram.lua): loaded on the first sit that finds both settings on (Johnny in your head, and
--- Johnny's hologram); with either off a sit costs two boolean reads. The look is Johnny's (M.DEFAULT_LOOK); the live test picks it.
+-- Johnny's hologram); with either off a sit costs two boolean reads. The look is Johnny's (M.DEFAULT_LOOK, his own glitch effects).
 function convaiJohnnyHologramService()
     if not manager.johnnyHologram() or not manager.johnnyInHead() then return nil end
     if convaiJohnnyHologram == nil then
@@ -875,6 +875,8 @@ function convaiJohnnyHologramService()
             enabled = function() return manager.johnnyHologram() and manager.johnnyInHead() end,
             story = function() local head = convaiJohnnyHeadService(); return head and head:story() or 'unreadable' end,
             lines = function() return convaiGameDialogue and convaiGameDialogue.lines or nil end,
+            -- He stays while V sits: the seat hook's own answer (nil while V stands), asked on the 0.5 s sample only while he is there.
+            seated = function() return convaiSeatedLook ~= nil and convaiSeatedLook.sitting ~= nil end,
             log = function(line) if convaiLogLine then convaiLogLine(line) end end}) or false
         if convaiJohnnyHologram then pcall(convaiJohnnyHologram.sweep, convaiJohnnyHologram)
         else print('[CyberpunkConvai] johnny-hologram.lua unavailable: ' .. tostring(module)) end
@@ -3758,9 +3760,19 @@ local function captureDiagnostic()
     if not ok then log('Diagnostic capture failed: ' .. tostring(err)) end
 end
 
+-- The manager's shortcut (a CET hotkey: it runs when the key comes back up). Every press logs two lines: that the handler was entered, and
+-- the outcome (opened, or the refusal with its reason and kind, or the error), so a press that did nothing can be told from one that never
+-- arrived (2026-10-20: F4 on a couch left no line at all). A refusal because V sits is the one the player is told about: Mod Configuration
+-- Menu declines to open while a scene tier of 3 holds, and a couch or chair is one (mod/mcm-host.lua, refusal), so there is a short
+-- notice ('manager-seated', at most every 5 s: it shows for five seconds). The other refusals stay in the log, as before.
+-- (The count is a global: the main chunk is near Lua's limit of local variables.)
 local function openManager()
-    local ok, result, reason = pcall(managerUi.open)
+    convaiManagerPresses = (convaiManagerPresses or 0) + 1
+    local press = convaiManagerPresses
+    log('Companion manager shortcut: press ' .. press .. ' (handler entered)')
+    local ok, result, reason, kind = pcall(managerUi.open)
     if ok and result then
+        log('Companion manager shortcut: press ' .. press .. ' opened (requested from the settings host)')
         gameplayActions.revoke('menu')
         endFocus(Game.GetPlayer())
         focusMode = nil
@@ -3768,7 +3780,15 @@ local function openManager()
         focusUntil = nil
         resetGaze()
     else
-        log('Companion manager: ' .. tostring(reason or result or 'Open it during gameplay.'))
+        local why = tostring(ok and (reason or result) or result or 'Open it during gameplay.')
+        log('Companion manager: ' .. why)
+        log('Companion manager shortcut: press ' .. press .. (ok and ' refused' or ' failed') .. ' (kind=' .. tostring(ok and kind or nil) .. ')')
+        if ok and kind == 'seated' then
+            pcall(function()
+                local player = Game.GetPlayer()
+                if player then convaiNotices.send(player, 'manager-seated', ui.t('Stand up to open the Companion Manager')) end
+            end)
+        end
     end
 end
 

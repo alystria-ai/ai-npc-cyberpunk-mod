@@ -1078,6 +1078,7 @@ return {
     ["Error reports go to the developer automatically. Turn them off in Settings > Privacy."] = "Звіти про помилки сами йдуть розробнику. Вимкнути: Налаштування > Конфіденційність.",
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI"] = "Для «Менеджера компаньйонів» потрібен Mod Configuration Menu 0.10.5+ або Native Settings UI",
     ["Update Mod Configuration Menu to 0.10.5 or newer to use the Companion Manager"] = "Онови Mod Configuration Menu до 0.10.5+ для «Менеджера компаньйонів»",
+    ["Stand up to open the Companion Manager"] = "Встань, щоб відкрити «Менеджер компаньйонів»",
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game."] = "Для «Менеджера компаньйонів» потрібен Mod Configuration Menu 0.10.5 або новіший, або Native Settings UI 1.96 або новіший. Встанови один із них з Nexus Mods і перезапусти гру.",
     ["Mod Configuration Menu is too old. Update it to 0.10.5 or newer from Nexus Mods, then restart the game."] = "Mod Configuration Menu занадто старий. Онови його до 0.10.5 або новішого з Nexus Mods і перезапусти гру.",
     ["Previous page"] = "Попередня сторінка",

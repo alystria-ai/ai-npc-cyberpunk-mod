@@ -1078,6 +1078,7 @@ return {
     ["Error reports go to the developer automatically. Turn them off in Settings > Privacy."] = "오류 보고서는 개발자에게 자동 전송됩니다. 끄기: 설정 > 개인정보 보호",
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI"] = "동료 관리에는 Mod Configuration Menu 0.10.5 이상 또는 Native Settings UI가 필요합니다",
     ["Update Mod Configuration Menu to 0.10.5 or newer to use the Companion Manager"] = "동료 관리를 쓰려면 Mod Configuration Menu를 0.10.5 이상으로 업데이트하세요",
+    ["Stand up to open the Companion Manager"] = "동료 관리를 열려면 일어서세요",
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game."] = "동료 관리에는 Mod Configuration Menu 0.10.5 이상 또는 Native Settings UI 1.96 이상이 필요합니다. 둘 중 하나를 Nexus Mods에서 설치한 후 게임을 다시 시작하세요.",
     ["Mod Configuration Menu is too old. Update it to 0.10.5 or newer from Nexus Mods, then restart the game."] = "Mod Configuration Menu가 너무 오래되었습니다. Nexus Mods에서 0.10.5 이상으로 업데이트한 후 게임을 다시 시작하세요.",
     ["Previous page"] = "이전 페이지",

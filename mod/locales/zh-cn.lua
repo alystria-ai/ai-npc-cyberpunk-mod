@@ -1078,6 +1078,7 @@ return {
     ["Error reports go to the developer automatically. Turn them off in Settings > Privacy."] = "错误报告会自动发送给开发者，可在“设置 > 隐私”中关闭。",
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI"] = "伙伴管理器需要 Mod Configuration Menu 0.10.5 或更高版本，或 Native Settings UI",
     ["Update Mod Configuration Menu to 0.10.5 or newer to use the Companion Manager"] = "请将 Mod Configuration Menu 更新到 0.10.5 或更高版本以使用伙伴管理器",
+    ["Stand up to open the Companion Manager"] = "请站起来以打开伙伴管理器",
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game."] = "伙伴管理器需要 Mod Configuration Menu 0.10.5 或更高版本，或 Native Settings UI 1.96 或更高版本。请从 Nexus Mods 安装其中之一，然后重新启动游戏。",
     ["Mod Configuration Menu is too old. Update it to 0.10.5 or newer from Nexus Mods, then restart the game."] = "Mod Configuration Menu 版本过旧。请从 Nexus Mods 更新到 0.10.5 或更高版本，然后重新启动游戏。",
     ["Previous page"] = "上一页",

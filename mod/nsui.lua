@@ -776,12 +776,13 @@ end
 function M.open()
     for _, host in ipairs(hosts) do
         if host.ready() then
-            local ok, opened, reason = pcall(host.open)
+            local ok, opened, reason, gameState, kind = pcall(host.open)
             if ok and opened then return true end
-            if not ok then reason = tostring(opened) end
+            if not ok then reason, gameState, kind = tostring(opened), nil, nil end
             -- MCM hosts the page, so the page is MCM's alone: the reason is the answer (a refusal by the game, such as no save
-            -- loaded or a scene, or MCM not opening the page), and no Native Settings UI tab is registered as a way around it.
-            return false, reason
+            -- loaded or a scene, or MCM not opening the page), and no Native Settings UI tab is registered as a way around it. The
+            -- third value is the kind of a refusal by the game ('seated': V sits, MCM does not open its page then).
+            return false, reason, kind
         end
     end
     if not ns then connect(true) end

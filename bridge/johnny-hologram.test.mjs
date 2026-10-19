@@ -194,7 +194,7 @@ test('candidates and faceYaw: spots round V in the tables order, a positive angl
 const service = `
   local clockNow, wallNow = 100, 5000
   local state = {attached = false, near = false, spotAt = 2, deletes = {}, spawned = nil, flickers = {}, screens = {}, looks = {},
-    spotCalls = 0, sweeps = 0, nativeCalls = 0}
+    spotCalls = 0, sweeps = 0, nativeCalls = 0, effectCalls = {}, bursts = 0, leaves = 0}
   local native = {
     position = function(player) return {x = 0, y = 0, z = 0}, {x = 0, y = 1} end,
     spot = function(origin, candidate)
@@ -208,16 +208,31 @@ const service = `
     spawn = function(row) state.spawned = row; return 'id-1' end,
     entity = function(id) assert(id == 'id-1'); if state.attached then return {name = 'npc'} end return nil end,
     hash = function(npc) return '777' end,
-    look = function(npc, id, look) state.looks[#state.looks + 1] = look; return {phantom = 1, effects = 0, flicker = look.flicker and 8 or 0} end,
+    look = function(npc, id, look)
+      state.looks[#state.looks + 1] = look
+      local names = look.effects or {}
+      return {phantom = 1, effects = #names, flicker = look.flicker and 8 or 0, applied = names, failed = {}, known = look.effects and (function() local k = {}; for _, n in ipairs(look.effects) do k[n] = true end; return k end)() or nil}
+    end,
     flicker = function(npc, id, schedule) state.flickers[#state.flickers + 1] = #schedule; return #schedule end,
+    effects = function(npc, id, names, start)
+      for _, name in ipairs(names) do state.effectCalls[#state.effectCalls + 1] = (start and '+' or '-') .. name end
+      return {ok = names, failed = state.effectFails or {}}
+    end,
+    burst = function(npc, id, look) state.bursts = state.bursts + 1; state.flickers[#state.flickers + 1] = #R.FLICKER_BURST
+      if look.burst then state.effectCalls[#state.effectCalls + 1] = '+' .. look.burst end
+      return {ok = look.burst and {look.burst} or {}, failed = state.effectFails or {}, flicker = #R.FLICKER_BURST} end,
+    leave = function(npc, id, look) state.leaves = state.leaves + 1; state.flickers[#state.flickers + 1] = #R.FLICKER_OUT
+      if look.leave then state.effectCalls[#state.effectCalls + 1] = '+' .. look.leave end
+      return {ok = look.leave and {look.leave} or {}, failed = {}, flicker = #R.FLICKER_OUT} end,
     delete = function(id) state.deletes[#state.deletes + 1] = id; return true end,
     sweep = function() state.sweeps = state.sweeps + 1; return state.swept or 0 end,
     screen = function(on) state.screens[#state.screens + 1] = on; return true end,
   }
-  local enabled, story, rows, logged, talking, held = true, 'active', {}, {}, false, false
+  local enabled, story, rows, logged, talking, seated, draw = true, 'active', {}, {}, false, true, 0.5
   local function make(extra)
     local o = {enabled = function() return enabled end, story = function() return story end, lines = function() return rows end,
-      clock = function() return clockNow end, now = function() return wallNow end, native = native, hold = function() return held end,
+      clock = function() return clockNow end, now = function() return wallNow end, native = native, seated = function() return seated end,
+      random = function() return draw end,
       log = function(line) logged[#logged + 1] = line end}
     for key, value in pairs(extra or {}) do o[key] = value end
     return R.new(o)
@@ -303,8 +318,10 @@ serviceTest('chain: a plain couch sit (tier 3, dialogue and choice flags up) is 
   assert(S:visible(), 'the sit flags do not send him away: ' .. lastLog())
   tick(S, 1, sampleNow()); tick(S, 1, sampleNow())
   assert(S:visible(), 'still there two seconds on')
-  -- V stands up: he goes at once.
+  -- V stands up: he glitches out, and the next sample deletes him.
   convaiSeatedLook.left()
+  assert(S:active() and S:status().visit.state == 'leaving', 'a glitch-out first')
+  tick(S, 0.5, sampleNow())
   assert(not S:active() and lastLog():find('gone reason=stood', 1, true), lastLog())
 `);
 
@@ -370,36 +387,89 @@ test('convaiPlainSitting (the manager shortcut asks it at scene tier 3): yes onl
   `);
 });
 
-serviceTest('service: he stays VISIBLE seconds, flickers out for a flicker look, then is deleted by id; the cooldown starts with the attempt', `
-  local S = make({look = 'D'})
-  S:moment('sit', 'couch', {tier = 1})
-  tick(S, 2); tick(S, 3); tick(S, 1)
+serviceTest('service: he stays as long as V sits (no timer), glitches in bursts, goes with a glitch-out when V stands, deleted by id; the cooldown runs from his leaving', `
+  local S = make({look = 'F'})
+  local plain = function() return sampleOf({tier = 3, dialogue = true, choices = true, sitting = true}) end
+  S:moment('sit', 'couch', {tier = 3})
+  tick(S, 2, plain()); tick(S, 3, plain()); tick(S, 1, plain())
   state.attached = true
-  tick(S, 0.5)
+  tick(S, 0.5, plain())
   assert(S:visible())
-  assert(tick(S, R.VISIBLE - 1) == true and S:visible() and #state.deletes == 0)
-  tick(S, 1.5)
-  assert(S:status().visit.state == 'leaving' and #state.flickers == 1 and state.flickers[1] == #R.FLICKER_OUT and #state.deletes == 0)
+  local shown = lastLog()
+  assert(shown:find('shown look=F', 1, true) and shown:find('effects=2', 1, true), shown)
+  assert(shown:find('applied=[johnny_spawn_normal known, johnny_glitch_idle_01 known]', 1, true) and not shown:find('failed=', 1, true), shown)
+  -- a long sit: far past anything a timer could have been, he is still there and nothing was deleted
+  for _ = 1, 400 do tick(S, 0.5, plain()) end
+  assert(S:visible() and S:active() and #state.deletes == 0, 'still there after 200 s of a plain sit')
+  assert(state.bursts >= 5, 'a burst every 15 to 35 s: ' .. state.bursts)
+  assert(state.effectCalls[1] == '-johnny_glitch_idle_01', 'the arrival glitch loop stops after GLITCH_SECONDS, before any burst: ' .. tostring(state.effectCalls[1]))
+  local started, stopped = 0, 0
+  for _, call in ipairs(state.effectCalls) do
+    if call == '+' .. R.FX.burst then started = started + 1 elseif call == '-' .. R.FX.burst then stopped = stopped + 1 end
+  end
+  assert(started == state.bursts and stopped >= started - 1, 'every burst effect is stopped again: ' .. started .. '/' .. stopped)
+  -- V stands up: a glitch-out, then the delete on the next sample
+  assert(S:stand() == true and S:status().visit.state == 'leaving' and state.leaves == 1 and #state.deletes == 0)
+  assert(state.effectCalls[#state.effectCalls] == '+' .. R.FX.leave, 'the teleport-out plays')
   tick(S, 0.5)
-  assert(not S:active() and #state.deletes == 1 and state.deletes[1] == 'id-1' and lastLog():find('gone reason=done', 1, true), lastLog())
+  assert(not S:active() and #state.deletes == 1 and state.deletes[1] == 'id-1' and lastLog():find('gone reason=stood', 1, true), lastLog())
   S:moment('sit', 'couch', {tier = 1})
   tick(S, 3)
-  assert(not S:active() and lastLog():find('reason=cooldown', 1, true) and #state.deletes == 1, 'the next sit is within the cooldown: skipped, logged: ' .. lastLog())
-  clockNow = clockNow + R.COOLDOWN
+  assert(not S:active() and lastLog():find('reason=cooldown', 1, true) and #state.deletes == 1, 'a micro re-sit is within the cooldown: skipped, logged: ' .. lastLog())
+  clockNow = clockNow + R.COOLDOWN - 10
   S:moment('sit', 'couch', {tier = 1})
-  assert(S:active())
-  assert(S:status().cooldownLeft == 0)
+  tick(S, 1)
+  assert(not S:active() and lastLog():find('reason=cooldown', 1, true), 'the cooldown runs from his leaving, not from his arrival')
+  clockNow = clockNow + 10
+  S:moment('sit', 'couch', {tier = 1})
+  assert(S:active() and S:status().cooldownLeft == 0)
 `);
 
-serviceTest('service: a look without a flicker is deleted at its time; options.hold keeps him up to HOLD_MAX while a remark of his plays', `
+serviceTest('service: what ends a stay: a fight, a call, a scene, a game line, the setting, a seat hook that no longer says sitting (twice in a row)', `
+  local function visit(extra)
+    clockNow = clockNow + R.COOLDOWN + 1
+    state.attached, state.spawned, state.spotCalls, state.deletes = false, nil, 0, {}
+    enabled, seated, rows = true, true, {}
+    local S = make(extra)
+    S:moment('sit', 'couch', {tier = 1})
+    tick(S, 2); tick(S, 3); tick(S, 1); state.attached = true; tick(S, 0.5)
+    assert(S:visible(), 'shown')
+    return S
+  end
+  local S = visit(); tick(S, 1, sampleOf({combat = true})); assert(not S:active() and lastLog():find('gone reason=combat', 1, true), 'combat: ' .. lastLog())
+  S = visit(); tick(S, 1, sampleOf({call = true})); assert(not S:active() and lastLog():find('gone reason=scene', 1, true), 'call: ' .. lastLog())
+  S = visit(); tick(S, 1, sampleOf({tier = 4})); assert(not S:active() and lastLog():find('gone reason=scene', 1, true), 'tier: ' .. lastLog())
+  S = visit(); rows = {{at = wallNow + 1, profileKey = 'someone', channel = 'game'}}; tick(S, 1); assert(not S:active() and lastLog():find('gone reason=line', 1, true), 'line: ' .. lastLog())
+  S = visit(); enabled = false; tick(S, 1); assert(not S:active() and lastLog():find('gone reason=off', 1, true), 'off: ' .. lastLog())
+  S = visit(); seated = false
+  tick(S, 0.5); assert(S:visible(), 'one sample without the seat hook is a hiccup')
+  seated = true; tick(S, 0.5); seated = false; tick(S, 0.5); assert(S:visible(), 'a recovered answer starts the count again')
+  tick(S, 0.5); assert(not S:active() and lastLog():find('gone reason=not-seated', 1, true), lastLog())
+`);
+
+serviceTest('service: the shown line names the effects that failed and the ones his template does not know, once per spawn', `
+  local failing = {look = function(npc, id, look) return {phantom = 1, effects = 1, flicker = 8, applied = {'johnny_spawn_normal'},
+    failed = {'johnny_glitch_idle_01 (boom)'}, known = {johnny_spawn_normal = false}} end}
+  for key, value in pairs(native) do if not failing[key] then failing[key] = value end end
+  local S = make({native = failing, look = 'F'})
+  S:moment('sit', 'couch', {tier = 1})
+  tick(S, 2); tick(S, 3); tick(S, 1); state.attached = true; tick(S, 0.5)
+  local line = lastLog()
+  assert(line:find('applied=[johnny_spawn_normal NOT-IN-TEMPLATE]', 1, true) and line:find('failed=[johnny_glitch_idle_01 (boom)]', 1, true), line)
+  state.effectFails = {'johnny_glitch_idle_03 (nope)'}
+  for _ = 1, 200 do tick(S, 0.5) end
+  local count = 0
+  for _, l in ipairs(logged) do if l:find('burst effects failed', 1, true) then count = count + 1 end end
+  assert(count == 1, 'a failing burst is logged once per spawn, not every time: ' .. count)
+`);
+
+serviceTest('service: a look without a flicker or effects also stays; his going is then at once', `
   local S = make({look = 'C'})
   S:moment('sit', 'chair', {tier = 1})
   tick(S, 2); tick(S, 3); tick(S, 1); state.attached = true; tick(S, 0.5)
-  held = true
-  tick(S, R.VISIBLE + 1)
-  assert(S:visible() and #state.deletes == 0, 'held')
-  tick(S, R.HOLD_MAX)
-  assert(#state.deletes == 1 and not S:active(), 'never longer than HOLD_MAX')
+  for _ = 1, 100 do tick(S, 1) end
+  assert(S:visible() and #state.deletes == 0 and state.bursts == 0, 'no timer, no bursts for a look without a flicker')
+  assert(S:stand() == true and #state.deletes == 1 and not S:active() and state.leaves == 0, 'no glitch-out to play: gone at once')
 `);
 
 serviceTest('service: Vs screen glitch is on only for SCREEN_SECONDS when the option is set, and off again if he goes early', `
@@ -587,6 +657,7 @@ const natives = `
   NewObject = function(kind)
     if kind == 'DynamicEntitySpec' then return {} end
     if kind == 'enteventsSetVisibility' then return {} end
+    if kind == 'entSpawnEffectEvent' or kind == 'entBreakEffectLoopEvent' then return {kind = kind} end
     error('unexpected ' .. kind)
   end
   local npcs = {}
@@ -595,7 +666,10 @@ const natives = `
     FindEntityByID = function(id) return npcs[id] end,
     GetDelaySystem = function() return {DelayEvent = function(_, npc, event, delay) delayed[#delayed + 1] = {event = event, delay = delay} end} end,
   }
-  GameObjectEffectHelper = {StartEffectEvent = function(npc, name) effects[#effects + 1] = name end, StopEffectEvent = function() end}
+  GameObjectEffectHelper = {StartEffectEvent = function(npc, name) effects[#effects + 1] = name end,
+    BreakEffectLoopEvent = function(npc, name) effects[#effects + 1] = 'break:' .. name end,
+    StopEffectEvent = function(npc, name) effects[#effects + 1] = 'stop:' .. name end}
+  Game.NameToString = function(name) return (tostring(name):gsub('^cname:', '')) end
   local N
 `;
 const nativeTest = (name, code) => test(name, () => withModule(`${natives}
@@ -658,10 +732,13 @@ nativeTest('look: the phantom controller is switched off and the entity shown fo
   local queued = {}
   local phantom = {IsA = function(_, c) return c == 'gamePhantomEntityComponent' end, Toggle = function(_, on) toggles[#toggles + 1] = on end}
   local other = {IsA = function() return false end, Toggle = function() error('never touched') end}
-  local npc = {GetComponents = function() return {phantom, other} end, QueueEvent = function(_, e) queued[#queued + 1] = e end}
+  local spawner = {IsA = function(_, c) return c == 'entEffectSpawnerComponent' end,
+    effectDescs = {{effectName = 'cname:johnny_spawn_normal'}, {effectName = 'cname:johnny_glitch_idle_01'}, {effectName = 'cname:johnny_glitch_idle_03'}}}
+  local npc = {GetComponents = function() return {phantom, other, spawner} end, QueueEvent = function(_, e) queued[#queued + 1] = e end}
   local report = N.look(npc, id, R.LOOKS.B)
   assert(report.phantom == 1 and #toggles == 1 and toggles[1] == false, 'the phantom controller is switched off')
-  assert(report.effects == 2 and effects[1] == 'cname:glitch' and effects[2] == 'cname:johnny_intro', 'the two effect events')
+  assert(report.effects == 2 and effects[1] == 'cname:johnny_spawn_normal' and effects[2] == 'cname:johnny_glitch_idle_01', 'the two effect events, by the names his template has')
+  assert(#report.applied == 2 and #report.failed == 0 and report.known.johnny_spawn_normal == true and report.known.johnny_glitch_idle_01 == true, 'known to his template')
   assert(#queued == 1 and queued[1].visible == true and queued[1].source == 'entVisibilityParamSource:PhantomEntitySystem', 'shown at once')
   toggles, queued, delayed = {}, {}, {}
   report = N.look(npc, id, R.LOOKS.D)
@@ -677,6 +754,59 @@ nativeTest('look: the phantom controller is switched off and the entity shown fo
   assert(report.phantom == 0 and #toggles == 0 and report.effects == 0 and report.flicker == 0, 'phantom on: the entity is left as spawned')
   assert(not pcall(N.look, npc, stranger, R.LOOKS.B), 'a look is only ever given to our own copy')
   assert(N.flicker(npc, stranger, R.FLICKER_OUT) == 0 and #delayed == 0, 'nor a flicker')
+`);
+
+nativeTest('effects, burst and leave: started and stopped by name on our own copy only; the event is the fallback when the helper errors; failures are named', `
+  local id = N.spawn({record = R.RECORD, appearance = 'a', x = 0, y = 0, z = 0, yaw = 0})
+  local queued = {}
+  local npc = {GetComponents = function() return {} end, QueueEvent = function(_, e) queued[#queued + 1] = e end}
+  local report = N.effects(npc, id, {'johnny_glitch_idle_03'}, true)
+  assert(#report.ok == 1 and #report.failed == 0 and effects[#effects] == 'cname:johnny_glitch_idle_03')
+  report = N.effects(npc, id, {'johnny_glitch_idle_03'}, false)
+  assert(#report.ok == 1 and effects[#effects] == 'break:cname:johnny_glitch_idle_03', 'a loop is ended with the helper that lets it finish')
+  GameObjectEffectHelper.BreakEffectLoopEvent = function() error('no break') end
+  report = N.effects(npc, id, {'johnny_glitch_idle_03'}, false)
+  assert(#report.ok == 1 and effects[#effects] == 'stop:cname:johnny_glitch_idle_03', 'the harder stop when that errors')
+  assert(not pcall(N.effects, npc, stranger, {'x'}, true) and not pcall(N.effects, npc, gameJohnny, {'x'}, true), 'only our own copy')
+  -- the helper errors: the event the game queues itself is used instead
+  GameObjectEffectHelper.StartEffectEvent = function() error('no helper') end
+  GameObjectEffectHelper.StopEffectEvent = function() error('no helper') end
+  report = N.effects(npc, id, {'johnny_glitch_idle_01'}, true)
+  assert(#report.ok == 1 and queued[1].kind == 'entSpawnEffectEvent' and queued[1].effectName == 'cname:johnny_glitch_idle_01')
+  report = N.effects(npc, id, {'johnny_glitch_idle_01'}, false)
+  assert(#report.ok == 1 and queued[2].kind == 'entBreakEffectLoopEvent')
+  -- both fail: named, with why
+  npc.QueueEvent = function() error('no queue') end
+  report = N.effects(npc, id, {'johnny_glitch_idle_01', 'x'}, true)
+  assert(#report.ok == 0 and #report.failed == 2 and report.failed[1]:find('johnny_glitch_idle_01 (', 1, true) and report.failed[1]:find('no helper', 1, true), report.failed[1])
+  -- burst and leave use the look's own names and queue their flicker
+  GameObjectEffectHelper.StartEffectEvent = function(n, name) effects[#effects + 1] = name end
+  npc.QueueEvent = function(_, e) queued[#queued + 1] = e end
+  delayed, effects = {}, {}
+  report = N.burst(npc, id, R.LOOKS.F)
+  assert(#report.ok == 1 and effects[1] == 'cname:' .. R.FX.burst and report.flicker == #R.FLICKER_BURST and #delayed == #R.FLICKER_BURST - 1)
+  delayed, effects = {}, {}
+  report = N.leave(npc, id, R.LOOKS.F)
+  assert(#report.ok == 1 and effects[1] == 'cname:' .. R.FX.leave and report.flicker == #R.FLICKER_OUT and #delayed == #R.FLICKER_OUT - 1)
+  report = N.burst(npc, id, R.LOOKS.D)
+  assert(#report.ok == 0 and report.flicker == #R.FLICKER_BURST, 'a look without a burst effect still flickers')
+`);
+
+nativeTest('look: a look whose effect names his template does not have says so (known false); an unreadable template leaves known out; a failing start is named', `
+  local id = N.spawn({record = R.RECORD, appearance = 'a', x = 0, y = 0, z = 0, yaw = 0})
+  local spawner = {IsA = function(_, c) return c == 'entEffectSpawnerComponent' end, effectDescs = {{effectName = 'cname:johnny_spawn_normal'}}}
+  local npc = {GetComponents = function() return {spawner} end, QueueEvent = function() end}
+  local report = N.look(npc, id, R.LOOKS.F)
+  assert(report.known.johnny_spawn_normal == true and report.known.johnny_glitch_idle_01 == false, 'the second name is not in the list')
+  npc.GetComponents = function() error('unreadable') end
+  assert(not pcall(N.look, npc, id, R.LOOKS.F), 'components that cannot be read are an error for the phantom step (as before)')
+  npc.GetComponents = function() return {{IsA = function() return false end}} end
+  report = N.look(npc, id, R.LOOKS.F)
+  assert(report.known == nil and report.effects == 2, 'no effect list readable: known is left out, the effects are still started')
+  GameObjectEffectHelper.StartEffectEvent = function() error('boom') end
+  npc.QueueEvent = function(_, e) if e.kind then error('no queue') end end
+  report = N.look(npc, id, R.LOOKS.F)
+  assert(report.effects == 0 and #report.failed == 2 and #report.applied == 0 and report.failed[1]:find('boom', 1, true), report.failed[1])
 `);
 
 nativeTest('screen: Vs glitch effect starts and stops on V only', `
@@ -782,7 +912,14 @@ test('static: the default look is one of the looks, every look names an appearan
     for _, name in ipairs(look.effects or {}) do assert(name:match('^[%w_]+$')) end
   end
   assert(R.COOLDOWN >= 600, 'at most once every ten minutes')
-  assert(R.VISIBLE >= 3 and R.VISIBLE <= 8 and R.HOLD_MAX >= R.VISIBLE and R.HOLD_MAX <= 15)
+  assert(R.VISIBLE == nil and R.HOLD_MAX == nil, 'no timer: he stays while V sits')
+  assert(R.BURST_MIN >= 10 and R.BURST_MAX > R.BURST_MIN and R.BURST_SECONDS < R.BURST_MIN and R.GLITCH_SECONDS >= 3 and R.NOT_SEATED_TICKS >= 2)
+  assert(R.FX.spawn == 'johnny_spawn_normal' and R.FX.glitch == 'johnny_glitch_idle_01' and R.FX.burst == 'johnny_glitch_idle_03' and R.FX.leave == 'johnny_teleport_start',
+    'the names Johnny\\'s own template and phantom parameters give')
+  assert(R.FLICKER_BURST[#R.FLICKER_BURST][2] == true, 'a burst ends visible')
+  assert(R.DEFAULT_LOOK == 'F' and R.LOOKS.F.effects[1] == R.FX.spawn and R.LOOKS.F.effects[2] == R.FX.glitch and R.LOOKS.F.burst == R.FX.burst
+    and R.LOOKS.F.leave == R.FX.leave and R.LOOKS.F.flicker == true, 'the default look plays his own effects')
+  assert(R.LOOKS.B.effects[1] == R.FX.spawn, 'B no longer names effects his template does not have')
   assert(R.SPAWN_SECONDS >= 2 and R.PLACE_PER_TICK <= 3, 'a few traces per tick')
   for _, schedule in ipairs({R.FLICKER_IN, R.FLICKER_OUT}) do
     local last = -1
@@ -1012,7 +1149,7 @@ test('probe: a missing spot, an unknown look, an early despawn, a replaced copy,
   assert(P.tick(env) == false and P.run('status', env).visit.problem:find('not in the world', 1, true) and #fake.deleted == 3)
   assert(P.run('sweep', env).swept == 3)
   local looks = P.run('looks', env).looks
-  assert(looks.A.phantom == 'on' and looks.B.effects[1] == 'glitch' and looks.D.flicker == true)
+  assert(looks.A.phantom == 'on' and looks.B.effects[1] == 'johnny_spawn_normal' and looks.D.flicker == true)
   assert(P.tick(env) == false, 'nothing to tick')
 `));
 

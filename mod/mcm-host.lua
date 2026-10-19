@@ -33,8 +33,9 @@
 local M = {}
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 
--- V sits in an ordinary seat (init.lua convaiPlainSitting): V's chairs and couches are scene sits at scene tier 3, which is no cutscene and
--- must not stop the manager (live 2026-10-19: the shortcut answered "Finish the scene first." on a couch). False where that is not defined.
+-- V sits in an ordinary seat (init.lua convaiPlainSitting): V's chairs and couches are scene sits at scene tier 3, which is no cutscene.
+-- It tells a seat from a cutscene for the words of the refusal below; it does not open the page (see refusal). False where that is not
+-- defined.
 local function sittingPlainly()
     if type(convaiPlainSitting) ~= 'function' then return false end
     local ok, value = pcall(convaiPlainSitting)
@@ -477,6 +478,13 @@ function M.pending()
     return true
 end
 
+-- Mod Configuration Menu's own gameplay entry (ModConfigurationMenu/mcm_ui/mcm_settings_entry.lua, SettingsEntry.canOpen, read 2026-10-20)
+-- declines every open request, the public api.ui.open included, while V's scene tier is 3 or above: its reason is "scene", logged only as
+-- "open request declined before transition". A couch or a chair is a scene sit at tier 3 (live 2026-10-19), so MCM would never show the
+-- page there, and nothing the public API offers overrides it. The 2026-10-19 change let a plain sit through to MCM, which declined with
+-- no word to the player (2026-10-20: F4 on a couch did nothing). So the seat is refused here, with its own words and kind, and init.lua
+-- tells the player. The second value is the kind of the refusal: 'seated' for a plain sit, nil otherwise.
+M.STAND_UP = 'Stand up to open the Companion Manager'
 local function refusal()
     local player = Game.GetPlayer()
     if not player or not player:IsAttached() or Game.GetSystemRequestsHandler():IsPreGame() then return 'Load a save first.' end
@@ -484,17 +492,21 @@ local function refusal()
     if boxOk and boxOpen then return 'Close the text box first.' end
     local defs, boards = Game.GetAllBlackboardDefs(), Game.GetBlackboardSystem()
     local scene = boards:GetLocalInstanced(player:GetEntityID(), defs.PlayerStateMachine)
-    if scene:GetInt(defs.PlayerStateMachine.SceneTier) >= 3 and not sittingPlainly() then return 'Finish the scene first.' end
+    if scene:GetInt(defs.PlayerStateMachine.SceneTier) >= 3 then
+        if sittingPlainly() then return M.STAND_UP, 'seated' end
+        return 'Finish the scene first.'
+    end
     return nil
 end
 
 -- The shortcut. Opens MCM on the manager's page with MCM's own public open call. Returns true, or false and the reason; the third
--- value is true when the reason is the state of the game (nothing else would open the manager either).
+-- value is true when the reason is the state of the game (nothing else would open the manager either), the fourth the kind of that
+-- refusal ('seated': V sits, so the player is told to stand up).
 function M.open()
     if not api then connect() end
     if not api then return false, 'Mod Configuration Menu 0.10.5 or later is not available.' end
-    local checked, why = pcall(refusal)
-    if checked and why then return false, why, true end
+    local checked, why, kind = pcall(refusal)
+    if checked and why then return false, why, true, kind end
     if active() then return true end
     core.setView('home')
     local called, request, problem = pcall(api.ui.open, MOD_KEY)

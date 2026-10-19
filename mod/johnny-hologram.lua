@@ -1,11 +1,14 @@
--- Johnny's hologram (docs/JOHNNY_IN_YOUR_HEAD.md, phase 3): with Johnny in your head on and Settings > Johnny's hologram on, Johnny now
--- and then shows himself for a few seconds as a glitching hologram when V sits down, the way the story shows him beside V.
+-- Johnny's hologram (docs/JOHNNY_IN_YOUR_HEAD.md, phase 3): with Johnny in your head on and Settings > Johnny's hologram on, Johnny
+-- shows himself as a glitching hologram when V sits down, the way the story shows him beside V, and stays, silent, flickering now and
+-- then, for as long as V sits plainly (he glitches out when V stands up).
 --
 -- The body is always our own copy: a private clone of his record (RECORD, never Character.Silverhand itself), created through the
 -- dynamic entity system with our tag TAG only, never saved (persistState and persistSpawn false), with no AI role and without the
 -- companion tag (so no speech face and no companion system ever looks at it). It stands two to three metres from V, facing V, and is
--- deleted after VISIBLE seconds, or at once when V stands up, a fight or a scene starts, the game gives a line, or the session ends; a
--- copy left by a reload is swept by tag. Only an entity that carries TAG is ever changed or deleted, so the game's own Johnny never is.
+-- deleted when V stands up (after a short glitch out), a fight, a call or a scene starts, the game gives a line, the setting goes off,
+-- or the session ends; a copy left by a reload is swept by tag. Only an entity that carries TAG is ever changed or deleted, so the
+-- game's own Johnny never is. The hologram look is the game's own effects for Johnny (M.FX, see M.LOOKS): a plain copy of him is a
+-- plain model, and the 2026-10-19 live test, which started none, showed exactly that.
 --
 -- When (the policy, pure, tested): a sit seen by mod/seated-look.lua (WorkspotEvents.OnEnter: a named seat, or a scene sit at tier 3
 -- with no workspot instance, which is how V's own chairs and couches read), not in a vehicle, while the story has Johnny in V's head,
@@ -19,21 +22,28 @@
 -- own and do not count; the lines, the tier, a call, a fight and the rest still do. Every skip, spawn and departure logs the flags it saw.
 --
 -- Cost: nothing while either setting is off (init.lua loads this file only with both on). A sit is one table write. From the sit until
--- he is gone (at most ARM_SECONDS, then VISIBLE plus a second) the existing 0.5 s battle sample calls tick: the policy on that sample, at
--- most PLACE_PER_TICK spot candidates (three short raycasts each), one targeting query, one spawn, a few component reads on our copy,
--- one delete. Nothing per frame: his flicker is a handful of visibility events that the game's own delay system plays.
+-- he is gone the existing 0.5 s battle sample calls tick: the policy on that sample, at most PLACE_PER_TICK spot candidates (three short
+-- raycasts each), one targeting query, one spawn, a few component reads on our copy, one delete; while he stays, a clock comparison per
+-- sample and, every BURST_MIN to BURST_MAX seconds, one burst (a few visibility events and one effect start and stop). Nothing per
+-- frame: his flicker is a handful of visibility events that the game's own delay system plays.
 --
 -- What only the live test can tell (mod/johnny-hologram-probe.lua, the LOOKS below): which look reads as the game's glitch at standing
 -- distance, and whether his phantom controller hides him.
 local M = {TAG = 'CyberpunkConvaiJohnnyHologram', RECORD = 'CyberpunkConvai.JohnnyHologram', SOURCE = 'Character.Silverhand',
     JOHNNY_KEY = 'johnny-silverhand'}
 
-M.COOLDOWN = 600          -- at least ten minutes between two appearances
+M.COOLDOWN = 600          -- at least ten minutes between his leaving and the next appearance
 M.ARM_SECONDS = 20        -- a sit that has not let him appear within this is let go
 M.SEARCH_AFTER = 2        -- his spot is searched once V has finished sitting down
 M.SPAWN_SECONDS = 4       -- the copy must be in the world within this, or it is deleted
-M.VISIBLE = 5             -- how long he stays
-M.HOLD_MAX = 12           -- the longest options.hold may keep him (a remark of his still playing)
+-- He stays as long as V sits plainly (2026-10-20: "he can stay, no need to keep popping"): there is no timer. He goes when V stands up
+-- (a short glitch out first), when a fight, a call or a scene starts, when the game gives a line, when the setting goes off, or when the
+-- seat hook stopped saying V sits (options.seated false on NOT_SEATED_TICKS samples in a row).
+M.NOT_SEATED_TICKS = 2
+M.GLITCH_SECONDS = 8      -- the game's glitch loop (look.effects) plays this long as he appears, then he is quiet
+M.BURST_MIN = 15          -- then now and then (BURST_MIN to BURST_MAX seconds apart, drawn each time) a short flicker and glitch
+M.BURST_MAX = 35
+M.BURST_SECONDS = 1.4     -- the burst's own glitch effect is stopped after this
 M.SCREEN_SECONDS = 0.6    -- V's screen glitch as he appears (options.screen), stopped on the next tick after this
 M.LINE_QUIET = 30         -- no game line from anyone in this long
 M.JOHNNY_QUIET = 60       -- and none from the game's Johnny in this long
@@ -57,23 +67,37 @@ M.GROUPS = {'Static', 'Terrain'}
 --               component's own mapping, read live: docs/DEVELOPMENT_AUDIT_2026-09-30.md, "Johnny's seated hologram material")
 --   phantom     'on': his gamePhantomEntityComponent as spawned (it may hide the whole entity, mod/companion-appearance.lua);
 --               'off': switched off and the entity shown, as companions do (the 2 Oct state: blue and speckled when V looks at him)
---   effects     effect events started on him: the VFX of the game's own WorkspotStatus.JohnnySceneWorkspot status effect
---               (tweaks: status_effect/workspot_effects.tweak), which the game starts the same way (gameObject.script
---               StartStatusEffectVFX -> GameObjectEffectHelper.StartEffectEvent); whether his template has them shows only live
---   flicker     FLICKER_IN as he appears and FLICKER_OUT as he goes: the visibility event the phantom system itself uses
---               (enteventsSetVisibility, source PhantomEntitySystem; live in companions.lua and companion-adoption.lua)
+--   effects     effect events started on him as he appears. These are Johnny's OWN effects, named in his entity template
+--               (base\characters\entities\main_npc\silverhand.ent, effect spawner "effectDescs", read from the game's archive 2026-10-20)
+--               and used by his gamePhantomEntityComponent, whose parameters name them: spawnEffect johnny_spawn_normal,
+--               glitchEffect johnny_glitch_idle_01, teleportStartEffect johnny_teleport_start, teleportEndEffect johnny_teleport_end.
+--               Their particles use the game's own shaders base\fx\shaders\screen_glitch.mt and johnny_glitch.mt (a pixel-sorting
+--               glitch round his body, with the game's glitch sound events), which is the look he has when the story shows him. The
+--               phantom controller starts them itself only while he is in the RootMotion or Workspot state; our copy stands idle with
+--               the controller off, so nothing played them (the 2026-10-19 live test: look D had no effects and read as a plain model).
+--               Started with GameObjectEffectHelper.StartEffectEvent, stopped with StopEffectEvent (the loops run until stopped).
+--   burst       the short silent glitch (no sound events) played with each flicker burst while he stays
+--   leave       played as he goes (the teleport-out), with FLICKER_OUT
+--   flicker     FLICKER_IN as he appears, a FLICKER_BURST now and then, FLICKER_OUT as he goes: the visibility event the phantom
+--               system itself uses (enteventsSetVisibility, source PhantomEntitySystem; live in companions.lua and companion-adoption.lua)
+M.FX = {spawn = 'johnny_spawn_normal', glitch = 'johnny_glitch_idle_01', burst = 'johnny_glitch_idle_03', leave = 'johnny_teleport_start'}
 M.LOOKS = {
     A = {appearance = 'silverhand_default', phantom = 'on'},
-    B = {appearance = 'silverhand_riot__not_blendable', phantom = 'off', effects = {'glitch', 'johnny_intro'}},
+    -- B had the names 'glitch' and 'johnny_intro', which his template does not have (the call succeeds and nothing plays).
+    B = {appearance = 'silverhand_riot__not_blendable', phantom = 'off', effects = {M.FX.spawn, M.FX.glitch}},
     C = {appearance = 'silverhand_default', phantom = 'off'},
     D = {appearance = 'silverhand_default', phantom = 'off', flicker = true},
     E = {appearance = 'silverhand_riot__not_blendable', phantom = 'off', flicker = true},
+    F = {appearance = 'silverhand_default', phantom = 'off', flicker = true, effects = {M.FX.spawn, M.FX.glitch}, burst = M.FX.burst,
+        leave = M.FX.leave},
 }
-M.DEFAULT_LOOK = 'D'
+M.DEFAULT_LOOK = 'F'
 -- {seconds after the event, visible}. In: flickers in, then one short drop out halfway. Out: flickers out and stays hidden until the
 -- delete on the next tick.
 M.FLICKER_IN = {{0, false}, {0.08, true}, {0.16, false}, {0.28, true}, {0.34, false}, {0.46, true}, {2.3, false}, {2.36, true}}
 M.FLICKER_OUT = {{0, false}, {0.07, true}, {0.17, false}, {0.23, true}, {0.33, false}}
+-- A short glitch while he stays: drops out twice and is back (he stays visible after it).
+M.FLICKER_BURST = {{0, false}, {0.06, true}, {0.14, false}, {0.2, true}, {0.3, false}, {0.36, true}}
 -- The fast-forward glitch the game plays on V (player.script SceneFastForward, scenesFastForward.script StartGlitchFx).
 M.SCREEN_EFFECT = 'transition_glitch_loop'
 
@@ -323,22 +347,92 @@ function N.flicker(npc, id, schedule)
     return count
 end
 
+-- The effect names his template defines (entEffectSpawnerComponent.effectDescs[].effectName), as a set, or nil when the game would not
+-- show them. Read only, once per copy: a name that is not in it would be started without an error and never play.
+local function templateEffects(npc)
+    local ok, names = pcall(function()
+        local set, count = {}, 0
+        for _, component in ipairs(npc:GetComponents() or {}) do
+            if component:IsA('entEffectSpawnerComponent') then
+                for _, desc in ipairs(component.effectDescs or {}) do
+                    local name = Game.NameToString(desc.effectName)
+                    if type(name) == 'string' and name ~= '' then set[name] = true; count = count + 1 end
+                end
+            end
+        end
+        return count > 0 and set or nil
+    end)
+    return ok and names or nil
+end
+
+-- Start or stop one named effect on our copy. true, or false and why. The helpers the game's own scripts use first (StartEffectEvent; a
+-- loop is ended with BreakEffectLoopEvent, which lets it play its tail, and StopEffectEvent is the harder stop when that errors); when
+-- they error, the event they queue (entSpawnEffectEvent; entBreakEffectLoopEvent ends a loop).
+local function effect(npc, name, start)
+    local cname = CName.new(name)
+    local ok, problem = pcall(function()
+        if start then GameObjectEffectHelper.StartEffectEvent(npc, cname, false)
+        elseif pcall(GameObjectEffectHelper.BreakEffectLoopEvent, npc, cname) then return
+        else GameObjectEffectHelper.StopEffectEvent(npc, cname) end
+    end)
+    if ok then return true end
+    local event = pcall(function()
+        local ev = NewObject(start and 'entSpawnEffectEvent' or 'entBreakEffectLoopEvent')
+        ev.effectName = cname
+        npc:QueueEvent(ev)
+    end)
+    if event then return true end
+    return false, tostring(problem)
+end
+
+-- Start or stop effects by name on our copy (nothing else is ever touched). A plain report {ok = {names}, failed = {"name (why)"}}.
+function N.effects(npc, id, names, start)
+    if not owned(system(), id) then error('not ours') end
+    local report = {ok = {}, failed = {}}
+    for _, name in ipairs(names) do
+        local done, why = effect(npc, name, start)
+        if done then report.ok[#report.ok + 1] = name
+        else report.failed[#report.failed + 1] = name .. ' (' .. tostring(why):sub(1, 80) .. ')' end
+    end
+    return report
+end
+
+-- A flicker burst while he stays: the visibility drops and the short silent glitch (look.burst). A plain report like N.effects, plus the
+-- flickers queued.
+function N.burst(npc, id, look)
+    local report = N.effects(npc, id, look.burst and {look.burst} or {}, true)
+    report.flicker = N.flicker(npc, id, M.FLICKER_BURST)
+    return report
+end
+
+-- He goes: the flicker out and look.leave (the teleport-out). The same report.
+function N.leave(npc, id, look)
+    local report = N.effects(npc, id, look.leave and {look.leave} or {}, true)
+    report.flicker = N.flicker(npc, id, M.FLICKER_OUT)
+    return report
+end
+
 -- Give our copy one of M.LOOKS: its phantom controller off and the entity shown (phantom 'off'), its effect events, its flicker in.
--- A plain report {phantom, effects, flicker}.
+-- A plain report {phantom, effects (how many started), flicker, applied = {names}, failed = {"name (why)"}, known = {name = true|false}
+-- (against his template's effect list, absent when that could not be read)}.
 function N.look(npc, id, look)
     local dynamic = system()
     if not owned(dynamic, id) then error('not ours') end
-    local report = {phantom = 0, effects = 0, flicker = 0}
+    local report = {phantom = 0, effects = 0, flicker = 0, applied = {}, failed = {}}
     if look.phantom == 'off' then
         for _, component in ipairs(npc:GetComponents() or {}) do
             if component:IsA('gamePhantomEntityComponent') then component:Toggle(false); report.phantom = report.phantom + 1 end
         end
         if report.phantom > 0 and not look.flicker then visibility(npc, true, 0) end
     end
-    for _, name in ipairs(look.effects or {}) do
-        if pcall(function() GameObjectEffectHelper.StartEffectEvent(npc, CName.new(name), false) end) then
-            report.effects = report.effects + 1
+    if look.effects and #look.effects > 0 then
+        local template = templateEffects(npc)
+        if template then
+            report.known = {}
+            for _, name in ipairs(look.effects) do report.known[name] = template[name] == true end
         end
+        local started = N.effects(npc, id, look.effects, true)
+        report.applied, report.failed, report.effects = started.ok, started.failed, #started.ok
     end
     if look.flicker then report.flicker = N.flicker(npc, id, M.FLICKER_IN) end
     return report
@@ -374,12 +468,14 @@ end
 
 -- options.enabled(): both settings on. options.story(): the story state ('active' while he is in V's head). options.lines(): the
 -- game-dialogue rows. options.clock(): os.clock seconds (the timers). options.now(): os.time seconds (the rows' clock). options.log(line).
--- options.look: one of M.LOOKS (M.DEFAULT_LOOK). options.screen: V's screen glitch as he appears (off). options.hold(): true while he
--- should stay a little longer (a remark of his playing), up to HOLD_MAX. options.native: replaces M.native (tests).
+-- options.look: one of M.LOOKS (M.DEFAULT_LOOK). options.screen: V's screen glitch as he appears (off). options.seated(): whether the
+-- seat hook still says V sits (a stay needs it; absent counts as yes). options.random(): a number in [0, 1) for the burst spacing
+-- (math.random). options.native: replaces M.native (tests).
 function M.new(options)
     options = type(options) == 'table' and options or {}
     local native = options.native or N
     local clock, now = options.clock or os.clock, options.now or os.time
+    local random = options.random or math.random
     local service = {look = M.LOOKS[options.look] and options.look or M.DEFAULT_LOOK, serial = 0, sweepDue = true}
 
     local function read(fn)
@@ -451,11 +547,28 @@ function M.new(options)
         return true
     end
 
-    -- V stood up (or the restriction ended): the moment is over, and he goes at once.
+    -- V stood up (or the restriction ended): the moment is over. He glitches out (a flicker and the teleport-out of his look), which the
+    -- next sample ends with the delete; a look without that, or a copy still arriving, goes at once.
     function service:stand()
         self.pending = nil
-        if self.visit then return self:finish('stood') end
-        return false
+        local visit = self.visit
+        if not visit then return false end
+        if visit.state == 'visible' and M.LOOKS[visit.look].flicker then return service:leave('stood') end
+        return self:finish('stood')
+    end
+
+    -- He starts going: the flicker out and the teleport-out play and the next sample deletes him. reason for the log.
+    function service:leave(reason)
+        local visit = self.visit
+        if not visit or visit.state ~= 'visible' then return false end
+        local npc = call('entity', visit.id)
+        if npc then
+            local report, problem = call('leave', npc, visit.id, M.LOOKS[visit.look])
+            if type(report) ~= 'table' then log('leave effects problem=' .. tostring(problem))
+            elseif #report.failed > 0 then log('leave effects failed: ' .. table.concat(report.failed, ', ')) end
+        end
+        visit.state, visit.leaveReason = 'leaving', reason
+        return true
     end
 
     -- Does the 0.5 s sample need to call tick (a moment waiting, or he is there)?
@@ -469,6 +582,8 @@ function M.new(options)
         local visit = self.visit
         if not visit then return false end
         self.visit = nil
+        -- The cooldown runs from his leaving too, so a long stay is not followed at once by another on the next micro re-sit.
+        self.lastShown = clock()
         if visit.screenAt then call('screen', false) end
         local deleted = call('delete', visit.id)
         log(string.format('gone reason=%s shown=%.1fs deleted=%s%s', reason, visit.shownAt and clock() - visit.shownAt or 0, tostring(deleted == true),
@@ -476,13 +591,72 @@ function M.new(options)
         return true
     end
 
-    -- While he is there: what ends him, his arrival, his time, his flicker out.
+    -- The effects line of the 'shown' log, once per spawn: which effects started, which failed, and whether his template names them.
+    local function effectsText(look, report)
+        if type(report) ~= 'table' or not look.effects then return '' end
+        local parts = {}
+        for _, name in ipairs(report.applied or {}) do
+            local known = report.known and (report.known[name] and ' known' or ' NOT-IN-TEMPLATE') or ''
+            parts[#parts + 1] = name .. known
+        end
+        local text = ' applied=[' .. table.concat(parts, ', ') .. ']'
+        if report.failed and #report.failed > 0 then text = text .. ' failed=[' .. table.concat(report.failed, ', ') .. ']' end
+        return text
+    end
+
+    local function nextBurst(at)
+        return at + M.BURST_MIN + (M.BURST_MAX - M.BURST_MIN) * (tonumber(random()) or 0.5)
+    end
+
+    -- While he stays: the glitch loop of his arrival is stopped after GLITCH_SECONDS, then now and then a short silent flicker burst.
+    local function stay(visit, at)
+        local look = M.LOOKS[visit.look]
+        if not look.effects and not look.burst and not look.flicker then return end
+        local npc
+        if visit.glitchOn and at - visit.shownAt >= M.GLITCH_SECONDS then
+            visit.glitchOn = nil
+            npc = call('entity', visit.id)
+            if npc and look.effects then call('effects', npc, visit.id, {M.FX.glitch}, false) end
+        end
+        if visit.burstStopAt and at >= visit.burstStopAt then
+            visit.burstStopAt = nil
+            npc = npc or call('entity', visit.id)
+            if npc and look.burst then call('effects', npc, visit.id, {look.burst}, false) end
+        end
+        if look.flicker and visit.burstAt and at >= visit.burstAt then
+            visit.burstAt = nextBurst(at)
+            npc = npc or call('entity', visit.id)
+            if npc then
+                local report = call('burst', npc, visit.id, look)
+                visit.bursts = (visit.bursts or 0) + 1
+                if look.burst and type(report) == 'table' and #report.ok > 0 then visit.burstStopAt = at + M.BURST_SECONDS end
+                if type(report) == 'table' and #report.failed > 0 and not visit.burstLogged then
+                    visit.burstLogged = true
+                    log('burst effects failed: ' .. table.concat(report.failed, ', '))
+                end
+            end
+        end
+    end
+
+    -- While he is there: what ends him, his arrival, his stay, his going.
     local function step(sample)
         local visit, at = service.visit, clock()
+        -- Already going (V stood up): the glitch-out has played, the delete is all that is left.
+        if visit.state == 'leaving' then return service:finish(visit.leaveReason or 'done', sample) end
         local why = read(options.enabled) ~= true and 'off' or M.interrupt(sample, visit.maxTier)
         if not why then
             local _, johnny, after = M.lineAges(read(options.lines), now(), visit.wall)
             if after then why = 'line' elseif johnny ~= nil and johnny <= now() - visit.wall then why = 'johnny-line' end
+        end
+        if not why and visit.event == 'sit' and type(options.seated) == 'function' then
+            -- The seat hook stopped saying V sits (a missed exit hook): a few samples in a row, so a hiccup does not end the stay.
+            local answered, seatedNow = pcall(options.seated)
+            if answered and not seatedNow then
+                visit.unseated = (visit.unseated or 0) + 1
+                if visit.unseated >= M.NOT_SEATED_TICKS then why = 'not-seated' end
+            else
+                visit.unseated = 0
+            end
         end
         if why then return service:finish(why, sample) end
         if visit.state == 'spawning' then
@@ -491,28 +665,24 @@ function M.new(options)
                 if at - visit.at > M.SPAWN_SECONDS then return service:finish('not-attached') end
                 return true
             end
-            local report, problem = call('look', npc, visit.id, M.LOOKS[visit.look])
+            local look = M.LOOKS[visit.look]
+            local report, problem = call('look', npc, visit.id, look)
             visit.entity = call('hash', npc)
             visit.state, visit.shownAt = 'visible', at
+            visit.glitchOn = type(report) == 'table' and look.effects ~= nil and (report.effects or 0) > 0 or nil
+            visit.burstAt = look.flicker and nextBurst(at + M.GLITCH_SECONDS) or nil
             if options.screen == true and call('screen', true) then visit.screenAt = at end
             log('shown look=' .. visit.look .. ' phantom=' .. tostring(report and report.phantom) .. ' effects='
-                .. tostring(report and report.effects) .. ' flicker=' .. tostring(report and report.flicker)
+                .. tostring(report and report.effects) .. effectsText(look, report) .. ' flicker=' .. tostring(report and report.flicker)
                 .. (problem and (' problem=' .. problem) or ''))
             return true
         end
         if visit.screenAt and at - visit.screenAt >= M.SCREEN_SECONDS then call('screen', false); visit.screenAt = nil end
         if visit.state == 'visible' then
-            local held = read(options.hold) == true and at - visit.shownAt < M.HOLD_MAX
-            if at - visit.shownAt >= M.VISIBLE and not held then
-                local look = M.LOOKS[visit.look]
-                if not look.flicker then return service:finish('done') end
-                local npc = call('entity', visit.id)
-                if npc then call('flicker', npc, visit.id, M.FLICKER_OUT) end
-                visit.state = 'leaving'
-            end
+            stay(visit, at)
             return true
         end
-        return service:finish('done')
+        return true
     end
 
     -- From the existing 0.5 s battle sample, only while active(). sample: that sample; talking: V talks to someone, records, or a reply
