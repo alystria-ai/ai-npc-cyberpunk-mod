@@ -107,7 +107,9 @@ function customRetryAfter(headers, now = Date.now()) {
 // says "unsupported parameter"; the request is then sent once more without it (or, for max_tokens that a newer OpenAI model replaced by
 // max_completion_tokens, with the new name) and the choice is remembered for the session (`adapt`, see streamChat).
 const DROPPABLE = Object.freeze(['stream_options', 'response_format', 'temperature', 'prompt_cache_key', 'top_p', 'max_completion_tokens']);
-const REFUSAL_WORDS = /unsupported|not supported|unknown|unrecogni[sz]ed|unexpected|not permitted|not allowed|not accepted|extra (?:inputs?|fields?|forbidden)|extra_forbidden|invalid (?:parameter|param|field|argument)|additional propert|does not support|only the default|invalid_request_error.*param/;
+// "must be": LM Studio refuses the fact extraction's json_object with "'response_format.type' must be 'json_schema'" (a field it names is dropped;
+// a sentence that names no optional field, such as "messages must be non-empty", is still not a refusal of one).
+const REFUSAL_WORDS = /unsupported|not supported|unknown|unrecogni[sz]ed|unexpected|not permitted|not allowed|not accepted|extra (?:inputs?|fields?|forbidden)|extra_forbidden|invalid (?:parameter|param|field|argument)|additional propert|does not support|only the default|must be|invalid_request_error.*param/;
 const FIELD_WORDS = /parameter|param\b|field|argument|propert/;
 const NO_SUCH_MODEL = /(?:model|endpoint)s?\b.{0,60}\b(?:not found|does not exist|not a valid|no such|unknown|not available|is not supported)|no endpoints found|invalid model/;
 
@@ -131,7 +133,8 @@ export function rejectedParameters(status, text) {
 
 /** Maps what the custom provider answered: the same few kinds, plus 402 (no credit) and a refused request field. */
 function mapCustomFailure(status, body, {headers, apiKey}) {
-  const text = textOf(body), lower = text.toLowerCase();
+  // Google's OpenAI-compatible endpoint answers an error as a list of one error object.
+  const text = textOf(Array.isArray(body) ? body[0] : body), lower = text.toLowerCase();
   const options = {status, retryAfterMs: customRetryAfter(headers), apiKey, provider: 'custom'};
   // The server's own words travel with the error (redacted) so the connection test can show them; the message names what it means.
   const make = (kind, detail, extra = {}) => {
@@ -152,6 +155,9 @@ function mapCustomFailure(status, body, {headers, apiKey}) {
   }
   const rejected = rejectedParameters(status, text);
   if (rejected) { const error = make('request', `refused the request: ${text || `HTTP ${status}`}`); error.paramsRejected = rejected; return error; }
+  // A 404 that speaks of a model (or OpenRouter's "No endpoints found for <model>") is an unknown model id. A bare "Not Found" (an HTML page, Ollama's
+  // "404 page not found") is a wrong address: a path without /v1, Ollama's own /api, a site's web page. The player is sent to the address, not the model.
+  if (status === 404 && !/model|no endpoints found/.test(lower)) return Object.assign(make('network', `has no chat endpoint at that address (HTTP 404)${text ? `: ${text}` : ''}`), {permanent: true});
   if (status === 404 || ((status === 400 || status === 422) && /model/.test(lower))) return make('model', `does not know that model: ${text || `HTTP ${status}`}`);
   if (status === 408 || (status >= 500 && status <= 599)) return make('network', `had a server fault (HTTP ${status})`, {slow: true});
   return make('request', `refused the request: ${text || `HTTP ${status}`}`);
@@ -185,8 +191,8 @@ export function mapFailure(status, body, {headers, apiKey, provider} = {}) {
   return new MistralError('request', detail, options);
 }
 
-/** Retry only what clears by itself: the per-second limit, a server fault, a timeout, an empty answer. Never a bad key. */
-export const retryable = error => error instanceof MistralError && !error.zeroQuota && !error.daily && !error.partial
+/** Retry only what clears by itself: the per-second limit, a server fault, a timeout, an empty answer. Never a bad key, nor a wrong address (`permanent`, custom only). */
+export const retryable = error => error instanceof MistralError && !error.zeroQuota && !error.daily && !error.partial && !error.permanent
   && (error.kind === 'network' || error.kind === 'empty' || error.kind === 'limit');
 
 // ---- SSE ---------------------------------------------------------------------------------------------------------------
@@ -369,7 +375,7 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
   if (!keyless && (typeof apiKey !== 'string' || apiKey.length < 8)) throw new MistralError('key', 'has no API key', {provider});
   if (keyless) apiKey = undefined;
   const url = checkedEndpoint(endpoint ?? MISTRAL_ENDPOINT, provider, trustedOrigin);
-  let lastError, adapted = false;
+  let lastError, adapted = 0;
   const failed = [];
   for (let attempt = 0; attempt <= retries; attempt++) {
     if (signal?.aborted) throw signal.reason ?? abortError();
@@ -377,16 +383,17 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
     try {
       const result = await once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url,
         firstByteMs: attempt > 0 && retryFirstByteMs ? retryFirstByteMs : firstByteMs, stallMs, totalMs, extraBody, provider, onHeaders, adapt, headers});
-      return {...result, attempts: attempt + 1 + (adapted ? 1 : 0), failed};
+      return {...result, attempts: attempt + 1 + adapted, failed};
     } catch (error) {
       if (signal?.aborted || error?.name === 'AbortError' && !(error instanceof MistralError)) throw signal?.aborted ? (signal.reason ?? abortError()) : error;
       lastError = error instanceof MistralError ? error : new MistralError('network', redact(error?.message ?? 'request failed', apiKey), {apiKey, provider});
       failed.push({kind: lastError.kind, status: lastError.status, ms: Math.round(now() - began)});
       // The custom provider's server refused an optional field of the request: the same request is sent once more without it, at once, and the
-      // refusal is remembered (in `adapt`, which the route keeps for the session) so no later request sends the field again.
-      if (adapt && !adapted && lastError.paramsRejected) {
-        adapted = true;
-        learnRefusal(adapt, lastError.paramsRejected);
+      // refusal is remembered (in `adapt`, which the route keeps for the session) so no later request sends the field again. A server that refuses
+      // one field at a time (OpenAI's reasoning models: max_tokens, then temperature) is asked again after each refusal that taught something new,
+      // at most MAX_ADAPTATIONS times; a refusal that changes nothing in the request is an error at once (no loop).
+      if (adapt && adapted < MAX_ADAPTATIONS && lastError.paramsRejected && learnRefusal(adapt, lastError.paramsRejected)) {
+        adapted++;
         try { onRetry?.({attempt: attempt + 1, error: lastError, waitMs: 0, ms: failed.at(-1).ms}); } catch { /* an observer never fails a reply */ }
         attempt--;
         continue;
@@ -404,14 +411,21 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
 }
 
 const MAX_RETRY_WAIT_MS = 8000;
+// How many refused fields one request may learn before it gives up (max_tokens renamed, temperature, response_format, stream).
+const MAX_ADAPTATIONS = 4;
 
 // What the custom provider's server refused is remembered in `adapt` ({dropped: Set of field names, swapped: max_tokens is sent as
 // max_completion_tokens}); the route keeps one per endpoint and model for the session.
 export function newAdaptation() { return {dropped: new Set(), swapped: false}; }
 const OPTIONAL_FIELDS = Object.freeze(['stream_options', 'response_format', 'temperature', 'prompt_cache_key', 'top_p']);
+/** Adds what a refusal says to `adapt`; true when that changed anything (a refusal already learned changes nothing, and is not asked again). */
 function learnRefusal(adapt, rejected) {
+  const before = `${adapt.swapped}|${[...adapt.dropped].join(',')}`;
   if (rejected.swap) adapt.swapped = true;
-  for (const name of rejected.names.length ? rejected.names : OPTIONAL_FIELDS) adapt.dropped.add(name);
+  // A refusal that names no field drops every optional one; a rename of max_tokens alone drops nothing else (temperature and the fact extraction's
+  // response_format stay until the server refuses them).
+  for (const name of rejected.names.length || rejected.swap ? rejected.names : OPTIONAL_FIELDS) adapt.dropped.add(name);
+  return `${adapt.swapped}|${[...adapt.dropped].join(',')}` !== before;
 }
 function applyAdaptation(body, adapt) {
   if (adapt.swapped && 'max_tokens' in body) { body.max_completion_tokens = body.max_tokens; delete body.max_tokens; }

@@ -406,11 +406,10 @@ export function offlineProblems({layout, rows, files, errors = 0, managers = []}
 // player-inworld-key.txt...), the Custom (OpenAI-compatible) provider's key (the api-key line of player-custom-endpoint.txt), the sign-in
 // file's secret (or CYBERPUNK_CONVAI_AUTH_SECRET) and the key packed into the Runtime (app/defaults/service.txt). They are only returned to
 // the redactor; nothing here writes, logs or prints one.
-export const CUSTOM_ENDPOINT_FILE = 'player-custom-endpoint.txt';
 export async function offlineSecrets({stateDirectory, project, env = {}}) {
   const found = [];
   const add = value => { if (typeof value === 'string' && value.trim().length >= 6) found.push(value.trim()); };
-  // Lines such as `api-key=VALUE`, `key: VALUE` or `token = Bearer VALUE` (the custom provider's file has endpoint= and model= lines too).
+  // Lines such as `api-key=VALUE`, `key: VALUE` or `token = Bearer VALUE` in a key file of more than one line.
   const labelled = raw => {
     for (const line of raw.split(/\r\n|\r|\n/)) {
       const value = /^\s*(?:api[-_ ]?key|apikey|key|token|secret)\s*[=:]\s*(.+?)\s*$/i.exec(line)?.[1];
@@ -431,12 +430,23 @@ export async function offlineSecrets({stateDirectory, project, env = {}}) {
   };
   let names = [];
   try { names = stateDirectory ? await readdir(stateDirectory) : []; } catch {}
+  // The custom provider's file (docs/CUSTOM_PROVIDER.md) holds its key on an `api-key=` line beside the address and the model ID; only the key is a secret.
+  const fromCustomFile = raw => {
+    for (const line of raw.replace(/^﻿/, '').split(/\r\n|\r|\n/)) {
+      const value = /^\s*(?:api[-_]?key|apikey|key)\s*[=:]\s*(.*?)\s*$/i.exec(line)?.[1];
+      if (!value) continue;
+      const bare = value.replace(/\s+#.*$/, '');
+      add(bare);
+      add(bare.replace(/^["'`<“”‘’]+|["'`>“”‘’]+$/g, ''));
+    }
+  };
   for (const name of names) {
-    const isKey = /-key\.txt$/i.test(name), isAuth = /^convai-auth\.json$/i.test(name), isCustom = name.toLowerCase() === CUSTOM_ENDPOINT_FILE;
+    const isKey = /-key\.txt$/i.test(name), isAuth = /^convai-auth\.json$/i.test(name), isCustom = /^player-custom-endpoint\.txt$/i.test(name);
     if (!isKey && !isAuth && !isCustom) continue;
+    // The custom provider's file may be as long as its reader takes (bridge/custom-endpoint.mjs: 16 KiB, comments included).
     const raw = await readSmall(join(stateDirectory, name), isCustom ? 16384 : 8192);
     if (raw === null) continue;
-    if (isCustom) { labelled(raw); continue; }
+    if (isCustom) { fromCustomFile(raw); continue; }
     if (isKey) { fromKeyText(raw); continue; }
     try {
       const walk = (value, key = '', depth = 0) => {

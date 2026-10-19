@@ -109,7 +109,9 @@ export function customRoute({provider, custom, chat = streamChat, now = () => Da
     if (!adaptations.has(key)) adaptations.set(key, newAdaptation());
     return adaptations.get(key);
   };
-  let pausedUntil = 0, pausedOrigin = null;
+  // A Retry-After pause belongs to the address, model and key it was given for: a new key (another account) or model is asked at once.
+  let pausedUntil = 0, pausedScope = null;
+  const scope = () => `${custom.origin}|${custom.model}|${custom.key ?? ''}`;
   return {name: 'custom', provider: 'custom', chat, gapMs: 0, blocked: new Map(), nextSlot: 0, holdingLines: false,
     // A server on this computer or the home network answers one request at a time: the action decision does not overlap the reply.
     get parallel() { return !custom.local; },
@@ -118,7 +120,7 @@ export function customRoute({provider, custom, chat = streamChat, now = () => Da
     adaptation,
     async connect() {
       if (!custom.ready) throw new MistralError('request', 'is not set up', {provider: 'custom'});
-      const wait = pausedOrigin === custom.origin ? pausedUntil - now() : 0;
+      const wait = pausedScope === scope() ? pausedUntil - now() : 0;
       // The server asked to be left alone for a while: no request goes out before that (Retry-After), and the notice comes at once.
       if (wait > 0) throw new MistralError('limit', 'asked for a pause between requests', {provider: 'custom', retryAfterMs: wait});
       return {apiKey: custom.key ?? undefined, endpoint: custom.chatUrl, requestModel: custom.model, trustedOrigin: custom.origin,
@@ -131,7 +133,7 @@ export function customRoute({provider, custom, chat = streamChat, now = () => Da
     success() { pausedUntil = 0; provider.noteSuccess(); try { onSuccess?.(); } catch { /* an observer never fails a reply */ } },
     failure(error) {
       const kind = failureKind(error);
-      if (kind === 'limit' && error.retryAfterMs > 0) { pausedUntil = Math.max(pausedOrigin === custom.origin ? pausedUntil : 0, now() + error.retryAfterMs); pausedOrigin = custom.origin; }
+      if (kind === 'limit' && error.retryAfterMs > 0) { const here = scope(); pausedUntil = Math.max(pausedScope === here ? pausedUntil : 0, now() + error.retryAfterMs); pausedScope = here; }
       provider.noteLimit(kind === 'limit' ? 'rate' : kind === 'key' ? 'invalid' : kind === 'model' ? 'model' : kind === 'credits' ? 'credits' : null);
       try { onFailure?.(error); } catch { /* an observer never fails a reply */ }
     },

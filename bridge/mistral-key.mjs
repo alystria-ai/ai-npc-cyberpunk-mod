@@ -57,8 +57,14 @@ export class MistralProvider {
     this.localTurnNoticePending = false; this.localModelNoticePending = false; this.localModelNoticeName = ''; this.lastNoticeModel = '';
     this.localBroken = null; this.localNoticePending = false; // why the local AI cannot be used (null: it can), and the one notice for it
     this.listeners = new Set();
-    // What the player enters for the custom provider changes which provider is requested.
-    try { custom?.onChange?.(() => this.#changed()); } catch { /* an observer never breaks the provider */ }
+    // What the player enters for the custom provider changes which provider is requested. A new address, key or model ID also ends what the
+    // old one was refused for ("key not accepted", "out of credits", ...): the settings page stops saying so and summaries may run again.
+    try {
+      custom?.onChange?.(() => {
+        if (this.applied === 'custom') this.limit = null;
+        this.#changed();
+      });
+    } catch { /* an observer never breaks the provider */ }
   }
   onChange(listener) { this.listeners.add(listener); return () => this.listeners.delete(listener); }
   #changed() { for (const listener of this.listeners) { try { listener(); } catch { /* an observer never breaks the provider */ } } }

@@ -967,7 +967,7 @@ return {
     ["The connection works. The endpoint accepted your model and key."] = "Połączenie działa. Endpoint zaakceptował twój model i klucz.",
     ["The conversation service is not running, so nothing can be tested. Restart the game."] = "Usługa rozmów nie działa, więc nic nie da się przetestować. Zrestartuj grę.",
     ["The custom provider did not accept your key. Check it in Settings > Conversation provider."] = "Własny dostawca odrzucił klucz. Sprawdź w Ustawieniach > Dostawca rozmów.",
-    ["The custom provider did not answer. Check its address in Settings, or try again."] = "Własny dostawca nie odpowiedział. Sprawdź adres lub spróbuj ponownie.",
+    ["The custom provider did not answer. Check its address in Settings, or try again."] = "Własny dostawca nie odpowiedział. Sprawdź adres w Ustawieniach lub spróbuj ponownie.",
     ["The custom provider does not know that model ID. Check it in Settings."] = "Własny dostawca nie zna tego ID modelu. Sprawdź w Ustawieniach.",
     ["The custom provider is not set up, so Convai is used. Add its URL and model ID in Settings."] = "Własny dostawca nieustawiony, używamy Convai. Dodaj URL i model w Ustawieniach.",
     ["The custom provider is rate limiting you. Try again in a moment."] = "Własny dostawca ogranicza liczbę zapytań. Spróbuj ponownie za chwilę.",
