@@ -11,7 +11,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - **Make your own characters**: create and edit characters of your own in the editor, with a profile, a way of speaking and memories.
 - **The microphone in other languages**: with Mistral, speak in your own language and it is understood. English stays on the fast local path.
 - **Your own Local AI models survive reinstalls**: put them in `%LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai` and updates, clean installs and mod managers leave them alone.
-- **Local AI fixes**: it starts reliably with the other optional packs installed, loads at a gentler priority so the game stays smooth, says plainly why a reply did not come, and the first turn after loading no longer goes to Convai.
+- **Local AI fixes**: it starts reliably at launch, loads much faster while the game is running and then steps back so the game stays smooth, says plainly why a reply did not come, and the first turn after loading no longer goes to Convai.
 - **Mod Organizer 2**: the Runtime can be installed as a Mod Organizer 2 mod, and your settings and chats survive a launch.
 - **Make support report.bat** works with the game closed, and checks that the required mods are installed. It is in `red4ext\plugins\AiNpcCyberpunkMod`.
 - **Automatic error reports** (on by default; turn off in Settings > Privacy): when something fails, a short report goes to the developer so it can be fixed without asking you for logs. It leaves out passwords and account details, what you and the characters say, and your microphone audio.
