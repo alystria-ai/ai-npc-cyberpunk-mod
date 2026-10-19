@@ -50,7 +50,7 @@
     ]
   },
   "counts": {
-    "strings": 1094,
+    "strings": 1096,
     "dynamicTemplates": 55,
     "contexts": 37
   },
@@ -469,6 +469,7 @@
     "Local AI is still loading its model. Try again in a moment.": "Local AI is still loading its model. Try again in a moment.",
     "Local AI is warming up…": "Local AI is warming up…",
     "Local AI model": "Local AI model",
+    "Local AI stopped working and was restarted.": "Local AI stopped working and was restarted.",
     "Male": "Male",
     "Manage": "Manage",
     "Manage or cancel plan": "Manage or cancel plan",
@@ -786,7 +787,7 @@
     "That setting is read-only.": "That setting is read-only.",
     "That was not accepted.": "That was not accepted.",
     "The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI": "The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI",
-    "The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game.": "The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game.",
+    "The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Either one is enough. Install one from Nexus Mods, then restart the game.": "The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Either one is enough. Install one from Nexus Mods, then restart the game.",
     "The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off.": "The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off.",
     "The Inworld cloud voice speaks only English here. Turn off Multilingual conversations to choose it.": "The Inworld cloud voice speaks only English here. Turn off Multilingual conversations to choose it.",
     "The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead.": "The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead.",
@@ -956,6 +957,7 @@
     "Turn off": "Turn off",
     "Turn on": "Turn on",
     "Turning it on also selects Local AI, the largest uncensored model that fits and a local voice instead of a cloud one. Turning it off restores your choices.": "Turning it on also selects Local AI, the largest uncensored model that fits and a local voice instead of a cloud one. Turning it off restores your choices.",
+    "TweakXL is missing. Install TweakXL from Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game.": "TweakXL is missing. Install TweakXL from Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game.",
     "Type a message first.": "Type a message first.",
     "Type the words said in the clip, at least {min} characters.": "Type the words said in the clip, at least {min} characters.",
     "Type what the clip says, as spoken. OmniVoice needs it to copy the voice.": "Type what the clip says, as spoken. OmniVoice needs it to copy the voice.",
@@ -2018,6 +2020,7 @@
       "Local AI is still loading its model. Try again in a moment.",
       "Local AI is warming up…",
       "Local AI model",
+      "Local AI stopped working and was restarted.",
       "Male",
       "Memories",
       "Memory",
@@ -2200,7 +2203,7 @@
       "That is too long.",
       "That was not accepted.",
       "The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI",
-      "The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game.",
+      "The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Either one is enough. Install one from Nexus Mods, then restart the game.",
       "The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off.",
       "The Inworld cloud voice speaks only English here. Turn off Multilingual conversations to choose it.",
       "The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead.",
@@ -2322,6 +2325,7 @@
       "Too many record names. Keep {max} or fewer.",
       "Too many rules. Keep {max} or fewer.",
       "Turning it on also selects Local AI, the largest uncensored model that fits and a local voice instead of a cloud one. Turning it off restores your choices.",
+      "TweakXL is missing. Install TweakXL from Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game.",
       "Type the words said in the clip, at least {min} characters.",
       "Type what the clip says, as spoken. OmniVoice needs it to copy the voice.",
       "Unavailable",
@@ -2620,7 +2624,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:624"
+        "mod/setup-check.lua:630"
       ]
     },
     "A previous memory request could not be read. The memory service must reconcile it before another clear.": {
@@ -2677,7 +2681,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:4035"
+        "mod/init.lua:4040"
       ]
     },
     "AI NPC Cyberpunk Mod: group text chat": {
@@ -2685,7 +2689,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3993"
+        "mod/init.lua:3998"
       ]
     },
     "AI NPC Cyberpunk Mod: group voice chat": {
@@ -2693,7 +2697,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:4034"
+        "mod/init.lua:4039"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by text": {
@@ -2701,7 +2705,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3992"
+        "mod/init.lua:3997"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by voice": {
@@ -2709,7 +2713,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:4033"
+        "mod/init.lua:4038"
       ]
     },
     "Above the speaker": {
@@ -2856,7 +2860,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:407"
+        "mod/setup-check.lua:410"
       ]
     },
     "Also changed: {names}.": {
@@ -2945,7 +2949,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:618"
+        "mod/setup-check.lua:624"
       ]
     },
     "Audioware is missing. Install Audioware 1.9.9 or newer from Nexus Mods (nexusmods.com/cyberpunk2077/mods/12001), extract it into the Cyberpunk 2077 folder, then restart the game.": {
@@ -2953,7 +2957,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:444"
+        "mod/setup-check.lua:450"
       ]
     },
     "Audioware {version} is installed, but this mod’s scripts were built without it. Update Audioware to 1.9.9 or newer from Nexus Mods, then restart the game. If it is already up to date, generate a report below and send it.": {
@@ -2961,7 +2965,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:440"
+        "mod/setup-check.lua:446"
       ]
     },
     "Auto": {
@@ -3135,8 +3139,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:481",
-        "mod/setup-check.lua:483"
+        "mod/setup-check.lua:487",
+        "mod/setup-check.lua:489"
       ]
     },
     "Buy": {
@@ -3868,8 +3872,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:438",
-        "mod/setup-check.lua:617"
+        "mod/setup-check.lua:444",
+        "mod/setup-check.lua:623"
       ]
     },
     "Companion Manager": {
@@ -4550,7 +4554,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:360",
-        "mod/init.lua:3628"
+        "mod/init.lua:3632"
       ]
     },
     "Custom: free daily limit reached": {
@@ -4877,7 +4881,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/error-reports.lua:135"
+        "mod/error-reports.lua:141"
       ]
     },
     "Everyday people": {
@@ -5116,7 +5120,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:375"
+        "mod/setup-check.lua:378"
       ]
     },
     "Found: {list}.": {
@@ -5124,9 +5128,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:472",
-        "mod/setup-check.lua:481",
-        "mod/setup-check.lua:521"
+        "mod/setup-check.lua:478",
+        "mod/setup-check.lua:487",
+        "mod/setup-check.lua:527"
       ]
     },
     "Free": {
@@ -5158,7 +5162,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:410"
+        "mod/setup-check.lua:413"
       ]
     },
     "Gamer Pro, monthly": {
@@ -5287,7 +5291,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:520"
+        "mod/setup-check.lua:526"
       ]
     },
     "Group chat needs two characters nearby. Use private chat for one person.": {
@@ -5419,7 +5423,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:614"
+        "mod/setup-check.lua:620"
       ]
     },
     "Installed character models": {
@@ -5453,7 +5457,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:511"
+        "mod/setup-check.lua:517"
       ]
     },
     "Invalid Mature content settings.": {
@@ -5782,7 +5786,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:418"
+        "mod/setup-check.lua:421"
       ]
     },
     "Loading": {
@@ -5825,7 +5829,7 @@
       "references": [
         "mod/manager-ui.lua:586",
         "mod/manager-ui.lua:876",
-        "mod/setup-check.lua:496"
+        "mod/setup-check.lua:502"
       ]
     },
     "Local AI could not answer that one, so a cloud provider did.": {
@@ -5866,7 +5870,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:507"
+        "mod/setup-check.lua:513"
       ]
     },
     "Local AI did not answer within {seconds} s. Try again, or choose a smaller model in Settings.": {
@@ -5882,7 +5886,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:506"
+        "mod/setup-check.lua:512"
       ]
     },
     "Local AI is not ready, so Convai took that message and did not answer in time.": {
@@ -5899,7 +5903,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:87",
-        "mod/setup-check.lua:498"
+        "mod/setup-check.lua:504"
       ]
     },
     "Local AI is still loading its model. Try again in a moment.": {
@@ -5916,7 +5920,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:86",
-        "mod/setup-check.lua:499"
+        "mod/setup-check.lua:505"
       ]
     },
     "Local AI model": {
@@ -5926,6 +5930,14 @@
       "references": [
         "mod/manager-ui.lua:563",
         "mod/manager-ui.lua:862"
+      ]
+    },
+    "Local AI stopped working and was restarted.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:3617"
       ]
     },
     "Male": {
@@ -6080,7 +6092,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:405"
+        "mod/setup-check.lua:408"
       ]
     },
     "Missing: {names}. Install them and restart the game.": {
@@ -6088,7 +6100,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:615"
+        "mod/setup-check.lua:621"
       ]
     },
     "Mistral (free plan)": {
@@ -6139,7 +6151,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3622"
+        "mod/init.lua:3626"
       ]
     },
     "Mistral replies are spoken by a local voice instead of the Convai cloud voice.": {
@@ -6147,7 +6159,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3624"
+        "mod/init.lua:3628"
       ]
     },
     "Mistral: free limit reached for now": {
@@ -6190,7 +6202,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:432"
+        "mod/setup-check.lua:435"
       ]
     },
     "Mod Organizer 2. Files the mod creates go to its Overwrite folder; leave them there. Mention Mod Organizer 2 when you send a report.": {
@@ -6198,7 +6210,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:526"
+        "mod/setup-check.lua:532"
       ]
     },
     "Mod files": {
@@ -6206,7 +6218,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:403"
+        "mod/setup-check.lua:406"
       ]
     },
     "Mod logs": {
@@ -6231,7 +6243,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:525"
+        "mod/setup-check.lua:531"
       ]
     },
     "Model ID: {model}": {
@@ -6279,7 +6291,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:474"
+        "mod/setup-check.lua:480"
       ]
     },
     "Multilingual conversations": {
@@ -6420,7 +6432,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:502"
+        "mod/setup-check.lua:508"
       ]
     },
     "No clear, reachable companion space on this floor. Move to a wider spot and try again.": {
@@ -6517,7 +6529,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4684"
+        "mod/init.lua:4689"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -6542,7 +6554,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:384"
+        "mod/setup-check.lua:387"
       ]
     },
     "No speech was heard. Wait for Listening, then speak before you finish.": {
@@ -6559,7 +6571,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:528"
+        "mod/setup-check.lua:534"
       ]
     },
     "None installed. They are optional.": {
@@ -6567,7 +6579,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:472"
+        "mod/setup-check.lua:478"
       ]
     },
     "None yet": {
@@ -6629,7 +6641,7 @@
       "references": [
         "mod/init.lua:3595",
         "mod/manager-ui.lua:88",
-        "mod/setup-check.lua:504"
+        "mod/setup-check.lua:510"
       ]
     },
     "Not enough memory": {
@@ -6653,7 +6665,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:512"
+        "mod/setup-check.lua:518"
       ]
     },
     "Not running": {
@@ -6661,9 +6673,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:384",
         "mod/setup-check.lua:387",
         "mod/setup-check.lua:390",
+        "mod/setup-check.lua:393",
         "mod/support-report.lua:360"
       ]
     },
@@ -6680,7 +6692,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:497"
+        "mod/setup-check.lua:503"
       ]
     },
     "Not your conversation provider. Choose it in Settings > Conversation provider.": {
@@ -6688,7 +6700,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:497"
+        "mod/setup-check.lua:503"
       ]
     },
     "Note": {
@@ -6696,7 +6708,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:364"
+        "mod/setup-check.lua:367"
       ]
     },
     "Nothing yet.": {
@@ -6729,7 +6741,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:318",
-        "mod/setup-check.lua:362"
+        "mod/setup-check.lua:365"
       ]
     },
     "Off": {
@@ -6825,7 +6837,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:868",
-        "mod/setup-check.lua:505"
+        "mod/setup-check.lua:511"
       ]
     },
     "Only https:// works outside this computer and your home network.": {
@@ -6872,7 +6884,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:612"
+        "mod/setup-check.lua:618"
       ]
     },
     "Opened in your browser.": {
@@ -6952,7 +6964,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:462"
+        "mod/setup-check.lua:468"
       ]
     },
     "Optional. Pocket, OmniVoice and the Voxtral cloud voice copy a clip you add. Without one the character speaks with a generic voice that fits the gender.": {
@@ -7332,7 +7344,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:363"
+        "mod/setup-check.lua:366"
       ]
     },
     "Problems found: {count}. Select a line marked Problem to read what to do.": {
@@ -7364,7 +7376,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:423"
+        "mod/setup-check.lua:426"
       ]
     },
     "RED4ext logs": {
@@ -7398,7 +7410,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:513"
+        "mod/setup-check.lua:519"
       ]
     },
     "React to battles": {
@@ -7808,9 +7820,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:454",
-        "mod/setup-check.lua:455",
-        "mod/setup-check.lua:458"
+        "mod/setup-check.lua:460",
+        "mod/setup-check.lua:461",
+        "mod/setup-check.lua:464"
       ]
     },
     "Scripts {scripts} and Runtime {runtime} do not match. Download both for the same version and extract them into the Cyberpunk 2077 folder.": {
@@ -7818,7 +7830,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:454"
+        "mod/setup-check.lua:460"
       ]
     },
     "Scripts {scripts} and Runtime {runtime}.": {
@@ -7826,7 +7838,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:455"
+        "mod/setup-check.lua:461"
       ]
     },
     "Search characters": {
@@ -8098,7 +8110,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:621"
+        "mod/setup-check.lua:627"
       ]
     },
     "Some model records could not be read.": {
@@ -8114,7 +8126,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:470"
+        "mod/setup-check.lua:476"
       ]
     },
     "Speaking rules": {
@@ -8172,7 +8184,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3819"
+        "mod/init.lua:3824"
       ]
     },
     "Starting": {
@@ -8574,15 +8586,15 @@
       ],
       "references": [
         "mod/nsui.lua:787",
-        "mod/setup-check.lua:619"
+        "mod/setup-check.lua:625"
       ]
     },
-    "The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game.": {
+    "The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Either one is enough. Install one from Nexus Mods, then restart the game.": {
       "contexts": [
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:436"
+        "mod/setup-check.lua:439"
       ]
     },
     "The Convai cloud voice cannot use Natural speech or Expressive emotions, so they were turned off.": {
@@ -8606,7 +8618,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3619"
+        "mod/init.lua:3623"
       ]
     },
     "The Local AI pack finds these. It is not installed or not ready, so none are collected now.": {
@@ -8657,7 +8669,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:387"
+        "mod/setup-check.lua:390"
       ]
     },
     "The Scripts and Runtime versions do not match. Install the same version of both.": {
@@ -8665,7 +8677,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:623"
+        "mod/setup-check.lua:629"
       ]
     },
     "The account is out of credits. Add credits with your provider.": {
@@ -8952,7 +8964,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:625"
+        "mod/setup-check.lua:631"
       ]
     },
     "The conversation service cannot reach {host}. Allow Node.js through your firewall or antivirus (Windows asks once; choose Allow), check your internet, then restart the game.": {
@@ -8960,7 +8972,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:515"
+        "mod/setup-check.lua:521"
       ]
     },
     "The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.": {
@@ -8968,7 +8980,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:390"
+        "mod/setup-check.lua:393"
       ]
     },
     "The conversation service could not start. Restart the game, or see Help in Settings.": {
@@ -8984,7 +8996,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:458"
+        "mod/setup-check.lua:464"
       ]
     },
     "The conversation service did not answer. Wait a moment, then invite again.": {
@@ -9008,7 +9020,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:622"
+        "mod/setup-check.lua:628"
       ]
     },
     "The conversation service is not running, so nothing can be tested. Restart the game.": {
@@ -9059,7 +9071,7 @@
         "mod/manager-ui.lua:1313",
         "mod/manager-ui.lua:1459",
         "mod/service-status.lua:165",
-        "mod/setup-check.lua:483"
+        "mod/setup-check.lua:489"
       ]
     },
     "The conversation service needs your Convai API key. Add it, then restart the game.": {
@@ -9147,7 +9159,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:359",
-        "mod/init.lua:3626"
+        "mod/init.lua:3630"
       ]
     },
     "The custom provider is rate limiting you. Try again in a moment.": {
@@ -9387,7 +9399,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:415"
+        "mod/setup-check.lua:418"
       ]
     },
     "The game’s own named characters, such as Judy, Jackie, Panam and Rogue, answer when you talk to them where they stand. They use their own voice and memory, and their face follows what they say.\n\nNothing else about them changes: they do not turn, move, gesture or follow. They do not answer during scenes, quest conversations, fights or rides.\n\nTakes effect after you reload your save.": {
@@ -9754,7 +9766,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:514"
+        "mod/setup-check.lua:520"
       ]
     },
     "This address is not encrypted, which is fine on your own computer or home network.": {
@@ -9886,7 +9898,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:429"
+        "mod/setup-check.lua:432"
       ]
     },
     "This setting must be on or off.": {
@@ -10014,6 +10026,14 @@
         "mod/manager-ui.lua:800"
       ]
     },
+    "TweakXL is missing. Install TweakXL from Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/setup-check.lua:442"
+      ]
+    },
     "Type a message first.": {
       "contexts": [
         "phone.chat"
@@ -10095,7 +10115,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:435",
-        "mod/setup-check.lua:365",
+        "mod/setup-check.lua:368",
         "mod/support-report.lua:361"
       ]
     },
@@ -10132,7 +10152,7 @@
       ],
       "references": [
         "mod/nsui.lua:786",
-        "mod/setup-check.lua:620"
+        "mod/setup-check.lua:626"
       ]
     },
     "Updating selection": {
@@ -10269,8 +10289,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:374",
-        "mod/setup-check.lua:411"
+        "mod/setup-check.lua:377",
+        "mod/setup-check.lua:414"
       ]
     },
     "Version {version}. The mod is tested on 2.31 only, so some things may not work.": {
@@ -10278,7 +10298,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:413"
+        "mod/setup-check.lua:416"
       ]
     },
     "Voice": {
@@ -10353,7 +10373,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:527"
+        "mod/setup-check.lua:533"
       ]
     },
     "Voxtral (recommended)": {
@@ -11084,7 +11104,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3618"
+        "mod/init.lua:3622"
       ]
     },
     "could not be read": {
@@ -11364,9 +11384,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:426",
-        "mod/setup-check.lua:446",
-        "mod/setup-check.lua:626"
+        "mod/setup-check.lua:429",
+        "mod/setup-check.lua:452",
+        "mod/setup-check.lua:632"
       ]
     },
     "{name} is no longer attached to the world. Dismiss this copy to free its place.": {
@@ -11392,7 +11412,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3884"
+        "mod/init.lua:3889"
       ]
     },
     "{name} is one of your own characters. They need Mistral or Local AI, so with Convai they talk as an ordinary person.": {
@@ -11470,7 +11490,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:520"
+        "mod/setup-check.lua:526"
       ]
     },
     "{name}: chat {state}.": {
@@ -11554,7 +11574,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:467"
+        "mod/setup-check.lua:473"
       ]
     },
     "{plan}, {price} a month": {
@@ -12142,7 +12162,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:3884"
+        "mod/init.lua:3889"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

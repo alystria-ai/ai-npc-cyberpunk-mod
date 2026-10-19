@@ -574,6 +574,33 @@ The reports' own log lines say what was going on:
   card is what keeps the game's frame rate when nobody is talking). What helps the player: the lite Mature model, a lower texture quality in the game,
   or the Local AI pack's Standard model with Mature content off.
 
+### When the model server stops while a turn is asked (2026-10-20: "could not be reached (ECONNREFUSED)")
+
+A report of 0.2.2 (RTX 5090, Vulkan, a Mature model, OmniVoice on the same card) failed one turn with `The local AI could not be reached (ECONNREFUSED)`.
+The bridge log shows the order: the request came back HTTP 500, the retry 400 ms later was refused (2 ms), the turn ended, and only then
+`llama-server stopped unexpectedly (exit 3221226505)` (0xC0000409, a fast fail of the process, most likely the graphics driver; the OmniVoice worker
+died with access violations in the same minutes) and `model ready` for the restarted server, which then answered the next turn normally. So the
+server had crashed and was restarted, not still starting, not idle-stopped and not failed to start. Why the turn still failed: a request is handed the
+server's address and key once, when the turn begins, and both belong to the process that died (a restarted server has a new port and a new key), so
+the retry could never have worked; and Windows keeps a crashed process listed while it writes its crash report, so the exit handler (which restarts
+the server) had not run yet when the turn gave up.
+
+What happens now (`bridge/local-server-recovery.mjs`, `LocalLlmServer.recover()`):
+
+- A request that fails with a lost-server signature (connection refused or reset, or HTTP 5xx, and no word of the reply written) asks the supervisor.
+  If `/health` still answers, the failure stands as before. If not, the process is ended (when its exit was not reported yet) and started again,
+  and the turn waits for it within what is left of its own 80 s (never less than the 3 s one more request needs), then asks once more at the new address.
+  A turn is asked again once; a server that dies again fails the turn as before (`local-failed`).
+- A turn that does not get a new server in time ends with `the model server stopped working and was still starting again` (reason `restarting`).
+- A server that cannot be started again (two attempts) is the old `crashed` failure: the cloud provider answers when there is one, else the turn says
+  `Local AI could not start...` with the reason in brackets (`the model server stopped working and did not start again`, `no discrete graphics card was found`,
+  `the Local AI pack is not installed`, from `unavailableDetail`).
+- A restart that worked is said once, with the next reply: `local-restarted`, "Local AI stopped working and was restarted."
+- A turn that arrives while the server is starting (first start, a restart, after the idle stop) already waits for it (`localRoute.connect`, bounded by the turn's budget).
+- Tests: `bridge/local-server-recovery.test.mjs` (the fake llama-server's `FAKE_LLAMA_GO_DEAF_AT` answers the Nth request with HTTP 500 and stops listening while the process lives on).
+- Live check owed: with Local AI on, end `llama-server.exe` in Task Manager right as a reply starts (or before the next turn): the turn is answered after a pause, the log says
+  `stopped unexpectedly` or `stopped answering` and `was started again; asking once more`, and the game shows the restart notice once.
+
 ### The knowledge status file (EPERM in the bridge log)
 
 `Knowledge poll: EPERM ... rename 'runtime\knowledge-status.json.<id>.tmp'` is the bridge's atomic write (temp file, then rename over the

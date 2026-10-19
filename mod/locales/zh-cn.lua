@@ -1083,7 +1083,7 @@ return {
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI"] = "伙伴管理器需要 Mod Configuration Menu 0.10.5 或更高版本，或 Native Settings UI",
     ["Update Mod Configuration Menu to 0.10.5 or newer, or install Native Settings UI"] = "请将 Mod Configuration Menu 更新到 0.10.5 或更高版本，或安装 Native Settings UI",
     ["Stand up to open the Companion Manager"] = "请站起来以打开伙伴管理器",
-    ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game."] = "伙伴管理器需要 Mod Configuration Menu 0.10.5 或更高版本，或 Native Settings UI 1.96 或更高版本。请从 Nexus Mods 安装其中之一，然后重新启动游戏。",
+    ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Either one is enough. Install one from Nexus Mods, then restart the game."] = "伙伴管理器需要 Mod Configuration Menu 0.10.5 或更高版本，或 Native Settings UI 1.96 或更高版本。二者任选其一即可。请从 Nexus Mods 安装其中之一，然后重新启动游戏。",
     ["Mod Configuration Menu is too old. Update it to 0.10.5 or newer, or install Native Settings UI, then restart the game."] = "Mod Configuration Menu 版本过旧。请将其更新到 0.10.5 或更高版本，或安装 Native Settings UI，然后重新启动游戏。",
     ["Previous page"] = "上一页",
     ["Next page"] = "下一页",
@@ -1094,4 +1094,6 @@ return {
     ["Voxtral (recommended)"] = "Voxtral（推荐）",
     ["Defaults"] = "默认值",
     ["Press Confirm to put every setting back to its default."] = "按下“确认”，即可将每项设置恢复为默认值。",
+    ["Local AI stopped working and was restarted."] = "Local AI 停止工作，已重新启动。",
+    ["TweakXL is missing. Install TweakXL from Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game."] = "缺少 TweakXL。请从 Nexus Mods 安装 TweakXL（nexusmods.com/cyberpunk2077/mods/4197），解压到 Cyberpunk 2077 文件夹，然后重新启动游戏。",
 }

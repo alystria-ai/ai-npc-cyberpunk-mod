@@ -1083,7 +1083,7 @@ return {
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI"] = "O Gerenciador de companheiros precisa do Mod Configuration Menu 0.10.5+ ou Native Settings UI",
     ["Update Mod Configuration Menu to 0.10.5 or newer, or install Native Settings UI"] = "Atualize o Mod Configuration Menu para 0.10.5+ ou instale o Native Settings UI",
     ["Stand up to open the Companion Manager"] = "Levante-se para abrir o Gerenciador de companheiros",
-    ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game."] = "O Gerenciador de companheiros precisa do Mod Configuration Menu 0.10.5 ou mais novo, ou do Native Settings UI 1.96 ou mais novo. Instale um deles pelo Nexus Mods e reinicie o jogo.",
+    ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Either one is enough. Install one from Nexus Mods, then restart the game."] = "O Gerenciador de companheiros precisa do Mod Configuration Menu 0.10.5 ou mais novo, ou do Native Settings UI 1.96 ou mais novo. Qualquer um dos dois basta. Instale um deles pelo Nexus Mods e reinicie o jogo.",
     ["Mod Configuration Menu is too old. Update it to 0.10.5 or newer, or install Native Settings UI, then restart the game."] = "O Mod Configuration Menu está desatualizado. Atualize para a versão 0.10.5 ou mais nova, ou instale o Native Settings UI, e reinicie o jogo.",
     ["Previous page"] = "Página anterior",
     ["Next page"] = "Próxima página",
@@ -1094,4 +1094,6 @@ return {
     ["Voxtral (recommended)"] = "Voxtral (recomendado)",
     ["Defaults"] = "Padrões",
     ["Press Confirm to put every setting back to its default."] = "Pressione Confirmar para devolver cada configuração ao padrão.",
+    ["Local AI stopped working and was restarted."] = "O Local AI parou de funcionar e foi reiniciado.",
+    ["TweakXL is missing. Install TweakXL from Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game."] = "O TweakXL está ausente. Instale o TweakXL pelo Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extraia-o na pasta do Cyberpunk 2077 e reinicie o jogo.",
 }

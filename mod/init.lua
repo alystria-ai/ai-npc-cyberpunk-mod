@@ -3594,11 +3594,11 @@ local function keyReplyNotice(reply)
     if reply.errorCode == 'local-no-memory' then
         return 'local-no-memory', ui.t('Not enough free graphics memory to start Local AI. Try a smaller model in Settings.')
     elseif reply.errorCode == 'local-unavailable' then
-        return 'local-unavailable', ui.t('Local AI could not start. Check Local AI in Settings > Conversation provider.')
+        return 'local-unavailable', ui.t('Local AI could not start. Check Local AI in Settings > Conversation provider.') .. localFailureSuffix(reply)
     end
     -- Local AI could not start, so the bridge used Convai: the same line whether it rode on a failed turn or on the first reply.
     if reply.errorCode == 'local-fallback' or reply.keyNotice == 'local-fallback' then
-        return 'local-fallback', ui.t('Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.')
+        return 'local-fallback', ui.t('Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.') .. localFailureSuffix(reply)
     end
     -- The browser for the conversation page was found but would not start (bridge/system-browser.mjs): name it, the detail says which and why.
     if reply.errorCode == 'browser-failed' then
@@ -3611,6 +3611,10 @@ local function keyReplyNotice(reply)
     -- A turn the local AI could not answer and the player's cloud provider did: the reply carries this one-line note.
     if reply.keyNotice == 'local-turn-fallback' then
         return 'local-turn-fallback', ui.t('Local AI could not answer that one, so a cloud provider did.')
+    end
+    -- The Local AI model server stopped working by itself and was started again (bridge/local-llm-server.mjs): said once, with the next reply.
+    if reply.keyNotice == 'local-restarted' then
+        return 'local-restarted', ui.t('Local AI stopped working and was restarted.')
     end
     -- The Local AI model the player chose is missing, does not fit or did not start, and another was used (the reply names it): said once per choice.
     if reply.keyNotice == 'local-model-fallback' then
@@ -3640,6 +3644,7 @@ local function sendProviderNotice(player, keyId, keyText)
     elseif keyId == 'custom-voice' then convaiNotices.send(player, 'custom-voice', keyText)
     elseif keyId == 'local-fallback' then convaiNotices.send(player, 'local-fallback', keyText)
     elseif keyId == 'local-turn-fallback' then convaiNotices.send(player, 'local-turn-fallback', keyText)
+    elseif keyId == 'local-restarted' then convaiNotices.send(player, 'local-restarted', keyText)
     elseif keyId == 'local-model-fallback' then convaiNotices.send(player, 'local-model-fallback', keyText) end
 end
 
@@ -4768,7 +4773,7 @@ registerForEvent('onUpdate', function(delta)
                             if not pending.reaction then convaiNotices.send(player, 'local-unavailable', keyText) end
                         elseif keyId == 'local-no-memory' then
                             if not pending.reaction then convaiNotices.send(player, 'local-no-memory', keyText) end
-                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' then
+                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' or keyId == 'local-restarted' then
                             sendProviderNotice(player, keyId, keyText)
                             if not pending.reaction then convaiNotices.send(player, 'reply-error', reply.error) end
                         elseif keyId then convaiNotices.send(player, 'quota-exhausted', keyText)

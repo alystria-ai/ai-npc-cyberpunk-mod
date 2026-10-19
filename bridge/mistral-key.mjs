@@ -57,7 +57,7 @@ export class MistralProvider {
     Object.assign(this, {keyPath, readText, writeText, removeFile, inworld, custom});
     this.key = null; this.preference = 'convai'; this.applied = 'convai';
     this.noKeyPending = false; this.noSetupPending = false; this.voicePending = false; this.limit = null; this.sttAvailable = false;
-    this.localTurnNoticePending = false; this.localModelNoticePending = false; this.localModelNoticeName = ''; this.lastNoticeModel = '';
+    this.localTurnNoticePending = false; this.localRestartNoticePending = false; this.localModelNoticePending = false; this.localModelNoticeName = ''; this.lastNoticeModel = '';
     this.localBroken = null; this.localNoticePending = false; // why the local AI cannot be used (null: it can), and the one notice for it
     // May Convai take a turn now? The bridge sets this (false while the shared free tier's day is used up). A Local AI that cannot be used
     // hands its turns to Convai only while Convai can answer them; otherwise they stay on Local AI, whose failure names the real problem
@@ -88,7 +88,7 @@ export class MistralProvider {
     const next = PROVIDERS.includes(value) ? value : 'convai', changed = next !== this.preference;
     this.preference = next;
     if (changed) {
-      this.noKeyPending = next === 'mistral' && !this.key; this.noSetupPending = next === 'custom' && !this.custom?.ready; this.localBroken = null; this.localNoticePending = false; this.localModelNoticePending = false;
+      this.noKeyPending = next === 'mistral' && !this.key; this.noSetupPending = next === 'custom' && !this.custom?.ready; this.localBroken = null; this.localNoticePending = false; this.localModelNoticePending = false; this.localRestartNoticePending = false;
     }
     return changed;
   }
@@ -149,6 +149,8 @@ export class MistralProvider {
    * ('local-turn-fallback', once per call; the game limits how often it shows). The local AI stays the provider.
    */
   noteLocalTurnFallback() { if (this.applied === 'local') this.localTurnNoticePending = true; }
+  /** The local model server stopped by itself and was started again (bridge/local-llm-server.mjs 'restarted'): one notice ('local-restarted') with the next reply. */
+  noteLocalRestarted() { if (this.applied === 'local') this.localRestartNoticePending = true; }
   /** The model the player chose for Local AI is missing, does not fit or did not start, and `model` (its name) was used instead: one notice ('local-model-fallback') with the next reply; `noticeModel` holds the name. */
   noteLocalModelFallback(model) { if (this.preference === 'local') { this.localModelNoticePending = true; this.localModelNoticeName = typeof model === 'string' ? model.slice(0, 80) : ''; } }
   /** The name of the model the 'local-model-fallback' notice just taken says was used, else ''. */
@@ -171,11 +173,12 @@ export class MistralProvider {
   secrets() { return [this.key, ...(this.custom?.secrets?.() ?? []), ...(this.inworld?.secrets?.() ?? [])].filter(Boolean); }
   noteLimit(kind) { this.limit = kind ? {kind, at: Date.now()} : null; this.#changed(); }
   noteSuccess() { if (this.limit) { this.limit = null; this.#changed(); } }
-  /** 'mistral-no-key', 'mistral-voice', 'custom-no-setup', 'custom-voice', 'local-fallback' or 'local-turn-fallback' once each (the game shows them with the next reply), else undefined. */
+  /** 'mistral-no-key', 'mistral-voice', 'custom-no-setup', 'custom-voice', 'local-fallback', 'local-turn-fallback' or 'local-restarted' once each (the game shows them with the next reply), else undefined. */
   takeNotice({cloudVoice = false} = {}) {
     if (this.localNoticePending && this.applied !== 'local') { this.localNoticePending = false; return 'local-fallback'; }
     if (this.localModelNoticePending && this.applied === 'local') { this.localModelNoticePending = false; this.lastNoticeModel = this.localModelNoticeName || ''; return 'local-model-fallback'; }
     if (this.localTurnNoticePending) { this.localTurnNoticePending = false; return 'local-turn-fallback'; }
+    if (this.localRestartNoticePending && this.applied === 'local') { this.localRestartNoticePending = false; return 'local-restarted'; }
     if (this.noKeyPending && this.applied === 'convai') { this.noKeyPending = false; return 'mistral-no-key'; }
     if (this.noSetupPending && this.applied === 'convai') { this.noSetupPending = false; return 'custom-no-setup'; }
     if (this.voicePending && this.applied === 'mistral' && cloudVoice) { this.voicePending = false; return 'mistral-voice'; }

@@ -106,7 +106,7 @@ import {MEMORY_FILE as MISTRAL_MEMORY_FILE} from './mistral-memory.mjs';
 import {MemoryStore} from './memory-store.mjs';
 import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
 import {detectLocalAiPack, describePackFiles, packFileProblems} from './local-ai-pack.mjs';
-import {LocalLlmServer, nvidiaTotalMiB} from './local-llm-server.mjs';
+import {LocalLlmServer, nvidiaTotalMiB, unavailableDetail} from './local-llm-server.mjs';
 import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, matureOffBlocks, normalisePin} from './local-model-choice.mjs';
 import {CustomModelScanner} from './custom-models.mjs';
 import {LlamaEmbedder} from './local-embed.mjs';
@@ -376,6 +376,8 @@ localServer.on('failed', ({reason}) => {
   // Nobody can take the turns over (no Mistral key, Convai's free day used up): they stay on Local AI and each says why. One line per failure.
   if (mistral.localDown) logLocalDown();
 });
+// The model server stopped by itself and is running again: the game says so once, with the next reply (mod/init.lua, 'local-restarted').
+localServer.on('restarted', () => mistral.noteLocalRestarted());
 function logLocalDown() {
   console.error(`[LocalAI] Local AI is unavailable (${mistral.localBroken}) and Convai's free turns for today are used: turns stay on Local AI and the game names the reason`);
 }
@@ -504,7 +506,14 @@ const providerFailureCode = code => mistral.failureCode(code);
 // keyFailure (below) with that correction: what every failed turn's reply carries.
 const turnFailure = (error, input) => {
   const failure = keyFailure(error, input), errorCode = providerFailureCode(failure.errorCode);
-  return errorCode === failure.errorCode ? failure : {...failure, errorCode};
+  const corrected = errorCode === failure.errorCode ? failure : {...failure, errorCode};
+  // Local AI could not start (or would not start again after it stopped working): the game's sentence says that, and these few words say why
+  // (the pack is missing, no graphics card, the model server stopped working), shown after it like a local turn's detail.
+  if ((errorCode === 'local-unavailable' || errorCode === 'local-fallback') && !corrected.errorDetail) {
+    const detail = unavailableDetail(isLocalUnavailable(error) ? error.reason : mistral.localBroken, isLocalUnavailable(error) ? error.detail : undefined);
+    if (detail) return {...corrected, errorDetail: detail};
+  }
+  return corrected;
 };
 // The game's notice for a failure (docs/NOTIFICATIONS.md). An automatic reaction that hit the daily cap just stops: no notice.
 const keyFailure = (error, input) => {

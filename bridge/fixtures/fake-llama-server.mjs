@@ -8,6 +8,8 @@
 //   FAKE_LLAMA_EXIT_AT_START   exit at once with this code
 //   FAKE_LLAMA_EXIT_FOR_MODEL  exit(1) at once when the -m file path contains this text (a model llama.cpp cannot load)
 //   FAKE_LLAMA_CRASH_AFTER     exit(7) right after answering this many /v1 requests
+//   FAKE_LLAMA_GO_DEAF_AT      the Nth chat request is answered with HTTP 500 and the server then stops listening and drops every connection, while the process stays alive
+//                              (a crashed llama-server that Windows still lists while it writes its crash report: later requests are refused)
 //   FAKE_LLAMA_REPLY           the chat reply text (default: an echo of the last user message)
 //   FAKE_LLAMA_DEVICES         the device lines printed by --list-devices
 //   FAKE_LLAMA_PRINT_KEY       print the API key to stderr (to test redaction)
@@ -62,6 +64,8 @@ const host = options['--host'] ?? '127.0.0.1';
 const startedAt = Date.now();
 const delayMs = Number(process.env.FAKE_LLAMA_DELAY_MS || 0);
 const crashAfter = Number(process.env.FAKE_LLAMA_CRASH_AFTER || 0);
+const goDeafAt = Number(process.env.FAKE_LLAMA_GO_DEAF_AT || 0);
+let chats = 0;
 const contextSize = Number(process.env.FAKE_LLAMA_CTX || options['-c'] || 4096);
 const charsPerToken = Number(process.env.FAKE_LLAMA_CHARS_PER_TOKEN || 4);
 const embedding = Boolean(options['--embedding'] || options['--embeddings']);
@@ -109,6 +113,11 @@ const server = createServer((request, response) => {
       return send(response, 200, {tokens: Array.from({length: Math.ceil(String(json.content ?? '').length / charsPerToken)}, (_, index) => index)});
     }
     if (url === '/v1/chat/completions') {
+      if (goDeafAt && ++chats >= goDeafAt) {
+        response.on('finish', () => { server.close(); server.closeAllConnections(); setInterval(() => {}, 60_000); });
+        send(response, 500, {error: {code: 500, message: 'device lost'}});
+        return;
+      }
       const messages = Array.isArray(json.messages) ? json.messages : [];
       const promptChars = messages.reduce((sum, message) => sum + String(message.content ?? '').length, 0);
       const promptTokens = Math.ceil(promptChars / charsPerToken) + messages.length * 4;

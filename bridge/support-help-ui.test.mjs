@@ -361,7 +361,7 @@ test('a missing framework, a missing file and a service that never started are P
   files['runtime/knowledge-status.json'] = nil
   assert(invoke('tab:settings').ok and invoke('help').ok)
   assert(row('help-service').value == 'Not running' and row('help-service').description:find('Runtime zip straight into the Cyberpunk 2077 folder', 1, true), row('help-service').description)
-  assert(setupRow('tweakxl').value == 'Problem' and setupRow('tweakxl').description == 'TweakXL is missing. Install it from Nexus Mods, then restart the game.')
+  assert(setupRow('tweakxl').value == 'Problem' and setupRow('tweakxl').description == 'TweakXL is missing. Install TweakXL from Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game.')
   assert(setupRow('files').value == 'Problem' and setupRow('files').description:find('Missing: phone-contacts.json.', 1, true))
   assert(setupRow('codeware').value == 'OK')
   assert(category('help-setup').description == 'Problems found: 3. Select a line marked Problem to read what to do.', category('help-setup').description)
