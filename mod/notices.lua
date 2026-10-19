@@ -62,6 +62,8 @@ M.catalog = {
     ['local-failed'] = {class = PLAYER, repeatS = 30},      -- a local turn could not be answered and no cloud provider took it over: say so on every attempt, not more than twice a minute
     ['local-turn-fallback'] = {class = PLAYER, repeatS = 600}, -- a local turn was answered by the cloud provider instead: about once per ten minutes
     ['local-model-fallback'] = {class = PLAYER, repeatS = 60},    -- the Local AI model the player chose is missing, does not fit or did not start, so the largest model that fits was used (the bridge sends it once per choice)
+    ['local-unavailable'] = {class = PLAYER, repeatS = 30}, -- Local AI is chosen, could not start and nobody took the turn over (no Mistral key, Convai's free day used up): every attempt, at most twice a minute
+    ['local-no-memory'] = {class = PLAYER, repeatS = 30},   -- the same, for want of free graphics memory: a smaller model is the cure
     -- Starting a conversation
     ['talk-no-target'] = {class = PLAYER, repeatS = 20},
     ['talk-no-profile'] = {class = PLAYER, repeatS = 20},

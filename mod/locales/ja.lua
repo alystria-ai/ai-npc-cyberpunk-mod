@@ -987,4 +987,10 @@ return {
     ["This address is not encrypted, which is fine on your own computer or home network."] = "このアドレスは暗号化されていません。ご自身のコンピューターやご自宅のネットワーク内であれば問題ありません。",
     ["Use the base URL only: no password, query or #."] = "ベースURLのみを使用してください。パスワード、クエリ、#は入れないでください。",
     ["Waiting for the endpoint to answer…"] = "エンドポイントの応答を待っています…",
+    ["Not enough free graphics memory to start Local AI. Try a smaller model in Settings."] = "空きグラフィックメモリ不足で Local AI を起動できません。設定で小型モデルを試してください。",
+    ["Local AI is still loading its model. Try again in a moment."] = "Local AI はモデルを読み込み中です。少し待ってからもう一度お試しください。",
+    ["Local AI did not answer within {seconds} s. Try again, or choose a smaller model in Settings."] = "Local AI が {seconds} 秒以内に答えませんでした。再試行するか、設定で小型モデルを選んでください。",
+    ["Local AI is not ready, so Convai took that message and did not answer in time."] = "Local AI は準備中のため、Convai がこのメッセージを受け取り、時間内に回答しませんでした。",
+    ["No reply arrived within {seconds} s. Try again."] = "{seconds} 秒以内に返信がありませんでした。もう一度お試しください。",
+    ["The conversation service did not get that message. Try again."] = "会話サービスがメッセージを受け取れませんでした。もう一度お試しください。",
 }

@@ -47,7 +47,7 @@
     ]
   },
   "counts": {
-    "strings": 987,
+    "strings": 993,
     "dynamicTemplates": 57,
     "contexts": 36
   },
@@ -426,8 +426,11 @@
     "Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.": "Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.",
     "Local AI could not start. Check Local AI in Settings > Conversation provider.": "Local AI could not start. Check Local AI in Settings > Conversation provider.",
     "Local AI could not start. Generate a report below and send it, or choose another conversation provider.": "Local AI could not start. Generate a report below and send it, or choose another conversation provider.",
+    "Local AI did not answer within {seconds} s. Try again, or choose a smaller model in Settings.": "Local AI did not answer within {seconds} s. Try again, or choose a smaller model in Settings.",
     "Local AI found no graphics card it can use. It needs an NVIDIA or AMD card with a current driver. Update the driver, or choose another conversation provider.": "Local AI found no graphics card it can use. It needs an NVIDIA or AMD card with a current driver. Update the driver, or choose another conversation provider.",
+    "Local AI is not ready, so Convai took that message and did not answer in time.": "Local AI is not ready, so Convai took that message and did not answer in time.",
     "Local AI is ready.": "Local AI is ready.",
+    "Local AI is still loading its model. Try again in a moment.": "Local AI is still loading its model. Try again in a moment.",
     "Local AI is warming up…": "Local AI is warming up…",
     "Local AI model": "Local AI model",
     "Manage": "Manage",
@@ -494,6 +497,7 @@
     "No matches. Try another name or clear the search.": "No matches. Try another name or clear the search.",
     "No model installed": "No model installed",
     "No problem found. Select a line to see what was checked.": "No problem found. Select a line to see what was checked.",
+    "No reply arrived within {seconds} s. Try again.": "No reply arrived within {seconds} s. Try again.",
     "No reply arrived. The conversation service may not be running.": "No reply arrived. The conversation service may not be running.",
     "No reply received. Your message is in the draft; press Enter to retry.": "No reply received. Your message is in the draft; press Enter to retry.",
     "No settings were supplied.": "No settings were supplied.",
@@ -506,6 +510,7 @@
     "Not added": "Not added",
     "Not checked yet": "Not checked yet",
     "Not configured": "Not configured",
+    "Not enough free graphics memory to start Local AI. Try a smaller model in Settings.": "Not enough free graphics memory to start Local AI. Try a smaller model in Settings.",
     "Not enough graphics memory for Local AI. A cloud provider is used instead.": "Not enough graphics memory for Local AI. A cloud provider is used instead.",
     "Not enough memory": "Not enough memory",
     "Not in your head yet": "Not in your head yet",
@@ -765,6 +770,7 @@
     "The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.": "The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.",
     "The conversation service could not start. Restart the game, or see Help in Settings.": "The conversation service could not start. Restart the game, or see Help in Settings.",
     "The conversation service did not answer. Wait a moment, then invite again.": "The conversation service did not answer. Wait a moment, then invite again.",
+    "The conversation service did not get that message. Try again.": "The conversation service did not get that message. Try again.",
     "The conversation service did not start. Is the Runtime installed? See Help in Settings.": "The conversation service did not start. Is the Runtime installed? See Help in Settings.",
     "The conversation service is not running, so nothing can be tested. Restart the game.": "The conversation service is not running, so nothing can be tested. Restart the game.",
     "The conversation service is not running, so plans cannot be shown. Restart the game.": "The conversation service is not running, so plans cannot be shown. Restart the game.",
@@ -1864,8 +1870,11 @@
       "Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.",
       "Local AI could not start. Check Local AI in Settings > Conversation provider.",
       "Local AI could not start. Generate a report below and send it, or choose another conversation provider.",
+      "Local AI did not answer within {seconds} s. Try again, or choose a smaller model in Settings.",
       "Local AI found no graphics card it can use. It needs an NVIDIA or AMD card with a current driver. Update the driver, or choose another conversation provider.",
+      "Local AI is not ready, so Convai took that message and did not answer in time.",
       "Local AI is ready.",
+      "Local AI is still loading its model. Try again in a moment.",
       "Local AI is warming up…",
       "Local AI model",
       "Memory",
@@ -1905,6 +1914,7 @@
       "No match.",
       "No model installed",
       "No problem found. Select a line to see what was checked.",
+      "No reply arrived within {seconds} s. Try again.",
       "No reply arrived. The conversation service may not be running.",
       "No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game.",
       "No speech was heard. Wait for Listening, then speak before you finish.",
@@ -1913,6 +1923,7 @@
       "None yet",
       "Not added",
       "Not checked yet",
+      "Not enough free graphics memory to start Local AI. Try a smaller model in Settings.",
       "Not enough graphics memory for Local AI. A cloud provider is used instead.",
       "Not enough memory",
       "Not in your head yet",
@@ -2061,6 +2072,7 @@
       "The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.",
       "The conversation service could not start. Restart the game, or see Help in Settings.",
       "The conversation service did not answer. Wait a moment, then invite again.",
+      "The conversation service did not get that message. Try again.",
       "The conversation service did not start. Is the Runtime installed? See Help in Settings.",
       "The conversation service is not running, so nothing can be tested. Restart the game.",
       "The conversation service is not running, so the editor cannot open. Restart the game.",
@@ -2418,7 +2430,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3407"
+        "mod/init.lua:3414"
       ]
     },
     "AI NPC Cyberpunk Mod: group text chat": {
@@ -2426,7 +2438,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3365"
+        "mod/init.lua:3372"
       ]
     },
     "AI NPC Cyberpunk Mod: group voice chat": {
@@ -2434,7 +2446,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3406"
+        "mod/init.lua:3413"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by text": {
@@ -2442,7 +2454,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3364"
+        "mod/init.lua:3371"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by voice": {
@@ -2450,7 +2462,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3405"
+        "mod/init.lua:3412"
       ]
     },
     "Above the speaker": {
@@ -2840,8 +2852,8 @@
         "phone.native"
       ],
       "references": [
-        "mod/phone-chat-style.lua:181",
-        "mod/phone-chat-style.lua:255",
+        "mod/phone-chat-style.lua:183",
+        "mod/phone-chat-style.lua:257",
         "r6/scripts/CyberpunkConvai/PhoneChat.reds:490",
         "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:378"
       ]
@@ -2851,7 +2863,7 @@
         "phone.native-feedback"
       ],
       "references": [
-        "mod/phone-chat-style.lua:67",
+        "mod/phone-chat-style.lua:69",
         "r6/scripts/CyberpunkConvai/PhoneContacts.reds:352"
       ]
     },
@@ -2868,7 +2880,7 @@
         "phone.native-feedback"
       ],
       "references": [
-        "mod/phone-chat-style.lua:68",
+        "mod/phone-chat-style.lua:70",
         "r6/scripts/CyberpunkConvai/PhoneContacts.reds:352"
       ]
     },
@@ -3033,7 +3045,7 @@
         "phone.native"
       ],
       "references": [
-        "mod/phone-chat-style.lua:238",
+        "mod/phone-chat-style.lua:240",
         "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:331"
       ]
     },
@@ -3850,8 +3862,8 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:40",
-        "mod/phone-chat.lua:286",
-        "mod/phone-chat.lua:414"
+        "mod/phone-chat.lua:288",
+        "mod/phone-chat.lua:416"
       ]
     },
     "Conversation is unavailable for this contact.": {
@@ -3860,7 +3872,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:50",
-        "mod/phone-chat.lua:631"
+        "mod/phone-chat.lua:633"
       ]
     },
     "Conversation profile cleared.": {
@@ -3958,7 +3970,7 @@
       "references": [
         "mod/holocall.lua:722",
         "mod/phone-chat-style.lua:43",
-        "mod/phone-chat.lua:534"
+        "mod/phone-chat.lua:536"
       ]
     },
     "Conversations are disabled in Companion Manager.": {
@@ -3967,7 +3979,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:49",
-        "mod/phone-chat.lua:631"
+        "mod/phone-chat.lua:633"
       ]
     },
     "Conversations with Convai API key chosen as the provider use this plan.": {
@@ -4195,7 +4207,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:344",
-        "mod/init.lua:3027"
+        "mod/init.lua:3034"
       ]
     },
     "Custom: key not accepted": {
@@ -4260,7 +4272,7 @@
         "phone.native-feedback"
       ],
       "references": [
-        "mod/phone-chat-style.lua:66",
+        "mod/phone-chat-style.lua:68",
         "r6/scripts/CyberpunkConvai/PhoneContacts.reds:351"
       ]
     },
@@ -4917,7 +4929,7 @@
         "phone.native-feedback"
       ],
       "references": [
-        "mod/phone-chat-style.lua:65",
+        "mod/phone-chat-style.lua:67",
         "r6/scripts/CyberpunkConvai/PhoneContacts.reds:351"
       ]
     },
@@ -5355,7 +5367,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3012"
+        "mod/init.lua:3019"
       ]
     },
     "Local AI could not answer that. Try again in a moment.": {
@@ -5363,7 +5375,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3008"
+        "mod/init.lua:3015"
       ]
     },
     "Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.": {
@@ -5371,7 +5383,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3004"
+        "mod/init.lua:3011"
       ]
     },
     "Local AI could not start. Check Local AI in Settings > Conversation provider.": {
@@ -5379,6 +5391,7 @@
         "ui.localized"
       ],
       "references": [
+        "mod/init.lua:3007",
         "mod/mcm.lua:138"
       ]
     },
@@ -5390,12 +5403,28 @@
         "mod/setup-check.lua:413"
       ]
     },
+    "Local AI did not answer within {seconds} s. Try again, or choose a smaller model in Settings.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/service-status.lua:240"
+      ]
+    },
     "Local AI found no graphics card it can use. It needs an NVIDIA or AMD card with a current driver. Update the driver, or choose another conversation provider.": {
       "contexts": [
         "ui.localized"
       ],
       "references": [
         "mod/setup-check.lua:412"
+      ]
+    },
+    "Local AI is not ready, so Convai took that message and did not answer in time.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/service-status.lua:243"
       ]
     },
     "Local AI is ready.": {
@@ -5405,6 +5434,14 @@
       "references": [
         "mod/mcm.lua:136",
         "mod/setup-check.lua:407"
+      ]
+    },
+    "Local AI is still loading its model. Try again in a moment.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/service-status.lua:239"
       ]
     },
     "Local AI is warming up…": {
@@ -5502,8 +5539,8 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:39",
-        "mod/phone-chat.lua:530",
-        "mod/phone-chat.lua:632"
+        "mod/phone-chat.lua:532",
+        "mod/phone-chat.lua:634"
       ]
     },
     "Memory result": {
@@ -5536,7 +5573,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:47",
-        "mod/phone-chat.lua:629"
+        "mod/phone-chat.lua:631"
       ]
     },
     "Microphone connection timed out. Please try again.": {
@@ -5621,7 +5658,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3021"
+        "mod/init.lua:3028"
       ]
     },
     "Mistral replies are spoken by a local voice instead of the Convai cloud voice.": {
@@ -5629,7 +5666,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3023"
+        "mod/init.lua:3030"
       ]
     },
     "Mistral: free limit reached for now": {
@@ -5962,12 +5999,20 @@
         "mod/mcm.lua:2104"
       ]
     },
+    "No reply arrived within {seconds} s. Try again.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/service-status.lua:245"
+      ]
+    },
     "No reply arrived. The conversation service may not be running.": {
       "contexts": [
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4019"
+        "mod/init.lua:4032"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -5976,7 +6021,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:46",
-        "mod/phone-chat.lua:575"
+        "mod/phone-chat.lua:577"
       ]
     },
     "No settings were supplied.": {
@@ -6061,6 +6106,14 @@
       ],
       "references": [
         "mod/mcm.lua:689"
+      ]
+    },
+    "Not enough free graphics memory to start Local AI. Try a smaller model in Settings.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:3005"
       ]
     },
     "Not enough graphics memory for Local AI. A cloud provider is used instead.": {
@@ -6668,7 +6721,7 @@
         "phone.chat"
       ],
       "references": [
-        "mod/phone-chat-style.lua:330"
+        "mod/phone-chat-style.lua:332"
       ]
     },
     "Press your Group voice chat shortcut to finish recording.": {
@@ -7077,8 +7130,8 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:38",
-        "mod/phone-chat.lua:524",
-        "mod/phone-chat.lua:633"
+        "mod/phone-chat.lua:526",
+        "mod/phone-chat.lua:635"
       ]
     },
     "Saved at {path}": {
@@ -7232,10 +7285,10 @@
       ],
       "references": [
         "mod/mcm.lua:2042",
-        "mod/phone-chat-style.lua:145",
-        "mod/phone-chat-style.lua:148",
-        "mod/phone-chat-style.lua:195",
-        "mod/phone-chat-style.lua:204"
+        "mod/phone-chat-style.lua:147",
+        "mod/phone-chat-style.lua:150",
+        "mod/phone-chat-style.lua:197",
+        "mod/phone-chat-style.lua:206"
       ]
     },
     "Selected character": {
@@ -7887,7 +7940,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3018"
+        "mod/init.lua:3025"
       ]
     },
     "The Local AI pack finds these. It is not installed or not ready, so none are collected now.": {
@@ -8233,6 +8286,14 @@
         "mod/manager-party.lua:112"
       ]
     },
+    "The conversation service did not get that message. Try again.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/service-status.lua:235"
+      ]
+    },
     "The conversation service did not start. Is the Runtime installed? See Help in Settings.": {
       "contexts": [
         "ui.localized"
@@ -8377,7 +8438,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:343",
-        "mod/init.lua:3025"
+        "mod/init.lua:3032"
       ]
     },
     "The custom provider is rate limiting you. Try again in a moment.": {
@@ -9091,7 +9152,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:42",
-        "mod/phone-chat.lua:532"
+        "mod/phone-chat.lua:534"
       ]
     },
     "Type your message to the character.": {
@@ -9118,7 +9179,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:45",
-        "mod/phone-chat.lua:568"
+        "mod/phone-chat.lua:570"
       ]
     },
     "Unavailable": {
@@ -9428,7 +9489,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:44",
-        "mod/phone-chat.lua:536"
+        "mod/phone-chat.lua:538"
       ]
     },
     "Wait for your summoned car to arrive.": {
@@ -9603,7 +9664,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:48",
-        "mod/phone-chat.lua:629"
+        "mod/phone-chat.lua:631"
       ]
     },
     "Walking commands did not release in time.": {
@@ -9699,7 +9760,7 @@
         "phone.chat"
       ],
       "references": [
-        "mod/phone-chat-style.lua:329"
+        "mod/phone-chat-style.lua:331"
       ]
     },
     "YOUR PARTY": {
@@ -10017,7 +10078,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3017"
+        "mod/init.lua:3024"
       ]
     },
     "could not be read": {
@@ -10322,7 +10383,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3256"
+        "mod/init.lua:3263"
       ]
     },
     "{name} joined your group.": {
@@ -11080,7 +11141,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:3256"
+        "mod/init.lua:3263"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

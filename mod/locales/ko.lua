@@ -987,4 +987,10 @@ return {
     ["This address is not encrypted, which is fine on your own computer or home network."] = "이 주소는 암호화되지 않습니다. 내 컴퓨터나 집 네트워크라면 괜찮습니다.",
     ["Use the base URL only: no password, query or #."] = "기본 URL만 입력하세요. 비밀번호, 쿼리, #은 넣지 마세요.",
     ["Waiting for the endpoint to answer…"] = "엔드포인트의 응답을 기다리는 중…",
+    ["Not enough free graphics memory to start Local AI. Try a smaller model in Settings."] = "Local AI를 시작할 여유 그래픽 메모리가 부족합니다. 설정에서 더 작은 모델을 시도하세요.",
+    ["Local AI is still loading its model. Try again in a moment."] = "Local AI가 아직 모델을 불러오는 중입니다. 잠시 후 다시 시도하세요.",
+    ["Local AI did not answer within {seconds} s. Try again, or choose a smaller model in Settings."] = "Local AI가 {seconds}초 안에 답변하지 않았습니다. 다시 시도하거나 설정에서 더 작은 모델을 선택하세요.",
+    ["Local AI is not ready, so Convai took that message and did not answer in time."] = "Local AI가 준비되지 않아 Convai가 메시지를 받았지만 제시간에 답변하지 못했습니다.",
+    ["No reply arrived within {seconds} s. Try again."] = "{seconds}초 안에 답변이 도착하지 않았습니다. 다시 시도하세요.",
+    ["The conversation service did not get that message. Try again."] = "대화 서비스가 메시지를 받지 못했습니다. 다시 시도하세요.",
 }

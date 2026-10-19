@@ -987,4 +987,10 @@ return {
     ["This address is not encrypted, which is fine on your own computer or home network."] = "Questo indirizzo non è cifrato, il che va bene sul tuo computer o nella tua rete domestica.",
     ["Use the base URL only: no password, query or #."] = "Usa solo l’URL di base: niente password, query o #.",
     ["Waiting for the endpoint to answer…"] = "In attesa della risposta dell’endpoint…",
+    ["Not enough free graphics memory to start Local AI. Try a smaller model in Settings."] = "Poca memoria grafica libera per Local AI. Prova un modello più piccolo nelle Impostazioni.",
+    ["Local AI is still loading its model. Try again in a moment."] = "Local AI sta ancora caricando il modello. Riprova tra un momento.",
+    ["Local AI did not answer within {seconds} s. Try again, or choose a smaller model in Settings."] = "Local AI non ha risposto entro {seconds} s. Riprova o scegli un modello più piccolo nelle Impostazioni.",
+    ["Local AI is not ready, so Convai took that message and did not answer in time."] = "Local AI non è ancora pronta, quindi Convai ha preso il messaggio e non ha risposto in tempo.",
+    ["No reply arrived within {seconds} s. Try again."] = "Nessuna risposta entro {seconds} s. Riprova.",
+    ["The conversation service did not get that message. Try again."] = "Il servizio di conversazione non ha ricevuto il messaggio. Riprova.",
 }

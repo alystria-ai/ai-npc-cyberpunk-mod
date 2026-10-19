@@ -987,4 +987,10 @@ return {
     ["This address is not encrypted, which is fine on your own computer or home network."] = "Адрес не зашифрован, но на твоём компьютере или в домашней сети это нормально.",
     ["Use the base URL only: no password, query or #."] = "Укажи только базовый URL: без пароля, параметров запроса и #.",
     ["Waiting for the endpoint to answer…"] = "Ожидание ответа эндпоинта…",
+    ["Not enough free graphics memory to start Local AI. Try a smaller model in Settings."] = "Мало свободной видеопамяти для Local AI. Выберите меньшую модель в Настройках.",
+    ["Local AI is still loading its model. Try again in a moment."] = "Local AI еще загружает свою модель. Попробуйте снова через некоторое время.",
+    ["Local AI did not answer within {seconds} s. Try again, or choose a smaller model in Settings."] = "Local AI не ответил за {seconds} с. Попробуйте снова или выберите меньшую модель в Настройках.",
+    ["Local AI is not ready, so Convai took that message and did not answer in time."] = "Local AI еще не готов, поэтому служба Convai приняла сообщение, но не ответила вовремя.",
+    ["No reply arrived within {seconds} s. Try again."] = "Ответ не поступил за {seconds} с. Попробуйте снова.",
+    ["The conversation service did not get that message. Try again."] = "Служба разговора не получила сообщение. Попробуйте снова.",
 }

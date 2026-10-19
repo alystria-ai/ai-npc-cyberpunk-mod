@@ -221,5 +221,29 @@ function M.notice(now)
     return M.message(down.kind, down.detail)
 end
 
+-- Why a turn V sent has had no reply for `seconds` while the service is up (blockedMessage and lostSince found nothing wrong with it), or nil
+-- when nothing is known (the caller keeps its general sentence). Read once, at that timeout, never per frame:
+--   * the bridge's own status, runtime/bridge-status.json: 'thinking' names the turn it took (requestId) and the provider that took it, and
+--     'ready' or 'error' the turn it finished;
+--   * `provider`, the bridge's provider status as manager.mistral() reads it: `provider` is the setting, `localAi` Local AI's state.
+-- A turn the service never took was lost or replaced before it was read. One Local AI took is still waiting for its model to load, or took
+-- too long. One Convai took while the setting is Local AI went there because Local AI was not ready.
+function M.noReplyMessage(requestId, provider, seconds)
+    if type(requestId) ~= 'string' or requestId == '' then return nil end
+    local status = readJson('runtime/bridge-status.json')
+    if type(status) ~= 'table' then return nil end
+    if status.requestId ~= requestId then return ui.t('The conversation service did not get that message. Try again.') end
+    seconds = math.floor(tonumber(seconds) or 90)
+    provider = type(provider) == 'table' and provider or {}
+    if status.state == 'thinking' and status.provider == 'local' then
+        if provider.localAi == 'warming' then return ui.t('Local AI is still loading its model. Try again in a moment.') end
+        return ui.t('Local AI did not answer within {seconds} s. Try again, or choose a smaller model in Settings.', {seconds = seconds})
+    end
+    if status.state == 'thinking' and status.provider == 'convai' and provider.provider == 'local' then
+        return ui.t('Local AI is not ready, so Convai took that message and did not answer in time.')
+    end
+    return ui.t('No reply arrived within {seconds} s. Try again.', {seconds = seconds})
+end
+
 convaiServiceStatus = M
 return M

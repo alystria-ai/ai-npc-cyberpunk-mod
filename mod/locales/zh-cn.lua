@@ -987,4 +987,10 @@ return {
     ["This address is not encrypted, which is fine on your own computer or home network."] = "此地址未加密，但在你自己的电脑或家庭网络中使用没有问题。",
     ["Use the base URL only: no password, query or #."] = "只使用基础 URL：不要包含密码、查询参数或 #。",
     ["Waiting for the endpoint to answer…"] = "正在等待端点回应…",
+    ["Not enough free graphics memory to start Local AI. Try a smaller model in Settings."] = "可用显存不足，无法启动 Local AI。请在 设置 中换用较小的模型。",
+    ["Local AI is still loading its model. Try again in a moment."] = "Local AI 仍在加载模型。请稍后再试。",
+    ["Local AI did not answer within {seconds} s. Try again, or choose a smaller model in Settings."] = "Local AI 在 {seconds} 秒内没有回复。请重试，或在 设置 中选择较小的模型。",
+    ["Local AI is not ready, so Convai took that message and did not answer in time."] = "Local AI 尚未就绪，Convai 接收了这条消息但未能及时回复。",
+    ["No reply arrived within {seconds} s. Try again."] = "{seconds} 秒内没有收到回复。请重试。",
+    ["The conversation service did not get that message. Try again."] = "对话服务没有收到这条消息。请重试。",
 }
