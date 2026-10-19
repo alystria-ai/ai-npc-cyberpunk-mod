@@ -51,6 +51,13 @@ local NSUI_CONSOLE = 'AI NPC Cyberpunk Mod: the Companion Manager needs Mod Conf
 local MCM_OLD_CONSOLE = 'AI NPC Cyberpunk Mod: Mod Configuration Menu is older than 0.10.5, so the Companion Manager cannot open in it. '
     .. 'Update Mod Configuration Menu to 0.10.5 or newer from Nexus Mods (https://www.nexusmods.com/cyberpunk2077/mods/31640), then restart the game.'
 local MCM_MIN = {0, 10, 5}
+-- Audioware: the version the mod was built and tested with and where it comes from (reports of 0.2.2: three players had none, and one
+-- had one this mod's scripts were built without).
+local AUDIOWARE_MIN = '1.9.9'
+local AUDIOWARE_CONSOLE = 'AI NPC Cyberpunk Mod: Audioware is missing. Install Audioware ' .. AUDIOWARE_MIN .. ' or newer from Nexus Mods '
+    .. '(https://www.nexusmods.com/cyberpunk2077/mods/12001), extract it into the Cyberpunk 2077 folder, then restart the game.'
+local AUDIOWARE_UNBUILT_CONSOLE = 'AI NPC Cyberpunk Mod: Audioware is installed, but this mod\'s scripts were built without it. '
+    .. 'Update Audioware to ' .. AUDIOWARE_MIN .. ' or newer from Nexus Mods (https://www.nexusmods.com/cyberpunk2077/mods/12001), then restart the game.'
 -- The first-load lines for the CET console and probe.log, in English like the one above (a report is read in English).
 local SCRIPTS_CONSOLE = 'AI NPC Cyberpunk Mod: this mod\'s scripts did not load. Open r6/logs/redscript_rCURRENT.log. '
     .. 'If the error names another mod, that mod is the problem. '
@@ -287,6 +294,11 @@ function M.run(now)
     --   no player yet: its own probe alone.
     local function framework(id, present, version)
         if words and (id == 'codeware' or id == 'audioware') then
+            -- Audioware whose own version answers (Game.GetAudioSystemExt():Version() is in its scripts, so they are loaded) while these
+            -- scripts were built without it: it is installed, so "install it" would be wrong. A release candidate or other build the compile
+            -- did not match (a report of 0.2.2: Audioware 1.9.9-rc.0, ModuleExists("Audioware") false). The fix is to update it; the code keeps
+            -- these players apart in the reports. The class alone (its plugin without its scripts) is not this: that one is missing.
+            if not words[id] and id == 'audioware' and version then return {state = 'problem', code = 'unbuilt', version = version} end
             if not words[id] then return {state = 'problem', code = 'missing'} end
             if id == 'codeware' and not (words[UI] and words[TEXT_INPUT]) then
                 return {state = 'problem', code = 'old', version = version}
@@ -423,6 +435,13 @@ local function gameLine(id, check)
         return line(id, label, 'problem', ui.t('The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game.'))
     end
     if id == 'codeware' and check.code == 'old' then return line(id, label, 'problem', ui.t('Codeware is too old. Update it from Nexus Mods, then restart the game.')) end
+    if id == 'audioware' and check.code == 'unbuilt' then
+        return line(id, label, 'problem', ui.t('Audioware {version} is installed, but this mod’s scripts were built without it. Update Audioware to 1.9.9 or newer from Nexus Mods, then restart the game. If it is already up to date, generate a report below and send it.',
+            {version = check.version or '?'}))
+    end
+    if id == 'audioware' then
+        return line(id, label, 'problem', ui.t('Audioware is missing. Install Audioware 1.9.9 or newer from Nexus Mods (nexusmods.com/cyberpunk2077/mods/12001), extract it into the Cyberpunk 2077 folder, then restart the game.'))
+    end
     return line(id, label, 'problem', ui.t('{name} is missing. Install it from Nexus Mods, then restart the game.', {name = label}))
 end
 
@@ -585,7 +604,8 @@ end
 
 -- Every sentence of the first-load notice is in this one function (bridge/setup-notice-fit.test.mjs measures each against the warning
 -- line). id 'redscript': this mod's scripts did not load. id 'requirements': names is the list of two or more requirement names
--- (old: one of them is installed but too old). id 'codeware-old': Codeware without the parts this mod needs. Any other id: one check,
+-- (old: one of them is installed but too old, or Audioware is installed and the scripts were built without it). id 'codeware-old': Codeware
+-- without the parts this mod needs. id 'audioware-unbuilt': Audioware is installed, the scripts were built without it. Any other id: one check,
 -- named by PRODUCT or, for an id that has no entry, by `names`.
 local function shortText(id, names, old)
     if id == 'redscript' then return ui.t('Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load.') end
@@ -594,6 +614,7 @@ local function shortText(id, names, old)
         return ui.t('Missing: {names}. Install them and restart the game.', {names = names})
     end
     if id == 'codeware-old' then return ui.t('Codeware is too old. Update it from Nexus Mods, then restart the game.') end
+    if id == 'audioware-unbuilt' then return ui.t('Audioware is installed but unused. Update it to 1.9.9 or newer, then restart the game.') end
     if id == 'nsui' then return ui.t('The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI') end
     if id == 'mcm-old' then return ui.t('Update Mod Configuration Menu to 0.10.5 or newer to use the Companion Manager') end
     if id == 'files' then return ui.t('Some mod files are missing. Extract the Scripts zip again. See Help in Settings.') end
@@ -650,6 +671,7 @@ local function firstLoad()
         if id == 'redscript' then say(check and check.code == 'no-compiler' and COMPILER_CONSOLE or SCRIPTS_CONSOLE)
         elseif id == 'nsui' then say(check and check.code == 'mcm-old' and MCM_OLD_CONSOLE or NSUI_CONSOLE)
         elseif id == 'codeware' and check and check.code == 'old' then say(OLD_CONSOLE)
+        elseif id == 'audioware' then say(check and check.code == 'unbuilt' and AUDIOWARE_UNBUILT_CONSOLE or AUDIOWARE_CONSOLE)
         elseif REQUIREMENT_IDS[id] then
             say('AI NPC Cyberpunk Mod: ' .. (PRODUCT[id] or id) .. ' is missing. Install it from Nexus Mods, then restart the game.')
         end
@@ -661,10 +683,12 @@ local function firstLoad()
             if REQUIREMENT_IDS[id] and #named < MAX_NAMES then
                 named[#named + 1] = PRODUCT[id] or id
                 if id == 'codeware' and game.checks[id].code == 'old' then old = true end
+                if id == 'audioware' and game.checks[id].code == 'unbuilt' then old = true end
             end
         end
         if #named > 1 then return shortText('requirements', table.concat(named, ', '), old) end
         if first == 'codeware' and game.checks.codeware.code == 'old' then return shortText('codeware-old') end
+        if first == 'audioware' and game.checks.audioware.code == 'unbuilt' then return shortText('audioware-unbuilt') end
     end
     -- redscript itself is missing: the sentence of any missing requirement, with its name (there is no compile log to open)
     if first == 'redscript' and game.checks.redscript.code == 'no-compiler' then return shortText('compiler', PRODUCT.redscript) end

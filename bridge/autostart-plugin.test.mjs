@@ -8,7 +8,7 @@ import {basename, dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {setTimeout as sleep} from 'node:timers/promises';
 import {fakeBridgeSource} from './supervisor-fixture.mjs';
-import {RUNTIME_DATA_FILES} from './runtime-files.mjs';
+import {RUNTIME_REQUIRED_FILES} from './runtime-files.mjs';
 
 const supervisorScript = fileURLToPath(new URL('../scripts/Supervise-ConversationBridge.mjs', import.meta.url));
 
@@ -156,8 +156,8 @@ test('game start runs the real supervisor and a game crash stops the bridge it s
   const project = join(root, 'project'), state = join(root, 'state');
   await mkdir(join(project, 'bridge'), {recursive: true}); await mkdir(state, {recursive: true});
   await writeFile(join(project, 'bridge', 'convai-bridge.mjs'), fakeBridgeSource);
-  // The supervisor refuses a Runtime without the bridge's data files (bridge/runtime-files.mjs, `install-incomplete`).
-  for (const name of RUNTIME_DATA_FILES) {
+  // The supervisor refuses a Runtime without the bridge's data files (bridge/runtime-files.mjs, `install-incomplete`): its data files and its Node packages.
+  for (const name of RUNTIME_REQUIRED_FILES) {
     await mkdir(dirname(join(project, name)), {recursive: true});
     await writeFile(join(project, name), '{}');
   }

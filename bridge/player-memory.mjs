@@ -273,13 +273,17 @@ function commandView(action) {
 
 export class PlayerMemory {
   #files; #path; #anchorPath; #lockPath; #lockRaw; #anchorRaw; #diskRaw; #state; #ids; #families;
-  #provider; #quiesce; #retired; #timeoutMs; #mutation = Promise.resolve(); #closed = false; #fault = null;
+  #provider; #quiesce; #retired; #timeoutMs; #enableRetries; #mutation = Promise.resolve(); #closed = false; #fault = null;
   #enables = new Map(); #verified = new Set(); #enableReceipts = new Map(); #enableUnknown = new Set(); #activeClears = new Map();
   #reconnectPending = new Set();
   #controllers = new Set(); #fences = new Set();
 
-  static async open({path, characterIds, characterFamilies, provider, quiesce, retired, timeoutMs = 15000, fsImpl = fs} = {}) {
+  // enableRetries: how many more times a send's first-contact enable is tried when it timed out or could not reach the provider (a slow
+  // Convai answer: one report of 0.2.2 failed a turn on the 15 s limit); the enable is idempotent (a timed-out one is marked unknown and
+  // re-verified), and a send still never goes out before it is verified.
+  static async open({path, characterIds, characterFamilies, provider, quiesce, retired, timeoutMs = 15000, enableRetries = 1, fsImpl = fs} = {}) {
     if (typeof path !== 'string' || !path.trim() || !Number.isInteger(timeoutMs) || timeoutMs < 10 || timeoutMs > 60000
+        || !Number.isInteger(enableRetries) || enableRetries < 0 || enableRetries > 3
         || (provider !== undefined && !object(provider)) || (quiesce !== undefined && typeof quiesce !== 'function')
         || (retired !== undefined && typeof retired !== 'function')) fail('INVALID_CONFIGURATION');
     const ids = normalizeIds(characterIds), families = normalizeFamilies(characterFamilies);
@@ -328,7 +332,7 @@ export class PlayerMemory {
         }
       }
       return new PlayerMemory(CONSTRUCT, {files: fsImpl, path: absolute, anchorPath, lockPath, lockRaw,
-        anchorRaw, diskRaw, state, ids, families, provider, quiesce, retired, timeoutMs});
+        anchorRaw, diskRaw, state, ids, families, provider, quiesce, retired, timeoutMs, enableRetries});
     } catch (error) {
       if (lockRaw) await releaseLock(fsImpl, lockPath, lockRaw).catch(() => {});
       if (error instanceof PlayerMemoryError) throw error;
@@ -345,6 +349,7 @@ export class PlayerMemory {
       if (Object.hasOwn(row, 'familyKey')) this.#families.set(row.profileKey, row.familyKey);
     }
     this.#provider = options.provider; this.#quiesce = options.quiesce; this.#timeoutMs = options.timeoutMs;
+    this.#enableRetries = options.enableRetries ?? 0;
     this.#retired = options.retired ?? (() => false);
   }
   #ready() { if (this.#closed) fail('CLOSED'); if (this.#fault) fail(this.#fault); }
@@ -508,10 +513,9 @@ export class PlayerMemory {
     if (!this.isCurrent(admitted) || signal?.aborted) fail('STALE_TURN');
     let changed = false;
     if (!this.#verified.has(characterId)) {
-      let flight = this.#enables.get(characterId);
-      if (!flight) {
+      const start = () => {
         const controller = new AbortController();
-        flight = {controller, promise: null};
+        const flight = {controller, promise: null};
         flight.promise = this.#bounded(combined => this.#provider.enableMemory({profileKey, characterId,
           endUserId: this.#state.endUserId, signal: combined}), {controller, write: true}).then(receipt => {
           if (receipt?.enabled !== true || typeof receipt.changed !== 'boolean') throw new PlayerMemoryError('ENABLE_UNVERIFIED', {writeUncertain: true});
@@ -523,10 +527,20 @@ export class PlayerMemory {
         }).catch(error => { this.#enableUnknown.add(characterId); throw error; })
           .finally(() => { if (this.#enables.get(characterId) === flight) this.#enables.delete(characterId); });
         this.#enables.set(characterId, flight);
-      }
+        return flight;
+      };
+      let flight = this.#enables.get(characterId) ?? start(), receipt;
       // A caller's cancellation doesn't cancel another caller's shared enable.
       // Each wait is bounded independently; clear/close abort the shared flight.
-      const receipt = await this.#bounded(() => flight.promise, {signal});
+      for (let attempt = 0; ; attempt++) {
+        try { receipt = await this.#bounded(() => flight.promise, {signal}); break; }
+        catch (error) {
+          // A provider that answered too slowly or could not be reached gets another try within this send, as the next send would anyway: the
+          // timed-out enable was marked unknown and is verified from the start. Cancelled, stale and every other failure end the wait.
+          if (attempt >= this.#enableRetries || !['TIMEOUT', 'NETWORK_ERROR'].includes(error?.code) || signal?.aborted || !this.isCurrent(admitted)) throw error;
+          flight = this.#enables.get(characterId) ?? start();
+        }
+      }
       changed = receipt.changed;
     } else if (!verifiedAtAdmission) {
       // Another concurrent preparation/admission can finish verification during

@@ -216,6 +216,19 @@ test('renderer source schema, size, format and cursor bounds reject before publi
   }
 });
 
+test('a renderer that failed says why in the error, as a short printable reason of its own and nothing else', async () => {
+  const f = fixture();
+  await assert.rejects(f.stream.frame(f.snapshot({error: 'Convai replaced the active speech owner'})),
+    {message: 'Continuous speech renderer failed (Convai replaced the active speech owner)'});
+  // control characters and a long text are cut; a reason that is not a string adds nothing
+  await assert.rejects(fixture().stream.frame(fixture().snapshot({error: 'bad\u0000\n  stateé ' + 'x'.repeat(400)})),
+    error => /^Continuous speech renderer failed \(bad state x+\)$/.test(error.message) && error.message.length < 220);
+  for (const error of [true, 1, {message: 'object'}]) {
+    await assert.rejects(fixture().stream.frame(fixture().snapshot({error})), {message: 'Continuous speech renderer failed'});
+  }
+  assert.equal(f.replies.length, 0); assert.equal(f.states.length, 0);
+});
+
 test('format and received sample count cannot change or regress after admission', async () => {
   for (const change of [{sampleRate: 48000}, {channels: 2}, {receivedFrames: 11999}]) {
     const f = fixture(); await f.stream.frame(f.snapshot());

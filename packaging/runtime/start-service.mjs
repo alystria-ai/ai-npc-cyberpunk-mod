@@ -371,7 +371,7 @@ catch (error) {
   publishFailure('install-incomplete', shortReason(error));
   process.exit(1);
 }
-const {BridgeSupervisor, RUNTIME_DATA_FILES, parseSupervisorArguments} = supervisorModule;
+const {BridgeSupervisor, RUNTIME_REQUIRED_FILES, parseSupervisorArguments} = supervisorModule;
 let options;
 try {
   options = parseSupervisorArguments([...argv.filter(value => value !== '--prepare-only'),
@@ -385,7 +385,7 @@ legacyCleanup(45_000);
 let supervisor;
 try {
   supervisor = new BridgeSupervisor({...options, nodeExecutable: process.execPath,
-    lifeline: options.lifeline === 'stdin' ? process.stdin : null, errorReports: true, requiredFiles: RUNTIME_DATA_FILES});
+    lifeline: options.lifeline === 'stdin' ? process.stdin : null, errorReports: true, requiredFiles: RUNTIME_REQUIRED_FILES});
 } catch (error) {
   log(`The supervisor could not be created: ${error?.stack || error}`);
   publishFailure('service-error', shortReason(error));

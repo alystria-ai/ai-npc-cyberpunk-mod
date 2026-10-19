@@ -5,8 +5,8 @@ import {mkdtemp, mkdir, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {INCOMPLETE_EXIT_CODE, RUNTIME_DATA_FILES, RuntimeIncomplete, endIfIncomplete, incompleteMessage, installFileErrorGuard, isTransientFileError,
-  missingRuntimeFiles, readRequiredJson} from './runtime-files.mjs';
+import {INCOMPLETE_EXIT_CODE, RUNTIME_DATA_FILES, RUNTIME_PACKAGE_FILES, RUNTIME_REQUIRED_FILES, RuntimeIncomplete, endIfIncomplete, incompleteMessage,
+  installFileErrorGuard, isTransientFileError, missingModuleInLog, missingRuntimeFiles, readRequiredJson} from './runtime-files.mjs';
 
 const module = pathToFileURL(join(import.meta.dirname, 'runtime-files.mjs')).href;
 
@@ -87,6 +87,45 @@ ${body}`], {encoding: 'utf8', timeout: 20000});
   assert.notEqual(crashed.status, 0, 'a bug in the code is still a crash');
   assert.match(crashed.stderr, /a real bug/);
   assert.doesNotMatch(crashed.stdout, /still alive/);
+});
+
+test('the Node packages the bridge imports are required files too, so a Runtime without them is incomplete before any bridge starts', async t => {
+  assert(RUNTIME_PACKAGE_FILES.includes('node_modules/playwright/package.json'));
+  assert(RUNTIME_PACKAGE_FILES.includes('node_modules/playwright-core/package.json'));
+  assert(RUNTIME_PACKAGE_FILES.includes('node_modules/playwright-core/lib/server/dispatchers/dispatcher.js'), 'the file one report found missing');
+  assert.deepEqual([...RUNTIME_REQUIRED_FILES], [...RUNTIME_DATA_FILES, ...RUNTIME_PACKAGE_FILES]);
+  const files = Object.fromEntries(RUNTIME_REQUIRED_FILES.map(name => [name, '{}']));
+  const whole = await project(t, files);
+  assert.deepEqual(await missingRuntimeFiles(whole, RUNTIME_REQUIRED_FILES), []);
+  delete files['node_modules/playwright/package.json']; delete files['node_modules/playwright-core/lib/server/dispatchers/dispatcher.js'];
+  const partial = await project(t, files);
+  assert.deepEqual(await missingRuntimeFiles(partial, RUNTIME_REQUIRED_FILES),
+    ['node_modules/playwright/package.json', 'node_modules/playwright-core/lib/server/dispatchers/dispatcher.js']);
+});
+
+test('what Node says when the bridge cannot load a package or a file of its own becomes a name relative to the Runtime, never a folder', () => {
+  const project = 'D:\\Made Up Games\\Some Game\\red4ext\\plugins\\FakeMod\\app';
+  const stack = `${project}\\node_modules\\fakepkg-core\\lib\\server\\index.js`;
+  // ESM, a package that is not installed at all
+  assert.equal(missingModuleInLog(`--- bridge started ---\nnode:internal/modules/package_json_reader:331\n    throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);\n          ^\n`
+    + `Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'fakepkg' imported from ${project}\\bridge\\realtime-host.mjs\n    code: 'ERR_MODULE_NOT_FOUND'\n`, project), 'node_modules/fakepkg');
+  assert.equal(missingModuleInLog(`Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@fakescope/tool/sub' imported from ${project}\\bridge\\x.mjs`, project), 'node_modules/@fakescope/tool');
+  // CommonJS, a file inside a package: the specifier is relative to the first file of the require stack
+  const inner = `node:internal/modules/cjs/loader:1564\nError: Cannot find module './inner/thing'\nRequire stack:\n- ${stack}\n- ${project}\\node_modules\\fakepkg-core\\lib\\other.js\n  code: 'MODULE_NOT_FOUND',\n`;
+  assert.equal(missingModuleInLog(inner, project), 'node_modules/fakepkg-core/lib/server/inner/thing');
+  assert.equal(missingModuleInLog(inner), 'node_modules/fakepkg-core/lib/server/inner/thing', 'without the project folder the name starts at node_modules');
+  assert.equal(missingModuleInLog(`Error: Cannot find module '../up'\nRequire stack:\n- ${stack}`, project), 'node_modules/fakepkg-core/lib/up');
+  // CommonJS, a package named by its bare name
+  assert.equal(missingModuleInLog(`Error: Cannot find module 'leftpad-fake'\nRequire stack:\n- ${project}\\bridge\\x.cjs`, project), 'node_modules/leftpad-fake');
+  // ESM, a file of the bridge itself, by its absolute path
+  assert.equal(missingModuleInLog(`Error [ERR_MODULE_NOT_FOUND]: Cannot find module '${project}\\bridge\\gone.mjs' imported from ${project}\\bridge\\convai-bridge.mjs`, project), 'bridge/gone.mjs');
+  assert.equal(missingModuleInLog(`Error [ERR_MODULE_NOT_FOUND]: Cannot find module '${project}\\bridge\\gone.mjs' imported from ${project}\\bridge\\convai-bridge.mjs`), 'gone.mjs');
+  for (const log of [inner, `Error: Cannot find module 'D:\\Made Up Games\\elsewhere\\x.js'`]) {
+    const name = missingModuleInLog(log, project);
+    assert(!/Made Up|Some Game|D:/.test(name), `a folder in ${name}`);
+  }
+  // anything else is not a missing file
+  for (const log of ['', undefined, null, 'TypeError: x is not a function\n    at run (file.mjs:1:1)', 'Error: connect ECONNREFUSED 127.0.0.1:1', 'ValueError: Pocket source differs']) assert.equal(missingModuleInLog(log, project), null, String(log));
 });
 
 test('the guard can be removed again', () => {

@@ -18,9 +18,9 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {atomicFile} from './guarded-file.mjs';
 import {isKeyFileText} from './key-codec.mjs';
 import {NO_BROWSER_MESSAGE, systemBrowserAvailable} from './system-browser.mjs';
-import {INCOMPLETE_EXIT_CODE, incompleteMessage, missingRuntimeFiles} from './runtime-files.mjs';
+import {INCOMPLETE_EXIT_CODE, incompleteMessage, missingModuleInLog, missingRuntimeFiles} from './runtime-files.mjs';
 // For the entry points (scripts/Supervise-ConversationBridge.mjs, the packaged start-service.mjs): what they pass as `requiredFiles`.
-export {RUNTIME_DATA_FILES} from './runtime-files.mjs';
+export {RUNTIME_DATA_FILES, RUNTIME_PACKAGE_FILES, RUNTIME_REQUIRED_FILES} from './runtime-files.mjs';
 
 export const READY_MARKER = '[CyberpunkConvai] Convai conversation bridge ready';
 export const MOD_RUNTIME = 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/runtime';
@@ -87,8 +87,9 @@ export class BridgeSupervisor {
     buildVoiceClient = false, nodeExecutable = process.execPath, spawn = spawnProcess,
     alive = processAlive, killTree = killProcessTree, now = Date.now, sleep = delay,
     browserAvailable = systemBrowserAvailable, timings = {}, errorReports = false,
-    // requiredFiles: data files (relative to `project`) the bridge cannot start without (bridge/runtime-files.mjs RUNTIME_DATA_FILES); the
-    // entry points of a real install pass them. One that is missing is the failure `install-incomplete`, not a bridge that crashes five times.
+    // requiredFiles: files (relative to `project`) the bridge cannot start without: its data files and the files of the Node packages it
+    // imports (bridge/runtime-files.mjs RUNTIME_REQUIRED_FILES); the entry points of a real install pass them. One that is missing is the
+    // failure `install-incomplete`, not a bridge that crashes five times.
     requiredFiles = []} = {}) {
     Object.assign(this, {project, stateDirectory, keyFile, gameRoot, gamePid, lifeline,
       buildVoiceClient, nodeExecutable, spawn, alive, killTree, now, sleep, browserAvailable, errorReports, requiredFiles});
@@ -361,6 +362,19 @@ export class BridgeSupervisor {
     await this.setStatus(this.restarts ? 'restarting' : 'starting', this.restarts ? 'bridge-restarting' : 'bridge-starting');
   }
 
+  // What the bridge wrote to its stderr since its last start (at most 24 KB, from the supervisor's own start line on), or ''.
+  bridgeErrorText() {
+    let fd;
+    try {
+      fd = openSync(this.paths.stderr, 'r');
+      const size = fstatSync(fd).size, length = Math.min(size, 24_576);
+      const buffer = Buffer.alloc(length);
+      readSync(fd, buffer, 0, length, size - length);
+      const text = buffer.toString('utf8'), at = text.lastIndexOf('--- bridge started by the conversation service supervisor');
+      return at >= 0 ? text.slice(at) : text;
+    } catch { return ''; } finally { if (fd !== undefined) closeSync(fd); }
+  }
+
   scanReady() {
     let fd;
     try {
@@ -435,6 +449,15 @@ export class BridgeSupervisor {
     // not know of, and waits for a new game).
     if (exit?.code === INCOMPLETE_EXIT_CODE) {
       this.log(`The bridge${pid ? ` (PID ${pid})` : ''} stopped because a file of the Runtime is missing (see bridge.stderr.log).`);
+      this.retrySetup = false;
+      return this.fail('install-incomplete');
+    }
+    // The bridge died on a file or package of its own that is not there (a Runtime extracted only partly, a file an antivirus removed) and said
+    // so on its stderr, in Node's own words. Starting it again would end the same way, so this is `install-incomplete` too, named by the file.
+    const missingModule = typeof exit?.code === 'number' && exit.code !== 0 ? missingModuleInLog(this.bridgeErrorText(), this.project) : null;
+    if (missingModule) {
+      this.log(`The bridge${pid ? ` (PID ${pid})` : ''} stopped at once. ${incompleteMessage(missingModule)}`);
+      this.missingFiles = [missingModule];
       this.retrySetup = false;
       return this.fail('install-incomplete');
     }
