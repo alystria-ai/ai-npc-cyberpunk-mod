@@ -286,7 +286,8 @@ test('Test connection runs in the background: "testing" is published at once, th
   await c.send('test');
   assert.equal(runs, 1, 'a second press while one runs is ignored');
   release();
-  await new Promise(resolve => setTimeout(resolve, 20));
+  // The answer is published when the test request ends: wait for that, not for a pause of a guessed length.
+  for (const until = Date.now() + 60_000; c.published.at(-1).test?.state !== 'ok' && Date.now() < until;) await new Promise(resolve => setTimeout(resolve, 2));
   assert.deepEqual(c.published.at(-1).test, {id: 's:cust:1', state: 'ok', ms: 12});
   // A change of the settings drops the old result: it says nothing about the new ones.
   c.clipboard(async () => 'https://example.com/v1');

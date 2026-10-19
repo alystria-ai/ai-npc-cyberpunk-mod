@@ -6,11 +6,19 @@ import {MistralHost, attachMistral} from './mistral-host.mjs';
 import {MistralMemory, MEMORY_LIMITS} from './mistral-memory.mjs';
 import {MistralProvider} from './mistral-key.mjs';
 import {PersonaBook, LIMITS, CONTEXT_PREFIX} from './mistral-prompt.mjs';
-import {errorCodeFor, failureKind, DEFAULT_MODELS} from './mistral-client.mjs';
+import {errorCodeFor, failureKind, DEFAULT_MODELS, streamChat} from './mistral-client.mjs';
 import {NaturalSpeech} from './natural-speech.mjs';
 import {ExpressiveEmotions} from './expressive-emotions.mjs';
 
 const KEY = 'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL';
+// A thing that has to happen is waited for until it does (the ceiling is reached only by a hung test), never for a pause of a guessed length.
+const eventually = async (check, label, ceilingMs = 60_000) => {
+  for (const until = Date.now() + ceilingMs; ;) {
+    if (check()) return;
+    if (Date.now() > until) throw new Error(`gave up waiting for ${label}`);
+    await new Promise(resolve => setTimeout(resolve, 2));
+  }
+};
 const roster = [...JSON.parse(await readFile(new URL('../characters/roster.json', import.meta.url), 'utf8')),
   ...JSON.parse(await readFile(new URL('../characters/archetype-roster.json', import.meta.url), 'utf8'))];
 
@@ -220,10 +228,9 @@ test('older exchanges are summarised by the same model in the background, once p
   const {server, host, memory, provider} = await harness(body => /private memory/.test(body.messages[0].content) ? 'I told V my plans.' : 'Fine.');
   try {
     for (let i = 0; i < MEMORY_LIMITS.turns + MEMORY_LIMITS.batch; i++) await host.reply(turn(`question ${i}`));
-    await new Promise(done => setTimeout(done, 400));
+    await eventually(() => memory.recall({profileKey: 'judy-alvarez'}).summary === 'I told V my plans.', 'the summary to be kept');
     const summaryRequests = server.requests.filter(request => /private memory/.test(request.body.messages[0].content));
     assert.equal(summaryRequests.length, 1);
-    assert.equal(memory.recall({profileKey: 'judy-alvarez'}).summary, 'I told V my plans.');
     await host.reply(turn('after the summary'));
     assert.match(server.requests.at(-1).body.messages[0].content, /WHAT YOU REMEMBER OF V FROM EARLIER TALKS[^\n]*\nI told V my plans\./);
   } finally { await server.close(); }
@@ -231,8 +238,11 @@ test('older exchanges are summarised by the same model in the background, once p
   try {
     limited.provider.noteLimit('invalid');
     limited.provider.noteSuccess = () => {};
+    // A summary is begun in the same step in which the reply that made it due returns, so there is nothing to wait for: it either began or it did not.
+    const begun = [], begin = limited.memory.beginSummary.bind(limited.memory);
+    limited.memory.beginSummary = key => { begun.push(key); return begin(key); };
     for (let i = 0; i < MEMORY_LIMITS.turns + MEMORY_LIMITS.batch; i++) await limited.host.reply(turn(`question ${i}`));
-    await new Promise(done => setTimeout(done, 200));
+    assert.deepEqual(begun, [], 'no summary was begun');
     assert.equal(limited.server.requests.length, MEMORY_LIMITS.turns + MEMORY_LIMITS.batch, 'no summary request was made');
   } finally { await limited.server.close(); }
 });
@@ -314,15 +324,18 @@ test('prompt sizes stay inside the caps for every roster character', async () =>
 });
 
 test('requests start at least one slot apart, and the summary of older talk waits behind the reply that triggered it', async () => {
+  // Each start is read where the host hands the request to the chat function, in this process: the arrival at the fake server is later by however long
+  // the machine took to deliver it, and that is not what the host controls.
   const starts = [];
-  const {server, host} = await harness(body => { starts.push(Date.now()); return /private memory/.test(body.messages[0].content) ? 'I told V my plans.' : 'Fine.'; }, {gapMs: 250});
+  const {server, host, memory} = await harness(body => /private memory/.test(body.messages[0].content) ? 'I told V my plans.' : 'Fine.',
+    {gapMs: 250, chat: options => { starts.push(performance.now()); return streamChat(options); }});
   try {
     const first = host.reply(turn('one')), second = host.reply(turn('two'));
     await Promise.all([first, second]);
     assert(starts[1] - starts[0] >= 220, 'two replies: ' + (starts[1] - starts[0]));
     const count = starts.length;
     for (let i = 2; i < 16; i++) await host.reply(turn('question ' + i));
-    await new Promise(done => setTimeout(done, 700));
+    await eventually(() => memory.recall({profileKey: 'judy-alvarez'}).summary === 'I told V my plans.', 'the summary to be kept');
     const summaryAt = starts.at(-1), lastReplyAt = starts.at(-2);
     assert.equal(starts.length, count + 14 + 1, 'one summary request');
     assert(summaryAt - lastReplyAt >= 220, 'summary after the reply: ' + (summaryAt - lastReplyAt));

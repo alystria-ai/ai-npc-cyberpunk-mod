@@ -198,8 +198,9 @@ export const retryable = error => error instanceof MistralError && !error.zeroQu
  * `drainMs`: when the caller stops right after "[DONE]", the rest of the body (a few bytes) is read for at most this long, so the
  * connection can be reused by the next request (a body that is cancelled instead has its connection closed); 0 cancels at once.
  * Any other early exit (an error, the reply cap) cancels the body.
+ * `setTimer` / `clearTimer`: the drain limit's timer (default `setTimeout` / `clearTimeout`; a test passes a manual clock's).
  */
-export async function* sseData(body, {drainMs = 0} = {}) {
+export async function* sseData(body, {drainMs = 0, setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
   const decoder = new TextDecoder('utf-8');
   let buffer = '', data = [], sawDone = false;
   const flush = () => {
@@ -243,15 +244,15 @@ export async function* sseData(body, {drainMs = 0} = {}) {
     const last = flush();
     if (last !== undefined) yield last;
   } finally {
-    if (reader && sawDone && drainMs > 0) await drain(reader, drainMs);
+    if (reader && sawDone && drainMs > 0) await drain(reader, drainMs, setTimer, clearTimer);
     else try { await reader?.cancel(); } catch { /* already closed */ }
   }
 }
 
 /** Reads a stream to its end for at most `ms`; a stream that does not end by then (or fails) is cancelled. Never throws. */
-async function drain(reader, ms) {
+async function drain(reader, ms, setTimer, clearTimer) {
   let timer;
-  const late = new Promise(resolve => { timer = setTimeout(resolve, ms, LATE); });
+  const late = new Promise(resolve => { timer = setTimer(() => resolve(LATE), ms); });
   try {
     for (;;) {
       const next = await Promise.race([reader.read(), late]);
@@ -259,7 +260,7 @@ async function drain(reader, ms) {
       if (next.done) return;
     }
   } catch { /* the stream failed: nothing left to reuse */ }
-  finally { clearTimeout(timer); }
+  finally { clearTimer(timer); }
   try { await reader.cancel(); } catch { /* already closed */ }
 }
 const LATE = Symbol('late');
@@ -358,12 +359,14 @@ const contentText = content => typeof content === 'string' ? content
  *   stallMs: once the reply has started, silence this long ends the attempt (0: off); totalMs: the whole attempt
  *   retries / backoffMs: for 429, 5xx, a timeout, an empty answer
  *   onRetry({attempt, error, waitMs}): called before each retry, so the caller can log why a turn took long
+ *   setTimer / clearTimer: the timers of the first-byte, stall and total limits and of the drain after [DONE] (default setTimeout / clearTimeout;
+ *     a test passes a manual clock's, so a loaded machine cannot cut a request early)
  * Returns {text, model, finishReason, usage, attempts, failed: [{kind, status, ms}]} (`failed` lists the attempts that were given up).
  */
 export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTokens = 300, temperature = 0.8, onDelta, shouldStop,
   signal, fetchImpl = globalThis.fetch, endpoint, firstByteMs = 25000, retryFirstByteMs, stallMs = 0, totalMs = 70000, retries = 2,
   backoffMs = [1200, 3500], sleepImpl = sleep, extraBody, provider = 'mistral', trustedOrigin, onHeaders, onRetry, now = () => performance.now(),
-  adapt, headers} = {}) {
+  adapt, headers, setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
   // The custom provider's key is optional (a server on this computer wants none); a key it has is held to the same length as any other.
   const keyless = provider === 'custom' && (apiKey === undefined || apiKey === null || apiKey === '');
   if (!keyless && (typeof apiKey !== 'string' || apiKey.length < 8)) throw new MistralError('key', 'has no API key', {provider});
@@ -376,7 +379,7 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
     const began = now();
     try {
       const result = await once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url,
-        firstByteMs: attempt > 0 && retryFirstByteMs ? retryFirstByteMs : firstByteMs, stallMs, totalMs, extraBody, provider, onHeaders, adapt, headers});
+        firstByteMs: attempt > 0 && retryFirstByteMs ? retryFirstByteMs : firstByteMs, stallMs, totalMs, extraBody, provider, onHeaders, adapt, headers, setTimer, clearTimer});
       return {...result, attempts: attempt + 1 + (adapted ? 1 : 0), failed};
     } catch (error) {
       if (signal?.aborted || error?.name === 'AbortError' && !(error instanceof MistralError)) throw signal?.aborted ? (signal.reason ?? abortError()) : error;
@@ -435,15 +438,15 @@ async function errorBody(response, provider) {
   try { return await response.json(); } catch { return undefined; }
 }
 
-async function once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url, firstByteMs, stallMs, totalMs, extraBody, provider, onHeaders, adapt, headers: extraHeaders}) {
+async function once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url, firstByteMs, stallMs, totalMs, extraBody, provider, onHeaders, adapt, headers: extraHeaders, setTimer, clearTimer}) {
   const controller = new AbortController();
   let timedOut = false, started = false;
   const onAbort = () => controller.abort(signal.reason);
   signal?.addEventListener('abort', onAbort, {once: true});
-  const total = setTimeout(() => { timedOut = true; controller.abort(); }, totalMs);
+  const total = setTimer(() => { timedOut = true; controller.abort(); }, totalMs);
   // The first piece of the reply is waited for `firstByteMs`; after that, silence is waited for `stallMs` (0: only the total limit).
-  let first = setTimeout(() => { timedOut = true; controller.abort(); }, firstByteMs);
-  const quiet = () => { clearTimeout(first); if (stallMs > 0) first = setTimeout(() => { timedOut = true; controller.abort(); }, stallMs); };
+  let first = setTimer(() => { timedOut = true; controller.abort(); }, firstByteMs);
+  const quiet = () => { clearTimer(first); if (stallMs > 0) first = setTimer(() => { timedOut = true; controller.abort(); }, stallMs); };
   try {
     let response;
     try {
@@ -492,7 +495,7 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
     let text = '', actualModel, finishReason, usage, stoppedEarly = false, sawDone = false;
     try {
       // After [DONE] the body is read to its end (bounded) instead of cancelled, so the connection is reused by the next turn.
-      for await (const data of sseData(response.body, {drainMs: DRAIN_MS})) {
+      for await (const data of sseData(response.body, {drainMs: DRAIN_MS, setTimer, clearTimer})) {
         quiet();
         if (data === '[DONE]') { sawDone = true; break; }
         let chunk; try { chunk = JSON.parse(data); } catch { continue; }
@@ -523,7 +526,7 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
     if (!text.trim()) throw new MistralError('empty', 'answered with no text', {apiKey, provider});
     return {text, model: actualModel, finishReason: stoppedEarly ? 'stop' : finishReason, usage};
   } finally {
-    clearTimeout(first); clearTimeout(total);
+    clearTimer(first); clearTimer(total);
     signal?.removeEventListener('abort', onAbort);
     controller.abort();
   }
