@@ -12,7 +12,7 @@ import {PLANTED} from './support-report-fixture.mjs';
 import {dataHomeFor} from '../packaging/runtime/state-home.mjs';
 import {importClosure} from '../packaging/lib/closure.mjs';
 import {MO2_HINT, REQUIREMENTS, checkRequirements, dataHomeRoot, enabledMods, fallbackReports, iniValue, locateOfflineLogs, offlineProblems,
-  openInExplorer, parseArgs, pluginVersions, resolveOfflineLayout, runOfflineReport} from './offline-support-report.mjs';
+  offlineSecrets, openInExplorer, parseArgs, pluginVersions, resolveOfflineLayout, runOfflineReport} from './offline-support-report.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = dirname(here);
@@ -395,6 +395,19 @@ test('planted secrets, conversation text and the Windows account name never reac
     const summary = summaryOf(entries);
     assert(summary.privacy.redactions.secrets >= 4, JSON.stringify(summary.privacy.redactions));
   } finally { await f.cleanup(); }
+});
+
+test("the custom provider's key (player-custom-endpoint.txt) is scrubbed by value, and its address and model ID are not taken for secrets", async () => {
+  const data = await mkdtemp(join(tmpdir(), 'offline-custom-'));
+  try {
+    // A key no pattern catches (32 letters, no digit): only its value can scrub it.
+    const custom = 'test' + 'v'.repeat(28);
+    await writeFile(join(data, 'player-custom-endpoint.txt'), `\uFEFF# AI NPC Cyberpunk Mod: Custom (OpenAI-compatible) provider.\r\nendpoint=https://openrouter.ai/api/v1\r\n`
+      + `model=meta-llama/llama-3.1-8b-instruct\r\napi-key = "${custom}" # mine\r\n`);
+    const secrets = await offlineSecrets({stateDirectory: data, project: null});
+    assert.ok(secrets.includes(custom), 'the key value is a secret');
+    assert.ok(!secrets.some(value => /openrouter|meta-llama|Cyberpunk/.test(value)), 'the address, the model ID and the comment are not');
+  } finally { await rm(data, {recursive: true, force: true}); }
 });
 
 test('options: --game, --out and --no-open, in both spellings, and nothing else', () => {

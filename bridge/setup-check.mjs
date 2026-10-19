@@ -457,8 +457,10 @@ export async function collectSetupCheck(options = {}) {
     const shown = service => service === 'custom' ? clip(custom.host, 80) : SERVICE_HOSTS[service];
     if (light) return {state: 'unknown', code: 'unknown', service: services[0], host: shown(services[0])};
     const reach = options.reach ?? ((host, extra) => checkReachable(host, extra));
+    // An IPv6 address is written in brackets in a URL ([::1], [fd00::5]); the name lookup and the connection want it without them.
+    const lookedUp = service => service === 'custom' ? custom.hostname.replace(/^\[(.*)\]$/, '$1') : SERVICE_HOSTS[service];
     const results = await Promise.all(services.map(async service => {
-      try { return {service, host: shown(service), code: await (service === 'custom' ? reach(custom.hostname, {port: Number.isInteger(custom.port) ? custom.port : 443}) : reach(SERVICE_HOSTS[service]))}; }
+      try { return {service, host: shown(service), code: await (service === 'custom' ? reach(lookedUp(service), {port: Number.isInteger(custom.port) ? custom.port : 443}) : reach(lookedUp(service)))}; }
       catch { return {service, host: shown(service), code: 'unknown'}; }
     }));
     const bad = results.find(row => row.code !== 'reachable');

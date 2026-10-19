@@ -345,7 +345,7 @@ export function offlineProblems({layout, rows, files, errors = 0, managers = []}
 
 // Values that must be scrubbed from every line, besides the ones collectReport already reads (convai-key.txt, the Hugging Face and Kaggle
 // tokens, the custom model servers' keys): every other key file of the data folder (player-convai-key.txt, player-mistral-key.txt,
-// player-inworld-key.txt...), the sign-in file's secret and the key packed into the Runtime (app/defaults/service.txt). They are only
+// player-inworld-key.txt...), the custom provider's key (player-custom-endpoint.txt), the sign-in file's secret and the key packed into the Runtime (app/defaults/service.txt). They are only
 // returned to the redactor; nothing here writes, logs or prints one.
 export async function offlineSecrets({stateDirectory, project}) {
   const found = [];
@@ -361,11 +361,22 @@ export async function offlineSecrets({stateDirectory, project}) {
   };
   let names = [];
   try { names = stateDirectory ? await readdir(stateDirectory) : []; } catch {}
+  // The custom provider's file (docs/CUSTOM_PROVIDER.md) holds its key on an `api-key=` line beside the address and the model ID; only the key is a secret.
+  const fromCustomFile = raw => {
+    for (const line of raw.replace(/^﻿/, '').split(/\r\n|\r|\n/)) {
+      const value = /^\s*(?:api[-_]?key|apikey|key)\s*[=:]\s*(.*?)\s*$/i.exec(line)?.[1];
+      if (!value) continue;
+      const bare = value.replace(/\s+#.*$/, '');
+      add(bare);
+      add(bare.replace(/^["'`<“”‘’]+|["'`>“”‘’]+$/g, ''));
+    }
+  };
   for (const name of names) {
-    const isKey = /-key\.txt$/i.test(name), isAuth = /^convai-auth\.json$/i.test(name);
-    if (!isKey && !isAuth) continue;
+    const isKey = /-key\.txt$/i.test(name), isAuth = /^convai-auth\.json$/i.test(name), isCustom = /^player-custom-endpoint\.txt$/i.test(name);
+    if (!isKey && !isAuth && !isCustom) continue;
     const raw = await readSmall(join(stateDirectory, name), 8192);
     if (raw === null) continue;
+    if (isCustom) { fromCustomFile(raw); continue; }
     if (isKey) { fromKeyText(raw); continue; }
     try {
       const walk = (value, key = '', depth = 0) => {
