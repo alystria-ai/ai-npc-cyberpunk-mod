@@ -482,6 +482,10 @@
       "target": "r6/scripts/CyberpunkConvai/Manager.reds"
     },
     {
+      "source": "r6/scripts/CyberpunkConvai/Requirements.reds",
+      "target": "r6/scripts/CyberpunkConvai/Requirements.reds"
+    },
+    {
       "source": "r6/scripts/CyberpunkConvai/PhoneContacts.reds",
       "target": "r6/scripts/CyberpunkConvai/PhoneContacts.reds"
     },

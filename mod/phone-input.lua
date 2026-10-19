@@ -6,13 +6,15 @@ local M = convaiPhoneInput or {blocked = 0}
 -- The menu controller's OnAction and OnHandleMenuInput see every input event,
 -- several per frame (mouse and movement axes). The two native phone queries are
 -- answered once per STATE_SECONDS, not once per event.
-local STATE_SECONDS = .02
-local stateAt, stateTyping, stateOpen = nil, false, false
+-- A player that answers neither (this mod's scripts did not compile, so it has neither method) is asked again only every
+-- ABSENT_SECONDS: the two failing calls would otherwise run for every input event for as long as the game is open.
+local STATE_SECONDS, ABSENT_SECONDS = .02, 1
+local stateAt, stateTyping, stateOpen, stateAbsent = nil, false, false, false
 local function queryTyping(player) return player:ConvaiPhoneChatTyping() end
 local function queryOpen(player) return player:ConvaiPhoneIsOpen() end
 local function phoneState()
     local now = os.clock()
-    if stateAt and now >= stateAt and now - stateAt < STATE_SECONDS then return stateTyping, stateOpen end
+    if stateAt and now >= stateAt and now - stateAt < (stateAbsent and ABSENT_SECONDS or STATE_SECONDS) then return stateTyping, stateOpen end
     local player = Game.GetPlayer()
     local okTyping, typing, okOpen, open = false, false, false, false
     if player then
@@ -20,6 +22,7 @@ local function phoneState()
         okOpen, open = pcall(queryOpen, player)
     end
     stateAt, stateTyping, stateOpen = now, okTyping and typing == true, okOpen and open == true
+    stateAbsent = player ~= nil and not okTyping and not okOpen
     return stateTyping, stateOpen
 end
 M.phoneState = phoneState

@@ -1,17 +1,22 @@
+@if(ModuleExists("Audioware"))
 import Audioware.*
 
 // Keep the native event alive for the lifetime of this mod-owned utterance.
 // Lua uses methods rather than relying on reflection of added fields.
+@if(ModuleExists("Audioware"))
 @addField(PlayerPuppet)
 private let m_convaiSpeech: ref<DynamicEmitterEvent>;
 
+@if(ModuleExists("Audioware"))
 @addField(PlayerPuppet)
 private let m_convaiSpeechActor: wref<GameObject>;
 
 // A voice heard as V's own sound, not from a place in the world: a holocall reply, which comes through the phone.
+@if(ModuleExists("Audioware"))
 @addField(PlayerPuppet)
 private let m_convaiSpeechOnV: ref<DynamicSoundEvent>;
 
+@if(ModuleExists("Audioware"))
 @addMethod(PlayerPuppet)
 public final func ConvaiSpeechStart(actor: ref<GameObject>, eventName: CName) -> Bool {
   this.ConvaiSpeechStop();
@@ -37,6 +42,7 @@ public final func ConvaiSpeechStart(actor: ref<GameObject>, eventName: CName) ->
 // occlusion or listener placement can make it quiet. The emitter version above put it on V's weapon or chest item, 2 to 18 m
 // attenuation: on 2026-10-18 it advanced (the lips moved) but was not heard during a call. Position, pause and stop below
 // serve either kind; one utterance owns playback at a time.
+@if(ModuleExists("Audioware"))
 @addMethod(PlayerPuppet)
 public final func ConvaiSpeechStartOnV(eventName: CName) -> Bool {
   this.ConvaiSpeechStop();
@@ -48,6 +54,7 @@ public final func ConvaiSpeechStartOnV(eventName: CName) -> Bool {
   return true;
 }
 
+@if(ModuleExists("Audioware"))
 @addMethod(PlayerPuppet)
 public final func ConvaiSpeechPosition() -> Float {
   if IsDefined(this.m_convaiSpeech) { return this.m_convaiSpeech.Position(); }
@@ -55,6 +62,7 @@ public final func ConvaiSpeechPosition() -> Float {
   return -1.00;
 }
 
+@if(ModuleExists("Audioware"))
 @addMethod(PlayerPuppet)
 public final func ConvaiSpeechPause(paused: Bool) -> Void {
   if IsDefined(this.m_convaiSpeech) {
@@ -65,6 +73,7 @@ public final func ConvaiSpeechPause(paused: Bool) -> Void {
   }
 }
 
+@if(ModuleExists("Audioware"))
 @addMethod(PlayerPuppet)
 public final func ConvaiSpeechStop() -> Void {
   if IsDefined(this.m_convaiSpeech) { this.m_convaiSpeech.Stop(); }
@@ -75,4 +84,34 @@ public final func ConvaiSpeechStop() -> Void {
   }
   this.m_convaiSpeech = null;
   this.m_convaiSpeechActor = null;
+}
+
+// Without Audioware these scripts still compile (a compile error would disable every redscript mod). Nothing can be played
+// through Audioware, so each method reports "not started" and mod/setup-check.lua tells the player Audioware is missing.
+@if(!ModuleExists("Audioware"))
+@addMethod(PlayerPuppet)
+public final func ConvaiSpeechStart(actor: ref<GameObject>, eventName: CName) -> Bool {
+  return false;
+}
+
+@if(!ModuleExists("Audioware"))
+@addMethod(PlayerPuppet)
+public final func ConvaiSpeechStartOnV(eventName: CName) -> Bool {
+  return false;
+}
+
+@if(!ModuleExists("Audioware"))
+@addMethod(PlayerPuppet)
+public final func ConvaiSpeechPosition() -> Float {
+  return -1.00;
+}
+
+@if(!ModuleExists("Audioware"))
+@addMethod(PlayerPuppet)
+public final func ConvaiSpeechPause(paused: Bool) -> Void {
+}
+
+@if(!ModuleExists("Audioware"))
+@addMethod(PlayerPuppet)
+public final func ConvaiSpeechStop() -> Void {
 }

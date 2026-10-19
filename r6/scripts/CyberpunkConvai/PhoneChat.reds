@@ -1,6 +1,8 @@
 module CyberpunkConvai
 
+@if(ModuleExists("Codeware.UI"))
 import Codeware.UI.*
+@if(ModuleExists("Codeware.UI.TextInput"))
 import Codeware.UI.TextInput.*
 
 // Presentation data only: these rows never become quest journal entries.
@@ -14,6 +16,10 @@ public class ConvaiPhoneChatDraft extends IScriptable {
     public let text: String;
 }
 
+// The Chat tab's text box is Codeware's text input. Without it (Codeware missing, or too old to have Codeware.UI.TextInput) these
+// scripts still compile (a compile error would disable every redscript mod): the stand-in class below has the same methods and
+// does nothing, no box is ever built, and mod/setup-check.lua tells the player Codeware is missing or too old.
+@if(ModuleExists("Codeware.UI.TextInput"))
 public class ConvaiPhoneChatInput extends HubTextInput {
     private let m_keys: array<ref<inkKeyInputEvent>>;
     private let m_submit: Bool;
@@ -89,6 +95,20 @@ public class ConvaiPhoneChatInput extends HubTextInput {
     }
 }
 
+@if(!ModuleExists("Codeware.UI.TextInput"))
+public class ConvaiPhoneChatInput extends IScriptable {
+    public static func Create(owner: wref<PhoneMessagePopupGameController>) -> ref<ConvaiPhoneChatInput> {
+        return null;
+    }
+    public final func IsFocused() -> Bool { return false; }
+    public final func GetRootWidget() -> ref<inkWidget> { return null; }
+    public final func GetText() -> String { return ""; }
+    public final func SetWidth(width: Float) -> Void {}
+    public final func Reparent(parent: ref<inkCompoundWidget>) -> Void {}
+    public final func ReplaceDraft(value: String) -> Void {}
+    public final func SetDisabled(disabled: Bool) -> Void {}
+}
+
 @addField(PlayerPuppet)
 private let m_convaiChatView: wref<PhoneMessagePopupGameController>;
 @addField(PlayerPuppet)
@@ -141,6 +161,7 @@ private let m_convaiChatInput: ref<ConvaiPhoneChatInput>;
 private let m_convaiChatPanel: wref<inkVerticalPanel>;
 @addField(PhoneMessagePopupGameController)
 private let m_convaiChatHint: wref<inkText>;
+@if(ModuleExists("Codeware.UI.TextInput"))
 @addField(PhoneMessagePopupGameController)
 private let m_convaiChatKeys: ref<CallbackSystemHandler>;
 @addField(PhoneMessagePopupGameController)
@@ -220,6 +241,7 @@ private func SetFocus(isFocused: Bool) -> Void {
     if IsDefined(this.m_convaiChatPanel) { this.m_convaiChatPanel.SetVisible(isFocused && this.m_data.convaiChat); };
 }
 
+@if(ModuleExists("Codeware.UI.TextInput"))
 @addMethod(PhoneMessagePopupGameController)
 private final func ConvaiChatCreate() -> Void {
     if !IsDefined(this.m_convaiChatKeys) {
@@ -257,6 +279,12 @@ private final func ConvaiChatCreate() -> Void {
     this.m_convaiChatHint = hint;
 }
 
+@if(!ModuleExists("Codeware.UI.TextInput"))
+@addMethod(PhoneMessagePopupGameController)
+private final func ConvaiChatCreate() -> Void {
+}
+
+@if(ModuleExists("Codeware.UI.TextInput"))
 @addMethod(PhoneMessagePopupGameController)
 private cb func OnConvaiChatKey(evt: ref<KeyInputEvent>) -> Void {
     if Equals(evt.GetKey(), EInputKey.IK_Escape) {
@@ -387,11 +415,22 @@ protected cb func OnHandleMenuInput(evt: ref<inkPointerEvent>) -> Bool {
     };
     return wrappedMethod(evt);
 }
+@if(ModuleExists("Codeware.UI.TextInput"))
+@addMethod(PhoneMessagePopupGameController)
+private final func ConvaiChatReleaseKeys() -> Void {
+    if IsDefined(this.m_convaiChatKeys) { this.m_convaiChatKeys.Unregister(); this.m_convaiChatKeys = null; };
+}
+
+@if(!ModuleExists("Codeware.UI.TextInput"))
+@addMethod(PhoneMessagePopupGameController)
+private final func ConvaiChatReleaseKeys() -> Void {
+}
+
 @wrapMethod(PhoneMessagePopupGameController)
 protected cb func OnUninitialize() -> Bool {
     this.ConvaiChatSaveDraft();
     this.ConvaiChatBlur();
-    if IsDefined(this.m_convaiChatKeys) { this.m_convaiChatKeys.Unregister(); this.m_convaiChatKeys = null; };
+    this.ConvaiChatReleaseKeys();
     let player = this.m_player as PlayerPuppet;
     if IsDefined(player) && player.m_convaiChatView == this { player.m_convaiChatView = null; };
     if this.m_data.convaiChat {

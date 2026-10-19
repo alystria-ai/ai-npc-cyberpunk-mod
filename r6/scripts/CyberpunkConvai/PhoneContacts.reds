@@ -57,6 +57,7 @@ public final func ConvaiSelectedCompanionAction(join: Bool) -> Bool {
 
 // Scope raw key callbacks to the same lifetime as the native contact inputs.
 // Reopening cannot accumulate listeners, and Messages never triggers a spawn.
+@if(ModuleExists("Codeware"))
 @addField(NewHudPhoneGameController)
 private let m_convaiPhoneKeys: ref<CallbackSystemHandler>;
 
@@ -70,18 +71,37 @@ public func EnableContactsInput() -> Void {
     // while a Chat conversation had focus) must not authorize repeats.
     ArrayClear(this.m_convaiPressedDirections);
     this.ConvaiStopPhoneKeys();
+    this.ConvaiStartPhoneKeys();
+}
+
+// The J and L keys on the contact list are Codeware key callbacks. Without Codeware these scripts still compile (a compile error
+// would disable every redscript mod) and the two keys do nothing; mod/setup-check.lua tells the player Codeware is missing.
+@if(ModuleExists("Codeware"))
+@addMethod(NewHudPhoneGameController)
+private final func ConvaiStartPhoneKeys() -> Void {
     this.m_convaiPhoneKeys = GameInstance.GetCallbackSystem()
         .RegisterCallback(n"Input/Key", this, n"OnConvaiPhoneKey")
         .AddTarget(InputTarget.Key(EInputKey.IK_J, EInputAction.IACT_Press))
         .AddTarget(InputTarget.Key(EInputKey.IK_L, EInputAction.IACT_Press));
 }
 
+@if(!ModuleExists("Codeware"))
+@addMethod(NewHudPhoneGameController)
+private final func ConvaiStartPhoneKeys() -> Void {
+}
+
+@if(ModuleExists("Codeware"))
 @addMethod(NewHudPhoneGameController)
 private final func ConvaiStopPhoneKeys() -> Void {
     if IsDefined(this.m_convaiPhoneKeys) {
         this.m_convaiPhoneKeys.Unregister();
         this.m_convaiPhoneKeys = null;
     };
+}
+
+@if(!ModuleExists("Codeware"))
+@addMethod(NewHudPhoneGameController)
+private final func ConvaiStopPhoneKeys() -> Void {
 }
 
 @wrapMethod(NewHudPhoneGameController)
@@ -153,6 +173,7 @@ protected cb func OnContactListClosed() -> Bool {
     return wrappedMethod();
 }
 
+@if(ModuleExists("Codeware"))
 @addMethod(NewHudPhoneGameController)
 private cb func OnConvaiPhoneKey(evt: ref<KeyInputEvent>) -> Void {
     if !IsDefined(this.m_convaiPhoneKeys) || NotEquals(this.m_screenType, PhoneScreenType.Contacts)
@@ -188,6 +209,7 @@ private let m_convaiFeedback: wref<inkText>;
 // line hangs from a zero-size canvas placed after the name in its vertical
 // column: the column keeps its height, so the name, the fixed 1000x100 row and
 // the list never move, and the line lines up under the name.
+@if(ModuleExists("Codeware"))
 @addMethod(PhoneContactItemVirtualController)
 private final func ConvaiShowActionFeedback(message: String) -> Void {
     if !IsDefined(this.m_convaiFeedback) {
@@ -223,6 +245,12 @@ private final func ConvaiShowActionFeedback(message: String) -> Void {
     };
     this.m_convaiFeedback.SetText(message);
     this.m_convaiFeedback.SetVisible(StrLen(message) > 0);
+}
+
+// Without Codeware (widget parents are read through it) the join and leave marks and their feedback line are left out.
+@if(!ModuleExists("Codeware"))
+@addMethod(PhoneContactItemVirtualController)
+private final func ConvaiShowActionFeedback(message: String) -> Void {
 }
 
 @addMethod(PhoneContactItemVirtualController)
@@ -263,6 +291,7 @@ private final func ConvaiContactKey() -> String {
     return contact.id;
 }
 
+@if(ModuleExists("Codeware"))
 @addMethod(PhoneContactItemVirtualController)
 private final func ConvaiMakeContactAction(name: CName, join: Bool, index: Int32) -> ref<inkCanvas> {
     let callHint: wref<inkWidget> = inkWidgetRef.Get(this.m_callInputHint);
@@ -275,6 +304,12 @@ private final func ConvaiMakeContactAction(name: CName, join: Bool, index: Int32
     let action: ref<inkCanvas> = ConvaiPhoneArtwork.Make(name, join);
     action.Reparent(row, index);
     return action;
+}
+
+@if(!ModuleExists("Codeware"))
+@addMethod(PhoneContactItemVirtualController)
+private final func ConvaiMakeContactAction(name: CName, join: Bool, index: Int32) -> ref<inkCanvas> {
+    return null;
 }
 
 @wrapMethod(PhoneContactItemVirtualController)
