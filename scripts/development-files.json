@@ -338,6 +338,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/nsui.lua"
     },
     {
+      "source": "mod/mcm-host.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mcm-host.lua"
+    },
+    {
       "source": "mod/nsui-entry.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/nsui-entry.lua"
     },

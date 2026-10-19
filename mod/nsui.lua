@@ -21,7 +21,8 @@ local fontLibrary = dofile('ui-fonts.lua')
 
 local TAB, TAB_LABEL = 'aiNpcCyberpunkMod', 'AI NPC Cyberpunk Mod'
 local TAB_PATH = '/' .. TAB
-local NEEDS_NSUI = 'The Companion Manager needs Native Settings UI (Nexus Mods)'
+local NEEDS_HOST = 'The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI'
+local MCM_OLD = 'Update Mod Configuration Menu to 0.10.5 or newer to use the Companion Manager'
 
 -- What the widgets of Native Settings UI can show. Their geometry is the game's (the row template of the Settings screen), not ours,
 -- so these are estimates in the units of manager-ui.lua's optionUnits (an average lowercase letter is 1): a label that is longer is
@@ -57,6 +58,9 @@ local renderFailures = 0
 local hooksInstalled = false
 local fontScope, fontWork, fontsDue = nil, nil, false
 local lastError = ''
+-- The other hosts of the page (mod/mcm-host.lua, attached by init.lua): each draws core's page in its own settings screen and shares
+-- this module's core, so every host reads and writes the same saved settings. hostError: the last problem each one raised (logged once).
+local hosts, hostError = {}, {}
 
 local function log(message)
     local file = io.open('runtime/mcm.log', 'a')
@@ -564,34 +568,73 @@ function M.configure(domain, companions, queueFactory, readiness)
     entry = newEntry()
 end
 
+-- Another host of the page (mod/mcm-host.lua). It gets the page logic this module draws (the same instance), and is installed,
+-- updated, reset and shut down with it. A host that raises an error is told apart from the others and logged once per problem.
+function M.attach(host)
+    hosts[#hosts + 1] = host
+    host.configure(core, {log = log})
+end
+
+local function eachHost(name, ...)
+    for index, host in ipairs(hosts) do
+        local ok, problem = pcall(host[name], ...)
+        if not ok and hostError[index] ~= tostring(problem) then
+            hostError[index] = tostring(problem)
+            log('Manager: a settings host failed in ' .. name .. ': ' .. tostring(problem))
+        end
+    end
+end
+
 -- At CET's onInit. Native Settings UI is read with GetMod there, as it documents; a copy that loads after this mod is found by the
 -- once-a-second look in update.
 function M.install()
     connectAt = os.time() + 1
+    eachHost('install')
     return connect()
 end
 
-local function postNeedsNsui()
+-- The shortcut found neither host: the notice says what to install (or, when the only Mod Configuration Menu is older than 0.10.5,
+-- to update it).
+local function postNeedsHost(old)
     pcall(function()
         local player = Game.GetPlayer()
         if player and type(convaiNotices) == 'table' then
-            convaiNotices.sendLines(player, {{id = 'manager-needs-nsui', text = ui.t('The Companion Manager needs Native Settings UI (Nexus Mods)')}})
+            local text = old and ui.t('Update Mod Configuration Menu to 0.10.5 or newer to use the Companion Manager')
+                or ui.t('The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI')
+            convaiNotices.sendLines(player, {{id = 'manager-needs-nsui', text = text}})
         end
     end)
 end
 
--- The manager shortcut. Returns true, or false and the reason.
+-- The manager shortcut. Returns true, or false and the reason. Mod Configuration Menu 0.10.5 or newer, when it hosts the page, is
+-- opened straight on it with its public open call. Otherwise Native Settings UI's walk (mod/nsui-entry.lua), which beside an older
+-- Mod Configuration Menu stops at its list with one notice.
 function M.open()
+    for _, host in ipairs(hosts) do
+        if host.ready() then
+            local ok, opened, reason, gameState = pcall(host.open)
+            if ok and opened then return true end
+            if not ok then reason = tostring(opened) end
+            -- A refusal by the game (no save loaded, a scene) is the answer; any other failure leaves Native Settings UI's walk.
+            if ok and gameState then return false, reason end
+            if not ns then connect() end
+            if not ns then return false, reason end
+            break
+        end
+    end
     if not ns then connect() end
     if not ns then
-        postNeedsNsui()
-        return false, NEEDS_NSUI
+        local old = false
+        for _, host in ipairs(hosts) do if host.availability() == 'old' then old = true end end
+        postNeedsHost(old)
+        return false, old and MCM_OLD or NEEDS_HOST
     end
     return entry.open()
 end
 
 function M.update(player, worldReady)
     core.update(player, worldReady)
+    if hosts[1] then eachHost('update', player, worldReady) end
     if not ns then
         if os.time() >= connectAt then connectAt = os.time() + 1; connect() end
         return
@@ -630,11 +673,13 @@ function M.resetSession()
     core.resetSession()
     pending, flushAt, flushFirst, rebuildAt, presses = {}, nil, nil, nil, {}
     if entry then entry.reset() end
+    eachHost('resetSession')
     if ns and not live() then renderSafe() end
 end
 function M.shutdown(worldReady)
     core.shutdown()
     if entry then entry.reset() end
+    eachHost('shutdown', worldReady)
 end
 
 function M.inspect()
@@ -642,6 +687,11 @@ function M.inspect()
     for _, section in ipairs(rendered) do sections[#sections + 1] = {id = section.id, name = section.name, rows = #section.rows} end
     local inspected = core.inspect()
     inspected.available, inspected.live, inspected.sections = ns ~= nil, live(), sections
+    inspected.hosts = {}
+    for index, host in ipairs(hosts) do
+        local ok, state = pcall(host.inspect)
+        inspected.hosts[index] = ok and state or {error = tostring(state)}
+    end
     inspected.pending, inspected.entry, inspected.error = pending, entry and entry.inspect() or nil, lastError ~= '' and lastError or inspected.error
     return inspected
 end

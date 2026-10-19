@@ -154,7 +154,7 @@ test('every missing requirement and every missing piece of this mod gets its own
     const text = summary.problems.join('\n');
     assert.match(text, /Codeware is missing: red4ext\\plugins\\Codeware\\Codeware\.dll was not found/);
     assert.match(text, /TweakXL is missing: red4ext\\plugins\\TweakXL\\TweakXL\.dll was not found/);
-    assert.match(text, /Native Settings UI is missing: bin\\x64\\plugins\\cyber_engine_tweaks\\mods\\nativeSettings\\init\.lua was not found/);
+    assert.match(text, /The Companion Manager needs Mod Configuration Menu 0\.10\.5 or newer, or Native Settings UI: bin\\x64\\plugins\\cyber_engine_tweaks\\mods\\nativeSettings\\init\.lua was not found/);
     assert.match(text, /redscript is missing: engine\\tools\\scc\.exe was not found/);
     assert.match(text, /RED4ext is incomplete: bin\\x64\\winmm\.dll was not found/);
     assert.match(text, /The mod's CET folder is missing: bin\\x64\\plugins\\cyber_engine_tweaks\\mods\\AiNpcCyberpunkMod\\init\.lua was not found/);
@@ -884,4 +884,36 @@ test('a game folder that is more than three folders above is not guessed', async
     assert.equal(result.layout.gameFound, false);
     assert.match(result.problems[0], /^The Cyberpunk 2077 folder was not found/);
   } finally { await f.cleanup(); }
+});
+
+test('the Companion Manager needs Mod Configuration Menu or Native Settings UI: either one meets the requirement, and the report names which and its version', async () => {
+  const MCM = 'bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI';
+  const NSUI = 'bin/x64/plugins/cyber_engine_tweaks/mods/nativeSettings';
+  const extra = {[`${MCM}/init.lua`]: '-- MCM API', [`${MCM}/modules/core.lua`]: 'local Core = {}\nlocal PUBLIC_VERSION = "0.10.5"\n'};
+  // Mod Configuration Menu alone: present, version read from its core module, no problem.
+  const alone = await healthyInstall({without: [NSUI], extra});
+  try {
+    const result = await alone.run();
+    assert.equal(result.ok, true);
+    const summary = summaryOf(await unzip(result.path));
+    assert.equal(row(summary, 'nsui').state, 'present');
+    assert.equal(row(summary, 'nsui').via, 'Mod Configuration Menu');
+    assert.equal(row(summary, 'nsui').version, '0.10.5');
+    assert.equal(summary.problems, undefined, JSON.stringify(summary.problems));
+  } finally { await alone.cleanup(); }
+  // Both: Native Settings UI is the row's own file, nothing is "via".
+  const both = await healthyInstall({extra});
+  try {
+    const summary = summaryOf(await unzip((await both.run()).path));
+    assert.equal(row(summary, 'nsui').state, 'present');
+    assert.equal(row(summary, 'nsui').via, undefined);
+    assert.equal(row(summary, 'nsui').version, '1.96');
+  } finally { await both.cleanup(); }
+  // Neither: one PROBLEM line that names both.
+  const none = await healthyInstall({without: [NSUI]});
+  try {
+    const summary = summaryOf(await unzip((await none.run()).path));
+    assert.equal(row(summary, 'nsui').state, 'missing');
+    assert(summary.problems.some(line => line.startsWith('The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI: ')), summary.problems.join('\n'));
+  } finally { await none.cleanup(); }
 });

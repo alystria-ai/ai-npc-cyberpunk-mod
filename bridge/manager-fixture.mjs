@@ -5,6 +5,7 @@ import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
 import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
 import {nativeSettingsFake} from './nsui-fake.mjs';
+import {mcmFake} from './mcm-fake.mjs';
 
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 export const source = name => readFileSync(new URL('../mod/' + name, import.meta.url), 'utf8');
@@ -13,6 +14,7 @@ export const queueSource = source('manager-party.lua');
 export const coreSource = source('manager-ui.lua');
 export const hostSource = source('nsui.lua');
 export const entrySource = source('nsui-entry.lua');
+export const mcmHostSource = source('mcm-host.lua');
 export const voicePreviewSource = source('voice-preview.lua');
 export const fontsSource = source('ui-fonts.lua');
 
@@ -153,9 +155,12 @@ export const managerFixture = `
 //   nsui      false: Native Settings UI is not installed (GetMod finds nothing); the host is installed and finds none
 //   locale    a language code: its dictionary (mod/locales/<code>.lua) is available to the locale module, so the page can be
 //             built in that language (convaiUiLocale.configure(code) then picks it)
+//   mcm       an object {version, noUi, renderer} installs the fake Mod Configuration Menu (bridge/mcm-fake.mjs) as `mcm`, answering
+//             GetMod('ModConfigurationMenuAPI'); null (the default) leaves it out. The MCM host (mod/mcm-host.lua) is attached either way.
 //   screen    false: the Mods screen is not opened; true (the default) opens it on the manager's tab, as the old harness had the
 //             page shown: it is then kept up to date and read once a second (a test that wants it closed calls ns.closeScreen())
-export function nsuiHarness({modules = {}, absent = [], nsui = true, screen = true, locale = null} = {}) {
+export function nsuiHarness({modules = {}, absent = [], nsui = true, screen = true, locale = null, mcm = null} = {}) {
+  const luaOptions = value => '{' + Object.entries(value ?? {}).map(([key, item]) => `${key} = ${typeof item === 'string' ? JSON.stringify(item) : item}`).join(', ') + '}';
   const lines = [];
   if (locale) lines.push(`    if path == 'locales/${locale}.lua' then return (function() ${readFileSync(new URL(`../mod/locales/${locale}.lua`, import.meta.url), 'utf8')} end)() end`);
   for (const [path, body] of Object.entries(modules)) lines.push(`    if path == '${path}' then return (function() ${body} end)() end`);
@@ -168,16 +173,25 @@ export function nsuiHarness({modules = {}, absent = [], nsui = true, screen = tr
     if path == 'ui-fonts.lua' then return (function() ${fontsSource} end)() end
     if path == 'manager-ui.lua' then return (function() ${coreSource} end)() end
     if path == 'nsui-entry.lua' then return (function() ${entrySource} end)() end
+    if path == 'mcm-host.lua' then return (function() ${mcmHostSource} end)() end
 ${lines.join('\n')}
     return originalDofile(path)
   end
   manager.configure(api, profiles)
   ${nativeSettingsFake}
+  ${mcm ? mcmFake + `
+  local mcm = newMcm(${luaOptions(mcm)})` : 'local mcm = nil'}
   local nsGetMod = GetMod
-  GetMod = function(name) if ${nsui} then return nsGetMod(name) end return nil end
+  GetMod = function(name)
+    if name == 'ModConfigurationMenuAPI' then return mcm and mcm.api or nil end
+    if ${nsui} then return nsGetMod(name) end
+    return nil
+  end
   Game = {GetPlayer = function() return player end}
   local managerUi = (function() ${hostSource} end)()
   managerUi.configure(manager, api, (function() ${queueSource} end)())
+  local mcmHost = dofile('mcm-host.lua')
+  managerUi.attach(mcmHost)
   managerUi.install()
   local core = managerUi._test.core
   local TAB = 'aiNpcCyberpunkMod'

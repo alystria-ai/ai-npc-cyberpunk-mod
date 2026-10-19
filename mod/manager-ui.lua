@@ -34,6 +34,9 @@ local voicePreviewModule = dofile('voice-preview.lua')
 local VOICE_CHOICES = voicePreviewModule.CHOICES
 -- The Companion voices list of the page on screen: how many entries it has (Inworld is listed only in developer mode) and their texts.
 local voiceMenuSize, voiceLabelsShown = 0, {}
+-- The entries of that list that cannot be chosen now (OmniVoice while its pack is missing), by position: M.apply refuses them. A host
+-- that can grey an entry out reads them from the row (`disabledElements`).
+local voiceDisabledShown = {}
 -- Help page: log locations and the shareable support report. Optional: the manager works without it, and a load failure only hides
 -- the Help entry.
 local support, supportSignature
@@ -415,7 +418,7 @@ end
 -- An OmniVoice entry stays in the list while the optional pack is missing (the row's name says "no Omni pack"), and M.apply refuses
 -- it (the bridge would fall back to Pocket TTS anyway): the row goes back to the voice that is saved, with the reason on the page.
 local function voiceMenuLabels(pack, mistral, developer)
-    local elements = {}
+    local elements, disabled = {}, {}
     for index, choice in ipairs(VOICE_CHOICES) do
         -- Short (OPTION_BUDGET), so the entry does not run over the arrows or the key boxes of a focused row; the voice description says
         -- what the pack and the keys are. The two cloud voices have a menu name of their own: the full one ("Mistral cloud voice
@@ -428,11 +431,12 @@ local function voiceMenuLabels(pack, mistral, developer)
                 label = ((mistral or {}).inworld or {}).saved and ui.t('Inworld · Cloud voice') or ui.t('Inworld · needs key')
             else
                 label = manager.voiceLabel(choice.provider, choice.steps, choice.reference)
+                if choice.provider == 'omni' and not (pack or {}).installed then disabled[#elements + 1] = true end
             end
             elements[#elements + 1] = label
         end
     end
-    voiceMenuSize, voiceLabelsShown = #elements, elements
+    voiceMenuSize, voiceLabelsShown, voiceDisabledShown = #elements, elements, disabled
     return elements
 end
 local function voiceStatusText(snapshot)
@@ -838,7 +842,7 @@ local function ownKeyRows(snapshot)
         end
         status = status or serviceNote
         if status then modelHelp = status .. '\n\n' .. modelHelp end
-        modelRow = setting('localModel', label, 'select', selected, 1, modelHelp, labels, {elements = true, description = true, label = true})
+        modelRow = setting('localModel', label, 'select', selected, modelIndexOf('auto') or 1, modelHelp, labels, {elements = true, description = true, label = true})
     end
     local rows = {
         setting('conversationProvider', 'Conversation provider', 'select', providerIndexOf(snapshot.settings), 1, providerHelp,
@@ -1434,6 +1438,9 @@ local function schema()
                 {ui.t('Pocket · On your PC'), (snapshot.mistral or {}).saved and ui.t('Voxtral · Mistral cloud') or ui.t('Voxtral · needs Mistral key')},
                 {elements = true}),
         })
+        for _, voiceRow in ipairs(voicesCategory.settings) do
+            if voiceRow.id == 'voiceProvider' and next(voiceDisabledShown) then voiceRow.disabledElements = voiceDisabledShown end
+        end
         categories[#categories + 1] = voicesCategory
         categories[#categories + 1] = category('subtitles', 'Subtitles', {
             setting('subtitles', 'Subtitles', 'bool', snapshot.settings.subtitles, true, 'Shows companion replies as text.\n\nWith Voice playback off as well, automatic reactions stay silent.'),
@@ -1536,6 +1543,10 @@ M.LABEL, M.PAGE_SIZE = LABEL, PAGE_SIZE
 local PAGES = {home = true, characters = true, party = true, models = true, settings = true, memory = true, help = true, ['paid-tier'] = true}
 
 function M.view() return view end
+
+-- The page on screen as one short text (the view, the page of its long list and the letter group): a host that scrolls to the top on a
+-- new page compares it.
+function M.pageId() return view .. '|' .. tostring(listPage) .. '|' .. tostring(listGroup) end
 
 -- The page to show. The manager opens on Home (the host calls this when the screen opens). Returns whether anything changed.
 function M.setView(name)
