@@ -32,7 +32,8 @@ export class ConvaiContinuousSpeech {
   constructor({input, profile, current, signal, readControl, writeState, writeReply, writeFace, faceFile,
     onPublished = async () => {}, onStarted = async () => {}, onGenerated = async () => {}, onTimeline = () => {},
     // onAudio(): once, the first renderer state that holds audio was accepted (the turn's latency record).
-    onAudio = () => {},
+    // onLease(): once, the game's first valid lease was read (the turn's latency record: the game's half of the hand-off).
+    onAudio = () => {}, onLease = () => {},
     // hold(): true while this turn is a look-ahead that must keep buffering and
     // publish nothing. onText(text, userText): the complete reply text is known.
     hold = () => false, onHeld = () => {}, onText = () => {},
@@ -52,6 +53,7 @@ export class ConvaiContinuousSpeech {
     this.readControl = readControl; this.writeState = writeState; this.writeReply = writeReply;
     this.writeFace = writeFace; this.faceFile = faceFile; this.faceRevision = 0; this.faceWritten = 0;
     this.onPublished = onPublished; this.onStarted = onStarted; this.onGenerated = onGenerated; this.onAudio = onAudio; this.audioSeen = false;
+    this.onLease = onLease;
     this.pace = pace; this.onEnded = onEnded;
     this.hold = hold; this.holdPeek = holdPeek || hold; this.onHeld = onHeld; this.onText = onText; this.textAnnounced = false;
     this.woken = new Promise(resolve => { this.resolveWake = resolve; });
@@ -126,6 +128,7 @@ export class ConvaiContinuousSpeech {
       && typeof value.allow === 'boolean' && typeof value.paused === 'boolean'
       && finite(value.volume) && value.volume >= 0 && value.volume <= 1
       && finite(value.pan) && Math.abs(value.pan) <= 1) {
+      if (this.controlAt === undefined) { try { this.onLease(); } catch { /* a report never affects playback */ } }
       this.controlSequence = value.sequence; this.controlAt = now;
       this.lastControl = {allow: value.allow, paused: value.paused, volume: value.volume, pan: value.pan};
       // Dialogue level (docs/DIALOGUE_LEVEL.md): the speaker distance the game

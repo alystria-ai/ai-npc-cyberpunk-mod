@@ -1474,8 +1474,11 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
     // The game's adapter says how it reads the timeline file: segments (decoded by changed segment), a plain document or not at all.
     faceFile: async () => { const state = await readSpeechStateCached(); return state.continuousFaceSegments === true ? 'segments' : state.continuousFaceFile === true; },
     writeReply: value => atomic(replyPath, JSON.stringify({...value, ...keyNotice()}), options),
+    // The record is written in the background (still in order): the poll that reads the game's lease does not wait for a 25 KB file.
     onPublished: timing => { markPublished(input.requestId, timing.publishedAt);
-      return measure(input, {...timing, stream: {mode: local ? 'pocket-continuous' : 'convai-continuous'}, nativePlaybackObserved: false}); },
+      note(input, {...timing, stream: {mode: local ? 'pocket-continuous' : 'convai-continuous'}, nativePlaybackObserved: false}); },
+    // The game's first lease reached the bridge (the turn's record: published -> leaseRead is the game's half of the hand-off).
+    onLease: () => turnMark(input.requestId, 'leaseRead'),
     // The first renderer state with audio in it: the moment the sound can start (the turn's record, bridge/turn-clock.mjs).
     onAudio: () => { turnMark(input.requestId, 'firstPcmAccepted'); turnMark(input.requestId, 'firstFrame'); },
     onStarted: timing => { turnMark(input.requestId, 'playbackObserved', timing.continuousPlaybackFirstObservedAt);
@@ -2282,7 +2285,7 @@ async function runAddonTurn(request, input, profile, current, clock, {userText =
   if (!await current()) return;
   // A spoken turn carries the recognised words: a group round hands them to the next speakers (mod/group-chat.lua received).
   if (userText) result = {...result, userText};
-  await measure(input, {resultReadyAt: Date.now(), requestToResultMs: Date.now() - request.receivedAt});
+  note(input, {resultReadyAt: Date.now(), requestToResultMs: Date.now() - request.receivedAt});
   if (await publishResult(input, profile, result, current, signal)) { published = true; addonHost.afterReply(input, result.text); }
   } finally {
     if (paceToken && !published && addonHost.remarkRefunded(paceToken)) {
@@ -2368,7 +2371,8 @@ async function runInput(request, prepared, clock) {
       journalStatus: input.journal?.status || 'not-supplied', journalObjectives: input.journal?.quest?.objectives.length || 0,
       battleStatus: input.battle?.status || 'not-supplied', reaction: input.reaction?.phase});
     if (!ahead) void status('thinking', profile.name).catch(() => {});
-    const canWarm = await audioReady(runtime);
+    // The cached heartbeat (at most 1 s old, the same 5 s rule): no file read in front of the model request.
+    const canWarm = audioAvailable(await readSpeechStateCached());
     throwIfCancelled(controller.signal);
     // How warm this turn's page already was (opened at the talk key, the composer, a look or a partner).
     const turnRoute = realtimeConfig(input), connectionWarm = connections.warmState(input, turnRoute);
@@ -2390,7 +2394,8 @@ async function runInput(request, prepared, clock) {
       await knowledgeRouter.activity(knowledgeTurn, 'generated-reply', {replyText: result.text});
       stagedKnowledgeTurn(knowledgeTurn, {replyText: result.text});
     }
-    await measure(input, {resultReadyAt: Date.now(), requestToResultMs: Date.now() - request.receivedAt});
+    // Not awaited: a reply published as a whole (OmniVoice) goes to the game without waiting for the record's file write.
+    note(input, {resultReadyAt: Date.now(), requestToResultMs: Date.now() - request.receivedAt});
     await publishResult(input, profile, result, current, controller.signal);
   } catch (error) {
     // A look-ahead that fails before the game submits it publishes nothing;
@@ -2973,7 +2978,10 @@ watchFiles(runtime, {
   'continuous-control.json': () => leaseWake.fire(),
   // The add-on state and settings the game writes (docs/ADDON_API.md); no entries without add-ons.
   ...addonHost.watchHandlers(runtime),
-}, {log: message => console.error('[CyberpunkConvai] ' + message)});
+  // The lease (about 250 bytes) is read on the next turn of the event loop, not after a 4 ms timer (up to 15.6 ms on Windows): its
+  // reader keeps its last good copy when it meets a half-written file and the wake is a latch (bridge/file-wake.mjs `delays`). The
+  // request keeps the short delay: Lua rewrites that large file in place under Mod Organizer 2.
+}, {delays: {'continuous-control.json': 0}, log: message => console.error('[CyberpunkConvai] ' + message)});
 const editorTimer = setInterval(() => { void editorControl.poll().catch(error => console.error('[CyberpunkConvai] Character editor:', error.message)); }, 500);
 async function shutdown() {
   if (stopped) return;

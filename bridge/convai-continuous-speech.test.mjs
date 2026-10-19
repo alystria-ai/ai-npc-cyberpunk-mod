@@ -517,3 +517,17 @@ test('the end of a line reports its underruns and teaches the pace', async () =>
   assert.equal(ended[0].underruns, 2); assert.equal(ended[0].seconds, 1);
   assert.equal(pace.lead, 1.2, 'the next lines buffer first');
 });
+
+test('onLease reports the first valid game lease once (the turn record), and a throwing report never stops playback', async () => {
+  let leases = 0;
+  const f = fixture(owner, {onLease: () => { leases++; throw Error('report failed'); }});
+  assert.deepEqual(await f.stream.frame(f.snapshot()), QUIET, 'published, no lease yet');
+  assert.equal(leases, 0);
+  f.control();
+  const first = await f.stream.frame(f.snapshot({receivedFrames: 24000}));
+  assert.equal(first.allow, true);
+  assert.equal(leases, 1);
+  f.control({sequence: 2});
+  await f.stream.frame(f.snapshot({receivedFrames: 36000, positionSeconds: .1}));
+  assert.equal(leases, 1, 'a refreshed lease is not reported again');
+});
