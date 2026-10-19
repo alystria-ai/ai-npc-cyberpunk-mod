@@ -680,3 +680,87 @@ test('a read-only row shows its value (or its line) where a button would be, and
   assert(problemLines == 1, 'a failure to hide is logged once, got ' .. problemLines)
   ns.brokenRoot = false
 `));
+
+// What MCM's bridge does with this tab (ModConfigurationMenuAPI bridges/native_settings/provider.lua): it mirrors the tab, keeps each
+// option as a handle {option, category, index, type, fullPath}, applies with nativeSettings.setOption(option) and finds the option again
+// by index, type and path (resolveLiveOption). When it cannot, it says "Native Settings UI rebuilt this setting". The tab is not on
+// screen the whole time, so nothing here goes through the widgets.
+const mirror = `
+  local function handles()
+    local list = {}
+    for _, key in pairs(ns.data[TAB].keys) do
+      for index, option in pairs(ns.data[TAB].subcategories[key].options) do
+        list[#list + 1] = {option = option, category = key, index = index, rawType = option.type, path = option.fullPath}
+      end
+    end
+    return list
+  end
+  local function resolve(handle)
+    local sub = ns.data[TAB].subcategories[handle.category]
+    local option = sub and sub.options[handle.index]
+    if option and option.type == handle.rawType and option.fullPath == handle.path then return option end
+  end
+  local function stale(held)
+    local count = 0
+    for _, handle in ipairs(held) do if resolve(handle) ~= handle.option then count = count + 1 end end
+    return count
+  end
+  local function go(label) ns.find(label, TAB).callback(); frames(4) end
+`;
+
+test('a change applied through the mirror (setOption on the option MCM holds) keeps every option table in place, on the page and on the pages around it', () => run(`${harness({screen: false})}
+  ${mirror}
+  assert(ns.currentTab == '', 'the tab is not on screen')
+  go('Settings')
+  local held = handles()
+  assert(#held > 20, 'the Settings page is mirrored: ' .. #held)
+  -- A switch, a slider and a selector, each applied the way MCM does (a draft applied through setOption, one after the other).
+  local gestures = ns.find('Body gestures', TAB)
+  ns.setOption(gestures, not gestures.state); frames(8)
+  assert(manager.snapshot(player).settings.bodyGestures == false, 'the change was applied')
+  assert(stale(held) == 0, 'switch: handles that no longer resolve to their option: ' .. stale(held))
+  ns.setOption(ns.find('Voice volume (%)', TAB), 135); frames(8)
+  assert(saved.voiceVolume == 135 and stale(held) == 0, 'slider: ' .. stale(held))
+  ns.setOption(ns.find('Subtitle display', TAB), 2); frames(8)
+  assert(stale(held) == 0, 'selector: ' .. stale(held))
+  -- A rule that moves another row (Natural speech moves the voice) and puts a line under the way back: still the same options.
+  ns.setOption(ns.find('Natural speech', TAB), true); frames(8)
+  assert(saved.naturalSpeech == true and saved.voiceProvider == 'pocket', 'the rule ran')
+  assert(stale(held) == 0, 'rule: ' .. stale(held))
+  assert(ns.find('Companion voices', TAB).selectedElementIndex == 1, 'and the row shows the corrected value')
+  -- Pressing a button through the mirror works while the tab is not on screen, and the page it opens is the page MCM reads next.
+  go('Back to Companion Manager')
+  assert(#ns.sections(TAB) == 1 and ns.sections(TAB)[1].options[1].label == 'Characters to invite')
+`));
+
+test('a row whose text changes while the tab is not on screen is updated in place (same option table, new label); on screen it is replaced as before', () => run(`${harness({screen: false, locale: 'de'})}
+  ${mirror}
+  go('Settings')
+  local held = handles()
+  local gestures = ns.find('Body gestures', TAB)
+  local label = gestures.label
+  ns.resetCalls()
+  convaiUiLocale.configure('de'); convaiUiLocale.update(0)
+  managerUi._test.render(); frames(2)
+  assert(ns.find('Body gestures', TAB) == nil, 'the page is drawn in German now')
+  assert(gestures.label ~= label, 'the same option table carries the new label: ' .. gestures.label)
+  assert(stale(held) == 0, 'no handle was invalidated by the language change: ' .. stale(held))
+  assert(ns.callCount('removeOption') == 0, 'nothing was removed')
+  -- The same change with the tab on screen replaces the rows (their widgets show what they were spawned with).
+  convaiUiLocale.configure('en'); convaiUiLocale.update(0)
+  ns.openScreen(TAB); frames(6); ns.verify()
+  assert(ns.find('Body gestures', TAB) ~= gestures, 'on screen the row is a new widget')
+`));
+
+test('a draw of the tab never rebuilds what has not changed: a value changed from the screen leaves every option table and no call but the setter', () => run(`${harness()}
+  press('Settings')
+  local held = (function() local list = {} for _, section in ipairs(ns.sections()) do for _, option in ipairs(section.options) do list[#list + 1] = option end end return list end)()
+  ns.resetCalls()
+  ns.interact.toggle(ns.find('Body gestures')); frames(8); ns.verify()
+  assert(ns.callCount('removeOption') == 0 and ns.callCount('removeSubcategory') == 0 and ns.callCount('addSubcategory') == 0,
+    'a value change rebuilt something: ' .. ns.callCount('removeOption'))
+  local now, same = {}, 0
+  for _, section in ipairs(ns.sections()) do for _, option in ipairs(section.options) do now[option] = true end end
+  for _, option in ipairs(held) do if now[option] then same = same + 1 end end
+  assert(same >= #held - 1, 'the options kept: ' .. same .. ' of ' .. #held)
+`));

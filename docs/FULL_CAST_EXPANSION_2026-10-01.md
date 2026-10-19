@@ -3,7 +3,7 @@
 ## Runtime design
 
 Every character conditions one shared OmniVoice model. A reference does not
-create another model or a training job. The registry accepts up to 128 profiles,
+create another model or a training job. The registry accepted up to 128 profiles when this was written (raised to 1024 on 2026-10-08, commit 440de661),
 but the current authored cast has 79. The three accepted references retain their
 exact bytes and text. Expanded configurations use version 2 and lazy preparation;
 startup conditioning is limited to three profiles, with eight cached prompts.

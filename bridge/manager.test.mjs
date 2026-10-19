@@ -848,6 +848,62 @@ test('Johnny speaks up is Off by default, a three-way select under Conversations
   `);
 });
 
+test('Johnnys hologram is Off by default, a switch under Conversations right after Johnny speaks up, and saved', () => {
+  run(`${nsuiFixture}
+    assert(manager.johnnyHologram() == false and manager.snapshot(player).settings.johnnyHologram == false, 'a missing key is off')
+    assert(saved.johnnyHologram == false, 'a new install saves the default Off')
+    assert(invoke('tab:settings').ok)
+    local hologram = assert(row('johnnyHologram'), 'the setting is not offered')
+    assert(hologram.type == 'bool' and hologram.value == false and hologram.defaultValue == false and hologram.label == 'Johnny’s hologram')
+    local conversations, remarksAt, hologramAt, last
+    for _, category in ipairs(loaded.categories) do if category.id == 'conversation-controls' then conversations = category end end
+    for index, item in ipairs(conversations.settings) do
+      if item.id == 'johnnyRemarks' then remarksAt = index end
+      if item.id == 'johnnyHologram' then hologramAt = index end
+      last = item.id
+    end
+    assert(hologramAt == remarksAt + 1, 'right under Johnny speaks up')
+    assert(last == 'holocallLiveImage', 'the rows after it are all still there')
+    assert(registered.applyBatch('manager', {{id = 'johnnyHologram', value = true}}).ok and manager.johnnyHologram() == true and saved.johnnyHologram == true)
+    loaded = registered.loadMod('manager'); assert(row('johnnyHologram').value == true)
+    manager.reset(); manager.configure(api, profiles)
+    assert(manager.johnnyHologram() == true, 'an explicit On survives a reload')
+    assert(not manager.applySettings(player, {johnnyHologram = 'yes'}) and manager.johnnyHologram() == true, 'only a boolean')
+    assert(not manager.applySettings(player, {johnnyHologram = 1}) and manager.johnnyHologram() == true)
+    assert(registered.applyBatch('manager', {{id = 'johnnyHologram', value = false}}).ok and manager.johnnyHologram() == false and saved.johnnyHologram == false)
+    assert(manager.johnnyInHead() == false and manager.johnnyRemarks() == 'off', 'the neighbouring settings are not disturbed')
+  `);
+});
+
+test('V talks on their own is Off by default, a three-way select under Johnny speaks up, saved, and an unknown value is Off', () => {
+  run(`${nsuiFixture}
+    assert(manager.vTalks() == 'off' and manager.snapshot(player).settings.vTalks == 'off', 'a missing key is off')
+    assert(saved.vTalks == 'off', 'a new install saves the default Off')
+    assert(invoke('tab:settings').ok)
+    local talks = assert(row('vTalks'), 'the setting is not offered')
+    assert(talks.type == 'select' and talks.value == 1 and talks.defaultValue == 1 and talks.label == 'V talks on their own')
+    assert(#talks.elements == 3 and talks.elements[1] == 'Off' and talks.elements[2] == 'Rare' and talks.elements[3] == 'Normal')
+    local conversations, remarksAt, talksAt, hologramAt
+    for _, category in ipairs(loaded.categories) do if category.id == 'conversation-controls' then conversations = category end end
+    for index, item in ipairs(conversations.settings) do
+      if item.id == 'johnnyRemarks' then remarksAt = index end
+      if item.id == 'vTalks' then talksAt = index end
+      if item.id == 'johnnyHologram' then hologramAt = index end
+    end
+    assert(talksAt == remarksAt + 2 and hologramAt == remarksAt + 1, 'under Johnny speaks up and Johnnys hologram')
+    assert(registered.applyBatch('manager', {{id = 'vTalks', value = 3}}).ok and manager.vTalks() == 'normal' and saved.vTalks == 'normal')
+    loaded = registered.loadMod('manager'); assert(row('vTalks').value == 3)
+    assert(registered.applyBatch('manager', {{id = 'vTalks', value = 2}}).ok and manager.vTalks() == 'rare')
+    assert(not registered.applyBatch('manager', {{id = 'vTalks', value = 4}}).ok and manager.vTalks() == 'rare')
+    assert(not manager.applySettings(player, {vTalks = 'often'}) and manager.vTalks() == 'rare')
+    assert(manager.johnnyRemarks() == 'off', 'the neighbouring setting is not disturbed')
+    assert(registered.applyBatch('manager', {{id = 'vTalks', value = 1}}).ok and manager.vTalks() == 'off' and saved.vTalks == 'off')
+    saved.vTalks = 'sometimes'
+    manager.reset(); manager.configure(api, profiles)
+    assert(manager.vTalks() == 'off' and saved.vTalks == 'off', 'a damaged value is read as Off and mended')
+  `);
+});
+
 test('the live holocall picture is on by default, offered under Conversations, and an explicit Off is kept', () => {
   run(`${nsuiFixture}
     assert(manager.holocallLiveImage() == true and manager.snapshot(player).settings.holocallLiveImage == true)
@@ -4900,8 +4956,9 @@ test('the developer notice trigger shows the daily-limit notice only with Develo
   const textStart = init.indexOf('local function dailyLimitText'), textEnd = init.indexOf('local function keyNoticeText');
   const start = init.indexOf('speech.devNotice = function'), end = init.indexOf('local function groupAudience');
   assert(textStart > 0 && textEnd > textStart && start > 0 && end > start, 'the developer notice code moved');
-  // The poll in onUpdate hands "notice:" requests to speech.devNotice and everything else to the diagnostic capture, once per new request.
-  assert(init.includes("if nonce:find('^notice:') then pcall(speech.devNotice, nonce) else captureDiagnostic() end"));
+  // The poll in onUpdate hands "notice:" requests to speech.devNotice, "johnny-probe:" requests to the Johnny probes and everything else
+  // to the diagnostic capture, once per new request.
+  assert.match(init, /if nonce:find\('\^notice:'\) then pcall\(speech\.devNotice, nonce\)\s+elseif nonce:find\('\^johnny%-probe:'\) then pcall\(convaiJohnnyProbeRun, nonce\)\s+else captureDiagnostic\(\) end/);
   const devNoticeBody = init.slice(start, end);
   assert(!/onUpdate|registerForEvent/.test(devNoticeBody), 'no event hook of its own: it adds no per-frame work');
   run(`
