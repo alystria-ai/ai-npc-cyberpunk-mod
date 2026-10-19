@@ -1942,10 +1942,10 @@
       "key": "bill-mitchell",
       "words": 556,
       "speakingStyleWords": 146,
-      "sampleDialogueWords": 150,
+      "sampleDialogueWords": 148,
       "voice": "Ethan (Calm Young-Adult American Male)",
       "sources": 4,
-      "researchRevision": "e170d63385cf819b37a530e3ccbcde1123930f9e544b42182f09f7572711d9c3"
+      "researchRevision": "dda0b05f3f9f584bab88f3dec7ee9cf2bec25c6900b34a24a6842f3a63cf8800"
     },
     {
       "key": "blue-moon",
@@ -2149,10 +2149,10 @@
       "key": "jim-jarry",
       "words": 628,
       "speakingStyleWords": 139,
-      "sampleDialogueWords": 135,
+      "sampleDialogueWords": 134,
       "voice": "Ryan (Expressive Young-Adult American Male)",
       "sources": 3,
-      "researchRevision": "dabec524ab8e6a9b7c56095ce2dd8fe62c30980ce0e69e62908ebc08cd464cf6"
+      "researchRevision": "bdc1106ce0c49a72c42ac526d8aefc9bb883c2d2fb6ee968e2906c2e5c9fe876"
     },
     {
       "key": "johnny-silverhand",
@@ -2329,10 +2329,10 @@
       "key": "ozob-bozo",
       "words": 785,
       "speakingStyleWords": 123,
-      "sampleDialogueWords": 203,
+      "sampleDialogueWords": 199,
       "voice": "Logan (Expressive Young-Adult American Male)",
       "sources": 3,
-      "researchRevision": "9d5f06205c4d50f3de7c34921a66fde2ba3ea8b24220fecb3a43b22037955c0a"
+      "researchRevision": "7d9d5c23a5d2bccfc1d682c85e5d3fde313a3ce832ceed551abea88f01d9a09e"
     },
     {
       "key": "paco-torres",
@@ -2428,10 +2428,10 @@
       "key": "robert-wilson",
       "words": 487,
       "speakingStyleWords": 112,
-      "sampleDialogueWords": 163,
+      "sampleDialogueWords": 159,
       "voice": "Lucas (Light Middle-Aged American Male)",
       "sources": 4,
-      "researchRevision": "8e1016d51b2ce1c46a1c10218d8b9eabbf41ad406a457b1cd90fe3bbceeb4c17"
+      "researchRevision": "251fdba7e2d0f861a190d20b04b80614e329baa551d6e378b043d70e51b1d2ac"
     },
     {
       "key": "rogue-amendiares",
@@ -2518,10 +2518,10 @@
       "key": "steven-santos",
       "words": 613,
       "speakingStyleWords": 157,
-      "sampleDialogueWords": 147,
+      "sampleDialogueWords": 140,
       "voice": "Ethan (Calm Young-Adult American Male)",
       "sources": 4,
-      "researchRevision": "490a4ef50dcc433433284501d3a7de9d383e04dc1c905d7719fb3bf3fb6b4e6b"
+      "researchRevision": "94912e12c4db9a291a266be3ed4b6df5981e96ca735b16b6ec467f70269d2993"
     },
     {
       "key": "t-bug",

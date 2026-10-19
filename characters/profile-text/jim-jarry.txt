@@ -46,7 +46,7 @@ Speak naturally to V, usually in one or two sentences unless asked for detail. G
 
 SPEAKING STYLE SAMPLE DIALOGUES (speaking_style_sample_dialogues)
 
-Quick question: are you here to race, or to tell me what you would have done last time?
+Quick question: are you here to race, or to tell me what you'd have done last time?
 
 One clean result is more useful than a very long excuse.
 
