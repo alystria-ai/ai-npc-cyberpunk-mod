@@ -30,7 +30,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 ## Requirements
 
 - Cyberpunk 2077 2.31 on Windows 10 or 11 (64-bit)
-- Install these from Nexus Mods first: Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Native Settings UI (https://www.nexusmods.com/cyberpunk2077/mods/3518, tested with 1.96)
+- Install these from Nexus Mods first: Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Mod Configuration Menu 0.10.5 or newer (https://www.nexusmods.com/cyberpunk2077/mods/31640). Native Settings UI (https://www.nexusmods.com/cyberpunk2077/mods/3518, tested with 1.96) works in its place, if you prefer it)
 - A Chromium browser for the conversation service: Microsoft Edge, which comes with Windows, is enough. Google Chrome, Brave, Vivaldi, Opera and other Chromium browsers work too; Firefox does not
 - An internet connection while you talk with Convai, Mistral, a cloud Custom endpoint or the Voxtral voice (Local AI, or a Custom server on your own PC, with a local voice needs none)
 - About 3 GB of free disk space (about 15 GB more while installing the optional OmniVoice pack, 9 GB once installed)
@@ -127,6 +127,14 @@ Delete these folders from your Cyberpunk 2077 folder:
 - `HOW TO INSTALL - extract into your Cyberpunk 2077 folder.txt`, if it is still there
 
 Then delete `%LOCALAPPDATA%\AiNpcCyberpunkMod` (paste that into the Explorer address bar). It is outside the game folder and holds your memories, conversation history, logs and reports, so a mod manager leaves it behind too.
+
+## Error reports
+
+When something in the mod goes wrong, it sends a short error report to the developer's server, so problems can be fixed without asking you for logs. It is on by default. Settings > Privacy > Send error reports automatically turns it off; then nothing is recorded or sent. The first time you load the game after updating, a notice says so once.
+
+A report holds: the error and where in the code it happened; the versions of the mod, the game and the required mods; your conversation provider, voice and Local AI model choices and a few other settings (on or off); your graphics card's name and memory; the setup check's lines; and up to 150 log lines from around the error, with access codes, IDs and your Windows user name removed. Your installation is identified only by a random number hashed twice.
+
+A report never holds: access codes or passwords, what you or the characters say, typed lines, character memories, microphone audio, or your Windows user name. Your IP address is not stored. At most one report per kind of error per day and five a day in all are sent, in the background, never while a character is answering. Reports are kept for 30 days.
 
 ## Licence
 

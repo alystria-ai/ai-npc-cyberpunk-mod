@@ -34,6 +34,9 @@ local voicePreviewModule = dofile('voice-preview.lua')
 local VOICE_CHOICES = voicePreviewModule.CHOICES
 -- The Companion voices list of the page on screen: how many entries it has (Inworld is listed only in developer mode) and their texts.
 local voiceMenuSize, voiceLabelsShown = 0, {}
+-- The entries of that list that cannot be chosen now (OmniVoice while its pack is missing), by position: M.apply refuses them. A host
+-- that can grey an entry out reads them from the row (`disabledElements`).
+local voiceDisabledShown = {}
 -- Help page: log locations and the shareable support report. Optional: the manager works without it, and a load failure only hides
 -- the Help entry.
 local support, supportSignature
@@ -415,7 +418,7 @@ end
 -- An OmniVoice entry stays in the list while the optional pack is missing (the row's name says "no Omni pack"), and M.apply refuses
 -- it (the bridge would fall back to Pocket TTS anyway): the row goes back to the voice that is saved, with the reason on the page.
 local function voiceMenuLabels(pack, mistral, developer)
-    local elements = {}
+    local elements, disabled = {}, {}
     for index, choice in ipairs(VOICE_CHOICES) do
         -- Short (OPTION_BUDGET), so the entry does not run over the arrows or the key boxes of a focused row; the voice description says
         -- what the pack and the keys are. The two cloud voices have a menu name of their own: the full one ("Mistral cloud voice
@@ -428,11 +431,12 @@ local function voiceMenuLabels(pack, mistral, developer)
                 label = ((mistral or {}).inworld or {}).saved and ui.t('Inworld · Cloud voice') or ui.t('Inworld · needs key')
             else
                 label = manager.voiceLabel(choice.provider, choice.steps, choice.reference)
+                if choice.provider == 'omni' and not (pack or {}).installed then disabled[#elements + 1] = true end
             end
             elements[#elements + 1] = label
         end
     end
-    voiceMenuSize, voiceLabelsShown = #elements, elements
+    voiceMenuSize, voiceLabelsShown, voiceDisabledShown = #elements, elements, disabled
     return elements
 end
 local function voiceStatusText(snapshot)
@@ -838,7 +842,7 @@ local function ownKeyRows(snapshot)
         end
         status = status or serviceNote
         if status then modelHelp = status .. '\n\n' .. modelHelp end
-        modelRow = setting('localModel', label, 'select', selected, 1, modelHelp, labels, {elements = true, description = true, label = true})
+        modelRow = setting('localModel', label, 'select', selected, modelIndexOf('auto') or 1, modelHelp, labels, {elements = true, description = true, label = true})
     end
     local rows = {
         setting('conversationProvider', 'Conversation provider', 'select', providerIndexOf(snapshot.settings), 1, providerHelp,
@@ -1434,6 +1438,9 @@ local function schema()
                 {ui.t('Pocket · On your PC'), (snapshot.mistral or {}).saved and ui.t('Voxtral · Mistral cloud') or ui.t('Voxtral · needs Mistral key')},
                 {elements = true}),
         })
+        for _, voiceRow in ipairs(voicesCategory.settings) do
+            if voiceRow.id == 'voiceProvider' and next(voiceDisabledShown) then voiceRow.disabledElements = voiceDisabledShown end
+        end
         categories[#categories + 1] = voicesCategory
         categories[#categories + 1] = category('subtitles', 'Subtitles', {
             setting('subtitles', 'Subtitles', 'bool', snapshot.settings.subtitles, true, 'Shows companion replies as text.\n\nWith Voice playback off as well, automatic reactions stay silent.'),
@@ -1459,6 +1466,11 @@ local function schema()
                 categories[#categories + 1] = {id = section.id, name = section.title, description = section.description, settings = list}
             end
         end
+        -- Automatic error reports (docs/ERROR_REPORTS.md, mod/error-reports.lua): on by default; the help says what is sent and what never is.
+        categories[#categories + 1] = category('privacy', 'Privacy', {
+            setting('errorReports', 'Send error reports automatically', 'bool', snapshot.settings.errorReports ~= false, true,
+                'When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.'),
+        })
         -- Developer mode lists the Inworld cloud voice (in Voices) and puts its key here.
         local development = {
             setting('developerMode', 'Developer mode', 'bool', snapshot.settings.developerMode, false,
@@ -1534,6 +1546,10 @@ M.LABEL, M.PAGE_SIZE = LABEL, PAGE_SIZE
 local PAGES = {home = true, characters = true, party = true, models = true, settings = true, memory = true, help = true, ['paid-tier'] = true}
 
 function M.view() return view end
+
+-- The page on screen as one short text (the view, the page of its long list and the letter group): a host that scrolls to the top on a
+-- new page compares it.
+function M.pageId() return view .. '|' .. tostring(listPage) .. '|' .. tostring(listGroup) end
 
 -- The page to show. The manager opens on Home (the host calls this when the screen opens). Returns whether anything changed.
 function M.setView(name)
@@ -1680,7 +1696,7 @@ function M.apply(changes)
             or key == 'autoConnectNearby' or key == 'holocallLiveImage' or key == 'naturalSpeech'
             or key == 'gameDialogueContext'
             or key == 'expressiveEmotions' or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations'
-            or key == 'matureContent' then values[key] = change.value
+            or key == 'matureContent' or key == 'errorReports' then values[key] = change.value
         elseif key == 'voiceVolume' then
             if type(change.value) ~= 'number' then return refused('Choose a voice volume from 50 to 200 percent.') end
             values.voiceVolume = change.value
@@ -1842,6 +1858,11 @@ function M.slowUpdate(currentPlayer, worldReady)
     if convaiSetupCheck then
         local checked, setupNotice = pcall(convaiSetupCheck.tick, worldReady == true, currentPlayer ~= nil)
         if checked and setupNotice then log(setupNotice); messages[#messages + 1] = {id = 'setup-problem', text = setupNotice} end
+    end
+    -- Automatic error reports (mod/error-reports.lua): the one notice that says they are sent, once, in gameplay. One test once decided.
+    if convaiErrorReports then
+        local ticked, reportsNotice = pcall(convaiErrorReports.tick, worldReady == true)
+        if ticked and reportsNotice then log(reportsNotice); messages[#messages + 1] = {id = 'error-reports-on', text = reportsNotice} end
     end
     if worldReady then
         -- A voice that could not run is announced once, in gameplay.

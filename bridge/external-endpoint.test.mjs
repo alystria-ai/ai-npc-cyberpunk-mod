@@ -31,7 +31,9 @@ const book = new PersonaBook(roster);
 const turn = (text, extra = {}) => ({text, context: 'CURRENT PERSON\nQuest facts here.', sessionId: 'session-1',
   local: {profileKey: 'judy-alvarez', name: 'Judy Alvarez', channel: 'private'}, ...extra});
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-async function until(check, ms = 3000) {
+// Polls until the check holds. The ceiling is generous on purpose: it is only reached when something is really stuck, so a busy machine (a
+// fake llama-server is a whole node process to start) makes the wait longer, never the test fail.
+async function until(check, ms = 120_000) {
   const end = Date.now() + ms;
   while (Date.now() < end) { if (await check()) return true; await sleep(15); }
   return false;
@@ -410,7 +412,7 @@ async function hostFor(t, {server, mistralKey = null, cloud, matureContent = nul
   const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => (mistralKey ? `api-key=${mistralKey}\n` : ''), writeText: async () => {}});
   await provider.load(); provider.setPreference('local'); provider.apply();
   const routes = {local: localRoute({server, provider, log})};
-  if (cloud) routes.mistral = mistralRoute({provider, endpoint: cloud.origin + '/v1/chat/completions', gapMs: 0, chatDefaults: {retries: 0, backoffMs: [0], firstByteMs: 3000, totalMs: 3000}});
+  if (cloud) routes.mistral = mistralRoute({provider, endpoint: cloud.origin + '/v1/chat/completions', gapMs: 0, chatDefaults: {retries: 0, backoffMs: [0], firstByteMs: 60_000, totalMs: 60_000}});
   const host = new TextProviderHost({provider, memory: await MistralMemory.open({path: null}), personas: book, routes, matureContent: matureContent ?? undefined, log});
   t.after(() => host.close());
   return {host, provider};

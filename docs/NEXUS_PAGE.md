@@ -26,7 +26,7 @@
 [size=4][b]Requirements[/b][/size]
 [list]
 [*]Cyberpunk 2077 version 2.31 on Windows 10 or 11 (64-bit).
-[*]These mods from Nexus Mods, installed first: [url=https://www.nexusmods.com/cyberpunk2077/mods/107]Cyber Engine Tweaks[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/2380]RED4ext[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/1511]redscript[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/7780]Codeware[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/4197]TweakXL[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/12001]Audioware[/url] and [url=https://www.nexusmods.com/cyberpunk2077/mods/3518]Native Settings UI[/url]. Tested with Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5, TweakXL 1.11.4, Audioware 1.9.9 and Native Settings UI 1.96.
+[*]These mods from Nexus Mods, installed first: [url=https://www.nexusmods.com/cyberpunk2077/mods/107]Cyber Engine Tweaks[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/2380]RED4ext[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/1511]redscript[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/7780]Codeware[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/4197]TweakXL[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/12001]Audioware[/url] and [url=https://www.nexusmods.com/cyberpunk2077/mods/31640]Mod Configuration Menu[/url] 0.10.5 or newer. [url=https://www.nexusmods.com/cyberpunk2077/mods/3518]Native Settings UI[/url] works in its place, if you prefer it. Tested with Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5, TweakXL 1.11.4, Audioware 1.9.9, Mod Configuration Menu 0.10.5 and Native Settings UI 1.96.
 [*]A Chromium browser such as Microsoft Edge (Windows 10 and 11 include it), Google Chrome, Brave or Opera. The voice service runs a hidden copy of it. Firefox does not work.
 [*]About 3 GB of free disk space, plus more for the optional packs.
 [*]Internet for Convai, Mistral or the Voxtral voice. Local AI with a local voice needs none.
@@ -79,6 +79,7 @@ All on the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-pac
 [*]Companion Manager > Settings > Conversation provider: choose [b]Local AI[/b]. With only a Mature pack, also turn on [b]Mature content[/b].
 [*]Local AI speaks with Pocket TTS, already in the Runtime (English). For voices that sound like the game characters, and for other languages, add the OmniVoice pack and choose it in Settings > Voices.
 [*]If Windows asks whether Node.js may use the network, you can decline: Local AI and the local voices only talk inside your PC.
+[*]For no network traffic at all, also turn off [b]Settings > Privacy > Send error reports automatically[/b].
 [/list]
 
 [size=4][b]Use your own AI model or model server[/b][/size]
@@ -110,12 +111,20 @@ Yes, with Mistral or Local AI. Face a character that has no profile here (for ex
 [b]Can I change a character's voice?[/b]
 Yes. In the same editor page, open a story character's Voice tab (or one of your own characters) and choose Add voice clip: a WAV, MP3, OGG or FLAC file of 5 to 20 seconds of one person speaking clearly, with the words said in it typed out. Pocket, OmniVoice and Voxtral copy that voice from the next game start. Remove clip brings the original voice back. The clip stays on your PC.
 
+[b]Error reports[/b]
+When something in the mod fails, a short report goes to the developer so it can be fixed without asking you for logs. It is on by default; turn it off in [b]Settings > Privacy > Send error reports automatically[/b].
+[list]
+[*][b]Sent:[/b] the error, the mod and requirement versions, your provider, voice and Local AI model choices, Mature content on or off, your graphics card, the setup check, and up to 150 log lines around the error, with keys, IDs and your Windows user name removed.
+[*][b]Never sent:[/b] keys, what you or the characters say, memories, audio, your Windows user name or your IP address.
+[*]At most one report per kind of error a day and five a day in all; kept for 30 days.
+[/list]
+
 [b]What languages can I use?[/b]
 Menus come in sixteen languages. Turn on Multilingual conversations to talk in any language. Pocket and Voxtral speak English only, so those replies use OmniVoice, or Convai's cloud voice without the pack. The Convai microphone expects English, so type in other languages.
 
 [size=4][b]Troubleshooting[/b][/size]
 [b]The Companion Manager doesn't show up.[/b]
-Press Esc, then Mods > AI NPC Cyberpunk Mod, or press your manager key. No Mods entry in the pause menu? Install or update Native Settings UI.
+Press your manager key, or press Esc, then Mods, and choose AI NPC Cyberpunk Mod. No Mods entry in the pause menu? Install or update Mod Configuration Menu (0.10.5 or newer) or Native Settings UI.
 
 [b]Settings says it needs a browser, or the service does not start.[/b]
 Install or repair Microsoft Edge (free from [url=https://www.microsoft.com/edge]microsoft.com/edge[/url]) or install Google Chrome, then restart the game. Some Windows tweak tools remove Edge.

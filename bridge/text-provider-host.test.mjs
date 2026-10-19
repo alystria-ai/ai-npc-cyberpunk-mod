@@ -8,19 +8,41 @@ import {MistralMemory, MEMORY_LIMITS} from './mistral-memory.mjs';
 import {MistralProvider} from './mistral-key.mjs';
 import {PersonaBook, buildMessages, systemHead, parseFacts, factMessages, joinBlocks, FACT_SCHEMA, LIMITS, CONTEXT_PREFIX} from './mistral-prompt.mjs';
 import {errorCodeFor, failureKind, MistralError, DEFAULT_MODELS} from './mistral-client.mjs';
+import {fakeClock} from './fixtures/fake-clock.mjs';
 
 const MISTRAL_KEY = 'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL';
 const roster = [...JSON.parse(await readFile(new URL('../characters/roster.json', import.meta.url), 'utf8')),
   ...JSON.parse(await readFile(new URL('../characters/archetype-roster.json', import.meta.url), 'utf8'))];
 const book = new PersonaBook(roster);
 
+// A thing that has to happen is waited for until it does (the ceiling is reached only by a hung test), never for a pause of a guessed length.
+const eventually = async (check, label, ceilingMs = 60_000) => {
+  for (const until = Date.now() + ceilingMs; ;) {
+    if (check()) return;
+    if (Date.now() > until) throw new Error(`gave up waiting for ${label}`);
+    await new Promise(resolve => setTimeout(resolve, 2));
+  }
+};
+const within = (promise, label, ceilingMs = 60_000) => new Promise((resolve, reject) => {
+  const timer = setTimeout(() => reject(new Error(`gave up waiting for ${label}`)), ceilingMs);
+  promise.then(value => { clearTimeout(timer); resolve(value); }, error => { clearTimeout(timer); reject(error); });
+});
+const watch = promise => { const state = {done: false}; promise.then(() => { state.done = true; }, () => { state.done = true; }); return state; };
+
 async function fakeServer(script) {
-  const requests = [];
+  const requests = [], malformed = [];
   const server = createServer((request, response) => {
     let raw = '';
     request.on('data', chunk => { raw += chunk; });
     request.on('end', () => {
-      const body = JSON.parse(raw);
+      let body;
+      try { body = JSON.parse(raw); } catch {
+        // A request the sender cut off (it gave up and closed the connection) has no body to read: that is the sender's own timeout, not a fault. A request that
+        // arrived whole and is not JSON is a fault of the sender: it is kept, and `close` reports it, instead of throwing out of a socket handler.
+        if (request.complete && !request.destroyed) malformed.push({method: request.method, url: request.url, length: raw.length, headers: request.headers});
+        try { if (!response.destroyed && !response.writableEnded) response.writeHead(400).end(); } catch { /* the connection is gone */ }
+        return;
+      }
       requests.push({headers: request.headers, body, url: request.url});
       const answer = script(body, requests.length);
       if (answer?.hang) return;                                  // never answers (a connection the network dropped)
@@ -36,7 +58,10 @@ async function fakeServer(script) {
   });
   await new Promise(done => server.listen(0, '127.0.0.1', done));
   return {requests, endpoint: `http://127.0.0.1:${server.address().port}/v1/chat/completions`,
-    close: () => new Promise(done => { server.closeAllConnections?.(); server.close(done); })};
+    close: async () => {
+      await new Promise(done => { server.closeAllConnections?.(); server.close(done); });
+      if (malformed.length) throw new Error(`the fake server was sent ${malformed.length} request(s) whose body was not JSON: ${JSON.stringify(malformed[0])}`);
+    }};
 }
 
 const turn = (text, extra = {}) => ({text, context: 'CURRENT PERSON\nQuest facts here.', sessionId: 'session-1',
@@ -218,9 +243,9 @@ test('local: a turn goes to the supervised server with its session key, unpaced,
   const {llama, host, provider, close, calls} = await localHarness(() => 'Sure thing, V. What do you need?');
   try {
     assert.equal(provider.active, true); assert.equal(provider.route, 'local');
-    const started = Date.now();
     const [one, two] = await Promise.all([host.reply(turn('one')), host.reply(turn('two'))]);
-    assert(Date.now() - started < 900, 'no one-second pacing on the local route');
+    // A paced route takes the next start slot for every request (#slot in bridge/text-provider-host.mjs); this one takes none.
+    assert.equal(host.routes.local.nextSlot, 0, 'no one-second pacing on the local route');
     assert.equal(one.transport, 'local'); assert.equal(one.timing.provider, 'local');
     assert.equal(one.text, 'Sure thing, V. What do you need?');
     assert.equal(llama.requests[0].headers.authorization, 'Bearer session-key-abcdef123456');
@@ -253,16 +278,18 @@ test('local: a server that cannot start fails the turn once, asks for Convai and
 });
 
 test('local: summaries and fact extraction wait for the gate (no combat, nothing speaking) and the server is never started for them', async () => {
-  let open = false;
+  let open = false, asked = 0;
   const summaryRequests = () => llama.requests.filter(request => /private memory/.test(request.body.messages[0].content));
-  const {llama, host, close, calls} = await localHarness(body => /private memory/.test(body.messages[0].content) ? 'I told V my plans.' : 'Fine.',
-    {gate: () => open, idleRetryMs: 25});
+  const {llama, host, close, calls, memory} = await localHarness(body => /private memory/.test(body.messages[0].content) ? 'I told V my plans.' : 'Fine.',
+    {gate: () => { asked++; return open; }, idleRetryMs: 25});
   try {
     for (let i = 0; i < MEMORY_LIMITS.turns + MEMORY_LIMITS.batch; i++) await host.reply(turn(`question ${i}`));
-    await new Promise(done => setTimeout(done, 120));
+    // The summary is due now. The host asks the gate again every idleRetryMs: it has been asked, and refused, three times before anything is checked.
+    const askedBefore = asked;
+    await eventually(() => asked >= askedBefore + 3 || summaryRequests().length > 0, 'the gate to be asked three more times');
     assert.equal(summaryRequests().length, 0, 'gate closed: no summary');
     open = true;
-    await new Promise(done => setTimeout(done, 200));
+    await eventually(() => memory.recall({profileKey: 'judy-alvarez', channel: 'private'}).summary === 'I told V my plans.', 'the summary to be kept');
     assert.equal(summaryRequests().length, 1, 'gate open: the summary runs');
     const ensuresBefore = calls.ensure;
     // An unloaded server is not started for background work.
@@ -282,7 +309,7 @@ test('local: prewarm sends the persona prefix with one token to the server, and 
       lateEmotion: async () => ({}), refreshIdle: async () => true, voiceChannel: () => ({kind: 'convai'})};
     attachTextProvider(original, {provider, mistral: host, speech: {available: () => true, voiceChannel: ({reply}) => ({kind: 'local-voice', reply})}});
     assert.deepEqual(await original.warm({local: {profileKey: 'panam-palmer', name: 'Panam Palmer'}}), {connectionMs: 0, provider: 'local'});
-    await new Promise(done => setTimeout(done, 20));
+    await eventually(() => calls.prewarm.length >= 2, 'the warm-up to prewarm the server');
     assert.equal(calls.prewarm.length, 2);
     assert.equal(original.voiceChannel().kind, 'local-voice');
     await assert.rejects(original.prepare({}), /not available with the local AI/);
@@ -331,7 +358,7 @@ test('the shared Mistral scheduler paces every Mistral request: replies as text 
     const route = mistralRoute({provider, endpoint: server.endpoint, gapMs: 5000, scheduler});
     const host = new TextProviderHost({provider, memory: await MistralMemory.open({path: null}), personas: book, routes: {mistral: route}, idleRetryMs: 10});
     for (let i = 0; i < MEMORY_LIMITS.turns + MEMORY_LIMITS.batch; i++) await host.reply(turn(`question ${i}`));
-    await new Promise(done => setTimeout(done, 150));
+    await eventually(() => noted.length > MEMORY_LIMITS.turns + MEMORY_LIMITS.batch, 'the summary request to be answered');
     assert(seen.includes(2), 'the summary asked the scheduler for a background slot');
     assert.equal(seen.filter(priority => priority === 0).length, MEMORY_LIMITS.turns + MEMORY_LIMITS.batch);
     assert(noted.length >= seen.length, 'the headers of every answer reach the scheduler');
@@ -428,6 +455,20 @@ test('facts: the character\'s own passing claims about what it was doing are nev
 // ---- a request that hangs: cut early, asked again, then a line in the character's voice instead of silence ---------------------------
 
 const QUICK = {firstByteMs: 80, retryFirstByteMs: 120, stallMs: 150, retries: 1, backoffMs: [5]};
+// These limits run on a manual clock (bridge/fixtures/fake-clock.mjs): a request is cut when the test moves the clock to its limit, never because the machine was slow,
+// so an ask that must be answered cannot be cut by a busy machine and an ask that must be cut does not depend on one.
+const quickOn = clock => ({...QUICK, now: clock.now, setTimer: clock.setTimer, clearTimer: clock.clearTimer});
+// Cuts every request the fake server leaves unanswered, the way its first-byte limit would: the clock moves only once the request has reached the server
+// (its timer is armed by then), and the reply is waited for to the end.
+async function cutHangs(server, clock, reply) {
+  const state = watch(reply);
+  for (let seen = server.requests.length; ;) {
+    await eventually(() => server.requests.length > seen || state.done, 'a request to reach the server');
+    if (state.done) return;
+    seen = server.requests.length;
+    await clock.advance(QUICK.retryFirstByteMs);
+  }
+}
 
 test('the cloud routes give up on a silent request after 6 s, ask once more with 8 s, and cut a stream that goes quiet after 8 s', () => {
   assert.deepEqual({...CLOUD_CHAT_LIMITS}, {firstByteMs: 6000, retryFirstByteMs: 8000, stallMs: 8000, retries: 1, backoffMs: [300]});
@@ -435,50 +476,62 @@ test('the cloud routes give up on a silent request after 6 s, ask once more with
 });
 
 test('a request that never answers is asked again at once and the reply arrives; the failed ask is in the timing and the log', async () => {
-  const {server, host, logs, close} = await harness((_body, count) => count === 1 ? {hang: true} : 'Sure thing, V. Come on in and sit down.', {chatDefaults: QUICK});
+  const clock = fakeClock();
+  const {server, host, logs, close} = await harness((_body, count) => count === 1 ? {hang: true} : 'Sure thing, V. Come on in and sit down.', {chatDefaults: quickOn(clock)});
   try {
-    const started = performance.now();
-    const result = await host.reply(turn('hello'));
+    const reply = host.reply(turn('hello'));
+    const [result] = await Promise.all([reply, cutHangs(server, clock, reply)]);
     assert.equal(result.text, 'Sure thing, V. Come on in and sit down.');
     assert.equal(server.requests.length, 2); assert.equal(result.timing.attempts, 2);
     assert.equal(result.timing.llmFailed.length, 1); assert.equal(result.timing.llmFailed[0].kind, 'network');
-    assert.ok(performance.now() - started < 1500, 'not the 25 s the hung request used to take');
+    assert.equal(result.timing.llmFailed[0].ms, QUICK.firstByteMs, 'the hung ask was cut at its own short limit, not the 25 s it used to take');
     assert.ok(logs.some(line => /attempt 1 failed after \d+ ms \(network, no answer in time\); asking again/.test(line)), logs.join('|'));
   } finally { await close(); }
 });
 
 test('a service that stays silent gives a short line in the character\'s voice, not an error, and the line is not remembered', async () => {
-  const {host, memory, close} = await harness(() => ({hang: true}), {chatDefaults: QUICK});
+  const clock = fakeClock();
+  const {server, host, memory, close} = await harness(() => ({hang: true}), {chatDefaults: quickOn(clock)});
   try {
-    const result = await host.reply(turn('hello there'));
+    const reply = host.reply(turn('hello there'));
+    const [result] = await Promise.all([reply, cutHangs(server, clock, reply)]);
     assert.ok(HOLDING_LINES.includes(result.text), result.text);
     assert.equal(result.timing.holdingLine, true); assert.equal(result.timing.attempts, 2);
     assert.equal(result.timing.llmFailed.length, 2);
     assert.deepEqual(memory.recall({profileKey: 'judy-alvarez', channel: 'private'}).turns, [], 'the holding line answers nothing: it is not recorded as a talk');
-    const again = await host.reply(turn('hello again'));
+    const second = host.reply(turn('hello again'));
+    const [again] = await Promise.all([second, cutHangs(server, clock, second)]);
     assert.notEqual(again.text, result.text, 'the lines take turns');
   } finally { await close(); }
 });
 
 test('a holding line goes through a stream like any reply, so the voice and the subtitles speak it', async () => {
   const {ReplyStream} = await import('./reply-stream.mjs');
-  const {host, close} = await harness(() => ({hang: true}), {chatDefaults: QUICK});
+  const clock = fakeClock();
+  const {server, host, close} = await harness(() => ({hang: true}), {chatDefaults: quickOn(clock)});
   try {
     const stream = new ReplyStream({name: 'Judy Alvarez'});
-    const result = await host.reply(turn('hello'), {stream});
+    const reply = host.reply(turn('hello'), {stream});
+    const [result] = await Promise.all([reply, cutHangs(server, clock, reply)]);
     assert.equal(await stream.finished, result.text); assert.ok(HOLDING_LINES.includes(stream.text));
   } finally { await close(); }
 });
 
 test('a refused key, a limit and a battle bark are not turned into a holding line', async () => {
-  const refused = await harness(() => ({status: 401, message: 'bad key'}), {chatDefaults: QUICK});
+  const clock = fakeClock();
+  const refused = await harness(() => ({status: 401, message: 'bad key'}), {chatDefaults: quickOn(clock)});
   try { await assert.rejects(refused.host.reply(turn('hello')), error => failureKind(error) === 'key'); } finally { await refused.close(); }
-  const quiet = await harness(() => ({hang: true}), {chatDefaults: QUICK});
-  try { await assert.rejects(quiet.host.reply(turn('hello', {reaction: {phase: 'start'}})), error => failureKind(error) === 'network'); } finally { await quiet.close(); }
+  const quiet = await harness(() => ({hang: true}), {chatDefaults: quickOn(clock)});
+  try {
+    const bark = quiet.host.reply(turn('hello', {reaction: {phase: 'start'}}));
+    const [error] = await Promise.all([bark.catch(caught => caught), cutHangs(quiet.server, clock, bark)]);
+    assert.ok(error instanceof Error, 'a battle bark that gets no answer is an error, not a line');
+    assert.equal(failureKind(error), 'network');
+  } finally { await quiet.close(); }
 });
 
 test('a server fault is a holding line too, after its retry', async () => {
-  const {server, host, close} = await harness(() => ({status: 503, message: 'overloaded'}), {chatDefaults: QUICK});
+  const {server, host, close} = await harness(() => ({status: 503, message: 'overloaded'}), {chatDefaults: quickOn(fakeClock())});
   try {
     const result = await host.reply(turn('hello'));
     assert.ok(HOLDING_LINES.includes(result.text)); assert.equal(server.requests.length, 2);
@@ -502,12 +555,19 @@ test('a stream that goes quiet after the first sentence ends with that sentence 
   });
   const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => `api-key=${MISTRAL_KEY}\n`, writeText: async () => {}});
   await provider.load(); provider.setPreference('mistral'); provider.apply();
-  const memory = await MistralMemory.open({path: null}), logs = [];
+  const memory = await MistralMemory.open({path: null}), logs = [], clock = fakeClock();
   const host = new TextProviderHost({provider, memory, personas: book, log: line => logs.push(line),
-    routes: {mistral: mistralRoute({provider, endpoint: server.endpoint, gapMs: 0, chatDefaults: {...QUICK, retries: 0}})}});
+    routes: {mistral: mistralRoute({provider, endpoint: server.endpoint, gapMs: 0, chatDefaults: {...quickOn(clock), retries: 0}})}});
   try {
     const stream = new ReplyStream({name: 'Judy Alvarez'});
-    const result = await host.reply(turn('hello'), {stream});
+    const reply = host.reply(turn('hello'), {stream});
+    // The stall limit is armed when the first piece of the reply arrives: the silence lasts as long as the clock is left alone.
+    const early = watch(reply);
+    await within(stream.headReady, 'the first sentence');
+    await clock.advance(QUICK.stallMs - 1);
+    assert.equal(early.done, false, 'the quiet stream is still waited for inside stallMs');
+    await clock.advance(1);
+    const result = await within(reply, 'the quiet stream to be cut');
     assert.equal(stream.head, first); assert.equal(result.text, first);
     assert.equal(result.timing.streamedHead, true); assert.equal(result.timing.replyCutShort, 'network');
     assert.equal(stream.tail, '', 'no tail to voice');

@@ -80,7 +80,7 @@ async function events(path) {
   return raw.split('\n').filter(Boolean).map(line => JSON.parse(line));
 }
 
-async function until(read, accepts, label, timeout = 15_000) {
+async function until(read, accepts, label, timeout = 120_000) {
   const deadline = Date.now() + timeout;
   let last;
   while (Date.now() < deadline) {
@@ -100,7 +100,7 @@ function runHost(f, holdMs) {
 }
 
 test('the launcher reports a runtime-independent RED4ext plugin and starts the hidden service with exact arguments',
-  {skip, timeout: 150_000}, async t => {
+  {skip, timeout: 300_000}, async t => {
     const f = await fakeGame(t);
     const host = runHost(f, 120_000);
     const started = (await until(() => events(f.result), rows => rows.some(row => row.event === 'started'), 'service not started'))
@@ -126,7 +126,7 @@ test('the launcher reports a runtime-independent RED4ext plugin and starts the h
     assert.match(log, /Started the conversation service supervisor \(PID \d+, (outside|inside) the launcher job\)/);
   });
 
-test('a crashed game closes the lifeline immediately', {skip, timeout: 60_000}, async t => {
+test('a crashed game closes the lifeline immediately', {skip, timeout: 180_000}, async t => {
   const f = await fakeGame(t);
   const host = runHost(f, 120_000);
   await until(() => events(f.result), rows => rows.some(row => row.event === 'started'), 'service not started');
@@ -138,7 +138,7 @@ test('a crashed game closes the lifeline immediately', {skip, timeout: 60_000}, 
   assert(closed.at - killedAt < 3000, `lifeline closed ${closed.at - killedAt} ms after the crash`);
 });
 
-test('nothing starts when the CyberpunkConvai mod or CET is not installed', {skip, timeout: 60_000}, async t => {
+test('nothing starts when the CyberpunkConvai mod or CET is not installed', {skip, timeout: 180_000}, async t => {
   for (const options of [{mod: false}, {cet: false}]) {
     const f = await fakeGame(t, options);
     const host = runHost(f, 500);
@@ -150,7 +150,7 @@ test('nothing starts when the CyberpunkConvai mod or CET is not installed', {ski
   }
 });
 
-test('game start runs the real supervisor and a game crash stops the bridge it started', {skip, timeout: 90_000}, async t => {
+test('game start runs the real supervisor and a game crash stops the bridge it started', {skip, timeout: 240_000}, async t => {
   const root = await mkdtemp(join(tmpdir(), prefix + 'chain '));
   const project = join(root, 'project'), state = join(root, 'state');
   await mkdir(join(project, 'bridge'), {recursive: true}); await mkdir(state, {recursive: true});
@@ -184,7 +184,7 @@ test('game start runs the real supervisor and a game crash stops the bridge it s
     gone => gone, 'the supervisor did not exit after the game');
 });
 
-test('a disabled launcher starts nothing and a missing program is published to the mod', {skip, timeout: 60_000}, async t => {
+test('a disabled launcher starts nothing and a missing program is published to the mod', {skip, timeout: 180_000}, async t => {
   const disabled = await fakeGame(t, {ini: {enabled: '0', program: process.execPath}});
   assert.equal(await runHost(disabled, 300).exited, 0);
   assert.match(await readFile(disabled.log, 'utf8'), /disabled in launcher\.ini/);

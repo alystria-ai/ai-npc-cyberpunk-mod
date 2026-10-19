@@ -4249,7 +4249,7 @@ test('The Conversation provider section offers the provider, Mature content, the
     -- Local AI: the state is on the Local AI model row (its name in brackets, its help starting with the loading sentence);
     -- an unknown value never invents a state.
     local WAIT = {warming = {'Local AI model (Warming up)', 'Local AI is warming up…'},
-      ['no-memory'] = {'Local AI model (Not enough memory)', 'Not enough graphics memory for Local AI. A cloud provider is used instead.'},
+      ['no-memory'] = {'Local AI model (Not enough memory)', 'Not enough free graphics memory to start Local AI. Try a smaller model in Settings.'},
       failed = {'Local AI model (Unavailable)', 'Local AI could not start. Check Local AI in Settings > Conversation provider.'}}
     for value, expected in pairs({ready = false, warming = WAIT.warming, ['no-memory'] = WAIT['no-memory'], failed = WAIT.failed,
         ['not-installed'] = false, sometimes = false, [7] = false}) do
@@ -4737,7 +4737,7 @@ test('Local AI warming up is one held notice while Local is the provider, with a
     -- A server that was unloaded after idle time warms up again when it is needed.
     mistral.localAi = 'warming'; step(3); assert(posts[#posts].text == 'Local AI is warming up…' and #posts == 2)
     mistral.localAi = 'no-memory'; step(2)
-    assert(shown[#shown] == 'Not enough graphics memory for Local AI. A cloud provider is used instead.', tostring(shown[#shown]))
+    assert(shown[#shown] == 'Not enough free graphics memory to start Local AI. Try a smaller model in Settings.', tostring(shown[#shown]))
     mistral.localAi = 'warming'; step(3); mistral.localAi = 'failed'; step(2)
     assert(shown[#shown] == 'Local AI could not start. Check Local AI in Settings > Conversation provider.', tostring(shown[#shown]))
   `);
@@ -4884,3 +4884,17 @@ test('the developer notice trigger shows the daily-limit notice only with Develo
     assert(speech.devNotice('notice:daily-limit:2') == false and #sent == 1, 'no player yet: nothing is shown')
   `);
 });
+
+test('error reports are on by default, apply as on or off only, and the one-time notice is remembered in settings.json', () => run(`${managerFixture}
+  manager.configure(api, profiles)
+  assert(manager.snapshot(player).settings.errorReports == true and manager.errorReports() == true, 'on by default')
+  assert(manager.errorReportsNoticeDue() == true, 'the notice is due once')
+  assert(manager.markErrorReportsNoticed() == true and saved.errorReportsNoticed == true)
+  assert(manager.errorReportsNoticeDue() == false)
+  assert(manager.applySettings(player, {errorReports = 'no'}) == false, 'on or off only')
+  assert(manager.errorReports() == true)
+  assert(manager.applySettings(player, {errorReports = false}) and saved.errorReports == false)
+  assert(manager.errorReports() == false and manager.snapshot(player).settings.errorReports == false)
+  assert(manager.errorReportsNoticeDue() == false, 'never due while off')
+  assert(manager.applySettings(player, {errorReports = true}) and saved.errorReports == true and saved.errorReportsNoticed == true)
+`));

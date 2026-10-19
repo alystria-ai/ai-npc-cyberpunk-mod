@@ -38,6 +38,8 @@ M.catalog = {
     ['service-down'] = {class = PLAYER},               -- once per failure
     ['setup-problem'] = {class = PLAYER},              -- the setup check's first-load notice: the first critical install problem, once per game session (mod/setup-check.lua)
     ['manager-needs-nsui'] = {class = PLAYER, repeatS = 10}, -- the Companion Manager key was pressed and Native Settings UI is missing or too old (mod/nsui.lua)
+    ['manager-in-mcm-list'] = {class = PLAYER, repeatS = 10}, -- the Companion Manager key opened Mod Configuration Menu, which hides Native Settings UI's Mods screen: the manager is chosen in its list (mod/nsui.lua)
+    ['error-reports-on'] = {class = PLAYER},           -- error reports are sent automatically and where to turn them off: once, at the first load after updating (mod/error-reports.lua)
     ['service-blocked'] = {class = PLAYER, repeatS = 15},
     ['conversation-timeout'] = {class = PLAYER, repeatS = 15},
     ['reply-error'] = {class = PLAYER, repeatS = 15},

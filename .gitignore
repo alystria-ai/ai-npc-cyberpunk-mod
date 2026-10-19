@@ -37,3 +37,6 @@ convai voice cloning devslot/
 
 # Files made for the developer (samples, reports, the install tutorial): kept in the project folder, never committed.
 /deliverables/
+
+# The error reports' backend address and signing secret a release build writes into the Runtime (bridge/error-reports.mjs): never committed.
+/defaults/error-reports.json

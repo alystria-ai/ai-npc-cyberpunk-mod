@@ -1,7 +1,9 @@
 // Packaged entry point of the conversation service. The RED4ext launcher
 // (red4ext/plugins/AiNpcCyberpunkMod/CyberpunkConvai.dll) starts it with the bundled Node
-// when the game starts, as configured by launcher.ini next to the DLL:
-//   app/node/node.exe app/launcher/start-service.mjs --game-pid <pid> --game-root <root> --lifeline stdin
+// when the game starts, as configured by launcher.ini next to the DLL (packaging/lib/launcher-ini.mjs):
+//   app/node/node.exe --eval <bootstrap> app/launcher/start-service.mjs --game-pid <pid> --game-root <root> --lifeline stdin
+// The bootstrap loads this script from its real place when Node's stat cannot see it (a Runtime installed as a Mod Organizer 2 mod);
+// process.argv is the same as with the script as Node's entry.
 // It prepares the data folder for this installation (first moving optional pack files that were extracted one folder too deep
 // into place), joins any split download parts,
 // sets every executable and asset path explicitly, and then runs the same supervisor as
@@ -19,13 +21,21 @@
 // file system than the game, and nothing it wrote under the game folder would reach the game. It says so in its log and stops, instead
 // of creating stray folders and loading models for a service nobody can talk to.
 //
+// Inside USVFS (Mod Organizer 2 2.5.2, usvfs 0.5.6.1) the bundled Node's stat cannot see a file that exists only in an MO2 mod folder, while
+// opening and reading it works (packaging/runtime/usvfs-compat.mjs). So when usvfs is loaded, this script first puts the stat fallbacks
+// of usvfs-compat.mjs in place (the CET mod's runtime/ folder, which the game reads, stays at its virtual place), runs the Runtime's own
+// files from their real place (the bootstrap loaded this script from there; the optional packs are looked up at their virtual place and
+// used from their real one, so a pack installed as its own MO2 mod is found), and gives every Node process it starts the same fallbacks.
+//
 // --prepare-only does everything except starting the service and prints a summary.
 import {appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {homedir} from 'node:os';
 import {dirname, relative, resolve, isAbsolute} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 
+// Where this script runs from (its real place, under Mod Organizer 2) and where the launcher started it (the virtual place).
 const appDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const launchedApp = /(?:^|[\\/])start-service\.mjs$/i.test(process.argv[1] ?? '') ? resolve(dirname(process.argv[1]), '..') : appDirectory;
 const argv = process.argv.slice(2);
 const option = name => { const at = argv.indexOf(name); return at >= 0 ? argv[at + 1] : undefined; };
 const gameRoot = option('--game-root');
@@ -41,7 +51,6 @@ const statusPath = resolve(gameRoot, MOD_FOLDER, 'runtime', 'bridge-service.json
 const startedAt = Date.now();
 const startNotes = []; // log lines from before the log file's folder is known
 let stage = 'starting', stateFolder = null, statusOwner = 'service', beat = null, logSink = null;
-const canReachGame = existsSync(resolve(gameRoot, MOD_FOLDER, 'init.lua'));
 // The game this start serves. A start can outlive it (the game closed or crashed during a long first start, and the player started it
 // again): the next session's launcher and start script write the same file, so a start whose game has ended publishes nothing more,
 // above all not a failure the new session would show as its own. The same test as the supervisor's processAlive: a process that exists
@@ -64,11 +73,19 @@ const insideVfs = (() => {
   } catch {}
   return 'unknown';
 })();
-const runtimeAt = (() => {
-  const away = relative(resolve(gameRoot), appDirectory);
-  return away === '' || (!away.startsWith('..') && !isAbsolute(away)) ? 'inside' : 'outside';
-})();
-const viewSummary = `usvfs ${insideVfs}; Runtime ${runtimeAt} the game folder; init.lua ${canReachGame ? 'visible' : 'not visible'}`;
+// Inside usvfs the stat fallbacks go in before anything looks at the game folder (init.lua below, the status, the layout). A problem
+// loading them is logged and the start goes on as before (the init.lua check then says what this process can see).
+let usvfsCompat = null;
+if (insideVfs === 'yes') {
+  try { usvfsCompat = await import('./usvfs-compat.mjs'); usvfsCompat.installUsvfsCompat(); }
+  catch (error) { usvfsCompat = null; note(`Mod Organizer 2 support could not be loaded: ${error?.stack || error}`); }
+}
+const canReachGame = existsSync(resolve(gameRoot, MOD_FOLDER, 'init.lua'));
+const insideGame = folder => { const away = relative(resolve(gameRoot), folder); return away === '' || (!away.startsWith('..') && !isAbsolute(away)); };
+// 'inside', 'outside', or 'in an MO2 mod' (started through the game folder, running from its real place elsewhere).
+const runtimeAt = insideGame(appDirectory) ? 'inside' : insideGame(launchedApp) ? 'in an MO2 mod' : 'outside';
+const runtimeWhere = runtimeAt === 'in an MO2 mod' ? 'in an MO2 mod folder' : `${runtimeAt} the game folder`;
+const viewSummary = `usvfs ${insideVfs}${usvfsCompat ? ' (stat fallbacks on)' : ''}; Runtime ${runtimeWhere}; init.lua ${canReachGame ? 'visible' : 'not visible'}`;
 
 // One short sentence for the game to show: Node's error code and message, every folder path cut down to its file name (a path can hold
 // the player's user name, and folders with spaces in them are common), never longer than 140 characters.
@@ -176,13 +193,27 @@ try {
 }
 enterStage('preparing');
 
+// The optional packs (app/local-ai, app/omni) are looked up where the launcher started this script: under Mod Organizer 2 a pack may be its
+// own MO2 mod, which the Runtime mod's real folder does not hold. A pack found only virtually is used from its real place (Python and
+// llama-server read it there); one that is not installed stays under the Runtime's own app folder, as in a physical install.
+function packRootsFor() {
+  if (!usvfsCompat || launchedApp === appDirectory) return {};
+  const roots = {};
+  for (const [key, name] of [['localAi', 'local-ai'], ['omni', 'omni']]) {
+    const found = usvfsCompat.locate(resolve(launchedApp, name));
+    if (found.kind !== 'missing') roots[key] = found.path;
+  }
+  return roots;
+}
+const layoutFor = dataHome => installLayout({appDirectory, gameRoot, dataHome, packRoots: packRootsFor()});
+
 // The service must see what the game sees, and this is checked before anything is written (the player's data, the restore of the state
 // files and the carry-over of an older installation all come after): the launcher saw the CET mod's init.lua before it started this
 // process. One that cannot see it looks at another file system than the game (with Mod Organizer 2, it runs outside the virtual file
 // system), so nothing it writes in the game folder would reach the game, and a folder it made there would be a stray copy of the mod's.
 // --prepare-only is a development and test aid with no game to talk to: it goes on.
 if (!canReachGame && !prepareOnly) {
-  note(viewLine(installLayout({appDirectory, gameRoot, dataHome: null})));
+  note(viewLine(layoutFor(null)));
   note(`Stopped: the CET mod's init.lua (${resolve(gameRoot, MOD_FOLDER, 'init.lua')}) is not visible to this process, although the launcher saw it `
     + 'before starting the service. This process looks at a different file system than the game (with Mod Organizer 2, it runs outside the '
     + 'virtual file system), so nothing it writes in the game folder would reach the game. Nothing was started.');
@@ -197,7 +228,26 @@ if (!canReachGame && !prepareOnly) {
 const early = [];
 const home = dataHomeFor(process.env);
 if (home.problem) early.push(home.problem);
-let layout = installLayout({appDirectory, gameRoot, dataHome: home.root});
+let layout = layoutFor(home.root);
+
+// The player's saved state files in runtime/ (settings, phone chats, add-on settings, NPC names) come back from the copies kept in the data
+// folder, wherever one is missing or empty, before anything slower and before the game's Lua can read them (bridge/game-state.mjs): under Mod
+// Organizer 2 a file created in the game folder does not survive a launch. runtime/state-restore.json then tells the Lua the restore is over.
+// A few stat calls when nothing needs restoring; a failure here never stops the service (the Lua stops waiting by itself after a while).
+if (layout.dataHome) {
+  try {
+    const gameState = await import('../bridge/game-state.mjs');
+    const log = message => early.push(message);
+    const result = await gameState.restoreGameState({runtime: layout.runtime, durable: gameState.gameStateFolder(layout.state), log});
+    await gameState.publishRestoreSignal({runtime: layout.runtime, result, log});
+  } catch (error) {
+    early.push(`Restoring the player's state files failed: ${error?.stack || error}`);
+    try {
+      mkdirSync(layout.runtime, {recursive: true});
+      writeFileSync(resolve(layout.runtime, 'state-restore.json'), JSON.stringify({version: 1, state: 'done', written: Date.now(), restored: [], refreshed: [], errors: 1}));
+    } catch {}
+  }
+}
 
 // An older installation (this mod was called CyberpunkConvai) is retired and its state moved to the new folders before anything
 // reads the data folder (packaging/runtime/migrate-legacy.mjs). It is a few stat calls when there is no old folder. A failure here
@@ -213,7 +263,7 @@ if (layout.dataHome) {
   let moved = null;
   try { moved = await moveGameFolderState({from: layout.gameState, to: layout.state, log: message => early.push(message)}); }
   catch (error) { early.push(`Moving the data folder out of the game folder failed: ${error?.stack || error}`); moved = {found: true, state: 'deferred'}; }
-  if (moved?.found && moved.state === 'deferred') layout = installLayout({appDirectory, gameRoot, dataHome: null});
+  if (moved?.found && moved.state === 'deferred') layout = layoutFor(null);
 }
 
 // A data folder that cannot be made (a read-only or full disk, a blocked path) ends the start; say so in the status the game reads, because
@@ -234,11 +284,21 @@ for (const message of startNotes.splice(0)) log(message);
 
 // The same facts in one line for the player's log, with the paths: the game's mod folder and its runtime/ folder are visible or not.
 function viewLine(shown) {
-  return `View: Node ${process.version}, PID ${process.pid}; inside a virtual file system (usvfs): ${insideVfs}; the Runtime is ${runtimeAt} the game folder`
-    + ` (${shown.app}); game ${shown.gameRoot}; the CET mod's init.lua is ${canReachGame ? 'visible' : 'NOT visible'}; runtime/ is `
+  return `View: Node ${process.version}, PID ${process.pid}; inside a virtual file system (usvfs): ${insideVfs}${usvfsCompat ? ' (stat fallbacks on)' : ''}; `
+    + `the Runtime is ${runtimeWhere} (${shown.app}${launchedApp !== appDirectory ? `, started as ${launchedApp}` : ''}); game ${shown.gameRoot}; the CET mod's init.lua is ${canReachGame ? 'visible' : 'NOT visible'}; runtime/ is `
     + `${existsSync(shown.runtime) ? 'visible' : 'not there'}.`;
 }
 log(viewLine(layout));
+// Under Mod Organizer 2 the bundled Pythons take their virtual folder for their home; their ._pth lines become absolute real paths
+// (usvfs-compat.mjs, pinPythonPaths). A problem is logged; the voices that need Python then report it themselves.
+if (usvfsCompat) {
+  for (const python of [layout.python, layout.omniPython]) {
+    try {
+      const changed = usvfsCompat.pinPythonPaths(dirname(python));
+      if (changed.length) log(`Mod Organizer 2: Python's search paths pinned to its real folder (${changed.join(', ')}).`);
+    } catch (error) { log(`Mod Organizer 2: Python's search paths could not be pinned (${dirname(python)}): ${error?.message || error}`); }
+  }
+}
 // What is left of the old folders (the old application and its browser, Python...) is removed off the main path, a while after
 // the start, so the game's loading never competes with the deletion. A locked file only postpones it to the next start.
 const legacyCleanup = delayMs => new Promise(done => {
@@ -287,12 +347,15 @@ try {
 const localAiJoined = assembleParts(layout.localAi, {log}).catch(error => { log(`Local AI pack: ${error?.message || error}`); return []; });
 
 const env = serviceEnvironment(layout, prepared);
+// Every Node process the service starts (the bridge and its workers) gets the same stat fallbacks before its first line runs.
+if (usvfsCompat) Object.assign(env, usvfsCompat.childEnvironment(new URL('./usvfs-compat.mjs', import.meta.url).href));
 if (prepareOnly) {
   const localAi = await localAiJoined;
   const cleaned = await legacyCleanup(0);
   process.stdout.write(JSON.stringify({ok: true, omni: prepared.omni, localAi: localAi.map(item => `${item.file}:${item.state}`),
     legacy: legacy?.found ? {moved: legacy.report.moved.length, errors: legacy.report.errors, removed: cleaned?.removed ?? [], pending: cleaned?.pending ?? []} : null,
-    key: prepared.keyFile.startsWith(layout.state) ? 'player' : 'package', state: layout.state}) + '\n');
+    key: prepared.keyFile.startsWith(layout.state) ? 'player' : 'package', state: layout.state, app: layout.app,
+    packs: {localAi: layout.localAi, omni: layout.omni}, childNodeOptions: env.NODE_OPTIONS ?? null}) + '\n');
   process.exit(0);
 }
 for (const name of Object.keys(process.env)) if (!(name in env)) delete process.env[name];
@@ -322,7 +385,7 @@ legacyCleanup(45_000);
 let supervisor;
 try {
   supervisor = new BridgeSupervisor({...options, nodeExecutable: process.execPath,
-    lifeline: options.lifeline === 'stdin' ? process.stdin : null});
+    lifeline: options.lifeline === 'stdin' ? process.stdin : null, errorReports: true});
 } catch (error) {
   log(`The supervisor could not be created: ${error?.stack || error}`);
   publishFailure('service-error', shortReason(error));

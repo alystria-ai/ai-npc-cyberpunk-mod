@@ -137,7 +137,7 @@ function put(path, value) files[path] = type(value) == 'string' and value or jso
 
 -- the game as CET shows it: env says what is installed; applyEnv() builds the globals from it (call it again after changing env)
 env = {cet = '1.37.1', gameVersion = '2.31', codeware = '1.20.5', tweakxl = '1.11.4', audioware = '1.9.9', scripts = true,
-  native = false, nsui = 'ok', player = true, paused = false, menu = false}
+  native = false, nsui = 'ok', mcm = 'none', player = true, paused = false, menu = false}
 gameCalls, requirementCalls = 0, 0
 function applyEnv()
   GetVersion = env.cet and function() return env.cet end or nil
@@ -145,8 +145,14 @@ function applyEnv()
   TweakXL = env.tweakxl and {Version = function() return env.tweakxl end} or nil
   convaiNative = env.native and {present = true} or nil
   GetMod = function(name)
-    assert(name == 'nativeSettings' or name == 'NativeSettings')
+    assert(name == 'nativeSettings' or name == 'NativeSettings' or name == 'ModConfigurationMenuAPI')
     local function noop() end
+    -- Mod Configuration Menu: 'ok' is 0.10.5 with its public UI extension, 'old' is 0.10.3 (no api.ui), 'none' is not installed.
+    if name == 'ModConfigurationMenuAPI' then
+      if env.mcm == 'ok' then return {version = '0.10.5', apiVersion = 2, providers = {registerProvider = noop}, ui = {apiVersion = 1}} end
+      if env.mcm == 'old' then return {version = '0.10.3', apiVersion = 2, providers = {registerProvider = noop}} end
+      return nil
+    end
     if env.nsui == 'ok' and name == 'nativeSettings' then
       return {version = 1.96, data = {}, addTab = noop, addSubcategory = noop, removeSubcategory = noop, removeOption = noop, addSwitch = noop,
         addRangeInt = noop, addSelectorString = noop, addButton = noop, setOption = noop, registerRestoreDefaultsCallback = noop}

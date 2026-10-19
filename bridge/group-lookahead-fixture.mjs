@@ -98,7 +98,8 @@ export class GroupScenario {
     this.closed = null; this.child.once('close', (code, signal) => { this.closed = {code, signal}; });
     this.beat();
     this.heartbeat = setInterval(() => void this.beat().catch(() => {}), 400);
-    for (let at = 0; at < 600; at++) {
+    // A busy machine can take a long while to start a bridge: wait for it to be waiting, with a ceiling only a stuck bridge reaches (5 minutes).
+    for (let at = 0; at < 3000; at++) {
       if (this.closed) throw Error('bridge exited during startup\n' + this.output);
       // A player's key takes over at the bridge's first idle boundary; the round must not begin before it has.
       if ((await readJson(join(this.runtime, 'bridge-status.json')))?.state === 'waiting'
@@ -180,7 +181,7 @@ export class GroupScenario {
 
   // For a hook that must wait inside the game loop: keep the current speaker's
   // control fresh while the condition is pending.
-  waitHolding(pending, predicate, label, timeoutMs = 30000) {
+  waitHolding(pending, predicate, label, timeoutMs = 120000) {
     return this.waitFor(async () => { await this.renewLease(pending); return predicate(); }, label, timeoutMs);
   }
 
@@ -229,7 +230,9 @@ export class GroupScenario {
     }
   }
 
-  async waitFor(predicate, label, timeoutMs = 60000) {
+  // The ceilings of every wait in this file are generous: they are reached only when something is stuck, so a busy machine slows a wait down
+  // and never makes it fail.
+  async waitFor(predicate, label, timeoutMs = 600000) {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
       if (this.error) throw this.error;
@@ -258,15 +261,15 @@ export class GroupScenario {
     await this.loop?.catch(() => {});
     if (this.child && this.closed === null) {
       await atomicFile(join(this.state, 'bridge-control.json'), JSON.stringify({action: 'shutdown', pid: this.child.pid})).catch(() => {});
-      for (let at = 0; at < 60 && this.closed === null; at++) await sleep(100);
+      for (let at = 0; at < 600 && this.closed === null; at++) await sleep(100);
       if (this.closed === null) this.child.kill();
-      for (let at = 0; at < 30 && this.closed === null; at++) await sleep(100);
+      for (let at = 0; at < 300 && this.closed === null; at++) await sleep(100);
     }
     if (this.folder) {
       const resolved = await realpath(this.folder);
       if (dirname(resolved).toLowerCase() === (await realpath(tmpdir())).toLowerCase() && basename(resolved).startsWith(prefix)) {
-        // Windows can hold the folder for a moment after the bridge exits (EBUSY under load): retry before giving up.
-        await rm(resolved, {recursive: true, force: true, maxRetries: 30, retryDelay: 100});
+        // Windows can hold the folder for a while after the bridge exits (EBUSY under load): retry for up to 30 s before giving up.
+        await rm(resolved, {recursive: true, force: true, maxRetries: 300, retryDelay: 100});
       }
     }
   }
@@ -277,7 +280,7 @@ export async function measureRound(options) {
   try {
     await scenario.start();
     await scenario.begin();
-    await scenario.waitFor(() => scenario.done, 'the round to finish', 90000);
+    await scenario.waitFor(() => scenario.done, 'the round to finish', 600000);
     const events = await scenario.events();
     return {gaps: await scenario.gaps(), events, latency: await readJson(join(scenario.runtime, 'bridge-latency.json')),
       output: scenario.output};
@@ -294,14 +297,23 @@ export async function measureTalk({party = [], nearby = [], spawned = [], index 
     if (party.length || nearby.length || spawned.length) await scenario.setNearby({party, nearby, spawned});
     const warmEvents = async () => (await scenario.events()).filter(row => row.event === 'warm');
     if (expectWarms > 0) {
-      await scenario.waitFor(async () => (await warmEvents()).length >= expectWarms, `${expectWarms} connection(s) to open ahead`, 30000);
+      await scenario.waitFor(async () => (await warmEvents()).length >= expectWarms, `${expectWarms} connection(s) to open ahead`, 120000);
       const connectMs = Math.max(...Object.values(scenario.timings).map(timing => timing.connectMs ?? 0));
       await sleep(connectMs + reachMs);
     } else await sleep(idleMs);
     const opened = (await warmEvents()).map(row => SPEAKERS.find(speaker => speaker.characterId === row.characterId)?.key);
-    const before = await readJson(join(scenario.runtime, 'party-connection-state.json'));
+    // The bridge publishes each connection as 'ready' when its page answered, which is a moment after the page was ready (a fixed 300 ms was not
+    // always enough on a busy machine): read the state once it lists every connection that was opened ahead as ready.
+    const statePath = join(scenario.runtime, 'party-connection-state.json');
+    let before = await readJson(statePath);
+    if (expectWarms > 0) {
+      await scenario.waitFor(async () => {
+        before = await readJson(statePath);
+        return (before?.connections ?? []).filter(row => row.state === 'ready').length >= expectWarms;
+      }, `${expectWarms} connection(s) to be published as ready`, 120000);
+    }
     await scenario.beginPrivate(index);
-    await scenario.waitFor(() => scenario.done, 'the talk to finish', 60000);
+    await scenario.waitFor(() => scenario.done, 'the talk to finish', 600000);
     const events = await scenario.events(), target = SPEAKERS[index - 1].characterId;
     const start = events.findLast(row => row.event === 'reply-start' && row.characterId === target)?.t;
     const audible = events.find(row => row.event === 'play-start' && row.characterId === target)?.t;

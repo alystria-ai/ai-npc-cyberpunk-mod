@@ -86,9 +86,10 @@ function entryScope(entry) {
 export class QuestMemorySync {
   constructor({service, adapter, providerQualificationPath, resolveCharacter, registerScope,
     enabled = false, nativeQualified = false, maxEntries = 4, maxDurationMs = 15000,
-    maxScanPages = 4, maxReadbackAgeMs = 5 * 60 * 1000, now = Date.now} = {}) {
+    maxScanPages = 4, maxReadbackAgeMs = 5 * 60 * 1000, now = Date.now,
+    setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
     if (!service || ['guard', 'current', 'pendingCloud', 'sessionIdentity', 'isCurrent'].some(key => typeof service[key] !== 'function')
-        || typeof now !== 'function' || !Number.isInteger(maxEntries) || maxEntries < 1 || maxEntries > 16
+        || typeof now !== 'function' || typeof setTimer !== 'function' || typeof clearTimer !== 'function' || !Number.isInteger(maxEntries) || maxEntries < 1 || maxEntries > 16
         || !Number.isInteger(maxDurationMs) || maxDurationMs < 10 || maxDurationMs > 60000
         || !Number.isInteger(maxScanPages) || maxScanPages < 1 || maxScanPages > 20
         || !Number.isInteger(maxReadbackAgeMs) || maxReadbackAgeMs < 1000 || maxReadbackAgeMs > 24 * 60 * 60 * 1000) {
@@ -96,7 +97,7 @@ export class QuestMemorySync {
     }
     Object.assign(this, {service, adapter, providerQualificationPath, resolveCharacter, registerScope,
       enabled: enabled === true, nativeQualified: nativeQualified === true,
-      maxEntries, maxDurationMs, maxScanPages, maxReadbackAgeMs, now});
+      maxEntries, maxDurationMs, maxScanPages, maxReadbackAgeMs, now, setTimer, clearTimer});
     this.closed = false; this.controller = null; this.running = null; this.last = null;
     this.pendingAfterId = undefined; this.uncertainAfterId = undefined; this.nextQueue = 'pending';
   }
@@ -258,9 +259,9 @@ export class QuestMemorySync {
     if (this.running) return Promise.resolve({status: 'busy', processed: 0});
     const controller = new AbortController(); this.controller = controller;
     const combined = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
-    const timer = setTimeout(() => controller.abort(), this.maxDurationMs);
+    const timer = this.setTimer(() => controller.abort(), this.maxDurationMs);
     this.running = this._pump(combined).then(result => { this.last = copy(result); return result; }).finally(() => {
-      clearTimeout(timer); this.running = null; this.controller = null;
+      this.clearTimer(timer); this.running = null; this.controller = null;
     });
     return this.running;
   }

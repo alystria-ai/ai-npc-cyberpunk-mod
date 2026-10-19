@@ -53,8 +53,12 @@ test('the Mature guard warm-up compiles the pattern tables in the background so 
   await warmMatureGuard();
   await warmMatureGuard();   // a second call is a no-op
   for (const text of ['What are you doing tonight?', 'Привет, расскажи что-нибудь', 'Je suis fatigué', '今日は暑いね', 'Wake up samurai']) {
-    const started = performance.now();
+    // CPU time of this process, not wall time: an unprepared first call costs 150 to 450 ms of CPU and a prepared one under 1 ms, while the wall clock also counts
+    // every moment the machine gave to other programs. (The CPU clock ticks in 16 ms steps on Windows, so 50 ms is three ticks.)
+    const before = process.cpuUsage();
     analyse(text);
-    assert.ok(performance.now() - started < 50, `${text}: ${(performance.now() - started).toFixed(1)} ms`);
+    const used = process.cpuUsage(before);
+    const cpuMs = (used.user + used.system) / 1000;
+    assert.ok(cpuMs < 50, `${text}: ${cpuMs.toFixed(1)} ms of CPU`);
   }
 });

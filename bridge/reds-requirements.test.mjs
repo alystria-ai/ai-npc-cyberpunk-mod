@@ -98,7 +98,7 @@ test('requirements missing together: up to four names, Native Settings UI left t
   local shown = notice()
   assert(shown == 'Missing: RED4ext, Codeware, Audioware, TweakXL. Install them and restart the game.', tostring(shown))
   assert(not shown:find('Native Settings UI', 1, true))
-  assert(#console == 5 and console[5]:find('Native Settings UI is missing or too old', 1, true), 'one line each, Native Settings UI among them')
+  assert(#console == 5 and console[5]:find('neither was found', 1, true), 'one line each, Native Settings UI among them')
 `));
 
 test('Codeware too old: its text input part missing is a Problem with the update text, alone or with other requirements', () => run(String.raw`

@@ -9,12 +9,12 @@ import path from 'node:path';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const files = [
-  'mod/manager-ui.lua', 'mod/nsui.lua', 'mod/manager.lua', 'mod/manager-party.lua', 'mod/init.lua', 'mod/auto-connect.lua',
+  'mod/manager-ui.lua', 'mod/nsui.lua', 'mod/mcm-host.lua', 'mod/manager.lua', 'mod/manager-party.lua', 'mod/init.lua', 'mod/auto-connect.lua',
   'mod/companions.lua', 'mod/companion-vehicles.lua', 'mod/companion-vehicle-native.lua', 'mod/companion-chauffeur.lua',
   'mod/companion-chauffeur-native.lua', 'mod/gameplay-actions.lua', 'mod/companion-adoption.lua',
   'mod/companion-clearance.lua', 'mod/companion-placement.lua',
   'mod/phone-chat.lua', 'mod/phone-chat-style.lua', 'mod/phone-input.lua', 'mod/holocall.lua',
-  'mod/composer-input.lua', 'mod/microphone.lua', 'mod/service-status.lua', 'mod/support-report.lua', 'mod/setup-check.lua', 'mod/character-editor.lua', 'mod/convai-paid-tier.lua', 'mod/custom-provider.lua',
+  'mod/composer-input.lua', 'mod/microphone.lua', 'mod/service-status.lua', 'mod/support-report.lua', 'mod/setup-check.lua', 'mod/character-editor.lua', 'mod/convai-paid-tier.lua', 'mod/custom-provider.lua', 'mod/error-reports.lua',
   'r6/scripts/CyberpunkConvai/Composer.reds',
   'r6/scripts/CyberpunkConvai/PhoneContacts.reds',
   'r6/scripts/CyberpunkConvai/PhoneChat.reds',
@@ -361,8 +361,8 @@ const nativeHandling = [
     note: 'Immediate queued/unavailable feedback is created in redscript before Lua replies. It needs the same dictionary through a native bridge or a scoped Lua hook. J/L key textures and button codes are not translation strings.' },
   { surface: 'manager.legacy', files: ['r6/scripts/CyberpunkConvai/Manager.reds', 'mod/manager.lua'],
     note: 'Legacy native manager strings are inventoried for completeness; the Native Settings UI tab is the active manager. Do not expose or revive this retired screen just to prove localization. Its F5 footer is historical.' },
-  { surface: 'nsui.host', files: ['mod/manager-ui.lua', 'mod/nsui.lua'],
-    note: 'The Companion Manager is a tab of Native Settings UI. Page strings are localized here and set on its widgets; its own strings (the Mods menu entry, Restore defaults) belong to the game and that mod. A change is applied as it is made, so no framework text decides success.' },
+  { surface: 'nsui.host', files: ['mod/manager-ui.lua', 'mod/nsui.lua', 'mod/mcm-host.lua'],
+    note: 'The Companion Manager is a page of Mod Configuration Menu 0.10.5 or newer (mod/mcm-host.lua, the default) and a tab of Native Settings UI (mod/nsui.lua, the alternative). Page strings are localized here and set on the widgets of either; its own strings (the Mods menu entry, Restore defaults) belong to the game and that mod. A change is applied as it is made, so no framework text decides success.' },
   { surface: 'characters', files: ['mod/manager.lua', 'mod/init.lua'],
     note: 'Catalogue names, summaries, model records, AI replies, provider errors, and game-localized character names are not blindly translated. Translate a curated UI error at its origin; preserve arbitrary inserted content as data.' },
 ];

@@ -152,7 +152,7 @@ Per custom key, in the same memory store as the roster (`MemoryStore`): the exch
 
 - `bridge/custom-characters.mjs` (store, validation, keys, game list, `releaseVoiceFiles`). Clips: see "Voice clips".
 - Changed: `bridge/character-editor.mjs`, `character-editor-server.mjs` (routes `/api/custom`, `/api/custom/<key>`, `/api/facing`), `character-editor-page.mjs` (the form), `character-editor-control.mjs` (the facing character), `mistral-prompt.mjs` (`PersonaBook` `custom`), `voice-selection.mjs` (`aliases`), `convai-bridge.mjs`.
-- Game side (Scripts package): `mod/custom-characters.lua`, `mod/character-catalog.lua` (`resolve`, `isCustomKey`), `mod/init.lua`, `mod/manager.lua` (`textProviderActive`, `configureCustom`), `mod/character-editor.lua`, `mod/manager-ui.lua` (the Native Settings UI page that opens the editor), `mod/notices.lua`.
+- Game side (Scripts package): `mod/custom-characters.lua`, `mod/character-catalog.lua` (`resolve`, `isCustomKey`), `mod/init.lua`, `mod/manager.lua` (`textProviderActive`, `configureCustom`), `mod/character-editor.lua`, `mod/manager-ui.lua` (the Companion Manager page that opens the editor, shown through Mod Configuration Menu or Native Settings UI), `mod/notices.lua`.
 - Tests: `bridge/custom-characters.test.mjs`, `bridge/custom-characters-lua.test.mjs`, additions to `character-editor.test.mjs`, `character-editor-browser.test.mjs` and `voice-selection.test.mjs`.
 
 ### Test in game (Mistral or Local AI chosen; install the Lua and the bridge, restart the bridge, reload CET)

@@ -11,6 +11,8 @@ import {cloudReferenceOf, describeVoiceRoute, formatVoiceRoute} from './voice-ro
 import {LOCAL_VOICE_KEYS} from './resident-voice.mjs';
 import {MistralScheduler, PRIORITY} from './mistral-rate.mjs';
 import {Utterance} from './voice-utterance.mjs';
+import {fakeClock} from './fixtures/fake-clock.mjs';
+import {manualTimers, track, until} from './fixtures/test-waits.mjs';
 
 // No spacing between starts, so a test is not slowed by the one-second precaution the real scheduler keeps (tested in mistral-rate.test.mjs).
 const fastScheduler = () => new MistralScheduler({spacingMs: 0});
@@ -156,16 +158,25 @@ test('no key: nothing is sent and the voice reports it', async () => {
 });
 
 test('no first audio within the limit: the call fails with a timeout, delivers nothing and the connection is dropped', async () => {
-  const server = await serve(async (request, response) => { await wait(400); if (!response.destroyed) { sse(response); response.end(done); } });
+  // The limit is a timer of the voice, so a manual clock decides when it fires: the test moves it once the request has reached the server (a real
+  // 60 ms timer can fire on a loaded machine before the request is even sent). The server holds its answer until the test lets it go.
+  let open; const hold = new Promise(resolve => { open = resolve; });
+  let answered = false;
+  const server = await serve(async (request, response) => { await hold; if (!response.destroyed) { answered = true; sse(response); response.end(done); } });
   try {
-    const changes = [];
-    const {voice} = voiceFor(server, {limits: {firstAudioMs: 60}, onChange: value => changes.push(value?.reason ?? null)});
-    const sink = collect(), started = performance.now();
-    await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Hi.', sink), error => error instanceof VoxtralError && error.kind === 'timeout');
-    assert.ok(performance.now() - started < 300, 'it gave up at the limit, not when the server answered');
+    const changes = [], timers = manualTimers();
+    const {voice} = voiceFor(server, {...timers.hooks, limits: {firstAudioMs: 60}, onChange: value => changes.push(value?.reason ?? null)});
+    const sink = collect();
+    const call = track(voice.synthesizeStream('judy-alvarez', 'Hi.', sink));
+    await until(() => server.requests.length === 1, 'the request to reach the server');
+    await timers.clock.advance(59);
+    assert.equal(call.done, false, 'nothing ends the ask before its limit');
+    await timers.clock.advance(1);
+    await until(() => call.done, 'the ask to end at its limit');
+    assert.ok(call.error instanceof VoxtralError && call.error.kind === 'timeout', String(call.error));
+    assert.equal(answered, false, 'it gave up at the limit, while the server still held its answer');
     assert.equal(sink.packets.length, 0); assert.equal(voice.degraded.reason, 'timeout');
-    await wait(30);
-    assert.equal(server.requests[0].closed, true, 'the abandoned request is aborted');
+    await until(() => server.requests[0].closed === true, 'the abandoned request to be aborted');
     // The next reply is tried again (a spike is not a verdict) and clears the report.
     server.requests.length = 0;
     voice.limits = Object.freeze({...voice.limits, firstAudioMs: 2000});
@@ -174,14 +185,22 @@ test('no first audio within the limit: the call fails with a timeout, delivers n
     await voice.synthesizeStream('judy-alvarez', 'Again.', collect());
     assert.equal(voice.degraded, null); assert.deepEqual(changes, ['timeout', null]);
     await fast.close();
-  } finally { await server.close(); }
+  } finally { open(); await server.close(); }
 });
 
 test('a headers-only server that never sends audio also times out', async () => {
   const server = await serve((request, response) => { sse(response); response.flushHeaders(); });
   try {
-    const {voice} = voiceFor(server, {limits: {firstAudioMs: 60}}), sink = collect();
-    await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Hi.', sink), {kind: 'timeout'});
+    // The limit is moved only once the headers have reached the voice, so the state under test (headers, no audio) is the one that is cut.
+    const timers = manualTimers();
+    let headers = false;
+    const fetchImpl = async (...args) => { const response = await globalThis.fetch(...args); headers = true; return response; };
+    const {voice} = voiceFor(server, {...timers.hooks, fetchImpl, limits: {firstAudioMs: 60}}), sink = collect();
+    const call = track(voice.synthesizeStream('judy-alvarez', 'Hi.', sink));
+    await until(() => headers, 'the headers to reach the voice');
+    await timers.clock.advance(60);
+    await until(() => call.done, 'the ask to end at its limit');
+    assert.equal(call.error?.kind, 'timeout', String(call.error));
     assert.equal(sink.packets.length, 0);
   } finally { await server.close(); }
 });
@@ -436,20 +455,31 @@ test('the Mistral cloud voice rides on Pocket: chosen, it speaks the reply, and 
 });
 
 test('a cloud reply that is late is asked again once with a longer wait; one that still fails is a written reply, never a local voice; the report names why and clears itself', async () => {
+  // The two limits (60 ms, then 120 ms) are timers of the voice, moved by a manual clock only after the ask they must cut has reached the server:
+  // on a loaded machine a real 60 ms limit can cut an ask before it is even sent, and the server would never see it.
   let mode = 'slow';
   const server = await serve(async (request, response) => {
-    if (mode === 'slow') { await wait(400); return; }
-    if (mode === 'slow-once') { mode = 'ok'; await wait(400); return; }
+    if (mode === 'slow') return;                                  // never answers: only the limit ends the ask
+    if (mode === 'slow-once') { mode = 'ok'; return; }
     if (mode === 'limit') { response.writeHead(429, {'retry-after': '30'}); response.end(); return; }
     sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done);
   });
   try {
-    const h = selection(server, {voxtral: {limits: {firstAudioMs: 60}}, retryMs: 120});
+    const timers = manualTimers();
+    const h = selection(server, {voxtral: {...timers.hooks, limits: {firstAudioMs: 60}}, retryMs: 120});
     h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
-    const packets = [];
+    const packets = [], asked = () => timers.limits().filter(ms => ms < 1000);
     // Both asks are late: nothing is spoken, no local voice stands in, and the caller gets the failure (a written reply).
-    await assert.rejects(h.voice.synthesizeStream('judy-alvarez', 'Late reply.', {onPcm: packet => { packets.push(packet); }}), {kind: 'timeout'});
+    const late = track(h.voice.synthesizeStream('judy-alvarez', 'Late reply.', {onPcm: packet => { packets.push(packet); }}));
+    await until(() => server.requests.length === 1, 'the first ask to reach the server');
+    await timers.clock.advance(60);
+    await until(() => server.requests.length === 2, 'the second ask to reach the server');
+    assert.equal(late.done, false, 'the first ask is not the end of it');
+    await timers.clock.advance(120);
+    await until(() => late.done, 'the second ask to end at its limit');
+    assert.equal(late.error?.kind, 'timeout', String(late.error));
     assert.equal(server.requests.length, 2, 'asked, then asked once more'); assert.equal(packets.length, 0);
+    assert.deepEqual(asked(), [60, 120], 'the second ask waits longer than the first');
     assert.equal(h.calls.length, 0); assert.equal(h.workers.length, 0, 'no local worker was ever created');
     assert.deepEqual(h.voice.cloudFallback, {from: 'voxtral', to: 'convai', temporary: true, reason: 'timeout'});
     h.voice.publish();
@@ -457,8 +487,13 @@ test('a cloud reply that is late is asked again once with a longer wait; one tha
     assert.equal(h.states.at(-1).cloudVoice, 'voxtral'); assert.equal(h.states.at(-1).voxtral.degraded, 'timeout');
     // The first ask is late but the longer second one is answered: the reply is spoken, and the report clears.
     mode = 'slow-once'; const before = server.requests.length;
-    const again = await h.voice.synthesizeStream('judy-alvarez', 'Second ask works.', {onPcm: packet => { packets.push(packet); }});
-    assert.equal(again.provider, 'voxtral'); assert.equal(server.requests.length - before, 2); assert.equal(packets.length, 1);
+    const second = track(h.voice.synthesizeStream('judy-alvarez', 'Second ask works.', {onPcm: packet => { packets.push(packet); }}));
+    await until(() => server.requests.length - before === 1, 'the first ask to reach the server');
+    await timers.clock.advance(60);
+    await until(() => second.done, 'the second ask to be answered');
+    assert.equal(second.error, undefined, String(second.error));
+    assert.equal(second.value.provider, 'voxtral'); assert.equal(server.requests.length - before, 2); assert.equal(packets.length, 1);
+    assert.deepEqual(asked(), [60, 120, 60, 120]);
     assert.equal(h.voice.cloudFallback, null);
     // A limit is not asked again (the server said when to come back); inside the cool-down the cloud voice is not even asked.
     mode = 'limit'; const limited = server.requests.length;
@@ -524,9 +559,11 @@ test('switching to the cloud voice: the first audio does not wait for any local 
   try {
     const h = selection(server);
     h.voice.update({voiceProvider: 'voxtral'}, null, false);
-    const started = performance.now(); let first = null;
-    await h.voice.synthesizeStream('judy-alvarez', 'Right after the switch.', {onPcm: () => { first ??= performance.now() - started; }});
-    assert.ok(first !== null && first < 1000, `first audio ${first} ms`);
+    // Not "fast enough" in milliseconds (a local worker is a fake that starts at once, so a clock could not tell): at the moment the first audio
+    // reaches the player no worker has been asked for, and none ever is.
+    let workersAtFirstAudio = null;
+    await h.voice.synthesizeStream('judy-alvarez', 'Right after the switch.', {onPcm: () => { workersAtFirstAudio ??= h.workers.length; }});
+    assert.equal(workersAtFirstAudio, 0, 'the first audio did not wait for (or start) a local worker');
     assert.equal(h.workers.length, 0);
     await h.voice.close();
   } finally { await server.close(); }
@@ -601,28 +638,43 @@ test('a reply of several sentences is one streamed request, never one per senten
 test('behind another Mistral request the voice waits its turn, and its first-audio limit starts at the send, not at the queueing', async () => {
   const server = await serve((request, response) => { sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done); });
   try {
-    const scheduler = new MistralScheduler({spacingMs: 250});
-    const {voice} = voiceFor(server, {scheduler, limits: {firstAudioMs: 100}});
+    // One manual clock for the scheduler's 250 ms slot and the voice's 100 ms limit: the slot opens when the test moves the clock past it, and a
+    // limit counted from the queueing (not from the send) would fire on the way there. Nothing depends on how fast the machine is.
+    const timers = manualTimers(), {clock} = timers, start = clock.now();
+    const scheduler = new MistralScheduler({spacingMs: 250, now: clock.now, setTimer: clock.setTimer, clearTimer: clock.clearTimer});
+    const {voice} = voiceFor(server, {...timers.hooks, scheduler, limits: {firstAudioMs: 100}});
     const order = [];
     const text = scheduler.schedule(async () => { order.push('text'); }, {priority: PRIORITY.TEXT});
-    const started = performance.now();
-    const spoken = await voice.synthesizeStream('judy-alvarez', 'Queued behind a text request.', {onPcm() { order.push('audio'); }});
+    const spoken = track(voice.synthesizeStream('judy-alvarez', 'Queued behind a text request.', {onPcm() { order.push('audio'); }}));
+    await until(() => scheduler.stats().queued === 1, 'the speech request to wait for its slot');
+    await clock.advance(249);
+    assert.equal(server.requests.length, 0, 'it waits for the slot (longer than its own 100 ms first-audio limit)'); assert.equal(spoken.done, false);
+    await clock.advance(1);
+    await until(() => spoken.done, 'the speech to be answered');
     await text;
-    assert.ok(performance.now() - started >= 230, 'it waited for the slot (longer than its own 100 ms first-audio limit)');
-    assert.equal(spoken.truncated, false); assert.equal(voice.degraded, null); assert.equal(server.requests.length, 1);
+    assert.equal(spoken.error, undefined, String(spoken.error));
+    assert.equal(spoken.value.truncated, false); assert.equal(voice.degraded, null); assert.equal(server.requests.length, 1);
     assert.equal(order[0], 'text');
+    assert.deepEqual(timers.armed.filter(timer => timer.ms === 100).map(timer => timer.at - start), [250], 'the first-audio limit was set at the send, not at the queueing');
   } finally { await server.close(); }
 });
 
 test('a text request that arrives while the speech is queued goes first', async () => {
   const server = await serve((request, response) => { sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done); });
   try {
-    const scheduler = new MistralScheduler({spacingMs: 150}), order = [];
+    // The scheduler's slots (150 ms apart) are on a manual clock: the text request is asked once the speech is known to be waiting in the queue,
+    // however long that takes, and the slots open only when the test moves the clock.
+    const clock = fakeClock(), order = [];
+    const scheduler = new MistralScheduler({spacingMs: 150, now: clock.now, setTimer: clock.setTimer, clearTimer: clock.clearTimer});
     const {voice} = voiceFor(server, {scheduler});
     const occupy = scheduler.schedule(async () => { order.push('earlier request'); });
     const speech = voice.synthesizeStream('judy-alvarez', 'Hi.', {onPcm() {}}).then(() => order.push('speech'));
-    await wait(20);
+    await until(() => scheduler.stats().queued === 1, 'the speech request to wait in the queue');
     const text = scheduler.schedule(async () => { order.push('text reply'); }, {priority: PRIORITY.TEXT});
+    assert.equal(scheduler.stats().queued, 2);
+    await clock.advance(150);                 // the next slot: the text request, though it came later
+    assert.deepEqual(order, ['earlier request', 'text reply']);
+    await clock.advance(150);                 // and then the speech
     await Promise.all([occupy, speech, text]);
     assert.deepEqual(order, ['earlier request', 'text reply', 'speech']);
   } finally { await server.close(); }
@@ -648,10 +700,18 @@ test('several group speakers go out one after another, spaced by the scheduler, 
 test('a line that waits too long in the queue falls back to Pocket without ever being sent', async () => {
   const server = await serve((request, response) => { sse(response); response.end(done); });
   try {
-    const scheduler = new MistralScheduler({spacingMs: 600});
+    // The 600 ms slot and the 60 ms queue limit are on one manual clock: the clock is moved past the limit and nowhere near the slot, so the line
+    // can only have left the queue because of its limit.
+    const clock = fakeClock();
+    const scheduler = new MistralScheduler({spacingMs: 600, now: clock.now, setTimer: clock.setTimer, clearTimer: clock.clearTimer});
     const {voice} = voiceFor(server, {scheduler, limits: {maxQueueMs: 60}});
     await scheduler.schedule(async () => {});
-    await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Too late.', collect()), {kind: 'timeout'});
+    const call = track(voice.synthesizeStream('judy-alvarez', 'Too late.', collect()));
+    await until(() => scheduler.stats().queued === 1, 'the line to wait in the queue');
+    await clock.advance(60);
+    await until(() => call.done, 'the line to leave the queue');
+    assert.equal(call.error?.kind, 'timeout', String(call.error));
+    assert.equal(scheduler.stats().started, 1, 'the slot was never reached');
     assert.equal(server.requests.length, 0); assert.equal(voice.degraded.reason, 'timeout');
   } finally { await server.close(); }
 });
@@ -694,14 +754,21 @@ test('splitReply: a short reply is one request; a long one splits after the firs
   assert.equal(splitReply(undefined).length, 1);
 });
 
-// A server that answers by the text it was sent: `plans[text]` = {delay, deltas: [Float32Array...], then: 'done' | 'drop' | status}.
+// A server that answers by the text it was sent: `plans[text]` = {delay, hold, after, deltas: [Float32Array...], then: 'done' | 'drop' | status}.
+//   delay: a real pause before answering (use it only where the pause is just there to make the server slow).
+//   hold: the answer is withheld until the test calls `server.release()`.  after: 'name': the answer waits until the request of that other plan
+//   has been answered in full. These two let a test order the server's answers without timing them. Each wait ends by itself after 10 s, so a build
+//   that breaks what a test is guarding fails the test instead of hanging it.
+// `server.events` lists, in order, '<name> arrived' and '<name> answering' for every request.
 function planned(plans) {
-  const at = {};
-  return serve(async (request, response, record) => {
-    const plan = plans.find(candidate => record.body?.input === candidate.input);
-    at[plan?.name] = performance.now();
-    if (!plan) { response.writeHead(400); response.end('unexpected text'); return; }
+  const events = [], latches = {};
+  const latch = name => latches[name] ??= (() => { let open; const promise = new Promise(resolve => { open = resolve; }); return {promise, open}; })();
+  const ceiling = () => new Promise(finish => setTimeout(finish, 10_000).unref());
+  const answer = async (plan, response) => {
     if (plan.delay) await wait(plan.delay);
+    if (plan.hold) await Promise.race([latch('release').promise, ceiling()]);
+    if (plan.after) await Promise.race([latch(plan.after).promise, ceiling()]);
+    events.push(`${plan.name} answering`);
     if (typeof plan.then === 'number') { response.writeHead(plan.then, {'content-type': 'application/json'}); response.end(plan.body ?? '{"message":"no"}'); return; }
     sse(response);
     for (const [index, samplesOut] of (plan.deltas ?? []).entries()) {
@@ -710,14 +777,21 @@ function planned(plans) {
     }
     if (plan.then === 'drop') { await wait(plan.dropAfter ?? 0); response.destroy(); return; }
     response.end(done);
-  }).then(server => Object.assign(server, {at}));
+  };
+  return serve(async (request, response, record) => {
+    const plan = plans.find(candidate => record.body?.input === candidate.input);
+    if (!plan) { response.writeHead(400); response.end('unexpected text'); return; }
+    events.push(`${plan.name} arrived`);
+    try { await answer(plan, response); } finally { latch(plan.name).open(); }
+  }).then(server => Object.assign(server, {events, release: () => latch('release').open()}));
 }
 const level = (count, value) => new Float32Array(count).fill(value);
 const valuesOf = packets => packets.map(packet => packet.pcm[0]);
 
 test('a long reply goes out as two requests started together, and the audio reaches the player in order as one reply', async () => {
+  // The first part answers only after the second part has been answered in full, so the second request cannot have waited for the first.
   const server = await planned([
-    {name: 'first', input: FIRST, delay: 150, deltas: [level(24000, 0.25), level(24000, 0.25)]},
+    {name: 'first', input: FIRST, after: 'second', deltas: [level(24000, 0.25), level(24000, 0.25)]},
     {name: 'second', input: REST, deltas: [level(4800, 0.5), level(4800, 0.5)]}]);
   try {
     const logs = [];
@@ -726,7 +800,7 @@ test('a long reply goes out as two requests started together, and the audio reac
     const result = await voice.synthesizeStream('judy-alvarez', LONG, sink);
     assert.equal(server.requests.length, 2);
     assert.deepEqual(server.requests.map(request => request.body.input).sort(), [FIRST, REST].sort());
-    assert.ok(Math.abs(server.at.second - server.at.first) < 100, 'the second request did not wait for the first to finish');
+    assert.ok(server.events.indexOf('second arrived') < server.events.indexOf('first answering'), `the second request did not wait for the first to finish: ${server.events}`);
     // The second part answered first, but its audio waits for the first part's: 0.25 for 2 s, then 0.5.
     const values = valuesOf(sink.packets);
     assert.deepEqual([...new Set(values)], [0.25, 0.5]);
@@ -813,27 +887,46 @@ test('a second part with no audio when the first part is nearly over is waited f
     response.end(done);
   });
   try {
-    const logs = [];
-    const {voice} = voiceFor(server, {limits: {splitMarginMs: 100, tailFirstAudioMs: 150, tailRetryAudioMs: 2000}, onLog: line => logs.push(line)});
+    // The 150 ms limit of the first ask of the rest is a timer of the voice on a manual clock, moved once that ask has reached the server (a real
+    // 150 ms limit can cut it on a loaded machine before it is sent, and the server would count one ask, and hang it, where the test expects two).
+    const logs = [], timers = manualTimers();
+    const {voice} = voiceFor(server, {...timers.hooks, limits: {splitMarginMs: 100, tailFirstAudioMs: 150, tailRetryAudioMs: 2000}, onLog: line => logs.push(line)});
     const sink = collect();
-    const result = await voice.synthesizeStream('judy-alvarez', LONG, sink);
+    const reply = track(voice.synthesizeStream('judy-alvarez', LONG, sink));
+    await until(() => asks[REST] === 1, 'the first ask of the rest to reach the server');
+    await timers.clock.advance(150);
+    await until(() => reply.done, 'the reply to end');
+    assert.equal(reply.error, undefined, String(reply.error));
+    const result = reply.value;
+    assert.deepEqual(timers.limits().filter(ms => ms === 150 || ms === 2000), [150, 2000], 'the second ask of the rest waits longer');
     assert.equal(asks[REST], 2); assert.equal(result.truncated, false);
     assert.deepEqual([...new Set(valuesOf(sink.packets))], [0.25, 0.5]); assert.equal(result.frames, 4800 + 9600);
     assert.equal(voice.degraded, null, 'a rest that arrived on the second ask is a success');
     assert.ok(logs.some(line => line.includes('asking again')), logs.join('|'));
   } finally { await server.close(); }
-  // Both asks hang: the reply ends after the first part within the two limits, not after the server's delay.
+  // Both asks hang: the reply ends after the first part within the two limits, not when the server finally answers. The server holds its
+  // answer until the test releases it, and the two limits are on a manual clock moved once each ask has reached the server.
   const slow = await planned([
     {name: 'first', input: FIRST, deltas: [level(4800, 0.25)]},
-    {name: 'second', input: REST, delay: 3000, deltas: [level(2400, 0.5)]}]);
+    {name: 'second', input: REST, hold: true, deltas: [level(2400, 0.5)]}]);
   try {
-    const {voice} = voiceFor(slow, {limits: {splitMarginMs: 100, tailFirstAudioMs: 120, tailRetryAudioMs: 180}});
-    const started = performance.now();
-    const result = await voice.synthesizeStream('judy-alvarez', LONG, collect());
+    const timers = manualTimers();
+    const {voice} = voiceFor(slow, {...timers.hooks, limits: {splitMarginMs: 100, tailFirstAudioMs: 120, tailRetryAudioMs: 180}});
+    const reply = track(voice.synthesizeStream('judy-alvarez', LONG, collect()));
+    const restAsks = () => slow.events.filter(event => event === 'second arrived').length;
+    await until(() => restAsks() === 1, 'the first ask of the rest to reach the server');
+    await timers.clock.advance(120);
+    await until(() => restAsks() === 2, 'the second ask of the rest to reach the server');
+    assert.equal(reply.done, false);
+    await timers.clock.advance(180);
+    await until(() => reply.done, 'the reply to end');
+    assert.equal(reply.error, undefined, String(reply.error));
+    const result = reply.value;
     assert.equal(result.truncated, true); assert.equal(result.remainder, undefined);
-    assert.ok(performance.now() - started < 1500, 'did not wait for the slow request');
+    assert.equal(slow.events.includes('second answering'), false, 'it did not wait for the slow request');
+    assert.deepEqual(timers.limits().filter(ms => ms === 120 || ms === 180), [120, 180]);
     assert.equal(voice.degraded.reason, 'timeout');
-  } finally { await slow.close(); }
+  } finally { slow.release(); await slow.close(); }
 });
 
 test('a second part that fails after its audio has started ends the reply there; nothing is spoken twice', async () => {
@@ -850,19 +943,21 @@ test('a second part that fails after its audio has started ends the reply there;
 });
 
 test('cancelling a split reply stops both requests', async () => {
+  // Both requests are held by the server until both have arrived; the reply is cancelled then, so there are two live connections to close.
   const server = await planned([
-    {name: 'first', input: FIRST, delay: 400, deltas: [level(2400, 0.25)]},
-    {name: 'second', input: REST, delay: 400, deltas: [level(2400, 0.5)]}]);
+    {name: 'first', input: FIRST, hold: true, deltas: [level(2400, 0.25)]},
+    {name: 'second', input: REST, hold: true, deltas: [level(2400, 0.5)]}]);
   try {
     const {voice} = voiceFor(server);
     const controller = new AbortController(), sink = collect();
     const speaking = voice.synthesizeStream('judy-alvarez', LONG, {...sink, signal: controller.signal});
-    await wait(100); controller.abort();
+    await until(() => server.requests.length === 2, 'both requests to reach the server');
+    controller.abort();
     await assert.rejects(speaking, error => error.name === 'AbortError' || /cancel/i.test(error.message));
-    await wait(100);
+    await until(() => server.requests.every(request => request.closed), 'both connections to be closed');
     assert.equal(sink.packets.length, 0);
-    assert.ok(server.requests.every(request => request.closed), 'both connections were closed');
-  } finally { await server.close(); }
+    assert.equal(server.events.some(event => event.endsWith('answering')), false, 'they were cut while the server still held its answers');
+  } finally { server.release(); await server.close(); }
 });
 
 test('the voice selection never finishes a split reply with Pocket: the second request failing ends the reply after the first part', async () => {
@@ -905,13 +1000,19 @@ test('head and tail in the cloud voice: the tail is asked for again after a time
     response.end(done);
   });
   try {
-    const logs = [];
-    const h = selection(server, {voxtral: {limits: {tailFirstAudioMs: 120, tailRetryAudioMs: 2000}, onLog: line => logs.push(line)},
+    // The 120 ms limit of the tail's first ask is a timer of the voice on a manual clock, moved once that ask has reached the server (a real
+    // 120 ms limit can cut it on a loaded machine before it is sent, and the server would count one ask, and hang it, where the test expects two).
+    const logs = [], timers = manualTimers();
+    const h = selection(server, {voxtral: {...timers.hooks, limits: {tailFirstAudioMs: 120, tailRetryAudioMs: 2000}, onLog: line => logs.push(line)},
       pocket: async () => { throw Error('Pocket must not speak any of this reply'); }});
     h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
     const utterance = new Utterance(), head = collect(), tail = collect();
     // The tail is asked for in parallel with the head, as soon as its text is known.
-    const [headResult, tailResult] = await Promise.all([headOf(h, head, {utterance}), tailOf(h, tail, utterance)]);
+    const speaking = Promise.all([headOf(h, head, {utterance}), tailOf(h, tail, utterance)]);
+    await until(() => asks[TAIL] === 1, 'the first ask of the tail to reach the server');
+    await timers.clock.advance(120);
+    const [headResult, tailResult] = await speaking;
+    assert.deepEqual(timers.limits().filter(ms => ms === 120 || ms === 2000), [120, 2000], 'the second ask of the tail waits longer');
     assert.equal(utterance.engine, 'voxtral');
     assert.deepEqual([...new Set(valuesOf(head.packets))], [0.25]); assert.deepEqual([...new Set(valuesOf(tail.packets))], [0.5]);
     assert.equal(headResult.provider, 'voxtral'); assert.equal(tailResult.provider, 'voxtral'); assert.equal(h.calls.length, 0);
@@ -956,21 +1057,25 @@ test('head failing before any audio: nothing speaks the reply (it is written), a
 });
 
 test('the tail\'s cloud audio is held until the head is known to be in the cloud voice, then handed on in order', async () => {
+  // The head's answer is withheld by the server until the test has seen the whole tail arrive at the voice (its "first audio" line is logged
+  // when the tail request has been read to the end); only then is the head let go.
   const server = await planned([
-    {name: 'head', input: HEAD, delay: 350, deltas: [level(2400, 0.25)]},
+    {name: 'head', input: HEAD, hold: true, deltas: [level(2400, 0.25)]},
     {name: 'tail', input: TAIL, deltas: [level(2400, 0.5), level(2400, 0.5)], gap: 20}]);
   try {
-    const h = selection(server, {pocket: async () => { throw Error('Pocket must not speak'); }});
+    const logs = [];
+    const h = selection(server, {voxtral: {onLog: line => logs.push(line)}, pocket: async () => { throw Error('Pocket must not speak'); }});
     h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
     const utterance = new Utterance(), head = collect(), tail = collect();
     const speaking = Promise.all([headOf(h, head, {utterance}), tailOf(h, tail, utterance)]);
-    await wait(200);
+    await until(() => logs.some(line => line.includes(`chars ${TAIL.length}`)), 'the whole tail to arrive');
     assert.equal(tail.packets.length, 0, 'the tail answered first, but its audio waits for the head\'s decision');
     assert.equal(utterance.engine, null);
+    server.release();
     await speaking;
     assert.equal(utterance.engine, 'voxtral'); assert.equal(head.packets.length, 1); assert.equal(tail.packets.length, 2);
     assert.deepEqual(tail.packets.map(packet => packet.index), [1, 2]);
-  } finally { await server.close(); }
+  } finally { server.release(); await server.close(); }
 });
 
 test('a tail whose head was not spoken by the cloud voice sends nothing to it and is not spoken at all', async () => {
@@ -991,17 +1096,18 @@ test('a tail whose head was not spoken by the cloud voice sends nothing to it an
 });
 
 test('cancelling while the tail waits for the head stops the tail\'s request', async () => {
-  const server = await planned([{name: 'tail', input: TAIL, delay: 500, deltas: [level(2400, 0.5)]}]);
+  const server = await planned([{name: 'tail', input: TAIL, hold: true, deltas: [level(2400, 0.5)]}]);
   try {
     const h = selection(server);
     h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
     const utterance = new Utterance(), controller = new AbortController(), tail = collect();
     const speaking = h.voice.synthesizeStream('judy-alvarez', TAIL, {onPcm: tail.onPcm, signal: controller.signal, utterance, role: 'tail'});
-    await wait(80); controller.abort();
+    await until(() => server.requests.length === 1, 'the tail request to reach the server');
+    controller.abort();
     await assert.rejects(speaking, error => error.name === 'AbortError' || /cancel/i.test(error.message));
-    await wait(80);
-    assert.ok(server.requests.every(request => request.closed), 'the connection was closed');
-  } finally { await server.close(); }
+    await until(() => server.requests.every(request => request.closed), 'the connection to be closed');
+    assert.equal(server.events.includes('tail answering'), false, 'it was cut while the server still held its answer');
+  } finally { server.release(); await server.close(); }
 });
 
 test('the routing log names the reference the cloud voice clones from (long, else short, else Pocket), not the Pocket one it rides on', () => {
@@ -1101,11 +1207,20 @@ test('the quick second ask is bounded: it waits at most the retry budget, and a 
   assert.equal(voice.retryWait(new VoxtralError('timeout', 'x'), 0), null, 'a timeout is the voice selection\'s own longer second ask');
   const server = await flaky(503, 1);
   try {
-    const {voice: timed} = voiceFor(server);   // the real 300 ms wait
-    const started = performance.now();
-    await timed.synthesizeStream('judy-alvarez', 'Hello V.', collect());
-    const took = performance.now() - started;
-    assert.ok(took >= VOXTRAL_LIMITS.retryWaitMs - 20 && took < VOXTRAL_LIMITS.retryBudgetMs, `the retry added about ${VOXTRAL_LIMITS.retryWaitMs} ms, within the budget (${Math.round(took)} ms)`);
+    // The wait before the second ask is a timer of the voice on a manual clock: the claim is the length of the wait it sets (the default 300 ms,
+    // inside the budget) and that the second ask is not sent before it is over, not how long a loaded machine takes to get through it.
+    const timers = manualTimers();
+    const {voice: timed} = voiceFor(server, timers.hooks);
+    const call = track(timed.synthesizeStream('judy-alvarez', 'Hello V.', collect()));
+    await until(() => timers.limits().includes(VOXTRAL_LIMITS.retryWaitMs), 'the quick second ask to be waiting');
+    assert.ok(VOXTRAL_LIMITS.retryWaitMs < VOXTRAL_LIMITS.retryBudgetMs, 'the retry wait is inside the budget');
+    assert.equal(server.requests.length, 1);
+    await timers.clock.advance(VOXTRAL_LIMITS.retryWaitMs - 1);
+    assert.equal(server.requests.length, 1, 'not asked again before the wait is over'); assert.equal(call.done, false);
+    await timers.clock.advance(1);
+    await until(() => call.done, 'the second ask to be answered');
+    assert.equal(call.error, undefined, String(call.error));
+    assert.equal(server.requests.length, 2);
   } finally { await server.close(); }
 });
 
@@ -1385,20 +1500,37 @@ test('after a refusal the voice keeps fewer speech requests in flight for a whil
 });
 
 test('the held next speaker is marked ahead and never takes the slots the speaker being heard needs', async () => {
-  const server = await serve(async (request, response) => { sse(response); response.write(delta(bytesOf(samples(2400)))); await wait(120); response.end(done); });
+  // Every reply the server gets starts streaming and then waits for its own latch, so what is running stays running while the test looks at it;
+  // the test looks when the requests it expects have arrived, however long that takes, and lets the replies go one at a time.
+  const latches = {};
+  for (const name of ['ahead-1', 'ahead-2', 'speaker']) { let open; latches[name] = {promise: new Promise(resolve => { open = resolve; }), open}; }
+  const nameOf = record => record.body.input.split(' ')[0];
+  const server = await serve(async (request, response, record) => {
+    sse(response); response.write(delta(bytesOf(samples(2400))));
+    await latches[nameOf(record)].promise;
+    response.end(done);
+  });
   try {
     const {voice} = voiceFor(server);
-    const order = [];
+    const order = [], arrived = () => server.requests.map(nameOf);
     const speak = (name, ahead) => voice.synthesizeStream('judy-alvarez', `${name} answers.`, {onPcm() {}, ahead}).then(() => order.push(name));
     // Two look-ahead replies: only one runs at a time. The speaker arriving after them still starts at once.
     const pending = [speak('ahead-1', true), speak('ahead-2', true)];
-    await wait(30);
+    await until(() => voice.gate.stats().waiting === 1 && server.requests.length === 1, 'one look-ahead to run and the other to wait');
     assert.equal(voice.gate.stats().runningAhead, 1); assert.equal(voice.gate.stats().waiting, 1, 'the second look-ahead waits for the first');
-    const before = server.requests.length;
+    assert.deepEqual(arrived(), ['ahead-1'], 'only the first look-ahead was sent');
     const speaker = speak('speaker');
-    await wait(30);
-    assert.equal(server.requests.length - before, 1, 'the speaker being heard started at once, beside the look-ahead');
-    await Promise.all([...pending, speaker]);
-    assert.deepEqual(order.slice(0, 2).sort(), ['ahead-1', 'speaker']);
-  } finally { await server.close(); }
+    await until(() => server.requests.length === 2, 'the speaker to be sent');
+    assert.deepEqual(arrived(), ['ahead-1', 'speaker'], 'the speaker being heard started at once, beside the look-ahead');
+    assert.equal(voice.gate.stats().waiting, 1, 'the second look-ahead is still waiting');
+    // The speaker's reply ends first; the look-ahead ones follow, the second only after the first has finished.
+    latches.speaker.open();
+    await speaker;
+    assert.deepEqual(arrived(), ['ahead-1', 'speaker'], 'a finished speaker does not let the second look-ahead past the first');
+    latches['ahead-1'].open();
+    await until(() => server.requests.length === 3, 'the second look-ahead to be sent');
+    latches['ahead-2'].open();
+    await Promise.all(pending);
+    assert.deepEqual(order, ['speaker', 'ahead-1', 'ahead-2']);
+  } finally { Object.values(latches).forEach(latch => latch.open()); await server.close(); }
 });

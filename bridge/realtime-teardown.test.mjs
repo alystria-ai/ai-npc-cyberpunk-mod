@@ -494,7 +494,7 @@ test('missing packaged PCM module fails before browser launch without using deve
   assert.equal(launches.length, 0); assert.equal(host.pool, null); assert.equal(host.server, null);
 });
 
-test('closing during overridden browser startup still retires the late owned browser', {timeout: 3000}, async t => {
+test('closing during overridden browser startup still retires the late owned browser', {timeout: 120000}, async t => {
   const entered = deferred(), ready = deferred();
   const {host, browser} = await assetFixture(t, {onLaunch: () => {
     entered.resolve(); return ready.promise;

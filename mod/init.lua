@@ -5,6 +5,13 @@
 pcall(function() dofile('native-core.lua').install() end)
 -- Developer-mode probe: count and time every hook and onUpdate (no effect otherwise).
 pcall(function() dofile('perf-probe.lua').hookRegistrations() end)
+-- Is the service still restoring the player's saved files (mod/state-restore.lua, docs/PACKAGING.md "Mod Organizer 2")? A global: the readers
+-- of settings.json, phone-history.json, addon-settings.json and npc-names.json ask it only when their file is missing or empty. Absent, they
+-- behave as they always did.
+do
+    local restoreLoaded, restoreModule = pcall(dofile, 'state-restore.lua')
+    convaiStateRestore = restoreLoaded and type(restoreModule) == 'table' and restoreModule or nil
+end
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 -- The single gate for on-screen notices (notices.lua, docs/NOTIFICATIONS.md). If it cannot load, nothing is shown.
 local noticesLoaded, noticesModule = pcall(dofile, 'notices.lua')
@@ -33,6 +40,8 @@ local groupChat = dofile('group-chat.lua')
 groupChat.captureReply = speech.transcript
 local manager = dofile('manager.lua')
 convaiNotices.configure(function() return manager.developerMode() end)
+-- Automatic error reports, game side (mod/error-reports.lua): a global, so this chunk gains no local.
+pcall(function() dofile('error-reports.lua').configure(manager) end)
 local managerUi = dofile('nsui.lua')
 local phoneLayout = dofile('phone-layout.lua')
 local phoneChatStyle = dofile('phone-chat-style.lua')
@@ -492,6 +501,12 @@ convaiNoticeLog = function(message)
     if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'), ' ', tostring(message), '\n'); file:close() end
 end
 managerUi.configure(manager, companions, dofile('manager-party.lua'), invitations)
+-- The second host of the manager's page: Mod Configuration Menu 0.10.5 or newer, through its public API (mod/mcm-host.lua). It shares
+-- the page logic of the Native Settings UI host, registers itself when that MCM is installed, and costs a clock comparison otherwise.
+do
+    local attached, attachError = pcall(function() managerUi.attach(dofile('mcm-host.lua')) end)
+    if not attached then convaiNoticeLog('Manager: the Mod Configuration Menu host did not load: ' .. tostring(attachError)) end
+end
 convaiManager = managerUi
 local catalog = characterCatalog.build(profiles, archetypes)
 -- The record IDs of a record-cloning mod's copies ("NCA.Character.Judy", characterCatalog.CLONE_PREFIXES): a global table, read by
@@ -3098,6 +3113,15 @@ local function keyNoticeText(code)
     return nil
 end
 
+-- What a failed Local AI turn was waiting for, in the bridge's own words ("no first word from the model after 60 s"): one short plain English phrase, shown in
+-- brackets after the translated sentence as data, like any provider's error text (it is not a translation key). Anything that is not short printable ASCII is
+-- ignored, and so is a reply without one.
+local function localFailureSuffix(reply)
+    local detail = reply.errorDetail
+    if type(detail) ~= 'string' or detail == '' or #detail > 140 or detail:find('[%c\128-\255]') then return '' end
+    return '\n(' .. detail .. ')'
+end
+
 -- id and text of the notice a reply calls for, or nil for an ordinary reply.
 local function keyReplyNotice(reply)
     if reply.errorCode == 'key-memory' or reply.keyNotice == 'memory-off' then
@@ -3147,7 +3171,7 @@ local function keyReplyNotice(reply)
     end
     -- A turn the local AI could not answer, with no cloud provider to take it over: say so (the next turn tries again).
     if reply.errorCode == 'local-failed' then
-        return 'local-failed', ui.t('Local AI could not answer that. Try again in a moment.')
+        return 'local-failed', ui.t('Local AI could not answer that. Try again in a moment.') .. localFailureSuffix(reply)
     end
     -- A turn the local AI could not answer and the player's cloud provider did: the reply carries this one-line note.
     if reply.keyNotice == 'local-turn-fallback' then

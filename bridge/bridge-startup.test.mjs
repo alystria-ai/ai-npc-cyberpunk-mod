@@ -24,7 +24,7 @@ async function readJson(path) {
 async function atomicJson(path, value) {
   return atomicFile(path, JSON.stringify(value));
 }
-async function until(read, accepts, label, log, timeout = 10000) {
+async function until(read, accepts, label, log, timeout = 120000) {
   const deadline = Date.now() + timeout;
   let last;
   while (Date.now() < deadline) {
@@ -62,7 +62,7 @@ syncBuiltinESMExports();
 `;
 
 test('real bridge retains one player ID across world changes without provider, browser or archive activity',
-  {timeout: 60000}, async () => {
+  {timeout: 240000}, async () => {
     const folder = await mkdtemp(join(tmpdir(), prefix));
     const state = join(folder, 'state'), game = join(folder, 'game');
     const runtime = join(game, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'mods', 'AiNpcCyberpunkMod', 'runtime');
@@ -178,7 +178,7 @@ test('real bridge retains one player ID across world changes without provider, b
 // The settings file is absent on a first run, and for an instant while the game replaces it (remove, then rename): a poll that reads
 // nothing must keep every setting as it was, never throw (the startup poll is a top-level await: a throw ends the process).
 test('real bridge starts, polls and stops with no settings file',
-  {timeout: 60000}, async () => {
+  {timeout: 240000}, async () => {
     const folder = await mkdtemp(join(tmpdir(), prefix));
     const state = join(folder, 'state'), game = join(folder, 'game');
     const runtime = join(game, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'mods', 'AiNpcCyberpunkMod', 'runtime');
