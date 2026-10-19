@@ -270,7 +270,9 @@ const OWN_DOING = new Set(['mistral-key', 'mistral-limit', 'custom-key', 'custom
 const OWN_LOCAL_REASONS = new Set(['not-installed', 'low-memory', 'mature-off', 'no-gpu']);
 // The codes that say Local AI could not take a turn; whether that is the player's setup depends on why (localReason).
 const LOCAL_DOWN = new Set(['local-fallback', 'local-unavailable']);
-const NOT_A_FAULT = /\b(?:abort(?:ed)?|cancell?ed|superseded|interrupted|voice service is closed|no speech was heard)\b/i;
+// The game ending a talk is what it is for: V pressed the talk key again, walked away, opened a menu or loaded a save (the continuous speech
+// lease, mod/continuous-speech.lua: an explicit stop, or no refresh while the game is paused or loading). Not the mod failing.
+const NOT_A_FAULT = /\b(?:abort(?:ed)?|cancell?ed|superseded|interrupted|voice service is closed|no speech was heard|continuous speech was stopped by the game|continuous speech game lease expired|continuous speech owner changed)\b/i;
 
 /** Whether a failed turn is worth a report (see OWN_DOING). Pure; the bridge passes what it knows. */
 export function reportableTurnFailure(error, {errorCode, localReason, microphone = false} = {}) {

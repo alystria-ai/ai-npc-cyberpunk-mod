@@ -303,6 +303,103 @@ class PortableVoicePaths(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'separate'):
             worker.validate_config({**config, 'playerVoiceDirectory': str(paths['cacheDirectory'] / 'x')}, self.app, paths=paths)
 
+    # ---- voices changed while the worker runs (a clip given to a character or taken away: no restart, no reload of the model) ----
+
+    def running_session(self):
+        """Two shipped voices (johnny, judy) in a running session whose renders record which file each reply was made from."""
+        shipped = copy.deepcopy(self.config)
+        shipped['voices']['judy-alvarez'] = copy.deepcopy(shipped['voices']['johnny-silverhand'])
+        shipped['preparation'] = {'mode': 'lazy', 'startupProfiles': []}
+        registry = worker.validate_config(shipped, self.app, paths=worker.resolve_worker_paths(self.app, self.environment()))
+        worker.refresh_identity(registry)
+        renders, frames, evicted = [], [], []
+        session = worker.ProfileSession(registry, lambda key, *values: (renders.append((key, registry['refs'][key][0])) or b'fixture', 1),
+                                        lambda _: 'fixture', frames.append, {}, lambda: {}, evict=lambda *entry: evicted.append(entry))
+        return shipped, registry, session, renders, frames, evicted
+
+    def test_a_voice_changes_while_running_and_only_that_character_loses_its_prompt(self):
+        shipped, registry, session, renders, frames, evicted = self.running_session()
+        player, clip = self.player_config()
+        descriptor = player['voices']['johnny-silverhand']
+        for number, key in enumerate(('johnny-silverhand', 'judy-alvarez'), 1):
+            session.handle({'op': 'prepare', 'id': number, 'profile': key})
+        self.assertEqual(list(session.prepared), ['johnny-silverhand', 'judy-alvarez'])
+        old = registry['refs']['johnny-silverhand']
+        session.handle({'op': 'voices', 'id': 3, 'set': {'johnny-silverhand': descriptor}, 'playerVoiceDirectory': str(self.player)})
+        self.assertEqual(frames[-1]['op'], 'voices')
+        self.assertEqual(frames[-1]['changed'], ['johnny-silverhand'])
+        self.assertEqual(list(session.prepared), ['judy-alvarez'], 'only the changed character was dropped from the prepared list')
+        self.assertEqual(frames[-1]['preparedProfiles'], ['judy-alvarez'])
+        self.assertEqual(registry['refs']['johnny-silverhand'][0], str(clip.resolve()))
+        self.assertEqual(frames[-1]['referenceHashes']['johnny-silverhand'], descriptor['sha256'])
+        self.assertEqual(frames[-1]['transcriptHashes']['johnny-silverhand'], hashlib.sha256(descriptor['transcript'].encode()).hexdigest())
+        self.assertEqual(frames[-1]['referenceHashes']['judy-alvarez'], shipped['voices']['judy-alvarez']['sha256'])
+        self.assertEqual(registry['playerRoot'], self.player.resolve())
+        # The prompt of the replaced reference leaves the model's cache, and the cache key now knows the new file.
+        self.assertEqual(evicted, [(os.path.abspath(old[0]), old[1], shipped['voices']['johnny-silverhand']['sha256'],
+                                    hashlib.sha256(old[1].encode()).hexdigest())])
+        self.assertIn((os.path.abspath(str(clip.resolve())), descriptor['transcript']), registry['identity'])
+        session.handle({'op': 'synthesize', 'id': 4, 'profile': 'johnny-silverhand', 'text': 'Hi.', 'steps': 16})
+        self.assertEqual(frames[-1]['op'], 'audio')
+        self.assertEqual(renders[-1], ('johnny-silverhand', str(clip.resolve())), 'the next reply is made from the new clip')
+        # Taking the clip away puts the shipped descriptor back: the next reply is made from the shipped file again.
+        session.handle({'op': 'voices', 'id': 5, 'set': {'johnny-silverhand': shipped['voices']['johnny-silverhand']}})
+        self.assertEqual(frames[-1]['op'], 'voices')
+        session.handle({'op': 'synthesize', 'id': 6, 'profile': 'johnny-silverhand', 'text': 'Hi.', 'steps': 16})
+        self.assertEqual(renders[-1], ('johnny-silverhand', old[0]))
+        self.assertEqual(evicted[-1][2], descriptor['sha256'])
+        self.assertEqual(registry['referenceHashes']['judy-alvarez'], shipped['voices']['judy-alvarez']['sha256'], 'another voice is untouched')
+
+    def test_a_voice_the_worker_never_had_is_added_and_a_removed_one_leaves(self):
+        shipped, registry, session, renders, frames, evicted = self.running_session()
+        player, clip = self.player_config(key='custom-rebecca-abcd')
+        descriptor = player['voices']['custom-rebecca-abcd']
+        session.handle({'op': 'voices', 'id': 1, 'set': {'custom-rebecca-abcd': descriptor}, 'playerVoiceDirectory': str(self.player)})
+        self.assertIn('custom-rebecca-abcd', frames[-1]['profiles'])
+        self.assertIn('custom-rebecca-abcd', frames[-1]['configuredProfiles'])
+        session.handle({'op': 'synthesize', 'id': 2, 'profile': 'custom-rebecca-abcd', 'text': 'Hi.', 'steps': 16})
+        self.assertEqual(renders[-1], ('custom-rebecca-abcd', str(clip.resolve())))
+        session.handle({'op': 'voices', 'id': 3, 'remove': ['custom-rebecca-abcd']})
+        self.assertEqual(frames[-1]['op'], 'voices')
+        self.assertNotIn('custom-rebecca-abcd', frames[-1]['profiles'])
+        self.assertNotIn('custom-rebecca-abcd', registry['refs'])
+        self.assertNotIn('custom-rebecca-abcd', registry['descriptors'])
+        self.assertEqual(len(evicted), 1)
+        session.handle({'op': 'synthesize', 'id': 4, 'profile': 'custom-rebecca-abcd', 'text': 'Hi.', 'steps': 16})
+        self.assertEqual(frames[-1]['op'], 'error', 'a voice that is gone is not spoken')
+        self.assertIn('judy-alvarez', registry['refs'])
+
+    def test_a_refused_voice_change_leaves_every_voice_as_it_was(self):
+        shipped, registry, session, renders, frames, evicted = self.running_session()
+        player, clip = self.player_config()
+        good = player['voices']['johnny-silverhand']
+        before = copy.deepcopy({field: registry[field] for field in ('refs', 'descriptors', 'referenceHashes', 'unavailableProfiles', 'configuredProfiles')})
+        for number, request in enumerate((
+                {'set': {'johnny-silverhand': good, 'judy-alvarez': {'reference': 'runtime/player-voices/../x.wav', 'sha256': 'a' * 64, 'transcript': 'x'}}},
+                {'set': {'Not A Key': good}},
+                {'set': {'johnny-silverhand': good}, 'remove': ['johnny-silverhand']},
+                {'set': {f'k-{at}': {'status': 'unprepared'} for at in range(worker.MAX_VOICE_CHANGES + 1)}},
+                {'set': {'johnny-silverhand': good}, 'playerVoiceDirectory': str(self.paths['referenceDirectory'] / 'inside')},
+                {'set': 'nothing'}), 1):
+            with self.subTest(request=number):
+                session.handle({'op': 'voices', 'id': number, **request})
+                self.assertEqual(frames[-1]['op'], 'error')
+                self.assertEqual(frames[-1]['profiles'], sorted(before['refs']))
+                self.assertEqual({field: registry[field] for field in before}, before)
+                self.assertIsNone(registry.get('playerRoot'))
+        # A clip file that is gone (or not the recorded bytes) only withdraws that voice: the change itself is accepted.
+        clip.write_bytes(clip.read_bytes()[:-2] + b'\x11\x22')
+        session.handle({'op': 'voices', 'id': 10, 'set': {'johnny-silverhand': good}, 'playerVoiceDirectory': str(self.player)})
+        self.assertEqual(frames[-1]['op'], 'voices')
+        self.assertEqual(registry['unavailableProfiles'], {'johnny-silverhand': 'unavailable'})
+        self.assertNotIn('johnny-silverhand', frames[-1]['profiles'])
+        self.assertIn('judy-alvarez', frames[-1]['profiles'])
+        # The player folder cannot be moved while the worker runs.
+        other = self.data / 'other-player-voices'
+        session.handle({'op': 'voices', 'id': 11, 'set': {}, 'playerVoiceDirectory': str(other)})
+        self.assertEqual(frames[-1]['op'], 'error')
+        self.assertEqual(registry['playerRoot'], self.player.resolve())
+
     def test_shared_admission_is_in_data_and_excludes_other_app_versions(self):
         cache = self.paths['cacheDirectory']
         other_app = self.root / 'other application version'

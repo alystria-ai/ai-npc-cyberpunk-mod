@@ -21,7 +21,7 @@
 // Measuring: a character estimate with a ratio learned from the server's own prompt token counts (`TokenMeter`), and, when the
 // estimate comes near the limit, the server's tokenizer (`budget.count`, one request of tens of milliseconds, only then). A turn
 // that is far below the limit costs a few microseconds and no request.
-import {buildMessages as defaultBuild, capContext, joinBlocks, PROMPT_SOURCE} from './mistral-prompt.mjs';
+import {buildMessages as defaultBuild, capContext, joinBlocks, PROMPT_SOURCE, systemHead} from './mistral-prompt.mjs';
 import {MistralError} from './mistral-client.mjs';
 
 export const BUDGET = Object.freeze({
@@ -102,6 +102,92 @@ export class TokenMeter {
     return true;
   }
   reset() { this.#ratios = []; }
+}
+
+// ---- How fast this machine reads a prompt -------------------------------------------------------------------------------------
+
+// The context says how much a prompt MAY hold; it says nothing about how long the machine takes to read it. On the developer's card a
+// 15,700-token prompt reads in 7 s. On the computers of the first player reports (2026-10-19) the game keeps the card busy, or the model had
+// to leave some of its layers on the CPU, and the same server read 36 to 300 tokens a second: a 5,400-token prompt of which 3,000 were new
+// took 10 to 70 s, or ran out of the 75 s the turn has. So a turn on a machine that has been seen to read slowly is fitted to a smaller
+// target first: what it still has to read (the prompt less the part the server already holds) fits in `targetSeconds`. The cuts are the same
+// ones, in the same order (above); a prompt that cannot reach the target is fitted to the context as before, so this never fails a request.
+export const PREFILL = Object.freeze({
+  fastTokensPerSecond: 700,   // from this speed on, the context is the only limit
+  targetSeconds: 8,           // the new part of a prompt is cut to what is read in this long
+  steps: Object.freeze([600, 900, 1300, 1800, 2500, 3500]),   // the new tokens allowed, in steps: a speed that wobbles must not move the early part of the prompt every turn
+  minSample: 256,             // a prompt with fewer new tokens says nothing about the speed
+  maxAgeMs: 10 * 60_000,      // a measurement older than this is no longer believed
+  offloadPrior: 120,          // before anything is measured, a model with layers on the CPU is taken to read this many tokens a second
+  failureFloor: 512,          // a stuck request is credited with at least one batch of this many tokens
+});
+
+/**
+ * The prompt-reading speed of the model that is loaded, learned from its own timings (`trace.timings`: new tokens, cached tokens, milliseconds)
+ * and from requests that got stuck reading the prompt (`trace.progress`). One per loaded model: a model that was loaded again (an idle stop and a
+ * start with less memory free) gets a new one. `soft()` is the smaller budget `budgetedChat` tries first, or null while the machine is fast
+ * or nothing is known.
+ */
+export class PrefillMeter {
+  #rate = null; #at = 0; #cached = 0;
+  constructor({now = Date.now, offload = false} = {}) { this.now = now; this.offload = offload === true; }
+  #blend(sample) {
+    if (!(sample > 0) || !Number.isFinite(sample)) return;
+    this.#rate = this.#rate !== null && this.now() - this.#at <= PREFILL.maxAgeMs ? (this.#rate + sample) / 2 : sample;
+    this.#at = this.now();
+  }
+  /** A request that answered: the server's own numbers for the prompt it read. */
+  observe(trace) {
+    const timings = trace?.timings;
+    const cached = Number(timings?.cachedTokens), fresh = Number(timings?.promptTokens), ms = Number(timings?.promptMs);
+    if (Number.isFinite(cached) && cached >= 0) this.#cached = cached;
+    if (fresh >= PREFILL.minSample && ms > 0) this.#blend(fresh / ms * 1000);
+  }
+  /** A request that ended while the prompt was being read: what was read in the time the server had it (never before it had it). */
+  observeFailure(trace) {
+    const progress = trace?.progress;
+    if (!progress || !(progress.processed < progress.total) || !Number.isFinite(trace.headersMs) || !(trace.elapsedMs > trace.headersMs)) return;
+    const cache = Number(progress.cache) || 0;
+    if (cache > 0) this.#cached = cache;
+    const seconds = (trace.elapsedMs - trace.headersMs) / 1000;
+    if (seconds < 5) return;
+    this.#blend(Math.max(PREFILL.failureFloor, progress.processed - cache) / seconds);
+  }
+  /** Tokens a second, or null (nothing measured lately, and no reason to expect a slow machine). */
+  get tokensPerSecond() {
+    if (this.#rate !== null && this.now() - this.#at <= PREFILL.maxAgeMs) return this.#rate;
+    return this.offload ? PREFILL.offloadPrior : null;
+  }
+  /** The tokens the server held of the last prompt. */
+  get cachedTokens() { return this.#cached; }
+  /** True while the machine is believed to read slowly (a measurement below PREFILL.fastTokensPerSecond, or the prior of a model with layers on the CPU). */
+  get slow() { const rate = this.tokensPerSecond; return rate !== null && rate < PREFILL.fastTokensPerSecond; }
+  /**
+   * The smaller budget for a slow machine, as `fitMessages` takes it ({contextTokens, reserveTokens}); null when there is none.
+   * `floorTokens`: what the prompt holds that is read once and then kept, its persona and rules (the first turn of a character, or a character that
+   * is not the one the server held): the allowance is added to the larger of that and what the server holds.
+   */
+  soft(floorTokens = 0) {
+    const rate = this.tokensPerSecond;
+    const held = Math.max(this.#cached, Number(floorTokens) || 0);
+    if (rate === null || rate >= PREFILL.fastTokensPerSecond || !(held > 0)) return null;
+    const wanted = rate * PREFILL.targetSeconds;
+    const allowed = PREFILL.steps.reduce((best, step) => step <= wanted ? step : best, PREFILL.steps[0]);
+    const total = held + allowed;
+    // fitMessages keeps a margin of max(minMargin, marginRatio of the context) below the context it is given: ask for one that leaves `total`.
+    let contextTokens = Math.ceil(Math.max(total + BUDGET.minMargin, total / (1 - BUDGET.marginRatio)));
+    while (Math.floor(contextTokens - Math.max(BUDGET.minMargin, contextTokens * BUDGET.marginRatio)) < total) contextTokens++;
+    return {contextTokens, reserveTokens: 0};
+  }
+}
+
+/** The tokens of the persona and the rules of a prompt's arguments (the head every turn of a character starts with; never cut), or 0 when they cannot be built. */
+function headTokens(args, charsPerToken = BUDGET.charsPerToken) {
+  try {
+    if (!args?.persona) return 0;
+    const head = systemHead({persona: args.persona, limits: args.limits, mature: args.mature ?? null, guard: args.guard ?? false});
+    return Math.ceil(textTokens(head, charsPerToken)) + templateTokens(1);
+  } catch { return 0; }
 }
 
 // ---- Trimming ------------------------------------------------------------------------------------------------------------
@@ -269,17 +355,23 @@ export function budgetedChat(chat, {budget, onFit, tooLarge, shape} = {}) {
     if (!base) return chat(options);
     const args = shape ? shape(source, options) : source;
     let current = base;
+    // `speed` (a PrefillMeter): on a machine that has been seen to read prompts slowly, a smaller target than the context is tried first.
+    // An explicit `soft` of the budget wins.
+    const soft = base.soft ?? (base.speed?.slow ? base.speed.soft(headTokens(args, base.meter?.charsPerToken)) : null);
     for (let attempt = 0; ; attempt++) {
-      let fit = base.soft ? await fitMessages({args, budget: {...current, ...base.soft, soft: undefined}}) : null;
+      let fit = soft ? await fitMessages({args, budget: {...current, ...soft, soft: undefined}}) : null;
       if (fit) fit.target = 'soft';
-      if (!fit?.fits) { fit = await fitMessages({args, budget: {...current, soft: undefined}}); if (base.soft) fit.target = 'hard'; }
+      if (!fit?.fits) { fit = await fitMessages({args, budget: {...current, soft: undefined}}); if (soft) fit.target = 'hard'; }
       if (fit.trimmed.length || !fit.fits) { try { onFit?.(fit, options); } catch { /* a log line never fails a request */ } }
       if (!fit.fits) throw tooLarge ? tooLarge(fit, options) : new PromptTooLarge(fit, options?.provider);
       try {
         const result = await chat({...options, messages: fit.messages});
         base.meter?.observe(fit.messages, result?.usage?.prompt_tokens);
+        try { base.speed?.observe(result?.trace); } catch { /* a measurement never fails a request */ }
         return result;
       } catch (error) {
+        // A request that was stuck reading the prompt says how far it got: the next turn is fitted to what this machine reads.
+        try { base.speed?.observeFailure(error?.trace); } catch { /* a measurement never fails a request */ }
         const refused = error?.overflow;
         if (!refused || attempt >= 1 || options?.signal?.aborted) throw error;
         // The server's count of the refused prompt replaces the estimate: learn the ratio and cut by what the estimate missed.

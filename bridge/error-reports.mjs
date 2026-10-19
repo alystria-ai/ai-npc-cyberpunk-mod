@@ -26,7 +26,7 @@ import {mkdir, open, readFile, readdir, rename, rm, stat, writeFile} from 'node:
 import {dirname, join, resolve} from 'node:path';
 import os from 'node:os';
 import {createRedactor, credentialSecrets, customServerSecrets, setupLine, tailFile} from './support-report.mjs';
-import {offlineSecrets, pluginVersions} from './offline-support-report.mjs';
+import {dataFolderSecrets, pluginVersions} from './report-secrets.mjs';
 import {cachedGraphicsCards} from './setup-check.mjs';
 import {AUTH_CONFIG_FILE, INSTALL_FILE, loadInstallId, readBackendAddress, signRequest} from './convai-credential.mjs';
 import {GAME_EVENTS_FILE, QUEUE_FOLDER, clearQueue, errorReportsEnabled, parseGameEvents, readQueue, recordErrorEvent,
@@ -269,7 +269,7 @@ export async function reportSecrets({stateDirectory, project, environment = proc
   const packaged = await packagedTarget({project});
   if (packaged) found.push(packaged.secret);
   for (const list of await Promise.all([credentialSecrets(stateDirectory).catch(() => []),
-    customServerSecrets({project, environment}).catch(() => []), offlineSecrets({stateDirectory, project}).catch(() => [])])) found.push(...list);
+    customServerSecrets({project, environment}).catch(() => []), dataFolderSecrets({stateDirectory, project}).catch(() => [])])) found.push(...list);
   return found;
 }
 

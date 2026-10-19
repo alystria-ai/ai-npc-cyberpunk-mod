@@ -1,10 +1,13 @@
 """Upload the optional packs of a release to the Hugging Face model repository that hosts them.
 
-Run by .github/workflows/release.yml (the omni, localai and mature jobs). Each optional pack is ONE zip, with no parts, and
-lives in a folder per version of the repository, next to a SHA256SUMS-<pack>.txt:
+Run by .github/workflows/release.yml (the omni, localai, mature and micpacks jobs). Each optional pack is ONE zip, with no parts, and
+lives in a folder per version of the repository, next to a SHA256SUMS-<pack>.txt. The packs are omni, localai-standard, localai-lite,
+mature-lite, mature-standard and the two voice-input packs, micpack-european and micpack-asian:
 
     <version>/AI-NPC-Cyberpunk-Mod-OmniPack-<version>.zip
     <version>/SHA256SUMS-omni.txt
+    <version>/AI-NPC-Cyberpunk-Mod-MicPack-European-<version>.zip
+    <version>/SHA256SUMS-micpack-european.txt
 
     python packaging/upload-packs.py --check                                   (can the token write to the repository?)
     python packaging/upload-packs.py --version 0.2 --pack omni --packages DIR   (upload every zip in DIR/ and the sums file)
@@ -24,7 +27,7 @@ import time
 from pathlib import Path
 
 REPOSITORY = "alystria-ai/ai-npc-cyberpunk-mod-packs"
-PACKS = ("omni", "localai-standard", "localai-lite", "mature-lite", "mature-standard")
+PACKS = ("omni", "localai-standard", "localai-lite", "mature-lite", "mature-standard", "micpack-european", "micpack-asian")
 
 
 def no_write_message(repository: str, detail: str = "") -> str:

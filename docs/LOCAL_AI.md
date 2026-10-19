@@ -223,7 +223,7 @@ example:
 - `manifest.custom.json is not valid JSON` - a comma or a quote is wrong; a free JSON checker finds it quickly (when both folders have a manifest the line starts with `outside folder:` or `mod folder:`, which says which file);
 - `manifest.custom.json must be {"version": 1, "models": [...]}` - the outer part of the file is missing or misspelt.
 
-The support report (Settings > Help > Help and support, or `Make support report.bat` with the game closed) lists both folders under `localAi.customFolders` in `summary.json`: whether each folder and its `manifest.custom.json` was found, and how many models the manifest lists (no paths, names or keys). Make sure a pack with the engine is installed (the **Local AI model** row only matters when Local AI is the Conversation provider) and that the file is named exactly `manifest.custom.json`. A file saved as `manifest.custom.json.txt` (Notepad adds `.txt` while Windows hides extensions) is not read, and the log says nothing about it. An embedding model can only be spotted when its header says so; a file with an unusual header may pass the check and then fail to start, which the notice above covers. Whether a model has a chat template is not checked ahead of time.
+The support report (Settings > Help > Help and support) lists both folders under `localAi.customFolders` in `summary.json`: whether each folder and its `manifest.custom.json` was found, and how many models the manifest lists (no paths, names or keys). Make sure a pack with the engine is installed (the **Local AI model** row only matters when Local AI is the Conversation provider) and that the file is named exactly `manifest.custom.json`. A file saved as `manifest.custom.json.txt` (Notepad adds `.txt` while Windows hides extensions) is not read, and the log says nothing about it. An embedding model can only be spotted when its header says so; a file with an unusual header may pass the check and then fail to start, which the notice above covers. Whether a model has a chat template is not checked ahead of time.
 
 ### Use your own server (KoboldCpp, LM Studio, Ollama)
 
@@ -534,6 +534,45 @@ the model loaded in 13 s (42 s the first time, shaders included) and left 3.4 GB
 - **Tests.** `bridge/local-turn-diagnostics.test.mjs` (fake llama-server: stall after the role chunk, stall while reading the prompt, a reply that stops
   partway, a model that only thinks, a model still loading, the budget, the request fields, the diagnostics, the log lines, the support report, the
   notice's Lua). No model is loaded by any test. `docs/NOTIFICATIONS.md` has the notice.
+
+### The first player reports of 0.2.2 (2026-10-19: timeouts on a card the game keeps busy)
+
+Five of the first sixteen automatic reports were Local AI turns that timed out, from two players: an RTX 3080 (10 GB) with OmniVoice and an
+RTX 5070 (12 GB); a third (an RTX 4080, 16 GB) shows the same load in the log of two other reports. All had Mature content on (Gemma 4 E4B, 5,088 MiB).
+The reports' own log lines say what was going on:
+
+- **The game takes the graphics memory.** On the 4080 the model found 3,208 MiB free, on the 5070 231 MiB (a reload after an idle stop, ten minutes without
+  a turn: the game most likely took what the model gave back): `does not fit the free graphics memory: it is loaded with part of its layers on the CPU`,
+  context 8,192. The turns of that load read the prompt at 36 to 54 tokens a second (a developer card at rest: 1,000 and more), the first word came after
+  43 s, and a 5,938-token prompt had read 2,048 tokens after 57 s. A Mature model never gives way to a censored one, so this is the machine's limit,
+  not something to load differently; what the mod does about it is below. Even with the whole model on the card (the 3080, 9,143 MiB free at the
+  load) a turn that comes while OmniVoice and the game share the card read 2,802 tokens in 60 s.
+- **A warm-up held the only slot.** The server has one slot (`-np 1`). A warm-up of a persona (4,200 tokens for Judy) is a request like any other, and
+  on a machine that reads 50 tokens a second it takes a minute and a half: `persona prewarm skipped: no answer in 60 s` and, at the same moment, the
+  turn's `no response in 60 s` (headers never came: it was queued behind the warm-up of another character). Now a warm-up carries the character's key
+  and a turn for another character stops it (`LocalLlmServer.preempt`, called by the route's `connect`); a turn for the same character waits for it,
+  since it needs that prefix; a second warm-up of a persona that is being read is not started.
+- **The prompt was allowed to be as long as the context.** The only limit was n_ctx (16,384 minus the reserve: 15,800 tokens), which says how much a
+  prompt may hold and nothing about how long this machine takes to read it. Two things changed:
+  - The world facts (ranked by V's words, so different on every turn) came first among the world blocks, right after the persona: the first changed
+    token was at 2,350 and every turn read about 3,000 tokens again (`prompt 3045 new + 2350 cached tokens` on every line of the 5070's log). They now
+    come after the blocks that only change on game events (`worldBlocksInCacheOrder`, `docs/MISTRAL.md` "Prompt order"). Not measured live yet
+    (no game was run): the check is a turn's `[LocalTurn]` line, whose `new` tokens should drop by the size of the facts block when the same
+    character talks twice.
+  - A machine that has been seen to read slowly gets a smaller prompt. `PrefillMeter` (`bridge/prompt-budget.mjs`) learns the speed from the server's own
+    timings (`prompt_n`, `prompt_ms`) and from a request that stalled on the prompt (how far it got in the time the server had it), per load of the model; a
+    model loaded with layers on the CPU is taken to read 120 tokens a second until something is measured. Below 700 tokens a second `budgetedChat`
+    first fits the prompt to what the server already holds (or, for a character it does not hold, the persona and rules, which have to be read once
+    whatever the target is) plus what this machine reads in 8 seconds (in steps of 600, 900, 1,300, 1,800, 2,500 and 3,500 new tokens, so a speed that
+    wobbles does not move the early part of the prompt every turn), with the same cuts in the same order; a prompt that cannot reach that target (what
+    is never cut, the format notes, the right-now block and V's words, is more than the allowance) is fitted to the context as before, so the target
+    never fails a request. The log says
+    `prompt N of M tokens (soft target); cut: ...` and `this computer reads about N tokens a second`.
+- **The sentence the game shows says why.** A slow turn on a model that is partly on the CPU ends `...; the model is partly on the CPU` (`error.hint`,
+  still within the 140 characters the game accepts).
+- **Not changed.** The 75 s limits and the 80 s turn budget stay under the game's 90 s; the idle stop after ten minutes stays (the model leaving the
+  card is what keeps the game's frame rate when nobody is talking). What helps the player: the lite Mature model, a lower texture quality in the game,
+  or the Local AI pack's Standard model with Mature content off.
 
 ### The knowledge status file (EPERM in the bridge log)
 

@@ -772,3 +772,102 @@ test('the custom and Mistral routes take none of the local route\'s limits, fiel
     backoffMs: [1], sleepImpl: async () => {}, firstByteMs: 40, fetchImpl: async (url, init) => { calls++; return hang(url, init); }}).catch(() => {});
   assert.equal(calls, 2, 'the custom provider\'s timeout is retried as before');
 });
+
+// ---- the single slot: a warm-up never stands in a turn's way (2026-10-19 reports: "no response in 60 s" behind a warm-up) ----------------------------------
+
+async function until(check, ms = 20_000) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) { if (await check()) return true; await sleep(10); }
+  assert.fail('the condition did not come true');
+}
+
+// A server whose warm-up requests (non-streamed, one token) never answer until they are cancelled, like one that is still reading a long persona.
+function hangingWarmUps(started) {
+  return (url, init) => {
+    let body = null;
+    try { body = typeof init?.body === 'string' ? JSON.parse(init.body) : null; } catch { /* not JSON */ }
+    if (!String(url).endsWith('/v1/chat/completions') || body?.max_tokens !== 1 || body?.stream !== false) return fetch(url, init);
+    started.push(body.messages?.[0]?.content?.slice(0, 40));
+    return new Promise((resolve, reject) => init.signal.addEventListener('abort', () => reject(Object.assign(Error('aborted'), {name: 'AbortError'})), {once: true}));
+  };
+}
+
+test('the server: a warm-up for another character gives way, one for the same character is waited for, and a second warm-up of the same persona does not queue', async t => {
+  const started = [];
+  const {server, logs} = rig(t, {fetchImpl: hangingWarmUps(started)});
+  await server.ensure();
+  const first = server.prewarm([{role: 'system', content: 'persona of judy'}, {role: 'user', content: '.'}], {key: 'judy'});
+  await until(() => started.length === 1);
+  assert.equal(server.inflight, 1, 'the warm-up holds the server awake');
+  assert.equal(server.preempt('judy'), false, 'a turn for the same character needs this very prefix: it waits');
+  assert.equal(await server.prewarm([{role: 'system', content: 'persona of judy'}], {key: 'judy'}), false, 'a second warm-up of the same persona only queues behind the first');
+  assert.equal(started.length, 1);
+  assert.equal(server.preempt('panam'), true, 'a turn for another character stops it');
+  assert.equal(await first, false);
+  assert.equal(server.inflight, 0, 'released');
+  assert(logs.some(line => /persona prewarm stopped: another request needed the model first/.test(line)), logs.join('\n'));
+  assert.equal(server.preempt('panam'), false, 'nothing left to stop');
+  // A newer warm-up for another character stops the older one.
+  const older = server.prewarm([{role: 'system', content: 'persona of panam'}, {role: 'user', content: '.'}], {key: 'panam'});
+  await until(() => started.length === 2);
+  const newer = server.prewarm([{role: 'system', content: 'persona of judy'}, {role: 'user', content: '.'}], {key: 'judy'});
+  await until(() => started.length === 3);
+  assert.equal(await older, false, 'the older one stopped');
+  assert.equal(server.preempt(null), true, 'no character named: any warm-up is stopped');
+  assert.equal(await newer, false);
+  // Without a key, as before: a warm-up that is not in the way runs to its end.
+  const idle = rig(t);
+  assert.equal(await idle.server.prewarm([{role: 'system', content: 'x'}]), true);
+});
+
+test('the host: a turn for another character stops a warm-up still being read, so it is not "no response"; a turn for the warmed character is not hurried', async t => {
+  const started = [];
+  const {host, server, logs} = await hostRig(t, {env: {FAKE_LLAMA_FIRST_TOKEN_MS: '1', FAKE_LLAMA_REPLY: 'Sure, V.'}, serverOptions: {fetchImpl: hangingWarmUps(started)}});
+  const panam = {profileKey: 'panam-palmer', name: 'Panam Palmer', channel: 'private'};
+  const warming = host.prewarm(turn('x', {local: panam}));
+  await until(() => started.length === 1);
+  const reply = await host.reply(turn('hello there'));   // Judy
+  assert.equal(reply.text, 'Sure, V.', 'Judy was not made to wait for Panam\'s persona');
+  await warming;
+  assert(logs.some(line => /persona prewarm stopped: another request needed the model first/.test(line)), logs.join('\n'));
+  // The same character: the warm-up is the prefix the turn needs, so it is left alone (and the turn, on a server that answers, still goes through).
+  const judy = host.prewarm(turn('x'));
+  await until(() => started.length === 2);
+  const second = await host.reply(turn('hello again'));
+  assert.equal(second.text, 'Sure, V.');
+  assert.equal(server.inflight >= 1, true, 'the warm-up of Judy\'s own persona is still reading');
+  assert.equal(server.preempt(null), true);
+  await judy;
+});
+
+test('the route tells the server whose persona a request is for, and a background request never stops a warm-up', async () => {
+  const keys = [];
+  const server = {ensure: async () => ({apiKey: 'k', endpoint: 'e', model: 'm', requestModel: 'm'}), status: () => ({state: 'ready'}), begin: () => () => {},
+    preempt: key => { keys.push(key); return false; }};
+  const route = localRoute({server});
+  await route.connect(undefined, {profileKey: 'judy-alvarez'});
+  await route.connect(undefined, {});
+  await route.connect(undefined, {background: true, profileKey: 'judy-alvarez'});
+  assert.deepEqual(keys, ['judy-alvarez', null]);
+  // A server with no `preempt` (a player's own server, an older one) is fine.
+  await localRoute({server: {...server, preempt: undefined}}).connect(undefined, {profileKey: 'x'});
+});
+
+test('a slow turn on a model that does not fit the graphics memory says so in the sentence the game shows, within the 140 characters it shows', async t => {
+  const {host, server} = await hostRig(t, {env: {FAKE_LLAMA_STALL: 'progress'}, limits: {promptStallMs: 100, stallMs: 100, firstByteMs: 30_000, totalMs: 60_000}});
+  const normal = await host.reply(turn('hello there')).catch(e => e);
+  assert.equal(normal.hint, undefined, 'a model that fits says nothing more');
+  assert.doesNotMatch(failureDetail(normal), /CPU/);
+  const diagnostics = server.diagnostics.bind(server);
+  server.diagnostics = () => { const d = diagnostics(); return {...d, model: {...d.model, offload: true}}; };
+  const offloaded = await host.reply(turn('hello there')).catch(e => e);
+  assert.equal(offloaded.hint, 'the model is partly on the CPU');
+  const detail = failureDetail(offloaded);
+  assert.match(detail, /^stuck reading the prompt \(\d+ of \d+ tokens after \d+ s\); the model is partly on the CPU$/);
+  assert.ok(detail.length <= 140 && /^[\x20-\x7e]+$/.test(detail), 'short printable ASCII, which the game accepts (mod/init.lua localFailureSuffix)');
+  // A hint that would push the sentence past what the game shows is left out; an error with none is unchanged.
+  const long = Object.assign(new MistralError('network', 'did not finish in time', {provider: 'local', slow: true, reason: 'prefill-stalled', deadline: true,
+    trace: {...newTrace(), elapsedMs: 75000, progress: {processed: 123456, total: 234567, cache: 0}}}), {hint: 'x'.repeat(120)});
+  assert.doesNotMatch(failureDetail(long), /xxx/);
+  assert.equal(failureDetail(new Error('x')), undefined);
+});

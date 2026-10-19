@@ -131,6 +131,24 @@ const RULES = (name, identityRule = '', talkWords = 0, mature = false) => [
   '9. Answer in the language V writes in (English unless the context says otherwise). Use curly-brace or square-bracket tags only if the context asks for them, exactly as it describes; otherwise never write braces or brackets.',
 ].join('\n');
 
+/**
+ * The world blocks of a turn in the order a prefix cache wants (layout v2, item 3 above). Every world block changes on game events only,
+ * except `knowledge`: the world facts are ranked by the words V just said (bridge/world-knowledge.mjs rank), so their text and order change
+ * with every turn. Placed first among the world blocks, as the Convai context has it, they moved the first changed token to just after the
+ * persona and made every turn read the whole world block again: about 3,000 new tokens of a 5,400-token prompt on every turn of the first
+ * player reports (2026-10-19, 2,350 cached each time), 10 to 70 s on a computer the game keeps busy. So `knowledge` goes after the blocks that
+ * are stable between turns (recency, history, jobs, journal, gear), and before the fixed `authority` sentence that is about it.
+ * Only the text providers' layout uses this order; the Convai context keeps its own. A new array; nothing else moves.
+ */
+export function worldBlocksInCacheOrder(blocks) {
+  const list = Array.isArray(blocks) ? blocks : [];
+  const changing = list.filter(block => block?.key === 'knowledge');
+  if (!changing.length) return [...list];
+  const rest = list.filter(block => block?.key !== 'knowledge');
+  const at = rest.findIndex(block => block?.key === 'authority');
+  return at < 0 ? [...rest, ...changing] : [...rest.slice(0, at), ...changing, ...rest.slice(at)];
+}
+
 /** Blocks of context text as one string: empty blocks and exact repeats (a block two sources both contribute) are dropped. */
 export function joinBlocks(blocks) {
   const seen = new Set(), out = [];
@@ -212,7 +230,8 @@ export function capContext(context, limit = LIMITS.context) {
  *   contextParts   {now, notes, world, volatile} strings (layout v2): the context split by how often it changes
  *   remembered     [{text}] what the memory store retrieved for this turn (layout v2 only; ambient and group turns pass none)
  *   text           V's message, or for a reaction the event text
- *   reaction       true for an automatic battle / loot line: `text` is then an event, not something V said
+ *   reaction       true for an automatic battle / loot line: `text` is then an event, not something V said; 'said' for V's own unprompted
+ *                  line in an exchange V started (docs/V_TALKS.md): `text` then says what V said, and the message is headed accordingly
  */
 // The first sentence of the right-now block (bridge/turn-context.mjs): "you are with V in person ..." or, in a phone chat, "you are
 // messaging V by text ... you are somewhere else ..." or, on a holocall (docs/HOLOCALL.md), "you are on a voice call / holocall ...", or for
@@ -228,7 +247,7 @@ export function buildMessages({persona, memory, history = [], context, contextPa
     messages.push({role: 'user', content: v}, {role: 'assistant', content: r});
   }
   const message = reaction
-    ? `[EVENT, not spoken by V]\n${clip(text, 2400)}\n\nReact with one short spoken line of your own, in character.`
+    ? `[${reaction === 'said' ? 'V SPEAKS TO YOU, unprompted' : 'EVENT, not spoken by V'}]\n${clip(text, 2400)}\n\nReact with one short spoken line of your own, in character.`
     : `V says: ${String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, limits.playerText)}\n\n${closing(persona.name, persona.talkWords, mature)}`;
   if (!v2) {
     const fitted = capContext(`${CONTEXT_PREFIX}${context || 'This is a private conversation with V.'}`, limits.context);

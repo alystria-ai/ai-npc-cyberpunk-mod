@@ -9,6 +9,7 @@ import {pathToFileURL} from 'node:url';
 import {setTimeout as sleep} from 'node:timers/promises';
 import {BridgeSupervisor, MOD_RUNTIME, parseSupervisorArguments, processAlive, usvfsCompatImport} from './bridge-supervisor.mjs';
 import {fakeBridgeSource} from './supervisor-fixture.mjs';
+import {INCOMPLETE_EXIT_CODE} from './runtime-files.mjs';
 import {packKey} from './key-codec.mjs';
 
 const prefix = 'cyberpunk-bridge-supervisor-';
@@ -266,6 +267,37 @@ test('no Edge or Chrome is a setup failure with one clear log line, and the brid
   assert.match(lines[0], /Microsoft Edge.*Google Chrome/);
   installed = true;
   await until(() => readJson(f.statusPath), value => value?.state === 'ready', 'the bridge did not start once a browser was available');
+  run.endGame(); await run.done;
+});
+
+test('a Runtime that lacks a data file is "install-incomplete" with no bridge started, says which file once, and recovers when it is back', async t => {
+  const f = await fixture(t);
+  await mkdir(join(f.project, 'characters'), {recursive: true});
+  await writeFile(join(f.project, 'characters/roster.json'), '[]');
+  const files = ['characters/roster.json', 'characters/world-knowledge.json'];
+  const run = supervise(f, {requiredFiles: files});
+  const failed = await until(() => readJson(f.statusPath), value => value?.state === 'failed', 'an incomplete Runtime was not reported');
+  assert.equal(failed.code, 'install-incomplete'); assert.equal(run.spawned.length, 0, 'no bridge is started on a Runtime that cannot work');
+  await sleep(400);
+  const log = await readFile(join(f.state, 'bridge-service.log'), 'utf8');
+  const lines = log.split('\n').filter(line => line.includes('The Runtime is incomplete'));
+  assert.equal(lines.length, 1, 'said once, not on every retry');
+  assert.match(lines[0], /characters\/world-knowledge\.json is missing/);
+  assert.doesNotMatch(lines[0], /characters\/roster\.json/, 'only what is missing is named');
+  assert.doesNotMatch(lines[0], new RegExp(f.project.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')), 'never a folder');
+  await writeFile(join(f.project, 'characters/world-knowledge.json'), '{}');
+  await until(() => readJson(f.statusPath), value => value?.state === 'ready', 'the bridge did not start once the file was back');
+  run.endGame(); await run.done;
+});
+
+test('a bridge that ends with the incomplete-Runtime exit code is not restarted over and over: one failure the game explains', async t => {
+  const f = await fixture(t, {behavior: {crashAlways: true, crashBeforeReady: true, exitCode: INCOMPLETE_EXIT_CODE}});
+  const run = supervise(f);
+  const failed = await until(() => readJson(f.statusPath), value => value?.state === 'failed', 'no failure was published');
+  assert.equal(failed.code, 'install-incomplete', 'not bridge-crashed');
+  await sleep(500);
+  assert.equal((await bridgePids(f.state)).length, 1, 'one start, no restart loop');
+  assert.match(await readFile(join(f.state, 'bridge-service.log'), 'utf8'), /file of the Runtime is missing/);
   run.endGame(); await run.done;
 });
 

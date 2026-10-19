@@ -18,6 +18,9 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {atomicFile} from './guarded-file.mjs';
 import {isKeyFileText} from './key-codec.mjs';
 import {NO_BROWSER_MESSAGE, systemBrowserAvailable} from './system-browser.mjs';
+import {INCOMPLETE_EXIT_CODE, incompleteMessage, missingRuntimeFiles} from './runtime-files.mjs';
+// For the entry points (scripts/Supervise-ConversationBridge.mjs, the packaged start-service.mjs): what they pass as `requiredFiles`.
+export {RUNTIME_DATA_FILES} from './runtime-files.mjs';
 
 export const READY_MARKER = '[CyberpunkConvai] Convai conversation bridge ready';
 export const MOD_RUNTIME = 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/runtime';
@@ -83,9 +86,12 @@ export class BridgeSupervisor {
   constructor({project, stateDirectory, keyFile, gameRoot, gamePid = null, lifeline = null,
     buildVoiceClient = false, nodeExecutable = process.execPath, spawn = spawnProcess,
     alive = processAlive, killTree = killProcessTree, now = Date.now, sleep = delay,
-    browserAvailable = systemBrowserAvailable, timings = {}, errorReports = false} = {}) {
+    browserAvailable = systemBrowserAvailable, timings = {}, errorReports = false,
+    // requiredFiles: data files (relative to `project`) the bridge cannot start without (bridge/runtime-files.mjs RUNTIME_DATA_FILES); the
+    // entry points of a real install pass them. One that is missing is the failure `install-incomplete`, not a bridge that crashes five times.
+    requiredFiles = []} = {}) {
     Object.assign(this, {project, stateDirectory, keyFile, gameRoot, gamePid, lifeline,
-      buildVoiceClient, nodeExecutable, spawn, alive, killTree, now, sleep, browserAvailable, errorReports});
+      buildVoiceClient, nodeExecutable, spawn, alive, killTree, now, sleep, browserAvailable, errorReports, requiredFiles});
     this.timings = {...DEFAULT_TIMINGS, ...timings};
     this.entry = resolve(project, 'bridge/convai-bridge.mjs');
     this.paths = {
@@ -227,6 +233,8 @@ export class BridgeSupervisor {
     if (setup) {
       this.retrySetup = true;
       if (setup === 'browser-missing') this.log(NO_BROWSER_MESSAGE);
+      // Said once, not on every retry: the names of the files (never a folder) that are not there.
+      if (setup === 'install-incomplete' && this.status?.code !== setup) this.log(incompleteMessage(this.missingFiles ?? []));
       return this.fail(setup);
     }
     if (this.buildVoiceClient && !this.built) {
@@ -273,6 +281,12 @@ export class BridgeSupervisor {
       if (!ids || typeof ids !== 'object' || Array.isArray(ids)) return 'missing-character-ids';
     } catch { return 'missing-character-ids'; }
     try { await stat(this.entry); } catch { return 'bridge-missing'; }
+    // A Runtime extracted only partly has the bridge's code but not all of its data: the game says so ("The Runtime is incomplete") and the
+    // check is repeated until the file is back (retrySetup), instead of a bridge that dies on it five times.
+    if (this.requiredFiles.length) {
+      this.missingFiles = await missingRuntimeFiles(this.project, this.requiredFiles);
+      if (this.missingFiles.length) return 'install-incomplete';
+    }
     // The conversation page runs in an installed Chromium browser (Edge, Chrome, Brave, Opera and others), which the mod does not ship
     // (bridge/system-browser.mjs looks in the usual folders and the registry, once per start).
     try { if (!this.browserAvailable()) return 'browser-missing'; } catch {}
@@ -414,6 +428,15 @@ export class BridgeSupervisor {
       this.log(`The bridge (PID ${pid}) stopped on request; it stays stopped until it is started again.`);
       this.mode = this.watchingGame ? 'stopped' : 'done';
       return this.setStatus('stopped', 'stop-requested');
+    }
+    // The bridge found a data file of the Runtime missing (bridge/runtime-files.mjs) and ended itself with its own exit code and a line
+    // in bridge.stderr.log: starting it again would end the same way, so this is the failure the game explains (the preflight
+    // looks for the same files before every start, with `requiredFiles`, and checks again every few seconds; this exit is for a file it does
+    // not know of, and waits for a new game).
+    if (exit?.code === INCOMPLETE_EXIT_CODE) {
+      this.log(`The bridge${pid ? ` (PID ${pid})` : ''} stopped because a file of the Runtime is missing (see bridge.stderr.log).`);
+      this.retrySetup = false;
+      return this.fail('install-incomplete');
     }
     const now = this.now();
     this.crashes = this.crashes.filter(at => now - at < this.timings.crashWindowMs);

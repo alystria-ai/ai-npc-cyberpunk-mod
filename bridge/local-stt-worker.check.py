@@ -348,4 +348,19 @@ for kind, names in w.PACK_FILES.items():
         else:
             check(how == "sense-voice" and kw["language"] == "auto" and kw["model"].endswith("model.int8.onnx"), "sense voice loads with automatic language: %s" % kw)
 check(w.KINDS == ("moonshine", "nemo-transducer", "sense-voice"), "the kinds the bridge may ask for")
+# A transcript in another language is UTF-8 on the pipe even though the worker runs with -I (which ignores PYTHONUTF8; the console code page
+# would otherwise be used: a Russian, Japanese or Korean transcript raised UnicodeEncodeError in the first run with the real models).
+import os
+import subprocess
+import json
+probe = ("import importlib.util, sys\n"
+         "spec = importlib.util.spec_from_file_location('worker', sys.argv[1])\n"
+         "w = importlib.util.module_from_spec(spec); spec.loader.exec_module(w)\n"
+         "w.use_utf8()\n"
+         "w.send({'type': 'final', 'text': '\u041f\u0440\u0438\u0432\u0435\u0442 \u65e5\u672c\u8a9e \ud55c\uad6d\uc5b4'})\n")
+done = subprocess.run([sys.executable, "-I", "-c", probe, sys.argv[1]], capture_output=True,
+                      env={"PYTHONIOENCODING": "cp1252", "SYSTEMROOT": os.environ.get("SYSTEMROOT", "")})
+check(done.returncode == 0, "utf-8 send: the worker survives non-ASCII text: %s" % done.stderr[-300:])
+check(json.loads(done.stdout.decode("utf-8"))["text"] == "\u041f\u0440\u0438\u0432\u0435\u0442 \u65e5\u672c\u8a9e \ud55c\uad6d\uc5b4",
+      "utf-8 send: the text comes back whole")
 print("ok")

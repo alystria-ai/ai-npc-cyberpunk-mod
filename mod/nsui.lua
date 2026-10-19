@@ -44,6 +44,7 @@ local MAX_WAIT = 2.0
 local PRESS_REPEAT = 0.3
 
 local ns, entry
+local live   -- whether this mod's tab is the one Native Settings UI shows right now (defined with the Native Settings UI helpers)
 -- The tab as this module built it: a list of sections {id, name, rows = {{sig, opt, id, kind}}}, mirroring what Native Settings UI
 -- holds for the tab.
 local rendered = {}
@@ -271,12 +272,36 @@ local function syncValue(current, spec)
     if not ok then lastError = 'Row update: ' .. tostring(problem); log('Manager: a row could not be updated: ' .. tostring(problem)) end
 end
 
+-- A row whose text or limits changed, while the tab is not on screen (nothing is drawn, so only the data is read): the option table
+-- keeps its place and identity and gets the new fields, and its value is brought up to date. Mod Configuration Menu's mirror of this
+-- tab (and any other holder of option tables) keeps finding the same option at the same index. On screen the row is replaced as
+-- before: the widget shows what it was spawned with. Only the same kind of row with the same id and callback qualifies.
+local function retarget(current, spec)
+    local opt = current.opt
+    if live() or not opt or current.kind ~= spec.kind or current.id ~= spec.id or current.readonly ~= spec.readonly then return false end
+    opt.label, opt.desc = spec.label, spec.desc
+    if spec.kind == 'switch' then
+        opt.defaultValue = spec.default
+    elseif spec.kind == 'select' then
+        opt.elements, opt.defaultValue = spec.elements, spec.default
+    elseif spec.kind == 'range' then
+        opt.min, opt.max, opt.step, opt.defaultValue = spec.min, spec.max, math.floor(spec.step), spec.default
+    else
+        opt.buttonText, opt.textSize = spec.text, textSize(spec.text)
+    end
+    current.sig = spec.sig
+    syncValue(current, spec)
+    return true
+end
+
 local function reconcileRows(section, rows)
     local path = sectionPath(section.id)
     for index, spec in ipairs(rows) do
         local current = section.rows[index]
         if current and current.sig == spec.sig then
             syncValue(current, spec)
+        elseif current and retarget(current, spec) then
+            -- updated in place
         else
             if current and current.opt then ns.removeOption(current.opt) end
             section.rows[index] = {sig = spec.sig, id = spec.id, kind = spec.kind, readonly = spec.readonly, opt = addRow(path, spec, index)}
@@ -303,13 +328,23 @@ local function sectionsOf(model)
     return sections
 end
 
+-- A section whose name changed (a new language), while the tab is not on screen: renamed in place, like a row (see retarget).
+local function renameSection(section, name)
+    if live() then return false end
+    local tab = ns.data and ns.data[TAB]
+    local sub = tab and tab.subcategories and tab.subcategories[section.id]
+    if not sub then return false end
+    sub.label, section.name = name, name
+    return true
+end
+
 local function reconcile(sections)
     -- The sections the tab and the page have in common, from the first. The first section is always common (the way back), so
     -- sections are only ever removed from the end: Native Settings UI leaves a hole in its list when it removes one from the
     -- middle.
     local common = 0
     while common < #rendered and common < #sections and rendered[common + 1].id == sections[common + 1].id
-        and rendered[common + 1].name == sections[common + 1].name do
+        and (rendered[common + 1].name == sections[common + 1].name or renameSection(rendered[common + 1], sections[common + 1].name)) do
         common = common + 1
     end
     for index = #rendered, common + 1, -1 do
@@ -560,7 +595,7 @@ local function tabIndex()
     return nil
 end
 
-local function live() return ns ~= nil and ns.currentTab == TAB end
+function live() return ns ~= nil and ns.currentTab == TAB end
 
 -- The screen opens on the first page, with a page built from what is true now.
 local function prepare()
@@ -614,21 +649,43 @@ local function installHooks()
     if not ok then log('Manager: could not watch the Settings screen: ' .. tostring(problem)) end
 end
 
--- Whether another host has the page (Mod Configuration Menu 0.10.5 or newer registered it). The tab of this host is then not registered:
--- Mod Configuration Menu would list it a second time through its Native Settings UI bridge, and Native Settings UI cannot remove a
--- tab once it is added. Hosts are installed (and so detected) before this runs at CET's onInit, where every mod is already loaded.
-local function otherHostReady()
+-- Whether another host has the page (Mod Configuration Menu 0.10.5 or newer registered it). The rule: with that MCM installed the page
+-- is MCM's alone and this host's tab does not exist. It is not registered (MCM would list it a second time through its Native Settings
+-- UI bridge, a mirror whose option handles a tab that changes can invalidate), and a tab registered before MCM was found is taken
+-- down (retire). Hosts are installed (and so detected) before this runs at CET's onInit, where every mod is already loaded.
+local function hostFlag(name)
     for _, host in ipairs(hosts) do
-        local ok, ready = pcall(host.ready)
-        if ok and ready then return true end
+        if type(host[name]) == 'function' then
+            local ok, answer = pcall(host[name])
+            if ok and answer then return true end
+        end
     end
     return false
 end
+local function otherHostReady() return hostFlag('ready') end
 
--- `force`: register the tab although another host has the page (the shortcut could not open that host and falls back to this one).
+local mirrorSaid = false   -- the mirror situation is logged once per session
+local function sayMirror(text)
+    if mirrorSaid then return end
+    mirrorSaid = true
+    log('Companion Manager: ' .. text)
+end
+
+-- An MCM is installed but has not said yet whether it can host the page (it is there, not registered, and not a version older than
+-- 0.10.5, which never will): the tab waits for it for SETTLE seconds (looked at once a second, never per frame).
+local SETTLE = 10
+local settleAt = 0
+local function otherHostPending() return os.clock() < settleAt and hostFlag('pending') end
+
+-- `force`: the shortcut found no host able to open the page: do not wait for an MCM that is still being looked for. A host that is
+-- ready (MCM 0.10.5 or newer registered the page) is never overridden.
 local function connect(force)
     if ns then return true end
-    if not force and otherHostReady() then return false end
+    if otherHostReady() then
+        if nativeSettings() then sayMirror('Mod Configuration Menu hosts the page, so the Native Settings UI tab is not registered.') end
+        return false
+    end
+    if not force and otherHostPending() then return false end
     local found = nativeSettings()
     if not found then return false end
     entry = entry or newEntry()
@@ -645,6 +702,25 @@ local function connect(force)
     installHooks()
     renderSafe()
     log('Companion Manager registered with Native Settings UI ' .. tostring(found.version))
+    if hostFlag('present') then
+        sayMirror('Mod Configuration Menu is installed but cannot host the page, so it lists the Native Settings UI tab; the tab keeps its options in place.')
+    end
+    return true
+end
+
+-- Mod Configuration Menu 0.10.5 or newer was found after the tab was registered: the tab goes (the rule above). Native Settings UI
+-- has no call to remove a tab, so its sections go through its own removeSubcategory and the empty tab is dropped from its registry
+-- (the table `data` that Native Settings UI documents and this module already reads). Not while the tab is on screen: it waits.
+local function retire()
+    if not ns or live() then return false end
+    pcall(clearTab)
+    local registry = ns.data
+    if type(registry) == 'table' then registry[TAB] = nil end
+    pending, flushAt, flushFirst, rebuildAt, presses = {}, nil, nil, nil, {}
+    wasLive, closedFlag = false, false
+    if entry then entry.reset() end
+    ns = nil
+    sayMirror('Mod Configuration Menu hosts the page; the Native Settings UI tab registered before it was found is removed.')
     return true
 end
 
@@ -676,6 +752,7 @@ end
 -- once-a-second look in update.
 function M.install()
     connectAt = os.time() + 1
+    settleAt = os.clock() + SETTLE
     eachHost('install')
     return connect()
 end
@@ -699,14 +776,12 @@ end
 function M.open()
     for _, host in ipairs(hosts) do
         if host.ready() then
-            local ok, opened, reason, gameState = pcall(host.open)
+            local ok, opened, reason = pcall(host.open)
             if ok and opened then return true end
             if not ok then reason = tostring(opened) end
-            -- A refusal by the game (no save loaded, a scene) is the answer; any other failure leaves Native Settings UI's walk.
-            if ok and gameState then return false, reason end
-            if not ns then connect(true) end
-            if not ns then return false, reason end
-            break
+            -- MCM hosts the page, so the page is MCM's alone: the reason is the answer (a refusal by the game, such as no save
+            -- loaded or a scene, or MCM not opening the page), and no Native Settings UI tab is registered as a way around it.
+            return false, reason
         end
     end
     if not ns then connect(true) end
@@ -725,6 +800,11 @@ function M.update(player, worldReady)
     if not ns then
         if os.time() >= connectAt then connectAt = os.time() + 1; connect() end
         return
+    end
+    -- Once a second: an MCM that hosts the page appeared after the tab was registered (it loaded late).
+    if os.time() >= connectAt then
+        connectAt = os.time() + 1
+        if otherHostReady() and retire() then return end
     end
     entry.update()
     if presses[1] then runPresses() end

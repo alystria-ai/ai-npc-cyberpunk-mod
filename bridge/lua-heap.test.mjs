@@ -148,8 +148,8 @@ test('init.lua: the developer mailbox sends lua-heap requests to the report, a g
   const mailbox = initSource.indexOf("nonce:find('^lua%-heap:')");
   assert(mailbox > 0, 'the mailbox has no lua-heap branch');
   assert.match(initSource.slice(mailbox, mailbox + 120), /pcall\(convaiLuaHeapReport, nonce\)/);
-  assert(initSource.includes("elseif nonce:find('^notice:') then pcall(speech.devNotice, nonce) else captureDiagnostic() end"),
-    'notices and every other request are dispatched as before');
+  assert(/elseif nonce:find\('\^notice:'\) then pcall\(speech\.devNotice, nonce\)\s+elseif nonce:find\('\^johnny%-probe:'\) then pcall\(convaiJohnnyProbeRun, nonce\)\s+else captureDiagnostic\(\) end/.test(initSource),
+    'notices, the Johnny probes and every other request are dispatched as before');
   const definition = initSource.indexOf('convaiLuaHeapReport = function(nonce)');
   const onUpdate = initSource.indexOf("registerForEvent('onUpdate'");
   assert(definition > 0 && onUpdate > 0 && definition < onUpdate, 'the report must be a file-level global, not an onUpdate upvalue');

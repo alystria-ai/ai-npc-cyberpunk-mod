@@ -158,9 +158,11 @@ export const managerFixture = `
 //             built in that language (convaiUiLocale.configure(code) then picks it)
 //   mcm       an object {version, noUi, renderer} installs the fake Mod Configuration Menu (bridge/mcm-fake.mjs) as `mcm`, answering
 //             GetMod('ModConfigurationMenuAPI'); null (the default) leaves it out. The MCM host (mod/mcm-host.lua) is attached either way.
+//   hideMcm   true: GetMod does not answer for MCM until the test sets mcmHidden = false (MCM loads after this mod)
+//   earlyClock true: os.clock reads 1000 from the start, so the host's waits (set at install) run on the test's own clock
 //   screen    false: the Mods screen is not opened; true (the default) opens it on the manager's tab, as the old harness had the
 //             page shown: it is then kept up to date and read once a second (a test that wants it closed calls ns.closeScreen())
-export function nsuiHarness({modules = {}, absent = [], nsui = true, screen = true, locale = null, mcm = null} = {}) {
+export function nsuiHarness({modules = {}, absent = [], nsui = true, screen = true, locale = null, mcm = null, hideMcm = false, earlyClock = false} = {}) {
   const luaOptions = value => '{' + Object.entries(value ?? {}).map(([key, item]) => `${key} = ${typeof item === 'string' ? JSON.stringify(item) : item}`).join(', ') + '}';
   const lines = [];
   if (locale) lines.push(`    if path == 'locales/${locale}.lua' then return (function() ${readFileSync(new URL(`../mod/locales/${locale}.lua`, import.meta.url), 'utf8')} end)() end`);
@@ -179,12 +181,14 @@ ${lines.join('\n')}
     return originalDofile(path)
   end
   manager.configure(api, profiles)
+  ${earlyClock ? "os.clock = function() return 1000 end" : ""}
   ${nativeSettingsFake}
   ${mcm ? mcmFake + `
   local mcm = newMcm(${luaOptions(mcm)})` : 'local mcm = nil'}
   local nsGetMod = GetMod
+  local mcmHidden = ${hideMcm}
   GetMod = function(name)
-    if name == 'ModConfigurationMenuAPI' then return mcm and mcm.api or nil end
+    if name == 'ModConfigurationMenuAPI' then if mcmHidden then return nil end return mcm and mcm.api or nil end
     if ${nsui} then return nsGetMod(name) end
     return nil
   end

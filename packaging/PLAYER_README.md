@@ -7,13 +7,12 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - **The manager is back in Mod Configuration Menu**: with Mod Configuration Menu 0.10.5 or newer the Companion Manager is a page of its own there (Esc, Mods, or your manager shortcut). Native Settings UI works as the other choice. Both show the same settings.
 - **V speaks your typed lines sooner**: V's voice is prepared ahead, so a line you type is heard in V's own voice before the reply.
 - **Your own AI service**: a new conversation provider, **Custom**, works with any OpenAI-compatible service: OpenRouter, Nano-GPT, or Ollama or LM Studio on your own PC. Set it up in Settings > Conversation provider and press Test connection.
-- **Voice clips for characters**: in the character editor, give a story character or a character you made a voice of their own from a short recording. Pocket, OmniVoice and Voxtral copy it from the next start.
+- **Voice clips for characters**: in the character editor, give a story character or a character you made a voice of their own from a short recording. Pocket, OmniVoice and Voxtral copy it, from that character's next line: no restart.
 - **Make your own characters**: create and edit characters of your own in the editor, with a profile, a way of speaking and memories.
-- **The microphone in other languages**: with Mistral, speak in your own language and it is understood. English stays on the fast local path.
+- **The microphone in other languages**: with Mistral, speak in your own language and it is understood. With Local AI or a Custom endpoint, two optional Microphone packs add Russian, Ukrainian, Polish, Czech, Hungarian, German, French, Spanish, Italian, Portuguese, Mandarin Chinese, Japanese and Korean, on your own computer. English stays on the fast local path.
 - **Your own Local AI models survive reinstalls**: put them in `%LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai` and updates, clean installs and mod managers leave them alone.
 - **Local AI fixes**: it starts reliably at launch, loads much faster while the game is running and then steps back so the game stays smooth, says plainly why a reply did not come, and the first turn after loading no longer goes to Convai.
 - **Mod Organizer 2**: the Runtime can be installed as a Mod Organizer 2 mod, and your settings and chats survive a launch.
-- **Make support report.bat** works with the game closed, and checks that the required mods are installed. It is in `red4ext\plugins\AiNpcCyberpunkMod`.
 - **Automatic error reports** (on by default; turn off in Settings > Privacy): when something fails, a short report goes to the developer so it can be fixed without asking you for logs. It leaves out passwords and account details, what you and the characters say, and your microphone audio.
 - **A missing requirement no longer breaks everything**: the scripts compile without Codeware or Audioware and tell you clearly what is missing, and Help has a Setup check.
 - **Faces come back**: a character's face is rebuilt after you change appearance or another mod replaces the model.
@@ -28,6 +27,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - An internet connection while you talk with Convai, Mistral, a cloud Custom endpoint or the Voxtral voice (Local AI, or a Custom server on your own PC, with a local voice needs none)
 - About 3 GB of free disk space (about 15 GB more while installing the optional OmniVoice pack, 9 GB once installed)
 - Optional Local AI packs: about 5.3 GB for standard and about 1.4 GB for lite (about 11 GB free while installing the standard one, which counts the downloaded zip)
+- Optional Microphone packs: about 0.67 GB for the European languages and about 0.24 GB for Chinese (they use no video memory)
 
 RED4ext is needed because it starts the voice service with the game and loads the plugin that comes with the Runtime download.
 
@@ -46,11 +46,23 @@ The optional packs are on the same Hugging Face page, https://huggingface.co/aly
 
 4. **Local AI packs (optional)**: let the characters answer with an AI model that runs on your own graphics card, with no account and no internet connection. There are two, and you can install neither, one or both: **Local AI standard** (Gemma 4 E4B, about 5.3 GB, needs about 6 GB of free video memory) for the best replies, and **Local AI lite** (Bonsai 2 4B, about 1.4 GB, needs about 2 GB of free video memory) for smaller graphics cards. Download https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.2/AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.2.zip and https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.2/AI-NPC-Cyberpunk-Mod-LocalAI-Lite-0.2.2.zip (one or both) and extract each. Each pack includes the engine and the memory model it needs, so one alone is enough. Then choose Local AI in Settings > Conversation provider. See "Local AI" below to pick a combination.
 
+5. **Microphone packs (optional)**: let you speak to the characters in your own language when the Conversation provider is Local AI or a Custom endpoint. You do not need one for English, and not for other languages with Mistral, which understands them by itself. There are two, and you can install neither, one or both: **European languages** (about 0.67 GB) understands Russian, Ukrainian, Polish, Czech, Hungarian, German, French, Spanish, Italian and Portuguese, and **Asian languages** (about 0.24 GB) understands Mandarin Chinese, Japanese and Korean. Download https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.3/AI-NPC-Cyberpunk-Mod-MicPack-European-0.2.3.zip and https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.3/AI-NPC-Cyberpunk-Mod-MicPack-Asian-0.2.3.zip (one or both) and extract each after the Runtime. There is nothing to switch on: when you speak, the mod uses the pack for the language you have been typing or speaking, or the game's language. A pack is loaded only while you use it, on the processor (not the graphics card), and leaves memory about a minute after your last recording. The very first recording after installing can take a minute while Windows checks the new file; later ones start in a few seconds. The words appear once you press the voice shortcut again, not while you speak. The packs are used under their own licences, see the notice inside each zip.
+
 Start the game. The first start after installing takes a little longer while the voice service prepares itself.
 
 If Windows reports an error while extracting, use 7-Zip (https://www.7-zip.org) instead of the built-in extractor.
 
 If an optional pack ended up in a folder of its own named after the zip, the mod moves the pack's files into place at the next start. The Scripts and Runtime are not moved: extract those again, into the Cyberpunk 2077 folder itself.
+
+## What companions can do
+
+Invite someone from Companion Manager > Characters to invite. Party members follow you everywhere, sit with you when you sit (couches, benches, bar stools), ride along in your car and fight with you. A few things you just ask for in conversation, in your own words:
+
+- **Drive you somewhere:** set a waypoint on the map and have your car nearby (call it, or stand within 20 m of one of your cars). Ask them to drive, for example "can you drive us to the waypoint?". They walk to the car and take the wheel; get in the passenger seat yourself within a few minutes. Change the waypoint and they follow it. Stop trip in the Companion Manager ends it; fast travel or loading a save does too.
+- **Fight someone:** tag the enemy with your scanner (or look right at them) and tell them to attack. They fight on their own anyway when a fight starts.
+- **Leave:** tell them to go home or leave the party, or use Dismiss in Companion Manager > Current party.
+
+They can't wait, stay or sit on command yet.
 
 ## Local AI
 
@@ -102,7 +114,7 @@ Extra video memory each setup uses on top of the game's own:
 
 With Mistral or Local AI as the Conversation provider, you can give a person who has no profile in the mod (a character spawned by another mod, such as a Night City Allies follower) a name, a bio, a way of speaking and memories. Face the character, open Settings > Edit characters > Open, and choose **New character** in the page that opens in your browser. **Use the character I'm facing** fills in how the game recognises them (their record name or the name the game shows); you can also type those in. Add a gender and a bio, and Save. The next time you talk to them they answer as the person you wrote. An optional voice clip (see below) gives them a voice of their own; without a clip they speak with a generic voice of their gender. With Convai they talk as an ordinary person, and the game says so once. Characters, clips and what they remember stay on your PC, in `%LOCALAPPDATA%\AiNpcCyberpunkMod\data`.
 
-**Voice clips.** You can give a story character, or one of your own characters, a voice clip in the same page: open the character (a story character has a Voice tab), choose **Add voice clip**, pick a WAV, MP3, OGG or FLAC file of 5 to 20 seconds of one person speaking clearly (10 to 18 seconds works best), type the words said in it and choose **Save clip**. Pocket, OmniVoice and Voxtral then copy that voice from the next time the game starts. **Remove clip** brings the original voice back. The clip stays on your PC.
+**Voice clips.** You can give a story character, or one of your own characters, a voice clip in the same page: open the character (a story character has a Voice tab), choose **Add voice clip**, pick a WAV, MP3, OGG or FLAC file of 5 to 20 seconds of one person speaking clearly (10 to 18 seconds works best), type the words said in it and choose **Save clip**. Pocket, OmniVoice and Voxtral then copy that voice from that character's next line, once the current reply is over: you do not restart the game or the service. **Remove clip** brings the original voice back the same way. The clip stays on your PC.
 
 **Story characters.** The game's own story characters, such as Judy or Jackie, answer where they stand in their own voice, and their face follows what they say, once you turn it on (Settings > Conversations > Talk to story characters, off by default; reload your save after switching it). Nothing else about them changes.
 
@@ -139,6 +151,6 @@ AI NPC Cyberpunk Mod is released under the AI NPC Cyberpunk Mod Use License (see
 
 Open Settings > Help > Help and support in game. It shows the service status and can create a report to share when asking for help. Generate report saves it in `%LOCALAPPDATA%\AiNpcCyberpunkMod\reports`. If the conversation service is not running, it writes a shorter report at once instead: `runtime\convai-report-lua.txt` in the mod folder (`bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod`). If the service row says "Needs a browser", install a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera, then restart the game.
 
-The mod does not load, or the manager will not open? Close the game and double-click `Make support report.bat` in `red4ext\plugins\AiNpcCyberpunkMod`. Its window lists what is missing, for example a required mod or a folder the zip was extracted into by mistake. It saves one report with the game closed and opens its folder: send that file. With Mod Organizer 2, start it from MO2 (add it under Executables).
+The mod does not load, or the manager will not open? Post what you see (a screenshot helps) on the mod's Nexus Posts tab or on Discord.
 
 Known issue: if V keeps walking in one direction after you type a message, tap that direction (W, A, S or D) once.

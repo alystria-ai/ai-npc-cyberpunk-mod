@@ -322,12 +322,40 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/world-talk.lua"
         },
         {
+          "source": "mod/v-talks.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/v-talks.lua"
+        },
+        {
           "source": "mod/johnny-head.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/johnny-head.lua"
         },
         {
           "source": "mod/johnny-remarks.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/johnny-remarks.lua"
+        },
+        {
+          "source": "mod/johnny-probe.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/johnny-probe.lua"
+        },
+        {
+          "source": "mod/johnny-hologram.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/johnny-hologram.lua"
+        },
+        {
+          "source": "mod/johnny-hologram-probe.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/johnny-hologram-probe.lua"
+        },
+        {
+          "source": "mod/johnny-relic.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/johnny-relic.lua"
+        },
+        {
+          "source": "mod/johnny-relic-probe.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/johnny-relic-probe.lua"
+        },
+        {
+          "source": "mod/combat-feats-probe.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/combat-feats-probe.lua"
         },
         {
           "source": "mod/talk-target.lua",
@@ -643,6 +671,7 @@
             "bridge/key-codec.mjs",
             "bridge/knowledge-decisions.mjs",
             "bridge/knowledge-parts.mjs",
+            "bridge/live-voices.mjs",
             "bridge/local-ai-pack.mjs",
             "bridge/local-embed.mjs",
             "bridge/local-llm-server.mjs",
@@ -702,6 +731,7 @@
             "bridge/resident-phone-analysis.mjs",
             "bridge/resident-voice.mjs",
             "bridge/romance-context.mjs",
+            "bridge/runtime-files.mjs",
             "bridge/runtime-paths.mjs",
             "bridge/setup-check.mjs",
             "bridge/shared-key-guard.mjs",
@@ -721,6 +751,7 @@
             "bridge/turn-clock.mjs",
             "bridge/turn-context.mjs",
             "bridge/v-helper-voice.mjs",
+            "bridge/v-talks.mjs",
             "bridge/v-voice.mjs",
             "bridge/vendor-memory.mjs",
             "bridge/vision-capture.mjs",
@@ -749,9 +780,8 @@
             "bridge/phone-analysis-worker.py",
             "bridge/local-stt-worker.py",
             "bridge/audio-output-probe.ps1",
-            "bridge/make-support-report.mjs",
-            "bridge/offline-support-report.mjs",
-            "bridge/error-reports.mjs"
+            "bridge/error-reports.mjs",
+            "bridge/report-secrets.mjs"
           ]
         },
         {
@@ -830,15 +860,6 @@
           ]
         },
         {
-          "id": "support-report",
-          "destination": "red4ext/plugins/AiNpcCyberpunkMod",
-          "sourceFiles": [
-            "packaging/Make support report.bat"
-          ],
-          "selection": "the double-click tool that makes a support report with the game closed; it starts app/node/node.exe on app/bridge/make-support-report.mjs (listed in the bridge component above), and the builder writes it with CRLF line ends",
-          "status": "source-and-fixture-tested"
-        },
-        {
           "id": "public-catalog",
           "destination": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/app/characters",
           "source": "build-generated",
@@ -901,6 +922,7 @@
       "aaron",
       "adam-smasher",
       "alan-noel",
+      "albert-murphy",
       "alex",
       "alt-cunningham",
       "ana-friedman",
@@ -909,6 +931,7 @@
       "anthony-gilchrist",
       "arthur-jenkins",
       "aurore-cassel",
+      "aymeric-cassel",
       "babs-okoye",
       "bill-mitchell",
       "blue-moon",
@@ -916,7 +939,9 @@
       "bree-whitney",
       "brendan",
       "briana-dolson",
+      "brick",
       "bryce-mosley",
+      "carl-robinson",
       "carol-emeka",
       "cassidy-righter",
       "chang-hoon-nam",
@@ -930,13 +955,16 @@
       "denny",
       "dexter-deshawn",
       "dino-dinovic",
+      "doctor-paradox",
       "dum-dum",
       "edgar-tool",
       "elizabeth-peralez",
       "evelyn-parker",
+      "farida-nazeri",
       "fingers",
       "frank-nostra",
       "garry-the-prophet",
+      "grayson",
       "hanako-arasaka",
       "henry",
       "iris-tanner",
@@ -953,14 +981,18 @@
       "judy-alvarez",
       "kerry-eurodyne",
       "kurt-hansen",
+      "leon-rinder",
       "liam-northom",
       "life-coach",
       "lina-malina",
       "lizzy-wizzy",
       "lucy-kushinada",
+      "lucy-thackery",
       "maiko-maeda",
       "mama-welles",
       "mark-bana",
+      "mateo-thiago",
+      "max-jones",
       "meredith-stout",
       "misty-olszewski",
       "mitch-anderson",
@@ -974,6 +1006,7 @@
       "paco-torres",
       "padre-ibarra",
       "panam-palmer",
+      "patricia",
       "pepe-najarro",
       "placide",
       "r3n0",
@@ -993,18 +1026,21 @@
       "solomon-reed",
       "songbird",
       "spider-murphy",
+      "steve",
       "steven-santos",
       "t-bug",
       "takemura",
       "teddy",
       "thompson",
+      "tiny-mike",
       "viktor-vektor",
       "voodoo-queen",
       "wakako-okada",
       "weyland",
       "wilky-laguerre",
       "woodman",
-      "yorinobu-arasaka"
+      "yorinobu-arasaka",
+      "ziggy-q"
     ],
     "residentWhileSelected": true,
     "convaiAllUnloadsLocalModel": true,
@@ -1016,14 +1052,14 @@
     "registry": {
       "schemaVersion": 2,
       "sharedModel": true,
-      "profileLimit": 128,
+      "profileLimit": 1024,
       "preparation": "lazy",
       "startupProfilesLimit": 3,
       "maxCachedProfiles": 8,
       "additionalProfileStatus": "source-qualified activation; listening not required by user",
       "sourceQualifiedActivation": true,
       "subjectiveListeningRequired": false,
-      "preparedLocalProfiles": 108,
+      "preparedLocalProfiles": 123,
       "fallbackProfiles": 2
     },
     "startupProfiles": [

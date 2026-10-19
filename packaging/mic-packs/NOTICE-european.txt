@@ -1,0 +1,10 @@
+AI NPC Cyberpunk Mod - MicPack-European (voice input for European languages)
+
+NVIDIA Parakeet TDT 0.6B v3 (nvidia/parakeet-tdt-0.6b-v3), speech recognition for 25 European languages.
+Copyright (c) NVIDIA Corporation. Licensed under the Creative Commons Attribution 4.0 International licence
+(CC-BY-4.0): https://creativecommons.org/licenses/by/4.0/ . Model card:
+https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3 . Changes: the model was converted to ONNX and quantised to
+int8 by the k2-fsa sherpa-onnx project (https://github.com/k2-fsa/sherpa-onnx, Apache-2.0), file set
+sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8, and is run through sherpa-onnx. AI NPC Cyberpunk Mod uses it only
+to turn the player's own speech into text on the player's computer. NVIDIA does not endorse this mod. The
+mod's own licence: see LICENSE-mod.txt in this folder.

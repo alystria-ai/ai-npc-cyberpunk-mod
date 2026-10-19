@@ -51,6 +51,7 @@ import {variantSeed} from './voice-variants.mjs';
 import {NaturalSpeech, OMNI_TAGS, omniTagsFor, speechPhrases} from './natural-speech.mjs';
 import {FollowUp} from './follow-up.mjs';
 import {VVoice, loadVVoiceReferences, extraVoices} from './v-voice.mjs';
+import {VTalkLedger} from './v-talks.mjs';
 import {MatureContent} from './mature-content.mjs';
 import {warmMatureGuard} from './mature-guard.mjs';
 import {detectMaturePack} from './mature-pack.mjs';
@@ -70,11 +71,13 @@ import {VendorMemory, vendorMemoryKey} from './vendor-memory.mjs';
 import {PlayerMemoryApi} from './player-memory-api.mjs';
 import {PlayerMemoryControl} from './player-memory-control.mjs';
 import {SupportReportControl} from './support-report.mjs';
-import {ErrorEvents, installCrashCapture} from './error-events.mjs';
+import {ErrorEvents, eventFromError, installCrashCapture} from './error-events.mjs';
+import {endIfIncomplete, installFileErrorGuard, readRequiredJson} from './runtime-files.mjs';
 import {SetupCheckControl, cachedBrowserName, cachedGraphicsCards, cachedModManagers, collectSetupCheck, findNestedPacks, readPackPlacement} from './setup-check.mjs';
 import {CharacterOverrides} from './character-overrides.mjs';
 import {CustomCharacters, isCustomKey, rosterIndex, releaseVoiceFiles} from './custom-characters.mjs';
 import {PlayerVoices, PLAYER_PREPARED_FOLDER, releasePreparedSlots} from './player-voices.mjs';
+import {LiveVoices, shippedVoicesReader, voicesOf} from './live-voices.mjs';
 import {CharacterEditor} from './character-editor.mjs';
 import {EditorServer} from './character-editor-server.mjs';
 import {EditorControl} from './character-editor-control.mjs';
@@ -110,7 +113,7 @@ import {LlamaEmbedder} from './local-embed.mjs';
 import {watchFiles, createWakeSignal, mergeHandlers} from './file-wake.mjs';
 import {GameStateSync} from './game-state.mjs';
 const leaseWake = createWakeSignal();
-import {PersonaBook, joinBlocks} from './mistral-prompt.mjs';
+import {PersonaBook, joinBlocks, worldBlocksInCacheOrder} from './mistral-prompt.mjs';
 import {LocalStt} from './local-stt.mjs';
 import {SpeechLanguage, LOCAL_PACKS, planRecording} from './speech-language.mjs';
 import {VoxtralStt} from './voxtral-stt.mjs';
@@ -127,6 +130,11 @@ const runtime = resolve(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyb
 // An uncaught exception or unhandled rejection is written down as the process ends (how it ends does not change); a failed turn that is
 // not the player's own doing and the setup check's problems are recorded after the fact, never on a turn's path. Off with the setting.
 installCrashCapture({stateDirectory, runtime});
+// A file read that nobody waits for and that fails because the folder changed under it (ENOENT, EPERM, EBUSY, ...) never ends the service
+// (bridge/runtime-files.mjs); any other unhandled rejection is the crash it always was. The data files the bridge reads at its start are
+// different: without one it cannot work, so `requiredJson` ends it at once with one plain line (the supervisor shows "Runtime incomplete").
+installFileErrorGuard({record: error => { try { errorEvents.record({...eventFromError(error, 'bridge-rejection'), detail: {handled: true}}); } catch {} }});
+const requiredJson = name => readRequiredJson(project, name).catch(endIfIncomplete);
 const errorEvents = new ErrorEvents({stateDirectory, runtime});
 const noteSetupProblems = document => { try { if (document) errorEvents.setupChecked(document); } catch { /* never fails start-up */ } };
 const keyFile = process.env.CYBERPUNK_CONVAI_KEY_FILE || resolve(stateDirectory, 'convai-key.txt');
@@ -136,7 +144,7 @@ const gameStateFolder = process.env.CYBERPUNK_CONVAI_GAME_STATE;
 const gameState = gameStateFolder ? new GameStateSync({runtime, durable: resolve(gameStateFolder), log: message => console.error('[GameState] ' + message)}) : null;
 // Named characters, then the generic NPC archetypes (docs/NPC_ARCHETYPES.md). The archetype roster is optional:
 // without it (or without their IDs in characters.json) unnamed NPCs simply have no profile.
-const roster = [...JSON.parse(await readFile(resolve(project, 'characters/roster.json'), 'utf8')),
+const roster = [...await requiredJson('characters/roster.json'),
   ...JSON.parse(await readFile(resolve(project, 'characters/archetype-roster.json'), 'utf8').catch(error => {
     if (error.code === 'ENOENT') return '[]';
     throw error;
@@ -149,9 +157,17 @@ addonHost.extend(roster, ids);
 addonHost.characterLookup = rosterLookup(roster);
 // Voice clips players give characters in the editor (docs/CHARACTER_EDITOR.md, "Voice clips"; bridge/player-voices.mjs): kept in the data folder
 // (<state>/player-voices/<key>.wav and player-voices.json), opened before the voice configurations are built so each clip is merged over the
-// shipped voice of its character. A removed clip's Voxtral slot (<state>/player-voices-prepared) goes with it.
+// shipped voice of its character. A removed clip's Voxtral slot (<state>/player-voices-prepared) goes with it. A clip saved or removed while the
+// service runs reaches the running voices through `liveVoices` (created below, once the voice configurations exist), with no restart.
+let liveVoices = null;
 const playerVoices = await PlayerVoices.open({dir: stateDirectory, log: message => console.error('[PlayerVoices] ' + message),
-  onRemoved: key => releasePreparedSlots({folder: resolve(stateDirectory, PLAYER_PREPARED_FOLDER), key})});
+  onRemoved: key => releasePreparedSlots({folder: resolve(stateDirectory, PLAYER_PREPARED_FOLDER), key}),
+  onChanged: key => {
+    // A replaced clip's Voxtral slot goes too (a slot is named by its clip's hash, so a stale one is never used, but it is not left lying around).
+    void releasePreparedSlots({folder: resolve(stateDirectory, PLAYER_PREPARED_FOLDER), key}).catch(() => {});
+    return liveVoices?.refresh(key).catch(error => console.error('[PlayerVoices] the voices did not follow the change: ' + (error?.message ?? 'error')));
+  }});
+console.error(`[PlayerVoices] voice clips and their list are kept in ${playerVoices.folder} and ${playerVoices.indexPath}`);
 // Characters the player made (docs/CHARACTER_EDITOR.md, "Your own characters"): opened here, before the voice configurations are built. Their rows
 // join the roster array (profileFor and the other lookups by key); the list the game reads is runtime/custom-characters.json. They never have a
 // Convai character: runCustomTurn answers them. Deleting one removes its voice clip and its prepared voice setups.
@@ -161,6 +177,8 @@ const customCharacters = await CustomCharacters.open({dir: stateDirectory, excha
 function syncCustomRoster() {
   for (let at = roster.length - 1; at >= 0; at--) if (roster[at]?.kind === 'custom') roster.splice(at, 1);
   roster.push(...customCharacters.rosterRows());
+  // The add-ons' name lookup was built from the roster the first time it was asked: a character made or renamed in the editor must be in it.
+  addonHost.characterLookup?.reset?.();
 }
 syncCustomRoster();
 // runtime/relationship-profiles.json (the retired alternate affectionate profiles) is no longer read: every character has one profile.
@@ -185,13 +203,14 @@ const vVoiceReferences = await loadVVoiceReferences([...referenceRoots.map(root 
 // The player's voice clips (a story character's, or one of their own characters') join the configurations like V's voices, with three differences:
 // they are never copied (the workers read them from <state>/player-voices, named runtime/player-voices/<key>.wav), a clip replaces the shipped voice
 // of its character, and it is taken out of the startup preparation, so nothing is prepared or loaded before that character speaks. A clip given or
-// removed while the service runs counts from the next start; until then a character keeps the voice it had (a custom character with no clip: the
-// voice of its gender, aliases below). Only story characters and the player's existing characters may have one; a clip of a character the player
+// removed while the service runs counts from that character's next line (LiveVoices, below); a custom character with no clip speaks with the
+// voice of its gender (aliases below). Only story characters and the player's existing characters may have one; a clip of a character the player
 // deleted is removed here.
 const playerVoiceAllowed = key => isCustomKey(key) ? customCharacters.has(key) : roster.some(row => row?.key === key && row.kind === 'named');
 await playerVoices.prune(key => !isCustomKey(key) || customCharacters.has(key));
 const playerVoiceExtras = await playerVoices.extras(playerVoiceAllowed);
-const voiceConfigPaths = await addonHost.voiceConfigPaths(resolveVoiceConfigPaths(stateDirectory), {stateDirectory,
+const originalVoiceConfigPaths = resolveVoiceConfigPaths(stateDirectory);
+const voiceConfigPaths = await addonHost.voiceConfigPaths(originalVoiceConfigPaths, {stateDirectory,
   roots: referenceRoots, extra: extraVoices(vVoiceReferences).concat(playerVoiceExtras), playerVoiceDirectory: playerVoices.folder});
 for (const warning of voiceConfigPaths.warnings) console.error('[CyberpunkConvai] Voice configuration: ' + warning);
 const readVoiceConfig = async path => JSON.parse(await readFile(path, 'utf8').catch(error => {
@@ -201,6 +220,10 @@ const readVoiceConfig = async path => JSON.parse(await readFile(path, 'utf8').ca
 const localVoiceConfigPath = voiceConfigPaths.pocket;
 const voiceConfig = await readVoiceConfig(localVoiceConfigPath);
 const omniVoiceConfigs = {short: await readVoiceConfig(voiceConfigPaths.omni.short), long: await readVoiceConfig(voiceConfigPaths.omni.long)};
+liveVoices = new LiveVoices({players: playerVoices, allowed: playerVoiceAllowed, folder: playerVoices.folder,
+  voices: {pocket: voicesOf(voiceConfig), short: voicesOf(omniVoiceConfigs.short), long: voicesOf(omniVoiceConfigs.long)},
+  shipped: shippedVoicesReader(originalVoiceConfigPaths), log: message => console.error('[PlayerVoices] ' + message),
+  apply: update => { const applied = localVoice.setVoices(update); if (applied) { dropPrefetch(); prefetchObserved = ''; } return applied; }});
 // What a custom character's voice leaves outside the data folder goes when the character does, and anything no character owns is swept here at
 // start: the prepared setups Pocket saved (<work>/prepared-voices, bridge/prepared-voices.mjs) and copies older builds made under
 // <reference root>/addons/. Nothing else is touched (releaseVoiceFiles names exactly the files it may remove). Voxtral's slots of player clips
@@ -496,8 +519,8 @@ const keyFailure = (error, input) => {
   return errorCode ? {errorCode, ...mistralExtrasFor(error), ...(errorDetail ? {errorDetail} : {})} : {};
 };
 
-const knowledgePack = JSON.parse(await readFile(resolve(project, 'characters/world-knowledge.json'), 'utf8'));
-const questCatalog = JSON.parse(await readFile(resolve(project, 'research/cyberpunk/generated/quest-catalog.json'), 'utf8'));
+const knowledgePack = await requiredJson('characters/world-knowledge.json');
+const questCatalog = await requiredJson('research/cyberpunk/generated/quest-catalog.json');
 const intrinsicHistory = await loadIntrinsicCharacterContext(project);
 if (intrinsicHistory.unavailable.length) console.error('[CyberpunkConvai] Optional intrinsic topic packs unavailable:', intrinsicHistory.unavailable.join(', '));
 // One local player ID is shared across all characters and saves. No save facts,
@@ -645,7 +668,7 @@ const phoneFailures = new PhoneFailureLog({
 const phone = new PhoneChat({
   onFailure: info => phoneFailures.note(info),
   failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return providerFailureCode(PHONE_CODES.has(code) || /^(mistral|local|custom)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? 'local-fallback' : undefined); },
-  contacts: JSON.parse(await readFile(resolve(project, 'characters/phone-contacts.json'), 'utf8')), ids,
+  contacts: await requiredJson('characters/phone-contacts.json'), ids,
   resetFor: profileKey => memoryControl.chatResets.phoneState(profileKey),
   contextFor: options => phoneKnowledge.prepareContext(options),
   contextCurrent: context => phoneKnowledge.current(context),
@@ -830,9 +853,11 @@ const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemo
 const speechLanguage = new SpeechLanguage({readUiFile: () => readFile(resolve(runtime, 'ui-language.txt'), 'utf8')});
 const voxtralStt = new VoxtralStt({getKey: () => { try { return mistral.apiKey ?? null; } catch { return null; } }, onLog: message => process.stderr.write(message)});
 const englishStt = new LocalStt({project, pythonExecutable: voiceConfig.runtime?.pythonExecutable});
-// A pack decodes once per recording (no live words) and is a big model: it leaves memory 60 s after its last recording.
+// A pack decodes once per recording (no live words) and is a big model: it leaves memory 60 s after its last recording. The first load after
+// the files were written reads a 650 MB model that Windows is still scanning: measured 68 s (4.9 s from the second load on), so a load may
+// take 150 s before it counts as failed.
 const packStts = new Map(LOCAL_PACKS.map(pack => [pack.id, new LocalStt({project, pythonExecutable: voiceConfig.runtime?.pythonExecutable, engine: pack,
-  partials: false, pausePartials: false, idleMs: 60_000, startupMs: 60_000, finishMs: 30_000})]));
+  partials: false, pausePartials: false, idleMs: 60_000, startupMs: 150_000, finishMs: 30_000})]));
 const installedPackIds = () => LOCAL_PACKS.filter(pack => packStts.get(pack.id).available()).map(pack => pack.id);
 async function routeRecording() {
   const {language, source} = await speechLanguage.current();
@@ -1083,6 +1108,9 @@ const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console
       void measure(input, {vVoice: summary}).catch(() => {});
     } catch { /* a log line never affects a reply */ }
   }});
+// V talks on their own (bridge/v-talks.mjs, docs/V_TALKS.md): the lines of an exchange between its two parts, so the second part's companion
+// hears what was said in the first. In memory only, a few at a time.
+const vTalkLedger = new VTalkLedger();
 // A returning shopkeeper's memory of V (bridge/vendor-memory.mjs): only private text/voice turns of a one-shop vendor.
 const vendorMemoryContext = prepared => {
   const key = vendorMemoryKey(prepared);
@@ -1117,9 +1145,14 @@ const joinedContext = blocks => blocks.map(item => item.text).filter(Boolean).jo
 const conversationContext = input => joinedContext(conversationBlocks(input));
 // {now, notes, world, volatile} for the text providers' prompt layout; only built while one of them answers.
 // `worldBlocks` lists the world blocks one by one (with their keys) so a small context can cut them in order of priority.
-const contextPartsOf = blocks => ({...Object.fromEntries(['now', 'notes', 'world', 'volatile']
-  .map(tier => [tier, joinBlocks(blocks.filter(item => item.tier === tier).map(item => item.text))])),
-  worldBlocks: blocks.filter(item => item.tier === 'world' && item.text).map(item => ({key: item.key, text: item.text}))});
+// The world blocks go in the order a prefix cache wants (worldBlocksInCacheOrder): the world facts that follow V's words come after the blocks
+// that only change on game events, so a turn re-reads the facts and not the whole world block.
+const contextPartsOf = blocks => {
+  const world = worldBlocksInCacheOrder(blocks.filter(item => item.tier === 'world'));
+  return {...Object.fromEntries(['now', 'notes', 'volatile'].map(tier => [tier, joinBlocks(blocks.filter(item => item.tier === tier).map(item => item.text))])),
+    world: joinBlocks(world.map(item => item.text)),
+    worldBlocks: world.filter(item => item.text).map(item => ({key: item.key, text: item.text}))};
+};
 const textProviderContext = input => {
   noteTurn(input);
   const blocks = conversationBlocks(input);
@@ -1206,12 +1239,17 @@ const nearbyWarm = new NearbyWarm({connections, isKnown: profile => Object.hasOw
 // held back for this: OmniVoice's voice preparation and the local AI's persona prefill. Both are best effort and never throw; both are
 // idempotent (a prepared voice answers at once, a cached persona prefix costs a short prefill). `persona: false` is for a turn that has
 // already begun: its own request is about to take the local server's one slot, and a prefill in front of it would only delay it.
+// The local server has ONE slot and a newer persona warm-up stops an older one for another character (LocalLlmServer.prewarm / preempt), so
+// only the first character named (the one who answers first) gets its persona read; a group's other speakers are prepared when their turn
+// comes. Voices are all prepared: they are separate worker renders, not the model's slot.
 function warmTalkTargets(profileKeys, {persona = true} = {}) {
   if (stopped || !Array.isArray(profileKeys)) return;
+  let personaDone = false;
   for (const key of new Set(profileKeys)) {
     if (typeof key !== 'string' || !Object.hasOwn(ids, key)) continue;
     if (localVoice.preparesOnGpu && localVoice.usesProfile(key)) void localVoice.prepareProfile(key).catch(() => {});
-    if (persona && mistral.active && mistral.route === 'local') {
+    if (persona && !personaDone && mistral.active && mistral.route === 'local') {
+      personaDone = true;
       const profile = profileFor({profileKey: key}, roster);
       if (profile) void mistralHost.prewarm({local: {profileKey: key, name: profile.name}}).catch(() => {});
     }
@@ -2277,7 +2315,7 @@ async function tick() {
     if (requestFileEmpty(raw)) { observedIdentity = stampIdentity; return; }
     const signature = `${stamp.mtimeMs}:${stamp.size}:${raw}`;
     if (signature === observed) { observedIdentity = stampIdentity; return; }
-    const input = parseInput(raw);
+    const input = vTalkLedger.attach(parseInput(raw));
     if (!input) {
       // The game rewrites this file in place, so a read can land in the middle of the write. A partial read is not a
       // finished request, a cancel or an error: it is read again on the next poll, and its identity (size, time) is not
@@ -2603,7 +2641,20 @@ async function runInput(request, prepared, clock) {
     vVoice.noteGender(input);
     let vLine = null;
     current.vLine = () => vLine;
-    if (!ahead) vLine = vVoice.start(input, {signal: controller.signal, clock});
+    if (input.reaction?.kind === 'vtalk') {
+      // V talks on their own (docs/V_TALKS.md): V's line is the turn. The allowance is asked first, so a refused exchange never has V speak
+      // to no answer (a daily cap or a rate limit throws here and the exchange just stops, as a reaction does). A line that cannot be
+      // spoken now (no voice ready, no clip, another language) ends the exchange here, quietly and without a model request: a companion
+      // would answer a line nobody heard. The second part also needs the first part's lines (the ledger lost them on a restart).
+      if (!mistral.active) hostGuard.check({reaction: input.reaction});
+      vLine = input.reaction.step > 1 && !input.reaction.heard ? null : vVoice.start(input, {signal: controller.signal, clock});
+      if (!vLine) {
+        console.error(`[VTalks] profile=${input.profileKey} exchange=${input.reaction.exchange} step=${input.reaction.step}: not started, V's line cannot be spoken now`);
+        await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
+          error: 'V cannot speak this line now.', errorCode: 'vtalk-silent'}), {signal: controller.signal, isCurrent: current, isCurrentSync: current.sync});
+        return;
+      }
+    } else if (!ahead) vLine = vVoice.start(input, {signal: controller.signal, clock});
     knowledgeTurn = await knowledgeRouter.prepare(input, {worldToken: worldSession?.token, generation: worldSession?.generation});
     stages.knowledgePreparedMs = performance.now() - preparationStarted;
     clock.mark('knowledge');
@@ -2656,6 +2707,10 @@ async function runInput(request, prepared, clock) {
     if (ahead) { ahead.markReady(); await ahead.waitClaimed(controller.signal); }
     // Do not show a late reply to a different target or a newer turn.
     if (!await current()) return;
+    // The first part's lines are kept for the second part's companion; the last part closes the exchange.
+    if (input.reaction?.kind === 'vtalk') {
+      if (input.reaction.step < input.reaction.steps) vTalkLedger.remember(input, result.text); else vTalkLedger.forget(input.reaction.exchange);
+    }
     if (!result.liveDelivery?.generated) {
       await knowledgeRouter.activity(knowledgeTurn, 'generated-reply', {replyText: result.text});
       stagedKnowledgeTurn(knowledgeTurn, {replyText: result.text});
@@ -2879,7 +2934,7 @@ const initial = await stat(inputPath).catch(() => null);
 if (initial) {
   const raw = await readFile(inputPath, 'utf8');
   observed = `${initial.mtimeMs}:${initial.size}:${raw}`; observedIdentity = fileIdentity(initial);
-  const input = parseInput(raw); if (input) lastAcceptedIdentity = parsedInputIdentity(input);
+  const input = vTalkLedger.attach(parseInput(raw)); if (input) lastAcceptedIdentity = parsedInputIdentity(input);
 }
 const controlPath = resolve(stateDirectory, 'bridge-control.json');
 let controlsObserved = await readFile(controlPath, 'utf8').catch(() => '');
@@ -3224,9 +3279,13 @@ const setupCheck = await SetupCheckControl.open({runtime, log: message => consol
     placement: () => readPackPlacement({stateDirectory, startedAt: bridgeStartedAt})})});
 // Settings > Edit characters: a local page, served only while it is open (bridge/character-editor-server.mjs).
 const characterEditor = new CharacterEditor({personas: personaBook, overrides: characterOverrides, memory: mistralMemory, route: () => mistral.route, custom: customCharacters,
-  voices: playerVoices});
+  voices: playerVoices,
+  // Every turn reads the persona, the overrides, the memories and the player's characters with a plain lookup, so a save counts from the next turn with
+  // no restart. A group reply prepared before the save was written from the old text: it is dropped, so the next one is written from the new.
+  onChanged: () => { dropPrefetch(); prefetchObserved = ''; }});
 const editorControl = await EditorControl.open({server: new EditorServer({editor: characterEditor, log: message => console.error('[Editor] ' + message)}),
   commandPath: resolve(runtime, 'editor-command.json'), statusPath: resolve(runtime, 'editor-status.json'),
+  home: createHash('sha256').update(stateDirectory.toLowerCase()).digest('hex').slice(0, 12),
   log: message => console.error('[Editor] ' + message)});
 await companionActions.revoke();
 await status('waiting');

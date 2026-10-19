@@ -10,6 +10,7 @@
     "aaron",
     "adam-smasher",
     "alan-noel",
+    "albert-murphy",
     "alex",
     "alt-cunningham",
     "ana-friedman",
@@ -18,6 +19,7 @@
     "anthony-gilchrist",
     "arthur-jenkins",
     "aurore-cassel",
+    "aymeric-cassel",
     "babs-okoye",
     "bill-mitchell",
     "blue-moon",
@@ -25,7 +27,9 @@
     "bree-whitney",
     "brendan",
     "briana-dolson",
+    "brick",
     "bryce-mosley",
+    "carl-robinson",
     "carol-emeka",
     "cassidy-righter",
     "chang-hoon-nam",
@@ -39,13 +43,16 @@
     "denny",
     "dexter-deshawn",
     "dino-dinovic",
+    "doctor-paradox",
     "dum-dum",
     "edgar-tool",
     "elizabeth-peralez",
     "evelyn-parker",
+    "farida-nazeri",
     "fingers",
     "frank-nostra",
     "garry-the-prophet",
+    "grayson",
     "hanako-arasaka",
     "henry",
     "iris-tanner",
@@ -62,14 +69,18 @@
     "judy-alvarez",
     "kerry-eurodyne",
     "kurt-hansen",
+    "leon-rinder",
     "liam-northom",
     "life-coach",
     "lina-malina",
     "lizzy-wizzy",
     "lucy-kushinada",
+    "lucy-thackery",
     "maiko-maeda",
     "mama-welles",
     "mark-bana",
+    "mateo-thiago",
+    "max-jones",
     "meredith-stout",
     "misty-olszewski",
     "mitch-anderson",
@@ -83,6 +94,7 @@
     "paco-torres",
     "padre-ibarra",
     "panam-palmer",
+    "patricia",
     "pepe-najarro",
     "placide",
     "r3n0",
@@ -104,18 +116,21 @@
     "solomon-reed",
     "songbird",
     "spider-murphy",
+    "steve",
     "steven-santos",
     "t-bug",
     "takemura",
     "teddy",
     "thompson",
+    "tiny-mike",
     "viktor-vektor",
     "voodoo-queen",
     "wakako-okada",
     "weyland",
     "wilky-laguerre",
     "woodman",
-    "yorinobu-arasaka"
+    "yorinobu-arasaka",
+    "ziggy-q"
   ],
   "sources": [
     {
@@ -162787,7 +162802,8 @@
       ],
       "audience": {
         "speakers": [
-          "jackie-welles"
+          "jackie-welles",
+          "brick"
         ],
         "perspective": "witnessed",
         "channels": [
@@ -162796,7 +162812,8 @@
         ],
         "recipients": [
           "v",
-          "jackie-welles"
+          "jackie-welles",
+          "brick"
         ]
       },
       "condition": {
@@ -163260,7 +163277,8 @@
       "audience": {
         "speakers": [
           "nancy-hartley",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "brick"
         ],
         "perspective": "participant",
         "channels": [
@@ -163270,7 +163288,8 @@
         "recipients": [
           "v",
           "nancy-hartley",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "brick"
         ]
       },
       "condition": {
@@ -163312,7 +163331,8 @@
       "audience": {
         "speakers": [
           "nancy-hartley",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "patricia"
         ],
         "perspective": "participant",
         "channels": [
@@ -163322,7 +163342,8 @@
         "recipients": [
           "v",
           "nancy-hartley",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "patricia"
         ]
       },
       "condition": {
@@ -166950,6 +166971,70 @@
       ]
     },
     {
+      "id": "albert-murphy.firestarter.songbird-hunt",
+      "revision": 1,
+      "questKey": "firestarter",
+      "topic": "phantom.firestarter-branch",
+      "outcome": "songbird",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "In this save V sided with Songbird in the stadium lab operation. When the escape broke out, the BARGHEST alarm under Murphy's (Kruger's) voice went through the stadium telling the soldiers to stop the intruders and not let them escape, naming Songbird, a heavily chipped Asian woman, as the main target. This says nothing about whether he lived.",
+      "sourceIds": [
+        "ph-fire-choice"
+      ],
+      "evidenceRefs": [
+        "ph-proof-firestarter-songbird"
+      ],
+      "audience": {
+        "speakers": [
+          "albert-murphy"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "albert-murphy"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q304_songbirds_path",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "q304_lab_done",
+            "op": "eq",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.firestarter.allegiance",
+          "outcomeKey": "songbird"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "phantom.firestarter.route",
+          "outcome": "songbird"
+        }
+      ]
+    },
+    {
       "id": "aldecaldos.native.basilisk-convoy-secured",
       "revision": 1,
       "questKey": "with-a-little-help-from-my-friends",
@@ -170142,6 +170227,64 @@
         "recipients": [
           "v",
           "aurore-cassel"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q303_07_netrunners_lost_all_in",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "pph.name-roulette-v-won",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "phantom.name.roulette",
+          "outcomeKey": "v-won"
+        }
+      ]
+    },
+    {
+      "id": "aymeric-cassel.name.roulette-v-won",
+      "revision": 1,
+      "questKey": "you-know-my-name",
+      "topic": "phantom.cassel-roulette",
+      "outcome": "v-won",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At the roulette table at the Black Sapphire, Aymeric and his twin sister Aurore played on one colour with everything at stake against V on the other, and V won the all-in exchange when the Cassels lost their stake. This does not claim V won every earlier spin.",
+      "sourceIds": [
+        "pph-source-dfe9bce28b1f7c71"
+      ],
+      "evidenceRefs": [
+        "pph-proof-name-roulette-v-won"
+      ],
+      "audience": {
+        "speakers": [
+          "aymeric-cassel"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "aymeric-cassel"
         ]
       },
       "condition": {
@@ -201266,6 +201409,76 @@
       ]
     },
     {
+      "id": "lucy-thackery.hippocratic-oath.escorted",
+      "revision": 1,
+      "questKey": "hippocratic-oath",
+      "topic": "fixers.hippocratic-oath.extraction",
+      "outcome": "rescued",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "In the gig Hippocratic Oath V found her in the Clean Cut clinic, where Maelstrom was holding her, and escorted her out to the fixer's transport. This does not establish whether V helped her finish treating the wounded Maelstromer.",
+      "sourceIds": [
+        "fixers.hippocratic-oath",
+        "fixers.native.sts-wat-kab-02.debrief-graphs",
+        "fixers.native.cooked-journal",
+        "fixers.native.english-journal"
+      ],
+      "evidenceRefs": [
+        "fixers.native.hippocratic-oath.confirmed-debrief"
+      ],
+      "audience": {
+        "speakers": [
+          "lucy-thackery"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "lucy-thackery"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "fixers.sts-wat-kab-02.quest",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "fixers.sts-wat-kab-02.escort-to-car",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "fixers.sts-wat-kab-02.confirmed-debrief-1",
+            "op": "in",
+            "value": [
+              "active",
+              "succeeded"
+            ]
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "fixers.hippocratic-oath.extraction",
+          "outcomeKey": "rescued"
+        }
+      ]
+    },
+    {
       "id": "maiko-maeda.ex-factor.office-meeting",
       "revision": 1,
       "questKey": "ex-factor",
@@ -201615,6 +201828,159 @@
         {
           "decisionId": "city-contacts.bana.evidence",
           "outcomeKey": "given-ana"
+        }
+      ]
+    },
+    {
+      "id": "mateo-thiago.the-information.met-v",
+      "revision": 1,
+      "questKey": "the-information",
+      "topic": "heist.introductions",
+      "outcome": "evelyn-met",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 7,
+      "stable": true,
+      "statement": "In The Information V came into Lizzie's Bar to meet Evelyn Parker and the bartender Mateo greeted V by name and told V to look around the club. This does not say what V and Evelyn discussed or did afterwards.",
+      "sourceIds": [
+        "priority-judy.information-judy-met.source",
+        "ck5.source.q004-evelyn"
+      ],
+      "evidenceRefs": [
+        "priority-judy.information-judy-met.evidence",
+        "ck5.ev.q004-evelyn-with-v"
+      ],
+      "audience": {
+        "speakers": [
+          "mateo-thiago"
+        ],
+        "perspective": "witnessed",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "mateo-thiago"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q004_judy_met",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "priority-judy.information.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.information.introductions",
+          "outcomeKey": "evelyn-met"
+        }
+      ]
+    },
+    {
+      "id": "max-jones.freedom-of-the-press.brought-out",
+      "revision": 1,
+      "questKey": "freedom-of-the-press",
+      "topic": "fixers.freedom-of-the-press.max",
+      "outcome": "rescued",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "In the gig Freedom of the Press V came to his booby-trapped studio for Regina Jones and brought him out of it alive to Regina's people. This does not establish how he agreed to leave or what he thinks of V.",
+      "sourceIds": [
+        "fixers.freedom-of-the-press",
+        "fixers.native.sts-wat-nid-12.debrief-graphs",
+        "fixers.native.cooked-journal",
+        "fixers.native.english-journal"
+      ],
+      "evidenceRefs": [
+        "fixers.native.freedom-of-the-press.confirmed-debrief"
+      ],
+      "audience": {
+        "speakers": [
+          "max-jones"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "max-jones"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "fixers.sts-wat-nid-12.quest",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "any": [
+              {
+                "type": "journal",
+                "key": "fixers.sts-wat-nid-12.escort-max",
+                "op": "eq",
+                "value": "succeeded"
+              },
+              {
+                "type": "journal",
+                "key": "fixers.sts-wat-nid-12.max-trunk",
+                "op": "eq",
+                "value": "succeeded"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "type": "journal",
+                "key": "fixers.sts-wat-nid-12.confirmed-debrief-1",
+                "op": "in",
+                "value": [
+                  "active",
+                  "succeeded"
+                ]
+              },
+              {
+                "type": "journal",
+                "key": "fixers.sts-wat-nid-12.confirmed-debrief-2",
+                "op": "in",
+                "value": [
+                  "active",
+                  "succeeded"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "fixers.freedom-of-the-press.max",
+          "outcomeKey": "rescued"
         }
       ]
     },
@@ -216469,7 +216835,8 @@
       "audience": {
         "speakers": [
           "nancy-hartley",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "brick"
         ],
         "perspective": "witnessed",
         "channels": [
@@ -216479,7 +216846,8 @@
         "recipients": [
           "v",
           "nancy-hartley",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "brick"
         ]
       },
       "condition": {
@@ -216581,7 +216949,8 @@
       "audience": {
         "speakers": [
           "nancy-hartley",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "patricia"
         ],
         "perspective": "witnessed",
         "channels": [
@@ -216591,7 +216960,8 @@
         "recipients": [
           "v",
           "nancy-hartley",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "patricia"
         ]
       },
       "condition": {
@@ -217139,7 +217509,8 @@
       ],
       "audience": {
         "speakers": [
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "grayson"
         ],
         "perspective": "participant",
         "channels": [
@@ -217148,7 +217519,8 @@
         ],
         "recipients": [
           "v",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "grayson"
         ]
       },
       "condition": {
@@ -218129,6 +218501,89 @@
         {
           "decisionId": "aldecaldos.riders.briefing",
           "outcomeKey": "briefed"
+        }
+      ]
+    },
+    {
+      "id": "tiny-mike.concrete-cage-trap.escorted",
+      "revision": 1,
+      "questKey": "concrete-cage-trap",
+      "topic": "fixers.concrete-cage-trap.mike",
+      "outcome": "rescued",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "In the gig Concrete Cage Trap V found him hiding in a Kabuki housing block with Militech closing in and escorted him out to the ride Regina Jones had arranged. This does not establish what he took, or that he stayed safe afterwards.",
+      "sourceIds": [
+        "fixers.concrete-cage-trap",
+        "fixers.native.sts-wat-kab-01.debrief-graphs",
+        "fixers.native.cooked-journal",
+        "fixers.native.english-journal"
+      ],
+      "evidenceRefs": [
+        "fixers.native.concrete-cage-trap.confirmed-debrief"
+      ],
+      "audience": {
+        "speakers": [
+          "tiny-mike"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "tiny-mike"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "fixers.sts-wat-kab-01.quest",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "fixers.sts-wat-kab-01.escort-mike",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "any": [
+              {
+                "type": "journal",
+                "key": "fixers.sts-wat-kab-01.confirmed-debrief-1",
+                "op": "in",
+                "value": [
+                  "active",
+                  "succeeded"
+                ]
+              },
+              {
+                "type": "journal",
+                "key": "fixers.sts-wat-kab-01.confirmed-debrief-2",
+                "op": "in",
+                "value": [
+                  "active",
+                  "succeeded"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "fixers.concrete-cage-trap.mike",
+          "outcomeKey": "rescued"
         }
       ]
     },

@@ -17,7 +17,7 @@ import {hasEmotionTag} from './emotion-tags.mjs';
 import {stripSpeechTags} from './natural-speech.mjs';
 import {ReplyStream} from './reply-stream.mjs';
 import {markStage} from './turn-clock.mjs';
-import {budgetedChat, TokenMeter, templateTokens, describeFit} from './prompt-budget.mjs';
+import {budgetedChat, PrefillMeter, TokenMeter, templateTokens, describeFit} from './prompt-budget.mjs';
 import {MatureGuard, refusalLog} from './mature-guard.mjs';
 import {allowanceFor} from './mature-content.mjs';
 
@@ -170,18 +170,28 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
   // Every request is fitted to the context the server really has (bridge/prompt-budget.mjs): n_ctx is read from the server, the prompt is
   // cut in a fixed order of priority when it does not fit, and a refusal that still comes (an estimate that was low) is learned from.
   const meters = new Map();
+  // How fast this machine reads a prompt, per load of the model (a reload may have less graphics memory to work with): a slow one is given a
+  // smaller prompt than the context allows (PrefillMeter in bridge/prompt-budget.mjs).
+  const speeds = new Map();
+  let lastSpeed = null;
   chat = budgetedChat(chat, {
     budget: async options => {
       const handle = await server.ensure({signal: options?.signal});
       if (!(handle?.contextSize > 0)) return null;
       if (!meters.has(handle.model)) meters.set(handle.model, new TokenMeter());
+      const speedKey = `${handle.model}|${handle.loadedAt ?? 0}`;
+      if (!speeds.has(speedKey)) { speeds.clear(); speeds.set(speedKey, new PrefillMeter({offload: handle.offload === true})); }
+      lastSpeed = speeds.get(speedKey);
       const count = typeof server.tokenize !== 'function' ? undefined : async messages => {
         const tokens = await server.tokenize(messages.map(message => message.content).join('\n'), {signal: options?.signal});
         return tokens === null ? null : tokens + templateTokens(messages.length);
       };
-      return {contextTokens: handle.contextSize, meter: meters.get(handle.model), count};
+      return {contextTokens: handle.contextSize, meter: meters.get(handle.model), speed: lastSpeed, count};
     },
-    onFit: fit => log('The local AI: ' + describeFit(fit))});
+    onFit: fit => {
+      const rate = lastSpeed?.tokensPerSecond;
+      log('The local AI: ' + describeFit(fit) + (fit.target && Number.isFinite(rate) ? ` (this computer reads about ${Math.round(rate)} tokens a second)` : ''));
+    }});
   // parallel: false: the server answers one request at a time (one slot), so an action decision does not overlap the reply; measured
   // 2026-10-13: the overlap gained nothing on Gemma 4 with one slot or two (docs/LOCAL_AI.md, Actions).
   return {name: 'local', provider: 'local', chat, gapMs: 0, blocked: new Map(), nextSlot: 0, parallel: false,
@@ -189,8 +199,11 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     // waitMs: the most this turn can still wait (its budget, LOCAL_TURN_BUDGET_MS). A model that is still loading then (a first start compiles shaders for a
     // minute or two; a reload after a changed choice) ends the turn with its own explanation instead of the game's silent timeout; the load itself goes on, so
     // the next turn finds the model ready. With a cloud key saved the cloud provider answers that turn (fallsBack).
-    async connect(signal, {background = false, waitMs} = {}) {
+    async connect(signal, {background = false, waitMs, profileKey} = {}) {
       if (background && server.status().state !== 'ready') throw new MistralError('network', 'is not loaded right now', {provider: 'local'});
+      // The server has one slot: a warm-up of another character's persona that is still being read must not stand in this request's way.
+      // (A warm-up of this character's own persona is the prefix this request needs, so it is waited for.)
+      if (!background) { try { server.preempt?.(typeof profileKey === 'string' ? profileKey : null); } catch { /* the warm-up is best effort */ } }
       let connection;
       const bounded = Number.isFinite(waitMs) ? AbortSignal.timeout(Math.max(0, Math.ceil(waitMs))) : null;   // a whole number of milliseconds, or it throws
       try { connection = await server.ensure({signal: bounded ? (signal ? AbortSignal.any([signal, bounded]) : bounded) : signal, background}); }
@@ -232,7 +245,7 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
       else if (failureKind(error) === 'key') { try { server.externalKeyRefused?.(); } catch { /* best effort */ } }
       try { onFailure?.(error); } catch { /* an observer never fails a reply */ }
     },
-    prewarm: messages => server.prewarm(messages),
+    prewarm: (messages, options) => server.prewarm(messages, options),
     // The loaded model's name, for the Mature content allowance (bridge/mature-content.mjs); `loadedModel` starts the server if it is not up.
     // Only while a model is up: after an idle stop (or during a reload) the status still names the previous model, and the next start may
     // load another one, so the level would be read for the wrong model; with null `loadedModel` starts the server and names the real one.
@@ -330,8 +343,10 @@ export class TextProviderHost {
   }
 
   async #send(route, messages, signal, extra = {}) {
-    const {profileKey, background, extraBody, models, ...rest} = extra;
-    const lease = await route.connect(signal, {background, ...(extra.deadlineAt !== undefined ? {waitMs: extra.deadlineAt - this.now()} : {})});
+    // slotKey: whose persona a local server has just been warmed with, for a request that has no `profileKey` of its own (the action decision, which must
+    // not carry the persona's cache key to the cloud): it only tells the local route which warm-up not to stop.
+    const {profileKey, slotKey, background, extraBody, models, ...rest} = extra;
+    const lease = await route.connect(signal, {background, profileKey: profileKey ?? slotKey, ...(extra.deadlineAt !== undefined ? {waitMs: extra.deadlineAt - this.now()} : {})});
     try {
       // The models in order of preference. A model the account has no allowance for (limit 0) is skipped for ten minutes.
       const wanted = models?.length ? models : route.models();
@@ -416,7 +431,7 @@ export class TextProviderHost {
     }
     // Only a line with a word a request could use is sent to the decision (bridge/text-action-words.mjs): ordinary talk pays nothing.
     const maybe = menu?.rows.length ? menu.screen(text, recalled.turns.at(-1)) : [];
-    const deciding = maybe.length ? this.#decide(this.routes[this.provider.route], menu, {text, last: recalled.turns.at(-1), signal}) : null;
+    const deciding = maybe.length ? this.#decide(this.routes[this.provider.route], menu, {text, last: recalled.turns.at(-1), signal, profileKey: local.profileKey}) : null;
     // One action it could be: the reply is written at once as if V asked for it, and held back from the voice until the decision agrees
     // (see #replyOn); with several, or on a route that serves one request at a time (`parallel: false`), the reply waits for the decision.
     const guess = maybe.length && this.routes[this.provider.route]?.parallel !== false ? menu.guess(text, maybe) : null;
@@ -491,6 +506,10 @@ export class TextProviderHost {
     if (route.name !== 'local' || typeof route.noteTurn !== 'function') return;
     try {
       if (!ok && isLocalUnavailable(error)) return;
+      // A slow turn on a model that did not fit the graphics memory (the game keeps most of it): the sentence the game shows says so (failureDetail).
+      if (!ok && error instanceof MistralError && error.provider === 'local' && error.slow === true) {
+        try { if (route.diagnostics?.()?.model?.offload) error.hint = 'the model is partly on the CPU'; } catch { /* a hint is optional */ }
+      }
       const detail = ok ? undefined : failureDetail(error) ?? String(error?.message ?? 'error').slice(0, 160);
       const {first} = route.noteTurn({ok, trace, error, detail});
       if (ok && !first && !((trace?.firstTokenMs ?? 0) > SLOW_FIRST_WORD_MS)) return;
@@ -547,11 +566,11 @@ export class TextProviderHost {
    * Which of the offered actions V's words plainly ask for: one small request, no persona, a one-word answer. Never throws; a failure,
    * a late answer or an unclear one is "none" (the reply is then written as plain talk with what is not possible said in its notes).
    */
-  async #decide(route, menu, {text, last, signal}) {
+  async #decide(route, menu, {text, last, signal, profileKey}) {
     if (!route) return null;
     try {
       const response = await this.#request(route, menu.classifier({text, last}), signal,
-        {maxTokens: 12, temperature: 0, retries: 0, totalMs: 8000, firstByteMs: 6000, thinkingRoom: false, models: route.decisionModels?.()});
+        {slotKey: profileKey, maxTokens: 12, temperature: 0, retries: 0, totalMs: 8000, firstByteMs: 6000, thinkingRoom: false, models: route.decisionModels?.()});
       return menu.decide(response.text);
     } catch (error) {
       if (!signal?.aborted) this.log('action decision failed: ' + (failureKind(error) ?? error?.message ?? 'error'));
@@ -610,7 +629,8 @@ export class TextProviderHost {
     const build = nudge => buildMessages({persona, memory: recalled.summary, history,
       context: notes && !config.contextParts ? joinBlocks([config.context, notes]) : config.context,
       contextParts: notes && config.contextParts ? {...config.contextParts, volatile: joinBlocks([config.contextParts.volatile, notes])} : config.contextParts,
-      remembered, text: nudge ? text + nudge : text, reaction, limits: this.limits, ...(mature ? {mature} : guard ? {guard: true} : {})});
+      remembered, text: nudge ? text + nudge : text, reaction: reaction && config.reaction?.kind === 'vtalk' ? 'said' : reaction, limits: this.limits,
+      ...(mature ? {mature} : guard ? {guard: true} : {})});
     // A speculative request (reply()) assumes V asked for the guessed action. It shows the voice nothing until the decision agrees; if the
     // decision says otherwise it is cancelled and the reply is written again with the right notes.
     const spec = speculation ? {controller: new AbortController(), open: false, latest: '', missed: false, over: false} : null;
@@ -769,7 +789,7 @@ export class TextProviderHost {
       // With Mature content on, the layer is part of the head, so the warmed prefix is the one the first reply will use.
       const mature = this.guardOnly ? null : await this.#matureLevel(route);
       const guard = mature ? true : await this.#guardOn(route);
-      await route.prewarm([{role: 'system', content: systemHead({persona, limits: this.limits, ...(mature ? {mature} : guard ? {guard: true} : {})})}, {role: 'user', content: '.'}]);
+      await route.prewarm([{role: 'system', content: systemHead({persona, limits: this.limits, ...(mature ? {mature} : guard ? {guard: true} : {})})}, {role: 'user', content: '.'}], {key});
     } catch (error) {
       route.failure?.(error);
       this.log('prewarm failed: ' + (failureKind(error) ?? 'error'));

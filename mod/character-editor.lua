@@ -103,7 +103,7 @@ function M.new(options)
         ['This character speaks with the shipped voice.'] = ui.t('This character speaks with the shipped voice.'),
         ['This character speaks with a generic voice that fits the gender.'] = ui.t('This character speaks with a generic voice that fits the gender.'),
         ['Add voice clip'] = ui.t('Add voice clip'),
-        ['A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now.'] = ui.t('A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now.'),
+        ['A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting.'] = ui.t('A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting.'),
         ['Saved clip: {seconds} seconds.'] = ui.t('Saved clip: {seconds} seconds.'),
         ['Voice'] = ui.t('Voice'),
         ['Words said in the clip'] = ui.t('Words said in the clip'),
@@ -156,11 +156,11 @@ function M.new(options)
         ['Everyday people'] = ui.t('Everyday people'),
         ['No match.'] = ui.t('No match.'),
         ['Character editor'] = ui.t('Character editor'),
-        ['Your changes work with Mistral and Local. They do not apply to Convai.'] = ui.t('Your changes work with Mistral and Local. They do not apply to Convai.'),
+        ['Your changes work with Mistral and Local AI. They do not apply to Convai.'] = ui.t('Your changes work with Mistral and Local AI. They do not apply to Convai.'),
         ['Close editor'] = ui.t('Close editor'),
         ['Search characters'] = ui.t('Search characters'),
         ['Changes are saved on this computer and used from the next reply.'] = ui.t('Changes are saved on this computer and used from the next reply.'),
-        ['Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local as the conversation provider in the settings.'] = ui.t('Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local as the conversation provider in the settings.'),
+        ['Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local AI as the conversation provider in the settings.'] = ui.t('Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local AI as the conversation provider in the settings.'),
         ['The editor is closed. You can close this tab.'] = ui.t('The editor is closed. You can close this tab.'),
         }
     end

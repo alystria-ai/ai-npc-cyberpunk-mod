@@ -26,6 +26,8 @@ export const LOCAL_PACKS = Object.freeze([
     files: Object.freeze(['encoder.int8.onnx', 'decoder.int8.onnx', 'joiner.int8.onnx', 'tokens.txt']),
     languages: Object.freeze(['ru', 'uk', 'pl', 'cs', 'hu', 'de', 'fr', 'es', 'it', 'pt']), licence: 'CC-BY-4.0'}),
   Object.freeze({id: 'sense-voice-int8', kind: 'sense-voice', label: 'FunAudioLLM SenseVoice Small (int8)',
+    // The original SenseVoice Small (sherpa-onnx archive 2024-07-17), measured with the real files (2026-10-19): character error zh 0.0%, ja 6.5%, ko 2.0%.
+    // NOT the 2025-09-09 archive of the same name, which is a Cantonese fine-tune that reads Mandarin but not Japanese (84% error) or Korean (96%).
     files: Object.freeze(['model.int8.onnx', 'tokens.txt']), languages: Object.freeze(['zh', 'ja', 'ko']), licence: 'FunASR Model Open Source License 1.1'}),
 ]);
 
@@ -43,6 +45,11 @@ export function baseLanguage(value) {
   return /^[a-z]{2,3}$/.test(base) ? (base === 'cz' ? 'cs' : base === 'ua' ? 'uk' : base === 'jp' ? 'ja' : base === 'kr' ? 'ko' : base) : null;
 }
 
+/** The pack that hears `language` whether or not it is installed (what the player could download), or null. */
+export function packThatHears(language) {
+  return LOCAL_PACKS.find(pack => pack.languages.includes(language)) ?? null;
+}
+
 /** The pack (from `installed`, a Set or array of pack ids) that hears `language`, or null. */
 export function packFor(language, installed = []) {
   const have = installed instanceof Set ? installed : new Set(installed);
@@ -57,6 +64,7 @@ export function packFor(language, installed = []) {
  *   {mode: 'voxtral', hint, fallback: [..]}        Mistral transcription; `fallback` are the modes tried when it fails
  *   {mode: 'pack', pack}                           a local multilingual pack
  *   {mode: 'english', note: 'english-only'}        nothing here hears the language: English recogniser, and the player is told once
+ *   {mode: 'english', note: 'pack-available'}      an optional pack that hears the language is not installed: same, and the notice names the pack
  */
 export function planRecording({language = 'en', source = 'default', provider = 'convai', voxtralReady = false, installed = [], englishAvailable = true} = {}) {
   if (!language || language === 'en') return {mode: 'english', language: 'en', source};
@@ -66,7 +74,7 @@ export function planRecording({language = 'en', source = 'default', provider = '
     return {mode: 'voxtral', language, source, hint, fallback: [...(pack ? [{mode: 'pack', pack}] : []), ...(englishAvailable ? [{mode: 'english'}] : [])]};
   }
   if (pack) return {mode: 'pack', language, source, pack};
-  return {mode: 'english', language, source, note: 'english-only'};
+  return {mode: 'english', language, source, note: packThatHears(language) ? 'pack-available' : 'english-only'};
 }
 
 /** What the bridge knows about the player's language. `readUiFile` (async, optional) returns the text of runtime/ui-language.txt. */

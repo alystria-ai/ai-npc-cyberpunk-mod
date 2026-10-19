@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "builtAt": "2026-10-18T19:03:39.565Z",
+  "builtAt": "2026-10-18T23:35:30.625Z",
   "errors": [],
-  "enabledRules": 853,
+  "enabledRules": 859,
   "citedArtifacts": 782,
   "verifiedEvidencePointers": 9284,
   "outcomesResearched": 1162,
@@ -103819,7 +103819,8 @@
       "questKey": "the-information",
       "outcomeKey": "evelyn-met",
       "rules": [
-        "evelyn-parker.information.met-v"
+        "evelyn-parker.information.met-v",
+        "mateo-thiago.the-information.met-v"
       ]
     },
     {
@@ -105188,6 +105189,7 @@
       "outcomeKey": "v-won",
       "rules": [
         "aurore-cassel.name.roulette-v-won",
+        "aymeric-cassel.name.roulette-v-won",
         "phantom.priority.name-roulette-v-won"
       ]
     },
@@ -105702,7 +105704,8 @@
       "questKey": "hippocratic-oath",
       "outcomeKey": "rescued",
       "rules": [
-        "fixers.native.hippocratic-oath.rescued.confirmed-debrief"
+        "fixers.native.hippocratic-oath.rescued.confirmed-debrief",
+        "lucy-thackery.hippocratic-oath.escorted"
       ]
     },
     {
@@ -106048,7 +106051,8 @@
       "questKey": "freedom-of-the-press",
       "outcomeKey": "rescued",
       "rules": [
-        "fixers.native.freedom-of-the-press.rescued.confirmed-debrief"
+        "fixers.native.freedom-of-the-press.rescued.confirmed-debrief",
+        "max-jones.freedom-of-the-press.brought-out"
       ]
     },
     {
@@ -106126,7 +106130,8 @@
       "questKey": "concrete-cage-trap",
       "outcomeKey": "rescued",
       "rules": [
-        "fixers.native.concrete-cage-trap.rescued.confirmed-debrief"
+        "fixers.native.concrete-cage-trap.rescued.confirmed-debrief",
+        "tiny-mike.concrete-cage-trap.escorted"
       ]
     },
     {
@@ -109416,6 +109421,7 @@
       "questKey": "firestarter",
       "outcomeKey": "songbird",
       "rules": [
+        "albert-murphy.firestarter.songbird-hunt",
         "phantom.native.firestarter.songbird"
       ]
     },
@@ -111211,6 +111217,14 @@
         "qualification": "exact"
       },
       {
+        "ruleId": "albert-murphy.firestarter.songbird-hunt",
+        "decisionId": "phantom.firestarter.allegiance",
+        "outcomeKey": "songbird",
+        "nativeTopic": "phantom.firestarter-branch",
+        "catalogTopic": "phantom.firestarter-branch",
+        "qualification": "exact"
+      },
+      {
         "ruleId": "aldecaldos.native.basilisk-convoy-secured",
         "decisionId": "aldecaldos.friends.convoy",
         "outcomeKey": "secured",
@@ -111553,6 +111567,14 @@
       },
       {
         "ruleId": "aurore-cassel.name.roulette-v-won",
+        "decisionId": "phantom.name.roulette",
+        "outcomeKey": "v-won",
+        "nativeTopic": "phantom.cassel-roulette",
+        "catalogTopic": "phantom.cassel-roulette",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "aymeric-cassel.name.roulette-v-won",
         "decisionId": "phantom.name.roulette",
         "outcomeKey": "v-won",
         "nativeTopic": "phantom.cassel-roulette",
@@ -115390,6 +115412,14 @@
         "qualification": "exact"
       },
       {
+        "ruleId": "lucy-thackery.hippocratic-oath.escorted",
+        "decisionId": "fixers.hippocratic-oath.extraction",
+        "outcomeKey": "rescued",
+        "nativeTopic": "fixers.hippocratic-oath.extraction",
+        "catalogTopic": "fixers.hippocratic-oath.extraction",
+        "qualification": "exact"
+      },
+      {
         "ruleId": "maiko-maeda.ex-factor.office-meeting",
         "decisionId": "judy-river.ex.participation",
         "outcomeKey": "helped",
@@ -115435,6 +115465,22 @@
         "outcomeKey": "given-ana",
         "nativeTopic": "bana.evidence.disposition",
         "catalogTopic": "bana.evidence.disposition",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "mateo-thiago.the-information.met-v",
+        "decisionId": "judy-river.information.introductions",
+        "outcomeKey": "evelyn-met",
+        "nativeTopic": "heist.introductions",
+        "catalogTopic": "heist.introductions",
+        "qualification": "exact"
+      },
+      {
+        "ruleId": "max-jones.freedom-of-the-press.brought-out",
+        "decisionId": "fixers.freedom-of-the-press.max",
+        "outcomeKey": "rescued",
+        "nativeTopic": "fixers.freedom-of-the-press.max",
+        "catalogTopic": "fixers.freedom-of-the-press.max",
         "qualification": "exact"
       },
       {
@@ -117668,6 +117714,14 @@
         "qualification": "exact"
       },
       {
+        "ruleId": "tiny-mike.concrete-cage-trap.escorted",
+        "decisionId": "fixers.concrete-cage-trap.mike",
+        "outcomeKey": "rescued",
+        "nativeTopic": "fixers.concrete-cage-trap.mike",
+        "catalogTopic": "fixers.concrete-cage-trap.mike",
+        "qualification": "exact"
+      },
+      {
         "ruleId": "voodoo-queen.double-life.evelyn-hired",
         "decisionId": "judy-river.double.recordings",
         "outcomeKey": "assignment-revealed",
@@ -117730,7 +117784,7 @@
         "reviewRef": "native-reviews/cast-knowledge-20261018b.md"
       }
     ],
-    "exactMatches": 801,
+    "exactMatches": 807,
     "reviewedAliases": 53,
     "reviewDocuments": [
       {
@@ -117740,8 +117794,8 @@
       },
       {
         "reference": "native-reviews/cast-knowledge-20261018b.md",
-        "sha256": "76d3a2123c11dc69de44e41bd25796c9a27e547b56f290ff3ab98eb595af192f",
-        "bytes": 13539
+        "sha256": "ebf24638e2ad9d62439318ddc0f9400bccf27a8a423135a8bda20e11d91b9f09",
+        "bytes": 13607
       },
       {
         "reference": "native-reviews/queen-friendship-alias-20261015.md",
@@ -117750,8 +117804,8 @@
       },
       {
         "reference": "native-reviews/cast-knowledge-20261018.md",
-        "sha256": "48be6b6e05408df50735c3288d27674f7fa1d1626949e57bb48bec026260a394",
-        "bytes": 7170
+        "sha256": "b6cae4130e7a4434abe3e4c07e0a2f5c49ba2ee94c3b42661d12be0a82f49985",
+        "bytes": 7216
       },
       {
         "reference": "native-reviews/judy-river-oct01.md",

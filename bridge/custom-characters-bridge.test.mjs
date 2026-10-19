@@ -177,7 +177,8 @@ test('the bridge opens the store before the voices, gives it to the prompt, the 
   assert.match(bridge, /onRemoved: key => releasePreparedSlots\(\{folder: resolve\(stateDirectory, PLAYER_PREPARED_FOLDER\), key\}\)/);
   assert.match(bridge, /aliases: key => customCharacters\.voiceAlias\(key\),/, 'a character with no clip speaks with the resident voice of its gender');
   assert.match(bridge, /new PersonaBook\(roster, \{overrides: characterOverrides, custom: customCharacters\}\)/);
-  assert.match(bridge, /new CharacterEditor\(\{personas: personaBook, overrides: characterOverrides, memory: mistralMemory, route: \(\) => mistral\.route, custom: customCharacters,\n  voices: playerVoices\}\)/);
+  assert.match(bridge, /new CharacterEditor\(\{personas: personaBook, overrides: characterOverrides, memory: mistralMemory, route: \(\) => mistral\.route, custom: customCharacters,\n  voices: playerVoices,/);
+  assert.match(bridge, /onChanged: \(\) => \{ dropPrefetch\(\); prefetchObserved = ''; \}\}\);/, 'a save drops a group reply prepared before it');
   assert.match(bridge, /await mkdir\(runtime, \{recursive: true\}\);\nawait customCharacters\.publish\(\);/, 'the list the game reads is written at start');
   assert.match(bridge, /onDeleted: key => \{ void playerVoices\.clear\(key\)\.catch\(\(\) => \{\}\); return releaseCustomVoice\(key\); \}/, 'deleting a character removes its clip and its prepared setups');
   assert.match(bridge, /for \(let at = roster\.length - 1; at >= 0; at--\) if \(roster\[at\]\?\.kind === 'custom'\) roster\.splice\(at, 1\);/, 'the roster array follows every change in place');

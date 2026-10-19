@@ -153,7 +153,8 @@ export function withConversationKnowledge(input, {knowledgeContext = '', generat
 // bridge/mistral-prompt.mjs puts the stable tiers first so a prefix cache keeps working): 'now' (the right-now block), 'world'
 // (quest, journal, relationship, gear: changes on game events), 'notes' (fixed wording) and 'volatile' (this turn only). A world block
 // may carry a `key` (knowledge, recency, history, jobs, journal, gear): a text provider whose context is too small cuts the blocks
-// that have one, the lowest-priority first (bridge/prompt-budget.mjs); a block without one is never cut by itself.
+// that have one, the lowest-priority first (bridge/prompt-budget.mjs); a block without one is never cut by itself. (`authority` is only a place
+// mark: the world facts of a text provider's prompt go just before it, bridge/mistral-prompt.mjs worldBlocksInCacheOrder; it is never cut.)
 export function conversationContextBlocks(input) {
   // The "right now" block goes first: Mistral's context cap keeps the head, so it can never be cut.
   const ambient = isAmbientProfile(input?.profileKey);
@@ -174,7 +175,7 @@ export function conversationContextBlocks(input) {
     {tier: 'world', key: 'recency', text: trusted?.recencyContext}, {tier: 'world', key: 'history', text: history}, {tier: 'world', key: 'jobs', text: trusted?.jobsContext},
     {tier: 'world', key: 'journal', text: journalContext(input.journal)}, {tier: 'volatile', text: gameDialogueContext(input)},
     {tier: 'volatile', text: battleContext(input)}, {tier: 'volatile', text: lootContext(input)}, {tier: 'world', key: 'gear', text: gearContext(input)},
-    {tier: 'world', text: knowledge || history ? CURRENT_AUTHORITY : ''}, {tier: 'notes', text: SPOKEN_OUTPUT},
+    {tier: 'world', key: 'authority', text: knowledge || history ? CURRENT_AUTHORITY : ''}, {tier: 'notes', text: SPOKEN_OUTPUT},
     {tier: 'volatile', text: followUpContext(input)}];
 }
 

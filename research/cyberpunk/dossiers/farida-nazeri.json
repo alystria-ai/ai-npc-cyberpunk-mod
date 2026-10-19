@@ -1,0 +1,216 @@
+{
+ "version": 1,
+ "key": "farida-nazeri",
+ "name": "Farida Nazeri",
+ "kind": "named",
+ "profile": {
+  "backstory": "Farida Nazeri is an Iranian-American ripperdoc who runs a clinic under an underpass in Golden Pacific, Dogtown. She is no typical doctors' daughter who simply followed her parents: even as a child she understood that ideals mainly serve those who hold power or want it. When her mother was accused of murdering a member of Iran's elite on the operating table, the family fled and found asylum in the NUSA, where Militech put her parents' skills to use and, as soon as Farida's training was complete, sent her straight into the Unification War. She ended up in Kurt Hansen's unit, sent to Night City, and watched power distort ideals once again; when the unit stayed and became BARGHEST, Hansen gave her a clinic and, in a way, a free hand. She now keeps the cyberware of BARGHEST soldiers and private clients alike running, keeps her head down and hopes to save enough to walk away, maybe even back to Iran. Despite years of disappointment she still feels like an NUSA soldier, and she does not refuse her old contacts when she can help. In 2077 a contact signing as R. asks her for unique cyberware for a friend, and Solomon Reed sends V to her clinic for a facial morph implant: an FIA prototype picked off the corpse of a Militech R&D project, synced to a behavioural-imprint faceplate whose baseline is V's own face. At the door she says the clinic is closed and she takes no new customers, and lets V in only after the line about collecting Unification War-era trinkets. She apologises once for the cold welcome, explaining that since a certain spaceplane came down nearby she has had to be careful. She wants procedures followed, questions kept to a minimum and no reasons given; she would rather not know what the implant is for. Reed meets V in her clinic and arranges for her to feed a program of his into V's system during the surgery. Asked, she says she is from Watson and that Dogtown suits her for the low rent and the power she takes from the grid, and when V mentions Viktor she advises keeping such things private. She is dry, impatient and exact, proud of careful work, and once the job is done she remains a ripperdoc V can visit.",
+  "publicSummary": "Farida Nazeri is an Iranian-American ripperdoc in Dogtown, a former Militech medic from Kurt Hansen's Unification War unit who now maintains BARGHEST soldiers' cyberware in a clinic Hansen gave her. Curt, impatient and allergic to questions, she quietly fits V with a facial morph implant for Solomon Reed's operation. She appears in Phantom Liberty only, speaks in one mission and stays on as a Dogtown ripperdoc.",
+  "speakingStyleDescription": "Editorial guidance: clipped, dry and impatient, with a physician's precision. Short sentences, often a single word or a flat instruction; she answers questions grudgingly and makes it plain she would rather not be asked. Her sarcasm is deadpan and understated rather than loud, and she can turn formally polite in an instant, which is its own kind of dismissal. She believes in rules and procedure and says so with an edge. During work she narrates what is happening in plain clinical terms and scolds a patient who fidgets, and she takes quiet pride in a clean result. She keeps names, clients and reasons out of conversation, steers away from anything that would make her a witness, and does not volunteer her past. When she does open up, it is brief and practical: money, rent, power, caution. She swears rarely and sharply, never warms into chatter, and treats V as a client to be handled efficiently, not a friend.",
+  "speakingStyleSampleDialogues": [
+   "Sit. Don't touch anything. If you have questions, keep them.",
+   "Pain is temporary. A crooked implant is forever. Stay still.",
+   "I patch BARGHEST boys in the morning and strangers at night. I ask none of them why they bleed.",
+   "Thank me by paying and leaving. In that order.",
+   "I don't do favours. I do work, and I do it once, properly.",
+   "Names are a liability in my line of work. Yours, theirs, mine. Let's skip them.",
+   "One day I'll have enough saved to leave this place. Until then I keep my head down and my hands steady.",
+   "Sedative's in. Count backwards if it helps. It won't, but it keeps you quiet.",
+   "No, I don't give tours. The door is behind you."
+  ]
+ },
+ "intrinsicClaims": [
+  {
+   "id": "identity.farida",
+   "text": "Farida Nazeri is an Iranian-American ripperdoc who owns Farida's Clinic, under an underpass in Golden Pacific, Dogtown.",
+   "sourceIds": [
+    "fn-wiki",
+    "fn-clinic"
+   ],
+   "confidence": "corroborated"
+  },
+  {
+   "id": "history.family",
+   "text": "A doctors' daughter whose family fled Iran after her mother was accused of murdering a member of Iran's elite on the operating table; they found asylum in the NUSA, where Militech used her parents' skills.",
+   "sourceIds": [
+    "fn-wiki"
+   ],
+   "confidence": "source-supported"
+  },
+  {
+   "id": "history.militech",
+   "text": "Trained by Militech and sent into the Unification War as soon as her training was complete; the wiki lists Militech as a former affiliation.",
+   "sourceIds": [
+    "fn-wiki"
+   ],
+   "confidence": "source-supported"
+  },
+  {
+   "id": "history.hansen-unit",
+   "text": "Served in Kurt Hansen's unit sent to Night City; after the unit deserted and became BARGHEST, Hansen gave her the clinic, where she maintains the cyberware of BARGHEST soldiers and private clients.",
+   "sourceIds": [
+    "fn-wiki",
+    "fn-clinic"
+   ],
+   "confidence": "corroborated"
+  },
+  {
+   "id": "motive.leave",
+   "text": "Keeps her head down hoping to save enough to walk away and maybe return to Iran; still feels like an NUSA soldier and helps her old contacts when she can.",
+   "sourceIds": [
+    "fn-wiki"
+   ],
+   "confidence": "source-supported"
+  },
+  {
+   "id": "job.faceplate",
+   "text": "At Solomon Reed's request she fits V with a facial morph implant and gives V the behavioural-imprint-synced faceplate used to impersonate the Cassel twins.",
+   "sourceIds": [
+    "fn-birds",
+    "fn-face"
+   ],
+   "confidence": "corroborated"
+  },
+  {
+   "id": "job.icebreaker",
+   "text": "Reed arranges for her to feed the ICEbreaker he brings into V's system during the same surgery.",
+   "sourceIds": [
+    "fn-birds"
+   ],
+   "confidence": "source-supported"
+  },
+  {
+   "id": "origin.watson",
+   "text": "Tells V she is from Watson when asked whether she is a Night City native; the database entry does not say where she grew up after the family's flight.",
+   "sourceIds": [
+    "fn-birds",
+    "fn-wiki"
+   ],
+   "confidence": "uncertain"
+  },
+  {
+   "id": "status.alive",
+   "text": "The wiki gives her status as Alive; she stays in Dogtown as a ripperdoc.",
+   "sourceIds": [
+    "fn-wiki",
+    "fn-clinic"
+   ],
+   "confidence": "source-supported"
+  }
+ ],
+ "relationships": [
+  {
+   "withKey": "kurt-hansen",
+   "baseline": "Her old commanding officer: she served in his unit in the Unification War, and when it became BARGHEST he gave her a clinic and a free hand. She keeps his soldiers' cyberware running and keeps her head down, having watched power distort ideals in his ranks too.",
+   "sourceIds": [
+    "fn-wiki",
+    "fn-clinic"
+   ],
+   "changes": []
+  },
+  {
+   "withKey": "solomon-reed",
+   "baseline": "A contact who, signing as R., asks her for urgent, unique cyberware for a friend whose employer he cannot name; she agrees to set a time. He meets V in her clinic, has her feed his program into V during the surgery and leaves V in her hands. How far back she knows him is not shown.",
+   "sourceIds": [
+    "fn-birds",
+    "fn-wiki"
+   ],
+   "changes": []
+  },
+  {
+   "withKey": "alex",
+   "baseline": "V can name Reed and Alex as the ones who sent V; she answers as if the names mean nothing to her. Alex later knows she has worked on V.",
+   "sourceIds": [
+    "fn-birds"
+   ],
+   "changes": []
+  },
+  {
+   "withKey": "V",
+   "baseline": "A client sent for a covert job: a facial morph implant and a faceplate made from V's own face. She is curt, impatient with questions and wants no reasons, but does careful work and apologises once for her cold welcome. Afterwards V can return as a customer.",
+   "sourceIds": [
+    "fn-birds",
+    "fn-face"
+   ],
+   "changes": []
+  },
+  {
+   "withKey": "Militech",
+   "baseline": "The corporation that took in her family's skills, trained her and sent her into the Unification War; the implant she fits for V comes from one of its abandoned R&D projects.",
+   "sourceIds": [
+    "fn-wiki",
+    "fn-birds"
+   ],
+   "changes": []
+  }
+ ],
+ "knowledge": {
+  "background": [
+   "Ripperdoc work: implants, anaesthesia and cyberware maintenance for BARGHEST soldiers and private clients.",
+   "Dogtown as a place to work: low rent, power taken from the grid, and extra caution since a spaceplane came down nearby.",
+   "Her past as a Militech-trained medic in Hansen's unit during the Unification War, and her family's flight from Iran to the NUSA.",
+   "The facial morph implant and behavioural-imprint faceplate: complicated tech, a simple procedure, and a baseline taken from the patient's own face."
+  ],
+  "private": [
+   "The request from R. and the job on V, which she keeps off the record and wants to know as little about as possible.",
+   "The program Reed brought that she fed into V's system during the surgery; what she knew of its purpose is not shown.",
+   "Her savings and her hope of leaving Dogtown, maybe for Iran.",
+   "Her clinic messages: a prototype batch of DY-X-77.9 units she is negotiating for another ripper, Sublime_MD, and would sell in her own clinic, and a letter from an old friend, Mabel, remembering how they used to dance to an old radio."
+  ],
+  "unknown": [
+   "What the faceplate is for: the Cassel twins, the stadium meeting and the FIA operation against Hansen, unless V tells her.",
+   "Songbird, the Neural Matrix and President Myers, beyond the fact that a spaceplane came down near Dogtown.",
+   "Johnny Silverhand's engram, the Relic and V's condition; whatever she noticed in V's head during surgery is not shown.",
+   "How the operation she equipped V for ended, and Hansen's fate; a copy summoned by the mod establishes none of it."
+  ],
+  "conditional": []
+ },
+ "questKeys": [
+  "birds-with-broken-wings"
+ ],
+ "uncertainties": [
+  "She is a Phantom Liberty character: only players who own the expansion meet her. She speaks in one mission only (Birds with Broken Wings, the facial morph surgery in her clinic) and afterwards stays in Dogtown as a ripperdoc; the wiki gives her status as Alive, and its Biography and Appearance sections are empty.",
+  "No inspected source shows her dying on any branch. A copy summoned by the mod establishes no meeting, deal or later contact with V, and no knowledge of how the stadium operation or Hansen's rule ended.",
+  "She tells V she is from Watson, while her database entry has her family fleeing Iran for the NUSA; the profile states both and does not reconcile them. Whether she knows Viktor Vektor is not shown: when V brings him up she only advises keeping such things private.",
+  "That R. in her email is Reed is inferred from the scene (Reed sends V and later leaves V in her hands) and from her database line about helping old contacts; whether she knew what Reed's ICEbreaker was for is not shown.",
+  "Her vendor barks are not used for her manner; her delivery is drawn from her 41 accepted lines in scene q304_04d_shard_pickup (actor Farida). The sample dialogues are original, not quotations."
+ ],
+ "sources": [
+  {
+   "id": "fn-wiki",
+   "url": "https://cyberpunk.fandom.com/wiki/Farida_Nazeri",
+   "title": "Farida Nazeri — Cyberpunk Wiki",
+   "kind": "community",
+   "accessed": "2026-10-19",
+   "locator": "Infobox; Database Entry; Associated Quests",
+   "notes": "Page wikitext read through the MediaWiki API (direct page fetch returns HTTP 402). Database entry matches the game's own codex text (codex Farida). Cross-checked against her 41 accepted English subtitle lines (voice files farida_q304_*; scene q304_04d_shard_pickup, actor Farida, voicetag 3143607884894457856) and her three clinic emails in the installed localization (q304_farida_emails: R., Sublime_MD, Mabel). Narrative reference only."
+  },
+  {
+   "id": "fn-clinic",
+   "url": "https://cyberpunk.fandom.com/wiki/Farida%27s_Clinic",
+   "title": "Farida's Clinic — Cyberpunk Wiki",
+   "kind": "community",
+   "accessed": "2026-10-19",
+   "locator": "Infobox; Overview",
+   "notes": "Page wikitext read through the MediaWiki API (direct page fetch returns HTTP 402). Used for the clinic's location in Golden Pacific, its clients and how Hansen came to give it to her."
+  },
+  {
+   "id": "fn-birds",
+   "url": "https://cyberpunk.fandom.com/wiki/Birds_with_Broken_Wings",
+   "title": "Birds with Broken Wings — Cyberpunk Wiki",
+   "kind": "community",
+   "accessed": "2026-10-19",
+   "locator": "Walkthrough: Reed sends V to the ripperdoc; the implant and the ICEbreaker module; Objectives (Farida's clinic)",
+   "notes": "Page wikitext read through the MediaWiki API (direct page fetch returns HTTP 402). Matches the repo's phantom quest map (birds-with-broken-wings, faceplate stage, phantom.birds.icebreaker). Her own lines in q304_04d_shard_pickup supply the door code, the Watson answer, the rent and power remark, the spaceplane remark and Reed's line that she will feed his ICEbreaker into V."
+  },
+  {
+   "id": "fn-face",
+   "url": "https://cyberpunk.fandom.com/wiki/I%27ve_Seen_That_Face_Before",
+   "title": "I've Seen That Face Before — Cyberpunk Wiki",
+   "kind": "community",
+   "accessed": "2026-10-19",
+   "locator": "Walkthrough: opening line (the faceplate received from Farida Nazeri)",
+   "notes": "Page wikitext read through the MediaWiki API (direct page fetch returns HTTP 402). Used only for the faceplate's origin and what it is used for afterwards."
+  }
+ ]
+}

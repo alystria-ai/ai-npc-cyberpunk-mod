@@ -132,7 +132,13 @@ test('warmTalkTargets prepares an OmniVoice voice and a local persona for the pe
     profileFor: ({profileKey}) => ({name: profileKey.toUpperCase()})};
   const warm = warmTalkTargetsWith(stand);
   warm(['judy-alvarez', 'judy-alvarez', 'panam-palmer', 'stranger', 7]);
-  assert.deepEqual(log, [['voice', 'judy-alvarez'], ['persona', 'judy-alvarez', 'JUDY-ALVAREZ'], ['persona', 'panam-palmer', 'PANAM-PALMER']]);
+  // The local server has one slot and a newer persona warm-up for another character stops the older: only the first speaker's persona is read.
+  assert.deepEqual(log, [['voice', 'judy-alvarez'], ['persona', 'judy-alvarez', 'JUDY-ALVAREZ']]);
+  log.length = 0;
+  stand.localVoice.usesProfile = () => true;
+  warm(['judy-alvarez', 'panam-palmer']);
+  assert.deepEqual(log, [['voice', 'judy-alvarez'], ['persona', 'judy-alvarez', 'JUDY-ALVAREZ'], ['voice', 'panam-palmer']],
+    'a group: every voice is prepared, one persona is read (a second warm-up would stop the first)');
   log.length = 0;
   warm(['judy-alvarez'], {persona: false});
   assert.deepEqual(log, [['voice', 'judy-alvarez']], 'a turn that has begun must not queue a prefill in front of its own request');

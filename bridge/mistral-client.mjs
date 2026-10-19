@@ -306,9 +306,16 @@ const seconds = ms => Math.max(1, Math.round(ms / 1000));
 /**
  * One plain English sentence for a failed local turn: what the model was waiting for. It goes into the log, the support report and the game's
  * notice (as data after the translated sentence, like any provider's error text), so it never has a word of the reply, a path or a key.
- * `undefined` for an error that is not a local turn's.
+ * `undefined` for an error that is not a local turn's. A turn that was slow for a reason the host knows (`error.hint`: "the model is partly on the CPU",
+ * because the game left too little graphics memory) says so after the sentence, when the whole still fits what the game shows (140 characters).
  */
 export function failureDetail(error) {
+  const sentence = plainFailureDetail(error);
+  const hint = typeof error?.hint === 'string' ? error.hint : '';
+  return sentence && hint && sentence.length + hint.length + 2 <= 140 ? `${sentence}; ${hint}` : sentence;
+}
+
+function plainFailureDetail(error) {
   if (!(error instanceof MistralError) || error.provider !== 'local') return undefined;
   const trace = error.trace, took = trace?.elapsedMs ? seconds(trace.elapsedMs) : null, after = took ? ` after ${took} s` : '';
   const head = error.deadline ? 'ran out of the turn\'s time: ' : '';

@@ -92,6 +92,7 @@
     "diagnostic-response.txt",
     "dialogue-level.json",
     "game-dialogue-probe.json",
+    "johnny-probe.json",
     "knowledge-activation.json",
     "knowledge-binding.json",
     "knowledge-command.json",

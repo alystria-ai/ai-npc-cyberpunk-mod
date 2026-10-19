@@ -41,7 +41,16 @@
 [*]Start the game. The first start takes a little longer while the voice service prepares itself.
 [*]Open Cyber Engine Tweaks' [b]Bindings[/b] and give a key to each AI NPC Cyberpunk Mod action: talk by text, talk by voice, Group Chat and the companion manager. The mod never sets keys for you.
 [/list]
-Updating: extract the new Scripts and Runtime over the old ones. Your settings and memories are kept.
+Updating: extract the new Scripts and Runtime over the old ones. Your settings and memories are kept. The optional packs (OmniVoice, Local AI, Mature) are the same files as in 0.2.1, so if you already have them you don't need to download them again.
+
+[size=4][b]What companions can do[/b][/size]
+Invite someone from Companion Manager > Characters to invite. Party members follow you everywhere, sit with you when you sit (couches, benches, bar stools), ride along in your car and fight with you. A few things you just ask for in conversation, in your own words:
+[list]
+[*][b]Drive you somewhere:[/b] set a waypoint on the map and have your car nearby (call it, or stand within 20 m of one of your cars). Ask them to drive, for example "can you drive us to the waypoint?". They walk to the car and take the wheel; get in the passenger seat yourself within a few minutes. Change the waypoint and they follow it. Stop trip in the Companion Manager ends it; fast travel or loading a save does too.
+[*][b]Fight someone:[/b] tag the enemy with your scanner (or look right at them) and tell them to attack. They fight on their own anyway when a fight starts.
+[*][b]Leave:[/b] tell them to go home or leave the party, or use Dismiss in Companion Manager > Current party.
+[/list]
+They can't wait, stay or sit on command yet.
 
 [size=4][b]How it runs[/b][/size]
 Three ways, all free. Pick one in Companion Manager > Settings > Conversation provider.
@@ -71,7 +80,10 @@ All on the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-pac
 [*][b]Local AI standard[/b] (about 5.3 GB): the local language model with the best replies.
 [*][b]Local AI lite[/b] (about 1.4 GB): the same kind of model for smaller graphics cards.
 [*][b]Mature lite[/b] (about 2.9 GB) and [b]Mature standard[/b] (about 5.5 GB), 18+: uncensored local models. Each includes the Local AI engine, so no Local AI pack is needed. The Mature content setting is off by default.
+[*][b]Microphone, European languages[/b] (about 0.67 GB, new in 0.2.3): speak Russian, Ukrainian, Polish, Czech, Hungarian, German, French, Spanish, Italian or Portuguese with Local AI or a Custom endpoint. Recognised on your processor, loaded only while you use it.
+[*][b]Microphone, Asian languages[/b] (about 0.24 GB, new in 0.2.3): the same for Mandarin Chinese, Japanese and Korean.
 [/list]
+With Mistral you need neither Microphone pack: Mistral understands other languages by itself. English never needs one.
 
 [size=4][b]Fully local setup (no internet, no account)[/b][/size]
 [list=1]
@@ -109,7 +121,7 @@ With Convai, your lines go to Convai, along with a recent picture of only the ga
 Yes, with Mistral or Local AI. Face a character that has no profile here (for example a Night City Allies follower from a character mod), open Settings > Edit characters > Open and choose New character in the page that opens. Give them a name, a bio and a way of speaking; the page can fill in how the game recognises them from the character you are facing. An optional voice clip gives them a voice of their own. With Convai they talk as an ordinary person, and the game says so once.
 
 [b]Can I change a character's voice?[/b]
-Yes. In the same editor page, open a story character's Voice tab (or one of your own characters) and choose Add voice clip: a WAV, MP3, OGG or FLAC file of 5 to 20 seconds of one person speaking clearly, with the words said in it typed out. Pocket, OmniVoice and Voxtral copy that voice from the next game start. Remove clip brings the original voice back. The clip stays on your PC.
+Yes. In the same editor page, open a story character's Voice tab (or one of your own characters) and choose Add voice clip: a WAV, MP3, OGG or FLAC file of 5 to 20 seconds of one person speaking clearly, with the words said in it typed out. Pocket, OmniVoice and Voxtral copy that voice from that character's next line, with no restart. Remove clip brings the original voice back. The clip stays on your PC.
 
 [b]Error reports[/b]
 When something in the mod fails, a short report goes to the developer so it can be fixed without asking you for logs. It is on by default; turn it off in [b]Settings > Privacy > Send error reports automatically[/b].
@@ -120,7 +132,7 @@ When something in the mod fails, a short report goes to the developer so it can 
 [/list]
 
 [b]What languages can I use?[/b]
-Menus come in sixteen languages. Turn on Multilingual conversations to talk in any language. Pocket and Voxtral speak English only, so those replies use OmniVoice, or Convai's cloud voice without the pack. The Convai microphone expects English, so type in other languages.
+Menus come in sixteen languages. Turn on Multilingual conversations to talk in any language. Pocket and Voxtral speak English only, so those replies use OmniVoice, or Convai's cloud voice without the pack. The Convai microphone expects English, so type in other languages. With Mistral the microphone understands other languages too; with Local AI or a Custom endpoint, the optional Microphone packs add ten European languages, Mandarin Chinese, Japanese and Korean.
 
 [size=4][b]Troubleshooting[/b][/size]
 [b]The Companion Manager doesn't show up.[/b]
@@ -133,7 +145,7 @@ Install or repair Microsoft Edge (free from [url=https://www.microsoft.com/edge]
 The pack was probably extracted into an extra folder named after the zip. Extract it again into the Cyberpunk 2077 folder itself (the mod also moves misplaced packs into place at the next start). With only a Mature pack, turn on Mature content in Settings > Conversation provider.
 
 [b]The mod does not load, or the manager will not open.[/b]
-Close the game and double-click [b]Make support report.bat[/b] in Cyberpunk 2077\red4ext\plugins\AiNpcCyberpunkMod\. It checks that the required mods are installed, saves one report with the game closed and opens its folder. Send that file. With Mod Organizer 2, start it from MO2 (add it under Executables).
+Post what you see (a screenshot helps) on this page's Posts tab or in the Discord server below.
 
 [b]Something else?[/b]
 In game, open Companion Manager > Settings > Help > Help and support, choose [b]Generate report[/b], and send that file with what you were doing.

@@ -441,7 +441,7 @@ export class LocalLlmServer extends EventEmitter {
   #state = 'stopped'; #reason = null; #tier = null; #model = null; #firstTime = false;
   #proc = null; #info = null; #starting = null; #generation = 0; #inflight = 0; #idleTimer = null;
   #keyNoted = false; #warmed = new Set(); #contextSize = 0; #modelId = null; #reselectPending = false; #hints = null; #totalMiB = null; #lastFreeMiB = null; #failedPin = null; #broken = new Map();
-  #loaded = null; #lastExit = null; #lastTurn = null; #turns = {ok: 0, failed: 0, sinceStart: 0};
+  #loaded = null; #lastExit = null; #lastTurn = null; #turns = {ok: 0, failed: 0, sinceStart: 0}; #prewarming = null;
 
   // command/argsPrefix replace pack.server when spawning (tests); processOptions go to LlamaProcess (tests).
   // contextSize: a fixed context (tests, CYBERPUNK_CONVAI_LOCAL_CTX); without it each start takes the ladder's largest that fits.
@@ -483,7 +483,10 @@ export class LocalLlmServer extends EventEmitter {
   // A server the player runs also gets `requestModel` (the id its requests ask for) and `trustedOrigin` (the only origin its key may go to).
   #handle() {
     const info = this.#info;
+    // loadedAt / offload: which load this is and whether part of the model runs on the CPU, for the route's prompt-reading speed (bridge/prompt-budget.mjs PrefillMeter):
+    // a model that was loaded again, perhaps with less graphics memory free, is measured anew.
     return {endpoint: info.endpoint, apiKey: info.apiKey, model: this.#model, tier: this.#tier, contextSize: info.contextSize,
+      loadedAt: this.#loaded?.readyAt ?? 0, offload: this.#loaded?.offload === true,
       ...(info.external ? {external: true, requestModel: info.requestModel, trustedOrigin: info.trustedOrigin} : {})};
   }
 
@@ -1042,18 +1045,43 @@ export class LocalLlmServer extends EventEmitter {
   // --- prompt cache -------------------------------------------------------------------------------------------
 
   // Best effort, never throws: leaves the static persona prefix in llama-server's prompt cache.
-  async prewarm(messages) {
-    let release = null;
+  // The server has ONE slot (-np 1): a request that arrives while this one is being read waits for it, and on a computer that reads a prompt at
+  // 40 to 300 tokens a second (the game keeps the card busy) a 4,500-token persona takes a minute or more: the first player reports
+  // (2026-10-19) had a turn wait 60 s, "no response", behind a warm-up of another character. So a warm-up never stands in a turn's way:
+  // `key` says whose persona it reads (the profile), a turn for another one stops it (`preempt`), and so does a newer warm-up for another one.
+  // A turn for the SAME character does not stop it: it needs that very prefix, which the warm-up is putting in the cache.
+  async prewarm(messages, {key = null} = {}) {
+    let release = null, mine = null;
     try {
       const info = await this.ensure();
       if (info.external && this.#info?.remote) return false;   // nothing is sent to a remote server ahead of a turn
+      this.preempt(key);
+      if (this.#prewarming) return false;   // the same character's persona is already being read: a second request would only queue behind it
+      mine = {key, controller: new AbortController()};
+      this.#prewarming = mine;
       release = this.begin();
-      await this.#complete(info, messages);
+      await this.#complete(info, messages, {signal: mine.controller.signal});
       return true;
     } catch (error) {
-      this.log('[local] persona prewarm skipped: ' + (error?.message || 'error'));
+      this.log(mine?.controller.signal.aborted ? '[local] persona prewarm stopped: another request needed the model first'
+        : '[local] persona prewarm skipped: ' + (error?.message || 'error'));
       return false;
-    } finally { release?.(); }
+    } finally {
+      if (this.#prewarming === mine) this.#prewarming = null;
+      release?.();
+    }
+  }
+
+  /**
+   * A real request is about to be sent for the character `keep` (a profile key, or null for any): a warm-up in flight for another character is
+   * stopped, so the single slot is free for the request. Returns whether one was. Never throws.
+   */
+  preempt(keep = null) {
+    const warming = this.#prewarming;
+    if (!warming || (keep !== null && warming.key === keep)) return false;
+    this.#prewarming = null;
+    try { warming.controller.abort(); } catch { /* already finished */ }
+    return true;
   }
 
   // --- stopping -----------------------------------------------------------------------------------------------

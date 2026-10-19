@@ -15,6 +15,7 @@ import {CustomCharacters, rosterIndex} from './custom-characters.mjs';
 import {PlayerVoices} from './player-voices.mjs';
 import {CLIP, prepareUpload} from './custom-voice-clip.mjs';
 import {speechWav} from './voice-clip-fixture.mjs';
+import {rosterLookup} from './addons.mjs';
 
 const nonce0 = policy => /nonce-([A-Za-z0-9_-]+)/.exec(policy)[1];
 const rows = [...JSON.parse(await readFile(new URL('../characters/roster.json', import.meta.url), 'utf8')),
@@ -684,4 +685,55 @@ test('Open passes the facing character on, and a newly made character reaches th
   const game = JSON.parse(await readFile(join(bench.dir, 'runtime', 'custom-characters.json'), 'utf8'));
   assert.deepEqual(game.characters.map(row => [row.key, row.records, row.names, row.gender]), [[made.key, ['Character.Rebecca'], ['Rebecca'], 'female']]);
   assert.equal(bench.personas.has(made.key), true);
+});
+
+// ---- every editor save counts from the next turn, with no restart (docs/CHARACTER_EDITOR.md, "What applies when")
+
+test('every kind of save tells the bridge once it reached the store, so a reply prepared before it can be dropped; a hook that fails never fails the save', async t => {
+  const bench = await workbench({custom: true}); t.after(bench.done);
+  const seen = [];
+  bench.editor.onChanged = key => { seen.push(key); };
+  await bench.editor.save('river-ward', {style: 'Slow and dry, with a long pause before anything that matters.'});
+  await bench.editor.reset('river-ward', ['style']);
+  bench.editor.editRecord('judy-alvarez', 'a', 'V likes tea now.');
+  bench.editor.deleteRecord('judy-alvarez', 'b');
+  bench.editor.setSummary('judy-alvarez', 'V and I talked about the clinic again.');
+  const made = await bench.editor.createCustom(input());
+  await bench.editor.saveCustom(made.key, input({name: 'Becca', names: ['Becca']}));
+  await bench.editor.deleteCustom(made.key);
+  assert.deepEqual(seen, ['river-ward', 'river-ward', 'judy-alvarez', 'judy-alvarez', 'judy-alvarez', made.key, made.key, made.key]);
+  // Nothing is reported for a change that was refused.
+  seen.length = 0;
+  await assert.rejects(bench.editor.save('river-ward', {bio: 'too short'}), {status: 422});
+  await assert.rejects(bench.editor.saveCustom('custom-nobody-abcd', input()), {status: 404});
+  assert.deepEqual(seen, []);
+  bench.editor.onChanged = () => { throw Error('hook'); };
+  const saved = await bench.editor.save('river-ward', {style: 'Plain.'});
+  assert.equal(saved.values.style, 'Plain.');
+});
+
+test('a character the player made, renamed and deleted is what the next turn sees, with no reload: the persona, the roster rows and the name lookup follow', async t => {
+  const bench = await workbench({custom: true}); t.after(bench.done);
+  const roster = [...rows];
+  const sync = () => { for (let at = roster.length - 1; at >= 0; at--) if (roster[at]?.kind === 'custom') roster.splice(at, 1); roster.push(...bench.custom.rosterRows()); lookup.reset(); };
+  const lookup = rosterLookup(roster);
+  assert.equal(lookup('Rebecca'), null);
+  const made = await bench.editor.createCustom(input());
+  sync();
+  assert.equal(bench.personas.persona(made.key).name, 'Rebecca');
+  assert.equal(lookup('rebecca').key, made.key);
+  await bench.editor.saveCustom(made.key, input({name: 'Becca', names: ['Becca'], bio: BIO.replace('Rebecca', 'Becca'), memories: ['V lent me a gun twice.']}));
+  sync();
+  const persona = bench.personas.persona(made.key);
+  assert.equal(persona.name, 'Becca');
+  assert.deepEqual(persona.memories, ['V lent me a gun twice.']);
+  assert.match(systemHead({persona}), /V lent me a gun twice/);
+  assert.equal(lookup('Rebecca'), null, 'the old name is gone from the lookup');
+  assert.equal(lookup('becca').key, made.key);
+  assert.deepEqual(JSON.parse(await readFile(join(bench.dir, 'runtime', 'custom-characters.json'), 'utf8')).characters.map(row => row.name), ['Becca'], 'the game\'s list follows at once');
+  await bench.editor.deleteCustom(made.key);
+  sync();
+  assert.equal(bench.personas.has(made.key), false);
+  assert.equal(lookup('becca'), null);
+  assert.deepEqual(JSON.parse(await readFile(join(bench.dir, 'runtime', 'custom-characters.json'), 'utf8')).characters, []);
 });

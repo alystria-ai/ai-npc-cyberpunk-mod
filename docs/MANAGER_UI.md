@@ -9,7 +9,7 @@ The manager has two hosts that draw the same pages (`mod/manager-ui.lua`) and re
   Every control is one of NSUI's own widgets (switch, selector, slider, button); nothing is drawn with ImGui.
 
 No file or saved preference of NSUI, MCM or any other mod is edited. The manager needs one of the two: Mod Configuration Menu 0.10.5 or
-newer, or Native Settings UI. With both installed, MCM hosts it and the Native Settings UI tab is not registered (see "Both installed"); both hosts still read and write the same saved settings. The player opens
+newer, or Native Settings UI. With both installed, MCM hosts it and the Native Settings UI tab does not exist (not registered, or taken down if MCM turned up late; see "Both installed"); both hosts still read and write the same saved settings. The player opens
 it with the manager shortcut, with **Esc, Mods, AI NPC Cyberpunk Mod** (NSUI), or from MCM's own list.
 
 The page below ("Page layout", "Player flow") is the same in both hosts. "How a change is applied" and "How lists page" describe the
@@ -347,16 +347,21 @@ page logic's own once-a-second look. The model browser's scan runs a bounded bat
 and otherwise calls `api.ui.open`. MCM has no public call to close its screen, so pressing the shortcut again while it is open does
 nothing (Esc and MCM's own close work as usual).
 
-**Both installed.** MCM imports Native Settings UI's tabs into its own list through its bridge, and Native Settings UI cannot remove a tab
-once it is added, so `mod/nsui.lua` does not register the tab while the MCM host has registered the page (hosts are installed first at CET's
-`onInit`, where every mod is loaded, so there is no waiting and no per-frame look). An install with Native Settings UI alone, or beside an
-MCM older than 0.10.5, registers the tab as before. If MCM is installed but the shortcut cannot open it (for example it refuses the open
-request), the shortcut registers the tab then and falls back to the Native Settings UI walk. An MCM that only appears after
-CET's `onInit` leaves a tab that was already registered where it is (bridged into MCM's list).
+**Both installed.** The rule: with MCM 0.10.5 or newer and Native Settings UI both installed, the page is MCM's alone and this mod has no
+Native Settings UI tab. MCM imports Native Settings UI's tabs into its own list through its bridge (a second entry whose option handles go
+stale when a tab changes; the player saw "Native Settings UI rebuilt this setting. Reopen the mod before applying it again."), so
+`mod/nsui.lua` never registers the tab while the MCM host has registered the page, and the shortcut does not register it as a way around
+a refusal of MCM (it says why). An MCM that is present at CET's `onInit` but cannot say yet whether it hosts the page (its public interface
+is not there yet, and it is not older than 0.10.5) holds the tab back for 10 seconds, looked at once a second. An MCM that appears after the
+tab was registered (it loaded late) takes the tab down at the next once-a-second look, as soon as the tab is not on screen: Native Settings UI
+has no call to remove a tab, so the sections go through its `removeSubcategory` and the empty tab is dropped from its `data` registry. One
+log line says it. Native Settings UI alone, or beside an MCM older than 0.10.5 (which cannot host the page), keeps the tab. Beside such an
+old MCM the mirror still exists, so the tab keeps its option tables in place: a value change, and a change of text or section name while the
+tab is not on screen, update the same tables (MCM finds an option again by index, type and path), and only a change of kind or id replaces a row.
 
 Tests: `bridge/mcm-host.test.mjs` over `bridge/mcm-fake.mjs`, a fake MCM that keeps the rules of MCM's own modules for providers,
 schemas, drafts, Apply (including the exact `appliedIds` check), actions and the public UI extension; the setup check in
-`bridge/setup-check-lua.test.mjs`, the offline report in `bridge/offline-support-report.test.mjs`.
+`bridge/setup-check-lua.test.mjs`.
 
 ## Fonts and widths
 
@@ -556,27 +561,6 @@ Tests: `bridge/setup-check.test.mjs`, `bridge/setup-check-lua.test.mjs` (the Lua
    (service status, settings, party, `runtime\*.log`, `AiNpcCyberpunkMod.log`), says why it is short and names
    the logs it could not read. It is one fixed file, `runtime\convai-report-lua.txt` (shipped empty and rewritten in place, so a
    new report replaces the last one and no file is created, renamed or removed).
-4. **With the game closed** (the mod never loads, so there is no Help page): `Make support report.bat` in
-   `red4ext\plugins\AiNpcCyberpunkMod` starts the bundled Node on `bridge/make-support-report.mjs`, which runs
-   `runOfflineReport()` (`bridge/offline-support-report.mjs`). It calls the same `buildReport` as the service, so the zip is the same
-   kind and goes to the same reports folder, with `generatedBy: offline`. It finds the game folder from where the Runtime is (or
-   `--game`), reads the logs from disk, and adds a requirement check to `summary.json` (`requirements`, `modFiles`, `releases`,
-   `offline`): Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Native Settings UI (CET mod folder
-   `nativeSettings`; ArchiveXL too when present) with the version where one is written down (the CET and RED4ext logs of the last start,
-   and the `version = ...` line of Native Settings UI's own `init.lua`), this mod's CET folder, redscript folder and RED4ext plugin, and
-   the Scripts and Runtime `release.json`. Mod Configuration Menu is not checked. Each missing piece is a line in the PROBLEM FOUND block, and the same lines are printed in the window (a player who
-   double-clicks the file sees what is missing, not only where the zip is; "No missing mods or mod files were found." when there is none).
-   A mod extracted into a folder inside the game folder ("Extract to <zip name>") is named as that: when the tool itself sits in such a
-   folder, the game folder is the one above it, and `findMisplaced()` looks one and two folders below the game folder (never in its own
-   folders) for the CET folder's `init.lua`, the redscript folder and the plugin's DLL of a piece that is missing where it belongs; the move
-   is the player's to make. Redaction is the service's (`createRedactor`), with the player's key files, the Custom provider's key
-   (`player-custom-endpoint.txt`), the sign-in secret and the key packed into the Runtime added to the values it scrubs, and
-   `%USERNAME%` hidden in any path as well. Under Mod Organizer 2 a Runtime in MO2's `mods` folder is found through
-   `ModOrganizer.ini`, above the mods folder (portable) or in `%LOCALAPPDATA%\ModOrganizer\<instance>` (global, base directory
-   anywhere); Overwrite, the enabled mod folders of the selected profile and the game folder are searched in the order the game
-   sees them, and for each log the newest copy wins. Where that fails the tool says what it could not find and that MO2 users may
-   need to start it from MO2 (Executables). It opens Explorer on the zip, prints one line naming it, and exits with 0 (1 when no
-   report was made, also from the batch file).
 
 ### Privacy
 

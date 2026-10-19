@@ -64,7 +64,7 @@ test('the whole path: pick a character, edit and save each part, reset, and noth
   const {page} = e;
   assert.equal(await page.title(), 'Character editor');
   assert.equal(await page.locator('#banner').isHidden(), true, 'no warning when a text provider answers');
-  assert.match(await page.locator('#sub').textContent(), /Mistral and Local\. They do not apply to Convai\./);
+  assert.match(await page.locator('#sub').textContent(), /Mistral and Local AI\. They do not apply to Convai\./);
   assert.deepEqual(await page.locator('#list h3').allTextContents(), ['Story characters', 'Everyday people']);
   assert.equal(await page.locator('#list button.pick').count(), rows.length);
   await e.shot('01-start');
@@ -311,7 +311,7 @@ test('the player makes a character: fill the form, save, give it a voice clip, u
   assert.equal(e.voices.get(key).transcript, WORDS);
   assert.equal(await page.getByRole('button', {name: 'Remove clip'}).count(), 1);
   assert.equal(await page.locator('#f-clip').count(), 1);
-  assert.match(await page.locator('#main').textContent(), /A new or removed clip counts from the next time the game starts\. Until then the character keeps the voice it has now\./);
+  assert.match(await page.locator('#main').textContent(), /A new or removed clip counts from the next line this character speaks, once the current reply is over\. Nothing needs restarting\./);
   await e.shot('12-voice');
 
   // Unsaved changes ask before they are lost; deleting asks too, and takes the clip with it.

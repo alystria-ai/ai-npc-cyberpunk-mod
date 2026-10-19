@@ -152,6 +152,18 @@ test('a failed turn is reported only when it is not the player\'s own doing', ()
   assert.equal(reportableTurnFailure(new Error('Convai connection closed'), {microphone: true}), true);
 });
 
+test('the game ending a talk is not a fault: V interrupting or the game pausing or loading is never reported', () => {
+  // 2026-10-19 reports: "Continuous speech was stopped by the game" and "Continuous speech game lease expired" were 4 of the first 16.
+  for (const message of ['Continuous speech was stopped by the game', 'Continuous speech game lease expired', 'Continuous speech owner changed']) {
+    assert.equal(reportableTurnFailure(new Error(message)), false, message);
+    assert.equal(reportableTurnFailure(new Error(message), {errorCode: 'local-failed'}), false, message + ' on the local AI');
+    assert.equal(reportableTurnFailure(new Error(message), {microphone: true}), false, message + ' by voice');
+  }
+  // Other continuous speech failures are still faults.
+  assert.equal(reportableTurnFailure(new Error('Continuous speech renderer failed')), true);
+  assert.equal(reportableTurnFailure(new Error('Invalid continuous speech state')), true);
+});
+
 test('the bridge recorder writes after the fact, once per signature, and nothing while the setting is off', async () => {
   const f = await folders();
   try {
@@ -514,7 +526,7 @@ test('end to end with the real backend handler: stored once, listed and fetched 
 });
 
 test('a released Runtime sends to the address in app/defaults/error-reports.json; the data folder\'s settings win; its secret is scrubbed', async () => {
-  const {offlineSecrets} = await import('./offline-support-report.mjs');
+  const {dataFolderSecrets} = await import('./report-secrets.mjs');
   const f = await folders();
   const shipped = `shipped-${SIGNING_SECRET}`;
   try {
@@ -532,6 +544,6 @@ test('a released Runtime sends to the address in app/defaults/error-reports.json
     const {body} = await buildErrorPayload({record, game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state, project: f.project,
       installId: INSTALL, environment: {}, names: [], graphics: () => [], now: () => START});
     assert.ok(!body.includes(shipped), 'the shipped secret never leaves');
-    assert.ok((await offlineSecrets({stateDirectory: f.state, project: f.project})).includes(shipped), 'Make support report.bat scrubs it too');
+    assert.ok((await dataFolderSecrets({stateDirectory: f.state, project: f.project})).includes(shipped), 'the shipped secret is also returned for scrubbing');
   } finally { await f.cleanup(); }
 });
