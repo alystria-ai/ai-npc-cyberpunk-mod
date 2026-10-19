@@ -799,7 +799,7 @@ function convaiJohnnyHologramService()
     end
     return convaiJohnnyHologram or nil
 end
--- V sat down (mod/seated-look.lua onSit): one table write in the service. V stood up (onStand): he goes at once.
+-- V sat down (the seated-look module's onSit): one table write in the service. V stood up (onStand): he goes at once.
 function convaiJohnnyHologramMoment(kind, seat)
     local service = convaiJohnnyHologramService()
     if service then service:moment('sit', kind, seat) end
