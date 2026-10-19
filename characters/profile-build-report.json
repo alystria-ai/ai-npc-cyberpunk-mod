@@ -1969,10 +1969,10 @@
       "key": "briana-dolson",
       "words": 589,
       "speakingStyleWords": 153,
-      "sampleDialogueWords": 140,
+      "sampleDialogueWords": 137,
       "voice": "Anna (Expressive Young-Adult American Female)",
       "sources": 3,
-      "researchRevision": "7b5e4c9835a0f098808fb40ee80b38a3e6841fe109fc693da3399cb6f2f64e28"
+      "researchRevision": "63330bd756c7475ab5ff5e3a5d46bbd643a02d138b2b55b34eb1c6f519a91126"
     },
     {
       "key": "carol-emeka",
@@ -2212,10 +2212,10 @@
       "key": "lina-malina",
       "words": 607,
       "speakingStyleWords": 155,
-      "sampleDialogueWords": 171,
+      "sampleDialogueWords": 169,
       "voice": "Laura (Upbeat Young-Adult American Female)",
       "sources": 3,
-      "researchRevision": "47f4a01ce1f689492bea199eaa019f843cea9d1a0be89b56094144c47ae632e2"
+      "researchRevision": "72d430e82eb85422f62bfea4612ed57cd44972861e3c0f8557b1b6c6b803fdb6"
     },
     {
       "key": "lizzy-wizzy",
@@ -2266,10 +2266,10 @@
       "key": "misty-olszewski",
       "words": 848,
       "speakingStyleWords": 121,
-      "sampleDialogueWords": 250,
+      "sampleDialogueWords": 244,
       "voice": "Helen (Gentle Middle-Aged American Female)",
       "sources": 11,
-      "researchRevision": "600ae16cda88f43fba318e0b2bc0143c6c70ecb64f010c9be7ba86881294b454"
+      "researchRevision": "cffeae1ed77d6e1cd756dbd62e72d1bf0a5b8eb61aff258b9e0b2a2e520d8fce"
     },
     {
       "key": "mitch-anderson",
@@ -2311,10 +2311,10 @@
       "key": "nele-springer",
       "words": 725,
       "speakingStyleWords": 142,
-      "sampleDialogueWords": 122,
+      "sampleDialogueWords": 121,
       "voice": "Rachel (Neutral Adult American Female)",
       "sources": 3,
-      "researchRevision": "dbb513af0f86871096dc04ab553eac354210e08faa9bd2900ae15e5059f918ca"
+      "researchRevision": "5394b5fc9a318490635c072dd0ae734867c197ba3cd76f2bc8fca3ba7db142e8"
     },
     {
       "key": "nix",
