@@ -63,6 +63,7 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 | `setup-problem` | Player | The Scripts and Runtime versions do not match. Install the same version of both. | Same as the first `setup-problem` row | once |
 | `setup-problem` | Player | A pack is one folder too deep. See Help in Settings. | Same as the first `setup-problem` row | once |
 | `setup-problem` | Player | The conversation service cannot reach the internet. See Help in Settings. | Same as the first `setup-problem` row | once |
+| `error-reports-on` | Player | Error reports go to the developer automatically. Turn them off in Settings > Privacy. | Once, at the first load after updating (or installing), 40 s after the world is ready, while Settings > Privacy > Send error reports automatically is on (`mod/error-reports.lua`, docs/ERROR_REPORTS.md); remembered in settings.json | once |
 | `service-blocked` | Player | The conversation service is starting. Try again in a few seconds. | The player starts a conversation while the service is starting | 15 |
 | `service-blocked` | Player | The conversation service restarted. Please try again. | The service restarted after the request was sent | 15 |
 | `service-blocked` | Player | The conversation service is not running. Restart the game to start it again. | The service is stopped (and the two failure texts above) | 15 |

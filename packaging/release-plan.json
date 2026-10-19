@@ -382,6 +382,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/state-restore.lua"
         },
         {
+          "source": "mod/error-reports.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/error-reports.lua"
+        },
+        {
           "source": "mod/character-editor.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/character-editor.lua"
         },
@@ -603,6 +607,7 @@
             "bridge/emotion-lexicon.mjs",
             "bridge/emotion-selector.mjs",
             "bridge/emotion-tags.mjs",
+            "bridge/error-events.mjs",
             "bridge/expression-timeline.mjs",
             "bridge/expressive-emotions.mjs",
             "bridge/facial-timeline.mjs",
@@ -730,7 +735,8 @@
             "bridge/local-stt-worker.py",
             "bridge/audio-output-probe.ps1",
             "bridge/make-support-report.mjs",
-            "bridge/offline-support-report.mjs"
+            "bridge/offline-support-report.mjs",
+            "bridge/error-reports.mjs"
           ]
         },
         {

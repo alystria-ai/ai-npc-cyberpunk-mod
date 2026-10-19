@@ -4884,3 +4884,17 @@ test('the developer notice trigger shows the daily-limit notice only with Develo
     assert(speech.devNotice('notice:daily-limit:2') == false and #sent == 1, 'no player yet: nothing is shown')
   `);
 });
+
+test('error reports are on by default, apply as on or off only, and the one-time notice is remembered in settings.json', () => run(`${managerFixture}
+  manager.configure(api, profiles)
+  assert(manager.snapshot(player).settings.errorReports == true and manager.errorReports() == true, 'on by default')
+  assert(manager.errorReportsNoticeDue() == true, 'the notice is due once')
+  assert(manager.markErrorReportsNoticed() == true and saved.errorReportsNoticed == true)
+  assert(manager.errorReportsNoticeDue() == false)
+  assert(manager.applySettings(player, {errorReports = 'no'}) == false, 'on or off only')
+  assert(manager.errorReports() == true)
+  assert(manager.applySettings(player, {errorReports = false}) and saved.errorReports == false)
+  assert(manager.errorReports() == false and manager.snapshot(player).settings.errorReports == false)
+  assert(manager.errorReportsNoticeDue() == false, 'never due while off')
+  assert(manager.applySettings(player, {errorReports = true}) and saved.errorReports == true and saved.errorReportsNoticed == true)
+`));

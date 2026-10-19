@@ -16,7 +16,7 @@ try {
   process.stderr.write(`Conversation service supervisor: ${error.message}\n`);
   process.exit(2);
 }
-const supervisor = new BridgeSupervisor({...options, lifeline: options.lifeline === 'stdin' ? process.stdin : null});
+const supervisor = new BridgeSupervisor({...options, lifeline: options.lifeline === 'stdin' ? process.stdin : null, errorReports: true});
 if (options.unknown.length) supervisor.log(`Ignored unknown arguments: ${options.unknown.join(' ')}`);
 for (const name of ['SIGINT', 'SIGTERM', 'SIGBREAK']) process.on(name, () => supervisor.requestExit('supervisor-stopped'));
 process.on('unhandledRejection', error => supervisor.log(`Unhandled rejection: ${error?.stack || error}`));

@@ -40,6 +40,8 @@ local groupChat = dofile('group-chat.lua')
 groupChat.captureReply = speech.transcript
 local manager = dofile('manager.lua')
 convaiNotices.configure(function() return manager.developerMode() end)
+-- Automatic error reports, game side (mod/error-reports.lua): a global, so this chunk gains no local.
+pcall(function() dofile('error-reports.lua').configure(manager) end)
 local managerUi = dofile('nsui.lua')
 local phoneLayout = dofile('phone-layout.lua')
 local phoneChatStyle = dofile('phone-chat-style.lua')

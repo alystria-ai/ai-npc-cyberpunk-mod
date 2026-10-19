@@ -69,6 +69,7 @@ import {VendorMemory, vendorMemoryKey} from './vendor-memory.mjs';
 import {PlayerMemoryApi} from './player-memory-api.mjs';
 import {PlayerMemoryControl} from './player-memory-control.mjs';
 import {SupportReportControl} from './support-report.mjs';
+import {ErrorEvents, installCrashCapture} from './error-events.mjs';
 import {SetupCheckControl, cachedBrowserName, cachedGraphicsCards, cachedModManagers, collectSetupCheck, findNestedPacks, readPackPlacement} from './setup-check.mjs';
 import {CharacterOverrides} from './character-overrides.mjs';
 import {CharacterEditor} from './character-editor.mjs';
@@ -117,6 +118,12 @@ const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
 const game = process.env.CYBERPUNK_CONVAI_GAME || 'E:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077';
 const runtime = resolve(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/runtime');
+// Automatic error reports (docs/ERROR_REPORTS.md): this process only records (bridge/error-events.mjs); the service's supervisor sends.
+// An uncaught exception or unhandled rejection is written down as the process ends (how it ends does not change); a failed turn that is
+// not the player's own doing and the setup check's problems are recorded after the fact, never on a turn's path. Off with the setting.
+installCrashCapture({stateDirectory, runtime});
+const errorEvents = new ErrorEvents({stateDirectory, runtime});
+const noteSetupProblems = document => { try { if (document) errorEvents.setupChecked(document); } catch { /* never fails start-up */ } };
 const keyFile = process.env.CYBERPUNK_CONVAI_KEY_FILE || resolve(stateDirectory, 'convai-key.txt');
 // The player's own state files in runtime/ (settings, phone chats, add-on settings, NPC names, ...): a copy is kept outside the game folder,
 // where Mod Organizer 2 cannot lose it (bridge/game-state.mjs). Only the packaged launcher turns this on, with the folder the copies are in.
@@ -410,6 +417,15 @@ const keyNotice = () => {
   // The fallback notice names the model that was used instead.
   return keyNotice ? {keyNotice, ...(keyNotice === 'local-model-fallback' && mistral.noticeModel ? {keyNoticeModel: mistral.noticeModel} : {})} : {};
 };
+// A failed turn for the automatic error reports (bridge/error-events.mjs decides whether it is the player's own doing, from the same code
+// the failure reply carries). Called after that reply is written; it defers its one file write, so the turn's path pays a function call.
+function noteTurnFailure(error, input, {microphone = false} = {}) {
+  try {
+    const errorCode = input ? turnFailure(error, input).errorCode : undefined;
+    errorEvents.turnFailed(error, {provider: mistral.route ?? 'convai', errorCode, microphone,
+      localReason: errorCode === 'local-fallback' || errorCode === 'local-unavailable' ? mistral.localBroken || localServer.status().reason : undefined});
+  } catch { /* a report is never worth a failure of its own */ }
+}
 // While Local AI is chosen and cannot start, a failed turn names Local AI's problem ('local-no-memory', 'local-unavailable'), never a Convai one
 // (MistralProvider.failureCode: no 'local-fallback' when nobody takes over, no 'daily-limit' for a turn that fell back to Convai). Others pass.
 const providerFailureCode = code => mistral.failureCode(code);
@@ -1789,6 +1805,7 @@ const addonVoice = createAddonVoice({isSpeaker: key => addonHost.isSpeaker(key),
     await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
       error: 'The conversation service could not reply. Please try again.', ...turnFailure(error, input)}),
       {signal, isCurrent: current, isCurrentSync: current.sync}).catch(() => {});
+    noteTurnFailure(error, input, {microphone: true});
   }});
 
 const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => realtime.voiceChannel()),
@@ -1874,6 +1891,7 @@ const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => rea
       ...(silent ? {device: String(error.device ?? '').slice(0, 80)} : {}), updated: Date.now()}), {isCurrent: current, isCurrentSync: current.sync});
     await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
       entity: input.entity, error: 'Voice conversation failed. Check your microphone and try again.', ...turnFailure(error, input)}), {isCurrent: current, isCurrentSync: current.sync});
+    if (!noSpeech && !silent) noteTurnFailure(error, input, {microphone: true});
   },
 });
 
@@ -2474,6 +2492,8 @@ async function runInput(request, prepared, clock) {
       generation: input.generation, entity: input.entity,
       error: 'The conversation service could not reply. Please try again.', ...turnFailure(error, input)}), {signal: controller.signal, isCurrent: current, isCurrentSync: current.sync}).catch(() => {});
     console.error('[CyberpunkConvai] Bridge request failed:', error.message);
+    // An automatic reaction that failed is a turn too; one cancelled by the player is not (reportableTurnFailure).
+    if (input && !controller.signal.aborted) noteTurnFailure(error, input);
   } finally {
     if (knowledgeTurn && (controller.signal.aborted || !await current())) await cancelKnowledgeTurn(knowledgeTurn);
     if (active === request) active = null;
@@ -3021,7 +3041,7 @@ const editorControl = await EditorControl.open({server: new EditorServer({editor
 await companionActions.revoke();
 await status('waiting');
 await pollSettings(false);
-void setupCheck.run(null, {light: true}).catch(error => console.error('[CyberpunkConvai] Setup check:', error.message));
+void setupCheck.run(null, {light: true}).catch(error => { console.error('[CyberpunkConvai] Setup check:', error.message); return null; }).then(noteSetupProblems);
 void gameState?.poll();
 // The saved provider is applied (or the settings file could not be read yet, and the default stands until a later poll): the status file
 // says so from here on.

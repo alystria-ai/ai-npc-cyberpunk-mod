@@ -1,0 +1,343 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { UsageError, checkBaseUrl, fetchErrorReports, run, writeIndex } from './Fetch-ErrorReports.mjs';
+
+// Fake secrets only, and no network: a stand-in for fetch serves the admin calls.
+const SECRET = 'fake-admin-secret-for-tests-'.padEnd(48, 'z');
+const SIGNING = 'fake-signing-secret-for-tests-'.padEnd(48, 'q');
+const ORIGIN = 'https://backend.invalid';
+const NOW = Date.UTC(2026, 9, 19, 12, 0, 0);
+const SIG_A = 'a'.repeat(16), SIG_B = 'b'.repeat(16);
+const idAt = (ms, tail) => `${String(ms).padStart(13, '0')}-${tail.repeat(6)}`;
+const A1 = idAt(NOW - 3 * 86_400_000, 'c'), A2 = idAt(NOW - 86_400_000, 'd');
+const LONG_MESSAGE = `bad | message ${'x'.repeat(200)}`;
+
+const reportBody = (signature, id, modVersion) => ({
+  schema: 1, install: '0'.repeat(24), signature, kind: signature === SIG_A ? 'lua-error' : 'bridge-crash',
+  message: signature === SIG_A ? LONG_MESSAGE : 'second problem', modVersion, report: {detail: `detail of ${id}`},
+});
+
+/** The admin calls, served from memory. `state.signatures` and `state.reports` can be changed between runs; `calls` records every request. */
+function fakeServer() {
+  const state = {
+    signatures: [
+      {signature: SIG_A, kind: 'lua-error', message: LONG_MESSAGE, frame: 'mod/x.lua:1', reports: 4, stored: 2, firstSeen: new Date(NOW - 3 * 86_400_000).toISOString(),
+        lastSeen: new Date(NOW - 86_400_000).toISOString(), versions: {'0.2.1': 1, '0.2.2': 3}, ids: [A2, A1]},
+      {signature: SIG_B, kind: 'bridge-crash', message: 'second problem', frame: null, reports: 1, stored: 0, firstSeen: new Date(NOW - 3600_000).toISOString(),
+        lastSeen: new Date(NOW - 3600_000).toISOString(), versions: {'0.2.2': 1}, ids: []},
+    ],
+    reports: new Map([[`${SIG_A}/${A1}`, reportBody(SIG_A, A1, '0.2.1')], [`${SIG_A}/${A2}`, reportBody(SIG_A, A2, '0.2.2')]]),
+  };
+  const calls = [];
+  const fetchImpl = async (url, init = {}) => {
+    const address = new URL(url);
+    const method = init.method ?? 'GET';
+    calls.push({method, url: String(url), headers: init.headers ?? {}, redirect: init.redirect});
+    if (init.headers?.Authorization !== `Bearer ${SECRET}`) return Response.json({error: 'unauthorized'}, {status: 401});
+    if (address.pathname !== '/api/admin/errors') return Response.json({error: 'not_found'}, {status: 404});
+    const signature = address.searchParams.get('signature'), id = address.searchParams.get('id');
+    if (method === 'DELETE') return Response.json({deleted: state.reports.delete(`${signature}/${id}`) ? 1 : 0});
+    if (signature) {
+      const report = state.reports.get(`${signature}/${id}`);
+      return report ? Response.json({signature, id, receivedAt: new Date(Number(id.slice(0, 13))).toISOString(), report}) : Response.json({error: 'not_found'}, {status: 404});
+    }
+    return Response.json({total: state.signatures.length, signatures: state.signatures});
+  };
+  return {state, calls, fetchImpl};
+}
+
+async function withFolder(work) {
+  const folder = await mkdtemp(join(tmpdir(), 'fetch-error-reports-'));
+  try {
+    return await work(folder);
+  } finally {
+    await rm(folder, {recursive: true, force: true});
+  }
+}
+
+const filesUnder = async folder => {
+  const found = [];
+  for (const entry of await readdir(folder, {withFileTypes: true, recursive: true})) {
+    if (entry.isFile()) found.push(join(entry.parentPath ?? entry.path, entry.name));
+  }
+  return found.sort();
+};
+const tableRows = markdown => markdown.split('\n').filter(line => line.startsWith('| `')).map(line => line.slice(1, -1).split(/(?<!\\)\|/).map(part => part.trim()));
+const options = (server, extra = {}) => ({baseUrl: ORIGIN, secret: SECRET, limit: 100, fetchImpl: server.fetchImpl, now: () => NOW, ...extra});
+
+test('every kept report is saved as <out>/<signature>/<id>.json, the index lists the signatures newest first, and a second run writes nothing', async () => {
+  await withFolder(async out => {
+    const server = fakeServer();
+    const first = await fetchErrorReports(options(server, {out}));
+    assert.deepEqual({signatures: first.signatures, total: first.total, newReports: first.newReports, alreadyHere: first.alreadyHere, gone: first.gone, deleted: first.deleted},
+      {signatures: 2, total: 2, newReports: 2, alreadyHere: 0, gone: 0, deleted: 0});
+    assert.equal(first.indexPath, join(out, 'INDEX.md'));
+
+    for (const id of [A1, A2]) {
+      const text = await readFile(join(out, SIG_A, `${id}.json`), 'utf8');
+      assert.ok(text.includes('\n  "report": {'), 'pretty JSON');
+      assert.deepEqual(JSON.parse(text), {signature: SIG_A, id, receivedAt: new Date(Number(id.slice(0, 13))).toISOString(), report: server.state.reports.get(`${SIG_A}/${id}`)});
+    }
+    assert.deepEqual((await readdir(out)).sort(), [SIG_A, 'INDEX.md'].sort(), 'no folder for a signature without kept bodies');
+
+    const index = await readFile(join(out, 'INDEX.md'), 'utf8');
+    assert.match(index, /^# Error reports\n\nFetched 2026-10-19T12:00:00\.000Z\.\n\n\| Signature \| Kind \| Message \| Reports \| Kept \| Versions \| First seen \| Last seen \| Files here \|\n\|---\|/);
+    const rows = tableRows(index);
+    assert.equal(rows.length, 2);
+    // Newest last seen first: B (an hour ago) before A (a day ago).
+    assert.deepEqual(rows[0], [`\`${SIG_B}\``, 'bridge-crash', 'second problem', '1', '0', '0.2.2 x1', new Date(NOW - 3600_000).toISOString(), new Date(NOW - 3600_000).toISOString(), '0']);
+    const [signature, kind, message, reports, kept, versions, firstSeen, lastSeen, files] = rows[1];
+    assert.equal(signature, `\`${SIG_A}\``);
+    assert.equal(kind, 'lua-error');
+    assert.ok(message.startsWith('bad \\| message x'), 'the pipe is escaped');
+    assert.equal(Array.from(message.replace('\\|', '|')).length, 120, 'trimmed to 120 characters');
+    assert.ok(message.endsWith('...'));
+    assert.deepEqual([reports, kept, versions, firstSeen, lastSeen, files], ['4', '2', '0.2.2 x3, 0.2.1 x1', new Date(NOW - 3 * 86_400_000).toISOString(), new Date(NOW - 86_400_000).toISOString(), '2']);
+    assert.match(index, /\nTotals: 2 signatures \(0 expired on server\), 5 reports, 2 kept on the server, 2 files here\.\n$/);
+
+    // A second run: nothing is written or fetched again.
+    const before = server.calls.length;
+    const second = await fetchErrorReports(options(server, {out}));
+    assert.deepEqual({newReports: second.newReports, alreadyHere: second.alreadyHere}, {newReports: 0, alreadyHere: 2});
+    assert.equal(server.calls.length - before, 1, 'only the list was asked for');
+    assert.equal(await readFile(join(out, 'INDEX.md'), 'utf8'), index);
+  });
+});
+
+test('the admin secret goes only in the Authorization header: not in an address, a file, or the console', async () => {
+  await withFolder(async folder => {
+    const server = fakeServer();
+    await mkdir(join(folder, 'runtime'));
+    await writeFile(join(folder, 'runtime', 'convai-auth.json'), JSON.stringify({url: `${ORIGIN}/api/convai/token`, secret: SIGNING, backend: true}));
+    await writeFile(join(folder, 'runtime', 'convai-auth-admin.txt'), `${SECRET}\r\n`);
+    const logs = [];
+    const code = await run([], {root: folder, fetchImpl: server.fetchImpl, now: () => NOW, log: line => logs.push(line), error: line => logs.push(line)});
+    assert.equal(code, 0);
+    assert.ok(server.calls.length >= 3);
+    for (const call of server.calls) {
+      assert.ok(call.url.startsWith(`${ORIGIN}/api/admin/errors?`), call.url);
+      assert.ok(!call.url.includes(SECRET) && !call.url.includes(SIGNING));
+      assert.equal(call.headers.Authorization, `Bearer ${SECRET}`, 'the trimmed secret is sent');
+      assert.equal(call.redirect, 'error', 'a redirect is never followed with the secret');
+    }
+    const out = join(folder, 'deliverables', 'error-reports');
+    const written = await filesUnder(out);
+    assert.equal(written.length, 3, 'two reports and the index');
+    for (const file of written) {
+      const text = await readFile(file, 'utf8');
+      assert.ok(!text.includes(SECRET) && !text.includes(SIGNING), file);
+    }
+    const printed = logs.join('\n');
+    assert.ok(!printed.includes(SECRET) && !printed.includes(SIGNING) && !printed.includes('backend.invalid'), 'nothing secret and no address is printed');
+    assert.match(printed, /2 signatures \(2 on the server\), 2 new reports written, 0 already here\./);
+    assert.ok(printed.includes(join(out, 'INDEX.md')));
+  });
+});
+
+test('the address comes from runtime/convai-auth.json (only its url), and the secret falls back to auth-backend/secrets/admin.secret', async () => {
+  await withFolder(async folder => {
+    const server = fakeServer();
+    await mkdir(join(folder, 'runtime'));
+    await mkdir(join(folder, 'auth-backend', 'secrets'), {recursive: true});
+    await writeFile(join(folder, 'runtime', 'convai-auth.json'), `\uFEFF${JSON.stringify({url: 'https://backend.invalid:8443/api/convai/token', secret: SIGNING})}`);
+    await writeFile(join(folder, 'auth-backend', 'secrets', 'admin.secret'), SECRET);
+    assert.equal(await run(['--limit', '5'], {root: folder, fetchImpl: server.fetchImpl, now: () => NOW, log() {}, error() {}}), 0);
+    assert.equal(server.calls[0].url, 'https://backend.invalid:8443/api/admin/errors?limit=5');
+    // runtime/convai-auth-admin.txt wins when both exist.
+    await writeFile(join(folder, 'runtime', 'convai-auth-admin.txt'), 'a different secret');
+    const refused = [];
+    assert.equal(await run([], {root: folder, fetchImpl: server.fetchImpl, now: () => NOW, log() {}, error: line => refused.push(line)}), 1);
+    assert.match(refused.join('\n'), /answered 401/);
+  });
+});
+
+test('a missing or empty secret file is a clear error that names the path, and nothing is fetched', async () => {
+  await withFolder(async folder => {
+    const server = fakeServer();
+    await mkdir(join(folder, 'runtime'));
+    await writeFile(join(folder, 'runtime', 'convai-auth.json'), JSON.stringify({url: `${ORIGIN}/x`}));
+    const errors = [];
+    const call = async argv => {
+      errors.length = 0;
+      return run(argv, {root: folder, fetchImpl: server.fetchImpl, now: () => NOW, log() {}, error: line => errors.push(line)});
+    };
+    assert.equal(await call([]), 2);
+    assert.ok(errors[0].includes(resolve(folder, 'runtime', 'convai-auth-admin.txt')), errors[0]);
+    assert.ok(errors[0].includes(resolve(folder, 'auth-backend', 'secrets', 'admin.secret')), 'the fallback is named too');
+    assert.match(errors[0], /not found/);
+
+    await writeFile(join(folder, 'runtime', 'convai-auth-admin.txt'), '  \r\n');
+    assert.equal(await call([]), 2);
+    assert.match(errors[0], /empty/);
+    assert.ok(errors[0].includes('convai-auth-admin.txt'));
+
+    const explicit = join(folder, 'nowhere.txt');
+    assert.equal(await call(['--admin-secret-file', explicit]), 2);
+    assert.ok(errors[0].includes(explicit));
+    assert.equal(server.calls.length, 0);
+  });
+});
+
+test('without --url the settings file is needed, and a file with no usable url is refused', async () => {
+  await withFolder(async folder => {
+    const server = fakeServer();
+    await mkdir(join(folder, 'runtime'));
+    await writeFile(join(folder, 'runtime', 'convai-auth-admin.txt'), SECRET);
+    const errors = [];
+    const call = argv => { errors.length = 0; return run(argv, {root: folder, fetchImpl: server.fetchImpl, now: () => NOW, log() {}, error: line => errors.push(line)}); };
+    assert.equal(await call([]), 2);
+    assert.ok(errors[0].includes(resolve(folder, 'runtime', 'convai-auth.json')));
+    await writeFile(join(folder, 'runtime', 'convai-auth.json'), '{not json');
+    assert.equal(await call([]), 2);
+    await writeFile(join(folder, 'runtime', 'convai-auth.json'), JSON.stringify({secret: SIGNING}));
+    assert.equal(await call([]), 2);
+    assert.match(errors[0], /no "url"/);
+    assert.ok(!errors.join('\n').includes(SIGNING));
+    assert.equal(await call(['--url', ORIGIN, '--out', join(folder, 'here')]), 0, '--url does not need the settings file');
+    assert.equal((await readdir(join(folder, 'here'))).includes('INDEX.md'), true);
+  });
+});
+
+test('only https is accepted, and http only to localhost', async () => {
+  assert.equal(checkBaseUrl('https://backend.invalid/api/convai/token'), ORIGIN);
+  assert.equal(checkBaseUrl('http://localhost:8080/x'), 'http://localhost:8080');
+  assert.equal(checkBaseUrl('http://127.0.0.1:3000'), 'http://127.0.0.1:3000');
+  for (const bad of ['http://backend.invalid', 'http://localhost.evil.invalid', 'ftp://backend.invalid', 'backend.invalid', '', 'file:///c:/x']) {
+    assert.throws(() => checkBaseUrl(bad), UsageError, bad);
+  }
+  await withFolder(async folder => {
+    const server = fakeServer();
+    await assert.rejects(fetchErrorReports(options(server, {out: folder, baseUrl: 'http://backend.invalid'})), UsageError);
+    await assert.rejects(fetchErrorReports(options(server, {out: folder, secret: ''})), UsageError);
+    const errors = [];
+    assert.equal(await run(['--url', 'http://backend.invalid', '--admin-secret-file', join(folder, 'nowhere')], {fetchImpl: server.fetchImpl, log() {}, error: line => errors.push(line)}), 2);
+    await writeFile(join(folder, 'secret.txt'), SECRET);
+    errors.length = 0;
+    assert.equal(await run(['--url', 'http://backend.invalid', '--admin-secret-file', join(folder, 'secret.txt'), '--out', join(folder, 'o')], {fetchImpl: server.fetchImpl, log() {}, error: line => errors.push(line)}), 2);
+    assert.match(errors[0], /https/);
+    assert.ok(!errors.join('\n').includes(SECRET));
+    assert.equal(server.calls.length, 0, 'nothing was sent anywhere');
+    const local = fakeServer();
+    await fetchErrorReports({...options(local, {out: join(folder, 'local')}), baseUrl: 'http://127.0.0.1:3000'});
+    assert.ok(local.calls[0].url.startsWith('http://127.0.0.1:3000/api/admin/errors'));
+  });
+});
+
+test('a signature saved here but gone from the server stays in the index, marked as expired', async () => {
+  await withFolder(async out => {
+    const server = fakeServer();
+    await fetchErrorReports(options(server, {out}));
+    server.state.signatures = server.state.signatures.filter(row => row.signature === SIG_B); // A expired on the server
+    const summary = await fetchErrorReports(options(server, {out}));
+    assert.equal(summary.signatures, 1);
+    const index = await readFile(join(out, 'INDEX.md'), 'utf8');
+    const rows = tableRows(index);
+    assert.equal(rows.length, 2);
+    const expired = rows.find(row => row[0].startsWith(`\`${SIG_A}\``));
+    assert.equal(expired[0], `\`${SIG_A}\` (expired on server)`);
+    assert.equal(expired[1], 'lua-error', 'what it was is read back from the saved reports');
+    assert.deepEqual([expired[3], expired[4], expired[5], expired[8]], ['-', '-', '0.2.2 x1, 0.2.1 x1', '2']);
+    assert.equal(expired[6], new Date(Number(A1.slice(0, 13))).toISOString());
+    assert.equal(expired[7], new Date(Number(A2.slice(0, 13))).toISOString());
+    assert.deepEqual(rows.map(row => row[0].slice(1, 17)), [SIG_B, SIG_A], 'still sorted by last seen');
+    assert.match(index, /Totals: 2 signatures \(1 expired on server\), 1 reports, 0 kept on the server, 2 files here\./);
+  });
+});
+
+test('--delete-fetched deletes on the server only reports that are saved here, and not at all without the flag', async () => {
+  await withFolder(async out => {
+    const kept = fakeServer();
+    await fetchErrorReports(options(kept, {out: join(out, 'plain')}));
+    assert.equal(kept.calls.filter(call => call.method === 'DELETE').length, 0);
+    assert.equal(kept.state.reports.size, 2);
+
+    const server = fakeServer();
+    const summary = await fetchErrorReports(options(server, {out: join(out, 'deleting'), deleteFetched: true}));
+    assert.equal(summary.newReports, 2);
+    assert.equal(summary.deleted, 2);
+    assert.equal(server.state.reports.size, 0);
+    for (const id of [A1, A2]) {
+      const get = server.calls.findIndex(call => call.method === 'GET' && call.url.includes(`id=${id}`));
+      const remove = server.calls.findIndex(call => call.method === 'DELETE' && call.url.includes(`id=${id}`));
+      assert.ok(get >= 0 && remove > get, 'saved, then deleted');
+      assert.equal((await readdir(join(out, 'deleting', SIG_A))).includes(`${id}.json`), true);
+    }
+
+    // When a report cannot be saved (here a plain file sits where its folder should be), nothing is deleted.
+    const blocked = fakeServer();
+    await mkdir(join(out, 'blocked'));
+    await writeFile(join(out, 'blocked', SIG_A), 'in the way');
+    await assert.rejects(fetchErrorReports(options(blocked, {out: join(out, 'blocked'), deleteFetched: true})));
+    assert.equal(blocked.calls.filter(call => call.method === 'DELETE').length, 0);
+    assert.equal(blocked.state.reports.size, 2);
+  });
+});
+
+test('a server refusal or failure is reported without the secret, and a report dropped meanwhile is skipped', async () => {
+  await withFolder(async out => {
+    const server = fakeServer();
+    const errors = [];
+    const asked = argv => { errors.length = 0; return run(argv, {fetchImpl: server.fetchImpl, now: () => NOW, log() {}, error: line => errors.push(line)}); };
+    await writeFile(join(out, 'wrong.txt'), 'not the secret');
+    await writeFile(join(out, 'right.txt'), SECRET);
+    assert.equal(await asked(['--url', ORIGIN, '--admin-secret-file', join(out, 'wrong.txt'), '--out', join(out, 'x')]), 1);
+    assert.match(errors[0], /answered 401 \(unauthorized\)/);
+    assert.ok(!errors.join('\n').includes('not the secret'));
+
+    const down = async () => { throw new Error('connect ECONNREFUSED'); };
+    errors.length = 0;
+    assert.equal(await run(['--url', ORIGIN, '--admin-secret-file', join(out, 'right.txt'), '--out', join(out, 'x')], {fetchImpl: down, log() {}, error: line => errors.push(line)}), 1);
+    assert.match(errors[0], /failed: connect ECONNREFUSED/);
+    assert.ok(!errors[0].includes(SECRET));
+
+    server.state.reports.delete(`${SIG_A}/${A1}`);
+    const summary = await fetchErrorReports(options(server, {out: join(out, 'y')}));
+    assert.deepEqual({newReports: summary.newReports, gone: summary.gone}, {newReports: 1, gone: 1});
+  });
+});
+
+test('a signature or id from the server that is not the expected shape is ignored, never used as a path', async () => {
+  await withFolder(async folder => {
+    const out = join(folder, 'out');
+    const server = fakeServer();
+    server.state.signatures = [{signature: '../evil', ids: [A1], reports: 1, stored: 1, versions: {}},
+      {signature: SIG_A, kind: 'lua-error', message: 'm', reports: 1, stored: 1, versions: {}, firstSeen: null, lastSeen: null, ids: ['../../escape', A1]}];
+    const summary = await fetchErrorReports(options(server, {out}));
+    assert.equal(summary.newReports, 1);
+    assert.deepEqual(await filesUnder(folder), [join(out, SIG_A, `${A1}.json`), join(out, 'INDEX.md')].sort());
+    assert.ok(server.calls.every(call => !call.url.includes('evil') && !call.url.includes('escape')));
+  });
+});
+
+test('writeIndex with nothing at all still writes a valid index', async () => {
+  await withFolder(async folder => {
+    const out = join(folder, 'fresh');
+    const path = await writeIndex({out, signatures: [], fetchedAt: NOW});
+    const text = await readFile(path, 'utf8');
+    assert.match(text, /Fetched 2026-10-19T12:00:00\.000Z\./);
+    assert.match(text, /Totals: 0 signatures \(0 expired on server\), 0 reports, 0 kept on the server, 0 files here\./);
+    assert.equal(tableRows(text).length, 0);
+  });
+});
+
+test('the command line: --out, --limit and --help work, and a bad option or value is a usage error', async () => {
+  await withFolder(async folder => {
+    const server = fakeServer();
+    await writeFile(join(folder, 'secret.txt'), SECRET);
+    const logs = [], errors = [];
+    const base = ['--url', ORIGIN, '--admin-secret-file', join(folder, 'secret.txt')];
+    const call = argv => { logs.length = 0; errors.length = 0; return run(argv, {fetchImpl: server.fetchImpl, now: () => NOW, log: line => logs.push(line), error: line => errors.push(line)}); };
+    assert.equal(await call([...base, '--out', join(folder, 'chosen'), '--limit', '7']), 0);
+    assert.equal(server.calls[0].url, `${ORIGIN}/api/admin/errors?limit=7`);
+    assert.equal((await readdir(join(folder, 'chosen'))).includes('INDEX.md'), true);
+    assert.equal(await call(['--help']), 0);
+    assert.match(logs[0], /^Usage:/);
+    for (const bad of [['--nope'], [...base, '--limit', '0'], [...base, '--limit', '201'], [...base, '--limit', 'many'], [...base, '--out'], ['--url']]) {
+      assert.equal(await call(bad), 2, bad.join(' '));
+    }
+    assert.match(errors.join('\n'), /Usage:|needs a value/);
+  });
+});

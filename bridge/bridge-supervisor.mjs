@@ -83,9 +83,9 @@ export class BridgeSupervisor {
   constructor({project, stateDirectory, keyFile, gameRoot, gamePid = null, lifeline = null,
     buildVoiceClient = false, nodeExecutable = process.execPath, spawn = spawnProcess,
     alive = processAlive, killTree = killProcessTree, now = Date.now, sleep = delay,
-    browserAvailable = systemBrowserAvailable, timings = {}} = {}) {
+    browserAvailable = systemBrowserAvailable, timings = {}, errorReports = false} = {}) {
     Object.assign(this, {project, stateDirectory, keyFile, gameRoot, gamePid, lifeline,
-      buildVoiceClient, nodeExecutable, spawn, alive, killTree, now, sleep, browserAvailable});
+      buildVoiceClient, nodeExecutable, spawn, alive, killTree, now, sleep, browserAvailable, errorReports});
     this.timings = {...DEFAULT_TIMINGS, ...timings};
     this.entry = resolve(project, 'bridge/convai-bridge.mjs');
     this.paths = {
@@ -104,7 +104,7 @@ export class BridgeSupervisor {
     this.ready = false; this.stopRequested = false; this.ownNonces = new Set(); this.retiredPids = new Set();
     this.exitReason = null; this.lifelineEnded = false; this.built = false; this.logsRotated = false;
     this.lastGameProbe = -Infinity; this.lastStatusWrite = -Infinity; this.lastDormantCheck = -Infinity;
-    this.lastSetupCheck = -Infinity; this.retrySetup = false; this.lockFd = null;
+    this.lastSetupCheck = -Infinity; this.retrySetup = false; this.lockFd = null; this.reporter = null;
   }
 
   log(message) {
@@ -147,6 +147,7 @@ export class BridgeSupervisor {
       this.lastControlRaw = await this.readControl();
       await this.setStatus('starting', 'supervisor-started');
       this.startHeartbeat();
+      await this.startErrorReports();
       while (!this.gameGone() && this.mode !== 'done') {
         await this.step();
         if (this.gameGone() || this.mode === 'done') break;
@@ -157,6 +158,8 @@ export class BridgeSupervisor {
     } finally {
       clearInterval(this.heartbeat);
       await this.statusWriting?.catch(() => {});
+      // A report being sent gets a moment to finish; anything still queued goes out at the next game start.
+      if (this.reporter) { await this.reporter.idle(3000).catch(() => {}); this.reporter.close(); }
       if (this.lockFd !== null) { try { closeSync(this.lockFd); } catch {} this.lockFd = null; }
       this.log(`Supervisor ${process.pid} finished.`);
     }
@@ -190,6 +193,22 @@ export class BridgeSupervisor {
         await this.sleep(this.timings.lockRetryMs);
       }
     }
+  }
+
+  // Automatic error reports (bridge/error-reports.mjs, docs/ERROR_REPORTS.md), for the packaged and development entry points that ask
+  // for them. Loaded here, after the status is written, so a problem in that module can never stop the service; it sends off the turn
+  // path, from this process, and outlives a crashed bridge.
+  async startErrorReports() {
+    if (!this.errorReports || this.reporter) return;
+    try {
+      const {ErrorReporter} = await import('./error-reports.mjs');
+      this.reporter = new ErrorReporter({game: this.gameRoot, runtime: dirname(this.paths.status), stateDirectory: this.stateDirectory,
+        project: this.project, log: message => this.log(message)}).start();
+    } catch (error) { this.log(`Error reports are unavailable: ${error?.message ?? error}`); }
+  }
+
+  reportEvent(event) {
+    if (this.reporter) void this.reporter.record(event).catch(() => {});
   }
 
   async step() {
@@ -400,6 +419,7 @@ export class BridgeSupervisor {
     this.crashes = this.crashes.filter(at => now - at < this.timings.crashWindowMs);
     this.crashes.push(now); this.restarts++;
     this.log(`The bridge${pid ? ` (PID ${pid})` : ''} exited unexpectedly (${describeExit(exit)}).`);
+    if (this.reporter) void this.reporter.bridgeExited(describeExit(exit)).catch(() => {});
     if (this.crashes.length >= this.timings.maxCrashes) {
       this.log(`Giving up after ${this.crashes.length} exits in ${Math.round(this.timings.crashWindowMs / 60000)} minutes. Check bridge.stderr.log.`);
       this.retrySetup = false;
@@ -414,6 +434,7 @@ export class BridgeSupervisor {
   async fail(code) {
     this.mode = 'failed'; this.failedAt = this.now();
     this.log(`The conversation service cannot run: ${code}.`);
+    this.reportEvent({kind: 'service-failed', message: code, frame: 'supervisor'});
     return this.setStatus('failed', code);
   }
 

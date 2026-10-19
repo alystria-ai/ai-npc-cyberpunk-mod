@@ -79,6 +79,7 @@ All on the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-pac
 [*]Companion Manager > Settings > Conversation provider: choose [b]Local AI[/b]. With only a Mature pack, also turn on [b]Mature content[/b].
 [*]Local AI speaks with Pocket TTS, already in the Runtime (English). For voices that sound like the game characters, and for other languages, add the OmniVoice pack and choose it in Settings > Voices.
 [*]If Windows asks whether Node.js may use the network, you can decline: Local AI and the local voices only talk inside your PC.
+[*]For no network traffic at all, also turn off [b]Settings > Privacy > Send error reports automatically[/b].
 [/list]
 
 [size=4][b]Use your own AI model or model server[/b][/size]
@@ -103,6 +104,14 @@ No. Companions are temporary copies that the mod owns. The game's own story char
 
 [b]What leaves my computer?[/b]
 With Convai, your lines go to Convai, along with a recent picture of only the game window so characters can see where you are. It is taken only while someone you can talk to is near, kept in memory for a few seconds and never saved. With Mistral, your lines go to Mistral. With Local AI, nothing leaves your computer for replies.
+
+[b]Error reports[/b]
+When something in the mod fails, a short report goes to the developer so it can be fixed without asking you for logs. It is on by default; turn it off in [b]Settings > Privacy > Send error reports automatically[/b].
+[list]
+[*][b]Sent:[/b] the error, the mod and requirement versions, your provider, voice and Local AI model choices, Mature content on or off, your graphics card, the setup check, and up to 150 log lines around the error, with keys, IDs and your Windows user name removed.
+[*][b]Never sent:[/b] keys, what you or the characters say, memories, audio, your Windows user name or your IP address.
+[*]At most one report per kind of error a day and five a day in all; kept for 30 days.
+[/list]
 
 [b]What languages can I use?[/b]
 Menus come in sixteen languages. Turn on Multilingual conversations to talk in any language. Pocket and Voxtral speak English only, so those replies use OmniVoice, or Convai's cloud voice without the pack. The Convai microphone expects English, so type in other languages.

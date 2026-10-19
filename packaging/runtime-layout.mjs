@@ -48,6 +48,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/emotion-lexicon.mjs',
   'bridge/emotion-selector.mjs',
   'bridge/emotion-tags.mjs',
+  'bridge/error-events.mjs',
   'bridge/expression-timeline.mjs',
   'bridge/expressive-emotions.mjs',
   'bridge/facial-timeline.mjs',
@@ -185,6 +186,9 @@ export const BRIDGE_AUXILIARY_FILES = Object.freeze([
   // second is the report code it calls. Neither is imported by the service.
   'bridge/make-support-report.mjs',
   'bridge/offline-support-report.mjs',
+  // The automatic error reports' sender: the service's supervisor (bridge/bridge-supervisor.mjs) loads it with a dynamic import, so a
+  // problem in it can never stop the service. The bridge itself only records (bridge/error-events.mjs, above).
+  'bridge/error-reports.mjs',
 ]);
 // These are the pinned external package entry points, not a replacement for the
 // full reviewed Playwright distributions and their transitive source/notices.

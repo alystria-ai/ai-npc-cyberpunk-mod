@@ -1459,6 +1459,11 @@ local function schema()
                 categories[#categories + 1] = {id = section.id, name = section.title, description = section.description, settings = list}
             end
         end
+        -- Automatic error reports (docs/ERROR_REPORTS.md, mod/error-reports.lua): on by default; the help says what is sent and what never is.
+        categories[#categories + 1] = category('privacy', 'Privacy', {
+            setting('errorReports', 'Send error reports automatically', 'bool', snapshot.settings.errorReports ~= false, true,
+                'When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.'),
+        })
         -- Developer mode lists the Inworld cloud voice (in Voices) and puts its key here.
         local development = {
             setting('developerMode', 'Developer mode', 'bool', snapshot.settings.developerMode, false,
@@ -1677,7 +1682,7 @@ function M.apply(changes)
             or key == 'autoConnectNearby' or key == 'holocallLiveImage' or key == 'naturalSpeech'
             or key == 'gameDialogueContext'
             or key == 'expressiveEmotions' or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations'
-            or key == 'matureContent' then values[key] = change.value
+            or key == 'matureContent' or key == 'errorReports' then values[key] = change.value
         elseif key == 'voiceVolume' then
             if type(change.value) ~= 'number' then return refused('Choose a voice volume from 50 to 200 percent.') end
             values.voiceVolume = change.value
@@ -1839,6 +1844,11 @@ function M.slowUpdate(currentPlayer, worldReady)
     if convaiSetupCheck then
         local checked, setupNotice = pcall(convaiSetupCheck.tick, worldReady == true, currentPlayer ~= nil)
         if checked and setupNotice then log(setupNotice); messages[#messages + 1] = {id = 'setup-problem', text = setupNotice} end
+    end
+    -- Automatic error reports (mod/error-reports.lua): the one notice that says they are sent, once, in gameplay. One test once decided.
+    if convaiErrorReports then
+        local ticked, reportsNotice = pcall(convaiErrorReports.tick, worldReady == true)
+        if ticked and reportsNotice then log(reportsNotice); messages[#messages + 1] = {id = 'error-reports-on', text = reportsNotice} end
     end
     if worldReady then
         -- A voice that could not run is announced once, in gameplay.
