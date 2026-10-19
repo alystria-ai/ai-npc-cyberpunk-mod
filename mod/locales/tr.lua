@@ -987,4 +987,8 @@ return {
     ["This address is not encrypted, which is fine on your own computer or home network."] = "Bu adres şifreli değil; kendi bilgisayarında ya da ev ağında sorun değil.",
     ["Use the base URL only: no password, query or #."] = "Yalnızca temel URL’yi kullan: şifre, sorgu veya # olmadan.",
     ["Waiting for the endpoint to answer…"] = "Endpoint yanıtı bekleniyor…",
+    ["Privacy"] = "Gizlilik",
+    ["Send error reports automatically"] = "Hata raporlarını otomatik olarak gönder",
+    ["When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name."] = "Modda bir şey ters gittiğinde, senden günlük istemeden hatanın düzeltilebilmesi için geliştiriciye kısa bir rapor gider. Günde en fazla beş tane.\n\nHatayı, modun ve gereksinimlerinin sürümlerini, sağlayıcı ve ses seçimlerini, yetişkin içeriğinin açık olup olmadığını, ekran kartını, kurulum denetiminin sonucunu ve hatanın çevresindeki günlük satırlarını içerir.\n\nAnahtarları, sen veya karakterlerin söylediklerini, anıları, sesleri ya da Windows kullanıcı adını asla içermez.",
+    ["Error reports go to the developer automatically. Turn them off in Settings > Privacy."] = "Hata raporları otomatik olarak geliştiriciye gönderilir. Kapatmak için Ayarlar > Gizlilik.",
 }

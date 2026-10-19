@@ -35,6 +35,7 @@ M.catalog = {
     -- Conversation service and replies
     ['service-down'] = {class = PLAYER},               -- once per failure
     ['setup-problem'] = {class = PLAYER},              -- the setup check's first-load notice: the first critical install problem, once per game session (mod/setup-check.lua)
+    ['error-reports-on'] = {class = PLAYER},           -- error reports are sent automatically and where to turn them off: once, at the first load after updating (mod/error-reports.lua)
     ['service-blocked'] = {class = PLAYER, repeatS = 15},
     ['conversation-timeout'] = {class = PLAYER, repeatS = 15},
     ['reply-error'] = {class = PLAYER, repeatS = 15},

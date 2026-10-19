@@ -552,6 +552,8 @@ end
 -- (RED4ext, Codeware, Audioware, TweakXL) are one notice naming them all, up to MAX_NAMES; Mod Configuration Menu has its own.
 local function firstLoad()
     local problems = M.problems()
+    -- The automatic error reports (mod/error-reports.lua): the game-side versions and the problems the game found, once per session.
+    if convaiErrorReports then pcall(convaiErrorReports.noteSetup, problems, game and game.checks) end
     if #problems == 0 then
         appendLog('Setup check: no critical problem')
         return nil

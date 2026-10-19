@@ -218,6 +218,13 @@ function M.notice(now)
     local down = M.unavailable(now)
     if not down then return nil end
     noticedSince = service.since
+    -- The automatic error reports (mod/error-reports.lua): once per failure, the same code the supervisor reports when it wrote it.
+    if convaiErrorReports then
+        local silent = down.code == 'service-silent'
+        local code = silent and 'service-silent' or (type(service.code) == 'string' and service.code) or down.kind
+        pcall(convaiErrorReports.record, silent and 'service-silent' or 'service-failed', code, down.detail,
+            type(service.source) == 'string' and service.source or 'supervisor')
+    end
     return M.message(down.kind, down.detail)
 end
 

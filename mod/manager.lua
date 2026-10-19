@@ -641,6 +641,8 @@ local function loadSettings()
     ui.configure(settings.uiLanguage)
     if type(settings.voice) ~= 'boolean' then settings.voice = true end
     if type(settings.subtitles) ~= 'boolean' then settings.subtitles = true end
+    -- Automatic error reports (docs/ERROR_REPORTS.md): on unless the player turned them off. The service reads a missing key as on too.
+    if type(settings.errorReports) ~= 'boolean' then settings.errorReports = true end
     if settings.subtitleStyle ~= 'overhead' and settings.subtitleStyle ~= 'dialogue' then
         settings.subtitleStyle, settingsNeedSave = 'dialogue', true
     end
@@ -864,6 +866,29 @@ function M.configureArchetypes(keys, classify, label)
     for key in pairs(keys or {}) do archetypeKeys[key] = true end
     classifyRecord = type(classify) == 'function' and classify or nil
     archetypeLabel = type(label) == 'function' and label or nil
+end
+
+-- Settings > Privacy > Send error reports automatically (docs/ERROR_REPORTS.md). Read when the game records an error event (a few times a
+-- session at most), never per frame.
+function M.errorReports()
+    loadSettings()
+    return settings.errorReports ~= false
+end
+
+-- The one-time notice that error reports are sent (mod/error-reports.lua): due while the setting is on and the notice was never shown.
+function M.errorReportsNoticeDue()
+    loadSettings()
+    return settings.errorReports ~= false and settings.errorReportsNoticed ~= true
+end
+
+-- Remembers that the notice was shown, in settings.json. A save that fails leaves it due, so it may show once more at the next load.
+function M.markErrorReportsNoticed()
+    loadSettings()
+    if settings.errorReportsNoticed == true then return true end
+    settings.errorReportsNoticed = true
+    if saveSettings() then return true end
+    settings.errorReportsNoticed = nil
+    return false
 end
 
 function M.archetypeConversations()
@@ -1726,6 +1751,7 @@ function M.snapshot(player)
             gameDialogueContext = settings.gameDialogueContext,
             decisionLedger = settings.decisionLedger,
             witnessReceipts = settings.witnessReceipts,
+            errorReports = settings.errorReports ~= false,
             eyeContactHeight = settings.eyeContactHeight,
             headFollowStrength = settings.headFollowStrength,
             audioDelay = settings.audioDelay,
@@ -1793,7 +1819,7 @@ function M.applySettings(player, values)
             or key == 'battleReactions' or key == 'lootReactions' or key == 'bodyGestures' or key == 'autoConnectNearby'
             or key == 'holocallLiveImage'
             or key == 'gameDialogueContext' or key == 'decisionLedger' or key == 'witnessReceipts'
-            or key == 'naturalSpeech' or key == 'expressiveEmotions'
+            or key == 'naturalSpeech' or key == 'expressiveEmotions' or key == 'errorReports'
             or key == 'followUpInterest' or key == 'vVoice' or key == 'multilingualConversations' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value

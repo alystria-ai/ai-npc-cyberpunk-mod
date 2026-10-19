@@ -987,4 +987,8 @@ return {
     ["This address is not encrypted, which is fine on your own computer or home network."] = "Адрес не зашифрован, но на твоём компьютере или в домашней сети это нормально.",
     ["Use the base URL only: no password, query or #."] = "Укажи только базовый URL: без пароля, параметров запроса и #.",
     ["Waiting for the endpoint to answer…"] = "Ожидание ответа эндпоинта…",
+    ["Privacy"] = "Конфиденциальность",
+    ["Send error reports automatically"] = "Автоматически отправлять отчёты об ошибках",
+    ["When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name."] = "Если в моде что-то идёт не так, разработчику отправляется короткий отчёт, чтобы ошибку можно было исправить без запроса журналов. Не более пяти в день.\n\nВ нём содержатся сама ошибка, версии мода и его требований, ваш выбор поставщика и голоса, включён ли контент для взрослых, ваша видеокарта, результат проверки настройки и строки журналов вокруг ошибки.\n\nОн никогда не содержит ключей, того, что говорите вы или персонажи, воспоминаний, аудио и имени пользователя Windows.",
+    ["Error reports go to the developer automatically. Turn them off in Settings > Privacy."] = "Отчёты об ошибках сами уходят разработчику. Выкл.: Настройки > Конфиденциальность.",
 }

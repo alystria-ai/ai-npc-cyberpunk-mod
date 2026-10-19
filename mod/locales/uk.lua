@@ -987,4 +987,8 @@ return {
     ["This address is not encrypted, which is fine on your own computer or home network."] = "Ця адреса не шифрується, але на твоєму комп’ютері чи в домашній мережі це нормально.",
     ["Use the base URL only: no password, query or #."] = "Вказуй лише базовий URL: без пароля, параметрів запиту та #.",
     ["Waiting for the endpoint to answer…"] = "Очікування відповіді ендпоінта…",
+    ["Privacy"] = "Конфіденційність",
+    ["Send error reports automatically"] = "Автоматично надсилати звіти про помилки",
+    ["When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name."] = "Коли в моді щось іде не так, розробнику надсилається короткий звіт, щоб помилку можна було виправити без запиту журналів. Не більше п’яти на день.\n\nЗвіт містить саму помилку, версії моду та його вимог, твій вибір постачальника й голосу, чи ввімкнено контент для дорослих, твою відеокарту, результат перевірки налаштувань і рядки журналу навколо помилки.\n\nЗвіт ніколи не містить ключів, того, що кажеш ти або персонажі, спогадів, аудіо чи твого імені користувача Windows.",
+    ["Error reports go to the developer automatically. Turn them off in Settings > Privacy."] = "Звіти про помилки сами йдуть розробнику. Вимкнути: Налаштування > Конфіденційність.",
 }

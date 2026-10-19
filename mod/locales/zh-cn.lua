@@ -987,4 +987,8 @@ return {
     ["This address is not encrypted, which is fine on your own computer or home network."] = "此地址未加密，但在你自己的电脑或家庭网络中使用没有问题。",
     ["Use the base URL only: no password, query or #."] = "只使用基础 URL：不要包含密码、查询参数或 #。",
     ["Waiting for the endpoint to answer…"] = "正在等待端点回应…",
+    ["Privacy"] = "隐私",
+    ["Send error reports automatically"] = "自动发送错误报告",
+    ["When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name."] = "模组出现问题时，会向开发者发送一份简短报告，以便修复问题，而无需你提供日志。每天最多五份。\n\n报告包含错误信息、模组和依赖项的版本、你选择的服务提供方和语音、成人内容是否开启、显卡、设置检查结果，以及错误前后的日志行。\n\n报告绝不包含密钥、你或角色说的话、记忆、音频，也绝不包含你的 Windows 用户名。",
+    ["Error reports go to the developer automatically. Turn them off in Settings > Privacy."] = "错误报告会自动发送给开发者，可在“设置 > 隐私”中关闭。",
 }

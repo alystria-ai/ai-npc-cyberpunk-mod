@@ -987,4 +987,8 @@ return {
     ["This address is not encrypted, which is fine on your own computer or home network."] = "Ez a cím nem titkosított, ami a saját gépeden vagy a házi hálózatodon rendben van.",
     ["Use the base URL only: no password, query or #."] = "Csak az alap URL-t add meg: jelszó, lekérdezés vagy # nélkül.",
     ["Waiting for the endpoint to answer…"] = "Várakozás az endpoint válaszára…",
+    ["Privacy"] = "Adatvédelem",
+    ["Send error reports automatically"] = "Hibajelentések automatikus küldése",
+    ["When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name."] = "Ha valami elromlik a modban, egy rövid jelentés megy a fejlesztőnek, hogy a hibát naplókérés nélkül lehessen javítani. Naponta legfeljebb öt.\n\nTartalmazza a hibát, a mod és a követelményei verzióit, a szolgáltató- és hangválasztásodat, hogy a felnőtt tartalom be van-e kapcsolva, a grafikus kártyádat, a beállításellenőrzés eredményét és a hiba körüli naplósorokat.\n\nSoha nem tartalmaz kulcsokat, azt, amit te vagy a karakterek mondtok, emlékeket, hangot vagy a Windows-felhasználóneved.",
+    ["Error reports go to the developer automatically. Turn them off in Settings > Privacy."] = "Hibajelentések automatikusan a fejlesztőhöz mennek. Kikapcsolás: Beállítások > Adatvédelem.",
 }

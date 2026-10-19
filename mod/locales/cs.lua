@@ -987,4 +987,8 @@ return {
     ["This address is not encrypted, which is fine on your own computer or home network."] = "Tato adresa není šifrovaná, což je v pořádku na tvém počítači nebo v domácí síti.",
     ["Use the base URL only: no password, query or #."] = "Používej jen základní URL: bez hesla, dotazu nebo #.",
     ["Waiting for the endpoint to answer…"] = "Čeká se na odpověď endpointu…",
+    ["Privacy"] = "Soukromí",
+    ["Send error reports automatically"] = "Automaticky odesílat hlášení o chybách",
+    ["When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name."] = "Když se v modu něco pokazí, krátké hlášení se odešle vývojáři, aby chybu mohl opravit, aniž by po tobě chtěl logy. Nejvýše pět denně.\n\nObsahuje chybu, verze modu a jeho požadavků, tvou volbu poskytovatele a hlasu, zda je zapnutý obsah pro dospělé, tvou grafickou kartu, výsledek kontroly nastavení a řádky logu kolem chyby.\n\nNikdy neobsahuje klíče, to, co říkáš ty nebo postavy, vzpomínky, zvuk ani tvé uživatelské jméno ve Windows.",
+    ["Error reports go to the developer automatically. Turn them off in Settings > Privacy."] = "Hlášení o chybách se vývojáři odesílají automaticky. Vypnout: Nastavení > Soukromí.",
 }

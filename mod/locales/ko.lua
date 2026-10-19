@@ -987,4 +987,8 @@ return {
     ["This address is not encrypted, which is fine on your own computer or home network."] = "이 주소는 암호화되지 않습니다. 내 컴퓨터나 집 네트워크라면 괜찮습니다.",
     ["Use the base URL only: no password, query or #."] = "기본 URL만 입력하세요. 비밀번호, 쿼리, #은 넣지 마세요.",
     ["Waiting for the endpoint to answer…"] = "엔드포인트의 응답을 기다리는 중…",
+    ["Privacy"] = "개인정보 보호",
+    ["Send error reports automatically"] = "오류 보고서 자동 전송",
+    ["When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name."] = "모드에 문제가 생기면 짧은 보고서가 개발자에게 전송되어, 로그를 요청하지 않고도 오류를 고칠 수 있습니다. 하루 최대 다섯 건입니다.\n\n보고서에는 오류 내용, 모드와 요구 사항의 버전, 선택한 제공자와 음성, 성인 콘텐츠 사용 여부, 그래픽 카드, 설정 확인 결과, 오류 전후의 로그 줄이 들어갑니다.\n\n키, 당신이나 캐릭터가 말한 내용, 기억, 오디오, Windows 사용자 이름은 절대 포함되지 않습니다.",
+    ["Error reports go to the developer automatically. Turn them off in Settings > Privacy."] = "오류 보고서는 개발자에게 자동 전송됩니다. 끄기: 설정 > 개인정보 보호",
 }

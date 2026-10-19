@@ -987,4 +987,8 @@ return {
     ["This address is not encrypted, which is fine on your own computer or home network."] = "このアドレスは暗号化されていません。ご自身のコンピューターやご自宅のネットワーク内であれば問題ありません。",
     ["Use the base URL only: no password, query or #."] = "ベースURLのみを使用してください。パスワード、クエリ、#は入れないでください。",
     ["Waiting for the endpoint to answer…"] = "エンドポイントの応答を待っています…",
+    ["Privacy"] = "プライバシー",
+    ["Send error reports automatically"] = "エラーレポートを自動で送信",
+    ["When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name."] = "MOD で問題が起きると、短いレポートが開発者に送信されます。ログを提出していただかなくても修正できるようにするためです。1日最大5件です。\n\nレポートには、エラーの内容、MOD と必要条件のバージョン、選択したプロバイダーと音声、成人向けコンテンツの有無、グラフィックボード、セットアップチェックの結果、エラー前後のログ行が含まれます。\n\nキー、あなたやキャラクターの発言、記憶、音声、Windows のユーザー名は一切含まれません。",
+    ["Error reports go to the developer automatically. Turn them off in Settings > Privacy."] = "エラーレポートは自動で開発者に届きます。オフ: 設定 > プライバシー",
 }

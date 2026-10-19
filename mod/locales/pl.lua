@@ -987,4 +987,8 @@ return {
     ["This address is not encrypted, which is fine on your own computer or home network."] = "Ten adres nie jest szyfrowany, co jest w porządku na twoim komputerze lub w sieci domowej.",
     ["Use the base URL only: no password, query or #."] = "Podaj tylko podstawowy adres URL: bez hasła, zapytania i #.",
     ["Waiting for the endpoint to answer…"] = "Czekanie na odpowiedź endpointu…",
+    ["Privacy"] = "Prywatność",
+    ["Send error reports automatically"] = "Automatycznie wysyłaj raporty o błędach",
+    ["When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name."] = "Gdy w modzie coś pójdzie nie tak, krótki raport trafia do twórcy, dzięki czemu błąd można naprawić bez proszenia cię o logi. Najwyżej pięć dziennie.\n\nZawiera błąd, wersje moda i jego wymagań, twój wybór dostawcy i głosu, informację, czy treści dla dorosłych są włączone, twoją kartę graficzną, wynik sprawdzenia konfiguracji oraz wiersze logu wokół błędu.\n\nNigdy nie zawiera kluczy, tego, co mówisz ty lub postacie, wspomnień, dźwięku ani nazwy twojego użytkownika Windows.",
+    ["Error reports go to the developer automatically. Turn them off in Settings > Privacy."] = "Raporty o błędach trafiają do twórcy automatycznie. Wyłącz: Ustawienia > Prywatność.",
 }

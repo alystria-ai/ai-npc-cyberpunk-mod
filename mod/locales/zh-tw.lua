@@ -987,4 +987,8 @@ return {
     ["This address is not encrypted, which is fine on your own computer or home network."] = "此地址未加密，但在你自己的電腦或家用網路中使用沒有問題。",
     ["Use the base URL only: no password, query or #."] = "只使用基礎 URL：不要包含密碼、查詢參數或 #。",
     ["Waiting for the endpoint to answer…"] = "正在等待端點回應…",
+    ["Privacy"] = "隱私",
+    ["Send error reports automatically"] = "自動傳送錯誤報告",
+    ["When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name."] = "模組出現問題時，會向開發者傳送一份簡短報告，以便修復問題，而無需你提供記錄檔。每天最多五份。\n\n報告包含錯誤資訊、模組和需求項目的版本、你選擇的服務供應商和語音、成人內容是否開啟、顯示卡、設定檢查結果，以及錯誤前後的記錄行。\n\n報告絕不包含金鑰、你或角色說的話、記憶、音訊，也絕不包含你的 Windows 使用者名稱。",
+    ["Error reports go to the developer automatically. Turn them off in Settings > Privacy."] = "錯誤報告會自動傳送給開發者，可在「設定 > 隱私」中關閉。",
 }
