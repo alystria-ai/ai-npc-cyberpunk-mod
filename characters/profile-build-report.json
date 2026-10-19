@@ -2795,12 +2795,12 @@
     },
     {
       "key": "joshua-stephenson",
-      "words": 763,
+      "words": 765,
       "speakingStyleWords": 206,
       "sampleDialogueWords": 169,
       "voice": "Ethan (Calm Young-Adult American Male)",
       "sources": 4,
-      "researchRevision": "1183e25c570f0c517f38e6fdd45708a3f094bfc258627d14ea8a83a6d4099913"
+      "researchRevision": "82ba363a47ac93b224dfcad555749ca30564cfe5c01b6571b18dcde7a406d758"
     },
     {
       "key": "maiko-maeda",
