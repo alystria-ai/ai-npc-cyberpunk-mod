@@ -308,7 +308,7 @@ test('a server that does not start leaves its last output in the log, and one th
   const crashing = rig(t, {env: {FAKE_LLAMA_CRASH_AFTER: '1'}, maxRestarts: 0});
   await crashing.server.ensure();
   await crashing.server.prewarm([{role: 'user', content: 'hi'}]);
-  for (let wait = 0; wait < 400 && !crashing.server.diagnostics().lastExit; wait++) await sleep(50);
+  for (let wait = 0; wait < 2400 && !crashing.server.diagnostics().lastExit; wait++) await sleep(50);
   const d = crashing.server.diagnostics();
   assert.equal(d.lastExit.code, 7);
   assert(crashing.logs.some(line => /llama-server stopped unexpectedly \(exit 7\)/.test(line)), crashing.logs.join('\n'));

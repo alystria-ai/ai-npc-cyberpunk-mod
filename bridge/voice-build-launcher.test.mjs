@@ -115,7 +115,7 @@ $global:testObserved.queries = $global:testQueries
 [IO.File]::WriteAllText(${quote(receipt)}, ($global:testObserved | ConvertTo-Json -Compress))
 `);
   await exec('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', harness], {
-    cwd: f.project, windowsHide: true, timeout: 20000,
+    cwd: f.project, windowsHide: true, timeout: 120000,
     env: {...process.env, NODE_OPTIONS: '', NODE_PATH: ''},
   });
   return JSON.parse(await readFile(receipt, 'utf8'));

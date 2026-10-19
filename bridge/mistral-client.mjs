@@ -334,11 +334,12 @@ export function failureDetail(error) {
  * Parses a server-sent-events byte stream into data strings. Handles CRLF, comment lines (keep-alives start with a colon and are
  * ignored), events split over any number of chunks, several data lines per event and UTF-8 characters cut between chunks. Yields
  * the joined `data:` payload of each event; "[DONE]" is yielded as is.
+ * `setTimer` / `clearTimer`: the drain limit's timer (default `setTimeout` / `clearTimeout`; a test passes a manual clock's).
  * `drainMs`: when the caller stops right after "[DONE]", the rest of the body (a few bytes) is read for at most this long, so the
  * connection can be reused by the next request (a body that is cancelled instead has its connection closed); 0 cancels at once.
  * Any other early exit (an error, the reply cap) cancels the body.
  */
-export async function* sseData(body, {drainMs = 0} = {}) {
+export async function* sseData(body, {drainMs = 0, setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
   const decoder = new TextDecoder('utf-8');
   let buffer = '', data = [], sawDone = false;
   const flush = () => {
@@ -382,15 +383,15 @@ export async function* sseData(body, {drainMs = 0} = {}) {
     const last = flush();
     if (last !== undefined) yield last;
   } finally {
-    if (reader && sawDone && drainMs > 0) await drain(reader, drainMs);
+    if (reader && sawDone && drainMs > 0) await drain(reader, drainMs, setTimer, clearTimer);
     else try { await reader?.cancel(); } catch { /* already closed */ }
   }
 }
 
 /** Reads a stream to its end for at most `ms`; a stream that does not end by then (or fails) is cancelled. Never throws. */
-async function drain(reader, ms) {
+async function drain(reader, ms, setTimer, clearTimer) {
   let timer;
-  const late = new Promise(resolve => { timer = setTimeout(resolve, ms, LATE); });
+  const late = new Promise(resolve => { timer = setTimer(() => resolve(LATE), ms); });
   try {
     for (;;) {
       const next = await Promise.race([reader.read(), late]);
@@ -398,7 +399,7 @@ async function drain(reader, ms) {
       if (next.done) return;
     }
   } catch { /* the stream failed: nothing left to reuse */ }
-  finally { clearTimeout(timer); }
+  finally { clearTimer(timer); }
   try { await reader.cancel(); } catch { /* already closed */ }
 }
 const LATE = Symbol('late');
@@ -507,13 +508,15 @@ const contentText = content => typeof content === 'string' ? content
  *   thinkingRoom (custom only, default true): a reply that comes back empty because the model spent the whole budget on thinking is asked once more with more room
  *     (retryBudget, and Qwen3's documented /no_think), and the room that worked is kept in `adapt` (floorTokens, noThink); if that is empty too, the error is kind
  *     'reasoning'. The one-word action decision passes false: it is never worth a thinking model's long answer, and it just reads as "no action".
+ *   setTimer / clearTimer: the timers of the first-byte, stall and total limits and of the drain after [DONE] (default setTimeout / clearTimeout;
+ *     a test passes a manual clock's, so a loaded machine cannot cut a request early)
  * Returns {text, model, finishReason, usage, trace, attempts, failed: [{kind, status, ms, reason}]} (`failed` lists the attempts that were given up).
  * A failure carries `reason` and `trace` (see `stallReason`, `newTrace`).
  */
 export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTokens = 300, temperature = 0.8, onDelta, shouldStop,
   signal, fetchImpl = globalThis.fetch, endpoint, firstByteMs = 25000, retryFirstByteMs, stallMs = 0, promptStallMs = stallMs, totalMs = 70000, retries = 2,
   backoffMs = [1200, 3500], sleepImpl = sleep, extraBody, provider = 'mistral', trustedOrigin, onHeaders, onRetry, now = () => performance.now(),
-  adapt, headers, reasoning, thinkingRoom = true, deadlineAt, thinkingPieces = 0, minAttemptMs = MIN_ATTEMPT_MS} = {}) {
+  adapt, headers, reasoning, thinkingRoom = true, deadlineAt, thinkingPieces = 0, minAttemptMs = MIN_ATTEMPT_MS, setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
   // The custom provider's key is optional (a server on this computer wants none); a key it has is held to the same length as any other.
   const keyless = provider === 'custom' && (apiKey === undefined || apiKey === null || apiKey === '');
   if (!keyless && (typeof apiKey !== 'string' || apiKey.length < 8)) throw new MistralError('key', 'has no API key', {provider});
@@ -535,7 +538,7 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
     try {
       const result = await once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url,
         firstByteMs: Math.min(attempt > 0 && retryFirstByteMs ? retryFirstByteMs : firstByteMs, remaining), stallMs, promptStallMs, totalMs: Math.min(totalMs, remaining), extraBody, provider, onHeaders,
-        adapt, headers, reasoning, thinkingRoom, thinkingPieces, deadlineCapped: capped,
+        adapt, headers, reasoning, thinkingRoom, thinkingPieces, deadlineCapped: capped, setTimer, clearTimer,
         ...(larger ? {maxTokens: larger.maxTokens, noThink: larger.noThink} : {})});
       // What the larger budget (and the switch) bought is kept: the next requests start with it, so no turn pays for the empty first try again.
       if (larger && adapt) { adapt.floorTokens = larger.maxTokens; if (larger.noThink) adapt.noThink = true; }
@@ -636,7 +639,7 @@ function emptyAnswer(provider, apiKey, {thought, finishReason, extra = {}}) {
   return new MistralError('empty', spent ? 'spent its reply on thinking' : 'answered with no text', {apiKey, provider, ...(spent ? {reasoning: true} : {}), ...extra});
 }
 
-async function once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url, firstByteMs, stallMs, promptStallMs = stallMs, totalMs, extraBody, provider, onHeaders, adapt, headers: extraHeaders,
+async function once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url, firstByteMs, stallMs, promptStallMs = stallMs, totalMs, extraBody, provider, onHeaders, adapt, headers: extraHeaders, setTimer = setTimeout, clearTimer = clearTimeout,
   reasoning, noThink, thinkingRoom, thinkingPieces = 0, deadlineCapped = false}) {
   const controller = new AbortController();
   let timedOut = null;   // which limit ended it: 'first', 'stall' or 'total'
@@ -645,15 +648,15 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
   const since = () => Math.round(performance.now() - sentAt);
   const onAbort = () => controller.abort(signal.reason);
   signal?.addEventListener('abort', onAbort, {once: true});
-  const total = setTimeout(() => { timedOut = 'total'; controller.abort(); }, totalMs);
+  const total = setTimer(() => { timedOut = 'total'; controller.abort(); }, totalMs);
   // The first stream event is waited for `firstByteMs`; after that, silence is waited for `promptStallMs` until the reply text starts and for `stallMs` from
   // then on (0: only the total limit).
   let waitedMs = firstByteMs;
-  let first = setTimeout(() => { timedOut = 'first'; controller.abort(); }, firstByteMs);
+  let first = setTimer(() => { timedOut = 'first'; controller.abort(); }, firstByteMs);
   const quiet = () => {
-    clearTimeout(first);
+    clearTimer(first);
     waitedMs = trace.pieces === 0 ? promptStallMs : stallMs;
-    if (waitedMs > 0) first = setTimeout(() => { timedOut = 'stall'; controller.abort(); }, waitedMs);
+    if (waitedMs > 0) first = setTimer(() => { timedOut = 'stall'; controller.abort(); }, waitedMs);
   };
   // The error for the limit that fired: what the stream showed says what the model was doing (stallReason). A local server's timeout is never retried.
   const timeoutError = () => {
@@ -735,7 +738,7 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
     const thoughts = provider === 'custom' ? new ThinkFilter() : null;
     try {
       // After [DONE] the body is read to its end (bounded) instead of cancelled, so the connection is reused by the next turn.
-      for await (const data of sseData(response.body, {drainMs: DRAIN_MS})) {
+      for await (const data of sseData(response.body, {drainMs: DRAIN_MS, setTimer, clearTimer})) {
         quiet();
         trace.events++; trace.eventMs ??= since();
         if (data === '[DONE]') { sawDone = true; break; }
@@ -792,7 +795,7 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
     if (!text.trim()) throw emptyAnswer(provider, apiKey, {thought, finishReason, extra: {reason: trace.reasoning > 0 ? 'thinking-only' : undefined, trace}});
     return {text, model: actualModel, finishReason: stoppedEarly ? 'stop' : finishReason, usage, trace};
   } finally {
-    clearTimeout(first); clearTimeout(total);
+    clearTimer(first); clearTimer(total);
     signal?.removeEventListener('abort', onAbort);
     controller.abort();
   }

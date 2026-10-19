@@ -11,19 +11,23 @@ process.env.CYBERPUNK_CONVAI_TEST_LEASE_MS = '60000';
 const JUDY = 'judy-alvarez', PANAM = 'panam-palmer', ALEX = 'alex';
 const noErrors = output => assert.doesNotMatch(output, /poll:|Unhandled|uncaught|TypeError|ReferenceError|request failed/, output);
 const talk = options => measureTalk({timings: LIVE_TIMINGS, ...options});
-// A turn that must open its own connection takes the connection (3.5 s) on top of the reply (about 3.9 s to its first audio).
-const COLD_MS = 6500, WARM_MS = 5200;
+// A turn that must open its own connection takes the connection (3.5 s) on top of the reply (about 3.9 s to its first audio): never under COLD_MS.
+// A talk whose page was open is told apart from that by the bridge's own record (`connectedWarm`), by being faster than any cold talk can be
+// (COLD_MS) and, where a cold talk ran beside it under the same load, by the connection it saved. A fixed "warm" limit (the old 5.2 s) only
+// held on a quiet machine: it failed when the simulated provider's 3.9 s grew by more than 1.3 s of load.
+const COLD_MS = 6500;
 
-describe('a spawned character is connected before the first talk', {concurrency: 2, timeout: 600000}, () => {
+describe('a spawned character is connected before the first talk', {concurrency: 2, timeout: 2400000}, () => {
   it('on a paid plan the first talk has no connection cost; without the hint it pays it', async () => {
     const [ahead, cold] = await Promise.all([talk({playerKey: {connections: 6}, spawned: [JUDY], expectWarms: 1}), talk({playerKey: {connections: 6}})]);
     assert.deepEqual(ahead.opened, [JUDY]);
     assert.equal(ahead.connectedWarm, true, 'the talk found the page open');
-    assert.ok(ahead.firstAudioMs < WARM_MS, `first audio after ${ahead.firstAudioMs} ms`);
+    assert.ok(ahead.firstAudioMs < COLD_MS, `first audio after ${ahead.firstAudioMs} ms`);
     assert.deepEqual(cold.opened, []);
     assert.equal(cold.connectedWarm, false);
     assert.ok(cold.firstAudioMs > COLD_MS, `without the hint: ${cold.firstAudioMs} ms`);
-    assert.ok(ahead.firstAudioMs < cold.firstAudioMs - 2000, `${ahead.firstAudioMs} vs ${cold.firstAudioMs}`);
+    // The connection saved is 3.5 s: asking for half of it separates a saved connection from the noise between two bridges under load.
+    assert.ok(ahead.firstAudioMs < cold.firstAudioMs - LIVE_TIMINGS['judy-alvarez'].connectMs / 2, `${ahead.firstAudioMs} vs ${cold.firstAudioMs}`);
     // Before the talk the page was ready under the spawned role (read from the connection state the bridge publishes).
     const row = ahead.state?.connections?.find(entry => entry.profile === 'judy-alvarez');
     assert.ok(row, 'the state lists the spawned connection'); assert.equal(row.role, 'spawned'); assert.equal(row.state, 'ready');
@@ -37,7 +41,7 @@ describe('a spawned character is connected before the first talk', {concurrency:
     const [shared, free] = await Promise.all([talk({spawned: [JUDY], expectWarms: 1}), talk({playerKey: {connections: 1}, spawned: [JUDY]})]);
     assert.deepEqual(shared.opened, [JUDY]);
     assert.equal(shared.connectedWarm, true);
-    assert.ok(shared.firstAudioMs < WARM_MS, `shared key: ${shared.firstAudioMs} ms`);
+    assert.ok(shared.firstAudioMs < COLD_MS, `shared key: ${shared.firstAudioMs} ms`);
     assert.deepEqual(free.opened, [], 'a plan with one connection never opens a spawned character ahead');
     assert.equal(free.connectedWarm, false);
     assert.ok(free.firstAudioMs > COLD_MS, `free plan: ${free.firstAudioMs} ms`);
@@ -51,12 +55,12 @@ describe('a spawned character is connected before the first talk', {concurrency:
       talk({playerKey: {connections: 2}, spawned: [JUDY, PANAM, ALEX], expectWarms: 1})]);
     assert.deepEqual([...shared.opened].sort(), [JUDY, PANAM], 'Judy is one connection, not two');
     assert.equal(shared.events.filter(event => event.event === 'warm' && event.characterId.startsWith('11111111')).length, 1);
-    assert.ok(shared.firstAudioMs < WARM_MS);
+    assert.equal(shared.connectedWarm, true); assert.ok(shared.firstAudioMs < COLD_MS, `shared: ${shared.firstAudioMs} ms`);
     assert.deepEqual([...three.opened].sort(), [ALEX, JUDY, PANAM].sort());
-    assert.ok(three.firstAudioMs < WARM_MS);
+    assert.equal(three.connectedWarm, true); assert.ok(three.firstAudioMs < COLD_MS, `three: ${three.firstAudioMs} ms`);
     // A plan of two keeps one connection for the page V is on: one spawned character, the first listed.
     assert.deepEqual(small.opened, [JUDY]);
-    assert.ok(small.firstAudioMs < WARM_MS);
+    assert.equal(small.connectedWarm, true); assert.ok(small.firstAudioMs < COLD_MS, `small: ${small.firstAudioMs} ms`);
     for (const row of [shared, three, small]) noErrors(row.output);
   });
 });

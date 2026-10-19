@@ -61,7 +61,10 @@ test('the stall watcher records a blocked event loop and stops by itself', async
   clock.stop();
   const stalls = clock.snapshot().stalls;
   assert.ok(stalls?.length >= 1, 'a stall was recorded');
-  assert.ok(stalls[0].ms >= 60, `the stall was about 120 ms (${stalls[0].ms})`);
+  // A busy machine adds stalls of its own (the watcher is meant to see those too): the first one recorded can be one of them (46 and 57 ms were seen).
+  // The busy loop cannot be shorter than it ran, so the longest stall is the one it made.
+  const longest = Math.max(...stalls.map(stall => stall.ms));
+  assert.ok(longest >= 60, `the stall was about 120 ms (${stalls.map(stall => stall.ms)})`);
   assert.equal(clock.watching, null);
 });
 

@@ -105,7 +105,7 @@ globalThis.fetch=async(url,options)=>{
 };`);
     const command = () => promisify(execFile)(process.execPath,
       ['--import', './fake-api.mjs', 'scripts/Provision-Characters.mjs', '--existing-style-only', ...(apply ? ['--apply'] : [])],
-      {cwd: root, windowsHide: true, timeout: 15000, env: {...process.env, CYBERPUNK_CONVAI_KEY_FILE: join(root, 'runtime/convai-key.txt')}});
+      {cwd: root, windowsHide: true, timeout: 120000, env: {...process.env, CYBERPUNK_CONVAI_KEY_FILE: join(root, 'runtime/convai-key.txt')}});
     await run({root, mapping, verified, command});
   } finally {
     assert.equal(dirname(resolve(root)), resolve(tmpdir()));
@@ -192,7 +192,7 @@ globalThis.fetch=async(url,options)=>{
  return Response.json({STATUS:'SUCCESS'});
 };`);
     await promisify(execFile)(process.execPath, ['--import', './fake-api.mjs', 'scripts/Provision-Characters.mjs', '--apply'],
-      {cwd: root, windowsHide: true, timeout: 15000, env: {...process.env, CYBERPUNK_CONVAI_KEY_FILE: join(root, 'runtime/convai-key.txt')}});
+      {cwd: root, windowsHide: true, timeout: 120000, env: {...process.env, CYBERPUNK_CONVAI_KEY_FILE: join(root, 'runtime/convai-key.txt')}});
     const changes = JSON.parse(await readFile(join(root, 'mutations.json'), 'utf8'));
     assert.deepEqual(changes, [{route: '/character/update', body: {charID: readback.character_id, ...expected}}]);
     const mapping = JSON.parse(await readFile(join(root, 'runtime/characters.json'), 'utf8'));

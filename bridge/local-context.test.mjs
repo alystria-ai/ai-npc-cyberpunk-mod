@@ -61,7 +61,7 @@ function supervisor(t, {env = {}, ...options} = {}) {
   mkdirSync(tmpDir);
   const logs = [];
   const server = new LocalLlmServer({pack, listDevices: async () => DEVICES, freeVramMiB: () => null, fileSizeMiB: () => 0, command: process.execPath, argsPrefix: [FAKE],
-    spawnImpl, log: line => logs.push(line), backoffMs: 10, startupMs: 60_000, warmup: false, processOptions: {env, tmpDir, pollMs: 20}, ...options});
+    spawnImpl, log: line => logs.push(line), backoffMs: 10, startupMs: 180_000, warmup: false, processOptions: {env, tmpDir, pollMs: 20}, ...options});
   t.after(async () => { await server.stop(); for (const child of children) if (child.exitCode === null) child.kill(); rmSync(directory, {recursive: true, force: true}); });
   return {server, directory, logs};
 }

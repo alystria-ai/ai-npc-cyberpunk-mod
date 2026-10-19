@@ -14,7 +14,7 @@ const deferred = () => {
 };
 const flush = () => new Promise(done => setImmediate(done));
 const sleep = ms => new Promise(done => setTimeout(done, ms));
-async function until(predicate, message, timeout = 1500) {
+async function until(predicate, message, timeout = 60000) {
   const deadline = performance.now() + timeout;
   while (!predicate()) {
     if (performance.now() >= deadline) assert.fail(message);
@@ -155,7 +155,7 @@ function fixture(t) {
   return {host, pages, gate, track};
 }
 
-test('continuous reply uses the exact host token and stays leased until playback drains', {timeout: 4000}, async t => {
+test('continuous reply uses the exact host token and stays leased until playback drains', {timeout: 120000}, async t => {
   const {host, pages, track} = fixture(t), token = 'reply-one';
   const frames = [];
   let resolved = false;
@@ -179,7 +179,7 @@ test('continuous reply uses the exact host token and stays leased until playback
   assert.equal(page.controls.length, calls, 'the control pump stops at playback completion');
 });
 
-test('a foreign decoded snapshot never reaches the frame callback or playback control', {timeout:4000},async t=>{
+test('a foreign decoded snapshot never reaches the frame callback or playback control', {timeout: 120000},async t=>{
   const {host,pages,track}=fixture(t);
   let callbacks=0;
   const pending=track(host.reply(config,{liveSpeech:{token:'owned',onFrame:async()=>{
@@ -192,7 +192,7 @@ test('a foreign decoded snapshot never reaches the frame callback or playback co
   assert.equal(callbacks,0);assert.equal(page.controls.length,0);
 });
 
-test('slow frame callbacks are serialized and cannot accumulate control writes', {timeout: 4000}, async t => {
+test('slow frame callbacks are serialized and cannot accumulate control writes', {timeout: 120000}, async t => {
   const {host, pages, gate, track} = fixture(t), blocked = gate();
   let active = 0, maximum = 0, calls = 0;
   const pending = track(host.reply(config, {liveSpeech: {token: 'serialized-turn', onFrame: async () => {
@@ -211,7 +211,7 @@ test('slow frame callbacks are serialized and cannot accumulate control writes',
   pages[0].finish(); await pending;
 });
 
-test('a frame callback failure rejects the reply and discards its audio page', {timeout: 4000}, async t => {
+test('a frame callback failure rejects the reply and discards its audio page', {timeout: 120000}, async t => {
   const {host, pages, track} = fixture(t);
   const pending = track(host.reply(config, {liveSpeech: {token: 'callback-failure',
     onFrame: async () => { throw Error('Game playback lease is unavailable'); },
@@ -224,7 +224,7 @@ test('a frame callback failure rejects the reply and discards its audio page', {
   assert.equal(host.sessions.owners.size, 0, 'failed playback must not admit a returned session');
 });
 
-test('the final drain snapshot waits for the pending callback and never reopens completed playback', {timeout: 4000}, async t => {
+test('the final drain snapshot waits for the pending callback and never reopens completed playback', {timeout: 120000}, async t => {
   const {host, pages, gate, track} = fixture(t), blocked = gate();
   const states = [];
   let active = 0, maximum = 0, resolved = false;
@@ -244,7 +244,7 @@ test('the final drain snapshot waits for the pending callback and never reopens 
   assert.equal(pages[0].controls.length, 0, 'neither a late frame decision nor the final snapshot can restart drained playback');
 });
 
-test('aborting a pending frame callback fences its late control from a replacement turn', {timeout: 4000}, async t => {
+test('aborting a pending frame callback fences its late control from a replacement turn', {timeout: 120000}, async t => {
   const {host, pages, gate, track} = fixture(t), blocked = gate(), entered = gate();
   const controller = new AbortController();
   const old = track(host.reply(config, {signal: controller.signal, liveSpeech: {
@@ -268,7 +268,7 @@ test('aborting a pending frame callback fences its late control from a replaceme
   assert.equal(host.sessions.owners.has('page-0-session'), false);
 });
 
-test('text-only replies bypass continuous playback even if options and a stale token are supplied', {timeout: 4000}, async t => {
+test('text-only replies bypass continuous playback even if options and a stale token are supplied', {timeout: 120000}, async t => {
   const {host, pages, track} = fixture(t);
   let frames = 0;
   const pending = track(host.reply({...config, ttsEnabled: false, liveSpeechToken: 'stale'}, {liveSpeech: {
@@ -284,7 +284,7 @@ test('text-only replies bypass continuous playback even if options and a stale t
   page.finish(); await pending;
 });
 
-test('voice-channel finish forwards the continuous token and controls until playback drains', {timeout: 4000}, async t => {
+test('voice-channel finish forwards the continuous token and controls until playback drains', {timeout: 120000}, async t => {
   const {host, pages, track} = fixture(t), channel = host.voiceChannel();
   await channel.beginVoice(config);
   let resolved = false;
@@ -303,7 +303,7 @@ test('voice-channel finish forwards the continuous token and controls until play
   assert.equal(page.permissions.filter(call => call[0] === 'clear').length, 1);
 });
 
-test('closing a voice channel aborts its pending playback callback and retires the microphone lease', {timeout: 4000}, async t => {
+test('closing a voice channel aborts its pending playback callback and retires the microphone lease', {timeout: 120000}, async t => {
   const {host, pages, gate, track} = fixture(t), channel = host.voiceChannel(), blocked = gate();
   let entered = false;
   await channel.beginVoice(config);
