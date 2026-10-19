@@ -997,6 +997,5 @@ return {
     ["Mod Configuration Menu is too old. Update it to 0.10.5 or newer from Nexus Mods, then restart the game."] = "Mod Configuration Menu가 너무 오래되었습니다. Nexus Mods에서 0.10.5 이상으로 업데이트한 후 게임을 다시 시작하세요.",
     ["Previous page"] = "이전 페이지",
     ["Next page"] = "다음 페이지",
-    ["Go"] = "이동",
     ["Starts with: {letter}"] = "첫 글자: {letter}",
 }

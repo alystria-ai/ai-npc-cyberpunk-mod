@@ -997,6 +997,5 @@ return {
     ["Mod Configuration Menu is too old. Update it to 0.10.5 or newer from Nexus Mods, then restart the game."] = "Mod Configuration Menu が古すぎます。Nexus Mods から 0.10.5 以降に更新し、ゲームを再起動してください。",
     ["Previous page"] = "前のページ",
     ["Next page"] = "次のページ",
-    ["Go"] = "移動",
     ["Starts with: {letter}"] = "先頭文字：{letter}",
 }

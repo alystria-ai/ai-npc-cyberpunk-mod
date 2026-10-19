@@ -13,7 +13,13 @@
 --    transaction), and loads the page again. Both hosts read and write the same saved settings through that one function, so the
 --    two cannot disagree: whichever is opened next builds its page from what is saved.
 --  * An action (a button) is manager-ui.lua's M.invoke. MCM refuses an action while changes are pending ("Apply or revert pending
---    changes first"). The page slider and the letter group of a long list (which have no draft in MCM) are buttons here.
+--    changes first"). A button that cannot be used right now is still drawn as a button (MCM draws a disabled action as a plain
+--    line of another size and shape, so the page would change layout); pressing it answers "Not available right now.".
+--  * How MCM draws a row decides how the page looks, and the host can only choose the kind of row (docs in mcm-fake.mjs, layout()):
+--    a setting (switch, list, slider) is indented under its label column, red, and purple when its value differs from the default
+--    (MCM's own "changed" mark, the same for every mod); an action is a flush-left label with a button; a read-only line is a
+--    flush-left label with a value. The previous and next page buttons and the letter group of a long list (which have no draft in
+--    MCM) are footer buttons, beside the way back, so they never move with the list; the page number is in the heading.
 --  * The line under the way back (the result of the last action) is MCM's status line (api.ui.setStatus).
 --  * Nothing runs per frame while the screen is closed: M.update is a clock comparison. It does its work every quarter of a second
 --    (the slow tick), and every frame only while the model browser is open and still reading the game's models.
@@ -30,11 +36,12 @@ local RELOAD_BACKOFF = 5
 -- The calls of api.ui this module makes: an MCM that lacks one cannot host the page.
 local UI_CALLS = {'setApplyPolicy', 'setPresentation', 'setNavigation', 'setFooterActions', 'setChoiceStates', 'setStatus',
     'getContext', 'open', 'clear'}
+-- The scroll calls are used when present (MCM 0.10.5 has them): the list keeps its place after Apply.
+local SCROLL_CHECK, SCROLL_TRIES = 0.3, 3
 local API_CALLS = {'hasDrafts', 'reloadMod', 'revert', 'refreshProvider'}
 local CAPABILITIES = {
     setting = {read = true, write = true, draft = true, reset = true},
     action = {read = true, action = true, write = false, draft = false, reset = false},
-    inert = {read = true, action = false, write = false, draft = false, reset = false},
     text = {read = true, write = false, draft = false, reset = false},
 }
 
@@ -47,7 +54,7 @@ local reloadWanted, reloadAfter, revertWanted = false, 0, false
 local statusSent, lastError = nil, ''
 local currentBack, pageSeen
 -- The page controls of the page last loaded: the page of its long list and how many there are, the letter group and how many.
-local controls = {page = 1, pages = 1, group = 1, groups = 1}
+local controls = {page = 1, pages = 1, group = 1, groups = 1, range = nil}
 local configured = false
 
 local function log(message)
@@ -105,12 +112,15 @@ local function clamp(value, low, high)
     return value
 end
 
-local function action(id, label, value, description, disabled)
-    return {id = id, type = 'action', label = label, value = value, description = description or '', disabled = disabled == true,
-        capabilities = disabled and CAPABILITIES.inert or CAPABILITIES.action}
+-- Always an enabled button: a disabled action is drawn by MCM as a read-only line (another font size, no button), which would make the
+-- page change shape with the state. The model refuses a button that cannot be used (manager-ui.lua M.invoke).
+local function action(id, label, value, description)
+    return {id = id, type = 'action', label = label, value = value, description = description or '', disabled = false,
+        capabilities = CAPABILITIES.action}
 end
 
--- The rows of manager-ui.lua's page as rows of MCM's schema. A row with no counterpart is dropped (nil); a page control becomes buttons.
+-- The rows of manager-ui.lua's page as rows of MCM's schema. A row with no counterpart is dropped (nil); a page control becomes
+-- footer buttons (the second value is 'footer': they go in the footer, beside the way back, and not in the list).
 local function convert(row)
     local kind, id = row.type, row.id
     if id == 'feedback' then return nil end
@@ -118,14 +128,19 @@ local function convert(row)
         local page, pages = clamp(row.value, 1, math.max(1, row.max or 1)), math.max(1, row.max or 1)
         controls.page, controls.pages = page, pages
         local where = ui.t('Page {page} / {pages}', {page = page, pages = pages})
-        return {action('ui:page:previous', ui.t('Previous page'), ui.t('Go'), where, page <= 1),
-            action('ui:page:next', ui.t('Next page'), ui.t('Go'), where, page >= pages)}
+        -- Both buttons are always there; at the first or last page one of them does nothing (MCM cannot draw a button disabled).
+        return {action('ui:page:previous', ui.t('Previous page'), ui.t('Previous page'), where),
+            action('ui:page:next', ui.t('Next page'), ui.t('Next page'), where)}, 'footer'
     elseif id == 'ui:group' then
         local elements = row.elements or {}
         local group = clamp(row.value, 1, math.max(1, #elements))
         controls.group, controls.groups = group, math.max(1, #elements)
-        local current = elements[group] or ''
-        return {action('ui:group:next', ui.t('Starts with: {letter}', {letter = current}), ui.t('Go'), row.description)}
+        local current = ui.t('Starts with: {letter}', {letter = elements[group] or ''})
+        return {action('ui:group:next', current, current, row.description)}, 'footer'
+    elseif id == 'list-range' then
+        -- The page number and the names the page runs between: the heading of the list says them (see schema).
+        controls.range = {label = row.label, names = tostring(row.value or '')}
+        return nil
     end
     if kind == 'bool' then
         return {{id = id, type = 'bool', label = row.label, description = row.description or '', value = row.value == true,
@@ -141,7 +156,7 @@ local function convert(row)
             step = row.step or 1, value = clamp(row.value, low, high), defaultValue = clamp(row.defaultValue or low, low, high),
             capabilities = CAPABILITIES.setting}}
     elseif kind == 'action' then
-        return {action(id, row.label, row.value, row.description, row.disabled)}
+        return {action(id, row.label, row.value, row.description)}
     end
     -- A line of text: the label and its value, nothing to change.
     return {{id = id, type = 'string', label = row.label, description = row.description or '', value = tostring(row.value or ''),
@@ -154,28 +169,46 @@ local function isBack(id) return id:match(':back$') ~= nil or id == 'memory:sett
 -- cannot be chosen). Runs in loadMod: MCM asks for it when the screen opens, after an Apply and on reloadMod.
 local function schema()
     local model = core.model()
-    local categories, disabledChoices = {}, {}
+    local categories, disabledChoices, footer = {}, {}, {}
     currentBack = nil
-    controls.page, controls.pages, controls.group, controls.groups = 1, 1, 1, 1
+    controls.page, controls.pages, controls.group, controls.groups, controls.range = 1, 1, 1, 1, nil
     for _, category in ipairs(model.categories) do
         local settings = {}
+        controls.range = nil
         for _, row in ipairs(category.settings) do
-            local converted = convert(row)
+            local converted, placed = convert(row)
             for _, item in ipairs(converted or {}) do
-                settings[#settings + 1] = item
+                if placed == 'footer' then footer[#footer + 1] = item
+                else settings[#settings + 1] = item end
                 if item.type == 'action' and isBack(item.id) then currentBack = item end
             end
             if row.disabledElements then disabledChoices[row.id] = row.disabledElements end
         end
-        if #settings > 0 then
-            categories[#categories + 1] = {id = category.id, name = category.name, description = category.description or '',
-                settings = settings}
+        local name, description = category.name, category.description or ''
+        -- A paged list says its page in its heading, which MCM draws like every other heading (a line of the list would be drawn in
+        -- another size and place than the buttons of the list).
+        if controls.range and controls.pages > 1 then
+            name = name .. ' · ' .. controls.range.label
+            description = controls.range.names
         end
+        if #settings > 0 then
+            categories[#categories + 1] = {id = category.id, name = name, description = description, settings = settings}
+        end
+    end
+    -- The buttons of the page that are not in the list: the letter group, the previous and next page, and the way back (rightmost).
+    local footerIds, byId = {}, {}
+    for _, item in ipairs(footer) do byId[item.id] = item end
+    for _, id in ipairs({'ui:group:next', 'ui:page:previous', 'ui:page:next'}) do
+        if byId[id] then footerIds[#footerIds + 1] = id end
+    end
+    if currentBack then footerIds[#footerIds + 1] = currentBack.id end
+    if #footer > 0 then
+        categories[#categories + 1] = {id = 'ui-footer', name = model.name, description = '', settings = footer}
     end
     if api then
         pageSeen = core.pageId()
         pcall(api.ui.setNavigation, MOD_KEY, {pageId = pageSeen, backActionId = currentBack and currentBack.id, escapeBack = true})
-        pcall(api.ui.setFooterActions, MOD_KEY, currentBack and {currentBack.id} or {})
+        pcall(api.ui.setFooterActions, MOD_KEY, footerIds)
         for id, disabled in pairs(disabledChoices) do
             local states, size = {}, 0
             for index in pairs(disabled) do size = math.max(size, index) end
@@ -217,6 +250,33 @@ local function pageControl(actionId)
     return false
 end
 
+-- ---- Keeping the place in the list -----------------------------------------------------------------------------------------------
+
+-- MCM keeps the list's scroll position itself (a fraction of the list's height, taken before every redraw), but the live check
+-- showed the list jumping far down after Apply. The public scroll calls give the position back: it is read before MCM applies or
+-- the host reloads the page, and set again after the page is loaded (and checked once more a moment later).
+local keepScroll
+
+local function contentScroll()
+    if not api or type(api.ui.getScrollPosition) ~= 'function' then return nil end
+    local ok, value = pcall(api.ui.getScrollPosition, MOD_KEY, 'content')
+    if ok and type(value) == 'number' and value == value and value >= 0 and value <= 1 then return value end
+    return nil
+end
+
+local function putScroll(value)
+    if api and type(api.ui.setScrollPosition) == 'function' then
+        pcall(api.ui.setScrollPosition, MOD_KEY, 'content', value)
+    end
+end
+
+-- Called with what contentScroll() returned before the page was loaded again.
+local function restoreScroll(before)
+    if before == nil then return end
+    keepScroll = {value = before, page = core.pageId(), at = os.clock() + SCROLL_CHECK, tries = SCROLL_TRIES}
+    putScroll(before)
+end
+
 local function buildProvider()
     return {
         id = PROVIDER, registrationKey = 'cyberpunk-convai.manager.v1', apiVersion = 2,
@@ -238,8 +298,8 @@ local function buildProvider()
         invokeAction = function(id, actionId)
             if id ~= MOD then return {ok = false, error = 'Unknown mod.'} end
             if actionId:sub(1, 3) == 'ui:' then
-                pageControl(actionId)
-                return {ok = true, schemaChanged = true}
+                -- At the first or last page the button does nothing: the page is not drawn again.
+                return {ok = true, schemaChanged = pageControl(actionId) == true}
             end
             local result = core.invoke(actionId)
             return {ok = result.ok == true, error = result.error, schemaChanged = true}
@@ -251,6 +311,7 @@ local function buildProvider()
                 batch[#batch + 1] = {id = change.id, value = change.value}
                 requested[#requested + 1] = change.id
             end
+            local before = contentScroll()
             local result = core.apply(batch)
             if not result.ok then
                 return {ok = false, error = result.error, atomic = true, partial = false, appliedIds = {}}
@@ -258,6 +319,7 @@ local function buildProvider()
             -- A requested value the rules did not keep (Mature content without Local AI goes back to off) leaves a draft that
             -- MCM would show as unapplied: it is reverted from the next tick, and the reason is on the status line.
             if result.refusal then revertWanted = true end
+            restoreScroll(before)
             -- appliedIds are the ids MCM asked for (the rules may have saved more, such as the Local AI provider with Mature content).
             return {ok = true, atomic = true, partial = false, appliedIds = requested, schemaChanged = true}
         end,
@@ -400,7 +462,7 @@ function M.update(player, worldReady)
     opened = active()
     if not opened then
         if wasActive then
-            wasActive, reloadWanted, revertWanted, statusSent = false, false, false, nil
+            wasActive, reloadWanted, revertWanted, statusSent, keepScroll = false, false, false, nil, nil
             core.setView('home')
         end
         return
@@ -416,18 +478,30 @@ function M.update(player, worldReady)
     -- refuses to reload with drafts, and a redraw would hide what the player is editing).
     if reloadWanted and clock >= reloadAfter and not hasDrafts() then
         reloadWanted = false
+        local before, pageBefore = contentScroll(), pageSeen
         local called, loaded, problem = pcall(api.reloadMod, MOD_KEY)
+        if called and loaded ~= nil and core.pageId() == pageBefore then restoreScroll(before) end
         if not called or loaded == nil then
             lastError = 'Reload: ' .. tostring(called and problem or loaded)
             reloadAfter = clock + RELOAD_BACKOFF
             log('Companion Manager: Mod Configuration Menu would not load the page again: ' .. lastError)
         end
     end
+    if keepScroll and clock >= keepScroll.at then
+        local wanted = keepScroll
+        keepScroll = nil
+        -- Only while the page is the one the position belongs to; a page turned meanwhile starts at its top.
+        local now = contentScroll()
+        if now ~= nil and core.pageId() == wanted.page and math.abs(now - wanted.value) > 0.01 and wanted.tries > 1 then
+            putScroll(wanted.value)
+            wanted.tries, wanted.at, keepScroll = wanted.tries - 1, clock + SCROLL_CHECK, wanted
+        end
+    end
     pushStatus()
 end
 
 function M.resetSession()
-    reloadWanted, revertWanted, statusSent = active() and true or false, false, nil
+    reloadWanted, revertWanted, statusSent, keepScroll = active() and true or false, false, nil, nil
 end
 
 function M.shutdown()

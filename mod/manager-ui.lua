@@ -264,20 +264,47 @@ local function groupOf(name)
     return first
 end
 
--- The models by letter group, built once for a finished scan (the list never changes after it): the groups in order, and the models
--- of each, in the order the scan sorted them. A page build then reads twelve rows, not the whole catalogue.
+-- Game records the browser does not list: the ones the game's own data marks as retired, "!OBSOLETE - ..." (a leading "!" is the
+-- developers' sort-to-top mark for it), and any name that says OBSOLETE as a word.
+local function retiredModel(model)
+    local name = tostring(model.name or '')
+    return name:find('^%s*!') ~= nil or name:upper():find('%f[%a]OBSOLETE%f[%A]') ~= nil
+end
+-- A record that has no name of its own (an unnamed model, or the record id shown instead of a name) or a name that is only an internal code
+-- (no lowercase letter, a digit or a dash in it: "1H-DNC-LAÖ"). They are listed after the real names.
+local function placeholderModel(model)
+    local name = tostring(model.name or '')
+    if model.unnamedIndex or (model.record ~= nil and name == model.record) then return true end
+    -- Capital letters with an accent (Latin-1, A-grave to Thorn) are letters of a code like any other; any other non-ASCII letter
+    -- belongs to a real name.
+    local plain = name:gsub('\195[\128-\158]', '')
+    return not plain:find('[%l\128-\255]') and plain:find('[%d%-_]') ~= nil
+end
+M.retiredModel, M.placeholderModel = retiredModel, placeholderModel
+
+-- The models by letter group, built once for a finished scan (the list never changes after it): the models the browser lists (retired
+-- records left out, placeholders after the real names, each in the order the scan sorted them), the groups in order, and the models of
+-- each. A page build then reads twelve rows, not the whole catalogue.
 local modelGroupsCache = {}
 local function modelGroups(models)
     if modelGroupsCache.models ~= models or modelGroupsCache.count ~= #models then
-        local lists, order = {}, {}
+        local real, later = {}, {}
         for _, model in ipairs(models) do
+            if not retiredModel(model) then
+                local list = placeholderModel(model) and later or real
+                list[#list + 1] = model
+            end
+        end
+        for _, model in ipairs(later) do real[#real + 1] = model end
+        local lists, order = {}, {}
+        for _, model in ipairs(real) do
             local group = groupOf(model.name)
             local list = lists[group]
             if not list then list = {}; lists[group] = list; order[#order + 1] = group end
             list[#list + 1] = model
         end
         table.sort(order)
-        modelGroupsCache = {models = models, count = #models, order = order, lists = lists}
+        modelGroupsCache = {models = models, count = #models, order = order, lists = lists, all = real}
     end
     return modelGroupsCache
 end
@@ -1189,7 +1216,7 @@ local function schema()
             local groupElements = {ui.t('All')}
             for _, group in ipairs(groups) do groupElements[#groupElements + 1] = group end
             listGroup = math.max(1, math.min(listGroup, #groupElements))
-            local matches = listGroup == 1 and models or cache.lists[groupElements[listGroup]] or {}
+            local matches = listGroup == 1 and cache.all or cache.lists[groupElements[listGroup]] or {}
             local talking = 0
             for _, model in ipairs(matches) do if model.profileName then talking = talking + 1 end end
             rows[#rows + 1] = readonly('model-status', ui.t('{count} matching models', {count = #matches}), '',

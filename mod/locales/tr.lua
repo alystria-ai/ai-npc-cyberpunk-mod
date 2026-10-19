@@ -997,6 +997,5 @@ return {
     ["Mod Configuration Menu is too old. Update it to 0.10.5 or newer from Nexus Mods, then restart the game."] = "Mod Configuration Menu çok eski. Nexus Mods’tan 0.10.5 veya üstüne güncelle, ardından oyunu yeniden başlat.",
     ["Previous page"] = "Önceki sayfa",
     ["Next page"] = "Sonraki sayfa",
-    ["Go"] = "Git",
     ["Starts with: {letter}"] = "Harfle başlar: {letter}",
 }

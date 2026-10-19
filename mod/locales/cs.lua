@@ -997,6 +997,5 @@ return {
     ["Mod Configuration Menu is too old. Update it to 0.10.5 or newer from Nexus Mods, then restart the game."] = "Mod Configuration Menu je příliš staré. Aktualizuj jej na 0.10.5 nebo novější z Nexus Mods a restartuj hru.",
     ["Previous page"] = "Předchozí strana",
     ["Next page"] = "Další strana",
-    ["Go"] = "Přejít",
     ["Starts with: {letter}"] = "Začíná na: {letter}",
 }

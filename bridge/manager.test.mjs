@@ -2483,6 +2483,38 @@ test('gaze controls use ordinary selectors and persist', () => {
   `);
 });
 
+test('the model browser leaves out the game\'s retired records ("!OBSOLETE ..."), lists unnamed records and internal codes after the real names, and counts what it lists', () => {
+  run(`${nsuiFixture}
+    local names = {'!OBSOLETE', '!OBSOLETE - 6th Street Soldier', 'Zed', '1H-DNC-LAÖ', 'Anna', 'T-Bug', 'Judy', 'Саша-2', '  !hidden', 'Old OBSOLETE Guard'}
+    local byId = {}
+    function TweakDB:GetRecords(kind)
+      local result = {}
+      for index, name in ipairs(names) do
+        local id = 'Character.Rec_' .. index
+        byId[id] = name
+        result[index] = {GetID = function() return id end}
+      end
+      return result
+    end
+    function TweakDB:GetFlat(flat) local id = flat:gsub('%.displayName$', ''); return byId[id] or id end
+    assert(invoke('tab:models').ok)
+    for _ = 1, 8 do managerUi.update(player, false) end
+    loaded = registered.loadMod('manager')
+    assert(row('model-status').label == '6 matching models', 'the count is what is listed: ' .. tostring(row('model-status').label))
+    local listed = {}
+    for _, category in ipairs(loaded.categories) do
+      for _, item in ipairs(category.settings) do if item.id:sub(1, 7) == 'invite:' then listed[#listed + 1] = item.label end end
+    end
+    assert(table.concat(listed, ' | ') == 'Anna | Judy | T-Bug | Zed | Саша-2 | 1H-DNC-LAÖ', table.concat(listed, ' | '))
+    assert(core.retiredModel({name = '!OBSOLETE'}) and not core.retiredModel({name = 'Judy Alvarez'}))
+    assert(not core.placeholderModel({name = 'V'}) and not core.placeholderModel({name = 'NCPD'}) and not core.placeholderModel({name = 'Saša'}))
+    assert(core.placeholderModel({name = 'DNC-12'}) and core.placeholderModel({name = 'Character.X', record = 'Character.X'}))
+    -- A letter group counts the same way: the codes are in the # group, and the retired records in none.
+    local groups = row('ui:group').elements
+    assert(groups[2] == '#' and table.concat(groups, ','):find('!', 1, true) == nil, table.concat(groups, ','))
+  `);
+});
+
 test('the model browser covers the full installed catalogue while exposing bounded pages of rows', () => {
   run(`${nsuiFixture}
     assert(scans == 0)
