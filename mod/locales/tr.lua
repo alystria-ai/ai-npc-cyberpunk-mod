@@ -610,7 +610,7 @@ return {
     ["An example line is too long. Keep each one under {max} characters."] = "Bir örnek satır çok uzun. Her birini {max} karakterin altında tut.",
     ["As shipped"] = "Orijinal",
     ["Back to the shipped text."] = "Orijinal metne dön.",
-    ["Bio"] = "Bio",
+    ["Bio"] = "Biyografi",
     ["Changes are saved on this computer and used from the next reply."] = "Değişiklikler bu bilgisayarda kaydedilir ve bir sonraki yanıttan itibaren kullanılır.",
     ["Character editor"] = "Karakter düzenleyici",
     ["Choose a character on the left."] = "Soldan bir karakter seç.",

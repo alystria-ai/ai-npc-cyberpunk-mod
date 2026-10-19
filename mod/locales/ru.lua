@@ -610,7 +610,7 @@ return {
     ["An example line is too long. Keep each one under {max} characters."] = "Одна реплика-пример слишком длинная. Держите каждую короче {max} символов.",
     ["As shipped"] = "Как в игре",
     ["Back to the shipped text."] = "Вернуть исходный текст.",
-    ["Bio"] = "Био",
+    ["Bio"] = "Биография",
     ["Changes are saved on this computer and used from the next reply."] = "Изменения сохраняются на этом компьютере и применяются со следующего ответа.",
     ["Character editor"] = "Редактор персонажей",
     ["Choose a character on the left."] = "Выберите персонажа слева.",

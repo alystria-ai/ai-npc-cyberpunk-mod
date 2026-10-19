@@ -610,7 +610,7 @@ return {
     ["An example line is too long. Keep each one under {max} characters."] = "Esta línea de ejemplo es demasiado larga. Mantén cada una por debajo de {max} caracteres.",
     ["As shipped"] = "Versión original",
     ["Back to the shipped text."] = "Volver al texto original.",
-    ["Bio"] = "Bio",
+    ["Bio"] = "Biografía",
     ["Changes are saved on this computer and used from the next reply."] = "Los cambios se guardan en este equipo y se usan desde la próxima respuesta.",
     ["Character editor"] = "Editor de personajes",
     ["Choose a character on the left."] = "Elige un personaje a la izquierda.",

@@ -610,7 +610,7 @@ return {
     ["An example line is too long. Keep each one under {max} characters."] = "Ukázková replika je příliš dlouhá. Každá musí mít méně než {max} znaků.",
     ["As shipped"] = "Původní",
     ["Back to the shipped text."] = "Zpět na původní text.",
-    ["Bio"] = "Bio",
+    ["Bio"] = "Životopis",
     ["Changes are saved on this computer and used from the next reply."] = "Změny se uloží do tohoto počítače a použijí se od další odpovědi.",
     ["Character editor"] = "Editor postav",
     ["Choose a character on the left."] = "Vlevo vyber postavu.",

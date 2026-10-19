@@ -610,7 +610,7 @@ return {
     ["An example line is too long. Keep each one under {max} characters."] = "Egy példasor túl hosszú. Mindegyik legyen {max} karakternél rövidebb.",
     ["As shipped"] = "Eredeti",
     ["Back to the shipped text."] = "Vissza az eredeti szöveghez.",
-    ["Bio"] = "Bio",
+    ["Bio"] = "Életrajz",
     ["Changes are saved on this computer and used from the next reply."] = "A módosítások ezen a számítógépen mentődnek, és a következő választól lépnek érvénybe.",
     ["Character editor"] = "Karakterszerkesztő",
     ["Choose a character on the left."] = "Válassz egy karaktert balra.",
