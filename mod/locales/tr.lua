@@ -1081,6 +1081,7 @@ return {
     ["Error reports go to the developer automatically. Turn them off in Settings > Privacy."] = "Hata raporları otomatik olarak geliştiriciye gönderilir. Kapatmak için Ayarlar > Gizlilik.",
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI"] = "Yoldaş Yöneticisi için Mod Configuration Menu 0.10.5 veya üstü ya da Native Settings UI gerekli",
     ["Update Mod Configuration Menu to 0.10.5 or newer to use the Companion Manager"] = "Yoldaş Yöneticisi için Mod Configuration Menu’yu 0.10.5 veya üstüne güncelle",
+    ["Stand up to open the Companion Manager"] = "Yoldaş Yöneticisi’ni açmak için ayağa kalk",
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game."] = "Yoldaş Yöneticisi için Mod Configuration Menu 0.10.5 veya üstü ya da Native Settings UI 1.96 veya üstü gerekli. Birini Nexus Mods’tan kur, ardından oyunu yeniden başlat.",
     ["Mod Configuration Menu is too old. Update it to 0.10.5 or newer from Nexus Mods, then restart the game."] = "Mod Configuration Menu çok eski. Nexus Mods’tan 0.10.5 veya üstüne güncelle, ardından oyunu yeniden başlat.",
     ["Previous page"] = "Önceki sayfa",

@@ -1081,6 +1081,7 @@ return {
     ["Error reports go to the developer automatically. Turn them off in Settings > Privacy."] = "エラーレポートは自動で開発者に届きます。オフ: 設定 > プライバシー",
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI"] = "コンパニオン管理には Mod Configuration Menu 0.10.5 以降、または Native Settings UI が必要です",
     ["Update Mod Configuration Menu to 0.10.5 or newer to use the Companion Manager"] = "コンパニオン管理を使うには Mod Configuration Menu を 0.10.5 以降に更新してください",
+    ["Stand up to open the Companion Manager"] = "コンパニオン管理を開くには立ち上がってください",
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game."] = "コンパニオン管理には Mod Configuration Menu 0.10.5 以降、または Native Settings UI 1.96 以降が必要です。どちらかを Nexus Mods からインストールし、ゲームを再起動してください。",
     ["Mod Configuration Menu is too old. Update it to 0.10.5 or newer from Nexus Mods, then restart the game."] = "Mod Configuration Menu が古すぎます。Nexus Mods から 0.10.5 以降に更新し、ゲームを再起動してください。",
     ["Previous page"] = "前のページ",

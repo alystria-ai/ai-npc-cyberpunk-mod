@@ -1081,6 +1081,7 @@ return {
     ["Error reports go to the developer automatically. Turn them off in Settings > Privacy."] = "Errori segnalati automaticamente allo sviluppatore. Disattivali: Impostazioni > Privacy.",
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI"] = "Gestione compagni richiede Mod Configuration Menu 0.10.5 o successivo, oppure Native Settings UI",
     ["Update Mod Configuration Menu to 0.10.5 or newer to use the Companion Manager"] = "Aggiorna Mod Configuration Menu alla 0.10.5 o successiva per usare Gestione compagni",
+    ["Stand up to open the Companion Manager"] = "Alzati per aprire Gestione compagni",
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game."] = "Gestione compagni richiede Mod Configuration Menu 0.10.5 o successivo, oppure Native Settings UI 1.96 o successivo. Installane uno da Nexus Mods e riavvia il gioco.",
     ["Mod Configuration Menu is too old. Update it to 0.10.5 or newer from Nexus Mods, then restart the game."] = "Mod Configuration Menu è troppo vecchio. Aggiornalo alla 0.10.5 o successiva da Nexus Mods e riavvia il gioco.",
     ["Previous page"] = "Pagina precedente",

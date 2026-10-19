@@ -2,7 +2,7 @@
 -- mod/johnny-probe.lua as "johnny-probe:hologram:<action>:<stamp>" in Developer mode only. The offline work cannot say which look reads
 -- as the game's own glitch at standing distance, or whether Johnny's phantom controller hides the whole copy: this puts one of OUR copies
 -- (never the game's Johnny) in front of V with one of the candidate looks, reports what the game made of it, and removes it again.
---   spawn:<A-E>   one copy in front of V with that look (mod/johnny-hologram.lua M.LOOKS), shown for SHOW_SECONDS and then deleted
+--   spawn:<A-F>   one copy in front of V with that look (mod/johnny-hologram.lua M.LOOKS), shown for SHOW_SECONDS and then deleted
 --   despawn       delete the copy now
 --   sweep         delete every copy of ours by tag (anything left by a reload)
 --   status        the copy's state and the last report, and the service the settings drive (read only)
@@ -85,8 +85,9 @@ local function summary()
             local r = visit.report
             lines[#lines + 1] = string.format('Seen by the game: appearance %s (asked for %s), visible=%s, %s m from V, %d phantom controller(s), look applied: %s.',
                 tostring(r.appearance), tostring(r.appearanceRequested), tostring(r.visible), tostring(r.distance and number(r.distance) ~= unavailable
-                    and string.format('%.1f', r.distance) or '?'), r.phantoms or 0, visit.applied and string.format('phantom off=%d, effects=%d, flicker=%d',
-                    visit.applied.phantom or 0, visit.applied.effects or 0, visit.applied.flicker or 0) or 'not yet')
+                    and string.format('%.1f', r.distance) or '?'), r.phantoms or 0, visit.applied and string.format('phantom off=%d, effects=%d [%s], failed [%s], flicker=%d',
+                    visit.applied.phantom or 0, visit.applied.effects or 0, table.concat(visit.applied.applied or {}, ', '),
+                    table.concat(visit.applied.failed or {}, ', '), visit.applied.flicker or 0) or 'not yet')
         end
         if visit.problem then lines[#lines + 1] = 'Problem: ' .. tostring(visit.problem) end
     end
@@ -98,7 +99,8 @@ local function plainLooks(module)
     for key, look in pairs(module.LOOKS) do
         local effects = {}
         for _, name in ipairs(look.effects or {}) do effects[#effects + 1] = name end
-        out[key] = {appearance = look.appearance, phantom = look.phantom, effects = effects, flicker = look.flicker == true}
+        out[key] = {appearance = look.appearance, phantom = look.phantom, effects = effects, flicker = look.flicker == true,
+            burst = look.burst, leave = look.leave}
     end
     return out
 end
@@ -215,7 +217,7 @@ function M.run(action, env)
         return report
     end
     if verb == 'status' or verb == 'looks' then return M.report() end
-    error('unknown action ' .. tostring(action) .. ' (spawn:<A-E>, despawn, sweep, status, looks)')
+    error('unknown action ' .. tostring(action) .. ' (spawn:<A-F>, despawn, sweep, status, looks)')
 end
 
 return M

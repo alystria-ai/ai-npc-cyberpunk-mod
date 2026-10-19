@@ -1081,6 +1081,7 @@ return {
     ["Error reports go to the developer automatically. Turn them off in Settings > Privacy."] = "Hibajelentések automatikusan a fejlesztőhöz mennek. Kikapcsolás: Beállítások > Adatvédelem.",
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI"] = "A Társkezelőnek a Mod Configuration Menu 0.10.5 vagy újabb, vagy a Native Settings UI kell",
     ["Update Mod Configuration Menu to 0.10.5 or newer to use the Companion Manager"] = "A Társkezelő használatához frissítsd a Mod Configuration Menu-t 0.10.5 vagy újabbra",
+    ["Stand up to open the Companion Manager"] = "Állj fel a Társkezelő megnyitásához",
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game."] = "A Társkezelőnek a Mod Configuration Menu 0.10.5 vagy újabb, illetve a Native Settings UI 1.96 vagy újabb verziója kell. Telepítsd valamelyiket a Nexus Modsról, majd indítsd újra a játékot.",
     ["Mod Configuration Menu is too old. Update it to 0.10.5 or newer from Nexus Mods, then restart the game."] = "A Mod Configuration Menu túl régi. Frissítsd 0.10.5 vagy újabb verzióra a Nexus Modsról, majd indítsd újra a játékot.",
     ["Previous page"] = "Előző oldal",

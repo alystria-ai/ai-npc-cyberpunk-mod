@@ -1081,6 +1081,7 @@ return {
     ["Error reports go to the developer automatically. Turn them off in Settings > Privacy."] = "Hlášení o chybách se vývojáři odesílají automaticky. Vypnout: Nastavení > Soukromí.",
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI"] = "Správce společníků potřebuje Mod Configuration Menu 0.10.5 nebo novější, nebo Native Settings UI",
     ["Update Mod Configuration Menu to 0.10.5 or newer to use the Companion Manager"] = "Pro Správce společníků aktualizuj Mod Configuration Menu na 0.10.5 nebo novější",
+    ["Stand up to open the Companion Manager"] = "Vstaň, aby se otevřel Správce společníků",
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game."] = "Správce společníků potřebuje Mod Configuration Menu 0.10.5 nebo novější, nebo Native Settings UI 1.96 nebo novější. Nainstaluj jedno z nich z Nexus Mods a restartuj hru.",
     ["Mod Configuration Menu is too old. Update it to 0.10.5 or newer from Nexus Mods, then restart the game."] = "Mod Configuration Menu je příliš staré. Aktualizuj jej na 0.10.5 nebo novější z Nexus Mods a restartuj hru.",
     ["Previous page"] = "Předchozí strana",

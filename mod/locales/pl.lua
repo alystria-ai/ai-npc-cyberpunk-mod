@@ -1081,6 +1081,7 @@ return {
     ["Error reports go to the developer automatically. Turn them off in Settings > Privacy."] = "Raporty o błędach trafiają do twórcy automatycznie. Wyłącz: Ustawienia > Prywatność.",
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI"] = "Menedżer towarzyszy wymaga Mod Configuration Menu 0.10.5 lub nowszego albo Native Settings UI",
     ["Update Mod Configuration Menu to 0.10.5 or newer to use the Companion Manager"] = "Zaktualizuj Mod Configuration Menu do 0.10.5 lub nowszego, aby używać Menedżera towarzyszy",
+    ["Stand up to open the Companion Manager"] = "Wstań, aby otworzyć Menedżera towarzyszy",
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game."] = "Menedżer towarzyszy wymaga Mod Configuration Menu 0.10.5 lub nowszego albo Native Settings UI 1.96 lub nowszego. Zainstaluj jedno z nich z Nexus Mods i zrestartuj grę.",
     ["Mod Configuration Menu is too old. Update it to 0.10.5 or newer from Nexus Mods, then restart the game."] = "Mod Configuration Menu jest zbyt stare. Zaktualizuj je do 0.10.5 lub nowszego z Nexus Mods i zrestartuj grę.",
     ["Previous page"] = "Poprzednia strona",

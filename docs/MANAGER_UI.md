@@ -271,6 +271,8 @@ Configuration Menu is older than 0.10.5 the notice is "Update Mod Configuration 
 The setup check names them too (see below). NSUI is found with `GetMod('nativeSettings')` (or
 `'NativeSettings'`) at CET's `onInit`; a copy that loads after this mod is found by a once-a-second look, and the tab is registered then.
 
+**While V sits (2026-10-20).** MCM's own gameplay entry (`SettingsEntry.canOpen` in its `mcm_settings_entry.lua`) declines every open request, the public `api.ui.open` included, while the scene tier is 3 or above (reason `scene`, logged only by MCM as "open request declined before transition"). A couch or chair is a scene sit at tier 3, so MCM never shows the page there and nothing public overrides it. The 2026-10-19 change let a plain sit through our own gate and MCM declined silently (F4 on a couch did nothing, with no log line at all). `mod/mcm-host.lua` now refuses the plain sit itself with the kind `seated`, never asks MCM, and `openManager` in `mod/init.lua` posts "Stand up to open the Companion Manager" (notice id `manager-seated`, at most every 5 s (a notice shows for five seconds), translated). A real scene keeps "Finish the scene first." (log only). Every press logs two lines: `Companion manager shortcut: press N (handler entered)` and its outcome (`opened`, `refused (kind=...)` or `failed`). The Native Settings UI path (`mod/nsui-entry.lua`) still lets a plain sit through.
+
 ### Beside MCM
 
 **Since the MCM host (below), this section only applies to an MCM older than 0.10.5 beside NSUI**: from 0.10.5 the manager is

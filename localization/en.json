@@ -50,7 +50,7 @@
     ]
   },
   "counts": {
-    "strings": 1092,
+    "strings": 1093,
     "dynamicTemplates": 55,
     "contexts": 37
   },
@@ -737,6 +737,7 @@
     "Speech: {list}": "Speech: {list}",
     "Stand near one of your owned cars, or summon one.": "Stand near one of your owned cars, or summon one.",
     "Stand near your owned car.": "Stand near your owned car.",
+    "Stand up to open the Companion Manager": "Stand up to open the Companion Manager",
     "Starting": "Starting",
     "Starting trip": "Starting trip",
     "Starts with": "Starts with",
@@ -2175,6 +2176,7 @@
       "Speaking style",
       "Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Conversation provider, or type your message.",
       "Speech: {list}",
+      "Stand up to open the Companion Manager",
       "Starting",
       "Starts with: {letter}",
       "Stop the trip and step out before dismissing your driver.",
@@ -2453,6 +2455,7 @@
       "Live picture unavailable. The call continues with the portrait.",
       "Player unavailable",
       "Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Conversation provider, or type your message.",
+      "Stand up to open the Companion Manager",
       "Type your message to the character.",
       "Your message was not sent. Open the text box again and retype it.",
       "{name} does not have a conversation profile configured yet.",
@@ -2672,7 +2675,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3985"
+        "mod/init.lua:4005"
       ]
     },
     "AI NPC Cyberpunk Mod: group text chat": {
@@ -2680,7 +2683,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3943"
+        "mod/init.lua:3963"
       ]
     },
     "AI NPC Cyberpunk Mod: group voice chat": {
@@ -2688,7 +2691,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3984"
+        "mod/init.lua:4004"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by text": {
@@ -2696,7 +2699,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3942"
+        "mod/init.lua:3962"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by voice": {
@@ -2704,7 +2707,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3983"
+        "mod/init.lua:4003"
       ]
     },
     "Above the speaker": {
@@ -3970,7 +3973,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:690",
-        "mod/mcm-host.lua:235"
+        "mod/mcm-host.lua:236"
       ]
     },
     "Confirm memory clear": {
@@ -3987,8 +3990,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2654",
-        "mod/init.lua:2720"
+        "mod/init.lua:2656",
+        "mod/init.lua:2722"
       ]
     },
     "Contacting Convai…": {
@@ -4048,7 +4051,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3512"
+        "mod/init.lua:3514"
       ]
     },
     "Convai does not show a paid plan for your key yet.": {
@@ -4545,7 +4548,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:360",
-        "mod/init.lua:3596"
+        "mod/init.lua:3598"
       ]
     },
     "Custom: free daily limit reached": {
@@ -4635,8 +4638,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:234",
-        "mod/mcm-host.lua:235"
+        "mod/mcm-host.lua:235",
+        "mod/mcm-host.lua:236"
       ]
     },
     "Defaults restored.": {
@@ -4644,7 +4647,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:338",
+        "mod/mcm-host.lua:339",
         "mod/nsui.lua:452"
       ]
     },
@@ -4955,7 +4958,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2016"
+        "mod/init.lua:2018"
       ]
     },
     "Facts the character noticed while you talked. Change or delete the ones that are wrong.": {
@@ -5290,8 +5293,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2280",
-        "mod/init.lua:2384"
+        "mod/init.lua:2282",
+        "mod/init.lua:2386"
       ]
     },
     "Group chat needs two characters nearby. Use {key} for one person.": {
@@ -5300,8 +5303,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2279",
-        "mod/init.lua:2383"
+        "mod/init.lua:2281",
+        "mod/init.lua:2385"
       ]
     },
     "Grudging respect": {
@@ -5828,7 +5831,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3581"
+        "mod/init.lua:3583"
       ]
     },
     "Local AI could not answer that. Try again in a moment.": {
@@ -5836,7 +5839,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3577"
+        "mod/init.lua:3579"
       ]
     },
     "Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.": {
@@ -5844,7 +5847,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3573"
+        "mod/init.lua:3575"
       ]
     },
     "Local AI could not start. Check Local AI in Settings > Conversation provider.": {
@@ -5852,7 +5855,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3569",
+        "mod/init.lua:3571",
         "mod/manager-ui.lua:89"
       ]
     },
@@ -6116,7 +6119,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3536",
+        "mod/init.lua:3538",
         "mod/phone-chat-style.lua:53",
         "mod/phone-chat.lua:10"
       ]
@@ -6134,7 +6137,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3590"
+        "mod/init.lua:3592"
       ]
     },
     "Mistral replies are spoken by a local voice instead of the Convai cloud voice.": {
@@ -6142,7 +6145,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3592"
+        "mod/init.lua:3594"
       ]
     },
     "Mistral: free limit reached for now": {
@@ -6175,7 +6178,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3538",
+        "mod/init.lua:3540",
         "mod/phone-chat-style.lua:54",
         "mod/phone-chat.lua:11"
       ]
@@ -6407,7 +6410,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:152"
+        "mod/mcm-host.lua:153"
       ]
     },
     "No Local AI pack found. Download one from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, or choose another conversation provider.": {
@@ -6512,7 +6515,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:4634"
+        "mod/init.lua:4654"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -6622,7 +6625,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3567",
+        "mod/init.lua:3569",
         "mod/manager-ui.lua:88",
         "mod/setup-check.lua:503"
       ]
@@ -6983,7 +6986,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:252",
-        "mod/mcm-host.lua:149"
+        "mod/mcm-host.lua:150"
       ]
     },
     "Page {page} of {pages}  |  {count} results": {
@@ -7119,7 +7122,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:1892"
+        "mod/init.lua:1894"
       ]
     },
     "Please wait for the current requests to finish.": {
@@ -7271,7 +7274,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:327"
+        "mod/mcm-host.lua:328"
       ]
     },
     "Press Enter to write  /  Esc to stop typing": {
@@ -7287,7 +7290,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2638"
+        "mod/init.lua:2640"
       ]
     },
     "Press your Talk by voice shortcut to finish recording.": {
@@ -7295,7 +7298,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2639"
+        "mod/init.lua:2641"
       ]
     },
     "Previous page": {
@@ -7303,7 +7306,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:151"
+        "mod/mcm-host.lua:152"
       ]
     },
     "Prices in US dollars. You can cancel at any time on Convai’s billing page.": {
@@ -7351,7 +7354,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:236"
+        "mod/mcm-host.lua:237"
       ]
     },
     "RED4ext is not loaded. Install it from Nexus Mods, then restart the game. It also starts the conversation service.": {
@@ -7605,7 +7608,7 @@
       "references": [
         "mod/manager-ui.lua:1817",
         "mod/manager.lua:35",
-        "mod/mcm-host.lua:263"
+        "mod/mcm-host.lua:264"
       ]
     },
     "Reset everything": {
@@ -8134,7 +8137,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2671"
+        "mod/init.lua:2673"
       ]
     },
     "Speech: {list}": {
@@ -8159,6 +8162,15 @@
       ],
       "references": [
         "mod/companion-chauffeur.lua:105"
+      ]
+    },
+    "Stand up to open the Companion Manager": {
+      "contexts": [
+        "ui.localized",
+        "world.conversation"
+      ],
+      "references": [
+        "mod/init.lua:3789"
       ]
     },
     "Starting": {
@@ -8190,7 +8202,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:157"
+        "mod/mcm-host.lua:158"
       ]
     },
     "State: {state}": {
@@ -8592,7 +8604,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3587"
+        "mod/init.lua:3589"
       ]
     },
     "The Local AI pack finds these. It is not installed or not ready, so none are collected now.": {
@@ -8633,7 +8645,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3540",
+        "mod/init.lua:3542",
         "mod/phone-chat-style.lua:55",
         "mod/phone-chat.lua:12"
       ]
@@ -8922,7 +8934,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3508"
+        "mod/init.lua:3510"
       ]
     },
     "The conversation service cannot reach the internet. See Help in Settings.": {
@@ -9090,7 +9102,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:348",
-        "mod/init.lua:3545",
+        "mod/init.lua:3547",
         "mod/phone-chat-style.lua:56",
         "mod/phone-chat.lua:13"
       ]
@@ -9102,7 +9114,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:358",
-        "mod/init.lua:3562",
+        "mod/init.lua:3564",
         "mod/phone-chat-style.lua:62",
         "mod/phone-chat.lua:19"
       ]
@@ -9114,7 +9126,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:350",
-        "mod/init.lua:3549",
+        "mod/init.lua:3551",
         "mod/phone-chat-style.lua:58",
         "mod/phone-chat.lua:15"
       ]
@@ -9125,7 +9137,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:359",
-        "mod/init.lua:3594"
+        "mod/init.lua:3596"
       ]
     },
     "The custom provider is rate limiting you. Try again in a moment.": {
@@ -9135,7 +9147,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:351",
-        "mod/init.lua:3551",
+        "mod/init.lua:3553",
         "mod/phone-chat-style.lua:59",
         "mod/phone-chat.lua:16"
       ]
@@ -9147,7 +9159,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:349",
-        "mod/init.lua:3547",
+        "mod/init.lua:3549",
         "mod/phone-chat-style.lua:57",
         "mod/phone-chat.lua:14"
       ]
@@ -9296,7 +9308,7 @@
       "references": [
         "mod/custom-provider.lua:233",
         "mod/custom-provider.lua:354",
-        "mod/init.lua:3556"
+        "mod/init.lua:3558"
       ]
     },
     "The free daily limit for this model was reached. Try again after it resets.": {
@@ -9306,7 +9318,7 @@
       "references": [
         "mod/custom-provider.lua:234",
         "mod/custom-provider.lua:355",
-        "mod/init.lua:3558"
+        "mod/init.lua:3560"
       ]
     },
     "The game could not verify a safe companion position.": {
@@ -9856,7 +9868,7 @@
       "references": [
         "mod/custom-provider.lua:236",
         "mod/custom-provider.lua:357",
-        "mod/init.lua:3560"
+        "mod/init.lua:3562"
       ]
     },
     "This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware, Audioware or redscript, or a game version other than 2.31, can also cause it.": {
@@ -9885,7 +9897,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3503"
+        "mod/init.lua:3505"
       ]
     },
     "Today’s {limit} Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).": {
@@ -9893,7 +9905,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3501"
+        "mod/init.lua:3503"
       ]
     },
     "Too many display names. Keep {max} or fewer.": {
@@ -10175,7 +10187,7 @@
         "world.microphone"
       ],
       "references": [
-        "mod/init.lua:2636"
+        "mod/init.lua:2638"
       ]
     },
     "Use {min} to {max} seconds of one person speaking clearly, with no music or other voices. {goodMin} to {goodMax} seconds copies best. WAV, MP3, OGG or FLAC.": {
@@ -10794,7 +10806,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3510"
+        "mod/init.lua:3512"
       ]
     },
     "Your Convai plan": {
@@ -10810,7 +10822,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3514"
+        "mod/init.lua:3516"
       ]
     },
     "Your Convai plan has no room for conversation memory, so companions will not remember past talks.": {
@@ -10818,7 +10830,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3531"
+        "mod/init.lua:3533"
       ]
     },
     "Your Convai plan is active.": {
@@ -10918,7 +10930,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:1563",
-        "mod/mcm-host.lua:349"
+        "mod/mcm-host.lua:350"
       ]
     },
     "Your group": {
@@ -10971,7 +10983,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2482"
+        "mod/init.lua:2484"
       ]
     },
     "Your own characters talk only with Mistral or Local AI. With Convai they speak as an ordinary person.": {
@@ -11062,7 +11074,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3586"
+        "mod/init.lua:3588"
       ]
     },
     "could not be read": {
@@ -11244,7 +11256,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2261"
+        "mod/init.lua:2263"
       ]
     },
     "{name} answers typed messages only for now. Use {key}.": {
@@ -11252,7 +11264,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2260"
+        "mod/init.lua:2262"
       ]
     },
     "{name} can't come along right now.": {
@@ -11300,7 +11312,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2322"
+        "mod/init.lua:2324"
       ]
     },
     "{name} is already with you.": {
@@ -11317,8 +11329,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2302",
-        "mod/init.lua:2343"
+        "mod/init.lua:2304",
+        "mod/init.lua:2345"
       ]
     },
     "{name} is coming with you.": {
@@ -11370,7 +11382,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3834"
+        "mod/init.lua:3854"
       ]
     },
     "{name} is one of your own characters. They need Mistral or Local AI, so with Convai they talk as an ordinary person.": {
@@ -11379,7 +11391,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2318"
+        "mod/init.lua:2320"
       ]
     },
     "{name} joined your group.": {
@@ -11785,8 +11797,8 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2279",
-        "mod/init.lua:2383"
+        "mod/init.lua:2281",
+        "mod/init.lua:2385"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11982,7 +11994,7 @@
         "world.microphone"
       ],
       "references": [
-        "mod/init.lua:2636"
+        "mod/init.lua:2638"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -12096,7 +12108,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:2322"
+        "mod/init.lua:2324"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -12120,7 +12132,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:3834"
+        "mod/init.lua:3854"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

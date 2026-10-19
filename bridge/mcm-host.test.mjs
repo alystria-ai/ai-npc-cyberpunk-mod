@@ -2,6 +2,12 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {run, nsuiHarness, source} from './manager-fixture.mjs';
+const initSource = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
+const between = (from, to) => {
+  const start = initSource.indexOf(from), end = initSource.indexOf(to, start);
+  assert.ok(start >= 0 && end > start, `markers ${from} .. ${to}`);
+  return initSource.slice(start, end);
+};
 
 // The Companion Manager as a page of Mod Configuration Menu 0.10.5: the real host (mod/mcm-host.lua, attached to mod/nsui.lua over
 // mod/manager-ui.lua) over a fake MCM (bridge/mcm-fake.mjs) that keeps MCM's own rules for providers, schemas, drafts, Apply and the
@@ -689,7 +695,7 @@ test('the shortcut leaves the game\'s state to the game: no save, no text box, n
   `);
 });
 
-test('a plain sit is scene tier 3 but no cutscene: the shortcut opens the page on a couch; a real scene still refuses with the same words', () => {
+test('a plain sit is scene tier 3 and MCM declines to open there by design: the shortcut says "Stand up" (kind seated) and never asks MCM; a real scene keeps the old words', () => {
   const sitting = answer => `${harness({screen: false, nsui: false})}
     ${posted}
     local tier = 3
@@ -700,13 +706,56 @@ test('a plain sit is scene tier 3 but no cutscene: the shortcut opens the page o
       GetBlackboardSystem = function() return {GetLocalInstanced = function() return {GetInt = function() return tier end} end} end}
     convaiPlainSitting = ${answer}
     local calls = #mcm.calls
-    local ok, reason = managerUi.open()
+    local ok, reason, kind = managerUi.open()
     ${answer === 'function() return true end'
-      ? "assert(reason ~= 'Finish the scene first.', tostring(reason))"
-      : "assert(ok == false and reason == 'Finish the scene first.' and #mcm.calls == calls, tostring(reason))"}
+      ? "assert(ok == false and reason == 'Stand up to open the Companion Manager' and kind == 'seated' and #mcm.calls == calls, tostring(reason))"
+      : "assert(ok == false and reason == 'Finish the scene first.' and kind == nil and #mcm.calls == calls, tostring(reason))"}
+    assert(#notices == 0, 'the notice is posted by the shortcut handler in init.lua, not by the host')
+    tier = 2
+    ok = managerUi.open()
+    assert(ok == true, 'standing in the open: it opens')
   `;
   run(sitting('function() return true end'));
   for (const answer of ['nil', 'function() return false end', 'function() error("unreadable") end']) run(sitting(answer));
+});
+
+// The shortcut's handler in init.lua: two log lines per press and the notice for a seat.
+test('the shortcut handler logs every press (entered, outcome); a refusal because V sits posts one translated notice, the other refusals post none', () => {
+  const handler = between('-- (The count is a global: the main chunk is near', "-- The phone queues a request only while it is open");
+  const harnessFor = open => `
+    local logs, sent, revoked = {}, {}, 0
+    local function log(line) logs[#logs + 1] = line end
+    local ui = {t = function(text) return 'T:' .. text end}
+    convaiNotices = {send = function(_, id, text) sent[#sent + 1] = {id = id, text = text}; return true end}
+    Game = {GetPlayer = function() return {} end}
+    gameplayActions = {revoke = function() revoked = revoked + 1 end}
+    local function endFocus() end
+    local function resetGaze() end
+    local focusMode, focusEntity, focusUntil
+    managerUi = {open = ${open}}
+    ${handler}
+  `;
+  run(`${harnessFor("function() return true end")}
+    openManager()
+    assert(#logs == 2 and logs[1]:find('press 1 (handler entered)', 1, true) and logs[2]:find('press 1 opened', 1, true), table.concat(logs, ' | '))
+    assert(#sent == 0 and revoked == 1)
+  `);
+  run(`${harnessFor("function() return false, 'Stand up to open the Companion Manager', 'seated' end")}
+    openManager(); openManager()
+    assert(#logs == 6, table.concat(logs, ' | '))
+    assert(logs[1]:find('press 1 (handler entered)', 1, true) and logs[2] == 'Companion manager: Stand up to open the Companion Manager' and logs[3]:find('press 1 refused (kind=seated)', 1, true), table.concat(logs, ' | '))
+    assert(logs[4]:find('press 2 (handler entered)', 1, true) and logs[6]:find('press 2 refused', 1, true))
+    assert(#sent == 2 and sent[1].id == 'manager-seated' and sent[1].text == 'T:Stand up to open the Companion Manager', 'one notice per press, in the language of the player')
+    assert(revoked == 0)
+  `);
+  run(`${harnessFor("function() return false, 'Finish the scene first.' end")}
+    openManager()
+    assert(#sent == 0 and logs[2] == 'Companion manager: Finish the scene first.' and logs[3]:find('press 1 refused (kind=nil)', 1, true), table.concat(logs, ' | '))
+  `);
+  run(`${harnessFor("function() error('boom') end")}
+    openManager()
+    assert(#sent == 0 and logs[2]:find('boom', 1, true) and logs[3]:find('press 1 failed', 1, true), table.concat(logs, ' | '))
+  `);
 });
 
 test('without any host the shortcut says what to install: MCM 0.10.5 first, Native Settings UI as the alternative; an older MCM is to be updated', () => {
