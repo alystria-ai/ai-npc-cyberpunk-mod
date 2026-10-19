@@ -941,7 +941,7 @@ return {
     ["Deletes the saved endpoint URL. The custom provider needs one to answer."] = "Kayıtlı endpoint URL’sini siler. Özel sağlayıcının yanıt verebilmesi için bu gerekir.",
     ["Deletes the saved key. Replies from the custom provider are then asked for without a key."] = "Kayıtlı anahtarı siler. Bundan sonra özel sağlayıcıdan anahtarsız yanıt istenir.",
     ["Deletes the saved model ID. The custom provider needs one to answer."] = "Kayıtlı model kimliğini siler. Özel sağlayıcının yanıt verebilmesi için bu gerekir.",
-    ["Failed"] = "Olmadı",
+    ["Failed"] = "Başarısız",
     ["It answered in {ms} ms."] = "{ms} ms içinde yanıt verdi.",
     ["It could not be saved."] = "Kaydedilemedi.",
     ["Model ID: {model}"] = "Model kimliği: {model}",
