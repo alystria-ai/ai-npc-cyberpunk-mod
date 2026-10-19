@@ -48,7 +48,7 @@
     ]
   },
   "counts": {
-    "strings": 1053,
+    "strings": 1064,
     "dynamicTemplates": 55,
     "contexts": 37
   },
@@ -61,6 +61,7 @@
     "<  PREVIOUS": "<  PREVIOUS",
     "<  TEXT": "<  TEXT",
     "A change takes effect after the current reply. No game restart is needed.": "A change takes effect after the current reply. No game restart is needed.",
+    "A clip you add replaces the shipped voice of this character for Pocket, OmniVoice and the Voxtral cloud voice.": "A clip you add replaces the shipped voice of this character for Pocket, OmniVoice and the Voxtral cloud voice.",
     "A display name is too long. Keep each one under {max} characters.": "A display name is too long. Keep each one under {max} characters.",
     "A few sentences the character keeps about your past talks. Edit them or clear them.": "A few sentences the character keeps about your past talks. Edit them or clear them.",
     "A line this character might say": "A line this character might say",
@@ -68,7 +69,7 @@
     "A memory clear is awaiting its result. It will not be sent again.": "A memory clear is awaiting its result. It will not be sent again.",
     "A memory is too long. Keep each one under {max} characters.": "A memory is too long. Keep each one under {max} characters.",
     "A nearby companion makes one short comment as combat starts and another afterward.\n\nTen-minute cooldown after a fight. Conversations and story scenes come first. Loading a save resets the cooldown.": "A nearby companion makes one short comment as combat starts and another afterward.\n\nTen-minute cooldown after a fight. Conversations and story scenes come first. Loading a save resets the cooldown.",
-    "A new clip is used from the next time the game starts. Until then the character keeps its generic voice.": "A new clip is used from the next time the game starts. Until then the character keeps its generic voice.",
+    "A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now.": "A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now.",
     "A new vehicle summon interrupted the trip.": "A new vehicle summon interrupted the trip.",
     "A pack is one folder too deep. See Help in Settings.": "A pack is one folder too deep. See Help in Settings.",
     "A previous memory request could not be read. The memory service must reconcile it before another clear.": "A previous memory request could not be read. The memory service must reconcile it before another clear.",
@@ -93,6 +94,7 @@
     "Add a rule": "Add a rule",
     "Add an endpoint URL and a model ID first.": "Add an endpoint URL and a model ID first.",
     "Add copy ({count})": "Add copy ({count})",
+    "Add voice clip": "Add voice clip",
     "Add your Convai API key below to see and buy a plan.": "Add your Convai API key below to see and buy a plan.",
     "Add your Convai API key first.": "Add your Convai API key first.",
     "Add your Convai API key first: copy it, then choose Paste on the Convai API key row.": "Add your Convai API key first: copy it, then choose Paste on the Convai API key row.",
@@ -194,7 +196,8 @@
     "Choose the mod interface language independently of character voices and conversation language.": "Choose the mod interface language independently of character voices and conversation language.",
     "Choose the personality this copy should use in conversations. Its model stays the same.": "Choose the personality this copy should use in conversations. Its model stays the same.",
     "Choosing a cloud provider turns it off.": "Choosing a cloud provider turns it off.",
-    "Chosen file: {name} ({size}). It is checked and saved when you press Save.": "Chosen file: {name} ({size}). It is checked and saved when you press Save.",
+    "Chosen file: {name} ({size}). It is checked when you save it.": "Chosen file: {name} ({size}). It is checked when you save it.",
+    "Chosen file: {name}, {seconds} seconds.": "Chosen file: {name}, {seconds} seconds.",
     "Cinematic subtitles": "Cinematic subtitles",
     "Cinematic: the game’s regular dialogue subtitles.\n\nAbove the speaker: over the companion who is talking.\n\nThe Subtitles switch turns both off.": "Cinematic: the game’s regular dialogue subtitles.\n\nAbove the speaker: over the companion who is talking.\n\nThe Subtitles switch turns both off.",
     "Clear": "Clear",
@@ -512,7 +515,7 @@
     "New character": "New character",
     "No Local AI pack found. Download one from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, or choose another conversation provider.": "No Local AI pack found. Download one from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, or choose another conversation provider.",
     "No clear, reachable companion space on this floor. Move to a wider spot and try again.": "No clear, reachable companion space on this floor. Move to a wider spot and try again.",
-    "No clip yet. The character speaks with a generic voice.": "No clip yet. The character speaks with a generic voice.",
+    "No clip yet.": "No clip yet.",
     "No conversation profile. This model joins as a follower without AI conversations.": "No conversation profile. This model joins as a follower without AI conversations.",
     "No entries are available.": "No entries are available.",
     "No entries yet.\nTry another search or tab.": "No entries yet.\nTry another search or tab.",
@@ -571,7 +574,7 @@
     "Opens convai.com in your browser. Sign in or make a free account, copy your API key, then come back and choose Paste below.": "Opens convai.com in your browser. Sign in or make a free account, copy your API key, then come back and choose Paste below.",
     "Opens your Convai billing page in your browser. Sign in with the same Convai account to change or cancel your plan.": "Opens your Convai billing page in your browser. Sign in with the same Convai account to change or cancel your plan.",
     "Optional packs": "Optional packs",
-    "Optional. A recording of clean speech in a WAV file, 10 to 18 seconds long. The local voices and the Voxtral cloud voice copy it. Without a clip the character speaks with a generic voice that fits the gender.": "Optional. A recording of clean speech in a WAV file, 10 to 18 seconds long. The local voices and the Voxtral cloud voice copy it. Without a clip the character speaks with a generic voice that fits the gender.",
+    "Optional. Pocket, OmniVoice and the Voxtral cloud voice copy a clip you add. Without one the character speaks with a generic voice that fits the gender.": "Optional. Pocket, OmniVoice and the Voxtral cloud voice copy a clip you add. Without one the character speaks with a generic voice that fits the gender.",
     "Ordinary": "Ordinary",
     "Page": "Page",
     "Page {page} / {pages}": "Page {page} / {pages}",
@@ -587,6 +590,7 @@
     "Picked up in your talks": "Picked up in your talks",
     "Plans": "Plans",
     "Plans Convai made for this mod. They give your own Convai API key more conversations; the free tier stays as it is.": "Plans Convai made for this mod. They give your own Convai API key more conversations; the free tier stays as it is.",
+    "Play saved clip": "Play saved clip",
     "Play spoken replies through the supported voice output. This does not change microphone capture.": "Play spoken replies through the supported voice output. This does not change microphone capture.",
     "Playback settings updated.": "Playback settings updated.",
     "Player memory": "Player memory",
@@ -635,6 +639,7 @@
     "Remove clip": "Remove clip",
     "Remove only this copy from your group.": "Remove only this copy from your group.",
     "Remove the voice clip? The character goes back to a generic voice.": "Remove the voice clip? The character goes back to a generic voice.",
+    "Remove the voice clip? {name} goes back to the shipped voice.": "Remove the voice clip? {name} goes back to the shipped voice.",
     "Reopen the manager; that action is no longer available.": "Reopen the manager; that action is no longer available.",
     "Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.": "Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.",
     "Report for the developer": "Report for the developer",
@@ -655,6 +660,7 @@
     "SELECTED": "SELECTED",
     "SETTINGS": "SETTINGS",
     "Save": "Save",
+    "Save clip": "Save clip",
     "Save the character first. Then it can have a voice clip, and it starts to remember your talks.": "Save the character first. Then it can have a voice clip, and it starts to remember your talks.",
     "Saved Chat cleanup could not be verified. Please wait for the memory service.": "Saved Chat cleanup could not be verified. Please wait for the memory service.",
     "Saved at {path}": "Saved at {path}",
@@ -749,7 +755,7 @@
     "That conversation profile is unavailable.": "That conversation profile is unavailable.",
     "That copy is no longer in your party.": "That copy is no longer in your party.",
     "That dismissal is no longer pending.": "That dismissal is no longer pending.",
-    "That file is not a WAV the voices can read. Use a plain WAV recording, 16, 24 or 32 bit, mono or stereo.": "That file is not a WAV the voices can read. Use a plain WAV recording, 16, 24 or 32 bit, mono or stereo.",
+    "That file is not a recording the voices can read. Use a WAV, MP3, OGG or FLAC file.": "That file is not a recording the voices can read. Use a WAV, MP3, OGG or FLAC file.",
     "That file is too big for a voice clip.": "That file is too big for a voice clip.",
     "That is too long.": "That is too long.",
     "That model is no longer available.": "That model is no longer available.",
@@ -877,6 +883,7 @@
     "The report could not be created. Check that the mod folder can be written to, then try again.": "The report could not be created. Check that the mod folder can be written to, then try again.",
     "The request could not be sent. Try again.": "The request could not be sent. Try again.",
     "The route is blocked. Step out or try a new trip.": "The route is blocked. Step out or try a new trip.",
+    "The saved clip could not be loaded.": "The saved clip could not be loaded.",
     "The selected companion is leaving.": "The selected companion is leaving.",
     "The selected companion is unavailable.": "The selected companion is unavailable.",
     "The service launcher writes launcher.log at {path}": "The service launcher writes launcher.log at {path}",
@@ -893,6 +900,9 @@
     "Things they always know": "Things they always know",
     "This PC cannot look up {host}. Check your internet connection, then restart the game.": "This PC cannot look up {host}. Check your internet connection, then restart the game.",
     "This address is not encrypted, which is fine on your own computer or home network.": "This address is not encrypted, which is fine on your own computer or home network.",
+    "This character speaks with a generic voice that fits the gender.": "This character speaks with a generic voice that fits the gender.",
+    "This character speaks with the shipped voice.": "This character speaks with the shipped voice.",
+    "This computer cannot convert that file. Save it as a WAV and try again.": "This computer cannot convert that file. Save it as a WAV and try again.",
     "This contact cannot take a holocall.": "This contact cannot take a holocall.",
     "This contact has no companion mapping yet.": "This contact has no companion mapping yet.",
     "This copy can still follow you, but will not join conversations.": "This copy can still follow you, but will not join conversations.",
@@ -940,6 +950,7 @@
     "Use the character I’m facing": "Use the character I’m facing",
     "Use this conversation profile": "Use this conversation profile",
     "Use {key} to finish this recording.": "Use {key} to finish this recording.",
+    "Use {min} to {max} seconds of one person speaking clearly, with no music or other voices. {goodMin} to {goodMax} seconds copies best. WAV, MP3, OGG or FLAC.": "Use {min} to {max} seconds of one person speaking clearly, with no music or other voices. {goodMin} to {goodMax} seconds copies best. WAV, MP3, OGG or FLAC.",
     "V changed seats or vehicles.": "V changed seats or vehicles.",
     "V left the passenger seat.": "V left the passenger seat.",
     "V or a scene has taken vehicle control.": "V or a scene has taken vehicle control.",
@@ -949,7 +960,6 @@
     "Version {version}.": "Version {version}.",
     "Version {version}. The mod is tested on 2.31 only, so some things may not work.": "Version {version}. The mod is tested on 2.31 only, so some things may not work.",
     "Voice": "Voice",
-    "Voice clip (WAV)": "Voice clip (WAV)",
     "Voice playback": "Voice playback",
     "Voice status": "Voice status",
     "Voice volume (%)": "Voice volume (%)",
@@ -1003,6 +1013,7 @@
     "You are already on a call.": "You are already on a call.",
     "You are driving. The companion trip was cancelled.": "You are driving. The companion trip was cancelled.",
     "You did not board the car, so the trip was cancelled.": "You did not board the car, so the trip was cancelled.",
+    "You have as many voice clips as the editor keeps ({max}). Remove one first.": "You have as many voice clips as the editor keeps ({max}). Remove one first.",
     "You have changes that are not saved. Leave without saving?": "You have changes that are not saved. Leave without saving?",
     "You have made as many characters as the editor keeps ({max}). Delete one first.": "You have made as many characters as the editor keeps ({max}). Delete one first.",
     "You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).": "You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).",
@@ -1755,12 +1766,13 @@
     ],
     "ui.localized": [
       "A change takes effect after the current reply. No game restart is needed.",
+      "A clip you add replaces the shipped voice of this character for Pocket, OmniVoice and the Voxtral cloud voice.",
       "A display name is too long. Keep each one under {max} characters.",
       "A few sentences the character keeps about your past talks. Edit them or clear them.",
       "A line this character might say",
       "A memory cannot be empty.",
       "A memory is too long. Keep each one under {max} characters.",
-      "A new clip is used from the next time the game starts. Until then the character keeps its generic voice.",
+      "A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now.",
       "A pack is one folder too deep. See Help in Settings.",
       "A previous memory request could not be read. The memory service must reconcile it before another clear.",
       "A record name can only use letters, digits, dots, dashes and underscores, for example Character.Rebecca.",
@@ -1775,6 +1787,7 @@
       "Add a rule",
       "Add an endpoint URL and a model ID first.",
       "Add copy ({count})",
+      "Add voice clip",
       "Add your Convai API key below to see and buy a plan.",
       "Add your Convai API key first.",
       "Add your Convai API key first: copy it, then choose Paste on the Convai API key row.",
@@ -1811,7 +1824,8 @@
       "Choose an active or invited copy.",
       "Choose an interface language.",
       "Choosing a cloud provider turns it off.",
-      "Chosen file: {name} ({size}). It is checked and saved when you press Save.",
+      "Chosen file: {name} ({size}). It is checked when you save it.",
+      "Chosen file: {name}, {seconds} seconds.",
       "Clear",
       "Clear memories about you for all {count} characters you have talked to?",
       "Clear the summary?",
@@ -1989,7 +2003,7 @@
       "New address saved. Paste your API key again for it.",
       "New character",
       "No Local AI pack found. Download one from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, or choose another conversation provider.",
-      "No clip yet. The character speaks with a generic voice.",
+      "No clip yet.",
       "No conversation profile. This model joins as a follower without AI conversations.",
       "No key added",
       "No match.",
@@ -2029,7 +2043,7 @@
       "Opening the page in your browser…",
       "Opens Convai’s payment page (Stripe) in your browser. You pay Convai directly; the mod never sees your card. Your plan is active about 15 seconds after you pay, and conversations then use your Convai API key.",
       "Optional packs",
-      "Optional. A recording of clean speech in a WAV file, 10 to 18 seconds long. The local voices and the Voxtral cloud voice copy it. Without a clip the character speaks with a generic voice that fits the gender.",
+      "Optional. Pocket, OmniVoice and the Voxtral cloud voice copy a clip you add. Without one the character speaks with a generic voice that fits the gender.",
       "Page {page} / {pages}",
       "Parts of the character",
       "Paste",
@@ -2037,6 +2051,7 @@
       "Paste endpoint URL",
       "Paste model ID",
       "Picked up in your talks",
+      "Play saved clip",
       "Pocket TTS speaks only English. Turn off Multilingual conversations to choose it.",
       "Pocket could not load. See Help in Settings.",
       "Pocket voice is ready.",
@@ -2064,6 +2079,7 @@
       "Remove clip",
       "Remove only this copy from your group.",
       "Remove the voice clip? The character goes back to a generic voice.",
+      "Remove the voice clip? {name} goes back to the shipped voice.",
       "Reopen the manager; that action is no longer available.",
       "Report path copied to the clipboard.",
       "Report saved: {path}",
@@ -2071,6 +2087,7 @@
       "Reset to default",
       "Running",
       "Save",
+      "Save clip",
       "Save the character first. Then it can have a voice clip, and it starts to remember your talks.",
       "Saved at {path}",
       "Saved clip: {seconds} seconds.",
@@ -2117,7 +2134,7 @@
       "That companion is no longer in your party.",
       "That copy is no longer in your party.",
       "That dismissal is no longer pending.",
-      "That file is not a WAV the voices can read. Use a plain WAV recording, 16, 24 or 32 bit, mono or stereo.",
+      "That file is not a recording the voices can read. Use a WAV, MP3, OGG or FLAC file.",
       "That file is too big for a voice clip.",
       "That is too long.",
       "That was not accepted.",
@@ -2213,6 +2230,7 @@
       "The redscript compiler writes redscript_rCURRENT.log at {path}",
       "The report could not be created. Check that the mod folder can be written to, then try again.",
       "The request could not be sent. Try again.",
+      "The saved clip could not be loaded.",
       "The service launcher writes launcher.log at {path}",
       "The sign-in did not finish. Try again, or copy your key from convai.com and choose Paste.",
       "The sign-in took too long. Choose Sign in with Convai to try again.",
@@ -2224,6 +2242,9 @@
       "Things they always know",
       "This PC cannot look up {host}. Check your internet connection, then restart the game.",
       "This address is not encrypted, which is fine on your own computer or home network.",
+      "This character speaks with a generic voice that fits the gender.",
+      "This character speaks with the shipped voice.",
+      "This computer cannot convert that file. Save it as a WAV and try again.",
       "This contact cannot take a holocall.",
       "This is a short report: the conversation service was not available to build the full one.",
       "This is your current plan. To change or cancel it, choose Manage or cancel plan below.",
@@ -2249,10 +2270,10 @@
       "Use the base URL only: no password, query or #.",
       "Use the character I’m facing",
       "Use {key} to finish this recording.",
+      "Use {min} to {max} seconds of one person speaking clearly, with no music or other voices. {goodMin} to {goodMax} seconds copies best. WAV, MP3, OGG or FLAC.",
       "Version {version}.",
       "Version {version}. The mod is tested on 2.31 only, so some things may not work.",
       "Voice",
-      "Voice clip (WAV)",
       "Voice: {voice}",
       "Vortex. Install the Runtime and the optional packs by hand into the Cyberpunk 2077 folder, as the install steps say.",
       "Voxtral · Mistral cloud",
@@ -2269,6 +2290,7 @@
       "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.",
       "Words said in the clip",
       "You are already on a call.",
+      "You have as many voice clips as the editor keeps ({max}). Remove one first.",
       "You have changes that are not saved. Leave without saving?",
       "You have made as many characters as the editor keeps ({max}). Delete one first.",
       "You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).",
@@ -2445,6 +2467,14 @@
         "mod/manager-ui.lua:1392"
       ]
     },
+    "A clip you add replaces the shipped voice of this character for Pocket, OmniVoice and the Voxtral cloud voice.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:99"
+      ]
+    },
     "A display name is too long. Keep each one under {max} characters.": {
       "contexts": [
         "ui.localized"
@@ -2458,7 +2488,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:75"
+        "mod/character-editor.lua:77"
       ]
     },
     "A line this character might say": {
@@ -2466,7 +2496,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:127"
+        "mod/character-editor.lua:138"
       ]
     },
     "A memory cannot be empty.": {
@@ -2474,7 +2504,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:67"
+        "mod/character-editor.lua:69"
       ]
     },
     "A memory clear is awaiting its result. It will not be sent again.": {
@@ -2501,12 +2531,12 @@
         "mod/manager-ui.lua:1446"
       ]
     },
-    "A new clip is used from the next time the game starts. Until then the character keeps its generic voice.": {
+    "A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now.": {
       "contexts": [
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:99"
+        "mod/character-editor.lua:106"
       ]
     },
     "A new vehicle summon interrupted the trip.": {
@@ -2571,7 +2601,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:134"
+        "mod/character-editor.lua:145"
       ]
     },
     "AI NPC Cyberpunk Mod: companion manager": {
@@ -2644,7 +2674,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:118"
+        "mod/character-editor.lua:129"
       ]
     },
     "Add a line": {
@@ -2652,7 +2682,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:126"
+        "mod/character-editor.lua:137"
       ]
     },
     "Add a memory": {
@@ -2660,7 +2690,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:81"
+        "mod/character-editor.lua:83"
       ]
     },
     "Add a record name": {
@@ -2668,7 +2698,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:114"
+        "mod/character-editor.lua:125"
       ]
     },
     "Add a record name or a display name, so the game can find this character.": {
@@ -2684,7 +2714,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:133"
+        "mod/character-editor.lua:144"
       ]
     },
     "Add an endpoint URL and a model ID first.": {
@@ -2702,6 +2732,14 @@
       ],
       "references": [
         "mod/manager-ui.lua:1121"
+      ]
+    },
+    "Add voice clip": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:105"
       ]
     },
     "Add your Convai API key below to see and buy a plan.": {
@@ -2807,7 +2845,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:141"
+        "mod/character-editor.lua:152"
       ]
     },
     "Ask a companion to drive to your selected map waypoint.\n\nGet into the passenger seat when they are ready.": {
@@ -2922,7 +2960,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:63"
+        "mod/character-editor.lua:65"
       ]
     },
     "Behavior: {list}": {
@@ -2954,7 +2992,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:120"
+        "mod/character-editor.lua:131"
       ]
     },
     "Bluetooth audio arrives a little late, so lips and subtitles can run ahead of the voice. This holds them back to match, for every voice.\n\nAuto: 150 ms while Windows plays through Bluetooth, none otherwise. Pick a value if your headset is faster or slower.\n\nThe game’s own dialogue has the same delay and does not correct it.": {
@@ -3118,7 +3156,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:151"
+        "mod/character-editor.lua:162"
       ]
     },
     "Changes this mod’s menus and notices only.\n\nCharacter voices and the language you talk in are separate.": {
@@ -3143,7 +3181,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:147"
+        "mod/character-editor.lua:158"
       ]
     },
     "Character picker closed. Your selection is unchanged. Closing it deleted nothing.": {
@@ -3320,7 +3358,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:135"
+        "mod/character-editor.lua:146"
       ]
     },
     "Choose a conversation profile from the list.": {
@@ -3344,7 +3382,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:103"
+        "mod/character-editor.lua:114"
       ]
     },
     "Choose a gender.": {
@@ -3565,12 +3603,20 @@
         "mod/manager-ui.lua:770"
       ]
     },
-    "Chosen file: {name} ({size}). It is checked and saved when you press Save.": {
+    "Chosen file: {name} ({size}). It is checked when you save it.": {
       "contexts": [
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:91"
+        "mod/character-editor.lua:97"
+      ]
+    },
+    "Chosen file: {name}, {seconds} seconds.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:96"
       ]
     },
     "Cinematic subtitles": {
@@ -3594,7 +3640,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:78"
+        "mod/character-editor.lua:80"
       ]
     },
     "Clear memories about you for all {count} characters you have talked to?": {
@@ -3627,7 +3673,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:76"
+        "mod/character-editor.lua:78"
       ]
     },
     "Clear {name}’s memories about conversations with you. Review an inline confirmation first.": {
@@ -3653,7 +3699,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:77"
+        "mod/character-editor.lua:79"
       ]
     },
     "Clearing memories for {target}…": {
@@ -3670,7 +3716,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:90"
+        "mod/character-editor.lua:92"
       ]
     },
     "Close editor": {
@@ -3678,7 +3724,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:149"
+        "mod/character-editor.lua:160"
       ]
     },
     "Close friends": {
@@ -3942,7 +3988,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:152"
+        "mod/character-editor.lua:163"
       ]
     },
     "Convai paid tier": {
@@ -4480,7 +4526,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:59"
+        "mod/character-editor.lua:61"
       ]
     },
     "Delete character": {
@@ -4488,7 +4534,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:129"
+        "mod/character-editor.lua:140"
       ]
     },
     "Delete this memory?": {
@@ -4496,7 +4542,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:68"
+        "mod/character-editor.lua:70"
       ]
     },
     "Delete {name}? The character, its voice clip and what it remembers of you are removed.": {
@@ -4504,7 +4550,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:88"
+        "mod/character-editor.lua:90"
       ]
     },
     "Deleted.": {
@@ -4512,7 +4558,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:69"
+        "mod/character-editor.lua:71"
       ]
     },
     "Deletes the saved endpoint URL. The custom provider needs one to answer.": {
@@ -4610,7 +4656,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:116"
+        "mod/character-editor.lua:127"
       ]
     },
     "Drag the slider, or press left and right, to turn the page.": {
@@ -4691,7 +4737,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:140"
+        "mod/character-editor.lua:151"
       ]
     },
     "Everyday people": {
@@ -4699,7 +4745,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:145"
+        "mod/character-editor.lua:156"
       ]
     },
     "Everyday people do not keep memories of your talks.": {
@@ -4707,7 +4753,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:83"
+        "mod/character-editor.lua:85"
       ]
     },
     "Everything together is too long. Shorten something so it stays under {max} characters.": {
@@ -4723,7 +4769,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:124"
+        "mod/character-editor.lua:135"
       ]
     },
     "Expressive emotions": {
@@ -4782,7 +4828,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:71"
+        "mod/character-editor.lua:73"
       ]
     },
     "Failed": {
@@ -4807,7 +4853,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:101"
+        "mod/character-editor.lua:112"
       ]
     },
     "Filled in from the character you were facing: {name}.": {
@@ -4815,7 +4861,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:85"
+        "mod/character-editor.lua:87"
       ]
     },
     "Find the log files and create a report to send to the developer if something goes wrong.": {
@@ -4849,7 +4895,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:115"
+        "mod/character-editor.lua:126"
       ]
     },
     "For example: Rebecca": {
@@ -4857,7 +4903,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:119"
+        "mod/character-editor.lua:130"
       ]
     },
     "For example: V has a sister called Lena.": {
@@ -4865,7 +4911,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:82"
+        "mod/character-editor.lua:84"
       ]
     },
     "For testing and bug reports; leave it off for normal play.\n\nShows routine popups (joining steps, dismissals, driving instructions, results of companion actions), writes a movement trace in the mod’s runtime folder, logs gesture decisions and adds itself to support reports.\n\nPreparation progress, joined notices, failures and replies to Stop trip stay visible when it is off.": {
@@ -5020,7 +5066,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:108"
+        "mod/character-editor.lua:119"
       ]
     },
     "Generate report": {
@@ -5077,7 +5123,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:61"
+        "mod/character-editor.lua:63"
       ]
     },
     "Go back to the shipped text for {name}? Your changes to this part are removed.": {
@@ -5085,7 +5131,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:62"
+        "mod/character-editor.lua:64"
       ]
     },
     "Gone after the ending": {
@@ -5184,7 +5230,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:110"
+        "mod/character-editor.lua:121"
       ]
     },
     "How they sound: pace, attitude, favourite habits of speech.": {
@@ -5192,7 +5238,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:123"
+        "mod/character-editor.lua:134"
       ]
     },
     "INVITE QUEUED - CLOSE PHONE": {
@@ -5413,7 +5459,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:109"
+        "mod/character-editor.lua:120"
       ]
     },
     "Johnny Silverhand answers when you use the talk keys with nobody in front of you, as the voice in V’s head. He knows your jobs and your story so far, and what he thinks of you follows it.\n\nOnly while the story has him in V’s head. He stays quiet during scenes, calls, dialogue choices and fights, and when the game gives him a line.": {
@@ -5509,7 +5555,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:125"
+        "mod/character-editor.lua:136"
       ]
     },
     "Lip sync delay (Bluetooth)": {
@@ -5719,7 +5765,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:102"
+        "mod/character-editor.lua:113"
       ]
     },
     "Manage": {
@@ -5751,7 +5797,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:138"
+        "mod/character-editor.lua:149"
       ]
     },
     "Memories can be managed here.": {
@@ -5769,7 +5815,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:66",
+        "mod/character-editor.lua:68",
         "mod/manager-ui.lua:1216",
         "mod/manager-ui.lua:1324"
       ]
@@ -6105,7 +6151,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:106"
+        "mod/character-editor.lua:117"
       ]
     },
     "Native Settings UI is too old. Install version 1.96 from Nexus Mods, then restart the game.": {
@@ -6190,7 +6236,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:136"
+        "mod/character-editor.lua:147"
       ]
     },
     "No Local AI pack found. Download one from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, or choose another conversation provider.": {
@@ -6209,12 +6255,12 @@
         "mod/companion-placement.lua:148"
       ]
     },
-    "No clip yet. The character speaks with a generic voice.": {
+    "No clip yet.": {
       "contexts": [
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:93"
+        "mod/character-editor.lua:102"
       ]
     },
     "No conversation profile. This model joins as a follower without AI conversations.": {
@@ -6255,7 +6301,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:146"
+        "mod/character-editor.lua:157"
       ]
     },
     "No matches. Try another name or clear the search.": {
@@ -6481,7 +6527,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:73"
+        "mod/character-editor.lua:75"
       ]
     },
     "OK": {
@@ -6655,7 +6701,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:186"
+        "mod/character-editor.lua:197"
       ]
     },
     "Opening the page in your browser…": {
@@ -6706,12 +6752,12 @@
         "mod/setup-check.lua:412"
       ]
     },
-    "Optional. A recording of clean speech in a WAV file, 10 to 18 seconds long. The local voices and the Voxtral cloud voice copy it. Without a clip the character speaks with a generic voice that fits the gender.": {
+    "Optional. Pocket, OmniVoice and the Voxtral cloud voice copy a clip you add. Without one the character speaks with a generic voice that fits the gender.": {
       "contexts": [
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:95"
+        "mod/character-editor.lua:98"
       ]
     },
     "Ordinary": {
@@ -6754,7 +6800,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:139"
+        "mod/character-editor.lua:150"
       ]
     },
     "Party: {count}": {
@@ -6818,7 +6864,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:70"
+        "mod/character-editor.lua:72"
       ]
     },
     "Plans": {
@@ -6835,6 +6881,14 @@
       ],
       "references": [
         "mod/manager-ui.lua:976"
+      ]
+    },
+    "Play saved clip": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:101"
       ]
     },
     "Play spoken replies through the supported voice output. This does not change microphone capture.": {
@@ -7162,7 +7216,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:112"
+        "mod/character-editor.lua:123"
       ]
     },
     "Redscript log": {
@@ -7213,7 +7267,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:100"
+        "mod/character-editor.lua:111"
       ]
     },
     "Remove only this copy from your group.": {
@@ -7231,7 +7285,15 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:89"
+        "mod/character-editor.lua:91"
+      ]
+    },
+    "Remove the voice clip? {name} goes back to the shipped voice.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:94"
       ]
     },
     "Reopen the manager; that action is no longer available.": {
@@ -7315,7 +7377,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:142"
+        "mod/character-editor.lua:153"
       ]
     },
     "Reset to default": {
@@ -7323,7 +7385,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:65"
+        "mod/character-editor.lua:67"
       ]
     },
     "Return to Companion Manager.": {
@@ -7397,7 +7459,15 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:64"
+        "mod/character-editor.lua:66"
+      ]
+    },
+    "Save clip": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:95"
       ]
     },
     "Save the character first. Then it can have a voice clip, and it starts to remember your talks.": {
@@ -7405,7 +7475,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:128"
+        "mod/character-editor.lua:139"
       ]
     },
     "Saved Chat cleanup could not be verified. Please wait for the memory service.": {
@@ -7431,7 +7501,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:92"
+        "mod/character-editor.lua:107"
       ]
     },
     "Saved on this computer only. Only the last four characters are ever shown.": {
@@ -7456,7 +7526,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:60"
+        "mod/character-editor.lua:62"
       ]
     },
     "Saved. The clip is a little long: 10 to 18 seconds copies best.": {
@@ -7464,7 +7534,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:87"
+        "mod/character-editor.lua:89"
       ]
     },
     "Saved. The clip is a little short: 10 to 18 seconds copies best.": {
@@ -7472,7 +7542,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:86"
+        "mod/character-editor.lua:88"
       ]
     },
     "Saves a report file you can send to the developer.\n\nAPI keys, tokens, IDs, microphone audio and conversation text are left out. Without the conversation service, a shorter report is made from the files the game can read.": {
@@ -7523,7 +7593,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:150"
+        "mod/character-editor.lua:161"
       ]
     },
     "Search names, models or settings...": {
@@ -7658,7 +7728,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:80"
+        "mod/character-editor.lua:82"
       ]
     },
     "Short report saved because the conversation service could not build the full report: {path}": {
@@ -7690,7 +7760,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:132"
+        "mod/character-editor.lua:143"
       ]
     },
     "Short summary of earlier talks": {
@@ -7698,7 +7768,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:74"
+        "mod/character-editor.lua:76"
       ]
     },
     "Show companion reply subtitles during conversations.": {
@@ -7803,7 +7873,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:131"
+        "mod/character-editor.lua:142"
       ]
     },
     "Speaking style": {
@@ -7811,7 +7881,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:122"
+        "mod/character-editor.lua:133"
       ]
     },
     "Speaking to companions needs Convai for now. Set Conversation provider to Convai free tier in Settings > Conversation provider, or type your message.": {
@@ -7975,7 +8045,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:144"
+        "mod/character-editor.lua:155"
       ]
     },
     "Strong": {
@@ -8183,7 +8253,7 @@
         "mod/manager-party.lua:654"
       ]
     },
-    "That file is not a WAV the voices can read. Use a plain WAV recording, 16, 24 or 32 bit, mono or stereo.": {
+    "That file is not a recording the voices can read. Use a WAV, MP3, OGG or FLAC file.": {
       "contexts": [
         "ui.localized"
       ],
@@ -8196,7 +8266,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:48"
+        "mod/character-editor.lua:50"
       ]
     },
     "That is too long.": {
@@ -8270,7 +8340,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:72"
+        "mod/character-editor.lua:74"
       ]
     },
     "The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: installed.": {
@@ -8442,7 +8512,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:54"
+        "mod/character-editor.lua:56"
       ]
     },
     "The clip is too long. Use at most {max} seconds.": {
@@ -8450,7 +8520,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:51"
+        "mod/character-editor.lua:53"
       ]
     },
     "The clip is too short. Use at least {min} seconds.": {
@@ -8458,7 +8528,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:50"
+        "mod/character-editor.lua:52"
       ]
     },
     "The clipboard could not be read.": {
@@ -8680,7 +8750,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:171"
+        "mod/character-editor.lua:182"
       ]
     },
     "The conversation service is not running. Restart the game to start it again.": {
@@ -8860,7 +8930,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:185"
+        "mod/character-editor.lua:196"
       ]
     },
     "The editor is closed. You can close this tab.": {
@@ -8868,7 +8938,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:153"
+        "mod/character-editor.lua:164"
       ]
     },
     "The endpoint URL was removed.": {
@@ -9002,7 +9072,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:84"
+        "mod/character-editor.lua:86"
       ]
     },
     "The game placed this copy away from the verified ground. Invitation cancelled.": {
@@ -9027,7 +9097,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:111"
+        "mod/character-editor.lua:122"
       ]
     },
     "The game version could not be read.": {
@@ -9153,7 +9223,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:113"
+        "mod/character-editor.lua:124"
       ]
     },
     "The name the character goes by. They give it when somebody asks who they are.": {
@@ -9161,7 +9231,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:107"
+        "mod/character-editor.lua:118"
       ]
     },
     "The name the game shows for the character.": {
@@ -9169,7 +9239,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:117"
+        "mod/character-editor.lua:128"
       ]
     },
     "The party could not finish boarding. The trip was cancelled.": {
@@ -9217,7 +9287,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:52"
+        "mod/character-editor.lua:54"
       ]
     },
     "The recording is too low in quality. Use at least {min} Hz.": {
@@ -9225,7 +9295,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:49"
+        "mod/character-editor.lua:51"
       ]
     },
     "The recording is too quiet to copy. Record it louder, or closer to the microphone.": {
@@ -9233,7 +9303,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:53"
+        "mod/character-editor.lua:55"
       ]
     },
     "The redscript compiler writes redscript_rCURRENT.log at {path}": {
@@ -9273,6 +9343,14 @@
       ],
       "references": [
         "mod/companion-chauffeur.lua:414"
+      ]
+    },
+    "The saved clip could not be loaded.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:93"
       ]
     },
     "The selected companion is leaving.": {
@@ -9370,7 +9448,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:56"
+        "mod/character-editor.lua:58"
       ]
     },
     "There is no companion trip to cancel.": {
@@ -9386,7 +9464,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:79"
+        "mod/character-editor.lua:81"
       ]
     },
     "This PC cannot look up {host}. Check your internet connection, then restart the game.": {
@@ -9403,6 +9481,30 @@
       ],
       "references": [
         "mod/custom-provider.lua:261"
+      ]
+    },
+    "This character speaks with a generic voice that fits the gender.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:104"
+      ]
+    },
+    "This character speaks with the shipped voice.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:103"
+      ]
+    },
+    "This computer cannot convert that file. Save it as a WAV and try again.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:48"
       ]
     },
     "This contact cannot take a holocall.": {
@@ -9643,7 +9745,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:55"
+        "mod/character-editor.lua:57"
       ]
     },
     "Type what the clip says, as spoken. OmniVoice needs it to copy the voice.": {
@@ -9651,7 +9753,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:98"
+        "mod/character-editor.lua:110"
       ]
     },
     "Type your message to the character.": {
@@ -9786,7 +9888,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:104"
+        "mod/character-editor.lua:115"
       ]
     },
     "Use this conversation profile": {
@@ -9804,6 +9906,14 @@
       ],
       "references": [
         "mod/init.lua:2431"
+      ]
+    },
+    "Use {min} to {max} seconds of one person speaking clearly, with no music or other voices. {goodMin} to {goodMax} seconds copies best. WAV, MP3, OGG or FLAC.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:100"
       ]
     },
     "V changed seats or vehicles.": {
@@ -9876,15 +9986,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:94"
-      ]
-    },
-    "Voice clip (WAV)": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/character-editor.lua:96"
+        "mod/character-editor.lua:108"
       ]
     },
     "Voice playback": {
@@ -10242,7 +10344,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:130"
+        "mod/character-editor.lua:141"
       ]
     },
     "Who this character is, what they know and how they look. Writing it as “I am …” works best. A long bio makes replies slower, so keep it tight.": {
@@ -10250,7 +10352,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:121"
+        "mod/character-editor.lua:132"
       ]
     },
     "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.": {
@@ -10282,7 +10384,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:97"
+        "mod/character-editor.lua:109"
       ]
     },
     "Write a message...  /  Enter to send  /  Esc to stop typing": {
@@ -10327,12 +10429,20 @@
         "mod/companion-chauffeur.lua:342"
       ]
     },
+    "You have as many voice clips as the editor keeps ({max}). Remove one first.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:49"
+      ]
+    },
     "You have changes that are not saved. Leave without saving?": {
       "contexts": [
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:57"
+        "mod/character-editor.lua:59"
       ]
     },
     "You have made as many characters as the editor keeps ({max}). Delete one first.": {
@@ -10447,7 +10557,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:148"
+        "mod/character-editor.lua:159"
       ]
     },
     "Your character": {
@@ -10455,7 +10565,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:137"
+        "mod/character-editor.lua:148"
       ]
     },
     "Your characters": {
@@ -10463,7 +10573,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:143"
+        "mod/character-editor.lua:154"
       ]
     },
     "Your companion is driving to the selected waypoint.": {
@@ -10557,7 +10667,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:105"
+        "mod/character-editor.lua:116"
       ]
     },
     "Your own key, without memory": {
@@ -10732,7 +10842,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:58"
+        "mod/character-editor.lua:60"
       ]
     },
     "{count} · Last reported": {

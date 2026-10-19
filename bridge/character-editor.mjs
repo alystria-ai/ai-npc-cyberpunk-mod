@@ -1,6 +1,6 @@
 // What the character editor does, apart from how it is served (docs/CHARACTER_EDITOR.md): the list of characters, one character's shipped
-// and edited text, saving with validation, going back to the shipped text, the memories the text providers keep, and the characters
-// the player makes for themselves (bridge/custom-characters.mjs).
+// and edited text, saving with validation, going back to the shipped text, the memories the text providers keep, the characters
+// the player makes for themselves (bridge/custom-characters.mjs) and the voice clips players give story characters and their own (bridge/player-voices.mjs).
 //
 // The shipped profile (the Convai-derived roster row) is never written: the player's edits go to bridge/character-overrides.mjs, which
 // the prompt builder reads (PersonaBook). Memories written by hand are part of those edits (they are always in the prompt); the
@@ -8,7 +8,7 @@
 import {EDIT_LIMITS, FIELDS, cleanBlock, cleanLine, validateOverride} from './character-overrides.mjs';
 import {STORE_LIMITS} from './memory-store.mjs';
 import {CUSTOM_LIMITS, isCustomKey} from './custom-characters.mjs';
-import {CLIP} from './custom-voice-clip.mjs';
+import {CLIP, CLIP_FORMATS} from './custom-voice-clip.mjs';
 
 export class EditorError extends Error {
   constructor(status, code, errors = []) { super(code); this.status = status; this.code = code; this.errors = errors; }
@@ -23,9 +23,10 @@ export class CharacterEditor {
    *   memory     MemoryStore (optional: without it the memory part is empty)
    *   route      () => 'convai' | 'mistral' | 'local': who answers conversations now
    *   custom     CustomCharacters (optional: without it the editor has no "New character")
+   *   voices     PlayerVoices (optional: without it the editor has no voice clips)
    */
-  constructor({personas, overrides, memory = null, route = () => 'convai', limits = EDIT_LIMITS, custom = null} = {}) {
-    Object.assign(this, {personas, overrides, memory, route, limits, custom});
+  constructor({personas, overrides, memory = null, route = () => 'convai', limits = EDIT_LIMITS, custom = null, voices = null} = {}) {
+    Object.assign(this, {personas, overrides, memory, route, limits, custom, voices});
   }
   get limitsForPage() { return {...this.limits, record: STORE_LIMITS.fact, summary: STORE_LIMITS.summary}; }
   /** What the page needs to build the "New character" form. Null without a store. */
@@ -33,8 +34,13 @@ export class CharacterEditor {
     if (!this.custom) return null;
     const {characters, name, records, record, names, displayName, bioMin, bio, style, examples, example, exampleTotal, memories, memory, total} = this.custom.limits ?? CUSTOM_LIMITS;
     return {limits: {characters, name, records, record, names, displayName, bioMin, bio, style, examples, example, exampleTotal, memories, memory, total},
-      clip: {minSeconds: CLIP.minSeconds, maxSeconds: CLIP.maxSeconds, goodMin: CLIP.goodMin, goodMax: CLIP.goodMax, transcript: CLIP.transcript, maxUploadBytes: CLIP.maxUploadBytes},
       count: this.custom.size};
+  }
+  /** What the page needs to build the voice section (the clip's limits and the formats it may offer). Null without a store. */
+  get voiceForPage() {
+    if (!this.voices) return null;
+    return {minSeconds: CLIP.minSeconds, maxSeconds: CLIP.maxSeconds, goodMin: CLIP.goodMin, goodMax: CLIP.goodMax, transcript: CLIP.transcript, transcriptMin: CLIP.transcriptMin,
+      maxUploadBytes: CLIP.maxUploadBytes, formats: [...CLIP_FORMATS], convertRate: CLIP.convertRate};
   }
 
   #row(key) {
@@ -42,14 +48,16 @@ export class CharacterEditor {
     if (!row || !['named', 'ambient', 'archetype'].includes(row.kind)) throw new EditorError(404, 'not-found');
     return row;
   }
-  /** Every character the editor offers: the player's own first, then the named ones, then the everyday people, each group by name. */
+  /** Every character the editor offers: the player's own first, then the named ones, then the everyday people, each group by name. A story or own character says whether it has a voice clip. */
   catalog() {
     const rows = [...this.personas.rows.values()].filter(row => ['named', 'ambient', 'archetype'].includes(row.kind));
-    const shipped = rows.map(row => ({key: row.key, name: String(row.name || row.key), group: row.kind === 'named' ? 'story' : 'everyday', edited: !!this.overrides.get(row.key)}));
-    return [...shipped, ...(this.custom?.summaries() ?? [])]
+    const shipped = rows.map(row => ({key: row.key, name: String(row.name || row.key), group: row.kind === 'named' ? 'story' : 'everyday', edited: !!this.overrides.get(row.key),
+      ...(row.kind === 'named' ? {voice: !!this.voices?.has(row.key)} : {})}));
+    const own = (this.custom?.summaries() ?? []).map(item => ({...item, voice: !!this.voices?.has(item.key)}));
+    return [...shipped, ...own]
       .sort((a, b) => (GROUP_ORDER[a.group] - GROUP_ORDER[b.group]) || a.name.localeCompare(b.name, 'en', {sensitivity: 'base'}));
   }
-  state() { return {provider: this.route(), characters: this.catalog(), limits: this.limitsForPage, custom: this.customForPage}; }
+  state() { return {provider: this.route(), characters: this.catalog(), limits: this.limitsForPage, custom: this.customForPage, voice: this.voiceForPage}; }
 
   /** The shipped text of a character in the editor's five fields. */
   defaults(key) {
@@ -70,7 +78,14 @@ export class CharacterEditor {
     const memory = row.kind === 'named' && this.memory ? this.#memoryOf(key) : {available: false, learns: false, summary: '', records: []};
     return {key, name: String(row.name || key), group: row.kind === 'named' ? 'story' : 'everyday', defaults,
       values: Object.fromEntries(FIELDS.map(field => [field, field in stored ? stored[field] : defaults[field]])),
-      edited: Object.fromEntries(FIELDS.map(field => [field, field in stored])), memory};
+      edited: Object.fromEntries(FIELDS.map(field => [field, field in stored])), memory,
+      voice: row.kind === 'named' ? this.#voiceOf(key, 'shipped') : null};
+  }
+  // The voice part of a character's details: its clip (without the words), the words said in it, and what speaks while it has none.
+  #voiceOf(key, fallback) {
+    if (!this.voices) return null;
+    const entry = this.voices.get(key);
+    return {clip: entry ? {seconds: entry.seconds, rate: entry.rate, updated: entry.updated} : null, transcript: entry?.transcript ?? '', fallback};
   }
   /** Saves the fields in `patch`. Throws EditorError 422 with `errors` when something is over a limit; nothing is stored then. */
   async save(key, patch) {
@@ -105,18 +120,14 @@ export class CharacterEditor {
     if (error?.code === 'invalid') return new EditorError(422, 'invalid', error.errors);
     if (error?.code === 'not-found') return new EditorError(404, 'not-found');
     if (error?.code === 'full') return new EditorError(422, 'invalid', [{field: '', code: 'characters-full', max: error.max}]);
-    if (typeof error?.code === 'string' && /^(?:clip|voice)-/.test(error.code)) {
-      const {code, max, min} = error;
-      return new EditorError(422, 'invalid', [{field: code.startsWith('voice-text') ? 'voiceText' : 'voice', code, ...(max !== undefined ? {max} : {}), ...(min !== undefined ? {min} : {})}]);
-    }
     return new EditorError(500, 'not-saved');
   }
   customDetails(key) {
     const row = this.#custom(key);
     return {key, name: row.name, group: 'custom',
       custom: {name: row.name, gender: row.gender, records: [...row.records], names: [...row.names], bio: row.bio, style: row.style,
-        examples: [...row.examples], memories: [...row.memories], voiceText: row.voiceText, voice: row.voice ? {seconds: row.voice.seconds, rate: row.voice.rate} : null},
-      memory: this.#memoryOf(key)};
+        examples: [...row.examples], memories: [...row.memories]},
+      memory: this.#memoryOf(key), voice: this.#voiceOf(key, 'generic')};
   }
   async createCustom(input) {
     if (!this.custom) throw new EditorError(404, 'not-found');
@@ -133,14 +144,50 @@ export class CharacterEditor {
     try { this.memory?.forget({profileKeys: [key]}); } catch { /* the character is gone; a memory file left behind is never read again */ }
     return {deleted: true, characters: this.catalog()};
   }
-  /** `bytes`: the clip as the player sent it (a WAV); `voiceText`: the words said in it (when the page sends them with it). */
-  async setCustomVoice(key, bytes, voiceText = null) {
-    this.#custom(key);
-    try { const {clip} = await this.custom.setVoice(key, bytes, voiceText); return {...this.customDetails(key), clip}; } catch (error) { throw this.#customError(error); }
+
+  // ---- voice clips (bridge/player-voices.mjs): a story character's, or one of the player's own
+  /** Throws EditorError 404 unless `key` may have a clip: a story character, or a character the player made. Everyday people have none. */
+  checkVoiceKey(key) {
+    if (!this.voices) throw new EditorError(404, 'not-found');
+    if (isCustomKey(key)) this.#custom(key);
+    else if (this.#row(key).kind !== 'named') throw new EditorError(404, 'not-found');
   }
-  async clearCustomVoice(key) {
-    this.#custom(key);
-    try { await this.custom.clearVoice(key); return this.customDetails(key); } catch (error) { throw this.#customError(error); }
+  // The store's errors as the page's: 'clip-*' and 'voice-text-*' are 422 with the field and the limit, 'clips-full' says how many it keeps.
+  #voiceError(error) {
+    if (error instanceof EditorError) return error;
+    const code = error?.code;
+    if (code === 'not-found' || code === 'bad-key') return new EditorError(404, 'not-found');
+    if (code === 'clips-full') return new EditorError(422, 'invalid', [{field: 'voice', code, max: error.max}]);
+    if (typeof code === 'string' && /^(?:clip|voice-text)-/.test(code)) {
+      const {max, min} = error;
+      return new EditorError(422, 'invalid', [{field: code.startsWith('voice-text') ? 'voiceText' : 'voice', code, ...(max !== undefined ? {max} : {}), ...(min !== undefined ? {min} : {})}]);
+    }
+    return new EditorError(500, 'not-saved');
+  }
+  /** `bytes`: the file as the page sent it; `text`: the words said in it (null keeps the words already stored). Resolves to the details plus `clip` ({seconds, rate, notes, format}). */
+  async setVoice(key, bytes, text = null) {
+    this.checkVoiceKey(key);
+    if (text !== null && typeof text !== 'string') throw new EditorError(400, 'bad-request');
+    try { const {clip} = await this.voices.set(key, bytes, text); return {...this.details(key), clip}; } catch (error) { throw this.#voiceError(error); }
+  }
+  /** Changes only the words said in the key's clip. */
+  async setVoiceText(key, text) {
+    this.checkVoiceKey(key);
+    if (typeof text !== 'string') throw new EditorError(400, 'bad-request');
+    try { await this.voices.setTranscript(key, text); return this.details(key); } catch (error) { throw this.#voiceError(error); }
+  }
+  /** Removes the key's clip (the character goes back to the shipped voice, or the generic one, from the next start). Removing none is not an error. */
+  async clearVoice(key) {
+    this.checkVoiceKey(key);
+    try { await this.voices.clear(key); return this.details(key); } catch (error) { throw this.#voiceError(error); }
+  }
+  /** The saved clip as a WAV, for the page's player. 404 when the key has none. */
+  async voiceAudio(key) {
+    this.checkVoiceKey(key);
+    let bytes = null;
+    try { bytes = await this.voices.audio(key); } catch { bytes = null; }
+    if (!bytes) throw new EditorError(404, 'not-found');
+    return bytes;
   }
 
   // ---- what the character picked up in talks (the memory store)

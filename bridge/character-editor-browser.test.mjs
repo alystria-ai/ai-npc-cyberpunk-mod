@@ -11,6 +11,8 @@ import {EditorServer} from './character-editor-server.mjs';
 import {MemoryStore} from './memory-store.mjs';
 import {PersonaBook} from './mistral-prompt.mjs';
 import {CustomCharacters, rosterIndex} from './custom-characters.mjs';
+import {PlayerVoices} from './player-voices.mjs';
+import {speechWav} from './voice-clip-fixture.mjs';
 
 // The real page in real Edge, muted and headless (no sound, nothing leaves 127.0.0.1): the player's whole path through the editor,
 // and the checks that make the page safe (no outside request, no markup from a bio, a warning before unsaved text is lost).
@@ -33,10 +35,11 @@ async function bench({route = 'local'} = {}) {
   const memory = await MemoryStore.open({dir: join(dir, 'local-memory')});
   await mkdir(join(dir, 'runtime'), {recursive: true});
   const custom = await CustomCharacters.open({dir: join(dir, 'state'), exchangePath: join(dir, 'runtime', 'custom-characters.json'), roster: rosterIndex(rows)});
+  const voices = await PlayerVoices.open({dir: join(dir, 'state')});
   const personas = new PersonaBook(rows, {overrides, custom});
   const state = {route};
-  const server = new EditorServer({editor: new CharacterEditor({personas, overrides, memory, route: () => state.route, custom})});
-  return {dir, overrides, memory, server, state, custom, personas, async done() { await server.stop(); await rm(dir, {recursive: true, force: true}); }};
+  const server = new EditorServer({editor: new CharacterEditor({personas, overrides, memory, route: () => state.route, custom, voices})});
+  return {dir, overrides, memory, server, state, custom, voices, personas, async done() { await server.stop(); await rm(dir, {recursive: true, force: true}); }};
 }
 async function open(t, {route, strings = {}, language = 'en', viewport = {width: 1280, height: 900}, scheme = 'dark', facing = null} = {}) {
   const b = await bench({route});
@@ -230,16 +233,11 @@ test('Close editor stops the server and says so; the page works at phone width a
 
 // ---- the player's own characters
 
-function speechClip(seconds = 12, rate = 24000) {
-  const frames = Math.round(seconds * rate), bytes = Buffer.alloc(44 + frames * 2);
-  bytes.write('RIFF', 0); bytes.writeUInt32LE(bytes.length - 8, 4); bytes.write('WAVEfmt ', 8); bytes.writeUInt32LE(16, 16); bytes.writeUInt16LE(1, 20); bytes.writeUInt16LE(1, 22);
-  bytes.writeUInt32LE(rate, 24); bytes.writeUInt32LE(rate * 2, 28); bytes.writeUInt16LE(2, 32); bytes.writeUInt16LE(16, 34); bytes.write('data', 36); bytes.writeUInt32LE(frames * 2, 40);
-  for (let i = 0; i < frames; i++) {
-    const t = i / rate, on = Math.sin(2 * Math.PI * 2.2 * t) > -0.7 ? 1 : 0;
-    bytes.writeInt16LE(Math.round(on * 0.4 * Math.sin(2 * Math.PI * 180 * t) * 32767), 44 + i * 2);
-  }
-  return bytes;
-}
+const speechClip = (seconds = 12, rate = 24000) => speechWav({seconds, rate});
+const WORDS = 'Hello there, this is me talking. Nothing more to it.';
+// The length the audio element reports once the browser has read the preview (no sound: the pages run muted).
+const playable = (page, selector) => page.waitForFunction(selector => { const audio = document.querySelector(selector); return audio && audio.readyState >= 1 && Number.isFinite(audio.duration) ? audio.duration : false; }, selector)
+  .then(handle => handle.jsonValue());
 
 test('the player makes a character: fill the form, save, give it a voice clip, use the character they face, delete it', {skip, timeout: 180000}, async t => {
   const e = await open(t, {facing: {record: 'Character.Rebecca', name: 'Rebecca', gender: 'female'}});
@@ -285,27 +283,35 @@ test('the player makes a character: fill the form, save, give it a voice clip, u
   await page.getByRole('button', {name: 'Save', exact: true}).first().click();
   await page.waitForFunction(() => document.querySelector('#main h2').textContent === 'Rebecca' && !!document.getElementById('f-clip'));
   assert.equal(e.custom.size, 1);
+  assert.match(await page.locator('#main').textContent(), /No clip yet\. This character speaks with a generic voice that fits the gender\./);
+  assert.doesNotMatch(await page.locator('#main .voice').textContent(), /\bnull\b|undefined/, 'no missing part is written out as a word');
+  assert.equal(await page.locator('#main .voice h3').textContent(), 'Voice');
   const key = e.custom.list()[0].key;
   assert.deepEqual(await page.locator('#list h3').allTextContents(), ['Your characters', 'Story characters', 'Everyday people']);
   assert.equal(await page.locator('#list button.pick').first().textContent(), 'Rebecca');
   assert.equal(e.personas.persona(key).name, 'Rebecca', 'the prompt reads it from the next reply');
   await e.shot('11-saved');
 
-  // A voice clip: the words said in it first, then the recording (checked on the server).
-  await page.locator('#f-clip').setInputFiles({name: 'rebecca.wav', mimeType: 'audio/wav', buffer: speechClip(2)});
-  await page.getByRole('button', {name: 'Save', exact: true}).first().click();
-  await page.waitForFunction(() => /at least 8 characters/.test(document.getElementById('note').textContent));
-  await page.fill('#f-voiceText', 'Hello there, this is me talking. Nothing more to it.');
-  await page.getByRole('button', {name: 'Save', exact: true}).first().click();
-  await page.waitForFunction(() => /too short/.test(document.getElementById('note').textContent));
-  assert.equal(e.custom.get(key).voice, null, 'a clip that is too short is not kept');
+  // A voice clip has its own Save clip: a file the browser can read is shown with its length and a preview before anything is sent.
+  assert.equal(await page.getByRole('button', {name: 'Save clip'}).isDisabled(), true, 'nothing chosen yet');
+  await page.locator('#f-clip').setInputFiles({name: 'tiny.wav', mimeType: 'audio/wav', buffer: speechClip(2)});
+  await toast(page).filter({hasText: 'The clip is too short. Use at least 5 seconds.'}).waitFor();
+  assert.equal(await page.locator('#main .status').filter({hasText: 'Chosen file'}).count(), 0, 'a clip that is too short is refused in the page, before it is sent');
+  assert.equal(e.voices.size, 0);
   await page.locator('#f-clip').setInputFiles({name: 'rebecca.wav', mimeType: 'audio/wav', buffer: speechClip(12)});
-  assert.match(await page.locator('#main .help[role=status]').textContent(), /Chosen file: rebecca\.wav/);
-  await page.getByRole('button', {name: 'Save', exact: true}).first().click();
+  await page.getByText('Chosen file: rebecca.wav, 12 seconds.').waitFor();
+  assert.equal(Math.round(await playable(page, 'audio.preview')), 12, 'the preview plays the converted clip');
+  await page.getByRole('button', {name: 'Save clip'}).click();
+  await page.waitForFunction(() => /at least 8 characters/.test(document.getElementById('note').textContent));
+  assert.equal(e.voices.size, 0, 'the words are needed first');
+  await page.fill('#f-voiceText', WORDS);
+  await page.getByRole('button', {name: 'Save clip'}).click();
   await page.waitForFunction(() => /Saved clip: 12 seconds\./.test(document.querySelector('#main').textContent));
-  assert.equal(e.custom.get(key).voice.seconds, 12);
-  assert.equal(e.custom.get(key).voiceText, 'Hello there, this is me talking. Nothing more to it.');
+  assert.equal(e.voices.get(key).seconds, 12);
+  assert.equal(e.voices.get(key).transcript, WORDS);
   assert.equal(await page.getByRole('button', {name: 'Remove clip'}).count(), 1);
+  assert.equal(await page.locator('#f-clip').count(), 1);
+  assert.match(await page.locator('#main').textContent(), /A new or removed clip counts from the next time the game starts\. Until then the character keeps the voice it has now\./);
   await e.shot('12-voice');
 
   // Unsaved changes ask before they are lost; deleting asks too, and takes the clip with it.
@@ -324,6 +330,125 @@ test('the player makes a character: fill the form, save, give it a voice clip, u
   assert.deepEqual(await page.locator('#list h3').allTextContents(), ['Story characters', 'Everyday people']);
   // The only console lines are the browser's own note of the refusals the test provoked (422): no script error, no outside request.
   assert.deepEqual(e.problems.filter(text => !/status of 422/.test(text)), []);
+  assert(e.requests.every(url => url.startsWith(e.url.slice(0, e.url.indexOf('/editor')))), 'nothing left this computer: ' + e.requests.join(', '));
+});
+
+test('a story character gets a Voice tab: choose a clip, see its length and a preview, save it, play it back, change the words, remove it; everyday people have none', {skip, timeout: 180000}, async t => {
+  const e = await open(t);
+  const {page} = e;
+  await page.fill('#search', 'food vendor');
+  await page.locator('#list button.pick').first().click();
+  await page.waitForSelector('#f-bio');
+  assert.equal(await page.getByRole('tab', {name: 'Voice'}).count(), 0, 'everyday people have no voice tab');
+  await page.fill('#search', 'judy');
+  await page.locator('#list button.pick').click();
+  await page.waitForSelector('#f-bio');
+  assert.deepEqual(await page.getByRole('tab').allTextContents(), ['Bio', 'Speaking style', 'Speaking rules', 'Memories', 'Voice']);
+  await page.getByRole('tab', {name: 'Voice'}).click();
+  const main = page.locator('#main');
+  await main.getByText('No clip yet.').waitFor();
+  const text = await main.textContent();
+  assert.doesNotMatch(await main.locator('.voice').textContent(), /\bnull\b|undefined/, 'no missing part is written out as a word');
+  assert.match(text, /A clip you add replaces the shipped voice of this character for Pocket, OmniVoice and the Voxtral cloud voice\./);
+  assert.match(text, /Use 5 to 20 seconds of one person speaking clearly, with no music or other voices\. 10 to 18 seconds copies best\. WAV, MP3, OGG or FLAC\./);
+  assert.match(text, /This character speaks with the shipped voice\./);
+  assert.equal(await page.locator('#f-clip').getAttribute('accept'), '.wav,audio/wav,audio/x-wav,.mp3,audio/mpeg,.ogg,.oga,audio/ogg,.flac,audio/flac,audio/x-flac');
+  assert.equal(await page.locator('label[for=f-clip]').textContent(), 'Add voice clip');
+  assert.equal(await page.getByRole('button', {name: 'Remove clip'}).count(), 0);
+  assert.equal(await page.getByRole('button', {name: 'Play saved clip'}).count(), 0);
+  await e.shot('14-voice-tab');
+
+  // A file that is too long is refused by the page itself, with the server's sentence, and nothing is chosen.
+  await page.locator('#f-clip').setInputFiles({name: 'long.wav', mimeType: 'audio/wav', buffer: speechClip(22)});
+  await toast(page).filter({hasText: 'The clip is too long. Use at most 20 seconds.'}).waitFor();
+  assert.equal(await main.locator('audio.preview').count(), 0);
+
+  // A good one: its length and a preview of the converted clip (24 kHz, mono) appear; it counts as an unsaved change until Save clip.
+  await page.fill('#f-voiceText', WORDS);
+  await page.locator('#f-clip').setInputFiles({name: 'judy.wav', mimeType: 'audio/wav', buffer: speechClip(11, 44100)});
+  await page.getByText('Chosen file: judy.wav, 11 seconds.').waitFor();
+  assert.equal(Math.round(await playable(page, 'audio.preview')), 11);
+  assert.equal(await page.getByRole('tab', {name: 'Voice'}).evaluate(node => node.classList.contains('dirty')), true, 'the tab says there is something to save');
+  assert.equal(await page.inputValue('#f-voiceText'), WORDS, 'the typed words stay when a file is chosen');
+  await e.shot('15-voice-chosen');
+  // Leaving with the chosen clip unsaved asks first.
+  await page.fill('#search', 'panam');
+  e.dialogs.length = 0;
+  page.removeAllListeners('dialog');
+  page.on('dialog', async dialog => { e.dialogs.push(dialog.message()); await dialog.dismiss(); });
+  await page.locator('#list button.pick').click();
+  await page.waitForTimeout(150);
+  assert.deepEqual(e.dialogs, ['You have changes that are not saved. Leave without saving?']);
+  assert.equal(await page.locator('#main h2').textContent(), 'Judy Alvarez');
+  page.removeAllListeners('dialog');
+  page.on('dialog', async dialog => { e.dialogs.push(dialog.message()); await dialog.accept(); });
+  assert.equal(e.voices.size, 0, 'nothing is kept before Save clip');
+
+  await page.getByRole('button', {name: 'Save clip'}).click();
+  await page.waitForFunction(() => /Saved clip: 11 seconds\./.test(document.querySelector('#main').textContent));
+  assert.equal(e.voices.get('judy-alvarez').seconds, 11);
+  assert.equal(e.voices.get('judy-alvarez').rate, 24000, 'the browser sent a 24 kHz mono WAV');
+  assert.equal(e.voices.get('judy-alvarez').transcript, WORDS);
+  assert.equal(await page.locator('#note').textContent(), 'Saved.');
+  assert.equal(await main.locator('audio.preview').count(), 0, 'the chosen file is the saved clip now');
+  assert.equal(await page.getByRole('tab', {name: 'Voice'}).evaluate(node => node.classList.contains('dirty')), false);
+  assert.equal(await page.locator('#list button.pick .dot').count(), 0, 'a clip is not an edit of the text');
+  await e.shot('16-voice-saved');
+
+  // Play the saved clip: the page fetches it with the session code and plays a blob address.
+  e.requests.length = 0;
+  await page.getByRole('button', {name: 'Play saved clip'}).click();
+  assert.equal(Math.round(await playable(page, 'audio.saved')), 11);
+  assert(await page.evaluate(() => document.querySelector('audio.saved').currentSrc.startsWith('blob:')), 'a blob address, never the clip on a URL');
+  assert(e.requests.some(url => url.endsWith('/api/voice/judy-alvarez/audio')), 'fetched through the token route');
+  assert(e.requests.every(url => url.startsWith(e.url.slice(0, e.url.indexOf('/editor')))), 'and only from this computer');
+
+  // Change the words alone: Save clip sends only the words.
+  assert.equal(await page.getByRole('button', {name: 'Save clip'}).isDisabled(), true);
+  await page.fill('#f-voiceText', 'Other words, said in just the same way.');
+  assert.equal(await page.getByRole('button', {name: 'Save clip'}).isDisabled(), false);
+  assert.equal(await page.getByRole('tab', {name: 'Voice'}).evaluate(node => node.classList.contains('dirty')), true);
+  const before = e.voices.get('judy-alvarez').sha256;
+  e.requests.length = 0;
+  await page.getByRole('button', {name: 'Save clip'}).click();
+  await page.waitForFunction(() => document.querySelector('#note.show')?.textContent === 'Saved.' && document.getElementById('f-voiceText')?.value === 'Other words, said in just the same way.');
+  assert.equal(e.voices.get('judy-alvarez').transcript, 'Other words, said in just the same way.');
+  assert.equal(e.voices.get('judy-alvarez').sha256, before, 'the clip itself was not sent again');
+  assert(e.requests.some(url => url.endsWith('/api/voice/judy-alvarez/text')));
+
+  // The other tabs keep their unsaved text while a clip is saved.
+  await page.getByRole('tab', {name: 'Bio'}).click();
+  await page.fill('#f-bio', 'Judy runs a quiet clinic on the edge of Watson and fixes people for free, no questions asked.');
+  await page.getByRole('tab', {name: 'Voice'}).click();
+  await page.fill('#f-voiceText', 'A third set of words for this clip.');
+  await page.getByRole('button', {name: 'Save clip'}).click();
+  await page.waitForFunction(() => document.querySelector('#note.show')?.textContent === 'Saved.' && document.getElementById('f-voiceText')?.value === 'A third set of words for this clip.');
+  await page.getByRole('tab', {name: 'Bio'}).click();
+  assert.match(await page.inputValue('#f-bio'), /quiet clinic/, 'the unsaved bio is still there');
+  await page.getByRole('tab', {name: 'Voice'}).click();
+
+  // Remove it: the page asks, names the character, and the shipped voice is back.
+  e.dialogs.length = 0;
+  await page.getByRole('button', {name: 'Remove clip'}).click();
+  await main.getByText('No clip yet.').waitFor();
+  assert.deepEqual(e.dialogs, ['Remove the voice clip? Judy Alvarez goes back to the shipped voice.']);
+  assert.equal(e.voices.size, 0);
+  assert.equal(await page.locator('#note').textContent(), 'Clip removed.');
+  assert.match(await main.textContent(), /This character speaks with the shipped voice\./);
+  assert.equal(await main.locator('audio').count(), 0);
+
+  // A file the browser cannot read is sent as it is and judged by the service, with a sentence that says what to do.
+  await page.fill('#f-voiceText', WORDS);
+  await page.locator('#f-clip').setInputFiles({name: 'song.mp3', mimeType: 'audio/mpeg', buffer: Buffer.concat([Buffer.from('ID3'), Buffer.alloc(4000)])});
+  await page.getByText(/^Chosen file: song\.mp3 \(4 KB\)\. It is checked when you save it\.$/).waitFor();
+  assert.equal(await main.locator('audio.preview').count(), 0, 'nothing to preview');
+  await page.getByRole('button', {name: 'Save clip'}).click();
+  await toast(page).filter({hasText: /^(?:That file is not a recording the voices can read\. Use a WAV, MP3, OGG or FLAC file\.|This computer cannot convert that file\. Save it as a WAV and try again\.)$/}).waitFor();
+  assert.equal(e.voices.size, 0);
+  await page.fill('#f-voiceText', '');
+  assert.equal(await page.getByRole('button', {name: 'Save clip'}).isDisabled(), false, 'the chosen file can still be saved once the words are typed');
+
+  assert.deepEqual(e.problems.filter(message => !/status of 422/.test(message)), [], 'no console error or warning');
   assert(e.requests.every(url => url.startsWith(e.url.slice(0, e.url.indexOf('/editor')))), 'nothing left this computer: ' + e.requests.join(', '));
 });
 

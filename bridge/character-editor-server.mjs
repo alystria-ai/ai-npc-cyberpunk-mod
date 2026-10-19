@@ -10,8 +10,13 @@
 //   - a call that carries an Origin must come from this server's own origin;
 //   - JSON bodies only, at most 128 KiB; only the character keys of the roster (and the keys the service made for the player's own
 //     characters, custom-<name>-<letters>) are accepted, and no file name is ever built from input. The one exception to JSON is a
-//     character's voice clip: a WAV, at most 16 MiB, checked as a recording before anything is kept (bridge/custom-voice-clip.mjs);
-//   - the page runs under a policy that allows this one script and style and connects to nothing but this server.
+//     character's voice clip (/api/voice/<key>): an audio file (WAV, MP3, OGG or FLAC; the page sends a 24 kHz WAV when its browser can
+//     decode the file), at most 16 MiB, checked as a recording before anything is kept (bridge/custom-voice-clip.mjs), with the words said
+//     in it in a header (base64url of UTF-8). Only story characters and the player's own characters may have a clip, never everyday people;
+//   - the saved clip is played back through /api/voice/<key>/audio, which is an /api/ route like the others: it needs the token header,
+//     so the page fetches it and plays a blob: address. The clip is never on a URL that works without the token;
+//   - the page runs under a policy that allows this one script and style, connects to nothing but this server, and may play audio from
+//     blob: addresses it made itself (media-src blob:), nothing else.
 import {createServer} from 'node:http';
 import {randomBytes, timingSafeEqual} from 'node:crypto';
 import {renderEditorPage} from './character-editor-page.mjs';
@@ -19,6 +24,13 @@ import {EditorError} from './character-editor.mjs';
 import {CLIP} from './custom-voice-clip.mjs';
 
 const BODY_LIMIT = 128 * 1024;
+// The content types a voice clip may arrive as. The bytes are sniffed anyway (the type is never trusted), but a browser or a script that sends
+// something else is not talking about a recording.
+const CLIP_TYPES = new Set(['audio/wav', 'audio/x-wav', 'audio/wave', 'audio/vnd.wave', 'audio/mpeg', 'audio/mp3', 'audio/ogg', 'audio/flac', 'audio/x-flac', 'application/octet-stream']);
+const WORDS_HEADER_MAX = 4096;   // header characters: base64url of the 600 characters a clip's words may have is at most about 3200
+const WORDS_HEADER = /^[A-Za-z0-9_-]*$/;
+/** A reply that is not JSON: the saved clip, for the page's player. */
+class ClipReply { constructor(bytes) { this.bytes = bytes; } }
 const STRING_LIMITS = {entries: 400, key: 400, value: 1200};
 const equal = (a, b) => {
   const x = Buffer.from(String(a ?? '')), y = Buffer.from(String(b ?? ''));
@@ -122,9 +134,10 @@ export class EditorServer {
     try { return JSON.parse(Buffer.concat(chunks).toString('utf8') || 'null'); } catch { throw new EditorError(400, 'bad-request'); }
   }
 
-  // A voice clip: raw bytes of a WAV. Too long a body is read to its end and thrown away, so the answer can still reach the page.
+  // A voice clip: the raw bytes of an audio file. Too long a body is read to its end and thrown away, so the answer can still reach the page.
   async #bytes(request) {
-    if (!/^(?:audio\/(?:wav|x-wav|wave|vnd\.wave)|application\/octet-stream)\b/i.test(request.headers['content-type'] ?? '')) throw new EditorError(415, 'bad-request');
+    const type = String(request.headers['content-type'] ?? '').split(';')[0].trim().toLowerCase();
+    if (!CLIP_TYPES.has(type)) throw new EditorError(415, 'bad-request');
     const chunks = [];
     let size = 0;
     for await (const chunk of request) {
@@ -133,6 +146,15 @@ export class EditorServer {
     }
     if (size > CLIP.maxUploadBytes) throw new EditorError(413, 'invalid', [{field: 'voice', code: 'clip-big'}]);
     return Buffer.concat(chunks);
+  }
+  // The words said in a clip, from the X-Voice-Text header: base64url of their UTF-8 (at most 4096 characters). Absent is null (the store keeps
+  // the words it has); anything that is not base64url of valid UTF-8 is a bad request.
+  #words(request) {
+    const value = request.headers['x-voice-text'];
+    if (value === undefined) return null;
+    const text = typeof value === 'string' ? value.trim().replace(/={1,2}$/, '') : null;
+    if (text === null || text.length > WORDS_HEADER_MAX || !WORDS_HEADER.test(text) || text.length % 4 === 1) throw new EditorError(400, 'bad-request');
+    try { return new TextDecoder('utf-8', {fatal: true}).decode(Buffer.from(text, 'base64url')); } catch { throw new EditorError(400, 'bad-request'); }
   }
 
   async #handle(request, response) {
@@ -146,7 +168,7 @@ export class EditorServer {
       const nonce = randomBytes(16).toString('base64url');
       const html = renderEditorPage({nonce, token: this.token, language: this.language});
       response.writeHead(200, {'Content-Type': 'text/html; charset=utf-8', ...this.#headers(),
-        'Content-Security-Policy': `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'nonce-${nonce}'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`});
+        'Content-Security-Policy': `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'nonce-${nonce}'; connect-src 'self'; media-src blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`});
       response.end(html);
       return;
     }
@@ -155,7 +177,12 @@ export class EditorServer {
     if (request.headers.origin && request.headers.origin !== origin) { this.#fail(response, 403, 'forbidden'); return; }
     this.#touch();
     try {
-      this.#send(response, 200, await this.#route(request, url));
+      const reply = await this.#route(request, url);
+      if (reply instanceof ClipReply) {
+        // The clip itself: a WAV, never sniffed into anything else by the browser (nosniff), never cached.
+        response.writeHead(200, {'Content-Type': 'audio/wav', 'Content-Length': reply.bytes.length, ...this.#headers()});
+        response.end(reply.bytes);
+      } else this.#send(response, 200, reply);
     } catch (error) {
       if (error instanceof EditorError) this.#fail(response, error.status, error.code, error.errors);
       else { this.log('editor request failed: ' + (error?.message ?? 'error')); this.#fail(response, 500, 'internal'); }
@@ -168,6 +195,7 @@ export class EditorServer {
     if (method === 'POST' && parts[0] === 'close' && parts.length === 1) { this.setTimer(() => { void this.stop(); }, 250).unref?.(); return {ok: true}; }
     if (method === 'GET' && parts[0] === 'facing' && parts.length === 1) return {facing: this.facing};
     if (parts[0] === 'custom') return this.#customRoute(request, method, parts.slice(1));
+    if (parts[0] === 'voice') return this.#voiceRoute(request, method, parts.slice(1));
     if (parts[0] !== 'character' || !parts[1]) throw new EditorError(404, 'not-found');
     const key = parts[1], rest = parts.slice(2);
     if (!rest.length) {
@@ -185,16 +213,30 @@ export class EditorServer {
     throw new EditorError(404, 'not-found');
   }
 
-  // The characters the player makes: /api/custom (create), /api/custom/<key> (save, delete), /api/custom/<key>/voice (clip, remove clip).
+  // The characters the player makes: /api/custom (create), /api/custom/<key> (save, delete).
   async #customRoute(request, method, parts) {
     if (!parts.length) {
       if (method === 'POST') return this.editor.createCustom(await this.#body(request));
     } else if (parts.length === 1) {
       if (method === 'PUT') return this.editor.saveCustom(parts[0], await this.#body(request));
       if (method === 'DELETE') return this.editor.deleteCustom(parts[0]);
-    } else if (parts.length === 2 && parts[1] === 'voice') {
-      if (method === 'PUT') return this.editor.setCustomVoice(parts[0], await this.#bytes(request));
-      if (method === 'DELETE') return this.editor.clearCustomVoice(parts[0]);
+    }
+    throw new EditorError(404, 'not-found');
+  }
+
+  // Voice clips, for a story character or one of the player's own: /api/voice/<key> (PUT the file with its words in X-Voice-Text, DELETE the clip),
+  // /api/voice/<key>/text (PUT {text}: only the words), /api/voice/<key>/audio (GET the saved clip as a WAV). The key is checked before a body is read.
+  async #voiceRoute(request, method, parts) {
+    const [key, ...rest] = parts;
+    if (!key || rest.length > 1) throw new EditorError(404, 'not-found');
+    if (!rest.length) {
+      if (method === 'PUT') { this.editor.checkVoiceKey(key); const words = this.#words(request); return this.editor.setVoice(key, await this.#bytes(request), words); }
+      if (method === 'DELETE') return this.editor.clearVoice(key);
+    } else if (rest[0] === 'text' && method === 'PUT') {
+      this.editor.checkVoiceKey(key);
+      return this.editor.setVoiceText(key, (await this.#body(request))?.text);
+    } else if (rest[0] === 'audio' && method === 'GET') {
+      return new ClipReply(await this.editor.voiceAudio(key));
     }
     throw new EditorError(404, 'not-found');
   }
