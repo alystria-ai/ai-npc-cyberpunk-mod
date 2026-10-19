@@ -1,6 +1,5 @@
 // Where the player's custom chat models can be listed (docs/LOCAL_AI.md, "Add your own model") and what the support report says about those folders.
-// Kept apart from bridge/custom-models.mjs, which imports it: the support report (and "Make support report.bat") needs only this small part, none of the
-// scanner's imports.
+// Kept apart from bridge/custom-models.mjs, which imports it: the support report needs only this small part, none of the scanner's imports.
 import {readFileSync, statSync} from 'node:fs';
 import {isAbsolute, join, resolve} from 'node:path';
 import {LOCAL_AI_ENV} from './local-ai-pack.mjs';

@@ -45,7 +45,7 @@ export function readEntry(raw) {
     format: ['wav', 'mp3', 'ogg', 'flac'].includes(raw.format) ? raw.format : 'wav', updated: Number.isFinite(raw.updated) ? raw.updated : 0});
 }
 
-// What a support report may say about the clips: bridge/player-voice-summary.mjs (kept apart so the offline report imports no clip code).
+// What a support report may say about the clips: bridge/player-voice-summary.mjs (kept apart so it imports no clip code).
 export {readPlayerVoiceSummary} from './player-voice-summary.mjs';
 
 // Voxtral's prepared slots of player clips (bridge/voxtral-reference.mjs createReferencePreparer: <key>.json beside <key>.ogg, .mp3 or .wav,

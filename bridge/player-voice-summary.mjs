@@ -1,6 +1,6 @@
 // What a support report may say about the player's voice clips (bridge/player-voices.mjs): how many, and for each its length and whose it is
 // (a story character's key, or just "custom" for a character the player made, whose key carries the name they chose). Never the words, the
-// audio, a hash or a path. It reads the index only and imports nothing of the clip code, so the offline report (Make support report.bat)
+// audio, a hash or a path. It reads the index only and imports nothing of the clip code, so the support report
 // stays small. A missing or damaged index is "none".
 import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';

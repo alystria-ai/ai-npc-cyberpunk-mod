@@ -13,7 +13,6 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - **Your own Local AI models survive reinstalls**: put them in `%LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai` and updates, clean installs and mod managers leave them alone.
 - **Local AI fixes**: it starts reliably at launch, loads much faster while the game is running and then steps back so the game stays smooth, says plainly why a reply did not come, and the first turn after loading no longer goes to Convai.
 - **Mod Organizer 2**: the Runtime can be installed as a Mod Organizer 2 mod, and your settings and chats survive a launch.
-- **Make support report.bat** works with the game closed, and checks that the required mods are installed. It is in `red4ext\plugins\AiNpcCyberpunkMod`.
 - **Automatic error reports** (on by default; turn off in Settings > Privacy): when something fails, a short report goes to the developer so it can be fixed without asking you for logs. It leaves out passwords and account details, what you and the characters say, and your microphone audio.
 - **A missing requirement no longer breaks everything**: the scripts compile without Codeware or Audioware and tell you clearly what is missing, and Help has a Setup check.
 - **Faces come back**: a character's face is rebuilt after you change appearance or another mod replaces the model.
@@ -139,6 +138,6 @@ AI NPC Cyberpunk Mod is released under the AI NPC Cyberpunk Mod Use License (see
 
 Open Settings > Help > Help and support in game. It shows the service status and can create a report to share when asking for help. Generate report saves it in `%LOCALAPPDATA%\AiNpcCyberpunkMod\reports`. If the conversation service is not running, it writes a shorter report at once instead: `runtime\convai-report-lua.txt` in the mod folder (`bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod`). If the service row says "Needs a browser", install a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera, then restart the game.
 
-The mod does not load, or the manager will not open? Close the game and double-click `Make support report.bat` in `red4ext\plugins\AiNpcCyberpunkMod`. Its window lists what is missing, for example a required mod or a folder the zip was extracted into by mistake. It saves one report with the game closed and opens its folder: send that file. With Mod Organizer 2, start it from MO2 (add it under Executables).
+The mod does not load, or the manager will not open? Post what you see (a screenshot helps) on the mod's Nexus Posts tab or on Discord.
 
 Known issue: if V keeps walking in one direction after you type a message, tap that direction (W, A, S or D) once.
