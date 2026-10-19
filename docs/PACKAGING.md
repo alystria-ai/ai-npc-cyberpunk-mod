@@ -195,7 +195,8 @@ looks first.
   is installed, else the short one, else Pocket's), in `voices/prepared/`; a slot identical to the Runtime package's is not repeated.
   A slot is keyed by the clip's hash (its signature), so the bridge (`createReferencePreparer`: `prepared/` first, then
   `prepared-runtime/`, a hit only when the signature fits) finds the right one whichever folder holds it and whatever the extraction
-  order. With a mismatch it encodes the clip with ffmpeg (or sends the larger WAV) and writes the slot into `prepared/`; the Runtime's
+  order. Of the slots that fit, the best format wins (Ogg, then MP3, then WAV), so a WAV the bridge wrote on a machine without ffmpeg never
+  hides the Runtime's Ogg for the same clip. With a mismatch it encodes the clip with ffmpeg (or sends the larger WAV) and writes the slot into `prepared/`; the Runtime's
   folder is never written. (Until 0.2.1 the Runtime's slots were in `prepared/` too: 289 files that the OmniVoice pack also had, with other
   bytes, which is what made Windows report 437 conflicts. See "Packs reused unchanged".)
 - The build needs `ffmpeg` on `PATH` (or `CYBERPUNK_CONVAI_FFMPEG`) and fails without it. The workflow installs it.
@@ -221,6 +222,16 @@ The live-list pointer is not a shipped file: `voice-configs.json` in the data fo
 (Runtime), from the Runtime's list or the pack's. Nothing of it is in the Scripts. The state folder's copies of the lists are generated
 from the template, so a newer template reaches the bridge at the next start.
 
+**Updating over an older install.** Nothing deletes an earlier version's files, so "read first" must never let a leftover win:
+- Every Runtime carries its own lists in `app/defaults/` (`build-release.mjs` writes them with the pack's text; `check-runtime-contents.mjs`
+  fails a Runtime without them), so an older Runtime's lists there are always replaced. `readOmniTemplate` also passes over a list that names
+  another OmniVoice model revision than the installed pack's `omni-pack.json` (the voice worker would refuse it), or that is not valid JSON.
+- 0.2.1 left its lists in `app/omni/defaults/` (the pack's path; re-extracting the pack puts the pack's older lists back there). Either
+  way `app/defaults/` wins while it names the pack's model.
+- 0.2.1 left its Runtime slots (Pocket clips) in `prepared/`, and a 0.2.1 player whose extraction order let one package replace the other's
+  slots has the other ones there. They are read first but used only when the signature fits, which means the same clip with the same
+  settings, so the result is the same reference; the format rule above stops a cached WAV from hiding the Runtime's Ogg.
+
 Also true, and checked: the Runtime and Scripts put nothing in a tree only the OmniVoice pack writes (`app/omni/python/`, `voicestudio/`,
 `model/`); the 0.2.1 Runtime's three unused `voices/full-cast-draft/<key>/reference.wav` clips (coach-fred, jim-jarry, life-coach; the pack has them
 for its older lists) are left out (`RUNTIME_DROPS`); the five packs share files only byte for byte (the Local AI and Mature engine files, the licence texts); and
@@ -229,7 +240,8 @@ the packs are rebuilt.
 
 **Checking a build.** `node packaging/check-pack-overlap.mjs check <zip>...` reads only the zip's directory and compares every shared path
 with `packaging/pack-listings/packs-0.2.1.json` (path, size and CRC-32 of the five 0.2.1 packs); it exits 1 and groups the offenders by
-folder. Run it on every Runtime and Scripts zip before upload. `packaging/pack-overlap.test.mjs` runs the same comparison on the real Scripts
+folder. It reads ZIP64 directories (the OmniVoice pack is one) and also fails a zip that holds one path twice with different bytes (a
+patched zip can; `ZipWriter` refuses it); a pack with a path twice cannot be listed. Run it on every Runtime and Scripts zip before upload. `packaging/pack-overlap.test.mjs` runs the same comparison on the real Scripts
 build and on the 0.2.1 Runtime's shared files (`runtime-0.2.1-shared.json`, to show the cause and the fix). When the packs are
 rebuilt, remake the listing from Hugging Face without downloading them (HTTP range requests: the directory of the 6.5 GB OmniVoice pack is
 3.5 MB; a URL is a pack's resolve/main/<version>/<file> link on the Hugging Face page, public, no token):
@@ -238,7 +250,7 @@ rebuilt, remake the listing from Hugging Face without downloading them (HTTP ran
 node packaging/check-pack-overlap.mjs listing packaging/pack-listings/packs-<version>.json OmniPack=<zip or URL> LocalAI-Standard=<zip or URL> LocalAI-Lite=<zip or URL> Mature-Standard=<zip or URL> Mature-Lite=<zip or URL>
 ```
 
-**Checking what a Runtime must contain.** `node packaging/check-runtime-contents.mjs <Runtime zip>...` reads only the zip's directory and fails when V's voice clips (`voices/v-voice/`: the manifest and the clips `assets/v-voice/v-voice.json` names), `Make support report.bat` or the bridge modules it starts are missing (the names come from `packaging/lib/runtime-required.mjs`; the 0.2 and 0.2.1 Runtimes shipped without the clips, and 0.2.1 without the batch file). `packaging/test-release-install.mjs` checks the same on the extracted install and loads the clips with the packaged bridge's own loader. Run it beside the overlap check on every Runtime zip before upload; `packaging/runtime-contents.test.mjs` keeps both from drifting.
+**Checking what a Runtime must contain.** `node packaging/check-runtime-contents.mjs <Runtime zip>...` reads only the zip's directory and fails when V's voice clips (`voices/v-voice/`: the manifest and the clips `assets/v-voice/v-voice.json` names), `Make support report.bat`, the bridge modules it starts or the Runtime's own OmniVoice lists in `app/defaults/` are missing (the names come from `packaging/lib/runtime-required.mjs`; the 0.2 and 0.2.1 Runtimes shipped without the clips, and 0.2.1 without the batch file). `packaging/test-release-install.mjs` checks the same on the extracted install and loads the clips with the packaged bridge's own loader. Run it beside the overlap check on every Runtime zip before upload; `packaging/runtime-contents.test.mjs` keeps both from drifting.
 
 ### Player state (`data/`)
 
