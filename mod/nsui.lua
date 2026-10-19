@@ -419,19 +419,46 @@ local function onRestoreDefaults()
 end
 
 -- ---- Read-only rows -------------------------------------------------------------------------------------------------------------
--- Native Settings UI has no line of text, so a read-only row is its button without the button: the frame (the switch body that the
--- button is made from, the two state bodies of the row's controller) is hidden and the text stays. The controller exists while the tab
--- is on screen (Native Settings UI makes it when it spawns the row) and is made again each time the tab opens, so this runs after
--- every draw and when the tab is shown, a few calls for a page, never per frame. A row whose controller does not answer stays as a
--- button with its text, which is harmless.
+-- Native Settings UI has no line of text, so a read-only row is its button without the button: the art of the switch the button is
+-- made from is hidden and the text stays. That art is the "button" and "buttonBorder" (and the value text, "txtValue") of the two
+-- state bodies, layout/container/offState/body and layout/container/onState/body, of the row's widget. Native Settings UI hides the
+-- parts of the onState body only (its "off" path points at the onState body as well), so the offState body is what still draws the
+-- frame of a real button, and a row of ours hides both. The controller's offStateBody and onStateBody fields are inkWidgetRef
+-- values: a method call on them does nothing, the static inkWidgetRef.SetVisible reaches the widget (tried too, as a fallback).
+-- The controller exists while the tab is on screen (Native Settings UI makes it when it spawns the row) and is made again each time
+-- the tab opens, so this runs after every draw and when the tab is shown, a few calls for a page, never per frame. A row whose
+-- widgets do not answer stays as a button with its text, which is harmless.
+local FRAME_PARTS = {'button', 'buttonBorder', 'txtValue'}
+
+local function hidePart(widget, name)
+    pcall(function()
+        local part = widget:GetWidgetByPath(BuildWidgetPath({name}))
+        if part then part:SetVisible(false) end
+    end)
+end
+
+local function hideFrame(controller)
+    pcall(function()
+        local container = controller:GetRootWidget():GetWidgetByPath(BuildWidgetPath({'layout', 'container'}))
+        if not container then return end
+        for _, state in ipairs({'offState', 'onState'}) do
+            pcall(function()
+                local body = container:GetWidgetByPath(BuildWidgetPath({state, 'body'}))
+                if not body then return end
+                for _, name in ipairs(FRAME_PARTS) do hidePart(body, name) end
+            end)
+        end
+    end)
+    for _, field in ipairs({'offStateBody', 'onStateBody'}) do
+        pcall(function() inkWidgetRef.SetVisible(controller[field], false) end)
+    end
+end
+
 local function hideFrames()
     for _, section in ipairs(rendered) do
         for _, row in ipairs(section.rows) do
             local controller = row.readonly and row.opt and row.opt.controller
-            if controller then
-                pcall(function() controller.offStateBody:SetVisible(false) end)
-                pcall(function() controller.onStateBody:SetVisible(false) end)
-            end
+            if controller then hideFrame(controller) end
         end
     end
 end

@@ -615,23 +615,33 @@ test('init.lua runs the manager from the frames that have no world, so a button 
 });
 
 test('a read-only row shows its value (or its line) where a button would be, and its frame is hidden; real buttons keep theirs', () => run(`${harness()}
+  local function bare(row)
+    local parts = ns.parts(row.controller)
+    for _, state in ipairs({'off', 'on'}) do
+      assert(parts[state].button == false and parts[state].buttonBorder == false and parts[state].txtValue == false, 'frame of ' .. state .. ' body hidden')
+    end
+    assert(row.controller.offStateBody.node.visible == false and row.controller.onStateBody.node.visible == false, 'the state bodies are hidden through the static reference')
+  end
   press('Settings'); press('Memory')
   local line = assert(ns.find('Memory service'))
   assert(line.buttonText == 'Ready' or line.buttonText == 'Unavailable', line.buttonText)
-  assert(line.controller.offStateBody.visible == false and line.controller.onStateBody.visible == false, 'the frame of a text line is hidden')
+  bare(line)
+  -- A real button keeps the frame NSUI draws (the offState body: NSUI hides the onState one itself).
   local button = assert(ns.find('Forget all memories'))
-  assert(button.controller.offStateBody.visible == true and button.controller.onStateBody.visible == true, 'a real button keeps its frame')
+  local kept = ns.parts(button.controller)
+  assert(kept.off.button and kept.off.buttonBorder, 'a real button keeps its frame')
+  assert(button.controller.offStateBody.node.visible and button.controller.onStateBody.node.visible, 'a real button keeps its bodies')
   -- A line with a long value is the label alone, still without a frame.
-  local identity = assert(ns.find('Player memory'))
-  assert(identity.controller.offStateBody.visible == false)
+  bare(assert(ns.find('Player memory')))
   -- The screen is closed and opened again: the rows are made again, and the frames are hidden again.
   ns.closeScreen(); frames(3)
   ns.openScreen(TAB); frames(2)
   press('Settings'); press('Memory')
-  assert(ns.find('Memory service').controller.offStateBody.visible == false)
-  assert(ns.find('Forget all memories').controller.offStateBody.visible == true)
-  -- A controller that does not answer is harmless.
-  ns.find('Memory service').controller.offStateBody = nil
+  bare(ns.find('Memory service'))
+  assert(ns.parts(ns.find('Forget all memories').controller).off.button, 'a real button keeps its frame after a redraw')
+  -- A controller whose fields or widgets do not answer is harmless; the paths alone still hide the frame.
+  local fresh = ns.find('Memory service')
+  fresh.controller.offStateBody = nil
   press('Back to settings'); press('Memory')
   assert(managerUi.inspect().error == '' or managerUi.inspect().error == nil, tostring(managerUi.inspect().error))
 `));
