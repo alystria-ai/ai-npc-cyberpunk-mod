@@ -229,3 +229,47 @@ test("the Runtime's own slot folder is read after the cache folder, is never wri
   // An unusable shipped folder is ignored, not an error.
   assert.equal((await player(cache, {shippedDirectories: [join(shipped, 'missing')]})(source, {key: 'panam-palmer'})).format, 'wav');
 });
+
+test("a slot this machine made without ffmpeg (WAV) or without libvorbis (MP3) does not hide the Runtime's Ogg for the same clip", async t => {
+  // The update path: a 0.2.1 player without ffmpeg missed a slot once and the bridge wrote the 408 KB WAV into prepared/. Then the Runtime's
+  // slots were in prepared/ too, and extracting a new Runtime replaced it; now they are in prepared-runtime/, read second, and nothing deletes the WAV.
+  const cache = await mkdtemp(join(tmpdir(), 'voxtral-cache-')), shipped = await mkdtemp(join(tmpdir(), 'voxtral-shipped-'));
+  t.after(() => Promise.all([rm(cache, {recursive: true, force: true}), rm(shipped, {recursive: true, force: true})]));
+  const source = clip();
+  await createReferencePreparer({cacheDirectory: shipped, ffmpeg: async () => 'ffmpeg', encode: async () => FAKE_OGG})(source, {key: 'judy-alvarez'});
+  const files = async directory => Promise.all((await readdir(directory)).sort().map(async name => [name, (await readFile(join(directory, name))).toString('base64')]));
+  const player = () => createReferencePreparer({cacheDirectory: cache, shippedDirectories: [shipped], ffmpeg: async () => null,
+    encode: async () => { throw Error('must not encode'); }});
+
+  // The WAV the bridge wrote without ffmpeg (same clip, same settings: the same signature).
+  const wav = await createReferencePreparer({cacheDirectory: cache, ffmpeg: async () => null})(source, {key: 'judy-alvarez'});
+  assert.equal(wav.format, 'wav');
+  const cacheBefore = await files(cache), shippedBefore = await files(shipped);
+  const hit = await player()(source, {key: 'judy-alvarez'});
+  assert.equal(hit.cached, true); assert.equal(hit.format, 'ogg'); assert.deepEqual(hit.bytes, FAKE_OGG);
+  assert.deepEqual(await files(cache), cacheBefore, 'nothing is rewritten'); assert.deepEqual(await files(shipped), shippedBefore);
+
+  // An MP3 made by an ffmpeg without libvorbis: the Ogg is still the better one.
+  await rm(cache, {recursive: true, force: true});
+  await createReferencePreparer({cacheDirectory: cache, ffmpeg: async () => 'ffmpeg', encode: async (wavBytes, {codec}) => codec === 'mp3' ? FAKE_MP3 : null})(source, {key: 'judy-alvarez'});
+  assert.equal(JSON.parse(await readFile(join(cache, 'judy-alvarez.json'), 'utf8')).format, 'mp3');
+  assert.deepEqual((await player()(source, {key: 'judy-alvarez'})).bytes, FAKE_OGG);
+
+  // An Ogg in the cache folder is as good: it is read first and the shipped folder is not needed.
+  const mine = Buffer.concat([Buffer.from('OggS'), Buffer.alloc(3500, 3)]);
+  await rm(cache, {recursive: true, force: true});
+  await createReferencePreparer({cacheDirectory: cache, ffmpeg: async () => 'ffmpeg', encode: async () => mine})(source, {key: 'judy-alvarez'});
+  assert.deepEqual((await player()(source, {key: 'judy-alvarez'})).bytes, mine);
+
+  // With nothing better shipped, the cached WAV is still used (no encode, no write).
+  await rm(cache, {recursive: true, force: true});
+  await createReferencePreparer({cacheDirectory: cache, ffmpeg: async () => null})(source, {key: 'panam-palmer'});
+  const before = await files(cache);
+  const kept = await player()(source, {key: 'panam-palmer'});
+  assert.equal(kept.cached, true); assert.equal(kept.format, 'wav'); assert.deepEqual(await files(cache), before);
+
+  // The MP3-only ladder (the server refused Ogg) has its own signature: the shipped Ogg never fits it, the cached MP3 does.
+  await createReferencePreparer({cacheDirectory: cache, ffmpeg: async () => 'ffmpeg', encode: async () => FAKE_MP3})(source, {key: 'judy-alvarez', safeFormat: true});
+  const safe = await player()(source, {key: 'judy-alvarez', safeFormat: true});
+  assert.equal(safe.cached, true); assert.equal(safe.format, 'mp3');
+});
