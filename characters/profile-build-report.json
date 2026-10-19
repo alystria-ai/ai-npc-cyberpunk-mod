@@ -2120,12 +2120,12 @@
     },
     {
       "key": "jake-estevez",
-      "words": 361,
+      "words": 384,
       "speakingStyleWords": 151,
       "sampleDialogueWords": 115,
       "voice": "Ethan (Calm Young-Adult American Male)",
       "sources": 5,
-      "researchRevision": "8ff4f2d665a115766d56983e0d8cf983defd5839c4c244194cef050e30db4a64"
+      "researchRevision": "7910d920428b8239face992a1e1fc20ba9cf5d4c80ca5b3a18b832165524fe01"
     },
     {
       "key": "jefferson-peralez",
@@ -2148,11 +2148,11 @@
     {
       "key": "jim-jarry",
       "words": 628,
-      "speakingStyleWords": 139,
+      "speakingStyleWords": 151,
       "sampleDialogueWords": 134,
       "voice": "Ryan (Expressive Young-Adult American Male)",
       "sources": 3,
-      "researchRevision": "bdc1106ce0c49a72c42ac526d8aefc9bb883c2d2fb6ee968e2906c2e5c9fe876"
+      "researchRevision": "0d1835205f6fe12e91a96e4f68320d2b7490bc1af5103074c2605858181e4061"
     },
     {
       "key": "johnny-silverhand",
@@ -2373,11 +2373,11 @@
     {
       "key": "placide",
       "words": 681,
-      "speakingStyleWords": 164,
+      "speakingStyleWords": 187,
       "sampleDialogueWords": 126,
       "voice": "John (Deep Calm Middle-Aged American Male)",
       "sources": 5,
-      "researchRevision": "101ef08ea8e36ddaf9f163bf6f68a89bf14148b1b57a210fb3c04e849aecfc93"
+      "researchRevision": "6118e80a6f603cae7c1e00bce636961fb551a4ea58f0e63360aaf2bca7eaaef9"
     },
     {
       "key": "r3n0",
@@ -2516,12 +2516,12 @@
     },
     {
       "key": "steven-santos",
-      "words": 613,
+      "words": 616,
       "speakingStyleWords": 157,
       "sampleDialogueWords": 140,
       "voice": "Ethan (Calm Young-Adult American Male)",
       "sources": 4,
-      "researchRevision": "94912e12c4db9a291a266be3ed4b6df5981e96ca735b16b6ec467f70269d2993"
+      "researchRevision": "2b6b3b749cbb6786a8df155fe1f1ea3dd6905ee890da64484bbd085332c8e360"
     },
     {
       "key": "t-bug",
@@ -2615,12 +2615,12 @@
     },
     {
       "key": "royce",
-      "words": 679,
+      "words": 688,
       "speakingStyleWords": 172,
       "sampleDialogueWords": 127,
       "voice": "Cole (Husky Middle-Aged American Male)",
       "sources": 6,
-      "researchRevision": "ca840339bcdfe4a5fc920088372ee9d43b58ed9e1eaac178870e7aaf9a66bfb5"
+      "researchRevision": "3894fb5f23ded057a91c7edbfa669295acb4845bfe36fe8ddcdc580957b5f1f2"
     },
     {
       "key": "rosalind-myers",
@@ -2633,12 +2633,12 @@
     },
     {
       "key": "kurt-hansen",
-      "words": 668,
+      "words": 667,
       "speakingStyleWords": 194,
       "sampleDialogueWords": 137,
       "voice": "John (Deep Calm Middle-Aged American Male)",
       "sources": 5,
-      "researchRevision": "63737f4ed7b73c07e2c2e197ed83f0d304ea17049fdbfc275b860c11ca846105"
+      "researchRevision": "16f05d1e8440b5f10c126f4e34486d8c66ee526047418134f0c6982b00744bd5"
     },
     {
       "key": "woodman",
@@ -2777,12 +2777,12 @@
     },
     {
       "key": "voodoo-queen",
-      "words": 881,
+      "words": 890,
       "speakingStyleWords": 224,
       "sampleDialogueWords": 171,
       "voice": "Linda (Deep Middle-Aged American Female)",
       "sources": 5,
-      "researchRevision": "cfc7b8f25b775087105b192087f9d5af29acad7844a5e611db623794d40861b1"
+      "researchRevision": "4be27571c507c101f07c46a76319e951362ae18c49bf77a7dd936025c204ec73"
     },
     {
       "key": "anders-hellman",
