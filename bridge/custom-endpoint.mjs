@@ -24,7 +24,8 @@ export const COMMANDS = Object.freeze(['paste-url', 'paste-key', 'paste-model', 
 export const OPENROUTER_HOST = 'openrouter.ai';
 export const OPENROUTER_HEADERS = Object.freeze({'HTTP-Referer': 'https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs', 'X-Title': 'AI NPC Cyberpunk Mod'});
 
-const unquote = value => value.replace(/^["'`<]+|["'`>]+$/g, '');
+// Quotes around a pasted value, straight or the curly ones a web page or a chat app puts there.
+const unquote = value => value.replace(/^["'`<“”‘’«]+|["'`>“”‘’»]+$/g, '');
 
 /**
  * The address in a file's text (`endpoint=...`) or a pasted value: {endpoint, origin, host, kind, secure} or {reason}. `endpoint` is the base
@@ -64,14 +65,24 @@ export function parseCustomKey(text) {
   return /^[\x21-\x7e]{8,512}$/.test(value) && !/["'`\\<>]/.test(value) && !/^https?:\/\//i.test(value) ? value : null;
 }
 
-/** A model id (`model=...` or the bare value): letters, digits and . _ : / @ + -, at most 120. OpenRouter's `vendor/name:free` and Ollama's `name:tag` fit. */
+/**
+ * Shaped like an API key rather than a model id: a known key prefix (sk-, gsk_, xai-) or a run of 28 letters and digits with no separator (the
+ * shape bridge/mistral-client.mjs `redact` removes from error texts). No model id looks like that; a key pasted with "Paste model ID" would
+ * otherwise be shown on the settings page, written to the status file and the log, and sent as the model.
+ */
+export const looksLikeKey = value => typeof value === 'string' && (/^(?:sk|gsk|xai)[-_]/i.test(value) || /[A-Za-z0-9]{28,}/.test(value));
+
+/**
+ * A model id (`model=...` or the bare value): letters, digits and . _ : / @ + -, at most 120. OpenRouter's `vendor/name:free`, Ollama's `name:tag` and
+ * Cloudflare's `@cf/vendor/name` fit. A value shaped like an API key is not a model id.
+ */
 export function parseModelId(text) {
   if (typeof text !== 'string') return null;
   let value = text.replace(/^﻿/, '').trim();
   const labelled = /^(?:model(?:[-_ ]?id)?)\s*[=:]\s*(\S+)$/i.exec(value);
   if (labelled) value = labelled[1];
   value = unquote(value);
-  return /^[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,119}$/.test(value) && !/^https?:\/\//i.test(value) ? value : null;
+  return /^[A-Za-z0-9@][A-Za-z0-9._:/@+-]{0,119}$/.test(value) && !/^https?:\/\//i.test(value) && !looksLikeKey(value) ? value : null;
 }
 
 /**
@@ -86,7 +97,8 @@ export function parseCustomFile(text) {
     if (!line || line.startsWith('#')) continue;
     const match = /^([A-Za-z_-]+)\s*[=:]\s*(.*)$/.exec(line);
     if (!match) continue;
-    const name = match[1].toLowerCase().replace(/_/g, '-'), value = match[2];
+    // `#` after a space starts a comment at the end of a line too (none of the three values has a space in it).
+    const name = match[1].toLowerCase().replace(/_/g, '-'), value = match[2].replace(/\s+#.*$/, '');
     if (['endpoint', 'url', 'base-url', 'baseurl', 'api-base'].includes(name)) {
       const parsed = parseEndpointUrl(value);
       if (parsed.endpoint) out.endpoint = parsed; else out.problems.push(`endpoint (${parsed.reason})`);
@@ -110,17 +122,28 @@ export function formatCustomFile({endpoint, model, key}) {
 export class CustomEndpoint {
   constructor({path, readText = file => readFile(file, 'utf8'), writeText = writePrivate, removeFile = file => rm(file, {force: true}), log = () => {}} = {}) {
     Object.assign(this, {path, readText, writeText, removeFile, log});
-    this.address = null; this.model = null; this.key = null;
+    this.address = null; this.model = null; this.key = null; this.unreadable = false;
     this.listeners = new Set(); this.writing = Promise.resolve();
   }
   onChange(listener) { this.listeners.add(listener); return () => this.listeners.delete(listener); }
   #changed() { for (const listener of this.listeners) { try { listener(); } catch { /* an observer never breaks the settings */ } } }
 
-  /** Reads the file. A missing or unreadable file means nothing is saved; a field that is not valid is left out and named in the log (never its value). */
+  /**
+   * Reads the file. A missing file means nothing is saved; a field that is not valid is left out and named in the log (never its value). A file
+   * that exists but cannot be read now (locked by another program, no permission) changes nothing: what was read before stays, and no paste
+   * writes the file over (it would drop the values it could not read) until it can be read again.
+   */
   async load() {
     if (!this.path) return this;   // nothing is stored (a test): what was set stays
     let parsed = {endpoint: null, model: null, key: null, problems: []};
-    try { parsed = parseCustomFile(await this.readText(this.path)); } catch { /* nothing saved */ }
+    try { parsed = parseCustomFile(await this.readText(this.path)); this.unreadable = false; } catch (error) {
+      if (error?.code !== 'ENOENT' && error?.code !== 'ENOTDIR') {
+        if (!this.unreadable) this.log(`${CUSTOM_FILE} could not be read (${typeof error?.code === 'string' ? error.code : 'error'}); keeping what was saved`);
+        this.unreadable = true;
+        return this;
+      }
+      this.unreadable = false;
+    }
     if (parsed.problems.length) this.log(`${CUSTOM_FILE}: ignored ${parsed.problems.join(', ')}`);
     const before = JSON.stringify([this.address?.endpoint, this.model, !!this.key, this.key?.slice(-4)]);
     this.address = parsed.endpoint; this.model = parsed.model; this.key = parsed.key;
@@ -156,6 +179,11 @@ export class CustomEndpoint {
     return this.writing;
   }
   async #set(field, value) {
+    // The file could not be read last time: read it again first, and save nothing while it still cannot be (a write would lose what it holds).
+    if (this.unreadable) {
+      await this.load();
+      if (this.unreadable) throw Error(`${CUSTOM_FILE} cannot be read, so it is not written over`);
+    }
     const was = this[field];
     this[field] = value;
     try { await this.#persist(); } catch (error) { this[field] = was; throw error; }
@@ -295,14 +323,23 @@ export class CustomControl {
       return {state: 'saved'};
     }
     const model = parseModelId(text);
-    if (!model) return {state: 'invalid', reason: 'not-a-model'};
+    // The saved key pasted into the model row is never a model id (it would be shown, logged and published as one).
+    if (!model || (c.key && model === c.key)) return {state: 'invalid', reason: 'not-a-model'};
     await c.setModel(model);
     return {state: 'saved'};
   }
   // The request itself runs after the poll has returned: the settings poll also applies the provider, and must not wait up to 30 s for a server.
+  // A press while a test runs sends no second request, but the running test now answers to it: the page shows only the answer to its latest
+  // command, and a test of a server on this computer may run longer (90 s) than the page shows "Testing..." for.
   async #startTest(command) {
-    if (this.testing) return;
+    if (this.testing) {
+      this.testId = command.id;
+      this.testResult = {id: command.id, state: 'testing'};
+      await this.publishStatus();
+      return;
+    }
     this.testing = true;
+    this.testId = command.id;
     // A file edited by hand is read again before the test.
     await this.custom.load().catch(() => {});
     this.testResult = {id: command.id, state: 'testing'};
@@ -310,7 +347,7 @@ export class CustomControl {
     void (async () => {
       let outcome;
       try { outcome = await this.test(); } catch { outcome = {state: 'failed', code: 'unreachable'}; }
-      this.testResult = {id: command.id, ...outcome};
+      this.testResult = {id: this.testId, ...outcome};
       this.log(`Test connection: ${outcome.state}${outcome.code ? ` (${outcome.code}${outcome.status ? ` ${outcome.status}` : ''})` : ''}`);
       this.testing = false;
       await this.publishStatus().catch(() => {});
