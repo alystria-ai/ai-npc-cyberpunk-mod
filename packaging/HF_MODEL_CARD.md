@@ -23,8 +23,8 @@ Every file sits in the version folder (`0.2.2/`) with its `SHA256SUMS-*.txt` che
 
 | File | Size | What it is | Need it? |
 |---|---|---|---|
-| `AI-NPC-Cyberpunk-Mod-Scripts-0.2.2.zip` | TBD (2 MB in 0.2.1) | The mod itself, the in-game part. Also on Nexus Mods. | **Yes** |
-| `AI-NPC-Cyberpunk-Mod-Runtime-0.2.2.zip` | TBD (1.0 GB in 0.2.1) | The background service: voices, lip sync, speech recognition, memory. | **Yes** |
+| `AI-NPC-Cyberpunk-Mod-Scripts-0.2.2.zip` | 3 MB | The mod itself, the in-game part. Also on Nexus Mods. | **Yes** |
+| `AI-NPC-Cyberpunk-Mod-Runtime-0.2.2.zip` | 1.0 GB | The background service: voices, lip sync, speech recognition, memory. | **Yes** |
 | `AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.2.zip` | 5.3 GB | Local AI, standard: Gemma 4 E4B. Free and offline. Uses about 3.1 GB of video memory and needs about 6 GB free to start. | Optional |
 | `AI-NPC-Cyberpunk-Mod-LocalAI-Lite-0.2.2.zip` | 1.4 GB | Local AI, lite: Bonsai 2 4B. For smaller graphics cards, about 1.8 GB of video memory. | Optional |
 | `AI-NPC-Cyberpunk-Mod-OmniPack-0.2.2.zip` | 6.6 GB | OmniVoice: higher-quality local voices, 2 to 4 GB of video memory. Works with any text option. | Optional |
