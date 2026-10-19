@@ -1,0 +1,2 @@
+# A batch file must have CRLF line ends in every checkout (the release build also writes it that way).
+packaging/*.bat text eol=crlf

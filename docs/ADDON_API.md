@@ -37,7 +37,9 @@ add-on folder (its own CET mod)              main mod
 ```
 
 Each speaker becomes the profile `addon-<addon id>-<speaker id>`, for example `addon-skippy-gun`. The roster, the persona
-book, the voices, the recent-lines journal and the game all use that key.
+book, the voices, the recent-lines journal and the game all use that key. The key joins two names with a dash, so two add-ons can
+spell the same key (add-on `ab` with speaker `c-d`, add-on `ab-c` with speaker `d`): the first add-on by folder name keeps it, and the
+other is skipped and reported (`status: duplicate`).
 
 ## The add-on folder
 
@@ -614,7 +616,9 @@ Companions get each add-on's `setCompanionContext` blocks and the module's `comp
 ## Bridge module (optional)
 
 `bridge.mjs` runs inside the bridge. Every export is optional, synchronous, quick (under 5 ms) and free of side effects. A hook
-that throws, returns a promise or fails three times is switched off, and the add-on keeps working without it.
+that throws, returns a promise or fails three times is switched off, and the add-on keeps working without it. The module's import and
+`activate` must finish within 5 seconds, or the module is dropped for this run (the add-on keeps working without hooks, and
+`addons-status.json` carries the reason): one add-on never holds up the start of the bridge.
 
 ```js
 export const apiVersion = '1.0';
@@ -778,7 +782,8 @@ The two shipping add-ons build their own zips with a self-contained copy of this
 files, same bytes, no main checkout needed). If the rules below change here, change them there too.
 
 - The zip ships `.lua`, `.json`, `.mjs`, `.js`, `.wav`, `.txt` and `.md` files. It never ships tests, `eval/`, dotfiles or
-  `node_modules`, and any other kind of file stops the build.
+  `node_modules`, and any other kind of file stops the build. From a `voice/` folder it takes only the references the manifest
+  names: a stray clip or a `*.voice.json` note beside them (cut from game audio, kept out of git) is left out.
 - The build checks the manifest and that `init.lua`, the bridge module and every voice reference are in the folder.
 - The main mod's packages never include `addons/` (`packaging/addon-packaging.test.mjs`, `bridge/addons.test.mjs`).
 - An add-on zip never contains a main mod file.

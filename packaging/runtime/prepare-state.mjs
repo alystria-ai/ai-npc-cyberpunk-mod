@@ -110,6 +110,17 @@ async function syncManaged(layout, log) {
   if (changed) await writeAtomic(recordPath, Buffer.from(JSON.stringify(record, null, 2) + '\n'));
 }
 
+// The OmniVoice list `name` to run on. The Runtime's own copy (app/defaults/, beside the Pocket list) comes first: it is released together with this
+// code and names every voice the Runtime has clips for, even when the OmniVoice pack the player installed is older than the Runtime. The
+// pack's copy (app/omni/defaults/) is the fallback, for a Runtime that ships none. They are different paths on purpose: a pack zip that a
+// new version reuses unchanged must never share a path with the Runtime and carry other bytes, because Windows would offer to replace the
+// newer file with the older one (docs/PACKAGING.md, "Packs reused unchanged").
+export async function readOmniTemplate(layout, name) {
+  const found = await readOptional(resolve(layout.defaults, name)) ?? await readOptional(resolve(layout.omniDefaults, name));
+  if (!found) throw Object.assign(Error(`The OmniVoice list ${name} is in neither ${layout.defaults} nor ${layout.omniDefaults}.`), {code: 'ENOENT'});
+  return JSON.parse(found.toString('utf8'));
+}
+
 export async function omniPackInstalled(layout) {
   return (await isFile(layout.omniPython)) && (await isFile(resolve(layout.omni, 'omni-pack.json')));
 }
@@ -145,7 +156,7 @@ export async function prepareState(layout, {log = () => {}} = {}) {
   const omni = await omniPackInstalled(layout);
   if (omni) {
     for (const name of Object.values(OMNI_CONFIGS)) {
-      const template = JSON.parse(await readFile(resolve(layout.omniDefaults, name), 'utf8'));
+      const template = await readOmniTemplate(layout, name);
       await writeIfChanged(resolve(layout.state, name), Buffer.from(JSON.stringify(omniConfigFor(template), null, 2) + '\n'));
     }
   }

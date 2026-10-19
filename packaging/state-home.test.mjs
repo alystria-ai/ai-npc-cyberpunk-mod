@@ -252,3 +252,37 @@ test('a fresh install never creates data/ in the game folder', async () => {
     assert.equal(await exists(join(f.to, RECORD_FILE)), false, 'nothing was moved, so no record');
   } finally { await f.cleanup(); }
 });
+
+// What the game reads when the service cannot start: bridge-service.json in runtime/ (mod/service-status.lua). The launcher sends the service's
+// own output nowhere, so a start that ends without writing it looks like a service that never started.
+test('a Runtime extracted only in part (no bridge/ folder) publishes a failed status and a log line instead of dying silently', async () => {
+  const f = await fixture();
+  try {
+    const app = await installedApp(f.game);
+    const result = spawnSync(process.execPath, [join(app, 'launcher/start-service.mjs'), '--game-root', f.game, '--game-pid', '4242'],
+      {encoding: 'utf8', timeout: 60_000, env: {...process.env, CYBERPUNK_CONVAI_DATA_HOME: f.home}});
+    assert.equal(result.status, 1, result.stderr + result.stdout);
+    const status = JSON.parse(await read(join(f.game, MOD, 'runtime/bridge-service.json')));
+    assert.equal(status.state, 'failed');
+    assert.equal(status.code, 'install-incomplete');
+    assert.equal(status.gamePid, 4242);
+    assert.ok(Math.abs(Date.now() - status.updated) < 60_000);
+    assert.match(await read(join(f.to, 'bridge-service.log')), /Loading the conversation service failed/);
+  } finally { await f.cleanup(); }
+});
+
+test('a data folder that cannot be created publishes a failed status', async () => {
+  const f = await fixture();
+  try {
+    const app = await installedApp(f.game);
+    // A file where the data home's folder has to be: the folder cannot be made.
+    await put(f.home, 'in the way');
+    const result = spawnSync(process.execPath, [join(app, 'launcher/start-service.mjs'), '--game-root', f.game],
+      {encoding: 'utf8', timeout: 60_000, env: {...process.env, CYBERPUNK_CONVAI_DATA_HOME: f.home}});
+    assert.equal(result.status, 1, result.stderr + result.stdout);
+    const status = JSON.parse(await read(join(f.game, MOD, 'runtime/bridge-service.json')));
+    assert.equal(status.state, 'failed');
+    assert.equal(status.code, 'install-incomplete');
+    assert.match(result.stderr, /data folder .* cannot be created/);
+  } finally { await f.cleanup(); }
+});

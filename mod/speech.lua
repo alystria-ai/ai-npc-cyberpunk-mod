@@ -87,6 +87,14 @@ local function voiceEnabled(player)
     local ok, enabled = pcall(function() return player:ConvaiManagerVoice() end)
     return not ok or enabled
 end
+-- Whether this mod's scripts were compiled without Audioware (Speech.reds then has stand-ins that never start a voice). The setup check
+-- answers from the scripts' own list, read once and kept; false while that is not known, so nothing changes for older scripts.
+local function audiowareMissing(player)
+    local check = convaiSetupCheck
+    if type(check) ~= 'table' or type(check.requirement) ~= 'function' then return false end
+    local ok, present = pcall(check.requirement, 'audioware', player)
+    return ok and present == false
+end
 local function validAudio(audio)
     return type(audio) == 'table' and type(audio.slot) == 'number'
         and audio.slot >= 0 and audio.slot <= 7 and audio.slot % 1 == 0
@@ -292,7 +300,7 @@ local function beginChunk(audio, text, timeline, startSeconds)
     end
     local ok, started = pcall(function() return M.player:ConvaiSpeechStart(emitter, CName.new(audio.event)) end)
     if not ok or not started then
-        M.error = tostring(started)
+        M.error = ok and audiowareMissing(M.player) and 'Audioware is missing' or tostring(started)
         fallback('playback-failed', M.text); return false
     end
     noteHolocallVoice('audioware', emitter)
@@ -477,6 +485,11 @@ local function refreshManifest()
     if not f then return end
     local raw = f:read(4000001); f:close()
     if not raw or #raw > 4000000 then return end
+    -- The manifest changes only when a phrase is appended (two to four times a reply), and it carries every phrase's whole face timeline
+    -- (up to 180 KB). The same text as the last look gives the same verdict (what it is checked against does not change while the reply
+    -- lasts), so it is neither decoded nor checked again: a pure-Lua decode of it, 13 times a second, was a stutter while a companion spoke.
+    if raw == s.seenRaw then return end
+    s.seenRaw = raw
     local ok, doc = pcall(json.decode, raw)
     if not ok or type(doc) ~= 'table' or doc.version ~= (s.version or 1) or doc.streamId ~= s.id
         or doc.requestId ~= M.requestId or doc.entity ~= M.context.entity
@@ -649,14 +662,20 @@ local function retryFace(delta)
 end
 
 local function updateSpeech(delta)
-    local player = Game.GetPlayer()
     M.heartbeat = M.heartbeat + delta
     -- speech-state.json lease: the bridge keeps it 5 s. Written in a frame no other heartbeat writes in.
     local slot = M.heartbeat >= 2 and convaiHeartbeatSlot
-    if M.heartbeat >= 2 and (type(slot) ~= 'function' or slot()) then
+    local beat = M.heartbeat >= 2 and (type(slot) ~= 'function' or slot())
+    -- Nothing is playing and no heartbeat is due (nearly every frame): no game call at all. The player is fetched only when it is used.
+    if not beat and not M.requestId then return end
+    local player = Game.GetPlayer()
+    if beat then
         M.heartbeat = 0
         continuousAdapter()
-        if not M.continuous then M.available = player ~= nil and pcall(function() player:ConvaiSpeechPosition() end) end
+        -- Audio the game cannot play is not offered: the service reads this flag (speech-state.json) to decide whether to make it.
+        if not M.continuous then
+            M.available = player ~= nil and pcall(function() player:ConvaiSpeechPosition() end) and not audiowareMissing(player)
+        end
         publish()
     end
     if not M.requestId then return end
@@ -681,7 +700,11 @@ local function updateSpeech(delta)
     local s = M.stream
     if s then
         s.poll = s.poll + delta
-        if s.poll >= .075 then s.poll = 0; refreshManifest() end
+        -- The producer said it is complete and every phrase has arrived: the manifest has nothing more to tell.
+        if s.poll >= .075 then
+            s.poll = 0
+            if not (s.total and s.received >= s.total and s.manifest and s.manifest.complete == true) then refreshManifest() end
+        end
         if M.state == 'buffering' or M.state == 'starting' then s.gap = s.gap + delta end
         if M.state == 'buffering' then
             s.wait = s.wait + delta

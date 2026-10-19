@@ -318,6 +318,14 @@ function M.crowdModeRequested()
     if crowdModes[word] then return word end
     return nil,'invalid'
 end
+-- The face service (Face.reds). Codeware provides the service container's entry; without Codeware there is none, and this says so
+-- instead of failing on a nil. Callers hold it in a pcall.
+local function faceService()
+    local container=Game.GetScriptableServiceContainer and Game.GetScriptableServiceContainer()
+    local service=container and container:GetService(CName.new('ConvaiFaceService'))
+    if not service then error('the face service does not exist (Codeware is missing)',0) end
+    return service
+end
 -- requested word (nil when there is no file), the mode the game reports (nil when it could not be set), error text.
 function M.applyCrowdMode()
     local requested,problem=M.crowdModeRequested()
@@ -327,7 +335,7 @@ function M.applyCrowdMode()
         return nil,nil,problem
     end
     local ok,result=pcall(function()
-        local service=Game.GetScriptableServiceContainer():GetService(CName.new('ConvaiFaceService'))
+        local service=faceService()
         return service:SetCrowdMode(requested)
     end)
     local applied=ok and type(result)=='string' and result or nil
@@ -341,7 +349,7 @@ end
 -- frame. True when the service took it.
 function M.applyStoryTalk(enabled)
     local ok,result=pcall(function()
-        local service=Game.GetScriptableServiceContainer():GetService(CName.new('ConvaiFaceService'))
+        local service=faceService()
         return service:SetStoryTalk(enabled==true)
     end)
     M.storyTalk=ok and result==true
@@ -482,10 +490,16 @@ local function nativeFor()
     end
     return nativeFaces
 end
+-- native.Safe answers -1 when the plugin cannot read the combat flag (the game version has no function it can resolve), and the Lua check
+-- then decides. Asking again only repeats the plugin's lookup on every face frame, so after a -1 it is asked again only every 30 s of
+-- expression time (a flip of the switch asks again at once, restartPoseBlocks).
+local SAFE_RETRY_S=30
+local safeUnknownUntil=-math.huge
 -- A switch flip restarts every face's pose block from neutral on both sides (the two paths keep the same numbers in
 -- different places, and copying them across is not worth a path that runs only when a switch is thrown). The feature
 -- objects are dropped too, so no blink or pose written by the other path stays on a reused object.
 local function restartPoseBlocks()
+    safeUnknownUntil=-math.huge
     if nativeFaces then pcall(nativeFaces.Clear) end
     for _,slot in pairs(M.expressions) do
         slot.pose=zeroExpression();slot.droop=nil;slot.flick=nil;slot.flickReset=nil
@@ -574,10 +588,10 @@ local function safeExpressionActor(actor,entity)
         local ok,ready=pcall(luaActorSafe,actor,true)
         return ok and ready==true
     end
-    if native then
+    if native and M.expressionClock>=safeUnknownUntil then
         local ok,answer=pcall(native.Safe,actor)
         if ok and answer==1 then return true elseif ok and answer==0 then return false end
-        if not ok then nativeFailed(answer) end
+        if not ok then nativeFailed(answer) else safeUnknownUntil=M.expressionClock+SAFE_RETRY_S end
     end
     local ok,ready=pcall(luaActorSafe,actor)
     return ok and ready==true

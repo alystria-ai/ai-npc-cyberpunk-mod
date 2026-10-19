@@ -31,6 +31,10 @@ public class ConvaiKnowledgeSnapshot {
     public let serializationCompleted: Int32;
 }
 
+// The save-bound state needs Codeware's session callbacks and services. Without Codeware the two classes below do not exist (so
+// the scripts still compile: a compile error would disable every redscript mod) and Lua finds no knowledge state, which it
+// already treats as "not available" (mod/knowledge-state.lua). mod/setup-check.lua tells the player Codeware is missing.
+@if(ModuleExists("Codeware"))
 public class ConvaiKnowledgeState extends ScriptableSystem {
     // Do not change persisted field types after shipping. Strings are not
     // persistable: an opaque 128-bit ID is eight unsigned 16-bit Int32 limbs.
@@ -270,6 +274,7 @@ public class ConvaiKnowledgeState extends ScriptableSystem {
 
 // The service subscribes before sessions start, so a new-game Ready event is
 // not missed by a ScriptableSystem that attaches later. It persists NO state.
+@if(ModuleExists("Codeware"))
 public class ConvaiKnowledgeLifecycle extends ScriptableService {
     private let m_generation: Int32;
     private let m_ready: Bool;

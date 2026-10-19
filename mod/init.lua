@@ -1198,6 +1198,14 @@ local function log(line)
     print('[CyberpunkConvai] ' .. line)
 end
 microphone.log = log
+-- A hook installer that raises must not stop onInit: every line after it (the Mod Configuration Menu registration among them) would
+-- never run, and a player whose scripts did not compile (the hooks below name methods those scripts add) would see nothing of this
+-- mod at all. One failure line per installer, once per load. A global, so onInit gains no upvalue.
+convaiGuarded = function(label, fn, ...)
+    local ok, result = pcall(fn, ...)
+    if not ok then log(label .. ' failed: ' .. tostring(result)) end
+    return ok, result
+end
 -- Names for nameless ordinary NPCs (docs/NPC_NAMES.md, mod/npc-names.lua). One generator serves the scanner and the talk path.
 -- The gate is the rule above: not ours, not protected (named, quest-bound, story record), a resolved ordinary profile (an archetype
 -- or the two residents), an adult human. Read on demand (a scan, a conversation start), never per frame.
@@ -1467,11 +1475,12 @@ do
             end,
             -- Every speaker of a running group round counts as an exchange for a partner (convaiRoundKeys).
             roundKeys = function() return convaiRoundKeys() end,
-            -- Mistral or the local AI answers turns: no Convai connection is opened or waited for, so no "Preparing connection" notice.
-            -- The bridge's applied provider (runtime/mistral-state.json, read at most every 1.5 s), asked only on a talk start.
+            -- Mistral, the local AI or a custom OpenAI-compatible endpoint answers turns: no Convai connection is opened or waited for,
+            -- so no "Preparing connection" notice. The bridge's applied provider (runtime/mistral-state.json, read at most every 1.5 s),
+            -- asked only on a talk start.
             noConnection = function()
                 local ok, state = pcall(manager.mistral)
-                return ok and type(state) == 'table' and (state.effective == 'mistral' or state.effective == 'local')
+                return ok and type(state) == 'table' and (state.effective == 'mistral' or state.effective == 'local' or state.effective == 'custom')
             end,
             log = function(line) log(line) end})
         -- convaiAutoConnect.promote(key): a conversation partner asked to follow leaves the partner role.
@@ -2160,6 +2169,24 @@ function convaiComposerWatch.lost(player, why, context)
     convaiComposerWatch.notify(player)
 end
 
+-- The scripts refused to open the text box: it is Codeware's (Composer.reds answers false when they were compiled without its UI
+-- part). One probe.log line per game session, with what is known of the requirement; and the player is told each time the talk key
+-- is pressed, in the words of the setup check (a key press, never per frame). A global, so nothing gains an upvalue.
+convaiComposerRefused = function(player)
+    local beat, check = convaiHeartbeat, convaiSetupCheck
+    local known, text = false, nil
+    if type(check) == 'table' and type(check.requirement) == 'function' then
+        known = select(2, pcall(check.requirement, 'codeware-ui', player)) == false
+        if known and type(check.codewareNotice) == 'function' then text = select(2, pcall(check.codewareNotice)) end
+    end
+    if not beat.composerRefusedLogged then
+        beat.composerRefusedLogged = true
+        log(known and 'Native composer unavailable: these scripts were compiled without the UI part of Codeware (Codeware missing or too old)'
+            or 'Native composer unavailable (check redscript and Codeware)')
+    end
+    if type(text) == 'string' and text ~= '' then convaiNotices.send(player, 'setup-problem', text) end
+end
+
 -- Talk box start gate. The game's popup takes the keyboard, so a movement key
 -- released while it is open is never seen by gameplay and V keeps walking after it
 -- closes (a Codeware popup cannot hand the key-up back). Composer.reds tracks the
@@ -2188,7 +2215,7 @@ local function beginTextNow(groupMode, waited)
         local speedAtOpen = playerSpeedText(player)
         local moveAtOpen = moveStateText(player)
         if not player:ConvaiOpenComposer(name) then
-            log('Native composer unavailable (check redscript and Codeware)')
+            convaiComposerRefused(player)
             return
         end
         cancelAutomatic('manual-text')
@@ -2966,6 +2993,19 @@ local function keyReplyNotice(reply)
     elseif reply.errorCode == 'mistral-model' then
         return 'mistral-model', ui.t('The Mistral model is unavailable right now. Try again in a minute.')
     end
+    -- Custom (OpenAI-compatible): five failures the bridge names (the same sentences as mod/custom-provider.lua's notice(), which a test
+    -- keeps equal), and two one-time notices on the first reply.
+    if reply.errorCode == 'custom-key' then
+        return 'custom-key', ui.t('The custom provider did not accept your key. Check it in Settings > Conversation provider.')
+    elseif reply.errorCode == 'custom-credits' then
+        return 'custom-credits', ui.t('The custom provider says your account is out of credits. Add credits there, then try again.')
+    elseif reply.errorCode == 'custom-model' then
+        return 'custom-model', ui.t('The custom provider does not know that model ID. Check it in Settings.')
+    elseif reply.errorCode == 'custom-limit' then
+        return 'custom-limit', ui.t('The custom provider is rate limiting you. Try again in a moment.')
+    elseif reply.errorCode == 'custom-unreachable' then
+        return 'custom-unreachable', ui.t('The custom provider did not answer. Check its address in Settings, or try again.')
+    end
     -- Local AI could not start, so the bridge used Convai: the same line whether it rode on a failed turn or on the first reply.
     if reply.errorCode == 'local-fallback' or reply.keyNotice == 'local-fallback' then
         return 'local-fallback', ui.t('Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.')
@@ -2988,16 +3028,22 @@ local function keyReplyNotice(reply)
         return 'mistral-no-key', ui.t('Mistral has no key yet, so Convai is used. Add your key in Settings > Conversation provider.')
     elseif reply.keyNotice == 'mistral-voice' then
         return 'mistral-voice', ui.t('Mistral replies are spoken by a local voice instead of the Convai cloud voice.')
+    elseif reply.keyNotice == 'custom-no-setup' then
+        return 'custom-no-setup', ui.t('The custom provider is not set up, so Convai is used. Add its URL and model ID in Settings.')
+    elseif reply.keyNotice == 'custom-voice' then
+        return 'custom-voice', ui.t('Custom provider replies are spoken by a local voice instead of the Convai cloud voice.')
     end
     local text = keyNoticeText(reply.errorCode)
     if text then return 'quota-exhausted', text end
     return nil
 end
 
--- The one-time information the bridge puts on the first reply of a game session when Mistral is chosen.
+-- The one-time information the bridge puts on the first reply of a game session when Mistral or Custom is chosen.
 local function sendProviderNotice(player, keyId, keyText)
     if keyId == 'mistral-no-key' then convaiNotices.send(player, 'mistral-no-key', keyText)
     elseif keyId == 'mistral-voice' then convaiNotices.send(player, 'mistral-voice', keyText)
+    elseif keyId == 'custom-no-setup' then convaiNotices.send(player, 'custom-no-setup', keyText)
+    elseif keyId == 'custom-voice' then convaiNotices.send(player, 'custom-voice', keyText)
     elseif keyId == 'local-fallback' then convaiNotices.send(player, 'local-fallback', keyText)
     elseif keyId == 'local-turn-fallback' then convaiNotices.send(player, 'local-turn-fallback', keyText)
     elseif keyId == 'local-model-fallback' then convaiNotices.send(player, 'local-model-fallback', keyText) end
@@ -3286,6 +3332,8 @@ if convaiAddons then
     seams.menus = function(requestId) speech.menuRequest = requestId end
     -- The face service (Face.reds), for an add-on's screen-face watch: one call per watch change, never per frame.
     seams.faceService = function()
+        -- Without Codeware the service and its container's lookup do not exist: nothing to watch, and no error.
+        if Game.GetScriptableServiceContainer == nil then return nil end
         return Game.GetScriptableServiceContainer():GetService(CName.new('ConvaiFaceService'))
     end
     -- An add-on remark whose speaker shows the text itself goes without a subtitle (addons.lua hideCaption), asked once per reply.
@@ -3498,7 +3546,7 @@ registerForEvent('onInit', function()
         local ok,error=pcall(companions.initReloadCleanup)
         if not ok then log('Interrupted driver cleanup initialization failed: '..tostring(error)) end
     end
-    subtitles.install()
+    convaiGuarded('Subtitle hooks', subtitles.install)
     -- Free look while V sits (docs/COMPANION_SEATING.md): one Observe pair on
     -- the player's Workspot state; widens the camera limits once per sit.
     local lookLoaded, lookResult, lookReason = pcall(function()
@@ -3516,7 +3564,10 @@ registerForEvent('onInit', function()
     end)
     if not lookLoaded then log('Seated free look failed: ' .. tostring(lookResult))
     elseif not lookResult then log('Seated free look unavailable: ' .. tostring(lookReason)) end
-    if convaiGameDialogue and not convaiGameDialogue:install() then log('Game dialogue capture unavailable') end
+    if convaiGameDialogue then
+        local hooked, installed = convaiGuarded('Game dialogue hooks', function() return convaiGameDialogue:install() end)
+        if hooked and not installed then log('Game dialogue capture unavailable') end
+    end
     -- Journal changes wake the resting knowledge collectors (updateKnowledge). The quest HUD's notification queue
     -- is the game's own journal listener; it fires on entry state changes only, never per frame.
     local journalHooked, journalHookError = pcall(ObserveAfter, 'JournalNotificationQueue', 'OnJournalUpdate', function()
@@ -3528,24 +3579,26 @@ registerForEvent('onInit', function()
     if not journalHooked then log('Journal change hook unavailable: ' .. tostring(journalHookError))
     else worldKnowledge.eventDriven, journalHistory.eventDriven = true, true end
     lootObserver.configure({captureContext = captureLootContext, enabled = function() return manager.lootReactions() end})
-    lootObserver.install()
+    convaiGuarded('Loot observer hooks', lootObserver.install)
     if convaiVanillaReactions then
         local hooked, hookError = pcall(convaiVanillaReactions.install)
         if not hooked then log('Vanilla reaction hooks failed: ' .. tostring(hookError)) end
     end
-    convaiLocomotion = dofile('companion-locomotion.lua')
-    convaiLocomotion.install(function(npc, command)
-        return companions.ownsTravelCommand(npc, command)
+    convaiGuarded('Locomotion hooks', function()
+        convaiLocomotion = dofile('companion-locomotion.lua')
+        convaiLocomotion.install(function(npc, command)
+            return companions.ownsTravelCommand(npc, command)
+        end)
     end)
-    if stanceModule then stanceModule.install(stanceBuilt, log) end
+    if stanceModule then convaiGuarded('Stance hooks', function() stanceModule.install(stanceBuilt, log) end) end
     if convaiNpcNames then
         local hooked, hookError = pcall(convaiNpcNames.install, ObserveAfter)
         if not hooked then log('NPC name scanner hook failed: ' .. tostring(hookError)) end
     end
-    dofile('composer-input.lua').install()
-    dofile('phone-input.lua').install()
-    phoneLayout.install()
-    phoneChatStyle.install()
+    convaiGuarded('Text box hooks', function() dofile('composer-input.lua').install() end)
+    convaiGuarded('Phone input hooks', function() dofile('phone-input.lua').install() end)
+    convaiGuarded('Phone layout hooks', phoneLayout.install)
+    convaiGuarded('Phone chat style hooks', phoneChatStyle.install)
     local ok, err = pcall(mcm.install)
     if not ok then log('MCM registration failed: ' .. tostring(err)) end
     ObserveAfter('AutoDriveSystem', 'OnAutodriveToggled', function(_, enabled)
@@ -3850,8 +3903,15 @@ registerForEvent('onUpdate', function(delta)
         return
     end
     if not phoneCatalogReady then
+        -- A player without this mod's phone methods (the scripts did not compile) fails this on every tick, and the failure line
+        -- used to be a file write ten times a second: it is retried on every tick as before, and logged once until it succeeds.
         local ok, err = pcall(companions.registerPhoneContacts, player)
-        if not ok then log('Phone catalog registration failed: ' .. tostring(err)) end
+        if ok then
+            convaiHeartbeat.phoneCatalogFailed = nil
+        elseif not convaiHeartbeat.phoneCatalogFailed then
+            convaiHeartbeat.phoneCatalogFailed = true
+            log('Phone catalog registration failed: ' .. tostring(err))
+        end
         phoneCatalogReady = ok
     end
     if worldReady then
@@ -4014,13 +4074,24 @@ registerForEvent('onUpdate', function(delta)
                             if not pending.reaction then convaiNotices.send(player, 'mistral-limit', keyText) end
                         elseif keyId == 'mistral-model' then
                             if not pending.reaction then convaiNotices.send(player, 'mistral-model', keyText) end
+                        -- Custom (OpenAI-compatible) failures: the same rule.
+                        elseif keyId == 'custom-key' then
+                            if not pending.reaction then convaiNotices.send(player, 'custom-key', keyText) end
+                        elseif keyId == 'custom-credits' then
+                            if not pending.reaction then convaiNotices.send(player, 'custom-credits', keyText) end
+                        elseif keyId == 'custom-model' then
+                            if not pending.reaction then convaiNotices.send(player, 'custom-model', keyText) end
+                        elseif keyId == 'custom-limit' then
+                            if not pending.reaction then convaiNotices.send(player, 'custom-limit', keyText) end
+                        elseif keyId == 'custom-unreachable' then
+                            if not pending.reaction then convaiNotices.send(player, 'custom-unreachable', keyText) end
                         -- Local AI could not start and the turn failed: the notice for a turn V asked for, like the Mistral failures.
                         elseif keyId == 'local-fallback' then
                             if not pending.reaction then convaiNotices.send(player, 'local-fallback', keyText) end
                         -- A local turn failed and nothing took it over: the same rule, its own notice.
                         elseif keyId == 'local-failed' then
                             if not pending.reaction then convaiNotices.send(player, 'local-failed', keyText) end
-                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' then
+                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' then
                             sendProviderNotice(player, keyId, keyText)
                             if not pending.reaction then convaiNotices.send(player, 'reply-error', reply.error) end
                         elseif keyId then convaiNotices.send(player, 'quota-exhausted', keyText)

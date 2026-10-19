@@ -163,8 +163,7 @@ OUT = api.status()
 
 // Add-ons read this through handle:native().status() (mod/addons.lua). The reason of a plugin that failed the late checks carries the
 // error text of the failed call, and error texts can hold a backslash (a path) or a line break; status() only swaps the quotes.
-test('the status after a failed late check is valid JSON even when the error text holds a backslash or a line break',
-  {todo: 'api.status() builds its JSON by hand and only replaces double quotes: a backslash or a newline in the reason makes it invalid JSON'}, () => {
+test('the status after a failed late check is valid JSON even when the error text holds a backslash or a line break', () => {
   const out = run(`
 fakeCore.CheckVersion = function()
   error('C:' .. string.char(92) .. 'Users' .. string.char(92) .. 'name "quoted" ' .. string.char(10) .. ' second line', 0)
@@ -464,8 +463,7 @@ assert(#printed == lines and n('CheckVersion') == 1, 'no second handshake, no se
 
 // convaiNative.on / off (developer helpers that edit runtime/native-off.txt through the real io) compare whole lines, the plugin reads
 // names the way Switches::ParseFile does (comment cut off, trimmed, lower-cased).
-test('convaiNative.on removes a system from native-off.txt even when its line has a trailing comment or other capitals',
-  {todo: 'BUG: mod/native-core.lua editSwitches compares the raw trimmed line with the system name, so "gaze # why" or "Gaze" is never removed (and off() appends a duplicate), while the plugin treats both as "gaze"'}, () => run(`
+test('convaiNative.on removes a system from native-off.txt even when its line has a trailing comment or other capitals', () => run(`
 local M, api = boot(true)
 for _, line in ipairs({'gaze # why', 'Gaze', 'GAZE  '}) do
   disk['runtime/native-off.txt'] = 'faces' .. string.char(10) .. line .. string.char(10)
@@ -474,6 +472,11 @@ for _, line in ipairs({'gaze # why', 'Gaze', 'GAZE  '}) do
   assert(not left:lower():find('gaze', 1, true), 'gaze is still listed after on(): ' .. left)
   assert(left:find('faces', 1, true), 'the other lines stay')
 end
+-- off() sees the same line as already listed: no second entry is appended, and the line keeps its comment
+disk['runtime/native-off.txt'] = 'Gaze # why' .. string.char(10)
+assert(api.off('gaze') == true)
+assert(disk['runtime/native-off.txt'] == 'Gaze # why' .. string.char(10), disk['runtime/native-off.txt'])
+assert(api.off('GAZE') == true and disk['runtime/native-off.txt'] == 'Gaze # why' .. string.char(10), 'the name asked for in capitals is the same system')
 `));
 
 test('convaiNative.off and on keep comments and other names, never list a system twice, and a missing file is created by off and left empty by on', () => run(`

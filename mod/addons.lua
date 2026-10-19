@@ -520,6 +520,10 @@ api.register = guard('register', function(def)
     local previous = addons[id]
     if previous then
         for key, speaker in pairs(speakers) do if speaker.addon == previous then speakers[key] = nil end end
+        -- What the earlier registration had waiting or in flight goes with it: its speakers are gone, and a remark for one of them
+        -- would otherwise be sent on the next tick for a profile key that no speaker owns.
+        for index = #queue, 1, -1 do if queue[index].speaker.addon == previous then table.remove(queue, index) end end
+        if flight and flight.speaker.addon == previous then release('add-on-replaced', true) end
     else order[#order + 1] = id end
     local addon = {id = id, name = name, version = type(def.version) == 'string' and def.version:sub(1, 32) or '?',
         enabled = true, handlers = {}, speakers = {}, companion = {}, companionOrder = {}, state = nil,
@@ -1364,8 +1368,11 @@ local function schedule(player, state, worldReady)
         keep = {}
         table.sort(queue, byPriority)
     end
-    while #queue > 0 do
+    -- Only the remarks that were waiting when the loop began are looked at. A remarkDropped handler may ask for a remark again, which
+    -- queues a new one; taking that one in this loop too would drop it and be asked again without end, inside one tick.
+    for _ = 1, #queue do
         local entry = table.remove(queue, 1)
+        if not entry then break end
         local speaker = entry.speaker
         local blocked, why = sceneBlocked(state.sample, speaker, entry.patient == true and not entry.replaces)
         local object, entity = nil, nil
@@ -1413,7 +1420,10 @@ local function schedule(player, state, worldReady)
             if ok and sent then
                 episode.count = episode.count + 1
                 -- No build-up behind the remark in flight: only the strongest waiting one is kept (the queue is sorted, best first).
-                while #queue > 1 do drop(table.remove(queue), 'replaced') end
+                -- (Taken out first, then reported: a remark that a drop handler queues in return waits for the next tick.)
+                local replaced = {}
+                while #queue > 1 do replaced[#replaced + 1] = table.remove(queue) end
+                for _, waiting in ipairs(replaced) do drop(waiting, 'replaced') end
                 if event.cooldown > 0 then speaker.events[event.event] = clock end
                 log('Remark: ' .. speaker.key .. ' event=' .. event.event .. ' priority=' .. event.priority
                     .. (waited and string.format(' waited=%.1fs', waited) or '') .. (flight.holding and ' (held until its moment)' or ''))

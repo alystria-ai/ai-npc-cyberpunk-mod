@@ -336,12 +336,17 @@ const settingsOf = async source => {
   } catch { return {}; }
 };
 
-/** The services the chosen conversation provider and voice need, conversation first, each once. */
-export function neededServices(settings) {
-  const conversation = settings?.conversationProvider === 'mistral' || settings?.conversationProvider === 'local' ? settings.conversationProvider : 'convai';
+/**
+ * The services the chosen conversation provider and voice need, conversation first, each once. `custom` ({hostname, host, port}: the saved endpoint of the custom
+ * provider, bridge/custom-endpoint.mjs) is given only when that provider is set up; chosen but not set up, Convai answers and is the service checked.
+ */
+export function neededServices(settings, {custom = null} = {}) {
+  const chosen = settings?.conversationProvider;
+  const conversation = chosen === 'mistral' || chosen === 'local' ? chosen : chosen === 'custom' && custom ? 'custom' : 'convai';
   const services = [];
   if (conversation === 'convai') services.push('convai');
   else if (conversation === 'mistral') services.push('mistral');
+  else if (conversation === 'custom') services.push('custom');
   // The Convai cloud voice is only available while Convai answers; with another provider the bridge speaks with Pocket instead.
   const voice = settings?.voiceProvider;
   if (voice === 'voxtral') services.push('mistral');
@@ -442,13 +447,19 @@ export async function collectSetupCheck(options = {}) {
   const localAi = () => guarded('local-ai', async () => localAiCheck(settings, await call('localAi')));
 
   const internet = () => guarded('internet', async () => {
-    const services = neededServices(settings);
+    // The custom provider's endpoint is asked for only while that provider is the chosen one (nothing is contacted otherwise).
+    let custom = null;
+    if (settings?.conversationProvider === 'custom') { try { custom = await call('custom'); } catch { custom = null; } }
+    if (!(typeof custom?.hostname === 'string' && custom.hostname)) custom = null;
+    const services = neededServices(settings, {custom});
     if (!services.length) return {state: 'ok', code: 'not-needed', service: null, host: null};
-    if (light) return {state: 'unknown', code: 'unknown', service: services[0], host: SERVICE_HOSTS[services[0]]};
-    const reach = options.reach ?? (host => checkReachable(host));
+    // The name shown (host and port, never a path) and the name and port looked up.
+    const shown = service => service === 'custom' ? clip(custom.host, 80) : SERVICE_HOSTS[service];
+    if (light) return {state: 'unknown', code: 'unknown', service: services[0], host: shown(services[0])};
+    const reach = options.reach ?? ((host, extra) => checkReachable(host, extra));
     const results = await Promise.all(services.map(async service => {
-      try { return {service, host: SERVICE_HOSTS[service], code: await reach(SERVICE_HOSTS[service])}; }
-      catch { return {service, host: SERVICE_HOSTS[service], code: 'unknown'}; }
+      try { return {service, host: shown(service), code: await (service === 'custom' ? reach(custom.hostname, {port: Number.isInteger(custom.port) ? custom.port : 443}) : reach(SERVICE_HOSTS[service]))}; }
+      catch { return {service, host: shown(service), code: 'unknown'}; }
     }));
     const bad = results.find(row => row.code !== 'reachable');
     if (!bad) return {state: 'ok', code: 'reachable', service: results[0].service, host: results[0].host};

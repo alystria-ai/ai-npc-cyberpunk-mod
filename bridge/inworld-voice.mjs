@@ -377,8 +377,11 @@ export class InworldVoice {
     }
   }
   async #clone({key, apiKey, name, reference, entry}) {
-    if (this.getKey() !== apiKey) throw this.fail('no-key', 'key changed while the voice was being made');
+    const unchanged = () => { if (this.getKey() !== apiKey) throw this.fail('no-key', 'key changed while the voice was being made'); };
+    unchanged();
     await this.#waitForCloneSlot();
+    // The wait for a slot can take up to a minute: the key the player removed or replaced in the meantime is not sent.
+    unchanged();
     this.cloneTimes.push(this.clock());
     const body = {displayName: name, languageCode: 'en-US', description: `Cyberpunk 2077 companion mod, voice of ${String(key).slice(0, 60)}`,
       tags: ['cp2077'], voiceSamples: [{audioData: reference.base64}], audioProcessingConfig: {removeBackgroundNoise: false}};

@@ -163,7 +163,7 @@ if MODE~='lua' then
    if MODE~='exact' then return -1 end
    return (actor.id==entity and actor.attached and actor.alive and actor.ready) and 1 or 0
   end,
-  Safe=function(actor) counts.native=counts.native+1;if MODE~='exact' then return -1 end;return exactSafe(actor) end,
+  Safe=function(actor) counts.native=counts.native+1;counts.safe=(counts.safe or 0)+1;if MODE~='exact' then return -1 end;return exactSafe(actor) end,
   Frame=function(actor,feature,nid,c,v)
    counts.frames=(counts.frames or 0)+1
    counts.native=counts.native+1
@@ -437,6 +437,17 @@ test('a Frame call replaces the property and method crossings of a frame', () =>
   assert.ok(exact < lua * .12, `native ${exact} vs Lua ${lua}`);
   assert.ok(exact / frames < 8, `crossings per frame ${exact / frames}`);
   assert.ok(lua / frames > 40, `Lua crossings per frame ${lua / frames}`);
+});
+
+test('a plugin that cannot answer Safe (-1) is not asked on every frame: the Lua check decides, and the question comes back only now and then', () => {
+  const {luaRun, shimRun, exactRun} = scenarioRuns();
+  const frames = luaRun.trace.length;
+  assert.ok(exactRun.counts.safe > frames * .5, `an exact plugin is asked about nearly every frame: ${exactRun.counts.safe} of ${frames}`);
+  const clock = JSON.parse(shimRun.checkpoints.at(-1)).clock;
+  assert.ok(clock > 30, `the scenario spans ${clock} s of expression time`);
+  // One question per 30 s of expression time at most, plus the first.
+  assert.ok(shimRun.counts.safe <= Math.ceil(clock / 30) + 1, `asked ${shimRun.counts.safe} times in ${clock} s over ${frames} frames`);
+  assert.ok(shimRun.counts.safe >= 1);
 });
 
 test('the fixture for the C++ core is current', () => {
