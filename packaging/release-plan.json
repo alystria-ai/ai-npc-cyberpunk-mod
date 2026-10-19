@@ -306,6 +306,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/spawned-characters.lua"
         },
         {
+          "source": "mod/custom-characters.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/custom-characters.lua"
+        },
+        {
           "source": "mod/world-talk.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/world-talk.lua"
         },
@@ -596,7 +600,9 @@
             "bridge/convai-signin.mjs",
             "bridge/convai-vision.mjs",
             "bridge/conversation-style.mjs",
+            "bridge/custom-characters.mjs",
             "bridge/custom-models.mjs",
+            "bridge/custom-voice-clip.mjs",
             "bridge/dialogue-level.mjs",
             "bridge/emotion-analysis.mjs",
             "bridge/emotion-lexicon.mjs",
