@@ -110,7 +110,7 @@ test('a page change: the way back is a footer action and Escape-back, the next v
   press('Settings')
   local config = mcm.config()
   assert(config.navigation.backActionId == 'settings:back' and config.navigation.escapeBack == true, config.navigation.backActionId)
-  assert(config.footerActions[1] == 'settings:back')
+  assert(config.footerActions[1] == 'defaults:restore' and config.footerActions[2] == 'settings:back', table.concat(config.footerActions, ','))
   assert(mcm.row('Back to Companion Manager').value == 'Back')
   assert(config.navigation.pageId == 'settings|1|1')
   press('Memory')
@@ -134,15 +134,17 @@ test('every kind of row is one MCM can take: switches, selects, sliders, buttons
     ids[row.id] = true
     assert(row.label ~= '', 'a row without a label: ' .. row.id)
     if row.type == 'bool' or row.type == 'select' or row.type == 'int' then
-      assert(row.capabilities.draft == true and row.capabilities.write == true and row.capabilities.canResetToDefault == true, row.id)
-      assert(row.default ~= nil, row.id .. ' has a default for MCM\s Defaults button')
+      assert(row.capabilities.draft == true and row.capabilities.write == true, row.id)
+      -- No default: MCM marks a row purple only when it has a default and differs from it (and the manager has its own Restore defaults).
+      assert(row.default == nil and row.capabilities.canResetToDefault ~= true, row.id .. ' must carry no default')
     end
     if row.type == 'select' then assert(#row.elements > 0 and row.value >= 1 and row.value <= #row.elements, row.id) end
     if row.type == 'int' then assert(row.min and row.max and row.step and row.value >= row.min and row.value <= row.max, row.id) end
     if row.type == 'action' then assert(row.capabilities.write == false and row.capabilities.draft == false, row.id) end
     assert(not row.id:find('^ui:'), 'a page control must not be a draft: ' .. row.id)
   end
-  assert(kinds.bool and kinds.select and kinds.int and kinds.action and kinds.string, 'every kind is on the Settings page')
+  -- The read-only lines of the Settings page are status buttons, so no line of the page is drawn at another size.
+  assert(kinds.bool and kinds.select and kinds.int and kinds.action and not kinds.string, 'every kind is on the Settings page')
   assert(mcm.row('feedback') == nil, 'the line of the last action is MCM\s status line, not a row')
   assert(#mcm.categories() > 6)
   assert(mcm.mod().loaded)
@@ -172,7 +174,8 @@ test('a change is a draft that MCM keeps until Apply; Apply is one validated, sa
   mcm.revert()
 `));
 
-test('Revert and Defaults: Revert drops the drafts, and the Defaults button stages the rows defaults, including the Local AI models own', () => withScreen(`
+test('Revert and Restore defaults: Revert drops the drafts; the footer button, pressed twice, puts every row back through the rules (the Local AI model included)', () => withScreen(`
+  ${footer}
   press('Settings')
   mcm.set('Voice volume (%)', 120)
   mcm.revert()
@@ -180,17 +183,32 @@ test('Revert and Defaults: Revert drops the drafts, and the Defaults button stag
   assert(manager.applySettings(player, {bodyGestures = false, voiceVolume = 150, battleReactions = true}))
   frames(10)
   assert(mcm.row('Body gestures').value == false and mcm.row('Voice volume (%)').value == 150, 'an outside change is drawn')
-  -- What MCM's Defaults button does: a draft of every default that differs.
-  local staged = 0
-  for _, row in ipairs(mcm.rows()) do
-    if row.default ~= nil and row.capabilities.canResetToDefault and row.default ~= row.value then
-      assert(mcm.api.setDraft('cyberpunk-convai:manager:' .. row.id, row.default)); staged = staged + 1
-    end
-  end
-  assert(staged >= 3, 'defaults staged: ' .. staged)
-  assert(mcm.apply())
+  -- No row has a default, so MCM's own Defaults button and its Modified counter are not there; the manager's own button is.
+  local layout = mcm.layout()
+  assert(layout.mcmDefaultsButton == false and layout.comparable == 0 and layout.modified == 0)
+  assert(footerLabels() == 'Restore defaults | Back', footerLabels())
+  -- Pending changes: MCM refuses the button (its rule for every action), and nothing is reset.
+  mcm.set('Subtitles', false)
+  local refused, why = mcm.press('Restore defaults')
+  assert(refused == false and why:find('pending changes', 1, true), tostring(why))
+  mcm.revert()
+  -- The first press only asks; the button says so, and nothing is changed.
+  press('Restore defaults')
+  assert(footerLabels() == 'Press again to restore | Back', footerLabels())
+  assert(mcm.status():find('again', 1, true), mcm.status())
+  assert(manager.snapshot(player).settings.bodyGestures == false and manager.snapshot(player).settings.voiceVolume == 150)
+  -- Another button drops the first press.
+  press('Voice status')
+  assert(footerLabels() == 'Restore defaults | Back', footerLabels())
+  press('Restore defaults'); press('Restore defaults')
   local settings = manager.snapshot(player).settings
-  assert(settings.bodyGestures == true and settings.voiceVolume == 100 and settings.battleReactions == false)
+  assert(settings.bodyGestures == true and settings.voiceVolume == 100 and settings.battleReactions == false, 'defaults saved')
+  assert(mcm.row('Body gestures').value == true and mcm.row('Voice volume (%)').value == 100, 'the page shows them')
+  assert(mcm.status() == 'Defaults restored.', mcm.status())
+  assert(footerLabels() == 'Restore defaults | Back' and not next(mcm.drafts()))
+  -- A press on another page drops it too: the confirmation is for the page it was asked on.
+  press('Restore defaults'); press('Memory'); press('Back to settings')
+  assert(footerLabels() == 'Restore defaults | Back', footerLabels())
 `));
 
 test('Mature content: turned on, Apply saves Local AI and the uncensored model with it (appliedIds stay the ids MCM asked for); without Local AI the switch goes back and the leftover draft is reverted', () => withScreen(`
@@ -386,7 +404,7 @@ test('every page the manager can show is drawn in one style: buttons are buttons
     end
     for _, button in ipairs(layout.footer) do assert(button.label ~= '', page .. ': a footer button without text') end
     -- A page of buttons and lines has no setting in it: nothing is indented or marked as changed on it.
-    if page ~= 'settings' then assert(not kinds.setting, page .. ' has a switch or list in it') end
+    if page ~= 'settings' and page ~= 'relationships' then assert(not kinds.setting, page .. ' has a switch or list in it') end
     -- The page number is never a line of the list: it is in the heading, and the page buttons are in the footer.
     for _, row in ipairs(layout.rows) do assert(not tostring(row.label):find('^Page %d+ / %d+$'), page .. ': a page line ' .. row.label) end
     -- Pages of a list: both page buttons are in the footer, always together.
@@ -402,6 +420,7 @@ test('every page the manager can show is drawn in one style: buttons are buttons
   go('Model browser'); frames(140)
   check('models'); go('Starts with: All'); check('models letter'); go('Next page'); check('models page 2'); go('Back to Companion Manager')
   go('Settings'); check('settings')
+  go('Relationships'); check('relationships'); go('Back to settings')
   go('Memory'); check('memory'); go('Back to settings')
   go('Help and support'); check('help'); go('Back to settings')
   go('Convai paid tier'); check('paid-tier'); go('Back to settings', 'Back to Companion Manager')
@@ -411,20 +430,83 @@ test('every page the manager can show is drawn in one style: buttons are buttons
   go('Current party'); check('party with copies')
 `));
 
-test('a fresh install draws no setting as changed: every default the page gives is the value it shows', () => withScreen(`
+test('no row is ever drawn as changed (purple): MCM needs a default for that mark, and none is given', () => withScreen(`
   ${footer}
   press('Settings')
-  local changed = {}
-  for _, row in ipairs(mcm.layout().rows) do
-    if row.kind == 'setting' and row.color == 'modified' then changed[#changed + 1] = row.label end
+  local function nothingPurple(when)
+    for _, row in ipairs(mcm.layout().rows) do
+      if row.kind == 'setting' then assert(row.color == 'red', when .. ': ' .. row.label .. ' is ' .. row.color) end
+    end
   end
-  assert(#changed == 0, 'purple (changed from the default) on a fresh install: ' .. table.concat(changed, ', '))
-  -- After a change is saved the row is the only one marked.
+  nothingPurple('fresh install')
+  -- A saved change, a draft and a value away from the manager's default stay red as well.
   assert(mcm.set('Subtitles', false) and mcm.apply())
   frames(4)
-  for _, row in ipairs(mcm.layout().rows) do
-    if row.kind == 'setting' then assert((row.color == 'modified') == (row.label == 'Subtitles'), row.label .. ' ' .. row.color) end
+  nothingPurple('after Apply')
+  assert(mcm.set('Voice volume (%)', 170))
+  nothingPurple('with a draft')
+  mcm.revert()
+`));
+
+test('every row of the Settings page is drawn the same: one size, one colour family, buttons for the status lines; the two alignments left are the ones MCM fixes', () => withScreen(`
+  ${footer}
+  assert(manager.applySettings(player, {johnnyInHead = true}))
+  convaiJohnnyStanding = function() return 'grudging' end
+  frames(6)
+  press('Settings')
+  local layout = mcm.layout()
+  local columns, rows = {}, 0
+  for _, row in ipairs(layout.rows) do
+    if row.kind ~= 'heading' then
+      rows = rows + 1
+      assert(row.size == 22, row.label .. ' is size ' .. row.size .. ' (' .. row.kind .. ')')
+      assert(row.color == 'red', row.label .. ' is ' .. row.color)
+      assert(row.kind == 'setting' or row.kind == 'action', row.label .. ' is a ' .. row.kind .. ' (a read-only line is drawn at size 26)')
+      assert(columns[row.kind] == nil or columns[row.kind] == row.x, row.label .. ' is at another x than the rest of its kind')
+      columns[row.kind] = row.x
+    end
   end
+  assert(rows > 20)
+  -- MCM puts the label of a setting in its marker column (x 48) and the label of an action flush left (x 20): neither moves through
+  -- the public interface (see mcm-fake.mjs layout()), so the page has exactly those two.
+  assert(columns.setting == 48 and columns.action == 20, tostring(columns.setting) .. ' ' .. tostring(columns.action))
+  -- Voice status and Johnny's standing are status buttons (the value is the button's text), and pressing one changes nothing.
+  for _, name in ipairs({'Voice status', 'Johnny’s standing'}) do
+    local row = listed(name)
+    assert(row and row.kind == 'action' and row.button and row.buttonText ~= '', name .. ' is ' .. tostring(row and row.kind))
+  end
+  assert(listed('Johnny’s standing').buttonText == 'Grudging respect', listed('Johnny’s standing').buttonText)
+  local loads = mcm.loads
+  press('Voice status'); press('Johnny’s standing')
+  assert(mcm.loads == loads, 'a status button does not draw the page again')
+  -- No row carries a default.
+  for _, row in ipairs(mcm.rows()) do assert(row.default == nil, row.id) end
+`));
+
+test('Relationships is a page of its own: a button in Conversations opens it, its rows are lists, Restore defaults is on it, Back returns to Settings', () => withScreen(`
+  ${footer}
+  press('Settings')
+  assert(mcm.row('Relationships').type == 'action' and mcm.row('Relationships').value == 'Open')
+  assert(mcm.row('Judy Alvarez') == nil and not headings():find('Relationships', 1, true), headings())
+  press('Relationships')
+  local config = mcm.config()
+  assert(config.navigation.pageId == 'relationships|1|1' and config.navigation.backActionId == 'relationships:back' and config.navigation.escapeBack == true)
+  assert(headings() == 'Relationships', headings())
+  assert(footerLabels() == 'Restore defaults | Back', footerLabels())
+  assert(mcm.row('Judy Alvarez').type == 'select' and mcm.row('Judy Alvarez').default == nil)
+  for _, row in ipairs(mcm.layout().rows) do
+    if row.kind ~= 'heading' then assert(row.kind == 'setting' and row.size == 22 and row.color == 'red', row.label) end
+  end
+  assert(mcm.set('Judy Alvarez', 2) and mcm.apply())
+  assert(manager.snapshot(player).settings.relationshipModes['judy-alvarez'] == 'on')
+  assert(mcm.row('Judy Alvarez').value == 2 and mcm.config().navigation.pageId == 'relationships|1|1', 'still on the page after Apply')
+  -- Restore defaults on this page puts the relationships back to Auto (and Settings with them).
+  press('Restore defaults'); press('Restore defaults')
+  assert(manager.snapshot(player).settings.relationshipModes['judy-alvarez'] == 'auto' and mcm.row('Judy Alvarez').value == 1)
+  -- The way back leads to Settings.
+  press('Back to settings')
+  assert(mcm.config().navigation.pageId == 'settings|1|1' and mcm.row('Relationships'))
+  press('Back to Companion Manager')
 `));
 
 test('Apply of one switch saves exactly that switch: Live holocall picture off is saved off, and the rest stays', () => withScreen(`

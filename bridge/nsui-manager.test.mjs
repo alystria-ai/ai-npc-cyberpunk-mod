@@ -61,19 +61,24 @@ test('every page builds on the tab and the tab always starts with the way back, 
     press('Back to Companion Manager')
     assert(#ns.sections() == 1 and ns.sections()[1].options[1].label == 'Characters to invite', 'back on Home')
   end
-  -- Settings has its sub-pages: Memory, Help and the paid tier, each with its Back to Settings at the top.
+  -- Settings has its sub-pages: Memory, Relationships, Help and the paid tier, each with its Back to Settings at the top.
   press('Settings')
-  assert(ns.find('Memory') and ns.find('Help and support') and ns.find('Convai paid tier'))
-  for _, page in ipairs({'Memory', 'Help and support', 'Convai paid tier'}) do
+  assert(ns.find('Memory') and ns.find('Relationships') and ns.find('Help and support') and ns.find('Convai paid tier'))
+  for _, page in ipairs({'Memory', 'Relationships', 'Help and support', 'Convai paid tier'}) do
     press(page)
     check(page, 'Back to settings')
     press('Back to settings')
     assert(ns.sections()[2].label == 'Interface', 'back on Settings after ' .. page)
   end
-  -- Relationships are a section of Settings, the Memory character list is part of the Memory page.
+  -- Relationships is a button in Conversations (a page of its own, with one row per character), the Memory character list is part of
+  -- the Memory page.
   local labels = {}
   for _, section in ipairs(ns.sections()) do labels[#labels + 1] = section.label end
-  assert(table.concat(labels, ','):find('Conversations,Relationships,Conversation provider', 1, true), table.concat(labels, ','))
+  assert(table.concat(labels, ','):find('Conversations,Conversation provider', 1, true) and not table.concat(labels, ','):find('Relationships', 1, true),
+    table.concat(labels, ','))
+  press('Relationships')
+  assert(ns.sections()[2].label == 'Relationships' and ns.find('Judy Alvarez') and not ns.find('Memory'))
+  press('Back to settings')
   press('Memory')
   assert(ns.sections()[3].label == 'Whose memories' and ns.find('Selected character'))
 `));
@@ -262,6 +267,13 @@ test('Restore defaults goes through the same validated path, only on the Setting
   frames(4)
   ns.interact.restoreDefaults(); frames(8)
   assert(manager.snapshot(player).settings.voiceProvider == 'pocket')
+  -- The Relationships page is part of Settings: its rows go back to Auto too.
+  assert(manager.applySettings(player, {relationshipModes = {['judy-alvarez'] = 'on'}}))
+  press('Relationships'); frames(4)
+  assert(ns.find('Judy Alvarez').selectedElementIndex == 2)
+  ns.interact.restoreDefaults(); frames(8); ns.verify()
+  assert(manager.snapshot(player).settings.relationshipModes['judy-alvarez'] == 'auto')
+  assert(ns.find('Judy Alvarez').selectedElementIndex == 1)
 `));
 
 test('without Native Settings UI the shortcut says so; a copy that loads later is found and registered', () => run(`${harness({nsui: false, screen: false})}

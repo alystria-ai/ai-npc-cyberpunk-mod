@@ -1068,6 +1068,7 @@ local function pageSignature(snapshot)
         local own = snapshot.ownKey
         add(table.concat({'paid', tostring(own.saved), own.tail or '', own.result or '', paidTier.signature()}, '|'))
     end
+    if view == 'relationships' then add(settingsDigest(snapshot.settings)) end
     if view == 'settings' then
         -- The key rows change when the bridge answers a Paste or Remove, or reports a used-up plan; the provider rows when its
         -- state changes (Local AI warming up and ready); the voice list when the OmniVoice pack appears; the voice status line
@@ -1106,6 +1107,23 @@ end
 -- Set by M.update when the game has no world (the main menu, a loading screen): Game.GetPlayer() can still hand back an object there,
 -- and the pages must not offer invitations without a loaded save.
 local noWorld = false
+-- Relationships: who speaks as a partner. The saved values stay auto / on / off; only the labels read Romantic (Casual for Meredith) /
+-- Ordinary. A page of its own, opened from the Conversations section of Settings (both hosts draw it from here).
+local function relationshipRows(snapshot)
+    local rows = {}
+    for _, profile in ipairs(manager.relationshipChoices()) do
+        local mode = snapshot.settings.relationshipModes[profile.key]
+        local casual = profile.key == 'meredith-stout'
+        local description = casual
+            and 'Auto: follows the completed encounter in this save.\n\nCasual: speaks with that familiarity.\n\nOrdinary: keeps her usual manner.\n\nIt does not imply an ongoing relationship.'
+            or 'Auto: follows the relationship in this save.\n\nRomantic: speaks to V as a partner.\n\nOrdinary: keeps their usual manner.\n\nOnly changes how they talk, never your game choices.'
+        rows[#rows + 1] = setting('relationship:' .. profile.key, profile.name, 'select',
+            mode == 'on' and 2 or mode == 'off' and 3 or 1, 1, description,
+            {'Auto', casual and 'Casual' or 'Romantic', 'Ordinary'})
+    end
+    return rows
+end
+
 local function schema()
     local currentPlayer = not noWorld and player() or nil
     owner = identity(currentPlayer)
@@ -1122,7 +1140,7 @@ local function schema()
     -- The first section of every page: the way back (or, on the home page, the four destinations) and the line of the last action.
     local nav = {}
     local BACK = {characters = 'home', party = 'home', models = 'home', settings = 'home', memory = 'settings', help = 'settings',
-        ['paid-tier'] = 'settings'}
+        ['paid-tier'] = 'settings', relationships = 'settings'}
     if view == 'home' then
         for _, tab in ipairs({{'characters', 'Characters to invite'}, {'party', 'Current party'},
             {'models', 'Model browser'}, {'settings', 'Settings'}}) do
@@ -1343,6 +1361,9 @@ local function schema()
         }, 'Send the generated report rather than raw log files. Open these locations only if the developer asks for a specific file.')
     elseif view == 'paid-tier' and paidTier then
         for _, section in ipairs(paidTierRows(snapshot)) do categories[#categories + 1] = section end
+    elseif view == 'relationships' then
+        local rows = relationshipRows(snapshot)
+        if #rows > 0 then categories[#categories + 1] = category('relationships', 'Relationships', rows) end
     elseif view == 'settings' then
         -- The Inworld cloud voice is a developer-mode voice (Settings > Development): its name appears in the help of a setting only
         -- while developer mode is on, as one more paragraph after the help that holds for everybody.
@@ -1386,6 +1407,12 @@ local function schema()
             setting('holocallLiveImage', 'Live holocall picture', 'bool', snapshot.settings.holocallLiveImage == true, true,
                 'Shows the character live in a holocall instead of their portrait.\n\nIf she cannot be shown, the call goes on with the portrait.'),
         })
+        -- Who speaks as a partner: a page of its own (one row per character who can), a button beside Memory, so Conversations stays short.
+        if #relationshipRows(snapshot) > 0 then
+            table.insert(conversations.settings, 2, action('relationships', 'Relationships', 'Open',
+                'Choose, character by character, who speaks to V as a partner.\n\nAuto follows the relationship in this save. It only changes how they talk, never your game choices.',
+                function() return navigate('relationships') end))
+        end
         -- Johnny's standing in this save's story, right under his setting while it is on (read from the save as the page is drawn).
         local standing = johnnyStandingRow(snapshot)
         if standing then
@@ -1394,20 +1421,6 @@ local function schema()
             end
         end
         categories[#categories + 1] = conversations
-        -- Relationships: who speaks as a partner. The saved values stay auto / on / off; only the labels read Romantic (Casual for
-        -- Meredith) / Ordinary.
-        local relationshipRows = {}
-        for _, profile in ipairs(manager.relationshipChoices()) do
-            local mode = snapshot.settings.relationshipModes[profile.key]
-            local casual = profile.key == 'meredith-stout'
-            local description = casual
-                and 'Auto: follows the completed encounter in this save.\n\nCasual: speaks with that familiarity.\n\nOrdinary: keeps her usual manner.\n\nIt does not imply an ongoing relationship.'
-                or 'Auto: follows the relationship in this save.\n\nRomantic: speaks to V as a partner.\n\nOrdinary: keeps their usual manner.\n\nOnly changes how they talk, never your game choices.'
-            relationshipRows[#relationshipRows + 1] = setting('relationship:' .. profile.key, profile.name, 'select',
-                mode == 'on' and 2 or mode == 'off' and 3 or 1, 1, description,
-                {'Auto', casual and 'Casual' or 'Romantic', 'Ordinary'})
-        end
-        if #relationshipRows > 0 then categories[#categories + 1] = category('relationships', 'Relationships', relationshipRows) end
         -- Settings > Conversation provider: who writes the replies, Mature content, Local AI and the provider keys (the Inworld key is in
         -- Development).
         local providerRows, inworldKeyRow = ownKeyRows(snapshot)
@@ -1580,7 +1593,8 @@ M.LABEL, M.PAGE_SIZE = LABEL, PAGE_SIZE
 
 -- ---- What the host (mod/nsui.lua) calls -------------------------------------------------------------------------------------------
 
-local PAGES = {home = true, characters = true, party = true, models = true, settings = true, memory = true, help = true, ['paid-tier'] = true}
+local PAGES = {home = true, characters = true, party = true, models = true, settings = true, memory = true, help = true, ['paid-tier'] = true,
+    relationships = true}
 
 function M.view() return view end
 
@@ -1690,21 +1704,26 @@ end
 -- The Local AI model has no default of its own (nothing chosen: the largest that fits), so it goes to the model shown as the default.
 function M.defaults()
     local previous = view
-    view = 'settings'
-    local ok, model = pcall(schema)
-    view = previous
     local changes = {}
-    if not ok then lastError = tostring(model); return changes end
-    for _, section in ipairs(model.categories) do
-        for _, row in ipairs(section.settings) do
-            local kind = row.type
-            if (kind == 'bool' or kind == 'select' or kind == 'int') and row.defaultValue ~= nil and not row.id:match('^ui:') then
-                local target = row.defaultValue
-                if row.id == 'localModel' then target = modelIndexOf('auto') or row.value end
-                if row.value ~= target then changes[#changes + 1] = {id = row.id, value = target} end
+    -- Settings, and the Relationships page that opens from it.
+    for _, name in ipairs({'settings', 'relationships'}) do
+        view = name
+        local ok, model = pcall(schema)
+        if not ok then lastError = tostring(model); break end
+        for _, section in ipairs(model.categories) do
+            for _, row in ipairs(section.settings) do
+                local kind = row.type
+                if (kind == 'bool' or kind == 'select' or kind == 'int') and row.defaultValue ~= nil and not row.id:match('^ui:') then
+                    local target = row.defaultValue
+                    if row.id == 'localModel' then target = modelIndexOf('auto') or row.value end
+                    if row.value ~= target then changes[#changes + 1] = {id = row.id, value = target} end
+                end
             end
         end
     end
+    -- Drawing the other pages replaced the page's actions and signature: the page on screen is built again.
+    view = previous
+    pcall(schema)
     return changes
 end
 

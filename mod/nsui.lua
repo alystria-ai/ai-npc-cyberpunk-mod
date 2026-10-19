@@ -404,7 +404,7 @@ end
 local function onRestoreDefaults()
     -- Everything waiting is dropped: the defaults replace it.
     pending, flushAt, flushFirst = {}, nil, nil
-    if core.view() ~= 'settings' then
+    if core.view() ~= 'settings' and core.view() ~= 'relationships' then
         core.setFeedback(ui.t('Open Settings to restore its defaults.'))
         rebuildAt = os.clock()
         return
