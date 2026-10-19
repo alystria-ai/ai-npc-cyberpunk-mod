@@ -157,6 +157,7 @@ return {
     ["No speech was heard. Wait for Listening, then speak before you finish."] = "沒有聽到語音，請等待「正在聆聽」後再說話，結束前要開口。",
     ["The microphone {name} sends no sound. Check your Windows input device."] = "麥克風 {name} 沒有傳出任何聲音。請檢查你的 Windows 輸入裝置。",
     ["Voice input only understands English for now. Typing works in any language."] = "語音輸入目前只能辨識英語。打字可以使用任何語言。",
+    ["Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language."] = "此語言的語音輸入需要模組頁面上的選用麥克風包。打字可以使用任何語言。",
     ["Not configured"] = "未設定",
     ["Off"] = "關",
     ["On"] = "開",

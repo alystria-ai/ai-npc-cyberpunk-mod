@@ -214,6 +214,10 @@ function M.update(player)
                     -- session, under the Listening line in one notice.
                     convaiNotices.sendLines(player, {{id = 'mic-listening', text = listening},
                         {id = 'mic-english-only', text = ui.t('Voice input only understands English for now. Typing works in any language.')}})
+                elseif value.note == 'pack-available' then
+                    -- The same, but an optional microphone pack hears this language and is not installed: the notice says where the help is.
+                    convaiNotices.sendLines(player, {{id = 'mic-listening', text = listening},
+                        {id = 'mic-english-only', text = ui.t('Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.')}})
                 else
                     convaiNotices.send(player, 'mic-listening', listening)
                 end

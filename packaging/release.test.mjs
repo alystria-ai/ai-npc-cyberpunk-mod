@@ -439,7 +439,7 @@ const jobOf = (workflow, name) => new RegExp(`\\n  ${name}:\\n([\\s\\S]*?)(?=\\n
 
 test('optional packs are one zip each with no parts: the builder never splits a file or a pack, and says which packs are optional', async () => {
   const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
-  assert.match(builder, /const OPTIONAL_PACKAGE_IDS = new Set\(\['omni', 'localai-standard', 'localai-lite', 'mature-lite', 'mature-standard'\]\)/);
+  assert.match(builder, /const OPTIONAL_PACKAGE_IDS = new Set\(\['omni', 'localai-standard', 'localai-lite', 'mature-lite', 'mature-standard', 'micpack-european', 'micpack-asian'\]\)/);
   assert.doesNotMatch(builder, /splitLargeFiles|\.part\$\{index\}|\.parts\.json|splitPartBytes|splitFileBytes/, 'no file is split into .partN files and no .parts.json is written');
   assert.match(builder, /writeArchives\(pkg, [^\n]*\{single: OPTIONAL_PACKAGE_IDS\.has\(id\)\}\)/, 'an optional pack is written as a single zip');
   assert.match(builder, /if \(!single && writer\.count && /, 'only a non-optional package may roll over to a next zip');
@@ -576,8 +576,8 @@ test('the release workflow builds the Mature packs only in an opt-in job: off by
 // ---------------------------------------------------------------- the Mature pack (docs/LOCAL_AI.md, "Mature content")
 test('the Mature packs are their own packages: built only on request, never in the default set, and nothing of it in the Runtime package or the main page text', async () => {
   const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
-  assert.match(builder, /const PACKAGE_IDS = \[[^\]]*'localai-lite', 'mature-lite', 'mature-standard'\]/, 'the two Mature packs are package ids beside the Local AI packs');
-  assert.match(builder, /const DEFAULT_PACKAGE_IDS = PACKAGE_IDS\.filter\(id => !id\.startsWith\('mature'\)\)/, 'the default set leaves them out');
+  assert.match(builder, /const PACKAGE_IDS = \[[^\]]*'localai-lite', 'mature-lite', 'mature-standard'/, 'the two Mature packs are package ids beside the Local AI packs');
+  assert.match(builder, /const DEFAULT_PACKAGE_IDS = PACKAGE_IDS\.filter\(id => !id\.startsWith\('mature'\) && !id\.startsWith\('micpack'\)\)/, 'the default set leaves them out (and the voice-input packs too)');
   assert.match(builder, /value\('--packages', DEFAULT_PACKAGE_IDS\.join\(','\)\)/, 'a plain build uses the default set');
   // The release workflow produces the Mature pack only in its own opt-in job (see the workflow test below).
   // Nothing in the release plan or the runtime layout (the Runtime package) is the pack's marker, README, release notes or models.
@@ -864,4 +864,120 @@ test('the release notes open with where the download files are, and a rebuild re
   assert.match(workflow, /gh release edit \$tag --repo \$env:GITHUB_REPOSITORY --title "AI NPC Cyberpunk Mod \$version" --notes-file \$notes/);
   // The pointer lives only on the release page: README.txt in the zips is PLAYER_README.md as it is.
   assert.doesNotMatch(await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8'), /under Assets/);
+});
+
+// ---------------------------------------------------------------- the voice-input packs (docs/PACKAGING.md, "Voice-input packs")
+test('the voice-input packs are two opt-in packages: ids, titles, one zip each, never in the default set, never Nexus', async () => {
+  const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
+  assert.match(builder, /const PACKAGE_IDS = \[[^\]]*'mature-standard', 'micpack-european', 'micpack-asian'\]/, 'the two packs are package ids after the Mature packs');
+  assert.match(builder, /const DEFAULT_PACKAGE_IDS = PACKAGE_IDS\.filter\(id => !id\.startsWith\('mature'\) && !id\.startsWith\('micpack'\)\)/, 'the default set leaves them out');
+  assert.match(builder, /const OPTIONAL_PACKAGE_IDS = new Set\(\[[^\]]*'micpack-european', 'micpack-asian'\]\)/, 'they are optional packs: one zip each, hosted on Hugging Face');
+  assert.match(builder, /'micpack-european': 'MicPack-European', 'micpack-asian': 'MicPack-Asian'/, 'the titles name the zips');
+  assert.match(builder, /'micpack-european': \(\) => micPackage\(source, config, 'european'\)/);
+  assert.match(builder, /'micpack-asian': \(\) => micPackage\(source, config, 'asian'\)/);
+  const header = builder.slice(0, builder.indexOf('// Options:'));
+  assert.match(header, /AI-NPC-Cyberpunk-Mod-MicPack-European-<v>\.zip[^\n]*--packages micpack-european/);
+  assert.match(header, /AI-NPC-Cyberpunk-Mod-MicPack-Asian-<v>\.zip[^\n]*--packages micpack-asian/);
+  assert.match(builder, /--packages LIST    comma list of [^\n]*mature-standard,micpack-european,micpack-asian \(default: the first five\)/);
+  assert.match(builder, /--mic-pack-source DIR/); assert.match(builder, /CYBERPUNK_CONVAI_MIC_PACKS_DEV/);
+  // The Runtime builder never reads the packs' pins or files, and the Runtime keeps its own Moonshine folder to itself.
+  const runtimeBuilder = builder.slice(builder.indexOf('async function runtimePackage'), builder.indexOf('async function omniPackage'));
+  assert.doesNotMatch(runtimeBuilder, /micPacks|micPackage|micpack/i);
+  assert.match(builder, /const folder = `\$\{config\.layout\.pluginDirectory\}\/\$\{spec\.directory\}\/\$\{pack\.id\}`/, 'the files go in app/models/stt/<id>/');
+  // The archive is untrusted data: it is listed before anything is extracted, and nothing in it is run.
+  assert.match(builder, /holds an entry outside \$\{folder\}\//);
+  assert.match(builder, /const listed = spawnSync\(MIC_TAR, \['-tjf', archive\]/);
+  assert.match(builder, /await run\(MIC_TAR, \['-xjf', archive, '-C', extracted, \.\.\.members\]/, 'only the files the pack ships are extracted');
+  assert.match(builder, /does not carry the licence link/, 'a linked licence must be linked in the notice');
+  assert.doesNotMatch(builder, /test_wavs/, 'the sample recordings of the archives are never named for shipping');
+  // Nothing of them in the Scripts or Runtime plan.
+  const plan = await readFile(resolve(project, 'packaging/release-plan.json'), 'utf8');
+  assert.doesNotMatch(plan, /micpack|MicPack|parakeet|sense-voice/i);
+});
+
+test('the voice-input pack pins match what the bridge looks for, and every file is pinned by size and SHA-256 from the sherpa-onnx archive', async () => {
+  const {LOCAL_PACKS} = await import('../bridge/speech-language.mjs');
+  const spec = config.micPacks;
+  assert.equal(spec.status, 'pinned');
+  assert.equal(spec.directory, 'app/models/stt', 'the folder bridge/local-stt.mjs resolveLocalSttPaths looks in (models/stt/<id>)');
+  assert.deepEqual(Object.keys(spec.packs), ['european', 'asian']);
+  assert.deepEqual(Object.values(spec.packs).map(pack => pack.id), ['parakeet-tdt-0.6b-v3-int8', 'sense-voice-int8']);
+  assert.deepEqual(Object.values(spec.packs).map(pack => pack.packageId), ['micpack-european', 'micpack-asian']);
+  assert.deepEqual(Object.values(spec.packs).map(pack => pack.title), ['MicPack-European', 'MicPack-Asian']);
+  assert.equal(new Set(LOCAL_PACKS.map(pack => pack.id)).size, LOCAL_PACKS.length);
+  for (const pack of Object.values(spec.packs)) {
+    const known = LOCAL_PACKS.find(item => item.id === pack.id);
+    assert(known, `${pack.id} is a LOCAL_PACKS pack of bridge/speech-language.mjs`);
+    assert.deepEqual(Object.keys(pack.files).sort(), [...known.files].sort(), `${pack.id}: the files the worker needs`);
+    assert.deepEqual(pack.languages, [...known.languages], `${pack.id}: the languages the bridge routes to it`);
+    assert.equal(pack.license, known.licence, `${pack.id}: the licence the bridge names`);
+    for (const [name, file] of Object.entries(pack.files)) {
+      assert.match(file.sha256, /^[0-9a-f]{64}$/, name);
+      assert(Number.isInteger(file.size) && file.size > 1000, name);
+    }
+    assert.match(pack.archive.url, /^https:\/\/github\.com\/k2-fsa\/sherpa-onnx\/releases\/download\/asr-models\/sherpa-onnx-[A-Za-z0-9.-]+\.tar\.bz2$/, pack.id);
+    assert.match(pack.archive.sha256, /^[0-9a-f]{64}$/);
+    assert(Number.isInteger(pack.archive.size) && pack.archive.size > 1e8, pack.id);
+    assert.equal(pack.archive.folder, pack.archive.url.split('/').pop().replace(/\.tar\.bz2$/, ''), 'the archive unpacks to a folder of its own name');
+    assert.match(pack.licenseUrl, /^https:\/\//); assert.match(pack.attribution, /sherpa-onnx/);
+    assert(existsSync(resolve(project, pack.noticeSource)), pack.noticeSource);
+    const notice = await readFile(resolve(project, pack.noticeSource), 'utf8');
+    assert(notice.includes(pack.licenseUrl), `${pack.noticeSource} carries the licence link`);
+    assert.doesNotMatch(notice, /\bAMM\b|inworld/i);
+  }
+  // Sizes measured with the real files (2026-10-19).
+  assert.equal(spec.packs.european.files['encoder.int8.onnx'].size, 652184281);
+  assert.equal(spec.packs.asian.files['model.int8.onnx'].size, 237115547);
+  // Parakeet needs attribution (CC-BY-4.0); SenseVoice's licence is only linked, and the notice says so.
+  const flat = async pack => (await readFile(resolve(project, pack.noticeSource), 'utf8')).replace(/\s+/g, ' '); // the notice is wrapped at 110 columns
+  const european = await flat(spec.packs.european), asian = await flat(spec.packs.asian);
+  assert.match(european, /Copyright \(c\) NVIDIA Corporation/); assert.match(european, /does not endorse/); assert.match(european, /converted to ONNX and quantised to int8/);
+  assert.match(asian, /keep the model's name \(SenseVoice\)/); assert.match(asian, /not copied into this pack/);
+  // The Asian pack is Mandarin only for now: the languages and every description say so.
+  assert.deepEqual(spec.packs.asian.languages, ['zh']);
+  assert.match(spec.packs.asian.languagesNote, /Mandarin/);
+});
+
+test('the release workflow builds the voice-input packs only in an opt-in job: off by default, never on a tag push, one matrix entry per pack, no secret to build, uploaded under their own names', async () => {
+  const workflow = await workflowText();
+  const input = /\n      micpacks:\n([\s\S]*?)\n      \w+:\n/.exec(workflow)?.[1] ?? '';
+  assert.match(input, /type: boolean/); assert.match(input, /default: false/, 'off by default');
+  assert.match(input, /MicPack-European and MicPack-Asian \(uploaded to Hugging Face\)/);
+  const job = jobOf(workflow, 'micpacks');
+  assert(job, 'the workflow has a micpacks job');
+  assert.match(job, /needs: runtime/);
+  assert.match(job, /\n    if: inputs\.micpacks\n/, 'the job runs only when the input is ticked');
+  assert.doesNotMatch(job, /ref_type|startsWith\(github\.ref|refs\/tags/, 'its condition never mentions a tag push');
+  assert.match(job, /\n      matrix:\n        pack: \[european, asian\]\n/);
+  assert.match(job, /fail-fast: false/);
+  assert.match(job, /--packages "micpack-\$\{\{ matrix\.pack \}\}" `\s*\n\s*--out \$env:OUT --cache \$env:CACHE/, 'it builds the pack of its matrix entry');
+  assert.doesNotMatch(job, /--models|HF_TOKEN:|CONVAI_API_KEY|secrets\.HF_TOKEN/, 'the build needs no secret: the files come from the pinned download');
+  assert.match(job, /--pack "micpack-\$\{\{ matrix\.pack \}\}" --packages "\$env:OUT\\packages"/, 'it uploads that pack under its own name');
+  assert.match(job, /python packaging\/upload-packs\.py --version "\$\{\{ needs\.runtime\.outputs\.version \}\}" --pack /);
+  assert.match(job, /HF_PACKS_TOKEN: \$\{\{ secrets\.HF_PACKS_TOKEN \}\}/);
+  assert.match(job, /upload-packs\.py --check/);
+  assert.match(job, /huggingface_hub==\$env:HF_HUB_VERSION/);
+  assert.doesNotMatch(job, /gh release upload|GH_TOKEN|\bgh \w|nexus/i);
+  const trigger = workflow.slice(workflow.indexOf('\non:'), workflow.indexOf('\npermissions:'));
+  assert(!/micpacks/.test(trigger.slice(trigger.indexOf('push:'))), 'the push trigger knows nothing of it');
+  for (const name of ['runtime', 'omni', 'mature', 'localai']) assert.doesNotMatch(jobOf(workflow, name), /micpack/, `${name} does not build the voice-input packs`);
+  assert.equal(workflow.split('gh release upload').length - 1, 1, 'only the Runtime job uploads to the GitHub release');
+  // The uploader knows both packs and names the sums file after the pack.
+  const uploader = await readFile(resolve(project, 'packaging/upload-packs.py'), 'utf8');
+  assert.match(uploader, /PACKS = \([^)]*"mature-standard", "micpack-european", "micpack-asian"\)/);
+  assert.match(uploader, /micpack-european and micpack-asian/);
+});
+
+test('the notices cover the voice-input packs: Parakeet (CC-BY-4.0, attribution) and SenseVoice (FunASR licence, linked)', async () => {
+  const notices = (await readFile(resolve(project, 'THIRD_PARTY_NOTICES.md'), 'utf8')).replaceAll('\r\n', '\n');
+  const section = notices.slice(notices.indexOf('## Bundled in the optional voice-input packs'), notices.indexOf('## Installed separately by players'));
+  assert(section.length > 500, 'the section exists');
+  for (const text of ['NVIDIA Parakeet TDT 0.6B v3', 'CC-BY-4.0', 'Copyright (c) NVIDIA Corporation', 'https://creativecommons.org/licenses/by/4.0/', 'https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3',
+    'SenseVoice Small', 'FunASR Model Open Source License Agreement, Version 1.1', 'https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE', 'Mandarin', 'sherpa-onnx', 'parakeet-tdt-0.6b-v3-int8', 'sense-voice-int8']) {
+    assert(section.includes(text), `the voice-input section mentions ${text}`);
+  }
+  assert.doesNotMatch(section, /\bAMM\b|inworld/i);
+  const packaging = (await readFile(resolve(project, 'docs/PACKAGING.md'), 'utf8')).replaceAll('\r\n', '\n');
+  assert(packaging.includes('### Voice-input packs (`micpack-european`, `micpack-asian`)'));
+  assert(packaging.includes('--mic-pack-source DIR') && packaging.includes('CYBERPUNK_CONVAI_MIC_PACKS_DEV'));
 });

@@ -1,7 +1,7 @@
 // Puts optional pack files into place when they were extracted one folder too deep.
 //
-// The optional packs (Local AI lite/standard, Mature lite/standard, OmniVoice) are zips whose entries start at the game root
-// (red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/..., .../app/omni/...). Windows "Extract All" and 7-Zip's "Extract to <name>\"
+// The optional packs (Local AI lite/standard, Mature lite/standard, OmniVoice, MicPack-European, MicPack-Asian) are zips whose entries start at the game root
+// (red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/..., .../app/omni/..., .../app/models/stt/<id>/...). Windows "Extract All" and 7-Zip's "Extract to <name>\"
 // wrap everything in a folder named after the zip, so a player who extracts inside the game folder ends up with
 //   <game>/AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2/red4ext/plugins/AiNpcCyberpunkMod/app/local-ai/...
 // and the mod never finds the pack. Shipped as app/launcher/place-packs.mjs and run by start-service.mjs before the pack checks.
@@ -12,13 +12,15 @@
 //   - the mod folder (bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod): red4ext/... and app/... extracted into it;
 //   - the plugin folder (red4ext/plugins/AiNpcCyberpunkMod): red4ext/... extracted into it, also one wrapper folder deep.
 // A candidate counts only when <candidate>/red4ext/plugins/AiNpcCyberpunkMod/app/ holds a pack marker:
-//   local-ai/manifest.*.json (Local AI and Mature packs), local-ai/mature/, or omni/omni-pack.json (OmniVoice).
+//   local-ai/manifest.*.json (Local AI and Mature packs), local-ai/mature/, omni/omni-pack.json (OmniVoice), or
+//   models/stt/<id>/mic-pack.json for one of the two voice-input pack ids (MIC_PACKS below).
 //
-// What it moves: only the pack folders of that misplaced app/ (local-ai/, omni/), and for the OmniVoice pack its voices/ folder
-// (the pack's reference clips, a sibling of app/). Never the launcher, bridge or anything else a Runtime package holds.
+// What it moves: only the pack folders of that misplaced app/ (local-ai/, omni/, models/stt/<id>/ of a voice-input pack), and for the OmniVoice pack its
+// voices/ folder (the pack's reference clips, a sibling of app/). Never the launcher, bridge or anything else a Runtime package holds, and never the
+// Runtime's own models/stt/moonshine-tiny-en-int8/ (only the two ids below are looked at).
 //   - rename (same volume), or a whole folder at once when it does not exist yet; on EXDEV copy, verify the size, then delete;
 //   - a file already in place with the same size: the stray copy is dropped; with a different size: both are left as they are;
-//   - the markers (manifest.*.json, omni-pack.json) move last, so an interrupted move is retried in full at the next start
+//   - the markers (manifest.*.json, omni-pack.json, mic-pack.json) move last, so an interrupted move is retried in full at the next start
 //     and a pack is never detected half-placed;
 //   - afterwards the wrapper folders are removed with a plain rmdir, so only when empty, and only inside the candidate;
 //   - anything unexpected (permissions, a link or other odd entry, a failed rename): stop, leave what is left, log it.
@@ -33,6 +35,11 @@ export const GAME_FOLDERS = Object.freeze(new Set(['archive', 'bin', 'engine', '
 // Pack folders under app/ that are moved. A sibling of app/ moved with the OmniVoice pack.
 const APP_TREES = Object.freeze(['local-ai', 'omni']);
 const LOCAL_MARKER = /^manifest\.[A-Za-z0-9._-]+\.json$/;
+// The voice-input packs: pack id (the folder under app/models/stt/, bridge/speech-language.mjs LOCAL_PACKS) -> name in the log. The marker is mic-pack.json.
+// The ids are repeated here because this file imports nothing from the bridge (packaging/mic-packs.test.mjs checks them against release.config.json).
+export const MIC_PACKS = Object.freeze({'parakeet-tdt-0.6b-v3-int8': 'MicPack-European', 'sense-voice-int8': 'MicPack-Asian'});
+const MIC_MARKER = 'mic-pack.json';
+const micTree = id => `models/stt/${id}`;
 const PACK_NAMES = Object.freeze({
   'manifest.standard.json': 'Local AI standard', 'manifest.lite.json': 'Local AI lite',
   'manifest.mature-standard.json': 'Mature standard', 'manifest.mature-lite.json': 'Mature lite',
@@ -61,6 +68,9 @@ async function packsIn(fs, tree) {
       && local.some(entry => entry.isDirectory() && entry.name.toLowerCase() === 'mature')
       && (await entriesOf(fs, join(tree, 'local-ai', 'mature'))).length) packs.push({name: 'Mature', tree: 'local-ai'});
   if (await kindOf(fs, join(tree, 'omni', 'omni-pack.json')) === 'file') packs.push({name: 'OmniVoice', tree: 'omni'});
+  for (const [id, name] of Object.entries(MIC_PACKS)) {
+    if (await kindOf(fs, join(tree, 'models', 'stt', id, MIC_MARKER)) === 'file') packs.push({name, tree: micTree(id)});
+  }
   return packs;
 }
 
@@ -186,8 +196,8 @@ export async function placeMisplacedPacks({layout, log = () => {}, fs = realFs} 
     const label = relative(layout.gameRoot, candidate.base) || '.';
     const ctx = {fs, moved: 0, dropped: 0, conflicts: [], deferred: []};
     const trees = [...new Set(packs.map(pack => pack.tree))];
-    const jobs = trees.map(tree => ({rel: tree, source: join(candidate.tree, tree), target: join(layout.app, tree),
-      marker: tree === 'local-ai' ? name => LOCAL_MARKER.test(name) : name => name === 'omni-pack.json'}));
+    const markerOf = tree => tree === 'local-ai' ? name => LOCAL_MARKER.test(name) : tree === 'omni' ? name => name === 'omni-pack.json' : name => name === MIC_MARKER;
+    const jobs = trees.map(tree => ({rel: tree, source: join(candidate.tree, tree), target: join(layout.app, tree), marker: markerOf(tree)}));
     if (trees.includes('omni') && candidate.voices && await kindOf(fs, candidate.voices) === 'dir') {
       jobs.push({rel: 'voices', source: candidate.voices, target: layout.voices, marker: null});
     }
@@ -204,6 +214,8 @@ export async function placeMisplacedPacks({layout, log = () => {}, fs = realFs} 
       return report; // stop: nothing else is touched
     }
     for (const job of jobs) await removeEmptyFolders(fs, job.source);
+    // A voice-input pack sat two folders down (models/stt/<id>): those two go too once empty (only inside the misplaced tree), so app/ can follow.
+    if (trees.some(tree => tree.startsWith('models/stt/'))) await removeChain(fs, [join(candidate.tree, 'models', 'stt'), join(candidate.tree, 'models')]);
     await removeChain(fs, candidate.chain);
     for (const pack of packs) {
       log(`Moved the ${pack.name} files into place from ${label}`);

@@ -50,7 +50,7 @@
     ]
   },
   "counts": {
-    "strings": 1083,
+    "strings": 1084,
     "dynamicTemplates": 55,
     "contexts": 37
   },
@@ -979,6 +979,7 @@
     "Version {version}.": "Version {version}.",
     "Version {version}. The mod is tested on 2.31 only, so some things may not work.": "Version {version}. The mod is tested on 2.31 only, so some things may not work.",
     "Voice": "Voice",
+    "Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.": "Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.",
     "Voice input only understands English for now. Typing works in any language.": "Voice input only understands English for now. Typing works in any language.",
     "Voice playback": "Voice playback",
     "Voice status": "Voice status",
@@ -2316,6 +2317,7 @@
       "Version {version}.",
       "Version {version}. The mod is tested on 2.31 only, so some things may not work.",
       "Voice",
+      "Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.",
       "Voice input only understands English for now. Typing works in any language.",
       "Voice: {voice}",
       "Vortex. Install the Runtime and the optional packs by hand into the Cyberpunk 2077 folder, as the install steps say.",
@@ -5985,7 +5987,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/microphone.lua:242"
+        "mod/microphone.lua:246"
       ]
     },
     "Microphone unavailable. Check your Windows input device.": {
@@ -5994,7 +5996,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/microphone.lua:233"
+        "mod/microphone.lua:237"
       ]
     },
     "Missing: {files}. Extract the Scripts zip into the Cyberpunk 2077 folder again and let it replace the files.": {
@@ -6473,7 +6475,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/microphone.lua:221"
+        "mod/microphone.lua:225"
       ]
     },
     "None found: installed by hand.": {
@@ -9384,7 +9386,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/microphone.lua:226"
+        "mod/microphone.lua:230"
       ]
     },
     "The model ID was removed.": {
@@ -10183,6 +10185,14 @@
         "mod/character-editor.lua:108"
       ]
     },
+    "Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/microphone.lua:220"
+      ]
+    },
     "Voice input only understands English for now. Typing works in any language.": {
       "contexts": [
         "phone.native",
@@ -10190,7 +10200,7 @@
       ],
       "references": [
         "mod/microphone.lua:216",
-        "mod/microphone.lua:230"
+        "mod/microphone.lua:234"
       ]
     },
     "Voice playback": {

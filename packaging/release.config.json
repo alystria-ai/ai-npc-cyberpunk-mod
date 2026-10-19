@@ -170,6 +170,67 @@
       }
     }
   },
+  "micPacks": {
+    "notes": "The two optional voice-input packs (docs/LOCAL_STT.md, 'The optional packs'; docs/PACKAGING.md, 'Voice-input packs'): MicPack-European (NVIDIA Parakeet TDT 0.6B v3, int8) and MicPack-Asian (SenseVoice Small, int8, here Mandarin Chinese only). Each is ONE zip hosted on Hugging Face with the other optional packs, never on Nexus Mods and not on the GitHub release; the workflow builds them only when its opt-in 'micpacks' input is set (never on a tag push), and by hand they are built with --packages micpack-european,micpack-asian. They are never part of the default set and nothing of them is in the Runtime package. A pack puts its model files in app/models/stt/<id>/ (bridge/local-stt.mjs resolveLocalSttPaths looks there), beside the Runtime's own app/models/stt/moonshine-tiny-en-int8/, which they never touch. Every model file is the unmodified file of the sherpa-onnx 'asr-models' release archive named below: the build downloads that archive from its pinned URL (SHA-256 checked), extracts only the files listed here from it (the archive is untrusted data: nothing in it is run, and a path outside the extraction folder stops the build) and checks each extracted file against the size and SHA-256 recorded here. test_wavs and the archive's README are never shipped. With --mic-pack-source DIR (or CYBERPUNK_CONVAI_MIC_PACKS_DEV) a developer folder laid out as DIR/<pack id>/<file> is used instead of the download, and each file in it is checked against the same pins. Sizes and hashes measured 2026-10-19 from the real files. The licence of each model is kept in the pack's NOTICE.txt; a licence that is only linked (the FunASR Model Open Source License) is linked there and is not copied into the pack.",
+    "status": "pinned",
+    "directory": "app/models/stt",
+    "markerFile": "mic-pack.json",
+    "noticeFile": "NOTICE.txt",
+    "modLicenceFile": "LICENSE-mod.txt",
+    "packs": {
+      "european": {
+        "id": "parakeet-tdt-0.6b-v3-int8",
+        "packageId": "micpack-european",
+        "title": "MicPack-European",
+        "name": "NVIDIA Parakeet TDT 0.6B v3 (int8)",
+        "model": "NVIDIA Parakeet TDT 0.6B v3, int8 ONNX conversion by the k2-fsa sherpa-onnx project",
+        "languages": ["ru", "uk", "pl", "cs", "hu", "de", "fr", "es", "it", "pt"],
+        "local": "parakeet-tdt-0.6b-v3-int8",
+        "archive": {
+          "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8.tar.bz2",
+          "size": 487170055,
+          "sha256": "5793d0fd397c5778d2cf2126994d58e9d56b1be7c04d13c7a15bb1b4eafb16bf",
+          "folder": "sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8"
+        },
+        "files": {
+          "encoder.int8.onnx": {"size": 652184281, "sha256": "acfc2b4456377e15d04f0243af540b7fe7c992f8d898d751cf134c3a55fd2247"},
+          "decoder.int8.onnx": {"size": 11845275, "sha256": "179e50c43d1a9de79c8a24149a2f9bac6eb5981823f2a2ed88d655b24248db4e"},
+          "joiner.int8.onnx": {"size": 6355277, "sha256": "3164c13fc2821009440d20fcb5fdc78bff28b4db2f8d0f0b329101719c0948b3"},
+          "tokens.txt": {"size": 93939, "sha256": "d58544679ea4bc6ac563d1f545eb7d474bd6cfa467f0a6e2c1dc1c7d37e3c35d"}
+        },
+        "license": "CC-BY-4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "sourceUrl": "https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3",
+        "attribution": "NVIDIA Parakeet TDT 0.6B v3, Copyright (c) NVIDIA Corporation, CC-BY-4.0; converted to ONNX int8 by the k2-fsa sherpa-onnx project.",
+        "noticeSource": "packaging/mic-packs/NOTICE-european.txt"
+      },
+      "asian": {
+        "id": "sense-voice-int8",
+        "packageId": "micpack-asian",
+        "title": "MicPack-Asian",
+        "name": "FunAudioLLM SenseVoice Small (int8)",
+        "model": "SenseVoice Small (a Cantonese fine-tune), int8 ONNX conversion by the k2-fsa sherpa-onnx project",
+        "languages": ["zh"],
+        "languagesNote": "Mandarin Chinese only for now: measured with the real files (2026-10-19) this archive's model reads Mandarin well (2.5% character error) but not Japanese (84%) or Korean (96%).",
+        "local": "sense-voice-int8",
+        "archive": {
+          "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09.tar.bz2",
+          "size": 165783878,
+          "sha256": "7305f7905bfcf77fa0b39388a313f3da35c68d971661a65475b56fb2162c8e63",
+          "folder": "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09"
+        },
+        "files": {
+          "model.int8.onnx": {"size": 237115547, "sha256": "12ca1a2ae7ecf3e0019ef2822307ee0b5cadc9196569e379b4c4026f8205276d"},
+          "tokens.txt": {"size": 315894, "sha256": "f449eb28dc567533d7fa59be34e2abca8784f771850c78a47fb731a31429a1dc"}
+        },
+        "license": "FunASR Model Open Source License 1.1",
+        "licenseUrl": "https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE",
+        "sourceUrl": "https://github.com/FunAudioLLM/SenseVoice",
+        "attribution": "SenseVoice Small (FunAudioLLM, Alibaba Group), FunASR Model Open Source License 1.1; converted to ONNX int8 by the k2-fsa sherpa-onnx project. Keep the model name SenseVoice and the source with it.",
+        "noticeSource": "packaging/mic-packs/NOTICE-asian.txt"
+      }
+    }
+  },
   "models": {
     "bucket": "alystria-ai/cyberpunk-pocket-rolling-checkpoints",
     "manifest": "final/MANIFEST.json",

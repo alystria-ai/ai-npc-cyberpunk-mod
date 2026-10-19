@@ -1,0 +1,13 @@
+AI NPC Cyberpunk Mod - MicPack-Asian (voice input for Chinese, Mandarin)
+
+SenseVoice Small (FunAudioLLM, Alibaba Group), speech recognition, here the int8 ONNX conversion distributed
+by the k2-fsa sherpa-onnx project as sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09 (a Cantonese
+fine-tune of SenseVoice Small, converted from ASLP-lab/WSYue-ASR sensevoice_small_yue). Source:
+https://github.com/FunAudioLLM/SenseVoice and https://github.com/modelscope/FunASR . Licensed under the FunASR
+Model Open Source License Agreement, Version 1.1
+(https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE): you may use, copy, modify and share the model;
+you must attribute the source and the author and keep the model's name (SenseVoice) with it; the model is
+provided as is, with no liability for Alibaba Group. The licence text itself is not copied into this pack: the
+full text is at the link above. This pack's use in the mod: speech in Mandarin Chinese is turned into text on
+the player's computer; other languages of the model are not used. The mod's own licence: see LICENSE-mod.txt
+in this folder.

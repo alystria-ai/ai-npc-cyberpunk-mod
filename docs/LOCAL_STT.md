@@ -212,6 +212,8 @@ zh-cn, zh-tw; Portuguese and the two Chinese variants share one base code each).
 | **Mistral** | Moonshine (unchanged) | **Mistral transcription** (`voxtral-mini-latest`, `bridge/voxtral-stt.mjs`) with the player's key. If it fails or is cooling down: an installed local pack that hears the language, else the English recogniser on the same audio (the log says so) |
 | **Local AI**, **custom endpoint**, add-on voice keys on Convai | Moonshine (unchanged) | an installed **local pack** that hears the language; with none, the English recogniser and one notice "Voice input only understands English for now. Typing works in any language." (`mic-english-only`, once per game session, under the Listening line) |
 
+When an optional pack hears the language but is not installed (`plan.note` `pack-available`), the notice is "Voice input in this language needs the optional Microphone pack from the mod page. Typing works in any language." (same id `mic-english-only`, same once-per-session rule); when nothing hears it (Turkish, Japanese, Korean) it stays the plain English-only sentence.
+
 Audio is sent to Mistral **only while Mistral is the player's conversation provider** (their words already go there). The Local AI and custom routes
 never send a recording to Mistral, even when a Mistral key is saved: a player who chose a local or private route did not choose that.
 
@@ -237,7 +239,7 @@ Authorization header, and every message is redacted.
 |---|---|---|---|---|---|
 | **Mistral Voxtral Mini Transcribe 2** (`voxtral-mini-latest`, API) | 13: en, zh, hi, es, ar, fr, pt, ru, de, ja, ko, it, nl (not pl, uk, cs, hu, tr; those are asked without a hint and may still work) | none | batch; estimated 0.5 to 1.5 s for a 3 to 8 s clip (TLS is opened ahead; 32 KB per second of audio goes up). **Not measured: no call was made.** Price $0.003 per minute; limits of the free Experiment plan for this model are not published | API terms | **Chosen for the Mistral route**: no download, no memory, best accuracy, and the player already has the key. Unverified: whether a free key may use it (the free plan gave the chat models Small and Medium an allowance of 0 on 2026-10-11, while Voxtral speech synthesis works on it); the fallback covers a refusal |
 | **NVIDIA Parakeet TDT 0.6B v3** int8 (sherpa-onnx `sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8`) | 25 European, auto-detected: **ru, uk, pl, cs, hu, de, fr, es, it, pt** of the mod's (also en, nl, sv and others); no tr | 487 MB archive (encoder 622 MB unpacked) | sherpa-onnx's own figures at 2 threads: RTF 0.325 on a 3.8 s clip including set-up, 0.028 on long audio. Estimated 0.4 to 1.0 s for a 5 s clip at one thread; load 4 to 10 s; about 1 GB resident while loaded. **Not measured here** | CC-BY-4.0 | **Chosen as the local pack for European languages** (Russian WER 5.5% on Fleurs, Polish 7.3%, Czech 11%, Hungarian 15.7% per NVIDIA) |
-| **FunAudioLLM SenseVoice Small** int8 (`sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09`) | zh, en, ja, ko, yue | 166 MB | RTF about 0.05 on desktop CPUs; estimated 0.25 s for a 5 s clip; about 300 MB resident | FunASR model licence (attribution; check before redistributing) | **Chosen as the local pack for zh, ja, ko** (Parakeet has none of them) |
+| **FunAudioLLM SenseVoice Small** int8 (`sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09`) | zh, en, ja, ko, yue | 166 MB | RTF about 0.05 on desktop CPUs; estimated 0.25 s for a 5 s clip; about 300 MB resident | FunASR model licence (attribution; check before redistributing) | **Chosen as the local pack for zh, ja, ko** (Parakeet has none of them). **Measured 2026-10-19: this archive's model reads Mandarin only** (see "Measured with the real models"); the pack is listed for zh |
 | Whisper tiny / base / small, multilingual, int8 | 99, auto | 116 / 208 / 639 MB archives | Whisper always pads to 30 s: this project measured tiny.en 0.8 s, base.en 1.9 s, small.en 8 s (two threads, table above); the multilingual models share the architecture | MIT | Rejected: tiny and base are far less accurate than Parakeet in Russian, small costs about 8 s per recording. Would be the only local route for Turkish |
 | Moonshine language variants (sherpa-onnx 2026-02-27: ar, ja, ko, uk, vi, zh, es) | 7, none of ru, de, fr, pl, cs, hu, it, pt, tr | 48 to 119 MB | fast | Moonshine Community Licence for non-English models (non-commercial) | Rejected: misses the languages that matter and its licence blocks the free mod |
 | GigaAM v3 Russian (`sherpa-onnx-nemo-transducer-giga-am-v3-russian-2025-12-16`) | ru only | 167 MB | fast | MIT | Not chosen: Russian only; the best small option if a Russian-only pack is ever wanted |
@@ -249,7 +251,7 @@ Mistral (auto-detect); on Local AI the notice above says voice is English only f
 
 ### The optional packs
 
-Nothing is downloaded or shipped by this change. A pack is **used only when its files are present**; without them the code behaves as described above
+A pack is **used only when its files are present** (they ship as the two optional MicPack zips, "Packaging" below); without them the code behaves as described above
 (Mistral transcription on the Mistral route, the English recogniser and the one-time notice elsewhere). Place the files in `models/stt/<id>/` (packaged)
 or `runtime/stt-model/<id>/` (development), or in `<CYBERPUNK_CONVAI_STT_PACKS>/<id>/`:
 
@@ -263,11 +265,66 @@ nemo-transducer|sense-voice`), one thread at below-normal priority, same sound g
 stock-phrase list is harmless for other languages). It decodes once, when the key is pressed again (no live decodes, no pause decodes); it starts when
 a recording opens (the model loads while the player speaks) and **exits 60 s after the last recording**, giving its memory back; the page that holds the
 microphone is released once no recording is open (`createLocalSpeech`). The Parakeet loader leaves the feature size to the model (read from its
-metadata); this was written against sherpa-onnx 1.13.6's signatures and tested with a stand-in recogniser, **not with the real model**: the first
-real run should be checked in the bridge log (`speech language ... local pack ...`, then `recorded ... heard "..."`).
+metadata); it is written against sherpa-onnx 1.13.6's signatures, tested with a stand-in recogniser and, since 2026-10-19, with the real files
+(next section). In the bridge log the first real run reads `speech language ... local pack ...`, then `recorded ... heard "..."`.
 
-Packaging, if the packs are shipped: a group in `packaging/release.config.json` for each (as the Moonshine group), a line in `THIRD_PARTY_NOTICES.md`
-with the licence and attribution (CC-BY-4.0 needs the credit), and the model cards beside the files.
+Packaging: `micPacks` in `packaging/release.config.json` pins both archives and every file; `node packaging/build-release.mjs --version <v> --packages
+micpack-european,micpack-asian` builds `AI-NPC-Cyberpunk-Mod-MicPack-European-<v>.zip` and `...-MicPack-Asian-<v>.zip` (opt-in, never in the default set, hosted
+on Hugging Face only, one zip each, extract-into-game-folder layout `red4ext/plugins/AiNpcCyberpunkMod/app/models/stt/<id>/`, no path shared with the
+Runtime), each with a `NOTICE.txt` (CC-BY-4.0 attribution for Parakeet; FunASR licence name, source and link for SenseVoice) and a `mic-pack.json` marker.
+`THIRD_PARTY_NOTICES.md` has both lines. The FunASR licence text itself is linked, not bundled: it was not among the approved downloads.
+
+### Measured with the real models (2026-10-19)
+
+The two archives were downloaded (sizes and SHA-256 in `packaging/release.config.json`), unpacked as untrusted data, and run through the mod's own
+`LocalStt` and `bridge/local-stt-worker.py` (python.exe of the dev environment, sherpa-onnx 1.13.6, **one thread, below-normal priority, CPU only**,
+no GPU), on the development laptop (i9-13980HX, Balanced, nothing else heavy running). Clips: the models' own test clips (de, es, fr, en, ja, ko, zh, yue)
+and 14 languages x 3 sentences synthesised with OmniVoice from known text (game names in them: Judy, Afterlife, Watson, Jackie, Arasaka), 2.5 to 4.3 s each.
+The clips are not committed.
+
+**Parakeet TDT 0.6B v3 int8** (33 synthetic clips, 11 languages): word error 5.8% over all; by language: de 0, fr 0, en 0, es 3.6, it 3.7, cs 3.8,
+uk 4.2, pt 6.9, hu 7.1, ru 16.0, pl 24.0. Almost every error is a name or an inflection (Judy heard as "Judi" or "Gyudi", "Afterlife" written as two words in Russian,
+"Dziakiego" for Jackiego in Polish); the sentences themselves came out right. The models' own de, es, fr, en clips are exact.
+Latency from the key press to the transcript (the pack decodes once, so this is the wait): 0.9 to 2.5 s for a 2.5 to 4.3 s clip (mean 1.6 s), 3.0 to
+3.6 s for an 11 to 13 s sentence group at one thread, 1.8 to 2.1 s at two threads (2.5 times the CPU: one thread stays the default). Load: 4 to 5 s
+with the files in the Windows file cache, **67 s the first time after they were written** (the worker's first decode includes ONNX set-up; Windows
+was reading and scanning a 650 MB file), so a pack's startup allowance is 150 s (`startupMs` in `bridge/convai-bridge.mjs`); the model loads while the
+player speaks, and the wait shows only on the first recording after installing. Resident memory 830 MB while loaded, gone 60 s after the last recording
+(the worker exits; checked: no process left).
+
+**SenseVoice Small int8, archive 2025-09-09** (3 clips each): Mandarin: character error 2.5% (a 10.4 s three-sentence clip: 1 error in 40), decode
+0.45 to 0.7 s for 3 s clips, 1.4 s for 10.4 s, load 2.3 to 2.6 s warm, 356 MB resident. **Japanese: 84% character error, Korean: 96%, on the model's own clips
+and on the synthesised ones; the language option (`ja`, `ko`, `zh`, `auto`) changes nothing** (every result carries the `<|yue|>` tag). The reason is in
+the archive's own README: this model is the ASLP-lab Cantonese fine-tune of SenseVoice Small (WSYue-ASR), not the original model. So `sense-voice-int8` is listed for **zh only**
+(`LOCAL_PACKS`), a Japanese or Korean player gets the plain "English only for now" notice on the local routes, and the Asian pack is described to players
+as Mandarin Chinese. The original model (`sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17`, same file names `model.int8.onnx` and `tokens.txt`) is
+expected to read ja and ko: it has not been downloaded or tested (not approved). If it is approved and passes, put its two files in the same folder,
+re-pin them in `packaging/release.config.json`, add `'ja', 'ko'` to the pack's `languages` and rebuild the pack. Traditional Chinese speakers are read as
+Mandarin and shown in simplified characters.
+
+A fix that the real files forced: `-I` ignores `PYTHONUTF8`, so the worker's standard streams were in the console code page and the first Korean or
+Cyrillic transcript raised `UnicodeEncodeError` (the stand-in tests never produced one). The worker now switches its streams to UTF-8 at start
+(`use_utf8`, checked in `bridge/local-stt-worker.check.py`), which also protects accented names in English transcripts.
+
+### Live checks in the game (for the owner)
+
+Prepare: a dev install of this branch (bridge restart, CET reload), `AI-NPC-Cyberpunk-Mod-MicPack-European-0.2.3.zip` and `...-MicPack-Asian-0.2.3.zip`
+extracted into the game folder (or the two folders copied to `.../app/models/stt/`), the bridge log open.
+1. Settings > Conversation provider: **Local AI** (with a Local AI pack installed). Interface language English, English text typed so far.
+2. Speak English with the voice key: the old path, live words, no pack in the log. Task Manager: no extra python.exe holding 800 MB.
+3. Settings > Interface language: **Russian** (or type two Russian sentences to a companion). Press the voice key, wait for "Listening", say a Russian sentence
+   of 4 to 5 seconds (in Russian), press again. Check: the bridge log shows `speech language ru (...): local pack
+   parakeet-tdt-0.6b-v3-int8, no live words`, then `recorded ... heard "..."` with your Russian words; the transcript line shows Cyrillic, the
+   companion answers. Note the seconds from the second key press to the transcript (expected 1 to 3 s; the very first use may take about a minute).
+4. Task Manager during step 3: one extra python.exe near 830 MB for the pack, below-normal priority, about one core while decoding; FPS unchanged while
+   you talk (watch the FPS counter before and during the decode: no drop is expected, nothing runs per frame).
+5. Wait 70 s without recording: that python.exe is gone (the pack unloaded). Press the key again: it loads again in about 5 s.
+6. Delete or rename the European pack's folder, press the key in Russian: "Listening" with the second line "Voice input in this language needs the optional
+   Microphone pack from the mod page." (once per game session), the recording is read as English. Put the folder back.
+7. Mandarin: set the interface language to Chinese (Simplified) and say a short Chinese sentence: the Asian pack's log line, Chinese characters in the
+   transcript. Then **Japanese**: with only the Asian pack installed you should see the plain "Voice input only understands English for now" notice (the
+   pack does not read Japanese; this is expected until the original SenseVoice model is shipped).
+8. Mistral as provider (key saved): Russian speech goes to Mistral's transcription as before; the packs are not loaded (no 830 MB python.exe).
 
 ### Log lines
 
