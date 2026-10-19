@@ -189,13 +189,11 @@ export const BRIDGE_AUXILIARY_FILES = Object.freeze([
   'bridge/phone-analysis-worker.py',
   'bridge/local-stt-worker.py',
   'bridge/audio-output-probe.ps1', // Lip sync delay Auto: default output device
-  // "Make support report.bat" (red4ext/plugins/AiNpcCyberpunkMod) starts the first with the bundled Node when the game is closed; the
-  // second is the report code it calls. Neither is imported by the service.
-  'bridge/make-support-report.mjs',
-  'bridge/offline-support-report.mjs',
   // The automatic error reports' sender: the service's supervisor (bridge/bridge-supervisor.mjs) loads it with a dynamic import, so a
-  // problem in it can never stop the service. The bridge itself only records (bridge/error-events.mjs, above).
+  // problem in it can never stop the service. The bridge itself only records (bridge/error-events.mjs, above). Its helper for the
+  // values to scrub and the RED4ext plugin versions is loaded the same way.
   'bridge/error-reports.mjs',
+  'bridge/report-secrets.mjs',
 ]);
 // These are the pinned external package entry points, not a replacement for the
 // full reviewed Playwright distributions and their transitive source/notices.

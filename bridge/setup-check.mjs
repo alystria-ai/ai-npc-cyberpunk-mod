@@ -485,7 +485,7 @@ export async function collectSetupCheck(options = {}) {
     return {state: managers.length ? 'note' : 'ok', code: managers[0] ?? 'none', managers};
   });
 
-  // redscript compiles this mod's scripts (engine/tools/scc.exe, the file the offline report looks for too). The game side uses this only when the
+  // redscript compiles this mod's scripts (engine/tools/scc.exe). The game side uses this only when the
   // scripts did not load: with no compiler there is no compile log to read, so it says "redscript is missing" instead of sending the player to one.
   // Only a file is looked at, so it is part of the light run too.
   const compiler = () => guarded('compiler', async () => {

@@ -514,7 +514,7 @@ test('end to end with the real backend handler: stored once, listed and fetched 
 });
 
 test('a released Runtime sends to the address in app/defaults/error-reports.json; the data folder\'s settings win; its secret is scrubbed', async () => {
-  const {offlineSecrets} = await import('./offline-support-report.mjs');
+  const {dataFolderSecrets} = await import('./report-secrets.mjs');
   const f = await folders();
   const shipped = `shipped-${SIGNING_SECRET}`;
   try {
@@ -532,6 +532,6 @@ test('a released Runtime sends to the address in app/defaults/error-reports.json
     const {body} = await buildErrorPayload({record, game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state, project: f.project,
       installId: INSTALL, environment: {}, names: [], graphics: () => [], now: () => START});
     assert.ok(!body.includes(shipped), 'the shipped secret never leaves');
-    assert.ok((await offlineSecrets({stateDirectory: f.state, project: f.project})).includes(shipped), 'Make support report.bat scrubs it too');
+    assert.ok((await dataFolderSecrets({stateDirectory: f.state, project: f.project})).includes(shipped), 'the shipped secret is also returned for scrubbing');
   } finally { await f.cleanup(); }
 });

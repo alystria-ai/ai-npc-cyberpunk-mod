@@ -6,7 +6,6 @@
     "modDirectory": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod",
     "pluginDirectory": "red4ext/plugins/AiNpcCyberpunkMod",
     "pluginDll": "CyberpunkConvai.dll",
-    "supportReportBatch": "Make support report.bat",
     "maxGameRootLength": 70,
     "maxPathLength": 255,
     "nativeDirectory": "red4ext/plugins/AiNpcCyberpunkModNative",
@@ -202,7 +201,7 @@
     "characters/roster.json", "characters/archetype-roster.json", "characters/world-knowledge.json", "characters/phone-contacts.json",
     "research/cyberpunk/generated/quest-catalog.json"
   ],
-  "bridgeEntries": ["bridge/convai-bridge.mjs", "bridge/bridge-supervisor.mjs", "bridge/make-support-report.mjs"],
+  "bridgeEntries": ["bridge/convai-bridge.mjs", "bridge/bridge-supervisor.mjs"],
   "bridgeWorkers": [
     "bridge/pocket-voice-worker.py", "bridge/pocket_voice_runtime.py",
     "bridge/resident-voice-worker.py", "bridge/voice-cuda-graph.py", "bridge/local-stt-worker.py"
