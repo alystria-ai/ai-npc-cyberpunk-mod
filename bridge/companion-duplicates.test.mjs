@@ -36,7 +36,7 @@ function run(code, prelude = '') {
 const partyHarness = `
   local queue=(function() ${partySource} end)().new(companions,nil)
   queue.bind('world')
-  local mcm={party=function() return queue end}
+  local managerUi={party=function() return queue end}
   local lastPhoneInvitation=nil
   local developer=false
   local manager={developerMode=function() return developer end}

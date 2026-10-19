@@ -11,7 +11,7 @@ const read = name => readFileSync(new URL(`../mod/${name}`, import.meta.url), 'u
 const supportSource = read('support-report.lua'), serviceSource = read('service-status.lua'), editorSource = read('character-editor.lua');
 const paidSource = read('convai-paid-tier.lua');
 
-const mcmFixture = (withSupport = true) => nsuiHarness({
+const pageFixture = (withSupport = true) => nsuiHarness({
   modules: {'service-status.lua': serviceSource, 'character-editor.lua': editorSource, 'convai-paid-tier.lua': paidSource,
     ...(withSupport ? {'support-report.lua': supportSource} : {})},
   absent: withSupport ? [] : ['support-report.lua'],
@@ -20,7 +20,7 @@ const mcmFixture = (withSupport = true) => nsuiHarness({
 `;
 
 const paidFixture = `
-  ${mcmFixture(true)}
+  ${pageFixture(true)}
   -- The fake CPU clock starts far ahead of the real one the modules read while the harness was built, so their throttles see time pass.
   local clockNow, popups, cpu = 1800000000, {}, 100000
   os.time = function() return clockNow end

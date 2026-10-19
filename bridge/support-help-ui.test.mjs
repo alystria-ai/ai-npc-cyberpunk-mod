@@ -10,7 +10,7 @@ const read = name => readFileSync(new URL(`../mod/${name}`, import.meta.url), 'u
 const supportSource = read('support-report.lua'), serviceSource = read('service-status.lua'), editorSource = read('character-editor.lua');
 const setupSource = read('setup-check.lua');
 
-const mcmFixture = (withSupport = true, withSetup = false, withNsui = true) => nsuiHarness({
+const pageFixture = (withSupport = true, withSetup = false, withNsui = true) => nsuiHarness({
   modules: {'service-status.lua': serviceSource, 'character-editor.lua': editorSource,
     ...(withSupport ? {'support-report.lua': supportSource} : {}), ...(withSetup ? {'setup-check.lua': setupSource} : {})},
   absent: [...(withSupport ? [] : ['support-report.lua']), ...(withSetup ? [] : ['setup-check.lua'])],
@@ -20,7 +20,7 @@ const mcmFixture = (withSupport = true, withSetup = false, withNsui = true) => n
 `;
 
 const helpFixture = (withSupport = true, withSetup = false, withNsui = true) => `
-  ${mcmFixture(withSupport, withSetup, withNsui)}
+  ${pageFixture(withSupport, withSetup, withNsui)}
   local clockNow, popups = 1800000000, {}
   local cpu = 0
   os.time = function() return clockNow end

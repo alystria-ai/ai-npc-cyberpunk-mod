@@ -548,7 +548,7 @@ test('the reply notices of init.lua: five failed-turn codes and two one-time not
 
 // withCustom: whether the module can be loaded (false: its file is absent, as in an install that lost it); `custom` replaces the module
 // source, for a module that misbehaves. The harness is the shared one (bridge/manager-fixture.mjs).
-const mcmFixture = (withCustom = true, custom = customSource) => nsuiHarness({
+const pageFixture = (withCustom = true, custom = customSource) => nsuiHarness({
   modules: withCustom ? {'custom-provider.lua': custom} : {},
   absent: withCustom ? [] : ['custom-provider.lua'],
 }) + `
@@ -576,7 +576,7 @@ const stateFixture = `
   local function command() return jsonFixtures[files['runtime/custom-provider-command.json']] end
 `;
 
-test('the selector has five entries, Custom (OpenAI-compatible) fifth; the four rows sit right under the Mistral key row, above the Convai API key row', () => run(`${mcmFixture()}${stateFixture}
+test('the selector has five entries, Custom (OpenAI-compatible) fifth; the four rows sit right under the Mistral key row, above the Convai API key row', () => run(`${pageFixture()}${stateFixture}
   assert(invoke('tab:settings').ok)
   local provider = row('conversationProvider')
   assert(provider.type == 'select' and #provider.elements == 5 and provider.elements[1] == 'Convai free tier' and provider.elements[2] == 'Convai API key'
@@ -605,7 +605,7 @@ test('the selector has five entries, Custom (OpenAI-compatible) fifth; the four 
 `));
 
 test('without the module file (or with a module that fails) the page still shows every other row and the fifth entry', () => {
-  run(`${mcmFixture(false)}${stateFixture}
+  run(`${pageFixture(false)}${stateFixture}
     assert(invoke('tab:settings').ok)
     assert(#row('conversationProvider').elements == 5)
     assert(providerIds() == 'conversationProvider,matureContent,localModel,mistral-key,own-key', providerIds())
@@ -619,19 +619,19 @@ test('without the module file (or with a module that fails) the page still shows
   `);
   // A module whose rows raise: the page is built without them.
   const raising = customSource.replace('function self.rows()', 'function self.rows() error("boom") end\n    function self.unusedRows()');
-  run(`${mcmFixture(true, raising)}${stateFixture}
+  run(`${pageFixture(true, raising)}${stateFixture}
     assert(invoke('tab:settings').ok)
     assert(providerIds() == 'conversationProvider,matureContent,localModel,mistral-key,own-key', providerIds())
   `);
   // A module that raises while it is made.
   const broken = customSource.replace('function M.new(options)', 'function M.new(options) error("no instance")');
-  run(`${mcmFixture(true, broken)}${stateFixture}
+  run(`${pageFixture(true, broken)}${stateFixture}
     assert(invoke('tab:settings').ok)
     assert(providerIds() == 'conversationProvider,matureContent,localModel,mistral-key,own-key', providerIds())
   `);
 });
 
-test('the rows send their commands on their own channel, in place, with ids of this game session; a failed write is refused with a sentence', () => run(`${mcmFixture()}${stateFixture}
+test('the rows send their commands on their own channel, in place, with ids of this game session; a failed write is refused with a sentence', () => run(`${pageFixture()}${stateFixture}
   files['runtime/custom-provider-command.json'] = ''
   assert(invoke('tab:settings').ok)
   local removed, renamed = {}, {}
@@ -671,7 +671,7 @@ test('the rows send their commands on their own channel, in place, with ids of t
   failSave = false
 `));
 
-test('the page follows the service: answers show up, an unchanged state does not redraw, an old answer is never shown, a test runs to its end', () => run(`${mcmFixture()}${stateFixture}
+test('the page follows the service: answers show up, an unchanged state does not redraw, an old answer is never shown, a test runs to its end', () => run(`${pageFixture()}${stateFixture}
   assert(invoke('tab:settings').ok)
   -- The page is drawn again when what it shows changes: the calls into Native Settings UI say whether it was.
   local function pump(times)
@@ -723,7 +723,7 @@ test('the page follows the service: answers show up, an unchanged state does not
   assert(row('custom-test').label == 'Test connection' and row('custom-test').disabled == false)
 `));
 
-test('the provider row starts with the note of the custom provider: its limits, waiting, and "not set up" while Custom is chosen but Convai answers', () => run(`${mcmFixture()}${stateFixture}
+test('the provider row starts with the note of the custom provider: its limits, waiting, and "not set up" while Custom is chosen but Convai answers', () => run(`${pageFixture()}${stateFixture}
   assert(invoke('tab:settings').ok)
   local base = row('conversationProvider').description
   assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 5}}).ok)
@@ -758,7 +758,7 @@ test('the provider row starts with the note of the custom provider: its limits, 
   assert(not row('conversationProvider').description:find('custom', 1, true))
 `));
 
-test('manager settings: custom is a stored provider, survives a reload, is refused when misspelled, and keeps Mature content off', () => run(`${mcmFixture()}${stateFixture}
+test('manager settings: custom is a stored provider, survives a reload, is refused when misspelled, and keeps Mature content off', () => run(`${pageFixture()}${stateFixture}
   local function reload(values)
     seed = {version = 2, voice = true, subtitles = true, subtitleStyle = 'dialogue', voiceProvider = 'pocket', battleReactions = false, lootReactions = false, enabledByKey = {}}
     for key, value in pairs(values) do seed[key] = value end
@@ -786,7 +786,7 @@ test('manager settings: custom is a stored provider, survives a reload, is refus
   assert(settings.matureRestore == nil)
 `));
 
-test('the bridge status may name custom as the provider and credits as the limit; anything else still reads as Convai and no limit', () => run(`${mcmFixture()}${stateFixture}
+test('the bridge status may name custom as the provider and credits as the limit; anything else still reads as Convai and no limit', () => run(`${pageFixture()}${stateFixture}
   for _, case in ipairs({{'custom', 'custom'}, {'mistral', 'mistral'}, {'local', 'local'}, {'convai', 'convai'}, {'Custom', 'convai'}, {'openai', 'convai'}, {7, 'convai'}, {true, 'convai'}}) do
     bridge('p' .. tostring(case[1]), {provider = case[1], effective = case[1]})
     assert(manager.mistral().provider == case[2] and manager.mistral().effective == case[2], tostring(case[1]))
@@ -797,7 +797,7 @@ test('the bridge status may name custom as the provider and credits as the limit
   end
 `));
 
-test('the voice key waits for Convai with Custom exactly as with Mistral: only while Custom is in use and this computer cannot recognise speech', () => run(`${mcmFixture()}${stateFixture}
+test('the voice key waits for Convai with Custom exactly as with Mistral: only while Custom is in use and this computer cannot recognise speech', () => run(`${pageFixture()}${stateFixture}
   local function choose(index) assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = index}}).ok) end
   bridge('a', {provider = 'custom', effective = 'custom', stt = false})
   assert(manager.voiceNeedsConvai() == false, 'the setting is still Convai')
@@ -837,7 +837,7 @@ const matureFixture = `
   end
 `;
 
-test('Mature content turned on while Custom is chosen selects Local AI and the uncensored model in the same save, with the way back to Custom; turning it off brings Custom back', () => run(`${mcmFixture()}${stateFixture}${matureFixture}
+test('Mature content turned on while Custom is chosen selects Local AI and the uncensored model in the same save, with the way back to Custom; turning it off brings Custom back', () => run(`${pageFixture()}${stateFixture}${matureFixture}
   startFromCustom()
   local result = apply({{id = 'matureContent', value = true}})
   assert(result.ok and result.names[1] == 'Local AI' and result.names[2] == 'Uncensored model', table.concat(result.names, ','))
@@ -857,7 +857,7 @@ test('Mature content turned on while Custom is chosen selects Local AI and the u
   assert(saved.matureContent == false and saved.conversationProvider == 'custom')
 `));
 
-test('choosing Custom while Mature content is on turns it off in the same save, like every other cloud provider; Local keeps it', () => run(`${mcmFixture()}${stateFixture}${matureFixture}
+test('choosing Custom while Mature content is on turns it off in the same save, like every other cloud provider; Local keeps it', () => run(`${pageFixture()}${stateFixture}${matureFixture}
   startFromCustom()
   assert(apply({{id = 'matureContent', value = true}}).ok)
   assert(saved.matureContent == true and saved.conversationProvider == 'local')

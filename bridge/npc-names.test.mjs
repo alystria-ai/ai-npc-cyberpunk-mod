@@ -13,7 +13,7 @@ const poolsSource = read('../mod/npc-name-pools.lua');
 const moduleSource = read('../mod/npc-names.lua');
 const initSource = read('../mod/init.lua');
 const managerSource = read('../mod/manager.lua');
-const mcmSource = read('../mod/manager-ui.lua');
+const managerUiSource = read('../mod/manager-ui.lua');
 const redsSource = read('../r6/scripts/CyberpunkConvai/NpcNames.reds');
 const pools = JSON.parse(read('../characters/npc-name-pools.json'));
 const archetypes = JSON.parse(read('../characters/archetypes.json'));
@@ -504,7 +504,7 @@ test('the redscript touches only the scanner name chunk, and only when Lua calls
 // -------------------------------------------------------------------------------------------------------------- the setting
 test('Names for passers-by: always on, no setting, no menu row, no gate, shipped in the install lists', () => {
   assert.doesNotMatch(managerSource, /npcNames/);
-  assert.doesNotMatch(mcmSource, /npcNames|Names for passers-by/);
+  assert.doesNotMatch(managerUiSource, /npcNames|Names for passers-by/);
   assert.doesNotMatch(initSource, /npcNames/);
   assert.doesNotMatch(read('../mod/npc-names.lua'), /options\.enabled|'off'/);
   const locales = readdirSync(new URL('../mod/locales', import.meta.url)).filter(file => file.endsWith('.lua'));

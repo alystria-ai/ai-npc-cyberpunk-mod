@@ -151,10 +151,13 @@ export const managerFixture = `
 //   modules   {path: Lua source}: more modules the page loads with dofile (the Help page's support report, the setup check ...)
 //   absent    [path]: modules whose dofile raises, as a missing file does
 //   nsui      false: Native Settings UI is not installed (GetMod finds nothing); the host is installed and finds none
+//   locale    a language code: its dictionary (mod/locales/<code>.lua) is available to the locale module, so the page can be
+//             built in that language (convaiUiLocale.configure(code) then picks it)
 //   screen    false: the Mods screen is not opened; true (the default) opens it on the manager's tab, as the old harness had the
 //             page shown: it is then kept up to date and read once a second (a test that wants it closed calls ns.closeScreen())
-export function nsuiHarness({modules = {}, absent = [], nsui = true, screen = true} = {}) {
+export function nsuiHarness({modules = {}, absent = [], nsui = true, screen = true, locale = null} = {}) {
   const lines = [];
+  if (locale) lines.push(`    if path == 'locales/${locale}.lua' then return (function() ${readFileSync(new URL(`../mod/locales/${locale}.lua`, import.meta.url), 'utf8')} end)() end`);
   for (const [path, body] of Object.entries(modules)) lines.push(`    if path == '${path}' then return (function() ${body} end)() end`);
   for (const path of absent) lines.push(`    if path == '${path}' then error('module absent') end`);
   return `

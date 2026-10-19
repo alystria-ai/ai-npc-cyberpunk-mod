@@ -4099,7 +4099,7 @@ test('The provider row says when the player key runs without memory or cannot ho
     assert(note() == 'Convai free tier: daily limit reached', tostring(note()))
     local mistralHelp = row('mistral-key').description
     assert(mistralHelp:find('You have used today’s 100 turns, which come back tomorrow.', 1, true) and mistralHelp:find('Mistral (with your free key, about 5,000 turns a day)', 1, true)
-      and mistralHelp:find('Local AI (unlimited), then Apply', 1, true) and mistralHelp:find('It sets its own monthly cap, estimated at about 150,000 turns.', 1, true), mistralHelp)
+      and mistralHelp:find('Local AI (unlimited).', 1, true) and mistralHelp:find('It sets its own monthly cap, estimated at about 150,000 turns.', 1, true), mistralHelp)
     assert(lastParagraph(mistralHelp):find('You have used today’s', 1, true) == 1, 'it is the last paragraph of the Mistral key help')
     local limitText = lastParagraph(mistralHelp)
     assert(not limitText:lower():find('recommend', 1, true) and not limitText:lower():find('embedded', 1, true) and not limitText:lower():find('paid', 1, true), limitText)

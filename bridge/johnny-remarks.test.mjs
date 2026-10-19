@@ -283,9 +283,9 @@ test('shipping: the module ships and dev-installs; the select has its row, help 
   for (const plan of ['../packaging/release-plan.json', '../scripts/development-files.json']) {
     assert.match(read(plan), /"source": "mod\/johnny-remarks\.lua",\s+"target": "bin\/x64\/plugins\/cyber_engine_tweaks\/mods\/AiNpcCyberpunkMod\/johnny-remarks\.lua"/, plan);
   }
-  const mcm = read('../mod/manager-ui.lua');
-  assert.match(mcm, /setting\('johnnyRemarks', 'Johnny speaks up', 'select',/);
-  assert.match(mcm, /\{'Off', 'Rare', 'Normal'\}\),/);
+  const managerUiSource = read('../mod/manager-ui.lua');
+  assert.match(managerUiSource, /setting\('johnnyRemarks', 'Johnny speaks up', 'select',/);
+  assert.match(managerUiSource, /\{'Off', 'Rare', 'Normal'\}\),/);
   const en = JSON.parse(read('../localization/en.json')).strings;
   const keys = Object.keys(en).filter(key => /^Johnny speaks up$|^Rare$|^Normal$|Choose how often Johnny|^Johnny says something on his own/.test(key));
   assert.equal(keys.length, 5);
