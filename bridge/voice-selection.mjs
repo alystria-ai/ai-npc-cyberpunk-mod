@@ -100,7 +100,7 @@ export class VoiceSelection {
     // V's typed line, while OmniVoice is the committed voice: a Pocket worker of its own on the CPU (bridge/v-helper-voice.mjs). It is
     // never the route of any character; `vHelperWanted` is the V setting (on, with clips), set by the bridge's settings poll.
     this.vHelperWanted=false;
-    this.vHelper=options.vHelper||new VHelperVoice({wait:()=>this.retiring,log:message=>{try{this.options.onLog?.('[VHelper] '+message+'\n');}catch{}},
+    this.vHelper=options.vHelper||new VHelperVoice({wait:()=>this.retiring,onReady:()=>this.options.onVHelperReady?.(),log:message=>{try{this.options.onLog?.('[VHelper] '+message+'\n');}catch{}},
       create:onState=>this.factory(this.configs.pocket,{...this.options,keepPreparedVoices:this.keepPrepared,onState})});
     // omniRetry: {failures, nextAt} while a failed Omni is to be loaded again; candidate: the background Omni worker
     // loading beside the committed fallback (Pocket is CPU only, so the two never share VRAM). candidateExit

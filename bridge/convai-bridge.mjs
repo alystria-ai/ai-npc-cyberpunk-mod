@@ -272,6 +272,9 @@ const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVo
     return voiceMetricsWriting;
   },
   onLog: message => process.stderr.write('[LocalVoice] ' + message),
+  // V's own Pocket worker finished loading: prepare V's voice on it now (the clone of the reference clip takes seconds on a slow CPU),
+  // so the first typed line of the session does not pay for it (bridge/v-voice.mjs warmUp). No renderer page is opened for this.
+  onVHelperReady: () => vVoice.warmUp({page: false}),
 });
 // A plain api-key=... file is a developer's or a player's own key. A packed file (bridge/key-codec.mjs) is the key the
 // release package provides: that one, and only that one, is limited per day (bridge/shared-key-guard.mjs).
@@ -1023,7 +1026,12 @@ function logFollowUp(input, result) {
 // the player chose for V (Settings > Voices > V's voice engine): Pocket on the CPU (the default) or the Mistral cloud voice (Voxtral), whatever
 // the companions use. Never OmniVoice, never the Convai cloud voice, never a local model beside a cloud voice that was chosen for it. It runs
 // beside the companion's reply and never delays it. English only (a turn in another language gets no V line).
-const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console.error('[VVoice] ' + line),
+// Which V is playing, kept between sessions (state folder): the first typed line of a session prepares the right voice before it is sent.
+const vGenderFile = resolve(stateDirectory, 'v-voice-gender.json');
+const vGenderMemory = {
+  gender: (() => { try { return JSON.parse(readFileSync(vGenderFile, 'utf8')).gender; } catch { return null; } })(),
+  save: gender => { void atomic(vGenderFile, JSON.stringify({gender})).catch(() => {}); }};
+const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console.error('[VVoice] ' + line), remember: vGenderMemory,
   planFor: (input, key) => ({engine: vVoice.engine, language: multilingual.enabled ? multilingual.expected(input.text) : 'en'}),
   // Pocket, when it is the companions' own voice: that worker speaks V too, one job at a time. Voice playback Off silences the companions,
   // not V: with the V setting on the Pocket worker stays loaded for his line (docs/RESOURCE_LIFECYCLE.md).
