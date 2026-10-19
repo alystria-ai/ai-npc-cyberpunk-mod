@@ -107,7 +107,9 @@ function customRetryAfter(headers, now = Date.now()) {
 // says "unsupported parameter"; the request is then sent once more without it (or, for max_tokens that a newer OpenAI model replaced by
 // max_completion_tokens, with the new name) and the choice is remembered for the session (`adapt`, see streamChat).
 const DROPPABLE = Object.freeze(['stream_options', 'response_format', 'temperature', 'prompt_cache_key', 'top_p', 'max_completion_tokens']);
-const REFUSAL_WORDS = /unsupported|not supported|unknown|unrecogni[sz]ed|unexpected|not permitted|not allowed|not accepted|extra (?:inputs?|fields?|forbidden)|extra_forbidden|invalid (?:parameter|param|field|argument)|additional propert|does not support|only the default|invalid_request_error.*param/;
+// "must be": LM Studio refuses the fact extraction's json_object with "'response_format.type' must be 'json_schema'" (a field it names is dropped;
+// a sentence that names no optional field, such as "messages must be non-empty", is still not a refusal of one).
+const REFUSAL_WORDS = /unsupported|not supported|unknown|unrecogni[sz]ed|unexpected|not permitted|not allowed|not accepted|extra (?:inputs?|fields?|forbidden)|extra_forbidden|invalid (?:parameter|param|field|argument)|additional propert|does not support|only the default|must be|invalid_request_error.*param/;
 const FIELD_WORDS = /parameter|param\b|field|argument|propert/;
 const NO_SUCH_MODEL = /(?:model|endpoint)s?\b.{0,60}\b(?:not found|does not exist|not a valid|no such|unknown|not available|is not supported)|no endpoints found|invalid model/;
 
@@ -369,7 +371,7 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
   if (!keyless && (typeof apiKey !== 'string' || apiKey.length < 8)) throw new MistralError('key', 'has no API key', {provider});
   if (keyless) apiKey = undefined;
   const url = checkedEndpoint(endpoint ?? MISTRAL_ENDPOINT, provider, trustedOrigin);
-  let lastError, adapted = false;
+  let lastError, adapted = 0;
   const failed = [];
   for (let attempt = 0; attempt <= retries; attempt++) {
     if (signal?.aborted) throw signal.reason ?? abortError();
@@ -377,16 +379,17 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
     try {
       const result = await once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url,
         firstByteMs: attempt > 0 && retryFirstByteMs ? retryFirstByteMs : firstByteMs, stallMs, totalMs, extraBody, provider, onHeaders, adapt, headers});
-      return {...result, attempts: attempt + 1 + (adapted ? 1 : 0), failed};
+      return {...result, attempts: attempt + 1 + adapted, failed};
     } catch (error) {
       if (signal?.aborted || error?.name === 'AbortError' && !(error instanceof MistralError)) throw signal?.aborted ? (signal.reason ?? abortError()) : error;
       lastError = error instanceof MistralError ? error : new MistralError('network', redact(error?.message ?? 'request failed', apiKey), {apiKey, provider});
       failed.push({kind: lastError.kind, status: lastError.status, ms: Math.round(now() - began)});
       // The custom provider's server refused an optional field of the request: the same request is sent once more without it, at once, and the
-      // refusal is remembered (in `adapt`, which the route keeps for the session) so no later request sends the field again.
-      if (adapt && !adapted && lastError.paramsRejected) {
-        adapted = true;
-        learnRefusal(adapt, lastError.paramsRejected);
+      // refusal is remembered (in `adapt`, which the route keeps for the session) so no later request sends the field again. A server that refuses
+      // one field at a time (OpenAI's reasoning models: max_tokens, then temperature) is asked again after each refusal that taught something new,
+      // at most MAX_ADAPTATIONS times; a refusal that changes nothing in the request is an error at once (no loop).
+      if (adapt && adapted < MAX_ADAPTATIONS && lastError.paramsRejected && learnRefusal(adapt, lastError.paramsRejected)) {
+        adapted++;
         try { onRetry?.({attempt: attempt + 1, error: lastError, waitMs: 0, ms: failed.at(-1).ms}); } catch { /* an observer never fails a reply */ }
         attempt--;
         continue;
@@ -404,14 +407,21 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
 }
 
 const MAX_RETRY_WAIT_MS = 8000;
+// How many refused fields one request may learn before it gives up (max_tokens renamed, temperature, response_format, stream).
+const MAX_ADAPTATIONS = 4;
 
 // What the custom provider's server refused is remembered in `adapt` ({dropped: Set of field names, swapped: max_tokens is sent as
 // max_completion_tokens}); the route keeps one per endpoint and model for the session.
 export function newAdaptation() { return {dropped: new Set(), swapped: false}; }
 const OPTIONAL_FIELDS = Object.freeze(['stream_options', 'response_format', 'temperature', 'prompt_cache_key', 'top_p']);
+/** Adds what a refusal says to `adapt`; true when that changed anything (a refusal already learned changes nothing, and is not asked again). */
 function learnRefusal(adapt, rejected) {
+  const before = `${adapt.swapped}|${[...adapt.dropped].join(',')}`;
   if (rejected.swap) adapt.swapped = true;
-  for (const name of rejected.names.length ? rejected.names : OPTIONAL_FIELDS) adapt.dropped.add(name);
+  // A refusal that names no field drops every optional one; a rename of max_tokens alone drops nothing else (temperature and the fact extraction's
+  // response_format stay until the server refuses them).
+  for (const name of rejected.names.length || rejected.swap ? rejected.names : OPTIONAL_FIELDS) adapt.dropped.add(name);
+  return `${adapt.swapped}|${[...adapt.dropped].join(',')}` !== before;
 }
 function applyAdaptation(body, adapt) {
   if (adapt.swapped && 'max_tokens' in body) { body.max_completion_tokens = body.max_tokens; delete body.max_tokens; }

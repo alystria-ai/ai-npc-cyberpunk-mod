@@ -182,6 +182,42 @@ test('a server that refuses an optional field: the same request is sent once mor
   } finally { await mock.close(); }
 });
 
+test('a server that refuses one field at a time: each refusal that teaches something is asked again, so the first turn (and Test connection) works', async () => {
+  const mock = await startOpenAiMock();
+  try {
+    // OpenAI's reasoning models name one refused field per answer: max_tokens first, then temperature.
+    mock.behave(request => 'max_tokens' in request.body ? {status: 400, body: {error: {message: "Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead."}}}
+      : 'temperature' in request.body ? {status: 400, body: {error: {message: "Unsupported value: 'temperature' does not support 0.8 with this model. Only the default (1) value is supported."}}} : null);
+    const adapt = newAdaptation();
+    const result = await streamChat({...via(mock), apiKey: KEY, adapt, temperature: 0.8, maxTokens: 50, retries: 0});
+    assert.equal(result.text, MOCK_REPLY);
+    assert.equal(result.attempts, 3);
+    assert.deepEqual(mock.requests.map(({body}) => [body.max_tokens, body.max_completion_tokens, body.temperature]), [[50, undefined, 0.8], [undefined, 50, 0.8], [undefined, 50, undefined]]);
+    assert.deepEqual([adapt.swapped, [...adapt.dropped]], [true, ['temperature']], 'the rename of max_tokens dropped nothing else (the fact extraction keeps response_format)');
+    mock.requests.length = 0;
+    await streamChat({...via(mock), apiKey: KEY, adapt, temperature: 0.8, maxTokens: 50});
+    assert.equal(mock.requests.length, 1, 'both refusals are remembered');
+    // LM Studio refuses the fact extraction's json_object: "'response_format.type' must be 'json_schema'". The field goes, the facts are still asked for.
+    mock.requests.length = 0;
+    mock.behave(request => 'response_format' in request.body ? {status: 400, body: {error: "'response_format.type' must be 'json_schema'"}} : null);
+    const facts = await streamChat({...via(mock), apiKey: KEY, adapt: newAdaptation(), extraBody: {response_format: {type: 'json_object'}}, retries: 0});
+    assert.equal(facts.text, MOCK_REPLY);
+    assert.deepEqual(mock.requests.map(({body}) => 'response_format' in body), [true, false]);
+    // A refusal that changes nothing in the request (the field is already gone) is an error at once: no loop, no second identical request.
+    mock.requests.length = 0;
+    mock.behave(() => ({status: 400, body: {error: {message: "Unsupported parameter: 'temperature'"}}}));
+    const learned = newAdaptation(); learned.dropped.add('temperature');
+    await assert.rejects(streamChat({...via(mock), apiKey: KEY, adapt: learned, ...quick, retries: 3}), error => error.kind === 'request');
+    assert.equal(mock.requests.length, 1);
+    // A server that refuses something new every time stops after a bounded number of requests.
+    mock.requests.length = 0;
+    const fields = ['temperature', 'response_format', 'top_p', 'stream_options', 'prompt_cache_key', 'stream'];
+    mock.behave((request, index) => ({status: 400, body: {error: {message: `Unsupported parameter: '${fields[index % fields.length]}'`}}}));
+    await assert.rejects(streamChat({...via(mock), apiKey: KEY, adapt: newAdaptation(), ...quick, retries: 0}), error => error.kind === 'request');
+    assert.equal(mock.requests.length, 5);
+  } finally { await mock.close(); }
+});
+
 test('what a refusal says: the fields it names, whether max_tokens is renamed, and when it is about something else', () => {
   assert.deepEqual(rejectedParameters(400, "Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead."), {names: [], swap: true});
   assert.deepEqual(rejectedParameters(400, "Unsupported value: 'temperature' does not support 0.8 with this model."), {names: ['temperature'], swap: false});
@@ -191,6 +227,9 @@ test('what a refusal says: the fields it names, whether max_tokens is renamed, a
   assert.equal(rejectedParameters(400, 'The model `x` does not exist'), null);
   assert.equal(rejectedParameters(400, 'Unknown model: x'), null);
   assert.equal(rejectedParameters(400, 'messages must not be empty'), null);
+  assert.deepEqual(rejectedParameters(400, "'response_format.type' must be 'json_schema'"), {names: ['response_format'], swap: false});
+  assert.equal(rejectedParameters(400, 'messages must be a non-empty list'), null, 'a "must be" that names no optional field');
+  assert.equal(rejectedParameters(400, "'model' must be one of the listed models"), null);
   assert.equal(rejectedParameters(401, "Unsupported parameter: 'temperature'"), null, 'only a 400 or 422');
   assert.equal(rejectedParameters(400, ''), null);
 });
