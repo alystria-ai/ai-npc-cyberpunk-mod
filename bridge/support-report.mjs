@@ -413,6 +413,25 @@ export async function localAiSection({runtime, project, environment = process.en
   };
 }
 
+/**
+ * Which conversation provider is chosen and in use, and for the custom OpenAI-compatible provider its host and model id (docs/CUSTOM_PROVIDER.md). From
+ * the two status files the bridge publishes; only the fields named here are copied. Never the address's path or query, never the key (not even its tail).
+ */
+export async function conversationSection({runtime, settings}) {
+  const chosen = ['convai', 'mistral', 'local', 'custom'].includes(settings?.conversationProvider) ? settings.conversationProvider : 'convai';
+  const provider = await readSmallJson(join(runtime, 'mistral-state.json'));
+  const custom = await readSmallJson(join(runtime, 'custom-provider-state.json'));
+  const state = custom.value && typeof custom.value === 'object' ? custom.value : {};
+  const test = state.test && typeof state.test === 'object' ? state.test : null;
+  return {provider: chosen,
+    effective: ['convai', 'mistral', 'local', 'custom'].includes(provider.value?.effective) ? provider.value.effective : null,
+    ...(chosen === 'custom' || state.ready === true ? {custom: {
+      host: clip(typeof state.host === 'string' ? state.host.replace(/[/?#].*$/, '') : null, 80) ?? null, model: clip(state.model, 120) ?? null,
+      ready: state.ready === true, keySaved: state.keySaved === true, secure: state.secure === true, local: state.local === true,
+      limit: typeof state.limit === 'string' ? clip(state.limit, 20) : null,
+      ...(test ? {lastTest: {state: clip(test.state, 20), code: clip(test.code, 20), status: Number.isInteger(test.status) ? test.status : undefined}} : {})}} : {})};
+}
+
 function companionProviders({settings, voice, routing, party}) {
   const routed = new Set(Array.isArray(voice?.routedProfiles) ? voice.routedProfiles : []);
   const routes = new Map((Array.isArray(routing?.routes) ? routing.routes : []).map(row => [row?.profileKey, row]));
@@ -513,6 +532,7 @@ export async function collectReport(options) {
     localAi: await localAiSection({runtime, project: project ?? resolve(runtime, '..'), environment}),
     party: {companions: party, connections: raw['party-connection-state.json']
       ? redact.value(compactStatus('party-connection-state.json', raw['party-connection-state.json'])) : null},
+    conversation: await conversationSection({runtime, settings}),
     providers: companionProviders({settings, voice: raw['local-voice-state.json'], routing: raw['relationship-routing.json'], party}),
     recentErrors, logs: index,
   });
