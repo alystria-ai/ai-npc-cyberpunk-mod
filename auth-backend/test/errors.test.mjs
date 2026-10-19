@@ -4,6 +4,7 @@ import { Readable } from 'node:stream';
 import { gunzipSync } from 'node:zlib';
 import { DEFAULTS, ENV_NAMES, readConfig } from '../api/_lib/config.js';
 import { pseudonym, signBody } from '../api/_lib/crypto.js';
+import { addressBucket } from '../api/_lib/http.js';
 import { createErrorReportHandler } from '../api/_lib/errors.js';
 import { DEFAULT_ADDRESS, createErrorWorld, installHash, signatureOf } from '../testkit/errors-world.mjs';
 import { ADMIN_SECRET, SIGNING_SECRET, START, captureErrors, makeEnv, mockResponse, streamedRequest } from '../testkit/harness.mjs';
@@ -528,7 +529,8 @@ test('no install id, hash the client sent, or address is in any key or value, an
   }
   for (const address of addresses) {
     assert.ok(!everything.includes(address), 'no address');
-    assert.ok(everything.includes(pseudonym(SIGNING_SECRET, 'error-ip', address)));
+    // The rate limits count an IPv6 address as its /64 network (http.js addressBucket); that bucket is what is hashed.
+    assert.ok(everything.includes(pseudonym(SIGNING_SECRET, 'error-ip', addressBucket(address))));
   }
   // The kept bodies hold the second hash too.
   let bodies = 0;

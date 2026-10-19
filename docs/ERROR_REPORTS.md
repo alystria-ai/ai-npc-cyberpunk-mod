@@ -108,6 +108,6 @@ It reads the backend address from `runtime/convai-auth.json` and the admin secre
 | `bridge/error-reports.mjs` | The reporter: payload, redaction, throttles, sending, the Lua log scan |
 | `bridge/bridge-supervisor.mjs` | Starts the reporter (`errorReports: true` from `packaging/runtime/start-service.mjs` and `scripts/Supervise-ConversationBridge.mjs`), reports `failed` and unexpected exits |
 | `mod/error-reports.lua` | The game's events, the first-load versions, the one-time notice |
-| `mod/manager.lua`, `mod/mcm.lua` | The setting (`errorReports` in `settings.json`, missing means on) and its row; the notice's flag (`errorReportsNoticed`) |
+| `mod/manager.lua`, `mod/manager-ui.lua` | The setting (`errorReports` in `settings.json`, missing means on) and its row; the notice's flag (`errorReportsNoticed`) |
 | `auth-backend/api/_lib/errors.js`, `errors-admin.js` | The endpoint and the admin calls |
 | `scripts/Fetch-ErrorReports.mjs` | The developer's download |

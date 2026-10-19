@@ -9,10 +9,40 @@ const textValue = (value, limit) => typeof value === 'string' && value.length <=
   && !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value);
 const integer = value => Number.isSafeInteger(value) && value >= 0;
 const packetIdentity = value => JSON.stringify([value.owner, value.id, value.profile, value.modelSha256]);
+// How long a spare output device opened ahead of a turn (standby()) waits for that turn before it closes itself. A text route
+// normally has its first sentence within a few seconds; a slower turn simply opens its device the ordinary way.
+export const SPARE_STANDBY_MS = 30000;
 
 export class LocalPcmClient {
-  constructor({createPlayer = () => new ContinuousPcmPlayer()} = {}) {
-    this.createPlayer = createPlayer; this.active = null;
+  constructor({createPlayer = options => new ContinuousPcmPlayer(options)} = {}) {
+    this.createPlayer = createPlayer; this.active = null; this.spare = null; this.spareOpen = null; this.spares = 0;
+  }
+
+  // Opens the output device now, silently and with no lease (ContinuousPcmPlayer standby), so the next turn's begin() arms a running
+  // device instead of creating an AudioContext and its worklet after the voice was asked (about 70 ms on an idle machine, 0.15 to
+  // 0.75 s in the game's live records, where it was on the critical path of a local voice's first sound). The Convai renderer does the
+  // same at its turn start (bridge/realtime-client.mjs startStandby). True when a healthy spare is open; never throws. A turn that
+  // already owns the renderer has its own device: nothing is opened.
+  standby() {
+    if (this.active) return Promise.resolve(false);
+    if (this.spare && !this.spare.stopped) return this.spareOpen;
+    const player = this.createPlayer({standbyMs: SPARE_STANDBY_MS});
+    this.spare = player;
+    this.spareOpen = Promise.resolve().then(() => player.open({token: `spare-${++this.spares}`, sampleRate: 24000, channels: 1, standby: true}))
+      .then(() => !player.stopped, () => { if (this.spare === player) { this.spare = null; this.spareOpen = null; } return false; });
+    return this.spareOpen;
+  }
+
+  // The spare for a turn that is starting: armed (its ordinary 2 s lease starts now) when it is healthy, else stopped and null.
+  async takeSpare() {
+    const player = this.spare, opening = this.spareOpen;
+    this.spare = null; this.spareOpen = null;
+    if (!player) return null;
+    try {
+      if (await opening && player.opened && !player.stopped && player.standby) { await player.arm(); return player; }
+    } catch { /* opened the ordinary way below */ }
+    void Promise.resolve().then(() => player.stop()).catch(() => {});
+    return null;
   }
 
   owned(token) {
@@ -26,18 +56,23 @@ export class LocalPcmClient {
     if (!config || typeof config.token !== 'string' || !TOKEN.test(config.token) || !textValue(config.text, 12000) || !config.text.trim()
         || (config.userText !== undefined && !textValue(config.userText, 1200)))
       throw Error('Invalid local PCM admission');
+    const spare = this.spare;
     const turn = {token: config.token, text: config.text, userText: config.userText,
       expressionSignal: config.expressionSignal, current: true, frames: 0, index: 0,
-      sourceComplete: false, appending: false, player: this.createPlayer()};
+      sourceComplete: false, appending: false, player: spare};
     this.active = turn;
     try {
-      await turn.player.open({token: turn.token, sampleRate: 24000, channels: 1});
+      // A spare device opened ahead of this turn (standby()) is armed; without one, or when it failed, the device opens now.
+      const armed = spare ? await this.takeSpare() : null;
+      if (this.active !== turn || !turn.current) { await armed?.stop(); throw Error('Local PCM startup was cancelled'); }
+      turn.player = armed ?? this.createPlayer();
+      if (!armed) await turn.player.open({token: turn.token, sampleRate: 24000, channels: 1});
       if (this.active !== turn || !turn.current) throw Error('Local PCM startup was cancelled');
       return this.snapshot(turn.token);
     } catch (error) {
       turn.current = false;
       if (this.active === turn) this.active = null;
-      await turn.player.stop(); throw error;
+      await turn.player?.stop(); throw error;
     }
   }
 
@@ -108,7 +143,7 @@ export class LocalPcmClient {
     const turn = this.active;
     if (!turn || turn.token !== token) return false;
     turn.current = false; this.active = null;
-    await turn.player.stop(); return true;
+    await turn.player?.stop(); return true;
   }
 }
 

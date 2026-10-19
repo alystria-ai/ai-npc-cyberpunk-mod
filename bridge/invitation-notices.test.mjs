@@ -64,7 +64,7 @@ test('no progress is posted for a lone invitation at any stage, and its joined l
   `);
 });
 
-// What a companion still waits for is not an ordinary notice. The board hands it to the loading notice (mod/mcm.lua) as
+// What a companion still waits for is not an ordinary notice. The board hands it to the loading notice (mod/manager-ui.lua) as
 // waiting() lines; the notice holds them on screen until she has spawned, so the board itself posts nothing for any stage.
 test('a profile invitation posts no ordinary notice while it prepares, then its joined line; its wait is a waiting() line until it joins', () => {
   run(`${fixture}

@@ -18,7 +18,7 @@ $packages = @(
     @{ Name = 'redscript 0.5.31'; Path = (Join-Path $project 'vendor\downloads\redscript-v0.5.31-windows.zip') },
     @{ Name = 'Codeware 1.20.5'; Path = (Join-Path $project 'vendor\downloads\Codeware-1.20.5.zip') },
     @{ Name = 'CET 1.37.1'; Path = (Join-Path $project 'ref mods\CET 1.37.1 - Scripting fixes-107-1-37-1-1759193708.zip') },
-    @{ Name = 'Mod Configuration Menu 0.10.3'; Path = (Join-Path $project 'ref mods\Mod Configuration Menu 31640 0.10.3 2026-09-21T16-50Z YfTif7TNd.zip') }
+    @{ Name = 'Native Settings UI 1.96'; Path = (Join-Path $project 'ref mods\Native Settings UI 1.96-3518-1-96-1704576025.zip') }
 )
 foreach ($package in $packages) {
     if (-not [IO.File]::Exists($package.Path)) { throw "Missing $($package.Name): $($package.Path)" }

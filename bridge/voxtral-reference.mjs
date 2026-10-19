@@ -239,8 +239,8 @@ const FORMAT_OF = {vorbis: 'ogg', mp3: 'mp3'};
  * Returns async (bytes, {key, sha256, safeFormat}) => {bytes, format: 'ogg'|'mp3'|'wav', seconds, cached} for a reference clip, or null
  * when the clip cannot be decoded (the caller then sends it as it is). The result is kept in `cacheDirectory` as <key>.<format> next to
  * a <key>.json that names the source clip's hash and the settings; a changed clip or setting is prepared again. A cache that cannot
- * be read or written is ignored. `shippedDirectories`: more folders slots are read from when `cacheDirectory` has none that matches (the Runtime's
- * own, RUNTIME_PREPARED_FOLDER); nothing is ever written to them. `compress`: encode with ffmpeg when it is there (default true): the settings' codec first, then MP3,
+ * be read or written is ignored. `shippedDirectories`: more folders slots are read from when `cacheDirectory` has none that matches, or only one in
+ * a worse format (the Runtime's own, RUNTIME_PREPARED_FOLDER); nothing is ever written to them. `compress`: encode with ffmpeg when it is there (default true): the settings' codec first, then MP3,
  * then the WAV. `safeFormat` (per call): skip Ogg and use MP3 (the server refused an Ogg reference). Concurrent calls for one key
  * share one job. `.signature(sha256, {safeFormat})` is the cache signature a clip's slot carries (the release builder compares it).
  */
@@ -262,14 +262,24 @@ export function createReferencePreparer({cacheDirectory, shippedDirectories = []
       return {bytes, format: meta.format, seconds: meta.seconds, cached: true};
     } catch { return null; }
   }
-  async function fromCache(key, sig) {
+  // A slot that fits (the signature names the clip and the settings) is the same reference in any folder, except for its format: the cache
+  // folder can hold a WAV (or an MP3) that this machine made without ffmpeg (or without libvorbis) for a clip the Runtime ships as Ogg. Until
+  // 0.2.1 the Runtime's slots shared that folder, so extracting a new Runtime replaced such a slot; now they are in their own folder, read
+  // second, and nothing deletes it. So the first slot in the ladder's first format wins, else the best format found: the 38 KB Ogg, not the 408 KB WAV.
+  const rank = (format, safeFormat) => {
+    const order = [...ladder(safeFormat).map(codec => FORMAT_OF[codec]), 'wav'], at = order.indexOf(format);
+    return at < 0 ? order.length : at;
+  };
+  async function fromCache(key, sig, safeFormat) {
     if (!safe(key)) return null;
+    let best = null;
     for (const directory of [cacheDirectory, ...shippedDirectories]) {
       if (!directory) continue;
       const hit = await fromFolder(directory, key, sig);
-      if (hit) return hit;
+      if (hit && (!best || rank(hit.format, safeFormat) < rank(best.format, safeFormat))) best = hit;
+      if (best && rank(best.format, safeFormat) === 0) break;
     }
-    return null;
+    return best;
   }
   async function toCache(key, sig, made) {
     if (!cacheDirectory || !safe(key)) return;
@@ -283,7 +293,7 @@ export function createReferencePreparer({cacheDirectory, shippedDirectories = []
   }
   async function build(bytes, key, sha256, safeFormat) {
     const sig = signature(sha256, {safeFormat});
-    const hit = await fromCache(key, sig);
+    const hit = await fromCache(key, sig, safeFormat);
     if (hit) return hit;
     let prepared;
     try { prepared = prepareReference(bytes, settings); } catch { return null; }

@@ -8,6 +8,7 @@
 //
 // `behave(handler)`: handler(request, index) returns what to answer:
 //   {sse: ['Hello', ' there.'], model, finish: 'stop'}   a streamed reply, one delta per text, then the finish chunk and [DONE]
+//   {sse: [{reasoning: 'hmm'}, 'Hello'], usage}          an item that is an object is the delta as it is (reasoning fields, a role, tool calls...)
 //   {sse: [...], cut: true}                              the stream ends after the deltas with no finish and no [DONE]
 //   {json: {...}}                                        a plain JSON body (status 200 unless `status` is set)
 //   {status, headers, body}                              an error answer (body is an object, or a string sent as it is)
@@ -48,7 +49,10 @@ export async function startOpenAiMock({host = '127.0.0.1'} = {}) {
     if (plan.sse) {
       response.writeHead(200, {'content-type': 'text/event-stream', 'cache-control': 'no-cache', ...plan.headers});
       response.write(': keep-alive\n\n');
-      for (const [index, text] of plan.sse.entries()) response.write(chunk(index === 0 ? {role: 'assistant', content: text} : {content: text}, {model: plan.model}));
+      for (const [index, item] of plan.sse.entries()) {
+        const delta = typeof item === 'string' ? (index === 0 ? {role: 'assistant', content: item} : {content: item}) : item;
+        response.write(chunk(delta, {model: plan.model}));
+      }
       if (plan.cut) { response.end(); return; }
       response.write(chunk({}, {finish: plan.finish ?? 'stop', model: plan.model, usage: plan.usage}));
       response.write('data: [DONE]\n\n');

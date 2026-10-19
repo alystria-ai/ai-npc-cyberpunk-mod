@@ -139,9 +139,12 @@ test('a failed turn is reported only when it is not the player\'s own doing', ()
   for (const errorCode of ['mistral-key', 'custom-credits', 'quota-own', 'quota-shared', 'daily-limit', 'key-rejected', 'custom-unreachable']) {
     assert.equal(reportableTurnFailure(new Error('x'), {errorCode}), false, errorCode);
   }
-  for (const localReason of ['not-installed', 'low-memory', 'mature-off']) {
+  for (const localReason of ['not-installed', 'low-memory', 'mature-off', 'no-gpu']) {
     assert.equal(reportableTurnFailure(new Error('x'), {errorCode: 'local-fallback', localReason}), false, localReason);
+    assert.equal(reportableTurnFailure(new Error('x'), {errorCode: 'local-unavailable', localReason}), false, localReason);
   }
+  assert.equal(reportableTurnFailure(new Error('x'), {errorCode: 'local-no-memory'}), false);
+  assert.equal(reportableTurnFailure(new Error('x'), {errorCode: 'local-unavailable', localReason: 'crashed'}), true, 'a Local AI server that crashed');
   assert.equal(reportableTurnFailure(Object.assign(new Error('The operation was aborted'), {name: 'AbortError'})), false);
   assert.equal(reportableTurnFailure(Object.assign(new Error('Daily conversation limit reached'), {name: 'TurnLimitError'})), false);
   assert.equal(reportableTurnFailure(new Error('Microphone device unavailable'), {microphone: true}), false);
@@ -415,10 +418,10 @@ test('Lua errors in the mod\'s logs are found from where the last look stopped; 
     assert.equal((await readQueue(f.state, {now: clock.now})).length, 0, 'what was there before is not this session\'s');
     await appendFile(probe, ['2026-10-19T10:00:00Z Conversation result: generation=1 error=false speech=starting',
       '2026-10-19T10:00:01Z Crowd movement policy hold failed: init.lua:150: attempt to index local \'policy\' (a nil value)', ''].join('\n'));
-    await appendFile(modLog, '[2026-10-19 10:00:02 UTC+02:00] [error] mcm.lua:2201: bad argument #1 to \'ipairs\' (table expected, got nil)\nstack traceback:\n');
+    await appendFile(modLog, '[2026-10-19 10:00:02 UTC+02:00] [error] manager-ui.lua:1201: bad argument #1 to \'ipairs\' (table expected, got nil)\nstack traceback:\n');
     await reporter.look({flush: false});
     const queue = await readQueue(f.state, {now: clock.now});
-    assert.deepEqual(queue.map(record => [record.kind, record.frame]).sort(), [['lua-error', 'init.lua:150'], ['lua-error', 'mcm.lua:2201']]);
+    assert.deepEqual(queue.map(record => [record.kind, record.frame]).sort(), [['lua-error', 'init.lua:150'], ['lua-error', 'manager-ui.lua:1201']]);
     assert.equal(queue.find(record => record.frame === 'init.lua:150').message, "attempt to index local 'policy' (a nil value)");
     await reporter.look({flush: false});
     assert.equal((await readQueue(f.state, {now: clock.now})).every(record => record.count === 1), true, 'a line is read once');

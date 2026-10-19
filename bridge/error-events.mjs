@@ -264,10 +264,12 @@ export function installCrashCapture({stateDirectory, runtime, processRef = proce
 
 // A failed turn that is the player's own doing or not a fault: a key the provider refused, a plan or free limit used up, the daily
 // allowance, the player's own server or account, a player who cancelled. Local AI that could not start because it is not installed,
-// does not fit the graphics memory or needs Mature content is the player's setup too.
+// does not fit the graphics memory ('local-no-memory'), has no graphics card to run on or needs Mature content is the player's setup too.
 const OWN_DOING = new Set(['mistral-key', 'mistral-limit', 'custom-key', 'custom-credits', 'custom-limit', 'custom-model', 'custom-unreachable',
-  'quota-own', 'quota-shared', 'daily-limit', 'key-rejected', 'key-memory', 'key-memory-needed', 'addon-provider', 'addon-pace']);
-const OWN_LOCAL_REASONS = new Set(['not-installed', 'low-memory', 'mature-off']);
+  'quota-own', 'quota-shared', 'daily-limit', 'key-rejected', 'key-memory', 'key-memory-needed', 'addon-provider', 'addon-pace', 'local-no-memory']);
+const OWN_LOCAL_REASONS = new Set(['not-installed', 'low-memory', 'mature-off', 'no-gpu']);
+// The codes that say Local AI could not take a turn; whether that is the player's setup depends on why (localReason).
+const LOCAL_DOWN = new Set(['local-fallback', 'local-unavailable']);
 const NOT_A_FAULT = /\b(?:abort(?:ed)?|cancell?ed|superseded|interrupted|voice service is closed|no speech was heard)\b/i;
 
 /** Whether a failed turn is worth a report (see OWN_DOING). Pure; the bridge passes what it knows. */
@@ -278,7 +280,7 @@ export function reportableTurnFailure(error, {errorCode, localReason, microphone
   const text = typeof error?.message === 'string' ? error.message : String(error);
   if (NOT_A_FAULT.test(text)) return false;
   if (errorCode && OWN_DOING.has(errorCode)) return false;
-  if (errorCode === 'local-fallback' && OWN_LOCAL_REASONS.has(localReason)) return false;
+  if (LOCAL_DOWN.has(errorCode) && OWN_LOCAL_REASONS.has(localReason)) return false;
   // A microphone turn fails for the device as often as for the service: only one that names a provider failure counts.
   if (microphone && !errorCode && !/\[(?:mistral|local|custom):|convai|timed? ?out|timeout/i.test(text)) return false;
   return true;

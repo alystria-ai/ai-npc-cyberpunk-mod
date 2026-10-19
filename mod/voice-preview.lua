@@ -1,4 +1,4 @@
--- MCM owns its drafts. This short-lived request only prepares local voices;
+-- The Settings page applies a change as it is made. This short-lived request only prepares local voices;
 -- it never persists a setting or changes an in-flight conversation's route.
 local M = {}
 local MOD_KEY = 'cyberpunk-convai:manager'

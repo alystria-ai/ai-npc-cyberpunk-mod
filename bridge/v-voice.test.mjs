@@ -6,7 +6,7 @@ import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {runInNewContext} from 'node:vm';
 import {readFileSync} from 'node:fs';
-import {V_VOICE_KEYS, V_ENGINES, V_MAX_CHARS, VVoice, VLine, loadVVoiceReferences, extraVoices, vGenderOf, vLineText} from './v-voice.mjs';
+import {V_VOICE_KEYS, V_ENGINES, V_MAX_CHARS, V_HANDOFF_LEAD_MS, VVoice, VLine, loadVVoiceReferences, extraVoices, vGenderOf, vLineText} from './v-voice.mjs';
 import {TurnClock, withClock} from './turn-clock.mjs';
 import {PcmEdges, fadeGain} from './pcm-edges.mjs';
 import {LocalPcmClient} from './local-pcm-client.mjs';
@@ -715,7 +715,10 @@ test('the bridge starts V\'s line at the top of the turn (before knowledge, admi
   }
   assert.ok(run.indexOf('if (!profile || !ids[profile.key])') < started, 'only for a turn that is for a real companion');
   assert.match(run, /if \(!ahead\) vLine = vVoice\.start/);
-  assert.match(bridge, /hold: \(\) => ahead\?\.isHeld\(\) === true \|\| current\.vLine\?\.\(\)\?\.holds\(\) === true/);
+  // Published shortly before V's end (the hand-off lead), its sound held until V has ended.
+  assert.match(bridge, /hold: \(\) => ahead\?\.isHeld\(\) === true \|\| current\.vLine\?\.\(\)\?\.holdsPublish\(\) === true/);
+  assert.match(bridge, /holdSound: \(\) => current\.vLine\?\.\(\)\?\.blocking === true/);
+  assert.match(bridge, /current\.vLine\?\.\(\)\?\.whenNearEnd\?\.\(\(\) => speech\.wakeUp\(\)\)/);
   assert.match(bridge, /await current\.vLine\?\.\(\)\?\.waitClear\(signal\)/);
   assert.match(bridge, /if \(vVoice\.update\(settings\)\)/);
   assert.match(bridge, /vVoice\.warmUp\(\)/);
@@ -831,4 +834,124 @@ test('an add-on conversation starts V\'s line beside the reply, never for a rema
   const lua = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
   assert.match(lua, /voiceOnly = true\}\)/);
   assert.match(bridge, /JSON\.parse\(hintRaw\)\?\.voiceOnly === true\) vVoice\.warmUp\(\)/);
+});
+
+// ---- The hand-off to the companion (docs/perf, LATENCY.md) ----------------------------------------------------------------------
+
+// A renderer whose clock the test moves: one second of V's line (its silent tail included), the heard position set by the test.
+function clockedRenderer() {
+  const state = {position: 0, complete: false, end: false};
+  const play = async (config, producer, options) => {
+    const producing = producer(async () => {}, {signal: options.signal});
+    while (await options.current()) {
+      const ended = state.end && state.complete;
+      options.onFrame({receivedFrames: 24000, sampleRate: 24000, sourceComplete: state.complete, positionSeconds: ended ? 1 : state.position, ended});
+      if (ended) break;
+      await sleep(1);
+    }
+    await producing;
+  };
+  return {play, state};
+}
+const handoffLine = (host, extra = {}) => new VLine({input: typed(), key: 'v-male', text: 'Hello Judy.', plan: {engine: 'pocket', language: 'en'},
+  volume: 0.6, play: host.play, stream: async (key, text, options) => { await options.onPcm(packet()); return {}; }, ...extra});
+
+test('V\'s hand-off: the time left is read from the renderer once the line is complete; publishing is allowed from the lead on, the sound only after the end', async () => {
+  assert.equal(V_HANDOFF_LEAD_MS, 300, 'inside the 320 ms of silence V\'s line ends with');
+  const host = clockedRenderer(), near = [];
+  const made = handoffLine(host);
+  made.whenNearEnd(() => near.push('near'));
+  await until(() => made.state === 'playing', 'V to be audible');
+  assert.equal(made.holdsPublish(), true, 'V\'s end is not known yet (synthesis running): the reply waits');
+  host.state.position = 0.2; host.state.complete = true;
+  await until(() => made.remainingMs < Infinity, 'the time left to be known');
+  assert.equal(made.holdsPublish(), true, 'about 800 ms left: still held');
+  assert.deepEqual(near, []);
+  host.state.position = 0.75;
+  await until(() => near.length === 1, 'the near-end signal');
+  assert.equal(made.holdsPublish(), false, '250 ms left: the reply may be published');
+  assert.equal(made.blocking, true, 'but its sound waits: V is still audible');
+  host.state.position = 0.65;   // a clock report a little off never takes the permission back
+  await sleep(5);
+  assert.equal(made.holdsPublishPeek(), false);
+  assert.equal(near.length, 1, 'the signal fires once');
+  host.state.end = true;
+  await made.clear;
+  assert.equal(made.blocking, false);
+  let late = 0; made.whenNearEnd(() => late++);
+  assert.equal(late, 1, 'a listener added after the end runs at once');
+});
+
+test('V\'s hand-off: the time left is counted on between renderer reports; a dropped line signals at once; lead 0 is the old order', async () => {
+  let now = 0;
+  const host = clockedRenderer();
+  const made = handoffLine(host, {now: () => now});
+  await until(() => made.state === 'playing', 'V to be audible');
+  host.state.position = 0.5; host.state.complete = true;
+  await until(() => made.remainingMs < Infinity, 'the time left to be known');
+  // No newer report counts here: 500 ms left at the report, 220 ms later it is under the lead.
+  made.remainingAt = now; made.remainingMs = 500; now += 220;
+  assert.equal(made.nearEnd(), true);
+  made.remainingMs = 900;
+  assert.equal(made.nearEnd(), true, 'sticky once reached: a later report never takes it back');
+  host.state.end = true; await made.clear;
+  // Not audible in time: dropped, which also releases anyone waiting for the near end.
+  let release;
+  const gate = new Promise(done => { release = done; });
+  const slow = handoffLine(clockedRenderer(), {stream: async (key, text, options) => { await gate; await options.onPcm(packet()); return {}; }});
+  let woke = 0; slow.whenNearEnd(() => woke++);
+  assert.equal(slow.holdsPublish(), false, 'the reply never waits for V\'s synthesis');
+  assert.equal(slow.state, 'dropped'); assert.equal(woke, 1);
+  release(); await slow.finished;
+});
+
+test('the hand-off lead is a setting: CYBERPUNK_CONVAI_V_HANDOFF_MS=0 publishes only when V has ended, as before', () => {
+  const source = readFileSync(new URL('./v-voice.mjs', import.meta.url), 'utf8');
+  assert.match(source, /const requestedHandoff = Number\(process\.env\.CYBERPUNK_CONVAI_V_HANDOFF_MS\);/);
+  assert.match(source, /requestedHandoff >= 0 && requestedHandoff <= 2000 \? requestedHandoff : 300;/);
+  // With lead 0 the reply is held until nothing is left of V's line.
+  const made = Object.assign(Object.create(VLine.prototype), {state: 'playing', remainingMs: 100, remainingAt: 0, nearReached: false, now: () => 0});
+  assert.equal(made.holdsPublishPeek(0), true);
+  made.remainingMs = 0;
+  assert.equal(made.holdsPublishPeek(0), false);
+});
+
+test('V\'s hand-off end to end: the companion\'s reply is published before V ends, the lease is read, and the sound starts only when V has ended', async () => {
+  const owner = {requestId: 'reply-1', entity: 'judy-copy-2', generation: 7};
+  const events = [];
+  let sequence = 0, leases = 0;
+  const host = clockedRenderer();
+  const vLine = handoffLine(host);
+  const speech = new ConvaiContinuousSpeech({input: owner, profile: {key: 'judy-alvarez'}, token: 'continuous-1',
+    signal: new AbortController().signal, current: async () => true,
+    hold: () => vLine.holdsPublish(), holdPeek: () => vLine.holdsPublishPeek(), holdSound: () => vLine.blocking,
+    onLease: () => leases++,
+    readControl: async () => JSON.stringify({version: 1, id: 'continuous-1', ...owner, sequence: ++sequence, updated: Date.now(),
+      allow: true, paused: false, volume: 0.8, pan: 0}),
+    writeState: async () => { events.push('state'); return true; },
+    writeReply: async () => { events.push('reply'); return true; }});
+  vLine.whenNearEnd(() => speech.wakeUp());
+  vLine.whenClear(() => speech.wakeUp());
+  const snapshot = {version: 1, token: 'continuous-1', sampleRate: 24000, channels: 1, receivedFrames: 12000, positionSeconds: 0,
+    text: 'Hey V.', textComplete: true, sourceComplete: false, ended: false, underruns: 0, state: 'buffering'};
+  const QUIET = {allow: false, paused: true, volume: 0, pan: 0};
+  await until(() => vLine.state === 'playing', 'V to be audible');
+  host.state.position = 0.3; host.state.complete = true;
+  await until(() => vLine.remainingMs < Infinity, 'V\'s time left to be known');
+  assert.deepEqual(await speech.frame(snapshot), QUIET);
+  assert.deepEqual(events, [], 'nothing is published while V has more than the lead left');
+  const woken = speech.options.wake();
+  host.state.position = 0.8;   // 200 ms left
+  await woken;   // the near-end signal wakes the companion's poll at once
+  assert.deepEqual(await speech.frame(snapshot), QUIET, 'published, silent');
+  assert.ok(events.includes('reply'), 'the reply reaches the game before V ends');
+  assert.deepEqual(await speech.frame({...snapshot, receivedFrames: 13000}), QUIET, 'the lease is read but the sound waits for V');
+  assert.equal(leases, 1, 'the game\'s lease was accepted and is kept');
+  const soundWake = speech.options.wake();
+  assert.ok(soundWake instanceof Promise, 'the poll waits for V\'s end (or a lease)');
+  host.state.end = true;
+  await vLine.clear;
+  await soundWake;
+  const sound = await speech.frame({...snapshot, receivedFrames: 14000});
+  assert.equal(sound.allow, true, 'the reply sounds the moment V has ended');
 });

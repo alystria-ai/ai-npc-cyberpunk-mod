@@ -121,7 +121,7 @@ function M.noteSetup(problems, checks)
     return true
 end
 
--- Called from the slow update (mod/mcm.lua) with whether gameplay is on screen. Returns the one-time notice text once, else nil.
+-- Called from the slow update (mod/manager-ui.lua, hosted by mod/nsui.lua) with whether gameplay is on screen. Returns the one-time notice text once, else nil.
 function M.tick(worldReady)
     if noticeDone or not worldReady then return nil end
     local now = os.time()

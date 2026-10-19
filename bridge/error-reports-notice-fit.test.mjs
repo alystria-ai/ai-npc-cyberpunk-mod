@@ -11,7 +11,7 @@ const ROW = ['Privacy', 'Send error reports automatically'];
 const CODES = ['zh-cn', 'zh-tw', 'es', 'pt-br', 'fr', 'de', 'it', 'pl', 'cs', 'hu', 'tr', 'ru', 'uk', 'ja', 'ko'];
 const read = file => readFileSync(new URL(file, import.meta.url), 'utf8');
 const unescape = text => text.replace(/\\(["\\n])/g, (_, char) => char === 'n' ? '\n' : char);
-const HELP = unescape(/setting\('errorReports', 'Send error reports automatically', 'bool', [^,]+, true,\s*'((?:[^'\\]|\\.)*)'/.exec(read('../mod/mcm.lua'))?.[1] ?? '');
+const HELP = unescape(/setting\('errorReports', 'Send error reports automatically', 'bool', [^,]+, true,\s*'((?:[^'\\]|\\.)*)'/.exec(read('../mod/manager-ui.lua'))?.[1] ?? '');
 
 test('the notice is one paragraph that fits two lines, and it is the text the game shows', () => {
   assert.deepEqual(noticeProblems(NOTICE, {english: true}), [], NOTICE);

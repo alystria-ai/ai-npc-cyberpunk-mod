@@ -63,7 +63,9 @@ test('a server override is used only where it is valid; the key can never be poi
 test('only an https Stripe or Convai page may be opened', () => {
   assert.equal(safeCheckoutUrl(STRIPE), STRIPE);
   assert.equal(safeCheckoutUrl('https://convai.com/pricing'), 'https://convai.com/pricing');
-  for (const bad of ['http://checkout.stripe.com/x', 'https://stripe.com.evil.example/x', 'javascript:alert(1)', 'file:///C:/x', 'https://user:pw@checkout.stripe.com/', 42, null]) {
+  // A checkout address goes to the system's URL handler as one argument: nothing that could be read as more than one address passes.
+  for (const bad of ['http://checkout.stripe.com/x', 'https://stripe.com.evil.example/x', 'javascript:alert(1)', 'file:///C:/x', 'https://user:pw@checkout.stripe.com/', 42, null,
+    'https://checkout.stripe.com/x "C:\\Windows\\System32\\calc.exe"', 'https://checkout.stripe.com/x\tfile:///C:/x', 'https://checkout.stripe.com/a|b', 'https://checkout.stripe.com/a^b']) {
     assert.equal(safeCheckoutUrl(bad), null, String(bad));
   }
 });

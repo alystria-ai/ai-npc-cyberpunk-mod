@@ -25,7 +25,7 @@ test('every requirement present: no problem, no notice, nothing on the console, 
   installFiles(); serviceRunning()
   env.requirements = '${ALL}'; applyEnv()
   check.run()
-  assert(ids() == 'files=ok game=ok cet=ok red4ext=ok redscript=ok codeware=ok tweakxl=ok audioware=ok mcm=ok', ids())
+  assert(ids() == 'files=ok game=ok cet=ok red4ext=ok redscript=ok codeware=ok tweakxl=ok audioware=ok nsui=ok', ids())
   assert(check.problemCount() == 0 and #check.problems() == 0)
   assert(lineOf('redscript').description == 'Loaded.' and lineOf('codeware').description == 'Version 1.20.5.')
   for _, word in ipairs({'codeware', 'codeware-ui', 'codeware-textinput', 'audioware'}) do assert(check.requirement(word) == true, word) end
@@ -88,17 +88,17 @@ test('Codeware and Audioware both missing is one notice naming both, and the con
   assert(check.codewareNotice() == 'Codeware is missing. Install it from Nexus Mods, then restart the game.')
 `));
 
-test('requirements missing together: up to four names, Mod Configuration Menu left to its own notice, and a mix of missing and old', () => run(String.raw`
+test('requirements missing together: up to four names, Native Settings UI left to its own notice, and a mix of missing and old', () => run(String.raw`
   ${firstLoad}
   installFiles(); serviceRunning()
-  -- RED4ext, Codeware, Audioware and TweakXL all absent (nothing answers), and Mod Configuration Menu too
-  env.codeware, env.tweakxl, env.audioware, env.native, env.mcm, env.requirements = nil, nil, nil, false, 'none', ''
+  -- RED4ext, Codeware, Audioware and TweakXL all absent (nothing answers), and Native Settings UI too
+  env.codeware, env.tweakxl, env.audioware, env.native, env.nsui, env.requirements = nil, nil, nil, false, 'none', ''
   applyEnv(); check.run()
-  assert(table.concat(check.problems(), ',') == 'red4ext,codeware,audioware,tweakxl,mcm', table.concat(check.problems(), ','))
+  assert(table.concat(check.problems(), ',') == 'red4ext,codeware,audioware,tweakxl,nsui', table.concat(check.problems(), ','))
   local shown = notice()
   assert(shown == 'Missing: RED4ext, Codeware, Audioware, TweakXL. Install them and restart the game.', tostring(shown))
-  assert(not shown:find('Mod Configuration Menu', 1, true))
-  assert(#console == 5 and console[5]:find('Mod Configuration Menu is missing or too old', 1, true), 'one line each, Mod Configuration Menu among them')
+  assert(not shown:find('Native Settings UI', 1, true))
+  assert(#console == 5 and console[5]:find('Native Settings UI is missing or too old', 1, true), 'one line each, Native Settings UI among them')
 `));
 
 test('Codeware too old: its text input part missing is a Problem with the update text, alone or with other requirements', () => run(String.raw`
@@ -137,13 +137,14 @@ test('scripts that did not compile: announced first and alone, with the log to r
   ${firstLoad}
   installFiles(); serviceRunning()
   -- Neither ConvaiRequirements nor the older ConvaiPhoneIsOpen answers: the player has none of this mod's methods. The frameworks the
-  -- probes cannot see are exactly what a compile error hides (every redscript mod is off), so they are Unknown, never Missing.
+  -- probes do not see cannot be judged from scripts that did not load, so they are Unknown, never Missing. RED4ext is loaded: this
+  -- mod's native plugin answers (it does not depend on the script compile).
   env.scripts, env.requirements = false, nil
-  env.codeware, env.audioware, env.tweakxl, env.native = nil, nil, nil, false
+  env.codeware, env.audioware, env.tweakxl, env.native = nil, nil, nil, true
   applyEnv(); check.run()
   assert(table.concat(check.problems(), ',') == 'redscript', table.concat(check.problems(), ','))
-  assert(lineOf('redscript').state == 'problem')
-  for _, id in ipairs({'red4ext', 'codeware', 'audioware', 'tweakxl'}) do assert(lineOf(id).state == 'unknown', id) end
+  assert(lineOf('redscript').state == 'problem' and lineOf('red4ext').state == 'ok')
+  for _, id in ipairs({'codeware', 'audioware', 'tweakxl'}) do assert(lineOf(id).state == 'unknown', id) end
   local help = lineOf('redscript').description
   assert(help:find('r6/logs/redscript_rCURRENT.log', 1, true) and help:find('If the error names another mod, that mod is the problem.', 1, true), help)
   assert(help:find('Missing or old Codeware, Audioware or redscript, or a game version other than 2.31, can also cause it.', 1, true))
@@ -162,11 +163,34 @@ test('scripts that did not compile come first even when every other requirement 
   ${firstLoad}
   installFiles(); serviceRunning()
   files['phone-contacts.json'] = nil
-  env.mcm, env.scripts, env.requirements = 'none', false, nil
+  env.nsui, env.scripts, env.requirements = 'none', false, nil
+  env.codeware, env.audioware, env.tweakxl, env.native = nil, nil, nil, true
+  applyEnv(); check.run()
+  assert(table.concat(check.problems(), ',') == 'redscript,nsui,files', table.concat(check.problems(), ','))
+  assert(notice() == 'Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load.')
+`));
+
+// Without RED4ext nothing it loads answers (this mod's native plugin, Codeware, TweakXL, Audioware), and Codeware's scripts never reach
+// the compile, so Audioware's import of it fails the whole compile and the redscript log lists Audioware. The cause to name is RED4ext,
+// not a mod the log lists.
+test('RED4ext not loaded and scripts that did not compile: RED4ext is named first, and the log advice is still on the console', () => run(String.raw`
+  ${firstLoad}
+  installFiles(); serviceRunning()
+  env.scripts, env.requirements = false, nil
   env.codeware, env.audioware, env.tweakxl, env.native = nil, nil, nil, false
   applyEnv(); check.run()
-  assert(table.concat(check.problems(), ',') == 'redscript,mcm,files', table.concat(check.problems(), ','))
-  assert(notice() == 'Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load.')
+  assert(table.concat(check.problems(), ',') == 'red4ext,redscript', table.concat(check.problems(), ','))
+  assert(lineOf('red4ext').state == 'problem' and lineOf('redscript').state == 'problem')
+  for _, id in ipairs({'codeware', 'audioware', 'tweakxl'}) do assert(lineOf(id).state == 'unknown', id) end
+  local shown = notice()
+  assert(shown == 'RED4ext is missing. Install it from Nexus Mods, then restart the game.', tostring(shown))
+  assert(#console == 2, table.concat(console, ' | '))
+  assert(console[1] == '[AiNpcCyberpunkMod] AI NPC Cyberpunk Mod: RED4ext is missing. Install it from Nexus Mods, then restart the game.', console[1])
+  assert(console[2]:find("this mod's scripts did not load. Open r6/logs/redscript_rCURRENT.log.", 1, true), console[2])
+  assert(files['runtime/probe.log']:find('Setup check: problems: red4ext, redscript', 1, true))
+  -- once per game session
+  for _ = 1, 40 do advance(1); assert(check.tick(true, true) == nil) end
+  assert(#console == 2)
 `));
 
 test('ConvaiRequirements that raises or answers a non-string is read as scripts of an older version: they loaded, the frameworks are implied', () => run(String.raw`
@@ -307,10 +331,10 @@ test('a hook installer that raises no longer stops onInit: the menu registration
   modules['subtitles.lua'].install = function() error('Override: method ConvaiShowReply not found in PlayerPuppet') end
   modules['phone-chat-style.lua'].install = function() error('ObserveAfter: no class ConvaiPhoneChatInput') end
   modules['phone-layout.lua'].install = function() error('ObserveAfter: no class PhoneContactItemVirtualController') end
-  modules['mcm.lua'].install = function() installed.mcm = true end
+  modules['nsui.lua'].install = function() installed.nsui = true end
   modules['loot-observer.lua'].install = function() error('hook failed') end
   events.onInit()
-  assert(installed.mcm == true, 'the Mod Configuration Menu registration after the failing installers ran')
+  assert(installed.nsui == true, 'the Native Settings UI registration after the failing installers ran')
   assert(hooks.OnDetach ~= nil and hooks.OnGameRestored ~= nil, 'the session hooks after them were installed')
   local function count(text)
     local found = 0
@@ -570,4 +594,133 @@ test('the phone input gate asks a player without the scripts once a second, not 
   assert(reports.absent <= 4, `a player without the scripts was asked ${reports.absent} times in 2.5 s`);
   assert.equal(reports.open, true);
   assert(reports.present >= 8, `with the scripts the answers stay at the quick cadence: ${reports.present}`);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// The guards themselves (r6/scripts/CyberpunkConvai/*.reds), read as text. Each declaration under @if(ModuleExists("X")) is the real
+// code; one under @if(!ModuleExists("X")) is its stand-in. The offline compile (redscript's scc against the game's bundle, with each
+// requirement removed) proves both halves compile; these tests keep the halves the same to their callers: a stand-in has exactly the
+// real method's signature, every guarded method that Lua or the native plugin calls by name has a stand-in, and a method that tells
+// Lua a guarded part exists does not say so when that part was left out.
+import {readdirSync} from 'node:fs';
+
+const redsFolder = new URL('../r6/scripts/CyberpunkConvai/', import.meta.url);
+// KnowledgeState.reds is retired and not shipped (packaging/release.config.json retiredRedscript).
+const redsFiles = readdirSync(redsFolder).filter(name => name.endsWith('.reds') && name !== 'KnowledgeState.reds').sort();
+const squash = text => String(text || '').replace(/\s+/g, ' ').trim();
+
+// Every function declaration (game-class methods added with @addMethod, global functions, methods of script classes) with the guard
+// it is under, if any. A guarded class passes its guard to its methods.
+function redsDeclarations() {
+  const out = [];
+  for (const file of redsFiles) {
+    const lines = readFileSync(new URL(file, redsFolder), 'utf8').replace(/\r\n/g, '\n').split('\n');
+    let guard = null, target = null, inClass = null;
+    lines.forEach((line, index) => {
+      const at = `${file}:${index + 1}`;
+      const condition = /^@if\((!?)ModuleExists\("([^"]+)"\)\)\s*$/.exec(line);
+      if (condition) { guard = {present: condition[1] !== '!', module: condition[2]}; return; }
+      assert(!/^@if\(/.test(line), `${at}: a guard this test cannot read: ${line}`);
+      const annotation = /^@(addMethod|addField|wrapMethod|replaceMethod)\((\w+)\)/.exec(line);
+      if (annotation) { target = annotation[2]; return; }
+      if (inClass) {
+        if (/^\}/.test(line)) { inClass = null; return; }
+        const method = /^\s+(.*?)\bfunc (\w+)\((.*?)\)\s*(?:->\s*([^{=\s]+))?/.exec(line);
+        if (method) out.push({at, owner: inClass.name, name: method[2], modifiers: squash(method[1]), params: squash(method[3]),
+          returns: method[4] || 'Void', guard: inClass.guard, member: true});
+        return;
+      }
+      const type = /^(?:public |private )?(?:abstract )?class (\w+)(?: extends (\w+))?/.exec(line);
+      if (type) {
+        inClass = {name: type[1], guard};
+        out.push({at, owner: type[1], name: '(class)', guard, member: false, base: type[2] || ''});
+        guard = target = null;
+        return;
+      }
+      const fn = /^(.*?)\bfunc (\w+)\((.*?)\)\s*(?:->\s*([^{=\s]+))?/.exec(line);
+      if (fn) {
+        out.push({at, owner: target || '(global)', name: fn[2], modifiers: squash(fn[1]), params: squash(fn[3]),
+          returns: fn[4] || 'Void', guard, member: false});
+        guard = target = null;
+        return;
+      }
+      if (/^(?:public |private |protected )?let |^import /.test(line)) guard = target = null;
+    });
+  }
+  return out;
+}
+
+const declarations = redsDeclarations();
+const guarded = declarations.filter(item => item.guard);
+const key = item => `${item.owner}.${item.name}`;
+
+test('the guards name only Codeware, its UI parts and Audioware, and Requirements.reds reports each in the words the setup check reads', () => {
+  const modules = new Set(guarded.map(item => item.guard.module));
+  assert.deepEqual([...modules].sort(), ['Audioware', 'Codeware', 'Codeware.UI', 'Codeware.UI.TextInput']);
+  const requirements = readFileSync(new URL('Requirements.reds', redsFolder), 'utf8');
+  const getters = {Codeware: ['ConvaiHasCodeware', 'codeware'], 'Codeware.UI': ['ConvaiHasCodewareUi', 'codeware-ui'],
+    'Codeware.UI.TextInput': ['ConvaiHasCodewareTextInput', 'codeware-textinput'], Audioware: ['ConvaiHasAudioware', 'audioware']};
+  for (const [module, [getter, word]] of Object.entries(getters)) {
+    const name = module.replace(/\./g, '\\.');
+    assert.match(requirements, new RegExp(`@if\\(ModuleExists\\("${name}"\\)\\)\\s*public func ${getter}\\(\\) -> Bool \\{ return true; \\}`), getter);
+    assert.match(requirements, new RegExp(`@if\\(!ModuleExists\\("${name}"\\)\\)\\s*public func ${getter}\\(\\) -> Bool \\{ return false; \\}`), getter);
+    assert.match(requirements, new RegExp(`if ${getter}\\(\\) \\{ found \\+= "${word} "; \\}`), word);
+    assert(source.includes(`'${word}'`), `mod/setup-check.lua does not read the word ${word}`);
+  }
+});
+
+test('every stand-in has exactly the signature of the real method it replaces, under the opposite guard of the same module', () => {
+  const real = new Map();
+  for (const item of guarded.filter(entry => entry.guard.present)) real.set(key(item), item);
+  const standIns = guarded.filter(item => !item.guard.present);
+  assert(standIns.length >= 25, `only ${standIns.length} stand-ins were read: the reader no longer follows these files`);
+  for (const item of standIns) {
+    // The methods of a stand-in class stand for what the real class has or inherits from Codeware's text input: only the class
+    // itself and its Create are compared.
+    if (item.member && item.name !== 'Create') continue;
+    const twin = real.get(key(item));
+    assert(twin, `${item.at}: ${key(item)} has a stand-in but no real version`);
+    assert.equal(twin.guard.module, item.guard.module, `${item.at}: ${key(item)} is guarded by ${item.guard.module}, its real version by ${twin.guard.module}`);
+    if (item.name === '(class)') continue;
+    assert.equal(item.params, twin.params, `${item.at}: ${key(item)} takes (${item.params}), the real one (${twin.params})`);
+    assert.equal(item.returns, twin.returns, `${item.at}: ${key(item)} returns ${item.returns}, the real one ${twin.returns}`);
+    assert.equal(item.modifiers, twin.modifiers, `${item.at}: ${key(item)} is "${item.modifiers}", the real one "${twin.modifiers}"`);
+  }
+});
+
+test('every guarded method that Lua or the native plugin calls by name has a stand-in', () => {
+  const luaFolder = new URL('../mod/', import.meta.url);
+  // mod/diagnostics.lua is a developer tool that is never shipped.
+  const lua = readdirSync(luaFolder).filter(name => name.endsWith('.lua') && name !== 'diagnostics.lua')
+    .map(name => readFileSync(new URL(name, luaFolder), 'utf8')).join('\n');
+  const nativeFolder = new URL('../native/core/src/', import.meta.url);
+  const native = readdirSync(nativeFolder, {recursive: true}).map(name => String(name).replace(/\\/g, '/'))
+    .filter(name => /\.(cpp|hpp)$/.test(name)).map(name => readFileSync(new URL(name, nativeFolder), 'utf8')).join('\n');
+  const standIns = new Set(guarded.filter(item => !item.guard.present).map(key));
+  const called = [];
+  // Methods added to game classes and global functions: Lua reaches them on the game's objects. A guarded script class (the face
+  // service) does not exist without its module, and its Lua callers already treat a missing service as absent.
+  for (const item of guarded.filter(entry => entry.guard.present && !entry.member && entry.name !== '(class)')) {
+    if (!/\bpublic\b/.test(item.modifiers)) continue;
+    const byLua = new RegExp(`[:.]${item.name}\\(`).test(lua);
+    const byNative = native.includes(`"${item.name}"`);
+    if (!byLua && !byNative) continue;
+    called.push(item.name);
+    assert(standIns.has(key(item)), `${item.at}: ${key(item)} is called from ${byLua ? 'Lua' : 'the native plugin'} but has no stand-in`);
+  }
+  for (const name of ['ConvaiOpenComposer', 'ConvaiFaceReady', 'ConvaiFaceApply', 'ConvaiSpeechStart', 'ConvaiSpeechPosition',
+    'ConvaiManagerIsOpen', 'ConvaiHolocallHasBacking']) {
+    assert(called.includes(name), `${name} is no longer seen as a guarded method that is called: ${called.join(' ')}`);
+  }
+});
+
+test('the holocall backdrop: without Codeware the window has no black backing, so the scripts tell mod/holocall.lua there is none', () => {
+  const answers = declarations.filter(item => key(item) === 'PlayerPuppet.ConvaiHolocallHasBacking');
+  const backing = declarations.filter(item => key(item) === 'HudPhoneAvatarController.ConvaiHolocallBacking');
+  assert.equal(backing.length, 2);
+  assert.deepEqual(answers.map(item => item.guard && `${item.guard.present}:${item.guard.module}`).sort(),
+    backing.map(item => item.guard && `${item.guard.present}:${item.guard.module}`).sort(), 'the answer is guarded exactly as the backing is');
+  const code = readFileSync(new URL('Holocall.reds', redsFolder), 'utf8').replace(/\r\n/g, '\n');
+  assert.match(code, /@if\(ModuleExists\("Codeware"\)\)\n@addMethod\(PlayerPuppet\)\npublic final func ConvaiHolocallHasBacking\(\) -> Bool \{\s*return true;\s*\}/);
+  assert.match(code, /@if\(!ModuleExists\("Codeware"\)\)\n@addMethod\(PlayerPuppet\)\npublic final func ConvaiHolocallHasBacking\(\) -> Bool \{\s*return false;\s*\}/);
 });

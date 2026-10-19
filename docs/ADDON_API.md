@@ -811,7 +811,7 @@ check the list of calls.
 | `r6/scripts/CyberpunkConvai/Face.reds` | `WatchScreenFace(rig, watch)` / `ScreenFace(rig)` (seam `faceService`): while a rig is watched, `OnWorldInitialize` prepares the NPC with that rig (`PrepareScreenFace`, gated graph) before the crowd mode check. An empty watch list changes nothing. |
 | `mod/group-chat.lua` | `voiceOnly` rows; add-on voices are left out of the other speakers' audience. |
 | `mod/microphone.lua`, `mod/manager.lua` | `microphone.decorate` (add-on blocks at start and finish); `manager.speechRecognitionReady()` (the bridge's `stt` flag). |
-| `mod/mcm.lua`, `mod/notices.lua` | Add-on settings sections; the `addon-notice` notice. |
+| `mod/manager-ui.lua`, `mod/notices.lua` | Add-on settings sections; the `addon-notice` notice. |
 | `bridge/convai-bridge.mjs` | `AddonHost.load`, `extend` (roster rows; add-on Convai IDs removed), voice config merge, status, state/settings watchers, journal; `runAddonTurn` before every Convai step of `runInput`; one `TextProviderHost` per add-on route (`fixedProvider`, `sharedMemory`); `onWarm`. The microphone poll's add-on branches (start, finish, watch) and `bridge/addon-voice.mjs` (the channel on the Mistral route's recogniser; `MicrophoneSession` passes its `hostFactory` the recording). |
 | `bridge/protocol.mjs`, `bridge/mistral-prompt.mjs` | The `addon` request field and reaction; persona rows with `intro`, `identityRule`, `rules` and `talkWords` (an add-on row only; the main mod's length rule is unchanged for every other row). |
 
