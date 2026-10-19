@@ -43,11 +43,14 @@ const nowMs = () => {
  *   firstPcmAccepted  the renderer accepted the first audio
  *   firstFrame        the first renderer state with audio reached the continuous speech
  *   published         the reply was published to the game (it may start the sound)
+ *   leaseRead         the game's first playback lease reached the bridge (continuous voices): published -> leaseRead is the game's
+ *                     half of the hand-off (plugin poll, Lua probe, lease write, directory watcher), leaseRead -> playbackObserved
+ *                     the renderer, the device and the Lip sync delay
  *   playbackObserved  the renderer's clock showed sound playing
  */
 export const STAGES = Object.freeze(['inputWritten', 'received', 'knowledge', 'admitted', 'stock', 'transport', 'recalled', 'promptBuilt',
   'llmSent', 'llmHeaders', 'firstToken', 'firstSentence', 'fullText', 'replyReturned', 'voiceStart', 'browserReady', 'playStart', 'rendererReady', 'ttsSent', 'firstPcm',
-  'firstPcmAccepted', 'firstFrame', 'published', 'playbackObserved']);
+  'firstPcmAccepted', 'firstFrame', 'published', 'leaseRead', 'playbackObserved']);
 
 const round = (value, places = 1) => Math.round(value * 10 ** places) / 10 ** places;
 
