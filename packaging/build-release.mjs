@@ -50,6 +50,7 @@ import {loadRuntimeExchange} from './lib/runtime-exchange.mjs';
 import {packagedKeyText} from './lib/packaged-key.mjs';
 import {copyInto, download, exists, extractZip, posix, readJson, run, sha256Buffer, sha256File, walk, writeText} from './lib/files.mjs';
 import {RUNTIME_PREPARED_FOLDER} from './lib/pack-overlap.mjs';
+import {launcherIni} from './lib/launcher-ini.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const started = Date.now();
@@ -285,19 +286,6 @@ function nativeOffText(config) {
     ...config.native.off, ''].join('\n');
 }
 
-function launcherIni() {
-  const lines = [
-    '; AI NPC Cyberpunk Mod: starts the conversation service with the game and stops it when the game exits.',
-    '; Set enabled=0 to start it yourself instead.',
-    '[launch]', 'enabled=1',
-    'program=%PLUGIN%\\app\\node\\node.exe',
-    'arg1=%PLUGIN%\\app\\launcher\\start-service.mjs',
-    'working_directory=%PLUGIN%\\app',
-  ];
-  // GetPrivateProfileString reads Unicode only from UTF-16LE files with a byte order mark.
-  return Buffer.concat([Buffer.from([0xFF, 0xFE]), Buffer.from(lines.join('\r\n') + '\r\n', 'utf16le')]);
-}
-
 async function installPython(spec, lockFile, target, pthExtra) {
   const zip = await download(spec.url, resolve(cache, 'downloads', basename(spec.url)), spec.sha256, log);
   await extractZip(zip, target);
@@ -481,7 +469,7 @@ async function runtimePackage(source, config, models, key) {
   log(`Voxtral references: ${voxtral.keys.length} voices, ${(voxtral.bytes / 1e6).toFixed(2)} MB in the Runtime package.`);
 
   // Launcher scripts, application metadata and notices.
-  for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs', 'state-home.mjs']) pkg.file(`${app}/launcher/${name}`, resolve(source.root, 'packaging/runtime', name));
+  for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs', 'state-home.mjs', 'usvfs-compat.mjs']) pkg.file(`${app}/launcher/${name}`, resolve(source.root, 'packaging/runtime', name));
   pkg.json(`${app}/package.json`, {name: 'cyberpunk-convai', version: npmVersion(version), private: true, type: 'module'});
 
   // Game-side binary assets: the three generated archives and the Audioware reply bank.

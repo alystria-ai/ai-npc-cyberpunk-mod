@@ -46,8 +46,11 @@ async function writeIfChanged(path, bytes) {
 }
 
 // dataHome: the folder that holds data/ (state-home.mjs dataHomeFor), or null/undefined to keep data/ in the game's mod folder.
-export function installLayout({appDirectory, gameRoot, dataHome = null}) {
+// packRoots: {localAi, omni}, where an optional pack really is when that is not under app/ (a pack installed as its own Mod Organizer 2
+// mod; start-service.mjs), else app/local-ai and app/omni.
+export function installLayout({appDirectory, gameRoot, dataHome = null, packRoots = {}}) {
   const app = resolve(appDirectory), plugin = resolve(app, '..');
+  const omni = packRoots.omni ? resolve(packRoots.omni) : resolve(app, 'omni');
   const mod = resolve(gameRoot, 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod');
   const gameState = resolve(mod, 'data');
   return Object.freeze({
@@ -58,11 +61,11 @@ export function installLayout({appDirectory, gameRoot, dataHome = null}) {
     assets: resolve(app, 'assets'),
     pocketSource: resolve(app, 'pocket-tts'), pocketModel: resolve(app, 'models/pocket'),
     faceModel: resolve(app, 'models/lipsync'),
-    omni: resolve(app, 'omni'), omniPython: resolve(app, 'omni/python/python.exe'),
-    omniModel: resolve(app, 'omni/model'), omniAdapter: resolve(app, 'omni/voicestudio/backend'),
-    omniDefaults: resolve(app, 'omni/defaults'),
+    omni, omniPython: resolve(omni, 'python/python.exe'),
+    omniModel: resolve(omni, 'model'), omniAdapter: resolve(omni, 'voicestudio/backend'),
+    omniDefaults: resolve(omni, 'defaults'),
     // The optional Local AI packs unpack here (manifest.standard.json / manifest.lite.json, llama/, models/).
-    localAi: resolve(app, 'local-ai'),
+    localAi: packRoots.localAi ? resolve(packRoots.localAi) : resolve(app, 'local-ai'),
   });
 }
 
