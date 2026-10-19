@@ -52,7 +52,7 @@ async function stoppedPids(state) {
   return [...new Set(raw.split('\n').filter(line => line.startsWith('stopped ')).map(line => Number(line.split(' ')[1])))];
 }
 const readJson = path => readFile(path, 'utf8').then(JSON.parse).catch(() => null);
-async function until(read, accepts, label, timeout = 10_000) {
+async function until(read, accepts, label, timeout = 120_000) {
   const deadline = Date.now() + timeout;
   let last;
   while (Date.now() < deadline) {

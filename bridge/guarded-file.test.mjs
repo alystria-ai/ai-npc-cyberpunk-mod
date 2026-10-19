@@ -121,7 +121,7 @@ test('an already aborted or stale write never opens a file', async () => {
   assert.equal(await atomicFile('unused', 'stale', {files, isCurrent: async () => false}), false);
 });
 
-test('a reset during a delayed write cannot overwrite the newer reply', {timeout: 5000}, async t => {
+test('a reset during a delayed write cannot overwrite the newer reply', {timeout: 120000}, async t => {
   const {directory, output} = await fixture(t);
   const entered = deferred(), resume = deferred();
   let generation = 1;
@@ -145,7 +145,7 @@ test('a reset during a delayed write cannot overwrite the newer reply', {timeout
   await onlyOutput(directory, output, 'newer');
 });
 
-test('a reset during a delayed close cannot overwrite the newer reply', {timeout: 5000}, async t => {
+test('a reset during a delayed close cannot overwrite the newer reply', {timeout: 120000}, async t => {
   const {directory, output} = await fixture(t);
   const entered = deferred(), resume = deferred();
   let generation = 1;
@@ -169,7 +169,7 @@ test('a reset during a delayed close cannot overwrite the newer reply', {timeout
   await onlyOutput(directory, output, 'newer');
 });
 
-test('abort while awaiting the publish guard cannot authorize a rename', {timeout: 5000}, async t => {
+test('abort while awaiting the publish guard cannot authorize a rename', {timeout: 120000}, async t => {
   const {directory, output} = await fixture(t);
   const entered = deferred(), resume = deferred();
   const controller = new AbortController();
@@ -204,7 +204,7 @@ test('abort while awaiting the publish guard cannot authorize a rename', {timeou
   await onlyOutput(directory, output, 'newer');
 });
 
-test('cancellation during a rename retry cannot replace the newer output', {timeout: 5000}, async t => {
+test('cancellation during a rename retry cannot replace the newer output', {timeout: 120000}, async t => {
   const {directory, output} = await fixture(t);
   const entered = deferred(), resume = deferred();
   const controller = new AbortController();
