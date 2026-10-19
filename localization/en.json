@@ -2247,7 +2247,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/support-report.lua:554"
+        "mod/support-report.lua:579"
       ]
     },
     "A rule is too long. Keep each one under {max} characters.": {
@@ -3874,7 +3874,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/support-report.lua:620"
+        "mod/support-report.lua:645"
       ]
     },
     "Could not save. Try again.": {
@@ -3914,7 +3914,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/support-report.lua:625"
+        "mod/support-report.lua:650"
       ]
     },
     "Creating a copy of {name}. Check Party for its status.": {
@@ -3930,7 +3930,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/support-report.lua:391"
+        "mod/support-report.lua:410"
       ]
     },
     "Current party": {
@@ -5526,7 +5526,7 @@
       ],
       "references": [
         "mod/mcm.lua:786",
-        "mod/support-report.lua:338"
+        "mod/support-report.lua:357"
       ]
     },
     "Never allowed: sex with minors or without consent, sex about real people, hate, real-world weapon or drug instructions. A safety check enforces the minors rule.": {
@@ -5766,7 +5766,7 @@
         "mod/setup-check.lua:267",
         "mod/setup-check.lua:270",
         "mod/setup-check.lua:273",
-        "mod/support-report.lua:341"
+        "mod/support-report.lua:360"
       ]
     },
     "Not usable: {models}. See the Local AI notes, \"Add your own model\".": {
@@ -6542,7 +6542,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/support-report.lua:646"
+        "mod/support-report.lua:671"
       ]
     },
     "Report saved: {path}": {
@@ -6550,7 +6550,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/support-report.lua:405"
+        "mod/support-report.lua:424"
       ]
     },
     "Request queued...": {
@@ -6662,7 +6662,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/support-report.lua:339"
+        "mod/support-report.lua:358"
       ]
     },
     "SELECTED": {
@@ -6941,7 +6941,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/support-report.lua:400"
+        "mod/support-report.lua:419"
       ]
     },
     "Short report saved because the conversation service did not answer: {path}": {
@@ -6949,7 +6949,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/support-report.lua:397"
+        "mod/support-report.lua:416"
       ]
     },
     "Short report saved because the conversation service is not running: {path}": {
@@ -6957,7 +6957,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/support-report.lua:403"
+        "mod/support-report.lua:422"
       ]
     },
     "Short rules this character always follows when talking, for example: Never swear. Answer in one sentence.": {
@@ -7119,7 +7119,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/support-report.lua:340"
+        "mod/support-report.lua:359"
       ]
     },
     "Starting trip": {
@@ -7284,7 +7284,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/support-report.lua:423"
+        "mod/support-report.lua:442"
       ]
     },
     "TALK TO {character}": {
@@ -7630,7 +7630,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/support-report.lua:643"
+        "mod/support-report.lua:668"
       ]
     },
     "The companion binding changed.": {
@@ -7710,7 +7710,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:124"
+        "mod/service-status.lua:165"
       ]
     },
     "The conversation service did not answer. Wait a moment, then invite again.": {
@@ -7750,7 +7750,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:125"
+        "mod/service-status.lua:169"
       ]
     },
     "The conversation service is starting. Try again in a few seconds.": {
@@ -7758,7 +7758,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:120"
+        "mod/service-status.lua:160"
       ]
     },
     "The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, then restart the game.": {
@@ -7768,7 +7768,7 @@
       "references": [
         "mod/mcm.lua:2066",
         "mod/mcm.lua:2192",
-        "mod/service-status.lua:123",
+        "mod/service-status.lua:163",
         "mod/setup-check.lua:344"
       ]
     },
@@ -7777,7 +7777,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:122"
+        "mod/service-status.lua:162"
       ]
     },
     "The conversation service restarted. Please try again.": {
@@ -7785,7 +7785,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:121"
+        "mod/service-status.lua:161"
       ]
     },
     "The conversation service runs beside the game. If it is not running, restart the game. Its logs are listed below.": {
@@ -8055,7 +8055,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/support-report.lua:393"
+        "mod/support-report.lua:412"
       ]
     },
     "The request could not be sent. Try again.": {
@@ -8464,7 +8464,7 @@
       "references": [
         "mod/mcm.lua:736",
         "mod/setup-check.lua:248",
-        "mod/support-report.lua:342"
+        "mod/support-report.lua:361"
       ]
     },
     "Unknown mod.": {
@@ -9352,7 +9352,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/support-report.lua:355"
+        "mod/support-report.lua:374"
       ]
     },
     "the selected character": {

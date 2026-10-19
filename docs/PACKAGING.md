@@ -283,6 +283,46 @@ ever modify or replace them (no player usvfs log was available; the design works
   companion, quit; Overwrite should hold only CET's `AiNpcCyberpunkMod.log` and the `state` files. Start again: the mod loads and
   talking works from the first turn.
 
+### Mod Organizer 2: the Runtime as a mod folder
+
+A player on the Ultraviolence modlist installed the Runtime and the Scripts as MO2 mods: no Runtime file is in the game folder, and the
+game read only the launcher's `starting` in `runtime/bridge-service.json`, for good. The Runtime's real place is then a mod folder in
+the MO2 instance (`mods\<name>\red4ext\plugins\AiNpcCyberpunkMod\...`); the launcher, `node.exe` and the service all reach it through
+USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `bridge/supervisor-lock-status.test.mjs`):
+
+- **No path comparison on the start path.** `installLayout` (`prepare-state.mjs`) takes the game's folders from `--game-root` and the
+  Runtime's from the script's own place; nothing resolves a link or compares a resolved path with the game root.
+  `packaging/runtime-layout.mjs` (`realpath`, "cannot redirect into another location") belongs to the bootstrap route
+  (`Runtime-Service.mjs`), which `launcher.ini` never starts. The voice workers' checks (`pocket-voice.mjs`, `phone-analysis-config.mjs`,
+  `resident-voice.mjs`) canonicalize both sides alike and run only once the bridge is up.
+- **A start never ends without a status.** `start-service.mjs` writes `runtime/bridge-service.json` from its first line, in place:
+  `starting` / `service-starting` with `source: "service"`, the `stage` it is in (`loading-modules`, `preparing`, `placing-packs`,
+  `preparing-state`, `loading-supervisor`) and a `view` (`usvfs no; Runtime outside the game folder; init.lua visible`, so the short
+  report carries what the service sees), refreshed every 5 s for at most 5 minutes while it prepares. Its own modules load inside a
+  guard, and an error nobody caught ends in `failed` with a `reason`: `install-incomplete` (a file is missing or cannot be read),
+  `service-error`, `game-folder-not-visible`. The reason is Node's error code and message with every path cut to its file name, 140
+  characters at most. The supervisor writes its own `starting` before it waits for the previous session's lock, and after 5 s of
+  waiting says `waiting-for-previous-service` (kept fresh by the heartbeat); its crash status carries a reason too.
+- **The service must see what the game sees.** The launcher starts the service only after it saw the CET mod's `init.lua`; a service
+  that cannot see it runs outside the virtual file system (or in another one), and nothing it writes under the game folder would reach
+  the game. It logs that and stops (`game-folder-not-visible`, exit code 3) without creating a folder in the game folder. Its first log
+  line, `View:`, says whether usvfs is loaded in the process, where the Runtime is relative to the game, and whether `init.lua` and
+  `runtime/` are visible.
+- **The game says what it can see** (`mod/service-status.lua`, Scripts only, works with any Runtime). A `starting` that only the launcher
+  or the start script wrote (`source` `launcher` or `service`) and nothing refreshed is a service coming up for 90 s and a service that
+  never came up after that: kind `failed`, code `service-silent`. The notice, a blocked talk and the Help row end with the status's
+  own words in brackets, in English: `(service-silent after launcher-started)`, `(install-incomplete at loading-modules: ERR_MODULE_NOT_FOUND: ...)`.
+  The short report's second line is `PROBLEM: the conversation service did not come up (...)` with where the logs are, and its
+  `service status` section prints `stage` and `reason`.
+- **Where to look.** `%LOCALAPPDATA%\AiNpcCyberpunkMod\data\bridge-service.log` (the `View:` line; the data home does not depend on MO2),
+  `bridge.stderr.log` beside it, and `launcher.log`: in the Runtime mod's folder (`mods\<Runtime mod>\red4ext\plugins\AiNpcCyberpunkMod\`)
+  because the packaged one is an existing file, or in `overwrite\red4ext\plugins\AiNpcCyberpunkMod\` when the Runtime has none. The
+  launcher takes `%PLUGIN%` from `GetModuleFileNameW` of its own DLL, which may be the virtual or the real path; both work while the
+  service is inside the virtual file system, and only the real one when it is not.
+- **Not done:** the launcher (native, `CyberpunkConvaiLauncher.c`) cannot say that the process it started ended at once, or with what
+  code; that needs a watcher thread and a rebuilt DLL. A service that runs outside the virtual file system cannot be made to talk to
+  the game by the Runtime alone.
+
 - **Override:** `CYBERPUNK_CONVAI_DATA_HOME` (an absolute path) is the folder that holds `data/`, for development or a player who
   wants it elsewhere; a relative value is ignored (one line in `bridge-service.log`). Without `%LOCALAPPDATA%` the data stays in the
   game folder as before. Two game installs on one Windows account share the folder; the generated files are rewritten on every start.
