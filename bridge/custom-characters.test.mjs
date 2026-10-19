@@ -4,9 +4,8 @@ import {mkdtemp, readFile, readdir, rm, writeFile, mkdir} from 'node:fs/promises
 import {readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {createHash} from 'node:crypto';
+
 import {CustomCharacters, CUSTOM_LIMITS, CUSTOM_KEY, CLONE_PREFIXES, isCustomKey, normalizeName, readRow, recordVariants, releaseVoiceFiles, rosterIndex, validateCustom} from './custom-characters.mjs';
-import {CLIP, checkSpeech, checkTranscript, decodeWav, encodeWav, prepareClip} from './custom-voice-clip.mjs';
 import {PersonaBook, systemHead, buildMessages} from './mistral-prompt.mjs';
 import {profileFor} from './protocol.mjs';
 
@@ -17,33 +16,7 @@ const roster = rosterIndex(rows);
 
 const BIO = 'I am Rebecca, a small, loud, trigger-happy runner who grew up in Pacifica and still thinks every plan needs more explosions. I trust few people.';
 const valid = (extra = {}) => ({name: 'Rebecca', gender: 'female', records: ['NCA.Character.Rebecca'], names: ['Rebecca'], bio: BIO,
-  style: 'Fast, loud, a little rude.', examples: ['Boom. That is how I solve it.'], memories: ['V once lent me a gun.'], voiceText: '', ...extra});
-
-// ---- a synthetic recording: a voiced tone, shaped like words with short pauses, at any rate, depth and channel count
-function speechWav({seconds = 12, rate = 24000, channels = 1, bits = 16, level = 0.4, silent = false, clip = false, extensible = false, float = false} = {}) {
-  const frames = Math.round(seconds * rate), width = float ? 4 : bits / 8, align = channels * width;
-  const header = extensible ? 40 : 16, bytes = Buffer.alloc(12 + 8 + header + 8 + frames * align);
-  bytes.write('RIFF', 0); bytes.writeUInt32LE(bytes.length - 8, 4); bytes.write('WAVE', 8); bytes.write('fmt ', 12); bytes.writeUInt32LE(header, 16);
-  const codec = float ? 3 : 1;
-  bytes.writeUInt16LE(extensible ? 0xFFFE : codec, 20); bytes.writeUInt16LE(channels, 22); bytes.writeUInt32LE(rate, 24); bytes.writeUInt32LE(rate * align, 28);
-  bytes.writeUInt16LE(align, 32); bytes.writeUInt16LE(float ? 32 : bits, 34);
-  if (extensible) { bytes.writeUInt16LE(22, 36); bytes.writeUInt16LE(float ? 32 : bits, 38); bytes.writeUInt32LE(3, 40); bytes.writeUInt16LE(codec, 44); }
-  const at = 20 + header;
-  bytes.write('data', at); bytes.writeUInt32LE(frames * align, at + 4);
-  for (let i = 0; i < frames; i++) {
-    const t = i / rate, word = silent ? 0 : (Math.sin(2 * Math.PI * 2.2 * t) > -0.7 ? 1 : 0);   // about a fifth of the time is a pause
-    let sample = word * level * Math.sin(2 * Math.PI * 180 * t) * (0.6 + 0.4 * Math.sin(2 * Math.PI * 5 * t));
-    if (clip) sample = Math.sign(sample) * Math.min(1, Math.abs(sample) * 20);
-    for (let c = 0; c < channels; c++) {
-      const place = at + 8 + i * align + c * width;
-      if (float) bytes.writeFloatLE(sample, place);
-      else if (bits === 16) bytes.writeInt16LE(Math.round(sample * 32767), place);
-      else if (bits === 24) bytes.writeIntLE(Math.round(sample * 8388607), place, 3);
-      else bytes.writeInt32LE(Math.round(sample * 2147483647), place);
-    }
-  }
-  return bytes;
-}
+  style: 'Fast, loud, a little rude.', examples: ['Boom. That is how I solve it.'], memories: ['V once lent me a gun.'], ...extra});
 
 // ---- keys
 
@@ -106,7 +79,6 @@ test('each problem has its own stable code and the limit it is about', () => {
   const full = valid({bio: 'b'.repeat(9000), style: 's'.repeat(1800), examples: Array.from({length: 12}, (_, i) => `${i} ` + 'e'.repeat(230)),
     memories: Array.from({length: 12}, (_, i) => `${i} ` + 'm'.repeat(190))});
   assert.deepEqual(codes(full), ['too-big'], 'every part is inside its own limit, together they are not');
-  assert.deepEqual(codes(valid({voiceText: 'w'.repeat(CLIP.transcript + 1)})), ['voice-text-long']);
   assert.deepEqual(codes(null), ['bad-request']);
   assert.deepEqual(codes([]), ['bad-request']);
 });
@@ -123,51 +95,6 @@ test('nobody else may answer to the same record or name, and a roster profile al
   assert.deepEqual(errors(valid({records: [], names: ['Judy Álvarez']})), ['names:match-roster:Judy Alvarez'], 'an alias of the roster');
   assert.deepEqual(errors(valid()), []);
   assert.equal(normalizeName('  Judy   ÁLVAREZ '), 'judy Álvarez', 'the game side lowers ASCII letters only');
-});
-
-// ---- the clip
-
-test('a clean speech clip is kept in one canonical form: mono, 16-bit, its own rate, a plain header', () => {
-  const given = speechWav({seconds: 12, rate: 48000, channels: 2, bits: 24});
-  const clip = prepareClip(given);
-  assert.equal(clip.ok, true, JSON.stringify(clip));
-  assert.equal(clip.rate, 48000);
-  assert.equal(clip.seconds, 12);
-  assert.deepEqual(clip.notes, []);
-  assert.equal(clip.sha256, createHash('sha256').update(clip.wav).digest('hex'));
-  const back = decodeWav(clip.wav);
-  assert.equal(back.ok && back.channels === 1 && back.bits === 16 && back.codec === 1, true);
-  assert.equal(clip.wav.length, 44 + 12 * 48000 * 2, 'a 44-byte header and nothing else');
-  assert.equal(clip.wav.readUInt32LE(4) + 8, clip.wav.length, 'an exact RIFF size, which Pocket demands');
-  for (const options of [{bits: 16}, {bits: 32}, {float: true}, {extensible: true, bits: 24}, {extensible: true, float: true}, {rate: 16000}, {rate: 96000, seconds: 6}])
-    assert.equal(prepareClip(speechWav(options)).ok, true, JSON.stringify(options));
-  assert.deepEqual(prepareClip(speechWav({seconds: 7})).notes, ['short']);
-  assert.deepEqual(prepareClip(speechWav({seconds: 19.5})).notes, ['long']);
-});
-
-test('a clip that the voices could not use or copy is refused with a reason', () => {
-  const why = bytes => { const clip = prepareClip(bytes); assert.equal(clip.ok, false); return clip.code; };
-  assert.equal(why(Buffer.from('not a wav at all, just some text that is long enough to pass a size check....')), 'clip-format');
-  assert.equal(why(Buffer.alloc(10)), 'clip-format');
-  assert.equal(why(speechWav({seconds: 12, rate: 8000})), 'clip-rate');
-  assert.equal(why(speechWav({seconds: 3})), 'clip-short');
-  assert.equal(why(speechWav({seconds: 21})), 'clip-long');
-  assert.equal(why(speechWav({clip: true})), 'clip-clipped');
-  assert.equal(why(speechWav({level: 0.004})), 'clip-quiet');
-  assert.equal(why(speechWav({silent: true})), 'clip-silent');
-  const truncated = speechWav({seconds: 12}).subarray(0, 24000);   // a recorder that stopped early: what is there is used, and it is too short
-  assert.equal(why(truncated), 'clip-short');
-  const odd = speechWav({seconds: 12}); odd.writeUInt16LE(7, 20);
-  assert.equal(why(odd), 'clip-format', 'a format the workers do not read');
-  assert.equal(why(Buffer.alloc(CLIP.maxUploadBytes + 1)), 'clip-big');
-});
-
-test('the words said in the clip are checked and tidied', () => {
-  assert.deepEqual(checkTranscript('  Hello   there,\nchoom. '), {ok: true, text: 'Hello there, choom.'});
-  assert.equal(checkTranscript('hi').code, 'voice-text-short');
-  assert.equal(checkTranscript('w'.repeat(CLIP.transcript + 1)).code, 'voice-text-long');
-  assert.equal(checkSpeech(new Float32Array(48000).fill(0), 24000).code, 'clip-silent');
-  assert.deepEqual(encodeWav(new Float32Array([0, 1, -1]), 24000).subarray(44).toJSON().data, [0, 0, 255, 127, 1, 128]);
 });
 
 // ---- the store
@@ -272,8 +199,7 @@ test('a damaged file is left alone until a save, then kept as .corrupt, and a ha
 
 test('a stored row is cut to the limits, so a damaged or hand-edited file never grows the prompt', () => {
   const row = readRow({key: 'custom-long-aaaa', name: 'N'.repeat(100), gender: 'FEMALE', records: ['Character.A1b', 'bad!record', 'x'], names: ['n'.repeat(90)], bio: 'b'.repeat(20000), style: 's'.repeat(5000),
-    examples: Array.from({length: 40}, (_, i) => `example ${i} ${'e'.repeat(100)}`), memories: Array.from({length: 30}, (_, i) => `memory ${i}`), voiceText: 'v'.repeat(3000),
-    voice: {sha256: 'a'.repeat(64), seconds: 12, rate: 24000}});
+    examples: Array.from({length: 40}, (_, i) => `example ${i} ${'e'.repeat(100)}`), memories: Array.from({length: 30}, (_, i) => `memory ${i}`)});
   assert.equal(Array.from(row.name).length, CUSTOM_LIMITS.name);
   assert.equal(row.gender, 'female');
   assert.deepEqual([...row.records], ['Character.A1b']);
@@ -282,59 +208,23 @@ test('a stored row is cut to the limits, so a damaged or hand-edited file never 
   assert.equal(Array.from(row.style).length, CUSTOM_LIMITS.style);
   assert(row.examples.length <= CUSTOM_LIMITS.examples && row.examples.join('').length <= CUSTOM_LIMITS.exampleTotal);
   assert.equal(row.memories.length, CUSTOM_LIMITS.memories);
-  assert.equal(Array.from(row.voiceText).length, CLIP.transcript);
-  assert.equal(row.voice.rate, 24000);
   for (const bad of [null, 'x', {key: 'judy-alvarez', name: 'J', gender: 'female', records: ['Character.Judy'], bio: BIO}, {key: 'custom-x-aaaa', name: 'N', gender: 'robot', records: ['Character.Abc'], bio: BIO},
     {key: 'custom-x-aaaa', name: 'N', gender: 'male', bio: BIO}, {key: 'custom-x-aaaa', name: '', gender: 'male', records: ['Character.Abc'], bio: BIO}]) assert.equal(readRow(bad), null, JSON.stringify(bad));
 });
 
-// ---- a character's voice
+// ---- the voice of a character with no clip (its clip, if it has one, is kept by bridge/player-voices.mjs)
 
-test('a clip is checked, kept as custom-voices/<key>.wav and recorded; the voices merge it at the next start with the words said in it', async () => {
-  const {store, files} = await open({});
-  const made = await store.create(valid());
-  await assert.rejects(store.setVoice(made.key, speechWav()), {code: 'voice-text-short'}, 'the words are needed first');
-  await assert.rejects(store.setVoice(made.key, Buffer.from('nope, a long enough text to look like a file but is not a recording at all')), {code: 'voice-text-short'});
-  await assert.rejects(store.setVoice(made.key, Buffer.from('nope, a long enough text to look like a file but is not a recording at all'), 'Hello there, this is me talking.'), {code: 'clip-format'});
-  const done = await store.setVoice(made.key, speechWav({seconds: 11}), '  Hello there,   this is me talking. ');
-  assert.equal(done.clip.seconds, 11);
-  assert.equal(done.row.voiceText, 'Hello there, this is me talking.');
-  const kept = files.get(`state/custom-voices/${made.key}.wav`);
-  assert.equal(createHash('sha256').update(kept).digest('hex'), done.row.voice.sha256);
-  assert.equal(JSON.parse(files.get('state/custom-characters.json')).characters[0].voice.sha256, done.row.voice.sha256);
-  assert.deepEqual((await store.voiceExtras()).map(item => ({...item, reference: slash(item.reference)})),
-    [{key: made.key, reference: `state/custom-voices/${made.key}.wav`, sha256: done.row.voice.sha256, transcript: 'Hello there, this is me talking.'}]);
-  assert.equal(JSON.stringify(JSON.parse(files.get('runtime/custom-characters.json'))).includes('Hello there'), false, 'the game list never carries the words');
-  // The text of a character with a clip cannot lose the words.
-  await assert.rejects(store.update(made.key, valid({voiceText: ''})), error => error.code === 'invalid' && error.errors[0].code === 'voice-text-short');
-  await store.update(made.key, valid({voiceText: 'Hello there, these are other words.'}));
-  assert.equal(store.get(made.key).voice.sha256, done.row.voice.sha256, 'saving the text keeps the clip');
-  // A damaged or replaced file is not used.
-  files.set(`state/custom-voices/${made.key}.wav`, Buffer.from('changed'));
-  const logged = [];
-  store.log = message => logged.push(message);
-  assert.deepEqual(await store.voiceExtras(), []);
-  assert.match(logged.join('\n'), /does not match/);
-  files.delete(`state/custom-voices/${made.key}.wav`);
-  assert.deepEqual(await store.voiceExtras(), []);
-});
-
-test('removing a clip, and deleting a character, remove the file; a character with no clip speaks with the resident voice of its gender', async () => {
+test('a character with no clip speaks with the resident voice of its gender, and a clip in an older file is ignored', async () => {
   const {store, files} = await open({});
   const she = await store.create(valid());
   const he = await store.create(valid({name: 'Ray', gender: 'male', records: ['NCA.Character.Ray'], names: ['Ray']}));
   assert.equal(store.voiceAlias(she.key), 'resident-female');
   assert.equal(store.voiceAlias(he.key), 'resident-male');
   assert.equal(store.voiceAlias('custom-nobody-aaaa'), null);
-  await store.setVoice(she.key, speechWav(), 'Hello there, this is me talking.');
-  assert.equal(files.has(`state/custom-voices/${she.key}.wav`), true);
-  const cleared = await store.clearVoice(she.key);
-  assert.equal(cleared.voice, null);
-  assert.equal(files.has(`state/custom-voices/${she.key}.wav`), false);
-  await store.setVoice(she.key, speechWav(), 'Hello there, this is me talking.');
-  await store.delete(she.key);
-  assert.equal(files.has(`state/custom-voices/${she.key}.wav`), false);
-  assert.deepEqual(await store.voiceExtras(), []);
+  const row = readRow({key: 'custom-old-aaaa', name: 'Old', gender: 'male', records: ['Character.Old'], bio: BIO, voiceText: 'Hello there, this is me talking.', voice: {sha256: 'a'.repeat(64), seconds: 12, rate: 24000}});
+  assert.equal('voice' in row || 'voiceText' in row, false, 'clips live in the player voice store, not in the character');
+  assert.equal(JSON.stringify(JSON.parse(files.get('state/custom-characters.json'))).includes('voice'), false);
+  assert.equal(store.validate(valid({voiceText: 'w'.repeat(5000)}), she.key).ok, true, 'the words of a clip are not part of the character any more');
 });
 
 test('everything survives on a real disk, next to (not inside) any shipped data', async () => {
@@ -344,15 +234,12 @@ test('everything survives on a real disk, next to (not inside) any shipped data'
     const options = {dir: join(dir, 'state'), exchangePath: join(dir, 'runtime', 'custom-characters.json'), roster};
     const first = await CustomCharacters.open(options);
     const made = await first.create(valid());
-    await first.setVoice(made.key, speechWav(), 'Hello there, this is me talking.');
-    assert.deepEqual((await readdir(join(dir, 'state'))).sort(), ['custom-characters.json', 'custom-voices']);
-    assert.deepEqual(await readdir(join(dir, 'state', 'custom-voices')), [made.key + '.wav']);
+    assert.deepEqual((await readdir(join(dir, 'state'))).sort(), ['custom-characters.json']);
     const second = await CustomCharacters.open(options);
     assert.equal(second.get(made.key).name, 'Rebecca');
-    assert.equal((await second.voiceExtras()).length, 1);
     assert.equal(JSON.parse(await readFile(options.exchangePath, 'utf8')).characters[0].key, made.key);
     await second.delete(made.key);
-    assert.deepEqual(await readdir(join(dir, 'state', 'custom-voices')), []);
+    assert.equal(second.size, 0);
     await writeFile(join(dir, 'state', 'custom-characters.json'), '{"version":1,"characters":');
     assert.equal((await CustomCharacters.open(options)).size, 0);
   } finally { await rm(dir, {recursive: true, force: true}); }
@@ -395,7 +282,8 @@ test('the roster rows let every lookup by key find a custom character, without a
   assert.equal(profileFor({profileKey: 'judy-alvarez'}, list).kind, 'named');
 });
 
-// ---- what a clip leaves outside the data folder
+// ---- what a character's voice leaves outside the data folder
+
 
 test('a character\'s voice files outside the data folder go with the clip, and nothing else does', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'custom-voice-files-'));
@@ -428,23 +316,18 @@ test('a character\'s voice files outside the data folder go with the clip, and n
   } finally { await rm(dir, {recursive: true, force: true}); }
 });
 
-test('the store tells the bridge when a clip or a character has gone, and a hook that fails changes nothing', async () => {
-  const released = [];
-  const {store} = await open({}, {onVoiceReleased: key => { released.push(key); if (released.length === 3) throw Error('hook failed'); }});
+test('the store tells the bridge when a character has gone, and a hook that fails changes nothing', async () => {
+  const deleted = [];
+  const {store} = await open({}, {onDeleted: key => { deleted.push(key); if (deleted.length === 2) throw Error('hook failed'); }});
   const made = await store.create(valid());
-  assert.deepEqual(released, []);
-  await store.setVoice(made.key, speechWav(), 'Hello there, this is me talking.');
-  assert.deepEqual(released, [], 'giving a clip releases nothing');
-  await store.clearVoice(made.key);
-  assert.deepEqual(released, [made.key]);
-  await store.setVoice(made.key, speechWav(), 'Hello there, this is me talking.');
+  await store.update(made.key, valid({bio: BIO + ' More.'}));
+  assert.deepEqual(deleted, [], 'making and changing a character tells nothing');
   assert.equal(await store.delete(made.key), true);
-  assert.deepEqual(released, [made.key, made.key]);
+  assert.deepEqual(deleted, [made.key]);
   assert.equal(await store.delete(made.key), false);
-  assert.deepEqual(released, [made.key, made.key], 'nothing to release for a character that was not there');
+  assert.deepEqual(deleted, [made.key], 'nothing to tell for a character that was not there');
   const other = await store.create(valid());
-  await store.clearVoice(other.key);
-  await store.delete(other.key);
-  assert.equal(released.length, 4, 'a throwing hook is not an error of the delete');
+  assert.equal(await store.delete(other.key), true, 'a throwing hook is not an error of the delete');
+  assert.equal(deleted.length, 2);
   assert.equal(store.size, 0);
 });

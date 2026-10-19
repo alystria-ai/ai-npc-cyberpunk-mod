@@ -1,11 +1,10 @@
 // Characters a player makes for themselves (docs/CHARACTER_EDITOR.md, "Your own characters"): a name, a rule that says which in-game
 // character they are (a record name such as Character.X or NCA.X, a display name, or both), a gender, a bio, a speaking style, a few
-// example lines, a few memories and, if the player likes, a clip of a voice for the local voices.
+// example lines and a few memories. A voice clip for one of them is kept with the clips of story characters (bridge/player-voices.mjs).
 //
 // Where it lives (player data, never shipped, never touched by an update of the mod):
 //   <state>/custom-characters.json      every character, one file, written atomically; a damaged file is kept as .corrupt before the
 //                                       first write over it (the same care as bridge/character-overrides.mjs)
-//   <state>/custom-voices/<key>.wav     the voice clip of a character, in the canonical form of bridge/custom-voice-clip.mjs
 // What the game reads: runtime/custom-characters.json (the exchange folder of the mod, replaced in place, shipped empty): only what the
 // Lua side needs to recognise a character, {key, name, gender, records, names}. It is read when the player talks to somebody, never per frame.
 //
@@ -17,16 +16,14 @@
 // character for a profile like this: with Convai the game never resolves one (mod/custom-characters.lua), so it is never asked.
 import {readFile, readdir, rename, rm, mkdir} from 'node:fs/promises';
 import {join, dirname} from 'node:path';
-import {randomBytes, createHash} from 'node:crypto';
+import {randomBytes} from 'node:crypto';
 import {atomicFile} from './guarded-file.mjs';
 import {EDIT_LIMITS, cleanBlock, cleanLine, personaSize} from './character-overrides.mjs';
-import {CLIP, checkTranscript, cleanTranscript, prepareClip} from './custom-voice-clip.mjs';
 
 export const CUSTOM_PREFIX = 'custom-';
 export const CUSTOM_KEY = /^custom-[a-z0-9][a-z0-9-]{0,66}$/;
 export const isCustomKey = key => typeof key === 'string' && CUSTOM_KEY.test(key);
 export const CUSTOM_FILE = 'custom-characters.json';
-export const CUSTOM_VOICES = 'custom-voices';
 export const CUSTOM_LIMITS = Object.freeze({
   characters: 40, name: 60,
   records: 6, record: 120, names: 6, displayName: 60,
@@ -80,7 +77,7 @@ const cleanName = value => cleanLine(value);
 const cleanRecord = value => String(value ?? '').replace(/\s+/g, '').trim();
 
 /**
- * Checks what the editor sent. `input` holds name, gender, records, names, bio, style, examples, memories and voiceText; `context` has
+ * Checks what the editor sent. `input` holds name, gender, records, names, bio, style, examples, memories; `context` has
  * `own` (the key being edited, if any), `others` (the other characters' rows) and `roster` (rosterIndex). Returns {ok: true, value} or
  * {ok: false, errors: [{field, code, max?, index?, other?}]}. Codes are stable words the page turns into plain sentences.
  */
@@ -133,10 +130,6 @@ export function validateCustom(input, {others = [], roster = null, limits = CUST
   value.examples = examples; value.memories = memories;
   if (!errors.length && personaSize({bio, style, rules: [], examples, memories}) > limits.total) errors.push({field: '', code: 'too-big', max: limits.total});
 
-  // The words said in the clip: kept apart from the clip (typed before or after it), never required without one.
-  const text = cleanTranscript(input.voiceText ?? '');
-  if (count(text) > CLIP.transcript) errors.push({field: 'voiceText', code: 'voice-text-long', max: CLIP.transcript});
-  value.voiceText = text;
   return errors.length ? {ok: false, errors} : {ok: true, value};
 }
 
@@ -154,12 +147,9 @@ export function readRow(raw, limits = CUSTOM_LIMITS) {
   const examples = cleanList(raw.examples, cleanLine).map(line => Array.from(line).slice(0, limits.example).join('')).slice(0, limits.examples)
     .filter(line => (total += count(line)) <= limits.exampleTotal);
   const memories = cleanList(raw.memories, cleanLine).map(line => Array.from(line).slice(0, limits.memory).join('')).slice(0, limits.memories);
-  const voice = plain(raw.voice) && /^[a-f0-9]{64}$/.test(raw.voice.sha256 ?? '') && Number.isFinite(raw.voice.seconds) && Number.isFinite(raw.voice.rate)
-    ? {sha256: raw.voice.sha256, seconds: raw.voice.seconds, rate: raw.voice.rate, updated: Number.isFinite(raw.voice.updated) ? raw.voice.updated : 0} : null;
   const number = value => Number.isFinite(value) ? value : 0;
   return Object.freeze({key: raw.key, name, gender, records: Object.freeze(records), names: Object.freeze(names), bio,
     style: Array.from(cleanBlock(raw.style)).slice(0, limits.style).join(''), examples: Object.freeze(examples), memories: Object.freeze(memories),
-    voiceText: Array.from(cleanTranscript(raw.voiceText)).slice(0, CLIP.transcript).join(''), voice: voice && Object.freeze(voice),
     created: number(raw.created), updated: number(raw.updated)});
 }
 
@@ -171,9 +161,9 @@ const slugOf = name => {
 const CLONED_CLIP = /^(custom-[a-z0-9-]+)\.wav$/;
 const PREPARED_SETUP = /^(custom-[a-z0-9-]+)-[0-9a-f]{24}\.safetensors(?:\.tmp)?$/;
 /**
- * The files a character's clip leaves outside the data folder, removed when the clip or the character goes, and swept at start for any that
- * no character owns any more: the copies under <reference root>/addons/<key>.wav (made by AddonHost.voiceConfigPaths) and the prepared voice
- * setups Pocket saved as <key>-<24 hex>.safetensors. Only a file with exactly such a name directly in those folders is touched (never a folder,
+ * The files a character's voice leaves outside the data folder, removed when the character goes, and swept at start for any that no character
+ * owns any more: the prepared voice setups Pocket saved as <key>-<24 hex>.safetensors, and copies under <reference root>/addons/<key>.wav that
+ * builds of this branch before 2026-10-19 made (clips are now read from the data folder and never copied). Only a file with exactly such a name directly in those folders is touched (never a folder,
  * a link, another add-on's voice or a voice of the shipped cast). `key` names one character; without it every character not in `keep` goes.
  * Best effort: a file in use is left and tried again at the next start. Resolves to the number of files removed.
  */
@@ -196,9 +186,7 @@ export async function releaseVoiceFiles({roots = [], preparedFolder = null, keep
 
 const defaultIo = {
   read: file => readFile(file, 'utf8'),
-  readBytes: file => readFile(file),
   write: async (file, text) => { await mkdir(dirname(file), {recursive: true}); return atomicFile(file, text); },
-  writeBytes: async (file, bytes) => { await mkdir(dirname(file), {recursive: true}); return atomicFile(file, bytes); },
   readdir: dir => readdir(dir),
   rename: (from, to) => rename(from, to),
   remove: file => rm(file, {force: true}),
@@ -212,22 +200,21 @@ export class CustomCharacters {
     return store;
   }
   /**
-   *   dir          the state folder (custom-characters.json and custom-voices/ live in it)
+   *   dir          the state folder (custom-characters.json lives in it)
    *   exchangePath runtime/custom-characters.json: what the game reads (replaced in place; never created by a normal run)
    *   roster       rosterIndex(rows): names and records a custom character may not take
    *   onChange     () => void: after every change that reached the disk (the bridge updates its roster rows and the game's list)
-   *   onVoiceReleased  (key) => void: a character's clip was removed or the character was deleted (the bridge removes the copies and the prepared setups, releaseVoiceFiles)
+   *   onDeleted    (key) => void: the character was deleted (the bridge removes its voice clip, bridge/player-voices.mjs, and its prepared voice setups, releaseVoiceFiles)
    */
-  constructor({dir, exchangePath = null, roster = null, now = Date.now, random = size => randomBytes(size), limits = CUSTOM_LIMITS, onChange = () => {}, onVoiceReleased = () => {}, log = () => {},
-    read = defaultIo.read, readBytes = defaultIo.readBytes, write = defaultIo.write, writeBytes = defaultIo.writeBytes, remove = defaultIo.remove, rename: move = defaultIo.rename} = {}) {
-    Object.assign(this, {dir, exchangePath, roster, now, random, limits, onChange, onVoiceReleased, log, read, readBytes, write, writeBytes, remove, move});
+  constructor({dir, exchangePath = null, roster = null, now = Date.now, random = size => randomBytes(size), limits = CUSTOM_LIMITS, onChange = () => {}, onDeleted = () => {}, log = () => {},
+    read = defaultIo.read, write = defaultIo.write, remove = defaultIo.remove, rename: move = defaultIo.rename} = {}) {
+    Object.assign(this, {dir, exchangePath, roster, now, random, limits, onChange, onDeleted, log, read, write, remove, move});
     this.rows = new Map();
     this.damaged = false;
     this.chain = Promise.resolve();
     this.revision = 0;
   }
   get #file() { return join(this.dir, CUSTOM_FILE); }
-  #voicePath(key) { return join(this.dir, CUSTOM_VOICES, key + '.wav'); }
   async #load() {
     if (!this.dir) return;
     let raw = null;
@@ -277,26 +264,11 @@ export class CustomCharacters {
       backstory: row.bio, speakingStyleDescription: row.style, speakingStyleSampleDialogues: row.examples.join('\n\n')}));
   }
   /** What the editor lists. */
-  summaries() { return this.list().map(row => ({key: row.key, name: row.name, group: 'custom', edited: false, voice: !!row.voice})); }
+  summaries() { return this.list().map(row => ({key: row.key, name: row.name, group: 'custom', edited: false})); }
   /** What the game reads. */
   exchange() {
     return {version: 1, revision: this.revision, characters: this.list().map(row => ({key: row.key, name: row.name, gender: row.gender, records: [...row.records], names: [...row.names]}))};
   }
-  /** The voices to merge into the voice configurations at start (AddonHost.voiceConfigPaths `extra`): characters with a clip whose file is intact. */
-  async voiceExtras() {
-    const out = [];
-    for (const row of this.list()) {
-      if (!row.voice || !row.voiceText) continue;
-      const path = this.#voicePath(row.key);
-      try {
-        const bytes = await this.readBytes(path);
-        if (createHash('sha256').update(bytes).digest('hex') !== row.voice.sha256) throw Error('the clip does not match what was saved');
-        out.push({key: row.key, reference: path, sha256: row.voice.sha256, transcript: row.voiceText});
-      } catch (error) { this.log(`the voice clip of ${row.name} is not used: ${error?.code ?? error?.message ?? 'error'}`); }
-    }
-    return out;
-  }
-
   // ---- writing
   /** Replaces the file's rows with `rows`. Writes are one at a time and the in-memory set changes only when the file did. */
   #commit(change) {
@@ -343,67 +315,31 @@ export class CustomCharacters {
     return this.#commit(async rows => {
       if (rows.size >= this.limits.characters) throw Object.assign(Error('full'), {code: 'full', max: this.limits.characters});
       const key = this.#newKey(rows, checked.value.name), stamp = this.now();
-      const row = readRow({...checked.value, key, voice: null, created: stamp, updated: stamp}, this.limits);
+      const row = readRow({...checked.value, key, created: stamp, updated: stamp}, this.limits);
       rows.set(key, row);
       return row;
     });
   }
-  /** Replaces a character's text and match rule (its clip stays unless `voiceText` is emptied). */
+  /** Replaces a character's text and match rule. */
   update(key, input) {
     if (!this.rows.has(key)) return Promise.reject(Object.assign(Error('not found'), {code: 'not-found'}));
     const checked = this.validate(input, key);
     if (!checked.ok) return Promise.reject(Object.assign(Error('invalid'), {code: 'invalid', errors: checked.errors}));
-    // A character that has a clip keeps the words said in it: without them the voices could not be prepared.
-    if (this.rows.get(key).voice && !checkTranscript(checked.value.voiceText).ok) {
-      return Promise.reject(Object.assign(Error('invalid'), {code: 'invalid', errors: [{field: 'voiceText', code: 'voice-text-short', max: CLIP.transcriptMin}]}));
-    }
     return this.#commit(async rows => {
       const old = rows.get(key);
       if (!old) throw Object.assign(Error('not found'), {code: 'not-found'});
-      const row = readRow({...checked.value, key, voice: old.voice, created: old.created, updated: this.now()}, this.limits);
+      const row = readRow({...checked.value, key, created: old.created, updated: this.now()}, this.limits);
       rows.set(key, row);
       return row;
     });
   }
-  /**
-   * Gives a character a voice clip: checked, made canonical, written, then recorded. Needs the words said in the clip (in the character's
-   * `voiceText`, or `voiceText` here). Resolves to {row, clip: {seconds, rate, notes}}; rejects with {code, ...} from bridge/custom-voice-clip.mjs.
-   */
-  setVoice(key, bytes, voiceText = null) {
-    const row = this.rows.get(key);
-    if (!row) return Promise.reject(Object.assign(Error('not found'), {code: 'not-found'}));
-    const text = voiceText === null ? row.voiceText : cleanTranscript(voiceText);
-    const words = checkTranscript(text);
-    if (!words.ok) return Promise.reject(Object.assign(Error(words.code), words));
-    const clip = prepareClip(bytes);
-    if (!clip.ok) return Promise.reject(Object.assign(Error(clip.code), clip));
-    return this.#commit(async rows => {
-      const old = rows.get(key);
-      if (!old) throw Object.assign(Error('not found'), {code: 'not-found'});
-      if (this.dir && !await this.writeBytes(this.#voicePath(key), clip.wav)) throw Error('could not save the clip');
-      const next = readRow({...old, voiceText: words.text, voice: {sha256: clip.sha256, seconds: clip.seconds, rate: clip.rate, updated: this.now()}, updated: this.now()}, this.limits);
-      rows.set(key, next);
-      return {row: next, clip: {seconds: clip.seconds, rate: clip.rate, notes: clip.notes}};
-    });
-  }
-  /** Removes a character's clip (it then speaks with the resident voice of its gender). */
-  clearVoice(key) {
-    if (!this.rows.has(key)) return Promise.reject(Object.assign(Error('not found'), {code: 'not-found'}));
-    return this.#commit(async rows => {
-      const old = rows.get(key);
-      if (!old) throw Object.assign(Error('not found'), {code: 'not-found'});
-      const next = readRow({...old, voice: null, updated: this.now()}, this.limits);
-      rows.set(key, next);
-      return next;
-    }).then(async row => { if (this.dir) await this.remove(this.#voicePath(key)).catch(() => {}); this.#released(key); return row; });
-  }
-  /** Deletes a character and its clip. Resolves to true when there was one. */
+  /** Deletes a character (`onDeleted` then removes its voice clip). Resolves to true when there was one. */
   delete(key) {
     if (!this.rows.has(key)) return Promise.resolve(false);
     return this.#commit(async rows => rows.delete(key))
-      .then(async had => { if (this.dir && had) await this.remove(this.#voicePath(key)).catch(() => {}); if (had) this.#released(key); return had; });
+      .then(had => { if (had) this.#deleted(key); return had; });
   }
-  #released(key) {
-    try { const done = this.onVoiceReleased(key); if (done && typeof done.catch === 'function') done.catch(() => {}); } catch { /* the files are swept at the next start */ }
+  #deleted(key) {
+    try { const done = this.onDeleted(key); if (done && typeof done.catch === 'function') done.catch(() => {}); } catch { /* the clip and files are swept at the next start */ }
   }
 }
