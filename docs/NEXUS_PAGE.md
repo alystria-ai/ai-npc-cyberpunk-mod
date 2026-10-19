@@ -106,11 +106,11 @@ No. Companions are temporary copies that the mod owns. The game's own story char
 With Convai, your lines go to Convai, along with a recent picture of only the game window so characters can see where you are. It is taken only while someone you can talk to is near, kept in memory for a few seconds and never saved. With Mistral, your lines go to Mistral. With Local AI, nothing leaves your computer for replies.
 
 [b]Error reports[/b]
-When something in the mod goes wrong, it sends a short error report to the developer's server, so problems can be fixed without asking you for logs. It is on by default; [b]Settings > Privacy > Send error reports automatically[/b] turns it off, and then nothing is recorded or sent. The first time you load the game after updating, a notice says so once.
+When something in the mod fails, a short report goes to the developer so it can be fixed without asking you for logs. It is on by default; turn it off in [b]Settings > Privacy > Send error reports automatically[/b].
 [list]
-[*][b]A report holds:[/b] the error and where in the code it happened; the versions of the mod, the game and the required mods; your conversation provider, voice and Local AI model choices; whether Mature content is on (on or off only); your graphics card's name and memory; the setup check's lines; and up to 150 log lines from around the error, with keys, IDs and your Windows user name removed. Your installation is identified only by a random number, hashed twice.
-[*][b]It never holds:[/b] API keys or tokens, what you or the characters say, typed lines, character memories, microphone audio, or your Windows user name. Your IP address is not stored.
-[*][b]How often:[/b] at most one report per kind of error per day and five a day in all, sent in the background, never while a character is answering. Reports are kept for 30 days.
+[*][b]Sent:[/b] the error, the mod and requirement versions, your provider, voice and Local AI model choices, Mature content on or off, your graphics card, the setup check, and up to 150 log lines around the error, with keys, IDs and your Windows user name removed.
+[*][b]Never sent:[/b] keys, what you or the characters say, memories, audio, your Windows user name or your IP address.
+[*]At most one report per kind of error a day and five a day in all; kept for 30 days.
 [/list]
 
 [b]What languages can I use?[/b]
