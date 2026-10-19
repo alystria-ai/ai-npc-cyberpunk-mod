@@ -1,7 +1,13 @@
 // Chat models the player adds by hand to the Local AI model row (docs/LOCAL_AI.md, "Add your own model").
 //
-// There is no interface for adding: the player drops a GGUF file into the `custom/` folder of the Local AI folder and lists it in a small
-// manifest beside the other manifests (bridge/local-ai-pack.mjs, bridge/mature-pack.mjs):
+// There is no interface for adding: the player drops a GGUF file into a folder and lists it in a small manifest. Two folders are read:
+//   the OUTSIDE folder   %LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai\ (beside the data folder, packaging/runtime/state-home.mjs; CYBERPUNK_CONVAI_DATA_HOME
+//                        moves the whole data home). It survives a clean reinstall of the mod and is outside every folder Mod Organizer 2 maps. Its
+//                        `file` paths are relative to it, or a full path with a drive letter (which the mod folder's manifest does not accept).
+//   the MOD folder       the Local AI folder inside the mod (<local-ai root> below), beside the other manifests (bridge/local-ai-pack.mjs,
+//                        bridge/mature-pack.mjs): the way it has always worked, unchanged.
+// Both are read, the outside folder first. On a duplicate (the same file name, or the same server and model id, in both) the outside folder's entry
+// wins and one log line says so. At most CUSTOM_LIMITS.maxModels entries are used in all, the outside folder's first.
 //   <local-ai root>/manifest.custom.json
 //     {version: 1, models: [{file: 'custom/MyModel-Q4_K_M.gguf', name: 'My Model', uncensored: false,
 //                            family: 'llama', contextSize: 8192, chatTemplate: 'chatml'}]}
@@ -27,8 +33,8 @@
 //   remote       optional boolean (default false); see `endpoint`
 //   name, uncensored, family, contextSize as above (a missing contextSize: the server is asked once, else 8192; a missing name: the server's host).
 //   `chatTemplate` does not apply. The checks of a file (header, size, graphics memory) do not apply either: the server is looked at when the model is chosen.
-// A bad entry is skipped with one log line (never thrown). Like the Mature marker, the dev folder (CYBERPUNK_CONVAI_LOCAL_AI_DEV) is the
-// fallback when the real folder has no manifest.
+// A bad entry is skipped with one log line (never thrown); when both folders have a manifest a line starts with "outside folder:" or "mod folder:".
+// Like the Mature marker, the dev folder (CYBERPUNK_CONVAI_LOCAL_AI_DEV) is the fallback when the real mod folder has no manifest.
 //
 // The requirements are checked here, cheaply, never per frame: the scanner runs at most every 5 s on the bridge's settings poll, stats
 // each file and reads the first 2 MiB of a file only when its size or time changed (a GGUF's header: magic, version and the key/value
@@ -43,9 +49,12 @@
 import {closeSync, openSync, readFileSync, readSync, statSync} from 'node:fs';
 import {basename, isAbsolute, resolve} from 'node:path';
 import {LOCAL_AI_ENV} from './local-ai-pack.mjs';
+import {CUSTOM_MARKER, OUTSIDE_FOLDER, customManifestFolders, describeCustomFolders, outsideLocalAiRoot, parseManifestText, qualified} from './custom-manifest-folders.mjs';
 import {modelNeedMiB, safeModelId} from './local-model-choice.mjs';
 
-export const CUSTOM_MARKER = 'manifest.custom.json';
+// The folders themselves (the outside one, the manifest's name, the support report's view of them) are in bridge/custom-manifest-folders.mjs, which the support report
+// can load without the rest of this file.
+export {CUSTOM_MARKER, OUTSIDE_FOLDER, customManifestFolders, describeCustomFolders, outsideLocalAiRoot, parseManifestText};
 export const CUSTOM_LIMITS = Object.freeze({
   maxModels: 16, nameMax: 60, familyMax: 40, minContext: 2048, maxContext: 262144, headerBytes: 2 * 1024 * 1024, minFileBytes: 1024 * 1024,
   maxProblems: 8, endpointMax: 300, modelMax: 120, apiKeyMax: 512,
@@ -167,10 +176,13 @@ export function headerProblem(header) {
 
 // ---- The manifest ------------------------------------------------------------------------------------------------------------
 
-// A path in the manifest stays inside the Local AI folder: relative, no drive, no `..` segment, ends in .gguf.
-function insidePath(root, value) {
+// A path in the manifest stays inside the Local AI folder: relative, no drive, no `..` segment, ends in .gguf. The outside folder's manifest
+// (`allowAbsolute`) may also give a full path with a drive letter (or a network share) to a model kept anywhere, still with no `..`.
+function insidePath(root, value, allowAbsolute = false) {
   if (typeof value !== 'string' || !value.trim()) return {error: 'needs a "file"'};
-  if (isAbsolute(value) || /^[a-z]:|^[\\/]/i.test(value)) return {error: 'the file path must be relative to the Local AI folder'};
+  if (!(allowAbsolute && qualified(value)) && (isAbsolute(value) || /^[a-z]:|^[\\/]/i.test(value))) {
+    return {error: allowAbsolute ? 'the file path must be relative to the folder of this manifest, or a full path with a drive letter' : 'the file path must be relative to the Local AI folder'};
+  }
   if (value.split(/[\\/]+/).includes('..')) return {error: 'the file path must not contain ".."'};
   if (!/\.gguf$/i.test(value)) return {error: 'only .gguf files are accepted'};
   return {path: resolve(root, value)};
@@ -262,14 +274,14 @@ function checkServerFields(raw) {
 
 /**
  * One manifest entry, checked strictly: {entry: {file, name, uncensored, family, contextSize, chatTemplate}} or {error: 'why'}.
- * `file` is absolute (inside `root`). An entry with `endpoint` instead of `file` is a server the player runs: {external: true, file: null,
+ * `file` is absolute (inside `root`; `allowAbsolute` also accepts a full path with a drive letter, for the outside folder's manifest). An entry with `endpoint` instead of `file` is a server the player runs: {external: true, file: null,
  * endpoint, origin, hostKind, remote, model, apiKey, name, uncensored, family, contextSize, chatTemplate: null}.
  */
-export function validateEntry(root, raw) {
+export function validateEntry(root, raw, {allowAbsolute = false} = {}) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {error: 'is not an object'};
   const server = raw.endpoint !== undefined ? checkServerFields(raw) : null;
   if (server?.error) return {error: server.error};
-  const located = server ? null : insidePath(root, raw.file);
+  const located = server ? null : insidePath(root, raw.file, allowAbsolute);
   if (located?.error) return {error: located.error.replace('needs a "file"', 'needs a "file" or an "endpoint"')};
   let name = server ? new URL(server.target.origin).host : basename(located.path).replace(/\.gguf$/i, '');
   if (raw.name !== undefined) {
@@ -320,11 +332,14 @@ function shardPaths(file) {
 // ---- The scanner -------------------------------------------------------------------------------------------------------------
 
 /**
- * Looks at the custom manifest and the files it names. Cheap by design: `scan()` is a few stats and one small JSON read, plus a header
- * read for a file whose size or time changed since the last look. Every problem is logged once (a repeat of the same line is not logged
- * again), never thrown.
- *   const scanner = new CustomModelScanner({project, log});
- *   scanner.scan({totalVramMiB})  -> {present, root, models: [...], problems: [{name, reason, detail}]}
+ * Looks at the custom manifests and the files they name: the outside folder's (%LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai) first, then the one in the mod's
+ * Local AI folder. Cheap by design: `scan()` is a few stats and one small JSON read per folder, plus a header read for a file whose size or time
+ * changed since the last look. Every problem is logged once (a repeat of the same line is not logged again), never thrown.
+ *   const scanner = new CustomModelScanner({project, log, outside});   // `outside`: the outside folder (default: outsideLocalAiRoot(environment)); null: none
+ *   scanner.scan({totalVramMiB})  -> {present, root, models: [...], problems: [{name, reason, detail}],
+ *                                     folders: [{where: 'outside' | 'mod', present, models, problems}]}
+ * `root` is the mod's Local AI folder; `present` is true when either folder has a manifest. `folders` counts, for each folder, the models it
+ * contributes to `models` and the entries it reports as not usable (no paths).
  * A model: {id: 'custom:<id>', name, file, sizeMiB, needMiB, tooLarge, uncensored, family, contextSize, chatTemplate, architecture}; a server
  * the player runs (an `endpoint` entry) has {external: true, file: null, endpoint, origin, hostKind, remote, model, apiKey} and no size (0), never
  * `tooLarge`. `apiKey` is a secret: only the supervisor reads it; no log line, status or list carries it.
@@ -332,8 +347,9 @@ function shardPaths(file) {
 export class CustomModelScanner {
   #cache = new Map(); #logged = new Set();
 
-  constructor({project, environment = process.env, exists = fileExists, readText = readUtf8, stat = statFile, head = readHead, log = () => {}} = {}) {
+  constructor({project, environment = process.env, outside, exists = fileExists, readText = readUtf8, stat = statFile, head = readHead, log = () => {}} = {}) {
     Object.assign(this, {project, environment, exists, readText, stat, head, log});
+    this.outside = outside === undefined ? outsideLocalAiRoot(environment) : outside ? resolve(outside) : null;
   }
 
   #say(message) {
@@ -353,58 +369,86 @@ export class CustomModelScanner {
 
   scan({totalVramMiB = null} = {}) {
     const root = this.#root();
-    const none = {present: false, root, models: [], problems: []};
-    const path = resolve(root, CUSTOM_MARKER);
-    if (!this.exists(path)) return none;
+    const outside = this.outside && resolve(this.outside) !== root ? this.outside : null;
+    const sources = [];
+    if (outside) sources.push({where: 'outside', root: outside, allowAbsolute: true, path: resolve(outside, CUSTOM_MARKER)});
+    sources.push({where: 'mod', root, allowAbsolute: false, path: resolve(root, CUSTOM_MARKER)});
+    for (const source of sources) source.present = this.exists(source.path);
+    // With both manifests in use, a log line says which one it is about. A lone manifest keeps the lines exactly as they have always been.
+    const both = sources.filter(source => source.present).length > 1;
+    const state = {models: [], problems: [], ids: new Set(), entries: 0, totalVramMiB};
+    const folders = [];
+    for (const source of sources) {
+      const before = {models: state.models.length, problems: state.problems.length};
+      const tag = source.where === 'outside' ? 'outside folder: ' : both ? 'mod folder: ' : '';
+      if (source.present) this.#scanManifest(source, tag, state);
+      folders.push({where: source.where, present: source.present, models: state.models.length - before.models, problems: state.problems.length - before.problems});
+    }
+    return {present: folders.some(folder => folder.present), root, models: state.models, problems: state.problems, folders};
+  }
+
+  // One manifest: its usable models and problems are added to `state`. `state.ids` holds the ids of the folders read before this one: a model
+  // whose file name (or server and model id) is already there is skipped, so the outside folder's entry wins.
+  #scanManifest(source, tag, state) {
+    const {models, problems, ids} = state;
+    const earlier = new Set(ids);
     let manifest;
     // Text copied from a web page can arrive with curly quotes; they are never valid JSON, so read them as straight quotes.
-    const parseLoose = text => { try { return JSON.parse(text); } catch (error) { const fixed = text.replace(/[\u201C\u201D\u201E\u201F\u2033]/g, '"').replace(/[\u2018\u2019]/g, "'"); if (fixed === text) throw error; return JSON.parse(fixed); } };
-    try { manifest = parseLoose(this.readText(path)); } catch { this.#say(CUSTOM_MARKER + ' is not valid JSON; no custom models'); return {...none, present: true}; }
+    try { manifest = parseManifestText(this.readText(source.path)); } catch { this.#say(tag + CUSTOM_MARKER + ' is not valid JSON; no custom models'); return; }
     if (!manifest || typeof manifest !== 'object' || manifest.version !== 1 || !Array.isArray(manifest.models)) {
-      this.#say(CUSTOM_MARKER + ' must be {"version": 1, "models": [...]}; no custom models');
-      return {...none, present: true};
+      this.#say(tag + CUSTOM_MARKER + ' must be {"version": 1, "models": [...]}; no custom models');
+      return;
     }
-    const models = [], problems = [], files = new Set(), ids = new Set();
+    const files = new Set();
+    const listedTwice = (entry, baseId, raw, index) => {
+      if (!earlier.has(baseId)) return false;
+      this.#say(tag + 'skipped ' + label(raw, index) + ': "' + entry.name + '" is also in the outside folder, whose entry is used');
+      return true;
+    };
     manifest.models.forEach((raw, index) => {
-      if (index >= CUSTOM_LIMITS.maxModels) { if (index === CUSTOM_LIMITS.maxModels) this.#say('only the first ' + CUSTOM_LIMITS.maxModels + ' custom models are used'); return; }
-      const checked = validateEntry(root, raw);
-      if (checked.error) { this.#say('skipped ' + label(raw, index) + ': ' + checked.error); return; }
+      if (state.entries++ >= CUSTOM_LIMITS.maxModels) { if (state.entries === CUSTOM_LIMITS.maxModels + 1) this.#say('only the first ' + CUSTOM_LIMITS.maxModels + ' custom models are used'); return; }
+      const checked = validateEntry(source.root, raw, {allowAbsolute: source.allowAbsolute});
+      if (checked.error) { this.#say(tag + 'skipped ' + label(raw, index) + ': ' + checked.error); return; }
       const entry = checked.entry;
       if (entry.external) {
         // A server the player runs: nothing to read from disk, and no network here (it is looked at when the model is chosen).
         const serverKey = (entry.endpoint + '|' + (entry.model ?? '')).toLowerCase();
-        if (files.has(serverKey)) { this.#say('skipped ' + label(raw, index) + ': the same endpoint and model are listed twice'); return; }
+        if (files.has(serverKey)) { this.#say(tag + 'skipped ' + label(raw, index) + ': the same endpoint and model are listed twice'); return; }
         files.add(serverKey);
-        let id = 'custom:' + endpointId(entry), suffix = 2;
-        while (ids.has(id)) id = 'custom:' + endpointId(entry) + '-' + suffix++;
+        const baseId = 'custom:' + endpointId(entry);
+        if (listedTwice(entry, baseId, raw, index)) return;
+        let id = baseId, suffix = 2;
+        while (ids.has(id)) id = baseId + '-' + suffix++;
         ids.add(id);
         models.push({...entry, id, sizeMiB: 0, needMiB: 0, tooLarge: false, architecture: null});
         return;
       }
       const key = entry.file.toLowerCase();
-      if (files.has(key)) { this.#say('skipped ' + label(raw, index) + ': the same file is listed twice'); return; }
+      if (files.has(key)) { this.#say(tag + 'skipped ' + label(raw, index) + ': the same file is listed twice'); return; }
       files.add(key);
+      const baseId = 'custom:' + safeModelId(entry.file);
+      if (listedTwice(entry, baseId, raw, index)) return;
       const verdict = this.#inspect(entry);
       if (verdict.reason) {
-        this.#say('"' + entry.name + '" is not usable: ' + verdict.detail);
+        this.#say(tag + '"' + entry.name + '" is not usable: ' + verdict.detail);
         if (problems.length < CUSTOM_LIMITS.maxProblems) problems.push({name: entry.name, reason: verdict.reason, detail: verdict.detail});
         return;
       }
-      let id = 'custom:' + safeModelId(entry.file), suffix = 2;
-      while (ids.has(id)) id = 'custom:' + safeModelId(entry.file) + '-' + suffix++;
+      let id = baseId, suffix = 2;
+      while (ids.has(id)) id = baseId + '-' + suffix++;
       ids.add(id);
       let contextSize = entry.contextSize;
       if (contextSize && verdict.header.contextLength && contextSize > verdict.header.contextLength) {
-        this.#say('"' + entry.name + '": contextSize ' + contextSize + ' is more than the model supports (' + verdict.header.contextLength + '); using that');
+        this.#say(tag + '"' + entry.name + '": contextSize ' + contextSize + ' is more than the model supports (' + verdict.header.contextLength + '); using that');
         contextSize = verdict.header.contextLength;
       }
       const model = {...entry, id, contextSize, sizeMiB: verdict.sizeMiB, architecture: verdict.header.architecture, tooLarge: false, needMiB: 0};
       model.needMiB = modelNeedMiB({tier: null}, model.sizeMiB);
+      const totalVramMiB = state.totalVramMiB;
       model.tooLarge = Number.isFinite(totalVramMiB) && totalVramMiB > 0 && model.needMiB > totalVramMiB;
-      if (model.tooLarge) this.#say('"' + model.name + '" is too large for this graphics card (needs about ' + model.needMiB + ' MiB, the card has ' + Math.round(totalVramMiB) + ' MiB); listed but never chosen as the default or the fallback');
+      if (model.tooLarge) this.#say(tag + '"' + model.name + '" is too large for this graphics card (needs about ' + model.needMiB + ' MiB, the card has ' + Math.round(totalVramMiB) + ' MiB); listed but never chosen as the default or the fallback');
       models.push(model);
     });
-    return {present: true, root, models, problems};
   }
 
   // The file checks, cached by the file's size and time: {reason, detail} for a problem, else {header, sizeMiB}.

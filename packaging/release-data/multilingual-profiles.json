@@ -422,7 +422,7 @@
       "name": "8ug8ear Multilingual",
       "multilingualCharacterId": "ff6870cc-c222-11f1-93e8-42010a7be02f",
       "verified": true,
-      "verifiedAt": "2026-10-14T07:17:44.296Z",
+      "verifiedAt": "2026-10-19T13:35:15.888Z",
       "voiceType": "AZURE-MULTILINGUAL-54251ef38f",
       "languageCodes": [
         "en-US"
@@ -440,7 +440,7 @@
       "name": "Aaron Multilingual",
       "multilingualCharacterId": "060338d6-c223-11f1-935f-42010a7be02f",
       "verified": true,
-      "verifiedAt": "2026-10-14T07:17:54.998Z",
+      "verifiedAt": "2026-10-19T13:35:26.379Z",
       "voiceType": "AZURE-MULTILINGUAL-8087ad87b4",
       "languageCodes": [
         "en-US"
@@ -458,7 +458,7 @@
       "name": "Adam Smasher Multilingual",
       "multilingualCharacterId": "0bfab1e2-c223-11f1-877f-42010a7be02f",
       "verified": true,
-      "verifiedAt": "2026-10-14T07:18:07.498Z",
+      "verifiedAt": "2026-10-19T13:35:35.102Z",
       "voiceType": "AZURE-MULTILINGUAL-b56af7ad45",
       "languageCodes": [
         "en-US"
@@ -476,7 +476,7 @@
       "name": "Alan Noël Multilingual",
       "multilingualCharacterId": "1207861e-c223-11f1-9f9d-42010a7be02f",
       "verified": true,
-      "verifiedAt": "2026-10-14T07:18:14.773Z",
+      "verifiedAt": "2026-10-19T13:35:45.695Z",
       "voiceType": "AZURE-MULTILINGUAL-4ef14f6865",
       "languageCodes": [
         "en-US"
@@ -512,7 +512,7 @@
       "name": "Arthur Jenkins Multilingual",
       "multilingualCharacterId": "351edbf2-c223-11f1-95b3-42010a7be02f",
       "verified": true,
-      "verifiedAt": "2026-10-14T07:18:50.026Z",
+      "verifiedAt": "2026-10-19T13:35:53.043Z",
       "voiceType": "AZURE-MULTILINGUAL-de811bb34d",
       "languageCodes": [
         "en-US"
@@ -548,7 +548,7 @@
       "name": "Bill Mitchell Multilingual",
       "multilingualCharacterId": "3e542466-c223-11f1-8968-42010a7be02f",
       "verified": true,
-      "verifiedAt": "2026-10-14T07:19:08.413Z",
+      "verifiedAt": "2026-10-19T13:36:04.102Z",
       "voiceType": "AZURE-MULTILINGUAL-df94d676e2",
       "languageCodes": [
         "en-US"
@@ -710,7 +710,7 @@
       "name": "Dakota Smith Multilingual",
       "multilingualCharacterId": "76f1bc70-c223-11f1-b632-42010a7be02f",
       "verified": true,
-      "verifiedAt": "2026-10-14T07:20:31.743Z",
+      "verifiedAt": "2026-10-19T13:36:15.187Z",
       "voiceType": "AZURE-MULTILINGUAL-579bb40ede",
       "languageCodes": [
         "en-US"
@@ -854,7 +854,7 @@
       "name": "Jake Estevez Multilingual",
       "multilingualCharacterId": "a2b9816c-c223-11f1-8d31-42010a7be02f",
       "verified": true,
-      "verifiedAt": "2026-10-14T07:22:02.622Z",
+      "verifiedAt": "2026-10-19T13:36:23.503Z",
       "voiceType": "AZURE-MULTILINGUAL-99b13147b2",
       "languageCodes": [
         "en-US"
@@ -872,7 +872,7 @@
       "name": "Jefferson Peralez Multilingual",
       "multilingualCharacterId": "a69027dc-c223-11f1-935f-42010a7be02f",
       "verified": true,
-      "verifiedAt": "2026-10-14T07:22:10.720Z",
+      "verifiedAt": "2026-10-19T13:36:30.779Z",
       "voiceType": "AZURE-MULTILINGUAL-7c29b4eda9",
       "languageCodes": [
         "en-US"
@@ -908,7 +908,7 @@
       "name": "Jim Jarry Multilingual",
       "multilingualCharacterId": "ae79d47a-c223-11f1-9d11-42010a7be02f",
       "verified": true,
-      "verifiedAt": "2026-10-14T07:22:26.684Z",
+      "verifiedAt": "2026-10-19T13:36:40.604Z",
       "voiceType": "AZURE-MULTILINGUAL-83464fdaf7",
       "languageCodes": [
         "en-US"
@@ -1142,7 +1142,7 @@
       "name": "Placide Multilingual",
       "multilingualCharacterId": "09d4e4c2-c224-11f1-b281-42010a7be02f",
       "verified": true,
-      "verifiedAt": "2026-10-14T07:25:59.903Z",
+      "verifiedAt": "2026-10-19T13:36:49.783Z",
       "voiceType": "AZURE-MULTILINGUAL-3e4638872a",
       "languageCodes": [
         "en-US"
@@ -1322,7 +1322,7 @@
       "name": "Steven Santos Multilingual",
       "multilingualCharacterId": "46b48aa0-c224-11f1-ad49-42010a7be02f",
       "verified": true,
-      "verifiedAt": "2026-10-14T07:28:11.837Z",
+      "verifiedAt": "2026-10-19T13:36:59.964Z",
       "voiceType": "AZURE-MULTILINGUAL-1aa256e8f9",
       "languageCodes": [
         "en-US"
@@ -2852,7 +2852,7 @@
       "name": "Royce Multilingual",
       "multilingualCharacterId": "1bd519dc-cb23-11f1-a46c-42010a7be02f",
       "verified": true,
-      "verifiedAt": "2026-10-18T18:38:33.040Z",
+      "verifiedAt": "2026-10-19T13:37:07.202Z",
       "voiceType": "AZURE-MULTILINGUAL-b56af7ad45",
       "languageCodes": [
         "en-US"
@@ -2870,7 +2870,7 @@
       "name": "Rosalind Myers Multilingual",
       "multilingualCharacterId": "211ae0e8-cb23-11f1-9fcc-42010a7be02f",
       "verified": true,
-      "verifiedAt": "2026-10-19T04:31:24.039Z",
+      "verifiedAt": "2026-10-19T13:37:16.374Z",
       "voiceType": "AZURE-MULTILINGUAL-9a90389ca0",
       "languageCodes": [
         "en-US"
@@ -2888,7 +2888,7 @@
       "name": "Kurt Hansen Multilingual",
       "multilingualCharacterId": "26c59c5e-cb23-11f1-946a-42010a7be02f",
       "verified": true,
-      "verifiedAt": "2026-10-18T18:38:50.653Z",
+      "verifiedAt": "2026-10-19T13:37:26.956Z",
       "voiceType": "AZURE-MULTILINGUAL-3ea74315c9",
       "languageCodes": [
         "en-US"
@@ -3050,7 +3050,7 @@
       "name": "Weyland Multilingual",
       "multilingualCharacterId": "53d0c9a8-cb23-11f1-8128-42010a7be02f",
       "verified": true,
-      "verifiedAt": "2026-10-18T18:40:08.429Z",
+      "verifiedAt": "2026-10-19T13:37:36.224Z",
       "voiceType": "AZURE-MULTILINGUAL-3ff4a9681c",
       "languageCodes": [
         "en-US"
@@ -3122,7 +3122,7 @@
       "name": "Edgar Tool Multilingual",
       "multilingualCharacterId": "66c62710-cb23-11f1-8c03-42010a7be02f",
       "verified": true,
-      "verifiedAt": "2026-10-19T04:32:00.058Z",
+      "verifiedAt": "2026-10-19T13:37:45.815Z",
       "voiceType": "AZURE-MULTILINGUAL-c1eb570bf7",
       "languageCodes": [
         "en-US"
@@ -3176,7 +3176,7 @@
       "name": "Maman Brigitte Multilingual",
       "multilingualCharacterId": "72e2f852-cb23-11f1-bde3-42010a7be02f",
       "verified": true,
-      "verifiedAt": "2026-10-18T18:40:57.181Z",
+      "verifiedAt": "2026-10-19T13:37:53.892Z",
       "voiceType": "AZURE-MULTILINGUAL-b439921109",
       "languageCodes": [
         "en-US"
@@ -3194,7 +3194,7 @@
       "name": "Anders Hellman Multilingual",
       "multilingualCharacterId": "773ae36a-cb23-11f1-a8c0-42010a7be02f",
       "verified": true,
-      "verifiedAt": "2026-10-18T18:41:05.265Z",
+      "verifiedAt": "2026-10-19T13:38:03.406Z",
       "voiceType": "AZURE-MULTILINGUAL-7c29b4eda9",
       "languageCodes": [
         "en-US"

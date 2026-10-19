@@ -1,5 +1,5 @@
-// Checks that a built Runtime zip carries what its features need: V's voice clips, "Make support report.bat" and the offline report code
-// (packaging/lib/runtime-required.mjs). Reads only the zip's directory. Exit code 1 when something is missing.
+// Checks that a built Runtime zip carries what its features need: V's voice clips and
+// the OmniVoice lists in app/defaults (packaging/lib/runtime-required.mjs). Reads only the zip's directory. Exit code 1 when something is missing.
 //
 //   node packaging/check-runtime-contents.mjs <Runtime zip>...      (several zips are one Runtime)
 //
@@ -18,7 +18,7 @@ export async function checkRuntimeContents(zips, {root = project, log = console.
   const missing = missingRuntimeFiles(names, required);
   for (const [group, files] of Object.entries(required)) log(`${group}: ${files.length - (missing[group]?.length ?? 0)} of ${files.length} present`);
   for (const [group, files] of Object.entries(missing)) for (const file of files) log(`  MISSING (${group}): ${file}`);
-  log(Object.keys(missing).length ? 'FAILED: the Runtime lacks files its features need (packaging/lib/runtime-required.mjs).' : 'OK: the Runtime carries V\'s voice clips and the offline support report tool.');
+  log(Object.keys(missing).length ? 'FAILED: the Runtime lacks files its features need (packaging/lib/runtime-required.mjs).' : 'OK: the Runtime carries V\'s voice clips and its own OmniVoice lists.');
   return !Object.keys(missing).length;
 }
 

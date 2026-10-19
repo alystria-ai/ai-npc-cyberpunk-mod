@@ -19,9 +19,10 @@
 // earlier fights or rides (runtime/addon-journal.json), shows both to the speaker, and drops a remark that repeats a recent one.
 import {readFile, readdir, writeFile, mkdir, copyFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
-import {basename, dirname, isAbsolute, resolve, sep} from 'node:path';
+import {basename, dirname, isAbsolute, relative, resolve, sep} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {readPcmWav} from './speech-audio.mjs';
+import {LEGACY_LOCAL_VOICE_KEYS, PLAYER_REFERENCE_PREFIX, voiceKeyValid, voiceTranscriptValid} from './voice-profile-registry.mjs';
 import {AddonStock} from './addon-stock.mjs';
 
 /** The add-on API this main mod implements. A manifest asking for the same major and an equal or lower minor is compatible. */
@@ -455,6 +456,22 @@ export function inspectReference(bytes) {
 
 const REFERENCE_PREFIX = 'runtime/voice-references/';
 
+/**
+ * The voices a merged configuration prepares at start, without `skip` (the player keys), or undefined when it prepares none and none
+ * were named (Pocket prepares only the voices a list names). A list the configuration does not carry is what its worker would choose
+ * itself: OmniVoice prepares every ready voice when it has at most three, else the three original cast members that are ready.
+ */
+function startupWithout(config, pocket, skip) {
+  let startup = config.preparation?.startupProfiles;
+  if (!Array.isArray(startup)) {
+    if (pocket) return undefined;
+    const ready = Object.keys(config.voices).filter(key => (config.voices[key]?.status ?? 'ready') === 'ready').sort();
+    const eager = (config.preparation?.mode ?? (Object.keys(config.voices).length <= 3 ? 'eager' : 'lazy')) === 'eager';
+    startup = eager ? ready : LEGACY_LOCAL_VOICE_KEYS.filter(key => ready.includes(key));
+  }
+  return startup.filter(key => !skip.has(key));
+}
+
 // ---- Text providers -------------------------------------------------------------------------------------------------------
 
 /**
@@ -480,11 +497,12 @@ export function sharedMemory(memory) {
 
 /**
  * A lookup over the main mod's roster rows ({key, name, aliases, gender}) for AddonHost.characterInfo: by profile key, name or alias,
- * ignoring case. Built on first use. Add-on speakers and unnamed archetypes are not in it.
+ * ignoring case. Built on first use, and again after `reset()` (the bridge calls it when the characters the player made change, so a character
+ * made or renamed in the editor is found without a restart). Add-on speakers and unnamed archetypes are not in it.
  */
 export function rosterLookup(rows) {
   let index = null;
-  return value => {
+  const lookup = value => {
     if (!index) {
       index = new Map();
       for (const row of Array.isArray(rows) ? rows : []) {
@@ -496,6 +514,8 @@ export function rosterLookup(rows) {
     }
     return index.get(String(value ?? '').trim().toLowerCase()) ?? null;
   };
+  lookup.reset = () => { index = null; };
+  return lookup;
 }
 
 // ---- The host --------------------------------------------------------------------------------------------------------------
@@ -878,20 +898,47 @@ export class AddonHost {
   }
 
   /**
-   * Voice configuration paths with the add-on voices merged in. Without add-on voices `paths` comes back unchanged (the same
-   * object) and nothing is read or written. With them, each reference is checked and copied under every reference root as
-   * runtime/voice-references/addons/<profileKey>.wav, and each configuration file that lists voices is written again beside the
+   * Voice configuration paths with the add-on voices merged in. Without add-on voices (and no player clips) `paths` comes back
+   * unchanged (the same object) and nothing is read or written. With them, each reference is checked and copied under every reference
+   * root as runtime/voice-references/addons/<profileKey>.wav, and each configuration file that lists voices is written again beside the
    * original as addons.<name> with the extra entries. A voice that fails a check is left out; the others still load.
    *   paths   {pocket, omni: {short, long}} (bridge/voice-config-paths.mjs)
    *   roots   reference roots besides the Pocket configuration's own referenceDirectory (the OmniVoice / cloud voice folder)
    *   extra   voices that belong to no add-on, merged the same way: [{key, reference (a .wav path), sha256?, transcript}]. The main
    *           mod's V voices (bridge/v-voice.mjs) arrive here; a key that already names a voice in a configuration is left alone.
+   *           An item with `player: true` is a player's own clip for a character (a story character, or one the player made), which
+   *           stays where it is, in the data folder: {key, reference: <playerVoiceDirectory>/<key>.wav, sha256?, transcript, player: true}.
+   *           It is checked like the others (and must be named <key>.wav inside `playerVoiceDirectory`) but NEVER copied: its descriptor
+   *           is {reference: 'runtime/player-voices/<key>.wav', sha256, transcript}, which every voice engine resolves only inside the
+   *           player folder. It OVERRIDES a voice of that key in every merged configuration (Pocket, OmniVoice short and long), and the
+   *           key leaves `preparation.startupProfiles`, so nothing is prepared before that character speaks. A configuration that gets
+   *           one is told the folder (`runtime.playerVoiceDirectory` for Pocket, `playerVoiceDirectory` for OmniVoice). Nothing persists
+   *           the override: the copies are written again at every start, so a start that passes no player clip (it was removed) leaves
+   *           the shipped voice in place (and with nothing at all to merge the original files are used).
+   *   playerVoiceDirectory   the absolute folder those clips are in (<state>/player-voices); without it player items are skipped
    */
-  async voiceConfigPaths(paths, {stateDirectory, roots = [], extra = [], files = {readFile, writeFile, mkdir, copyFile}} = {}) {
+  async voiceConfigPaths(paths, {stateDirectory, roots = [], extra = [], playerVoiceDirectory = null, files = {readFile, writeFile, mkdir, copyFile}} = {}) {
     const voiced = [...this.speakers.values()].filter(({speaker}) => speaker.voice);
     if ((!voiced.length && !extra.length) || !stateDirectory) return paths;
     const entries = new Map();
+    const players = new Map();
+    const playerFolder = typeof playerVoiceDirectory === 'string' && isAbsolute(playerVoiceDirectory) ? resolve(playerVoiceDirectory) : null;
     for (const voice of extra) {
+      if (voice?.player === true) {
+        const label = String(voice.key).replace(/[^a-z0-9-]/gi, '?').slice(0, 80);
+        try {
+          if (!voiceKeyValid(voice.key) || basename(String(voice.reference ?? '')) !== `${voice.key}.wav`) throw Error('the clip must be named <key>.wav');
+          if (!playerFolder) throw Error('no player voice folder was given');
+          if (relative(playerFolder, resolve(String(voice.reference))) !== `${voice.key}.wav`) throw Error('the clip is not in the player voice folder');
+          // One bad descriptor makes a whole configuration throw, and this text came from the player: it is checked before it gets in.
+          if (!voiceTranscriptValid(voice.transcript)) throw Error('its transcript cannot be used');
+          const bytes = await files.readFile(voice.reference);
+          const {sha256} = inspectReference(bytes);
+          if (voice.sha256 && voice.sha256 !== sha256) throw Error('reference does not match its sha256');
+          players.set(voice.key, {descriptor: {reference: `${PLAYER_REFERENCE_PREFIX}${voice.key}.wav`, sha256, transcript: voice.transcript}});
+        } catch (error) { this.log(`Player voice ${label} not used: ${error.message}`); }
+        continue;
+      }
       try {
         const bytes = await files.readFile(voice.reference);
         const {sha256} = inspectReference(bytes);
@@ -913,10 +960,11 @@ export class AddonHost {
         this.log(`Add-on voice ${speaker.profileKey} not used: ${error.message}`);
       }
     }
-    if (!entries.size) return paths;
+    if (!entries.size && !players.size) return paths;
     const copied = new Set();
     const install = async root => {
-      if (!root) return;
+      // Only the copied voices go to a reference root. A player's clip never does (with only those, nothing is created there).
+      if (!root || !entries.size) return;
       const folder = resolve(root, 'addons');
       if (copied.has(folder.toLowerCase())) return;
       copied.add(folder.toLowerCase());
@@ -936,16 +984,26 @@ export class AddonHost {
       let config;
       try { config = JSON.parse(await files.readFile(path, 'utf8')); } catch { return path; }
       if (!object(config) || !object(config.voices)) return path;
-      if (config.engine === 'pocket-tts') {
+      const pocket = config.engine === 'pocket-tts';
+      if (pocket) {
         try { await install(config.runtime?.referenceDirectory); }
         catch (error) { this.log(`Add-on voices could not be copied for Pocket: ${error.message}`); return path; }
       }
       const voices = {...config.voices};
       for (const [key, entry] of entries) if (!Object.hasOwn(voices, key)) voices[key] = entry.descriptor;
+      // A player's own clip replaces whatever voice the configuration names for that key (the shipped voice is back once the clip is gone).
+      for (const [key, entry] of players) voices[key] = entry.descriptor;
       const next = {...config, voices};
       // An eager configuration prepares every voice at start; add-on voices are prepared on demand instead.
       if (object(config.preparation) && config.preparation.mode === 'eager') {
         next.preparation = {...config.preparation, mode: 'lazy', startupProfiles: (config.preparation.startupProfiles ?? []).slice(0, 3)};
+      }
+      if (players.size) {
+        // Nothing is prepared before that character speaks: the player keys leave the start-up list (explicit from here, and lazy).
+        const startup = startupWithout(next, pocket, players);
+        if (startup) next.preparation = {...next.preparation, ...(pocket ? {} : {mode: 'lazy'}), startupProfiles: startup};
+        if (pocket) next.runtime = {...config.runtime, playerVoiceDirectory: playerFolder};
+        else next.playerVoiceDirectory = playerFolder;
       }
       if (config.version === 1 && config.engine !== 'pocket-tts') next.version = 2;
       const target = resolve(stateDirectory, `addons.${basename(path)}`);

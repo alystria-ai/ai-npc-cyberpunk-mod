@@ -34,7 +34,8 @@ async function talk(memory, key, options = {}) {
   return memory.beginConversation({profileKey: key, guard: memory.route(key).guard, source: 'player', ...options});
 }
 async function until(predicate) {
-  const deadline = Date.now() + 2000;
+  // The ceiling is only ever reached by a hung test; a busy machine must not turn a slow step into a failure.
+  const deadline = Date.now() + 120_000;
   while (!predicate()) { if (Date.now() > deadline) throw Error('Expected event was not reached'); await new Promise(resolve => setTimeout(resolve, 2)); }
 }
 
@@ -681,7 +682,7 @@ test('read-only recovery advances reset epochs and cannot race an overlapping de
   assert.equal(memory.route('judy').guard.characterEpoch, original.characterEpoch + 2);
 });
 
-test('restart resolves a pre-dispatch interrupted intent locally without claiming an uncertain delete', {timeout: 10000}, async t => {
+test('restart resolves a pre-dispatch interrupted intent locally without claiming an uncertain delete', {timeout: 120_000}, async t => {
   const gate = deferred(), entered = deferred();
   const {memory, path, calls, open} = await fixture(t, {quiesce: () => { entered.resolve(); return gate.promise; }});
   await talk(memory, 'judy');
@@ -718,7 +719,7 @@ test('a session-only (ambient) player send records the Forget target locally and
 });
 
 test('bridge admission takes the session-only fast path for ambient routes and reports the memory stage', async t => {
-  const {memory, calls} = await fixture(t);
+  const {memory, provider: memoryProvider, calls} = await fixture(t);
   const source = await fs.readFile(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   const body = source.slice(source.indexOf('async function admitPlayerConversation('), source.indexOf('async function pollMicrophone()'));
   const retired = [];
@@ -728,11 +729,13 @@ test('bridge admission takes the session-only fast path for ambient routes and r
     throwIfCancelled: signal => { if (signal?.aborted) throw Error('Cancelled'); }});
   const ambient = {sendAllowed: true, providerMemory: 'session-only', route: {profileKey: 'judy', channel: 'private', transport: 'private'},
     guard: memory.route('judy').guard, input: {requestId: 'resident-1', text: 'Hey'}};
-  const started = Date.now();
+  // The admission is local: a provider that never answers cannot hold it (a call to one would end this test in the 15 s provider limit).
+  const realProvider = {...memoryProvider};
+  for (const name of ['enableMemory', 'clearMemory', 'inspectMemory']) memoryProvider[name] = () => new Promise(() => {});
   const receipt = await admit(ambient);
   assert.equal(receipt.reconnectRequired, false); assert.equal(receipt.memory.mode, 'session-only');
   assert.ok(Number.isFinite(receipt.memory.beginMs) && receipt.memory.beginMs >= 0);
-  assert.ok(Date.now() - started < 1000, 'the ambient admission is local');
+  Object.assign(memoryProvider, realProvider);
   assert.deepEqual(calls, [], 'an ambient turn never contacts the memory provider');
   assert.deepEqual(retired, []);
   assert.deepEqual(memory.status().characters.map(row => row.profileKey), ['judy']);

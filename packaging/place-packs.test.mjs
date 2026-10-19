@@ -359,7 +359,7 @@ test('the packaged service places the pack before its checks and logs one line (
   const f = await fakeGame();
   try {
     const app = f.layout.app;
-    for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs', 'state-home.mjs']) await cp(join(project, 'packaging/runtime', name), join(app, 'launcher', name));
+    for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs', 'state-home.mjs', 'usvfs-compat.mjs']) await cp(join(project, 'packaging/runtime', name), join(app, 'launcher', name));
     await put(join(app, 'defaults/pocket-voices.autobest.json'), JSON.stringify({version: 1, provider: 'pocket', engine: 'pocket-tts', runtime: {}, voices: {}}));
     await put(join(app, 'defaults/characters.json'), '{"v":2}');
     await put(join(app, 'defaults/multilingual-profiles.json'), '{"v":2}');

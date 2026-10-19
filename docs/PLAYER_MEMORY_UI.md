@@ -1,7 +1,7 @@
 # Player memory in Companion Manager
 
 **Companion Manager → Settings → Memory → Manage** opens its own page through the
-native MCM API v2 provider. Invited characters are prepared immediately with the
+Native Settings UI. Invited characters are prepared immediately with the
 player identity and current world context. Natural memories are created when the
 player actually talks to them and are retained across saves. One player identity
 is shared across all saves and stays the same after either Forget action. Its raw
@@ -45,9 +45,8 @@ is open.
 - **Memory result** shows pending, confirmed or failed feedback for the exact
   submitted request. New clears stay disabled while an outcome is pending.
 
-MCM's ordinary draft guard applies: changed conversation settings must be saved
-or discarded before running actions. Selecting a memory character uses an action,
-so it creates no settings draft and writes no player identity or character choice
+A change to conversation settings is saved a moment after it is made. Selecting a memory character uses an action,
+so it writes no player identity or character choice
 into `settings.json`.
 
 Phone Chat history and drafts persist across game launches. A successful
@@ -69,7 +68,7 @@ error in that row's description and a line beneath it.
 gameplay resumes and reports that it joined only after the actor is usable. Accepting an invitation
 does not count as a conversation or create natural memories about the player.
 
-MCM receives the optional readiness object as the fifth argument to
+The manager's page receives the optional readiness object as the fifth argument to
 `configure(domain, companions, queueFactory, entryFactory, readiness)`. Its public
 `party()` returns the same reservation queue used by native actions and phone
 invitations. Only the gameplay call to that queue's `flush()` creates actors.
@@ -123,7 +122,7 @@ reach the page.
 
 A ready status must be no more than 15 seconds old and no more than five seconds
 in the future to enable another clear. Polling and schema refresh continue while
-MCM pauses game time. Refresh waits while ordinary MCM drafts are pending.
+the Companion Manager pauses game time.
 
 Completion is accepted only when command ID, scope and optional exact profile key
 all match, and `updated` is at least the request's `issuedAt`. A matching terminal
@@ -132,7 +131,7 @@ ready status. An unrelated or late result cannot complete a later request.
 
 ## Reset and recovery behavior
 
-`mod/manager.lua` owns command publication and pending state. `mod/mcm.lua` owns
+`mod/manager.lua` owns command publication and pending state. `mod/manager-ui.lua` owns
 the native rows and catalogue picker. Save/manager resets cancel an unissued
 confirmation and retain an already accepted clear. A full Lua reload reads the
 retained command and waits for its matching result. It does not send that command

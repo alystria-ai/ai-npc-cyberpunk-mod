@@ -6,7 +6,7 @@ import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {runInNewContext} from 'node:vm';
 import {readFileSync} from 'node:fs';
-import {V_VOICE_KEYS, V_ENGINES, V_MAX_CHARS, VVoice, VLine, loadVVoiceReferences, extraVoices, vGenderOf, vLineText} from './v-voice.mjs';
+import {V_VOICE_KEYS, V_ENGINES, V_MAX_CHARS, V_HANDOFF_LEAD_MS, V_GRACE_MS, V_RESCUE_BUDGET_MS, VVoice, VLine, loadVVoiceReferences, extraVoices, vGenderOf, vLineText} from './v-voice.mjs';
 import {TurnClock, withClock} from './turn-clock.mjs';
 import {PcmEdges, fadeGain} from './pcm-edges.mjs';
 import {LocalPcmClient} from './local-pcm-client.mjs';
@@ -157,7 +157,7 @@ test('a stage clock listener fires once, on the first mark, or at once when the 
 // ---- the feature's gate ---------------------------------------------------------------------------------------------------
 
 function feature(extra = {}) {
-  const calls = {play: [], stream: [], prepare: [], warm: 0, logs: [], reports: []};
+  const calls = {play: [], stream: [], prepare: [], warm: 0, logs: [], tally: [], reports: []};
   const voice = new VVoice({
     voices: {male: {key: 'v-male'}, female: {key: 'v-female'}},
     planFor: () => ({engine: 'pocket', language: 'en'}),
@@ -167,7 +167,7 @@ function feature(extra = {}) {
     play: async (config, producer, options) => { calls.play.push(config); await producer(async () => {}, {signal: options.signal}); },
     prepare: async key => { calls.prepare.push(key); },
     warm: async () => { calls.warm++; },
-    log: line => calls.logs.push(line),
+    log: line => (/^this session:/.test(line) ? calls.tally : calls.logs).push(line), graceMs: 0,
     report: (input, summary) => calls.reports.push(summary),
     ...extra});
   voice.update({vVoice: true});
@@ -262,7 +262,7 @@ function line(extra = {}, hostOptions) {
   const clock = new TurnClock();
   const made = new VLine({input: typed(), key: 'v-male', text: 'Hello Judy.', plan: {engine: 'pocket', language: 'en'}, volume: 0.6,
     play: host.play, stream: async (key, text, options) => { await options.onPcm(packet()); return {}; },
-    clock, log: item => logs.push(item),
+    clock, log: item => logs.push(item), graceMs: 0,
     onSettled: summary => summaries.push(summary), ...extra});
   return {line: made, host, logs, summaries, clock};
 }
@@ -403,10 +403,10 @@ test('on the turn\'s clock: V\'s audible and end marks are recorded and the comp
 test('warming on the composer prepares the page and the voice that was used last, and one clip\'s voice at once', async () => {
   const both = feature();
   both.voice.warmUp(); await sleep(5);
-  assert.equal(both.calls.warm, 1); assert.deepEqual(both.calls.prepare, [], 'two clips and no line yet: nothing to guess');
+  assert.equal(both.calls.warm, 1); assert.deepEqual(both.calls.prepare, ['v-male', 'v-female'], 'two clips, nothing known yet (a first session): both are prepared, one after the other');
   await both.voice.start(typed({turnContext: {version: 1, status: 'ready', gender: 'female', dialogueVolume: 0.5}})).finished;
   both.voice.warmUp(); await sleep(5);
-  assert.deepEqual(both.calls.prepare, ['v-female']);
+  assert.deepEqual(both.calls.prepare, ['v-male', 'v-female', 'v-female']);
   const seen = feature();
   seen.voice.noteGender(typed({turnContext: {version: 1, status: 'ready', gender: 'male'}}));
   seen.voice.noteGender(typed({turnContext: undefined}));
@@ -691,9 +691,10 @@ test('warming on the composer: the page and the voice that was used last; Voxtra
   // Pocket on V's own worker prepares there; on the companions' worker, there.
   const own = engineFeature({own: true});
   own.voice.warmUp(); await sleep(5);
-  assert.equal(own.calls.warm, 1); assert.deepEqual(own.seen.ownPrepare.concat(own.seen.mainPrepare), [], 'two clips and no line yet: nothing to guess');
+  assert.equal(own.calls.warm, 1); assert.deepEqual(own.seen.ownPrepare, ['v-male', 'v-female'], 'two clips and nothing known: both, on the own worker');
+  assert.deepEqual(own.seen.mainPrepare, []);
   own.voice.noteGender(typed()); own.voice.warmUp(); await sleep(5);
-  assert.deepEqual(own.seen.ownPrepare, ['v-male']); assert.deepEqual(own.seen.mainPrepare, []);
+  assert.deepEqual(own.seen.ownPrepare, ['v-male', 'v-female', 'v-male']); assert.deepEqual(own.seen.mainPrepare, []);
   const main = engineFeature({main: true});
   main.voice.noteGender(typed()); main.voice.warmUp(); await sleep(5);
   assert.deepEqual(main.seen.mainPrepare, ['v-male']); assert.deepEqual(main.seen.ownPrepare, []);
@@ -715,7 +716,10 @@ test('the bridge starts V\'s line at the top of the turn (before knowledge, admi
   }
   assert.ok(run.indexOf('if (!profile || !ids[profile.key])') < started, 'only for a turn that is for a real companion');
   assert.match(run, /if \(!ahead\) vLine = vVoice\.start/);
-  assert.match(bridge, /hold: \(\) => ahead\?\.isHeld\(\) === true \|\| current\.vLine\?\.\(\)\?\.holds\(\) === true/);
+  // Published shortly before V's end (the hand-off lead), its sound held until V has ended.
+  assert.match(bridge, /hold: \(\) => ahead\?\.isHeld\(\) === true \|\| current\.vLine\?\.\(\)\?\.holdsPublish\(\) === true/);
+  assert.match(bridge, /holdSound: \(\) => current\.vLine\?\.\(\)\?\.blocking === true/);
+  assert.match(bridge, /current\.vLine\?\.\(\)\?\.whenNearEnd\?\.\(\(\) => speech\.wakeUp\(\)\)/);
   assert.match(bridge, /await current\.vLine\?\.\(\)\?\.waitClear\(signal\)/);
   assert.match(bridge, /if \(vVoice\.update\(settings\)\)/);
   assert.match(bridge, /vVoice\.warmUp\(\)/);
@@ -831,4 +835,345 @@ test('an add-on conversation starts V\'s line beside the reply, never for a rema
   const lua = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
   assert.match(lua, /voiceOnly = true\}\)/);
   assert.match(bridge, /JSON\.parse\(hintRaw\)\?\.voiceOnly === true\) vVoice\.warmUp\(\)/);
+});
+
+// ---- The hand-off to the companion (docs/perf, LATENCY.md) ----------------------------------------------------------------------
+
+// A renderer whose clock the test moves: one second of V's line (its silent tail included), the heard position set by the test.
+function clockedRenderer() {
+  const state = {position: 0, complete: false, end: false};
+  const play = async (config, producer, options) => {
+    const producing = producer(async () => {}, {signal: options.signal});
+    while (await options.current()) {
+      const ended = state.end && state.complete;
+      options.onFrame({receivedFrames: 24000, sampleRate: 24000, sourceComplete: state.complete, positionSeconds: ended ? 1 : state.position, ended});
+      if (ended) break;
+      await sleep(1);
+    }
+    await producing;
+  };
+  return {play, state};
+}
+const handoffLine = (host, extra = {}) => new VLine({input: typed(), key: 'v-male', text: 'Hello Judy.', plan: {engine: 'pocket', language: 'en'},
+  volume: 0.6, play: host.play, stream: async (key, text, options) => { await options.onPcm(packet()); return {}; }, graceMs: 0, ...extra});
+
+test('V\'s hand-off: the time left is read from the renderer once the line is complete; publishing is allowed from the lead on, the sound only after the end', async () => {
+  assert.equal(V_HANDOFF_LEAD_MS, 300, 'inside the 320 ms of silence V\'s line ends with');
+  const host = clockedRenderer(), near = [];
+  const made = handoffLine(host);
+  made.whenNearEnd(() => near.push('near'));
+  await until(() => made.state === 'playing', 'V to be audible');
+  assert.equal(made.holdsPublish(), true, 'V\'s end is not known yet (synthesis running): the reply waits');
+  host.state.position = 0.2; host.state.complete = true;
+  await until(() => made.remainingMs < Infinity, 'the time left to be known');
+  assert.equal(made.holdsPublish(), true, 'about 800 ms left: still held');
+  assert.deepEqual(near, []);
+  host.state.position = 0.75;
+  await until(() => near.length === 1, 'the near-end signal');
+  assert.equal(made.holdsPublish(), false, '250 ms left: the reply may be published');
+  assert.equal(made.blocking, true, 'but its sound waits: V is still audible');
+  host.state.position = 0.65;   // a clock report a little off never takes the permission back
+  await sleep(5);
+  assert.equal(made.holdsPublishPeek(), false);
+  assert.equal(near.length, 1, 'the signal fires once');
+  host.state.end = true;
+  await made.clear;
+  assert.equal(made.blocking, false);
+  let late = 0; made.whenNearEnd(() => late++);
+  assert.equal(late, 1, 'a listener added after the end runs at once');
+});
+
+test('V\'s hand-off: the time left is counted on between renderer reports; a dropped line signals at once; lead 0 is the old order', async () => {
+  let now = 0;
+  const host = clockedRenderer();
+  const made = handoffLine(host, {now: () => now});
+  await until(() => made.state === 'playing', 'V to be audible');
+  host.state.position = 0.5; host.state.complete = true;
+  await until(() => made.remainingMs < Infinity, 'the time left to be known');
+  // No newer report counts here: 500 ms left at the report, 220 ms later it is under the lead.
+  made.remainingAt = now; made.remainingMs = 500; now += 220;
+  assert.equal(made.nearEnd(), true);
+  made.remainingMs = 900;
+  assert.equal(made.nearEnd(), true, 'sticky once reached: a later report never takes it back');
+  host.state.end = true; await made.clear;
+  // Not audible in time: dropped, which also releases anyone waiting for the near end.
+  let release;
+  const gate = new Promise(done => { release = done; });
+  const slow = handoffLine(clockedRenderer(), {stream: async (key, text, options) => { await gate; await options.onPcm(packet()); return {}; }});
+  let woke = 0; slow.whenNearEnd(() => woke++);
+  assert.equal(slow.holdsPublish(), false, 'the reply never waits for V\'s synthesis');
+  assert.equal(slow.state, 'dropped'); assert.equal(woke, 1);
+  release(); await slow.finished;
+});
+
+test('the hand-off lead is a setting: CYBERPUNK_CONVAI_V_HANDOFF_MS=0 publishes only when V has ended, as before', () => {
+  const source = readFileSync(new URL('./v-voice.mjs', import.meta.url), 'utf8');
+  assert.match(source, /const requestedHandoff = Number\(process\.env\.CYBERPUNK_CONVAI_V_HANDOFF_MS\);/);
+  assert.match(source, /requestedHandoff >= 0 && requestedHandoff <= 2000 \? requestedHandoff : 300;/);
+  // With lead 0 the reply is held until nothing is left of V's line.
+  const made = Object.assign(Object.create(VLine.prototype), {state: 'playing', remainingMs: 100, remainingAt: 0, nearReached: false, now: () => 0});
+  assert.equal(made.holdsPublishPeek(0), true);
+  made.remainingMs = 0;
+  assert.equal(made.holdsPublishPeek(0), false);
+});
+
+test('V\'s hand-off end to end: the companion\'s reply is published before V ends, the lease is read, and the sound starts only when V has ended', async () => {
+  const owner = {requestId: 'reply-1', entity: 'judy-copy-2', generation: 7};
+  const events = [];
+  let sequence = 0, leases = 0;
+  const host = clockedRenderer();
+  const vLine = handoffLine(host);
+  const speech = new ConvaiContinuousSpeech({input: owner, profile: {key: 'judy-alvarez'}, token: 'continuous-1',
+    signal: new AbortController().signal, current: async () => true,
+    hold: () => vLine.holdsPublish(), holdPeek: () => vLine.holdsPublishPeek(), holdSound: () => vLine.blocking,
+    onLease: () => leases++,
+    readControl: async () => JSON.stringify({version: 1, id: 'continuous-1', ...owner, sequence: ++sequence, updated: Date.now(),
+      allow: true, paused: false, volume: 0.8, pan: 0}),
+    writeState: async () => { events.push('state'); return true; },
+    writeReply: async () => { events.push('reply'); return true; }});
+  vLine.whenNearEnd(() => speech.wakeUp());
+  vLine.whenClear(() => speech.wakeUp());
+  const snapshot = {version: 1, token: 'continuous-1', sampleRate: 24000, channels: 1, receivedFrames: 12000, positionSeconds: 0,
+    text: 'Hey V.', textComplete: true, sourceComplete: false, ended: false, underruns: 0, state: 'buffering'};
+  const QUIET = {allow: false, paused: true, volume: 0, pan: 0};
+  await until(() => vLine.state === 'playing', 'V to be audible');
+  host.state.position = 0.3; host.state.complete = true;
+  await until(() => vLine.remainingMs < Infinity, 'V\'s time left to be known');
+  assert.deepEqual(await speech.frame(snapshot), QUIET);
+  assert.deepEqual(events, [], 'nothing is published while V has more than the lead left');
+  const woken = speech.options.wake();
+  host.state.position = 0.8;   // 200 ms left
+  await woken;   // the near-end signal wakes the companion's poll at once
+  assert.deepEqual(await speech.frame(snapshot), QUIET, 'published, silent');
+  assert.ok(events.includes('reply'), 'the reply reaches the game before V ends');
+  assert.deepEqual(await speech.frame({...snapshot, receivedFrames: 13000}), QUIET, 'the lease is read but the sound waits for V');
+  assert.equal(leases, 1, 'the game\'s lease was accepted and is kept');
+  const soundWake = speech.options.wake();
+  assert.ok(soundWake instanceof Promise, 'the poll waits for V\'s end (or a lease)');
+  host.state.end = true;
+  await vLine.clear;
+  await soundWake;
+  const sound = await speech.frame({...snapshot, receivedFrames: 14000});
+  assert.equal(sound.allow, true, 'the reply sounds the moment V has ended');
+});
+
+// ---- the grace, the warm voice and the totals (2026-10-19) -----------------------------------------------------------------
+// Live finding: V's own Pocket worker was cold for the first line of the session (its voice not prepared: the game had not said who V
+// is when the composer opened), V's first audio came 40 ms after the reply's, and the line was dropped on the spot.
+
+/** Polls the way the continuous speech does once the reply's audio exists: the moment the reply may start is the first poll with no hold. */
+async function replyMayStart(made, {limit = 4000} = {}) {
+  const started = performance.now();
+  while (made.holds() === true || made.blocking) {
+    if (performance.now() - started > limit) assert.fail('the reply was held for too long');
+    await sleep(1);
+  }
+  return performance.now() - started;
+}
+const late = ms => async (key, text, options) => { await sleep(ms); await options.onPcm(packet()); return {}; };
+
+test('the grace: a reply that is ready a moment before V\'s first audio waits for it, V is heard, and the wait is on the stage clock', async () => {
+  const {line: made, summaries, clock} = line({graceMs: 300, stream: late(40)}, {endAfter: 40});
+  assert.equal(made.holds(), true, 'V is not audible yet but the grace is running: the reply is held');
+  assert.equal(made.waiting, true); assert.equal(made.state, 'synth');
+  assert.equal(made.holdsPublishPeek(), true, 'and it is not published to the game either');
+  await until(() => made.state === 'playing', 'V to become audible inside the grace');
+  assert.equal(made.waiting, false); assert.equal(made.holds(), true, 'audible now: the reply waits for V as before');
+  await made.clear;
+  assert.equal(made.state, 'done');
+  assert.equal(summaries[0].result, 'played');
+  assert.ok(summaries[0].waitedMs >= 20 && summaries[0].waitedMs < 300, `waited ${summaries[0].waitedMs} ms`);
+  assert.ok('graceStart' in summaries[0].marks && 'audible' in summaries[0].marks && !('dropped' in summaries[0].marks));
+  assert.ok(clock.snapshot().marks.graceStart < clock.snapshot().marks.audible);
+});
+
+test('the grace is a budget, not a promise: V\'s first audio that is later than graceMs is dropped, and the reply was never held longer', async () => {
+  let release;
+  const gate = new Promise(done => { release = done; });
+  const {line: made, summaries} = line({graceMs: 80, stream: async (key, text, options) => { await gate; await options.onPcm(packet()); return {}; }});
+  let cleared = 0; made.whenClear(() => cleared++);
+  const waited = await replyMayStart(made);
+  assert.ok(waited >= 70 && waited < 400, `held ${Math.round(waited)} ms for a grace of 80`);
+  assert.equal(made.state, 'dropped'); assert.equal(made.reason, 'slower-than-reply');
+  await sleep(1); assert.equal(cleared, 1, 'whoever waits on V (the continuous speech wake, waitClear) is released by the drop');
+  release(); await made.finished;
+  assert.equal(summaries.length, 1); assert.equal(summaries[0].reason, 'slower-than-reply'); assert.ok(summaries[0].waitedMs >= 70);
+  assert.equal(made.holds(), false);
+});
+
+test('asking again never extends the grace: the first ask starts it, polls only read it', async () => {
+  let release;
+  const gate = new Promise(done => { release = done; });
+  const {line: made} = line({graceMs: 90, stream: async (key, text, options) => { await gate; await options.onPcm(packet()); return {}; }});
+  const started = performance.now();
+  while (made.holds()) await sleep(5);
+  const elapsed = performance.now() - started;
+  assert.ok(elapsed < 250, `${Math.round(elapsed)} ms for a grace of 90 polled every 5 ms`);
+  release(); await made.finished;
+});
+
+test('the turn ending, or the line failing, inside the grace releases it at once and leaves no timer', async () => {
+  let release;
+  const gate = new Promise(done => { release = done; });
+  const controller = new AbortController();
+  const {line: made} = line({graceMs: 5000, signal: controller.signal, stream: async (key, text, options) => { await gate; await options.onPcm(packet()); return {}; }});
+  assert.equal(made.holds(), true);
+  controller.abort();
+  assert.equal(made.state, 'dropped'); assert.equal(made.reason, 'turn-ended');
+  assert.equal(made.waiting, false); assert.equal(made.holds(), false);
+  assert.equal(made.graceTimer, null);
+  release(); await made.finished;
+  const broken = line({graceMs: 5000, stream: async () => { throw Error('voice failed'); }});
+  broken.line.holds();
+  await broken.line.clear;
+  assert.equal(broken.line.reason, 'failed'); assert.equal(broken.line.graceTimer, null);
+});
+
+test('waitClear (a reply published as a whole) waits out the grace and then V\'s line when V makes it in time, or the grace alone when not', async () => {
+  const quick = line({graceMs: 300, stream: late(30)}, {endAfter: 40});
+  await quick.line.waitClear();
+  assert.equal(quick.line.state, 'done');
+  let release;
+  const gate = new Promise(done => { release = done; });
+  const slow = line({graceMs: 60, stream: async (key, text, options) => { await gate; await options.onPcm(packet()); return {}; }});
+  const started = performance.now();
+  await slow.line.waitClear();
+  assert.equal(slow.line.reason, 'slower-than-reply'); assert.ok(performance.now() - started < 400);
+  release(); await slow.line.finished;
+});
+
+test('the live case on the stage clock: V\'s first audio 40 ms after the reply\'s is heard; a cold voice seconds away costs the reply the grace and no more', async () => {
+  // Without the grace (the old rule) the first case was lost; with it V plays first and the reply follows V's end, as it does for any audible V.
+  const old = line({graceMs: 0, stream: late(40)});
+  assert.equal(old.line.holds(), false); assert.equal(old.line.reason, 'slower-than-reply');
+  await old.line.finished;
+  const live = line({graceMs: 600, stream: late(40)}, {endAfter: 20});
+  await replyMayStart(live.line);
+  assert.equal(live.line.state, 'done', 'V was heard, then the reply may start');
+  assert.ok(live.clock.snapshot().marks.audible < 300, `V audible ${live.clock.snapshot().marks.audible} ms after it started`);
+  // A cold voice: first audio is seconds away. The reply is held for the grace and then goes on without V.
+  let release;
+  const gate = new Promise(done => { release = done; });
+  const cold = line({graceMs: 120, stream: async (key, text, options) => { await gate; await options.onPcm(packet()); return {}; }});
+  const coldWait = await replyMayStart(cold.line);
+  assert.equal(cold.line.reason, 'slower-than-reply');
+  assert.ok(coldWait >= 100 && coldWait < 300, `a reply is held ${Math.round(coldWait)} ms for a grace of 120, never the seconds the voice needs`);
+  release(); await cold.line.finished;
+});
+
+test('the default grace is 600 ms, and VVoice passes its own to every line', async () => {
+  assert.equal(V_GRACE_MS, 600);
+  const {voice} = feature({graceMs: 250});
+  const made = voice.start(typed());
+  assert.equal(made.graceMs, 250);
+  await made.finished;
+  assert.equal(new VVoice({}).graceMs, V_GRACE_MS);
+});
+
+test('the turn\'s own stage clock shows that the reply waited for V: vGrace, then vAudible', async () => {
+  const clock = new TurnClock();
+  const {voice} = feature({graceMs: 300, stream: late(30), play: renderer({endAfter: 150}).play});
+  const made = voice.start(typed(), {clock});
+  assert.equal(made.holds(), true);
+  await until(() => made.state === 'playing', 'V audible');
+  const marks = clock.snapshot().marks;
+  assert.ok(marks.vGrace <= marks.vAudible, JSON.stringify(marks));
+  await made.finished;
+});
+
+test('the totals: spoken and not-heard lines are counted by reason, written to the log when a line is dropped (and for the first), and no text ever', async () => {
+  const gates = [];
+  const stream = (key, text, options) => new Promise(resolveStream => { gates.push(() => { options.onPcm(packet()); resolveStream({}); }); });
+  const play = (config, producer, options) => renderer({endAfter: 3}).play(config, producer, options);
+  const {voice, calls} = feature({graceMs: 0, play, stream: async (key, text, options) => { await options.onPcm(packet()); return {}; }});
+  await voice.start(typed()).finished;
+  assert.equal(calls.tally.length, 1, 'the first line of the session writes the totals');
+  assert.match(calls.tally[0], /^this session: 1 typed line\(s\) spoken, 0 not heard$/);
+  await voice.start(typed()).finished;
+  assert.equal(calls.tally.length, 1, 'a spoken line after the first writes nothing');
+  const slow = feature({graceMs: 0, stream});
+  const made = slow.voice.start(typed()); assert.equal(made.holds(), false);
+  await sleep(2);
+  assert.match(slow.calls.tally.at(-1), /^this session: 0 typed line\(s\) spoken, 1 not heard \(slower-than-reply=1\)$/);
+  assert.doesNotMatch(slow.calls.tally.join('\n'), /Hey Judy/);
+  for (const gate of gates) gate();
+  await made.finished;
+});
+
+test('a typed line that could not start is counted too (not loaded, not English, no volume), with the totals written for the first of each reason', () => {
+  const own = engineFeature({own: true, ownReady: false});
+  assert.equal(own.voice.start(typed()), null); assert.equal(own.voice.start(typed()), null);
+  assert.equal(own.calls.tally.length, 1);
+  assert.match(own.calls.tally[0], /not started \(voice-not-loaded=1\)/);
+  assert.equal(own.voice.tally.skipped['voice-not-loaded'], 2);
+  const english = engineFeature({language: 'de'});
+  assert.equal(english.voice.start(typed()), null);
+  assert.equal(english.voice.tally.skipped['not-english'], 1);
+  const quiet = feature();
+  assert.equal(quiet.voice.start(typed({turnContext: {version: 1, status: 'ready', gender: 'male'}})), null);
+  assert.equal(quiet.voice.tally.skipped['volume-unknown'], 1);
+  // The setting off is not "a line that could not start": it is not counted.
+  const off = feature(); off.voice.update({vVoice: false, vVoiceChosen: true});
+  assert.equal(off.voice.start(typed()), null); assert.deepEqual(off.voice.tally.skipped, {});
+});
+
+test('V\'s gender is remembered between sessions: the first warm-up of a session prepares that one voice, and it is saved only when it changes', async () => {
+  const saved = [];
+  const remembered = feature({remember: {gender: 'female', save: gender => saved.push(gender)}});
+  assert.equal(remembered.voice.lastGender, 'female');
+  remembered.voice.warmUp(); await sleep(5);
+  assert.deepEqual(remembered.calls.prepare, ['v-female'], 'the remembered V, not both');
+  remembered.voice.noteGender(typed({turnContext: {version: 1, status: 'ready', gender: 'female'}}));
+  assert.deepEqual(saved, [], 'unchanged: nothing is written');
+  remembered.voice.noteGender(typed({turnContext: {version: 1, status: 'ready', gender: 'male'}}));
+  remembered.voice.noteGender(typed({turnContext: {version: 1, status: 'ready', gender: 'male'}}));
+  assert.deepEqual(saved, ['male']);
+  const fresh = feature({remember: {gender: undefined, save: gender => saved.push(gender)}});
+  assert.equal(fresh.voice.lastGender, null);
+  const broken = feature({remember: {get gender() { throw Error('unreadable'); }, save() { throw Error('read only'); }}});
+  broken.voice.noteGender(typed()); assert.equal(broken.voice.lastGender, 'male');
+});
+
+test('warming with no V known prepares both voices in turn, but not the second one once a line has said which V it is; a worker that finished loading warms no renderer page', async () => {
+  const order = [];
+  let releaseFirst;
+  const firstDone = new Promise(done => { releaseFirst = done; });
+  const {voice, calls} = feature({prepare: async key => { order.push(key); if (key === 'v-male') await firstDone; }});
+  voice.warmUp(); await sleep(5);
+  assert.deepEqual(order, ['v-male']);
+  voice.noteGender(typed({turnContext: {version: 1, status: 'ready', gender: 'male', dialogueVolume: 0.5}}));
+  releaseFirst(); await sleep(5);
+  assert.deepEqual(order, ['v-male'], 'the first line said V is male: the female voice is not prepared');
+  assert.equal(calls.warm, 1);
+  const worker = feature();
+  worker.voice.warmUp({page: false}); await sleep(5);
+  assert.equal(worker.calls.warm, 0, 'no renderer page for a worker that only finished loading');
+  assert.deepEqual(worker.calls.prepare, ['v-male', 'v-female']);
+});
+
+test('V\'s own worker finishing its load prepares V\'s voice on it at once, in the bridge', () => {
+  assert.match(bridge, /onVHelperReady: \(\) => vVoice\.warmUp\(\{page: false\}\)/);
+  assert.match(bridge, /remember: vGenderMemory/);
+  assert.match(bridge, /v-voice-gender\.json/);
+});
+
+test('the rescue budget: a late line is waited for only while the wait plus the line itself stays within V_RESCUE_BUDGET_MS; a long line is dropped at once', async () => {
+  assert.equal(V_RESCUE_BUDGET_MS, 4000);
+  const never = async (key, text, options) => { await new Promise(done => options.signal.addEventListener('abort', done, {once: true})); };
+  // Two words (about 0.7 s and the 0.48 s of lead-in and tail): the whole grace fits.
+  const short = line({graceMs: 600, text: 'Hello Judy.', stream: never});
+  assert.equal(short.line.holds(), true); assert.equal(short.line.waiting, true);
+  short.line.drop('test over'); await short.line.finished;
+  // Nine words: 3.2 s + 0.48 s leaves about 300 ms of the 4 s.
+  const mid = line({graceMs: 600, text: 'one two three four five six seven eight nine', stream: never});
+  const started = performance.now();
+  assert.equal(mid.line.holds(), true);
+  await replyMayStart(mid.line);
+  assert.ok(performance.now() - started < 450, 'the wait is what the budget leaves, not the whole grace');
+  assert.equal(mid.line.reason, 'slower-than-reply');
+  await mid.line.finished;
+  // A long line (V_MAX_CHARS is about 40 words, 14 s): no room at all, dropped on the first ask like before.
+  const long = line({graceMs: 600, text: 'word '.repeat(40).trim(), stream: never});
+  assert.equal(long.line.holds(), false); assert.equal(long.line.reason, 'slower-than-reply'); assert.ok(!('graceStart' in long.clock.snapshot().marks));
+  await long.line.finished;
 });

@@ -94,7 +94,7 @@ test('no Convai connection, memory or warm-up is opened for an add-on voice turn
     }
   }
   assert.doesNotMatch(source('./addon-voice.mjs'), /^import /m, 'the module reaches nothing by itself');
-  assert.match(bridge, /const addonVoice = createAddonVoice\(\{isSpeaker: key => addonHost\.isSpeaker\(key\), speech: mistralSpeech,/);
+  assert.match(bridge, /const addonVoice = createAddonVoice\(\{isSpeaker: key => addonHost\.isSpeaker\(key\) \|\| customCharacters\.has\(key\), speech: mistralSpeech,/);
   assert.match(bridge, /const mic = new MicrophoneSession\(\{hostFactory: addonVoice\.hostFactory\(\(\) => realtime\.voiceChannel\(\)\),/);
   // Its reply step and its model-voice step skip the Convai text/voice route.
   assert.match(bridge, /prepareReply: async \(input, signal\) => \{\n    if \(addonVoice\.voice\(input\) \|\| localVoice\.playbackEnabled === false\) return;/);
@@ -104,9 +104,11 @@ test('no Convai connection, memory or warm-up is opened for an add-on voice turn
 test('one recogniser for every provider: the Mistral route\'s own, never a Convai session', () => {
   const bridge = source('./convai-bridge.mjs');
   // The recogniser object the Mistral route attaches to the hosts is the one the add-on voice is given.
-  assert.match(bridge, /const mistralSpeech = createLocalSpeech\(\{\n  stt: new LocalStt\(/);
+  assert.match(bridge, /const englishStt = new LocalStt\(/);
+  assert.match(bridge, /const mistralSpeech = createLocalSpeech\(\{\n  stt: englishStt,/);
   assert.match(bridge, /attachTextProvider\(host, \{provider: mistral, mistral: mistralHost, speech: mistralSpeech,/);
-  assert.equal(bridge.match(/new LocalStt\(/g).length, 1, 'no second recognition stack');
+  // The English recogniser and, per multilingual pack, one more of the same class in the same stack (bridge/speech-language.mjs): no second capture page.
+  assert.equal(bridge.match(/new LocalStt\(/g).length, 2, 'the English recogniser and the packs, no second recognition stack');
   assert.equal(bridge.match(/new LocalSttCapture\(/g).length, 1);
   // It takes no provider: the same channel serves a Convai, Mistral or Local AI player.
   const voice = createAddonVoice({isSpeaker: () => true, speech: {voiceChannel: ({reply}) => ({reply})}, currentFor() {}, runTurn() {}, answerError() {}});

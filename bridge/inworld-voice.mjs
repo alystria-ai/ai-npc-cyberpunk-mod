@@ -159,12 +159,12 @@ async function writeAtomic(path, text) {
 
 export class InworldVoice {
   /**
-   * getKey: () => the Inworld key or null. referenceRoot / registry: as for VoxtralVoice (the folder 'runtime/voice-references/' maps
-   * to; an ordered list of voice registries, set later with setReferences). storePath: the file the voice ids are kept in.
+   * getKey: () => the Inworld key or null. referenceRoot / playerRoot / registry: as for VoxtralVoice (the folders 'runtime/voice-references/'
+   * and 'runtime/player-voices/' map to; an ordered list of voice registries, set later with setReferences). storePath: the file the voice ids are kept in.
    * onChange: called when the voice becomes degraded or recovers. library: replaces the reference reader (tests).
    * fetchImpl, readText, writeText, setTimer, clearTimer, now, clock, endpoints, limits: for tests.
    */
-  constructor({getKey, referenceRoot, registry, library, storePath, onChange = () => {}, onLog = () => {}, fetchImpl = globalThis.fetch,
+  constructor({getKey, referenceRoot, playerRoot = null, registry, library, storePath, onChange = () => {}, onLog = () => {}, fetchImpl = globalThis.fetch,
     readText = path => readFile(path, 'utf8'), writeText = writeAtomic, endpoints = {}, limits = {}, setTimer = setTimeout,
     clearTimer = clearTimeout, now = () => performance.now(), clock = Date.now, steering = true} = {}) {
     if (typeof getKey !== 'function') throw Error('Invalid Inworld configuration');
@@ -172,7 +172,7 @@ export class InworldVoice {
     this.endpoints = Object.freeze({...INWORLD_ENDPOINTS, ...endpoints});
     Object.assign(this, {getKey, storePath, onChange, onLog, fetchImpl, readText, writeText, setTimer, clearTimer, now, clock, steering});
     // The clips are read, hash-checked and chosen exactly as for the Mistral voice (OmniVoice long set, short set, Pocket set, extracted clips).
-    this.library = library ?? new VoxtralVoice({getKey: () => null, referenceRoot, registry, limits: {
+    this.library = library ?? new VoxtralVoice({getKey: () => null, referenceRoot, playerRoot, registry, limits: {
       maxReferenceSeconds: this.limits.maxReferenceSeconds, maxReferenceBytes: this.limits.maxReferenceBytes}});
     this.owner = randomBytes(16).toString('hex'); this.sequence = 0;
     this.degraded = null; this.until = 0; this.spoke = 0; this.fellBack = 0; this.chars = 0;
@@ -185,6 +185,17 @@ export class InworldVoice {
     this.cloneChain = Promise.resolve();
   }
   setReferences(registry) { this.library.setReferences?.(registry); this.entries.clear(); }
+  /**
+   * The registries again after a player changed some voices (bridge/voice-selection.mjs setVoices): only the voices of `keys` are forgotten here
+   * (the clip is read again and the voice is found or made from it the next time that character speaks; the saved id of the old clip is
+   * replaced then, and the account's older voice of it is removed by the usual stale-voice clean-up). Every other voice stays as it is.
+   */
+  replaceReferences(registry, keys = []) {
+    const had = this.library.replaceReferences?.(registry, keys) ?? [];
+    for (const key of keys) if (this.entries.delete(key) && !had.includes(key)) had.push(key);
+    return had;
+  }
+  hasCachedReference(key) { return this.entries.get(key)?.state === 'ready' || this.library.hasCachedReference?.(key) === true; }
   get hasKey() { return !!this.getKey(); }
   /** Whether a request may be made now (a key, and not inside a limit, quota or refused-key cool-down). */
   get ready() { return this.hasKey && this.clock() >= this.until; }

@@ -11,14 +11,14 @@ test('every message the module can show is a catalogued English UI key', () => {
 
 test('with everything installed every line says OK, nothing is a problem and the check opens only the files it names', () => run(String.raw`
   installFiles(); serviceRunning()
-  assert(ids() == 'files=ok game=ok cet=ok red4ext=ok redscript=ok codeware=ok tweakxl=ok audioware=ok mcm=ok', ids())
+  assert(ids() == 'files=ok game=ok cet=ok red4ext=ok redscript=ok codeware=ok tweakxl=ok audioware=ok nsui=ok', ids())
   assert(check.problemCount() == 0 and #check.problems() == 0)
   local files_, game_, red4ext_ = lineOf('files'), lineOf('game'), lineOf('red4ext')
   assert(files_.label == 'Mod files' and files_.value == 'OK' and files_.description == 'All files found.')
   assert(game_.label == 'Game version' and game_.description == 'Version 2.31.')
   assert(red4ext_.label == 'RED4ext' and red4ext_.description == 'Loaded.')
   assert(lineOf('codeware').description == 'Version 1.20.5.' and lineOf('tweakxl').description == 'Version 1.11.4.' and lineOf('audioware').description == 'Version 1.9.9.')
-  assert(lineOf('cet').description == 'Version 1.37.1.' and lineOf('mcm').description == 'Found.')
+  assert(lineOf('cet').description == 'Version 1.37.1.' and lineOf('nsui').description == 'Version 1.96.')
   assert(check.serviceLine() == nil, 'a running service is explained by the existing Conversation service row')
   -- the files the check opens: the four catalogs, release.json, the answer (none yet) and the service status files; the folder list
   local allowed = {}
@@ -39,12 +39,20 @@ test('each missing framework is a Problem with its own fix, and the most fundame
   for _, id in ipairs({'codeware', 'tweakxl', 'audioware'}) do assert(lineOf(id).state == 'problem', id) end
   assert(table.concat(check.problems(), ',') == 'red4ext,codeware,audioware,tweakxl', table.concat(check.problems(), ','))
   assert(check.problemCount() == 4)
-  -- the scripts did not compile either (a compile error anywhere): nothing can be judged from them, so only the scripts are a problem
+  -- the scripts did not compile either: the frameworks cannot be judged from them (Unknown), but nothing RED4ext loads answers, not even
+  -- this mod's native plugin, so RED4ext is still not loaded, and it comes first: without it Codeware's scripts never reach the compile
   env.scripts, env.requirements = false, nil
   applyEnv(); check.run()
+  assert(table.concat(check.problems(), ',') == 'red4ext,redscript', table.concat(check.problems(), ','))
+  assert(lineOf('red4ext').state == 'problem' and lineOf('red4ext').description:find('RED4ext is not loaded', 1, true))
+  for _, id in ipairs({'codeware', 'tweakxl', 'audioware'}) do assert(lineOf(id).state == 'unknown' and lineOf(id).description == '', id) end
+  assert(check.problemCount() == 2)
+  -- the native plugin answers: RED4ext is loaded, and the scripts are the one problem
+  env.native = true; applyEnv(); check.run()
   assert(table.concat(check.problems(), ',') == 'redscript', table.concat(check.problems(), ','))
-  for _, id in ipairs({'red4ext', 'codeware', 'tweakxl', 'audioware'}) do assert(lineOf(id).state == 'unknown' and lineOf(id).description == '', id) end
-  assert(check.problemCount() == 1)
+  assert(lineOf('red4ext').state == 'ok')
+  for _, id in ipairs({'codeware', 'tweakxl', 'audioware'}) do assert(lineOf(id).state == 'unknown', id) end
+  env.native = false
   env.scripts = true
   -- only TweakXL missing: the others stay OK and the fix names it
   env.codeware, env.tweakxl, env.audioware, env.scripts = '1.20.5', nil, '1.9.9', true
@@ -73,17 +81,35 @@ test('each missing framework is a Problem with its own fix, and the most fundame
   assert(lineOf('redscript').state == 'unknown' and lineOf('redscript').value == 'Unknown' and #check.problems() == 0)
 `));
 
-test('Mod Configuration Menu: present, too old, or missing, each with its own code', () => run(String.raw`
+test('the Companion Manager host: Mod Configuration Menu 0.10.5 or newer, or Native Settings UI; too old or missing is a problem with its own code and words', () => run(String.raw`
   installFiles(); serviceRunning()
   check.run()
-  assert(lineOf('mcm').state == 'ok')
-  env.mcm = 'old'; applyEnv(); check.run()
-  assert(lineOf('mcm').state == 'problem' and table.concat(check.problems(), ',') == 'mcm')
-  assert(lineOf('mcm').description == 'Mod Configuration Menu is missing. Install it from Nexus Mods, then restart the game.')
+  assert(lineOf('nsui').state == 'ok')
+  env.nsui = 'old'; applyEnv(); check.run()
+  assert(lineOf('nsui').state == 'problem' and table.concat(check.problems(), ',') == 'nsui')
+  assert(lineOf('nsui').description == 'The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game.')
   local old = table.concat(check.reportLines(), '\n')
-  assert(old:find('mcm: problem old', 1, true), old)
-  env.mcm = 'none'; applyEnv(); check.run()
-  assert(table.concat(check.reportLines(), '\n'):find('mcm: problem missing', 1, true))
+  assert(old:find('nsui: problem old', 1, true), old)
+  env.nsui = 'none'; applyEnv(); check.run()
+  assert(lineOf('nsui').description == 'The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game.')
+  assert(table.concat(check.reportLines(), '\n'):find('nsui: problem missing', 1, true))
+  -- Mod Configuration Menu 0.10.5 is the default host: it meets the requirement alone, and its line names it with its version.
+  env.nsui, env.mcm = 'none', 'ok'; applyEnv(); check.run()
+  assert(lineOf('nsui').state == 'ok' and lineOf('nsui').label == 'Mod Configuration Menu' and lineOf('nsui').description == 'Version 0.10.5.', tostring(lineOf('nsui').description))
+  assert(#check.problems() == 0 and table.concat(check.reportLines(), '\n'):find('nsui: ok mcm 0.10.5', 1, true), table.concat(check.reportLines(), '\n'))
+  -- Both installed: Mod Configuration Menu is the one named, Native Settings UI is the alternative and is not a problem either way.
+  env.nsui = 'ok'; applyEnv(); check.run()
+  assert(lineOf('nsui').label == 'Mod Configuration Menu' and #check.problems() == 0)
+  env.nsui, env.mcm = 'old', 'ok'; applyEnv(); check.run()
+  assert(#check.problems() == 0, 'an old Native Settings UI does not matter beside MCM 0.10.5')
+  -- An older Mod Configuration Menu alone (no public interface for the page): update it. Beside a working Native Settings UI it is no problem.
+  env.nsui, env.mcm = 'none', 'old'; applyEnv(); check.run()
+  assert(lineOf('nsui').state == 'problem' and lineOf('nsui').label == 'Mod Configuration Menu' and table.concat(check.problems(), ',') == 'nsui')
+  assert(lineOf('nsui').description == 'Mod Configuration Menu is too old. Update it to 0.10.5 or newer from Nexus Mods, then restart the game.', lineOf('nsui').description)
+  assert(table.concat(check.reportLines(), '\n'):find('nsui: problem mcm-old', 1, true))
+  env.nsui = 'ok'; applyEnv(); check.run()
+  assert(#check.problems() == 0 and lineOf('nsui').label == 'Native Settings UI', 'Native Settings UI carries it when MCM is too old')
+  env.nsui, env.mcm = 'ok', 'none'; applyEnv(); check.run()
 `));
 
 test('mod files: a missing catalog or locale, an unreadable folder, and the Scripts version', () => run(String.raw`
@@ -184,13 +210,13 @@ test('the conversation service: no trace, an incomplete Runtime, a failed start,
 test('the service answer is shown only from this game session and every check becomes one line with its fix', () => run(String.raw`
   installFiles(); serviceRunning()
   check.run()
-  assert(ids() == 'files=ok game=ok cet=ok red4ext=ok redscript=ok codeware=ok tweakxl=ok audioware=ok mcm=ok', 'no answer yet: only the game side')
+  assert(ids() == 'files=ok game=ok cet=ok red4ext=ok redscript=ok codeware=ok tweakxl=ok audioware=ok nsui=ok', 'no answer yet: only the game side')
   -- an answer from an earlier game session (older than the mod's load) is ignored
   local old = answer(); old.updated = ms(-3600); put('runtime/setup-check.json', old)
   check.run()
   assert(not ids():find('browser', 1, true))
   answer(); check.run()
-  assert(ids() == 'versions=ok files=ok game=ok cet=ok red4ext=ok redscript=ok codeware=ok tweakxl=ok audioware=ok mcm=ok packs=ok browser=ok local-ai=ok internet=ok gpu=ok mod-manager=ok', ids())
+  assert(ids() == 'versions=ok files=ok game=ok cet=ok red4ext=ok redscript=ok codeware=ok tweakxl=ok audioware=ok nsui=ok packs=ok browser=ok local-ai=ok internet=ok gpu=ok mod-manager=ok', ids())
   assert(lineOf('versions').label == 'Scripts and Runtime' and lineOf('versions').description == 'Scripts 0.2.1 and Runtime 0.2.1.')
   assert(lineOf('packs').label == 'Optional packs' and lineOf('packs').description == 'None installed. They are optional.')
   assert(lineOf('browser').description == 'Found: Microsoft Edge.')
@@ -218,7 +244,7 @@ test('optional packs: found, moved by the launcher, one folder too deep, and fil
   answer({packs = {id = 'packs', state = 'ok', code = 'ok', found = {'Local AI standard', 'OmniVoice'}, nested = {}, moved = {{pack = 'Mature lite', from = 'Mature-pack'}}}}); check.run()
   assert(lineOf('packs').state == 'ok' and lineOf('packs').description == 'Found: Local AI standard, OmniVoice.\nMoved into place from Mature-pack: Mature lite.', lineOf('packs').description)
   answer({packs = {id = 'packs', state = 'problem', code = 'nested', found = {}, nested = {{pack = 'Local AI standard', folder = 'AI-NPC-Local-AI-0.2.1'}, {pack = 'OmniVoice', folder = 'other'}}, moved = {}}}); check.run()
-  assert(lineOf('packs').state == 'problem' and lineOf('packs').description == 'Local AI standard is one folder too deep, in AI-NPC-Local-AI-0.2.1. Move the red4ext folder inside it into the Cyberpunk 2077 folder, then restart the game.')
+  assert(lineOf('packs').state == 'problem' and lineOf('packs').description == 'Local AI standard is one folder too deep, in AI-NPC-Local-AI-0.2.1. Restart the game and the mod moves it into place. If it is still there afterwards, move the red4ext folder inside it into the Cyberpunk 2077 folder.')
   assert(table.concat(check.problems(), ',') == 'packs')
   answer({packs = {id = 'packs', state = 'problem', code = 'conflict', found = {}, nested = {}, moved = {}}}); check.run()
   assert(lineOf('packs').description:find('could not be moved into place because different files are already there', 1, true))
@@ -235,7 +261,7 @@ test('the browser, Local AI and the internet: every state has its own line and f
   local states = {
     {'ready', 'ok', 'Local AI is ready.'}, {'warming', 'ok', 'Local AI is warming up…'},
     {'not-installed', 'problem', 'No Local AI pack found. Download one from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, or choose another conversation provider.'},
-    {'no-memory', 'problem', 'Not enough graphics memory for Local AI. A cloud provider is used instead.'},
+    {'no-memory', 'problem', 'Not enough free graphics memory to start Local AI. Try a smaller model in Settings.'},
     {'mature-off', 'problem', 'Only Mature models found. Turn on Mature content to use them.'},
     {'no-gpu', 'problem', 'Local AI found no graphics card it can use. It needs an NVIDIA or AMD card with a current driver. Update the driver, or choose another conversation provider.'},
     {'start-failed', 'problem', 'Local AI could not start. Generate a report below and send it, or choose another conversation provider.'},
@@ -341,7 +367,7 @@ test('opening the Help page asks a running service once and follows its answer; 
 
 test('the first load: nothing for twelve seconds, then one notice for the first critical problem, once', () => run(String.raw`
   installFiles(); serviceRunning()
-  env.mcm = 'none'; applyEnv()
+  env.nsui = 'none'; applyEnv()
   -- in the main menu there is no player: the timer does not start
   for _ = 1, 20 do advance(1); assert(check.tick(false, false) == nil) end
   assert(check.inspect().firstDue == nil and opens() == 0 and #console == 0)
@@ -357,12 +383,12 @@ test('the first load: nothing for twelve seconds, then one notice for the first 
   answer({}, request.id)
   advance(1)
   local notice = check.tick(true, true)
-  assert(notice == 'Install Mod Configuration Menu from Nexus Mods to open the Companion Manager.', tostring(notice))
+  assert(notice == 'The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI', tostring(notice))
   assert(check.inspect().firstDone)
-  -- without Mod Configuration Menu the CET console and probe.log say it too, in English
-  assert(#console == 1 and console[1] == '[AiNpcCyberpunkMod] AI NPC Cyberpunk Mod: Mod Configuration Menu is missing or too old, so the Companion Manager cannot open. Install Mod Configuration Menu 0.10.3 or newer from Nexus Mods, then restart the game.', console[1])
+  -- without Native Settings UI the CET console and probe.log say it too, in English
+  assert(#console == 1 and console[1] == '[AiNpcCyberpunkMod] AI NPC Cyberpunk Mod: the Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer, and neither was found. Install Mod Configuration Menu (https://www.nexusmods.com/cyberpunk2077/mods/31640) or Native Settings UI (https://www.nexusmods.com/cyberpunk2077/mods/3518) from Nexus Mods, then restart the game.', console[1])
   local log = files['runtime/probe.log']
-  assert(log:find('Setup check: problems: mcm', 1, true) and log:find('Mod Configuration Menu is missing or too old', 1, true), log)
+  assert(log:find('Setup check: problems: nsui', 1, true) and log:find('neither was found', 1, true), log)
   -- once per game session
   for _ = 1, 50 do advance(1); assert(check.tick(true, true) == nil) end
   assert(#console == 1)
@@ -375,22 +401,22 @@ test('the first load without a running service decides at once, and names a serv
   local notice = check.tick(true, true)
   assert(files['runtime/setup-check-request.json'] == nil and check.inspect().pending == nil, 'nothing is asked of a service that is not running')
   assert(notice == 'The conversation service did not start. Is the Runtime installed? See Help in Settings.', tostring(notice))
-  assert(#console == 0, 'Mod Configuration Menu is there, so the console stays quiet')
+  assert(#console == 0, 'Native Settings UI is there, so the console stays quiet')
 `));
 
 test('the first load announces one problem: the most fundamental, in the fixed order', () => run(String.raw`
   installFiles(); serviceRunning()
-  -- TweakXL and Mod Configuration Menu both missing: TweakXL first; the console still names Mod Configuration Menu
-  env.tweakxl, env.mcm = nil, 'none'; applyEnv()
+  -- TweakXL and Native Settings UI both missing: TweakXL first; the console still names Native Settings UI
+  env.tweakxl, env.nsui = nil, 'none'; applyEnv()
   check.tick(true, true); advance(12); check.tick(true, true)
   local request = json.decode(files['runtime/setup-check-request.json'])
   answer({}, request.id); advance(1)
   local notice = check.tick(true, true)
   assert(notice == 'TweakXL is missing. Install it from Nexus Mods, then restart the game.', tostring(notice))
-  -- the console says each of them once, in English: the missing requirement and Mod Configuration Menu
+  -- the console says each of them once, in English: the missing requirement and Native Settings UI
   assert(#console == 2 and console[1] == '[AiNpcCyberpunkMod] AI NPC Cyberpunk Mod: TweakXL is missing. Install it from Nexus Mods, then restart the game.', console[1])
-  assert(console[2]:find('Mod Configuration Menu is missing or too old', 1, true))
-  assert(table.concat(check.problems(), ',') == 'tweakxl,mcm', table.concat(check.problems(), ','))
+  assert(console[2]:find('neither was found', 1, true))
+  assert(table.concat(check.problems(), ',') == 'tweakxl,nsui', table.concat(check.problems(), ','))
 `));
 
 test('the first load names Scripts and Runtime of different versions, a pack one folder too deep and a blocked connection', () => {
@@ -480,14 +506,14 @@ test('reports: one plain line per check for the short report, and at most ten sh
   check.run()
   local lines = table.concat(check.reportLines(), '\n')
   for _, expected in ipairs({'service: ok running', 'files: ok found 0.2.1', 'game: ok tested 2.31', 'cet: ok found 1.37.1', 'red4ext: ok loaded',
-    'redscript: ok loaded', 'codeware: ok found 1.20.5', 'tweakxl: problem missing', 'audioware: ok found 1.9.9', 'mcm: ok found',
+    'redscript: ok loaded', 'codeware: ok found 1.20.5', 'tweakxl: problem missing', 'audioware: ok found 1.9.9', 'nsui: ok found 1.96',
     'service versions: ok match scripts=0.2.1 runtime=0.2.1', 'service packs: problem nested found=Local AI lite nested=wrapped',
     'service browser: ok found name=Microsoft Edge', 'service internet: problem blocked host=api.mistral.ai service=mistral',
     'service gpu: ok found name=NVIDIA GeForce RTX 4070 memoryMiB=12282', 'service mod-manager: note vortex managers=vortex'}) do
     assert(lines:find(expected, 1, true), 'missing: ' .. expected .. '\n' .. lines)
   end
   local summary = check.summary()
-  assert(#summary == 10 and summary[1].id == 'service' and summary[10].id == 'mcm')
+  assert(#summary == 10 and summary[1].id == 'service' and summary[10].id == 'nsui')
   for _, row in ipairs(summary) do
     assert(type(row.id) == 'string' and type(row.state) == 'string' and type(row.code) == 'string')
     for key in pairs(row) do assert(key == 'id' or key == 'state' or key == 'code' or key == 'version', 'only short tokens: ' .. key) end
@@ -511,7 +537,7 @@ test('the short report written by the game holds the setup check, with the same 
   local text = files['runtime/convai-report-lua.txt']
   assert(text, 'the short report was written')
   assert(text:find('== setup check ==', 1, true), text)
-  assert(text:find('tweakxl: problem missing', 1, true) and text:find('mcm: ok found', 1, true) and text:find('service checks: none from this game session', 1, true), text)
+  assert(text:find('tweakxl: problem missing', 1, true) and text:find('nsui: ok found 1.96', 1, true) and text:find('service checks: none from this game session', 1, true), text)
   -- without the module the section says so
   convaiSetupCheck = nil
   put('runtime/convai-report-lua.txt', '')

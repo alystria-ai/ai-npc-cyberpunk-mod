@@ -135,12 +135,16 @@ test('a lost alignment, no aligner or a failure releases the rows at once and un
 });
 
 test('cost: a long reply adds well under 5 ms once warm, and warming itself is cheap', () => {
-  const started = performance.now(); warmVisemes(PHONES, O); assert.ok(performance.now() - started < 50);
+  // CPU time of the process, not the wall clock: on a busy machine the process waits for a core while the clock runs on (the wall-clock bound failed
+  // there). CPU time counts in steps of about 16 ms on Windows, which a bound of 50 ms tolerates.
+  const cpuStart = process.cpuUsage(); warmVisemes(PHONES, O); const warmed = process.cpuUsage(cpuStart);
+  assert.ok((warmed.user + warmed.system) / 1000 < 50, `warming took ${(warmed.user + warmed.system) / 1000} ms of CPU`);
   const words = ['UW', 'M', 'AA', 'B', 'F', 'OW', 'S', 'T', 'W', 'P', 'IY', 'V'], plan = [];
   for (let i = 0; i < 60; i++) plan.push([words[i % words.length], 8], ['SIL', 2]);
-  // Best of three: a busy test machine (the files run in parallel) must not fail a timing bound.
+  // Best of nine: a busy test machine (the files run in parallel) must not fail a timing bound. The cost of a run is real elapsed time inside the overlay, so a
+  // preemption in the middle of one inflates it; the claim is that a run can be this cheap, and nine tries leave no room for the machine to hide it.
   const costs = [];
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 9; attempt++) {
     const {aligner, length} = fakeAligner(plan), rows = modelRows(length, {closure: [[40, .5]]}), overlay = new VisemeOverlay({phones: PHONES, outputs: O});
     feed(overlay, aligner, rows, 10); // length = 600 rows = 6 s of speech
     costs.push(overlay.stats().ms);

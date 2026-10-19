@@ -6,6 +6,8 @@ Characters the game itself placed (the real Judy, Jackie, Panam) are a different
 
 Players often use a spawner, another mod or tool, to put characters into the world: Judy, Panam, a ganger, a custom NPC. That mod owns the character's body. It decides where the character goes, how they follow, what they wear and what they do in a car. This document sets out what our mod does with such a character. The short version: they can talk with their own profile, voice and memory, and their face moves with the voice. Nothing of ours moves them.
 
+**A spawned character that has no profile** (Rebecca from Edgerunners, from a character mod) does not have to talk as an ordinary person: the player can make a profile for it in the character editor (2026-10-19, [CHARACTER_EDITOR.md](CHARACTER_EDITOR.md), "Your own characters"). `characterCatalog.resolve` finds it by record or display name after the roster and before the archetypes, so a roster profile still wins; it talks by text and voice and joins group chat like any spawned roster character, with Mistral or Local AI (with Convai it stays an ordinary person and one notice says why).
+
 ## Before this branch
 
 A spawned Judy was treated as the protected story Judy.
@@ -82,6 +84,8 @@ Conversation result: ... face=true/prepared:woman_average_sermo               (o
 **Live check owed (needs the Scripts install and a game restart).** Spawn Jackie and Judy with the spawner, wait a few seconds for the spawner's own appearance change, and talk to each by text. `probe.log` must read `face=true/prepared:man_big_sermo` for Jackie and `face=true/prepared:player_woman_photomode_sermo` for Judy, and the lips move. Then change one's outfit with the spawner and talk again. Our own Alex must still read `face=true/prepared:woman_average_sermo`. If a line reads `face=false/stale:...`, send the whole line.
 
 **Not covered.** Our own companions' appearance rebuilds are untouched (their spawn picks the final appearance up front), and a spawned character's rebuild that arrives with an entity ID (none seen) goes through the existing managed path.
+
+**Amended 2026-10-19 (branch `fix/face-replaced-model`).** The two exclusions above are gone: the same note-and-claim now also prepares the rebuilt face of our own copies (companion graph) and of the game's own characters (the story or crowd rules of their spawn), `m_spawnedSeen` became `m_watchRebuilds` for the noting (it also switches on for our copies and for prepared world and story NPCs), and the counters in the `stale:` line are split per kind and carry `events=`. The report that showed the gap: a game-placed Judy, `stale:` with every counter at zero. Details, the status table and the log fields: `docs/FACIAL_ANIMATION.md`, "October 19: a replaced model".
 
 ## Invite and party
 

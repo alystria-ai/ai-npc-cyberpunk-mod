@@ -17,8 +17,7 @@
 //   AI-NPC-Cyberpunk-Mod-Mature-Standard-<v>.zip    optional Mature standard pack, one uncensored model (Gemma 4 E4B); only with --packages mature-standard
 // Only the Scripts (Nexus) and Runtime (GitHub release) packages may still be split into several zips (writeArchives).
 // plus SHA256SUMS.txt and release-manifest.json. The Runtime package also carries the native plugin
-// (red4ext/plugins/AiNpcCyberpunkModNative), runtime/native-off.txt and "Make support report.bat" (a support report made with the game
-// closed, in red4ext/plugins/AiNpcCyberpunkMod). See docs/PACKAGING.md.
+// (red4ext/plugins/AiNpcCyberpunkModNative) and runtime/native-off.txt. See docs/PACKAGING.md.
 //
 // Options:
 //   --version V        release version, 2077.N or 2077.N.M (required)
@@ -50,6 +49,7 @@ import {loadRuntimeExchange} from './lib/runtime-exchange.mjs';
 import {packagedKeyText} from './lib/packaged-key.mjs';
 import {copyInto, download, exists, extractZip, posix, readJson, run, sha256Buffer, sha256File, walk, writeText} from './lib/files.mjs';
 import {RUNTIME_PREPARED_FOLDER} from './lib/pack-overlap.mjs';
+import {launcherIni} from './lib/launcher-ini.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const started = Date.now();
@@ -285,19 +285,6 @@ function nativeOffText(config) {
     ...config.native.off, ''].join('\n');
 }
 
-function launcherIni() {
-  const lines = [
-    '; AI NPC Cyberpunk Mod: starts the conversation service with the game and stops it when the game exits.',
-    '; Set enabled=0 to start it yourself instead.',
-    '[launch]', 'enabled=1',
-    'program=%PLUGIN%\\app\\node\\node.exe',
-    'arg1=%PLUGIN%\\app\\launcher\\start-service.mjs',
-    'working_directory=%PLUGIN%\\app',
-  ];
-  // GetPrivateProfileString reads Unicode only from UTF-16LE files with a byte order mark.
-  return Buffer.concat([Buffer.from([0xFF, 0xFE]), Buffer.from(lines.join('\r\n') + '\r\n', 'utf16le')]);
-}
-
 async function installPython(spec, lockFile, target, pthExtra) {
   const zip = await download(spec.url, resolve(cache, 'downloads', basename(spec.url)), spec.sha256, log);
   await extractZip(zip, target);
@@ -360,11 +347,6 @@ async function runtimePackage(source, config, models, key) {
   pkg.text(`${plugin}/launcher.log`, '');
   pkg.text(`${plugin}/README.txt`, await readFile(resolve(source.root, 'packaging/PLAYER_README.md'), 'utf8'));
   pkg.text(`${plugin}/LICENSE.txt`, await readFile(resolve(source.root, 'LICENSE'), 'utf8'));
-  // The double-click tool for a player whose game never loads the mod: a support report made with the game closed. It starts
-  // app/node/node.exe on app/bridge/make-support-report.mjs (the bridge closure below carries that and the code it calls).
-  // A batch file needs CRLF line ends, whatever the checkout used.
-  const supportBatch = config.layout.supportReportBatch;
-  pkg.text(`${plugin}/${supportBatch}`, (await readFile(resolve(source.root, 'packaging', supportBatch), 'utf8')).replace(/\r?\n/g, '\r\n'));
 
   // The vision helper sits beside the bridge (bridge/vision-capture.mjs looks for app/vision/CyberpunkConvaiVision.exe).
   const visionExe = await buildVision(source);
@@ -458,6 +440,10 @@ async function runtimePackage(source, config, models, key) {
   const pocketConfig = JSON.parse(await readFile(models.files.get(configs.bucket + 'pocket-voices.autobest.json'), 'utf8'));
   await verifyPocketModel(pocketConfig, models.files, group('app/models/pocket/'));
   pkg.json(`${app}/defaults/pocket-voices.autobest.json`, templateOf(pocketConfig));
+  // The Runtime's own OmniVoice lists, beside the Pocket list: app/launcher/prepare-state.mjs reads them before the pack's copy in app/omni/defaults.
+  // Every Runtime carries them, because nothing deletes an earlier version's files: a list an older Runtime left in app/defaults would
+  // otherwise win over a newer pack's at every start (docs/PACKAGING.md, "Packs reused unchanged"). Without the pack they are not used.
+  for (const name of OMNI_LIST_NAMES) pkg.json(`${app}/defaults/${name}`, await omniListOf(models.files.get(configs.bucket + name), name, config.toolchain.omniModel));
   for (const name of config.releaseData.managed) pkg.file(`${app}/defaults/${name}`, resolve(source.root, 'packaging/release-data', name));
   // Scrambled, not a greppable api-key line (bridge/key-codec.mjs); the packed file is also what marks the key as the
   // project's shared one, which the bridge limits per day.
@@ -481,7 +467,7 @@ async function runtimePackage(source, config, models, key) {
   log(`Voxtral references: ${voxtral.keys.length} voices, ${(voxtral.bytes / 1e6).toFixed(2)} MB in the Runtime package.`);
 
   // Launcher scripts, application metadata and notices.
-  for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs', 'state-home.mjs']) pkg.file(`${app}/launcher/${name}`, resolve(source.root, 'packaging/runtime', name));
+  for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs', 'state-home.mjs', 'usvfs-compat.mjs']) pkg.file(`${app}/launcher/${name}`, resolve(source.root, 'packaging/runtime', name));
   pkg.json(`${app}/package.json`, {name: 'cyberpunk-convai', version: npmVersion(version), private: true, type: 'module'});
 
   // Game-side binary assets: the three generated archives and the Audioware reply bank.
@@ -555,6 +541,16 @@ async function voxtralCache(source, models, directory, configs, {except = new Ma
   }
   await rm(root, {recursive: true, force: true});
   return {directory, keys: kept, bytes, skipped};
+}
+
+// The OmniVoice lists, in the Runtime's app/defaults and the pack's app/omni/defaults alike.
+const OMNI_LIST_NAMES = Object.freeze(['local-voices.autobest-short.json', 'local-voices.autobest-long.json']);
+// One list as it ships: checked against the pinned OmniVoice model and without the picker's proposal. The Runtime and the pack get the same text.
+async function omniListOf(path, name, model) {
+  const value = JSON.parse(await readFile(path, 'utf8'));
+  if (value.revision !== model.revision) throw Error(`${name} names OmniVoice ${value.revision}, not the packaged ${model.revision}.`);
+  const copy = structuredClone(value); delete copy.proposal;
+  return copy;
 }
 
 function templateOf(config) {
@@ -657,12 +653,11 @@ async function omniPackage(source, config, models) {
   // OmniVoice voice configurations and their reference clips.
   const configs = config.models.groups.find(item => item.target === 'voice-configs/');
   const seen = new Set(), values = {};
-  for (const name of ['local-voices.autobest-short.json', 'local-voices.autobest-long.json']) {
+  for (const name of OMNI_LIST_NAMES) {
     const value = values[name] = JSON.parse(await readFile(models.files.get(configs.bucket + name), 'utf8'));
-    if (value.revision !== model.revision) throw Error(`${name} names OmniVoice ${value.revision}, not the packaged ${model.revision}.`);
-    const copy = structuredClone(value); delete copy.proposal;
-    // The Runtime may carry a newer copy of this list in app/defaults, which the launcher prefers (packaging/runtime/prepare-state.mjs).
-    pkg.json(`${omni}/defaults/${name}`, copy);
+    // The Runtime carries the same list in app/defaults (a newer one, once this pack is reused by a later version), which the launcher prefers
+    // (packaging/runtime/prepare-state.mjs).
+    pkg.json(`${omni}/defaults/${name}`, await omniListOf(models.files.get(configs.bucket + name), name, model));
     for (const [rel, path] of await referencesOf(value, models)) {
       if (seen.has(rel)) continue;
       seen.add(rel); pkg.file(`${plugin}/voices/${rel}`, path);

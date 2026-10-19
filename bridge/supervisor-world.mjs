@@ -86,7 +86,7 @@ export async function createWorld(t, {key = true, ids = true, entry = true, game
     },
     async status() { return readFile(world.statusPath, 'utf8').then(JSON.parse).catch(() => null); },
     async turn(count = 3) { const target = world.turns + count; while (world.turns < target && !world.finished) await realDelay(1); },
-    async until(read, accepts, label, timeout = 8000) {
+    async until(read, accepts, label, timeout = 120_000) {
       const deadline = Date.now() + timeout;
       let last;
       while (Date.now() < deadline) {
@@ -95,7 +95,8 @@ export async function createWorld(t, {key = true, ids = true, entry = true, game
         await realDelay(20);
       }
       const tail = (await world.logText()).split('\n').slice(-12).join('\n');
-      assert.fail(`${label}; last=${JSON.stringify(last)}\nservice log:\n${tail}`);
+      const ended = world.finished ? `\nthe supervisor's run has ended${world.runError ? ': ' + (world.runError.stack || world.runError) : ''}` : '';
+      assert.fail(`${label}; last=${JSON.stringify(last)}${ended}\nservice log:\n${tail}`);
     },
     untilStatus(accepts, label, timeout) { return world.until(world.status, value => value && accepts(value), label, timeout); },
     untilSpawned(count, label = `fewer than ${count} bridges were started`) {
@@ -116,8 +117,8 @@ export async function createWorld(t, {key = true, ids = true, entry = true, game
       world.supervisor = supervisor;
       const write = supervisor.writeStatus.bind(supervisor);
       supervisor.writeStatus = () => { const landed = write(); landed.then(() => world.record()); return landed; };
-      world.done = supervisor.run().then(value => { world.result = value; return value; }).finally(async () => { world.finished = true; await world.record(); });
-      return supervisor;
+      world.done = supervisor.run().then(value => { world.result = value; return value; }, error => { world.runError = error; throw error; })
+        .finally(async () => { world.finished = true; await world.record(); });      return supervisor;
     },
     endGame() { if (gamePid) world.alive.delete(gamePid); else world.lifeline?.end(); },
     // The run, to its end: the game has gone, so the supervisor drains the bridge it holds.

@@ -3,153 +3,21 @@ import assert from 'node:assert/strict';
 import {readFileSync, readdirSync} from 'node:fs';
 import path from 'node:path';
 import fengari from 'fengari';
-import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
 import {optionUnits} from './option-units.mjs';
 import {MistralProvider, MistralControl} from './mistral-key.mjs';
 import {createLocalSpeech} from './local-stt-capture.mjs';
 import {companionModules, companionEngine, flatNavigation, flatSpatial} from './companion-fixture.mjs';
+import {run, storage, managerFixture, nsuiFixture, queueSource, coreSource, hostSource, voicePreviewSource, fontsSource} from './manager-fixture.mjs';
 
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const managerSource = readFileSync(new URL('../mod/manager.lua', import.meta.url), 'utf8');
 const companionsSource = readFileSync(new URL('../mod/companions.lua', import.meta.url), 'utf8');
-const queueSource = readFileSync(new URL('../mod/manager-party.lua', import.meta.url), 'utf8');
-const mcmSource = readFileSync(new URL('../mod/mcm.lua', import.meta.url), 'utf8');
 const noticesSource = readFileSync(new URL('../mod/notices.lua', import.meta.url), 'utf8');
-const entrySource = readFileSync(new URL('../mod/mcm-entry.lua', import.meta.url), 'utf8');
-const voicePreviewSource = readFileSync(new URL('../mod/voice-preview.lua', import.meta.url), 'utf8');
-const fontsSource = readFileSync(new URL('../mod/ui-fonts.lua', import.meta.url), 'utf8');
-const mcmFontsSource = readFileSync(new URL('../mod/mcm-fonts.lua', import.meta.url), 'utf8');
+const entrySource = readFileSync(new URL('../mod/nsui-entry.lua', import.meta.url), 'utf8');
 const frenchUiSource = readFileSync(new URL('../mod/locales/fr.lua', import.meta.url), 'utf8');
 
-function run(code) {
-  const state = lauxlib.luaL_newstate();
-  lualib.luaL_openlibs(state);
-  // The CET module environment has no _G: match it so that class of bug fails here.
-  const source = '_G = nil; ' + uiLocaleBootstrap + code;
-  const status = lauxlib.luaL_dostring(state, to_luastring(source));
-  let error = status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
-  // Name the failing Lua line: the message only carries its number in the generated chunk.
-  const failedLine = /^\[string [^\]]*\]:(\d+):/.exec(error);
-  if (failedLine) error += '\n>> ' + source.split('\n')[Number(failedLine[1]) - 1].trim().slice(0, 300);
-  lua.lua_close(state);
-  assert.equal(status, lua.LUA_OK, error);
-}
-
-const storage = `
-  local files, saved, seed, extras = {}, nil, {}, nil
-  local jsonFixtures, jsonSequence, fileWrites = {}, 0, {}
-  local failSave = false
-  io = {open = function(path, mode)
-    if mode == 'rb' then
-      if not files[path] then return nil end
-      return {read = function() return files[path] end, close = function() return true end}
-    end
-    if failSave then return nil end
-    return {write = function(_, value)
-      fileWrites[#fileWrites + 1] = {path = path, value = value}
-      files[path] = value; return true
-    end, close = function() return true end}
-  end}
-  json = {decode = function(value)
-    if jsonFixtures[value] then return jsonFixtures[value] end
-    if value == 'seed' then return seed end
-    if value == 'extras' then return extras end
-    if value == 'saved' then return saved end
-    error('unexpected JSON fixture')
-  end, encode = function(value)
-    if value.action == 'clear' then
-      jsonSequence = jsonSequence + 1
-      local token = 'memory-json-' .. jsonSequence
-      jsonFixtures[token] = value
-      return token
-    end
-    jsonSequence = jsonSequence + 1
-    local token = 'settings-json-' .. jsonSequence
-    jsonFixtures[token] = value
-    return token
-  end}
-  os.rename = function(from, to)
-    if not files[from] or files[to] then return nil end
-    files[to], files[from] = files[from], nil
-    if to == 'runtime/settings.json' then saved = jsonFixtures[files[to]] end
-    return true
-  end
-  os.remove = function(path) files[path] = nil; return true end
-`;
-
-const managerFixture = `
-  ${storage}
-  local defs, members, spawned, nextSerial = {}, {}, {}, 0
-  local api = {}
-  function api.definition(key) return defs[key] end
-  function api.registerDefinition(key, value) defs[key] = value; return true end
-  function api.list() return members end
-  function api.spawn(key)
-    nextSerial = nextSerial + 1
-    spawned[#spawned + 1] = key
-    local def = assert(defs[key])
-    members[#members + 1] = {serial = nextSerial, key = key, name = def.name,
-      profileKey = def.profileKey, profileName = def.profileName or def.name,
-      record = def.id, state = 'spawning'}
-    return nextSerial
-  end
-  function api.dismiss(serial)
-    for index, member in ipairs(members) do
-      if member.serial == serial then table.remove(members, index); return true end
-    end
-    return false
-  end
-  function api.setProfile(serial, key, name)
-    for _, member in ipairs(members) do
-      if member.serial == serial then member.profileKey, member.profileName = key, name; return true end
-    end
-    return false, 'That companion is no longer in your party.'
-  end
-  local scans, visits = 0, 0
-  TweakDB = {}
-  function TweakDB:GetRecords(kind)
-    assert(kind == 'gamedataCharacter_Record')
-    scans = scans + 1
-    local result = {}
-    for index = 1, 6000 do
-      local id = index == 1 and 'Character.Silverhand' or ('Character.Model_' .. index)
-      result[index] = {GetID = function() visits = visits + 1; return id end}
-    end
-    return result
-  end
-  function TweakDB:GetFlat(id) return id:gsub('%.displayName$', '') end
-  GetLocalizedText = function(text) return text end
-  local player = {hash = 'player-1', open = true, queue = {}, rows = {}, voice = true, subtitles = true}
-  function player:GetEntityID() return {hash = self.hash} end
-  function player:ConvaiManagerIsOpen() return self.open end
-  function player:ConvaiManagerTakeRequest() return table.remove(self.queue, 1) or '' end
-  function player:ConvaiManagerClearRows() self.rows = {} end
-  function player:ConvaiManagerAddRow(key, label, note, selected)
-    self.rows[#self.rows + 1] = {key = key, label = label, note = note, selected = selected}
-    assert(#self.rows <= 8, 'unbounded native rows')
-  end
-  function player:ConvaiManagerSetDetail(...) self.detail = {...} end
-  function player:ConvaiManagerSetPage(...) self.page = {...} end
-  function player:ConvaiManagerSetTab(value) self.tab = value end
-  function player:ConvaiManagerSetSearch(value) self.search = value end
-  function player:ConvaiManagerSetFeedback(value) self.feedback = value end
-  function player:ConvaiManagerSetPartyStatus(value) self.partyStatus = value end
-  function player:ConvaiManagerRefresh() self.refreshes = (self.refreshes or 0) + 1 end
-  function player:ConvaiManagerSetVoice(value) self.voice = value end
-  function player:ConvaiManagerVoice() return self.voice end
-  function player:ConvaiManagerSetSubtitles(value) self.subtitles = value end
-  function player:ConvaiManagerSubtitles() return self.subtitles end
-  function player:ConvaiManagerSetEnabled(index, value) self['legacy' .. index] = value end
-  local profiles = {{key = 'viktor-vektor', name = 'Viktor Vektor', records = {'Character.Victor_Vector'}},
-    {key = 'johnny-silverhand', name = 'Johnny Silverhand', records = {'Character.Silverhand'}}}
-  for index = 1, 20 do profiles[#profiles + 1] = {key = 'person-' .. index,
-    name = string.format('Person %02d', index), records = {'Character.Person_' .. index}, summary = 'A distinct person.'} end
-  local manager = (function() ${managerSource} end)()
-  local function request(value, dt) player.queue[#player.queue + 1] = value; manager.update(player, dt or 0.1) end
-`;
-
 // Night City Allies' Lucy and Rita (docs/NCA_FOLLOWERS_PLAN.md): the roster records only let the talk path recognise that
-// mod's copy. invite = false keeps them out of every invite (Manager "Profile only", MCM unavailable, the party queue refuses).
+// mod's copy. invite = false keeps them out of every invite (Manager "Profile only", the manager unavailable, the party queue refuses).
 test('a roster profile marked invite = false is talk only: no companion definition, so nothing invites our own copy', () => {
   run(`${managerFixture}
     manager.configure(api, {{key = 'judy-alvarez', name = 'Judy Alvarez', records = {'Character.Judy'}},
@@ -164,7 +32,7 @@ test('a roster profile marked invite = false is talk only: no companion definiti
   `);
 });
 
-test('MCM party invitations reserve distinct copies, cancel without spawning and flush only once', () => {
+test('Manager party invitations reserve distinct copies, cancel without spawning and flush only once', () => {
   run(`${managerFixture}
     manager.configure(api, profiles)
     local queue = (function() ${queueSource} end)().new(api)
@@ -186,7 +54,7 @@ test('MCM party invitations reserve distinct copies, cancel without spawning and
   `);
 });
 
-test('MCM dismissals free planned places, can be undone at any party size and cleanly report world failures', () => {
+test('Manager dismissals free planned places, can be undone at any party size and cleanly report world failures', () => {
   run(`${managerFixture}
     manager.configure(api, profiles)
     local queue = (function() ${queueSource} end)().new(api)
@@ -219,7 +87,7 @@ test('MCM dismissals free planned places, can be undone at any party size and cl
   `);
 });
 
-test('MCM settings apply as one saved transaction and leave playback unchanged on a save failure', () => {
+test('Manager settings apply as one saved transaction and leave playback unchanged on a save failure', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.snapshot(player)
     assert(manager.snapshot(player).settings.disappearingMessages == nil)
@@ -366,7 +234,7 @@ test('gaze choices preserve accepted defaults, reject invalid settings and survi
     local current=api.gazeSettings(); current.eyeContactHeight=0.10
     assert(manager.gazeSettings().eyeContactHeight==0,'a caller mutated persisted policy')
     heights,strengths=manager.gazeChoices()
-    assert(heights[3]==0 and strengths[3]==1,'MCM mutated domain choices')
+    assert(heights[3]==0 and strengths[3]==1,'the page mutated domain choices')
     assert(manager.applySettings(player,{eyeContactHeight=0.05,headFollowStrength=1.5}))
     assert(api.gazeSettings().eyeContactHeight==0.05 and api.gazeSettings().headFollowStrength==1.5)
     for _,invalid in ipairs({-0.11,0.11,0.02,'0',false,math.huge,0/0}) do
@@ -423,7 +291,7 @@ test('saved manager gaze reaches the real companion actuator only in the ordinar
     assert(oldOne and oldTwo and oldOne.offset.z==0 and oldOne.parts[1].weight==0.05)
     local commandsOne,commandsTwo=#one.ai.commands,#two.ai.commands
     assert(manager.applySettings(nil,{eyeContactHeight=0.10,headFollowStrength=1.5}))
-    assert(next(one.looks)==oldOne and next(two.looks)==oldTwo,'MCM Apply touched native actors in its callback')
+    assert(next(one.looks)==oldOne and next(two.looks)==oldTwo,'the manager touched native actors in its callback')
     tick(1)
     local newOne,newTwo=next(one.looks),next(two.looks)
     assert(newOne~=oldOne and newTwo~=oldTwo)
@@ -503,7 +371,7 @@ test('a quiet invitation or dismissal (the development probes) posts no joined o
   `);
 });
 
-test('MCM waits for NPC attachment, reports late failures once and discards notices on save change', () => {
+test('Manager waits for NPC attachment, reports late failures once and discards notices on save change', () => {
   run(`${managerFixture}
     manager.configure(api, profiles)
     local queue = (function() ${queueSource} end)().new(api)
@@ -525,63 +393,9 @@ test('MCM waits for NPC attachment, reports late failures once and discards noti
   `);
 });
 
-const mcmFixture = `
-  ${managerFixture}
-  local originalDofile = dofile
-  dofile = function(path)
-    if path == 'voice-preview.lua' then return (function() ${voicePreviewSource} end)() end
-    if path == 'ui-fonts.lua' then return (function() ${fontsSource} end)() end
-    if path == 'mcm-fonts.lua' then return (function() ${mcmFontsSource} end)() end
-    return originalDofile(path)
-  end
-  manager.configure(api, profiles)
-  local handlers, registered, loaded, activeMod = {}, nil, nil, nil
-  local drafts, reloads = false, 0
-  local nativeApi = {apiVersion = 2, providers = {}}
-  nativeApi.providers.registerProvider = function(value) registered = value; return true end
-  nativeApi.providers.unregisterProvider = function(id) assert(id == registered.id); registered = nil; return true end
-  nativeApi.refreshProvider = function() return true end
-  nativeApi.getDiagnostics = function() return {activeModKey = activeMod} end
-  nativeApi.hasDrafts = function() return drafts end
-  nativeApi.reloadMod = function()
-    reloads = reloads + 1; loaded = registered.loadMod('manager'); return loaded
-  end
-  GetMod = function(name) assert(name == 'ModConfigurationMenuAPI'); return nativeApi end
-  Game = {GetPlayer = function() return player end}
-  Observe = function(class, method, callback) handlers[method] = callback end
-  ObserveAfter = Observe
-  Override = Observe
-  local entryFactory = {new = function()
-    return {install = function() end, update = function() end, selected = function() end,
-      state = function() return 'idle' end, reset = function() end, open = function() return true end}
-  end}
-  local mcm = (function() ${mcmSource} end)()
-  mcm.configure(manager, api, (function() ${queueSource} end)(), entryFactory)
-  mcm.install()
-  activeMod = 'cyberpunk-convai:manager'
-  loaded = registered.loadMod('manager')
-  local function row(id)
-    for _, category in ipairs(loaded.categories) do
-      for _, setting in ipairs(category.settings) do if setting.id == id then return setting end end
-    end
-  end
-  local bottomActions = {}
-  local controller = {nativeIdentity = 101,
-    McmUiEmitSearch = function(_, context, value) handlers.McmUiEmitSearch(nil, context, value) end,
-    McmUiGetLayoutMetric = function(_, metric) return ({[10] = 40, [11] = 400, [27] = 1000})[metric] or -1 end,
-    McmUiAddBottomActionAt = function(_, id, label, x, y, width, active)
-      bottomActions[#bottomActions + 1] = {id = id, label = label, x = x, y = y, width = width, active = active}
-    end}
-  CalcSeed = function(value) return value.nativeIdentity end
-  local function invoke(id)
-    local result = registered.invokeAction('manager', id, {interaction = {controller = controller}})
-    if result.ok and result.schemaChanged then loaded = registered.loadMod('manager') end
-    return result
-  end
-`;
 
 test('Current party has no drive initiation and defers active-trip stopping until gameplay resumes', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     api.spawn('johnny-silverhand');members[1].state='ready';members[1].entityID='42ULL'
     local trip={active=false,phase='idle'}
     local nativeCalls,paused=0,true
@@ -595,7 +409,7 @@ test('Current party has no drive initiation and defers active-trip stopping unti
     assert(invoke('tab:party').ok)
     local id='chauffeur:drive:live:'..members[1].serial
     assert(not row(id)and not row('chauffeur:stop')and not row('chauffeur-state'))
-    assert(mcm.party().drive==nil and mcm.party().cancelDrive==nil)
+    assert(managerUi.party().drive==nil and managerUi.party().cancelDrive==nil)
     local originalPlayer=Game.GetPlayer
     Game.GetPlayer=function()error('native player query from a removed drive action')end
     assert(not registered.invokeAction('manager',id,{}).ok and nativeCalls==0)
@@ -606,20 +420,23 @@ test('Current party has no drive initiation and defers active-trip stopping unti
     assert(not row(id))
     paused=true;Game.GetPlayer=function()error('native player query from a stop action callback')end
     assert(registered.invokeAction('manager','chauffeur:stop',{}).ok and nativeCalls==0)
-    Game.GetPlayer=originalPlayer;mcm.update(player,false);assert(nativeCalls==0)
-    paused=false;mcm.update(player,true);assert(nativeCalls==1 and trip.phase=='stopping')
+    Game.GetPlayer=originalPlayer;managerUi.update(player,false);assert(nativeCalls==0)
+    paused=false;managerUi.update(player,true);assert(nativeCalls==1 and trip.phase=='stopping')
     assert(invoke('party:back').ok and not row('chauffeur:stop'))
   `);
 });
 
-test('manager home owns the four destinations and every inner page has one parent Back action', () => {
-  run(`${mcmFixture}
+test('manager home owns the four destinations and every inner page has one parent Back action at the top', () => {
+  run(`${nsuiFixture}
     local function category(id)
       for _, item in ipairs(loaded.categories) do if item.id == id then return item end end
     end
+    -- Every page starts with the navigation section: on an inner page it is the way back and nothing else (no destinations).
     local function inner(expected, back)
-      assert(mcm.inspect().view == expected)
-      assert(not category('navigation'), 'home navigation leaked onto an inner page')
+      assert(managerUi.inspect().view == expected)
+      assert(loaded.categories[1].id == 'navigation', 'the way back is not the first section')
+      local first = loaded.categories[1].settings
+      assert(#first == 1 and first[1].id == back and first[1].value == 'Back', 'the first row of ' .. expected .. ' is not its Back')
       for _, name in ipairs({'characters', 'party', 'models', 'settings'}) do
         assert(not row('tab:' .. name), 'a root destination leaked onto an inner page')
       end
@@ -627,18 +444,16 @@ test('manager home owns the four destinations and every inner page has one paren
       for _, section in ipairs(loaded.categories) do
         assert(#section.settings > 0, 'an empty section is left on the page')
         for _, item in ipairs(section.settings) do
-          if item.value == 'Back' then count = count + 1; assert(item.id == back) end
+          if item.value == 'Back' then count = count + 1 end
           assert(item.label:sub(1, 1) ~= ' ' and item.indent == nil, 'label has artificial indentation')
         end
       end
-      -- Back is the bottom-bar button, not a row; its callback belongs to this page.
-      assert(count == 0, 'Back is still a row of the list')
-      assert(mcm.inspect().back.id == back and mcm.inspect().backMode == 'bottom')
+      assert(count == 1, 'a page has exactly one Back')
       assert(not row('apply-hint'), 'a status row is on the page')
       assert(not category('party-status') and not row('party-count') and not row('feedback'),
         'party status, the limit or the last action leaked onto the page')
     end
-    assert(mcm.inspect().view == 'home' and #loaded.categories == 1)
+    assert(managerUi.inspect().view == 'home' and #loaded.categories == 1)
     assert(#category('navigation').settings == 4 and not row('party-count'))
     for _, name in ipairs({'characters', 'party', 'models', 'settings'}) do
       local destination = row('tab:' .. name)
@@ -646,20 +461,23 @@ test('manager home owns the four destinations and every inner page has one paren
       assert(invoke(destination.id).ok)
       inner(name, name .. ':back')
       assert(not invoke(destination.id).ok, 'stale destination actions remained callable')
-      assert(invoke(name .. ':back').ok and mcm.inspect().view == 'home')
+      assert(invoke(name .. ':back').ok and managerUi.inspect().view == 'home')
     end
     assert(invoke('tab:settings').ok)
     assert(not row('permissions'), 'Who can talk is gone from the Settings page')
-    assert(not invoke('permissions').ok and mcm.inspect().view == 'settings', 'the removed permissions page stayed callable')
-    for _, page in ipairs({'relationships', 'memory'}) do
-      assert(invoke(page).ok)
-      local back = page == 'memory' and 'memory:settings' or page .. ':back'
-      inner(page, back)
-      assert(invoke(back).ok and mcm.inspect().view == 'settings')
-    end
-    assert(invoke('memory').ok and invoke('memory:choose').ok)
-    inner('memory-characters', 'memory:back')
-    assert(invoke('memory:back').ok and invoke('memory:settings').ok and invoke('settings:back').ok)
+    assert(not invoke('permissions').ok and managerUi.inspect().view == 'settings', 'the removed permissions page stayed callable')
+    -- Relationships is a page that opens from Conversations (a button beside Memory), with one Back to Settings.
+    local open = row('relationships')
+    assert(open and open.type == 'action' and open.value == 'Open' and not open.disabled and not row('relationship:judy-alvarez'))
+    assert(invoke('relationships').ok)
+    inner('relationships', 'relationships:back')
+    assert(row('relationship:judy-alvarez') and not row('relationships') and not row('archetypeConversations'))
+    assert(invoke('relationships:back').ok and managerUi.inspect().view == 'settings' and not row('relationship:judy-alvarez'))
+    assert(invoke('memory').ok)
+    inner('memory', 'memory:settings')
+    assert(not row('memory:choose') and row('memory-selected'), 'the memory picker is part of the Memory page')
+    assert(invoke('memory:settings').ok and managerUi.inspect().view == 'settings')
+    assert(invoke('settings:back').ok)
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
     inner('characters', 'characters:back')
     assert(invoke('characters:back').ok and invoke('tab:party').ok)
@@ -671,559 +489,8 @@ test('manager home owns the four destinations and every inner page has one paren
   `);
 });
 
-test('voice selector arrows stay within their displayed direction and use effective drafts', () => {
-  run(`${mcmFixture}
-    assert(invoke('tab:settings').ok)
-    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
-    local selector = {nativeIdentity = 202}
-    local key = 'cyberpunk-convai:manager:voiceProvider'
-    local effective, forwarded = 1, 0
-    nativeApi.getValue = function(id) assert(id == key); return effective end
-    if handlers.McmUiConfigureBase then handlers.McmUiConfigureBase(selector, controller, key) end
-    local wrapped = function(forward)
-      forwarded = forwarded + 1
-      effective = effective + (forward and 1 or -1)
-      if effective > 7 then effective = 1 elseif effective < 1 then effective = 7 end
-    end
-    local emit = function(forward)
-      if handlers.McmUiEmitStep then return handlers.McmUiEmitStep(selector, forward, wrapped) end
-      return wrapped(forward)
-    end
-    emit(false)
-    assert(effective == 1 and forwarded == 0, 'left at Pocket TTS must not wrap right')
-    -- Without developer mode the list is seven entries long (the Inworld voice is a developer-mode voice, listed last).
-    for _, expected in ipairs({2, 3, 4, 5, 6, 7}) do emit(true); assert(effective == expected and forwarded == expected - 1) end
-    emit(true)
-    assert(effective == 7 and forwarded == 6, 'right at Convai must not wrap left')
-    for _, expected in ipairs({6, 5, 4, 3, 2, 1}) do emit(false); assert(effective == expected and forwarded == 13 - expected) end
-    emit(false); assert(effective == 1 and forwarded == 12, 'left at Pocket TTS must not wrap right')
-    assert(row('voiceProvider').defaultValue == 1)
-    local elements = row('voiceProvider').elements
-    assert(#elements == 7 and elements[1] == 'Pocket · Performance')
-    assert(elements[2] == 'OmniVoice · Balanced' and elements[3] == 'OmniVoice · Quality')
-    assert(elements[4] == 'OmniVoice · High Quality' and elements[5] == 'OmniVoice · Ultra Quality')
-    assert(elements[6] == 'Voxtral · needs Mistral key' and elements[7] == 'Convai · Cloud voice')
-    assert(row('omniSteps') == nil and row('omniReference') == nil, 'retired quality steps remain in the active menu')
-    assert(row('keepPreparedVoices') == nil and row('prepared-voices') == nil and row('prepared-voices:open') == nil, 'prepared voices have no row: they are always kept')
-    assert(manager.snapshot(player).settings.keepPreparedVoices == true)
-    handlers.McmUiConfigureBase(selector, controller, 'another-mod:settings:voiceProvider')
-    emit(false)
-    assert(effective == 7 and forwarded == 13, 'foreign selector behavior must pass through')
-  `);
-});
-
-test('local voice previews carry the effective seven-choice draft and cancel on Revert, Apply or leaving the page', () => {
-  run(`${managerFixture}
-    manager.configure(api, profiles); manager.prepare(player)
-    assert(manager.applySettings(player, {voiceProvider = 'convai', expressiveEmotions = false}))
-    local committed = saved
-    local preview = (function() ${voicePreviewSource} end)().new({now = function() return 1000 end})
-    -- Select order: 1 Pocket Performance, 2 Omni Balanced (16 short), 3 Omni Quality (16 long), 4 Omni High Quality (32 short), 5 Omni Ultra Quality (32 long), 6 Mistral cloud voice (Voxtral), 7 Convai Cloud voice.
-    local effective, pending, callback, inCallback, reads = 3, true, nil, false, 0
-    local bus = {
-      subscribe = function(topic, listener) assert(topic == 'drafts.changed'); callback = listener; return 'preview-token' end,
-      unsubscribe = function(token) assert(token == 'preview-token'); callback = nil end,
-      hasDrafts = function(key) assert(not inCallback and key == 'cyberpunk-convai:manager'); return pending end,
-      getValue = function(key)
-        assert(not inCallback and key == 'cyberpunk-convai:manager:voiceProvider', 'preview queried a retired quality selector')
-        reads = reads + 1; return effective
-      end,
-    }
-    preview.bind(bus)
-    local function changed()
-      local writes = #fileWrites
-      inCallback = true; callback({modKey = 'cyberpunk-convai:manager'}); inCallback = false
-      assert(#fileWrites == writes, 'native draft callback performed filesystem IO')
-    end
-    local function update(visible)
-      preview.update(visible ~= false, 'settings-controller', function() return manager.snapshot(player).settings end)
-      return files['runtime/voice-preview.json'] and json.decode(files['runtime/voice-preview.json'])
-    end
-    changed()
-    local lease = update()
-    assert(lease.active and lease.provider == 'omni' and lease.omniSteps == 16 and lease.omniReference == 'long'
-      and lease.steps == nil and reads == 1)
-    assert(saved == committed and manager.snapshot(player).settings.voiceProvider == 'convai')
-    update(); assert(reads == 1, 'unchanged draft was queried again in the same poll interval')
-    effective, pending = 6, false; changed()
-    local cancelled = update()
-    assert(not cancelled.active and cancelled.owner == lease.owner and cancelled.sequence > lease.sequence)
-    assert(saved == committed and manager.snapshot(player).settings.voiceProvider == 'convai')
-    effective, pending = 3, true; changed(); lease = update()
-    assert(lease.active and lease.provider == 'omni' and lease.omniSteps == 16 and lease.steps == nil)
-    effective = 5; changed(); local qualityPreview = update()
-    assert(qualityPreview.active and qualityPreview.provider == 'omni' and qualityPreview.omniSteps == 32
-      and qualityPreview.omniReference == 'long')
-    assert(qualityPreview.sequence > lease.sequence, 'same-second quality change did not reach the backend')
-    effective = 4; changed(); local referencePreview = update()
-    assert(referencePreview.active and referencePreview.omniSteps == 32 and referencePreview.omniReference == 'short')
-    assert(referencePreview.sequence > qualityPreview.sequence, 'same-second reference change did not reach the backend')
-    assert(saved == committed and manager.snapshot(player).settings.voiceProvider == 'convai')
-    effective = 3; changed(); lease = update()
-    assert(lease.active and lease.omniSteps == 16 and lease.omniReference == 'long')
-    assert(manager.applySettings(player, {voiceProvider = 'omni', omniSteps = 16, omniReference = 'long'})); pending = false; changed()
-    assert(not update().active and manager.snapshot(player).settings.voiceProvider == 'omni')
-    pending = true; changed(); assert(not update().active, 'an unrelated draft re-warmed the saved choice')
-    effective = 2; changed(); lease = update()
-    assert(lease.active and lease.omniReference == 'short' and preview.inspect().omniSteps == 16
-      and preview.inspect().omniReference == 'short', 'a reference-only change was not previewed')
-    effective = 5; changed(); assert(update().active and preview.inspect().omniSteps == 32)
-    effective = 1; changed(); lease = update()
-    assert(lease.active and lease.provider == 'pocket' and lease.omniSteps == nil and lease.omniReference == nil,
-      'Pocket preview retained stale Omni quality')
-    effective, pending = 3, false; changed(); assert(not update().active)
-    assert(manager.snapshot(player).settings.voiceProvider == 'omni' and manager.snapshot(player).settings.omniSteps == 16)
-    assert(manager.applySettings(player, {voiceProvider = 'convai', expressiveEmotions = false})); pending = true; changed()
-    effective = 1
-    lease = update(); assert(lease.active and lease.provider == 'pocket')
-    assert(not update(false).active and manager.snapshot(player).settings.voiceProvider == 'convai')
-    changed(); assert(update().active)
-    preview.shutdown()
-    assert(not json.decode(files['runtime/voice-preview.json']).active and callback == nil)
-    assert(manager.snapshot(player).settings.voiceProvider == 'convai')
-  `);
-});
-
-test('Back joins the bottom button row, the status line moves to the top left, and rows return if the bar rejects Back', () => {
-  run(`${mcmFixture}
-    CName = {new = function(value) return value end}
-    NameToString = function(value) return value end
-    IsDefined = function(value) return value ~= nil end
-    local function widget(name, left, top, width, height, children)
-      local w = {name = name, margin = {left = left, top = top, right = 0, bottom = 0}, width = width, height = height,
-        children = children or {}}
-      function w:GetName() return self.name end
-      function w:GetMargin() return {left = self.margin.left, top = self.margin.top, right = 0, bottom = 0} end
-      function w:SetMargin(value) self.margin = {left = value.left, top = value.top, right = 0, bottom = 0} end
-      function w:GetWidth() return self.width end
-      function w:GetHeight() return self.height end
-      function w:GetNumChildren() return #self.children end
-      function w:GetWidgetByIndex(index) return self.children[index + 1] end
-      function w:SetText(value) self.text = value end
-      function w:SetHeight(v) self.height = v end
-      function w:SetVerticalAlignment(v) self.valign = v end
-      function w:GetFontSize() return self.fontSize or 23 end
-      function w:SetWidth(v) self.width = v end
-      function w:SetWrapping(on, at) self.wrap = {on, at} end
-      function w:GetParentWidget() return self.parent end
-      function w:Reparent(parent)
-        local old = self.parent
-        if old then for i, c in ipairs(old.children) do if c == self then table.remove(old.children, i) break end end end
-        self.parent = parent; parent.children[#parent.children + 1] = self
-      end
-      return w
-    end
-    local entries = {widget('mcm_action_a', 20, 0, 300, 42), widget('mcm_action_b', 20, 42, 300, 42), widget('mcm_action_c', 20, 84, 300, 42)}
-    local list = widget('mcm_sidebar_scroll_content', 0, 0, 340, 126, entries)
-    local scroller = widget('sidebar_scroll', 40, 200, 340, 700, {list})
-    list.parent = scroller
-    textWrappingPolicy = {Default = 0}
-    textVerticalAlignment = {Top = 'top'}
-    local subtitle = widget('content_title', 393, 140, 600, 40)
-    local status = widget('status', 60, 1040, 900, 30)
-    local revert, apply = widget('mcm_action_revert', 300, 1000, 140, 46), widget('mcm_action_apply', 460, 1000, 140, 46)
-    local render = widget('MCMRenderRoot', 0, 0, 1920, 1080, {subtitle, status, scroller,
-      widget('mcm_content_scroll_content', 100, 200, 800, 700), revert, apply})
-    scroller.parent = render
-    status.parent = render
-    local root = widget('root', 0, 0, 1920, 1080, {render})
-    function controller:GetRootWidget() return root end
-    controller.McmUiGetLayoutMetric = function(_, metric) return ({[13] = 320, [20] = 100, [23] = 800, [27] = 1000, [28] = 900})[metric] or -1 end
-    controller.McmUiAddBottomActionAt = function(_, id, label, x, y, width, active)
-      bottomActions[#bottomActions + 1] = {id = id, label = label, x = x, y = y, width = width, active = active}
-      render.children[#render.children + 1] = widget('mcm_action_' .. id, x, y, width, 46)
-    end
-    assert(invoke('tab:settings').ok)
-    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
-    mcm.update(player, false)
-    -- Back takes the rightmost place; Revert and Apply flow to its left.
-    assert(#bottomActions == 1, 'Back was not added to the bottom row')
-    local back = bottomActions[1]
-    assert(back.id == 'convai-bottom-back' and back.label == 'Back' and back.y == 1000 and back.width == 140 and back.x == 760 and not back.active)
-    assert(revert.margin.left == 300 - 160 and apply.margin.left == 460 - 160 and apply.margin.top == 1000,
-      'the other buttons were not made room for')
-    -- The status line sits in the sidebar, below the last mod entry, wrapped to the list width.
-    assert(status.parent == list and status.margin.left == 20 and status.margin.top == 126 + 14,
-      'status line not placed just below the last entry: ' .. status.margin.left .. ',' .. status.margin.top)
-    assert(status.valign == 'top' and status.height < 120, 'the status text is not anchored to the top of a small box: ' .. tostring(status.height))
-    assert(status.width == 320 and status.wrap and status.wrap[1] == true and status.wrap[2] == 320, 'status line not wrapped to the column')
-    mcm.update(player, false); mcm.update(player, false)
-    assert(#bottomActions == 1, 'Back was added again within one render')
-    -- With no other buttons, Back takes the place where the last button would be.
-    revert.margin.top, apply.margin.top = 0, 0
-    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
-    mcm.update(player, false)
-    assert(#bottomActions == 2 and bottomActions[2].x == 760)
-    -- The click returns to the parent page. With pending changes it does what Esc does: MCM's own "Unsaved changes" dialog is
-    -- asked for (McmUiEmitClosing, the call Esc ends in), the page stays, and a click while that dialog is open or within 2 s asks nothing more.
-    local clock, asked = 700, 0
-    os.clock = function() return clock end
-    controller.McmUiEmitClosing = function() asked = asked + 1 end
-    drafts = true; handlers.McmUiEmitAction(controller, 'convai-bottom-back')
-    assert(mcm.inspect().view == 'settings' and asked == 1, 'Back with pending changes did not open the confirmation')
-    clock = clock + 0.5; handlers.McmUiEmitAction(controller, 'convai-bottom-back')
-    assert(mcm.inspect().view == 'settings' and asked == 1, 'a second click asked again within the window')
-    clock = clock + 5; handlers.McmUiEmitAction(controller, 'convai-bottom-back')
-    assert(mcm.inspect().view == 'settings' and asked == 2, 'Cancel then Back did not ask again')
-    -- Apply or Discard clears the changes: Back goes back as usual.
-    drafts = false; handlers.McmUiEmitAction(controller, 'convai-bottom-back')
-    assert(mcm.inspect().view == 'home' and asked == 2, 'Back with nothing pending did not go back')
-    loaded = registered.loadMod('manager')
-    handlers.McmUiEmitAction(controller, 'something-else'); assert(mcm.inspect().view == 'home')
-    -- Leaving our page restores a status widget that survives.
-    status.margin.left, status.margin.top = 60, 68
-    handlers.McmUiSetContentTitle(controller, 'Other Mod'); mcm.update(player, false)
-    assert(status.parent == render and status.margin.top == 1040 and status.height == 30 and status.width == 900,
-      'the status line was left in the sidebar')
-    -- If the row cannot take the button, Back is the last row of the page instead.
-    assert(invoke('tab:party').ok)
-    controller.McmUiAddBottomActionAt = function() error('no bottom row') end
-    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
-    mcm.update(player, false)
-    assert(mcm.inspect().backMode == 'list')
-    loaded = registered.loadMod('manager')
-    local last = loaded.categories[#loaded.categories].settings
-    assert(last[#last].id == 'party:back' and last[#last].value == 'Back', 'no Back row at the end of the page')
-  `);
-});
-
-test('Esc on a sub-page goes back to its parent, Esc on Home closes, and Home has no duplicate section header', () => {
-  run(`${mcmFixture}
-    CName = {new = function(value) return value end}
-    IsDefined = function(value) return value ~= nil end
-    local clock, closed = 900, 0
-    os.clock = function() return clock end
-    controller.McmUiEmitClosing = function() end
-    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
-    local function esc() return handlers.OnBack(controller, function() closed = closed + 1; return false end) end
-    -- Home: the section header is blank, the page title already names the manager.
-    loaded = registered.loadMod('manager')
-    assert(loaded.categories[1].name == ' ' and #loaded.categories == 1, 'Home still repeats the manager name')
-    assert(esc() == false and closed == 1, 'Esc on Home must close Settings')
-    for _, name in ipairs({'characters', 'party', 'models', 'settings'}) do
-      assert(invoke('tab:' .. name).ok)
-      clock = clock + 1
-      assert(esc() == true and closed == 1, name .. ': Esc closed Settings instead of going back')
-      assert(mcm.inspect().view == 'home', name .. ': Esc did not return to Home')
-      loaded = registered.loadMod('manager')
-    end
-    -- A second page level: Esc returns to the parent, not to Home.
-    assert(invoke('tab:settings').ok and invoke('memory').ok)
-    clock = clock + 1; assert(esc() == true and mcm.inspect().view == 'settings')
-    loaded = registered.loadMod('manager')
-    clock = clock + 1; assert(esc() == true and mcm.inspect().view == 'home')
-    loaded = registered.loadMod('manager')
-    -- A repeated event for the same key does not go back twice, nor close from Home.
-    assert(invoke('tab:party').ok); clock = clock + 1
-    assert(esc() == true and mcm.inspect().view == 'home')
-    loaded = registered.loadMod('manager')
-    assert(esc() == true and closed == 1, 'a repeated event closed Settings')
-    clock = clock + 1
-    assert(esc() == false and closed == 2, 'Esc on Home no longer closes')
-    -- Unapplied changes keep the dialog instead of going back.
-    clock = clock + 5; loaded = registered.loadMod('manager')
-    assert(invoke('tab:settings').ok); drafts = true; clock = clock + 5
-    local before = closed
-    assert(esc() == true and mcm.inspect().view == 'settings' and closed == before, 'pending changes were ignored')
-  `);
-});
-
-test('placement is computed from the live layout, so it holds at every resolution and aspect ratio', () => {
-  run(`${mcmFixture}
-    CName = {new = function(value) return value end}
-    NameToString = function(value) return value end
-    IsDefined = function(value) return value ~= nil end
-    textWrappingPolicy = {Default = 0}; textVerticalAlignment = {Top = 'top'}
-    local function widget(name, left, top, width, height, children)
-      local w = {name = name, margin = {left = left, top = top, right = 0, bottom = 0}, width = width, height = height, children = children or {}, fontSize = 22}
-      function w:GetName() return self.name end
-      function w:GetMargin() return {left = self.margin.left, top = self.margin.top, right = 0, bottom = 0} end
-      function w:SetMargin(v) self.margin = {left = v.left, top = v.top, right = 0, bottom = 0} end
-      function w:GetWidth() return self.width end
-      function w:GetHeight() return self.height end
-      function w:SetWidth(v) self.width = v end
-      function w:SetHeight(v) self.height = v end
-      function w:GetNumChildren() return #self.children end
-      function w:GetWidgetByIndex(i) return self.children[i + 1] end
-      function w:SetText() end
-      function w:SetWrapping() end
-      function w:SetVerticalAlignment(v) self.valign = v end
-      function w:GetFontSize() return self.fontSize end
-      function w:SetFontSize(v) self.fontSize = v end
-      function w:BindProperty() end
-      function w:GetController() return nil end
-      function w:GetParentWidget() return self.parent end
-      function w:Reparent(parent) self.parent = parent; parent.children[#parent.children + 1] = self end
-      return w
-    end
-    assert(invoke('tab:settings').ok)
-    -- 1080p 16:9, 1440p 16:9, 4K 16:9 and 21:9 ultrawide: the canvas scale and sizes differ.
-    for _, layout in ipairs({{1920, 1080, 1.0}, {2560, 1440, 1.333}, {3840, 2160, 2.0}, {3440, 1440, 1.333}}) do
-      local scale = layout[3]
-      local entry = widget('mcm_action_a', 20 * scale, 0, 340 * scale, 42 * scale)
-      local list = widget('mcm_sidebar_scroll_content', 0, 0, 360 * scale, 42 * scale, {entry})
-      local status = widget('status', 60 * scale, 1000 * scale, 900 * scale, 30 * scale)
-      local readonlyLabel = widget('label', 30, 0, 300, 42); readonlyLabel.fontSize = 26
-      local surface = widget('mcm_action_cyberpunk-convai:manager:voice-pack', 20, 0, 300, 42, {readonlyLabel})
-      local revert = widget('mcm_action_revert', 700 * scale, 960 * scale, 160 * scale, 46)
-      local render = widget('MCMRenderRoot', 0, 0, layout[1], layout[2], {status, list, widget('mcm_content_scroll_content', 0, 0, 800, 600, {surface}), revert})
-      list.parent, status.parent, revert.parent = render, render, render
-      local added
-      function controller:GetRootWidget() return widget('root', 0, 0, layout[1], layout[2], {render}) end
-      controller.McmUiGetLayoutMetric = function(_, metric)
-        return ({[13] = 340 * scale, [20] = 100 * scale, [23] = 800 * scale, [27] = 960 * scale, [28] = 1700 * scale})[metric] or -1
-      end
-      controller.McmUiAddBottomActionAt = function(_, id, label, x, y, width) added = {x = x, y = y, width = width} ; render.children[#render.children + 1] = widget('mcm_action_' .. id, x, y, width, 46) end
-      handlers.McmUiSetContentTitle(controller, 'Companion Manager')
-      mcm.update(player, false)
-      -- Status: in the list column, 14 below the entry, wrapped to the live column width, never a fixed pixel.
-      assert(status.parent == list and status.margin.left == 20 * scale and status.margin.top == 42 * scale + 14,
-        layout[1] .. ': status misplaced ' .. status.margin.left .. ',' .. status.margin.top)
-      assert(status.width <= 340 * scale and status.valign == 'top', layout[1] .. ': status width or alignment')
-      -- Back: at the live bar line and right edge, with the existing button moved left by its own width.
-      assert(added and added.y == 960 * scale and added.x + added.width == 1700 * scale, layout[1] .. ': Back not on the live bar')
-      assert(revert.margin.left == 700 * scale - (160 * scale + 20), layout[1] .. ': buttons not shifted by the live width')
-      -- Fonts: read-only labels take the setting size whatever the layout scale.
-      assert(readonlyLabel.fontSize == 22, layout[1] .. ': read-only label font')
-    end
-  `);
-});
-
-test('the game OnBack is held while changes are pending, so the dialog is not closed with the page', () => {
-  run(`${mcmFixture}
-    CName = {new = function(value) return value end}
-    IsDefined = function(value) return value ~= nil end
-    local clock, asked, original = 800, 0, 0
-    os.clock = function() return clock end
-    controller.McmUiEmitClosing = function() asked = asked + 1 end
-    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
-    local function onBack() return handlers.OnBack(controller, function() original = original + 1; return false end) end
-    drafts = false
-    assert(onBack() == false and original == 1 and asked == 0, 'a clean page was held')
-    drafts = true
-    assert(onBack() == true and original == 1 and asked == 1, 'OnBack closed the page with pending changes')
-    -- While the question is in flight it is held without asking again.
-    clock = clock + 0.5
-    assert(onBack() == true and original == 1 and asked == 1)
-    -- Cancel keeps the changes: still held, and asked again after the window.
-    clock = clock + 5
-    assert(onBack() == true and original == 1 and asked == 2)
-    -- Apply or Discard clears the changes: the close goes ahead.
-    drafts = false
-    assert(onBack() == false and original == 2)
-    -- Never trapped: repeated holds let the close through.
-    drafts = true
-    for _ = 1, 8 do clock = clock + 5; onBack() end
-    assert(original >= 3, 'repeated OnBack calls trapped the player')
-    -- Another mod page is never held.
-    handlers.McmUiSetContentTitle(controller, 'Other Mod'); drafts = true; clock = clock + 60
-    local before = original; onBack(); assert(original == before + 1)
-  `);
-});
-
-test('read-only rows use the setting row font size, and routine opened or completed messages are dropped', () => {
-  run(`${mcmFixture}
-    CName = {new = function(value) return value end}
-    NameToString = function(value) return value end
-    assert(invoke('tab:settings').ok)
-    loaded = registered.loadMod('manager')
-    assert(not row('apply-hint'), 'a status row is on the Settings page')
-    local function widget(name, left, children)
-      local w = {name = name, left = left, children = children or {}, size = 26}
-      function w:GetName() return self.name end
-      function w:GetMargin() return {left = self.left, top = 0, right = 0, bottom = 0} end
-      function w:SetMargin(m) self.left = m.left end
-      function w:GetWidth() return 300 end
-      function w:SetWidth() end
-      function w:GetNumChildren() return #self.children end
-      function w:GetWidgetByIndex(i) return self.children[i + 1] end
-      function w:SetFontSize(v) self.size = v end
-      function w:BindProperty() end
-      function w:GetController() return nil end
-      return w
-    end
-    local label = widget('label', 30)
-    local surface = widget('mcm_action_cyberpunk-convai:manager:voice-status', 20, {label})
-    local content = widget('mcm_content_scroll_content', 0, {surface})
-    local render = widget('MCMRenderRoot', 0, {content})
-    function controller:GetRootWidget() return widget('root', 0, {render}) end
-    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
-    mcm.update(player, false)
-    assert(label.size == 22, 'a read-only label kept the larger size: ' .. label.size)
-    -- "Opened Companion Manager." and "Completed: <page>" never reach the status line.
-    local shown
-    local function begin(status)
-      handlers.McmUiBegin({}, 'MCM', '', 'Mods', 'Companion Manager', status, 0, '', true, true, 0,
-        function(_, _, _, _, text) shown = text end)
-    end
-    begin('Opened Companion Manager.'); assert(shown == '', shown)
-    begin('Completed: Characters'); assert(shown == '', shown)
-    begin('Failed to apply settings for Companion Manager: Change pending. Choose Apply to use it, or Revert to discard it.')
-    assert(shown:find('Change pending', 1, true), 'a pending message was dropped')
-  `);
-});
-
-test('the Esc and back keys ask first when changes are pending, before MCM closes the mod and discards them', () => {
-  run(`${mcmFixture}
-    CName = {new = function(value) return value end}
-    IsDefined = function(value) return value ~= nil end
-    local clock, emitted, wrapped = 500, 0, 0
-    os.clock = function() return clock end
-    controller.McmUiEmitClosing = function() emitted = emitted + 1 end
-    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
-    local function key(method, action)
-      local event = {IsAction = function(_, name) return name == action end}
-      local consumed = handlers[method](controller, event, function() wrapped = wrapped + 1; return false end)
-      return consumed == true
-    end
-    drafts = false
-    assert(not key('OnButtonRelease', 'back') and wrapped == 1 and emitted == 0, 'a clean page was held')
-    drafts = true
-    assert(not key('OnButtonRelease', 'accept') and wrapped == 2 and emitted == 0, 'an ordinary key was held')
-    -- A close key with pending changes is consumed, and MCM's own dialog is asked for.
-    assert(key('OnButtonPress', 'back') and emitted == 1 and wrapped == 2)
-    -- The release of that same key must not reach MCM, whose handler would cancel its new dialog.
-    assert(key('OnButtonRelease', 'back') and emitted == 1 and wrapped == 2)
-    -- With the dialog open, a later close key goes to MCM (it cancels the dialog).
-    clock = clock + 5; controller.m_mcmUiModal = {}
-    assert(not key('OnButtonRelease', 'cancel') and wrapped == 3 and emitted == 1)
-    controller.m_mcmUiModal = nil
-    -- The release alone (no press seen) also asks, for either action name.
-    clock = clock + 5
-    assert(key('OnButtonRelease', 'cancel') and emitted == 2)
-    -- After Apply or Discard nothing is pending and the key passes.
-    drafts = false; clock = clock + 5
-    assert(not key('OnButtonRelease', 'back') and wrapped == 4)
-    -- Another page of MCM, with the same controller, is never held.
-    drafts = true; activeMod = 'other:mod'; handlers.McmUiSetContentTitle(controller, 'Other Mod'); clock = clock + 5
-    assert(not key('OnButtonRelease', 'back') and emitted == 2, 'another mod page was held')
-  `);
-});
-
-test('leaving Settings through RequestClose with unapplied changes asks via MCM first, and only then', () => {
-  run(`${mcmFixture}
-    local emitted, wrappedCalls, clock = 0, 0, 100
-    os.clock = function() return clock end
-    controller.McmUiEmitClosing = function() emitted = emitted + 1 end
-    local function wrapped() wrappedCalls = wrappedCalls + 1 end
-    local function requestClose() return handlers.RequestClose(controller, wrapped) end
-    -- Nothing pending: the close goes straight through and no question is asked.
-    drafts = false
-    requestClose(); assert(wrappedCalls == 1 and emitted == 0, 'a clean page asked or blocked')
-    -- Unapplied changes: the close is held and MCM's own closing handler (its dialog) runs.
-    drafts = true
-    requestClose(); assert(wrappedCalls == 1 and emitted == 1, 'a pending change was lost without asking')
-    -- MCM resumes the close after Apply or Discard; the drafts are gone, so it passes.
-    drafts = false; requestClose(); assert(wrappedCalls == 2 and emitted == 1)
-    -- Another mod's page is never held.
-    drafts = true; activeMod = 'other:mod'
-    requestClose(); assert(wrappedCalls == 3 and emitted == 1, 'another mod page was blocked')
-    activeMod = 'cyberpunk-convai:manager'
-    -- Never trapped: repeated requests, or a dialog that cannot be shown, let the close through.
-    for _ = 1, 5 do clock = clock + 1; requestClose() end
-    assert(wrappedCalls >= 4, 'repeated requests trapped the player')
-    clock = clock + 60; controller.McmUiEmitClosing = function() error('no dialog') end
-    local before = wrappedCalls
-    requestClose(); assert(wrappedCalls == before + 1, 'a dialog that could not open trapped the player')
-  `);
-});
-
-test('with Auto Apply every setting waits for an explicit Apply: the automatic apply is refused, nothing is saved or sent, and a later Apply commits', () => {
-  run(`${mcmFixture}
-    assert(invoke('tab:settings').ok)
-    local clock = 5000
-    os.clock = function() return clock end
-    -- A fake MCM: a draft change emits 'drafts.changed' and Auto Apply applies in the same instant.
-    local listeners = {}
-    nativeApi.subscribe = function(name, callback) listeners[#listeners + 1] = callback; return #listeners end
-    nativeApi.unsubscribe = function() return true end
-    mcm.shutdown(); mcm.install()
-    local function setDraft(id, value, count)
-      for _, callback in ipairs(listeners) do callback({modKey = 'cyberpunk-convai:manager', count = count or 1}) end
-      return {id = id, value = value}
-    end
-    local function autoApply(...)
-      local changes = {}
-      for _, change in ipairs({...}) do changes[#changes + 1] = setDraft(change[1], change[2]) end
-      return registered.applyBatch('manager', changes)
-    end
-    local function snapshotOf()
-      local s = manager.snapshot(player).settings
-      return table.concat({tostring(s.voiceProvider), tostring(s.omniSteps), tostring(s.omniReference),
-        tostring(s.keepPreparedVoices), tostring(s.voice), tostring(s.subtitles),
-        tostring(s.subtitleStyle), tostring(s.battleReactions), tostring(s.lootReactions), tostring(s.bodyGestures),
-        tostring(s.developerMode), tostring(s.eyeContactHeight), tostring(s.headFollowStrength), tostring(s.uiLanguage),
-        tostring(s.relationshipModes['judy-alvarez']), tostring(s.conversationProvider), tostring(s.useOwnConvaiKey),
-        tostring(s.autoConnectNearby)}, '|')
-    end
-    local before, writes = snapshotOf(), #fileWrites
-    -- One setting of every kind: bool, select, voice, gaze, language, relationship, conversation.
-    for _, change in ipairs({{'voiceProvider', 3}, {'voiceProvider', 2}, {'voiceProvider', 7}, {'voice', false}, {'subtitles', false},
-        {'subtitleStyle', 2}, {'battleReactions', false}, {'lootReactions', false}, {'bodyGestures', true},
-        {'developerMode', true}, {'eyeContactHeight', 5}, {'headFollowStrength', 4}, {'uiLanguage', 2},
-        {'relationship:judy-alvarez', 2}, {'conversationProvider', 2}, {'autoConnectNearby', true}}) do
-      local result = autoApply(change)
-      assert(result.ok == false and result.error:find('Change pending', 1, true), change[1] .. ' was applied automatically')
-      assert(snapshotOf() == before, change[1] .. ' reached the settings')
-      assert(#fileWrites == writes, change[1] .. ' wrote a file')
-      assert(files['runtime/voice-preview.json'] == nil, change[1] .. ' offered a worker preview')
-      clock = clock + 0.001
-    end
-    mcm.update(player, false); mcm.update(player, true)
-    assert(snapshotOf() == before and #fileWrites == writes and files['runtime/voice-preview.json'] == nil)
-    -- The person presses Apply later: all of it commits at once.
-    clock = clock + 2
-    local applied = registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}, {id = 'expressiveEmotions', value = false}, {id = 'subtitles', value = false},
-      {id = 'developerMode', value = true}, {id = 'eyeContactHeight', value = 5}, {id = 'conversationProvider', value = 2}})
-    assert(applied.ok and applied.atomic)
-    local after = manager.snapshot(player).settings
-    assert(after.voiceProvider == 'convai' and not after.subtitles and after.developerMode)
-    assert(after.conversationProvider == 'convai' and after.useOwnConvaiKey == true, 'the Convai API key entry sets both stored settings')
-    assert(#fileWrites > writes)
-    -- The refusal window is short: a later change followed at once by apply is refused again.
-    local second = autoApply({'voice', false})
-    assert(second.ok == false)
-    clock = clock + 2
-    assert(registered.applyBatch('manager', {{id = 'voice', value = false}}).ok and not manager.snapshot(player).settings.voice)
-  `);
-});
-
-test('the voice status names a pending voice in a short line and nothing prepares a model before Apply', () => {
-  run(`${mcmFixture}
-    assert(invoke('tab:settings').ok)
-    local pending = 7
-    nativeApi.getValue = function(key) assert(key == 'cyberpunk-convai:manager:voiceProvider'); return pending end
-    nativeApi.hasDrafts = function() return false end
-    CName = {new = function(value) return value end}
-    NameToString = function(value) return value end
-    local text
-    local value = {GetName = function() return 'cyberpunk-convai:manager:voice-status_value' end,
-      GetController = function() return nil end, SetText = function(_, next) text = next end}
-    local content = {GetName = function() return 'mcm_content_scroll_content' end,
-      GetNumChildren = function() return 1 end, GetWidgetByIndex = function() return value end}
-    function controller:GetRootWidget() return content end
-    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
-    mcm.update(player, false)
-    assert(text == 'Pending: Convai · Cloud voice', text)
-    assert(utf8.len(text) < 30, 'the pending line must stay short')
-    pending = 3
-    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
-    local sooner = os.time() + 5
-    os.time = function() return sooner end
-    mcm.update(player, false)
-    assert(text == 'Pending: OmniVoice · Quality', text)
-    pending = 1
-    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
-    local later = os.time() + 10
-    os.time = function() return later end
-    mcm.update(player, false); mcm.update(player, false)
-    assert(text ~= nil and not text:find('Pending', 1, true))
-    assert(files['runtime/voice-preview.json'] == nil, 'a pending voice prepared a model')
-  `);
-});
-
 test('interface language persists atomically, localizes the schema and preserves literal character names and voice choices',()=>{
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local savedDofile=dofile
     dofile=function(path)
       if path=='locales/fr.lua' then return (function() ${frenchUiSource} end)() end
@@ -1240,13 +507,15 @@ test('interface language persists atomically, localizes the schema and preserves
     assert(saved.uiLanguage=='fr' and convaiUiLocale.selection()=='fr')
     assert(convaiUiLocale.update(0))
     loaded=registered.loadMod('manager')
-    assert(mcm.inspect().back.label=='Retour à la gestion des compagnons')
+    assert(loaded.categories[1].settings[1].label=='Retour au gestionnaire')
     assert(row('uiLanguage').label~='Interface language' and row('uiLanguage').value==french)
     assert(row('uiLanguage').elements[2]=='English','language names must remain natively recognizable')
     local snapshot=manager.snapshot(player)
     assert(snapshot.settings.voiceProvider==voiceBefore and snapshot.settings.omniSteps==stepsBefore)
     assert(invoke('settings:back').ok and row('tab:settings').label=='Paramètres')
     assert(invoke('tab:characters').ok)
+    -- The renamed profile is the last of 22 in the list: the second of two pages.
+    assert(core.setUi('ui:page', 2)); loaded=registered.loadMod('manager')
     assert(row('invite:'..profiles[1].key).label=='Settings','a character name was translated as a UI key')
     local selected,notice=manager.selectMemoryCharacter(profiles[1].key)
     assert(selected and notice==convaiUiLocale.t('{name} selected for memory controls.',{name='Settings'}))
@@ -1257,156 +526,6 @@ test('interface language persists atomically, localizes the schema and preserves
     failSave=false
     assert(not manager.applySettings(player,{uiLanguage='../invalid'}))
     assert(saved.uiLanguage=='fr')
-  `);
-});
-
-test('native settings styling waits for the final title, aligns scaled rows and retains native controls', () => {
-  run(`${mcmFixture}
-    CName = {new = function(value) return value end}
-    NameToString = function(value) return value end
-    local nativeHook, rootReads = false, 0
-    local function widget(name, left, width, color, children)
-      local value = {name = name, left = left or 0, width = width or 200, color = color, children = children or {}}
-      function value:GetName() assert(not nativeHook, 'widget traversal inside a native observer'); return self.name end
-      function value:GetNumChildren() return #self.children end
-      function value:GetWidgetByIndex(index) return self.children[index + 1] end
-      function value:GetMargin() return {left = self.left, top = 48, right = 0, bottom = 0} end
-      function value:SetMargin(margin) assert(not nativeHook, 'widget setter inside a native observer'); self.left = margin.left; assert(margin.top == 48) end
-      function value:GetWidth() return self.width end
-      function value:SetWidth(width) self.width = width end
-      function value:GetTintColor() return self.color end
-      function value:SetTintColor(color) self.color = color end
-      function value:BindProperty(property, color) assert(not nativeHook, 'widget binding inside a native observer'); assert(property == 'tintColor'); self.color = color end
-      function value:GetScale() return {X = self.scale or 1, Y = self.scale or 1} end
-      function value:GetController()
-        if self.name == 'settingsCategory' then return {IsA = function(_, class) return class == 'SettingsCategoryController' end} end
-      end
-      return value
-    end
-    local content = widget('mcm_content_scroll_content')
-    local root = widget('root', 0, 1000, nil, {content})
-    local theme = 'native-label-colour'
-    function controller:GetRootWidget()
-      assert(not nativeHook, 'root traversal inside a native observer')
-      rootReads = rootReads + 1; return root
-    end
-    function controller:McmUiAddReadonly(id)
-      -- MCMContent.reds uses x=20 for the surface, while MCMRenderer.reds
-      -- adds its frame-style list inset to the child label.
-      local label = widget('label', 16, 184, theme)
-      local surface = widget('mcm_action_' .. id, 20, 200, nil, {label})
-      content.children[#content.children + 1] = surface
-      return surface
-    end
-    local function reference(id)
-      -- CET creates a fresh WeakReference wrapper for each native callback.
-      -- Wrappers compare unequal even while CalcSeed identifies the same menu.
-      return setmetatable({nativeIdentity = id or 101}, {__index = controller})
-    end
-    local function begin()
-      -- Real MCM renders the provisional title first, then rows, and only
-      -- publishes the actual provider title after all row construction.
-      handlers.McmUiBegin(reference(), 'MCM', '', 'Mods', 'Mods', '', 0, '', true, true, 0, function() end)
-    end
-    local function finish(title)
-      nativeHook = true
-      handlers.McmUiSetContentTitle(reference(), title)
-      nativeHook = false
-    end
-    local function frame()
-      local before = rootReads
-      mcm.update(player, false)
-      assert(rootReads <= before + 1, 'page tree was traversed again for each row')
-    end
-    local function managed(id, kind)
-      local label = widget(id .. '_managed_label', 48, 300, 'modified')
-      local marker = widget(id .. '_managed_marker', 20, 20, 'modified')
-      content.children[#content.children + 1] = label
-      content.children[#content.children + 1] = marker
-      return label, marker
-    end
-    begin()
-    local category = widget('settingsCategory', 0, 1800, nil, {
-      widget('label', 20, 1600, 'native-heading'), widget('line', 0, 1800, 'native-cyan-rule')})
-    category.scale = 0.5
-    content.children[#content.children + 1] = category
-    local heading = category.children[1]
-    local toggle, marker = managed('toggle', 'McmUiAddBool')
-    local select = managed('select', 'McmUiBeginSelect')
-    local readonly = controller:McmUiAddReadonly('status')
-    local action = widget('action_label', 20, 400, theme)
-    content.children[#content.children + 1] = action
-    local cyanValue = widget('mcm_action_value', 620, 280, 'cyan')
-    content.children[#content.children + 1] = cyanValue
-    assert(toggle.left == 48 and toggle.color == 'modified', 'ownership was guessed from the provisional title')
-    finish('Companion Manager')
-    assert(toggle.left == 48 and rootReads == 0, 'native observer did work instead of deferring it')
-    frame()
-    assert(category.left + category.scale * heading.left == 20 and heading.color == 'MainColors.White')
-    assert(category.children[2].color == 'native-cyan-rule', 'native section rule was recolored')
-    assert(cyanValue.left == 620 and cyanValue.color == 'cyan', 'native option styling changed')
-    assert(toggle.left == action.left and select.left == action.left)
-    assert(readonly.left + readonly.children[1].left == action.left)
-    assert(toggle.width == 328 and select.width == 328, 'moving labels must preserve their right edge')
-    assert(marker.left + marker.width < toggle.left and marker.color == 'modified', 'draft marker lost its separate state')
-    assert(toggle.color == 'MainColors.Red' and select.color == 'MainColors.Red' and action.color == 'MainColors.Red')
-    assert(readonly.children[1].color == 'MainColors.Red')
-    toggle.color = 'native-hover'
-    handlers.McmUiSetManagedLabelState(reference(), 'toggle', true, true)
-    assert(toggle.color == 'native-hover', 'hover feedback was flattened')
-    toggle.color = 'modified'
-    nativeHook = true
-    handlers.McmUiSetManagedLabelState(reference(), 'toggle', false, true)
-    nativeHook = false
-    assert(toggle.color == 'modified', 'hover-out styling was not deferred')
-    frame()
-    assert(toggle.color == 'MainColors.Red' and toggle.width == 328, 'restyling accumulated width or retained a different label colour')
-    assert(marker.color == 'modified')
-    readonly.children[1].color = 'native-hover'
-    handlers.McmUiEmitHover(reference(), 'status', '', true)
-    assert(readonly.children[1].color == 'native-hover', 'read-only hover feedback was flattened')
-    readonly.children[1].color = 'different-theme-colour'
-    nativeHook = true
-    handlers.McmUiEmitHover(reference(), 'status', '', false)
-    nativeHook = false
-    frame()
-    assert(readonly.children[1].color == 'MainColors.Red', 'read-only hover-out did not restore default red')
-    activeMod = 'another:mod'
-    begin()
-    local foreign, foreignMarker = managed('foreign', 'McmUiAddBool')
-    finish('Another mod')
-    frame()
-    assert(foreign.left == 48 and foreign.color == 'modified' and foreignMarker.width == 20)
-    activeMod = 'cyberpunk-convai:manager'
-    begin()
-    local global = managed('global', 'McmUiAddBool')
-    finish('MCM Settings')
-    frame()
-    assert(global.left == 48 and global.color == 'modified', 'retained activeModKey leaked into another MCM route')
-    content.children = {}
-    begin()
-    theme = 'changed-native-theme'
-    controller:McmUiAddReadonly('new-category')
-    local changed = managed('new-toggle', 'McmUiAddBool')
-    finish('Companion Manager')
-    frame()
-    assert(changed.color == 'MainColors.Red', 'customized framework colours replaced the requested default red')
-    handlers.McmUiSetManagedLabelState(reference(202), 'new-toggle', false, true)
-    assert(not mcm.inspect().presentation.pending and mcm.inspect().presentation.restyling == 0,
-      'another controller queued styling on this page')
-    handlers.OnUninitialize(reference(202))
-    assert(mcm.inspect().presentation.active, 'another controller cleared the current page')
-    handlers.McmUiSetManagedLabelState(reference(), 'new-toggle', false, true)
-    assert(mcm.inspect().presentation.restyling == 1, 'a fresh wrapper lost native menu ownership')
-    handlers.OnUninitialize(reference())
-    assert(not mcm.inspect().presentation.active, 'native menu detach retained the page wrapper')
-    local readsBeforeDetach = rootReads
-    frame()
-    assert(rootReads == readsBeforeDetach, 'detached controller was used by a queued styling pass')
-    CalcSeed = function() error('identity unavailable') end
-    begin(); finish('Companion Manager'); frame()
-    assert(not mcm.inspect().presentation.active and rootReads == readsBeforeDetach,
-      'missing native identity must not fall back to wrapper ownership')
   `);
 });
 
@@ -1427,16 +546,16 @@ const invitationFixture = `
   function readiness.spawned(job, serial) readiness.lastSpawn = {id = job.id, serial = serial} end
   function readiness.finish(job) readiness.lastFinished = job.id end
   function readiness.update() readiness.updates = (readiness.updates or 0) + 1 end
-  mcm.shutdown()
+  managerUi.shutdown()
   local queueFactory = (function() ${queueSource} end)()
-  mcm.configure(manager, api, {new = function(companions, preparation, options)
-    assert(companions == api and preparation == readiness, 'MCM dropped the invitation readiness argument')
-    assert(type(options.developerMode) == 'function', 'MCM dropped the cached developer predicate')
+  managerUi.configure(manager, api, {new = function(companions, preparation, options)
+    assert(companions == api and preparation == readiness, 'the manager dropped the invitation readiness argument')
+    assert(type(options.developerMode) == 'function', 'the manager dropped the cached developer predicate')
     return queueFactory.new(companions, preparation, options)
-  end}, entryFactory, readiness)
-  mcm.install()
+  end}, readiness)
+  managerUi.install()
   loaded = registered.loadMod('manager')
-  local party = assert(mcm.party())
+  local party = assert(managerUi.party())
 `;
 
 const memoryFixture = `
@@ -1474,7 +593,7 @@ const memoryFixture = `
 `;
 
 test('paused invitation preparation snapshots follow the newest ticket and revision without gameplay work', () => {
-  run(`${mcmFixture}${invitationFixture}
+  run(`${nsuiFixture}${invitationFixture}
     assert(party.preparationFeedback() == nil)
     assert(party.invite('johnny-silverhand'))
     local first = party.preparationFeedback()
@@ -1508,39 +627,6 @@ test('paused invitation preparation snapshots follow the newest ticket and revis
   `);
 });
 
-const managerBannerFixture = `
-  local clock, nativeHook, rootReads = 1000, false, 0
-  os.time = function() return clock end
-  CName = {new = function(value) return value end}
-  NameToString = function(value) return value end
-  local banner = {text = '', writes = 0}
-  function banner:GetName() assert(not nativeHook); return 'status' end
-  function banner:SetText(value)
-    assert(not nativeHook, 'banner wrote native widgets from a callback')
-    self.text, self.writes = value, self.writes + 1
-  end
-  local content = {GetName = function() assert(not nativeHook); return 'mcm_content_scroll_content' end,
-    GetNumChildren = function() return 0 end}
-  local root = {GetName = function() assert(not nativeHook); return 'MCMRenderRoot' end,
-    GetNumChildren = function() return 2 end,
-    GetWidgetByIndex = function(_, index) return index == 0 and banner or content end}
-  function controller:GetRootWidget()
-    assert(not nativeHook, 'banner traversed native widgets from a callback')
-    rootReads = rootReads + 1; return root
-  end
-  local function paint(status, title, kind)
-    local before = banner.writes
-    nativeHook = true
-    handlers.McmUiBegin(controller, 'MCM', '', 'Mods', 'Mods', status or '', kind or 1,
-      activeMod or '', true, true, 0,
-      function(_, _, _, _, value) banner.text = value end)
-    handlers.McmUiSetContentTitle(controller, title or 'Companion Manager')
-    nativeHook = false
-    assert(banner.writes == before, 'render callback mutated the status widget')
-  end
-  local function tick() clock = clock + 1; mcm.update(player, false) end
-`;
-
 const managerPopupFixture = `
   local popupClock, nativeCallback, popups, popupStep = 1000, false, {}, 4
   os.time = function() return popupClock end
@@ -1555,7 +641,7 @@ const managerPopupFixture = `
   -- before routine progress and the next stage show, so existing flows still see each stage.
   local function popupTick(worldReady)
     popupClock, popupHighRes = popupClock + popupStep, popupHighRes + popupStep
-    mcm.update(player, worldReady == true)
+    managerUi.update(player, worldReady == true)
   end
   -- What a companion waits for is the loading notice's line (the real clock is not this fixture's, so the loading notice
   -- does not show here; the 'preparing notice' tests below drive it). No ordinary popup carries a preparing line.
@@ -1565,7 +651,7 @@ const managerPopupFixture = `
 `;
 
 test('with Developer mode on, a manager invitation posts no ordinary notice while it prepares, then joined, and no joining step', () => {
-  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+  run(`${nsuiFixture}${invitationFixture}${managerPopupFixture}
     developer(true)
     assert(invoke('tab:characters').ok)
     nativeCallback = true; assert(invoke('invite:johnny-silverhand').ok); nativeCallback = false
@@ -1588,7 +674,7 @@ test('with Developer mode on, a manager invitation posts no ordinary notice whil
 });
 
 test('a ticket first seen ready posts only joined', () => {
-  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+  run(`${nsuiFixture}${invitationFixture}${managerPopupFixture}
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
     readiness.receipts['queued:1'] = {state = 'ready'}  -- ready before the board first looks
     popupTick(false); popupTick(false)
@@ -1600,17 +686,17 @@ test('a ticket first seen ready posts only joined', () => {
 });
 
 test('leaving the manager shows only an unresolved failure in gameplay, and keeps phone invitations independent', () => {
-  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+  run(`${nsuiFixture}${invitationFixture}${managerPopupFixture}
     developer(true)
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
     popupTick(false)
     readiness.receipts['queued:1'] = {state = 'connecting'}
     -- Resume inside the same clock second: do not reuse the paused memory sample.
-    mcm.update(player, true)
+    managerUi.update(player, true)
     assert(#popups == 0, 'gameplay presented a preparing popup: ' .. tostring(popups[#popups]))
     popupTick(true); assert(#popups == 0)
     assert(invoke('characters:back').ok and invoke('tab:settings').ok and invoke('memory').ok)
-    assert(invoke('memory:choose').ok and invoke('memory:select:johnny-silverhand').ok)
+    assert(invoke('memory:select:johnny-silverhand').ok)
     readiness.receipts['queued:1'] = {state = 'error', error = 'Private detail'}; popupTick(false)
     assert(#popups == 0, 'the paused menu consumed the failure notice')
     popupTick(true)
@@ -1625,7 +711,7 @@ test('leaving the manager shows only an unresolved failure in gameplay, and keep
 });
 
 test('duplicate manager copies post no preparing popup, and a world reset leaves nothing behind', () => {
-  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+  run(`${nsuiFixture}${invitationFixture}${managerPopupFixture}
     developer(true)
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
     assert(invoke('invite:johnny-silverhand').ok); popupTick(false)
@@ -1634,17 +720,17 @@ test('duplicate manager copies post no preparing popup, and a world reset leaves
     -- The older copy is still in flight: its later stages are not posted.
     readiness.receipts['queued:1'] = {state = 'connecting'}; popupTick(false)
     assert(#popups == 0, 'the older copy posted progress: ' .. tostring(popups[#popups]))
-    mcm.resetSession(); popupTick(true)
+    managerUi.resetSession(); popupTick(true)
     assert(#popups == 0 and #spawned == 0, 'world reset retained a stale popup or invitation')
   `);
 });
 
 test('Auto-connect nearby characters is on by default, offered under Conversations and saved with the settings', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     assert(manager.autoConnectNearby() == true and manager.snapshot(player).settings.autoConnectNearby == true)
     assert(invoke('tab:settings').ok)
     local auto = assert(row('autoConnectNearby'), 'the setting is not offered')
-    assert(auto.type == 'bool' and auto.value == true and auto.defaultValue == true and auto.capabilities.draft)
+    assert(auto.type == 'bool' and auto.value == true and auto.defaultValue == true)
     assert(auto.label == 'Auto-connect nearby characters')
     local conversations
     for _, category in ipairs(loaded.categories) do if category.id == 'conversation-controls' then conversations = category end end
@@ -1662,11 +748,11 @@ test('Auto-connect nearby characters is on by default, offered under Conversatio
 });
 
 test('Talk to story characters is off by default, offered under Conversations and saved with the settings', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     assert(manager.storyConversations() == false and manager.snapshot(player).settings.storyConversations == false, 'a missing key is off')
     assert(invoke('tab:settings').ok)
     local story = assert(row('storyConversations'), 'the setting is not offered')
-    assert(story.type == 'bool' and story.value == false and story.defaultValue == false and story.capabilities.draft)
+    assert(story.type == 'bool' and story.value == false and story.defaultValue == false)
     assert(story.label == 'Talk to story characters')
     local conversations
     for _, category in ipairs(loaded.categories) do if category.id == 'conversation-controls' then conversations = category end end
@@ -1688,12 +774,12 @@ test('Talk to story characters is off by default, offered under Conversations an
 });
 
 test('Johnny in your head is off by default, offered under Conversations and saved; his standing shows only while it is on', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     assert(manager.johnnyInHead() == false and manager.snapshot(player).settings.johnnyInHead == false, 'a missing key is off')
     assert(saved.johnnyInHead == false, 'a new install saves the default Off')
     assert(invoke('tab:settings').ok)
     local johnny = assert(row('johnnyInHead'), 'the setting is not offered')
-    assert(johnny.type == 'bool' and johnny.value == false and johnny.defaultValue == false and johnny.capabilities.draft)
+    assert(johnny.type == 'bool' and johnny.value == false and johnny.defaultValue == false)
     assert(johnny.label == 'Johnny in your head')
     assert(row('johnnyStanding') == nil, 'no standing row while the setting is off')
     local conversations
@@ -1712,7 +798,7 @@ test('Johnny in your head is off by default, offered under Conversations and sav
     assert(registered.applyBatch('manager', {{id = 'johnnyInHead', value = true}}).ok and manager.johnnyInHead() == true and saved.johnnyInHead == true, 'an explicit On is kept')
     loaded = registered.loadMod('manager'); assert(row('johnnyInHead').value == true)
     local standing = assert(row('johnnyStanding'), 'the standing row is shown while the setting is on')
-    assert(standing.value == 'Grudging respect' and standing.label == 'Johnny’s standing' and standing.capabilities.write == false)
+    assert(standing.value == 'Grudging respect' and standing.label == 'Johnny’s standing' and standing.type == 'string')
     assert(reads >= 1)
     for _, category in ipairs(loaded.categories) do if category.id == 'conversation-controls' then conversations = category end end
     for index, item in ipairs(conversations.settings) do
@@ -1738,7 +824,7 @@ test('Johnny in your head is off by default, offered under Conversations and sav
 });
 
 test('Johnny speaks up is Off by default, a three-way select under Conversations, and saved', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     assert(manager.johnnyRemarks() == 'off' and manager.snapshot(player).settings.johnnyRemarks == 'off', 'a missing key is off')
     assert(saved.johnnyRemarks == 'off', 'a new install saves the default Off')
     assert(invoke('tab:settings').ok)
@@ -1763,7 +849,7 @@ test('Johnny speaks up is Off by default, a three-way select under Conversations
 });
 
 test('the live holocall picture is on by default, offered under Conversations, and an explicit Off is kept', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     assert(manager.holocallLiveImage() == true and manager.snapshot(player).settings.holocallLiveImage == true)
     assert(invoke('tab:settings').ok)
     local live = assert(row('holocallLiveImage'), 'the setting is not offered')
@@ -1786,7 +872,7 @@ test('Companions can see has no setting any more: no row, an old saved companion
     assert(saved and saved.companionVision == nil, 'the retired key was not dropped from settings.json')
     assert(not manager.applySettings(player, {companionVision = true}) and manager.snapshot(player).settings.companionVision == nil)
   `);
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     assert(invoke('tab:settings').ok)
     assert(row('companionVision') == nil, 'the setting is still offered')
     for _, category in ipairs(loaded.categories) do
@@ -1798,7 +884,7 @@ test('Companions can see has no setting any more: no row, an old saved companion
 });
 
 test('Voice status names the voice that speaks: Voxtral and Inworld say so, only the Convai voice says Convai voices', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 1000
     os.time = function() return clock end
     local n = 0
@@ -1826,7 +912,7 @@ test('Voice status names the voice that speaks: Voxtral and Inworld say so, only
 });
 
 test('Names for passers-by has no setting any more: it is not offered, and a saved npcNames value is ignored', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     assert(manager.npcNames == nil and manager.snapshot(player).settings.npcNames == nil)
     assert(invoke('tab:settings').ok)
     assert(row('npcNames') == nil, 'the setting is still offered')
@@ -1851,7 +937,7 @@ test('a saved live-picture false that the player never chose (the first version\
 });
 
 test('invitations made together post no progress, then one joined summary', () => {
-  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+  run(`${nsuiFixture}${invitationFixture}${managerPopupFixture}
     popupStep = 11
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
     assert(invoke('invite:person-1').ok); popupTick(false)
@@ -1871,7 +957,7 @@ test('invitations made together post no progress, then one joined summary', () =
 });
 
 test('one companion failing to prepare is reported without hiding the other one joining', () => {
-  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+  run(`${nsuiFixture}${invitationFixture}${managerPopupFixture}
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok and invoke('invite:person-1').ok)
     popupTick(false)
     readiness.receipts['queued:1'] = {state = 'ready'}
@@ -1886,10 +972,10 @@ test('one companion failing to prepare is reported without hiding the other one 
 });
 
 test('a failure hidden by the menu is posted once in gameplay', () => {
-  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+  run(`${nsuiFixture}${invitationFixture}${managerPopupFixture}
     developer(true)
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
-    mcm.update(player, true)
+    managerUi.update(player, true)
     for _ = 1, 3 do popupTick(true); popupTick(false) end
     popupTick(true); assert(#popups == 0, 'reopening the menu posted a preparing popup')
     readiness.receipts['queued:1'] = {state = 'error', error = 'Bridge unavailable'}; popupTick(false)
@@ -1906,7 +992,7 @@ test('a failure hidden by the menu is posted once in gameplay', () => {
 });
 
 test('a quick manager invitation posts only joined, however long the wait', () => {
-  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+  run(`${nsuiFixture}${invitationFixture}${managerPopupFixture}
     popupStep = 0.2
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
     popupTick(false)
@@ -1928,7 +1014,7 @@ test('a quick manager invitation posts only joined, however long the wait', () =
 });
 
 test('a player sees only joined, and Developer mode adds no joining step', () => {
-  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+  run(`${nsuiFixture}${invitationFixture}${managerPopupFixture}
     assert(not manager.developerMode())
     popupStep = 11
     assert(invoke('tab:characters').ok)
@@ -1946,7 +1032,7 @@ test('a player sees only joined, and Developer mode adds no joining step', () =>
     for _ = 1, 3 do popupTick(true) end
     assert(#popups == 1)
   `);
-  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+  run(`${nsuiFixture}${invitationFixture}${managerPopupFixture}
     popupStep = 11
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
     popupTick(false)
@@ -1963,7 +1049,7 @@ test('a player sees only joined, and Developer mode adds no joining step', () =>
 });
 
 test('a preparation failure first seen in the paused menu posts exactly one gameplay notice with Developer mode off', () => {
-  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+  run(`${nsuiFixture}${invitationFixture}${managerPopupFixture}
     popupStep = 11
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
     popupTick(false)
@@ -1987,12 +1073,12 @@ test('a preparation failure first seen in the paused menu posts exactly one game
 });
 
 test('an already joined manager invitation cannot replay preparation when the game resumes', () => {
-  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+  run(`${nsuiFixture}${invitationFixture}${managerPopupFixture}
     developer(true)
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
     readiness.receipts['queued:1'] = {state = 'ready'}
     party.flush(); members[1].state = 'ready'
-    mcm.update(player, true)
+    managerUi.update(player, true)
     assert(#popups == 1 and popups[1] == 'Johnny Silverhand joined your group.', tostring(popups[#popups]))
     for _ = 1, 5 do popupTick(true) end
     assert(#popups == 1)
@@ -2000,7 +1086,7 @@ test('an already joined manager invitation cannot replay preparation when the ga
 });
 
 test('a deferred world spawn posts no joining text, and the joined line once it attaches', () => {
-  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+  run(`${nsuiFixture}${invitationFixture}${managerPopupFixture}
     developer(true)
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
     readiness.receipts['queued:1'] = {state = 'ready'}
@@ -2021,7 +1107,7 @@ test('a deferred world spawn posts no joining text, and the joined line once it 
 });
 
 test('an immediate preparation failure posts one gameplay failure notice outside the callback, regardless of Developer mode', () => {
-  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+  run(`${nsuiFixture}${invitationFixture}${managerPopupFixture}
     readiness.prepare = function() return false, 'Bridge unavailable' end
     assert(invoke('tab:characters').ok)
     nativeCallback = true; assert(not invoke('invite:johnny-silverhand').ok); nativeCallback = false
@@ -2036,125 +1122,8 @@ test('an immediate preparation failure posts one gameplay failure notice outside
   `);
 });
 
-test('manager invitation banner shows no preparation text, and does not reload drafts or show party blocks', () => {
-  run(`${mcmFixture}${invitationFixture}${managerBannerFixture}
-    assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
-    drafts = true
-    paint('Completed: Johnny Silverhand')
-    local reloadBefore = reloads
-    tick()
-    assert(banner.text == '' and rootReads == 1, 'preparation text showed in the banner: ' .. banner.text)
-    assert(not row('party-count') and not row('feedback') and not row('tab:settings'))
-    local writes = banner.writes
-    tick(); tick()
-    assert(banner.writes == writes, 'unchanged preparation repainted every frame')
-    readiness.receipts['queued:1'] = {state = 'connecting'}; tick()
-    assert(banner.text == '' and banner.writes == writes + 1, 'the connecting state did not reach the banner')
-    writes = banner.writes
-    paint('Completed: Johnny Silverhand'); tick()
-    assert(banner.text == '' and banner.writes == writes, 'a page rebuild lost or duplicated the cached preparation update')
-    readiness.receipts['queued:1'] = {state = 'ready'}; tick()
-    assert(banner.text == '')
-    readiness.receipts['queued:1'] = {state = 'error', error = 'Internal detail'}; tick()
-    assert(banner.text == 'Johnny Silverhand: preparation failed. Cancel and invite again.')
-    assert(reloads == reloadBefore and drafts and #spawned == 0, 'paused feedback mutated gameplay or drafts')
-    assert(party.dismiss('queued:1')); tick()
-    assert(banner.text == '', 'cancelled invitation left stale text in the banner')
-    writes = banner.writes; tick(); assert(banner.writes == writes)
-  `);
-});
-
-test('preparation banners preserve native errors, memory action feedback, foreign pages and detached controllers', () => {
-  run(`${mcmFixture}${invitationFixture}${memoryFixture}${managerBannerFixture}
-    assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
-    paint('Action failed', nil, 2); tick()
-    assert(banner.text == 'Action failed' and banner.writes == 0, 'native error was replaced')
-    paint('Completed: Johnny Silverhand'); tick()
-    assert(banner.text == '', 'progress showed on an eligible banner')
-    assert(invoke('characters:back').ok and invoke('tab:settings').ok and invoke('memory').ok)
-    memoryClock = clock
-    publishMemory(1, {{profileKey = 'person-20'}}); loaded = registered.loadMod('manager')
-    assert(invoke('memory:forget-all').ok and invoke('memory:cancel:' .. token()).ok)
-    paint('Completed: Cancel')
-    readiness.receipts['queued:1'] = {state = 'connecting'}; tick()
-    assert(banner.text == 'Memory clear cancelled. Nothing was deleted.', 'preparation hid the memory result')
-    assert(invoke('memory:settings').ok and invoke('settings:back').ok and invoke('tab:characters').ok)
-    assert(invoke('invite:person-1').ok)
-    paint('Completed: Person 01'); tick()
-    assert(banner.text == '', 'progress showed for the second invitation')
-    activeMod = 'other:mod'
-    paint('Foreign status', 'Another mod'); tick()
-    assert(banner.text == 'Foreign status')
-    activeMod = 'cyberpunk-convai:manager'
-    paint('Completed: Person 01'); tick()
-    local writes = banner.writes
-    handlers.OnUninitialize(controller)
-    readiness.receipts['queued:2'] = {state = 'ready'}; tick()
-    assert(banner.writes == writes, 'detached status widget was used')
-    mcm.resetSession(); paint(''); tick()
-    assert(banner.text == '', 'world reset resurrected invitation feedback')
-  `);
-});
-
-test('voice preparation status updates its owned readonly text without discarding an MCM draft', () => {
-  run(`${mcmFixture}
-    local clock, nativeHook, rootReads = 1000, false, 0
-    os.time = function() return clock end
-    CName = {new = function(value) return value end}
-    NameToString = function(value) return value end
-    local value = {text = 'Before preparation', writes = 0}
-    function value:GetName() return 'cyberpunk-convai:manager:voice-status_value' end
-    function value:GetController() return nil end
-    function value:SetText(text)
-      assert(not nativeHook, 'status touched ink inside the native callback')
-      self.text, self.writes = text, self.writes + 1
-    end
-    local content = {GetName = function() return 'mcm_content_scroll_content' end,
-      GetNumChildren = function() return 1 end, GetWidgetByIndex = function() return value end}
-    function controller:GetRootWidget()
-      assert(not nativeHook, 'status traversed ink inside the native callback')
-      rootReads = rootReads + 1; return content
-    end
-    jsonFixtures['voice-runtime'] = {state = 'loading', provider = 'convai',
-      previewActive = true, previewProvider = 'pocket', preparationOnly = true, updated = clock * 1000}
-    files['runtime/local-voice-state.json'] = 'voice-runtime'
-    assert(invoke('tab:settings').ok)
-    drafts = true
-    nativeHook = true; handlers.McmUiSetContentTitle(controller, 'Companion Manager'); nativeHook = false
-    assert(rootReads == 0 and value.writes == 0)
-    local before = reloads
-    mcm.update(player, false)
-    assert(value.text == 'Loading' and value.writes == 1 and rootReads == 1)
-    clock = clock + 1; jsonFixtures['voice-runtime'].state = 'warming'; mcm.update(player, false)
-    assert(value.text == 'Preparing voices' and value.writes == 2)
-    clock = clock + 1; jsonFixtures['voice-runtime'].state = 'ready'; mcm.update(player, false)
-    assert(value.text == 'Ready · Unsaved selection' and value.writes == 3)
-    jsonFixtures['voice-runtime'].pending = true
-    for _, state in ipairs({'loading', 'warming', 'ready'}) do
-      clock = clock + 1; jsonFixtures['voice-runtime'].state = state; mcm.update(player, false)
-      local labels = {loading = 'Loading', warming = 'Preparing voices', ready = 'Ready'}
-      assert(value.text == labels[state] .. ' · After current reply', 'applied preparation progress was hidden')
-    end
-    jsonFixtures['voice-runtime'].previewActive = false
-    clock = clock + 1; mcm.update(player, false)
-    assert(value.text == 'Ready · After current reply', 'Apply was mislabeled as unsaved')
-    jsonFixtures['voice-runtime'].pending = false
-    clock = clock + 1; mcm.update(player, false)
-    assert(value.text == 'Ready', 'absence of a draft was mislabeled as unsaved')
-    jsonFixtures['voice-runtime'].previewActive = true
-    jsonFixtures['voice-runtime'].previewProvider = 'convai'
-    clock = clock + 1; mcm.update(player, false)
-    assert(value.text == 'Ready', 'Convai draft was mislabeled as an unsaved Pocket selection')
-    assert(reloads == before and drafts, 'read-only status discarded or reloaded a draft')
-    local writes = value.writes
-    handlers.OnUninitialize(controller)
-    clock = clock + 1; jsonFixtures['voice-runtime'].state = 'remote'; mcm.update(player, false)
-    assert(value.writes == writes, 'detached settings text was touched')
-  `);
-});
-
 test('without the optional OmniVoice pack Omni entries say what they need and cannot be applied; unknown status never locks them', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 1000
     os.time = function() return clock end
     jsonFixtures['voice-runtime'] = {state = 'ready', provider = 'pocket', omniPack = {installed = false, missing = {'model'}},
@@ -2168,7 +1137,7 @@ test('without the optional OmniVoice pack Omni entries say what they need and ca
     assert(elements[2] == 'OmniVoice · Balanced', elements[2])
     for index = 2, 5 do
       assert(elements[index]:find('OmniVoice', 1, true) and not elements[index]:find('needs pack', 1, true), 'entry ' .. index)
-      assert(mcm.optionUnits(elements[index]) <= mcm.OPTION_BUDGET, 'entry ' .. index .. ' must stay short enough not to run over the arrows')
+      assert(core.optionUnits(elements[index]) <= core.OPTION_BUDGET, 'entry ' .. index .. ' must stay short enough not to run over the arrows')
     end
     assert(row('voiceProvider').label == 'Companion voices (no Omni pack)', row('voiceProvider').label)
     assert(row('voice-pack') == nil, 'the OmniVoice pack has no row of its own')
@@ -2199,7 +1168,7 @@ test('without the optional OmniVoice pack Omni entries say what they need and ca
 });
 
 test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot be applied without one; with a key it applies beside any conversation provider', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     local function key(tag, value)
       jsonFixtures['mistral-' .. tag] = value
@@ -2234,7 +1203,7 @@ test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot b
 });
 
 test('Mature content is a settings row with or without the Mature pack: the help says whether the uncensored models are installed and that the safety check runs on every model', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     local function state(tag, value)
       jsonFixtures['mature-' .. tag] = value
@@ -2278,274 +1247,9 @@ test('Mature content is a settings row with or without the Mature pack: the help
   `);
 });
 
-// Turning Mature content on stages the Local AI provider, the uncensored model and a local voice as pending changes (mod/mcm.lua,
-// syncMature); turning it off puts back what that changed. A fake MCM keeps the drafts and emits 'drafts.changed' like the real one.
-const matureFixture = `
-  local clock = 1000
-  os.clock = function() return clock end
-  os.time = function() return clock end
-  local PREFIX = 'cyberpunk-convai:manager:'
-  local listeners, pending = {}, {}
-  nativeApi.subscribe = function(name, callback) listeners[#listeners + 1] = callback; return #listeners end
-  nativeApi.unsubscribe = function() return true end
-  mcm.shutdown(); mcm.install()
-  local function emit()
-    local count = 0
-    for _ in pairs(pending) do count = count + 1 end
-    for _, callback in ipairs(listeners) do callback({modKey = 'cyberpunk-convai:manager', count = count}) end
-  end
-  nativeApi.getValue = function(id)
-    local key = id:sub(#PREFIX + 1)
-    if pending[key] ~= nil then return pending[key] end
-    local found = row(key)
-    return found and found.value
-  end
-  nativeApi.setDraft = function(id, value)
-    local key = id:sub(#PREFIX + 1)
-    local found = row(key)
-    if not found then return false, 'unknown setting' end
-    if found.value == value then pending[key] = nil else pending[key] = value end
-    emit()
-    return true
-  end
-  nativeApi.hasDrafts = function() return next(pending) ~= nil end
-  local function state(tag, value)
-    jsonFixtures['mature-' .. tag] = value
-    files['runtime/mistral-state.json'] = 'mature-' .. tag
-    clock = clock + 2
-    manager.snapshot(player)
-    loaded = registered.loadMod('manager')
-  end
-  local function voices(installed)
-    clock = clock + 20
-    jsonFixtures['voice-' .. tostring(installed) .. clock] = {state = 'ready', provider = 'pocket', omniPack = {installed = installed, missing = {}}, updated = clock * 1000}
-    files['runtime/local-voice-state.json'] = 'voice-' .. tostring(installed) .. clock
-    manager.snapshot(player)
-  end
-  -- The player's own change of one setting (a draft), and an Apply that commits some.
-  local function user(key, value) assert(nativeApi.setDraft(PREFIX .. key, value)); mcm.update(player, false) end
-  local function apply(changes)
-    clock = clock + 2
-    local result = registered.applyBatch('manager', changes)
-    pending = {}
-    loaded = registered.loadMod('manager')
-    emit()
-    mcm.update(player, false)
-    return result
-  end
-  local function drafts() local list = {}; for key, value in pairs(pending) do list[#list + 1] = key .. '=' .. tostring(value) end; table.sort(list); return table.concat(list, ',') end
-  -- Mistral answers with a pinned model and the Mistral cloud voice; Local AI and the OmniVoice pack are installed.
-  local function startFrom(options)
-    options = options or {}
-    local report = {provider = 'mistral', effective = 'mistral', saved = true, localAi = 'ready',
-      localModels = {{id = 'standard', name = 'Gemma', sizeMiB = 5000}, {id = 'mature:unc', name = 'Gemma uncensored', sizeMiB = 5200}, {id = 'lite', name = 'Qwen', sizeMiB = 1300}},
-      localModelDefault = 'standard', localModelMatureDefault = 'mature:unc'}
-    if options.noMature then report.localModelMatureDefault = nil end
-    if options.noPack then report.localAi = nil end
-    state('ready', report)
-    voices(options.omni ~= false)
-    assert(invoke('tab:settings').ok)
-    loaded = registered.loadMod('manager')
-    assert(apply({{id = 'conversationProvider', value = 3}, {id = 'localModel', value = 2}, {id = 'voiceProvider', value = options.voice or 6}}).ok)
-    assert(saved.conversationProvider == 'mistral' and saved.localModel == 'standard' and not saved.matureContent)
-  end
-`;
-
-test('turning Mature content on stages Local AI, the uncensored model and a local voice as pending changes, names them in one line, and Apply saves them with the way back', () => {
-  run(`${mcmFixture}${matureFixture}
-    startFrom()
-    assert(saved.voiceProvider == 'voxtral')
-    user('matureContent', true)
-    assert(drafts() == 'conversationProvider=4,localModel=3,matureContent=true,voiceProvider=1', drafts())
-    local changes = mcm.inspect().mature.changes
-    assert(changes and changes:find('Local AI', 1, true) and changes:find('Uncensored model', 1, true) and changes:find('Pocket', 1, true), changes)
-    assert(mcm.inspect().mature.notice == nil, 'there is no Mature notice any more')
-    -- No notice either: MCM's own "Pending: Mature content" status stays as it is, now and a while later.
-    local shown
-    handlers.McmUiBegin(controller, 'MCM', '', 'Mods', 'Companion Manager', 'Pending: Mature content', 0, '', true, true, 0, function(_, _, _, _, status) shown = status end)
-    assert(shown == 'Pending: Mature content', tostring(shown))
-    clock = clock + 9
-    handlers.McmUiBegin(controller, 'MCM', '', 'Mods', 'Companion Manager', 'Pending: Mature content', 0, '', true, true, 0, function(_, _, _, _, status) shown = status end)
-    assert(shown == 'Pending: Mature content', tostring(shown))
-    -- Nothing is saved before Apply.
-    assert(saved.conversationProvider == 'mistral' and saved.localModel == 'standard' and saved.voiceProvider == 'voxtral' and not saved.matureContent)
-    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 4}, {id = 'localModel', value = 3}, {id = 'voiceProvider', value = 1}}).ok)
-    assert(saved.matureContent == true and saved.conversationProvider == 'local' and saved.localModel == 'mature:unc' and saved.voiceProvider == 'pocket')
-    local way = saved.matureRestore
-    assert(way and way.conversationProvider.before == 'mistral' and way.conversationProvider.set == 'local'
-      and way.localModel.before == 'standard' and way.localModel.set == 'mature:unc'
-      and way.voice.before.provider == 'voxtral' and way.voice.set.provider == 'pocket', 'the way back was not saved')
-    assert(manager.snapshot(player).settings.matureRestore.localModel.before == 'standard')
-  `);
-});
-
-test('turning Mature content off puts the provider, model and voice back, except what the player changed since', () => {
-  run(`${mcmFixture}${matureFixture}
-    startFrom()
-    user('matureContent', true)
-    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 4}, {id = 'localModel', value = 3}, {id = 'voiceProvider', value = 1}}).ok)
-    -- Off, nothing else touched: all three come back as pending changes, in one line.
-    user('matureContent', false)
-    assert(drafts() == 'conversationProvider=3,localModel=2,matureContent=false,voiceProvider=6', drafts())
-    local changes = mcm.inspect().mature.changes
-    assert(changes and changes:find('Conversation provider', 1, true) and changes:find('Local AI model', 1, true), changes)
-    assert(apply({{id = 'matureContent', value = false}, {id = 'conversationProvider', value = 3}, {id = 'localModel', value = 2}, {id = 'voiceProvider', value = 6}}).ok)
-    assert(saved.matureContent == false and saved.conversationProvider == 'mistral' and saved.localModel == 'standard' and saved.voiceProvider == 'voxtral')
-    assert(saved.matureRestore == nil, 'the way back stayed after Mature content was turned off')
-    -- On again, the player changes the model to Qwen before turning it off: that stays theirs (the provider cannot be changed to a
-    -- cloud one and keep Mature content on: that turns it off, see the mutual exclusion test).
-    user('matureContent', true)
-    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 4}, {id = 'localModel', value = 3}, {id = 'voiceProvider', value = 1}}).ok)
-    assert(apply({{id = 'localModel', value = 1}}).ok)
-    user('matureContent', false)
-    assert(drafts() == 'conversationProvider=3,matureContent=false,voiceProvider=6', 'the provider and the voice were still the ones Mature content chose: ' .. drafts())
-  `);
-});
-
-test('Mature content turned on and off again before Apply leaves no pending change; Revert forgets the staging', () => {
-  run(`${mcmFixture}${matureFixture}
-    startFrom()
-    user('matureContent', true)
-    assert(drafts() ~= '' and mcm.inspect().mature.staged == true)
-    user('matureContent', false)
-    assert(drafts() == '', 'drafts left behind: ' .. drafts())
-    assert(mcm.inspect().mature.staged == false)
-    -- Revert: every draft is gone; a later On starts afresh and stages again.
-    user('matureContent', true)
-    assert(drafts() ~= '')
-    pending = {}; emit(); mcm.update(player, false)
-    assert(mcm.inspect().mature.staged == false)
-    user('matureContent', true)
-    assert(drafts() == 'conversationProvider=4,localModel=3,matureContent=true,voiceProvider=1', drafts())
-    -- The player's own later change of the model while Mature content is on is theirs: turning it off does not undo it.
-    user('localModel', 1)
-    user('matureContent', false)
-    -- The provider and the voice go back to what is saved (their drafts disappear); the model stays the player's own choice.
-    assert(drafts() == 'localModel=1', 'the model the player chose was undone or others were left: ' .. drafts())
-  `);
-});
-
-test('without the Local AI pack Mature content stages nothing else and the help says Local AI is needed', () => {
-  run(`${mcmFixture}${matureFixture}
-    startFrom({noPack = true})
-    assert(tostring(row('matureContent').description):find('Needs Local AI.', 1, true), 'the help does not say Local AI is needed')
-    -- Beside a cloud provider and with no Local AI pack there is nothing to switch to: the switch goes back to off, nothing else is staged.
-    user('matureContent', true)
-    assert(drafts() == '', 'the switch stayed on without Local AI: ' .. drafts())
-    assert(nativeApi.getValue(PREFIX .. 'matureContent') == false)
-    assert(mcm.inspect().mature.changes == nil and mcm.inspect().mature.notice == nil)
-    assert(saved.matureContent == false and saved.conversationProvider == 'mistral' and saved.localModel == 'standard' and saved.voiceProvider == 'voxtral')
-    assert(saved.matureRestore == nil, 'a way back was saved though nothing was changed')
-  `);
-});
-
-test('the voice moves to Pocket TTS without the OmniVoice pack, is left when it is already local, and stays when Multilingual conversations has no local voice to offer', () => {
-  run(`${mcmFixture}${matureFixture}
-    startFrom({omni = false})
-    user('matureContent', true)
-    assert(drafts() == 'conversationProvider=4,localModel=3,matureContent=true,voiceProvider=1', drafts())
-    assert(mcm.inspect().mature.changes:find('Pocket', 1, true), mcm.inspect().mature.changes)
-    user('matureContent', false)
-    assert(drafts() == '', 'staged then unstaged: ' .. drafts())
-    -- A local voice already: the voice is not touched, and the staged names are only the other two.
-    assert(apply({{id = 'voiceProvider', value = 1}}).ok)
-    user('matureContent', true)
-    assert(drafts() == 'conversationProvider=4,localModel=3,matureContent=true', drafts())
-    assert(not mcm.inspect().mature.changes:find('Pocket', 1, true))
-    user('matureContent', false)
-    -- Already Local AI with the uncensored model and a local voice: nothing to stage.
-    assert(apply({{id = 'conversationProvider', value = 4}, {id = 'localModel', value = 3}}).ok)
-    mcm.update(player, false)
-    user('matureContent', true)
-    assert(drafts() == 'matureContent=true', drafts())
-    assert(mcm.inspect().mature.changes == nil, tostring(mcm.inspect().mature.changes))
-    assert(apply({{id = 'matureContent', value = true}}).ok and saved.matureRestore == nil)
-    -- Multilingual conversations on, a cloud voice and no OmniVoice pack: there is no local voice to give, so the voice is left.
-    assert(apply({{id = 'matureContent', value = false}, {id = 'voiceProvider', value = 7}, {id = 'expressiveEmotions', value = false}}).ok)
-    assert(apply({{id = 'multilingualConversations', value = true}}).ok)
-    user('matureContent', true)
-    assert(not drafts():find('voiceProvider', 1, true), 'Pocket TTS was staged beside Multilingual conversations: ' .. drafts())
-  `);
-});
-
-test('Mature content on never changes a local voice (Pocket or OmniVoice, even with the OmniVoice pack installed); every cloud voice moves to Pocket TTS', () => {
-  run(`${mcmFixture}${matureFixture}
-    startFrom()
-    -- OmniVoice stays OmniVoice (any of its four choices): the voice is not staged and not named.
-    for _, index in ipairs({2, 3, 4, 5}) do
-      assert(apply({{id = 'voiceProvider', value = index}}).ok)
-      user('matureContent', true)
-      assert(drafts() == 'conversationProvider=4,localModel=3,matureContent=true', index .. ' ' .. drafts())
-      assert(not mcm.inspect().mature.changes:find('Pocket', 1, true) and not mcm.inspect().mature.changes:find('OmniVoice', 1, true), mcm.inspect().mature.changes)
-      user('matureContent', false)
-    end
-    -- Pocket stays Pocket.
-    assert(apply({{id = 'voiceProvider', value = 1}}).ok)
-    user('matureContent', true)
-    assert(not drafts():find('voiceProvider', 1, true), drafts())
-    user('matureContent', false)
-    -- The Mistral (6) and Convai (7) cloud voices go to Pocket (1), not OmniVoice, though its pack is installed.
-    for _, index in ipairs({6, 7}) do
-      assert(apply({{id = 'voiceProvider', value = index}, {id = 'expressiveEmotions', value = false}, {id = 'naturalSpeech', value = false}}).ok, tostring(index))
-      user('matureContent', true)
-      assert(drafts():find('voiceProvider=1', 1, true), index .. ' ' .. drafts())
-      assert(mcm.inspect().mature.changes:find('Pocket', 1, true) and not mcm.inspect().mature.changes:find('OmniVoice', 1, true), mcm.inspect().mature.changes)
-      user('matureContent', false)
-      assert(not drafts():find('voiceProvider', 1, true), 'turning Mature off puts the earlier voice back: ' .. drafts())
-    end
-    -- Multilingual conversations refuses Pocket TTS: with the OmniVoice pack the cloud voice moves to OmniVoice instead.
-    assert(apply({{id = 'voiceProvider', value = 7}, {id = 'multilingualConversations', value = true}}).ok)
-    user('matureContent', true)
-    assert(drafts():find('voiceProvider=2', 1, true), drafts())
-  `);
-});
-
-test('Mature content on with no uncensored model installed stages no model change and does not mention a model; turning it off leaves the model alone', () => {
-  run(`${mcmFixture}${matureFixture}
-    startFrom({noMature = true})
-    user('matureContent', true)
-    assert(drafts() == 'conversationProvider=4,matureContent=true,voiceProvider=1', drafts())
-    local changes = mcm.inspect().mature.changes
-    assert(changes and changes:find('Local AI', 1, true) and changes:find('Pocket', 1, true), changes)
-    assert(not changes:lower():find('model', 1, true), 'a model was named though none was staged: ' .. changes)
-    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 4}, {id = 'voiceProvider', value = 1}}).ok)
-    assert(saved.matureContent == true and saved.localModel == 'standard', tostring(saved.localModel))
-    assert(saved.matureRestore and saved.matureRestore.localModel == nil and saved.matureRestore.conversationProvider.before == 'mistral', 'a model part was recorded')
-    user('matureContent', false)
-    assert(drafts() == 'conversationProvider=3,matureContent=false,voiceProvider=6', drafts())
-    assert(not mcm.inspect().mature.changes:find('Local AI model', 1, true), mcm.inspect().mature.changes)
-    -- Only an uncensored model that is not in the list counts as none: a published id that is not listed stages nothing either.
-    state('ghost', {provider = 'mistral', effective = 'mistral', saved = true, localAi = 'ready', localModelDefault = 'standard', localModelMatureDefault = 'ghost',
-      localModels = {{id = 'standard', name = 'Gemma', sizeMiB = 5000}, {id = 'lite', name = 'Qwen', sizeMiB = 1300}}})
-    pending = {}; emit(); mcm.update(player, false)
-    user('matureContent', true)
-    assert(not drafts():find('localModel', 1, true), drafts())
-  `);
-});
-
-test('Mature content on with the model already the uncensored one stages no model change, and a legacy way back with set auto still restores the earlier model', () => {
-  run(`${mcmFixture}${matureFixture}
-    startFrom()
-    assert(apply({{id = 'conversationProvider', value = 4}, {id = 'localModel', value = 3}}).ok and saved.localModel == 'mature:unc')
-    user('matureContent', true)
-    assert(not drafts():find('localModel', 1, true), 'the uncensored model was already chosen: ' .. drafts())
-    user('matureContent', false)
-    pending = {}; emit(); mcm.update(player, false)
-    -- A way back an older version saved: the model it set was 'auto', which now stands for the default model (standard, position 2).
-    assert(manager.applySettings(player, {matureContent = true, conversationProvider = 'local', localModel = 'standard',
-      matureRestore = {localModel = {before = 'lite', set = 'auto'}}}))
-    assert(saved.matureRestore and saved.matureRestore.localModel.before == 'lite' and saved.matureRestore.localModel.set == 'auto')
-    loaded = registered.loadMod('manager'); pending = {}; emit(); mcm.update(player, false)
-    user('matureContent', false)
-    assert(drafts() == 'localModel=1,matureContent=false', drafts())
-    assert(mcm.inspect().mature.changes:find('Local AI model', 1, true), mcm.inspect().mature.changes)
-    assert(apply({{id = 'matureContent', value = false}, {id = 'localModel', value = 1}}).ok)
-    assert(saved.localModel == 'lite' and saved.matureRestore == nil, tostring(saved.localModel))
-  `);
-});
 
 test('the saved way back is checked on load and on Apply, and is dropped with Mature content', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local ok = manager.applySettings(player, {matureContent = true, conversationProvider = 'local', matureRestore = {conversationProvider = {before = 'convai', set = 'local'},
       localModel = {before = 'bad id', set = 'auto'}, voice = {before = {provider = 'pocket'}, set = {provider = 'omni', steps = 16, reference = 'short'}}}})
     assert(ok)
@@ -2569,25 +1273,25 @@ test('the saved way back is checked on load and on Apply, and is dropped with Ma
 // ---- the key rows and the Mature / cloud provider exclusion.
 
 test('select option width: the budget is the box minus the two key boxes a focused row draws, and a text that fit the old budget but not this one is cut', () => {
-  run(`${mcmFixture}
-    assert(mcm.OPTION_BOX_UNITS == 32 and mcm.KEY_HINT_UNITS == 3, 'the box and the key boxes are exposed')
-    assert(mcm.OPTION_BUDGET == mcm.OPTION_BOX_UNITS - 2 * mcm.KEY_HINT_UNITS and mcm.OPTION_BUDGET == 26, tostring(mcm.OPTION_BUDGET))
+  run(`${nsuiFixture}
+    assert(core.OPTION_BOX_UNITS == 32 and core.KEY_HINT_UNITS == 3, 'the box and the key boxes are exposed')
+    assert(core.OPTION_BUDGET == core.OPTION_BOX_UNITS - 2 * core.KEY_HINT_UNITS and core.OPTION_BUDGET == 26, tostring(core.OPTION_BUDGET))
     -- Between the budget and the box: it would have fit unfocused, but the key boxes of a focused row cover its ends.
     local between = string.rep('a', 29)
-    assert(mcm.optionUnits(between) > mcm.OPTION_BUDGET and mcm.optionUnits(between) <= mcm.OPTION_BOX_UNITS, mcm.optionUnits(between))
-    local cut = mcm.fitOption(between)
-    assert(cut ~= between and cut:sub(-3) == '…' and mcm.optionUnits(cut) <= mcm.OPTION_BUDGET, cut)
+    assert(core.optionUnits(between) > core.OPTION_BUDGET and core.optionUnits(between) <= core.OPTION_BOX_UNITS, core.optionUnits(between))
+    local cut = core.fitOption(between)
+    assert(cut ~= between and cut:sub(-3) == '…' and core.optionUnits(cut) <= core.OPTION_BUDGET, cut)
     -- The reported case: a long model name with its marker keeps the marker and fits the budget.
-    local model = mcm.fitOption('Gemma-4-E4B-MiniFoo-Heretic (uncensored)')
-    assert(model:sub(-13) == ' (uncensored)' and model:find('…', 1, true) and mcm.optionUnits(model) <= mcm.OPTION_BUDGET, model)
+    local model = core.fitOption('Gemma-4-E4B-MiniFoo-Heretic (uncensored)')
+    assert(model:sub(-13) == ' (uncensored)' and model:find('…', 1, true) and core.optionUnits(model) <= core.OPTION_BUDGET, model)
     -- Exactly the budget is left as it is.
     local exact = string.rep('a', 26)
-    assert(mcm.optionUnits(exact) <= mcm.OPTION_BUDGET and mcm.fitOption(exact) == exact)
+    assert(core.optionUnits(exact) <= core.OPTION_BUDGET and core.fitOption(exact) == exact)
   `);
 });
 
 test('select option width: every option of every select fits the focused budget in every runtime variant of the menus (developer mode, keys saved or not, OmniVoice pack, Local AI models with long names)', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 1000
     os.clock = function() return clock end
     os.time = function() return clock end
@@ -2597,9 +1301,9 @@ test('select option width: every option of every select fits the focused budget 
         for _, setting in ipairs(category.settings) do
           if setting.type == 'select' and setting.elements then
             for index, label in ipairs(setting.elements) do
-              local units = mcm.optionUnits(label)
+              local units = core.optionUnits(label)
               checked = checked + 1; widest = math.max(widest, units)
-              assert(units <= mcm.OPTION_BUDGET, tag .. ' ' .. setting.id .. ' option ' .. index .. ': ' .. label .. ' (' .. units .. ')')
+              assert(units <= core.OPTION_BUDGET, tag .. ' ' .. setting.id .. ' option ' .. index .. ': ' .. label .. ' (' .. units .. ')')
             end
           end
         end
@@ -2627,104 +1331,12 @@ test('select option width: every option of every select fits the focused budget 
       end
     end
     assert(checked >= 150, 'only ' .. checked .. ' options were looked at')
-    assert(widest <= mcm.OPTION_BUDGET and widest > 20, 'the widest option is ' .. widest)
-  `);
-});
-
-test('the Companion voices stepper skips greyed-out OmniVoice entries, stops at both ends of the list, and dims the value text of a greyed-out choice', () => {
-  run(`${mcmFixture}
-    local clock = 1000
-    os.time = function() return clock end
-    local key = 'cyberpunk-convai:manager:voiceProvider'
-    local effective, forwarded, shownText, opacity = 1, 0, nil, nil
-    local selector = {nativeIdentity = 202}
-    nativeApi.getValue = function(id) assert(id == key); return effective end
-    local function setPack(installed)
-      clock = clock + 20
-      local tag = 'voice-pack-' .. tostring(installed) .. clock
-      jsonFixtures[tag] = {state = 'ready', provider = 'pocket', omniPack = {installed = installed, missing = {'model'}}, updated = clock * 1000}
-      files['runtime/local-voice-state.json'] = tag
-      manager.snapshot(player)
-    end
-    local function size() return #row('voiceProvider').elements end
-    local function open()
-      loaded = registered.loadMod('manager')
-      handlers.McmUiSetContentTitle(controller, 'Companion Manager')
-      handlers.McmUiConfigureBase(selector, controller, key)
-    end
-    local function wrapped(forward)
-      forwarded = forwarded + 1
-      effective = effective + (forward and 1 or -1)
-      if effective > size() then effective = 1 elseif effective < 1 then effective = size() end
-    end
-    -- One press of an arrow, from a given entry: where the selector ends up and how many plain steps MCM was asked for.
-    local function press(forward, from)
-      effective, forwarded = from, 0
-      handlers.McmUiEmitStep(selector, forward, wrapped)
-      return effective, forwarded
-    end
-    local function expect(forward, from, landed, steps)
-      local at, count = press(forward, from)
-      assert(at == landed and count == steps, (forward and 'right' or 'left') .. ' from ' .. from .. ': ' .. at .. ' after ' .. count .. ' steps, expected ' .. landed .. ' after ' .. steps)
-    end
-    assert(invoke('tab:settings').ok)
-    -- The OmniVoice pack is missing: entries 2 to 5 are greyed out and never landed on.
-    setPack(false); open()
-    assert(size() == 7)
-    expect(true, 1, 6, 5)   -- Balanced to Ultra Quality are skipped
-    expect(true, 2, 6, 4)   -- a saved greyed-out choice steps on past the others
-    expect(true, 6, 7, 1)
-    expect(true, 7, 7, 0)   -- the right end stops: no wrap to the first entry
-    expect(false, 7, 6, 1)
-    expect(false, 6, 1, 5)
-    expect(false, 3, 1, 2)
-    expect(false, 1, 1, 0)  -- the left end stops: no wrap to the last entry
-    -- The pack is installed: every entry can be chosen, one step each, and the ends still stop.
-    setPack(true); open()
-    expect(true, 1, 2, 1)
-    expect(true, 4, 5, 1)
-    expect(false, 2, 1, 1)
-    expect(false, 1, 1, 0)
-    expect(true, 7, 7, 0)
-    -- Developer mode adds the Inworld voice as the eighth entry: the list ends there.
-    assert(manager.applySettings(player, {developerMode = true}))
-    open()
-    assert(size() == 8)
-    expect(true, 7, 8, 1)
-    expect(true, 8, 8, 0)
-    expect(false, 8, 7, 1)
-    setPack(false); open()
-    expect(true, 1, 6, 5)
-    expect(true, 7, 8, 1)
-    expect(false, 6, 1, 5)
-    -- A selector of another mod is left alone.
-    handlers.McmUiConfigureBase(selector, controller, 'another-mod:settings:voiceProvider')
-    local at, count = press(true, 1)
-    assert(at == 2 and count == 1, 'a foreign selector must step as usual')
-    handlers.McmUiConfigureBase(selector, controller, key)
-    -- The value text of a greyed-out choice is dimmed (from the update tick, never in a hook); any other choice is shown plainly.
-    local textWidget = {IsA = function(_, name) return name == 'inkText' end, GetText = function() return shownText end,
-      SetOpacity = function(_, value) opacity = value end, GetName = function() return 'value' end}
-    local root = {IsA = function() return false end, GetName = function() return 'root' end, GetNumChildren = function() return 1 end,
-      GetWidgetByIndex = function() return textWidget end}
-    function selector:GetRootWidget() return root end
-    local function show(index)
-      effective, shownText, opacity = index, row('voiceProvider').elements[index], nil
-      handlers.McmUiFinishSelect(selector)
-      assert(opacity == nil, 'the hook touched a widget')
-      mcm.update(player, false)
-    end
-    show(3); assert(opacity == 0.4, 'a greyed-out choice is dimmed: ' .. tostring(opacity))
-    show(1); assert(opacity == 1.0, 'a plain choice is shown at full strength: ' .. tostring(opacity))
-    show(6); assert(opacity == 1.0)
-    -- With the pack installed nothing is dimmed.
-    setPack(true); open()
-    show(3); assert(opacity ~= 0.4, 'an installed OmniVoice entry was dimmed')
+    assert(widest <= core.OPTION_BUDGET and widest > 20, 'the widest option is ' .. widest)
   `);
 });
 
 test('the Inworld voice is a developer-mode voice: seven entries without Developer mode and eight with it, its key row only in Development, and a saved Inworld voice reads as Pocket TTS without it', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 1000
     os.clock = function() return clock end
     os.time = function() return clock end
@@ -2804,7 +1416,7 @@ test('the Inworld voice is a developer-mode voice: seven entries without Develop
 });
 
 test('the old Use my own Convai API key switch migrates once: on with a saved key is Convai API key, otherwise Convai free tier; Mistral and Local are never overridden', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local function start(settings, keyState)
       seed = {version = 2, voiceProvider = 'pocket', enabledByKey = {}}
       for key, value in pairs(settings) do seed[key] = value end
@@ -2888,79 +1500,8 @@ test('Mature content and a cloud provider exclude each other in loaded settings 
   `);
 });
 
-test('in the drafts, picking Convai API key, Mistral or Convai free tier while Mature content is on turns it off and puts back what turning it on changed; picking Local does not', () => {
-  run(`${mcmFixture}${matureFixture}
-    startFrom()
-    -- From Mistral: Mature on stages Local AI, the model and Pocket voice. Then each cloud entry turns it off again.
-    local ON = 'conversationProvider=4,localModel=3,matureContent=true,voiceProvider=1'
-    user('matureContent', true)
-    assert(drafts() == ON, drafts())
-    user('conversationProvider', 2)
-    assert(nativeApi.getValue(PREFIX .. 'matureContent') == false and nativeApi.getValue(PREFIX .. 'conversationProvider') == 2)
-    -- The model and the voice go back to what is saved; the provider the player picked is theirs.
-    assert(drafts() == 'conversationProvider=2', drafts())
-    assert(mcm.inspect().mature.changes and mcm.inspect().mature.changes:find('Local AI model', 1, true), tostring(mcm.inspect().mature.changes))
-    pending = {}; emit(); mcm.update(player, false)
-    user('matureContent', true)
-    assert(drafts() == ON, drafts())
-    user('conversationProvider', 1)
-    assert(drafts() == 'conversationProvider=1', drafts())
-    pending = {}; emit(); mcm.update(player, false)
-    user('matureContent', true)
-    assert(drafts() == ON, drafts())
-    user('conversationProvider', 3)
-    assert(drafts() == '', 'Mistral is the saved provider: nothing is left pending: ' .. drafts())
-    pending = {}; emit(); mcm.update(player, false)
-    -- Local keeps it: choosing Local again (or any other setting) does not touch Mature content.
-    user('matureContent', true)
-    assert(drafts() == ON, drafts())
-    user('conversationProvider', 4)
-    assert(drafts() == ON, 'Local kept Mature content on: ' .. drafts())
-    user('localModel', 1)
-    assert(nativeApi.getValue(PREFIX .. 'matureContent') == true)
-    pending = {}; emit(); mcm.update(player, false)
-    -- Saved Local with Mature on: a cloud pick turns it off, its way back is recorded, and choosing Local again does not turn it on.
-    user('matureContent', true)
-    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 4}, {id = 'localModel', value = 3}, {id = 'voiceProvider', value = 1}}).ok)
-    assert(saved.matureContent == true and saved.conversationProvider == 'local')
-    user('conversationProvider', 3)
-    assert(nativeApi.getValue(PREFIX .. 'matureContent') == false, 'a cloud pick left Mature content on')
-    assert(drafts() == 'conversationProvider=3,localModel=2,matureContent=false,voiceProvider=6', drafts())
-    user('conversationProvider', 4)
-    assert(nativeApi.getValue(PREFIX .. 'matureContent') == false and drafts():find('matureContent=false', 1, true), 'picking Local again turned it back on: ' .. drafts())
-    -- Applying a cloud pick that turned Mature off saves it off, with the way back dropped.
-    pending = {}; emit(); mcm.update(player, false)
-    user('conversationProvider', 3)
-    assert(apply({{id = 'conversationProvider', value = 3}, {id = 'matureContent', value = false}, {id = 'localModel', value = 2}, {id = 'voiceProvider', value = 6}}).ok)
-    assert(saved.matureContent == false and saved.conversationProvider == 'mistral' and saved.matureRestore == nil)
-  `);
-});
-
-test('Mature content remembers Convai API key as the provider it replaced, and turning it off puts that entry back (the free tier stays the free tier)', () => {
-  run(`${mcmFixture}${matureFixture}
-    startFrom()
-    assert(apply({{id = 'conversationProvider', value = 2}}).ok)
-    assert(saved.conversationProvider == 'convai' and saved.useOwnConvaiKey == true)
-    user('matureContent', true)
-    assert(drafts() == 'conversationProvider=4,localModel=3,matureContent=true,voiceProvider=1', drafts())
-    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 4}, {id = 'localModel', value = 3}, {id = 'voiceProvider', value = 1}}).ok)
-    assert(saved.conversationProvider == 'local' and saved.matureRestore.conversationProvider.before == 'convai-key', tostring(saved.matureRestore and saved.matureRestore.conversationProvider.before))
-    user('matureContent', false)
-    assert(drafts() == 'conversationProvider=2,localModel=2,matureContent=false,voiceProvider=6', drafts())
-    assert(apply({{id = 'matureContent', value = false}, {id = 'conversationProvider', value = 2}, {id = 'localModel', value = 2}, {id = 'voiceProvider', value = 6}}).ok)
-    assert(saved.conversationProvider == 'convai' and saved.useOwnConvaiKey == true and saved.matureContent == false and saved.matureRestore == nil)
-    -- The free tier comes back as the free tier.
-    assert(apply({{id = 'conversationProvider', value = 1}}).ok and saved.useOwnConvaiKey == false)
-    user('matureContent', true)
-    assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 4}, {id = 'localModel', value = 3}, {id = 'voiceProvider', value = 1}}).ok)
-    assert(saved.matureRestore.conversationProvider.before == 'convai', tostring(saved.matureRestore.conversationProvider.before))
-    user('matureContent', false)
-    assert(drafts() == 'conversationProvider=1,localModel=2,matureContent=false,voiceProvider=6', drafts())
-  `);
-});
-
 test('Local AI model: a row with each installed model by its name from the smallest to the largest and no Auto, the default model selected until one is chosen, sizes in the help, the pin saved by id', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     local function state(tag, value)
       jsonFixtures['models-' .. tag] = value
@@ -3071,7 +1612,7 @@ test('Local AI model: a row with each installed model by its name from the small
 });
 
 test('Local AI model: custom models are marked, show the memory they need or that the card is too small, and unusable ones are named in the help', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     local function state(tag, value)
       jsonFixtures['custom-' .. tag] = value
@@ -3115,37 +1656,37 @@ test('Local AI model: custom models are marked, show the memory they need or tha
 test('select option width: the Lua estimate equals the test estimate, and a name that is too long is cut with an ellipsis and keeps its marker', () => {
   const samples = ['Pocket · Performance', 'OmniVoice · Ultra Quality · needs pack', 'Qwen3.5-4B · uncensored', 'Mistral (free plan)', 'WWWW MMMM mmmm', '日本語のテスト', 'Español (México)', 'Русский', 'It’s'];
   const expected = samples.map(text => `{${JSON.stringify(text)}, ${optionUnits(text)}}`).join(', ');
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     for _, pair in ipairs({${expected}}) do
-      assert(math.abs(mcm.optionUnits(pair[1]) - pair[2]) < 0.05, pair[1] .. ' ' .. mcm.optionUnits(pair[1]) .. ' vs ' .. pair[2])
+      assert(math.abs(core.optionUnits(pair[1]) - pair[2]) < 0.05, pair[1] .. ' ' .. core.optionUnits(pair[1]) .. ' vs ' .. pair[2])
     end
-    local budget = mcm.OPTION_BUDGET
+    local budget = core.OPTION_BUDGET
     local function valid(text) return utf8.len(text) ~= nil end
     -- A text that fits is returned as it is.
-    assert(mcm.fitOption('Pocket · Performance') == 'Pocket · Performance')
-    assert(mcm.fitOption('') == '' and mcm.fitOption(nil) == '')
+    assert(core.fitOption('Pocket · Performance') == 'Pocket · Performance')
+    assert(core.fitOption('') == '' and core.fitOption(nil) == '')
     -- The name is cut, the marker stays.
-    local long = mcm.fitOption('Qwen3.5-4B-HauhauCS-Aggressive-Extended (uncensored)')
-    assert(long:find('…', 1, true) and long:sub(-13) == ' (uncensored)' and mcm.optionUnits(long) <= budget, long)
-    local custom = mcm.fitOption('A very long custom model name from somebody (custom · too large)')
-    assert(custom:sub(-22) == ' (custom · too large)' and custom:find('…', 1, true) and mcm.optionUnits(custom) <= budget, custom)
-    local dotted = mcm.fitOption('Gemma 4 E4B Heretic Ultra Abliterated Edition · uncensored')
-    assert(dotted:sub(-14) == ' · uncensored' and mcm.optionUnits(dotted) <= budget, dotted)
+    local long = core.fitOption('Qwen3.5-4B-HauhauCS-Aggressive-Extended (uncensored)')
+    assert(long:find('…', 1, true) and long:sub(-13) == ' (uncensored)' and core.optionUnits(long) <= budget, long)
+    local custom = core.fitOption('A very long custom model name from somebody (custom · too large)')
+    assert(custom:sub(-22) == ' (custom · too large)' and custom:find('…', 1, true) and core.optionUnits(custom) <= budget, custom)
+    local dotted = core.fitOption('Gemma 4 E4B Heretic Ultra Abliterated Edition · uncensored')
+    assert(dotted:sub(-14) == ' · uncensored' and core.optionUnits(dotted) <= budget, dotted)
     -- No marker: the whole text is cut. Wide characters are cut on a character boundary, never inside one.
-    local plain = mcm.fitOption(string.rep('M', 60))
-    assert(plain:sub(-3) == '…' and mcm.optionUnits(plain) <= budget, plain)
-    local wide = mcm.fitOption(string.rep('日本語', 20))
-    assert(valid(wide) and wide:sub(-3) == '…' and mcm.optionUnits(wide) <= budget and #wide > 3, wide)
-    local accented = mcm.fitOption(string.rep('é', 80))
-    assert(valid(accented) and mcm.optionUnits(accented) <= budget, accented)
+    local plain = core.fitOption(string.rep('M', 60))
+    assert(plain:sub(-3) == '…' and core.optionUnits(plain) <= budget, plain)
+    local wide = core.fitOption(string.rep('日本語', 20))
+    assert(valid(wide) and wide:sub(-3) == '…' and core.optionUnits(wide) <= budget and #wide > 3, wide)
+    local accented = core.fitOption(string.rep('é', 80))
+    assert(valid(accented) and core.optionUnits(accented) <= budget, accented)
     -- A marker that is itself wider than the budget does not leave an empty name: the whole text is cut instead.
-    local huge = mcm.fitOption('x (' .. string.rep('long marker ', 10) .. ')')
-    assert(valid(huge) and mcm.optionUnits(huge) <= budget and huge:find('…', 1, true), huge)
+    local huge = core.fitOption('x (' .. string.rep('long marker ', 10) .. ')')
+    assert(valid(huge) and core.optionUnits(huge) <= budget and huge:find('…', 1, true), huge)
   `);
 });
 
 test('select option width: every select of the settings page fits in English, the built-in model names are shown whole, and a custom model with a long name is cut', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     files['runtime/mistral-state.json'] = 'wide'
     jsonFixtures['wide'] = {provider = 'local', effective = 'local', saved = false, localModels = {
@@ -3165,8 +1706,8 @@ test('select option width: every select of the settings page fits in English, th
         if setting.type == 'select' and setting.elements then
           for index, label in ipairs(setting.elements) do
             checked = checked + 1
-            widest = math.max(widest, mcm.optionUnits(label))
-            assert(mcm.optionUnits(label) <= mcm.OPTION_BUDGET, setting.id .. ' option ' .. index .. ': ' .. label .. ' (' .. mcm.optionUnits(label) .. ')')
+            widest = math.max(widest, core.optionUnits(label))
+            assert(core.optionUnits(label) <= core.OPTION_BUDGET, setting.id .. ' option ' .. index .. ': ' .. label .. ' (' .. core.optionUnits(label) .. ')')
           end
         end
       end
@@ -3188,7 +1729,7 @@ test('select option width: every select of the settings page fits in English, th
 });
 
 test('the Mistral cloud voice speaks English only here: Multilingual conversations refuses it and moves a saved choice to the Convai cloud voice', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     jsonFixtures['mistral-a'] = {provider = 'convai', effective = 'convai', saved = true}
     files['runtime/mistral-state.json'] = 'mistral-a'
@@ -3207,7 +1748,7 @@ test('the Mistral cloud voice speaks English only here: Multilingual conversatio
 });
 
 test('a Mistral cloud voice that fell back to Pocket is announced once, with the usual wording', () => {
-  run(`${mcmFixture}${managerPopupFixture}
+  run(`${nsuiFixture}${managerPopupFixture}
     popupStep = 1
     local state = {state = 'ready', provider = 'pocket', requestedProvider = 'pocket', cloudVoice = nil, routedProfiles = {'johnny-silverhand'},
       fallback = {from = 'voxtral', to = 'pocket', temporary = true, reason = 'timeout'}, updated = popupClock * 1000}
@@ -3226,7 +1767,7 @@ test('a Mistral cloud voice that fell back to Pocket is announced once, with the
 });
 
 test('the Inworld cloud voice says it needs an Inworld key and cannot be applied without one; with a key it applies, and the key is not the Mistral key', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     local function key(tag, value)
       jsonFixtures['mistral-' .. tag] = value
@@ -3265,7 +1806,7 @@ test('the Inworld cloud voice says it needs an Inworld key and cannot be applied
 });
 
 test('the Inworld key is one Paste or Remove row in Settings > Development, with Developer mode on; it goes through its own command file and the page shows only its last four characters', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     local function inCategory(category, id)
       for _, item in ipairs(loaded.categories) do
@@ -3302,7 +1843,7 @@ test('the Inworld key is one Paste or Remove row in Settings > Development, with
 });
 
 test('prepared voices are always kept: no switch, no disk row, no Clear action or page, and a saved false is ignored', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     assert(invoke('tab:settings').ok)
     for _, id in ipairs({'keepPreparedVoices', 'prepared-voices', 'prepared-voices:open', 'prepared-voices:confirm', 'prepared-voices:cancel'}) do
       assert(row(id) == nil, id .. ' is still offered')
@@ -3322,7 +1863,7 @@ test('prepared voices are always kept: no switch, no disk row, no Clear action o
 });
 
 test('a saved Groq provider (the option was removed) reads as Convai free tier, as in the bridge', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     seed = {version = 2, voice = true, subtitles = true, subtitleStyle = 'dialogue', voiceProvider = 'pocket', conversationProvider = 'groq',
       battleReactions = false, lootReactions = false, enabledByKey = {}}
     for _, profile in ipairs(profiles) do seed.enabledByKey[profile.key] = true end
@@ -3338,7 +1879,7 @@ test('a saved Groq provider (the option was removed) reads as Convai free tier, 
 });
 
 test('the Inworld cloud voice speaks English only here: Multilingual conversations refuses it and moves a saved choice off it', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     jsonFixtures['mistral-a'] = {provider = 'convai', effective = 'convai', saved = true, inworld = {saved = true, tail = 'wxyz'}}
     files['runtime/mistral-state.json'] = 'mistral-a'
@@ -3355,7 +1896,7 @@ test('the Inworld cloud voice speaks English only here: Multilingual conversatio
 });
 
 test('an Inworld cloud voice that fell back to Pocket is announced once, with the usual wording and its own name', () => {
-  run(`${mcmFixture}${managerPopupFixture}
+  run(`${nsuiFixture}${managerPopupFixture}
     popupStep = 1
     local state = {state = 'ready', provider = 'pocket', requestedProvider = 'pocket', cloudVoice = nil, routedProfiles = {'johnny-silverhand'},
       fallback = {from = 'inworld', to = 'pocket', temporary = true, reason = 'timeout'}, updated = popupClock * 1000}
@@ -3371,25 +1912,25 @@ test('an Inworld cloud voice that fell back to Pocket is announced once, with th
 });
 
 test('native Memory submenu has consistent parent navigation and preserves an unissued confirmation', () => {
-  run(`${mcmFixture}${memoryFixture}
+  run(`${nsuiFixture}${memoryFixture}
     publishMemory(1, {{profileKey = 'person-20'}})
     assert(invoke('tab:settings').ok)
     assert(row('memory').type == 'action' and row('memory').value == 'Manage')
     assert(not row('memory:choose') and not row('memory-count'), 'memory controls leaked into the Settings page')
-    assert(not row('permissions') and not invoke('permissions').ok and mcm.inspect().view == 'settings', 'Who can talk is gone')
-    assert(invoke('memory').ok and mcm.inspect().view == 'memory')
-    assert(not row('tab:settings') and mcm.inspect().back.label == 'Back to settings')
-    assert(invoke('memory:choose').ok and mcm.inspect().view == 'memory-characters')
-    assert(not row('tab:settings') and mcm.inspect().back.label == 'Back to memory')
-    handlers.McmUiEmitSearch(nil, 'content', 'Person 20')
-    for _ = 1, 6 do mcm.update(player, false) end
-    assert(invoke('memory:back').ok and mcm.inspect().view == 'memory')
-    assert(invoke('memory:choose').ok and row('memory:next'), 'return retained the picker search')
-    assert(invoke('memory:next').ok and invoke('memory:select:person-20').ok)
-    assert(mcm.inspect().view == 'memory' and row('memory:choose').value == 'Person 20')
+    assert(not row('permissions') and not invoke('permissions').ok and managerUi.inspect().view == 'settings', 'Who can talk is gone')
+    assert(invoke('memory').ok and managerUi.inspect().view == 'memory')
+    assert(not row('tab:settings') and loaded.categories[1].settings[1].label == 'Back to settings')
+    -- The character is chosen from a list on the Memory page itself: 22 characters, 12 to a page, read with the page slider.
+    assert(not row('memory:choose') and row('memory-selected').value == 'Choose a character')
+    assert(row('ui:page') and row('ui:page').max == 2 and row('ui:page').value == 1 and not row('memory:select:person-20'))
+    assert(core.setUi('ui:page', 2)); loaded = registered.loadMod('manager')
+    assert(row('memory:select:person-20') and row('memory:select:person-20').value == 'Choose' and not row('memory:select:person-01'))
+    assert(invoke('memory:select:person-20').ok)
+    assert(managerUi.inspect().view == 'memory' and row('memory-selected').value == 'Person 20')
+    assert(row('memory:select:person-20').value == 'Selected')
     assert(invoke('memory:forget-character').ok)
     local confirmation = token()
-    assert(invoke('memory:settings').ok and mcm.inspect().view == 'settings')
+    assert(invoke('memory:settings').ok and managerUi.inspect().view == 'settings')
     assert(invoke('memory').ok and token() == confirmation and row('memory-confirmation'))
     assert(invoke('memory:cancel:' .. confirmation).ok and memoryWrites() == 0)
     assert(#members == 0 and #spawned == 0)
@@ -3397,7 +1938,7 @@ test('native Memory submenu has consistent parent navigation and preserves an un
 });
 
 test('native Memory controls use the contacted count and full catalogue without inviting a character or exposing identity', () => {
-  run(`${mcmFixture}${memoryFixture}
+  run(`${nsuiFixture}${memoryFixture}
     openMemory()
     assert(row('memory-service').value == 'Unavailable' and row('memory:forget-all').disabled)
     assert(not invoke('memory:forget-all').ok and memoryWrites() == 0)
@@ -3405,19 +1946,18 @@ test('native Memory controls use the contacted count and full catalogue without 
     reloadMemory()
     assert(row('memory-count').value == '3' and not row('memory:forget-all').disabled)
     assert(row('memory:forget-character').disabled, 'selection must be explicit')
-    assert(invoke('memory:choose').ok and row('memory:next'))
-    assert(not row('memory:select:person-20'))
-    handlers.McmUiEmitSearch(nil, 'content', 'pErSoN 20')
-    for _ = 1, 6 do mcm.update(player, false) end
-    assert(row('memory:select:person-20') and not row('memory:select:person-19'))
+    -- The list is on the page, 12 characters to a page: Person 20 is on the second page.
+    assert(row('ui:page').max == 2 and not row('memory:select:person-20'))
+    assert(core.setUi('ui:page', 2)); loaded = registered.loadMod('manager')
+    assert(row('memory:select:person-20') and not row('memory:select:person-01'))
     assert(invoke('memory:select:person-20').ok)
-    assert(row('memory:choose').value == 'Person 20' and not row('memory:forget-character').disabled)
+    assert(row('memory-selected').value == 'Person 20' and not row('memory:forget-character').disabled)
     assert(#members == 0 and #spawned == 0 and memoryWrites() == 0)
     assert(saved.memoryProfileKey == nil and saved.endUserId == nil)
     for _, category in ipairs(loaded.categories) do
       for _, value in ipairs(category.settings) do
         local text = tostring(value.label) .. tostring(value.value) .. tostring(value.description)
-        assert(not text:find(memoryStatus.endUserId, 1, true), 'raw player identity reached MCM')
+        assert(not text:find(memoryStatus.endUserId, 1, true), 'raw player identity reached the page')
       end
     end
     assert(row('memory-chat-history').description:find('clears their saved Chat messages and drafts', 1, true))
@@ -3428,7 +1968,7 @@ test('native Memory controls use the contacted count and full catalogue without 
 });
 
 test('memory clear needs a separate confirmation, cancel sends nothing and deliberate double activation sends one command', () => {
-  run(`${mcmFixture}${memoryFixture}
+  run(`${nsuiFixture}${memoryFixture}
     publishMemory(2, {{profileKey = 'johnny-silverhand'}, {profileKey = 'person-20'}})
     openMemory()
     assert(invoke('memory:forget-all').ok)
@@ -3457,14 +1997,13 @@ test('memory clear needs a separate confirmation, cancel sends nothing and delib
     assert(row('memory:forget-character').disabled and row('memory:forget-all').disabled)
     assert(not invoke('memory:confirm:' .. confirmation).ok)
     assert(not manager.confirmMemoryClear(confirmation) and not manager.beginMemoryClear('all'))
-    for _ = 1, 25 do mcm.update(player, false) end
+    for _ = 1, 25 do managerUi.update(player, false) end
     assert(memoryWrites() == 1, 'pending cloud work was sent again')
   `);
 });
 
-test('backing out of the memory picker or cancelling a Forget confirmation says nothing was deleted and deletes nothing', () => {
-  run(`${mcmFixture}${memoryFixture}${managerBannerFixture}
-    memoryClock = clock -- the banner fixture owns os.time; keep the memory status fresh against it
+test('choosing a character and cancelling a Forget confirmation say nothing was deleted and delete nothing', () => {
+  run(`${nsuiFixture}${memoryFixture}
     publishMemory(2, {{profileKey = 'johnny-silverhand'}, {profileKey = 'person-20'}})
     local removed, originalRemove = {}, os.remove
     os.remove = function(path) removed[#removed + 1] = path; return originalRemove(path) end
@@ -3472,36 +2011,27 @@ test('backing out of the memory picker or cancelling a Forget confirmation says 
       -- Settings saved or other exchange files may still swap through os.remove (a prepared-voices request used to); that is not stored memory.
       local touched = 0
       for _, path in ipairs(removed) do if not tostring(path):find('prepared-voices', 1, true) then touched = touched + 1 end end
-      assert(memoryWrites() == 0 and memoryRequest() == nil and touched == 0, 'a back-out or cancel touched stored memory')
+      assert(memoryWrites() == 0 and memoryRequest() == nil and touched == 0, 'a choice or cancel touched stored memory')
       assert(#members == 0 and #spawned == 0)
     end
-    local pickerClosed = 'Character picker closed. Your selection is unchanged. Closing it deleted nothing.'
     local cancelled = 'Memory clear cancelled. Nothing was deleted.'
     openMemory()
     assert(not row('memory-feedback'), 'feedback appeared before any action')
-    -- Open the picker and leave without choosing anyone.
-    assert(invoke('memory:choose').ok and mcm.inspect().view == 'memory-characters')
-    assert(invoke('memory:back').ok and mcm.inspect().view == 'memory')
-    paint('Completed: Back to memory'); assert(banner.text == pickerClosed)
-    assert(row('memory-feedback').value == pickerClosed)
-    assert(row('memory:choose').value == 'Choose a character', 'backing out selected someone')
-    assert(row('memory:forget-character').disabled)
+    assert(row('memory-selected').value == 'Choose a character' and row('memory:forget-character').disabled)
     nothingDeleted()
-    -- Choosing a character replaces that note and still asks before any Forget.
-    assert(invoke('memory:choose').ok and invoke('memory:next').ok and invoke('memory:select:person-20').ok)
-    assert(not row('memory-feedback') and row('memory:choose').value == 'Person 20')
-    -- Backing out later keeps the choice.
-    assert(invoke('memory:choose').ok and invoke('memory:back').ok)
-    assert(row('memory:choose').value == 'Person 20' and row('memory-feedback').value == pickerClosed)
+    -- Choosing a character (on the second page of the list) asks before any Forget.
+    assert(core.setUi('ui:page', 2)); loaded = registered.loadMod('manager')
+    assert(invoke('memory:select:person-20').ok)
+    assert(row('memory-selected').value == 'Person 20')
     nothingDeleted()
-    -- A new confirmation must not sit beside the old note.
+    -- A new confirmation must not sit beside an old note.
     assert(invoke('memory:forget-character').ok)
     assert(not row('memory-feedback') and row('memory-confirmation'))
     local firstToken = token()
     assert(invoke('memory:cancel:' .. firstToken).ok)
-    paint('Completed: Cancel'); assert(banner.text == cancelled)
+    assert(managerUi.inspect().shown == cancelled, 'the line under the way back says nothing was deleted')
     assert(row('memory-feedback').value == cancelled and not row('memory-confirmation'))
-    assert(row('memory:choose').value == 'Person 20')
+    assert(row('memory-selected').value == 'Person 20')
     nothingDeleted()
     assert(not manager.confirmMemoryClear(firstToken))
     nothingDeleted()
@@ -3513,27 +2043,7 @@ test('backing out of the memory picker or cancelling a Forget confirmation says 
   `);
 });
 
-test('closing the memory picker keeps an earlier clear result visible', () => {
-  run(`${mcmFixture}${memoryFixture}${managerBannerFixture}
-    memoryClock = clock -- the banner fixture owns os.time; keep the memory status fresh against it
-    publishMemory(2, {{profileKey = 'johnny-silverhand'}, {profileKey = 'person-20'}})
-    openMemory()
-    assert(invoke('memory:choose').ok and invoke('memory:next').ok and invoke('memory:select:person-20').ok)
-    assert(invoke('memory:forget-character').ok and invoke('memory:confirm:' .. token()).ok)
-    local command = assert(memoryRequest())
-    publishMemory(2, {{profileKey = 'johnny-silverhand'}}, 'ready', memoryResult(command, 'failed'))
-    reloadMemory()
-    local failure = row('memory-feedback').value
-    assert(failure:find('could not confirm', 1, true))
-    assert(invoke('memory:choose').ok and invoke('memory:back').ok)
-    paint('Completed: Back to memory')
-    assert(banner.text == 'Character picker closed. Your selection is unchanged. Closing it deleted nothing.')
-    assert(row('memory-feedback').value == failure, 'the picker note hid the failed clear')
-    assert(memoryWrites() == 1)
-  `);
-});
-
-test('Memory permits deliberate local Chat clearing with zero contacted provider pairs', () => run(`${mcmFixture}${memoryFixture}
+test('Memory permits deliberate local Chat clearing with zero contacted provider pairs', () => run(`${nsuiFixture}${memoryFixture}
   publishMemory(0,{})
   openMemory()
   assert(not row('memory:forget-all').disabled)
@@ -3546,9 +2056,9 @@ test('Memory permits deliberate local Chat clearing with zero contacted provider
   assert(memoryRequest().profileKey=='person-20')
 `));
 
-test('Relationships use their own MCM page and only applied selections reach saved modes', () => run(`${mcmFixture}
-  assert(invoke('tab:settings').ok and row('relationships'))
-  assert(invoke('relationships').ok)
+test('Relationships are a page that opens from Conversations and only applied selections reach saved modes', () => run(`${nsuiFixture}
+  assert(invoke('tab:settings').ok and row('relationships').value=='Open' and not row('relationship:judy-alvarez'))
+  assert(invoke('relationships').ok and row('relationships:back').value=='Back')
   local selected=row('relationship:judy-alvarez')
   assert(selected and selected.value==1 and selected.defaultValue==1)
   assert(selected.elements[1]=='Auto' and selected.elements[2]=='Romantic' and selected.elements[3]=='Ordinary')
@@ -3563,16 +2073,26 @@ test('Relationships use their own MCM page and only applied selections reach sav
   assert(saved.relationshipModes['judy-alvarez']=='on')
   assert(not registered.applyBatch('manager',{{id='relationship:judy-alvarez',value=4}}).ok)
   assert(saved.relationshipModes['judy-alvarez']=='on')
-  assert(invoke('relationships:back').ok and row('relationships') and not row('disappearingMessages'))
+  assert(row('relationship:judy-alvarez') and not row('disappearingMessages'))
 `));
 
-test('the Characters sidebar shows the settings in effect for each character, not invitation advice', () => run(`${mcmFixture}${memoryFixture}
+test('the Characters sidebar shows the settings in effect for each character, not invitation advice', () => run(`${nsuiFixture}${memoryFixture}
   local list = {{key = 'judy-alvarez', name = 'Judy Alvarez', records = {'Character.Judy'}, summary = 'A braindance editor.', voiceName = 'Julia'},
     {key = 'viktor-vektor', name = 'Viktor Vektor', records = {'Character.Victor_Vector'}, summary = 'A ripperdoc.'}}
   for index = 1, 40 do list[#list + 1] = {key = 'extra-' .. index, name = string.format('Extra %02d', index), records = {'Character.Extra_' .. index}} end
   manager.configure(api, list)
-  local function description(key) return assert(row('invite:' .. key), key).description end
-  local function reload() loaded = registered.loadMod('manager') end
+  -- Characters are listed 12 to a page: look for the row on each page in turn, and leave the list on its first.
+  local function description(key)
+    local found
+    for page = 1, 20 do
+      core.setUi('ui:page', page); loaded = registered.loadMod('manager')
+      found = row('invite:' .. key)
+      if found or not row('ui:page') or page >= row('ui:page').max then break end
+    end
+    core.setUi('ui:page', 1)
+    return assert(found, key).description
+  end
+  local function reload() core.setUi('ui:page', 1); loaded = registered.loadMod('manager') end
   assert(invoke('tab:characters').ok)
   reload()
   -- Nothing is on (Expressive emotions, Follow-up questions, V’s voice and Body gestures are on by default, so they are switched off first)
@@ -3632,7 +2152,7 @@ test('the Characters sidebar shows the settings in effect for each character, no
 `));
 
 test('memory completion requires exact ID, scope, profile and a current result; old success cannot complete a later request', () => {
-  run(`${mcmFixture}${memoryFixture}
+  run(`${nsuiFixture}${memoryFixture}
     publishMemory(2, {{profileKey = 'johnny-silverhand'}, {profileKey = 'person-20'}})
     openMemory()
     assert(manager.selectMemoryCharacter('johnny-silverhand'))
@@ -3671,7 +2191,7 @@ test('memory completion requires exact ID, scope, profile and a current result; 
 });
 
 test('pending memory commands survive manager, save and Lua reloads without a retry or timeout success', () => {
-  run(`${mcmFixture}${memoryFixture}
+  run(`${nsuiFixture}${memoryFixture}
     math.randomseed(42)
     publishMemory(1, {{profileKey = 'person-20'}})
     openMemory()
@@ -3679,12 +2199,14 @@ test('pending memory commands survive manager, save and Lua reloads without a re
     reloadMemory(); assert(invoke('memory:forget-character').ok)
     assert(invoke('memory:confirm:' .. token()).ok)
     local command, raw = memoryRequest(), files['runtime/memory-command.json']
-    manager.reset(); player.hash = 'player-2'; mcm.resetSession()
+    manager.reset(); player.hash = 'player-2'; managerUi.resetSession()
     assert(reloadMemory().command.id == command.id)
     assert(manager.snapshot(player).memory.command.state == 'pending' and memoryWrites() == 1)
     memoryClock = memoryClock + 60
     local state = reloadMemory()
     assert(state.state == 'unavailable' and state.command.state == 'pending')
+    -- A new world starts on the first page: open the Memory page again.
+    openMemory(); loaded = registered.loadMod('manager')
     assert(row('memory-feedback').value:find('Waiting for the result', 1, true))
     assert(not manager.beginMemoryClear('all') and files['runtime/memory-command.json'] == raw)
     manager = (function() ${managerSource} end)()
@@ -3705,7 +2227,7 @@ test('pending memory commands survive manager, save and Lua reloads without a re
 });
 
 test('memory confirmation is cancelled on save reset, rejects a changed all count and handles service loss before submission', () => {
-  run(`${mcmFixture}${memoryFixture}
+  run(`${nsuiFixture}${memoryFixture}
     publishMemory(2, nil)
     openMemory(); assert(invoke('memory:forget-all').ok)
     local first = token()
@@ -3721,14 +2243,14 @@ test('memory confirmation is cancelled on save reset, rejects a changed all coun
     publishMemory(3, nil)
     reloadMemory(); assert(invoke('memory:forget-all').ok)
     local third = token()
-    mcm.resetSession(); reloadMemory()
+    managerUi.resetSession(); reloadMemory()
     assert(not manager.confirmMemoryClear(third) and not row('memory-confirmation'))
     assert(memoryWrites() == 0 and memoryRequest() == nil)
   `);
 });
 
 test('failed command publication shows failure, does not retry and leaves an earlier durable command intact', () => {
-  run(`${mcmFixture}${memoryFixture}
+  run(`${nsuiFixture}${memoryFixture}
     publishMemory(1, nil)
     openMemory(); assert(invoke('memory:forget-all').ok)
     local first = token()
@@ -3750,7 +2272,7 @@ test('failed command publication shows failure, does not retry and leaves an ear
     end
     assert(not invoke('memory:confirm:' .. failing).ok)
     io.open = open
-    for _ = 1, 10 do mcm.update(player, false) end
+    for _ = 1, 10 do managerUi.update(player, false) end
     assert(files['runtime/memory-command.json'] == raw and memoryRequest().id == command.id)
     assert(not files['runtime/memory-command.json.tmp'] and not files['runtime/memory-command.json.previous'])
     assert(not manager.confirmMemoryClear(failing) and memoryWrites() == 1)
@@ -3836,24 +2358,24 @@ test('an empty status file is no status: every status reader behaves as for a mi
   `);
 });
 
-test('MCM schema uses native controls, operates on current copies while paused, and preserves setting drafts', () => {
-  run(`${mcmFixture}
-    assert(registered.apiVersion == 2 and registered.listMods().mods[1].name == 'Companion Manager')
+test('the manager page uses real controls, operates on current copies while paused, and applies settings as one transaction', () => {
+  run(`${nsuiFixture}
+    assert(core.model().name == 'Companion Manager' and loaded.categories[1].id == 'navigation')
     assert(invoke('tab:characters').ok)
     assert(row('invite:johnny-silverhand').type == 'action')
     assert(invoke('invite:johnny-silverhand').ok)
-    mcm.update(player, false)
-    assert(#spawned == 0 and #mcm.inspect().party == 1)
+    managerUi.update(player, false)
+    assert(#spawned == 0 and #managerUi.inspect().party == 1)
     assert(invoke('characters:back').ok and invoke('tab:party').ok)
     assert(row('dismiss:queued:1').value == 'Cancel invitation')
     assert(not row('assign:queued:1'), 'a per-copy conversation entry remained on Current party')
-    assert(mcm.party().assign('queued:1', 'person-1', 'Person 01'))
+    assert(managerUi.party().assign('queued:1', 'person-1', 'Person 01'))
     assert(invoke('party:back').ok and invoke('tab:settings').ok)
     assert(row('voice').type == 'bool' and row('omniSteps') == nil)
     assert(row('subtitles').type == 'bool' and row('subtitles').value == true)
     -- Order: 1 Cinematic subtitles (stored dialogue, the default), 2 Above the speaker (stored overhead).
     assert(row('subtitleStyle').type == 'select' and row('subtitleStyle').value == 1)
-    assert(row('subtitleStyle').defaultValue == 1 and row('subtitleStyle').capabilities.draft)
+    assert(row('subtitleStyle').defaultValue == 1 and row('subtitleStyle').type == 'select')
     assert(row('subtitleStyle').elements[1] == 'Cinematic subtitles' and row('subtitleStyle').elements[2] == 'Above the speaker')
     assert(row('voiceProvider').type == 'select' and row('voiceProvider').value == 1)
     assert(row('keepPreparedVoices') == nil)
@@ -3891,19 +2413,15 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     assert(saved.voice == false and saved.voiceProvider == 'convai', 'retired quality changes partially applied')
     assert(not registered.applyBatch('manager', {{id = 'disappearingMessages', value = true}}).ok)
     assert(player.voice == false)
-    drafts = true
-    local before = reloads
-    mcm.update(player, false); assert(reloads == before, 'external refresh must not erase MCM drafts')
-    drafts = false
-    mcm.update(player, true)
+    managerUi.update(player, true)
     assert(#spawned == 1 and members[1].profileKey == 'person-1')
     assert(invoke('settings:back').ok and invoke('tab:party').ok and row('dismiss:live:1'))
-    mcm.shutdown(); assert(registered == nil)
+    managerUi.shutdown()
   `);
 });
 
 test('settings review wording: short voice description, Body gestures without a suffix, full Developer mode text, Model browser says what it lists', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local home = row('tab:models')
     assert(home and home.label == 'Model browser')
     assert(home.description:find('without conversation support', 1, true) and home.description:find('do not talk', 1, true))
@@ -3934,13 +2452,13 @@ test('settings review wording: short voice description, Body gestures without a 
   `);
 });
 
-test('MCM gaze controls use ordinary selectors, persist and reset without native refresh in Apply', () => {
-  run(`${mcmFixture}
+test('gaze controls use ordinary selectors and persist', () => {
+  run(`${nsuiFixture}
     assert(invoke('tab:settings').ok)
     for _,id in ipairs({'eyeContactHeight','headFollowStrength'}) do
       local setting=row(id)
       assert(setting and setting.type=='select' and setting.value==3 and setting.defaultValue==3)
-      assert(setting.capabilities.draft and setting.capabilities.reset)
+      assert(setting.type == 'select' and setting.defaultValue ~= nil)
       assert(setting.color==nil and setting.indent==nil and setting.label:sub(1,1)~=' ')
     end
     assert(row('eyeContactHeight').elements[1]=='10 cm lower' and row('eyeContactHeight').elements[5]=='10 cm higher')
@@ -3967,16 +2485,52 @@ test('MCM gaze controls use ordinary selectors, persist and reset without native
     assert(saved.eyeContactHeight==0 and saved.headFollowStrength==1)
     loaded=registered.loadMod('manager')
     assert(row('eyeContactHeight').value==3 and row('headFollowStrength').value==3)
-    drafts=true; mcm.update(player,false)
-    assert(reloads==before,'ordinary gaze settings disturbed an open MCM draft')
+    drafts=true; managerUi.update(player,false)
+    assert(reloads==before,'ordinary gaze settings disturbed the open page')
   `);
 });
 
-test('MCM model search covers the full installed catalogue while exposing bounded result rows', () => {
-  run(`${mcmFixture}
+test('the model browser leaves out the game\'s retired records ("!OBSOLETE ..."), lists unnamed records and internal codes after the real names, and counts what it lists', () => {
+  run(`${nsuiFixture}
+    local names = {'!OBSOLETE', '!OBSOLETE - 6th Street Soldier', 'Zed', '1H-DNC-LAÖ', 'Anna', 'T-Bug', 'Judy', 'Саша-2', '  !hidden', 'Old OBSOLETE Guard'}
+    local byId = {}
+    function TweakDB:GetRecords(kind)
+      local result = {}
+      for index, name in ipairs(names) do
+        local id = 'Character.Rec_' .. index
+        byId[id] = name
+        result[index] = {GetID = function() return id end}
+      end
+      return result
+    end
+    function TweakDB:GetFlat(flat) local id = flat:gsub('%.displayName$', ''); return byId[id] or id end
+    assert(invoke('tab:models').ok)
+    for _ = 1, 8 do managerUi.update(player, false) end
+    loaded = registered.loadMod('manager')
+    assert(row('model-status').label == '6 matching models', 'the count is what is listed: ' .. tostring(row('model-status').label))
+    local listed = {}
+    for _, category in ipairs(loaded.categories) do
+      for _, item in ipairs(category.settings) do if item.id:sub(1, 7) == 'invite:' then listed[#listed + 1] = item.label end end
+    end
+    assert(table.concat(listed, ' | ') == 'Anna | Judy | T-Bug | Zed | Саша-2 | 1H-DNC-LAÖ', table.concat(listed, ' | '))
+    assert(core.retiredModel({name = '!OBSOLETE'}) and not core.retiredModel({name = 'Judy Alvarez'}))
+    assert(not core.placeholderModel({name = 'V'}) and not core.placeholderModel({name = 'NCPD'}) and not core.placeholderModel({name = 'Saša'}))
+    assert(core.placeholderModel({name = 'DNC-12'}) and core.placeholderModel({name = 'Character.X', record = 'Character.X'}))
+    -- A letter group counts the same way: the codes are in the # group, and the retired records in none.
+    local groups = row('ui:group').elements
+    assert(groups[2] == '#' and table.concat(groups, ','):find('!', 1, true) == nil, table.concat(groups, ','))
+  `);
+});
+
+test('the model browser covers the full installed catalogue while exposing bounded pages of rows', () => {
+  run(`${nsuiFixture}
     assert(scans == 0)
     assert(invoke('tab:models').ok)
-    for _ = 1, 126 do mcm.update(player, false) end
+    -- Reading the models: only the status line shows until the scan has finished (the list is sorted then).
+    managerUi.update(player, false)
+    loaded = registered.loadMod('manager')
+    assert(row('model-status').label == 'Reading installed models…' and not row('ui:page'))
+    for _ = 1, 126 do managerUi.update(player, false) end
     assert(scans == 1 and visits == 6000)
     loaded = registered.loadMod('manager')
     local function countInvites()
@@ -3988,53 +2542,36 @@ test('MCM model search covers the full installed catalogue while exposing bounde
       end
       return count
     end
-    assert(countInvites() == 18 and row('models:next'))
-    handlers.McmUiEmitSearch(nil, 'content', 'Model_6000')
-    for _ = 1, 6 do mcm.update(player, false) end
-    assert(countInvites() == 1 and row('invite:model:6000'))
-    assert(invoke('invite:model:6000').ok and #spawned == 0)
-    mcm.update(player, true); assert(members[1].key == 'model:6000')
-    assert(members[1].profileKey == nil)
-    assert(invoke('models:back').ok and invoke('tab:party').ok and mcm.inspect().view == 'party')
-  `);
-});
-
-test('native MCM action banner shows no progress for the queued invitation and leaves other pages and errors alone', () => {
-  run(`${mcmFixture}
-    assert(invoke('tab:characters').ok)
-    assert(invoke('invite:johnny-silverhand').ok)
-    local rendered
-    local function paint(label, status)
-      handlers.McmUiBegin({}, 'MCM', '', 'Mods', label, status, 1, '', true, true, 0,
-        function(title, subtitle, sidebar, content, message) rendered = message end)
-      return rendered
+    -- Twelve rows a page, 500 pages, all one letter group: the pages are read with the slider.
+    assert(countInvites() == 12 and row('ui:page').max == 500 and row('ui:group') and row('ui:group').elements[1] == 'All')
+    assert(#row('ui:group').elements == 2 and row('ui:group').elements[2] == 'C')
+    local at
+    for page = 1, 500 do
+      assert(core.setUi('ui:page', page) or page == 1); loaded = registered.loadMod('manager')
+      assert(countInvites() <= 12, 'a page holds more than twelve rows')
+      if row('invite:model:6000') then at = page; break end
     end
-    assert(paint('Companion Manager', 'Completed: Johnny Silverhand') == '', 'the queued invitation showed progress in the banner')
-    assert(paint('Other Mod', 'Completed: Johnny Silverhand') == 'Completed: Johnny Silverhand')
-    assert(paint('Companion Manager', 'Action failed') == 'Action failed')
-    assert(invoke('characters:back').ok and invoke('tab:settings').ok)
-    assert(paint('Companion Manager', 'Completed: Settings') == '', 'a routine navigation message was shown')
+    assert(at, 'the last model is on no page')
+    assert(invoke('invite:model:6000').ok and #spawned == 0)
+    managerUi.update(player, true); assert(members[1].key == 'model:6000')
+    assert(members[1].profileKey == nil)
+    assert(invoke('models:back').ok and invoke('tab:party').ok and managerUi.inspect().view == 'party')
   `);
 });
 
-test('native MCM shows no invitation progress and keeps reserved copies editable until actual attachment', () => {
-  run(`${mcmFixture}${invitationFixture}
+test('the manager shows no invitation progress and keeps reserved copies editable until actual attachment', () => {
+  run(`${nsuiFixture}${invitationFixture}
     assert(invoke('tab:characters').ok)
     assert(invoke('invite:johnny-silverhand').ok)
     local id = party.list()[1].id
     assert(readiness.prepareCalls == 1 and readiness.jobs[id].profileKey == 'johnny-silverhand')
     assert(#spawned == 0 and party.count() == 1 and not row('party-count'))
-    local rendered
-    handlers.McmUiBegin({}, 'MCM', '', 'Mods', 'Companion Manager', 'Completed: Johnny Silverhand', 1, '', true, true, 0,
-      function(title, subtitle, sidebar, content, message) rendered = message end)
-    assert(rendered == '', 'the banner showed progress or the raw action text: ' .. tostring(rendered))
-    assert(not rendered:find('joined your group', 1, true))
     assert(invoke('characters:back').ok and invoke('tab:party').ok)
     -- One row per copy: no status text, count, conversation entry or last action.
     assert(not row('party-count') and not row('feedback') and not row('state:' .. id) and not row('assign:' .. id))
     assert(row('dismiss:' .. id).value == 'Cancel invitation' and row('dismiss:' .. id).type == 'action')
     readiness.receipts[id] = {state = 'connecting'}
-    readiness.update(); mcm.update(player, false)
+    readiness.update(); managerUi.update(player, false)
     loaded = registered.loadMod('manager')
     assert(row('dismiss:' .. id) and not row('state:' .. id) and #spawned == 0)
     local revision = readiness.jobs[id].revision
@@ -4055,24 +2592,24 @@ test('native MCM shows no invitation progress and keeps reserved copies editable
     readiness.receipts[id] = {state = 'ready'}
     loaded = registered.loadMod('manager')
     assert(row('dismiss:' .. id).value == 'Cancel invitation' and not row('state:' .. id) and not row('party-count'))
-    mcm.update(player, false)
+    managerUi.update(player, false)
     assert(#spawned == 0, 'readiness created an actor while gameplay was paused')
-    mcm.update(player, true)
+    managerUi.update(player, true)
     loaded = registered.loadMod('manager')
     assert(#spawned == 1 and row('dismiss:live:1').value == 'Dismiss' and not row('state:live:1'))
     assert(not party.message():find('joined your group', 1, true), 'accepted spawn was reported as joined')
     -- The queue is flushed on the settings integration's 0.25 s tick.
     local tickClock = os.clock()
     os.clock = function() return tickClock + 1 end
-    members[1].state = 'ready'; mcm.update(player, true)
+    members[1].state = 'ready'; managerUi.update(player, true)
     loaded = registered.loadMod('manager')
-    assert(not row('state:live:1') and not row('feedback') and party.message():find('joined your group', 1, true))
+    assert(not row('state:live:1') and party.message():find('joined your group', 1, true))
     assert(row('dismiss:live:1').label == 'Johnny Silverhand #1', 'a copy row is its name and number')
   `);
 });
 
 test('Lip sync delay (Bluetooth) is a Voices select: Auto by default, Off and milliseconds saved for the bridge', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     assert(manager.snapshot(player).settings.audioDelay == 'auto')
     assert(invoke('tab:settings').ok)
     local item = assert(row('audioDelay'))
@@ -4089,13 +2626,13 @@ test('Lip sync delay (Bluetooth) is a Voices select: Auto by default, Off and mi
 });
 
 test('Voice volume is a Voices slider (50 to 200, steps of 5, 100 by default) saved for the bridge', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     assert(manager.snapshot(player).settings.voiceVolume == 100)
     assert(invoke('tab:settings').ok)
     local item = assert(row('voiceVolume'))
     assert(item.type == 'int' and item.value == 100 and item.defaultValue == 100)
     assert(item.min == 50 and item.max == 200 and item.step == 5, 'a slider range, not a list of steps')
-    assert(item.elements == nil and item.label:find('%', 1, true), 'the unit is in the name: MCM shows only the number')
+    assert(item.elements == nil and item.label:find('%', 1, true), 'the unit is in the name: the page shows only the number')
     assert(not item.description:lower():find('recommended', 1, true))
     -- It sits in the Voices category, after the voice and delay rows.
     local category
@@ -4133,7 +2670,7 @@ test('a saved Voice volume survives loading, and a hand-edited value is brought 
 });
 
 test('Current party shows no Play or game voice row under Dismiss, in Developer mode or out of it', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     api.spawn('johnny-silverhand')
     members[1].state = 'ready'; members[1].baseName = members[1].name; members[1].name = members[1].name .. ' #1'
     local function onlyDismiss(navigate)
@@ -4174,7 +2711,7 @@ test('The queue still queues one vanilla VO line per game voice request for game
 });
 
 test('Current party rows are a name, its number and Dismiss, in the same native row type as Back', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     api.spawn('johnny-silverhand'); api.spawn('johnny-silverhand'); api.spawn('person-1')
     for index, member in ipairs(members) do
       member.state = 'ready'; member.baseName = member.name
@@ -4182,7 +2719,7 @@ test('Current party rows are a name, its number and Dismiss, in the same native 
     end
     assert(invoke('tab:party').ok)
     local back = {type = 'action'}
-    assert(mcm.inspect().back.id == 'party:back')
+    assert(loaded.categories[1].settings[1].id == 'party:back')
     local names = {'Johnny Silverhand #1', 'Johnny Silverhand #2', 'Person 01 #3'}
     for index, id in ipairs({'dismiss:live:1', 'dismiss:live:2', 'dismiss:live:3'}) do
       local item = row(id)
@@ -4192,7 +2729,7 @@ test('Current party rows are a name, its number and Dismiss, in the same native 
     end
     local total = 0
     for _, section in ipairs(loaded.categories) do
-      for _, item in ipairs(section.settings) do
+      for _, item in ipairs(section.id ~= 'navigation' and section.settings or {}) do
         total = total + 1
         assert(not item.id:find('^state:') and not item.id:find('^assign') and item.id ~= 'feedback'
           and item.id ~= 'party-count', 'extra party row ' .. item.id)
@@ -4201,24 +2738,24 @@ test('Current party rows are a name, its number and Dismiss, in the same native 
     end
     assert(total == 3, 'one row per copy only: ' .. total)
     -- Joining and leaving never put a last-action line on the page.
-    mcm.update(player, true); assert(not row('feedback'))
+    managerUi.update(player, true); assert(not row('feedback'))
   `);
 });
 
 test('dismissing removes the row at once while paused, defers the despawn, and restores the row with the reason on failure', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     api.spawn('johnny-silverhand'); api.spawn('person-1')
     for _, member in ipairs(members) do member.state = 'ready'; member.baseName = member.name end
     assert(invoke('tab:party').ok)
     assert(row('dismiss:live:1') and row('dismiss:live:2'))
     -- Paused: the row is gone immediately, the copy is still in the world.
-    mcm.update(player, false)
+    managerUi.update(player, false)
     assert(invoke('dismiss:live:1').ok)
     assert(not row('dismiss:live:1') and row('dismiss:live:2') and #members == 2, 'the row stayed or the copy left while paused')
-    assert(mcm.party().count() == 1)
-    mcm.update(player, false); assert(#members == 2 and not row('dismiss:live:1'))
+    assert(managerUi.party().count() == 1)
+    managerUi.update(player, false); assert(#members == 2 and not row('dismiss:live:1'))
     -- Gameplay resumes: the queued despawn runs once and the row stays gone.
-    mcm.update(player, true)
+    managerUi.update(player, true)
     assert(#members == 1 and members[1].serial == 2)
     loaded = registered.loadMod('manager')
     assert(not row('dismiss:live:1') and row('dismiss:live:2') and not row('error:live:1'))
@@ -4226,22 +2763,22 @@ test('dismissing removes the row at once while paused, defers the despawn, and r
     local original = api.dismiss
     api.dismiss = function() return false, 'World unavailable' end
     assert(invoke('dismiss:live:2').ok and not row('dismiss:live:2') and row('empty-party'))
-    mcm.update(player, true)
+    managerUi.update(player, true)
     loaded = registered.loadMod('manager')
     assert(#members == 1 and row('dismiss:live:2') and not row('empty-party'), 'a refused dismissal did not restore the row')
     assert(row('error:live:2').label:find('World unavailable', 1, true))
     assert(row('dismiss:live:2').description:find('World unavailable', 1, true))
-    assert(mcm.inspect().party[1].dismissError == 'World unavailable')
+    assert(managerUi.inspect().party[1].dismissError == 'World unavailable')
     -- A later dismissal that succeeds clears the old reason.
     api.dismiss = original
-    assert(invoke('dismiss:live:2').ok); mcm.update(player, true)
+    assert(invoke('dismiss:live:2').ok); managerUi.update(player, true)
     loaded = registered.loadMod('manager')
     assert(#members == 0 and not row('dismiss:live:2') and not row('error:live:2') and row('empty-party'))
   `);
 });
 
 test('a phone dismissal and a menu dismissal share one optimistic path and a full eight-place party never shows or enforces a limit', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     for _ = 1, 8 do api.spawn('johnny-silverhand') end
     for _, member in ipairs(members) do member.state = 'ready' end
     assert(invoke('tab:characters').ok)
@@ -4253,301 +2790,21 @@ test('a phone dismissal and a menu dismissal share one optimistic path and a ful
     end
     local ninth = registered.invokeAction('manager', 'invite:johnny-silverhand', {})
     assert(ninth.ok == true, ninth.error)
-    mcm.update(player, true); assert(#members == 9)
+    managerUi.update(player, true); assert(#members == 9)
     for _, member in ipairs(members) do member.state = 'ready' end
     assert(invoke('characters:back').ok and invoke('tab:party').ok)
     assert(row('dismiss:live:9'))
-    local accepted, message, dismissedId = mcm.party().dismissCharacter('johnny-silverhand')
+    local accepted, message, dismissedId = managerUi.party().dismissCharacter('johnny-silverhand')
     assert(accepted == true and dismissedId == 'live:9' and #members == 9)
     loaded = registered.loadMod('manager')
     assert(not row('dismiss:live:9') and row('dismiss:live:8'), 'a phone dismissal left its row on the page')
-    mcm.update(player, true); assert(#members == 8)
+    managerUi.update(player, true); assert(#members == 8)
     assert(invoke('party:back').ok and invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
-  `);
-});
-
-test('F5 goes through the real Mods entry and selects only its own native sidebar action', () => {
-  run(`
-    local callbacks, stageEvents, activated, selected, closed = {}, {}, 0, nil, 0
-    Observe = function(_, method, callback) callbacks[method] = callback end
-    ObserveAfter = Observe
-    local inMenu = false
-    local player = {IsAttached = function() return true end, ConvaiComposerOpen = function() return false end,
-      GetEntityID = function() return {} end}
-    local boards = {Get = function() return {GetBool = function() return inMenu end,
-      SetName = function(_, field, name) stageEvents[#stageEvents + 1] = name end} end,
-      GetLocalInstanced = function() return {GetInt = function() return 0 end} end}
-    local attachedControllers = {}
-    Game = {GetPlayer = function() return player end,
-      GetSystemRequestsHandler = function() return {IsPreGame = function() return false end} end,
-      GetInkSystem = function() return {GetLayers = function() return {{GetGameControllers = function() return attachedControllers end}} end} end,
-      GetBlackboardSystem = function() return boards end,
-      GetAllBlackboardDefs = function() return {UI_System = {}, MenuEventBlackboard = {}, PlayerStateMachine = {}} end}
-    NameToString = function(value) return value end
-    local mcmEvent = {}
-    CName = {new = function(name) assert(name == 'OnSwitchToMCM'); return mcmEvent end}
-    local entry = (function() ${entrySource} end)().new('Companion Manager', function() return true end, function() end)
-    entry.install()
-    assert(entry.open() and stageEvents[1] == 'OnOpenPauseMenu')
-    assert(entry.open() and #stageEvents == 1)
-    local pause = {menuListController = {Size = function() return 1 end,
-      GetItemAt = function() return {GetController = function() return {GetData = function() return {eventName = mcmEvent, label = 'Mods'} end} end} end},
-      OnMenuItemActivated = function() activated = activated + 1 end}
-    -- The initialization observer may fire before the list exists. Keep the
-    -- opening request alive and resolve the real attached controller later.
-    callbacks.OnInitialize({})
-    callbacks.PopulateMenuItemList({})
-    entry.update(); assert(activated == 0 and entry.state() == 'pause')
-    pause.IsA = function(_, name) return name == 'PauseMenuGameController' end
-    attachedControllers = {pause}
-    entry.update(); assert(activated == 1 and entry.state() == 'select')
-    local settings = {McmUiEmitAction = function(_, id) selected = id end, McmUiIsActive = function() return true end,
-      RequestClose = function() closed = closed + 1 end}
-    callbacks.OnInitialize(settings)
-    callbacks.McmUiAddSidebarItem(settings, 'other', '', 'Other Mod', '', false)
-    entry.update(); assert(selected == nil)
-    callbacks.McmUiAddSidebarItem(settings, 'manager-id', '', 'Companion Manager', '', false)
-    entry.update(); assert(selected == 'manager-id')
-    entry.selected(); assert(entry.state() == 'idle')
-    assert(entry.open() and closed == 1)
-    callbacks.OnUninitialize(); inMenu = true; attachedControllers = {}
-    assert(entry.open() == false and #stageEvents == 1)
-    attachedControllers = {pause}
-    assert(entry.open())
-    entry.update(); assert(activated == 2 and #stageEvents == 1, 'opening from Pause must not request a second pause host')
   `);
 });
 
 // Optional local integration gate: execute the actual installed API modules,
 // without writing their data directory or copying third-party code into Git.
-test('installed MCM API accepts the provider, actions, draft transactions and dynamic model schema',
-  {skip: !process.env.CYBERPUNK_MCM_API}, () => {
-    const root = process.env.CYBERPUNK_MCM_API;
-    const nativeModel = readFileSync(path.join(root, '..', 'ModConfigurationMenu', 'mcm_ui', 'mcm_model.lua'), 'utf8');
-    const filterStart = nativeModel.indexOf('function Model:flattenSettings(mod)');
-    assert(filterStart >= 0, 'installed MCM settings filter is unavailable');
-    const nativeFilter = nativeModel.slice(filterStart, nativeModel.indexOf('\nend', filterStart) + 4);
-    const preloads = readdirSync(path.join(root, 'modules'), {recursive: true})
-      .filter(file => file.endsWith('.lua'))
-      .map(file => {
-        const key = `modules/${file.replaceAll('\\', '/').slice(0, -4)}`;
-        return `package.preload[${JSON.stringify(key)}] = function()\n${readFileSync(path.join(root, 'modules', file), 'utf8')}\nend`;
-      }).join('\n');
-    run(`${mcmFixture}${invitationFixture}${memoryFixture}
-      mcm.shutdown()
-      -- Auto Apply sets a draft and applies in the same instant; a person's Apply comes later.
-      local autoClock = 7000
-      os.clock = function() return autoClock end
-      local function later() autoClock = autoClock + 1 end
-      local encoded, jsonSequence = {}, 0
-      json = {encode = function(value) jsonSequence = jsonSequence + 1; local id = 'json-' .. jsonSequence; encoded[id] = value; return id end,
-        decode = function(value) return encoded[value] or jsonFixtures[value] or saved or {} end}
-      ${preloads}
-      local core = require('modules/core')
-      core.init()
-      local actual = core.getApi()
-      local Model, Text = {}, {casefold = function(value) return tostring(value or ''):lower() end}
-      ${nativeFilter}
-      GetMod = function() return actual end
-      mcm.install()
-      assert(actual.refreshIndex())
-      local key = 'cyberpunk-convai:manager'
-      -- Back is a button in the bottom row: its click reaches the provider through the key MCM
-      -- emits for it, and (like every MCM action) it is ignored while changes are pending.
-      local function goBack(id)
-        local current = mcm.inspect().back
-        if not current or current.id ~= id or actual.hasDrafts(key) then return false end
-        handlers.McmUiEmitAction(controller, 'convai-bottom-back')
-        return actual.reloadMod(key) ~= nil
-      end
-      local function backSurvivesSearch(back, query)
-        -- A search cannot hide the page Back: it is not a row that MCM filters.
-        handlers.McmUiEmitSearch(nil, 'content', query)
-        for _ = 1, 6 do mcm.update(player, false) end
-        assert(mcm.inspect().back and mcm.inspect().back.id == back, 'Back is missing during a search: ' .. back)
-        local renderer = {runtime = {state = {api = actual, settingsSortMode = 'file',
-          searchQueries = {content = query}}, safe = function(_, value) return tostring(value or '') end}}
-        for _, value in ipairs(Model.flattenSettings(renderer, {key = key})) do
-          assert(not (value.kind == 'setting' and value.setting.id == key .. ':' .. back), 'Back is a filtered row')
-        end
-      end
-      assert(actual.openMod(key))
-      assert(actual.invokeAction(key .. ':tab:characters'))
-      backSurvivesSearch('characters:back', 'no matching character')
-      handlers.McmUiEmitSearch(nil, 'content', '')
-      for _ = 1, 6 do mcm.update(player, false) end
-      assert(actual.invokeAction(key .. ':invite:johnny-silverhand'))
-      assert(#spawned == 0 and #mcm.inspect().party == 1 and readiness.prepareCalls == 1)
-      assert(actual.getValue(key .. ':party-count') == nil)
-      assert(goBack('characters:back'))
-      assert(actual.invokeAction(key .. ':tab:party'))
-      assert(actual.getValue(key .. ':party-count') == nil and actual.getValue(key .. ':state:queued:1') == nil)
-      assert(actual.getValue(key .. ':dismiss:queued:1') == 'Cancel invitation')
-      assert(actual.getValue(key .. ':assign:queued:1') == nil)
-      readiness.receipts['queued:1'] = {state = 'connecting'}
-      assert(actual.reloadMod(key) and actual.getValue(key .. ':dismiss:queued:1') == 'Cancel invitation')
-      assert(mcm.party().assign('queued:1', 'person-1', 'Person 01'))
-      assert(readiness.prepareCalls == 2 and readiness.jobs['queued:1'].profileKey == 'person-1')
-      readiness.receipts['queued:1'] = {state = 'ready'}
-      assert(actual.reloadMod(key) and actual.getValue(key .. ':dismiss:queued:1') == 'Cancel invitation')
-      mcm.update(player, false); assert(#spawned == 0)
-      assert(goBack('party:back'))
-      assert(actual.invokeAction(key .. ':tab:settings'))
-      publishMemory(2, {{profileKey = 'johnny-silverhand'}, {profileKey = 'person-20'}})
-      assert(actual.reloadMod(key))
-      assert(actual.getValue(key .. ':memory') == 'Manage' and actual.getValue(key .. ':memory-count') == nil)
-      assert(actual.setDraft(key .. ':voice', false))
-      assert(actual.getValue(key .. ':omniSteps') == nil)
-      assert(actual.setDraft(key .. ':voiceProvider', 7))
-      assert(actual.setDraft(key .. ':subtitleStyle', 2))
-      assert(actual.setDraft(key .. ':battleReactions', false))
-      assert(actual.getValue(key .. ':eyeContactHeight') == 3 and actual.getValue(key .. ':headFollowStrength') == 3)
-      assert(actual.setDraft(key .. ':eyeContactHeight', 5))
-      assert(actual.setDraft(key .. ':headFollowStrength', 4))
-      assert(manager.gazeSettings().eyeContactHeight == 0 and manager.gazeSettings().headFollowStrength == 1)
-      assert(actual.getValue(key .. ':developerMode') == false)
-      assert(actual.setDraft(key .. ':developerMode', true))
-      assert(not manager.developerMode(), 'developer draft must not change runtime feedback')
-      assert(goBack('settings:back') == false)
-      assert(actual.invokeAction(key .. ':memory') == false and memoryWrites() == 0)
-      assert(mcm.inspect().view == 'settings', 'a pending draft allowed submenu navigation')
-      -- Auto Apply: the immediate apply after a draft is refused and every draft stays pending.
-      local autoOk, autoErr = actual.apply(key)
-      assert(autoOk == false and tostring(autoErr):find('Change pending', 1, true), tostring(autoErr))
-      assert(actual.hasDrafts(key), 'the refused automatic apply discarded the drafts')
-      assert(manager.snapshot(player).settings.voiceProvider == 'pocket' and manager.snapshot(player).settings.voice == true
-        and manager.snapshot(player).settings.developerMode == false and manager.snapshot(player).settings.omniSteps == 16)
-      assert(files['runtime/voice-preview.json'] == nil, 'a pending voice offered a worker preview')
-      -- MCM's own leave prompt and close guard key off this: drafts are pending.
-      assert(goBack('settings:back') == false)
-      later()
-      local ok, err = actual.apply(key)
-      assert(ok, err)
-      assert(actual.getValue(key .. ':voice') == false and actual.getValue(key .. ':omniSteps') == nil)
-      assert(manager.snapshot(player).settings.omniSteps == 16 and not actual.hasDrafts(key))
-      assert(actual.getValue(key .. ':voiceProvider') == 7)
-      assert(manager.snapshot(player).settings.voiceProvider == 'convai')
-      assert(actual.getValue(key .. ':subtitleStyle') == 2 and manager.subtitleStyle() == 'overhead')
-      assert(not manager.battleReactions() and actual.getValue(key .. ':battleReactions') == false)
-      assert(manager.developerMode() and actual.getValue(key .. ':developerMode') == true)
-      assert(actual.getValue(key .. ':eyeContactHeight') == 5 and actual.getValue(key .. ':headFollowStrength') == 4)
-      assert(manager.gazeSettings().eyeContactHeight == 0.10 and manager.gazeSettings().headFollowStrength == 1.5)
-      -- A pending voice never prepares a model; Revert discards it and Apply commits it.
-      CName = {new = function(value) return value end}
-      NameToString = function(value) return value end
-      local function node(name, children)
-        local w = {name = name, children = children or {}}
-        function w:GetName() return self.name end
-        function w:GetNumChildren() return #self.children end
-        function w:GetWidgetByIndex(index) return self.children[index + 1] end
-        function w:GetMargin() return {left = 0, top = 0, right = 0, bottom = 0} end
-        function w:SetMargin() end
-        function w:GetWidth() return 100 end
-        function w:GetHeight() return 24 end
-        return w
-      end
-      local barRender = node('MCMRenderRoot', {node('subtitle'), node('status'), node('mcm_content_scroll_content')})
-      function controller:GetRootWidget() return node('root', {barRender}) end
-      controller.McmUiAddBottomActionAt = function(_, id)
-        barRender.children[#barRender.children + 1] = node('mcm_action_' .. id)
-      end
-      handlers.McmUiSetContentTitle(controller, 'Companion Manager')
-      assert(actual.setDraft(key .. ':voiceProvider', 1))
-      for _ = 1, 3 do mcm.update(player, false) end
-      assert(files['runtime/voice-preview.json'] == nil, 'a pending voice offered a worker preview')
-      assert(manager.snapshot(player).settings.voiceProvider == 'convai')
-      assert(actual.revert(key) and actual.getValue(key .. ':voiceProvider') == 7)
-      assert(actual.setDraft(key .. ':voiceProvider', 4)); later(); assert(actual.apply(key))
-      assert(manager.snapshot(player).settings.voiceProvider == 'omni' and manager.snapshot(player).settings.omniSteps == 32
-        and manager.snapshot(player).settings.omniReference == 'short')
-      assert(actual.setDraft(key .. ':subtitles', false))
-      assert(actual.setDraft(key .. ':developerMode', false))
-      assert(actual.invokeAction(key .. ':permissions') == false)
-      assert(actual.revert(key) and actual.getValue(key .. ':subtitles') == true)
-      assert(manager.developerMode() and actual.getValue(key .. ':developerMode') == true)
-      assert(actual.resetDraft(key .. ':eyeContactHeight') and actual.resetDraft(key .. ':headFollowStrength'))
-      assert(manager.gazeSettings().eyeContactHeight == 0.10 and manager.gazeSettings().headFollowStrength == 1.5)
-      later(); assert(actual.apply(key))
-      assert(actual.getValue(key .. ':eyeContactHeight') == 3 and actual.getValue(key .. ':headFollowStrength') == 3)
-      assert(manager.gazeSettings().eyeContactHeight == 0 and manager.gazeSettings().headFollowStrength == 1)
-      -- The Who can talk page is gone: its action is not there to invoke.
-      assert(actual.invokeAction(key .. ':permissions') == false and mcm.inspect().view == 'settings')
-      assert(actual.invokeAction(key .. ':memory') and mcm.inspect().view == 'memory')
-      assert(actual.getValue(key .. ':memory-count') == '2' and actual.getValue(key .. ':tab:settings') == nil)
-      assert(actual.invokeAction(key .. ':memory:choose') and mcm.inspect().view == 'memory-characters')
-      assert(actual.getValue(key .. ':tab:settings') == nil and mcm.inspect().back.id == 'memory:back')
-      backSurvivesSearch('memory:back', 'no matching memories')
-      assert(goBack('memory:back') and mcm.inspect().view == 'memory')
-      assert(actual.invokeAction(key .. ':memory:choose'))
-      assert(actual.invokeAction(key .. ':memory:next'))
-      assert(actual.invokeAction(key .. ':memory:select:person-20'))
-      assert(mcm.inspect().view == 'memory' and actual.getValue(key .. ':memory:choose') == 'Person 20' and #members == 0)
-      assert(goBack('memory:settings') and mcm.inspect().view == 'settings')
-      assert(actual.getValue(key .. ':memory:choose') == nil and actual.getValue(key .. ':memory') == 'Manage')
-      assert(actual.invokeAction(key .. ':memory') and actual.getValue(key .. ':memory:choose') == 'Person 20')
-      assert(actual.invokeAction(key .. ':memory:forget-character'))
-      local cancelToken = token()
-      assert(actual.invokeAction(key .. ':memory:cancel:' .. cancelToken) and memoryWrites() == 0)
-      assert(actual.invokeAction(key .. ':memory:forget-all'))
-      local confirmToken = token()
-      assert(actual.invokeAction(key .. ':memory:confirm:' .. confirmToken))
-      local command = assert(memoryRequest())
-      assert(command.scope == 'all' and command.profileKey == nil and memoryWrites() == 1)
-      assert(actual.invokeAction(key .. ':memory:confirm:' .. confirmToken) == false)
-      assert(actual.invokeAction(key .. ':memory:forget-all') == false)
-      local old = memoryResult(command, 'succeeded'); old.id = 'another-command'
-      publishMemory(2, nil, 'ready', old); assert(actual.reloadMod(key))
-      assert(manager.snapshot(player).memory.command.state == 'pending')
-      publishMemory(2, nil, 'ready', memoryResult(command, 'succeeded')); assert(actual.reloadMod(key))
-      assert(actual.getValue(key .. ':memory-feedback'):find('Memory clear confirmed', 1, true))
-      assert(memoryWrites() == 1 and #spawned == 0, 'memory controls caused world work or retried')
-      assert(goBack('memory:settings'))
-      assert(goBack('settings:back'))
-      assert(actual.invokeAction(key .. ':tab:party'))
-      assert(actual.invokeAction(key .. ':dismiss:queued:1'))
-      assert(#mcm.inspect().party == 0 and #spawned == 0 and readiness.cancellations['queued:1'])
-      assert(goBack('party:back'))
-      assert(actual.invokeAction(key .. ':tab:models'))
-      for _ = 1, 126 do mcm.update(player, false) end
-      backSurvivesSearch('models:back', 'no matching model')
-      assert(actual.reloadMod(key))
-      local count = 0
-      for _, row in ipairs(actual.listSettings(key)) do if row.type == 'action' then count = count + 1 end end
-      assert(count < 30)
-      assert(actual.closeMod())
-      mcm.shutdown(); core.shutdown()
-    `);
-  });
-
-test('native manager pages profiles, searches case-insensitively, and persists key-based chat settings with legacy migration', () => {
-  run(`${managerFixture}
-    seed = {voice = false, subtitles = true, enabled = {false, true, true, true, true, true}, keep = 'preserved'}
-    files['runtime/settings.json'] = 'seed'
-    manager.configure(api, profiles)
-    assert(manager.prepare(player))
-    assert(#player.rows == 8 and player.page[3] == true)
-    assert(player.voice == false and manager.profileEnabled('viktor-vektor') == false)
-    request('page:next')
-    assert(player.page[2] == true and #player.rows == 8)
-    request('search:pErSoN 15')
-    assert(#player.rows == 1 and player.rows[1].key == 'profile:person-15')
-    assert(player.detail[3] == 'spawn:person-15')
-    request('toggle-profile:person-15')
-    assert(manager.profileEnabled('person-15') == false)
-    assert(saved.enabledByKey['person-15'] == false and saved.enabledByKey['viktor-vektor'] == false)
-    assert(saved.keep == 'preserved' and json.decode(files['runtime/settings.json']) == saved)
-    manager.reset(); manager.prepare(player)
-    assert(manager.profileEnabled('person-15') == false and player.voice == false)
-    request('tab:settings'); request('toggle:subtitles')
-    assert(player.subtitles == false and saved.subtitles == false)
-    player.voice = true; manager.update(player, 0.1)
-    assert(saved.voice == true)
-    failSave = true; request('toggle-profile:person-15')
-    assert(manager.profileEnabled('person-15') == true)
-    assert(player.feedback:find('could not be saved', 1, true))
-  `);
-});
-
 test('the local voice state is decoded once per distinct file text, and a copy that goes stale stays stale', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)
@@ -4807,18 +3064,18 @@ test('Developer mode is a cached default-Off choice and persists only after an a
   `);
 });
 
-test('MCM puts Developer mode in Development and changing it updates existing party feedback without native work', () => {
-  run(`${mcmFixture}
+test('Manager puts Developer mode in Development and changing it updates existing party feedback without native work', () => {
+  run(`${nsuiFixture}
     local trip = {active = true, generation = 4, phase = 'waiting-for-player'}
     api.chauffeurSnapshot = function()
       local result = {}; for key, value in pairs(trip) do result[key] = value end; return result
     end
-    local queue = mcm.party()
+    local queue = managerUi.party()
     queue.bind('player-1'); queue.flush(); assert(#queue.takeNotices() == 0)
     assert(invoke('tab:settings').ok)
     local item = assert(row('developerMode'))
     assert(item.label == 'Developer mode' and item.type == 'bool' and item.value == false)
-    assert(item.defaultValue == false and item.capabilities.draft and item.indent == nil)
+    assert(item.defaultValue == false and item.type == 'bool' and item.indent == nil)
     local section
     for _, category in ipairs(loaded.categories) do if category.id == 'development' then section = category end end
     assert(section and section.name == 'Development' and section.settings[1].id == 'developerMode')
@@ -4873,7 +3130,7 @@ test('invalid character/NPC/AI records fail cleanly and only owned entity IDs ar
 });
 
 test('a voice that could not run is announced once in gameplay, again only after a new fallback', () => {
-  run(`${mcmFixture}${managerPopupFixture}
+  run(`${nsuiFixture}${managerPopupFixture}
     popupStep = 1 -- the voice state file goes stale after a few seconds
     local state = {state = 'ready', provider = 'pocket', requestedProvider = 'omni', requestedOmniSteps = 16,
       requestedOmniReference = 'short', omniSteps = 32, routedProfiles = {'johnny-silverhand'}, fallback = {from = 'omni', to = 'pocket'},
@@ -4902,7 +3159,7 @@ test('a voice that could not run is announced once in gameplay, again only after
 });
 
 test('a temporary fallback is announced once as not ready yet, the return to OmniVoice is silent, and giving up is announced separately', () => {
-  run(`${mcmFixture}${managerPopupFixture}
+  run(`${nsuiFixture}${managerPopupFixture}
     popupStep = 1 -- the voice state file goes stale after a few seconds
     local state = {state = 'ready', provider = 'pocket', requestedProvider = 'omni', requestedOmniSteps = 16,
       requestedOmniReference = 'short', omniSteps = 32, routedProfiles = {'johnny-silverhand'},
@@ -4950,7 +3207,7 @@ test('Natural speech is off by default and a saved pairing with the Convai cloud
 });
 
 test('Natural speech and the cloud voice: choosing the cloud voice keeps it and turns Natural speech off with one notice; turning it on beside the saved cloud voice moves the voice to Pocket TTS', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 5000
     os.clock = function() return clock end
     local sent = {}
@@ -4986,17 +3243,17 @@ test('Natural speech and the cloud voice: choosing the cloud voice keeps it and 
     assert(manager.snapshot(player).settings.voiceProvider == 'convai' and manager.snapshot(player).settings.naturalSpeech == false)
     assert(result.schemaChanged == true, 'the page reloads so the toggle shows off')
     assert(manager.snapshot(player).feedback == OFF, manager.snapshot(player).feedback)
-    mcm.update(player, true)
+    managerUi.update(player, true)
     assert(#sent == 0, 'the popup is Developer-only: the Settings status line already says it')
-    mcm.update(player, true); assert(#sent == 0)
+    managerUi.update(player, true); assert(#sent == 0)
     -- Turning it on while the cloud voice is saved is the player asking for the tags: the voice moves to Pocket, with a notice.
     -- Developer mode shows it once, in gameplay.
     convaiNotices.configure(function() return true end)
     result = apply({'naturalSpeech', true})
     assert(result.ok and saved.voiceProvider == 'pocket' and saved.naturalSpeech == true and result.schemaChanged == true)
-    mcm.update(player, true)
+    managerUi.update(player, true)
     assert(#sent == 1 and sent[1] == NOTICE, 'the notice reaches a developer in gameplay: ' .. tostring(sent[1]))
-    mcm.update(player, true); assert(#sent == 1, 'announced once')
+    managerUi.update(player, true); assert(#sent == 1, 'announced once')
     convaiNotices.configure(function() return false end)
     -- Natural speech off: the cloud voice is chosen with nothing to turn off, so there is no notice.
     assert(apply({'naturalSpeech', false}).ok and not manager.naturalSpeech())
@@ -5037,8 +3294,8 @@ test('Natural speech and the cloud voice: choosing the cloud voice keeps it and 
   `);
 });
 
-test('Natural speech sits in the Voices category and Auto Apply cannot commit it before the person chooses Apply', () => {
-  run(`${mcmFixture}
+test('Natural speech sits in the Voices category and applies on its own', () => {
+  run(`${nsuiFixture}
     assert(invoke('tab:settings').ok)
     local owner
     for _, category in ipairs(loaded.categories) do
@@ -5046,17 +3303,6 @@ test('Natural speech sits in the Voices category and Auto Apply cannot commit it
     end
     assert(owner and owner.id == 'voices' and row('voiceProvider') and row('naturalSpeech').label == 'Natural speech')
     assert(row('naturalSpeech').description:find('Pocket', 1, true) and row('naturalSpeech').description:find('Convai’s cloud voice', 1, true))
-    local clock = 5000
-    os.clock = function() return clock end
-    local listeners = {}
-    nativeApi.subscribe = function(name, callback) listeners[#listeners + 1] = callback; return #listeners end
-    nativeApi.unsubscribe = function() return true end
-    mcm.shutdown(); mcm.install()
-    for _, callback in ipairs(listeners) do callback({modKey = 'cyberpunk-convai:manager', count = 1}) end
-    local refused = registered.applyBatch('manager', {{id = 'naturalSpeech', value = true}})
-    assert(refused.ok == false and refused.error:find('Change pending', 1, true))
-    assert(not manager.naturalSpeech() and saved.naturalSpeech == false)
-    clock = clock + 2
     assert(registered.applyBatch('manager', {{id = 'naturalSpeech', value = true}}).ok and manager.naturalSpeech())
   `);
 });
@@ -5100,7 +3346,7 @@ test('Expressive emotions is on by default (2026-10-11), a saved choice is kept,
 });
 
 test('Expressive emotions and the cloud voice: choosing the cloud voice keeps it and turns the setting off (silently if only the default was on); turning it on beside the saved cloud voice moves the voice to Pocket TTS', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 5000
     os.clock = function() return clock end
     local sent = {}
@@ -5142,13 +3388,13 @@ test('Expressive emotions and the cloud voice: choosing the cloud voice keeps it
     assert(result.ok and saved.voiceProvider == 'convai' and saved.expressiveEmotions == false and not manager.expressiveEmotions())
     assert(result.schemaChanged == true and manager.takeNaturalSpeechNotice() == nil)
     assert(manager.snapshot(player).settings.voiceProvider == 'convai' and manager.snapshot(player).settings.expressiveEmotions == false)
-    mcm.update(player, true)
+    managerUi.update(player, true)
     assert(#sent == 0, 'the default being switched off is silent')
     -- Turning it on beside the saved cloud voice is the player asking for it: the voice moves to Pocket TTS, with a notice.
     result = apply({'expressiveEmotions', true})
     assert(result.ok and saved.voiceProvider == 'pocket' and saved.expressiveEmotions == true and result.schemaChanged == true)
     assert(manager.snapshot(player).feedback == EMOTIONS, manager.snapshot(player).feedback)
-    mcm.update(player, true)
+    managerUi.update(player, true)
     assert(#sent == 1 and sent[1] == EMOTIONS and not manager.takeNaturalSpeechNotice(), tostring(sent[1]))
     -- With a local voice, switching it off and on again changes nothing else and announces nothing.
     assert(apply({'expressiveEmotions', false}).ok and not manager.expressiveEmotions())
@@ -5159,7 +3405,7 @@ test('Expressive emotions and the cloud voice: choosing the cloud voice keeps it
     result = apply({'voiceProvider', CLOUD})
     assert(result.ok and saved.voiceProvider == 'convai' and saved.expressiveEmotions == false and result.schemaChanged == true)
     assert(manager.snapshot(player).feedback == OFF, manager.snapshot(player).feedback)
-    mcm.update(player, true)
+    managerUi.update(player, true)
     assert(#sent == 2 and sent[2] == OFF and not manager.takeNaturalSpeechNotice(), tostring(sent[2]))
     -- Off: nothing to turn off when the cloud voice is chosen, so no notice.
     assert(apply({'voiceProvider', POCKET}).ok and saved.voiceProvider == 'pocket')
@@ -5209,24 +3455,6 @@ test('Expressive emotions and the cloud voice: choosing the cloud voice keeps it
   `);
 });
 
-test('Auto Apply cannot commit Expressive emotions before the person chooses Apply', () => {
-  run(`${mcmFixture}
-    assert(invoke('tab:settings').ok)
-    local clock = 5000
-    os.clock = function() return clock end
-    local listeners = {}
-    nativeApi.subscribe = function(name, callback) listeners[#listeners + 1] = callback; return #listeners end
-    nativeApi.unsubscribe = function() return true end
-    mcm.shutdown(); mcm.install()
-    for _, callback in ipairs(listeners) do callback({modKey = 'cyberpunk-convai:manager', count = 1}) end
-    local refused = registered.applyBatch('manager', {{id = 'expressiveEmotions', value = false}})
-    assert(refused.ok == false and refused.error:find('Change pending', 1, true))
-    assert(manager.expressiveEmotions() and saved.expressiveEmotions == true)
-    clock = clock + 2
-    assert(registered.applyBatch('manager', {{id = 'expressiveEmotions', value = false}}).ok and not manager.expressiveEmotions())
-  `);
-});
-
 test('Follow-up questions is on by default (2026-10-11), a saved choice is kept, it works with any voice and is independent of the retired followUpQuestions key', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)
@@ -5261,7 +3489,7 @@ test('Follow-up questions is on by default (2026-10-11), a saved choice is kept,
 });
 
 test('Follow-up questions sits in the Voices category after Expressive emotions, applies on its own, and joins the Speech line', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     assert(invoke('tab:settings').ok)
     local owner, order = nil, {}
     for _, category in ipairs(loaded.categories) do
@@ -5277,17 +3505,6 @@ test('Follow-up questions sits in the Voices category after Expressive emotions,
     local at = {}
     for index, id in ipairs(order) do at[id] = index end
     assert(at.naturalSpeech < at.expressiveEmotions and at.expressiveEmotions < at.followUpInterest, 'next to the other two speech settings')
-    local clock = 5000
-    os.clock = function() return clock end
-    local listeners = {}
-    nativeApi.subscribe = function(name, callback) listeners[#listeners + 1] = callback; return #listeners end
-    nativeApi.unsubscribe = function() return true end
-    mcm.shutdown(); mcm.install()
-    for _, callback in ipairs(listeners) do callback({modKey = 'cyberpunk-convai:manager', count = 1}) end
-    local refused = registered.applyBatch('manager', {{id = 'followUpInterest', value = false}})
-    assert(refused.ok == false and refused.error:find('Change pending', 1, true))
-    assert(manager.followUpInterest() and saved.followUpInterest == true)
-    clock = clock + 2
     local voiceBefore = manager.snapshot(player).settings.voiceProvider
     assert(registered.applyBatch('manager', {{id = 'followUpInterest', value = false}}).ok and not manager.followUpInterest())
     assert(manager.snapshot(player).settings.voiceProvider == voiceBefore, 'no voice switch, no notice')
@@ -5362,7 +3579,7 @@ test('V’s voice engine is Pocket by default, only Pocket and Voxtral are kept,
 });
 
 test('V’s voice engine: Voxtral needs the Mistral key, applies on its own beside any companion voice, is refused with Mature content on, and Mature content turning on moves V to Pocket', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     local function key(tag, value)
       jsonFixtures['mistral-' .. tag] = value
@@ -5421,7 +3638,7 @@ test('V’s voice engine: Voxtral needs the Mistral key, applies on its own besi
 });
 
 test('V’s voice sits in the Voices category after Follow-up questions, is on by default, and applies on its own; the old Convai-voice note is gone', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     assert(invoke('tab:settings').ok)
     local owner, order = nil, {}
     for _, category in ipairs(loaded.categories) do
@@ -5451,17 +3668,6 @@ test('V’s voice sits in the Voices category after Follow-up questions, is on b
     assert(row('vVoice').description == plain and not row('vVoiceEngine').description:lower():find('inworld', 1, true), 'Developer mode adds no Inworld text here')
     assert(manager.applySettings(player, {voiceProvider = 'pocket', developerMode = false}))
     loaded = registered.loadMod('manager')
-    local clock = 5000
-    os.clock = function() return clock end
-    local listeners = {}
-    nativeApi.subscribe = function(name, callback) listeners[#listeners + 1] = callback; return #listeners end
-    nativeApi.unsubscribe = function() return true end
-    mcm.shutdown(); mcm.install()
-    for _, callback in ipairs(listeners) do callback({modKey = 'cyberpunk-convai:manager', count = 1}) end
-    local refused = registered.applyBatch('manager', {{id = 'vVoice', value = false}})
-    assert(refused.ok == false and refused.error:find('Change pending', 1, true))
-    assert(manager.vVoice() and saved.vVoice == true)
-    clock = clock + 2
     local voiceBefore = manager.snapshot(player).settings.voiceProvider
     assert(registered.applyBatch('manager', {{id = 'vVoice', value = false}}).ok and not manager.vVoice())
     assert(manager.snapshot(player).settings.voiceProvider == voiceBefore, 'no voice switch')
@@ -5523,7 +3729,7 @@ const multilingualApplyFixture = `
 `;
 
 test('Multilingual conversations sits in Conversations and is off by default', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     assert(invoke('tab:settings').ok)
     local owner
     for _, category in ipairs(loaded.categories) do
@@ -5539,7 +3745,7 @@ test('Multilingual conversations sits in Conversations and is off by default', (
 });
 
 test('with the Omni pack, turning Multilingual on moves Pocket to OmniVoice · Balanced once; Pocket is refused while on; off keeps the voice', () => {
-  run(`${mcmFixture}${multilingualApplyFixture}
+  run(`${nsuiFixture}${multilingualApplyFixture}
     pack(true)
     assert(saved.voiceProvider == 'pocket')
     local result = apply({'multilingualConversations', true})
@@ -5547,8 +3753,8 @@ test('with the Omni pack, turning Multilingual on moves Pocket to OmniVoice · B
     assert(saved.voiceProvider == 'omni' and saved.omniSteps == 16 and saved.omniReference == 'short', 'the lightest Omni')
     local NOTICE = SWITCH .. 'OmniVoice · Balanced.'
     assert(manager.snapshot(player).feedback == NOTICE, manager.snapshot(player).feedback)
-    mcm.update(player, true); assert(#sent == 1 and sent[1] == NOTICE, tostring(sent[1]))
-    mcm.update(player, true); assert(#sent == 1, 'announced once')
+    managerUi.update(player, true); assert(#sent == 1 and sent[1] == NOTICE, tostring(sent[1]))
+    managerUi.update(player, true); assert(#sent == 1, 'announced once')
     -- Pocket while it is on: refused, nothing saved, the draft stays pending.
     result = apply({'voiceProvider', POCKET})
     assert(result.ok == false and result.error == NO_POCKET and saved.voiceProvider == 'omni')
@@ -5597,7 +3803,7 @@ test('with the Omni pack, turning Multilingual on moves Pocket to OmniVoice · B
 });
 
 test('without the Omni pack, Multilingual moves to the cloud voice and wins over Natural speech and Expressive emotions', () => {
-  run(`${mcmFixture}${multilingualApplyFixture}
+  run(`${nsuiFixture}${multilingualApplyFixture}
     pack(false)
     local first = apply({'naturalSpeech', true}, {'expressiveEmotions', true})
     assert(first.ok and saved.voiceProvider == 'pocket', tostring(first.error) .. ' ' .. tostring(saved.voiceProvider))
@@ -5607,7 +3813,7 @@ test('without the Omni pack, Multilingual moves to the cloud voice and wins over
       'cloud: ' .. tostring(saved.voiceProvider) .. ' ' .. tostring(saved.naturalSpeech))
     local NOTICE = SWITCH .. 'Convai · Cloud voice. ' .. OFF
     assert(manager.snapshot(player).feedback == NOTICE, manager.snapshot(player).feedback)
-    mcm.update(player, true); assert(#sent == 1 and sent[1] == NOTICE, tostring(sent[1]))
+    managerUi.update(player, true); assert(#sent == 1 and sent[1] == NOTICE, tostring(sent[1]))
     -- While it is on, either tag setting is refused with the reason; Pocket and Omni are refused too.
     for _, key in ipairs({'naturalSpeech', 'expressiveEmotions'}) do
       result = apply({key, true})
@@ -5660,7 +3866,7 @@ test('a saved Multilingual pairing with Pocket or with the cloud voice and a tag
 // Model browser records map to NPC archetype profiles (docs/NPC_ARCHETYPES.md).
 const catalogSource = readFileSync(new URL('../mod/character-catalog.lua', import.meta.url), 'utf8');
 test('Model browser maps generic records to archetypes, shows it in the row, counts talkers and invites them talking', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local catalog = (function() ${catalogSource} end)()
     local index = catalog.buildArchetypes(catalog.ARCHETYPES)
     manager.configure(api, {{key = 'johnny-silverhand', name = 'Johnny Silverhand', records = {'Character.Silverhand'}},
@@ -5689,7 +3895,7 @@ test('Model browser maps generic records to archetypes, shows it in the row, cou
         record('Character.ChildPoor_ma', {crowd = true, child = true})}
     end
     assert(invoke('tab:models').ok)
-    for _ = 1, 4 do mcm.update(player, false) end
+    for _ = 1, 4 do managerUi.update(player, false) end
     loaded = registered.loadMod('manager')
     local byRecord = {}
     for _, model in ipairs(manager.snapshot(player).models) do byRecord[model.record] = model end
@@ -5720,16 +3926,16 @@ test('Model browser maps generic records to archetypes, shows it in the row, cou
     -- Invited, the copy joins as a model (nothing to prepare) and talks as the archetype once spawned.
     local key = byRecord['Character.maelstrom_grunt1_ranged1_lexington_ma'].key
     assert(invoke('invite:' .. key).ok and #spawned == 0)
-    mcm.update(player, true)
+    managerUi.update(player, true)
     assert(members[1].key == key and members[1].profileKey == 'npc-maelstrom-male' and members[1].profileName == 'Maelstrom ganger')
     local named = byRecord['Character.Silverhand'].key
-    assert(invoke('invite:' .. named).ok); mcm.update(player, true)
+    assert(invoke('invite:' .. named).ok); managerUi.update(player, true)
     assert(members[2].profileKey == 'johnny-silverhand', 'named records keep their prepared profile')
   `);
 });
 
 test('the Convai and Mistral key rows are always listed, whichever provider is chosen, with or without Developer mode, and the old switch is gone', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     assert(invoke('tab:settings').ok)
     local ids = {'own-key', 'mistral-key'}
@@ -5763,13 +3969,13 @@ test('the Convai and Mistral key rows are always listed, whichever provider is c
   `);
 });
 
-test('Settings sections: Conversation provider sits after Conversations and before Voices, Development keeps Developer mode (and the Inworld key with it on), Voice status follows Companion voices', () => {
-  run(`${mcmFixture}
+test('Settings sections: Relationships is a button in Conversations, Conversation provider follows Conversations and sits before Voices, Development keeps Developer mode (and the Inworld key with it on), Voice status follows Companion voices', () => {
+  run(`${nsuiFixture}
     assert(invoke('tab:settings').ok)
     local order = {}
     for _, category in ipairs(loaded.categories) do order[#order + 1] = category.id end
     local joined = table.concat(order, ',')
-    assert(joined:find('conversation-controls,conversation-provider,companion-behavior,voices,', 1, true), joined)
+    assert(joined:find('navigation,interface,conversation-controls,conversation-provider,companion-behavior,voices,', 1, true) and not joined:find('relationships', 1, true), joined)
     local function idsOf(categoryId)
       for _, category in ipairs(loaded.categories) do
         if category.id == categoryId then
@@ -5797,7 +4003,7 @@ test('Settings sections: Conversation provider sits after Conversations and befo
 });
 
 test('The Convai API key row: Paste or Remove with the state in brackets, the failure first in its help, no free-key promotion, two commands, and a status that never shows the key', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     
     local NL2 = string.char(10, 10)
@@ -5862,9 +4068,9 @@ test('The Convai API key row: Paste or Remove with the state in brackets, the fa
     item = answer('cleared', {saved = false, active = 'shared', limit = {state = 'used-up', own = false}, result = {id = id(3), state = 'cleared'}})
     assert(item.label == 'Convai API key' and item.value == 'Paste', item.label)
     -- Who answers is the last paragraph of the provider row's help, never a row of its own.
-    assert(lastParagraph(row('conversationProvider').description) == 'Convai free tier: limit used up', lastParagraph(row('conversationProvider').description))
+    assert(firstParagraph(row('conversationProvider').description) == 'Convai free tier: limit used up', firstParagraph(row('conversationProvider').description))
     answer('own-limit', {saved = true, tail = 'wxyz', active = 'player', limit = {state = 'used-up', own = true}})
-    assert(lastParagraph(row('conversationProvider').description) == 'Your key: plan limit reached')
+    assert(firstParagraph(row('conversationProvider').description) == 'Your key: plan limit reached')
     -- A result belonging to an older command is not shown again.
     item = answer('someone-else', {saved = false, active = 'shared', result = {id = 'old:key:9', state = 'invalid'}})
     assert(item.label == 'Convai API key' and not item.description:find('Convai did not accept', 1, true))
@@ -5879,7 +4085,7 @@ test('The Convai API key row: Paste or Remove with the state in brackets, the fa
 });
 
 test('The provider row says when the player key runs without memory or cannot hold the conversations at all', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     
     local NL2 = string.char(10, 10)
@@ -5896,12 +4102,12 @@ test('The provider row says when the player key runs without memory or cannot ho
 
     assert(invoke('tab:settings').ok)
     local base = row('conversationProvider').description
-    -- The note is the paragraph added after the provider row's own help (nil when there is none).
+    -- The note is the paragraph added before the provider row's own help (nil when there is none): the description area holds only so much.
     local function note()
       local text = row('conversationProvider').description
       if text == base then return nil end
-      assert(text:sub(1, #base + 2) == base .. NL2, 'the note comes after the help')
-      return text:sub(#base + 3)
+      assert(text:sub(-(#base + 2)) == NL2 .. base, 'the note comes before the help')
+      return text:sub(1, #text - #base - 2)
     end
     local function state(value, tag)
       local token = 'own-state-' .. tag
@@ -5932,7 +4138,7 @@ test('The provider row says when the player key runs without memory or cannot ho
     assert(note() == 'Convai free tier: daily limit reached', tostring(note()))
     local mistralHelp = row('mistral-key').description
     assert(mistralHelp:find('You have used today’s 100 turns, which come back tomorrow.', 1, true) and mistralHelp:find('Mistral (with your free key, about 5,000 turns a day)', 1, true)
-      and mistralHelp:find('Local AI (unlimited), then Apply', 1, true) and mistralHelp:find('It sets its own monthly cap, estimated at about 150,000 turns.', 1, true), mistralHelp)
+      and mistralHelp:find('Local AI (unlimited).', 1, true) and mistralHelp:find('It sets its own monthly cap, estimated at about 150,000 turns.', 1, true), mistralHelp)
     assert(lastParagraph(mistralHelp):find('You have used today’s', 1, true) == 1, 'it is the last paragraph of the Mistral key help')
     local limitText = lastParagraph(mistralHelp)
     assert(not limitText:lower():find('recommend', 1, true) and not limitText:lower():find('embedded', 1, true) and not limitText:lower():find('paid', 1, true), limitText)
@@ -5996,7 +4202,7 @@ test('the reply notices for the key: a used-up plan, a refused key, memory off o
 });
 
 test('The Conversation provider section offers the provider, Mature content, the Local AI model and one Paste or Remove row for Convai and for Mistral: Convai free tier by default, two commands, a status that never shows the key', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     
     local NL2 = string.char(10, 10)
@@ -6026,7 +4232,7 @@ test('The Conversation provider section offers the provider, Mature content, the
     assert(mistral and mistral.type == 'action' and mistral.label == 'Mistral free API key' and mistral.value == 'Paste', mistral.label)
     assert(mistral.description:find('phone verification', 1, true) and mistral.description:find('player-mistral-key.txt', 1, true) and mistral.description:find('monthly cap', 1, true) and mistral.description:find('about 5,000 turns a day', 1, true))
     assert(row('local-ai-status') == nil and row('own-key-using') == nil and row('mistral-key-status') == nil, 'the status rows are gone')
-    assert(lastParagraph(provider.description) == lastParagraph(row('conversationProvider').description))
+    assert(firstParagraph(provider.description) == firstParagraph(row('conversationProvider').description))
     assert(not provider.description:find('Your own key', 1, true) and not provider.description:find('Convai free tier:', 1, true), 'no note while nothing needs one')
     local order = {}
     for _, category in ipairs(loaded.categories) do
@@ -6039,7 +4245,7 @@ test('The Conversation provider section offers the provider, Mature content, the
       files['runtime/mistral-state.json'] = 'or-state-' .. tag
       refresh()
     end
-    local function note() return lastParagraph(row('conversationProvider').description) end
+    local function note() return firstParagraph(row('conversationProvider').description) end
     local base = provider.description
     -- Paste and Remove are two commands of one row, on their own channel, never the memory or the Convai key channel.
     assert(invoke('mistral-key').ok)
@@ -6071,7 +4277,7 @@ test('The Conversation provider section offers the provider, Mature content, the
     assert(state.provider == 'convai' and state.effective == 'convai' and state.saved == false and state.tail == nil
       and state.limit == nil and state.stt == false and state.model == nil and state.result == nil)
     assert(row('mistral-key').label == 'Mistral free API key' and row('mistral-key').value == 'Paste')
-    -- Limits and the waiting state are told in the last paragraph of the provider row's help.
+    -- Limits and the waiting state are told in the first paragraph of the provider row's help.
     for limit, text in pairs({rate = 'Mistral: free limit reached for now', daily = 'Mistral: free limit reached for now',
       invalid = 'Mistral: key not accepted', model = 'Mistral: model unavailable'}) do
       answer('limit-' .. limit, {provider = 'mistral', effective = 'mistral', saved = true, tail = 'abcd', limit = limit})
@@ -6082,7 +4288,7 @@ test('The Conversation provider section offers the provider, Mature content, the
     -- Local AI: the state is on the Local AI model row (its name in brackets, its help starting with the loading sentence);
     -- an unknown value never invents a state.
     local WAIT = {warming = {'Local AI model (Warming up)', 'Local AI is warming up…'},
-      ['no-memory'] = {'Local AI model (Not enough memory)', 'Not enough graphics memory for Local AI. A cloud provider is used instead.'},
+      ['no-memory'] = {'Local AI model (Not enough memory)', 'Not enough free graphics memory to start Local AI. Try a smaller model in Settings.'},
       failed = {'Local AI model (Unavailable)', 'Local AI could not start. Check Local AI in Settings > Conversation provider.'}}
     for value, expected in pairs({ready = false, warming = WAIT.warming, ['no-memory'] = WAIT['no-memory'], failed = WAIT.failed,
         ['not-installed'] = false, sometimes = false, [7] = false}) do
@@ -6146,7 +4352,7 @@ test('The Conversation provider section offers the provider, Mature content, the
 });
 
 test('the Conversation provider setting: five entries stored as a provider and the own-key choice, Convai free tier by default, saved like the other settings, validated', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     local function settings() return manager.snapshot(player).settings end
     assert(invoke('tab:settings').ok)
@@ -6199,7 +4405,7 @@ test('the Conversation provider setting: five entries stored as a provider and t
 });
 
 test('the voice key waits for Convai only while Mistral is in use and this computer cannot recognise speech', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     local function status(tag, value)
       jsonFixtures['voice-' .. tag] = value
@@ -6243,7 +4449,7 @@ test('the voice key waits for Convai only while Mistral is in use and this compu
 });
 
 test('an add-on voice hears V whenever this computer can recognise speech, whichever provider is chosen', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     local function status(tag, value)
       jsonFixtures['addon-voice-' .. tag] = value
@@ -6288,7 +4494,7 @@ test('the voice key follows the status file the bridge really publishes for Mist
   const withStt = await published(true), without = await published(false);
   assert.equal(withStt.stt, true); assert.equal(without.stt, false);
   assert(!JSON.stringify(withStt).includes(KEY), 'the key never enters the status file');
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     local function status(tag, value)
       jsonFixtures['voice-' .. tag] = value
@@ -6408,877 +4614,55 @@ test('a stale install without Alt (roster and manager-characters from before 202
   `);
 });
 
-test('the per-frame MCM update asks MCM for its diagnostics once a second while our page is not shown and four times a second while it is', () => {
-  run(`${mcmFixture}
-    local clock, reads = 10, 0
-    os.clock = function() return clock end
-    local diagnostics = nativeApi.getDiagnostics
-    nativeApi.getDiagnostics = function() reads = reads + 1; return diagnostics() end
-    for _ = 1, 60 do mcm.update(player, true); clock = clock + 1 / 60 end
-    assert(reads <= 2, 'diagnostics read ' .. reads .. ' times in one second with the page closed')
-    -- Our page opening is noticed by the hooks in the same frame (presentation.pending), and
-    -- while it is shown the answer is re-read every 0.25 s, not on every frame.
-    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
-    assert(mcm.inspect().presentation.active, 'the hook did not mark our page shown')
-    reads = 0
-    for _ = 1, 30 do mcm.update(player, true); clock = clock + 1 / 60 end
-    assert(reads >= 1 and reads <= 5, 'page shown: diagnostics read ' .. reads .. ' times in half a second')
-  `);
-});
-
 test('with the settings menu closed the queue flush, notices and player identity run on a 0.25 s tick, and a queue change or resume runs it at once', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock, flushes, identities = 10, 0, 0
     os.clock = function() return clock end
     -- The once-a-second work (settings re-install, preparation feedback) follows the wall clock os.time, which also reads the
     -- player on a real second boundary: hold it still so the count below is only the tick.
     os.time = function() return 0 end
-    local party = mcm.party()
+    local party = managerUi.party()
     local flush = party.flush
     party.flush = function(...) flushes = flushes + 1; return flush(...) end
     local getId = player.GetEntityID
     function player:GetEntityID() identities = identities + 1; return getId(self) end
-    for _ = 1, 120 do mcm.update(player, true); clock = clock + 1 / 60 end
+    for _ = 1, 120 do managerUi.update(player, true); clock = clock + 1 / 60 end
     assert(flushes >= 7 and flushes <= 9, 'flushed ' .. flushes .. ' times in two seconds')
     assert(identities <= flushes + 3, 'the player identity was read outside the tick: ' .. identities .. ' for ' .. flushes)
     -- A queue change is flushed by the next frame, inside the tick period.
-    mcm.update(player, true)
+    managerUi.update(player, true)
     local before = flushes
     party.dismiss('no-such-copy')
-    mcm.update(player, true)
+    managerUi.update(player, true)
     assert(flushes == before + 1, 'a queue change waited for the tick')
     -- Returning to gameplay runs it at once, so a spawn is not held a quarter second after a menu.
-    mcm.update(player, false)
+    managerUi.update(player, false)
     before = flushes
-    mcm.update(player, true)
+    managerUi.update(player, true)
     assert(flushes == before + 1, 'the first gameplay frame did not flush')
   `);
 });
 
 test('a notice is held at most one tick: a voice switch reaches the player once and is never lost', () => {
-  run(`${mcmFixture}
+  run(`${nsuiFixture}
     local clock = 10
     os.clock = function() return clock end
     local sent = {}
     convaiNotices = {sendLines = function(_, lines) for _, line in ipairs(lines) do sent[#sent + 1] = line.id end return #lines end}
-    mcm.update(player, true); clock = clock + 1 / 60
+    managerUi.update(player, true); clock = clock + 1 / 60
     local taken = 0
     manager.takeNaturalSpeechNotice = function() taken = taken + 1; return taken == 1 and 'Voice switched.' or nil end
     local frames = 0
-    while #sent == 0 and frames < 60 do mcm.update(player, true); clock = clock + 1 / 60; frames = frames + 1 end
+    while #sent == 0 and frames < 60 do managerUi.update(player, true); clock = clock + 1 / 60; frames = frames + 1 end
     assert(#sent == 1 and sent[1] == 'voice-switched', 'the notice was lost')
     assert(frames <= 16, 'the notice waited ' .. frames .. ' frames')
-    for _ = 1, 60 do mcm.update(player, true); clock = clock + 1 / 60 end
+    for _ = 1, 60 do managerUi.update(player, true); clock = clock + 1 / 60 end
     assert(#sent == 1, 'the notice repeated')
   `);
 });
 
-const stylingFixture = `
-  CName = {new = function(value) return value end}
-  NameToString = function(value) return value end
-  local counters = {binds = {}, content = 0, indexed = 0}
-  local function widget(name, left, children)
-    local value = {name = name, left = left or 0, width = 200, children = children or {}}
-    function value:GetName() return self.name end
-    function value:GetNumChildren() if self == counters.contentWidget then counters.content = counters.content + 1 end return #self.children end
-    function value:GetWidgetByIndex(index) counters.indexed = counters.indexed + 1; return self.children[index + 1] end
-    function value:GetMargin() return {left = self.left, top = 48, right = 0, bottom = 0} end
-    function value:SetMargin(margin) self.left = margin.left end
-    function value:GetWidth() return self.width end
-    function value:GetHeight() return 10 end
-    function value:SetWidth(width) self.width = width end
-    function value:GetScale() return {X = 1, Y = 1} end
-    function value:GetController() return nil end
-    function value:BindProperty(property, color)
-      self.color = color; counters.binds[self.name] = (counters.binds[self.name] or 0) + 1
-    end
-    return value
-  end
-  local content = widget('mcm_content_scroll_content')
-  counters.contentWidget = content
-  local status = widget('status')
-  local sidebar = widget('mcm_sidebar_scroll_content', 0, {widget('mod-entry')})
-  local render = widget('MCMRenderRoot', 0, {content, status, sidebar})
-  local root = widget('root', 0, {render})
-  function controller:GetRootWidget() return root end
-  local function reference() return setmetatable({nativeIdentity = 101}, {__index = controller}) end
-  local function open()
-    handlers.McmUiBegin(reference(), 'MCM', '', 'Mods', 'Mods', '', 0, '', true, true, 0, function() end)
-    handlers.McmUiSetContentTitle(reference(), 'Companion Manager')
-  end
-`;
-
-test('a hover-out re-tints only its own label instead of walking the page again', () => {
-  run(`${mcmFixture}${stylingFixture}
-    local labels = {}
-    for _, id in ipairs({'a', 'b', 'c'}) do
-      labels[id] = widget(id .. '_managed_label', 48)
-      content.children[#content.children + 1] = labels[id]
-    end
-    open()
-    mcm.update(player, false)
-    assert(not mcm.inspect().presentation.pending and labels.a.color == 'MainColors.Red' and labels.c.color == 'MainColors.Red')
-    local binds, reads, indexed = counters.binds.b_managed_label, counters.content, counters.indexed
-    labels.b.color = 'native-cyan'
-    handlers.McmUiSetManagedLabelState(reference(), 'b', true, true)
-    handlers.McmUiSetManagedLabelState(reference(), 'b', false, true)
-    assert(mcm.inspect().presentation.restyling == 1 and not mcm.inspect().presentation.pending)
-    mcm.update(player, false)
-    assert(labels.b.color == 'MainColors.Red', 'the hovered label kept its native tint')
-    assert(counters.binds.b_managed_label == binds + 1 and counters.binds.a_managed_label == 1 and counters.binds.c_managed_label == 1)
-    assert(counters.content == reads and counters.indexed == indexed, 'the page was walked again for one label')
-    assert(mcm.inspect().presentation.restyling == 0)
-    -- A row still hovered is left to the native feedback.
-    labels.a.color = 'native-hover'
-    handlers.McmUiEmitHover(reference(), 'a', '', true)
-    handlers.McmUiEmitHover(reference(), 'c', '', false)
-    mcm.update(player, false)
-    assert(labels.a.color == 'native-hover' and labels.c.color == 'MainColors.Red')
-  `);
-});
-
-test('a freshly drawn page is styled in bounded batches, every row is styled, and the Back button waits for the last batch', () => {
-  run(`${mcmFixture}${stylingFixture}
-    local rows = {}
-    for index = 1, 500 do
-      rows[index] = widget('r' .. index .. '_managed_label', 48)
-      content.children[#content.children + 1] = rows[index]
-    end
-    open()
-    local before = counters.indexed
-    mcm.update(player, false)
-    assert(counters.indexed - before <= 310, 'the first frame visited ' .. (counters.indexed - before) .. ' widgets')
-    assert(mcm.inspect().presentation.pending and mcm.inspect().presentation.styling, 'a 500-row page finished in one frame')
-    assert(#bottomActions == 0, 'the Back button was placed before the page was styled')
-    local frames = 1
-    while mcm.inspect().presentation.pending and frames < 40 do
-      before = counters.indexed
-      mcm.update(player, false); frames = frames + 1
-      assert(counters.indexed - before <= 310, 'a batch visited ' .. (counters.indexed - before) .. ' widgets')
-    end
-    assert(not mcm.inspect().presentation.pending and frames <= 20, 'styling took ' .. frames .. ' frames')
-    for index = 1, 500 do assert(rows[index].color == 'MainColors.Red', 'row ' .. index .. ' was not styled') end
-    -- A new render drops an unfinished batch and starts again.
-    content.children = {widget('x_managed_label', 48)}
-    open(); mcm.update(player, false)
-    assert(not mcm.inspect().presentation.pending and content.children[1].color == 'MainColors.Red')
-  `);
-});
-
-// Settings flicker: a drawn page is hidden until styled, and a page is drawn again only when what it shows changed.
-const opacityFixture = `
-  content.opacity = 1
-  local opacities = {}
-  function content:GetOpacity() return self.opacity end
-  function content:SetOpacity(value) self.opacity = value; opacities[#opacities + 1] = value end
-`;
-
-test('a freshly drawn page is hidden until it is styled, shown again at its own opacity, and never hidden longer than 0.75 s', () => {
-  run(`${mcmFixture}${stylingFixture}
-    local clock = 10
-    os.clock = function() return clock end
-    ${opacityFixture}
-    content.opacity = 0.9
-    local function fill()
-      content.children = {}
-      for index = 1, 500 do content.children[index] = widget('r' .. index .. '_managed_label', 48) end
-    end
-    fill(); open()
-    assert(content.opacity == 0.9 and #opacities == 0, 'the veil was raised inside the native observer')
-    mcm.update(player, false)
-    assert(content.opacity == 0 and mcm.inspect().presentation.pending)
-    local frames = 1
-    while mcm.inspect().presentation.pending and frames < 40 do
-      assert(content.opacity == 0, 'rows were visible while unstyled (frame ' .. frames .. ')')
-      mcm.update(player, false); frames = frames + 1
-    end
-    assert(not mcm.inspect().presentation.pending and frames > 1)
-    assert(content.opacity == 0.9 and #opacities == 2 and opacities[1] == 0 and opacities[2] == 0.9,
-      'the page was not shown again at its own opacity: ' .. tostring(content.opacity))
-    -- A page whose styling is slow is shown after 0.75 s anyway, unfinished rather than hidden.
-    fill(); open(); mcm.update(player, false)
-    assert(content.opacity == 0 and mcm.inspect().presentation.pending)
-    clock = clock + 1; mcm.update(player, false)
-    assert(content.opacity == 0.9, 'the veil outlived its limit')
-    -- A page that cannot be styled (no content) is never left hidden.
-    content.children = {}; open(); mcm.update(player, false); mcm.update(player, false)
-    assert(content.opacity == 0.9 and not mcm.inspect().presentation.pending)
-  `);
-});
-
-// A value change (slider, option, toggle) makes MCM draw the whole page again from its own update, after this module's in the
-// frame. The new page's content must never show in MCM's default look: it is created hidden, in the same call, and shown when
-// it is styled.
-const valueChangeFixture = `
-  local clock = 10
-  os.clock = function() return clock end
-  ${opacityFixture}
-`;
-const drawFixture = `
-  local wrapper = {visible = true, sets = {}}
-  function wrapper:SetVisible(value) self.visible = value; self.sets[#self.sets + 1] = value end
-  local scroll = {GetParentWidget = function() return wrapper end}
-  content.GetParentWidget = function() return scroll end
-  local passed = {}
-  -- What MCM does for one draw, in its own order; wrapper starts visible like a freshly created scroll area.
-  local function draw(title, text, kind)
-    wrapper.visible = true
-    content.opacity = 1
-    handlers.McmUiBegin(reference(), 'MCM', '', 'Mods', title or 'Companion Manager', text or '', kind or 0, '', true, true, 0,
-      function(_, _, _, _, statusArg) passed.status = statusArg end)
-    handlers.McmUiBeginContent(reference(), 400, 0.25, true, function(height, scrollPosition, ready)
-      passed.ready, passed.height, passed.scroll = ready, height, scrollPosition
-      wrapper.visible = ready
-    end)
-    handlers.McmUiSetContentTitle(reference(), 'Companion Manager')
-  end
-  local function fill(count)
-    content.children = {}
-    for index = 1, count do content.children[index] = widget('r' .. index .. '_managed_label', 48) end
-  end
-`;
-
-test('a value change draws the page with its content hidden in the same call, and shows it once it is styled', () => {
-  run(`${mcmFixture}${stylingFixture}${valueChangeFixture}${drawFixture}
-    fill(500)
-    for change = 1, 4 do
-      draw('Companion Manager', 'Pending: Voice')
-      assert(passed.ready == false and wrapper.visible == false, 'the page was created visible (change ' .. change .. ')')
-      -- The first draw opens the page afresh (top); a redraw of the open page keeps MCM's position.
-      assert(passed.height == 400 and passed.scroll == (change == 1 and 0 or 0.25), 'the other arguments were changed')
-      assert(passed.status == 'Pending: Voice', 'the status text was changed: ' .. tostring(passed.status))
-      local frames = 0
-      repeat
-        assert(wrapper.visible == false, 'the content showed while unstyled (change ' .. change .. ', frame ' .. frames .. ')')
-        mcm.update(player, false); frames = frames + 1
-      until not mcm.inspect().presentation.pending or frames > 40
-      mcm.update(player, false)
-      assert(wrapper.visible == true and content.opacity == 1, 'the styled page was not shown (change ' .. change .. ')')
-    end
-    assert(#wrapper.sets == 4 and wrapper.sets[4] == true, 'the content was shown more than once per draw')
-  `);
-});
-
-test('only the manager is held: another mod page, and a page that wants itself hidden, are left as they are', () => {
-  run(`${mcmFixture}${stylingFixture}${valueChangeFixture}${drawFixture}
-    fill(5)
-    -- Another mod's page.
-    handlers.McmUiBegin(reference(), 'MCM', '', 'Mods', 'Another Mod', 'Opened.', 0, '', true, true, 0,
-      function(_, _, _, _, statusArg) passed.status = statusArg end)
-    handlers.McmUiBeginContent(reference(), 400, 0, true, function(_, _, ready) passed.ready = ready end)
-    assert(passed.ready == true and passed.status == 'Opened.', 'a foreign page was held')
-    -- Ours, but MCM itself wants the content hidden (it does for a page that still has to be measured): unchanged.
-    handlers.McmUiBegin(reference(), 'MCM', '', 'Mods', 'Companion Manager', '', 0, '', true, true, 0, function() end)
-    handlers.McmUiBeginContent(reference(), 400, 0, false, function(_, _, ready) passed.ready = ready end)
-    assert(passed.ready == false)
-    draw('Companion Manager', '')
-    for _ = 1, 4 do mcm.update(player, false) end
-    assert(wrapper.visible == true)
-  `);
-});
-
-test('a held page that was never styled is shown after 1.5 s, and a page that cannot be released switches the hold off', () => {
-  run(`${mcmFixture}${stylingFixture}${valueChangeFixture}${drawFixture}
-    fill(5)
-    draw('Companion Manager', 'Pending: Voice')
-    assert(wrapper.visible == false)
-    -- The settings page stops being the manager's before any styling ran (another mod is selected): the content comes back.
-    activeMod = 'another-mod:page'
-    mcm.update(player, false); assert(wrapper.visible == false, 'released too early')
-    clock = clock + 2
-    mcm.update(player, false)
-    assert(wrapper.visible == true, 'a page that is no longer ours stayed hidden')
-    -- A page whose scroll wrapper cannot be found is drawn again, and from then on never held.
-    activeMod = 'cyberpunk-convai:manager'
-    content.GetParentWidget = function() error('no parent') end
-    draw('Companion Manager', '')
-    assert(passed.ready == false)
-    activeMod = 'another-mod:page'
-    clock = clock + 2; mcm.update(player, false)
-    draw('Companion Manager', 'Pending: Voice')
-    assert(passed.ready == true, 'a page was held after the hold failed')
-  `);
-});
-
-// The early style (mod/mcm.lua, "Early style"): a page MCM draws again after a value change is given its final look while it is
-// drawn and shown in the same call, so there is no frame of the default look, no blank page and no jump of the status line or the
-// bottom buttons. This fixture plays MCM's draw in its own order through the handlers the module registers.
-const earlyFixture = `
-  CName = {new = function(value) return value end}
-  NameToString = function(value) return value end
-  IsDefined = function(value) return value ~= nil end
-  textWrappingPolicy = {Default = 0}
-  textVerticalAlignment = {Top = 'top'}
-  local clock = 10
-  os.clock = function() return clock end
-  -- Every widget method the module calls is counted: work on widgets shows up as a changed count.
-  local calls = 0
-  local methods = {}
-  local meta = {__index = function(_, key)
-    local method = methods[key]
-    if method then calls = calls + 1 end
-    return method
-  end}
-  local function widget(name, left, top, width, height, children, size)
-    return setmetatable({name = name, margin = {left = left or 0, top = top or 0}, width = width or 100, height = height or 40,
-      children = children or {}, fontSize = size or 22, scale = 1, opacity = 1, sets = 0}, meta)
-  end
-  methods.GetName = function(self) return self.name end
-  methods.GetMargin = function(self) return {left = self.margin.left, top = self.margin.top, right = 0, bottom = 0} end
-  methods.SetMargin = function(self, m) self.margin = {left = m.left, top = m.top} end
-  methods.GetWidth = function(self) return self.width end
-  methods.SetWidth = function(self, v) self.width = v end
-  methods.GetHeight = function(self) return self.height end
-  methods.SetHeight = function(self, v) self.height = v end
-  methods.GetNumChildren = function(self) return #self.children end
-  methods.GetWidgetByIndex = function(self, i) return self.children[i + 1] end
-  methods.GetParentWidget = function(self) return self.parent end
-  methods.Reparent = function(self, parent)
-    local old = self.parent
-    if old then for i, child in ipairs(old.children) do if child == self then table.remove(old.children, i) break end end end
-    self.parent = parent; parent.children[#parent.children + 1] = self
-  end
-  methods.SetVerticalAlignment = function() end
-  methods.GetFontSize = function(self) return self.fontSize end
-  methods.SetFontSize = function(self, v) self.fontSize = v end
-  methods.SetWrapping = function() end
-  methods.BindProperty = function(self, _, color) self.color = color end
-  methods.GetScale = function(self) return {X = self.scale, Y = self.scale} end
-  methods.GetController = function() return nil end
-  methods.SetVisible = function(self, v) self.visible = v; self.sets = self.sets + 1 end
-  methods.GetOpacity = function(self) return self.opacity end
-  methods.SetOpacity = function(self, v) self.opacity = v end
-  -- What the game's McmUiCreateText makes.
-  local function rawText(parent, name, value, x, y, width, height, size, color)
-    local text = widget(name, x, y, width, height, nil, size)
-    text.color, text.text = color, value
-    text.parent = parent; parent.children[#parent.children + 1] = text
-    return text
-  end
-  local ref = setmetatable({nativeIdentity = 101}, {__index = controller})
-  controller.McmUiGetLayoutMetric = function(_, metric) return ({[13] = 320, [20] = 100, [23] = 800, [27] = 1000, [28] = 900})[metric] or -1 end
-  local page
-  function controller:GetRootWidget() return page.root end
-  -- The content scroll position: what the page being replaced reports, and what is set on the new scroll controller.
-  local scrollNow, scrolls = 0, 0
-  controller.McmUiGetContentScrollPosition = function() return scrollNow end
-  -- One draw of the manager's page, in MCM's order. Options: rows = {managed, action, readonly}, categories, bar (labels of the
-  -- buttons on the bar line), plain (the text override does nothing: the creations bypass it), ignoresX (the game ignores the
-  -- x it is given for a managed label), noState (no managed-label state call), badCategory, finish = false (the draw never ends),
-  -- title and status.
-  local function draw(o)
-    o = o or {}
-    local p = {render = widget('MCMRenderRoot', 0, 0, 1920, 1080), list = widget('mcm_sidebar_scroll_content', 0, 0, 340, 126),
-      content = widget('mcm_content_scroll_content', 0, 0, 800, 2000), wrapper = widget('mcm_content_scroll', 100, 200, 800, 700),
-      viewport = widget('scroll_area', 0, 0, 800, 700), texts = {}, markers = {}, labels = {}, actions = {}, readonly = {},
-      values = {}, headings = {}, passed = {}}
-    p.root = widget('root', 0, 0, 1920, 1080, {p.render}); p.render.parent = p.root
-    p.scroll = 0
-    p.wrapper.GetController = function()
-      return {GetScrollPosition = function() return p.scroll end,
-        SetScrollPosition = function(_, value) p.scroll = value; scrolls = scrolls + 1 end}
-    end
-    if o.badScroller then p.wrapper.GetController = function() error('no controller') end end
-    for i = 0, 2 do
-      local entry = widget('mcm_entry_' .. i, 20, i * 42, 300, 42); entry.parent = p.list; p.list.children[i + 1] = entry
-    end
-    page = p
-    local raw = rawText
-    if o.ignoresX then
-      raw = function(parent, name, value, x, ...) return rawText(parent, name, value, name:find('_managed_label', 1, true) and 48 or x, ...) end
-    end
-    local function mk(parent, name, value, x, width, size, color)
-      if o.plain then return raw(parent, name, value, x, 0, width, 42, size or 22, color or 'native-secondary', 0) end
-      return handlers.McmUiCreateText(ref, parent, name, value, x, 0, width, 42, size or 22, color or 'native-secondary', 0, raw)
-    end
-    handlers.McmUiBegin(ref, 'MCM', '', 'Mods', o.title or 'Companion Manager', o.status or 'Pending: Voice', 0, '', true, true, 0, function()
-      for _, name in ipairs({'title', 'subtitle', 'sidebar_title', 'content_title', 'status'}) do
-        local text = mk(p.render, name, name, 10, 200, 24, 'native-blue')
-        if name == 'status' then p.status = text else p.texts[name] = text end
-      end
-    end)
-    handlers.McmUiCreateScrollArea(ref, p.render, 'mcm_sidebar_scroll', 0, 0, 340, 700, 700, function()
-      local sidebar = widget('sidebar_wrapper')
-      sidebar.children, p.list.parent, sidebar.parent = {p.list}, sidebar, p.render
-      p.render.children[#p.render.children + 1] = sidebar
-      return {content = p.list, wrapper = sidebar}
-    end)
-    handlers.McmUiBeginContent(ref, 400, o.scroll or 0, true, function(height, scroll, ready)
-      p.beginScroll = scroll
-      p.scroll = o.sticks and scroll or 0
-      handlers.McmUiCreateScrollArea(ref, p.render, 'mcm_content_scroll', 100, 200, 800, 700, 2000, function()
-        p.wrapper.children, p.viewport.children = {p.viewport}, {p.content}
-        p.content.parent, p.viewport.parent, p.wrapper.parent = p.viewport, p.wrapper, p.render
-        p.render.children[#p.render.children + 1] = p.wrapper
-        return {content = p.content, wrapper = p.wrapper}
-      end)
-      p.wrapper.visible = ready
-    end)
-    local rows = o.rows or {}
-    for i = 1, (o.categories or 0) do
-      local label = widget('label', 20, 0, 1600, 40, nil, 30); label.color = 'native-heading'
-      if o.badCategory then label.BindProperty = function() error('native failure') end end
-      local category = widget('settingsCategory', 0, 100 * i, 1800, 80, {widget('line', 0, 0, 1800, 4), label})
-      category.scale = 0.5; category.parent = p.content; p.content.children[#p.content.children + 1] = category
-      p.headings[i] = {root = category, label = label, line = category.children[1]}
-      handlers.McmUiSetup({GetRootWidget = function() return category end})
-      handlers.McmUiAddCategory(ref, 'category' .. i, 'Heading', 'd', '')
-    end
-    for i = 1, (rows.managed or 0) do
-      local id = 'mcm_1_' .. i
-      handlers.McmUiAddManagedLabel(ref, id, 'Label', '*', false, 0, function()
-        p.markers[i] = mk(p.content, id .. '_managed_marker', '*', 100, 40, 22, 'native-purple')
-        p.labels[i] = mk(p.content, id .. '_managed_label', 'Label', 48, 300, 22, 'native-secondary')
-      end)
-      if not o.noState then handlers.McmUiSetManagedLabelState(ref, id, false, false) end
-    end
-    for i = 1, (rows.action or 0) do
-      local id = 'mcm_2_' .. i
-      handlers.McmUiAddActionSetting(ref, id, 'Label', 'd', 'Open', function()
-        p.actions[i] = mk(p.content, id .. '_label', 'Label', 20, 300, 22, 'native-secondary')
-      end)
-    end
-    for i = 1, (rows.readonly or 0) do
-      local id = 'mcm_3_' .. i
-      handlers.McmUiAddReadonly(ref, id, 'Label', 'd', 'value', function()
-        local surface = widget('mcm_action_' .. id, 20, 0, 400, 42)
-        surface.parent = p.content; p.content.children[#p.content.children + 1] = surface
-        p.readonly[i] = mk(surface, 'label', 'Label', 30, 340, 26, 'native-secondary')
-        p.values[i] = mk(p.content, id .. '_value', 'value', 500, 360, 22, 'native-muted')
-      end)
-    end
-    for index, label in ipairs(o.bar or {}) do
-      handlers.McmUiAddBottomActionAt(ref, 'bar' .. index, label, 300 + (index - 1) * 160, 1000, 140, false, function(...)
-        p.passed[#p.passed + 1] = table.pack(...)
-      end)
-    end
-    if o.finish ~= false then handlers.McmUiSetContentTitle(ref, o.title or 'Companion Manager') end
-    return p
-  end
-  -- Frames until the older pass has styled and shown a page that was held back.
-  local function settle()
-    local frames = 0
-    while frames < 40 and (page.wrapper.visible ~= true or mcm.inspect().presentation.pending) do
-      mcm.update(player, false); frames = frames + 1
-    end
-    assert(page.wrapper.visible == true and not mcm.inspect().presentation.pending, 'the older pass did not show the page')
-    return frames
-  end
-  local function backs()
-    local count = 0
-    for _, button in ipairs(bottomActions) do if button.id == 'convai-bottom-back' then count = count + 1 end end
-    return count
-  end
-`;
-
-test('a value change draws the page in its final look and shows it in the same call, with no frame of the default look', () => {
-  run(`${mcmFixture}${earlyFixture}
-    assert(invoke('tab:settings').ok)
-    for _ = 1, 3 do mcm.update(player, false) end
-    local p = draw({rows = {managed = 3, action = 2, readonly = 2}, categories = 2, bar = {'Revert', 'Apply'}})
-    -- Shown at once, before any update runs.
-    assert(p.wrapper.visible == true, 'the page stayed hidden after the draw')
-    local info = mcm.inspect()
-    assert(info.early.hooks and info.early.shown == 1 and info.early.held == 0, 'the early style did not complete: ' .. info.early.reason)
-    assert(not info.presentation.pending and not info.presentation.styling and info.presentation.active)
-    -- Managed rows: label at x 20 keeping its right edge, marker 12 wide at 0 keeping its colour, the red label colour.
-    for i = 1, 3 do
-      assert(p.labels[i].margin.left == 20 and p.labels[i].width == 328 and p.labels[i].color == 'MainColors.Red', 'managed label ' .. i)
-      assert(p.markers[i].margin.left == 0 and p.markers[i].width == 12 and p.markers[i].color == 'native-purple', 'managed marker ' .. i)
-    end
-    for i = 1, 2 do
-      assert(p.actions[i].color == 'MainColors.Red' and p.actions[i].margin.left == 20 and p.actions[i].width == 300, 'action label ' .. i)
-      local text = p.readonly[i]
-      assert(text.margin.left == 0 and text.width == 370 and text.fontSize == 22 and text.color == 'MainColors.Red', 'read-only label ' .. i)
-      assert(p.values[i].margin.left == 500 and p.values[i].width == 360 and p.values[i].color == 'native-muted', 'a value text was changed')
-    end
-    -- Texts that are not rows are left as MCM made them.
-    for _, name in ipairs({'title', 'subtitle', 'sidebar_title', 'content_title'}) do
-      assert(p.texts[name].margin.left == 10 and p.texts[name].width == 200 and p.texts[name].color == 'native-blue', name .. ' was changed')
-    end
-    -- Section headings: white, at the content edge in content coordinates; the native rule is left alone.
-    for i = 1, 2 do
-      local heading = p.headings[i]
-      assert(heading.root.margin.left + heading.root.scale * heading.label.margin.left == 20 and heading.label.color == 'MainColors.White', 'heading ' .. i)
-      assert(heading.line.color == nil, 'the native rule was recoloured')
-    end
-    -- The status line is under the mod list; the bar line is complete, created in this call: held buttons shifted left by the
-    -- Back button's width and gap, Back at the right end.
-    assert(p.status.parent == p.list and p.status.margin.left == 20 and p.status.margin.top == 126 + 14 and p.status.width == 320, 'status line misplaced')
-    assert(#bottomActions == 3 and #p.passed == 0, 'the bar was not created in the draw: ' .. #bottomActions)
-    assert(bottomActions[1].id == 'bar1' and bottomActions[1].x == 140 and bottomActions[2].id == 'bar2' and bottomActions[2].x == 300, 'bar buttons were not shifted')
-    assert(bottomActions[3].id == 'convai-bottom-back' and bottomActions[3].x == 760 and bottomActions[3].y == 1000 and bottomActions[3].width == 140, 'Back misplaced')
-    -- Frames after the draw do no work on the page: no walk, no veil, no second Back.
-    mcm.update(player, false)
-    local before = calls
-    for _ = 1, 8 do mcm.update(player, false) end
-    assert(calls == before, 'idle frames made ' .. (calls - before) .. ' widget calls')
-    assert(p.content.opacity == 1 and p.wrapper.sets == 1 and #bottomActions == 3, 'idle frames touched the page')
-    -- A hover-out puts the row's label back to the red label colour (MCM tints it with the native colour on hover).
-    p.labels[2].color = 'native-cyan'
-    handlers.McmUiSetManagedLabelState(ref, 'mcm_1_2', true, false)
-    handlers.McmUiSetManagedLabelState(ref, 'mcm_1_2', false, false)
-    mcm.update(player, false)
-    assert(p.labels[2].color == 'MainColors.Red', 'the label kept the native colour after the hover')
-    assert(p.labels[1].color == 'MainColors.Red' and p.labels[3].color == 'MainColors.Red')
-  `);
-});
-
-test('every value change draws the same finished page again, each shown once in its own call', () => {
-  run(`${mcmFixture}${earlyFixture}
-    assert(invoke('tab:settings').ok)
-    for change = 1, 5 do
-      local p = draw({rows = {managed = 3, action = 1, readonly = 1}, categories = 1, bar = {'Revert', 'Apply'}})
-      assert(p.wrapper.visible == true and p.wrapper.sets == 1 and p.labels[1].margin.left == 20, 'draw ' .. change)
-      mcm.update(player, false)
-      assert(p.wrapper.sets == 1 and not mcm.inspect().presentation.pending, 'update ' .. change)
-    end
-    assert(mcm.inspect().early.shown == 5 and mcm.inspect().early.held == 0 and mcm.inspect().early.failures == 0)
-    assert(#bottomActions == 15 and backs() == 5, 'every draw makes exactly one bar: ' .. #bottomActions)
-  `);
-});
-
-test('a draw the early style cannot vouch for stays hidden and is styled and shown by the older pass, with Back placed once', () => {
-  run(`${mcmFixture}${earlyFixture}
-    assert(invoke('tab:settings').ok)
-    local rows = {managed = 3, action = 1, readonly = 1}
-    -- The text override does nothing on some game version: nothing is captured, the page waits for the older pass.
-    local p = draw({rows = rows, plain = true, bar = {'Revert'}})
-    assert(p.wrapper.visible == false and mcm.inspect().presentation.pending, 'an unverified page was shown')
-    assert(mcm.inspect().early.reason:find('widgets missing', 1, true), mcm.inspect().early.reason)
-    assert(backs() == 1, 'Back was not placed with the bar')
-    settle()
-    for i = 1, 3 do assert(p.labels[i].margin.left == 20 and p.labels[i].color == 'MainColors.Red', 'the older pass did not style row ' .. i) end
-    assert(p.status.parent == p.list and backs() == 1, 'status line or Back misplaced by the older pass')
-    -- The managed-row hook count disagrees with MCM's own: held.
-    p = draw({rows = rows, noState = true})
-    assert(p.wrapper.visible == false and mcm.inspect().early.reason:find('row hook count', 1, true), mcm.inspect().early.reason)
-    settle()
-    -- A draw that completes resets the count of failures in a row (three in a row switch the early style off).
-    p = draw({rows = rows})
-    assert(p.wrapper.visible == true and mcm.inspect().early.shown == 1 and mcm.inspect().early.failures == 0)
-    -- MCM ignores the x it is given for the label: the page is not what the styling gives, held.
-    p = draw({rows = rows, ignoresX = true})
-    assert(p.wrapper.visible == false and mcm.inspect().early.reason == 'label geometry', mcm.inspect().early.reason)
-    settle()
-    assert(p.labels[1].margin.left == 20, 'the older pass left the label where MCM put it')
-    -- A heading that cannot be styled: held with the reason.
-    p = draw({rows = rows, categories = 1, badCategory = true})
-    assert(p.wrapper.visible == false and mcm.inspect().early.reason:find('a step failed: category', 1, true), mcm.inspect().early.reason)
-    settle()
-    assert(mcm.inspect().early.held == 4 and mcm.inspect().early.shown == 1 and not mcm.inspect().early.off)
-  `);
-});
-
-test('a page whose language needs a font of its own keeps the font pass, and that is not counted as a failure', () => {
-  run(`${mcmFixture}${earlyFixture}
-    assert(invoke('tab:settings').ok)
-    local chosen
-    for i, choice in ipairs(convaiUiLocale.choices()) do if choice.value == 'ru' then chosen = i end end
-    assert(chosen, 'no Russian choice')
-    -- Russian chosen but not applied yet: its text is shown only after the font pass.
-    nativeApi.getValue = function() return chosen end
-    for _ = 1, 4 do
-      local p = draw({rows = {managed = 2, action = 1, readonly = 1}})
-      assert(p.wrapper.visible == false and mcm.inspect().early.reason == 'fonts', mcm.inspect().early.reason)
-      settle()
-    end
-    assert(mcm.inspect().early.failures == 0 and not mcm.inspect().early.off, 'font pages switched the early style off')
-    nativeApi.getValue = nil
-    local p = draw({rows = {managed = 2}})
-    assert(p.wrapper.visible == true and mcm.inspect().early.shown == 1, 'English page was not shown again')
-  `);
-});
-
-test('three draws in a row that the early style could not complete switch it off, and then the page is drawn as before', () => {
-  run(`${mcmFixture}${earlyFixture}
-    assert(invoke('tab:settings').ok)
-    local rows = {managed = 3, action = 1}
-    for _ = 1, 3 do draw({rows = rows, ignoresX = true}); settle() end
-    assert(mcm.inspect().early.off == true and mcm.inspect().early.failures == 3, 'still trying after three failures')
-    local before = #bottomActions
-    local p = draw({rows = rows, bar = {'Revert'}})
-    -- The overrides pass everything straight on now: MCM's geometry and colour, the hidden page, the held bar line as MCM made it.
-    assert(p.labels[1].margin.left == 48 and p.labels[1].width == 300 and p.labels[1].color == 'native-secondary', 'a switched-off style still changed rows')
-    assert(p.wrapper.visible == false and mcm.inspect().presentation.pending and #p.passed == 1, 'the older path was not used')
-    settle()
-    assert(p.labels[1].margin.left == 20 and p.labels[1].color == 'MainColors.Red' and backs() == 4)
-  `);
-});
-
-test('every held bottom button is created: Back that cannot be placed, and a draw that never ends', () => {
-  run(`${mcmFixture}${earlyFixture}
-    assert(invoke('tab:settings').ok)
-    -- Back cannot be placed: the held buttons are created anyway, and Back becomes a row of the page.
-    local original = controller.McmUiAddBottomActionAt
-    controller.McmUiAddBottomActionAt = function(self, id, ...)
-      if id == 'convai-bottom-back' then error('no bar') end
-      return original(self, id, ...)
-    end
-    local p = draw({rows = {managed = 2}, bar = {'Revert', 'Apply'}})
-    assert(#bottomActions == 2 and bottomActions[1].id == 'bar1' and bottomActions[2].id == 'bar2', 'a button was lost')
-    assert(mcm.inspect().backMode == 'list', 'Back was not moved to a row')
-    settle()
-  `);
-});
-
-test('a draw that never reaches its end still gets its held bottom buttons, where MCM put them, and the page is shown', () => {
-  run(`${mcmFixture}${earlyFixture}
-    assert(invoke('tab:settings').ok)
-    mcm.update(player, false)
-    -- The draw never reaches its end (an error in MCM): half a second later the held buttons are created where MCM put them.
-    local count = #bottomActions
-    local p = draw({rows = {managed = 2}, bar = {'Revert', 'Apply'}, finish = false})
-    assert(#bottomActions == count, 'a button was made before the draw ended')
-    mcm.update(player, false)
-    assert(#bottomActions == count, 'a button was made at once')
-    clock = clock + 1
-    mcm.update(player, false)
-    assert(#bottomActions == count + 2 and bottomActions[count + 1].id == 'bar1' and bottomActions[count + 1].x == 300
-      and bottomActions[count + 2].id == 'bar2' and bottomActions[count + 2].x == 460, 'the held buttons were not made in place')
-    -- The hidden content is shown by the stale-hold release.
-    clock = clock + 1
-    mcm.update(player, false)
-    assert(p.wrapper.visible == true, 'the page stayed hidden after a draw that never ended')
-  `);
-});
-
-test('a redrawn page keeps its scroll position, whether MCM lost it or never set it, and a page that was left starts at the top', () => {
-  run(`${mcmFixture}${earlyFixture}
-    assert(invoke('tab:settings').ok)
-    local rows = {managed = 3, action = 1}
-    -- MCM hands over its captured position but it does not hold on the hidden, still empty page: set again with the show.
-    draw({rows = rows})
-    local p = draw({rows = rows, scroll = 0.4})
-    assert(p.beginScroll == 0.4 and p.wrapper.visible == true and p.scroll == 0.4 and scrolls == 1, 'position lost: ' .. tostring(p.scroll))
-    -- It holds: nothing is set again.
-    p = draw({rows = rows, scroll = 0.4, sticks = true})
-    assert(p.scroll == 0.4 and scrolls == 1, 'a position that held was set again')
-    -- MCM skipped its capture (it passes 0) but the page being replaced is at 0.6: the same page, so 0.6 is kept and MCM is told.
-    scrollNow = 0.6
-    p = draw({rows = rows, scroll = 0})
-    assert(p.beginScroll == 0.6 and p.scroll == 0.6 and scrolls == 2, 'the old position was not carried over: ' .. tostring(p.scroll))
-    -- At the top both ways: nothing to restore.
-    scrollNow = 0
-    p = draw({rows = rows, scroll = 0})
-    assert(p.beginScroll == 0 and p.scroll == 0 and scrolls == 2)
-    -- Idle frames never touch the scroll.
-    mcm.update(player, false); local before = calls
-    for _ = 1, 6 do mcm.update(player, false) end
-    assert(calls == before and scrolls == 2)
-    -- Another page of the manager: the old position is not carried over (the first draw of a page has no 'same page').
-    scrollNow = 0.7
-    assert(invoke('settings:back').ok)
-    p = draw({rows = rows, scroll = 0})
-    assert(p.beginScroll == 0 and p.scroll == 0 and scrolls == 2, 'a new page inherited the old scroll position')
-    -- The page after that is the same page again.
-    p = draw({rows = rows, scroll = 0})
-    assert(p.scroll == 0.7 and scrolls == 3)
-  `);
-});
-
-test('a page opened afresh starts at the top even when MCM hands over the position of the page it came from', () => {
-  run(`${mcmFixture}${earlyFixture}
-    assert(invoke('tab:settings').ok)
-    local rows = {managed = 3, action = 1}
-    -- The screen opens: nothing was drawn before, MCM restores the position it kept from last time.
-    local p = draw({rows = rows, scroll = 0.8, sticks = true})
-    assert(p.beginScroll == 0 and p.scroll == 0, 'a page opened afresh kept the old position: ' .. tostring(p.beginScroll))
-    -- Scrolling in the open page, then Apply or a refresh redraws it: MCM captures the position and it is kept.
-    scrollNow = 0.6
-    p = draw({rows = rows, scroll = 0.6, sticks = true})
-    assert(p.beginScroll == 0.6 and p.scroll == 0.6, 'a redraw of the open page jumped: ' .. tostring(p.beginScroll))
-    p = draw({rows = rows, scroll = 0, sticks = true})
-    assert(p.beginScroll == 0.6, 'a redraw MCM lost the position of did not keep it')
-    -- A button opens another page (here Back): MCM reads the page on screen, the new page still starts at the top.
-    assert(invoke('settings:back').ok)
-    p = draw({rows = rows, scroll = 0.6, sticks = true})
-    assert(p.beginScroll == 0 and p.scroll == 0, 'a sub-page opened from a scrolled page was scrolled: ' .. tostring(p.beginScroll))
-    -- Scroll there, open the first page again: top, and a redraw afterwards keeps what was scrolled.
-    scrollNow = 0.3
-    assert(invoke('tab:settings').ok)
-    p = draw({rows = rows, scroll = 0.3, sticks = true})
-    assert(p.beginScroll == 0 and p.scroll == 0, 'coming back to a page restored its old position')
-    scrollNow = 0.5
-    p = draw({rows = rows, scroll = 0.5, sticks = true})
-    assert(p.beginScroll == 0.5 and p.scroll == 0.5)
-    -- Another mod is shown, then ours again: fresh.
-    handlers.McmUiBegin(ref, 'MCM', '', 'Mods', 'Another Mod', 'Opened.', 0, '', true, true, 0, function() end)
-    handlers.McmUiSetContentTitle(ref, 'Another Mod')
-    p = draw({rows = rows, scroll = 0.5, sticks = true})
-    assert(p.beginScroll == 0 and p.scroll == 0, 'coming back from another mod restored the old position')
-    -- The Settings screen closes and opens again.
-    scrollNow = 0.4
-    handlers.OnUninitialize(ref)
-    p = draw({rows = rows, scroll = 0.4, sticks = true})
-    assert(p.beginScroll == 0 and p.scroll == 0, 'the screen opened again with the old position')
-    -- Nothing runs per frame.
-    mcm.update(player, false); local before = calls
-    for _ = 1, 6 do mcm.update(player, false) end
-    assert(calls == before)
-  `);
-});
-
-test('a page held for the older pass gets its scroll position back when it is shown', () => {
-  run(`${mcmFixture}${earlyFixture}
-    assert(invoke('tab:settings').ok)
-    local rows = {managed = 3}
-    draw({rows = rows})
-    scrollNow = 0.5
-    local p = draw({rows = rows, scroll = 0.5, ignoresX = true})
-    assert(p.wrapper.visible == false and p.scroll == 0, 'the held page was shown or scrolled early')
-    settle()
-    assert(p.wrapper.visible == true and p.scroll == 0.5, 'the older pass did not restore the scroll position: ' .. tostring(p.scroll))
-    -- A draw that never ends: the stale-hold release restores it as well.
-    local q = draw({rows = rows, scroll = 0.3, finish = false})
-    clock = clock + 2
-    mcm.update(player, false)
-    assert(q.wrapper.visible == true and q.scroll == 0.3, 'the stale hold did not restore the scroll position')
-    -- A scroll controller that fails never stops the page from being shown.
-    local r = draw({rows = rows, scroll = 0.2, badScroller = true})
-    assert(r.wrapper.visible == true and mcm.inspect().early.shown >= 1, 'a failing scroll controller stopped the page from being shown')
-  `);
-});
-
-test('another mod page is drawn exactly as MCM draws it, with no widget work and no held button', () => {
-  run(`${mcmFixture}${earlyFixture}
-    assert(invoke('tab:settings').ok)
-    mcm.update(player, false)
-    local before = calls
-    local seen
-    local function record(...) seen = table.pack(...); return widget('x') end
-    handlers.McmUiBegin(ref, 'MCM', '', 'Mods', 'Another Mod', 'Opened.', 0, '', true, true, 0, function()
-      handlers.McmUiCreateText(ref, widget('r'), 'status', 'v', 10, 20, 200, 30, 24, 'native-blue', 0, record)
-    end)
-    assert(seen.n == 10 and seen[4] == 10 and seen[5] == 20 and seen[6] == 200 and seen[7] == 30 and seen[8] == 24 and seen[9] == 'native-blue', 'a foreign text was changed')
-    handlers.McmUiAddManagedLabel(ref, 'x', 'L', '*', false, 0, function()
-      handlers.McmUiCreateText(ref, widget('c'), 'x_managed_label', 'L', 48, 0, 300, 42, 22, 'native-secondary', 0, record)
-    end)
-    assert(seen[4] == 48 and seen[6] == 300 and seen[9] == 'native-secondary', 'a foreign managed label was changed')
-    local passed
-    handlers.McmUiAddBottomActionAt(ref, 'revert', 'Revert', 300, 1000, 140, false, function(...) passed = table.pack(...) end)
-    assert(passed and passed[1] == 'revert' and passed[3] == 300, 'a foreign button was held back')
-    handlers.McmUiSetContentTitle(ref, 'Another Mod')
-    assert(calls == before, 'widgets were touched for another mod page')
-    assert(mcm.inspect().early.shown == 0 and mcm.inspect().early.held == 0 and #bottomActions == 0)
-  `);
-});
-
-test('a page that failed to style is shown, and a page the manager leaves is not left hidden', () => {
-  run(`${mcmFixture}${stylingFixture}
-    local clock = 10
-    os.clock = function() return clock end
-    ${opacityFixture}
-    for index = 1, 50 do content.children[index] = widget('r' .. index .. '_managed_label', 48) end
-    content.children[20].GetName = function() error('native failure') end
-    open(); mcm.update(player, false)
-    assert(content.opacity == 0 or content.opacity == 1)
-    for _ = 1, 5 do mcm.update(player, false) end
-    assert(content.opacity == 1, 'a styling error left the page hidden')
-    assert(not mcm.inspect().presentation.pending)
-    -- The page stops being the manager's while it is hidden (another mod is selected): the rows come back.
-    for index = 1, 500 do content.children[index] = widget('s' .. index .. '_managed_label', 48) end
-    open(); mcm.update(player, false)
-    assert(content.opacity == 0)
-    activeMod = 'another-mod:page'
-    clock = clock + 2
-    mcm.update(player, false); mcm.update(player, false)
-    assert(content.opacity == 1, 'a page that is no longer ours stayed hidden')
-  `);
-});
-
-test('a state the page does not show never draws it again, a visible change does, and a change made under pending drafts is dropped when the page was drawn since', () => {
-  run(`${mcmFixture}${stylingFixture}
-    local clock = 1000
-    os.time = function() return clock end
-    os.clock = function() return clock end
-    ${opacityFixture}
-    -- A drawn page is made of new widgets, which start at full opacity.
-    local drawn = open
-    open = function() content.opacity = 1; drawn() end
-    nativeApi.reloadMod = function()
-      reloads = reloads + 1; loaded = registered.loadMod('manager'); open(); return loaded
-    end
-    local voice = {state = 'loading', provider = 'pocket', workerBackend = 'omni', requestedProvider = 'omni',
-      omniPack = {installed = false, missing = {'model'}}, updated = clock * 1000}
-    jsonFixtures['voice-flicker'] = voice
-    files['runtime/local-voice-state.json'] = 'voice-flicker'
-    -- The Back button can be added to this page (a page that cannot take it is drawn again as a list, which is not what is tested).
-    local addBottom = controller.McmUiAddBottomActionAt
-    controller.McmUiAddBottomActionAt = function(self, id, label, x, y, width, active)
-      addBottom(self, id, label, x, y, width, active)
-      render.children[#render.children + 1] = widget('mcm_action_' .. id, 0)
-    end
-    local function second()
-      clock = clock + 1; voice.updated = clock * 1000; mcm.update(player, false)
-    end
-    -- The first update of a session draws once (the interface language is read); only what follows is counted.
-    mcm.update(player, false); reloads = 0
-    assert(invoke('tab:settings').ok)
-    open(); mcm.update(player, false)
-    assert(reloads == 0, 'drawn on opening: ' .. reloads)
-    -- The Settings page shows the voice status in place: loading, warming, speaking and ready never draw it again.
-    for _, state in ipairs({'loading', 'warming', 'ready', 'speaking', 'ready', 'loading', 'ready'}) do
-      voice.state = state; second()
-      assert(reloads == 0, 'drawn after the state ' .. state)
-    end
-    for _ = 1, 5 do second() end
-    assert(reloads == 0, 'the Settings page was drawn ' .. reloads .. ' times for voice states and for opening')
-    -- What it does show: the OmniVoice pack appearing changes the voice list. The page is hidden at once, in that frame.
-    voice.omniPack = {installed = true, missing = {}}; second()
-    assert(reloads == 1, 'a visible change did not draw the page')
-    assert(content.opacity == 0, 'the new page was shown unstyled')
-    second(); second()
-    assert(content.opacity == 1 and not mcm.inspect().presentation.pending, 'the new page stayed hidden')
-    second(); second(); assert(reloads == 1, 'the page was drawn again for nothing')
-    -- Pending drafts hold a redraw; the page that MCM draws after Apply already shows the change, so no second draw follows.
-    drafts = true
-    voice.omniPack = {installed = false, missing = {'model'}}; second(); second()
-    assert(reloads == 1, 'a draft was discarded by a redraw')
-    loaded = registered.loadMod('manager'); open()
-    drafts = false
-    second(); second(); second()
-    assert(reloads == 1, 'a change already shown by the page drawn after Apply drew it again')
-    voice.omniPack = {installed = true, missing = {}}; second()
-    assert(reloads == 2, 'a later visible change was missed')
-    -- Characters: the voice state is not shown, the voice in use is.
-    assert(invoke('settings:back').ok, 'back'); assert(invoke('tab:characters').ok, 'characters')
-    open(); second(); second()
-    local before = reloads
-    for _, state in ipairs({'loading', 'ready', 'speaking', 'ready'}) do voice.state = state; second() end
-    assert(reloads == before, 'Characters was drawn again for a voice state')
-    voice.provider = 'omni'; second()
-    assert(reloads == before + 1, 'Characters did not follow the voice in use')
-    -- Home shows nothing that changes by itself.
-    assert(invoke('characters:back').ok, 'home')
-    open(); second(); second()
-    before = reloads
-    voice.provider, voice.omniPack = 'pocket', {installed = false, missing = {'model'}}
-    for _ = 1, 4 do second() end
-    assert(reloads == before, 'Home was drawn again')
-  `);
-});
-
-test('the models page follows the scan by the number of models found, not by the clock, and stops when it is finished', () => {
-  run(`${mcmFixture}
-    local clock = 1000
-    os.time = function() return clock end
-    os.clock = function() return clock end
-    mcm.update(player, false); reloads = 0
-    assert(invoke('tab:models').ok)
-    local ticks = 0
-    while not manager.snapshot(player).scan.finished and ticks < 200 do clock = clock + 1; mcm.update(player, false); ticks = ticks + 1 end
-    assert(manager.snapshot(player).scan.finished, 'the scan did not finish')
-    assert(reloads <= ticks + 1, 'drawn ' .. reloads .. ' times in ' .. ticks .. ' seconds')
-    clock = clock + 1; mcm.update(player, false); clock = clock + 1; mcm.update(player, false)
-    local settled = reloads
-    for _ = 1, 8 do clock = clock + 1; mcm.update(player, false) end
-    assert(reloads == settled, 'a finished scan kept drawing the page')
-  `);
-});
-
 // Loading notices: a slow OmniVoice or Local AI load is one notice held on screen until its outcome replaces it (mod/notices.lua
-// loading board, manager.loadStatus, mod/mcm.lua). Gameplay frames of 0.25 s; the manager reads the bridge's files as it does in
+// loading board, manager.loadStatus, mod/manager-ui.lua). Gameplay frames of 0.25 s; the manager reads the bridge's files as it does in
 // the game. The game's warning line is a mock: `posts` is what the HUD was given as the held notice, `clears` what hid it, `shown`
 // the ordinary five-second notices (the outcome lines).
 const loadingFixture = `
@@ -7301,14 +4685,14 @@ const loadingFixture = `
     for _ = 1, seconds * 4 do
       clock = clock + 0.25; voice.updated = clock * 1000
       manager.update(player, 0.25)
-      mcm.update(player, world ~= false)
+      managerUi.update(player, world ~= false)
     end
   end
-  mcm.update(player, true)
+  managerUi.update(player, true)
 `;
 
 test('OmniVoice loading is one notice after 1.5 s that stays until one ready line replaces it; a quick load says nothing', () => {
-  run(`${mcmFixture}${loadingFixture}
+  run(`${nsuiFixture}${loadingFixture}
     step(1); assert(#posts == 0 and #shown == 0, 'a notice before the load had lasted 1.5 s: ' .. tostring(shown[1]))
     step(1.5)
     assert(#posts == 1 and posts[1].text == 'Loading the OmniVoice voice…' and not posts[1].instant, tostring(posts[1] and posts[1].text))
@@ -7328,7 +4712,7 @@ test('OmniVoice loading is one notice after 1.5 s that stays until one ready lin
 });
 
 test('a voice load that fails says what to do once, unless a fallback voice has its own notice', () => {
-  run(`${mcmFixture}${loadingFixture}
+  run(`${nsuiFixture}${loadingFixture}
     step(4); assert(#posts == 1)
     voice.state = 'error'; step(2)
     assert(shown[#shown] == 'OmniVoice could not load. See Help in Settings.', tostring(shown[#shown]))
@@ -7351,7 +4735,7 @@ test('a voice load that fails says what to do once, unless a fallback voice has 
 });
 
 test('the Pocket voice load is announced the same way and a load in a menu is announced when gameplay returns', () => {
-  run(`${mcmFixture}${loadingFixture}
+  run(`${nsuiFixture}${loadingFixture}
     voice.workerBackend, voice.requestedProvider = 'pocket', 'pocket'
     step(4); assert(posts[#posts].text == 'Loading the Pocket voice…', tostring(posts[#posts] and posts[#posts].text))
     -- A menu opens mid-load: nothing is posted there, and the notice is posted again, instantly, when gameplay is back.
@@ -7368,9 +4752,9 @@ test('the Pocket voice load is announced the same way and a load in a menu is an
 });
 
 test('Local AI warming up is one held notice while Local is the provider, with a ready line, and its state is not read otherwise', () => {
-  run(`${mcmFixture}${loadingFixture}
+  run(`${nsuiFixture}${loadingFixture}
     voice.state = 'ready'
-    activeMod = nil   -- the settings page is not open: only the loading board reads anything
+    ns.closeScreen()   -- the settings page is not open: only the loading board reads anything
     local reads = 0
     local open = io.open
     io.open = function(path, mode) if path == 'runtime/mistral-state.json' then reads = reads + 1 end return open(path, mode) end
@@ -7392,15 +4776,15 @@ test('Local AI warming up is one held notice while Local is the provider, with a
     -- A server that was unloaded after idle time warms up again when it is needed.
     mistral.localAi = 'warming'; step(3); assert(posts[#posts].text == 'Local AI is warming up…' and #posts == 2)
     mistral.localAi = 'no-memory'; step(2)
-    assert(shown[#shown] == 'Not enough graphics memory for Local AI. A cloud provider is used instead.', tostring(shown[#shown]))
+    assert(shown[#shown] == 'Not enough free graphics memory to start Local AI. Try a smaller model in Settings.', tostring(shown[#shown]))
     mistral.localAi = 'warming'; step(3); mistral.localAi = 'failed'; step(2)
     assert(shown[#shown] == 'Local AI could not start. Check Local AI in Settings > Conversation provider.', tostring(shown[#shown]))
   `);
 });
 
 test('OmniVoice and Local AI loading together are one notice with a line each', () => {
-  run(`${mcmFixture}${loadingFixture}
-    activeMod = nil
+  run(`${nsuiFixture}${loadingFixture}
+    ns.closeScreen()
     local mistral = {provider = 'local', effective = 'local', localAi = 'warming'}
     jsonFixtures['mistral-loading'] = mistral
     files['runtime/mistral-state.json'] = 'mistral-loading'
@@ -7420,7 +4804,7 @@ test('OmniVoice and Local AI loading together are one notice with a line each', 
 // blocks her, following it as it changes, listing every companion waiting, and down only once she has spawned (or failed, which
 // is a notice of its own). Nothing is posted per frame: the board is read on the manager's 0.25 s tick.
 test('a companion that is still preparing is one held notice line naming what she waits for, until she has spawned', () => {
-  run(`${mcmFixture}${invitationFixture}${loadingFixture}
+  run(`${nsuiFixture}${invitationFixture}${loadingFixture}
     voice.state = 'ready'
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
     readiness.receipts['queued:1'] = {state = 'memory', wait = 'bridge'}
@@ -7462,7 +4846,7 @@ test('a companion that is still preparing is one held notice line naming what sh
 });
 
 test('a companion that is ready before the wait notice is due shows nothing, and the wait notice is never put on screen from a menu', () => {
-  run(`${mcmFixture}${invitationFixture}${loadingFixture}
+  run(`${nsuiFixture}${invitationFixture}${loadingFixture}
     voice.state = 'ready'
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
     readiness.receipts['queued:1'] = {state = 'memory', wait = 'memory'}
@@ -7481,7 +4865,7 @@ test('a companion that is ready before the wait notice is due shows nothing, and
 });
 
 test('a slow component and a preparing companion share the one held notice', () => {
-  run(`${mcmFixture}${invitationFixture}${loadingFixture}
+  run(`${nsuiFixture}${invitationFixture}${loadingFixture}
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
     readiness.receipts['queued:1'] = {state = 'memory', wait = 'voice'}
     step(3)
@@ -7495,7 +4879,7 @@ test('a slow component and a preparing companion share the one held notice', () 
 });
 
 test('with nothing loading the loading status is read about once a second and costs no notice work, and a new session forgets old loads', () => {
-  run(`${mcmFixture}${loadingFixture}
+  run(`${nsuiFixture}${loadingFixture}
     voice.state = 'ready'
     local calls = 0
     local status = manager.loadStatus
@@ -7505,7 +4889,7 @@ test('with nothing loading the loading status is read about once a second and co
     assert(#shown == 0 and #posts == 0)
     voice.state = 'loading'; step(4)
     assert(#posts >= 1)
-    mcm.resetSession()
+    managerUi.resetSession()
     voice.state = 'ready'; shown = {}
     step(10); assert(#shown == 0, 'an old session announced its outcome: ' .. tostring(shown[1]))
   `);
@@ -7539,3 +4923,17 @@ test('the developer notice trigger shows the daily-limit notice only with Develo
     assert(speech.devNotice('notice:daily-limit:2') == false and #sent == 1, 'no player yet: nothing is shown')
   `);
 });
+
+test('error reports are on by default, apply as on or off only, and the one-time notice is remembered in settings.json', () => run(`${managerFixture}
+  manager.configure(api, profiles)
+  assert(manager.snapshot(player).settings.errorReports == true and manager.errorReports() == true, 'on by default')
+  assert(manager.errorReportsNoticeDue() == true, 'the notice is due once')
+  assert(manager.markErrorReportsNoticed() == true and saved.errorReportsNoticed == true)
+  assert(manager.errorReportsNoticeDue() == false)
+  assert(manager.applySettings(player, {errorReports = 'no'}) == false, 'on or off only')
+  assert(manager.errorReports() == true)
+  assert(manager.applySettings(player, {errorReports = false}) and saved.errorReports == false)
+  assert(manager.errorReports() == false and manager.snapshot(player).settings.errorReports == false)
+  assert(manager.errorReportsNoticeDue() == false, 'never due while off')
+  assert(manager.applySettings(player, {errorReports = true}) and saved.errorReports == true and saved.errorReportsNoticed == true)
+`));

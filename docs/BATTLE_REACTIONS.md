@@ -1,6 +1,6 @@
 # Battle awareness and automatic comments
 
-MCM Settings has **React to battles**, off by default. A nearby managed
+Companion Manager Settings has **React to battles**, off by default. A nearby managed
 companion may give a short opening warning and another brief comment after the
 fight. One speaker owns each comment; duplicate copies share one identity.
 Ordinary F6/F8, microphone and phone conversations also receive recent battle

@@ -9,7 +9,7 @@
 // It never kills a process it did not start. The bridge keeps its existing
 // protocol: the ready line on stdout and PID-addressed bridge-control.json.
 import {spawn as spawnProcess, execFile} from 'node:child_process';
-import {appendFileSync, closeSync, constants, fstatSync, ftruncateSync, openSync, readSync,
+import {appendFileSync, closeSync, constants, fstatSync, ftruncateSync, openSync, readFileSync, readSync,
   renameSync, statSync, writeSync} from 'node:fs';
 import {mkdir, readFile, stat, writeFile} from 'node:fs/promises';
 import {randomUUID} from 'node:crypto';
@@ -24,6 +24,13 @@ export const MOD_RUNTIME = 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberp
 // libuv opens a file with no sharing for this flag (Windows only). The lock is
 // released by the kernel when the holder exits, so a crash never leaves it stale.
 const EXCLUSIVE = process.platform === 'win32' ? (constants.UV_FS_O_EXLOCK ?? 0x10000000) : 0;
+
+// The Mod Organizer 2 stat fallbacks the packaged start script named (app/launcher/usvfs-compat.mjs, childEnvironment): a file URL
+// of that one module, and only when the start script found usvfs in its own process. Anything else is never loaded into the bridge.
+export function usvfsCompatImport(env) {
+  const url = env.CYBERPUNK_CONVAI_USVFS_IMPORT;
+  return env.CYBERPUNK_CONVAI_USVFS === '1' && typeof url === 'string' && /^file:\/\/\/[^\s"']+\/launcher\/usvfs-compat\.mjs$/i.test(url) ? url : null;
+}
 
 export const DEFAULT_TIMINGS = Object.freeze({
   pollMs: 250, gamePollMs: 1000, heartbeatMs: 5000, readyTimeoutMs: 180_000,
@@ -76,9 +83,9 @@ export class BridgeSupervisor {
   constructor({project, stateDirectory, keyFile, gameRoot, gamePid = null, lifeline = null,
     buildVoiceClient = false, nodeExecutable = process.execPath, spawn = spawnProcess,
     alive = processAlive, killTree = killProcessTree, now = Date.now, sleep = delay,
-    browserAvailable = systemBrowserAvailable, timings = {}} = {}) {
+    browserAvailable = systemBrowserAvailable, timings = {}, errorReports = false} = {}) {
     Object.assign(this, {project, stateDirectory, keyFile, gameRoot, gamePid, lifeline,
-      buildVoiceClient, nodeExecutable, spawn, alive, killTree, now, sleep, browserAvailable});
+      buildVoiceClient, nodeExecutable, spawn, alive, killTree, now, sleep, browserAvailable, errorReports});
     this.timings = {...DEFAULT_TIMINGS, ...timings};
     this.entry = resolve(project, 'bridge/convai-bridge.mjs');
     this.paths = {
@@ -97,7 +104,7 @@ export class BridgeSupervisor {
     this.ready = false; this.stopRequested = false; this.ownNonces = new Set(); this.retiredPids = new Set();
     this.exitReason = null; this.lifelineEnded = false; this.built = false; this.logsRotated = false;
     this.lastGameProbe = -Infinity; this.lastStatusWrite = -Infinity; this.lastDormantCheck = -Infinity;
-    this.lastSetupCheck = -Infinity; this.retrySetup = false; this.lockFd = null;
+    this.lastSetupCheck = -Infinity; this.retrySetup = false; this.lockFd = null; this.reporter = null;
   }
 
   log(message) {
@@ -140,6 +147,7 @@ export class BridgeSupervisor {
       this.lastControlRaw = await this.readControl();
       await this.setStatus('starting', 'supervisor-started');
       this.startHeartbeat();
+      await this.startErrorReports();
       while (!this.gameGone() && this.mode !== 'done') {
         await this.step();
         if (this.gameGone() || this.mode === 'done') break;
@@ -150,6 +158,8 @@ export class BridgeSupervisor {
     } finally {
       clearInterval(this.heartbeat);
       await this.statusWriting?.catch(() => {});
+      // A report being sent gets a moment to finish; anything still queued goes out at the next game start.
+      if (this.reporter) { await this.reporter.idle(3000).catch(() => {}); this.reporter.close(); }
       if (this.lockFd !== null) { try { closeSync(this.lockFd); } catch {} this.lockFd = null; }
       this.log(`Supervisor ${process.pid} finished.`);
     }
@@ -183,6 +193,22 @@ export class BridgeSupervisor {
         await this.sleep(this.timings.lockRetryMs);
       }
     }
+  }
+
+  // Automatic error reports (bridge/error-reports.mjs, docs/ERROR_REPORTS.md), for the packaged and development entry points that ask
+  // for them. Loaded here, after the status is written, so a problem in that module can never stop the service; it sends off the turn
+  // path, from this process, and outlives a crashed bridge.
+  async startErrorReports() {
+    if (!this.errorReports || this.reporter) return;
+    try {
+      const {ErrorReporter} = await import('./error-reports.mjs');
+      this.reporter = new ErrorReporter({game: this.gameRoot, runtime: dirname(this.paths.status), stateDirectory: this.stateDirectory,
+        project: this.project, log: message => this.log(message)}).start();
+    } catch (error) { this.log(`Error reports are unavailable: ${error?.message ?? error}`); }
+  }
+
+  reportEvent(event) {
+    if (this.reporter) void this.reporter.record(event).catch(() => {});
   }
 
   async step() {
@@ -258,6 +284,10 @@ export class BridgeSupervisor {
       CYBERPUNK_CONVAI_KEY_FILE: this.keyFile, CYBERPUNK_CONVAI_GAME: this.gameRoot};
     // An inherited debugger or import hook must not reach the service.
     delete env.NODE_OPTIONS; delete env.NODE_PATH;
+    // The one exception: under Mod Organizer 2 the packaged start script asks for its stat fallbacks (app/launcher/usvfs-compat.mjs)
+    // in every Node process it starts, so the bridge and its workers see the files that exist only in an MO2 mod folder.
+    const compat = usvfsCompatImport(env);
+    if (compat) env.NODE_OPTIONS = `--import=${compat}`;
     return env;
   }
 
@@ -389,6 +419,7 @@ export class BridgeSupervisor {
     this.crashes = this.crashes.filter(at => now - at < this.timings.crashWindowMs);
     this.crashes.push(now); this.restarts++;
     this.log(`The bridge${pid ? ` (PID ${pid})` : ''} exited unexpectedly (${describeExit(exit)}).`);
+    if (this.reporter) void this.reporter.bridgeExited(describeExit(exit)).catch(() => {});
     if (this.crashes.length >= this.timings.maxCrashes) {
       this.log(`Giving up after ${this.crashes.length} exits in ${Math.round(this.timings.crashWindowMs / 60000)} minutes. Check bridge.stderr.log.`);
       this.retrySetup = false;
@@ -403,6 +434,7 @@ export class BridgeSupervisor {
   async fail(code) {
     this.mode = 'failed'; this.failedAt = this.now();
     this.log(`The conversation service cannot run: ${code}.`);
+    this.reportEvent({kind: 'service-failed', message: code, frame: 'supervisor'});
     return this.setStatus('failed', code);
   }
 
@@ -483,6 +515,7 @@ export class BridgeSupervisor {
     if (!this.status) return Promise.resolve();
     this.lastStatusWrite = this.now();
     this.statusWriting = (this.statusWriting || Promise.resolve()).then(() => {
+      if (this.nextSessionOwnsStatus()) return;
       const value = {version: 1, state: this.status.state, code: this.status.code, since: this.status.since,
         ...(this.status.reason ? {reason: this.status.reason} : {}), updated: this.now(), supervisorPid: process.pid, bridgePid: this.childPid ?? this.adoptedPid ?? null,
         adopted: !!this.adoptedPid, restarts: this.restarts, gamePid: this.gamePid ?? null,
@@ -492,6 +525,21 @@ export class BridgeSupervisor {
         .catch(error => this.log(`The service status could not be published: ${error.message}`));
     });
     return this.statusWriting;
+  }
+
+  // After its game has exited this supervisor still reports its own stop ('stopping' while the bridge drains, then 'stopped'), but the
+  // player may have started the game again meanwhile: the next session's launcher, start script and supervisor write the same file, each
+  // with its own game's PID. Their status (a failure above all, which the game would otherwise never see) is not written over.
+  nextSessionOwnsStatus() {
+    if (!this.gamePid || this.exitReason !== 'game-exited') return false;
+    let other = null;
+    try { other = JSON.parse(readFileSync(this.paths.status, 'utf8'))?.gamePid; } catch { return false; }
+    if (!Number.isSafeInteger(other) || other <= 0 || other === this.gamePid) return false;
+    if (!this.yieldedStatus) {
+      this.yieldedStatus = true;
+      this.log(`The service status now belongs to the next game session (game PID ${other}); this supervisor no longer writes it.`);
+    }
+    return true;
   }
 
   // The heartbeat runs on its own timer so the status stays current during a

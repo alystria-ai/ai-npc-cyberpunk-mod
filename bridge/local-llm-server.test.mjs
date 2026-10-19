@@ -17,7 +17,9 @@ const DEVICES = `Available devices:
 const exited = child => (child.exitCode !== null || child.signalCode !== null ? Promise.resolve() : once(child, 'exit'));
 const isAlive = pid => { try { process.kill(pid, 0); return true; } catch { return false; } };
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-async function until(check, ms = 3000) {
+// Polls until the check holds. The ceiling is generous on purpose: it is only reached when something is really stuck, so a busy machine (a
+// fake llama-server is a whole node process to start) makes the wait longer, never the test fail.
+async function until(check, ms = 120_000) {
   const end = Date.now() + ms;
   while (Date.now() < end) { if (await check()) return true; await sleep(15); }
   return false;
@@ -43,7 +45,7 @@ function harness(t, {standard = true, lite = true, env = {}, envFor, ...options}
   const tmpDir = join(directory, 'tmp');
   mkdirSync(tmpDir);
   const server = new LocalLlmServer({pack, listDevices: async () => DEVICES, freeVramMiB: () => null, fileSizeMiB: () => 0, command: process.execPath,
-    argsPrefix: [FAKE], spawnImpl, fetchImpl, log: line => logs.push(line), backoffMs: 10, startupMs: 60_000, warmup: false,
+    argsPrefix: [FAKE], spawnImpl, fetchImpl, log: line => logs.push(line), backoffMs: 10, startupMs: 180_000, warmup: false,
     processOptions: {env, tmpDir, pollMs: 20}, ...options});
   const failures = [];
   server.on('failed', event => failures.push(event));

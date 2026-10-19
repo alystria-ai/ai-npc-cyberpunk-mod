@@ -17,8 +17,7 @@ The selected companion can still make the existing single
 body turn and small attention step while on foot. Seated attention uses only
 the eyes and head; the vehicle controller owns body movement.
 
-The selectors use the existing MCM controls and label styling. Their defaults,
-drafts, Apply, Revert and reset semantics use MCM's ordinary settings flow.
+The selectors use the existing Companion Manager (Native Settings UI) controls and label styling. Their defaults and saving follow the manager's ordinary settings flow: a change is saved a moment after it is made.
 
 ## Native target semantics
 
@@ -56,7 +55,7 @@ not establish the exact attachment position or visual gaze result on every rig.
   lists return copies, so UI consumers cannot mutate persisted state.
 - The manager assigns a pure gaze-settings supplier to the owned companion
   runtime. The normal gameplay update reads it once for the group and passes it
-  to each exact-copy actuator. The MCM callback performs no gaze queueing or
+  to each exact-copy actuator. The manager's callback performs no gaze queueing or
   added widget refresh, preserving the stack-safe menu path.
 - The actuator's look cache compares style, height and strength. A changed
   configuration prepares its new target before retiring the exact old event.
@@ -128,7 +127,7 @@ that observed Judy passenger pose, not every vehicle/model combination.
 
 Source tests exercise unchanged defaults, world versus local offset arguments,
 bounded/malformed input, settings migration and reload, failed-save rollback,
-MCM selector/default/reset behavior, unchanged movement commands, native removal
+manager selector/default/reset behavior, unchanged movement commands, native removal
 and queue failures, combat cleanup, independent duplicate ownership, dismissal,
 and manager-to-real-companion-actuator routing.
 

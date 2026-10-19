@@ -8,8 +8,13 @@ the local AI and never from a Convai session (`bridge/addon-voice.mjs`).
 
 Files: `bridge/local-stt.mjs` (recogniser API and worker process), `bridge/local-stt-worker.py` (the Python worker),
 `bridge/local-stt-capture.mjs` (microphone capture and the voice channel), `scripts/Bench-LocalStt.mjs` (benchmark),
-`scripts/Upload-SttModel.py` (puts the model into the Hugging Face bucket). Tests: `bridge/local-stt.test.mjs`,
-`bridge/local-stt-capture.test.mjs`.
+`scripts/Upload-SttModel.py` (puts the model into the Hugging Face bucket); for other languages `bridge/speech-language.mjs` (language and
+engine choice) and `bridge/voxtral-stt.mjs` (Mistral transcription). Tests: `bridge/local-stt.test.mjs`,
+`bridge/local-stt-capture.test.mjs`, `bridge/local-stt-worker.test.mjs`, `bridge/speech-language.test.mjs`, `bridge/voxtral-stt.test.mjs`,
+`bridge/local-stt-multilingual.test.mjs`.
+
+**English only on the first pages.** Everything from "The model, and why" to "Audio path" describes the English path. For any other language see
+"Other languages" below.
 
 ## The model, and why
 
@@ -175,6 +180,101 @@ Paths: Python is `CYBERPUNK_CONVAI_LOCAL_STT_PYTHON`, else the Pocket Python (`v
 `CYBERPUNK_CONVAI_PYTHON`. The model is `CYBERPUNK_CONVAI_STT_MODEL`, else `models/stt/moonshine-tiny-en-int8` in the application
 folder (packaged), else `runtime/stt-model/moonshine-tiny-en-int8` (development). In development `sherpa-onnx` is installed in
 `vendor/pocket-tts-env` (`pip install sherpa-onnx==1.13.6 sherpa-onnx-core==1.13.6`).
+
+## Other languages
+
+Moonshine Tiny hears English only. A Russian player on the Mistral route reported (Nexus, 2026-10) that "the microphone recognizes only
+English" while typed Russian and spoken replies worked: the recording was decoded by an English model. Since this change a recording in
+another language is recognised by another engine; **English keeps exactly the path above** (Moonshine, live words, the 3 ms reuse of a live
+decode), and none of the code below runs, loads or opens a connection for it.
+
+### Which language, and how the bridge knows
+
+`bridge/speech-language.mjs` (pure logic; `SpeechLanguage` holds the little state). At the moment a recording opens, in this order:
+
+1. **Evidence from the player**: the language of the last text they typed (`detectLanguage`, `bridge/reply-language.mjs`; a short or mixed line says
+   nothing; automatic reactions are not counted) or the language Mistral reported for the last recording. Both live in memory for the life of
+   the bridge. English evidence wins like any other, so an English speaker with a Russian game keeps the English path.
+2. **The interface language**: the explicit "Interface language" setting (`settings.json` `uiLanguage`), else the language the mod resolved from
+   the game (`runtime/ui-language.txt`, written by `mod/microphone.lua publishLanguage` from the one place in `mod/init.lua` that already learns
+   of a change; nothing per frame). The bridge reads the file when a recording opens, at most once in 3 s.
+3. **English.** A game language the mod does not support (Arabic, Thai) counts as English.
+
+Only the 15 non-English interface languages of the mod are considered (`mod/locales`: de, fr, es, it, pt-br, pl, ru, uk, tr, cs, hu, ja, ko,
+zh-cn, zh-tw; Portuguese and the two Chinese variants share one base code each).
+
+### Which engine hears it
+
+`planRecording()` decides once per recording:
+
+| Route | English | Other language |
+|---|---|---|
+| **Mistral** | Moonshine (unchanged) | **Mistral transcription** (`voxtral-mini-latest`, `bridge/voxtral-stt.mjs`) with the player's key. If it fails or is cooling down: an installed local pack that hears the language, else the English recogniser on the same audio (the log says so) |
+| **Local AI**, **custom endpoint**, add-on voice keys on Convai | Moonshine (unchanged) | an installed **local pack** that hears the language; with none, the English recogniser and one notice "Voice input only understands English for now. Typing works in any language." (`mic-english-only`, once per game session, under the Listening line) |
+
+Audio is sent to Mistral **only while Mistral is the player's conversation provider** (their words already go there). The Local AI and custom routes
+never send a recording to Mistral, even when a Mistral key is saved: a player who chose a local or private route did not choose that.
+
+A recording in another language on the Mistral route is **kept in memory** (16 kHz mono, at most 45 s) while the player speaks, with the same
+speech-activity gate as the local recogniser (`bridge/stt-activity.mjs`: audio without speech is never sent, so silence costs no request and cannot
+be hallucinated into words; a dead input still gives the "microphone sends no sound" notice). When the key is pressed again it is sent as one WAV
+(`POST /v1/audio/transcriptions`, multipart: `model`, `file`, and `language` only when the player's own text or an earlier recording named it
+and Mistral lists it; an interface-language guess is never sent as a hint, so an English speaker with a Russian game is still heard as English).
+There are **no live words** for these recordings (batch mode has no partial results). No Moonshine worker starts, so nothing is loaded: no worker, no 250 MB.
+
+What Mistral answers with (`language`) is remembered, so after the first recording the bridge knows the language from the voice itself, and a player who
+switches to English is moved back to the English path by the next recording's result.
+
+Failure handling (`VoxtralStt`): one quick second try for a 5xx, 408, network error, a 403 or a short 429; a 401 (refused key), a repeated 403 or an
+allowance of 0 (`x-ratelimit-limit-req-minute: 0`, how the free plan refuses models it does not include) put the transcriber into a cool-down (10 min;
+a 429 waits its Retry-After, at most 60 s; a different key clears it), during which recordings go straight to the fallback instead of paying a failed
+request each. Requests go through the shared Mistral scheduler (`bridge/mistral-rate.mjs`, text priority), the key only ever appears in the
+Authorization header, and every message is redacted.
+
+### Options considered (2026-10-19; nothing was downloaded or called)
+
+| Engine | Languages | Size | Speed (one CPU thread unless noted) | Licence | Verdict |
+|---|---|---|---|---|---|
+| **Mistral Voxtral Mini Transcribe 2** (`voxtral-mini-latest`, API) | 13: en, zh, hi, es, ar, fr, pt, ru, de, ja, ko, it, nl (not pl, uk, cs, hu, tr; those are asked without a hint and may still work) | none | batch; estimated 0.5 to 1.5 s for a 3 to 8 s clip (TLS is opened ahead; 32 KB per second of audio goes up). **Not measured: no call was made.** Price $0.003 per minute; limits of the free Experiment plan for this model are not published | API terms | **Chosen for the Mistral route**: no download, no memory, best accuracy, and the player already has the key. Unverified: whether a free key may use it (the free plan gave the chat models Small and Medium an allowance of 0 on 2026-10-11, while Voxtral speech synthesis works on it); the fallback covers a refusal |
+| **NVIDIA Parakeet TDT 0.6B v3** int8 (sherpa-onnx `sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8`) | 25 European, auto-detected: **ru, uk, pl, cs, hu, de, fr, es, it, pt** of the mod's (also en, nl, sv and others); no tr | 487 MB archive (encoder 622 MB unpacked) | sherpa-onnx's own figures at 2 threads: RTF 0.325 on a 3.8 s clip including set-up, 0.028 on long audio. Estimated 0.4 to 1.0 s for a 5 s clip at one thread; load 4 to 10 s; about 1 GB resident while loaded. **Not measured here** | CC-BY-4.0 | **Chosen as the local pack for European languages** (Russian WER 5.5% on Fleurs, Polish 7.3%, Czech 11%, Hungarian 15.7% per NVIDIA) |
+| **FunAudioLLM SenseVoice Small** int8 (`sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09`) | zh, en, ja, ko, yue | 166 MB | RTF about 0.05 on desktop CPUs; estimated 0.25 s for a 5 s clip; about 300 MB resident | FunASR model licence (attribution; check before redistributing) | **Chosen as the local pack for zh, ja, ko** (Parakeet has none of them) |
+| Whisper tiny / base / small, multilingual, int8 | 99, auto | 116 / 208 / 639 MB archives | Whisper always pads to 30 s: this project measured tiny.en 0.8 s, base.en 1.9 s, small.en 8 s (two threads, table above); the multilingual models share the architecture | MIT | Rejected: tiny and base are far less accurate than Parakeet in Russian, small costs about 8 s per recording. Would be the only local route for Turkish |
+| Moonshine language variants (sherpa-onnx 2026-02-27: ar, ja, ko, uk, vi, zh, es) | 7, none of ru, de, fr, pl, cs, hu, it, pt, tr | 48 to 119 MB | fast | Moonshine Community Licence for non-English models (non-commercial) | Rejected: misses the languages that matter and its licence blocks the free mod |
+| GigaAM v3 Russian (`sherpa-onnx-nemo-transducer-giga-am-v3-russian-2025-12-16`) | ru only | 167 MB | fast | MIT | Not chosen: Russian only; the best small option if a Russian-only pack is ever wanted |
+| Canary 180M Flash int8 | en, es, de, fr | 154 MB | fast | CC-BY-4.0 | Not chosen: a subset of Parakeet's languages |
+| Qwen3-ASR 0.6B int8 (2026-03-25) | 30+ | 879 MB | not known at one thread | Apache-2.0 | Not chosen: size, no speed figure |
+
+Turkish is the only one of the mod's languages that neither Mistral's list nor the two packs name. A Turkish player on the Mistral route is still sent to
+Mistral (auto-detect); on Local AI the notice above says voice is English only for now.
+
+### The optional packs
+
+Nothing is downloaded or shipped by this change. A pack is **used only when its files are present**; without them the code behaves as described above
+(Mistral transcription on the Mistral route, the English recogniser and the one-time notice elsewhere). Place the files in `models/stt/<id>/` (packaged)
+or `runtime/stt-model/<id>/` (development), or in `<CYBERPUNK_CONVAI_STT_PACKS>/<id>/`:
+
+| Pack id | Folder contents (from the sherpa-onnx `asr-models` release archive of the same name) | Download |
+|---|---|---|
+| `parakeet-tdt-0.6b-v3-int8` | `encoder.int8.onnx`, `decoder.int8.onnx`, `joiner.int8.onnx`, `tokens.txt` | `https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8.tar.bz2` (487 MB; unpacks to `sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/`, rename it to the id), CC-BY-4.0, model card `huggingface.co/nvidia/parakeet-tdt-0.6b-v3` |
+| `sense-voice-int8` | `model.int8.onnx`, `tokens.txt` | `https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09.tar.bz2` (166 MB; rename the folder to the id), FunASR model licence |
+
+Behaviour of a pack: a second `LocalStt` per pack (`bridge/local-stt.mjs`, `engine` option) in the same Python worker (`bridge/local-stt-worker.py --kind
+nemo-transducer|sense-voice`), one thread at below-normal priority, same sound gate and refusal of words that are not speech as Moonshine (the English-only
+stock-phrase list is harmless for other languages). It decodes once, when the key is pressed again (no live decodes, no pause decodes); it starts when
+a recording opens (the model loads while the player speaks) and **exits 60 s after the last recording**, giving its memory back; the page that holds the
+microphone is released once no recording is open (`createLocalSpeech`). The Parakeet loader leaves the feature size to the model (read from its
+metadata); this was written against sherpa-onnx 1.13.6's signatures and tested with a stand-in recogniser, **not with the real model**: the first
+real run should be checked in the bridge log (`speech language ... local pack ...`, then `recorded ... heard "..."`).
+
+Packaging, if the packs are shipped: a group in `packaging/release.config.json` for each (as the Moonshine group), a line in `THIRD_PARTY_NOTICES.md`
+with the licence and attribution (CC-BY-4.0 needs the credit), and the model cards beside the files.
+
+### Log lines
+
+`Microphone: speech language ru (ui): kept for Mistral transcription, language detected by Mistral`, then
+`recorded 4.1 s from "..." (peak -14 dBFS, 2400 ms of sound) by mistral-voxtral [ru] in 640 ms: heard "..."`. On a failure:
+`Mistral transcription failed (... [voxtral-stt:limit]); local pack ... reads the same audio` or `English recogniser reads the same audio`; with no
+engine left the turn ends with the `mic-english-only` notice. `timing.sttEngine` in the turn record names the engine that answered.
 
 ## Packaging
 

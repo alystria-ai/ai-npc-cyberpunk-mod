@@ -26,11 +26,11 @@ test('starts headless, writes its status file and refuses to start twice', {skip
     const status = JSON.parse(await readFile(join(runtime, 'reference-picker.json'), 'utf8'));
     assert.equal(status.port, port); assert.equal(status.pid, child.pid); assert.ok(Date.parse(status.started)); assert.equal(status.url, `http://127.0.0.1:${port}/`);
     assert.equal((await fetch(status.url)).status, 200);
-    const second = spawnSync(process.execPath, args, {cwd: project, encoding: 'utf8', timeout: 20_000});
+    const second = spawnSync(process.execPath, args, {cwd: project, encoding: 'utf8', timeout: 120_000});
     assert.equal(second.status, 0);
     assert.match(second.stdout, new RegExp(`already running: http://127.0.0.1:${port}/`));
     // a different port with the same status file is still the same instance
-    const third = spawnSync(process.execPath, [...args.slice(0, 2), String(port + 1), ...args.slice(3)], {cwd: project, encoding: 'utf8', timeout: 20_000});
+    const third = spawnSync(process.execPath, [...args.slice(0, 2), String(port + 1), ...args.slice(3)], {cwd: project, encoding: 'utf8', timeout: 120_000});
     assert.equal(third.status, 0);
     assert.match(third.stdout, /already running/);
     assert.ok(!/opening|browser/i.test(output));

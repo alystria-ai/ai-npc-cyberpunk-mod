@@ -292,3 +292,22 @@ test('closing the voice service releases the helper, once, and confirms its exit
   h.voice.setVHelperWanted(false); h.voice.setVHelperWanted(true); await tick();
   assert.equal(h.workers.filter(worker => worker.backend === 'pocket').length, 1, 'a closed service starts nothing');
 });
+
+test('V\'s worker finishing its load tells the bridge once (so V\'s voice is prepared before the first line); a worker released while loading does not', async () => {
+  const ready = [];
+  const h = fixture({options: {onVHelperReady: () => ready.push('ready')}});
+  await omniReady(h);
+  await until(() => h.helperWorker()?.loaded, 'the helper to load');
+  await tick();
+  assert.deepEqual(ready, ['ready']);
+  h.voice.setVHelperWanted(false); await until(() => h.helperWorker().closes === 1, 'the helper to be released');
+  await tick();
+  assert.deepEqual(ready, ['ready'], 'a release is not a load');
+  await h.voice.close();
+  // A hook that throws never affects the worker.
+  const broken = fixture({options: {onVHelperReady: () => { throw Error('hook failed'); }}});
+  await omniReady(broken);
+  await until(() => broken.helperWorker()?.loaded, 'the helper to load');
+  assert.equal(broken.voice.vHelperReady('v-male'), true);
+  await broken.voice.close();
+});

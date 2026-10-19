@@ -166,6 +166,55 @@ test("the OmniVoice lists come from the Runtime's app/defaults first, the pack's
   } finally { await rm(f.root, {recursive: true, force: true}); }
 });
 
+test("a list an earlier Runtime left in app/defaults does not win over the pack's when it names another OmniVoice model, or cannot be read", async () => {
+  // Nothing deletes an old version's files: a Runtime that ships no lists (or other ones) leaves the previous Runtime's in app/defaults. With a
+  // pack for a newer OmniVoice model, that list would make the voice worker refuse the whole list ("Expected the pinned base OmniVoice model").
+  const f = await fakeInstall();
+  const put = async (directory, name, value) => { await mkdir(directory, {recursive: true}); await writeFile(join(directory, name), typeof value === 'string' ? value : JSON.stringify(value)); };
+  const live = async name => JSON.parse(await readFile(join(f.layout.state, name), 'utf8'));
+  const OLD = 'c5fdb5ccb189668d56333f77ba2629f4cd7535f4', NEW = '0123456789abcdef0123456789abcdef01234567';
+  const pack = model => writeFile(join(f.layout.omni, 'omni-pack.json'), JSON.stringify({package: 'omni', version: '0.3', model}));
+  try {
+    await put(join(f.layout.omni, 'python'), 'python.exe', {});
+    for (const name of Object.values(OMNI_CONFIGS)) {
+      await put(f.layout.defaults, name, {from: 'old runtime', revision: OLD});
+      await put(f.layout.omniDefaults, name, {from: 'new pack', revision: NEW});
+    }
+    // A pack for another model: its own list, which names that model, is used.
+    await pack(`k2-fsa/OmniVoice@${NEW}`);
+    assert.equal((await prepareState(f.layout)).omni, true);
+    for (const name of Object.values(OMNI_CONFIGS)) assert.deepEqual(await live(name), {from: 'new pack', revision: NEW});
+    // The same model (every 0.2.x pack and Runtime): the Runtime's list wins, as designed.
+    await pack(`k2-fsa/OmniVoice@${OLD}`);
+    await prepareState(f.layout);
+    for (const name of Object.values(OMNI_CONFIGS)) assert.deepEqual(await live(name), {from: 'old runtime', revision: OLD});
+    // A new Runtime's list for the new model wins again over the pack's.
+    for (const name of Object.values(OMNI_CONFIGS)) await put(f.layout.defaults, name, {from: 'new runtime', revision: NEW});
+    await pack(`k2-fsa/OmniVoice@${NEW}`);
+    await prepareState(f.layout);
+    for (const name of Object.values(OMNI_CONFIGS)) assert.deepEqual(await live(name), {from: 'new runtime', revision: NEW});
+    // A pack marker that names no model (or is not JSON): the Runtime's list, as before.
+    for (const name of Object.values(OMNI_CONFIGS)) await put(f.layout.defaults, name, {from: 'old runtime', revision: OLD});
+    for (const marker of ['{}', 'not json']) {
+      await writeFile(join(f.layout.omni, 'omni-pack.json'), marker);
+      await prepareState(f.layout);
+      for (const name of Object.values(OMNI_CONFIGS)) assert.deepEqual(await live(name), {from: 'old runtime', revision: OLD}, marker);
+    }
+    // Neither names the pack's model: the Runtime's, as before (the worker reports it).
+    await pack(`k2-fsa/OmniVoice@${'f'.repeat(40)}`);
+    await prepareState(f.layout);
+    assert.deepEqual(await live(OMNI_CONFIGS.short), {from: 'old runtime', revision: OLD});
+    // A damaged Runtime list (a cut-off write) does not stop the service start: the pack's list is used. A byte-order mark is read through.
+    await pack(`k2-fsa/OmniVoice@${NEW}`);
+    for (const name of Object.values(OMNI_CONFIGS)) await put(f.layout.defaults, name, '{"from": "new runtime", "revis');
+    await prepareState(f.layout);
+    for (const name of Object.values(OMNI_CONFIGS)) assert.deepEqual(await live(name), {from: 'new pack', revision: NEW});
+    for (const name of Object.values(OMNI_CONFIGS)) await put(f.layout.defaults, name, '\uFEFF' + JSON.stringify({from: 'bom runtime', revision: NEW}));
+    await prepareState(f.layout);
+    for (const name of Object.values(OMNI_CONFIGS)) assert.deepEqual(await live(name), {from: 'bom runtime', revision: NEW});
+  } finally { await rm(f.root, {recursive: true, force: true}); }
+});
+
 test("the player's own key wins over the packaged one, and a missing key stays visible", async () => {
   const f = await fakeInstall();
   try {
@@ -720,9 +769,9 @@ test('the README and the release notes send players to Hugging Face for every op
   const hf = 'https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs';
   const readme = (await readFile(resolve(project, 'README.md'), 'utf8')).replaceAll('\r\n', '\n');
   const player = (await readFile(resolve(project, 'packaging/PLAYER_README.md'), 'utf8')).replaceAll('\r\n', '\n');
-  const files = ['OmniPack', 'LocalAI-Standard', 'LocalAI-Lite', 'Mature-Lite', 'Mature-Standard'].map(name => `AI-NPC-Cyberpunk-Mod-${name}-0.2.1.zip`);
-  for (const file of files) assert(readme.includes(hf + '/blob/main/0.2.1/' + file), 'the README links ' + file);
-  for (const file of files.filter(name => !/Mature/.test(name))) assert(player.includes(hf + '/blob/main/0.2.1/' + file), 'the release notes link ' + file);
+  const files = ['OmniPack', 'LocalAI-Standard', 'LocalAI-Lite', 'Mature-Lite', 'Mature-Standard'].map(name => `AI-NPC-Cyberpunk-Mod-${name}-0.2.2.zip`);
+  for (const file of files) assert(readme.includes(hf + '/blob/main/0.2.2/' + file), 'the README links ' + file);
+  for (const file of files.filter(name => !/Mature/.test(name))) assert(player.includes(hf + '/blob/main/0.2.2/' + file), 'the release notes link ' + file);
   assert(readme.includes(hf + ')'), 'and the repository page');
   // The Install section sits before Requirements and the long feature list, right after the intro.
   const heading = text => readme.indexOf('\n## ' + text + '\n');
@@ -742,9 +791,9 @@ test('the README and the release notes send players to Hugging Face for every op
   assert.equal(readme.slice(0, readme.indexOf('# For developers')).split('Convai paid tier').length - 1, 1, 'the paid Convai tier appears in one spot');
   assert.doesNotMatch(player, /\b(?:api[- ]?key|key|token|secret|credential)s?\b|\brecommended\b|inworld/i);
   // The Mature help text in the settings page names the Hugging Face page, in every language.
-  const mcm = await readFile(resolve(project, 'mod/mcm.lua'), 'utf8');
-  assert.match(mcm, /Pack: not installed \(optional, on this mod’s Hugging Face page\)\./);
-  assert.doesNotMatch(mcm, /GitHub page/);
+  const page = await readFile(resolve(project, 'mod/manager-ui.lua'), 'utf8');
+  assert.match(page, /Pack: not installed \(optional, on this mod’s Hugging Face page\)\./);
+  assert.doesNotMatch(page, /GitHub page/);
   const key = 'Pack: not installed (optional, on this mod’s Hugging Face page).';
   for (const name of (await readdir(resolve(project, 'mod/locales'))).filter(file => file.endsWith('.lua'))) {
     const lua = await readFile(resolve(project, 'mod/locales', name), 'utf8');

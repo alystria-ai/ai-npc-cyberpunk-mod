@@ -46,8 +46,11 @@ async function writeIfChanged(path, bytes) {
 }
 
 // dataHome: the folder that holds data/ (state-home.mjs dataHomeFor), or null/undefined to keep data/ in the game's mod folder.
-export function installLayout({appDirectory, gameRoot, dataHome = null}) {
+// packRoots: {localAi, omni}, where an optional pack really is when that is not under app/ (a pack installed as its own Mod Organizer 2
+// mod; start-service.mjs), else app/local-ai and app/omni.
+export function installLayout({appDirectory, gameRoot, dataHome = null, packRoots = {}}) {
   const app = resolve(appDirectory), plugin = resolve(app, '..');
+  const omni = packRoots.omni ? resolve(packRoots.omni) : resolve(app, 'omni');
   const mod = resolve(gameRoot, 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod');
   const gameState = resolve(mod, 'data');
   return Object.freeze({
@@ -58,11 +61,11 @@ export function installLayout({appDirectory, gameRoot, dataHome = null}) {
     assets: resolve(app, 'assets'),
     pocketSource: resolve(app, 'pocket-tts'), pocketModel: resolve(app, 'models/pocket'),
     faceModel: resolve(app, 'models/lipsync'),
-    omni: resolve(app, 'omni'), omniPython: resolve(app, 'omni/python/python.exe'),
-    omniModel: resolve(app, 'omni/model'), omniAdapter: resolve(app, 'omni/voicestudio/backend'),
-    omniDefaults: resolve(app, 'omni/defaults'),
+    omni, omniPython: resolve(omni, 'python/python.exe'),
+    omniModel: resolve(omni, 'model'), omniAdapter: resolve(omni, 'voicestudio/backend'),
+    omniDefaults: resolve(omni, 'defaults'),
     // The optional Local AI packs unpack here (manifest.standard.json / manifest.lite.json, llama/, models/).
-    localAi: resolve(app, 'local-ai'),
+    localAi: packRoots.localAi ? resolve(packRoots.localAi) : resolve(app, 'local-ai'),
   });
 }
 
@@ -115,10 +118,31 @@ async function syncManaged(layout, log) {
 // pack's copy (app/omni/defaults/) is the fallback, for a Runtime that ships none. They are different paths on purpose: a pack zip that a
 // new version reuses unchanged must never share a path with the Runtime and carry other bytes, because Windows would offer to replace the
 // newer file with the older one (docs/PACKAGING.md, "Packs reused unchanged").
+// Nothing deletes an old version's files, so the Runtime's folder can hold a list an EARLIER Runtime left there. A list that names another
+// OmniVoice model revision than the installed pack's model (omni-pack.json "model": "<repository>@<revision>") is passed over for one that
+// names it, since the voice worker refuses a list for another model; a list that cannot be read as JSON is passed over too.
 export async function readOmniTemplate(layout, name) {
-  const found = await readOptional(resolve(layout.defaults, name)) ?? await readOptional(resolve(layout.omniDefaults, name));
-  if (!found) throw Object.assign(Error(`The OmniVoice list ${name} is in neither ${layout.defaults} nor ${layout.omniDefaults}.`), {code: 'ENOENT'});
-  return JSON.parse(found.toString('utf8'));
+  const revision = await omniPackRevision(layout);
+  let fallback = null;
+  for (const folder of [layout.defaults, layout.omniDefaults]) {
+    const found = await readOptional(resolve(folder, name));
+    if (!found) continue;
+    let template;
+    try { template = JSON.parse(found.toString('utf8').replace(/^\uFEFF/, '')); } catch { continue; }
+    if (!template || typeof template !== 'object') continue;
+    if (!revision || template.revision === revision) return template;
+    fallback ??= template;
+  }
+  if (fallback) return fallback;
+  throw Object.assign(Error(`The OmniVoice list ${name} is in neither ${layout.defaults} nor ${layout.omniDefaults} (or cannot be read).`), {code: 'ENOENT'});
+}
+
+// The OmniVoice model revision the installed pack carries, or null when its omni-pack.json does not say.
+export async function omniPackRevision(layout) {
+  try {
+    const model = JSON.parse((await readFile(resolve(layout.omni, 'omni-pack.json'), 'utf8')).replace(/^\uFEFF/, ''))?.model;
+    return (typeof model === 'string' && /@([0-9a-f]{7,64})$/i.exec(model)?.[1]) || null;
+  } catch { return null; }
 }
 
 export async function omniPackInstalled(layout) {
@@ -174,7 +198,7 @@ export function serviceEnvironment(layout, {omni, keyFile}, source = process.env
   for (const name of ['NODE_OPTIONS', 'NODE_PATH', 'PYTHONPATH', 'PYTHONHOME', 'PYTHONSTARTUP', 'PYTHONUSERBASE',
     'CYBERPUNK_CONVAI_PYTHON', 'CYBERPUNK_CONVAI_OMNI_MODEL', 'CYBERPUNK_CONVAI_OMNI_ADAPTER',
     'CYBERPUNK_CONVAI_OMNI_REFERENCES', 'CYBERPUNK_CONVAI_OMNI_CACHE', 'CYBERPUNK_CONVAI_RHUBARB',
-    'CYBERPUNK_CONVAI_LIPSYNC_WORK', 'CYBERPUNK_CONVAI_DAILY_LIMIT',
+    'CYBERPUNK_CONVAI_LIPSYNC_WORK', 'CYBERPUNK_CONVAI_DAILY_LIMIT', 'CYBERPUNK_CONVAI_GAME_STATE',
     // A developer's Local AI folder or model files must not leak into a player's service (docs/LOCAL_AI.md).
     'CYBERPUNK_CONVAI_LOCAL_AI_DEV', 'CYBERPUNK_CONVAI_LOCAL_SERVER', 'CYBERPUNK_CONVAI_LOCAL_MODEL',
     'CYBERPUNK_CONVAI_LOCAL_LITE_MODEL', 'CYBERPUNK_CONVAI_LOCAL_EMBED_MODEL']) delete env[name];
@@ -189,6 +213,9 @@ export function serviceEnvironment(layout, {omni, keyFile}, source = process.env
     // and its pre-built prepared/ clips from here, so it is set with or without the OmniVoice pack.
     CYBERPUNK_CONVAI_OMNI_REFERENCES: layout.voices,
   });
+  // The folder of the copies of the player's state files in runtime/ (bridge/game-state.mjs, docs/PACKAGING.md "Mod Organizer 2"): the bridge keeps
+  // them current. Only with a data home outside the game folder, where Mod Organizer 2 cannot lose them; a copy inside the game folder is no safer.
+  if (layout.dataHome) env.CYBERPUNK_CONVAI_GAME_STATE = resolve(layout.state, 'game-state');
   if (omni) Object.assign(env, {
     CYBERPUNK_CONVAI_PYTHON: layout.omniPython,
     CYBERPUNK_CONVAI_OMNI_MODEL: layout.omniModel,

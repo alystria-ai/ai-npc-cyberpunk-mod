@@ -4,8 +4,10 @@ import copy
 import hashlib
 import importlib.util
 import json
+import math
 import os
 import shutil
+import struct
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -170,6 +172,233 @@ class PortableVoicePaths(unittest.TestCase):
         session.handle({'op': 'synthesize', 'id': 1, 'profile': 'johnny-silverhand', 'text': 'Hi.', 'steps': 16})
         self.assertEqual(frames[-1]['op'], 'error')
         self.assertEqual(len(renders), count)
+
+    # ---- the player's own reference clips (runtime/player-voices/<key>.wav, resolved only inside the configured player folder) ----
+
+    def player_config(self, key='johnny-silverhand', seconds=.3):
+        """The voice `key` is the player's own clip: a few hundred milliseconds of a 24 kHz 16-bit sine in <data>/player-voices."""
+        self.player = self.data / 'player-voices'
+        self.player.mkdir(parents=True, exist_ok=True)
+        path = self.player / f'{key}.wav'
+        with wave.open(str(path), 'wb') as output:
+            output.setparams((1, 2, 24000, 0, 'NONE', 'not compressed'))
+            output.writeframes(b''.join(struct.pack('<h', round(math.sin(2 * math.pi * 220 * at / 24000) * 8000)) for at in range(round(seconds * 24000))))
+        config = copy.deepcopy(self.config)
+        config['playerVoiceDirectory'] = str(self.player)
+        config['voices'][key] = {'reference': f'runtime/player-voices/{key}.wav', 'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+                                 'transcript': 'The player typed this.'}
+        return config, path
+
+    def player_registry(self, config):
+        return worker.validate_config(config, self.app, paths=worker.resolve_worker_paths(self.app, self.environment()))
+
+    def test_player_clip_resolves_only_inside_its_own_folder_and_is_not_prepared_unless_it_is_a_startup_profile(self):
+        config, clip = self.player_config()
+        config['voices']['judy-alvarez'] = copy.deepcopy(config['voices']['johnny-silverhand'])
+        config['voices']['judy-alvarez']['reference'] = 'runtime/voice-references/johnny.wav'
+        config['voices']['judy-alvarez']['sha256'] = hashlib.sha256((self.paths['referenceDirectory'] / 'johnny.wav').read_bytes()).hexdigest()
+        config['preparation'] = {'mode': 'lazy', 'startupProfiles': ['judy-alvarez']}
+        registry = self.player_registry(config)
+        self.assertEqual(registry['refs']['johnny-silverhand'][0], str(clip.resolve()))
+        self.assertEqual(registry['refs']['judy-alvarez'][0], str(self.paths['referenceDirectory'] / 'johnny.wav'), 'a shipped voice resolves in the shipped folder')
+        self.assertEqual(registry['playerRoot'], self.player.resolve())
+        self.assertEqual(registry['unavailableProfiles'], {})
+        self.assertEqual(registry['startupProfiles'], ['judy-alvarez'])
+        renders, frames = [], []
+        session = worker.ProfileSession(registry, lambda *values: (renders.append(values) or b'fixture', 1), lambda _: 'fixture', frames.append, {}, lambda: {})
+        session.startup()
+        self.assertEqual([render[0] for render in renders], ['judy-alvarez'], 'the player voice waits until its character speaks')
+        # The attested paths are the same five as without a player folder (the bridge compares them exactly).
+        self.assertEqual(set(frames[-1]['workerPaths']), {'applicationDirectory', *self.paths})
+        session.handle({'op': 'synthesize', 'id': 1, 'profile': 'johnny-silverhand', 'text': 'Hi.', 'steps': 16})
+        self.assertEqual(frames[-1]['op'], 'audio')
+        self.assertEqual(renders[-1][0], 'johnny-silverhand')
+
+    def test_changed_player_clip_cannot_render_from_an_old_prompt(self):
+        config, clip = self.player_config()
+        registry = self.player_registry(config)
+        renders, frames = [], []
+        session = worker.ProfileSession(registry, lambda *values: (renders.append(values) or b'fixture', 1), lambda _: 'fixture', frames.append, {}, lambda: {})
+        session.handle({'op': 'prepare', 'id': 1, 'profile': 'johnny-silverhand'})
+        self.assertEqual(frames[-1]['op'], 'prepared')
+        count = len(renders)
+        clip.write_bytes(clip.read_bytes()[:-2] + b'\x11\x22')
+        session.handle({'op': 'synthesize', 'id': 2, 'profile': 'johnny-silverhand', 'text': 'Hi.', 'steps': 16})
+        self.assertEqual(frames[-1]['op'], 'error')
+        self.assertEqual(len(renders), count)
+
+    def test_player_reference_without_a_folder_or_file_or_with_a_wrong_hash_or_a_link_is_unavailable_not_a_config_error(self):
+        config, clip = self.player_config()
+        without = copy.deepcopy(config)
+        del without['playerVoiceDirectory']
+        for variant in (without, {**config, 'playerVoiceDirectory': None}, {**config, 'playerVoiceDirectory': str(self.data / 'never-made')}):
+            registry = self.player_registry(variant)
+            self.assertEqual(registry['unavailableProfiles'], {'johnny-silverhand': 'unavailable'})
+            self.assertNotIn('johnny-silverhand', registry['refs'])
+            self.assertEqual(registry['configuredProfiles'], ['johnny-silverhand'])
+        self.assertFalse((self.data / 'never-made').exists(), 'a missing folder is not created')
+        wrong = copy.deepcopy(config)
+        wrong['voices']['johnny-silverhand']['sha256'] = 'b' * 64
+        self.assertEqual(self.player_registry(wrong)['unavailableProfiles'], {'johnny-silverhand': 'unavailable'})
+        real = Path.is_symlink
+        with patch.object(Path, 'is_symlink', lambda path: path.name == 'johnny-silverhand.wav' or real(path)):
+            self.assertEqual(self.player_registry(config)['unavailableProfiles'], {'johnny-silverhand': 'unavailable'})
+        clip.unlink()
+        # The shipped folder holds a file of the same name: the player reference does not fall back to it.
+        (self.paths['referenceDirectory'] / 'johnny-silverhand.wav').write_bytes((self.paths['referenceDirectory'] / 'johnny.wav').read_bytes())
+        self.assertEqual(self.player_registry(config)['unavailableProfiles'], {'johnny-silverhand': 'unavailable'})
+        # And an oversized or too long clip is unavailable, never an error.
+        with wave.open(str(clip), 'wb') as output:
+            output.setparams((1, 2, 8000, 0, 'NONE', 'not compressed'))
+            output.writeframes(b'\x00\x01' * 8000 * 21)
+        long = copy.deepcopy(config)
+        long['voices']['johnny-silverhand']['sha256'] = hashlib.sha256(clip.read_bytes()).hexdigest()
+        self.assertEqual(self.player_registry(long)['unavailableProfiles'], {'johnny-silverhand': 'unavailable'})
+
+    def test_player_reference_shapes_that_escape_are_refused_and_a_shipped_reference_is_not_read_from_the_player_folder(self):
+        config, clip = self.player_config()
+        for reference in ('runtime/player-voices/../escape.wav', 'runtime/player-voices/sub/johnny-silverhand.wav', 'runtime/player-voices\\johnny-silverhand.wav',
+                          'runtime/player-voices/JOHNNY.wav', 'runtime/player-voices/johnny-silverhand.wav:stream', 'runtime/player-voices/.wav',
+                          f'runtime/player-voices/{"a" * 81}.wav'):
+            with self.subTest(reference=reference):
+                altered = copy.deepcopy(config)
+                altered['voices']['johnny-silverhand']['reference'] = reference
+                with self.assertRaisesRegex(ValueError, 'asset path'):
+                    self.player_registry(altered)
+        shutil.copyfile(clip, self.player / 'only-here.wav')
+        shipped = copy.deepcopy(config)
+        shipped['voices']['johnny-silverhand'] = {'reference': 'runtime/voice-references/only-here.wav',
+                                                  'sha256': hashlib.sha256(clip.read_bytes()).hexdigest(), 'transcript': 'Shipped.'}
+        self.assertEqual(self.player_registry(shipped)['unavailableProfiles'], {'johnny-silverhand': 'unavailable'})
+
+    def test_player_folder_stays_out_of_application_files_references_and_cache_and_must_be_plain(self):
+        config, _ = self.player_config()
+        for place in (self.app / 'player', self.app, self.root, self.paths['cacheDirectory'], self.paths['cacheDirectory'] / 'player',
+                      self.paths['referenceDirectory'], self.paths['referenceDirectory'] / 'player'):
+            with self.subTest(place=str(place)):
+                with self.assertRaisesRegex(ValueError, 'separate'):
+                    self.player_registry({**config, 'playerVoiceDirectory': str(place)})
+        for value in ('player-voices', '', 5, '../player-voices', ' ' + str(self.player), str(self.player) + '\n'):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    self.player_registry({**config, 'playerVoiceDirectory': value})
+        real = Path.is_symlink
+        with patch.object(Path, 'is_symlink', lambda path: path == self.player or real(path)):
+            with self.assertRaisesRegex(ValueError, 'Linked'):
+                self.player_registry(config)
+        self.assertEqual(self.player_registry(config)['playerRoot'], self.player.resolve())
+
+    def test_development_layout_takes_a_player_folder_anywhere_except_over_its_cache_or_references(self):
+        config, clip = self.player_config()
+        # A checkout keeps its data beside the application: the application-directory rule belongs to packages only.
+        inside = self.app / 'runtime/player-voices'
+        inside.mkdir(parents=True)
+        model = self.app / self.config['model'] / 'model.safetensors'
+        model.parent.mkdir(parents=True)
+        model.write_bytes(b'fixture-weights-not-loadable')
+        shutil.copyfile(clip, inside / 'johnny-silverhand.wav')
+        paths = worker.resolve_worker_paths(self.app, {})
+        registry = worker.validate_config({**config, 'playerVoiceDirectory': str(inside)}, self.app, paths=paths)
+        self.assertEqual(registry['refs']['johnny-silverhand'][0], str((inside / 'johnny-silverhand.wav').resolve()))
+        with self.assertRaisesRegex(ValueError, 'separate'):
+            worker.validate_config({**config, 'playerVoiceDirectory': str(paths['cacheDirectory'] / 'x')}, self.app, paths=paths)
+
+    # ---- voices changed while the worker runs (a clip given to a character or taken away: no restart, no reload of the model) ----
+
+    def running_session(self):
+        """Two shipped voices (johnny, judy) in a running session whose renders record which file each reply was made from."""
+        shipped = copy.deepcopy(self.config)
+        shipped['voices']['judy-alvarez'] = copy.deepcopy(shipped['voices']['johnny-silverhand'])
+        shipped['preparation'] = {'mode': 'lazy', 'startupProfiles': []}
+        registry = worker.validate_config(shipped, self.app, paths=worker.resolve_worker_paths(self.app, self.environment()))
+        worker.refresh_identity(registry)
+        renders, frames, evicted = [], [], []
+        session = worker.ProfileSession(registry, lambda key, *values: (renders.append((key, registry['refs'][key][0])) or b'fixture', 1),
+                                        lambda _: 'fixture', frames.append, {}, lambda: {}, evict=lambda *entry: evicted.append(entry))
+        return shipped, registry, session, renders, frames, evicted
+
+    def test_a_voice_changes_while_running_and_only_that_character_loses_its_prompt(self):
+        shipped, registry, session, renders, frames, evicted = self.running_session()
+        player, clip = self.player_config()
+        descriptor = player['voices']['johnny-silverhand']
+        for number, key in enumerate(('johnny-silverhand', 'judy-alvarez'), 1):
+            session.handle({'op': 'prepare', 'id': number, 'profile': key})
+        self.assertEqual(list(session.prepared), ['johnny-silverhand', 'judy-alvarez'])
+        old = registry['refs']['johnny-silverhand']
+        session.handle({'op': 'voices', 'id': 3, 'set': {'johnny-silverhand': descriptor}, 'playerVoiceDirectory': str(self.player)})
+        self.assertEqual(frames[-1]['op'], 'voices')
+        self.assertEqual(frames[-1]['changed'], ['johnny-silverhand'])
+        self.assertEqual(list(session.prepared), ['judy-alvarez'], 'only the changed character was dropped from the prepared list')
+        self.assertEqual(frames[-1]['preparedProfiles'], ['judy-alvarez'])
+        self.assertEqual(registry['refs']['johnny-silverhand'][0], str(clip.resolve()))
+        self.assertEqual(frames[-1]['referenceHashes']['johnny-silverhand'], descriptor['sha256'])
+        self.assertEqual(frames[-1]['transcriptHashes']['johnny-silverhand'], hashlib.sha256(descriptor['transcript'].encode()).hexdigest())
+        self.assertEqual(frames[-1]['referenceHashes']['judy-alvarez'], shipped['voices']['judy-alvarez']['sha256'])
+        self.assertEqual(registry['playerRoot'], self.player.resolve())
+        # The prompt of the replaced reference leaves the model's cache, and the cache key now knows the new file.
+        self.assertEqual(evicted, [(os.path.abspath(old[0]), old[1], shipped['voices']['johnny-silverhand']['sha256'],
+                                    hashlib.sha256(old[1].encode()).hexdigest())])
+        self.assertIn((os.path.abspath(str(clip.resolve())), descriptor['transcript']), registry['identity'])
+        session.handle({'op': 'synthesize', 'id': 4, 'profile': 'johnny-silverhand', 'text': 'Hi.', 'steps': 16})
+        self.assertEqual(frames[-1]['op'], 'audio')
+        self.assertEqual(renders[-1], ('johnny-silverhand', str(clip.resolve())), 'the next reply is made from the new clip')
+        # Taking the clip away puts the shipped descriptor back: the next reply is made from the shipped file again.
+        session.handle({'op': 'voices', 'id': 5, 'set': {'johnny-silverhand': shipped['voices']['johnny-silverhand']}})
+        self.assertEqual(frames[-1]['op'], 'voices')
+        session.handle({'op': 'synthesize', 'id': 6, 'profile': 'johnny-silverhand', 'text': 'Hi.', 'steps': 16})
+        self.assertEqual(renders[-1], ('johnny-silverhand', old[0]))
+        self.assertEqual(evicted[-1][2], descriptor['sha256'])
+        self.assertEqual(registry['referenceHashes']['judy-alvarez'], shipped['voices']['judy-alvarez']['sha256'], 'another voice is untouched')
+
+    def test_a_voice_the_worker_never_had_is_added_and_a_removed_one_leaves(self):
+        shipped, registry, session, renders, frames, evicted = self.running_session()
+        player, clip = self.player_config(key='custom-rebecca-abcd')
+        descriptor = player['voices']['custom-rebecca-abcd']
+        session.handle({'op': 'voices', 'id': 1, 'set': {'custom-rebecca-abcd': descriptor}, 'playerVoiceDirectory': str(self.player)})
+        self.assertIn('custom-rebecca-abcd', frames[-1]['profiles'])
+        self.assertIn('custom-rebecca-abcd', frames[-1]['configuredProfiles'])
+        session.handle({'op': 'synthesize', 'id': 2, 'profile': 'custom-rebecca-abcd', 'text': 'Hi.', 'steps': 16})
+        self.assertEqual(renders[-1], ('custom-rebecca-abcd', str(clip.resolve())))
+        session.handle({'op': 'voices', 'id': 3, 'remove': ['custom-rebecca-abcd']})
+        self.assertEqual(frames[-1]['op'], 'voices')
+        self.assertNotIn('custom-rebecca-abcd', frames[-1]['profiles'])
+        self.assertNotIn('custom-rebecca-abcd', registry['refs'])
+        self.assertNotIn('custom-rebecca-abcd', registry['descriptors'])
+        self.assertEqual(len(evicted), 1)
+        session.handle({'op': 'synthesize', 'id': 4, 'profile': 'custom-rebecca-abcd', 'text': 'Hi.', 'steps': 16})
+        self.assertEqual(frames[-1]['op'], 'error', 'a voice that is gone is not spoken')
+        self.assertIn('judy-alvarez', registry['refs'])
+
+    def test_a_refused_voice_change_leaves_every_voice_as_it_was(self):
+        shipped, registry, session, renders, frames, evicted = self.running_session()
+        player, clip = self.player_config()
+        good = player['voices']['johnny-silverhand']
+        before = copy.deepcopy({field: registry[field] for field in ('refs', 'descriptors', 'referenceHashes', 'unavailableProfiles', 'configuredProfiles')})
+        for number, request in enumerate((
+                {'set': {'johnny-silverhand': good, 'judy-alvarez': {'reference': 'runtime/player-voices/../x.wav', 'sha256': 'a' * 64, 'transcript': 'x'}}},
+                {'set': {'Not A Key': good}},
+                {'set': {'johnny-silverhand': good}, 'remove': ['johnny-silverhand']},
+                {'set': {f'k-{at}': {'status': 'unprepared'} for at in range(worker.MAX_VOICE_CHANGES + 1)}},
+                {'set': {'johnny-silverhand': good}, 'playerVoiceDirectory': str(self.paths['referenceDirectory'] / 'inside')},
+                {'set': 'nothing'}), 1):
+            with self.subTest(request=number):
+                session.handle({'op': 'voices', 'id': number, **request})
+                self.assertEqual(frames[-1]['op'], 'error')
+                self.assertEqual(frames[-1]['profiles'], sorted(before['refs']))
+                self.assertEqual({field: registry[field] for field in before}, before)
+                self.assertIsNone(registry.get('playerRoot'))
+        # A clip file that is gone (or not the recorded bytes) only withdraws that voice: the change itself is accepted.
+        clip.write_bytes(clip.read_bytes()[:-2] + b'\x11\x22')
+        session.handle({'op': 'voices', 'id': 10, 'set': {'johnny-silverhand': good}, 'playerVoiceDirectory': str(self.player)})
+        self.assertEqual(frames[-1]['op'], 'voices')
+        self.assertEqual(registry['unavailableProfiles'], {'johnny-silverhand': 'unavailable'})
+        self.assertNotIn('johnny-silverhand', frames[-1]['profiles'])
+        self.assertIn('judy-alvarez', frames[-1]['profiles'])
+        # The player folder cannot be moved while the worker runs.
+        other = self.data / 'other-player-voices'
+        session.handle({'op': 'voices', 'id': 11, 'set': {}, 'playerVoiceDirectory': str(other)})
+        self.assertEqual(frames[-1]['op'], 'error')
+        self.assertEqual(registry['playerRoot'], self.player.resolve())
 
     def test_shared_admission_is_in_data_and_excludes_other_app_versions(self):
         cache = self.paths['cacheDirectory']

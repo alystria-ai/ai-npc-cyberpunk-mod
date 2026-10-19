@@ -3,7 +3,7 @@ import {createHash} from 'node:crypto';
 import {resolve} from 'node:path';
 import {inspectWav} from './speech-audio.mjs';
 import {abortable, throwIfCancelled, cancelled} from './transport-pool.mjs';
-import {createVoiceProfileRegistry, LEGACY_LOCAL_VOICE_KEYS} from './voice-profile-registry.mjs';
+import {createVoiceProfileRegistry, LEGACY_LOCAL_VOICE_KEYS, registryFromTable, voiceChangeBatches, voiceTable} from './voice-profile-registry.mjs';
 import {absoluteRuntimeOverride, OMNI_RUNTIME_PATHS, omniRuntimeOverrides} from './runtime-paths.mjs';
 import {realpathSync} from 'node:fs';
 import {constants as osConstants, setPriority as osSetPriority} from 'node:os';
@@ -19,7 +19,7 @@ export const voiceSteps = value => value === 16 ? 16 : 32;
 // Only silence for `startupStallMs`, or the absolute `startupMaxMs`, ends a start. `startupCloseMs` bounds the wait
 // for a worker that is still loading when its owner has already asked it to stop (nothing to preserve there).
 export const VOICE_WORKER_LIMITS = Object.freeze({startupStallMs: 300_000, startupMaxMs: 900_000,
-  startupCloseMs: 60_000, renderMs: 120_000, exitGraceMs: 10_000, exitConfirmationMs: 5_000});
+  startupCloseMs: 60_000, renderMs: 120_000, exitGraceMs: 10_000, exitConfirmationMs: 5_000, voicesMs: 30_000});
 
 export class ResidentVoice {
   constructor(config = {}, {project, configPath, spawnImpl = spawn, onState = () => {}, onLog = () => {},
@@ -33,6 +33,9 @@ export class ResidentVoice {
     this.pythonExecutable = absoluteRuntimeOverride(pythonExecutable, 'CYBERPUNK_CONVAI_PYTHON');
     this.workerEnvironment = omniRuntimeOverrides({modelDirectory, adapterDirectory, referenceDirectory, cacheDirectory});
     this.registry = createVoiceProfileRegistry(config);
+    // The voices the worker holds: the configuration's at its start (`baseRegistry`, what its start is checked against), then what a player
+    // changed while it runs (setVoices), which `registry` follows once the worker confirms it.
+    this.baseRegistry = this.registry; this.baseDir = config.playerVoiceDirectory ?? null; this.workerDir = this.baseDir; this.wanted = null;
     Object.assign(this, {config: Object.freeze({...config, voices: this.registry.profiles,
       preparation: this.registry.preparation}), project, configPath, spawnImpl, onState, onLog, setTimer, clearTimer});
     this.steps = voiceSteps(config.steps); this.tail = Promise.resolve();
@@ -46,6 +49,84 @@ export class ResidentVoice {
     this.lowPriority = lowPriority === true; this.setPriority = setPriority;
   }
   setKeepPrepared(value) { this.keepPrepared = value === true; }
+  /**
+   * The voices this worker should hold from now on (`voices`: the configuration's `voices` object; `playerVoiceDirectory`: the folder a player's clip
+   * is in). The model is not reloaded: the worker is sent the difference (a voice replaced or removed leaves the prepared list and the prompt cache;
+   * the others keep theirs), in line behind the job it is doing, so a reply in flight finishes with the voice it started with and the next one uses
+   * the new one. A worker that is not running yet gets them when it is ready. Resolves to true when the worker confirmed a change.
+   */
+  setVoices(voices, {playerVoiceDirectory = null} = {}) {
+    if (this.closing || this.failure) return Promise.resolve(false);
+    try { this.wanted = {table: voiceTable(registryFromTable(voices, this.config)), playerVoiceDirectory: playerVoiceDirectory ?? null}; }
+    catch (error) { return Promise.reject(error); }
+    return this.queueVoices();
+  }
+  // Does the worker hold other voices than it should (or not know the player folder yet)? A worker of the first protocol cannot be changed.
+  voicesDiffer() {
+    const wanted = this.wanted;
+    if (!wanted || this.protocolVersion !== 2) return false;
+    return (!!wanted.playerVoiceDirectory && wanted.playerVoiceDirectory !== this.workerDir) || voiceChangeBatches(voiceTable(this.registry), wanted.table).length > 0;
+  }
+  queueVoices() {
+    if (!this.loaded || this.protocolVersion !== 2) return Promise.resolve(false);
+    const operation = this.tail.then(() => this.syncVoices());
+    this.tail = operation.catch(() => {});
+    return operation;
+  }
+  async syncVoices() {
+    const wanted = this.wanted;
+    if (!wanted || !this.loaded || this.closing || this.failure) return false;
+    const folder = wanted.playerVoiceDirectory && wanted.playerVoiceDirectory !== this.workerDir ? wanted.playerVoiceDirectory : null;
+    const batches = voiceChangeBatches(voiceTable(this.registry), wanted.table);
+    if (!batches.length && !folder) return false;
+    if (!batches.length) batches.push({set: {}, remove: [], table: voiceTable(this.registry)});
+    for (const [at, batch] of batches.entries()) {
+      await this.voicesCommand({set: batch.set, remove: batch.remove, ...(folder && at === 0 ? {playerVoiceDirectory: folder} : {})},
+        registryFromTable(batch.table, this.config));
+      if (folder && at === 0) this.workerDir = folder;
+      if (this.closing || this.failure) return false;
+    }
+    return true;
+  }
+  voicesCommand(payload, next) {
+    if (this.closing || this.failure || !this.child) return Promise.reject(this.failure || cancelled());
+    const id = ++this.sequence;
+    return new Promise((resolveFrame, reject) => {
+      this.pending.set(id, {resolve: resolveFrame, reject, kind: 'voices', profile: undefined, next});
+      this.phaseDeadline('voice change', VOICE_WORKER_LIMITS.voicesMs);
+      this.child.stdin.write(JSON.stringify({op: 'voices', id, ...payload}) + '\n', error => { if (error) this.fail(error); });
+    });
+  }
+  // The worker's answer to a voice change: the voices it now holds, checked against the descriptors that were sent (both hashes).
+  receiveVoices(frame, request) {
+    if (!['voices', 'error'].includes(frame.op)) throw Error('Unexpected local speech response');
+    this.pending.delete(frame.id); this.clearPhase();
+    const limit = this.registry.preparation.maxCachedProfiles;
+    if (frame.op === 'error') {
+      // A refused change leaves the worker as it was.
+      if (this.validProfiles(frame.profiles) && this.validProfiles(frame.preparedProfiles, limit) && frame.preparedProfiles.every(key => frame.profiles.includes(key))) {
+        this.available = new Set(frame.profiles); this.prepared = new Set(frame.preparedProfiles);
+      }
+      if (!this.closing) this.publish('ready');
+      request.reject(Error('Local voices could not be changed'));
+      return;
+    }
+    const previous = this.registry;
+    this.registry = request.next;
+    try {
+      const {profiles, preparedProfiles: prepared, referenceHashes: references, transcriptHashes: transcripts} = frame;
+      const mapOf = value => value && typeof value === 'object' && !Array.isArray(value);
+      if (!this.validProfiles(profiles) || !this.validProfiles(prepared, this.registry.preparation.maxCachedProfiles) || prepared.some(key => !profiles.includes(key))
+          || !mapOf(references) || Object.keys(references).length !== profiles.length || profiles.some(key => references[key] !== this.registry.profiles[key].sha256)
+          || !mapOf(transcripts) || Object.keys(transcripts).length !== profiles.length
+          || profiles.some(key => transcripts[key] !== createHash('sha256').update(this.registry.profiles[key].transcript, 'utf8').digest('hex')))
+        throw Error('Local voice worker did not confirm the changed voices');
+      this.available = new Set(profiles); this.prepared = new Set(prepared);
+    } catch (error) { this.registry = previous; request.reject(error); throw error; }
+    if (!this.closing) this.publish('ready');
+    request.resolve({changed: Array.isArray(frame.changed) ? frame.changed.filter(key => typeof key === 'string') : []});
+    if (this.closing || this.failure) this.awaitExit();
+  }
   priority(level) {
     if (!this.child?.pid) return;
     try { this.setPriority(this.child.pid, level); } catch { /* A priority is an optimisation, never a failure. */ }
@@ -119,6 +200,8 @@ export class ResidentVoice {
     });
     // Always observe startup failure even when no conversation is waiting.
     this.ready.catch(() => {});
+    // A new worker reads the configuration's voices: what a player changed since is sent once it is ready.
+    this.registry = this.baseRegistry; this.workerDir = this.baseDir;
     let child;
     try {
       const environment = {...process.env, PYTHONUTF8: '1'};
@@ -229,11 +312,17 @@ export class ResidentVoice {
         cudaAllocatedMiB: frame.cudaAllocatedMiB, cudaReservedMiB: frame.cudaReservedMiB,
         cudaPeakReservedMiB: frame.cudaPeakReservedMiB};
       if (!this.closing && !this.failure) this.publish('ready');
-      this.resolveReady();
+      // Voices a player changed while this worker was loading are sent now, ahead of any reply; the start is done when they are in.
+      if (!this.voicesDiffer()) this.resolveReady();
+      else {
+        void this.queueVoices().catch(error => { try { this.onLog(`[LocalVoice] voice change failed: ${String(error?.message ?? error).slice(0, 120)}\n`); } catch {} })
+          .then(() => this.resolveReady());
+      }
       if (this.closing || this.failure) this.awaitExit();
       return;
     }
     const request = this.pending.get(frame.id);
+    if (request?.kind === 'voices') { this.receiveVoices(frame, request); return; }
     // A timed-out physical render can finish while the worker drains EOF.
     // Its caller has already failed; the late WAV must never be published.
     if (!request && this.failure && ['audio', 'prepared', 'error'].includes(frame.op)) return;

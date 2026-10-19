@@ -106,7 +106,7 @@
     },
     {
       "withKey": "Brazilian Intelligence Agency",
-      "baseline": "His employer and the institution whose position he wants to protect.",
+      "baseline": "His employer during the investigation, and the institution whose position he wants to protect.",
       "sourceIds": [
         "ph-steven",
         "ph-bia"

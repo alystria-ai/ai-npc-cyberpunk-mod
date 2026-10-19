@@ -63,6 +63,7 @@ A running `face_rig` cannot change its graph (measured, docs/FACIAL_ANIMATION.md
 - The preparation is the one a spawned character gets (`PrepareSpawnedFace`): the **gated crowd copy** when the character runs one of the four crowd graphs (Jackie: `man_big_sermo`), and the **companion graph** our own copy of that character carries on Judy's photo-mode graph or the paperdoll pair. Anything else is `unsupported-graph:<path>`: the voice and the subtitle still work, and the log says why (`Face request: ... status=...`).
 - The speech layer sits behind a switch that stays closed until the mod voices that character (crowd copy: one switch and one compare more than vanilla; companion graph: the layer is always evaluated, with `speech_owner` at 0 it is exactly the vanilla output). The game's scenes and idles feed the vanilla chain unchanged, so the character's appearance and face are never altered. Nothing is rebuilt, no appearance change is scheduled, no shared resource is patched.
 - It runs only while the service's `m_storyTalk` is on. `facial-playback.applyStoryTalk` hands the setting over at start-up and each time a world is released, so a save reload picks a change up. It is on by default in redscript, so the feature works even if the hand-over fails.
+- **A look change after the spawn** (a quest script, or another mod swapping the character's model or outfit): the rebuild replaces `face_rig` with the vanilla graph again, so the face is prepared again by the same rules (`OnReassemble`, `PrepareGameFace`; `docs/FACIAL_ANIMATION.md`, "October 19: a replaced model"). Until 2026-10-19 such a character stayed silent-faced and the log read `status=stale:...` with every counter at zero (the game's own Judy in her apartment, a 0.2.0 report). The same section lists every status the log can show and what each means.
 - After the screen-face step (the Delamain add-on's screen NPC is a named character on a crowd graph and needs its own slot) and before the "not a crowd graph" return.
 
 Emotions: nothing new. The reply's emotion timeline (the Expressive emotions setting, `bridge/expression-timeline.mjs`) is written by the same writer as for any speaker (`facial-playback.lua`, `applyFeature`). Two differences for a story speaker, both through `M.storyEntity` (set on the key press for that one entity):
@@ -99,7 +100,7 @@ Emotions: nothing new. The reply's emotion timeline (the Expressive emotions set
 | `mod/character-catalog.lua` | `resolve`: `actor.story` lets the roster profile resolve for a world character; no other change |
 | `mod/speech.lua` | two hook points (`M.storyGuard`): before a reply starts and while it plays |
 | `mod/facial-playback.lua` | `applyStoryTalk`; `storyEntity` (the writer's safety check without the scene flag for that speaker) |
-| `mod/manager.lua`, `mod/mcm.lua` | the setting `storyConversations` (off by default; a missing key counts as off), its row and help text |
+| `mod/manager.lua`, `mod/manager-ui.lua` | the setting `storyConversations` (off by default; a missing key counts as off), its row and help text |
 | `mod/notices.lua`, `docs/NOTIFICATIONS.md` | the `talk-busy` notice |
 | `r6/scripts/CyberpunkConvai/Face.reds` | `m_storyTalk`, `SetStoryTalk`, `StoryTalk`, `PrepareStoryFace`, the story branch of `TalkRefusal` |
 | `localization/en.json`, `mod/locales/*.lua` | three strings, 15 locales |

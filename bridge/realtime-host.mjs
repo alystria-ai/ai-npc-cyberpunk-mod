@@ -449,6 +449,14 @@ export class RealtimeHost {
       return await (this.localPcm?.warm?.() ?? false);
     } catch { return false; }
   }
+  // A turn that will be voiced through the local renderer (Pocket, Voxtral) has started: open the page and a silent output device now,
+  // while the model thinks, so the renderer is not what the first sound waits for (LocalPcmHost.standby). Never throws.
+  async standbyLocal({signal} = {}) {
+    try {
+      await this.start({signal});
+      return await (this.localPcm?.standby?.() ?? false);
+    } catch { return false; }
+  }
   async playLocalPcm(config, producer, options = {}) {
     const {signal, current = () => true} = options;
     throwIfCancelled(signal);
