@@ -136,6 +136,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/resident-phone-analysis.mjs',
   'bridge/resident-voice.mjs',
   'bridge/romance-context.mjs',
+  'bridge/runtime-files.mjs',
   'bridge/runtime-paths.mjs',
   'bridge/setup-check.mjs',
   'bridge/shared-key-guard.mjs',

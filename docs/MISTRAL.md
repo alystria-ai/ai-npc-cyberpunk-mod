@@ -89,7 +89,11 @@ a prefix cache keeps working on Mistral and the local model:
 
 1. system: the persona and the output rules (the persona prefix; the local AI loads it ahead on an invitation);
 2. system: the format notes for tags (Expressive emotions), then the world and quest context (slow), then what the character
-   remembers (the summary);
+   remembers (the summary). Inside the world context the blocks that only change on game events come first (recency, history, jobs,
+   journal, gear) and the world facts come after them (`worldBlocksInCacheOrder`, `bridge/mistral-prompt.mjs`): the facts are ranked by
+   the words V just said, so their text changes with every turn, and placed first they made the first changed token sit right after the
+   persona (first player reports, 2026-10-19: 2,350 cached and about 3,000 new tokens on every turn). The Convai context keeps its own
+   order;
 3. system: the "right now" block (the clock, the place, who is with V). It used to open the context; it is now the last thing in the
    system message because it changes every few minutes and one changed word early in a prompt invalidates the cache after it;
 4. the recent exchanges, verbatim, as alternating messages;
