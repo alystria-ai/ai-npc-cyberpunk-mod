@@ -983,6 +983,7 @@ return {
     ["Show only the models whose name starts with this letter."] = "이 글자로 시작하는 이름의 모델만 표시합니다.",
     ["Starts with"] = "첫 글자",
     ["The Companion Manager needs Native Settings UI (Nexus Mods)"] = "동료 관리에는 Native Settings UI(Nexus Mods)가 필요합니다",
+    ["Open AI NPC Cyberpunk Mod in the Mods list."] = "모드 목록에서 AI NPC Cyberpunk Mod를 여세요.",
     ["The settings could not be saved. Nothing was changed."] = "설정을 저장하지 못했습니다. 아무것도 변경되지 않았습니다.",
     ["You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited)."] = "오늘의 {limit}회 대화를 모두 사용했습니다. 한도는 내일 초기화됩니다. 지금 계속하려면 Mistral(무료 키 사용, 하루 약 5,000회) 또는 Local AI(한도 없음)를 선택하세요.",
     ["Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the Convai free tier each remark uses one of the day’s turns; remarks never take more than a tenth of them."] = "Johnny가 알고 있는 사람을 만나거나, 임무를 끝내거나, 로맨스가 진전되면 Johnny가 스스로 뭔가 말합니다. 머릿속의 Johnny가 필요합니다.\n\n드물게: 한 시간에 최대 두 번. 보통: 한 시간에 최대 여섯 번이며, 5분보다 촘촘하지 않습니다.\n\nConvai 무료 요금제에서는 발언마다 오늘의 회수를 하나씩 씁니다. 발언이 쓰는 회수는 전체의 10분의 1을 넘지 않습니다.",
