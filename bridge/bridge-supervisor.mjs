@@ -9,7 +9,7 @@
 // It never kills a process it did not start. The bridge keeps its existing
 // protocol: the ready line on stdout and PID-addressed bridge-control.json.
 import {spawn as spawnProcess, execFile} from 'node:child_process';
-import {appendFileSync, closeSync, constants, fstatSync, ftruncateSync, openSync, readSync,
+import {appendFileSync, closeSync, constants, fstatSync, ftruncateSync, openSync, readFileSync, readSync,
   renameSync, statSync, writeSync} from 'node:fs';
 import {mkdir, readFile, stat, writeFile} from 'node:fs/promises';
 import {randomUUID} from 'node:crypto';
@@ -483,6 +483,7 @@ export class BridgeSupervisor {
     if (!this.status) return Promise.resolve();
     this.lastStatusWrite = this.now();
     this.statusWriting = (this.statusWriting || Promise.resolve()).then(() => {
+      if (this.nextSessionOwnsStatus()) return;
       const value = {version: 1, state: this.status.state, code: this.status.code, since: this.status.since,
         ...(this.status.reason ? {reason: this.status.reason} : {}), updated: this.now(), supervisorPid: process.pid, bridgePid: this.childPid ?? this.adoptedPid ?? null,
         adopted: !!this.adoptedPid, restarts: this.restarts, gamePid: this.gamePid ?? null,
@@ -492,6 +493,21 @@ export class BridgeSupervisor {
         .catch(error => this.log(`The service status could not be published: ${error.message}`));
     });
     return this.statusWriting;
+  }
+
+  // After its game has exited this supervisor still reports its own stop ('stopping' while the bridge drains, then 'stopped'), but the
+  // player may have started the game again meanwhile: the next session's launcher, start script and supervisor write the same file, each
+  // with its own game's PID. Their status (a failure above all, which the game would otherwise never see) is not written over.
+  nextSessionOwnsStatus() {
+    if (!this.gamePid || this.exitReason !== 'game-exited') return false;
+    let other = null;
+    try { other = JSON.parse(readFileSync(this.paths.status, 'utf8'))?.gamePid; } catch { return false; }
+    if (!Number.isSafeInteger(other) || other <= 0 || other === this.gamePid) return false;
+    if (!this.yieldedStatus) {
+      this.yieldedStatus = true;
+      this.log(`The service status now belongs to the next game session (game PID ${other}); this supervisor no longer writes it.`);
+    }
+    return true;
   }
 
   // The heartbeat runs on its own timer so the status stays current during a

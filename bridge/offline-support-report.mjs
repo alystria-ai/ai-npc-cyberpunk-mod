@@ -8,12 +8,12 @@ import {detectModManagers} from './setup-check.mjs';
 
 // Support report with the game closed: "Make support report.bat" in red4ext/plugins/AiNpcCyberpunkMod starts bridge/make-support-report.mjs
 // with the bundled Node, which calls runOfflineReport() here. It is for players who cannot reach Companion Manager > Settings > Help
-// (the mod never loads: a redscript compile failure, Mod Configuration Menu missing, a manager that will not open).
+// (the mod never loads: a redscript compile failure, Native Settings UI missing, a manager that will not open).
 //
 // It writes the same zip the in-game report writes (bridge/support-report.mjs collectReport and buildReport: the same logs, the same
 // redactor, the same privacy rules, the same reports folder), made from the files on disk. No service is running and none is started.
 // On top of that it adds
-//   * a requirement check: which of Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware, Mod Configuration Menu (and
+//   * a requirement check: which of Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware, Native Settings UI (and
 //     ArchiveXL, when present) are installed, with the version where one can be read, and whether this mod's own three pieces (the CET
 //     folder, the redscript folder and the RED4ext plugin) are where they belong;
 //   * the versions in the Scripts and the Runtime release.json;
@@ -263,8 +263,9 @@ export const REQUIREMENTS = Object.freeze([
   {id: 'codeware', name: 'Codeware', files: [['red4ext', 'plugins', 'Codeware', 'Codeware.dll']]},
   {id: 'tweakxl', name: 'TweakXL', files: [['red4ext', 'plugins', 'TweakXL', 'TweakXL.dll']]},
   {id: 'audioware', name: 'Audioware', files: [['red4ext', 'plugins', 'audioware', 'audioware.dll']]},
-  {id: 'mcm', name: 'Mod Configuration Menu', files: [[...CET_MODS, 'ModConfigurationMenuAPI', 'init.lua']],
-    folders: [['r6', 'scripts', 'ModConfigurationMenu']]},
+  // The Companion Manager is a tab of Native Settings UI's Mods screen. Mod Configuration Menu is not a requirement and is not checked:
+  // with it installed the tab is listed in its menu, and without it nothing is missing.
+  {id: 'nsui', name: 'Native Settings UI', files: [[...CET_MODS, 'nativeSettings', 'init.lua']]},
   {id: 'archivexl', name: 'ArchiveXL', optional: true, files: [['red4ext', 'plugins', 'ArchiveXL', 'ArchiveXL.dll']]},
 ]);
 
@@ -298,10 +299,10 @@ async function readVersions(layout, logs) {
   for (const id of ['codeware', 'tweakxl', 'audioware', 'archivexl']) {
     found[id] = {version: fromRed4ext.plugins.get(REQUIREMENTS.find(item => item.id === id).name.toLowerCase()) ?? null, source: 'RED4ext log of the last game start'};
   }
-  // MCM states its version in one line of its API module.
-  const core = await layout.find([...CET_MODS, 'ModConfigurationMenuAPI', 'modules', 'core.lua'], 'file');
-  const text = core ? (await headOf(core.path, 16384)) : '';
-  found.mcm = {version: clip(/PUBLIC_VERSION\s*=\s*["']([^"']+)["']/.exec(text)?.[1] ?? null, 30), source: 'Mod Configuration Menu files'};
+  // Native Settings UI states its version in one line of its init.lua ("version = 1.96," in its main table).
+  const init = await layout.find([...CET_MODS, 'nativeSettings', 'init.lua'], 'file');
+  const text = init ? (await headOf(init.path, 16384)) : '';
+  found.nsui = {version: clip(/^[ \t]*version[ \t]*=[ \t]*([0-9][0-9.]*)/m.exec(text)?.[1] ?? null, 30), source: 'Native Settings UI files'};
   // redscript's compiler (scc.exe) prints no version in any file this tool may read.
   found.redscript = {version: null, source: null};
   return found;
@@ -560,7 +561,7 @@ export async function runOfflineReport({appDirectory, argv = [], env = process.e
         mo2: layout.mo2 ? {found: true, profile: clip(layout.mo2.profile, 60), modsSearched: layout.mo2.modCount, enabledModsOnly: layout.mo2.enabledOnly,
           overwriteFound: layout.mo2.overwrite} : {found: false},
         dataFolder: {path: layout.stateDirectory, exists: layout.stateExists},
-        versionsFrom: 'the CET and RED4ext logs of the last game start, and the Mod Configuration Menu files',
+        versionsFrom: 'the CET and RED4ext logs of the last game start, and the Native Settings UI files',
       },
       requirements: rows,
       modFiles: files,

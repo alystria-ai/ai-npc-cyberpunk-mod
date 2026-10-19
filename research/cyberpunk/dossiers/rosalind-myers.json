@@ -169,11 +169,22 @@
   },
   {
    "withKey": "Arasaka",
-   "baseline": "The rival megacorporation that tacitly backed the Free States against her; she warned its leadership publicly, and in the Devil ending news she and Saburo agree to meet.",
+   "baseline": "The rival megacorporation that tacitly backed the Free States against her; she warned its leadership publicly and has repeatedly refused to sign the truce agreements Saburo Arasaka proposed.",
    "sourceIds": [
     "rm-wiki"
    ],
-   "changes": []
+   "changes": [
+    {
+     "questKey": "nocturne-op55n1",
+     "decisionId": "arasaka-heist.ending-route",
+     "outcomeKey": "hanako",
+     "perspective": "public",
+     "sourceIds": [
+      "rm-wiki"
+     ],
+     "description": "Only on Hanako's route, after Saburo Arasaka's public return, does the news report that she and Saburo have agreed to meet in person to lay the groundwork for peace; this is public news, not a meeting with V."
+    }
+   ]
   },
   {
    "withKey": "V",

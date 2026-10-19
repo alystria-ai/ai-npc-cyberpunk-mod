@@ -1,10 +1,10 @@
 -- Setup check (docs/MANAGER_UI.md, "Setup check"): what the game can see of this mod's installation, and what the conversation
 -- service found (runtime/setup-check.json, written by bridge/setup-check.mjs), as one line per check with a one-line fix.
--- Shown first on the Help page (mod/mcm.lua), as one notice at the first load when something critical is wrong, and, without Mod
--- Configuration Menu (so without the Help page), as one line in the CET console and probe.log plus that notice.
+-- Shown first on the Help page (mod/manager-ui.lua), as one notice at the first load when something critical is wrong, and, without
+-- Native Settings UI (so without the Help page), as one line in the CET console and probe.log plus that notice.
 --
 -- Game side (works with no service): the mod's own data files, the game and Cyber Engine Tweaks versions, RED4ext, redscript (this
--- mod's scripts), Codeware, TweakXL, Audioware, Mod Configuration Menu, and the service's status (service-status.lua).
+-- mod's scripts), Codeware, TweakXL, Audioware, Native Settings UI, and the service's status (service-status.lua).
 -- This mod's scripts compile without Codeware and Audioware (a compile error would disable every redscript mod), so loaded scripts
 -- no longer prove them: PlayerPuppet:ConvaiRequirements (Requirements.reds) names what they were compiled with, and a player
 -- without that method has scripts that did not compile or older scripts (told apart by ConvaiPhoneIsOpen, which they have).
@@ -13,7 +13,7 @@
 -- mod manager.
 --
 -- Cost: run() opens five small files and asks CET whether a few classes exist, a few milliseconds. It runs once FIRST_DELAY_S after
--- the first world is ready and once each time the Help page opens, never per frame. tick() is called from mcm.lua's quarter-second
+-- the first world is ready and once each time the Help page opens, never per frame. tick() is called from manager-ui.lua's quarter-second
 -- slow update: a few comparisons, plus one small read a second for at most FOLLOW_S while a request waits for the service.
 -- Nothing here touches native game state beyond read-only getters.
 if type(convaiSetupCheck) == 'table' and convaiSetupCheck.version == 1 then return convaiSetupCheck end
@@ -34,18 +34,17 @@ local INCOMPLETE = {['install-incomplete'] = true, ['bridge-missing'] = true, ['
 -- The order of the game-side lines on the page and in the notice's choice (the first critical problem is the one announced). RED4ext
 -- comes first: it is a Problem only when nothing it loads answers (this mod's native plugin, which does not depend on the script
 -- compile, and the probes of Codeware, TweakXL and Audioware), and without it Codeware's scripts never reach the compile, which alone
--- fails it (Audioware and Mod Configuration Menu import Codeware). This mod's scripts come next: when they did not load (a compile
--- error anywhere disables every redscript mod), nothing below can be judged from them and the log, not a missing framework, is the
--- thing to read.
-local CRITICAL = {'red4ext', 'redscript', 'codeware', 'audioware', 'tweakxl', 'mcm', 'files', 'service', 'versions', 'packs', 'internet'}
--- The requirements one first-load notice names together (Mod Configuration Menu has its own notice: its name is long and the notice
+-- fails it (Audioware imports Codeware). This mod's scripts come next: when they did not load (a compile error anywhere disables every
+-- redscript mod), nothing below can be judged from them and the log, not a missing framework, is the thing to read.
+local CRITICAL = {'red4ext', 'redscript', 'codeware', 'audioware', 'tweakxl', 'nsui', 'files', 'service', 'versions', 'packs', 'internet'}
+-- The requirements one first-load notice names together (Native Settings UI has its own notice: its name is long and the notice
 -- fits two lines), and at most this many names in one notice.
 local REQUIREMENT_IDS = {red4ext = true, codeware = true, audioware = true, tweakxl = true}
 local MAX_NAMES = 4
 -- Every game-side check, in the order the reports list them.
-local GAME_IDS = {'service', 'files', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'tweakxl', 'audioware', 'mcm'}
-local MCM_CONSOLE = 'AI NPC Cyberpunk Mod: Mod Configuration Menu is missing or too old, so the Companion Manager cannot open. '
-    .. 'Install Mod Configuration Menu 0.10.3 or newer from Nexus Mods, then restart the game.'
+local GAME_IDS = {'service', 'files', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'tweakxl', 'audioware', 'nsui'}
+local NSUI_CONSOLE = 'AI NPC Cyberpunk Mod: Native Settings UI is missing or too old, so the Companion Manager cannot open. '
+    .. 'Install Native Settings UI 1.96 or newer from Nexus Mods (https://www.nexusmods.com/cyberpunk2077/mods/3518), then restart the game.'
 -- The first-load lines for the CET console and probe.log, in English like the one above (a report is read in English).
 local SCRIPTS_CONSOLE = 'AI NPC Cyberpunk Mod: this mod\'s scripts did not load. Open r6/logs/redscript_rCURRENT.log. '
     .. 'If the error names another mod, that mod is the problem. '
@@ -162,9 +161,18 @@ local function frameworks()
         end
     end
     found.native = try(function() return type(convaiNative) == 'table' and convaiNative.present == true end) == true
-    local api = try(function() return GetMod('ModConfigurationMenuAPI') end)
-    found.mcmPresent = api ~= nil
-    found.mcm = type(api) == 'table' and api.apiVersion == 2 and api.providers ~= nil
+    -- Native Settings UI (CET mod "nativeSettings"): the Companion Manager is a tab of its Mods screen. Mod Configuration Menu is not
+    -- looked for: with it installed the tab is listed in its menu, which is not a problem.
+    local nsui = try(function() return GetMod('nativeSettings') or GetMod('NativeSettings') end)
+    found.nsuiPresent = type(nsui) == 'table'
+    found.nsui = found.nsuiPresent and type(nsui.data) == 'table'
+    if found.nsui then
+        for _, name in ipairs({'addTab', 'addSubcategory', 'removeSubcategory', 'removeOption', 'addSwitch', 'addRangeInt',
+            'addSelectorString', 'addButton', 'setOption', 'registerRestoreDefaultsCallback'}) do
+            if type(nsui[name]) ~= 'function' then found.nsui = false end
+        end
+    end
+    found.nsuiVersion = found.nsuiPresent and text(try(function() return tostring(nsui.version) end), 20) or nil
     return found
 end
 
@@ -259,14 +267,14 @@ function M.run(now)
     -- RED4ext loads Codeware, TweakXL, Audioware and this mod's native plugin; any one of them that answers proves it, and so do
     -- the scripts of 0.2.1 (they could not load without it) and scripts that were compiled against Codeware or Audioware. When none
     -- answers it is not loaded, also when this mod's scripts did not load: this mod's native plugin does not depend on the script
-    -- compile, and a game without RED4ext cannot compile Audioware's or Mod Configuration Menu's scripts (the Codeware they import is
-    -- never added), so RED4ext is then the cause to name, not a mod the redscript log lists.
+    -- compile, and a game without RED4ext cannot compile Audioware's scripts (the Codeware they import is never added), so RED4ext is
+    -- then the cause to name, not a mod the redscript log lists.
     local red4ext = found.native or found.codeware or found.tweakxl or found.audioware
         or (words ~= nil and (words.codeware or words.audioware) == true) or (scripts == true and words == nil)
     if red4ext then checks.red4ext = {state = 'ok', code = 'loaded'}
     else checks.red4ext = {state = 'problem', code = 'missing'} end
-    if found.mcm then checks.mcm = {state = 'ok', code = 'found'}
-    else checks.mcm = {state = 'problem', code = found.mcmPresent and 'old' or 'missing'} end
+    if found.nsui then checks.nsui = {state = 'ok', code = 'found', version = found.nsuiVersion}
+    else checks.nsui = {state = 'problem', code = found.nsuiPresent and 'old' or 'missing'} end
     game = {checks = checks, at = now}
     -- The service's answer, when it is of this game session.
     local answer = readJson(RESULT)
@@ -337,9 +345,9 @@ function M.serviceLine()
     return nil
 end
 
-local GAME_ORDER = {'files', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'tweakxl', 'audioware', 'mcm'}
+local GAME_ORDER = {'files', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'tweakxl', 'audioware', 'nsui'}
 local PRODUCT = {cet = 'Cyber Engine Tweaks', red4ext = 'RED4ext', redscript = 'redscript', codeware = 'Codeware', tweakxl = 'TweakXL',
-    audioware = 'Audioware', mcm = 'Mod Configuration Menu'}
+    audioware = 'Audioware', nsui = 'Native Settings UI'}
 
 local function gameLine(id, check)
     local label = PRODUCT[id]
@@ -368,6 +376,9 @@ local function gameLine(id, check)
     end
     if id == 'redscript' then
         return line(id, label, 'problem', ui.t('This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware, Audioware or redscript, or a game version other than 2.31, can also cause it.'))
+    end
+    if id == 'nsui' and check.code == 'old' then
+        return line(id, label, 'problem', ui.t('Native Settings UI is too old. Install version 1.96 from Nexus Mods, then restart the game.'))
     end
     if id == 'codeware' and check.code == 'old' then return line(id, label, 'problem', ui.t('Codeware is too old. Update it from Nexus Mods, then restart the game.')) end
     return line(id, label, 'problem', ui.t('{name} is missing. Install it from Nexus Mods, then restart the game.', {name = label}))
@@ -441,7 +452,7 @@ local function bridgeLines(out)
     end
 end
 
--- The Help page's setup lines after the Conversation service row (which mod/mcm.lua builds): {id, label, value, description, state}.
+-- The Help page's setup lines after the Conversation service row (which mod/manager-ui.lua builds): {id, label, value, description, state}.
 -- From the last results only; the first call of a session runs the game-side checks.
 function M.lines()
     if not game then M.run() end
@@ -519,7 +530,7 @@ local function shortText(id, names, old)
         return ui.t('Missing: {names}. Install them and restart the game.', {names = names})
     end
     if id == 'codeware-old' then return ui.t('Codeware is too old. Update it from Nexus Mods, then restart the game.') end
-    if id == 'mcm' then return ui.t('Install Mod Configuration Menu from Nexus Mods to open the Companion Manager.') end
+    if id == 'nsui' then return ui.t('The Companion Manager needs Native Settings UI (Nexus Mods)') end
     if id == 'files' then return ui.t('Some mod files are missing. Extract the Scripts zip again. See Help in Settings.') end
     if id == 'service' then return ui.t('The conversation service did not start. Is the Runtime installed? See Help in Settings.') end
     if id == 'versions' then return ui.t('The Scripts and Runtime versions do not match. Install the same version of both.') end
@@ -552,11 +563,11 @@ end
 
 -- The notice of the first load, once per game session: the first critical problem, one short text of at most two lines (the warning
 -- line's frame, docs/NOTIFICATIONS.md); the others are in the log and on the Help page. nil when nothing critical is wrong. The order
--- of CRITICAL puts everything that stops the mod, and Mod Configuration Menu, before the checks that need the Help page, so the text
+-- of CRITICAL puts everything that stops the mod, and Native Settings UI, before the checks that need the Help page, so the text
 -- never sends the player to a page they cannot open.
 -- RED4ext that is not loaded comes first (it is also why scripts that need Codeware cannot compile). Otherwise scripts that did not load
 -- come first and alone: no framework is blamed while the compile error is unread. Missing requirements (RED4ext, Codeware, Audioware,
--- TweakXL) are one notice naming them all, up to MAX_NAMES; Mod Configuration Menu has its own.
+-- TweakXL) are one notice naming them all, up to MAX_NAMES; Native Settings UI has its own.
 local function firstLoad()
     local problems = M.problems()
     if #problems == 0 then
@@ -569,7 +580,7 @@ local function firstLoad()
     for _, id in ipairs(problems) do
         local check = game.checks[id]
         if id == 'redscript' then say(SCRIPTS_CONSOLE)
-        elseif id == 'mcm' then say(MCM_CONSOLE)
+        elseif id == 'nsui' then say(NSUI_CONSOLE)
         elseif id == 'codeware' and check and check.code == 'old' then say(OLD_CONSOLE)
         elseif REQUIREMENT_IDS[id] then
             say('AI NPC Cyberpunk Mod: ' .. (PRODUCT[id] or id) .. ' is missing. Install it from Nexus Mods, then restart the game.')
@@ -625,7 +636,7 @@ end
 
 local held   -- the first-load notice, computed when due and kept until gameplay can show it
 
--- Call from mcm.lua's slow update (every quarter second, with or without Mod Configuration Menu). inSession: V is in a loaded game
+-- Call from manager-ui.lua's slow update (every quarter second, with or without Native Settings UI). inSession: V is in a loaded game
 -- (the caller's player). Returns the first-load notice once, in gameplay, else nil.
 function M.tick(worldReady, inSession)
     local now = os.time()

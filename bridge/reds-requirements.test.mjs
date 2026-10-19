@@ -25,7 +25,7 @@ test('every requirement present: no problem, no notice, nothing on the console, 
   installFiles(); serviceRunning()
   env.requirements = '${ALL}'; applyEnv()
   check.run()
-  assert(ids() == 'files=ok game=ok cet=ok red4ext=ok redscript=ok codeware=ok tweakxl=ok audioware=ok mcm=ok', ids())
+  assert(ids() == 'files=ok game=ok cet=ok red4ext=ok redscript=ok codeware=ok tweakxl=ok audioware=ok nsui=ok', ids())
   assert(check.problemCount() == 0 and #check.problems() == 0)
   assert(lineOf('redscript').description == 'Loaded.' and lineOf('codeware').description == 'Version 1.20.5.')
   for _, word in ipairs({'codeware', 'codeware-ui', 'codeware-textinput', 'audioware'}) do assert(check.requirement(word) == true, word) end
@@ -88,17 +88,17 @@ test('Codeware and Audioware both missing is one notice naming both, and the con
   assert(check.codewareNotice() == 'Codeware is missing. Install it from Nexus Mods, then restart the game.')
 `));
 
-test('requirements missing together: up to four names, Mod Configuration Menu left to its own notice, and a mix of missing and old', () => run(String.raw`
+test('requirements missing together: up to four names, Native Settings UI left to its own notice, and a mix of missing and old', () => run(String.raw`
   ${firstLoad}
   installFiles(); serviceRunning()
-  -- RED4ext, Codeware, Audioware and TweakXL all absent (nothing answers), and Mod Configuration Menu too
-  env.codeware, env.tweakxl, env.audioware, env.native, env.mcm, env.requirements = nil, nil, nil, false, 'none', ''
+  -- RED4ext, Codeware, Audioware and TweakXL all absent (nothing answers), and Native Settings UI too
+  env.codeware, env.tweakxl, env.audioware, env.native, env.nsui, env.requirements = nil, nil, nil, false, 'none', ''
   applyEnv(); check.run()
-  assert(table.concat(check.problems(), ',') == 'red4ext,codeware,audioware,tweakxl,mcm', table.concat(check.problems(), ','))
+  assert(table.concat(check.problems(), ',') == 'red4ext,codeware,audioware,tweakxl,nsui', table.concat(check.problems(), ','))
   local shown = notice()
   assert(shown == 'Missing: RED4ext, Codeware, Audioware, TweakXL. Install them and restart the game.', tostring(shown))
-  assert(not shown:find('Mod Configuration Menu', 1, true))
-  assert(#console == 5 and console[5]:find('Mod Configuration Menu is missing or too old', 1, true), 'one line each, Mod Configuration Menu among them')
+  assert(not shown:find('Native Settings UI', 1, true))
+  assert(#console == 5 and console[5]:find('Native Settings UI is missing or too old', 1, true), 'one line each, Native Settings UI among them')
 `));
 
 test('Codeware too old: its text input part missing is a Problem with the update text, alone or with other requirements', () => run(String.raw`
@@ -163,16 +163,16 @@ test('scripts that did not compile come first even when every other requirement 
   ${firstLoad}
   installFiles(); serviceRunning()
   files['phone-contacts.json'] = nil
-  env.mcm, env.scripts, env.requirements = 'none', false, nil
+  env.nsui, env.scripts, env.requirements = 'none', false, nil
   env.codeware, env.audioware, env.tweakxl, env.native = nil, nil, nil, true
   applyEnv(); check.run()
-  assert(table.concat(check.problems(), ',') == 'redscript,mcm,files', table.concat(check.problems(), ','))
+  assert(table.concat(check.problems(), ',') == 'redscript,nsui,files', table.concat(check.problems(), ','))
   assert(notice() == 'Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load.')
 `));
 
 // Without RED4ext nothing it loads answers (this mod's native plugin, Codeware, TweakXL, Audioware), and Codeware's scripts never reach
-// the compile, so Audioware's and Mod Configuration Menu's imports of it fail the whole compile and the redscript log lists those two
-// mods. The cause to name is RED4ext, not a mod the log lists.
+// the compile, so Audioware's import of it fails the whole compile and the redscript log lists Audioware. The cause to name is RED4ext,
+// not a mod the log lists.
 test('RED4ext not loaded and scripts that did not compile: RED4ext is named first, and the log advice is still on the console', () => run(String.raw`
   ${firstLoad}
   installFiles(); serviceRunning()
@@ -331,10 +331,10 @@ test('a hook installer that raises no longer stops onInit: the menu registration
   modules['subtitles.lua'].install = function() error('Override: method ConvaiShowReply not found in PlayerPuppet') end
   modules['phone-chat-style.lua'].install = function() error('ObserveAfter: no class ConvaiPhoneChatInput') end
   modules['phone-layout.lua'].install = function() error('ObserveAfter: no class PhoneContactItemVirtualController') end
-  modules['mcm.lua'].install = function() installed.mcm = true end
+  modules['nsui.lua'].install = function() installed.nsui = true end
   modules['loot-observer.lua'].install = function() error('hook failed') end
   events.onInit()
-  assert(installed.mcm == true, 'the Mod Configuration Menu registration after the failing installers ran')
+  assert(installed.nsui == true, 'the Native Settings UI registration after the failing installers ran')
   assert(hooks.OnDetach ~= nil and hooks.OnGameRestored ~= nil, 'the session hooks after them were installed')
   local function count(text)
     local found = 0

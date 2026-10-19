@@ -26,14 +26,14 @@ const REQUIRED_FILES = [
   'bin/x64/Cyberpunk2077.exe', 'bin/x64/winmm.dll', 'bin/x64/plugins/cyber_engine_tweaks.asi', 'red4ext/RED4ext.dll', 'engine/tools/scc.exe',
   'red4ext/plugins/Codeware/Codeware.dll', 'red4ext/plugins/TweakXL/TweakXL.dll', 'red4ext/plugins/audioware/audioware.dll',
   'red4ext/plugins/ArchiveXL/ArchiveXL.dll',
-  'bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/init.lua', 'r6/scripts/ModConfigurationMenu/UI/MCMContent.reds',
+  'bin/x64/plugins/cyber_engine_tweaks/mods/nativeSettings/init.lua',
 ];
 const MOD = 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod';
 const PLUGIN = 'red4ext/plugins/AiNpcCyberpunkMod';
 const OURS = [`${MOD}/init.lua`, `${MOD}/manager.lua`, `${PLUGIN}/CyberpunkConvai.dll`, `${PLUGIN}/launcher.ini`, `${PLUGIN}/launcher.log`,
   `${PLUGIN}/app/node/node.exe`, `${PLUGIN}/app/bridge/convai-bridge.mjs`, `${PLUGIN}/app/bridge/make-support-report.mjs`, 'r6/scripts/CyberpunkConvai/Manager.reds'];
 
-const CORE_LUA = '-- Mod Configuration Menu\nlocal PUBLIC_VERSION = "0.10.3"\nreturn {}\n';
+const NSUI_LUA = 'local nativeSettings = {\n    data = {},\n    minCETVersion = 1.25,\n    version = 1.96,\n}\nreturn nativeSettings\n';
 const RED4EXT_LOG = [
   '[2026-10-19 04:31:33.208] [info    ] [ 26456] [RED4ext] RED4ext (v1.30.0) is initializing...',
   '[2026-10-19 04:31:33.209] [info    ] [ 26456] [RED4ext] Product version: 2.31',
@@ -63,7 +63,7 @@ async function healthyInstall({without = [], logs = true, extra = {}} = {}) {
   for (const file of [...REQUIRED_FILES, ...OURS]) await put(file);
   await put(`${MOD}/release.json`, JSON.stringify({product: 'AI-NPC-Cyberpunk-Mod', package: 'scripts', version: '0.2.2'}));
   await put(`${PLUGIN}/app/release.json`, JSON.stringify({product: 'AI-NPC-Cyberpunk-Mod', package: 'runtime', version: '0.2.2'}));
-  await put('bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/modules/core.lua', CORE_LUA);
+  await put('bin/x64/plugins/cyber_engine_tweaks/mods/nativeSettings/init.lua', NSUI_LUA);
   if (logs) {
     await put('bin/x64/plugins/cyber_engine_tweaks/cyber_engine_tweaks.log', CET_LOG);
     await put('bin/x64/plugins/cyber_engine_tweaks/scripting.log', `[info] script line\n`);
@@ -110,7 +110,7 @@ test('a healthy install gives a report with every requirement present, versions 
     assert(summary.requirements.every(item => item.state === 'present'), JSON.stringify(summary.requirements));
     const versions = Object.fromEntries(summary.requirements.map(item => [item.id, item.version]));
     assert.deepEqual(versions, {cet: 'v1.37.1', red4ext: '1.30.0', redscript: null, codeware: '1.20.5', tweakxl: '1.11.4', audioware: '1.9.9-rc.0',
-      mcm: '0.10.3', archivexl: '1.27.4'});
+      nsui: '1.96', archivexl: '1.27.4'});
     assert.equal(summary.modFiles.scripts.state, 'present');
     assert.equal(summary.modFiles.redscript.state, 'present');
     assert.equal(summary.modFiles.plugin.state, 'present');
@@ -137,13 +137,13 @@ test('missing logs are not an error: the report is made and says which logs it d
     // Versions that only a log can give are left empty; the files themselves are still found.
     assert.equal(row(summary, 'cet').state, 'present');
     assert.equal(row(summary, 'cet').version, null);
-    assert.equal(row(summary, 'mcm').version, '0.10.3', 'the MCM version is read from its own file');
+    assert.equal(row(summary, 'nsui').version, '1.96', 'the Native Settings UI version is read from its own file');
     assert.equal(summary.problems, undefined);
   } finally { await f.cleanup(); }
 });
 
 test('every missing requirement and every missing piece of this mod gets its own PROBLEM line', async () => {
-  const f = await healthyInstall({without: ['red4ext/plugins/Codeware', 'red4ext/plugins/TweakXL', 'bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI',
+  const f = await healthyInstall({without: ['red4ext/plugins/Codeware', 'red4ext/plugins/TweakXL', 'bin/x64/plugins/cyber_engine_tweaks/mods/nativeSettings',
     'engine/tools/scc.exe', 'bin/x64/winmm.dll', 'red4ext/plugins/ArchiveXL', MOD, 'r6/scripts/CyberpunkConvai', `${PLUGIN}/CyberpunkConvai.dll`]});
   try {
     const result = await f.run();
@@ -153,7 +153,7 @@ test('every missing requirement and every missing piece of this mod gets its own
     const text = summary.problems.join('\n');
     assert.match(text, /Codeware is missing: red4ext\\plugins\\Codeware\\Codeware\.dll was not found/);
     assert.match(text, /TweakXL is missing: red4ext\\plugins\\TweakXL\\TweakXL\.dll was not found/);
-    assert.match(text, /Mod Configuration Menu is incomplete: bin\\x64\\plugins\\cyber_engine_tweaks\\mods\\ModConfigurationMenuAPI\\init\.lua was not found/);
+    assert.match(text, /Native Settings UI is missing: bin\\x64\\plugins\\cyber_engine_tweaks\\mods\\nativeSettings\\init\.lua was not found/);
     assert.match(text, /redscript is missing: engine\\tools\\scc\.exe was not found/);
     assert.match(text, /RED4ext is incomplete: bin\\x64\\winmm\.dll was not found/);
     assert.match(text, /The mod's CET folder is missing: bin\\x64\\plugins\\cyber_engine_tweaks\\mods\\AiNpcCyberpunkMod\\init\.lua was not found/);
@@ -162,7 +162,7 @@ test('every missing requirement and every missing piece of this mod gets its own
     assert(!/ArchiveXL/.test(text), 'ArchiveXL is optional: its absence is not a problem');
     assert.equal(row(summary, 'archivexl').state, 'absent');
     assert.equal(row(summary, 'codeware').state, 'missing');
-    assert.equal(row(summary, 'mcm').state, 'incomplete', 'the reds half of MCM is still there');
+    assert.equal(row(summary, 'nsui').state, 'missing');
     assert.equal(summary.problems.at(-1), MO2_HINT, 'a missing piece ends with the Mod Organizer 2 hint');
     assert.match(readmeOf(entries), /PROBLEM FOUND:\n {2}RED4ext is incomplete: bin\\x64\\winmm\.dll was not found\. Install it again\.\n {2}redscript is missing/);
     // A found game folder means the player is told only where the report is.
@@ -256,14 +256,13 @@ const MO2_MODS = {
   Codeware: {'red4ext/plugins/Codeware/Codeware.dll': ''},
   'TweakXL (off)': {'red4ext/plugins/TweakXL/TweakXL.dll': ''},
   Audioware: {'red4ext/plugins/audioware/audioware.dll': ''},
-  'Mod Configuration Menu': {'bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/init.lua': '', 'bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/modules/core.lua': CORE_LUA,
-    'r6/scripts/ModConfigurationMenu/UI/MCMContent.reds': ''},
+  'Native Settings UI': {'bin/x64/plugins/cyber_engine_tweaks/mods/nativeSettings/init.lua': NSUI_LUA},
 };
 const MO2_GAME_FILES = {'bin/x64/winmm.dll': '', 'bin/x64/plugins/cyber_engine_tweaks.asi': '', 'red4ext/RED4ext.dll': '', 'engine/tools/scc.exe': ''};
 
 test('Mod Organizer 2 layout: the game comes from ModOrganizer.ini, enabled mod folders and Overwrite are searched, a disabled mod is not', async () => {
   const f = await mo2Install({
-    modlist: '+AI NPC Scripts\r\n+AI NPC Runtime\r\n+Codeware\r\n-TweakXL (off)\r\n+Audioware\r\n+Mod Configuration Menu\r\n*DLC\r\n',
+    modlist: '+AI NPC Scripts\r\n+AI NPC Runtime\r\n+Codeware\r\n-TweakXL (off)\r\n+Audioware\r\n+Native Settings UI\r\n*DLC\r\n',
     files: MO2_MODS,
     // The game wrote its logs into Overwrite, the mod's own log too (a partial copy of the mod folder, with no init.lua in it).
     overwrite: {'r6/logs/redscript_rCURRENT.log': REDSCRIPT_OK, 'red4ext/logs/red4ext-2026-10-19-04-31-33.log': RED4EXT_LOG,
@@ -278,7 +277,7 @@ test('Mod Organizer 2 layout: the game comes from ModOrganizer.ini, enabled mod 
     assert.equal(layout.mo2.enabledOnly, true);
     // The order the game sees them in: Overwrite, the enabled mods as modlist.txt lists them, then the game folder.
     assert.deepEqual(layout.roots.map(root => root.label), ['MO2 Overwrite', 'MO2 mod: AI NPC Scripts', 'MO2 mod: AI NPC Runtime',
-      'MO2 mod: Codeware', 'MO2 mod: Audioware', 'MO2 mod: Mod Configuration Menu', 'game folder']);
+      'MO2 mod: Codeware', 'MO2 mod: Audioware', 'MO2 mod: Native Settings UI', 'game folder']);
     assert.equal(layout.modRoot, join(f.mods, 'AI NPC Scripts', ...MOD.split('/')));
     assert.equal(layout.plugin, join(f.mods, 'AI NPC Runtime', ...PLUGIN.split('/')));
     const logs = await locateOfflineLogs(layout);
@@ -291,7 +290,7 @@ test('Mod Organizer 2 layout: the game comes from ModOrganizer.ini, enabled mod 
     assert(entries.some(entry => entry.name.startsWith('logs/') && entry.text.includes('mod log line from Overwrite')), "the mod's own log from Overwrite is in the report");
     assert.deepEqual(row(summary, 'codeware').foundIn, ['MO2 mod: Codeware']);
     assert.equal(row(summary, 'codeware').version, '1.20.5', 'the version comes from the RED4ext log in Overwrite');
-    assert.equal(row(summary, 'mcm').version, '0.10.3');
+    assert.equal(row(summary, 'nsui').version, '1.96');
     assert.equal(row(summary, 'tweakxl').state, 'missing', 'a disabled mod does not count');
     assert.match(summary.problems.join('\n'), /TweakXL is missing/);
     assert.equal(summary.problems.filter(line => /is missing|is incomplete/.test(line)).length, 1, summary.problems.join('\n'));
@@ -511,7 +510,7 @@ test('a global Mod Organizer 2 instance: ModOrganizer.ini in %LOCALAPPDATA%\\Mod
     await w.put(join(local, 'ModOrganizer', 'Another game', 'ModOrganizer.ini'), `[General]\r\ngamePath=${qtByteArray(w.at('elsewhere'))}\r\n`);
     await w.put(join(instance, 'ModOrganizer.ini'), `[General]\r\ngameName=Cyberpunk 2077\r\ngamePath=${qtByteArray(game)}\r\nselected_profile=${qtByteArray(profile)}\r\n`
       + `\r\n[Settings]\r\nbase_directory=${base.replace(/\\/g, '/')}\r\n`);
-    await w.put(join(base, 'profiles', profile, 'modlist.txt'), '+AI NPC Scripts\r\n+AI NPC Runtime\r\n+Codeware\r\n+TweakXL (off)\r\n+Audioware\r\n+Mod Configuration Menu\r\n');
+    await w.put(join(base, 'profiles', profile, 'modlist.txt'), '+AI NPC Scripts\r\n+AI NPC Runtime\r\n+Codeware\r\n+TweakXL (off)\r\n+Audioware\r\n+Native Settings UI\r\n');
     for (const [mod, list] of Object.entries(MO2_MODS)) for (const [relative, text] of Object.entries(list)) await w.put(join(mods, mod, ...relative.split('/')), text ?? '');
     await w.put(join(base, 'overwrite', 'r6', 'logs', 'redscript_rCURRENT.log'), REDSCRIPT_OK);
     const app = join(mods, 'AI NPC Runtime', ...PLUGIN.split('/'), 'app');
@@ -533,7 +532,7 @@ test('a global Mod Organizer 2 instance: ModOrganizer.ini in %LOCALAPPDATA%\\Mod
 });
 
 test('Mod Organizer 2: a leftover copy of the mod and an old log in the game folder lose to the files the game sees, and the newest log wins', async () => {
-  const f = await mo2Install({modlist: '+AI NPC Scripts\r\n+AI NPC Runtime\r\n+Codeware\r\n+TweakXL (off)\r\n+Audioware\r\n+Mod Configuration Menu\r\n', files: MO2_MODS,
+  const f = await mo2Install({modlist: '+AI NPC Scripts\r\n+AI NPC Runtime\r\n+Codeware\r\n+TweakXL (off)\r\n+Audioware\r\n+Native Settings UI\r\n', files: MO2_MODS,
     overwrite: {'r6/logs/redscript_rCURRENT.log': REDSCRIPT_OK}});
   try {
     for (const [relative, text] of Object.entries(MO2_GAME_FILES)) await f.put(join(f.game, ...relative.split('/')), text);
@@ -608,7 +607,9 @@ test('Make support report.bat starts the bundled Node on the thin wrapper, keeps
 });
 
 test('the requirement list is the one on the Nexus page, plus optional ArchiveXL', () => {
-  assert.deepEqual(REQUIREMENTS.filter(item => !item.optional).map(item => item.name), ['Cyber Engine Tweaks', 'RED4ext', 'redscript', 'Codeware', 'TweakXL', 'Audioware', 'Mod Configuration Menu']);
+  assert.deepEqual(REQUIREMENTS.filter(item => !item.optional).map(item => item.name), ['Cyber Engine Tweaks', 'RED4ext', 'redscript', 'Codeware', 'TweakXL', 'Audioware', 'Native Settings UI']);
+  // Mod Configuration Menu is no requirement: an install without it has no problem line, and one with it is not asked about it.
+  assert.equal(REQUIREMENTS.some(item => /configuration menu|mcm/i.test(item.id + item.name)), false);
   assert.deepEqual(REQUIREMENTS.filter(item => item.optional).map(item => item.name), ['ArchiveXL']);
 });
 

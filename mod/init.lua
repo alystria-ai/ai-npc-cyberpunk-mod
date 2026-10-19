@@ -33,7 +33,7 @@ local groupChat = dofile('group-chat.lua')
 groupChat.captureReply = speech.transcript
 local manager = dofile('manager.lua')
 convaiNotices.configure(function() return manager.developerMode() end)
-local mcm = dofile('mcm.lua')
+local managerUi = dofile('nsui.lua')
 local phoneLayout = dofile('phone-layout.lua')
 local phoneChatStyle = dofile('phone-chat-style.lua')
 local phoneChat = dofile('phone-chat.lua')
@@ -424,7 +424,15 @@ do
     if f then
         local ok, decoded = pcall(json.decode, f:read('*a')); f:close()
         if ok and type(decoded) == 'table' then profiles = decoded end
-        for _, profile in ipairs(profiles) do supportedProfiles[profile.key] = true end
+        -- The roster carries the bridge's research text (backstory, sources, speaking style, uncertainty notes, native
+        -- intrinsics: about 1.1 MB of the 1.4 MB file) that no game-side code reads. Dropped once here, so the session keeps
+        -- about 0.25 MB of roster tables in the shared Lua heap instead of about 1.3 MB (deliverables/perf/LUA_HEAP.md).
+        local bridgeOnly = {'backstory', 'sources', 'speakingStyleDescription', 'speakingStyleSampleDialogues', 'uncertainty',
+            'nativeIntrinsic'}
+        for _, profile in ipairs(profiles) do
+            supportedProfiles[profile.key] = true
+            if type(profile) == 'table' then for _, field in ipairs(bridgeOnly) do profile[field] = nil end end
+        end
     end
 end
 -- Generic NPC archetypes (docs/NPC_ARCHETYPES.md): talk-only profiles chosen
@@ -483,8 +491,8 @@ convaiNoticeLog = function(message)
     local file = io.open('runtime/mcm.log', 'a')
     if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'), ' ', tostring(message), '\n'); file:close() end
 end
-mcm.configure(manager, companions, dofile('manager-party.lua'), dofile('mcm-entry.lua'), invitations)
-convaiManager = mcm
+managerUi.configure(manager, companions, dofile('manager-party.lua'), invitations)
+convaiManager = managerUi
 local catalog = characterCatalog.build(profiles, archetypes)
 -- The record IDs of a record-cloning mod's copies ("NCA.Character.Judy", characterCatalog.CLONE_PREFIXES): a global table, read by
 -- the spawned-character check below (an NCA follower counts as spawned whatever the dynamic entity system answers for it).
@@ -687,7 +695,7 @@ function convaiJohnnyHeadService()
     end
     return convaiJohnnyHead or nil
 end
--- His standing for the settings page (mod/mcm.lua johnnyStandingRow), read once per draw of that page.
+-- His standing for the settings page (mod/manager-ui.lua johnnyStandingRow), read once per draw of that page.
 function convaiJohnnyStanding()
     local service = convaiJohnnyHeadService()
     return service and service:standing() or nil
@@ -1191,7 +1199,7 @@ local function log(line)
     print('[CyberpunkConvai] ' .. line)
 end
 microphone.log = log
--- A hook installer that raises must not stop onInit: every line after it (the Mod Configuration Menu registration among them) would
+-- A hook installer that raises must not stop onInit: every line after it (the Native Settings UI registration among them) would
 -- never run, and a player whose scripts did not compile (the hooks below name methods those scripts add) would see nothing of this
 -- mod at all. One failure line per installer, once per load. A global, so onInit gains no upvalue.
 convaiGuarded = function(label, fn, ...)
@@ -1221,6 +1229,36 @@ function convaiFaceRequestLog(actor, identity, ok, status)
         if noted and type(text) == 'string' then note = text end
     end
     log('Face request: actor=' .. tostring(identity) .. ' status=' .. tostring(status) .. note)
+end
+-- On-demand Lua heap report (mod/lua-heap-probe.lua writes runtime/lua-heap.json): runs once per 'lua-heap:<nonce>' request in
+-- the developer mailbox (scripts/Request-LuaHeap.ps1), never per frame, and the probe file is not kept loaded. The roots are the
+-- tables this file keeps only as locals; the probe adds the mod's convai* globals. A global, so onUpdate gains no upvalue.
+do
+    local loadedAt = os.time()
+    convaiLuaHeapReport = function(nonce)
+        local loaded, probe = pcall(dofile, 'lua-heap-probe.lua')
+        if not loaded or type(probe) ~= 'table' or type(probe.run) ~= 'function' then
+            log('Lua heap report failed to load: ' .. tostring(probe))
+            return false
+        end
+        local roots = {{'profiles', profiles}, {'catalog', catalog}, {'archetypes', archetypes},
+            {'supportedProfiles', supportedProfiles}, {'companions', companions}, {'manager', manager},
+            {'speech', speech}, {'subtitles', subtitles}, {'microphone', microphone}, {'groupChat', groupChat},
+            {'phoneChat', phoneChat}, {'questContext', questContext}, {'battles', battles}, {'tactics', tactics},
+            {'relationshipState', relationshipState}, {'worldKnowledge', worldKnowledge}, {'journalHistory', journalHistory},
+            {'movementLog', movementLog}, {'characterCatalog', characterCatalog}, {'invitations', invitations}}
+        local ok, report = pcall(probe.run, {nonce = nonce, roots = roots, environment = _G, loadedAt = loadedAt,
+            sentinel = companions})
+        if not ok or type(report) ~= 'table' then
+            log('Lua heap report failed: ' .. tostring(report))
+            return false
+        end
+        local function mb(kb) return type(kb) == 'number' and string.format('%.1f MB', kb / 1024) or '-' end
+        log('Lua heap: ' .. mb(report.heapBeforeKB) .. ' before, ' .. mb(report.heapAfterKB) .. ' after a full collect ('
+            .. string.format('%.0f ms', report.collectMs or 0) .. '); this mod about ' .. mb(report.modKB) .. '; loads alive '
+            .. tostring(report.loadsAlive or '-') .. ' (runtime/lua-heap.json)')
+        return true
+    end
 end
 -- Names for nameless ordinary NPCs (docs/NPC_NAMES.md, mod/npc-names.lua). One generator serves the scanner and the talk path.
 -- The gate is the rule above: not ours, not protected (named, quest-bound, story record), a resolved ordinary profile (an archetype
@@ -1342,7 +1380,7 @@ do
     local built, value = false, module
     if loaded and type(module) == 'table' and type(module.new) == 'function' then
         built, value = pcall(module.new, {companions = companions,
-            party = function() return mcm.party and mcm.party() or nil end,
+            party = function() return managerUi.party and managerUi.party() or nil end,
             player = function() return Game.GetPlayer() end,
             -- The reply that requested the action is still being written or heard.
             busy = function(requestId, groupId)
@@ -3018,6 +3056,13 @@ local function keyReplyNotice(reply)
     elseif reply.errorCode == 'custom-unreachable' then
         return 'custom-unreachable', ui.t('The custom provider did not answer. Check its address in Settings, or try again.')
     end
+    -- Local AI is chosen and could not start, and nobody took the turn over (no Mistral key, Convai's free turns for today used): its own reason,
+    -- never the Convai limit the player did not choose (bridge/convai-bridge.mjs providerFailureCode).
+    if reply.errorCode == 'local-no-memory' then
+        return 'local-no-memory', ui.t('Not enough free graphics memory to start Local AI. Try a smaller model in Settings.')
+    elseif reply.errorCode == 'local-unavailable' then
+        return 'local-unavailable', ui.t('Local AI could not start. Check Local AI in Settings > Conversation provider.')
+    end
     -- Local AI could not start, so the bridge used Convai: the same line whether it rode on a failed turn or on the first reply.
     if reply.errorCode == 'local-fallback' or reply.keyNotice == 'local-fallback' then
         return 'local-fallback', ui.t('Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.')
@@ -3198,7 +3243,7 @@ local function captureDiagnostic()
 end
 
 local function openManager()
-    local ok, result, reason = pcall(mcm.open)
+    local ok, result, reason = pcall(managerUi.open)
     if ok and result then
         gameplayActions.revoke('menu')
         endFocus(Game.GetPlayer())
@@ -3225,7 +3270,7 @@ local function phoneDrainDue(phoneOpen)
     return true
 end
 local function processPhoneAction(player)
-    local queue = mcm.party and mcm.party()
+    local queue = managerUi.party and managerUi.party()
     if not queue then return end
     -- Reading a request and reserving preparation are safe while Contacts pauses
     -- simulation. Only the shared queue's gameplay flush may create an entity.
@@ -3254,7 +3299,7 @@ local function processPhoneAction(player)
         end
         -- An accepted invitation is not acknowledged: the notice board posts "joined" when the companion
         -- arrives, and what she still waits for ("Preparing Evelyn: waiting for the voice model to load…") is one
-        -- of the loading notice's lines, held until she has spawned (manager-party.lua waiting(), mcm.lua). A refusal is always
+        -- of the loading notice's lines, held until she has spawned (manager-party.lua waiting(), manager-ui.lua). A refusal is always
         -- shown, except a failed preparation: that is queued as the single gameplay notice for the
         -- attempt, so it is not posted again here while the phone is open.
         if accepted or invitationId then return end
@@ -3278,7 +3323,7 @@ end
 -- delivered with the queue's own outcome notice once gameplay resumes, never
 -- while the paused phone could hide and consume it.
 local function updatePhoneInvitationFeedback(player, worldReady)
-    local queue = mcm.party and mcm.party()
+    local queue = managerUi.party and managerUi.party()
     local board = queue and type(queue.board) == 'function' and queue.board() or nil
     if not board then return end
     local note = board.take(worldReady == true)
@@ -3463,7 +3508,7 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     if marking then marking.abandon() end
     companions.abandon(preserveTransit==true)
     if adoption then pcall(adoption.abandon, preserveTransit==true) end
-    mcm.resetSession()
+    managerUi.resetSession()
     speech.abandon()
     subtitles.abandon()
     -- A load, death or detach ends the scene; fast travel keeps the last lines.
@@ -3609,8 +3654,8 @@ registerForEvent('onInit', function()
     convaiGuarded('Phone input hooks', function() dofile('phone-input.lua').install() end)
     convaiGuarded('Phone layout hooks', phoneLayout.install)
     convaiGuarded('Phone chat style hooks', phoneChatStyle.install)
-    local ok, err = pcall(mcm.install)
-    if not ok then log('MCM registration failed: ' .. tostring(err)) end
+    local ok, err = pcall(managerUi.install)
+    if not ok then log('Manager registration failed: ' .. tostring(err)) end
     ObserveAfter('AutoDriveSystem', 'OnAutodriveToggled', function(_, enabled)
         if not worldSuspended and sessionHasState then companions.chauffeurAutodriveToggled(enabled) end
     end)
@@ -3830,9 +3875,9 @@ registerForEvent('onUpdate', function(delta)
         if convaiComposerInput.update then pcall(convaiComposerInput.update)
         elseif localeChanged and convaiComposerInput.refresh then pcall(convaiComposerInput.refresh) end
     end
-    mark('init:mcm')
-    local mcmOk, mcmError = pcall(mcm.update, menuPlayer, worldReady)
-    if not mcmOk then log('MCM update failed: ' .. tostring(mcmError)) end
+    mark('init:manager')
+    local managerOk, managerError = pcall(managerUi.update, menuPlayer, worldReady)
+    if not managerOk then log('Manager update failed: ' .. tostring(managerError)) end
     mark('init:invitations')
     -- One phone-open read per frame, shared by the request drain and the layout and style refreshes (each used to
     -- fetch the player and ask again). A failed read counts as closed, as it did for them.
@@ -3882,8 +3927,10 @@ registerForEvent('onUpdate', function(delta)
             request:close()
             if nonce and #nonce > 0 and nonce ~= lastDiagnosticRequest then
                 lastDiagnosticRequest = nonce
-                -- "notice:<id>:<nonce>" shows one notice on demand (Developer mode only); anything else is a diagnostic capture.
-                if nonce:find('^notice:') then pcall(speech.devNotice, nonce) else captureDiagnostic() end
+                -- "lua-heap:<nonce>" writes the Lua heap report (runtime/lua-heap.json, see convaiLuaHeapReport), "notice:<id>:<nonce>"
+                -- shows one notice on demand (Developer mode only); anything else is a diagnostic capture.
+                if nonce:find('^lua%-heap:') then pcall(convaiLuaHeapReport, nonce)
+                elseif nonce:find('^notice:') then pcall(speech.devNotice, nonce) else captureDiagnostic() end
                 local response = io.open('runtime/diagnostic-response.txt', 'wb')
                 if response then response:write(nonce); response:close() end
             end
@@ -4033,6 +4080,12 @@ registerForEvent('onUpdate', function(delta)
         gameplayActions.revoke('reply-timeout', expired.requestId)
         if not expired.reaction then
             local explained = serviceLost or serviceCall('blockedMessage', os.time())
+            -- The service is up: what it did with this turn (never taken, Local AI still loading or too slow, Convai in place of a Local AI
+            -- that was not ready), read once now (mod/service-status.lua noReplyMessage), instead of guessing that it is not running.
+            if not explained then
+                local stateOk, providerState = pcall(manager.mistral)
+                explained = serviceCall('noReplyMessage', expired.requestId, stateOk and providerState or nil, 90)
+            end
             convaiNotices.send(player, 'conversation-timeout', explained or ui.t('No reply arrived. The conversation service may not be running.'))
         end
         log((serviceLost and 'Conversation retired after the service exited: generation=' or 'Conversation timed out: generation=')
@@ -4101,6 +4154,11 @@ registerForEvent('onUpdate', function(delta)
                         -- A local turn failed and nothing took it over: the same rule, its own notice.
                         elseif keyId == 'local-failed' then
                             if not pending.reaction then convaiNotices.send(player, 'local-failed', keyText) end
+                        -- Local AI could not start and nobody took the turn over: the same rule, with Local AI's own reason.
+                        elseif keyId == 'local-unavailable' then
+                            if not pending.reaction then convaiNotices.send(player, 'local-unavailable', keyText) end
+                        elseif keyId == 'local-no-memory' then
+                            if not pending.reaction then convaiNotices.send(player, 'local-no-memory', keyText) end
                         elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' then
                             sendProviderNotice(player, keyId, keyText)
                             if not pending.reaction then convaiNotices.send(player, 'reply-error', reply.error) end
@@ -4219,7 +4277,7 @@ registerForEvent('onShutdown', function()
     if convaiHolocall then
         if liveWorld then pcall(convaiHolocall.finish, Game.GetPlayer(), 'shutdown') else pcall(convaiHolocall.abandon, 'shutdown') end
     end
-    mcm.shutdown(liveWorld)
+    managerUi.shutdown(liveWorld)
     groupChat.cancel()
     warmConversation(nil, nil)
     if autoConnect then pcall(autoConnect.reset) end
@@ -4240,6 +4298,10 @@ registerForEvent('onShutdown', function()
     focusEntity = nil
     log('Game adapter shut down')
     convaiLogFlush() -- the buffered probe.log lines (a CET reload or exit follows)
+    -- The Developer-mode perf probe wraps json, io and os functions (perf-probe.lua). They are put back here, so no wrapper (and
+    -- through it this load's whole environment, about 15 MB) can stay reachable from a table CET keeps across a reload
+    -- (deliverables/perf/LUA_HEAP.md). Nothing runs after onShutdown, so nothing else changes.
+    if type(convaiPerfProbe) == 'table' and type(convaiPerfProbe.uninstall) == 'function' then pcall(convaiPerfProbe.uninstall) end
 end)
 
 -- GetMod('AiNpcCyberpunkMod') returns this table to other CET mods. `addons` is the add-on API (docs/ADDON_API.md).

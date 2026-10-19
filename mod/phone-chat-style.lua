@@ -60,6 +60,8 @@ local statusSources = {
     ['The custom provider did not answer. Check its address in Settings, or try again.'] = true,
     ['Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.'] = true,
     ['Local AI could not answer that. Try again in a moment.'] = true,
+    ['Local AI could not start. Check Local AI in Settings > Conversation provider.'] = true,
+    ['Not enough free graphics memory to start Local AI. Try a smaller model in Settings.'] = true,
 }
 local feedbackSources = {
     ['INVITE QUEUED - CLOSE PHONE'] = true,

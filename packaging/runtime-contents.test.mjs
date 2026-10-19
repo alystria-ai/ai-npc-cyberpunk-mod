@@ -60,6 +60,13 @@ test('a complete Runtime has nothing missing; without the batch file, a V clip o
   assert.deepEqual(missingRuntimeFiles(allNames.map(name => name.toUpperCase()), required), {});
 });
 
+test("a Runtime without its own OmniVoice lists in app/defaults is named, like 0.2.1, whose lists were at the OmniVoice pack's path", () => {
+  const lists = ['local-voices.autobest-short.json', 'local-voices.autobest-long.json'].map(name => `${PLUGIN}/app/defaults/${name}`);
+  assert.deepEqual(required["Runtime's OmniVoice lists"], lists);
+  const old = allNames.filter(name => !lists.includes(name)).concat(lists.map(name => name.replace('/app/defaults/', '/app/omni/defaults/')));
+  assert.deepEqual(missingRuntimeFiles(old, required), {"Runtime's OmniVoice lists": lists});
+});
+
 test('the zip checker passes a complete Runtime and fails one without the batch file or a V clip (exit code 1)', async () => {
   const directory = await temporary();
   try {

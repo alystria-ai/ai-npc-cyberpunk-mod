@@ -176,10 +176,13 @@ assert(cancelled==1 and controller.pending==nil)
 
 test('teardown: the gesture and seating controllers and the MCM page keep no handle from the old world after abandon', () => {
   const gestures = readFileSync(new URL('../mod/companion-gestures.lua', import.meta.url), 'utf8');
-  const mcm = readFileSync(new URL('../mod/mcm.lua', import.meta.url), 'utf8');
+  const page = readFileSync(new URL('../mod/manager-ui.lua', import.meta.url), 'utf8');
+  const host = readFileSync(new URL('../mod/nsui.lua', import.meta.url), 'utf8');
   const body = (text, from) => text.slice(text.indexOf(from), text.indexOf('\n    end\n', text.indexOf(from)));
   assert.match(body(gestures, 'function self.abandon'), /self\.player = nil/);
   assert.match(body(seating, 'function self.abandon'), /self\.player = nil/);
-  assert.match(mcm.slice(mcm.indexOf('function M.resetSession'), mcm.indexOf('function M.shutdown')), /statusOriginal, contentHold = nil, nil/);
-  assert.match(mcm.slice(mcm.indexOf("Observe('SettingsMainGameController', 'OnUninitialize'")), /statusOriginal = nil/);
+  // The page keeps no native handle at all (rows are plain data); a new world drops its queue, its notice state and the page it was on.
+  assert.match(page.slice(page.indexOf('function M.resetSession'), page.indexOf('function M.shutdown')), /queue\.bind\(nil\)[\s\S]*view, listPage, listGroup = 'home', 1, 1/);
+  // The host forgets what it was waiting for and the entry walk, and keeps no controller of the old screen.
+  assert.match(host.slice(host.indexOf('function M.resetSession'), host.indexOf('function M.shutdown')), /pending, flushAt, flushFirst, rebuildAt, presses = \{\}, nil, nil, nil, \{\}[\s\S]*entry\.reset\(\)/);
 });
