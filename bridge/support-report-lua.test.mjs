@@ -482,6 +482,42 @@ test('a service that failed with browser-missing is named in the Help row, its h
   assert(not files['runtime/' .. other.status().fileName]:find('PROBLEM', 1, true))
 `));
 
+// The service's process was started by the launcher and never reported (a Runtime that is a Mod Organizer 2 mod, in the report that led to
+// this), or the start script said why it stopped: the first lines of the short report say so, with the status's own words.
+test('a service that was started and never came up, or that stopped in its start, heads the short report with the status words and where its log is', () => run(`
+  put('runtime/bridge-service.json', {version = 1, state = 'starting', code = 'launcher-started', source = 'launcher', error = 0, supervisorPid = 12584,
+      since = ms(-5), updated = ms(-5)})
+  advance(100)
+  reportsFolder = false
+  local s = newSupport()
+  assert(s.serviceFault() == 'failed')
+  assert(s.startProblem() == 'service-silent after launcher-started')
+  assert(s.serviceMessage():find('(service-silent after launcher-started)', 1, true), s.serviceMessage())
+  local ok = s.request()
+  assert(ok and s.status().mode == 'lua')
+  local text = files['runtime/' .. s.status().fileName]
+  local lines = {}
+  for line in (text .. '\\n'):gmatch('(.-)\\n') do lines[#lines + 1] = line end
+  assert(lines[2]:find('PROBLEM: the conversation service did not come up (service-silent after launcher-started)', 1, true), lines[2])
+  assert(lines[2]:find('bridge-service.log', 1, true) and lines[2]:find('"View:"', 1, true) and lines[2]:find('launcher.log', 1, true), lines[2])
+  assert(text:find('source: launcher', 1, true) and text:find('code: launcher-started', 1, true), 'the status file is in the report as it is')
+  -- A failure the start script reports carries its stage and reason into the report, both in the line and in the status section.
+  put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'install-incomplete', source = 'service', stage = 'loading-modules',
+      reason = "ERR_MODULE_NOT_FOUND: Cannot find module 'place-packs.mjs' imported from start-service.mjs", updated = ms(), since = ms()})
+  advance(2)
+  local other = newSupport()
+  assert(other.startProblem():find("install-incomplete at loading-modules: ERR_MODULE_NOT_FOUND: Cannot find module 'place-packs.mjs'", 1, true))
+  other.request()
+  local second = files['runtime/' .. other.status().fileName]
+  assert(second:find('PROBLEM: the conversation service did not come up (install-incomplete at loading-modules', 1, true))
+  assert(second:find('reason: ERR_MODULE_NOT_FOUND', 1, true) and second:find('stage: loading-modules', 1, true))
+  -- A bridge that crashed later is not a start problem: it has its own logs and keeps the ordinary report.
+  put('runtime/bridge-service.json', {state = 'failed', code = 'bridge-crashed', updated = ms(), since = ms(-5)})
+  advance(2)
+  local crashed = newSupport()
+  assert(crashed.startProblem() == nil)
+`));
+
 test('no service answering (never started, empty, unreadable or stale status): the short report at once, no request, no wait', () => run(`
   local function report(case)
     advance(1) -- the status module reads each file once a second: every case starts a new second
