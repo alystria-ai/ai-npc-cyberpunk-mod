@@ -318,6 +318,14 @@ function M.crowdModeRequested()
     if crowdModes[word] then return word end
     return nil,'invalid'
 end
+-- The face service (Face.reds). Codeware provides the service container's entry; without Codeware there is none, and this says so
+-- instead of failing on a nil. Callers hold it in a pcall.
+local function faceService()
+    local container=Game.GetScriptableServiceContainer and Game.GetScriptableServiceContainer()
+    local service=container and container:GetService(CName.new('ConvaiFaceService'))
+    if not service then error('the face service does not exist (Codeware is missing)',0) end
+    return service
+end
 -- requested word (nil when there is no file), the mode the game reports (nil when it could not be set), error text.
 function M.applyCrowdMode()
     local requested,problem=M.crowdModeRequested()
@@ -327,7 +335,7 @@ function M.applyCrowdMode()
         return nil,nil,problem
     end
     local ok,result=pcall(function()
-        local service=Game.GetScriptableServiceContainer():GetService(CName.new('ConvaiFaceService'))
+        local service=faceService()
         return service:SetCrowdMode(requested)
     end)
     local applied=ok and type(result)=='string' and result or nil
@@ -341,7 +349,7 @@ end
 -- frame. True when the service took it.
 function M.applyStoryTalk(enabled)
     local ok,result=pcall(function()
-        local service=Game.GetScriptableServiceContainer():GetService(CName.new('ConvaiFaceService'))
+        local service=faceService()
         return service:SetStoryTalk(enabled==true)
     end)
     M.storyTalk=ok and result==true

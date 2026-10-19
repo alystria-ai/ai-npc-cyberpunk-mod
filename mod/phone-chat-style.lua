@@ -569,10 +569,13 @@ function M.install(live)
         M.presentHookInstalled = true
     end
     if not M.inputHooksInstalled then
+        -- The text box is Codeware's text input. Without it (missing, or too old for Codeware.UI.TextInput) the scripts carry a
+        -- stand-in class with no such methods and Codeware has no TextFlow: neither hook can be placed, and the hooks after this
+        -- block must still be.
         for _, method in ipairs({'OnFocusReceived', 'OnFocusLost'}) do
-            ObserveAfter('CyberpunkConvai.ConvaiPhoneChatInput', method, function(input) safely(M.input, input) end)
+            pcall(ObserveAfter, 'CyberpunkConvai.ConvaiPhoneChatInput', method, function(input) safely(M.input, input) end)
         end
-        ObserveAfter('Codeware.UI.TextInput.TextFlow', 'UpdatePlaceholder', function(flow) safely(M.inputText, flow) end)
+        pcall(ObserveAfter, 'Codeware.UI.TextInput.TextFlow', 'UpdatePlaceholder', function(flow) safely(M.inputText, flow) end)
         M.inputHooksInstalled = true
     end
     if not M.localeHooksInstalled then
