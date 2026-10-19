@@ -476,6 +476,8 @@ test('every row of the Settings page is drawn the same: one size, one colour fam
     assert(row and row.kind == 'action' and row.button and row.buttonText ~= '', name .. ' is ' .. tostring(row and row.kind))
   end
   assert(listed('Johnny’s standing').buttonText == 'Grudging respect', listed('Johnny’s standing').buttonText)
+  -- The button is narrow: a value in parts shows its first part only.
+  assert(not listed('Voice status').buttonText:find(' · ', 1, true), listed('Voice status').buttonText)
   local loads = mcm.loads
   press('Voice status'); press('Johnny’s standing')
   assert(mcm.loads == loads, 'a status button does not draw the page again')

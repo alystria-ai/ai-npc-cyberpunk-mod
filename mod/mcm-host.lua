@@ -171,7 +171,11 @@ local function convert(row)
     -- line at size 26, the other rows at 22.
     local value = tostring(row.value or '')
     if core.view() == 'settings' and value ~= '' then
-        return {action(STATUS_PREFIX .. id, row.label, value, row.description)}
+        -- The button is narrow: it shows the first part of a long value ("Voxtral cloud voice" of "Voxtral cloud voice · Local
+        -- backup"), and the whole value heads its description.
+        local short = value:match('^(.-) · ') or value
+        local description = short ~= value and (value .. '\n\n' .. (row.description or '')) or row.description
+        return {action(STATUS_PREFIX .. id, row.label, short, description)}
     end
     -- A line of text: the label and its value, nothing to change.
     return {{id = id, type = 'string', label = row.label, description = row.description or '', value = tostring(row.value or ''),
@@ -385,10 +389,12 @@ local function present()
 end
 
 -- MCM answers these only for a mod it has indexed, so they are repeated (once a second) until it accepts them. Returns whether it did.
+-- No rowFontSize: MCM applies it by walking the finished list (MCMPanelPresentation.Walk), which left the setting labels smaller than
+-- the action labels beside them; without it every row keeps MCM's own size.
 local function applyPresentation()
     local called, policy = pcall(api.ui.setApplyPolicy, MOD_KEY, 'explicit')
     local shown, presentation = pcall(api.ui.setPresentation, MOD_KEY, {locale = ui.current(), descriptionFontSize = 22,
-        rowFontSize = 22, labelWidthFraction = 0.5, statusPlacement = 'header', quietActions = true})
+        labelWidthFraction = 0.5, statusPlacement = 'header', quietActions = true})
     configured = called and policy == true and shown and presentation == true
     return configured
 end
