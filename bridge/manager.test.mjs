@@ -17,7 +17,7 @@ const entrySource = readFileSync(new URL('../mod/nsui-entry.lua', import.meta.ur
 const frenchUiSource = readFileSync(new URL('../mod/locales/fr.lua', import.meta.url), 'utf8');
 
 // Night City Allies' Lucy and Rita (docs/NCA_FOLLOWERS_PLAN.md): the roster records only let the talk path recognise that
-// mod's copy. invite = false keeps them out of every invite (Manager "Profile only", MCM unavailable, the party queue refuses).
+// mod's copy. invite = false keeps them out of every invite (Manager "Profile only", the manager unavailable, the party queue refuses).
 test('a roster profile marked invite = false is talk only: no companion definition, so nothing invites our own copy', () => {
   run(`${managerFixture}
     manager.configure(api, {{key = 'judy-alvarez', name = 'Judy Alvarez', records = {'Character.Judy'}},
@@ -32,7 +32,7 @@ test('a roster profile marked invite = false is talk only: no companion definiti
   `);
 });
 
-test('MCM party invitations reserve distinct copies, cancel without spawning and flush only once', () => {
+test('Manager party invitations reserve distinct copies, cancel without spawning and flush only once', () => {
   run(`${managerFixture}
     manager.configure(api, profiles)
     local queue = (function() ${queueSource} end)().new(api)
@@ -54,7 +54,7 @@ test('MCM party invitations reserve distinct copies, cancel without spawning and
   `);
 });
 
-test('MCM dismissals free planned places, can be undone at any party size and cleanly report world failures', () => {
+test('Manager dismissals free planned places, can be undone at any party size and cleanly report world failures', () => {
   run(`${managerFixture}
     manager.configure(api, profiles)
     local queue = (function() ${queueSource} end)().new(api)
@@ -87,7 +87,7 @@ test('MCM dismissals free planned places, can be undone at any party size and cl
   `);
 });
 
-test('MCM settings apply as one saved transaction and leave playback unchanged on a save failure', () => {
+test('Manager settings apply as one saved transaction and leave playback unchanged on a save failure', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.snapshot(player)
     assert(manager.snapshot(player).settings.disappearingMessages == nil)
@@ -234,7 +234,7 @@ test('gaze choices preserve accepted defaults, reject invalid settings and survi
     local current=api.gazeSettings(); current.eyeContactHeight=0.10
     assert(manager.gazeSettings().eyeContactHeight==0,'a caller mutated persisted policy')
     heights,strengths=manager.gazeChoices()
-    assert(heights[3]==0 and strengths[3]==1,'MCM mutated domain choices')
+    assert(heights[3]==0 and strengths[3]==1,'the page mutated domain choices')
     assert(manager.applySettings(player,{eyeContactHeight=0.05,headFollowStrength=1.5}))
     assert(api.gazeSettings().eyeContactHeight==0.05 and api.gazeSettings().headFollowStrength==1.5)
     for _,invalid in ipairs({-0.11,0.11,0.02,'0',false,math.huge,0/0}) do
@@ -291,7 +291,7 @@ test('saved manager gaze reaches the real companion actuator only in the ordinar
     assert(oldOne and oldTwo and oldOne.offset.z==0 and oldOne.parts[1].weight==0.05)
     local commandsOne,commandsTwo=#one.ai.commands,#two.ai.commands
     assert(manager.applySettings(nil,{eyeContactHeight=0.10,headFollowStrength=1.5}))
-    assert(next(one.looks)==oldOne and next(two.looks)==oldTwo,'MCM Apply touched native actors in its callback')
+    assert(next(one.looks)==oldOne and next(two.looks)==oldTwo,'the manager touched native actors in its callback')
     tick(1)
     local newOne,newTwo=next(one.looks),next(two.looks)
     assert(newOne~=oldOne and newTwo~=oldTwo)
@@ -371,7 +371,7 @@ test('a quiet invitation or dismissal (the development probes) posts no joined o
   `);
 });
 
-test('MCM waits for NPC attachment, reports late failures once and discards notices on save change', () => {
+test('Manager waits for NPC attachment, reports late failures once and discards notices on save change', () => {
   run(`${managerFixture}
     manager.configure(api, profiles)
     local queue = (function() ${queueSource} end)().new(api)
@@ -1951,7 +1951,7 @@ test('native Memory controls use the contacted count and full catalogue without 
     for _, category in ipairs(loaded.categories) do
       for _, value in ipairs(category.settings) do
         local text = tostring(value.label) .. tostring(value.value) .. tostring(value.description)
-        assert(not text:find(memoryStatus.endUserId, 1, true), 'raw player identity reached MCM')
+        assert(not text:find(memoryStatus.endUserId, 1, true), 'raw player identity reached the page')
       end
     end
     assert(row('memory-chat-history').description:find('clears their saved Chat messages and drafts', 1, true))
@@ -2479,7 +2479,7 @@ test('gaze controls use ordinary selectors and persist', () => {
     loaded=registered.loadMod('manager')
     assert(row('eyeContactHeight').value==3 and row('headFollowStrength').value==3)
     drafts=true; managerUi.update(player,false)
-    assert(reloads==before,'ordinary gaze settings disturbed an open MCM draft')
+    assert(reloads==before,'ordinary gaze settings disturbed the open page')
   `);
 });
 
@@ -2593,7 +2593,7 @@ test('Voice volume is a Voices slider (50 to 200, steps of 5, 100 by default) sa
     local item = assert(row('voiceVolume'))
     assert(item.type == 'int' and item.value == 100 and item.defaultValue == 100)
     assert(item.min == 50 and item.max == 200 and item.step == 5, 'a slider range, not a list of steps')
-    assert(item.elements == nil and item.label:find('%', 1, true), 'the unit is in the name: MCM shows only the number')
+    assert(item.elements == nil and item.label:find('%', 1, true), 'the unit is in the name: the page shows only the number')
     assert(not item.description:lower():find('recommended', 1, true))
     -- It sits in the Voices category, after the voice and delay rows.
     local category
@@ -3025,7 +3025,7 @@ test('Developer mode is a cached default-Off choice and persists only after an a
   `);
 });
 
-test('MCM puts Developer mode in Development and changing it updates existing party feedback without native work', () => {
+test('Manager puts Developer mode in Development and changing it updates existing party feedback without native work', () => {
   run(`${nsuiFixture}
     local trip = {active = true, generation = 4, phase = 'waiting-for-player'}
     api.chauffeurSnapshot = function()
@@ -4623,7 +4623,7 @@ test('a notice is held at most one tick: a voice switch reaches the player once 
 });
 
 // Loading notices: a slow OmniVoice or Local AI load is one notice held on screen until its outcome replaces it (mod/notices.lua
-// loading board, manager.loadStatus, mod/mcm.lua). Gameplay frames of 0.25 s; the manager reads the bridge's files as it does in
+// loading board, manager.loadStatus, mod/manager-ui.lua). Gameplay frames of 0.25 s; the manager reads the bridge's files as it does in
 // the game. The game's warning line is a mock: `posts` is what the HUD was given as the held notice, `clears` what hid it, `shown`
 // the ordinary five-second notices (the outcome lines).
 const loadingFixture = `

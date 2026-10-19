@@ -268,7 +268,7 @@ end
 
 local function writeMemoryCommand(value) return writeCommandFile('runtime/memory-command.json', value) end
 
--- For the Custom provider module (custom-provider.lua, drawn by mod/mcm.lua): the same in-place command file write, and the id of this game
+-- For the Custom provider module (custom-provider.lua, drawn by mod/manager-ui.lua): the same in-place command file write, and the id of this game
 -- session, which every command id of that channel carries (made on first use, like the key commands below).
 function M.writeCommand(target, value) return writeCommandFile(target, value) end
 function M.commandSession()
