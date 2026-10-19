@@ -345,7 +345,7 @@ assert(reads == first, 'receipt was read again within 250 ms: ' .. reads)
 wall = wall + .1; throttled.update(); assert(reads == first + 1)
 `));
 
-// What a preparing companion waits for reaches the player as a notice line (manager-party.lua waiting(), mcm.lua): the
+// What a preparing companion waits for reaches the player as a notice line (manager-party.lua waiting(), manager-ui.lua): the
 // adapter names the step from the bridge's receipt, and a service that is only slow is a wait, never a failure.
 test('the wait is named from the receipt: service not answering yet, then the memory service, the voice model, the connection', () => run(`
 assert(queue.invite('judy'))

@@ -154,9 +154,12 @@ test('ordinary NPCs are prepared once at spawn, behind filters, with no per-fram
   });
   const positions = order(['if this.m_crowdMode == 0 && !screens { return; };', 'event.GetEntity() as NPCPuppet', 'dynamic.IsManaged(npc.GetEntityID())',
     'this.CrowdIndex(', 'npc.GetRecordID()', 'ConvaiFaceService.CrowdSkipReason(', 'this.CheckRig(face)', 'ResourceRef.IsLoaded(graph)', 'face.graph = graph;',
-    'npc.ConvaiFacePrepared(true, "prepared:" + this.m_crowdNames[index]']);
+    'return "prepared:" + this.m_crowdNames[index];']);
   assert.deepEqual([...positions].sort((a, b) => a - b), positions, 'mode, type, dynamic spawns, crowd graph, record and tokens, rig, load, then the swap');
   assert.equal([...world.matchAll(/face\.graph = /g)].length, 1, 'one graph write, after every filter');
+  // The crowd preparation is one function, used at the NPC's spawn and again for its face after a rebuild (OnReassemble).
+  assert.match(world, /let status = this\.PrepareCrowdFace\(npc, face, index\);\s*if StrBeginsWith\(status, "prepared:"\) \{\s*npc\.ConvaiFacePrepared\(true, status, /);
+  assert.match(body(nativeFace, 'private func PrepareGameFace', 'public static func FaceOwner'), /return this\.PrepareCrowdFace\(npc, face, index\);/);
   assert.match(world, /graph = this\.m_crowdPlain\[index\]/, 'the ungated copy exists only for the FPS comparison mode');
   assert.match(world, /this\.m_crowdGated\[index\]/);
   assert.match(world, /if dynamic\.IsManaged\(npc\.GetEntityID\(\)\) \{\s*if this\.m_crowdMode == 0 \|\| !ConvaiFaceService\.SpawnedElsewhere\(dynamic, npc\.GetEntityID\(\)\) \{ return; \};[\s\S]*?this\.PrepareSpawnedFace\(spawnedFace\);[\s\S]*?return;\s*\};/,
@@ -180,7 +183,10 @@ test('ordinary NPCs are prepared once at spawn, behind filters, with no per-fram
 
 test('conversation start reports the spawn decision and keeps the talk-time guards; a scene alone is no reason', () => {
   const request = body(nativeFace, 'public final func ConvaiFaceRequest()', 'public final func ConvaiFaceApply(');
-  assert.match(request, /let spawned = dynamic\.IsManaged\(this\.GetEntityID\(\)\);\s*if spawned && !this\.ConvaiSpawnedElsewhere\(dynamic\) \{ return "managed"; \};/);
+  // Our own copies answer with their own status (never the silent word "managed" any more), so a copy whose lips stay still has a line.
+  assert.match(request, /let spawned = dynamic\.IsManaged\(this\.GetEntityID\(\)\);\s*if spawned && !this\.ConvaiSpawnedElsewhere\(dynamic\) \{\s*let ours = this\.ConvaiFaceStatus\(\);\s*if !Equals\(ours, ""\) \{ return ours; \};/);
+  assert.doesNotMatch(request, /return "managed"/);
+  assert.match(request, /return "no-face-rig";[\s\S]*return "unprepared:" \+ ResRef\.ToString\(ResourceRef\.GetPath\(ownFace\.graph\)\);/, 'an empty status never reaches the log');
   assert.match(request, /service\.TalkRefusal\(this, spawned\)/);
   assert.match(request, /return "unprepared:" \+ ResRef\.ToString\(ResourceRef\.GetPath\(face\.graph\)\)/, 'a face that is not ours says which graph it has');
   assert.doesNotMatch(request, /face\.graph =|ScheduleAppearanceChange|PrepareFaceComponent/);
@@ -266,7 +272,7 @@ test('spawned characters: generic recognition, a face at spawn and at each rebui
 test('a spawned character appearance rebuild: noted at extraction, claimed by its own entity at Reassemble, nothing else touched', () => {
   const extract = body(nativeFace, 'private cb func OnCompanionExtract', 'private func PrepareExtractedComponents');
   // The managed lookup still comes first; an extraction that names nobody is only noted, and only once a spawned character exists.
-  assert.match(extract, /if !dynamic\.IsManaged\(builder\.GetEntityID\(\)\) \{\s*if this\.m_spawnedSeen \{ this\.NoteRebuild\(builder\); \};\s*return;\s*\};/);
+  assert.match(extract, /if !dynamic\.IsManaged\(builder\.GetEntityID\(\)\) \{\s*if this\.m_watchRebuilds \{ this\.NoteRebuild\(builder\); \};\s*return;\s*\};/);
   assert(extract.indexOf('this.NoteRebuild(builder)') < extract.indexOf('IsTagged('), 'a game-placed entity stops at the managed lookup');
   assert.match(extract, /spawned = true;\s*this\.m_spawnedSeen = true;/);
   // The first half: what is noted, in what order the guards run, and that it only reads.
@@ -279,10 +285,11 @@ test('a spawned character appearance rebuild: noted at extraction, claimed by it
     });
     assert.deepEqual([...at].sort((a, b) => a - b), at, needles.join(' < '));
   };
-  inOrder(note, ['this.m_crowdMode == 0', 'builder.HasEntity()', '!builder.HasAppearance()', 'EntityID.IsDefined(builder.GetEntityID())',
+  inOrder(note, ['builder.HasEntity()', '!builder.HasAppearance()', 'EntityID.IsDefined(builder.GetEntityID())',
     'builder.GetTemplate().GetResource()', 'ResRef.GetHash(template.path)', 'appearance.GetComponents()', 'builder.GetCustomAppearances()']);
-  assert.match(note, /if this\.m_crowdMode == 0 \|\| builder\.HasEntity\(\) \|\| !builder\.HasAppearance\(\) \{ return; \};/,
-    'a first build (entity part), a mode that is off and a builder without an appearance are never noted');
+  assert.match(note, /if builder\.HasEntity\(\) \|\| !builder\.HasAppearance\(\) \{ return; \};/,
+    'a first build (entity part) and a builder without an appearance are never noted');
+  assert.doesNotMatch(note, /m_crowdMode/, 'our own copies do not depend on the crowd mode: the claim applies it to the other kinds');
   assert.doesNotMatch(note, /\.graph\s*=|ConvaiFacePrepared|ScheduleAppearanceChange|GetDefinition\(|GetTemplatePath\(\)/,
     'noting writes nothing, and never reads the template path through the wrapper (it dereferences the template without a check)');
   assert.match(note, /Equals\(face\.GetName\(\), n"face_rig"\)/);
@@ -292,14 +299,16 @@ test('a spawned character appearance rebuild: noted at extraction, claimed by it
   assert.match(nativeFace, /private let m_rebuildTemplates: array<Uint64>;/);
   // The second half.
   const claim = body(nativeFace, 'private cb func OnReassemble', 'public func RebuildCounts');
-  inOrder(claim, ['!this.m_spawnedSeen || this.m_crowdMode == 0', 'event.GetEntity() as NPCPuppet',
-    'ConvaiFaceService.SpawnedElsewhere(dynamic, npc.GetEntityID())', 'ArraySize(this.m_rebuildFaces) == 0', 'ResRef.GetHash(npc.GetTemplatePath())', 'this.m_rebuildTemplates[i] == key',
-    'this.PrepareSpawnedFace(face)', 'ArrayErase(this.m_rebuildFaces, i)', 'npc.ConvaiFacePrepared(']);
+  inOrder(claim, ['!this.m_watchRebuilds', 'ArraySize(this.m_rebuildFaces) == 0', 'event.GetEntity() as NPCPuppet',
+    'ConvaiFaceService.FaceOwner(dynamic, npc.GetEntityID())', 'owner == 0 || (owner != 1 && this.m_crowdMode == 0)',
+    'ResRef.GetHash(npc.GetTemplatePath())', 'this.m_rebuildTemplates[i] == key',
+    'this.PrepareRebuiltFace(npc, face, owner)', 'ArrayErase(this.m_rebuildFaces, i)', 'npc.ConvaiFacePrepared(']);
   assert.match(claim, /let i = ArraySize\(this\.m_rebuildFaces\) - 1;\s*while i >= 0 \{/, 'newest first');
-  assert.match(claim, /if Equals\(status, ""\) \{\s*status = result;\s*graphPath = ResRef\.ToString\(ResourceRef\.GetPath\(face\.graph\)\);\s*\};/,
+  assert.match(claim, /if Equals\(status, ""\) && !Equals\(result, ""\) \{\s*status = result;\s*graphPath = ResRef\.ToString\(ResourceRef\.GetPath\(face\.graph\)\);\s*\};/,
     'the puppet gets the newest note status and the graph path of the face that was prepared');
   assert.match(claim, /if !Equals\(status, ""\) \{\s*npc\.ConvaiFacePrepared\(StrBeginsWith\(status, "prepared:"\), status, graphPath\);\s*\} else \{\s*this\.m_rebuildMissed \+= 1;\s*\};/);
-  assert.doesNotMatch(claim, /IsTagged\(|face\.graph = |ScheduleAppearanceChange/, 'our own copies are not claimed here, and the graph is written only by PrepareSpawnedFace');
+  const onReassemble = body(nativeFace, 'private cb func OnReassemble', 'private func PrepareRebuiltFace');
+  assert.doesNotMatch(onReassemble, /IsTagged\(|face\.graph = |ScheduleAppearanceChange/, 'the event handler only classifies and delegates: the graph is written only by the Prepare functions');
   // Registered once, filtered to NPCPuppet by the callback system, in OnLoad (never from inside another callback).
   assert.match(nativeFace, /RegisterCallback\(n"Entity\/Reassemble", this, n"OnReassemble"\)\s*\.AddTarget\(EntityTarget\.Type\(n"NPCPuppet"\)\)/);
   assert.equal([...nativeFace.matchAll(/RegisterCallback\(n"Entity\/Reassemble"/g)].length, 1);

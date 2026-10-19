@@ -13,7 +13,7 @@ import {fileURLToPath} from 'node:url';
 import {randomBytes} from 'node:crypto';
 import {ZipWriter, listZip} from './lib/zip.mjs';
 import {PACK_OMNI_LISTS_FOLDER, PACK_OWN_TREES, PACK_PREPARED_FOLDER, PLUGIN, RUNTIME_DROPS, RUNTIME_OMNI_LISTS_FOLDER, RUNTIME_PREPARED_FOLDER,
-  compareWithPacks, countByFolder, runtimePathFor, validateListing, zipFiles} from './lib/pack-overlap.mjs';
+  compareWithPacks, countByFolder, duplicatePaths, runtimePathFor, validateListing, zipFiles} from './lib/pack-overlap.mjs';
 import {checkZips, makeListing} from './check-pack-overlap.mjs';
 import {PREPARED_FOLDER as BRIDGE_CACHE_FOLDER, RUNTIME_PREPARED_FOLDER as BRIDGE_RUNTIME_FOLDER} from '../bridge/voxtral-reference.mjs';
 
@@ -166,6 +166,90 @@ async function zipOf(directory, name, files) {
 const lines = [];
 const collect = line => lines.push(line);
 
+// The directory of a ZIP64 archive like the 6.5 GB OmniVoice pack: it starts past 4 GiB (the end record says 0xFFFFFFFF and the ZIP64 records hold the
+// real offset), an entry's local header past 4 GiB is named only in its ZIP64 extra field, and an entry over 4 GiB has both sizes there.
+function zip64Tail(entries, directoryOffset) {
+  const directory = Buffer.concat(entries.map(({name, crc, size, offset}) => {
+    const nameBytes = Buffer.from(name), big = size >= 0xFFFFFFFF, far = offset >= 0xFFFFFFFF, fields = [];
+    if (big) { const sizes = Buffer.alloc(16); sizes.writeBigUInt64LE(BigInt(size), 0); sizes.writeBigUInt64LE(BigInt(size), 8); fields.push(sizes); }
+    if (far) { const at = Buffer.alloc(8); at.writeBigUInt64LE(BigInt(offset)); fields.push(at); }
+    const extra = fields.length ? Buffer.concat([Buffer.from([1, 0, 0, 0]), ...fields]) : Buffer.alloc(0);
+    if (fields.length) extra.writeUInt16LE(extra.length - 4, 2);
+    const record = Buffer.alloc(46);
+    record.writeUInt32LE(0x02014b50, 0); record.writeUInt16LE(45, 4); record.writeUInt16LE(45, 6);
+    record.writeUInt32LE(crc, 16); record.writeUInt32LE(big ? 0xFFFFFFFF : size, 20); record.writeUInt32LE(big ? 0xFFFFFFFF : size, 24);
+    record.writeUInt16LE(nameBytes.length, 28); record.writeUInt16LE(extra.length, 30); record.writeUInt32LE(far ? 0xFFFFFFFF : offset, 42);
+    return Buffer.concat([record, nameBytes, extra]);
+  }));
+  const end64 = Buffer.alloc(56);
+  end64.writeUInt32LE(0x06064b50, 0); end64.writeBigUInt64LE(44n, 4); end64.writeUInt16LE(45, 12); end64.writeUInt16LE(45, 14);
+  end64.writeBigUInt64LE(BigInt(entries.length), 24); end64.writeBigUInt64LE(BigInt(entries.length), 32);
+  end64.writeBigUInt64LE(BigInt(directory.length), 40); end64.writeBigUInt64LE(BigInt(directoryOffset), 48);
+  const locator = Buffer.alloc(20);
+  locator.writeUInt32LE(0x07064b50, 0); locator.writeBigUInt64LE(BigInt(directoryOffset + directory.length), 8); locator.writeUInt32LE(1, 16);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(entries.length, 8); end.writeUInt16LE(entries.length, 10);
+  end.writeUInt32LE(directory.length, 12); end.writeUInt32LE(0xFFFFFFFF, 16);
+  return Buffer.concat([directory, end64, locator, end]);
+}
+
+test('a ZIP64 pack past 4 GiB is listed from its directory alone, with the real sizes, and compared like any other', async () => {
+  const directoryOffset = 6_500_000_000;
+  const tail = zip64Tail([
+    {name: `${PLUGIN}/app/omni/model/model.safetensors`, crc: 0x11111111, size: 4_900_000_000, offset: 0},
+    {name: `${PLUGIN}/voices/picked/autobest/omni-long/judy-alvarez.wav`, crc: 0x22222222, size: 600_000, offset: 5_000_000_000},
+    {name: `${PLUGIN}/app/omni/omni-pack.json`, crc: 0x33333333, size: 333, offset: 6_400_000_000}], directoryOffset);
+  let bytesRead = 0;
+  // A 6.5 GB file in which only the directory exists: anything read before it is zeros, and the total read is counted.
+  const reader = {size: directoryOffset + tail.length, label: 'virtual.zip', async read(position, length) {
+    bytesRead += length;
+    const buffer = Buffer.alloc(length);
+    if (position + length > directoryOffset) tail.copy(buffer, Math.max(0, directoryOffset - position), Math.max(0, position - directoryOffset));
+    return buffer;
+  }};
+  const files = zipFiles(await listZip(reader));
+  assert.deepEqual(files.map(file => [file.path.split('/').pop(), file.size, file.crc]),
+    [['model.safetensors', 4_900_000_000, '11111111'], ['judy-alvarez.wav', 600_000, '22222222'], ['omni-pack.json', 333, '33333333']]);
+  assert(bytesRead < 200_000, `read ${bytesRead} bytes`);
+  const fake = validateListing({schema: 1, packs: [{name: 'Big', file: 'big.zip', bytes: reader.size, entries: 2, claimed: [],
+    files: files.slice(1).map(file => [file.path, file.size, file.crc])}]});
+  const same = compareWithPacks(files.slice(1), fake), other = compareWithPacks([{...files[1], size: 600_001}], fake);
+  assert.equal(same.ok, true); assert.equal(same.identical.length, 2);
+  assert.equal(other.ok, false); assert.deepEqual(other.different[0].packFile, {size: 600_000, crc: '22222222'});
+});
+
+test('a path a zip holds twice fails the check when the copies differ (the answer to "Replace or skip?" would pick one), and is named when they do not', async () => {
+  const directory = await temporary();
+  try {
+    // ZipWriter refuses a second copy of a name, so these zips are written with that check turned off, as another tool might write them.
+    const loose = async (name, entries) => {
+      const zip = await ZipWriter.create(join(directory, name));
+      zip.checkName = () => {};
+      for (const [path, text] of entries) await zip.add(path, {buffer: Buffer.from(text)});
+      await zip.close();
+      return join(directory, name);
+    };
+    const clash = await loose('clash.zip', [[`${PLUGIN}/app/defaults/local-voices.autobest-long.json`, '{"v":1}'],
+      [`${PLUGIN}/app/defaults/LOCAL-VOICES.autobest-long.json`, '{"v":22}'], [`${PLUGIN}/app/other.txt`, 'x'], [`${PLUGIN}/app/other.txt`, 'x']]);
+    const files = zipFiles(await listZip(clash));
+    assert.equal(files.length, 4, 'listZip shows every entry, duplicates included');
+    assert.deepEqual(duplicatePaths(files).map(item => [item.path.split('/').pop(), item.copies.length, item.same]),
+      [['local-voices.autobest-long.json', 2, false], ['other.txt', 2, true]]);
+    lines.length = 0;
+    assert.equal(await checkZips([clash], listing, {log: collect}), false);
+    assert.match(lines.join('\n'), /holds 2 path\(s\) more than once, 1 with DIFFERENT bytes/);
+    assert.match(lines.join('\n'), /local-voices\.autobest-long\.json \(2 copies: 7 bytes, [0-9a-f]{8} \/ 8 bytes, [0-9a-f]{8}\)/);
+    assert.equal(spawnSync(process.execPath, [resolve(project, 'packaging/check-pack-overlap.mjs'), 'check', clash], {encoding: 'utf8'}).status, 1);
+    // The same bytes twice: Replace is still safe, so it passes, and the path is named.
+    const twins = await loose('twins.zip', [[`${PLUGIN}/app/other.txt`, 'x'], [`${PLUGIN}/app/other.txt`, 'x']]);
+    lines.length = 0;
+    assert.equal(await checkZips([twins], listing, {log: collect}), true);
+    assert.match(lines.join('\n'), /holds 1 path\(s\) more than once \(the same bytes each time\)/);
+    // A pack with a name twice cannot be listed: the listing holds one size and CRC per path, so making it stops with the path named.
+    await assert.rejects(makeListing(join(directory, 'listing.json'), [`Twice=${clash}`], {log: () => {}}), /listed twice/);
+  } finally { await rm(directory, {recursive: true, force: true}); }
+});
+
 test('check passes a zip that moved its slots and lists, and names every folder of one that did not', async () => {
   const directory = await temporary();
   try {
@@ -252,6 +336,20 @@ test('the build puts the Runtime\'s slots in their own folder and leaves voices/
   assert.match(builder, /import \{RUNTIME_PREPARED_FOLDER\} from '\.\/lib\/pack-overlap\.mjs'/);
   const bridge = await readFile(resolve(project, 'bridge/convai-bridge.mjs'), 'utf8');
   assert(bridge.includes('cacheDirectory: resolve(voxtralReferenceRoot, PREPARED_FOLDER), shippedDirectories: [resolve(voxtralReferenceRoot, RUNTIME_PREPARED_FOLDER)]'));
+});
+
+test("every Runtime the build makes carries its own OmniVoice lists in app/defaults, the same text as the pack's, so an older Runtime's never stay in charge", async () => {
+  // The launcher reads app/defaults first and nothing deletes an earlier version's files: a Runtime without lists there would leave the previous
+  // Runtime's lists winning over a newer pack's at every start.
+  const builder = await readFile(resolve(project, 'packaging/build-release.mjs'), 'utf8');
+  const runtime = builder.slice(builder.indexOf('async function runtimePackage('), builder.indexOf('async function voxtralCache('));
+  const omni = builder.slice(builder.indexOf('async function omniPackage('), builder.indexOf('async function localAiFile('));
+  assert(runtime.includes('for (const name of OMNI_LIST_NAMES) pkg.json(`${app}/defaults/${name}`, await omniListOf(models.files.get(configs.bucket + name), name, config.toolchain.omniModel));'));
+  assert(omni.includes('pkg.json(`${omni}/defaults/${name}`, await omniListOf(models.files.get(configs.bucket + name), name, model));'));
+  assert.equal(builder.split('await omniListOf(').length - 1, 2, 'one helper makes both copies, so their bytes are the same');
+  const {OMNI_CONFIGS} = await import('./runtime/prepare-state.mjs');
+  assert(builder.includes(`const OMNI_LIST_NAMES = Object.freeze(['${OMNI_CONFIGS.short}', '${OMNI_CONFIGS.long}']);`), "the launcher's names");
+  assert.equal(`${PLUGIN}/app/defaults`.endsWith(RUNTIME_OMNI_LISTS_FOLDER), true);
 });
 
 test('the install steps of the README, the player readme and the Nexus page tell players that Replace is safe', async () => {

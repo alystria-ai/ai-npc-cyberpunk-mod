@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {LUA_HARNESS, WORLD, runLua} from './addon-lua-harness.mjs';
 
 // The game side of the add-on API (mod/addons.lua): registration, speakers, the remark scheduler, events, settings and the
-// main mod seams in init.lua, speech.lua, subtitles.lua, group-chat.lua and mcm.lua.
+// main mod seams in init.lua, speech.lua, subtitles.lua, group-chat.lua and manager-ui.lua.
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 
 const run = runLua;
@@ -710,7 +710,7 @@ test('settings: one section per add-on, checked changes held until Apply, saved 
         {id = 'remarks', label = 'Combat remarks', kind = 'bool', default = true}}}))
     assert(handle:setting('personality') == 1 and handle:setting('remarks') == true)
     local sections = M.settingsSections()
-    assert(#sections == 1 and sections[1].id == 'addon-skippy' and sections[1].items[1].mcmId == 'addon:skippy:personality')
+    assert(#sections == 1 and sections[1].id == 'addon-skippy' and sections[1].items[1].rowId == 'addon:skippy:personality')
     assert(M.signature() == 'addon:skippy:personality=1,addon:skippy:remarks=true', M.signature())
     local changed = {}
     handle:on('settingChanged', function(payload) changed[#changed + 1] = payload.id .. '=' .. tostring(payload.value) end)
@@ -740,7 +740,7 @@ test('remark pacing: the two settings, half the gap for priority 5, the cap with
     -- Every add-on with a speaker gets "Time between remarks" (default 10 s) and "Most remarks per fight" (default 30).
     local sections = M.settingsSections()
     local gap, cap = sections[1].items[1], sections[1].items[2]
-    assert(#sections == 1 and sections[1].title == 'Skippy' and gap.mcmId == 'addon:skippy:remarkGap' and cap.mcmId == 'addon:skippy:remarkCap' and sections[1].items[3].mcmId == 'addon:skippy:markLines')
+    assert(#sections == 1 and sections[1].title == 'Skippy' and gap.rowId == 'addon:skippy:remarkGap' and cap.rowId == 'addon:skippy:remarkCap' and sections[1].items[3].rowId == 'addon:skippy:markLines')
     assert(table.concat(gap.elements, ',') == '4 s,6 s,8 s,10 s,15 s,20 s,30 s,60 s' and gap.default == 4 and gap.value == 4)
     assert(table.concat(cap.elements, ',') == '5,10,20,30,50,No limit' and cap.default == 4 and cap.value == 4)
     assert(gap.description:find('about 20 seconds', 1, true), 'the help text names the Local AI default')
@@ -986,10 +986,10 @@ test('speech, subtitles, continuous speech, group chat and the manager change no
   assert.match(group, /'archetype', 'voiceOnly'\}\) do row\[key\] = person\[key\] end/);
   // An add-on voice is heard by companions but never joins their routing audience (it has no Convai character).
   assert.match(group, /if not participant\.voiceOnly or participant == speaker then audience\[#audience \+ 1\] = participant\.profileKey end/);
-  const mcm = code('mcm.lua');
-  for (const match of mcm.matchAll(/convaiAddons\.(\w+)\(/g)) {
-    const window = mcm.slice(Math.max(0, match.index - 900), match.index);
-    assert.match(window, /convaiAddons and convaiAddons\.live|addonChanges > 0/, `mcm.lua ${match[1]} is not guarded`);
+  const page = code('manager-ui.lua');
+  for (const match of page.matchAll(/convaiAddons\.(\w+)\(/g)) {
+    const window = page.slice(Math.max(0, match.index - 900), match.index);
+    assert.match(window, /convaiAddons and convaiAddons\.live|addonChanges > 0/, `manager-ui.lua ${match[1]} is not guarded`);
   }
 });
 

@@ -190,7 +190,7 @@ statements that end on a hook, own material only from what the character knows, 
   `OFFER_RATE`, `BACK_TO_BACK` and `FOLLOW_UP_TEXT`.
 - `bridge/convai-bridge.mjs`: the setting (`followUp.update(settings)`, a change drops prepared replies), `followUpContext`
   in the context list, `logFollowUp` after each reply.
-- `mod/manager.lua`, `mod/mcm.lua`: the setting `followUpInterest` (saved in `runtime/settings.json`; the key is not
+- `mod/manager.lua`, `mod/manager-ui.lua`: the setting `followUpInterest` (saved in `runtime/settings.json`; the key is not
   `followUpQuestions`, which belongs to the retired toggle and is still dropped on load), the Voices row, and
   "Follow-up questions" on the Characters sidebar "Speech:" line. Lua does nothing per frame: it is one saved boolean.
 - `mod/locales/*.lua` (15 languages), `localization/en.json` (`node scripts/Extract-UiCatalog.mjs`).
@@ -203,7 +203,7 @@ Log line, one per reply while the setting is on:
 `reason` is `rate`, `pity`, `after-offer`, `after-question`, `ending`, `order`, `battle`, `group`, `reaction` or `not-spoken`
 (no decision was made for that turn); `ended-with-question` says whether the reply ended in a question (a pull that is a
 statement or a tease shows `no`).
-Install: bridge restart (`bridge/follow-up.mjs`, `bridge/convai-bridge.mjs`), CET reload (`mod/manager.lua`, `mod/mcm.lua`,
+Install: bridge restart (`bridge/follow-up.mjs`, `bridge/convai-bridge.mjs`), CET reload (`mod/manager.lua`, `mod/manager-ui.lua`,
 `mod/locales/*.lua`). No game restart. The October 9 tuning changes only `bridge/follow-up.mjs`: a bridge restart.
 
 ## October 10: the block must not make the character narrate

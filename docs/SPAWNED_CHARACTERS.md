@@ -83,6 +83,8 @@ Conversation result: ... face=true/prepared:woman_average_sermo               (o
 
 **Not covered.** Our own companions' appearance rebuilds are untouched (their spawn picks the final appearance up front), and a spawned character's rebuild that arrives with an entity ID (none seen) goes through the existing managed path.
 
+**Amended 2026-10-19 (branch `fix/face-replaced-model`).** The two exclusions above are gone: the same note-and-claim now also prepares the rebuilt face of our own copies (companion graph) and of the game's own characters (the story or crowd rules of their spawn), `m_spawnedSeen` became `m_watchRebuilds` for the noting (it also switches on for our copies and for prepared world and story NPCs), and the counters in the `stale:` line are split per kind and carry `events=`. The report that showed the gap: a game-placed Judy, `stale:` with every counter at zero. Details, the status table and the log fields: `docs/FACIAL_ANIMATION.md`, "October 19: a replaced model".
+
 ## Invite and party
 
 - **Manager or phone invite of the same character.** Our invite spawns our own managed copy, as always. A spawned Judy and our Judy can stand side by side. Both talk as Judy, with one voice and one memory. Only one conversation runs at a time. A player who wants Judy to follow with our systems invites ours. A player who wants the spawner's Judy keeps hers, and she still talks.

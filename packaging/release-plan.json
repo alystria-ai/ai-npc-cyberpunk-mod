@@ -14,10 +14,6 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/ui-fonts.lua"
         },
         {
-          "source": "mod/mcm-fonts.lua",
-          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mcm-fonts.lua"
-        },
-        {
           "source": "mod/ui-locale.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/ui-locale.lua"
         },
@@ -234,6 +230,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/gesture-probe.lua"
         },
         {
+          "source": "mod/lua-heap-probe.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/lua-heap-probe.lua"
+        },
+        {
           "source": "mod/companion-space.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-space.lua"
         },
@@ -274,12 +274,16 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-passage.lua"
         },
         {
-          "source": "mod/mcm.lua",
-          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mcm.lua"
+          "source": "mod/manager-ui.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/manager-ui.lua"
         },
         {
-          "source": "mod/mcm-entry.lua",
-          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mcm-entry.lua"
+          "source": "mod/nsui.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/nsui.lua"
+        },
+        {
+          "source": "mod/nsui-entry.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/nsui-entry.lua"
         },
         {
           "source": "mod/manager-party.lua",
@@ -489,32 +493,12 @@
           "source": "mod/save-identity-probe.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/save-identity-probe.lua"
         }
-      ],
-      "plannedDependencyComponents": [
-        {
-          "dependencyId": "mcm",
-          "onlyExtension": ".lua",
-          "preserveGameRelativeArchiveEntryPaths": true,
-          "expectedFileCount": 57,
-          "selection": "approved Lua entries from the pinned MCM source archive; no user settings or bindings",
-          "status": "dependency-distribution-and-compatibility-review-required"
-        }
       ]
     },
     {
       "id": "runtime",
       "filename": "AI-NPC-Cyberpunk-Mod-Runtime.zip",
       "forbiddenExtension": ".lua",
-      "plannedDependencyComponents": [
-        {
-          "dependencyId": "mcm",
-          "forbiddenExtension": ".lua",
-          "preserveGameRelativeArchiveEntryPaths": true,
-          "expectedFileCount": 34,
-          "selection": "19 MCM locale JSON files, 14 MCM redscript files and ModConfigurationMenuAPI/data/storage.version from the pinned source archive; no user settings or bindings",
-          "status": "dependency-distribution-and-compatibility-review-required"
-        }
-      ],
       "files": [
         {
           "source": "characters/world-knowledge.json",
@@ -710,6 +694,7 @@
             "bridge/quest-context.mjs",
             "bridge/quest-overview.mjs",
             "bridge/realtime-host.mjs",
+            "bridge/reasoning.mjs",
             "bridge/relationship-routing.mjs",
             "bridge/reply-language.mjs",
             "bridge/reply-stream.mjs",
@@ -1121,13 +1106,15 @@
       "developmentVersion": "1.9.9"
     },
     {
-      "name": "MCM",
-      "developmentVersion": "0.10.3",
-      "dependencyId": "mcm",
-      "sourceArchive": "ref mods/Mod Configuration Menu 31640 0.10.3 2026-09-21T16-50Z YfTif7TNd.zip",
-      "sourceArchiveSha256": "503018b1aca4e8cbac96c55fe5ee3f16e5132d190d44933e6e20084060a34c6f",
+      "name": "Native Settings UI",
+      "developmentVersion": "1.96",
+      "dependencyId": "nsui",
+      "nexus": "https://www.nexusmods.com/cyberpunk2077/mods/3518",
+      "testedWith": "1.96",
+      "sourceArchive": "ref mods/Native Settings UI 1.96-3518-1-96-1704576025.zip",
+      "sourceArchiveSha256": "a965c9878c291f082e9714b770aece565572c613ae33f89fbf10548ca731081a",
       "wholeArchiveCopyAllowed": false,
-      "bundlingStatus": "dependency-distribution-and-compatibility-review-required"
+      "bundlingStatus": "not bundled: the player installs it from Nexus Mods (the Companion Manager is a tab of its Mods screen)"
     }
   ],
   "dependencyPolicy": "Version inventory is the current development setup, not an automatic authorization to redistribute third-party game plugins; resolve notices, distribution and compatibility before claiming two ZIPs are sufficient.",

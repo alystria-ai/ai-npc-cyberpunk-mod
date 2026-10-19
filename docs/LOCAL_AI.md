@@ -43,7 +43,12 @@ do anything:
 3. The voice is only changed as a last resort.
 
 If the pack is missing or the model cannot start, the same fallback applies. To try again, choose another provider and Apply, then choose
-Local AI and Apply again.
+Local AI and Apply again, or choose another Local AI model (a new model choice, or turning Mature content on or off, tries the start again).
+
+Convai takes the turns only while it can answer them. When you have no Mistral key and Convai's free tier has used today's turns, the turns
+stay on Local AI and each one says why it could not be answered: "Not enough free graphics memory to start Local AI. Try a smaller model in
+Settings." or "Local AI could not start. Check Local AI in Settings > Conversation provider." (never the Convai daily limit, which would tell
+you to try the Local AI you already chose).
 
 ### Choosing the model
 
@@ -365,7 +370,12 @@ Omni loads first and the tier is chosen from what is left: the supervisor's `bef
 at most two minutes, until the requested voice has settled, and then reads the free video memory. Standard fits if free memory is at
 least its file size plus 1.2 GB, else lite if it is at least its file size plus 0.7 GB, else the supervisor fails with `low-memory`,
 `MistralProvider.noteLocalFailure` is called once, and the provider falls back to Mistral (with a key) or Convai at the next idle boundary
-with the single `local-fallback` notice.
+with the single `local-fallback` notice. Convai only while it can answer (`MistralProvider.convaiAvailable`, which the bridge points at the shared
+key's day: the local count or the sign-in backend's answer): with that day used up and no Mistral key the provider stays `local`
+(`localDown`), a failed turn carries `local-no-memory` or `local-unavailable` instead of `local-fallback` or `daily-limit`
+(`MistralProvider.failureCode`), and the bridge logs `[LocalAI] Local AI is unavailable (<reason>) and Convai's free turns for today are used`.
+A change of the model choice or of Mature content clears a `low-memory`, `start-failed` or `crashed` failure and starts again
+(`syncLocalModelChoice`).
 
 ### Context budget
 
@@ -499,7 +509,7 @@ setting), `requested` and `applied`; a switch happens only at an idle boundary. 
   model whose header gives neither away. A model whose file plus the tier headroom is more than the card's total memory is listed with
   `tooLarge` (the total comes from `llama-server --list-devices` after the first start, else from one `nvidia-smi` call at most once a
   minute while the manifest lists models); `chooseLocalModel` never picks it, and a pin on it falls back with `low-memory`. The published
-  list entry of a custom model also carries `custom: true` and `needMiB`, and `mcm.lua` adds the "(custom)" label and the memory line to the
+  list entry of a custom model also carries `custom: true` and `needMiB`, and `manager-ui.lua` adds the "(custom)" label and the memory line to the
   help. Ids are `custom:<file name>`. A custom model takes part in the default choice and the fallback like any other model (`autoEligible`
   and the `auto` flag are gone); with Mature content on, the uncensored models are tried first. The server starts a custom model with its `contextSize` (else the ladder) and
   `--chat-template`; the loaded server's `modelHints` (`{uncensored, family}`) reach `allowanceFor(name, hints)`, where the flag decides
@@ -518,9 +528,9 @@ setting), `requested` and `applied`; a switch happens only at an idle boundary. 
   default with no notice. The `model-fallback` event carries `model` (the name used); `MistralProvider.noteLocalModelFallback(model)` keeps
   it and the reply carries `keyNoticeModel` beside `keyNotice: 'local-model-fallback'`.
 - Lua: `localModel` (an id, or `auto` for nothing chosen; `manager.lua` validates ids and `localModelChoices()` has no Auto entry).
-  `mcm.lua` builds the row from `manager.localModelChoices()`, shows `manager.localModelDefaultId()` as selected for `auto` or a saved
-  model that is gone (the saved value stays until Apply), and maps the selected position back to an id. `applySettings` replaces a saved or
-  staged `auto` by the default model's id on any Apply (silently; with no model installed it stays `auto`). `matureTurnedOn` stages
+  `manager-ui.lua` builds the row from `manager.localModelChoices()`, shows `manager.localModelDefaultId()` as selected for `auto` or a saved
+  model that is gone (the saved value stays until the player changes it), and maps the selected position back to an id. `applySettings` replaces a saved
+  `auto` by the default model's id on any save (silently; with no model installed it stays `auto`). `matureTurnedOn` stages
   `manager.localModelMatureId()` (record `{before, set = <that id>}`), or nothing; a legacy Mature record with `set = 'auto'` is matched
   against the default model's position when turning Mature off. With no model installed the row has one placeholder, "No model installed".
 
@@ -573,7 +583,7 @@ with Mature content on the default choice and the fallback prefer the largest on
   `MatureContent` has two inputs, `requested` (the settings file) and `pack` (the scan); `enabled` is `requested`. Finding or losing the
   pack changes only the pack flag (`setPack` says whether it changed), never the layer, the guard or the prepared replies.
 - Lua: the bridge publishes `maturePack` in `runtime/mistral-state.json` (`MistralControl.status`); `manager.mistral().maturePack` reads it.
-  `mod/mcm.lua` always builds the "Mature content" row. Its help ends with three plain sentences: that a safety check on messages and
+  `mod/manager-ui.lua` always builds the "Mature content" row. Its help ends with three plain sentences: that a safety check on messages and
   replies refuses anything romantic or sexual involving minors on every model, and either "The Mature pack (uncensored models) is
   installed." or "... is not installed. It is an optional download on the Hugging Face page of this mod.", plus "Choosing a cloud provider turns it off."
   (the old "Not using Local AI right now: no effect yet." line is gone, see below). `manager.applySettings` accepts `matureContent` whatever the pack says, and the snapshot reports the file's value.

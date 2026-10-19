@@ -155,7 +155,9 @@ function M.failureCode(now)
 end
 
 -- The sentence for a kind of fault. `detail` (a failed kind's own words from detailOf) follows the failed sentence in brackets: it is the
--- service's code, stage and reason, in English, so a screenshot of the notice is enough to find the cause.
+-- service's code, stage and reason, in English. Only places with room pass it (the Settings rows built from the short report's
+-- serviceMessage): the notices (notice, blockedMessage, lostSince) are the game's warning line, which holds two lines, and the failed
+-- sentence alone fills them (docs/NOTIFICATIONS.md, "How much a notice can say"); its own words are in failureDetail and the short report.
 function M.message(kind, detail)
     if kind == 'starting' then return ui.t('The conversation service is starting. Try again in a few seconds.') end
     if kind == 'restarted' then return ui.t('The conversation service restarted. Please try again.') end
@@ -169,10 +171,10 @@ function M.message(kind, detail)
     return ui.t('The conversation service is not running. Restart the game to start it again.')
 end
 
--- A localized explanation when a new conversation cannot be served, else nil.
+-- A localized explanation when a new conversation cannot be served, else nil. A notice: the plain sentence, without the status's words.
 function M.blockedMessage(now)
     local state = M.unavailable(now)
-    return state and M.message(state.kind, state.detail), state and state.kind
+    return state and M.message(state.kind), state and state.kind
 end
 
 -- The status's own words (code, stage, reason) while the service is reported as failed, for the short report; nil otherwise.
@@ -192,10 +194,7 @@ function M.lostSince(sentAt, now)
     local since = service.since / 1000
     if since < sentAt - 1 then return nil end
     if service.state == 'restarting' or service.state == 'stopping' then return M.message('starting') end
-    if service.state == 'failed' then
-        local kind = failureKind(service)
-        return M.message(kind, kind == 'failed' and detailOf(service) or nil)
-    end
+    if service.state == 'failed' then return M.message(failureKind(service)) end
     if service.state == 'stopped' then return M.message('stopped') end
     if service.state == 'ready' and type(service.restarts) == 'number' and service.restarts > 0 and since > sentAt + 1 then
         return M.message('restarted')
@@ -218,7 +217,31 @@ function M.notice(now)
     local down = M.unavailable(now)
     if not down then return nil end
     noticedSince = service.since
-    return M.message(down.kind, down.detail)
+    return M.message(down.kind)
+end
+
+-- Why a turn V sent has had no reply for `seconds` while the service is up (blockedMessage and lostSince found nothing wrong with it), or nil
+-- when nothing is known (the caller keeps its general sentence). Read once, at that timeout, never per frame:
+--   * the bridge's own status, runtime/bridge-status.json: 'thinking' names the turn it took (requestId) and the provider that took it, and
+--     'ready' or 'error' the turn it finished;
+--   * `provider`, the bridge's provider status as manager.mistral() reads it: `provider` is the setting, `localAi` Local AI's state.
+-- A turn the service never took was lost or replaced before it was read. One Local AI took is still waiting for its model to load, or took
+-- too long. One Convai took while the setting is Local AI went there because Local AI was not ready.
+function M.noReplyMessage(requestId, provider, seconds)
+    if type(requestId) ~= 'string' or requestId == '' then return nil end
+    local status = readJson('runtime/bridge-status.json')
+    if type(status) ~= 'table' then return nil end
+    if status.requestId ~= requestId then return ui.t('The conversation service did not get that message. Try again.') end
+    seconds = math.floor(tonumber(seconds) or 90)
+    provider = type(provider) == 'table' and provider or {}
+    if status.state == 'thinking' and status.provider == 'local' then
+        if provider.localAi == 'warming' then return ui.t('Local AI is still loading its model. Try again in a moment.') end
+        return ui.t('Local AI did not answer within {seconds} s. Try again, or choose a smaller model in Settings.', {seconds = seconds})
+    end
+    if status.state == 'thinking' and status.provider == 'convai' and provider.provider == 'local' then
+        return ui.t('Local AI is not ready, so Convai took that message and did not answer in time.')
+    end
+    return ui.t('No reply arrived within {seconds} s. Try again.', {seconds = seconds})
 end
 
 convaiServiceStatus = M

