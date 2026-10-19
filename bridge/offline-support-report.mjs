@@ -513,6 +513,9 @@ export async function offlineSecrets({stateDirectory, project, env = {}}) {
   }
   const packed = project ? await readSmall(join(project, 'defaults', 'service.txt'), 4096) : null;
   if (packed !== null) { const parsed = readKeyFileText(packed); if (parsed) add(parsed.key); }
+  // The error reports' signing secret a release ships (bridge/error-reports.mjs, app/defaults/error-reports.json).
+  const shipped = project ? await readSmall(join(project, 'defaults', 'error-reports.json'), 4096) : null;
+  if (shipped !== null) { try { add(JSON.parse(shipped.replace(/^﻿/, ''))?.secret); } catch { /* not JSON: nothing to scrub */ } }
   add(env?.CYBERPUNK_CONVAI_AUTH_SECRET);
   return found;
 }

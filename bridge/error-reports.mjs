@@ -58,15 +58,38 @@ export const hashInstall = installId => createHash('sha256').update(`error-repor
 
 // ------------------------------------------------------------------ the address
 
+// The backend's address and signing secret as a release ships them: app/defaults/error-reports.json in the Runtime package,
+// {"version": 1, "url": "https://<deployment>", "secret": "<the deployment's CONVAI_AUTH_SIGNING_SECRET>"}. Written by the release build;
+// the repository has none. Only the url's origin is used. The secret is obfuscation, not authentication (auth-backend/README.md).
+export const PACKAGED_TARGET_FILE = join('defaults', 'error-reports.json');
+
+/** The packaged address, {url, secret}, or null when the file is missing, damaged, not https (or a local address) or its secret is short. */
+export async function packagedTarget({project, readText = path => readFile(path, 'utf8')} = {}) {
+  if (!project) return null;
+  try {
+    const value = JSON.parse((await readText(join(project, PACKAGED_TARGET_FILE))).replace(/^﻿/, ''));
+    const secret = typeof value?.secret === 'string' ? value.secret.trim() : '';
+    const url = new URL(typeof value?.url === 'string' ? value.url.trim() : '');
+    const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+    if (secret.length < 16 || !(url.protocol === 'https:' || (url.protocol === 'http:' && local))) return null;
+    return {url: url.href, secret};
+  } catch { return null; }
+}
+
 /**
- * Where reports go: CYBERPUNK_CONVAI_ERRORS_URL, else /api/errors/report on the sign-in backend's address (convai-auth.json or the
- * environment, bridge/convai-credential.mjs), signed with the same secret. null when neither an address nor a secret is known: then
- * nothing is sent and events wait in the queue (for at most a week).
+ * Where reports go: /api/errors/report on the first backend address that comes with a secret, signed with that secret:
+ *   1. the sign-in backend's own settings (the environment or convai-auth.json in the data folder, bridge/convai-credential.mjs; backend
+ *      mode does not have to be on): a developer's machine;
+ *   2. app/defaults/error-reports.json (packagedTarget): a released Runtime.
+ * CYBERPUNK_CONVAI_ERRORS_URL replaces the address (not the secret). null when no source has both: then nothing is sent and events
+ * wait in the queue (for at most a week).
  */
-export async function reportTarget({env = process.env, stateDirectory, readText} = {}) {
-  const address = await readBackendAddress({env, readText, ...(stateDirectory ? {path: join(stateDirectory, AUTH_CONFIG_FILE)} : {})});
-  if (!address) return null;
+export async function reportTarget({env = process.env, stateDirectory, project, readText} = {}) {
+  const configured = await readBackendAddress({env, ...(readText ? {readText} : {}), ...(stateDirectory ? {path: join(stateDirectory, AUTH_CONFIG_FILE)} : {})});
+  const packaged = await packagedTarget({project, ...(readText ? {readText} : {})});
   const explicit = String(env.CYBERPUNK_CONVAI_ERRORS_URL ?? '').trim();
+  const address = configured?.url ? configured : packaged ?? (explicit && configured ? configured : null);
+  if (!address) return null;
   let url;
   try { url = explicit ? new URL(explicit) : address.url ? new URL(REPORT_PATH, new URL(address.url).origin) : null; } catch { return null; }
   if (!url) return null;
@@ -243,6 +266,8 @@ async function collectLogs({paths, record, clean}) {
 /** Every value to scrub: the key files of the data folder, the sign-in file's secret, the custom servers' keys, the packed key. */
 export async function reportSecrets({stateDirectory, project, environment = process.env, extra = []}) {
   const found = [...extra];
+  const packaged = await packagedTarget({project});
+  if (packaged) found.push(packaged.secret);
   for (const list of await Promise.all([credentialSecrets(stateDirectory).catch(() => []),
     customServerSecrets({project, environment}).catch(() => []), offlineSecrets({stateDirectory, project}).catch(() => [])])) found.push(...list);
   return found;
@@ -472,7 +497,7 @@ export class ErrorReporter {
 
   async #target() {
     if (this.targetOverride !== undefined) return this.targetOverride;
-    return reportTarget({env: this.env, stateDirectory: this.stateDirectory});
+    return reportTarget({env: this.env, stateDirectory: this.stateDirectory, project: this.project});
   }
 
   async #send(target, body) {

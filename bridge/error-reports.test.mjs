@@ -512,3 +512,26 @@ test('end to end with the real backend handler: stored once, listed and fetched 
     for (const value of [INSTALL, hashInstall(INSTALL), '198.51.100.23', PLANTED.shortKey]) assert.ok(!stored.includes(value), `${value} is not stored`);
   } finally { reporter.close(); await f.cleanup(); }
 });
+
+test('a released Runtime sends to the address in app/defaults/error-reports.json; the data folder\'s settings win; its secret is scrubbed', async () => {
+  const {offlineSecrets} = await import('./offline-support-report.mjs');
+  const f = await folders();
+  const shipped = `shipped-${SIGNING_SECRET}`;
+  try {
+    await mkdir(join(f.project, 'defaults'), {recursive: true});
+    await writeFile(join(f.project, 'defaults', 'error-reports.json'), JSON.stringify({version: 1, url: 'https://shipped.example/anything', secret: shipped}));
+    assert.deepEqual(await reportTarget({env: {}, stateDirectory: f.state, project: f.project}), {url: 'https://shipped.example/api/errors/report', secret: shipped});
+    await writeFile(join(f.state, 'convai-auth.json'), JSON.stringify({enabled: false, url: 'https://dev.example/api/convai/token', secret: SIGNING_SECRET}));
+    assert.deepEqual(await reportTarget({env: {}, stateDirectory: f.state, project: f.project}), {url: 'https://dev.example/api/errors/report', secret: SIGNING_SECRET});
+    await writeFile(join(f.project, 'defaults', 'error-reports.json'), JSON.stringify({url: 'http://shipped.example/', secret: shipped}));
+    await rm(join(f.state, 'convai-auth.json'));
+    assert.equal(await reportTarget({env: {}, stateDirectory: f.state, project: f.project}), null, 'only https');
+    await writeFile(join(f.project, 'defaults', 'error-reports.json'), JSON.stringify({url: 'https://shipped.example/', secret: shipped}));
+    await writeFile(join(f.state, 'bridge.stderr.log'), `Error: boom with ${shipped} in it\n`);
+    const record = {signature: 'bbbbbbbbbbbbbbbb', kind: 'bridge-exception', count: 1, firstAt: START, lastAt: START, message: `boom ${shipped}`, frame: '', stack: []};
+    const {body} = await buildErrorPayload({record, game: f.game, modRoot: f.modRoot, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      installId: INSTALL, environment: {}, names: [], graphics: () => [], now: () => START});
+    assert.ok(!body.includes(shipped), 'the shipped secret never leaves');
+    assert.ok((await offlineSecrets({stateDirectory: f.state, project: f.project})).includes(shipped), 'Make support report.bat scrubs it too');
+  } finally { await f.cleanup(); }
+});
