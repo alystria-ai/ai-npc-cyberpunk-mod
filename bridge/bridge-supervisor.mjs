@@ -25,6 +25,13 @@ export const MOD_RUNTIME = 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberp
 // released by the kernel when the holder exits, so a crash never leaves it stale.
 const EXCLUSIVE = process.platform === 'win32' ? (constants.UV_FS_O_EXLOCK ?? 0x10000000) : 0;
 
+// The Mod Organizer 2 stat fallbacks the packaged start script named (app/launcher/usvfs-compat.mjs, childEnvironment): a file URL
+// of that one module, and only when the start script found usvfs in its own process. Anything else is never loaded into the bridge.
+export function usvfsCompatImport(env) {
+  const url = env.CYBERPUNK_CONVAI_USVFS_IMPORT;
+  return env.CYBERPUNK_CONVAI_USVFS === '1' && typeof url === 'string' && /^file:\/\/\/[^\s"']+\/launcher\/usvfs-compat\.mjs$/i.test(url) ? url : null;
+}
+
 export const DEFAULT_TIMINGS = Object.freeze({
   pollMs: 250, gamePollMs: 1000, heartbeatMs: 5000, readyTimeoutMs: 180_000,
   shutdownGraceMs: 45_000, shutdownRepeatMs: 2000, killWaitMs: 10_000,
@@ -258,6 +265,10 @@ export class BridgeSupervisor {
       CYBERPUNK_CONVAI_KEY_FILE: this.keyFile, CYBERPUNK_CONVAI_GAME: this.gameRoot};
     // An inherited debugger or import hook must not reach the service.
     delete env.NODE_OPTIONS; delete env.NODE_PATH;
+    // The one exception: under Mod Organizer 2 the packaged start script asks for its stat fallbacks (app/launcher/usvfs-compat.mjs)
+    // in every Node process it starts, so the bridge and its workers see the files that exist only in an MO2 mod folder.
+    const compat = usvfsCompatImport(env);
+    if (compat) env.NODE_OPTIONS = `--import=${compat}`;
     return env;
   }
 

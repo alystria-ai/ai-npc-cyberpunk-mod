@@ -54,7 +54,7 @@ tool `test-release-install.mjs` matches package files by exact version, so 0.2 n
 ```
 red4ext/plugins/AiNpcCyberpunkMod/
   CyberpunkConvai.dll        launcher (native/autostart, compiled in the build)
-  launcher.ini               UTF-16: %PLUGIN%\app\node\node.exe app\launcher\start-service.mjs
+  launcher.ini               UTF-16: %PLUGIN%\app\node\node.exe --eval <bootstrap> app\launcher\start-service.mjs (packaging/lib/launcher-ini.mjs)
   Make support report.bat    double-click tool: a support report made with the game closed (CRLF, written by the build)
   app/                       the application, replaced by every update
     node/node.exe            official Node.js (node.exe and LICENSE only)
@@ -98,8 +98,9 @@ entry whose game-relative path would exceed 255 characters under a 70-character 
 ## How it starts
 
 1. RED4ext loads `CyberpunkConvai.dll`. It checks that CET and the CET mod are present, reads
-   `launcher.ini` and starts `app\node\node.exe app\launcher\start-service.mjs` hidden, with a pipe
-   whose closing tells the service that the game ended.
+   `launcher.ini` and starts `app\node\node.exe --eval <bootstrap> app\launcher\start-service.mjs` hidden, with a pipe
+   whose closing tells the service that the game ended. The bootstrap (`packaging/lib/launcher-ini.mjs`) loads the script where it is,
+   or from its real place when Node's stat cannot see it (a Runtime installed as a Mod Organizer 2 mod, below).
 2. `start-service.mjs` prepares `data/` (below), joins split files left by an earlier release on the first start
    (verifying their SHA-256; current packs have none), and sets every path explicitly:
    `CYBERPUNK_CONVAI_CLIENT_ASSETS`, the four `CYBERPUNK_CONVAI_OMNI_*`
@@ -302,7 +303,34 @@ ever modify or replace them (no player usvfs log was available; the design works
 A player on the Ultraviolence modlist installed the Runtime and the Scripts as MO2 mods: no Runtime file is in the game folder, and the
 game read only the launcher's `starting` in `runtime/bridge-service.json`, for good. The Runtime's real place is then a mod folder in
 the MO2 instance (`mods\<name>\red4ext\plugins\AiNpcCyberpunkMod\...`); the launcher, `node.exe` and the service all reach it through
-USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `bridge/supervisor-lock-status.test.mjs`):
+USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `bridge/supervisor-lock-status.test.mjs`,
+`packaging/usvfs-compat.test.mjs`, `packaging/usvfs-runtime.test.mjs`):
+
+- **The cause (live MO2 test, 2026-10-19, `deliverables/mo2/REPRO.md`).** MO2 2.5.2 (usvfs 0.5.6.1) on Windows 11 25H2, Scripts and
+  Runtime 0.2.2-pre as MO2 mods: the launcher started `node.exe` (injected by usvfs, as every child of the game is) and Node ended at
+  once with `Cannot find module ...\app\launcher\start-service.mjs`, exit code 1, before any line of ours ran. The bundled Node 24
+  (libuv 1.52) cannot `stat`, `lstat`, `exists` or JavaScript-`realpath` a file that exists only in an MO2 mod folder (ENOENT),
+  while `open`, `readFile`, `readdir`, `access` and `realpathSync.native` of the same path work; Node's entry lookup uses stat.
+  Most likely libuv's stat goes through the Windows 11 24H2 `GetFileInformationByName` call, which usvfs 0.5.6.1 does not hook. The
+  bundled Python 3.12 has the same stat, and usvfs also answers `GetModuleFileNameW` with the virtual path, so Python started from its
+  real place still took the virtual folder for its home ("No module named 'encodings'").
+- **The fix** (only inside usvfs; a physical install runs none of it, and its launcher.ini change only adds the bootstrap's one stat):
+  `launcher.ini` starts Node with a bootstrap that loads `start-service.mjs` from its real place (`realpathSync.native`) when stat
+  cannot see it, keeping `process.argv` as before. `start-service.mjs` finds usvfs among its loaded libraries and puts in the stat
+  fallbacks of `app/launcher/usvfs-compat.mjs` before it looks at the game folder: `stat`, `lstat`, `exists`, `mkdir -p` and the
+  JavaScript `realpath` fall back to an opened handle and `fstat`, `access`, and the path itself, when the plain call says ENOENT (a
+  really missing file still says ENOENT). The game side (the CET mod's `runtime/`) stays at its virtual place, where the game, the
+  Scripts mod, the Runtime mod and Overwrite meet; the Runtime's own files run from their real place, so Python, llama-server and the
+  bridge get real paths. The optional packs are looked up at their virtual place (`app/local-ai`, `app/omni`) and used from their
+  real one, so a pack installed as its own MO2 mod is found. The bridge and every Node process it starts get the same fallbacks through
+  `NODE_OPTIONS=--import=<file URL of usvfs-compat.mjs>`: the supervisor drops any inherited `NODE_OPTIONS` and puts back only that one
+  module, named in `CYBERPUNK_CONVAI_USVFS_IMPORT` (`usvfsCompatImport`). The bundled Pythons' `python3XX._pth` lines become absolute
+  real paths (`pinPythonPaths`; the package text is kept beside it as `python3XX._pth.package`, so a moved MO2 instance is pinned
+  again and an update's file is taken as the new package text). The `View:` line says `(stat fallbacks on)` and
+  `the Runtime is in an MO2 mod folder (<real app>, started as <virtual app>)`.
+- **Packs and MO2.** The Local AI and OmniVoice packs work as their own MO2 mods (their roots are resolved separately); the OmniVoice
+  pack's voice clips under `voices/` are found only when that pack is merged into the Runtime's MO2 mod (or installed in the game folder),
+  because `voices/` is read from the Runtime's real folder.
 
 - **No path comparison on the start path.** `installLayout` (`prepare-state.mjs`) takes the game's folders from `--game-root` and the
   Runtime's from the script's own place; nothing resolves a link or compares a resolved path with the game root.
@@ -342,11 +370,12 @@ USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `br
 - **Where to look.** `%LOCALAPPDATA%\AiNpcCyberpunkMod\data\bridge-service.log` (the `View:` line; the data home does not depend on MO2),
   `bridge.stderr.log` beside it, and `launcher.log`: in the Runtime mod's folder (`mods\<Runtime mod>\red4ext\plugins\AiNpcCyberpunkMod\`)
   because the packaged one is an existing file, or in `overwrite\red4ext\plugins\AiNpcCyberpunkMod\` when the Runtime has none. The
-  launcher takes `%PLUGIN%` from `GetModuleFileNameW` of its own DLL, which may be the virtual or the real path; both work while the
-  service is inside the virtual file system, and only the real one when it is not.
+  launcher takes `%PLUGIN%` from `GetModuleFileNameW` of its own DLL, which usvfs answers with the virtual path (seen in the MO2 test);
+  both work while the service is inside the virtual file system, and only the real one when it is not.
 - **Not done:** the launcher (native, `CyberpunkConvaiLauncher.c`) cannot say that the process it started ended at once, or with what
-  code; that needs a watcher thread and a rebuilt DLL. A service that runs outside the virtual file system cannot be made to talk to
-  the game by the Runtime alone.
+  code; that needs a watcher thread and a rebuilt DLL (the MO2 cause above was found from the usvfs debug log and a probe instead). A
+  service that runs outside the virtual file system cannot be made to talk to the game by the Runtime alone. Under MO2 the launcher's
+  `CREATE_BREAKAWAY_FROM_JOB` is refused (MO2 keeps its own job) and it falls back to a plain start, which is fine.
 
 - **Override:** `CYBERPUNK_CONVAI_DATA_HOME` (an absolute path) is the folder that holds `data/`, for development or a player who
   wants it elsewhere; a relative value is ignored (one line in `bridge-service.log`). Without `%LOCALAPPDATA%` the data stays in the

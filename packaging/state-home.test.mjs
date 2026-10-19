@@ -198,7 +198,7 @@ test('a data home inside the old folder, or the same folder, is never treated as
 // new place, nothing new is written under the CET mod folder except runtime/, and a second start is a normal start.
 async function installedApp(game) {
   const app = join(game, APP);
-  for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs', 'state-home.mjs']) {
+  for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs', 'state-home.mjs', 'usvfs-compat.mjs']) {
     await mkdir(join(app, 'launcher'), {recursive: true});
     await cp(join(project, 'packaging/runtime', name), join(app, 'launcher', name));
   }

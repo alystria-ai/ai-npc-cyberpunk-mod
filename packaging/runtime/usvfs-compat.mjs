@@ -1,0 +1,231 @@
+// Mod Organizer 2 support for the conversation service when the Runtime (or the Scripts) is installed as an MO2 mod. Shipped as
+// app/launcher/usvfs-compat.mjs; it imports nothing from the bridge so it can be tested on its own.
+//
+// MO2 runs the game, and every process the game starts, inside its virtual file system, USVFS. A file that exists only in a mod folder
+// (mods\<name>\...) is visible at its place in the game folder because USVFS hooks the Windows calls that open, list and query files. Its
+// 0.5.6.1 release (MO2 2.5.2) most likely does not hook the newer "query by name" call that Windows 11 24H2 added (GetFileInformationByName),
+// which the bundled Node (24, libuv 1.52) and Python (3.12) try first for stat. What was seen: in an MO2 test, `fs.statSync`, `fs.lstatSync`, `fs.existsSync`
+// and the JavaScript `fs.realpathSync` said ENOENT for every file that lives only in a mod folder, while opening, reading, listing,
+// `fs.accessSync` and `fs.realpathSync.native` of the same path worked (deliverables/mo2/REPRO.md). Node could not even find the
+// service's entry script: "Cannot find module ...start-service.mjs", exit code 1, before any line of ours ran, so the game kept reading
+// the launcher's "starting" for good.
+//
+// Three parts, used only when usvfs is loaded in the process (a physical install never runs any of this):
+//   - locate(path): where a path really is. A virtual path (it opens but stat says ENOENT) maps to its real place with
+//     realpathSync.native (GetFinalPathNameByHandle on an opened handle, which USVFS redirects). The service runs its own files (the
+//     application, Python, the models) from their real place, so every process it starts (Node, Python, llama-server) sees plain files.
+//   - installUsvfsCompat(): stat, lstat, exists, mkdir (recursive) and the JavaScript realpath fall back to calls that USVFS does
+//     redirect when the plain call says ENOENT: an opened handle and fstat, access, and the path itself as its real path. The game's side
+//     (the CET mod's runtime/ folder, which the game's Lua reads and writes) must stay at its virtual place, because that is where the
+//     game, the Scripts mod, the Runtime mod and MO2's Overwrite folder meet. Child Node processes get the same fallbacks through
+//     NODE_OPTIONS (childEnvironment), and this module installs itself when it is imported with CYBERPUNK_CONVAI_USVFS=1.
+//   - pinPythonPaths(): the bundled Pythons' ._pth search paths made absolute and real (see there), for the same stat call.
+// A path that is really missing still says ENOENT (the fallback cannot open it either), at the cost of one more failed open.
+import fs from 'node:fs';
+import {syncBuiltinESMExports} from 'node:module';
+import {dirname, resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
+
+export const USVFS_VARIABLE = 'CYBERPUNK_CONVAI_USVFS';
+const INSTALLED = Symbol.for('ai-npc-cyberpunk-mod.usvfs-compat');
+const ORIGINALS = Symbol.for('ai-npc-cyberpunk-mod.usvfs-compat.originals');
+const USVFS_LIBRARY = /(?:^|[\\/])usvfs_x(?:64|86)\.dll$/i;
+
+// 'yes' when usvfs is among the process's loaded libraries (the same test bridge/setup-check.mjs makes), 'no', or 'unknown'.
+export function usvfsLoaded(report = () => process.report?.getReport?.()) {
+  try {
+    const objects = report()?.sharedObjects;
+    if (Array.isArray(objects)) return objects.some(path => USVFS_LIBRARY.test(String(path))) ? 'yes' : 'no';
+  } catch {}
+  return 'unknown';
+}
+
+const missing = error => error?.code === 'ENOENT';
+const recursive = options => typeof options === 'object' && options !== null && options.recursive === true;
+const pathText = path => path instanceof URL ? fileURLToPath(path) : Buffer.isBuffer(path) ? path.toString() : String(path);
+const originalsOf = base => base[ORIGINALS] ?? base;
+
+// Where a path really is: {kind: 'physical' | 'virtual' | 'missing', path}. Uses the plain stat even after installUsvfsCompat.
+export function locate(path, base = fs) {
+  const plain = originalsOf(base);
+  try { plain.statSync(path); return {kind: 'physical', path}; }
+  catch (error) { if (!missing(error)) return {kind: 'physical', path}; }
+  try { return {kind: 'virtual', path: plain.realpathSync.native(path)}; }
+  catch { return {kind: 'missing', path}; }
+}
+
+// The fallbacks, as functions over a base fs module (tests pass a fake one).
+export function compatFunctions(base = fs) {
+  const plain = {
+    statSync: base.statSync, lstatSync: base.lstatSync, existsSync: base.existsSync, stat: base.stat, lstat: base.lstat,
+    exists: base.exists, mkdirSync: base.mkdirSync, mkdir: base.mkdir, realpathSync: base.realpathSync, realpath: base.realpath,
+    openSync: base.openSync, fstatSync: base.fstatSync, closeSync: base.closeSync, accessSync: base.accessSync,
+    open: base.open, fstat: base.fstat, close: base.close,
+    promises: base.promises ? {stat: base.promises.stat, lstat: base.promises.lstat, mkdir: base.promises.mkdir,
+      realpath: base.promises.realpath, open: base.promises.open} : null,
+  };
+  const accessible = path => { try { plain.accessSync(path); return true; } catch { return false; } };
+  const statByHandleSync = (path, options) => {
+    const fd = plain.openSync(path, 'r');
+    try { return plain.fstatSync(fd, options); } finally { try { plain.closeSync(fd); } catch {} }
+  };
+  const directorySync = path => { try { return statByHandleSync(path).isDirectory(); } catch { return false; } };
+  // mkdir -p one folder at a time, accepting folders that exist only virtually.
+  const makeTree = path => {
+    const target = resolve(pathText(path));
+    if (directorySync(target)) return;
+    const parent = dirname(target);
+    if (parent !== target) makeTree(parent);
+    try { plain.mkdirSync(target); }
+    catch (error) { if (!(error?.code === 'EEXIST' && directorySync(target))) throw error; }
+  };
+  const realOf = (path, options) => {
+    const text = resolve(pathText(path));
+    const encoding = typeof options === 'string' ? options : options?.encoding;
+    return encoding === 'buffer' ? Buffer.from(text) : text;
+  };
+
+  function statLike(name) {
+    return function statSync(path, options) {
+      let result;
+      try { result = plain[name](path, options); }
+      catch (error) {
+        if (!missing(error)) throw error;
+        try { return statByHandleSync(path, options); }
+        catch { if (options?.throwIfNoEntry === false) return undefined; throw error; }
+      }
+      if (result === undefined && options?.throwIfNoEntry === false) {
+        try { return statByHandleSync(path, options); } catch { return undefined; }
+      }
+      return result;
+    };
+  }
+  function statLikeAsync(name) {
+    return function stat(path, options, callback) {
+      if (typeof options === 'function') { callback = options; options = undefined; }
+      plain[name](path, options, (error, stats) => {
+        if (!missing(error)) { callback(error, stats); return; }
+        plain.open(path, 'r', (openError, fd) => {
+          if (openError) { callback(error); return; }
+          plain.fstat(fd, options, (fstatError, handleStats) => plain.close(fd, () => {
+            if (fstatError) callback(error); else callback(null, handleStats);
+          }));
+        });
+      });
+    };
+  }
+  function statLikePromise(name) {
+    return async function stat(path, options) {
+      try { return await plain.promises[name](path, options); }
+      catch (error) {
+        if (!missing(error)) throw error;
+        let handle;
+        try { handle = await plain.promises.open(path, 'r'); } catch { throw error; }
+        try { return await handle.stat(options); } catch { throw error; } finally { await handle.close().catch(() => {}); }
+      }
+    };
+  }
+
+  const sync = {
+    statSync: statLike('statSync'),
+    lstatSync: statLike('lstatSync'),
+    existsSync(path) { return plain.existsSync(path) || accessible(path); },
+    mkdirSync(path, options) {
+      try { return plain.mkdirSync(path, options); }
+      catch (error) {
+        if (!recursive(options) || (error?.code !== 'ENOENT' && error?.code !== 'EEXIST')) throw error;
+        try { makeTree(path); } catch { throw error; }
+        return undefined;
+      }
+    },
+    realpathSync: Object.assign(function realpathSync(path, options) {
+      try { return plain.realpathSync(path, options); }
+      catch (error) { if (missing(error) && accessible(path)) return realOf(path, options); throw error; }
+    }, {native: plain.realpathSync?.native}),
+  };
+  const callbacks = {
+    stat: statLikeAsync('stat'),
+    lstat: statLikeAsync('lstat'),
+    exists(path, callback) { plain.exists(path, found => callback(found || accessible(path))); },
+    mkdir(path, options, callback) {
+      if (typeof options === 'function') { callback = options; options = undefined; }
+      plain.mkdir(path, options, (error, first) => {
+        if (!error || !recursive(options) || (error.code !== 'ENOENT' && error.code !== 'EEXIST')) { callback(error, first); return; }
+        try { makeTree(path); callback(null); } catch { callback(error); }
+      });
+    },
+    realpath: Object.assign(function realpath(path, options, callback) {
+      if (typeof options === 'function') { callback = options; options = undefined; }
+      plain.realpath(path, options, (error, resolved) => {
+        if (missing(error) && accessible(path)) callback(null, realOf(path, options)); else callback(error, resolved);
+      });
+    }, {native: plain.realpath?.native}),
+  };
+  const promises = plain.promises ? {
+    stat: statLikePromise('stat'),
+    lstat: statLikePromise('lstat'),
+    async mkdir(path, options) {
+      try { return await plain.promises.mkdir(path, options); }
+      catch (error) {
+        if (!recursive(options) || (error?.code !== 'ENOENT' && error?.code !== 'EEXIST')) throw error;
+        try { makeTree(path); } catch { throw error; }
+        return undefined;
+      }
+    },
+    async realpath(path, options) {
+      try { return await plain.promises.realpath(path, options); }
+      catch (error) { if (missing(error) && accessible(path)) return realOf(path, options); throw error; }
+    },
+  } : null;
+  return {plain, sync, callbacks, promises};
+}
+
+// Puts the fallbacks in place on node:fs (or a given module object) and updates the ES module bindings of node:fs and node:fs/promises,
+// so modules that import {stat} from 'node:fs/promises' see them too. Returns false when they were in place already.
+export function installUsvfsCompat({target = fs} = {}) {
+  if (target[INSTALLED]) return false;
+  const {plain, sync, callbacks, promises} = compatFunctions(target);
+  Object.defineProperty(target, ORIGINALS, {value: plain, enumerable: false});
+  Object.assign(target, sync, callbacks);
+  if (promises && target.promises) Object.assign(target.promises, promises);
+  Object.defineProperty(target, INSTALLED, {value: true, enumerable: false});
+  if (target === fs) syncBuiltinESMExports();
+  return true;
+}
+
+// Python under USVFS. USVFS also answers GetModuleFileNameW with the virtual path, so a bundled Python started from its real place still
+// takes the virtual folder for its home, joins the relative lines of its python3XX._pth to it and cannot stat its own python3XX.zip
+// ("No module named 'encodings'", seen in the MO2 test). Its stat has no fallback (CPython 3.12 uses the same Windows call as Node), so
+// the ._pth lines are made absolute, real paths: Python reads the file through the virtual path (open works) and then only meets real
+// paths. The package's own text is kept beside it (python3XX._pth.package) so that a moved MO2 instance is pinned again from it, and
+// a ._pth that an update put back (relative lines again) is taken as the new package text. Only ever run inside usvfs; a physical install
+// keeps the package's file. Returns the files it changed.
+const PTH_FILE = /^python\d+\._pth$/i;
+const relativeEntry = line => { const text = line.trim(); return text !== '' && !text.startsWith('#') && !/^import\s/.test(text) && !/^(?:[a-z]:[\\/]|[\\/]{2})/i.test(text); };
+export function pinPythonPaths(pythonDirectory, base = fs) {
+  const changed = [];
+  let names;
+  try { names = base.readdirSync(pythonDirectory).filter(name => PTH_FILE.test(name)); } catch { return changed; }
+  for (const name of names) {
+    const file = resolve(pythonDirectory, name), kept = `${file}.package`;
+    const current = base.readFileSync(file, 'utf8');
+    const lines = current.split(/\r?\n/);
+    let source = current;
+    if (lines.some(relativeEntry)) { if (readOrNull(base, kept) !== current) base.writeFileSync(kept, current); }
+    else source = readOrNull(base, kept) ?? current;
+    const pinned = source.split(/\r?\n/).map(line => relativeEntry(line) ? resolve(pythonDirectory, line.trim()) : line).join('\r\n');
+    if (pinned !== current) { base.writeFileSync(file, pinned); changed.push(file); }
+  }
+  return changed;
+}
+const readOrNull = (base, path) => { try { return base.readFileSync(path, 'utf8'); } catch { return null; } };
+
+// The environment that gives a child Node process the same fallbacks before its first line runs: NODE_OPTIONS loads this module from
+// its real place (a file URL never holds a space), and the variable tells it to install itself. The supervisor drops every inherited
+// NODE_OPTIONS for the bridge and puts this one back from USVFS_IMPORT_VARIABLE (bridge/bridge-supervisor.mjs, usvfsCompatImport).
+export const USVFS_IMPORT_VARIABLE = 'CYBERPUNK_CONVAI_USVFS_IMPORT';
+export function childEnvironment(moduleUrl = import.meta.url) {
+  return {NODE_OPTIONS: `--import=${moduleUrl}`, [USVFS_VARIABLE]: '1', [USVFS_IMPORT_VARIABLE]: moduleUrl};
+}
+
+if (process.env[USVFS_VARIABLE] === '1') installUsvfsCompat();

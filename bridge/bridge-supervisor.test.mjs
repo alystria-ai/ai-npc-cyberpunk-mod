@@ -5,8 +5,9 @@ import {mkdtemp, mkdir, readFile, writeFile, rm, realpath} from 'node:fs/promise
 import {tmpdir} from 'node:os';
 import {basename, dirname, join} from 'node:path';
 import {PassThrough} from 'node:stream';
+import {pathToFileURL} from 'node:url';
 import {setTimeout as sleep} from 'node:timers/promises';
-import {BridgeSupervisor, MOD_RUNTIME, parseSupervisorArguments, processAlive} from './bridge-supervisor.mjs';
+import {BridgeSupervisor, MOD_RUNTIME, parseSupervisorArguments, processAlive, usvfsCompatImport} from './bridge-supervisor.mjs';
 import {fakeBridgeSource} from './supervisor-fixture.mjs';
 import {packKey} from './key-codec.mjs';
 
@@ -111,6 +112,46 @@ test('starts one hidden bridge with the configured paths and stops it gracefully
   assert.equal(final.state, 'stopped'); assert.equal(final.bridgePid, null);
   for (const file of [f.statusPath, join(f.state, 'bridge-service.log')]) {
     assert.doesNotMatch(await readFile(file, 'utf8'), /fixture-key-not-a-credential/, 'the credential is never published');
+  }
+});
+
+test('under Mod Organizer 2 the bridge gets the start script\'s stat fallbacks and nothing else from NODE_OPTIONS', async t => {
+  const f = await fixture(t);
+  // Where the packaged start script has it: app/launcher/usvfs-compat.mjs.
+  const compatFile = join(f.root, 'app', 'launcher', 'usvfs-compat.mjs');
+  await mkdir(dirname(compatFile), {recursive: true});
+  await writeFile(compatFile, await readFile(new URL('../packaging/runtime/usvfs-compat.mjs', import.meta.url)));
+  const compat = pathToFileURL(compatFile).href;
+  const names = ['NODE_OPTIONS', 'CYBERPUNK_CONVAI_USVFS', 'CYBERPUNK_CONVAI_USVFS_IMPORT'];
+  const previous = Object.fromEntries(names.map(name => [name, process.env[name]]));
+  Object.assign(process.env, {NODE_OPTIONS: '--no-warnings', CYBERPUNK_CONVAI_USVFS: '1', CYBERPUNK_CONVAI_USVFS_IMPORT: compat});
+  let run;
+  try {
+    run = supervise(f);
+    await until(() => readJson(f.statusPath), value => value?.state === 'ready', 'bridge did not become ready with the fallbacks loaded');
+  } finally { for (const name of names) if (previous[name] === undefined) delete process.env[name]; else process.env[name] = previous[name]; }
+  const [pid] = await bridgePids(f.state);
+  assert.equal((await readJson(join(f.state, `fake-env-${pid}.json`))).nodeOptions, `--import=${compat}`);
+  run.endGame();
+  assert.deepEqual(await run.done, {state: 'stopped', code: 'game-exited'});
+});
+
+test('the stat fallbacks are let in only as the start script names them', () => {
+  const compat = 'file:///C:/Modding/MO2/mods/AI%20NPC%20Runtime/red4ext/plugins/AiNpcCyberpunkMod/app/launcher/usvfs-compat.mjs';
+  assert.equal(usvfsCompatImport({CYBERPUNK_CONVAI_USVFS: '1', CYBERPUNK_CONVAI_USVFS_IMPORT: compat}), compat);
+  assert.equal(usvfsCompatImport({CYBERPUNK_CONVAI_USVFS_IMPORT: compat}), null, 'only when the start script found usvfs');
+  for (const other of ['file:///C:/x/inspector-hook.mjs', 'C:\\x\\launcher\\usvfs-compat.mjs', 'file:///C:/x/launcher/usvfs-compat.mjs --inspect',
+    'data:text/javascript,1', '']) {
+    assert.equal(usvfsCompatImport({CYBERPUNK_CONVAI_USVFS: '1', CYBERPUNK_CONVAI_USVFS_IMPORT: other}), null, other);
+  }
+  const supervisor = new BridgeSupervisor({project: 'C:\\p', stateDirectory: 'C:\\s', keyFile: 'C:\\s\\k.txt', gameRoot: 'C:\\g', lifeline: null, timings});
+  const previous = {NODE_OPTIONS: process.env.NODE_OPTIONS, U: process.env.CYBERPUNK_CONVAI_USVFS};
+  try {
+    process.env.NODE_OPTIONS = '--inspect'; delete process.env.CYBERPUNK_CONVAI_USVFS;
+    assert.equal(supervisor.bridgeEnvironment().NODE_OPTIONS, undefined, 'outside MO2 nothing inherited reaches the bridge');
+  } finally {
+    if (previous.NODE_OPTIONS === undefined) delete process.env.NODE_OPTIONS; else process.env.NODE_OPTIONS = previous.NODE_OPTIONS;
+    if (previous.U === undefined) delete process.env.CYBERPUNK_CONVAI_USVFS; else process.env.CYBERPUNK_CONVAI_USVFS = previous.U;
   }
 });
 
