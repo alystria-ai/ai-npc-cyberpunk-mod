@@ -477,3 +477,30 @@ test('with a language that has its own font family the rows get it in batches; w
     assert(description.family == nil, 'the description area was not touched')
   `));
 });
+
+test('Inworld shows only in Developer mode, and no row on any page speaks of a shared key or plan or calls an option recommended', () => run(`${harness()}
+  local function everything()
+    local text = {}
+    for _, view in ipairs({'home', 'characters', 'party', 'models', 'settings', 'memory', 'help', 'paid-tier'}) do
+      core.setView(view); frames(view == 'models' and 140 or 8)
+      for _, section in ipairs(ns.sections()) do
+        text[#text + 1] = section.label
+        for _, option in ipairs(section.options) do
+          text[#text + 1] = option.label; text[#text + 1] = option.desc or ''; text[#text + 1] = option.buttonText or ''
+          for _, element in ipairs(option.elements or {}) do text[#text + 1] = element end
+        end
+      end
+    end
+    return table.concat(text, string.char(10)):lower()
+  end
+  local off = everything()
+  assert(not off:find('inworld', 1, true), 'Inworld is visible with Developer mode off')
+  assert(not off:find('recommend', 1, true) and not off:find('shared key', 1, true) and not off:find('shared plan', 1, true)
+    and not off:find('shared convai', 1, true), 'a banned word is on a page')
+  core.setView('settings'); frames(4)
+  ns.interact.toggle(ns.find('Developer mode')); frames(10)
+  assert(manager.snapshot(player).settings.developerMode == true)
+  local on = everything()
+  assert(on:find('inworld · needs key', 1, true) and on:find('inworld api key', 1, true), 'Developer mode lists the Inworld voice and its key row')
+  assert(not on:find('recommend', 1, true) and not on:find('shared key', 1, true) and not on:find('shared plan', 1, true))
+`));
