@@ -1426,6 +1426,14 @@ local function schema()
                 if row.id == 'johnnyInHead' then table.insert(conversations.settings, index + 1, standing); break end
             end
         end
+        -- Not released yet (the user, 2026-10-20: the next update ships without them): Johnny's hologram and V talks on their own are
+        -- shown only in developer mode. Both are Off by default, so a player never meets them.
+        if not developer then
+            for index = #conversations.settings, 1, -1 do
+                local id = conversations.settings[index].id
+                if id == 'johnnyHologram' or id == 'vTalks' then table.remove(conversations.settings, index) end
+            end
+        end
         categories[#categories + 1] = conversations
         -- Settings > Conversation provider: who writes the replies, Mature content, Local AI and the provider keys (the Inworld key is in
         -- Development).
