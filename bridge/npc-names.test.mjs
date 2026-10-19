@@ -456,6 +456,78 @@ test('a vendor of a stable record is the only one stored; a crowd ped is never w
   assert.equal(out, 'nil|0');
 });
 
+// ------------------------------------------------------------------------------------- where the store lives (Mod Organizer 2)
+// The file is player state like settings.json: it lives in runtime/, where the service keeps a copy outside the game folder
+// (bridge/game-state.mjs) and puts it back at its start (docs/PACKAGING.md "Mod Organizer 2: the player's state").
+const shopTraits = `{base = 'ripperdoc', category = 'vendor', gender = 'MALE', recordName = 'Character.wat_kab_ripperdoc_01', memoryKey = 'wat_kab_ripperdoc_01'}`;
+const defaultFixture = `${serviceFixture}
+  local function makeDefault(extra)
+    local options = {pools = POOLS, json = fakeJson, io = fakeIo,
+      entity = function(npc) return npc.id end,
+      inCombat = function(npc) return false end,
+      inspect = function(npc) return ordinary[npc.id] end,
+      apply = function(npc, name) return true end}
+    for k, v in pairs(extra or {}) do options[k] = v end
+    return M.new(options)
+  end
+`;
+test('the vendor file lives in runtime/ by default, and a file an earlier version left next to init.lua is still read', () => {
+  const out = run(`${defaultFixture}
+    ordinary['11ULL'] = ${shopTraits}
+    ordinary['12ULL'] = {base = 'ripperdoc', category = 'vendor', gender = 'MALE', recordName = 'Character.other_shop', memoryKey = 'other_shop'}
+    ioFiles['npc-names.json'] = fakeJson.encode({version = 1, names = {wat_kab_ripperdoc_01 = 'Kept Name'}, order = {'wat_kab_ripperdoc_01'}})
+    local N = makeDefault()
+    local kept = N.nameFor({id = '11ULL'}, 'talk')
+    local other = N.nameFor({id = '12ULL'}, 'talk')
+    local written = fakeJson.decode(ioFiles['runtime/npc-names.json'])
+    local old = fakeJson.decode(ioFiles['npc-names.json'])
+    RESULT = kept .. '|' .. tostring(written.names.wat_kab_ripperdoc_01) .. '|' .. tostring(written.names.other_shop == other) .. '|'
+      .. #written.order .. '|' .. #old.order .. '|' .. ioWrites`);
+  assert.equal(out, 'Kept Name|Kept Name|true|2|1|1', 'the old name is kept, the new store is in runtime/, the old file is not touched');
+});
+
+test('a store in runtime/ comes before the old file, and an explicit storePath reads nothing else', () => {
+  const out = run(`${defaultFixture}
+    ordinary['11ULL'] = ${shopTraits}
+    ioFiles['npc-names.json'] = fakeJson.encode({version = 1, names = {wat_kab_ripperdoc_01 = 'Old Name'}, order = {'wat_kab_ripperdoc_01'}})
+    ioFiles['runtime/npc-names.json'] = fakeJson.encode({version = 1, names = {wat_kab_ripperdoc_01 = 'Current Name'}, order = {'wat_kab_ripperdoc_01'}})
+    local current = makeDefault().nameFor({id = '11ULL'}, 'talk')
+    local explicit = makeDefault({storePath = 'elsewhere.json'}).nameFor({id = '11ULL'}, 'talk')
+    RESULT = current .. '|' .. (explicit == 'Old Name' and 'old' or explicit == 'Current Name' and 'current' or 'generated')`);
+  assert.equal(out, 'Current Name|generated');
+});
+
+test('while a restore may be on its way a vendor name is made but not kept and nothing is written; once it is over the saved names are used', () => {
+  const out = run(`${defaultFixture}
+    local pending = true
+    local asked = 0
+    ordinary['11ULL'] = ${shopTraits}
+    ordinary['12ULL'] = {base = 'ripperdoc', category = 'vendor', gender = 'MALE', recordName = 'Character.other_shop', memoryKey = 'other_shop'}
+    local N = makeDefault({waiting = function() asked = asked + 1; return pending end})
+    local first = N.nameFor({id = '11ULL'}, 'talk')
+    local early = ioWrites .. ':' .. tostring(ioFiles['runtime/npc-names.json'])
+    -- The service restores the file (it holds a name for the other shop), then the restore is over.
+    ioFiles['runtime/npc-names.json'] = fakeJson.encode({version = 1, names = {other_shop = 'Saved Name'}, order = {'other_shop'}})
+    pending = false
+    local second = N.nameFor({id = '12ULL'}, 'talk')
+    local stored = fakeJson.decode(ioFiles['runtime/npc-names.json'])
+    RESULT = early .. '|' .. second .. '|' .. tostring(stored.names.other_shop) .. '|' .. tostring(stored.names.wat_kab_ripperdoc_01 == nil) .. '|' .. ioWrites .. '|' .. asked`);
+  assert.equal(out, '0:nil|Saved Name|Saved Name|true|0|1', 'nothing written while waiting; the saved name came back (asked once: the second lookup found the file); the saved file was not replaced');
+});
+
+test('an ordinary vendor lookup never asks whether a restore is coming: the file is there, and a crowd ped never reads it at all', () => {
+  const out = run(`${defaultFixture}
+    local asked = 0
+    ordinary['11ULL'] = ${shopTraits}
+    ordinary['1ULL'] = {base = 'street-resident', category = 'resident', gender = 'MALE', recordName = 'Character.a'}
+    ioFiles['runtime/npc-names.json'] = fakeJson.encode({version = 1, names = {wat_kab_ripperdoc_01 = 'Kept Name'}, order = {'wat_kab_ripperdoc_01'}})
+    local N = makeDefault({waiting = function() asked = asked + 1; return true end})
+    N.nameFor({id = '1ULL'}, 'talk')
+    local kept = N.nameFor({id = '11ULL'}, 'talk')
+    RESULT = kept .. '|' .. asked`);
+  assert.equal(out, 'Kept Name|0');
+});
+
 // ----------------------------------------------------------------------------------------------- the bridge's context line
 test('the bridge passes the name through and tells the NPC "Your name is ..."', () => {
   const parsed = parseArchetype({base: 'valentinos', category: 'gang', title: 'Valentinos ganger', npcName: "Rico 'Chrome' Alvarez", district: 'Heywood'});

@@ -7,6 +7,9 @@ local legacyKeys = {'viktor-vektor', 'misty-olszewski', 'judy-alvarez',
     'panam-palmer', 'resident-male', 'resident-female'}
 local companions, profiles, byKey, byRecord = nil, {}, {}, {}
 local settings, settingsLoaded, settingsNeedSave = nil, false, false
+-- settings.json was missing or unreadable while the service may still have been restoring the copy it keeps outside the game folder
+-- (mod/state-restore.lua): the settings are defaults in memory only, nothing is saved, and the file is read again once that is over.
+local settingsDeferred = false
 local playerIdentity, initialized = nil, false
 local tab, query, page, selected = 'characters', '', 1, nil
 local assigning, returnQuery, returnPage = nil, '', 1
@@ -629,10 +632,23 @@ local function normalizeVoiceProvider(value)
     return DEFAULT_VOICE_PROVIDER
 end
 
+-- Asked only when settings.json is missing or unreadable, never on an ordinary start. No answer (the module did not load) is "no".
+local function restorePending()
+    local restore = convaiStateRestore
+    return restore ~= nil and restore.waiting() == true
+end
+
 local function loadSettings()
-    if settingsLoaded then return end
+    if settingsLoaded then
+        -- Deferred settings are read again once the restore is over (a getter asks, so this costs nothing while they are loaded). The next
+        -- initialize() hands the restored voice, subtitle and enabled values to the game, and saves what a new file needs.
+        if not settingsDeferred or restorePending() then return end
+        settingsDeferred, initialized = false, false
+    end
     settingsLoaded = true
-    settings = readJSON('runtime/settings.json') or readJSON('runtime/settings.json.previous') or {}
+    settings = readJSON('runtime/settings.json') or readJSON('runtime/settings.json.previous')
+    settingsDeferred = settings == nil and restorePending()
+    settings = settings or {}
     settingsNeedSave = settings.version ~= 2 or type(settings.enabledByKey) ~= 'table'
     settings.version = 2
     if settings.uiLanguage ~= 'auto' and not isChoice(settings.uiLanguage, ui.supported()) then
@@ -809,6 +825,8 @@ local function loadSettings()
 end
 
 local function saveSettings()
+    -- Never while the settings are defaults held back for a restore: they would replace the player's saved ones.
+    if settingsDeferred then return false end
     -- Preserve unknown settings and the old six-key projection for reloads.
     settings.enabled = {}
     for index, key in ipairs(legacyKeys) do settings.enabled[index] = settings.enabledByKey[key] ~= false end
@@ -845,7 +863,7 @@ end
 -- read again (at most every 1.5 s, never per frame) and does nothing but compare two strings while the choice is valid; a failed save is not retried.
 local goneModelSaveFailed = false
 repairGoneLocalModel = function()
-    if goneModelSaveFailed or not settings or not settingsLoaded then return end
+    if goneModelSaveFailed or not settings or not settingsLoaded or settingsDeferred then return end
     local replacement = goneLocalModelReplacement(settings.localModel, mistralState)
     if not replacement then return end
     local previous = settings.localModel
@@ -1237,7 +1255,7 @@ function M.configure(companionApi, profileList)
 end
 
 function M.reset()
-    playerIdentity, initialized, settingsLoaded, settings, settingsNeedSave = nil, false, false, nil, false
+    playerIdentity, initialized, settingsLoaded, settings, settingsNeedSave, settingsDeferred = nil, false, false, nil, false, false
     tab, query, page, selected = 'characters', '', 1, nil
     assigning, returnQuery, returnPage = nil, '', 1
     models, modelRows, modelSeen, modelIndex = {}, nil, {}, 1
@@ -1317,7 +1335,7 @@ local function initialize(player)
             pcall(function() player:ConvaiManagerSetEnabled(index - 1, settings.enabledByKey[key] ~= false) end)
         end
         initialized, dirty = true, true
-        if settingsNeedSave then
+        if settingsNeedSave and not settingsDeferred then
             settingsNeedSave = false
             if not saveSettings() then say('Settings are active, but could not be saved for next time.') end
         end

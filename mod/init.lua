@@ -5,6 +5,13 @@
 pcall(function() dofile('native-core.lua').install() end)
 -- Developer-mode probe: count and time every hook and onUpdate (no effect otherwise).
 pcall(function() dofile('perf-probe.lua').hookRegistrations() end)
+-- Is the service still restoring the player's saved files (mod/state-restore.lua, docs/PACKAGING.md "Mod Organizer 2")? A global: the readers
+-- of settings.json, phone-history.json, addon-settings.json and npc-names.json ask it only when their file is missing or empty. Absent, they
+-- behave as they always did.
+do
+    local restoreLoaded, restoreModule = pcall(dofile, 'state-restore.lua')
+    convaiStateRestore = restoreLoaded and type(restoreModule) == 'table' and restoreModule or nil
+end
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 -- The single gate for on-screen notices (notices.lua, docs/NOTIFICATIONS.md). If it cannot load, nothing is shown.
 local noticesLoaded, noticesModule = pcall(dofile, 'notices.lua')

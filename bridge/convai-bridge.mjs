@@ -103,7 +103,8 @@ import {LocalLlmServer, nvidiaTotalMiB} from './local-llm-server.mjs';
 import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, matureOffBlocks, normalisePin} from './local-model-choice.mjs';
 import {CustomModelScanner} from './custom-models.mjs';
 import {LlamaEmbedder} from './local-embed.mjs';
-import {watchFiles, createWakeSignal} from './file-wake.mjs';
+import {watchFiles, createWakeSignal, mergeHandlers} from './file-wake.mjs';
+import {GameStateSync} from './game-state.mjs';
 const leaseWake = createWakeSignal();
 import {PersonaBook, joinBlocks} from './mistral-prompt.mjs';
 import {LocalStt} from './local-stt.mjs';
@@ -117,6 +118,10 @@ const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(pro
 const game = process.env.CYBERPUNK_CONVAI_GAME || 'E:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077';
 const runtime = resolve(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/runtime');
 const keyFile = process.env.CYBERPUNK_CONVAI_KEY_FILE || resolve(stateDirectory, 'convai-key.txt');
+// The player's own state files in runtime/ (settings, phone chats, add-on settings, NPC names, ...): a copy is kept outside the game folder,
+// where Mod Organizer 2 cannot lose it (bridge/game-state.mjs). Only the packaged launcher turns this on, with the folder the copies are in.
+const gameStateFolder = process.env.CYBERPUNK_CONVAI_GAME_STATE;
+const gameState = gameStateFolder ? new GameStateSync({runtime, durable: resolve(gameStateFolder), log: message => console.error('[GameState] ' + message)}) : null;
 // Named characters, then the generic NPC archetypes (docs/NPC_ARCHETYPES.md). The archetype roster is optional:
 // without it (or without their IDs in characters.json) unnamed NPCs simply have no profile.
 const roster = [...JSON.parse(await readFile(resolve(project, 'characters/roster.json'), 'utf8')),
@@ -3017,6 +3022,7 @@ await companionActions.revoke();
 await status('waiting');
 await pollSettings(false);
 void setupCheck.run(null, {light: true}).catch(error => console.error('[CyberpunkConvai] Setup check:', error.message));
+void gameState?.poll();
 // The saved provider is applied (or the settings file could not be read yet, and the default stands until a later poll): the status file
 // says so from here on.
 mistral.statusHeld = false;
@@ -3037,7 +3043,10 @@ const lookaheadTimer = setInterval(() => { void pollLookahead().catch(error => c
 const addonTimer = addonHost.active ? setInterval(() => { for (const read of Object.values(addonHost.watchHandlers(runtime))) void read(); }, 1000) : null;
 addonTimer?.unref?.();
 // A poll that is still running when the service closes is rejected with 'Voice service is closed': expected at shutdown, not a fault.
-const settingsTimer = setInterval(() => { void pollSettings().catch(error => { if (!stopped) console.error('[CyberpunkConvai] Settings poll:', error.message); }); }, 500);
+const settingsTimer = setInterval(() => {
+  void gameState?.poll();   // a stat of each state file (bridge/game-state.mjs); a copy only when one changed
+  void pollSettings().catch(error => { if (!stopped) console.error('[CyberpunkConvai] Settings poll:', error.message); });
+}, 500);
 const phoneTimer = setInterval(() => { void pollPhone().catch(error => console.error('[CyberpunkConvai] Phone poll:', error.message)); }, 150);
 // The status file the game reads can be held open by the game for a moment (Windows refuses the rename: EPERM/EBUSY); the next poll
 // writes it again, so the same message is logged at most once a minute, with how many were left out.
@@ -3065,8 +3074,9 @@ watchFiles(runtime, {
   'phone-chat-input.json': () => pollPhone().catch(error => console.error('[CyberpunkConvai] Phone poll:', error.message)),
   // The game's playback lease releases the first sound: the playback pump polls the moment it is written (docs/LATENCY_2026-10-13.md, 4.2).
   'continuous-control.json': () => leaseWake.fire(),
-  // The add-on state and settings the game writes (docs/ADDON_API.md); no entries without add-ons.
-  ...addonHost.watchHandlers(runtime),
+  // The add-on state and settings the game writes (docs/ADDON_API.md); no entries without add-ons. The player's state files too: the copy
+  // outside the game folder follows a save within milliseconds (no entries unless the launcher turned it on). addon-settings.json is both.
+  ...mergeHandlers(addonHost.watchHandlers(runtime), gameState ? gameState.watchHandlers() : {}),
   // The lease (about 250 bytes) is read on the next turn of the event loop, not after a 4 ms timer (up to 15.6 ms on Windows): its
   // reader keeps its last good copy when it meets a half-written file and the wake is a latch (bridge/file-wake.mjs `delays`). The
   // request keeps the short delay: Lua rewrites that large file in place under Mod Organizer 2.
@@ -3074,6 +3084,7 @@ watchFiles(runtime, {
 const editorTimer = setInterval(() => { void editorControl.poll().catch(error => console.error('[CyberpunkConvai] Character editor:', error.message)); }, 500);
 async function shutdown() {
   if (stopped) return;
+  await gameState?.flush().catch(() => {});   // the Lua's last save is copied before anything else closes
   await companionActions.revoke();
   stopped = true; active?.controller.abort(); dropPrefetch(); audioWatch.stop(); tokenSource?.stop();
   companionVision.stop();

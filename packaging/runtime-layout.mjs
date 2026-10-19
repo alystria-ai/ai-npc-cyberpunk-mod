@@ -55,6 +55,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/follow-up.mjs',
   'bridge/game-dialogue.mjs',
   'bridge/game-launch.mjs',
+  'bridge/game-state.mjs',
   'bridge/group-context.mjs',
   'bridge/group-lookahead.mjs',
   'bridge/group-prefetch.mjs',

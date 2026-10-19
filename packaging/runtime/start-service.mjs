@@ -230,6 +230,25 @@ const home = dataHomeFor(process.env);
 if (home.problem) early.push(home.problem);
 let layout = layoutFor(home.root);
 
+// The player's saved state files in runtime/ (settings, phone chats, add-on settings, NPC names) come back from the copies kept in the data
+// folder, wherever one is missing or empty, before anything slower and before the game's Lua can read them (bridge/game-state.mjs): under Mod
+// Organizer 2 a file created in the game folder does not survive a launch. runtime/state-restore.json then tells the Lua the restore is over.
+// A few stat calls when nothing needs restoring; a failure here never stops the service (the Lua stops waiting by itself after a while).
+if (layout.dataHome) {
+  try {
+    const gameState = await import('../bridge/game-state.mjs');
+    const log = message => early.push(message);
+    const result = await gameState.restoreGameState({runtime: layout.runtime, durable: gameState.gameStateFolder(layout.state), log});
+    await gameState.publishRestoreSignal({runtime: layout.runtime, result, log});
+  } catch (error) {
+    early.push(`Restoring the player's state files failed: ${error?.stack || error}`);
+    try {
+      mkdirSync(layout.runtime, {recursive: true});
+      writeFileSync(resolve(layout.runtime, 'state-restore.json'), JSON.stringify({version: 1, state: 'done', written: Date.now(), restored: [], refreshed: [], errors: 1}));
+    } catch {}
+  }
+}
+
 // An older installation (this mod was called CyberpunkConvai) is retired and its state moved to the new folders before anything
 // reads the data folder (packaging/runtime/migrate-legacy.mjs). It is a few stat calls when there is no old folder. A failure here
 // never stops the service: the old state stays where it is and the next start tries again.
