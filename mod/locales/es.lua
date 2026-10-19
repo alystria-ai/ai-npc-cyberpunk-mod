@@ -1074,6 +1074,5 @@ return {
     ["Mod Configuration Menu is too old. Update it to 0.10.5 or newer from Nexus Mods, then restart the game."] = "Mod Configuration Menu es demasiado antiguo. Actualízalo a 0.10.5 o posterior desde Nexus Mods y reinicia el juego.",
     ["Previous page"] = "Página anterior",
     ["Next page"] = "Página siguiente",
-    ["Go"] = "Ir",
     ["Starts with: {letter}"] = "Empieza por: {letter}",
 }

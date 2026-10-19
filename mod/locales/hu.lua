@@ -1074,6 +1074,5 @@ return {
     ["Mod Configuration Menu is too old. Update it to 0.10.5 or newer from Nexus Mods, then restart the game."] = "A Mod Configuration Menu túl régi. Frissítsd 0.10.5 vagy újabb verzióra a Nexus Modsról, majd indítsd újra a játékot.",
     ["Previous page"] = "Előző oldal",
     ["Next page"] = "Következő oldal",
-    ["Go"] = "Ugrás",
     ["Starts with: {letter}"] = "Kezdőbetű: {letter}",
 }

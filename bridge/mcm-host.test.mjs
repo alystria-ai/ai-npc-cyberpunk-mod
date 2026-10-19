@@ -301,17 +301,46 @@ test('both hosts read and write the same saved settings: a change in one is on t
   assert(mcm.row('Voice volume (%)').value == 170, 'MCM shows ' .. tostring(mcm.row('Voice volume (%)').value))
 `));
 
-test('a long list is turned with buttons (MCM has no draft-free slider): previous and next page, the ends are disabled, and the letter group cycles', () => withScreen(`
+const footer = `
+  local function footerLabels()
+    local list = {}
+    for _, button in ipairs(mcm.layout().footer) do list[#list + 1] = button.label end
+    return table.concat(list, ' | ')
+  end
+  local function headings()
+    local list = {}
+    for _, row in ipairs(mcm.layout().rows) do if row.kind == 'heading' then list[#list + 1] = row.label end end
+    return table.concat(list, ' | ')
+  end
+  local function listed(label)
+    for _, row in ipairs(mcm.layout().rows) do if row.label == label then return row end end
+  end
+`;
+
+test('a long list is turned with footer buttons beside the way back (never rows of the list), the page number is in the heading, and the letter group cycles', () => withScreen(`
+  ${footer}
   press('Characters to invite')
   local function invites() local count = 0; for _, row in ipairs(mcm.rows()) do if row.value == 'Invite' then count = count + 1 end end; return count end
   assert(invites() == 12 and mcm.row('Johnny Silverhand') and not mcm.row('Viktor Vektor'))
-  assert(mcm.row('Previous page').disabled == true and mcm.row('Previous page').capabilities.action == false, 'no page before the first')
-  assert(mcm.row('Next page').disabled == false)
+  assert(footerLabels() == 'Previous page | Next page | Back', footerLabels())
+  assert(mcm.config().footerActions[1] == 'ui:page:previous' and mcm.config().footerActions[3] == 'characters:back')
+  assert(listed('Previous page') == nil and listed('Next page') == nil, 'not rows of the list')
+  assert(headings() == 'Characters to invite · Page 1 / 2', headings())
   assert(mcm.config().navigation.pageId == 'characters|1|1')
+  -- Both buttons are buttons at every page: at the first page Previous does nothing, and nothing is drawn again.
+  local loads = mcm.loads
+  assert(mcm.row('Previous page').type == 'action' and mcm.row('Previous page').capabilities.action == true and not mcm.row('Previous page').disabled)
+  press('Previous page')
+  assert(mcm.config().navigation.pageId == 'characters|1|1' and mcm.loads == loads and invites() == 12, 'Previous on page 1 changes nothing')
+  assert(footerLabels() == 'Previous page | Next page | Back', 'the footer never changes shape')
   press('Next page')
   assert(invites() == 10 and mcm.row('Viktor Vektor') and not mcm.row('Johnny Silverhand'), 'the second page')
-  assert(mcm.row('Next page').disabled == true and mcm.row('Previous page').disabled == false)
+  assert(headings() == 'Characters to invite · Page 2 / 2', headings())
+  assert(footerLabels() == 'Previous page | Next page | Back')
   assert(mcm.config().navigation.pageId == 'characters|2|1', 'a new page id: MCM scrolls to the top of it')
+  loads = mcm.loads
+  press('Next page')
+  assert(mcm.config().navigation.pageId == 'characters|2|1' and mcm.loads == loads, 'Next on the last page changes nothing')
   press('Previous page')
   assert(mcm.row('Johnny Silverhand') ~= nil)
   press('Back to Companion Manager'); press('Characters to invite')
@@ -319,10 +348,146 @@ test('a long list is turned with buttons (MCM has no draft-free slider): previou
   -- The model browser: the scan reads a batch a frame, then a letter group and pages.
   press('Back to Companion Manager'); press('Model browser')
   frames(140)
+  assert(footerLabels() == 'Starts with: All | Previous page | Next page | Back', footerLabels())
   local group = mcm.row('Starts with: All')
-  assert(group and group.type == 'action' and group.description ~= '', labels())
+  assert(group and group.type == 'action' and group.description ~= '' and listed('Starts with: All') == nil, labels())
   press('Starts with: All')
-  assert(mcm.row('Starts with: All') == nil and mcm.config().navigation.pageId:match('^models|1|2$'), tostring(mcm.config().navigation.pageId))
+  assert(mcm.row('Starts with: All') == nil, 'the letter changed')
+  assert(mcm.config().navigation.pageId:match('^models|1|2$'), tostring(mcm.config().navigation.pageId))
+  assert(footerLabels():find('^Starts with: %S+ | Previous page | Next page | Back$'), footerLabels())
+`));
+
+test('every page the manager can show is drawn in one style: buttons are buttons of one size and place, settings are settings, no button is turned into a plain line', () => withScreen(`
+  ${footer}
+  -- What MCM draws for each kind of row (bridge/mcm-fake.mjs layout()) must not depend on the state of the row.
+  local function check(page)
+    local layout = mcm.layout()
+    local drawnById = {}
+    for _, row in ipairs(layout.rows) do if row.id then drawnById[row.id] = row end end
+    local kinds = {}
+    for _, row in ipairs(mcm.rows()) do
+      local drawn = drawnById[row.id]
+      if drawn then
+        kinds[drawn.kind] = true
+        if row.type == 'action' then
+          assert(drawn.kind == 'action' and drawn.x == 20 and drawn.size == 22 and drawn.button == true and drawn.buttonText ~= nil,
+            page .. ': ' .. row.label .. ' is drawn as ' .. drawn.kind .. ' (size ' .. drawn.size .. ')')
+        elseif row.type == 'bool' or row.type == 'select' or row.type == 'int' then
+          assert(drawn.kind == 'setting' and drawn.x == 48 and drawn.size == 22, page .. ': ' .. row.label)
+        else
+          assert(row.type == 'string' and drawn.kind == 'readonly', page .. ': ' .. row.label .. ' is ' .. row.type .. ' drawn as ' .. drawn.kind)
+        end
+      else
+        -- Not in the list: a footer button.
+        local isFooter = false
+        for _, button in ipairs(layout.footer) do if button.id == row.id then isFooter = true end end
+        assert(isFooter, page .. ': ' .. row.label .. ' is neither in the list nor a footer button')
+      end
+    end
+    for _, button in ipairs(layout.footer) do assert(button.label ~= '', page .. ': a footer button without text') end
+    -- A page of buttons and lines has no setting in it: nothing is indented or marked as changed on it.
+    if page ~= 'settings' then assert(not kinds.setting, page .. ' has a switch or list in it') end
+    -- The page number is never a line of the list: it is in the heading, and the page buttons are in the footer.
+    for _, row in ipairs(layout.rows) do assert(not tostring(row.label):find('^Page %d+ / %d+$'), page .. ': a page line ' .. row.label) end
+    -- Pages of a list: both page buttons are in the footer, always together.
+    local shown = footerLabels()
+    assert((shown:find('Previous page', 1, true) ~= nil) == (shown:find('Next page', 1, true) ~= nil), page .. ': ' .. shown)
+    return layout
+  end
+  local function go(...) for _, label in ipairs({...}) do press(label) end end
+
+  check('home')
+  go('Characters to invite'); check('characters'); go('Next page'); check('characters 2'); go('Back to Companion Manager')
+  go('Current party'); check('party'); go('Back to Companion Manager')
+  go('Model browser'); frames(140)
+  check('models'); go('Starts with: All'); check('models letter'); go('Next page'); check('models page 2'); go('Back to Companion Manager')
+  go('Settings'); check('settings')
+  go('Memory'); check('memory'); go('Back to settings')
+  go('Help and support'); check('help'); go('Back to settings')
+  go('Convai paid tier'); check('paid-tier'); go('Back to settings', 'Back to Companion Manager')
+  -- A party with copies: the rows of the party page.
+  managerUi.party().invite('johnny-silverhand')
+  frames(12)
+  go('Current party'); check('party with copies')
+`));
+
+test('a fresh install draws no setting as changed: every default the page gives is the value it shows', () => withScreen(`
+  ${footer}
+  press('Settings')
+  local changed = {}
+  for _, row in ipairs(mcm.layout().rows) do
+    if row.kind == 'setting' and row.color == 'modified' then changed[#changed + 1] = row.label end
+  end
+  assert(#changed == 0, 'purple (changed from the default) on a fresh install: ' .. table.concat(changed, ', '))
+  -- After a change is saved the row is the only one marked.
+  assert(mcm.set('Subtitles', false) and mcm.apply())
+  frames(4)
+  for _, row in ipairs(mcm.layout().rows) do
+    if row.kind == 'setting' then assert((row.color == 'modified') == (row.label == 'Subtitles'), row.label .. ' ' .. row.color) end
+  end
+`));
+
+test('Apply of one switch saves exactly that switch: Live holocall picture off is saved off, and the rest stays', () => withScreen(`
+  press('Settings')
+  frames(6)
+  local core = managerUi._test.core
+  local realApply, seen = core.apply, nil
+  core.apply = function(batch) seen = batch; return realApply(batch) end
+  local before = manager.snapshot(player).settings
+  assert(before.holocallLiveImage == true and before.multilingualConversations == false)
+  assert(mcm.row('Live holocall picture').value == true)
+  assert(mcm.set('Live holocall picture', false))
+  assert(mcm.drafts()['cyberpunk-convai:manager:holocallLiveImage'] == false, 'the draft is on that row')
+  assert(next(mcm.drafts(), next(mcm.drafts())) == nil, 'and on no other')
+  local ok, why = mcm.apply()
+  assert(ok, tostring(why))
+  assert(seen and #seen == 1 and seen[1].id == 'holocallLiveImage' and seen[1].value == false, 'the batch is that one switch')
+  assert(saved.holocallLiveImage == false and saved.holocallLiveImageChosen == true, 'saved: ' .. tostring(saved.holocallLiveImage))
+  assert(manager.snapshot(player).settings.holocallLiveImage == false)
+  assert(mcm.row('Live holocall picture').value == false, 'the page shows what is saved')
+  assert(saved.multilingualConversations == false and saved.subtitles == true, 'the other switches did not move')
+  -- And back on.
+  core.apply = realApply
+  assert(mcm.set('Live holocall picture', true) and mcm.apply())
+  assert(saved.holocallLiveImage == true)
+  -- The same while the list jumps on every redraw (the live check): the switch pressed is the one saved.
+  mcm.jumpOnLoad = 0.7
+  frames(4)
+  assert(mcm.set('Live holocall picture', false) and mcm.apply())
+  frames(6)
+  assert(saved.holocallLiveImage == false and saved.multilingualConversations == false)
+`));
+
+test('the list keeps its place after Apply and after a reload of the page, leaves a later scroll alone, and starts at the top on another page', () => withScreen(`
+  press('Settings')
+  frames(4)
+  mcm.scrollTo(0.2); frames(2)
+  assert(math.abs(mcm.scroll() - 0.2) < 1e-9)
+  -- MCM redraws the page after Apply and the list jumps far down (as in the live check): the host puts it back.
+  mcm.jumpOnLoad = 0.6
+  assert(mcm.set('Live holocall picture', false) and mcm.apply())
+  assert(mcm.scroll() == 0.6, 'the jump happened, as in the live check')
+  frames(1)
+  assert(math.abs(mcm.scroll() - 0.2) < 1e-9, 'put back: ' .. mcm.scroll())
+  frames(12)
+  assert(math.abs(mcm.scroll() - 0.2) < 1e-9, 'and it stays: ' .. mcm.scroll())
+  -- A reload the host asks for (something the page shows changed) keeps the place too.
+  managerUi._test.core.refresh()
+  frames(12)
+  assert(math.abs(mcm.scroll() - 0.2) < 1e-9, 'after a reload: ' .. mcm.scroll())
+  -- A player who scrolls afterwards is left alone.
+  mcm.scrollTo(0.9); frames(12)
+  assert(math.abs(mcm.scroll() - 0.9) < 1e-9, 'a later scroll of the player is not undone')
+  -- Another page starts at its top (MCM keeps a position per page id).
+  mcm.jumpOnLoad = nil
+  press('Back to Companion Manager'); press('Characters to invite')
+  mcm.scrollTo(0.4); frames(2)
+  press('Next page')
+  assert(mcm.scroll() == 0, 'page 2 starts at the top: ' .. mcm.scroll())
+  -- Without the scroll calls (an MCM that lacks them) nothing breaks.
+  mcm.api.ui.getScrollPosition, mcm.api.ui.setScrollPosition = nil, nil
+  press('Back to Companion Manager'); press('Settings')
+  assert(mcm.set('Subtitles', false) and mcm.apply())
 `));
 
 test('the OmniVoice entries are disabled choices while its pack is missing: MCM refuses them as drafts, with the reason', () => withScreen(`

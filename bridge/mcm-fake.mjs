@@ -5,6 +5,12 @@
 //   * a schema needs dense arrays; values are normalized the way values.lua does; a draft equal to the saved value is dropped;
 //   * an action is refused while drafts are pending, and a reload is too; Apply hands the drafts to applyBatch as {id = <source id>,
 //     value}, requires appliedIds to be EXACTLY the ids asked for, loads the schema again and fails if a draft did not keep its value;
+//   * layout() says how MCM 0.10.5 DRAWS each row, from the rules of its renderer (mcm_native_render.lua addSettingRow, mcm_native_render.lua
+//     bottomActions with Extensions.footer, MCMPanelContent.reds McmUiAddManagedLabel / McmUiAddActionSetting / McmUiAddReadonly,
+//     MCMPanelActions.reds McmUiCreateAction, MCMLayout.reds ContentTextFontSize and MCMColors): that is what decides how a page looks;
+//   * the list's scroll position is a fraction of its height, which the player moves, which MCM resets to the top for a new page id, and
+//     which api.ui.getScrollPosition / setScrollPosition read and set (mcm.jumpOnLoad = 0.6 makes every page load jump there, the way the
+//     live check showed after Apply);
 //   * api.ui answers only for a mod the catalog knows ("Unknown mod" before the provider is indexed), validates what it is given the way
 //     ui_extensions.lua does, and returns true, or nil and the reason, never raising; ui.open needs an attached renderer.
 // A player is simulated with the helpers of the returned object (open the screen, set a draft, press, apply ...). Use:
@@ -55,6 +61,7 @@ export const mcmFake = String.raw`
     local F = {version = options.version or '0.10.5', calls = {}, errors = {}, loads = 0}
     local providers, providerOrder, catalog, drafts, config = {}, {}, {}, {}, {}
     local active, context, renderer, openRequest = nil, {open = false}, options.renderer ~= false, nil
+    local scroll, scrollRequests, lastPage = 0, {}, nil
     local coreStatus = ''
     local listeners, nextToken = {}, 0
     local api = {version = F.version, apiVersion = 2}
@@ -180,6 +187,7 @@ export const mcmFake = String.raw`
       local ok, schema, message = pcall(provider.loadMod, mod.sourceId, {apiVersion = 2})
       loading = nil
       F.loads = F.loads + 1
+      if F.jumpOnLoad and F.loads > 1 then scroll = F.jumpOnLoad end
       if not ok or type(schema) ~= 'table' then
         local problem = tostring(not ok and schema or message or 'Provider returned no schema.')
         F.errors[#F.errors + 1] = 'loadMod: ' .. problem
@@ -330,6 +338,20 @@ export const mcmFake = String.raw`
         openRequest = key
         return 1
       end)
+      ui.getScrollPosition = checked('getScrollPosition', function(key, region)
+        known(key)
+        assert(region == nil or region == 'content' or region == 'sidebar', 'Unknown scroll region')
+        if context.modKey ~= key then return nil, 'Mod is not displayed' end
+        return (context.scroll or {})[region or 'content'] or 0
+      end)
+      ui.setScrollPosition = checked('setScrollPosition', function(key, region, position)
+        known(key)
+        assert(region == 'content' or region == 'sidebar', 'Unknown scroll region')
+        assert(type(position) == 'number' and position >= 0 and position <= 1, 'Scroll position must be between 0 and 1')
+        assert(context.open and context.modKey == key, 'Mod is not displayed')
+        scrollRequests[#scrollRequests + 1] = {region = region, position = position}
+        return #scrollRequests
+      end)
       ui.setSearch = checked('setSearch', function(key, text) known(key); assert(type(text) == 'string', 'Search must be text'); return 1 end)
       ui.setNavigation = checked('setNavigation', function(key, value)
         assert(type(value) == 'table' and type(value.pageId) == 'string', 'Navigation needs a pageId')
@@ -395,7 +417,9 @@ export const mcmFake = String.raw`
       local loaded, problem = load(mod)
       assert(loaded, 'the page did not load: ' .. tostring(problem))
       active = key
-      context = {open = true, modKey = key, pageId = (config[key] or {}).navigation and config[key].navigation.pageId or nil}
+      context = {open = true, modKey = key, pageId = (config[key] or {}).navigation and config[key].navigation.pageId or nil,
+        scroll = {content = 0, sidebar = 0}}
+      scroll, lastPage = 0, context.pageId
     end
     -- The screen opens on the mod (a request made by api.ui.open or the player's own choice in the list).
     function F.openScreen(key)
@@ -411,6 +435,7 @@ export const mcmFake = String.raw`
         clearDrafts(mod.key)
       end
       active, context = nil, {open = false}
+      scroll, scrollRequests = 0, {}
     end
     -- MCM's own update: it takes the requests made through api.ui.open and publishes the context.
     function F.update()
@@ -421,8 +446,16 @@ export const mcmFake = String.raw`
       end
       if active then
         context.pageId = (config[active] or {}).navigation and config[active].navigation.pageId or nil
+        -- A new page id starts at the top (MCM keeps a position per page id); a request to set the position is taken after that.
+        if context.pageId ~= lastPage then lastPage, scroll = context.pageId, 0 end
+        for _, request in ipairs(scrollRequests) do if request.region == 'content' then scroll = request.position end end
+        scrollRequests = {}
+        context.scroll = {content = scroll, sidebar = 0}
       end
     end
+    -- The player drags the list.
+    function F.scrollTo(position) scroll = position; if active then context.scroll = {content = scroll, sidebar = 0} end end
+    function F.scroll() return scroll end
     function F.rows()
       local rows = {}
       local mod = modOf(active)
@@ -436,6 +469,50 @@ export const mcmFake = String.raw`
         end
       end
       return rows
+    end
+    -- How the page is drawn: one entry per heading and row of the list, in order, and the footer buttons (left to right).
+    --   setting  (bool, select, int and their kin): label in the marker column (x 48), size 22, red, or purple when the value differs from
+    --            the default the provider gave (MCM's "changed" mark; it needs a default; the player may choose an asterisk instead);
+    --   action   (supported, with the action capability): label flush left (x 20), size 22, red, a button with the value as its text;
+    --   readonly (a string, or anything unsupported or disabled, such as a disabled action): label flush left, size 26, value in muted blue.
+    -- A footer action is not in the list; it is a footer button labelled by its value.
+    function F.layout()
+      local out = {rows = {}, footer = {}}
+      local mod = modOf(active)
+      if not mod then return out end
+      local cfg = config[active] or {}
+      local inFooter = {}
+      for _, id in ipairs(cfg.footerActions or {}) do inFooter[id] = true end
+      for _, category in ipairs(mod.categories) do
+        local visible = {}
+        for _, setting in ipairs(category.settings) do if not inFooter[setting.sourceId] then visible[#visible + 1] = setting end end
+        if #visible > 0 then
+          out.rows[#out.rows + 1] = {kind = 'heading', label = category.name, description = category.description}
+          for _, setting in ipairs(visible) do
+            local draft = drafts[setting.id]
+            local value = draft and draft.value or setting.value
+            local entry = {id = setting.sourceId, label = setting.label, type = setting.type}
+            local drawn = setting.supported and (setting.type == 'bool' or setting.type == 'select' or setting.type == 'int'
+              or setting.type == 'float' or setting.type == 'key')
+            if drawn then
+              entry.kind, entry.x, entry.size, entry.button = 'setting', 48, 22, false
+              entry.color = (setting.defaultValue ~= nil and mcmNormalize(setting, value) ~= setting.defaultValue) and 'modified' or 'red'
+            elseif setting.supported and setting.type == 'action' then
+              entry.kind, entry.x, entry.size, entry.color, entry.button, entry.buttonText = 'action', 20, 22, 'red', true, setting.value
+            else
+              entry.kind, entry.x, entry.size, entry.color, entry.button = 'readonly', 20, 26, 'red', false
+            end
+            out.rows[#out.rows + 1] = entry
+          end
+        end
+      end
+      for _, id in ipairs(cfg.footerActions or {}) do
+        local setting = mod.settingById[mod.key .. ':' .. id]
+        if setting and setting.type == 'action' and setting.capabilities.action == true then
+          out.footer[#out.footer + 1] = {id = id, label = setting.value or setting.label}
+        end
+      end
+      return out
     end
     function F.row(label)
       for _, row in ipairs(F.rows()) do if row.label == label or row.id == label then return row end end
