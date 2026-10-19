@@ -221,6 +221,9 @@ function Collector:step(lane,now)
     local readingRoots=not job.rootsDone
     local task=not readingRoots and job.queue[job.head] or nil
     if not readingRoots and not task then
+        -- The scan's work list and visited set (one task per journal node: about 1 MB of Lua tables for 200 quests and
+        -- 2,600 objectives) are never read again once it is done; the finished job stays as the lane's cache until the next.
+        job.queue,job.seen=nil,nil
         -- Each finished scan is a revision (docs/PERFORMANCE_NATIVE_PLAN.md item 1b): the bridge keeps its rows
         -- from knowledge-<lane>.json, and a turn names the revision and the row ids it uses.
         self.revision=(self.revision or 0)+1; job.revision=self.revision

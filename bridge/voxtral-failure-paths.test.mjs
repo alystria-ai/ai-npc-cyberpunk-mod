@@ -9,10 +9,10 @@ import {resolve} from 'node:path';
 import {VoxtralVoice, VoxtralError} from './voxtral-voice.mjs';
 import {createVoiceProfileRegistry} from './voice-profile-registry.mjs';
 import {MistralScheduler} from './mistral-rate.mjs';
+import {manualTimers, track, until} from './fixtures/test-waits.mjs';
 
 const KEY = 'k'.repeat(8) + 'Secret0123456789abcdefghijkl';
 const OTHER_KEY = 'n'.repeat(8) + 'Fresh0123456789abcdefghijklm';
-const wait = ms => new Promise(finish => setTimeout(finish, ms));
 
 function wav(seconds) {
   const frames = Math.round(seconds * 24000), bytes = Buffer.alloc(44 + frames * 2);
@@ -107,14 +107,21 @@ test('a stream that closes without its closing event ends the reply early; one w
 test('a stream that goes quiet after its audio began is cut at the stall limit and the reply ends there; the request is dropped', async () => {
   const server = await serve((request, response) => { sse(response); response.write(delta(bytesOf(samples(5000)))); /* then silence */ });
   try {
-    const {voice} = voiceFor(server, {limits: {stallMs: 60}}), sink = collect();
-    const began = performance.now();
-    const result = await voice.synthesizeStream('judy-alvarez', 'A long reply for V.', sink);
-    assert.ok(performance.now() - began < 800, 'cut at the stall limit, not left open');
-    assert.equal(result.truncated, true);
-    assert.equal(result.frames, 5000);
-    await wait(40);
-    assert.equal(server.requests[0].closed, true);
+    // The stall limit is a timer of the voice on a manual clock, moved once the audio has been handed on and the voice is waiting for more. The
+    // server never writes again, so nothing but the limit can end the reply: it ends when the clock reaches 60 ms, not a moment before.
+    const timers = manualTimers();
+    const {voice} = voiceFor(server, {...timers.hooks, limits: {stallMs: 60}}), sink = collect();
+    const call = track(voice.synthesizeStream('judy-alvarez', 'A long reply for V.', sink));
+    await until(() => timers.limits().includes(60), 'the stall limit to be set after the first audio');
+    assert.equal(sink.packets.length, 2, 'the audio that arrived was handed on before the voice began to wait for more');
+    await timers.clock.advance(59);
+    assert.equal(call.done, false, 'left open until the stall limit');
+    await timers.clock.advance(1);
+    await until(() => call.done, 'the reply to end at the stall limit');
+    assert.equal(call.error, undefined, String(call.error));
+    assert.equal(call.value.truncated, true);
+    assert.equal(call.value.frames, 5000);
+    await until(() => server.requests[0].closed === true, 'the request to be dropped');
   } finally { await server.close(); }
 });
 
@@ -239,7 +246,7 @@ test('a 401 that comes back for the old key after the player saved another one d
     let key = KEY;
     const {voice} = voiceFor(server, {getKey: () => key, clock: () => 1_000_000});
     const pending = voice.synthesizeStream('judy-alvarez', 'One.', collect()).catch(caught => caught);
-    while (server.requests.length < 1) await new Promise(resolve => setTimeout(resolve, 5));
+    await until(() => server.requests.length >= 1, 'the first request to reach the server');
     key = OTHER_KEY;
     assert.equal(voice.ready, true, 'the new key is seen while the old request is still out');
     release();

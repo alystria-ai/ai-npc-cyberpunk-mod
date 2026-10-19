@@ -17,19 +17,19 @@ Downloads for **AI NPC Cyberpunk Mod**, a Cyberpunk 2077 mod that lets you talk 
 
 **Mod page:** [Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/35436), with the full description, requirements and support.
 
-Every file sits in the version folder (`0.2.1/`) with its `SHA256SUMS-*.txt` checksum.
+Every file sits in the version folder (`0.2.2/`) with its `SHA256SUMS-*.txt` checksum.
 
 ## Which files do I need?
 
 | File | Size | What it is | Need it? |
 |---|---|---|---|
-| `AI-NPC-Cyberpunk-Mod-Scripts-0.2.1.zip` | 2 MB | The mod itself, the in-game part. Also on Nexus Mods. | **Yes** |
-| `AI-NPC-Cyberpunk-Mod-Runtime-0.2.1.zip` | 1.0 GB | The background service: voices, lip sync, speech recognition, memory. | **Yes** |
-| `AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.1.zip` | 5.3 GB | Local AI, standard: Gemma 4 E4B. Free and offline. Uses about 3.1 GB of video memory and needs about 6 GB free to start. | Optional |
-| `AI-NPC-Cyberpunk-Mod-LocalAI-Lite-0.2.1.zip` | 1.4 GB | Local AI, lite: Bonsai 2 4B. For smaller graphics cards, about 1.8 GB of video memory. | Optional |
-| `AI-NPC-Cyberpunk-Mod-OmniPack-0.2.1.zip` | 6.6 GB | OmniVoice: higher-quality local voices, 2 to 4 GB of video memory. Works with any text option. | Optional |
-| `AI-NPC-Cyberpunk-Mod-Mature-Lite-0.2.1.zip` | 2.9 GB | **18+.** An uncensored Local AI model (Qwen3.5 4B fine-tune). | Optional |
-| `AI-NPC-Cyberpunk-Mod-Mature-Standard-0.2.1.zip` | 5.5 GB | **18+.** An uncensored Local AI model (Gemma 4 E4B fine-tune). | Optional |
+| `AI-NPC-Cyberpunk-Mod-Scripts-0.2.2.zip` | 3 MB | The mod itself, the in-game part. Also on Nexus Mods. | **Yes** |
+| `AI-NPC-Cyberpunk-Mod-Runtime-0.2.2.zip` | 1.0 GB | The background service: voices, lip sync, speech recognition, memory. | **Yes** |
+| `AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.2.zip` | 5.3 GB | Local AI, standard: Gemma 4 E4B. Free and offline. Uses about 3.1 GB of video memory and needs about 6 GB free to start. | Optional |
+| `AI-NPC-Cyberpunk-Mod-LocalAI-Lite-0.2.2.zip` | 1.4 GB | Local AI, lite: Bonsai 2 4B. For smaller graphics cards, about 1.8 GB of video memory. | Optional |
+| `AI-NPC-Cyberpunk-Mod-OmniPack-0.2.2.zip` | 6.6 GB | OmniVoice: higher-quality local voices, 2 to 4 GB of video memory. Works with any text option. | Optional |
+| `AI-NPC-Cyberpunk-Mod-Mature-Lite-0.2.2.zip` | 2.9 GB | **18+.** An uncensored Local AI model (Qwen3.5 4B fine-tune). | Optional |
+| `AI-NPC-Cyberpunk-Mod-Mature-Standard-0.2.2.zip` | 5.5 GB | **18+.** An uncensored Local AI model (Gemma 4 E4B fine-tune). | Optional |
 
 **You can skip every optional pack.** The mod works without them with Mistral (cloud, your own free key) or the Convai free tier (cloud, the default, nothing to set up), both at no cost to your frame rate. Local AI can also use a model server you already run (KoboldCpp, LM Studio, Ollama or any OpenAI-compatible one) with no pack; the steps are on the Nexus Mods page. The packs only add local options that run on your own graphics card.
 

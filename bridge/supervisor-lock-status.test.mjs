@@ -7,9 +7,10 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {closeSync, constants, openSync} from 'node:fs';
+import {readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {BridgeSupervisor, DEFAULT_TIMINGS} from './bridge-supervisor.mjs';
-import {createWorld} from './supervisor-world.mjs';
+import {GAME_PID, createWorld} from './supervisor-world.mjs';
 
 const opts = {timeout: 60_000, skip: process.platform === 'win32' ? false : 'the lock is exclusive only on Windows'};
 const EXCLUSIVE = constants.UV_FS_O_EXLOCK ?? 0x10000000;
@@ -80,4 +81,38 @@ test('a status carries the short reason it was given, and the next status withou
   // The same state and code with a reason added is a change, not a repeat.
   await supervisor.setStatus('stopped', 'stop-requested', 'now with a reason');
   assert.equal((await w.status()).reason, 'now with a reason');
+});
+
+// "Restart the game" is what the failure notice says, and a player who does it at once starts the next session while this supervisor
+// still drains its bridge (up to 45 s, then the kill). The next session's launcher and start script write the same file with their own
+// game's PID; this supervisor's 'stopping' heartbeat and its final 'stopped' used to write over them, so a start that failed in the new
+// session read as "not running" there.
+test('a supervisor whose game has ended leaves the next session\'s status alone while it stops its bridge', opts, async t => {
+  const w = await createWorld(t, {gamePid: GAME_PID});
+  w.script.push({obeys: false}); // a bridge slow to stop keeps this supervisor in its shutdown, heartbeat running
+  w.supervise();
+  await w.untilStatus(status => status.state === 'ready', 'the bridge never became ready');
+  w.alive.delete(GAME_PID); w.advance(DEFAULT_TIMINGS.gamePollMs);
+  await w.untilStatus(status => status.state === 'stopping', 'stopping was not published');
+  const next = JSON.stringify({version: 1, state: 'failed', code: 'install-incomplete', source: 'service', stage: 'loading-modules',
+    reason: 'ERR_MODULE_NOT_FOUND', gamePid: GAME_PID + 1, since: w.clock, updated: w.clock});
+  await writeFile(w.statusPath, next);
+  for (let step = 0; step < 4; step++) { w.advance(DEFAULT_TIMINGS.heartbeatMs); await w.turn(3); }
+  assert.equal(await readFile(w.statusPath, 'utf8'), next, 'the heartbeat of the stop does not write over the next session');
+  w.advance(DEFAULT_TIMINGS.shutdownGraceMs);
+  assert.deepEqual(await w.done, {state: 'stopped', code: 'game-exited'});
+  assert.deepEqual(w.kills, [w.spawned[0].child.pid], 'the stop itself is unchanged');
+  assert.equal(await readFile(w.statusPath, 'utf8'), next, 'nor does its final "stopped"');
+  assert.match(await w.logText(), /belongs to the next game session \(game PID 7778\); this supervisor no longer writes it/);
+});
+
+test('a supervisor whose game has ended still reports its stop when the file is its own session\'s', opts, async t => {
+  const w = await createWorld(t, {gamePid: GAME_PID});
+  w.supervise();
+  await w.untilStatus(status => status.state === 'ready', 'the bridge never became ready');
+  w.alive.delete(GAME_PID); w.advance(DEFAULT_TIMINGS.gamePollMs);
+  assert.deepEqual(await w.done, {state: 'stopped', code: 'game-exited'});
+  const status = await w.status();
+  assert.deepEqual([status.state, status.code, status.gamePid], ['stopped', 'game-exited', GAME_PID]);
+  assert.doesNotMatch(await w.logText(), /next game session/);
 });

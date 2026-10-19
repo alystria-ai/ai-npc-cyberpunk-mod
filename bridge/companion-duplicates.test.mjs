@@ -36,7 +36,7 @@ function run(code, prelude = '') {
 const partyHarness = `
   local queue=(function() ${partySource} end)().new(companions,nil)
   queue.bind('world')
-  local mcm={party=function() return queue end}
+  local managerUi={party=function() return queue end}
   local lastPhoneInvitation=nil
   local developer=false
   local manager={developerMode=function() return developer end}
@@ -416,6 +416,7 @@ const groupHarness = `
   local function sendRequest(input) sent[#sent+1]=input; pending=input; return true end
   local function beginFocus() return true end
   local function log() end
+  local function convaiFaceRequestLog() end -- the real one is defined earlier in init.lua, outside this slice
   ${groupAdapter}
   local function candidatesFor(radius)
     local result={}

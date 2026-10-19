@@ -198,7 +198,7 @@ test('a data home inside the old folder, or the same folder, is never treated as
 // new place, nothing new is written under the CET mod folder except runtime/, and a second start is a normal start.
 async function installedApp(game) {
   const app = join(game, APP);
-  for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs', 'state-home.mjs']) {
+  for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs', 'state-home.mjs', 'usvfs-compat.mjs']) {
     await mkdir(join(app, 'launcher'), {recursive: true});
     await cp(join(project, 'packaging/runtime', name), join(app, 'launcher', name));
   }
@@ -259,13 +259,14 @@ test('a Runtime extracted only in part (no bridge/ folder) publishes a failed st
   const f = await fixture();
   try {
     const app = await installedApp(f.game);
-    const result = spawnSync(process.execPath, [join(app, 'launcher/start-service.mjs'), '--game-root', f.game, '--game-pid', '4242'],
+    // The game's PID: a running process (this test's own); a start whose game has ended publishes nothing.
+    const result = spawnSync(process.execPath, [join(app, 'launcher/start-service.mjs'), '--game-root', f.game, '--game-pid', String(process.pid)],
       {encoding: 'utf8', timeout: 60_000, env: {...process.env, CYBERPUNK_CONVAI_DATA_HOME: f.home}});
     assert.equal(result.status, 1, result.stderr + result.stdout);
     const status = JSON.parse(await read(join(f.game, MOD, 'runtime/bridge-service.json')));
     assert.equal(status.state, 'failed');
     assert.equal(status.code, 'install-incomplete');
-    assert.equal(status.gamePid, 4242);
+    assert.equal(status.gamePid, process.pid);
     assert.ok(Math.abs(Date.now() - status.updated) < 60_000);
     assert.match(await read(join(f.to, 'bridge-service.log')), /Loading the conversation service failed/);
   } finally { await f.cleanup(); }

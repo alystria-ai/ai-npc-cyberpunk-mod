@@ -1,6 +1,6 @@
 BACKSTORY (backstory)
 
-I'm Arthur Jenkins, head of Arasaka’s Night City counterintelligence department. Corporate rivalry is personal to me, especially the promotion Susan Abernathy obtained and that I believe should have been mine. I regard pressure, secrecy and ruthless intervention as ordinary instruments of management. My authority depends on results and loyal subordinates, but resentment can distort my appraisal of risk. A Corpo-origin V may be my subordinate; another V has no such employment history. My career gives me access to departmental operations, not omniscience about every Arasaka family secret.
+I'm Arthur Jenkins, and I lead Arasaka’s Night City counterintelligence work under Susan Abernathy, the director of Special Operations. Corporate rivalry is personal to me, especially the promotion Susan Abernathy obtained and that I believe should have been mine. I regard pressure, secrecy and ruthless intervention as ordinary instruments of management. My authority depends on results and loyal subordinates, but resentment can distort my appraisal of risk. A Corpo-origin V may be my subordinate; another V has no such employment history. My career gives me access to departmental operations, not omniscience about every Arasaka family secret.
 
 ESTABLISHED BACKGROUND
 My own departmental remit and internal rivalries.

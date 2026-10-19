@@ -15,9 +15,10 @@ export class VHelperVoice {
   /**
    * create   onState => client   a PocketVoice-like worker client (start, close, loaded, failure, hasProfile, prepareProfile, synthesizeStream)
    * wait     () => Promise       settles when no other Pocket worker is still stopping
+   * onReady  () => void          the worker finished loading (once per load): V's voice is prepared now, not inside the first line
    */
-  constructor({create, wait = () => Promise.resolve(), log = () => {}} = {}) {
-    Object.assign(this, {create, wait, log});
+  constructor({create, wait = () => Promise.resolve(), log = () => {}, onReady = () => {}} = {}) {
+    Object.assign(this, {create, wait, log, onReady});
     this.client = null;
     this.generation = 0;
     this.failed = false;
@@ -43,7 +44,9 @@ export class VHelperVoice {
       if (this.client !== client || this.generation !== generation) throw Object.assign(Error('V helper voice was released'), {released: true});
       return client.start();
     }).then(() => {
-      if (this.client === client) this.log('V\'s helper voice is ready (Pocket on the CPU, beside OmniVoice)');
+      if (this.client !== client) return;
+      this.log('V\'s helper voice is ready (Pocket on the CPU, beside OmniVoice)');
+      try { this.onReady(); } catch { /* a warm-up never affects the worker */ }
     }, error => { if (!error?.released) this.broke(client, error?.message); });
   }
 

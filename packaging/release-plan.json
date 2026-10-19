@@ -14,10 +14,6 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/ui-fonts.lua"
         },
         {
-          "source": "mod/mcm-fonts.lua",
-          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mcm-fonts.lua"
-        },
-        {
           "source": "mod/ui-locale.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/ui-locale.lua"
         },
@@ -234,6 +230,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/gesture-probe.lua"
         },
         {
+          "source": "mod/lua-heap-probe.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/lua-heap-probe.lua"
+        },
+        {
           "source": "mod/companion-space.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-space.lua"
         },
@@ -274,12 +274,20 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/companion-passage.lua"
         },
         {
-          "source": "mod/mcm.lua",
-          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mcm.lua"
+          "source": "mod/manager-ui.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/manager-ui.lua"
         },
         {
-          "source": "mod/mcm-entry.lua",
-          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mcm-entry.lua"
+          "source": "mod/nsui.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/nsui.lua"
+        },
+        {
+          "source": "mod/mcm-host.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mcm-host.lua"
+        },
+        {
+          "source": "mod/nsui-entry.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/nsui-entry.lua"
         },
         {
           "source": "mod/manager-party.lua",
@@ -304,6 +312,10 @@
         {
           "source": "mod/spawned-characters.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/spawned-characters.lua"
+        },
+        {
+          "source": "mod/custom-characters.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/custom-characters.lua"
         },
         {
           "source": "mod/world-talk.lua",
@@ -372,6 +384,14 @@
         {
           "source": "mod/setup-check.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/setup-check.lua"
+        },
+        {
+          "source": "mod/state-restore.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/state-restore.lua"
+        },
+        {
+          "source": "mod/error-reports.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/error-reports.lua"
         },
         {
           "source": "mod/character-editor.lua",
@@ -465,32 +485,12 @@
           "source": "mod/save-identity-probe.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/save-identity-probe.lua"
         }
-      ],
-      "plannedDependencyComponents": [
-        {
-          "dependencyId": "mcm",
-          "onlyExtension": ".lua",
-          "preserveGameRelativeArchiveEntryPaths": true,
-          "expectedFileCount": 57,
-          "selection": "approved Lua entries from the pinned MCM source archive; no user settings or bindings",
-          "status": "dependency-distribution-and-compatibility-review-required"
-        }
       ]
     },
     {
       "id": "runtime",
       "filename": "AI-NPC-Cyberpunk-Mod-Runtime.zip",
       "forbiddenExtension": ".lua",
-      "plannedDependencyComponents": [
-        {
-          "dependencyId": "mcm",
-          "forbiddenExtension": ".lua",
-          "preserveGameRelativeArchiveEntryPaths": true,
-          "expectedFileCount": 34,
-          "selection": "19 MCM locale JSON files, 14 MCM redscript files and ModConfigurationMenuAPI/data/storage.version from the pinned source archive; no user settings or bindings",
-          "status": "dependency-distribution-and-compatibility-review-required"
-        }
-      ],
       "files": [
         {
           "source": "characters/world-knowledge.json",
@@ -608,13 +608,17 @@
             "bridge/convai-signin.mjs",
             "bridge/convai-vision.mjs",
             "bridge/conversation-style.mjs",
+            "bridge/custom-characters.mjs",
             "bridge/custom-endpoint.mjs",
+            "bridge/custom-manifest-folders.mjs",
             "bridge/custom-models.mjs",
+            "bridge/custom-voice-clip.mjs",
             "bridge/dialogue-level.mjs",
             "bridge/emotion-analysis.mjs",
             "bridge/emotion-lexicon.mjs",
             "bridge/emotion-selector.mjs",
             "bridge/emotion-tags.mjs",
+            "bridge/error-events.mjs",
             "bridge/expression-timeline.mjs",
             "bridge/expressive-emotions.mjs",
             "bridge/facial-timeline.mjs",
@@ -622,6 +626,7 @@
             "bridge/follow-up.mjs",
             "bridge/game-dialogue.mjs",
             "bridge/game-launch.mjs",
+            "bridge/game-state.mjs",
             "bridge/group-context.mjs",
             "bridge/group-lookahead.mjs",
             "bridge/group-prefetch.mjs",
@@ -638,6 +643,7 @@
             "bridge/key-codec.mjs",
             "bridge/knowledge-decisions.mjs",
             "bridge/knowledge-parts.mjs",
+            "bridge/live-voices.mjs",
             "bridge/local-ai-pack.mjs",
             "bridge/local-embed.mjs",
             "bridge/local-llm-server.mjs",
@@ -678,6 +684,8 @@
             "bridge/player-memory-control.mjs",
             "bridge/player-memory.mjs",
             "bridge/player-phone-knowledge.mjs",
+            "bridge/player-voice-summary.mjs",
+            "bridge/player-voices.mjs",
             "bridge/pocket-facial-stream.mjs",
             "bridge/pocket-speech.mjs",
             "bridge/pocket-voice.mjs",
@@ -686,6 +694,7 @@
             "bridge/quest-context.mjs",
             "bridge/quest-overview.mjs",
             "bridge/realtime-host.mjs",
+            "bridge/reasoning.mjs",
             "bridge/relationship-routing.mjs",
             "bridge/reply-language.mjs",
             "bridge/reply-stream.mjs",
@@ -698,6 +707,7 @@
             "bridge/setup-check.mjs",
             "bridge/shared-key-guard.mjs",
             "bridge/speech-audio.mjs",
+            "bridge/speech-language.mjs",
             "bridge/speech-pace.mjs",
             "bridge/speech-state-cache.mjs",
             "bridge/speech-stream.mjs",
@@ -724,6 +734,7 @@
             "bridge/voice-utterance.mjs",
             "bridge/voice-variants.mjs",
             "bridge/voxtral-reference.mjs",
+            "bridge/voxtral-stt.mjs",
             "bridge/voxtral-voice.mjs",
             "bridge/witness-receipts.mjs",
             "bridge/world-knowledge.mjs",
@@ -739,8 +750,8 @@
             "bridge/phone-analysis-worker.py",
             "bridge/local-stt-worker.py",
             "bridge/audio-output-probe.ps1",
-            "bridge/make-support-report.mjs",
-            "bridge/offline-support-report.mjs"
+            "bridge/error-reports.mjs",
+            "bridge/report-secrets.mjs"
           ]
         },
         {
@@ -817,15 +828,6 @@
             "packaging/Start-Runtime.ps1",
             "packaging/Create-RuntimeManifest.mjs"
           ]
-        },
-        {
-          "id": "support-report",
-          "destination": "red4ext/plugins/AiNpcCyberpunkMod",
-          "sourceFiles": [
-            "packaging/Make support report.bat"
-          ],
-          "selection": "the double-click tool that makes a support report with the game closed; it starts app/node/node.exe on app/bridge/make-support-report.mjs (listed in the bridge component above), and the builder writes it with CRLF line ends",
-          "status": "source-and-fixture-tested"
         },
         {
           "id": "public-catalog",
@@ -1097,13 +1099,27 @@
       "developmentVersion": "1.9.9"
     },
     {
-      "name": "MCM",
-      "developmentVersion": "0.10.3",
+      "name": "Mod Configuration Menu",
+      "developmentVersion": "0.10.5",
       "dependencyId": "mcm",
-      "sourceArchive": "ref mods/Mod Configuration Menu 31640 0.10.3 2026-09-21T16-50Z YfTif7TNd.zip",
-      "sourceArchiveSha256": "503018b1aca4e8cbac96c55fe5ee3f16e5132d190d44933e6e20084060a34c6f",
+      "nexus": "https://www.nexusmods.com/cyberpunk2077/mods/31640",
+      "testedWith": "0.10.5",
+      "minimumVersion": "0.10.5",
+      "sourceArchive": "ref mods/Mod Configuration Menu 31640 0.10.5 2026-10-19T08-41Z sHlUHDD7X.zip",
+      "sourceArchiveSha256": "e7d191dc099610a6900f4342c0932c5c8e992bf998b899b23dab5941d043a6d5",
       "wholeArchiveCopyAllowed": false,
-      "bundlingStatus": "dependency-distribution-and-compatibility-review-required"
+      "bundlingStatus": "not bundled: the player installs it from Nexus Mods (the default host of the Companion Manager, drawn through its public API by mod/mcm-host.lua)"
+    },
+    {
+      "name": "Native Settings UI",
+      "developmentVersion": "1.96",
+      "dependencyId": "nsui",
+      "nexus": "https://www.nexusmods.com/cyberpunk2077/mods/3518",
+      "testedWith": "1.96",
+      "sourceArchive": "ref mods/Native Settings UI 1.96-3518-1-96-1704576025.zip",
+      "sourceArchiveSha256": "a965c9878c291f082e9714b770aece565572c613ae33f89fbf10548ca731081a",
+      "wholeArchiveCopyAllowed": false,
+      "bundlingStatus": "not bundled: optional, for players who prefer it (the Companion Manager is a tab of its Mods screen)"
     }
   ],
   "dependencyPolicy": "Version inventory is the current development setup, not an automatic authorization to redistribute third-party game plugins; resolve notices, distribution and compatibility before claiming two ZIPs are sufficient.",

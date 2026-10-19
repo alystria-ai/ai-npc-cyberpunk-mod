@@ -18,7 +18,7 @@ const body = /local function shortText\(id, names, old\)([\s\S]*?)\nend\n/.exec(
 assert(body, 'shortText moved');
 const notices = [...body[1].matchAll(/ui\.t\('((?:[^'\\]|\\.)*)'/g)].map(match => match[1].replace(/\\'/g, "'"));
 // {name} is RED4ext, Codeware, TweakXL or Audioware (a product name that stays English in every language); {names} is the widest
-// list the notice can name: four of them (MAX_NAMES in the module), never Mod Configuration Menu.
+// list the notice can name: four of them (MAX_NAMES in the module), never Native Settings UI.
 const filled = text => text.replace('{name}', 'Audioware').replace('{names}', 'RED4ext, Codeware, Audioware, TweakXL');
 
 function localeTable(code) {
@@ -36,8 +36,8 @@ function localeTable(code) {
   return rows;
 }
 
-test('the notice is one of eleven short sentences, each catalogued and each within the English budget', () => {
-  assert.equal(notices.length, 11, notices.join('\n'));
+test('the notice is one of twelve short sentences, each catalogued and each within the English budget', () => {
+  assert.equal(notices.length, 12, notices.join('\n'));
   for (const text of notices) {
     assert.equal(catalog[text], text, `missing from localization/en.json: ${text}`);
     assert.deepEqual(noticeProblems(filled(text), {english: true}), [], text);

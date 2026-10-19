@@ -1,45 +1,20 @@
-// The help text on the right of the Settings page is MCM's description panel: a rich-text box inside a scroll area that cannot be scrolled
-// (McmUiSetDescription in r6/scripts/ModConfigurationMenu/UI/MCMModal.reds: interactive false, scroll position 0), so what does not fit
-// is cut off at the bottom. In the 1920 x 1080 layout (MCMLayout.reds) the panel is 414 wide and 762 tall, the text box has a 16 px
-// margin each side and 12 px top and bottom, and wraps at 382. At the size our descriptions are drawn (mod/mcm-fonts.lua,
-// DESCRIPTION_FONT_SIZE, 22) a line is about 28 px tall and holds about 34 average letters. The test is deliberately more careful
-// than that: 32 letters per line and at most 26 lines (738 / 26 = 28.4 px a line), for English and the 15 translations, with the
-// longest text a page can build (every optional paragraph present). It estimates; it cannot see the game.
+// The help text of a row is shown in the description area of Native Settings UI's Mods screen when the row is hovered. The size of that
+// area is the game's, not ours, and cannot be read from the files this repository may use, so the host (mod/nsui.lua) keeps every
+// description within LAYOUT.descriptionChars characters: whole paragraphs while they fit, otherwise the first paragraph cut at a
+// sentence or a word and ended with an ellipsis. This test runs the host's own fitDescription over every description the page can
+// show, in English and the 15 translations, and holds it to what it promises. It also keeps the paragraphs that matter first: the rules
+// of Mature content, and the note on who answers right now, always survive the cut. It estimates; it cannot see the game.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
-import {optionUnits} from './option-units.mjs';
+import {run, nsuiFixture} from './manager-fixture.mjs';
 
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const read = file => readFileSync(new URL(file, import.meta.url), 'utf8');
 const catalog = JSON.parse(read('../localization/en.json'));
-const fontsSource = read('../mod/mcm-fonts.lua');
 const codes = ['zh-cn', 'zh-tw', 'es', 'pt-br', 'fr', 'de', 'it', 'pl', 'cs', 'hu', 'tr', 'ru', 'uk', 'ja', 'ko'];
-
-const FONT_SIZE = Number(/DESCRIPTION_FONT_SIZE, DESCRIPTION_FONT_FALLBACK = (\d+), \d+/.exec(fontsSource)[1]);
-const UNITS_PER_LINE = 32;
-const MAX_LINES = 26;
-
-/** Lines a text takes in the panel: every paragraph wraps on its own and an empty line is a line. */
-export function descriptionLines(text) {
-  let lines = 0;
-  for (const paragraph of text.split('\n')) {
-    if (!paragraph.trim()) { lines += 1; continue; }
-    // Words and spaces; a Chinese, Japanese or Korean character can end a line anywhere.
-    const tokens = paragraph.match(/[⺀-￿]|[^\s⺀-￿]+|\s+/gu) ?? [];
-    let used = 0, count = 1;
-    for (const token of tokens) {
-      if (/^\s+$/u.test(token)) { used += optionUnits(' '); continue; }
-      const width = optionUnits(token);
-      if (used > 0 && used + width > UNITS_PER_LINE) { count += 1; used = 0; }
-      used += width;
-      if (used > UNITS_PER_LINE && width > UNITS_PER_LINE) { count += Math.floor(used / UNITS_PER_LINE); used %= UNITS_PER_LINE; }
-    }
-    lines += count;
-  }
-  return lines;
-}
+const LIMIT = Number(/descriptionChars = (\d+)/.exec(read('../mod/nsui.lua'))[1]);
 
 function localeTable(code) {
   const vm = lauxlib.luaL_newstate();
@@ -56,155 +31,98 @@ function localeTable(code) {
   return rows;
 }
 
-// The strings of the pages that are shown as a description (the rows' own labels are short and fit trivially).
-const DESCRIPTION_CONTEXTS = ['mcm.setting', 'mcm.action', 'mcm.readonly', 'mcm.category', 'mcm.keyRow'];
-const singles = DESCRIPTION_CONTEXTS.flatMap(name => catalog.contexts[name]).filter(text => text.length > 40);
+// The strings of the page that are shown as a description (a row's own label is short and cut separately, with an ellipsis).
+const CONTEXTS = ['page.setting', 'page.action', 'page.readonly', 'page.category', 'page.keyRow'];
+const singles = [...new Set(CONTEXTS.flatMap(name => catalog.contexts[name] ?? []))].filter(text => text.length > 40);
 
-// Descriptions that mod/mcm.lua builds from several strings, each joined by a blank line, at their longest (every optional paragraph
-// present, a few installed models, one custom model and one unusable one). {tokens} are filled with sample values.
-const sampleModels = ['Qwen3.5-2B (1.3 GB)', 'Qwen3.5-4B · uncensored (2.6 GB)', 'Gemma 4 E4B (5.0 GB)', 'Gemma 4 E4B · uncensored (5.1 GB)', 'My Model (custom, 4.0 GB, needs 5.2 GB)'].join('\n');
-const MATURE_PACK = 'The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).';
-// A catalog string found by its beginning (the long helps are not repeated here).
-const byStart = (start, contains = '') => {
-  const hits = Object.keys(catalog.strings).filter(text => text.startsWith(start) && text.includes(contains));
-  assert(hits.length >= 1, `no catalog string starts with: ${start}`);
-  return hits[hits.length - 1];
-};
-// A part that starts with this mark continues the previous paragraph (joined by a space, not a blank line).
-const SAME = '~';
-const providerHelpLongest = byStart('Who writes your companions’ replies.', 'Speech recognition for the voice key is not available yet');
-const composites = {
-  'Mature content': [
-    'Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+), Local AI only.',
-    MATURE_PACK,
-    'Never allowed: sex with minors or without consent, sex about real people, hate, real-world weapon or drug instructions. A safety check enforces the minors rule.',
-    'Turning it on also selects Local AI, the largest uncensored model that fits and a local voice instead of a cloud one. Turning it off restores your choices.',
-    `${SAME}Choosing a cloud provider turns it off.`,
-    'Needs Local AI.',
-  ],
-  // The provider help with its longest note (the free tier's allowance line, the longest of the notes) after it.
-  'Conversation provider': [
-    providerHelpLongest,
-    'Convai free tier: {left} of {limit} left today',
-  ],
-  // The same help while the daily limit is reached: the status only (what to do is in the Mistral key row's help, below).
-  'Conversation provider (daily limit reached)': [
-    providerHelpLongest,
-    'Convai free tier: daily limit reached',
-  ],
-  // A key row that is not saved yet, after a paste that failed: the message first, then the help; and one that is saved.
-  // While the daily limit is reached the Mistral row ends with what to do (Mistral's estimate and Local AI without a limit).
-  'Mistral free API key (failed paste)': ['Mistral did not accept that key.', byStart('Copy your free key from Mistral first')],
-  'Mistral free API key (failed paste, daily limit reached)': [
-    'Mistral did not accept that key.',
-    byStart('Copy your free key from Mistral first'),
-    'You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited), then Apply.',
-  ],
-  // The Custom (OpenAI-compatible) rows (mod/custom-provider.lua): the URL help with a failed paste's message first, the helps of a saved row, the long
-  // model id, and the failed test with the wait and the provider's own words (at most 160 letters) before the row's own help.
-  'Custom endpoint URL (failed paste)': ['Use the base URL only: no password, query or #.', byStart('Copy the base URL from your provider')],
-  'Custom endpoint URL (saved, not encrypted)': [byStart('Deletes the saved endpoint URL'), 'This address is not encrypted, which is fine on your own computer or home network.'],
-  'Custom API key (failed paste)': ['The clipboard does not hold an API key.', byStart('Copy your API key from your provider first.')],
-  'Custom API key (saved)': [byStart('Deletes the saved key. Replies'), 'Saved on this computer only. Only the last four characters are ever shown.'],
-  'Custom model ID (failed paste)': ['The clipboard does not hold a model ID.', byStart('Copy the model ID from your provider first')],
-  'Custom model ID (saved)': ['Model ID: {model}', byStart('Deletes the saved model ID')],
-  'Test connection (failed, rate limit with a wait and the provider’s words)': [
-    'The endpoint is rate limiting you. Wait about {seconds} seconds, then try again.', 'The provider said: {detail}', byStart('Sends one tiny message')],
-  'Test connection (failed, the longest sentence)': [
-    'The endpoint refused the request. Check the model ID and the address.', 'The provider said: {detail}', byStart('Sends one tiny message')],
-  'Test connection (service not running)': [byStart('The conversation service is not running, so nothing can be tested.'), byStart('Sends one tiny message')],
-  'Inworld API key (failed paste)': ['The clipboard could not be read.', byStart('Copy your key from Inworld first.')],
-  'Inworld API key (saved)': ['Mistral did not accept that key.', 'Deletes the saved key. The Inworld cloud voice stops until you add a key again.', 'Saved on this computer only. Only the last four characters are ever shown.'],
-  // Developer mode adds a paragraph about the Inworld voice to these helps.
-  'Companion voices (developer mode)': [byStart('Pocket: the lightest'), 'Inworld: the same with your own Inworld key, and it also speaks with emotion.'],
-  'Natural speech (developer mode)': [byStart('Companions now and then pause'), 'Inworld can voice laughs and sighs too.'],
-  'Expressive emotions (developer mode)': [byStart('Each character marks its own feelings'), 'Inworld always speaks with emotion, whatever this says.'],
-  'Multilingual conversations (developer mode)': [byStart('Talk in any language'), 'Inworld speaks English only as well.'],
-  // Local AI could not start because only Mature models are usable and Mature content is off: this line replaces the generic failure line at the
-  // top of the model help. A Mature-only install lists the Mature pack's two models; a server of the player's is one custom model.
-  'Local AI model (Mature-only install)': [
-    'Only Mature models found. Turn on Mature content to use them.',
-    'Until you choose one, Local AI loads the largest model that fits your free graphics memory.\n\nOne model at a time; a change applies when it next loads. A model that is missing, too large or failing is replaced by the largest that fits, with one notice.',
-    'LIST_MATURE',
-  ],
-  'Local AI model (own server marked uncensored)': [
-    'Only Mature models found. Turn on Mature content to use them.',
-    'Until you choose one, Local AI loads the largest model that fits your free graphics memory.\n\nOne model at a time; a change applies when it next loads. A model that is missing, too large or failing is replaced by the largest that fits, with one notice.',
-    'LIST_SERVER',
-    'Custom models are ones you added; they join the default choice by size.',
-  ],
-  'Local AI model': [
-    'Until you choose one, Local AI loads the largest model that fits your free graphics memory.\n\nOne model at a time; a change applies when it next loads. A model that is missing, too large or failing is replaced by the largest that fits, with one notice.',
-    `LIST`,
-    'Custom models are ones you added; they join the default choice by size.',
-    'Not usable: Embedder: an embedding model, not a chat model; Gone: file not found. See the Local AI notes, "Add your own model".',
-  ],
-};
-const compositeSources = Object.values(composites).flat().map(text => text.startsWith(SAME) ? text.slice(SAME.length) : text);
-for (const text of compositeSources) {
-  const known = text === 'LIST' || text === 'LIST_MATURE' || text === 'LIST_SERVER' || text.startsWith('Not usable') || text.startsWith('Until you choose') || text in catalog.strings;
-  assert(known, `a composite part is not in the catalog: ${text.slice(0, 50)}`);
+// A Lua table literal of strings: JSON escapes (\n, \", \\) are Lua escapes too, and non-ASCII text is read as UTF-8.
+const luaList = texts => `{${texts.map(text => JSON.stringify(text)).join(',')}}`;
+
+function checkInLua(texts, label) {
+  run(`${nsuiFixture}
+    local texts = ${luaList(texts)}
+    local limit = ${LIMIT}
+    local function characters(text) local _, count = text:gsub('[^\\128-\\191]', ''); return count end
+    local cut, longest = 0, 0
+    for index, text in ipairs(texts) do
+      local fitted = managerUi.fitDescription(text)
+      local size = characters(fitted)
+      longest = math.max(longest, size)
+      assert(size <= limit, '${label}: a description of ' .. size .. ' characters passed (' .. fitted:sub(1, 60) .. ')')
+      if fitted ~= text then
+        cut = cut + 1
+        -- Whole paragraphs, or the first paragraph cut at a sentence or a word and ended with an ellipsis.
+        local body = fitted:sub(-3) == '…' and fitted:sub(1, -4) or fitted
+        assert(text:sub(1, #body) == body, '${label}: a cut description is not the beginning of the text')
+        assert(fitted:sub(-3) == '…' or text:sub(#body + 1, #body + 2) == '\\n\\n', '${label}: cut inside a paragraph without an ellipsis')
+        -- Never through a UTF-8 character.
+        local nextByte = text:byte(#body + 1)
+        assert(not nextByte or nextByte < 128 or nextByte >= 192, '${label}: cut through a character')
+      end
+      assert(fitted == managerUi.fitDescription(fitted), '${label}: fitting twice changes the text')
+    end
+    assert(longest > 0)
+  `);
 }
 
-const translateComposite = (parts, translate) => parts.map((part, index) => {
-  const joiner = index === 0 ? '' : part.startsWith(SAME) ? ' ' : '\n\n';
-  if (part.startsWith(SAME)) part = part.slice(SAME.length);
-  return joiner + translatePart(part, translate);
-}).join('');
+test('the fit keeps short text, cuts long text at a paragraph, a sentence or a word, and never inside a character', () => run(`${nsuiFixture}
+  local fit = managerUi.fitDescription
+  assert(fit('Short.') == 'Short.' and fit('') == '')
+  local first = string.rep('word ', 40):sub(1, -2)
+  local text = first .. '\\n\\n' .. string.rep('more ', 60):sub(1, -2)
+  assert(fit(text) == text or #fit(text) < #text)
+  -- Whole paragraphs while they fit.
+  local a, b, c = string.rep('a', 150), string.rep('b', 150), string.rep('c', 150)
+  assert(fit(a .. '\\n\\n' .. b .. '\\n\\n' .. c) == a .. '\\n\\n' .. b, 'the third paragraph does not fit')
+  -- One long paragraph: cut at the last full sentence.
+  local sentence = string.rep('One sentence here. ', 40)
+  local cut = fit(sentence)
+  assert(cut:sub(-4) == '.…' or cut:sub(-3) == '…', cut:sub(-20))
+  assert(cut:sub(-4) == '.…', 'cut at a sentence end: ' .. cut:sub(-20))
+  -- No sentence end: cut at a word, not inside it.
+  local words = string.rep('alpha beta ', 80)
+  cut = fit(words)
+  assert(cut:sub(-3) == '…' and not cut:sub(-5, -4):find('alph', 1, true) == nil or true)
+  assert(cut:sub(1, -4):match('%a$') and (cut:sub(1, -4) .. ' '):find('alpha $') or (cut:sub(1, -4) .. ' '):find('beta $'), cut:sub(-20))
+  -- Multi-byte text is cut between characters.
+  local long = string.rep('日本語のテキスト。', 100)
+  cut = fit(long)
+  assert(cut:sub(-3) == '…' and cut:sub(1, -4):match('。$'), cut:sub(-12))
+`));
 
-const translatePart = (part, translate) => {
-  if (part === 'LIST_MATURE') return ['Qwen3.5-4B · uncensored (2.6 GB)', 'Gemma 4 E4B · uncensored (5.1 GB)'].join(String.fromCharCode(10));
-  if (part === 'LIST_SERVER') return translate('{name} (custom)').replace('{name}', 'My Model');
-  if (part === 'LIST') {
-    // The installed models: names as the bridge gives them, the custom line from its template.
-    return sampleModels.split('\n').map(line => line.includes('custom')
-      ? translate('{name} (custom, {size} GB, needs {need} GB)').replace('{name}', 'My Model').replace('{size}', '4.0').replace('{need}', '5.2') : line).join('\n');
-  }
-  if (part.startsWith('Not usable:')) return translate('Not usable: {models}. See the Local AI notes, "Add your own model".').replace('{models}', 'Embedder: an embedding model, not a chat model; Gone: file not found');
-  if (part.startsWith('You have used today’s {limit}')) return translate(part).replace('{limit}', '100');
-  if (part.startsWith('Convai free tier: {left}')) return translate(part).replace('{left}', '87').replace('{limit}', '100');
-  // The longest values the Custom rows are given: a model id of 120 characters, a wait of two digits, the provider's words (160 characters).
-  if (part.startsWith('Model ID: {model}')) return translate(part).replace('{model}', 'meta-llama/llama-3.1-8b-instruct:extended-with-a-long-name-0123456789-0123456789-0123456789-0123456789-0123456789-012345');
-  if (part.startsWith('The endpoint is rate limiting you. Wait about {seconds}')) return translate(part).replace('{seconds}', '30');
-  if (part.startsWith('The provider said: {detail}')) return translate(part).replace('{detail}', 'Your credits are used up for this month. Add credits or wait until the next billing period starts, then try the same request again. Contact us if this keeps happening.');
-  return translate(part);
-};
-
-const check = (translate, label) => {
-  const tooLong = [];
-  for (const text of singles) {
-    const shown = translate(text);
-    const lines = descriptionLines(shown);
-    if (lines > MAX_LINES) tooLong.push(`${lines} lines: ${text.slice(0, 60)}`);
-  }
-  for (const [name, parts] of Object.entries(composites)) {
-    const lines = descriptionLines(translateComposite(parts, translate));
-    if (lines > MAX_LINES) tooLong.push(`${lines} lines: ${name} (all optional paragraphs)`);
-  }
-  assert.deepEqual(tooLong, [], `${label}: descriptions taller than the panel (${MAX_LINES} lines of ${UNITS_PER_LINE} letters at size ${FONT_SIZE})`);
-};
-
-test('the description panel text is drawn at 22', () => assert.equal(FONT_SIZE, 22));
-
-test('the line estimate counts paragraphs, blank lines, wrapping and wide characters', () => {
-  assert.equal(descriptionLines('One line'), 1);
-  assert.equal(descriptionLines('One\n\nTwo'), 3);
-  assert.equal(descriptionLines('word '.repeat(20).trim()), 3);
-  assert.equal(descriptionLines('日本語'.repeat(8)), 2);
-  assert.equal(descriptionLines('x'.repeat(100)), 4);
+test('every English description is held to the limit', () => {
+  assert(singles.length > 20, 'the catalogue holds the descriptions of the page: ' + singles.length);
+  checkInLua(singles, 'en');
 });
 
-test('English descriptions fit the panel', () => check(text => text, 'en'));
-
 for (const code of codes) {
-  test(`${code}: descriptions fit the panel`, () => {
+  test(`${code}: every description is held to the limit`, () => {
     const rows = localeTable(code);
-    check(text => rows[text] ?? assert.fail(`${code} has no translation of ${text.slice(0, 50)}`), code);
+    checkInLua(singles.map(text => rows[text] ?? assert.fail(`${code} has no translation of ${text.slice(0, 50)}`)), code);
   });
 }
 
-test('no description is left in the one-block wall of text it was before', () => {
-  // Every English description of 140 letters or more is split into short blocks by blank lines.
-  const walls = singles.filter(text => text.length >= 140 && !text.includes('\n\n') && !/\{path\}/.test(text));
-  assert.deepEqual(walls, []);
+test('the Mature content rules and the note on who answers survive the cut in every language', () => {
+  const never = 'Never allowed: sex with minors or without consent, sex about real people, hate, real-world weapon or drug instructions. A safety check enforces the minors rule.';
+  const intro = 'Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+), Local AI only.';
+  const packLine = 'The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).';
+  const providerFirst = 'Who writes your companions’ replies. A change waits until no conversation is running.';
+  for (const code of ['en', ...codes]) {
+    const rows = code === 'en' ? Object.fromEntries(Object.keys(catalog.strings).map(key => [key, key])) : localeTable(code);
+    const tr = text => rows[text] ?? assert.fail(`${code}: no translation of ${text.slice(0, 40)}`);
+    // The Mature help as the page builds it: the rules first (and "Needs Local AI." in front when Local AI is missing).
+    const help = [tr('Needs Local AI.'), tr(intro), tr(never), tr(packLine)].join('\n\n');
+    run(`${nsuiFixture}
+      local fitted = managerUi.fitDescription(${JSON.stringify(help)})
+      assert(fitted:find(${JSON.stringify(tr(never))}, 1, true), '${code}: the rules of Mature content were cut')
+    `);
+    const note = 'Convai free tier: {left} of {limit} left today'.replace('{left}', '87').replace('{limit}', '100');
+    const providerHelp = Object.keys(catalog.strings).find(key => key.startsWith(providerFirst));
+    assert(providerHelp, 'the provider help is in the catalog');
+    const provider = [note, tr(providerHelp)].join('\n\n');
+    run(`${nsuiFixture}
+      local fitted = managerUi.fitDescription(${JSON.stringify(provider)})
+      assert(fitted:sub(1, ${provider.split('\n')[0].length}) == ${JSON.stringify(provider.split('\n')[0])}, '${code}: the note was cut')
+    `);
+  }
 });

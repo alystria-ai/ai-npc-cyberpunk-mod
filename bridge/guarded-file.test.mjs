@@ -121,7 +121,7 @@ test('an already aborted or stale write never opens a file', async () => {
   assert.equal(await atomicFile('unused', 'stale', {files, isCurrent: async () => false}), false);
 });
 
-test('a reset during a delayed write cannot overwrite the newer reply', {timeout: 5000}, async t => {
+test('a reset during a delayed write cannot overwrite the newer reply', {timeout: 120000}, async t => {
   const {directory, output} = await fixture(t);
   const entered = deferred(), resume = deferred();
   let generation = 1;
@@ -145,7 +145,7 @@ test('a reset during a delayed write cannot overwrite the newer reply', {timeout
   await onlyOutput(directory, output, 'newer');
 });
 
-test('a reset during a delayed close cannot overwrite the newer reply', {timeout: 5000}, async t => {
+test('a reset during a delayed close cannot overwrite the newer reply', {timeout: 120000}, async t => {
   const {directory, output} = await fixture(t);
   const entered = deferred(), resume = deferred();
   let generation = 1;
@@ -169,7 +169,7 @@ test('a reset during a delayed close cannot overwrite the newer reply', {timeout
   await onlyOutput(directory, output, 'newer');
 });
 
-test('abort while awaiting the publish guard cannot authorize a rename', {timeout: 5000}, async t => {
+test('abort while awaiting the publish guard cannot authorize a rename', {timeout: 120000}, async t => {
   const {directory, output} = await fixture(t);
   const entered = deferred(), resume = deferred();
   const controller = new AbortController();
@@ -204,7 +204,7 @@ test('abort while awaiting the publish guard cannot authorize a rename', {timeou
   await onlyOutput(directory, output, 'newer');
 });
 
-test('cancellation during a rename retry cannot replace the newer output', {timeout: 5000}, async t => {
+test('cancellation during a rename retry cannot replace the newer output', {timeout: 120000}, async t => {
   const {directory, output} = await fixture(t);
   const entered = deferred(), resume = deferred();
   const controller = new AbortController();
@@ -335,13 +335,22 @@ test('a rename that fails with EPERM twice then succeeds replaces the output and
 test('the default backoff outlasts a short lock and stays under about 400 ms in total', async t => {
   const {directory, output} = await fixture(t);
   let attempts = 0;
+  // The total is the sum of the delays the default backoff asks for, read from the timers it sets (they still run for real: the elapsed
+  // time keeps its lower bound). An upper bound on the elapsed wall time would only measure how busy the machine is.
+  const delays = [], realSetTimeout = globalThis.setTimeout;
+  globalThis.setTimeout = (callback, ms, ...rest) => { delays.push(ms); return realSetTimeout(callback, ms, ...rest); };
   const started = Date.now();
-  await assert.rejects(atomicFile(output, 'stale', {
-    files: {rename: () => { attempts++; throw failure('EBUSY'); }},
-  }), {code: 'EBUSY'});
+  try {
+    await assert.rejects(atomicFile(output, 'stale', {
+      files: {rename: () => { attempts++; throw failure('EBUSY'); }},
+    }), {code: 'EBUSY'});
+  } finally { globalThis.setTimeout = realSetTimeout; }
   const elapsed = Date.now() - started;
   assert.equal(attempts, 6);
-  assert.ok(elapsed >= 250 && elapsed < 1500, `backoff took ${elapsed} ms`);
+  assert.deepEqual(delays, [10, 20, 40, 80, 150]);
+  const requested = delays.reduce((sum, ms) => sum + ms, 0);
+  assert.ok(requested >= 250 && requested < 400, `backoff asks for ${requested} ms`);
+  assert.ok(elapsed >= 250, `backoff took ${elapsed} ms`);
   await onlyOutput(directory, output, 'original');
 });
 

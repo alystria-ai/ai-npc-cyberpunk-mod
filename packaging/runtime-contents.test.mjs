@@ -1,18 +1,16 @@
-// A Runtime package must carry V's voice clips and "Make support report.bat" with the code it starts (packaging/lib/runtime-required.mjs).
-// 0.2 and 0.2.1 shipped without the V clips and 0.2.1 without the batch file; these tests keep a Runtime like that from passing again:
+// A Runtime package must carry V's voice clips and its own OmniVoice lists (packaging/lib/runtime-required.mjs).
+// 0.2 and 0.2.1 shipped without the V clips; these tests keep a Runtime like that from passing again:
 // the helper, the zip checker (packaging/check-runtime-contents.mjs) and the places that call it, all without a build.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {existsSync} from 'node:fs';
 import {mkdtemp, readFile, rm} from 'node:fs/promises';
 import {spawnSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {ZipWriter} from './lib/zip.mjs';
-import {importClosure} from './lib/closure.mjs';
 import {checkRuntimeContents} from './check-runtime-contents.mjs';
-import {OFFLINE_REPORT_MODULES, missingRuntimeFiles, requiredRuntimeFiles} from './lib/runtime-required.mjs';
+import {missingRuntimeFiles, requiredRuntimeFiles} from './lib/runtime-required.mjs';
 
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const read = rel => readFile(resolve(project, rel), 'utf8');
@@ -28,48 +26,45 @@ async function zipOf(directory, name, names) {
   return join(directory, name);
 }
 
-test('the required files come from the repository: the V manifest, the batch file name and the offline report modules', async () => {
+test('the required files come from the repository: the V manifest and the OmniVoice lists', async () => {
   assert.deepEqual(required["V's voice clips"], ['v-voice.json', 'v-male.wav', 'v-female.wav'].map(file => `${PLUGIN}/voices/v-voice/${file}`));
-  assert.deepEqual(required['support report batch file'], [`${PLUGIN}/Make support report.bat`]);
-  assert.deepEqual(required['offline report code'], OFFLINE_REPORT_MODULES.map(item => `${PLUGIN}/app/bridge/${item}.mjs`));
   // The manifest names exactly the clips that exist beside it in a development checkout; the tracked file is what the build validates.
   const manifest = JSON.parse(await read('assets/v-voice/v-voice.json'));
   assert.deepEqual(Object.values(manifest.voices).map(row => row.file).sort(), ['v-female.wav', 'v-male.wav']);
 });
 
-test('every offline report module is in the production bridge closure, so the builder ships it', async () => {
+test('a Runtime ships no double-click support report tool: the report is made in the game (Settings > Help) or sent automatically', async () => {
   const config = JSON.parse(await read('packaging/release.config.json'));
-  const closure = await importClosure(project, config.bridgeEntries);
-  for (const item of OFFLINE_REPORT_MODULES) {
-    assert(existsSync(resolve(project, `bridge/${item}.mjs`)), `bridge/${item}.mjs exists`);
-    assert(closure.includes(`bridge/${item}.mjs`), `bridge/${item}.mjs is in the closure`);
-  }
+  assert.deepEqual(Object.keys(required), ["V's voice clips", "Runtime's OmniVoice lists"]);
+  assert(!allNames.some(name => name.endsWith('.bat')));
 });
 
-test('a complete Runtime has nothing missing; without the batch file, a V clip or the manifest each group is named', () => {
+test('a complete Runtime has nothing missing; without a V clip or the manifest the group is named', () => {
   assert.deepEqual(missingRuntimeFiles(allNames, required), {});
-  const batch = required['support report batch file'][0];
-  assert.deepEqual(missingRuntimeFiles(allNames.filter(name => name !== batch), required), {'support report batch file': [batch]});
   const male = `${PLUGIN}/voices/v-voice/v-male.wav`, manifest = `${PLUGIN}/voices/v-voice/v-voice.json`;
   assert.deepEqual(missingRuntimeFiles(allNames.filter(name => name !== male), required), {"V's voice clips": [male]});
   assert.deepEqual(missingRuntimeFiles(allNames.filter(name => name !== manifest), required), {"V's voice clips": [manifest]});
-  // A Runtime like 0.2.1: none of the V files and no batch file.
-  const old = allNames.filter(name => !name.includes('/v-voice/') && name !== batch);
-  assert.deepEqual(Object.keys(missingRuntimeFiles(old, required)).sort(), ['support report batch file', "V's voice clips"].sort());
+  // A Runtime like 0.2.1: none of the V files.
+  const old = allNames.filter(name => !name.includes('/v-voice/'));
+  assert.deepEqual(Object.keys(missingRuntimeFiles(old, required)), ["V's voice clips"]);
   // Windows names are not case sensitive.
   assert.deepEqual(missingRuntimeFiles(allNames.map(name => name.toUpperCase()), required), {});
 });
 
-test('the zip checker passes a complete Runtime and fails one without the batch file or a V clip (exit code 1)', async () => {
+test("a Runtime without its own OmniVoice lists in app/defaults is named, like 0.2.1, whose lists were at the OmniVoice pack's path", () => {
+  const lists = ['local-voices.autobest-short.json', 'local-voices.autobest-long.json'].map(name => `${PLUGIN}/app/defaults/${name}`);
+  assert.deepEqual(required["Runtime's OmniVoice lists"], lists);
+  const old = allNames.filter(name => !lists.includes(name)).concat(lists.map(name => name.replace('/app/defaults/', '/app/omni/defaults/')));
+  assert.deepEqual(missingRuntimeFiles(old, required), {"Runtime's OmniVoice lists": lists});
+});
+
+test('the zip checker passes a complete Runtime and fails one without a V clip (exit code 1)', async () => {
   const directory = await temporary();
   try {
     const run = zip => spawnSync(process.execPath, [resolve(project, 'packaging/check-runtime-contents.mjs'), zip], {encoding: 'utf8'});
     const complete = run(await zipOf(directory, 'complete.zip', [...allNames, 'other/file.txt']));
     assert.equal(complete.status, 0, complete.stdout + complete.stderr);
     assert.match(complete.stdout, /OK:/);
-    const noBatch = run(await zipOf(directory, 'no-batch.zip', allNames.filter(name => !name.endsWith('.bat'))));
-    assert.equal(noBatch.status, 1);
-    assert.match(noBatch.stdout, /MISSING \(support report batch file\).*Make support report\.bat/);
     const noClip = run(await zipOf(directory, 'no-clip.zip', allNames.filter(name => !name.endsWith('v-female.wav'))));
     assert.equal(noClip.status, 1);
     assert.match(noClip.stdout, /MISSING \(V's voice clips\).*v-female\.wav/);
@@ -85,7 +80,7 @@ test('the build and the install test still put and check these files', async () 
   const builder = await read('packaging/build-release.mjs');
   assert.match(builder, /vVoiceReferenceFiles\(\)/);
   assert.match(builder, /\$\{plugin\}\/voices\/v-voice\/\$\{rel\}/);
-  assert.match(builder, /pkg\.text\(`\$\{plugin\}\/\$\{supportBatch\}`/);
+  assert.doesNotMatch(builder, /supportBatch|support report/i);
   const install = await read('packaging/test-release-install.mjs');
   assert.match(install, /requiredRuntimeFiles\(project\)/);
   assert.match(install, /missingRuntimeFiles\(installed, required\)/);

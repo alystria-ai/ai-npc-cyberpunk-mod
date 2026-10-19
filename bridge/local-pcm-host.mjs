@@ -119,6 +119,9 @@ export class LocalPcmHost {
     const deadline = setTimeout(() => controller.abort(Error('Local PCM playback timed out')), this.timeoutMs);
     let producerTask, pump, page, result, final, succeeded = false, frames = 0, index = 0, identity;
     let emitting = false, firstAcceptedMs = null, rendererReady, rendererReadyMs = null, sentMakeup, levelLogged = false;
+    // Ends the clock poll's sleep the moment the renderer accepts the first audio: that snapshot is the one that publishes the reply,
+    // so it should not wait out the rest of a 40 ms sleep (docs/perf, LATENCY.md: 20 to 45 ms per reply in the live records).
+    let firstAudio = null, audioRepolled = false;
     const started = this.now();
     markStage('playStart');
     const check = async () => {
@@ -145,7 +148,7 @@ export class LocalPcmHost {
             || ack.offsetFrames !== frames || ack.frames !== expected.frames || ack.receivedFrames !== frames + expected.frames)
           throw Error('Local PCM renderer did not acknowledge the owned copy');
         frames += expected.frames; index = expected.index; identity = owned.identity;
-        if (firstAcceptedMs === null) { firstAcceptedMs = this.now() - started; markStage('firstPcmAccepted'); }
+        if (firstAcceptedMs === null) { firstAcceptedMs = this.now() - started; markStage('firstPcmAccepted'); firstAudio?.(); }
         return ack;
       } finally { emitting = false; }
     };
@@ -214,9 +217,13 @@ export class LocalPcmHost {
           }
           await abortable(new Promise(resolve => {
             const timer = setTimeout(resolve, this.pollMs);
+            const early = () => { clearTimeout(timer); resolve(); };
+            // No audio yet: the first accepted packet polls at once (also when it was accepted after this snapshot was taken).
+            if (firstAcceptedMs === null) firstAudio = early;
+            else if (!(snapshot.receivedFrames > 0) && !audioRepolled) { audioRepolled = true; early(); }
             // The lease file was just replaced: poll at once instead of finishing the sleep.
-            wake?.()?.then(() => { clearTimeout(timer); resolve(); }, () => {});
-          }), controller.signal);
+            wake?.()?.then(early, () => {});
+          }), controller.signal).finally(() => { firstAudio = null; });
         }
       })();
       producerTask = (async () => {
@@ -274,6 +281,20 @@ export class LocalPcmHost {
       } catch { return false; } finally { this.warming = null; }
     })();
     return this.warming;
+  }
+
+  // Opens the renderer page if needed and a silent output device on it (LocalPcmClient.standby), so the next turn's renderer is ready
+  // the moment its voice is asked for. Called when a turn that will use this voice starts, while the model is still thinking. Never
+  // interrupts a turn (a turn that owns the page has its own device) and never throws.
+  async standby() {
+    if (this.active || this.closing || this.failure) return false;
+    if (!await this.warm()) return false;
+    const page = this.page;
+    if (!page || page.isClosed?.() || this.active || this.closing) return false;
+    try {
+      return await this.bounded(Promise.resolve().then(() => page.evaluate(() => window.localPcm.standby?.() ?? false)),
+        this.commandTimeoutMs, 'Local PCM standby timed out') === true;
+    } catch { return false; }
   }
 
   close() {

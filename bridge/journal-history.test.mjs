@@ -128,6 +128,23 @@ assert(seen=='Renamed Quest','the demanded active lane rescanned: '..tostring(se
 m:demand({'active'},2); assert(m.lanes.active.next~=nil)
 `));
 
+test('a finished scan keeps its rows but not its work list: the cache drops queue and seen, and later scans and captures still work', () => run(fixture + `
+local m=module.new(options); finish(m)
+for _,lane in ipairs({'active','history'}) do
+  local cache=m.lanes[lane].cache
+  assert(cache.queue==nil and cache.seen==nil,lane..' kept its work list')
+  assert(next(cache.quests)~=nil and cache.revision~=nil,lane..' lost its rows')
+end
+for i=1,50 do now=now+0.1; m:update(context) end
+rootRows.active[1].title='Renamed Quest'
+m:demand({'active'},2); assert(m.lanes.active.next==nil,'the demand was refused')
+for _=1,20 do m:update(context) end
+local out=m:capture(context); local seen
+for _,q in ipairs(out.quests) do if q.id=='1' then seen=q.title; assert(#q.objectives==1) end end
+assert(seen=='Renamed Quest','the rescan after a dropped work list: '..tostring(seen))
+assert(m.lanes.active.cache.queue==nil)
+`));
+
 test('initial background progress is explicitly partial, and changing inventory length or clock rollback cannot masquerade as a complete scan', () => run(fixture + `
 local m=module.new(options); m:update(context); local progress=m:capture(context)
 assert(progress.coverage.active.status=='partial' and progress.coverage.active.scanning==true)

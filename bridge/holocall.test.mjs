@@ -148,12 +148,12 @@ test('the game\'s own phone is untouched; a holocall starts only from the mod\'s
 });
 
 test('the live picture setting is a Conversations setting, not a developer one', () => {
-  const mcm = read('../mod/mcm.lua');
-  const conversations = mcm.slice(mcm.indexOf("category('conversation-controls'"), mcm.indexOf("category('companion-behavior'"));
-  const development = mcm.slice(mcm.indexOf("category('development'"), mcm.indexOf("category('help', 'Help'"));
+  const managerUiSource = read('../mod/manager-ui.lua');
+  const conversations = managerUiSource.slice(managerUiSource.indexOf("category('conversation-controls'"), managerUiSource.indexOf("category('companion-behavior'"));
+  const development = managerUiSource.slice(managerUiSource.indexOf("category('development'"), managerUiSource.indexOf("category('help', 'Help'"));
   assert.match(conversations, /setting\('holocallLiveImage', 'Live holocall picture'/);
   assert.doesNotMatch(development, /holocall/i);
-  assert.match(mcm, /key == 'holocallLiveImage'/);
+  assert.match(managerUiSource, /key == 'holocallLiveImage'/);
 });
 
 // ---------------------------------------------------------------- Lua state machine
@@ -184,7 +184,7 @@ function player:ConvaiHolocallBegin(contact) game.began = contact; return game.b
 function player:ConvaiHolocallConnect(live) game.connects[#game.connects + 1] = live; return game.window end
 function player:ConvaiHolocallEnd() game.ends = game.ends + 1 end
 function player:ConvaiHolocallTakeEvent() return table.remove(game.events, 1) or '' end
-function player:ConvaiHolocallHasBacking() if game.noBacking then error('no such method') end return true end
+function player:ConvaiHolocallHasBacking() if game.noBacking then error('no such method') end return game.backing ~= false end
 local enabled, busy, live = {['judy-alvarez'] = true, ['johnny-silverhand'] = true}, false, false
 -- The bridge's readiness of each character's conversation (nil: every one is ready).
 local readyKeys = nil
@@ -498,6 +498,17 @@ test('without the black backing in the window (an older Holocall.reds) the camer
   game.window = 'holocall'; game.noBacking = true
   game.requests = {'judy'}; holocall.drain(player); tick(2.5)
   assert(holocall.connected() and holocall.call.mode == 'holo')
+  local lens = entities['9001ULL'].component
+  assert(lens.depthCutDistance == nil and lens.cutWhenOn == nil and logged('backdrop=false'))
+  holocall.finish(player, 'hangup')
+`));
+
+// Scripts compiled without Codeware have no black backing in the window (Holocall.reds' stand-in answers false): nothing is cut out
+// either, or the cut part of the picture would show the game through the window.
+test('scripts compiled without Codeware say the window has no backing, and the camera cuts nothing out of the picture', () => run(world + `
+  game.window = 'holocall'; game.backing = false
+  game.requests = {'judy'}; holocall.drain(player); tick(2.5)
+  assert(holocall.connected() and holocall.call.mode == 'holo' and holocall.call.backing == false)
   local lens = entities['9001ULL'].component
   assert(lens.depthCutDistance == nil and lens.cutWhenOn == nil and logged('backdrop=false'))
   holocall.finish(player, 'hangup')

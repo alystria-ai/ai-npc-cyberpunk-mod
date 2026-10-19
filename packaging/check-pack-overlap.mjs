@@ -2,18 +2,19 @@
 //
 //   node packaging/check-pack-overlap.mjs check <zip>... [--listing packaging/pack-listings/packs-0.2.1.json]
 //       Every file the zip (the Runtime, the Scripts) shares with a pack must have the same bytes as the pack's copy, and nothing may be in
-//       a tree only the OmniVoice pack writes. Exit code 1 otherwise, with the paths grouped by folder. Reads only the zip's directory.
+//       a tree only the OmniVoice pack writes, and no path may be in the zip twice with different bytes. Exit code 1 otherwise, with the
+//       paths grouped by folder. Reads only the zip's directory (ZIP64 too: the 6.5 GB OmniVoice pack is one).
 //
 //   node packaging/check-pack-overlap.mjs listing <out.json> <Name=zip-or-url>...
 //       Writes the listing from the packs' zips. A URL (the pack on Hugging Face, public, no token) is read with HTTP range requests: the
 //       end of the file and its directory, a few MB for the biggest pack, never the pack itself. Prints the bytes read.
-//       e.g. OmniPack=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/resolve/main/0.2.1/AI-NPC-Cyberpunk-Mod-OmniPack-0.2.1.zip
+//       e.g. OmniPack=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/resolve/main/0.2.2/AI-NPC-Cyberpunk-Mod-OmniPack-0.2.2.zip
 //
 // Why: docs/PACKAGING.md, "Packs reused unchanged". The rule and the shared names are in packaging/lib/pack-overlap.mjs.
 import {readFile, writeFile} from 'node:fs/promises';
 import {basename, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {compareWithPacks, countByFolder, filesOfZip, isUrl, listingText, packRecord, validateListing} from './lib/pack-overlap.mjs';
+import {compareWithPacks, countByFolder, duplicatePaths, filesOfZip, isUrl, listingText, packRecord, validateListing} from './lib/pack-overlap.mjs';
 
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 export const DEFAULT_LISTING = resolve(project, 'packaging/pack-listings/packs-0.2.1.json');
@@ -35,9 +36,14 @@ export async function checkZips(zips, listing, {log = console.log} = {}) {
         for (const [folder, count] of countByFolder(mine)) log(`    ${folder}: ${count}`);
       }
     }
-    ok &&= result.ok;
+    // A path the zip itself holds twice is a "Replace or skip?" inside the zip; with other bytes the answer picks the copy the player gets.
+    const twice = duplicatePaths(files), clashing = twice.filter(item => !item.same);
+    if (twice.length) log(`  the zip holds ${twice.length} path(s) more than once${clashing.length ? `, ${clashing.length} with DIFFERENT bytes` : ' (the same bytes each time)'}:`);
+    for (const item of twice.slice(0, 20)) log(`    ${item.path} (${item.copies.length} copies${item.same ? '' : ': ' + item.copies.map(copy => `${copy.size} bytes, ${copy.crc}`).join(' / ')})`);
+    if (twice.length > 20) log(`    ... and ${twice.length - 20} more`);
+    ok &&= result.ok && !clashing.length;
   }
-  log(ok ? 'OK: every file shared with a pack has the same bytes, so Replace is always safe.' : 'FAILED: move these files to paths the packs do not use (docs/PACKAGING.md, "Packs reused unchanged").');
+  log(ok ? 'OK: every file shared with a pack has the same bytes, so Replace is always safe.' : 'FAILED: move these files to paths the packs do not use, and keep one copy of each path in a zip (docs/PACKAGING.md, "Packs reused unchanged").');
   return ok;
 }
 

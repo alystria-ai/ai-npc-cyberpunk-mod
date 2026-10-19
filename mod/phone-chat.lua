@@ -14,9 +14,13 @@ local MISTRAL_STATUS = {
     ['custom-credits'] = 'The custom provider says your account is out of credits. Add credits there, then try again.',
     ['custom-model'] = 'The custom provider does not know that model ID. Check it in Settings.',
     ['custom-limit'] = 'The custom provider is rate limiting you. Try again in a moment.',
+    ['custom-daily'] = 'The free daily limit for this model was reached. Try again after it resets.',
+    ['custom-reasoning'] = 'This model spends its reply on thinking. Choose a non-reasoning model in Settings.',
     ['custom-unreachable'] = 'The custom provider did not answer. Check its address in Settings, or try again.',
     ['local-fallback'] = 'Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.',
     ['local-failed'] = 'Local AI could not answer that. Try again in a moment.',
+    ['local-unavailable'] = 'Local AI could not start. Check Local AI in Settings > Conversation provider.',
+    ['local-no-memory'] = 'Not enough free graphics memory to start Local AI. Try a smaller model in Settings.',
 }
 local function copy(value)
     if type(value) ~= 'table' then return value end
@@ -109,7 +113,7 @@ local function write(path, value, inPlace)
     os.rename(previous, path); return false
 end
 local function save()
-    if not M.store then return end
+    if not M.store or M.storePending then return end
     if M.bucket then M.bucket.history, M.bucket.drafts, M.bucket.launch = M.history, M.drafts, M.launch end
     return write('runtime/phone-history.json', M.store)
 end
@@ -317,23 +321,23 @@ local function recentPhoneConversation(contact, key, reset)
     return {version=1,source='local-phone-chat',contact=contact,profileKey=key,world=M.world,
         binding=M.bindingKey,historyScope=M.scope,memoryReset=copy(reset),rows=rows}
 end
-function M.configure(profiles, manager, options)
-    local supported = {}; for _, p in ipairs(profiles) do supported[p.key] = true end
-    for _, c in ipairs(read('phone-contacts.json') or {}) do
-        if c.key and supported[c.key] then M.catalog[c.contact] = c.key end
-    end
-    M.manager = manager
-    options = options or {}
-    M.captureBinding = options.captureBinding or M.captureBinding
-    M.captureWorldKnowledge = options.captureWorldKnowledge or M.captureWorldKnowledge
-    M.captureJournalHistory = options.captureJournalHistory or M.captureJournalHistory
-    M.onDelivered = options.onDelivered or M.onDelivered
+-- Asked only when phone-history.json is missing or empty, never on an ordinary start. No answer (the module did not load) is "no".
+local function restorePending()
+    local restore = convaiStateRestore
+    return restore ~= nil and restore.waiting() == true
+end
+-- Reads the saved chats into M.store (and what the saved reset journal and the last displayed session add to it). Run by configure and,
+-- when the file was missing while the service may still have been restoring it (M.storePending, below), once more after the restore.
+local function loadStore()
     local stored, raw = read('runtime/phone-history.json')
     local damaged
     if not stored then
         local recovered = read('runtime/phone-history.json.previous')
         if recovered then stored, damaged = recovered, raw end
     end
+    -- Missing or empty while the service may still be restoring the copy it keeps outside the game folder (mod/state-restore.lua): the
+    -- empty store below is memory only. Nothing binds to it and nothing is saved until that is over (update), then this runs again.
+    M.storePending = stored == nil and (raw == nil or raw == '') and restorePending()
     local legacy = stored or (raw and {unparsed=raw}) or {}
     stored = stored or {}
     if stored.version == 3 and type(stored.buckets) == 'table' then M.store = stored
@@ -371,6 +375,29 @@ function M.configure(profiles, manager, options)
         end
     end
     M.captureDrafts = false
+end
+-- The saved chats were missing while the service may still have been restoring them (loadStore): nothing binds and nothing is saved until
+-- that is over, then the file is read again. True when the chats can be used; asked on the 10 Hz tick only (a method of M, so update gains no upvalue).
+function M.storeReady()
+    if not M.storePending then return true end
+    if M.tick < 0.10 then return false end
+    M.tick = 0
+    if restorePending() then return false end
+    loadStore()
+    return true
+end
+function M.configure(profiles, manager, options)
+    local supported = {}; for _, p in ipairs(profiles) do supported[p.key] = true end
+    for _, c in ipairs(read('phone-contacts.json') or {}) do
+        if c.key and supported[c.key] then M.catalog[c.contact] = c.key end
+    end
+    M.manager = manager
+    options = options or {}
+    M.captureBinding = options.captureBinding or M.captureBinding
+    M.captureWorldKnowledge = options.captureWorldKnowledge or M.captureWorldKnowledge
+    M.captureJournalHistory = options.captureJournalHistory or M.captureJournalHistory
+    M.onDelivered = options.onDelivered or M.onDelivered
+    loadStore()
 end
 
 local function selectBucket(value)
@@ -451,6 +478,7 @@ function M.update(player, delta)
     -- checks it). Everything below that depends on it already waited for the tick; a load calls abandon(), which
     -- clears M.world, and the next call rebinds at once.
     if M.tick < 0.10 and M.world then return end
+    if M.storePending and not M.storeReady() then return end
     local currentBinding = binding(currentBindingValue(player))
     local currentKey = bindingKey(currentBinding)
     local changed = not M.world or currentKey ~= M.bindingKey

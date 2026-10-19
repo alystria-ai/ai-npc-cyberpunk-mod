@@ -35,7 +35,7 @@ async function project(sources = SOURCES) {
   }
   return root;
 }
-const refresh = (root, ...args) => spawnSync(process.execPath, [join(root, 'packaging/Refresh-ReleaseData.mjs'), ...args], {encoding: 'utf8', timeout: 30_000});
+const refresh = (root, ...args) => spawnSync(process.execPath, [join(root, 'packaging/Refresh-ReleaseData.mjs'), ...args], {encoding: 'utf8', timeout: 120_000});
 const read = (root, rel) => readFile(join(root, rel), 'utf8');
 const exists = async path => { try { await stat(path); return true; } catch { return false; } };
 

@@ -1,205 +1,35 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import fengari from 'fengari';
-import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
+import {run, nsuiHarness} from './manager-fixture.mjs';
 
-// Settings > Conversation provider > Convai paid tier inside the real MCM adapter (docs/CONVAI_PAID_TIER.md). The harness is the one
-// of support-help-ui.test.mjs (real manager.lua, mcm.lua and manager-party.lua over a fake native MCM and game) with
+// Settings > Conversation provider > Convai paid tier inside the real manager host (docs/CONVAI_PAID_TIER.md). The harness is the one
+// of manager.test.mjs (real manager.lua, manager-ui.lua, nsui.lua and manager-party.lua over a fake Native Settings UI and game) with
 // convai-paid-tier.lua added to its module map. The conversation service is played by the test: it writes the status file the
 // service would publish. Nothing here reaches Convai, Stripe or a browser.
-const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const read = name => readFileSync(new URL(`../mod/${name}`, import.meta.url), 'utf8');
-const managerSource = read('manager.lua'), queueSource = read('manager-party.lua'), mcmSource = read('mcm.lua');
-const voicePreviewSource = read('voice-preview.lua'), fontsSource = read('ui-fonts.lua'), mcmFontsSource = read('mcm-fonts.lua');
 const supportSource = read('support-report.lua'), serviceSource = read('service-status.lua'), editorSource = read('character-editor.lua');
 const paidSource = read('convai-paid-tier.lua');
 
-function run(code) {
-  const state = lauxlib.luaL_newstate();
-  lualib.luaL_openlibs(state);
-  const status = lauxlib.luaL_dostring(state, to_luastring(uiLocaleBootstrap + code));
-  const error = status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
-  lua.lua_close(state);
-  assert.equal(status, lua.LUA_OK, error);
-}
-
-const storage = `
-  local files, saved, seed, extras = {}, nil, {}, nil
-  local jsonFixtures, jsonSequence, fileWrites = {}, 0, {}
-  local failSave = false
-  io = {open = function(path, mode)
-    if mode == 'rb' then
-      if not files[path] then return nil end
-      return {read = function() return files[path] end, close = function() return true end}
-    end
-    if failSave then return nil end
-    return {write = function(_, value)
-      fileWrites[#fileWrites + 1] = {path = path, value = value}
-      files[path] = value; return true
-    end, close = function() return true end}
-  end}
-  json = {decode = function(value)
-    if jsonFixtures[value] then return jsonFixtures[value] end
-    if value == 'seed' then return seed end
-    if value == 'extras' then return extras end
-    if value == 'saved' then return saved end
-    error('unexpected JSON fixture')
-  end, encode = function(value)
-    if value.action == 'clear' then
-      jsonSequence = jsonSequence + 1
-      local token = 'memory-json-' .. jsonSequence
-      jsonFixtures[token] = value
-      return token
-    end
-    jsonSequence = jsonSequence + 1
-    local token = 'settings-json-' .. jsonSequence
-    jsonFixtures[token] = value
-    return token
-  end}
-  os.rename = function(from, to)
-    if not files[from] or files[to] then return nil end
-    files[to], files[from] = files[from], nil
-    if to == 'runtime/settings.json' then saved = jsonFixtures[files[to]] end
-    return true
-  end
-  os.remove = function(path) files[path] = nil; return true end
-`;
-
-const managerFixture = `
-  ${storage}
-  local defs, members, spawned, nextSerial = {}, {}, {}, 0
-  local api = {}
-  function api.definition(key) return defs[key] end
-  function api.registerDefinition(key, value) defs[key] = value; return true end
-  function api.list() return members end
-  function api.spawn(key)
-    nextSerial = nextSerial + 1
-    spawned[#spawned + 1] = key
-    local def = assert(defs[key])
-    members[#members + 1] = {serial = nextSerial, key = key, name = def.name,
-      profileKey = def.profileKey, profileName = def.profileName or def.name,
-      record = def.id, state = 'spawning'}
-    return nextSerial
-  end
-  function api.dismiss(serial)
-    for index, member in ipairs(members) do
-      if member.serial == serial then table.remove(members, index); return true end
-    end
-    return false
-  end
-  function api.setProfile(serial, key, name)
-    for _, member in ipairs(members) do
-      if member.serial == serial then member.profileKey, member.profileName = key, name; return true end
-    end
-    return false, 'That companion is no longer in your party.'
-  end
-  local scans, visits = 0, 0
-  TweakDB = {}
-  function TweakDB:GetRecords(kind)
-    assert(kind == 'gamedataCharacter_Record')
-    scans = scans + 1
-    local result = {}
-    for index = 1, 6000 do
-      local id = index == 1 and 'Character.Silverhand' or ('Character.Model_' .. index)
-      result[index] = {GetID = function() visits = visits + 1; return id end}
-    end
-    return result
-  end
-  function TweakDB:GetFlat(id) return id:gsub('%.displayName$', '') end
-  GetLocalizedText = function(text) return text end
-  local player = {hash = 'player-1', open = true, queue = {}, rows = {}, voice = true, subtitles = true}
-  function player:GetEntityID() return {hash = self.hash} end
-  function player:ConvaiManagerIsOpen() return self.open end
-  function player:ConvaiManagerTakeRequest() return table.remove(self.queue, 1) or '' end
-  function player:ConvaiManagerClearRows() self.rows = {} end
-  function player:ConvaiManagerAddRow(key, label, note, selected)
-    self.rows[#self.rows + 1] = {key = key, label = label, note = note, selected = selected}
-    assert(#self.rows <= 8, 'unbounded native rows')
-  end
-  function player:ConvaiManagerSetDetail(...) self.detail = {...} end
-  function player:ConvaiManagerSetPage(...) self.page = {...} end
-  function player:ConvaiManagerSetTab(value) self.tab = value end
-  function player:ConvaiManagerSetSearch(value) self.search = value end
-  function player:ConvaiManagerSetFeedback(value) self.feedback = value end
-  function player:ConvaiManagerSetPartyStatus(value) self.partyStatus = value end
-  function player:ConvaiManagerRefresh() self.refreshes = (self.refreshes or 0) + 1 end
-  function player:ConvaiManagerSetVoice(value) self.voice = value end
-  function player:ConvaiManagerVoice() return self.voice end
-  function player:ConvaiManagerSetSubtitles(value) self.subtitles = value end
-  function player:ConvaiManagerSubtitles() return self.subtitles end
-  function player:ConvaiManagerSetEnabled(index, value) self['legacy' .. index] = value end
-  local profiles = {{key = 'viktor-vektor', name = 'Viktor Vektor', records = {'Character.Victor_Vector'}},
-    {key = 'johnny-silverhand', name = 'Johnny Silverhand', records = {'Character.Silverhand'}}}
-  for index = 1, 20 do profiles[#profiles + 1] = {key = 'person-' .. index,
-    name = string.format('Person %02d', index), records = {'Character.Person_' .. index}, summary = 'A distinct person.'} end
-  local manager = (function() ${managerSource} end)()
-  local function request(value, dt) player.queue[#player.queue + 1] = value; manager.update(player, dt or 0.1) end
-`;
-
-const mcmFixture = (withSupport = true) => `
-  ${managerFixture}
-  local originalDofile = dofile
-  dofile = function(path)
-    if path == 'voice-preview.lua' then return (function() ${voicePreviewSource} end)() end
-    if path == 'support-report.lua' then if not ${withSupport} then error('module absent') end return (function() ${supportSource} end)() end
-    if path == 'service-status.lua' then return (function() ${serviceSource} end)() end
-    if path == 'character-editor.lua' then return (function() ${editorSource} end)() end
-    if path == 'convai-paid-tier.lua' then return (function() ${paidSource} end)() end
-    if path == 'ui-fonts.lua' then return (function() ${fontsSource} end)() end
-    if path == 'mcm-fonts.lua' then return (function() ${mcmFontsSource} end)() end
-    return originalDofile(path)
-  end
-  manager.configure(api, profiles)
+const pageFixture = (withSupport = true) => nsuiHarness({
+  modules: {'service-status.lua': serviceSource, 'character-editor.lua': editorSource, 'convai-paid-tier.lua': paidSource,
+    ...(withSupport ? {'support-report.lua': supportSource} : {})},
+  absent: withSupport ? [] : ['support-report.lua'],
+}) + `
   convaiNotices.configure(function() return manager.developerMode() end) -- as init.lua does
-  local handlers, registered, loaded, activeMod = {}, nil, nil, nil
-  local drafts, reloads = false, 0
-  local nativeApi = {apiVersion = 2, providers = {}}
-  nativeApi.providers.registerProvider = function(value) registered = value; return true end
-  nativeApi.providers.unregisterProvider = function(id) assert(id == registered.id); registered = nil; return true end
-  nativeApi.refreshProvider = function() return true end
-  nativeApi.getDiagnostics = function() return {activeModKey = activeMod} end
-  nativeApi.hasDrafts = function() return drafts end
-  nativeApi.reloadMod = function()
-    reloads = reloads + 1; loaded = registered.loadMod('manager'); return loaded
-  end
-  GetMod = function(name) assert(name == 'ModConfigurationMenuAPI'); return nativeApi end
-  Game = {GetPlayer = function() return player end}
-  Observe = function(class, method, callback) handlers[method] = callback end
-  ObserveAfter = Observe
-  Override = Observe
-  local entryFactory = {new = function()
-    return {install = function() end, update = function() end, selected = function() end,
-      state = function() return 'idle' end, reset = function() end, open = function() return true end}
-  end}
-  local mcm = (function() ${mcmSource} end)()
-  mcm.configure(manager, api, (function() ${queueSource} end)(), entryFactory)
-  mcm.install()
-  activeMod = 'cyberpunk-convai:manager'
-  loaded = registered.loadMod('manager')
-  local function row(id)
-    for _, category in ipairs(loaded.categories) do
-      for _, setting in ipairs(category.settings) do if setting.id == id then return setting end end
-    end
-  end
-  local controller = {nativeIdentity = 101,
-    McmUiEmitSearch = function(_, context, value) handlers.McmUiEmitSearch(nil, context, value) end}
-  CalcSeed = function(value) return value.nativeIdentity end
-  local function invoke(id)
-    local result = registered.invokeAction('manager', id, {interaction = {controller = controller}})
-    if result.ok and result.schemaChanged then loaded = registered.loadMod('manager') end
-    return result
-  end
 `;
 
 const paidFixture = `
-  ${mcmFixture(true)}
+  ${pageFixture(true)}
   -- The fake CPU clock starts far ahead of the real one the modules read while the harness was built, so their throttles see time pass.
   local clockNow, popups, cpu = 1800000000, {}, 100000
   os.time = function() return clockNow end
   os.clock = function() return cpu end
   local function advance(seconds) clockNow = clockNow + seconds; cpu = cpu + seconds end
-  local function pump(gameplay, frames) for _ = 1, frames or 10 do advance(0.5); mcm.update(player, gameplay) end end
+  local function pump(gameplay, frames)
+    for _ = 1, frames or 10 do advance(0.5); managerUi.update(player, gameplay) end
+    loaded = registered.loadMod('manager')
+  end
   function player:ConvaiPhoneFeedback(text) popups[#popups + 1] = text end
   local function jsonFile(path, value)
     jsonSequence = jsonSequence + 1
@@ -222,7 +52,7 @@ const paidFixture = `
   end
   local function openPage()
     assert(invoke('tab:settings').ok)
-    assert(invoke('paid-tier').ok and mcm.inspect().view == 'paid-tier')
+    assert(invoke('paid-tier').ok and managerUi.inspect().view == 'paid-tier')
     pump(false, 4)
     loaded = registered.loadMod('manager')
   end
@@ -241,10 +71,10 @@ test('Settings lists Convai paid tier under the Convai API key row; the page sho
   assert(ownIndex and paidIndex == ownIndex + 1, 'the paid tier entry sits right under the Convai API key row')
   assert(row('paid-tier').value == 'Open')
   assert(not row('paid-tier').description:lower():find('recommend'), 'no option is called recommended')
-  assert(invoke('paid-tier').ok and mcm.inspect().view == 'paid-tier')
+  assert(invoke('paid-tier').ok and managerUi.inspect().view == 'paid-tier')
   assert(command().action == 'refresh', 'opening the page asks the service for the plans and the plan state')
   loaded = registered.loadMod('manager')
-  assert(mcm.inspect().back.id == 'paid-tier:back')
+  assert(loaded.categories[1].settings[1].id == 'paid-tier:back')
   assert(row('paid-plan').value == 'No key added')
   assert(row('paid:sign-in') and row('paid:sign-in').value == 'Sign in' and row('paid:key-page') and row('paid-own-key') and row('paid-own-key').value == 'Paste')
   local labels = {}
@@ -265,7 +95,7 @@ test('Settings lists Convai paid tier under the Convai API key row; the page sho
       assert(not text:find('price_', 1, true) and not text:lower():find('recommend') and not text:find('Inworld', 1, true), text)
     end
   end
-  assert(invoke('paid-tier:back').ok and mcm.inspect().view == 'settings')
+  assert(invoke('paid-tier:back').ok and managerUi.inspect().view == 'settings')
 `));
 
 test('without the conversation service the page says so instead of showing plans', () => run(`${paidFixture}
@@ -404,11 +234,11 @@ test('the row of the current plan says Current plan and buys nothing; the other 
   service({plan = {name = 'GamerPlanV2-Monthly', paid = true}})
   openPage()
   local current = row('paid:current:gamer-monthly')
-  assert(current and current.value == 'Current plan' and current.disabled == true and current.capabilities.action == false)
+  assert(current and current.value == 'Current plan' and current.disabled == true)
   assert(not row('paid:buy:gamer-monthly'), 'no Buy on the current plan')
   assert(current.description:find('500 Convai interactions a month.', 1, true) and current.description:find('your current plan', 1, true))
   local before = command().id
-  assert(invoke('paid:current:gamer-monthly').ok and command().id == before, 'choosing it sends nothing')
+  assert(not invoke('paid:current:gamer-monthly').ok and command().id == before, 'choosing it sends nothing (the row is not an action)')
   for _, id in ipairs({'gamer-yearly', 'pro-monthly', 'pro-yearly'}) do
     assert(row('paid:buy:' .. id) and row('paid:buy:' .. id).value == 'Buy' and not row('paid:buy:' .. id).disabled, id)
   end
@@ -425,41 +255,41 @@ test('the status line follows the answer: payment page opened, plan confirmed, a
   jsonFile('runtime/own-key-state.json', {version = 1, saved = true, tail = 'abcd', active = 'shared'})
   service({plan = {name = 'Free', paid = false}})
   openPage()
-  assert(mcm.inspect().paidStatus == nil and not mcm.inspect().paidStatusPending, 'nothing pending before a paid action')
+  assert(managerUi.inspect().paidStatus == nil and not managerUi.inspect().paidStatusPending, 'nothing pending before a paid action')
   assert(invoke('paid:buy:gamer-monthly').ok)
-  assert(mcm.inspect().paidStatus == 'Asking Convai for the payment page…' and mcm.inspect().paidStatusPending)
+  assert(managerUi.inspect().paidStatus == 'Asking Convai for the payment page…' and managerUi.inspect().paidStatusPending)
   service({plan = {name = 'Free', paid = false}, result = {id = command().id, state = 'working'}})
   pump(false, 6)
-  assert(mcm.inspect().paidStatus == 'Contacting Convai…', tostring(mcm.inspect().paidStatus))
+  assert(managerUi.inspect().paidStatus == 'Contacting Convai…', tostring(managerUi.inspect().paidStatus))
   service({plan = {name = 'Free', paid = false}, result = {id = command().id, state = 'opened'}, watch = {state = 'watching', plan = 'gamer-monthly'}})
   pump(false, 6)
-  assert(mcm.inspect().paidStatus:find('payment page is open in your browser', 1, true), tostring(mcm.inspect().paidStatus))
-  assert(mcm.inspect().paidStatusPending, 'still following the purchase')
+  assert(managerUi.inspect().paidStatus:find('payment page is open in your browser', 1, true), tostring(managerUi.inspect().paidStatus))
+  assert(managerUi.inspect().paidStatusPending, 'still following the purchase')
   service({plan = {name = 'GamerPlanV2-Monthly', paid = true}, result = {id = command().id, state = 'opened'}, watch = {state = 'active', plan = 'gamer-monthly'}})
   pump(false, 6)
-  assert(mcm.inspect().paidStatus == 'Your Convai plan is active.', tostring(mcm.inspect().paidStatus))
-  assert(not mcm.inspect().paidStatusPending, 'final: no more looking')
+  assert(managerUi.inspect().paidStatus == 'Your Convai plan is active.', tostring(managerUi.inspect().paidStatus))
+  assert(not managerUi.inspect().paidStatusPending, 'final: no more looking')
   -- A check: "Checking your plan…", then the answer.
   assert(invoke('paid:check').ok)
-  assert(mcm.inspect().paidStatus == 'Checking your plan…')
+  assert(managerUi.inspect().paidStatus == 'Checking your plan…')
   service({plan = {name = 'Free', paid = false}, result = {id = command().id, state = 'not-yet'}})
   pump(false, 6)
-  assert(mcm.inspect().paidStatus == 'Convai does not show a paid plan for your key yet.', tostring(mcm.inspect().paidStatus))
-  assert(not mcm.inspect().paidStatusPending)
+  assert(managerUi.inspect().paidStatus == 'Convai does not show a paid plan for your key yet.', tostring(managerUi.inspect().paidStatus))
+  assert(not managerUi.inspect().paidStatusPending)
   -- A purchase Convai did not confirm in time, and a refused checkout.
   assert(invoke('paid:buy:pro-monthly').ok)
   service({result = {id = command().id, state = 'opened'}, watch = {state = 'timeout', plan = 'pro-monthly'}})
   pump(false, 6)
-  assert(mcm.inspect().paidStatus:find('has not confirmed your plan yet', 1, true))
-  assert(not mcm.inspect().paidStatusPending)
+  assert(managerUi.inspect().paidStatus:find('has not confirmed your plan yet', 1, true))
+  assert(not managerUi.inspect().paidStatusPending)
   assert(invoke('paid:buy:pro-yearly').ok)
   service({result = {id = command().id, state = 'invalid-key'}})
   pump(false, 6)
-  assert(mcm.inspect().paidStatus == 'Convai did not accept your API key.')
+  assert(managerUi.inspect().paidStatus == 'Convai did not accept your API key.')
   -- Leaving the page drops the line.
   assert(invoke('paid-tier:back').ok)
   pump(false, 4)
-  assert(mcm.inspect().paidStatus == nil)
+  assert(managerUi.inspect().paidStatus == nil)
 `));
 
 test('the status line waits at most seven minutes for an answer that never comes, and reads nothing once it stopped', () => run(`${paidFixture}
@@ -468,9 +298,9 @@ test('the status line waits at most seven minutes for an answer that never comes
   openPage()
   assert(invoke('paid:check').ok)
   pump(false, 40)
-  assert(mcm.inspect().paidStatus == 'Checking your plan…' and mcm.inspect().paidStatusPending, 'no answer yet: the first sentence stays')
+  assert(managerUi.inspect().paidStatus == 'Checking your plan…' and managerUi.inspect().paidStatusPending, 'no answer yet: the first sentence stays')
   advance(430); pump(false, 4)
-  assert(not mcm.inspect().paidStatusPending, 'gave up looking after seven minutes')
+  assert(not managerUi.inspect().paidStatusPending, 'gave up looking after seven minutes')
 `));
 
 test('each of the four plan rows shows its own quota, whatever the running service sent: Gamer 500, Gamer Pro 1000', () => run(`${paidFixture}

@@ -14,10 +14,17 @@
 //   FAKE_LLAMA_ARGS_FILE       write the received argv (JSON) here
 //   FAKE_LLAMA_CTX             the n_ctx /props reports (default: the -c argument, else 4096)
 //   FAKE_LLAMA_CHARS_PER_TOKEN characters per token for /tokenize, the prompt count and the context check (default 4)
+//   FAKE_LLAMA_TEMPLATE        the chat_template text /props reports (default: none); FAKE_LLAMA_EOS / FAKE_LLAMA_BOS the tokens, FAKE_LLAMA_BUILD the build_info
+//   FAKE_LLAMA_FIRST_TOKEN_MS  wait this long before the first piece of a streamed reply
+//   FAKE_LLAMA_STALL           'role': send the opening role chunk of a streamed reply and then nothing, until the client goes away;
+//                              'progress': send prompt_progress chunks up to half the prompt, then nothing;
+//                              'mid': send two pieces of the reply and then nothing
+//   FAKE_LLAMA_THINK           this many reasoning_content pieces and no reply text, then finish_reason stop
+//   FAKE_LLAMA_BODIES_FILE     append each streamed chat request body (JSON, one per line) to this file
 // A request whose prompt is longer than the context is refused like the real server does (400, exceed_context_size_error).
 import {createServer} from 'node:http';
 import {createHash} from 'node:crypto';
-import {readFileSync, writeFileSync, existsSync} from 'node:fs';
+import {readFileSync, writeFileSync, appendFileSync, existsSync} from 'node:fs';
 
 const argv = process.argv.slice(2);
 const booleans = new Set(['--embedding', '--embeddings', '--no-webui', '--list-devices']);
@@ -93,7 +100,10 @@ const server = createServer((request, response) => {
       send(response, 200, {object: 'list', model: json.model, data: inputs.map((text, index) => ({object: 'embedding', index, embedding: vector(text)}))});
       return finish();
     }
-    if (url === '/props') return send(response, 200, {default_generation_settings: {n_ctx: contextSize}, total_slots: 1});
+    if (url === '/props') return send(response, 200, {default_generation_settings: {n_ctx: contextSize}, total_slots: 1,
+      ...(process.env.FAKE_LLAMA_TEMPLATE ? {chat_template: process.env.FAKE_LLAMA_TEMPLATE} : {}), ...(process.env.FAKE_LLAMA_EOS ? {eos_token: process.env.FAKE_LLAMA_EOS} : {}),
+      ...(process.env.FAKE_LLAMA_BOS ? {bos_token: process.env.FAKE_LLAMA_BOS} : {}), ...(process.env.FAKE_LLAMA_BUILD ? {build_info: process.env.FAKE_LLAMA_BUILD} : {}),
+      model_path: String(options['-m'] ?? ''), model_ftype: 'Q4_K_M'});
     if (url === '/tokenize') {
       requests.push({path: url, chars: String(json.content ?? '').length});
       return send(response, 200, {tokens: Array.from({length: Math.ceil(String(json.content ?? '').length / charsPerToken)}, (_, index) => index)});
@@ -112,6 +122,41 @@ const server = createServer((request, response) => {
       const last = [...messages].reverse().find(message => message.role === 'user')?.content ?? '';
       let reply = process.env.FAKE_LLAMA_REPLY ?? 'Echo: ' + String(last).slice(0, 40);
       if (json.max_tokens === 1) reply = reply.split(' ')[0];
+      if (json.stream && process.env.FAKE_LLAMA_BODIES_FILE) appendFileSync(process.env.FAKE_LLAMA_BODIES_FILE, JSON.stringify(json) + '\n');
+      if (json.stream && (process.env.FAKE_LLAMA_STALL || process.env.FAKE_LLAMA_THINK || process.env.FAKE_LLAMA_FIRST_TOKEN_MS)) {
+        const write = chunk => { if (!response.destroyed && !response.writableEnded) response.write('data: ' + JSON.stringify(chunk) + '\n\n'); };
+        const role = {choices: [{index: 0, delta: {role: 'assistant', content: null}, finish_reason: null}]};
+        response.writeHead(200, {'content-type': 'text/event-stream'});
+        const stall = process.env.FAKE_LLAMA_STALL;
+        if (stall === 'role') { write(role); return finish(); }   // and then silence until the client goes away
+        if (stall === 'progress') {
+          const total = promptTokens;
+          for (const processed of [Math.ceil(total / 8), Math.ceil(total / 4), Math.ceil(total / 2)]) write({...role, prompt_progress: {total, cache: 0, processed, time_ms: processed}});
+          return finish();
+        }
+        const think = Number(process.env.FAKE_LLAMA_THINK || 0);
+        if (think > 0) {
+          let sent = 0;
+          const timer = setInterval(() => {
+            if (response.destroyed || response.writableEnded) { clearInterval(timer); return; }
+            if (sent++ < think) return write({choices: [{index: 0, delta: {reasoning_content: 'hmm '}, finish_reason: null}]});
+            clearInterval(timer);
+            write({choices: [{index: 0, delta: {}, finish_reason: 'stop'}]});
+            response.end('data: [DONE]\n\n');
+          }, 5);
+          return finish();
+        }
+        const pieces = reply.split(/(?<= )/);
+        setTimeout(() => {
+          write(role);
+          pieces.slice(0, stall === 'mid' ? 2 : pieces.length).forEach(word => write({choices: [{index: 0, delta: {content: word}, finish_reason: null}]}));
+          if (stall === 'mid') return;
+          write({choices: [{index: 0, delta: {}, finish_reason: 'stop'}]});
+          write({choices: [], usage: {prompt_tokens: promptTokens, completion_tokens: pieces.length}, timings: {prompt_n: promptTokens, cache_n: 0, prompt_ms: 12, predicted_n: pieces.length, predicted_per_second: 50}});
+          response.end('data: [DONE]\n\n');
+        }, Number(process.env.FAKE_LLAMA_FIRST_TOKEN_MS || 0));
+        return finish();
+      }
       if (json.stream) {
         response.writeHead(200, {'content-type': 'text/event-stream'});
         for (const word of reply.split(/(?<= )/))

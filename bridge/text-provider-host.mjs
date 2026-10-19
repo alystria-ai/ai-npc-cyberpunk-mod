@@ -9,7 +9,7 @@
 // request fields), whether requests are paced (Mistral's free plan), how a failure is recorded on the provider, and whether a
 // failure may fall through to the next route (Local -> Mistral). Everything else (the prompt, streaming and the sentence cap, the
 // retry of a reply that broke character, memory, summaries, fact extraction) is shared and behaves identically on every route.
-import {streamChat, MistralError, DEFAULT_MODELS, failureKind, newAdaptation} from './mistral-client.mjs';
+import {streamChat, MistralError, DEFAULT_MODELS, failureKind, failureDetail, newTrace, newAdaptation} from './mistral-client.mjs';
 import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, provokesAiTalk, takesUpAiTalk, trimUnfinished,
   summaryMessages, factMessages, capWords, overWords, remarkTokens, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS} from './mistral-prompt.mjs';
 import {actionMenu, splitActions} from './text-actions.mjs';
@@ -45,6 +45,24 @@ const FRESH_WORDS_NUDGE = '\n\n(Answer again in fresh words: do not repeat an ex
 // reply is a short line in the character's voice instead of an error (HOLDING_LINES). The 2026-10-13 record had one hung request
 // wait the old 25 s limit, then a retry that answered in 2 s: 30 s for a reply.
 export const CLOUD_CHAT_LIMITS = Object.freeze({firstByteMs: 6000, retryFirstByteMs: 8000, stallMs: 8000, retries: 1, backoffMs: [300]});
+
+// How long the local AI may take, and how it is told when it takes too long (docs/LOCAL_AI.md, "When a local turn fails"). The game gives up on a
+// request 90 s after it wrote it (mod/init.lua) and then shows only a generic "no reply" notice, so a turn that is still waiting at that moment can
+// never explain itself. The local route therefore keeps the whole turn (the action decision, waiting for the model to load, every request, the
+// retry of a reply that broke character) inside LOCAL_TURN_BUDGET_MS, which leaves the game ten seconds to show the bridge's own failure.
+//   firstByteMs  no stream event of any kind this long after the request: the server is not working on it
+//   promptStallMs  once the first event came and before the first word (llama-server sends one per prompt batch while it reads the prompt): silence this long.
+//                  Generous: on a machine with no CPU to spare (the server runs below normal priority so the game keeps its frame rate; measured 2026-10-19
+//                  with every core busy: 25 s without a report from the first batch, decode at 3 to 6 tokens/s) a batch takes long, and the budget below ends the wait anyway
+//   stallMs      once the first word came, silence this long (a model that is writing sends a piece every few hundredths of a second)
+//   totalMs      one attempt; cut to what is left of the turn's budget
+//   thinkingPieces  this many pieces of the model's thinking with no reply: it would spend its whole allowance thinking; stop it and say so
+// A timeout is never retried (it would only repeat the wait); a refusal or an empty reply is, once.
+export const LOCAL_TURN_BUDGET_MS = 80_000;
+export const LOCAL_CHAT_LIMITS = Object.freeze({retries: 1, backoffMs: [400], firstByteMs: 60_000, promptStallMs: 60_000, stallMs: 25_000, totalMs: 75_000, thinkingPieces: 160});
+// Strings that end a reply on a server of ours whatever the model is (a fine-tune whose end-of-turn token the server does not know would run on to the
+// token limit): the end-of-turn and start-of-turn markers of the families the packs use (Gemma 4, Gemma 3, Qwen). Never part of a character's words.
+export const LOCAL_STOP_STRINGS = Object.freeze(['<turn|>', '<|turn>', '<end_of_turn>', '<start_of_turn>', '<|im_end|>', '<|im_start|>']);
 
 // What a character says when the service did not answer in time (twice) or a server fault ended the reply, so the player gets a
 // short in-character line instead of a long silence and an error. Never recorded in the character's memory.
@@ -99,7 +117,9 @@ export function mistralRoute({provider, model = () => DEFAULT_MODELS, decisionMo
  * The custom provider: any OpenAI-compatible chat-completions endpoint the player named (bridge/custom-endpoint.mjs holds the address, the optional key
  * and the model id). One model, no persona cache key (an unknown server may refuse unknown fields), no pacing: a 429 with a Retry-After is waited out when
  * it is short and otherwise answered at once, and no request is made until it has passed (the next turns get the notice without waiting). A request field
- * the server refuses is dropped and remembered (`adaptation`, bridge/mistral-client.mjs). Never the Mature layer: only the local AI has it (#matureLevel).
+ * the server refuses is dropped and remembered (`adaptation`, bridge/mistral-client.mjs). A model that thinks first is asked for no (or little) reasoning where the
+ * provider documents a field for it, and a reply it spent on thinking is asked again with more room (bridge/reasoning.mjs). A daily limit (OpenRouter's free models) is
+ * not retried and says so. Never the Mature layer: only the local AI has it (#matureLevel).
  *   custom      the CustomEndpoint (address, key, model id)
  */
 export function customRoute({provider, custom, chat = streamChat, now = () => Date.now(), onFailure, onSuccess} = {}) {
@@ -109,7 +129,9 @@ export function customRoute({provider, custom, chat = streamChat, now = () => Da
     if (!adaptations.has(key)) adaptations.set(key, newAdaptation());
     return adaptations.get(key);
   };
-  let pausedUntil = 0, pausedOrigin = null;
+  // A Retry-After pause belongs to the address, model and key it was given for: a new key (another account) or model is asked at once.
+  let pausedUntil = 0, pausedScope = null;
+  const scope = () => `${custom.origin}|${custom.model}|${custom.key ?? ''}`;
   return {name: 'custom', provider: 'custom', chat, gapMs: 0, blocked: new Map(), nextSlot: 0, holdingLines: false,
     // A server on this computer or the home network answers one request at a time: the action decision does not overlap the reply.
     get parallel() { return !custom.local; },
@@ -118,21 +140,21 @@ export function customRoute({provider, custom, chat = streamChat, now = () => Da
     adaptation,
     async connect() {
       if (!custom.ready) throw new MistralError('request', 'is not set up', {provider: 'custom'});
-      const wait = pausedOrigin === custom.origin ? pausedUntil - now() : 0;
+      const wait = pausedScope === scope() ? pausedUntil - now() : 0;
       // The server asked to be left alone for a while: no request goes out before that (Retry-After), and the notice comes at once.
       if (wait > 0) throw new MistralError('limit', 'asked for a pause between requests', {provider: 'custom', retryAfterMs: wait});
       return {apiKey: custom.key ?? undefined, endpoint: custom.chatUrl, requestModel: custom.model, trustedOrigin: custom.origin,
-        headers: custom.extraHeaders, adapt: adaptation()};
+        headers: custom.extraHeaders, adapt: adaptation(), reasoning: custom.reasoning};
     },
     cacheBody: () => ({}),
     jsonBody: () => ({response_format: {type: 'json_object'}}),
-    summarizeAllowed: () => !(provider.limit && (provider.limit.kind === 'invalid' || provider.limit.kind === 'credits')),
+    summarizeAllowed: () => !(provider.limit && (provider.limit.kind === 'invalid' || provider.limit.kind === 'credits' || provider.limit.kind === 'daily')),
     fallsBack: () => false,
     success() { pausedUntil = 0; provider.noteSuccess(); try { onSuccess?.(); } catch { /* an observer never fails a reply */ } },
     failure(error) {
       const kind = failureKind(error);
-      if (kind === 'limit' && error.retryAfterMs > 0) { pausedUntil = Math.max(pausedOrigin === custom.origin ? pausedUntil : 0, now() + error.retryAfterMs); pausedOrigin = custom.origin; }
-      provider.noteLimit(kind === 'limit' ? 'rate' : kind === 'key' ? 'invalid' : kind === 'model' ? 'model' : kind === 'credits' ? 'credits' : null);
+      if (kind === 'limit' && error.retryAfterMs > 0) { const here = scope(); pausedUntil = Math.max(pausedScope === here ? pausedUntil : 0, now() + error.retryAfterMs); pausedScope = here; }
+      provider.noteLimit(kind === 'limit' ? 'rate' : kind === 'daily' ? 'daily' : kind === 'key' ? 'invalid' : kind === 'model' ? 'model' : kind === 'credits' ? 'credits' : null);
       try { onFailure?.(error); } catch { /* an observer never fails a reply */ }
     },
     label: 'The custom provider'};
@@ -164,17 +186,36 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
   // 2026-10-13: the overlap gained nothing on Gemma 4 with one slot or two (docs/LOCAL_AI.md, Actions).
   return {name: 'local', provider: 'local', chat, gapMs: 0, blocked: new Map(), nextSlot: 0, parallel: false,
     models: () => [{id: 'local'}],
-    async connect(signal, {background = false} = {}) {
+    // waitMs: the most this turn can still wait (its budget, LOCAL_TURN_BUDGET_MS). A model that is still loading then (a first start compiles shaders for a
+    // minute or two; a reload after a changed choice) ends the turn with its own explanation instead of the game's silent timeout; the load itself goes on, so
+    // the next turn finds the model ready. With a cloud key saved the cloud provider answers that turn (fallsBack).
+    async connect(signal, {background = false, waitMs} = {}) {
       if (background && server.status().state !== 'ready') throw new MistralError('network', 'is not loaded right now', {provider: 'local'});
-      const connection = await server.ensure({signal, background});
+      let connection;
+      const bounded = Number.isFinite(waitMs) ? AbortSignal.timeout(Math.max(0, Math.ceil(waitMs))) : null;   // a whole number of milliseconds, or it throws
+      try { connection = await server.ensure({signal: bounded ? (signal ? AbortSignal.any([signal, bounded]) : bounded) : signal, background}); }
+      catch (error) {
+        if (bounded?.aborted && !signal?.aborted && error?.name === 'TimeoutError') {
+          throw new MistralError('network', 'is still loading the model', {provider: 'local', slow: true, reason: 'loading', noRetry: true, trace: {...newTrace(), elapsedMs: Math.round(waitMs)}});
+        }
+        throw error;
+      }
       // A request in flight keeps the server loaded; releasing it re-arms the idle timer.
       const done = typeof server.begin === 'function' ? server.begin() : null;
-      return {apiKey: connection.apiKey, endpoint: connection.endpoint, model: connection.model, requestModel: connection.requestModel, trustedOrigin: connection.trustedOrigin,
+      return {apiKey: connection.apiKey, endpoint: connection.endpoint, model: connection.model, requestModel: connection.requestModel, trustedOrigin: connection.trustedOrigin, external: connection.external === true,
         release: () => { try { if (done) done(); else server.touch?.(); } catch { /* the idle timer is best effort */ } }};
     },
     // The closing chunk of a reply carries the server's own count of the prompt, which the token meter learns from.
     cacheBody: () => ({stream_options: {include_usage: true}}),
-    chatDefaults: {retries: 1, backoffMs: [400], firstByteMs: 90_000, totalMs: 90_000},
+    // Only our own llama-server gets the fields below (a server the player runs may refuse a field it does not know): llama-server reports how far it has
+    // read the prompt (`return_progress`, so a slow prompt is not mistaken for a hung server and a stuck one is named), stops a reply at the end-of-turn
+    // strings whatever the model is, and is told again, per request, not to think (the same as its `--reasoning off`, for a template that ignores that).
+    leaseBody: lease => (lease?.external ? {} : {return_progress: true, stop: [...LOCAL_STOP_STRINGS], chat_template_kwargs: {enable_thinking: false}}),
+    chatDefaults: LOCAL_CHAT_LIMITS,
+    turnBudgetMs: LOCAL_TURN_BUDGET_MS,
+    // What is loaded and how the turns went (bridge/local-llm-server.mjs diagnostics), for the log line of a turn that failed and for the support report.
+    diagnostics: () => { try { return server.diagnostics?.() ?? null; } catch { return null; } },
+    noteTurn: info => { try { return server.noteTurn?.(info) ?? {first: false}; } catch { return {first: false}; } },
     jsonBody: () => ({response_format: {type: 'json_schema', json_schema: {name: 'facts', strict: true, schema: FACT_SCHEMA}}}),
     summarizeAllowed: () => true,
     // Any failure of a local turn (a refused prompt, no answer, a server that went away) hands the turn to the player's cloud provider
@@ -200,6 +241,37 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     // What the manifest of a model added by hand says about it ({uncensored, family}); the Mature allowance reads it before the name.
     modelHints: () => server.modelHints ?? null,
     label: 'The local AI'};
+}
+
+// ---- The record of a local turn ----------------------------------------------------------------------------------------------
+
+/** A turn whose first word took longer than this is logged even when it worked. */
+export const SLOW_FIRST_WORD_MS = 8000;
+
+const part = (label, value, unit = '') => (value === null || value === undefined || Number.isNaN(value) ? null : `${label} ${value}${unit}`);
+
+/**
+ * One log line for a local turn: what it did and which model did it, so a report shows the cause at once.
+ *   a turn that worked   [LocalTurn] ok: first word 346 ms, 50 pieces, 32.5 tokens/s, prompt 322 new + 4579 cached tokens | model ... 
+ *   a turn that failed   [LocalTurn] FAILED: no first word from the model after 60 s (no-first-token): headers 45 ms, first event -, first word -, 0 pieces, ... | model ...
+ * `diagnostics` is the supervisor's (bridge/local-llm-server.mjs); no word of a reply, no path and no key is in it.
+ */
+export function describeLocalTurn({ok, trace, error, detail, first = false, diagnostics = null} = {}) {
+  const t = trace ?? error?.trace ?? null;
+  const when = value => (Number.isFinite(value) ? `${value} ms` : '-');
+  const model = diagnostics?.model ? [`model ${diagnostics.model.file ?? diagnostics.model.name} (${diagnostics.model.family ?? 'unknown family'}${diagnostics.model.offload ? ', part on the CPU' : ''})`,
+    diagnostics.template ? `template ${diagnostics.template.source}${diagnostics.template.chars ? ` ${diagnostics.template.chars} chars sha ${diagnostics.template.sha}` : ''}` : null,
+    part('context', diagnostics.engine?.contextSize), diagnostics.state ? `server ${diagnostics.state}` : null,
+    Number.isFinite(diagnostics.start?.loadMs) ? `loaded in ${(diagnostics.start.loadMs / 1000).toFixed(1)} s` : null].filter(Boolean).join(', ') : 'model unknown';
+  if (ok) {
+    const speed = Number.isFinite(t?.timings?.tokensPerSecond) ? `${Math.round(t.timings.tokensPerSecond * 10) / 10} tokens/s` : null;
+    const prompt = Number.isFinite(t?.timings?.promptTokens) ? `prompt ${t.timings.promptTokens} new + ${t.timings.cachedTokens ?? 0} cached tokens` : null;
+    return `[LocalTurn] ok${first ? ' (first turn since the model was loaded)' : ''}: first word ${when(t?.firstTokenMs)}, ${t?.pieces ?? 0} pieces${[speed, prompt].filter(Boolean).map(x => ', ' + x).join('')}, took ${when(t?.elapsedMs)} | ${model}`;
+  }
+  const attempts = Array.isArray(error?.failed) && error.failed.length ? `; attempts: ${error.failed.map(item => `${item.reason ?? item.kind} ${item.ms} ms`).join(', ')}` : '';
+  const progress = t?.progress ? `, prompt read ${t.progress.processed} of ${t.progress.total} tokens (${t.progress.cache} cached)` : '';
+  return `[LocalTurn] FAILED: ${detail ?? String(error?.message ?? 'error').slice(0, 160)} (${error?.reason ?? error?.kind ?? 'error'}): headers ${when(t?.headersMs)}, first event ${when(t?.eventMs)}, `
+    + `first word ${when(t?.firstTokenMs)}, ${t?.pieces ?? 0} pieces, ${t?.reasoning ?? 0} thinking pieces${progress}, took ${when(t?.elapsedMs)}${attempts} | ${model}`;
 }
 
 // ---- Host --------------------------------------------------------------------------------------------------------------------
@@ -259,7 +331,7 @@ export class TextProviderHost {
 
   async #send(route, messages, signal, extra = {}) {
     const {profileKey, background, extraBody, models, ...rest} = extra;
-    const lease = await route.connect(signal, {background});
+    const lease = await route.connect(signal, {background, ...(extra.deadlineAt !== undefined ? {waitMs: extra.deadlineAt - this.now()} : {})});
     try {
       // The models in order of preference. A model the account has no allowance for (limit 0) is skipped for ten minutes.
       const wanted = models?.length ? models : route.models();
@@ -269,14 +341,14 @@ export class TextProviderHost {
       for (const item of usable.length ? usable : wanted.slice(0, 1)) {
         try {
           // `lease.requestModel`: the model id a server the player runs is asked for (the local and custom routes); `lease.trustedOrigin`: the one origin
-          // that server's key may go to (bridge/mistral-client.mjs); `lease.headers` and `lease.adapt` (custom only): OpenRouter's two optional headers, and
-          // what the server has refused so far. None of them exists for the Mistral route.
+          // that server's key may go to (bridge/mistral-client.mjs); `lease.headers`, `lease.adapt` and `lease.reasoning` (custom only): OpenRouter's two optional headers,
+          // what the server has refused so far, and the field that asks a reasoning model to think less. None of them exists for the Mistral route.
           return await route.chat({apiKey: lease.apiKey, model: lease.requestModel ?? item.id, messages, signal, endpoint: lease.endpoint ?? route.endpoint,
             provider: route.provider, ...(lease.trustedOrigin ? {trustedOrigin: lease.trustedOrigin} : {}),
-            ...(lease.headers ? {headers: lease.headers} : {}), ...(lease.adapt ? {adapt: lease.adapt} : {}), maxTokens: item.maxTokens ?? this.limits.maxTokens, temperature: this.limits.temperature,
-            ...(route.chatDefaults ?? {}), ...rest, onHeaders: route.noteHeaders,
+            ...(lease.headers ? {headers: lease.headers} : {}), ...(lease.adapt ? {adapt: lease.adapt} : {}), ...(lease.reasoning ? {reasoning: lease.reasoning} : {}), maxTokens: item.maxTokens ?? this.limits.maxTokens, temperature: this.limits.temperature,
+            ...(route.chatDefaults ?? {}), ...rest, ...(rest.deadlineAt !== undefined ? {now: this.now} : {}), onHeaders: route.noteHeaders,
             onRetry: ({attempt, error, waitMs, ms}) => this.log(`${route.label} attempt ${attempt} failed after ${ms} ms (${error.kind}${error.status ? ` ${error.status}` : ''}${error.slow ? ', no answer in time' : ''}); asking again in ${waitMs} ms`),
-            extraBody: {...route.cacheBody(profileKey), ...(item.body ?? {}), ...extraBody}});
+            extraBody: {...route.cacheBody(profileKey), ...(route.leaseBody?.(lease) ?? {}), ...(item.body ?? {}), ...extraBody}});
         } catch (error) {
           if (!(error instanceof MistralError) || !error.zeroQuota) throw error;
           route.blocked.set(item.id, now + 10 * 60_000);
@@ -364,10 +436,14 @@ export class TextProviderHost {
     const candidates = this.#candidates();
     for (const [index, route] of candidates.entries()) {
       try {
-        const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey, feed, actionNotes, speculation});
+        // The local AI keeps the whole turn inside its budget (LOCAL_TURN_BUDGET_MS), counted from the start of the turn, so the game still has the
+        // bridge's own explanation to show when it gives up on the request.
+        const deadlineAt = route.turnBudgetMs > 0 ? started + route.turnBudgetMs : undefined;
+        const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey, feed, actionNotes, speculation, deadlineAt});
         if (confirmed) await confirmed;
         const elapsed = Math.round(this.now() - started);
         const {response} = outcome;
+        this.#noteLocalTurn(route, {ok: true, trace: response.trace});
         // What was already spoken stands: a finished reply that does not begin with it is cut back to it.
         const reply = feed.reconcile(outcome.reply);
         // The exchange is remembered without tags (what the player read), except a battle / loot line, which is not a talk. A reply the
@@ -381,12 +457,14 @@ export class TextProviderHost {
         const result = this.transformReply({text: reply, sessionID: config.sessionId, transport: route.name,
           timing: {provider: route.name, llmMs: elapsed, model: response.model ?? route.models()[0]?.id, attempts: response.attempts,
             ...(response.failed?.length ? {llmFailed: response.failed} : {}),
+            ...(Number.isFinite(response.trace?.firstTokenMs) ? {llmFirstWordMs: response.trace.firstTokenMs} : {}),
             ...(feed.committed ? {streamedHead: true} : {})}});
         feed.finish(result.text, result);
         return result;
       } catch (error) {
         if (signal?.aborted || error?.name === 'AbortError' && !(error instanceof MistralError)) { feed.fail(error); throw error; }
         route.failure(error);
+        this.#noteLocalTurn(route, {ok: false, error});
         if (index < candidates.length - 1 && route.fallsBack(error) && !feed.committed) {
           this.log(`${route.label} could not answer (${failureKind(error) ?? 'error'}); using ${candidates[index + 1].label}`);
           try { route.fellBack?.(error); } catch { /* a notice never fails the turn */ }
@@ -402,6 +480,22 @@ export class TextProviderHost {
     const none = new MistralError('request', 'has no route for this provider');
     feed.fail(none);
     throw none;
+  }
+
+  /**
+   * The local route's record of a turn. The supervisor keeps it for its diagnostics (the support report), and the log gets one line for a turn that
+   * failed, for the first turn after the model was loaded (a cold prompt: the numbers to compare a slow start with) and for any turn whose first word
+   * took longer than SLOW_FIRST_WORD_MS. A model that never loaded is the supervisor's to explain. Never throws, never changes the turn.
+   */
+  #noteLocalTurn(route, {ok, trace, error}) {
+    if (route.name !== 'local' || typeof route.noteTurn !== 'function') return;
+    try {
+      if (!ok && isLocalUnavailable(error)) return;
+      const detail = ok ? undefined : failureDetail(error) ?? String(error?.message ?? 'error').slice(0, 160);
+      const {first} = route.noteTurn({ok, trace, error, detail});
+      if (ok && !first && !((trace?.firstTokenMs ?? 0) > SLOW_FIRST_WORD_MS)) return;
+      this.log(describeLocalTurn({ok, trace, error, detail, first, diagnostics: route.diagnostics?.() ?? null}));
+    } catch { /* a log line never fails a turn */ }
   }
 
   /**
@@ -457,7 +551,7 @@ export class TextProviderHost {
     if (!route) return null;
     try {
       const response = await this.#request(route, menu.classifier({text, last}), signal,
-        {maxTokens: 12, temperature: 0, retries: 0, totalMs: 8000, firstByteMs: 6000, models: route.decisionModels?.()});
+        {maxTokens: 12, temperature: 0, retries: 0, totalMs: 8000, firstByteMs: 6000, thinkingRoom: false, models: route.decisionModels?.()});
       return menu.decide(response.text);
     } catch (error) {
       if (!signal?.aborted) this.log('action decision failed: ' + (failureKind(error) ?? error?.message ?? 'error'));
@@ -504,7 +598,7 @@ export class TextProviderHost {
     this.log(`[MatureContent] ${fact}`);
   }
 
-  async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed, actionNotes, speculation}) {
+  async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed, actionNotes, speculation, deadlineAt}) {
     // The crude persona layer: the Mature setting only, never an add-on's host. The guard alone: also an uncensored model with the setting off, and add-ons.
     const mature = this.matureContent?.enabled && !this.guardOnly ? await this.#matureLevel(route, signal) : null;
     const guard = mature ? true : await this.#guardOn(route, signal);
@@ -548,7 +642,7 @@ export class TextProviderHost {
       const messages = build(nudge);
       markStage('promptBuilt');
       const sent = spec && !spec.over ? (signal ? AbortSignal.any([signal, spec.controller.signal]) : spec.controller.signal) : signal;
-      const response = await this.#request(route, messages, sent, {shouldStop, profileKey, ...(wordLimit ? {maxTokens: remarkTokens(wordLimit)} : {}), onDelta: (_piece, soFar) => {
+      const response = await this.#request(route, messages, sent, {shouldStop, profileKey, ...(deadlineAt !== undefined ? {deadlineAt} : {}), ...(wordLimit ? {maxTokens: remarkTokens(wordLimit)} : {}), onDelta: (_piece, soFar) => {
         const shown = visible(soFar);
         if (spec && !spec.over) { spec.latest = shown; if (!spec.open) return; }
         try { feed.update(shown); } catch { /* the voice's view of the reply never breaks the reply */ }
@@ -699,8 +793,9 @@ export class TextProviderHost {
  *   voiceChannel  a channel that refuses with a message the voice key turns into a notice (until local speech recognition exists)
  * `prewarmVoice` (default true; a boolean or a function asked at each warm-up): a warm-up also opens the host's local voice renderer (the phone host has none to open; with voice playback Off the bridge says no).
  * `speech` is an optional hook for local speech recognition (bridge/local-stt.mjs): {available(): boolean, voiceChannel({reply})}.
+ * `onPlayerText(text)` is told the text of each typed turn (not a reaction), for the microphone's language.
  */
-export function attachTextProvider(host, {provider, mistral, speech, prewarmVoice = true, warmCloud} = {}) {
+export function attachTextProvider(host, {provider, mistral, speech, prewarmVoice = true, warmCloud, onPlayerText} = {}) {
   const textHost = mistral;
   const original = {reply: host.reply, prepare: host.prepare, warm: host.warm, readiness: host.readiness, lateEmotion: host.lateEmotion,
     refreshIdle: host.refreshIdle, voiceChannel: host.voiceChannel};
@@ -711,6 +806,9 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
   };
   const label = () => ({mistral: 'Mistral', local: 'the local AI', custom: 'the custom provider'})[provider.route] ?? 'Mistral';
   host.reply = function reply(config, options) {
+    // The language of what the player types tells the microphone which language to expect (bridge/speech-language.mjs). Automatic
+    // reactions carry a `reaction` and English prompts of the mod's own: they say nothing about the player.
+    if (provider.active && onPlayerText && !config?.reaction && typeof config?.text === 'string') { try { onPlayerText(config.text); } catch { /* an observer never breaks a turn */ } }
     return provider.active ? textHost.reply(config, options) : original.reply.call(this, withoutLocal(config), options);
   };
   host.prepare = function prepare(config, options) {

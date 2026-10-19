@@ -2,7 +2,7 @@
 
 The default subtitle style is the previously accepted **Dialogue HUD**. Companion Manager → Settings → **Subtitle display** offers **Above speaker** as an optional alternative. The existing Subtitles toggle controls both. Phone Chat keeps its own conversation history UI. An explicitly saved Above speaker selection remains selected; installing the stability correction does not rewrite it.
 
-The user rejected the first overhead presentation on September 30: it sat too high and split speech unnecessarily. Dawnwalker is a feature reference, not the presentation specification for Cyberpunk. Missing or invalid preferences and MCM's reset action now choose Dialogue HUD; an explicitly selected overhead preference still persists. The current live preference was restored through the running manager's save transaction.
+The user rejected the first overhead presentation on September 30: it sat too high and split speech unnecessarily. Dawnwalker is a feature reference, not the presentation specification for Cyberpunk. Missing or invalid preferences and Restore defaults now choose Dialogue HUD; an explicitly selected overhead preference still persists. The current live preference was restored through the running manager's save transaction.
 
 ## Rendering and ownership
 
@@ -54,7 +54,7 @@ Root diagnostics captured `runtime/verification/oct02-overhead-active-preview.js
 
 `status()` additionally exposes `projectionCallbacks`, `projectionFrames`, `projectionError` and `renderVisibilityError`. A positive callback count verifies interception; regular-frame visibility has its own path and does not require that count. The corrected code still needs CET reload rather than an additional hot-load over v6 observers.
 
-Read-only diagnostics: `subtitles-state:<nonce>` reports adapter state; `overhead-state:<nonce>` reports the native root and last exact render receipt. `subtitles-preview:<dialogue|overhead>:<nonce>` displays one eight-second test line only when the game is unpaused and no reply is active, without changing the preference. `overhead-probe:<nonce>` is an overhead preview alias. `subtitles-style:<dialogue|overhead>:<nonce>` intentionally changes the preference through the running MCM provider's save transaction. `subtitles-refresh:<nonce>` refreshes Lua and the live MCM reset default without disturbing drafts.
+Read-only diagnostics: `subtitles-state:<nonce>` reports adapter state; `overhead-state:<nonce>` reports the native root and last exact render receipt. `subtitles-preview:<dialogue|overhead>:<nonce>` displays one eight-second test line only when the game is unpaused and no reply is active, without changing the preference. `overhead-probe:<nonce>` is an overhead preview alias. `subtitles-style:<dialogue|overhead>:<nonce>` intentionally changes the preference through the running manager's save transaction. `subtitles-refresh:<nonce>` refreshes Lua and the live reset default.
 
 ### October 2 vehicle presentation
 

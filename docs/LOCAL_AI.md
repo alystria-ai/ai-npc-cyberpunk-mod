@@ -43,7 +43,12 @@ do anything:
 3. The voice is only changed as a last resort.
 
 If the pack is missing or the model cannot start, the same fallback applies. To try again, choose another provider and Apply, then choose
-Local AI and Apply again.
+Local AI and Apply again, or choose another Local AI model (a new model choice, or turning Mature content on or off, tries the start again).
+
+Convai takes the turns only while it can answer them. When you have no Mistral key and Convai's free tier has used today's turns, the turns
+stay on Local AI and each one says why it could not be answered: "Not enough free graphics memory to start Local AI. Try a smaller model in
+Settings." or "Local AI could not start. Check Local AI in Settings > Conversation provider." (never the Convai daily limit, which would tell
+you to try the Local AI you already chose).
 
 ### Choosing the model
 
@@ -105,13 +110,15 @@ Local AI stays the chosen provider either way.
 
 You can add chat models of your own to the **Local AI model** row. There is no screen for it: you copy the model file into a folder and
 list it in a small text file. The model then appears in the row among the others (sorted by file size), marked "(custom)", and you can pick it there.
+There are two folders you can use; the first survives reinstalls and mod managers.
 Only one model is ever loaded, so nothing else changes. Your model runs on the engine of an installed pack, so a Local AI pack (a Mature pack carries the same engine) is needed; without one the model is listed but cannot start.
 
-**1. Find the Local AI folder.** In a normal install it is `red4ext\plugins\AiNpcCyberpunkMod\app\local-ai\` inside your Cyberpunk 2077
-folder (the same folder the Local AI packs unpack into; it contains `manifest.standard.json` or `manifest.lite.json`). Make a folder
-called `custom` inside it. Put your model file there. The mod never copies, moves or deletes your files.
+**1. Open your models folder** (it survives reinstalls and mod managers): `%LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai\`. Paste that into the Explorer
+address bar; if Windows says the folder does not exist, make it (`AiNpcCyberpunkMod` is the folder that already holds your memories and logs; make `local-ai`
+inside it). It is outside your Cyberpunk 2077 folder, so a clean reinstall, an update or removing the mod never touches it, and Mod Organizer 2 neither
+redirects it nor collects it in Overwrite. Make a folder called `custom` inside it and put your model file there. The mod never copies, moves or deletes your files.
 
-**2. Write `manifest.custom.json`** next to the other manifests (a plain text file; a text editor is enough). Use straight quotes (`"`) and forward slashes (`/`) in paths (a single `\` breaks the JSON). The Runtime also reads a file saved with a byte-order mark ("UTF-8 with BOM", as Notepad can save and PowerShell does) and curly double quotes (“ ”) pasted from a web page. Do not save it as "Unicode" (UTF-16).
+**2. Write `manifest.custom.json`** in that same folder (a plain text file; a text editor is enough). Use straight quotes (`"`) and forward slashes (`/`) in paths (a single `\` breaks the JSON). The Runtime also reads a file saved with a byte-order mark ("UTF-8 with BOM", as Notepad can save and PowerShell does) and curly double quotes (“ ”) pasted from a web page. Do not save it as "Unicode" (UTF-16).
 
 ```json
 {
@@ -131,7 +138,7 @@ called `custom` inside it. Put your model file there. The mod never copies, move
 
 | Key | Needed | Meaning |
 |---|---|---|
-| `file` | yes | Path of the `.gguf` file, relative to the Local AI folder, inside it (no drive letter, no `..`). |
+| `file` | yes | Path of the `.gguf` file, relative to the folder of the manifest, inside it (no `..`). In the `%LOCALAPPDATA%` folder only, a full path such as `"D:/Models/MyModel-Q4_K_M.gguf"` also works, for a model you keep somewhere else. |
 | `name` | no | The name shown in the row, 1 to 60 characters. Default: the file name. |
 | `uncensored` | no | `true` only if the model really has no content limits of its own. With **Mature content** on, the content rules read this flag (never the file name); the hard limits and the output screen still apply. Default `false`. |
 | `auto` | no | Obsolete. Older versions used it to let the "Auto" entry pick the model. It is accepted without a message and ignored: every model takes part in the default choice by its size. You can delete it. |
@@ -139,11 +146,27 @@ called `custom` inside it. Put your model file there. The mod never copies, move
 | `contextSize` | no | The context (in tokens, 2048 to 262144) the model starts with. A bigger context uses more graphics memory. Default: the same automatic choice as the built-in models (16,384 when it fits). |
 | `chatTemplate` | no | The name of a built-in llama.cpp chat template (for example `chatml`, `llama3`, `gemma`), for a file that has no usable template of its own. Leave it out when the model has one. |
 
-You can list up to 16 models. A wrong entry is skipped and the rest still work. Changes are picked up within a few seconds while the
+You can list up to 16 models in all. A wrong entry is skipped and the rest still work. Changes are picked up within a few seconds while the
 game runs (the settings page shows the new list the next time it refreshes), and a model you pick loads the next time Local AI starts
 or at the next idle moment.
 
 **3. Choose it.** In Settings > Conversation provider, open **Local AI model** and pick "My Model (custom)", then **Apply**.
+
+**The other way: inside the mod folder.** This is how it worked before, and it still works exactly the same. Use the Local AI folder of the mod,
+`red4ext\plugins\AiNpcCyberpunkMod\app\local-ai\` inside your Cyberpunk 2077 folder (the folder the Local AI packs unpack into; it contains
+`manifest.standard.json` or `manifest.lite.json`): put the model in a `custom` folder there and write `manifest.custom.json` next to the other
+manifests, with paths relative to that folder and no full paths. That folder belongs to the mod's files, so a clean reinstall deletes it, and under Mod
+Organizer 2 your files end up in Overwrite (or in the mod you extracted the Runtime into).
+
+**If both folders have a manifest**, both are read, the `%LOCALAPPDATA%` one first. The models of both appear in the row. When the same model is in both
+(the same file name, or the same server address and model ID), it is listed once and the `%LOCALAPPDATA%` entry wins; the log says so once, in a
+line like `[LocalAI] [custom models] mod folder: skipped "custom/x.gguf": "X" is also in the outside folder, whose entry is used`. The limit of 16 models counts both
+folders together.
+
+**Moving a setup you already have** into the `%LOCALAPPDATA%` folder: copy the `custom` folder and `manifest.custom.json` from
+`...\app\local-ai\` to `%LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai\`. The paths inside the manifest stay as they are, and the model keeps its
+name and its place in the row (its identity comes from its file name, so a model you picked stays picked). When it works, delete the old copy, or leave it:
+the duplicates are ignored.
 
 **What the mod checks.** When it looks at your manifest it checks, without loading anything:
 
@@ -197,10 +220,10 @@ example:
 - `"My Model" is not usable: the file x.gguf was not found` - the path or the file name is wrong (Windows hides extensions: check
   that the file is not called `x.gguf.gguf` or `x.gguf.txt`);
 - `"My Model" is too large for this graphics card` - pick a smaller model or quant;
-- `manifest.custom.json is not valid JSON` - a comma or a quote is wrong; a free JSON checker finds it quickly;
+- `manifest.custom.json is not valid JSON` - a comma or a quote is wrong; a free JSON checker finds it quickly (when both folders have a manifest the line starts with `outside folder:` or `mod folder:`, which says which file);
 - `manifest.custom.json must be {"version": 1, "models": [...]}` - the outer part of the file is missing or misspelt.
 
-Make sure a pack with the engine is installed (the **Local AI model** row only matters when Local AI is the Conversation provider) and that the file is named exactly `manifest.custom.json`. A file saved as `manifest.custom.json.txt` (Notepad adds `.txt` while Windows hides extensions) is not read, and the log says nothing about it. An embedding model can only be spotted when its header says so; a file with an unusual header may pass the check and then fail to start, which the notice above covers. Whether a model has a chat template is not checked ahead of time.
+The support report (Settings > Help > Help and support) lists both folders under `localAi.customFolders` in `summary.json`: whether each folder and its `manifest.custom.json` was found, and how many models the manifest lists (no paths, names or keys). Make sure a pack with the engine is installed (the **Local AI model** row only matters when Local AI is the Conversation provider) and that the file is named exactly `manifest.custom.json`. A file saved as `manifest.custom.json.txt` (Notepad adds `.txt` while Windows hides extensions) is not read, and the log says nothing about it. An embedding model can only be spotted when its header says so; a file with an unusual header may pass the check and then fail to start, which the notice above covers. Whether a model has a chat template is not checked ahead of time.
 
 ### Use your own server (KoboldCpp, LM Studio, Ollama)
 
@@ -210,7 +233,7 @@ address). You do not need a Local AI pack for this: with only your own server li
 
 **1. Start your server** with its model loaded, and leave it running while you play.
 
-**2. List it in `manifest.custom.json`** (the same file as "Add your own model", in the same folder; if there is no `local-ai` folder yet, make one in `red4ext\plugins\AiNpcCyberpunkMod\app\`), with an `endpoint` instead of a `file`:
+**2. List it in `manifest.custom.json`** (the same file as "Add your own model", in the same folder: `%LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai\`, which survives reinstalls, or `red4ext\plugins\AiNpcCyberpunkMod\app\local-ai\` as before; if the folder does not exist yet, make it), with an `endpoint` instead of a `file`:
 
 ```json
 {
@@ -365,7 +388,12 @@ Omni loads first and the tier is chosen from what is left: the supervisor's `bef
 at most two minutes, until the requested voice has settled, and then reads the free video memory. Standard fits if free memory is at
 least its file size plus 1.2 GB, else lite if it is at least its file size plus 0.7 GB, else the supervisor fails with `low-memory`,
 `MistralProvider.noteLocalFailure` is called once, and the provider falls back to Mistral (with a key) or Convai at the next idle boundary
-with the single `local-fallback` notice.
+with the single `local-fallback` notice. Convai only while it can answer (`MistralProvider.convaiAvailable`, which the bridge points at the shared
+key's day: the local count or the sign-in backend's answer): with that day used up and no Mistral key the provider stays `local`
+(`localDown`), a failed turn carries `local-no-memory` or `local-unavailable` instead of `local-fallback` or `daily-limit`
+(`MistralProvider.failureCode`), and the bridge logs `[LocalAI] Local AI is unavailable (<reason>) and Convai's free turns for today are used`.
+A change of the model choice or of Mature content clears a `low-memory`, `start-failed` or `crashed` failure and starts again
+(`syncLocalModelChoice`).
 
 ### Context budget
 
@@ -427,9 +455,85 @@ build, so it is not used. A fuller prompt costs prefill time, not memory: a 15,7
 when a key is saved (`TextProviderHost#candidates`). The turn's reply is the cloud
 provider's, and `MistralProvider.noteLocalTurnFallback()` queues the `local-turn-fallback` notice (sent as `keyNotice` on that reply; the
 game shows it at most every ten minutes). With no cloud provider the turn fails with the game code `local-failed` (`errorCodeFor`), shown
-as "Local AI could not answer that. Try again in a moment." (the phone shows the same words). Automatic reactions show neither notice.
+as "Local AI could not answer that. Try again in a moment." (the phone shows the same words; the game's notice adds the reason in brackets, see "When a local turn fails"). Automatic reactions show neither notice.
 A server that could not start keeps its own path (`local-fallback`, see "Provider state"). Both notices are in `docs/NOTIFICATIONS.md`; the
 strings are in the 15 locale files and `localization/en.json`.
+
+### When a local turn fails (2026-10-19: Mature content, Gemma 4, every reply timed out)
+
+A player on 0.2.1 (Local AI, Mature content on, "Gemma 4 E4B", both packs, installed by hand) saw the model preheat and load, and then no message ever
+got an answer; the game's log said only `Conversation timed out`. The cause on that machine is not known (no report came with it); on the developer
+machine (RTX 4080 Laptop, 12 GB) the same set-up answers every turn: the Mature good model (`Gemma4-E4B-MiniFantasy-V1-Q4_K_M.gguf`) took 1.2 s (2.8 s on
+the first run, with the card at rest) to the first word on a cold prompt of 4,800 tokens and 0.23 to 0.42 s on a warm one (34 to 75 tokens/s), the normal
+Gemma 4 E4B with the Mature layer 1.2 s and 0.23 s (75 tokens/s), the Mature lite Qwen3.5-4B 1.3 s and 0.23 s; every reply ended with `finish_reason: stop`,
+the model loaded in 13 s (42 s the first time, shaders included) and left 3.4 GB of graphics memory in use. What the investigation settled, and what changed:
+
+- **The model file is not the cause.** Both Gemma files have the same tokenizer ids (bos 2, eos 1, `<turn|>` 106 is the end of a turn and llama.cpp
+  stops on it) and the same architecture (`gemma4`). The Mature one carries the older Gemma 4 chat template (16,804 characters; the normal one has
+  the 2026-07-09 "canonical" one, 18,567); the two render a plain chat the same way. The Mature lite Qwen template starts the answer with `<think>`
+  unless `enable_thinking` is false, which `--reasoning off` sets; every request to our own server now says it again (`chat_template_kwargs`).
+- **The game gives up after 90 s and the bridge did not.** `mod/init.lua` retires a request 90 s after writing it and shows "No reply arrived. The
+  conversation service may not be running." The local route waited 90 s for a first word, 90 s in all, asked again once after a timeout, never cut a
+  stream that went quiet, and waited without limit for a model that was still loading (a start can take 180 s, a first-time warm-up 3 x 240 s). So any stall
+  (a slow card also running the game and OmniVoice, a computer short of memory, a hung server, a reload after the model choice changed) ended as
+  the same silent timeout, and nothing in the log said which. Now (`bridge/text-provider-host.mjs`, `bridge/mistral-client.mjs`):
+  - the whole turn has a budget of 80 s (`LOCAL_TURN_BUDGET_MS`) counted from the start of the turn: the action decision, the wait for the model to
+    load, every request and the retry of a reply that broke character share it, and no request starts with less than 3 s left;
+  - a request ends when no stream event came for 60 s (`firstByteMs`), when it goes quiet for 60 s before the first word (`promptStallMs`) or 25 s after it
+    (`stallMs`), or after 75 s (`totalMs`, cut to what is left of the budget). Any event counts as life, and our own llama-server is asked for
+    `return_progress`, which makes it send one per prompt batch, so a slow prompt that keeps advancing is waited for and a stuck one is named. The wait
+    before the first word is long on purpose: see "A machine with no CPU to spare" below;
+  - a timeout is not asked again (it would repeat the wait); a refusal or an empty reply is, once;
+  - a model still loading when the budget ends ends the turn at once (`still loading`); the load goes on, so the next turn finds it ready, and with a
+    cloud key saved the cloud provider answers that turn (`local-turn-fallback`);
+  - a model that writes only thinking (`reasoning_content`, 160 pieces and no reply text) is stopped at once, not after its 600 tokens.
+- **Every failed turn says why.** The error carries `reason` (`no-response`, `no-first-token`, `prefill-stalled`, `thinking-only`, `stalled`, `loading`,
+  `deadline`) and the request's record (`trace`: when the headers, the first event and the first word came, pieces, thinking pieces, prompt progress,
+  the server's own timings). `failureDetail()` turns it into one plain English sentence ("stuck reading the prompt (2048 of 4663 tokens after 1 s)").
+  The bridge logs `[LocalTurn] FAILED: ...` with the model file, family, chat template (source, length, hash), context and server state; the first
+  turn after each load and any turn whose first word took more than 8 s are logged the same way (`[LocalTurn] ok ...`).
+  The game's `local-failed` notice shows the sentence after its own translated one (`errorDetail` in `reply.json`, shown as data: not a translation
+  key; only short printable ASCII is shown). The phone's status line stays the translated sentence alone. This fits the rules of "Convai takes the turns only while
+  it can answer them" (`MistralProvider.failureCode`): a Local AI that could not start has its own notices (`local-no-memory`, `local-unavailable`), and a turn
+  that failed on a model that did start keeps `local-failed` and its reason (`failureCode` leaves it alone). The game's 90 s reading of the bridge status
+  (`noReplyMessage`, "Local AI is still loading its model" / "did not answer within 90 s") is for a turn the bridge never answered; a local failure arrives at 80 s
+  at the latest, so the game shows one of the two, never both.
+- **What is loaded is written down.** `LocalLlmServer#diagnostics()` (file name, never a path; family; chat template source, length, hash and first words
+  from `/props`; bos and eos; llama.cpp build; the device taken and its free memory; the context; free and total system memory; load and warm-up time;
+  turn counts; the last turn; the last exit) is logged once as `[local] model ready: ...`, published in `runtime/mistral-state.json` as `localDiagnostics`
+  and copied by the support report as `summary.json` `localAi.diagnostics`. A server that did not start, or stopped, leaves its last ten lines of output
+  in the log (`last llama-server output (...)`), and each start logs the graphics devices and the one taken (`graphics devices: ...`).
+- **Reading a report.** `localAi.diagnostics.lastTurn` says how the last turn went; `template` and `model` say what answered; `start.loadMs` and
+  `engine.ram` say whether the machine was short of memory (a Gemma 4 E4B keeps its 2.8 GB of per-layer tables in system memory, mapped from the file).
+- **A machine with no CPU to spare (measured 2026-10-19).** The model server runs at below-normal priority (`LlamaProcess`, `lowerPriority`) so the game
+  keeps its CPU. With one normal-priority busy loop per logical core standing in for a game that uses every core (the laptop was also loaded by other jobs):
+  the Mature good model did **not finish loading in 170 s** (13 s on an idle machine; the log says `did not start: timeout` and shows the last output); at
+  normal priority under the same load it loaded in 38 s and answered with a first word after 9.3 s cold and 3.7 s warm, at 11 to 12 tokens/s (72 to 75
+  idle). On the Silent profile with the machine's other load, a first run at below-normal priority loaded in 590 s, its first turn had read 0 of 4,824 prompt
+  tokens after 25 s, and the next took 29 s to the first word at 3 tokens/s. So a game that keeps every core busy can turn "slow" into "never answers" for a
+  server at below-normal priority, so (the user's decision, 2026-10-19) **the chat model now loads at normal priority and is lowered to below normal when it is
+  ready**: `LocalLlmServer` starts it with `lowerAfter: 'ready'` (`LlamaProcess`: nothing is changed at spawn) and calls `proc.lower()` just before the state becomes
+  ready, after the warm-up (the shader compile of a first start and the first prompts are CPU work too). Generation runs on the graphics card, so it keeps its speed
+  at the lower priority, and the game gets the CPU back for every reply. The embedder, a CPU process, is still lowered at spawn. A refused change leaves the model
+  at normal priority and says so. `diagnostics().engine.priority` and the `[local] model ready:` line say which is in force. `promptStallMs` stays long (a reply
+  written while the game keeps every core busy is slow at below-normal priority), and the turn budget ends the wait.
+- **Pack files (the letter's second part: a model row with one "uncensored" model, no warm-up notice with Mature content off).** With both packs in place the
+  list has both models (tested). With the Local AI pack's marker (`manifest.standard.json`) or its model file missing it has one, the Mature model, and with
+  Mature content off Local AI then cannot start (`mature-off`): no warm-up and no notice, and the turn goes to the fallback provider. A model file with no marker
+  is the same. `describePackFiles` (`bridge/local-ai-pack.mjs`) lists the markers, the model files each names (there or not, with sizes) and the .gguf files of
+  `models/`; `packFileProblems` turns a named file that is not there into a note in the model row's help ("Gemma 4 E4B: file not found") and one log line
+  (`[LocalAI] the Local AI folder is incomplete: ...`); the support report has the description as `localAi.packFiles`.
+- **The device pick.** An AMD APU ("AMD Radeon(TM) Graphics", "AMD Radeon(TM) 780M Graphics") reports as much memory as the system and could win the
+  "most memory" pick over the graphics card of a Ryzen laptop; it is now used only when there is no other device (`isAmdApu`, `pickDevice`).
+- **Replies.** A reply ends at the first end-of-turn or turn-start marker (`<turn|>`, `<|turn>`, `<end_of_turn>`, `<start_of_turn>`, `<|im_end|>`,
+  `<|im_start|>`); our own server is also given them as `stop` strings, so a fine-tune whose end-of-turn token the server does not know cannot run on to
+  the token limit. A Gemma thought channel (`<|channel>thought ... <channel|>`) left in a reply is removed.
+- **Not changed.** A pinned model is used whatever Mature content says (`bridge/local-model-choice.mjs`): with the pin `standard` and the Mature pack
+  installed, the normal Gemma 4 loads with the Mature layer on it. The settings page selects the uncensored model when Mature content is turned on
+  (`mod/manager-ui.lua`), and 0.2.1's first start of a launch ignored both (fixed by `20fa585c`, already on main).
+- **Tests.** `bridge/local-turn-diagnostics.test.mjs` (fake llama-server: stall after the role chunk, stall while reading the prompt, a reply that stops
+  partway, a model that only thinks, a model still loading, the budget, the request fields, the diagnostics, the log lines, the support report, the
+  notice's Lua). No model is loaded by any test. `docs/NOTIFICATIONS.md` has the notice.
 
 ### The knowledge status file (EPERM in the bridge log)
 
@@ -450,7 +554,7 @@ reader is to read through the native core.
 setting), `requested` and `applied`; a switch happens only at an idle boundary. `local` is requested while it works; after
 `noteLocalFailure(reason)` it is Mistral when a key exists, else Convai, until the setting is chosen again. The status file
 `runtime/mistral-state.json` carries `localAi`: `ready | warming | not-installed | no-memory | failed`, `localReason` (only `mature-off`, beside `failed`: only Mature models are usable while Mature content is off, so the model row says to turn it on), and `localModels`:
-`[{id, name, sizeMiB}]`, the installed chat models for the model row (names and sizes, never paths).
+`[{id, name, sizeMiB}]`, the installed chat models for the model row (names and sizes, never paths), and `localDiagnostics` (what the server loaded and how its last turns went, for the support report only; see "When a local turn fails").
 
 ### Model choice (developers)
 
@@ -486,8 +590,15 @@ setting), `requested` and `applied`; a switch happens only at an idle boundary. 
   fallback becomes the `local-model-fallback` notice (`MistralProvider.noteLocalModelFallback`, sent as `keyNotice` on the next reply),
   once per distinct pin and reason until the pin changes.
 - Custom models (`bridge/custom-models.mjs`, tests `custom-models.test.mjs`, `custom-model-choice.test.mjs` and the custom block at the end
-  of `local-llm-server.test.mjs`): `CustomModelScanner.scan({totalVramMiB})` reads `manifest.custom.json` (the Local AI folder, else the
-  dev folder when only that has it, like the Mature marker), validates each entry strictly (relative path inside the folder, `.gguf`, name
+  of `local-llm-server.test.mjs`): `CustomModelScanner.scan({totalVramMiB})` reads `manifest.custom.json` from two folders, the outside one first
+  (`outsideLocalAiRoot(env)` = `<data home>/local-ai`, the data home of `packaging/runtime/state-home.mjs`: `CYBERPUNK_CONVAI_DATA_HOME` or
+  `%LOCALAPPDATA%\AiNpcCyberpunkMod`; the constructor's `outside` option overrides it, `null` turns it off) and the mod's Local AI folder (else the
+  dev folder when only that has it, like the Mature marker). A model already listed from the earlier folder (same id: the lower-cased file name
+  without `.gguf`, or the `ep-<host>-<model>` id of a server) is skipped before any file is looked at, with one `mod folder: skipped ...` log line, so the outside
+  folder wins; the 16-model limit and the id suffixes count across both. Only the outside manifest accepts a full path with a drive letter (`validateEntry(root, raw, {allowAbsolute: true})`).
+  `scan()` also returns `folders: [{where: 'outside' | 'mod', present, models, problems}]`; `describeCustomFolders({project, environment})` is the
+  disk-only view the support report puts in `localAi.customFolders` (counts, no paths), and `customServerSecrets` scrubs the `apiKey` of both manifests.
+  Each entry is validated strictly (relative path inside the folder, `.gguf`, name
   of 1 to 60 characters, boolean `uncensored` (`auto` is obsolete: accepted whatever its value and dropped), `family` label, integer `contextSize` 2048 to 262144, `chatTemplate` name; at most
   16) and logs every bad entry once as `[custom models] ...` (a repeat of the same line is not logged again; nothing throws). Per file it
   stats (every look) and reads the first 2 MiB only when the size or time changed: the GGUF magic and version (2 or 3), then the
@@ -499,7 +610,7 @@ setting), `requested` and `applied`; a switch happens only at an idle boundary. 
   model whose header gives neither away. A model whose file plus the tier headroom is more than the card's total memory is listed with
   `tooLarge` (the total comes from `llama-server --list-devices` after the first start, else from one `nvidia-smi` call at most once a
   minute while the manifest lists models); `chooseLocalModel` never picks it, and a pin on it falls back with `low-memory`. The published
-  list entry of a custom model also carries `custom: true` and `needMiB`, and `mcm.lua` adds the "(custom)" label and the memory line to the
+  list entry of a custom model also carries `custom: true` and `needMiB`, and `manager-ui.lua` adds the "(custom)" label and the memory line to the
   help. Ids are `custom:<file name>`. A custom model takes part in the default choice and the fallback like any other model (`autoEligible`
   and the `auto` flag are gone); with Mature content on, the uncensored models are tried first. The server starts a custom model with its `contextSize` (else the ladder) and
   `--chat-template`; the loaded server's `modelHints` (`{uncensored, family}`) reach `allowanceFor(name, hints)`, where the flag decides
@@ -518,9 +629,9 @@ setting), `requested` and `applied`; a switch happens only at an idle boundary. 
   default with no notice. The `model-fallback` event carries `model` (the name used); `MistralProvider.noteLocalModelFallback(model)` keeps
   it and the reply carries `keyNoticeModel` beside `keyNotice: 'local-model-fallback'`.
 - Lua: `localModel` (an id, or `auto` for nothing chosen; `manager.lua` validates ids and `localModelChoices()` has no Auto entry).
-  `mcm.lua` builds the row from `manager.localModelChoices()`, shows `manager.localModelDefaultId()` as selected for `auto` or a saved
-  model that is gone (the saved value stays until Apply), and maps the selected position back to an id. `applySettings` replaces a saved or
-  staged `auto` by the default model's id on any Apply (silently; with no model installed it stays `auto`). `matureTurnedOn` stages
+  `manager-ui.lua` builds the row from `manager.localModelChoices()`, shows `manager.localModelDefaultId()` as selected for `auto` or a saved
+  model that is gone (the saved value stays until the player changes it), and maps the selected position back to an id. `applySettings` replaces a saved
+  `auto` by the default model's id on any save (silently; with no model installed it stays `auto`). `matureTurnedOn` stages
   `manager.localModelMatureId()` (record `{before, set = <that id>}`), or nothing; a legacy Mature record with `set = 'auto'` is matched
   against the default model's position when turning Mature off. With no model installed the row has one placeholder, "No model installed".
 
@@ -573,7 +684,7 @@ with Mature content on the default choice and the fallback prefer the largest on
   `MatureContent` has two inputs, `requested` (the settings file) and `pack` (the scan); `enabled` is `requested`. Finding or losing the
   pack changes only the pack flag (`setPack` says whether it changed), never the layer, the guard or the prepared replies.
 - Lua: the bridge publishes `maturePack` in `runtime/mistral-state.json` (`MistralControl.status`); `manager.mistral().maturePack` reads it.
-  `mod/mcm.lua` always builds the "Mature content" row. Its help ends with three plain sentences: that a safety check on messages and
+  `mod/manager-ui.lua` always builds the "Mature content" row. Its help ends with three plain sentences: that a safety check on messages and
   replies refuses anything romantic or sexual involving minors on every model, and either "The Mature pack (uncensored models) is
   installed." or "... is not installed. It is an optional download on the Hugging Face page of this mod.", plus "Choosing a cloud provider turns it off."
   (the old "Not using Local AI right now: no effect yet." line is gone, see below). `manager.applySettings` accepts `matureContent` whatever the pack says, and the snapshot reports the file's value.
@@ -805,7 +916,8 @@ through a real model (see "The guard against real models"). Prompts only; no mod
 routes, the prompt layout and the memory store (with a fake embedder). No test starts a real model. The fake server reports `/props`, counts
 `/tokenize` and refuses an over-long prompt with the real 400 body (`FAKE_LLAMA_CTX`, `FAKE_LLAMA_CHARS_PER_TOKEN`).
 `bridge/prompt-budget.test.mjs` covers the trimming and `bridge/local-context.test.mjs` the supervisor's context, the fitted turn, the cloud
-fallback and its notice. `bridge/local-model-choice.test.mjs` covers the model choice (with and without the Mature pack, Mature content on
+fallback and its notice. `bridge/local-turn-diagnostics.test.mjs` covers a stalled turn (the reasons, the budget, the model still loading, thinking only),
+the diagnostics, the log lines, the device pick and the game's notice. `bridge/local-model-choice.test.mjs` covers the model choice (with and without the Mature pack, Mature content on
 and off, a pin, a missing pin, the low-memory fallback) and `bridge/local-llm-server.test.mjs` the loaded model, the fallback event and the
 idle reload. `bridge/external-endpoint.test.mjs` covers a server the player runs, against a fake OpenAI-compatible server on localhost: the address rules, detection with and
 without a pack, the choice, the one look at the server and its context, the fallback, a streamed reply through `TextProviderHost`, the key staying out of logs, status, lists, errors and

@@ -9,7 +9,8 @@
 // to every reader. packaging/runtime-exchange.json lists the files:
 //   exchange   shipped as empty placeholders (Scripts package)
 //   state      the player's own state (settings, chat history, ...): never shipped, an update would wipe it; the writers keep their
-//              temp-file and backup protection
+//              temp-file and backup protection, and the service keeps a durable copy outside the game folder and writes it back at
+//              its start (bridge/game-state.mjs), so the files survive a launch under Mod Organizer 2
 //   optional   switch and probe files a person or a tool creates by hand: a missing file is harmless
 //   elsewhere  names the sources write as runtime/<name> that are not in the mod folder (the developer's project runtime/ folder,
 //              the data folder): listed so the guard test can tell them from an unclassified exchange file
