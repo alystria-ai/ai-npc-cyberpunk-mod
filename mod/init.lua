@@ -528,6 +528,36 @@ do -- archetype crowd/vendor record names, also by TweakDBID string
     end
 end
 convaiCompanions = companions
+-- Characters the player made (docs/CHARACTER_EDITOR.md, "Your own characters"): mod/custom-characters.lua reads runtime/custom-characters.json
+-- when the mod loads and again on a talk key press when that is due, and catalog.custom answers characterCatalog.resolve with two table lookups.
+-- Their keys are supported profiles while they exist and are enabled without being in the manager (manager.configureCustom). A global, so no
+-- function here gains an upvalue; optional like the modules below: without it nothing changes.
+do
+    local loaded, module = pcall(dofile, 'custom-characters.lua')
+    if loaded and type(module) == 'table' and type(module.new) == 'function' then
+        local created, service = pcall(module.new, {
+            hash = function(record)
+                local ok, id = pcall(function() return tostring(TweakDBID.new(record)) end)
+                return ok and id or nil
+            end,
+            prefixes = characterCatalog.CLONE_PREFIXES,
+            -- Mistral or the Local AI answers: Convai has no character for this one (read only when somebody matched).
+            enabled = function() return type(manager.textProviderActive) == 'function' and manager.textProviderActive() end,
+            onChange = function(self)
+                for key in pairs(supportedProfiles) do
+                    if type(characterCatalog.isCustomKey) == 'function' and characterCatalog.isCustomKey(key) then supportedProfiles[key] = nil end
+                end
+                for key in pairs(self.keys) do supportedProfiles[key] = true end
+                -- With no character made the catalogue is exactly as it was: resolve never calls into this module.
+                catalog.custom = self.count > 0 and self or nil
+            end})
+        if created and type(service) == 'table' then
+            convaiCustomCharacters = service
+            if type(manager.configureCustom) == 'function' then manager.configureCustom(function(key) return service.has(key) end) end
+            pcall(service.refresh, true)
+        else print('[CyberpunkConvai] custom-characters.lua failed: ' .. tostring(service)) end
+    else print('[CyberpunkConvai] custom-characters.lua unavailable: ' .. tostring(module)) end
+end
 -- Developer-mode frame-cost probe (runtime/perf-probe.json). It wraps module
 -- table fields from outside, so the onUpdate closure gains no upvalue.
 pcall(function() dofile('perf-probe.lua').install(companions, function() return manager.developerMode() end) end)
@@ -859,6 +889,8 @@ convaiSpawnedPeople = {
                 stats.left[#stats.left + 1] = {who = key, reason = 'disabled', distance = row.distance}
             else
                 local roster = convaiSpawnedPeople.named(key)
+                -- A character the player made talks and joins group chat; the game asks it for no battle or loot reaction.
+                if roster and options.roster and type(characterCatalog.isCustomKey) == 'function' and characterCatalog.isCustomKey(key) then roster = false end
                 if roster or not options.roster then
                     seen[#seen + 1] = {id = row.id, entity = row.entity, key = key, name = name}
                     stats.via[#stats.via + 1] = {who = key, source = row.source or 'scan', distance = row.distance}
@@ -1962,9 +1994,35 @@ local function companionOrPassenger(player, npc)
     return false
 end
 
+-- The character V faces, for the character editor's "Use the character I'm facing" (mod/character-editor.lua): {record, name, gender}, or nil.
+-- One targeting query, asked once when the player chooses Settings > Edit characters > Open: never per frame and never on a timer. It is only
+-- text for a form: nothing is stored, and it leaves the game as part of the command file the editor opens with.
+function convaiFacingCharacter()
+    local found, npc = pcall(targetAtCrosshair)
+    if not found or not npc then return nil end
+    local function read(fn)
+        local ok, value = pcall(fn)
+        if ok and type(value) == 'string' and value ~= '' and value ~= 'None' then return value end
+        return nil
+    end
+    local debugName = read(function() return TDBID.ToStringDEBUG(npc:GetRecordID()) end)
+    -- The original of a record-cloning mod's copy ("NCA.Character.X" is "Character.X": the editor's rule finds both), else the readable name.
+    local record = debugName and (characterCatalog.originalRecordName(debugName)
+        or (debugName:find('^[%w_][%w_%.%-]+$') and debugName or nil)) or nil
+    local name = read(function() return tostring(npc:GetTweakDBFullDisplayName(true) or '') end)
+    local body = read(function() return tostring(npc:GetBodyType() or '') end)
+    local gender = type(characterCatalog.gender) == 'function'
+        and characterCatalog.gender({gender = read(function() return nameString(npc:GetResolvedGenderName()) end), bodyType = body}) or nil
+    if not record and not name then return nil end
+    return {record = record, name = name, gender = gender == 'FEMALE' and 'female' or gender == 'MALE' and 'male' or nil}
+end
+
 -- addonHears: this computer can recognise speech locally (manager.speechRecognitionReady), which an add-on voice needs to answer the
 -- voice keys; the caller asks it on the key press only, and only while an add-on is live.
 local function selectConversation(player, groupMode, singleAction, addonHears)
+    -- A character the player made may have been saved since the last look: the list is read if it is due (at most every 3 s, and only while
+    -- there are characters or the editor was opened lately: mod/custom-characters.lua).
+    if convaiCustomCharacters then pcall(convaiCustomCharacters.refresh); pcall(convaiCustomCharacters.checkProvider) end
     -- On a connected holocall the private talk keys address the caller wherever V is (mod/holocall.lua).
     local caller = convaiHolocall and convaiHolocall.partner(player, groupMode) or nil
     if caller then log('Holocall conversation: profile=' .. caller.profileKey .. ' mode=' .. caller.holocall.mode); return caller end
@@ -2058,7 +2116,18 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
         end
     end
     if not npc then convaiNotices.send(player, 'talk-no-target', ui.t(reason)); return nil end
+    if convaiCustomCharacters then convaiCustomCharacters.clearSkipped() end
     local key, name, bodyType, archetype = profileIdentity(npc)
+    -- One of the player's own characters, left out because Convai is answering: it talks as an ordinary person, and the player is told once.
+    local skipped = convaiCustomCharacters and convaiCustomCharacters.takeSkipped() or nil
+    if skipped then
+        convaiCustomNoted = convaiCustomNoted or {}
+        if not convaiCustomNoted[skipped.key] then
+            convaiCustomNoted[skipped.key] = true
+            convaiNotices.send(player, 'custom-needs-provider',
+                ui.t('{name} is one of your own characters. They need Mistral or Local AI, so with Convai they talk as an ordinary person.', {name = skipped.name}))
+        end
+    end
     if not key or not supportedProfiles[key] then
         convaiNotices.send(player, 'talk-no-profile', ui.t('{name} does not have a conversation profile configured yet.',{name=name}))
         log('Conversation unavailable: profile=' .. tostring(key))

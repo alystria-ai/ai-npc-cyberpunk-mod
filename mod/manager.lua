@@ -935,8 +935,22 @@ function M.johnnyRemarks()
     return settings.johnnyRemarks == 'rare' and 'rare' or settings.johnnyRemarks == 'normal' and 'normal' or 'off'
 end
 
+-- Is Mistral or the Local AI answering conversations right now (the bridge's applied provider)? Asked when a character the player made is
+-- looked at or talked to, never per frame: the bridge status is re-read at most once every 1.5 s and nothing else is built.
+function M.textProviderActive()
+    updateMistral()
+    return providerName(mistralState.effective) ~= 'convai'
+end
+
+-- Characters the player made (mod/custom-characters.lua) are not in the profile list: they are enabled whenever they exist.
+local customKeyOf = function() return false end
+function M.configureCustom(isCustom)
+    customKeyOf = type(isCustom) == 'function' and isCustom or function() return false end
+end
+
 function M.profileEnabled(key)
     loadSettings()
+    if key ~= nil and customKeyOf(key) == true then return true end
     if key ~= nil and archetypeKeys[key] and byKey[key] == nil then return settings.archetypeConversations ~= false end
     return key ~= nil and byKey[key] ~= nil and settings.enabledByKey[key] ~= false
 end

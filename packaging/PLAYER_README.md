@@ -105,6 +105,12 @@ Extra video memory each setup uses on top of the game's own:
 | OmniVoice | Local AI lite | about 4 GB |
 | OmniVoice | Local AI standard | about 5 GB |
 
+## Your own characters
+
+With Mistral or Local AI as the Conversation provider, you can give a person who has no profile in the mod (a character spawned by another mod, such as a Night City Allies follower) a name, a bio, a way of speaking and memories. Face the character, open Settings > Edit characters > Open, and choose **New character** in the page that opens in your browser. **Use the character I'm facing** fills in how the game recognises them (their record name or the name the game shows); you can also type those in. Add a gender and a bio, and Save. The next time you talk to them they answer as the person you wrote. An optional voice clip (see below) gives them a voice of their own; without a clip they speak with a generic voice of their gender. With Convai they talk as an ordinary person, and the game says so once. Characters, clips and what they remember stay on your PC, in `%LOCALAPPDATA%\AiNpcCyberpunkMod\data`.
+
+**Voice clips.** You can give a story character, or one of your own characters, a voice clip in the same page: open the character (a story character has a Voice tab), choose **Add voice clip**, pick a WAV, MP3, OGG or FLAC file of 5 to 20 seconds of one person speaking clearly (10 to 18 seconds works best), type the words said in it and choose **Save clip**. Pocket, OmniVoice and Voxtral then copy that voice from the next time the game starts. **Remove clip** brings the original voice back. The clip stays on your PC.
+
 ## Update
 
 Close the game and extract the new Scripts and Runtime over the old ones (the same version for both), then any optional packs you use, in that order: the OmniVoice pack goes after the Runtime. Your conversations, memories and settings are kept. The first start after updating moves your memories, conversation history and logs out of the game folder into `%LOCALAPPDATA%\AiNpcCyberpunkMod\data`.

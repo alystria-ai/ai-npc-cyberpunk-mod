@@ -646,6 +646,11 @@ function M.isCloneRecord(text)
     return false
 end
 
+-- True for the key of a character the player made ("custom-rebecca-k3j9"): the prefix is reserved, no roster key starts with it.
+function M.isCustomKey(key)
+    return type(key) == 'string' and key:find('^custom%-') ~= nil
+end
+
 function M.build(profiles, archetypes)
     local catalog = {keys = {}, names = {}, records = {}, archetypes = archetypes}
     for _, profile in ipairs(profiles) do
@@ -680,6 +685,13 @@ function M.resolve(catalog, actor)
         -- profile resolves for the character the game placed, and nothing else about it changes (it never falls back below).
         if actor.world == true and actor.story ~= true then return nil, actor.name end
         return profile.key, profile.name
+    end
+    -- A character the player made (mod/custom-characters.lua, docs/CHARACTER_EDITOR.md): after every roster profile, so a roster profile always
+    -- wins, and before the archetypes and residents. catalog.custom stays nil until one exists; without one this is a single comparison.
+    local custom = catalog.custom
+    if custom then
+        local entry = custom.match(actor)
+        if entry then return entry.key, entry.name end
     end
     if catalog.archetypes and type(actor.facts) == 'table' then
         local key, reason = M.classify(catalog.archetypes, actor.facts)

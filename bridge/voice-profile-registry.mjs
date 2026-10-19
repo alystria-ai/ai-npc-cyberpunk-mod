@@ -10,11 +10,22 @@ export const VOICE_PROFILE_LIMITS = Object.freeze({profiles: 1024, transcript: 1
 const object = value => value && typeof value === 'object' && !Array.isArray(value);
 const keyValid = value => typeof value === 'string' && /^[a-z0-9][a-z0-9-]{0,79}$/.test(value)
   && !['constructor', 'prototype', '__proto__'].includes(value);
+// A player's own reference clip for a character (a story character, or one the player made) lives in the player's data folder and
+// never in the game folder, so its descriptor names this second, fixed namespace; every voice worker resolves it only inside its own
+// configured player folder (`playerVoiceDirectory`, `playerRoot`). One plain file name, no sub-folders: <key>.wav.
+export const PLAYER_REFERENCE_PREFIX = 'runtime/player-voices/';
+const PLAYER_REFERENCE = /^runtime\/player-voices\/[a-z0-9][a-z0-9-]{0,79}\.wav$/;
+export const isPlayerReference = value => typeof value === 'string' && value.startsWith(PLAYER_REFERENCE_PREFIX);
+export const playerReferenceValid = value => typeof value === 'string' && PLAYER_REFERENCE.test(value);
 const referenceValid = value => typeof value === 'string' && value.length <= VOICE_PROFILE_LIMITS.path
-  && value.startsWith('runtime/voice-references/') && value.endsWith('.wav')
+  && (value.startsWith('runtime/voice-references/') || PLAYER_REFERENCE.test(value)) && value.endsWith('.wav')
   && !/[\\\x00-\x1f\x7f:]/.test(value) && !value.split('/').some(part => !part || part === '.' || part === '..');
 const transcriptValid = value => typeof value === 'string' && value.trim().length > 0
   && value.length <= VOICE_PROFILE_LIMITS.transcript && !/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(value);
+// The same two checks for a caller that merges a descriptor into a configuration (bridge/addons.mjs): one bad descriptor makes the
+// whole configuration throw, so a player-supplied key or transcript is checked before it gets in.
+export const voiceKeyValid = keyValid;
+export const voiceTranscriptValid = transcriptValid;
 
 export function createVoiceProfileRegistry(config = {}) {
   if (!object(config)) throw Error('Invalid local voice configuration');

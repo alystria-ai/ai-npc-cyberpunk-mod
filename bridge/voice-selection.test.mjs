@@ -122,6 +122,43 @@ test('wider registry routes additional prepared characters locally and incomplet
   await h.voice.close();
 });
 
+// A character the player made (bridge/custom-characters.mjs) has a voice of its own only when it was given a clip before the service started;
+// until then it is spoken by the resident voice of its gender, always the same one of the variants, and prepared and read as that voice.
+test('a key with no voice of its own is spoken by its alias: one voice for good, routed and prepared as the alias, and unaffected when it has its own', async () => {
+  const entry = key => ({reference: `runtime/voice-references/${key}.wav`, sha256: 'c'.repeat(64), transcript: 'Ready when you are, V.'});
+  const extraProfiles = Object.fromEntries(['resident-female', 'resident-female-v2', 'resident-female-v3', 'resident-male', 'custom-own-aaaa'].map(key => [key, entry(key)]));
+  const aliases = key => key === 'custom-she-aaaa' || key === 'custom-her-bbbb' ? 'resident-female' : key === 'custom-he-cccc' ? 'resident-male' : null;
+  const h = fixture({extraProfiles, voiceOptions: {aliases}});
+  h.voice.request({voiceProvider: 'pocket'}); h.voice.applyWhenIdle(false);
+  await h.voice.start();
+  for (const key of ['custom-she-aaaa', 'custom-her-bbbb', 'custom-he-cccc', 'custom-own-aaaa']) assert.equal(h.voice.usesProfile(key), true, key);
+  assert.equal(h.voice.usesProfile('custom-ghost-dddd'), false, 'an alias that names nothing is no voice');
+  assert.equal(h.voice.profileReady('custom-she-aaaa'), true);
+  // One voice of the alias for good: the body that speaks today (the seed) does not decide it, the character's own key does.
+  const voice = h.voice.voiceKeyFor('custom-she-aaaa', '111ULL');
+  assert(['resident-female', 'resident-female-v2', 'resident-female-v3'].includes(voice), voice);
+  for (const seed of ['222ULL', '333ULL', undefined, null]) assert.equal(h.voice.voiceKeyFor('custom-she-aaaa', seed), voice);
+  assert.equal(h.voice.voiceKeyFor('custom-he-cccc', '111ULL'), 'resident-male');
+  assert.equal(h.voice.voiceKeyFor('custom-ghost-dddd', 'x'), 'custom-ghost-dddd', 'not spoken locally: the key is kept');
+  // A character with a voice of its own is not aliased, and a roster character is untouched.
+  assert.equal(h.voice.voiceKeyFor('custom-own-aaaa', '111ULL'), 'custom-own-aaaa');
+  assert.equal(h.voice.voiceKeyFor('judy-alvarez', '111ULL'), 'judy-alvarez');
+  // The worker is asked for the alias's voice, never for a key it does not know.
+  assert.equal((await h.voice.prepareProfile('custom-he-cccc')).profile, 'resident-male');
+  await h.voice.synthesizeStream('custom-he-cccc', 'Hi there.');
+  await h.voice.synthesizeStream(voice, 'And again.');
+  await h.voice.synthesizeStream('custom-own-aaaa', 'My own voice.');
+  assert.deepEqual(h.workers[0].calls.map(call => call.profile), ['resident-male', voice, 'custom-own-aaaa']);
+  await h.voice.close();
+  // Without the option nothing is aliased.
+  const plain = fixture({extraProfiles});
+  plain.voice.request({voiceProvider: 'pocket'}); plain.voice.applyWhenIdle(false);
+  await plain.voice.start();
+  assert.equal(plain.voice.usesProfile('custom-she-aaaa'), false);
+  assert.equal(plain.voice.voiceKeyFor('custom-she-aaaa', 'x'), 'custom-she-aaaa');
+  await plain.voice.close();
+});
+
 test('an absent reference discovered during startup becomes remote before invitation readiness', async () => {
   const h = fixture({holdWarm: true, unavailableProfiles: ['judy-alvarez']});
   const preparation = h.voice.prepareProfile('judy-alvarez'); await tick();

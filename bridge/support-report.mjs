@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import {open, readFile, readdir, rm, stat, mkdir} from 'node:fs/promises';
+import {readPlayerVoiceSummary} from './player-voice-summary.mjs';
 import {resolve, join, dirname, basename} from 'node:path';
 import os from 'node:os';
 import {spawn} from 'node:child_process';
@@ -598,13 +599,15 @@ export async function collectReport(options) {
   const versionInfo = await versions({game, modRoot, project: project ?? resolve(runtime, '..'), logs, now});
   const problems = [...knownProblems(raw, {lua, now}),
     ...(Array.isArray(options.extraProblems) ? options.extraProblems.filter(line => typeof line === 'string' && line).slice(0, 40) : [])];
+  // The player's voice clips (bridge/player-voices.mjs): how many and how long each is, never the audio, the words or a path.
+  const voiceClips = await readPlayerVoiceSummary(stateDirectory).catch(() => ({count: 0, clips: []}));
   const cards = await graphicsPending;
   const graphics = (Array.isArray(cards) ? cards : []).slice(0, 8)
     .map(card => ({name: clip(card?.name, 120), memoryMiB: Number.isFinite(card?.memoryMiB) && card.memoryMiB > 0 ? Math.round(card.memoryMiB) : null}))
     .filter(card => card.name);
   const summary = redact.value({
     schema: 1, ...(problems.length ? {problems} : {}), reportId: options.reportId, generatedBy: offline ? 'offline' : 'bridge', generatedAt: new Date(now()).toISOString(),
-    privacy: {notes: ['No API keys, tokens, audio, voice references, model files or conversation text are included.',
+    privacy: {notes: ['No API keys, tokens, audio, voice references, voice clips, model files or conversation text are included.',
       'IDs are replaced by short hashes; key and token patterns, long secrets and your Windows account name are removed from every log.'],
       redactions: undefined},
     versions: versionInfo,
@@ -622,6 +625,7 @@ export async function collectReport(options) {
       ? redact.value(compactStatus('party-connection-state.json', raw['party-connection-state.json'])) : null},
     conversation: await conversationSection({runtime, settings}),
     providers: companionProviders({settings, voice: raw['local-voice-state.json'], routing: raw['relationship-routing.json'], party}),
+    voiceClips,
     recentErrors, logs: index,
   });
   summary.privacy.redactions = {...redact.stats};
@@ -635,8 +639,9 @@ export async function collectReport(options) {
       : '  summary.json   versions, graphics card, service status, setup check, settings, Local AI detection, party, provider per companion, recent errors',
     '  logs/*.txt     the end of each mod, service, CET, redscript and RED4ext log (last 2000 lines each);',
     '                 voice-routing.txt lists which voice spoke each reply and why (no reply text)', '',
-    'It does NOT contain API keys or tokens, microphone audio, voice references, model files',
-    'or conversation text. IDs are shown as short hashes and your Windows account name is hidden.',
+    'It does NOT contain API keys or tokens, microphone audio, voice references, your own voice clips',
+    '(only how many there are and how long each is), model files or conversation text.',
+    'IDs are shown as short hashes and your Windows account name is hidden.',
     'You can open the zip and read every file before you send it.', ''].join('\n');
   return {entries: [{name: 'README.txt', data: readme}, {name: 'summary.json', data: JSON.stringify(summary, null, 2) + '\n'}, ...entries],
     summary};

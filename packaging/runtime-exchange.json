@@ -18,6 +18,7 @@
     "continuous-speech.json",
     "convai-report-lua.txt",
     "conversation-prewarm.json",
+    "custom-characters.json",
     "custom-provider-command.json",
     "custom-provider-state.json",
     "editor-command.json",

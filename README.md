@@ -84,7 +84,7 @@ To remove everything, also delete `%LOCALAPPDATA%\AiNpcCyberpunkMod` (the memori
 - **V speaks too.** Lines you type are voiced in the V voice that matches yours, then the companion answers. You pick the engine for V's voice in Settings > Voices: Pocket (the default) or Voxtral.
 - **They remember.** Conversations stay with a character across saves. You can make one character forget, or all of them.
 - **Relationships that follow your save.** Judy, Panam, River, Kerry and Meredith know where things stand with V.
-- **Make them yours.** Edit a character's bio, speaking style and memories in your browser (with Mistral or Local AI).
+- **Make them yours.** Edit a character's bio, speaking style and memories in your browser, or make a character of your own (a name, a bio, a voice clip) for someone who has no profile, such as a spawned Night City Allies follower (with Mistral or Local AI). Give any story character a voice clip of your own, and the local voices copy it.
 - **Sixteen interface languages,** and a Multilingual setting that lets you talk in any language.
 - **An optional Mature setting** for adults. It is off by default and works with Local AI only. See [Mature content](#mature-content-18).
 
@@ -1048,6 +1048,10 @@ Settings > Edit characters > Open lets a player change a character's bio, speaki
 
 Edits are stored apart from the shipped data in `<state>/character-overrides/<key>.json`, only the changed fields, and `PersonaBook.persona()` merges them per turn; with no override the prompt is byte-identical. Limits (`EDIT_LIMITS`): bio 40 to 9,000 characters, style 1,800, 10 rules of 160, examples 3,000 in all, 12 memories of 200, 14,000 for the whole persona. Reset restores a field or everything; ordinary NPCs have no memories to edit. It is unit- and headless-browser tested (`npm run test:editor`) and has not been seen in the game.
 
+The same page makes **new characters** for people who have no profile (docs/CHARACTER_EDITOR.md, "Your own characters"): a name, a match rule (record names such as `Character.X` or `NCA.X`, display names, or "the character I'm facing"), a gender, a bio, a style, example lines, memories and an optional voice clip. They live in `<state>/custom-characters.json` under the reserved key prefix `custom-`, the bridge hands the game the list that finds them in `runtime/custom-characters.json` (an exchange file, shipped empty), and `characterCatalog.resolve` puts them after the roster and before the archetypes. Mistral and Local AI answer them through the persona book; with Convai the game does not resolve them (the person talks as an ordinary person and one notice says why). A clip joins the voice configurations at the next service start (below); without one the resident voice of the gender speaks.
+
+**Voice clips** (docs/CHARACTER_EDITOR.md, "Voice clips"): a story character's Voice tab, or the page of one of the player's own characters, takes a reference clip (WAV, MP3, OGG or FLAC, 5 to 20 s, at most 16 MiB, with the words said in it). The page decodes it in the browser to a 24 kHz mono WAV; the server checks the type by its first bytes, converts a file the browser could not decode with ffmpeg when the computer has it, and applies the shipped references' quality rules. Clips stay in `<state>/player-voices/` (never the game folder). At the next service start they are merged over the shipped voice of their character for Pocket, OmniVoice and Voxtral as a second reference namespace (`runtime/player-voices/<key>.wav`), never copied and prepared only when the character speaks; removing a clip brings the shipped voice back. Support reports show only how many clips there are and how long each is.
+
 Docs: [docs/CHARACTER_API.md](docs/CHARACTER_API.md), [characters/README.md](characters/README.md), [docs/NPC_ARCHETYPES.md](docs/NPC_ARCHETYPES.md), [docs/WORLD_COMPANIONS.md](docs/WORLD_COMPANIONS.md), [docs/MULTILINGUAL_PROFILES.md](docs/MULTILINGUAL_PROFILES.md), [docs/CHARACTER_EDITOR.md](docs/CHARACTER_EDITOR.md), [docs/COMPANION_APPEARANCES.md](docs/COMPANION_APPEARANCES.md), [docs/FIRST_PERSON_RULE.md](docs/FIRST_PERSON_RULE.md), [docs/FULL_CAST_EXPANSION_2026-10-01.md](docs/FULL_CAST_EXPANSION_2026-10-01.md) (voice runtime and casting method for the full cast).
 
 ### Companion vision
@@ -1490,6 +1494,8 @@ Everything in this README describes current `main`. Tests cover the logic; they 
 | Holocalls | Calling from the Chat tab and the live picture seen live; the leftovers are listed in [Holocall and Phone Chat](#holocall-and-phone-chat) and [docs/HOLOCALL.md](docs/HOLOCALL.md) |
 | Ordinary-NPC conversations and their lip sync | Built; the gated crowd graph has not been installed or seen, and its FPS A/B check has not been run |
 | Character editor and the Multilingual setting (including the multilingual microphone) | Built and tested; not seen live |
+| Your own characters (New character in the editor, matching in the game, voice clip) | Built and tested headless and in Lua; not seen live |
+| Voice clips for story characters and your own characters (Pocket, OmniVoice, Voxtral) | Built and tested (unit, worker, headless browser); not heard live |
 | Seated free-look, overflow convoys, fast-travel recovery | Built; not confirmed live |
 | Native `faces`, `actuator`, `vehicles`, `chauffeur`, `passage` | Ship **off** through `native-off.txt` until proven in the game; the Lua paths are the proven ones |
 | The tactic command, decision ledger | The ledger is off and has no UI; the tactic command is built but not confirmed live |

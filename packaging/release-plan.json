@@ -314,6 +314,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/spawned-characters.lua"
         },
         {
+          "source": "mod/custom-characters.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/custom-characters.lua"
+        },
+        {
           "source": "mod/world-talk.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/world-talk.lua"
         },
@@ -604,9 +608,11 @@
             "bridge/convai-signin.mjs",
             "bridge/convai-vision.mjs",
             "bridge/conversation-style.mjs",
+            "bridge/custom-characters.mjs",
             "bridge/custom-endpoint.mjs",
             "bridge/custom-manifest-folders.mjs",
             "bridge/custom-models.mjs",
+            "bridge/custom-voice-clip.mjs",
             "bridge/dialogue-level.mjs",
             "bridge/emotion-analysis.mjs",
             "bridge/emotion-lexicon.mjs",
@@ -677,6 +683,8 @@
             "bridge/player-memory-control.mjs",
             "bridge/player-memory.mjs",
             "bridge/player-phone-knowledge.mjs",
+            "bridge/player-voice-summary.mjs",
+            "bridge/player-voices.mjs",
             "bridge/pocket-facial-stream.mjs",
             "bridge/pocket-speech.mjs",
             "bridge/pocket-voice.mjs",

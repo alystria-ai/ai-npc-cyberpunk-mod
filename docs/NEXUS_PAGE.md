@@ -18,7 +18,7 @@
 [*][b]Night City Allies followers talk.[/b] NCA followers who are characters here (Judy, Panam, Goro and more) talk as themselves, and Lucy (with Lucy for NCA) and Rita Wheeler have their own voices and memory. NCA keeps doing the following, fighting and driving.
 [*][b]Johnny in your head.[/b] Turn it on (off by default) and, with nobody in front of you, talk and Johnny answers in V's head. He knows your jobs, his own history and how things stand between you. With Johnny speaks up he also comments on people you meet, jobs you finish and romances.
 [*][b]They know the moment.[/b] They continue from the game's own dialogue and know your quest, your clothes and what you carry. With Convai they also see a fresh glimpse of the game window, so they can talk about where you are (the picture is never saved).
-[*][b]They remember you.[/b] Conversations stay with a character across saves, and Judy, Panam, River, Kerry and Meredith know where things stand with V. Make characters forget, or edit any character's bio, speaking style and memories in your browser (Mistral or Local AI).
+[*][b]They remember you.[/b] Conversations stay with a character across saves, and Judy, Panam, River, Kerry and Meredith know where things stand with V. Make characters forget, edit any character's bio, speaking style and memories in your browser, or make a character of your own for someone who has no profile (Mistral or Local AI).
 [*][b]Voices that sound like them.[/b] Pocket TTS (the default) runs on your processor with no setup. OmniVoice, for NVIDIA cards, can laugh and sigh. Voxtral makes each voice in the cloud with a free Mistral key. Optional natural speech adds pauses and hesitations.
 [*][b]Free three ways, light on your game, any language.[/b] Local AI, Mistral or the Convai free tier (see How it runs). The heavy work runs in a separate background service, and unused models unload on their own. Menus in sixteen languages, plus a Multilingual setting to talk in any language.
 [/list]
@@ -104,6 +104,12 @@ No. Companions are temporary copies that the mod owns. The game's own story char
 
 [b]What leaves my computer?[/b]
 With Convai, your lines go to Convai, along with a recent picture of only the game window so characters can see where you are. It is taken only while someone you can talk to is near, kept in memory for a few seconds and never saved. With Mistral, your lines go to Mistral. With Local AI, nothing leaves your computer for replies.
+
+[b]Can I make my own characters?[/b]
+Yes, with Mistral or Local AI. Face a character that has no profile here (for example a Night City Allies follower from a character mod), open Settings > Edit characters > Open and choose New character in the page that opens. Give them a name, a bio and a way of speaking; the page can fill in how the game recognises them from the character you are facing. An optional voice clip gives them a voice of their own. With Convai they talk as an ordinary person, and the game says so once.
+
+[b]Can I change a character's voice?[/b]
+Yes. In the same editor page, open a story character's Voice tab (or one of your own characters) and choose Add voice clip: a WAV, MP3, OGG or FLAC file of 5 to 20 seconds of one person speaking clearly, with the words said in it typed out. Pocket, OmniVoice and Voxtral copy that voice from the next game start. Remove clip brings the original voice back. The clip stays on your PC.
 
 [b]Error reports[/b]
 When something in the mod fails, a short report goes to the developer so it can be fixed without asking you for logs. It is on by default; turn it off in [b]Settings > Privacy > Send error reports automatically[/b].

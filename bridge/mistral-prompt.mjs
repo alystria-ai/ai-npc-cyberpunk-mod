@@ -62,15 +62,20 @@ export const withPromptSource = (messages, args) => { Object.defineProperty(mess
 
 /** The roster rows (named characters, then archetypes) by profile key. */
 export class PersonaBook {
-  /** `overrides` (bridge/character-overrides.mjs, optional): the player's own edits of a character, read with a plain lookup per turn. */
-  constructor(rows = [], {overrides = null} = {}) {
+  /**
+   * `overrides` (bridge/character-overrides.mjs, optional): the player's own edits of a character, read with a plain lookup per turn.
+   * `custom` (bridge/custom-characters.mjs, optional): the characters the player made; their persona is theirs alone and a roster key never reaches it.
+   */
+  constructor(rows = [], {overrides = null, custom = null} = {}) {
     this.overrides = overrides;
+    this.custom = custom;
     this.rows = new Map();
     for (const row of rows) if (row && typeof row.key === 'string' && !this.rows.has(row.key)) this.rows.set(row.key, row);
   }
-  has(key) { return this.rows.has(key); }
+  has(key) { return this.rows.has(key) || this.custom?.has(key) === true; }
   /** {name, backstory, style, samples, rules, memories}: the shipped profile with the player's edits, when there are any. */
   persona(profileKey, fallbackName) {
+    if (!this.rows.has(profileKey)) { const own = this.custom?.persona(profileKey); if (own) return own; }
     const shipped = this.defaults(profileKey, fallbackName);
     return shipped.known ? applyOverride(shipped, this.overrides?.get(profileKey) ?? null) : shipped;
   }

@@ -8,7 +8,7 @@
 import {readFile} from 'node:fs/promises';
 import {spawn} from 'node:child_process';
 import {atomicFile} from './guarded-file.mjs';
-import {cleanStrings} from './character-editor-server.mjs';
+import {cleanStrings, cleanFacing} from './character-editor-server.mjs';
 
 const COMMAND_MAX_BYTES = 96 * 1024, COMMAND_MAX_AGE_MS = 30_000;
 const ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,95}$/;
@@ -20,7 +20,8 @@ export function parseEditorCommand(raw, now = Date.now()) {
   if (!value || typeof value !== 'object' || value.version !== 1 || typeof value.id !== 'string' || !ID.test(value.id)
       || value.action !== 'open' || !Number.isFinite(value.issuedAt)
       || value.issuedAt > now + 5000 || now - value.issuedAt > COMMAND_MAX_AGE_MS) return null;
-  return {id: value.id, action: 'open', language: typeof value.language === 'string' ? value.language : 'en', strings: cleanStrings(value.strings)};
+  // facing: the character V faced when the player chose Open (read once by the game, never per frame); it only fills the "New character" form.
+  return {id: value.id, action: 'open', language: typeof value.language === 'string' ? value.language : 'en', strings: cleanStrings(value.strings), facing: cleanFacing(value.facing)};
 }
 
 /** Opens a page in the default browser. No shell is involved: the address is one argument of the system's URL handler. */
@@ -64,7 +65,7 @@ export class EditorControl {
       this.handled.add(command.id);
       if (this.handled.size > 64) this.handled.delete(this.handled.values().next().value);
       try {
-        const url = await this.server.start({strings: command.strings, language: command.language});
+        const url = await this.server.start({strings: command.strings, language: command.language, facing: command.facing});
         await this.open(url);
         await this.#status(command.id, 'open');
       } catch (error) {

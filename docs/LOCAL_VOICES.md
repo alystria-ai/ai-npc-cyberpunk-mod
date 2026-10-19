@@ -404,6 +404,19 @@ clips in `assets/v-voice` (or `voice-references/v-voice` when installed) the way
 `voice-references/addons/<key>.wav`, written into the `addons.<name>` copies of the configurations, prepared lazily). They are
 not profiles and never speak for a companion: only the setting "V's voice for typed lines" uses them. See `docs/V_VOICE.md`.
 
+## Player voice clips
+
+A player can give a story character, or a character they made, a reference clip of their own in the character editor (docs/CHARACTER_EDITOR.md, "Voice clips"). The clip stays in the data folder: `<state>/player-voices/<key>.wav` (canonical mono 16-bit PCM) with the words said in it in `<state>/player-voices.json` (`bridge/player-voices.mjs`). At service start each clip joins V's voices as an `extra` of `AddonHost.voiceConfigPaths` with `player: true`, but it is never copied: its descriptor is `runtime/player-voices/<key>.wav`, a second reference namespace that Pocket (`runtime.playerVoiceDirectory`), OmniVoice (top-level `playerVoiceDirectory`) and Voxtral (`playerRoot`) resolve only inside the player folder, with the same containment, link, hash, WAV and 20-second checks as the shipped references. A clip **replaces** the shipped voice of its key in every merged configuration and is taken out of `preparation.startupProfiles`, so it is prepared only when that character speaks. Voxtral keeps its prepared slot of a player clip in `<state>/player-voices-prepared`. A clip given or removed while the service runs counts from the next start; with the clip removed, the next start merges nothing and the shipped voice is back.
+
+## Voices of characters the player makes
+
+A character made in the character editor (docs/CHARACTER_EDITOR.md, "Your own characters", key `custom-<slug>-<letters>`) is not a profile of the shipped cast, so it has no entry in the voice configurations of the package. Two things give it a voice:
+
+- **Its own clip.** A player voice clip (above).
+- **No clip yet (or none at all).** `VoiceSelection` takes an `aliases(key)` option (the bridge: `customCharacters.voiceAlias`): a key with no voice of its own is routed, prepared and synthesised as `resident-female` or `resident-male` by gender. The variant (`-v2`, `-v3`) is picked from the character's own key (`voiceKeyFor` uses the key as the seed for an aliased key), so one character keeps one voice across spawns and sessions.
+
+With the Convai cloud voice chosen there is no voice for such a character; its replies are subtitles only.
+
 ## Local setup and operation
 
 ### Full-cast reference activation — October 1

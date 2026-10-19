@@ -28,6 +28,11 @@ MAX_CACHED_PROFILES = 8
 MAX_PROFILES = 1024
 MAX_COMMAND_BYTES = 65_536
 MAX_REFERENCE_BYTES = 24_000_000
+# A player's own clip for a character (docs/CHARACTER_EDITOR.md) lives in the player's data folder, never beside the shipped references:
+# its descriptor names this second, fixed namespace, and it resolves only inside runtime.playerVoiceDirectory (never a general path).
+REFERENCE_PREFIX = "runtime/voice-references/"
+PLAYER_PREFIX = "runtime/player-voices/"
+PLAYER_REFERENCE = re.compile(r"runtime/player-voices/[a-z0-9][a-z0-9-]{0,79}\.wav")
 
 
 def digest_file(path):
@@ -96,10 +101,15 @@ def profile_key_valid(value):
             and value not in {"constructor", "prototype", "__proto__"})
 
 
+def player_reference(reference):
+    return isinstance(reference, str) and reference.startswith(PLAYER_PREFIX)
+
+
 def descriptor_valid(descriptor):
     reference = descriptor.get("reference") if isinstance(descriptor, dict) else None
     return (isinstance(reference, str) and len(reference) <= 512
-            and reference.startswith("runtime/voice-references/") and reference.endswith(".wav")
+            and (reference.startswith(REFERENCE_PREFIX) or PLAYER_REFERENCE.fullmatch(reference) is not None)
+            and reference.endswith(".wav")
             and not re.search(r"[\\\x00-\x1f\x7f:]", reference)
             and not any(part in ("", ".", "..") for part in reference.split("/"))
             and sha(descriptor.get("sha256")) and text_valid(descriptor.get("transcript")))
@@ -153,13 +163,20 @@ def inspect_reference(path):
     return {"sampleRate": rate, "channels": channels, "duration": duration}
 
 
-def validate_profile(root, descriptor):
+def validate_profile(root, descriptor, player_root=None):
+    """The file a descriptor names, checked. A player reference resolves ONLY inside `player_root` (a profile without one is unavailable)."""
     if not descriptor_valid(descriptor):
         raise ValueError("Invalid Pocket reference descriptor")
     reference = descriptor["reference"]
-    # The configured root replaces only the established reference directory;
+    if player_reference(reference):
+        if player_root is None:
+            raise ValueError("Pocket reference is unavailable")
+        root, prefix = Path(player_root), PLAYER_PREFIX
+    else:
+        prefix = REFERENCE_PREFIX
+    # The configured root replaces only the established reference (or player) directory;
     # the descriptor never chooses a general filesystem path.
-    tail = PurePosixPath(reference).relative_to("runtime/voice-references")
+    tail = PurePosixPath(reference).relative_to(prefix.rstrip("/"))
     path = Path(root).joinpath(*tail.parts)
     resolved = plain_absolute(str(path), "reference")
     if not resolved.is_relative_to(root) or not resolved.is_file():
@@ -168,6 +185,11 @@ def validate_profile(root, descriptor):
         raise ValueError("Pocket reference identity changed")
     inspect_reference(resolved)
     return resolved
+
+
+def resolve_reference(paths, descriptor):
+    """Every lookup of a reference file (configuration and the later preparation) goes through here, so both use the same roots."""
+    return validate_profile(paths["referenceDirectory"], descriptor, paths.get("playerVoiceDirectory"))
 
 
 def inspect_student_export(directory, expected, *, yaml_load=None):
@@ -226,6 +248,14 @@ def validate_config(raw, *, yaml_load=None, source_hasher=digest_source):
     if any(work.is_relative_to(paths[key]) or paths[key].is_relative_to(work)
            for key in ("sourceDirectory", "exportDirectory", "referenceDirectory")):
         raise ValueError("Pocket work and immutable assets must remain separate")
+    # The player's own clips (optional): a folder of the player's data. It may be missing (those profiles are then unavailable), but it
+    # must not overlap the work folder (which the worker writes) nor any shipped asset, so a clip never resolves through either.
+    if runtime.get("playerVoiceDirectory") is not None:
+        player = plain_absolute(runtime.get("playerVoiceDirectory"), "playerVoiceDirectory")
+        if any(player.is_relative_to(other) or other.is_relative_to(player)
+               for other in (work, paths["sourceDirectory"], paths["exportDirectory"], paths["referenceDirectory"])):
+            raise ValueError("Pocket player voices must be separate from the work folder and the shipped assets")
+        paths["playerVoiceDirectory"] = player
     if source_hasher(paths["sourceDirectory"]) != SOURCE_SHA256:
         raise ValueError("Pocket source differs from the pinned official revision")
     cpu = raw.get("cpu", {})
@@ -258,7 +288,7 @@ def validate_config(raw, *, yaml_load=None, source_hasher=digest_source):
             raise ValueError("Invalid Pocket reference descriptor")
         descriptors[key] = dict(descriptor)
         try:
-            refs[key] = validate_profile(paths["referenceDirectory"], descriptor)
+            refs[key] = resolve_reference(paths, descriptor)
         except ValueError:
             unavailable[key] = "unavailable"
     preparation = raw.get("preparation", {})
@@ -381,7 +411,7 @@ class ReferenceCache:
         if key not in self.registry["refs"]:
             raise ValueError("This character has no available Pocket voice")
         try:
-            path = validate_profile(self.registry["paths"]["referenceDirectory"], self.registry["descriptors"][key])
+            path = resolve_reference(self.registry["paths"], self.registry["descriptors"][key])
         except ValueError:
             self.states.pop(key, None)
             self.registry["refs"].pop(key, None)

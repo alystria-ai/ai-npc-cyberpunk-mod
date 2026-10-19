@@ -72,6 +72,8 @@ import {SupportReportControl} from './support-report.mjs';
 import {ErrorEvents, installCrashCapture} from './error-events.mjs';
 import {SetupCheckControl, cachedBrowserName, cachedGraphicsCards, cachedModManagers, collectSetupCheck, findNestedPacks, readPackPlacement} from './setup-check.mjs';
 import {CharacterOverrides} from './character-overrides.mjs';
+import {CustomCharacters, isCustomKey, rosterIndex, releaseVoiceFiles} from './custom-characters.mjs';
+import {PlayerVoices, PLAYER_PREPARED_FOLDER, releasePreparedSlots} from './player-voices.mjs';
 import {CharacterEditor} from './character-editor.mjs';
 import {EditorServer} from './character-editor-server.mjs';
 import {EditorControl} from './character-editor-control.mjs';
@@ -144,6 +146,22 @@ const ids = JSON.parse(await readFile(resolve(stateDirectory, 'characters.json')
 const addonHost = await AddonHost.load({game, log: message => console.error('[Addons] ' + message)});
 addonHost.extend(roster, ids);
 addonHost.characterLookup = rosterLookup(roster);
+// Voice clips players give characters in the editor (docs/CHARACTER_EDITOR.md, "Voice clips"; bridge/player-voices.mjs): kept in the data folder
+// (<state>/player-voices/<key>.wav and player-voices.json), opened before the voice configurations are built so each clip is merged over the
+// shipped voice of its character. A removed clip's Voxtral slot (<state>/player-voices-prepared) goes with it.
+const playerVoices = await PlayerVoices.open({dir: stateDirectory, log: message => console.error('[PlayerVoices] ' + message),
+  onRemoved: key => releasePreparedSlots({folder: resolve(stateDirectory, PLAYER_PREPARED_FOLDER), key})});
+// Characters the player made (docs/CHARACTER_EDITOR.md, "Your own characters"): opened here, before the voice configurations are built. Their rows
+// join the roster array (profileFor and the other lookups by key); the list the game reads is runtime/custom-characters.json. They never have a
+// Convai character: runCustomTurn answers them. Deleting one removes its voice clip and its prepared voice setups.
+const customCharacters = await CustomCharacters.open({dir: stateDirectory, exchangePath: resolve(runtime, 'custom-characters.json'), roster: rosterIndex(roster),
+  log: message => console.error('[Custom] ' + message), onChange: () => syncCustomRoster(),
+  onDeleted: key => { void playerVoices.clear(key).catch(() => {}); return releaseCustomVoice(key); }});
+function syncCustomRoster() {
+  for (let at = roster.length - 1; at >= 0; at--) if (roster[at]?.kind === 'custom') roster.splice(at, 1);
+  roster.push(...customCharacters.rosterRows());
+}
+syncCustomRoster();
 // runtime/relationship-profiles.json (the retired alternate affectionate profiles) is no longer read: every character has one profile.
 // Multilingual twins (docs/MULTILINGUAL_PROFILES.md): used only while "Multilingual conversations" is on. A missing
 // map is an English-only installation; a twin that no longer clones the current profile is left out.
@@ -163,8 +181,17 @@ const referenceRoots = process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES ? [process.e
   : [resolve(stateDirectory, 'voice-references'), resolve(project, 'runtime/voice-references')];
 const vVoiceReferences = await loadVVoiceReferences([...referenceRoots.map(root => resolve(root, 'v-voice')), resolve(project, 'assets/v-voice')],
   {log: line => console.error('[VVoice] ' + line)});
+// The player's voice clips (a story character's, or one of their own characters') join the configurations like V's voices, with three differences:
+// they are never copied (the workers read them from <state>/player-voices, named runtime/player-voices/<key>.wav), a clip replaces the shipped voice
+// of its character, and it is taken out of the startup preparation, so nothing is prepared or loaded before that character speaks. A clip given or
+// removed while the service runs counts from the next start; until then a character keeps the voice it had (a custom character with no clip: the
+// voice of its gender, aliases below). Only story characters and the player's existing characters may have one; a clip of a character the player
+// deleted is removed here.
+const playerVoiceAllowed = key => isCustomKey(key) ? customCharacters.has(key) : roster.some(row => row?.key === key && row.kind === 'named');
+await playerVoices.prune(key => !isCustomKey(key) || customCharacters.has(key));
+const playerVoiceExtras = await playerVoices.extras(playerVoiceAllowed);
 const voiceConfigPaths = await addonHost.voiceConfigPaths(resolveVoiceConfigPaths(stateDirectory), {stateDirectory,
-  roots: referenceRoots, extra: extraVoices(vVoiceReferences)});
+  roots: referenceRoots, extra: extraVoices(vVoiceReferences).concat(playerVoiceExtras), playerVoiceDirectory: playerVoices.folder});
 for (const warning of voiceConfigPaths.warnings) console.error('[CyberpunkConvai] Voice configuration: ' + warning);
 const readVoiceConfig = async path => JSON.parse(await readFile(path, 'utf8').catch(error => {
   if (error.code === 'ENOENT') return '{}';
@@ -173,6 +200,16 @@ const readVoiceConfig = async path => JSON.parse(await readFile(path, 'utf8').ca
 const localVoiceConfigPath = voiceConfigPaths.pocket;
 const voiceConfig = await readVoiceConfig(localVoiceConfigPath);
 const omniVoiceConfigs = {short: await readVoiceConfig(voiceConfigPaths.omni.short), long: await readVoiceConfig(voiceConfigPaths.omni.long)};
+// What a custom character's voice leaves outside the data folder goes when the character does, and anything no character owns is swept here at
+// start: the prepared setups Pocket saved (<work>/prepared-voices, bridge/prepared-voices.mjs) and copies older builds made under
+// <reference root>/addons/. Nothing else is touched (releaseVoiceFiles names exactly the files it may remove). Voxtral's slots of player clips
+// that no clip owns any more are swept too (releasePreparedSlots).
+const customVoiceFolders = () => ({roots: [...referenceRoots, voiceConfig.runtime?.referenceDirectory],
+  preparedFolder: typeof voiceConfig.runtime?.workDirectory === 'string' && voiceConfig.runtime.workDirectory ? resolve(voiceConfig.runtime.workDirectory, 'prepared-voices') : null});
+const releaseCustomVoice = key => releaseVoiceFiles({key, ...customVoiceFolders()});
+void releaseVoiceFiles({keep: new Set(customCharacters.list().map(row => row.key)), ...customVoiceFolders()})
+  .then(count => { if (count) console.error(`[Custom] ${count} voice file(s) of deleted characters removed`); }).catch(() => {});
+void releasePreparedSlots({folder: resolve(stateDirectory, PLAYER_PREPARED_FOLDER), keep: new Set(playerVoices.list().map(clip => clip.key))}).catch(() => {});
 let voiceMetricsWriting = Promise.resolve();
 const phoneAnalysisConfigPath=resolve(stateDirectory,'phone-analysis.json');
 let phoneAnalysisConfig={};
@@ -200,28 +237,33 @@ const jaliFace = await JaliFace.load(resolve(stateDirectory, 'lipsync-model')).c
 // The reference clip is sent with every request, so a smaller one is a shorter wait for the first sound (bridge/voxtral-reference.mjs):
 // 24 kHz mono (the clone keeps only the bandwidth of its reference) and cut to about 8.5 s (Ogg Vorbis as well when ffmpeg is on the machine; MP3 stops at 11.3 kHz), prepared once per character and kept in <references>/prepared
 // (the Runtime's own pre-built slots are read from <references>/prepared-runtime when that one has none that fits, or only a WAV or MP3 where the Runtime has the Ogg).
-// CYBERPUNK_CONVAI_VOXTRAL_FULL_REFERENCE=1 sends the clips whole, as before.
+// CYBERPUNK_CONVAI_VOXTRAL_FULL_REFERENCE=1 sends the clips whole, as before. A player's clip (playerRoot) is read from the data folder and its
+// prepared slot is kept there too (<state>/player-voices-prepared), never in the references folder of the game.
 // Reply streaming (bridge/reply-stream.mjs): on unless settings.json "replyStreaming": false or this variable is 0. Kept up here, beside the other
 // environment reads, so the sections of this file that tests evaluate on their own never touch `process`.
 const replyStreamingForcedOff = process.env.CYBERPUNK_CONVAI_REPLY_STREAM === '0';
 let replyStreaming = !replyStreamingForcedOff;
 const voxtralReferenceRoot = process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES || resolve(stateDirectory, 'voice-references');
+const voxtralPreparers = process.env.CYBERPUNK_CONVAI_VOXTRAL_FULL_REFERENCE === '1' ? null : {
+  shipped: createReferencePreparer({cacheDirectory: resolve(voxtralReferenceRoot, PREPARED_FOLDER), shippedDirectories: [resolve(voxtralReferenceRoot, RUNTIME_PREPARED_FOLDER)], onLog: message => process.stderr.write(`[Voxtral] ${message}\n`)}),
+  player: createReferencePreparer({cacheDirectory: resolve(stateDirectory, PLAYER_PREPARED_FOLDER), onLog: message => process.stderr.write(`[Voxtral] ${message}\n`)}),
+};
 const voxtralVoice = new VoxtralVoice({getKey: () => { try { return mistral.apiKey ?? null; } catch { return null; } },
-  referenceRoot: voxtralReferenceRoot,
-  prepare: process.env.CYBERPUNK_CONVAI_VOXTRAL_FULL_REFERENCE === '1' ? undefined
-    : createReferencePreparer({cacheDirectory: resolve(voxtralReferenceRoot, PREPARED_FOLDER), shippedDirectories: [resolve(voxtralReferenceRoot, RUNTIME_PREPARED_FOLDER)], onLog: message => process.stderr.write(`[Voxtral] ${message}\n`)}),
+  referenceRoot: voxtralReferenceRoot, playerRoot: playerVoices.folder,
+  prepare: voxtralPreparers ? (bytes, options = {}) => (options.player ? voxtralPreparers.player : voxtralPreparers.shipped)(bytes, options) : undefined,
   onLog: message => process.stderr.write(message)});
 // The Inworld cloud voice (docs/CLOUD_VOICE_INWORLD.md): the same kind of choice, on the player's own Inworld key (player-inworld-key.txt in
 // the state folder, pasted in Settings). Each character is cloned once from the same reference clips; the voice ids are kept in
 // player-inworld-voices.json in the state folder. `inworldKey` is loaded below with the other keys.
 const inworldKey = await new InworldKey({keyPath: resolve(stateDirectory, INWORLD_KEY_FILE)}).load();
-const inworldVoice = new InworldVoice({getKey: () => inworldKey.key, referenceRoot: voxtralReferenceRoot,
+const inworldVoice = new InworldVoice({getKey: () => inworldKey.key, referenceRoot: voxtralReferenceRoot, playerRoot: playerVoices.folder,
   storePath: resolve(stateDirectory, 'player-inworld-voices.json'), onLog: message => process.stderr.write(message)});
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
   pythonExecutable: voiceConfig.runtime?.pythonExecutable,
   omniConfigs:omniVoiceConfigs,omniConfigPaths:voiceConfigPaths.omni,previewSettleMs:1500,
   voxtral:voxtralVoice,inworld:inworldVoice,
+  aliases: key => customCharacters.voiceAlias(key),
   // The optional OmniVoice pack (worker Python, model weights, adapter); Settings greys Omni out without it.
   omniPack:()=>detectOmniPack({project,config:omniVoiceConfigs.long}),
   profileKeys:roster.map(profile=>profile.key),
@@ -237,6 +279,7 @@ const keyFileContent = readKeyFileText(await readFile(keyFile, 'utf8'));
 if (!keyFileContent) throw Error('Local Convai key file must contain api-key=...');
 const key = keyFileContent.key;
 await mkdir(runtime, {recursive: true});
+await customCharacters.publish();
 // Which add-ons were found and why any was not loaded, for the game to tell the player (docs/ADDON_API.md). With none, a status
 // file an earlier run left is removed and nothing is written. Then the add-on state and settings the game last wrote.
 await addonHost.publishStatus(runtime).catch(error => console.error('[Addons] Status not written:', error.message));
@@ -740,7 +783,7 @@ const profileOfCharacter = config => {
 };
 // The player's own edits of a character (docs/CHARACTER_EDITOR.md): read from disk once here, then a plain lookup on every turn.
 const characterOverrides = await CharacterOverrides.open({dir: resolve(stateDirectory, 'character-overrides'), log: message => console.error('[Editor] ' + message)});
-const personaBook = new PersonaBook(roster, {overrides: characterOverrides});
+const personaBook = new PersonaBook(roster, {overrides: characterOverrides, custom: customCharacters});
 // "Mature content": read from the settings file when it changes (never per turn); only the local AI route ever uses it. The optional Mature
 // pack (uncensored models) does not gate it: its marker is looked for at most every 5 s, on the settings poll, only so the setting's help text
 // can say whether the uncensored models are installed (never per turn or per frame).
@@ -1812,7 +1855,8 @@ async function publishHeard(recording) {
   await atomic(resolve(runtime, 'microphone-heard.json'), JSON.stringify({requestId: recording.requestId, text, updated: Date.now()}));
 }
 // V speaking to an add-on speaker (F7, F10): recognised locally, answered by the add-on turn route (bridge/addon-voice.mjs).
-const addonVoice = createAddonVoice({isSpeaker: key => addonHost.isSpeaker(key), speech: mistralSpeech,
+// A character the player made is spoken to the same way: recognised here, answered by runCustomTurn.
+const addonVoice = createAddonVoice({isSpeaker: key => addonHost.isSpeaker(key) || customCharacters.has(key), speech: mistralSpeech,
   currentFor: (requestId, signal) => {
     const current = async () => {
       if (stopped || signal?.aborted || mic.current?.requestId !== requestId) return false;
@@ -1824,7 +1868,8 @@ const addonVoice = createAddonVoice({isSpeaker: key => addonHost.isSpeaker(key),
   },
   runTurn: ({input, signal, current, userText}) => {
     const request = {input, controller: {signal}, receivedAt: Date.now()};
-    return withTurnClock(request, clock => runAddonTurn(request, input, profileFor(input, roster), current, clock, {userText}));
+    const own = customCharacters.has(input.profileKey);
+    return withTurnClock(request, clock => (own ? runCustomTurn : runAddonTurn)(request, input, profileFor(input, roster), current, clock, {userText}));
   },
   answerError: async ({input, signal, current, error}) => {
     // The same answer a typed add-on turn gets from runInput: a message about the service, not about the microphone.
@@ -2404,6 +2449,69 @@ async function runAddonTurn(request, input, profile, current, clock, {userText =
   }
 }
 
+// ---- Characters the player made (bridge/custom-characters.mjs, docs/CHARACTER_EDITOR.md)
+// A turn for one of them. No Convai character exists for it, so it never takes the Convai path (no knowledge route, Convai memory, connection or
+// allowance); its text comes from the player's own provider through the main text host (Mistral or the local AI), with its persona from the
+// persona book and its memory in the shared memory store, per key, as for a roster character. The game resolves such a character only while
+// Mistral or the local AI is answering (mod/custom-characters.lua), so a turn that finds Convai here (the provider changed in between) is
+// refused with one plain sentence. Conversation turns only: the game does not ask one for a battle or loot reaction.
+function customTurnConfig(input, profile) {
+  noteTurn(input);
+  const blocks = intrinsicConversationContext.blocks(input);
+  return {text: input.text, reaction: input.reaction, context: joinedContext(blocks), contextParts: contextPartsOf(blocks),
+    local: {profileKey: input.profileKey, name: profile.name, channel: input.group ? 'group' : 'private'}};
+}
+// The composer opened for a custom character (a hint with no Convai route): the text route is warmed, and the voice that will speak is prepared.
+function warmCustom(profileKey) {
+  const profile = profileFor({profileKey}, roster);
+  if (!profile || !mistral.active || stopped) return;
+  if (mistral.route === 'local') void mistralHost.prewarm({local: {profileKey, name: profile.name}});
+  else void warmConnection({provider: 'mistral'}).catch(() => {});
+  if (localVoice.playbackEnabled === false || !localVoice.usesProfile(profileKey)) return;
+  void localVoice.prepareProfile(localVoice.voiceKeyFor(profileKey, profileKey)).catch(() => {});
+}
+async function runCustomTurn(request, input, profile, current, clock, {userText = ''} = {}) {
+  const {controller} = request, ahead = request.lookahead, signal = controller.signal;
+  if (!mistral.active) {
+    await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
+      error: `${profile.name} is one of your own characters. They need Mistral or Local AI: choose one under Conversation provider in the settings.`, errorCode: 'custom-provider'}),
+    {signal, isCurrent: current, isCurrentSync: current.sync});
+    return;
+  }
+  note(input, {receivedAt: request.receivedAt, preparation: {mode: ahead ? 'lookahead' : 'none'}, reaction: input.reaction?.phase, customRoute: mistral.route});
+  if (!ahead) void status('thinking', profile.name).catch(() => {});
+  clock.mark('admitted');
+  const config = customTurnConfig(input, profile);
+  const voiced = localVoice.playbackEnabled !== false && turnUsesLocal(input) && audioAvailable(await readSpeechStateCached());
+  throwIfCancelled(signal);
+  let result;
+  // V's voice for a line typed to this character (docs/V_VOICE.md): started once the text request is under way, like any companion's.
+  let vLine = null;
+  vVoice.noteGender(input);
+  current.vLine = () => vLine;
+  const startV = () => { if (!input.reaction && !ahead && !vLine) vLine = vVoice.start(input, {signal, clock}); };
+  if (voiced && !input.reaction && replyStreaming && !ahead) {
+    // The first sentence goes to the voice while the rest is still being written, as for any text-provider turn.
+    const stream = newReplyStream(config, profile);
+    const final = Promise.resolve(mistralHost.reply(config, {signal, stream})).then(reply => ({...reply, transport: 'realtime'}));
+    final.catch(() => {});
+    startV();
+    result = await voiceStreamedReply(input, profile, {signal, current, stream, final, config, userText: () => userText});
+  } else {
+    const making = Promise.resolve(mistralHost.reply(config, {signal})).then(reply => ({...reply, transport: 'realtime'}));
+    making.catch(() => {});
+    startV();
+    const reply = await making;
+    result = voiced ? await synthesizeReply(input, reply, signal, current, profile) : {...reply, ttsEnabled: false};
+  }
+  if (ahead) { ahead.markReady(); await ahead.waitClaimed(signal); }
+  if (!await current()) return;
+  // A spoken turn carries the recognised words: a group round hands them to the next speakers (mod/group-chat.lua received).
+  if (userText) result = {...result, userText};
+  await measure(input, {resultReadyAt: Date.now(), requestToResultMs: Date.now() - request.receivedAt});
+  await publishResult(input, profile, result, current, signal);
+}
+
 async function runInput(request, prepared, clock) {
   let input = request.input;
   const {controller} = request;
@@ -2437,6 +2545,8 @@ async function runInput(request, prepared, clock) {
     stages.cancelMicrophoneMs = performance.now() - preparationStarted;
     throwIfCancelled(controller.signal);
     const profile = profileFor(input, roster);
+    // A character the player made answers through the player's text provider, and never takes the Convai path either (docs/CHARACTER_EDITOR.md).
+    if (profile && customCharacters.has(profile.key)) { await runCustomTurn(request, input, profile, current, clock); return; }
     // An add-on speaker never takes the Convai path below (no knowledge route, no Convai memory or connection, no allowance).
     if (profile && addonHost.isSpeaker(profile.key)) { await runAddonTurn(request, input, profile, current, clock); return; }
     if (!profile || !ids[profile.key]) {
@@ -2588,6 +2698,11 @@ async function pollPrefetch() {
         companionVision.closeComposer(); await connections.setComposer(null);
         // The composer of an add-on's voice (a cab, a gun) opens no connection, but V's typed line to it is spoken: warm V's voice page.
         try { if (JSON.parse(hintRaw)?.voiceOnly === true) vVoice.warmUp(); } catch { /* an unreadable hint warms nothing */ }
+        // A character the player made has no Convai route to open: the text provider's connection (or the local AI's prompt) and its voice are warmed instead.
+        try {
+          const unread = JSON.parse(hintRaw);
+          if (unread?.group === false && Array.isArray(unread.audience) && unread.audience.length === 1 && customCharacters.has(unread.audience[0])) warmCustom(unread.audience[0]);
+        } catch { /* an unreadable hint warms nothing */ }
       }
       else if (await audioReady(runtime)) {
         if (mic.current || micPolling || stopped) { prewarmObserved = ''; return; }
@@ -3066,7 +3181,8 @@ const setupCheck = await SetupCheckControl.open({runtime, log: message => consol
     nestedPacks: () => findNestedPacks({game, modRoot: resolve(runtime, '..'), plugin: resolve(game, 'red4ext/plugins/AiNpcCyberpunkMod')}),
     placement: () => readPackPlacement({stateDirectory, startedAt: bridgeStartedAt})})});
 // Settings > Edit characters: a local page, served only while it is open (bridge/character-editor-server.mjs).
-const characterEditor = new CharacterEditor({personas: personaBook, overrides: characterOverrides, memory: mistralMemory, route: () => mistral.route});
+const characterEditor = new CharacterEditor({personas: personaBook, overrides: characterOverrides, memory: mistralMemory, route: () => mistral.route, custom: customCharacters,
+  voices: playerVoices});
 const editorControl = await EditorControl.open({server: new EditorServer({editor: characterEditor, log: message => console.error('[Editor] ' + message)}),
   commandPath: resolve(runtime, 'editor-command.json'), statusPath: resolve(runtime, 'editor-status.json'),
   log: message => console.error('[Editor] ' + message)});

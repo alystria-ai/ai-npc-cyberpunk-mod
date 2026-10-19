@@ -11,12 +11,18 @@ import {EditorControl, parseEditorCommand} from './character-editor-control.mjs'
 import {renderEditorPage} from './character-editor-page.mjs';
 import {MemoryStore} from './memory-store.mjs';
 import {PersonaBook, systemHead} from './mistral-prompt.mjs';
+import {CustomCharacters, rosterIndex} from './custom-characters.mjs';
+import {PlayerVoices} from './player-voices.mjs';
+import {CLIP, prepareUpload} from './custom-voice-clip.mjs';
+import {speechWav} from './voice-clip-fixture.mjs';
 
+const nonce0 = policy => /nonce-([A-Za-z0-9_-]+)/.exec(policy)[1];
 const rows = [...JSON.parse(await readFile(new URL('../characters/roster.json', import.meta.url), 'utf8')),
   ...JSON.parse(await readFile(new URL('../characters/archetype-roster.json', import.meta.url), 'utf8'))];
 
 // A whole editor over a temporary state folder: the same files the bridge uses (character-overrides/, local-memory/player/).
-async function workbench({route = 'local', seed = true} = {}) {
+// voices: the clips of story characters and of the player's own (state/player-voices/); voiceOptions reach PlayerVoices (a tighter limit, no ffmpeg).
+async function workbench({route = 'local', seed = true, custom = false, voices = false, voiceOptions = {}} = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'character-editor-'));
   const memoryDir = join(dir, 'local-memory');
   if (seed) {
@@ -28,11 +34,15 @@ async function workbench({route = 'local', seed = true} = {}) {
   }
   const overrides = await CharacterOverrides.open({dir: join(dir, 'character-overrides')});
   const memory = await MemoryStore.open({dir: memoryDir});
-  const personas = new PersonaBook(rows, {overrides});
+  // custom: the characters the player makes (state/custom-characters.json, state/custom-voices/), with the game's list in runtime/.
+  await mkdir(join(dir, 'runtime'), {recursive: true});
+  const made = custom ? await CustomCharacters.open({dir: join(dir, 'state'), exchangePath: join(dir, 'runtime', 'custom-characters.json'), roster: rosterIndex(rows)}) : null;
+  const personas = new PersonaBook(rows, {overrides, custom: made});
   const state = {route};
-  const editor = new CharacterEditor({personas, overrides, memory, route: () => state.route});
+  const clips = voices ? await PlayerVoices.open({dir: join(dir, 'state'), ...voiceOptions}) : null;
+  const editor = new CharacterEditor({personas, overrides, memory, route: () => state.route, custom: made, voices: clips});
   const server = new EditorServer({editor});
-  return {dir, overrides, memory, personas, editor, server, state,
+  return {dir, overrides, memory, personas, editor, server, state, custom: made, voices: clips,
     async done() { await server.stop(); await memory.flush().catch(() => {}); await rm(dir, {recursive: true, force: true}); }};
 }
 // One request to the server: Node's own client, so the headers can be set exactly (fetch will not let a test lie about Host).
@@ -45,10 +55,10 @@ function call(server, method, path, {body, headers = {}, token = true, host, raw
       const chunks = [];
       response.on('data', chunk => chunks.push(chunk));
       response.on('end', () => {
-        const text = Buffer.concat(chunks).toString('utf8');
+        const bytes = Buffer.concat(chunks), text = bytes.toString('utf8');
         let json = null;
         try { json = JSON.parse(text); } catch { /* not JSON */ }
-        resolve({status: response.statusCode, headers: response.headers, text, json});
+        resolve({status: response.statusCode, headers: response.headers, text, json, bytes});
       });
     });
     request.on('error', reject);
@@ -206,6 +216,8 @@ test('the page runs under a policy that allows only itself, and contains no outs
   const policy = reply.headers['content-security-policy'];
   assert.match(policy, /default-src 'none'/);
   assert.match(policy, /connect-src 'self'/);
+  assert.match(policy, /media-src blob:(?:;|$)/, 'audio may only play from addresses the page made itself');
+  assert.equal(policy, `default-src 'none'; script-src 'nonce-${nonce0(policy)}'; style-src 'nonce-${nonce0(policy)}'; connect-src 'self'; media-src blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`, 'nothing else was opened up');
   assert.match(policy, /script-src 'nonce-[A-Za-z0-9_-]+'/);
   assert.doesNotMatch(policy, /unsafe-inline|unsafe-eval|https?:|\*/);
   assert.equal(reply.headers['cache-control'], 'no-store');
@@ -213,7 +225,8 @@ test('the page runs under a policy that allows only itself, and contains no outs
   assert.match(reply.headers['content-type'], /^text\/html/);
   const nonce = /nonce-([A-Za-z0-9_-]+)/.exec(policy)[1];
   assert.equal(reply.text.split(`nonce="${nonce}"`).length - 1, 2, 'exactly one script and one style carry the nonce');
-  assert.doesNotMatch(reply.text, /<(?:link|img|iframe|object|embed|form)\b|\bsrc=|@import|url\(/i, 'nothing is loaded from anywhere');
+  // (createObjectURL and revokeObjectURL make and release the addresses of the audio the page plays: nothing is loaded from a url() either)
+  assert.doesNotMatch(reply.text, /<(?:link|img|iframe|object|embed|form)\b|\bsrc=|@import|(?<!Object)url\(/i, 'nothing is loaded from anywhere');
   assert.doesNotMatch(reply.text.replace(/http:\/\/127\.0\.0\.1/g, ''), /https?:\/\//, 'no outside address anywhere in the page');
   const other = await call(bench.server, 'GET', '/editor?t=' + bench.server.token, {token: false});
   assert.notEqual(/nonce-([A-Za-z0-9_-]+)/.exec(other.headers['content-security-policy'])[1], nonce, 'a fresh nonce for every page');
@@ -307,7 +320,13 @@ test('translations from the game are plain strings, bounded', () => {
 test('a command is accepted only when it is a fresh, well formed Open', () => {
   const now = 1_700_000_000_000;
   const valid = {version: 1, id: 'e1700000000-1', action: 'open', issuedAt: now - 1000, language: 'fr', strings: {Save: 'Enregistrer', bad: 3}};
-  assert.deepEqual(parseEditorCommand(JSON.stringify(valid), now), {id: 'e1700000000-1', action: 'open', language: 'fr', strings: {Save: 'Enregistrer'}});
+  assert.deepEqual(parseEditorCommand(JSON.stringify(valid), now), {id: 'e1700000000-1', action: 'open', language: 'fr', strings: {Save: 'Enregistrer'}, facing: null});
+  // The character V faced when the player chose Open: plain short text, or nothing.
+  const facing = parseEditorCommand(JSON.stringify({...valid, facing: {record: 'Character.Rebecca', name: '  Rebecca  ', gender: 'FEMALE', extra: 'x'}}), now).facing;
+  assert.deepEqual(facing, {record: 'Character.Rebecca', name: 'Rebecca', gender: 'female'});
+  assert.deepEqual(parseEditorCommand(JSON.stringify({...valid, facing: {record: 'has a space!', name: '', gender: 'robot'}}), now).facing, null);
+  assert.deepEqual(parseEditorCommand(JSON.stringify({...valid, facing: {name: 'N'.repeat(200)}}), now).facing, {record: '', name: 'N'.repeat(60), gender: ''});
+  for (const bad of [7, 'Rebecca', [], null]) assert.equal(parseEditorCommand(JSON.stringify({...valid, facing: bad}), now).facing, null);
   for (const change of [{version: 2}, {id: 'bad id'}, {id: 7}, {action: 'copy'}, {action: 'delete'}, {issuedAt: now - 31_000}, {issuedAt: now + 6000}, {issuedAt: 'now'}])
     assert.equal(parseEditorCommand(JSON.stringify({...valid, ...change}), now), null, JSON.stringify(change));
   assert.equal(parseEditorCommand('', now), null);
@@ -361,4 +380,308 @@ test('a browser that cannot be opened is reported as failed, and the page stays 
   assert.equal(JSON.parse(await readFile(statusPath, 'utf8')).state, 'failed');
   assert.match(logged.join('\n'), /ENOENT/);
   await control.close();
+});
+
+// ---- the characters the player makes (docs/CHARACTER_EDITOR.md, "Your own characters")
+
+const BIO = 'I am Rebecca, a small, loud, trigger-happy runner who grew up in Pacifica and still thinks every plan needs more explosions. I trust few people.';
+const input = (extra = {}) => ({name: 'Rebecca', gender: 'female', records: ['Character.Rebecca'], names: ['Rebecca'], bio: BIO, style: 'Fast, loud.',
+  examples: ['Boom. That is how I solve it.'], memories: ['V once lent me a gun.'], ...extra});
+// ---- voice clips (docs/CHARACTER_EDITOR.md, "Voice clips"): a story character's or one of the player's own, kept in state/player-voices/
+const WORDS = 'Hello there, this is me talking.';
+const words = text => Buffer.from(text, 'utf8').toString('base64url');
+const put = (bench, key, bytes, headers = {}, type = 'audio/wav') => call(bench.server, 'PUT', `/api/voice/${key}`, {raw: bytes, headers: {'Content-Type': type, 'X-Voice-Text': words(WORDS), ...headers}});
+const clipFiles = bench => readdir(join(bench.dir, 'state', 'player-voices')).catch(() => []);
+
+test('the state, the catalogue and the details say which characters may have a clip, and what speaks until they do', async t => {
+  const bench = await workbench({custom: true, voices: true}); t.after(bench.done);
+  assert.deepEqual(bench.editor.state().voice, {minSeconds: 5, maxSeconds: 20, goodMin: 10, goodMax: 18, transcript: 600, transcriptMin: 8, maxUploadBytes: 16 * 1024 * 1024,
+    formats: ['wav', 'mp3', 'ogg', 'flac'], convertRate: 24000});
+  const made = await bench.editor.createCustom(input());
+  assert.deepEqual(made.voice, {clip: null, transcript: '', fallback: 'generic'}, 'a character of the player\'s own falls back to a generic voice of its gender');
+  assert.deepEqual(bench.editor.details('judy-alvarez').voice, {clip: null, transcript: '', fallback: 'shipped'}, 'a story character keeps its shipped voice');
+  assert.equal(bench.editor.details('npc-food-vendor-male').voice, null, 'everyday people have no voice section');
+  const flags = () => Object.fromEntries(bench.editor.catalog().filter(item => ['judy-alvarez', made.key].includes(item.key)).map(item => [item.key, item.voice]));
+  assert.deepEqual(flags(), {'judy-alvarez': false, [made.key]: false});
+  const saved = await bench.editor.setVoice('judy-alvarez', speechWav({seconds: 12}), WORDS);
+  assert.deepEqual(saved.voice.clip, {seconds: 12, rate: 24000, updated: saved.voice.clip.updated});
+  assert.equal(typeof saved.voice.clip.updated, 'number');
+  assert.equal(saved.voice.transcript, WORDS);
+  assert.deepEqual(saved.clip, {seconds: 12, rate: 24000, notes: [], format: 'wav'});
+  assert.equal(saved.name, 'Judy Alvarez', 'the reply is the character\'s details with the clip\'s own facts beside them');
+  assert.equal(bench.editor.details('judy-alvarez').voice.clip.seconds, 12);
+  assert.deepEqual(flags(), {'judy-alvarez': true, [made.key]: false});
+  const own = await bench.editor.setVoice(made.key, speechWav({seconds: 7}), WORDS);
+  assert.deepEqual(own.clip.notes, ['short']);
+  assert.equal(own.group, 'custom');
+  assert.equal(own.custom.voice, undefined, 'the clip is not part of the character\'s text');
+  assert.deepEqual(flags(), {'judy-alvarez': true, [made.key]: true});
+  assert.equal((await bench.editor.saveCustom(made.key, input({bio: BIO + ' More.'}))).voice.clip.seconds, 7, 'saving the text leaves the clip');
+  // Without the store nothing offers a clip.
+  const none = await workbench({custom: true}); t.after(none.done);
+  assert.equal(none.editor.state().voice, null);
+  assert.equal(none.editor.details('judy-alvarez').voice, null);
+  await assert.rejects(none.editor.setVoice('judy-alvarez', speechWav(), WORDS), {status: 404});
+  await assert.rejects(none.editor.voiceAudio('judy-alvarez'), {status: 404});
+});
+
+test('the words, the clip and the limits come back as codes the page turns into sentences, and a clip is changed, kept or removed as asked', async t => {
+  const bench = await workbench({custom: true, voices: true, voiceOptions: {limits: {clips: 2}, prepare: bytes => prepareUpload(bytes, {ffmpeg: null})}}); t.after(bench.done);
+  const why = async (key, bytes, text) => { try { await bench.editor.setVoice(key, bytes, text); return null; } catch (error) { assert.equal(error.status, 422, error.message); return error.errors; } };
+  assert.deepEqual(await why('judy-alvarez', speechWav(), null), [{field: 'voiceText', code: 'voice-text-short', min: 8}], 'a first clip needs its words');
+  assert.deepEqual(await why('judy-alvarez', speechWav(), 'x'.repeat(601)), [{field: 'voiceText', code: 'voice-text-long', max: 600}]);
+  assert.deepEqual(await why('judy-alvarez', speechWav({seconds: 3}), WORDS), [{field: 'voice', code: 'clip-short', min: 5}]);
+  assert.deepEqual(await why('judy-alvarez', speechWav({seconds: 25}), WORDS), [{field: 'voice', code: 'clip-long', max: 20}]);
+  assert.deepEqual(await why('judy-alvarez', Buffer.from('this is not a recording, but it is long enough to be read as a file of some kind'), WORDS), [{field: 'voice', code: 'clip-format'}]);
+  assert.deepEqual(await why('judy-alvarez', speechWav({silent: true}), WORDS), [{field: 'voice', code: 'clip-silent'}]);
+  assert.deepEqual(await why('judy-alvarez', Buffer.concat([Buffer.from('ID3'), Buffer.alloc(300)]), WORDS), [{field: 'voice', code: 'clip-needs-wav'}], 'an MP3 needs a converter this computer does not have');
+  assert.equal(bench.voices.size, 0, 'nothing refused was kept');
+  await bench.editor.setVoice('judy-alvarez', speechWav(), WORDS);
+  // Words only: the clip stays; too short or too long words are refused; a non-string is a bad request.
+  const sha = bench.voices.get('judy-alvarez').sha256;
+  assert.equal((await bench.editor.setVoiceText('judy-alvarez', '  New   words,\nspoken clearly.  ')).voice.transcript, 'New words, spoken clearly.');
+  assert.equal(bench.voices.get('judy-alvarez').sha256, sha);
+  await assert.rejects(bench.editor.setVoiceText('judy-alvarez', 'short'), error => error.status === 422 && error.errors[0].code === 'voice-text-short' && error.errors[0].min === 8);
+  await assert.rejects(bench.editor.setVoiceText('judy-alvarez', 7), {status: 400});
+  await assert.rejects(bench.editor.setVoiceText('panam-palmer', 'Words without any clip to go with them.'), {status: 404});
+  // A new file with no words keeps the words that are stored (the page always sends them, a script may not).
+  const again = await bench.editor.setVoice('judy-alvarez', speechWav({seconds: 19.5}), null);
+  assert.deepEqual([again.clip.notes, again.voice.transcript], [['long'], 'New words, spoken clearly.']);
+  await assert.rejects(bench.editor.setVoice('judy-alvarez', speechWav(), 7), {status: 400});
+  // Only as many clips as the store keeps (a replacement is not a new clip).
+  await bench.editor.setVoice('panam-palmer', speechWav(), WORDS);
+  assert.deepEqual(await why('river-ward', speechWav(), WORDS), [{field: 'voice', code: 'clips-full', max: 2}]);
+  assert.equal((await bench.editor.setVoice('panam-palmer', speechWav({seconds: 14}), WORDS)).voice.clip.seconds, 14);
+  // Audio and removal.
+  assert.deepEqual(await bench.editor.voiceAudio('judy-alvarez'), await bench.voices.audio('judy-alvarez'));
+  await assert.rejects(bench.editor.voiceAudio('river-ward'), {status: 404});
+  assert.deepEqual((await bench.editor.clearVoice('judy-alvarez')).voice, {clip: null, transcript: '', fallback: 'shipped'});
+  assert.deepEqual((await bench.editor.clearVoice('judy-alvarez')).voice.clip, null, 'removing none is not an error');
+  await assert.rejects(bench.editor.voiceAudio('judy-alvarez'), {status: 404});
+  // Who may have a clip: story characters and the player\'s own, nobody else.
+  const made = await bench.editor.createCustom(input());
+  for (const key of ['npc-food-vendor-male', 'nobody', '../judy-alvarez', '', 'Judy Alvarez', 'custom-ghost-abcd', 'constructor']) {
+    await assert.rejects(bench.editor.setVoice(key, speechWav(), WORDS), {status: 404}, key);
+    await assert.rejects(bench.editor.setVoiceText(key, WORDS), {status: 404}, key);
+    await assert.rejects(bench.editor.clearVoice(key), {status: 404}, key);
+    await assert.rejects(bench.editor.voiceAudio(key), {status: 404}, key);
+  }
+  assert.equal((await bench.editor.setVoice(made.key, speechWav(), WORDS)).voice.fallback, 'generic');
+  assert.equal(bench.voices.size, 2);
+});
+
+test('a voice clip goes through the server: the file is the body, the words are in a header, and nothing is kept unless both are right', async t => {
+  const bench = await workbench({voices: true}); t.after(bench.done);
+  await bench.server.start();
+  const key = 'judy-alvarez';
+  assert.equal((await call(bench.server, 'GET', '/api/state')).json.voice.convertRate, 24000);
+  // Wrong kind of request.
+  assert.equal((await put(bench, key, speechWav(), {}, 'application/json')).status, 415);
+  assert.equal((await put(bench, key, speechWav(), {}, 'text/plain')).status, 415);
+  assert.equal((await put(bench, key, speechWav(), {}, 'audio/aac')).status, 415);
+  for (const type of ['audio/wav', 'audio/x-wav', 'audio/wave', 'audio/vnd.wave', 'audio/mpeg', 'audio/mp3', 'audio/ogg', 'audio/flac', 'audio/x-flac', 'application/octet-stream', 'audio/wav; charset=binary'])
+    assert.notEqual((await put(bench, key, Buffer.from('not audio, but a type the page may send for a file it could not decode'), {}, type)).status, 415, type);
+  assert.equal((await put(bench, key, speechWav(), {}, 'audio/wav')).status, 200, 'a good one passes the same gate');
+  await bench.voices.clear(key);
+  // The words header: absent keeps the words (none yet: refused), malformed is 400, valid non-ASCII text survives.
+  assert.deepEqual((await call(bench.server, 'PUT', `/api/voice/${key}`, {raw: speechWav(), headers: {'Content-Type': 'audio/wav'}})).json, {error: 'invalid', errors: [{field: 'voiceText', code: 'voice-text-short', min: 8}]});
+  for (const bad of ['not base64!', '%%%%', 'A', '====', words(WORDS) + '!', Buffer.from([0xff, 0xfe, 0xfd, 0xfc]).toString('base64url'), 'A'.repeat(4100), 'AAAA AAAA'])
+    assert.equal((await put(bench, key, speechWav(), {'X-Voice-Text': bad})).status, 400, bad.slice(0, 20));
+  assert.equal((await put(bench, key, speechWav(), {'X-Voice-Text': words('x'.repeat(601))})).json.errors[0].code, 'voice-text-long');
+  assert.equal((await put(bench, key, speechWav(), {'X-Voice-Text': words('')})).json.errors[0].code, 'voice-text-short');
+  // The recording itself.
+  const bad = await put(bench, key, Buffer.from('this is not a recording, but it is long enough to be read as a file of some kind'));
+  assert.deepEqual([bad.status, bad.json], [422, {error: 'invalid', errors: [{field: 'voice', code: 'clip-format'}]}]);
+  assert.equal((await put(bench, key, speechWav({seconds: 3}))).json.errors[0].code, 'clip-short');
+  assert.deepEqual((await put(bench, key, speechWav({seconds: 25}))).json.errors, [{field: 'voice', code: 'clip-long', max: 20}]);
+  assert.equal((await put(bench, key, speechWav({level: 0.004}))).json.errors[0].code, 'clip-quiet');
+  assert.equal((await put(bench, key, speechWav({seconds: 12}), {}, 'application/octet-stream')).status, 200, 'the bytes decide what a file is, not its type');
+  await bench.voices.clear(key);
+  assert.equal(bench.voices.size, 0, 'nothing refused was kept');
+  assert.deepEqual(await clipFiles(bench), []);
+  // A good one, with words that are not ASCII.
+  const spoken = 'Écoute-moi, choom: ça va très bien — vraiment ✓.';
+  const done = await put(bench, key, speechWav({seconds: 11, rate: 22050}), {'X-Voice-Text': words(spoken)});
+  assert.equal(done.status, 200);
+  assert.deepEqual(done.json.clip, {seconds: 11, rate: 22050, notes: [], format: 'wav'});
+  assert.deepEqual(done.json.voice, {clip: {seconds: 11, rate: 22050, updated: done.json.voice.clip.updated}, transcript: spoken, fallback: 'shipped'});
+  assert.equal(done.json.name, 'Judy Alvarez');
+  assert.deepEqual(await clipFiles(bench), [`${key}.wav`]);
+  assert.equal(bench.voices.get(key).transcript, spoken);
+  assert.equal((await call(bench.server, 'GET', '/api/state')).json.characters.find(item => item.key === key).voice, true);
+  assert.equal((await call(bench.server, 'GET', `/api/character/${key}`)).json.voice.clip.seconds, 11);
+  // Only the words.
+  const stored = (await call(bench.server, 'GET', `/api/voice/${key}/audio`)).bytes;
+  const edit = await call(bench.server, 'PUT', `/api/voice/${key}/text`, {body: {text: 'Other words, said the same way.'}});
+  assert.deepEqual([edit.status, edit.json.voice.transcript, edit.json.voice.clip.seconds], [200, 'Other words, said the same way.', 11]);
+  assert.deepEqual((await call(bench.server, 'GET', `/api/voice/${key}/audio`)).bytes, stored, 'the clip itself did not change');
+  assert.deepEqual((await call(bench.server, 'PUT', `/api/voice/${key}/text`, {body: {text: 'short'}})).json, {error: 'invalid', errors: [{field: 'voiceText', code: 'voice-text-short', min: 8}]});
+  assert.deepEqual((await call(bench.server, 'PUT', `/api/voice/${key}/text`, {body: {text: 'x'.repeat(601)}})).json.errors, [{field: 'voiceText', code: 'voice-text-long', max: 600}]);
+  assert.equal((await call(bench.server, 'PUT', `/api/voice/${key}/text`, {body: {text: 7}})).status, 400);
+  assert.equal((await call(bench.server, 'PUT', `/api/voice/${key}/text`, {raw: '{broken'})).status, 400);
+  assert.equal((await call(bench.server, 'PUT', `/api/voice/${key}/text`, {raw: '{"text":"Words that are long enough."}', headers: {'Content-Type': 'text/plain'}})).status, 415);
+  assert.equal((await call(bench.server, 'PUT', '/api/voice/panam-palmer/text', {body: {text: 'Words but no clip to put them with.'}})).status, 404, 'words alone do not make a clip');
+  assert.equal(bench.voices.has('panam-palmer'), false);
+  // A note for a short clip; no words header keeps the stored words.
+  const short = await call(bench.server, 'PUT', `/api/voice/${key}`, {raw: speechWav({seconds: 7}), headers: {'Content-Type': 'audio/wav'}});
+  assert.deepEqual([short.status, short.json.clip.notes, short.json.voice.transcript], [200, ['short'], 'Other words, said the same way.']);
+  // Remove it.
+  const removed = await call(bench.server, 'DELETE', `/api/voice/${key}`);
+  assert.deepEqual([removed.status, removed.json.voice.clip], [200, null]);
+  assert.deepEqual(await clipFiles(bench), []);
+  assert.equal((await call(bench.server, 'GET', `/api/voice/${key}/audio`)).status, 404, 'no clip, no audio');
+  assert.equal((await call(bench.server, 'DELETE', `/api/voice/${key}`)).status, 200, 'removing a second time is not an error');
+});
+
+test('the saved clip is played through a route that needs the session code, and the old address of a clip is gone', async t => {
+  const bench = await workbench({custom: true, voices: true}); t.after(bench.done);
+  await bench.server.start();
+  const key = 'panam-palmer';
+  const stored = (await put(bench, key, speechWav({seconds: 10}))).json;
+  assert.equal(stored.voice.clip.seconds, 10);
+  const audio = await call(bench.server, 'GET', `/api/voice/${key}/audio`);
+  assert.equal(audio.status, 200);
+  assert.equal(audio.headers['content-type'], 'audio/wav');
+  assert.equal(Number(audio.headers['content-length']), audio.bytes.length);
+  assert.deepEqual(audio.bytes, await readFile(join(bench.dir, 'state', 'player-voices', `${key}.wav`)), 'the bytes of the file that was kept');
+  assert.deepEqual([audio.bytes.toString('ascii', 0, 4), audio.bytes.toString('ascii', 8, 12)], ['RIFF', 'WAVE']);
+  assert.equal(audio.headers['cache-control'], 'no-store');
+  assert.equal(audio.headers['x-content-type-options'], 'nosniff');
+  assert.equal(audio.headers['cross-origin-resource-policy'], 'same-origin');
+  assert.equal(audio.headers['x-frame-options'], 'DENY');
+  // Never without the code: not on the page's address, not without the header, not with a wrong one, not from another site, not by another Host.
+  assert.equal((await call(bench.server, 'GET', `/api/voice/${key}/audio`, {token: false})).status, 401);
+  assert.equal((await call(bench.server, 'GET', `/api/voice/${key}/audio?t=${bench.server.token}`, {token: false})).status, 401, 'the code in the address is not the header');
+  assert.equal((await call(bench.server, 'GET', `/api/voice/${key}/audio`, {token: false, headers: {'X-Editor-Token': bench.server.token + 'x'}})).status, 401);
+  for (const [response, name] of [[await call(bench.server, 'GET', `/api/voice/${key}/audio`, {headers: {Origin: 'http://evil.example'}}), 'audio'],
+    [await put(bench, key, speechWav(), {Origin: 'http://evil.example'}), 'put'],
+    [await call(bench.server, 'PUT', `/api/voice/${key}/text`, {body: {text: 'Words from another site.'}, headers: {Origin: 'http://evil.example'}}), 'text'],
+    [await call(bench.server, 'DELETE', `/api/voice/${key}`, {headers: {Origin: 'http://evil.example'}}), 'delete']]) {
+    assert.equal(response.status, 403, name);
+    assert.equal(response.bytes.includes(Buffer.from('RIFF')), false, name + ': no audio in a refusal');
+  }
+  assert.equal((await call(bench.server, 'GET', `/api/voice/${key}/audio`, {host: 'evil.example'})).status, 403);
+  assert.equal((await call(bench.server, 'GET', `/api/voice/${key}/audio`, {headers: {Origin: `http://127.0.0.1:${new URL(bench.server.url).port}`}})).status, 200, 'the page\'s own origin is fine');
+  assert.equal(bench.voices.has(key), true, 'nothing refused removed the clip');
+  // The routes of the player\'s own characters are gone; the clip is only at /api/voice.
+  const made = (await call(bench.server, 'POST', '/api/custom', {body: input()})).json;
+  for (const method of ['PUT', 'DELETE', 'GET']) assert.equal((await call(bench.server, method, `/api/custom/${made.key}/voice`, {raw: method === 'PUT' ? speechWav() : undefined, headers: {'Content-Type': 'audio/wav'}})).status, 404, method);
+  // The clip's address is not served as a file either.
+  assert.equal((await call(bench.server, 'GET', `/player-voices/${key}.wav`, {token: false})).status, 404);
+  assert.equal((await call(bench.server, 'GET', `/voice/${key}/audio`, {token: false})).status, 404);
+});
+
+test('only story characters and the player\'s own have a clip: everyday people, unknown and odd keys are 404 on every route', async t => {
+  const bench = await workbench({custom: true, voices: true}); t.after(bench.done);
+  await bench.server.start();
+  const gone = (await call(bench.server, 'POST', '/api/custom', {body: input()})).json;
+  await call(bench.server, 'DELETE', `/api/custom/${gone.key}`);
+  for (const key of ['npc-food-vendor-male', 'nobody', '..%2Fjudy-alvarez', 'custom-ghost-abcd', 'custom-', 'CUSTOM-A', 'Judy%20Alvarez', gone.key, 'constructor', '__proto__']) {
+    const reply = [await put(bench, key, speechWav()), await call(bench.server, 'PUT', `/api/voice/${key}/text`, {body: {text: 'Words that are long enough.'}}),
+      await call(bench.server, 'DELETE', `/api/voice/${key}`), await call(bench.server, 'GET', `/api/voice/${key}/audio`)];
+    assert.deepEqual(reply.map(item => item.status), [404, 404, 404, 404], key);
+  }
+  assert.equal((await call(bench.server, 'PUT', '/api/voice/%E0%A4%A', {raw: speechWav(), headers: {'Content-Type': 'audio/wav'}})).status, 400, 'a broken escape in the key');
+  for (const [method, path] of [['PUT', '/api/voice'], ['PUT', '/api/voice/'], ['GET', '/api/voice/judy-alvarez'], ['PATCH', '/api/voice/judy-alvarez'], ['GET', '/api/voice/judy-alvarez/text'],
+    ['PUT', '/api/voice/judy-alvarez/audio'], ['POST', '/api/voice/judy-alvarez/audio'], ['PUT', '/api/voice/judy-alvarez/other'], ['PUT', '/api/voice/judy-alvarez/text/more']])
+    assert.equal((await call(bench.server, method, path, method === 'GET' ? {} : {raw: '{}', headers: {'Content-Type': 'audio/wav'}})).status, 404, method + ' ' + path);
+  assert.equal(bench.voices.size, 0);
+  // A server whose editor has no clip store has none of these routes working.
+  const plain = await workbench(); t.after(plain.done);
+  await plain.server.start();
+  assert.equal((await put(plain, 'judy-alvarez', speechWav())).status, 404);
+  assert.equal((await call(plain.server, 'GET', '/api/voice/judy-alvarez/audio')).status, 404);
+  assert.equal((await call(plain.server, 'GET', '/api/state')).json.voice, null);
+});
+
+test('a story character and a character of the player\'s own both keep a clip, and each is released with its owner', async t => {
+  const bench = await workbench({custom: true, voices: true}); t.after(bench.done);
+  await bench.server.start();
+  const made = (await call(bench.server, 'POST', '/api/custom', {body: input()})).json;
+  assert.deepEqual(made.voice, {clip: null, transcript: '', fallback: 'generic'});
+  const own = await put(bench, made.key, speechWav({seconds: 12}));
+  assert.equal(own.status, 200);
+  assert.deepEqual([own.json.group, own.json.voice.fallback, own.json.voice.clip.seconds], ['custom', 'generic', 12]);
+  assert.equal((await put(bench, 'river-ward', speechWav({seconds: 13}))).json.voice.clip.seconds, 13);
+  assert.deepEqual((await clipFiles(bench)).sort(), [`${made.key}.wav`, 'river-ward.wav'].sort());
+  const flags = (await call(bench.server, 'GET', '/api/state')).json.characters.filter(item => item.voice).map(item => item.key).sort();
+  assert.deepEqual(flags, [made.key, 'river-ward'].sort());
+  assert.equal((await call(bench.server, 'GET', `/api/voice/${made.key}/audio`)).bytes.length, 44 + 12 * 24000 * 2);
+  // Saving the character's text leaves its clip alone; deleting the character takes its route away.
+  assert.equal((await call(bench.server, 'PUT', `/api/custom/${made.key}`, {body: input({style: 'Calm.'})})).json.voice.clip.seconds, 12);
+  await call(bench.server, 'DELETE', `/api/custom/${made.key}`);
+  assert.equal((await call(bench.server, 'GET', `/api/voice/${made.key}/audio`)).status, 404);
+  assert.equal((await call(bench.server, 'GET', '/api/voice/river-ward/audio')).status, 200, 'the story character\'s clip is untouched');
+});
+
+test('a clip that is too big is read to its end and refused, and a store that is full says how many it keeps', async t => {
+  const bench = await workbench({custom: true, voices: true, voiceOptions: {limits: {clips: 1}}}); t.after(bench.done);
+  await bench.server.start();
+  const answer = await put(bench, 'judy-alvarez', Buffer.alloc(CLIP.maxUploadBytes + 10));
+  assert.equal(answer.status, 413);
+  assert.deepEqual(answer.json, {error: 'invalid', errors: [{field: 'voice', code: 'clip-big'}]});
+  assert.equal((await put(bench, 'judy-alvarez', Buffer.alloc(CLIP.maxUploadBytes))).json.errors[0].code, 'clip-format', 'exactly the limit is read and judged as a recording');
+  assert.equal(bench.voices.size, 0);
+  assert.equal((await put(bench, 'judy-alvarez', speechWav())).status, 200);
+  const full = await put(bench, 'panam-palmer', speechWav());
+  assert.deepEqual([full.status, full.json], [422, {error: 'invalid', errors: [{field: 'voice', code: 'clips-full', max: 1}]}]);
+  assert.equal((await put(bench, 'judy-alvarez', speechWav({seconds: 9}))).status, 200, 'a new clip for the same character is a replacement');
+});
+
+test('the routes of the player\'s own characters need the session code, take only their own keys, and leave the shipped characters alone', async t => {
+  const bench = await workbench({custom: true}); t.after(bench.done);
+  await bench.server.start({facing: {record: 'Character.Rebecca', name: 'Rebecca', gender: 'female'}});
+  assert.equal((await call(bench.server, 'POST', '/api/custom', {body: input(), token: false})).status, 401);
+  assert.equal((await call(bench.server, 'POST', '/api/custom', {body: input(), headers: {Origin: 'http://evil.example'}})).status, 403);
+  assert.equal((await call(bench.server, 'POST', '/api/custom', {raw: '{broken', headers: {'Content-Type': 'application/json'}})).status, 400);
+  const first = await call(bench.server, 'POST', '/api/custom', {body: input()});
+  assert.equal(first.status, 200);
+  const key = first.json.key;
+  assert.equal((await call(bench.server, 'PUT', `/api/custom/${key}`, {body: input({style: 'Calm.'})})).json.custom.style, 'Calm.');
+  assert.equal((await call(bench.server, 'PUT', `/api/custom/${key}`, {body: input({gender: 'x'})})).json.errors[0].code, 'gender-bad');
+  for (const wrong of ['judy-alvarez', '..%2Fx', 'custom-', 'CUSTOM-A', 'custom-ghost-abcd']) {
+    assert.equal((await call(bench.server, 'PUT', `/api/custom/${wrong}`, {body: input()})).status, 404, wrong);
+    assert.equal((await call(bench.server, 'DELETE', `/api/custom/${wrong}`)).status, 404, wrong);
+  }
+  assert.equal((await call(bench.server, 'PATCH', `/api/custom/${key}`, {body: {}})).status, 404);
+  assert.equal((await call(bench.server, 'GET', '/api/custom')).status, 404);
+  assert.deepEqual((await call(bench.server, 'GET', '/api/facing')).json, {facing: {record: 'Character.Rebecca', name: 'Rebecca', gender: 'female'}});
+  // Memory edits work for the player's own characters too.
+  bench.memory.setSummary(key, 'Talked about guns.');
+  assert.equal((await call(bench.server, 'PUT', `/api/character/${key}/summary`, {body: {text: 'Talked about rain.'}})).json.memory.summary, 'Talked about rain.');
+  const gone = await call(bench.server, 'DELETE', `/api/custom/${key}`);
+  assert.equal(gone.json.characters.some(item => item.key === key), false);
+  assert.equal(JSON.parse(await readFile(join(bench.dir, 'runtime', 'custom-characters.json'), 'utf8')).characters.length, 0, 'the game list follows');
+  // A server without the store has none of these routes working.
+  const plain = await workbench(); t.after(plain.done);
+  await plain.server.start();
+  assert.equal((await call(plain.server, 'POST', '/api/custom', {body: input()})).status, 404);
+  assert.equal((await call(plain.server, 'GET', '/api/facing')).json.facing, null);
+});
+
+test('the facing character is plain short text and goes when the server is started again without one', async t => {
+  const bench = await workbench({custom: true}); t.after(bench.done);
+  await bench.server.start({facing: {record: 'NCA.Character.Rebecca', name: 'Rebecca', gender: 'Female'}});
+  assert.deepEqual((await call(bench.server, 'GET', '/api/facing')).json.facing, {record: 'NCA.Character.Rebecca', name: 'Rebecca', gender: 'female'});
+  await bench.server.start({facing: {record: '<script>', name: '<b>x</b>'.repeat(30), gender: 7}});
+  assert.equal((await call(bench.server, 'GET', '/api/facing')).json.facing.record, '');
+  assert.equal((await call(bench.server, 'GET', '/api/facing')).json.facing.name.length, 60);
+  await bench.server.start();
+  assert.equal((await call(bench.server, 'GET', '/api/facing')).json.facing, null);
+  assert.match(renderEditorPage({nonce: 'n', token: 't'}), /id="new"/);
+});
+
+test('Open passes the facing character on, and a newly made character reaches the game\'s list and the persona book in one step', async t => {
+  const bench = await workbench({custom: true}); t.after(bench.done);
+  const commandPath = join(bench.dir, 'editor-command.json'), statusPath = join(bench.dir, 'editor-status.json');
+  const clock = 1_700_000_000_000;
+  await writeFile(commandPath, '');
+  const control = await EditorControl.open({server: bench.server, commandPath, statusPath, now: () => clock, open: async () => {}});
+  await writeFile(commandPath, JSON.stringify({version: 1, id: 'e1', action: 'open', issuedAt: clock, language: 'en', strings: {}, facing: {record: 'Character.Rebecca', name: 'Rebecca', gender: 'female'}}));
+  await control.poll();
+  assert.deepEqual((await call(bench.server, 'GET', '/api/facing')).json.facing, {record: 'Character.Rebecca', name: 'Rebecca', gender: 'female'});
+  const made = (await call(bench.server, 'POST', '/api/custom', {body: input()})).json;
+  const game = JSON.parse(await readFile(join(bench.dir, 'runtime', 'custom-characters.json'), 'utf8'));
+  assert.deepEqual(game.characters.map(row => [row.key, row.records, row.names, row.gender]), [[made.key, ['Character.Rebecca'], ['Rebecca'], 'female']]);
+  assert.equal(bench.personas.has(made.key), true);
 });
