@@ -7,7 +7,9 @@ local INTERVAL = 1000
 -- so cycling through the voices never loads or unloads a worker per step.
 local DEFAULT_SETTLE = 0
 
--- The Companion voices list in menu order; the select's value is the index here. Pocket TTS is the default.
+-- The Companion voices list in menu order; the select's value is the index here (it is never saved: the settings keep the provider,
+-- omniSteps and omniReference, and indexOf() finds the entry, so reordering the list changes no one's choice). Pocket TTS is the default;
+-- the Mistral cloud voice (Voxtral, labelled recommended) follows it.
 -- OmniVoice has two step counts and two reference lengths (short up to 10 s, long up to 18 s). The Mistral cloud voice
 -- (Voxtral) needs a Mistral key and the Inworld cloud voice an Inworld key; in the bridge both use only Pocket's route and audio
 -- format and load no local voice model (a reply they cannot deliver is asked again once, then shown as written text).
@@ -15,11 +17,11 @@ local DEFAULT_SETTLE = 0
 -- the first seven entries, so an index means the same thing in both.
 M.CHOICES = {
     {provider = 'pocket'},
+    {provider = 'voxtral'},
     {provider = 'omni', steps = 16, reference = 'short'},
     {provider = 'omni', steps = 16, reference = 'long'},
     {provider = 'omni', steps = 32, reference = 'short'},
     {provider = 'omni', steps = 32, reference = 'long'},
-    {provider = 'voxtral'},
     {provider = 'convai'},
     {provider = 'inworld'},
 }

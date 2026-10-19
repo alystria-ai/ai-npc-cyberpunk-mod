@@ -528,6 +528,22 @@ export const mcmFake = String.raw`
         end
       end
       out.mcmDefaultsButton, out.modified, out.comparable = modified > 0, modified, comparable
+      -- The whole footer row, left to right, as MCM's bottomActions builds it: Revert and Apply while drafts are pending, its own Defaults,
+      -- Add to favorites (a setting of the PLAYER in MCM, favoriteUxMode "button" or "both", the default; the public API has no way for a
+      -- mod to hide it), the Modified counter, then the provider's footer buttons. renderActionRows gives every button the same share
+      -- of the row (the row's width minus the gaps, divided by the number of buttons) and cuts a label that is wider, ending it with an
+      -- ellipsis. footerShare is that share in the units of optionUnits(); the 55 is calibrated on a screenshot of five buttons, where
+      -- "Restore defaults" (13.7) lost its end after about 11 units (the exact pixels are native, so this is an estimate).
+      local row = {}
+      if next(drafts) then
+        row[#row + 1] = {label = 'REVERT', mcm = true}
+        row[#row + 1] = {label = 'APPLY', mcm = true}
+      end
+      if out.mcmDefaultsButton then row[#row + 1] = {label = 'DEFAULTS', mcm = true} end
+      row[#row + 1] = {label = 'ADD TO FAVORITES', mcm = true}
+      if comparable > 0 then row[#row + 1] = {label = 'MODIFIED (' .. modified .. ')', mcm = true} end
+      for _, button in ipairs(out.footer) do row[#row + 1] = {label = button.label, id = button.id} end
+      out.footerRow, out.footerShare = row, 55 / #row
       return out
     end
     function F.row(label)

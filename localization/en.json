@@ -309,6 +309,7 @@
     "DETAILS  {page} / {pages}": "DETAILS  {page} / {pages}",
     "DISMISS QUEUED - CLOSE PHONE": "DISMISS QUEUED - CLOSE PHONE",
     "Default": "Default",
+    "Defaults": "Defaults",
     "Defaults restored.": "Defaults restored.",
     "Delete": "Delete",
     "Delete character": "Delete character",
@@ -626,9 +627,8 @@
     "Preparing {name}: waiting for the game to place the character…": "Preparing {name}: waiting for the game to place the character…",
     "Preparing {name}: waiting for the memory service…": "Preparing {name}: waiting for the memory service…",
     "Preparing {name}: waiting for the voice model to load…": "Preparing {name}: waiting for the voice model to load…",
+    "Press Confirm to put every setting back to its default.": "Press Confirm to put every setting back to its default.",
     "Press Enter to write  /  Esc to stop typing": "Press Enter to write  /  Esc to stop typing",
-    "Press Restore defaults again to put every setting back to its default.": "Press Restore defaults again to put every setting back to its default.",
-    "Press again to restore": "Press again to restore",
     "Press your Group voice chat shortcut to finish recording.": "Press your Group voice chat shortcut to finish recording.",
     "Press your Talk by voice shortcut to finish recording.": "Press your Talk by voice shortcut to finish recording.",
     "Previous page": "Previous page",
@@ -669,7 +669,6 @@
     "Requires the optional OmniVoice pack (GPU)": "Requires the optional OmniVoice pack (GPU)",
     "Reset everything": "Reset everything",
     "Reset to default": "Reset to default",
-    "Restore defaults": "Restore defaults",
     "Return to Companion Manager.": "Return to Companion Manager.",
     "Return to conversation settings.": "Return to conversation settings.",
     "Review the memory clear below, then choose Confirm or Cancel.": "Review the memory clear below, then choose Confirm or Cancel.",
@@ -992,6 +991,7 @@
     "Voice: {voice}": "Voice: {voice}",
     "Voices": "Voices",
     "Vortex. Install the Runtime and the optional packs by hand into the Cyberpunk 2077 folder, as the install steps say.": "Vortex. Install the Runtime and the optional packs by hand into the Cyberpunk 2077 folder, as the install steps say.",
+    "Voxtral (recommended)": "Voxtral (recommended)",
     "Voxtral cloud voice · Local model unloaded": "Voxtral cloud voice · Local model unloaded",
     "Voxtral · Mistral cloud": "Voxtral · Mistral cloud",
     "Voxtral · needs Mistral key": "Voxtral · needs Mistral key",
@@ -1883,6 +1883,7 @@
       "Companion preparation is unavailable.",
       "Companion preparation returned an invalid state.",
       "Companion voices",
+      "Confirm",
       "Connecting microphone - wait for Listening",
       "Contacting Convai…",
       "Convai could not start the payment. Try again later.",
@@ -1927,6 +1928,7 @@
       "Custom: out of credits",
       "Custom: rate limited for now",
       "Cyber Engine Tweaks writes cyber_engine_tweaks.log and scripting.log in {path}",
+      "Defaults",
       "Defaults restored.",
       "Delete",
       "Delete character",
@@ -2109,8 +2111,7 @@
       "Preparing {name}: waiting for the game to place the character…",
       "Preparing {name}: waiting for the memory service…",
       "Preparing {name}: waiting for the voice model to load…",
-      "Press Restore defaults again to put every setting back to its default.",
-      "Press again to restore",
+      "Press Confirm to put every setting back to its default.",
       "Press your Group voice chat shortcut to finish recording.",
       "Press your Talk by voice shortcut to finish recording.",
       "Previous page",
@@ -2135,7 +2136,6 @@
       "Requires the optional OmniVoice pack (GPU)",
       "Reset everything",
       "Reset to default",
-      "Restore defaults",
       "Running",
       "Save",
       "Save clip",
@@ -2332,6 +2332,7 @@
       "Voice input only understands English for now. Typing works in any language.",
       "Voice: {voice}",
       "Vortex. Install the Runtime and the optional packs by hand into the Cyberpunk 2077 folder, as the install steps say.",
+      "Voxtral (recommended)",
       "Voxtral · Mistral cloud",
       "Voxtral · needs Mistral key",
       "V’s voice for typed lines",
@@ -3934,10 +3935,12 @@
     },
     "Confirm": {
       "contexts": [
-        "page.action"
+        "page.action",
+        "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:690"
+        "mod/manager-ui.lua:690",
+        "mod/mcm-host.lua:227"
       ]
     },
     "Confirm memory clear": {
@@ -4597,12 +4600,21 @@
         "mod/manager-ui.lua:1442"
       ]
     },
+    "Defaults": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm-host.lua:226",
+        "mod/mcm-host.lua:227"
+      ]
+    },
     "Defaults restored.": {
       "contexts": [
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:324",
+        "mod/mcm-host.lua:328",
         "mod/nsui.lua:452"
       ]
     },
@@ -7224,28 +7236,20 @@
         "mod/manager-party.lua:98"
       ]
     },
+    "Press Confirm to put every setting back to its default.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm-host.lua:317"
+      ]
+    },
     "Press Enter to write  /  Esc to stop typing": {
       "contexts": [
         "phone.chat"
       ],
       "references": [
         "mod/phone-chat-style.lua:338"
-      ]
-    },
-    "Press Restore defaults again to put every setting back to its default.": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/mcm-host.lua:313"
-      ]
-    },
-    "Press again to restore": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/mcm-host.lua:223"
       ]
     },
     "Press your Group voice chat shortcut to finish recording.": {
@@ -7317,7 +7321,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:224"
+        "mod/mcm-host.lua:228"
       ]
     },
     "RED4ext is not loaded. Install it from Nexus Mods, then restart the game. It also starts the conversation service.": {
@@ -7571,7 +7575,7 @@
       "references": [
         "mod/manager-ui.lua:1809",
         "mod/manager.lua:35",
-        "mod/mcm-host.lua:249"
+        "mod/mcm-host.lua:253"
       ]
     },
     "Reset everything": {
@@ -7588,15 +7592,6 @@
       ],
       "references": [
         "mod/character-editor.lua:67"
-      ]
-    },
-    "Restore defaults": {
-      "contexts": [
-        "ui.localized"
-      ],
-      "references": [
-        "mod/mcm-host.lua:222",
-        "mod/mcm-host.lua:223"
       ]
     },
     "Return to Companion Manager.": {
@@ -10309,6 +10304,14 @@
         "mod/setup-check.lua:507"
       ]
     },
+    "Voxtral (recommended)": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-ui.lua:456"
+      ]
+    },
     "Voxtral cloud voice · Local model unloaded": {
       "contexts": [
         "page.voice-status"
@@ -10322,8 +10325,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1494",
-        "mod/manager-ui.lua:456"
+        "mod/manager-ui.lua:1494"
       ]
     },
     "Voxtral · needs Mistral key": {
@@ -10886,7 +10888,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:1555",
-        "mod/mcm-host.lua:335"
+        "mod/mcm-host.lua:339"
       ]
     },
     "Your group": {

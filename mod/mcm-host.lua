@@ -219,8 +219,12 @@ local function schema()
     -- Restore defaults, on Settings and on the pages that open from it with settings of their own (Relationships).
     local view = core.view()
     if view == 'settings' or view == 'relationships' then
-        footer[#footer + 1] = action(DEFAULTS_ID, ui.t('Restore defaults'),
-            restoreArmed and ui.t('Press again to restore') or ui.t('Restore defaults'),
+        -- Two short words, not "Restore defaults" / "Press again to restore": with pending changes the footer holds five buttons (Revert,
+        -- Apply, MCM's Add to favorites, this one, Back) and MCM gives each one the same share of the row, cutting the text that is
+        -- longer. The footer is only read again when the page is loaded again, which MCM refuses while changes are pending, so the button
+        -- cannot be hidden then; the description (hover) carries the full sentence.
+        footer[#footer + 1] = action(DEFAULTS_ID, ui.t('Defaults'),
+            restoreArmed and ui.t('Confirm') or ui.t('Defaults'),
             ui.t('Puts every setting on Settings and Relationships back to its default. Press the button twice to confirm.'))
     end
     -- The buttons of the page that are not in the list: the letter group, the previous and next page, and the way back (rightmost).
@@ -310,7 +314,7 @@ end
 local function restoreDefaults()
     if not restoreArmed then
         restoreArmed, restorePage = true, core.pageId()
-        core.setFeedback(ui.t('Press Restore defaults again to put every setting back to its default.'))
+        core.setFeedback(ui.t('Press Confirm to put every setting back to its default.'))
         return {ok = true, schemaChanged = true}
     end
     restoreArmed = false
