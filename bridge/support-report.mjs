@@ -8,6 +8,7 @@ import {atomicFile} from './guarded-file.mjs';
 import {NO_BROWSER_MESSAGE} from './system-browser.mjs';
 import {cachedGraphicsCards} from './setup-check.mjs';
 import {describePackFiles} from './local-ai-pack.mjs';
+import {customManifestFolders, describeCustomFolders, parseManifestText} from './custom-manifest-folders.mjs';
 import {errorReportStatus} from './error-events.mjs';
 
 // Support report: one redacted zip a player can send to the developer after an
@@ -271,19 +272,16 @@ export async function credentialSecrets(stateDirectory) {
 
 // The apiKey values of the servers listed in manifest.custom.json (a model server the player runs, docs/LOCAL_AI.md "Use your own server"): secrets like
 // any key file, scrubbed from every line of the report. The manifest itself is never copied into the report (only its file name is listed).
+// Read from every place a custom manifest can be: the outside folder (%LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai), the mod's Local AI folder and the developer's.
 export async function customServerSecrets({project, environment = process.env} = {}) {
   const found = [];
-  const roots = new Set();
-  const named = name => (typeof environment?.[name] === 'string' && environment[name].trim() ? resolve(environment[name]) : null);
-  roots.add(named('CYBERPUNK_CONVAI_LOCAL_AI') ?? (project ? resolve(project, 'local-ai') : null));
-  roots.add(named('CYBERPUNK_CONVAI_LOCAL_AI_DEV'));
+  const roots = new Set(customManifestFolders({project, environment}).map(folder => folder.root));
   for (const root of roots) {
-    if (!root) continue;
     try {
       const path = join(root, 'manifest.custom.json');
       const info = await stat(path);
       if (!info.isFile() || info.size > 262144) continue;
-      const manifest = JSON.parse(await readFile(path, 'utf8'));
+      const manifest = parseManifestText((await readFile(path, 'utf8')).replace(/^﻿/, ''));
       for (const entry of Array.isArray(manifest?.models) ? manifest.models : []) {
         if (typeof entry?.apiKey === 'string' && entry.apiKey.trim()) { found.push(entry.apiKey.trim()); if (entry.apiKey.trim() !== entry.apiKey) found.push(entry.apiKey); }
       }
@@ -480,6 +478,9 @@ export async function localAiSection({runtime, project, environment = process.en
     // Which markers the folder holds, the model files each names (there or not, with sizes) and the .gguf files of models/: a pack that was not fully extracted shows here.
     packFiles: (() => { try { return plainData(describeFiles({project, environment})); } catch { return null; } })() ?? null,
     root, rootSource: fromEnvironment ? 'CYBERPUNK_CONVAI_LOCAL_AI' : 'default (local-ai next to the bridge)',
+    // The folders a custom model can be added in (docs/LOCAL_AI.md, "Add your own model"): the outside one (%LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai), the
+    // mod's Local AI folder and the developer's (only when it has a manifest), each with whether it and its manifest are there and how many models it lists. No paths.
+    customFolders: (() => { try { return describeCustomFolders({project, environment}); } catch { return null; } })(),
     rootExists: manifests !== null, manifests: manifests ?? [],
   };
 }

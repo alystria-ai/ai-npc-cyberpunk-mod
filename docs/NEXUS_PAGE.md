@@ -83,13 +83,13 @@ All on the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-pac
 [/list]
 
 [size=4][b]Use your own AI model or model server[/b][/size]
-Already run AI models on your PC? Local AI can use them. Create a text file named [b]manifest.custom.json[/b] (check it does not end in .txt) in Cyberpunk 2077\red4ext\plugins\AiNpcCyberpunkMod\app\local-ai\.
+Already run AI models on your PC? Local AI can use them. Create a text file named [b]manifest.custom.json[/b] (check it does not end in .txt) in %LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai\ (paste that into the Explorer address bar and make the local-ai folder if it is not there). It is outside the game folder, so it survives reinstalls and mod managers. The older place, Cyberpunk 2077\red4ext\plugins\AiNpcCyberpunkMod\app\local-ai\, still works and both are read, but a clean reinstall deletes it: to keep a setup you made there, copy its custom folder and manifest.custom.json into the %LOCALAPPDATA% folder.
 
 [b]Your own model server[/b] (KoboldCpp, LM Studio, Ollama, llama.cpp, or anything with an OpenAI-compatible API). Start the server first, then:
 [code]{"version":1,"models":[{"endpoint":"http://127.0.0.1:5001/v1","name":"My Server"}]}[/code]
 Usual addresses: KoboldCpp http://127.0.0.1:5001/v1, LM Studio http://127.0.0.1:1234/v1 (start its local server), Ollama http://127.0.0.1:11434/v1 (also add "model":"qwen3:8b", or whichever model you pulled). If your server wants a password or key, add "apiKey":"your-key". No Local AI pack is needed.
 
-[b]Your own model file[/b] (any GGUF). Put it in a folder named custom inside the Local AI folder, then:
+[b]Your own model file[/b] (any GGUF). Put it in a folder named custom next to the manifest, then:
 [code]{"version":1,"models":[{"file":"custom/MyModel-Q4_K_M.gguf","name":"My Model"}]}[/code]
 This runs on the mod's own engine, so a Local AI or Mature pack must be installed.
 
