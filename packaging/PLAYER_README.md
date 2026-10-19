@@ -2,30 +2,23 @@
 
 Talk to Cyberpunk 2077 characters by voice or text, with companions who answer in their own voices.
 
-## What's new in 0.2.1
+## What's new in 0.2.2
 
-- **Three ways to talk, all free**: fully local on your own PC with Local AI (no account, no internet, no limit), Mistral with a free account (about 5,000 turns a day), or the Convai free tier (no setup, the default, 100 turns a day). Choose in Settings > Conversation provider.
-- **Holocalls**: call a character from the phone's Chat tab and they pick up live on screen.
-- **Voxtral voices**: the same free Mistral account gives every character their own voice made in the cloud, so nothing runs on your PC. The default Pocket TTS voices still run on your processor with no setup.
-- **V speaks too**: lines you type are heard in V's own voice before the reply (Settings > Voices). Pick V's voice engine there: Pocket (default, runs on your processor) or Voxtral (cloud).
-- **Voice volume**: one slider from 50 to 200 percent for every mod voice.
-- **Hold to talk**: hold the talk-by-voice button while you speak and let go, or tap to start and tap again to send. Your words show as V's subtitle while you speak.
-- **Companions see Night City**: with Convai, companions can talk about what is around you. The picture of the game window is taken only while someone you can talk to is near and is never saved.
-- **Sign in with Convai** connects your own Convai account in a few clicks.
-- **Alt Cunningham** joins the cast as a companion you can talk to, with her own voice and look.
-- **Many more people to talk to**: ordinary NPCs, vendors and faction members talk through character profiles of their own kind, with several voices each, and shopkeepers you return to remember you. The party has no size limit; only characters the mod spawns join it. The game's own story characters, such as Judy or Jackie, answer where they stand in their own voice, and their face follows what they say, once you turn it on (Settings > Conversations > Talk to story characters, off by default; reload your save after switching it); nothing else about them changes.
-- **More named characters** to invite from the Companion Manager and talk to, each with their own voice, profile and memory.
-- **Night City Allies followers**: when that mod brings Lucy or Rita Wheeler along, they talk with their own voice, profile and memory, while Night City Allies keeps their following, fighting and driving (they are not in the Companion Manager). Its other followers who are copies of characters this mod knows talk as those characters, its mercs talk as ordinary people, and your companions leave its followers' seats in V's car free.
-- **Johnny in your head** (Settings > Conversations, off by default): talk by text or voice with nobody in front of you and Johnny Silverhand answers as the voice in V's head, from the end of Playing for Time until an ending. He stays quiet during scenes, calls, dialogue choices and fights. **Johnny speaks up** (Off, Rare or Normal; Off by default) lets him say something on his own; on the Convai free tier each remark uses one of the day's turns.
-- **Companions sit with you** on couches, benches, chairs and bar stools, and you can look around freely while seated.
-- **Body and face**: calmer talking gestures timed to the phrase, varied idles with props (a cigarette, a cup, a pair of shades) that ease in and out, whole-face emotions and a smoother mouth.
-- **Conversation**: characters can continue from the game's own dialogue, speak in the first person, remember what you did together, ask you questions and know what V is wearing and carrying.
-- **Phone chat**: the first reply arrives in a second or two when you wait a moment after opening a chat.
-- **Fewer notices**: you only see when a companion has joined or when something fails.
-- **Smoother game**: the Runtime download includes a small RED4ext plugin that takes some of the mod's work off the game's script thread. If it cannot load, the mod runs from its scripts as before.
-- **Local AI on your own model server**: if you already run a model in KoboldCpp, LM Studio, Ollama, llama.cpp or another program with an OpenAI-compatible API, Local AI can use it, with no Local AI pack (see "Local AI" below).
-- **More browsers**: the conversation service runs in Microsoft Edge, which comes with Windows, or in another Chromium browser such as Google Chrome, Brave, Vivaldi or Opera. If there is none, Settings says "Needs a browser".
-- **Your data outside the game folder**: memories, conversation history, logs and reports are kept in `%LOCALAPPDATA%\AiNpcCyberpunkMod`; an earlier install's are moved there by themselves at the first start.
+- **The manager is back in Mod Configuration Menu**: with Mod Configuration Menu 0.10.5 or newer the Companion Manager is a page of its own there (Esc, Mods, or your manager shortcut). Native Settings UI works as the other choice. Both show the same settings.
+- **V speaks your typed lines sooner**: V's voice is prepared ahead, so a line you type is heard in V's own voice before the reply.
+- **Your own AI service**: a new conversation provider, **Custom**, works with any OpenAI-compatible service: OpenRouter, Nano-GPT, or Ollama or LM Studio on your own PC. Set it up in Settings > Conversation provider and press Test connection.
+- **Voice clips for characters**: in the character editor, give a story character or a character you made a voice of their own from a short recording. Pocket, OmniVoice and Voxtral copy it from the next start.
+- **Make your own characters**: create and edit characters of your own in the editor, with a profile, a way of speaking and memories.
+- **The microphone in other languages**: with Mistral, speak in your own language and it is understood. English stays on the fast local path.
+- **Your own Local AI models survive reinstalls**: put them in `%LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai` and updates, clean installs and mod managers leave them alone.
+- **Local AI fixes**: it starts reliably with the other optional packs installed, loads at a gentler priority so the game stays smooth, says plainly why a reply did not come, and the first turn after loading no longer goes to Convai.
+- **Mod Organizer 2**: the Runtime can be installed as a Mod Organizer 2 mod, and your settings and chats survive a launch.
+- **Make support report.bat** works with the game closed, and checks that the required mods are installed. It is in `red4ext\plugins\AiNpcCyberpunkMod`.
+- **Automatic error reports** (on by default; turn off in Settings > Privacy): when something fails, a short report goes to the developer so it can be fixed without asking you for logs. It leaves out passwords and account details, what you and the characters say, and your microphone audio.
+- **A missing requirement no longer breaks everything**: the scripts compile without Codeware or Audioware and tell you clearly what is missing, and Help has a Setup check.
+- **Faces come back**: a character's face is rebuilt after you change appearance or another mod replaces the model.
+- **Packs no longer clash**: if Windows asks about files with the same names, choose Replace: it is always safe.
+- **Story and character fixes**: many characters were checked against the game's own text and corrected, so they know and say the right things. Plus many smaller fixes to notices, languages and timing.
 
 ## Requirements
 
@@ -45,13 +38,13 @@ You do not need to install anything else. The voice service, its voices and mode
 Close the game, then extract each download into your Cyberpunk 2077 folder (the folder that contains `bin`, `archive` and `r6`). Allow folders to merge. If Windows asks about files with the same names, choose Replace: it is always safe.
 
 1. **Scripts**: from Nexus Mods, with Vortex or by hand.
-2. **Runtime**: https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.1/AI-NPC-Cyberpunk-Mod-Runtime-0.2.1.zip (the mod's Hugging Face page, 0.2.1 folder). Use the same version number as the Scripts.
+2. **Runtime**: https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.2/AI-NPC-Cyberpunk-Mod-Runtime-0.2.2.zip (the mod's Hugging Face page, 0.2.2 folder). Use the same version number as the Scripts.
 
 The optional packs are on the same Hugging Face page, https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs, in a folder per version. Each pack is one zip file, so there is nothing to join, and each works on its own. Use the same version number as the Scripts and Runtime.
 
-3. **OmniVoice pack (optional)**: a higher-quality voice for NVIDIA graphics cards with at least 8 GB of video memory and a current driver. Download https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.1/AI-NPC-Cyberpunk-Mod-OmniPack-0.2.1.zip and extract it after the Runtime. Then choose an OmniVoice option in Settings > Voices.
+3. **OmniVoice pack (optional)**: a higher-quality voice for NVIDIA graphics cards with at least 8 GB of video memory and a current driver. Download https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.2/AI-NPC-Cyberpunk-Mod-OmniPack-0.2.2.zip and extract it after the Runtime. Then choose an OmniVoice option in Settings > Voices.
 
-4. **Local AI packs (optional)**: let the characters answer with an AI model that runs on your own graphics card, with no account and no internet connection. There are two, and you can install neither, one or both: **Local AI standard** (Gemma 4 E4B, about 5.3 GB, needs about 6 GB of free video memory) for the best replies, and **Local AI lite** (Bonsai 2 4B, about 1.4 GB, needs about 2 GB of free video memory) for smaller graphics cards. Download https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.1/AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.1.zip and https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.1/AI-NPC-Cyberpunk-Mod-LocalAI-Lite-0.2.1.zip (one or both) and extract each. Each pack includes the engine and the memory model it needs, so one alone is enough. Then choose Local AI in Settings > Conversation provider. See "Local AI" below to pick a combination.
+4. **Local AI packs (optional)**: let the characters answer with an AI model that runs on your own graphics card, with no account and no internet connection. There are two, and you can install neither, one or both: **Local AI standard** (Gemma 4 E4B, about 5.3 GB, needs about 6 GB of free video memory) for the best replies, and **Local AI lite** (Bonsai 2 4B, about 1.4 GB, needs about 2 GB of free video memory) for smaller graphics cards. Download https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.2/AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2.2.zip and https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.2/AI-NPC-Cyberpunk-Mod-LocalAI-Lite-0.2.2.zip (one or both) and extract each. Each pack includes the engine and the memory model it needs, so one alone is enough. Then choose Local AI in Settings > Conversation provider. See "Local AI" below to pick a combination.
 
 Start the game. The first start after installing takes a little longer while the voice service prepares itself.
 
@@ -110,6 +103,8 @@ Extra video memory each setup uses on top of the game's own:
 With Mistral or Local AI as the Conversation provider, you can give a person who has no profile in the mod (a character spawned by another mod, such as a Night City Allies follower) a name, a bio, a way of speaking and memories. Face the character, open Settings > Edit characters > Open, and choose **New character** in the page that opens in your browser. **Use the character I'm facing** fills in how the game recognises them (their record name or the name the game shows); you can also type those in. Add a gender and a bio, and Save. The next time you talk to them they answer as the person you wrote. An optional voice clip (see below) gives them a voice of their own; without a clip they speak with a generic voice of their gender. With Convai they talk as an ordinary person, and the game says so once. Characters, clips and what they remember stay on your PC, in `%LOCALAPPDATA%\AiNpcCyberpunkMod\data`.
 
 **Voice clips.** You can give a story character, or one of your own characters, a voice clip in the same page: open the character (a story character has a Voice tab), choose **Add voice clip**, pick a WAV, MP3, OGG or FLAC file of 5 to 20 seconds of one person speaking clearly (10 to 18 seconds works best), type the words said in it and choose **Save clip**. Pocket, OmniVoice and Voxtral then copy that voice from the next time the game starts. **Remove clip** brings the original voice back. The clip stays on your PC.
+
+**Story characters.** The game's own story characters, such as Judy or Jackie, answer where they stand in their own voice, and their face follows what they say, once you turn it on (Settings > Conversations > Talk to story characters, off by default; reload your save after switching it). Nothing else about them changes.
 
 ## Update
 
