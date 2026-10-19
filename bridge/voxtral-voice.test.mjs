@@ -516,7 +516,7 @@ test('a cloud reply that is late is asked again once with a longer wait; one tha
   });
   try {
     const timers = manualTimers();
-    const h = selection(server, {voxtral: {...timers.hooks, limits: {firstAudioMs: 60}}, retryMs: 120});
+    const h = selection(server, {voxtral: {...timers.hooks, limits: {firstAudioMs: 60, drainMs: 5000}}, retryMs: 120});    // drainMs: the background read of a finished stream arms its own timer (not an ask limit): kept out of the 0 to 1000 ms list below
     h.voice.update({voiceProvider: 'voxtral'}, null, false); await h.voice.start();
     const packets = [], asked = () => timers.limits().filter(ms => ms < 1000);
     // Both asks are late: nothing is spoken, no local voice stands in, and the caller gets the failure (a written reply).
