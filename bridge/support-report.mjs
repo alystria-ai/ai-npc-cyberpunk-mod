@@ -1,6 +1,6 @@
 import {createHash} from 'node:crypto';
 import {open, readFile, readdir, rm, stat, mkdir} from 'node:fs/promises';
-import {readPlayerVoiceSummary} from './player-voices.mjs';
+import {readPlayerVoiceSummary} from './player-voice-summary.mjs';
 import {resolve, join, dirname, basename} from 'node:path';
 import os from 'node:os';
 import {spawn} from 'node:child_process';

@@ -12,7 +12,7 @@
 // merged configurations over the shipped voice of that key (and out of the startup preparation): nothing is prepared or loaded before that
 // character speaks. Removing a clip removes it from the index and the folder, so the next start merges nothing and the shipped voice is back.
 //
-// Privacy: the clip and its words stay on this computer. Nothing here logs the words, and support reports read only `readPlayerVoiceSummary`
+// Privacy: the clip and its words stay on this computer. Nothing here logs the words, and support reports read only `readPlayerVoiceSummary` (bridge/player-voice-summary.mjs)
 // (how many clips, and each one's length). Writes are atomic and one at a time; a damaged index is kept as .corrupt before the first write
 // over it (the same care as bridge/custom-characters.mjs).
 import {readFile, readdir, rename, rm, mkdir, lstat} from 'node:fs/promises';
@@ -45,19 +45,8 @@ export function readEntry(raw) {
     format: ['wav', 'mp3', 'ogg', 'flac'].includes(raw.format) ? raw.format : 'wav', updated: Number.isFinite(raw.updated) ? raw.updated : 0});
 }
 
-/**
- * What a support report may say about the player's clips: how many, and for each its length and whose it is (a story character's key, or
- * just "custom" for a character the player made, whose key carries the name they chose). Never the words, the audio or a path. Reads the
- * index only; a missing or damaged index is "none".
- */
-export async function readPlayerVoiceSummary(stateDirectory, {read = file => readFile(file, 'utf8')} = {}) {
-  let value = null;
-  try { const raw = await read(join(stateDirectory, PLAYER_VOICES_FILE)); value = JSON.parse(raw.charCodeAt(0) === 0xFEFF ? raw.slice(1) : raw); } catch { return {count: 0, clips: []}; }
-  const voices = plain(value) && plain(value.voices) ? value.voices : {};
-  const clips = Object.entries(voices).filter(([key]) => isVoiceKey(key)).map(([key, raw]) => [key, readEntry(raw)]).filter(([, entry]) => entry)
-    .slice(0, PLAYER_VOICE_LIMITS.clips).map(([key, entry]) => ({character: key.startsWith('custom-') ? 'custom' : key, seconds: entry.seconds}));
-  return {count: clips.length, clips};
-}
+// What a support report may say about the clips: bridge/player-voice-summary.mjs (kept apart so the offline report imports no clip code).
+export {readPlayerVoiceSummary} from './player-voice-summary.mjs';
 
 // Voxtral's prepared slots of player clips (bridge/voxtral-reference.mjs createReferencePreparer: <key>.json beside <key>.ogg, .mp3 or .wav,
 // and the same names plus .tmp while written) are kept in the data folder too, in their own folder (the bridge names it). A removed clip's

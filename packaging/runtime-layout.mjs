@@ -115,6 +115,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/player-memory-control.mjs',
   'bridge/player-memory.mjs',
   'bridge/player-phone-knowledge.mjs',
+  'bridge/player-voice-summary.mjs',
   'bridge/player-voices.mjs',
   'bridge/pocket-facial-stream.mjs',
   'bridge/pocket-speech.mjs',
