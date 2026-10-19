@@ -305,7 +305,8 @@ MP3 is 89 KB (about 0.6 s). `bridge/voxtral-reference.mjs` prepares the clip onc
 - Kept on disk in `<references>/prepared/<character>.ogg|mp3|wav` with a `.json` naming the source clip's sha256 and the settings: done
   once per character, redone when the clip or the settings change, a cache that cannot be written is ignored. The reference is prepared
   when the voice is warmed, not on the first request (about 0.3 s of the bridge's time for one character). The slots the Runtime ships are in
-  `<references>/prepared-runtime/` and are read when `prepared/` has none that fits (only the bridge writes, and only into `prepared/`).
+  `<references>/prepared-runtime/` and are read when `prepared/` has none that fits, or only one in a worse format (a WAV made without
+  ffmpeg never hides the shipped Ogg of the same clip; only the bridge writes, and only into `prepared/`).
 - The timing record shows `voiceReferenceBytes` (the size sent) and `voiceReferenceFormat`.
 - `CYBERPUNK_CONVAI_VOXTRAL_FULL_REFERENCE=1` sends the clips whole, as before. Any failure in preparation sends the whole clip.
 - Does the clone stay the same? Six real calls (the same sentence, Judy): ECAPA similarity to the original reference 0.50 and 0.65

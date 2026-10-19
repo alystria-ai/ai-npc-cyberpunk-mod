@@ -166,6 +166,55 @@ test("the OmniVoice lists come from the Runtime's app/defaults first, the pack's
   } finally { await rm(f.root, {recursive: true, force: true}); }
 });
 
+test("a list an earlier Runtime left in app/defaults does not win over the pack's when it names another OmniVoice model, or cannot be read", async () => {
+  // Nothing deletes an old version's files: a Runtime that ships no lists (or other ones) leaves the previous Runtime's in app/defaults. With a
+  // pack for a newer OmniVoice model, that list would make the voice worker refuse the whole list ("Expected the pinned base OmniVoice model").
+  const f = await fakeInstall();
+  const put = async (directory, name, value) => { await mkdir(directory, {recursive: true}); await writeFile(join(directory, name), typeof value === 'string' ? value : JSON.stringify(value)); };
+  const live = async name => JSON.parse(await readFile(join(f.layout.state, name), 'utf8'));
+  const OLD = 'c5fdb5ccb189668d56333f77ba2629f4cd7535f4', NEW = '0123456789abcdef0123456789abcdef01234567';
+  const pack = model => writeFile(join(f.layout.omni, 'omni-pack.json'), JSON.stringify({package: 'omni', version: '0.3', model}));
+  try {
+    await put(join(f.layout.omni, 'python'), 'python.exe', {});
+    for (const name of Object.values(OMNI_CONFIGS)) {
+      await put(f.layout.defaults, name, {from: 'old runtime', revision: OLD});
+      await put(f.layout.omniDefaults, name, {from: 'new pack', revision: NEW});
+    }
+    // A pack for another model: its own list, which names that model, is used.
+    await pack(`k2-fsa/OmniVoice@${NEW}`);
+    assert.equal((await prepareState(f.layout)).omni, true);
+    for (const name of Object.values(OMNI_CONFIGS)) assert.deepEqual(await live(name), {from: 'new pack', revision: NEW});
+    // The same model (every 0.2.x pack and Runtime): the Runtime's list wins, as designed.
+    await pack(`k2-fsa/OmniVoice@${OLD}`);
+    await prepareState(f.layout);
+    for (const name of Object.values(OMNI_CONFIGS)) assert.deepEqual(await live(name), {from: 'old runtime', revision: OLD});
+    // A new Runtime's list for the new model wins again over the pack's.
+    for (const name of Object.values(OMNI_CONFIGS)) await put(f.layout.defaults, name, {from: 'new runtime', revision: NEW});
+    await pack(`k2-fsa/OmniVoice@${NEW}`);
+    await prepareState(f.layout);
+    for (const name of Object.values(OMNI_CONFIGS)) assert.deepEqual(await live(name), {from: 'new runtime', revision: NEW});
+    // A pack marker that names no model (or is not JSON): the Runtime's list, as before.
+    for (const name of Object.values(OMNI_CONFIGS)) await put(f.layout.defaults, name, {from: 'old runtime', revision: OLD});
+    for (const marker of ['{}', 'not json']) {
+      await writeFile(join(f.layout.omni, 'omni-pack.json'), marker);
+      await prepareState(f.layout);
+      for (const name of Object.values(OMNI_CONFIGS)) assert.deepEqual(await live(name), {from: 'old runtime', revision: OLD}, marker);
+    }
+    // Neither names the pack's model: the Runtime's, as before (the worker reports it).
+    await pack(`k2-fsa/OmniVoice@${'f'.repeat(40)}`);
+    await prepareState(f.layout);
+    assert.deepEqual(await live(OMNI_CONFIGS.short), {from: 'old runtime', revision: OLD});
+    // A damaged Runtime list (a cut-off write) does not stop the service start: the pack's list is used. A byte-order mark is read through.
+    await pack(`k2-fsa/OmniVoice@${NEW}`);
+    for (const name of Object.values(OMNI_CONFIGS)) await put(f.layout.defaults, name, '{"from": "new runtime", "revis');
+    await prepareState(f.layout);
+    for (const name of Object.values(OMNI_CONFIGS)) assert.deepEqual(await live(name), {from: 'new pack', revision: NEW});
+    for (const name of Object.values(OMNI_CONFIGS)) await put(f.layout.defaults, name, '\uFEFF' + JSON.stringify({from: 'bom runtime', revision: NEW}));
+    await prepareState(f.layout);
+    for (const name of Object.values(OMNI_CONFIGS)) assert.deepEqual(await live(name), {from: 'bom runtime', revision: NEW});
+  } finally { await rm(f.root, {recursive: true, force: true}); }
+});
+
 test("the player's own key wins over the packaged one, and a missing key stays visible", async () => {
   const f = await fakeInstall();
   try {
