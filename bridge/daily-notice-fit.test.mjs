@@ -1,10 +1,9 @@
 // The daily-limit notice is drawn by the game's warning line (WarningMessageGameController): the text is Rajdhani Semi-Bold at 35 pt,
 // UPPER CASE, wrapped at 800 px, in a frame 851 px wide that grows with the text. The frame was drawn for one line (80 px) and holds two
 // (about 107 px); the first version of this notice was 263 letters, six lines, about 240 px. Measured from the game's own files
-// (warning_message.inkwidget: DangerousArea fontSize 35, wrappingAtPosition 800, letterCase UpperCase; raj-semibold.fnt decompressed):
-// ADVANCES below are the upper-case advances of that font at 35 px for the letters the notice texts use. The font has no Cyrillic or
-// CJK glyphs (the game falls back to another font there), so those are estimated: 20 px for a Cyrillic capital, 35 px for a full-width
-// character. This is an estimate and cannot see the game; it keeps every language to two lines with room for a word that wraps early.
+// (warning_message.inkwidget: DangerousArea fontSize 35, wrappingAtPosition 800, letterCase UpperCase; raj-semibold.fnt decompressed).
+// The measure itself (the upper-case advances at 35 px, 20 px for a Cyrillic capital, 35 px for a full-width character) is in
+// bridge/notice-fit.mjs. It is an estimate and cannot see the game; it keeps every language to two lines with room for a word that wraps early.
 // The text carries a forced break ("\n"): the first sentence ("Today's {limit} Convai turns are used.") is line 1 and must fit ONE
 // line; the detailed choice (Try Mistral, free key, about 5,000 a day, or Local AI, unlimited) starts on a fresh line and may wrap
 // to a second, so the whole notice is at most three rendered lines (a third line makes the frame a taller block, about 140 px,
@@ -14,20 +13,12 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
+import {widthOf, linesOf} from './notice-fit.mjs';
 
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const read = file => readFileSync(new URL(file, import.meta.url), 'utf8');
 const codes = ['zh-cn', 'zh-tw', 'es', 'pt-br', 'fr', 'de', 'it', 'pl', 'cs', 'hu', 'tr', 'ru', 'uk', 'ja', 'ko'];
 
-const GLYPHS = "0123456789 !\"%&'(),-./:;>?ABCDEFGHIJKLMNOPQRSTUVWXYZ~ÁÉÍÓÖÜČŚŠŮŻ–—’";
-const ADVANCES = [
-  18, 11, 17, 18, 19, 17, 18, 14, 19, 18, 8, 8, 12, 26, 21, 7, 10, 10, 7, 11, 7, 14, 7, 7, 19, 16, 19, 19, 19, 19, 17,
-  16, 19, 20, 9, 18, 19, 16, 25, 20, 19, 18, 20, 19, 19, 15, 20, 18, 28, 18, 18, 18, 19, 19, 17, 9, 19, 19, 20, 19, 19,
-  19, 20, 18, 14, 21, 6
-];
-const CAPITAL = 18.7;      // the average capital, for a letter not in the table
-const CYRILLIC = 20, FULL_WIDTH = 35;
-const WRAP = 800;          // wrappingAtPosition of the text box
 const FORCED = 2;          // the forced break gives two parts: line 1 and the detailed sentence
 const MAX_LINES = 3;       // rendered lines in all: line 1 on one line, the sentence on at most two
 // px of upper-case text on line 1, which must stay ONE line; English keeps a wider margin (translations run longer).
@@ -35,30 +26,6 @@ const LINE_ENGLISH = 770, LINE_TRANSLATION = 785;
 // px of upper-case text for the detailed sentence, which may wrap to a second line: at most two wrap widths less room for a word that wraps early
 const DETAIL_MAX = 1460;
 
-function advance(char) {
-  const code = char.codePointAt(0);
-  if (code === 0xa0 || code === 0x202f) return 8;      // a no-break space (thousands separator) is as wide as a space
-  if (code >= 0x0400 && code <= 0x04ff) return CYRILLIC;
-  if (code >= 0x2e80) return FULL_WIDTH;
-  const at = GLYPHS.indexOf(char);
-  return at >= 0 ? ADVANCES[at] : CAPITAL;
-}
-const widthOf = text => [...text].reduce((sum, char) => sum + advance(char), 0);
-
-/** Width of each line the text takes in the frame: words wrap at spaces, a full-width character can end a line anywhere. */
-function linesOf(text) {
-  const tokens = text.toUpperCase().match(/[⺀-￿]|[^ \t⺀-￿]+|[ \t]+/gu) ?? [];
-  const widths = [];
-  let used = 0;
-  for (const token of tokens) {
-    if (/^[ \t]+$/u.test(token)) { if (used > 0) used += widthOf(' '); continue; }
-    const width = widthOf(token);
-    if (used > 0 && used + width > WRAP) { widths.push(used); used = 0; }
-    used += width;
-  }
-  widths.push(used);
-  return widths;
-}
 
 /** The text's forced lines (split at "\n"), each with its width and the number of lines it takes in the frame on its own. */
 function forcedLines(text) {
@@ -130,12 +97,13 @@ test('the English daily-limit notice is line 1 on one line plus a detailed line 
   }
 });
 
-test('the notice stays long enough to read at 15 letters a second, and only the daily limit stays longer', () => {
+test('the notice stays long enough to read at 15 letters a second, and only the daily limit and the setup problem stay longer', () => {
   assert(Number.isFinite(showS), 'M.showS["daily-limit"] not found');
   assert(showS >= 8 && showS <= 12, `${showS} s`);
   // the game counts the duration after its 2.7 s intro; the text is readable from about 1.3 s into it
   assert(english.length / 15 <= showS + 1.4, `reading time ${english.length / 15} s`);
-  assert.deepEqual([...showTable[1].matchAll(/\['([a-z-]+)'\]/g)].map(match => match[1]), ['daily-limit'], 'another notice got a longer duration');
+  // The setup problem's notice (mod/setup-check.lua) is the other one: it is written to the warning line without this mod's scripts.
+  assert.deepEqual([...showTable[1].matchAll(/\['([a-z-]+)'\]/g)].map(match => match[1]), ['daily-limit', 'setup-problem'], 'another notice got a longer duration');
 });
 
 test('every language has the notice with the same forced break: line 1 fits one line, the whole notice three lines', () => {

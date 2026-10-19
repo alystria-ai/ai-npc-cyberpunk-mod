@@ -9,7 +9,8 @@ import {tmpdir} from 'node:os';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {installLayout} from './runtime/prepare-state.mjs';
-import {findCandidates, placeMisplacedPacks} from './runtime/place-packs.mjs';
+import {PLACEMENT_FILE, findCandidates, placeMisplacedPacks, recordPlacement} from './runtime/place-packs.mjs';
+import {readPackPlacement} from '../bridge/setup-check.mjs';
 
 const project = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const PLUGIN = 'red4ext/plugins/AiNpcCyberpunkMod';
@@ -378,8 +379,38 @@ test('the packaged service places the pack before its checks and logs one line (
     assert.equal(log.length, 2, log.join('\n'));
     assert.match(log.join('\n'), /Moved the Local AI standard files into place from AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0\.2/);
     assert.match(log.join('\n'), /Moved the OmniVoice files into place from AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0\.2/);
+    // What the move did is kept for the setup check on the Help page (bridge/setup-check.mjs readPackPlacement).
+    const placement = JSON.parse(await read(join(state, PLACEMENT_FILE)));
+    assert.equal(placement.version, 1);
+    assert(Number.isFinite(placement.updated));
+    assert.deepEqual(placement.fixed.map(row => row.pack).sort(), ['Local AI standard', 'OmniVoice']);
+    assert(placement.fixed.every(row => row.from === 'AI-NPC-Cyberpunk-Mod-LocalAI-Standard-0.2'), JSON.stringify(placement.fixed));
+    assert.deepEqual([placement.conflicts, placement.errors], [[], []]);
     const second = run();
     assert.equal(second.status, 0, second.stderr);
     assert.equal((await read(join(state, 'bridge-service.log'))).split('\n').filter(line => / Moved the /.test(line)).length, 2, 'a second start moves nothing');
+    const later = JSON.parse(await read(join(state, PLACEMENT_FILE)));
+    assert.deepEqual(later.fixed, [], 'the report is of this start only');
+    assert(later.updated >= placement.updated);
+  } finally { await f.cleanup(); }
+});
+
+test('the placement report is one small file in the state folder, replaced at every start, and the setup check reads it back', async () => {
+  const f = await fakeGame();
+  try {
+    const state = join(f.root, 'state');
+    await recordPlacement({state, report: {fixed: [{pack: 'OmniVoice', from: 'wrapped'}], conflicts: ['local-ai/models/chat.gguf'], errors: ['a problem']}, now: () => 1234});
+    assert.deepEqual(JSON.parse(await read(join(state, PLACEMENT_FILE))),
+      {version: 1, updated: 1234, fixed: [{pack: 'OmniVoice', from: 'wrapped'}], conflicts: ['local-ai/models/chat.gguf'], errors: ['a problem']});
+    assert.deepEqual(await readPackPlacement({stateDirectory: state, startedAt: 1234, now: () => 1300}),
+      {fixed: [{pack: 'OmniVoice', from: 'wrapped'}], conflicts: ['local-ai/models/chat.gguf'], errors: ['a problem']});
+    // a start that moved nothing replaces it with an empty report
+    await recordPlacement({state, report: undefined, now: () => 5678});
+    assert.deepEqual(JSON.parse(await read(join(state, PLACEMENT_FILE))), {version: 1, updated: 5678, fixed: [], conflicts: [], errors: []});
+    assert.deepEqual(await readdir(state), [PLACEMENT_FILE], 'no temporary or numbered copies');
+    // a file system that refuses is the caller's to log: the function throws and the launcher goes on
+    await assert.rejects(recordPlacement({state, report: {}, fs: {mkdir: async () => { throw new Error('read-only'); }, writeFile: async () => {}}}), /read-only/);
+    const source = await read(join(project, 'packaging/runtime/start-service.mjs'));
+    assert.match(source, /try \{ await recordPlacement\(\{state: layout\.state, report: placed\}\); \}\s*catch \(error\) \{ log\(/, 'the launcher catches a failed write and carries on');
   } finally { await f.cleanup(); }
 });

@@ -90,6 +90,9 @@ local CONTENT_FONT_SIZE = 22
 -- manager works without it, and a load failure only hides the Help entry.
 local support, supportSignature
 local supportLoaded, supportFactory = pcall(dofile, 'support-report.lua')
+-- Setup check (mod/setup-check.lua): the first section of the Help page and the first-load notice. Optional too; read through its
+-- global convaiSetupCheck, so no function here gains an upvalue (LuaJIT limits them).
+pcall(dofile, 'setup-check.lua')
 -- Edit characters: opens the character editor page in the player's browser. Optional like Help: without it the row is not shown.
 local editor
 local editorLoaded, editorFactory = pcall(dofile, 'character-editor.lua')
@@ -100,6 +103,10 @@ local paidTier, paidNotice
 -- date while that action's answer is awaited (`paidStatusUntil`: the os.clock() time it stops looking, at most seven minutes), then left.
 local paidStatus, paidStatusUntil
 local paidTierLoaded, paidTierFactory = pcall(dofile, 'convai-paid-tier.lua')
+-- Custom (OpenAI-compatible) provider (mod/custom-provider.lua): everything about it except drawing its rows. Optional like Help: without
+-- the file its rows and notes are not shown. One local (this file is near the 200-local limit): `factory` is what the file returned
+-- (or the error text), `instance` is made in M.configure.
+local customProvider = {factory = select(2, pcall(dofile, 'custom-provider.lua'))}
 local log = function(message)
     local file = io.open('runtime/mcm.log', 'a')
     if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'), ' ', message, '\n'); file:close() end
@@ -796,14 +803,14 @@ local function updateVoiceStatus(snapshot)
 end
 
 -- Mature content only works with the Local AI provider, its replies must not go to a cloud voice, and it never stands beside a cloud
--- provider (Convai free tier, Convai API key, Mistral). So turning it ON in the drafts also stages (as pending changes, before Apply)
+-- provider (Convai free tier, Convai API key, Mistral, Custom). So turning it ON in the drafts also stages (as pending changes, before Apply)
 -- the Local AI provider, the uncensored model and, when the companion voice is a cloud voice, Pocket TTS (a local voice is left as it
 -- is); without the Local AI pack it cannot be on at all, and the switch is put back to off. Picking a cloud provider while it is on
 -- turns it OFF in the drafts. Turning it OFF puts back what turning it on changed, unless the player changed it since. What was
 -- changed is kept in matureMemory while the drafts are pending and, once applied, in the saved settings (manager: matureRestore). All of
 -- it runs from M.update after a draft event, never in a hook, and costs nothing while no draft changes.
 -- The provider drafts in menu order; PROVIDER_IDS names them for the restore record ('convai-key' is Convai with the player's own key).
-local PROVIDER_IDS = {'convai', 'convai-key', 'mistral', 'local'}
+local PROVIDER_IDS = {'convai', 'convai-key', 'mistral', 'local', 'custom'}
 local LOCAL_PROVIDER = 4
 -- Why a model the player added cannot be used (bridge/custom-models.mjs reason codes), as a short phrase for the Local AI model row's help.
 local function customProblemText(reason)
@@ -921,8 +928,9 @@ local function matureTurnedOff()
     return table.concat(names, ', ')
 end
 
--- The Conversation provider selector's index of the saved settings: 1 Convai free tier, 2 Convai API key, 3 Mistral, 4 Local.
+-- The Conversation provider selector's index of the saved settings: 1 Convai free tier, 2 Convai API key, 3 Mistral, 4 Local, 5 Custom.
 local function providerIndexOf(settings)
+    if settings.conversationProvider == 'custom' then return 5 end
     if settings.conversationProvider == 'local' then return 4 end
     if settings.conversationProvider == 'mistral' then return 3 end
     return settings.useOwnConvaiKey == true and 2 or 1
@@ -1555,9 +1563,13 @@ local function ownKeyRows(snapshot)
         if mistral.limit == 'rate' or mistral.limit == 'daily' then note = ui.t('Mistral: free limit reached for now')
         elseif mistral.limit == 'invalid' then note = ui.t('Mistral: key not accepted')
         elseif mistral.limit == 'model' then note = ui.t('Mistral: model unavailable') end
+    elseif mistral.effective == 'custom' then
+        note = customProvider.instance and customProvider.instance.noteFor(mistral.limit) or nil
     elseif mistral.effective == 'local' then note = nil
     elseif snapshot.settings.conversationProvider == 'local' then note = ui.t('Convai: Local AI is not ready')
     elseif snapshot.settings.conversationProvider == 'mistral' then note = ui.t('Convai: Mistral has no key yet')
+    elseif snapshot.settings.conversationProvider == 'custom' then
+        note = customProvider.instance and customProvider.instance.notSetUpNote() or nil
     elseif own.limit == 'used-up' and own.limitOwn then note = ui.t('Your key: plan limit reached')
     elseif own.limit == 'used-up' then note = ui.t('Convai free tier: limit used up')
     elseif own.limit == 'rejected' then note = ui.t('Your key: not accepted')
@@ -1662,7 +1674,7 @@ local function ownKeyRows(snapshot)
     end
     local rows = {
         setting('conversationProvider', 'Conversation provider', 'select', providerIndexOf(snapshot.settings), 1, providerHelp,
-            {'Convai free tier', 'Convai API key', 'Mistral (free plan)', 'Local AI'}, {elements = true, description = true}),
+            {'Convai free tier', 'Convai API key', 'Mistral (free plan)', 'Local AI', 'Custom (OpenAI-compatible)'}, {elements = true, description = true}),
         matureRow,
         modelRow,
         keyRow('Mistral free API key',
@@ -1676,6 +1688,20 @@ local function ownKeyRows(snapshot)
             'own-key', {saved = own.saved, tail = own.tail, checking = result == 'checking', message = ownMessage},
             function() return manager.pasteOwnKey() end, function() return manager.removeOwnKey() end),
     }
+    -- Custom (OpenAI-compatible): its endpoint URL, API key and model ID rows and the connection test, right under the Mistral key row.
+    -- Everything they say comes from mod/custom-provider.lua; this only draws them. A fault there never costs the page.
+    if customProvider.instance then
+        local made, items = pcall(customProvider.instance.rows)
+        if made and type(items) == 'table' then
+            local at = #rows + 1
+            for index, item in ipairs(rows) do if item.id == 'mistral-key' then at = index + 1 end end
+            for offset, item in ipairs(items) do
+                table.insert(rows, at + offset - 1, action(item.id, item.label, item.value, item.help,
+                    function() return customProvider.instance.request(item.action) end, item.enabled,
+                    {label = true, value = true, description = true}))
+            end
+        end
+    end
     -- Convai paid tier: right under the Convai API key row, whose key a plan is bought for.
     if paidTier then
         local at = #rows + 1
@@ -1818,7 +1844,10 @@ local function pageSignature(snapshot)
         add(tostring(#snapshot.models))
         add(tostring(snapshot.scan.finished))
     end
-    if support and view == 'help' then add('help:' .. support.signature() .. '|' .. support.serviceState()) end
+    if support and view == 'help' then
+        add('help:' .. support.signature() .. '|' .. support.serviceState())
+        if convaiSetupCheck then add('setup:' .. convaiSetupCheck.signature()) end
+    end
     if paidTier and view == 'paid-tier' then
         local own = snapshot.ownKey
         add(table.concat({'paid', tostring(own.saved), own.tail or '', own.result or '', paidTier.signature()}, '|'))
@@ -1846,6 +1875,11 @@ local function pageSignature(snapshot)
         -- With no model listed the row names the service state (not running, starting, or its fault), which changes without the player.
         if support and #(mistral.localModels or {}) == 0 then modelKey[#modelKey + 1] = 's:' .. support.serviceState() .. ':' .. tostring(support.serviceFault()) end
         add(table.concat(modelKey, '|'))
+        -- The Custom provider's rows (state file read at most every 1.5 s, like the Mistral state above).
+        if customProvider.instance then
+            local read, signature = pcall(customProvider.instance.signature)
+            add('custom:' .. (read and signature or ''))
+        end
         -- Installed add-ons' own settings (docs/ADDON_API.md); nothing without one.
         if convaiAddons and convaiAddons.live then add('addons:' .. convaiAddons.signature()) end
     end
@@ -2048,15 +2082,38 @@ local function schema()
                 lastDescription = lastDescription .. '\n' .. ui.t('This is a short report: the conversation service was not available to build the full one.')
             end
         end
-        rows[#rows + 1] = action('help:back', 'Back to settings', 'Back', 'Return to conversation settings.',
+        -- Setup check first (mod/setup-check.lua): the Conversation service row, then one line per check (OK, Problem, Note) whose
+        -- help is the one-line fix. Without the module only the service row is shown, as before.
+        local setup, setupRows = convaiSetupCheck, {}
+        setupRows[#setupRows + 1] = action('help:back', 'Back to settings', 'Back', 'Return to conversation settings.',
             function(context) return navigate('settings', context) end)
-        rows[#rows + 1] = readonly('help-steps', 'What to do', 'Create a report',
-            'If a character stops answering, voices stop or an error appears: choose Generate report and send the file it names to the developer, with a short note about what you were doing.\n\nThe logs listed below show what went wrong.')
-        -- No Edge or Chrome for the hidden conversation page: the row says so, and its help says what to install.
+        -- No Edge or Chrome for the hidden conversation page: the row says so, and its help says what to install. A service that never
+        -- started, or failed for a reason the setup check knows, gets the setup check's fix instead.
+        local serviceValue = support.serviceLabel()
         local serviceHelp = support.serviceFault() == 'browser'
             and ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, then restart the game.')
             or ui.t('The conversation service runs beside the game. If it is not running, restart the game. Its logs are listed below.')
-        rows[#rows + 1] = readonly('help-service', 'Conversation service', support.serviceLabel(), serviceHelp, {value = true, description = true})
+        local setupLines, summary = {}, ''
+        if setup then
+            local linesOk, lines = pcall(setup.lines)
+            if linesOk and type(lines) == 'table' then setupLines = lines end
+            local serviceOk, service = pcall(setup.serviceLine)
+            if serviceOk and type(service) == 'table' then serviceValue, serviceHelp = service.value, service.description end
+            local countOk, problems = pcall(setup.problemCount)
+            if countOk and type(problems) == 'number' then
+                summary = problems == 0 and ui.t('No problem found. Select a line to see what was checked.')
+                    or ui.t('Problems found: {count}. Select a line marked Problem to read what to do.', {count = problems})
+            end
+        end
+        setupRows[#setupRows + 1] = readonly('help-service', 'Conversation service', serviceValue, serviceHelp, {value = true, description = true})
+        for _, item in ipairs(setupLines) do
+            setupRows[#setupRows + 1] = readonly('setup:' .. item.id, item.label, item.value, item.description, {label = true, value = true, description = true})
+        end
+        local setupCategory = category('help-setup', 'Setup check', setupRows)
+        setupCategory.description = summary   -- already translated
+        categories[#categories + 1] = setupCategory
+        rows[#rows + 1] = readonly('help-steps', 'What to do', 'Create a report',
+            'If a character stops answering, voices stop or an error appears: choose Generate report and send the file it names to the developer, with a short note about what you were doing.\n\nThe logs listed below show what went wrong.')
         categories[#categories + 1] = category('help-trouble', 'If something goes wrong', rows)
         categories[#categories + 1] = category('help-report', 'Report for the developer', {
             action('help:generate', 'Generate report', 'Create',
@@ -2242,7 +2299,11 @@ local function schema()
             categories[#categories + 1] = category('help', 'Help', {
                 action('help', 'Help and support', 'Open',
                     'Find the log files and create a report to send to the developer if something goes wrong.',
-                    function(context) return navigate('help', context) end),
+                    function(context)
+                        -- The setup check runs again from the next slow update (never inside this menu callback).
+                        if convaiSetupCheck then pcall(convaiSetupCheck.refresh) end
+                        return navigate('help', context)
+                    end),
             })
         end
     end
@@ -2307,6 +2368,11 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
     if paidTierLoaded and type(paidTierFactory) == 'table' and type(paidTierFactory.new) == 'function' then
         local created, instance = pcall(paidTierFactory.new, {ui = ui})
         if created and type(instance) == 'table' then paidTier = instance end
+    end
+    local customFactory = customProvider.factory
+    if type(customFactory) == 'table' and type(customFactory.new) == 'function' then
+        local created, instance = pcall(customFactory.new, {ui = ui, writeCommand = manager.writeCommand, session = manager.commandSession})
+        customProvider.instance = created and type(instance) == 'table' and instance or nil
     end
     provider = {
         id = PROVIDER, registrationKey = 'cyberpunk-convai.manager.v1', apiVersion = 2,
@@ -2388,9 +2454,9 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                     values.audioDelay = delays[change.value]
                 elseif key == 'conversationProvider' then
                     -- Order: 1 Convai free tier (stored 'convai', own key off), 2 Convai API key (stored 'convai', own key on), 3 Mistral
-                    -- (stored 'mistral'), 4 Local (stored 'local'). The own-key choice only changes with a Convai entry, so it comes back when
-                    -- the player returns to Convai from Mistral or Local.
-                    local providers = {'convai', 'convai', 'mistral', 'local'}
+                    -- (stored 'mistral'), 4 Local (stored 'local'), 5 Custom (stored 'custom'). The own-key choice only changes with a
+                    -- Convai entry, so it comes back when the player returns to Convai from Mistral, Local or Custom.
+                    local providers = {'convai', 'convai', 'mistral', 'local', 'custom'}
                     local provider = type(change.value) == 'number' and providers[change.value] or nil
                     if not provider then
                         return {ok = false, error = ui.t('Choose one of the listed conversation providers.')}
@@ -2872,6 +2938,12 @@ function M.slowUpdate(currentPlayer, worldReady)
         log(paidNotice.text)
         messages[#messages + 1] = paidNotice
         paidNotice = nil
+    end
+    -- Setup check (mod/setup-check.lua): one notice at the first load when something critical is wrong (with or without Mod
+    -- Configuration Menu), and the Help page's re-check. A few comparisons until something is due.
+    if convaiSetupCheck then
+        local checked, setupNotice = pcall(convaiSetupCheck.tick, worldReady == true, currentPlayer ~= nil)
+        if checked and setupNotice then log(setupNotice); messages[#messages + 1] = {id = 'setup-problem', text = setupNotice} end
     end
     if worldReady then
         -- A voice that could not run is announced once, in gameplay.

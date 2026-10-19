@@ -316,21 +316,40 @@ function M.new(options)
     end
 
     -- The kind of fault the service status names ('browser', 'setup', 'failed', ...), or nil; only meaningful while nothing is serving.
-    function self.serviceFault()
+    local function serviceDown()
         if heartbeatFresh() then return nil end
         local status = serviceStatus()
         local ok, down = false, nil
         if status then ok, down = pcall(status.unavailable, now()) end
-        if ok and type(down) == 'table' then return down.kind end
+        if ok and type(down) == 'table' then return down end
         return nil
     end
 
-    -- The localized sentence for what is wrong with the service now (the one the notices use), or nil while it is running.
+    function self.serviceFault()
+        local down = serviceDown()
+        return down and down.kind or nil
+    end
+
+    -- The localized sentence for what is wrong with the service now (the one the notices use), or nil while it is running. A failed
+    -- service's own code, stage and reason follow it in brackets.
     function self.serviceMessage()
-        local kind, status = self.serviceFault(), serviceStatus()
-        if not kind or not status or type(status.message) ~= 'function' then return nil end
-        local ok, text = pcall(status.message, kind)
+        local down, status = serviceDown(), serviceStatus()
+        if not down or not status or type(status.message) ~= 'function' then return nil end
+        local ok, text = pcall(status.message, down.kind, down.detail)
         return ok and type(text) == 'string' and text or nil
+    end
+
+    -- The status codes the start script, the launcher or a silent start leave: the service's process was started and did not come up.
+    -- These get a PROBLEM line in the short report; a bridge that crashed later has its own logs and keeps the ordinary report.
+    local START_PROBLEMS = {['service-silent'] = true, ['install-incomplete'] = true, ['service-error'] = true,
+        ['game-folder-not-visible'] = true, ['supervisor-error'] = true, ['launcher-failed'] = true,
+        ['launcher-program-missing'] = true, ['launcher-directory-missing'] = true, ['launcher-not-configured'] = true}
+    function self.startProblem()
+        local down, status = serviceDown(), serviceStatus()
+        if not down or down.kind ~= 'failed' or not status then return nil end
+        local okCode, code = pcall(status.failureCode, now())
+        if not okCode or not START_PROBLEMS[code] then return nil end
+        return down.detail or code
     end
 
     function self.serviceLabel()
@@ -462,11 +481,23 @@ function M.new(options)
                 .. 'session). Most likely the Runtime is missing or did not load: check that red4ext\\plugins\\AiNpcCyberpunkMod\\ exists in the '
                 .. 'game folder, read the newest log in red4ext\\logs, and check that antivirus has not blocked or removed it. The service also '
                 .. 'needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera.')
+        elseif self.startProblem() then
+            -- The service's process was started (the launcher says so) and never reported, or it said why it stopped: its own log has the cause.
+            table.insert(out, 2, 'PROBLEM: the conversation service did not come up (' .. self.startProblem() .. '). Its log has the cause: '
+                .. '%LOCALAPPDATA%\\AiNpcCyberpunkMod\\data\\bridge-service.log (the line starting "View:" says whether it runs inside Mod Organizer 2\'s '
+                .. 'file system and sees the game\'s mod folder), and red4ext\\plugins\\AiNpcCyberpunkMod\\launcher.log (with Mod Organizer 2: in the '
+                .. 'Runtime mod\'s folder, or in Overwrite).')
         end
         section(out, 'versions')
         local okVersion, cet = pcall(function() return GetVersion and GetVersion() or nil end)
         out[#out + 1] = 'cet: ' .. tostring(okVersion and cet or 'unknown')
         out[#out + 1] = 'interface language: ' .. tostring(ui.current and ui.current() or 'unknown')
+        -- The setup check (mod/setup-check.lua): every game-side check, and the service's own checks when it answered this session.
+        section(out, 'setup check')
+        local setupOk, setupLines = pcall(function() return convaiSetupCheck and convaiSetupCheck.reportLines() or nil end)
+        if setupOk and type(setupLines) == 'table' then
+            for _, line in ipairs(setupLines) do out[#out + 1] = M.redactLine(tostring(line)) end
+        else out[#out + 1] = 'not available' end
         section(out, 'service status')
         out[#out + 1] = 'state: ' .. self.serviceState()
         for _, name in ipairs({'bridge-service', 'bridge-status', 'knowledge-status', 'local-voice-state', 'party-connection-state'}) do
@@ -556,7 +587,9 @@ function M.new(options)
             local payload = {version = 1, id = id, issuedAt = now() * 1000,
                 lua = {cetVersion = (select(2, pcall(function() return GetVersion and GetVersion() or nil end))),
                     language = ui.current and ui.current() or nil, view = 'help',
-                    developerMode = options.developerMode and options.developerMode() or nil, party = sanitizeParty()}}
+                    developerMode = options.developerMode and options.developerMode() or nil, party = sanitizeParty(),
+                    -- The game-side setup checks (mod/setup-check.lua), which the service cannot see.
+                    setup = (select(2, pcall(function() return convaiSetupCheck and convaiSetupCheck.summary() or nil end)))}}
             local encoded = pcall(function()
                 local file = io.open(REQUEST, 'wb')
                 if not file then error('no file') end

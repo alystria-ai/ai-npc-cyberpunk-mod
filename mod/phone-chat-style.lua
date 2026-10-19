@@ -53,6 +53,11 @@ local statusSources = {
     ['Mistral did not accept your key. Check it in Settings > Conversation provider.'] = true,
     ['Mistral’s free limit is reached for now. Try again in a moment.'] = true,
     ['The Mistral model is unavailable right now. Try again in a minute.'] = true,
+    ['The custom provider did not accept your key. Check it in Settings > Conversation provider.'] = true,
+    ['The custom provider says your account is out of credits. Add credits there, then try again.'] = true,
+    ['The custom provider does not know that model ID. Check it in Settings.'] = true,
+    ['The custom provider is rate limiting you. Try again in a moment.'] = true,
+    ['The custom provider did not answer. Check its address in Settings, or try again.'] = true,
     ['Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.'] = true,
     ['Local AI could not answer that. Try again in a moment.'] = true,
 }
@@ -569,10 +574,13 @@ function M.install(live)
         M.presentHookInstalled = true
     end
     if not M.inputHooksInstalled then
+        -- The text box is Codeware's text input. Without it (missing, or too old for Codeware.UI.TextInput) the scripts carry a
+        -- stand-in class with no such methods and Codeware has no TextFlow: neither hook can be placed, and the hooks after this
+        -- block must still be.
         for _, method in ipairs({'OnFocusReceived', 'OnFocusLost'}) do
-            ObserveAfter('CyberpunkConvai.ConvaiPhoneChatInput', method, function(input) safely(M.input, input) end)
+            pcall(ObserveAfter, 'CyberpunkConvai.ConvaiPhoneChatInput', method, function(input) safely(M.input, input) end)
         end
-        ObserveAfter('Codeware.UI.TextInput.TextFlow', 'UpdatePlaceholder', function(flow) safely(M.inputText, flow) end)
+        pcall(ObserveAfter, 'Codeware.UI.TextInput.TextFlow', 'UpdatePlaceholder', function(flow) safely(M.inputText, flow) end)
         M.inputHooksInstalled = true
     end
     if not M.localeHooksInstalled then

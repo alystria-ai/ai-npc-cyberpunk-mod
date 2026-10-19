@@ -74,16 +74,48 @@ test('a character that leaves the list is released and its voice work is cancell
   assert.deepEqual(f.warm.diagnostic().voices, {}, 'a cancelled voice came back as failed');
 });
 
-test('a stale or missing list releases everything, so a closed or paused game never keeps a connection', async () => {
+test('a stale list releases everything, so a closed or paused game never keeps a connection', async () => {
   const f = fixture();
   await f.warm.apply(f.document(['judy']));
   await f.warm.apply(f.document(['judy'], 9000));
   assert.deepEqual(f.connectionCalls.at(-1), []);
+  // A file that stays empty or unreadable is the same as a game that stopped publishing: the last list ages out.
   await f.warm.apply(f.document(['judy']));
   await f.warm.apply('');
+  f.advance(9000);
+  await f.warm.apply('');
   assert.deepEqual(f.connectionCalls.at(-1), []);
+  await f.warm.apply(f.document(['judy']));
+  f.advance(9000);
   await f.warm.apply('not json');
   assert.deepEqual(f.warm.diagnostic().profiles, []);
+});
+
+test('a read that lands while the game rewrites the file (empty or cut off) is no change: nothing is released and no voice work is cancelled', async () => {
+  const calls = [];
+  let time = 1_000_000, seen;
+  const connections = {setAmbient: async plan => { calls.push(plan); }, setNearby: async () => {}};
+  const warm = new NearbyWarm({connections, now: () => time, prepareVoice: async (profile, {signal}) => { seen = signal; await new Promise(() => {}); }});
+  const document = JSON.stringify({updated: time, profiles: ['judy'], partners: ['panam'], spawned: ['river']});
+  await warm.apply(document);
+  assert.deepEqual(calls.at(-1), {partners: ['panam'], spawned: ['river'], nearby: ['judy'], routes: {}});
+  assert.equal(seen?.aborted, false, 'a voice is being prepared');
+  for (const torn of ['', document.slice(0, 20), document.slice(0, document.length - 1), '   ', 'null', '{']) {
+    time += 150;
+    await warm.apply(torn);
+    assert.deepEqual(calls.at(-1), {partners: ['panam'], spawned: ['river'], nearby: ['judy'], routes: {}}, `a read of ${JSON.stringify(torn.slice(0, 12))} released something`);
+    assert.equal(seen.aborted, false, 'the voice preparation was cancelled');
+  }
+  // The same document, long after it was written and never refreshed, is stale: everything is released, as for a game that stopped.
+  time += 9000;
+  await warm.apply('');
+  assert.deepEqual(calls.at(-1), {partners: [], spawned: [], nearby: [], routes: {}});
+  assert.equal(seen.aborted, true);
+  // A real document that lists nobody still releases at once (that is a decision of the game, not a torn read).
+  await warm.apply(JSON.stringify({updated: time, profiles: ['judy'], partners: [], spawned: []}));
+  time += 100;
+  await warm.apply(JSON.stringify({updated: time, profiles: [], partners: [], spawned: []}));
+  assert.deepEqual(calls.at(-1), {partners: [], spawned: [], nearby: [], routes: {}});
 });
 
 test('a failed voice is retried only after a delay and never breaks the connection', async () => {

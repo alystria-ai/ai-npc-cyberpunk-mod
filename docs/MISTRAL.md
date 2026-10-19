@@ -14,6 +14,8 @@ text is the same code. Local speech-to-text for the voice key is documented in `
 3. **Conversation provider** > Mistral (free plan), then Apply. The switch waits until no conversation is running, so a conversation
    never mixes two providers.
 
+Any other OpenAI-style endpoint (OpenRouter, Nano-GPT, Ollama, LM Studio) is the Custom provider, which shares this route's prompt, memory, streaming and reply checks: see [CUSTOM_PROVIDER.md](CUSTOM_PROVIDER.md).
+
 This is the free route the daily-limit notice points to (a fully local option is planned). A player's own Convai key (docs/OWN_CONVAI_KEY.md)
 is the provider entry "Convai API key" in the same selector; the daily-limit notice and the player documents do not promote it.
 

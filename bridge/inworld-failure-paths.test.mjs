@@ -249,7 +249,7 @@ test('a stream that goes quiet after its audio began is cut at the stall limit; 
   assert.match(error.message, /answered without a stream/);
 });
 
-test('a key removed or replaced while a clone waits for its slot is not used for that clone: nothing is sent with it', {todo: 'BUG: #clone checks that the key is unchanged before it waits for a clone slot (up to a minute), not after, so a clone queued behind the two-a-minute clone limit is still sent with a key the player has since removed or replaced (bridge/inworld-voice.mjs, #clone)'}, async () => {
+test('a key removed or replaced while a clone waits for its slot is not used for that clone: nothing is sent with it', async () => {
   const server = await serve();
   try {
     let key = KEY, clock = 1_000_000;

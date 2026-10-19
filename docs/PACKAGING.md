@@ -55,24 +55,26 @@ tool `test-release-install.mjs` matches package files by exact version, so 0.2 n
 red4ext/plugins/AiNpcCyberpunkMod/
   CyberpunkConvai.dll        launcher (native/autostart, compiled in the build)
   launcher.ini               UTF-16: %PLUGIN%\app\node\node.exe app\launcher\start-service.mjs
+  Make support report.bat    double-click tool: a support report made with the game closed (CRLF, written by the build)
   app/                       the application, replaced by every update
     node/node.exe            official Node.js (node.exe and LICENSE only)
     python/                  official CPython 3.12 embeddable + hash-locked wheels (Pocket worker)
     pocket-tts/              Kyutai pocket-tts source at the pinned revision (tree hash verified)
-    bridge/                  production import closure + worker scripts + the supervisor
+    bridge/                  production import closure + worker scripts + the supervisor + make-support-report.mjs (what the .bat starts)
     node_modules/            playwright and playwright-core only
     assets/                  fresh realtime-client.js bundle + PCM player modules
     characters/, research/   data the bridge reads (roster, world knowledge, quest catalog, intrinsic packs)
     models/pocket/           Pocket student v2 + decoder v2 export
     models/lipsync/          lip-sync model, text stage and lexicon
     models/stt/              Moonshine Tiny English int8 (local speech recognition for the Mistral route; MIT)
-    defaults/                templates and managed defaults copied into data/ at start-up
+    defaults/                templates and managed defaults copied into data/ at start-up (the Pocket list, and the Runtime's own OmniVoice lists)
     launcher/                start-service.mjs, prepare-state.mjs, assemble-parts.mjs, migrate-legacy.mjs, place-packs.mjs, state-home.mjs
     licenses/                third-party notices (Python packages keep theirs in *.dist-info)
     omni/                    the OmniVoice pack, when installed
     local-ai/                the Local AI pack(s), when installed (llama/, models/, licenses/, manifest.*.json)
   voices/                    reference clips (outside app/: the Omni worker requires it)
-    prepared/                the Mistral voice's references, already cut and encoded (see below)
+    prepared/                the bridge's cache of the Mistral voice's references, and the OmniVoice pack's slots (see below)
+    prepared-runtime/        the Runtime's pre-built slots for the Pocket clips (read after prepared/, never written)
 red4ext/plugins/AiNpcCyberpunkModNative/
   CyberpunkConvaiNative.dll  the native core plugin (native/core, compiled in the build) and its licence texts
 bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/
@@ -188,13 +190,55 @@ ffmpeg would send the 408 KB WAV instead of the 38 KB Ogg, so the build makes th
 for every install (the Omni worker only exists with the pack, so this cannot trip its all-or-none check), which is where the bridge
 looks first.
 
-- The **Runtime** package carries the slots for the Pocket clips.
+- The **Runtime** package carries the slots for the Pocket clips, in `voices/prepared-runtime/`.
 - The **OmniVoice pack** carries the slots for the clips it adds (a Mistral voice clones from the OmniVoice long clip when the pack
-  is installed, else the short one, else Pocket's); a slot identical to the Runtime package's is not repeated. A slot is keyed by the
-  clip's hash, so a key whose clip differs overwrites the Runtime's. Extract the Runtime first and the OmniVoice pack second; the
-  other order only costs an ffmpeg re-encode (or the larger WAV) for those keys until the bridge rewrites the slot.
+  is installed, else the short one, else Pocket's), in `voices/prepared/`; a slot identical to the Runtime package's is not repeated.
+  A slot is keyed by the clip's hash (its signature), so the bridge (`createReferencePreparer`: `prepared/` first, then
+  `prepared-runtime/`, a hit only when the signature fits) finds the right one whichever folder holds it and whatever the extraction
+  order. With a mismatch it encodes the clip with ffmpeg (or sends the larger WAV) and writes the slot into `prepared/`; the Runtime's
+  folder is never written. (Until 0.2.1 the Runtime's slots were in `prepared/` too: 289 files that the OmniVoice pack also had, with other
+  bytes, which is what made Windows report 437 conflicts. See "Packs reused unchanged".)
 - The build needs `ffmpeg` on `PATH` (or `CYBERPUNK_CONVAI_FFMPEG`) and fails without it. The workflow installs it.
 - Slot files carry a fixed `written` time, so the same inputs give the same package.
+
+### Packs reused unchanged
+
+A new version rebuilds the Scripts and the Runtime, but the optional packs are several GB each, so a version that did not change them
+reuses the old zips as server-side copies under the new folder (0.2.1 and 0.2.2 hold the very bytes of 0.2). The Scripts and Runtime of
+the new version then meet OLD pack files in the player's game folder. If both carry a path with different bytes, Windows asks "Replace or
+skip?", and "Replace" puts an older file over a newer one (0.2.1: the OmniVoice pack's older voice lists over the Runtime's newer ones).
+
+**The rule: the Scripts and the Runtime never carry a path a published pack carries with other bytes.** Then Replace is always safe, which
+is what the install steps tell the player. A file both carry must be byte for byte the same (today only the install note). Whatever the Runtime has in a newer version than the pack's copy lives at a path the pack does not
+use, and the code looks there first:
+
+| Data | The pack's path (old copy, kept as the fallback) | The Runtime's path (read first) | Code |
+|---|---|---|---|
+| OmniVoice lists `local-voices.autobest-short.json` and `-long.json` | `app/omni/defaults/` | `app/defaults/` | `readOmniTemplate` in `packaging/runtime/prepare-state.mjs` |
+| Mistral voice slots (`<key>.json` + `<key>.ogg`) | `voices/prepared/` | `voices/prepared-runtime/` | `createReferencePreparer({shippedDirectories})` in `bridge/voxtral-reference.mjs` |
+
+The live-list pointer is not a shipped file: `voice-configs.json` in the data folder is rewritten at every start by `prepare-state.mjs`
+(Runtime), from the Runtime's list or the pack's. Nothing of it is in the Scripts. The state folder's copies of the lists are generated
+from the template, so a newer template reaches the bridge at the next start.
+
+Also true, and checked: the Runtime and Scripts put nothing in a tree only the OmniVoice pack writes (`app/omni/python/`, `voicestudio/`,
+`model/`); the 0.2.1 Runtime's three unused `voices/full-cast-draft/<key>/reference.wav` clips (coach-fred, jim-jarry, life-coach; the pack has them
+for its older lists) are left out (`RUNTIME_DROPS`); the five packs share files only byte for byte (the Local AI and Mature engine files, the licence texts); and
+the install note (`INSTALL_NOTE` in `build-release.mjs`) is the 574-byte text the Mature packs already contain, so it is fixed until
+the packs are rebuilt.
+
+**Checking a build.** `node packaging/check-pack-overlap.mjs check <zip>...` reads only the zip's directory and compares every shared path
+with `packaging/pack-listings/packs-0.2.1.json` (path, size and CRC-32 of the five 0.2.1 packs); it exits 1 and groups the offenders by
+folder. Run it on every Runtime and Scripts zip before upload. `packaging/pack-overlap.test.mjs` runs the same comparison on the real Scripts
+build and on the 0.2.1 Runtime's shared files (`runtime-0.2.1-shared.json`, to show the cause and the fix). When the packs are
+rebuilt, remake the listing from Hugging Face without downloading them (HTTP range requests: the directory of the 6.5 GB OmniVoice pack is
+3.5 MB; a URL is a pack's resolve/main/<version>/<file> link on the Hugging Face page, public, no token):
+
+```
+node packaging/check-pack-overlap.mjs listing packaging/pack-listings/packs-<version>.json OmniPack=<zip or URL> LocalAI-Standard=<zip or URL> LocalAI-Lite=<zip or URL> Mature-Standard=<zip or URL> Mature-Lite=<zip or URL>
+```
+
+**Checking what a Runtime must contain.** `node packaging/check-runtime-contents.mjs <Runtime zip>...` reads only the zip's directory and fails when V's voice clips (`voices/v-voice/`: the manifest and the clips `assets/v-voice/v-voice.json` names), `Make support report.bat` or the bridge modules it starts are missing (the names come from `packaging/lib/runtime-required.mjs`; the 0.2 and 0.2.1 Runtimes shipped without the clips, and 0.2.1 without the batch file). `packaging/test-release-install.mjs` checks the same on the extracted install and loads the clips with the packaged bridge's own loader. Run it beside the overlap check on every Runtime zip before upload; `packaging/runtime-contents.test.mjs` keeps both from drifting.
 
 ### Player state (`data/`)
 
@@ -241,6 +285,46 @@ ever modify or replace them (no player usvfs log was available; the design works
   companion, quit; Overwrite should hold only CET's `AiNpcCyberpunkMod.log` and the `state` files. Start again: the mod loads and
   talking works from the first turn.
 
+### Mod Organizer 2: the Runtime as a mod folder
+
+A player on the Ultraviolence modlist installed the Runtime and the Scripts as MO2 mods: no Runtime file is in the game folder, and the
+game read only the launcher's `starting` in `runtime/bridge-service.json`, for good. The Runtime's real place is then a mod folder in
+the MO2 instance (`mods\<name>\red4ext\plugins\AiNpcCyberpunkMod\...`); the launcher, `node.exe` and the service all reach it through
+USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `bridge/supervisor-lock-status.test.mjs`):
+
+- **No path comparison on the start path.** `installLayout` (`prepare-state.mjs`) takes the game's folders from `--game-root` and the
+  Runtime's from the script's own place; nothing resolves a link or compares a resolved path with the game root.
+  `packaging/runtime-layout.mjs` (`realpath`, "cannot redirect into another location") belongs to the bootstrap route
+  (`Runtime-Service.mjs`), which `launcher.ini` never starts. The voice workers' checks (`pocket-voice.mjs`, `phone-analysis-config.mjs`,
+  `resident-voice.mjs`) canonicalize both sides alike and run only once the bridge is up.
+- **A start never ends without a status.** `start-service.mjs` writes `runtime/bridge-service.json` from its first line, in place:
+  `starting` / `service-starting` with `source: "service"`, the `stage` it is in (`loading-modules`, `preparing`, `placing-packs`,
+  `preparing-state`, `loading-supervisor`) and a `view` (`usvfs no; Runtime outside the game folder; init.lua visible`, so the short
+  report carries what the service sees), refreshed every 5 s for at most 5 minutes while it prepares. Its own modules load inside a
+  guard, and an error nobody caught ends in `failed` with a `reason`: `install-incomplete` (a file is missing or cannot be read),
+  `service-error`, `game-folder-not-visible`. The reason is Node's error code and message with every path cut to its file name, 140
+  characters at most. The supervisor writes its own `starting` before it waits for the previous session's lock, and after 5 s of
+  waiting says `waiting-for-previous-service` (kept fresh by the heartbeat); its crash status carries a reason too.
+- **The service must see what the game sees.** The launcher starts the service only after it saw the CET mod's `init.lua`; a service
+  that cannot see it runs outside the virtual file system (or in another one), and nothing it writes under the game folder would reach
+  the game. It logs that and stops (`game-folder-not-visible`, exit code 3) without creating a folder in the game folder. Its first log
+  line, `View:`, says whether usvfs is loaded in the process, where the Runtime is relative to the game, and whether `init.lua` and
+  `runtime/` are visible.
+- **The game says what it can see** (`mod/service-status.lua`, Scripts only, works with any Runtime). A `starting` that only the launcher
+  or the start script wrote (`source` `launcher` or `service`) and nothing refreshed is a service coming up for 90 s and a service that
+  never came up after that: kind `failed`, code `service-silent`. The notice, a blocked talk and the Help row end with the status's
+  own words in brackets, in English: `(service-silent after launcher-started)`, `(install-incomplete at loading-modules: ERR_MODULE_NOT_FOUND: ...)`.
+  The short report's second line is `PROBLEM: the conversation service did not come up (...)` with where the logs are, and its
+  `service status` section prints `stage` and `reason`.
+- **Where to look.** `%LOCALAPPDATA%\AiNpcCyberpunkMod\data\bridge-service.log` (the `View:` line; the data home does not depend on MO2),
+  `bridge.stderr.log` beside it, and `launcher.log`: in the Runtime mod's folder (`mods\<Runtime mod>\red4ext\plugins\AiNpcCyberpunkMod\`)
+  because the packaged one is an existing file, or in `overwrite\red4ext\plugins\AiNpcCyberpunkMod\` when the Runtime has none. The
+  launcher takes `%PLUGIN%` from `GetModuleFileNameW` of its own DLL, which may be the virtual or the real path; both work while the
+  service is inside the virtual file system, and only the real one when it is not.
+- **Not done:** the launcher (native, `CyberpunkConvaiLauncher.c`) cannot say that the process it started ended at once, or with what
+  code; that needs a watcher thread and a rebuilt DLL. A service that runs outside the virtual file system cannot be made to talk to
+  the game by the Runtime alone.
+
 - **Override:** `CYBERPUNK_CONVAI_DATA_HOME` (an absolute path) is the folder that holds `data/`, for development or a player who
   wants it elsewhere; a relative value is ignored (one line in `bridge-service.log`). Without `%LOCALAPPDATA%` the data stays in the
   game folder as before. Two game installs on one Windows account share the folder; the generated files are rewritten on every start.
@@ -258,7 +342,7 @@ ever modify or replace them (no player usvfs log was available; the design works
 
 
 - **Generated, refreshed every start:** `pocket-voices.autobest.json` (absolute paths for this
-  install), the two OmniVoice configs (with the pack), `voice-configs.json`, `lipsync-model/`.
+  install), the two OmniVoice configs (with the pack; from the Runtime's `app/defaults/`, else the pack's `app/omni/defaults/`), `voice-configs.json`, `lipsync-model/`.
 - **Managed until edited:** `characters.json` and
   `multilingual-profiles.json` follow the package; once the player edits one it is kept
   (`package-defaults.json` remembers what was written).

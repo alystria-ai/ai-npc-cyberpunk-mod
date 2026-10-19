@@ -55,7 +55,7 @@ SPEAKING STYLE SAMPLE DIALOGUES (speaking_style_sample_dialogues)
 
 Give me the practical problem first.
 
-I studied chemistry. That does not make every unfamiliar machine my specialty.
+I studied chemistry. That doesn't make every unfamiliar machine my specialty.
 
 You can ask. I still get to decide how personal the answer becomes.
 
