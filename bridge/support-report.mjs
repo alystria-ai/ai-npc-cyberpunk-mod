@@ -49,15 +49,29 @@ const RULES = [
 const UUID = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
 const LONG_HEX = /\b[0-9a-f]{32,}\b/gi;
 const LONG_RUN = /[A-Za-z0-9+_=-]{40,}/g;
-const USER_PATH = /([A-Za-z]:[\\/]+Users[\\/]+)[^\\/\s"'<>|:*?]+/gi;
+// The Windows account name in a profile path, in every spelling a log uses: C:\Users\<name>, c:/users/<name>, \\?\C:\Users, \\host\c$\Users,
+// JSON-escaped (C:\\Users\\) and URL-encoded (C%3A%5CUsers%5C). A name with spaces ("John Smith") is taken whole up to the next separator, quote
+// or the end; past 64 characters with none, only its first word is (the old rule). A Windows account name never holds , ; = + [ ] or those.
+const PATH_SEPARATOR = String.raw`(?:[\\/]|%5c|%2f)`;
+const NOT_IN_NAME = String.raw`\r\n"'<>|:*?,;=+\[\]`;
+const USER_PATH = new RegExp(String.raw`((?:^|[\\/:]|%5c|%2f|%3a)Users${PATH_SEPARATOR}+)`
+  + String.raw`(?:[^\\/${NOT_IN_NAME}]{1,64}?(?=${PATH_SEPARATOR}|[${NOT_IN_NAME}]|$)|[^\\/\s"'<>|:*?]+)`, 'gi');
+const escapeRegExp = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 export const shortHash = value => createHash('sha256').update(String(value)).digest('hex').slice(0, 8);
 
-export function createRedactor({secrets = [], ids = []} = {}) {
+/**
+ * `accounts`: the player's Windows account names (offline report: %USERNAME% and the profile folder's name). Any path part that is exactly
+ * one of them becomes <user> as well, for a profile outside C:\Users or a folder named after the player (D:\Jane\Games\Cyberpunk 2077).
+ */
+export function createRedactor({secrets = [], ids = [], accounts = []} = {}) {
   const literal = [...new Set(secrets.filter(value => typeof value === 'string' && value.trim().length >= 6)
     .flatMap(value => [value, value.trim()]))].sort((a, b) => b.length - a.length);
   const known = [...new Set(ids.filter(value => typeof value === 'string' && value.length >= 6))].sort((a, b) => b.length - a.length);
   const stats = {secrets: 0, ids: 0, patterns: 0, paths: 0};
+  const names = [...new Set(accounts.filter(name => typeof name === 'string').map(name => name.trim())
+    .filter(name => name.length >= 2 && name.length <= 64 && !/[\\/\r\n]/.test(name)))].sort((a, b) => b.length - a.length);
+  const account = names.length ? new RegExp(String.raw`(^|${PATH_SEPARATOR})(?:${names.map(escapeRegExp).join('|')})(?=${PATH_SEPARATOR}|[\s${NOT_IN_NAME})]|$)`, 'gi') : null;
   const replaceAll = (text, needle, replacement, counter) => {
     if (!text.includes(needle)) return text;
     stats[counter] += text.split(needle).length - 1;
@@ -77,6 +91,7 @@ export function createRedactor({secrets = [], ids = []} = {}) {
       stats.patterns++; return '[token-redacted]';
     });
     value = value.replace(USER_PATH, (_, prefix) => { stats.paths++; return `${prefix}<user>`; });
+    if (account) value = value.replace(account, (_, prefix) => { stats.paths++; return `${prefix}<user>`; });
     return value;
   };
   const walk = (value, key = '', depth = 0) => {
@@ -460,12 +475,13 @@ function companionProviders({settings, voice, routing, party}) {
 /**
  * Builds the report in memory. Nothing is written here.
  *
- * Offline mode (Make support report.bat, bridge/offline-support-report.mjs: the game is closed and no service runs) passes four
+ * Offline mode (Make support report.bat, bridge/offline-support-report.mjs: the game is closed and no service runs) passes five
  * more options; the service never does, and without them nothing here changes:
  *   offline         true: the README and summary say the report was made with the game closed, and no bridge process is described
  *   logs            the located log list to use instead of locateLogs (the offline tool looks in more than one folder)
  *   extraProblems   more lines for the PROBLEM FOUND block, after the ones the status files give
  *   extraSummary    an object merged into summary.json (it goes through the same redactor as everything else)
+ *   accounts        the player's Windows account names, hidden in every path as well (createRedactor)
  */
 export async function collectReport(options) {
   const {game, runtime, stateDirectory, project, request, now = Date.now, bridge = {}, environment = process.env} = options;
@@ -475,7 +491,7 @@ export async function collectReport(options) {
   const graphicsSource = options.graphics ?? (() => cachedGraphicsCards());
   const graphicsPending = Promise.resolve().then(() => typeof graphicsSource === 'function' ? graphicsSource() : graphicsSource).catch(() => []);
   const secrets = [...(options.secrets ?? []), ...await credentialSecrets(stateDirectory), ...await customServerSecrets({project: project ?? resolve(runtime, '..'), environment})];
-  const redact = createRedactor({secrets, ids: options.knownIds ?? []});
+  const redact = createRedactor({secrets, ids: options.knownIds ?? [], accounts: Array.isArray(options.accounts) ? options.accounts : []});
   const logs = Array.isArray(options.logs) ? options.logs : await locateLogs({game, modRoot, runtime, stateDirectory});
   const lua = sanitizeRequest(request ?? {});
   const entries = [], index = [], errors = [];
