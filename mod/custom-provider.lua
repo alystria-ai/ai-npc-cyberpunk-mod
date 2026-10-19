@@ -16,7 +16,8 @@ local M = {version = 1}
 local COMMAND, STATE = 'runtime/custom-provider-command.json', 'runtime/custom-provider-state.json'
 local READ_EVERY = 1.5
 -- A test still "running" this long after it was sent (the service stopped, the game was reloaded under it) is no longer shown as running.
-local TEST_STALE = 60
+-- Longer than the longest real test: a server on this computer gets 90 s, and once more as long when it refuses a request field.
+local TEST_STALE = 200
 
 -- The field each command changes; `test` changes none.
 local FIELD_OF = {['paste-url'] = 'url', ['clear-url'] = 'url', ['paste-key'] = 'key', ['clear-key'] = 'key',

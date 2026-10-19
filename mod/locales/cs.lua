@@ -969,7 +969,7 @@ return {
     ["The custom provider did not accept your key. Check it in Settings > Conversation provider."] = "Vlastní klíč nebyl přijat. Zkontroluj ho v Nastavení > Poskytovatel konverzací.",
     ["The custom provider did not answer. Check its address in Settings, or try again."] = "Vlastní poskytovatel neodpověděl. Zkontroluj adresu v Nastavení nebo zkus znovu.",
     ["The custom provider does not know that model ID. Check it in Settings."] = "Vlastní poskytovatel toto ID modelu nezná. Zkontroluj ho v Nastavení.",
-    ["The custom provider is not set up, so Convai is used. Add its URL and model ID in Settings."] = "Vlastní poskytovatel není nastaven, běží Convai. Doplň URL a ID v Nastavení.",
+    ["The custom provider is not set up, so Convai is used. Add its URL and model ID in Settings."] = "Vlastní poskytovatel není nastaven, běží Convai. Doplň URL a ID modelu v Nastavení.",
     ["The custom provider is rate limiting you. Try again in a moment."] = "Vlastní poskytovatel omezuje počet dotazů. Zkus to za chvíli.",
     ["The custom provider says your account is out of credits. Add credits there, then try again."] = "Vlastní poskytovatel hlásí, že na účtu došly kredity. Dobij je a zkus to znovu.",
     ["The endpoint URL was removed."] = "Adresa endpointu byla odstraněna.",
