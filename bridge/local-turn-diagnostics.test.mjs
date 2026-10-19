@@ -724,6 +724,92 @@ test('the chat model starts at normal priority, stays there through the warm-up,
   assert.doesNotMatch(refused.logs.find(line => line.startsWith('[local] model ready:')), /process priority/);
 });
 
+const NORMAL = osConstants.priority.PRIORITY_NORMAL;
+
+test('LlamaProcess.raise: only a process that was lowered goes back to normal, a refusal is not an error', async t => {
+  const directory = mkdtempSync(join(tmpdir(), 'llama-raise-'));
+  t.after(() => rmSync(directory, {recursive: true, force: true}));
+  const calls = [];
+  const proc = new LlamaProcess({command: process.execPath, argsPrefix: [FAKE], tmpDir: directory, pollMs: 20, startupMs: 180_000, lowerAfter: 'ready',
+    setPriorityImpl: (pid, level) => calls.push(level),
+    buildArgs: ({port, keyFile}) => ['--host', '127.0.0.1', '--port', String(port), '--api-key-file', keyFile, '-m', 'x.gguf']});
+  t.after(() => proc.stop());
+  assert.equal(proc.raise(), false, 'no child');
+  await proc.start();
+  assert.equal(proc.raise(), false, 'still at normal: nothing to raise'); assert.deepEqual(calls, []);
+  assert.equal(proc.lower(), true); assert.equal(proc.raise(), true);
+  assert.equal(proc.raise(), false, 'already raised'); assert.deepEqual(calls, [BELOW_NORMAL, NORMAL]);
+  const refused = new LlamaProcess({command: process.execPath, argsPrefix: [FAKE], tmpDir: directory, pollMs: 20, startupMs: 180_000,
+    setPriorityImpl: (pid, level) => { if (level === NORMAL) throw Error('access denied'); },
+    buildArgs: ({port, keyFile}) => ['--host', '127.0.0.1', '--port', String(port), '--api-key-file', keyFile, '-m', 'x.gguf']});
+  t.after(() => refused.stop());
+  await refused.start();
+  assert.equal(refused.raise(), false, 'a priority is an optimisation, never a failure');
+});
+
+// The hold on the priority (a delay of exactly HOLD ms) runs on a clock the test advances; every other timer is the real one.
+const HOLD = 777;
+function heldClock() {
+  const held = new Map(); let sequence = 0;
+  return {
+    setTimer: (callback, ms) => { if (ms !== HOLD) return setTimeout(callback, ms); const id = {held: ++sequence}; held.set(id, callback); return id; },
+    clearTimer: id => { if (id?.held) held.delete(id); else clearTimeout(id); },
+    get pending() { return held.size; },
+    fire() { const callbacks = [...held.values()]; held.clear(); for (const callback of callbacks) callback(); },
+  };
+}
+
+test('the ready chat model runs at normal priority while a turn waits on it and below normal otherwise; a warm-up or background work never raises it', async t => {
+  const timeline = [];
+  const clock = heldClock();
+  const made = rig(t, {setTimer: clock.setTimer, clearTimer: clock.clearTimer, processExtra: {setPriorityImpl: (pid, level) => timeline.push(level)}});
+  const server = made.server;
+  server.priorityHoldMs = HOLD;
+  await server.ensure();
+  assert.deepEqual(timeline, [BELOW_NORMAL], 'lowered once it is ready, as before');
+  // A warm-up and background memory work are not a player waiting.
+  await server.prewarm([{role: 'user', content: 'hi'}]);
+  server.begin({background: true})();
+  assert.deepEqual(timeline, [BELOW_NORMAL]); assert.equal(clock.pending, 0);
+  // A turn: raised at once, and for the hold after the last request that ends.
+  const turn = server.begin();
+  assert.deepEqual(timeline, [BELOW_NORMAL, NORMAL]);
+  const second = server.begin();   // the action decision beside the reply
+  assert.deepEqual(timeline, [BELOW_NORMAL, NORMAL], 'one raise for overlapping requests');
+  turn(); assert.equal(clock.pending, 0, 'a request is still in flight: no hold started');
+  second(); assert.equal(clock.pending, 1);
+  assert.deepEqual(timeline, [BELOW_NORMAL, NORMAL], 'the hold has not passed yet');
+  // The next turn arrives inside the hold: it stays raised, and the old hold is gone.
+  const next = server.begin(); assert.equal(clock.pending, 0, 'the earlier hold was cancelled');
+  next(); assert.equal(clock.pending, 1);
+  clock.fire();
+  assert.deepEqual(timeline, [BELOW_NORMAL, NORMAL, BELOW_NORMAL], 'lowered once, after the hold that follows the last request');
+  // Idle again, then another turn raises it again.
+  server.begin()(); assert.deepEqual(timeline.slice(-1), [NORMAL]);
+  clock.fire();
+  assert.deepEqual(timeline.slice(-2), [NORMAL, BELOW_NORMAL]);
+  // A hold that fires while a request is in flight does nothing (a request that began after the timer was already due).
+  const late = server.begin(); late(); const again = server.begin(); clock.fire();
+  assert.deepEqual(timeline.slice(-1), [NORMAL], 'the request that began is still waiting'); again();
+});
+
+test('a hold that is running when the model is stopped never reaches the next process', async t => {
+  const timeline = [];
+  const clock = heldClock();
+  const made = rig(t, {setTimer: clock.setTimer, clearTimer: clock.clearTimer, processExtra: {setPriorityImpl: (pid, level) => timeline.push({pid, level})}});
+  const server = made.server;
+  server.priorityHoldMs = HOLD;
+  await server.ensure();
+  server.begin()();
+  assert.equal(clock.pending, 1);
+  await server.stop();
+  assert.equal(clock.pending, 0, 'the hold went with the process');
+  await server.ensure();
+  clock.fire();
+  assert.equal(timeline.filter(row => row.level === BELOW_NORMAL).length, 2, 'each process is lowered at its own ready, once');
+  assert.equal(timeline.filter(row => row.level === NORMAL).length, 1, 'only the first process was raised');
+});
+
 // ---- together with the first-turn provider rules (no-reply reasons) and the custom provider ---------------------------------------------------
 
 test('a turn that fails on a started model keeps its own reason when Local AI is down for the others: one code, one notice, never a second from the timeout', async () => {

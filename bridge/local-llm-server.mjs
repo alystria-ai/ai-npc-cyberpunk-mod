@@ -249,7 +249,7 @@ function startError(code, message) {
 // `command` + `argsPrefix` let tests run `node fake-llama-server.mjs ...` instead of an .exe.
 export class LlamaProcess extends EventEmitter {
   #key = null; #keyDir = null; #child = null; #port = 0; #startPromise = null;
-  #exited = false; #expected = false; #healthy = false; #tail = '';
+  #exited = false; #expected = false; #healthy = false; #tail = ''; #lowered = false;
   #exitPromise; #resolveExit; #settleWait = null;
 
   constructor({command, argsPrefix = [], buildArgs, spawnImpl = spawn, fetchImpl = fetch, startupMs = LOCAL_LLM_LIMITS.startupMs,
@@ -274,7 +274,15 @@ export class LlamaProcess extends EventEmitter {
   lower() {
     const pid = this.#child?.pid;
     if (!this.lowerPriority || !pid || this.#exited) return false;
-    try { this.setPriorityImpl(pid, osConstants.priority.PRIORITY_BELOW_NORMAL); return true; } catch { return false; }
+    try { this.setPriorityImpl(pid, osConstants.priority.PRIORITY_BELOW_NORMAL); this.#lowered = true; return true; } catch { return false; }
+  }
+
+  // Back to normal priority while a turn waits on the child (a below-normal process starves for seconds when the game keeps every core busy, and
+  // the game's foreground time slices are longer still). True when it was lowered and is now at normal; a refusal leaves it as it was.
+  raise() {
+    const pid = this.#child?.pid;
+    if (!this.#lowered || !pid || this.#exited) return false;
+    try { this.setPriorityImpl(pid, osConstants.priority.PRIORITY_NORMAL); this.#lowered = false; return true; } catch { return false; }
   }
 
   // The last few KB of the child's output, for diagnostics only. The key is redacted.
@@ -442,6 +450,9 @@ export class LocalLlmServer extends EventEmitter {
   #proc = null; #info = null; #starting = null; #generation = 0; #inflight = 0; #idleTimer = null;
   #keyNoted = false; #warmed = new Set(); #contextSize = 0; #modelId = null; #reselectPending = false; #hints = null; #totalMiB = null; #lastFreeMiB = null; #failedPin = null; #broken = new Map();
   #loaded = null; #lastExit = null; #lastTurn = null; #turns = {ok: 0, failed: 0, sinceStart: 0}; #prewarming = null;
+  // The ready server runs below normal priority so the game keeps its CPU, but a request in flight (and priorityHoldMs after the last one) runs at normal:
+  // the server's own thread feeds the graphics card and streams the reply, and a game that keeps every core busy starved it for seconds.
+  priorityHoldMs = 5000; #raised = false; #holdTimer = null;
 
   // command/argsPrefix replace pack.server when spawning (tests); processOptions go to LlamaProcess (tests).
   // contextSize: a fixed context (tests, CYBERPUNK_CONVAI_LOCAL_CTX); without it each start takes the ladder's largest that fits.
@@ -773,6 +784,7 @@ export class LocalLlmServer extends EventEmitter {
     // Loaded and warm (the shader compile of a first start and the first prompts are CPU work too): now the game gets the CPU back, and generation, which
     // runs on the graphics card, keeps its speed at the lower priority.
     this.#loaded.priority = proc.lower() ? 'below-normal' : 'normal';
+    this.#raised = false;
     this.#loaded.readyAt = this.now();
     this.#setState('ready');
     this.#arm();
@@ -999,7 +1011,7 @@ export class LocalLlmServer extends EventEmitter {
     // While starting or warming, #startOnce sees the death itself.
     if (this.#state !== 'ready') return;
     this.#proc = null; this.#info = null;
-    this.#disarm();
+    this.#disarm(); this.#dropHold();
     this.log('[local] llama-server stopped unexpectedly (exit ' + (code ?? signal ?? '?') + ')');
     this.#logTail(proc, 'it stopped unexpectedly');
     this.emit('diagnostics', this.diagnostics());
@@ -1013,17 +1025,37 @@ export class LocalLlmServer extends EventEmitter {
   touch() { if (this.#state === 'ready') this.#arm(); }
 
   // Marks a request in flight (blocks the idle stop). Returns a one-shot release function; end() is the manual form.
-  begin() {
+  // `background`: work no player is waiting on (a persona warm-up, the memory work after a reply) does not raise the child's priority.
+  begin({background = false} = {}) {
     this.#inflight++;
     this.#disarm();
+    if (!background) this.#raise();
     let released = false;
     return () => { if (!released) { released = true; this.end(); } };
   }
   end() {
     if (this.#inflight > 0) this.#inflight--;
-    if (this.#inflight === 0) { this.touch(); if (this.#reselectPending) void this.#reloadIfIdle(); }
+    if (this.#inflight === 0) { this.#holdThenLower(); this.touch(); if (this.#reselectPending) void this.#reloadIfIdle(); }
   }
   get inflight() { return this.#inflight; }
+
+  // A request starts: the child runs at normal priority until priorityHoldMs after the last one ends (two system calls per turn, nothing per frame).
+  #raise() {
+    if (this.#holdTimer) { this.clearTimer(this.#holdTimer); this.#holdTimer = null; }
+    const proc = this.#proc;
+    if (!this.#raised && proc?.raise()) this.#raised = true;
+  }
+  #holdThenLower() {
+    if (!this.#raised) return;
+    if (this.#holdTimer) this.clearTimer(this.#holdTimer);
+    this.#holdTimer = this.setTimer(() => {
+      this.#holdTimer = null;
+      if (this.#inflight > 0 || !this.#raised) return;
+      this.#raised = false;
+      this.#proc?.lower();
+    }, this.priorityHoldMs);
+    this.#holdTimer?.unref?.();
+  }
 
   #arm() {
     this.#disarm();
@@ -1032,10 +1064,13 @@ export class LocalLlmServer extends EventEmitter {
     this.#idleTimer?.unref?.();
   }
   #disarm() { if (this.#idleTimer) this.clearTimer(this.#idleTimer); this.#idleTimer = null; }
+  // The hold on the child's priority belongs to the child that was raised: it goes with it (stopped, died, idle) and never reaches a later one.
+  #dropHold() { if (this.#holdTimer) this.clearTimer(this.#holdTimer); this.#holdTimer = null; this.#raised = false; }
 
   #idleFire() {
     this.#idleTimer = null;
     if (this.#state !== 'ready' || this.#inflight > 0) return;
+    this.#dropHold();
     const proc = this.#proc; this.#proc = null; this.#info = null;
     this.#setState('stopped');
     this.log('[local] idle: stopping the local model server');
@@ -1059,7 +1094,7 @@ export class LocalLlmServer extends EventEmitter {
       if (this.#prewarming) return false;   // the same character's persona is already being read: a second request would only queue behind it
       mine = {key, controller: new AbortController()};
       this.#prewarming = mine;
-      release = this.begin();
+      release = this.begin({background: true});
       await this.#complete(info, messages, {signal: mine.controller.signal});
       return true;
     } catch (error) {
@@ -1090,7 +1125,7 @@ export class LocalLlmServer extends EventEmitter {
   async stop() {
     this.#generation++;
     this.#reselectPending = false;   // the next start reads the current choice itself
-    this.#disarm();
+    this.#disarm(); this.#dropHold();
     const proc = this.#proc; this.#proc = null; this.#info = null;
     if (this.#state !== 'failed') this.#setState('stopped');
     this.#starting = null;
@@ -1100,7 +1135,7 @@ export class LocalLlmServer extends EventEmitter {
   // For process exit handlers: no awaiting.
   killSync() {
     this.#generation++;
-    this.#disarm();
+    this.#disarm(); this.#dropHold();
     const proc = this.#proc; this.#proc = null; this.#info = null;
     if (this.#state !== 'failed') this.#state = 'stopped';
     this.#starting = null;

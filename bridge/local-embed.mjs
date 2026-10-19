@@ -104,6 +104,7 @@ export class LlamaEmbedder {
     this.#disarm();
     try {
       const proc = await this.#ensure(signal);
+      proc.raise();   // a query is a turn waiting on this one thread: normal priority for its few milliseconds
       const result = [];
       for (let from = 0; from < list.length; from += LOCAL_EMBED_LIMITS.batch)
         result.push(...await this.#request(proc, list.slice(from, from + LOCAL_EMBED_LIMITS.batch), signal));
@@ -114,6 +115,7 @@ export class LlamaEmbedder {
       throw embedError('embedding failed (' + (error?.code || error?.name || 'error') + ')', error);
     } finally {
       this.#inflight--;
+      if (this.#inflight === 0) this.#proc?.lower();
       this.#arm();
     }
   }
@@ -124,11 +126,15 @@ export class LlamaEmbedder {
       const generation = this.#generation;
       const proc = new LlamaProcess({command: this.command, argsPrefix: this.argsPrefix, spawnImpl: this.spawnImpl,
         fetchImpl: this.fetchImpl, startupMs: this.startupMs, log: this.log, label: 'embedding llama-server',
+        // It loads at normal priority (one thread at below normal did not get the time to load the model under a busy game) and is lowered once it
+        // is up, then raised for the milliseconds of each query (embed()).
+        lowerAfter: 'ready',
         buildArgs: ({port, keyFile}) => buildEmbedArgs({model: this.pack.embed.file, port, keyFile, threads: this.threads}),
         env: {OMP_NUM_THREADS: String(this.threads)}, ...this.processOptions});
       const starting = proc.start().then(() => {
         if (generation !== this.#generation) { proc.stop().catch(() => {}); throw embedError('the embedder was closed'); }
         this.#proc = proc;
+        proc.lower();
         proc.once('exit', () => { if (this.#proc === proc) { this.#proc = null; this.#disarm(); } });
         return proc;
       }, async error => {

@@ -104,6 +104,45 @@ def lower_priority(level: str = "below") -> None:
         log(f"priority not lowered: {error}")
 
 
+class PriorityGate:
+    """The recording being decoded is a player waiting: from `begin` until `hold` seconds after the last message the worker runs at
+    normal priority (Windows only: a raised nice value needs privileges elsewhere), and goes back to `base` while it waits for
+    the next recording. A game that keeps every core busy starves a below-normal decode for seconds, which is the wait after the
+    key is let go. Two system calls per recording, nothing per frame. With --priority normal it never changes anything."""
+
+    def __init__(self, base="below", hold=3.0, clock=time.monotonic, apply=None):
+        self.base, self.hold, self.clock = base, hold, clock
+        self.apply = apply or (lambda level: set_priority(level))
+        self.raised = False
+        self.last = 0.0
+
+    def active(self):
+        self.last = self.clock()
+        if self.base != "normal" and not self.raised and self.apply("normal"):
+            self.raised = True
+
+    def settle(self):
+        if self.raised and self.clock() - self.last >= self.hold:
+            self.apply(self.base)
+            self.raised = False
+
+    def timeout(self):
+        """How long the worker may wait for a message before settle() is due (None: forever)."""
+        return max(0.05, self.hold - (self.clock() - self.last)) if self.raised else None
+
+
+def set_priority(level: str) -> bool:
+    """Sets this process's Windows priority class to a PRIORITY_CLASSES level. Best effort; False off Windows or when refused."""
+    try:
+        if os.name != "nt":
+            return False
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        return bool(kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), PRIORITY_CLASSES[level]))
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def frame_levels(samples):
     """dBFS of every 30 ms frame."""
     import numpy as np
@@ -500,10 +539,16 @@ def main() -> int:
     send({"type": "ready", "engine": ENGINE if args.kind == "moonshine" else os.path.basename(os.path.normpath(args.model)), "kind": args.kind, "threads": threads, "loadMs": round((time.perf_counter() - started) * 1000)})
     messages: "queue.Queue[dict | None]" = queue.Queue()
     threading.Thread(target=reader, args=(messages,), daemon=True).start()
+    gate = PriorityGate(args.priority)
     while True:
-        first = messages.get()
+        try:
+            first = messages.get(timeout=gate.timeout())
+        except queue.Empty:
+            gate.settle()
+            continue
         if first is None:
             return 0
+        gate.active()
         batch = [first]
         while True:
             try:
