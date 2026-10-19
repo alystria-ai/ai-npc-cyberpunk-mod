@@ -47,7 +47,7 @@
     ]
   },
   "counts": {
-    "strings": 987,
+    "strings": 988,
     "dynamicTemplates": 57,
     "contexts": 36
   },
@@ -764,6 +764,7 @@
     "The conversation service cannot reach {host}. Allow Node.js through your firewall or antivirus (Windows asks once; choose Allow), check your internet, then restart the game.": "The conversation service cannot reach {host}. Allow Node.js through your firewall or antivirus (Windows asks once; choose Allow), check your internet, then restart the game.",
     "The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.": "The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.",
     "The conversation service could not start. Restart the game, or see Help in Settings.": "The conversation service could not start. Restart the game, or see Help in Settings.",
+    "The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Download the Runtime for the same version and extract it into the Cyberpunk 2077 folder, then restart the game.": "The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Download the Runtime for the same version and extract it into the Cyberpunk 2077 folder, then restart the game.",
     "The conversation service did not answer. Wait a moment, then invite again.": "The conversation service did not answer. Wait a moment, then invite again.",
     "The conversation service did not start. Is the Runtime installed? See Help in Settings.": "The conversation service did not start. Is the Runtime installed? See Help in Settings.",
     "The conversation service is not running, so nothing can be tested. Restart the game.": "The conversation service is not running, so nothing can be tested. Restart the game.",
@@ -1028,7 +1029,7 @@
     "{name}: invite queued.": "{name}: invite queued.",
     "{name}: preparation failed. Cancel and invite again.": "{name}: preparation failed. Cancel and invite again.",
     "{name}: {reason}": "{name}: {reason}",
-    "{packs} is one folder too deep, in {folder}. Move the red4ext folder inside it into the Cyberpunk 2077 folder, then restart the game.": "{packs} is one folder too deep, in {folder}. Move the red4ext folder inside it into the Cyberpunk 2077 folder, then restart the game.",
+    "{packs} is one folder too deep, in {folder}. Restart the game and the mod moves it into place. If it is still there afterwards, move the red4ext folder inside it into the Cyberpunk 2077 folder.": "{packs} is one folder too deep, in {folder}. Restart the game and the mod moves it into place. If it is still there afterwards, move the red4ext folder inside it into the Cyberpunk 2077 folder.",
     "{plan}, {price} a month": "{plan}, {price} a month",
     "{plan}, {price} a year": "{plan}, {price} a year",
     "{requested} is not ready yet. Companions are using {voice} for now.": "{requested} is not ready yet. Companions are using {voice} for now.",
@@ -2060,6 +2061,7 @@
       "The conversation service cannot reach {host}. Allow Node.js through your firewall or antivirus (Windows asks once; choose Allow), check your internet, then restart the game.",
       "The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.",
       "The conversation service could not start. Restart the game, or see Help in Settings.",
+      "The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Download the Runtime for the same version and extract it into the Cyberpunk 2077 folder, then restart the game.",
       "The conversation service did not answer. Wait a moment, then invite again.",
       "The conversation service did not start. Is the Runtime installed? See Help in Settings.",
       "The conversation service is not running, so nothing can be tested. Restart the game.",
@@ -2218,7 +2220,7 @@
       "{name}: invitation cancelled.",
       "{name}: preparation failed. Cancel and invite again.",
       "{name}: {reason}",
-      "{packs} is one folder too deep, in {folder}. Move the red4ext folder inside it into the Cyberpunk 2077 folder, then restart the game.",
+      "{packs} is one folder too deep, in {folder}. Restart the game and the mod moves it into place. If it is still there afterwards, move the red4ext folder inside it into the Cyberpunk 2077 folder.",
       "{plan}, {price} a month",
       "{plan}, {price} a year",
       "{requested} is not ready yet. Companions are using {voice} for now.",
@@ -2369,7 +2371,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:520"
+        "mod/setup-check.lua:554"
       ]
     },
     "A previous memory request could not be read. The memory service must reconcile it before another clear.": {
@@ -2557,7 +2559,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:345"
+        "mod/setup-check.lua:354"
       ]
     },
     "An AutoDrive journey is already active.": {
@@ -2814,8 +2816,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:399",
-        "mod/setup-check.lua:401"
+        "mod/setup-check.lua:414",
+        "mod/setup-check.lua:416"
       ]
     },
     "Buy": {
@@ -3513,8 +3515,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:366",
-        "mod/setup-check.lua:515"
+        "mod/setup-check.lua:378",
+        "mod/setup-check.lua:549"
       ]
     },
     "Companion Manager": {
@@ -4671,7 +4673,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:314"
+        "mod/setup-check.lua:323"
       ]
     },
     "Found: {list}.": {
@@ -4679,9 +4681,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:390",
-        "mod/setup-check.lua:399",
-        "mod/setup-check.lua:427"
+        "mod/setup-check.lua:405",
+        "mod/setup-check.lua:414",
+        "mod/setup-check.lua:454"
       ]
     },
     "Free": {
@@ -4713,7 +4715,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:348"
+        "mod/setup-check.lua:357"
       ]
     },
     "Gamer Pro, monthly": {
@@ -4826,7 +4828,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:426"
+        "mod/setup-check.lua:453"
       ]
     },
     "Group chat needs two characters nearby. Use private chat for one person.": {
@@ -4950,7 +4952,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:516"
+        "mod/setup-check.lua:550"
       ]
     },
     "Install or update: {names}. Then restart the game.": {
@@ -4958,7 +4960,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:512"
+        "mod/setup-check.lua:546"
       ]
     },
     "Installed character models": {
@@ -4992,7 +4994,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:417"
+        "mod/setup-check.lua:444"
       ]
     },
     "Invalid Mature content settings.": {
@@ -5304,7 +5306,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:356"
+        "mod/setup-check.lua:365"
       ]
     },
     "Loading": {
@@ -5347,7 +5349,7 @@
       "references": [
         "mod/mcm.lua:1677",
         "mod/mcm.lua:868",
-        "mod/setup-check.lua:405"
+        "mod/setup-check.lua:429"
       ]
     },
     "Local AI could not answer that one, so a cloud provider did.": {
@@ -5387,7 +5389,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:413"
+        "mod/setup-check.lua:440"
       ]
     },
     "Local AI found no graphics card it can use. It needs an NVIDIA or AMD card with a current driver. Update the driver, or choose another conversation provider.": {
@@ -5395,7 +5397,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:412"
+        "mod/setup-check.lua:439"
       ]
     },
     "Local AI is ready.": {
@@ -5404,7 +5406,7 @@
       ],
       "references": [
         "mod/mcm.lua:136",
-        "mod/setup-check.lua:407"
+        "mod/setup-check.lua:431"
       ]
     },
     "Local AI is warming up…": {
@@ -5413,7 +5415,7 @@
       ],
       "references": [
         "mod/mcm.lua:135",
-        "mod/setup-check.lua:408"
+        "mod/setup-check.lua:432"
       ]
     },
     "Local AI model": {
@@ -5562,7 +5564,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:343"
+        "mod/setup-check.lua:352"
       ]
     },
     "Missing: {names}. Install them and restart the game.": {
@@ -5570,7 +5572,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:513"
+        "mod/setup-check.lua:547"
       ]
     },
     "Mistral (free plan)": {
@@ -5672,7 +5674,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:432"
+        "mod/setup-check.lua:459"
       ]
     },
     "Mod files": {
@@ -5680,7 +5682,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:341"
+        "mod/setup-check.lua:350"
       ]
     },
     "Mod logs": {
@@ -5705,7 +5707,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:431"
+        "mod/setup-check.lua:458"
       ]
     },
     "Model ID: {model}": {
@@ -5769,7 +5771,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:392"
+        "mod/setup-check.lua:407"
       ]
     },
     "Multilingual conversations": {
@@ -5886,7 +5888,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:409"
+        "mod/setup-check.lua:435"
       ]
     },
     "No clear, reachable companion space on this floor. Move to a wider spot and try again.": {
@@ -5992,7 +5994,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:323"
+        "mod/setup-check.lua:332"
       ]
     },
     "No speech was heard. Wait for Listening, then speak before you finish.": {
@@ -6009,7 +6011,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:434"
+        "mod/setup-check.lua:461"
       ]
     },
     "None installed. They are optional.": {
@@ -6017,7 +6019,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:390"
+        "mod/setup-check.lua:405"
       ]
     },
     "None yet": {
@@ -6069,7 +6071,7 @@
       ],
       "references": [
         "mod/mcm.lua:137",
-        "mod/setup-check.lua:410"
+        "mod/setup-check.lua:437"
       ]
     },
     "Not enough memory": {
@@ -6093,7 +6095,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:418"
+        "mod/setup-check.lua:445"
       ]
     },
     "Not running": {
@@ -6101,9 +6103,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:323",
-        "mod/setup-check.lua:326",
-        "mod/setup-check.lua:329",
+        "mod/setup-check.lua:332",
+        "mod/setup-check.lua:335",
+        "mod/setup-check.lua:338",
         "mod/support-report.lua:360"
       ]
     },
@@ -6120,7 +6122,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:406"
+        "mod/setup-check.lua:430"
       ]
     },
     "Not your conversation provider. Choose it in Settings > Conversation provider.": {
@@ -6128,7 +6130,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:406"
+        "mod/setup-check.lua:430"
       ]
     },
     "Note": {
@@ -6136,7 +6138,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:303"
+        "mod/setup-check.lua:312"
       ]
     },
     "Nothing yet.": {
@@ -6153,7 +6155,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:309",
-        "mod/setup-check.lua:301"
+        "mod/setup-check.lua:310"
       ]
     },
     "Off": {
@@ -6248,7 +6250,7 @@
       ],
       "references": [
         "mod/mcm.lua:1669",
-        "mod/setup-check.lua:411"
+        "mod/setup-check.lua:438"
       ]
     },
     "Only https:// works outside this computer and your home network.": {
@@ -6278,7 +6280,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:510"
+        "mod/setup-check.lua:544"
       ]
     },
     "Opened in your browser.": {
@@ -6358,7 +6360,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:380"
+        "mod/setup-check.lua:395"
       ]
     },
     "Ordinary": {
@@ -6725,7 +6727,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:302"
+        "mod/setup-check.lua:311"
       ]
     },
     "Problems found: {count}. Select a line marked Problem to read what to do.": {
@@ -6749,7 +6751,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:361"
+        "mod/setup-check.lua:370"
       ]
     },
     "RED4ext logs": {
@@ -6782,7 +6784,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:419"
+        "mod/setup-check.lua:446"
       ]
     },
     "React to battles": {
@@ -7136,8 +7138,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:375",
-        "mod/setup-check.lua:376"
+        "mod/setup-check.lua:387",
+        "mod/setup-check.lua:388",
+        "mod/setup-check.lua:391"
       ]
     },
     "Scripts {scripts} and Runtime {runtime} do not match. Download both for the same version and extract them into the Cyberpunk 2077 folder.": {
@@ -7145,7 +7148,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:375"
+        "mod/setup-check.lua:387"
       ]
     },
     "Scripts {scripts} and Runtime {runtime}.": {
@@ -7153,7 +7156,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:376"
+        "mod/setup-check.lua:388"
       ]
     },
     "Search a character by name. Each invitation reserves a place and starts preparation immediately.": {
@@ -7437,7 +7440,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:517"
+        "mod/setup-check.lua:551"
       ]
     },
     "Some model records could not be read.": {
@@ -7453,7 +7456,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:388"
+        "mod/setup-check.lua:403"
       ]
     },
     "Speaking rules": {
@@ -7938,7 +7941,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:326"
+        "mod/setup-check.lua:335"
       ]
     },
     "The Scripts and Runtime versions do not match. Install the same version of both.": {
@@ -7946,7 +7949,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:519"
+        "mod/setup-check.lua:553"
       ]
     },
     "The account is out of credits. Add credits with your provider.": {
@@ -8198,7 +8201,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:521"
+        "mod/setup-check.lua:555"
       ]
     },
     "The conversation service cannot reach {host}. Allow Node.js through your firewall or antivirus (Windows asks once; choose Allow), check your internet, then restart the game.": {
@@ -8206,7 +8209,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:421"
+        "mod/setup-check.lua:448"
       ]
     },
     "The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.": {
@@ -8214,7 +8217,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:329"
+        "mod/setup-check.lua:338"
       ]
     },
     "The conversation service could not start. Restart the game, or see Help in Settings.": {
@@ -8223,6 +8226,14 @@
       ],
       "references": [
         "mod/service-status.lua:165"
+      ]
+    },
+    "The conversation service did not answer the setup check, so its Runtime is probably older than these Scripts. Download the Runtime for the same version and extract it into the Cyberpunk 2077 folder, then restart the game.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/setup-check.lua:391"
       ]
     },
     "The conversation service did not answer. Wait a moment, then invite again.": {
@@ -8238,7 +8249,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:518"
+        "mod/setup-check.lua:552"
       ]
     },
     "The conversation service is not running, so nothing can be tested. Restart the game.": {
@@ -8289,7 +8300,7 @@
         "mod/mcm.lua:2094",
         "mod/mcm.lua:2220",
         "mod/service-status.lua:163",
-        "mod/setup-check.lua:401"
+        "mod/setup-check.lua:416"
       ]
     },
     "The conversation service needs your Convai API key. Add it, then restart the game.": {
@@ -8581,7 +8592,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:353"
+        "mod/setup-check.lua:362"
       ]
     },
     "The game’s own named characters, such as Judy, Jackie, Panam and Rogue, answer when you talk to them where they stand. They use their own voice and memory, and their face follows what they say.\n\nNothing else about them changes: they do not turn, move, gesture or follow. They do not answer during scenes, quest conversations, fights or rides.\n\nTakes effect after you reload your save.": {
@@ -8876,7 +8887,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:420"
+        "mod/setup-check.lua:447"
       ]
     },
     "This address is not encrypted, which is fine on your own computer or home network.": {
@@ -8974,7 +8985,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:364"
+        "mod/setup-check.lua:376"
       ]
     },
     "This setting must be on or off.": {
@@ -9150,7 +9161,7 @@
       ],
       "references": [
         "mod/mcm.lua:740",
-        "mod/setup-check.lua:304",
+        "mod/setup-check.lua:313",
         "mod/support-report.lua:361"
       ]
     },
@@ -9300,8 +9311,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:313",
-        "mod/setup-check.lua:349"
+        "mod/setup-check.lua:322",
+        "mod/setup-check.lua:358"
       ]
     },
     "Version {version}. The mod is tested on 2.31 only, so some things may not work.": {
@@ -9309,7 +9320,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:351"
+        "mod/setup-check.lua:360"
       ]
     },
     "Voice playback": {
@@ -9358,7 +9369,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:433"
+        "mod/setup-check.lua:460"
       ]
     },
     "Voxtral cloud voice · Local model unloaded": {
@@ -10295,8 +10306,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:367",
-        "mod/setup-check.lua:522"
+        "mod/setup-check.lua:373",
+        "mod/setup-check.lua:379",
+        "mod/setup-check.lua:556"
       ]
     },
     "{name} is no longer attached to the world. Dismiss this copy to free its place.": {
@@ -10391,7 +10403,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:426"
+        "mod/setup-check.lua:453"
       ]
     },
     "{name}: chat {state}.": {
@@ -10462,12 +10474,12 @@
         "mod/mcm.lua:1659"
       ]
     },
-    "{packs} is one folder too deep, in {folder}. Move the red4ext folder inside it into the Cyberpunk 2077 folder, then restart the game.": {
+    "{packs} is one folder too deep, in {folder}. Restart the game and the mod moves it into place. If it is still there afterwards, move the red4ext folder inside it into the Cyberpunk 2077 folder.": {
       "contexts": [
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:385"
+        "mod/setup-check.lua:400"
       ]
     },
     "{plan}, {price} a month": {
