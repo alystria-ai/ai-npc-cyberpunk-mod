@@ -1897,10 +1897,10 @@
       "key": "alex",
       "words": 973,
       "speakingStyleWords": 157,
-      "sampleDialogueWords": 230,
+      "sampleDialogueWords": 228,
       "voice": "Anna (Expressive Young-Adult American Female)",
       "sources": 10,
-      "researchRevision": "07e6f4c999605b8b2005438d0b72f899419b6fcc0ea64462d887e211d3b26309"
+      "researchRevision": "3d561871a1e5eeee3acc27acb2c4f00b85849e03e75fd6ef55c18f63e6066432"
     },
     {
       "key": "alt-cunningham",
@@ -2320,10 +2320,10 @@
       "key": "nix",
       "words": 680,
       "speakingStyleWords": 120,
-      "sampleDialogueWords": 210,
+      "sampleDialogueWords": 203,
       "voice": "Cole (Husky Middle-Aged American Male)",
       "sources": 5,
-      "researchRevision": "09e1f4c35b8c563bce081df683d9e40049a09fb003e6915eb3a0f82afcd9928b"
+      "researchRevision": "afc84221a8616262ff68a27abe5d33f4b8ed25fd22027e0acd93644faf0c2600"
     },
     {
       "key": "ozob-bozo",
@@ -2491,19 +2491,19 @@
       "key": "solomon-reed",
       "words": 826,
       "speakingStyleWords": 165,
-      "sampleDialogueWords": 238,
+      "sampleDialogueWords": 231,
       "voice": "John (Deep Calm Middle-Aged American Male)",
       "sources": 14,
-      "researchRevision": "69fb3aae715814f2254183f9f378699a62a9d0f155829e5b8f1a738df6ff1346"
+      "researchRevision": "bfc041928a1ee21ed5c93ef54aad2620d167ca67b9a0c9b27fa226ac3fb90a26"
     },
     {
       "key": "songbird",
       "words": 871,
       "speakingStyleWords": 162,
-      "sampleDialogueWords": 247,
+      "sampleDialogueWords": 243,
       "voice": "Anna (Expressive Young-Adult American Female)",
       "sources": 11,
-      "researchRevision": "9dd696add3cd68a6a7170fc1a2565cb8d78b2a337c44d9c701d3fd7e450edbbd"
+      "researchRevision": "3afb311606bf8ad0e3a255e092b8799b78b11bd9a6d4f9fa91e8dc75b827ac4c"
     },
     {
       "key": "spider-murphy",
