@@ -56,7 +56,8 @@ Window = seconds in which the same text is not shown again (Developer mode off).
 | `setup-problem` | Player | Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load. | Same as the first `setup-problem` row, but this one wins over every other problem: this mod’s scripts did not compile (a compile error anywhere disables every redscript mod), so nothing else can be judged from them | once |
 | `setup-problem` | Player | Missing: {names}. Install them and restart the game. / Install or update: {names}. Then restart the game. ({names}: two to four of RED4ext, Codeware, TweakXL, Audioware) | The scripts compiled without a requirement (`ConvaiRequirements`, `Requirements.reds`), or RED4ext or TweakXL is missing; two or more at once; “Install or update” when one of them is Codeware that is too old | once |
 | `setup-problem` | Player | Codeware is too old. Update it from Nexus Mods, then restart the game. | Codeware is there but without its UI or text input modules; also shown on each press of the talk key while the text box cannot open for that reason | once, then on each talk key press |
-| `setup-problem` | Player | Install Mod Configuration Menu from Nexus Mods to open the Companion Manager. | Same as the first `setup-problem` row | once |
+| `setup-problem` | Player | The Companion Manager needs Native Settings UI (Nexus Mods) | Same as the first `setup-problem` row | once |
+| `manager-needs-nsui` | Player | The Companion Manager needs Native Settings UI (Nexus Mods) | The player pressed the Companion Manager key (default `cyberpunk_convai_manager`) and Native Settings UI is not installed or too old (`mod/nsui.lua`) | 10 |
 | `setup-problem` | Player | Some mod files are missing. Extract the Scripts zip again. See Help in Settings. | Same as the first `setup-problem` row | once |
 | `setup-problem` | Player | The conversation service did not start. Is the Runtime installed? See Help in Settings. | Same as the first `setup-problem` row | once |
 | `setup-problem` | Player | The Scripts and Runtime versions do not match. Install the same version of both. | Same as the first `setup-problem` row | once |
@@ -179,7 +180,7 @@ the mod is reloaded or stops while the notice is up it still goes away by itself
 Cost: nothing per frame. The caller is the existing 0.25 s slow update; with nothing loading it is one comparison, and the state is read at most
 once a second. While a notice is held the screen is touched only to post, change or hide it, plus one blackboard read a second.
 
-A companion still being prepared is a line of this same notice (keys `prep1` to `prep3` in `mod/mcm.lua`; the lines come from the invitation
+A companion still being prepared is a line of this same notice (keys `prep1` to `prep3` in `mod/manager-ui.lua`; the lines come from the invitation
 board, `waiting()` in `mod/manager-party.lua`, which reads what its last sample saw). The line's text changes while its wait goes on, so the
 read may carry a `revisions` table (key to text): a changed text is posted in place, instantly, like a change of the set, and an unchanged one
 never is. These lines have no ready line ("{name} joined your group." is that, an ordinary notice) and no failure line of their own: on a
@@ -197,7 +198,7 @@ except the once-a-second check):
   Only the engine the player chose counts, and only the model load (`loading`), not a per-character preparation (`warming`).
 - Local AI: `localAi` in `runtime/mistral-state.json` (warming, ready, failed, no-memory), read only while Local is the conversation provider.
 No signal exists yet for the Mistral cloud voice's reference preparation (it is a cached, sub-second step), the voice browser's warm-up or the
-Inworld voice; each can add a state to `manager.loadStatus` and two lines to `loadingText` in `mod/mcm.lua` when it has one.
+Inworld voice; each can add a state to `manager.loadStatus` and two lines to `loadingText` in `mod/manager-ui.lua` when it has one.
 
 ## Adding a notice
 

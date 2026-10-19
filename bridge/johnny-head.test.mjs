@@ -363,7 +363,7 @@ test('shipping: the module ships and dev-installs; the setting has its row and h
   for (const plan of ['../packaging/release-plan.json', '../scripts/development-files.json']) {
     assert.match(read(plan), /"source": "mod\/johnny-head\.lua",\s+"target": "bin\/x64\/plugins\/cyber_engine_tweaks\/mods\/AiNpcCyberpunkMod\/johnny-head\.lua"/, plan);
   }
-  assert.match(read('../mod/mcm.lua'), /setting\('johnnyInHead', 'Johnny in your head', 'bool', snapshot\.settings\.johnnyInHead == true, false,/);
+  assert.match(read('../mod/manager-ui.lua'), /setting\('johnnyInHead', 'Johnny in your head', 'bool', snapshot\.settings\.johnnyInHead == true, false,/);
   const en = JSON.parse(read('../localization/en.json')).strings;
   const strings = Object.keys(en).filter(key => /Johnny|Grudging respect|Close friends|Not in your head yet|Gone after the ending|^Wary$|^Friends$/.test(key));
   assert.ok(strings.length >= 10, strings.join(' | '));

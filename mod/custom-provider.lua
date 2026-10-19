@@ -8,7 +8,7 @@
 --     asks for it: nothing here runs per frame and nothing is read while no page is drawn. The key never reaches either file; only its
 --     last four characters (a key of 16 or more characters) are ever shown.
 --   * It turns that state into rows with no widget in them (rows(): id, label, value, help, enabled, action), so the same rows can be
---     drawn by Mod Configuration Menu today and by any other settings screen later, and into the notice texts and provider notes.
+--     drawn by the Companion Manager page (mod/manager-ui.lua, shown by mod/nsui.lua) and by any other settings screen later, and into the notice texts and provider notes.
 --
 -- Only the answer to the latest command counts: an answer for an older command id is never shown (the same rule as the Mistral key).
 local M = {version = 1}
@@ -16,7 +16,8 @@ local M = {version = 1}
 local COMMAND, STATE = 'runtime/custom-provider-command.json', 'runtime/custom-provider-state.json'
 local READ_EVERY = 1.5
 -- A test still "running" this long after it was sent (the service stopped, the game was reloaded under it) is no longer shown as running.
-local TEST_STALE = 60
+-- Longer than the longest real test: a server on this computer gets 90 s, and once more as long when it refuses a request field.
+local TEST_STALE = 200
 
 -- The field each command changes; `test` changes none.
 local FIELD_OF = {['paste-url'] = 'url', ['clear-url'] = 'url', ['paste-key'] = 'key', ['clear-key'] = 'key',

@@ -109,7 +109,7 @@ Our spawned-character policy already stays out of all of this:
   - The rows carry the records above. `mod/init.lua` already hashes every roster record with `TweakDBID.new` at load (~line 480), so a record that does not exist (no NCA, no Lucy mod) is two unused table entries.
   - The aliases are full names only.
   - No code of ours names NCA, its tag or these records (a test checks this). There is nothing to detect and nothing per frame, and a player without NCA pays nothing.
-- **`invite: false`** on both rows, honoured by `definitionFor` in `mod/manager.lua`: no companion definition, so the Manager shows "Profile only", MCM lists them as unavailable and the party queue refuses them. Without this, every player would have seen an invitable "Lucy Kushinada" whose record may not exist. `buildProfiles` keeps the field on rebuilds (`...preserved`).
+- **`invite: false`** on both rows, honoured by `definitionFor` in `mod/manager.lua`: no companion definition, so the Manager shows "Profile only", the Companion Manager lists them as unavailable and the party queue refuses them. Without this, every player would have seen an invitable "Lucy Kushinada" whose record may not exist. `buildProfiles` keeps the field on rebuilds (`...preserved`).
 - **Ride context.**
   - `convaiSpawnedPeople.riders` in `mod/init.lua`: when a turn's context is read (`turn-context.lua`, cached 5 s) and V sits in a vehicle, it returns the remembered spawned roster characters mounted in V's own vehicle, with the seat the engine reports (`GetMountingInfoSingleWithObjects`).
   - They join the turn context's party, and `turn-context.lua` `classify` turns the seat into `passenger` or `driving`. The bridge already words those: "You are with V in person, riding along in V's vehicle through ...", or "driving V's vehicle" when NCA's chauffeur drives V. Other speakers hear "Also with V: Lucy Kushinada".
@@ -195,7 +195,7 @@ Each has a suggested default.
    - Talk to her: the reply knows she is riding along. The log has `Turn context: ... party=1 activity=lucy-kushinada=passenger`.
    - Let NCA's chauffeur drive: `activity=lucy-kushinada=driving`.
 3. Group key with both: both answer, each in her own voice.
-4. Neither appears as invitable in the Companion Manager (Profile only), MCM or the phone.
+4. Neither appears as invitable in the Companion Manager (Profile only) or the phone.
 5. A side job with a fight: with Battle reactions on, either may speak an opening or closing line.
 6. Save, load, talk again: the earlier conversation is remembered (memory by profile).
 7. Without NCA and the Lucy mods: no new log line, no notice, no change. FPS and the perf probe show no new per-frame row.
@@ -327,7 +327,7 @@ Scope set by the user: a Night City Allies follower gets exactly what any charac
 1. Recruit Lucy and Rita with NCA. Talk to each by text and voice: each answers as herself with lip sync; `probe.log` shows the profile key and `face=true/prepared:...`; NCA keeps them following while they talk.
 2. Let NCA seat Lucy in V's car and drive: `Turn context: ... party=1 activity=lucy-kushinada=passenger` (and `driving` with the chauffeur).
 3. Group key with both: both answer, each in her own voice.
-4. Neither appears as invitable in the Companion Manager, MCM or the phone.
+4. Neither appears as invitable in the Companion Manager or the phone.
 5. A side job with a fight and Battle reactions on: either may speak an opening or closing line.
 6. Save, load, talk again: the earlier conversation is remembered.
 7. Without NCA and the Lucy mods: no new log line, no notice, no change; no new per-frame row in the perf probe.

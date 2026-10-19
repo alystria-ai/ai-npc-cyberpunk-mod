@@ -7,7 +7,7 @@ You give it three things: the endpoint's base address, an API key (optional: a s
 ## What the player does
 
 1. Open **Settings > Conversation provider**. Under the Mistral key row are four rows for this provider.
-2. Copy the endpoint's base URL from your provider, then press **Paste endpoint URL**. Copy the API key, then **Paste API key**. Copy a model ID, then **Paste model ID**. Each press reads the clipboard once, checks its shape and saves it on this computer. A paste that cannot be used says why at the top of the row's help. Once a row holds a value its button reads **Remove**.
+2. Copy the endpoint's base URL from your provider, then press **Paste endpoint URL**. Copy the API key, then **Paste API key**. Copy a model ID, then **Paste model ID**. Each press reads the clipboard once, checks its shape and saves it on this computer. A paste that cannot be used says why at the top of the row's help; an API key pressed into the model row is refused, so it is never shown as the model ID. Once a row holds a value its button reads **Remove**.
 3. Press **Test connection**. It sends one tiny request and reads **OK**, or the provider's own error in plain words.
 4. Choose **Custom (OpenAI-compatible)** as the provider and **Apply**. The switch waits until no conversation is running.
 
@@ -50,7 +50,7 @@ model=meta-llama/llama-3.1-8b-instruct
 api-key=<your key>
 ```
 
-`#` starts a comment. A line that cannot be used is ignored and only its name (never its value) is written to the log. The file is read when the service starts, when you choose this provider and when you press **Test connection**. The paste buttons write the same file (mode 0600, through a temporary file), so the two ways mix freely.
+`#` starts a comment, on a line of its own or after a space at the end of a line. A line that cannot be used is ignored and only its name (never its value) is written to the log. A file that exists but cannot be read for a moment (another program has it open) changes nothing, and a paste is refused until it can be read, so nothing in it is lost. The file is read when the service starts, when you choose this provider and when you press **Test connection**. The paste buttons write the same file (through a temporary file), so the two ways mix freely. Only your Windows account can open it: it is in your data folder under %LOCALAPPDATA%, whose permissions protect it (a file mode such as 0600 does nothing on Windows).
 
 ## What the settings page shows
 
@@ -59,7 +59,7 @@ The row names carry the status in brackets: the endpoint's host (`openrouter.ai`
 ## Requests
 
 - **Streaming.** The reply is streamed (server-sent events) like Mistral's, and the stream stops at the sentence cap. A server that answers with one plain JSON body instead is accepted: the whole reply arrives as one piece.
-- **Fields a server refuses.** The request carries `model`, `messages`, `stream`, `max_tokens` and `temperature` (and `response_format` for the background fact extraction). When a server answers 400 or 422 saying a field is unsupported (OpenAI's newer models refuse `temperature`, and want `max_completion_tokens` for `max_tokens`; some refuse `stream_options`, `response_format` or `stream`), the same request is sent once more without it, or with the new name, at once, and the choice is remembered for the session for that address and model. No `prompt_cache_key` and no end-user ID is sent.
+- **Fields a server refuses.** The request carries `model`, `messages`, `stream`, `max_tokens` and `temperature` (and `response_format` for the background fact extraction). When a server answers 400 or 422 saying a field is unsupported (OpenAI's newer models refuse `temperature`, and want `max_completion_tokens` for `max_tokens`; some refuse `stream_options`, `response_format` or `stream`), the same request is sent once more without it, or with the new name, at once, and the choice is remembered for the session for that address and model. A server that refuses one field per answer (max_tokens, then temperature) is asked again after each refusal that changes the request, at most four times; a refusal that changes nothing is an error at once. Renaming `max_tokens` drops nothing else. LM Studio's "`response_format.type` must be `json_schema`" drops `response_format` from the fact extraction. No `prompt_cache_key` and no end-user ID is sent.
 - **Headers.** `Authorization: Bearer <key>` (none when there is no key), `Content-Type`, `Accept`. For `openrouter.ai` alone, the two optional attribution headers `HTTP-Referer` (the mod's Hugging Face page) and `X-Title` (`AI NPC Cyberpunk Mod`) are added. The key goes only to the saved endpoint's origin; a redirect to another address is an error, not something to follow.
 - **Waits.** A cloud endpoint gets 20 s to start answering (25 s on the one retry) and 15 s of silence before a stream is cut; a server on this computer or home network gets 90 s, because its first reply may be loading the model. A slow answer is an error with a notice, never an in-character "hang on" line, so a wrong address is not hidden.
 - **Connection.** An https endpoint's connection is opened when the provider is applied and kept for 60 seconds, so the first reply does not pay the handshake. The warm-up is a `HEAD` of the origin root with no key. A server on this computer needs none.
@@ -71,12 +71,13 @@ The row names carry the status in brackets: the endpoint's host (`openrouter.ai`
 |---|---|---|
 | 401, 403 | The custom provider did not accept your key | Paste the key again |
 | 402, or 429 saying the quota or credit is used up | The account is out of credits | Add credits at the provider |
-| 404, or 400/422 about the model | The provider does not know that model ID | Paste a model ID from its list |
-| 429 | The provider is rate limiting you | A `Retry-After` of up to 8 seconds is waited out and the request sent again once. A longer one is not waited for: the turn fails at once with the notice, and no request goes out before the time the server named has passed (the next turns get the notice without waiting) |
+| 404 or 400/422 about the model (OpenRouter's "No endpoints found" too) | The provider does not know that model ID | Paste a model ID from its list |
+| 404 that names no model (a web page, "404 page not found") | The provider did not answer | Check the address: usually a path without `/v1`, or Ollama's `/api` instead of `/v1`. Not retried |
+| 429 | The provider is rate limiting you | A `Retry-After` of up to 8 seconds is waited out and the request sent again once. A longer one is not waited for: the turn fails at once with the notice, and no request goes out before the time the server named has passed (the next turns get the notice without waiting). The pause belongs to that address, model and key: a new key or model is asked at once |
 | 5xx, no answer in time, nothing listening, a stream cut off, a redirect | The provider did not answer | Check the address, or try again |
 | anything else (a refused prompt, an empty answer) | the usual "no answer" | |
 
-An automatic battle or loot comment that fails just stops; only a turn you asked for shows a notice. **Test connection** shows the same classes with the provider's own words (at most 160 characters, the key removed).
+An automatic battle or loot comment that fails just stops; only a turn you asked for shows a notice. A new key, model ID or address ends the provider's "key not accepted", "out of credits" or "model unavailable" note at once (summaries run again too). **Test connection** shows the same classes with the provider's own words (at most 160 characters, the key removed).
 
 ## Voice, microphone, memory
 
@@ -106,7 +107,7 @@ The same rules as Mistral. A cloud voice loads no local model: Voxtral needs a M
 | `bridge/mistral-client.mjs` | The one chat client; `provider: 'custom'` adds the optional key, the refused-field retry (`adapt`), the plain-JSON reply, 402, Retry-After and the OpenRouter headers. Mistral and local requests are built as before. |
 | `bridge/text-provider-host.mjs` | `customRoute`: one model, no pacing, the Retry-After gate, per-session refusals. The host, prompt, memory, streaming and reply checks are shared with Mistral. |
 | `bridge/mistral-key.mjs` | `MistralProvider` knows the `custom` preference and when it is ready; notices `custom-no-setup` and `custom-voice`. |
-| `mod/custom-provider.lua` | The game side: the state file, the commands, the row texts. `mod/mcm.lua` only draws them. |
+| `mod/custom-provider.lua` | The game side: the state file, the commands, the row texts. `mod/manager-ui.lua` only draws them. |
 
 ## Testing
 

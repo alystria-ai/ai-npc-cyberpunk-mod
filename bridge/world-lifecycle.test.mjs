@@ -232,7 +232,7 @@ local manager = {subtitleStyle = 'game', configure = noOp, interfaceLanguage = f
     voiceNeedsConvai = function() return stats.voiceNeedsConvai == true end, developerMode = function() return stats.developer == true end, battleReactions = function() return false end, lootReactions = function() return false end,
     update = noOp, reset = function() note('manager-reset') end}
 local partyQueue
-local mcm = {configure = function(_, suppliedCompanions, factory, _, readiness)
+local managerUi = {configure = function(_, suppliedCompanions, factory, readiness)
     partyQueue = factory.new(suppliedCompanions, readiness, {developerMode = function() return stats.developer == true end})
 end, install = noOp, update = function(currentPlayer, worldReady)
     partyQueue.bind('fixture-player')
@@ -242,7 +242,7 @@ end, install = noOp, update = function(currentPlayer, worldReady)
         for _, notice in ipairs(partyQueue.takeNotices()) do currentPlayer:ConvaiPhoneFeedback(notice.message) end
     end
 end, party = function() return partyQueue end, shutdown = function() partyQueue.bind(nil) end,
-    resetSession = function() note('mcm-reset'); partyQueue.bind(nil) end}
+    resetSession = function() note('manager-reset'); partyQueue.bind(nil) end}
 local battles = {capture = function() return {version = 1, status = 'unavailable'} end,
     reset = function() note('battles-reset') end, update = noOp,
     status = function() return {state = 'idle'} end, closingWindow = function() return nil end,
@@ -273,13 +273,13 @@ end
 modules = {
     ['companions.lua'] = companions, ['subtitles.lua'] = subtitles, ['speech.lua'] = speech,
     ['microphone.lua'] = microphone, ['group-chat.lua'] = group, ['phone-chat.lua'] = phone,
-    ['manager.lua'] = manager, ['mcm.lua'] = mcm, ['phone-layout.lua'] = {install = noOp, refresh = noOp},
+    ['manager.lua'] = manager, ['nsui.lua'] = managerUi, ['phone-layout.lua'] = {install = noOp, refresh = noOp},
     ['phone-chat-style.lua'] = {install = noOp, refresh = noOp},
     ['character-catalog.lua'] = {build = function() return {records = {}} end},
     ['battle-observer.lua'] = {sample = function() return {available = true, blocked = false, combat = false} end},
     ['battle-reactions.lua'] = {new = function() return battles end},
     ['loot-reactions.lua'] = {new = function() return loot end}, ['loot-observer.lua'] = lootObserver,
-    ['manager-party.lua'] = (function() ${partyQueueSource} end)(), ['mcm-entry.lua'] = {}, ['companion-locomotion.lua'] = {install = noOp},
+    ['manager-party.lua'] = (function() ${partyQueueSource} end)(), ['companion-locomotion.lua'] = {install = noOp},
     ['gameplay-actions.lua'] = (function() ${gameplayActionsSource} end)(),
     ['composer-input.lua'] = {install = noOp}, ['phone-input.lua'] = {install = noOp}, ['movement-log.lua'] = {update = noOp},
     ['relationship-state.lua'] = {new = function()
@@ -632,7 +632,7 @@ assert((stats.loads['diagnostics.lua'] or 0) == 2 and files['runtime/diagnostic-
 
 test('a phone invitation posts no ordinary notice while it waits, at any wait; the wait is the loading notice, and a failure waits for gameplay', () => run(`${phoneNoticeFixture}
 -- The ordinary notices carry no progress, however long it waits: what she waits for is a line of the held loading notice
--- (mod/mcm.lua, tested in manager.test.mjs), which is not part of this harness.
+-- (mod/manager-ui.lua, tested in manager.test.mjs), which is not part of this harness.
 assert(#feedback() == 0, 'a notice was posted for the first sight of the invitation: ' .. table.concat(feedback(), ' | '))
 clock = clock + 7; receipt('memory'); events.onUpdate(0)
 assert(#feedback() == 0, 'a notice was posted after a long wait')

@@ -1,19 +1,19 @@
-import {open, readFile, readdir, stat} from 'node:fs/promises';
+import {open, readFile, readdir, realpath, stat} from 'node:fs/promises';
 import {basename, dirname, isAbsolute, join, relative, resolve} from 'node:path';
 import {spawn} from 'node:child_process';
 import os from 'node:os';
 import {readKeyFileText} from './key-codec.mjs';
-import {buildReport, locateLogs, reportsDirectoryFor, tailFile} from './support-report.mjs';
+import {CUSTOM_ENDPOINT_FILE, buildReport, keyLineValues, locateLogs, reportsDirectoryFor, tailFile} from './support-report.mjs';
 import {GAME_FOLDERS, detectModManagers} from './setup-check.mjs';
 
 // Support report with the game closed: "Make support report.bat" in red4ext/plugins/AiNpcCyberpunkMod starts bridge/make-support-report.mjs
 // with the bundled Node, which calls runOfflineReport() here. It is for players who cannot reach Companion Manager > Settings > Help
-// (the mod never loads: a redscript compile failure, Mod Configuration Menu missing, a manager that will not open).
+// (the mod never loads: a redscript compile failure, Native Settings UI missing, a manager that will not open).
 //
 // It writes the same zip the in-game report writes (bridge/support-report.mjs collectReport and buildReport: the same logs, the same
 // redactor, the same privacy rules, the same reports folder), made from the files on disk. No service is running and none is started.
 // On top of that it adds
-//   * a requirement check: which of Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware, Mod Configuration Menu (and
+//   * a requirement check: which of Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware, Native Settings UI (and
 //     ArchiveXL, when present) are installed, with the version where one can be read, and whether this mod's own three pieces (the CET
 //     folder, the redscript folder and the RED4ext plugin) are where they belong;
 //   * the versions in the Scripts and the Runtime release.json;
@@ -85,15 +85,44 @@ export function dataHomeRoot(env = process.env) {
 
 // ------------------------------------------------------------ Mod Organizer 2 layout
 
-// QSettings writes paths as @ByteArray(E:\\Games\\Cyberpunk 2077) with every backslash doubled.
+const SIMPLE_ESCAPES = Object.freeze({a: '\x07', b: '\b', f: '\f', n: '\n', r: '\r', t: '\t', v: '\v', '\\': '\\', '"': '"', "'": "'", '?': '?'});
+
+/**
+ * One value as QSettings (IniFormat) writes it: "quoted" parts (a value holding , ; or = is quoted whole), \\ \" \t... escapes and \xHHHH
+ * character codes (Qt reads every hex digit that follows, so it escapes a hex digit after one too). An escape Qt never writes is kept as it is.
+ */
+export function qsettingsUnescape(raw) {
+  const text = String(raw ?? '');
+  let out = '';
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index];
+    if (char === '"') continue;
+    if (char !== '\\' || index + 1 === text.length) { out += char; continue; }
+    const next = text[++index];
+    if (Object.hasOwn(SIMPLE_ESCAPES, next)) { out += SIMPLE_ESCAPES[next]; continue; }
+    const hex = next === 'x' ? /^[0-9a-f]+/i.exec(text.slice(index + 1))?.[0] : null;
+    const octal = /[0-7]/.test(next) ? /^[0-7]+/.exec(text.slice(index))[0] : null;
+    if (hex) { out += String.fromCharCode(Number.parseInt(hex.slice(-4), 16)); index += hex.length; continue; }
+    if (octal) { out += String.fromCharCode(Number.parseInt(octal.slice(-6), 8) & 0xffff); index += octal.length - 1; continue; }
+    out += `\\${next}`;
+  }
+  return out;
+}
+
+/**
+ * A ModOrganizer.ini value. MO2 keeps gamePath and selected_profile as @ByteArray(...) of UTF-8 bytes: every backslash doubled and every byte
+ * above 0x7f written as \xHH (C:\\Users\\J\xc3\xbcrgen), the whole value in quotes when it holds a comma.
+ */
 export function iniValue(text, name) {
-  const match = new RegExp(`^${name}\\s*=\\s*(.*?)\\s*$`, 'im').exec(String(text ?? ''));
+  const match = new RegExp(`^[ \\t]*${name}[ \\t]*=[ \\t]*(.*?)[ \\t]*\\r?$`, 'im').exec(String(text ?? ''));
   if (!match) return null;
-  let value = match[1];
-  const wrapped = /^@ByteArray\((.*)\)$/s.exec(value);
-  if (wrapped) value = wrapped[1];
-  if (/^".*"$/s.test(value)) value = value.slice(1, -1);
-  value = value.replace(/\\\\/g, '\\');
+  let value = qsettingsUnescape(match[1]);
+  const bytes = /^@ByteArray\((.*)\)$/s.exec(value);
+  if (bytes) {
+    // A hand-edited file may hold the characters themselves rather than their UTF-8 bytes: those are kept as they are.
+    const inner = bytes[1], decoded = /[^\x00-\xff]/.test(inner) ? inner : Buffer.from(inner, 'latin1').toString('utf8');
+    value = decoded.includes('\ufffd') && !inner.includes('\ufffd') ? inner : decoded;
+  } else if (value.startsWith('@@')) value = value.slice(1);
   return value || null;
 }
 
@@ -102,28 +131,52 @@ export function enabledMods(text) {
   return String(text ?? '').split(/\r?\n/).filter(line => line.startsWith('+')).map(line => line.slice(1).trim()).filter(Boolean);
 }
 
-// <instance>/mods/<this mod>/red4ext/plugins/AiNpcCyberpunkMod: the instance folder holds ModOrganizer.ini, one to three levels above mods.
-async function findMo2(plugin) {
-  const modFolder = resolve(plugin, '..', '..', '..'), modsDirectory = dirname(modFolder);
-  if (modFolder === modsDirectory) return null;
-  let directory = dirname(modsDirectory);
-  for (let level = 0; level < 3 && directory !== dirname(directory); level++, directory = dirname(directory)) {
-    if (await isFile(join(directory, 'ModOrganizer.ini'))) return {instance: directory, modsDirectory, modFolder};
-  }
-  return null;
+/** An instance's folders, as MO2 works them out: base_directory (else the folder of ModOrganizer.ini), and mods, profiles and overwrite under it unless set. */
+export function mo2Paths(ini, instance) {
+  const base = resolve(instance, iniValue(ini, 'base_directory') ?? '.');
+  const path = (key, name) => resolve(base, (iniValue(ini, key) ?? `%BASE_DIR%/${name}`).replace(/%BASE_DIR%/gi, () => base));
+  return {base, mods: path('mod_directory', 'mods'), profiles: path('profiles_directory', 'profiles'), overwrite: path('overwrite_directory', 'overwrite')};
 }
 
-async function readMo2({instance, modsDirectory}) {
-  const ini = await readSmall(join(instance, 'ModOrganizer.ini'), 1048576) ?? '';
+const samePath = (a, b) => resolve(a).toLowerCase() === resolve(b).toLowerCase();
+
+/**
+ * The Mod Organizer 2 instance whose mods folder holds this Runtime (<mods>/<this mod>/red4ext/plugins/AiNpcCyberpunkMod). A portable instance
+ * keeps ModOrganizer.ini one to three levels above mods; a global one keeps it in %LOCALAPPDATA%\ModOrganizer\<instance>, wherever its base
+ * directory and mods folder are (another drive, mod_directory moved). The instance whose mods folder is this one wins; else the first
+ * ModOrganizer.ini above it.
+ */
+async function findMo2(plugin, env) {
+  const modFolder = resolve(plugin, '..', '..', '..'), modsDirectory = dirname(modFolder);
+  if (modFolder === modsDirectory) return null;
+  const above = [];
+  let directory = dirname(modsDirectory);
+  for (let level = 0; level < 3 && directory !== dirname(directory); level++, directory = dirname(directory)) above.push(directory);
+  const global = [];
+  if (usable(env.LOCALAPPDATA)) {
+    const root = join(env.LOCALAPPDATA, 'ModOrganizer');
+    try { for (const entry of await readdir(root, {withFileTypes: true})) if (entry.isDirectory()) global.push(join(root, entry.name)); } catch { /* none */ }
+  }
+  let fallback = null;
+  for (const instance of [...above, ...global]) {
+    const ini = await readSmall(join(instance, 'ModOrganizer.ini'), 1048576);
+    if (ini === null) continue;
+    const found = {instance, ini, paths: mo2Paths(ini, instance), modsDirectory, modFolder};
+    if (samePath(found.paths.mods, modsDirectory)) return found;
+    if (!fallback && above.includes(instance)) fallback = found;
+  }
+  return fallback;
+}
+
+async function readMo2({instance, ini, paths, modsDirectory}) {
   const profile = iniValue(ini, 'selected_profile');
   const gamePath = iniValue(ini, 'gamePath');
-  const base = iniValue(ini, 'base_directory') ?? instance;
-  const expand = value => value ? resolve(value.replace(/%BASE_DIR%/gi, base)) : null;
-  const overwrite = expand(iniValue(ini, 'overwrite_directory')) ?? join(instance, 'overwrite');
-  const list = profile ? await readSmall(join(instance, 'profiles', profile, 'modlist.txt'), 4 * 1048576) : null;
-  let names = list === null ? [] : enabledMods(list), enabledOnly = names.length > 0;
+  const overwrite = paths.overwrite;
+  const list = profile ? await readSmall(join(paths.profiles, profile, 'modlist.txt'), 4 * 1048576) : null;
+  // A profile's list is what the game sees, even when it enables nothing. Only without one does every mod folder count, enabled or not.
+  const enabledOnly = list !== null;
+  let names = enabledOnly ? enabledMods(list) : [];
   if (!enabledOnly) {
-    // No readable profile: every mod folder counts, enabled or not.
     try { names = (await readdir(modsDirectory, {withFileTypes: true})).filter(entry => entry.isDirectory()).map(entry => entry.name).sort(); }
     catch { names = []; }
   }
@@ -143,13 +196,17 @@ async function readMo2({instance, modsDirectory}) {
  * Works out where everything is. `appDirectory` is the Runtime's app folder (red4ext/plugins/AiNpcCyberpunkMod/app); `game` is an
  * explicit game folder (--game, or CYBERPUNK_CONVAI_GAME). Returns
  *   {game, gameFound, packaged, roots: [{path, label}], mo2, modRoot, runtime, plugin, app, project, stateDirectory, dataHome, find(parts, kind)}
- * `find` looks for a game-relative path in the game folder first, then in the Mod Organizer 2 folders, and gives {path, root} or null.
+ * `find` looks for a game-relative path where the game finds it first: under Mod Organizer 2 in Overwrite, then in the enabled mods (first
+ * in modlist.txt wins), then in the game folder; otherwise in the game folder. It gives {path, root} or null.
  */
 export async function resolveOfflineLayout({appDirectory, game: asked, env = process.env} = {}) {
-  const app = resolve(appDirectory);
+  const isPackaged = path => basename(path).toLowerCase() === 'app' && basename(dirname(path)).toLowerCase() === MOD_NAME.toLowerCase()
+    && basename(dirname(dirname(path))).toLowerCase() === 'plugins' && basename(dirname(dirname(dirname(path)))).toLowerCase() === 'red4ext';
+  let app = resolve(appDirectory);
+  // Started through a short 8.3 path (C:\GAMES\CYBERP~1\red4ext\plugins\AINPCC~1\app): the long names are what the checks compare.
+  if (!isPackaged(app)) { const long = await realpath(app).catch(() => null); if (long && isPackaged(long)) app = long; }
   const pluginOfApp = dirname(app);
-  const packaged = basename(app).toLowerCase() === 'app' && basename(pluginOfApp).toLowerCase() === MOD_NAME.toLowerCase()
-    && basename(dirname(pluginOfApp)).toLowerCase() === 'plugins' && basename(dirname(dirname(pluginOfApp))).toLowerCase() === 'red4ext';
+  const packaged = isPackaged(app);
   const derived = packaged ? resolve(pluginOfApp, '..', '..', '..') : null;
   const isGame = path => isFile(join(path, ...GAME_EXE));
   const given = value => typeof value === 'string' && value.trim() ? resolve(value.trim()) : null;
@@ -174,14 +231,15 @@ export async function resolveOfflineLayout({appDirectory, game: asked, env = pro
 
   // Started from a mod folder of Mod Organizer 2 (the Runtime is not in the game folder): ModOrganizer.ini names the game.
   const inGame = derived !== null && game === derived;
-  const found = packaged && !inGame && !wrappedIn ? await findMo2(pluginOfApp) : null;
+  const found = packaged && !inGame && !wrappedIn ? await findMo2(pluginOfApp, env) : null;
   const mo2 = found ? await readMo2(found) : null;
   let gameFromIni = false;
   if (!game && mo2?.gamePath && await isGame(resolve(mo2.gamePath))) { game = resolve(mo2.gamePath); gameFromIni = true; }
   const gameFound = game !== null;
   game ??= candidates[0] ?? app;
 
-  const roots = [{path: game, label: 'game folder'}, ...(mo2?.roots ?? [])];
+  // The game started through MO2 sees Overwrite over the mods and the mods over its own folder: a leftover copy in the game folder loses.
+  const roots = [...(mo2?.roots ?? []), {path: game, label: 'game folder'}];
   const find = async (parts, kind = 'file') => {
     for (const root of roots) {
       const path = join(root.path, ...parts);
@@ -218,8 +276,9 @@ export const REQUIREMENTS = Object.freeze([
   {id: 'codeware', name: 'Codeware', files: [['red4ext', 'plugins', 'Codeware', 'Codeware.dll']]},
   {id: 'tweakxl', name: 'TweakXL', files: [['red4ext', 'plugins', 'TweakXL', 'TweakXL.dll']]},
   {id: 'audioware', name: 'Audioware', files: [['red4ext', 'plugins', 'audioware', 'audioware.dll']]},
-  {id: 'mcm', name: 'Mod Configuration Menu', files: [[...CET_MODS, 'ModConfigurationMenuAPI', 'init.lua']],
-    folders: [['r6', 'scripts', 'ModConfigurationMenu']]},
+  // The Companion Manager is a tab of Native Settings UI's Mods screen. Mod Configuration Menu is not a requirement and is not checked:
+  // with it installed the tab is listed in its menu, and without it nothing is missing.
+  {id: 'nsui', name: 'Native Settings UI', files: [[...CET_MODS, 'nativeSettings', 'init.lua']]},
   {id: 'archivexl', name: 'ArchiveXL', optional: true, files: [['red4ext', 'plugins', 'ArchiveXL', 'ArchiveXL.dll']]},
 ]);
 
@@ -253,10 +312,10 @@ async function readVersions(layout, logs) {
   for (const id of ['codeware', 'tweakxl', 'audioware', 'archivexl']) {
     found[id] = {version: fromRed4ext.plugins.get(REQUIREMENTS.find(item => item.id === id).name.toLowerCase()) ?? null, source: 'RED4ext log of the last game start'};
   }
-  // MCM states its version in one line of its API module.
-  const core = await layout.find([...CET_MODS, 'ModConfigurationMenuAPI', 'modules', 'core.lua'], 'file');
-  const text = core ? (await headOf(core.path, 16384)) : '';
-  found.mcm = {version: clip(/PUBLIC_VERSION\s*=\s*["']([^"']+)["']/.exec(text)?.[1] ?? null, 30), source: 'Mod Configuration Menu files'};
+  // Native Settings UI states its version in one line of its init.lua ("version = 1.96," in its main table).
+  const init = await layout.find([...CET_MODS, 'nativeSettings', 'init.lua'], 'file');
+  const text = init ? (await headOf(init.path, 16384)) : '';
+  found.nsui = {version: clip(/^[ \t]*version[ \t]*=[ \t]*([0-9][0-9.]*)/m.exec(text)?.[1] ?? null, 30), source: 'Native Settings UI files'};
   // redscript's compiler (scc.exe) prints no version in any file this tool may read.
   found.redscript = {version: null, source: null};
   return found;
@@ -398,11 +457,21 @@ export function offlineProblems({layout, rows, files, errors = 0, managers = [],
 
 // Values that must be scrubbed from every line, besides the ones collectReport already reads (convai-key.txt, the Hugging Face and Kaggle
 // tokens, the custom model servers' keys): every other key file of the data folder (player-convai-key.txt, player-mistral-key.txt,
-// player-inworld-key.txt...), the sign-in file's secret and the key packed into the Runtime (app/defaults/service.txt). They are only
-// returned to the redactor; nothing here writes, logs or prints one.
-export async function offlineSecrets({stateDirectory, project}) {
+// player-inworld-key.txt...), the Custom (OpenAI-compatible) provider's key (the api-key line of player-custom-endpoint.txt), the sign-in
+// file's secret (or CYBERPUNK_CONVAI_AUTH_SECRET) and the key packed into the Runtime (app/defaults/service.txt). They are only returned to
+// the redactor; nothing here writes, logs or prints one.
+export async function offlineSecrets({stateDirectory, project, env = {}}) {
   const found = [];
   const add = value => { if (typeof value === 'string' && value.trim().length >= 6) found.push(value.trim()); };
+  // Lines such as `api-key=VALUE`, `key: VALUE` or `token = Bearer VALUE` in a key file of more than one line.
+  const labelled = raw => {
+    for (const line of raw.split(/\r\n|\r|\n/)) {
+      const value = /^\s*(?:api[-_ ]?key|apikey|key|token|secret)\s*[=:]\s*(.+?)\s*$/i.exec(line)?.[1];
+      if (!value) continue;
+      add(value);
+      add(value.replace(/^bearer\s+/i, '').replace(/^["'`<]+|["'`>]+$/g, ''));
+    }
+  };
   const fromKeyText = raw => {
     const parsed = readKeyFileText(raw);
     if (parsed) add(parsed.key);
@@ -411,14 +480,27 @@ export async function offlineSecrets({stateDirectory, project}) {
     const value = /^[A-Za-z0-9_-]+\s*=\s*(\S+)$/.exec(text)?.[1];
     if (value) add(value);
     for (const part of text.split(/\s+/)) if (part.length >= 12) add(part);
+    labelled(raw);
   };
   let names = [];
   try { names = stateDirectory ? await readdir(stateDirectory) : []; } catch {}
+  // The custom provider's file (docs/CUSTOM_PROVIDER.md) holds its key on an `api-key=` line beside the address and the model ID; only the key is a secret.
+  const fromCustomFile = raw => {
+    for (const line of raw.replace(/^﻿/, '').split(/\r\n|\r|\n/)) {
+      const value = /^\s*(?:api[-_]?key|apikey|key)\s*[=:]\s*(.*?)\s*$/i.exec(line)?.[1];
+      if (!value) continue;
+      const bare = value.replace(/\s+#.*$/, '');
+      add(bare);
+      add(bare.replace(/^["'`<“”‘’]+|["'`>“”‘’]+$/g, ''));
+    }
+  };
   for (const name of names) {
-    const isKey = /-key\.txt$/i.test(name), isAuth = /^convai-auth\.json$/i.test(name);
-    if (!isKey && !isAuth) continue;
-    const raw = await readSmall(join(stateDirectory, name), 8192);
+    const isKey = /-key\.txt$/i.test(name), isAuth = /^convai-auth\.json$/i.test(name), isCustom = /^player-custom-endpoint\.txt$/i.test(name);
+    if (!isKey && !isAuth && !isCustom) continue;
+    // The custom provider's file may be as long as its reader takes (bridge/custom-endpoint.mjs: 16 KiB, comments included).
+    const raw = await readSmall(join(stateDirectory, name), isCustom ? 16384 : 8192);
     if (raw === null) continue;
+    if (isCustom) { fromCustomFile(raw); continue; }
     if (isKey) { fromKeyText(raw); continue; }
     try {
       const walk = (value, key = '', depth = 0) => {
@@ -431,24 +513,35 @@ export async function offlineSecrets({stateDirectory, project}) {
   }
   const packed = project ? await readSmall(join(project, 'defaults', 'service.txt'), 4096) : null;
   if (packed !== null) { const parsed = readKeyFileText(packed); if (parsed) add(parsed.key); }
+  add(env?.CYBERPUNK_CONVAI_AUTH_SECRET);
   return found;
+}
+
+/** The player's Windows account names, which the redactor hides in every path: %USERNAME% and the name of the profile folder. */
+export function accountNames(env = process.env) {
+  const names = [env.USERNAME, typeof env.USERPROFILE === 'string' && env.USERPROFILE.trim() ? basename(env.USERPROFILE.trim().replace(/[\\/]+$/, '')) : null];
+  return [...new Set(names.filter(name => typeof name === 'string' && name.trim()).map(name => name.trim()))];
 }
 
 // --------------------------------------------------------------------------- logs
 
-/** locateLogs for every folder the tool looks in: for each log, the first folder that has it (else where it will appear in the game folder). */
+/**
+ * locateLogs for every folder the tool looks in: for each log, the newest copy (else where it will appear in the first folder). Under Mod
+ * Organizer 2 a log the game made new lands in Overwrite while one it rewrote stays where it was, so a copy a session without MO2 left in
+ * the game folder can be stale, or the current one: the time it was written decides, and on a tie the folder the game sees first.
+ */
 export async function locateOfflineLogs(layout) {
   const merged = new Map();
   for (const root of layout.roots) {
     // Each folder is searched as its own game folder: under Mod Organizer 2 the game wrote the mod's log into Overwrite, not into the mod folder.
     const modRoot = join(root.path, ...MOD_FOLDER);
     for (const entry of await locateLogs({game: root.path, modRoot, runtime: join(modRoot, 'runtime'), stateDirectory: layout.stateDirectory})) {
-      const present = await isFile(entry.path);
+      const time = await stat(entry.path).then(info => info.isFile() ? info.mtimeMs : -1, () => -1);
       const have = merged.get(entry.id);
-      if (!have || (!have.present && present)) merged.set(entry.id, {...entry, present});
+      if (!have || time > have.time) merged.set(entry.id, {...entry, time});
     }
   }
-  return [...merged.values()].map(({present, ...entry}) => entry);
+  return [...merged.values()].map(({time, ...entry}) => entry);
 }
 
 // ---------------------------------------------------------------------------- run
@@ -456,6 +549,15 @@ export async function locateOfflineLogs(layout) {
 /** --game <folder>, --out <folder>, --no-open. Anything else is ignored. */
 export function parseArgs(argv = []) {
   const options = {game: undefined, out: undefined, open: true};
+  // A folder typed in quotes with a trailing backslash (--game "D:\Cyberpunk 2077\" --no-open) reaches Node as one argument,
+  // D:\Cyberpunk 2077" --no-open: Windows reads \" as a quote character. The value ends at that quote; the rest is read as more options.
+  const items = [];
+  for (const raw of argv) {
+    const text = String(raw), cut = text.indexOf('"');
+    if (cut < 0) items.push(text);
+    else items.push(text.slice(0, cut), ...text.slice(cut + 1).split(/\s+/).filter(Boolean));
+  }
+  argv = items;
   for (let index = 0; index < argv.length; index++) {
     const item = String(argv[index]);
     if (item === '--game' && argv[index + 1] !== undefined) options.game = String(argv[++index]);
@@ -500,7 +602,7 @@ export async function runOfflineReport({appDirectory, argv = [], env = process.e
     const {managers} = await detectModManagers({game: layout.game, sharedObjects});
     const misplaced = layout.gameFound ? await findMisplaced({game: layout.game, files}) : [];
     const problems = offlineProblems({layout, rows, files, errors, managers, misplaced});
-    const secrets = await offlineSecrets({stateDirectory: layout.stateDirectory, project: layout.project});
+    const secrets = await offlineSecrets({stateDirectory: layout.stateDirectory, project: layout.project, env});
 
     const release = files => ({found: files.release.found, version: files.release.version});
     const scripts = release(files.scripts), runtime = release(files.plugin);
@@ -515,7 +617,7 @@ export async function runOfflineReport({appDirectory, argv = [], env = process.e
         mo2: layout.mo2 ? {found: true, profile: clip(layout.mo2.profile, 60), modsSearched: layout.mo2.modCount, enabledModsOnly: layout.mo2.enabledOnly,
           overwriteFound: layout.mo2.overwrite} : {found: false},
         dataFolder: {path: layout.stateDirectory, exists: layout.stateExists},
-        versionsFrom: 'the CET and RED4ext logs of the last game start, and the Mod Configuration Menu files',
+        versionsFrom: 'the CET and RED4ext logs of the last game start, and the Native Settings UI files',
       },
       requirements: rows,
       modFiles: files,
@@ -527,7 +629,7 @@ export async function runOfflineReport({appDirectory, argv = [], env = process.e
     const fallback = fallbackReports(env);
     if (!args.out && inside(layout.modRoot, reportsDirectory) && !await isDir(layout.runtime)) reportsDirectory = fallback;
     const build = directory => buildReport({game: layout.game, modRoot: layout.modRoot, runtime: layout.runtime, stateDirectory: layout.stateDirectory,
-      project: layout.project, request: null, secrets, knownIds: [], bridge: {}, now, graphics, environment: env, offline: true, logs,
+      project: layout.project, request: null, secrets, knownIds: [], accounts: accountNames(env), bridge: {}, now, graphics, environment: env, offline: true, logs,
       extraProblems: problems, extraSummary, reportsDirectory: directory});
     let result;
     try { result = await build(reportsDirectory); }

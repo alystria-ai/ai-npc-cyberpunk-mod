@@ -33,7 +33,7 @@ local groupChat = dofile('group-chat.lua')
 groupChat.captureReply = speech.transcript
 local manager = dofile('manager.lua')
 convaiNotices.configure(function() return manager.developerMode() end)
-local mcm = dofile('mcm.lua')
+local managerUi = dofile('nsui.lua')
 local phoneLayout = dofile('phone-layout.lua')
 local phoneChatStyle = dofile('phone-chat-style.lua')
 local phoneChat = dofile('phone-chat.lua')
@@ -483,8 +483,8 @@ convaiNoticeLog = function(message)
     local file = io.open('runtime/mcm.log', 'a')
     if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'), ' ', tostring(message), '\n'); file:close() end
 end
-mcm.configure(manager, companions, dofile('manager-party.lua'), dofile('mcm-entry.lua'), invitations)
-convaiManager = mcm
+managerUi.configure(manager, companions, dofile('manager-party.lua'), invitations)
+convaiManager = managerUi
 local catalog = characterCatalog.build(profiles, archetypes)
 -- The record IDs of a record-cloning mod's copies ("NCA.Character.Judy", characterCatalog.CLONE_PREFIXES): a global table, read by
 -- the spawned-character check below (an NCA follower counts as spawned whatever the dynamic entity system answers for it).
@@ -687,7 +687,7 @@ function convaiJohnnyHeadService()
     end
     return convaiJohnnyHead or nil
 end
--- His standing for the settings page (mod/mcm.lua johnnyStandingRow), read once per draw of that page.
+-- His standing for the settings page (mod/manager-ui.lua johnnyStandingRow), read once per draw of that page.
 function convaiJohnnyStanding()
     local service = convaiJohnnyHeadService()
     return service and service:standing() or nil
@@ -1191,13 +1191,36 @@ local function log(line)
     print('[CyberpunkConvai] ' .. line)
 end
 microphone.log = log
--- A hook installer that raises must not stop onInit: every line after it (the Mod Configuration Menu registration among them) would
+-- A hook installer that raises must not stop onInit: every line after it (the Native Settings UI registration among them) would
 -- never run, and a player whose scripts did not compile (the hooks below name methods those scripts add) would see nothing of this
 -- mod at all. One failure line per installer, once per load. A global, so onInit gains no upvalue.
 convaiGuarded = function(label, fn, ...)
     local ok, result = pcall(fn, ...)
     if not ok then log(label .. ' failed: ' .. tostring(result)) end
     return ok, result
+end
+-- A talk start whose speaker's face will not move: one line with the status (Face.reds ConvaiFaceRequest), what it means, and the
+-- facts that name a replaced model (kind, record, appearance, entity template, face graph and rig, the mod's own graphs). A speaking
+-- face ("prepared:...") writes nothing. Called once per talk start (text, voice, group speaker), never per frame.
+function convaiFaceRequestLog(actor, identity, ok, status)
+    local facial = convaiFacialPlayback
+    -- Once per session, at the first talk start: the state of the mod's own face graphs (13 loaded when convai_facial.archive is mounted).
+    if not convaiFaceGraphsNoted and type(facial) == 'table' and type(facial.graphReport) == 'function' then
+        convaiFaceGraphsNoted = true
+        local reported, report = pcall(facial.graphReport)
+        log('Face graphs: ' .. (reported and tostring(report) or ('not readable (' .. tostring(report) .. ')')))
+    end
+    if type(facial) == 'table' and type(facial.faceNeedsLine) == 'function' then
+        if not facial.faceNeedsLine(ok, status) then return end
+    elseif ok and (status == 'managed' or tostring(status):find('^prepared')) then
+        return
+    end
+    local note = ''
+    if type(facial) == 'table' and type(facial.faceNote) == 'function' then
+        local noted, text = pcall(facial.faceNote, ok and actor or nil, status)
+        if noted and type(text) == 'string' then note = text end
+    end
+    log('Face request: actor=' .. tostring(identity) .. ' status=' .. tostring(status) .. note)
 end
 -- Names for nameless ordinary NPCs (docs/NPC_NAMES.md, mod/npc-names.lua). One generator serves the scanner and the talk path.
 -- The gate is the rule above: not ours, not protected (named, quest-bound, story record), a resolved ordinary profile (an archetype
@@ -1319,7 +1342,7 @@ do
     local built, value = false, module
     if loaded and type(module) == 'table' and type(module.new) == 'function' then
         built, value = pcall(module.new, {companions = companions,
-            party = function() return mcm.party and mcm.party() or nil end,
+            party = function() return managerUi.party and managerUi.party() or nil end,
             player = function() return Game.GetPlayer() end,
             -- The reply that requested the action is still being written or heard.
             busy = function(requestId, groupId)
@@ -2221,9 +2244,7 @@ local function beginTextNow(groupMode, waited)
         -- An ordinary world NPC's face carries the gated speech layer from its spawn (Face.reds OnWorldInitialize); ConvaiFaceRequest reports it and runs the talk-time guards. An add-on's voice has no face or gaze.
         if not primary.voiceOnly then
             local faceOk, faceStatus = pcall(function() return npc:ConvaiFaceRequest() end)
-            if not faceOk or (faceStatus ~= 'managed' and not tostring(faceStatus):find('^prepared')) then
-                log('Face request: actor=' .. tostring(identity) .. ' status=' .. tostring(faceStatus))
-            end
+            convaiFaceRequestLog(npc, identity, faceOk, faceStatus)
             -- A holocall's live-picture copy is far away and held still: it never turns to V.
             if focusEntity ~= identity and not primary.holocall and not primary.story then
                 local focused, reason = beginFocus(player, npc)
@@ -2356,9 +2377,7 @@ local function toggleVoice(groupMode, source)
         -- An ordinary world NPC's face carries the gated speech layer from its spawn (Face.reds OnWorldInitialize); ConvaiFaceRequest reports it and runs the talk-time guards. An add-on's voice has no face.
         if not primary.voiceOnly then
             local faceOk, faceStatus = pcall(function() return npc:ConvaiFaceRequest() end)
-            if not faceOk or (faceStatus ~= 'managed' and not tostring(faceStatus):find('^prepared')) then
-                log('Face request: actor=' .. tostring(entity) .. ' status=' .. tostring(faceStatus))
-            end
+            convaiFaceRequestLog(npc, entity, faceOk, faceStatus)
         end
         local context
         if groupMode then
@@ -3166,9 +3185,7 @@ local function updateGroup(player)
     -- An ordinary world NPC's face carries the gated speech layer from its spawn (Face.reds OnWorldInitialize); ConvaiFaceRequest reports it and runs the talk-time guards. An add-on's voice has no face.
     if not context.voiceOnly then
         local faceOk, faceStatus = pcall(function() return actor:ConvaiFaceRequest() end)
-        if not faceOk or (faceStatus ~= 'managed' and not tostring(faceStatus):find('^prepared')) then
-            log('Face request: actor=' .. tostring(context.entity) .. ' status=' .. tostring(faceStatus))
-        end
+        convaiFaceRequestLog(actor, context.entity, faceOk, faceStatus)
         beginFocus(player, actor)
     end
     focusMode, focusEntity = 'chat', context.entity
@@ -3181,7 +3198,7 @@ local function captureDiagnostic()
 end
 
 local function openManager()
-    local ok, result, reason = pcall(mcm.open)
+    local ok, result, reason = pcall(managerUi.open)
     if ok and result then
         gameplayActions.revoke('menu')
         endFocus(Game.GetPlayer())
@@ -3208,7 +3225,7 @@ local function phoneDrainDue(phoneOpen)
     return true
 end
 local function processPhoneAction(player)
-    local queue = mcm.party and mcm.party()
+    local queue = managerUi.party and managerUi.party()
     if not queue then return end
     -- Reading a request and reserving preparation are safe while Contacts pauses
     -- simulation. Only the shared queue's gameplay flush may create an entity.
@@ -3237,7 +3254,7 @@ local function processPhoneAction(player)
         end
         -- An accepted invitation is not acknowledged: the notice board posts "joined" when the companion
         -- arrives, and what she still waits for ("Preparing Evelyn: waiting for the voice model to load…") is one
-        -- of the loading notice's lines, held until she has spawned (manager-party.lua waiting(), mcm.lua). A refusal is always
+        -- of the loading notice's lines, held until she has spawned (manager-party.lua waiting(), manager-ui.lua). A refusal is always
         -- shown, except a failed preparation: that is queued as the single gameplay notice for the
         -- attempt, so it is not posted again here while the phone is open.
         if accepted or invitationId then return end
@@ -3261,7 +3278,7 @@ end
 -- delivered with the queue's own outcome notice once gameplay resumes, never
 -- while the paused phone could hide and consume it.
 local function updatePhoneInvitationFeedback(player, worldReady)
-    local queue = mcm.party and mcm.party()
+    local queue = managerUi.party and managerUi.party()
     local board = queue and type(queue.board) == 'function' and queue.board() or nil
     if not board then return end
     local note = board.take(worldReady == true)
@@ -3446,7 +3463,7 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     if marking then marking.abandon() end
     companions.abandon(preserveTransit==true)
     if adoption then pcall(adoption.abandon, preserveTransit==true) end
-    mcm.resetSession()
+    managerUi.resetSession()
     speech.abandon()
     subtitles.abandon()
     -- A load, death or detach ends the scene; fast travel keeps the last lines.
@@ -3592,8 +3609,8 @@ registerForEvent('onInit', function()
     convaiGuarded('Phone input hooks', function() dofile('phone-input.lua').install() end)
     convaiGuarded('Phone layout hooks', phoneLayout.install)
     convaiGuarded('Phone chat style hooks', phoneChatStyle.install)
-    local ok, err = pcall(mcm.install)
-    if not ok then log('MCM registration failed: ' .. tostring(err)) end
+    local ok, err = pcall(managerUi.install)
+    if not ok then log('Manager registration failed: ' .. tostring(err)) end
     ObserveAfter('AutoDriveSystem', 'OnAutodriveToggled', function(_, enabled)
         if not worldSuspended and sessionHasState then companions.chauffeurAutodriveToggled(enabled) end
     end)
@@ -3813,9 +3830,9 @@ registerForEvent('onUpdate', function(delta)
         if convaiComposerInput.update then pcall(convaiComposerInput.update)
         elseif localeChanged and convaiComposerInput.refresh then pcall(convaiComposerInput.refresh) end
     end
-    mark('init:mcm')
-    local mcmOk, mcmError = pcall(mcm.update, menuPlayer, worldReady)
-    if not mcmOk then log('MCM update failed: ' .. tostring(mcmError)) end
+    mark('init:manager')
+    local managerOk, managerError = pcall(managerUi.update, menuPlayer, worldReady)
+    if not managerOk then log('Manager update failed: ' .. tostring(managerError)) end
     mark('init:invitations')
     -- One phone-open read per frame, shared by the request drain and the layout and style refreshes (each used to
     -- fetch the player and ask again). A failed read counts as closed, as it did for them.
@@ -4111,16 +4128,21 @@ registerForEvent('onUpdate', function(delta)
                     if type(microphone.received) == 'function' then microphone.received(pending.requestId) end
                     -- One line per reply: did speech start, and does the speaker's face carry
                     -- the speech layer (an ordinary world NPC gets it at its spawn, Face.reds OnWorldInitialize).
-                    local faceState = 'none'
+                    local faceState, faceNote = 'none', ''
                     if speech.actor then
                         local faceOk, faceReady, faceStatus = pcall(function()
                             return speech.actor:ConvaiFaceReady(), speech.actor:ConvaiFaceStatus() end)
                         faceState = faceOk and (tostring(faceReady) .. '/' .. tostring(faceStatus)) or 'unavailable'
+                        -- A reply whose speaker's mouth will not move says why, with the facts that name a replaced model.
+                        if not (faceOk and faceReady == true) and convaiFacialPlayback and convaiFacialPlayback.faceNote then
+                            local noted, text = pcall(convaiFacialPlayback.faceNote, speech.actor, faceOk and faceStatus or 'unavailable')
+                            if noted and type(text) == 'string' then faceNote = text end
+                        end
                     end
                     -- A voice that could not start says why (speech.lua keeps the reason in speech.error), once, on the same line.
                     local why = speech.state == 'playback-failed' and speech.error and (' why=' .. tostring(speech.error):sub(1, 160)) or ''
                     log('Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil)
-                        .. ' speech=' .. tostring(speech.state) .. ' face=' .. faceState .. why)
+                        .. ' speech=' .. tostring(speech.state) .. ' face=' .. faceState .. why .. faceNote)
                     if automatic and pending.requestId == automatic.requestId then
                         automatic.shown = reply.error == nil
                         if automatic.shown and (speech.requestId or subtitles.ownsUtterance()) then
@@ -4197,7 +4219,7 @@ registerForEvent('onShutdown', function()
     if convaiHolocall then
         if liveWorld then pcall(convaiHolocall.finish, Game.GetPlayer(), 'shutdown') else pcall(convaiHolocall.abandon, 'shutdown') end
     end
-    mcm.shutdown(liveWorld)
+    managerUi.shutdown(liveWorld)
     groupChat.cancel()
     warmConversation(nil, nil)
     if autoConnect then pcall(autoConnect.reset) end

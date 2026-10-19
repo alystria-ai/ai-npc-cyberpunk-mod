@@ -3,16 +3,15 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
 import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
+import {nsuiHarness} from './manager-fixture.mjs';
 
 // The game side of the Custom (OpenAI-compatible) conversation provider: mod/custom-provider.lua on its own (state cleaning, the four rows,
-// the commands, the notice texts) and inside the real manager.lua and mcm.lua over a fake native MCM (the fifth selector entry, the rows
+// the commands, the notice texts) and inside the real manager.lua, manager-ui.lua and nsui.lua over a fake Native Settings UI (the fifth selector entry, the rows
 // under the Mistral key row, the provider notes, the Mature content rules, the settings validation, the reply notices). The conversation
 // service is played by the test: it writes the state file the bridge would publish. Nothing here reaches a network or a game.
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const read = name => readFileSync(new URL(`../mod/${name}`, import.meta.url), 'utf8');
 const customSource = read('custom-provider.lua');
-const managerSource = read('manager.lua'), queueSource = read('manager-party.lua'), mcmSource = read('mcm.lua');
-const voicePreviewSource = read('voice-preview.lua'), fontsSource = read('ui-fonts.lua'), mcmFontsSource = read('mcm-fonts.lua');
 const initSource = read('init.lua');
 
 function run(code) {
@@ -333,13 +332,16 @@ test('a result is only for the latest command: an older test id, a test after an
   local fresh = make()
   publish(base({test = {id = 'other-session:cust:1', state = 'ok'}, result = {id = 'other-session:cust:1', field = 'url', state = 'invalid', reason = 'empty'}}))
   assert(fresh.state().test == nil and fresh.state().result == nil)
-  -- A test that is still "testing" a minute later (the service stopped, the game was reloaded under it) is dropped, so Test can be pressed again.
+  -- A test that is still "testing" after its longest real run (the service stopped, the game was reloaded under it) is dropped, so Test can be
+  -- pressed again; a 90 s test of a server on this computer is still shown as running.
   assert(provider.request('test')); local running = lastCommand().id
   publish(base({test = {id = running, state = 'testing'}}))
   assert(provider.state().test.state == 'testing' and rowsOf(provider)['custom-test'].enabled == false)
   clock = clock + 30; publish(base({test = {id = running, state = 'testing'}}))
   assert(provider.state().test and provider.state().test.state == 'testing')
-  clock = clock + 40; publish(base({test = {id = running, state = 'testing'}}))
+  clock = clock + 60; publish(base({test = {id = running, state = 'testing'}}))
+  assert(provider.state().test and provider.state().test.state == 'testing', 'a 90 s test is still running')
+  clock = clock + 110; publish(base({test = {id = running, state = 'testing'}}))
   assert(provider.state().test == nil and rowsOf(provider)['custom-test'].enabled == true and rowsOf(provider)['custom-test'].label == 'Test connection')
   -- A finished answer is never aged out.
   publish(base({test = {id = running, state = 'ok'}}))
@@ -544,174 +546,16 @@ test('the reply notices of init.lua: five failed-turn codes and two one-time not
 });
 
 // ---------------------------------------------------------------------------------------------------------------------------------
-// Inside the real manager.lua and mcm.lua
+// Inside the real manager.lua, manager-ui.lua and nsui.lua
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-const storage = `
-  local files, saved, seed, extras = {}, nil, {}, nil
-  local jsonFixtures, jsonSequence, fileWrites = {}, 0, {}
-  local failSave = false
-  io = {open = function(path, mode)
-    if mode == 'rb' then
-      if not files[path] then return nil end
-      return {read = function() return files[path] end, close = function() return true end}
-    end
-    if failSave then return nil end
-    return {write = function(_, value)
-      fileWrites[#fileWrites + 1] = {path = path, value = value}
-      files[path] = value; return true
-    end, close = function() return true end}
-  end}
-  json = {decode = function(value)
-    if jsonFixtures[value] then return jsonFixtures[value] end
-    if value == 'seed' then return seed end
-    if value == 'extras' then return extras end
-    if value == 'saved' then return saved end
-    error('unexpected JSON fixture')
-  end, encode = function(value)
-    if value.action == 'clear' then
-      jsonSequence = jsonSequence + 1
-      local token = 'memory-json-' .. jsonSequence
-      jsonFixtures[token] = value
-      return token
-    end
-    jsonSequence = jsonSequence + 1
-    local token = 'settings-json-' .. jsonSequence
-    jsonFixtures[token] = value
-    return token
-  end}
-  os.rename = function(from, to)
-    if not files[from] or files[to] then return nil end
-    files[to], files[from] = files[from], nil
-    if to == 'runtime/settings.json' then saved = jsonFixtures[files[to]] end
-    return true
-  end
-  os.remove = function(path) files[path] = nil; return true end
-`;
-
-const managerFixture = `
-  ${storage}
-  local defs, members, spawned, nextSerial = {}, {}, {}, 0
-  local api = {}
-  function api.definition(key) return defs[key] end
-  function api.registerDefinition(key, value) defs[key] = value; return true end
-  function api.list() return members end
-  function api.spawn(key)
-    nextSerial = nextSerial + 1
-    spawned[#spawned + 1] = key
-    local def = assert(defs[key])
-    members[#members + 1] = {serial = nextSerial, key = key, name = def.name,
-      profileKey = def.profileKey, profileName = def.profileName or def.name,
-      record = def.id, state = 'spawning'}
-    return nextSerial
-  end
-  function api.dismiss(serial)
-    for index, member in ipairs(members) do
-      if member.serial == serial then table.remove(members, index); return true end
-    end
-    return false
-  end
-  function api.setProfile(serial, key, name)
-    for _, member in ipairs(members) do
-      if member.serial == serial then member.profileKey, member.profileName = key, name; return true end
-    end
-    return false, 'That companion is no longer in your party.'
-  end
-  local scans, visits = 0, 0
-  TweakDB = {}
-  function TweakDB:GetRecords(kind)
-    assert(kind == 'gamedataCharacter_Record')
-    scans = scans + 1
-    local result = {}
-    for index = 1, 60 do
-      local id = index == 1 and 'Character.Silverhand' or ('Character.Model_' .. index)
-      result[index] = {GetID = function() visits = visits + 1; return id end}
-    end
-    return result
-  end
-  function TweakDB:GetFlat(id) return id:gsub('%.displayName$', '') end
-  GetLocalizedText = function(text) return text end
-  local player = {hash = 'player-1', open = true, queue = {}, rows = {}, voice = true, subtitles = true}
-  function player:GetEntityID() return {hash = self.hash} end
-  function player:ConvaiManagerIsOpen() return self.open end
-  function player:ConvaiManagerTakeRequest() return table.remove(self.queue, 1) or '' end
-  function player:ConvaiManagerClearRows() self.rows = {} end
-  function player:ConvaiManagerAddRow(key, label, note, selected)
-    self.rows[#self.rows + 1] = {key = key, label = label, note = note, selected = selected}
-    assert(#self.rows <= 8, 'unbounded native rows')
-  end
-  function player:ConvaiManagerSetDetail(...) self.detail = {...} end
-  function player:ConvaiManagerSetPage(...) self.page = {...} end
-  function player:ConvaiManagerSetTab(value) self.tab = value end
-  function player:ConvaiManagerSetSearch(value) self.search = value end
-  function player:ConvaiManagerSetFeedback(value) self.feedback = value end
-  function player:ConvaiManagerSetPartyStatus(value) self.partyStatus = value end
-  function player:ConvaiManagerRefresh() self.refreshes = (self.refreshes or 0) + 1 end
-  function player:ConvaiManagerSetVoice(value) self.voice = value end
-  function player:ConvaiManagerVoice() return self.voice end
-  function player:ConvaiManagerSetSubtitles(value) self.subtitles = value end
-  function player:ConvaiManagerSubtitles() return self.subtitles end
-  function player:ConvaiManagerSetEnabled(index, value) self['legacy' .. index] = value end
-  local profiles = {{key = 'viktor-vektor', name = 'Viktor Vektor', records = {'Character.Victor_Vector'}},
-    {key = 'johnny-silverhand', name = 'Johnny Silverhand', records = {'Character.Silverhand'}}}
-  for index = 1, 20 do profiles[#profiles + 1] = {key = 'person-' .. index,
-    name = string.format('Person %02d', index), records = {'Character.Person_' .. index}, summary = 'A distinct person.'} end
-  local manager = (function() ${managerSource} end)()
-  local function request(value, dt) player.queue[#player.queue + 1] = value; manager.update(player, dt or 0.1) end
-`;
-
 // withCustom: whether the module can be loaded (false: its file is absent, as in an install that lost it); `custom` replaces the module
-// source, for a module that misbehaves.
-const mcmFixture = (withCustom = true, custom = customSource) => `
-  ${managerFixture}
-  local originalDofile = dofile
-  dofile = function(path)
-    if path == 'voice-preview.lua' then return (function() ${voicePreviewSource} end)() end
-    if path == 'custom-provider.lua' then if not ${withCustom} then error('module absent') end return (function() ${custom} end)() end
-    if path == 'ui-fonts.lua' then return (function() ${fontsSource} end)() end
-    if path == 'mcm-fonts.lua' then return (function() ${mcmFontsSource} end)() end
-    return originalDofile(path)
-  end
-  manager.configure(api, profiles)
+// source, for a module that misbehaves. The harness is the shared one (bridge/manager-fixture.mjs).
+const pageFixture = (withCustom = true, custom = customSource) => nsuiHarness({
+  modules: withCustom ? {'custom-provider.lua': custom} : {},
+  absent: withCustom ? [] : ['custom-provider.lua'],
+}) + `
   convaiNotices.configure(function() return manager.developerMode() end)
-  local handlers, registered, loaded, activeMod = {}, nil, nil, nil
-  local drafts, reloads = false, 0
-  local nativeApi = {apiVersion = 2, providers = {}}
-  nativeApi.providers.registerProvider = function(value) registered = value; return true end
-  nativeApi.providers.unregisterProvider = function(id) assert(id == registered.id); registered = nil; return true end
-  nativeApi.refreshProvider = function() return true end
-  nativeApi.getDiagnostics = function() return {activeModKey = activeMod} end
-  nativeApi.hasDrafts = function() return drafts end
-  nativeApi.reloadMod = function()
-    reloads = reloads + 1; loaded = registered.loadMod('manager'); return loaded
-  end
-  GetMod = function(name) assert(name == 'ModConfigurationMenuAPI'); return nativeApi end
-  Game = {GetPlayer = function() return player end}
-  Observe = function(class, method, callback) handlers[method] = callback end
-  ObserveAfter = Observe
-  Override = Observe
-  local entryFactory = {new = function()
-    return {install = function() end, update = function() end, selected = function() end,
-      state = function() return 'idle' end, reset = function() end, open = function() return true end}
-  end}
-  local mcm = (function() ${mcmSource} end)()
-  mcm.configure(manager, api, (function() ${queueSource} end)(), entryFactory)
-  mcm.install()
-  activeMod = 'cyberpunk-convai:manager'
-  loaded = registered.loadMod('manager')
-  local function row(id)
-    for _, category in ipairs(loaded.categories) do
-      for _, setting in ipairs(category.settings) do if setting.id == id then return setting end end
-    end
-  end
-  local controller = {nativeIdentity = 101,
-    McmUiEmitSearch = function(_, context, value) handlers.McmUiEmitSearch(nil, context, value) end}
-  CalcSeed = function(value) return value.nativeIdentity end
-  local function invoke(id)
-    local result = registered.invokeAction('manager', id, {interaction = {controller = controller}})
-    if result.ok and result.schemaChanged then loaded = registered.loadMod('manager') end
-    return result
-  end
   local function providerIds()
     local order = {}
     for _, category in ipairs(loaded.categories) do
@@ -735,7 +579,7 @@ const stateFixture = `
   local function command() return jsonFixtures[files['runtime/custom-provider-command.json']] end
 `;
 
-test('the selector has five entries, Custom (OpenAI-compatible) fifth; the four rows sit right under the Mistral key row, above the Convai API key row', () => run(`${mcmFixture()}${stateFixture}
+test('the selector has five entries, Custom (OpenAI-compatible) fifth; the four rows sit right under the Mistral key row, above the Convai API key row', () => run(`${pageFixture()}${stateFixture}
   assert(invoke('tab:settings').ok)
   local provider = row('conversationProvider')
   assert(provider.type == 'select' and #provider.elements == 5 and provider.elements[1] == 'Convai free tier' and provider.elements[2] == 'Convai API key'
@@ -743,12 +587,12 @@ test('the selector has five entries, Custom (OpenAI-compatible) fifth; the four 
   assert(provider.value == 1 and provider.defaultValue == 1)
   assert(providerIds() == 'conversationProvider,matureContent,localModel,mistral-key,custom-url,custom-key,custom-model,custom-test,own-key', providerIds())
   for _, id in ipairs({'custom-url', 'custom-key', 'custom-model', 'custom-test'}) do
-    assert(row(id).type == 'action' and row(id).capabilities.action ~= nil, id)
+    assert(row(id).type == 'action', id)
     assert(not (row(id).description .. row(id).label .. row(id).value):lower():find('recommend', 1, true), id)
   end
   assert(row('custom-url').label == 'Custom endpoint URL' and row('custom-url').value == 'Paste endpoint URL')
   assert(row('custom-test').disabled == true, 'no state file: the test cannot run')
-  -- The help of the provider row does not change for Custom (it is close to the panel's height): the same text as before.
+  -- The help of the provider row does not change for Custom (the description area holds only so much): the same text as before.
   assert(not provider.description:find('Custom', 1, true))
   -- The existing elements keep their numbers.
   for _, case in ipairs({{1, 'convai', false}, {2, 'convai', true}, {3, 'mistral'}, {4, 'local'}, {5, 'custom'}}) do
@@ -764,7 +608,7 @@ test('the selector has five entries, Custom (OpenAI-compatible) fifth; the four 
 `));
 
 test('without the module file (or with a module that fails) the page still shows every other row and the fifth entry', () => {
-  run(`${mcmFixture(false)}${stateFixture}
+  run(`${pageFixture(false)}${stateFixture}
     assert(invoke('tab:settings').ok)
     assert(#row('conversationProvider').elements == 5)
     assert(providerIds() == 'conversationProvider,matureContent,localModel,mistral-key,own-key', providerIds())
@@ -778,19 +622,19 @@ test('without the module file (or with a module that fails) the page still shows
   `);
   // A module whose rows raise: the page is built without them.
   const raising = customSource.replace('function self.rows()', 'function self.rows() error("boom") end\n    function self.unusedRows()');
-  run(`${mcmFixture(true, raising)}${stateFixture}
+  run(`${pageFixture(true, raising)}${stateFixture}
     assert(invoke('tab:settings').ok)
     assert(providerIds() == 'conversationProvider,matureContent,localModel,mistral-key,own-key', providerIds())
   `);
   // A module that raises while it is made.
   const broken = customSource.replace('function M.new(options)', 'function M.new(options) error("no instance")');
-  run(`${mcmFixture(true, broken)}${stateFixture}
+  run(`${pageFixture(true, broken)}${stateFixture}
     assert(invoke('tab:settings').ok)
     assert(providerIds() == 'conversationProvider,matureContent,localModel,mistral-key,own-key', providerIds())
   `);
 });
 
-test('the rows send their commands on their own channel, in place, with ids of this game session; a failed write is refused with a sentence', () => run(`${mcmFixture()}${stateFixture}
+test('the rows send their commands on their own channel, in place, with ids of this game session; a failed write is refused with a sentence', () => run(`${pageFixture()}${stateFixture}
   files['runtime/custom-provider-command.json'] = ''
   assert(invoke('tab:settings').ok)
   local removed, renamed = {}, {}
@@ -830,28 +674,32 @@ test('the rows send their commands on their own channel, in place, with ids of t
   failSave = false
 `));
 
-test('the page follows the service: answers show up, an unchanged state does not redraw, an old answer is never shown, a test runs to its end', () => run(`${mcmFixture()}${stateFixture}
+test('the page follows the service: answers show up, an unchanged state does not redraw, an old answer is never shown, a test runs to its end', () => run(`${pageFixture()}${stateFixture}
   assert(invoke('tab:settings').ok)
-  local function pump(times) for _ = 1, times or 3 do clock = clock + 2; mcm.update(player, false) end end
+  -- The page is drawn again when what it shows changes: the calls into Native Settings UI say whether it was.
+  local function pump(times)
+    for _ = 1, times or 3 do clock = clock + 2; managerUi.update(player, false) end
+    loaded = registered.loadMod('manager')
+  end
   pump(3)
-  local settled = reloads
+  ns.resetCalls()
   pump(4)
-  assert(reloads == settled, 'nothing changed, nothing was drawn again: ' .. (reloads - settled))
+  assert(#ns.calls == 0, 'nothing changed, nothing was drawn again: ' .. #ns.calls)
   -- The service starts: its state appears, the page is drawn again with it.
   file('runtime/custom-provider-state.json', 'custom-a', {version = 1, updated = 1, ready = false, host = nil, secure = false, ['local'] = false, model = nil, keySaved = false})
   pump(3)
-  assert(reloads > settled and row('custom-test').disabled == false, 'the service state did not reach the page')
-  settled = reloads
+  assert(#ns.calls > 0 and row('custom-test').disabled == false, 'the service state did not reach the page')
+  ns.resetCalls()
   pump(4)
-  assert(reloads == settled, 'a state that did not change redrew the page')
+  assert(#ns.calls == 0, 'a state that did not change redrew the page')
   -- Paste the URL: the service refuses it.
   assert(invoke('custom-url').ok)
   local id = command().id
   file('runtime/custom-provider-state.json', 'custom-b', {version = 1, updated = 2, ready = false, secure = false, ['local'] = false, keySaved = false,
     result = {id = id, field = 'url', state = 'invalid', reason = 'scheme'}})
-  settled = reloads
+  ns.resetCalls()
   pump(3)
-  assert(reloads > settled)
+  assert(#ns.calls > 0)
   assert(row('custom-url').label == 'Custom endpoint URL (Not added)' and firstParagraph(row('custom-url').description) == 'The address must start with https:// or http://.', row('custom-url').label)
   -- Saved: the row now says the host, with Remove.
   assert(invoke('custom-url').ok); id = command().id
@@ -878,18 +726,18 @@ test('the page follows the service: answers show up, an unchanged state does not
   assert(row('custom-test').label == 'Test connection' and row('custom-test').disabled == false)
 `));
 
-test('the provider row ends with the note of the custom provider: its limits, waiting, and "not set up" while Custom is chosen but Convai answers', () => run(`${mcmFixture()}${stateFixture}
+test('the provider row starts with the note of the custom provider: its limits, waiting, and "not set up" while Custom is chosen but Convai answers', () => run(`${pageFixture()}${stateFixture}
   assert(invoke('tab:settings').ok)
   local base = row('conversationProvider').description
   assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 5}}).ok)
   loaded = registered.loadMod('manager')
   -- Custom is chosen but the bridge has not applied it (or has no setup): Convai answers, and the note says why.
   bridge('fallback', {provider = 'custom', effective = 'convai'})
-  assert(lastParagraph(row('conversationProvider').description) == 'Convai: the custom provider is not set up yet', lastParagraph(row('conversationProvider').description))
+  assert(firstParagraph(row('conversationProvider').description) == 'Convai: the custom provider is not set up yet', firstParagraph(row('conversationProvider').description))
   -- Custom answers with a limit.
   for limit, text in pairs({rate = 'Custom: rate limited for now', invalid = 'Custom: key not accepted', model = 'Custom: model unavailable', credits = 'Custom: out of credits'}) do
     bridge('limit-' .. limit, {provider = 'custom', effective = 'custom', limit = limit})
-    assert(lastParagraph(row('conversationProvider').description) == text, limit .. ': ' .. lastParagraph(row('conversationProvider').description))
+    assert(firstParagraph(row('conversationProvider').description) == text, limit .. ': ' .. firstParagraph(row('conversationProvider').description))
     assert(manager.mistral().provider == 'custom' and manager.mistral().effective == 'custom' and manager.mistral().limit == limit)
   end
   -- Custom answering with no problem needs no note; a limit that is not Custom's own says nothing either.
@@ -901,11 +749,11 @@ test('the provider row ends with the note of the custom provider: its limits, wa
   end
   -- Waiting for the conversation to end comes first.
   bridge('pending', {provider = 'custom', effective = 'convai', pending = true})
-  assert(lastParagraph(row('conversationProvider').description) == 'Waiting for the conversation to end')
+  assert(firstParagraph(row('conversationProvider').description) == 'Waiting for the conversation to end')
   -- The other providers keep their notes; Convai selected with Custom in the state file adds nothing.
   assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 3}}).ok); loaded = registered.loadMod('manager')
   bridge('mistral-limit', {provider = 'mistral', effective = 'mistral', saved = true, limit = 'rate'})
-  assert(lastParagraph(row('conversationProvider').description) == 'Mistral: free limit reached for now')
+  assert(firstParagraph(row('conversationProvider').description) == 'Mistral: free limit reached for now')
   bridge('mistral-credits', {provider = 'mistral', effective = 'mistral', saved = true, limit = 'credits'})
   assert(row('conversationProvider').description == base, 'a credits limit is only a note for Custom')
   assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 1}}).ok); loaded = registered.loadMod('manager')
@@ -913,7 +761,7 @@ test('the provider row ends with the note of the custom provider: its limits, wa
   assert(not row('conversationProvider').description:find('custom', 1, true))
 `));
 
-test('manager settings: custom is a stored provider, survives a reload, is refused when misspelled, and keeps Mature content off', () => run(`${mcmFixture()}${stateFixture}
+test('manager settings: custom is a stored provider, survives a reload, is refused when misspelled, and keeps Mature content off', () => run(`${pageFixture()}${stateFixture}
   local function reload(values)
     seed = {version = 2, voice = true, subtitles = true, subtitleStyle = 'dialogue', voiceProvider = 'pocket', battleReactions = false, lootReactions = false, enabledByKey = {}}
     for key, value in pairs(values) do seed[key] = value end
@@ -941,7 +789,7 @@ test('manager settings: custom is a stored provider, survives a reload, is refus
   assert(settings.matureRestore == nil)
 `));
 
-test('the bridge status may name custom as the provider and credits as the limit; anything else still reads as Convai and no limit', () => run(`${mcmFixture()}${stateFixture}
+test('the bridge status may name custom as the provider and credits as the limit; anything else still reads as Convai and no limit', () => run(`${pageFixture()}${stateFixture}
   for _, case in ipairs({{'custom', 'custom'}, {'mistral', 'mistral'}, {'local', 'local'}, {'convai', 'convai'}, {'Custom', 'convai'}, {'openai', 'convai'}, {7, 'convai'}, {true, 'convai'}}) do
     bridge('p' .. tostring(case[1]), {provider = case[1], effective = case[1]})
     assert(manager.mistral().provider == case[2] and manager.mistral().effective == case[2], tostring(case[1]))
@@ -952,7 +800,7 @@ test('the bridge status may name custom as the provider and credits as the limit
   end
 `));
 
-test('the voice key waits for Convai with Custom exactly as with Mistral: only while Custom is in use and this computer cannot recognise speech', () => run(`${mcmFixture()}${stateFixture}
+test('the voice key waits for Convai with Custom exactly as with Mistral: only while Custom is in use and this computer cannot recognise speech', () => run(`${pageFixture()}${stateFixture}
   local function choose(index) assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = index}}).ok) end
   bridge('a', {provider = 'custom', effective = 'custom', stt = false})
   assert(manager.voiceNeedsConvai() == false, 'the setting is still Convai')
@@ -968,45 +816,15 @@ test('the voice key waits for Convai with Custom exactly as with Mistral: only w
   assert(manager.voiceNeedsConvai() == false)
 `));
 
-// Mature content turned on or off in the drafts (mod/mcm.lua, syncMature): a fake MCM keeps the drafts and emits 'drafts.changed'.
+// Mature content turned on or off with Custom chosen: one change is applied with what Mature content needs (manager-ui.lua stageMature).
+// Local AI is installed, with a standard model and an uncensored one; the companion voice is Pocket (a local voice).
 const matureFixture = `
-  local PREFIX = 'cyberpunk-convai:manager:'
-  local listeners, pending = {}, {}
-  nativeApi.subscribe = function(name, callback) listeners[#listeners + 1] = callback; return #listeners end
-  nativeApi.unsubscribe = function() return true end
-  mcm.shutdown(); mcm.install()
-  local function emit()
-    local count = 0
-    for _ in pairs(pending) do count = count + 1 end
-    for _, callback in ipairs(listeners) do callback({modKey = 'cyberpunk-convai:manager', count = count}) end
-  end
-  nativeApi.getValue = function(id)
-    local key = id:sub(#PREFIX + 1)
-    if pending[key] ~= nil then return pending[key] end
-    local found = row(key)
-    return found and found.value
-  end
-  nativeApi.setDraft = function(id, value)
-    local key = id:sub(#PREFIX + 1)
-    local found = row(key)
-    if not found then return false, 'unknown setting' end
-    if found.value == value then pending[key] = nil else pending[key] = value end
-    emit()
-    return true
-  end
-  nativeApi.hasDrafts = function() return next(pending) ~= nil end
-  local function user(key, value) assert(nativeApi.setDraft(PREFIX .. key, value)); mcm.update(player, false) end
   local function apply(changes)
     clock = clock + 2
-    local result = registered.applyBatch('manager', changes)
-    pending = {}
+    local result = core.apply(changes)
     loaded = registered.loadMod('manager')
-    emit()
-    mcm.update(player, false)
     return result
   end
-  local function pendingList() local list = {}; for key, value in pairs(pending) do list[#list + 1] = key .. '=' .. tostring(value) end; table.sort(list); return table.concat(list, ',') end
-  -- Local AI is installed, with a standard model and an uncensored one; the companion voice is Pocket (a local voice).
   local function startFromCustom()
     bridge('ready', {provider = 'custom', effective = 'custom', localAi = 'ready',
       localModels = {{id = 'standard', name = 'Gemma', sizeMiB = 5000}, {id = 'mature:unc', name = 'Gemma uncensored', sizeMiB = 5200}, {id = 'lite', name = 'Qwen', sizeMiB = 1300}},
@@ -1022,44 +840,39 @@ const matureFixture = `
   end
 `;
 
-test('Mature content turned on while Custom is chosen stages Local AI (and the uncensored model); Apply saves the way back to Custom; turning it off brings Custom back', () => run(`${mcmFixture()}${stateFixture}${matureFixture}
+test('Mature content turned on while Custom is chosen selects Local AI and the uncensored model in the same save, with the way back to Custom; turning it off brings Custom back', () => run(`${pageFixture()}${stateFixture}${matureFixture}
   startFromCustom()
-  user('matureContent', true)
-  assert(pendingList() == 'conversationProvider=4,localModel=3,matureContent=true', pendingList())
-  local changes = mcm.inspect().mature.changes
-  assert(changes and changes:find('Local AI', 1, true) and changes:find('Uncensored model', 1, true), tostring(changes))
-  -- Nothing is saved before Apply.
-  assert(saved.conversationProvider == 'custom' and not saved.matureContent)
-  assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 4}, {id = 'localModel', value = 3}}).ok)
+  local result = apply({{id = 'matureContent', value = true}})
+  assert(result.ok and result.names[1] == 'Local AI' and result.names[2] == 'Uncensored model', table.concat(result.names, ','))
   assert(saved.matureContent == true and saved.conversationProvider == 'local' and saved.localModel == 'mature:unc')
   local way = saved.matureRestore
   assert(way and way.conversationProvider.before == 'custom' and way.conversationProvider.set == 'local', 'the way back does not name Custom')
   assert(manager.snapshot(player).settings.matureRestore.conversationProvider.before == 'custom')
-  -- Off again: Custom comes back as a pending change, with the model.
-  user('matureContent', false)
-  assert(pendingList() == 'conversationProvider=5,localModel=2,matureContent=false', pendingList())
-  assert(mcm.inspect().mature.changes:find('Conversation provider', 1, true), tostring(mcm.inspect().mature.changes))
-  assert(apply({{id = 'matureContent', value = false}, {id = 'conversationProvider', value = 5}, {id = 'localModel', value = 2}}).ok)
-  assert(saved.matureContent == false and saved.conversationProvider == 'custom' and saved.matureRestore == nil)
-  -- On and off before Apply leaves nothing behind.
-  user('matureContent', true); assert(pendingList() ~= '')
-  user('matureContent', false); assert(pendingList() == '', pendingList())
+  assert(row('conversationProvider').value == 4 and row('localModel').value == 3, 'the rows read what was saved')
+  -- The line under the way back says what changed besides the switch.
+  assert(managerUi.inspect().shown:find('Local AI', 1, true), tostring(managerUi.inspect().shown))
+  -- Off again: Custom comes back, with the model.
+  result = apply({{id = 'matureContent', value = false}})
+  assert(result.ok and result.names[1] == 'Conversation provider', table.concat(result.names, ','))
+  assert(saved.matureContent == false and saved.conversationProvider == 'custom' and saved.localModel == 'standard' and saved.matureRestore == nil)
+  -- On and off in one batch leaves nothing behind.
+  assert(apply({{id = 'matureContent', value = true}, {id = 'matureContent', value = false}}).ok == true)
+  assert(saved.matureContent == false and saved.conversationProvider == 'custom')
 `));
 
-test('choosing Custom in the drafts while Mature content is on turns it off, like every other cloud provider; Local keeps it', () => run(`${mcmFixture()}${stateFixture}${matureFixture}
+test('choosing Custom while Mature content is on turns it off in the same save, like every other cloud provider; Local keeps it', () => run(`${pageFixture()}${stateFixture}${matureFixture}
   startFromCustom()
-  assert(apply({{id = 'matureContent', value = true}, {id = 'conversationProvider', value = 4}, {id = 'localModel', value = 3}}).ok)
+  assert(apply({{id = 'matureContent', value = true}}).ok)
   assert(saved.matureContent == true and saved.conversationProvider == 'local')
-  user('conversationProvider', 5)
-  assert(nativeApi.getValue(PREFIX .. 'matureContent') == false and nativeApi.getValue(PREFIX .. 'conversationProvider') == 5, pendingList())
-  -- Picking Local again does not turn it back on by itself, and picking Local while it is on leaves it on.
-  pending = {}; emit(); mcm.update(player, false)
-  user('conversationProvider', 3)
-  assert(nativeApi.getValue(PREFIX .. 'matureContent') == false)
-  pending = {}; emit(); mcm.update(player, false)
-  user('conversationProvider', 4)
-  assert(nativeApi.getValue(PREFIX .. 'matureContent') == true, 'Local kept Mature content on')
-  -- Apply with Custom and Mature content on in one batch is saved with Mature content off.
+  -- Picking Local while it is on leaves it on.
+  assert(apply({{id = 'conversationProvider', value = 4}}).ok and saved.matureContent == true, 'local kept it')
+  -- Picking Custom turns it off, with the way back.
+  local picked = apply({{id = 'conversationProvider', value = 5}})
+  assert(picked.ok, tostring(picked.error))
+  assert(saved.conversationProvider == 'custom' and saved.matureContent == false and row('matureContent').value == false, tostring(saved.conversationProvider) .. tostring(saved.matureContent))
+  -- Picking Local again does not turn it back on by itself.
+  assert(apply({{id = 'conversationProvider', value = 4}}).ok and saved.matureContent == false)
+  -- Custom and Mature content on in one batch is saved with Mature content off.
   assert(apply({{id = 'conversationProvider', value = 5}, {id = 'matureContent', value = true}}).ok)
   assert(saved.conversationProvider == 'custom' and saved.matureContent == false)
   -- The Mature content help is the one it always was.
