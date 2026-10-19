@@ -49,7 +49,8 @@ local NSUI_CONSOLE = 'AI NPC Cyberpunk Mod: the Companion Manager needs Mod Conf
     .. 'and neither was found. Install Mod Configuration Menu (https://www.nexusmods.com/cyberpunk2077/mods/31640) or Native Settings UI '
     .. '(https://www.nexusmods.com/cyberpunk2077/mods/3518) from Nexus Mods, then restart the game.'
 local MCM_OLD_CONSOLE = 'AI NPC Cyberpunk Mod: Mod Configuration Menu is older than 0.10.5, so the Companion Manager cannot open in it. '
-    .. 'Update Mod Configuration Menu to 0.10.5 or newer from Nexus Mods (https://www.nexusmods.com/cyberpunk2077/mods/31640), then restart the game.'
+    .. 'Update Mod Configuration Menu to 0.10.5 or newer (https://www.nexusmods.com/cyberpunk2077/mods/31640), or install Native Settings UI '
+    .. '(https://www.nexusmods.com/cyberpunk2077/mods/3518), then restart the game. The manager works with either.'
 local MCM_MIN = {0, 10, 5}
 -- Audioware: the version the mod was built and tested with and where it comes from (reports of 0.2.2: three players had none, and one
 -- had one this mod's scripts were built without).
@@ -428,7 +429,7 @@ local function gameLine(id, check)
         return line(id, label, 'problem', ui.t('This mod’s scripts did not load. Open r6/logs/redscript_rCURRENT.log. If the error names another mod, that mod is the problem. Missing or old Codeware, Audioware or redscript, or a game version other than 2.31, can also cause it.'))
     end
     if id == 'nsui' and check.code == 'mcm-old' then
-        return line(id, label, 'problem', ui.t('Mod Configuration Menu is too old. Update it to 0.10.5 or newer from Nexus Mods, then restart the game.'))
+        return line(id, label, 'problem', ui.t('Mod Configuration Menu is too old. Update it to 0.10.5 or newer, or install Native Settings UI, then restart the game.'))
     end
     if id == 'nsui' then
         -- Missing, or a Native Settings UI that is too old: Mod Configuration Menu first, Native Settings UI as the alternative.
@@ -479,7 +480,7 @@ local function bridgeLines(out)
     if browser and browser.code == 'found' then
         out[#out + 1] = line('browser', ui.t('Browser'), 'ok', ui.t('Found: {list}.', {list = text(browser.name, 60) or '?'}))
     elseif browser and browser.code == 'missing' then
-        out[#out + 1] = line('browser', ui.t('Browser'), 'problem', ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, then restart the game.'))
+        out[#out + 1] = line('browser', ui.t('Browser'), 'problem', ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game.'))
     end
     -- A Local AI or Mature pack that is one folder too deep is "not installed" to Local AI until the launcher moves it. The packs line above says
     -- where it is, so a second line telling the player to download a pack they already have is left out.
@@ -616,7 +617,7 @@ local function shortText(id, names, old)
     if id == 'codeware-old' then return ui.t('Codeware is too old. Update it from Nexus Mods, then restart the game.') end
     if id == 'audioware-unbuilt' then return ui.t('Audioware is installed but unused. Update it to 1.9.9 or newer, then restart the game.') end
     if id == 'nsui' then return ui.t('The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI') end
-    if id == 'mcm-old' then return ui.t('Update Mod Configuration Menu to 0.10.5 or newer to use the Companion Manager') end
+    if id == 'mcm-old' then return ui.t('Update Mod Configuration Menu to 0.10.5 or newer, or install Native Settings UI') end
     if id == 'files' then return ui.t('Some mod files are missing. Extract the Scripts zip again. See Help in Settings.') end
     if id == 'service' then return ui.t('The conversation service did not start. Is the Runtime installed? See Help in Settings.') end
     if id == 'versions' then return ui.t('The Scripts and Runtime versions do not match. Install the same version of both.') end

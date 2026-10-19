@@ -25,6 +25,7 @@ local MISTRAL_STATUS = {
     ['key-memory-needed'] = 'Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.',
     ['local-failed'] = 'Local AI could not answer that. Try again in a moment.',
     ['local-unavailable'] = 'Local AI could not start. Check Local AI in Settings > Conversation provider.',
+    ['browser-failed'] = 'The browser for the conversation page would not start. Try again, or use another Chromium browser.',
     ['local-no-memory'] = 'Not enough free graphics memory to start Local AI. Try a smaller model in Settings.',
 }
 -- How long a sent message waits for its reply before the draft is given back. The bridge ends a turn with its own explanation inside the

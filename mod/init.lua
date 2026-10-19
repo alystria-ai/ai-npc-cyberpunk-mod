@@ -1423,7 +1423,8 @@ convaiLogTick = function()
     local state = convaiLog
     if state.n > 0 and os.clock() - state.at >= 1 then convaiLogFlush() end
 end
-local function log(line)
+-- probe.log only, no console line: for what a developer reads back from a report and a player has no use for in the CET console.
+convaiLogFile = function(line)
     local state = convaiLog
     local entry = os.date('!%Y-%m-%dT%H:%M:%SZ') .. ' ' .. line .. '\n'
     local count = state.n + 1
@@ -1431,7 +1432,32 @@ local function log(line)
     if count == 1 then state.at = os.clock() end
     if count >= 64 or state.bytes >= 8192 or entry:find('[Ff]ail') or entry:find('[Ee]rror') or entry:find('[Aa]bandon')
         or entry:find('[Ss]hut') or entry:find('[Cc]rash') then convaiLogFlush() end
+end
+local function log(line)
+    convaiLogFile(line)
     print('[CyberpunkConvai] ' .. line)
+end
+-- A failure that can come round again (every tick, every key press, every attempt) is one console and probe.log line per key and game
+-- session: the first one. Later ones are counted, and probe.log (not the console) gets one "repeated N times" line at 10, 100, 1000 ...
+-- so a failure that keeps happening can still be seen in a report. At most 64 keys are kept, so a message that varies cannot grow it.
+-- A global, so no function gains an upvalue (the main chunk is near Lua's limit of locals).
+convaiLogSeen = {n = 0}
+convaiLogOnce = function(key, line)
+    line = line or key
+    local seen = convaiLogSeen
+    local entry = seen[key]
+    if not entry then
+        if seen.n >= 64 then return false end
+        seen[key], seen.n = {count = 1, next = 10}, seen.n + 1
+        log(line)
+        return true
+    end
+    entry.count = entry.count + 1
+    if entry.count >= entry.next then
+        entry.next = entry.next * 10
+        convaiLogFile('(repeated ' .. entry.count .. ' times: ' .. tostring(line):sub(1, 160) .. ')')
+    end
+    return false
 end
 microphone.log = log
 -- For the functions defined above this point (the Johnny services): a bare `log` there would be an undefined global.
@@ -2468,7 +2494,7 @@ local function conversationServiceBlocked(player)
     local message, kind = serviceCall('blockedMessage', os.time())
     if type(message) ~= 'string' then return false end
     convaiNotices.send(player, 'service-blocked', message)
-    log('Conversation service unavailable: ' .. tostring(kind))
+    convaiLogOnce('Conversation service unavailable: ' .. tostring(kind))
     return true
 end
 
@@ -3574,6 +3600,10 @@ local function keyReplyNotice(reply)
     if reply.errorCode == 'local-fallback' or reply.keyNotice == 'local-fallback' then
         return 'local-fallback', ui.t('Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.')
     end
+    -- The browser for the conversation page was found but would not start (bridge/system-browser.mjs): name it, the detail says which and why.
+    if reply.errorCode == 'browser-failed' then
+        return 'browser-failed', ui.t('The browser for the conversation page would not start. Try again, or use another Chromium browser.') .. localFailureSuffix(reply)
+    end
     -- A turn the local AI could not answer, with no cloud provider to take it over: say so (the next turn tries again).
     if reply.errorCode == 'local-failed' then
         return 'local-failed', ui.t('Local AI could not answer that. Try again in a moment.') .. localFailureSuffix(reply)
@@ -4438,7 +4468,7 @@ registerForEvent('onUpdate', function(delta)
     end
     mark('init:manager')
     local managerOk, managerError = pcall(managerUi.update, menuPlayer, worldReady)
-    if not managerOk then log('Manager update failed: ' .. tostring(managerError)) end
+    if not managerOk then convaiLogOnce('Manager update failed: ' .. tostring(managerError)) end
     mark('init:invitations')
     -- One phone-open read per frame, shared by the request drain and the layout and style refreshes (each used to
     -- fetch the player and ask again). A failed read counts as closed, as it did for them.
@@ -4450,9 +4480,9 @@ registerForEvent('onUpdate', function(delta)
         -- A holocall asked for on the phone (mod/holocall.lua) is taken on the same drain.
         if convaiHolocall then pcall(convaiHolocall.drain, menuPlayer) end
     end
-    if not phoneActionOk then log('Phone action failed: ' .. tostring(phoneActionError)) end
+    if not phoneActionOk then convaiLogOnce('Phone action failed: ' .. tostring(phoneActionError)) end
     local invitationOk, invitationError = pcall(invitations.update)
-    if not invitationOk then log('Invitation preparation failed: ' .. tostring(invitationError)) end
+    if not invitationOk then convaiLogOnce('Invitation preparation failed: ' .. tostring(invitationError)) end
     updatePhoneInvitationFeedback(menuPlayer, worldReady)
     -- Retain prepared and attached party connections while game time is paused.
     mark('init:partyConnections')
@@ -4470,12 +4500,12 @@ registerForEvent('onUpdate', function(delta)
     mark('init:speech')
     local speechOk, speechError = pcall(speech.update, tonumber(delta) or 0,expressionContext,menuPlayer)
     if not speechOk then
-        log('Speech update failed: ' .. tostring(speechError))
+        convaiLogOnce('Speech update failed: ' .. tostring(speechError))
         speech.stop('error')
     end
     local subtitlesOk, subtitlesError = pcall(subtitles.update, tonumber(delta) or 0, menuPlayer)
     if not subtitlesOk then
-        log('Subtitle update failed: ' .. tostring(subtitlesError))
+        convaiLogOnce('Subtitle update failed: ' .. tostring(subtitlesError))
         subtitles.clear()
     end
     mark('init:poll')
@@ -4542,15 +4572,15 @@ registerForEvent('onUpdate', function(delta)
         if notice then convaiNotices.send(player, 'service-down', notice) end
     end
     local managerOk, managerError = pcall(manager.update, player, 0.1)
-    if not managerOk then log('Manager update failed: ' .. tostring(managerError)) end
+    if not managerOk then convaiLogOnce('Manager update failed: ' .. tostring(managerError)) end
     if worldReady then companions.update(player, elapsedPoll, focusEntity) end
     -- The global keeps this callback's upvalue count unchanged (LuaJIT limits upvalues).
     if worldReady and convaiCompanionAdoption then
         local adoptionOk, adoptionError = pcall(convaiCompanionAdoption.update, elapsedPoll)
-        if not adoptionOk then log('Companion adoption update failed: ' .. tostring(adoptionError)) end
+        if not adoptionOk then convaiLogOnce('Companion adoption update failed: ' .. tostring(adoptionError)) end
     end
     local tacticOk, tacticError = pcall(tactics.update, player, elapsedPoll, worldReady)
-    if not tacticOk then tactics.cancel('update-error'); log('Companion tactic update failed: ' .. tostring(tacticError)) end
+    if not tacticOk then tactics.cancel('update-error'); convaiLogOnce('Companion tactic update failed: ' .. tostring(tacticError)) end
     movementLog.update(worldReady and manager.developerMode(), elapsedPoll, companions.movementSnapshot)
     mark('init:group')
     updateGroup(player)
@@ -4569,12 +4599,12 @@ registerForEvent('onUpdate', function(delta)
     local holocall = convaiHolocall
     if holocall and (holocall.call or holocall.request or holocall.lenses) then
         local callOk, callError = pcall(holocall.update, player, elapsedPoll, worldReady, battleSample)
-        if not callOk then log('Holocall update failed: ' .. tostring(callError)); pcall(holocall.finish, player, 'error') end
+        if not callOk then convaiLogOnce('Holocall update failed: ' .. tostring(callError)); pcall(holocall.finish, player, 'error') end
     end
     -- Add-ons (docs/ADDON_API.md): only once one has registered.
     if convaiAddons and convaiAddons.live then
         local addonOk, addonError = pcall(convaiAddons.tick, player, elapsedPoll, worldReady)
-        if not addonOk then log('Add-on update failed: ' .. tostring(addonError)) end
+        if not addonOk then convaiLogOnce('Add-on update failed: ' .. tostring(addonError)) end
     end
     if focusUntil and not active and not pending and not speech.requestId and os.time() >= focusUntil then
         endFocus(player)
@@ -4621,7 +4651,7 @@ registerForEvent('onUpdate', function(delta)
             sceneReal = battleSample ~= nil and battleSample.available == true and (tonumber(battleSample.tier) or 0) >= 3,
             talkingId = (active and active.entity) or (pending and pending.entity)
                 or (microphone.context and microphone.context.entity) or nil})
-        if not ok then log('Auto-connect update failed: ' .. tostring(err)) end
+        if not ok then convaiLogOnce('Auto-connect update failed: ' .. tostring(err)) end
     end
     mark('init:reply')
     if pending then
@@ -4653,8 +4683,12 @@ registerForEvent('onUpdate', function(delta)
             end
             convaiNotices.send(player, 'conversation-timeout', explained or ui.t('No reply arrived. The conversation service may not be running.'))
         end
-        log((serviceLost and 'Conversation retired after the service exited: generation=' or 'Conversation timed out: generation=')
-            .. expired.generation)
+        local expiredLine = (serviceLost and 'Conversation retired after the service exited: generation=' or 'Conversation timed out: generation=')
+            .. expired.generation
+        -- An automatic reaction (a battle line, a pickup, a remark) that nobody answers comes round again and again while the service is down:
+        -- one line for those, a line for each turn V asked for.
+        if expired.reaction then convaiLogOnce('automatic reaction without a reply: ' .. (serviceLost and 'retired' or 'timed out'), expiredLine)
+        else log(expiredLine) end
         local round = groupChat.round
         if expired.reaction then
             cancelAutomatic('reply-timeout')
@@ -4723,6 +4757,9 @@ registerForEvent('onUpdate', function(delta)
                         -- Local AI could not start and the turn failed: the notice for a turn V asked for, like the Mistral failures.
                         elseif keyId == 'local-fallback' then
                             if not pending.reaction then convaiNotices.send(player, 'local-fallback', keyText) end
+                        -- The browser for the conversation page would not start: the same rule, with the browser named.
+                        elseif keyId == 'browser-failed' then
+                            if not pending.reaction then convaiNotices.send(player, 'browser-failed', keyText) end
                         -- A local turn failed and nothing took it over: the same rule, its own notice.
                         elseif keyId == 'local-failed' then
                             if not pending.reaction then convaiNotices.send(player, 'local-failed', keyText) end
@@ -4771,8 +4808,11 @@ registerForEvent('onUpdate', function(delta)
                     end
                     -- A voice that could not start says why (speech.lua keeps the reason in speech.error), once, on the same line.
                     local why = speech.state == 'playback-failed' and speech.error and (' why=' .. tostring(speech.error):sub(1, 160)) or ''
-                    log('Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil)
-                        .. ' speech=' .. tostring(speech.state) .. ' face=' .. faceState .. why .. faceNote)
+                    local resultLine = 'Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil)
+                        .. ' speech=' .. tostring(speech.state) .. ' face=' .. faceState .. why .. faceNote
+                    -- A failed turn that fails the same way every time (Local AI not installed, no browser, a key refused) is one console line per
+                    -- failure code and session, the rest counted in probe.log; the notice on screen still shows each one (notices.lua repeat windows).
+                    if reply.error ~= nil then convaiLogOnce('result-error:' .. tostring(reply.errorCode or ''), resultLine) else log(resultLine) end
                     if automatic and pending.requestId == automatic.requestId then
                         automatic.shown = reply.error == nil
                         if automatic.shown and (speech.requestId or subtitles.ownsUtterance()) then

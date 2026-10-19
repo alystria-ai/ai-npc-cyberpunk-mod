@@ -235,7 +235,7 @@ test('the three talk starts and the reply line use the helper; nothing logs a fa
   // The reply line: the reason and the facts follow face=... only when the speaker's mouth is not ready.
   const result = body(init, "local faceState, faceNote = 'none', ''", "if automatic and pending.requestId == automatic.requestId then");
   assert.match(result, /if not \(faceOk and faceReady == true\) and convaiFacialPlayback and convaiFacialPlayback\.faceNote then/);
-  assert.match(result, /\.\. ' face=' \.\. faceState \.\. why \.\. faceNote\)/);
+  assert.match(result, /\.\. ' face=' \.\. faceState \.\. why \.\. faceNote\r?\n/);
   // The graph report is read at a talk start, never from a frame or an update.
   assert.equal([...init.matchAll(/graphReport/g)].length, 2, 'one existence check and one call, both in the log helper');
 });

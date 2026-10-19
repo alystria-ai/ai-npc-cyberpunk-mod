@@ -67,6 +67,7 @@ local statusSources = {
     ['Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.'] = true,
     ['Local AI could not answer that. Try again in a moment.'] = true,
     ['Local AI could not start. Check Local AI in Settings > Conversation provider.'] = true,
+    ['The browser for the conversation page would not start. Try again, or use another Chromium browser.'] = true,
     ['Not enough free graphics memory to start Local AI. Try a smaller model in Settings.'] = true,
 }
 local feedbackSources = {

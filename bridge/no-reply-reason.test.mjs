@@ -107,6 +107,29 @@ const LOCAL = {
   'local-no-memory': 'Not enough free graphics memory to start Local AI. Try a smaller model in Settings.',
   'local-unavailable': 'Local AI could not start. Check Local AI in Settings > Conversation provider.',
 };
+const BROWSER_FAILED = 'The browser for the conversation page would not start. Try again, or use another Chromium browser.';
+test('a browser that would not start: its own words in the game and on the phone, the detail after them, never for an automatic reaction', () => {
+  const init = read('init.lua').replace(/\r\n/g, '\n');
+  const start = init.indexOf('local function keyNoticeText'), end = init.indexOf('local function reactionCanDeliver');
+  assert.ok(start > 0 && end > start, 'the key notice functions moved');
+  run(`
+    local ui = {t = function(text, params) return text end}
+    local function dailyLimitText() return 'x' end
+    convaiNotices = {send = function() return true end}
+    ${init.slice(start, end)}
+    local id, words = keyReplyNotice({errorCode = 'browser-failed', error = 'x', errorDetail = 'Brave was found but would not start: Target closed'})
+    assert(id == 'browser-failed', tostring(id))
+    assert(words == ${L(BROWSER_FAILED)} .. '\\n(Brave was found but would not start: Target closed)', words)
+    local _, bare = keyReplyNotice({errorCode = 'browser-failed', error = 'x'})
+    assert(bare == ${L(BROWSER_FAILED)}, 'no detail, no brackets')
+    assert(keyReplyNotice({keyNotice = 'browser-failed', text = 'Hello'}) == nil, 'not a key notice')
+  `);
+  assert.match(init, /keyId == 'browser-failed' then\n\s+if not pending\.reaction then convaiNotices\.send\(player, 'browser-failed', keyText\) end/);
+  assert.match(read('notices.lua'), /\['browser-failed'\] = \{class = PLAYER, repeatS = 60\}/);
+  assert.ok(read('phone-chat.lua').replace(/\r\n/g, '\n').includes(`['browser-failed'] = '${BROWSER_FAILED}',`));
+  assert.ok(read('phone-chat-style.lua').includes(`['${BROWSER_FAILED}'] = true`));
+});
+
 test('the two Local AI failures: their own words in the game and on the phone, sent under their own ids, never for an automatic reaction', () => {
   const init = read('init.lua').replace(/\r\n/g, '\n');
   const start = init.indexOf('local function keyNoticeText'), end = init.indexOf('local function reactionCanDeliver');

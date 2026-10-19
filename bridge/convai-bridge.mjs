@@ -510,8 +510,12 @@ const turnFailure = (error, input) => {
 const keyFailure = (error, input) => {
   // A Mistral failure says what to do about it (key, free limit, model); an automatic reaction (battle, loot) just stops.
   // The local AI that could not start: the next turns use the cloud provider, and the game says so once (local-fallback).
-  const errorCode = (input?.reaction ? undefined : isLocalUnavailable(error) ? 'local-fallback' : mistralCodeFor(error))
+  // The browser for the conversation page would not start (or there is none): a turn V asked for says which browser and why, like a Local AI failure.
+  const browserFailed = error?.code === 'BROWSER_START_FAILED' || error?.code === 'NO_BROWSER';
+  const errorCode = (input?.reaction ? undefined : browserFailed ? 'browser-failed' : isLocalUnavailable(error) ? 'local-fallback' : mistralCodeFor(error))
     ?? quota.codeFor(error, {automatic: !!input?.reaction});
+  // The detail is the bridge's own short sentence ("Brave was found but would not start: ..."), already cut down to file names.
+  if (errorCode === 'browser-failed') return {errorCode, errorDetail: error.code === 'NO_BROWSER' ? 'no Chromium browser found' : String(error.message).split('\n')[0].slice(0, 140)};
   // A local turn that failed says what the model was waiting for: one plain English phrase (bridge/mistral-client.mjs failureDetail), which the game shows
   // after its own sentence (docs/NOTIFICATIONS.md, local-failed). Never a word of the reply, a path or a key. The corrections of turnFailure (below Local AI's
   // own 'local-no-memory' / 'local-unavailable') leave 'local-failed' alone: a model that started and failed a turn has this reason, not a start problem.

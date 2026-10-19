@@ -72,6 +72,47 @@ test('MCM 0.10.3 and MCM 0.10.5 without its public UI are refused with one log l
   }
 });
 
+test('an old MCM says what to do in its one console line: use the Native Settings UI tab that is installed, or update or install', () => {
+  // Beside Native Settings UI: the tab is used, and the line says so (with the way to get MCM's page instead).
+  run(`${harness({mcm: {version: '0.10.3', noUi: true}, screen: false})}
+    frames(120)
+    local lines = {}
+    for _, line in ipairs(logged) do if line:find('Mod Configuration Menu cannot host the page', 1, true) then lines[#lines + 1] = line end end
+    assert(#lines == 1, 'one line: ' .. #lines)
+    assert(lines[1]:find('Native Settings UI is installed, so its tab is used', 1, true) and lines[1]:find('update it to 0.10.5 or newer', 1, true), lines[1])
+    assert(ns.data[TAB] ~= nil, 'the Native Settings UI tab is the manager here')
+  `);
+  // With no Native Settings UI: update, or install it.
+  run(`${harness({mcm: {version: '0.10.3', noUi: true}, nsui: false, screen: false})}
+    frames(120)
+    local lines = {}
+    for _, line in ipairs(logged) do if line:find('Mod Configuration Menu cannot host the page', 1, true) then lines[#lines + 1] = line end end
+    assert(#lines == 1, 'one line: ' .. #lines)
+    assert(lines[1]:find('Update it to 0.10.5 or newer, or install Native Settings UI', 1, true), lines[1])
+  `);
+});
+
+test('a refusal that comes back on every press or retry is one console line, then a count in runtime/mcm.log', () => run(`${harness({screen: false, nsui: false, mcm: {version: '0.10.5', renderer: false}})}
+  local fileLines = {}
+  local realOpen = io.open
+  io.open = function(path, mode)
+    if path == 'runtime/mcm.log' and mode == 'a' then
+      return {write = function(_, ...) fileLines[#fileLines + 1] = table.concat({...}) end, close = function() return true end}
+    end
+    return realOpen and realOpen(path, mode) or nil
+  end
+  local function said(pattern, list)
+    local count = 0
+    for _, line in ipairs(list) do if line:find(pattern, 1, true) then count = count + 1 end end
+    return count
+  end
+  for _ = 1, 25 do assert(managerUi.open() == false) end
+  assert(said('would not open the page', logged) == 1, 'console: ' .. said('would not open the page', logged))
+  -- The file has the first line and one count line at the 10th time (the next count is at the 100th).
+  assert(said('would not open the page', fileLines) == 2, table.concat(fileLines, ' | '))
+  assert(said('repeated 10 times', fileLines) == 1, table.concat(fileLines, ' | '))
+`));
+
 test('MCM 0.10.5, 0.10.10 and 0.11.0 are registered: the version compares as numbers, and the provider is the one MCM validates', () => {
   for (const version of ['0.10.5', '0.10.10', '0.11.0', '1.0.0']) {
     run(`${harness({mcm: {version}})}
@@ -768,7 +809,7 @@ test('without any host the shortcut says what to install: MCM 0.10.5 first, Nati
   run(`${harness({screen: false, nsui: false, mcm: {version: '0.10.3', noUi: true}})}
     ${posted}
     local ok, reason = managerUi.open()
-    assert(ok == false and reason == 'Update Mod Configuration Menu to 0.10.5 or newer to use the Companion Manager', tostring(reason))
+    assert(ok == false and reason == 'Update Mod Configuration Menu to 0.10.5 or newer, or install Native Settings UI', tostring(reason))
     assert(#notices == 1 and notices[1].id == 'manager-needs-nsui' and notices[1].text == reason, tostring(notices[1] and notices[1].text))
   `);
 });

@@ -356,6 +356,16 @@ try {
 const localAiJoined = assembleParts(layout.localAi, {log}).catch(error => { log(`Local AI pack: ${error?.message || error}`); return []; });
 
 const env = serviceEnvironment(layout, prepared);
+// The player's own choice of browser: browser.txt in the plugin folder beside launcher.ini names a Chromium program installed where no
+// lookup finds it (bridge/system-browser.mjs). It feeds the same setting as a developer's CYBERPUNK_CONVAI_BROWSER, which wins when both
+// are set. A file that names nothing usable is said so once in the log and the usual lookup goes on. One small read; a failure never stops the start.
+try {
+  const {readBrowserOverride, BROWSER_OVERRIDE_FILE} = await import('../bridge/system-browser.mjs');
+  const choice = readBrowserOverride([resolve(launchedApp, '..'), resolve(appDirectory, '..')]);
+  if (choice && env.CYBERPUNK_CONVAI_BROWSER) log(`${BROWSER_OVERRIDE_FILE} is not used: CYBERPUNK_CONVAI_BROWSER is set.`);
+  else if (choice?.path) { env.CYBERPUNK_CONVAI_BROWSER = choice.path; log(`Browser from ${BROWSER_OVERRIDE_FILE}: ${choice.path}`); }
+  else if (choice) log(`${choice.problem}. Looking for a browser the usual way instead.`);
+} catch (error) { log(`Reading the browser file failed: ${error?.message || error}`); }
 // Every Node process the service starts (the bridge and its workers) gets the same stat fallbacks before its first line runs.
 if (usvfsCompat) Object.assign(env, usvfsCompat.childEnvironment(new URL('./usvfs-compat.mjs', import.meta.url).href));
 if (prepareOnly) {
@@ -366,7 +376,8 @@ if (prepareOnly) {
     removals: removals ? {state: removals.state, version: removals.version, removed: removals.removed, absent: removals.absent, refused: removals.refused,
       failed: removals.failed, left: removals.left} : null,
     key: prepared.keyFile.startsWith(layout.state) ? 'player' : 'package', state: layout.state, app: layout.app,
-    packs: {localAi: layout.localAi, omni: layout.omni}, childNodeOptions: env.NODE_OPTIONS ?? null}) + '\n');
+    packs: {localAi: layout.localAi, omni: layout.omni}, childNodeOptions: env.NODE_OPTIONS ?? null,
+    browser: env.CYBERPUNK_CONVAI_BROWSER ?? null}) + '\n');
   process.exit(0);
 }
 for (const name of Object.keys(process.env)) if (!(name in env)) delete process.env[name];

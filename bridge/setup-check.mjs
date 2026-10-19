@@ -5,7 +5,7 @@ import {connect as netConnect} from 'node:net';
 import {join, relative, resolve} from 'node:path';
 import {promisify} from 'node:util';
 import {atomicFile} from './guarded-file.mjs';
-import {systemBrowserCandidates} from './system-browser.mjs';
+import {browserNameFor, systemBrowserCandidates} from './system-browser.mjs';
 
 // Setup check (Settings > Help): what the Node side can tell the player about their installation, as codes the game's Lua turns into
 // translated text. runtime/setup-check-request.json (written by the Help page) asks, runtime/setup-check.json answers; both are shipped
@@ -282,7 +282,7 @@ export async function checkReachable(host, {port = 443, timeoutMs = 4000, lookup
 
 /** The first installed browser the hidden page can use (bridge/system-browser.mjs), or null. A developer's CYBERPUNK_CONVAI_BROWSER counts. */
 export function detectBrowserName({env = process.env, candidates = systemBrowserCandidates} = {}) {
-  if (env.CYBERPUNK_CONVAI_BROWSER) return 'Configured browser';
+  if (env.CYBERPUNK_CONVAI_BROWSER) return browserNameFor(env.CYBERPUNK_CONVAI_BROWSER) ?? 'Configured browser'; // browser.txt reaches here too
   const first = candidates({env}).next();
   return first.done ? null : clip(first.value?.name, 80) ?? null;
 }

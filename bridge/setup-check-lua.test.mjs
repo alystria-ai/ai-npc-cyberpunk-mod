@@ -105,7 +105,7 @@ test('the Companion Manager host: Mod Configuration Menu 0.10.5 or newer, or Nat
   -- An older Mod Configuration Menu alone (no public interface for the page): update it. Beside a working Native Settings UI it is no problem.
   env.nsui, env.mcm = 'none', 'old'; applyEnv(); check.run()
   assert(lineOf('nsui').state == 'problem' and lineOf('nsui').label == 'Mod Configuration Menu' and table.concat(check.problems(), ',') == 'nsui')
-  assert(lineOf('nsui').description == 'Mod Configuration Menu is too old. Update it to 0.10.5 or newer from Nexus Mods, then restart the game.', lineOf('nsui').description)
+  assert(lineOf('nsui').description == 'Mod Configuration Menu is too old. Update it to 0.10.5 or newer, or install Native Settings UI, then restart the game.', lineOf('nsui').description)
   assert(table.concat(check.reportLines(), '\n'):find('nsui: problem mcm-old', 1, true))
   env.nsui = 'ok'; applyEnv(); check.run()
   assert(#check.problems() == 0 and lineOf('nsui').label == 'Native Settings UI', 'Native Settings UI carries it when MCM is too old')
@@ -254,7 +254,7 @@ test('optional packs: found, moved by the launcher, one folder too deep, and fil
 test('the browser, Local AI and the internet: every state has its own line and fix', () => run(String.raw`
   installFiles(); serviceRunning()
   answer({browser = {id = 'browser', state = 'problem', code = 'missing'}}); check.run()
-  assert(lineOf('browser').state == 'problem' and lineOf('browser').description == 'The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, then restart the game.')
+  assert(lineOf('browser').state == 'problem' and lineOf('browser').description == 'The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game.')
   assert(#check.problems() == 0, 'a missing browser is told by the service status and its own notice')
   answer({browser = {id = 'browser', state = 'unknown', code = 'unknown'}}); check.run()
   assert(lineOf('browser') == nil, 'a browser not looked up yet (the first, light answer) shows no line')

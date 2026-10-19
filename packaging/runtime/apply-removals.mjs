@@ -35,10 +35,10 @@ export const ALLOWED_ROOTS = Object.freeze([
   {prefix: 'r6/audioware/CyberpunkConvai/'},
   {prefix: 'archive/pc/mod/', name: /^(?:convai_|cyberpunk_convai_)[^/]*$/i},
 ]);
-// Under the plugin folder: what is never deleted whatever a list says. The player's launcher.ini (enabled=0 is their choice) and launcher.log,
-// the optional packs (their own zips), a data folder in the plugin folder, this list and the version stamp.
+// Under the plugin folder: what is never deleted whatever a list says. The player's launcher.ini (enabled=0 is their choice), launcher.log,
+// browser.txt (the browser they named), the optional packs (their own zips), a data folder in the plugin folder, this list and the version stamp.
 export const PROTECTED = Object.freeze([
-  `${PLUGIN}/launcher.ini`, `${PLUGIN}/launcher.log`, `${PLUGIN}/app/release.json`, `${PLUGIN}/app/${REMOVALS_FILE}`,
+  `${PLUGIN}/launcher.ini`, `${PLUGIN}/launcher.log`, `${PLUGIN}/browser.txt`, `${PLUGIN}/app/release.json`, `${PLUGIN}/app/${REMOVALS_FILE}`,
   `${PLUGIN}/app/omni/`, `${PLUGIN}/app/local-ai/`, `${PLUGIN}/data/`, `${PLUGIN}/state/`,
 ]);
 

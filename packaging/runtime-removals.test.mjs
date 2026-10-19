@@ -49,7 +49,7 @@ test('a path is removable only as a relative forward-slash file under a folder a
     [`${PLUGIN}/voices/`]: /empty/, [`${PLUGIN}/voices/a.wav.`]: /empty/,
     'bin/x64/Cyberpunk2077.exe': /outside/, [`${MOD}/runtime/settings.json`]: /outside/, [`${MOD}/init.lua`]: /outside/, 'archive/pc/mod/another_mod.archive': /our file names/,
     'archive/pc/mod/sub/convai_x.archive': /our file names/, 'red4ext/plugins/OtherMod/x.dll': /outside/, 'r6/scripts/x.reds': /outside/,
-    [`${PLUGIN}/launcher.ini`]: /protected/, [`${PLUGIN}/launcher.log`]: /protected/, [`${APP}/release.json`]: /protected/, [`${APP}/${REMOVALS_FILE}`]: /protected/,
+    [`${PLUGIN}/launcher.ini`]: /protected/, [`${PLUGIN}/launcher.log`]: /protected/, [`${PLUGIN}/browser.txt`]: /protected/, [`${APP}/release.json`]: /protected/, [`${APP}/${REMOVALS_FILE}`]: /protected/,
     [`${APP}/omni/model/weights.bin`]: /protected/, [`${APP}/local-ai/models/chat.gguf`]: /protected/, [`${PLUGIN}/data/memories.json`]: /protected/,
   };
   for (const bad of ['', 5, null, undefined, {}]) assert.match(refusalFor(bad), /not a path/);
@@ -267,4 +267,37 @@ test('the start without a list reports no removals, and a Runtime missing the st
     assert.equal(await exists(join(partial.mod, PLUGIN, 'voices/old/b.wav')), true);
     assert.match(await readFile(join(partial.state, 'bridge-service.log'), 'utf8'), /Removing the files an update no longer ships failed/);
   } finally { await rm(partial.root, {recursive: true, force: true}); }
+});
+
+// ---------------------------------------------------------------- the player's browser.txt
+// browser.txt in the plugin folder beside launcher.ini names the browser program; the start feeds it to the same setting as a developer's
+// CYBERPUNK_CONVAI_BROWSER, an update never removes it, and a file that names nothing usable only says so in the log.
+test('the start reads browser.txt, ignores one that names nothing usable, and a developer variable wins', async () => {
+  const f = await installation();
+  try {
+    await put(join(f.app, 'bridge/system-browser.mjs'), await readFile(resolve(project, 'bridge/system-browser.mjs'), 'utf8'));
+    const brave = join(f.root, 'Odd Folder', 'Brave', 'brave.exe');
+    await put(brave, 'exe');
+    delete f.env.CYBERPUNK_CONVAI_BROWSER;
+    const lines = async () => (await readFile(join(f.state, 'bridge-service.log'), 'utf8')).split('\n').filter(line => /browser/i.test(line));
+    assert.equal(prepare(f).browser, null, 'no file: nothing is set');
+    await put(join(f.mod, PLUGIN, 'browser.txt'), `; the browser the conversation page uses\r\n"${brave}"\r\n`);
+    assert.equal(prepare(f).browser, brave);
+    assert.match((await lines()).pop(), /Browser from browser\.txt: /);
+    await put(join(f.mod, PLUGIN, 'browser.txt'), join(f.root, 'Odd Folder', 'Brave'));
+    assert.equal(prepare(f).browser, brave, 'the browser folder works too');
+    await put(join(f.mod, PLUGIN, 'browser.txt'), join(f.root, 'gone', 'brave.exe'));
+    assert.equal(prepare(f).browser, null);
+    const last = (await lines()).pop();
+    assert.match(last, /brave\.exe, which is not there\. Looking for a browser the usual way instead\./);
+    assert.ok(!last.includes('gone'), 'the log names the file, not its folder');
+    await put(join(f.mod, PLUGIN, 'browser.txt'), brave);
+    const developer = join(f.root, 'dev', 'edge.exe');
+    assert.equal(prepare({...f, env: {...f.env, CYBERPUNK_CONVAI_BROWSER: developer}}).browser, developer);
+    assert.match((await lines()).pop(), /browser\.txt is not used: CYBERPUNK_CONVAI_BROWSER is set\./);
+    // A Runtime without the lookup's file still starts, and the player's file stays.
+    await rm(join(f.app, 'bridge'), {recursive: true, force: true});
+    assert.equal(prepare(f).ok, true);
+    assert.equal(await exists(join(f.mod, PLUGIN, 'browser.txt')), true);
+  } finally { await rm(f.root, {recursive: true, force: true}); }
 });
