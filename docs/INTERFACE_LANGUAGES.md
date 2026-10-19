@@ -24,7 +24,7 @@ profiles, typed messages, saved history, AI replies, voice selection and the
 Convai player identity keep their original values. It does not request a new
 conversation or change the language spoken by a character.
 
-MCM's header, search and settings draft controls and Codeware's generic
+Native Settings UI's header, search and settings controls and Codeware's generic
 Confirm/Cancel controls use their own localization. Native
 Messages/Contacts and story SMS follow the game. The mod does not change these
 global settings or another mod's UI to match a manual selection.
@@ -43,8 +43,7 @@ global settings or another mod's UI to match a manual selection.
   unavailable setting retains the last successful choice.
 - Manager settings validate and atomically save the canonical `uiLanguage`
   value before queuing a language change. Failed saves leave the old choice
-  active. MCM refreshes its provider/schema after the locale revision changes;
-  existing drafts defer a rebuild until they are saved or discarded.
+  active. The manager refreshes its provider/schema after the locale revision changes.
 - Phone hooks target only owned Chat widgets and known mod feedback. World
   composer notification data keeps its English ownership markers while the
   rendered title/hint changes. Neither path replaces the current input text.

@@ -98,7 +98,7 @@ A reply Johnny is speaking when one of these starts is ended, through the same s
 
 ## Cost (FPS and latency)
 
-- **Setting off:** nothing. `mod/johnny-head.lua` is never loaded (`dofile` on first need, only when `manager.johnnyInHead()` is true); `selectConversation` does one boolean read on a talk key press that found nobody, which already ends in a notice today. The MCM row is not drawn.
+- **Setting off:** nothing. `mod/johnny-head.lua` is never loaded (`dofile` on first need, only when `manager.johnnyInHead()` is true); `selectConversation` does one boolean read on a talk key press that found nobody, which already ends in a notice today. The manager's row is not drawn.
 - **Setting on:** still nothing per frame. On a talk key press that found nobody: one battle sample (as the holocall does), at most fifteen `GetFactStr` reads (one before the story start) (held 5 s, so a recording's validity poll costs nothing new) and a walk over at most 40 buffered game-dialogue rows. During a recording the head partner's validity is read about twice a second with the 0.4 s hold (the same poll the microphone already makes for any target).
 - **Talk path latency:** the turn is an ordinary private turn on the holocall's audio route: the bridge warms the connection (`warmConversation`) when the composer opens or the recording starts, and the stage clock (`bridge/turn-clock.mjs`, `runtime/bridge-latency.json`) measures it with no change. The added context is one sentence in the "right now" block and one short world block (under 900 characters).
 
@@ -181,7 +181,7 @@ Filled 2026-10-19 on branch `johnny-lore` (merged in) through the reviewed claim
 | `mod/johnny-head.lua` (new) | `story` (pure), `stage` (pure), `busy` (pure), `recentLine` (pure), `new` service: fact reads held 5 s, `refusal`, `partner`, `standing` |
 | `mod/init.lua` | lazy loader `convaiJohnnyHeadService`; `selectConversation` head fallback; recording validity; head guards where the add-on voice path branches on `voiceOnly`; `convaiJohnnyStanding` for the settings page |
 | `mod/speech.lua`, `mod/continuous-speech.lua` | a head reply plays as V's own sound like a holocall reply |
-| `mod/manager.lua`, `mod/mcm.lua` | the setting `johnnyInHead` (off; a missing key counts as off), its row, help and the read-only standing row |
+| `mod/manager.lua`, `mod/manager-ui.lua` | the setting `johnnyInHead` (off; a missing key counts as off), its row, help and the read-only standing row |
 | `mod/locales/*.lua`, `localization/en.json` | the new strings in 15 languages |
 | `bridge/protocol.mjs` | `parseHead` |
 | `bridge/johnny-head.mjs` (new) | the head block: standing and next-job guidance |

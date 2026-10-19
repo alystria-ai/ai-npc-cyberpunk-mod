@@ -210,8 +210,8 @@ test('init.lua refreshes the list on the talk key, keeps the player\'s own chara
   assert.match(code, /catalog\.custom = self\.count > 0 and self or nil/, 'the catalogue knows the list only while a character exists');
   // The one targeting query for "the character I'm facing" is a global function asked from the editor's Open, never from an update.
   assert.match(code, /function convaiFacingCharacter\(\)/);
-  const mcm = readFileSync(new URL('../mod/mcm.lua', import.meta.url), 'utf8');
-  assert.match(mcm, /facing = function\(\) return type\(convaiFacingCharacter\) == 'function' and convaiFacingCharacter\(\) or nil end/);
+  const host = readFileSync(new URL('../mod/manager-ui.lua', import.meta.url), 'utf8');
+  assert.match(host, /facing = function\(\) return type\(convaiFacingCharacter\) == 'function' and convaiFacingCharacter\(\) or nil end/);
   const catalog = readFileSync(new URL('../mod/character-catalog.lua', import.meta.url), 'utf8').replace(/--.*$/gm, '');
   assert(catalog.indexOf('local custom = catalog.custom') > catalog.indexOf('if actor.world == true and actor.story ~= true then return nil, actor.name end'), 'after the roster block');
   assert(catalog.indexOf('local custom = catalog.custom') < catalog.indexOf('if catalog.archetypes and type(actor.facts)'), 'before the archetypes');

@@ -96,10 +96,19 @@ public final func ConvaiHolocallEnd() -> Void {
     if IsDefined(hud) { hud.ConvaiCallEnd(); };
 }
 
-// mod/holocall.lua asks this before it cuts the world out of the live picture: the black backing below exists.
+// mod/holocall.lua asks this before it cuts the world out of the live picture: the black backing below exists. Without Codeware the
+// backing is left out (HudPhoneAvatarController.ConvaiHolocallBacking is a stand-in), so the answer is false and the camera cuts
+// nothing out: a cut with no backing behind it would show the game through the window.
+@if(ModuleExists("Codeware"))
 @addMethod(PlayerPuppet)
 public final func ConvaiHolocallHasBacking() -> Bool {
     return true;
+}
+
+@if(!ModuleExists("Codeware"))
+@addMethod(PlayerPuppet)
+public final func ConvaiHolocallHasBacking() -> Bool {
+    return false;
 }
 
 @addMethod(PlayerPuppet)
@@ -311,7 +320,8 @@ public final func ConvaiHolocallBacking(visible: Bool) -> Void {
     backing.SetVisible(visible);
 }
 
-// Without Codeware (widget parents are read through it) the window keeps the game's own backdrop: this cosmetic part is left out.
+// Without Codeware (widget parents are read through it) this cosmetic part is left out, and ConvaiHolocallHasBacking above answers
+// false so mod/holocall.lua films the live picture with the world behind the character instead of cutting it away.
 @if(!ModuleExists("Codeware"))
 @addMethod(HudPhoneAvatarController)
 public final func ConvaiHolocallBacking(visible: Bool) -> Void {

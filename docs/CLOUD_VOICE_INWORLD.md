@@ -8,7 +8,7 @@ conversation provider can write the replies. **No local voice model runs while i
 Code: `bridge/inworld-voice.mjs` (the adapter), `bridge/inworld-key.mjs` (the player's key), `bridge/inworld-steering.mjs`
 (emotion), `bridge/voice-utterance.mjs` (one voice per reply, shared with Voxtral), `bridge/voice-selection.mjs` (routing and fallback),
 `bridge/voice-routing-log.mjs`, `bridge/mistral-key.mjs` (the key command and status), `mod/voice-preview.lua`, `mod/manager.lua`,
-`mod/mcm.lua` (the menu). Tests: `bridge/inworld-voice.test.mjs`, `bridge/inworld-steering.test.mjs`,
+`mod/manager-ui.lua` (the menu). Tests: `bridge/inworld-voice.test.mjs`, `bridge/inworld-steering.test.mjs`,
 `bridge/inworld-key.test.mjs`, `bridge/voice-utterance.test.mjs`, `bridge/manager.test.mjs`, `bridge/voice-preview-adapter.test.mjs`.
 Measuring script: `scripts/Measure-InworldVoice.mjs`.
 

@@ -8,7 +8,7 @@ Your own characters (the section of that name below, branch `player-characters`)
 
 ## Why a web page and not an in-game editor
 
-- **Text entry.** The mod's menu (MCM, drawn in CET) has no multi-line text box, no scrolling text area, no list editing and no paste. A bio is up to 9,000 characters. Editing it with CET's `ImGui.InputTextMultiline` would need a per-frame draw callback and would grab the keyboard from the game.
+- **Text entry.** The mod's menu (Native Settings UI, drawn by the game) has no multi-line text box, no scrolling text area, no list editing and no paste. A bio is up to 9,000 characters. Editing it with CET's `ImGui.InputTextMultiline` would need a per-frame draw callback and would grab the keyboard from the game.
 - **FPS is the top priority.** In game, the editor would run an ImGui draw callback every frame while open and own a hotkey. The web page costs the game nothing: the Lua side is one function that writes one small file when the player clicks the row. It has no update hook and no native call. When the editor is closed there is no server and no polling beyond the bridge's existing 500 ms file check (the bridge is a separate process).
 - **The right tool.** Lists, search over 70+ characters, undo-by-reset, long text, a screen reader and a phone-sized layout all come for free in a browser.
 
@@ -79,7 +79,7 @@ Page sentences are English sources written as `T('...')` in `bridge/character-ed
 - `bridge/character-editor-server.mjs`: the loopback server and routes.
 - `bridge/character-editor-page.mjs`: the page (HTML, CSS and client script).
 - `bridge/character-editor-control.mjs`: the command file, the browser launch, the status file.
-- `mod/character-editor.lua`, `mod/mcm.lua`: the settings row.
+- `mod/character-editor.lua`, `mod/manager-ui.lua`: the settings row.
 - Changed: `bridge/mistral-prompt.mjs`, `bridge/memory-store.mjs`, `bridge/convai-bridge.mjs`.
 - Tests: `bridge/character-overrides.test.mjs`, `bridge/character-editor.test.mjs`, `bridge/character-editor-browser.test.mjs` (real Edge or Chrome, skipped when none is found; `EDITOR_SHOTS_DIR` saves screenshots), plus additions to `memory-store.test.mjs` and `support-help-ui.test.mjs`. Run `npm run test:editor`.
 
@@ -152,7 +152,7 @@ Per custom key, in the same memory store as the roster (`MemoryStore`): the exch
 
 - `bridge/custom-characters.mjs` (store, validation, keys, game list, voice extras, `releaseVoiceFiles`), `bridge/custom-voice-clip.mjs` (the clip checks and the canonical copy).
 - Changed: `bridge/character-editor.mjs`, `character-editor-server.mjs` (routes `/api/custom`, `/api/custom/<key>`, `/api/custom/<key>/voice` as a WAV body, `/api/facing`), `character-editor-page.mjs` (the form), `character-editor-control.mjs` (the facing character), `mistral-prompt.mjs` (`PersonaBook` `custom`), `voice-selection.mjs` (`aliases`), `convai-bridge.mjs`.
-- Game side (Scripts package): `mod/custom-characters.lua`, `mod/character-catalog.lua` (`resolve`, `isCustomKey`), `mod/init.lua`, `mod/manager.lua` (`textProviderActive`, `configureCustom`), `mod/character-editor.lua`, `mod/mcm.lua`, `mod/notices.lua`.
+- Game side (Scripts package): `mod/custom-characters.lua`, `mod/character-catalog.lua` (`resolve`, `isCustomKey`), `mod/init.lua`, `mod/manager.lua` (`textProviderActive`, `configureCustom`), `mod/character-editor.lua`, `mod/manager-ui.lua` (the Native Settings UI page that opens the editor), `mod/notices.lua`.
 - Tests: `bridge/custom-characters.test.mjs`, `bridge/custom-characters-lua.test.mjs`, additions to `character-editor.test.mjs`, `character-editor-browser.test.mjs` and `voice-selection.test.mjs`.
 
 ### Test in game (Mistral or Local AI chosen; install the Lua and the bridge, restart the bridge, reload CET)
