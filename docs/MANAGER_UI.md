@@ -286,6 +286,19 @@ Tests: `bridge/setup-check.test.mjs` (the bridge side), `bridge/setup-check-lua.
    (service status, settings, party, `runtime\*.log`, `AiNpcCyberpunkMod.log`), says why it is short and names
    the logs it could not read. It is one fixed file, `runtime\convai-report-lua.txt` (shipped empty and rewritten in place, so a
    new report replaces the last one and no file is created, renamed or removed).
+4. **With the game closed** (the mod never loads, so there is no Help page): `Make support report.bat` in
+   `red4ext\plugins\AiNpcCyberpunkMod` starts the bundled Node on `bridge/make-support-report.mjs`, which runs
+   `runOfflineReport()` (`bridge/offline-support-report.mjs`). It calls the same `buildReport` as the service, so the zip is the same
+   kind and goes to the same reports folder, with `generatedBy: offline`. It finds the game folder from where the Runtime is (or
+   `--game`), reads the logs from disk, and adds a requirement check to `summary.json` (`requirements`, `modFiles`, `releases`,
+   `offline`): Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Mod Configuration Menu (and ArchiveXL when
+   present) with the version where one is written down (the CET and RED4ext logs of the last start, MCM's own file), this mod's CET
+   folder, redscript folder and RED4ext plugin, and the Scripts and Runtime `release.json`. Each missing piece is a line in the
+   PROBLEM FOUND block. Redaction is the service's (`createRedactor`), with the player's key files, the sign-in secret and the key
+   packed into the Runtime added to the values it scrubs. Under Mod Organizer 2 a Runtime in MO2's `mods` folder is found through
+   `ModOrganizer.ini` (the game folder, Overwrite and the enabled mod folders of the selected profile are searched); where that
+   fails the tool says what it could not find and that MO2 users may need to start it from MO2 (Executables). It opens Explorer
+   on the zip and prints one line naming it.
 
 ### Privacy
 
