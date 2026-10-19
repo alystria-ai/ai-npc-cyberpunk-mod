@@ -424,7 +424,15 @@ do
     if f then
         local ok, decoded = pcall(json.decode, f:read('*a')); f:close()
         if ok and type(decoded) == 'table' then profiles = decoded end
-        for _, profile in ipairs(profiles) do supportedProfiles[profile.key] = true end
+        -- The roster carries the bridge's research text (backstory, sources, speaking style, uncertainty notes, native
+        -- intrinsics: about 1.1 MB of the 1.4 MB file) that no game-side code reads. Dropped once here, so the session keeps
+        -- about 0.25 MB of roster tables in the shared Lua heap instead of about 1.3 MB (deliverables/perf/LUA_HEAP.md).
+        local bridgeOnly = {'backstory', 'sources', 'speakingStyleDescription', 'speakingStyleSampleDialogues', 'uncertainty',
+            'nativeIntrinsic'}
+        for _, profile in ipairs(profiles) do
+            supportedProfiles[profile.key] = true
+            if type(profile) == 'table' then for _, field in ipairs(bridgeOnly) do profile[field] = nil end end
+        end
     end
 end
 -- Generic NPC archetypes (docs/NPC_ARCHETYPES.md): talk-only profiles chosen
