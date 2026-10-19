@@ -5,7 +5,7 @@
 //   * a schema needs dense arrays; values are normalized the way values.lua does; a draft equal to the saved value is dropped;
 //   * an action is refused while drafts are pending, and a reload is too; Apply hands the drafts to applyBatch as {id = <source id>,
 //     value}, requires appliedIds to be EXACTLY the ids asked for, loads the schema again and fails if a draft did not keep its value;
-//   * layout() says how MCM 0.10.5 DRAWS each row, from the rules of its renderer (mcm_native_render.lua addSettingRow, mcm_native_render.lua
+//   * layout() says how MCM 0.10.5 DRAWS each row (and says whether MCM's own Defaults button and Modified counter are there), from the rules of its renderer (mcm_native_render.lua addSettingRow, mcm_native_render.lua
 //     bottomActions with Extensions.footer, MCMPanelContent.reds McmUiAddManagedLabel / McmUiAddActionSetting / McmUiAddReadonly,
 //     MCMPanelActions.reds McmUiCreateAction, MCMLayout.reds ContentTextFontSize and MCMColors): that is what decides how a page looks;
 //   * the list's scroll position is a fraction of its height, which the player moves, which MCM resets to the top for a new page id, and
@@ -475,6 +475,8 @@ export const mcmFake = String.raw`
     --            the default the provider gave (MCM's "changed" mark; it needs a default; the player may choose an asterisk instead);
     --   action   (supported, with the action capability): label flush left (x 20), size 22, red, a button with the value as its text;
     --   readonly (a string, or anything unsupported or disabled, such as a disabled action): label flush left, size 26, value in muted blue.
+    -- The x of a setting (48) is MCMLayout.reds contentLabelX = markerX 20 + marker width 20 + gap 8, a constant; the presentation options
+    -- (rowFontSize, labelWidthFraction ...) do not move it, and neither does any property of a row.
     -- A footer action is not in the list; it is a footer button labelled by its value.
     function F.layout()
       local out = {rows = {}, footer = {}}
@@ -512,6 +514,20 @@ export const mcmFake = String.raw`
           out.footer[#out.footer + 1] = {id = id, label = setting.value or setting.label}
         end
       end
+      -- MCM's own bottom buttons (mcm_native_render.lua bottomActions): Defaults when a setting with a readable default is off it, and
+      -- the Modified (n) counter when any setting has a default (mcm_model.lua modifiedSettingCount). A mod that gives no defaults has neither.
+      local modified, comparable = 0, 0
+      for _, category in ipairs(mod.categories) do
+        for _, setting in ipairs(category.settings) do
+          if setting.defaultValue ~= nil then
+            comparable = comparable + 1
+            local draft = drafts[setting.id]
+            local value = draft and draft.value or setting.value
+            if mcmNormalize(setting, value) ~= setting.defaultValue then modified = modified + 1 end
+          end
+        end
+      end
+      out.mcmDefaultsButton, out.modified, out.comparable = modified > 0, modified, comparable
       return out
     end
     function F.row(label)

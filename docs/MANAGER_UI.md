@@ -42,13 +42,13 @@ Mods screen (Esc > Mods)
 | Characters to invite | Home | Characters to invite |
 | Current party | Home | Your group (only while a companion drives), Current party |
 | Model browser | Home | Installed character models |
-| Settings | Home | Interface, Conversations, Relationships, Conversation provider, Companion behavior, Voices, Subtitles, Automatic reactions, one section per installed add-on, Development, Help |
+| Settings | Home | Interface, Conversations, Conversation provider, Companion behavior, Voices, Subtitles, Automatic reactions, one section per installed add-on, Development, Help |
 | Memory | Settings | Memory, Whose memories |
 | Help and support | Settings | Setup check, If something goes wrong, Report for the developer, Where the logs are |
 | Convai paid tier | Settings | Convai paid tier, Plans |
 
-The Back row reads "Back to Companion Manager" on the first four pages and "Back to settings" on the other three. It is the first row of
-the first section, so it is always the first row of the page. Memory is a row (Manage) of Settings > Conversations, Help and support is
+The Back row reads "Back to Companion Manager" on the first four pages and "Back to settings" on the other four (Memory, Relationships, Help, paid tier). It is the first row of
+the first section, so it is always the first row of the page. Memory (Manage) and Relationships (Open) are rows of Settings > Conversations, Help and support is
 the one row of Settings > Help, and Convai paid tier is a row of Settings > Conversation provider under the Convai API key row. The Help
 entry is absent when `mod/support-report.lua` did not load, the paid tier entry when `mod/convai-paid-tier.lua` did not (both are loaded
 behind `pcall`). Relationships is absent when no character has a relationship setting.
@@ -87,7 +87,7 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
   - Conversations: Memory (opens the Memory page), Talk to ordinary NPCs, Talk to story characters, Johnny in your head (with a
     read-only "Johnny's standing" line under it while it is on), Johnny speaks up, Multilingual conversations, Auto-connect nearby
     characters, Continue from game dialogue, Live holocall picture.
-  - Relationships: one selector per character that has the setting (Auto, Romantic, Ordinary; Auto, Casual, Ordinary for Meredith
+  - Relationships (a page of its own, opened by the Relationships row of Conversations): one selector per character that has the setting (Auto, Romantic, Ordinary; Auto, Casual, Ordinary for Meredith
     Stout). The saved values stay `auto`, `on` and `off`. There is no "Who can talk" row: every character may talk by default, and
     one the player muted earlier stays muted, since nothing resets the saved value.
   - Conversation provider: the provider selector, Mature content, Local AI model, Mistral free API key, the Custom
@@ -185,7 +185,8 @@ After every apply the page is drawn again. **What the rules did is shown on the 
     wins. Multilingual conversations follows the same rule (the voice is kept when the player chooses it) and never keeps Pocket or
     Voxtral, which speak English only: it switches to OmniVoice · Balanced, or to the Convai cloud voice without the pack.
   - V's voice engine Voxtral is refused without a Mistral key and while Mature content is on.
-- **Restore defaults** is NSUI's own button, registered for this tab. On the Settings page it applies every saved row that is not at
+- **Restore defaults** is NSUI's own button, registered for this tab (in MCM it is a footer button of the host, pressed twice). On the Settings
+  page and the Relationships page it applies every saved row of both pages that is not at
   its default through the same path (the Local AI model goes to the model shown as the default, the largest that fits), then says
   "Defaults restored."; a default a rule would refuse is not forced. On any other page it changes nothing and says "Open Settings to
   restore its defaults."
@@ -309,8 +310,14 @@ host the page (MCM 0.10.3 is older than 0.10.5 ...)") and stays out. No MCM func
 internal table is read; `bridge/mcm-host.test.mjs` checks that the file contains no `Observe`, `Override`, `McmUi` or `require`.
 
 **The page.** Every category of the page is a category of MCM, each row a setting: `bool`, `select`, `int` rows are drafts
-(capabilities read, write, draft, reset; a default for MCM's Defaults button), actions are MCM actions (with `disabled` rows not
-runnable), read-only rows are `string` settings without write. The line under the way back (the result of the last action) is MCM's
+(capabilities read, write, draft; NO default: MCM draws a row purple only when it has a default and differs from it, and the same rows
+look alike without it; MCM's own Defaults button and Modified counter go with the defaults, so the host has its own **Restore defaults**
+footer button on Settings and Relationships, pressed twice because MCM's public API has no confirmation, applying `manager-ui.lua`
+`M.defaults()` through `M.apply`), actions are MCM actions (with `disabled` rows not runnable), read-only rows are `string` settings
+without write, except on the Settings page where Voice status and Johnny's standing are status buttons (an action with the value as its
+text that does nothing: MCM draws a read-only line at size 26 and every other row at 22). Two alignments remain that no public option
+changes: a setting's label is in MCM's marker column (x 48, `MCMLayout.reds` `contentLabelX`) and an action's is flush left (x 20).
+Relationships is a page of its own (view `relationships`, back to Settings), opened by a Relationships button in Conversations. The line under the way back (the result of the last action) is MCM's
 status line (`api.ui.setStatus`, kind info), sent only when it changes. The way back is the page's back action: `setNavigation` gives
 it as `backActionId` (Escape goes back) and `setFooterActions` puts it in MCM's footer; the `pageId` is `view|page|group`, so MCM scrolls to
 the top of a new page. The OmniVoice entries of Companion voices are disabled choices (`setChoiceStates`, reason "Requires the optional
@@ -319,7 +326,7 @@ without a draft: **Previous page**, **Next page** (disabled at the ends) and, in
 group, the last one goes round to All).
 
 **Draft and Apply.** The apply policy is `explicit` (MCM's own Auto Apply is not used): a change is a draft until the player presses
-Apply (or Revert drops it, or Defaults stages every default). MCM hands the drafts to `applyBatch` as `{id, value}`, and the host runs
+Apply (or Revert drops it). MCM hands the drafts to `applyBatch` as `{id, value}`, and the host runs
 `manager-ui.lua` `M.apply`: ONE validated, saved transaction with the same rules as the NSUI host (Mature content turns on Local AI,
 the uncensored model and a local voice with it; a value the rules refuse is refused with the reason). `appliedIds` are the ids MCM
 asked for, not the extra ones the rules saved. MCM loads the page again and the rows show what was saved. If the rules did not keep a

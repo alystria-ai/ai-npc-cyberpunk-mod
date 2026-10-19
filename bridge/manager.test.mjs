@@ -466,7 +466,13 @@ test('manager home owns the four destinations and every inner page has one paren
     assert(invoke('tab:settings').ok)
     assert(not row('permissions'), 'Who can talk is gone from the Settings page')
     assert(not invoke('permissions').ok and managerUi.inspect().view == 'settings', 'the removed permissions page stayed callable')
-    assert(not row('relationships') and not invoke('relationships').ok, 'Relationships is a section of Settings, not a page')
+    -- Relationships is a page that opens from Conversations (a button beside Memory), with one Back to Settings.
+    local open = row('relationships')
+    assert(open and open.type == 'action' and open.value == 'Open' and not open.disabled and not row('relationship:judy-alvarez'))
+    assert(invoke('relationships').ok)
+    inner('relationships', 'relationships:back')
+    assert(row('relationship:judy-alvarez') and not row('relationships') and not row('archetypeConversations'))
+    assert(invoke('relationships:back').ok and managerUi.inspect().view == 'settings' and not row('relationship:judy-alvarez'))
     assert(invoke('memory').ok)
     inner('memory', 'memory:settings')
     assert(not row('memory:choose') and row('memory-selected'), 'the memory picker is part of the Memory page')
@@ -2050,8 +2056,9 @@ test('Memory permits deliberate local Chat clearing with zero contacted provider
   assert(memoryRequest().profileKey=='person-20')
 `));
 
-test('Relationships are a section of Settings and only applied selections reach saved modes', () => run(`${nsuiFixture}
-  assert(invoke('tab:settings').ok and not row('relationships') and not invoke('relationships').ok)
+test('Relationships are a page that opens from Conversations and only applied selections reach saved modes', () => run(`${nsuiFixture}
+  assert(invoke('tab:settings').ok and row('relationships').value=='Open' and not row('relationship:judy-alvarez'))
+  assert(invoke('relationships').ok and row('relationships:back').value=='Back')
   local selected=row('relationship:judy-alvarez')
   assert(selected and selected.value==1 and selected.defaultValue==1)
   assert(selected.elements[1]=='Auto' and selected.elements[2]=='Romantic' and selected.elements[3]=='Ordinary')
@@ -3962,13 +3969,13 @@ test('the Convai and Mistral key rows are always listed, whichever provider is c
   `);
 });
 
-test('Settings sections: Relationships follow Conversations, Conversation provider sits after them and before Voices, Development keeps Developer mode (and the Inworld key with it on), Voice status follows Companion voices', () => {
+test('Settings sections: Relationships is a button in Conversations, Conversation provider follows Conversations and sits before Voices, Development keeps Developer mode (and the Inworld key with it on), Voice status follows Companion voices', () => {
   run(`${nsuiFixture}
     assert(invoke('tab:settings').ok)
     local order = {}
     for _, category in ipairs(loaded.categories) do order[#order + 1] = category.id end
     local joined = table.concat(order, ',')
-    assert(joined:find('navigation,interface,conversation-controls,relationships,conversation-provider,companion-behavior,voices,', 1, true), joined)
+    assert(joined:find('navigation,interface,conversation-controls,conversation-provider,companion-behavior,voices,', 1, true) and not joined:find('relationships', 1, true), joined)
     local function idsOf(categoryId)
       for _, category in ipairs(loaded.categories) do
         if category.id == categoryId then

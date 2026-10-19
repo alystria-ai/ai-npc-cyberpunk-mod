@@ -16,10 +16,17 @@
 --    changes first"). A button that cannot be used right now is still drawn as a button (MCM draws a disabled action as a plain
 --    line of another size and shape, so the page would change layout); pressing it answers "Not available right now.".
 --  * How MCM draws a row decides how the page looks, and the host can only choose the kind of row (docs in mcm-fake.mjs, layout()):
---    a setting (switch, list, slider) is indented under its label column, red, and purple when its value differs from the default
---    (MCM's own "changed" mark, the same for every mod); an action is a flush-left label with a button; a read-only line is a
---    flush-left label with a value. The previous and next page buttons and the letter group of a long list (which have no draft in
---    MCM) are footer buttons, beside the way back, so they never move with the list; the page number is in the heading.
+--    a setting (switch, list, slider) has its label in MCM's marker column (x 48, MCMLayout.reds contentLabelX; no option or row
+--    property moves it), red, and purple when its value differs from the DEFAULT the provider gave (MCM's "changed" mark,
+--    mcm_model.lua settingDisplay: no default, no mark); an action is a flush-left label (x 20) with a button; a read-only line is a
+--    flush-left label at size 26 (MCM's list-row text) with a value.
+--    So: no row is given a default (nothing is purple; MCM's own Defaults button and Modified counter go with it), and this host
+--    offers its own Restore defaults button in the footer instead (the rows' defaults are manager-ui.lua's M.defaults; MCM's public API
+--    has no confirmation, so the button asks to be pressed twice). The read-only lines of the Settings page (Voice status, Johnny's
+--    standing) are drawn as status buttons (an action: size 22 like every other row, the value as the button's text, pressing it
+--    does nothing), so no line of that page is another size. The previous and next page buttons and the letter group of a long list
+--    (which have no draft in MCM) are footer buttons, beside the way back, so they never move with the list; the page number is in
+--    the heading.
 --  * The line under the way back (the result of the last action) is MCM's status line (api.ui.setStatus).
 --  * Nothing runs per frame while the screen is closed: M.update is a clock comparison. It does its work every quarter of a second
 --    (the slow tick), and every frame only while the model browser is open and still reading the game's models.
@@ -40,12 +47,16 @@ local UI_CALLS = {'setApplyPolicy', 'setPresentation', 'setNavigation', 'setFoot
 local SCROLL_CHECK, SCROLL_TRIES = 0.3, 3
 local API_CALLS = {'hasDrafts', 'reloadMod', 'revert', 'refreshProvider'}
 local CAPABILITIES = {
-    setting = {read = true, write = true, draft = true, reset = true},
+    -- reset = false and no defaultValue: MCM marks a row purple only when it has a default and differs from it (see the top).
+    setting = {read = true, write = true, draft = true, reset = false},
     action = {read = true, action = true, write = false, draft = false, reset = false},
     text = {read = true, write = false, draft = false, reset = false},
 }
 
+-- The footer button that puts the settings back to their defaults (manager-ui.lua M.defaults), and the ids of status buttons.
+local DEFAULTS_ID, STATUS_PREFIX = 'defaults:restore', 'status:'
 local core, options
+local restoreArmed, restorePage = false, nil
 local api, provider, version
 local connectAt, connectTries, lastReason = 0, 0, nil
 local slowAt, localeRevision = 0, -1
@@ -144,19 +155,23 @@ local function convert(row)
     end
     if kind == 'bool' then
         return {{id = id, type = 'bool', label = row.label, description = row.description or '', value = row.value == true,
-            defaultValue = row.defaultValue == true, capabilities = CAPABILITIES.setting}}
+            capabilities = CAPABILITIES.setting}}
     elseif kind == 'select' then
         local elements = row.elements and #row.elements > 0 and row.elements or {''}
         return {{id = id, type = 'select', label = row.label, description = row.description or '', elements = elements,
-            value = clamp(row.value, 1, #elements), defaultValue = clamp(row.defaultValue or 1, 1, #elements),
-            capabilities = CAPABILITIES.setting}}
+            value = clamp(row.value, 1, #elements), capabilities = CAPABILITIES.setting}}
     elseif kind == 'int' then
         local low, high = row.min or 0, row.max or 100
         return {{id = id, type = 'int', label = row.label, description = row.description or '', min = low, max = high,
-            step = row.step or 1, value = clamp(row.value, low, high), defaultValue = clamp(row.defaultValue or low, low, high),
-            capabilities = CAPABILITIES.setting}}
+            step = row.step or 1, value = clamp(row.value, low, high), capabilities = CAPABILITIES.setting}}
     elseif kind == 'action' then
         return {action(id, row.label, row.value, row.description)}
+    end
+    -- A line of text of the Settings page: a status button (the value is its text; pressing it does nothing). MCM draws a read-only
+    -- line at size 26, the other rows at 22.
+    local value = tostring(row.value or '')
+    if core.view() == 'settings' and value ~= '' then
+        return {action(STATUS_PREFIX .. id, row.label, value, row.description)}
     end
     -- A line of text: the label and its value, nothing to change.
     return {{id = id, type = 'string', label = row.label, description = row.description or '', value = tostring(row.value or ''),
@@ -171,6 +186,8 @@ local function schema()
     local model = core.model()
     local categories, disabledChoices, footer = {}, {}, {}
     currentBack = nil
+    -- The confirmation of Restore defaults is for the page it was asked on.
+    if restoreArmed and core.pageId() ~= restorePage then restoreArmed = false end
     controls.page, controls.pages, controls.group, controls.groups, controls.range = 1, 1, 1, 1, nil
     for _, category in ipairs(model.categories) do
         local settings = {}
@@ -195,10 +212,17 @@ local function schema()
             categories[#categories + 1] = {id = category.id, name = name, description = description, settings = settings}
         end
     end
+    -- Restore defaults, on Settings and on the pages that open from it with settings of their own (Relationships).
+    local view = core.view()
+    if view == 'settings' or view == 'relationships' then
+        footer[#footer + 1] = action(DEFAULTS_ID, ui.t('Restore defaults'),
+            restoreArmed and ui.t('Press again to restore') or ui.t('Restore defaults'),
+            ui.t('Puts every setting on Settings and Relationships back to its default. Press the button twice to confirm.'))
+    end
     -- The buttons of the page that are not in the list: the letter group, the previous and next page, and the way back (rightmost).
     local footerIds, byId = {}, {}
     for _, item in ipairs(footer) do byId[item.id] = item end
-    for _, id in ipairs({'ui:group:next', 'ui:page:previous', 'ui:page:next'}) do
+    for _, id in ipairs({'ui:group:next', 'ui:page:previous', 'ui:page:next', DEFAULTS_ID}) do
         if byId[id] then footerIds[#footerIds + 1] = id end
     end
     if currentBack then footerIds[#footerIds + 1] = currentBack.id end
@@ -277,6 +301,26 @@ local function restoreScroll(before)
     putScroll(before)
 end
 
+-- Restore defaults: the first press asks for a second one (the button says so), the second puts every row on Settings and
+-- Relationships back to its default in ONE saved transaction, as MCM's own Defaults button did (that button is gone with the defaults).
+local function restoreDefaults()
+    if not restoreArmed then
+        restoreArmed, restorePage = true, core.pageId()
+        core.setFeedback(ui.t('Press Restore defaults again to put every setting back to its default.'))
+        return {ok = true, schemaChanged = true}
+    end
+    restoreArmed = false
+    local changes = core.defaults()
+    if #changes > 0 then
+        local before = contentScroll()
+        local result = core.apply(changes)
+        if not result.ok then return {ok = false, error = result.error, schemaChanged = true} end
+        restoreScroll(before)
+    end
+    core.setFeedback(ui.t('Defaults restored.'))
+    return {ok = true, schemaChanged = true}
+end
+
 local function buildProvider()
     return {
         id = PROVIDER, registrationKey = 'cyberpunk-convai.manager.v1', apiVersion = 2,
@@ -288,7 +332,7 @@ local function buildProvider()
         end,
         closeMod = function(id)
             -- The next visit starts on the first page, as the Native Settings UI tab does.
-            if id == MOD then core.setView('home'); reloadWanted, revertWanted, statusSent = false, false, nil end
+            if id == MOD then core.setView('home'); reloadWanted, revertWanted, statusSent, restoreArmed = false, false, nil, false end
             return true
         end,
         loadMod = function(id)
@@ -297,9 +341,15 @@ local function buildProvider()
         end,
         invokeAction = function(id, actionId)
             if id ~= MOD then return {ok = false, error = 'Unknown mod.'} end
+            if actionId == DEFAULTS_ID then return restoreDefaults() end
+            -- Any other button drops a first press of Restore defaults (the button is drawn again); a status button shows its text
+            -- (MCM's description panel) and does nothing.
+            local wasArmed = restoreArmed
+            restoreArmed = false
+            if actionId:sub(1, #STATUS_PREFIX) == STATUS_PREFIX then return {ok = true, schemaChanged = wasArmed} end
             if actionId:sub(1, 3) == 'ui:' then
                 -- At the first or last page the button does nothing: the page is not drawn again.
-                return {ok = true, schemaChanged = pageControl(actionId) == true}
+                return {ok = true, schemaChanged = pageControl(actionId) == true or wasArmed}
             end
             local result = core.invoke(actionId)
             return {ok = result.ok == true, error = result.error, schemaChanged = true}
