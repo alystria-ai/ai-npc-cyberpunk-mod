@@ -332,13 +332,16 @@ test('a result is only for the latest command: an older test id, a test after an
   local fresh = make()
   publish(base({test = {id = 'other-session:cust:1', state = 'ok'}, result = {id = 'other-session:cust:1', field = 'url', state = 'invalid', reason = 'empty'}}))
   assert(fresh.state().test == nil and fresh.state().result == nil)
-  -- A test that is still "testing" a minute later (the service stopped, the game was reloaded under it) is dropped, so Test can be pressed again.
+  -- A test that is still "testing" after its longest real run (the service stopped, the game was reloaded under it) is dropped, so Test can be
+  -- pressed again; a 90 s test of a server on this computer is still shown as running.
   assert(provider.request('test')); local running = lastCommand().id
   publish(base({test = {id = running, state = 'testing'}}))
   assert(provider.state().test.state == 'testing' and rowsOf(provider)['custom-test'].enabled == false)
   clock = clock + 30; publish(base({test = {id = running, state = 'testing'}}))
   assert(provider.state().test and provider.state().test.state == 'testing')
-  clock = clock + 40; publish(base({test = {id = running, state = 'testing'}}))
+  clock = clock + 60; publish(base({test = {id = running, state = 'testing'}}))
+  assert(provider.state().test and provider.state().test.state == 'testing', 'a 90 s test is still running')
+  clock = clock + 110; publish(base({test = {id = running, state = 'testing'}}))
   assert(provider.state().test == nil and rowsOf(provider)['custom-test'].enabled == true and rowsOf(provider)['custom-test'].label == 'Test connection')
   -- A finished answer is never aged out.
   publish(base({test = {id = running, state = 'ok'}}))

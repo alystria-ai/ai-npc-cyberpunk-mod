@@ -422,29 +422,44 @@ Tests: `bridge/setup-check.test.mjs`, `bridge/setup-check-lua.test.mjs` (the Lua
 
 ### How a report is made
 
-1. **Generate report** writes `runtime\report-request.json` (`{version, id, issuedAt, lua:{cetVersion, language, view, developerMode,
-   party[]}}`) and waits. The service polls every 500 ms (`bridge/support-report.mjs`), writes `runtime\report-result.json` (`building`,
-   then `ready` with `path`, `fileName`, `bytes`, or `failed` with a code) and builds
-   `%LOCALAPPDATA%\AiNpcCyberpunkMod\reports\convai-report-YYYYMMDD-HHMMSS.zip`, outside the game folder (a file created there would land
-   in Mod Organizer 2's Overwrite folder; a development service keeps `<mod>\runtime\reports\`). Only the newest five reports are kept.
-   The zip holds `README.txt`, `summary.json` (mod fingerprint, versions, service status, settings, party, provider per companion, recent
-   errors, the log index) and `logs/NN-<id>.txt`: the last 2,000 lines or 1 MiB of each log.
-2. If no service is answering the page writes a **short text report** itself at once (`bridge-service.json` missing, empty, unreadable or
-   stale and no fresh heartbeat, or a fresh status that says stopped or failed). A service that is up is asked and given 6 s (30 s once it
-   reports `building`) with the line "Creating the report..."; no answer, or `failed`, ends in the short report. When the service never
-   started, its second line is a `PROBLEM:` line with the likeliest causes. It is one fixed file, `runtime\convai-report-lua.txt` (shipped
-   empty and rewritten in place, so no file is created, renamed or removed).
-3. **With the game closed** (the mod never loads, so there is no Help page): `Make support report.bat` in
-   `red4ext\plugins\AiNpcCyberpunkMod` starts the bundled Node on `bridge/make-support-report.mjs`, which runs `runOfflineReport()`
-   (`bridge/offline-support-report.mjs`). It calls the same `buildReport` as the service, so the zip is the same kind and goes to the same
-   folder, with `generatedBy: offline`. It finds the game folder from where the Runtime is (or `--game`), reads the logs from disk, and
-   adds a requirement check to `summary.json` (`requirements`, `modFiles`, `releases`, `offline`): Cyber Engine Tweaks, RED4ext, redscript,
-   Codeware, TweakXL, Audioware and **Native Settings UI** (CET mod folder `nativeSettings`; ArchiveXL too when present), with the version
-   where one is written down (the CET and RED4ext logs of the last start, and the `version = ...` line of Native Settings UI's own
-   `init.lua`). Mod Configuration Menu is not checked. It also checks this mod's CET folder, redscript folder and RED4ext plugin and the
-   Scripts and Runtime `release.json`; each missing piece is a line in the PROBLEM FOUND block. Under Mod Organizer 2 a Runtime in MO2's
-   `mods` folder is found through `ModOrganizer.ini`; where that fails the tool says what it could not find and that MO2 users may need
-   to start it from MO2 (Executables). It opens Explorer on the zip and prints one line naming it.
+1. **Generate report** writes `runtime\report-request.json` (`{version, id, issuedAt, lua:{cetVersion,
+   language, view, developerMode, party[]}}`) and waits. The service polls every 500 ms
+   (`bridge/support-report.mjs`), writes `runtime\report-result.json` (`building`, then `ready` with `path`,
+   `fileName`, `bytes`, or `failed` with a code) and builds
+   `%LOCALAPPDATA%\AiNpcCyberpunkMod\reports\convai-report-YYYYMMDD-HHMMSS.zip` (the parent of the service's `data\` folder, so outside
+   the game folder: a file created there would land in Mod Organizer 2's Overwrite folder; a service whose data folder is not named
+   `data` outside the mod folder, as in development, keeps `<mod>\runtime\reports\`). The service publishes the folder in
+   `runtime\support-paths.json`; before it has, the page names `%LOCALAPPDATA%\AiNpcCyberpunkMod\reports` and `...data`.
+   Only the newest five reports are kept.
+2. The zip holds `README.txt`, `summary.json` (mod fingerprint, CET/game/RED4ext versions, service status,
+   settings, party, provider per companion, recent errors, the log index) and `logs/NN-<id>.txt`: the last
+   2,000 lines or 1 MiB of each log.
+3. If no service is answering the page writes a **short text report** itself at once, with no request and no wait:
+   `bridge-service.json` missing, empty, unreadable or stale and no fresh heartbeat (`service-status.lua` `reach()`: `never` when
+   nothing of this game session shows, `stopped` when it ran and went quiet), or a fresh status that says stopped or failed. A
+   service that is up (a fresh heartbeat, or a fresh ready, starting or restarting status) is asked and given 6 s
+   (30 s once it reports `building`) with the banner "Creating the report…"; no answer, or `failed`, ends in the short report.
+   When the service never started, the second line of the short report is a `PROBLEM:` line with the likeliest causes (the Runtime
+   is missing or did not load: `red4ext\plugins\AiNpcCyberpunkMod\`, the RED4ext log, antivirus; a Chromium browser). The short report holds what the game can read
+   (service status, settings, party, `runtime\*.log`, `AiNpcCyberpunkMod.log`), says why it is short and names
+   the logs it could not read. It is one fixed file, `runtime\convai-report-lua.txt` (shipped empty and rewritten in place, so a
+   new report replaces the last one and no file is created, renamed or removed).
+4. **With the game closed** (the mod never loads, so there is no Help page): `Make support report.bat` in
+   `red4ext\plugins\AiNpcCyberpunkMod` starts the bundled Node on `bridge/make-support-report.mjs`, which runs
+   `runOfflineReport()` (`bridge/offline-support-report.mjs`). It calls the same `buildReport` as the service, so the zip is the same
+   kind and goes to the same reports folder, with `generatedBy: offline`. It finds the game folder from where the Runtime is (or
+   `--game`), reads the logs from disk, and adds a requirement check to `summary.json` (`requirements`, `modFiles`, `releases`,
+   `offline`): Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Native Settings UI (CET mod folder
+   `nativeSettings`; ArchiveXL too when present) with the version where one is written down (the CET and RED4ext logs of the last start,
+   and the `version = ...` line of Native Settings UI's own `init.lua`), this mod's CET folder, redscript folder and RED4ext plugin, and
+   the Scripts and Runtime `release.json`. Mod Configuration Menu is not checked. Each missing piece is a line in the PROBLEM FOUND block. Redaction is the service's (`createRedactor`), with the player's key files, the Custom provider's key
+   (`player-custom-endpoint.txt`), the sign-in secret and the key packed into the Runtime added to the values it scrubs, and
+   `%USERNAME%` hidden in any path as well. Under Mod Organizer 2 a Runtime in MO2's `mods` folder is found through
+   `ModOrganizer.ini`, above the mods folder (portable) or in `%LOCALAPPDATA%\ModOrganizer\<instance>` (global, base directory
+   anywhere); Overwrite, the enabled mod folders of the selected profile and the game folder are searched in the order the game
+   sees them, and for each log the newest copy wins. Where that fails the tool says what it could not find and that MO2 users may
+   need to start it from MO2 (Executables). It opens Explorer on the zip, prints one line naming it, and exits with 0 (1 when no
+   report was made, also from the batch file).
 
 ### Privacy
 

@@ -61,11 +61,14 @@ export function convaiUrl(value) {
   return typeof value === 'string' && value.length <= 300 && underConvai(hostOf(value)) ? new URL(value).href.replace(/\/$/, '') : null;
 }
 
-/** A page the browser may open after a checkout request: https on stripe.com or convai.com only. */
+/**
+ * A page the browser may open after a checkout request: https on stripe.com or convai.com only. The address handed to the system's URL
+ * handler is the parsed, normalised one (spaces, quotes and other odd characters percent-encoded), never the server's text as it came.
+ */
 export function safeCheckoutUrl(value) {
-  if (typeof value !== 'string' || value.length > 2048) return null;
+  if (typeof value !== 'string' || value.length > 2048 || /[\u0000- \u007f"<>\\^`{|}]/.test(value)) return null;
   const host = hostOf(value);
-  return host && (underStripe(host) || underConvai(host)) ? value : null;
+  return host && (underStripe(host) || underConvai(host)) ? new URL(value).href : null;
 }
 
 /** The plans in `value` that are well formed, in order, at most eight, each price id used once. [] when none. */
