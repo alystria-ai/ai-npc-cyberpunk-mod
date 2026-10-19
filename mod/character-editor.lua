@@ -156,11 +156,11 @@ function M.new(options)
         ['Everyday people'] = ui.t('Everyday people'),
         ['No match.'] = ui.t('No match.'),
         ['Character editor'] = ui.t('Character editor'),
-        ['Your changes work with Mistral and Local. They do not apply to Convai.'] = ui.t('Your changes work with Mistral and Local. They do not apply to Convai.'),
+        ['Your changes work with Mistral and Local AI. They do not apply to Convai.'] = ui.t('Your changes work with Mistral and Local AI. They do not apply to Convai.'),
         ['Close editor'] = ui.t('Close editor'),
         ['Search characters'] = ui.t('Search characters'),
         ['Changes are saved on this computer and used from the next reply.'] = ui.t('Changes are saved on this computer and used from the next reply.'),
-        ['Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local as the conversation provider in the settings.'] = ui.t('Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local as the conversation provider in the settings.'),
+        ['Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local AI as the conversation provider in the settings.'] = ui.t('Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local AI as the conversation provider in the settings.'),
         ['The editor is closed. You can close this tab.'] = ui.t('The editor is closed. You can close this tab.'),
         }
     end

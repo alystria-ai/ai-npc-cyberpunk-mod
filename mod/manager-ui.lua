@@ -915,7 +915,7 @@ local function ownKeyRows(snapshot)
     end
     if editor then
         rows[#rows + 1] = action('character-editor:open', 'Edit characters', 'Open',
-            'Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral and Local, not Convai. Changes apply from the next reply.',
+            'Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral and Local AI, not Convai. Changes apply from the next reply.',
             function() return editor.request() end)
     end
     -- The Inworld key belongs to the Inworld cloud voice, which is a developer-mode voice: its row sits in Settings > Development.
