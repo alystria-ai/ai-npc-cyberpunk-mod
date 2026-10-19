@@ -501,6 +501,12 @@ convaiNoticeLog = function(message)
     if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'), ' ', tostring(message), '\n'); file:close() end
 end
 managerUi.configure(manager, companions, dofile('manager-party.lua'), invitations)
+-- The second host of the manager's page: Mod Configuration Menu 0.10.5 or newer, through its public API (mod/mcm-host.lua). It shares
+-- the page logic of the Native Settings UI host, registers itself when that MCM is installed, and costs a clock comparison otherwise.
+do
+    local attached, attachError = pcall(function() managerUi.attach(dofile('mcm-host.lua')) end)
+    if not attached then convaiNoticeLog('Manager: the Mod Configuration Menu host did not load: ' .. tostring(attachError)) end
+end
 convaiManager = managerUi
 local catalog = characterCatalog.build(profiles, archetypes)
 -- The record IDs of a record-cloning mod's copies ("NCA.Character.Judy", characterCatalog.CLONE_PREFIXES): a global table, read by

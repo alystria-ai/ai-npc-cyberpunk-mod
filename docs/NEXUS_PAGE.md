@@ -26,7 +26,7 @@
 [size=4][b]Requirements[/b][/size]
 [list]
 [*]Cyberpunk 2077 version 2.31 on Windows 10 or 11 (64-bit).
-[*]These mods from Nexus Mods, installed first: [url=https://www.nexusmods.com/cyberpunk2077/mods/107]Cyber Engine Tweaks[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/2380]RED4ext[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/1511]redscript[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/7780]Codeware[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/4197]TweakXL[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/12001]Audioware[/url] and [url=https://www.nexusmods.com/cyberpunk2077/mods/3518]Native Settings UI[/url]. Tested with Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5, TweakXL 1.11.4, Audioware 1.9.9 and Native Settings UI 1.96.
+[*]These mods from Nexus Mods, installed first: [url=https://www.nexusmods.com/cyberpunk2077/mods/107]Cyber Engine Tweaks[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/2380]RED4ext[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/1511]redscript[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/7780]Codeware[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/4197]TweakXL[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/12001]Audioware[/url] and [url=https://www.nexusmods.com/cyberpunk2077/mods/31640]Mod Configuration Menu[/url] 0.10.5 or newer. [url=https://www.nexusmods.com/cyberpunk2077/mods/3518]Native Settings UI[/url] works in its place, if you prefer it. Tested with Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5, TweakXL 1.11.4, Audioware 1.9.9, Mod Configuration Menu 0.10.5 and Native Settings UI 1.96.
 [*]A Chromium browser such as Microsoft Edge (Windows 10 and 11 include it), Google Chrome, Brave or Opera. The voice service runs a hidden copy of it. Firefox does not work.
 [*]About 3 GB of free disk space, plus more for the optional packs.
 [*]Internet for Convai, Mistral or the Voxtral voice. Local AI with a local voice needs none.
@@ -118,7 +118,7 @@ Menus come in sixteen languages. Turn on Multilingual conversations to talk in a
 
 [size=4][b]Troubleshooting[/b][/size]
 [b]The Companion Manager doesn't show up.[/b]
-Press Esc, then Mods > AI NPC Cyberpunk Mod, or press your manager key. No Mods entry in the pause menu? Install or update Native Settings UI.
+Press your manager key, or press Esc, then Mods, and choose AI NPC Cyberpunk Mod. No Mods entry in the pause menu? Install or update Mod Configuration Menu (0.10.5 or newer) or Native Settings UI.
 
 [b]Settings says it needs a browser, or the service does not start.[/b]
 Install or repair Microsoft Edge (free from [url=https://www.microsoft.com/edge]microsoft.com/edge[/url]) or install Google Chrome, then restart the game. Some Windows tweak tools remove Edge.

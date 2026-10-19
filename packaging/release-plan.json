@@ -282,6 +282,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/nsui.lua"
         },
         {
+          "source": "mod/mcm-host.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/mcm-host.lua"
+        },
+        {
           "source": "mod/nsui-entry.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/nsui-entry.lua"
         },
@@ -1093,6 +1097,18 @@
       "developmentVersion": "1.9.9"
     },
     {
+      "name": "Mod Configuration Menu",
+      "developmentVersion": "0.10.5",
+      "dependencyId": "mcm",
+      "nexus": "https://www.nexusmods.com/cyberpunk2077/mods/31640",
+      "testedWith": "0.10.5",
+      "minimumVersion": "0.10.5",
+      "sourceArchive": "ref mods/Mod Configuration Menu 31640 0.10.5 2026-10-19T08-41Z sHlUHDD7X.zip",
+      "sourceArchiveSha256": "e7d191dc099610a6900f4342c0932c5c8e992bf998b899b23dab5941d043a6d5",
+      "wholeArchiveCopyAllowed": false,
+      "bundlingStatus": "not bundled: the player installs it from Nexus Mods (the default host of the Companion Manager, drawn through its public API by mod/mcm-host.lua)"
+    },
+    {
       "name": "Native Settings UI",
       "developmentVersion": "1.96",
       "dependencyId": "nsui",
@@ -1101,7 +1117,7 @@
       "sourceArchive": "ref mods/Native Settings UI 1.96-3518-1-96-1704576025.zip",
       "sourceArchiveSha256": "a965c9878c291f082e9714b770aece565572c613ae33f89fbf10548ca731081a",
       "wholeArchiveCopyAllowed": false,
-      "bundlingStatus": "not bundled: the player installs it from Nexus Mods (the Companion Manager is a tab of its Mods screen)"
+      "bundlingStatus": "not bundled: optional, for players who prefer it (the Companion Manager is a tab of its Mods screen)"
     }
   ],
   "dependencyPolicy": "Version inventory is the current development setup, not an automatic authorization to redistribute third-party game plugins; resolve notices, distribution and compatibility before claiming two ZIPs are sufficient.",

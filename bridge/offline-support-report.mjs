@@ -276,9 +276,10 @@ export const REQUIREMENTS = Object.freeze([
   {id: 'codeware', name: 'Codeware', files: [['red4ext', 'plugins', 'Codeware', 'Codeware.dll']]},
   {id: 'tweakxl', name: 'TweakXL', files: [['red4ext', 'plugins', 'TweakXL', 'TweakXL.dll']]},
   {id: 'audioware', name: 'Audioware', files: [['red4ext', 'plugins', 'audioware', 'audioware.dll']]},
-  // The Companion Manager is a tab of Native Settings UI's Mods screen. Mod Configuration Menu is not a requirement and is not checked:
-  // with it installed the tab is listed in its menu, and without it nothing is missing.
-  {id: 'nsui', name: 'Native Settings UI', files: [[...CET_MODS, 'nativeSettings', 'init.lua']]},
+  // The Companion Manager lives in Mod Configuration Menu (the default) or in Native Settings UI (the alternative): either one meets this
+  // row, which keeps its id and name. `alternative` is the other one; the row is present when either is.
+  {id: 'nsui', name: 'Native Settings UI', files: [[...CET_MODS, 'nativeSettings', 'init.lua']],
+    alternative: {name: 'Mod Configuration Menu', files: [[...CET_MODS, 'ModConfigurationMenuAPI', 'init.lua']]}},
   {id: 'archivexl', name: 'ArchiveXL', optional: true, files: [['red4ext', 'plugins', 'ArchiveXL', 'ArchiveXL.dll']]},
 ]);
 
@@ -316,6 +317,10 @@ async function readVersions(layout, logs) {
   const init = await layout.find([...CET_MODS, 'nativeSettings', 'init.lua'], 'file');
   const text = init ? (await headOf(init.path, 16384)) : '';
   found.nsui = {version: clip(/^[ \t]*version[ \t]*=[ \t]*([0-9][0-9.]*)/m.exec(text)?.[1] ?? null, 30), source: 'Native Settings UI files'};
+  // Mod Configuration Menu states its version in its API's core module (a line "local PUBLIC_VERSION = "0.10.5"").
+  const mcmCore = await layout.find([...CET_MODS, 'ModConfigurationMenuAPI', 'modules', 'core.lua'], 'file');
+  const mcmText = mcmCore ? (await headOf(mcmCore.path, 4096)) : '';
+  found.mcm = {version: clip(/PUBLIC_VERSION\s*=\s*"([0-9][0-9.]*)"/.exec(mcmText)?.[1] ?? null, 30), source: 'Mod Configuration Menu files'};
   // redscript's compiler (scc.exe) prints no version in any file this tool may read.
   found.redscript = {version: null, source: null};
   return found;
@@ -333,11 +338,22 @@ export async function checkRequirements(layout, logs = []) {
       if (hit) where.add(hit.root.label); else missing.push(show(parts));
     }
     let state = missing.length === 0 ? 'present' : missing.length === wanted.length ? (spec.optional ? 'absent' : 'missing') : 'incomplete';
+    // The other way to meet the requirement (Mod Configuration Menu for the Companion Manager): its files make the row present.
+    let via = null;
+    if (spec.alternative && state !== 'present') {
+      const there = [];
+      for (const parts of spec.alternative.files) { const hit = await layout.find(parts, 'file'); if (hit) there.push(hit.root.label); }
+      if (there.length === spec.alternative.files.length) {
+        state = 'present'; via = spec.alternative.name; missing.length = 0; where.clear();
+        for (const label of there) where.add(label);
+      }
+    }
     // Without the game folder the search was not complete: say "unknown", not "missing".
     if (!layout.gameFound && state !== 'present') state = 'unknown';
     const present = state === 'present' || state === 'incomplete';
+    const known = via ? versions.mcm : versions[spec.id];
     rows.push({id: spec.id, name: spec.name, optional: spec.optional === true, state, missing, foundIn: [...where],
-      version: present ? versions[spec.id]?.version ?? null : null, versionSource: present && versions[spec.id]?.version ? versions[spec.id].source : null});
+      version: present ? known?.version ?? null : null, versionSource: present && known?.version ? known.source : null, ...(via ? {via} : {})});
   }
   return rows;
 }
@@ -431,7 +447,8 @@ export function offlineProblems({layout, rows, files, errors = 0, managers = [],
         + `Move the folders inside "${item.folder}" into the Cyberpunk 2077 folder itself, let them merge, then start the game.`);
     }
     for (const row of rows) {
-      if (row.state === 'missing') problems.push(`${row.name} is missing: ${row.missing[0]} was not found. Install it from Nexus Mods.`);
+      if (row.state === 'missing' && row.id === 'nsui') problems.push(`The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI: ${row.missing[0]} was not found. Install one from Nexus Mods.`);
+      else if (row.state === 'missing') problems.push(`${row.name} is missing: ${row.missing[0]} was not found. Install it from Nexus Mods.`);
       else if (row.state === 'incomplete') problems.push(`${row.name} is incomplete: ${row.missing[0]} was not found. Install it again from Nexus Mods.`);
     }
     if (files.scripts.state === 'missing' && !lost.has('Scripts')) problems.push(`The mod's CET folder is missing: ${files.scripts.path} was not found. Install the Scripts package.`);

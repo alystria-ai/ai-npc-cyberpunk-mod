@@ -269,8 +269,8 @@ test('without Native Settings UI the shortcut says so; a copy that loads later i
   function player:ConvaiPhoneFeedback(message) popups[#popups + 1] = message end
   assert(ns.data[TAB] == nil, 'no tab without Native Settings UI')
   local ok, reason = managerUi.open()
-  assert(ok == false and reason == 'The Companion Manager needs Native Settings UI (Nexus Mods)', tostring(reason))
-  assert(#popups == 1 and popups[1] == 'The Companion Manager needs Native Settings UI (Nexus Mods)', tostring(popups[1]))
+  assert(ok == false and reason == 'The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI', tostring(reason))
+  assert(#popups == 1 and popups[1] == 'The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI', tostring(popups[1]))
   -- Per frame it does nothing but look once a second.
   local looks = 0
   local original = GetMod
