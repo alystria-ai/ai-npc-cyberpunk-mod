@@ -228,6 +228,31 @@ test('source counts and declared duration must agree; excess samples fail', () =
   assert.throws(() => feed(conflict, stats({total_audio_bytes: 8000, total_audio_duration_ms: 500})), /Conflicting/);
 });
 
+test('a declared duration a few milliseconds off from the counted bytes is rounding and still plays', () => {
+  // 6400 bytes at 8 kHz mono is exactly 400 ms; 12 ms off is per-packet rounding drift, 6 frames of 60 fps data stay valid too.
+  for (const ms of [388, 395, 400, 405, 412]) {
+    const c = complete({statistics: stats({total_audio_duration_ms: ms})});
+    assert.equal(c.ready, true, `${ms} ms`);
+    const result = c.finish();
+    assert.equal(result.duration, 0.4);
+    assert.equal(result.facialDiagnostic, undefined, `${ms} ms keeps its facial data`);
+  }
+});
+
+test('a wrong sample rate or channel count still fails, with the numbers in the message', () => {
+  // 6400 bytes declared as 800 ms is 16 kHz data read as 8 kHz: far outside rounding.
+  const wrongRate = new ConvaiDataAudio(); feed(wrongRate, pcm());
+  assert.throws(() => feed(wrongRate, stats({total_audio_duration_ms: 800})),
+    /declared duration \(6400 bytes, 800 ms declared against 400\.0 ms counted, 8000 Hz, 1 channel, 1 packets\)/);
+  const wrongChannels = new ConvaiDataAudio(); feed(wrongChannels, pcm(samples, {channels: 2}));
+  assert.throws(() => feed(wrongChannels, stats({total_audio_duration_ms: 400})), /declared duration \(6400 bytes, 400 ms declared against 200\.0 ms counted, 8000 Hz, 2 channels/);
+});
+
+test('declared bytes that are not a whole number of samples fail clearly', () => {
+  const c = new ConvaiDataAudio(); feed(c, pcm());
+  assert.throws(() => feed(c, stats({total_audio_bytes: 6401})), /not a whole number of samples \(6401 bytes/);
+});
+
 test('incomplete or malformed face data cannot discard otherwise verified voice', () => {
   const malformed = face(); malformed.data.blendshapes[0] = [0];
   for (const facial of [face(0, 12), face(1, 23), malformed,
