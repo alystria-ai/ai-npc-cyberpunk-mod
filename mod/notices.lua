@@ -56,6 +56,8 @@ M.catalog = {
     ['custom-credits'] = {class = PLAYER, repeatS = 60},    -- the account at the endpoint is out of credits
     ['custom-model'] = {class = PLAYER, repeatS = 60},      -- the endpoint does not know the saved model ID
     ['custom-limit'] = {class = PLAYER, repeatS = 60},      -- the endpoint is rate limiting the player
+    ['custom-daily'] = {class = PLAYER, repeatS = 60},      -- the endpoint's daily allowance is used up (OpenRouter's free models); says when it resets if the endpoint did
+    ['custom-reasoning'] = {class = PLAYER, repeatS = 60},  -- the model spent its whole reply on thinking, even with more room: choose a model that does not think first
     ['custom-unreachable'] = {class = PLAYER, repeatS = 60}, -- the endpoint did not answer
     ['custom-no-setup'] = {class = PLAYER, repeatS = 86400}, -- Custom is chosen but the endpoint URL or the model ID is missing, so Convai is used: once per game session
     ['custom-voice'] = {class = PLAYER, repeatS = 86400},   -- the Convai cloud voice is chosen: a local voice speaks Custom replies, once per game session

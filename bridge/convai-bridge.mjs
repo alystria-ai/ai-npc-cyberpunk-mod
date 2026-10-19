@@ -108,7 +108,7 @@ const leaseWake = createWakeSignal();
 import {PersonaBook, joinBlocks} from './mistral-prompt.mjs';
 import {LocalStt} from './local-stt.mjs';
 import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-capture.mjs';
-import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, warmConnection} from './mistral-client.mjs';
+import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, errorExtrasFor as mistralExtrasFor, warmConnection} from './mistral-client.mjs';
 import {TurnClock, withClock, markStage} from './turn-clock.mjs';
 import {AddonHost, LOCAL_REMARK_GAP_S, fixedProvider, rosterLookup, sharedMemory} from './addons.mjs';
 
@@ -411,7 +411,7 @@ const keyFailure = (error, input) => {
   // The local AI that could not start: the next turns use the cloud provider, and the game says so once (local-fallback).
   const errorCode = (input?.reaction ? undefined : isLocalUnavailable(error) ? 'local-fallback' : mistralCodeFor(error))
     ?? quota.codeFor(error, {automatic: !!input?.reaction});
-  return errorCode ? {errorCode} : {};
+  return errorCode ? {errorCode, ...mistralExtrasFor(error)} : {};
 };
 
 const knowledgePack = JSON.parse(await readFile(resolve(project, 'characters/world-knowledge.json'), 'utf8'));

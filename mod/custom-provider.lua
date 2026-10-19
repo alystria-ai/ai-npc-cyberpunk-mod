@@ -27,12 +27,12 @@ local RESULT_STATES = {saved = true, cleared = true, invalid = true, unreadable 
 local REASONS = {empty = true, ['not-a-url'] = true, scheme = true, insecure = true, extras = true, long = true,
     ['not-a-key'] = true, ['not-a-model'] = true}
 local TEST_CODES = {['no-setup'] = true, key = true, credits = true, model = true, limit = true, unreachable = true,
-    timeout = true, server = true, empty = true, request = true, redirect = true}
-local LIMITS = {rate = true, invalid = true, model = true, credits = true}
+    timeout = true, server = true, empty = true, request = true, redirect = true, daily = true, reasoning = true}
+local LIMITS = {rate = true, daily = true, invalid = true, model = true, credits = true}
 
--- The ids of the notices this provider adds (mod/notices.lua, docs/NOTIFICATIONS.md): five failures of a turn V asked for and two
+-- The ids of the notices this provider adds (mod/notices.lua, docs/NOTIFICATIONS.md): seven failures of a turn V asked for and two
 -- one-time notices on the first reply.
-M.NOTICE_IDS = {'custom-key', 'custom-credits', 'custom-model', 'custom-limit', 'custom-unreachable', 'custom-no-setup', 'custom-voice'}
+M.NOTICE_IDS = {'custom-key', 'custom-credits', 'custom-model', 'custom-limit', 'custom-daily', 'custom-reasoning', 'custom-unreachable', 'custom-no-setup', 'custom-voice'}
 
 local function readJSON(path)
     local ok, value = pcall(function()
@@ -158,13 +158,15 @@ function M.new(options)
             elseif t.state == 'failed' then
                 local wait = type(t.waitS) == 'number' and t.waitS == t.waitS and t.waitS > 0 and t.waitS <= 86400 and math.ceil(t.waitS) or nil
                 test = {state = 'failed', code = TEST_CODES[t.code] and t.code or nil, status = whole(t.status, 599),
-                    waitS = wait, detail = cleanDetail(t.detail)}
+                    waitS = wait, detail = cleanDetail(t.detail), resetTime = text(t.resetTime, 5, '^%d%d:%d%d$')}
             end
         end
         return {available = value.version == 1, ready = value.ready == true,
             host = text(value.host, 255, '^[%w%.%-_:%[%]]+$'), secure = value.secure == true, isLocal = value['local'] == true,
             model = text(value.model, 120, '^[%w%._:/@%+%-]+$'),
             keySaved = value.keySaved == true, tail = text(value.tail, 8, '^[%w%p]+$'),
+            -- A key was forgotten because the address moved to another host, and none is saved since: the key row says to paste it again.
+            keyForgotten = value.keyForgotten == true and value.keySaved ~= true,
             result = result, test = test, limit = LIMITS[value.limit] and value.limit or nil,
             action = sent and sent.action or nil}
     end
@@ -174,10 +176,10 @@ function M.new(options)
         local state = self.state()
         local result, test = state.result, state.test
         return table.concat({tostring(state.available), tostring(state.ready), state.host or '', tostring(state.secure),
-            state.model or '', tostring(state.keySaved), state.tail or '', state.limit or '',
+            state.model or '', tostring(state.keySaved), state.tail or '', state.limit or '', tostring(state.keyForgotten),
             result and (result.field .. '/' .. result.state .. '/' .. (result.reason or '')) or '',
             test and table.concat({test.state, test.code or '', tostring(test.status), tostring(test.waitS), test.detail or '',
-                tostring(test.ms)}, '/') or ''}, '|')
+                tostring(test.ms), test.resetTime or ''}, '/') or ''}, '|')
     end
 
     -- Sends one command (see the top of this file). Returns ok, message; a command that could not be written returns false and a
@@ -227,6 +229,11 @@ function M.new(options)
             if test.waitS then return ui.t('The endpoint is rate limiting you. Wait about {seconds} seconds, then try again.', {seconds = test.waitS}) end
             return ui.t('The endpoint is rate limiting you. Try again in a moment.')
         end
+        if code == 'daily' then
+            if test.resetTime then return ui.t('The free daily limit for this model was reached. It resets at {time}.', {time = test.resetTime}) end
+            return ui.t('The free daily limit for this model was reached. Try again after it resets.')
+        end
+        if code == 'reasoning' then return ui.t('This model spends its reply on thinking. Choose a non-reasoning model in Settings.') end
         if code == 'unreachable' then return ui.t('The endpoint did not answer. Check its address.') end
         if code == 'timeout' then return ui.t('The endpoint took too long to answer.') end
         if code == 'server' then return ui.t('The endpoint reported an error on its side. Try again in a moment.') end
@@ -267,7 +274,7 @@ function M.new(options)
             local message = failure(result, 'key')
             local info
             if saved then info = state.tail and ('…' .. state.tail) or ui.t('Added')
-            elseif message then info = ui.t('Not added') end
+            elseif message or state.keyForgotten then info = ui.t('Not added') end
             local help
             if saved then
                 help = ui.t('Deletes the saved key. Replies from the custom provider are then asked for without a key.')
@@ -275,7 +282,8 @@ function M.new(options)
             else
                 help = ui.t('Copy your API key from your provider first. It is read from the clipboard once and saved on this computer only. A server on your own computer, such as Ollama or LM Studio, usually needs no key.')
             end
-            if message then help = message .. '\n\n' .. help end
+            if message then help = message .. '\n\n' .. help
+            elseif state.keyForgotten then help = ui.t('New address saved. Paste your API key again for it.') .. '\n\n' .. help end
             rows[#rows + 1] = {id = 'custom-key', field = 'key', label = ui.t('Custom API key') .. (info and (' (' .. info .. ')') or ''),
                 value = saved and ui.t('Remove') or ui.t('Paste API key'), help = help, enabled = true,
                 action = saved and 'clear-key' or 'paste-key'}
@@ -325,6 +333,7 @@ function M.new(options)
     -- The last paragraph of the provider row's help while Custom answers and a limit is on (the stored `limit` of the provider state).
     function self.noteFor(limit)
         if limit == 'rate' then return ui.t('Custom: rate limited for now') end
+        if limit == 'daily' then return ui.t('Custom: free daily limit reached') end
         if limit == 'invalid' then return ui.t('Custom: key not accepted') end
         if limit == 'model' then return ui.t('Custom: model unavailable') end
         if limit == 'credits' then return ui.t('Custom: out of credits') end
@@ -335,11 +344,17 @@ function M.new(options)
     function self.notSetUpNote() return ui.t('Convai: the custom provider is not set up yet') end
 
     -- The text of one of the notices (NOTICE_IDS), or nil.
-    function self.notice(id)
+    function self.notice(id, resetTime)
         if id == 'custom-key' then return ui.t('The custom provider did not accept your key. Check it in Settings > Conversation provider.') end
         if id == 'custom-credits' then return ui.t('The custom provider says your account is out of credits. Add credits there, then try again.') end
         if id == 'custom-model' then return ui.t('The custom provider does not know that model ID. Check it in Settings.') end
         if id == 'custom-limit' then return ui.t('The custom provider is rate limiting you. Try again in a moment.') end
+        -- `resetTime` ("HH:MM" on this computer's clock): when the daily limit resets, if the endpoint said.
+        if id == 'custom-daily' then
+            if resetTime and tostring(resetTime):match('^%d%d:%d%d$') then return ui.t('The free daily limit for this model was reached. It resets at {time}.', {time = resetTime}) end
+            return ui.t('The free daily limit for this model was reached. Try again after it resets.')
+        end
+        if id == 'custom-reasoning' then return ui.t('This model spends its reply on thinking. Choose a non-reasoning model in Settings.') end
         if id == 'custom-unreachable' then return ui.t('The custom provider did not answer. Check its address in Settings, or try again.') end
         if id == 'custom-no-setup' then return ui.t('The custom provider is not set up, so Convai is used. Add its URL and model ID in Settings.') end
         if id == 'custom-voice' then return ui.t('Custom provider replies are spoken by a local voice instead of the Convai cloud voice.') end

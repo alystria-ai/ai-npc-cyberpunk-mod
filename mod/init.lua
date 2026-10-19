@@ -3053,6 +3053,15 @@ local function keyReplyNotice(reply)
         return 'custom-model', ui.t('The custom provider does not know that model ID. Check it in Settings.')
     elseif reply.errorCode == 'custom-limit' then
         return 'custom-limit', ui.t('The custom provider is rate limiting you. Try again in a moment.')
+    elseif reply.errorCode == 'custom-daily' then
+        -- The free daily limit of a model (OpenRouter): when it resets on this computer's clock (the bridge sends "HH:MM"), if the endpoint said.
+        local at = reply.errorResetTime
+        if type(at) == 'string' and at:match('^%d%d:%d%d$') then
+            return 'custom-daily', ui.t('The free daily limit for this model was reached. It resets at {time}.', {time = at})
+        end
+        return 'custom-daily', ui.t('The free daily limit for this model was reached. Try again after it resets.')
+    elseif reply.errorCode == 'custom-reasoning' then
+        return 'custom-reasoning', ui.t('This model spends its reply on thinking. Choose a non-reasoning model in Settings.')
     elseif reply.errorCode == 'custom-unreachable' then
         return 'custom-unreachable', ui.t('The custom provider did not answer. Check its address in Settings, or try again.')
     end
@@ -4146,6 +4155,10 @@ registerForEvent('onUpdate', function(delta)
                             if not pending.reaction then convaiNotices.send(player, 'custom-model', keyText) end
                         elseif keyId == 'custom-limit' then
                             if not pending.reaction then convaiNotices.send(player, 'custom-limit', keyText) end
+                        elseif keyId == 'custom-daily' then
+                            if not pending.reaction then convaiNotices.send(player, 'custom-daily', keyText) end
+                        elseif keyId == 'custom-reasoning' then
+                            if not pending.reaction then convaiNotices.send(player, 'custom-reasoning', keyText) end
                         elseif keyId == 'custom-unreachable' then
                             if not pending.reaction then convaiNotices.send(player, 'custom-unreachable', keyText) end
                         -- Local AI could not start and the turn failed: the notice for a turn V asked for, like the Mistral failures.
