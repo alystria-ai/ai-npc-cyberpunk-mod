@@ -32,7 +32,8 @@ test('the Runtime ships the wrapper and the report code in app/bridge through th
   const known = new Set([...BRIDGE_MODULES, ...BRIDGE_AUXILIARY_FILES]);
   const reached = await importClosure(project, [WRAPPER]);
   assert.deepEqual(reached.filter(file => !known.has(file)), [], 'the layout lists name everything the wrapper imports');
-  assert(reached.length < 12, `the wrapper reaches only the report code: ${reached.join(', ')}`);
+  // 12 since 2026-10-19: the custom-model folder summary and the voice-clip summary are two small built-ins-only modules of their own.
+  assert(reached.length <= 12, `the wrapper reaches only the report code: ${reached.join(', ')}`);
 });
 
 test('the layout list and the release plan name both files as started by path, in the same order', () => {
