@@ -304,7 +304,7 @@ const PLACEMENT_WINDOW_MS = 10 * 60 * 1000;
  * <state>/pack-placement.json before it starts the bridge): {fixed: [{pack, from}], conflicts: [...], errors: [...]}, or null when there is no such file or it is older than
  * ten minutes before this bridge process started (an earlier game start's). `startedAt` is the bridge process's start (ms).
  */
-export async function readPackPlacement({stateDirectory, startedAt = Date.now(), now = Date.now(), read = path => readFile(path, 'utf8')} = {}) {
+export async function readPackPlacement({stateDirectory, startedAt = Date.now(), now = Date.now, read = path => readFile(path, 'utf8')} = {}) {
   if (!stateDirectory) return null;
   let value;
   try { value = JSON.parse((await read(join(stateDirectory, 'pack-placement.json'))).replace(/^\uFEFF/, '')); } catch { return null; }
@@ -485,7 +485,15 @@ export async function collectSetupCheck(options = {}) {
     return {state: managers.length ? 'note' : 'ok', code: managers[0] ?? 'none', managers};
   });
 
-  const checks = await Promise.all([versions(), packs(), browser(), localAi(), internet(), gpu(), modManager()]);
+  // redscript compiles this mod's scripts (engine/tools/scc.exe, the file the offline report looks for too). The game side uses this only when the
+  // scripts did not load: with no compiler there is no compile log to read, so it says "redscript is missing" instead of sending the player to one.
+  // Only a file is looked at, so it is part of the light run too.
+  const compiler = () => guarded('compiler', async () => {
+    if (!game) return {state: 'unknown', code: 'unknown'};
+    return await exists(join(game, 'engine', 'tools', 'scc.exe'), 'file') ? {state: 'ok', code: 'found'} : {state: 'problem', code: 'missing'};
+  });
+
+  const checks = await Promise.all([versions(), packs(), browser(), localAi(), internet(), gpu(), modManager(), compiler()]);
   return {version: 1, updated: now(), bridgePid: process.pid, request, checks};
 }
 

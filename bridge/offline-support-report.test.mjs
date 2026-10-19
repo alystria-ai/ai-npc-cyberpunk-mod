@@ -96,10 +96,11 @@ test('a healthy install gives a report with every requirement present, versions 
     assert.equal(dirname(result.path), join(f.local, 'AiNpcCyberpunkMod', 'reports'));
     assert.match(result.path.split(/[\\/]/).at(-1), REPORT_NAME);
     assert.deepEqual(f.opened, [result.path], 'Explorer is asked to show the file');
-    // The player sees a working line and one result line naming the file and saying to send it.
+    // The player sees a working line, that nothing is missing, and one result line naming the file and saying to send it.
     const lines = f.lines();
-    assert.equal(lines.length, 2, lines.join('\n'));
-    assert(lines[1].includes(result.path) && /send that file/i.test(lines[1]));
+    assert.equal(lines.length, 3, lines.join('\n'));
+    assert.equal(lines[1], 'No missing mods or mod files were found.');
+    assert(lines[2].includes(result.path) && /send that file/i.test(lines[2]));
     const entries = await unzip(result.path);
     const summary = summaryOf(entries);
     assert.equal(summary.generatedBy, 'offline');
@@ -164,9 +165,11 @@ test('every missing requirement and every missing piece of this mod gets its own
     assert.equal(row(summary, 'codeware').state, 'missing');
     assert.equal(row(summary, 'nsui').state, 'missing');
     assert.equal(summary.problems.at(-1), MO2_HINT, 'a missing piece ends with the Mod Organizer 2 hint');
-    assert.match(readmeOf(entries), /PROBLEM FOUND:\n {2}RED4ext is incomplete: bin\\x64\\winmm\.dll was not found\. Install it again\.\n {2}redscript is missing/);
-    // A found game folder means the player is told only where the report is.
-    assert.equal(f.lines().length, 2);
+    assert.match(readmeOf(entries), /PROBLEM FOUND:\n {2}RED4ext is incomplete: bin\\x64\\winmm\.dll was not found\. Install it again from Nexus Mods\.\n {2}redscript is missing/);
+    // The window names every problem too (the Mod Organizer 2 hint is for the report, not for a player whose game folder was found), then where the report is.
+    const lines = f.lines(), shown = summary.problems.filter(line => line !== MO2_HINT);
+    assert.deepEqual(lines, ['Making the support report. This takes a few seconds.', `Found ${shown.length} problems:`, ...shown.map(line => `  ${line}`), lines.at(-1)]);
+    assert(/send that file/.test(lines.at(-1)) && lines.at(-1).includes(result.path));
   } finally { await f.cleanup(); }
 });
 
@@ -207,8 +210,9 @@ test('started outside Mod Organizer 2 from a mod folder: the game is not found, 
     assert.equal(result.ok, true);
     const lines = outputs.join('').split('\n').filter(Boolean);
     assert.equal(lines[0], 'Making the support report. This takes a few seconds.');
-    assert(lines.some(line => /^The Cyberpunk 2077 folder was not found: .* has no bin\\x64\\Cyberpunk2077\.exe\./.test(line)), lines.join('\n'));
-    assert(lines.includes(MO2_HINT), 'the hint is printed');
+    assert.equal(lines[1], 'Found a problem:');
+    assert(lines.some(line => /^ {2}The Cyberpunk 2077 folder was not found: .* has no bin\\x64\\Cyberpunk2077\.exe\./.test(line)), lines.join('\n'));
+    assert(lines.includes(`  ${MO2_HINT}`), 'the hint is printed');
     assert(/send that file/.test(lines.at(-1)) && lines.at(-1).includes(result.path));
     const summary = summaryOf(await unzip(result.path));
     assert.equal(summary.offline.gameFolder.found, false);
@@ -582,8 +586,8 @@ test('the problem lines are plain, short and one per piece; with no game folder 
   const rows = [{id: 'codeware', name: 'Codeware', state: 'missing', missing: ['red4ext\\plugins\\Codeware\\Codeware.dll']}];
   const files = {scripts: {state: 'present', release: {}}, redscript: {state: 'present'}, plugin: {state: 'present', node: true, bridge: true, release: {}}};
   const layout = {gameFound: true, game: 'D:\\Games'};
-  assert.deepEqual(offlineProblems({layout, rows, files}), ['Codeware is missing: red4ext\\plugins\\Codeware\\Codeware.dll was not found. Install it.', MO2_HINT]);
-  assert.deepEqual(offlineProblems({layout, rows, files, managers: ['mo2']}), ['Codeware is missing: red4ext\\plugins\\Codeware\\Codeware.dll was not found. Install it.']);
+  assert.deepEqual(offlineProblems({layout, rows, files}), ['Codeware is missing: red4ext\\plugins\\Codeware\\Codeware.dll was not found. Install it from Nexus Mods.', MO2_HINT]);
+  assert.deepEqual(offlineProblems({layout, rows, files, managers: ['mo2']}), ['Codeware is missing: red4ext\\plugins\\Codeware\\Codeware.dll was not found. Install it from Nexus Mods.']);
   assert.deepEqual(offlineProblems({layout, rows: [], files}), []);
   const lost = offlineProblems({layout: {gameFound: false, game: 'D:\\Somewhere'}, rows, files});
   assert.equal(lost.length, 2);
@@ -640,11 +644,12 @@ test('the shipped files alone are enough: the wrapper runs from a copy of its im
       {cwd: f.base, env: {...process.env, LOCALAPPDATA: f.local, NODE_OPTIONS: ''}, encoding: 'utf8'});
     assert.equal(run.status, 0, run.stderr);
     const lines = run.stdout.split(/\r?\n/).filter(Boolean);
-    assert.equal(lines.length, 2, run.stdout);
+    assert.equal(lines.length, 3, run.stdout);
+    assert.equal(lines[1], 'No missing mods or mod files were found.');
     const names = await readdir(out);
     assert.equal(names.length, 1);
     assert.match(names[0], REPORT_NAME);
-    assert(lines[1].includes(join(out, names[0])) && /send that file/i.test(lines[1]));
+    assert(lines[2].includes(join(out, names[0])) && /send that file/i.test(lines[2]));
     const summary = summaryOf(await unzip(join(out, names[0])));
     assert(summary.requirements.every(item => item.state === 'present'));
   } finally { await f.cleanup(); }
@@ -773,5 +778,110 @@ test('started through a short 8.3 path, the install is still recognised', {skip:
     assert.equal(layout.packaged, true);
     assert.equal(layout.gameFound, true);
     assert.equal(layout.game, f.game);
+  } finally { await f.cleanup(); }
+});
+
+// ----------------------------------------------- the window, and a mod extracted into a folder inside the game folder
+
+const ZIP = 'AI-NPC-Cyberpunk-Mod-Runtime-0.2.2';
+const piecesOf = (prefix, names) => Object.fromEntries(names.map(name => [prefix + name, 'x']));
+
+test('with the game folder found the window lists each problem, one indented line each, and the hint only when Mod Organizer 2 may be involved', async () => {
+  const f = await healthyInstall({without: ['red4ext/plugins/Codeware', 'engine/tools/scc.exe']});
+  try {
+    const result = await f.run();
+    const lines = f.lines();
+    assert.equal(lines[0], 'Making the support report. This takes a few seconds.');
+    assert.equal(lines[1], 'Found 2 problems:');
+    assert.equal(lines[2], '  redscript is missing: engine\\tools\\scc.exe was not found. Install it from Nexus Mods.');
+    assert.equal(lines[3], '  Codeware is missing: red4ext\\plugins\\Codeware\\Codeware.dll was not found. Install it from Nexus Mods.');
+    assert.equal(lines.length, 5, lines.join('\n'));
+    assert(!lines.some(line => line.includes('Mod Organizer 2')), 'the hint stays in the report');
+    assert(summaryOf(await unzip(result.path)).problems.includes(MO2_HINT));
+    // The one-problem form, and a compile error alone.
+    const one = await healthyInstall({without: ['red4ext/plugins/TweakXL']});
+    try { await one.run(); assert.equal(one.lines()[1], 'Found a problem:'); } finally { await one.cleanup(); }
+    // Started from Mod Organizer 2's folders, the hint is in the window too.
+    const w = await workspace();
+    try {
+      const outputs = [];
+      const app = w.at('MO2', 'mods', 'AI NPC Runtime', ...PLUGIN.split('/'), 'app');
+      await w.put(join(app, 'bridge', 'make-support-report.mjs'));
+      await w.put(w.at('Game', 'bin', 'x64', 'Cyberpunk2077.exe'));
+      await w.put(w.at('MO2', 'ModOrganizer.ini'), '[General]\nselected_profile=@ByteArray(Default)\ngamePath=@ByteArray(' + w.at('Game').replace(/\\/g, '\\\\') + ')\n');
+      await runOfflineReport({appDirectory: app, env: {LOCALAPPDATA: w.at('local'), TEMP: w.at('temp')}, graphics: [], sharedObjects: [], stdout: {write: text => outputs.push(text)}, open: () => {}});
+      assert(outputs.join('').split('\n').includes('  ' + MO2_HINT));
+    } finally { await w.cleanup(); }
+  } finally { await f.cleanup(); }
+});
+
+test('the Runtime extracted into a folder inside the game folder: that folder is named, the game folder is the one above it, and no "plugin missing" line is added', async () => {
+  const f = await healthyInstall({without: [PLUGIN], extra: piecesOf(ZIP + '/', [
+    PLUGIN + '/CyberpunkConvai.dll', PLUGIN + '/app/node/node.exe', PLUGIN + '/app/bridge/convai-bridge.mjs', PLUGIN + '/app/bridge/make-support-report.mjs'])});
+  try {
+    const wrapped = join(f.game, ZIP, ...PLUGIN.split('/'), 'app');
+    const result = await f.run({appDirectory: wrapped});
+    assert.equal(result.ok, true);
+    assert.equal(result.layout.gameFound, true);
+    assert.equal(result.layout.game, f.game, 'the folder above the wrapper is the game');
+    assert.equal(result.layout.wrappedIn, ZIP);
+    assert.equal(result.problems[0], 'The mod is in the folder "' + ZIP + '" inside the Cyberpunk 2077 folder, where the game cannot see it (the Runtime). '
+      + 'Move the folders inside "' + ZIP + '" into the Cyberpunk 2077 folder itself, let them merge, then start the game.');
+    assert(!result.problems.some(line => /RED4ext plugin is missing|Runtime package is incomplete/.test(line)), result.problems.join('\n'));
+    // Every requirement was checked in the real game folder, so none is called unknown.
+    assert(result.rows.every(item => item.state === 'present'), JSON.stringify(result.rows.map(item => item.state)));
+    const lines = f.lines();
+    assert.deepEqual(lines.slice(1, 3), ['Found a problem:', '  ' + result.problems[0]], lines.join('\n'));
+    const summary = summaryOf(await unzip(result.path));
+    assert.deepEqual(summary.offline.misplaced, [{folder: ZIP, pieces: ['Runtime']}]);
+    assert.match(summary.offline.gameFolder.namedBy, /folder above this one/);
+    assert.equal(summary.offline.mo2.found, false);
+  } finally { await f.cleanup(); }
+});
+
+test('the Scripts in a folder inside the game folder, with the Runtime in place, are named too; two folders deep as well', async () => {
+  const f = await healthyInstall({without: [MOD, 'r6/scripts/CyberpunkConvai'], extra: {
+    ['One/Two/' + MOD + '/init.lua']: '-- scripts', ['One/Two/r6/scripts/CyberpunkConvai/Manager.reds']: ''}});
+  try {
+    const result = await f.run();
+    assert.equal(result.layout.wrappedIn, null, 'the tool itself is in the game folder');
+    assert.equal(result.problems.length, 2);
+    assert.match(result.problems[0], /^The mod is in the folder "One\\Two" inside the Cyberpunk 2077 folder, where the game cannot see it \(the Scripts\)\. Move the folders inside "One\\Two" into/);
+    assert.equal(result.problems[1], MO2_HINT);
+    assert(!result.problems.some(line => /CET folder is missing|redscript folder is missing/.test(line)));
+  } finally { await f.cleanup(); }
+});
+
+test('only a piece that is missing where it belongs is looked for, only by its own file, and never in the game\'s own folders', async () => {
+  // A pack extracted one folder too deep holds red4ext\plugins\AiNpcCyberpunkMod\app\local-ai but no DLL: it is not the Runtime.
+  const pack = await healthyInstall({without: [PLUGIN + '/CyberpunkConvai.dll'], extra: piecesOf('Pack/' + PLUGIN + '/app/local-ai/', ['manifest.standard.json'])});
+  try {
+    const result = await pack.run();
+    assert.equal(result.problems.length, 2);
+    assert.match(result.problems[0], /^The mod's RED4ext plugin is missing: red4ext\\plugins\\AiNpcCyberpunkMod\\CyberpunkConvai\.dll was not found/);
+    assert.equal(result.problems[1], MO2_HINT);
+    assert.equal(summaryOf(await unzip(result.path)).offline.misplaced, undefined);
+  } finally { await pack.cleanup(); }
+  // The Runtime is in place: a stray copy of it in a subfolder is not a problem, and nothing is searched for.
+  const stray = await healthyInstall({extra: piecesOf('Old copy/', [PLUGIN + '/CyberpunkConvai.dll', MOD + '/init.lua'])});
+  try {
+    const result = await stray.run();
+    assert.deepEqual(result.problems, []);
+  } finally { await stray.cleanup(); }
+  // The game's own folders are never searched (a mods folder of another tool may hold a copy).
+  const own = await healthyInstall({without: [PLUGIN + '/CyberpunkConvai.dll'], extra: piecesOf('mods/', [PLUGIN + '/CyberpunkConvai.dll'])});
+  try {
+    const result = await own.run();
+    assert.match(result.problems[0], /RED4ext plugin is missing/);
+  } finally { await own.cleanup(); }
+});
+
+test('a game folder that is more than three folders above is not guessed', async () => {
+  const f = await healthyInstall({without: [PLUGIN]});
+  try {
+    const app = join(f.game, 'a', 'b', 'c', 'd', ...PLUGIN.split('/'), 'app');
+    const result = await f.run({appDirectory: app});
+    assert.equal(result.layout.gameFound, false);
+    assert.match(result.problems[0], /^The Cyberpunk 2077 folder was not found/);
   } finally { await f.cleanup(); }
 });

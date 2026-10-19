@@ -130,6 +130,6 @@ AI NPC Cyberpunk Mod is released under the AI NPC Cyberpunk Mod Use License (see
 
 Open Settings > Help > Help and support in game. It shows the service status and can create a report to share when asking for help. Generate report saves it in `%LOCALAPPDATA%\AiNpcCyberpunkMod\reports`. If the conversation service is not running, it writes a shorter report at once instead: `runtime\convai-report-lua.txt` in the mod folder (`bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod`). If the service row says "Needs a browser", install a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera, then restart the game.
 
-The mod does not load, or the manager will not open? Close the game and double-click `Make support report.bat` in `red4ext\plugins\AiNpcCyberpunkMod`. It saves one report with the game closed and opens its folder: send that file. With Mod Organizer 2, start it from MO2 (add it under Executables).
+The mod does not load, or the manager will not open? Close the game and double-click `Make support report.bat` in `red4ext\plugins\AiNpcCyberpunkMod`. Its window lists what is missing, for example a required mod or a folder the zip was extracted into by mistake. It saves one report with the game closed and opens its folder: send that file. With Mod Organizer 2, start it from MO2 (add it under Executables).
 
 Known issue: if V keeps walking in one direction after you type a message, tap that direction (W, A, S or D) once.

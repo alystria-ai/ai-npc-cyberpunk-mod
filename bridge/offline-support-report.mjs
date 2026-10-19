@@ -4,7 +4,7 @@ import {spawn} from 'node:child_process';
 import os from 'node:os';
 import {readKeyFileText} from './key-codec.mjs';
 import {CUSTOM_ENDPOINT_FILE, buildReport, keyLineValues, locateLogs, reportsDirectoryFor, tailFile} from './support-report.mjs';
-import {detectModManagers} from './setup-check.mjs';
+import {GAME_FOLDERS, detectModManagers} from './setup-check.mjs';
 
 // Support report with the game closed: "Make support report.bat" in red4ext/plugins/AiNpcCyberpunkMod starts bridge/make-support-report.mjs
 // with the bundled Node, which calls runOfflineReport() here. It is for players who cannot reach Companion Manager > Settings > Help
@@ -17,7 +17,10 @@ import {detectModManagers} from './setup-check.mjs';
 //     ArchiveXL, when present) are installed, with the version where one can be read, and whether this mod's own three pieces (the CET
 //     folder, the redscript folder and the RED4ext plugin) are where they belong;
 //   * the versions in the Scripts and the Runtime release.json;
-//   * one PROBLEM line for each missing piece, in the README and in summary.json.
+//   * one PROBLEM line for each missing piece, in the README and in summary.json, and on the console: a player who double-clicks the .bat
+//     sees what is missing in the window, not only where the zip is;
+//   * a mod that was extracted into a folder inside the game folder ("Extract to <zip name>\"), where the game cannot see it, is named as that
+//     (this tool may itself sit in such a folder: the game folder is then the one above it).
 //
 // Mod Organizer 2 keeps each mod in its own folder under its mods folder and shows the game a merged view only while the game (or a tool)
 // is started through it. Started outside MO2, from a Runtime that lives in MO2's mods folder, this tool looks in the game folder named in
@@ -215,10 +218,20 @@ export async function resolveOfflineLayout({appDirectory, game: asked, env = pro
   if (given(env.CYBERPUNK_CONVAI_GAME)) candidates.push(given(env.CYBERPUNK_CONVAI_GAME));
   let game = null;
   for (const candidate of candidates) if (await isGame(candidate)) { game = candidate; break; }
+  // The Runtime extracted into a folder inside the game folder (Windows "Extract All" and 7-Zip "Extract to <name>\" make one): the folder this
+  // install seems to sit in is not the game, but one of the folders above it is. It is the game folder, and the mod is named as misplaced.
+  let wrappedIn = null;
+  if (!game && derived) {
+    let up = derived;
+    for (let level = 0; level < 3 && dirname(up) !== up && !wrappedIn; level++) {
+      up = dirname(up);
+      if (await isGame(up)) { game = up; wrappedIn = relative(up, derived); }
+    }
+  }
 
   // Started from a mod folder of Mod Organizer 2 (the Runtime is not in the game folder): ModOrganizer.ini names the game.
   const inGame = derived !== null && game === derived;
-  const found = packaged && !inGame ? await findMo2(pluginOfApp, env) : null;
+  const found = packaged && !inGame && !wrappedIn ? await findMo2(pluginOfApp, env) : null;
   const mo2 = found ? await readMo2(found) : null;
   let gameFromIni = false;
   if (!game && mo2?.gamePath && await isGame(resolve(mo2.gamePath))) { game = resolve(mo2.gamePath); gameFromIni = true; }
@@ -249,7 +262,7 @@ export async function resolveOfflineLayout({appDirectory, game: asked, env = pro
   for (const path of stateCandidates) if (await isDir(path)) { stateDirectory = path; break; }
   stateDirectory ??= stateCandidates[0];
 
-  return {game, gameFound, gameFromIni, packaged, roots, mo2, modRoot, runtime, plugin, app, project, stateDirectory, dataHome,
+  return {game, gameFound, gameFromIni, wrappedIn, packaged, roots, mo2, modRoot, runtime, plugin, app, project, stateDirectory, dataHome,
     stateExists: await isDir(stateDirectory), find};
 }
 
@@ -368,10 +381,42 @@ export async function redscriptErrors(logs) {
   return (tail?.lines ?? []).filter(line => /^\[ERROR\b/.test(line)).length;
 }
 
+// ------------------------------------------------------------------ pieces in the wrong place
+
+/**
+ * Pieces of this mod that sit in a folder inside the game folder (the zip was extracted into "<zip name>\" instead of the game folder itself),
+ * where the game cannot see them: the Scripts (the CET folder's init.lua, or the redscript folder) and the Runtime (the RED4ext plugin's DLL).
+ * Looked for one and two folders below the game folder, never in the game's own folders, and only for a piece that is missing where it belongs
+ * (`files` is checkModFiles' answer). Returns [{folder, pieces: ['Scripts'|'Runtime']}], `folder` relative to the game folder. Never throws.
+ */
+export async function findMisplaced({game, files}) {
+  try {
+    const wanted = {Scripts: files.scripts.state === 'missing' || files.redscript.state === 'missing' || files.redscript.state === 'empty',
+      Runtime: files.plugin.state === 'missing'};
+    if (!wanted.Scripts && !wanted.Runtime) return [];
+    const folders = async path => {
+      try { return (await readdir(path, {withFileTypes: true})).filter(entry => entry.isDirectory() && !GAME_FOLDERS.has(entry.name.toLowerCase())).map(entry => join(path, entry.name)); }
+      catch { return []; }
+    };
+    const bases = [];
+    for (const top of (await folders(game)).slice(0, 40)) { bases.push(top); bases.push(...(await folders(top)).slice(0, 40)); }
+    const result = [];
+    for (const base of bases) {
+      const pieces = [];
+      if (wanted.Scripts && (await isFile(join(base, ...MOD_FOLDER, 'init.lua')) || await isDir(join(base, ...REDS_FOLDER)))) pieces.push('Scripts');
+      if (wanted.Runtime && await isFile(join(base, ...PLUGIN_FOLDER, 'CyberpunkConvai.dll'))) pieces.push('Runtime');
+      if (pieces.length) result.push({folder: relative(game, base).split(/[\\/]/).join('\\'), pieces});
+    }
+    return result;
+  } catch { return []; }
+}
+
+const piecesText = pieces => pieces.map(piece => `the ${piece}`).join(' and ');
+
 // ------------------------------------------------------------------------ problems
 
 /** The PROBLEM lines: pure, from what the checks found. */
-export function offlineProblems({layout, rows, files, errors = 0, managers = []}) {
+export function offlineProblems({layout, rows, files, errors = 0, managers = [], misplaced = []}) {
   const problems = [];
   if (!layout.gameFound) {
     problems.push(`The Cyberpunk 2077 folder was not found: ${layout.game} has no ${show(GAME_EXE)}. `
@@ -379,15 +424,23 @@ export function offlineProblems({layout, rows, files, errors = 0, managers = []}
   }
   // Without the game folder the checks below did not look everywhere, so they say nothing about what is missing.
   if (layout.gameFound) {
-    for (const row of rows) {
-      if (row.state === 'missing') problems.push(`${row.name} is missing: ${row.missing[0]} was not found. Install it.`);
-      else if (row.state === 'incomplete') problems.push(`${row.name} is incomplete: ${row.missing[0]} was not found. Install it again.`);
+    // A mod extracted into a folder inside the game folder is named first: it is why its pieces are "missing" below, and those lines are left out.
+    const lost = new Set(misplaced.flatMap(item => item.pieces));
+    for (const item of misplaced) {
+      problems.push(`The mod is in the folder "${item.folder}" inside the Cyberpunk 2077 folder, where the game cannot see it (${piecesText(item.pieces)}). `
+        + `Move the folders inside "${item.folder}" into the Cyberpunk 2077 folder itself, let them merge, then start the game.`);
     }
-    if (files.scripts.state === 'missing') problems.push(`The mod's CET folder is missing: ${files.scripts.path} was not found. Install the Scripts package.`);
-    if (files.redscript.state === 'missing') problems.push(`The mod's redscript folder is missing: ${show(REDS_FOLDER)} was not found. Install the Scripts package.`);
+    for (const row of rows) {
+      if (row.state === 'missing') problems.push(`${row.name} is missing: ${row.missing[0]} was not found. Install it from Nexus Mods.`);
+      else if (row.state === 'incomplete') problems.push(`${row.name} is incomplete: ${row.missing[0]} was not found. Install it again from Nexus Mods.`);
+    }
+    if (files.scripts.state === 'missing' && !lost.has('Scripts')) problems.push(`The mod's CET folder is missing: ${files.scripts.path} was not found. Install the Scripts package.`);
+    if (lost.has('Scripts')) { /* said above */ }
+    else if (files.redscript.state === 'missing') problems.push(`The mod's redscript folder is missing: ${show(REDS_FOLDER)} was not found. Install the Scripts package.`);
     else if (files.redscript.state === 'empty') problems.push(`The mod's redscript folder is empty: ${show(REDS_FOLDER)} has no .reds files. Install the Scripts package.`);
-    if (files.plugin.state === 'missing') problems.push(`The mod's RED4ext plugin is missing: ${files.plugin.path} was not found. Install the Runtime package, and check that antivirus has not removed it.`);
-    else {
+    if (files.plugin.state === 'missing') {
+      if (!lost.has('Runtime')) problems.push(`The mod's RED4ext plugin is missing: ${files.plugin.path} was not found. Install the Runtime package, and check that antivirus has not removed it.`);
+    } else {
       const absent = [files.plugin.node ? null : show([...PLUGIN_FOLDER, 'app', 'node', 'node.exe']), files.plugin.bridge ? null : show([...PLUGIN_FOLDER, 'app', 'bridge', 'convai-bridge.mjs'])].filter(Boolean);
       if (absent.length) problems.push(`The Runtime package is incomplete: ${absent[0]} was not found. Extract the whole Runtime again.`);
     }
@@ -547,7 +600,8 @@ export async function runOfflineReport({appDirectory, argv = [], env = process.e
     const files = await checkModFiles(layout);
     const errors = await redscriptErrors(logs);
     const {managers} = await detectModManagers({game: layout.game, sharedObjects});
-    const problems = offlineProblems({layout, rows, files, errors, managers});
+    const misplaced = layout.gameFound ? await findMisplaced({game: layout.game, files}) : [];
+    const problems = offlineProblems({layout, rows, files, errors, managers, misplaced});
     const secrets = await offlineSecrets({stateDirectory: layout.stateDirectory, project: layout.project, env});
 
     const release = files => ({found: files.release.found, version: files.release.version});
@@ -555,7 +609,9 @@ export async function runOfflineReport({appDirectory, argv = [], env = process.e
     const extraSummary = {
       offline: {
         madeBy: 'Make support report.bat, with the game closed; no conversation service was running',
-        gameFolder: {path: layout.game, found: layout.gameFound, ...(layout.gameFromIni ? {namedBy: 'ModOrganizer.ini'} : {})},
+        gameFolder: {path: layout.game, found: layout.gameFound, ...(layout.gameFromIni ? {namedBy: 'ModOrganizer.ini'} : {}),
+          ...(layout.wrappedIn ? {namedBy: 'the folder above this one (the mod was extracted into a folder inside the game folder)'} : {})},
+        ...(misplaced.length ? {misplaced} : {}),
         lookedIn: {folders: layout.roots.length, first: layout.roots.slice(0, 6).map(root => root.label)},
         modManagers: managers,
         mo2: layout.mo2 ? {found: true, profile: clip(layout.mo2.profile, 60), modsSearched: layout.mo2.modCount, enabledModsOnly: layout.mo2.enabledOnly,
@@ -581,7 +637,14 @@ export async function runOfflineReport({appDirectory, argv = [], env = process.e
       if (args.out || reportsDirectory === fallback) throw error;
       result = await build(fallback);
     }
-    if (!layout.gameFound) for (const line of problems) say(line);
+    // What was found, in the window: the player can fix it without waiting for an answer. The Mod Organizer 2 hint is for a player who runs this
+    // from MO2's folders (or whose game folder was not found); it stays in the report for everyone else.
+    const shown = problems.filter(line => line !== MO2_HINT);
+    if (shown.length) {
+      say(shown.length === 1 ? 'Found a problem:' : `Found ${shown.length} problems:`);
+      for (const line of shown) say(`  ${line}`);
+    } else say('No missing mods or mod files were found.');
+    if (problems.includes(MO2_HINT) && (layout.mo2 || !layout.gameFound)) say(`  ${MO2_HINT}`);
     say(`Your support report is saved at ${result.path} - please send that file.`);
     if (args.open) openFolder(result.path);
     return {ok: true, path: result.path, problems, layout, rows, files, summary: result.summary};

@@ -223,7 +223,7 @@ test('optional packs: found, moved by the launcher, one folder too deep, and fil
   answer({packs = {id = 'packs', state = 'ok', code = 'ok', found = {'Local AI standard', 'OmniVoice'}, nested = {}, moved = {{pack = 'Mature lite', from = 'Mature-pack'}}}}); check.run()
   assert(lineOf('packs').state == 'ok' and lineOf('packs').description == 'Found: Local AI standard, OmniVoice.\nMoved into place from Mature-pack: Mature lite.', lineOf('packs').description)
   answer({packs = {id = 'packs', state = 'problem', code = 'nested', found = {}, nested = {{pack = 'Local AI standard', folder = 'AI-NPC-Local-AI-0.2.1'}, {pack = 'OmniVoice', folder = 'other'}}, moved = {}}}); check.run()
-  assert(lineOf('packs').state == 'problem' and lineOf('packs').description == 'Local AI standard is one folder too deep, in AI-NPC-Local-AI-0.2.1. Move the red4ext folder inside it into the Cyberpunk 2077 folder, then restart the game.')
+  assert(lineOf('packs').state == 'problem' and lineOf('packs').description == 'Local AI standard is one folder too deep, in AI-NPC-Local-AI-0.2.1. Restart the game and the mod moves it into place. If it is still there afterwards, move the red4ext folder inside it into the Cyberpunk 2077 folder.')
   assert(table.concat(check.problems(), ',') == 'packs')
   answer({packs = {id = 'packs', state = 'problem', code = 'conflict', found = {}, nested = {}, moved = {}}}); check.run()
   assert(lineOf('packs').description:find('could not be moved into place because different files are already there', 1, true))

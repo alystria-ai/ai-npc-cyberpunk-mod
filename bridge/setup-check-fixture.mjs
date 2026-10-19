@@ -198,7 +198,7 @@ function ids()
   return table.concat(list, ' ')
 end
 function opens() return #opened end
--- the service's answer: one document of seven checks, any of them replaced by the test
+-- the service's answer: one document of eight checks, any of them replaced by the test
 function answer(checks, request)
   local document = {version = 1, updated = ms(), bridgePid = 4242, request = request, checks = {}}
   local defaults = {
@@ -209,6 +209,7 @@ function answer(checks, request)
     {id = 'internet', state = 'ok', code = 'reachable', service = 'convai', host = 'api.convai.com'},
     {id = 'gpu', state = 'ok', code = 'found', name = 'NVIDIA GeForce RTX 4070', memoryMiB = 12282},
     {id = 'mod-manager', state = 'ok', code = 'none', managers = {}},
+    {id = 'compiler', state = 'ok', code = 'found'},
   }
   for _, item in ipairs(defaults) do
     local replaced = checks and checks[item.id]
