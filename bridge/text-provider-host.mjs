@@ -99,7 +99,9 @@ export function mistralRoute({provider, model = () => DEFAULT_MODELS, decisionMo
  * The custom provider: any OpenAI-compatible chat-completions endpoint the player named (bridge/custom-endpoint.mjs holds the address, the optional key
  * and the model id). One model, no persona cache key (an unknown server may refuse unknown fields), no pacing: a 429 with a Retry-After is waited out when
  * it is short and otherwise answered at once, and no request is made until it has passed (the next turns get the notice without waiting). A request field
- * the server refuses is dropped and remembered (`adaptation`, bridge/mistral-client.mjs). Never the Mature layer: only the local AI has it (#matureLevel).
+ * the server refuses is dropped and remembered (`adaptation`, bridge/mistral-client.mjs). A model that thinks first is asked for no (or little) reasoning where the
+ * provider documents a field for it, and a reply it spent on thinking is asked again with more room (bridge/reasoning.mjs). A daily limit (OpenRouter's free models) is
+ * not retried and says so. Never the Mature layer: only the local AI has it (#matureLevel).
  *   custom      the CustomEndpoint (address, key, model id)
  */
 export function customRoute({provider, custom, chat = streamChat, now = () => Date.now(), onFailure, onSuccess} = {}) {
@@ -124,17 +126,17 @@ export function customRoute({provider, custom, chat = streamChat, now = () => Da
       // The server asked to be left alone for a while: no request goes out before that (Retry-After), and the notice comes at once.
       if (wait > 0) throw new MistralError('limit', 'asked for a pause between requests', {provider: 'custom', retryAfterMs: wait});
       return {apiKey: custom.key ?? undefined, endpoint: custom.chatUrl, requestModel: custom.model, trustedOrigin: custom.origin,
-        headers: custom.extraHeaders, adapt: adaptation()};
+        headers: custom.extraHeaders, adapt: adaptation(), reasoning: custom.reasoning};
     },
     cacheBody: () => ({}),
     jsonBody: () => ({response_format: {type: 'json_object'}}),
-    summarizeAllowed: () => !(provider.limit && (provider.limit.kind === 'invalid' || provider.limit.kind === 'credits')),
+    summarizeAllowed: () => !(provider.limit && (provider.limit.kind === 'invalid' || provider.limit.kind === 'credits' || provider.limit.kind === 'daily')),
     fallsBack: () => false,
     success() { pausedUntil = 0; provider.noteSuccess(); try { onSuccess?.(); } catch { /* an observer never fails a reply */ } },
     failure(error) {
       const kind = failureKind(error);
       if (kind === 'limit' && error.retryAfterMs > 0) { const here = scope(); pausedUntil = Math.max(pausedScope === here ? pausedUntil : 0, now() + error.retryAfterMs); pausedScope = here; }
-      provider.noteLimit(kind === 'limit' ? 'rate' : kind === 'key' ? 'invalid' : kind === 'model' ? 'model' : kind === 'credits' ? 'credits' : null);
+      provider.noteLimit(kind === 'limit' ? 'rate' : kind === 'daily' ? 'daily' : kind === 'key' ? 'invalid' : kind === 'model' ? 'model' : kind === 'credits' ? 'credits' : null);
       try { onFailure?.(error); } catch { /* an observer never fails a reply */ }
     },
     label: 'The custom provider'};
@@ -271,11 +273,11 @@ export class TextProviderHost {
       for (const item of usable.length ? usable : wanted.slice(0, 1)) {
         try {
           // `lease.requestModel`: the model id a server the player runs is asked for (the local and custom routes); `lease.trustedOrigin`: the one origin
-          // that server's key may go to (bridge/mistral-client.mjs); `lease.headers` and `lease.adapt` (custom only): OpenRouter's two optional headers, and
-          // what the server has refused so far. None of them exists for the Mistral route.
+          // that server's key may go to (bridge/mistral-client.mjs); `lease.headers`, `lease.adapt` and `lease.reasoning` (custom only): OpenRouter's two optional headers,
+          // what the server has refused so far, and the field that asks a reasoning model to think less. None of them exists for the Mistral route.
           return await route.chat({apiKey: lease.apiKey, model: lease.requestModel ?? item.id, messages, signal, endpoint: lease.endpoint ?? route.endpoint,
             provider: route.provider, ...(lease.trustedOrigin ? {trustedOrigin: lease.trustedOrigin} : {}),
-            ...(lease.headers ? {headers: lease.headers} : {}), ...(lease.adapt ? {adapt: lease.adapt} : {}), maxTokens: item.maxTokens ?? this.limits.maxTokens, temperature: this.limits.temperature,
+            ...(lease.headers ? {headers: lease.headers} : {}), ...(lease.adapt ? {adapt: lease.adapt} : {}), ...(lease.reasoning ? {reasoning: lease.reasoning} : {}), maxTokens: item.maxTokens ?? this.limits.maxTokens, temperature: this.limits.temperature,
             ...(route.chatDefaults ?? {}), ...rest, onHeaders: route.noteHeaders,
             onRetry: ({attempt, error, waitMs, ms}) => this.log(`${route.label} attempt ${attempt} failed after ${ms} ms (${error.kind}${error.status ? ` ${error.status}` : ''}${error.slow ? ', no answer in time' : ''}); asking again in ${waitMs} ms`),
             extraBody: {...route.cacheBody(profileKey), ...(item.body ?? {}), ...extraBody}});
@@ -459,7 +461,7 @@ export class TextProviderHost {
     if (!route) return null;
     try {
       const response = await this.#request(route, menu.classifier({text, last}), signal,
-        {maxTokens: 12, temperature: 0, retries: 0, totalMs: 8000, firstByteMs: 6000, models: route.decisionModels?.()});
+        {maxTokens: 12, temperature: 0, retries: 0, totalMs: 8000, firstByteMs: 6000, thinkingRoom: false, models: route.decisionModels?.()});
       return menu.decide(response.text);
     } catch (error) {
       if (!signal?.aborted) this.log('action decision failed: ' + (failureKind(error) ?? error?.message ?? 'error'));

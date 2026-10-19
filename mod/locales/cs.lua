@@ -987,4 +987,9 @@ return {
     ["This address is not encrypted, which is fine on your own computer or home network."] = "Tato adresa není šifrovaná, což je v pořádku na tvém počítači nebo v domácí síti.",
     ["Use the base URL only: no password, query or #."] = "Používej jen základní URL: bez hesla, dotazu nebo #.",
     ["Waiting for the endpoint to answer…"] = "Čeká se na odpověď endpointu…",
+    ["Custom: free daily limit reached"] = "Vlastní: denní bezplatný limit vyčerpán",
+    ["New address saved. Paste your API key again for it."] = "Nová adresa uložena. Pro ni znovu vlož klíč API.",
+    ["The free daily limit for this model was reached. It resets at {time}."] = "Denní bezplatný limit pro tento model je vyčerpán. Obnoví se v {time}.",
+    ["The free daily limit for this model was reached. Try again after it resets."] = "Denní bezplatný limit pro tento model je vyčerpán. Zkus to znovu po obnovení.",
+    ["This model spends its reply on thinking. Choose a non-reasoning model in Settings."] = "Tento model tráví odpověď přemýšlením. V Nastavení zvol model bez uvažování.",
 }

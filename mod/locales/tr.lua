@@ -987,4 +987,9 @@ return {
     ["This address is not encrypted, which is fine on your own computer or home network."] = "Bu adres şifreli değil; kendi bilgisayarında ya da ev ağında sorun değil.",
     ["Use the base URL only: no password, query or #."] = "Yalnızca temel URL’yi kullan: şifre, sorgu veya # olmadan.",
     ["Waiting for the endpoint to answer…"] = "Endpoint yanıtı bekleniyor…",
+    ["Custom: free daily limit reached"] = "Özel: günlük ücretsiz limit doldu",
+    ["New address saved. Paste your API key again for it."] = "Yeni adres kaydedildi. Bunun için API anahtarını yeniden yapıştır.",
+    ["The free daily limit for this model was reached. It resets at {time}."] = "Bu modelin günlük ücretsiz limiti doldu. {time} itibarıyla sıfırlanır.",
+    ["The free daily limit for this model was reached. Try again after it resets."] = "Bu modelin günlük ücretsiz limiti doldu. Sıfırlandıktan sonra tekrar dene.",
+    ["This model spends its reply on thinking. Choose a non-reasoning model in Settings."] = "Bu model yanıtını düşünmeye harcıyor. Ayarlar’dan akıl yürütmeyen bir model seç.",
 }

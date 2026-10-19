@@ -987,4 +987,9 @@ return {
     ["This address is not encrypted, which is fine on your own computer or home network."] = "Diese Adresse ist nicht verschlüsselt. Auf deinem Computer oder Heimnetz ist das in Ordnung.",
     ["Use the base URL only: no password, query or #."] = "Nur die Basis-URL: ohne Passwort, Abfrage oder #.",
     ["Waiting for the endpoint to answer…"] = "Warte auf Antwort vom Endpunkt…",
+    ["Custom: free daily limit reached"] = "Eigener: kostenloses Tageslimit erreicht",
+    ["New address saved. Paste your API key again for it."] = "Neue Adresse gespeichert. Füge dafür deinen API-Schlüssel erneut ein.",
+    ["The free daily limit for this model was reached. It resets at {time}."] = "Kostenloses Tageslimit für dieses Modell erreicht. Reset um {time}.",
+    ["The free daily limit for this model was reached. Try again after it resets."] = "Kostenloses Tageslimit für dieses Modell erreicht. Versuche es nach dem Reset erneut.",
+    ["This model spends its reply on thinking. Choose a non-reasoning model in Settings."] = "Dieses Modell denkt statt zu antworten. Wähle unter Einstellungen ein Non-Reasoning-Modell.",
 }

@@ -252,7 +252,8 @@ test('every failure a player can act on: 401 key, 402 credits, 404 model, 429 li
       [{status: 404, body: [{error: {code: 404, message: 'models/nope is not found for API version v1main', status: 'NOT_FOUND'}}]}, 'model', 'custom-model', 1],
       [{status: 400, body: {error: {message: 'Invalid model ID: nope'}}}, 'model', 'custom-model', 1],
       [{status: 429, headers: {'retry-after': '30'}, body: {error: {message: 'Rate limit exceeded'}}}, 'limit', 'custom-limit', 1],
-      [{status: 429, body: {error: {message: 'Rate limit exceeded: free-models-per-day'}}}, 'limit', 'custom-limit', 1],
+      // A daily allowance has its own kind and notice (it is not retried, and says so): docs/CUSTOM_PROVIDER.md, "Free models and their daily limit".
+      [{status: 429, body: {error: {message: 'Rate limit exceeded: free-models-per-day'}}}, 'daily', 'custom-daily', 1],
       [{status: 500, body: 'oops'}, 'network', 'custom-unreachable', 2],
       [{status: 502, body: '<html>Bad Gateway</html>'}, 'network', 'custom-unreachable', 2],
       [{status: 503, body: {error: {message: 'overloaded'}}}, 'network', 'custom-unreachable', 2],
@@ -318,7 +319,7 @@ test('Retry-After is honoured: a short wait is waited out once, a long one is no
     // A daily allowance is not retried at all.
     mock.requests.length = 0;
     mock.behave(() => ({status: 429, body: {error: {message: 'Rate limit exceeded: free-models-per-day'}}}));
-    await assert.rejects(streamChat({...via(mock), apiKey: KEY, sleepImpl, ...quick}), error => error.kind === 'limit' && error.daily === true);
+    await assert.rejects(streamChat({...via(mock), apiKey: KEY, sleepImpl, ...quick}), error => error.kind === 'daily' && error.daily === true);
     assert.equal(mock.requests.length, 1);
   } finally { await mock.close(); }
 });
@@ -423,7 +424,8 @@ test('each failure is recorded on the provider for the settings page, and the tu
     const cases = [[{status: 401, body: {error: {message: 'bad key'}}}, 'invalid', 'custom-key'],
       [{status: 402, body: {error: {message: 'no credits'}}}, 'credits', 'custom-credits'],
       [{status: 404, body: {error: {message: 'no such model'}}}, 'model', 'custom-model'],
-      [{status: 429, body: {error: {message: 'Rate limit exceeded: free-models-per-day'}}}, 'rate', 'custom-limit'],
+      [{status: 429, body: {error: {message: 'Rate limit exceeded'}}}, 'rate', 'custom-limit'],
+      [{status: 429, body: {error: {message: 'Rate limit exceeded: free-models-per-day'}}}, 'daily', 'custom-daily'],
       [{status: 503, body: 'down'}, null, 'custom-unreachable']];
     for (const [plan, limit, code] of cases) {
       mock.behave(() => plan);
@@ -472,7 +474,7 @@ test('a new key, model or address ends what the old one was refused for: the set
     await custom.setModel('vendor/other-model');
     assert.equal(provider.limit, null);
     // A long Retry-After pauses this key and model only: another key (another account) is asked at once.
-    mock.behave(() => ({status: 429, headers: {'retry-after': '3600'}, body: {error: {message: 'Rate limit exceeded: free-models-per-day'}}}));
+    mock.behave(() => ({status: 429, headers: {'retry-after': '3600'}, body: {error: {message: 'Rate limit exceeded, slow down'}}}));
     await assert.rejects(host.reply(turn('one')), error => failureKind(error) === 'limit');
     mock.requests.length = 0;
     await assert.rejects(host.reply(turn('two')), error => failureKind(error) === 'limit');

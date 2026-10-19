@@ -987,4 +987,9 @@ return {
     ["This address is not encrypted, which is fine on your own computer or home network."] = "このアドレスは暗号化されていません。ご自身のコンピューターやご自宅のネットワーク内であれば問題ありません。",
     ["Use the base URL only: no password, query or #."] = "ベースURLのみを使用してください。パスワード、クエリ、#は入れないでください。",
     ["Waiting for the endpoint to answer…"] = "エンドポイントの応答を待っています…",
+    ["Custom: free daily limit reached"] = "カスタム：無料枠の1日の上限に達しました",
+    ["New address saved. Paste your API key again for it."] = "新しいアドレスを保存しました。APIキーをもう一度貼り付けてください。",
+    ["The free daily limit for this model was reached. It resets at {time}."] = "このモデルの1日の無料上限に達しました。{time}にリセットされます。",
+    ["The free daily limit for this model was reached. Try again after it resets."] = "このモデルの1日の無料上限に達しました。リセット後にもう一度お試しください。",
+    ["This model spends its reply on thinking. Choose a non-reasoning model in Settings."] = "このモデルは返答を推論に使い切ります。設定で非推論モデルを選んでください。",
 }

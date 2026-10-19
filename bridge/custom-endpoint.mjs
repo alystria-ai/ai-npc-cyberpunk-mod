@@ -13,12 +13,15 @@
 //   - published to the settings page as runtime/custom-provider-state.json: the host (never a path or a query), the model id, whether a key is
 //     saved and its last four characters (only for a key of 16 or more characters). The key itself never leaves this module except as the
 //     Authorization header of a request to its own endpoint (bridge/mistral-client.mjs, `provider: 'custom'`).
+//   - the key is bound to the address it was saved with (a `key-origin=` line, the scheme and host of that address): a new address on another host or port forgets
+//     the key (a paste of the address, or a file edited by hand; the key goes only where the player put it), a new path on the same host keeps it;
 // "Test connection" sends one tiny request, the only request this module makes, and only when the player presses the button.
 import {readFile, rm} from 'node:fs/promises';
 import {writePrivate, keyTail} from './mistral-key.mjs';
 import {readClipboardText} from './convai-key.mjs';
 import {checkEndpoint, hostKind} from './custom-models.mjs';
-import {streamChat, MistralError, failureKind} from './mistral-client.mjs';
+import {streamChat, MistralError, failureKind, resetClock} from './mistral-client.mjs';
+import {reasoningSteps} from './reasoning.mjs';
 
 export const CUSTOM_FILE = 'player-custom-endpoint.txt';
 const COMMAND_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,159}$/;
@@ -90,7 +93,7 @@ export function parseModelId(text) {
 
 /**
  * The file's lines. Order does not matter, `#` starts a comment, a field that is not valid is left out and named in `problems` (never its value).
- * Returns {endpoint, model, key, problems}.
+ * Returns {endpoint, model, key, problems}, and `keyOrigin` (the origin the key was saved for) when the file has that line.
  */
 export function parseCustomFile(text) {
   const out = {endpoint: null, model: null, key: null, problems: []};
@@ -111,21 +114,29 @@ export function parseCustomFile(text) {
     } else if (['api-key', 'apikey', 'key'].includes(name)) {
       const parsed = parseCustomKey(value);
       if (parsed) out.key = parsed; else out.problems.push('api-key');
+    } else if (name === 'key-origin') {
+      const origin = /^https?:\/\/[^\s/?#@]+$/i.test(value.trim()) ? (() => { try { return new URL(value.trim()).origin; } catch { return null; } })() : null;
+      if (origin && origin !== 'null') out.keyOrigin = origin;
     }
   }
   return out;
 }
 
 /** The file's text for what is saved (no line for what is not). */
-export function formatCustomFile({endpoint, model, key}) {
+export function formatCustomFile({endpoint, model, key, keyOrigin}) {
   return ['# AI NPC Cyberpunk Mod: Custom (OpenAI-compatible) provider. Saved by Settings; you can also edit it by hand.',
-    ...(endpoint ? [`endpoint=${endpoint}`] : []), ...(model ? [`model=${model}`] : []), ...(key ? [`api-key=${key}`] : [])].join('\n') + '\n';
+    ...(endpoint ? [`endpoint=${endpoint}`] : []), ...(model ? [`model=${model}`] : []), ...(key ? [`api-key=${key}`] : []),
+    // The address the key was saved for: a key is never sent to another one (change the address and the key together, or paste the key again).
+    ...(key && keyOrigin ? [`key-origin=${keyOrigin}`] : [])].join('\n') + '\n';
 }
 
 export class CustomEndpoint {
   constructor({path, readText = file => readFile(file, 'utf8'), writeText = writePrivate, removeFile = file => rm(file, {force: true}), log = () => {}} = {}) {
     Object.assign(this, {path, readText, writeText, removeFile, log});
     this.address = null; this.model = null; this.key = null; this.unreadable = false;
+    // keyOrigin: the origin the saved key belongs to (null: not bound yet). keyForgotten: a key was forgotten because the address moved to another remote host,
+    // and none is saved since (the settings page says to paste it again).
+    this.keyOrigin = null; this.keyForgotten = false;
     this.listeners = new Set(); this.writing = Promise.resolve();
   }
   onChange(listener) { this.listeners.add(listener); return () => this.listeners.delete(listener); }
@@ -148,9 +159,24 @@ export class CustomEndpoint {
       this.unreadable = false;
     }
     if (parsed.problems.length) this.log(`${CUSTOM_FILE}: ignored ${parsed.problems.join(', ')}`);
-    const before = JSON.stringify([this.address?.endpoint, this.model, !!this.key, this.key?.slice(-4)]);
-    this.address = parsed.endpoint; this.model = parsed.model; this.key = parsed.key;
-    if (before !== JSON.stringify([this.address?.endpoint, this.model, !!this.key, this.key?.slice(-4)])) this.#changed();
+    const state = () => JSON.stringify([this.address?.endpoint, this.model, !!this.key, this.key?.slice(-4), this.keyForgotten]);
+    const before = state();
+    // The key belongs to the address it was saved for. The key this service holds is bound to the origin it holds; a key the file has and this service does not
+    // is bound to the file's `key-origin=` line; a key edited into the file by hand is the player's word for the address beside it. A key whose address is now
+    // another origin is forgotten (and the file is written without it): it is not sent to a host it was not given for.
+    let key = parsed.key, keyOrigin = null, dropped = false;
+    if (key) {
+      keyOrigin = key === this.key ? this.keyOrigin : this.key ? null : parsed.keyOrigin ?? null;
+      const origin = parsed.endpoint?.origin;
+      if (keyOrigin && origin && keyOrigin !== origin) { key = null; keyOrigin = null; dropped = true; } else keyOrigin = keyOrigin ?? origin ?? null;
+    }
+    this.address = parsed.endpoint; this.model = parsed.model; this.key = key; this.keyOrigin = keyOrigin;
+    if (key) this.keyForgotten = false; else if (dropped) this.keyForgotten = this.address.kind === 'remote';
+    if (dropped) {
+      this.log(`${CUSTOM_FILE}: the saved key was for another address and is forgotten`);
+      await this.#persist().catch(error => this.log(`${CUSTOM_FILE} could not be written (${typeof error?.code === 'string' ? error.code : 'error'})`));
+    }
+    if (before !== state()) this.#changed();
     return this;
   }
 
@@ -167,6 +193,8 @@ export class CustomEndpoint {
   /** The https origin whose connection is worth opening ahead of the first turn, or null. */
   get warmOrigin() { return this.address && this.secure && !this.local ? this.address.origin : null; }
   get tail() { return keyTail(this.key); }
+  /** The steps of the field that asks a reasoning model to think less, for this address and model id (bridge/reasoning.mjs), or undefined. */
+  get reasoning() { return reasoningSteps({hostname: this.address?.hostname, local: this.local, model: this.model}); }
   /** OpenRouter's two optional headers, for OpenRouter only. */
   get extraHeaders() { return this.address?.secure && this.address.hostname === OPENROUTER_HOST ? OPENROUTER_HEADERS : undefined; }
   secrets() { return [this.key].filter(Boolean); }
@@ -176,28 +204,41 @@ export class CustomEndpoint {
     const save = async () => {
       if (!this.path) return;   // nothing is stored (a test)
       if (!this.address && !this.model && !this.key) { await this.removeFile(this.path); return; }
-      await this.writeText(this.path, formatCustomFile({endpoint: this.address?.endpoint, model: this.model, key: this.key}));
+      await this.writeText(this.path, formatCustomFile({endpoint: this.address?.endpoint, model: this.model, key: this.key, keyOrigin: this.key ? this.keyOrigin : null}));
     };
     this.writing = this.writing.catch(() => {}).then(save);
     return this.writing;
   }
-  async #set(field, value) {
+  async #apply(changes) {
     // The file could not be read last time: read it again first, and save nothing while it still cannot be (a write would lose what it holds).
     if (this.unreadable) {
       await this.load();
       if (this.unreadable) throw Error(`${CUSTOM_FILE} cannot be read, so it is not written over`);
     }
-    const was = this[field];
-    this[field] = value;
-    try { await this.#persist(); } catch (error) { this[field] = was; throw error; }
+    const was = Object.fromEntries(Object.keys(changes).map(field => [field, this[field]]));
+    Object.assign(this, changes);
+    try { await this.#persist(); } catch (error) { Object.assign(this, was); throw error; }
     this.#changed();
   }
-  async setUrl(address) { await this.#set('address', address); }
+  async #set(field, value) { await this.#apply({[field]: value}); }
+  /**
+   * A new address. The saved key belongs to the address it was saved for: on another host or port (another origin) it is forgotten, and when the new address is a
+   * remote one the settings page says to paste it again (a server on this computer or the home network needs none). On the same origin (another path, /v1 or not)
+   * the key stays. A key not bound to an address yet (pasted first) is bound to this one.
+   */
+  async setUrl(address) {
+    const moved = !!this.key && !!this.keyOrigin && this.keyOrigin !== address.origin;
+    const changes = {address};
+    if (moved) Object.assign(changes, {key: null, keyOrigin: null});
+    else if (this.key && !this.keyOrigin) changes.keyOrigin = address.origin;
+    changes.keyForgotten = !this.key || moved ? (moved || this.keyForgotten) && address.kind === 'remote' : false;
+    await this.#apply(changes);
+  }
   async setModel(model) { await this.#set('model', model); }
-  async setKey(key) { await this.#set('key', key); }
-  async clearUrl() { await this.#set('address', null); }
+  async setKey(key) { await this.#apply({key, keyOrigin: this.address?.origin ?? null, keyForgotten: false}); }
+  async clearUrl() { await this.#apply({address: null, keyForgotten: false}); }
   async clearModel() { await this.#set('model', null); }
-  async clearKey() { await this.#set('key', null); }
+  async clearKey() { await this.#apply({key: null, keyOrigin: null, keyForgotten: false}); }
 }
 
 // ---- Test connection ----------------------------------------------------------------------------------------------------------
@@ -214,6 +255,10 @@ export function describeFailure(error) {
   if (kind === 'credits') return {code: 'credits', status, detail};
   if (kind === 'model') return {code: 'model', status, detail};
   if (kind === 'limit') return {code: 'limit', status, ...(error.retryAfterMs > 0 ? {waitS: Math.max(1, Math.ceil(error.retryAfterMs / 1000))} : {}), detail};
+  // A daily allowance that is used up (OpenRouter's free models): when it resets on this computer's clock, if the server said.
+  if (kind === 'daily') return {code: 'daily', status, ...(resetClock(error.resetAt) ? {resetTime: resetClock(error.resetAt)} : {}), detail};
+  // A model that spends its whole reply on thinking, even with more room.
+  if (kind === 'reasoning') return {code: 'reasoning', detail};
   if (kind === 'empty') return {code: 'empty', detail};
   if (kind === 'network') {
     if (error.redirect) return {code: 'redirect', detail};
@@ -234,7 +279,7 @@ export async function testConnection(custom, {chat = streamChat, adapt, fetchImp
   const began = now();
   try {
     await chat({apiKey: custom.key ?? undefined, model: custom.model, provider: 'custom', endpoint: custom.chatUrl, trustedOrigin: custom.origin,
-      headers: custom.extraHeaders, ...(adapt ? {adapt} : {}), ...(fetchImpl ? {fetchImpl} : {}),
+      headers: custom.extraHeaders, reasoning: custom.reasoning, ...(adapt ? {adapt} : {}), ...(fetchImpl ? {fetchImpl} : {}),
       messages: [{role: 'system', content: 'You are a connection test. Reply with the single word OK.'}, {role: 'user', content: 'Test.'}],
       maxTokens: 24, temperature: 0, retries: 0, firstByteMs: custom.local ? 60000 : 25000, totalMs: custom.local ? 90000 : 35000});
     return {state: 'ok', ms: Math.round(now() - began)};
@@ -255,7 +300,7 @@ export function parseCustomCommand(raw, now = Date.now()) {
 }
 
 const FIELD_OF = {'paste-url': 'url', 'clear-url': 'url', 'paste-key': 'key', 'clear-key': 'key', 'paste-model': 'model', 'clear-model': 'model'};
-const LIMITS = new Set(['rate', 'invalid', 'model', 'credits']);
+const LIMITS = new Set(['rate', 'daily', 'invalid', 'model', 'credits']);
 
 /**
  * File IPC for the settings page's commands and the status file it reads (runtime/custom-provider-state.json). The key itself never enters
@@ -279,7 +324,8 @@ export class CustomControl {
   status() {
     const c = this.custom, limit = this.provider?.applied === 'custom' ? this.provider.limit?.kind : null;
     return {version: 1, updated: this.now(), ready: c.ready, host: c.host, secure: c.secure, local: c.local, model: c.model,
-      keySaved: !!c.key, tail: c.tail, ...(this.result ? {result: this.result} : {}), ...(this.testResult ? {test: this.testResult} : {}),
+      keySaved: !!c.key, tail: c.tail, ...(c.keyForgotten && !c.key ? {keyForgotten: true} : {}),
+      ...(this.result ? {result: this.result} : {}), ...(this.testResult ? {test: this.testResult} : {}),
       limit: LIMITS.has(limit) ? limit : null};
   }
   publishStatus() {

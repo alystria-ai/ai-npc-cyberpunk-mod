@@ -987,4 +987,9 @@ return {
     ["This address is not encrypted, which is fine on your own computer or home network."] = "Ez a cím nem titkosított, ami a saját gépeden vagy a házi hálózatodon rendben van.",
     ["Use the base URL only: no password, query or #."] = "Csak az alap URL-t add meg: jelszó, lekérdezés vagy # nélkül.",
     ["Waiting for the endpoint to answer…"] = "Várakozás az endpoint válaszára…",
+    ["Custom: free daily limit reached"] = "Egyéni: elfogyott az ingyenes napi keret",
+    ["New address saved. Paste your API key again for it."] = "Új cím elmentve. Illeszd be hozzá újra az API-kulcsot.",
+    ["The free daily limit for this model was reached. It resets at {time}."] = "Ennek a modellnek elfogyott az ingyenes napi kerete. Visszaáll {time}-kor.",
+    ["The free daily limit for this model was reached. Try again after it resets."] = "Ennek a modellnek elfogyott az ingyenes napi kerete. Próbáld újra a visszaállás után.",
+    ["This model spends its reply on thinking. Choose a non-reasoning model in Settings."] = "A modell a válasz helyett gondolkodik. Válassz nem gondolkodó modellt a Beállításokban.",
 }

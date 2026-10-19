@@ -24,12 +24,14 @@ function run(code) {
   assert.equal(status, lua.LUA_OK, error);
 }
 
-// The seven notices and the failed-turn texts, as the contract fixed them.
+// The nine notices and the failed-turn texts, as the contract fixed them (the daily limit's is the sentence without a reset time; with one it ends "It resets at {time}.").
 const NOTICES = {
   'custom-key': 'The custom provider did not accept your key. Check it in Settings > Conversation provider.',
   'custom-credits': 'The custom provider says your account is out of credits. Add credits there, then try again.',
   'custom-model': 'The custom provider does not know that model ID. Check it in Settings.',
   'custom-limit': 'The custom provider is rate limiting you. Try again in a moment.',
+  'custom-daily': 'The free daily limit for this model was reached. Try again after it resets.',
+  'custom-reasoning': 'This model spends its reply on thinking. Choose a non-reasoning model in Settings.',
   'custom-unreachable': 'The custom provider did not answer. Check its address in Settings, or try again.',
   'custom-no-setup': 'The custom provider is not set up, so Convai is used. Add its URL and model ID in Settings.',
   'custom-voice': 'Custom provider replies are spoken by a local voice instead of the Convai cloud voice.',
@@ -244,6 +246,28 @@ test('a failed paste puts its reason first in the help of its own row; an answer
   assert(provider.state().result == nil)
 `));
 
+test('the key row says to paste the key again after an address on another host was saved, until a key is saved', () => run(`${moduleFixture}
+  local provider = make()
+  publish(base({keySaved = false, tail = NONE, keyForgotten = true}))
+  local row = rowsOf(provider)['custom-key']
+  assert(row.label == 'Custom API key (Not added)' and row.value == 'Paste API key' and row.action == 'paste-key', row.label)
+  assert(first(row.help) == 'New address saved. Paste your API key again for it.', first(row.help))
+  assert(provider.state().keyForgotten == true)
+  -- A saved key ends it: the service stops sending the flag, and a stale one is not trusted.
+  publish(base({keyForgotten = true}))
+  assert(provider.state().keyForgotten == false and not rowsOf(provider)['custom-key'].help:find('New address saved', 1, true))
+  -- Only true counts.
+  for _, bad in ipairs({false, 'yes', 1, {}}) do
+    publish(base({keySaved = false, tail = NONE, keyForgotten = bad}))
+    assert(provider.state().keyForgotten == false and rowsOf(provider)['custom-key'].label == 'Custom API key', tostring(bad))
+  end
+  -- It changes what the page shows, so the redraw check changes too.
+  publish(base({keySaved = false, tail = NONE}))
+  local quiet = provider.signature()
+  publish(base({keySaved = false, tail = NONE, keyForgotten = true}))
+  assert(provider.signature() ~= quiet)
+`));
+
 test('the Test row: testing, ok, and a plain sentence for every failure code with the provider’s own words after it', () => run(`${moduleFixture}
   local provider = make()
   publish(base())
@@ -265,6 +289,8 @@ test('the Test row: testing, ok, and a plain sentence for every failure code wit
     credits = 'The account is out of credits. Add credits with your provider.',
     model = 'The endpoint does not know that model ID.',
     limit = 'The endpoint is rate limiting you. Try again in a moment.',
+    daily = 'The free daily limit for this model was reached. Try again after it resets.',
+    reasoning = 'This model spends its reply on thinking. Choose a non-reasoning model in Settings.',
     unreachable = 'The endpoint did not answer. Check its address.',
     timeout = 'The endpoint took too long to answer.',
     server = 'The endpoint reported an error on its side. Try again in a moment.',
@@ -292,6 +318,14 @@ test('the Test row: testing, ok, and a plain sentence for every failure code wit
   for _, wait in ipairs({0, -3, 1e9, 'soon', 0/0}) do
     publish(base({test = {id = id, state = 'failed', code = 'limit', waitS = wait}}))
     assert(first(rowsOf(provider)['custom-test'].help) == SENTENCES.limit, tostring(wait))
+  end
+  -- A daily limit says when it resets, on the computer's clock ("HH:MM", from the service), when it is given; anything else reads as not given.
+  publish(base({test = {id = id, state = 'failed', code = 'daily', status = 429, resetTime = '02:30'}}))
+  assert(first(rowsOf(provider)['custom-test'].help) == 'The free daily limit for this model was reached. It resets at 02:30.', first(rowsOf(provider)['custom-test'].help))
+  assert(provider.state().test.resetTime == '02:30')
+  for _, bad in ipairs({'soon', '2:30', '02:30:00', '', 7, true, {}}) do
+    publish(base({test = {id = id, state = 'failed', code = 'daily', resetTime = bad}}))
+    assert(first(rowsOf(provider)['custom-test'].help) == SENTENCES.daily and provider.state().test.resetTime == nil, tostring(bad))
   end
   -- A code that is not the contract's still reads as a failure, with a sentence that names no cause.
   for _, code in ipairs({'weird', 7, true}) do
@@ -476,12 +510,16 @@ test('the default reader and writer: a byte-order mark, a damaged file and a mis
   assert(ok == false and message == 'The request could not be sent. Try again.')
 `));
 
-test('the notices: seven ids with the contract’s sentences, the same ones the game and Phone Chat show', () => {
+// The failures of a turn V asked for: the notices a reply's error code selects (the other two are one-time notices on a first reply).
+const FAILED_TURN = ['custom-key', 'custom-credits', 'custom-model', 'custom-limit', 'custom-daily', 'custom-reasoning', 'custom-unreachable'];
+
+test('the notices: nine ids with the contract’s sentences, the same ones the game and Phone Chat show', () => {
   const ids = Object.keys(NOTICES);
   run(`${moduleFixture}
     local provider = make()
-    assert(#factory.NOTICE_IDS == 7)
+    assert(#factory.NOTICE_IDS == 9)
     local expected = {${ids.map(id => `['${id}'] = ${JSON.stringify(NOTICES[id])}`).join(', ')}}
+    local expected_daily = expected['custom-daily']
     for _, id in ipairs(factory.NOTICE_IDS) do
       assert(provider.notice(id) == expected[id], id)
       expected[id] = nil
@@ -489,8 +527,12 @@ test('the notices: seven ids with the contract’s sentences, the same ones the 
     assert(next(expected) == nil, 'a notice id is missing from NOTICE_IDS')
     assert(provider.notice('mistral-key') == nil and provider.notice('') == nil and provider.notice(nil) == nil and provider.notice(7) == nil)
     assert(provider.noteFor('rate') == 'Custom: rate limited for now' and provider.noteFor('invalid') == 'Custom: key not accepted'
-      and provider.noteFor('model') == 'Custom: model unavailable' and provider.noteFor('credits') == 'Custom: out of credits')
-    for _, other in ipairs({'daily', 'sometimes', '', 7, true, {}}) do assert(provider.noteFor(other) == nil, tostring(other)) end
+      and provider.noteFor('model') == 'Custom: model unavailable' and provider.noteFor('credits') == 'Custom: out of credits'
+      and provider.noteFor('daily') == 'Custom: free daily limit reached')
+    -- The daily limit's notice names the reset time when it is given (the service sends "HH:MM"), and says nothing of time otherwise.
+    assert(provider.notice('custom-daily', '02:30') == 'The free daily limit for this model was reached. It resets at 02:30.')
+    for _, bad in ipairs({'', 'soon', '2:30', 7, true, {}}) do assert(provider.notice('custom-daily', bad) == expected_daily, tostring(bad)) end
+    for _, other in ipairs({'sometimes', '', 7, true, {}}) do assert(provider.noteFor(other) == nil, tostring(other)) end
     assert(provider.noteFor(nil) == nil)
     assert(provider.notSetUpNote() == 'Convai: the custom provider is not set up yet')
   `);
@@ -500,23 +542,23 @@ test('the notices: seven ids with the contract’s sentences, the same ones the 
   assert.deepEqual(fromInit, NOTICES, 'init.lua words the notices differently from the module');
   const chat = read('phone-chat.lua').replace(/\r\n/g, '\n');
   const statuses = Object.fromEntries([...chat.matchAll(/\['(custom-[a-z-]+)'\] = '((?:[^'\\]|\\.)*)',/g)].map(m => [m[1], m[2]]));
-  for (const id of ['custom-key', 'custom-credits', 'custom-model', 'custom-limit', 'custom-unreachable']) assert.equal(statuses[id], NOTICES[id], id);
-  assert.deepEqual(Object.keys(statuses).sort(), ['custom-credits', 'custom-key', 'custom-limit', 'custom-model', 'custom-unreachable'], 'Phone Chat has no status for the one-time notices');
+  for (const id of FAILED_TURN) assert.equal(statuses[id], NOTICES[id], id);
+  assert.deepEqual(Object.keys(statuses).sort(), [...FAILED_TURN].sort(), 'Phone Chat has no status for the one-time notices');
   const style = read('phone-chat-style.lua');
-  for (const id of ['custom-key', 'custom-credits', 'custom-model', 'custom-limit', 'custom-unreachable']) assert(style.includes(`['${NOTICES[id]}'] = true`), `phone-chat-style.lua does not translate ${id}`);
+  for (const id of FAILED_TURN) assert(style.includes(`['${NOTICES[id]}'] = true`), `phone-chat-style.lua does not translate ${id}`);
   const catalogue = read('notices.lua');
-  const REPEAT = {'custom-key': 60, 'custom-credits': 60, 'custom-model': 60, 'custom-limit': 60, 'custom-unreachable': 60, 'custom-no-setup': 86400, 'custom-voice': 86400};
+  const REPEAT = {'custom-key': 60, 'custom-credits': 60, 'custom-model': 60, 'custom-limit': 60, 'custom-daily': 60, 'custom-reasoning': 60, 'custom-unreachable': 60, 'custom-no-setup': 86400, 'custom-voice': 86400};
   for (const [id, seconds] of Object.entries(REPEAT)) {
     assert(new RegExp(`\\['${id}'\\] = \\{class = PLAYER, repeatS = ${seconds}\\}`).test(catalogue), `${id}: class or window`);
     assert(readFileSync(new URL('../docs/NOTIFICATIONS.md', import.meta.url), 'utf8').includes(`| \`${id}\` | Player | ${NOTICES[id]} |`), `${id}: not in docs/NOTIFICATIONS.md`);
   }
   // The same mapping as Mistral's: a failed turn V asked for shows the notice, an automatic reaction (battle, loot) just stops.
-  for (const id of ['custom-key', 'custom-credits', 'custom-model', 'custom-limit', 'custom-unreachable']) {
+  for (const id of FAILED_TURN) {
     assert(new RegExp(`keyId == '${id}' then\\s+if not pending\\.reaction then convaiNotices\\.send\\(player, '${id}', keyText\\) end`).test(init), `${id}: not skipped for an automatic reaction`);
   }
 });
 
-test('the reply notices of init.lua: five failed-turn codes and two one-time notices, sent through the gate under their own ids', () => {
+test('the reply notices of init.lua: seven failed-turn codes and two one-time notices, sent through the gate under their own ids', () => {
   const init = initSource.replace(/\r\n/g, '\n');
   const start = init.indexOf('local function keyNoticeText'), end = init.indexOf('local function reactionCanDeliver');
   assert(start > 0 && end > start, 'the key notice functions moved');
@@ -527,11 +569,18 @@ test('the reply notices of init.lua: five failed-turn codes and two one-time not
     ${init.slice(start, end)}
     local function notice(reply) local id, text = keyReplyNotice(reply); return id, text end
     local expected = {${Object.keys(NOTICES).map(id => `['${id}'] = ${JSON.stringify(NOTICES[id])}`).join(', ')}}
-    for _, code in ipairs({'custom-key', 'custom-credits', 'custom-model', 'custom-limit', 'custom-unreachable'}) do
+    for _, code in ipairs({${FAILED_TURN.map(id => JSON.stringify(id).replace(/"/g, "'")).join(', ')}}) do
       local id, text = notice({errorCode = code, error = 'x'})
       assert(id == code and text == expected[code], code .. ': ' .. tostring(text))
       -- A failed turn carries no key notice of the same name, and a first reply carries no error code of it.
       assert(notice({keyNotice = code, text = 'Hello'}) == nil, code .. ' as a key notice')
+    end
+    -- The daily limit says when it resets, on this computer's clock, when the service sent a time ("HH:MM"); anything else is the sentence without one.
+    local id, text = notice({errorCode = 'custom-daily', errorResetTime = '02:30', error = 'x'})
+    assert(id == 'custom-daily' and text == 'The free daily limit for this model was reached. It resets at 02:30.', tostring(text))
+    for _, bad in ipairs({'', 'soon', '2:30', '02:30:10', 7, true, {}}) do
+      local id2, text2 = notice({errorCode = 'custom-daily', errorResetTime = bad, error = 'x'})
+      assert(id2 == 'custom-daily' and text2 == expected['custom-daily'], tostring(bad))
     end
     for _, code in ipairs({'custom-no-setup', 'custom-voice'}) do
       local id, text = notice({keyNotice = code, text = 'Hello'})
@@ -890,7 +939,7 @@ test('the provider row ends with the note of the custom provider: its limits, wa
   bridge('fallback', {provider = 'custom', effective = 'convai'})
   assert(lastParagraph(row('conversationProvider').description) == 'Convai: the custom provider is not set up yet', lastParagraph(row('conversationProvider').description))
   -- Custom answers with a limit.
-  for limit, text in pairs({rate = 'Custom: rate limited for now', invalid = 'Custom: key not accepted', model = 'Custom: model unavailable', credits = 'Custom: out of credits'}) do
+  for limit, text in pairs({rate = 'Custom: rate limited for now', daily = 'Custom: free daily limit reached', invalid = 'Custom: key not accepted', model = 'Custom: model unavailable', credits = 'Custom: out of credits'}) do
     bridge('limit-' .. limit, {provider = 'custom', effective = 'custom', limit = limit})
     assert(lastParagraph(row('conversationProvider').description) == text, limit .. ': ' .. lastParagraph(row('conversationProvider').description))
     assert(manager.mistral().provider == 'custom' and manager.mistral().effective == 'custom' and manager.mistral().limit == limit)
@@ -898,7 +947,7 @@ test('the provider row ends with the note of the custom provider: its limits, wa
   -- Custom answering with no problem needs no note; a limit that is not Custom's own says nothing either.
   bridge('fine', {provider = 'custom', effective = 'custom'})
   assert(row('conversationProvider').description == base)
-  for _, limit in ipairs({'daily', 'sometimes', 7}) do
+  for _, limit in ipairs({'sometimes', 7}) do
     bridge('odd-' .. tostring(limit), {provider = 'custom', effective = 'custom', limit = limit})
     assert(row('conversationProvider').description == base, tostring(limit))
   end

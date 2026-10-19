@@ -987,4 +987,9 @@ return {
     ["This address is not encrypted, which is fine on your own computer or home network."] = "Ця адреса не шифрується, але на твоєму комп’ютері чи в домашній мережі це нормально.",
     ["Use the base URL only: no password, query or #."] = "Вказуй лише базовий URL: без пароля, параметрів запиту та #.",
     ["Waiting for the endpoint to answer…"] = "Очікування відповіді ендпоінта…",
+    ["Custom: free daily limit reached"] = "Власний: денний безкоштовний ліміт вичерпано",
+    ["New address saved. Paste your API key again for it."] = "Нову адресу збережено. Встав для неї API-ключ ще раз.",
+    ["The free daily limit for this model was reached. It resets at {time}."] = "Денний безкоштовний ліміт для цієї моделі вичерпано. Скинеться о {time}.",
+    ["The free daily limit for this model was reached. Try again after it resets."] = "Денний безкоштовний ліміт для цієї моделі вичерпано. Спробуй знову після скидання.",
+    ["This model spends its reply on thinking. Choose a non-reasoning model in Settings."] = "Ця модель думає замість відповіді. Обери в Налаштуваннях модель без міркувань.",
 }
