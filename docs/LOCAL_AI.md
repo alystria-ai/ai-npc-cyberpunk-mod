@@ -427,7 +427,7 @@ build, so it is not used. A fuller prompt costs prefill time, not memory: a 15,7
 when a key is saved (`TextProviderHost#candidates`). The turn's reply is the cloud
 provider's, and `MistralProvider.noteLocalTurnFallback()` queues the `local-turn-fallback` notice (sent as `keyNotice` on that reply; the
 game shows it at most every ten minutes). With no cloud provider the turn fails with the game code `local-failed` (`errorCodeFor`), shown
-as "Local AI could not answer that. Try again in a moment." (the phone shows the same words). Automatic reactions show neither notice.
+as "Local AI could not answer that. Try again in a moment." (the phone shows the same words; the game's notice adds the reason in brackets, see "When a local turn fails"). Automatic reactions show neither notice.
 A server that could not start keeps its own path (`local-fallback`, see "Provider state"). Both notices are in `docs/NOTIFICATIONS.md`; the
 strings are in the 15 locale files and `localization/en.json`.
 
@@ -503,7 +503,7 @@ reader is to read through the native core.
 setting), `requested` and `applied`; a switch happens only at an idle boundary. `local` is requested while it works; after
 `noteLocalFailure(reason)` it is Mistral when a key exists, else Convai, until the setting is chosen again. The status file
 `runtime/mistral-state.json` carries `localAi`: `ready | warming | not-installed | no-memory | failed`, `localReason` (only `mature-off`, beside `failed`: only Mature models are usable while Mature content is off, so the model row says to turn it on), and `localModels`:
-`[{id, name, sizeMiB}]`, the installed chat models for the model row (names and sizes, never paths).
+`[{id, name, sizeMiB}]`, the installed chat models for the model row (names and sizes, never paths), and `localDiagnostics` (what the server loaded and how its last turns went, for the support report only; see "When a local turn fails").
 
 ### Model choice (developers)
 
@@ -858,7 +858,8 @@ through a real model (see "The guard against real models"). Prompts only; no mod
 routes, the prompt layout and the memory store (with a fake embedder). No test starts a real model. The fake server reports `/props`, counts
 `/tokenize` and refuses an over-long prompt with the real 400 body (`FAKE_LLAMA_CTX`, `FAKE_LLAMA_CHARS_PER_TOKEN`).
 `bridge/prompt-budget.test.mjs` covers the trimming and `bridge/local-context.test.mjs` the supervisor's context, the fitted turn, the cloud
-fallback and its notice. `bridge/local-model-choice.test.mjs` covers the model choice (with and without the Mature pack, Mature content on
+fallback and its notice. `bridge/local-turn-diagnostics.test.mjs` covers a stalled turn (the reasons, the budget, the model still loading, thinking only),
+the diagnostics, the log lines, the device pick and the game's notice. `bridge/local-model-choice.test.mjs` covers the model choice (with and without the Mature pack, Mature content on
 and off, a pin, a missing pin, the low-memory fallback) and `bridge/local-llm-server.test.mjs` the loaded model, the fallback event and the
 idle reload. `bridge/external-endpoint.test.mjs` covers a server the player runs, against a fake OpenAI-compatible server on localhost: the address rules, detection with and
 without a pack, the choice, the one look at the server and its context, the fallback, a streamed reply through `TextProviderHost`, the key staying out of logs, status, lists, errors and
