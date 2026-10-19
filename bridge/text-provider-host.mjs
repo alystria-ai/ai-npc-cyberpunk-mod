@@ -17,6 +17,7 @@ import {hasEmotionTag} from './emotion-tags.mjs';
 import {stripSpeechTags} from './natural-speech.mjs';
 import {ReplyStream} from './reply-stream.mjs';
 import {markStage} from './turn-clock.mjs';
+import {survivingLoss} from './local-server-recovery.mjs';
 import {budgetedChat, PrefillMeter, TokenMeter, templateTokens, describeFit} from './prompt-budget.mjs';
 import {MatureGuard, refusalLog} from './mature-guard.mjs';
 import {allowanceFor} from './mature-content.mjs';
@@ -174,7 +175,7 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
   // smaller prompt than the context allows (PrefillMeter in bridge/prompt-budget.mjs).
   const speeds = new Map();
   let lastSpeed = null;
-  chat = budgetedChat(chat, {
+  chat = budgetedChat(survivingLoss(chat, {server, log}), {
     budget: async options => {
       const handle = await server.ensure({signal: options?.signal});
       if (!(handle?.contextSize > 0)) return null;

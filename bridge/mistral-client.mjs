@@ -326,6 +326,7 @@ function plainFailureDetail(error) {
     case 'thinking-only': return head + 'the model wrote only thinking and no reply';
     case 'stalled': return head + `the reply stopped after ${trace?.pieces ?? 0} pieces${after}`;
     case 'loading': return `the model was still loading${after} (a first start compiles shaders for a minute or two)`;
+    case 'restarting': return `the model server stopped working and was still starting again${after}`;
     default: break;
   }
   if (error.overflow) return `the prompt (${error.overflow.promptTokens ?? '?'} tokens) does not fit the model's context (${error.overflow.contextTokens ?? '?'})`;

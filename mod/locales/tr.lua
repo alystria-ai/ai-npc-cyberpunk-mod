@@ -1083,7 +1083,7 @@ return {
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI"] = "Yoldaş Yöneticisi için Mod Configuration Menu 0.10.5 veya üstü ya da Native Settings UI gerekli",
     ["Update Mod Configuration Menu to 0.10.5 or newer, or install Native Settings UI"] = "Mod Configuration Menu’yu 0.10.5 veya üstüne güncelle ya da Native Settings UI’yi kur",
     ["Stand up to open the Companion Manager"] = "Yoldaş Yöneticisi’ni açmak için ayağa kalk",
-    ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game."] = "Yoldaş Yöneticisi için Mod Configuration Menu 0.10.5 veya üstü ya da Native Settings UI 1.96 veya üstü gerekli. Birini Nexus Mods’tan kur, ardından oyunu yeniden başlat.",
+    ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Either one is enough. Install one from Nexus Mods, then restart the game."] = "Yoldaş Yöneticisi için Mod Configuration Menu 0.10.5 veya üstü ya da Native Settings UI 1.96 veya üstü gerekli. İkisinden biri yeterli. Birini Nexus Mods’tan kur, ardından oyunu yeniden başlat.",
     ["Mod Configuration Menu is too old. Update it to 0.10.5 or newer, or install Native Settings UI, then restart the game."] = "Mod Configuration Menu çok eski. 0.10.5 veya üstüne güncelle ya da Native Settings UI’yi kur, ardından oyunu yeniden başlat.",
     ["Previous page"] = "Önceki sayfa",
     ["Next page"] = "Sonraki sayfa",
@@ -1094,4 +1094,6 @@ return {
     ["Voxtral (recommended)"] = "Voxtral (önerilen)",
     ["Defaults"] = "Varsayılan",
     ["Press Confirm to put every setting back to its default."] = "Her ayarı varsayılanına döndürmek için Onayla düğmesine basın.",
+    ["Local AI stopped working and was restarted."] = "Local AI çalışmayı durdurdu ve yeniden başlatıldı.",
+    ["TweakXL is missing. Install TweakXL from Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game."] = "TweakXL eksik. Nexus Mods’tan TweakXL’i kur (nexusmods.com/cyberpunk2077/mods/4197), Cyberpunk 2077 klasörüne çıkar ve oyunu yeniden başlat.",
 }

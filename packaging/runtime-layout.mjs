@@ -82,6 +82,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/local-llm-server.mjs',
   'bridge/local-model-choice.mjs',
   'bridge/local-pcm-host.mjs',
+  'bridge/local-server-recovery.mjs',
   'bridge/local-stt-capture.mjs',
   'bridge/local-stt.mjs',
   'bridge/loot-context.mjs',

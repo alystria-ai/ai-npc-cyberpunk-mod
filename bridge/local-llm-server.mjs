@@ -51,7 +51,25 @@ export class LocalAiUnavailable extends Error {
     this.name = 'LocalAiUnavailable';
     this.code = 'local-unavailable';
     this.reason = reason;
+    this.detail = detail;
   }
+}
+
+// Why Local AI cannot be used, in one plain English phrase the game shows after its own sentence (docs/NOTIFICATIONS.md, local-unavailable): short,
+// printable ASCII, no path and no key. `detail` is the start's own word ('exited', 'timeout', ...), when it has one.
+const PLAYER_REASON = Object.freeze({
+  'not-installed': 'the Local AI pack is not installed',
+  'low-memory': 'there is not enough free graphics memory',
+  'mature-off': 'only Mature models are installed and Mature content is off',
+  'no-gpu': 'no discrete graphics card was found',
+  'start-failed': 'the model server did not start',
+  crashed: 'the model server stopped working and did not start again',
+});
+export function unavailableDetail(reason, detail) {
+  const text = PLAYER_REASON[reason];
+  if (!text) return undefined;
+  const word = typeof detail === 'string' && /^[a-z][a-z-]{1,24}$/.test(detail) ? detail : null;
+  return word && (reason === 'start-failed' || reason === 'crashed') ? `${text} (${word})` : text;
 }
 
 export const LOCAL_LLM_LIMITS = Object.freeze({
@@ -269,6 +287,10 @@ export class LlamaProcess extends EventEmitter {
   get alive() { return Boolean(this.#child) && !this.#exited; }
   get running() { return this.alive && this.#healthy; }
   get exited() { return this.#exited; }
+
+  // Does the child answer /health right now (one short request)? False when it never became healthy, has exited, or does not answer: a server
+  // that crashed can stay listed as running for a moment, because Windows keeps a crashed process around while it writes its crash report.
+  async answers() { return this.alive && this.#port ? this.#probe(this.#port) : false; }
 
   // Lowers the child below normal priority (best effort: a refusal leaves it at normal). True when it is lowered.
   lower() {
@@ -503,7 +525,12 @@ export class LocalLlmServer extends EventEmitter {
 
   #launch(recovering) {
     const promise = this.#bringUp(recovering).then(
-      handle => { if (this.#starting === promise) this.#starting = null; return handle; },
+      handle => {
+        if (this.#starting === promise) this.#starting = null;
+        // A server that stopped by itself and is running again: the host tells the player once (bridge/convai-bridge.mjs, 'local-restarted').
+        if (recovering) this.emit('restarted', this.status());
+        return handle;
+      },
       error => {
         if (this.#starting === promise) this.#starting = null;
         if (error instanceof LocalAiUnavailable && error.reason !== 'stopped') this.#fail(error.reason);
@@ -998,13 +1025,45 @@ export class LocalLlmServer extends EventEmitter {
     this.#lastExit = {code: code ?? null, signal: signal ?? null, at: new Date(this.now()).toISOString(), state: this.#state};
     // While starting or warming, #startOnce sees the death itself.
     if (this.#state !== 'ready') return;
+    this.#restartAfterLoss(proc, 'llama-server stopped unexpectedly (exit ' + (code ?? signal ?? '?') + ')', 'it stopped unexpectedly');
+  }
+
+  // Our own server is gone while the state still says ready: forget it, say why in the log, and start it again (up to maxRestarts attempts).
+  // Callers of ensure() wait for that start.
+  #restartAfterLoss(proc, line, why) {
     this.#proc = null; this.#info = null;
     this.#disarm();
-    this.log('[local] llama-server stopped unexpectedly (exit ' + (code ?? signal ?? '?') + ')');
-    this.#logTail(proc, 'it stopped unexpectedly');
+    this.log('[local] ' + line);
+    this.#logTail(proc, why);
     this.emit('diagnostics', this.diagnostics());
     this.#setState('starting');
     this.#launch(true);
+  }
+
+  /**
+   * A chat request to our own llama-server could not connect (or came back with a server fault) and the caller wants to know whether it is worth asking again.
+   * Looks at the server once: when it answers /health the failure was something else and this returns null. When it does not, the server is
+   * gone (a crash whose exit has not been reported yet is the usual case: Windows keeps a crashed process listed while it writes its report), so it is ended and
+   * started again here, once, unless the exit handler already did. Then waits for the start (`signal` bounds the wait) and returns the new handle
+   * {endpoint, apiKey, model, ...}: the old address and key died with the old process. Throws LocalAiUnavailable('crashed' ...) when it
+   * cannot be started again. A server the player runs is not ours to restart: null. Never called per frame: only after a failed request.
+   */
+  async recover({signal} = {}) {
+    signal?.throwIfAborted();
+    if (this.#info?.external) return null;
+    const proc = this.#proc;
+    if (this.#state === 'ready' && proc) {
+      if (await proc.answers()) return null;
+      // The exit event may be a moment away; the process may also be alive and deaf (its listening socket closed). Either way it is no use.
+      const gone = await proc.waitForExit(1500);
+      if (!gone && this.#state === 'ready' && this.#proc === proc) {
+        this.#lastExit = {code: null, signal: null, at: new Date(this.now()).toISOString(), state: this.#state};
+        this.#restartAfterLoss(proc, 'llama-server stopped answering (no answer on /health): ending it and starting it again', 'it stopped answering');
+        proc.stop().catch(() => {});
+      }
+    }
+    // Starting, warming, stopped or restarted just now: ensure() waits for the start (or begins one) and hands out the new address and key.
+    return this.ensure({signal});
   }
 
   // --- idle handling ------------------------------------------------------------------------------------------

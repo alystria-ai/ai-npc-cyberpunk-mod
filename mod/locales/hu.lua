@@ -1083,7 +1083,7 @@ return {
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI"] = "A Társkezelőnek a Mod Configuration Menu 0.10.5 vagy újabb, vagy a Native Settings UI kell",
     ["Update Mod Configuration Menu to 0.10.5 or newer, or install Native Settings UI"] = "Frissítsd a Mod Configuration Menu-t 0.10.5 vagy újabbra, vagy telepítsd a Native Settings UI-t",
     ["Stand up to open the Companion Manager"] = "Állj fel a Társkezelő megnyitásához",
-    ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game."] = "A Társkezelőnek a Mod Configuration Menu 0.10.5 vagy újabb, illetve a Native Settings UI 1.96 vagy újabb verziója kell. Telepítsd valamelyiket a Nexus Modsról, majd indítsd újra a játékot.",
+    ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Either one is enough. Install one from Nexus Mods, then restart the game."] = "A Társkezelőnek a Mod Configuration Menu 0.10.5 vagy újabb, illetve a Native Settings UI 1.96 vagy újabb verziója kell. Bármelyik elég. Telepítsd valamelyiket a Nexus Modsról, majd indítsd újra a játékot.",
     ["Mod Configuration Menu is too old. Update it to 0.10.5 or newer, or install Native Settings UI, then restart the game."] = "A Mod Configuration Menu túl régi. Frissítsd 0.10.5 vagy újabb verzióra, vagy telepítsd a Native Settings UI-t, majd indítsd újra a játékot.",
     ["Previous page"] = "Előző oldal",
     ["Next page"] = "Következő oldal",
@@ -1094,4 +1094,6 @@ return {
     ["Voxtral (recommended)"] = "Voxtral (ajánlott)",
     ["Defaults"] = "Gyári",
     ["Press Confirm to put every setting back to its default."] = "Nyomd meg a Megerősítés gombot, hogy minden beállítás visszakerüljön az alapértelmezett értékére.",
+    ["Local AI stopped working and was restarted."] = "A Local AI leállt, és újra lett indítva.",
+    ["TweakXL is missing. Install TweakXL from Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game."] = "Hiányzik a TweakXL. Telepítsd a TweakXL-t a Nexus Modsról (nexusmods.com/cyberpunk2077/mods/4197), bontsd ki a Cyberpunk 2077 mappába, majd indítsd újra a játékot.",
 }

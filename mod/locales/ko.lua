@@ -1083,7 +1083,7 @@ return {
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI"] = "동료 관리에는 Mod Configuration Menu 0.10.5 이상 또는 Native Settings UI가 필요합니다",
     ["Update Mod Configuration Menu to 0.10.5 or newer, or install Native Settings UI"] = "Mod Configuration Menu를 0.10.5 이상으로 업데이트하거나 Native Settings UI를 설치하세요",
     ["Stand up to open the Companion Manager"] = "동료 관리를 열려면 일어서세요",
-    ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game."] = "동료 관리에는 Mod Configuration Menu 0.10.5 이상 또는 Native Settings UI 1.96 이상이 필요합니다. 둘 중 하나를 Nexus Mods에서 설치한 후 게임을 다시 시작하세요.",
+    ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Either one is enough. Install one from Nexus Mods, then restart the game."] = "동료 관리에는 Mod Configuration Menu 0.10.5 이상 또는 Native Settings UI 1.96 이상이 필요합니다. 둘 중 하나면 충분합니다. 둘 중 하나를 Nexus Mods에서 설치한 후 게임을 다시 시작하세요.",
     ["Mod Configuration Menu is too old. Update it to 0.10.5 or newer, or install Native Settings UI, then restart the game."] = "Mod Configuration Menu가 너무 오래되었습니다. 0.10.5 이상으로 업데이트하거나 Native Settings UI를 설치한 후 게임을 다시 시작하세요.",
     ["Previous page"] = "이전 페이지",
     ["Next page"] = "다음 페이지",
@@ -1094,4 +1094,6 @@ return {
     ["Voxtral (recommended)"] = "Voxtral (권장)",
     ["Defaults"] = "기본값",
     ["Press Confirm to put every setting back to its default."] = "확인을 누르면 모든 설정이 기본값으로 돌아갑니다.",
+    ["Local AI stopped working and was restarted."] = "Local AI가 작동을 멈춰서 다시 시작되었습니다.",
+    ["TweakXL is missing. Install TweakXL from Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game."] = "TweakXL 없음. Nexus Mods에서 TweakXL을 설치하고(nexusmods.com/cyberpunk2077/mods/4197), Cyberpunk 2077 폴더에 압축을 푼 후 게임을 다시 시작하세요.",
 }

@@ -83,6 +83,29 @@ test('the first-load setup check gives the versions and check lines, and an even
   assert.deepEqual(quiet.events, []);
 });
 
+test('a report says which host of the Companion Manager the player had: the nsui line and the Mod Configuration Menu version', () => {
+  const text = (nsui, problems = '') => run(`
+    local checks = {cet = {state = 'ok', code = 'found', version = 'v1.35.0'}, nsui = ${nsui}}
+    assert(M.noteSetup({${problems}}, checks) == true)
+    return file()`);
+  // Neither host: the problem is an event, and the line shows it was neither (a report of 0.2.2 had no line and no way to tell).
+  const none = parseGameEvents(text("{state = 'problem', code = 'missing'}", "'nsui'"));
+  assert.ok(none.game.setup.includes('nsui: problem missing'), none.game.setup.join('|'));
+  assert.deepEqual(none.events.map(row => row.message), ['nsui missing']);
+  assert.equal(none.game.mcm, undefined);
+  // Mod Configuration Menu 0.10.5 or newer works: no event, and its version is in the report.
+  const mcm = parseGameEvents(text("{state = 'ok', code = 'mcm', version = '0.10.5'}"));
+  assert.ok(mcm.game.setup.includes('nsui: ok mcm 0.10.5'), mcm.game.setup.join('|'));
+  assert.equal(mcm.game.mcm, '0.10.5');
+  assert.deepEqual(mcm.events, [], 'with Mod Configuration Menu the manager works: nothing is reported');
+  const old = parseGameEvents(text("{state = 'problem', code = 'mcm-old', version = '0.9.1'}", "'nsui'"));
+  assert.equal(old.game.mcm, '0.9.1');
+  assert.deepEqual(old.events.map(row => row.message), ['nsui mcm-old']);
+  const native = parseGameEvents(text("{state = 'ok', code = 'found', version = '1.96'}"));
+  assert.ok(native.game.setup.includes('nsui: ok found 1.96'));
+  assert.equal(native.game.mcm, undefined);
+});
+
 test('the one-time notice waits for gameplay and 40 s, shows once, is remembered, and never shows with the setting off', () => {
   const shown = run(`
     assert(M.tick(false) == nil)

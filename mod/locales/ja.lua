@@ -1083,7 +1083,7 @@ return {
     ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI"] = "コンパニオン管理には Mod Configuration Menu 0.10.5 以降、または Native Settings UI が必要です",
     ["Update Mod Configuration Menu to 0.10.5 or newer, or install Native Settings UI"] = "Mod Configuration Menu を 0.10.5 以降に更新するか、Native Settings UI を導入してください",
     ["Stand up to open the Companion Manager"] = "コンパニオン管理を開くには立ち上がってください",
-    ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game."] = "コンパニオン管理には Mod Configuration Menu 0.10.5 以降、または Native Settings UI 1.96 以降が必要です。どちらかを Nexus Mods からインストールし、ゲームを再起動してください。",
+    ["The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Either one is enough. Install one from Nexus Mods, then restart the game."] = "コンパニオン管理には Mod Configuration Menu 0.10.5 以降、または Native Settings UI 1.96 以降が必要です。どちらか一方で十分です。どちらかを Nexus Mods からインストールし、ゲームを再起動してください。",
     ["Mod Configuration Menu is too old. Update it to 0.10.5 or newer, or install Native Settings UI, then restart the game."] = "Mod Configuration Menu が古すぎます。0.10.5 以降に更新するか、Native Settings UI をインストールしてから、ゲームを再起動してください。",
     ["Previous page"] = "前のページ",
     ["Next page"] = "次のページ",
@@ -1094,4 +1094,6 @@ return {
     ["Voxtral (recommended)"] = "Voxtral（推奨）",
     ["Defaults"] = "初期設定",
     ["Press Confirm to put every setting back to its default."] = "「確認」を押すと、すべての設定が初期設定に戻ります。",
+    ["Local AI stopped working and was restarted."] = "Local AI が動作しなくなったため、再起動しました。",
+    ["TweakXL is missing. Install TweakXL from Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game."] = "TweakXL がありません。Nexus Mods から TweakXL をインストール（nexusmods.com/cyberpunk2077/mods/4197）し、Cyberpunk 2077 フォルダーに展開してから、ゲームを再起動してください。",
 }

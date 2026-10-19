@@ -69,6 +69,7 @@ M.catalog = {
     ['local-fallback'] = {class = PLAYER, repeatS = 86400}, -- Local AI is chosen but could not start, so Convai is used: once per game session
     ['local-failed'] = {class = PLAYER, repeatS = 30},      -- a local turn could not be answered and no cloud provider took it over: say so on every attempt, not more than twice a minute
     ['local-turn-fallback'] = {class = PLAYER, repeatS = 600}, -- a local turn was answered by the cloud provider instead: about once per ten minutes
+    ['local-restarted'] = {class = PLAYER, repeatS = 300},   -- the Local AI model server stopped by itself and was started again: about once per five minutes
     ['local-model-fallback'] = {class = PLAYER, repeatS = 60},    -- the Local AI model the player chose is missing, does not fit or did not start, so the largest model that fits was used (the bridge sends it once per choice)
     ['browser-failed'] = {class = PLAYER, repeatS = 60},    -- the browser for the conversation page was found but would not start (or there is none): says which and why, at most once a minute
     ['local-unavailable'] = {class = PLAYER, repeatS = 30}, -- Local AI is chosen, could not start and nobody took the turn over (no Mistral key, Convai's free day used up): every attempt, at most twice a minute

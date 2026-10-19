@@ -59,6 +59,9 @@ local AUDIOWARE_CONSOLE = 'AI NPC Cyberpunk Mod: Audioware is missing. Install A
     .. '(https://www.nexusmods.com/cyberpunk2077/mods/12001), extract it into the Cyberpunk 2077 folder, then restart the game.'
 local AUDIOWARE_UNBUILT_CONSOLE = 'AI NPC Cyberpunk Mod: Audioware is installed, but this mod\'s scripts were built without it. '
     .. 'Update Audioware to ' .. AUDIOWARE_MIN .. ' or newer from Nexus Mods (https://www.nexusmods.com/cyberpunk2077/mods/12001), then restart the game.'
+-- TweakXL: the player is told where it comes from and where it goes (report of 0.2.2: a player had none and installed it within minutes of the notice).
+local TWEAKXL_CONSOLE = 'AI NPC Cyberpunk Mod: TweakXL is missing. Install TweakXL from Nexus Mods (https://www.nexusmods.com/cyberpunk2077/mods/4197), '
+    .. 'extract it into the Cyberpunk 2077 folder, then restart the game.'
 -- The first-load lines for the CET console and probe.log, in English like the one above (a report is read in English).
 local SCRIPTS_CONSOLE = 'AI NPC Cyberpunk Mod: this mod\'s scripts did not load. Open r6/logs/redscript_rCURRENT.log. '
     .. 'If the error names another mod, that mod is the problem. '
@@ -433,7 +436,10 @@ local function gameLine(id, check)
     end
     if id == 'nsui' then
         -- Missing, or a Native Settings UI that is too old: Mod Configuration Menu first, Native Settings UI as the alternative.
-        return line(id, label, 'problem', ui.t('The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game.'))
+        return line(id, label, 'problem', ui.t('The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Either one is enough. Install one from Nexus Mods, then restart the game.'))
+    end
+    if id == 'tweakxl' then
+        return line(id, label, 'problem', ui.t('TweakXL is missing. Install TweakXL from Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game.'))
     end
     if id == 'codeware' and check.code == 'old' then return line(id, label, 'problem', ui.t('Codeware is too old. Update it from Nexus Mods, then restart the game.')) end
     if id == 'audioware' and check.code == 'unbuilt' then
@@ -673,6 +679,7 @@ local function firstLoad()
         elseif id == 'nsui' then say(check and check.code == 'mcm-old' and MCM_OLD_CONSOLE or NSUI_CONSOLE)
         elseif id == 'codeware' and check and check.code == 'old' then say(OLD_CONSOLE)
         elseif id == 'audioware' then say(check and check.code == 'unbuilt' and AUDIOWARE_UNBUILT_CONSOLE or AUDIOWARE_CONSOLE)
+        elseif id == 'tweakxl' then say(TWEAKXL_CONSOLE)
         elseif REQUIREMENT_IDS[id] then
             say('AI NPC Cyberpunk Mod: ' .. (PRODUCT[id] or id) .. ' is missing. Install it from Nexus Mods, then restart the game.')
         end

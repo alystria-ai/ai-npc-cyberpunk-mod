@@ -17,7 +17,8 @@ local MAX_EVENTS = 10                 -- kept in the file, newest last
 local MAX_PER_SESSION = 10            -- recorded in one game session
 local KEEP_S = 7 * 24 * 3600          -- an event older than a week is dropped from the file
 local NOTICE_DELAY_S = 40             -- after the world is ready: after the setup check's own first-load notice
-local GAME_IDS = {'service', 'files', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'tweakxl', 'audioware', 'mcm'}
+-- 'nsui' is the check of the Companion Manager's host (Mod Configuration Menu or Native Settings UI, setup-check.lua): its code says which one answered.
+local GAME_IDS = {'service', 'files', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'tweakxl', 'audioware', 'nsui'}
 
 local manager
 local recorded, count = {}, 0
@@ -99,12 +100,17 @@ function M.noteSetup(problems, checks)
     local function version(id) local check = checks[id]; return type(check) == 'table' and plain(check.version, 40) or nil end
     info.game, info.cet, info.codeware, info.audioware, info.tweakxl = version('game'), version('cet'), version('codeware'), version('audioware'), version('tweakxl')
     info.scripts = version('files')
+    -- The version of Mod Configuration Menu when it is the manager's host (or is there and too old): a report of 0.2.2 said "nsui missing" and nothing showed
+    -- which of the two hosts the player had, because this key was never filled and the check was not in the lines below.
+    local host = checks.nsui
+    info.mcm = type(host) == 'table' and (host.code == 'mcm' or host.code == 'mcm-old') and plain(host.version, 40) or nil
     local redscript = checks.redscript
     info.redscript = type(redscript) == 'table' and plain(redscript.code, 20) or nil
     for _, id in ipairs(GAME_IDS) do
         local check = checks[id]
         if type(check) == 'table' then
             lines[#lines + 1] = id .. ': ' .. (plain(check.state, 20) or '?') .. ' ' .. (plain(check.code, 40) or '?')
+                .. (id == 'nsui' and plain(check.version, 40) and (' ' .. plain(check.version, 40)) or '')
         end
     end
     info.setup = lines

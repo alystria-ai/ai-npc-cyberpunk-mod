@@ -58,7 +58,7 @@ test('each missing framework is a Problem with its own fix, and the most fundame
   env.codeware, env.tweakxl, env.audioware, env.scripts = '1.20.5', nil, '1.9.9', true
   applyEnv(); check.run()
   assert(table.concat(check.problems(), ',') == 'tweakxl')
-  assert(lineOf('tweakxl').description == 'TweakXL is missing. Install it from Nexus Mods, then restart the game.')
+  assert(lineOf('tweakxl').description == 'TweakXL is missing. Install TweakXL from Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game.')
   assert(lineOf('codeware').state == 'ok' and lineOf('red4ext').state == 'ok')
   -- scripts of 0.2.1 and older (no ConvaiRequirements) imported Codeware and Audioware: loaded, they imply both, even when the probes fail
   env.codeware, env.tweakxl, env.audioware = nil, '1.11.4', nil
@@ -87,11 +87,11 @@ test('the Companion Manager host: Mod Configuration Menu 0.10.5 or newer, or Nat
   assert(lineOf('nsui').state == 'ok')
   env.nsui = 'old'; applyEnv(); check.run()
   assert(lineOf('nsui').state == 'problem' and table.concat(check.problems(), ',') == 'nsui')
-  assert(lineOf('nsui').description == 'The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game.')
+  assert(lineOf('nsui').description == 'The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Either one is enough. Install one from Nexus Mods, then restart the game.')
   local old = table.concat(check.reportLines(), '\n')
   assert(old:find('nsui: problem old', 1, true), old)
   env.nsui = 'none'; applyEnv(); check.run()
-  assert(lineOf('nsui').description == 'The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Install one from Nexus Mods, then restart the game.')
+  assert(lineOf('nsui').description == 'The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Either one is enough. Install one from Nexus Mods, then restart the game.')
   assert(table.concat(check.reportLines(), '\n'):find('nsui: problem missing', 1, true))
   -- Mod Configuration Menu 0.10.5 is the default host: it meets the requirement alone, and its line names it with its version.
   env.nsui, env.mcm = 'none', 'ok'; applyEnv(); check.run()
@@ -414,7 +414,7 @@ test('the first load announces one problem: the most fundamental, in the fixed o
   local notice = check.tick(true, true)
   assert(notice == 'TweakXL is missing. Install it from Nexus Mods, then restart the game.', tostring(notice))
   -- the console says each of them once, in English: the missing requirement and Native Settings UI
-  assert(#console == 2 and console[1] == '[AiNpcCyberpunkMod] AI NPC Cyberpunk Mod: TweakXL is missing. Install it from Nexus Mods, then restart the game.', console[1])
+  assert(#console == 2 and console[1] == '[AiNpcCyberpunkMod] AI NPC Cyberpunk Mod: TweakXL is missing. Install TweakXL from Nexus Mods (https://www.nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game.', console[1])
   assert(console[2]:find('neither was found', 1, true))
   assert(table.concat(check.problems(), ',') == 'tweakxl,nsui', table.concat(check.problems(), ','))
 `));
