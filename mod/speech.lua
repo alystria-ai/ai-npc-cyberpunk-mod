@@ -82,9 +82,11 @@ local CAPTION_HOLD, PHRASE_HOLD = .6, 3
 local function null(value)
     return value == nil or (json.null ~= nil and value == json.null)
 end
+-- object:method() for a method without arguments, inside the caller's pcall: no closure per call.
+local function invoke(object, method) return object[method](object) end
 local function voiceEnabled(player)
     if not player then return false end
-    local ok, enabled = pcall(function() return player:ConvaiManagerVoice() end)
+    local ok, enabled = pcall(invoke, player, 'ConvaiManagerVoice')
     return not ok or enabled
 end
 -- Whether this mod's scripts were compiled without Audioware (Speech.reds then has stand-ins that never start a voice). The setup check
@@ -546,10 +548,11 @@ local function advanceStream()
     end
 end
 
-local function syncUtterance(position)
+-- player: the V of this frame (nil asks the game).
+local function syncUtterance(position, player)
     local s = M.stream or M.continuousCaptions
     s.position = math.max(s.position or 0, position)
-    if M.captionHidden or not captions.enabled() then return end
+    if M.captionHidden or not captions.enabled(player) then return end
     -- Continuous speech carries audio-aligned cues (bridge/caption-cues.mjs);
     -- a new cue revision re-times the pages without redisplaying them.
     local cues = M.continuousCaptions == s and s.cues or nil
@@ -609,7 +612,7 @@ local function updateContinuous(delta, player, paused)
         M.continuousFaceState = state.state
         M.continuousHeardAll = state.complete == true and state.textComplete == true and state.bufferedDuration > 0
             and state.position >= state.bufferedDuration - .3
-        if state.position > 0 then syncUtterance(state.position) end
+        if state.position > 0 then syncUtterance(state.position, player) end
         if state.ended then
             -- EOF alone cannot confirm delivery: the renderer must have drained
             -- the one audio queue and reported the heard device cursor as well.
@@ -661,15 +664,20 @@ local function retryFace(delta)
     end
 end
 
-local function updateSpeech(delta)
+local function updateSpeech(delta, framePlayer)
+    -- V is taken only on a frame that needs V: the 2 s heartbeat, or a reply in progress. init.lua passes the V it fetched for
+    -- this frame (the session check), so those frames ask the game for nobody; a caller without it (a test) asks once. A quiet
+    -- frame makes no native call (each Game.GetPlayer() through CET costs the game thread and leaves one more handle for the
+    -- collector).
+    local player = framePlayer
     M.heartbeat = M.heartbeat + delta
     -- speech-state.json lease: the bridge keeps it 5 s. Written in a frame no other heartbeat writes in.
     local slot = M.heartbeat >= 2 and convaiHeartbeatSlot
     local beat = M.heartbeat >= 2 and (type(slot) ~= 'function' or slot())
-    -- Nothing is playing and no heartbeat is due (nearly every frame): no game call at all. The player is fetched only when it is used.
+    -- Nothing is playing and no heartbeat is due (nearly every frame): no game call at all.
     if not beat and not M.requestId then return end
-    local player = Game.GetPlayer()
     if beat then
+        player = player or Game.GetPlayer()
         M.heartbeat = 0
         continuousAdapter()
         -- Audio the game cannot play is not offered: the service reads this flag (speech-state.json) to decide whether to make it.
@@ -679,6 +687,7 @@ local function updateSpeech(delta)
         publish()
     end
     if not M.requestId then return end
+    player = player or Game.GetPlayer()
     if not player or tostring(player:GetEntityID().hash) ~= M.playerID then M.abandon(); return end
     if not M.actor:IsAttached() or (not M.voiceOnly and M.actor:IsDeadNoStatPool()) then M.stop('target-lost'); return end
     -- The same test while a named character's reply is heard (about twice a second, held inside the guard): a scene, a fight or
@@ -688,8 +697,16 @@ local function updateSpeech(delta)
     if not voiceEnabled(player) then
         fallback('muted', M.text); return
     end
-    local defs = Game.GetAllBlackboardDefs()
-    local paused = pausedFor(M.requestId, Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu))
+    -- UI_System.IsInMenu: init.lua's reader keeps the blackboard definition and its id (three native calls a frame, not seven);
+    -- without it (a test) the definitions are read as before.
+    local inMenu
+    local menuFlag = convaiInMenu
+    if type(menuFlag) == 'function' then inMenu = menuFlag()
+    else
+        local defs = Game.GetAllBlackboardDefs()
+        inMenu = Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu)
+    end
+    local paused = pausedFor(M.requestId, inMenu)
     if paused ~= M.paused then
         if not M.continuous then M.player:ConvaiSpeechPause(paused) end
         M.paused = paused; publish()
@@ -709,7 +726,7 @@ local function updateSpeech(delta)
         if M.state == 'buffering' then
             s.wait = s.wait + delta
             if s.version == 2 and s.wait > .2 then face.stop(M.actor, 'buffering') end
-            if s.version == 2 then syncUtterance(s.position) end
+            if s.version == 2 then syncUtterance(s.position, player) end
             advanceStream()
             if M.state ~= 'buffering' then return end
             if s.wait > 45 then
@@ -741,10 +758,10 @@ local function updateSpeech(delta)
     if M.state == 'playing' and pos >= 0 then
         -- The face and subtitles follow the heard cursor (Lip sync delay setting).
         local heard = math.max(0, pos - (M.outputDelay or 0))
-        if s and s.version == 2 then syncUtterance(s.chunkStart + heard)
+        if s and s.version == 2 then syncUtterance(s.chunkStart + heard, player)
         else
             if not M.captionHidden then
-                if captions.enabled() and not captions.timed then captions.beginTimed(M.speaker, M.chunkText, M.duration, M.actor, M.context.entity) end
+                if captions.enabled(player) and not captions.timed then captions.beginTimed(M.speaker, M.chunkText, M.duration, M.actor, M.context.entity) end
                 captions.syncTimed(heard)
             end
         end
@@ -779,9 +796,9 @@ end
 -- init supplies current actor rows for this frame only. The speech cursor and
 -- feature interpolation above keep their accepted timing; idle actors use the
 -- same final writer after the current speaker has had its one write.
-function M.update(delta,expressionContext)
+function M.update(delta,expressionContext,framePlayer)
     if face.beginExpressionFrame then face.beginExpressionFrame(delta,expressionContext) end
-    updateSpeech(delta)
+    updateSpeech(delta,framePlayer)
     if face.updateExpressions then face.updateExpressions(expressionContext) end
 end
 

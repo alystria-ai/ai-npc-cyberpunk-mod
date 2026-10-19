@@ -27,15 +27,16 @@ std::string ToString(const RED4ext::CString& aText)
 std::string StatusJson()
 {
     const FileIoStats io = GlobalFileIo().Stats();
-    char ioJson[768];
+    char ioJson[896];
     std::snprintf(ioJson, sizeof(ioJson),
                   "{\"running\":%s,\"writes\":%llu,\"skippedIdentical\":%llu,\"coalesced\":%llu,\"fallbacks\":%llu,"
                   "\"failures\":%llu,\"removes\":%llu,\"renames\":%llu,\"appendFlushes\":%llu,\"polls\":%llu,"
                   "\"reads\":%llu,\"publishes\":%llu,\"jsonRejected\":%llu,\"mainThreadReads\":%llu,"
-                  "\"maxOpMicros\":%llu,\"pending\":%llu}",
+                  "\"maxOpMicros\":%llu,\"pending\":%llu,\"watchEvents\":%llu,\"watchWakes\":%llu}",
                   GlobalFileIo().Running() ? "true" : "false", io.writes, io.writesSkippedIdentical,
                   io.writesCoalesced, io.writeFallbacks, io.writeFailures, io.removes, io.renames, io.appendsFlushed,
-                  io.polls, io.reads, io.publishes, io.jsonRejected, io.mainThreadReads, io.maxOpMicros, io.pending);
+                  io.polls, io.reads, io.publishes, io.jsonRejected, io.mainThreadReads, io.maxOpMicros, io.pending,
+                  io.watchEvents, io.watchWakes);
     std::string names = "[";
     for (const auto& system : systems::All())
     {

@@ -172,7 +172,7 @@ Item details (costs before the 2026-10-12 capture are the 2026-10-11 numbers):
 | 11 | `updateGaze` → `targetAtCrosshair` (`init.lua:1081`, `:896`) | 5 Hz | Estimated 1-5 ms/s, more in crowds. It runs a `GetTargetParts` scan within 8 m plus head-slot transforms even with no companion and auto-connect off. | **Lua:** skip when neither a companion nor auto-connect needs it; use cached positions for owned copies. |
 | 12 | Turn-time polls: `reply.json` at 10 Hz while a reply is pending (`init.lua:2556`, up to 90 s); `microphone-state.json` at 10 Hz while recording | 10 Hz during waits | About 30 ms/s while waiting | **Lua** 3-4 Hz (adds 0.1-0.25 s of reply latency), or the C++ reader. |
 | 13 | `log()` opens and closes `probe.log` for every line (`init.lua:625`) | Per log line | About 3 ms per line | **Lua:** buffer lines and append at most once a second, with a flush on shutdown. |
-| 14 | `gesture-catalog.lua` (35k lines) is loaded by separate `dofile`s in `companion-gestures.lua:47` and `companion-seating.lua:492`, plus the development probe | Load time | Two or three heap copies, so GC pressure | **Lua:** load once and share it. |
+| 14 | `gesture-catalog.lua` (35k lines) is loaded by separate `dofile`s in `companion-gestures.lua:47` and `companion-seating.lua:492`, plus the development probe | Load time | Two or three heap copies, so GC pressure | **Lua:** load once and share it. **Done 2026-10-19 (`20aa14fc`):** the gesture controller's copy is handed to seating and preferred by the holocall picture. Measured offline, one copy holds only about 1.1 MB of table data (6,811 tables), so the gain is load time and a few MB, not the large heap of section 10. |
 | 15 | init.lua's own work in `onUpdate` (the inline blocks between the wrapped calls) | Every frame and 10 Hz | **~34 ms/s**: `event:onUpdate` 179 minus its wrapped top-level sections (~145). Holds the nearby lease write and rename, the diagnostic mailbox poll, the focus, gaze and talk-target work | **Attribute first:** have the probe time the inline blocks (`perf-probe.watch` cannot reach them; split them into module functions or add labelled timers in Developer mode only). Then Lua fixes. **Done in part:** `convaiPerfMark` segments (`9057812`) give `init:session`, `init:knowledge`, `init:worldReady`, `init:ui`, `init:mcm`, `init:invitations`, `init:partyConnections`, `init:phone`, `init:expressionContext`, `init:speech`, `init:poll` per frame and `init:tick`, `init:group`, `init:battles`, `init:gaze`, `init:reply` at 10 Hz. A segment includes the wrapped sections it calls. The world check no longer repeats `IsAttached`, `IsPreGame` and `GetSystemRequestsHandler` (`4dcc8e4`, four native calls per frame). |
 | 16 | `relationshipState.update` (`relationship-state.lua`) | Every frame | 4.8 ms/s | **Lua:** gate the per-frame check; the 2 s write keeps its rename (the bridge acts on an empty read). |
 | 17 | `autoConnect.update`/`heartbeat` and `phoneChatStyle.refresh` | Every frame (heartbeat, style), 10 Hz (update) | 4.7 + 4.4 ms/s; the style refresh peaked at 63 ms in one frame | **Lua:** refresh the style only when the phone is shown or its inputs change. |
@@ -433,3 +433,54 @@ Notes:
 - Tests: `bridge/lua-idle-work.test.mjs` (log buffer, idle board, world answer, phone style, auto-connect), plus the
   subtitles and loot-observer tests. Live check: the first reply after a load still shows its overhead caption in the right
   place (the Overrides now register then), and `probe.log` still ends with the shutdown line after a CET reload.
+
+## 10. The fifth round, 2026-10-19 (`perf-study`; unit-tested, the native part built and tested locally, not installed or live)
+
+The 2026-10-19 capture (150 windows, 2026-10-18 21:57 to 22:02 UTC, one idle companion, 58.9 fps) put `event:onUpdate` at 38 ms/s (0.65 ms a frame, 3.8 % of the
+frame; 179 ms/s on 2026-10-12). The probe file is replaced at every session start, so copy it after each run. Findings: a native call through CET costs 25 to 30 µs
+here (`init:session`, five calls, is 8.25 ms/s); the stutters (27 frames over 40 ms in 300 s) are not in the mod's Lua (worst `onUpdate` in those windows 3 to 13 ms against frames of 41 to 109 ms);
+no `hook:` row appeared because no hook fired (idle companion, no crowd); the Lua heap was 145 to 243 MB in game against 33 to 43 MB at the menu and is not explained (attribute it with
+`collectgarbage(); print(collectgarbage('count'))` before and after clearing one structure at a time).
+
+| Change | Commit | Expected |
+| --- | --- | --- |
+| speech reads V only on the heartbeat frame or while a reply plays | `444d1a43` | one native call a frame at rest, about 1.5 ms/s |
+| subtitles hooks return before any native read while no caption of ours is up | `ddbf2a05` | a closure and two native calls per crowd chatter line event |
+| vanilla-reaction hooks idle again once every hold has run out | `78daabef` | no stimulus read or owner lookup per NPC event after a finished conversation |
+| onUpdate's session, pause, phone, composer and submission checks are named functions; the tick reuses the frame's V | `08f7f58f` | about 5 closures a frame and one native call at 10 Hz |
+| cloud voice uses the text routes' keep-alive pool and reads a finished stream to its end | `500c729d` | 40 to 97 ms (a new TLS connection to the provider, measured) off the first audio of each request that paid one |
+| native worker checks JSON before taking the mutex | `4998a36b` | game-thread `Revision()` stalls: about 70 calls over 1 ms and 7 to 8 ms worst, to 0 to 2 and 0.4 to 2.4 ms (twenty 2 MB documents) |
+| native directory watcher wakes the worker on a replaced file | `2a82b154` | bridge-to-game hop p50 15.2 to 0.6-1.2 ms, p95 30 to 10-13 ms (40 replaced files) |
+| speaking frames: V from init.lua, the cached menu flag, no closures in the setting reads | `d62d61ea` | about six native calls and three closures fewer a frame while a reply plays, about 9 ms/s |
+
+Left, with the reasons: the five-call session check every frame (about 3 ms/s if throttled, but a stale player handle after a load is what it guards against; needs a change event and a load test),
+the phone-open read (1.5 ms/s; a hook on the phone), the relationship facts read every 2 s (25 native calls in one frame), the 10 Hz tick (about 5 ms/s). Live plan: Developer-mode runs A to G
+(idle, crowd, walking, speaking, after a conversation, native status, voice latency) against the numbers above; the speaking windows (`speaking: true`) show the `speech.update` and `subtitles.update` gain,
+`hook:ReactionManagerComponent.*` should be near zero after a conversation, `ConvaiNative.Status()` shows `watchEvents`, and `bridge-latency.json` shows the voice's first PCM for the second request of a reply.
+
+## 11. Live-check steps for `perf-study` (round 5), 2026-10-19
+
+State: main (`7ec1232d`) merged into the branch, the native plugin rebuilt and tested headless, the suite green. Nothing here has run in the game.
+
+**Files that must reach the game for this test**
+- Every committed `mod/` file (the Lua and the `.json` data; never `mod/diagnostics.lua`), through the dev install (`scripts/development-files.json`). The round's Lua is in `init.lua`, `speech.lua`, `subtitles.lua`, `vanilla-reactions.lua`, `journal-history.lua`, `holocall.lua`, `knowledge-parts.lua` and `perf-probe.lua`.
+- The rebuilt plugin: `dist/native-core/CyberpunkConvaiNative.dll` (built by `scripts/Build-NativeCore.ps1`; not tracked in git) to `red4ext/plugins/AiNpcCyberpunkModNative/CyberpunkConvaiNative.dll`. The game must be closed while it is replaced.
+- `bridge/voxtral-voice.mjs` and `bridge/mistral-client.mjs` are read by the bridge from the repo it runs in: restart the bridge from a checkout that has this branch (kill `bridgePid` in `runtime/bridge-service.json`).
+- No archive, `.reds` or `runtime/native-off.txt` change. Keep the shipped `native-off.txt` (`actuator`, `vehicles`, `chauffeur`, `passage`, `faces`); the `io` system this round changes is on by default.
+
+**Fallbacks and switches (checked in the diff).** The native change is inside the `io` system's `FileIo`: a directory watcher thread (`ReadDirectoryChangesW`) that only wakes the worker earlier. When the watcher cannot start, the 15 ms polls run alone as before; a line `io` (or `all`) in `runtime/native-off.txt` still routes file IO back to Lua. No Lua file adds a native call: the Lua changes remove calls and closures from the frame and add no per-frame work (the new `convaiSessionReady`, `convaiWorldReady` and `convaiInvoke` are plain functions called where closures were built).
+
+**Steps** (Developer mode on in Settings; one companion summoned; copy `runtime/perf-probe.json` after each run, it keeps only the last 5 minutes and is replaced at each session start)
+1. Baseline first: install main's files and the old DLL, run steps 3 to 8 once, and keep the probe copies and FPS readings as "before". Then install this branch and repeat as "after". (Skip the baseline if the 2026-10-18 capture, `event:onUpdate` 38 ms/s, is the comparison.)
+2. Start the game with this branch installed. Open the CET console and run `print(ConvaiNative.Status())`. Check: `"running":true` in the io block and no `jsonRejected` growth at rest. Read `runtime/probe.log` for the plugin's load line and for any `MISMATCH`, `fault`, or `Lua path` line (there should be none new).
+3. Idle, 2 minutes, quiet place, companion standing by. Read FPS (Steam or the game's own counter) and the probe's `event:onUpdate` ms/s, `init:session` ms/s, `frameMaxMs` and `over25ms`. Expect `event:onUpdate` at or below 38 ms/s and `speech.update` about 1.5 ms/s lower than the 2026-10-18 capture.
+4. Crowded spot (Watson market, Afterlife street, 2 minutes standing, then 2 walking with the companion following). Record FPS before and after; any drop is a fail, even 2 to 3 FPS. In the probe: `hook:*` rows and `subtitles.update`. The crowd chatter line events should cost near nothing now (the hooks return before any native read while no caption of ours is up).
+5. Speaking: one conversation of three or four spoken replies. In the probe, the windows with `speaking: true`: `speech.update` and `subtitles.update` should be lower than on main (about 9 ms/s expected). Subtitles must still appear, overhead and in the HUD, and disappear when the reply ends. The pause behaviour must be unchanged: opening the menu mid-reply pauses speech, closing it resumes.
+6. After the conversation ends (wait 30 s): `hook:ReactionManagerComponent.*` should be near zero. NPCs near V must still react normally to a new conversation started afterwards (the hold is rebuilt on the next focus).
+7. Native hop: with the console open run `print(ConvaiNative.Status())` after the conversation. Check `watchEvents` above 0 and growing with traffic, `watchWakes` above 0, `failures` 0, `maxOpMicros` low. Latency: read `runtime/bridge-latency.json` for the same conversation and compare the bridge-to-game hop against main (expected p50 15 to about 1 ms, so each reply starts about 14 ms sooner and first audio no later).
+8. Voice latency (cloud voice only, Voxtral selected): first PCM time for the second request of a reply in `bridge-latency.json` should be 40 to 97 ms lower than on main, because the connection is reused. A first request after a long pause may still pay for a connection.
+9. Journal and knowledge: ask the companion about a recent quest after loading a save; the history lane must still be known (a scan under way now travels as a provisional part). Check `runtime/knowledge-history.json` exists and `last-input.json` is a few KB.
+10. Holocall with a gesture and a seated companion: the gestures still play (the gesture catalogue is compiled once and shared, so `holocall.lua` and seating reuse the controller's copy). If either logs "gesture catalog" trouble, that is a fail.
+11. Heap: in the CET console `collectgarbage(); print(collectgarbage('count'))` at the main menu, in game idle and after the conversation. The earlier figures were 33 to 43 MB at the menu and 145 to 243 MB in game; a lower in-game figure is the gesture catalogue sharing, not a goal of this round.
+
+**Pass:** FPS equal or higher in every spot, `event:onUpdate` not above main's, no new `probe.log` fault lines, `watchEvents` above 0, subtitles, speech, reactions, holocall and history behave as before. **Fail and revert:** any FPS loss, a reply that arrives later than on main, or a missing subtitle or reaction. To roll back only the native part, put the old DLL back (or add `io` to `native-off.txt`); the Lua part reverts with the previous `mod/` files.

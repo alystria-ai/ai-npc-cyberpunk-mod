@@ -230,8 +230,13 @@ end
 local function holdComponent(record)
     -- The gesture catalogue is large: read once, on the first live picture only.
     if M.gestures == nil then
-        local ok, value = pcall(dofile, 'gesture-catalog.lua')
-        M.gestures = ok and type(value) == 'table' and type(value.families) == 'table' and value or false
+        -- The gesture controller's copy when it has one: the catalogue is 1.4 MB of generated Lua, compiled and held once.
+        local shared = type(convaiGestures) == 'table' and convaiGestures.catalog or nil
+        if type(shared) == 'table' and type(shared.families) == 'table' then M.gestures = shared
+        else
+            local ok, value = pcall(dofile, 'gesture-catalog.lua')
+            M.gestures = ok and type(value) == 'table' and type(value.families) == 'table' and value or false
+        end
     end
     local catalog = M.gestures
     if not catalog then return nil, nil end

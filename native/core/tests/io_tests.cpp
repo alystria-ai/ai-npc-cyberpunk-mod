@@ -10,9 +10,13 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cstdio>
+#include <string>
 #include <thread>
+#include <vector>
 
 using namespace convai;
 using convai::test::ReadRaw;
@@ -391,4 +395,147 @@ TEST(io_channels_match_the_lua_router)
         }
     }
     CHECK(fixture.Count() >= 10);
+}
+
+namespace
+{
+// Replaces aName the way the bridge does (a temp file renamed over the target), so a reader never sees
+// a half-written file. Returns when the rename has landed.
+void ReplaceLikeTheBridge(const TempDir& aDir, const char* aName, const std::string& aData)
+{
+    const std::wstring target = P(aDir, aName);
+    const std::wstring temp = target + L".tmp";
+    WriteRaw(temp, aData);
+    // Another process (an antivirus scan of the new file) can hold it open for a moment and make the rename fail; the
+    // bridge's own atomic write retries, so does this. Without the retry a failed rename left the old file in place and
+    // the test measured nothing for that round (a 500 ms "miss" in about one run in twenty on a loaded machine, with or
+    // without the watcher).
+    for (int attempt = 0; attempt < 200; ++attempt)
+    {
+        if (MoveFileExW(temp.c_str(), target.c_str(), MOVEFILE_REPLACE_EXISTING))
+        {
+            return;
+        }
+        Sleep(1);
+    }
+}
+
+double NowMillis()
+{
+    static LARGE_INTEGER frequency = [] {
+        LARGE_INTEGER value;
+        QueryPerformanceFrequency(&value);
+        return value;
+    }();
+    LARGE_INTEGER counter;
+    QueryPerformanceCounter(&counter);
+    return counter.QuadPart * 1000.0 / frequency.QuadPart;
+}
+} // namespace
+
+// The bridge-to-game hop on the worker's side: how long after the bridge replaces a watched file the
+// game thread's Revision() answers with the new revision. The worker used to find the change only on
+// its next poll (a 15 ms period, and the wait itself rounds up to the process's timer tick, 15.6 ms
+// unless something raised it); a directory change notification makes it a wake-up instead.
+TEST(io_worker_notices_a_replaced_file_within_a_few_ms)
+{
+    TempDir dir;
+    FileIo io;
+    CHECK(io.Start(dir.path));
+    ReplaceLikeTheBridge(dir, "reply.json", "{\"n\":0}");
+    CHECK(io.Watch("reply.json", 15, true));
+    io.Read("reply.json");
+    std::vector<double> latencies;
+    constexpr int kRounds = 40;
+    for (int round = 1; round <= kRounds; ++round)
+    {
+        const int32_t before = io.Revision("reply.json");
+        // Land at a different point of the worker's poll cycle each round.
+        SleepMs(20 + static_cast<unsigned>(round * 7 % 13));
+        ReplaceLikeTheBridge(dir, "reply.json", "{\"n\":" + std::to_string(round) + "}");
+        const double started = NowMillis();
+        double elapsed = 0;
+        while ((elapsed = NowMillis() - started) < 500.0 && io.Revision("reply.json") == before)
+        {
+        }
+        latencies.push_back(elapsed);
+    }
+    std::sort(latencies.begin(), latencies.end());
+    const double p50 = latencies[latencies.size() / 2];
+    const double p95 = latencies[latencies.size() * 95 / 100];
+    std::printf("    replaced file to new revision: p50 %.2f ms, p95 %.2f ms, max %.2f ms\n", p50, p95, latencies.back());
+    CHECK(latencies.back() < 500.0);
+    // A loaded machine (a build running beside the test) slows both paths; the notifications themselves are the proof.
+    CHECK(p50 < 12.0 && io.Stats().watchEvents >= static_cast<uint64_t>(kRounds / 2));
+    CHECK(p95 < 40.0);
+    io.Stop();
+}
+
+// A channel watched with a slow period is still noticed at once when its file changes.
+TEST(io_watch_with_a_slow_period_still_wakes_on_a_change)
+{
+    TempDir dir;
+    FileIo io;
+    CHECK(io.Start(dir.path));
+    WriteRaw(P(dir, "speech-stream.json"), "{\"n\":0}");
+    CHECK(io.Watch("speech-stream.json", 5000, true));
+    io.Read("speech-stream.json");
+    const int32_t revision = io.Revision("speech-stream.json");
+    ReplaceLikeTheBridge(dir, "speech-stream.json", "{\"n\":1}");
+    CHECK(WaitFor([&] { return io.Revision("speech-stream.json") != revision; }, 400));
+    CHECK_EQ(io.Read("speech-stream.json").content, std::string("{\"n\":1}"));
+    // A file that appears, and one that goes, are noticed just as fast.
+    DeleteFileW(P(dir, "speech-stream.json").c_str());
+    CHECK(WaitFor([&] { return io.Revision("speech-stream.json") < 0; }, 400));
+    ReplaceLikeTheBridge(dir, "speech-stream.json", "{\"n\":2}");
+    CHECK(WaitFor([&] { return io.Revision("speech-stream.json") > 0; }, 400));
+    io.Stop();
+}
+
+// The worker validates a big JSON file before it publishes it. That work must not hold the mutex the
+// game thread takes in Revision() and Read(): a 2 MB document is several ms of parsing.
+TEST(io_game_thread_never_waits_for_the_workers_json_check)
+{
+    TempDir dir;
+    FileIo io;
+    CHECK(io.Start(dir.path));
+    auto document = [](int aSerial) {
+        std::string text = "{\"n\":" + std::to_string(aSerial) + ",\"v\":[";
+        for (int i = 0; i < 120000; ++i)
+        {
+            text += (i ? "," : "");
+            text += std::to_string(1.0 + (i % 977) * 0.0123456);
+        }
+        return text + "]}";
+    };
+    ReplaceLikeTheBridge(dir, "continuous-face.json", document(0));
+    CHECK(io.Watch("continuous-face.json", 15, true));
+    io.Read("continuous-face.json");
+    std::atomic<bool> done{false};
+    std::thread writer([&] {
+        for (int serial = 1; serial <= 20; ++serial)
+        {
+            ReplaceLikeTheBridge(dir, "continuous-face.json", document(serial));
+            SleepMs(40);
+        }
+        done = true;
+    });
+    int slow = 0;
+    double worst = 0;
+    int calls = 0;
+    while (!done)
+    {
+        const double started = NowMillis();
+        io.Revision("continuous-face.json");
+        const double took = NowMillis() - started;
+        worst = std::max(worst, took);
+        slow += took > 1.0 ? 1 : 0;
+        ++calls;
+    }
+    writer.join();
+    std::printf("    Revision() while 20 big files publish (%d calls): %d over 1 ms, worst %.2f ms\n", calls, slow, worst);
+    CHECK(WaitFor([&] { return io.Read("continuous-face.json").content.find("\"n\":20,") != std::string::npos; }, 3000));
+    CHECK(io.Stats().publishes >= 5);
+    CHECK(slow <= 8); // before the fix every publish stalled it (about 60 calls over 1 ms, worst 3.5 ms)
+    io.Stop();
 }

@@ -144,6 +144,8 @@ journalHistory.pace = true
 if knowledgeParts and type(knowledgeParts.newEncoder) == 'function' then
     local function newEncoder(map) return knowledgeParts.newEncoder(map) end
     worldKnowledge.newEncoder, journalHistory.newEncoder = newEncoder, newEncoder
+    -- A history scan still under way travels as a provisional part, its rows encoded while resting (journal-history.lua).
+    journalHistory.encodeRow = function(value) return knowledgeParts.encode(value) end
 end
 
 -- Lease heartbeats (world-session, party-connections, relationship-state, companion-invitations,
@@ -1788,6 +1790,8 @@ do
     -- Seating (docs/COMPANION_SEATING.md): companions always take a free seat
     -- beside a seated V (no setting). It owns the body before gestures do.
     convaiSeatingOptions = {
+        -- The gesture catalogue (1.4 MB of generated Lua) is compiled and held once, shared with the gesture controller.
+        catalog = controller and type(controller.catalog) == 'table' and controller.catalog or nil,
         gazeSettings = function() return companions.gazeSettings and companions.gazeSettings() or nil end,
         log = function(kind, fields)
             if manager.developerMode() then
@@ -4215,6 +4219,21 @@ registerForEvent('onInit', function()
     end
 end)
 
+-- onUpdate's native checks as plain functions that take what they read: a pcall(function() ... end) inside onUpdate built a
+-- new closure (and boxed the locals it captured) on every frame. Globals, so the onUpdate closure gains no upvalue.
+-- V attached, alive and past the main menu: true and the requests handler (the pause check reuses it), or false.
+convaiSessionReady = function(player, suspended)
+    if suspended or not player or not player:IsAttached() or player:IsDeadNoStatPool() then return false end
+    local requests = Game.GetSystemRequestsHandler()
+    return not requests:IsPreGame(), requests
+end
+-- The game runs, no menu is open and the composer is closed.
+convaiWorldReady = function(requests, player)
+    return not requests:IsGamePaused() and not convaiInMenu() and not player:ConvaiComposerOpen()
+end
+-- object:method() for a method without arguments, called inside the caller's pcall (no closure per call).
+convaiInvoke = function(object, method) return object[method](object) end
+
 -- The face layer's per-frame context (speech.update -> facial-playback beginExpressionFrame / updateExpressions). It was a new table
 -- plus a new actors table every frame and an IsInCombat call in a pcall closure every frame (init:expressionContext about 1.1 ms/s).
 -- Now ONE context table is refilled each frame (its readers only look at it during the call and keep no reference), the actor rows
@@ -4279,12 +4298,7 @@ registerForEvent('onUpdate', function(delta)
     mark('init:session')
     local menuPlayer = Game.GetPlayer()
     -- Each native call through CET costs the game thread; the world check below reuses this frame's answers.
-    local requests
-    local sessionOk, sessionReady = pcall(function()
-        if worldSuspended or not menuPlayer or not menuPlayer:IsAttached() or menuPlayer:IsDeadNoStatPool() then return false end
-        requests = Game.GetSystemRequestsHandler()
-        return not requests:IsPreGame()
-    end)
+    local sessionOk, sessionReady, requests = pcall(convaiSessionReady, menuPlayer, worldSuspended)
     if not sessionOk or not sessionReady then
         if sessionHasState then abandonSession('world unavailable',fastTravelActive~=nil) end
         if not knowledgeInvalidated then invalidateKnowledge('world unavailable') end
@@ -4322,12 +4336,8 @@ registerForEvent('onUpdate', function(delta)
         active, pending, pendingKnowledgeOwner = nil, nil, nil
         warmConversation(nil, nil)
     end
-    local worldOk, worldReady = pcall(function()
-        -- The session check above found V attached and not in pre-game this frame.
-        return not requests:IsGamePaused()
-            and not convaiInMenu()
-            and not menuPlayer:ConvaiComposerOpen()
-    end)
+    -- The session check above found V attached and not in pre-game this frame.
+    local worldOk, worldReady = pcall(convaiWorldReady, requests, menuPlayer)
     worldReady = worldOk and worldReady
     local talkGate = convaiTalkGate
     if talkGate and talkGate.waiting then
@@ -4357,7 +4367,7 @@ registerForEvent('onUpdate', function(delta)
     mark('init:invitations')
     -- One phone-open read per frame, shared by the request drain and the layout and style refreshes (each used to
     -- fetch the player and ask again). A failed read counts as closed, as it did for them.
-    local phoneRead, phoneOpen = pcall(function() return menuPlayer:ConvaiPhoneIsOpen() end)
+    local phoneRead, phoneOpen = pcall(convaiInvoke, menuPlayer, 'ConvaiPhoneIsOpen')
     phoneOpen = phoneRead and phoneOpen == true
     local phoneActionOk, phoneActionError = true, nil
     if phoneDrainDue(phoneOpen) then
@@ -4383,12 +4393,12 @@ registerForEvent('onUpdate', function(delta)
     mark('init:expressionContext')
     local expressionContext=convaiExpressionFrame(menuPlayer,worldReady,pending)
     mark('init:speech')
-    local speechOk, speechError = pcall(speech.update, tonumber(delta) or 0,expressionContext)
+    local speechOk, speechError = pcall(speech.update, tonumber(delta) or 0,expressionContext,menuPlayer)
     if not speechOk then
         log('Speech update failed: ' .. tostring(speechError))
         speech.stop('error')
     end
-    local subtitlesOk, subtitlesError = pcall(subtitles.update, tonumber(delta) or 0)
+    local subtitlesOk, subtitlesError = pcall(subtitles.update, tonumber(delta) or 0, menuPlayer)
     if not subtitlesOk then
         log('Subtitle update failed: ' .. tostring(subtitlesError))
         subtitles.clear()
@@ -4431,7 +4441,8 @@ registerForEvent('onUpdate', function(delta)
     local elapsedPoll = poll
     poll = 0
     mark('init:tick')
-    local player = Game.GetPlayer()
+    -- This frame's V (the session check above found it attached): the tick does not ask the game a second time.
+    local player = menuPlayer
     local voiceSubmission = microphone.update(player)
     if voiceSubmission then acceptVoiceSubmission(voiceSubmission) end
     if not player then
@@ -4704,10 +4715,10 @@ registerForEvent('onUpdate', function(delta)
     -- The captured lease owns this deadline independently of reply playback.
     -- Process an explicit reply failure first so it cannot admit an action.
     gameplayActions.update(worldReady)
-    local ok, ready = pcall(function() return player:ConvaiHasSubmission() end)
+    local ok, ready = pcall(convaiInvoke, player, 'ConvaiHasSubmission')
     if not ok or not ready then
         if active then
-            local openOk, composerOpen = pcall(function() return player:ConvaiComposerOpen() end)
+            local openOk, composerOpen = pcall(convaiInvoke, player, 'ConvaiComposerOpen')
             if openOk and not composerOpen then
                 pcall(convaiComposerWatch.closed, player, active)
                 active = nil
@@ -4717,7 +4728,7 @@ registerForEvent('onUpdate', function(delta)
         end
         return
     end
-    local taken, message = pcall(function() return player:ConvaiTakeSubmission() end)
+    local taken, message = pcall(convaiInvoke, player, 'ConvaiTakeSubmission')
     if taken and type(message) == 'string' and #message > 0 then
         local context = active
         if context then

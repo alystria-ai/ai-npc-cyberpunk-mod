@@ -22,6 +22,9 @@ local stats, opens, history = {}, {}, {} -- history: one encoded row (JSON text)
 local writtenAt, dirty = nil, false
 local frames, frameSum, frameMax, over25, over40 = 0, 0, 0, 0, 0
 local lastFrame, windowAt, flagAt, enabled, wrapped = nil, nil, nil, false, false
+-- The probe's own window close (encode, and the file write every WRITE_PERIOD) this frame: it runs inside onUpdate
+-- (from beginSpatialFrame) before any segment, so it is kept out of event:onUpdate and reported as probe.self.
+local selfFrame = 0
 local wrappers = {}
 
 local function record(label, dt)
@@ -120,7 +123,12 @@ local function writeFile()
     enabled = false -- the probe's own write is not attributed to the mod
     local file = io.open('runtime/perf-probe.json', 'wb')
     if file then
-        file:write('{"version":1,"windowSeconds":', tostring(WINDOW), ',"history":[', table.concat(history, ','), ']}')
+        -- Row by row: joining 150 rows first built a ~600 KB string every WRITE_PERIOD (garbage for the GC).
+        file:write('{"version":1,"windowSeconds":', tostring(WINDOW), ',"history":[')
+        for index, row in ipairs(history) do
+            if index > 1 then file:write(',', row) else file:write(row) end
+        end
+        file:write(']}')
         file:close()
     end
     enabled = was
@@ -192,7 +200,10 @@ local function tick(developer)
         if dt > .040 then over40 = over40 + 1 end
     end
     lastFrame = now
-    if now - windowAt >= WINDOW then pcall(publish, now) end
+    if now - windowAt >= WINDOW then
+        pcall(publish, now)
+        selfFrame = selfFrame + (clock() - now)
+    end
 end
 
 -- Called first in init.lua, before any hook or event is registered: every
@@ -223,14 +234,17 @@ local function finishUpdate(t0, ...)
     if enabled then
         local now = clock()
         if markLabel then record(markLabel, now - markAt); markLabel = nil end
-        record('event:onUpdate', now - t0)
+        local own = selfFrame
+        selfFrame = 0
+        record('event:onUpdate', now - t0 - own)
+        if own > 0 then record('probe.self', own) end
     end
     return ...
 end
 local function timedUpdate(handler)
     return function(...)
         if not enabled then return handler(...) end
-        markLabel = nil
+        markLabel, selfFrame = nil, 0
         return finishUpdate(clock(), handler(...))
     end
 end

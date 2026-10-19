@@ -166,6 +166,49 @@ test('a released NPC stays quiet for the grace, then returns to vanilla; clear()
   `);
 });
 
+test('once every hold has run out the hooks are idle again: no stimulus read or owner lookup for anyone, until the next focus', () => {
+  run(`${fixture}
+    local stimReads = 0
+    local quiet = make({stim = function(event) stimReads = stimReads + 1; return stimNames[event.kind] and event.kind or nil end})
+    quiet.install(override)
+    -- One conversation with e1, who then streams out and is never checked again.
+    quiet.focus('e1')
+    wall = wall + 30
+    quiet.release()
+    wall = wall + 5
+    assert(not fire('TriggerFacialLookAtReaction', 'e1'), 'no grace after the conversation')
+    assert(not quiet.idle())
+    wall = wall + 2
+    nativeReads, stimReads = 0, 0
+    assert(fire('TriggerFacialLookAtReaction', 'e2'))
+    assert(fire('OnEventReceived', 'e2', {kind = 'Gunshot'}))
+    assert(fire('OnEventReceived', 'e3', {kind = 'Provoke'}))
+    assert(fire('OnAreaEnter', 'e3', {}) and fire('OnBumpEvent', 'e2', {isMounted = false}))
+    assert(nativeReads == 0 and stimReads == 0, 'a finished conversation kept per-NPC work on: reads=' .. nativeReads .. ' stims=' .. stimReads)
+    assert(quiet.idle() and #quiet.status().addressed == 0)
+    -- A new focus quiets as before, and a stale pin still runs out after maxPinned.
+    quiet.focus('e5')
+    assert(not fire('TriggerFacialLookAtReaction', 'e5') and fire('TriggerFacialLookAtReaction', 'e6'))
+    wall = wall + 901
+    nativeReads = 0
+    assert(fire('TriggerFacialLookAtReaction', 'e5') and nativeReads == 0, 'a missed release stayed quiet past maxPinned')
+    -- Many NPCs talked to and left behind: idle again once the last grace ends; a longer timed hold keeps its NPC quiet to its end.
+    for index = 1, 20 do quiet.focus('n' .. index) end
+    quiet.release()
+    quiet.hold('h1', 20)
+    wall = wall + 7
+    nativeReads = 0
+    assert(not fire('TriggerFacialLookAtReaction', 'h1') and fire('TriggerFacialLookAtReaction', 'n3'))
+    assert(nativeReads > 0, 'the longer hold is still checked')
+    wall = wall + 14
+    nativeReads = 0
+    assert(fire('TriggerFacialLookAtReaction', 'h1') and fire('OnEventReceived', 'n4', {kind = 'Provoke'}) and nativeReads == 0)
+    -- A group round is addressed through its participants whatever the holds say.
+    group = {participants = {{entity = 'g1'}}}
+    assert(not fire('TriggerFacialLookAtReaction', 'g1'))
+  `);
+});
+
 test('a timed hold never shortens a longer one, and a missed release expires after maxPinned', () => {
   run(`${fixture}
     local quiet = make({config = {maxPinned = 60}})

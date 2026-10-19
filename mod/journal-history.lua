@@ -186,7 +186,8 @@ function M.new(options)
         -- whose cache saw no change event is re-stamped instead of rescanned, and fully rescanned only every
         -- activeVerify / historyVerify seconds. History also skips a rescan whose first page shows the same quest count.
         eventDriven=false,changeSeq=0,activeVerify=option(options.activeVerify,120,15,3600),
-        historyVerify=option(options.historyVerify,3600,60,86400),newEncoder=options.newEncoder},Collector)
+        historyVerify=option(options.historyVerify,3600,60,86400),newEncoder=options.newEncoder,
+        encodeRow=options.encodeRow},Collector)
     self:reset(); return self
 end
 function Collector:reset()
@@ -237,7 +238,7 @@ function Collector:step(lane,now)
             if #done>0 and #done<=4 then pcall(self.onFinished,done) end
         end
         target.cache=job; target.cache.finished=now; target.job=nil; target.rush=nil
-        job.scanned=job.started
+        job.scanned=job.started; job.rowText,job.rowState,job.rowCount,job.partial=nil,nil,nil,nil -- see capturePart
         target.next=now+(lane=='active' and self.activeInterval or self.historyInterval)
         -- The finished history rows are encoded a few per frame from here on, so the first turn that needs this revision
         -- writes a ready string (mod/knowledge-parts.lua). The active lane is small and changes often: not worth it.
@@ -248,6 +249,7 @@ function Collector:step(lane,now)
         return
     end
     local ok,page
+    job.pages=(job.pages or 0)+1
     if readingRoots then ok,page=pcall(self.adapter.roots,lane,job.cursor,self.pageSize)
     else ok,page=pcall(self.adapter.children,copy(task),self.pageSize) end
     local quest=task and job.quests[task.quest] or nil
@@ -292,6 +294,7 @@ function Collector:step(lane,now)
                     if text(row.nativePath,1024) then q.nativePath=row.nativePath end
                     job.quests[row.id]=q; job.rootCount=job.rootCount+1; job.bytes=job.bytes+cost
                     job.queue[#job.queue+1]={id=row.id,quest=row.id,cursor=1,depth=0,path={row.nativeId}}
+                    job.objectiveTail=#job.queue -- a quest or phase task can still add objectives (see settled)
                     job.seen[row.id]=true; job.nodeCount=job.nodeCount+1
                 end
             else job.unstable=true; mark(job) end
@@ -314,6 +317,7 @@ function Collector:step(lane,now)
                     if task.depth+1>=self.maxDepth or job.nodeCount>=self.maxNodes then mark(job,quest)
                     else
                         job.queue[#job.queue+1]={id=row.id,quest=task.quest,cursor=1,depth=task.depth+1,path=relative}
+                        if row.kind=='phase' then job.objectiveTail=#job.queue end
                         job.nodeCount=job.nodeCount+1
                     end
                 end
@@ -360,9 +364,59 @@ end
 -- The journal changed (JournalNotificationQueue.OnJournalUpdate): resting caches can no longer be re-stamped.
 function Collector:markChanged() self.changeSeq=self.changeSeq+1 end
 function Collector:scanning(lane) local value=self.lanes[lane]; return value~=nil and value.job~=nil end
+-- A history scan still under way with no usable cache (the first after a load takes minutes when paced) is named by
+-- a provisional revision of the history part (capturePart) instead of copied inline: a turn soon after a load used to
+-- copy and JSON-encode every row on its own frame (630 KB for 208 quests, a 30-80 ms hitch). Its rows are encoded as
+-- capture() copies them (objectivesComplete false), one per resting frame once no quest or phase task is left to add
+-- objectives (pumpPartial), so a turn finds them ready. encodeRow is set by init.lua; without it rows stay inline.
+local function rowFresh(job,id,quest)
+    return job.rowText[id]~=nil and job.rowState[id]==quest.state and job.rowCount[id]==#quest.objectives
+end
+local function encodeRow(self,job,id,quest)
+    local value={}; for k,v in pairs(quest) do value[k]=v end; value.objectivesComplete=false
+    local ok,text=pcall(self.encodeRow,value)
+    if not ok or type(text)~='string' then job.partialFailed=true; return false end
+    job.rowText[id],job.rowState[id],job.rowCount[id]='"'..id..'":'..text,quest.state,#quest.objectives
+    job.encodeSerial=(job.encodeSerial or 0)+1
+    return true
+end
+local function rowTables(job) job.rowText=job.rowText or {}; job.rowState=job.rowState or {}; job.rowCount=job.rowCount or {} end
+function Collector:pumpPartial()
+    local target=self.lanes.history; local job=target.job
+    if not job or type(self.encodeRow)~='function' or job.partialFailed or not job.rootsDone
+        or job.head<=(job.objectiveTail or 0) or job.cleanAt==job.pages then return end
+    local cache=target.cache
+    if cache and self.lastNow and self.lastNow-cache.started<=self.historyAge then return end -- the cache travels instead
+    rowTables(job)
+    local id=job.rowCursor
+    for _=1,8 do
+        local quest; id,quest=next(job.quests,id)
+        if id==nil then
+            if job.passClean then job.cleanAt=job.pages end -- nothing stale until the next page
+            job.rowCursor,job.passClean=nil,true; return
+        end
+        if not rowFresh(job,id,quest) then job.rowCursor,job.passClean=id,false; encodeRow(self,job,id,quest); return end
+    end
+    job.rowCursor=id
+end
+-- The provisional part for a scanning history job: stale rows are encoded now, and the revision is kept while no row changed.
+local function partialPart(self,job)
+    if job.partialFailed then return nil end
+    rowTables(job)
+    for id,quest in pairs(job.quests) do
+        if not rowFresh(job,id,quest) and not encodeRow(self,job,id,quest) then return nil end
+    end
+    local held=job.partial
+    if held and held.serial==job.encodeSerial then return held end
+    local pieces={}; for _,text in pairs(job.rowText) do pieces[#pieces+1]=text end
+    self.revision=(self.revision or 0)+1
+    held={revision=self.revision,serial=job.encodeSerial,encoded='{"quests":{'..table.concat(pieces,',')..'}}'}
+    job.partial=held
+    return held
+end
 -- Encodes the finished history rows a few per frame (see step).
 function Collector:pump()
-    local job=self.encoding; if not job then return end
+    local job=self.encoding; if not job then self:pumpPartial(); return end
     if self.lanes.history.cache~=job.cache then self.encoding=nil; return end
     local ok=pcall(job.encoder.step,job.encoder,2)
     if not ok or job.encoder.failed then self.encoding=nil; return end
@@ -453,7 +507,8 @@ function Collector:capture(context)
 end
 -- capture() without copying finished scans: their rows stay in the collector and the result names them,
 -- lanes[lane]={revision=n,ids={...}}, with one part per such lane ({name=lane,revision,data={quests=rows}}, rows keyed by
--- id; the caller only encodes them). A lane still in its first scan (or past its age) is copied into quests as before.
+-- id; the caller only encodes them). A lane still in its first scan (or past its age) is copied into quests as before,
+-- except history rows when encodeRow is set: those are named by a provisional history part (see pumpPartial).
 -- The bridge (bridge/knowledge-parts.mjs) rebuilds exactly the snapshot capture() returns.
 function Collector:capturePart(context)
     local now=self:check(context)
@@ -485,9 +540,25 @@ function Collector:capturePart(context)
     end
     local ids={}; for id in pairs(merged) do ids[#ids+1]=id end; table.sort(ids)
     local lanes={}
+    -- History rows of a scan under way travel as a provisional part when encodeRow is set (see pumpPartial).
+    local job,partial=self.lanes.history.job,nil
+    if job and type(self.encodeRow)=='function' then
+        for _,source in pairs(from) do
+            if source.cache==job then partial=partialPart(self,job); break end
+        end
+    end
     for _,id in ipairs(ids) do
         local source=from[id]
-        if source.scanning or not source.cache.revision then
+        if partial and source.cache==job then
+            local lane=lanes.history
+            if not lane then
+                lane={revision=partial.revision,ids={}}; lanes.history=lane
+                -- strict: the encoded rows or nothing (the job's own rows may still say objectivesComplete true).
+                parts[#parts+1]={name='history',revision=partial.revision,generation=self.generation,
+                    worldToken=self.worldToken,data={},encoded=partial.encoded,strict=true}
+            end
+            lane.ids[#lane.ids+1]=id
+        elseif source.scanning or not source.cache.revision then
             local row=copy(merged[id]); if source.scanning then row.objectivesComplete=false end
             output.quests[#output.quests+1]=row
         else
