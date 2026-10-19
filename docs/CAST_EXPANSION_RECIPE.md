@@ -256,6 +256,45 @@ Sawyer, Barry Lewis and Mr. Blue Eyes (civilian stems: 77, 40 and 28 attributed 
   also offers, here `Character.Brick`, joins the named set), `bridge/multilingual.test.mjs` (the twins waited for the language box
   under an allowance for `CAST_EXPANSION_2_KEYS`; the boxes were set and recorded on 2026-10-19, the allowance is gone and the test checks
   `languageBoxOff: true` for both key lists).
-- **Order used.** Text and CPU work first (specs, extraction, dossiers, profiles, merges, Convai), then the GPU steps that need the
-  coordinator's power-mode go-ahead: `analyze.py`, `build.py`, `merge_rows.mjs`, `merge.mjs release-plan`, the ear check, and the voice
-  and release-plan assertions that are marked `todo` in `bridge/cast-expansion.test.mjs` until then.
+- **Order used.** Text and CPU work first (specs, extraction, dossiers, profiles, merges, Convai), then the GPU steps: `analyze.py` (all 15 in
+  about 25 minutes, Whisper on the GPU), `build.py`, `merge_rows.mjs` (the three configs now hold 301 voices), `merge.mjs release-plan`
+  (`preparedLocalProfiles` 108 to 123), the ear check, and the keys moved from `CAST_EXPANSION_2_KEYS` into `CAST_EXPANSION_KEYS` (the
+  second list is gone; the `todo` voice test is merged into the batch tests).
+- **Voice results (2026-10-19).** Short/long set seconds: Steve 8.9/15.3, Grayson 7.4/17.3, Aymeric 9.7/18.0, Farida 8.5/17.7, Brick 8.7/17.8,
+  Patricia 8.8/16.2, Lucy 9.9/18.0, Mateo 9.5/17.8, Max 10.0/17.8, Tiny Mike 8.7/16.8, Ziggy Q 8.7/17.6, Doctor Paradox 8.2/17.5 (loud, relaxed
+  peak rule), Leon Rinder 7.9/7.9 (one clip: his lines are shouted and Whisper reads them badly, so the pool is one line; voice-thin),
+  Albert Murphy 8.5/17.3, Carl Robinson 10.0/16.2 (pool of 6 clips).
+- **`relaxPeak` spec override.** Patricia's voice is loudly mastered (peaks -1.9 to -2.5 dBFS, none clipped): the -3 dBFS pool was about 13 s of
+  3 s clips and the short set came to 6.8 s, so `build.py` refused. `"relaxPeak": true` (with `relaxPeakNote`) in `voice-spec.json` applies the
+  recipe's -1.5 dBFS rule for such a voice without waiting for a pool under 12 s.
+- **Ear check (scores only; nobody listened).** `render_samples.py` rendered one line per character with the long reference; the WavLM
+  x-vector of each render ranked its own reference first among all 123 omni-long references for all 15 (own cosine 0.93 to 0.99; closest
+  other voice 0.001 to 0.06 lower, Max Jones against Dino Dinovic 0.977 to 0.976 and Leon Rinder against Mateo Thiago 0.929 to 0.925 are the narrow
+  ones), and Whisper reads the lines back at 0.93 to 1.0 except Tiny Mike (0.78, number words). The renders are in
+  `E:\CyberpunkConvai-offload\work\clip-search\cast-expansion\_ear2`.
+
+### Live checks for the second batch (not done yet; needs the game and a dev install of this branch)
+
+Before: dev-install the branch (every committed `mod/` file and the `.json` data, never `diagnostics.lua`; reds and archives as usual), copy
+nothing else (the 15 voice rows are already in the live `runtime/` configs), restart the bridge, load a save.
+
+1. Open the Companion Manager and scroll the character list. Check: Steve Sanchez, Jeremiah Grayson, Aymeric Cassel, Farida Nazeri, Brick,
+   Patricia, Lucy Thackery, Mateo Thiago, Max Jones, Tiny Mike, Ziggy Q, Doctor Paradox, Leon Rinder, Albert Murphy and Carl Robinson are listed
+   under those names (Lucy Thackery is not the NCA follower Lucy).
+2. Invite Brick. Check: the copy appears, wears the ring-shaped head frame with red optics, and is not a generic civilian.
+3. Talk to Brick (say hello, ask who runs the crew). Check: a deep, calm, middle-aged male voice answers, the reply is in his first-person
+   register and fits what the dossier says about him, and the mouth moves.
+4. Dismiss Brick, invite Patricia. Check: short reddish-brown hair, red cyberoptic, chrome forearms. Talk to her. Check: a husky female voice
+   (the reference is loud; listen for distortion).
+5. Dismiss Patricia, invite Lucy Thackery. Check: teal cap and round gold glasses; the voice is a clear female one.
+6. Invite Steve Sanchez, talk about guitar. Check: a young male voice, quiff and bruise visible.
+7. Invite Aymeric Cassel (his body is the Cassel twin `Character.theo`). Check: ginger swept-up hair; calm formal young voice; he does not
+   call himself Theo.
+8. Invite Leon Rinder (voice-thin: one 7.9 s reference). Check: a rough middle-aged male voice, bandaged head; note whether it sounds
+   stretched or robotic on longer sentences.
+9. Invite Doctor Paradox (no appearance text; the wiki picture is a glitch silhouette). Check: whatever body appears; the voice is an excited
+   old male voice. Report the look, since it is the only one never described.
+10. Optional: Farida Nazeri, Mateo Thiago, Max Jones, Tiny Mike, Ziggy Q, Albert Murphy, Carl Robinson, Jeremiah Grayson: invite each, one
+    line each. Check: the voice matches the gender and age in the roster and no two sound the same as each other.
+11. For one of them, type or speak a short line in Spanish. Check: the reply comes in Spanish (their twins are on Convai with the language
+    box off) and the voice is still theirs.

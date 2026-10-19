@@ -4,7 +4,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {existsSync, readFileSync} from 'node:fs';
-import {CAST_EXPANSION_KEYS, CAST_EXPANSION_2_KEYS} from './cast-expansion-keys.mjs';
+import {CAST_EXPANSION_KEYS} from './cast-expansion-keys.mjs';
 
 const url = path => new URL('../' + path, import.meta.url);
 const read = path => readFileSync(url(path), 'utf8').replace(/^﻿/u, '');
@@ -19,7 +19,7 @@ test('every batch character has a roster row, dossier, first-person profile, app
   const roster = json('characters/roster.json'), store = json('characters/first-person-profiles.json').characters;
   const appearance = json('characters/appearance.json'), voiceMap = json('characters/multilingual-voice-map.json');
   const plan = json('research/cyberpunk/generated/profile-plan.json');
-  for (const key of [...CAST_EXPANSION_KEYS, ...CAST_EXPANSION_2_KEYS]) {
+  for (const key of CAST_EXPANSION_KEYS) {
     const row = roster.find(item => item.key === key);
     assert.ok(row, key + ' roster row');
     assert.match(row.backstory, /^I(?:'|’)m\b/u, key + ' first person');
@@ -43,17 +43,6 @@ test('every batch character is a knowledge audience and a prepared local voice',
     assert.ok(profileKeys.includes(key) && generated.includes(key), key + ' world-knowledge audience');
     assert.ok(plan.voice.localProfiles.includes(key), key + ' release voice list');
   }
-  for (const key of CAST_EXPANSION_2_KEYS) assert.ok(profileKeys.includes(key) && generated.includes(key), key + ' world-knowledge audience');
-});
-
-// Second batch: its voices are built and its twins' language box is set in later steps; until then these only report.
-test('every second-batch character is a prepared local voice with a ready reference', {todo: 'second batch: voices are built in the GPU step'}, () => {
-  const plan = json('packaging/release-plan.json');
-  for (const name of live) {
-    const voices = json('runtime/' + name).voices;
-    for (const key of CAST_EXPANSION_2_KEYS) assert.equal(voices[key]?.status, 'ready', `${name}: ${key}`);
-  }
-  for (const key of CAST_EXPANSION_2_KEYS) assert.ok(plan.voice.localProfiles.includes(key), key + ' release voice list');
 });
 
 test('the live voice configs hold a ready reference for every batch character', {skip: !live.every(name => existsSync(url('runtime/' + name))) && 'runtime configs absent'}, () => {
@@ -68,7 +57,7 @@ test('the live voice configs hold a ready reference for every batch character', 
 
 test('provisioned batch characters have an original and a twin in the release data', () => {
   const twins = json('packaging/release-data/multilingual-profiles.json').characters;
-  for (const key of [...CAST_EXPANSION_KEYS, ...CAST_EXPANSION_2_KEYS].filter(k => PROVISIONED.has(k))) {
+  for (const key of CAST_EXPANSION_KEYS.filter(k => PROVISIONED.has(k))) {
     const original = json('packaging/release-data/characters.json')[key];
     assert.match(original, /^[0-9a-f-]{36}$/u, key);
     assert.match(twins[key]?.multilingualCharacterId ?? '', /^[0-9a-f-]{36}$/u, key + ' twin');

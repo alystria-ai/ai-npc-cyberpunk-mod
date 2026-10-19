@@ -44,7 +44,9 @@ def pick(clips, spec):
                 and c.get("asrSimilarity", 1.0) >= 0.85 and c["typicality"] >= med_typ - 0.03 and c["silenceRatio"] <= 0.45]
 
     candidates, peak_rule = pool(-3.0), -3.0
-    if sum(c["seconds"] for c in candidates) < 12:
+    # "relaxPeak": true (with "relaxPeakNote") is the override for a loudly mastered voice whose -3 dBFS pool is barely 12 s of
+    # ~3 s clips (Patricia): the same -1.5 dBFS rule as below, still no clipped samples.
+    if spec.get("relaxPeak") or sum(c["seconds"] for c in candidates) < 12:
         candidates, peak_rule = pool(-1.5), -1.5
     score = {c["id"]: c["typicality"] + 0.05 * c.get("asrSimilarity", 1.0) + 0.004 * c["seconds"] for c in candidates}
     ordered = sorted(candidates, key=lambda c: (c["id"] not in prefer, prefer.index(c["id"]) if c["id"] in prefer else 0, -score[c["id"]]))
