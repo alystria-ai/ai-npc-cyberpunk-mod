@@ -4579,7 +4579,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:320",
+        "mod/mcm-host.lua:324",
         "mod/nsui.lua:417"
       ]
     },
@@ -7188,7 +7188,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:309"
+        "mod/mcm-host.lua:313"
       ]
     },
     "Press again to restore": {
@@ -7196,7 +7196,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:219"
+        "mod/mcm-host.lua:223"
       ]
     },
     "Press your Group voice chat shortcut to finish recording.": {
@@ -7268,7 +7268,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:220"
+        "mod/mcm-host.lua:224"
       ]
     },
     "RED4ext is not loaded. Install it from Nexus Mods, then restart the game. It also starts the conversation service.": {
@@ -7521,7 +7521,7 @@
       "references": [
         "mod/manager-ui.lua:1803",
         "mod/manager.lua:35",
-        "mod/mcm-host.lua:245"
+        "mod/mcm-host.lua:249"
       ]
     },
     "Reset everything": {
@@ -7545,8 +7545,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:218",
-        "mod/mcm-host.lua:219"
+        "mod/mcm-host.lua:222",
+        "mod/mcm-host.lua:223"
       ]
     },
     "Return to Companion Manager.": {
@@ -10819,7 +10819,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:1549",
-        "mod/mcm-host.lua:331"
+        "mod/mcm-host.lua:335"
       ]
     },
     "Your group": {
