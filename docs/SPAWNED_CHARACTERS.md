@@ -6,6 +6,8 @@ Characters the game itself placed (the real Judy, Jackie, Panam) are a different
 
 Players often use a spawner, another mod or tool, to put characters into the world: Judy, Panam, a ganger, a custom NPC. That mod owns the character's body. It decides where the character goes, how they follow, what they wear and what they do in a car. This document sets out what our mod does with such a character. The short version: they can talk with their own profile, voice and memory, and their face moves with the voice. Nothing of ours moves them.
 
+**A spawned character that has no profile** (Rebecca from Edgerunners, from a character mod) does not have to talk as an ordinary person: the player can make a profile for it in the character editor (2026-10-19, [CHARACTER_EDITOR.md](CHARACTER_EDITOR.md), "Your own characters"). `characterCatalog.resolve` finds it by record or display name after the roster and before the archetypes, so a roster profile still wins; it talks by text and voice and joins group chat like any spawned roster character, with Mistral or Local AI (with Convai it stays an ordinary person and one notice says why).
+
 ## Before this branch
 
 A spawned Judy was treated as the protected story Judy.
