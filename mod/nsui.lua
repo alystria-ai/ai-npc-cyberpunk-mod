@@ -540,8 +540,21 @@ local function installHooks()
     if not ok then log('Manager: could not watch the Settings screen: ' .. tostring(problem)) end
 end
 
-local function connect()
+-- Whether another host has the page (Mod Configuration Menu 0.10.5 or newer registered it). The tab of this host is then not registered:
+-- Mod Configuration Menu would list it a second time through its Native Settings UI bridge, and Native Settings UI cannot remove a
+-- tab once it is added. Hosts are installed (and so detected) before this runs at CET's onInit, where every mod is already loaded.
+local function otherHostReady()
+    for _, host in ipairs(hosts) do
+        local ok, ready = pcall(host.ready)
+        if ok and ready then return true end
+    end
+    return false
+end
+
+-- `force`: register the tab although another host has the page (the shortcut could not open that host and falls back to this one).
+local function connect(force)
     if ns then return true end
+    if not force and otherHostReady() then return false end
     local found = nativeSettings()
     if not found then return false end
     entry = entry or newEntry()
@@ -617,12 +630,12 @@ function M.open()
             if not ok then reason = tostring(opened) end
             -- A refusal by the game (no save loaded, a scene) is the answer; any other failure leaves Native Settings UI's walk.
             if ok and gameState then return false, reason end
-            if not ns then connect() end
+            if not ns then connect(true) end
             if not ns then return false, reason end
             break
         end
     end
-    if not ns then connect() end
+    if not ns then connect(true) end
     if not ns then
         local old = false
         for _, host in ipairs(hosts) do if host.availability() == 'old' then old = true end end
@@ -697,6 +710,6 @@ function M.inspect()
 end
 
 -- Tests only.
-M._test = {core = core, describe = describe, tabIndex = tabIndex, flush = function() flushNow() end, render = render, notify = notify}
+M._test = {connect = function() return connect(true) end, core = core, describe = describe, tabIndex = tabIndex, flush = function() flushNow() end, render = render, notify = notify}
 
 return M

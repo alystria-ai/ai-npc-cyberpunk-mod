@@ -280,6 +280,8 @@ test('a new interface language: the mod name and the presentation are given agai
 `));
 
 test('both hosts read and write the same saved settings: a change in one is on the page of the other', () => run(`${harness({screen: false})}
+  -- MCM hosts the page, so no Native Settings UI tab was registered; the tab is added by hand, as an MCM found late would leave it.
+  assert(managerUi._test.connect())
   ns.openScreen(TAB)
   frames(6)
   mcm.openScreen()
@@ -432,3 +434,28 @@ test('only Native Settings UI installed: the shortcut is the Native Settings UI 
   assert(#notices == 0, 'Native Settings UI is a host: no notice that something is missing')
   assert(not mcmHost.ready())
 `));
+
+test('MCM 0.10.5 hosts the page: no Native Settings UI tab is registered (MCM would list it a second time); any other install keeps the tab', () => {
+  // MCM 0.10.5 and Native Settings UI both installed: the tab is not added, and no per-frame look tries to.
+  run(`${harness({screen: false})}
+    assert(mcmHost.ready())
+    assert(ns.data[TAB] == nil and ns.callCount('addTab') == 0, 'the tab is not registered beside MCM')
+    ns.resetCalls()
+    frames(120)
+    assert(#ns.calls == 0, 'and nothing is tried later: ' .. tostring(ns.calls[1] and ns.calls[1][1]))
+    assert(managerUi.inspect().available == false and managerUi.inspect().hosts[1].available == true)
+  `);
+  // Native Settings UI alone, or beside an MCM that cannot host the page: unchanged, the tab is there at once.
+  for (const mcm of [null, {version: '0.10.3', noUi: true}, {version: '0.10.4'}]) {
+    run(`${harness({screen: false, mcm})}
+      assert(ns.data[TAB] ~= nil and ns.callCount('addTab') == 1, 'the tab is registered')
+      assert(managerUi.inspect().available == true)
+    `);
+  }
+  // MCM hosts the page but will not open it: the shortcut falls back to Native Settings UI, whose tab is registered then.
+  run(`${harness({screen: false, mcm: {version: '0.10.5', renderer: false}})}
+    assert(ns.data[TAB] == nil)
+    local ok = managerUi.open()
+    assert(ns.data[TAB] ~= nil and ns.callCount('addTab') == 1, 'the fallback registered the tab')
+  `);
+});

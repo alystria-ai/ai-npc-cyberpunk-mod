@@ -7904,7 +7904,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/nsui.lua:603",
+        "mod/nsui.lua:616",
         "mod/setup-check.lua:597"
       ]
     },
@@ -9285,7 +9285,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/nsui.lua:602",
+        "mod/nsui.lua:615",
         "mod/setup-check.lua:598"
       ]
     },
