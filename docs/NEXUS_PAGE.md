@@ -124,7 +124,7 @@ Menus come in sixteen languages. Turn on Multilingual conversations to talk in a
 
 [size=4][b]Troubleshooting[/b][/size]
 [b]The Companion Manager doesn't show up.[/b]
-Press your manager key, or press Esc, then Mods, and choose AI NPC Cyberpunk Mod. No Mods entry in the pause menu? Install or update Mod Configuration Menu (0.10.5 or newer) or Native Settings UI.
+Press your manager key, or press Esc, then Mods, and choose Companion Manager (in Native Settings UI, the AI NPC Cyberpunk Mod tab). No Mods entry in the pause menu? Install or update Mod Configuration Menu (0.10.5 or newer) or Native Settings UI.
 
 [b]Settings says it needs a browser, or the service does not start.[/b]
 Install or repair Microsoft Edge (free from [url=https://www.microsoft.com/edge]microsoft.com/edge[/url]) or install Google Chrome, then restart the game. Some Windows tweak tools remove Edge.

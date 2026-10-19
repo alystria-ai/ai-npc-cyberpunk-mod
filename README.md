@@ -107,7 +107,7 @@ Developed and tested with Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 
 
 1. **Bind your keys.** Open Cyber Engine Tweaks' **Bindings** and give a key to each AI NPC Cyberpunk Mod action (see [Controls](#controls)). The mod never assigns or overwrites keys for you.
 2. **Say something.** Face a character, press **talk by text**, type, press Enter. Or press **talk by voice**, wait for "Listening", speak, and press the same key again (or hold the key while you speak and let go).
-3. **Invite a companion.** Open the Companion Manager (your key, or Esc, then Mods, then AI NPC Cyberpunk Mod), choose **Characters to invite** and press **Invite**. When the "joined" notice appears, go back to the game and she is there.
+3. **Invite a companion.** Open the Companion Manager (your key, or Esc, then Mods, then Companion Manager), choose **Characters to invite** and press **Invite**. When the "joined" notice appears, go back to the game and she is there.
 4. **Make it yours.** In the Companion Manager choose **Settings**. **Conversation provider** and **Voices** are the two pages that change the most. There is no Apply button: a change is saved a moment after you make it, and a row that cannot be used goes back with a line under **Back** that says why.
 
 Out of the box you get the Convai free tier for the replies and Pocket TTS for the voice, each character sounding like themselves, running on your processor.
