@@ -406,7 +406,18 @@ void ReplaceLikeTheBridge(const TempDir& aDir, const char* aName, const std::str
     const std::wstring target = P(aDir, aName);
     const std::wstring temp = target + L".tmp";
     WriteRaw(temp, aData);
-    MoveFileExW(temp.c_str(), target.c_str(), MOVEFILE_REPLACE_EXISTING);
+    // Another process (an antivirus scan of the new file) can hold it open for a moment and make the rename fail; the
+    // bridge's own atomic write retries, so does this. Without the retry a failed rename left the old file in place and
+    // the test measured nothing for that round (a 500 ms "miss" in about one run in twenty on a loaded machine, with or
+    // without the watcher).
+    for (int attempt = 0; attempt < 200; ++attempt)
+    {
+        if (MoveFileExW(temp.c_str(), target.c_str(), MOVEFILE_REPLACE_EXISTING))
+        {
+            return;
+        }
+        Sleep(1);
+    }
 }
 
 double NowMillis()
