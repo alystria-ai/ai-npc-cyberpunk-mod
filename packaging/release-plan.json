@@ -382,6 +382,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/convai-paid-tier.lua"
         },
         {
+          "source": "mod/custom-provider.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/custom-provider.lua"
+        },
+        {
           "source": "mod/movement-log.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/movement-log.lua"
         },
@@ -600,6 +604,7 @@
             "bridge/convai-signin.mjs",
             "bridge/convai-vision.mjs",
             "bridge/conversation-style.mjs",
+            "bridge/custom-endpoint.mjs",
             "bridge/custom-models.mjs",
             "bridge/dialogue-level.mjs",
             "bridge/emotion-analysis.mjs",

@@ -53,6 +53,11 @@ local statusSources = {
     ['Mistral did not accept your key. Check it in Settings > Conversation provider.'] = true,
     ['Mistral’s free limit is reached for now. Try again in a moment.'] = true,
     ['The Mistral model is unavailable right now. Try again in a minute.'] = true,
+    ['The custom provider did not accept your key. Check it in Settings > Conversation provider.'] = true,
+    ['The custom provider says your account is out of credits. Add credits there, then try again.'] = true,
+    ['The custom provider does not know that model ID. Check it in Settings.'] = true,
+    ['The custom provider is rate limiting you. Try again in a moment.'] = true,
+    ['The custom provider did not answer. Check its address in Settings, or try again.'] = true,
     ['Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.'] = true,
     ['Local AI could not answer that. Try again in a moment.'] = true,
 }

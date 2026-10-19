@@ -69,7 +69,7 @@ The row names carry the status in brackets: the endpoint's host (`openrouter.ai`
 
 | The endpoint answers | Notice | What the player should do |
 |---|---|---|
-| 401, 403 | The custom provider did not accept your API key | Paste the key again |
+| 401, 403 | The custom provider did not accept your key | Paste the key again |
 | 402, or 429 saying the quota or credit is used up | The account is out of credits | Add credits at the provider |
 | 404, or 400/422 about the model | The provider does not know that model ID | Paste a model ID from its list |
 | 429 | The provider is rate limiting you | A `Retry-After` of up to 8 seconds is waited out and the request sent again once. A longer one is not waited for: the turn fails at once with the notice, and no request goes out before the time the server named has passed (the next turns get the notice without waiting) |

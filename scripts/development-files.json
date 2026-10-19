@@ -454,6 +454,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/convai-paid-tier.lua"
     },
     {
+      "source": "mod/custom-provider.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/custom-provider.lua"
+    },
+    {
       "source": "mod/movement-log.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/movement-log.lua"
     },
