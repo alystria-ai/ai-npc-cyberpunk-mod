@@ -97,7 +97,7 @@ import {TextProviderHost, attachTextProvider, isLocalUnavailable, localRoute, mi
 import {MEMORY_FILE as MISTRAL_MEMORY_FILE} from './mistral-memory.mjs';
 import {MemoryStore} from './memory-store.mjs';
 import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
-import {detectLocalAiPack} from './local-ai-pack.mjs';
+import {detectLocalAiPack, describePackFiles, packFileProblems} from './local-ai-pack.mjs';
 import {LocalLlmServer, nvidiaTotalMiB} from './local-llm-server.mjs';
 import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, matureOffBlocks, normalisePin} from './local-model-choice.mjs';
 import {CustomModelScanner} from './custom-models.mjs';
@@ -2706,7 +2706,24 @@ const installedLocalModels = () => describeLocalModels(listLocalModels({pack: lo
 // The free memory is what the last start saw before it loaded its model; until there was a start, the card's total stands in.
 const localModelDefaults = () => defaultModelIds({models: listLocalModels({pack: localPack, matureModels: maturePackModels, customModels: customScan.models}),
   matureOn: matureContent.enabled, freeMiB: localServer.lastFreeMiB ?? localServer.totalVramMiB ?? cardTotalMiB, totalMiB: localServer.totalVramMiB ?? cardTotalMiB, sizeOf: localModelSizeMiB});
-const customModelProblems = () => customScan.problems.map(({name, reason}) => ({name: String(name).slice(0, 60), reason}));
+// Models a pack's marker names whose file is not there (a zip that was not fully extracted): they are not in the list, and with only Mature models left and
+// Mature content off Local AI cannot start, so the model row says which model is missing (docs/LOCAL_AI.md, "When a local turn fails"). A few stat calls at
+// most every 5 s, and one log line when the answer changes.
+let packIssues = [], packIssuesAt = 0, packIssuesKey = '';
+function packFileIssues() {
+  if (Date.now() - packIssuesAt < 5000) return packIssues;
+  packIssuesAt = Date.now();
+  try {
+    packIssues = packFileProblems(describePackFiles({project}));
+    const key = JSON.stringify(packIssues);
+    if (key !== packIssuesKey) {
+      packIssuesKey = key;
+      if (packIssues.length) console.error('[LocalAI] the Local AI folder is incomplete: ' + packIssues.map(item => item.name).join(', ') + ' (named by a manifest, the model file is not there; a pack that was not fully extracted)');
+    }
+  } catch { packIssues = []; }
+  return packIssues;
+}
+const customModelProblems = () => [...customScan.problems.map(({name, reason}) => ({name: String(name).slice(0, 60), reason})), ...packFileIssues()].slice(0, 8);
 // The card's total memory marks a custom model that can never fit, and stands in for the free memory in the model the page shows as
 // selected. The first start reads it from llama-server; before that one nvidia-smi call (once a minute at most, and only while more than
 // one model is installed) stands in.

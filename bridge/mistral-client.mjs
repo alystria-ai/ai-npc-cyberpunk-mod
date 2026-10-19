@@ -331,7 +331,9 @@ const contentText = content => typeof content === 'string' ? content
  *     (default: the same) is the limit of the later attempts. A request that hangs (a connection the network dropped without telling
  *     anyone) is cut at this limit and sent again on a new connection: the 2026-10-13 live record had one hang for the whole 25 s limit
  *     before the retry answered in 2 s (docs/LATENCY_2026-10-12.md).
- *   stallMs: silence this long ends the attempt once the first event has come (0: off); totalMs: the whole attempt. Any stream event
+ *   stallMs: silence this long ends the attempt once the reply text has started (0: off); promptStallMs: the same before the first piece of reply
+ *     text, once the first event has come (default: stallMs; a model reading a long prompt on a slow machine is silent for longer between two reports
+ *     than a model that is writing); totalMs: the whole attempt. Any stream event
  *     counts as life: a text piece, a piece of the model's thinking, llama-server's prompt-progress report (`return_progress`).
  *   deadlineAt: the moment (the `now` clock) the turn's time is up. No attempt starts with less than MIN_ATTEMPT_MS left, and the limits above
  *     are cut to what is left, so a turn ends with its own explanation before the game gives up on it (the game waits 90 s).
@@ -342,7 +344,7 @@ const contentText = content => typeof content === 'string' ? content
  * A failure carries `reason` and `trace` (see `stallReason`, `newTrace`).
  */
 export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTokens = 300, temperature = 0.8, onDelta, shouldStop,
-  signal, fetchImpl = globalThis.fetch, endpoint, firstByteMs = 25000, retryFirstByteMs, stallMs = 0, totalMs = 70000, retries = 2,
+  signal, fetchImpl = globalThis.fetch, endpoint, firstByteMs = 25000, retryFirstByteMs, stallMs = 0, promptStallMs = stallMs, totalMs = 70000, retries = 2,
   backoffMs = [1200, 3500], sleepImpl = sleep, extraBody, provider = 'mistral', trustedOrigin, onHeaders, onRetry, now = () => performance.now(),
   deadlineAt, thinkingPieces = 0, minAttemptMs = MIN_ATTEMPT_MS} = {}) {
   if (typeof apiKey !== 'string' || apiKey.length < 8) throw new MistralError('key', 'has no API key', {provider});
@@ -362,7 +364,7 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
     const capped = remaining < totalMs;
     try {
       const result = await once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url,
-        firstByteMs: Math.min(attempt > 0 && retryFirstByteMs ? retryFirstByteMs : firstByteMs, remaining), stallMs, totalMs: Math.min(totalMs, remaining), extraBody, provider, onHeaders,
+        firstByteMs: Math.min(attempt > 0 && retryFirstByteMs ? retryFirstByteMs : firstByteMs, remaining), stallMs, promptStallMs, totalMs: Math.min(totalMs, remaining), extraBody, provider, onHeaders,
         thinkingPieces, deadlineCapped: capped});
       return {...result, attempts: attempt + 1, failed};
     } catch (error) {
@@ -383,7 +385,7 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
 /** The least time an attempt is worth starting with (a request that is cut after less than this cannot have said anything). */
 export const MIN_ATTEMPT_MS = 3000;
 
-async function once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url, firstByteMs, stallMs, totalMs, extraBody, provider, onHeaders,
+async function once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url, firstByteMs, stallMs, promptStallMs = stallMs, totalMs, extraBody, provider, onHeaders,
   thinkingPieces = 0, deadlineCapped = false}) {
   const controller = new AbortController();
   let timedOut = null;   // which limit ended it: 'first', 'stall' or 'total'
@@ -393,14 +395,20 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
   const onAbort = () => controller.abort(signal.reason);
   signal?.addEventListener('abort', onAbort, {once: true});
   const total = setTimeout(() => { timedOut = 'total'; controller.abort(); }, totalMs);
-  // The first stream event is waited for `firstByteMs`; after that, silence is waited for `stallMs` (0: only the total limit).
+  // The first stream event is waited for `firstByteMs`; after that, silence is waited for `promptStallMs` until the reply text starts and for `stallMs` from
+  // then on (0: only the total limit).
+  let waitedMs = firstByteMs;
   let first = setTimeout(() => { timedOut = 'first'; controller.abort(); }, firstByteMs);
-  const quiet = () => { clearTimeout(first); if (stallMs > 0) first = setTimeout(() => { timedOut = 'stall'; controller.abort(); }, stallMs); };
+  const quiet = () => {
+    clearTimeout(first);
+    waitedMs = trace.pieces === 0 ? promptStallMs : stallMs;
+    if (waitedMs > 0) first = setTimeout(() => { timedOut = 'stall'; controller.abort(); }, waitedMs);
+  };
   // The error for the limit that fired: what the stream showed says what the model was doing (stallReason). A local server's timeout is never retried.
   const timeoutError = () => {
     trace.elapsedMs = since();
     const reason = stallReason(trace);
-    const limit = Math.round((timedOut === 'stall' ? stallMs : timedOut === 'total' ? totalMs : firstByteMs) / 1000);
+    const limit = Math.round((timedOut === 'stall' ? waitedMs : timedOut === 'total' ? totalMs : firstByteMs) / 1000);
     const lead = reason === 'no-response' ? 'did not answer in time' : reason === 'stalled' ? 'went quiet before the reply was finished' : 'did not finish in time';
     // 'stall' is silence after the first event; 'first' and 'total' are the limits on the whole wait (the total one may be the turn's own deadline).
     const silence = timedOut === 'stall' ? `${limit} s of silence` : `the ${limit} s limit`;
@@ -461,6 +469,7 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
         if (piece) {
           if (!text) { markStage('firstToken'); trace.firstTokenMs = since(); }
           trace.pieces++;
+          quiet();   // the reply text has started: from here the (shorter) stallMs counts
           text += piece;
           onDelta?.(piece, text);
           if (shouldStop?.(text)) { stoppedEarly = true; break; }

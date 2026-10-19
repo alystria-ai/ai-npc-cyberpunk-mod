@@ -51,12 +51,15 @@ export const CLOUD_CHAT_LIMITS = Object.freeze({firstByteMs: 6000, retryFirstByt
 // never explain itself. The local route therefore keeps the whole turn (the action decision, waiting for the model to load, every request, the
 // retry of a reply that broke character) inside LOCAL_TURN_BUDGET_MS, which leaves the game ten seconds to show the bridge's own failure.
 //   firstByteMs  no stream event of any kind this long after the request: the server is not working on it
-//   stallMs      once the first event came (llama-server sends one per prompt batch while it reads the prompt, then one per word), silence this long
+//   promptStallMs  once the first event came and before the first word (llama-server sends one per prompt batch while it reads the prompt): silence this long.
+//                  Generous: on a machine with no CPU to spare (the server runs below normal priority so the game keeps its frame rate; measured 2026-10-19
+//                  with every core busy: 25 s without a report from the first batch, decode at 3 to 6 tokens/s) a batch takes long, and the budget below ends the wait anyway
+//   stallMs      once the first word came, silence this long (a model that is writing sends a piece every few hundredths of a second)
 //   totalMs      one attempt; cut to what is left of the turn's budget
 //   thinkingPieces  this many pieces of the model's thinking with no reply: it would spend its whole allowance thinking; stop it and say so
 // A timeout is never retried (it would only repeat the wait); a refusal or an empty reply is, once.
 export const LOCAL_TURN_BUDGET_MS = 80_000;
-export const LOCAL_CHAT_LIMITS = Object.freeze({retries: 1, backoffMs: [400], firstByteMs: 60_000, stallMs: 25_000, totalMs: 75_000, thinkingPieces: 160});
+export const LOCAL_CHAT_LIMITS = Object.freeze({retries: 1, backoffMs: [400], firstByteMs: 60_000, promptStallMs: 60_000, stallMs: 25_000, totalMs: 75_000, thinkingPieces: 160});
 // Strings that end a reply on a server of ours whatever the model is (a fine-tune whose end-of-turn token the server does not know would run on to the
 // token limit): the end-of-turn and start-of-turn markers of the families the packs use (Gemma 4, Gemma 3, Qwen). Never part of a character's words.
 export const LOCAL_STOP_STRINGS = Object.freeze(['<turn|>', '<|turn>', '<end_of_turn>', '<start_of_turn>', '<|im_end|>', '<|im_start|>']);

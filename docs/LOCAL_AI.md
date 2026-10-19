@@ -451,9 +451,10 @@ the model loaded in 13 s (42 s the first time, shaders included) and left 3.4 GB
   the same silent timeout, and nothing in the log said which. Now (`bridge/text-provider-host.mjs`, `bridge/mistral-client.mjs`):
   - the whole turn has a budget of 80 s (`LOCAL_TURN_BUDGET_MS`) counted from the start of the turn: the action decision, the wait for the model to
     load, every request and the retry of a reply that broke character share it, and no request starts with less than 3 s left;
-  - a request ends when no stream event came for 60 s (`firstByteMs`), when it goes quiet for 25 s after that (`stallMs`) or after 75 s (`totalMs`, cut to
-    what is left of the budget). Any event counts as life, and our own llama-server is asked for `return_progress`, which makes it send one per prompt
-    batch, so a slow prompt that keeps advancing is waited for and a stuck one is named;
+  - a request ends when no stream event came for 60 s (`firstByteMs`), when it goes quiet for 60 s before the first word (`promptStallMs`) or 25 s after it
+    (`stallMs`), or after 75 s (`totalMs`, cut to what is left of the budget). Any event counts as life, and our own llama-server is asked for
+    `return_progress`, which makes it send one per prompt batch, so a slow prompt that keeps advancing is waited for and a stuck one is named. The wait
+    before the first word is long on purpose: see "A machine with no CPU to spare" below;
   - a timeout is not asked again (it would repeat the wait); a refusal or an empty reply is, once;
   - a model still loading when the budget ends ends the turn at once (`still loading`); the load goes on, so the next turn finds it ready, and with a
     cloud key saved the cloud provider answers that turn (`local-turn-fallback`);
@@ -472,6 +473,21 @@ the model loaded in 13 s (42 s the first time, shaders included) and left 3.4 GB
   in the log (`last llama-server output (...)`), and each start logs the graphics devices and the one taken (`graphics devices: ...`).
 - **Reading a report.** `localAi.diagnostics.lastTurn` says how the last turn went; `template` and `model` say what answered; `start.loadMs` and
   `engine.ram` say whether the machine was short of memory (a Gemma 4 E4B keeps its 2.8 GB of per-layer tables in system memory, mapped from the file).
+- **A machine with no CPU to spare (measured 2026-10-19).** The model server runs at below-normal priority (`LlamaProcess`, `lowerPriority`) so the game
+  keeps its CPU. With one normal-priority busy loop per logical core standing in for a game that uses every core (the laptop was also loaded by other jobs):
+  the Mature good model did **not finish loading in 170 s** (13 s on an idle machine; the log says `did not start: timeout` and shows the last output); at
+  normal priority under the same load it loaded in 38 s and answered with a first word after 9.3 s cold and 3.7 s warm, at 11 to 12 tokens/s (72 to 75
+  idle). On the Silent profile with the machine's other load, a first run at below-normal priority loaded in 590 s, its first turn had read 0 of 4,824 prompt
+  tokens after 25 s, and the next took 29 s to the first word at 3 tokens/s. So a game that keeps every core busy can turn "slow" into "never answers" for a
+  server at below-normal priority: `promptStallMs` is long for that reason, and the turn budget ends the wait. Not changed, a decision for the user (frame
+  rate comes first, and a normal-priority server takes CPU from the game while it writes): raise the priority to normal only while a reply is being written
+  (`os.setPriority` in `begin()`/`end()`), or for the first load. `diagnostics().engine.priority` and the `[local] model ready:` line say which is in force.
+- **Pack files (the letter's second part: a model row with one "uncensored" model, no warm-up notice with Mature content off).** With both packs in place the
+  list has both models (tested). With the Local AI pack's marker (`manifest.standard.json`) or its model file missing it has one, the Mature model, and with
+  Mature content off Local AI then cannot start (`mature-off`): no warm-up and no notice, and the turn goes to the fallback provider. A model file with no marker
+  is the same. `describePackFiles` (`bridge/local-ai-pack.mjs`) lists the markers, the model files each names (there or not, with sizes) and the .gguf files of
+  `models/`; `packFileProblems` turns a named file that is not there into a note in the model row's help ("Gemma 4 E4B: file not found") and one log line
+  (`[LocalAI] the Local AI folder is incomplete: ...`); the support report has the description as `localAi.packFiles`.
 - **The device pick.** An AMD APU ("AMD Radeon(TM) Graphics", "AMD Radeon(TM) 780M Graphics") reports as much memory as the system and could win the
   "most memory" pick over the graphics card of a Ryzen laptop; it is now used only when there is no other device (`isAmdApu`, `pickDevice`).
 - **Replies.** A reply ends at the first end-of-turn or turn-start marker (`<turn|>`, `<|turn>`, `<end_of_turn>`, `<start_of_turn>`, `<|im_end|>`,

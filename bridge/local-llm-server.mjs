@@ -711,7 +711,7 @@ export class LocalLlmServer extends EventEmitter {
 
     this.#loaded = {id: tier.id, name: tier.loadedName ?? tier.name, file: basename(String(tier.file)), family: modelFamily({family: tier.family, name: tier.name, file: tier.file}),
       tier: tierKey, sizeMiB: Math.round(Number(choice.sizeMiB) || 0), device: {id: device.id, name: device.name, freeMiB: Number.isFinite(freeMiB) ? Math.round(freeMiB) : null},
-      contextSize, cacheRamMiB, ram: {freeMiB: Math.round(Number(this.freeMemMiB())) || null, totalMiB: Math.round(totalmem() / 1048576)}, offload: choice.offload === true, custom: tier.custom === true, templateFlag: tier.chatTemplate ? String(tier.chatTemplate) : null,
+      contextSize, cacheRamMiB, priority: this.processOptions?.lowerPriority === false ? 'normal' : 'below-normal', ram: {freeMiB: Math.round(Number(this.freeMemMiB())) || null, totalMiB: Math.round(totalmem() / 1048576)}, offload: choice.offload === true, custom: tier.custom === true, templateFlag: tier.chatTemplate ? String(tier.chatTemplate) : null,
       template: null, bos: null, eos: null, build: null, ftype: null, loadMs: null, warmMs: null, firstTime: this.#firstTime, readyAt: null};
     this.#turns.sinceStart = 0;
     const began = this.now();
@@ -875,7 +875,7 @@ export class LocalLlmServer extends EventEmitter {
     return [`file ${loaded.file ?? 'a server you run'}`, `name "${loaded.name}"`, `id ${loaded.id}`, `family ${loaded.family ?? 'unknown'}`,
       loaded.sizeMiB ? `${loaded.sizeMiB} MiB` : null, `context ${loaded.contextSize}`, loaded.offload ? 'part on the CPU' : null,
       loaded.device ? `device ${loaded.device.id}${loaded.device.freeMiB === null ? '' : ' (' + loaded.device.freeMiB + ' MiB free before)'}` : null,
-      loaded.ram?.freeMiB ? `system memory ${loaded.ram.freeMiB} of ${loaded.ram.totalMiB} MiB free` : null, `template ${template}`, loaded.template ? `"${loaded.template.head}"` : null, loaded.eos ? `eos ${loaded.eos}` : null, loaded.build ? `build ${loaded.build}` : null,
+      loaded.priority === 'below-normal' ? 'process priority below normal (the game keeps the CPU)' : null, loaded.ram?.freeMiB ? `system memory ${loaded.ram.freeMiB} of ${loaded.ram.totalMiB} MiB free` : null, `template ${template}`, loaded.template ? `"${loaded.template.head}"` : null, loaded.eos ? `eos ${loaded.eos}` : null, loaded.build ? `build ${loaded.build}` : null,
       loaded.loadMs === null ? null : `loaded in ${(loaded.loadMs / 1000).toFixed(1)} s`, loaded.warmMs === null ? null : `warm-up ${(loaded.warmMs / 1000).toFixed(1)} s${loaded.firstTime ? ' (first time)' : ''}`]
       .filter(Boolean).join(', ');
   }
@@ -889,7 +889,7 @@ export class LocalLlmServer extends EventEmitter {
 
   /**
    * What is loaded and how the turns went, for the log and the support report: plain data, no path (file names only), no key, no text of any reply.
-   * {state, model: {id, name, file, family, tier, sizeMiB, offload, custom, external}, engine: {build, ftype, device, contextSize, cacheRamMiB, ram: {freeMiB, totalMiB}}, template: {source, chars,
+   * {state, model: {id, name, file, family, tier, sizeMiB, offload, custom, external}, engine: {build, ftype, device, contextSize, cacheRamMiB, priority, ram: {freeMiB, totalMiB}}, template: {source, chars,
    * sha, head}, tokens: {bos, eos}, start: {loadMs, warmMs, firstTime, readyAt}, turns: {ok, failed}, lastTurn, lastExit}. null when nothing was loaded yet.
    */
   diagnostics() {
@@ -899,7 +899,7 @@ export class LocalLlmServer extends EventEmitter {
       model: {id: loaded.id, name: String(loaded.name ?? '').slice(0, 80), file: loaded.file, family: loaded.family, tier: loaded.tier, sizeMiB: loaded.sizeMiB, offload: loaded.offload,
         custom: loaded.custom, ...(loaded.external ? {external: true} : {})},
       engine: {build: loaded.build, ftype: loaded.ftype, device: loaded.device ? {id: loaded.device.id, name: String(loaded.device.name ?? '').slice(0, 60), freeMiB: loaded.device.freeMiB} : null,
-        contextSize: loaded.contextSize, cacheRamMiB: loaded.cacheRamMiB, ram: loaded.ram ?? null},
+        contextSize: loaded.contextSize, cacheRamMiB: loaded.cacheRamMiB, priority: loaded.priority ?? null, ram: loaded.ram ?? null},
       template: loaded.template ? {source: loaded.templateFlag ? 'flag:' + loaded.templateFlag : 'gguf', ...loaded.template} : {source: loaded.templateFlag ? 'flag:' + loaded.templateFlag : 'not reported'},
       tokens: {bos: loaded.bos, eos: loaded.eos},
       start: {loadMs: loaded.loadMs, warmMs: loaded.warmMs, firstTime: loaded.firstTime, readyAt: loaded.readyAt ? new Date(loaded.readyAt).toISOString() : null},

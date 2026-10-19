@@ -17,6 +17,9 @@ import {TextProviderHost, localRoute, describeLocalTurn, LOCAL_CHAT_LIMITS, LOCA
 import {MistralMemory} from './mistral-memory.mjs';
 import {MistralProvider, MistralControl} from './mistral-key.mjs';
 import {PersonaBook, cleanReply} from './mistral-prompt.mjs';
+import {detectLocalAiPack, describePackFiles, packFileProblems} from './local-ai-pack.mjs';
+import {detectMaturePack} from './mature-pack.mjs';
+import {listLocalModels, describeLocalModels, chooseLocalModel} from './local-model-choice.mjs';
 
 const FAKE = fileURLToPath(new URL('./fixtures/fake-llama-server.mjs', import.meta.url));
 const KEY = 'aB3dE6gH9jK2mN5pQ8sT1vW4yZ7cF0hL';
@@ -60,7 +63,7 @@ test('a reply carries the request\'s record: when the headers, the first word an
 
 test('a server that stops while it reads the prompt is named: how far it got, not retried (a retry would repeat the wait), and the cloud\'s timeouts still are', async () => {
   let calls = 0;
-  const error = await streamChat(local({firstByteMs: 2000, stallMs: 60, totalMs: 5000, fetchImpl: async (url, init) => { calls++; return open([progress(100, 1000), progress(300, 1000)], init); }})).catch(e => e);
+  const error = await streamChat(local({firstByteMs: 30_000, promptStallMs: 60, stallMs: 60, totalMs: 60_000, fetchImpl: async (url, init) => { calls++; return open([progress(100, 1000), progress(300, 1000)], init); }})).catch(e => e);
   assert.equal(calls, 1, 'one attempt: a local timeout is not asked again');
   assert.ok(error instanceof MistralError);
   assert.equal(error.kind, 'network'); assert.equal(error.slow, true); assert.equal(error.noRetry, true); assert.equal(retryable(error), false);
@@ -82,11 +85,11 @@ test('the other ways a request goes quiet each get their own reason: no response
   assert.equal(none.reason, 'no-response'); assert.equal(calls, 1); assert.match(none.message, /did not answer in time \(no response in \d+ s\)/);
   assert.match(failureDetail(none), /^the model server gave no answer after \d+ s$/);
 
-  const silent = await streamChat(local({firstByteMs: 2000, stallMs: 50, fetchImpl: async (url, init) => open([role()], init)})).catch(e => e);
+  const silent = await streamChat(local({firstByteMs: 30_000, promptStallMs: 50, stallMs: 50, fetchImpl: async (url, init) => open([role()], init)})).catch(e => e);
   assert.equal(silent.reason, 'no-first-token');
   assert.match(failureDetail(silent), /^no first word from the model after \d+ s$/);
 
-  const partway = await streamChat(local({firstByteMs: 2000, stallMs: 50, fetchImpl: async (url, init) => open([role(), piece('Hey '), piece('V.')], init)})).catch(e => e);
+  const partway = await streamChat(local({firstByteMs: 30_000, promptStallMs: 50, stallMs: 50, fetchImpl: async (url, init) => open([role(), piece('Hey '), piece('V.')], init)})).catch(e => e);
   assert.equal(partway.reason, 'stalled'); assert.equal(partway.trace.pieces, 2);
   assert.match(partway.message, /went quiet before the reply was finished/);
   assert.match(failureDetail(partway), /^the reply stopped after 2 pieces after \d+ s$/);
@@ -98,25 +101,43 @@ test('the other ways a request goes quiet each get their own reason: no response
 });
 
 test('any stream event is life: a slow prompt that keeps reporting progress is not cut by stallMs, a silent one is', async () => {
-  // Nine progress reports 25 ms apart (about 225 ms in all, far more than stallMs), then the reply.
+  // Nine progress reports 60 ms apart (about 540 ms in all, more than stallMs), then the reply.
   const slow = init => ({ok: true, status: 200, headers: new Headers(), body: new ReadableStream({start(controller) {
     let step = 0;
     const timer = setInterval(() => {
       step++;
       if (step <= 9) controller.enqueue(encoder.encode(progress(step * 100, 900)));
       else { clearInterval(timer); controller.enqueue(encoder.encode(piece('Finally.') + finish('stop') + DONE)); controller.close(); }
-    }, 25);
+    }, 60);
     init.signal.addEventListener('abort', () => { clearInterval(timer); try { controller.error(Object.assign(Error('aborted'), {name: 'AbortError'})); } catch { /* closed */ } });
   }})});
-  const result = await streamChat(local({firstByteMs: 2000, stallMs: 80, totalMs: 5000, fetchImpl: async (url, init) => slow(init)}));
+  const result = await streamChat(local({firstByteMs: 30_000, promptStallMs: 400, stallMs: 400, totalMs: 60_000, fetchImpl: async (url, init) => slow(init)}));
   assert.equal(result.text, 'Finally.');
   assert.deepEqual(result.trace.progress, {processed: 900, total: 900, cache: 0});
+});
+
+test('before the first word the silence allowed is promptStallMs, after it stallMs: a slow batch is waited for, a reply that stops is not', async () => {
+  const slowStart = init => ({ok: true, status: 200, headers: new Headers(), body: new ReadableStream({start(controller) {
+    controller.enqueue(encoder.encode(progress(512, 4000)));
+    // 250 ms of silence in the middle of the prompt: more than stallMs, less than promptStallMs.
+    const timer = setTimeout(() => { controller.enqueue(encoder.encode(piece('Hey ') + piece('V.') + finish('stop') + DONE)); controller.close(); }, 250);
+    init.signal.addEventListener('abort', () => { clearTimeout(timer); try { controller.error(Object.assign(Error('aborted'), {name: 'AbortError'})); } catch { /* closed */ } });
+  }})});
+  const waited = await streamChat(local({firstByteMs: 30_000, promptStallMs: 2000, stallMs: 80, totalMs: 60_000, fetchImpl: async (url, init) => slowStart(init)}));
+  assert.equal(waited.text, 'Hey V.');
+  // The same silence after the first word is a stall.
+  const stopped = await streamChat(local({firstByteMs: 30_000, promptStallMs: 2000, stallMs: 80, totalMs: 60_000, fetchImpl: async (url, init) => open([piece('Hey ')], init)})).catch(e => e);
+  assert.equal(stopped.reason, 'stalled');
+  assert.match(stopped.message, /nothing for 0 s after 1 pieces/);
+  // Without promptStallMs the two are the same limit, as before.
+  const same = await streamChat(local({firstByteMs: 30_000, stallMs: 80, totalMs: 60_000, retries: 0, fetchImpl: async (url, init) => slowStart(init)})).catch(e => e);
+  assert.equal(same.reason, 'prefill-stalled');
 });
 
 test('a model that thinks instead of answering is stopped after thinkingPieces and says so; one that ends having only thought has the same reason', async () => {
   const cancelled = {done: false};
   let calls = 0;
-  const error = await streamChat(local({thinkingPieces: 5, firstByteMs: 2000, fetchImpl: async (url, init) => { calls++; return open([role(), ...Array.from({length: 12}, () => thought('hmm '))], init, {cancelled}); }})).catch(e => e);
+  const error = await streamChat(local({thinkingPieces: 5, firstByteMs: 30_000, fetchImpl: async (url, init) => { calls++; return open([role(), ...Array.from({length: 12}, () => thought('hmm '))], init, {cancelled}); }})).catch(e => e);
   assert.equal(error.kind, 'empty'); assert.equal(error.reason, 'thinking-only'); assert.equal(error.noRetry, true);
   assert.equal(calls, 1); assert.equal(cancelled.done, true, 'the stream was cancelled, not read to the end');
   assert.equal(error.trace.reasoning, 5);
@@ -146,8 +167,8 @@ test('the turn\'s deadline: an attempt is cut to what is left and none starts wi
   // An attempt whose own limits are generous is cut at the deadline (the clock is the real one here: the remaining time is about 150 ms).
   const real = () => performance.now();
   const began = real();
-  const cut = await streamChat(local({now: real, deadlineAt: real() + 150, minAttemptMs: 20, firstByteMs: 5000, totalMs: 5000, stallMs: 5000, retries: 2, fetchImpl: async (url, init) => open([role()], init)})).catch(e => e);
-  assert.ok(real() - began < 1000, 'cut at the deadline, not at the limits');
+  const cut = await streamChat(local({now: real, deadlineAt: real() + 150, minAttemptMs: 20, firstByteMs: 60_000, totalMs: 60_000, stallMs: 60_000, retries: 2, fetchImpl: async (url, init) => open([role()], init)})).catch(e => e);
+  assert.ok(real() - began < 30_000, 'cut at the deadline, not at the limits');
   assert.equal(cut.deadline, true);
   assert.equal(cut.reason, 'no-first-token');
   assert.match(failureDetail(cut), /^ran out of the turn's time: no first word from the model after \d+ s$/);
@@ -186,7 +207,7 @@ function rig(t, {env = {}, names = {}, ...options} = {}) {
   mkdirSync(tmpDir);
   const logs = [];
   const server = new LocalLlmServer({pack, listDevices: async () => DEVICES, freeVramMiB: () => null, fileSizeMiB: () => 5088, command: process.execPath, argsPrefix: [FAKE],
-    spawnImpl, log: line => logs.push(line), backoffMs: 10, startupMs: 60_000, warmup: false, contextSize: 16384, processOptions: {env, tmpDir, pollMs: 20}, ...options});
+    spawnImpl, log: line => logs.push(line), backoffMs: 10, startupMs: 180_000, warmup: false, contextSize: 16384, processOptions: {env, tmpDir, pollMs: 20}, ...options});
   t.after(async () => { await server.stop(); for (const child of children) if (child.exitCode === null) child.kill(); rmSync(directory, {recursive: true, force: true}); });
   return {server, directory, logs, pack};
 }
@@ -224,12 +245,13 @@ test('after the start the supervisor can say which file is loaded, its family, i
   assert.ok(d.engine.ram.totalMiB > 0 && d.engine.ram.freeMiB > 0 && d.engine.ram.freeMiB <= d.engine.ram.totalMiB, 'the system memory at the start (a model whose tables are mapped from disk slows down when it is short)');
   assert.equal(d.start.firstTime, false); assert.ok(d.start.loadMs >= 0); assert.match(d.start.readyAt, /^\d{4}-\d\d-\d\dT/);
   assert.deepEqual(d.turns, {ok: 0, failed: 0}); assert.equal(d.lastTurn, null); assert.equal(d.lastExit, null);
+  assert.equal(d.engine.priority, 'below-normal', 'the server leaves the CPU to the game: on a machine with none to spare that is why it can be slow');
   const text = JSON.stringify(d);
   assert.equal(text.includes(directory), false, 'no path');
   assert.doesNotMatch(text, /api-key|Bearer/);
   const line = logs.find(entry => entry.startsWith('[local] model ready:'));
   assert(line, 'the log says what is loaded');
-  assert.match(line, /file Gemma4-E4B-MiniFantasy-V1-Q4_K_M\.gguf/); assert.match(line, /family gemma-4/); assert.match(line, /template gguf \d+ chars sha [0-9a-f]{8}/); assert.match(line, /eos <eos>/); assert.match(line, /context 16384/);
+  assert.match(line, /file Gemma4-E4B-MiniFantasy-V1-Q4_K_M\.gguf/); assert.match(line, /family gemma-4/); assert.match(line, /process priority below normal/); assert.match(line, /template gguf \d+ chars sha [0-9a-f]{8}/); assert.match(line, /eos <eos>/); assert.match(line, /context 16384/);
   assert.equal(line.includes(directory), false);
 });
 
@@ -241,7 +263,7 @@ test('a server that reports no template says so; a model with its own template f
   flagged.pack.tiers.standard = {file: flagged.pack.tiers.standard.file, name: 'My model'};
   // A custom model is described by listLocalModels; here the flag is checked through the selection hook.
   const custom = new LocalLlmServer({pack: flagged.pack, listDevices: async () => DEVICES, freeVramMiB: () => null, fileSizeMiB: () => 3000, command: process.execPath, argsPrefix: [FAKE],
-    log: () => {}, warmup: false, contextSize: 8192, startupMs: 60_000, processOptions: {env: {FAKE_LLAMA_TEMPLATE: TEMPLATE}, pollMs: 20},
+    log: () => {}, warmup: false, contextSize: 8192, startupMs: 180_000, processOptions: {env: {FAKE_LLAMA_TEMPLATE: TEMPLATE}, pollMs: 20},
     selection: () => ({pin: 'custom:mine', matureOn: false, matureModels: [], customModels: [{id: 'custom:mine', name: 'Mine', file: flagged.pack.tiers.standard.file, family: 'gemma', chatTemplate: 'gemma', contextSize: null, uncensored: false}]})});
   t.after(() => custom.stop());
   await custom.ensure();
@@ -285,7 +307,7 @@ test('a server that does not start leaves its last output in the log, and one th
   const crashing = rig(t, {env: {FAKE_LLAMA_CRASH_AFTER: '1'}, maxRestarts: 0});
   await crashing.server.ensure();
   await crashing.server.prewarm([{role: 'user', content: 'hi'}]);
-  for (let wait = 0; wait < 100 && !crashing.server.diagnostics().lastExit; wait++) await sleep(50);
+  for (let wait = 0; wait < 400 && !crashing.server.diagnostics().lastExit; wait++) await sleep(50);
   const d = crashing.server.diagnostics();
   assert.equal(d.lastExit.code, 7);
   assert(crashing.logs.some(line => /llama-server stopped unexpectedly \(exit 7\)/.test(line)), crashing.logs.join('\n'));
@@ -318,8 +340,11 @@ const turn = (text, extra = {}) => ({text, context: 'CURRENT PERSON\nQuest facts
   local: {profileKey: 'judy-alvarez', name: 'Judy Alvarez', channel: 'private'},
   contextParts: {now: 'Right now (from the game, this turn only): you are with V in Kabuki, it is night.', notes: '', world: 'WORLD FACTS\n- a fact', worldBlocks: [{key: 'knowledge', text: 'WORLD FACTS\n- a fact'}], volatile: ''}, ...extra});
 
-async function hostRig(t, {env = {}, limits = {}, budgetMs, names, serverOptions = {}} = {}) {
+// preload: the model is loaded before the first turn, so the turn's own budget is not spent on starting the fake server (a computer with no CPU to spare takes minutes
+// for that); the test of a model that is still loading turns it off.
+async function hostRig(t, {env = {}, limits = {}, budgetMs, names, serverOptions = {}, preload = true} = {}) {
   const {server, logs, directory} = rig(t, {env, names, ...serverOptions});
+  if (preload) await server.ensure();
   const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => '', writeText: async () => {}});
   await provider.load(); provider.setPreference('local'); provider.apply();
   const route = localRoute({server, provider, log: line => logs.push(line)});
@@ -335,6 +360,7 @@ test('the local route\'s limits end a turn before the game gives up on it (90 s)
   assert.ok(LOCAL_CHAT_LIMITS.totalMs <= LOCAL_TURN_BUDGET_MS);
   assert.ok(LOCAL_CHAT_LIMITS.firstByteMs < LOCAL_CHAT_LIMITS.totalMs);
   assert.ok(LOCAL_CHAT_LIMITS.stallMs > 0, 'a stream that goes quiet is cut');
+  assert.ok(LOCAL_CHAT_LIMITS.promptStallMs >= LOCAL_CHAT_LIMITS.stallMs && LOCAL_CHAT_LIMITS.promptStallMs <= LOCAL_CHAT_LIMITS.totalMs, 'a slow prompt gets more patience than a writing model, and never more than the attempt');
   assert.ok(LOCAL_CHAT_LIMITS.thinkingPieces > 0);
   assert.deepEqual([...LOCAL_STOP_STRINGS], ['<turn|>', '<|turn>', '<end_of_turn>', '<start_of_turn>', '<|im_end|>', '<|im_start|>']);
   const route = localRoute({server: {ensure: async () => ({}), status: () => ({state: 'ready'})}});
@@ -363,10 +389,10 @@ test('a request to our own llama-server carries return_progress, the stop string
 });
 
 test('a server that reads the prompt for a while and then stops: the turn fails at the stall limit, names what happened, logs the model and the template, and the next turn is not blocked', async t => {
-  const {host, server, logs} = await hostRig(t, {env: {FAKE_LLAMA_TEMPLATE: TEMPLATE, FAKE_LLAMA_STALL: 'progress'}, limits: {stallMs: 120, firstByteMs: 1500, totalMs: 5000}});
+  const {host, server, logs} = await hostRig(t, {env: {FAKE_LLAMA_TEMPLATE: TEMPLATE, FAKE_LLAMA_STALL: 'progress'}, limits: {promptStallMs: 120, stallMs: 120, firstByteMs: 30_000, totalMs: 60_000}});
   const began = performance.now();
   const error = await host.reply(turn('hello there')).catch(e => e);
-  assert.ok(performance.now() - began < 3000, 'cut at stallMs, not at the 90 s of before');
+  assert.ok(performance.now() - began < 30_000, 'cut at stallMs, not at the 90 s of before');
   assert.ok(error instanceof MistralError); assert.equal(error.reason, 'prefill-stalled');
   assert.equal(error.failed.length, 1, 'not asked again');
   assert.equal(errorCodeFor(error), 'local-failed');
@@ -384,22 +410,22 @@ test('a server that reads the prompt for a while and then stops: the turn fails 
 });
 
 test('a model that thinks forever fails fast with its own reason, a stall before any word with another', async t => {
-  const thinker = await hostRig(t, {env: {FAKE_LLAMA_THINK: '400'}, limits: {thinkingPieces: 10, firstByteMs: 2000, totalMs: 5000}});
+  const thinker = await hostRig(t, {env: {FAKE_LLAMA_THINK: '400'}, limits: {thinkingPieces: 10, firstByteMs: 30_000, totalMs: 60_000}});
   const began = performance.now();
   const error = await thinker.host.reply(turn('hello there')).catch(e => e);
-  assert.ok(performance.now() - began < 3000);
+  assert.ok(performance.now() - began < 30_000);
   assert.equal(error.reason, 'thinking-only'); assert.equal(error.kind, 'empty');
   assert(thinker.logs.some(entry => /^\[LocalTurn\] FAILED: the model wrote only thinking and no reply \(thinking-only\)/.test(entry)), thinker.logs.join('\n'));
   assert.equal(errorCodeFor(error), 'local-failed');
 
-  const silent = await hostRig(t, {env: {FAKE_LLAMA_STALL: 'role'}, limits: {stallMs: 100, firstByteMs: 1500, totalMs: 5000}});
+  const silent = await hostRig(t, {env: {FAKE_LLAMA_STALL: 'role'}, limits: {promptStallMs: 100, stallMs: 100, firstByteMs: 30_000, totalMs: 60_000}});
   const quiet = await silent.host.reply(turn('hello there')).catch(e => e);
   assert.equal(quiet.reason, 'no-first-token');
   assert(silent.logs.some(entry => /^\[LocalTurn\] FAILED: no first word from the model after \d+ s \(no-first-token\)/.test(entry)), silent.logs.join('\n'));
 });
 
 test('a reply that stops partway is a failure with its pieces counted, never a half reply', async t => {
-  const {host, logs} = await hostRig(t, {env: {FAKE_LLAMA_STALL: 'mid', FAKE_LLAMA_REPLY: 'One two three four five six.'}, limits: {stallMs: 100, firstByteMs: 1500, totalMs: 5000}});
+  const {host, logs} = await hostRig(t, {env: {FAKE_LLAMA_STALL: 'mid', FAKE_LLAMA_REPLY: 'One two three four five six.'}, limits: {stallMs: 100, firstByteMs: 30_000, totalMs: 60_000}});
   const error = await host.reply(turn('hello there')).catch(e => e);
   assert.equal(error.reason, 'stalled'); assert.equal(error.trace.pieces, 2);
   assert(logs.some(entry => /^\[LocalTurn\] FAILED: the reply stopped after 2 pieces after \d+ s \(stalled\).*2 pieces/.test(entry)), logs.join('\n'));
@@ -425,15 +451,16 @@ test('the turn budget covers the whole turn: when it is spent no request is sent
 });
 
 test('a model that is still loading when the budget ends: the turn says so at once, the load goes on, and the next turn is answered', async t => {
-  const {host, route, server, logs} = await hostRig(t, {env: {FAKE_LLAMA_DELAY_MS: '1500', FAKE_LLAMA_REPLY: 'Ready now, V.'}});
+  const {host, route, server, logs} = await hostRig(t, {env: {FAKE_LLAMA_DELAY_MS: '3000', FAKE_LLAMA_REPLY: 'Ready now, V.'}, preload: false});
   route.turnBudgetMs = 600;
   const began = performance.now();
   const error = await host.reply(turn('hello there')).catch(e => e);
-  assert.ok(performance.now() - began < 1400, 'not the whole load');
+  assert.notEqual(server.status().state, 'ready', 'the turn ended while the model was still loading');
+  assert.ok(performance.now() - began < 30_000);
   assert.equal(error.reason, 'loading'); assert.equal(error.noRetry, true); assert.equal(errorCodeFor(error), 'local-failed');
   assert(logs.some(entry => /^\[LocalTurn\] FAILED: the model was still loading after \d+ s/.test(entry)), logs.join('\n'));
   // The load was not stopped by that: a later turn finds the model, with a normal budget.
-  route.turnBudgetMs = 20_000;
+  route.turnBudgetMs = 90_000;
   const later = await host.reply(turn('hello again'));
   assert.equal(later.text, 'Ready now, V.');
   assert.equal(server.status().state, 'ready');
@@ -488,13 +515,14 @@ test('the support report copies the diagnostics as plain data: short strings, nu
     mkdirSync(runtime, {recursive: true});
     writeFileSync(join(runtime, 'mistral-state.json'), JSON.stringify({version: 1, localAi: 'ready', localDiagnostics: {
       model: {file: 'Gemma4-E4B-MiniFantasy-V1-Q4_K_M.gguf', family: 'gemma-4', sizeMiB: 5088, offload: false}, template: {source: 'gguf', chars: 16804, sha: '1a2b3c4d', head: 'x'.repeat(500)},
-      lastTurn: {ok: false, reason: 'no-first-token', detail: 'no first word from the model after 60 s', headersMs: 12, firstWordMs: null}, notAnObject: ['a', 'b'], fn: undefined}}));
+      lastTurn: {ok: false, reason: 'no-first-token', detail: 'no first word from the model after 60 s', headersMs: 12, firstWordMs: null}, notAnObject: ['a', 'b'], deep: {a: {b: {c: {d: {e: {f: 1}}}}}}}}));
     const section = await localAiSection({runtime, project: directory, environment: {}});
     assert.equal(section.diagnostics.model.file, 'Gemma4-E4B-MiniFantasy-V1-Q4_K_M.gguf');
     assert.equal(section.diagnostics.template.chars, 16804);
     assert.equal(section.diagnostics.template.head.length, 200, 'long text is clipped');
     assert.equal(section.diagnostics.lastTurn.reason, 'no-first-token'); assert.equal(section.diagnostics.lastTurn.firstWordMs, null);
-    assert.equal('notAnObject' in section.diagnostics, false, 'arrays are not copied');
+    assert.deepEqual(section.diagnostics.notAnObject, ['a', 'b'], 'a short list is copied');
+    assert.deepEqual(section.diagnostics.deep.a.b.c.d, {}, 'nested deeper than six levels is cut');
     writeFileSync(join(runtime, 'mistral-state.json'), JSON.stringify({version: 1, localAi: 'ready'}));
     assert.equal((await localAiSection({runtime, project: directory, environment: {}})).diagnostics, null);
   } finally { rmSync(directory, {recursive: true, force: true}); }
@@ -542,4 +570,85 @@ test('the notice for a failed local turn is the translated sentence plus the bri
   for (const phrase of ['no first word from the model after 60 s', 'ran out of the turn\'s time: no first word from the model after 61 s', 'stuck reading the prompt (2048 of 4824 tokens after 40 s)',
     'the model was still loading after 80 s (a first start compiles shaders for a minute or two)', 'the prompt (9000 tokens) does not fit the model\'s context (8192)'])
     assert.match(run(`{errorCode = 'local-failed', errorDetail = '${phrase.replace(/'/g, '\\\'')}'}`), /\n\(/, phrase);
+});
+
+// ---- both packs installed: what the folder holds, and the install that did not finish -------------------------------------------------------
+
+const ENGINE = 'llama/llama-server.exe';
+const EMBED = {file: 'models/granite-embedding-107m-multilingual-Q8_0.gguf', dim: 384, id: 'granite-embedding-107m-multilingual-q8_0'};
+/** The two packs in the real shape (names of packaging/release.config.json). `omit` leaves files out, as a zip that was not fully extracted does. */
+function packFolder(t, {omit = [], orphan = null} = {}) {
+  const directory = mkdtempSync(join(tmpdir(), 'two-packs-'));
+  t.after(() => rmSync(directory, {recursive: true, force: true}));
+  const put = (relative, text = 'x') => { if (omit.includes(relative)) return; const path = join(directory, relative); mkdirSync(join(path, '..'), {recursive: true}); writeFileSync(path, text); };
+  put(ENGINE); put(EMBED.file);
+  put('models/gemma-4-E4B_q4_0-it.gguf', 'a'.repeat(2048));
+  put('manifest.standard.json', JSON.stringify({version: 1, server: ENGINE, standard: {file: 'models/gemma-4-E4B_q4_0-it.gguf', name: 'Gemma 4 E4B'}, embed: EMBED}));
+  put('models/Gemma4-E4B-MiniFantasy-V1-Q4_K_M.gguf', 'b'.repeat(4096));
+  put('manifest.mature-standard.json', JSON.stringify({version: 1, pack: 'mature', server: ENGINE, good: {file: 'models/Gemma4-E4B-MiniFantasy-V1-Q4_K_M.gguf', name: 'Gemma 4 E4B · uncensored', family: 'gemma-4'}, embed: EMBED}));
+  if (orphan) put('models/' + orphan, 'c');
+  return directory;
+}
+const listed = directory => {
+  const environment = {CYBERPUNK_CONVAI_LOCAL_AI: directory};
+  const pack = detectLocalAiPack({project: directory, environment}), mature = detectMaturePack({project: directory, environment});
+  return {pack, models: listLocalModels({pack, matureModels: mature.models}), files: describePackFiles({project: directory, environment})};
+};
+
+test('with both packs in place the list has both models, the folder description names every marker and model file with its size, and nothing is missing', t => {
+  const {pack, models, files} = listed(packFolder(t));
+  assert.deepEqual(describeLocalModels(models, () => 5000).map(model => model.name), ['Gemma 4 E4B', 'Gemma 4 E4B · uncensored']);
+  assert.deepEqual(files.markers.map(marker => [marker.name, marker.mature, marker.declares.map(item => [item.tier, item.name, item.file, item.present, item.sizeMiB])]), [
+    ['manifest.standard.json', false, [['standard', 'Gemma 4 E4B', 'models/gemma-4-E4B_q4_0-it.gguf', true, 0]]],
+    ['manifest.mature-standard.json', true, [['good', 'Gemma 4 E4B · uncensored', 'models/Gemma4-E4B-MiniFantasy-V1-Q4_K_M.gguf', true, 0]]]]);
+  assert.deepEqual(files.files.map(item => [item.file, item.named]), [
+    ['Gemma4-E4B-MiniFantasy-V1-Q4_K_M.gguf', true], ['gemma-4-E4B_q4_0-it.gguf', true], ['granite-embedding-107m-multilingual-Q8_0.gguf', true]]);
+  assert.deepEqual(packFileProblems(files), []);
+  assert.equal(pack.tiers.standard.name, 'Gemma 4 E4B');
+  // With Mature content off the normal model is the default, with it on the uncensored one: nothing is blocked.
+  assert.equal(chooseLocalModel({models, matureOn: false, freeMiB: 12000, sizeOf: () => 5000}).model.id, 'standard');
+  assert.equal(chooseLocalModel({models, matureOn: true, freeMiB: 12000, sizeOf: () => 5000}).model.id, 'mature:good');
+});
+
+test('the install that did not finish (the Local AI pack\'s model file is not there): only the Mature model is listed, Mature off starts nothing, and the folder description says which model is missing', t => {
+  const {models, files} = listed(packFolder(t, {omit: ['models/gemma-4-E4B_q4_0-it.gguf']}));
+  assert.deepEqual(describeLocalModels(models, () => 5000).map(model => model.name), ['Gemma 4 E4B · uncensored'], 'the symptom of the letter: one model in the list');
+  assert.deepEqual(packFileProblems(files), [{name: 'Gemma 4 E4B', reason: 'missing'}]);
+  assert.equal(files.markers[0].declares[0].present, false); assert.equal(files.markers[0].declares[0].sizeMiB, null);
+  assert.equal(files.files.some(item => item.file === 'gemma-4-E4B_q4_0-it.gguf'), false);
+  assert.throws(() => chooseLocalModel({models, matureOn: false, freeMiB: 12000, sizeOf: () => 5000}), error => error.reason === 'mature-off');
+  assert.equal(chooseLocalModel({models, matureOn: true, freeMiB: 12000, sizeOf: () => 5000}).model.id, 'mature:good');
+  // The Mature pack's own model missing is the same note.
+  const noMature = listed(packFolder(t, {omit: ['models/Gemma4-E4B-MiniFantasy-V1-Q4_K_M.gguf']}));
+  assert.deepEqual(packFileProblems(noMature.files), [{name: 'Gemma 4 E4B · uncensored', reason: 'missing'}]);
+  assert.deepEqual(describeLocalModels(noMature.models, () => 5000).map(model => model.name), ['Gemma 4 E4B']);
+});
+
+test('a model file with no marker (the marker is extracted last, or never was) is shown as not named; a folder with nothing is described as empty and never throws', t => {
+  const {files} = listed(packFolder(t, {omit: ['manifest.standard.json'], orphan: 'Some-Other-Model-Q4.gguf'}));
+  assert.deepEqual(files.markers.map(marker => marker.name), ['manifest.mature-standard.json']);
+  assert.deepEqual(files.files.filter(item => !item.named).map(item => item.file), ['Some-Other-Model-Q4.gguf', 'gemma-4-E4B_q4_0-it.gguf']);
+  assert.deepEqual(describePackFiles({project: join(tmpdir(), 'no-such-folder-' + process.pid), environment: {}}), {markers: [], files: []});
+  assert.deepEqual(packFileProblems(undefined), []);
+  // A marker that names a path outside the pack is not followed.
+  const evil = mkdtempSync(join(tmpdir(), 'evil-pack-'));
+  t.after(() => rmSync(evil, {recursive: true, force: true}));
+  writeFileSync(join(evil, 'manifest.standard.json'), JSON.stringify({version: 1, server: ENGINE, standard: {file: '../outside.gguf', name: 'Outside'}}));
+  assert.deepEqual(describePackFiles({project: evil, environment: {CYBERPUNK_CONVAI_LOCAL_AI: evil}}).markers[0].declares, []);
+});
+
+test('the support report carries the folder description and the bridge puts a missing pack model into the notes of the model row', async t => {
+  const {localAiSection} = await import('./support-report.mjs');
+  const directory = packFolder(t, {omit: ['models/gemma-4-E4B_q4_0-it.gguf']});
+  const runtime = join(directory, 'runtime');
+  mkdirSync(runtime);
+  writeFileSync(join(runtime, 'mistral-state.json'), JSON.stringify({version: 1, localAi: 'failed'}));
+  const section = await localAiSection({runtime, project: directory, environment: {CYBERPUNK_CONVAI_LOCAL_AI: directory}});
+  assert.equal(section.packFiles.markers[0].name, 'manifest.standard.json');
+  assert.equal(section.packFiles.markers[0].declares[0].present, false);
+  assert.deepEqual(section.packFiles.files.map(item => item.file), ['Gemma4-E4B-MiniFantasy-V1-Q4_K_M.gguf', 'granite-embedding-107m-multilingual-Q8_0.gguf']);
+  assert.equal(JSON.stringify(section.packFiles).includes(directory), false, 'no path');
+  const bridge = await readFile(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  assert.match(bridge, /packFileProblems\(describePackFiles\(\{project\}\)\)/);
+  assert.match(bridge, /const customModelProblems = \(\) => \[\.\.\.customScan\.problems\.map/);
 });
