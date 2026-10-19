@@ -394,7 +394,7 @@
     "It could not be saved.": "It could not be saved.",
     "Johnny Silverhand answers when you use the talk keys with nobody in front of you, as the voice in V’s head. He knows your jobs and your story so far, and what he thinks of you follows it.\n\nOnly while the story has him in V’s head. He stays quiet during scenes, calls, dialogue choices and fights, and when the game gives him a line.": "Johnny Silverhand answers when you use the talk keys with nobody in front of you, as the voice in V’s head. He knows your jobs and your story so far, and what he thinks of you follows it.\n\nOnly while the story has him in V’s head. He stays quiet during scenes, calls, dialogue choices and fights, and when the game gives him a line.",
     "Johnny in your head": "Johnny in your head",
-    "Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the free shared plan each remark uses one of the day’s turns; remarks never take more than a tenth of them.": "Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the free shared plan each remark uses one of the day’s turns; remarks never take more than a tenth of them.",
+    "Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the Convai free tier each remark uses one of the day’s turns; remarks never take more than a tenth of them.": "Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the Convai free tier each remark uses one of the day’s turns; remarks never take more than a tenth of them.",
     "Johnny speaks up": "Johnny speaks up",
     "Johnny’s standing": "Johnny’s standing",
     "Joining...": "Joining...",
@@ -922,8 +922,8 @@
     "Where the logs are": "Where the logs are",
     "Where you and Johnny stand in this save’s story. It follows what you have been through together, such as Alt, the oil fields, Rogue and the reunion concert.\n\nRead from your save; nothing is stored.": "Where you and Johnny stand in this save’s story. It follows what you have been through together, such as Alt, the oil fields, Rogue and the reunion concert.\n\nRead from your save; nothing is stored.",
     "Who this character is, what they know and how they look. A long bio makes replies slower, so keep it tight.": "Who this character is, what they know and how they look. A long bio makes replies slower, so keep it tight.",
-    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.": "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.",
-    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.": "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.",
+    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.": "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.",
+    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.": "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.",
     "Whose memories": "Whose memories",
     "Write a message...  /  Enter to send  /  Esc to stop typing": "Write a message...  /  Enter to send  /  Esc to stop typing",
     "YOUR PARTY": "YOUR PARTY",
@@ -1496,7 +1496,7 @@
       "Interface language",
       "Johnny Silverhand answers when you use the talk keys with nobody in front of you, as the voice in V’s head. He knows your jobs and your story so far, and what he thinks of you follows it.\n\nOnly while the story has him in V’s head. He stays quiet during scenes, calls, dialogue choices and fights, and when the game gives him a line.",
       "Johnny in your head",
-      "Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the free shared plan each remark uses one of the day’s turns; remarks never take more than a tenth of them.",
+      "Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the Convai free tier each remark uses one of the day’s turns; remarks never take more than a tenth of them.",
       "Johnny speaks up",
       "Lip sync delay (Bluetooth)",
       "Live holocall picture",
@@ -2114,8 +2114,8 @@
       "Warming up",
       "Wary",
       "Who this character is, what they know and how they look. A long bio makes replies slower, so keep it tight.",
-      "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.",
-      "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.",
+      "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.",
+      "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.",
       "You are already on a call.",
       "You have changes that are not saved. Leave without saving?",
       "You have used today’s {limit} turns, which come back tomorrow. To keep talking now, choose Mistral (with your free key, about 5,000 turns a day) or Local AI (unlimited).",
@@ -5072,7 +5072,7 @@
         "mod/manager-ui.lua:1331"
       ]
     },
-    "Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the free shared plan each remark uses one of the day’s turns; remarks never take more than a tenth of them.": {
+    "Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the Convai free tier each remark uses one of the day’s turns; remarks never take more than a tenth of them.": {
       "contexts": [
         "page.setting"
       ],
@@ -9508,7 +9508,7 @@
         "mod/character-editor.lua:60"
       ]
     },
-    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.": {
+    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.": {
       "contexts": [
         "ui.localized"
       ],
@@ -9516,7 +9516,7 @@
         "mod/manager-ui.lua:754"
       ]
     },
-    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.": {
+    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.": {
       "contexts": [
         "ui.localized"
       ],
