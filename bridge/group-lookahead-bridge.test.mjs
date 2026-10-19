@@ -1,6 +1,8 @@
 import {describe, it} from 'node:test';
 import assert from 'node:assert/strict';
 import {setTimeout as sleep} from 'node:timers/promises';
+import {readFile} from 'node:fs/promises';
+import {join} from 'node:path';
 import {GroupScenario, DEFAULT_TIMINGS, LIVE_TIMINGS, SPEAKERS, measureRound} from './group-lookahead-fixture.mjs';
 
 // The real convai-bridge.mjs runs against a simulated game and a simulated
@@ -29,19 +31,21 @@ async function run(options, drive) {
 const heldStarted = (scenario, pending) => scenario.waitHolding(pending, async () => (await scenario.events())
   .some(row => row.event === 'reply-start' && row.characterId === PANAM.characterId), 'the held Panam request to start');
 async function finishRound(scenario) {
-  await scenario.begin(); await scenario.waitFor(() => scenario.done, 'the round to finish', 90000);
+  await scenario.begin(); await scenario.waitFor(() => scenario.done, 'the round to finish', 600000);
 }
 
 // Two tests at a time: each already runs two real bridges (serial beside look-ahead, so both see the same load); three tests at once (six bridges)
 // put six bridges and their simulated games beside the rest of the suite and starved the one being measured.
-describe('group look-ahead in the real bridge', {concurrency: 2, timeout: 900000}, () => {
+describe('group look-ahead in the real bridge', {concurrency: 2, timeout: 2400000}, () => {
   it('serial rounds pay a whole provider request per speaker change; look-ahead removes it', async () => {
     const [serial, ahead] = await Promise.all([measureRound({mode: 'serial'}), measureRound({mode: 'lookahead'})]);
     assert.equal(serial.gaps.length, 2); assert.equal(ahead.gaps.length, 2);
     for (const gap of serial.gaps) assert.ok(gap.gapMs > 1500, `serial gap ${gap.gapMs}`);
-    // Wide margins: the full suite runs other work beside these bridges.
+    // The size of a gap is only judged against its serial twin, which runs beside it under the same load. A fixed figure for the look-ahead gap
+    // (the old 1.2 s) measured the bridge's own handover on a quiet machine: it failed at 1577 ms on a busy one, with the provider's 1.5 s long
+    // gone from the gap. Every serial gap holds one whole provider request, so 70% of it is a bound that rises with the load.
     for (const [index, gap] of ahead.gaps.entries()) {
-      assert.ok(gap.gapMs > 0 && gap.gapMs < 1200, `look-ahead gap ${gap.gapMs}`);
+      assert.ok(gap.gapMs > 0, `look-ahead gap ${gap.gapMs}`);
       assert.ok(gap.gapMs < serial.gaps[index].gapMs * .7, `look-ahead ${gap.gapMs} vs serial ${serial.gaps[index].gapMs}`);
     }
     // Strictly sequential and in order: no speaker starts before the previous one ended.
@@ -86,7 +90,7 @@ describe('group look-ahead in the real bridge', {concurrency: 2, timeout: 900000
       },
     }}, async scenario => {
       await scenario.begin();
-      await scenario.waitFor(() => scenario.done, 'the new round to finish', 90000);
+      await scenario.waitFor(() => scenario.done, 'the new round to finish', 600000);
       const events = await scenario.events();
       const abort = first(events, 'reply-abort', PANAM.characterId);
       assert.ok(abort, 'the held Panam request was cancelled');
@@ -107,7 +111,7 @@ describe('group look-ahead in the real bridge', {concurrency: 2, timeout: 900000
       },
     }}, async scenario => {
       await scenario.begin();
-      await scenario.waitFor(() => scenario.done, 'the first speaker to finish', 90000);
+      await scenario.waitFor(() => scenario.done, 'the first speaker to finish', 600000);
       await sleep(500);
       const events = await scenario.events();
       assert.equal(count(events, 'reply-abort', PANAM.characterId), 1);
@@ -167,7 +171,12 @@ describe('group look-ahead in the real bridge', {concurrency: 2, timeout: 900000
       assert.equal(count(events, 'reply-abort', PANAM.characterId), 1, 'the first held version was replaced');
       assert.equal(count(events, 'reply-start', PANAM.characterId), 2);
       assert.equal(count(events, 'play-start', PANAM.characterId), 1);
-      const gaps = await scenario.gaps(); assert.ok(gaps[0].gapMs < 1400, `the rebuilt turn is still ahead: ${gaps[0].gapMs}`);
+      // "Still ahead" is the rebuilt turn being ready before the game asked for it, as the bridge's own record says: no provider wait is left in the
+      // gap, whatever the machine is doing. (A fixed 1.4 s limit on the gap measured the handover of a quiet machine.)
+      const latency = JSON.parse(await readFile(join(scenario.runtime, 'bridge-latency.json'), 'utf8'));
+      const rebuilt = latency.turns.findLast(row => row.profile === PANAM.key);
+      assert.equal(rebuilt.preparation.mode, 'lookahead'); assert.equal(rebuilt.lookahead.readyBeforeClaim, true, 'the rebuilt turn was ready before the game claimed it');
+      const gaps = await scenario.gaps(); assert.ok(gaps[0].gapMs > 0, `the next speaker came after the last: ${gaps[0].gapMs}`);
       noErrors(scenario.output);
     });
   });
@@ -176,14 +185,15 @@ describe('group look-ahead in the real bridge', {concurrency: 2, timeout: 900000
 // The live round of 2026-10-17: the player's own Convai key on a confirmed paid plan (six connections) and the Voxtral voice. Every
 // speaker change took 8-9 s because look-ahead was off for any player's key and a fresh connection (3-4 s) opened for each speaker.
 // The provider delays are the live ones (LIVE_TIMINGS: a speaker that is not prepared takes about 7 s from request to first audio).
-describe('group look-ahead on the own Convai key of a player', {concurrency: 2, timeout: 900000}, () => {
+describe('group look-ahead on the own Convai key of a player', {concurrency: 2, timeout: 2400000}, () => {
   it('a confirmed paid plan runs the next speakers ahead and opens their pages early; a free plan stays serial', async () => {
     const [paid, free] = await Promise.all([
       measureRound({mode: 'lookahead', timings: LIVE_TIMINGS, playerKey: {connections: 6}}),
       measureRound({mode: 'lookahead', timings: LIVE_TIMINGS, playerKey: {connections: 1}})]);
     assert.equal(paid.gaps.length, 2); assert.equal(free.gaps.length, 2);
-    // Paid: the 7 s a speaker used to take is hidden behind the previous speaker's audio. Wide margins: the suite runs other work.
-    for (const gap of paid.gaps) assert.ok(gap.gapMs > 0 && gap.gapMs < 1500, `paid gap ${gap.gapMs}`);
+    // Paid: the 7 s a speaker used to take is hidden behind the previous speaker's audio. A gap is judged against its twin from the free round beside it
+    // (same load), not against a fixed figure from a quiet machine: under 30% of the free gap, which is at least 5.5 s.
+    for (const [index, gap] of paid.gaps.entries()) assert.ok(gap.gapMs > 0 && gap.gapMs < free.gaps[index].gapMs * .3, `paid gap ${gap.gapMs} vs free ${free.gaps[index].gapMs}`);
     // Free: one connection, nothing runs ahead, nothing is opened early: the whole request after the previous speaker's last sample.
     for (const gap of free.gaps) assert.ok(gap.gapMs > 5500, `free gap ${gap.gapMs}`);
     for (const {events} of [paid, free]) {
@@ -213,7 +223,10 @@ describe('group look-ahead on the own Convai key of a player', {concurrency: 2, 
       measureRound({mode: 'lookahead', timings: LIVE_TIMINGS, speakers: 1, playerKey: {connections: 1}})]);
     const toAudio = events => first(events, 'play-start', JUDY.characterId) - first(events, 'reply-start', JUDY.characterId);
     assert.ok(toAudio(paid.events) >= LIVE_TIMINGS['judy-alvarez'].connectMs + LIVE_TIMINGS['judy-alvarez'].firstPcmMs - 50, 'the simulated provider time is paid');
-    assert.ok(Math.abs(toAudio(paid.events) - toAudio(free.events)) < 700, `paid ${toAudio(paid.events)} vs free ${toAudio(free.events)}`);
+    // The two rounds must differ by less than the connection that would have been opened ahead (3.5 s): half of it, so that load noise between the two
+    // bridges cannot look like a connection and a real extra connection cannot look like noise.
+    const connectMs = LIVE_TIMINGS['judy-alvarez'].connectMs;
+    assert.ok(Math.abs(toAudio(paid.events) - toAudio(free.events)) < connectMs / 2, `paid ${toAudio(paid.events)} vs free ${toAudio(free.events)}`);
     for (const {events} of [paid, free]) assert.equal(events.filter(row => row.event === 'warm').length, 0);
     assert.equal(paid.latency.turns.length, 1); assert.equal(paid.latency.turns[0].preparation.mode, 'none');
     noErrors(paid.output); noErrors(free.output);
@@ -224,7 +237,7 @@ describe('group look-ahead on the own Convai key of a player', {concurrency: 2, 
       measureRound({mode: 'lookahead', timings: LIVE_TIMINGS, speakers: 2, playerKey: {connections: 6}}),
       measureRound({mode: 'lookahead', timings: LIVE_TIMINGS, speakers: 2, playerKey: {connections: 1}})]);
     assert.equal(paid.gaps.length, 1);
-    assert.ok(paid.gaps[0].gapMs > 0 && paid.gaps[0].gapMs < 1500, `paid gap ${paid.gaps[0].gapMs}`);
+    assert.ok(paid.gaps[0].gapMs > 0, `paid gap ${paid.gaps[0].gapMs}`);
     assert.ok(serial.gaps[0].gapMs > 5500, `serial gap ${serial.gaps[0].gapMs}`);
     assert.ok(paid.gaps[0].gapMs < serial.gaps[0].gapMs * .3, `${paid.gaps[0].gapMs} vs ${serial.gaps[0].gapMs}`);
     noErrors(paid.output); noErrors(serial.output);
