@@ -1868,12 +1868,12 @@
     },
     {
       "key": "aaron",
-      "words": 730,
+      "words": 736,
       "speakingStyleWords": 151,
       "sampleDialogueWords": 220,
       "voice": "Logan (Expressive Young-Adult American Male)",
       "sources": 2,
-      "researchRevision": "e7f5829fbf620408cf71255a59bd8b286b14ece672bba6dcb26e396043a87556"
+      "researchRevision": "f9a51b786eb885f8769037f360407da159809a7f7cd1ad9f9c81d5035e97efbb"
     },
     {
       "key": "adam-smasher",
@@ -2129,12 +2129,12 @@
     },
     {
       "key": "jefferson-peralez",
-      "words": 875,
+      "words": 892,
       "speakingStyleWords": 199,
       "sampleDialogueWords": 208,
       "voice": "Noah (Confident Adult American Male)",
       "sources": 6,
-      "researchRevision": "75faa14e1a31d11db8d0512fc6881f2203f178af8ca16ab0b4d65c7b2ce32f95"
+      "researchRevision": "05be12177b29ec89ec517ea64cf323e938b851ea08d57a75d319a4bc65d88aed"
     },
     {
       "key": "jesse",
@@ -2755,7 +2755,7 @@
       "sampleDialogueWords": 156,
       "voice": "Julia (Expressive Young-Adult American Female)",
       "sources": 3,
-      "researchRevision": "8e91bb0d62df6ce8bdaf5635e838ddf2df5f140f2f936d253ccb9c7e05fdd1ed"
+      "researchRevision": "fb148fa6a04b0035d05f7cc238902665db1208e5f0b342c5f7a51a32fc4e2a59"
     },
     {
       "key": "jacob-long",
