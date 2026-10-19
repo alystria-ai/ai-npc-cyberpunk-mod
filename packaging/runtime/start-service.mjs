@@ -52,7 +52,15 @@ if (layout.dataHome) {
   if (moved?.found && moved.state === 'deferred') layout = installLayout({appDirectory, gameRoot, dataHome: null});
 }
 
-mkdirSync(layout.state, {recursive: true});
+// A data folder that cannot be made (a read-only or full disk, a blocked path) ends the start; say so in the status the game reads, because
+// the launcher sends this process's own output nowhere.
+try { mkdirSync(layout.state, {recursive: true}); }
+catch (error) {
+  process.stderr.write(`Conversation service: the data folder ${layout.state} cannot be created: ${error?.message || error}
+`);
+  publishFailure('install-incomplete');
+  process.exit(1);
+}
 const logPath = resolve(layout.state, 'bridge-service.log');
 const log = message => { try { appendFileSync(logPath, `${new Date().toISOString()} ${message}\n`); } catch {} };
 for (const message of early) log(message);
@@ -124,13 +132,23 @@ if (prepareOnly) {
 for (const name of Object.keys(process.env)) if (!(name in env)) delete process.env[name];
 Object.assign(process.env, env);
 
-const {BridgeSupervisor, parseSupervisorArguments} = await import('../bridge/bridge-supervisor.mjs');
+// A Runtime extracted only in part (the supervisor or a file it imports is missing) fails here. Nothing else would say so: Node's own
+// error goes to the launcher's null output, and without a status the game reads the service as never started.
+let supervisorModule;
+try { supervisorModule = await import('../bridge/bridge-supervisor.mjs'); }
+catch (error) {
+  log(`Loading the conversation service failed: ${error?.stack || error}`);
+  publishFailure('install-incomplete');
+  process.exit(1);
+}
+const {BridgeSupervisor, parseSupervisorArguments} = supervisorModule;
 let options;
 try {
   options = parseSupervisorArguments([...argv.filter(value => value !== '--prepare-only'),
     '--project', appDirectory, '--state', layout.state, '--key-file', prepared.keyFile], {defaultProject: appDirectory});
 } catch (error) {
   log(`Supervisor arguments rejected: ${error.message}`);
+  publishFailure('service-error');
   process.exit(2);
 }
 legacyCleanup(45_000);

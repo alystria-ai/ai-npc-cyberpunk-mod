@@ -4,14 +4,16 @@
 --   * the bridge's own heartbeats (knowledge-status.json every 0.5 s and
 --     local-voice-state.json every 5 s): fresh means the service is up;
 --   * bridge-service.json from the autostart supervisor or its RED4ext launcher.
--- With no evidence at all (a fresh install, tests) it stays silent, so the
--- previous behaviour is unchanged. Nothing here touches native game state.
+-- With no evidence at all in the first seconds after load it stays silent (a bridge started by hand may still be coming up); after that,
+-- no trace of this session (no launcher status, no heartbeat) means the service never started, and it is said at once.
+-- Nothing here touches native game state.
 if type(convaiServiceStatus) == 'table' and convaiServiceStatus.version == 1 then return convaiServiceStatus end
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 local M = {version = 1}
 local FRESH_MS = 20000          -- a heartbeat or supervisor status this recent is current
 local SESSION_WINDOW_S = 180    -- a launcher failure written this long before load is this session's
 local NOTICE_INTERVAL_S = 3
+local NEVER_GRACE_S = 15         -- seconds after load before "no trace of this session" counts as a service that never started
 local loadedAt = os.time()
 local cache, lastNoticeCheck, noticedSince = {}, nil, nil
 
@@ -72,6 +74,10 @@ function M.unavailable(now)
         end
         if current and service.state == 'stopped' then return {kind = 'stopped'} end
     end
+    -- No trace of this session at all (the Runtime package is missing, RED4ext did not load its launcher, the launcher was blocked): the
+    -- RED4ext launcher starts the service before this script loads, so a working install always has one by now. Say so, instead of
+    -- letting a request wait its full 90 seconds (or telling the player to restart the game for a service an earlier session left behind).
+    if now - loadedAt >= NEVER_GRACE_S and M.reach(now) == 'never' then return {kind = 'failed'} end
     -- Only stale traces remain: nothing is serving this game now.
     if knowledge or voice or service then return {kind = 'stopped'} end
     return nil

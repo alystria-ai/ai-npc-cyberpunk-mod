@@ -255,7 +255,18 @@ export class TextProviderHost {
    * It is written as usual, but nothing is remembered and no companion action is handed to the game until `confirmed` resolves; when it rejects
    * (the final words differ) the reply ends there with that error and leaves no trace.
    */
-  async reply(config, {signal, stream, confirmed} = {}) {
+  async reply(config, options = {}) {
+    try {
+      return await this.#reply(config, options);
+    } catch (error) {
+      // A fault before the model is asked (no route for the provider, memory that cannot answer) must not leave the voice's stream open,
+      // or the voice waits for a head that never comes. A stream that already finished or failed ignores this.
+      try { options?.stream?.fail?.(error); } catch { /* a listener never breaks the turn */ }
+      throw error;
+    }
+  }
+
+  async #reply(config, {signal, stream, confirmed} = {}) {
     if (signal?.aborted) throw cancelled();
     const local = config?.local;
     if (!local || typeof local.profileKey !== 'string') throw new MistralError('request', 'turn has no character');

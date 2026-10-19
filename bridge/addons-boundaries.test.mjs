@@ -276,9 +276,7 @@ test('discovery: an add-on that needs a newer API does not reserve its id, at mo
   } finally { await rm(work, {recursive: true, force: true}); }
 });
 
-test('discovery: two add-ons never share a profile key (addon-<id>-<speaker> must be unambiguous across add-ons)', {
-  todo: 'BUG: add-on "delamain" with speaker "cab-delamain" and add-on "delamain-cab" with speaker "delamain" both become addon-delamain-cab-delamain; discoverAddons reports no problem and the later one silently takes over the key'
-}, async () => {
+test('discovery: two add-ons never share a profile key (addon-<id>-<speaker> must be unambiguous across add-ons)', async () => {
   const work = await folder();
   try {
     const real = await addonFolder(work, 'a-real', manifest({id: 'delamain-cab', name: 'Delamain', speakers: [speaker('delamain')]}));
@@ -403,9 +401,7 @@ test('state and settings files: empty, truncated or wrong-shaped documents read 
   assert.deepEqual(Object.keys(host.journal.speakers), [], 'the journal is for add-on speakers only');
 });
 
-test('addon-state.json: a half-written (truncated) file keeps what was last seen, like an empty one', {
-  todo: 'BUG: only an empty file is skipped (bridge/addons.mjs watchHandlers); a state file caught mid-write (it is written in place, and a document with stock lines is far bigger than one buffer) parses as {addons: {}} and drops every prepared stock line'
-}, async () => {
+test('addon-state.json: a half-written (truncated) file keeps what was last seen, like an empty one', async () => {
   const host = new AddonHost({addons: [validateManifest(manifest({speakers: [speaker('gun', {modes: {calm: {name: 'Calm'}}})]}), tmpdir())], startedAt: 0});
   const document = JSON.stringify({version: 1, updated: 5, addons: {skippy: {companionContext: [{key: 'ride', text: 'You are riding in a cab.'}],
     stock: [{speaker: 'gun', key: 'kill', text: 'V is about to kill.', rev: 1, slots: [], blocks: []}]}}});
@@ -415,6 +411,18 @@ test('addon-state.json: a half-written (truncated) file keeps what was last seen
   for (const handler of Object.values(host.watchHandlers('runtime', {read: async () => torn}))) await handler();
   assert.equal(host.blocks({profileKey: 'judy-alvarez'}).length, 1, 'the companion context survived the torn read');
   assert.equal(host.state.addons.skippy.stock.length, 1, 'so did the prepared stock rows');
+  // The settings file is written the same way: a torn read is not "every setting back to its default".
+  const seen = [];
+  host.modules.set('skippy', {onSettings: values => seen.push(values)});
+  const settings = JSON.stringify({version: 1, addons: {skippy: {sarcasm: 7, loud: true}}});
+  host.observeSettings(settings);
+  const tornSettings = settings.slice(0, Math.floor(settings.length * 0.6));
+  for (const handler of Object.values(host.watchHandlers('runtime', {read: async () => tornSettings}))) await handler();
+  assert.deepEqual(host.settings, {skippy: {sarcasm: 7, loud: true}}, 'the settings survived the torn read');
+  assert.equal(seen.length, 1, 'and no module was told its settings changed');
+  // A complete document still replaces what was seen (also one that really is empty of add-ons).
+  for (const handler of Object.values(host.watchHandlers('runtime', {read: async () => JSON.stringify({version: 1, updated: 6, addons: {}})}))) await handler();
+  assert.deepEqual(host.state.addons, {}, 'a whole document is applied');
 });
 
 test('the placeholder files shipped empty (addon-state.json, addon-settings.json) and a missing runtime folder read as nothing yet', async () => {
@@ -559,16 +567,16 @@ test('bridge module: whatever a hook returns is bounded, sanitised and namespace
   assert.equal(host.hookFailures.get('skippy:trigger'), undefined, 'slow is not a failure, the hook stays on');
 });
 
-test('bridge module: activate or import that never settles must not hold up the bridge start', {
-  todo: 'BUG: AddonHost.loadModules awaits import() and module.activate() with no timeout, so one add-on module that never settles keeps AddonHost.load, and with it the whole bridge start, waiting forever'
-}, async () => {
+test('bridge module: activate or import that never settles must not hold up the bridge start', async () => {
+  assert.ok(ADDON_LIMITS.moduleMs >= 2000, 'the real wait is long enough for a cold import on a slow disk');
   const hung = new Promise(() => {});
   const limit = ms => new Promise(done => setTimeout(() => done('timed out'), ms));
   for (const [label, importModule] of [['activate', async () => ({activate: () => hung})], ['import', () => hung]]) {
     const host = new AddonHost({addons: [validateManifest(manifest({bridge: 'bridge.mjs'}), tmpdir())]});
-    const outcome = await Promise.race([host.loadModules({importModule}).then(() => 'loaded'), limit(400)]);
+    const outcome = await Promise.race([host.loadModules({importModule, timeoutMs: 50}).then(() => 'loaded'), limit(2000)]);
     assert.equal(outcome, 'loaded', `a module whose ${label} never settles held the bridge start`);
     assert.equal(host.modules.has('skippy'), false, 'and its hooks are not used');
+    assert.match(host.moduleErrors.get('skippy'), /did not finish within/, 'and the reason is kept for the status file');
   }
 });
 
@@ -604,9 +612,7 @@ test('routes: for every provider set and player state the route is never Convai,
   assert.throws(() => sharedMemory(null).recall(), TypeError, 'a missing store gives a view with no methods, never a stand-in');
 });
 
-test('protocol: an add-on remark must come from that add-on\'s own speaker profile', {
-  todo: 'DEFENCE IN DEPTH: parseInput accepts reaction.kind "addon" on a request whose profileKey is a main character (or another add-on\'s speaker); only mod/addons.lua ever writes such a request today, with profileKey = the speaker key'
-}, () => {
+test('protocol: an add-on remark must come from that add-on\'s own speaker profile', () => {
   const now = Date.now();
   const request = extra => JSON.stringify({requestId: '1-2-3ULL', generation: 2, entity: '3ULL', name: 'Someone', bodyType: '', profileKey: 'addon-skippy-gun',
     text: 'Combat started.', sentAt: 1, voiceOnly: true,

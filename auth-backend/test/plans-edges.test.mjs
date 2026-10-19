@@ -101,9 +101,7 @@ test('a stored value that is damaged, hand-edited or from an older rule set read
   assert.deepEqual(storedPaidPlans(withExtras), list(), 'fields the rules no longer know are dropped on the way out');
 });
 
-test('plan ids, names and price ids must be text', {
-  todo: 'BUG: plans.js:39-40 tests id, name and priceId with RegExp.test, which turns numbers, booleans and one-item arrays into text, so they pass and are stored as non-strings',
-}, () => {
+test('plan ids, names and price ids must be text', () => {
   const refused = [{ id: 5 }, { id: true }, { id: ['gamer'] }, { name: 7 }, { name: ['Gamer'] }, { priceId: ['price_abcdefgh'] }];
   for (const override of refused) {
     assert.equal(validPaidPlans(list({}, plan(override))), null, JSON.stringify(override));

@@ -42,9 +42,11 @@ export async function readRawBody(request, limit = 4096) {
     const chunks = [];
     let size = 0;
     for await (const chunk of request) {
-      size += chunk.length;
+      // A stream with an encoding set delivers text; count the bytes it stands for, not its characters.
+      const bytes = typeof chunk === 'string' ? Buffer.from(chunk) : chunk;
+      size += bytes.length;
       if (size > limit) return null;
-      chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+      chunks.push(bytes);
     }
     return Buffer.concat(chunks).toString('utf8');
   }

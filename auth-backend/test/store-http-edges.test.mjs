@@ -118,9 +118,7 @@ test('settings: whole numbers only, clamped into range, junk falls back to the d
   assert.deepEqual([validCap('  12 '), validCap('1234567'), validCap(10_000), validCap(10_001), validCap(0), validCap(NaN), validCap(undefined)], [12, null, 10_000, null, null, null, null]);
 });
 
-test('a stream that delivers text instead of bytes is held to the same byte limit', {
-  todo: 'BUG: http.js:45 adds chunk.length, which counts characters when a stream has an encoding set, so 3000 three-byte characters (9000 bytes) pass a 4096-byte limit',
-}, async () => {
+test('a stream that delivers text instead of bytes is held to the same byte limit', async () => {
   const stream = new Readable({ read() {} });
   stream.setEncoding('utf8');
   stream.push(Buffer.from('€'.repeat(3000)));

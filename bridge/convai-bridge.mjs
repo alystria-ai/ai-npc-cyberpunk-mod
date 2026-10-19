@@ -99,7 +99,7 @@ import {MemoryStore} from './memory-store.mjs';
 import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
 import {detectLocalAiPack} from './local-ai-pack.mjs';
 import {LocalLlmServer, nvidiaTotalMiB} from './local-llm-server.mjs';
-import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, normalisePin} from './local-model-choice.mjs';
+import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, matureOffBlocks, normalisePin} from './local-model-choice.mjs';
 import {CustomModelScanner} from './custom-models.mjs';
 import {LlamaEmbedder} from './local-embed.mjs';
 import {watchFiles, createWakeSignal} from './file-wake.mjs';
@@ -263,6 +263,8 @@ const mistral = await new MistralProvider({keyPath: resolve(stateDirectory, MIST
 let localPack = detectLocalAiPack({project});
 // Omni (the OmniVoice pack) loads first and the model tier is chosen from the graphics memory left (docs/LOCAL_AI.md): a wait of
 // at most two minutes inside the supervisor, then the tier that fits, else the cloud provider.
+// True once a settings poll has read the voice settings (playback on or off): until then `playbackEnabled` is only its default.
+let voiceSettingsRead = false;
 const omniSettled = () => localVoice.requestedProvider !== 'omni' || localVoice.provider === 'omni' || localVoice.omniPack?.installed === false;
 // Which installed model loads (docs/LOCAL_AI.md, "Choosing the model"): the localModel setting (auto or one model) and Mature content, read
 // when a start begins. A change while Local AI is the provider reloads at an idle moment (localModelChoiceChanged, on the settings poll).
@@ -1831,7 +1833,9 @@ async function resetLiveRoutes({cancelTurns = true} = {}) {
 // provider switch. Nothing else opens it until the next composer warm-up, so a turn that comes first would start Edge in front of its
 // voice (770 ms, then the renderer page: the live record of 2026-10-13, the turn after a provider switch). Open it again at once.
 function rewarmLocalVoice() {
-  if (mistral.active && localVoice.playbackEnabled !== false && !stopped) void realtime.prewarmLocal();
+  // Not before the first settings poll has read the playback setting: with voice playback Off a text provider needs no browser, and the
+  // default (On) would start one at launch that then lives for BROWSER_IDLE_MS for nothing. The poll calls this once it has read it.
+  if (voiceSettingsRead && mistral.active && localVoice.playbackEnabled !== false && !stopped) void realtime.prewarmLocal();
 }
 
 async function quiescePlayerMemory({signal, scope, profileKeys} = {}) {
@@ -2716,12 +2720,26 @@ function syncLocalModelChoice(settings) {
     if (!first && matureContent.enabled && mistral.clearLocalFailure('mature-off')) prepareLocal();
   }
 }
+// The pack, or a model of the player's own, can appear while the game runs (the pack extracted after choosing Local, a model added to the
+// manifest). A start that was refused for what was missing is tried again at once, instead of staying on Convai until the player picks
+// another provider and then Local again. Looked at with the 5 s refresh below: property reads, no file and no process unless it retries.
+function retryLocalAfterInstall() {
+  const why = mistral.localBroken;
+  if (mistral.preference !== 'local' || (why !== 'not-installed' && why !== 'mature-off')) return;
+  const lifted = why === 'not-installed' ? localPack.installed || ownServerListed()
+    : !matureOffBlocks(listLocalModels({pack: localPack, matureModels: maturePackModels, customModels: customScan.models}), matureContent.enabled);
+  if (lifted && mistral.clearLocalFailure(why)) {
+    console.error(`[LocalAI] ${why === 'not-installed' ? 'a model was installed' : 'a model that needs no Mature content was installed'}: starting the local model`);
+    prepareLocal();
+  }
+}
 // The installed models and the defaults for the settings page, after the provider is applied so the card probe never holds a start back.
 async function publishLocalModelList() {
   if (Date.now() - localModelListCheckedAt >= 5000) {
     localModelListCheckedAt = Date.now();
     refreshLocalPack();
     scanCustomModels();
+    retryLocalAfterInstall();
     await learnCardTotal();
     const listKey = JSON.stringify([installedLocalModels(), localModelDefaults(), customModelProblems()]);
     if (listKey !== localModelListKey) { localModelListKey = listKey; await mistralControl.publishStatus().catch(() => {}); }
@@ -2792,6 +2810,7 @@ async function pollSettings(checkShutdown = true) {
     if (localVoice.update(settings, preview, voiceBoundaryBusy())) {
       dropPrefetch(); prefetchObserved = '';
     }
+    if (!voiceSettingsRead) { voiceSettingsRead = true; rewarmLocalVoice(); }
     // A prepared reply was written under the previous Natural speech instructions.
     const speechChanged = naturalSpeech.update(settings), emotionsChanged = expressiveEmotions.update(settings);
     const followUpChanged = followUp.update(settings);
