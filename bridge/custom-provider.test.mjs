@@ -446,6 +446,42 @@ test('a hung server is an error the player is told about, never a holding line; 
   } finally { host.close(); await mock.close(); }
 });
 
+test('a new key, model or address ends what the old one was refused for: the settings page stops saying so, summaries run, a pause is not inherited', async () => {
+  const mock = await startOpenAiMock();
+  let clock = 1_000_000;
+  const {host, provider, route, custom} = await harness(mock, {now: () => clock});
+  const other = 'test' + 'q'.repeat(28);
+  try {
+    // A refused key: the settings page says "key not accepted" and no summary is asked for. A new key pasted: both end at once, before any turn.
+    mock.behave(() => ({status: 401, body: {error: {message: 'bad key'}}}));
+    await assert.rejects(host.reply(turn('hello')));
+    assert.equal(provider.limit?.kind, 'invalid');
+    await custom.setKey(other);
+    assert.equal(provider.limit, null);
+    assert.equal(route.summarizeAllowed(), true);
+    // The same for a model the endpoint did not know, and a new model ID.
+    mock.behave(() => ({status: 404, body: {error: {message: 'no such model'}}}));
+    await assert.rejects(host.reply(turn('hello')));
+    assert.equal(provider.limit?.kind, 'model');
+    await custom.setModel('vendor/other-model');
+    assert.equal(provider.limit, null);
+    // A long Retry-After pauses this key and model only: another key (another account) is asked at once.
+    mock.behave(() => ({status: 429, headers: {'retry-after': '3600'}, body: {error: {message: 'Rate limit exceeded: free-models-per-day'}}}));
+    await assert.rejects(host.reply(turn('one')), error => failureKind(error) === 'limit');
+    mock.requests.length = 0;
+    await assert.rejects(host.reply(turn('two')), error => failureKind(error) === 'limit');
+    assert.equal(mock.requests.length, 0, 'paused');
+    await custom.setKey(KEY);
+    mock.behave(() => null);
+    assert.equal((await host.reply(turn('three'))).text, MOCK_REPLY);
+    assert.equal(mock.requests.length, 1, 'the new key was asked at once');
+    // A change while another provider answers leaves that provider's state alone.
+    provider.noteLimit('rate'); provider.applied = 'mistral';
+    await custom.setModel('vendor/third-model');
+    assert.equal(provider.limit?.kind, 'rate');
+  } finally { host.close(); await mock.close(); }
+});
+
 test('Retry-After pauses the endpoint: the next turns fail at once without a request, until the time has passed', async () => {
   const mock = await startOpenAiMock();
   let clock = 1_000_000;
