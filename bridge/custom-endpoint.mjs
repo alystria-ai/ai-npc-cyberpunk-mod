@@ -148,6 +148,7 @@ export class CustomEndpoint {
   // One write at a time, the file always holding the whole of what is saved.
   #persist() {
     const save = async () => {
+      if (!this.path) return;   // nothing is stored (a test)
       if (!this.address && !this.model && !this.key) { await this.removeFile(this.path); return; }
       await this.writeText(this.path, formatCustomFile({endpoint: this.address?.endpoint, model: this.model, key: this.key}));
     };
