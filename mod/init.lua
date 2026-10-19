@@ -4248,6 +4248,10 @@ registerForEvent('onShutdown', function()
     focusEntity = nil
     log('Game adapter shut down')
     convaiLogFlush() -- the buffered probe.log lines (a CET reload or exit follows)
+    -- The Developer-mode perf probe wraps json, io and os functions (perf-probe.lua). They are put back here, so no wrapper (and
+    -- through it this load's whole environment, about 15 MB) can stay reachable from a table CET keeps across a reload
+    -- (deliverables/perf/LUA_HEAP.md). Nothing runs after onShutdown, so nothing else changes.
+    if type(convaiPerfProbe) == 'table' and type(convaiPerfProbe.uninstall) == 'function' then pcall(convaiPerfProbe.uninstall) end
 end)
 
 -- GetMod('AiNpcCyberpunkMod') returns this table to other CET mods. `addons` is the add-on API (docs/ADDON_API.md).
