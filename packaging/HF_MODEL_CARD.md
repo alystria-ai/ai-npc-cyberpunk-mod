@@ -31,7 +31,7 @@ Every file sits in the version folder (`0.2.2/`) with its `SHA256SUMS-*.txt` che
 | `AI-NPC-Cyberpunk-Mod-Mature-Lite-0.2.2.zip` | 2.9 GB | **18+.** An uncensored Local AI model (Qwen3.5 4B fine-tune). | Optional |
 | `AI-NPC-Cyberpunk-Mod-Mature-Standard-0.2.2.zip` | 5.5 GB | **18+.** An uncensored Local AI model (Gemma 4 E4B fine-tune). | Optional |
 | `AI-NPC-Cyberpunk-Mod-MicPack-European-0.2.3.zip` | about 0.67 GB | Microphone in Russian, Ukrainian, Polish, Czech, Hungarian, German, French, Spanish, Italian and Portuguese, for Local AI and Custom endpoints (NVIDIA Parakeet TDT 0.6B v3, int8). Runs on the processor. | Optional |
-| `AI-NPC-Cyberpunk-Mod-MicPack-Asian-0.2.3.zip` | about 0.24 GB | Microphone in Mandarin Chinese for Local AI and Custom endpoints (SenseVoice Small, int8). Runs on the processor. | Optional |
+| `AI-NPC-Cyberpunk-Mod-MicPack-Asian-0.2.3.zip` | about 0.24 GB | Microphone in Mandarin Chinese, Japanese and Korean for Local AI and Custom endpoints (SenseVoice Small, int8). Runs on the processor. | Optional |
 
 **You can skip every optional pack.** The mod works without them with Mistral (cloud, your own free key) or the Convai free tier (cloud, the default, nothing to set up), both at no cost to your frame rate. Local AI can also use a model server you already run (KoboldCpp, LM Studio, Ollama or any OpenAI-compatible one) with no pack; the steps are on the Nexus Mods page. The packs only add local options that run on your own graphics card.
 

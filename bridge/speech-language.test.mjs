@@ -66,8 +66,12 @@ test('Local AI, custom and add-on routes never send audio to Mistral, even with 
   for (const provider of ['local', 'custom', 'convai']) {
     const bare = planRecording({provider, voxtralReady: true, language: 'ru', source: 'text', installed: []});
     assert.equal(bare.mode, 'english'); assert.equal(bare.note, 'pack-available', provider);
-    // Japanese and Korean: the Asian pack's model does not read them (measured), so nothing hears them and the plain notice is right.
-    for (const language of ['ja', 'ko', 'tr']) assert.equal(planRecording({provider, language, source: 'text', installed: ['sense-voice-int8', 'parakeet-tdt-0.6b-v3-int8']}).note, 'english-only', language + ' ' + provider);
+    // Turkish: no pack hears it, so the plain notice is right. Japanese and Korean are heard by the Asian pack, so without it the notice names the pack.
+    assert.equal(planRecording({provider, language: 'tr', source: 'text', installed: ['sense-voice-int8', 'parakeet-tdt-0.6b-v3-int8']}).note, 'english-only', 'tr ' + provider);
+    for (const language of ['ja', 'ko']) {
+      assert.equal(planRecording({provider, language, source: 'text', installed: []}).note, 'pack-available', language + ' ' + provider);
+      assert.equal(planRecording({provider, language, source: 'text', installed: ['sense-voice-int8']}).mode, 'pack', language + ' ' + provider);
+    }
     assert.equal(planRecording({provider, language: 'zh', source: 'text', installed: []}).note, 'pack-available');
     const withPack = planRecording({provider, voxtralReady: true, language: 'ru', source: 'text', installed: ['parakeet-tdt-0.6b-v3-int8']});
     assert.equal(withPack.mode, 'pack', provider);
@@ -78,9 +82,9 @@ test('each pack hears only its languages', () => {
   const both = LOCAL_PACKS.map(pack => pack.id);
   for (const language of ['ru', 'uk', 'pl', 'cs', 'hu', 'de', 'fr', 'es', 'it', 'pt']) assert.equal(packFor(language, both).id, 'parakeet-tdt-0.6b-v3-int8', language);
   assert.equal(packFor('zh', both).id, 'sense-voice-int8');
-  // The sherpa-onnx 2025-09-09 SenseVoice archive is a Cantonese fine-tune: Mandarin reads well, Japanese (84% character error) and Korean (96%) do not.
-  for (const language of ['ja', 'ko']) assert.equal(packFor(language, both), null, language);
-  assert.equal(packThatHears('zh').id, 'sense-voice-int8'); assert.equal(packThatHears('ru').id, 'parakeet-tdt-0.6b-v3-int8'); assert.equal(packThatHears('ja'), null);
+  // The original SenseVoice Small (2024-07-17 archive) reads all three; the 2025-09-09 Cantonese fine-tune read only Mandarin and is not used.
+  for (const language of ['ja', 'ko']) assert.equal(packFor(language, both).id, 'sense-voice-int8', language);
+  assert.equal(packThatHears('zh').id, 'sense-voice-int8'); assert.equal(packThatHears('ja').id, 'sense-voice-int8'); assert.equal(packThatHears('ru').id, 'parakeet-tdt-0.6b-v3-int8'); assert.equal(packThatHears('tr'), null);
   assert.equal(packFor('tr', both), null);
   assert.equal(packFor('ru', ['sense-voice-int8']), null, 'a pack that is not installed hears nothing');
   assert.equal(packFor('ru', new Set(['parakeet-tdt-0.6b-v3-int8'])).kind, 'nemo-transducer');

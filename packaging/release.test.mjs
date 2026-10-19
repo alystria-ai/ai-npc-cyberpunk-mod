@@ -927,15 +927,16 @@ test('the voice-input pack pins match what the bridge looks for, and every file 
   }
   // Sizes measured with the real files (2026-10-19).
   assert.equal(spec.packs.european.files['encoder.int8.onnx'].size, 652184281);
-  assert.equal(spec.packs.asian.files['model.int8.onnx'].size, 237115547);
+  assert.equal(spec.packs.asian.files['model.int8.onnx'].size, 239233841);
   // Parakeet needs attribution (CC-BY-4.0); SenseVoice's licence is only linked, and the notice says so.
   const flat = async pack => (await readFile(resolve(project, pack.noticeSource), 'utf8')).replace(/\s+/g, ' '); // the notice is wrapped at 110 columns
   const european = await flat(spec.packs.european), asian = await flat(spec.packs.asian);
   assert.match(european, /Copyright \(c\) NVIDIA Corporation/); assert.match(european, /does not endorse/); assert.match(european, /converted to ONNX and quantised to int8/);
   assert.match(asian, /keep the model's name \(SenseVoice\)/); assert.match(asian, /not copied into this pack/);
-  // The Asian pack is Mandarin only for now: the languages and every description say so.
-  assert.deepEqual(spec.packs.asian.languages, ['zh']);
-  assert.match(spec.packs.asian.languagesNote, /Mandarin/);
+  // The Asian pack is the original SenseVoice Small (2024-07-17 archive): Mandarin, Japanese and Korean, not the 2025-09-09 Cantonese fine-tune.
+  assert.deepEqual(spec.packs.asian.languages, ['zh', 'ja', 'ko']);
+  assert.match(spec.packs.asian.archive.url, /2024-07-17\.tar\.bz2$/);
+  assert.match(spec.packs.asian.languagesNote, /Japanese/);
 });
 
 test('the release workflow builds the voice-input packs only in an opt-in job: off by default, never on a tag push, one matrix entry per pack, no secret to build, uploaded under their own names', async () => {
@@ -973,7 +974,7 @@ test('the notices cover the voice-input packs: Parakeet (CC-BY-4.0, attribution)
   const section = notices.slice(notices.indexOf('## Bundled in the optional voice-input packs'), notices.indexOf('## Installed separately by players'));
   assert(section.length > 500, 'the section exists');
   for (const text of ['NVIDIA Parakeet TDT 0.6B v3', 'CC-BY-4.0', 'Copyright (c) NVIDIA Corporation', 'https://creativecommons.org/licenses/by/4.0/', 'https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3',
-    'SenseVoice Small', 'FunASR Model Open Source License Agreement, Version 1.1', 'https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE', 'Mandarin', 'sherpa-onnx', 'parakeet-tdt-0.6b-v3-int8', 'sense-voice-int8']) {
+    'SenseVoice Small', 'FunASR Model Open Source License Agreement, Version 1.1', 'https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE', 'Japanese', 'sherpa-onnx', 'parakeet-tdt-0.6b-v3-int8', 'sense-voice-int8']) {
     assert(section.includes(text), `the voice-input section mentions ${text}`);
   }
   assert.doesNotMatch(section, /\bAMM\b|inworld/i);

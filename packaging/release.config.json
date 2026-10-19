@@ -171,7 +171,7 @@
     }
   },
   "micPacks": {
-    "notes": "The two optional voice-input packs (docs/LOCAL_STT.md, 'The optional packs'; docs/PACKAGING.md, 'Voice-input packs'): MicPack-European (NVIDIA Parakeet TDT 0.6B v3, int8) and MicPack-Asian (SenseVoice Small, int8, here Mandarin Chinese only). Each is ONE zip hosted on Hugging Face with the other optional packs, never on Nexus Mods and not on the GitHub release; the workflow builds them only when its opt-in 'micpacks' input is set (never on a tag push), and by hand they are built with --packages micpack-european,micpack-asian. They are never part of the default set and nothing of them is in the Runtime package. A pack puts its model files in app/models/stt/<id>/ (bridge/local-stt.mjs resolveLocalSttPaths looks there), beside the Runtime's own app/models/stt/moonshine-tiny-en-int8/, which they never touch. Every model file is the unmodified file of the sherpa-onnx 'asr-models' release archive named below: the build downloads that archive from its pinned URL (SHA-256 checked), extracts only the files listed here from it (the archive is untrusted data: nothing in it is run, and a path outside the extraction folder stops the build) and checks each extracted file against the size and SHA-256 recorded here. test_wavs and the archive's README are never shipped. With --mic-pack-source DIR (or CYBERPUNK_CONVAI_MIC_PACKS_DEV) a developer folder laid out as DIR/<pack id>/<file> is used instead of the download, and each file in it is checked against the same pins. Sizes and hashes measured 2026-10-19 from the real files. The licence of each model is kept in the pack's NOTICE.txt; a licence that is only linked (the FunASR Model Open Source License) is linked there and is not copied into the pack.",
+    "notes": "The two optional voice-input packs (docs/LOCAL_STT.md, 'The optional packs'; docs/PACKAGING.md, 'Voice-input packs'): MicPack-European (NVIDIA Parakeet TDT 0.6B v3, int8) and MicPack-Asian (SenseVoice Small, int8: Mandarin Chinese, Japanese, Korean). Each is ONE zip hosted on Hugging Face with the other optional packs, never on Nexus Mods and not on the GitHub release; the workflow builds them only when its opt-in 'micpacks' input is set (never on a tag push), and by hand they are built with --packages micpack-european,micpack-asian. They are never part of the default set and nothing of them is in the Runtime package. A pack puts its model files in app/models/stt/<id>/ (bridge/local-stt.mjs resolveLocalSttPaths looks there), beside the Runtime's own app/models/stt/moonshine-tiny-en-int8/, which they never touch. Every model file is the unmodified file of the sherpa-onnx 'asr-models' release archive named below: the build downloads that archive from its pinned URL (SHA-256 checked), extracts only the files listed here from it (the archive is untrusted data: nothing in it is run, and a path outside the extraction folder stops the build) and checks each extracted file against the size and SHA-256 recorded here. test_wavs and the archive's README are never shipped. With --mic-pack-source DIR (or CYBERPUNK_CONVAI_MIC_PACKS_DEV) a developer folder laid out as DIR/<pack id>/<file> is used instead of the download, and each file in it is checked against the same pins. Sizes and hashes measured 2026-10-19 from the real files. The licence of each model is kept in the pack's NOTICE.txt; a licence that is only linked (the FunASR Model Open Source License) is linked there and is not copied into the pack.",
     "status": "pinned",
     "directory": "app/models/stt",
     "markerFile": "mic-pack.json",
@@ -209,18 +209,18 @@
         "packageId": "micpack-asian",
         "title": "MicPack-Asian",
         "name": "FunAudioLLM SenseVoice Small (int8)",
-        "model": "SenseVoice Small (a Cantonese fine-tune), int8 ONNX conversion by the k2-fsa sherpa-onnx project",
-        "languages": ["zh"],
-        "languagesNote": "Mandarin Chinese only for now: measured with the real files (2026-10-19) this archive's model reads Mandarin well (2.5% character error) but not Japanese (84%) or Korean (96%).",
+        "model": "SenseVoice Small, int8 ONNX conversion by the k2-fsa sherpa-onnx project",
+        "languages": ["zh", "ja", "ko"],
+        "languagesNote": "Mandarin Chinese, Japanese and Korean, measured with the real files (2026-10-19): character error 0.0% (zh), 6.5% (ja), 2.0% (ko) on 3 synthetic clips each, and the model's own clips read correctly. The 2025-09-09 sherpa-onnx archive of this model is a Cantonese fine-tune that cannot read Japanese or Korean and is not used.",
         "local": "sense-voice-int8",
         "archive": {
-          "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09.tar.bz2",
-          "size": 165783878,
-          "sha256": "7305f7905bfcf77fa0b39388a313f3da35c68d971661a65475b56fb2162c8e63",
-          "folder": "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09"
+          "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2",
+          "size": 163002883,
+          "sha256": "7d1efa2138a65b0b488df37f8b89e3d91a60676e416f515b952358d83dfd347e",
+          "folder": "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17"
         },
         "files": {
-          "model.int8.onnx": {"size": 237115547, "sha256": "12ca1a2ae7ecf3e0019ef2822307ee0b5cadc9196569e379b4c4026f8205276d"},
+          "model.int8.onnx": {"size": 239233841, "sha256": "c71f0ce00bec95b07744e116345e33d8cbbe08cef896382cf907bf4b51a2cd51"},
           "tokens.txt": {"size": 315894, "sha256": "f449eb28dc567533d7fa59be34e2abca8784f771850c78a47fb731a31429a1dc"}
         },
         "license": "FunASR Model Open Source License 1.1",

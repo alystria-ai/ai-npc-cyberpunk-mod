@@ -12,7 +12,7 @@ How the player release is built, what it contains and how it starts. Players rea
 | `AI-NPC-Cyberpunk-Mod-OmniPack-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and the OmniVoice references. |
 | `AI-NPC-Cyberpunk-Mod-LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip: the llama-server Vulkan build, the embedding model and the chat model, whole. |
 | `AI-NPC-Cyberpunk-Mod-LocalAI-Lite-<v>.zip` | Hugging Face | Optional Local AI pack with Bonsai 2 4B (about 1.4 GB), the same server and embedding model. |
-| `AI-NPC-Cyberpunk-Mod-MicPack-European-<v>.zip`, `AI-NPC-Cyberpunk-Mod-MicPack-Asian-<v>.zip` | Hugging Face | The two optional voice-input packs (opt-in build, "Voice-input packs" below): Parakeet TDT 0.6B v3 for European languages, SenseVoice Small for Mandarin Chinese. Each is one zip with the model files in `app/models/stt/<id>/` and its own notice. |
+| `AI-NPC-Cyberpunk-Mod-MicPack-European-<v>.zip`, `AI-NPC-Cyberpunk-Mod-MicPack-Asian-<v>.zip` | Hugging Face | The two optional voice-input packs (opt-in build, "Voice-input packs" below): Parakeet TDT 0.6B v3 for European languages, SenseVoice Small for Chinese, Japanese and Korean. Each is one zip with the model files in `app/models/stt/<id>/` and its own notice. |
 | `AI-NPC-Cyberpunk-Mod-Mature-Lite-<v>.zip`, `AI-NPC-Cyberpunk-Mod-Mature-Standard-<v>.zip` | Hugging Face | The two optional Mature packs (opt-in build, below), one uncensored model each, each with its own marker (`manifest.mature-lite.json`, `manifest.mature-standard.json`) and the Local AI engine (the `llama` folder, the embedding model and the licence texts, the same files as in the Local AI packs, shared through `addEngine` in `packaging/build-release.mjs`), so either works alone. |
 
 The optional packs are hosted in one Hugging Face model repository, `alystria-ai/ai-npc-cyberpunk-mod-packs`, in a folder per
@@ -155,7 +155,7 @@ Apache-2.0. `THIRD_PARTY_NOTICES.md` has the table.
 Two optional downloads for voice input in other languages (`docs/LOCAL_STT.md`, "The optional packs"), hosted on Hugging Face with the other optional
 packs, each ONE zip: `AI-NPC-Cyberpunk-Mod-MicPack-European-<v>.zip` (NVIDIA Parakeet TDT 0.6B v3, int8, pack id `parakeet-tdt-0.6b-v3-int8`, about 0.67 GB; CC-BY-4.0)
 and `AI-NPC-Cyberpunk-Mod-MicPack-Asian-<v>.zip` (SenseVoice Small, int8, pack id `sense-voice-int8`, about 0.24 GB; FunASR Model Open Source License 1.1;
-Mandarin Chinese only for now: the archive's model is a Cantonese fine-tune that reads Mandarin well but not Japanese or Korean). Never on Nexus Mods, never
+Mandarin Chinese, Japanese and Korean; the archive is the original 2024-07-17 one, not the 2025-09-09 Cantonese fine-tune, which cannot read Japanese or Korean). Never on Nexus Mods, never
 on the GitHub release, never in the default set, nothing of them in the Runtime package.
 
 - **Layout.** `red4ext/plugins/AiNpcCyberpunkMod/app/models/stt/<pack id>/` holds the model files (the names `bridge/speech-language.mjs` `LOCAL_PACKS` lists;

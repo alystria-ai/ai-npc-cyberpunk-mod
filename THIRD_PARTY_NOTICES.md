@@ -110,7 +110,7 @@ Neither pack is part of the Runtime package.
 | Component | Version | Licence | Where the licence text is |
 |---|---|---|---|
 | NVIDIA Parakeet TDT 0.6B v3 (`nvidia/parakeet-tdt-0.6b-v3`), int8 ONNX files `encoder.int8.onnx`, `decoder.int8.onnx`, `joiner.int8.onnx`, `tokens.txt` (MicPack-European, pack id `parakeet-tdt-0.6b-v3-int8`) | the `sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8` archive of the sherpa-onnx `asr-models` release | CC-BY-4.0, Copyright (c) NVIDIA Corporation | https://creativecommons.org/licenses/by/4.0/ (linked from `app/models/stt/parakeet-tdt-0.6b-v3-int8/NOTICE.txt`); model card: https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3 |
-| SenseVoice Small (FunAudioLLM, Alibaba Group), int8 ONNX files `model.int8.onnx`, `tokens.txt` (MicPack-Asian, pack id `sense-voice-int8`) | the `sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09` archive of the sherpa-onnx `asr-models` release (a Cantonese fine-tune of SenseVoice Small, converted from ASLP-lab/WSYue-ASR `sensevoice_small_yue`) | FunASR Model Open Source License Agreement, Version 1.1 | https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE (linked from `app/models/stt/sense-voice-int8/NOTICE.txt`, not copied into the pack); source: https://github.com/FunAudioLLM/SenseVoice and https://github.com/modelscope/FunASR |
+| SenseVoice Small (FunAudioLLM, Alibaba Group), int8 ONNX files `model.int8.onnx`, `tokens.txt` (MicPack-Asian, pack id `sense-voice-int8`) | the `sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17` archive of the sherpa-onnx `asr-models` release | FunASR Model Open Source License Agreement, Version 1.1 | https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE (linked from `app/models/stt/sense-voice-int8/NOTICE.txt`, not copied into the pack); source: https://github.com/FunAudioLLM/SenseVoice and https://github.com/modelscope/FunASR |
 
 - **Parakeet (CC-BY-4.0).** Attribution is required: NVIDIA Parakeet TDT 0.6B v3, Copyright (c) NVIDIA Corporation, with the licence link and an
   indication of changes. The changes are the conversion to ONNX and the int8 quantisation done by the k2-fsa sherpa-onnx project
@@ -118,9 +118,8 @@ Neither pack is part of the Runtime package.
   `NOTICE.txt` carries this text.
 - **SenseVoice (FunASR Model Open Source License 1.1).** The licence lets the model be used, copied, modified and shared; the source and the author
   must be attributed and the model's name (SenseVoice) kept with it; the model is provided as is, with no liability for Alibaba Group. The licence
-  text is linked, not bundled; the pack's `NOTICE.txt` names the licence and gives the link. This pack's use in the mod is speech in Mandarin Chinese
-  (the archive's model measured 2.5% character error on Mandarin but 84% on Japanese and 96% on Korean, so the other languages of the model are
-  not used for now).
+  text is linked, not bundled; the pack's `NOTICE.txt` names the licence and gives the link. This pack's use in the mod is speech in Mandarin Chinese,
+  Japanese and Korean (the other languages of the model are not used).
 - sherpa-onnx itself (Apache-2.0) runs both models; it is in the Runtime package (see the table at the top).
 
 ## Installed separately by players

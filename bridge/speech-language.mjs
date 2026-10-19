@@ -26,10 +26,9 @@ export const LOCAL_PACKS = Object.freeze([
     files: Object.freeze(['encoder.int8.onnx', 'decoder.int8.onnx', 'joiner.int8.onnx', 'tokens.txt']),
     languages: Object.freeze(['ru', 'uk', 'pl', 'cs', 'hu', 'de', 'fr', 'es', 'it', 'pt']), licence: 'CC-BY-4.0'}),
   Object.freeze({id: 'sense-voice-int8', kind: 'sense-voice', label: 'FunAudioLLM SenseVoice Small (int8)',
-    // The model of the sherpa-onnx 2025-09-09 archive is a Cantonese fine-tune of SenseVoice Small: measured with the real files (2026-10-19) it reads
-    // Mandarin (character error 2.5% on 9 clips) but Japanese 84% and Korean 96%, whatever the language option says. So the pack is listed for
-    // Chinese only; add 'ja' and 'ko' when a model that reads them (the original 2024-07-17 SenseVoice Small) is shipped in its place.
-    files: Object.freeze(['model.int8.onnx', 'tokens.txt']), languages: Object.freeze(['zh']), licence: 'FunASR Model Open Source License 1.1'}),
+    // The original SenseVoice Small (sherpa-onnx archive 2024-07-17), measured with the real files (2026-10-19): character error zh 0.0%, ja 6.5%, ko 2.0%.
+    // NOT the 2025-09-09 archive of the same name, which is a Cantonese fine-tune that reads Mandarin but not Japanese (84% error) or Korean (96%).
+    files: Object.freeze(['model.int8.onnx', 'tokens.txt']), languages: Object.freeze(['zh', 'ja', 'ko']), licence: 'FunASR Model Open Source License 1.1'}),
 ]);
 
 const NAMES = {english: 'en', german: 'de', french: 'fr', spanish: 'es', italian: 'it', portuguese: 'pt', polish: 'pl', russian: 'ru',

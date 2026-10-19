@@ -16,7 +16,7 @@
 //                                          never in the default set, never Nexus; it carries its own marker, so it works alone
 //   AI-NPC-Cyberpunk-Mod-Mature-Standard-<v>.zip    optional Mature standard pack, one uncensored model (Gemma 4 E4B); only with --packages mature-standard
 //   AI-NPC-Cyberpunk-Mod-MicPack-European-<v>.zip   optional voice-input pack, NVIDIA Parakeet TDT 0.6B v3 (int8); only with --packages micpack-european
-//   AI-NPC-Cyberpunk-Mod-MicPack-Asian-<v>.zip      optional voice-input pack, SenseVoice Small (int8), Mandarin Chinese; only with --packages micpack-asian
+//   AI-NPC-Cyberpunk-Mod-MicPack-Asian-<v>.zip      optional voice-input pack, SenseVoice Small (int8), Chinese, Japanese, Korean; only with --packages micpack-asian
 //                                          (neither is in the default set or on Nexus; the model files come from the pinned sherpa-onnx archive, or --mic-pack-source)
 // Only the Scripts (Nexus) and Runtime (GitHub release) packages may still be split into several zips (writeArchives).
 // plus SHA256SUMS.txt and release-manifest.json. The Runtime package also carries the native plugin
@@ -826,7 +826,7 @@ async function maturePackage(source, config, tierKey) {
 }
 
 // ---------------------------------------------------------------- the voice-input packs (docs/LOCAL_STT.md, "The optional packs")
-// Two optional downloads, MicPack-European (NVIDIA Parakeet TDT 0.6B v3, int8) and MicPack-Asian (SenseVoice Small, int8, Mandarin Chinese only for now),
+// Two optional downloads, MicPack-European (NVIDIA Parakeet TDT 0.6B v3, int8) and MicPack-Asian (SenseVoice Small, int8: Mandarin Chinese, Japanese, Korean),
 // each ONE zip on Hugging Face like the other optional packs (built only on request, never in the default set, never Nexus). A pack holds the model files
 // of one entry of bridge/speech-language.mjs LOCAL_PACKS in app/models/stt/<id>/, where bridge/local-stt.mjs resolveLocalSttPaths looks for it, beside the
 // Runtime's own app/models/stt/moonshine-tiny-en-int8/ (a path the packs never use), plus mic-pack.json (the marker packaging/runtime/place-packs.mjs

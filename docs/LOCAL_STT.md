@@ -239,7 +239,7 @@ Authorization header, and every message is redacted.
 |---|---|---|---|---|---|
 | **Mistral Voxtral Mini Transcribe 2** (`voxtral-mini-latest`, API) | 13: en, zh, hi, es, ar, fr, pt, ru, de, ja, ko, it, nl (not pl, uk, cs, hu, tr; those are asked without a hint and may still work) | none | batch; estimated 0.5 to 1.5 s for a 3 to 8 s clip (TLS is opened ahead; 32 KB per second of audio goes up). **Not measured: no call was made.** Price $0.003 per minute; limits of the free Experiment plan for this model are not published | API terms | **Chosen for the Mistral route**: no download, no memory, best accuracy, and the player already has the key. Unverified: whether a free key may use it (the free plan gave the chat models Small and Medium an allowance of 0 on 2026-10-11, while Voxtral speech synthesis works on it); the fallback covers a refusal |
 | **NVIDIA Parakeet TDT 0.6B v3** int8 (sherpa-onnx `sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8`) | 25 European, auto-detected: **ru, uk, pl, cs, hu, de, fr, es, it, pt** of the mod's (also en, nl, sv and others); no tr | 487 MB archive (encoder 622 MB unpacked) | sherpa-onnx's own figures at 2 threads: RTF 0.325 on a 3.8 s clip including set-up, 0.028 on long audio. Estimated 0.4 to 1.0 s for a 5 s clip at one thread; load 4 to 10 s; about 1 GB resident while loaded. **Not measured here** | CC-BY-4.0 | **Chosen as the local pack for European languages** (Russian WER 5.5% on Fleurs, Polish 7.3%, Czech 11%, Hungarian 15.7% per NVIDIA) |
-| **FunAudioLLM SenseVoice Small** int8 (`sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09`) | zh, en, ja, ko, yue | 166 MB | RTF about 0.05 on desktop CPUs; estimated 0.25 s for a 5 s clip; about 300 MB resident | FunASR model licence (attribution; check before redistributing) | **Chosen as the local pack for zh, ja, ko** (Parakeet has none of them). **Measured 2026-10-19: this archive's model reads Mandarin only** (see "Measured with the real models"); the pack is listed for zh |
+| **FunAudioLLM SenseVoice Small** int8 (`sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17`) | zh, en, ja, ko, yue | 163 MB archive (model 239 MB) | RTF about 0.05 on desktop CPUs; estimated 0.25 s for a 5 s clip; about 300 MB resident | FunASR model licence (attribution; check before redistributing) | **Chosen as the local pack for zh, ja, ko** (Parakeet has none of them). Measured 2026-10-19 (see "Measured with the real models"): reads all three. The 2025-09-09 archive of the same name is a Cantonese fine-tune that reads Mandarin only and is NOT used |
 | Whisper tiny / base / small, multilingual, int8 | 99, auto | 116 / 208 / 639 MB archives | Whisper always pads to 30 s: this project measured tiny.en 0.8 s, base.en 1.9 s, small.en 8 s (two threads, table above); the multilingual models share the architecture | MIT | Rejected: tiny and base are far less accurate than Parakeet in Russian, small costs about 8 s per recording. Would be the only local route for Turkish |
 | Moonshine language variants (sherpa-onnx 2026-02-27: ar, ja, ko, uk, vi, zh, es) | 7, none of ru, de, fr, pl, cs, hu, it, pt, tr | 48 to 119 MB | fast | Moonshine Community Licence for non-English models (non-commercial) | Rejected: misses the languages that matter and its licence blocks the free mod |
 | GigaAM v3 Russian (`sherpa-onnx-nemo-transducer-giga-am-v3-russian-2025-12-16`) | ru only | 167 MB | fast | MIT | Not chosen: Russian only; the best small option if a Russian-only pack is ever wanted |
@@ -258,7 +258,7 @@ or `runtime/stt-model/<id>/` (development), or in `<CYBERPUNK_CONVAI_STT_PACKS>/
 | Pack id | Folder contents (from the sherpa-onnx `asr-models` release archive of the same name) | Download |
 |---|---|---|
 | `parakeet-tdt-0.6b-v3-int8` | `encoder.int8.onnx`, `decoder.int8.onnx`, `joiner.int8.onnx`, `tokens.txt` | `https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8.tar.bz2` (487 MB; unpacks to `sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8/`, rename it to the id), CC-BY-4.0, model card `huggingface.co/nvidia/parakeet-tdt-0.6b-v3` |
-| `sense-voice-int8` | `model.int8.onnx`, `tokens.txt` | `https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09.tar.bz2` (166 MB; rename the folder to the id), FunASR model licence |
+| `sense-voice-int8` | `model.int8.onnx`, `tokens.txt` | `https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2` (163 MB; rename the folder to the id), FunASR model licence |
 
 Behaviour of a pack: a second `LocalStt` per pack (`bridge/local-stt.mjs`, `engine` option) in the same Python worker (`bridge/local-stt-worker.py --kind
 nemo-transducer|sense-voice`), one thread at below-normal priority, same sound gate and refusal of words that are not speech as Moonshine (the English-only
@@ -292,15 +292,14 @@ was reading and scanning a 650 MB file), so a pack's startup allowance is 150 s 
 player speaks, and the wait shows only on the first recording after installing. Resident memory 830 MB while loaded, gone 60 s after the last recording
 (the worker exits; checked: no process left).
 
-**SenseVoice Small int8, archive 2025-09-09** (3 clips each): Mandarin: character error 2.5% (a 10.4 s three-sentence clip: 1 error in 40), decode
-0.45 to 0.7 s for 3 s clips, 1.4 s for 10.4 s, load 2.3 to 2.6 s warm, 356 MB resident. **Japanese: 84% character error, Korean: 96%, on the model's own clips
-and on the synthesised ones; the language option (`ja`, `ko`, `zh`, `auto`) changes nothing** (every result carries the `<|yue|>` tag). The reason is in
-the archive's own README: this model is the ASLP-lab Cantonese fine-tune of SenseVoice Small (WSYue-ASR), not the original model. So `sense-voice-int8` is listed for **zh only**
-(`LOCAL_PACKS`), a Japanese or Korean player gets the plain "English only for now" notice on the local routes, and the Asian pack is described to players
-as Mandarin Chinese. The original model (`sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17`, same file names `model.int8.onnx` and `tokens.txt`) is
-expected to read ja and ko: it has not been downloaded or tested (not approved). If it is approved and passes, put its two files in the same folder,
-re-pin them in `packaging/release.config.json`, add `'ja', 'ko'` to the pack's `languages` and rebuild the pack. Traditional Chinese speakers are read as
-Mandarin and shown in simplified characters.
+**SenseVoice Small int8, archive 2024-07-17** (the original model; 3 synthetic clips per language, 2.5 to 4 s, and the archive's own clips): Mandarin character error
+0.0%, Japanese 6.5% (name spellings and word breaks), Korean 2.0%, English 3.0% word error; the archive's own ja, ko, zh, yue and en clips all read correctly.
+Wait after the key press 0.4 to 0.6 s for a 3 s clip (0.9 s for a 7 s one), load 2.4 s with the file cached, 360 MB resident. Japanese and Korean come out with spaces
+between some words and syllables (the model's own habit); the language model reads them fine.
+**The first archive tried, 2025-09-09 (`sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09`, 166 MB), is NOT used:** it is the ASLP-lab Cantonese fine-tune of
+SenseVoice Small (WSYue-ASR; its own README says so). It read Mandarin (2.5% character error) but Japanese 84% and Korean 96%, whatever the language option
+(`ja`, `ko`, `zh`, `auto`) said (every result carried the `<|yue|>` tag). The 2024-07-17 archive has the same two file names (`model.int8.onnx`, `tokens.txt`);
+it also ships a `LICENSE` file that only points to the FunASR licence page. Traditional Chinese speakers are read as Mandarin and shown in simplified characters.
 
 A fix that the real files forced: `-I` ignores `PYTHONUTF8`, so the worker's standard streams were in the console code page and the first Korean or
 Cyrillic transcript raised `UnicodeEncodeError` (the stand-in tests never produced one). The worker now switches its streams to UTF-8 at start
@@ -321,9 +320,10 @@ extracted into the game folder (or the two folders copied to `.../app/models/stt
 5. Wait 70 s without recording: that python.exe is gone (the pack unloaded). Press the key again: it loads again in about 5 s.
 6. Delete or rename the European pack's folder, press the key in Russian: "Listening" with the second line "Voice input in this language needs the optional
    Microphone pack from the mod page." (once per game session), the recording is read as English. Put the folder back.
-7. Mandarin: set the interface language to Chinese (Simplified) and say a short Chinese sentence: the Asian pack's log line, Chinese characters in the
-   transcript. Then **Japanese**: with only the Asian pack installed you should see the plain "Voice input only understands English for now" notice (the
-   pack does not read Japanese; this is expected until the original SenseVoice model is shipped).
+7. Asian pack: set the interface language to Chinese (Simplified) and say a short Chinese sentence: the log line names `sense-voice-int8`, Chinese
+   characters in the transcript. Repeat in **Japanese** and **Korean** (interface language or a typed line first): kana or hangul in the transcript, a wait of
+   about 1 s. With the Asian pack's folder renamed away, Japanese shows the "needs the optional Microphone pack" notice. Turkish (no pack, no Mistral list)
+   shows the plain English-only notice.
 8. Mistral as provider (key saved): Russian speech goes to Mistral's transcription as before; the packs are not loaded (no 830 MB python.exe).
 
 ### Log lines
