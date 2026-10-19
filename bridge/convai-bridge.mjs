@@ -63,6 +63,7 @@ import {ResidentPhoneAnalysis} from './resident-phone-analysis.mjs';
 import {VoicePreviewLease} from './voice-preview.mjs';
 import {PhoneChat, parsePhoneState, phoneRecentConversationContext} from './phone-chat.mjs';
 import {PhoneWarm} from './phone-warm.mjs';
+import {PhoneFailureLog, PHONE_CODES} from './phone-failure.mjs';
 import {GameLaunchIdentity, identifyGameLaunch} from './game-launch.mjs';
 import {PlayerMemory} from './player-memory.mjs';
 import {VendorMemory, vendorMemoryKey} from './vendor-memory.mjs';
@@ -632,8 +633,18 @@ const phoneOutput = resolve(runtime, 'phone-chat-output.json');
 const phoneSessionPath = resolve(stateDirectory, 'phone-sessions.json');
 let phoneSessions = {};
 try { phoneSessions = JSON.parse(await readFile(phoneSessionPath, 'utf8')) || {}; } catch {}
+// Why a Phone Chat message failed (bridge/phone-failure.mjs): one log line, the small state file the support report carries, and the
+// automatic error report. The player's phone only says "Message could not be delivered"; this says why. No message or reply text.
+const phoneFailureStatePath = resolve(runtime, 'phone-failure-state.json');
+const phoneFailures = new PhoneFailureLog({
+  log: line => console.error('[CyberpunkConvai] ' + line),
+  read: async () => JSON.parse(await readFile(phoneFailureStatePath, 'utf8')),
+  write: record => atomic(phoneFailureStatePath, JSON.stringify(record)),
+  report: ({error, errorCode, provider}) => errorEvents.turnFailed(error, {provider: provider ?? 'convai', errorCode}),
+  provider: () => mistral.route ?? 'convai'});
 const phone = new PhoneChat({
-  failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return providerFailureCode(code === 'daily-limit' || /^(mistral|local|custom)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? 'local-fallback' : undefined); },
+  onFailure: info => phoneFailures.note(info),
+  failureCode: error => { const code = mistralCodeFor(error) ?? quota.codeFor(error); return providerFailureCode(PHONE_CODES.has(code) || /^(mistral|local|custom)-/.test(code ?? '') ? code : isLocalUnavailable(error) ? 'local-fallback' : undefined); },
   contacts: JSON.parse(await readFile(resolve(project, 'characters/phone-contacts.json'), 'utf8')), ids,
   resetFor: profileKey => memoryControl.chatResets.phoneState(profileKey),
   contextFor: options => phoneKnowledge.prepareContext(options),

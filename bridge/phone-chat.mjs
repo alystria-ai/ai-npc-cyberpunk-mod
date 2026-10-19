@@ -8,6 +8,7 @@ import {parseJournalHistory} from './journal-history.mjs';
 import {resolveKnowledgeParts} from './knowledge-parts.mjs';
 import {parseGameDialogue} from './game-dialogue.mjs';
 import {parseTurnContext} from './turn-context.mjs';
+import {describePhoneFailure} from './phone-failure.mjs';
 
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const token = value => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(value);
@@ -144,12 +145,15 @@ function sessionStore(value) {
 }
 
 export class PhoneChat {
-  constructor({contacts, ids, reply, publish, now = Date.now, sessions = {}, saveSessions = async () => {}, contextFor, contextCurrent, contextCurrentSync, resetFor, failureCode}) {
+  constructor({contacts, ids, reply, publish, now = Date.now, sessions = {}, saveSessions = async () => {}, contextFor, contextCurrent, contextCurrentSync, resetFor, failureCode, onFailure}) {
     if (resetFor!==undefined && typeof resetFor!=='function') throw Error('Invalid phone reset ownership hook');
     this.contacts = new Map(contacts.filter(c => c.key && ids[c.key]).map(c => [c.contact, {profile: c.key, id: ids[c.key]}]));
     Object.assign(this, {reply, publish, now, saveSessions, contextFor, contextCurrent, contextCurrentSync, resetFor});
     // failureCode(error): the game's code for a failure it words itself (the shared key's daily limit), or undefined.
     this.failureCode = typeof failureCode === 'function' ? failureCode : () => undefined;
+    // onFailure({error, stage, reason, detail, contact, profileKey, errorCode}): told once for each message that ended in the generic failure
+    // text, for the bridge log and the support report (bridge/phone-failure.mjs). It never changes what the player sees and never throws into a send.
+    this.onFailure = typeof onFailure === 'function' ? onFailure : null;
     this.store = sessionStore(sessions); this.transientSessions = new Map(); this.seen = new Set();
     this.world = null; this.binding = null; this.writes = Promise.resolve(); this.sessionWrites = Promise.resolve();
   }
@@ -206,6 +210,7 @@ export class PhoneChat {
     const contact = this.contacts.get(input.contact);
     active.profileKey=contact?.profile;
     if (!contact) {
+      this.onFailure && this.noteFailure(Object.assign(Error('Phone contact is not supported'), {code: 'CONTACT_UNSUPPORTED'}), 'route', {contact: input.contact, profileKey: undefined});
       await this.emit(active, {...identity, state: 'error', error: 'Conversation is unavailable for this contact.'});
       if (this.active === active) this.active = null;
       return;
@@ -214,6 +219,8 @@ export class PhoneChat {
     if (!current()) return;
     // Do not block the file poll while HTTP runs: unload/close must cancel it.
     active.work = (async () => {
+      // The step of the send in progress, named in the failure record (bridge/phone-failure.mjs).
+      let stage = 'route';
       try {
         let scope = phoneScope(input.saveIdentity);
         const requestInput = {...input, profileKey: contact.profile, channel: 'phone'};
@@ -245,6 +252,7 @@ export class PhoneChat {
           endUserId = capture.endUserId; remoteGeneration = owner.remoteGeneration;
         }
         if (!await active.isCurrent()) return;
+        stage = 'binding';
         // The phone row identifies a logical character. Its selected provider ID
         // (the ordinary profile or its Multilingual twin) belongs to the frozen
         // prepared route, never to the constructor's ordinary contact catalog or a later setting.
@@ -259,14 +267,24 @@ export class PhoneChat {
           && (!active.playerContext || saved?.sessionKey === routeSessionKey)
           ? saved.sessionId : '-1';
         const context = conversationContext(requestInput);
+        stage = 'provider';
         const result = await this.reply({characterId: selectedCharacterId, profileKey: contact.profile, sessionId,
           input: requestInput, saveIdentity: clone(input.saveIdentity), context, ...(endUserId ? {endUserId} : {}),
           ...(active.playerContext ? {scope, sessionKey: routeSessionKey, remoteGeneration} : {}),
           text: context ? context + '\n\nV messages: ' + input.text : input.text,
           voice: false, signal: active.controller.signal});
         if (!await active.isCurrent()) return;
-        if (typeof result?.text !== 'string' || !result.text.trim() || result.text.length > 6000 || !sessionID(result.sessionID)) {
+        stage = 'reply';
+        // A text provider (Mistral, Local AI, the custom endpoint) has no conversation session of its own: its reply carries the id it was
+        // given, and a first message was given none ('-1'). That is a reply without a session to remember, not an invalid one.
+        const sessionless = result?.sessionID === undefined || result.sessionID === null || result.sessionID === '-1';
+        if (typeof result?.text !== 'string' || !result.text.trim() || result.text.length > 6000 || (!sessionless && !sessionID(result.sessionID))) {
           throw Error('Invalid reply');
+        }
+        if (sessionless) {
+          stage = 'publish';
+          if (await active.isCurrent()) await this.emit(active, {...identity, state: 'reply', text: result.text});
+          return;
         }
         const record = {scope, profileKey: contact.profile, characterId: selectedCharacterId, channel: 'phone', remoteGeneration,
           ...(routeSessionKey ? {sessionKey: routeSessionKey} : {}),
@@ -280,13 +298,24 @@ export class PhoneChat {
           this.transientSessions.set(sessionKey, record);
           while (this.transientSessions.size > 256) this.transientSessions.delete(this.transientSessions.keys().next().value);
         }
+        stage = 'publish';
         if (await active.isCurrent()) await this.emit(active, {...identity, state: 'reply', text: result.text});
       } catch (error) {
         let errorCode; try { errorCode = this.failureCode(error); } catch { /* the ordinary failure text */ }
-        if (await active.isCurrent()) await this.emit(active, {...identity, state: 'error',
+        // A message that is no longer wanted (a newer one, a close, a load) is not a failure worth a line.
+        const wanted = await active.isCurrent();
+        if (wanted) this.noteFailure(error, stage, {contact: input.contact, profileKey: contact.profile, errorCode});
+        if (wanted) await this.emit(active, {...identity, state: 'error',
           error: 'Message could not be delivered. Please try again.', ...(errorCode ? {errorCode} : {})});
       } finally { if (this.active === active) this.active = null; }
     })().catch(() => {}); // file errors are recovered by the adapter's timeout
+  }
+  noteFailure(error, stage, {contact, profileKey, errorCode}) {
+    if (!this.onFailure) return;
+    try {
+      const {reason, detail} = describePhoneFailure(error, stage);
+      this.onFailure({error, stage, reason, detail, contact, profileKey, ...(errorCode ? {errorCode} : {})});
+    } catch { /* a log line never fails a send */ }
   }
   close() { this.active?.controller.abort(); this.active = null; }
   // The profile a phone contact speaks as, or undefined for an unknown contact.

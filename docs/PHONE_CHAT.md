@@ -112,6 +112,26 @@ is not replaced by an earlier request's failure. Fifteen-second heartbeat expiry
 cancels service work after exit; a 45-second UI timeout preserves the draft. Late
 replies cannot enter a new attachment, and repeated polls do not resend a request.
 
+### Why a message failed (2026-10-19)
+
+The phone's "Message could not be delivered. Please try again." is the catch-all of the whole send, so it never said why (Nexus report, Mei1429).
+`bridge/phone-failure.mjs` now names the step (`route`, `binding`, `provider`, `reply`, `publish`) and a reason code for every message that ends in it, and the
+bridge does three things with it: one log line (`Phone chat message failed: reason=... stage=... contact=... provider=...`, never the message or the reply),
+`runtime/phone-failure-state.json` (last reason, step, provider, and a count per reason; carried by the support report as
+`bridge.status["phone-failure-state.json"]`), and the automatic error report for a fault (not for a load or a newer message ending the send).
+Reasons: `route-*` (the world or memory route was not ready: `world-unavailable`, `request-not-prepared`, `memory-route-changed`, `world-changed`, `request-expired`),
+`contact-unsupported`, `invalid-reply` (empty, over 6,000 characters, or a malformed session id), `world-changed`, `memory-route-changed`, `connection-busy`,
+`daily-limit`, `rate-limit`, `convai-busy` (the plan's concurrency limit), `convai-quota`, `convai-speaker-limit`, `convai-memory-needed`, `convai-key-rejected`,
+`mistral-*`, `local-*`, `custom-*` (the kind the provider named), `local-unavailable`, `session-rejected`, `timeout`, `browser`, `network`, `cancelled`, `unknown`.
+
+The UI wait for a reply is 45 s for Convai and Mistral, 95 s for Local AI (its turn budget is 80 s, a cold model load included) and 125 s for a custom endpoint (up to 120 s),
+read once per sent message through `phoneChat.replyWait` (`mod/init.lua`), so the bridge's own explanation arrives before the draft is given back. Convai's own limits have
+their own status lines on the phone, in the words of the game's notices: `quota-shared`, `quota-own`, `key-rejected`, `key-memory-needed` (the daily limit already had one).
+
+A text provider (Mistral, Local AI, the custom endpoint) has no conversation session: its reply carries the id it was given, and the first message of a thread
+was given `-1`. The send used to call that reply invalid, so on those providers every phone message ended in the generic text. A reply with no session is now delivered
+and no session is remembered; a malformed session id is still refused.
+
 ## Historical verification — September 29
 
 The initial Chat implementation still included the now-retired disappearing-message

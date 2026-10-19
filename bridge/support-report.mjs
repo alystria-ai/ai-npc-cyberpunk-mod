@@ -358,7 +358,10 @@ function knownProblems(raw, {lua = {}, now = Date.now} = {}) {
 
 const STATUS_FILES = ['bridge-service.json', 'bridge-status.json', 'knowledge-status.json', 'local-voice-state.json',
   'party-connection-state.json', 'party-connections.json', 'companion-invitations-state.json', 'memory-status.json',
-  'relationship-routing.json', 'world-session.json', 'bridge-latency.json', 'setup-check.json'];
+  'relationship-routing.json', 'world-session.json', 'bridge-latency.json', 'setup-check.json',
+  // The last Phone Chat message that failed: when, the step, a reason code, the provider and counts per reason. No message or reply text
+  // (bridge/phone-failure.mjs).
+  'phone-failure-state.json'];
 const ERROR_LINE = /\b(?:error|exception|failed|failure|fatal|crash(?:ed)?|traceback|panic|unhandled|assert(?:ion)?)\b/i;
 // Routine lines that merely mention the word ("no error reported", "error=false").
 const NOT_AN_ERROR = /\b(?:no|zero|0)\s+(?:scene\s+)?errors?\b|\berrors?\s*[=:]\s*(?:false|0|none|null)\b|\bfailures?\s*[=:]\s*0\b|\bwithout (?:an? )?error/i;

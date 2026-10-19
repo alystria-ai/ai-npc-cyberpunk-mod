@@ -418,6 +418,15 @@ convaiPhoneChat = phoneChat
 convaiGroupChat = groupChat
 -- Phone Chat keeps the draft and shows this inline when no service can reply.
 phoneChat.serviceBlocked = function() return (serviceCall('blockedMessage', os.time())) end
+-- How long a sent phone message waits for its reply (phone-chat.lua asks once per message): the provider's own turn budget plus a margin, so
+-- the bridge's explanation (Local AI 80 s, a custom endpoint up to 120 s, a cold model load included) arrives before the draft is given back.
+-- Convai and Mistral answer or fail well inside the 45 s default.
+phoneChat.replyWait = function()
+    local ok, state = pcall(manager.mistral)
+    local provider = ok and type(state) == 'table' and state.effective or nil
+    if provider == 'local' then return 95 elseif provider == 'custom' then return 125 end
+    return 45
+end
 groupChat.onPreparation = function(preparation)
     if preparation and not attachKnowledge(preparation.input) then preparation = nil end
     -- Written in place (the shipped placeholder is replaced, never created or deleted: Mod Organizer 2).
