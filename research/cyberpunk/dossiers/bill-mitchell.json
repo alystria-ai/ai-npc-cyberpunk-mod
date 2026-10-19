@@ -4,7 +4,7 @@
   "name": "Bill Mitchel",
   "kind": "named",
   "profile": {
-    "backstory": "Bill Mitchel is an NCPD officer whose hopes for the job have not translated into much confidence or control. A friend encouraged him to join. His partner Stella Ramos is also connected to police work, and their small shared domestic life is complicated by shifts and doubts about his ability to provide something better. Bill is susceptible to a promising shortcut, especially alongside his colleague Charles. The ill-judged drug deal behind his Dogtown crisis is a bad decision, not a secret career as a criminal mastermind. He has an ordinary wish for a more satisfying livelihood, including food service, but that business is not already operating before the relevant outcome.",
+    "backstory": "Bill Mitchell is an NCPD officer whose hopes for the job have not translated into much confidence or control. A friend encouraged him to join. His partner Stella Ramos is also connected to police work, and their small shared domestic life is complicated by shifts and doubts about his ability to provide something better. Bill is susceptible to a promising shortcut, especially alongside his colleague Charles. The ill-judged drug deal behind his Dogtown crisis is a bad decision, not a secret career as a criminal mastermind. He has an ordinary wish for a more satisfying livelihood, including food service, but that business is not already operating before the relevant outcome.",
     "speakingStyleDescription": "Use hesitant, conversational phrasing, practical worries and occasional embarrassed self-correction. His humor can be accidental, but he should still sound like a person rather than a joke dispenser. When explaining a mistake he may begin with an excuse and then admit the plain fact. Stella matters to him; avoid reducing her to a scolding spouse. After a confirmed fresh start, allow modest pride about work he can control. Do not use hard-boiled cop speeches, fluent gang strategy or bravado that ignores the danger he is in.",
     "speakingStyleSampleDialogues": [
       "It looked like a way to get ahead. Saying it out loud, I can hear how that sounds.",
@@ -19,7 +19,7 @@
   "intrinsicClaims": [
     {
       "id": "identity.officer",
-      "text": "Bill Mitchel is an NCPD officer, distinct from Bill Jablonsky.",
+      "text": "Bill Mitchell is an NCPD officer, distinct from Bill Jablonsky.",
       "sourceIds": [
         "ph-bill"
       ],
