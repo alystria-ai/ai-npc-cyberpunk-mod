@@ -1,6 +1,9 @@
-// Chat completions client for the OpenAI-compatible text providers (docs/MISTRAL.md, docs/LOCAL_AI.md): Mistral (the original)
-// and the local llama.cpp server. One streamed request, an SSE parser, bounded retries and errors mapped to the few things a player
-// can act on. `provider` ('mistral' default, 'local') picks the wording and marker of errors and the hosts a key may go to.
+// Chat completions client for the OpenAI-compatible text providers (docs/MISTRAL.md, docs/LOCAL_AI.md, docs/CUSTOM_PROVIDER.md): Mistral (the original),
+// the local llama.cpp server and the player's own endpoint ('custom': OpenRouter, Nano-GPT, Ollama, LM Studio, any OpenAI-style server).
+// One streamed request, an SSE parser, bounded retries and errors mapped to the few things a player can act on. `provider` ('mistral'
+// default, 'local', 'custom') picks the wording and marker of errors and the hosts a key may go to. Everything 'custom' adds (an optional key,
+// the retry without a parameter the server refuses, a reply that is not streamed, 402, a Retry-After that is honoured) is behind that value:
+// a Mistral or local request is built and handled exactly as before.
 //
 // The player's API key is used for exactly one thing: the Authorization header of a request to its own provider (api.mistral.ai). It is never put in a message, a log line, an error text or a state file; every message that leaves this module goes
 // through `redact`. A different endpoint is accepted only when it is on this computer (the tests' fake server, the local AI), or when the caller
@@ -31,11 +34,12 @@ export function redact(text, apiKey) {
   return out.replace(KEY_SHAPE, '[key]');
 }
 
-const PROVIDER_LABELS = Object.freeze({mistral: 'Mistral', local: 'The local AI'});
+const PROVIDER_LABELS = Object.freeze({mistral: 'Mistral', local: 'The local AI', custom: 'The custom provider'});
 
 /**
  * kind: 'key' (not accepted), 'limit' (the free plan's rate limit or allowance), 'model' (the model is not available to this
- * account), 'network' (unreachable, timed out or a server fault), 'empty' (the model answered nothing), 'request' (a refused request).
+ * account), 'network' (unreachable, timed out or a server fault), 'empty' (the model answered nothing), 'request' (a refused request),
+ * 'credits' (custom only: the account has no credit left, HTTP 402).
  * The message carries `[mistral:<kind>]` so the bridge can classify a failure from its text alone, like convai-quota.mjs.
  */
 export class MistralError extends Error {
@@ -43,6 +47,8 @@ export class MistralError extends Error {
     provider = PROVIDER_LABELS[provider] ? provider : 'mistral';
     super(`${PROVIDER_LABELS[provider]} ${redact(detail, apiKey).slice(0, 200)} [${provider}:${kind}]`);
     this.name = 'MistralError';
+    // The words of the server's own answer (redacted), for the custom provider's connection test, which shows them to the player.
+    if (provider === 'custom') this.detail = redact(detail, apiKey).slice(0, 160);
     // zeroQuota: the account has no allowance at all for this model (retrying cannot help; another model may work).
     // slow: the service was reachable but did not answer in time (no response, or a stream that went quiet), or answered with a server
     // fault; the caller may speak a short in-character line instead of an error (docs/MISTRAL.md).
@@ -51,7 +57,7 @@ export class MistralError extends Error {
   }
 }
 
-export const MISTRAL_MARKER = /\[(?:mistral|local):(key|limit|model|network|empty|request)\]/;
+export const MISTRAL_MARKER = /\[(?:mistral|local|custom):(key|limit|model|network|empty|request|credits)\]/;
 
 /** The failure kind in an error's text ('key', 'limit', 'model', ...) or null. */
 export function failureKind(error) {
@@ -64,10 +70,13 @@ export function failureKind(error) {
 export function errorCodeFor(error) {
   const kind = failureKind(error);
   const text = typeof error === 'string' ? error : typeof error?.message === 'string' ? error.message : '';
-  const provider = /\[(mistral|local):/.exec(text)?.[1] ?? 'mistral';
+  const provider = /\[(mistral|local|custom):/.exec(text)?.[1] ?? 'mistral';
   // The local AI has no key or limit of its own. A server that could not be started has its own code in the bridge (local-fallback);
   // any other failure of a turn (a refused prompt, no answer, a server that went away) is 'local-failed'.
   if (provider === 'local') return kind ? 'local-failed' : undefined;
+  // The custom provider: its own five notices (a failure of any other kind, a refused prompt or an empty answer, is the ordinary "no answer").
+  if (provider === 'custom') return kind === 'key' ? 'custom-key' : kind === 'credits' ? 'custom-credits' : kind === 'limit' ? 'custom-limit'
+    : kind === 'model' ? 'custom-model' : kind === 'network' ? 'custom-unreachable' : undefined;
   return kind === 'key' ? `${provider}-key` : kind === 'limit' ? `${provider}-limit` : kind === 'model' ? `${provider}-model` : undefined;
 }
 
@@ -83,8 +92,74 @@ function retryAfter(headers) {
   return Number.isFinite(seconds) && seconds >= 0 ? Math.min(seconds, 60) * 1000 : undefined;
 }
 
+// Retry-After as a server may send it: a number of seconds or an HTTP date. The custom provider honours it up to an hour (a server that
+// says "tomorrow" is believed); the Mistral reader above stays capped at a minute.
+function customRetryAfter(headers, now = Date.now()) {
+  const raw = headers?.get?.('retry-after');
+  if (raw === null || raw === undefined || String(raw).trim() === '') return undefined;
+  const seconds = Number(raw);
+  if (Number.isFinite(seconds)) return seconds >= 0 ? Math.min(seconds, 3600) * 1000 : undefined;
+  const at = Date.parse(raw);
+  return Number.isFinite(at) ? Math.min(Math.max(at - now, 0), 3600_000) : undefined;
+}
+
+// The optional request fields the custom provider sends, and the ones a server may refuse. A server's refusal names the field, or at least
+// says "unsupported parameter"; the request is then sent once more without it (or, for max_tokens that a newer OpenAI model replaced by
+// max_completion_tokens, with the new name) and the choice is remembered for the session (`adapt`, see streamChat).
+const DROPPABLE = Object.freeze(['stream_options', 'response_format', 'temperature', 'prompt_cache_key', 'top_p', 'max_completion_tokens']);
+const REFUSAL_WORDS = /unsupported|not supported|unknown|unrecogni[sz]ed|unexpected|not permitted|not allowed|not accepted|extra (?:inputs?|fields?|forbidden)|extra_forbidden|invalid (?:parameter|param|field|argument)|additional propert|does not support|only the default|invalid_request_error.*param/;
+const FIELD_WORDS = /parameter|param\b|field|argument|propert/;
+const NO_SUCH_MODEL = /(?:model|endpoint)s?\b.{0,60}\b(?:not found|does not exist|not a valid|no such|unknown|not available|is not supported)|no endpoints found|invalid model/;
+
+/**
+ * What a 400 or 422 says about a request field, or null when it is not a refusal of one: {names: [fields it names], swap: max_tokens is
+ * to be sent as max_completion_tokens}. `names` is empty when the answer says a parameter is unsupported without naming it (all the
+ * optional fields then go). A message about the model itself ("model not found") is not a refusal of a field.
+ */
+export function rejectedParameters(status, text) {
+  if (status !== 400 && status !== 422) return null;
+  const lower = String(text ?? '').toLowerCase();
+  if (!REFUSAL_WORDS.test(lower)) return null;
+  const names = DROPPABLE.filter(name => lower.includes(name));
+  if (/\bstream\b/.test(lower.replace(/stream_options/g, ''))) names.push('stream');
+  const swap = /\bmax_tokens\b/.test(lower) && /max_completion_tokens/.test(lower);
+  if (/\bmax_tokens\b/.test(lower) && !swap) names.push('max_tokens');
+  if (swap) return {names: names.filter(name => name !== 'max_completion_tokens'), swap: true};
+  if (!names.length) return NO_SUCH_MODEL.test(lower) || !FIELD_WORDS.test(lower) ? null : {names: [], swap: false};
+  return {names, swap: false};
+}
+
+/** Maps what the custom provider answered: the same few kinds, plus 402 (no credit) and a refused request field. */
+function mapCustomFailure(status, body, {headers, apiKey}) {
+  const text = textOf(body), lower = text.toLowerCase();
+  const options = {status, retryAfterMs: customRetryAfter(headers), apiKey, provider: 'custom'};
+  // The server's own words travel with the error (redacted) so the connection test can show them; the message names what it means.
+  const make = (kind, detail, extra = {}) => {
+    const error = new MistralError(kind, detail, {...options, ...extra});
+    if (text) error.providerText = redact(text, apiKey).slice(0, 160);
+    return error;
+  };
+  if (status === 401 || status === 403) return make('key', 'did not accept the API key');
+  // Some providers answer an account that has spent its credit with 429 ("insufficient_quota") instead of 402.
+  if (status === 402 || (status === 429 && /insufficient[_ ]quota|exceeded your current quota|out of credits|insufficient (?:credits|funds|balance)|add (?:more )?credits/.test(lower))) {
+    return make('credits', 'has no credit left on this account');
+  }
+  if (status === 429) {
+    const error = make('limit', 'is rate limiting requests');
+    // A daily allowance does not clear by waiting a few seconds: no retry.
+    error.daily = /per day|per-day|TPD|RPD|daily/i.test(text);
+    return error;
+  }
+  const rejected = rejectedParameters(status, text);
+  if (rejected) { const error = make('request', `refused the request: ${text || `HTTP ${status}`}`); error.paramsRejected = rejected; return error; }
+  if (status === 404 || ((status === 400 || status === 422) && /model/.test(lower))) return make('model', `does not know that model: ${text || `HTTP ${status}`}`);
+  if (status === 408 || (status >= 500 && status <= 599)) return make('network', `had a server fault (HTTP ${status})`, {slow: true});
+  return make('request', `refused the request: ${text || `HTTP ${status}`}`);
+}
+
 /** Maps an HTTP status (or the `code` of an error object inside a stream) and its body to a MistralError. */
 export function mapFailure(status, body, {headers, apiKey, provider} = {}) {
+  if (provider === 'custom') return mapCustomFailure(status, body, {headers, apiKey});
   const text = textOf(body), lower = text.toLowerCase();
   const detail = text || `HTTP ${status}`;
   const zero = name => headers?.get?.(name) === '0';
@@ -198,8 +273,9 @@ function checkedEndpoint(endpoint, provider = 'mistral', trustedOrigin) {
   const url = new URL(endpoint);
   if (url.protocol === 'https:' && HOSTS[provider] && url.hostname === HOSTS[provider]) return url.href;
   if ((url.protocol === 'http:' || url.protocol === 'https:') && LOOPBACK.test(url.hostname)) return url.href;
-  if (provider === 'local' && typeof trustedOrigin === 'string' && trustedOrigin && url.origin === trustedOrigin) return url.href;
-  throw Error(`The ${PROVIDER_LABELS[provider] ?? 'Mistral'} key is only ever sent to ${HOSTS[provider] ?? 'api.mistral.ai'}`);
+  // A server the player runs (local) or named themselves (custom): the key goes to the origin the caller names, and to no other.
+  if ((provider === 'local' || provider === 'custom') && typeof trustedOrigin === 'string' && trustedOrigin && url.origin === trustedOrigin) return url.href;
+  throw Error(`The ${PROVIDER_LABELS[provider] ?? 'Mistral'} key is only ever sent to ${HOSTS[provider] ?? (provider === 'custom' ? 'the saved endpoint' : 'api.mistral.ai')}`);
 }
 
 // ---- Connection reuse --------------------------------------------------------------------------------------------------
@@ -237,14 +313,17 @@ const isCloud = url => { const {protocol, hostname} = new URL(url); return proto
  * and the reply, bridge/text-provider-host.mjs), and a pool serves two requests at once only with two connections: warming one would
  * leave the second to pay DNS, TCP and TLS in front of the first sound.
  */
-export async function warmConnection({provider = 'mistral', fetchImpl = globalThis.fetch, timeoutMs = 5000, connections = 1} = {}) {
+export async function warmConnection({provider = 'mistral', fetchImpl = globalThis.fetch, timeoutMs = 5000, connections = 1, origin} = {}) {
   try {
-    const host = HOSTS[provider];
-    if (!host) return false;
+    // The custom provider names its own https origin (its saved endpoint; the caller passes none for a server on this computer or the home
+    // network, which has no TLS to warm).
+    const target = provider === 'custom' ? (typeof origin === 'string' && /^https:\/\/[^/\s]+$/.test(origin) ? origin + '/' : null)
+      : HOSTS[provider] ? `https://${HOSTS[provider]}/` : null;
+    if (!target) return false;
     const signal = AbortSignal.timeout(timeoutMs);
     const dispatcher = fetchImpl === globalThis.fetch ? await remoteDispatcher() : undefined;
     const one = async () => {
-      const response = await fetchImpl(`https://${host}/`, {method: 'GET', signal, headers: {Accept: 'application/json'}, ...(dispatcher ? {dispatcher} : {})});
+      const response = await fetchImpl(target, {method: 'GET', signal, headers: {Accept: 'application/json'}, ...(dispatcher ? {dispatcher} : {})});
       try { await response.arrayBuffer(); } catch { /* the body failed: the connection is gone, nothing to keep */ }
       return true;
     };
@@ -282,24 +361,39 @@ const contentText = content => typeof content === 'string' ? content
  */
 export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTokens = 300, temperature = 0.8, onDelta, shouldStop,
   signal, fetchImpl = globalThis.fetch, endpoint, firstByteMs = 25000, retryFirstByteMs, stallMs = 0, totalMs = 70000, retries = 2,
-  backoffMs = [1200, 3500], sleepImpl = sleep, extraBody, provider = 'mistral', trustedOrigin, onHeaders, onRetry, now = () => performance.now()} = {}) {
-  if (typeof apiKey !== 'string' || apiKey.length < 8) throw new MistralError('key', 'has no API key', {provider});
+  backoffMs = [1200, 3500], sleepImpl = sleep, extraBody, provider = 'mistral', trustedOrigin, onHeaders, onRetry, now = () => performance.now(),
+  adapt, headers} = {}) {
+  // The custom provider's key is optional (a server on this computer wants none); a key it has is held to the same length as any other.
+  const keyless = provider === 'custom' && (apiKey === undefined || apiKey === null || apiKey === '');
+  if (!keyless && (typeof apiKey !== 'string' || apiKey.length < 8)) throw new MistralError('key', 'has no API key', {provider});
+  if (keyless) apiKey = undefined;
   const url = checkedEndpoint(endpoint ?? MISTRAL_ENDPOINT, provider, trustedOrigin);
-  let lastError;
+  let lastError, adapted = false;
   const failed = [];
   for (let attempt = 0; attempt <= retries; attempt++) {
     if (signal?.aborted) throw signal.reason ?? abortError();
     const began = now();
     try {
       const result = await once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url,
-        firstByteMs: attempt > 0 && retryFirstByteMs ? retryFirstByteMs : firstByteMs, stallMs, totalMs, extraBody, provider, onHeaders});
+        firstByteMs: attempt > 0 && retryFirstByteMs ? retryFirstByteMs : firstByteMs, stallMs, totalMs, extraBody, provider, onHeaders, adapt, headers});
       return {...result, attempts: attempt + 1, failed};
     } catch (error) {
       if (signal?.aborted || error?.name === 'AbortError' && !(error instanceof MistralError)) throw signal?.aborted ? (signal.reason ?? abortError()) : error;
       lastError = error instanceof MistralError ? error : new MistralError('network', redact(error?.message ?? 'request failed', apiKey), {apiKey, provider});
       failed.push({kind: lastError.kind, status: lastError.status, ms: Math.round(now() - began)});
-      if (attempt >= retries || !retryable(lastError)) { lastError.failed = failed; throw lastError; }
-      const wait = Math.min(lastError.retryAfterMs ?? backoffMs[Math.min(attempt, backoffMs.length - 1)] ?? 2000, 8000);
+      // The custom provider's server refused an optional field of the request: the same request is sent once more without it, at once, and the
+      // refusal is remembered (in `adapt`, which the route keeps for the session) so no later request sends the field again.
+      if (adapt && !adapted && lastError.paramsRejected) {
+        adapted = true;
+        learnRefusal(adapt, lastError.paramsRejected);
+        try { onRetry?.({attempt: attempt + 1, error: lastError, waitMs: 0, ms: failed.at(-1).ms}); } catch { /* an observer never fails a reply */ }
+        attempt--;
+        continue;
+      }
+      // A Retry-After longer than a reply can wait is not waited for (the custom provider; Mistral's is capped at a minute and waited up to 8 s).
+      const tooLong = provider === 'custom' && lastError.kind === 'limit' && lastError.retryAfterMs > MAX_RETRY_WAIT_MS;
+      if (attempt >= retries || !retryable(lastError) || tooLong) { lastError.failed = failed; throw lastError; }
+      const wait = Math.min(lastError.retryAfterMs ?? backoffMs[Math.min(attempt, backoffMs.length - 1)] ?? 2000, MAX_RETRY_WAIT_MS);
       try { onRetry?.({attempt: attempt + 1, error: lastError, waitMs: wait, ms: failed.at(-1).ms}); } catch { /* an observer never fails a reply */ }
       await sleepImpl(wait, signal);
     }
@@ -308,7 +402,39 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
   throw lastError;
 }
 
-async function once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url, firstByteMs, stallMs, totalMs, extraBody, provider, onHeaders}) {
+const MAX_RETRY_WAIT_MS = 8000;
+
+// What the custom provider's server refused is remembered in `adapt` ({dropped: Set of field names, swapped: max_tokens is sent as
+// max_completion_tokens}); the route keeps one per endpoint and model for the session.
+export function newAdaptation() { return {dropped: new Set(), swapped: false}; }
+const OPTIONAL_FIELDS = Object.freeze(['stream_options', 'response_format', 'temperature', 'prompt_cache_key', 'top_p']);
+function learnRefusal(adapt, rejected) {
+  if (rejected.swap) adapt.swapped = true;
+  for (const name of rejected.names.length ? rejected.names : OPTIONAL_FIELDS) adapt.dropped.add(name);
+}
+function applyAdaptation(body, adapt) {
+  if (adapt.swapped && 'max_tokens' in body) { body.max_completion_tokens = body.max_tokens; delete body.max_tokens; }
+  for (const name of adapt.dropped) {
+    if (name === 'stream') body.stream = false;
+    else delete body[name];
+  }
+}
+const isPlainJson = headers => { const type = String(headers?.get?.('content-type') ?? ''); return /\bjson\b/i.test(type) && !/event-stream/i.test(type); };
+
+// The body of a refused request. A custom server may answer in plain text or HTML (a proxy's "502 Bad Gateway"): its words become the message.
+async function errorBody(response, provider) {
+  if (provider === 'custom' && typeof response.text === 'function') {
+    let raw = '';
+    try { raw = await response.text(); } catch { return undefined; }
+    try { return JSON.parse(raw); } catch {
+      const plain = raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200);
+      return plain ? {message: plain} : undefined;
+    }
+  }
+  try { return await response.json(); } catch { return undefined; }
+}
+
+async function once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url, firstByteMs, stallMs, totalMs, extraBody, provider, onHeaders, adapt, headers: extraHeaders}) {
   const controller = new AbortController();
   let timedOut = false, started = false;
   const onAbort = () => controller.abort(signal.reason);
@@ -320,22 +446,46 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
   try {
     let response;
     try {
-      const dispatcher = isCloud(url) ? await remoteDispatcher() : undefined;
+      // The custom provider's https connections are kept alive like Mistral's (the reply after a pause finds one ready).
+      const dispatcher = isCloud(url) || (provider === 'custom' && url.startsWith('https:')) ? await remoteDispatcher() : undefined;
+      const body = {model, messages, stream: true, max_tokens: maxTokens, temperature, ...extraBody};
+      if (adapt) applyAdaptation(body, adapt);
       markStage('llmSent');
       response = await fetchImpl(url, {method: 'POST', signal: controller.signal, ...(dispatcher ? {dispatcher} : {}),
-        headers: {Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', Accept: 'text/event-stream'},
-        body: JSON.stringify({model, messages, stream: true, max_tokens: maxTokens, temperature, ...extraBody})});
+        // The key's origin is the endpoint's; a redirect to another host is an error, not something to follow with the key.
+        ...(provider === 'custom' ? {redirect: 'error'} : {}),
+        headers: {...(apiKey ? {Authorization: `Bearer ${apiKey}`} : {}), 'Content-Type': 'application/json',
+          Accept: body.stream === false ? 'application/json' : 'text/event-stream', ...extraHeaders},
+        body: JSON.stringify(body)});
     } catch (error) {
       if (timedOut) throw new MistralError('network', 'did not answer in time', {apiKey, provider, slow: true});
       if (signal?.aborted) throw signal.reason ?? abortError();
+      if (provider === 'custom' && /redirect/i.test(String(error?.cause?.message ?? error?.message ?? ''))) {
+        const redirect = new MistralError('network', 'answered with a redirect to another address; check the endpoint URL', {apiKey, provider});
+        redirect.redirect = true;
+        throw redirect;
+      }
       throw new MistralError('network', `could not be reached (${redact(error?.cause?.code ?? error?.message ?? 'network error', apiKey)})`, {apiKey, provider});
     }
     markStage('llmHeaders');
     // The rate-limit headers go to the caller (the shared request scheduler reads a per-second limit from them).
     try { onHeaders?.(response.headers); } catch { /* an observer never fails a reply */ }
-    if (!response.ok) {
-      let body; try { body = await response.json(); } catch { /* no JSON body */ }
-      throw mapFailure(response.status, body, {headers: response.headers, apiKey, provider});
+    if (!response.ok) throw mapFailure(response.status, await errorBody(response, provider), {headers: response.headers, apiKey, provider});
+    // A custom server that does not stream (or was asked not to, after it refused "stream") answers with one JSON body: the whole reply is one piece.
+    if (provider === 'custom' && isPlainJson(response.headers)) {
+      let value;
+      try { value = await response.json(); } catch {
+        if (timedOut) throw new MistralError('network', 'did not finish in time', {apiKey, provider, slow: true});
+        if (signal?.aborted) throw signal.reason ?? abortError();
+        throw new MistralError('network', 'sent an answer that could not be read', {apiKey, provider});
+      }
+      if (value?.error) throw mapFailure(Number.isInteger(value.error?.code) ? value.error.code : Number.isInteger(value.code) ? value.code : 502, value, {apiKey, provider});
+      const choice = value?.choices?.[0];
+      const whole = contentText(choice?.message?.content ?? choice?.text);
+      if (!whole.trim()) throw new MistralError('empty', 'answered with no text', {apiKey, provider});
+      markStage('firstToken');
+      onDelta?.(whole, whole);
+      return {text: whole, model: typeof value.model === 'string' ? value.model : undefined, finishReason: choice?.finish_reason ?? 'stop', usage: value.usage};
     }
     if (!response.body) throw new MistralError('network', 'sent no reply stream', {apiKey, provider});
     let text = '', actualModel, finishReason, usage, stoppedEarly = false, sawDone = false;
@@ -363,7 +513,7 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
       }
       // A server the player runs can die while it writes (a killed KoboldCpp closes the stream as cleanly as a finished one): a stream that ends
       // with neither "[DONE]" nor a finish_reason is a reply cut off, not a finished one. The cloud's streams always end with one of them.
-      if (provider === 'local' && !stoppedEarly && !sawDone && !finishReason) throw new MistralError('network', 'went quiet before the reply was finished', {apiKey, provider, partial: !!text.trim()});
+      if ((provider === 'local' || provider === 'custom') && !stoppedEarly && !sawDone && !finishReason) throw new MistralError('network', 'went quiet before the reply was finished', {apiKey, provider, partial: !!text.trim()});
     } catch (error) {
       if (timedOut) throw new MistralError('network', started ? 'went quiet before the reply was finished' : 'did not finish in time', {apiKey, provider, slow: true});
       if (signal?.aborted) throw signal.reason ?? abortError();
