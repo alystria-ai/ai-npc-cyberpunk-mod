@@ -654,11 +654,14 @@ local function retryFace(delta)
 end
 
 local function updateSpeech(delta)
-    local player = Game.GetPlayer()
     M.heartbeat = M.heartbeat + delta
     -- speech-state.json lease: the bridge keeps it 5 s. Written in a frame no other heartbeat writes in.
     local slot = M.heartbeat >= 2 and convaiHeartbeatSlot
-    if M.heartbeat >= 2 and (type(slot) ~= 'function' or slot()) then
+    local beat = M.heartbeat >= 2 and (type(slot) ~= 'function' or slot())
+    -- Nothing is playing and no heartbeat is due (nearly every frame): no game call at all. The player is fetched only when it is used.
+    if not beat and not M.requestId then return end
+    local player = Game.GetPlayer()
+    if beat then
         M.heartbeat = 0
         continuousAdapter()
         if not M.continuous then M.available = player ~= nil and pcall(function() player:ConvaiSpeechPosition() end) end

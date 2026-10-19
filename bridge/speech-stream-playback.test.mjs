@@ -22,7 +22,8 @@ local actor = {
  IsAttached=function() native(); return true end, IsDeadNoStatPool=function() native(); return false end,
  ConvaiFaceReady=function() native(); return true end, ConvaiFaceApply=function() native(); return true end,
  ConvaiFaceReset=function() native(); resets=resets+1; return true end}
-Game={GetPlayer=function() return player end, GetAllBlackboardDefs=function() return {UI_System={}} end,
+local players=0
+Game={GetPlayer=function() players=players+1; return player end, GetAllBlackboardDefs=function() return {UI_System={}} end,
  GetBlackboardSystem=function() return {Get=function() return {GetBool=function() return paused end} end} end}
 CName={new=function(x) return x end}; NewObject=function() return {} end
 convaiCompanions={owns=function(a) return a==actor end}
@@ -170,4 +171,13 @@ test('a manifest that was refused is not decoded again until its text changes, a
  assert(starts==1 and decodes-before==1, 'a refused manifest was decoded '..(decodes-before)..' times')
  manifest.entity='Judy-2'; speech.update(.1)
  assert(starts==2, 'the corrected manifest was not taken')
+`));
+
+test('with nothing playing the speech update makes no game call between its two-second heartbeats', () => run(`
+ for _=1,19 do speech.update(.1) end
+ assert(players==0, 'the player was fetched '..players..' times while idle')
+ speech.update(.1)
+ assert(players==1, 'the heartbeat fetches it once: '..players)
+ for _=1,10 do speech.update(.1) end
+ assert(players==1, 'and not again until the next heartbeat: '..players)
 `));
