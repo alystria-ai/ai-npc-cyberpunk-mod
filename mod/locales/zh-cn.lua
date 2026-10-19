@@ -580,7 +580,6 @@ return {
     ["Pocket could not load. See Help in Settings."] = "Pocket 无法加载。请在设置中查看帮助。",
     ["Local AI is warming up…"] = "Local AI 预热中…",
     ["Local AI is ready."] = "Local AI 已就绪。",
-    ["Not enough graphics memory for Local AI. A cloud provider is used instead."] = "显存不足，无法运行 Local AI。已改用云服务提供商。",
     ["A few sentences the character keeps about your past talks. Edit them or clear them."] = "角色记住的几句关于你们过往对话的话。可以编辑或清除。",
     ["A line this character might say"] = "这个角色可能会说的一句台词",
     ["A memory cannot be empty."] = "记忆不能为空。",

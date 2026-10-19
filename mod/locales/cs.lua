@@ -580,7 +580,6 @@ return {
     ["Pocket could not load. See Help in Settings."] = "Pocket se nepodařilo načíst. Viz Nápověda v Nastavení.",
     ["Local AI is warming up…"] = "Local AI se zahřívá…",
     ["Local AI is ready."] = "Local AI je připravena.",
-    ["Not enough graphics memory for Local AI. A cloud provider is used instead."] = "Nedostatek paměti grafiky pro Local AI. Místo toho se používá cloudový poskytovatel.",
     ["A few sentences the character keeps about your past talks. Edit them or clear them."] = "Pár vět, které si postava pamatuje z tvých minulých rozhovorů. Uprav je nebo je vymaž.",
     ["A line this character might say"] = "Věta, kterou by tato postava mohla říct",
     ["A memory cannot be empty."] = "Vzpomínka nesmí být prázdná.",

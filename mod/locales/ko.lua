@@ -580,7 +580,6 @@ return {
     ["Pocket could not load. See Help in Settings."] = "Pocket을 불러올 수 없습니다. 설정의 도움말을 확인하세요.",
     ["Local AI is warming up…"] = "Local AI 준비 중…",
     ["Local AI is ready."] = "Local AI가 준비됐습니다.",
-    ["Not enough graphics memory for Local AI. A cloud provider is used instead."] = "Local AI에 필요한 그래픽 메모리가 부족합니다. 대신 클라우드 제공업체를 사용합니다.",
     ["A few sentences the character keeps about your past talks. Edit them or clear them."] = "캐릭터가 당신과 나눈 지난 대화에 대해 기억하는 몇 문장입니다. 편집하거나 지우세요.",
     ["A line this character might say"] = "이 캐릭터가 할 법한 대사",
     ["A memory cannot be empty."] = "기억은 비워 둘 수 없습니다.",

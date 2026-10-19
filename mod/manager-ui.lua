@@ -82,7 +82,7 @@ local function loadingText(key, state)
     end
     if state == 'loading' then return ui.t('Local AI is warming up…') end
     if state == 'ready' then return ui.t('Local AI is ready.') end
-    if state == 'no-memory' then return ui.t('Not enough graphics memory for Local AI. A cloud provider is used instead.') end
+    if state == 'no-memory' then return ui.t('Not enough free graphics memory to start Local AI. Try a smaller model in Settings.') end
     return ui.t('Local AI could not start. Check Local AI in Settings > Conversation provider.')
 end
 

@@ -580,7 +580,6 @@ return {
     ["Pocket could not load. See Help in Settings."] = "Pocket を読み込めませんでした。設定のヘルプをご確認ください。",
     ["Local AI is warming up…"] = "Local AI を準備中…",
     ["Local AI is ready."] = "Local AI は準備完了です。",
-    ["Not enough graphics memory for Local AI. A cloud provider is used instead."] = "Local AI にはグラフィックスメモリが不足しています。代わりにクラウドプロバイダーを使用します。",
     ["A few sentences the character keeps about your past talks. Edit them or clear them."] = "キャラクターがあなたとの過去の会話について覚えている数文です。編集するか、消去してください。",
     ["A line this character might say"] = "このキャラクターが言いそうな一言",
     ["A memory cannot be empty."] = "記憶を空にすることはできません。",

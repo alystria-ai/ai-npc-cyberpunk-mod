@@ -580,7 +580,6 @@ return {
     ["Pocket could not load. See Help in Settings."] = "Pocket konnte nicht geladen werden. Siehe Hilfe in den Einstellungen.",
     ["Local AI is warming up…"] = "Local AI wird vorbereitet…",
     ["Local AI is ready."] = "Local AI ist bereit.",
-    ["Not enough graphics memory for Local AI. A cloud provider is used instead."] = "Nicht genug Grafikspeicher für Local AI. Stattdessen wird ein Cloud-Anbieter verwendet.",
     ["A few sentences the character keeps about your past talks. Edit them or clear them."] = "Ein paar Sätze, die sich der Charakter über deine früheren Gespräche merkt. Bearbeite sie oder lösche sie.",
     ["A line this character might say"] = "Ein Satz, den dieser Charakter sagen könnte",
     ["A memory cannot be empty."] = "Eine Erinnerung darf nicht leer sein.",

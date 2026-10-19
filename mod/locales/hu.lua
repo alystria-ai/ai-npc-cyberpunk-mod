@@ -580,7 +580,6 @@ return {
     ["Pocket could not load. See Help in Settings."] = "A Pocket nem tölthető be. Lásd: Súgó a Beállításokban.",
     ["Local AI is warming up…"] = "A Local AI bemelegítése folyamatban…",
     ["Local AI is ready."] = "A Local AI kész.",
-    ["Not enough graphics memory for Local AI. A cloud provider is used instead."] = "Nincs elég grafikus memória a Local AI-hoz. Helyette felhőszolgáltató van használatban.",
     ["A few sentences the character keeps about your past talks. Edit them or clear them."] = "Néhány mondat, amelyet a karakter a veled folytatott korábbi beszélgetésekről őriz. Szerkeszd vagy töröld őket.",
     ["A line this character might say"] = "Egy sor, amit ez a karakter mondhat",
     ["A memory cannot be empty."] = "Az emlék nem lehet üres.",

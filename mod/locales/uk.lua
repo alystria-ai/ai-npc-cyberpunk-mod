@@ -580,7 +580,6 @@ return {
     ["Pocket could not load. See Help in Settings."] = "Не вдалося завантажити Pocket. Див. Довідку в Налаштуваннях.",
     ["Local AI is warming up…"] = "Local AI готується…",
     ["Local AI is ready."] = "Local AI готовий.",
-    ["Not enough graphics memory for Local AI. A cloud provider is used instead."] = "Недостатньо графічної пам’яті для Local AI. Натомість використовується хмарний провайдер.",
     ["A few sentences the character keeps about your past talks. Edit them or clear them."] = "Кілька речень, які персонаж пам’ятає з твоїх минулих розмов. Зміни їх або очисти.",
     ["A line this character might say"] = "Репліка, яку може сказати цей персонаж",
     ["A memory cannot be empty."] = "Спогад не може бути порожнім.",

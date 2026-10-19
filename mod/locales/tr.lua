@@ -580,7 +580,6 @@ return {
     ["Pocket could not load. See Help in Settings."] = "Pocket yüklenemedi. Ayarlar'daki Yardım'a bak.",
     ["Local AI is warming up…"] = "Local AI hazırlanıyor…",
     ["Local AI is ready."] = "Local AI hazır.",
-    ["Not enough graphics memory for Local AI. A cloud provider is used instead."] = "Local AI için grafik belleği yetersiz. Bunun yerine bulut sağlayıcı kullanılıyor.",
     ["A few sentences the character keeps about your past talks. Edit them or clear them."] = "Karakterin geçmiş konuşmalarınla ilgili tuttuğu birkaç cümle. Bunları düzenle ya da temizle.",
     ["A line this character might say"] = "Bu karakterin söyleyebileceği bir satır",
     ["A memory cannot be empty."] = "Anı boş olamaz.",
