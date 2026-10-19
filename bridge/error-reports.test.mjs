@@ -192,6 +192,23 @@ test('the bridge recorder writes after the fact, once per signature, and nothing
   } finally { await f.cleanup(); }
 });
 
+test('a voice that could not start is recorded with its engine and reason, once per reason, and its signature does not change with the folder', async () => {
+  const f = await folders();
+  try {
+    const events = new ErrorEvents({stateDirectory: f.state, runtime: f.runtime, now: () => START, defer: fn => fn()});
+    events.voiceFailed({engine: 'pocket', reason: 'Pocket student runtime is unavailable (ValueError: Pocket source differs from the pinned official revision)'});
+    events.voiceFailed({engine: 'pocket', reason: 'Pocket student runtime is unavailable (ValueError: Pocket source differs from the pinned official revision)'});
+    events.voiceFailed({engine: 'v-helper', reason: 'Pocket student runtime is unavailable (FileNotFoundError: C:\\Games\\one\\model.safetensors)'});
+    events.voiceFailed({engine: 'v-helper', reason: 'Pocket student runtime is unavailable (FileNotFoundError: D:\\Other\\place\\model.safetensors)'});
+    events.voiceFailed({reason: 'a\nsecond line'});
+    await new Promise(done => setTimeout(done, 100));
+    const queue = await readQueue(f.state, {now: START});
+    assert.deepEqual(queue.map(record => record.kind), Array(3).fill('voice-failed'), 'the same reason is one report, and a folder is not a different reason');
+    assert.deepEqual(queue.map(record => record.message).sort(), ['pocket: Pocket student runtime is unavailable (ValueError: Pocket source differs from the pinned official revision)',
+      'v-helper: Pocket student runtime is unavailable (FileNotFoundError: C:\\Games\\one\\model.safetensors)', 'voice: a'].sort());
+  } finally { await f.cleanup(); }
+});
+
 // ------------------------------------------------------------------ the payload
 
 test('no planted secret, conversation text or account name gets out, and the payload stays small', async () => {

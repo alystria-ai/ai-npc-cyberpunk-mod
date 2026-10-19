@@ -582,6 +582,8 @@ return {
     ["OmniVoice could not load. See Help in Settings."] = "Az OmniVoice nem tölthető be. Lásd: Súgó a Beállításokban.",
     ["Loading the Pocket voice…"] = "Pocket hang betöltése…",
     ["Pocket voice is ready."] = "A Pocket hang kész.",
+    ["Pocket voice"] = "Pocket hang",
+    ["The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it."] = "A Pocket hang (V hangja, és egy társé, ha a Pocketet választottad) nem tudott elindulni, ezért néma marad. A Pocket a Runtime része, így semmi mást nem kell telepíteni. Indítsd újra a játékot. Ha ez újra megtörténik, a Súgóban lévő „Jelentés létrehozása” gombbal készíts jelentést, és küldd el.",
     ["Pocket could not load. See Help in Settings."] = "A Pocket nem tölthető be. Lásd: Súgó a Beállításokban.",
     ["Local AI is warming up…"] = "A Local AI bemelegítése folyamatban…",
     ["Local AI is ready."] = "A Local AI kész.",

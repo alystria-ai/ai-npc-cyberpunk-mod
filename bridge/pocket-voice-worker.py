@@ -538,7 +538,10 @@ def main():
         return 0
     except Exception as error:
         print(f"Pocket worker failed: {type(error).__name__}: {error}", file=sys.stderr, flush=True)
-        send({"op": "fatal", "message": "Pocket student runtime is unavailable."})
+        # The reason travels with the frame (class and first line, short), so the bridge's log line and an error report name it instead of
+        # only the generic text; the bridge cuts it to a few words and a report removes any folder from it.
+        reason = f"{type(error).__name__}: {str(error).splitlines()[0] if str(error) else ''}".rstrip(": ")[:160]
+        send({"op": "fatal", "message": "Pocket student runtime is unavailable.", "reason": reason})
         return 1
     finally:
         commands.finish_input()

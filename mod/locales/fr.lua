@@ -582,6 +582,8 @@ return {
     ["OmniVoice could not load. See Help in Settings."] = "OmniVoice n'a pas pu se charger. Voir Aide dans Paramètres.",
     ["Loading the Pocket voice…"] = "Chargement de la voix Pocket…",
     ["Pocket voice is ready."] = "La voix Pocket est prête.",
+    ["Pocket voice"] = "Voix Pocket",
+    ["The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it."] = "La voix Pocket (celle de V, et celle d’un compagnon si vous avez choisi Pocket) n’a pas pu démarrer, elle reste donc muette. Pocket fait partie du Runtime : rien d’autre n’est à installer. Redémarrez le jeu. Si cela se reproduit, générez un rapport avec le bouton « Générer le rapport » de l’Aide et envoyez-le.",
     ["Pocket could not load. See Help in Settings."] = "Pocket n'a pas pu se charger. Voir Aide dans Paramètres.",
     ["Local AI is warming up…"] = "Local AI se prépare…",
     ["Local AI is ready."] = "Local AI est prête.",

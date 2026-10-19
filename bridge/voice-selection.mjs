@@ -106,6 +106,7 @@ export class VoiceSelection {
     // never the route of any character; `vHelperWanted` is the V setting (on, with clips), set by the bridge's settings poll.
     this.vHelperWanted=false;
     this.vHelper=options.vHelper||new VHelperVoice({wait:()=>this.retiring,onReady:()=>this.options.onVHelperReady?.(),log:message=>{try{this.options.onLog?.('[VHelper] '+message+'\n');}catch{}},
+      onFailure:reason=>this.noteFailure('v-helper',reason),
       create:onState=>this.primed(this.factory(this.baseConfigs.pocket,{...this.options,keepPreparedVoices:this.keepPrepared,onState}),'pocket')});
     // omniRetry: {failures, nextAt} while a failed Omni is to be loaded again; candidate: the background Omni worker
     // loading beside the committed fallback (Pocket is CPU only, so the two never share VRAM). candidateExit
@@ -114,6 +115,7 @@ export class VoiceSelection {
     this.omniRetryDelays=options.omniRetryDelays||OMNI_RETRY_DELAYS_MS;
     // pocketRetry: {failures, nextAt} while a failed Pocket is to be loaded again
     this.pocketRetry=null;this.pocketRetryDelays=options.pocketRetryDelays||POCKET_RETRY_DELAYS_MS;
+    this.failureReasons={};
     // "Keep prepared voices" (default on): Pocket saves each voice's prepared state to disk; Omni warms at the
     // selected steps while the companion joins.
     this.keepPrepared=options.keepPreparedVoices!==false;
@@ -595,10 +597,25 @@ export class VoiceSelection {
   backendFailed(backend,client){
     if(this.closed||this.client!==client||this.failedBackends.has(backend))return;
     this.failedBackends.add(backend);
+    this.failureReasons[backend]=String(client.failure?.message??'unknown').slice(0,200);
+    this.noteFailure(backend,client.failure?.message);
     if(backend==='omni')this.scheduleOmniRetry(client.failure?.message);
     if(backend==='pocket')this.schedulePocketRetry(client.failure?.message);
     this.reconcile();
     this.publish();
+  }
+  // A voice that could not start, told to whoever listens (the bridge records it for an error report, bridge/error-events.mjs). Never throws.
+  noteFailure(engine,reason){try{this.options.onFailure?.({engine,reason:String(reason??'unknown').slice(0,200)});}catch{}}
+  /**
+   * What keeps the Pocket voice from speaking right now, for the Help page's setup check: null, or {engine: 'pocket'|'v-helper', reason}. The companions'
+   * Pocket worker counts only while it is the voice they need (Pocket chosen, or OmniVoice that cannot run); V's own worker only while V's voice wants it.
+   * A worker that failed and is waiting for its next try still counts; one that loaded again does not.
+   */
+  voiceProblem(){
+    if(this.closed)return null;
+    if(this.vHelperWanted&&this.vHelper.failed)return {engine:'v-helper',reason:this.vHelper.failure??'unknown'};
+    if(this.pocketWanted&&this.failedBackends.has('pocket'))return {engine:'pocket',reason:this.failureReasons.pocket??'unknown'};
+    return null;
   }
   log(message,tag='OmniRetry'){try{this.options.onLog?.(`[${tag}] ${message}\n`);}catch{}}
   // The next Omni attempt, if the player still wants Omni and attempts remain. `fallback.temporary` follows it.
@@ -700,6 +717,7 @@ export class VoiceSelection {
     this.candidate=null;
     // Also when it dies after finishing but before the idle commit: Omni leaves routing again, the fallback stays.
     this.failedBackends.add('omni');
+    this.noteFailure('omni',entry.client.failure?.message);
     void this.retireCandidate(entry).catch(()=>{this.omniRetry=null;});
     this.scheduleOmniRetry(entry.client.failure?.message);
     this.publish();

@@ -291,7 +291,11 @@ export class PocketVoice {
   }
   async receive(frame) {
     if (!object(frame) || frame.owner !== this.owner) throw Error('Pocket response owner changed');
-    if (frame.op === 'fatal') throw Error('Pocket student runtime is unavailable');
+    if (frame.op === 'fatal') {
+      // The worker says why in a few words (its own check, a missing file, a library that would not load); the log and a report keep them.
+      const reason = typeof frame.reason === 'string' ? frame.reason.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 160) : '';
+      throw Error(`Pocket student runtime is unavailable${reason ? ` (${reason})` : ''}`);
+    }
     if (frame.op === 'state') {
       if (!['loading', 'warming'].includes(frame.state) || (frame.profile !== undefined && !this.registry.has(frame.profile)))
         throw Error('Invalid Pocket worker state');

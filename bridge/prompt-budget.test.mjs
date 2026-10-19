@@ -5,6 +5,7 @@ import {PersonaBook, buildMessages, PROMPT_SOURCE, systemHead, worldBlocksInCach
 import {BUDGET, PREFILL, PrefillMeter, PromptTooLarge, TokenMeter, budgetedChat, describeFit, estimateTokens, fitMessages, templateTokens, textTokens} from './prompt-budget.mjs';
 import {MistralError, errorCodeFor, mapFailure} from './mistral-client.mjs';
 import {conversationContextBlocks} from './quest-context.mjs';
+import {matureLayer} from './mature-content.mjs';
 
 const roster = [...JSON.parse(await readFile(new URL('../characters/roster.json', import.meta.url), 'utf8')),
   ...JSON.parse(await readFile(new URL('../characters/archetype-roster.json', import.meta.url), 'utf8'))];
@@ -132,6 +133,48 @@ test('a persona and rules that alone do not fit are never cut: the fit says so',
   assert(fit.tokens > fit.limit);
   assert(fit.messages[0].content.includes('OUTPUT RULES'));
   assert.match(describeFit(fit), /does not fit/);
+});
+
+test('shrinkPersona: with nothing optional left a persona that does not fit a 4096-token context is shortened in fixed levels, and nothing else of the prompt is cut', async () => {
+  const args = {...turn(), mature: 'full'};
+  const plain = await fitMessages({args, budget: {contextTokens: 4096, meter: new TokenMeter()}});
+  assert.equal(plain.fits, false, 'without the option the persona is never cut (the host falls back to another route)');
+  const fit = await fitMessages({args, budget: {contextTokens: 4096, meter: new TokenMeter()}, shrinkPersona: true});
+  assert.equal(fit.fits, true, describeFit(fit));
+  assert(fit.tokens <= fit.limit && fit.limit < 4096);
+  assert(fit.trimmed.some(step => /^persona:\d+$/.test(step)), describeFit(fit));
+  assert.equal(fit.trimmed.filter(step => step.startsWith('persona:')).length, 1, 'one entry: the level used');
+  const system = fit.messages[0].content;
+  for (const text of ['OUTPUT RULES', 'FORMAT: use {joy} tags', 'RIGHT NOW', 'You are with V in person.', matureLayer('full')]) assert(system.includes(text), text);
+  assert(system.includes(judy.backstory.slice(0, 200)), 'the backstory keeps its beginning');
+  assert(!system.includes(judy.backstory), 'and loses its end');
+  assert(!system.includes('EXAMPLES OF YOUR VOICE'), 'the example lines are gone');
+  // The level is chosen from the persona and the rest at its smallest: another turn lands on the same persona, so the server's prefix cache holds.
+  const next = await fitMessages({args: {...turn({history: exchanges(3), text: 'And the other one?', volatile: 'Another note for this turn.'}), mature: 'full'}, budget: {contextTokens: 4096, meter: new TokenMeter()}, shrinkPersona: true});
+  assert.equal(next.fits, true);
+  const personaOf = content => content.slice(0, content.indexOf('OUTPUT RULES'));
+  assert.equal(personaOf(next.messages[0].content), personaOf(system));
+  // A context that holds the persona is not touched by the option; one too small for even the shortest persona still does not fit.
+  const roomy = await fitMessages({args, budget: {contextTokens: 8192, meter: new TokenMeter()}, shrinkPersona: true});
+  assert.equal(roomy.fits, true);
+  assert(!roomy.trimmed.some(step => step.startsWith('persona:')));
+  const tiny = await fitMessages({args, budget: {contextTokens: 2048, meter: new TokenMeter()}, shrinkPersona: true});
+  assert.equal(tiny.fits, false);
+  assert.match(describeFit(tiny), /does not fit/);
+});
+
+test('budgetedChat: options.lastResort shortens the persona instead of failing; without it the prompt that cannot fit fails as before', async () => {
+  const sent = [];
+  const chat = budgetedChat(async options => { sent.push(options.messages); return {text: 'ok', usage: {prompt_tokens: 3000}}; },
+    {budget: async () => ({contextTokens: 4096, meter: new TokenMeter()})});
+  const refused = await chat({messages: buildMessages(turn()), provider: 'local'}).catch(caught => caught);
+  assert(refused instanceof PromptTooLarge);
+  assert.equal(sent.length, 0);
+  const answered = await chat({messages: buildMessages(turn()), provider: 'local', lastResort: true});
+  assert.equal(answered.text, 'ok');
+  assert.equal(sent.length, 1);
+  assert(estimateTokens(sent[0]) <= 4096 - BUDGET.reserveTokens, 'what was sent fits the context');
+  assert(sent[0][0].content.includes('OUTPUT RULES'));
 });
 
 test('the older layout (no contextParts) is cut too', async () => {

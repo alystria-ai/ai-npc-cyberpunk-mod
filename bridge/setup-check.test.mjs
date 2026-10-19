@@ -454,6 +454,18 @@ test('gpu, browser and mod manager', async () => temp(async root => {
   assert.deepEqual((await checks({modManagers: () => ({managers: ['mo2', 'vortex']})}))['mod-manager'], {id: 'mod-manager', state: 'note', code: 'mo2', managers: ['mo2', 'vortex']});
 }));
 
+test('voice: a row only when the bridge can say, a problem only while the Pocket voice has failed, and never the reason\'s words', async () => temp(async root => {
+  const paths = await install(root);
+  const checks = async over => byId(await collectSetupCheck(options(paths, over)));
+  assert.equal((await checks({})).voice, undefined, 'a run without the bridge\'s voice has no such row (eight checks, as before)');
+  assert.deepEqual((await checks({voice: () => null})).voice, {id: 'voice', state: 'ok', code: 'ok'});
+  assert.deepEqual((await checks({voice: async () => ({engine: 'v-helper', reason: 'ValueError: a folder C:\\Users\\someone\\game'})})).voice,
+    {id: 'voice', state: 'problem', code: 'pocket-failed', engine: 'v-helper'});
+  const boom = () => { throw Error('detector failed'); };
+  assert.deepEqual((await checks({voice: boom})).voice, {id: 'voice', state: 'unknown', code: 'unknown'});
+  assert.equal((await collectSetupCheck(options(paths, {voice: () => null}))).checks.length, 9);
+}));
+
 test('a detector that fails turns only its own check into unknown', async () => temp(async root => {
   const paths = await install(root);
   const boom = () => { throw Error('detector failed'); };

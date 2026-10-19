@@ -381,7 +381,7 @@ const text = (value, size) => clip(value, size) ?? '';
  *   game, modRoot, project, stateDirectory, plugin; settings (an object, or a function returning one)
  *   localAi() -> {status, reason, packInstalled, tiers, matureOnly, ownServer, models}   omniPack() -> {installed, missing}
  *   browser() -> name|null   graphics() -> [{name, memoryMiB}]   modManagers() -> {managers}   reach(host) -> code
- *   nestedPacks() -> [{pack, folder}]   placement() -> {fixed, conflicts, errors}|null
+ *   nestedPacks() -> [{pack, folder}]   placement() -> {fixed, conflicts, errors}|null   voice() -> null | {engine, reason} (the Pocket voice failed to start)
  *   now, request (the id this run answers, or null), light (no process started, no connection made: the graphics card, the browser
  *   and the internet test then read 'unknown').
  */
@@ -493,7 +493,17 @@ export async function collectSetupCheck(options = {}) {
     return await exists(join(game, 'engine', 'tools', 'scc.exe'), 'file') ? {state: 'ok', code: 'found'} : {state: 'problem', code: 'missing'};
   });
 
-  const checks = await Promise.all([versions(), packs(), browser(), localAi(), internet(), gpu(), modManager(), compiler()]);
+  // The Pocket voice (V's voice, and the companions' when Pocket is the voice they use): a problem only while a worker has failed and has not loaded
+  // again. Only the bridge knows (voice() -> null | {engine, reason}); a run without it has no such row. The row gives the engine, never the reason's
+  // words (they can hold a folder): the reason is in the log and the error report.
+  const voice = () => guarded('voice', async () => {
+    const problem = await call('voice');
+    if (!problem) return {state: 'ok', code: 'ok'};
+    return {state: 'problem', code: 'pocket-failed', engine: clip(problem.engine, 20) ?? 'pocket'};
+  });
+
+  const checks = await Promise.all([versions(), packs(), browser(), localAi(), internet(), gpu(), modManager(), compiler(),
+    ...(typeof options.voice === 'function' ? [voice()] : [])]);
   return {version: 1, updated: now(), bridgePid: process.pid, request, checks};
 }
 

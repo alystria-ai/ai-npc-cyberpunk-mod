@@ -77,6 +77,21 @@ test('starts one hidden CPU worker and attests every selected asset before readi
   await h.close();assert.equal(h.child.stdin.writableEnded,true);assert.equal(h.client.loaded,false);
 });
 
+test('a worker that cannot start says why in its fatal frame: the failure keeps the reason, cut short and without control characters',async()=>{
+  // Two 0.2.2 reports only said "Pocket student runtime is unavailable"; the reason was in the worker's own stderr lines.
+  const h=harness({autoReady:false});
+  const starting=assert.rejects(h.client.start(),/Pocket student runtime is unavailable \(ValueError: Pocket source differs from the pinned official revision\)$/);
+  await tick();h.send({op:'fatal',message:'Pocket student runtime is unavailable.',reason:'ValueError: Pocket source differs from the pinned official revision'});
+  await starting;
+  const plain=harness({autoReady:false});
+  const bare=assert.rejects(plain.client.start(),/^Error: Pocket student runtime is unavailable$/);
+  await tick();plain.send({op:'fatal',message:'Pocket student runtime is unavailable.'});await bare;
+  const long=harness({autoReady:false});
+  const cut=long.client.start().catch(error=>error);
+  await tick();long.send({op:'fatal',reason:'Err\n'+'x'.repeat(500)});
+  const error=await cut;assert(error.message.length<=70+160+4&&!/\n/.test(error.message),error.message);
+});
+
 test('rejects wrong model, source, CPU precision, paths or conditioning identities before streaming',async()=>{
   for (const override of [{model:{...config().model,sha256:'0'.repeat(64)}},{sourceSha256:'0'.repeat(64)},
     {dtype:'torch.float16'},{layers:24},{device:'cuda:0'},

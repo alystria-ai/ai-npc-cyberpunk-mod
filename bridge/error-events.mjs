@@ -23,7 +23,7 @@ export const GAME_EVENTS_FILE = 'error-events.json';
 export const QUEUE_MAX = 20;
 export const EVENT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 export const KINDS = Object.freeze(['bridge-exception', 'bridge-rejection', 'bridge-crash', 'service-failed', 'service-silent',
-  'turn-failed', 'setup-problem', 'lua-error']);
+  'turn-failed', 'voice-failed', 'setup-problem', 'lua-error']);
 const KIND_PATTERN = /^[a-z][a-z0-9-]{1,39}$/;
 const SIGNATURE_PATTERN = /^[0-9a-f]{16}$/;
 
@@ -314,6 +314,16 @@ export class ErrorEvents {
     this.record({...base, message: `${clip(provider, 20)}${errorCode ? ` ${errorCode}` : ''}: ${base.message}`.slice(0, 400),
       detail: {provider: clip(provider, 20), ...(errorCode ? {errorCode} : {}), ...(microphone ? {microphone: true} : {}),
         ...(localReason ? {localReason: clip(String(localReason), 40)} : {})}});
+  }
+  /**
+   * A voice that could not start (the Pocket voice, V's own Pocket worker, OmniVoice), with the few words the worker gave. A player with no voice has
+   * no other way to tell us (a 2026-10-19 report held the Pocket failure only as log lines of an unrelated setup problem). At most once per
+   * distinct reason per bridge run, like every record; a retry that fails the same way adds nothing.
+   */
+  voiceFailed({engine, reason} = {}) {
+    const name = typeof engine === 'string' && /^[a-z0-9-]{1,20}$/.test(engine) ? engine : 'voice';
+    const why = clip(String(reason ?? '').split(/\r?\n/)[0], 200).trim() || 'unknown';
+    this.record({kind: 'voice-failed', message: `${name}: ${why}`, frame: 'voice-selection', detail: {engine: name}});
   }
   /** The setup check's document: every row in the problem state. */
   setupChecked(document) {

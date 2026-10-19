@@ -296,6 +296,8 @@ const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVo
     return voiceMetricsWriting;
   },
   onLog: message => process.stderr.write('[LocalVoice] ' + message),
+  // A voice that could not start becomes an error report (once per reason per run) and, for the Pocket voice, a row of the Help page's setup check.
+  onFailure: info => errorEvents.voiceFailed(info),
   // V's own Pocket worker finished loading: prepare V's voice on it now (the clone of the reference clip takes seconds on a slow CPU),
   // so the first typed line of the session does not pay for it (bridge/v-voice.mjs warmUp). No renderer page is opened for this.
   onVHelperReady: () => vVoice.warmUp({page: false}),
@@ -3275,6 +3277,8 @@ const setupCheck = await SetupCheckControl.open({runtime, log: message => consol
         matureOnly: pack.installed && !pack.tiers.standard && !pack.tiers.lite && matureInstalled, ownServer: ownServerListed(), models: maturePackModels};
     },
     omniPack: () => detectOmniPack({project, config: omniVoiceConfigs.long}),
+    // Whether the Pocket voice (V's voice, the companions') has failed to start: a row of the Help page when it has.
+    voice: () => localVoice.voiceProblem(),
     // The saved endpoint of the custom provider (host, port), asked for only while that provider is chosen: its host is the one the internet check looks up.
     custom: () => customEndpoint.ready ? {hostname: customEndpoint.address.hostname, host: customEndpoint.host, secure: customEndpoint.secure,
       port: Number(new URL(customEndpoint.origin).port) || (customEndpoint.secure ? 443 : 80)} : null,

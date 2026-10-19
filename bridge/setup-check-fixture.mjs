@@ -221,6 +221,8 @@ function answer(checks, request)
     local replaced = checks and checks[item.id]
     document.checks[#document.checks + 1] = replaced or item
   end
+  -- a check the defaults do not have (the bridge adds the 'voice' check only when it can say): added as given
+  if checks and checks.voice then document.checks[#document.checks + 1] = checks.voice end
   put('runtime/setup-check.json', document)
   return document
 end

@@ -393,6 +393,27 @@ actor says "assumed" where the subtitle says "assume" (the audio is clear).
 - **The new clips have been judged by measurements, not yet by ear.** Comparison files (the old and new references, rendered test
   sentences, held-out real V lines) were written for the user to listen to; nothing is approved until they have.
 
+## When V stays silent because Pocket did not start (2026-10-20, third round of error reports)
+
+Pocket ships inside the Runtime (Python, the model, the Pocket source), so nothing is installed beforehand. A player asked whether it must be; the
+reports showed two 0.2.2 installs (both Vortex, one with a RTX 4060, one with a RTX 5090) where Pocket failed at every start with "Pocket source
+differs from the pinned official revision": Vortex had put its `__folder_managed_by_vortex` marker into the Runtime's folders, and the worker hashes
+the whole `pocket-tts` tree (`digest_source`, `bridge/pocket_voice_runtime.py`; the marker is ignored from 0.2.3, with `desktop.ini`, `Thumbs.db` and
+`.DS_Store`; it is the only place the tree is walked). Pocket then retried after 45 s, 180 s and 600 s with the same result, V's own Pocket worker
+(`VHelperVoice`) failed once and stayed off, and typed lines stayed silent with no hint in the game. What changed:
+
+- The worker's fatal frame carries a reason (`ValueError: Pocket source differs ...`), so the log line, `[VHelper]` line and the report name the
+  cause instead of "Pocket student runtime is unavailable".
+- A voice that could not start (Pocket, V's helper, OmniVoice) is an error report of its own, kind `voice-failed`, message `<engine>: <reason>`
+  (`ErrorEvents.voiceFailed`, once per reason per bridge run).
+- Settings > Help has a "Pocket voice" row while Pocket or V's helper is failed (setup check id `voice`, code `pocket-failed`, from
+  `VoiceSelection.voiceProblem()`): it says nothing needs installing, to restart the game and to send a report if it happens again.
+
+The other reason a V line is not heard on a working Pocket is time: loading Pocket takes 8 to 36 s after the game starts on the reports (importing the
+libraries is the slow part and is made slower by a virus scanner looking at the freshly extracted files), and a typed line before it is ready is skipped
+(`voice-not-loaded`, one per session in the reports); a line whose voice starts after the companion's reply has begun is dropped
+(`reply-voice-started`, `slower-than-reply`; 1 to 3 of 12 to 40 lines on three installs). Those are by design.
+
 ## Where the code is
 
 | Piece | File |
