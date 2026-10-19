@@ -126,6 +126,7 @@ test('a missing file of the service ends in a failed status with a short reason 
     assert.equal(status.code, 'install-incomplete');
     assert.equal(status.stage, 'loading-modules');
     assert.equal(status.source, 'service');
+    assert.equal(status.view, 'usvfs no; Runtime outside the game folder; init.lua visible', 'the status says what the service sees, for the short report');
     assert.equal(status.gamePid, 4242);
     assert.match(status.reason, /place-packs\.mjs/);
     assert.doesNotMatch(status.reason, /[A-Za-z]:[\\/]|Users|Modlists|Games/, status.reason);
@@ -217,6 +218,7 @@ test('a physical install, with the Runtime inside the game folder, behaves the s
     assert.equal(failed.status, 1);
     const status = await readStatus(f.game);
     assert.deepEqual([status.state, status.code, status.stage], ['failed', 'install-incomplete', 'loading-modules']);
+    assert.equal(status.view, 'usvfs no; Runtime inside the game folder; init.lua visible');
   } finally { await f.cleanup(); }
 });
 

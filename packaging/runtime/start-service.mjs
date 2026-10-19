@@ -43,6 +43,23 @@ let stage = 'starting', stateFolder = null, statusOwner = 'service', beat = null
 const canReachGame = existsSync(resolve(gameRoot, MOD_FOLDER, 'init.lua'));
 const note = message => { if (logSink) logSink(message); else startNotes.push(message); };
 
+// What this process sees, for the log and for the status the game reads (so the short report carries it): whether it runs inside Mod
+// Organizer 2's virtual file system (usvfs is among its loaded libraries, as bridge/setup-check.mjs reads it), where the Runtime is
+// relative to the game, and whether the CET mod's init.lua is visible. A support request that includes it answers most of what a start
+// failure raises.
+const insideVfs = (() => {
+  try {
+    const objects = process.report?.getReport?.()?.sharedObjects;
+    if (Array.isArray(objects)) return objects.some(path => /(?:^|[\\/])usvfs_x(?:64|86)\.dll$/i.test(String(path))) ? 'yes' : 'no';
+  } catch {}
+  return 'unknown';
+})();
+const runtimeAt = (() => {
+  const away = relative(resolve(gameRoot), appDirectory);
+  return away === '' || (!away.startsWith('..') && !isAbsolute(away)) ? 'inside' : 'outside';
+})();
+const viewSummary = `usvfs ${insideVfs}; Runtime ${runtimeAt} the game folder; init.lua ${canReachGame ? 'visible' : 'not visible'}`;
+
 // One short sentence for the game to show: Node's error code and message, every folder path cut down to its file name (a path can hold
 // the player's user name, and folders with spaces in them are common), never longer than 140 characters. A quoted path ends at its
 // quote; a path that is not quoted runs to the end of the line, because where it ends cannot be told when a folder name has a space.
@@ -64,7 +81,7 @@ function publish(state, code, reason) {
     const folder = dirname(statusPath);
     if (!existsSync(folder)) { if (!canReachGame) return; mkdirSync(folder, {recursive: true}); }
     const now = Date.now();
-    writeFileSync(statusPath, JSON.stringify({version: 1, state, code, source: 'service', stage, ...(reason ? {reason} : {}),
+    writeFileSync(statusPath, JSON.stringify({version: 1, state, code, source: 'service', stage, ...(reason ? {reason} : {}), view: viewSummary,
       since: state === 'failed' ? now : startedAt, updated: now, supervisorPid: process.pid, bridgePid: null, adopted: false, restarts: 0,
       gamePid: Number(option('--game-pid')) || null, gameRoot: resolve(gameRoot), ...(stateFolder ? {stateDirectory: stateFolder} : {})}));
   } catch {}
@@ -182,18 +199,9 @@ for (const message of early) log(message);
 logSink = log;
 for (const message of startNotes.splice(0)) log(message);
 
-// What this process sees, in one line, for the player's log: whether it runs inside Mod Organizer 2's virtual file system (usvfs is among
-// its loaded libraries, as bridge/setup-check.mjs reads it), where the Runtime is relative to the game, and whether the game's mod
-// folder and its runtime/ folder are visible. A support request that includes this line answers most of what a start failure raises.
+// The same facts in one line for the player's log, with the paths: the game's mod folder and its runtime/ folder are visible or not.
 function viewLine(shown) {
-  let virtual = 'unknown';
-  try {
-    const objects = process.report?.getReport?.()?.sharedObjects;
-    if (Array.isArray(objects)) virtual = objects.some(path => /(?:^|[\\/])usvfs_x(?:64|86)\.dll$/i.test(String(path))) ? 'yes' : 'no';
-  } catch {}
-  const away = relative(shown.gameRoot, shown.app);
-  const where = away === '' || (!away.startsWith('..') && !isAbsolute(away)) ? 'inside the game folder' : 'outside the game folder';
-  return `View: Node ${process.version}, PID ${process.pid}; inside a virtual file system (usvfs): ${virtual}; the Runtime is ${where}`
+  return `View: Node ${process.version}, PID ${process.pid}; inside a virtual file system (usvfs): ${insideVfs}; the Runtime is ${runtimeAt} the game folder`
     + ` (${shown.app}); game ${shown.gameRoot}; the CET mod's init.lua is ${canReachGame ? 'visible' : 'NOT visible'}; runtime/ is `
     + `${existsSync(shown.runtime) ? 'visible' : 'not there'}.`;
 }

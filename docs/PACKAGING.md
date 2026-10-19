@@ -254,8 +254,9 @@ USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `br
   (`Runtime-Service.mjs`), which `launcher.ini` never starts. The voice workers' checks (`pocket-voice.mjs`, `phone-analysis-config.mjs`,
   `resident-voice.mjs`) canonicalize both sides alike and run only once the bridge is up.
 - **A start never ends without a status.** `start-service.mjs` writes `runtime/bridge-service.json` from its first line, in place:
-  `starting` / `service-starting` with `source: "service"` and the `stage` it is in (`loading-modules`, `preparing`, `placing-packs`,
-  `preparing-state`, `loading-supervisor`), refreshed every 5 s for at most 5 minutes while it prepares. Its own modules load inside a
+  `starting` / `service-starting` with `source: "service"`, the `stage` it is in (`loading-modules`, `preparing`, `placing-packs`,
+  `preparing-state`, `loading-supervisor`) and a `view` (`usvfs no; Runtime outside the game folder; init.lua visible`, so the short
+  report carries what the service sees), refreshed every 5 s for at most 5 minutes while it prepares. Its own modules load inside a
   guard, and an error nobody caught ends in `failed` with a `reason`: `install-incomplete` (a file is missing or cannot be read),
   `service-error`, `game-folder-not-visible`. The reason is Node's error code and message with every path cut to its file name, 140
   characters at most. The supervisor writes its own `starting` before it waits for the previous session's lock, and after 5 s of
