@@ -233,6 +233,8 @@ local function schema()
     for _, id in ipairs({'ui:group:next', 'ui:page:previous', 'ui:page:next', DEFAULTS_ID}) do
         if byId[id] then footerIds[#footerIds + 1] = id end
     end
+    -- The home page has no way back of its own: MCM's public API cannot close its screen (api.closeMod only closes the provider's
+    -- mod, the screen stays), but with no backActionId its own Escape closes the screen, so Escape is Home's Back.
     if currentBack then footerIds[#footerIds + 1] = currentBack.id end
     if #footer > 0 then
         categories[#categories + 1] = {id = 'ui-footer', name = model.name, description = '', settings = footer}

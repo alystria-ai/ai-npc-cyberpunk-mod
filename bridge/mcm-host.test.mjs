@@ -102,7 +102,9 @@ test('the home page: one category with the four destinations, explicit apply, no
   for _, row in ipairs(mcm.rows()) do
     assert(row.type == 'action' and row.value == 'Open' and row.capabilities.action == true and row.description ~= '')
   end
-  assert(mcm.config().navigation.pageId == 'home|1|1' and mcm.config().navigation.backActionId == nil)
+  -- No Back on Home, on purpose: MCM has no public call that closes its screen, and its own Escape closes it when the page names no
+  -- back action (escapeBack stays on, backActionId unset). A footer button here could not do that, so there is none.
+  assert(mcm.config().navigation.pageId == 'home|1|1' and mcm.config().navigation.backActionId == nil and mcm.config().navigation.escapeBack == true)
   assert(#mcm.config().footerActions == 0)
 `));
 
