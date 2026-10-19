@@ -2692,9 +2692,9 @@ async function applyProviderChoice() {
     sessions.clear(); realtimeSessions.clear();
     await phone.forgetSessions().catch(() => {});
     console.error(`[CyberpunkConvai] Conversation provider: ${mistral.applied}`);
+    rewarmLocalVoice();
     // Local AI is chosen and down, and nobody can take its turns (no Mistral key, Convai's free day used up): they stay here and say why.
     if (mistral.localDown) logLocalDown();
-    rewarmLocalVoice();
     // What the custom provider is set to, for a support report: the host and the model id (never the address's path, a query or the key).
     if (mistral.applied === 'custom') console.error(`[Custom] host ${customEndpoint.host}, model ${customEndpoint.model}, key ${customEndpoint.key ? 'saved' : 'none'}`);
     // Leaving the local AI gives its graphics memory back at once; arriving loads it (a first start compiles shaders for a while).
@@ -2966,11 +2966,11 @@ const editorControl = await EditorControl.open({server: new EditorServer({editor
 await companionActions.revoke();
 await status('waiting');
 await pollSettings(false);
+void setupCheck.run(null, {light: true}).catch(error => console.error('[CyberpunkConvai] Setup check:', error.message));
 // The saved provider is applied (or the settings file could not be read yet, and the default stands until a later poll): the status file
 // says so from here on.
 mistral.statusHeld = false;
 await mistralControl.publishStatus().catch(() => {});
-void setupCheck.run(null, {light: true}).catch(error => console.error('[CyberpunkConvai] Setup check:', error.message));
 await pollKnowledge();
 void localVoice.start().catch(error => console.error('[CyberpunkConvai] Local voice startup:', error.message));
 // A text route (Mistral, the local AI) opens no Convai connection, so nothing else starts the hidden browser that renders the
