@@ -202,11 +202,41 @@ export async function locateLogs({game, modRoot, runtime, stateDirectory}) {
   return result;
 }
 
+// The custom (OpenAI-compatible) provider's settings file (bridge/custom-endpoint.mjs CUSTOM_FILE): its `api-key=` line is a secret, its
+// address and model id are not (they are diagnostics, and redacting them would hide the host from the report).
+export const CUSTOM_ENDPOINT_FILE = 'player-custom-endpoint.txt';
+
+/** The value of every `api-key=` / `key=` / `token=` / `secret=` line of a settings file, as written and without quotes. */
+export function keyLineValues(text) {
+  const found = [];
+  for (const line of String(text ?? '').replace(/^﻿/, '').split(/\r\n|\r|\n/)) {
+    const match = /^\s*(?:api[-_ ]?key|apikey|key|token|secret)\s*[=:]\s*(\S+)\s*$/i.exec(line);
+    if (!match) continue;
+    found.push(match[1]);
+    const bare = match[1].replace(/^bearer\s+/i, '').replace(/^["'`<]+|["'`>]+$/g, '');
+    if (bare && bare !== match[1]) found.push(bare);
+  }
+  return found;
+}
+
 export async function credentialSecrets(stateDirectory) {
   const found = [];
   if (!stateDirectory) return found;
   const names = ['convai-key.txt', 'kaggle-access-token.txt'];
-  try { for (const name of await readdir(stateDirectory)) if (/^huggingface-.*\.txt$/i.test(name)) names.push(name); } catch { return found; }
+  let custom = false;
+  try {
+    for (const name of await readdir(stateDirectory)) {
+      // Every saved key file (player-convai-key.txt, player-mistral-key.txt, player-inworld-key.txt...), also one the service did not load.
+      if (/^huggingface-.*\.txt$/i.test(name) || (/-key\.txt$/i.test(name) && !names.includes(name))) names.push(name);
+      if (name.toLowerCase() === CUSTOM_ENDPOINT_FILE) custom = name;
+    }
+  } catch { return found; }
+  if (custom) {
+    try {
+      const info = await stat(join(stateDirectory, custom));
+      if (info.isFile() && info.size <= 16384) found.push(...keyLineValues(await readFile(join(stateDirectory, custom), 'utf8')));
+    } catch {}
+  }
   for (const name of names) {
     try {
       const info = await stat(join(stateDirectory, name));
@@ -617,7 +647,13 @@ export function parseReportRequest(raw, now = Date.now()) {
 // Copy Report path: the game side cannot always reach the Windows clipboard, so
 // it asks the service. Only the path of a report file is ever copied.
 export const CLIPBOARD_REQUEST_MAX_AGE_MS = 15_000;
-export function parseClipboardRequest(raw, now = Date.now()) {
+const sameFolder = (a, b) => process.platform === 'win32' ? resolve(a).toLowerCase() === resolve(b).toLowerCase() : resolve(a) === resolve(b);
+/**
+ * `folders` (the service passes the reports folder and runtime/): the text must then be an absolute path to a file directly in one of them.
+ * Without it only the file name is checked. Either way nothing but a report's path reaches the clipboard: a request that names something
+ * else (a command line that merely ends in a report's name) is refused.
+ */
+export function parseClipboardRequest(raw, now = Date.now(), {folders} = {}) {
   let value;
   if (typeof raw !== 'string' || Buffer.byteLength(raw, 'utf8') > 4096) return null;
   try { value = JSON.parse(raw); } catch { return null; }
@@ -626,6 +662,11 @@ export function parseClipboardRequest(raw, now = Date.now()) {
   if (typeof value.text !== 'string' || value.text.length > 1024 || /[\u0000-\u001f]/.test(value.text)) return null;
   const file = basename(value.text.replaceAll('\\', '/'));
   if (!REPORT_NAME.test(file) && file !== LUA_REPORT_NAME) return null;
+  if (Array.isArray(folders)) {
+    // A drive path or a UNC path, with none of the characters Windows refuses in a file or folder name.
+    if (!/^(?:[A-Za-z]:[\\/]|[\\/]{2}[^\\/])/.test(value.text) || /[<>"|?*]/.test(value.text.slice(2))) return null;
+    if (!folders.some(folder => typeof folder === 'string' && folder && sameFolder(dirname(resolve(value.text)), folder))) return null;
+  }
   return {id: value.id, text: value.text};
 }
 // clip.exe reads UTF-16 text that starts with a byte-order mark, so a Windows
@@ -669,7 +710,8 @@ export class SupportReportControl {
     const raw = await readFile(this.clipboardPath, 'utf8').catch(() => '');
     if (raw === this.clipboardObserved) return;
     this.clipboardObserved = raw;
-    const request = parseClipboardRequest(raw, this.now());
+    const folders = [reportsDirectoryFor({runtime: this.runtime, stateDirectory: this.stateDirectory}), this.runtime];
+    const request = parseClipboardRequest(raw, this.now(), {folders});
     if (!request || this.copied.has(request.id)) return;
     this.copied.add(request.id);
     try { await this.copy(request.text); } catch { /* The game still shows the path on the Last report row. */ }

@@ -1,5 +1,6 @@
 @echo off
-setlocal
+rem Delayed expansion stays off even where the registry turns it on, so a "!" in the game folder's path is kept as it is.
+setlocal EnableExtensions DisableDelayedExpansion
 chcp 65001 >nul
 title AI NPC Cyberpunk Mod - support report
 rem Makes a support report with the game closed. Double-click this file, then send the zip it shows you.

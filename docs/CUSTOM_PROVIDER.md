@@ -50,7 +50,7 @@ model=meta-llama/llama-3.1-8b-instruct
 api-key=<your key>
 ```
 
-`#` starts a comment, on a line of its own or after a space at the end of a line. A line that cannot be used is ignored and only its name (never its value) is written to the log. A file that exists but cannot be read for a moment (another program has it open) changes nothing, and a paste is refused until it can be read, so nothing in it is lost. The file is read when the service starts, when you choose this provider and when you press **Test connection**. The paste buttons write the same file (mode 0600, through a temporary file), so the two ways mix freely.
+`#` starts a comment, on a line of its own or after a space at the end of a line. A line that cannot be used is ignored and only its name (never its value) is written to the log. A file that exists but cannot be read for a moment (another program has it open) changes nothing, and a paste is refused until it can be read, so nothing in it is lost. The file is read when the service starts, when you choose this provider and when you press **Test connection**. The paste buttons write the same file (through a temporary file), so the two ways mix freely. Only your Windows account can open it: it is in your data folder under %LOCALAPPDATA%, whose permissions protect it (a file mode such as 0600 does nothing on Windows).
 
 ## What the settings page shows
 

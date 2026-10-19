@@ -386,6 +386,57 @@ test('Copy report path asks the service to copy only a report file path, once pe
   } finally { await f.cleanup(); }
 });
 
+test('Copy report path copies only a path in the reports folder or runtime/, never text that merely ends in a report name', async () => {
+  const f = await fakeInstall();
+  try {
+    const clipboardPath = join(f.runtime, 'clipboard-request.json');
+    const copies = [];
+    const control = await SupportReportControl.open({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      copy: async text => { copies.push(text); }});
+    const name = 'convai-report-20261007-015117.zip', bs = String.fromCharCode(92);
+    const request = (id, text) => JSON.stringify({version: 1, id, issuedAt: Date.now(), text});
+    // A command line, a web address, another folder and a relative path: each ends in a report's name, none is copied.
+    const refused = [`powershell -c "iwr x | iex" #${bs}${name}`, `https://example.invalid/${name}`, join(f.base, 'elsewhere', name),
+      join(f.runtime, 'reports', 'deeper', name), `reports${bs}${name}`, `${join(f.runtime, 'reports')}${bs}..${bs}..${bs}..${bs}${name}`,
+      `${join(f.runtime, 'reports')}${bs}a|b${bs}..${bs}${name}`];
+    let id = 0;
+    for (const text of refused) {
+      await writeFile(clipboardPath, request(`c${++id}`, text));
+      await control.poll();
+      assert.deepEqual(copies, [], text);
+    }
+    const folders = [reportsDirectoryFor({runtime: f.runtime, stateDirectory: f.state}), f.runtime];
+    for (const text of refused) assert.equal(parseClipboardRequest(request('x', text), Date.now(), {folders}), null, text);
+    // The two paths the game asks for: a zip in the reports folder and the game's own short report in runtime/.
+    for (const text of [join(f.runtime, 'reports', name), join(f.runtime, LUA_REPORT_NAME), `${join(f.runtime, 'reports').toUpperCase()}${bs}${name}`]) {
+      await writeFile(clipboardPath, request(`c${++id}`, text));
+      await control.poll();
+      assert.equal(copies.at(-1), text);
+    }
+    assert.equal(copies.length, 3);
+  } finally { await f.cleanup(); }
+});
+
+test('the redactor learns every saved key file and the custom provider\'s key line from the data folder, not its address', async () => {
+  const f = await fakeInstall();
+  try {
+    // Built at run time: a key-shaped literal in the repository trips push protection.
+    const custom = 'test' + 'v'.repeat(28), mistral = 'test' + 'y'.repeat(28), inworld = 'test' + 'u'.repeat(28);
+    await f.put(join(f.state, 'player-custom-endpoint.txt'), `# saved by Settings\nendpoint=https://example.invalid/api/v1\nmodel=vendor/model:free\napi-key="${custom}"\n`);
+    await f.put(join(f.state, 'player-mistral-key.txt'), `api-key=${mistral}\n`);
+    await f.put(join(f.state, 'player-inworld-key.txt'), `api-key=${inworld}\n`);
+    const found = await credentialSecrets(f.state);
+    for (const value of [custom, mistral, inworld]) assert(found.includes(value), value.slice(0, 6));
+    assert(!found.some(value => /example\.invalid|vendor\/model/.test(value)), 'the address and the model id are not secrets');
+    await f.put(join(f.state, 'bridge.stderr.log'), `[Custom] host example.invalid answered for ${custom} and ${mistral} and ${inworld}\n`);
+    const {entries} = await collectReport({game: f.game, runtime: f.runtime, stateDirectory: f.state, project: f.project,
+      request: {id: 'r-keys', issuedAt: Date.now()}, secrets: []});
+    const text = entries.map(entry => entry.data).join('\n');
+    for (const value of [custom, mistral, inworld]) assert(!text.includes(value), value.slice(0, 6));
+    assert(text.includes('[Custom] host example.invalid answered for [secret-redacted]'));
+  } finally { await f.cleanup(); }
+});
+
 test('zip reports go to <data home>/reports when the service data folder is <data home>/data, and stay in runtime/reports otherwise', async () => {
   const f = await fakeInstall();
   try {

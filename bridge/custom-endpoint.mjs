@@ -3,7 +3,10 @@
 //
 // Nothing here talks to a model. This module keeps what the player entered, the same way the Mistral key is kept (bridge/mistral-key.mjs):
 //   - saved only in this bridge's state folder, in ONE small file, `player-custom-endpoint.txt` (lines `endpoint=`, `model=`, `api-key=`; the
-//     key line is optional), written with mode 0600 through a temporary file; never in the game folder, settings.json, a status file or a log;
+//     key line is optional), written through a temporary file by the same writePrivate as the Mistral key; never in the game folder,
+//     settings.json, a status file or a log. On Windows the 0600 mode writePrivate asks for does nothing (NTFS has no such bits): what keeps
+//     the file from other accounts is the folder it is in, %LOCALAPPDATA%\AiNpcCyberpunkMod\data, which only the player's account (and
+//     SYSTEM and Administrators) can open;
 //   - entered from the clipboard by three commands of the settings page (paste URL, paste key, paste model id; the game writes
 //     runtime/custom-provider-command.json, the bridge reads the clipboard), each checked for its shape and then saved; or written into the
 //     file by hand (read when the bridge starts, and again at Test connection and when the provider is chosen);
