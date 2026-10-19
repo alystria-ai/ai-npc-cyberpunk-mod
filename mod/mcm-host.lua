@@ -449,6 +449,20 @@ function M.availability()
     return 'missing'
 end
 
+-- Whether a copy of MCM answers GetMod at all (whatever its version), and whether it may still become able to host the page: it is
+-- there, is not registered yet and is not a version older than 0.10.5 (an older one never will be). nsui.lua waits a little for such
+-- an MCM before it registers its own tab, so the two never list the page side by side.
+function M.present() return api ~= nil or present() ~= nil end
+
+function M.pending()
+    if api then return false end
+    local found = present()
+    if not found then return false end
+    local parsed = parseVersion(found.version)
+    if parsed and not atLeast(parsed, MIN_VERSION) then return false end
+    return true
+end
+
 local function refusal()
     local player = Game.GetPlayer()
     if not player or not player:IsAttached() or Game.GetSystemRequestsHandler():IsPreGame() then return 'Load a save first.' end
