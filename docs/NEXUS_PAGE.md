@@ -41,7 +41,7 @@
 [*]Start the game. The first start takes a little longer while the voice service prepares itself.
 [*]Open Cyber Engine Tweaks' [b]Bindings[/b] and give a key to each AI NPC Cyberpunk Mod action: talk by text, talk by voice, Group Chat and the companion manager. The mod never sets keys for you.
 [/list]
-Updating: extract the new Scripts and Runtime over the old ones. Your settings and memories are kept.
+Updating: extract the new Scripts and Runtime over the old ones. Your settings and memories are kept. The optional packs (OmniVoice, Local AI, Mature) are the same files as in 0.2.1, so if you already have them you don't need to download them again.
 
 [size=4][b]What companions can do[/b][/size]
 Invite someone from Companion Manager > Characters to invite. Party members follow you everywhere, sit with you when you sit (couches, benches, bar stools), ride along in your car and fight with you. A few things you just ask for in conversation, in your own words:
