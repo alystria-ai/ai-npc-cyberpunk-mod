@@ -1,8 +1,9 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {join} from 'node:path';
-import {NO_BROWSER_MESSAGE, OTHER_CHROMIUM_BROWSERS, SYSTEM_BROWSERS, installedSystemBrowsers, launchSystemBrowser, parseAppPath, registeredPaths,
-  systemBrowserAvailable, systemBrowserCandidates} from './system-browser.mjs';
+import {BROWSER_OVERRIDE_FILE, NO_BROWSER_MESSAGE, OTHER_CHROMIUM_BROWSERS, SYSTEM_BROWSERS, browserNameFor, defaultBrowserPath, installedSystemBrowsers,
+  isChromiumProgram, launchSystemBrowser, parseAppPath, parseBrowserOverride, parseCommandProgram, readBrowserOverride, registeredPaths,
+  resetBrowserFailureLog, resolveBrowserOverride, startMenuBrowserPaths, systemBrowserAvailable, systemBrowserCandidates} from './system-browser.mjs';
 
 const env = {LOCALAPPDATA: 'C:\\Users\\p\\AppData\\Local', PROGRAMFILES: 'C:\\Program Files', 'PROGRAMFILES(X86)': 'C:\\Program Files (x86)'};
 const at = (...paths) => path => paths.includes(path);
@@ -66,10 +67,166 @@ test('with neither browser the error says what to install and exactly one line i
 });
 
 test('an installed browser that fails to start is reported as itself, not as missing', async () => {
+  resetBrowserFailureLog();
   const logs = [];
   const launch = async ({channel}) => { throw Error(channel === 'msedge' ? 'browserType.launch: Target closed' : "Chromium distribution 'chrome' is not found"); };
-  await assert.rejects(launchSystemBrowser(launch, {...machine([edgeIn(env.PROGRAMFILES)]), log: line => logs.push(line)}), {message: 'browserType.launch: Target closed'});
-  assert.equal(logs.length, 1); assert.match(logs[0], /did not start/);
+  await assert.rejects(launchSystemBrowser(launch, {...machine([edgeIn(env.PROGRAMFILES)]), log: line => logs.push(line)}), error => {
+    assert.equal(error.message, 'Microsoft Edge was found but would not start: Target closed'); assert.equal(error.code, 'BROWSER_START_FAILED'); return true;
+  });
+  assert.deepEqual(logs, ['Microsoft Edge was found but would not start: Target closed.']);
+  // Asked again (every turn asks for the browser), the same failure is not logged a second time.
+  await assert.rejects(launchSystemBrowser(launch, {...machine([edgeIn(env.PROGRAMFILES)]), log: line => logs.push(line)}), /would not start/);
+  assert.equal(logs.length, 1);
+});
+
+test('Brave that is found but would not start says Brave, with the path cut to its file name; a missing named program says so', async () => {
+  resetBrowserFailureLog();
+  const logs = [], brave = 'F:\\My Programs\\Brave\\brave.exe';
+  const launch = async () => { throw Error(`browserType.launch: Failed to launch: spawn ${brave} EPERM\nCall log:\n  - something`); };
+  await assert.rejects(launchSystemBrowser(launch, {executablePath: brave, log: line => logs.push(line)}), error => {
+    assert.equal(error.message, 'Brave was found but would not start: Failed to launch: spawn brave.exe EPERM'); return true;
+  });
+  assert.deepEqual(logs, ['Brave was found but would not start: Failed to launch: spawn brave.exe EPERM.']);
+  assert.ok(!logs[0].includes('My Programs'));
+  await assert.rejects(launchSystemBrowser(async () => { throw Error("browserType.launch: Executable doesn't exist at X:\\gone\\thorium.exe"); },
+    {executablePath: 'X:\\gone\\thorium.exe', log: line => logs.push(line)}), error => {
+    assert.equal(error.message, 'Thorium is set as the browser but its program is not there'); assert.equal(error.code, 'BROWSER_START_FAILED'); return true;
+  });
+});
+
+test('the default browser is read from the https UserChoice ProgId and its open command, and only a Chromium program is accepted', () => {
+  const calls = [];
+  const reply = (progId, command) => (program, args) => {
+    calls.push(args.slice(1).join(' '));
+    if (/UserChoice/.test(args[1])) return {status: 0, stdout: `\r\nHKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\Shell\\Associations\\UrlAssociations\\https\\UserChoice\r\n    Hash    REG_SZ    abc\r\n    ProgId    REG_SZ    ${progId}\r\n\r\n`};
+    return {status: 0, stdout: `\r\nHKEY_CLASSES_ROOT\\${progId}\\shell\\open\\command\r\n    (Default)    REG_SZ    ${command}\r\n\r\n`};
+  };
+  const brave = 'D:\\Browsers\\Brave\\brave.exe';
+  assert.equal(defaultBrowserPath({env, run: reply('BraveHTML', `\"${brave}\" --single-argument %1`)}), brave);
+  assert.deepEqual(calls, ['HKCU\\Software\\Microsoft\\Windows\\Shell\\Associations\\UrlAssociations\\https\\UserChoice /v ProgId', 'HKCR\\BraveHTML\\shell\\open\\command /ve']);
+  assert.equal(defaultBrowserPath({env, run: reply('MSEdgeHTM', '\"C:\\Edge\\msedge.exe\" --single-argument %1')}), 'C:\\Edge\\msedge.exe');
+  assert.equal(defaultBrowserPath({env, run: reply('FirefoxURL-308046B0AF4A39CB', '\"C:\\Program Files\\Mozilla Firefox\\firefox.exe\" -osint -url \"%1\"')}), null, 'never Firefox');
+  assert.equal(defaultBrowserPath({env, run: reply('SomeHTML', '\"C:\\Windows\\System32\\rundll32.exe\" x')}), null, 'not on the Chromium list');
+  assert.equal(defaultBrowserPath({env, run: reply('Bad ProgId\"&calc', '\"C:\\a\\brave.exe\"')}), null, 'a ProgId that is not a plain name is never passed to reg.exe');
+  assert.equal(defaultBrowserPath({env, run: () => ({status: 1, stdout: ''})}), null, 'a player who never chose a default');
+  assert.equal(defaultBrowserPath({env, run: () => { throw Error('no reg.exe'); }}), null);
+  assert.equal(defaultBrowserPath({env, run: () => ({status: null, error: Error('ETIMEDOUT')})}), null);
+  const timeouts = [];
+  defaultBrowserPath({env, run: (program, args, options) => { timeouts.push(options.timeout); return {status: 1, stdout: ''}; }});
+  assert(timeouts.every(timeout => timeout > 0 && timeout <= 5000));
+});
+
+test('command lines are reduced to their program, quoted or not, and anything but an absolute .exe is refused', () => {
+  assert.equal(parseCommandProgram('\"C:\\Program Files\\BraveSoftware\\brave.exe\" --single-argument %1'), 'C:\\Program Files\\BraveSoftware\\brave.exe');
+  assert.equal(parseCommandProgram('C:\\Program Files\\Opera\\opera.exe -- \"%1\"'), 'C:\\Program Files\\Opera\\opera.exe');
+  assert.equal(parseCommandProgram('C:\\Brave\\brave.exe'), 'C:\\Brave\\brave.exe');
+  assert.equal(parseCommandProgram('%LocalAppData%\\Vivaldi\\vivaldi.exe --x', {LocalAppData: 'C:\\U\\AppData\\Local'}), 'C:\\U\\AppData\\Local\\Vivaldi\\vivaldi.exe');
+  assert.equal(parseCommandProgram('brave.exe %1'), null, 'relative');
+  assert.equal(parseCommandProgram('\"C:\\x\\run.bat\" a'), null);
+  assert.equal(parseCommandProgram('%Missing%\\a.exe', {}), null);
+  assert.equal(parseCommandProgram(undefined), null);
+  assert.equal(isChromiumProgram('C:\\x\\Brave.EXE'), true); assert.equal(isChromiumProgram('C:\\x\\firefox.exe'), false);
+  assert.equal(browserNameFor('C:\\Brave\\brave.exe'), 'Brave');
+  assert.equal(browserNameFor('C:\\Yandex\\YandexBrowser\\Application\\browser.exe'), 'Yandex Browser');
+  assert.equal(browserNameFor('D:\\unknown\\browser.exe'), null);
+});
+
+test('Start menu browser clients are read for HKCU, HKLM and the 32-bit view; only the open command of a Chromium browser counts', () => {
+  const brave = 'E:\\Portable\\Brave\\brave.exe', vivaldi = 'D:\\V\\vivaldi.exe', seen = [];
+  const out = {
+    HKCU: '',
+    HKLM: [`HKEY_LOCAL_MACHINE\\SOFTWARE\\Clients\\StartMenuInternet\\Brave`, '    (Default)    REG_SZ    Brave',
+      `HKEY_LOCAL_MACHINE\\SOFTWARE\\Clients\\StartMenuInternet\\Brave\\DefaultIcon`, `    (Default)    REG_SZ    \"${brave}\",0`,
+      `HKEY_LOCAL_MACHINE\\SOFTWARE\\Clients\\StartMenuInternet\\Brave\\shell\\open\\command`, `    (Default)    REG_SZ    \"${brave}\"`,
+      `HKEY_LOCAL_MACHINE\\SOFTWARE\\Clients\\StartMenuInternet\\Firefox-308\\shell\\open\\command`, '    (Default)    REG_SZ    \"C:\\Program Files\\Mozilla Firefox\\firefox.exe\"',
+      `HKEY_LOCAL_MACHINE\\SOFTWARE\\Clients\\StartMenuInternet\\IEXPLORE.EXE\\shell\\open\\command`, '    (Default)    REG_SZ    \"C:\\Program Files\\Internet Explorer\\iexplore.exe\"', ''].join('\r\n'),
+    WOW: [`HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Clients\\StartMenuInternet\\Vivaldi\\shell\\open\\command`, `    (Par d\u00e9faut)    REG_SZ    \"${vivaldi}\"`,
+      `HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Clients\\StartMenuInternet\\Brave\\shell\\open\\command`, `    (Default)    REG_SZ    \"${brave.toUpperCase()}\"`, ''].join('\r\n'),
+  };
+  const run = (program, args) => {
+    seen.push(args.slice(1)); assert.equal(args[0], 'query');
+    const key = args[1];
+    return {status: 0, stdout: key.startsWith('HKCU') ? out.HKCU : key.includes('WOW6432Node') ? out.WOW : out.HKLM};
+  };
+  assert.deepEqual(startMenuBrowserPaths({env, run}), [brave, vivaldi]);
+  assert.deepEqual(seen.map(args => args.join(' ')), ['HKCU\\SOFTWARE\\Clients\\StartMenuInternet /s /ve', 'HKLM\\SOFTWARE\\Clients\\StartMenuInternet /s /ve',
+    'HKLM\\SOFTWARE\\WOW6432Node\\Clients\\StartMenuInternet /s /ve']);
+  assert.deepEqual(startMenuBrowserPaths({env, run: () => { throw Error('x'); }}), []);
+});
+
+test('a Brave in a folder of its own is found through the default browser, then the Start menu clients, after everything else, and only when the file is there', async () => {
+  const brave = 'F:\\Tools\\Brave\\brave.exe', vivaldi = 'G:\\V\\vivaldi.exe', asked = [];
+  const base = machine([brave, vivaldi]);
+  const readDefaultBrowser = () => { asked.push('default'); return brave; }, readStartMenu = () => { asked.push('menu'); return [brave, vivaldi]; };
+  assert.deepEqual(choices({...base, readDefaultBrowser, readStartMenu}), [{name: 'Brave', executablePath: brave}, {name: 'Vivaldi', executablePath: vivaldi}], 'listed once');
+  assert.deepEqual(choices({...machine([brave]), readDefaultBrowser: () => null, readStartMenu: () => [brave]}), [{name: 'Brave', executablePath: brave}]);
+  assert.deepEqual(choices({...machine([]), readDefaultBrowser, readStartMenu}), [], 'a registry entry whose file is gone offers nothing');
+  assert.deepEqual(choices({...base, readDefaultBrowser: () => 'C:\\Mozilla Firefox\\firefox.exe', readStartMenu: () => []}), [], 'never Firefox, even when the file exists');
+  assert.deepEqual(choices({...base, readDefaultBrowser: () => { throw Error('x'); }, readStartMenu: () => { throw Error('y'); }}), [], 'a failing lookup is no entry');
+  // Edge in its usual folder is first, and then neither lookup runs.
+  asked.length = 0;
+  assert.equal(systemBrowserAvailable({...machine([edgeIn(env.PROGRAMFILES), brave]), readDefaultBrowser, readStartMenu}), true);
+  assert.deepEqual(asked, []);
+  // The launch uses the executable.
+  const calls = [];
+  await launchSystemBrowser(async options => { calls.push(options); return {}; }, {...base, readDefaultBrowser, readStartMenu});
+  assert.deepEqual(calls, [{executablePath: brave}]);
+  assert.equal(systemBrowserAvailable({...machine([brave]), readDefaultBrowser, readStartMenu}), true);
+  assert.equal(systemBrowserAvailable({...machine([]), readDefaultBrowser, readStartMenu}), false);
+});
+
+test('a fake registry given as readRegistry means no real reg.exe is run for the default browser or the Start menu either', () => {
+  assert.deepEqual(choices(machine()), []);
+  assert.equal(systemBrowserAvailable(machine()), false);
+});
+
+test('browser.txt: the path is the first line that is not blank or a comment, quotes and BrowserPath= are accepted, any text encoding', () => {
+  const brave = 'D:\\Programs\\Brave\\brave.exe';
+  assert.equal(parseBrowserOverride(brave), brave);
+  assert.equal(parseBrowserOverride(`\r\n; my browser\r\n# another comment\r\n  \"${brave}\"  \r\nignored`), brave);
+  assert.equal(parseBrowserOverride(`BrowserPath=${brave}`), brave);
+  assert.equal(parseBrowserOverride(`browserpath = \"${brave}\"`), brave);
+  assert.equal(parseBrowserOverride(Buffer.from(`\uFEFF${brave}\r\n`, 'utf8')), brave, 'UTF-8 with a byte order mark');
+  assert.equal(parseBrowserOverride(Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(`${brave}\r\n`, 'utf16le')])), brave, 'UTF-16 as Notepad can save it');
+  assert.equal(parseBrowserOverride(''), null); assert.equal(parseBrowserOverride('; only a comment\r\n'), null); assert.equal(parseBrowserOverride(undefined), null);
+});
+
+test('browser.txt names a file or a browser folder; relative paths, Firefox, missing files and empty folders are refused with a plain reason', () => {
+  const files = new Set(['D:\\Programs\\Brave\\brave.exe', 'E:\\B\\Application\\vivaldi.exe', 'C:\\Mozilla Firefox\\firefox.exe', 'D:\\Programs\\Brave\\readme.txt']);
+  const folders = new Set(['D:\\Programs\\Brave', 'E:\\B', 'E:\\B\\Application', 'F:\\Empty']);
+  const stat = path => {
+    if (files.has(path)) return {isFile: () => true, isDirectory: () => false};
+    if (folders.has(path)) return {isFile: () => false, isDirectory: () => true};
+    throw Object.assign(Error('ENOENT'), {code: 'ENOENT'});
+  };
+  const resolved = value => resolveBrowserOverride(value, {stat, env: {PROGRAMS: 'D:\\Programs'}});
+  assert.deepEqual(resolved('D:\\Programs\\Brave\\brave.exe'), {path: 'D:\\Programs\\Brave\\brave.exe'});
+  assert.deepEqual(resolved('D:\\Programs\\Brave'), {path: 'D:\\Programs\\Brave\\brave.exe'}, 'the folder of the browser');
+  assert.deepEqual(resolved('E:\\B'), {path: 'E:\\B\\Application\\vivaldi.exe'}, 'its Application folder');
+  assert.deepEqual(resolved('%PROGRAMS%\\Brave\\brave.exe'), {path: 'D:\\Programs\\Brave\\brave.exe'});
+  assert.match(resolved('brave.exe').problem, /full path/);
+  assert.match(resolved(null).problem, /no path/);
+  assert.match(resolved('C:\\Mozilla Firefox\\firefox.exe').problem, /Firefox[^]*Chromium/);
+  assert.match(resolved('Z:\\gone\\brave.exe').problem, /brave\.exe, which is not there/);
+  assert.match(resolved('F:\\Empty').problem, /no Chromium browser program/);
+  assert.ok(Object.values(resolved('Z:\\Users\\Someone\\gone\\brave.exe')).every(text => !String(text).includes('Someone')), 'the log line holds the file name, not the folder');
+});
+
+test('readBrowserOverride reads browser.txt from the first plugin folder that has one and never throws', () => {
+  const brave = 'D:\\Programs\\Brave\\brave.exe';
+  const stat = path => { if (path === brave) return {isFile: () => true, isDirectory: () => false}; throw Error('ENOENT'); };
+  const reads = [], disk = {'C:\\Game\\plugin\\browser.txt': Buffer.from(`${brave}\r\n`)};
+  const read = file => { reads.push(file); if (file in disk) return disk[file]; throw Object.assign(Error('ENOENT'), {code: 'ENOENT'}); };
+  assert.equal(BROWSER_OVERRIDE_FILE, 'browser.txt');
+  assert.deepEqual(readBrowserOverride(['C:\\Real\\plugin', 'C:\\Game\\plugin', 'C:\\Game\\plugin'], {read, stat}), {file: 'C:\\Game\\plugin\\browser.txt', path: brave});
+  assert.deepEqual(reads, ['C:\\Real\\plugin\\browser.txt', 'C:\\Game\\plugin\\browser.txt']);
+  assert.equal(readBrowserOverride(['C:\\Nowhere'], {read, stat}), null, 'no file: nothing to say');
+  disk['C:\\Game\\plugin\\browser.txt'] = Buffer.from('Z:\\gone\\brave.exe');
+  assert.match(readBrowserOverride(['C:\\Game\\plugin'], {read, stat}).problem, /not there/);
+  disk['C:\\Game\\plugin\\browser.txt'] = Buffer.alloc(9000, 65);
+  assert.match(readBrowserOverride(['C:\\Game\\plugin'], {read, stat}).problem, /too long/);
+  assert.equal(readBrowserOverride([null, '', undefined], {read, stat}), null);
+  assert.match(NO_BROWSER_MESSAGE, /browser\.txt next to launcher\.ini/);
 });
 
 test('the registry App Paths entry finds Edge or Chrome installed outside the usual folders', async () => {

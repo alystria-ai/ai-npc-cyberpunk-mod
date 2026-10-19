@@ -75,7 +75,7 @@ function M.reportNavigation(player)
     local line = 'Phone navigation: ' .. stats
     local file = io.open('runtime/probe.log', 'a')
     if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'), ' ', line, '\n'); file:close() end
-    print('[CyberpunkConvai] ' .. line)
+    -- probe.log only: one line every time the phone closes is no use in the CET console.
 end
 
 -- player/open: the caller's per-frame answers (init.lua onUpdate asks once for all the phone work). Called with

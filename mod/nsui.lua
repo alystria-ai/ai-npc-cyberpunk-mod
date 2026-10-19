@@ -22,7 +22,7 @@ local fontLibrary = dofile('ui-fonts.lua')
 local TAB, TAB_LABEL = 'aiNpcCyberpunkMod', 'AI NPC Cyberpunk Mod'
 local TAB_PATH = '/' .. TAB
 local NEEDS_HOST = 'The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI'
-local MCM_OLD = 'Update Mod Configuration Menu to 0.10.5 or newer to use the Companion Manager'
+local MCM_OLD = 'Update Mod Configuration Menu to 0.10.5 or newer, or install Native Settings UI'
 
 -- What the widgets of Native Settings UI can show. Their geometry is the game's (the row template of the Settings screen), not ours,
 -- so these are estimates in the units of manager-ui.lua's optionUnits (an average lowercase letter is 1): a label that is longer is
@@ -64,10 +64,30 @@ local lastError = ''
 -- this module's core, so every host reads and writes the same saved settings. hostError: the last problem each one raised (logged once).
 local hosts, hostError = {}, {}
 
-local function log(message)
+local function logFile(message)
     local file = io.open('runtime/mcm.log', 'a')
     if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'), ' ', message, '\n'); file:close() end
+end
+local function log(message)
+    logFile(message)
     print('[CyberpunkConvai] ' .. message)
+end
+-- A problem that can come round on every redraw, row update or press: the first time of each message is a console line, the rest are
+-- counted, and runtime/mcm.log (not the console) gets one "repeated N times" line at 10, 100, 1000 ... At most 32 messages are kept.
+local seenProblems, seenCount = {}, 0
+local function logRepeat(message)
+    local entry = seenProblems[message]
+    if not entry then
+        if seenCount >= 32 then return end
+        seenProblems[message], seenCount = {count = 1, next = 10}, seenCount + 1
+        log(message)
+        return
+    end
+    entry.count = entry.count + 1
+    if entry.count >= entry.next then
+        entry.next = entry.next * 10
+        logFile('(repeated ' .. entry.count .. ' times: ' .. message:sub(1, 160) .. ')')
+    end
 end
 
 -- ---- Text that fits ---------------------------------------------------------------------------------------------------------------
@@ -269,7 +289,7 @@ local function syncValue(current, spec)
     suppress = suppress + 1
     local ok, problem = pcall(ns.setOption, opt, spec.value)
     suppress = suppress - 1
-    if not ok then lastError = 'Row update: ' .. tostring(problem); log('Manager: a row could not be updated: ' .. tostring(problem)) end
+    if not ok then lastError = 'Row update: ' .. tostring(problem); logRepeat('Manager: a row could not be updated: ' .. tostring(problem)) end
 end
 
 -- A row whose text or limits changed, while the tab is not on screen (nothing is drawn, so only the data is read): the option table
@@ -381,7 +401,7 @@ local function renderSafe()
     local ok, problem = pcall(render)
     if ok then renderFailures = 0; return true end
     lastError = 'Draw: ' .. tostring(problem)
-    log('Manager: the page could not be drawn: ' .. tostring(problem))
+    logRepeat('Manager: the page could not be drawn: ' .. tostring(problem))
     renderFailures = renderFailures + 1
     -- A draw that failed half-way leaves the tab out of step with what was recorded: start again from nothing, a few times at most.
     pcall(clearTab)
@@ -416,7 +436,7 @@ local function flushNow()
         local ok, problem = pcall(applyChanges, changes)
         if not ok then
             lastError = 'Apply: ' .. tostring(problem)
-            log('Manager: a setting could not be applied: ' .. tostring(problem))
+            logRepeat('Manager: a setting could not be applied: ' .. tostring(problem))
             core.setFeedback(ui.t('The action could not finish: {reason}', {reason = tostring(problem):sub(1, 160)}))
         end
     end
@@ -431,7 +451,7 @@ local function runPresses()
     if flushAt then flushNow() end
     for _, id in ipairs(queued) do
         local ok, problem = pcall(core.invoke, id)
-        if not ok then lastError = 'Action: ' .. tostring(problem); log('Manager: an action failed: ' .. tostring(problem)) end
+        if not ok then lastError = 'Action: ' .. tostring(problem); logRepeat('Manager: an action failed: ' .. tostring(problem)) end
     end
     rebuildAt = os.clock()
 end
@@ -447,7 +467,7 @@ local function onRestoreDefaults()
     local changes = core.defaults()
     if #changes > 0 then
         local ok, problem = pcall(applyChanges, changes)
-        if not ok then lastError = 'Defaults: ' .. tostring(problem); log('Manager: defaults could not be applied: ' .. tostring(problem)) end
+        if not ok then lastError = 'Defaults: ' .. tostring(problem); logRepeat('Manager: defaults could not be applied: ' .. tostring(problem)) end
     end
     core.setFeedback(ui.t('Defaults restored.'))
     rebuildAt = os.clock()
@@ -735,7 +755,7 @@ end
 -- updated, reset and shut down with it. A host that raises an error is told apart from the others and logged once per problem.
 function M.attach(host)
     hosts[#hosts + 1] = host
-    host.configure(core, {log = log})
+    host.configure(core, {log = log, logRepeat = logRepeat, nativeSettings = function() return nativeSettings() ~= nil end})
 end
 
 local function eachHost(name, ...)
@@ -763,7 +783,7 @@ local function postNeedsHost(old)
     pcall(function()
         local player = Game.GetPlayer()
         if player and type(convaiNotices) == 'table' then
-            local text = old and ui.t('Update Mod Configuration Menu to 0.10.5 or newer to use the Companion Manager')
+            local text = old and ui.t('Update Mod Configuration Menu to 0.10.5 or newer, or install Native Settings UI')
                 or ui.t('The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI')
             convaiNotices.sendLines(player, {{id = 'manager-needs-nsui', text = text}})
         end

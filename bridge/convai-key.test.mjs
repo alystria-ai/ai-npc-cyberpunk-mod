@@ -185,6 +185,48 @@ test('the clipboard reader runs PowerShell once, hidden, with a timeout', async 
   await assert.rejects(readClipboardText({exec: (_f, _a, _o, done) => done(Error('secret detail'))}), /clipboard could not be read/);
 });
 
+// PowerShell blocked, missing or refusing on the player's PC. The clipboard is read only when the player clicks Paste (never at
+// start-up or on a turn), so a failure is answered once, for that click, with the existing "clipboard" status. Nothing is retried,
+// logged or reported, and the key file / own-key text path stays available.
+test('a PowerShell that cannot be used makes the clipboard unreadable, quietly and without copying its text', async () => {
+  const logged = [], realError = console.error;
+  console.error = (...parts) => logged.push(parts.join(' '));
+  try {
+    const failures = [
+      Object.assign(Error('spawn powershell.exe ENOENT'), {code: 'ENOENT'}),
+      Object.assign(Error('spawn powershell.exe EACCES'), {code: 'EACCES'}),
+      Object.assign(Error('spawn powershell.exe EPERM'), {code: 'EPERM'}),
+      Object.assign(Error('Command failed: powershell.exe running scripts is disabled'), {code: 1, stderr: 'blocked by group policy'}),
+      Object.assign(Error('Command timed out'), {killed: true, signal: 'SIGTERM', code: null}),
+      Object.assign(Error('stdout maxBuffer length exceeded'), {code: 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'}),
+    ];
+    for (const failure of failures) {
+      let calls = 0;
+      const exec = (_file, _args, _options, done) => { calls++; done(failure, 'blocked by group policy', 'running scripts is disabled'); };
+      await assert.rejects(readClipboardText({exec}), error => error.message === 'The clipboard could not be read', failure.message);
+      assert.equal(calls, 1, 'one attempt per request, no retry');
+      const fixture = control({clipboard: () => readClipboardText({exec})});
+      await fixture.instance.open();
+      const status = await fixture.send('paste');
+      assert.equal(status.result.state, 'clipboard'); assert.equal(status.saved, false);
+      assert.ok(!/group policy|running scripts/.test(JSON.stringify(fixture.published)), 'no policy text in the status');
+    }
+    // Text that is not a key (policy text printed to stdout with a zero exit) is refused as not a key, never saved.
+    const policyText = control({clipboard: () => readClipboardText({exec: (_f, _a, _o, done) => done(null, 'This program is blocked by group policy.\r\n')})});
+    await policyText.instance.open();
+    assert.equal((await policyText.send('paste')).result.state, 'not-a-key'); assert.equal(policyText.store.key, null);
+    assert.deepEqual(logged, [], 'nothing is logged');
+  } finally { console.error = realError; }
+});
+
+test('the clipboard reader against a program that does not exist fails fast with the same quiet error (no PowerShell is started)', async () => {
+  const {execFile} = await import('node:child_process');
+  const started = Date.now();
+  await assert.rejects(readClipboardText({exec: (_file, args, options, done) => execFile('no-such-clipboard-program', args, options, done)}),
+    error => error.message === 'The clipboard could not be read');
+  assert.ok(Date.now() - started < 5000);
+});
+
 test('key validation lists characters with the key header only, and treats network trouble as unknown', async () => {
   const seen = [];
   const reply = status => async (url, options) => { seen.push({url, options}); return {ok: status === 200, status, body: {cancel: async () => {}}}; };

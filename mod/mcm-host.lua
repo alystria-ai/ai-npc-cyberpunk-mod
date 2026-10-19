@@ -81,6 +81,11 @@ local function log(message)
     if options and options.log then options.log(message) end
 end
 
+-- A problem that can come round on every press or retry: nsui.lua's once-per-message line (it counts the repeats in runtime/mcm.log).
+local function logRepeat(message)
+    if options and options.logRepeat then options.logRepeat(message) else log(message) end
+end
+
 -- One line per distinct reason, so a copy of MCM that cannot host the page is said once, not every second.
 local function logOnce(message)
     if message ~= lastReason then lastReason = message; log(message) end
@@ -420,7 +425,15 @@ local function connect()
     if not found then return false end
     local why = M.unsupported(found)
     if why then
-        logOnce('Companion Manager: Mod Configuration Menu cannot host the page (' .. why .. '); Native Settings UI is used when it is installed.')
+        -- One console line, in plain words: what is wrong and what to do (the way out depends on whether Native Settings UI is there).
+        local nsui = false
+        if options and type(options.nativeSettings) == 'function' then
+            local ok, found = pcall(options.nativeSettings)
+            nsui = ok and found == true
+        end
+        logOnce('Companion Manager: Mod Configuration Menu cannot host the page (' .. why .. '). '
+            .. (nsui and 'Native Settings UI is installed, so its tab is used. To use Mod Configuration Menu instead, update it to 0.10.5 or newer.'
+                or 'Update it to 0.10.5 or newer, or install Native Settings UI.'))
         return false
     end
     local called, registered, problem = pcall(found.providers.registerProvider, provider)
@@ -513,7 +526,7 @@ function M.open()
     if not called then request, problem = nil, request end
     if request == nil then
         lastError = 'Open: ' .. tostring(problem)
-        log('Companion Manager: Mod Configuration Menu would not open the page: ' .. tostring(problem))
+        logRepeat('Companion Manager: Mod Configuration Menu would not open the page: ' .. tostring(problem))
         return false, tostring(problem or 'Mod Configuration Menu would not open the page.')
     end
     return true
@@ -580,7 +593,7 @@ function M.update(player, worldReady)
         if not called or loaded == nil then
             lastError = 'Reload: ' .. tostring(called and problem or loaded)
             reloadAfter = clock + RELOAD_BACKOFF
-            log('Companion Manager: Mod Configuration Menu would not load the page again: ' .. lastError)
+            logRepeat('Companion Manager: Mod Configuration Menu would not load the page again: ' .. lastError)
         end
     end
     if keepScroll and clock >= keepScroll.at then

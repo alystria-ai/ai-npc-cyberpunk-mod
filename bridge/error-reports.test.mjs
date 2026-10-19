@@ -144,6 +144,7 @@ test('a failed turn is reported only when it is not the player\'s own doing', ()
     assert.equal(reportableTurnFailure(new Error('x'), {errorCode: 'local-unavailable', localReason}), false, localReason);
   }
   assert.equal(reportableTurnFailure(new Error('x'), {errorCode: 'local-no-memory'}), false);
+  assert.equal(reportableTurnFailure(new Error('x'), {errorCode: 'browser-failed'}), false, 'a browser that would not start is the player\'s own setup');
   assert.equal(reportableTurnFailure(new Error('x'), {errorCode: 'local-unavailable', localReason: 'crashed'}), true, 'a Local AI server that crashed');
   assert.equal(reportableTurnFailure(Object.assign(new Error('The operation was aborted'), {name: 'AbortError'})), false);
   assert.equal(reportableTurnFailure(Object.assign(new Error('Daily conversation limit reached'), {name: 'TurnLimitError'})), false);

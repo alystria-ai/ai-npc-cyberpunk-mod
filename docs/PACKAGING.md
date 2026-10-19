@@ -111,8 +111,16 @@ entry whose game-relative path would exceed 255 characters under a 70-character 
    does not carry is a browser: the bridge's hidden browser is the Microsoft Edge that Windows 10 and 11 include, else an installed
    Google Chrome, else another installed Chromium browser (Brave, Vivaldi, Opera and Opera GX, Chromium, Edge and Chrome Beta, Dev and
    Canary, Yandex, Thorium and a few more). `bridge/system-browser.mjs` checks the usual install folders, then the registry's App Paths
-   entries (so a browser installed elsewhere is found), once per start and only until one is found. Firefox cannot be used: Playwright
-   drives only its own patched Firefox. A developer's `CYBERPUNK_CONVAI_BROWSER` still names an executable instead.
+   entries (so a browser installed elsewhere is found), then the browser Windows opens links with (the https UserChoice ProgId and its open
+   command) and the Start menu browser clients (`HKCU`/`HKLM` `SOFTWARE\Clients\StartMenuInternet\*\shell\open\command`), each accepted only
+   when its program is a known Chromium one, once per start and only until one is found. Firefox cannot be used: Playwright
+   drives only its own patched Firefox. A developer's `CYBERPUNK_CONVAI_BROWSER` still names an executable instead, and so does the
+   player's `browser.txt`: a plain text file in `red4ext\plugins\AiNpcCyberpunkMod\` beside `launcher.ini` (never shipped; `PROTECTED` in
+   `apply-removals.mjs`, so an update never removes it) holding one line, the full path of a Chromium program or of its folder (an
+   optional `BrowserPath=` before it, quotes, and `;` or `#` comment lines are accepted). `start-service.mjs` reads it, checks the file
+   is there and sets `CYBERPUNK_CONVAI_BROWSER` from it (a variable already set wins); a file that names nothing usable is one log line
+   and the usual lookup goes on. A browser that is found but will not start is `BROWSER_START_FAILED`: the log says "Brave was found but
+   would not start: <reason>" once, and a turn fails with the game notice `browser-failed` naming it (not an error report).
    Chrome for Testing was bundled in 0.2 until Hugging Face's virus scanner flagged its `chrome.dll` (a false positive). If neither
    browser is installed the supervisor reports `browser-missing` (the in-game notice, the Settings status line and Help row that name the missing browser, one line in
    `bridge-service.log`) and starts the bridge by itself once one is installed.

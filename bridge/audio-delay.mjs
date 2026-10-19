@@ -37,30 +37,58 @@ export function setAudioDelayMs(value) {
 
 // One hidden, below-normal PowerShell process that prints the default output
 // device as one JSON line at start and every `intervalSeconds`; nothing runs
-// per frame. A probe that exits is restarted at most once per interval.
+// per frame. A probe that was working and exits is restarted at most once per interval.
+//
+// PowerShell may be unusable on a player's PC (blocked or missing, disabled by the device owner, a group policy that refuses the
+// script, constrained language mode). A run that ends without ever printing a device line (spawn error, non-zero exit, policy text,
+// nothing within `firstOutputMs`) means the probe cannot work here: the watch gives up for the rest of this process, writes one log
+// line, and the delay stays 0 (no compensation) unless it is set by hand. It is never retried and nothing reaches the player.
 export class AudioOutputWatch {
   constructor({spawnFn = spawn, platform = process.platform, intervalSeconds = 60, onChange = () => {},
-    setTimeoutFn = setTimeout, clearTimeoutFn = clearTimeout} = {}) {
-    Object.assign(this, {spawnFn, platform, intervalSeconds, onChange, setTimeoutFn, clearTimeoutFn});
-    this.output = null; this.stopped = false; this.buffer = '';
+    setTimeoutFn = setTimeout, clearTimeoutFn = clearTimeout, firstOutputMs = 30000,
+    log = message => console.error(`[CyberpunkConvai] ${message}`)} = {}) {
+    Object.assign(this, {spawnFn, platform, intervalSeconds, onChange, setTimeoutFn, clearTimeoutFn, firstOutputMs, log});
+    this.output = null; this.stopped = false; this.buffer = ''; this.unavailable = false; this.heard = false; this.watchdog = null;
   }
 
   start() {
-    if (this.platform !== 'win32' || this.stopped || this.child || this.timer) return;
+    if (this.platform !== 'win32' || this.stopped || this.unavailable || this.child || this.timer) return;
     let child;
+    this.heard = false; this.buffer = '';
     try {
       child = this.spawnFn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
         '-File', PROBE, '-Interval', String(this.intervalSeconds), '-ParentId', String(process.pid)], {windowsHide: true, stdio: ['pipe', 'pipe', 'ignore']});
-    } catch { this.retry(); return; }
+    } catch (error) { this.giveUp(error?.code ?? 'spawn failed'); return; }
     this.child = child;
     child.stdout?.setEncoding?.('utf8');
-    child.stdout?.on('data', chunk => this.read(chunk));
-    child.on?.('error', () => {});
-    child.on?.('exit', () => { if (this.child === child) { this.child = null; this.retry(); } });
+    child.stdout?.on('data', chunk => { if (this.child === child) this.read(chunk); });
+    child.on?.('error', error => { if (this.child === child) this.giveUp(error?.code ?? 'spawn failed'); });
+    child.on?.('exit', code => {
+      if (this.child !== child) return;
+      this.child = null; this.clearWatchdog();
+      if (this.heard) this.retry(); else this.giveUp(`exit ${code ?? 'without a code'} before any output`);
+    });
+    // A probe that stays silent (a blocked compiler, a prompt) is ended; a cold start first compiles a small helper.
+    this.watchdog = this.setTimeoutFn(() => {
+      this.watchdog = null;
+      if (this.child === child && !this.heard) this.giveUp('no output in time');
+    }, this.firstOutputMs);
+    this.watchdog?.unref?.();
+  }
+
+  clearWatchdog() { if (this.watchdog) this.clearTimeoutFn(this.watchdog); this.watchdog = null; }
+
+  // The probe cannot work here: one log line for the process, then silence. The delay is 0 from then on.
+  giveUp(reason) {
+    if (this.unavailable) return;
+    this.unavailable = true;
+    this.suspend();
+    this.log(`Lip sync delay: the audio output probe cannot run on this PC (${String(reason).slice(0, 80)}), so Auto assumes 0 ms.`);
+    if (this.output?.bluetooth) { this.output = {available: false, bluetooth: false, name: ''}; this.onChange(this.output); }
   }
 
   retry() {
-    if (this.stopped || this.timer) return;
+    if (this.stopped || this.unavailable || this.timer) return;
     this.timer = this.setTimeoutFn(() => { this.timer = null; this.start(); }, this.intervalSeconds * 1000);
     this.timer?.unref?.();
   }
@@ -72,6 +100,7 @@ export class AudioOutputWatch {
       const line = this.buffer.slice(0, newline).trim(); this.buffer = this.buffer.slice(newline + 1);
       let value; try { value = JSON.parse(line); } catch { continue; }
       if (!value || typeof value !== 'object') continue;
+      this.heard = true; this.clearWatchdog();
       const output = value.available === true
         ? {available: true, bluetooth: value.bluetooth === true, name: String(value.name || '').slice(0, 200)}
         : {available: false, bluetooth: false, name: ''};
@@ -83,7 +112,7 @@ export class AudioOutputWatch {
 
   // Ends the probe process but lets start() run it again (the delay is set by hand, or nothing is spoken). stop() is for good.
   suspend() {
-    this.clearTimeoutFn(this.timer); this.timer = null;
+    this.clearTimeoutFn(this.timer); this.timer = null; this.clearWatchdog();
     const child = this.child; this.child = null;
     try { child?.stdin?.end(); } catch {}
     try { child?.kill(); } catch {}

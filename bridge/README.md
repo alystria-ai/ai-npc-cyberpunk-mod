@@ -62,7 +62,7 @@ server/share. Empty, relative or control-character values fail validation.
 | Variable | Selects | Development default |
 |---|---|---|
 | `CYBERPUNK_CONVAI_PYTHON` | Python executable used for the owned resident voice worker | `vendor/reference-voicestudio/.venv/Scripts/python.exe` under the project |
-| `CYBERPUNK_CONVAI_BROWSER` | Playwright-compatible browser executable; replaces the system browser lookup (a developer override; the Runtime package sets nothing) | Installed Microsoft Edge (`msedge` channel), else Google Chrome (`chrome` channel), else another installed Chromium browser (Brave, Vivaldi, Opera and others, by executable; the registry's App Paths too); see `system-browser.mjs` |
+| `CYBERPUNK_CONVAI_BROWSER` | Playwright-compatible browser executable; replaces the system browser lookup (a developer override; the Runtime package sets nothing) | Installed Microsoft Edge (`msedge` channel), else Google Chrome (`chrome` channel), else another installed Chromium browser (Brave, Vivaldi, Opera and others, by executable; the registry's App Paths too); then the registry's App Paths, the Windows default browser and the Start menu browser clients; see `system-browser.mjs`. The player's own override is `browser.txt` beside `launcher.ini` (one line, the full path of a Chromium program or its folder), which the Runtime start script reads and passes on as this variable |
 | `CYBERPUNK_CONVAI_CLIENT_ASSETS` | Directory containing the prebuilt browser client and continuous PCM modules | Project `runtime/realtime-client.js`, with PCM modules beside `realtime-host.mjs` |
 
 The asset directory must contain these four required files:

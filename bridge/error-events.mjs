@@ -266,7 +266,9 @@ export function installCrashCapture({stateDirectory, runtime, processRef = proce
 // allowance, the player's own server or account, a player who cancelled. Local AI that could not start because it is not installed,
 // does not fit the graphics memory ('local-no-memory'), has no graphics card to run on or needs Mature content is the player's setup too.
 const OWN_DOING = new Set(['mistral-key', 'mistral-limit', 'custom-key', 'custom-credits', 'custom-limit', 'custom-model', 'custom-unreachable',
-  'quota-own', 'quota-shared', 'daily-limit', 'key-rejected', 'key-memory', 'key-memory-needed', 'addon-provider', 'addon-pace', 'local-no-memory']);
+  'quota-own', 'quota-shared', 'daily-limit', 'key-rejected', 'key-memory', 'key-memory-needed', 'addon-provider', 'addon-pace', 'local-no-memory',
+  // The browser for the conversation page would not start (bridge/system-browser.mjs): the player's own browser or its policy, named in the log.
+  'browser-failed']);
 const OWN_LOCAL_REASONS = new Set(['not-installed', 'low-memory', 'mature-off', 'no-gpu']);
 // The codes that say Local AI could not take a turn; whether that is the player's setup depends on why (localReason).
 const LOCAL_DOWN = new Set(['local-fallback', 'local-unavailable']);

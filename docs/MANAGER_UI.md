@@ -267,7 +267,7 @@ instead of working invite buttons; the same row is in MCM, which shares `manager
 `addSubcategory`, `removeSubcategory`, `removeOption`, `addSwitch`, `addRangeInt`, `addSelectorString`, `addButton`, `setOption`,
 `registerRestoreDefaultsCallback`) the shortcut shows the notice "The Companion Manager needs Mod Configuration Menu 0.10.5 or newer,
 or Native Settings UI" (notice id `manager-needs-nsui`, player class, at most every 10 s) and starts no walk; when the only Mod
-Configuration Menu is older than 0.10.5 the notice is "Update Mod Configuration Menu to 0.10.5 or newer to use the Companion Manager".
+Configuration Menu is older than 0.10.5 the notice is "Update Mod Configuration Menu to 0.10.5 or newer, or install Native Settings UI".
 The setup check names them too (see below). NSUI is found with `GetMod('nativeSettings')` (or
 `'NativeSettings'`) at CET's `onInit`; a copy that loads after this mod is found by a once-a-second look, and the tab is registered then.
 
@@ -428,7 +428,7 @@ remain are resource guards that scale with the party instead of refusing it:
   line per check. "Needs a browser" is shown when the service never started because no Chromium browser (Edge, Chrome, Brave, Opera and
   others) is installed (`bridge-service.json` code `browser-missing`); the row's help, the in-game notice, the help of the Voice status
   row (whose value reads "Needs a browser") and the first lines of the short report then say "The conversation service needs a
-  Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, then restart the game." While the service is not
+  Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game." While the service is not
   running or starting and no model is listed, the Local AI model row reads "Service not running" or "Service starting" instead of "No
   model installed", which stays for a service whose state is unknown.
 - **If something goes wrong**: one line saying what to do.

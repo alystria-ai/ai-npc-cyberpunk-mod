@@ -1310,7 +1310,7 @@ local function schema()
         -- started, or failed for a reason the setup check knows, gets the setup check's fix instead.
         local serviceValue = support.serviceLabel()
         local serviceHelp = support.serviceFault() == 'browser'
-            and ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, then restart the game.')
+            and ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game.')
             or ui.t('The conversation service runs beside the game. If it is not running, restart the game. Its logs are listed below.')
         local setupLines, summary = {}, ''
         if setup then
@@ -1456,7 +1456,7 @@ local function schema()
         })
         local voiceStatus = voiceStatusText(snapshot)
         local voiceStatusHelp = support and support.serviceFault() == 'browser'
-            and ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, then restart the game.')
+            and ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game.')
             or ui.t('A change takes effect after the current reply. No game restart is needed.')
         -- The list: Pocket Performance (the default), the Mistral cloud voice (Voxtral, recommended), OmniVoice Balanced / Quality (16 steps,
         -- short / long reference), High Quality / Ultra Quality (32 steps, short / long reference), Convai Cloud voice.
