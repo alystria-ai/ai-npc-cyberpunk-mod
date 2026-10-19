@@ -940,7 +940,7 @@ return {
     ["The custom provider did not accept your key. Check it in Settings > Conversation provider."] = "Власний ключ не прийнято. Перевір у меню Налаштування > Постачальник розмов.",
     ["The custom provider did not answer. Check its address in Settings, or try again."] = "Власний постачальник не відповів. Перевір адресу в Налаштуваннях або спробуй знову.",
     ["The custom provider does not know that model ID. Check it in Settings."] = "Власний постачальник не знає цього ID моделі. Перевір у Налаштуваннях.",
-    ["The custom provider is not set up, so Convai is used. Add its URL and model ID in Settings."] = "Власний постачальник не налаштований, тож працює Convai. Додай його URL і ID моделі в Налаштуваннях.",
+    ["The custom provider is not set up, so Convai is used. Add its URL and model ID in Settings."] = "Власний постачальник не налаштований: діє Convai. Додай URL і ID моделі в Налаштуваннях.",
     ["The custom provider is rate limiting you. Try again in a moment."] = "Власний постачальник обмежує запити. Спробуй трохи пізніше.",
     ["The custom provider says your account is out of credits. Add credits there, then try again."] = "Власний постачальник каже: на рахунку немає кредитів. Поповни там і спробуй знову.",
     ["The endpoint URL was removed."] = "URL ендпоінта видалено.",

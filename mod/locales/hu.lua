@@ -940,7 +940,7 @@ return {
     ["The custom provider did not accept your key. Check it in Settings > Conversation provider."] = "Egyéni kulcs nem elfogadott. Ellenőrizd: Beállítások > Beszélgetési szolgáltató.",
     ["The custom provider did not answer. Check its address in Settings, or try again."] = "Az egyéni szolgáltató nem válaszolt. Ellenőrizd a címét, vagy próbáld újra.",
     ["The custom provider does not know that model ID. Check it in Settings."] = "Nem ismeri ezt a modellazonosítót az egyéni szolgáltató. Ellenőrizd.",
-    ["The custom provider is not set up, so Convai is used. Add its URL and model ID in Settings."] = "Az egyéni szolgáltató nincs beállítva, ezért Convai válaszol. Add meg az URL-jét és a modellazonosítóját a Beállításokban.",
+    ["The custom provider is not set up, so Convai is used. Add its URL and model ID in Settings."] = "Nincs egyéni szolgáltató: Convai válaszol. Add meg URL-t és modellazonosítót a Beállításokban.",
     ["The custom provider is rate limiting you. Try again in a moment."] = "Az egyéni szolgáltató korlátozza a kéréseidet. Próbáld újra kis idő múlva.",
     ["The custom provider says your account is out of credits. Add credits there, then try again."] = "Az egyéni szolgáltatónál elfogyott a kredit. Tölts fel, aztán próbáld újra.",
     ["The endpoint URL was removed."] = "Az endpoint URL törölve lett.",

@@ -940,7 +940,7 @@ return {
     ["The custom provider did not accept your key. Check it in Settings > Conversation provider."] = "Personalizzato: chiave rifiutata. Controllala in Impostazioni > Fornitore di conversazione.",
     ["The custom provider did not answer. Check its address in Settings, or try again."] = "Provider personalizzato senza risposta. Controlla l’indirizzo in Impostazioni o riprova.",
     ["The custom provider does not know that model ID. Check it in Settings."] = "Il provider personalizzato non riconosce l’ID. Controllalo in Impostazioni.",
-    ["The custom provider is not set up, so Convai is used. Add its URL and model ID in Settings."] = "Provider personalizzato non configurato: si usa Convai. Aggiungi URL e ID del modello in Impostazioni.",
+    ["The custom provider is not set up, so Convai is used. Add its URL and model ID in Settings."] = "Provider personalizzato non configurato: si usa Convai. Aggiungi URL e ID modello in Impostazioni.",
     ["The custom provider is rate limiting you. Try again in a moment."] = "Il provider personalizzato ti sta limitando. Riprova tra un momento.",
     ["The custom provider says your account is out of credits. Add credits there, then try again."] = "Provider personalizzato: crediti esauriti. Aggiungi crediti lì e riprova.",
     ["The endpoint URL was removed."] = "L’URL endpoint è stato rimosso.",
