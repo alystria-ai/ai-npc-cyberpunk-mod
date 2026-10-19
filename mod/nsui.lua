@@ -442,14 +442,56 @@ local function hideWidget(widget)
     if widget then pcall(function() widget:SetVisible(false) end) end
 end
 
-local function hideFrame(controller)
+-- A one-time diagnostic (once per session, written to runtime/mcm.log): the widget tree under the root widget of the first read-only
+-- row hideFrames handles, depth 4, with each widget's name, class and visibility, and what hideFrame found and hid. It is there to
+-- tell which widget still draws the outline of a button when the two states are hidden. Every call is guarded.
+local DUMP_DEPTH, DUMP_LIMIT = 4, 160
+local dumped, loggedEmpty = false, false
+
+local function describeWidget(widget)
+    local function try(fn)
+        local ok, value = pcall(fn)
+        if not ok or value == nil then return '?' end
+        if type(value) == 'userdata' or type(value) == 'table' then
+            local named = pcall(function() return NameToString(value) end) and NameToString(value)
+            if named then return tostring(named) end
+            return tostring(value.value or value)
+        end
+        return tostring(value)
+    end
+    local text = ''
+    local isText = try(function() return widget:GetClassName() end)
+    if isText == 'inkText' then text = ' text=' .. try(function() return widget:GetText() end) end
+    return string.format('name=%s class=%s visible=%s opacity=%s%s', try(function() return widget:GetName() end),
+        isText, try(function() return widget:IsVisible() end), try(function() return widget:GetOpacity() end), text)
+end
+
+local function dumpTree(widget, depth, budget, lines)
+    if budget.left <= 0 then return end
+    budget.left = budget.left - 1
+    lines[#lines + 1] = string.rep('  ', depth) .. describeWidget(widget)
+    if depth >= DUMP_DEPTH then return end
+    local ok, count = pcall(function() return widget:GetNumChildren() end)
+    if not ok or type(count) ~= 'number' then return end
+    for index = 0, math.min(count, 40) - 1 do
+        local child
+        if pcall(function() child = widget:GetWidgetByIndex(index) end) and child then
+            dumpTree(child, depth + 1, budget, lines)
+        end
+    end
+end
+
+local function hideFrame(controller, report)
     local okRoot, container = pcall(function()
         return controller:GetRootWidget():GetWidgetByPath(BuildWidgetPath({'layout', 'container'}))
     end)
+    if report then report[#report + 1] = 'layout/container found=' .. tostring(okRoot and container ~= nil) .. (okRoot and '' or (' error=' .. tostring(container))) end
     if okRoot and container then
         for _, state in ipairs({'offState', 'onState'}) do
-            hideWidget(widgetAt(container, state))
+            local widget = widgetAt(container, state)
             local body = widgetAt(container, state, 'body')
+            if report then report[#report + 1] = state .. ' found=' .. tostring(widget ~= nil) .. ' body found=' .. tostring(body ~= nil) end
+            hideWidget(widget)
             hideWidget(body)
             if body then
                 for _, name in ipairs(FRAME_PARTS) do hideWidget(widgetAt(body, name)) end
@@ -457,16 +499,41 @@ local function hideFrame(controller)
         end
     end
     for _, field in ipairs({'offStateBody', 'onStateBody'}) do
-        pcall(function() inkWidgetRef.SetVisible(controller[field], false) end)
+        local ok, problem = pcall(function() inkWidgetRef.SetVisible(controller[field], false) end)
+        if report then report[#report + 1] = field .. ' static SetVisible ok=' .. tostring(ok) .. (ok and '' or (' error=' .. tostring(problem))) end
     end
 end
 
+local function dumpRow(controller, report)
+    local lines = {}
+    local ok, problem = pcall(function()
+        dumpTree(controller:GetRootWidget(), 0, {left = DUMP_LIMIT}, lines)
+    end)
+    log('Read-only row widgets (after hiding): ' .. table.concat(report, '; '))
+    if not ok then log('Read-only row tree error: ' .. tostring(problem)) end
+    for _, line in ipairs(lines) do log('  tree ' .. line) end
+end
+
 local function hideFrames()
+    local handled, readonlyRows = 0, 0
     for _, section in ipairs(rendered) do
         for _, row in ipairs(section.rows) do
+            if row.readonly then readonlyRows = readonlyRows + 1 end
             local controller = row.readonly and row.opt and row.opt.controller
-            if controller then hideFrame(controller) end
+            if controller then
+                handled = handled + 1
+                local report = (not dumped) and {} or nil
+                hideFrame(controller, report)
+                if report then
+                    dumped = true
+                    pcall(dumpRow, controller, report)
+                end
+            end
         end
+    end
+    if handled == 0 and not loggedEmpty then
+        loggedEmpty = true
+        pcall(log, 'Read-only rows: hideFrames ran with none to handle (read-only rows seen: ' .. readonlyRows .. ')')
     end
 end
 

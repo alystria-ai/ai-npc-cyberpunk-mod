@@ -75,7 +75,15 @@ export const nativeSettingsFake = String.raw`
   -- inkWidgetRef.SetVisible(ref, state) reaches the widget.
   local function node(children)
     local self = {visible = true, children = children or {}}
+    for name, child in pairs(self.children) do child.name = name end
     function self:SetVisible(state) self.visible = state end
+    function self:IsVisible() return self.visible end
+    function self:GetName() return self.name or 'root' end
+    function self:GetClassName() return 'inkWidget' end
+    function self:GetOpacity() return 1.0 end
+    local function names() local list = {} for name in pairs(self.children) do list[#list + 1] = name end table.sort(list) return list end
+    function self:GetNumChildren() return #names() end
+    function self:GetWidgetByIndex(index) return self.children[names()[index + 1]] end
     function self:GetWidgetByPath(path)
       local current = self
       for _, name in ipairs(path.parts) do

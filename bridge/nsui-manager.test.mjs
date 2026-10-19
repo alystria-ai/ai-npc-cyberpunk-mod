@@ -614,6 +614,27 @@ test('init.lua runs the manager from the frames that have no world, so a button 
   assert.ok(branch[1].indexOf('managerUi.update') < branch[1].lastIndexOf('return'));
 });
 
+test('the first read-only row handled is dumped to the log once: its widget tree, what was found and hidden; a draw with no read-only rows says so once', () => run(`${harness()}
+  local function logged(text)
+    local count, body = 0, nil
+    for _, write in ipairs(fileWrites) do
+      if write.path == 'runtime/mcm.log' and write.value:find(text, 1, true) then count = count + 1; body = write.value end
+    end
+    return count, body
+  end
+  press('Settings'); press('Memory'); frames(3)
+  assert(logged('Read-only row widgets') == 1, 'one dump after the first read-only row')
+  local _, tree = logged('tree ')
+  assert(tree, 'the tree is logged')
+  press('Back to settings'); press('Memory'); frames(3)
+  assert(logged('Read-only row widgets') == 1, 'still one dump after more draws')
+  local count = 0
+  for _, write in ipairs(fileWrites) do
+    if write.path == 'runtime/mcm.log' and write.value:find('offState found=true', 1, true) then count = count + 1 end
+  end
+  assert(count == 1, 'what was found is part of the single dump')
+`));
+
 test('a read-only row shows its value (or its line) where a button would be, and its frame is hidden; real buttons keep theirs', () => run(`${harness()}
   local function bare(row)
     local container = row.controller:GetRootWidget():GetWidgetByPath(BuildWidgetPath({'layout', 'container'}))
