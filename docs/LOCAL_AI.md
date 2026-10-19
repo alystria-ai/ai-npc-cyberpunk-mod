@@ -43,7 +43,12 @@ do anything:
 3. The voice is only changed as a last resort.
 
 If the pack is missing or the model cannot start, the same fallback applies. To try again, choose another provider and Apply, then choose
-Local AI and Apply again.
+Local AI and Apply again, or choose another Local AI model (a new model choice, or turning Mature content on or off, tries the start again).
+
+Convai takes the turns only while it can answer them. When you have no Mistral key and Convai's free tier has used today's turns, the turns
+stay on Local AI and each one says why it could not be answered: "Not enough free graphics memory to start Local AI. Try a smaller model in
+Settings." or "Local AI could not start. Check Local AI in Settings > Conversation provider." (never the Convai daily limit, which would tell
+you to try the Local AI you already chose).
 
 ### Choosing the model
 
@@ -365,7 +370,12 @@ Omni loads first and the tier is chosen from what is left: the supervisor's `bef
 at most two minutes, until the requested voice has settled, and then reads the free video memory. Standard fits if free memory is at
 least its file size plus 1.2 GB, else lite if it is at least its file size plus 0.7 GB, else the supervisor fails with `low-memory`,
 `MistralProvider.noteLocalFailure` is called once, and the provider falls back to Mistral (with a key) or Convai at the next idle boundary
-with the single `local-fallback` notice.
+with the single `local-fallback` notice. Convai only while it can answer (`MistralProvider.convaiAvailable`, which the bridge points at the shared
+key's day: the local count or the sign-in backend's answer): with that day used up and no Mistral key the provider stays `local`
+(`localDown`), a failed turn carries `local-no-memory` or `local-unavailable` instead of `local-fallback` or `daily-limit`
+(`MistralProvider.failureCode`), and the bridge logs `[LocalAI] Local AI is unavailable (<reason>) and Convai's free turns for today are used`.
+A change of the model choice or of Mature content clears a `low-memory`, `start-failed` or `crashed` failure and starts again
+(`syncLocalModelChoice`).
 
 ### Context budget
 
@@ -465,7 +475,11 @@ the model loaded in 13 s (42 s the first time, shaders included) and left 3.4 GB
   The bridge logs `[LocalTurn] FAILED: ...` with the model file, family, chat template (source, length, hash), context and server state; the first
   turn after each load and any turn whose first word took more than 8 s are logged the same way (`[LocalTurn] ok ...`).
   The game's `local-failed` notice shows the sentence after its own translated one (`errorDetail` in `reply.json`, shown as data: not a translation
-  key; only short printable ASCII is shown). The phone's status line stays the translated sentence alone.
+  key; only short printable ASCII is shown). The phone's status line stays the translated sentence alone. This fits the rules of "Convai takes the turns only while
+  it can answer them" (`MistralProvider.failureCode`): a Local AI that could not start has its own notices (`local-no-memory`, `local-unavailable`), and a turn
+  that failed on a model that did start keeps `local-failed` and its reason (`failureCode` leaves it alone). The game's 90 s reading of the bridge status
+  (`noReplyMessage`, "Local AI is still loading its model" / "did not answer within 90 s") is for a turn the bridge never answered; a local failure arrives at 80 s
+  at the latest, so the game shows one of the two, never both.
 - **What is loaded is written down.** `LocalLlmServer#diagnostics()` (file name, never a path; family; chat template source, length, hash and first words
   from `/props`; bos and eos; llama.cpp build; the device taken and its free memory; the context; free and total system memory; load and warm-up time;
   turn counts; the last turn; the last exit) is logged once as `[local] model ready: ...`, published in `runtime/mistral-state.json` as `localDiagnostics`

@@ -495,7 +495,7 @@ test('the bridge sends the reason with a failed local turn, and the status file 
   const bridge = await readFile(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(bridge, /failureDetail as localFailureDetail/);
   assert.match(bridge, /errorCode === 'local-failed' \? localFailureDetail\(error\) : undefined/);
-  assert.match(bridge, /return errorCode \? \{errorCode, \.\.\.\(errorDetail \? \{errorDetail\} : \{\}\)\} : \{\};/);
+  assert.match(bridge, /return errorCode \? \{errorCode, \.\.\.mistralExtrasFor\(error\), \.\.\.\(errorDetail \? \{errorDetail\} : \{\}\)\} : \{\};/);
   assert.match(bridge, /localDiagnostics: \(\) => localServer\.diagnostics\(\)/);
   assert.match(bridge, /localServer\.on\('diagnostics'/);
   const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => '', writeText: async () => {}});
@@ -722,4 +722,53 @@ test('the chat model starts at normal priority, stays there through the warm-up,
   assert.equal(refused.server.status().state, 'ready');
   assert.equal(refused.server.diagnostics().engine.priority, 'normal');
   assert.doesNotMatch(refused.logs.find(line => line.startsWith('[local] model ready:')), /process priority/);
+});
+
+// ---- together with the first-turn provider rules (no-reply reasons) and the custom provider ---------------------------------------------------
+
+test('a turn that fails on a started model keeps its own reason when Local AI is down for the others: one code, one notice, never a second from the timeout', async () => {
+  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => '', writeText: async () => {}});
+  await provider.load();
+  provider.setPreference('local'); provider.apply();
+  // Local AI works: nothing is corrected.
+  assert.equal(provider.failureCode('local-failed'), 'local-failed');
+  // It cannot start and Convai's day is used: a start problem says so in Local AI's words, a failed turn on a model that did start keeps its reason.
+  provider.convaiAvailable = () => false;
+  provider.noteLocalFailure('low-memory');
+  assert.equal(provider.localDown, true);
+  assert.equal(provider.failureCode('local-fallback'), 'local-no-memory');
+  assert.equal(provider.failureCode('daily-limit'), 'local-no-memory');
+  assert.equal(provider.failureCode('local-failed'), 'local-failed', 'the turn\'s own reason (errorDetail) is not replaced by a start problem');
+  assert.equal(provider.failureCode(undefined), undefined);
+
+  // The bridge: every error reply goes through turnFailure (keyFailure, then that correction), whose errorDetail is Local AI's own phrase.
+  const bridge = await readFile(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  assert.equal((bridge.match(/\.\.\.turnFailure\(error, input\)/g) ?? []).length, 3, 'the text turn, the voice turn and the add-on voice turn');
+  assert.match(bridge, /return errorCode \? \{errorCode, \.\.\.mistralExtrasFor\(error\), \.\.\.\(errorDetail \? \{errorDetail\} : \{\}\)\} : \{\};/);
+  // The game answers a turn once: the bridge's failure (at most 80 s into the turn) comes before the game's 90 s timeout and its own reading of the
+  // bridge status (service-status.lua noReplyMessage), which is only for a turn the bridge never answered.
+  const lua = await readFile(new URL('../mod/init.lua', import.meta.url), 'utf8');
+  assert.match(lua, /os\.time\(\) - pending\.sentAt >= 90/);
+  assert.ok(LOCAL_TURN_BUDGET_MS <= 80_000);
+  assert.match(lua, /serviceCall\('noReplyMessage', expired\.requestId/);
+});
+
+test('the custom and Mistral routes take none of the local route\'s limits, fields or records', async () => {
+  const { customRoute, mistralRoute } = await import('./text-provider-host.mjs');
+  const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => '', writeText: async () => {}});
+  await provider.load();
+  const custom = customRoute({provider, custom: {ready: true, local: false, origin: 'https://example.invalid', model: 'm', chatUrl: 'https://example.invalid/v1/chat/completions', key: null}});
+  const mistral = mistralRoute({provider});
+  for (const route of [custom, mistral]) {
+    assert.equal(route.turnBudgetMs, undefined, route.name + ' has no turn budget');
+    assert.equal(route.leaseBody, undefined, route.name + ' sends no local-only field');
+    assert.equal(route.noteTurn, undefined); assert.equal(route.diagnostics, undefined);
+    assert.notEqual(route.chatDefaults, LOCAL_CHAT_LIMITS);
+  }
+  // A timeout of theirs is still asked again (only a local server's is not), and a custom server's stall has no prompt allowance of its own.
+  const hang = (url, init) => new Promise((resolve, reject) => init.signal.addEventListener('abort', () => reject(Object.assign(Error('aborted'), {name: 'AbortError'}))));
+  let calls = 0;
+  await streamChat({apiKey: undefined, provider: 'custom', endpoint: 'http://127.0.0.1:9/v1/chat/completions', trustedOrigin: 'http://127.0.0.1:9', messages: [], retries: 1,
+    backoffMs: [1], sleepImpl: async () => {}, firstByteMs: 40, fetchImpl: async (url, init) => { calls++; return hang(url, init); }}).catch(() => {});
+  assert.equal(calls, 2, 'the custom provider\'s timeout is retried as before');
 });

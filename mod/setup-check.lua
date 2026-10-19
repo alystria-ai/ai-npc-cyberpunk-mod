@@ -419,7 +419,7 @@ local function bridgeLines(out)
         elseif code == 'ready' then out[#out + 1] = line('local-ai', label, 'ok', ui.t('Local AI is ready.'))
         elseif code == 'warming' then out[#out + 1] = line('local-ai', label, 'ok', ui.t('Local AI is warming up…'))
         elseif code == 'not-installed' then out[#out + 1] = line('local-ai', label, 'problem', ui.t('No Local AI pack found. Download one from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, or choose another conversation provider.'))
-        elseif code == 'no-memory' then out[#out + 1] = line('local-ai', label, 'problem', ui.t('Not enough graphics memory for Local AI. A cloud provider is used instead.'))
+        elseif code == 'no-memory' then out[#out + 1] = line('local-ai', label, 'problem', ui.t('Not enough free graphics memory to start Local AI. Try a smaller model in Settings.'))
         elseif code == 'mature-off' then out[#out + 1] = line('local-ai', label, 'problem', ui.t('Only Mature models found. Turn on Mature content to use them.'))
         elseif code == 'no-gpu' then out[#out + 1] = line('local-ai', label, 'problem', ui.t('Local AI found no graphics card it can use. It needs an NVIDIA or AMD card with a current driver. Update the driver, or choose another conversation provider.'))
         else out[#out + 1] = line('local-ai', label, 'problem', ui.t('Local AI could not start. Generate a report below and send it, or choose another conversation provider.')) end

@@ -424,7 +424,15 @@ do
     if f then
         local ok, decoded = pcall(json.decode, f:read('*a')); f:close()
         if ok and type(decoded) == 'table' then profiles = decoded end
-        for _, profile in ipairs(profiles) do supportedProfiles[profile.key] = true end
+        -- The roster carries the bridge's research text (backstory, sources, speaking style, uncertainty notes, native
+        -- intrinsics: about 1.1 MB of the 1.4 MB file) that no game-side code reads. Dropped once here, so the session keeps
+        -- about 0.25 MB of roster tables in the shared Lua heap instead of about 1.3 MB (deliverables/perf/LUA_HEAP.md).
+        local bridgeOnly = {'backstory', 'sources', 'speakingStyleDescription', 'speakingStyleSampleDialogues', 'uncertainty',
+            'nativeIntrinsic'}
+        for _, profile in ipairs(profiles) do
+            supportedProfiles[profile.key] = true
+            if type(profile) == 'table' then for _, field in ipairs(bridgeOnly) do profile[field] = nil end end
+        end
     end
 end
 -- Generic NPC archetypes (docs/NPC_ARCHETYPES.md): talk-only profiles chosen
@@ -1221,6 +1229,36 @@ function convaiFaceRequestLog(actor, identity, ok, status)
         if noted and type(text) == 'string' then note = text end
     end
     log('Face request: actor=' .. tostring(identity) .. ' status=' .. tostring(status) .. note)
+end
+-- On-demand Lua heap report (mod/lua-heap-probe.lua writes runtime/lua-heap.json): runs once per 'lua-heap:<nonce>' request in
+-- the developer mailbox (scripts/Request-LuaHeap.ps1), never per frame, and the probe file is not kept loaded. The roots are the
+-- tables this file keeps only as locals; the probe adds the mod's convai* globals. A global, so onUpdate gains no upvalue.
+do
+    local loadedAt = os.time()
+    convaiLuaHeapReport = function(nonce)
+        local loaded, probe = pcall(dofile, 'lua-heap-probe.lua')
+        if not loaded or type(probe) ~= 'table' or type(probe.run) ~= 'function' then
+            log('Lua heap report failed to load: ' .. tostring(probe))
+            return false
+        end
+        local roots = {{'profiles', profiles}, {'catalog', catalog}, {'archetypes', archetypes},
+            {'supportedProfiles', supportedProfiles}, {'companions', companions}, {'manager', manager},
+            {'speech', speech}, {'subtitles', subtitles}, {'microphone', microphone}, {'groupChat', groupChat},
+            {'phoneChat', phoneChat}, {'questContext', questContext}, {'battles', battles}, {'tactics', tactics},
+            {'relationshipState', relationshipState}, {'worldKnowledge', worldKnowledge}, {'journalHistory', journalHistory},
+            {'movementLog', movementLog}, {'characterCatalog', characterCatalog}, {'invitations', invitations}}
+        local ok, report = pcall(probe.run, {nonce = nonce, roots = roots, environment = _G, loadedAt = loadedAt,
+            sentinel = companions})
+        if not ok or type(report) ~= 'table' then
+            log('Lua heap report failed: ' .. tostring(report))
+            return false
+        end
+        local function mb(kb) return type(kb) == 'number' and string.format('%.1f MB', kb / 1024) or '-' end
+        log('Lua heap: ' .. mb(report.heapBeforeKB) .. ' before, ' .. mb(report.heapAfterKB) .. ' after a full collect ('
+            .. string.format('%.0f ms', report.collectMs or 0) .. '); this mod about ' .. mb(report.modKB) .. '; loads alive '
+            .. tostring(report.loadsAlive or '-') .. ' (runtime/lua-heap.json)')
+        return true
+    end
 end
 -- Names for nameless ordinary NPCs (docs/NPC_NAMES.md, mod/npc-names.lua). One generator serves the scanner and the talk path.
 -- The gate is the rule above: not ours, not protected (named, quest-bound, story record), a resolved ordinary profile (an archetype
@@ -3024,8 +3062,24 @@ local function keyReplyNotice(reply)
         return 'custom-model', ui.t('The custom provider does not know that model ID. Check it in Settings.')
     elseif reply.errorCode == 'custom-limit' then
         return 'custom-limit', ui.t('The custom provider is rate limiting you. Try again in a moment.')
+    elseif reply.errorCode == 'custom-daily' then
+        -- The free daily limit of a model (OpenRouter): when it resets on this computer's clock (the bridge sends "HH:MM"), if the endpoint said.
+        local at = reply.errorResetTime
+        if type(at) == 'string' and at:match('^%d%d:%d%d$') then
+            return 'custom-daily', ui.t('The free daily limit for this model was reached. It resets at {time}.', {time = at})
+        end
+        return 'custom-daily', ui.t('The free daily limit for this model was reached. Try again after it resets.')
+    elseif reply.errorCode == 'custom-reasoning' then
+        return 'custom-reasoning', ui.t('This model spends its reply on thinking. Choose a non-reasoning model in Settings.')
     elseif reply.errorCode == 'custom-unreachable' then
         return 'custom-unreachable', ui.t('The custom provider did not answer. Check its address in Settings, or try again.')
+    end
+    -- Local AI is chosen and could not start, and nobody took the turn over (no Mistral key, Convai's free turns for today used): its own reason,
+    -- never the Convai limit the player did not choose (bridge/convai-bridge.mjs providerFailureCode).
+    if reply.errorCode == 'local-no-memory' then
+        return 'local-no-memory', ui.t('Not enough free graphics memory to start Local AI. Try a smaller model in Settings.')
+    elseif reply.errorCode == 'local-unavailable' then
+        return 'local-unavailable', ui.t('Local AI could not start. Check Local AI in Settings > Conversation provider.')
     end
     -- Local AI could not start, so the bridge used Convai: the same line whether it rode on a failed turn or on the first reply.
     if reply.errorCode == 'local-fallback' or reply.keyNotice == 'local-fallback' then
@@ -3891,8 +3945,10 @@ registerForEvent('onUpdate', function(delta)
             request:close()
             if nonce and #nonce > 0 and nonce ~= lastDiagnosticRequest then
                 lastDiagnosticRequest = nonce
-                -- "notice:<id>:<nonce>" shows one notice on demand (Developer mode only); anything else is a diagnostic capture.
-                if nonce:find('^notice:') then pcall(speech.devNotice, nonce) else captureDiagnostic() end
+                -- "lua-heap:<nonce>" writes the Lua heap report (runtime/lua-heap.json, see convaiLuaHeapReport), "notice:<id>:<nonce>"
+                -- shows one notice on demand (Developer mode only); anything else is a diagnostic capture.
+                if nonce:find('^lua%-heap:') then pcall(convaiLuaHeapReport, nonce)
+                elseif nonce:find('^notice:') then pcall(speech.devNotice, nonce) else captureDiagnostic() end
                 local response = io.open('runtime/diagnostic-response.txt', 'wb')
                 if response then response:write(nonce); response:close() end
             end
@@ -4042,6 +4098,12 @@ registerForEvent('onUpdate', function(delta)
         gameplayActions.revoke('reply-timeout', expired.requestId)
         if not expired.reaction then
             local explained = serviceLost or serviceCall('blockedMessage', os.time())
+            -- The service is up: what it did with this turn (never taken, Local AI still loading or too slow, Convai in place of a Local AI
+            -- that was not ready), read once now (mod/service-status.lua noReplyMessage), instead of guessing that it is not running.
+            if not explained then
+                local stateOk, providerState = pcall(manager.mistral)
+                explained = serviceCall('noReplyMessage', expired.requestId, stateOk and providerState or nil, 90)
+            end
             convaiNotices.send(player, 'conversation-timeout', explained or ui.t('No reply arrived. The conversation service may not be running.'))
         end
         log((serviceLost and 'Conversation retired after the service exited: generation=' or 'Conversation timed out: generation=')
@@ -4102,6 +4164,10 @@ registerForEvent('onUpdate', function(delta)
                             if not pending.reaction then convaiNotices.send(player, 'custom-model', keyText) end
                         elseif keyId == 'custom-limit' then
                             if not pending.reaction then convaiNotices.send(player, 'custom-limit', keyText) end
+                        elseif keyId == 'custom-daily' then
+                            if not pending.reaction then convaiNotices.send(player, 'custom-daily', keyText) end
+                        elseif keyId == 'custom-reasoning' then
+                            if not pending.reaction then convaiNotices.send(player, 'custom-reasoning', keyText) end
                         elseif keyId == 'custom-unreachable' then
                             if not pending.reaction then convaiNotices.send(player, 'custom-unreachable', keyText) end
                         -- Local AI could not start and the turn failed: the notice for a turn V asked for, like the Mistral failures.
@@ -4110,6 +4176,11 @@ registerForEvent('onUpdate', function(delta)
                         -- A local turn failed and nothing took it over: the same rule, its own notice.
                         elseif keyId == 'local-failed' then
                             if not pending.reaction then convaiNotices.send(player, 'local-failed', keyText) end
+                        -- Local AI could not start and nobody took the turn over: the same rule, with Local AI's own reason.
+                        elseif keyId == 'local-unavailable' then
+                            if not pending.reaction then convaiNotices.send(player, 'local-unavailable', keyText) end
+                        elseif keyId == 'local-no-memory' then
+                            if not pending.reaction then convaiNotices.send(player, 'local-no-memory', keyText) end
                         elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' then
                             sendProviderNotice(player, keyId, keyText)
                             if not pending.reaction then convaiNotices.send(player, 'reply-error', reply.error) end
@@ -4249,6 +4320,10 @@ registerForEvent('onShutdown', function()
     focusEntity = nil
     log('Game adapter shut down')
     convaiLogFlush() -- the buffered probe.log lines (a CET reload or exit follows)
+    -- The Developer-mode perf probe wraps json, io and os functions (perf-probe.lua). They are put back here, so no wrapper (and
+    -- through it this load's whole environment, about 15 MB) can stay reachable from a table CET keeps across a reload
+    -- (deliverables/perf/LUA_HEAP.md). Nothing runs after onShutdown, so nothing else changes.
+    if type(convaiPerfProbe) == 'table' and type(convaiPerfProbe.uninstall) == 'function' then pcall(convaiPerfProbe.uninstall) end
 end)
 
 -- GetMod('AiNpcCyberpunkMod') returns this table to other CET mods. `addons` is the add-on API (docs/ADDON_API.md).
