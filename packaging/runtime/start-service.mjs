@@ -87,7 +87,9 @@ const enterStage = name => { stage = name; publish('starting', 'service-starting
 // where the log would be, when the usual place can be worked out.
 function writeNotesToUsualLog() {
   try {
-    const where = process.env.CYBERPUNK_CONVAI_DATA_HOME || (process.env.LOCALAPPDATA ? resolve(process.env.LOCALAPPDATA, 'AiNpcCyberpunkMod') : null);
+    let where = null;
+    try { if (typeof dataHomeFor === 'function') where = dataHomeFor(process.env).root; } catch {}
+    where ||= process.env.CYBERPUNK_CONVAI_DATA_HOME || (process.env.LOCALAPPDATA ? resolve(process.env.LOCALAPPDATA, 'AiNpcCyberpunkMod') : null);
     if (where && isAbsolute(where)) {
       mkdirSync(resolve(where, 'data'), {recursive: true});
       for (const message of startNotes.splice(0)) appendFileSync(resolve(where, 'data', 'bridge-service.log'), `${new Date().toISOString()} ${message}\n`);
@@ -123,6 +125,21 @@ try {
   process.exit(1);
 }
 enterStage('preparing');
+
+// The service must see what the game sees, and this is checked before anything is written (the player's data, the restore of the state
+// files and the carry-over of an older installation all come after): the launcher saw the CET mod's init.lua before it started this
+// process. One that cannot see it looks at another file system than the game (with Mod Organizer 2, it runs outside the virtual file
+// system), so nothing it writes in the game folder would reach the game, and a folder it made there would be a stray copy of the mod's.
+// --prepare-only is a development and test aid with no game to talk to: it goes on.
+if (!canReachGame && !prepareOnly) {
+  note(viewLine(installLayout({appDirectory, gameRoot, dataHome: null})));
+  note(`Stopped: the CET mod's init.lua (${resolve(gameRoot, MOD_FOLDER, 'init.lua')}) is not visible to this process, although the launcher saw it `
+    + 'before starting the service. This process looks at a different file system than the game (with Mod Organizer 2, it runs outside the '
+    + 'virtual file system), so nothing it writes in the game folder would reach the game. Nothing was started.');
+  writeNotesToUsualLog();
+  publishFailure('game-folder-not-visible', 'the service cannot see the game\'s mod folder');
+  process.exit(3);
+}
 
 // The player's data lives outside the game folder, in %LOCALAPPDATA%\AiNpcCyberpunkMod\data (packaging/runtime/state-home.mjs): under
 // Mod Organizer 2 every file created inside the game folder is redirected into its Overwrite folder. Only runtime/, which the game's
@@ -168,26 +185,19 @@ for (const message of startNotes.splice(0)) log(message);
 // What this process sees, in one line, for the player's log: whether it runs inside Mod Organizer 2's virtual file system (usvfs is among
 // its loaded libraries, as bridge/setup-check.mjs reads it), where the Runtime is relative to the game, and whether the game's mod
 // folder and its runtime/ folder are visible. A support request that includes this line answers most of what a start failure raises.
-function viewLine() {
+function viewLine(shown) {
   let virtual = 'unknown';
   try {
     const objects = process.report?.getReport?.()?.sharedObjects;
     if (Array.isArray(objects)) virtual = objects.some(path => /(?:^|[\\/])usvfs_x(?:64|86)\.dll$/i.test(String(path))) ? 'yes' : 'no';
   } catch {}
-  const away = relative(layout.gameRoot, layout.app);
+  const away = relative(shown.gameRoot, shown.app);
   const where = away === '' || (!away.startsWith('..') && !isAbsolute(away)) ? 'inside the game folder' : 'outside the game folder';
   return `View: Node ${process.version}, PID ${process.pid}; inside a virtual file system (usvfs): ${virtual}; the Runtime is ${where}`
-    + ` (${layout.app}); game ${layout.gameRoot}; the CET mod's init.lua is ${canReachGame ? 'visible' : 'NOT visible'}; runtime/ is `
-    + `${existsSync(layout.runtime) ? 'visible' : 'not there'}.`;
+    + ` (${shown.app}); game ${shown.gameRoot}; the CET mod's init.lua is ${canReachGame ? 'visible' : 'NOT visible'}; runtime/ is `
+    + `${existsSync(shown.runtime) ? 'visible' : 'not there'}.`;
 }
-log(viewLine());
-if (!canReachGame && !prepareOnly) {
-  log(`Stopped: the CET mod's init.lua (${resolve(layout.mod, 'init.lua')}) is not visible to this process, although the launcher saw it before starting`
-    + ' the service. This process looks at a different file system than the game (with Mod Organizer 2, it runs outside the virtual file system),'
-    + ' so nothing it writes in the game folder would reach the game. Nothing was started.');
-  publishFailure('game-folder-not-visible', 'the service cannot see the game\'s mod folder');
-  process.exit(3);
-}
+log(viewLine(layout));
 // What is left of the old folders (the old application and its browser, Python...) is removed off the main path, a while after
 // the start, so the game's loading never competes with the deletion. A locked file only postpones it to the next start.
 const legacyCleanup = delayMs => new Promise(done => {
