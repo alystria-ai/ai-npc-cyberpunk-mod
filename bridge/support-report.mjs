@@ -7,6 +7,7 @@ import {createZip} from './zip-writer.mjs';
 import {atomicFile} from './guarded-file.mjs';
 import {NO_BROWSER_MESSAGE} from './system-browser.mjs';
 import {cachedGraphicsCards} from './setup-check.mjs';
+import {describePackFiles} from './local-ai-pack.mjs';
 
 // Support report: one redacted zip a player can send to the developer after an
 // error. The Help page in Companion Manager writes runtime/report-request.json;
@@ -435,9 +436,29 @@ async function versions({game, modRoot, project, logs, now}) {
   return result;
 }
 
+// The model server's own record (bridge/local-llm-server.mjs diagnostics(): which file is loaded, its family, chat template length and hash, how the last turn
+// went) and the folder description copied as plain data only: numbers, booleans, short strings, objects and lists of at most 24, six deep. It holds file names, never a path, a key or a word of a reply.
+function plainData(value, depth = 0) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'boolean' || value === null) return value;
+  if (typeof value === 'string') return clip(value, 200);
+  if (Array.isArray(value) && depth < 6) return value.slice(0, 24).map(item => plainData(item, depth + 1)).filter(item => item !== undefined);
+  if (value && typeof value === 'object' && !Array.isArray(value) && depth < 6) {
+    const out = {};
+    let count = 0;
+    for (const [key, item] of Object.entries(value)) {
+      if (++count > 30) break;
+      const copy = plainData(item, depth + 1);
+      if (copy !== undefined) out[clip(key, 40)] = copy;
+    }
+    return out;
+  }
+  return undefined;
+}
+
 // Local AI detection, as the service sees it. Only the fields named here are copied from runtime/mistral-state.json (which
 // also holds provider and key-status fields); the pack root and the manifest file names come from the folder itself.
-export async function localAiSection({runtime, project, environment = process.env}) {
+export async function localAiSection({runtime, project, environment = process.env, describeFiles = describePackFiles}) {
   const read = await readSmallJson(join(runtime, 'mistral-state.json'));
   const state = read.value && typeof read.value === 'object' ? read.value : {};
   const fromEnvironment = typeof environment.CYBERPUNK_CONVAI_LOCAL_AI === 'string' && environment.CYBERPUNK_CONVAI_LOCAL_AI.trim() !== '';
@@ -453,6 +474,10 @@ export async function localAiSection({runtime, project, environment = process.en
     localAi: typeof state.localAi === 'string' ? clip(state.localAi, 40) : null,
     maturePack: typeof state.maturePack === 'boolean' ? state.maturePack : null,
     localModels: models,
+    // What is loaded and how the last local turns went (absent until a model was loaded): the cause of a turn that timed out is in lastTurn and template.
+    diagnostics: plainData(state.localDiagnostics) ?? null,
+    // Which markers the folder holds, the model files each names (there or not, with sizes) and the .gguf files of models/: a pack that was not fully extracted shows here.
+    packFiles: (() => { try { return plainData(describeFiles({project, environment})); } catch { return null; } })() ?? null,
     root, rootSource: fromEnvironment ? 'CYBERPUNK_CONVAI_LOCAL_AI' : 'default (local-ai next to the bridge)',
     rootExists: manifests !== null, manifests: manifests ?? [],
   };

@@ -98,7 +98,7 @@ import {TextProviderHost, attachTextProvider, customRoute, isLocalUnavailable, l
 import {MEMORY_FILE as MISTRAL_MEMORY_FILE} from './mistral-memory.mjs';
 import {MemoryStore} from './memory-store.mjs';
 import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
-import {detectLocalAiPack} from './local-ai-pack.mjs';
+import {detectLocalAiPack, describePackFiles, packFileProblems} from './local-ai-pack.mjs';
 import {LocalLlmServer, nvidiaTotalMiB} from './local-llm-server.mjs';
 import {defaultModelIds, describeLocalModels, externalModels, listLocalModels, matureOffBlocks, normalisePin} from './local-model-choice.mjs';
 import {CustomModelScanner} from './custom-models.mjs';
@@ -108,7 +108,7 @@ const leaseWake = createWakeSignal();
 import {PersonaBook, joinBlocks} from './mistral-prompt.mjs';
 import {LocalStt} from './local-stt.mjs';
 import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-capture.mjs';
-import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, errorExtrasFor as mistralExtrasFor, warmConnection} from './mistral-client.mjs';
+import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, errorExtrasFor as mistralExtrasFor, failureDetail as localFailureDetail, warmConnection} from './mistral-client.mjs';
 import {TurnClock, withClock, markStage} from './turn-clock.mjs';
 import {AddonHost, LOCAL_REMARK_GAP_S, fixedProvider, rosterLookup, sharedMemory} from './addons.mjs';
 
@@ -303,6 +303,14 @@ localServer.on('model-fallback', ({pin, reason, model}) => {
   localModelFallbackNoted = key; mistral.noteLocalModelFallback(model);
 });
 localServer.on('state', () => { try { void mistralControl.publishStatus().catch(() => {}); } catch { /* the control is created further down */ } });
+// What the model server loaded and how its last turn went goes into the status file (the support report reads it): after a start, after the first turn on a model and
+// after a turn that failed (the supervisor says so with this event), bundled within half a second. Nothing runs between those moments.
+let diagnosticsTimer = null;
+localServer.on('diagnostics', () => {
+  if (diagnosticsTimer) return;
+  diagnosticsTimer = setTimeout(() => { diagnosticsTimer = null; try { void mistralControl.publishStatus().catch(() => {}); } catch { /* the control is created further down */ } }, 500);
+  diagnosticsTimer.unref?.();
+});
 const localEmbedder = new LlamaEmbedder({pack: localPack, log: message => console.error('[LocalAI] ' + message)});
 // The pack can be installed while the game runs: look again whenever Local is chosen and while the settings page asks.
 let localPackCheckedAt = 0;
@@ -411,7 +419,11 @@ const keyFailure = (error, input) => {
   // The local AI that could not start: the next turns use the cloud provider, and the game says so once (local-fallback).
   const errorCode = (input?.reaction ? undefined : isLocalUnavailable(error) ? 'local-fallback' : mistralCodeFor(error))
     ?? quota.codeFor(error, {automatic: !!input?.reaction});
-  return errorCode ? {errorCode, ...mistralExtrasFor(error)} : {};
+  // A local turn that failed says what the model was waiting for: one plain English phrase (bridge/mistral-client.mjs failureDetail), which the game shows
+  // after its own sentence (docs/NOTIFICATIONS.md, local-failed). Never a word of the reply, a path or a key. The corrections of turnFailure (below Local AI's
+  // own 'local-no-memory' / 'local-unavailable') leave 'local-failed' alone: a model that started and failed a turn has this reason, not a start problem.
+  const errorDetail = errorCode === 'local-failed' ? localFailureDetail(error) : undefined;
+  return errorCode ? {errorCode, ...mistralExtrasFor(error), ...(errorDetail ? {errorDetail} : {})} : {};
 };
 
 const knowledgePack = JSON.parse(await readFile(resolve(project, 'characters/world-knowledge.json'), 'utf8'));
@@ -2762,7 +2774,24 @@ const installedLocalModels = () => describeLocalModels(listLocalModels({pack: lo
 // The free memory is what the last start saw before it loaded its model; until there was a start, the card's total stands in.
 const localModelDefaults = () => defaultModelIds({models: listLocalModels({pack: localPack, matureModels: maturePackModels, customModels: customScan.models}),
   matureOn: matureContent.enabled, freeMiB: localServer.lastFreeMiB ?? localServer.totalVramMiB ?? cardTotalMiB, totalMiB: localServer.totalVramMiB ?? cardTotalMiB, sizeOf: localModelSizeMiB});
-const customModelProblems = () => customScan.problems.map(({name, reason}) => ({name: String(name).slice(0, 60), reason}));
+// Models a pack's marker names whose file is not there (a zip that was not fully extracted): they are not in the list, and with only Mature models left and
+// Mature content off Local AI cannot start, so the model row says which model is missing (docs/LOCAL_AI.md, "When a local turn fails"). A few stat calls at
+// most every 5 s, and one log line when the answer changes.
+let packIssues = [], packIssuesAt = 0, packIssuesKey = '';
+function packFileIssues() {
+  if (Date.now() - packIssuesAt < 5000) return packIssues;
+  packIssuesAt = Date.now();
+  try {
+    packIssues = packFileProblems(describePackFiles({project}));
+    const key = JSON.stringify(packIssues);
+    if (key !== packIssuesKey) {
+      packIssuesKey = key;
+      if (packIssues.length) console.error('[LocalAI] the Local AI folder is incomplete: ' + packIssues.map(item => item.name).join(', ') + ' (named by a manifest, the model file is not there; a pack that was not fully extracted)');
+    }
+  } catch { packIssues = []; }
+  return packIssues;
+}
+const customModelProblems = () => [...customScan.problems.map(({name, reason}) => ({name: String(name).slice(0, 60), reason})), ...packFileIssues()].slice(0, 8);
 // The card's total memory marks a custom model that can never fit, and stands in for the free memory in the model the page shows as
 // selected. The first start reads it from llama-server; before that one nvidia-smi call (once a minute at most, and only while more than
 // one model is installed) stands in.
@@ -2943,7 +2972,7 @@ const paidTierControl = await new PaidTierControl({keys, commandPath: resolve(ru
   log: message => console.error('[CyberpunkConvai] ' + message)}).open();
 playerConnectionLimit = () => paidTierControl.connectionLimit();
 const mistralControl = await new MistralControl({provider: mistral, commandPath: resolve(runtime, 'mistral-key-command.json'),
-  inworldCommandPath: resolve(runtime, 'inworld-key-command.json'), localStatus: localAiStatus, localReason: localAiReason, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, localModelDefaults, localModelProblems: customModelProblems, model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
+  inworldCommandPath: resolve(runtime, 'inworld-key-command.json'), localStatus: localAiStatus, localReason: localAiReason, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, localModelDefaults, localModelProblems: customModelProblems, localDiagnostics: () => localServer.diagnostics(), model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
 // The custom provider's settings page: three pastes and a connection test (bridge/custom-endpoint.mjs). Idle until the page writes a command.
 const customControl = await new CustomControl({custom: customEndpoint, provider: mistral, commandPath: resolve(runtime, 'custom-provider-command.json'),
   publish: value => atomic(resolve(runtime, 'custom-provider-state.json'), JSON.stringify(value)),
