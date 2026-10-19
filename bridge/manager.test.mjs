@@ -1189,16 +1189,18 @@ test('without the optional OmniVoice pack Omni entries say what they need and ca
     loaded = registered.loadMod('manager')
     local elements = row('voiceProvider').elements
     assert(#elements == 7 and elements[1] == 'Pocket · Performance' and elements[7] == 'Convai · Cloud voice')
+    -- Voxtral follows Pocket and is the one entry that says recommended (the owner's rule for the voice list).
+    assert(elements[2] == 'Voxtral · needs Mistral key' or elements[2] == 'Voxtral (recommended)', elements[2])
     -- The entries keep plain labels (greyed out by the page, see the stepper test); the row's name says why.
-    assert(elements[2] == 'OmniVoice · Balanced', elements[2])
-    for index = 2, 5 do
+    assert(elements[3] == 'OmniVoice · Balanced', elements[3])
+    for index = 3, 6 do
       assert(elements[index]:find('OmniVoice', 1, true) and not elements[index]:find('needs pack', 1, true), 'entry ' .. index)
       assert(core.optionUnits(elements[index]) <= core.OPTION_BUDGET, 'entry ' .. index .. ' must stay short enough not to run over the arrows')
     end
     assert(row('voiceProvider').label == 'Companion voices (no Omni pack)', row('voiceProvider').label)
     assert(row('voice-pack') == nil, 'the OmniVoice pack has no row of its own')
     local before = saved.voiceProvider
-    for index = 2, 5 do
+    for index = 3, 6 do
       local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = index}})
       assert(result.ok == false and result.error == 'Requires the optional OmniVoice pack (GPU)', 'entry ' .. index)
       assert(saved.voiceProvider == before)
@@ -1215,10 +1217,10 @@ test('without the optional OmniVoice pack Omni entries say what they need and ca
     files['runtime/local-voice-state.json'] = 'voice-runtime-pack'
     manager.snapshot(player)
     loaded = registered.loadMod('manager')
-    assert(row('voiceProvider').elements[2] == 'OmniVoice · Balanced')
+    assert(row('voiceProvider').elements[3] == 'OmniVoice · Balanced')
     assert(row('voiceProvider').label == 'Companion voices', 'the pack is installed: the row is plain again')
     assert(row('voice-pack') == nil)
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 2}}).ok)
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 3}}).ok)
     assert(saved.voiceProvider == 'omni' and saved.omniSteps == 16 and saved.omniReference == 'short')
   `);
 });
@@ -1235,26 +1237,38 @@ test('the Mistral cloud voice (Voxtral) says it needs a Mistral key and cannot b
     assert(invoke('tab:settings').ok)
     loaded = registered.loadMod('manager')
     local elements = row('voiceProvider').elements
-    assert(#elements == 7 and elements[6] == NEEDS and elements[7] == 'Convai · Cloud voice', elements[6])
+    assert(#elements == 7 and elements[2] == NEEDS and elements[7] == 'Convai · Cloud voice', elements[2])
     assert(manager.voiceLabel('voxtral') == 'Mistral cloud voice (Voxtral)')
     local before = saved.voiceProvider
-    local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = 6}})
+    local result = registered.applyBatch('manager', {{id = 'voiceProvider', value = 2}})
     assert(result.ok == false and result.error == 'Requires a Mistral key (add it in Settings > Conversation provider)', result.error)
     assert(saved.voiceProvider == before)
     assert(not manager.applySettings(player, {voiceProvider = 'voxtral'}))
     -- A key is saved (the Conversation provider stays Convai, the default): the entry is a plain label and can be applied.
     key('a', {provider = 'convai', effective = 'convai', saved = true})
     loaded = registered.loadMod('manager')
-    assert(row('voiceProvider').elements[6] == 'Voxtral · Mistral cloud', row('voiceProvider').elements[6])
+    assert(row('voiceProvider').elements[2] == 'Voxtral (recommended)', row('voiceProvider').elements[2])
     assert(manager.snapshot(player).settings.conversationProvider == 'convai')
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 6}}).ok)
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 2}}).ok)
     assert(saved.voiceProvider == 'voxtral' and manager.snapshot(player).settings.voiceProvider == 'voxtral')
     -- It rides on Pocket, so Natural speech and Expressive emotions are not turned off by choosing it.
     assert(manager.snapshot(player).settings.expressiveEmotions == true)
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 6}}).ok)
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 2}}).ok)
     -- Convai stays selectable, and the saved voice is found again in the list.
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}, {id = 'expressiveEmotions', value = false}}).ok and saved.voiceProvider == 'convai')
-    assert(dofile('voice-preview.lua').indexOf({voiceProvider = 'voxtral'}) == 6)
+    -- What is saved is the provider (and for OmniVoice the steps and reference), never a list position: each saved choice finds its own
+    -- entry in the reordered list (Voxtral directly after Pocket), so no one's voice changes with the order.
+    local choices = dofile('voice-preview.lua')
+    assert(choices.indexOf({voiceProvider = 'voxtral'}) == 2 and choices.indexOf({voiceProvider = 'pocket'}) == 1)
+    assert(choices.indexOf({voiceProvider = 'convai'}) == 7 and choices.indexOf({voiceProvider = 'inworld'}) == 8)
+    assert(choices.indexOf({voiceProvider = 'omni', omniSteps = 16, omniReference = 'short'}) == 3)
+    assert(choices.indexOf({voiceProvider = 'omni', omniSteps = 16, omniReference = 'long'}) == 4)
+    assert(choices.indexOf({voiceProvider = 'omni', omniSteps = 32, omniReference = 'short'}) == 5)
+    assert(choices.indexOf({voiceProvider = 'omni', omniSteps = 32, omniReference = 'long'}) == 6)
+    assert(choices.indexOf({voiceProvider = 'hybrid', omniSteps = 32, omniReference = 'long'}) == 6, 'a legacy hybrid choice reads as OmniVoice')
+    for position, choice in ipairs(choices.CHOICES) do
+      assert(choices.indexOf({voiceProvider = choice.provider, omniSteps = choice.steps, omniReference = choice.reference}) == position, choice.provider)
+    end
   `);
 });
 
@@ -2460,9 +2474,9 @@ test('the manager page uses real controls, operates on current copies while paus
     assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 8}}).ok, 'the Inworld entry needs its key')
     assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 0}}).ok)
     assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = '1'}}).ok)
-    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 3}}).ok)
-    assert(saved.voiceProvider == 'omni' and saved.omniSteps == 16 and saved.omniReference == 'long')
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 4}}).ok)
+    assert(saved.voiceProvider == 'omni' and saved.omniSteps == 16 and saved.omniReference == 'long')
+    assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 5}}).ok)
     assert(saved.voiceProvider == 'omni' and saved.omniSteps == 32 and saved.omniReference == 'short')
     assert(registered.applyBatch('manager', {{id = 'voiceProvider', value = 7}}).ok and saved.voiceProvider == 'convai')
     assert(not registered.applyBatch('manager', {{id = 'voice', value = true}, {id = 'omniSteps', value = 1}}).ok)
@@ -2488,7 +2502,12 @@ test('settings review wording: short voice description, Body gestures without a 
     assert(not voices.description:find('%', 1, true), 'no listening percentages in the voice description')
     assert(utf8.len(voices.description) < 700 and select(2, voices.description:gsub(string.char(10) .. string.char(10), '')) >= 2, 'the voice description stays short and is split into blocks')
     assert(not voices.description:find('Inworld', 1, true), 'the Inworld voice is not mentioned without Developer mode')
-    assert(not voices.description:lower():find('recommended', 1, true), 'no voice is called recommended')
+    assert(not voices.description:lower():find('recommended', 1, true), 'the voice description does not call a voice recommended; the Voxtral entry does')
+    -- Only the Voxtral entry says recommended, directly after Pocket (with a Mistral key saved); every other voice entry stays plain.
+    for index, label in ipairs(voices.elements) do
+      assert((label:lower():find('recommended', 1, true) ~= nil) == (index == 2 and label == 'Voxtral (recommended)'), 'entry ' .. index .. ': ' .. label)
+    end
+    assert(voices.elements[1] == 'Pocket · Performance' and voices.elements[2]:find('Voxtral', 1, true) == 1, voices.elements[2])
     assert(row('bodyGestures').label == 'Body gestures' and row('bodyGestures').defaultValue == true and row('bodyGestures').value == true)
     assert(row('sitWithYou') == nil, 'companions always sit with V: there is no Sit with you setting')
     assert(row('autoConnectNearby').defaultValue == true and row('keepPreparedVoices') == nil)

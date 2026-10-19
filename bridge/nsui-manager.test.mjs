@@ -178,7 +178,7 @@ test('a change is applied for real after a moment, as one transaction; rows the 
   assert(settingsWrites <= 2, 'one transaction (a file and its swap), not one per change: ' .. settingsWrites)
   -- A refused choice goes back and says why; the other change in the same moment is kept.
   ns.interact.toggle(ns.find('Follow-up questions'))
-  ns.interact.select(ns.find('Companion voices'), 6)   -- Voxtral without a Mistral key
+  ns.interact.select(ns.find('Companion voices'), 2)   -- Voxtral without a Mistral key
   frames(8); ns.verify()
   assert(saved.followUpInterest == false, 'the change that could be made was made')
   assert(ns.find('Companion voices').selectedElementIndex == 1, 'the refused voice went back to the saved one')
@@ -331,7 +331,7 @@ test('add-on settings are rows of the Settings page, staged and committed with t
   -- A refused main change drops the add-on's staged change with it (nothing is half saved), and the row goes back.
   committed = {}
   ns.interact.toggle(marks)
-  ns.interact.select(ns.find('Companion voices'), 6)
+  ns.interact.select(ns.find('Companion voices'), 2)
   frames(8)
   assert(table.concat(committed, ',') == 'addon:skippy:markLines=false', 'the add-on change is its own: ' .. table.concat(committed, ','))
   assert(ns.find('Companion voices').selectedElementIndex == 1)

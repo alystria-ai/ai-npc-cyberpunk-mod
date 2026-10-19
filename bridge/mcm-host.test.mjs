@@ -186,29 +186,56 @@ test('Revert and Restore defaults: Revert drops the drafts; the footer button, p
   -- No row has a default, so MCM's own Defaults button and its Modified counter are not there; the manager's own button is.
   local layout = mcm.layout()
   assert(layout.mcmDefaultsButton == false and layout.comparable == 0 and layout.modified == 0)
-  assert(footerLabels() == 'Restore defaults | Back', footerLabels())
+  assert(footerLabels() == 'Defaults | Back', footerLabels())
   -- Pending changes: MCM refuses the button (its rule for every action), and nothing is reset.
   mcm.set('Subtitles', false)
-  local refused, why = mcm.press('Restore defaults')
+  local refused, why = mcm.press('Defaults')
   assert(refused == false and why:find('pending changes', 1, true), tostring(why))
   mcm.revert()
   -- The first press only asks; the button says so, and nothing is changed.
-  press('Restore defaults')
-  assert(footerLabels() == 'Press again to restore | Back', footerLabels())
-  assert(mcm.status():find('again', 1, true), mcm.status())
+  press('Defaults')
+  assert(footerLabels() == 'Confirm | Back', footerLabels())
+  assert(mcm.status():find('Confirm', 1, true), mcm.status())
   assert(manager.snapshot(player).settings.bodyGestures == false and manager.snapshot(player).settings.voiceVolume == 150)
   -- Another button drops the first press.
   press('Voice status')
-  assert(footerLabels() == 'Restore defaults | Back', footerLabels())
-  press('Restore defaults'); press('Restore defaults')
+  assert(footerLabels() == 'Defaults | Back', footerLabels())
+  press('Defaults'); press('Defaults')
   local settings = manager.snapshot(player).settings
   assert(settings.bodyGestures == true and settings.voiceVolume == 100 and settings.battleReactions == false, 'defaults saved')
   assert(mcm.row('Body gestures').value == true and mcm.row('Voice volume (%)').value == 100, 'the page shows them')
   assert(mcm.status() == 'Defaults restored.', mcm.status())
-  assert(footerLabels() == 'Restore defaults | Back' and not next(mcm.drafts()))
+  assert(footerLabels() == 'Defaults | Back' and not next(mcm.drafts()))
   -- A press on another page drops it too: the confirmation is for the page it was asked on.
-  press('Restore defaults'); press('Memory'); press('Back to settings')
-  assert(footerLabels() == 'Restore defaults | Back', footerLabels())
+  press('Defaults'); press('Memory'); press('Back to settings')
+  assert(footerLabels() == 'Defaults | Back', footerLabels())
+`));
+
+test('the footer never cuts a label: with changes pending five buttons share the row (Revert, Apply, MCM’s Add to favorites, Defaults, Back), and the mod’s own ones are short enough for that share', () => withScreen(`
+  ${footer}
+  press('Settings')
+  -- The mod cannot hide MCM's Add to favorites (a setting of the player in MCM, with no public option for a mod), so the row is counted
+  -- with it: Revert, Apply, Add to favorites, ours, Back.
+  mcm.set('Subtitles', false)
+  local layout = mcm.layout()
+  local labels = {}
+  for _, button in ipairs(layout.footerRow) do labels[#labels + 1] = button.label end
+  assert(table.concat(labels, ' | ') == 'REVERT | APPLY | ADD TO FAVORITES | Defaults | Back', table.concat(labels, ' | '))
+  for _, button in ipairs(layout.footerRow) do
+    if not button.mcm then
+      assert(core.optionUnits(button.label) <= layout.footerShare, button.label .. ' is cut: ' .. core.optionUnits(button.label) .. ' > ' .. layout.footerShare)
+    end
+  end
+  -- The first press of Defaults changes the label, and it still fits (the player may edit a row after pressing it).
+  mcm.revert()
+  press('Defaults')
+  mcm.set('Subtitles', false)
+  layout = mcm.layout()
+  for _, button in ipairs(layout.footerRow) do
+    if not button.mcm then assert(core.optionUnits(button.label) <= layout.footerShare, button.label .. ' is cut') end
+  end
+  assert(layout.footerRow[4].label == 'Confirm', layout.footerRow[4].label)
+  mcm.revert()
 `));
 
 test('Mature content: turned on, Apply saves Local AI and the uncensored model with it (appliedIds stay the ids MCM asked for); without Local AI the switch goes back and the leftover draft is reverted', () => withScreen(`
@@ -492,7 +519,7 @@ test('Relationships is a page of its own: a button in Conversations opens it, it
   local config = mcm.config()
   assert(config.navigation.pageId == 'relationships|1|1' and config.navigation.backActionId == 'relationships:back' and config.navigation.escapeBack == true)
   assert(headings() == 'Relationships', headings())
-  assert(footerLabels() == 'Restore defaults | Back', footerLabels())
+  assert(footerLabels() == 'Defaults | Back', footerLabels())
   assert(mcm.row('Judy Alvarez').type == 'select' and mcm.row('Judy Alvarez').default == nil)
   for _, row in ipairs(mcm.layout().rows) do
     if row.kind ~= 'heading' then assert(row.kind == 'setting' and row.size == 22 and row.color == 'red', row.label) end
@@ -501,7 +528,7 @@ test('Relationships is a page of its own: a button in Conversations opens it, it
   assert(manager.snapshot(player).settings.relationshipModes['judy-alvarez'] == 'on')
   assert(mcm.row('Judy Alvarez').value == 2 and mcm.config().navigation.pageId == 'relationships|1|1', 'still on the page after Apply')
   -- Restore defaults on this page puts the relationships back to Auto (and Settings with them).
-  press('Restore defaults'); press('Restore defaults')
+  press('Defaults'); press('Defaults')
   assert(manager.snapshot(player).settings.relationshipModes['judy-alvarez'] == 'auto' and mcm.row('Judy Alvarez').value == 1)
   -- The way back leads to Settings.
   press('Back to settings')
@@ -587,9 +614,9 @@ test('the OmniVoice entries are disabled choices while its pack is missing: MCM 
     if state.enabled == false then disabled = disabled + 1; assert(state.reason == 'Requires the optional OmniVoice pack (GPU)', tostring(state.reason)) end
   end
   assert(disabled == 4, 'the four OmniVoice entries: ' .. disabled)
-  local ok, why = mcm.set('Companion voices (no Omni pack)', 2)
+  local ok, why = mcm.set('Companion voices (no Omni pack)', 3)
   assert(ok == false and why:find('OmniVoice', 1, true), tostring(why))
-  assert(mcm.set('Companion voices (no Omni pack)', 6) == true, 'a cloud voice entry is a normal draft')
+  assert(mcm.set('Companion voices (no Omni pack)', 2) == true, 'a cloud voice entry is a normal draft')
   mcm.revert()
 `));
 

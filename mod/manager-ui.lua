@@ -29,7 +29,7 @@ local preparationAt = 0
 local SLOW_PERIOD = 0.25
 local slowAt, flushDue, lastWorldReady = 0, false, nil
 local localeRevision = -1
--- The Companion voices list (menu order): Pocket TTS, OmniVoice 16/32 steps with a short or long reference, the cloud voices.
+-- The Companion voices list (menu order): Pocket TTS, the Mistral cloud voice (Voxtral), OmniVoice 16/32 steps with a short or long reference, the other cloud voices.
 local voicePreviewModule = dofile('voice-preview.lua')
 local VOICE_CHOICES = voicePreviewModule.CHOICES
 -- The Companion voices list of the page on screen: how many entries it has (Inworld is listed only in developer mode) and their texts.
@@ -441,7 +441,7 @@ local function savedVoiceIndex(settings)
     return voicePreviewModule.indexOf(settings)
 end
 
--- The select's labels, in menu order (fastest to best). The Inworld voice is the last entry and is listed only in developer mode.
+-- The select's labels, in menu order. The Inworld voice is the last entry and is listed only in developer mode.
 -- An OmniVoice entry stays in the list while the optional pack is missing (the row's name says "no Omni pack"), and M.apply refuses
 -- it (the bridge would fall back to Pocket TTS anyway): the row goes back to the voice that is saved, with the reason on the page.
 local function voiceMenuLabels(pack, mistral, developer)
@@ -453,7 +453,7 @@ local function voiceMenuLabels(pack, mistral, developer)
         if choice.provider ~= 'inworld' or developer then
             local label
             if choice.provider == 'voxtral' then
-                label = (mistral or {}).saved and ui.t('Voxtral · Mistral cloud') or ui.t('Voxtral · needs Mistral key')
+                label = (mistral or {}).saved and ui.t('Voxtral (recommended)') or ui.t('Voxtral · needs Mistral key')
             elseif choice.provider == 'inworld' then
                 label = ((mistral or {}).inworld or {}).saved and ui.t('Inworld · Cloud voice') or ui.t('Inworld · needs key')
             else
@@ -1450,8 +1450,8 @@ local function schema()
         local voiceStatusHelp = support and support.serviceFault() == 'browser'
             and ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, then restart the game.')
             or ui.t('A change takes effect after the current reply. No game restart is needed.')
-        -- The list: Pocket Performance (the default), OmniVoice Balanced / Quality (16 steps, short / long reference),
-        -- High Quality / Ultra Quality (32 steps, short / long reference), the Mistral cloud voice (Voxtral), Convai Cloud voice.
+        -- The list: Pocket Performance (the default), the Mistral cloud voice (Voxtral, recommended), OmniVoice Balanced / Quality (16 steps,
+        -- short / long reference), High Quality / Ultra Quality (32 steps, short / long reference), Convai Cloud voice.
         local voiceIndex = savedVoiceIndex(snapshot.settings)
         -- Lip sync delay (Bluetooth): Auto, Off, then milliseconds (bridge/audio-delay.mjs).
         local delays, delayLabels, delayIndex = manager.audioDelayChoices(), {}, 1
