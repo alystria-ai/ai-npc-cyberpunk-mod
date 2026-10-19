@@ -262,6 +262,10 @@ export function buildMessages({persona, memory, history = [], context, contextPa
 const EMOJI = /[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}‍️]/gu;
 const THINK = /<think(?:ing)?>[\s\S]*?(?:<\/think(?:ing)?>|$)/gi;
 const STRAY_THINK = /<\/think(?:ing)?>/i;
+// Gemma 4 writes its thinking between <|channel>thought and <channel|>; llama-server normally takes it out of the reply, but a server or template that does not
+// leaves it in. The end-of-turn and turn-start markers of the model families (Gemma 4 and 3, Qwen) are never part of a reply: it ends at the first one.
+const CHANNEL = /<\|channel>[\s\S]*?(?:<channel\|>|$)/g;
+const TURN_MARKER = /<(?:turn\|>|\|turn>|end_of_turn>|start_of_turn>|\|im_end\|>|\|im_start\|>|eos>)/;
 
 // The first word of a *stage direction*: what a character does (sighs, laughs, leans in, clears throat), not what it stresses.
 // Words that are also ordinary words ("look", "take", "hold") count only in their -s, -ed and -ing forms ("looks", "holding").
@@ -299,7 +303,10 @@ export function starred(text) {
  * bracket groups that are not tags are dropped here.
  */
 export function cleanReply(raw, {name = '', isTag = () => false} = {}) {
-  let text = String(raw ?? '').replace(/\r/g, '').replace(THINK, '').trim();
+  let text = String(raw ?? '').replace(/\r/g, '').replace(THINK, '').replace(CHANNEL, '');
+  const marker = text.search(TURN_MARKER);
+  if (marker >= 0) text = text.slice(0, marker);
+  text = text.trim();
   // A closing think tag with no opening one (the uncensored Qwen3.5 models emit it with reasoning off): what follows it is the answer; when
   // nothing follows, the tag is a stray at the end of the answer and only the tag goes.
   if (STRAY_THINK.test(text)) { const parts = text.split(STRAY_THINK); text = (parts.at(-1).trim() || parts.slice(0, -1).join(' ')).trim(); }
