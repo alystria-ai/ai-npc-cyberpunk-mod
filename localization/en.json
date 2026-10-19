@@ -8100,7 +8100,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:165"
+        "mod/service-status.lua:167"
       ]
     },
     "The conversation service did not answer. Wait a moment, then invite again.": {
@@ -8148,7 +8148,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:169"
+        "mod/service-status.lua:171"
       ]
     },
     "The conversation service is starting. Try again in a few seconds.": {
@@ -8156,7 +8156,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:160"
+        "mod/service-status.lua:162"
       ]
     },
     "The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, then restart the game.": {
@@ -8166,7 +8166,7 @@
       "references": [
         "mod/manager-ui.lua:1254",
         "mod/manager-ui.lua:1391",
-        "mod/service-status.lua:163",
+        "mod/service-status.lua:165",
         "mod/setup-check.lua:413"
       ]
     },
@@ -8175,7 +8175,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:162"
+        "mod/service-status.lua:164"
       ]
     },
     "The conversation service restarted. Please try again.": {
@@ -8183,7 +8183,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:161"
+        "mod/service-status.lua:163"
       ]
     },
     "The conversation service runs beside the game. If it is not running, restart the game. Its logs are listed below.": {

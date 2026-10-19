@@ -12,7 +12,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn, spawnSync} from 'node:child_process';
-import {cp, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile} from 'node:fs/promises';
+import {cp, link, mkdir, mkdtemp, readFile, readdir, rename, rm, rmdir, stat, symlink, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -40,8 +40,8 @@ async function tree(path, rel = '') {
 
 // A game folder with the CET mod's init.lua, and a Runtime in an MO2 mod folder far from it (`inGame: true` puts it in the game, as a
 // physical install does). The data home is a folder of its own, as %LOCALAPPDATA%\AiNpcCyberpunkMod is.
-async function install({inGame = false, withInit = true} = {}) {
-  const root = await mkdtemp(join(tmpdir(), 'ai npc virtual runtime Ünï '));
+async function install({inGame = false, withInit = true, name = 'ai npc virtual runtime Ünï '} = {}) {
+  const root = await mkdtemp(join(tmpdir(), name));
   const game = join(root, 'Games', 'Cyberpunk 2077');
   const modFolder = join(root, 'Modlists', 'Ultraviolence', 'mods', 'AI NPC Cyberpunk Mod Runtime');
   const app = join(inGame ? game : modFolder, APP);
@@ -59,6 +59,8 @@ async function install({inGame = false, withInit = true} = {}) {
 }
 const start = (f, ...extra) => spawnSync(process.execPath, [join(f.app, 'launcher/start-service.mjs'), '--game-root', f.game, ...extra],
   {encoding: 'utf8', timeout: 60_000, env: f.env});
+// The game's PID the launcher passes: a running process (this test's own), since a start whose game has ended publishes nothing.
+const GAME = String(process.pid);
 
 test('a Runtime in an MO2 mod folder, far from the game folder, prepares and leaves the mod folder untouched', async () => {
   const f = await install();
@@ -119,7 +121,7 @@ test('a missing file of the service ends in a failed status with a short reason 
   const f = await install();
   try {
     await rm(join(f.app, 'launcher/place-packs.mjs'));
-    const result = start(f, '--game-pid', '4242');
+    const result = start(f, '--game-pid', GAME);
     assert.equal(result.status, 1, result.stderr + result.stdout);
     const status = await readStatus(f.game);
     assert.equal(status.state, 'failed');
@@ -127,7 +129,7 @@ test('a missing file of the service ends in a failed status with a short reason 
     assert.equal(status.stage, 'loading-modules');
     assert.equal(status.source, 'service');
     assert.equal(status.view, 'usvfs no; Runtime outside the game folder; init.lua visible', 'the status says what the service sees, for the short report');
-    assert.equal(status.gamePid, 4242);
+    assert.equal(status.gamePid, process.pid);
     assert.match(status.reason, /place-packs\.mjs/);
     assert.doesNotMatch(status.reason, /[A-Za-z]:[\\/]|Users|Modlists|Games/, status.reason);
     assert(status.reason.length <= 140);
@@ -153,13 +155,34 @@ test('an error nobody caught ends in a failed status too', async () => {
   } finally { await f.cleanup(); }
 });
 
+// The reason is shown in game and in the short report, so no folder name may reach it: a Windows user folder or a game folder can hold an
+// apostrophe (C:\Users\O'Brien, "Chris' Games"), which used to end the quoted path early and let most of it, the user name included, through.
+test('a folder name with an apostrophe never reaches the reason, wherever the path is', async () => {
+  for (const inGame of [true, false]) {
+    const f = await install({inGame, name: "Sean O'Brien's Chris' PC "});
+    try {
+      await rm(join(f.app, 'launcher/place-packs.mjs'));
+      assert.equal(start(f, '--game-pid', GAME).status, 1);
+      const {reason} = await readStatus(f.game);
+      assert.match(reason, /^ERR_MODULE_NOT_FOUND: Cannot find module 'place-packs\.mjs' imported from start-service\.mjs$/, reason);
+      // A path outside every folder the script knows (a module that throws names it): only its last name is left. (Outside those
+      // folders an apostrophe before a space cannot be told from a closing quote; inside them, as above, the whole folder goes.)
+      await put(join(f.app, 'launcher/place-packs.mjs'), `throw new Error("boom in 'D:/Other/Dana O'Neil/x.mjs' and D:\\\\Mods\\\\O'Hara's\\\\y.mjs");\n`);
+      assert.equal(start(f, '--game-pid', GAME).status, 1);
+      const caught = (await readStatus(f.game)).reason;
+      assert.doesNotMatch(caught, /Brien|Chris|Dana|Neil|Other|Hara|Mods|[A-Za-z]:[\\/]/, caught);
+      assert.match(caught, /'x\.mjs'.*y\.mjs/, caught);
+    } finally { await f.cleanup(); }
+  }
+});
+
 test('a stage that never finishes leaves a fresh "starting" naming the stage, written by the script itself, in the file the game reads', async () => {
   const f = await install();
   // Preparing the state hangs, as a lock, a locked file or a stalled disk would make it.
   await cp(join(f.app, 'launcher/prepare-state.mjs'), join(f.app, 'launcher/prepare-state-real.mjs'));
   await put(join(f.app, 'launcher/prepare-state.mjs'), `export {installLayout, serviceEnvironment} from './prepare-state-real.mjs';\n`
     + 'export const prepareState = () => new Promise(() => setInterval(() => {}, 1000));\n');
-  const child = spawn(process.execPath, [join(f.app, 'launcher/start-service.mjs'), '--game-root', f.game, '--game-pid', '4242'],
+  const child = spawn(process.execPath, [join(f.app, 'launcher/start-service.mjs'), '--game-root', f.game, '--game-pid', GAME],
     {env: f.env, stdio: 'ignore', windowsHide: true});
   try {
     let status;
@@ -173,7 +196,7 @@ test('a stage that never finishes leaves a fresh "starting" naming the stage, wr
     assert.equal(status.code, 'service-starting');
     assert.equal(status.source, 'service');
     assert.equal(status.supervisorPid, child.pid);
-    assert.equal(status.gamePid, 4242);
+    assert.equal(status.gamePid, process.pid);
     assert.equal(status.stateDirectory, f.state);
     assert(Math.abs(Date.now() - status.updated) < 10_000);
     // The file is where the layout puts the game's runtime/, the one mod/service-status.lua reads.
@@ -184,6 +207,30 @@ test('a stage that never finishes leaves a fresh "starting" naming the stage, wr
     for (let waited = 0; waited < 15_000 && later === first; waited += 200) { await sleep(200); later = (await readStatus(f.game).catch(() => status)).updated; }
     assert.notEqual(later, first, 'the status is refreshed while the script prepares');
   } finally { child.kill(); await sleep(200); await f.cleanup(); }
+});
+
+// A start can outlive its game: the game closes or crashes during a long first start and the player starts it again at once. The next
+// session's launcher and start script write the same runtime/bridge-service.json, so a start whose game has ended must not write over
+// it, least of all with a failure the new session would show as its own.
+test('a start whose game has ended writes nothing over the status of the next session, and still logs its failure', async () => {
+  const f = await install();
+  try {
+    const ended = spawnSync(process.execPath, ['-e', ''], {timeout: 30_000}).pid;
+    assert(Number.isSafeInteger(ended) && ended > 0);
+    const next = JSON.stringify({version: 1, state: 'starting', code: 'launcher-started', source: 'launcher', gamePid: process.pid,
+      since: Date.now(), updated: Date.now()});
+    await put(join(f.game, MOD, 'runtime/bridge-service.json'), next);
+    await rm(join(f.app, 'launcher/place-packs.mjs'));
+    const result = start(f, '--game-pid', String(ended));
+    assert.equal(result.status, 1, result.stderr + result.stdout);
+    assert.equal(await read(join(f.game, MOD, 'runtime/bridge-service.json')), next, 'the next session\'s status is left as it is');
+    assert.match(await read(join(f.state, 'bridge-service.log')), /Loading the service's own files failed/, 'the log still says why');
+    // The same start for a game that runs reports the failure.
+    const running = start(f, '--game-pid', GAME);
+    assert.equal(running.status, 1);
+    const status = await readStatus(f.game);
+    assert.deepEqual([status.state, status.code, status.gamePid], ['failed', 'install-incomplete', process.pid]);
+  } finally { await f.cleanup(); }
 });
 
 test('a service that cannot see the game\'s mod folder stops and writes nothing under the game folder', async () => {
@@ -202,6 +249,37 @@ test('a service that cannot see the game\'s mod folder stops and writes nothing 
     const prepared = start(f, '--prepare-only');
     assert.equal(prepared.status, 0, prepared.stderr);
   } finally { await f.cleanup(); }
+});
+
+// The stop above must never fire on an ordinary install. The launcher tests <game>\bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod\init.lua
+// with GetFileAttributesW, and so does Node's existsSync (libuv's access), on the same --game-root: they agree on a hard-linked init.lua
+// (Vortex's default deployment), a mod folder that is a link to a staging folder, a game root passed in another case, and a path with
+// spaces and letters outside ASCII. The folder name is the launcher's MOD_RELATIVE, letter for letter.
+test('an ordinary install sees init.lua however it was deployed: a hard link, a linked mod folder, another case, a Unicode path', async () => {
+  const launcher = await read(join(project, 'native/autostart/CyberpunkConvaiLauncher.c'));
+  const script = await read(join(project, 'packaging/runtime/start-service.mjs'));
+  const native = /#define MOD_RELATIVE L"([^"]+)"/.exec(launcher)?.[1].replace(/\\\\/g, '/').replace(/^\//, '');
+  assert.equal(native, /const MOD_FOLDER = '([^']+)'/.exec(script)?.[1], 'the launcher and the script look at the same folder');
+  const f = await install({inGame: true});
+  const modFolder = join(f.game, MOD), staging = join(f.root, 'Vortex', 'staging', 'AI NPC Cyberpunk Mod');
+  try {
+    await mkdir(dirname(staging), {recursive: true});
+    await rename(modFolder, staging);
+    await symlink(staging, modFolder, 'junction');
+    await rename(join(staging, 'init.lua'), join(staging, 'init.lua.staged'));
+    await link(join(staging, 'init.lua.staged'), join(staging, 'init.lua'));
+    const result = spawnSync(process.execPath, [join(f.app, 'launcher/start-service.mjs'), '--game-root', f.game.toUpperCase(), '--game-pid', GAME],
+      {encoding: 'utf8', timeout: 60_000, env: f.env});
+    // This Runtime has no bridge folder, so the start ends at the step after the check: proof it went past it.
+    assert.equal(result.status, 1, result.stderr + result.stdout);
+    const status = await readStatus(f.game);
+    assert.deepEqual([status.state, status.code, status.stage], ['failed', 'install-incomplete', 'loading-supervisor'], JSON.stringify(status));
+    assert.equal(status.view, 'usvfs no; Runtime inside the game folder; init.lua visible');
+    assert.doesNotMatch(await read(join(f.state, 'bridge-service.log')), /NOT visible|Stopped:/);
+  } finally {
+    await rmdir(modFolder).catch(() => {}); // the link only, before the folder holding its target goes
+    await f.cleanup();
+  }
 });
 
 test('a physical install, with the Runtime inside the game folder, behaves the same', async () => {

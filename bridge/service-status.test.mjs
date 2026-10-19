@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
+import {noticeProblems} from './notice-fit.mjs';
 
 const source = readFileSync(new URL('../mod/service-status.lua', import.meta.url), 'utf8');
 const catalog = JSON.parse(readFileSync(new URL('../localization/en.json', import.meta.url), 'utf8')).strings;
@@ -150,7 +151,8 @@ test('failures distinguish missing setup from other errors, including launcher f
   advance(1)
   put('runtime/bridge-service.json', {state = 'failed', code = 'voice-client-build-failed', since = ms(-4), updated = ms(-1)})
   message, kind = status.blockedMessage()
-  assert(kind == 'failed' and message == ${lua_(messages.failed)} .. ' (voice-client-build-failed)', 'the status code follows the sentence')
+  assert(kind == 'failed' and message == ${lua_(messages.failed)}, 'a notice is the plain sentence: the warning line holds two lines')
+  assert(status.failureDetail() == 'voice-client-build-failed', 'the status code is kept for the places with room')
   -- The launcher writes once at game start and has no heartbeat.
   advance(600)
   put('runtime/bridge-service.json', {state = 'failed', code = 'launcher-program-missing', source = 'launcher',
@@ -179,9 +181,10 @@ test('a launcher "starting" that nothing refreshed is first a service coming up,
   assert(down.kind == 'failed' and down.code == 'service-silent', tostring(down.kind))
   local words = 'service-silent after launcher-started'
   local message, kind = status.blockedMessage()
-  assert(kind == 'failed' and message == ${lua_(messages.failed)} .. ' (' .. words .. ')', message)
+  assert(kind == 'failed' and message == ${lua_(messages.failed)}, message)
   assert(status.failureCode() == 'service-silent' and status.failureDetail() == words)
-  assert(status.notice() == ${lua_(messages.failed)} .. ' (' .. words .. ')', 'announced before the player tries to talk')
+  assert(status.message(down.kind, down.detail) == ${lua_(messages.failed)} .. ' (' .. words .. ')', 'the Settings rows name the words')
+  assert(status.notice() == ${lua_(messages.failed)}, 'announced before the player tries to talk, in the plain sentence')
   advance(5)
   assert(status.notice() == nil, 'once per episode')
   assert(status.lostSince(now() - 100) == nil, 'only the supervisor itself retires a request early')
@@ -197,8 +200,8 @@ test('the "starting" of the start script itself is judged the same way: fresh it
   advance(21)
   assert(status.unavailable().kind == 'starting', 'stale, but within the time a first start may take')
   advance(70)
-  local message = status.blockedMessage()
-  assert(message == ${lua_(messages.failed)} .. ' (service-silent after service-starting at preparing-state)', message)
+  assert(status.blockedMessage() == ${lua_(messages.failed)})
+  assert(status.failureDetail() == 'service-silent after service-starting at preparing-state', status.failureDetail())
 `));
 
 test('a stale "starting" from an earlier game session is no trace of this one, and a starting from the supervisor is not judged by age alone', () => run(`
@@ -219,12 +222,14 @@ test('a failure names its code, the stage and the short reason the service gave,
       reason = "ERR_MODULE_NOT_FOUND: Cannot find module 'place-packs.mjs' imported from start-service.mjs", since = ms(-1), updated = ms()})
   local expected = 'install-incomplete at loading-modules: ERR_MODULE_NOT_FOUND: Cannot find module \\'place-packs.mjs\\' imported from start-service.mjs'
   local message, kind = status.blockedMessage()
-  assert(kind == 'failed' and message == ${lua_(messages.failed)} .. ' (' .. expected .. ')', message)
+  assert(kind == 'failed' and message == ${lua_(messages.failed)}, message)
+  assert(status.failureDetail() == expected, status.failureDetail())
   assert(status.notice() == message)
   -- A request in flight is told the same when the supervisor reports the failure afterwards.
   advance(5)
   put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'service-error', stage = 'preparing', reason = 'boom', since = ms(-1), updated = ms()})
-  assert(status.lostSince(now() - 3) == ${lua_(messages.failed)} .. ' (service-error at preparing: boom)')
+  assert(status.lostSince(now() - 3) == ${lua_(messages.failed)})
+  assert(status.failureDetail() == 'service-error at preparing: boom')
   -- Control characters, a long text and a code that is not a code never reach the screen as they are.
   advance(5)
   put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'bad code!', stage = 'x y', reason = 'a\\1\\2b\\n' .. string.rep('c', 500),
@@ -237,6 +242,32 @@ test('a failure names its code, the stage and the short reason the service gave,
   put('runtime/bridge-service.json', {state = 'failed', code = 'missing-key', reason = 'ignored', since = ms(-1), updated = ms()})
   assert(status.blockedMessage() == ${lua_(messages.setup)} and status.failureDetail() == nil)
 `));
+
+// Every notice here is the game's warning line, which holds two lines (docs/NOTIFICATIONS.md, "How much a notice can say";
+// bridge/notice-fit.mjs measures it). The failed sentence alone takes them: with a start script's words appended (a code, a stage and a
+// reason of up to 140 characters) the five-second notice became a block of up to six lines nobody could read in time. The words stay
+// in failureDetail(), the Settings rows (message(kind, detail)) and the short report; every notice is the plain sentence.
+test('the notices of a failed or silent start stay the plain sentence that fits the warning line, whatever words the status carries', () => {
+  assert.deepEqual(noticeProblems(messages.failed, {english: true}), [], 'the English sentence fits two lines');
+  run(`
+  local plain = ${lua_(messages.failed)}
+  put('runtime/bridge-service.json', {version = 1, state = 'failed', code = string.rep('c', 60), source = 'service', stage = string.rep('s', 40),
+      reason = string.rep('r ', 70), since = ms(-1), updated = ms()})
+  assert(status.notice() == plain, tostring(status.notice()))
+  assert(status.blockedMessage() == plain)
+  assert(status.lostSince(now() - 3) == plain)
+  assert(#status.failureDetail() > 200, 'the words are kept for the places with room')
+  assert(status.message('failed', status.failureDetail()):find(status.failureDetail(), 1, true), 'and the Settings rows show them')
+  -- The silent start is announced in the same sentence.
+  advance(5)
+  put('runtime/bridge-service.json', {version = 1, state = 'starting', code = 'service-starting', source = 'service', stage = 'loading-supervisor',
+      since = ms(), updated = ms()})
+  advance(95)
+  assert(status.unavailable().code == 'service-silent')
+  assert(status.notice() == plain and status.blockedMessage() == plain)
+  assert(status.failureDetail() == 'service-silent after service-starting at loading-supervisor')
+  `);
+});
 
 test('a missing browser gets its own explanation, a proactive notice and no confusion with other failures', () => run(`
   put('runtime/bridge-service.json', {state = 'failed', code = 'browser-missing', since = ms(-4), updated = ms(-1)})
@@ -284,7 +315,7 @@ test('a failure is announced once per episode and checks are throttled', () => r
   assert(status.notice() == nil, 'same failure episode')
   advance(5)
   put('runtime/bridge-service.json', {state = 'failed', code = 'bridge-crashed', since = ms(-1), updated = ms()})
-  assert(status.notice() == ${lua_(messages.failed)} .. ' (bridge-crashed)', 'a new failure is announced')
+  assert(status.notice() == ${lua_(messages.failed)}, 'a new failure is announced')
   advance(5)
   put('runtime/bridge-service.json', {state = 'starting', code = 'x', since = ms(-1), updated = ms()})
   assert(status.notice() == nil)
