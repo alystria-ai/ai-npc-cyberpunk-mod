@@ -39,7 +39,7 @@ const PROVIDER_LABELS = Object.freeze({mistral: 'Mistral', local: 'The local AI'
  * The message carries `[mistral:<kind>]` so the bridge can classify a failure from its text alone, like convai-quota.mjs.
  */
 export class MistralError extends Error {
-  constructor(kind, detail, {status, retryAfterMs, apiKey, zeroQuota = false, provider = 'mistral', slow = false, partial = false} = {}) {
+  constructor(kind, detail, {status, retryAfterMs, apiKey, zeroQuota = false, provider = 'mistral', slow = false, partial = false, reason, trace, noRetry = false, deadline = false} = {}) {
     provider = PROVIDER_LABELS[provider] ? provider : 'mistral';
     super(`${PROVIDER_LABELS[provider]} ${redact(detail, apiKey).slice(0, 200)} [${provider}:${kind}]`);
     this.name = 'MistralError';
@@ -47,7 +47,10 @@ export class MistralError extends Error {
     // slow: the service was reachable but did not answer in time (no response, or a stream that went quiet), or answered with a server
     // fault; the caller may speak a short in-character line instead of an error (docs/MISTRAL.md).
     // partial: some of the reply had already been delivered (a retry would say it twice).
-    Object.assign(this, {kind, status, retryAfterMs, zeroQuota, provider, slow, partial});
+    // reason: why a request ended without a reply, from what the stream showed (stallReason): 'no-response', 'no-first-token', 'prefill-stalled',
+    //   'thinking-only', 'stalled'. trace: the request's record (what came when; see `newTrace`). noRetry: asking again would only repeat the wait.
+    //   deadline: the attempt was cut short by the turn's time limit (`deadlineAt`), not by its own limits.
+    Object.assign(this, {kind, status, retryAfterMs, zeroQuota, provider, slow, partial, reason, trace, noRetry, deadline});
   }
 }
 
@@ -111,8 +114,61 @@ export function mapFailure(status, body, {headers, apiKey, provider} = {}) {
 }
 
 /** Retry only what clears by itself: the per-second limit, a server fault, a timeout, an empty answer. Never a bad key. */
-export const retryable = error => error instanceof MistralError && !error.zeroQuota && !error.daily && !error.partial
+export const retryable = error => error instanceof MistralError && !error.zeroQuota && !error.daily && !error.partial && !error.noRetry
   && (error.kind === 'network' || error.kind === 'empty' || error.kind === 'limit');
+
+// ---- What one request did ----------------------------------------------------------------------------------------------
+// A request leaves a record (`trace`) on its result and on its error, so a turn that was slow or failed can say what it was waiting for
+// (docs/LOCAL_AI.md, "When a local turn fails"): the times are milliseconds after the request was sent, `null` when it never came.
+//   headersMs      the response headers          eventMs      the first stream event of any kind (llama-server sends one per prompt batch
+//   firstTokenMs   the first piece of reply text                with `return_progress`, then one per token)
+//   events, pieces, reasoning   stream events, pieces of reply text, pieces of the model's thinking (`reasoning_content`)
+//   progress       the last prompt-progress report {processed, total, cache} (llama-server `return_progress`), else null
+//   timings        the server's own numbers from the closing chunk {promptTokens, cachedTokens, promptMs, generated, tokensPerSecond}, else null
+//   finishReason, elapsedMs
+export function newTrace() {
+  return {headersMs: null, eventMs: null, firstTokenMs: null, events: 0, pieces: 0, reasoning: 0, progress: null, timings: null, finishReason: null, elapsedMs: 0};
+}
+
+/**
+ * Why a request ended without a reply, from its record: 'no-response' (no headers), 'stalled' (the reply had started and stopped),
+ * 'thinking-only' (the model wrote only thinking), 'prefill-stalled' (the prompt was being read and the report stopped short of its end),
+ * 'no-first-token' (headers came, then nothing, or the whole prompt was read and no word followed).
+ */
+export function stallReason(trace) {
+  if (!trace || trace.headersMs === null) return 'no-response';
+  if (trace.pieces > 0) return 'stalled';
+  if (trace.reasoning > 0) return 'thinking-only';
+  if (trace.progress && trace.progress.processed < trace.progress.total) return 'prefill-stalled';
+  return 'no-first-token';
+}
+
+const seconds = ms => Math.max(1, Math.round(ms / 1000));
+
+/**
+ * One plain English sentence for a failed local turn: what the model was waiting for. It goes into the log, the support report and the game's
+ * notice (as data after the translated sentence, like any provider's error text), so it never has a word of the reply, a path or a key.
+ * `undefined` for an error that is not a local turn's.
+ */
+export function failureDetail(error) {
+  if (!(error instanceof MistralError) || error.provider !== 'local') return undefined;
+  const trace = error.trace, took = trace?.elapsedMs ? seconds(trace.elapsedMs) : null, after = took ? ` after ${took} s` : '';
+  const head = error.deadline ? 'ran out of the turn\'s time: ' : '';
+  switch (error.reason) {
+    case 'no-response': return head + `the model server gave no answer${after}`;
+    case 'no-first-token': return head + `no first word from the model${after}`;
+    case 'prefill-stalled': return head + `stuck reading the prompt (${trace.progress.processed} of ${trace.progress.total} tokens${after})`;
+    case 'thinking-only': return head + 'the model wrote only thinking and no reply';
+    case 'stalled': return head + `the reply stopped after ${trace?.pieces ?? 0} pieces${after}`;
+    case 'loading': return `the model was still loading${after} (a first start compiles shaders for a minute or two)`;
+    default: break;
+  }
+  if (error.overflow) return `the prompt (${error.overflow.promptTokens ?? '?'} tokens) does not fit the model's context (${error.overflow.contextTokens ?? '?'})`;
+  if (error.kind === 'empty') return trace?.finishReason === 'length' ? 'the model ran out of tokens before it said anything' : 'the model gave an empty reply';
+  if (Number.isInteger(error.status)) return `the model server refused the request (HTTP ${error.status})`;
+  if (error.kind === 'network') return 'the model server could not be reached or went away';
+  return 'the request was refused';
+}
 
 // ---- SSE ---------------------------------------------------------------------------------------------------------------
 
@@ -275,31 +331,47 @@ const contentText = content => typeof content === 'string' ? content
  *     (default: the same) is the limit of the later attempts. A request that hangs (a connection the network dropped without telling
  *     anyone) is cut at this limit and sent again on a new connection: the 2026-10-13 live record had one hang for the whole 25 s limit
  *     before the retry answered in 2 s (docs/LATENCY_2026-10-12.md).
- *   stallMs: once the reply has started, silence this long ends the attempt (0: off); totalMs: the whole attempt
- *   retries / backoffMs: for 429, 5xx, a timeout, an empty answer
+ *   stallMs: silence this long ends the attempt once the first event has come (0: off); totalMs: the whole attempt. Any stream event
+ *     counts as life: a text piece, a piece of the model's thinking, llama-server's prompt-progress report (`return_progress`).
+ *   deadlineAt: the moment (the `now` clock) the turn's time is up. No attempt starts with less than MIN_ATTEMPT_MS left, and the limits above
+ *     are cut to what is left, so a turn ends with its own explanation before the game gives up on it (the game waits 90 s).
+ *   thinkingPieces: more than this many pieces of the model's thinking with no reply text ends the attempt at once (0: off)
+ *   retries / backoffMs: for 429, 5xx, a timeout, an empty answer (a local server's timeout is never retried: it would repeat the wait)
  *   onRetry({attempt, error, waitMs}): called before each retry, so the caller can log why a turn took long
- * Returns {text, model, finishReason, usage, attempts, failed: [{kind, status, ms}]} (`failed` lists the attempts that were given up).
+ * Returns {text, model, finishReason, usage, trace, attempts, failed: [{kind, status, ms, reason}]} (`failed` lists the attempts that were given up).
+ * A failure carries `reason` and `trace` (see `stallReason`, `newTrace`).
  */
 export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTokens = 300, temperature = 0.8, onDelta, shouldStop,
   signal, fetchImpl = globalThis.fetch, endpoint, firstByteMs = 25000, retryFirstByteMs, stallMs = 0, totalMs = 70000, retries = 2,
-  backoffMs = [1200, 3500], sleepImpl = sleep, extraBody, provider = 'mistral', trustedOrigin, onHeaders, onRetry, now = () => performance.now()} = {}) {
+  backoffMs = [1200, 3500], sleepImpl = sleep, extraBody, provider = 'mistral', trustedOrigin, onHeaders, onRetry, now = () => performance.now(),
+  deadlineAt, thinkingPieces = 0, minAttemptMs = MIN_ATTEMPT_MS} = {}) {
   if (typeof apiKey !== 'string' || apiKey.length < 8) throw new MistralError('key', 'has no API key', {provider});
   const url = checkedEndpoint(endpoint ?? MISTRAL_ENDPOINT, provider, trustedOrigin);
   let lastError;
   const failed = [];
+  const hasDeadline = Number.isFinite(deadlineAt);
   for (let attempt = 0; attempt <= retries; attempt++) {
     if (signal?.aborted) throw signal.reason ?? abortError();
     const began = now();
+    const remaining = hasDeadline ? deadlineAt - began : Infinity;
+    if (remaining < minAttemptMs) {
+      // The turn's time is spent: the last failure stands, or (no attempt was made) the turn says it ran out before the model could be asked.
+      const error = lastError ?? new MistralError('network', 'ran out of time before the model could be asked', {apiKey, provider, slow: true, deadline: true, noRetry: true, reason: 'no-response', trace: {...newTrace(), elapsedMs: 0}});
+      error.failed = failed; throw error;
+    }
+    const capped = remaining < totalMs;
     try {
       const result = await once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url,
-        firstByteMs: attempt > 0 && retryFirstByteMs ? retryFirstByteMs : firstByteMs, stallMs, totalMs, extraBody, provider, onHeaders});
+        firstByteMs: Math.min(attempt > 0 && retryFirstByteMs ? retryFirstByteMs : firstByteMs, remaining), stallMs, totalMs: Math.min(totalMs, remaining), extraBody, provider, onHeaders,
+        thinkingPieces, deadlineCapped: capped});
       return {...result, attempts: attempt + 1, failed};
     } catch (error) {
       if (signal?.aborted || error?.name === 'AbortError' && !(error instanceof MistralError)) throw signal?.aborted ? (signal.reason ?? abortError()) : error;
       lastError = error instanceof MistralError ? error : new MistralError('network', redact(error?.message ?? 'request failed', apiKey), {apiKey, provider});
-      failed.push({kind: lastError.kind, status: lastError.status, ms: Math.round(now() - began)});
+      failed.push({kind: lastError.kind, status: lastError.status, ms: Math.round(now() - began), ...(lastError.reason ? {reason: lastError.reason} : {})});
       if (attempt >= retries || !retryable(lastError)) { lastError.failed = failed; throw lastError; }
-      const wait = Math.min(lastError.retryAfterMs ?? backoffMs[Math.min(attempt, backoffMs.length - 1)] ?? 2000, 8000);
+      let wait = Math.min(lastError.retryAfterMs ?? backoffMs[Math.min(attempt, backoffMs.length - 1)] ?? 2000, 8000);
+      if (hasDeadline) wait = Math.max(0, Math.min(wait, deadlineAt - now() - minAttemptMs));
       try { onRetry?.({attempt: attempt + 1, error: lastError, waitMs: wait, ms: failed.at(-1).ms}); } catch { /* an observer never fails a reply */ }
       await sleepImpl(wait, signal);
     }
@@ -308,15 +380,37 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
   throw lastError;
 }
 
-async function once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url, firstByteMs, stallMs, totalMs, extraBody, provider, onHeaders}) {
+/** The least time an attempt is worth starting with (a request that is cut after less than this cannot have said anything). */
+export const MIN_ATTEMPT_MS = 3000;
+
+async function once({apiKey, model, messages, maxTokens, temperature, onDelta, shouldStop, signal, fetchImpl, url, firstByteMs, stallMs, totalMs, extraBody, provider, onHeaders,
+  thinkingPieces = 0, deadlineCapped = false}) {
   const controller = new AbortController();
-  let timedOut = false, started = false;
+  let timedOut = null;   // which limit ended it: 'first', 'stall' or 'total'
+  const trace = newTrace();
+  const sentAt = performance.now();
+  const since = () => Math.round(performance.now() - sentAt);
   const onAbort = () => controller.abort(signal.reason);
   signal?.addEventListener('abort', onAbort, {once: true});
-  const total = setTimeout(() => { timedOut = true; controller.abort(); }, totalMs);
-  // The first piece of the reply is waited for `firstByteMs`; after that, silence is waited for `stallMs` (0: only the total limit).
-  let first = setTimeout(() => { timedOut = true; controller.abort(); }, firstByteMs);
-  const quiet = () => { clearTimeout(first); if (stallMs > 0) first = setTimeout(() => { timedOut = true; controller.abort(); }, stallMs); };
+  const total = setTimeout(() => { timedOut = 'total'; controller.abort(); }, totalMs);
+  // The first stream event is waited for `firstByteMs`; after that, silence is waited for `stallMs` (0: only the total limit).
+  let first = setTimeout(() => { timedOut = 'first'; controller.abort(); }, firstByteMs);
+  const quiet = () => { clearTimeout(first); if (stallMs > 0) first = setTimeout(() => { timedOut = 'stall'; controller.abort(); }, stallMs); };
+  // The error for the limit that fired: what the stream showed says what the model was doing (stallReason). A local server's timeout is never retried.
+  const timeoutError = () => {
+    trace.elapsedMs = since();
+    const reason = stallReason(trace);
+    const limit = Math.round((timedOut === 'stall' ? stallMs : timedOut === 'total' ? totalMs : firstByteMs) / 1000);
+    const lead = reason === 'no-response' ? 'did not answer in time' : reason === 'stalled' ? 'went quiet before the reply was finished' : 'did not finish in time';
+    // 'stall' is silence after the first event; 'first' and 'total' are the limits on the whole wait (the total one may be the turn's own deadline).
+    const silence = timedOut === 'stall' ? `${limit} s of silence` : `the ${limit} s limit`;
+    const why = reason === 'no-response' ? `no response in ${limit} s`
+      : reason === 'stalled' ? (timedOut === 'stall' ? `nothing for ${limit} s after ${trace.pieces} pieces` : `${trace.pieces} pieces, then ${silence}`)
+      : reason === 'thinking-only' ? `only thinking, ${trace.reasoning} pieces, no reply`
+      : reason === 'prefill-stalled' ? `prompt read ${trace.progress.processed} of ${trace.progress.total} tokens, then ${silence}`
+      : `no first word in ${limit} s`;
+    return new MistralError('network', `${lead} (${why})`, {apiKey, provider, slow: true, reason, trace, noRetry: provider === 'local', deadline: deadlineCapped && trace.elapsedMs >= totalMs - 50});
+  };
   try {
     let response;
     try {
@@ -326,51 +420,67 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
         headers: {Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', Accept: 'text/event-stream'},
         body: JSON.stringify({model, messages, stream: true, max_tokens: maxTokens, temperature, ...extraBody})});
     } catch (error) {
-      if (timedOut) throw new MistralError('network', 'did not answer in time', {apiKey, provider, slow: true});
+      if (timedOut) throw timeoutError();
       if (signal?.aborted) throw signal.reason ?? abortError();
-      throw new MistralError('network', `could not be reached (${redact(error?.cause?.code ?? error?.message ?? 'network error', apiKey)})`, {apiKey, provider});
+      throw new MistralError('network', `could not be reached (${redact(error?.cause?.code ?? error?.message ?? 'network error', apiKey)})`, {apiKey, provider, trace: {...trace, elapsedMs: since()}});
     }
+    trace.headersMs = since();
     markStage('llmHeaders');
     // The rate-limit headers go to the caller (the shared request scheduler reads a per-second limit from them).
     try { onHeaders?.(response.headers); } catch { /* an observer never fails a reply */ }
     if (!response.ok) {
       let body; try { body = await response.json(); } catch { /* no JSON body */ }
-      throw mapFailure(response.status, body, {headers: response.headers, apiKey, provider});
+      const failure = mapFailure(response.status, body, {headers: response.headers, apiKey, provider});
+      failure.trace = {...trace, elapsedMs: since()};
+      throw failure;
     }
-    if (!response.body) throw new MistralError('network', 'sent no reply stream', {apiKey, provider});
-    let text = '', actualModel, finishReason, usage, stoppedEarly = false, sawDone = false;
+    if (!response.body) throw new MistralError('network', 'sent no reply stream', {apiKey, provider, trace: {...trace, elapsedMs: since()}});
+    let text = '', actualModel, finishReason, usage, stoppedEarly = false, sawDone = false, thinkingStop = false;
     try {
       // After [DONE] the body is read to its end (bounded) instead of cancelled, so the connection is reused by the next turn.
       for await (const data of sseData(response.body, {drainMs: DRAIN_MS})) {
         quiet();
+        trace.events++; trace.eventMs ??= since();
         if (data === '[DONE]') { sawDone = true; break; }
         let chunk; try { chunk = JSON.parse(data); } catch { continue; }
         if (chunk?.object === 'error' || chunk?.error) throw mapFailure(Number.isInteger(chunk.code) ? chunk.code : Number.isInteger(chunk.error?.code) ? chunk.error.code : 502, chunk, {apiKey, provider});
         if (typeof chunk?.model === 'string') actualModel = chunk.model;
         if (chunk?.usage) usage = chunk.usage;
+        const reported = chunk?.prompt_progress;
+        if (reported && Number(reported.total) > 0) trace.progress = {processed: Number(reported.processed) || 0, total: Number(reported.total), cache: Number(reported.cache) || 0};
+        const timings = chunk?.timings;
+        if (timings && typeof timings === 'object') trace.timings = {promptTokens: timings.prompt_n, cachedTokens: timings.cache_n, promptMs: timings.prompt_ms, generated: timings.predicted_n, tokensPerSecond: timings.predicted_per_second};
         const choice = chunk?.choices?.[0];
         if (!choice) continue;
         const piece = contentText(choice.delta?.content);
+        if (!piece && (choice.delta?.reasoning_content || choice.delta?.reasoning)) {
+          trace.reasoning++;
+          // A model that thinks instead of answering would use up its whole token allowance on it: stop it at once and say so.
+          if (thinkingPieces > 0 && !text && trace.reasoning >= thinkingPieces) { thinkingStop = true; break; }
+        }
         if (piece) {
-          if (!text) markStage('firstToken');
-          started = true;
+          if (!text) { markStage('firstToken'); trace.firstTokenMs = since(); }
+          trace.pieces++;
           text += piece;
           onDelta?.(piece, text);
           if (shouldStop?.(text)) { stoppedEarly = true; break; }
         }
-        if (choice.finish_reason) finishReason = choice.finish_reason;
-        if (choice.finish_reason === 'error') throw new MistralError('network', 'stopped the reply with an error', {apiKey, provider});
+        if (choice.finish_reason) finishReason = trace.finishReason = choice.finish_reason;
+        if (choice.finish_reason === 'error') throw new MistralError('network', 'stopped the reply with an error', {apiKey, provider, trace: {...trace, elapsedMs: since()}});
       }
       // A server the player runs can die while it writes (a killed KoboldCpp closes the stream as cleanly as a finished one): a stream that ends
       // with neither "[DONE]" nor a finish_reason is a reply cut off, not a finished one. The cloud's streams always end with one of them.
-      if (provider === 'local' && !stoppedEarly && !sawDone && !finishReason) throw new MistralError('network', 'went quiet before the reply was finished', {apiKey, provider, partial: !!text.trim()});
+      if (provider === 'local' && !stoppedEarly && !thinkingStop && !sawDone && !finishReason) throw new MistralError('network', 'went quiet before the reply was finished', {apiKey, provider, partial: !!text.trim(), reason: 'stalled', trace: {...trace, elapsedMs: since()}});
     } catch (error) {
-      if (timedOut) throw new MistralError('network', started ? 'went quiet before the reply was finished' : 'did not finish in time', {apiKey, provider, slow: true});
+      if (timedOut) throw timeoutError();
       if (signal?.aborted) throw signal.reason ?? abortError();
+      if (error instanceof MistralError && !error.trace) error.trace = {...trace, elapsedMs: since()};
       throw error;
     }
-    if (!text.trim()) throw new MistralError('empty', 'answered with no text', {apiKey, provider});
-    return {text, model: actualModel, finishReason: stoppedEarly ? 'stop' : finishReason, usage};
+    trace.elapsedMs = since();
+    if (thinkingStop) throw new MistralError('empty', `answered only with thinking (${trace.reasoning} pieces) and no reply`, {apiKey, provider, reason: 'thinking-only', noRetry: true, trace});
+    if (!text.trim()) throw new MistralError('empty', 'answered with no text', {apiKey, provider, reason: trace.reasoning > 0 ? 'thinking-only' : undefined, trace});
+    return {text, model: actualModel, finishReason: stoppedEarly ? 'stop' : finishReason, usage, trace};
   } finally {
     clearTimeout(first); clearTimeout(total);
     signal?.removeEventListener('abort', onAbort);

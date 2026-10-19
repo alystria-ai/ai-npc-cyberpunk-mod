@@ -2279,7 +2279,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3359"
+        "mod/init.lua:3368"
       ]
     },
     "AI NPC Cyberpunk Mod: group text chat": {
@@ -2287,7 +2287,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3317"
+        "mod/init.lua:3326"
       ]
     },
     "AI NPC Cyberpunk Mod: group voice chat": {
@@ -2295,7 +2295,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3358"
+        "mod/init.lua:3367"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by text": {
@@ -2303,7 +2303,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3316"
+        "mod/init.lua:3325"
       ]
     },
     "AI NPC Cyberpunk Mod: talk by voice": {
@@ -2311,7 +2311,7 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:3357"
+        "mod/init.lua:3366"
       ]
     },
     "Above the speaker": {
@@ -5036,7 +5036,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2972"
+        "mod/init.lua:2981"
       ]
     },
     "Local AI could not answer that. Try again in a moment.": {
@@ -5044,7 +5044,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2968"
+        "mod/init.lua:2977"
       ]
     },
     "Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.": {
@@ -5052,7 +5052,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2964"
+        "mod/init.lua:2973"
       ]
     },
     "Local AI could not start. Check Local AI in Settings > Conversation provider.": {
@@ -5276,7 +5276,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2956",
+        "mod/init.lua:2965",
         "mod/phone-chat-style.lua:53",
         "mod/phone-chat.lua:10"
       ]
@@ -5294,7 +5294,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2981"
+        "mod/init.lua:2990"
       ]
     },
     "Mistral replies are spoken by a local voice instead of the Convai cloud voice.": {
@@ -5302,7 +5302,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2983"
+        "mod/init.lua:2992"
       ]
     },
     "Mistral: free limit reached for now": {
@@ -5335,7 +5335,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2958",
+        "mod/init.lua:2967",
         "mod/phone-chat-style.lua:54",
         "mod/phone-chat.lua:11"
       ]
@@ -5632,7 +5632,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:3959"
+        "mod/init.lua:3968"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -7448,7 +7448,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2978"
+        "mod/init.lua:2987"
       ]
     },
     "The Local AI pack finds these. It is not installed or not ready, so none are collected now.": {
@@ -7489,7 +7489,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2960",
+        "mod/init.lua:2969",
         "mod/phone-chat-style.lua:55",
         "mod/phone-chat.lua:12"
       ]
@@ -9095,7 +9095,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2951"
+        "mod/init.lua:2960"
       ]
     },
     "Your Convai plan is active.": {
@@ -9312,7 +9312,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:2977"
+        "mod/init.lua:2986"
       ]
     },
     "could not be read": {
@@ -9617,7 +9617,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:3210"
+        "mod/init.lua:3219"
       ]
     },
     "{name} joined your group.": {
@@ -10375,7 +10375,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:3210"
+        "mod/init.lua:3219"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

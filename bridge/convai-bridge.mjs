@@ -107,7 +107,7 @@ const leaseWake = createWakeSignal();
 import {PersonaBook, joinBlocks} from './mistral-prompt.mjs';
 import {LocalStt} from './local-stt.mjs';
 import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-capture.mjs';
-import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, warmConnection} from './mistral-client.mjs';
+import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, failureDetail as localFailureDetail, warmConnection} from './mistral-client.mjs';
 import {TurnClock, withClock, markStage} from './turn-clock.mjs';
 import {AddonHost, LOCAL_REMARK_GAP_S, fixedProvider, rosterLookup, sharedMemory} from './addons.mjs';
 
@@ -288,6 +288,14 @@ localServer.on('model-fallback', ({pin, reason, model}) => {
   localModelFallbackNoted = key; mistral.noteLocalModelFallback(model);
 });
 localServer.on('state', () => { try { void mistralControl.publishStatus().catch(() => {}); } catch { /* the control is created further down */ } });
+// What the model server loaded and how its last turn went goes into the status file (the support report reads it): after a start, after the first turn on a model and
+// after a turn that failed (the supervisor says so with this event), bundled within half a second. Nothing runs between those moments.
+let diagnosticsTimer = null;
+localServer.on('diagnostics', () => {
+  if (diagnosticsTimer) return;
+  diagnosticsTimer = setTimeout(() => { diagnosticsTimer = null; try { void mistralControl.publishStatus().catch(() => {}); } catch { /* the control is created further down */ } }, 500);
+  diagnosticsTimer.unref?.();
+});
 const localEmbedder = new LlamaEmbedder({pack: localPack, log: message => console.error('[LocalAI] ' + message)});
 // The pack can be installed while the game runs: look again whenever Local is chosen and while the settings page asks.
 let localPackCheckedAt = 0;
@@ -379,7 +387,10 @@ const keyFailure = (error, input) => {
   // The local AI that could not start: the next turns use the cloud provider, and the game says so once (local-fallback).
   const errorCode = (input?.reaction ? undefined : isLocalUnavailable(error) ? 'local-fallback' : mistralCodeFor(error))
     ?? quota.codeFor(error, {automatic: !!input?.reaction});
-  return errorCode ? {errorCode} : {};
+  // A local turn that failed says what the model was waiting for: one plain English phrase (bridge/mistral-client.mjs failureDetail), which the game shows
+  // after its own sentence (docs/NOTIFICATIONS.md, local-failed). Never a word of the reply, a path or a key.
+  const errorDetail = errorCode === 'local-failed' ? localFailureDetail(error) : undefined;
+  return errorCode ? {errorCode, ...(errorDetail ? {errorDetail} : {})} : {};
 };
 
 const knowledgePack = JSON.parse(await readFile(resolve(project, 'characters/world-knowledge.json'), 'utf8'));
@@ -2868,7 +2879,7 @@ const paidTierControl = await new PaidTierControl({keys, commandPath: resolve(ru
   log: message => console.error('[CyberpunkConvai] ' + message)}).open();
 playerConnectionLimit = () => paidTierControl.connectionLimit();
 const mistralControl = await new MistralControl({provider: mistral, commandPath: resolve(runtime, 'mistral-key-command.json'),
-  inworldCommandPath: resolve(runtime, 'inworld-key-command.json'), localStatus: localAiStatus, localReason: localAiReason, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, localModelDefaults, localModelProblems: customModelProblems, model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
+  inworldCommandPath: resolve(runtime, 'inworld-key-command.json'), localStatus: localAiStatus, localReason: localAiReason, maturePack: () => maturePackInstalled(), localModels: installedLocalModels, localModelDefaults, localModelProblems: customModelProblems, localDiagnostics: () => localServer.diagnostics(), model: () => MISTRAL_MODEL, publish: value => atomic(resolve(runtime, 'mistral-state.json'), JSON.stringify(value))}).open();
 mistral.onChange(() => { void mistralControl.publishStatus().catch(() => {}); });
 const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
   commandPath: resolve(runtime, 'memory-command.json'),

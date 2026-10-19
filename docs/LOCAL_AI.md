@@ -431,6 +431,59 @@ as "Local AI could not answer that. Try again in a moment." (the phone shows the
 A server that could not start keeps its own path (`local-fallback`, see "Provider state"). Both notices are in `docs/NOTIFICATIONS.md`; the
 strings are in the 15 locale files and `localization/en.json`.
 
+### When a local turn fails (2026-10-19: Mature content, Gemma 4, every reply timed out)
+
+A player on 0.2.1 (Local AI, Mature content on, "Gemma 4 E4B", both packs, installed by hand) saw the model preheat and load, and then no message ever
+got an answer; the game's log said only `Conversation timed out`. The cause on that machine is not known (no report came with it); on the developer
+machine (RTX 4080 Laptop, 12 GB) the same set-up answers every turn: the Mature good model (`Gemma4-E4B-MiniFantasy-V1-Q4_K_M.gguf`) took 1.2 s (2.8 s on
+the first run, with the card at rest) to the first word on a cold prompt of 4,800 tokens and 0.23 to 0.42 s on a warm one (34 to 75 tokens/s), the normal
+Gemma 4 E4B with the Mature layer 1.2 s and 0.23 s (75 tokens/s), the Mature lite Qwen3.5-4B 1.3 s and 0.23 s; every reply ended with `finish_reason: stop`,
+the model loaded in 13 s (42 s the first time, shaders included) and left 3.4 GB of graphics memory in use. What the investigation settled, and what changed:
+
+- **The model file is not the cause.** Both Gemma files have the same tokenizer ids (bos 2, eos 1, `<turn|>` 106 is the end of a turn and llama.cpp
+  stops on it) and the same architecture (`gemma4`). The Mature one carries the older Gemma 4 chat template (16,804 characters; the normal one has
+  the 2026-07-09 "canonical" one, 18,567); the two render a plain chat the same way. The Mature lite Qwen template starts the answer with `<think>`
+  unless `enable_thinking` is false, which `--reasoning off` sets; every request to our own server now says it again (`chat_template_kwargs`).
+- **The game gives up after 90 s and the bridge did not.** `mod/init.lua` retires a request 90 s after writing it and shows "No reply arrived. The
+  conversation service may not be running." The local route waited 90 s for a first word, 90 s in all, asked again once after a timeout, never cut a
+  stream that went quiet, and waited without limit for a model that was still loading (a start can take 180 s, a first-time warm-up 3 x 240 s). So any stall
+  (a slow card also running the game and OmniVoice, a computer short of memory, a hung server, a reload after the model choice changed) ended as
+  the same silent timeout, and nothing in the log said which. Now (`bridge/text-provider-host.mjs`, `bridge/mistral-client.mjs`):
+  - the whole turn has a budget of 80 s (`LOCAL_TURN_BUDGET_MS`) counted from the start of the turn: the action decision, the wait for the model to
+    load, every request and the retry of a reply that broke character share it, and no request starts with less than 3 s left;
+  - a request ends when no stream event came for 60 s (`firstByteMs`), when it goes quiet for 25 s after that (`stallMs`) or after 75 s (`totalMs`, cut to
+    what is left of the budget). Any event counts as life, and our own llama-server is asked for `return_progress`, which makes it send one per prompt
+    batch, so a slow prompt that keeps advancing is waited for and a stuck one is named;
+  - a timeout is not asked again (it would repeat the wait); a refusal or an empty reply is, once;
+  - a model still loading when the budget ends ends the turn at once (`still loading`); the load goes on, so the next turn finds it ready, and with a
+    cloud key saved the cloud provider answers that turn (`local-turn-fallback`);
+  - a model that writes only thinking (`reasoning_content`, 160 pieces and no reply text) is stopped at once, not after its 600 tokens.
+- **Every failed turn says why.** The error carries `reason` (`no-response`, `no-first-token`, `prefill-stalled`, `thinking-only`, `stalled`, `loading`,
+  `deadline`) and the request's record (`trace`: when the headers, the first event and the first word came, pieces, thinking pieces, prompt progress,
+  the server's own timings). `failureDetail()` turns it into one plain English sentence ("stuck reading the prompt (2048 of 4663 tokens after 1 s)").
+  The bridge logs `[LocalTurn] FAILED: ...` with the model file, family, chat template (source, length, hash), context and server state; the first
+  turn after each load and any turn whose first word took more than 8 s are logged the same way (`[LocalTurn] ok ...`).
+  The game's `local-failed` notice shows the sentence after its own translated one (`errorDetail` in `reply.json`, shown as data: not a translation
+  key; only short printable ASCII is shown). The phone's status line stays the translated sentence alone.
+- **What is loaded is written down.** `LocalLlmServer#diagnostics()` (file name, never a path; family; chat template source, length, hash and first words
+  from `/props`; bos and eos; llama.cpp build; the device taken and its free memory; the context; free and total system memory; load and warm-up time;
+  turn counts; the last turn; the last exit) is logged once as `[local] model ready: ...`, published in `runtime/mistral-state.json` as `localDiagnostics`
+  and copied by the support report as `summary.json` `localAi.diagnostics`. A server that did not start, or stopped, leaves its last ten lines of output
+  in the log (`last llama-server output (...)`), and each start logs the graphics devices and the one taken (`graphics devices: ...`).
+- **Reading a report.** `localAi.diagnostics.lastTurn` says how the last turn went; `template` and `model` say what answered; `start.loadMs` and
+  `engine.ram` say whether the machine was short of memory (a Gemma 4 E4B keeps its 2.8 GB of per-layer tables in system memory, mapped from the file).
+- **The device pick.** An AMD APU ("AMD Radeon(TM) Graphics", "AMD Radeon(TM) 780M Graphics") reports as much memory as the system and could win the
+  "most memory" pick over the graphics card of a Ryzen laptop; it is now used only when there is no other device (`isAmdApu`, `pickDevice`).
+- **Replies.** A reply ends at the first end-of-turn or turn-start marker (`<turn|>`, `<|turn>`, `<end_of_turn>`, `<start_of_turn>`, `<|im_end|>`,
+  `<|im_start|>`); our own server is also given them as `stop` strings, so a fine-tune whose end-of-turn token the server does not know cannot run on to
+  the token limit. A Gemma thought channel (`<|channel>thought ... <channel|>`) left in a reply is removed.
+- **Not changed.** A pinned model is used whatever Mature content says (`bridge/local-model-choice.mjs`): with the pin `standard` and the Mature pack
+  installed, the normal Gemma 4 loads with the Mature layer on it. The settings page selects the uncensored model when Mature content is turned on
+  (`mod/mcm.lua`), and 0.2.1's first start of a launch ignored both (fixed by `20fa585c`, already on main).
+- **Tests.** `bridge/local-turn-diagnostics.test.mjs` (fake llama-server: stall after the role chunk, stall while reading the prompt, a reply that stops
+  partway, a model that only thinks, a model still loading, the budget, the request fields, the diagnostics, the log lines, the support report, the
+  notice's Lua). No model is loaded by any test. `docs/NOTIFICATIONS.md` has the notice.
+
 ### The knowledge status file (EPERM in the bridge log)
 
 `Knowledge poll: EPERM ... rename 'runtime\knowledge-status.json.<id>.tmp'` is the bridge's atomic write (temp file, then rename over the

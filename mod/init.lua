@@ -2945,6 +2945,15 @@ local function keyNoticeText(code)
     return nil
 end
 
+-- What a failed Local AI turn was waiting for, in the bridge's own words ("no first word from the model after 60 s"): one short plain English phrase, shown in
+-- brackets after the translated sentence as data, like any provider's error text (it is not a translation key). Anything that is not short printable ASCII is
+-- ignored, and so is a reply without one.
+local function localFailureSuffix(reply)
+    local detail = reply.errorDetail
+    if type(detail) ~= 'string' or detail == '' or #detail > 140 or detail:find('[%c\128-\255]') then return '' end
+    return '\n(' .. detail .. ')'
+end
+
 -- id and text of the notice a reply calls for, or nil for an ordinary reply.
 local function keyReplyNotice(reply)
     if reply.errorCode == 'key-memory' or reply.keyNotice == 'memory-off' then
@@ -2965,7 +2974,7 @@ local function keyReplyNotice(reply)
     end
     -- A turn the local AI could not answer, with no cloud provider to take it over: say so (the next turn tries again).
     if reply.errorCode == 'local-failed' then
-        return 'local-failed', ui.t('Local AI could not answer that. Try again in a moment.')
+        return 'local-failed', ui.t('Local AI could not answer that. Try again in a moment.') .. localFailureSuffix(reply)
     end
     -- A turn the local AI could not answer and the player's cloud provider did: the reply carries this one-line note.
     if reply.keyNotice == 'local-turn-fallback' then
