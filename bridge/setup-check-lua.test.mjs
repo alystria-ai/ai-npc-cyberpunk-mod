@@ -419,6 +419,41 @@ test('the first load announces one problem: the most fundamental, in the fixed o
   assert(table.concat(check.problems(), ',') == 'tweakxl,nsui', table.concat(check.problems(), ','))
 `));
 
+test('a missing Audioware says exactly what to install; Audioware that is there but unseen by the scripts says to update it', () => run(String.raw`
+  installFiles(); serviceRunning()
+  -- nothing of Audioware (no probe, and the scripts were built without it): install Audioware 1.9.9 or newer, with where it comes from
+  env.audioware, env.requirements = nil, 'codeware codeware-ui codeware-textinput'
+  applyEnv(); check.run()
+  assert(table.concat(check.problems(), ',') == 'audioware', table.concat(check.problems(), ','))
+  assert(lineOf('audioware').description == 'Audioware is missing. Install Audioware 1.9.9 or newer from Nexus Mods (nexusmods.com/cyberpunk2077/mods/12001), extract it into the Cyberpunk 2077 folder, then restart the game.', lineOf('audioware').description)
+  assert(table.concat(check.reportLines(), '\n'):find('audioware: problem missing', 1, true))
+  check.tick(true, true); advance(12); check.tick(true, true)
+  answer({}, json.decode(files['runtime/setup-check-request.json']).id); advance(1)
+  local notice = check.tick(true, true)
+  assert(notice == 'Audioware is missing. Install it from Nexus Mods, then restart the game.', tostring(notice))
+  assert(#console == 1 and console[1]:find('Install Audioware 1.9.9 or newer from Nexus Mods (https://www.nexusmods.com/cyberpunk2077/mods/12001)', 1, true), console[1])
+`));
+
+test('Audioware that Cyber Engine Tweaks sees while the scripts were built without it is its own problem: update it, not install it', () => run(String.raw`
+  installFiles(); serviceRunning()
+  -- the report of a player with a release candidate: its version answers, ConvaiRequirements has no 'audioware'
+  env.audioware, env.requirements = '1.9.9-rc.0', 'codeware codeware-ui codeware-textinput'
+  applyEnv(); check.run()
+  assert(table.concat(check.problems(), ',') == 'audioware', table.concat(check.problems(), ','))
+  local item = lineOf('audioware')
+  assert(item.state == 'problem' and item.description == 'Audioware 1.9.9-rc.0 is installed, but this mod’s scripts were built without it. Update Audioware to 1.9.9 or newer from Nexus Mods, then restart the game. If it is already up to date, generate a report below and send it.', item.description)
+  assert(not item.description:find('missing', 1, true), 'it is not missing')
+  assert(table.concat(check.reportLines(), '\n'):find('audioware: problem unbuilt 1.9.9-rc.0', 1, true), table.concat(check.reportLines(), '\n'))
+  check.tick(true, true); advance(12); check.tick(true, true)
+  answer({}, json.decode(files['runtime/setup-check-request.json']).id); advance(1)
+  local notice = check.tick(true, true)
+  assert(notice == 'Audioware is installed but unused. Update it to 1.9.9 or newer, then restart the game.', tostring(notice))
+  assert(#console == 1 and console[1]:find('Audioware is installed, but this mod\'s scripts were built without it. Update Audioware to 1.9.9 or newer', 1, true), console[1])
+  -- beside another missing requirement the notice names both, as "install or update"
+  env.tweakxl = nil; applyEnv(); check.run()
+  assert(table.concat(check.problems(), ',') == 'audioware,tweakxl', table.concat(check.problems(), ','))
+`));
+
 test('the first load names Scripts and Runtime of different versions, a pack one folder too deep and a blocked connection', () => {
   const cases = [
     ['versions', `{id = 'versions', state = 'problem', code = 'mismatch', scripts = '0.2', runtime = '0.2.1'}`,

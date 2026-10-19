@@ -140,6 +140,21 @@ test('known retired metadata is ignored; another current owner is a fatal bounda
   assert.equal(changed.ready, false);
 });
 
+test('a refused owner says which identifier fields differed and how far the active response had got, never an identifier or text', () => {
+  const c = new ConvaiDataAudio(); feed(c, face(), 1); feed(c, pcm(), 2);
+  assert.throws(() => feed(c, terminal(other), 3), error => {
+    assert.match(error.message, /^Convai replaced the active speech owner \(bot-turn-completed; response_id differs, neurosync_turn_id differs, epoch same; the active response had 1 audio packets, no statistics, no end\)$/);
+    assert(!error.message.includes(owner.response_id) && !error.message.includes(other.response_id));
+    return true;
+  });
+  // a message that carries only the other identifier field is told apart from one that carries a different value
+  const only = new ConvaiDataAudio();
+  feed(only, wire({type: 'chunked-neurosync-blendshapes', neurosync_turn_id: 1, fps: 60, start_frame_index: 0,
+    blendshapes: Array.from({length: 2}, () => Array(61).fill(0))}), 1);
+  assert.throws(() => feed(only, wire({type: 'bot-turn-completed', response_id: 'late-response', was_interrupted: false}), 2),
+    /\(bot-turn-completed; response_id new, neurosync_turn_id absent in the new message, epoch none; the active response had 0 audio packets, no statistics, no end\)/);
+});
+
 test('cross-epoch reused response ID does not pass owner matching', () => {
   const c = new ConvaiDataAudio(); feed(c, face());
   assert.throws(() => feed(c, terminal({epoch: 2}), 1), /replaced the active speech owner/);

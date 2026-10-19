@@ -94,6 +94,20 @@ class Assets(unittest.TestCase):
         self.assertEqual({name:(self.export/name).read_bytes() for name in runtime.ASSETS},before)
         self.assertFalse(self.work.exists(),'verification does not create a work directory or load a model')
 
+    def test_the_vortex_marker_file_is_not_part_of_the_source_but_any_other_added_or_changed_file_is(self):
+        # Vortex puts a marker file into every folder it creates in the game folder; the source digest must not count it
+        # (a 0.2.2 report: "Pocket source differs from the pinned official revision" on a Vortex install).
+        clean = runtime.digest_source(self.source)
+        (self.source / '__folder_managed_by_vortex').write_text('')
+        (self.source / 'pocket_tts' / '__folder_managed_by_vortex').write_text('')
+        self.assertEqual(runtime.digest_source(self.source), clean)
+        (self.source / 'pocket_tts' / 'extra.py').write_text('# not in the pinned revision\n')
+        self.assertNotEqual(runtime.digest_source(self.source), clean)
+        (self.source / 'pocket_tts' / 'extra.py').unlink()
+        self.assertEqual(runtime.digest_source(self.source), clean)
+        (self.source / 'pocket_tts/__init__.py').write_text('# changed\n')
+        self.assertNotEqual(runtime.digest_source(self.source), clean)
+
     def test_a_registry_may_hold_1024_voices_with_variant_keys_prepared_only_on_first_use(self):
         many=copy.deepcopy(self.config)
         many['voices'].update({f'npc-kind-{index}':{'status':'unprepared'} for index in range(1021)})

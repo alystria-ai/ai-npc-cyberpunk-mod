@@ -464,6 +464,49 @@ test('enable timeout never admits a send and the next verified enable requires r
   assert.deepEqual(next.guard, before.guard);
 });
 
+test('a first-contact enable that times out is tried once more within the same send, which then goes out verified', async t => {
+  const {memory, provider} = await fixture(t, {timeoutMs: 25});
+  let tries = 0;
+  provider.enableMemory = async () => { tries++; if (tries === 1) return new Promise(() => {}); return {enabled: true, changed: false}; };
+  const route = await talk(memory, 'judy');
+  assert.equal(tries, 2, 'one retry');
+  assert.equal(route.memoryEnabled, true);
+  assert.equal(route.reconnectRequired, true, 'the unknown first attempt means the character connection is refreshed, as after any timed-out enable');
+  // verified now: the next send asks the provider nothing
+  await talk(memory, 'judy'); assert.equal(tries, 2);
+});
+
+test('the retry of a timed-out enable is bounded: after it the send fails closed, and no retry is made for other failures or a cancelled send', async t => {
+  const timeouts = await fixture(t, {timeoutMs: 25});
+  let tries = 0;
+  timeouts.provider.enableMemory = async () => { tries++; return new Promise(() => {}); };
+  await assert.rejects(talk(timeouts.memory, 'judy'), {code: 'TIMEOUT'});
+  assert.equal(tries, 2, 'the first try and one retry, never more');
+  const none = await fixture(t, {timeoutMs: 25, enableRetries: 0});
+  let single = 0;
+  none.provider.enableMemory = async () => { single++; return new Promise(() => {}); };
+  await assert.rejects(talk(none.memory, 'judy'), {code: 'TIMEOUT'});
+  assert.equal(single, 1, 'enableRetries 0 keeps the single try');
+  const refused = await fixture(t, {timeoutMs: 25});
+  let refusals = 0;
+  refused.provider.enableMemory = async () => { refusals++; throw Object.assign(Error('refused'), {code: 'HTTP_ERROR'}); };
+  await assert.rejects(talk(refused.memory, 'judy'), {code: 'HTTP_ERROR'});
+  assert.equal(refusals, 1, 'a refusal is not a slow answer');
+  const network = await fixture(t, {timeoutMs: 25});
+  let reached = 0;
+  network.provider.enableMemory = async () => { reached++; if (reached === 1) throw Object.assign(Error('down'), {code: 'NETWORK_ERROR'}); return {enabled: true, changed: true}; };
+  assert.equal((await talk(network.memory, 'judy')).memoryEnabled, true);
+  assert.equal(reached, 2, 'a connection that could not be made is tried once more');
+  const cancelled = await fixture(t, {timeoutMs: 25});
+  const signal = new AbortController(); let entered = 0;
+  cancelled.provider.enableMemory = async () => { entered++; return new Promise(() => {}); };
+  const sending = talk(cancelled.memory, 'judy', {signal: signal.signal}); sending.catch(() => {});
+  await until(() => entered === 1); signal.abort();
+  await assert.rejects(sending, {code: 'CANCELLED'});
+  assert.equal(entered, 1, 'a cancelled send does not start another enable');
+  await assert.rejects(PlayerMemory.open({path: join(timeouts.directory, 'other.json'), characterIds: ids, enableRetries: 9}), {code: 'INVALID_CONFIGURATION'});
+});
+
 test('failed local quiesce invalidates guard but never deletes provider memory', async t => {
   const {memory, calls} = await fixture(t, {quiesce: async () => ({quiesced: false})});
   await talk(memory, 'judy'); calls.length = 0;

@@ -17,7 +17,8 @@ appendFileSync(join(state, 'fake-starts.log'), 'start ' + process.pid + '\\n');
 writeFileSync(join(state, 'fake-env-' + process.pid + '.json'), JSON.stringify({state, game,
   key: process.env.CYBERPUNK_CONVAI_KEY_FILE, nodeOptions: process.env.NODE_OPTIONS ?? null, cwd: process.cwd()}));
 const crash = behavior.crashStarts?.includes(starts) || behavior.crashAlways;
-if (crash && behavior.crashBeforeReady) process.exit(behavior.exitCode ?? 3);
+// behavior.stderrText: what a crashing bridge says on its stderr before it ends (Node's own message for a module that is not there).
+if (crash && behavior.crashBeforeReady) { if (behavior.stderrText) process.stderr.write(behavior.stderrText + '\\n'); process.exit(behavior.exitCode ?? 3); }
 const control = join(state, 'bridge-control.json');
 let observed = (() => { try { return readFileSync(control, 'utf8'); } catch { return ''; } })();
 const publish = voice => {

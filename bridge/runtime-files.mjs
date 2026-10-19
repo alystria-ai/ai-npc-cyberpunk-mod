@@ -12,7 +12,7 @@
 //     in the log, never a stack trace, and the supervisor takes that exit as `install-incomplete` too (no restart loop).
 // Only file names relative to the Runtime's app folder are ever logged: never a folder, which can hold the Windows user name.
 import {access, readFile} from 'node:fs/promises';
-import {resolve} from 'node:path';
+import {posix, resolve} from 'node:path';
 
 /** Read at the bridge's start, with no fallback that would let it work: the roster, the world knowledge, the quest list and the phone contacts. */
 export const RUNTIME_DATA_FILES = Object.freeze([
@@ -22,8 +22,57 @@ export const RUNTIME_DATA_FILES = Object.freeze([
   'research/cyberpunk/generated/quest-catalog.json',
 ]);
 
+/**
+ * Files of the Node packages the bridge imports (packaging/release.config.json `nodePackages`): a Runtime extracted only partly, or one an
+ * antivirus removed files from, can lack the whole package or one file deep inside it (2026-10-19, two reports: "Cannot find package
+ * 'playwright'" and "Cannot find module './dispatchers/dispatcher'" inside playwright-core), and the bridge then dies at its first import,
+ * before it can say anything. The last name is the file that was missing in the second report.
+ */
+export const RUNTIME_PACKAGE_FILES = Object.freeze([
+  'node_modules/playwright/package.json',
+  'node_modules/playwright-core/package.json',
+  'node_modules/playwright-core/lib/server/dispatchers/dispatcher.js',
+]);
+
+/** Everything the supervisor looks for before it starts the bridge. */
+export const RUNTIME_REQUIRED_FILES = Object.freeze([...RUNTIME_DATA_FILES, ...RUNTIME_PACKAGE_FILES]);
+
 /** The bridge's exit code for "a data file of the Runtime is missing" (EX_CONFIG); the supervisor does not restart it. */
 export const INCOMPLETE_EXIT_CODE = 78;
+
+const slashes = text => String(text).replace(/\\/g, '/');
+
+/** A file Node named, as the Runtime names it: relative to `project` when it is under it, else from its node_modules folder on, else its file name. */
+function runtimeName(path, project) {
+  const clean = posix.normalize(slashes(path).replace(/^file:\/\/\/?/i, ''));
+  const root = project ? posix.normalize(slashes(project)).replace(/\/+$/, '') : '';
+  if (root && clean.toLowerCase().startsWith(root.toLowerCase() + '/')) return clean.slice(root.length + 1);
+  const modules = clean.toLowerCase().indexOf('/node_modules/');
+  if (modules >= 0) return clean.slice(modules + 1);
+  return posix.basename(clean);
+}
+
+/**
+ * What the bridge's own stderr (the text since its last start) says when Node could not load one of its files or packages: a package, a file
+ * of it or a module of the bridge that is not there. Returns that file as a name relative to the Runtime (`node_modules/playwright`,
+ * `node_modules/playwright-core/lib/server/dispatchers/dispatcher`; never a folder of the player's) or null when the log says something else.
+ * The three messages Node gives: ESM "Cannot find package 'x' imported from ...", ESM "Cannot find module '<path>' imported from ...", and
+ * CommonJS "Cannot find module '<specifier>'" with the file that asked for it on the "Require stack:" line after it.
+ */
+export function missingModuleInLog(text, project = '') {
+  const log = slashes(text ?? '');
+  const bare = /Cannot find package '([^']+)' imported from/.exec(log);
+  if (bare) return `node_modules/${bare[1].split('/').slice(0, bare[1].startsWith('@') ? 2 : 1).join('/')}`;
+  const found = /Cannot find module '([^']+)'([\s\S]{0,40}imported from)?/.exec(log);
+  if (!found) return null;
+  const specifier = found[1];
+  if (found[2] || /^(?:[A-Za-z]:)?\//.test(specifier) || /^file:/i.test(specifier)) return runtimeName(specifier, project);
+  if (!/^\.\.?\//.test(specifier)) return `node_modules/${specifier.split('/').slice(0, specifier.startsWith('@') ? 2 : 1).join('/')}`;
+  // A relative specifier: it is relative to the first file of the require stack.
+  const requirer = /Require stack:\s*\n\s*-\s*([^\n]+)/.exec(log);
+  if (!requirer) return posix.basename(specifier);
+  return runtimeName(posix.join(posix.dirname(slashes(requirer[1]).trim()), specifier), project);
+}
 
 /** The names of `files` that are not under `project` (an unreadable one counts as missing). Never throws. */
 export async function missingRuntimeFiles(project, files = RUNTIME_DATA_FILES, {exists = access} = {}) {

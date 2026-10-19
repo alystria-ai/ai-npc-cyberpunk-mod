@@ -301,6 +301,49 @@ test('a bridge that ends with the incomplete-Runtime exit code is not restarted 
   run.endGame(); await run.done;
 });
 
+test('a bridge that dies on a package or file of its own that is not there is "install-incomplete" after one start, naming the file and never a folder', async t => {
+  const f = await fixture(t);
+  const asked = join(f.project, 'node_modules', 'fakepkg-core', 'lib', 'server', 'index.js').replace(/\//g, '\\');
+  await writeFile(join(f.state, 'fake-behavior.json'), JSON.stringify({crashAlways: true, crashBeforeReady: true, exitCode: 1,
+    stderrText: `node:internal/modules/cjs/loader:1564\nError: Cannot find module './inner/thing'\nRequire stack:\n- ${asked}\n  code: 'MODULE_NOT_FOUND',`}));
+  const run = supervise(f);
+  const failed = await until(() => readJson(f.statusPath), value => value?.state === 'failed', 'no failure was published');
+  assert.equal(failed.code, 'install-incomplete', 'not bridge-crashed');
+  await sleep(500);
+  assert.equal((await bridgePids(f.state)).length, 1, 'one start, no restart loop');
+  const log = await readFile(join(f.state, 'bridge-service.log'), 'utf8');
+  const line = log.split('\n').find(text => text.includes('The Runtime is incomplete'));
+  assert(line, log);
+  assert.match(line, /The Runtime is incomplete: node_modules\/fakepkg-core\/lib\/server\/inner\/thing is missing\. Download the Runtime again/);
+  assert(!line.includes(f.project) && !line.toLowerCase().includes(basename(f.root).toLowerCase()), 'never a folder');
+  assert.doesNotMatch(log, /exited unexpectedly/, 'not counted as a crash');
+  run.endGame(); await run.done;
+});
+
+test('a bridge that crashes for another reason is still a crash that is restarted and finally "bridge-crashed"', async t => {
+  const f = await fixture(t, {behavior: {crashAlways: true, crashBeforeReady: true, exitCode: 1,
+    stderrText: 'TypeError: something is not a function\n    at run (convai-bridge.mjs:1:1)'}});
+  const run = supervise(f);
+  const failed = await until(() => readJson(f.statusPath), value => value?.state === 'failed', 'no failure was published');
+  assert.equal(failed.code, 'bridge-crashed');
+  assert(((await bridgePids(f.state)).length) >= 3, 'restarted until the crash limit');
+  assert.match(await readFile(join(f.state, 'bridge-service.log'), 'utf8'), /exited unexpectedly/);
+  run.endGame(); await run.done;
+});
+
+test('a Runtime without a Node package the bridge imports is "install-incomplete" with no bridge started', async t => {
+  const f = await fixture(t);
+  const files = ['node_modules/fakepkg/package.json'];
+  const run = supervise(f, {requiredFiles: files});
+  const failed = await until(() => readJson(f.statusPath), value => value?.state === 'failed', 'an incomplete Runtime was not reported');
+  assert.equal(failed.code, 'install-incomplete'); assert.equal(run.spawned.length, 0);
+  assert.match(await readFile(join(f.state, 'bridge-service.log'), 'utf8'), /node_modules\/fakepkg\/package\.json is missing/);
+  await mkdir(join(f.project, 'node_modules', 'fakepkg'), {recursive: true});
+  await writeFile(join(f.project, 'node_modules', 'fakepkg', 'package.json'), '{}');
+  await until(() => readJson(f.statusPath), value => value?.state === 'ready', 'the bridge did not start once the package was back');
+  run.endGame(); await run.done;
+});
+
 test('a bridge that ignores shutdown is ended with its process tree after the grace period', async t => {
   const f = await fixture(t, {behavior: {ignoreShutdown: true}});
   const killed = [];

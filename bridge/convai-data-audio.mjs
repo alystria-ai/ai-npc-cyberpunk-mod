@@ -148,6 +148,18 @@ export class ConvaiDataAudio {
     this.frames.clear();
   }
 
+  // Why an owner was refused, for the error report (2026-10-19: four turns of one player failed on this, and the report said only that
+  // the owner was replaced): which identifier fields the message carried against the active owner's (never their values), the message
+  // type, and how far the active response had got. Field and type names only; type is one of TYPES.
+  ownerChange(owner, type) {
+    const fields = ownerFields.map(field => {
+      const had = this._owner?.[field] !== undefined, has = owner[field] !== undefined;
+      return `${field} ${had && has ? (this._owner[field] === owner[field] ? 'same' : 'differs') : had ? 'absent in the new message' : has ? 'new' : 'none'}`;
+    });
+    return `${TYPES.has(type) ? type : 'other'}; ${fields.join(', ')}; the active response had ${this.packetCount} audio packets, `
+      + `${this.stats ? 'its statistics' : 'no statistics'}, ${this.terminal ? 'its end' : 'no end'}`;
+  }
+
   accept(input, {kind, atMs} = {}) {
     if (this.error || this.sealed) return false;
     try {
@@ -164,7 +176,7 @@ export class ConvaiDataAudio {
         if (!hasOwner(owner) && ['bot-started-speaking', 'bot-stopped-speaking'].includes(data.type)) return false;
         if (!hasOwner(owner)) return this.fail('Convai speech metadata has no response owner');
         if (this.retiredOwners.some(retired => sameOwner(retired, owner))) return false;
-        if (this._owner && !sameOwner(this._owner, owner)) return this.fail('Convai replaced the active speech owner');
+        if (this._owner && !sameOwner(this._owner, owner)) return this.fail(`Convai replaced the active speech owner (${this.ownerChange(owner, data.type)})`);
         this._owner = {...this._owner, ...owner};
       }
       switch (data.type) {

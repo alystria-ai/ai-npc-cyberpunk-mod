@@ -40,24 +40,25 @@ test('every requirement present: no problem, no notice, nothing on the console, 
 test('the scripts without Audioware: the notice names Audioware only, from the scripts and not from the probe', () => run(String.raw`
   ${firstLoad}
   installFiles(); serviceRunning()
-  -- Audioware's own probe may still answer (the class exists in CET); what the scripts were compiled with is the answer
-  env.requirements = 'codeware codeware-ui codeware-textinput'; applyEnv()
+  -- What the scripts were compiled with is the answer; Audioware's plugin may still register its class in CET (no version answers then)
+  env.requirements = 'codeware codeware-ui codeware-textinput'; env.audioware = nil; applyEnv()
   check.run()
   assert(table.concat(check.problems(), ',') == 'audioware', table.concat(check.problems(), ','))
-  assert(lineOf('audioware').state == 'problem' and lineOf('audioware').description == 'Audioware is missing. Install it from Nexus Mods, then restart the game.')
+  assert(lineOf('audioware').state == 'problem' and lineOf('audioware').description:find('Audioware is missing. Install Audioware 1.9.9 or newer from Nexus Mods', 1, true))
   assert(lineOf('codeware').state == 'ok' and lineOf('redscript').state == 'ok' and lineOf('red4ext').state == 'ok')
   assert(check.requirement('audioware') == false and check.requirement('codeware') == true)
   local shown = notice()
   assert(shown == 'Audioware is missing. Install it from Nexus Mods, then restart the game.', tostring(shown))
   assert(not shown:find('Codeware', 1, true) and not shown:find('TweakXL', 1, true))
-  assert(#console == 1 and console[1] == '[AiNpcCyberpunkMod] AI NPC Cyberpunk Mod: Audioware is missing. Install it from Nexus Mods, then restart the game.', console[1])
+  assert(#console == 1 and console[1]:find('[AiNpcCyberpunkMod] AI NPC Cyberpunk Mod: Audioware is missing. Install Audioware 1.9.9 or newer from Nexus Mods', 1, true), console[1])
   assert(files['runtime/probe.log']:find('Setup check: problems: audioware', 1, true))
   -- once per game session
   for _ = 1, 40 do advance(1); assert(check.tick(true, true) == nil) end
   assert(#console == 1)
-  -- the same without the probe seeing Audioware
-  env.audioware = nil; applyEnv(); check.run()
+  -- Audioware whose own version answers (its scripts are loaded) but that these scripts were built without: installed, so not "missing"
+  env.audioware = '1.9.9-rc.0'; applyEnv(); check.run()
   assert(table.concat(check.problems(), ',') == 'audioware')
+  assert(table.concat(check.reportLines(), '\n'):find('audioware: problem unbuilt 1.9.9-rc.0', 1, true))
 `));
 
 test('the scripts without Codeware: Codeware alone, and Codeware with Audioware as one notice naming both', () => run(String.raw`
@@ -75,7 +76,7 @@ test('the scripts without Codeware: Codeware alone, and Codeware with Audioware 
 test('Codeware and Audioware both missing is one notice naming both, and the console says each once', () => run(String.raw`
   ${firstLoad}
   installFiles(); serviceRunning()
-  env.requirements = ''; applyEnv()
+  env.requirements = ''; env.audioware = nil; applyEnv()
   check.run()
   assert(table.concat(check.problems(), ',') == 'codeware,audioware', table.concat(check.problems(), ','))
   assert(lineOf('red4ext').state == 'ok', 'the probes of the CET side still prove RED4ext')
@@ -125,7 +126,7 @@ test('Codeware without its UI part is also too old, and a mix of old Codeware an
   check.run()
   assert(lineOf('codeware').state == 'problem' and lineOf('codeware').description:find('too old', 1, true))
   assert(check.codewareNotice() == 'Codeware is too old. Update it from Nexus Mods, then restart the game.')
-  env.requirements = 'codeware codeware-ui'; applyEnv()
+  env.requirements = 'codeware codeware-ui'; env.audioware = nil; applyEnv()
   check.run()
   assert(table.concat(check.problems(), ',') == 'codeware,audioware', table.concat(check.problems(), ','))
   assert(lineOf('codeware').description:find('too old', 1, true) and lineOf('audioware').description:find('is missing', 1, true))

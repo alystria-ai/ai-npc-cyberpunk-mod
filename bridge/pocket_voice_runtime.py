@@ -19,7 +19,9 @@ import time
 PROTOCOL_VERSION = 1
 SOURCE_REVISION = "41cbc84af539ea78a804ffca5f9c6edc1a22ce44"
 SOURCE_SHA256 = "b86f98955b6c4776bb24a748b321408aba89d3b66f6b911f415ef4f4191a7666"
-SOURCE_IGNORES = {".git", "__pycache__", ".pytest_cache", ".ruff_cache"}
+# __folder_managed_by_vortex: Vortex drops this marker file into folders it creates in the game folder (one 0.2.2 report: the Pocket source "differs
+# from the pinned official revision" on a Vortex install, with that file in the Runtime's folders), so it is not part of the source.
+SOURCE_IGNORES = {".git", "__pycache__", ".pytest_cache", ".ruff_cache", "__folder_managed_by_vortex"}
 ASSETS = {"model.safetensors": "sha256", "inference.yaml": "configSha256",
           "tokenizer.json": "tokenizerSha256", "receipt.json": "receiptSha256"}
 MAX_TEXT = 12_000

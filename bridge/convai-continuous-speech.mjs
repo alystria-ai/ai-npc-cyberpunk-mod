@@ -16,6 +16,12 @@ const SHARING_ERRORS = new Set(['EPERM', 'EACCES', 'EBUSY']);
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 const integer = value => Number.isSafeInteger(value) && value >= 0;
 const quiet = () => ({allow: false, paused: true, volume: 0, pan: 0});
+// The renderer's own reason (the page's player says why it failed: a collection fault, an audio device fault...) as a short printable
+// suffix: three of the four 0.2.2 reports of this failure carried no cause at all. Only a string of the player's own is used.
+const rendererReason = error => {
+  const text = typeof error === 'string' ? error.replace(/[^\x20-\x7e]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160) : '';
+  return text ? ` (${text})` : '';
+};
 // The game must refresh playback control within this window or the stream stops.
 // Test harnesses that run the real bridge beside dozens of other processes may
 // lengthen it (never shorten it) so a starved simulated game is not mistaken for
@@ -173,7 +179,7 @@ export class ConvaiContinuousSpeech {
     if (!await this.valid()) throw Error('Continuous speech owner changed');
     if (!snapshot || snapshot.version !== 1 || snapshot.token !== this.token) throw Error('Continuous speech token mismatch');
     if (this.ended) return quiet();
-    if (snapshot.error) throw Error('Continuous speech renderer failed');
+    if (snapshot.error) throw Error('Continuous speech renderer failed' + rendererReason(snapshot.error));
     // The host also polls while the service is thinking. No audio device or
     // actor is admitted until there is validated PCM and nonempty reply text.
     if (!snapshot.sampleRate || !snapshot.receivedFrames) return quiet();
