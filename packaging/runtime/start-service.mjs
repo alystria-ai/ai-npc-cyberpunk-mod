@@ -41,6 +41,15 @@ const startedAt = Date.now();
 const startNotes = []; // log lines from before the log file's folder is known
 let stage = 'starting', stateFolder = null, statusOwner = 'service', beat = null, logSink = null;
 const canReachGame = existsSync(resolve(gameRoot, MOD_FOLDER, 'init.lua'));
+// The game this start serves. A start can outlive it (the game closed or crashed during a long first start, and the player started it
+// again): the next session's launcher and start script write the same file, so a start whose game has ended publishes nothing more,
+// above all not a failure the new session would show as its own. The same test as the supervisor's processAlive: a process that exists
+// but cannot be opened counts as running. Without --game-pid (a start by hand) there is nothing to check.
+const gamePid = Number(option('--game-pid')) || null;
+const gameRunning = () => {
+  if (!Number.isSafeInteger(gamePid) || gamePid <= 0) return true;
+  try { process.kill(gamePid, 0); return true; } catch (error) { return error?.code === 'EPERM'; }
+};
 const note = message => { if (logSink) logSink(message); else startNotes.push(message); };
 
 // What this process sees, for the log and for the status the game reads (so the short report carries it): whether it runs inside Mod
@@ -76,14 +85,14 @@ function shortReason(error) {
 // Written in place (an existing file opened for writing stays where it is under Mod Organizer 2) and never creating the CET mod folder:
 // when that folder is not there, nothing here makes it.
 function publish(state, code, reason) {
-  if (statusOwner !== 'service' || (prepareOnly && state !== 'failed')) return;
+  if (statusOwner !== 'service' || (prepareOnly && state !== 'failed') || !gameRunning()) return;
   try {
     const folder = dirname(statusPath);
     if (!existsSync(folder)) { if (!canReachGame) return; mkdirSync(folder, {recursive: true}); }
     const now = Date.now();
     writeFileSync(statusPath, JSON.stringify({version: 1, state, code, source: 'service', stage, ...(reason ? {reason} : {}), view: viewSummary,
       since: state === 'failed' ? now : startedAt, updated: now, supervisorPid: process.pid, bridgePid: null, adopted: false, restarts: 0,
-      gamePid: Number(option('--game-pid')) || null, gameRoot: resolve(gameRoot), ...(stateFolder ? {stateDirectory: stateFolder} : {})}));
+      gamePid, gameRoot: resolve(gameRoot), ...(stateFolder ? {stateDirectory: stateFolder} : {})}));
   } catch {}
 }
 // While this script prepares (before the supervisor owns the file) the status is refreshed every few seconds, for five minutes at most:
@@ -93,7 +102,9 @@ const PREPARE_LIMIT_MS = 300_000;
 const stopBeat = () => { if (beat) { clearInterval(beat); beat = null; } };
 const startBeat = () => {
   if (prepareOnly) return;
-  beat = setInterval(() => { if (Date.now() - startedAt > PREPARE_LIMIT_MS) stopBeat(); else publish('starting', 'service-starting'); }, 5000);
+  beat = setInterval(() => {
+    if (Date.now() - startedAt > PREPARE_LIMIT_MS || !gameRunning()) stopBeat(); else publish('starting', 'service-starting');
+  }, 5000);
   beat.unref();
 };
 // Same file and fields the supervisor publishes, so the in-game status explains the problem.
@@ -295,8 +306,8 @@ try {
   publishFailure('service-error', shortReason(error));
   process.exit(1);
 }
-// From here the supervisor writes the status (its first line comes before it waits for an earlier service to let go), and answers for
-// what it does; the guards of the preparation end.
+// From here the supervisor writes the status (at once when it holds the lock, after 5 s when it waits for an earlier service to let go),
+// and answers for what it does; the guards of the preparation end.
 stopBeat(); statusOwner = 'supervisor';
 process.removeListener('uncaughtException', died);
 process.removeListener('unhandledRejection', died);

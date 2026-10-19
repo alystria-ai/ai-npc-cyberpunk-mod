@@ -59,6 +59,8 @@ async function install({inGame = false, withInit = true} = {}) {
 }
 const start = (f, ...extra) => spawnSync(process.execPath, [join(f.app, 'launcher/start-service.mjs'), '--game-root', f.game, ...extra],
   {encoding: 'utf8', timeout: 60_000, env: f.env});
+// The game's PID the launcher passes: a running process (this test's own), since a start whose game has ended publishes nothing.
+const GAME = String(process.pid);
 
 test('a Runtime in an MO2 mod folder, far from the game folder, prepares and leaves the mod folder untouched', async () => {
   const f = await install();
@@ -119,7 +121,7 @@ test('a missing file of the service ends in a failed status with a short reason 
   const f = await install();
   try {
     await rm(join(f.app, 'launcher/place-packs.mjs'));
-    const result = start(f, '--game-pid', '4242');
+    const result = start(f, '--game-pid', GAME);
     assert.equal(result.status, 1, result.stderr + result.stdout);
     const status = await readStatus(f.game);
     assert.equal(status.state, 'failed');
@@ -127,7 +129,7 @@ test('a missing file of the service ends in a failed status with a short reason 
     assert.equal(status.stage, 'loading-modules');
     assert.equal(status.source, 'service');
     assert.equal(status.view, 'usvfs no; Runtime outside the game folder; init.lua visible', 'the status says what the service sees, for the short report');
-    assert.equal(status.gamePid, 4242);
+    assert.equal(status.gamePid, process.pid);
     assert.match(status.reason, /place-packs\.mjs/);
     assert.doesNotMatch(status.reason, /[A-Za-z]:[\\/]|Users|Modlists|Games/, status.reason);
     assert(status.reason.length <= 140);
@@ -159,7 +161,7 @@ test('a stage that never finishes leaves a fresh "starting" naming the stage, wr
   await cp(join(f.app, 'launcher/prepare-state.mjs'), join(f.app, 'launcher/prepare-state-real.mjs'));
   await put(join(f.app, 'launcher/prepare-state.mjs'), `export {installLayout, serviceEnvironment} from './prepare-state-real.mjs';\n`
     + 'export const prepareState = () => new Promise(() => setInterval(() => {}, 1000));\n');
-  const child = spawn(process.execPath, [join(f.app, 'launcher/start-service.mjs'), '--game-root', f.game, '--game-pid', '4242'],
+  const child = spawn(process.execPath, [join(f.app, 'launcher/start-service.mjs'), '--game-root', f.game, '--game-pid', GAME],
     {env: f.env, stdio: 'ignore', windowsHide: true});
   try {
     let status;
@@ -173,7 +175,7 @@ test('a stage that never finishes leaves a fresh "starting" naming the stage, wr
     assert.equal(status.code, 'service-starting');
     assert.equal(status.source, 'service');
     assert.equal(status.supervisorPid, child.pid);
-    assert.equal(status.gamePid, 4242);
+    assert.equal(status.gamePid, process.pid);
     assert.equal(status.stateDirectory, f.state);
     assert(Math.abs(Date.now() - status.updated) < 10_000);
     // The file is where the layout puts the game's runtime/, the one mod/service-status.lua reads.
@@ -184,6 +186,30 @@ test('a stage that never finishes leaves a fresh "starting" naming the stage, wr
     for (let waited = 0; waited < 15_000 && later === first; waited += 200) { await sleep(200); later = (await readStatus(f.game).catch(() => status)).updated; }
     assert.notEqual(later, first, 'the status is refreshed while the script prepares');
   } finally { child.kill(); await sleep(200); await f.cleanup(); }
+});
+
+// A start can outlive its game: the game closes or crashes during a long first start and the player starts it again at once. The next
+// session's launcher and start script write the same runtime/bridge-service.json, so a start whose game has ended must not write over
+// it, least of all with a failure the new session would show as its own.
+test('a start whose game has ended writes nothing over the status of the next session, and still logs its failure', async () => {
+  const f = await install();
+  try {
+    const ended = spawnSync(process.execPath, ['-e', ''], {timeout: 30_000}).pid;
+    assert(Number.isSafeInteger(ended) && ended > 0);
+    const next = JSON.stringify({version: 1, state: 'starting', code: 'launcher-started', source: 'launcher', gamePid: process.pid,
+      since: Date.now(), updated: Date.now()});
+    await put(join(f.game, MOD, 'runtime/bridge-service.json'), next);
+    await rm(join(f.app, 'launcher/place-packs.mjs'));
+    const result = start(f, '--game-pid', String(ended));
+    assert.equal(result.status, 1, result.stderr + result.stdout);
+    assert.equal(await read(join(f.game, MOD, 'runtime/bridge-service.json')), next, 'the next session\'s status is left as it is');
+    assert.match(await read(join(f.state, 'bridge-service.log')), /Loading the service's own files failed/, 'the log still says why');
+    // The same start for a game that runs reports the failure.
+    const running = start(f, '--game-pid', GAME);
+    assert.equal(running.status, 1);
+    const status = await readStatus(f.game);
+    assert.deepEqual([status.state, status.code, status.gamePid], ['failed', 'install-incomplete', process.pid]);
+  } finally { await f.cleanup(); }
 });
 
 test('a service that cannot see the game\'s mod folder stops and writes nothing under the game folder', async () => {
