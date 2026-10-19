@@ -133,7 +133,8 @@ export function rejectedParameters(status, text) {
 
 /** Maps what the custom provider answered: the same few kinds, plus 402 (no credit) and a refused request field. */
 function mapCustomFailure(status, body, {headers, apiKey}) {
-  const text = textOf(body), lower = text.toLowerCase();
+  // Google's OpenAI-compatible endpoint answers an error as a list of one error object.
+  const text = textOf(Array.isArray(body) ? body[0] : body), lower = text.toLowerCase();
   const options = {status, retryAfterMs: customRetryAfter(headers), apiKey, provider: 'custom'};
   // The server's own words travel with the error (redacted) so the connection test can show them; the message names what it means.
   const make = (kind, detail, extra = {}) => {
@@ -154,6 +155,9 @@ function mapCustomFailure(status, body, {headers, apiKey}) {
   }
   const rejected = rejectedParameters(status, text);
   if (rejected) { const error = make('request', `refused the request: ${text || `HTTP ${status}`}`); error.paramsRejected = rejected; return error; }
+  // A 404 that speaks of a model (or OpenRouter's "No endpoints found for <model>") is an unknown model id. A bare "Not Found" (an HTML page, Ollama's
+  // "404 page not found") is a wrong address: a path without /v1, Ollama's own /api, a site's web page. The player is sent to the address, not the model.
+  if (status === 404 && !/model|no endpoints found/.test(lower)) return Object.assign(make('network', `has no chat endpoint at that address (HTTP 404)${text ? `: ${text}` : ''}`), {permanent: true});
   if (status === 404 || ((status === 400 || status === 422) && /model/.test(lower))) return make('model', `does not know that model: ${text || `HTTP ${status}`}`);
   if (status === 408 || (status >= 500 && status <= 599)) return make('network', `had a server fault (HTTP ${status})`, {slow: true});
   return make('request', `refused the request: ${text || `HTTP ${status}`}`);
@@ -187,8 +191,8 @@ export function mapFailure(status, body, {headers, apiKey, provider} = {}) {
   return new MistralError('request', detail, options);
 }
 
-/** Retry only what clears by itself: the per-second limit, a server fault, a timeout, an empty answer. Never a bad key. */
-export const retryable = error => error instanceof MistralError && !error.zeroQuota && !error.daily && !error.partial
+/** Retry only what clears by itself: the per-second limit, a server fault, a timeout, an empty answer. Never a bad key, nor a wrong address (`permanent`, custom only). */
+export const retryable = error => error instanceof MistralError && !error.zeroQuota && !error.daily && !error.partial && !error.permanent
   && (error.kind === 'network' || error.kind === 'empty' || error.kind === 'limit');
 
 // ---- SSE ---------------------------------------------------------------------------------------------------------------

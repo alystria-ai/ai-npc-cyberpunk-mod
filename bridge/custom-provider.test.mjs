@@ -243,7 +243,13 @@ test('every failure a player can act on: 401 key, 402 credits, 404 model, 429 li
       [{status: 402, body: {error: {message: 'Insufficient credits'}}}, 'credits', 'custom-credits', 1],
       [{status: 429, body: {error: {code: 'insufficient_quota', message: 'You exceeded your current quota, please check your plan and billing details.'}}}, 'credits', 'custom-credits', 1],
       [{status: 404, body: {error: {message: 'model "nope" not found, try pulling it first'}}}, 'model', 'custom-model', 1],
-      [{status: 404, body: 'Not Found'}, 'model', 'custom-model', 1],
+      // A bare 404 is a wrong address (a path without /v1, Ollama's own /api, a web page), not a model: the player is sent to the address, once.
+      [{status: 404, body: 'Not Found'}, 'network', 'custom-unreachable', 1],
+      [{status: 404, body: '404 page not found'}, 'network', 'custom-unreachable', 1],
+      [{status: 404, body: '<html><body><h1>404</h1><p>This page could not be found.</p></body></html>'}, 'network', 'custom-unreachable', 1],
+      [{status: 404, body: {error: {message: 'No endpoints found for nothing/here.'}}}, 'model', 'custom-model', 1],
+      // Google's endpoint answers with a list of one error object.
+      [{status: 404, body: [{error: {code: 404, message: 'models/nope is not found for API version v1main', status: 'NOT_FOUND'}}]}, 'model', 'custom-model', 1],
       [{status: 400, body: {error: {message: 'Invalid model ID: nope'}}}, 'model', 'custom-model', 1],
       [{status: 429, headers: {'retry-after': '30'}, body: {error: {message: 'Rate limit exceeded'}}}, 'limit', 'custom-limit', 1],
       [{status: 429, body: {error: {message: 'Rate limit exceeded: free-models-per-day'}}}, 'limit', 'custom-limit', 1],
