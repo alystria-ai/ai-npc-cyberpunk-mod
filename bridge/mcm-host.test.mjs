@@ -297,26 +297,24 @@ test('a new interface language: the mod name and the presentation are given agai
   assert(mcm.mod().name ~= 'Companion Manager', 'the mod name in the list follows: ' .. tostring(mcm.mod().name))
 `));
 
-test('both hosts read and write the same saved settings: a change in one is on the page of the other', () => run(`${harness({screen: false})}
-  -- MCM hosts the page, so no Native Settings UI tab was registered; the tab is added by hand, as an MCM found late would leave it.
-  assert(managerUi._test.connect())
+test('both hosts read and write the same saved settings: a change made on the Native Settings UI tab before MCM was found is on the page of MCM, and the tab is gone then', () => run(`${harness({screen: false, hideMcm: true})}
+  -- MCM loads after this mod: the tab is registered first (Native Settings UI alone), a change is made on it.
+  assert(ns.data[TAB] ~= nil and not mcmHost.ready())
   ns.openScreen(TAB)
   frames(6)
-  mcm.openScreen()
-  press('Settings')
-  frames(6)
-  -- A change applied through MCM is on the Native Settings UI tab after it is drawn again.
-  assert(mcm.set('Voice volume (%)', 135) and mcm.apply())
-  assert(manager.snapshot(player).settings.voiceVolume == 135)
-  mcm.closeScreen(); ns.leave(); frames(4); ns.openScreen(TAB); frames(2)
   ns.interact.press(assert(ns.find('Settings'))); frames(6)
-  assert(ns.find('Voice volume (%)').currentValue == 135, tostring(ns.find('Voice volume (%)').currentValue))
-  -- A change made on the Native Settings UI tab is on the MCM page.
   ns.interact.slide(ns.find('Voice volume (%)'), 170); frames(12)
   assert(manager.snapshot(player).settings.voiceVolume == 170)
-  ns.leave(); frames(4)
+  ns.closeScreen(); frames(3)
+  -- MCM appears: it hosts the page and the tab is taken down.
+  mcmHidden = false
+  frames(60)
+  assert(mcmHost.ready(), 'MCM was found')
+  assert(ns.data[TAB] == nil, 'no Native Settings UI tab beside MCM')
   mcm.openScreen(); press('Settings')
   assert(mcm.row('Voice volume (%)').value == 170, 'MCM shows ' .. tostring(mcm.row('Voice volume (%)').value))
+  assert(mcm.set('Voice volume (%)', 135) and mcm.apply())
+  assert(manager.snapshot(player).settings.voiceVolume == 135)
 `));
 
 const footer = `
@@ -701,11 +699,65 @@ test('MCM 0.10.5 hosts the page: no Native Settings UI tab is registered (MCM wo
       assert(managerUi.inspect().available == true)
     `);
   }
-  // MCM hosts the page but will not open it: the shortcut falls back to Native Settings UI, whose tab is registered then.
+  // MCM hosts the page but will not open it: the page is still MCM's alone. The shortcut says why; no tab is registered as a way
+  // around it, now or later.
   run(`${harness({screen: false, mcm: {version: '0.10.5', renderer: false}})}
     assert(ns.data[TAB] == nil)
-    local ok = managerUi.open()
-    assert(ns.data[TAB] ~= nil and ns.callCount('addTab') == 1, 'the fallback registered the tab')
+    local ok, reason = managerUi.open()
+    assert(ok == false and reason:find('renderer', 1, true), tostring(reason))
+    frames(60)
+    assert(ns.data[TAB] == nil and ns.callCount('addTab') == 0, 'no fallback tab beside MCM')
+  `);
+});
+
+test('the rule: MCM 0.10.5 or newer and Native Settings UI both installed means MCM only, whichever loads first or late, and one line says so', () => {
+  // MCM there at onInit: no tab, one log line.
+  run(`${harness({screen: false})}
+    frames(60)
+    assert(ns.data[TAB] == nil and ns.callCount('addTab') == 0)
+    local said = 0
+    for _, line in ipairs(logged) do if line:find('Native Settings UI tab is not registered', 1, true) then said = said + 1 end end
+    assert(said == 1, 'one line, not one a second: ' .. said)
+  `);
+  // MCM loads after this mod (nothing answers at onInit): the tab is registered once MCM is not coming (Native Settings UI alone),
+  // and taken down when MCM turns up.
+  run(`${harness({screen: false, hideMcm: true})}
+    assert(ns.data[TAB] ~= nil, 'Native Settings UI alone: the tab is registered')
+    local tab = ns.data[TAB]
+    mcmHidden = false
+    frames(40)
+    assert(mcmHost.ready(), 'found late')
+    assert(ns.data[TAB] == nil, 'the tab was taken down')
+    assert(managerUi.inspect().available == false and managerUi.inspect().hosts[1].available == true)
+    local removed = ns.callCount('removeSubcategory')
+    assert(removed >= 1, 'its sections went through removeSubcategory')
+    ns.resetCalls()
+    frames(60)
+    assert(#ns.calls == 0 and ns.data[TAB] == nil, 'and nothing is tried again')
+    local said = 0
+    for _, line in ipairs(logged) do if line:find('registered before it was found is removed', 1, true) then said = said + 1 end end
+    assert(said == 1, 'one line: ' .. said)
+  `);
+  // The tab is on screen when MCM turns up: it goes when the player leaves it, not under them.
+  run(`${harness({screen: false, hideMcm: true})}
+    ns.openScreen(TAB); frames(4)
+    mcmHidden = false
+    frames(40)
+    assert(mcmHost.ready() and ns.data[TAB] ~= nil, 'on screen: the tab stays')
+    ns.closeScreen(); frames(20)
+    assert(ns.data[TAB] == nil, 'gone once it is left')
+  `);
+  // MCM present but not able to say yet (its public interface is missing at first): the tab waits, and MCM wins when it comes.
+  run(`${harness({screen: false, mcm: {version: '0.10.5', noUi: true}, earlyClock: true})}
+    assert(not mcmHost.ready() and ns.data[TAB] == nil, 'waiting for an MCM that may still become ready')
+    frames(30)
+    assert(ns.data[TAB] == nil, 'still within the wait')
+    frames(90)
+    assert(ns.data[TAB] ~= nil, 'the wait is bounded: Native Settings UI is used when MCM never hosts the page')
+  `);
+  // An MCM older than 0.10.5 will never host the page: no wait.
+  run(`${harness({screen: false, mcm: {version: '0.10.4'}, earlyClock: true})}
+    assert(ns.data[TAB] ~= nil, 'registered at once')
   `);
 });
 
