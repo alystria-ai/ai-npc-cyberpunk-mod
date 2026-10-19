@@ -71,7 +71,7 @@
     "A memory clear is awaiting its result. It will not be sent again.": "A memory clear is awaiting its result. It will not be sent again.",
     "A memory is too long. Keep each one under {max} characters.": "A memory is too long. Keep each one under {max} characters.",
     "A nearby companion makes one short comment as combat starts and another afterward.\n\nTen-minute cooldown after a fight. Conversations and story scenes come first. Loading a save resets the cooldown.": "A nearby companion makes one short comment as combat starts and another afterward.\n\nTen-minute cooldown after a fight. Conversations and story scenes come first. Loading a save resets the cooldown.",
-    "A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now.": "A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now.",
+    "A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting.": "A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting.",
     "A new vehicle summon interrupted the trip.": "A new vehicle summon interrupted the trip.",
     "A pack is one folder too deep. See Help in Settings.": "A pack is one folder too deep. See Help in Settings.",
     "A previous memory request could not be read. The memory service must reconcile it before another clear.": "A previous memory request could not be read. The memory service must reconcile it before another clear.",
@@ -1802,7 +1802,7 @@
       "A line this character might say",
       "A memory cannot be empty.",
       "A memory is too long. Keep each one under {max} characters.",
-      "A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now.",
+      "A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting.",
       "A pack is one folder too deep. See Help in Settings.",
       "A previous memory request could not be read. The memory service must reconcile it before another clear.",
       "A record name can only use letters, digits, dots, dashes and underscores, for example Character.Rebecca.",
@@ -2574,7 +2574,7 @@
         "mod/manager-ui.lua:1503"
       ]
     },
-    "A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now.": {
+    "A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting.": {
       "contexts": [
         "ui.localized"
       ],

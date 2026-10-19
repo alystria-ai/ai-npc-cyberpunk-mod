@@ -851,7 +851,7 @@ return {
     ["Choose how often Johnny speaks up."] = "Johnny’nin kendiliğinden ne sıklıkla konuşacağını seç.",
     ["A clip you add replaces the shipped voice of this character for Pocket, OmniVoice and the Voxtral cloud voice."] = "Eklediğin klip, Pocket, OmniVoice ve Voxtral bulut sesi için bu karakterin orijinal sesinin yerini alır.",
     ["A display name is too long. Keep each one under {max} characters."] = "Bir görünen ad çok uzun. Her birini {max} karakterden kısa tut.",
-    ["A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now."] = "Yeni eklenen ya da kaldırılan klip, oyun bir sonraki açılışta geçerli olur. O zamana kadar karakter şu anki sesini korur.",
+    ["A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting."] = "Yeni eklenen veya kaldırılan klip, mevcut yanıt bittikten sonra bu karakterin bir sonraki repliğinden itibaren geçerli olur. Hiçbir şeyi yeniden başlatmanız gerekmez.",
     ["A record name can only use letters, digits, dots, dashes and underscores, for example Character.Rebecca."] = "Kayıt adı yalnızca harf, rakam, nokta, kısa çizgi ve alt çizgi içerebilir, örneğin Character.Rebecca.",
     ["Add a display name"] = "Görünen ad ekle",
     ["Add a record name"] = "Kayıt adı ekle",

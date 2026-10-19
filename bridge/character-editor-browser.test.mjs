@@ -311,7 +311,7 @@ test('the player makes a character: fill the form, save, give it a voice clip, u
   assert.equal(e.voices.get(key).transcript, WORDS);
   assert.equal(await page.getByRole('button', {name: 'Remove clip'}).count(), 1);
   assert.equal(await page.locator('#f-clip').count(), 1);
-  assert.match(await page.locator('#main').textContent(), /A new or removed clip counts from the next time the game starts\. Until then the character keeps the voice it has now\./);
+  assert.match(await page.locator('#main').textContent(), /A new or removed clip counts from the next line this character speaks, once the current reply is over\. Nothing needs restarting\./);
   await e.shot('12-voice');
 
   // Unsaved changes ask before they are lost; deleting asks too, and takes the clip with it.

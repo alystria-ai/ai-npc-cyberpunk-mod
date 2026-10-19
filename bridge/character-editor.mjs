@@ -24,10 +24,14 @@ export class CharacterEditor {
    *   route      () => 'convai' | 'mistral' | 'local': who answers conversations now
    *   custom     CustomCharacters (optional: without it the editor has no "New character")
    *   voices     PlayerVoices (optional: without it the editor has no voice clips)
+   *   onChanged  (key) => void: after a save, reset, memory edit or character change reached the store. Everything the prompt reads is a plain lookup per
+   *              turn (PersonaBook, CharacterOverrides, CustomCharacters, MemoryStore), so the next turn already uses it; what a speculative turn
+   *              (a prepared group reply, a look-ahead) wrote before the save is the one thing that does not, and the bridge drops it here.
    */
-  constructor({personas, overrides, memory = null, route = () => 'convai', limits = EDIT_LIMITS, custom = null, voices = null} = {}) {
-    Object.assign(this, {personas, overrides, memory, route, limits, custom, voices});
+  constructor({personas, overrides, memory = null, route = () => 'convai', limits = EDIT_LIMITS, custom = null, voices = null, onChanged = () => {}} = {}) {
+    Object.assign(this, {personas, overrides, memory, route, limits, custom, voices, onChanged});
   }
+  #changed(key) { try { this.onChanged(key); } catch { /* the change is saved; a hook never fails it */ } }
   get limitsForPage() { return {...this.limits, record: STORE_LIMITS.fact, summary: STORE_LIMITS.summary}; }
   /** What the page needs to build the "New character" form. Null without a store. */
   get customForPage() {
@@ -93,6 +97,7 @@ export class CharacterEditor {
     const result = validateOverride(patch, this.defaults(key), this.overrides.get(key) ?? {}, this.limits);
     if (!result.ok) throw new EditorError(422, 'invalid', result.errors);
     await this.#store(key, result.value);
+    this.#changed(key);
     return this.details(key);
   }
   /** Back to the shipped text: the named fields, or all of them. */
@@ -103,6 +108,7 @@ export class CharacterEditor {
     const stored = {...(this.overrides.get(key) ?? {})};
     for (const field of list) delete stored[field];
     await this.#store(key, stored);
+    this.#changed(key);
     return this.details(key);
   }
   async #store(key, fields) {
@@ -131,17 +137,18 @@ export class CharacterEditor {
   }
   async createCustom(input) {
     if (!this.custom) throw new EditorError(404, 'not-found');
-    try { const row = await this.custom.create(input); return this.customDetails(row.key); } catch (error) { throw this.#customError(error); }
+    try { const row = await this.custom.create(input); this.#changed(row.key); return this.customDetails(row.key); } catch (error) { throw this.#customError(error); }
   }
   async saveCustom(key, input) {
     this.#custom(key);
-    try { await this.custom.update(key, input); return this.customDetails(key); } catch (error) { throw this.#customError(error); }
+    try { await this.custom.update(key, input); this.#changed(key); return this.customDetails(key); } catch (error) { throw this.#customError(error); }
   }
   /** Deletes the character, its clip and what it remembered of V. Returns the list the page shows. */
   async deleteCustom(key) {
     this.#custom(key);
     try { await this.custom.delete(key); } catch (error) { throw this.#customError(error); }
     try { this.memory?.forget({profileKeys: [key]}); } catch { /* the character is gone; a memory file left behind is never read again */ }
+    this.#changed(key);
     return {deleted: true, characters: this.catalog()};
   }
 
@@ -176,7 +183,7 @@ export class CharacterEditor {
     if (typeof text !== 'string') throw new EditorError(400, 'bad-request');
     try { await this.voices.setTranscript(key, text); return this.details(key); } catch (error) { throw this.#voiceError(error); }
   }
-  /** Removes the key's clip (the character goes back to the shipped voice, or the generic one, from the next start). Removing none is not an error. */
+  /** Removes the key's clip (the character goes back to the shipped voice, or the generic one, from its next line). Removing none is not an error. */
   async clearVoice(key) {
     this.checkVoiceKey(key);
     try { await this.voices.clear(key); return this.details(key); } catch (error) { throw this.#voiceError(error); }
@@ -201,17 +208,20 @@ export class CharacterEditor {
     if (typeof id !== 'string' || typeof text !== 'string') throw new EditorError(400, 'bad-request');
     if (!cleanLine(text)) throw new EditorError(422, 'empty');
     if (!this.memory.editRecord(key, id, text)) throw new EditorError(404, 'not-found');
+    this.#changed(key);
     return this.details(key);
   }
   deleteRecord(key, id) {
     this.#named(key);
     if (!this.memory.deleteRecord(key, id)) throw new EditorError(404, 'not-found');
+    this.#changed(key);
     return this.details(key);
   }
   setSummary(key, text) {
     this.#named(key);
     if (typeof text !== 'string') throw new EditorError(400, 'bad-request');
     if (this.memory.setSummary(key, text) === null) throw new EditorError(500, 'not-saved');
+    this.#changed(key);
     return this.details(key);
   }
 }

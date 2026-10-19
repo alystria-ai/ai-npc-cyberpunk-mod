@@ -75,3 +75,44 @@ export function createVoiceProfileRegistry(config = {}) {
     has: key => Object.hasOwn(profiles, key),
     status: key => Object.hasOwn(profiles, key) ? 'ready' : unavailable[key] ?? 'missing'});
 }
+
+// ---- Changing voices while a worker runs (a player gave a character a clip, or took it away: docs/CHARACTER_EDITOR.md, "Voice clips") ----
+// A voice table is a registry's voices as plain descriptors, {key: {reference, sha256, transcript} | {status}}: what a worker holds.
+// The clients (bridge/pocket-voice.mjs, bridge/resident-voice.mjs) keep the table their worker holds, and when the voices they should have
+// differ they send the worker only the difference, a few keys at a time.
+export const VOICE_CHANGE_BATCH = 20;
+/** The voices of a registry as descriptors (a voice that is not ready as {status}). */
+export function voiceTable(registry) {
+  const table = Object.create(null);
+  for (const [key, status] of Object.entries(registry.unavailable)) table[key] = {status};
+  for (const [key, value] of Object.entries(registry.profiles)) table[key] = {reference: value.reference, sha256: value.sha256, transcript: value.transcript};
+  return table;
+}
+const sameDescriptor = (a, b) => (a?.status ?? 'ready') === (b?.status ?? 'ready') && a?.reference === b?.reference
+  && a?.sha256 === b?.sha256 && a?.transcript === b?.transcript;
+/** What to send a worker that holds `from` so that it holds `to`: {set: {key: descriptor}, remove: [key]}. Empty when they are the same. */
+export function diffVoiceTables(from, to) {
+  const set = [], remove = [];
+  for (const key of Object.keys(to)) if (!sameDescriptor(from[key], to[key])) set.push([key, to[key]]);
+  for (const key of Object.keys(from)) if (!Object.hasOwn(to, key)) remove.push(key);
+  return {set: Object.fromEntries(set), remove};
+}
+/** The same difference as batches of at most `size` keys, each with the table the worker holds once it has applied it. */
+export function voiceChangeBatches(from, to, size = VOICE_CHANGE_BATCH) {
+  const {set, remove} = diffVoiceTables(from, to);
+  const entries = [...Object.entries(set).map(([key, value]) => ['set', key, value]), ...remove.map(key => ['remove', key])];
+  const batches = [], table = {...from};
+  for (let at = 0; at < entries.length; at += size) {
+    const part = {set: {}, remove: []};
+    for (const [kind, key, value] of entries.slice(at, at + size)) {
+      if (kind === 'set') { part.set[key] = value; table[key] = value; } else { part.remove.push(key); delete table[key]; }
+    }
+    batches.push({...part, table: {...table}});
+  }
+  return batches;
+}
+/** A registry for a voice table (the cache limit of `like`; no start-up profiles: nothing a player changes is prepared at start). */
+export function registryFromTable(table, like) {
+  return createVoiceProfileRegistry({version: 2, provider: 'hybrid', engine: 'omnivoice', voices: table,
+    preparation: {mode: 'lazy', startupProfiles: [], maxCachedProfiles: like?.preparation?.maxCachedProfiles ?? VOICE_PROFILE_LIMITS.cachedProfiles}});
+}

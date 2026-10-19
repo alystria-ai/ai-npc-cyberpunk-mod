@@ -8,9 +8,13 @@
 // in the voice configurations, bridge/addons.mjs voiceConfigPaths): Pocket and OmniVoice from the configuration, Voxtral from `playerRoot`.
 // The index is kept beside it, not in it.
 //
-// How a clip reaches the voices: at the next service start the bridge hands `extras()` to the voice merge, which writes each clip into the
-// merged configurations over the shipped voice of that key (and out of the startup preparation): nothing is prepared or loaded before that
-// character speaks. Removing a clip removes it from the index and the folder, so the next start merges nothing and the shipped voice is back.
+// Both always live under ONE folder, `dir` (the service's state folder: %LOCALAPPDATA%\AiNpcCyberpunkMod\data in an install, runtime/ in a source
+// checkout): the clip's path, the index's path and the folder the voice workers are told about are all computed from it here and nowhere else.
+//
+// How a clip reaches the voices: at service start the bridge hands `extras()` to the voice merge, which writes each clip into the merged
+// configurations over the shipped voice of that key (and out of the startup preparation): nothing is prepared or loaded before that character
+// speaks. While the service runs, a saved or removed clip (or changed words) calls `onChanged(key)` and bridge/live-voices.mjs edits that one key in
+// the engines' voices, so the very next line uses the new voice (or, after a removal, the shipped one): no restart of the game or the service.
 //
 // Privacy: the clip and its words stay on this computer. Nothing here logs the words, and support reports read only `readPlayerVoiceSummary` (bridge/player-voice-summary.mjs)
 // (how many clips, and each one's length). Writes are atomic and one at a time; a damaged index is kept as .corrupt before the first write
@@ -90,11 +94,13 @@ export class PlayerVoices {
    *   prepare  (bytes) => Promise<prepareUpload result>: checks and converts a clip (bridge/custom-voice-clip.mjs)
    *   log      (message) => void: never given the words said in a clip
    *   onRemoved (key) => void: a clip was removed (the bridge removes what was prepared from it, releasePreparedSlots)
+   *   onChanged (key) => void: after the change reached the disk, for a clip saved or removed or its words changed (the bridge makes the voices
+   *             follow, bridge/live-voices.mjs, and drops what was prepared from the old clip). Never given the words.
    */
-  constructor({dir = null, prepare = bytes => prepareUpload(bytes), now = Date.now, log = () => {}, onRemoved = () => {}, limits = PLAYER_VOICE_LIMITS,
+  constructor({dir = null, prepare = bytes => prepareUpload(bytes), now = Date.now, log = () => {}, onRemoved = () => {}, onChanged = () => {}, limits = PLAYER_VOICE_LIMITS,
     read = defaultIo.read, readBytes = defaultIo.readBytes, write = defaultIo.write, listDir = defaultIo.list, stat = defaultIo.stat,
     move = defaultIo.move, remove = defaultIo.remove} = {}) {
-    Object.assign(this, {dir, prepare, now, log, onRemoved, limits, read, readBytes, write, listDir, stat, move, remove});
+    Object.assign(this, {dir, prepare, now, log, onRemoved, onChanged, limits, read, readBytes, write, listDir, stat, move, remove});
     this.entries = new Map();
     this.damaged = false;
     this.chain = Promise.resolve();
@@ -102,6 +108,12 @@ export class PlayerVoices {
   /** The folder the voice workers read player clips from. */
   get folder() { return this.dir ? join(this.dir, PLAYER_VOICES_FOLDER) : null; }
   get #index() { return join(this.dir, PLAYER_VOICES_FILE); }
+  /** Where the index is (the same `dir` as the clips: the one place a player's clips and their list are kept). */
+  get indexPath() { return this.dir ? this.#index : null; }
+  // The change reached the disk: whoever keeps voices running hears about it. A hook that throws or rejects never fails the save.
+  #changed(key) {
+    try { const done = this.onChanged(key); if (done && typeof done.catch === 'function') done.catch(() => {}); } catch { /* the voices follow at the next start */ }
+  }
   path(key) { return isVoiceKey(key) && this.dir ? join(this.folder, key + '.wav') : null; }
 
   async #load() {
@@ -224,7 +236,7 @@ export class PlayerVoices {
       }
       entries.set(key, entry);
       return {entry, clip: {seconds: clip.seconds, rate: clip.rate, notes: clip.notes ?? [], format: clip.format ?? 'wav'}};
-    });
+    }).then(result => { this.#changed(key); return result; });
   }
   /** Changes only the words said in a key's clip. Rejects with 'not-found' or a 'voice-text-*' code. */
   setTranscript(key, transcript) {
@@ -238,9 +250,9 @@ export class PlayerVoices {
       if (this.dir) await this.#saveIndex(new Map(entries).set(key, entry));
       entries.set(key, entry);
       return entry;
-    });
+    }).then(entry => { this.#changed(key); return entry; });
   }
-  /** Removes a key's clip (the character speaks with its shipped voice, or its generic one, from the next start). Resolves to true when there was one. */
+  /** Removes a key's clip (the character speaks with its shipped voice, or its generic one, from its next line). Resolves to true when there was one. */
   clear(key) {
     if (!this.entries.has(key)) return Promise.resolve(false);
     return this.#commit(async entries => {
@@ -253,7 +265,10 @@ export class PlayerVoices {
       entries.delete(key);
       return true;
     }).then(had => {
-      if (had) { try { const done = this.onRemoved(key); if (done && typeof done.catch === 'function') done.catch(() => {}); } catch { /* swept at the next start */ } }
+      if (had) {
+        try { const done = this.onRemoved(key); if (done && typeof done.catch === 'function') done.catch(() => {}); } catch { /* swept at the next start */ }
+        this.#changed(key);
+      }
       return had;
     });
   }

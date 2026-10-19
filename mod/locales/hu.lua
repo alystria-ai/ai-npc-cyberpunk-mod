@@ -851,7 +851,7 @@ return {
     ["Choose how often Johnny speaks up."] = "Válaszd ki, milyen gyakran szólal meg Johnny.",
     ["A clip you add replaces the shipped voice of this character for Pocket, OmniVoice and the Voxtral cloud voice."] = "A hozzáadott klip felülírja ennek a karakternek az eredeti hangját a Pocket, az OmniVoice és a Voxtral felhőhang számára.",
     ["A display name is too long. Keep each one under {max} characters."] = "Egy megjelenítendő név túl hosszú. Mindegyik legyen {max} karakter alatt.",
-    ["A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now."] = "Az új vagy eltávolított klip a játék következő indításakor lép érvénybe. Addig a karakter megtartja most használt hangját.",
+    ["A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting."] = "Az új vagy eltávolított klip a karakter következő mondatától érvényes, amint a jelenlegi válasz véget ért. Semmit nem kell újraindítani.",
     ["A record name can only use letters, digits, dots, dashes and underscores, for example Character.Rebecca."] = "A rekordnév csak betűket, számjegyeket, pontokat, kötőjeleket és aláhúzásokat tartalmazhat, például Character.Rebecca.",
     ["Add a display name"] = "Megjelenítendő név hozzáadása",
     ["Add a record name"] = "Rekordnév hozzáadása",

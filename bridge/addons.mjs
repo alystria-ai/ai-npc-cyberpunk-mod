@@ -497,11 +497,12 @@ export function sharedMemory(memory) {
 
 /**
  * A lookup over the main mod's roster rows ({key, name, aliases, gender}) for AddonHost.characterInfo: by profile key, name or alias,
- * ignoring case. Built on first use. Add-on speakers and unnamed archetypes are not in it.
+ * ignoring case. Built on first use, and again after `reset()` (the bridge calls it when the characters the player made change, so a character
+ * made or renamed in the editor is found without a restart). Add-on speakers and unnamed archetypes are not in it.
  */
 export function rosterLookup(rows) {
   let index = null;
-  return value => {
+  const lookup = value => {
     if (!index) {
       index = new Map();
       for (const row of Array.isArray(rows) ? rows : []) {
@@ -513,6 +514,8 @@ export function rosterLookup(rows) {
     }
     return index.get(String(value ?? '').trim().toLowerCase()) ?? null;
   };
+  lookup.reset = () => { index = null; };
+  return lookup;
 }
 
 // ---- The host --------------------------------------------------------------------------------------------------------------

@@ -375,6 +375,113 @@ class Assets(unittest.TestCase):
                 self.validate(config)
         self.validate(config)   # unchanged afterwards
 
+    # ---- voices changed while the worker runs (a clip given to a character or taken away: no restart, no reload of the model) ----
+
+    class Store:
+        """A stand-in for PreparedVoiceStore that remembers which saved setups were forgotten."""
+        def __init__(self):
+            self.forgotten = []
+
+        def forget(self, key, sha):
+            self.forgotten.append((key, sha))
+
+    def running(self):
+        registry = self.validate()
+        encoded, store = [], self.Store()
+        cache = runtime.ReferenceCache(registry, lambda path: encoded.append(path) or {'prompt': path.name}, store=store)
+        return registry, cache, encoded, store
+
+    def player_clip(self, key='johnny-silverhand', seconds=.3):
+        self.player = self.root / 'player-data' / 'player-voices'
+        path = self.player / f'{key}.wav'
+        tone(path, seconds)
+        return path, {'reference': f'runtime/player-voices/{key}.wav', 'sha256': runtime.digest_file(path), 'transcript': 'The player typed this.'}
+
+    def test_a_voice_changes_while_running_and_only_that_character_loses_its_prepared_state(self):
+        registry, cache, encoded, store = self.running()
+        clip, descriptor = self.player_clip()
+        cache.prepare('johnny-silverhand'); cache.prepare('judy-alvarez')
+        shipped_sha = registry['descriptors']['johnny-silverhand']['sha256']
+        changed = runtime.apply_voices(registry, {'set': {'johnny-silverhand': descriptor}, 'playerVoiceDirectory': str(self.player)}, cache)
+        self.assertEqual(changed, ['johnny-silverhand'])
+        self.assertEqual(registry['refs']['johnny-silverhand'], clip.resolve())
+        self.assertEqual(registry['descriptors']['johnny-silverhand']['sha256'], descriptor['sha256'])
+        self.assertEqual(registry['paths']['playerVoiceDirectory'], self.player.resolve())
+        self.assertEqual(cache.prepared(), ['judy-alvarez'], 'the other characters keep what was prepared for them')
+        self.assertEqual(store.forgotten, [], 'a shipped reference\'s saved setup is not a player clip\'s to delete')
+        cache.prepare('johnny-silverhand')
+        self.assertEqual(encoded[-1], clip.resolve(), 'the next reply is prepared from the new clip')
+        # Taking it away: the shipped descriptor comes back, the player clip's prepared state and saved setup go.
+        changed = runtime.apply_voices(registry, {'set': {'johnny-silverhand': {'reference': 'runtime/voice-references/johnny-silverhand.wav',
+                                                                                  'sha256': shipped_sha, 'transcript': 'Original native dialogue.'}}}, cache)
+        self.assertEqual(changed, ['johnny-silverhand'])
+        self.assertEqual(store.forgotten, [('johnny-silverhand', descriptor['sha256'])])
+        self.assertEqual(cache.prepared(), ['judy-alvarez'])
+        cache.prepare('johnny-silverhand')
+        self.assertEqual(encoded[-1], (self.refs / 'johnny-silverhand.wav').resolve())
+
+    def test_a_character_with_no_voice_gets_one_and_a_removed_voice_is_gone_everywhere(self):
+        registry, cache, encoded, store = self.running()
+        clip, descriptor = self.player_clip('custom-rebecca-abcd')
+        runtime.apply_voices(registry, {'set': {'custom-rebecca-abcd': descriptor}, 'playerVoiceDirectory': str(self.player)}, cache)
+        self.assertIn('custom-rebecca-abcd', registry['refs'])
+        cache.prepare('custom-rebecca-abcd')
+        self.assertEqual(encoded[-1], clip.resolve())
+        changed = runtime.apply_voices(registry, {'remove': ['custom-rebecca-abcd', 'never-had-it']}, cache)
+        self.assertEqual(changed, ['custom-rebecca-abcd'], 'a key that was never there is not reported')
+        for table in ('refs', 'descriptors', 'unavailable'):
+            self.assertNotIn('custom-rebecca-abcd', registry[table])
+        self.assertEqual(cache.prepared(), [])
+        self.assertEqual(store.forgotten, [('custom-rebecca-abcd', descriptor['sha256'])])
+        with self.assertRaisesRegex(ValueError, 'no available Pocket voice'):
+            cache.prepare('custom-rebecca-abcd')
+        self.assertIn('judy-alvarez', registry['refs'])
+
+    def test_a_refused_voice_change_changes_nothing_and_a_missing_clip_withdraws_only_that_voice(self):
+        registry, cache, encoded, store = self.running()
+        clip, descriptor = self.player_clip()
+        before = copy.deepcopy({field: registry[field] for field in ('refs', 'descriptors', 'unavailable', 'startup')})
+        cache.prepare('judy-alvarez')
+        for number, change in enumerate((
+                {'set': {'johnny-silverhand': descriptor, 'judy-alvarez': {'reference': 'runtime/player-voices/../x.wav', 'sha256': 'a' * 64, 'transcript': 'x'}},
+                 'playerVoiceDirectory': str(self.player)},
+                {'set': {'Not A Key': descriptor}},
+                {'set': {'johnny-silverhand': descriptor}, 'remove': ['johnny-silverhand']},
+                {'set': {f'k-{at}': {'status': 'unprepared'} for at in range(runtime.MAX_VOICE_CHANGES + 1)}},
+                {'set': {'johnny-silverhand': descriptor}, 'playerVoiceDirectory': str(self.work / 'inside')},
+                {'set': {'johnny-silverhand': descriptor}, 'playerVoiceDirectory': 'relative'},
+                {'set': []}, 'nothing'), 1):
+            with self.subTest(change=number), self.assertRaises(ValueError):
+                runtime.apply_voices(registry, change, cache)
+            self.assertEqual({field: registry[field] for field in before}, before)
+        self.assertEqual(cache.prepared(), ['judy-alvarez'], 'a refused change drops nothing')
+        self.assertNotIn('playerVoiceDirectory', registry['paths'])
+        # The clip is not the recorded bytes: the change is accepted, that one voice is withdrawn, the rest are as they were.
+        clip.write_bytes(clip.read_bytes()[:-2] + b'\x11\x22')
+        changed = runtime.apply_voices(registry, {'set': {'johnny-silverhand': descriptor}, 'playerVoiceDirectory': str(self.player)}, cache)
+        self.assertEqual(changed, ['johnny-silverhand'])
+        self.assertEqual(registry['unavailable'], {'johnny-silverhand': 'unavailable'})
+        self.assertNotIn('johnny-silverhand', registry['refs'])
+        self.assertIn('judy-alvarez', registry['refs'])
+        # The folder cannot be moved while the worker runs, and a status-only voice needs no file.
+        with self.assertRaisesRegex(ValueError, 'cannot change'):
+            runtime.apply_voices(registry, {'playerVoiceDirectory': str(self.root / 'other-player-data')}, cache)
+        runtime.apply_voices(registry, {'set': {'npc-kind-1': {'status': 'unprepared'}}}, cache)
+        self.assertEqual(registry['unavailable']['npc-kind-1'], 'unprepared')
+
+    def test_the_command_reader_queues_a_voice_change_like_any_serial_command_and_still_refuses_unknown_ones(self):
+        pipe = Pipe()
+        commands = worker.Commands(pipe, 'a' * 32)
+        commands.thread.start()
+        pipe.send({'owner': 'a' * 32, 'op': 'voices', 'id': 1, 'set': {}, 'remove': []})
+        self.assertEqual(commands.queue.get(timeout=2)['op'], 'voices')
+        commands.begin(1)
+        commands.finish(1)
+        pipe.send({'owner': 'a' * 32, 'op': 'reload', 'id': 2})
+        commands.thread.join(timeout=2)
+        self.assertIsInstance(commands.error, ValueError)
+        self.assertIn('Unknown Pocket command', str(commands.error))
+
     def test_model_source_work_and_reference_paths_are_explicit_and_separate(self):
         with self.assertRaisesRegex(ValueError,'pinned official'):
             runtime.validate_config(self.config,yaml_load=json.loads,source_hasher=lambda _:'f'*64)

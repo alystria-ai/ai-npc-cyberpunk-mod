@@ -851,7 +851,7 @@ return {
     ["Choose how often Johnny speaks up."] = "Johnnyが自分から話す頻度を選んでください。",
     ["A clip you add replaces the shipped voice of this character for Pocket, OmniVoice and the Voxtral cloud voice."] = "追加したクリップは、Pocket、OmniVoice、Voxtralクラウド音声で、このキャラクターの初期の声の代わりに使われます。",
     ["A display name is too long. Keep each one under {max} characters."] = "表示名が長すぎます。それぞれ {max} 文字未満にしてください。",
-    ["A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now."] = "クリップを追加または削除すると、次回ゲームを起動したときから反映されます。それまでは、キャラクターは今の声のまま話します。",
+    ["A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting."] = "クリップを追加または削除すると、現在の返答が終わった後のこのキャラクターの次のセリフから反映されます。再起動は不要です。",
     ["A record name can only use letters, digits, dots, dashes and underscores, for example Character.Rebecca."] = "レコード名に使えるのは、英字、数字、ピリオド、ハイフン、アンダースコアだけです。例：Character.Rebecca",
     ["Add a display name"] = "表示名を追加",
     ["Add a record name"] = "レコード名を追加",

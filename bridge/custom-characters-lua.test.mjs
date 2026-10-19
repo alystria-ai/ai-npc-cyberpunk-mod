@@ -216,3 +216,23 @@ test('init.lua refreshes the list on the talk key, keeps the player\'s own chara
   assert(catalog.indexOf('local custom = catalog.custom') > catalog.indexOf('if actor.world == true and actor.story ~= true then return nil, actor.name end'), 'after the roster block');
   assert(catalog.indexOf('local custom = catalog.custom') < catalog.indexOf('if catalog.archetypes and type(actor.facts)'), 'before the archetypes');
 });
+
+test('a character renamed or given another match rule in the editor is found by its new name at the next talk key press, with no CET reload', () => {
+  const out = lua(`
+    local service = newService()
+    service.refresh(true)
+    service.watch()
+    text = listing({rebecca})
+    clock = clock + 4; service.refresh()
+    assert(service.match({record = 'Character.Rebecca', name = 'Rebecca'}) ~= nil)
+    -- The same character (same key), saved again with a new name and another display name.
+    local renamed = {key = rebecca.key, name = 'Becca', gender = 'female', records = {}, names = {'Becca Prime'}}
+    text = listing({renamed})
+    clock = clock + 4; assert(service.refresh() == true, 'the changed list is read at the next due press')
+    assert(service.match({record = 'Character.Rebecca', name = 'Rebecca'}) == nil, 'the old rule no longer matches')
+    local entry = service.match({record = 'Character.Other', name = 'becca  PRIME'})
+    assert(entry and entry.key == rebecca.key and entry.name == 'Becca', 'the new display name matches')
+    report('ok', true)
+  `);
+  assert.equal(out.ok, true);
+});

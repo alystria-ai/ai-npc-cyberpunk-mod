@@ -185,6 +185,17 @@ export class InworldVoice {
     this.cloneChain = Promise.resolve();
   }
   setReferences(registry) { this.library.setReferences?.(registry); this.entries.clear(); }
+  /**
+   * The registries again after a player changed some voices (bridge/voice-selection.mjs setVoices): only the voices of `keys` are forgotten here
+   * (the clip is read again and the voice is found or made from it the next time that character speaks; the saved id of the old clip is
+   * replaced then, and the account's older voice of it is removed by the usual stale-voice clean-up). Every other voice stays as it is.
+   */
+  replaceReferences(registry, keys = []) {
+    const had = this.library.replaceReferences?.(registry, keys) ?? [];
+    for (const key of keys) if (this.entries.delete(key) && !had.includes(key)) had.push(key);
+    return had;
+  }
+  hasCachedReference(key) { return this.entries.get(key)?.state === 'ready' || this.library.hasCachedReference?.(key) === true; }
   get hasKey() { return !!this.getKey(); }
   /** Whether a request may be made now (a key, and not inside a limit, quota or refused-key cool-down). */
   get ready() { return this.hasKey && this.clock() >= this.until; }

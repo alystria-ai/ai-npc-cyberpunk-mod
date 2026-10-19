@@ -76,6 +76,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/key-codec.mjs',
   'bridge/knowledge-decisions.mjs',
   'bridge/knowledge-parts.mjs',
+  'bridge/live-voices.mjs',
   'bridge/local-ai-pack.mjs',
   'bridge/local-embed.mjs',
   'bridge/local-llm-server.mjs',
