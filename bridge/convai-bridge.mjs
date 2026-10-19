@@ -109,6 +109,8 @@ import {GameStateSync} from './game-state.mjs';
 const leaseWake = createWakeSignal();
 import {PersonaBook, joinBlocks} from './mistral-prompt.mjs';
 import {LocalStt} from './local-stt.mjs';
+import {SpeechLanguage, LOCAL_PACKS, planRecording} from './speech-language.mjs';
+import {VoxtralStt} from './voxtral-stt.mjs';
 import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-capture.mjs';
 import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, errorExtrasFor as mistralExtrasFor, failureDetail as localFailureDetail, warmConnection} from './mistral-client.mjs';
 import {TurnClock, withClock, markStage} from './turn-clock.mjs';
@@ -763,9 +765,34 @@ const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemo
 // a channel (beginVoice / finishVoice / heard / close, like RealtimeHost.voiceChannel) whose finished recording is answered
 // through `reply(config)`. Without it the voice key tells the player that voice needs Convai for now. The recogniser worker runs
 // only during and just after a recording; the Convai microphone route never touches it.
+// Other languages (docs/LOCAL_STT.md, "Other languages"): English keeps Moonshine. A recording in another language goes to Mistral's
+// transcription on the Mistral route (the player's own key; audio leaves this computer only while Mistral is the conversation provider), or to an
+// installed multilingual pack on this computer (Local AI and custom routes, and the fallback when Mistral cannot take a recording); with neither
+// the English recogniser is used and the player is told once that voice input is English only for now. The language comes from the player's
+// typed text and earlier recordings, else the interface language (settings.json, or runtime/ui-language.txt written by the game on a change).
+const speechLanguage = new SpeechLanguage({readUiFile: () => readFile(resolve(runtime, 'ui-language.txt'), 'utf8')});
+const voxtralStt = new VoxtralStt({getKey: () => { try { return mistral.apiKey ?? null; } catch { return null; } }, onLog: message => process.stderr.write(message)});
+const englishStt = new LocalStt({project, pythonExecutable: voiceConfig.runtime?.pythonExecutable});
+// A pack decodes once per recording (no live words) and is a big model: it leaves memory 60 s after its last recording.
+const packStts = new Map(LOCAL_PACKS.map(pack => [pack.id, new LocalStt({project, pythonExecutable: voiceConfig.runtime?.pythonExecutable, engine: pack,
+  partials: false, pausePartials: false, idleMs: 60_000, startupMs: 60_000, finishMs: 30_000})]));
+const installedPackIds = () => LOCAL_PACKS.filter(pack => packStts.get(pack.id).available()).map(pack => pack.id);
+async function routeRecording() {
+  const {language, source} = await speechLanguage.current();
+  // English (the usual case) costs one comparison here: nothing is looked up on disk for it.
+  if (language === 'en') return {mode: 'english', language, source};
+  const plan = planRecording({language, source, provider: mistral.route, voxtralReady: voxtralStt.ready, installed: installedPackIds(), englishAvailable: englishStt.available()});
+  if (plan.pack) plan.stt = packStts.get(plan.pack.id);
+  if (plan.fallback) plan.fallback = plan.fallback.map(next => next.pack ? {mode: 'pack', stt: packStts.get(next.pack.id)} : next);
+  if (plan.mode === 'voxtral') plan.warm = () => { void warmConnection({provider: 'mistral'}).catch(() => {}); };
+  return plan;
+}
 const mistralSpeech = createLocalSpeech({
-  stt: new LocalStt({project, pythonExecutable: voiceConfig.runtime?.pythonExecutable}),
+  stt: englishStt,
   capture: new LocalSttCapture({getBrowser: hostBrowser(realtime)}),
+  route: routeRecording, transcriber: voxtralStt, packs: [...packStts.values()],
+  onLanguage: code => { if (speechLanguage.observeVoice(code)) console.error('[CyberpunkConvai] Microphone: the speech language is now ' + String(code).replace(/[^\w-]/g, '').slice(0, 12)); },
+  alternatives: () => (mistral.route === 'mistral' && voxtralStt.ready) || installedPackIds().length > 0,
   // The input device, its level and the words (or why they were ignored) of every recording, one line each.
   log: line => console.error('[CyberpunkConvai] Microphone: ' + line)});
 // Two side by side: the action decision and the reply of one turn are two requests at once (bridge/mistral-client.mjs, warmConnection).
@@ -773,7 +800,7 @@ const mistralSpeech = createLocalSpeech({
 const warmTurnConnections = options => options?.provider === 'custom'
   ? (customEndpoint.warmOrigin ? warmConnection({...options, origin: customEndpoint.warmOrigin, connections: 2}) : Promise.resolve(false))
   : warmConnection({...options, connections: 2});
-for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech, prewarmVoice: () => host === realtime && localVoice.playbackEnabled !== false, warmCloud: warmTurnConnections});
+for (const host of [realtime, phoneRealtime]) attachTextProvider(host, {provider: mistral, mistral: mistralHost, speech: mistralSpeech, onPlayerText: text => speechLanguage.observeText(text), prewarmVoice: () => host === realtime && localVoice.playbackEnabled !== false, warmCloud: warmTurnConnections});
 // Add-on speakers (docs/ADDON_API.md) answer only through Mistral or the local AI, whatever the player's conversation provider is:
 // one text host per route (and whether the local AI may fall back to Mistral), made the first time an add-on speaker needs it. They
 // share the routes (one pacing per Mistral key), the persona book and the memory store; none exists without add-ons.
@@ -1809,7 +1836,9 @@ const addonVoice = createAddonVoice({isSpeaker: key => addonHost.isSpeaker(key),
   }});
 
 const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => realtime.voiceChannel()),
-  onState: (state, input) => atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state, requestId: input.requestId, updated: Date.now()})),
+  // `note`: the recording's channel says something the game should tell the player once ('english-only', bridge/local-stt-capture.mjs).
+  onState: (state, input, opened) => atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state, requestId: input.requestId,
+    ...(state === 'recording' && typeof opened?.note === 'string' ? {note: opened.note.slice(0, 24)} : {}), updated: Date.now()})),
   prepareReply: async (input, signal) => {
     if (addonVoice.voice(input) || localVoice.playbackEnabled === false) return;
     const prepared = microphoneKnowledge.get(input.requestId);
@@ -1887,11 +1916,13 @@ const mic = new MicrophoneSession({hostFactory: addonVoice.hostFactory(() => rea
     const noSpeech = /No speech was heard/.test(error?.message || '');
     // A device that sends no sound at all is named, so the player knows which Windows input to look at.
     const silent = error?.code === 'MIC_SILENT';
+    // No engine could recognise a recording in another language (Mistral failed and nothing local took over): the game says voice is English only for now.
+    const language = error?.code === 'STT_LANGUAGE';
     await atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state: silent ? 'silent' : noSpeech ? 'no-speech' : 'error', requestId: input.requestId,
-      ...(silent ? {device: String(error.device ?? '').slice(0, 80)} : {}), updated: Date.now()}), {isCurrent: current, isCurrentSync: current.sync});
+      ...(silent ? {device: String(error.device ?? '').slice(0, 80)} : {}), ...(language ? {reason: 'language'} : {}), updated: Date.now()}), {isCurrent: current, isCurrentSync: current.sync});
     await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
       entity: input.entity, error: 'Voice conversation failed. Check your microphone and try again.', ...turnFailure(error, input)}), {isCurrent: current, isCurrentSync: current.sync});
-    if (!noSpeech && !silent) noteTurnFailure(error, input, {microphone: true});
+    if (!noSpeech && !silent && !language) noteTurnFailure(error, input, {microphone: true});
   },
 });
 
@@ -2885,6 +2916,7 @@ async function pollSettings(checkShutdown = true) {
     let settings; try { settings = JSON.parse(raw); } catch {}
     // Mature content and the saved model choice come first: the saved provider is applied below, and its first Local AI start (prepareLocal)
     // loads the model these two decide. They are the first thing this poll does with the file, so that start waits for nothing but this read.
+    speechLanguage.update(settings);
     const matureBefore = matureContent.enabled, packBefore = matureContent.pack;
     if (maturePackInstalled() !== packBefore) await mistralControl.publishStatus().catch(() => {});   // the settings help says whether the uncensored models are installed
     const matureChanged = matureContent.update(settings) || matureContent.enabled !== matureBefore;
