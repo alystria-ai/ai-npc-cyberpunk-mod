@@ -25,7 +25,7 @@ Why this split: Nexus Mods scans every upload and holds files that its scanners 
 review (help.nexusmods.com articles 128 and 117); it has no blanket rule against DLLs or
 executables, but a text-only file never needs that review and is never quarantined. The Nexus page
 must list RED4ext among the requirements (with CET, redscript, Codeware, TweakXL, Audioware and
-Mod Configuration Menu): the Runtime package's launcher and native plugin are RED4ext plugins. The large,
+Native Settings UI): the Runtime package's launcher and native plugin are RED4ext plugins. The large,
 binary runtime goes to the GitHub release as plain zips, which is how the core frameworks
 (RED4ext, Codeware, TweakXL, Audioware) are distributed too; RED4ext also builds in Actions and
 publishes SHA-256 values with each release, which this pipeline does as well.

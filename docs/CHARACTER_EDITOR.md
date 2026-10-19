@@ -6,7 +6,7 @@ Status: built and unit-tested on branch `character-editor`; headless-browser tes
 
 ## Why a web page and not an in-game editor
 
-- **Text entry.** The mod's menu (MCM, drawn in CET) has no multi-line text box, no scrolling text area, no list editing and no paste. A bio is up to 9,000 characters. Editing it with CET's `ImGui.InputTextMultiline` would need a per-frame draw callback and would grab the keyboard from the game.
+- **Text entry.** The mod's menu (Native Settings UI, drawn by the game) has no multi-line text box, no scrolling text area, no list editing and no paste. A bio is up to 9,000 characters. Editing it with CET's `ImGui.InputTextMultiline` would need a per-frame draw callback and would grab the keyboard from the game.
 - **FPS is the top priority.** In game, the editor would run an ImGui draw callback every frame while open and own a hotkey. The web page costs the game nothing: the Lua side is one function that writes one small file when the player clicks the row. It has no update hook and no native call. When the editor is closed there is no server and no polling beyond the bridge's existing 500 ms file check (the bridge is a separate process).
 - **The right tool.** Lists, search over 70+ characters, undo-by-reset, long text, a screen reader and a phone-sized layout all come for free in a browser.
 
@@ -77,7 +77,7 @@ Page sentences are English sources written as `T('...')` in `bridge/character-ed
 - `bridge/character-editor-server.mjs`: the loopback server and routes.
 - `bridge/character-editor-page.mjs`: the page (HTML, CSS and client script).
 - `bridge/character-editor-control.mjs`: the command file, the browser launch, the status file.
-- `mod/character-editor.lua`, `mod/mcm.lua`: the settings row.
+- `mod/character-editor.lua`, `mod/manager-ui.lua`: the settings row.
 - Changed: `bridge/mistral-prompt.mjs`, `bridge/memory-store.mjs`, `bridge/convai-bridge.mjs`.
 - Tests: `bridge/character-overrides.test.mjs`, `bridge/character-editor.test.mjs`, `bridge/character-editor-browser.test.mjs` (real Edge or Chrome, skipped when none is found; `EDITOR_SHOTS_DIR` saves screenshots), plus additions to `memory-store.test.mjs` and `support-help-ui.test.mjs`. Run `npm run test:editor`.
 

@@ -8,7 +8,7 @@
 --     asks for it: nothing here runs per frame and nothing is read while no page is drawn. The key never reaches either file; only its
 --     last four characters (a key of 16 or more characters) are ever shown.
 --   * It turns that state into rows with no widget in them (rows(): id, label, value, help, enabled, action), so the same rows can be
---     drawn by Mod Configuration Menu today and by any other settings screen later, and into the notice texts and provider notes.
+--     drawn by the Companion Manager page (mod/manager-ui.lua, shown by mod/nsui.lua) and by any other settings screen later, and into the notice texts and provider notes.
 --
 -- Only the answer to the latest command counts: an answer for an older command id is never shown (the same rule as the Mistral key).
 local M = {version = 1}

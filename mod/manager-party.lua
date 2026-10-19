@@ -16,7 +16,7 @@ end
 -- Visibility rules (the classes live in notices.lua, docs/NOTIFICATIONS.md): a player and a developer
 -- see the same two kinds of line here: "joined" and failures. What a companion is still waiting for ("Preparing
 -- {name}: waiting for the voice model to load") is not posted by the board: waiting() hands those lines to the
--- loading notice (mod/mcm.lua, notices.lua), which holds them on screen until she has spawned. No other progress
+-- loading notice (mod/manager-ui.lua, notices.lua), which holds them on screen until she has spawned. No other progress
 -- text (connecting, ready, joining) is posted as an ordinary notice: the party list shows the stage, and the mod
 -- log keeps every stage.
 -- Calm rules, because each notice replaces the last one on screen:
@@ -277,7 +277,7 @@ function M.newBoard(options)
         end}
     end
 
-    -- The lines of the companions still being prepared, as the loading notice shows them (mod/mcm.lua holds them on
+    -- The lines of the companions still being prepared, as the loading notice shows them (mod/manager-ui.lua holds them on
     -- screen until each has spawned or failed): {{name, text}}, in the order the invitations were made. One line per
     -- character (two copies of one character wait together), at most MAX_LISTED lines; a longer list ends in one line
     -- that counts the rest. Reads what the last take() sampled: no queue access, nothing per frame.
@@ -407,7 +407,7 @@ function M.new(companions, readiness, options)
             if job.id == (id or preparationId) then
                 local status = preparation(job)
                 -- Progress (preparing, connecting, ready) has no text: the board and the
-                -- MCM banner read the state. Only a failure carries a message.
+                -- page's feedback line read the state. Only a failure carries a message.
                 local message = ''
                 if status.state == 'error' then
                     message = ui.t('{name}: preparation failed. Cancel and invite again.', {name = job.name})

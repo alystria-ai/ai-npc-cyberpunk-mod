@@ -268,7 +268,7 @@ end
 
 local function writeMemoryCommand(value) return writeCommandFile('runtime/memory-command.json', value) end
 
--- For the Custom provider module (custom-provider.lua, drawn by mod/mcm.lua): the same in-place command file write, and the id of this game
+-- For the Custom provider module (custom-provider.lua, drawn by mod/manager-ui.lua): the same in-place command file write, and the id of this game
 -- session, which every command id of that channel carries (made on first use, like the key commands below).
 function M.writeCommand(target, value) return writeCommandFile(target, value) end
 function M.commandSession()
@@ -1700,7 +1700,7 @@ function M.prepare(player)
     return ok
 end
 
--- MCM reads the same catalogue and saved settings as the conversation runtime.
+-- The Companion Manager page reads the same catalogue and saved settings as the conversation runtime.
 -- This interface does not create the retired HUD popup or touch world actors.
 function M.snapshot(player)
     if player then initialize(player) else loadSettings() end
@@ -1777,7 +1777,7 @@ end
 function M.applySettings(player, values)
     loadSettings()
     -- Validate and save the complete transaction before exposing any changed
-    -- values to native playback. A failed save leaves the MCM draft intact.
+    -- values to native playback. A failed save changes nothing.
     if type(values) ~= 'table' then return false, 'No settings were supplied.' end
     local nextSettings = {}
     for key, value in pairs(settings) do nextSettings[key] = value end
@@ -1801,7 +1801,7 @@ function M.applySettings(player, values)
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.matureContent = value
         elseif key == 'matureRestore' then
-            -- What turning Mature content on changed (mod/mcm.lua), kept so turning it off can put it back; false clears it.
+            -- What turning Mature content on changed (mod/manager-ui.lua), kept so turning it off can put it back; false clears it.
             if value ~= false and cleanMatureRestore(value) == nil then return false, 'Invalid Mature content settings.' end
             nextSettings.matureRestore = value and cleanMatureRestore(value) or nil
         elseif key == 'localModel' then
@@ -1930,7 +1930,7 @@ function M.applySettings(player, values)
     settings = nextSettings
     if not saveSettings() then
         settings = previous
-        return false, 'The settings could not be saved. Your changes are still pending.'
+        return false, 'The settings could not be saved. Nothing was changed.'
     end
     ui.configure(settings.uiLanguage)
     if player then

@@ -172,7 +172,7 @@ local player={ConvaiManagerVoice=function()return voice end,ConvaiManagerSubtitl
 local manager={profileEnabled=function()return true end,battleReactions=function()return settings end,
   lootReactions=function()return lootEnabled end,reset=noop}
 local companions={conversationCandidates=function()return people end,abandon=noop}
-local mcm={resetSession=noop}
+local managerUi={resetSession=noop}
 local resetGaze,warmConversation,publishPartyConnections=noop,noop,noop
 local speakerReady,speakerBusy=true,false
 local battleObserver={sample=function()return sample end,canSpeak=function()return speakerReady,speakerReady and 'available' or 'native-dialogue',speakerBusy end}
