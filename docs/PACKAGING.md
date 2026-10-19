@@ -303,8 +303,15 @@ USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `br
   report carries what the service sees), refreshed every 5 s for at most 5 minutes while it prepares. Its own modules load inside a
   guard, and an error nobody caught ends in `failed` with a `reason`: `install-incomplete` (a file is missing or cannot be read),
   `service-error`, `game-folder-not-visible`. The reason is Node's error code and message with every path cut to its file name, 140
-  characters at most. The supervisor writes its own `starting` before it waits for the previous session's lock, and after 5 s of
-  waiting says `waiting-for-previous-service` (kept fresh by the heartbeat); its crash status carries a reason too.
+  characters at most. The supervisor writes its own `starting` as soon as it holds the previous session's lock; a wait for that lock
+  keeps the start script's last status for 5 s and then says `waiting-for-previous-service` (kept fresh by the heartbeat); its crash
+  status carries a reason too.
+- **Only the running game's processes write the status.** A player who restarts the game at once (what the failure notice tells them)
+  starts the next session while the previous one is still stopping. Every writer puts its game's PID in the file (`gamePid`): a start
+  script whose game has ended publishes nothing more (`--game-pid` is checked as the supervisor checks it), and a supervisor whose game
+  has ended still reports `stopping` and `stopped` unless the file already holds another game's PID, which it then leaves alone (one
+  log line). A failure of the new session's start is therefore not hidden behind the old session's stop
+  (`packaging/virtual-runtime.test.mjs`, `bridge/supervisor-lock-status.test.mjs`).
 - **The service must see what the game sees.** The launcher starts the service only after it saw the CET mod's `init.lua`; a service
   that cannot see it runs outside the virtual file system (or in another one), and nothing it writes under the game folder would reach
   the game. It logs that and stops (`game-folder-not-visible`, exit code 3) without creating a folder in the game folder. Its first log
