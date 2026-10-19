@@ -73,24 +73,27 @@ describe('group look-ahead in the real bridge', {concurrency: 2, timeout: 240000
   });
 
   it('a speaker that is not ready when the previous one ends plays as soon as it is, never earlier or overlapping', async () => {
-    const timings = {...DEFAULT_TIMINGS, 'judy-alvarez': {...DEFAULT_TIMINGS['judy-alvarez'], audioSeconds: 1.3}};
-    const [serial, ahead] = await Promise.all([measureRound({mode: 'serial', timings}), measureRound({mode: 'lookahead', timings})]);
-    const {events, gaps} = ahead;
+    // Judy's audio is short (1.3 s) and each of the first two speakers takes 3 s from request to first audio, so Panam's request goes out during Judy
+    // (about 2.8 s before she ends) and is still not ready when she does. (With the defaults, 1.5 s, the window in which Panam's request has to go out
+    // while Judy is audible was 1.4 s wide: a busy machine delays the request by more than that.)
+    const slow = key => ({...DEFAULT_TIMINGS[key], firstPcmMs: 3000, pcmCompleteMs: 4100});
+    const timings = {...DEFAULT_TIMINGS, 'judy-alvarez': {...slow('judy-alvarez'), audioSeconds: 1.3}, 'panam-palmer': slow('panam-palmer')};
+    const {events, gaps, output} = await measureRound({mode: 'lookahead', timings});
     const judyEnd = last(events, 'play-end', JUDY.characterId), panamStart = first(events, 'play-start', PANAM.characterId);
     // The host's log is appended in the order things happened: Judy's end is logged before Panam's start. Two events in the same millisecond are back to
     // back (a speaker that was ready starts the moment the last one ends), not overlapping, so the times are compared with >=.
     const order = events.filter(row => ['play-start', 'play-end'].includes(row.event)).map(row => `${row.event}:${row.characterId[0]}`);
     assert.deepEqual(order, ['play-start:1', 'play-end:1', 'play-start:2', 'play-end:2', 'play-start:3', 'play-end:3'], 'one voice at a time, in order');
     assert.ok(panamStart >= judyEnd, `never overlaps the previous speaker (Panam starts ${panamStart - judyEnd} ms after Judy ends)`);
-    assert.ok(gaps[0].gapMs < serial.gaps[0].gapMs - 400, `partial overlap still helps: ${gaps[0].gapMs} vs ${serial.gaps[0].gapMs}`);
-    // The only wait left is Panam's own remaining generation time. That time is the simulated provider's plus what the bridge itself
-    // adds on this machine right now, so the bound is the same pipeline measured beside it (the serial run's first speaker,
-    // generated under the same load, with the same simulated provider time) plus the margin.
-    const generation = panamStart - first(events, 'reply-start', PANAM.characterId);
-    const reference = first(serial.events, 'play-start', JUDY.characterId) - first(serial.events, 'reply-start', JUDY.characterId);
-    assert.ok(reference >= DEFAULT_TIMINGS['judy-alvarez'].firstPcmMs, `reference generation ${reference}`);
-    assert.ok(generation < reference + 1200, `generation ${generation} vs ${reference} for the first speaker of the serial run`);
-    noErrors(ahead.output);
+    // Partial overlap helps, and the only wait left is the rest of a fresh generation: what the first speaker took from request to first audio in this
+    // same round (same bridge, same load; two bridges side by side do not see the same load from one second to the next: 3285 against 1862 ms was seen),
+    // less the part of Panam's generation that ran while Judy was audible, plus the bridge's own handover.
+    const overlap = judyEnd - first(events, 'reply-start', PANAM.characterId);
+    assert.ok(overlap > 0, `Panam was requested ${-overlap} ms after Judy ended`);
+    const fresh = first(events, 'play-start', JUDY.characterId) - first(events, 'reply-start', JUDY.characterId);
+    assert.ok(fresh >= 3000, `a fresh generation takes the provider's 3 s: ${fresh}`);
+    assert.ok(gaps[0].gapMs < Math.max(0, fresh - overlap) + 1200, `the wait left (${gaps[0].gapMs}) is the rest of a fresh generation (${fresh}, of which ${overlap} ran during Judy)`);
+    noErrors(output);
   });
 
   it('a new message cancels the held next speaker: no audio, no reply for it, and the new round proceeds', async () => {
