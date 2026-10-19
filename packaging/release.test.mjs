@@ -711,7 +711,7 @@ test('the README and the release notes send players to Hugging Face for every op
   assert.equal(readme.slice(0, readme.indexOf('# For developers')).split('Convai paid tier').length - 1, 1, 'the paid Convai tier appears in one spot');
   assert.doesNotMatch(player, /\b(?:api[- ]?key|key|token|secret|credential)s?\b|\brecommended\b|inworld/i);
   // The Mature help text in the settings page names the Hugging Face page, in every language.
-  const mcm = await readFile(resolve(project, 'mod/mcm.lua'), 'utf8');
+  const mcm = await readFile(resolve(project, 'mod/manager-ui.lua'), 'utf8');
   assert.match(mcm, /Pack: not installed \(optional, on this mod’s Hugging Face page\)\./);
   assert.doesNotMatch(mcm, /GitHub page/);
   const key = 'Pack: not installed (optional, on this mod’s Hugging Face page).';

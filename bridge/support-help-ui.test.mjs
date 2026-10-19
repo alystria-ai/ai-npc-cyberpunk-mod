@@ -1,205 +1,36 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import fengari from 'fengari';
-import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
+import {run, nsuiHarness} from './manager-fixture.mjs';
 
-// The Help page inside the real MCM adapter. The harness below mirrors the one
-// in manager.test.mjs (real manager.lua, mcm.lua and manager-party.lua over a
-// fake native MCM and game), with support-report.lua added to its module map.
-const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
+// The Help page inside the real manager host. The harness is the one of manager.test.mjs (real manager.lua, manager-ui.lua,
+// nsui.lua and manager-party.lua over a fake Native Settings UI and game), with support-report.lua, the service status, the
+// character editor and the setup check added to its module map.
 const read = name => readFileSync(new URL(`../mod/${name}`, import.meta.url), 'utf8');
-const managerSource = read('manager.lua'), queueSource = read('manager-party.lua'), mcmSource = read('mcm.lua');
-const voicePreviewSource = read('voice-preview.lua'), fontsSource = read('ui-fonts.lua'), mcmFontsSource = read('mcm-fonts.lua');
 const supportSource = read('support-report.lua'), serviceSource = read('service-status.lua'), editorSource = read('character-editor.lua');
 const setupSource = read('setup-check.lua');
 
-function run(code) {
-  const state = lauxlib.luaL_newstate();
-  lualib.luaL_openlibs(state);
-  const status = lauxlib.luaL_dostring(state, to_luastring(uiLocaleBootstrap + code));
-  const error = status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
-  lua.lua_close(state);
-  assert.equal(status, lua.LUA_OK, error);
-}
-
-const storage = `
-  local files, saved, seed, extras = {}, nil, {}, nil
-  local jsonFixtures, jsonSequence, fileWrites = {}, 0, {}
-  local failSave = false
-  io = {open = function(path, mode)
-    if mode == 'rb' then
-      if not files[path] then return nil end
-      return {read = function() return files[path] end, close = function() return true end}
-    end
-    if failSave then return nil end
-    return {write = function(_, value)
-      fileWrites[#fileWrites + 1] = {path = path, value = value}
-      files[path] = value; return true
-    end, close = function() return true end}
-  end}
-  json = {decode = function(value)
-    if jsonFixtures[value] then return jsonFixtures[value] end
-    if value == 'seed' then return seed end
-    if value == 'extras' then return extras end
-    if value == 'saved' then return saved end
-    error('unexpected JSON fixture')
-  end, encode = function(value)
-    if value.action == 'clear' then
-      jsonSequence = jsonSequence + 1
-      local token = 'memory-json-' .. jsonSequence
-      jsonFixtures[token] = value
-      return token
-    end
-    jsonSequence = jsonSequence + 1
-    local token = 'settings-json-' .. jsonSequence
-    jsonFixtures[token] = value
-    return token
-  end}
-  os.rename = function(from, to)
-    if not files[from] or files[to] then return nil end
-    files[to], files[from] = files[from], nil
-    if to == 'runtime/settings.json' then saved = jsonFixtures[files[to]] end
-    return true
-  end
-  os.remove = function(path) files[path] = nil; return true end
-`;
-
-const managerFixture = `
-  ${storage}
-  local defs, members, spawned, nextSerial = {}, {}, {}, 0
-  local api = {}
-  function api.definition(key) return defs[key] end
-  function api.registerDefinition(key, value) defs[key] = value; return true end
-  function api.list() return members end
-  function api.spawn(key)
-    nextSerial = nextSerial + 1
-    spawned[#spawned + 1] = key
-    local def = assert(defs[key])
-    members[#members + 1] = {serial = nextSerial, key = key, name = def.name,
-      profileKey = def.profileKey, profileName = def.profileName or def.name,
-      record = def.id, state = 'spawning'}
-    return nextSerial
-  end
-  function api.dismiss(serial)
-    for index, member in ipairs(members) do
-      if member.serial == serial then table.remove(members, index); return true end
-    end
-    return false
-  end
-  function api.setProfile(serial, key, name)
-    for _, member in ipairs(members) do
-      if member.serial == serial then member.profileKey, member.profileName = key, name; return true end
-    end
-    return false, 'That companion is no longer in your party.'
-  end
-  local scans, visits = 0, 0
-  TweakDB = {}
-  function TweakDB:GetRecords(kind)
-    assert(kind == 'gamedataCharacter_Record')
-    scans = scans + 1
-    local result = {}
-    for index = 1, 6000 do
-      local id = index == 1 and 'Character.Silverhand' or ('Character.Model_' .. index)
-      result[index] = {GetID = function() visits = visits + 1; return id end}
-    end
-    return result
-  end
-  function TweakDB:GetFlat(id) return id:gsub('%.displayName$', '') end
-  GetLocalizedText = function(text) return text end
-  local player = {hash = 'player-1', open = true, queue = {}, rows = {}, voice = true, subtitles = true}
-  function player:GetEntityID() return {hash = self.hash} end
-  function player:ConvaiManagerIsOpen() return self.open end
-  function player:ConvaiManagerTakeRequest() return table.remove(self.queue, 1) or '' end
-  function player:ConvaiManagerClearRows() self.rows = {} end
-  function player:ConvaiManagerAddRow(key, label, note, selected)
-    self.rows[#self.rows + 1] = {key = key, label = label, note = note, selected = selected}
-    assert(#self.rows <= 8, 'unbounded native rows')
-  end
-  function player:ConvaiManagerSetDetail(...) self.detail = {...} end
-  function player:ConvaiManagerSetPage(...) self.page = {...} end
-  function player:ConvaiManagerSetTab(value) self.tab = value end
-  function player:ConvaiManagerSetSearch(value) self.search = value end
-  function player:ConvaiManagerSetFeedback(value) self.feedback = value end
-  function player:ConvaiManagerSetPartyStatus(value) self.partyStatus = value end
-  function player:ConvaiManagerRefresh() self.refreshes = (self.refreshes or 0) + 1 end
-  function player:ConvaiManagerSetVoice(value) self.voice = value end
-  function player:ConvaiManagerVoice() return self.voice end
-  function player:ConvaiManagerSetSubtitles(value) self.subtitles = value end
-  function player:ConvaiManagerSubtitles() return self.subtitles end
-  function player:ConvaiManagerSetEnabled(index, value) self['legacy' .. index] = value end
-  local profiles = {{key = 'viktor-vektor', name = 'Viktor Vektor', records = {'Character.Victor_Vector'}},
-    {key = 'johnny-silverhand', name = 'Johnny Silverhand', records = {'Character.Silverhand'}}}
-  for index = 1, 20 do profiles[#profiles + 1] = {key = 'person-' .. index,
-    name = string.format('Person %02d', index), records = {'Character.Person_' .. index}, summary = 'A distinct person.'} end
-  local manager = (function() ${managerSource} end)()
-  local function request(value, dt) player.queue[#player.queue + 1] = value; manager.update(player, dt or 0.1) end
-`;
-
-const mcmFixture = (withSupport = true, withSetup = false, withMcm = true) => `
-  ${managerFixture}
-  local originalDofile = dofile
-  dofile = function(path)
-    if path == 'voice-preview.lua' then return (function() ${voicePreviewSource} end)() end
-    if path == 'support-report.lua' then if not ${withSupport} then error('module absent') end return (function() ${supportSource} end)() end
-    if path == 'service-status.lua' then return (function() ${serviceSource} end)() end
-    if path == 'setup-check.lua' then if not ${withSetup} then error('module absent') end return (function() ${setupSource} end)() end
-    if path == 'character-editor.lua' then return (function() ${editorSource} end)() end
-    if path == 'ui-fonts.lua' then return (function() ${fontsSource} end)() end
-    if path == 'mcm-fonts.lua' then return (function() ${mcmFontsSource} end)() end
-    return originalDofile(path)
-  end
-  manager.configure(api, profiles)
+const mcmFixture = (withSupport = true, withSetup = false, withNsui = true) => nsuiHarness({
+  modules: {'service-status.lua': serviceSource, 'character-editor.lua': editorSource,
+    ...(withSupport ? {'support-report.lua': supportSource} : {}), ...(withSetup ? {'setup-check.lua': setupSource} : {})},
+  absent: [...(withSupport ? [] : ['support-report.lua']), ...(withSetup ? [] : ['setup-check.lua'])],
+  nsui: withNsui,
+}) + `
   convaiNotices.configure(function() return manager.developerMode() end) -- as init.lua does
-  local handlers, registered, loaded, activeMod = {}, nil, nil, nil
-  local drafts, reloads = false, 0
-  local nativeApi = {apiVersion = 2, providers = {}}
-  nativeApi.providers.registerProvider = function(value) registered = value; return true end
-  nativeApi.providers.unregisterProvider = function(id) assert(id == registered.id); registered = nil; return true end
-  nativeApi.refreshProvider = function() return true end
-  nativeApi.getDiagnostics = function() return {activeModKey = activeMod} end
-  nativeApi.hasDrafts = function() return drafts end
-  nativeApi.reloadMod = function()
-    reloads = reloads + 1; loaded = registered.loadMod('manager'); return loaded
-  end
-  GetMod = function(name) assert(name == 'ModConfigurationMenuAPI'); return ${withMcm} and nativeApi or nil end
-  Game = {GetPlayer = function() return player end}
-  Observe = function(class, method, callback) handlers[method] = callback end
-  ObserveAfter = Observe
-  Override = Observe
-  local entryFactory = {new = function()
-    return {install = function() end, update = function() end, selected = function() end,
-      state = function() return 'idle' end, reset = function() end, open = function() return true end}
-  end}
-  local mcm = (function() ${mcmSource} end)()
-  mcm.configure(manager, api, (function() ${queueSource} end)(), entryFactory)
-  mcm.install()
-  activeMod = 'cyberpunk-convai:manager'
-  if ${withMcm} then loaded = registered.loadMod('manager') end
-  local function row(id)
-    for _, category in ipairs(loaded.categories) do
-      for _, setting in ipairs(category.settings) do if setting.id == id then return setting end end
-    end
-  end
-  local controller = {nativeIdentity = 101,
-    McmUiEmitSearch = function(_, context, value) handlers.McmUiEmitSearch(nil, context, value) end}
-  CalcSeed = function(value) return value.nativeIdentity end
-  local function invoke(id)
-    local result = registered.invokeAction('manager', id, {interaction = {controller = controller}})
-    if result.ok and result.schemaChanged then loaded = registered.loadMod('manager') end
-    return result
-  end
 `;
 
-const helpFixture = (withSupport = true, withSetup = false, withMcm = true) => `
-  ${mcmFixture(withSupport, withSetup, withMcm)}
+const helpFixture = (withSupport = true, withSetup = false, withNsui = true) => `
+  ${mcmFixture(withSupport, withSetup, withNsui)}
   local clockNow, popups = 1800000000, {}
   local cpu = 0
   os.time = function() return clockNow end
   os.clock = function() return cpu end
   local function advance(seconds) clockNow = clockNow + seconds; cpu = cpu + seconds end
-  -- Navigation leaves MCM's search settling for a few frames before it refreshes the page.
-  local function pump(gameplay, frames) for _ = 1, frames or 10 do advance(0.5); mcm.update(player, gameplay) end end
+  -- The host draws the page again by itself when what it shows changes; the harness reads the page as it stands afterwards.
+  local function pump(gameplay, frames)
+    for _ = 1, frames or 10 do advance(0.5); managerUi.update(player, gameplay) end
+    loaded = registered.loadMod('manager')
+  end
   function player:ConvaiPhoneFeedback(text) popups[#popups + 1] = text end
   local function jsonFile(path, value)
     jsonSequence = jsonSequence + 1
@@ -230,9 +61,10 @@ test('Settings offers Help, and the Help page has one parent Back, guidance, the
   assert(invoke('tab:settings').ok)
   local help = row('help')
   assert(help and help.value == 'Open' and not help.disabled and category('help') and category('help').name == 'Help')
-  assert(invoke('help').ok and mcm.inspect().view == 'help')
-  assert(mcm.inspect().back.id == 'help:back' and countBack() == 0, 'parent Back must be the bottom-row button only')
-  assert(not category('navigation') and not row('party-count'))
+  assert(invoke('help').ok and managerUi.inspect().view == 'help')
+  assert(loaded.categories[1].id == 'navigation' and loaded.categories[1].settings[1].id == 'help:back' and countBack() == 1,
+    'one parent Back, the first row of the page')
+  assert(#category('navigation').settings == 1 and not row('party-count'))
   for _, id in ipairs({'help-steps', 'help-service', 'help:generate', 'help-last', 'help:copy', 'help-log-mod',
     'help-log-bridge', 'help-log-launcher', 'help-log-cet', 'help-log-redscript', 'help-log-red4ext', 'help-log-reports'}) do
     assert(row(id), 'missing ' .. id)
@@ -251,7 +83,7 @@ test('Settings offers Help, and the Help page has one parent Back, guidance, the
   local early = invoke('help:copy')
   assert(not early.ok and early.error == 'Create a report first.' and not files['runtime/clipboard-request.json'])
   assert(row('help:generate').value == 'Create' and not row('help:generate').disabled)
-  assert(invoke('help:back').ok and mcm.inspect().view == 'settings' and row('help'))
+  assert(invoke('help:back').ok and managerUi.inspect().view == 'settings' and row('help'))
   assert(not invoke('help:generate').ok, 'a stale Help action stayed callable after leaving the page')
 `));
 
@@ -476,7 +308,7 @@ test('with the service up the Copy row keeps its ordinary help, and shows the pa
   assert(row('help:copy').description:match('is at: \\n(.*)$'):gsub('\\n', '') == path)
 `));
 
-// ---- Help > Setup check (docs/MANAGER_UI.md, mod/setup-check.lua): the first section of the page, over the real mcm.lua
+// ---- Help > Setup check (docs/MANAGER_UI.md, mod/setup-check.lua): the first section of the page, over the real manager host
 // The game as it is with everything installed; a test changes one thing of it.
 const setupWorld = `
   Codeware = {Version = function() return '1.20.5' end}
@@ -505,15 +337,15 @@ const setupWorld = `
 test('the Help page opens with the setup check: the service row, one line per check, and a count in the description', () => run(`${helpFixture(true, true)}
   ${setupWorld}
   assert(invoke('tab:settings').ok and invoke('help').ok)
-  local first = loaded.categories[1]
-  assert(first.id == 'help-setup' and first.name == 'Setup check', first.id)
+  local first = loaded.categories[2]
+  assert(loaded.categories[1].id == 'navigation' and first.id == 'help-setup' and first.name == 'Setup check', first.id)
   assert(first.description == 'No problem found. Select a line to see what was checked.', first.description)
-  assert(first.settings[1].id == 'help-service', 'the Conversation service row first (Back is the bottom-bar button)')
-  assert(mcm.inspect().back.id == 'help:back' and countBack() == 0, 'still one parent Back')
+  assert(first.settings[1].id == 'help-service', 'the Conversation service row first in the setup check (Back is the first section)')
+  assert(loaded.categories[1].settings[1].id == 'help:back' and countBack() == 1, 'still one parent Back')
   assert(row('help-service').value == 'Running')
-  for _, id in ipairs({'files', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'tweakxl', 'audioware', 'mcm'}) do
+  for _, id in ipairs({'files', 'game', 'cet', 'red4ext', 'redscript', 'codeware', 'tweakxl', 'audioware', 'nsui'}) do
     local item = setupRow(id)
-    assert(item and item.value == 'OK' and item.type == 'string' and item.capabilities.write == false and item.description ~= '', id .. ' ' .. tostring(item and item.description))
+    assert(item and item.value == 'OK' and item.type == 'string' and item.description ~= '', id .. ' ' .. tostring(item and item.description))
   end
   assert(setupRow('codeware').label == 'Codeware' and setupRow('codeware').description == 'Version 1.20.5.')
   assert(setupRow('game').label == 'Game version' and setupRow('game').description == 'Version 2.31.')
@@ -566,7 +398,7 @@ test('opening the page runs the check again and asks a running service once; the
 
 test('without the setup module the Help page keeps its groups and shows only the Conversation service row first', () => run(`${helpFixture()}
   assert(invoke('tab:settings').ok and invoke('help').ok)
-  assert(loaded.categories[1].id == 'help-setup' and #loaded.categories[1].settings == 1 and loaded.categories[1].description == '')
+  assert(loaded.categories[2].id == 'help-setup' and #loaded.categories[2].settings == 1 and loaded.categories[2].description == '')
   assert(row('help-service') and row('help-steps') and not row('setup:files') and not convaiSetupCheck)
 `));
 
@@ -581,12 +413,12 @@ test('the first load: a missing framework is announced once in gameplay, after t
   pump(true, 60)
   assert(#popups == 1, 'once per game session')
   assert(consoleHas('TweakXL is missing'), 'the notice is logged too')
-  assert(not consoleHas('Mod Configuration Menu is missing'), 'Mod Configuration Menu is there, so its line is not printed')
+  assert(not consoleHas('Native Settings UI is missing'), 'Native Settings UI is there, so its line is not printed')
 `));
 
-test('without Mod Configuration Menu the CET console, probe.log and a game notification say so', () => run(`${helpFixture(true, true, false)}
+test('without Native Settings UI the CET console, probe.log and a game notification say so', () => run(`${helpFixture(true, true, false)}
   ${setupWorld}
-  assert(not registered and not loaded, 'the manager is not registered without Mod Configuration Menu')
+  assert(ns.data[TAB] == nil, 'the manager has no tab without Native Settings UI')
   -- probe.log is appended to; the harness's files keep only a whole write, so this one is recorded line by line
   local probe, baseOpen = {}, io.open
   io.open = function(path, mode)
@@ -597,12 +429,12 @@ test('without Mod Configuration Menu the CET console, probe.log and a game notif
   end
   files['runtime/knowledge-status.json'] = nil
   pump(true, 30)
-  assert(consoleHas('AI NPC Cyberpunk Mod: Mod Configuration Menu is missing or too old, so the Companion Manager cannot open. Install Mod Configuration Menu 0.10.3 or newer from Nexus Mods, then restart the game.'), table.concat(consoleLines, ' | '))
+  assert(consoleHas('AI NPC Cyberpunk Mod: Native Settings UI is missing or too old, so the Companion Manager cannot open. Install Native Settings UI 1.96 or newer from Nexus Mods (https://www.nexusmods.com/cyberpunk2077/mods/3518), then restart the game.'), table.concat(consoleLines, ' | '))
   local lines = 0
-  for _, line in ipairs(consoleLines) do if line:find('Mod Configuration Menu is missing or too old', 1, true) then lines = lines + 1 end end
+  for _, line in ipairs(consoleLines) do if line:find('Native Settings UI is missing or too old', 1, true) then lines = lines + 1 end end
   assert(lines == 1, 'one clear line, not one per update')
-  assert(table.concat(probe):find('Mod Configuration Menu is missing or too old', 1, true), 'probe.log has the line')
-  assert(#popups == 1 and popups[1] == 'Install Mod Configuration Menu from Nexus Mods to open the Companion Manager.', popups[1] or 'no popup')
+  assert(table.concat(probe):find('Native Settings UI is missing or too old', 1, true), 'probe.log has the line')
+  assert(#popups == 1 and popups[1] == 'The Companion Manager needs Native Settings UI (Nexus Mods)', popups[1] or 'no popup')
 `));
 
 test('without this mod’s scripts the notice is written to the warning line itself, once, when gameplay is on screen', () => run(`${helpFixture(true, true)}

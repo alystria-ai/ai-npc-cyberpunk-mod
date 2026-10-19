@@ -7,8 +7,8 @@ import {warmMatureGuard, analyse} from './mature-guard.mjs';
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 
 test('the settings page redraws when the Inworld key state changes (the signature reads it, as it does Mistral)', () => {
-  const mcm = read('../mod/mcm.lua');
-  const body = mcm.slice(mcm.indexOf('local function pageSignature(snapshot)'));
+  const page = read('../mod/manager-ui.lua');
+  const body = page.slice(page.indexOf('local function pageSignature(snapshot)'));
   const settings = body.slice(body.indexOf("if view == 'settings' then"), body.indexOf('-- The Local AI model row'));
   assert.match(settings, /local inworld = type\(mistral\.inworld\) == 'table' and mistral\.inworld or \{\}/);
   assert.match(settings, /tostring\(inworld\.saved\), inworld\.tail or '', inworld\.result or ''/);
@@ -28,8 +28,8 @@ test('every status the phone shows for a provider failure is translated by the p
 });
 
 test('the Conversation provider options are translated (the catalogue has them in every language)', () => {
-  const mcm = read('../mod/mcm.lua');
-  const row = mcm.slice(mcm.indexOf("{'Convai free tier', 'Convai API key', 'Mistral (free plan)'"));
+  const page = read('../mod/manager-ui.lua');
+  const row = page.slice(page.indexOf("{'Convai free tier', 'Convai API key', 'Mistral (free plan)'"));
   assert.match(row.slice(0, 200), /'Local AI'\}, \{elements = true, description = true\}\)/);
   assert.ok(!/groq/i.test(row.slice(0, 200)), 'Groq was removed as a provider');
 });
@@ -40,9 +40,13 @@ test('the phone-chat 30 ms reply probe runs before the 10 Hz early return, not a
   assert.ok(update.indexOf("convaiNative.revision('phone-chat-output.json')") < update.indexOf('if M.tick < 0.10 and M.world then return end'));
 });
 
-test('a failing settings reload is attempted once per change, not on every frame', () => {
-  const mcm = read('../mod/mcm.lua');
-  assert.match(mcm, /if err then lastError = tostring\(err\); renderedSignature = lastSignature end/);
+test('a page that fails to draw is attempted a few times, not on every frame', () => {
+  const host = read('../mod/nsui.lua');
+  assert.match(host, /renderFailures = renderFailures \+ 1/);
+  assert.match(host, /if renderFailures < 3 then rebuildAt = os\.clock\(\) \+ 0\.25 end/);
+  // A draw that raises still leaves the page's signature equal to what was built, so the same page is not drawn again at once.
+  const page = read('../mod/manager-ui.lua');
+  assert.match(page, /renderedSignature = pageSignature\(snapshot\)\s+lastSignature = renderedSignature/);
 });
 
 test('the Mature guard warm-up compiles the pattern tables in the background so the first Mature turn does not pay for them', async () => {

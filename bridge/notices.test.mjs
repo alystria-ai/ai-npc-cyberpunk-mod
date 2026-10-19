@@ -139,8 +139,8 @@ test('every notice call site names a catalogued id', () => {
     }
   }
   assert(sites >= 25, `only ${sites} call sites were found; the scan is broken`);
-  // A queue notice carries its id through to the final send (mcm.lua forwards notice.id).
-  assert(/\{id = notice\.id, text = notice\.message\}/.test(code('mcm.lua')), 'mcm.lua no longer forwards the queue notice id');
+  // A queue notice carries its id through to the final send (manager-ui.lua forwards notice.id).
+  assert(/\{id = notice\.id, text = notice\.message\}/.test(code('manager-ui.lua')), 'manager-ui.lua no longer forwards the queue notice id');
   for (const id of Object.keys(entries)) {
     assert(used.has(id), `${id} is in the catalog but no call site uses it: remove it or wire it up`);
   }
@@ -393,7 +393,7 @@ test('several loads are one notice that lists them; it changes in place and an o
 
 test('a line whose text changes while its load goes on is posted in place when the text changes, and only then', () => {
   run(`${boardSetup}
-    -- describe reads the live text, as a companion's wait line does (mod/mcm.lua).
+    -- describe reads the live text, as a companion's wait line does (mod/manager-ui.lua).
     local text = 'first'
     local function describeText(key, value) return key == 'omni' and text or key .. ':' .. value end
     local function textTick(seconds)
