@@ -2687,12 +2687,12 @@
     },
     {
       "key": "denny",
-      "words": 746,
+      "words": 747,
       "speakingStyleWords": 182,
       "sampleDialogueWords": 157,
       "voice": "Linda (Deep Middle-Aged American Female)",
       "sources": 5,
-      "researchRevision": "2e35a59f1ff5db5fc162744063c6167c41e9d63facc8f49d38af7ed220ee8a9c"
+      "researchRevision": "3fab104d3a9c33fb5dabfa191932a8e7ee6fdf1ed6b5f2471480fd2fbcabe62b"
     },
     {
       "key": "henry",
