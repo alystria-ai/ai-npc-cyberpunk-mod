@@ -315,6 +315,17 @@ export class VoxtralVoice {
     this.lastKey = undefined;         // the key the cool-down (until) belongs to
   }
   setReferences(registry) { this.registries = [].concat(registry ?? []).filter(Boolean); this.references.clear(); }
+  /**
+   * The registries again after a player changed some voices (bridge/voice-selection.mjs setVoices): only the cached references of `keys` are
+   * dropped (they are read and encoded again from the registries' new entries the next time that voice speaks), every other voice keeps its own.
+   * A reply already asking holds the reference it started with. Returns the keys that had a cached reference.
+   */
+  replaceReferences(registry, keys = []) {
+    this.registries = [].concat(registry ?? []).filter(Boolean);
+    return keys.filter(key => this.references.delete(key));
+  }
+  /** Has this voice's reference been read and encoded already (it was spoken, or warmed)? */
+  hasCachedReference(key) { return this.references.has(key); }
   /** The key now. A refused-key or limit cool-down belongs to the key that earned it: a key saved in its place is tried at once. */
   #key() {
     const apiKey = this.getKey();

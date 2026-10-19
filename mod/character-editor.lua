@@ -103,7 +103,7 @@ function M.new(options)
         ['This character speaks with the shipped voice.'] = ui.t('This character speaks with the shipped voice.'),
         ['This character speaks with a generic voice that fits the gender.'] = ui.t('This character speaks with a generic voice that fits the gender.'),
         ['Add voice clip'] = ui.t('Add voice clip'),
-        ['A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now.'] = ui.t('A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now.'),
+        ['A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting.'] = ui.t('A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting.'),
         ['Saved clip: {seconds} seconds.'] = ui.t('Saved clip: {seconds} seconds.'),
         ['Voice'] = ui.t('Voice'),
         ['Words said in the clip'] = ui.t('Words said in the clip'),

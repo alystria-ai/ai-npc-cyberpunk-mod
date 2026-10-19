@@ -109,7 +109,7 @@ With Convai, your lines go to Convai, along with a recent picture of only the ga
 Yes, with Mistral or Local AI. Face a character that has no profile here (for example a Night City Allies follower from a character mod), open Settings > Edit characters > Open and choose New character in the page that opens. Give them a name, a bio and a way of speaking; the page can fill in how the game recognises them from the character you are facing. An optional voice clip gives them a voice of their own. With Convai they talk as an ordinary person, and the game says so once.
 
 [b]Can I change a character's voice?[/b]
-Yes. In the same editor page, open a story character's Voice tab (or one of your own characters) and choose Add voice clip: a WAV, MP3, OGG or FLAC file of 5 to 20 seconds of one person speaking clearly, with the words said in it typed out. Pocket, OmniVoice and Voxtral copy that voice from the next game start. Remove clip brings the original voice back. The clip stays on your PC.
+Yes. In the same editor page, open a story character's Voice tab (or one of your own characters) and choose Add voice clip: a WAV, MP3, OGG or FLAC file of 5 to 20 seconds of one person speaking clearly, with the words said in it typed out. Pocket, OmniVoice and Voxtral copy that voice from that character's next line, with no restart. Remove clip brings the original voice back. The clip stays on your PC.
 
 [b]Error reports[/b]
 When something in the mod fails, a short report goes to the developer so it can be fixed without asking you for logs. It is on by default; turn it off in [b]Settings > Privacy > Send error reports automatically[/b].

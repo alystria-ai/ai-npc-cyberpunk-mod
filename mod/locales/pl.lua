@@ -851,7 +851,7 @@ return {
     ["Choose how often Johnny speaks up."] = "Wybierz, jak często Johnny się odzywa.",
     ["A clip you add replaces the shipped voice of this character for Pocket, OmniVoice and the Voxtral cloud voice."] = "Klip, który dodasz, zastępuje oryginalny głos tej postaci w Pocket, OmniVoice i głosie w chmurze Voxtral.",
     ["A display name is too long. Keep each one under {max} characters."] = "Nazwa wyświetlana jest za długa. Każda musi mieć mniej niż {max} znaków.",
-    ["A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now."] = "Nowy lub usunięty klip zacznie działać od następnego uruchomienia gry. Do tego czasu postać zachowa głos, który ma teraz.",
+    ["A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting."] = "Nowy lub usunięty klip obowiązuje od następnej kwestii tej postaci, gdy skończy się obecna odpowiedź. Nic nie trzeba restartować.",
     ["A record name can only use letters, digits, dots, dashes and underscores, for example Character.Rebecca."] = "Nazwa rekordu może zawierać tylko litery, cyfry, kropki, myślniki i podkreślenia, na przykład Character.Rebecca.",
     ["Add a display name"] = "Dodaj nazwę wyświetlaną",
     ["Add a record name"] = "Dodaj nazwę rekordu",

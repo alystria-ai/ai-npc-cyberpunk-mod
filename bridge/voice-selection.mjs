@@ -65,6 +65,11 @@ export class VoiceSelection {
     }));
     this.registries={pocket:pocketRegistry,convai:empty};
     this.configs={pocket:snapshot(validated,pocketRegistry)};
+    // What a worker is started with never changes: its configuration file is the start-up one, and what it holds is checked against that.
+    // The voices a player changes later (setVoices) replace the routing registries above and are sent to the running workers.
+    this.snapshotOf=snapshot;this.pocketBase=validated;
+    this.baseConfigs={pocket:this.configs.pocket,omni:Object.fromEntries(OMNI_REFERENCES.map(reference=>[reference,this.omniVariants[reference].snapshot]))};
+    this.live=null;this.pendingVoices=null;
     this.configuredByBackend={pocket:!!validated&&pocketRegistry.keys.length>0};
     this.availabilities={pocket:new Set(pocketRegistry.keys),convai:new Set()};
     // The optional OmniVoice pack (worker Python, model weights): a function or a fixed {installed, missing}.
@@ -101,7 +106,7 @@ export class VoiceSelection {
     // never the route of any character; `vHelperWanted` is the V setting (on, with clips), set by the bridge's settings poll.
     this.vHelperWanted=false;
     this.vHelper=options.vHelper||new VHelperVoice({wait:()=>this.retiring,onReady:()=>this.options.onVHelperReady?.(),log:message=>{try{this.options.onLog?.('[VHelper] '+message+'\n');}catch{}},
-      create:onState=>this.factory(this.configs.pocket,{...this.options,keepPreparedVoices:this.keepPrepared,onState})});
+      create:onState=>this.primed(this.factory(this.baseConfigs.pocket,{...this.options,keepPreparedVoices:this.keepPrepared,onState}),'pocket')});
     // omniRetry: {failures, nextAt} while a failed Omni is to be loaded again; candidate: the background Omni worker
     // loading beside the committed fallback (Pocket is CPU only, so the two never share VRAM). candidateExit
     // chains each retired candidate's confirmed exit; a new worker starts only after it, like any replacement.
@@ -165,6 +170,96 @@ export class VoiceSelection {
     this.keepPrepared=value!==false;
     this.client?.setKeepPrepared?.(this.keepPrepared);
     this.candidate?.client.setKeepPrepared?.(this.keepPrepared);
+  }
+  // ---- Voices a player changes while the service runs (a clip given to a character or taken away: docs/CHARACTER_EDITOR.md, "Voice clips") ----
+  // `update`: {pocket, omni: {short, long}, playerVoiceDirectory, changed: [keys]}. Each engine's `voices` is that configuration's whole `voices` object
+  // as it should be now (the bridge builds it: bridge/live-voices.mjs); an engine left out is unchanged. It takes effect at the next moment no reply is
+  // in flight (the settings poll), never in the middle of one: the routing registries, the cloud voices' references and the running workers all change
+  // together. Nothing is reloaded: a worker is sent only the voices that differ, and only those characters lose what was prepared for them (a Pocket
+  // prepared state, an OmniVoice prompt, a Voxtral reference, an Inworld voice); a character that was prepared is prepared again at once, in the
+  // background, so its next line does not pay for it. Returns true when it was applied now, false when it waits for the next idle moment.
+  setVoices(update = {}) {
+    if (this.closed || !update || typeof update !== 'object') return false;
+    const before = this.pendingVoices ?? {};
+    this.pendingVoices = {pocket: update.pocket ?? before.pocket, omni: {short: update.omni?.short ?? before.omni?.short, long: update.omni?.long ?? before.omni?.long},
+      playerVoiceDirectory: update.playerVoiceDirectory ?? before.playerVoiceDirectory ?? null, changed: [...new Set([...(before.changed ?? []), ...(update.changed ?? [])])]};
+    return this.applyVoicesWhenIdle();
+  }
+  get voicesPending() { return !!this.pendingVoices; }
+  applyVoicesWhenIdle() {
+    const pending = this.pendingVoices;
+    if (!pending || this.closed || this.busy) return false;
+    this.pendingVoices = null;
+    try { this.applyVoices(pending); } catch (error) { this.log(`the voice change was not applied: ${String(error?.message ?? error).slice(0, 160)}`, 'Voices'); return false; }
+    return true;
+  }
+  applyVoices(pending) {
+    const dir = pending.playerVoiceDirectory ?? this.live?.dir ?? null, changed = pending.changed ?? [];
+    const lowered = value => ({mode: 'lazy', maxCachedProfiles: value?.maxCachedProfiles});
+    const live = (backend, reference) => !!this.client && this.client.loaded === true && this.clientBackend === backend && (backend !== 'omni' || this.clientReference === reference);
+    // What was prepared for the changed characters before this (the client's list, or a cloud voice's cached reference): prepared again after.
+    const warm = new Set();
+    for (const key of changed) {
+      if (this.client?.prepared?.has(key) || this.voxtral?.hasCachedReference?.(key) || this.inworld?.hasCachedReference?.(key)) warm.add(key);
+    }
+    const next = {...(this.live ?? {pocket: undefined, omni: {}}), dir, omni: {...(this.live?.omni ?? {})}};
+    if (pending.pocket && this.pocketBase) {
+      const registry = createVoiceProfileRegistry({version: 2, provider: 'hybrid', engine: 'omnivoice', voices: pending.pocket,
+        preparation: {...lowered(this.pocketBase.preparation), startupProfiles: []}});
+      next.pocket = pending.pocket;
+      this.registries.pocket = registry;
+      this.configs.pocket = this.snapshotOf({...this.pocketBase, registry}, registry);
+      this.configuredByBackend.pocket = registry.keys.length > 0;
+      if (!live('pocket')) { this.availabilities.pocket = new Set(registry.keys); this.verifiedAvailabilities.delete('pocket'); }
+    }
+    for (const reference of OMNI_REFERENCES) {
+      const voices = pending.omni?.[reference], variant = this.omniVariants[reference];
+      if (!voices || variant.input.provider !== 'hybrid' || (variant.input.version ?? 1) < 2 && Object.keys(variant.input.voices ?? {}).length) continue;
+      const startup = (variant.input.preparation?.startupProfiles ?? []).filter(key => voices[key] && (voices[key].status ?? 'ready') === 'ready');
+      const input = {...variant.input, version: 2, voices, preparation: {...lowered(variant.input.preparation), startupProfiles: startup}};
+      const registry = createVoiceProfileRegistry(input);
+      next.omni[reference] = voices;
+      Object.assign(variant, {input, registry, snapshot: this.snapshotOf(input, registry), configured: input.provider === 'hybrid' && registry.keys.length > 0});
+      if (!live('omni', reference)) { variant.availability = new Set(registry.keys); this.verifiedAvailabilities.delete(this.verifiedKey('omni', reference)); }
+    }
+    this.live = next;
+    this.activateOmni();
+    this.routeKeys = withoutVariants(new Set([...this.routeKeys, ...Object.keys(this.configs.pocket.voices ?? {}),
+      ...OMNI_REFERENCES.flatMap(reference => Object.keys(this.omniVariants[reference].snapshot.voices ?? {}))])).sort();
+    // The cloud voices read their clips through the same registries: they follow, and forget only the characters that changed.
+    for (const cloud of [this.voxtral, this.inworld]) {
+      cloud?.replaceReferences?.([this.omniVariants.long.registry, this.omniVariants.short.registry, this.registries.pocket], changed);
+    }
+    // Every running worker is sent the difference (behind whatever it is doing); the standard availability commit follows each answer.
+    const push = (client, backend, reference) => {
+      const voices = backend === 'omni' ? next.omni[reference] : next.pocket;
+      if (!voices || typeof client?.setVoices !== 'function') return;
+      Promise.resolve(client.setVoices(voices, {playerVoiceDirectory: dir})).then(() => { if (!this.closed) this.settleAfterVoices(client); },
+        error => this.log(`a running voice did not take the change: ${String(error?.message ?? error).slice(0, 120)}`, 'Voices'));
+    };
+    if (this.client) push(this.client, this.clientBackend, this.clientReference);
+    if (this.candidate?.client) push(this.candidate.client, 'omni', this.candidate.reference);
+    if (this.vHelper?.client) push(this.vHelper.client, 'pocket');
+    this.log(`voices changed while running (${changed.length} character${changed.length === 1 ? '' : 's'})`, 'Voices');
+    this.publish();
+    if (!this.silent) for (const key of warm) void this.prepareProfile(this.voiceKeyFor(key, key)).catch(() => {});
+    return true;
+  }
+  // A worker confirmed a voice change: what it can speak is verified again (the committed one commits at the next idle moment, as ever).
+  settleAfterVoices(client) {
+    if (this.client === client) { this.stageAvailability(client, this.clientBackend); return; }
+    const entry = this.candidate;
+    if (entry?.client === client && entry.loaded) {
+      this.verifiedAvailabilities.set(this.verifiedKey('omni', entry.reference), new Set(this.omniVariants[entry.reference].registry.keys.filter(key => client.hasProfile(key))));
+    }
+  }
+  // A worker made for the configuration's voices is told the voices a player has changed since the service started.
+  primed(client, backend, reference = null) {
+    const voices = this.live && (backend === 'omni' ? this.live.omni[reference] : this.live.pocket);
+    if (voices && typeof client?.setVoices === 'function') {
+      Promise.resolve(client.setVoices(voices, {playerVoiceDirectory: this.live.dir})).catch(error => this.log(`a new voice did not take the change: ${String(error?.message ?? error).slice(0, 120)}`, 'Voices'));
+    }
+    return client;
   }
   // A Pocket worker that failed earlier stays out of routing, except for a cloud voice: it runs no worker, so the failure is not its.
   backendUsable(backend){
@@ -350,9 +445,11 @@ export class VoiceSelection {
     this.busy=!!busy;
     // A pack installed while the game runs becomes usable without a restart.
     if(!this.omniPack.installed&&this.clock()-this.packCheckedAt>=PACK_RECHECK_MS)this.refreshOmniPack();
+    // Voices a player changed while a reply was in flight take effect now (one null check when there is nothing waiting).
+    const voicesApplied=this.applyVoicesWhenIdle();
     this.request(settings);
     const previewChanged = this.setPreview(preview);
-    const applied = this.applyWhenIdle(busy);
+    const applied = this.applyWhenIdle(busy)||voicesApplied;
     this.reconcile();
     this.maintainOmniRetry();
     this.maintainPocketRetry();
@@ -475,7 +572,7 @@ export class VoiceSelection {
       if (value.state === 'ready') this.stageAvailability(client,backend);
       this.details = value; this.publish(value.state);
     }};
-    client=this.client=factory(backend==='omni'?variant.snapshot:this.configs[backend],hooks);
+    client=this.client=this.primed(factory(backend==='omni'?this.baseConfigs.omni[this.clientReference]:this.baseConfigs[backend],hooks),backend,this.clientReference);
     if(backend==='omni')client.setSteps(this.warmSteps);
     client.setKeepPrepared?.(this.keepPrepared);
     this.publish(this.releasing ? 'releasing' : 'loading');
@@ -571,7 +668,7 @@ export class VoiceSelection {
         if(value.state==='ready')this.stageAvailability(entry.client,'omni');
         this.details=value;this.publish(value.state);
       }};
-    entry.client=this.omniFactory(variant.snapshot,hooks);
+    entry.client=this.primed(this.omniFactory(this.baseConfigs.omni[reference],hooks),'omni',reference);
     entry.client.setSteps?.(this.requestedOmniSteps);
     entry.client.setKeepPrepared?.(this.keepPrepared);
     this.candidate=entry;

@@ -234,6 +234,16 @@ def inspect_student_export(directory, expected, *, yaml_load=None):
     return config
 
 
+def checked_player_directory(value, paths):
+    """The player's own clips (optional): a folder of the player's data. It may be missing (those profiles are then unavailable), but it
+    must not overlap the work folder (which the worker writes) nor any shipped asset, so a clip never resolves through either."""
+    player = plain_absolute(value, "playerVoiceDirectory")
+    if any(player.is_relative_to(other) or other.is_relative_to(player)
+           for other in (paths["workDirectory"], paths["sourceDirectory"], paths["exportDirectory"], paths["referenceDirectory"])):
+        raise ValueError("Pocket player voices must be separate from the work folder and the shipped assets")
+    return player
+
+
 def validate_config(raw, *, yaml_load=None, source_hasher=digest_source):
     if (not isinstance(raw, dict) or type(raw.get("version")) is not int or raw.get("version") != 1
             or raw.get("engine") != "pocket-tts" or raw.get("provider") != "pocket"):
@@ -251,11 +261,7 @@ def validate_config(raw, *, yaml_load=None, source_hasher=digest_source):
     # The player's own clips (optional): a folder of the player's data. It may be missing (those profiles are then unavailable), but it
     # must not overlap the work folder (which the worker writes) nor any shipped asset, so a clip never resolves through either.
     if runtime.get("playerVoiceDirectory") is not None:
-        player = plain_absolute(runtime.get("playerVoiceDirectory"), "playerVoiceDirectory")
-        if any(player.is_relative_to(other) or other.is_relative_to(player)
-               for other in (work, paths["sourceDirectory"], paths["exportDirectory"], paths["referenceDirectory"])):
-            raise ValueError("Pocket player voices must be separate from the work folder and the shipped assets")
-        paths["playerVoiceDirectory"] = player
+        paths["playerVoiceDirectory"] = checked_player_directory(runtime.get("playerVoiceDirectory"), paths)
     if source_hasher(paths["sourceDirectory"]) != SOURCE_SHA256:
         raise ValueError("Pocket source differs from the pinned official revision")
     cpu = raw.get("cpu", {})
@@ -302,6 +308,80 @@ def validate_config(raw, *, yaml_load=None, source_hasher=digest_source):
             "descriptors": descriptors, "unavailable": unavailable, "threads": threads,
             "temperature": temperature, "startup": [key for key in startup if key in refs],
             "cacheLimit": limit}
+
+
+MAX_VOICE_CHANGES = 24
+
+
+def apply_voices(registry, change, cache=None):
+    """Changes some voices of a running worker without reloading anything (a player gave a character a clip, or took it away).
+
+    `change` is {"set": {key: descriptor}, "remove": [key, ...], "playerVoiceDirectory": absolute folder or None}. Everything is checked
+    before anything changes, so a refused change leaves the registry exactly as it was. A descriptor is checked like the configuration's
+    (shape, then the file and its hash through the one resolver); a file that is gone or changed withdraws only that voice. Each changed
+    voice leaves the prepared-state cache (and the saved setup of a clip that is replaced or removed); no other voice is touched.
+    Returns the changed keys."""
+    if not isinstance(change, dict):
+        raise ValueError("Invalid Pocket voice change")
+    voices, removed = change.get("set", {}), change.get("remove", [])
+    if (not isinstance(voices, dict) or not isinstance(removed, list) or len(voices) + len(removed) > MAX_VOICE_CHANGES
+            or len(set(registry["descriptors"]) | set(registry["unavailable"]) | set(voices)) > MAX_PROFILES
+            or any(not profile_key_valid(key) for key in (*voices, *removed)) or set(voices) & set(removed)):
+        raise ValueError("Invalid Pocket voice change")
+    paths = registry["paths"]
+    folder = change.get("playerVoiceDirectory")
+    if folder is not None:
+        wanted = checked_player_directory(folder, paths)
+        if paths.get("playerVoiceDirectory") not in (None, wanted):
+            raise ValueError("Pocket player voice folder cannot change while running")
+    else:
+        wanted = paths.get("playerVoiceDirectory")
+    checked = {}
+    for key, descriptor in voices.items():
+        if not isinstance(descriptor, dict):
+            raise ValueError("Invalid Pocket voice profile")
+        status = descriptor.get("status", "ready")
+        if status not in ("ready", "unprepared", "unavailable"):
+            raise ValueError("Invalid Pocket voice profile status")
+        if status != "ready":
+            checked[key] = (None, None, status)
+            continue
+        if not descriptor_valid(descriptor):
+            raise ValueError("Invalid Pocket reference descriptor")
+        try:
+            path = resolve_reference({**paths, **({"playerVoiceDirectory": wanted} if wanted is not None else {})}, descriptor)
+        except ValueError:
+            path = None
+        checked[key] = (dict(descriptor), path, "ready" if path is not None else "unavailable")
+    if wanted is not None:
+        paths["playerVoiceDirectory"] = wanted
+    changed = []
+    for key in removed:
+        old = registry["descriptors"].pop(key, None)
+        known = key in registry["refs"] or key in registry["unavailable"] or old is not None
+        registry["refs"].pop(key, None)
+        registry["unavailable"].pop(key, None)
+        if cache is not None:
+            cache.forget(key, old["sha256"] if old and player_reference(old.get("reference")) else None)
+        if known:
+            changed.append(key)
+    for key, (descriptor, path, status) in checked.items():
+        old = registry["descriptors"].get(key)
+        registry["refs"].pop(key, None)
+        registry["unavailable"].pop(key, None)
+        registry["descriptors"].pop(key, None)
+        if descriptor is not None:
+            registry["descriptors"][key] = descriptor
+            if path is not None:
+                registry["refs"][key] = path
+        if status != "ready":
+            registry["unavailable"][key] = status
+        if cache is not None:
+            cache.forget(key, old["sha256"] if old and player_reference(old.get("reference"))
+                         and (descriptor is None or old["sha256"] != descriptor["sha256"]) else None)
+        changed.append(key)
+    registry["startup"] = [key for key in registry["startup"] if key in registry["refs"]]
+    return changed
 
 
 PREPARED_FORMAT = "pocket-prepared-voice-v1"
@@ -382,6 +462,14 @@ class PreparedVoiceStore:
         except OSError:
             pass
 
+    def forget(self, key, reference_sha256):
+        """Removes the saved setup of one voice for one reference (a player's clip that was replaced or removed)."""
+        for path in (self.path(key, reference_sha256), self.path(key, reference_sha256).with_suffix(".safetensors.tmp")):
+            try:
+                path.unlink()
+            except OSError:
+                pass
+
     def clear(self):
         removed = 0
         for file in self.directory.glob("*.safetensors*") if self.directory.is_dir() else ():
@@ -406,6 +494,13 @@ class ReferenceCache:
 
     def prepared(self):
         return list(self.states)
+
+    def forget(self, key, reference_sha256=None):
+        """This voice's prepared state leaves memory (and, for a clip the player replaced, its saved setup leaves the disk): the next
+        reply prepares it again from whatever the registry now names. Other voices are not touched."""
+        self.states.pop(key, None)
+        if reference_sha256 and self.store is not None:
+            self.store.forget(key, reference_sha256)
 
     def prepare(self, key, keep=False):
         if key not in self.registry["refs"]:

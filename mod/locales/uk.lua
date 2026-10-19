@@ -851,7 +851,7 @@ return {
     ["Choose how often Johnny speaks up."] = "Обери, як часто Johnny озивається.",
     ["A clip you add replaces the shipped voice of this character for Pocket, OmniVoice and the Voxtral cloud voice."] = "Кліп, який ти додаси, замінює вихідний голос цього персонажа для Pocket, OmniVoice і хмарного голосу Voxtral.",
     ["A display name is too long. Keep each one under {max} characters."] = "Відображуване ім’я занадто довге. Кожне має бути коротшим за {max} символів.",
-    ["A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now."] = "Новий або видалений кліп діятиме від наступного запуску гри. Доти персонаж зберігає голос, який має зараз.",
+    ["A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting."] = "Новий або видалений кліп діє з наступної репліки цього персонажа, коли закінчиться поточна відповідь. Нічого перезапускати не потрібно.",
     ["A record name can only use letters, digits, dots, dashes and underscores, for example Character.Rebecca."] = "Ім’я запису може містити лише літери, цифри, крапки, дефіси та підкреслення, наприклад Character.Rebecca.",
     ["Add a display name"] = "Додати відображуване ім’я",
     ["Add a record name"] = "Додати ім’я запису",

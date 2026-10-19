@@ -8,6 +8,8 @@ Your own characters (the section of that name below, branch `player-characters`)
 
 Voice clips (the section of that name below, branch `player-characters`, 2026-10-19): a reference clip for a story character or one of the player's own characters, cloned by Pocket, OmniVoice and Voxtral. Built and tested (unit, worker and headless browser); NOT yet heard in the game.
 
+Live apply ("Changing a clip while the service runs" below, branch `feat/editor-live-apply`, 2026-10-19): every editor change, a voice clip included, counts without restarting the game or the service. Built and tested (unit tests, scripted workers, the Python worker tests); NOT yet seen in the game.
+
 ## Why a web page and not an in-game editor
 
 - **Text entry.** The mod's menu (Native Settings UI, drawn by the game) has no multi-line text box, no scrolling text area, no list editing and no paste. A bio is up to 9,000 characters. Editing it with CET's `ImGui.InputTextMultiline` would need a per-frame draw callback and would grab the keyboard from the game.
@@ -139,7 +141,7 @@ Why not Convai with a made-up character: it would need a Convai character create
 
 ### Voice
 
-- **With a clip:** see "Voice clips" below. The clip replaces the voice of the gender for Pocket, OmniVoice and Voxtral from the next start.
+- **With a clip:** see "Voice clips" below. The clip replaces the voice of the gender for Pocket, OmniVoice and Voxtral from the character's next line.
 - **No clip:** the character speaks with the resident voice of its gender (`resident-female` or `resident-male`), through `VoiceSelection` `aliases`: a key that has no voice of its own is routed, prepared, and synthesised as its alias. The variant (`-v2`, `-v3`) is chosen from the character's own key, not from the body that speaks, so one character keeps one voice across spawns and sessions.
 - **Convai cloud voice chosen:** there is no Convai voice for the character, so its replies show as subtitles only.
 - **Released when unused:** nothing is loaded for a character that is not talked to. A voice worker is only asked for a character's voice when that character speaks (or the composer opens on it: `warmCustom` prepares the voice and warms the text route), and every worker follows the usual voice lifecycle (docs/RESOURCE_LIFECYCLE.md). Deleting a character removes its clip and the prepared setups Pocket saved for it (`releaseVoiceFiles`, which names exactly the files it may remove and touches no voice of the shipped cast, no add-on's and no folder); the service sweeps the same files of characters that no longer exist at start.
@@ -176,7 +178,7 @@ A player can give a character a reference clip of their own, and the local voice
 2. **Add voice clip**: a WAV, MP3, OGG or FLAC file of 5 to 20 seconds of one person speaking clearly (10 to 18 s copies best), at most 16 MiB. The page decodes it in the browser (Web Audio `OfflineAudioContext.decodeAudioData` at 24 kHz, mixed to mono), shows its length, refuses one that is too short or too long at once, and plays the converted clip so the player hears what will be kept. A file the browser cannot decode is sent as it is and checked when saved.
 3. Type the words said in the clip (8 to 600 characters): OmniVoice needs them, and a clip over 20 s would make its adapter pick and transcribe another passage, which is why 20 s is the limit.
 4. **Save clip**. The page says when a clip is a little short or long. **Play saved clip** plays what is kept; **Remove clip** goes back to the shipped voice (or the voice of the gender). The words can be changed later without sending the clip again.
-5. A new or removed clip counts **from the next time the game starts** (the service merges the voice configurations at start); until then the character keeps the voice it has now. The page says so.
+5. A new or removed clip counts **from that character's next line**, once the reply being spoken is over: no restart of the game or the service ("Changing a clip while the service runs" below). The page says so.
 
 ### Checks (`bridge/custom-voice-clip.mjs`)
 
@@ -197,7 +199,34 @@ At service start `playerVoices.extras()` (each clip whose file still matches its
 - **Pocket** (`bridge/pocket_voice_runtime.py`): `runtime.playerVoiceDirectory` in the merged configuration. Same containment, link, hash and WAV checks as the shipped references; a missing clip makes only that profile unavailable. Prepared on demand when the character first speaks, saved as `<key>-<24 hex>.safetensors` (the name follows the clip's hash, so a new clip is prepared again and the shipped one's setup stays valid).
 - **OmniVoice** (`bridge/resident-voice-worker.py`): top-level `playerVoiceDirectory` in the merged short and long configurations; the same checks, including the 20 s limit. Prepared on demand into the worker's bounded cache.
 - **Voxtral** (`bridge/voxtral-voice.mjs` `playerRoot`): reads the clip from the player folder when the character first speaks, and its smaller prepared slot (`bridge/voxtral-reference.mjs`) is kept in `<state>/player-voices-prepared`, not in the game's references folder. A removed clip's slot goes with it (`releasePreparedSlots`).
-- **Removing a clip** removes the file and its entry; the next start merges nothing for that key, so the shipped voice (or the voice of the gender) is back. Nothing is loaded for a character that is not talked to; what was loaded follows the usual lifecycle (docs/RESOURCE_LIFECYCLE.md: the workers' bounded caches, playback Off releases the worker).
+- **Removing a clip** removes the file and its entry; the shipped voice (or the voice of the gender) is back from the character's next line. Nothing is loaded for a character that is not talked to; what was loaded follows the usual lifecycle (docs/RESOURCE_LIFECYCLE.md: the workers' bounded caches, playback Off releases the worker).
+
+### Changing a clip while the service runs (2026-10-19, branch `feat/editor-live-apply`)
+
+Saving a clip, changing its words or removing it takes effect with **no restart of the game or the service**, from that character's next line, after the reply being spoken is over (`bridge/live-voices.mjs`, `VoiceSelection.setVoices`). Nothing runs on a timer or per turn: it all happens on the save.
+
+1. `PlayerVoices` calls `onChanged(key)` once the change is on disk (a failing hook never fails the save).
+2. `LiveVoices.refresh(key)` (one change at a time, in the order they were made) edits that one key in the three tables the workers started with: Pocket's, and OmniVoice's short and long ones (each configuration's `voices`). With a clip (its file checked against the index hash) the key becomes `{reference: runtime/player-voices/<key>.wav, sha256, transcript}`; with none it goes back to the descriptor of the shipped configuration (read from the original, unmerged file), or leaves the table when there is none (a character the player made, which then speaks with the voice of its gender again). A table an engine does not have is left alone.
+3. `VoiceSelection.setVoices(update)` holds the change while a reply is in flight (`busy` from the settings poll that already runs: one null check when nothing waits) and applies it at the first idle moment, together: the routing registries, the cloud voices' references, and every running worker. It returns true when it applied, and the bridge then drops its prefetched replies. A character that had something prepared is prepared again at once in the background, so its next line does not pay for it.
+4. **Pocket and OmniVoice workers are not reloaded.** Each client (`PocketVoice.setVoices`, `ResidentVoice.setVoices`) sends its worker only the difference as a `voices` command (`set`, `remove`, and the player folder the first time), at most 20 keys at a time, in line behind the job the worker is doing, so a reply in flight finishes with the voice it started with. The worker checks the whole change first (a refused change leaves everything as it was), resolves each descriptor with the same resolver as at start (file, hash, length; a file that is gone or changed withdraws only that voice), and drops only the changed characters from its prepared state: Pocket's in-memory prepared state and the saved setup of a replaced clip (`pocket_voice_runtime.apply_voices`), OmniVoice's prepared list and the prompt in the adapter's cache, and its cache identity table (`resident-voice-worker.apply_voice_change`). It answers with the voices it now holds and the client checks both hashes. A worker that starts again (a crash, a stall restart, a background OmniVoice load) reads the start-up configuration and is sent the changes once it is ready, before its start is done.
+5. **Voxtral and Inworld** read the clip through the same registries: `replaceReferences(registries, [key])` forgets only that character's cached reference (and Inworld's voice entry, which is made again from the new clip and replaces the old one); the prepared slot in `<state>/player-voices-prepared` of that key is released. Other characters keep their cached references.
+
+Not changed: a worker of the first OmniVoice protocol (`version: 1`, the three original voices) cannot take a live change, so nothing is sent to it; the next start merges the clip as before.
+
+### One place for the clips
+
+The clip file, the index (`player-voices.json`) and the folder every engine reads are all derived from the one `dir` the store is opened with, the service's state folder (`CYBERPUNK_CONVAI_STATE`): `%LOCALAPPDATA%\AiNpcCyberpunkMod\data` in an install, `runtime/` in a source checkout. Nothing else builds those paths (a test reads the bridge's source for it), and the start-up log line `[PlayerVoices] voice clips and their list are kept in ...` names both.
+
+What split them in the first live test was two conversation services, not one: the installed service (data folder in `%LOCALAPPDATA%`) and a development service (`runtime/`) were both running against the same game folder, and the editor's Open click travels through `runtime/editor-command.json` **in the game folder**, which every service for that game reads. Whichever service answered a click served the page, and saved into its own data folder. A player has one service, so they always have one place. To make that impossible to repeat, `EditorControl` now records which service took a click (`home`, a short hash of the data folder, in `editor-status.json`) before it starts anything, and a service with another data folder leaves a click that a service already claimed in the last 30 seconds.
+
+### What applies when (every editor save)
+
+| Change | Applies | How |
+|---|---|---|
+| Bio, speaking style, speaking rules, example lines, hand-written memories, reset | the next turn | `PersonaBook.persona()` reads `CharacterOverrides` with a plain lookup every turn; the save also drops a group reply prepared before it (`onChanged`) |
+| Memories picked up in talks, the summary | the next turn | the in-process `MemoryStore` |
+| A character made, renamed (name, match rule) or deleted | the next turn in the bridge; in the game at the next talk key press (at most 3 s) | the roster rows and the add-ons' name lookup are rebuilt on the change; `mod/custom-characters.lua` re-reads `runtime/custom-characters.json` on the talk key press while there are characters or the editor was opened in the last two hours (pressing **Open** again renews that), so no CET reload |
+| A voice clip | the character's next line | above |
 
 ### Privacy
 
@@ -209,13 +238,13 @@ The clip and its words stay on the player's computer: no request leaves it (Voxt
 
 ### Files
 
-`bridge/player-voices.mjs` (store, index, extras, report summary, prepared slots), `bridge/custom-voice-clip.mjs` (type sniffing, ffmpeg conversion, checks, canonical copy), `bridge/addons.mjs` (the merge), `bridge/voice-profile-registry.mjs`, `bridge/pocket_voice_runtime.py`, `bridge/resident-voice-worker.py`, `bridge/voxtral-voice.mjs`, `bridge/inworld-voice.mjs`, `bridge/voice-routing-log.mjs`, `bridge/character-editor*.mjs`, `bridge/convai-bridge.mjs`, `bridge/support-report.mjs`, `mod/character-editor.lua` (the page's sentences). Tests: `bridge/player-voices.test.mjs`, `bridge/character-editor.test.mjs`, `bridge/character-editor-browser.test.mjs`, `bridge/support-report.test.mjs`, the engine tests and the Python worker tests.
+`bridge/player-voices.mjs` (store, index, extras, report summary, prepared slots), `bridge/live-voices.mjs` (the live change), `bridge/voice-selection.mjs` (`setVoices`), `bridge/pocket-voice.mjs`, `bridge/resident-voice.mjs` (`setVoices`), `bridge/custom-voice-clip.mjs` (type sniffing, ffmpeg conversion, checks, canonical copy), `bridge/addons.mjs` (the merge), `bridge/voice-profile-registry.mjs`, `bridge/pocket_voice_runtime.py`, `bridge/resident-voice-worker.py`, `bridge/voxtral-voice.mjs`, `bridge/inworld-voice.mjs`, `bridge/voice-routing-log.mjs`, `bridge/character-editor*.mjs`, `bridge/convai-bridge.mjs`, `bridge/support-report.mjs`, `mod/character-editor.lua` (the page's sentences). Tests: `bridge/player-voices.test.mjs`, `bridge/live-voices.test.mjs` (the live change on every engine, storage, the click claim), `bridge/character-editor.test.mjs`, `bridge/character-editor-browser.test.mjs`, `bridge/support-report.test.mjs`, the engine tests and the Python worker tests (`scripts/test_pocket_voice_runtime.py`, `scripts/test_resident_voice_paths.py`).
 
 ### Test in game
 
 1. Open the editor, choose Judy, open **Voice**. Add a 10 to 18 s clip of clean speech (try an MP3), check the length and the preview, type the words, Save clip. Try a 3 s clip and a silent one: each is refused with a sentence.
-2. Restart the game. Talk to Judy with Pocket chosen: she speaks in the clip's voice. Switch to OmniVoice (short and long) and to Voxtral and check each. Check no other character's voice changed.
-3. Remove the clip, restart: Judy's shipped voice is back.
+2. Do not restart anything. Talk to Judy with Pocket chosen: she speaks in the clip's voice from her next line (not in the middle of a reply that is being spoken). Switch to OmniVoice (short and long) and to Voxtral and check each. Check no other character's voice changed.
+3. Remove the clip, still without restarting: Judy's shipped voice is back from her next line.
 4. Give one of your own characters a clip and check the same; delete the character and check `player-voices/` no longer has its clip.
 5. Make a support report and check it lists only how many clips there are and how long each is.
 6. Check the frame rate is unchanged, and that `%LOCALAPPDATA%\AiNpcCyberpunkMod\data\player-voices` holds the clips while the game's `voices` folder has none of them.

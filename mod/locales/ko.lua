@@ -851,7 +851,7 @@ return {
     ["Choose how often Johnny speaks up."] = "Johnny가 먼저 말하는 빈도를 고르세요.",
     ["A clip you add replaces the shipped voice of this character for Pocket, OmniVoice and the Voxtral cloud voice."] = "직접 추가한 클립은 Pocket, OmniVoice, Voxtral 클라우드 음성에서 이 캐릭터의 원래 음성을 대신합니다.",
     ["A display name is too long. Keep each one under {max} characters."] = "표시 이름이 너무 깁니다. 각각 {max}자 미만으로 입력하세요.",
-    ["A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now."] = "새로 추가하거나 제거한 클립은 다음에 게임을 시작할 때부터 적용됩니다. 그 전까지 캐릭터는 지금 음성을 그대로 유지합니다.",
+    ["A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting."] = "클립을 추가하거나 삭제하면 현재 답변이 끝난 뒤 이 캐릭터의 다음 대사부터 적용됩니다. 다시 시작할 필요가 없습니다.",
     ["A record name can only use letters, digits, dots, dashes and underscores, for example Character.Rebecca."] = "레코드 이름에는 문자, 숫자, 점, 하이픈, 밑줄만 사용할 수 있습니다. 예: Character.Rebecca",
     ["Add a display name"] = "표시 이름 추가",
     ["Add a record name"] = "레코드 이름 추가",

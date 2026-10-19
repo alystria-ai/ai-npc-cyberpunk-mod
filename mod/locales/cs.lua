@@ -851,7 +851,7 @@ return {
     ["Choose how often Johnny speaks up."] = "Vyber, jak často se Johnny ozývá.",
     ["A clip you add replaces the shipped voice of this character for Pocket, OmniVoice and the Voxtral cloud voice."] = "Klip, který přidáš, nahradí původní hlas této postavy pro Pocket, OmniVoice a cloudový hlas Voxtral.",
     ["A display name is too long. Keep each one under {max} characters."] = "Zobrazované jméno je příliš dlouhé. Každé drž pod {max} znaků.",
-    ["A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now."] = "Nový nebo odebraný klip se projeví od příštího spuštění hry. Do té doby postava zachová hlas, který má teď.",
+    ["A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting."] = "Nový nebo odebraný klip platí od další repliky této postavy, jakmile skončí aktuální odpověď. Nic není potřeba restartovat.",
     ["A record name can only use letters, digits, dots, dashes and underscores, for example Character.Rebecca."] = "Název záznamu smí obsahovat jen písmena, číslice, tečky, pomlčky a podtržítka, například Character.Rebecca.",
     ["Add a display name"] = "Přidat zobrazované jméno",
     ["Add a record name"] = "Přidat název záznamu",

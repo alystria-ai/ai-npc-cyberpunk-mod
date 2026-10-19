@@ -5,7 +5,7 @@ import {randomUUID} from 'node:crypto';
 import {realpathSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {absoluteRuntimeOverride} from './runtime-paths.mjs';
-import {createVoiceProfileRegistry} from './voice-profile-registry.mjs';
+import {createVoiceProfileRegistry, registryFromTable, voiceChangeBatches, voiceTable} from './voice-profile-registry.mjs';
 import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
 
 export const POCKET_SOURCE_REVISION = '41cbc84af539ea78a804ffca5f9c6edc1a22ce44';
@@ -18,7 +18,7 @@ export const POCKET_SOURCE_SHA256 = 'b86f98955b6c4776bb24a748b321408aba89d3b66f6
 export const POCKET_LIMITS = Object.freeze({startupMs: 180_000, prepareMs: 60_000,
   renderMs: 120_000, sinkMs: 10_000, cancelMs: 2000, prepareCancelMs: 15_000, exitMs: 5000, maxFrames: 24000 * 120,
   stallMs: Object.freeze({default: 45_000, 'loading-student': 90_000, 'student-loaded': 60_000, warming: 60_000}),
-  startAttempts: 2});
+  startAttempts: 2, voicesMs: 30_000});
 // Stops a worker and everything it started. On Windows the venv's python.exe is a launcher whose child is the real interpreter, and
 // a plain kill reaches only the launcher: the real worker would go on holding the runtime lock. Only the real spawn is killed by
 // process tree (a test's stand-in child is never handed to taskkill).
@@ -78,6 +78,10 @@ export class PocketVoice {
     onState = () => {}, onLog = () => {}, now = () => performance.now(),
     setTimer = setTimeout, clearTimer = clearTimeout, keepPreparedVoices = false, stallMs} = {}) {
     this.config = validatePocketConfig(config); this.registry = this.config.registry;
+    // The voices the worker holds. It starts with the configuration's (`baseRegistry`, which its start is checked against); a voice the
+    // player changed while it runs is sent to it (setVoices) and `registry` follows what it confirms. A worker that starts again holds the
+    // configuration's voices again, and the changes are sent again once it is ready.
+    this.baseRegistry = this.registry; this.workerDir = config.runtime?.playerVoiceDirectory ?? null; this.baseDir = this.workerDir; this.wanted = null;
     this.project = absoluteRuntimeOverride(project, 'Pocket application directory');
     this.configPath = absoluteRuntimeOverride(configPath, 'Pocket configuration path');
     this.pythonExecutable = absoluteRuntimeOverride(pythonExecutable, 'Pocket Python executable');
@@ -93,6 +97,56 @@ export class PocketVoice {
     this.tail = Promise.resolve(); this.receiving = Promise.resolve(); this.state = 'stopped'; this.loaded = false;
   }
   setKeepPrepared(value) { this.keepPrepared = value === true; }
+  /**
+   * The voices this worker should hold from now on (`voices`: the configuration's `voices` object; `playerVoiceDirectory`: the folder a player's clip
+   * is in). Nothing is reloaded: the worker is sent the difference (a voice replaced or removed leaves its prepared state; the others keep theirs),
+   * in line behind whatever it is doing, so a reply in flight finishes with the voice it started with and the next one uses the new one. A worker
+   * that is not running yet gets them when it is ready. Resolves to true when the worker confirmed a change, false when there was nothing to send.
+   */
+  setVoices(voices, {playerVoiceDirectory = null} = {}) {
+    if (this.closing || this.failure) return Promise.resolve(false);
+    try { this.wanted = {table: voiceTable(registryFromTable(voices, this.config)), playerVoiceDirectory: playerVoiceDirectory ?? null}; }
+    catch (error) { return Promise.reject(error); }
+    return this.queueVoices();
+  }
+  // Does the worker hold other voices than it should (or not know the player folder yet)?
+  voicesDiffer() {
+    const wanted = this.wanted;
+    if (!wanted) return false;
+    return (!!wanted.playerVoiceDirectory && wanted.playerVoiceDirectory !== this.workerDir) || voiceChangeBatches(voiceTable(this.registry), wanted.table).length > 0;
+  }
+  queueVoices() {
+    if (!this.loaded) return Promise.resolve(false);
+    const operation = this.tail.then(() => this.syncVoices());
+    this.tail = operation.catch(() => {});
+    return operation;
+  }
+  async syncVoices() {
+    const wanted = this.wanted;
+    if (!wanted || !this.loaded || this.closing || this.failure) return false;
+    const folder = wanted.playerVoiceDirectory && wanted.playerVoiceDirectory !== this.workerDir ? wanted.playerVoiceDirectory : null;
+    const batches = voiceChangeBatches(voiceTable(this.registry), wanted.table);
+    if (!batches.length && !folder) return false;
+    if (!batches.length) batches.push({set: {}, remove: [], table: voiceTable(this.registry)});
+    for (const [at, batch] of batches.entries()) {
+      await this.voicesCommand({set: batch.set, remove: batch.remove, ...(folder && at === 0 ? {playerVoiceDirectory: folder} : {})},
+        registryFromTable(batch.table, this.config));
+      if (folder && at === 0) this.workerDir = folder;
+      if (this.closing || this.failure) return false;
+    }
+    return true;
+  }
+  voicesCommand(payload, next) {
+    if (this.closing || this.failure) return Promise.reject(this.failure || cancelled());
+    const id = ++this.sequence, started = this.now();
+    return new Promise((resolveFrame, reject) => {
+      const request = {id, kind: 'voices', profile: undefined, next, payload, queued: started, started, frames: 0, chunks: 0, lastReadyMs: 0,
+        controller: new AbortController(), resolve: resolveFrame, reject};
+      this.pending.set(id, request);
+      request.timer = this.timer(() => this.fail(Error('Pocket voice change timed out')), POCKET_LIMITS.voicesMs);
+      try { this.send({op: 'voices', id, ...payload}); } catch (error) { this.fail(error); }
+    });
+  }
   get enabled() { return this.registry.keys.length > 0 && !this.closing; }
   get profileKeys() { return this.registry.keys.filter(key => this.available.has(key)); }
   hasProfile(key) { return this.registry.has(key) && this.available.has(key); }
@@ -153,6 +207,8 @@ export class PocketVoice {
   }
   spawnWorker() {
     this.attempt++; this.phase = undefined;
+    // A new worker reads the configuration's voices: what a player changed since is sent once it is ready.
+    this.registry = this.baseRegistry; this.workerDir = this.baseDir;
     let child;
     try {
       const env = {...process.env, PYTHONUTF8: '1', PYTHONDONTWRITEBYTECODE: '1', CUDA_VISIBLE_DEVICES: '-1',
@@ -214,6 +270,25 @@ export class PocketVoice {
         || prepared.some(key => !profiles.includes(key))) throw Error('Invalid Pocket acoustic profile readiness');
     this.available = new Set(profiles); this.prepared = new Set(prepared);
   }
+  // The worker's answer to a voice change: the voices it now holds, checked against the descriptors that were sent (hashes included).
+  receiveVoices(frame, request) {
+    if (!['voices', 'error'].includes(frame.op)) throw Error('Unexpected Pocket speech response');
+    if (frame.op === 'error') {
+      // A refused change leaves the worker as it was.
+      this.validateProfiles(frame);
+      this.finishRequest(request, Error('Pocket voices could not be changed'));
+      return;
+    }
+    const previous = this.registry;
+    this.registry = request.next;
+    try {
+      this.validateProfiles(frame);
+      if (!object(frame.referenceHashes) || Object.keys(frame.referenceHashes).length !== this.available.size
+          || [...this.available].some(key => frame.referenceHashes[key] !== this.registry.profiles[key].sha256))
+        throw Error('Pocket worker did not confirm the changed reference identities');
+    } catch (error) { this.registry = previous; throw error; }
+    this.finishRequest(request, null, {changed: Array.isArray(frame.changed) ? frame.changed.filter(key => typeof key === 'string') : []});
+  }
   async receive(frame) {
     if (!object(frame) || frame.owner !== this.owner) throw Error('Pocket response owner changed');
     if (frame.op === 'fatal') throw Error('Pocket student runtime is unavailable');
@@ -248,9 +323,16 @@ export class PocketVoice {
       this.clearTimer(this.stallTimer); this.stallTimer = null;
       if (this.closing) { this.confirmExit(); return; }
       this.startLog('ready');
-      this.loaded = true; this.publish('ready'); this.resolveReady(); return;
+      this.loaded = true; this.publish('ready');
+      // Voices a player changed while this worker was loading (or before it started again) are sent now, ahead of any reply; the start is
+      // done when they are in (it is not waited for here: this answer is read before the worker's reply to that change).
+      if (!this.voicesDiffer()) { this.resolveReady(); return; }
+      void this.queueVoices().catch(error => this.startLog(`voice change failed: ${String(error?.message ?? error).slice(0, 120)}`))
+        .then(() => this.resolveReady());
+      return;
     }
     const request = this.pending.get(frame.id);
+    if (request?.kind === 'voices') { this.receiveVoices(frame, request); return; }
     if (!request || !['prepared', 'pcm', 'done', 'cancelled', 'error'].includes(frame.op) || frame.profile !== request.profile)
       throw Error('Unexpected Pocket speech response');
     if (frame.op === 'pcm') {

@@ -428,7 +428,7 @@ export function editorClient() {
         chosen ? h('div', {}, h('p', {class: 'status', role: 'status'}, chosenText), chosen.preview ? h('audio', {class: 'preview', controls: true, 'aria-label': chosenText}) : null) : null,
         h('div', {class: 'field'}, h('label', {for: 'f-voiceText'}, T('Words said in the clip')),
           h('p', {class: 'help', id: 'h-voiceText'}, T('Type what the clip says, as spoken. OmniVoice needs it to copy the voice.')), area, meter),
-        h('p', {class: 'help'}, T('A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now.')),
+        h('p', {class: 'help'}, T('A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting.')),
         h('div', {class: 'actions'}, save, clip ? h('button', {type: 'button', class: 'secondary', onclick: removeClip}, T('Remove clip')) : null)].filter(node => node));
       // The sources are set as properties after the nodes exist: the page has no markup with an address in it.
       const saved = box.querySelector('audio.saved'), preview = box.querySelector('audio.preview');

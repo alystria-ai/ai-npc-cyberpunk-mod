@@ -851,7 +851,7 @@ return {
     ["Choose how often Johnny speaks up."] = "選擇 Johnny 主動發言的頻率。",
     ["A clip you add replaces the shipped voice of this character for Pocket, OmniVoice and the Voxtral cloud voice."] = "你新增的語音片段會取代該角色在 Pocket、OmniVoice 和 Voxtral 雲端語音中的出廠語音。",
     ["A display name is too long. Keep each one under {max} characters."] = "顯示名稱太長了。請把每個都控制在 {max} 個字元以內。",
-    ["A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now."] = "新增或移除的語音片段會在下次啟動遊戲時生效。在此之前，角色維持目前的語音。",
+    ["A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting."] = "新增或移除的片段，會在目前的回覆結束後，從該角色的下一句話開始生效。不需要重新啟動任何東西。",
     ["A record name can only use letters, digits, dots, dashes and underscores, for example Character.Rebecca."] = "紀錄名稱只能使用字母、數字、點、連字號和底線，例如 Character.Rebecca。",
     ["Add a display name"] = "新增顯示名稱",
     ["Add a record name"] = "新增紀錄名稱",

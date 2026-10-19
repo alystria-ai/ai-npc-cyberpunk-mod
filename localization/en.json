@@ -71,7 +71,7 @@
     "A memory clear is awaiting its result. It will not be sent again.": "A memory clear is awaiting its result. It will not be sent again.",
     "A memory is too long. Keep each one under {max} characters.": "A memory is too long. Keep each one under {max} characters.",
     "A nearby companion makes one short comment as combat starts and another afterward.\n\nTen-minute cooldown after a fight. Conversations and story scenes come first. Loading a save resets the cooldown.": "A nearby companion makes one short comment as combat starts and another afterward.\n\nTen-minute cooldown after a fight. Conversations and story scenes come first. Loading a save resets the cooldown.",
-    "A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now.": "A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now.",
+    "A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting.": "A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting.",
     "A new vehicle summon interrupted the trip.": "A new vehicle summon interrupted the trip.",
     "A pack is one folder too deep. See Help in Settings.": "A pack is one folder too deep. See Help in Settings.",
     "A previous memory request could not be read. The memory service must reconcile it before another clear.": "A previous memory request could not be read. The memory service must reconcile it before another clear.",
@@ -1802,7 +1802,7 @@
       "A line this character might say",
       "A memory cannot be empty.",
       "A memory is too long. Keep each one under {max} characters.",
-      "A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now.",
+      "A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting.",
       "A pack is one folder too deep. See Help in Settings.",
       "A previous memory request could not be read. The memory service must reconcile it before another clear.",
       "A record name can only use letters, digits, dots, dashes and underscores, for example Character.Rebecca.",
@@ -2574,7 +2574,7 @@
         "mod/manager-ui.lua:1503"
       ]
     },
-    "A new or removed clip counts from the next time the game starts. Until then the character keeps the voice it has now.": {
+    "A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting.": {
       "contexts": [
         "ui.localized"
       ],
@@ -4579,7 +4579,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:320",
+        "mod/mcm-host.lua:324",
         "mod/nsui.lua:417"
       ]
     },
@@ -7188,7 +7188,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:309"
+        "mod/mcm-host.lua:313"
       ]
     },
     "Press again to restore": {
@@ -7196,7 +7196,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:219"
+        "mod/mcm-host.lua:223"
       ]
     },
     "Press your Group voice chat shortcut to finish recording.": {
@@ -7268,7 +7268,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:220"
+        "mod/mcm-host.lua:224"
       ]
     },
     "RED4ext is not loaded. Install it from Nexus Mods, then restart the game. It also starts the conversation service.": {
@@ -7521,7 +7521,7 @@
       "references": [
         "mod/manager-ui.lua:1803",
         "mod/manager.lua:35",
-        "mod/mcm-host.lua:245"
+        "mod/mcm-host.lua:249"
       ]
     },
     "Reset everything": {
@@ -7545,8 +7545,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/mcm-host.lua:218",
-        "mod/mcm-host.lua:219"
+        "mod/mcm-host.lua:222",
+        "mod/mcm-host.lua:223"
       ]
     },
     "Return to Companion Manager.": {
@@ -10819,7 +10819,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:1549",
-        "mod/mcm-host.lua:331"
+        "mod/mcm-host.lua:335"
       ]
     },
     "Your group": {
