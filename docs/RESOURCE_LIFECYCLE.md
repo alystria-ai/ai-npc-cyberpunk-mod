@@ -51,6 +51,43 @@ speaks for a companion, and with V's engine on Voxtral (or V's voice Off) no Poc
 | **Vision helper** (`CyberpunkConvaiVision.exe`, native, CPU, below-normal priority, about 35 to 50 MiB; `vision-capture.mjs`, `companion-vision.mjs`; `docs/COMPANION_VISION.md`) and its **frame buffer** (at most 4 JPEGs of about 40 KB, in memory only) | Only while it captures: Convai answers (always on with Convai, no setting) **and** a party member or a character V may talk to is near **and** no conversation is running (nor for 12 s after one). Then one picture every 3 s | **At once** (next 500 ms poll) when any of those stops: Mistral or Local AI, nobody near, a conversation starts. Never mid-capture. The buffer is dropped with the provider; frames older than 2 min are never sent. Shutdown: `quit` on stdin, killed after 1 s | Not needed: it never idles. A start costs about 0.2 to 0.4 s, off the turn's path | `companion-vision.test.mjs` (unload rule: provider, nobody near, conversation and its tail) |
 | **Audio-output probe** (hidden PowerShell, wakes every 60 s; `audio-delay.mjs`) | The first turn, while the lip-sync delay is Automatic | **A hand-set delay, or playback Off (new)**; shutdown | None needed | `audio-delay.test.mjs`, `resource-lifecycle.test.mjs` |
 
+## Nearby characters: no GPU work for a character nobody has spoken to (audit of 2026-10-19, branch `fix/idle-gpu`)
+
+Report (Mei1429, 0.2.1, OmniVoice Ultra): "about 3x GPU usage even with no companions and nothing in use". Measured with the game closed
+(Windows `GPU Engine` counters per process, 2 s samples, 75 s idle windows, other GPU users on the machine excluded by process id):
+
+| Idle, loaded the way the product loads it | GPU engine use |
+|---|---|
+| OmniVoice worker (model, CUDA graph, 3 voices warm, two renders made first), about 2.5 GB resident | 0.000 % (38 samples) |
+| Hidden Edge with the local renderer page open (the text-provider "kept warm" state) | 0.000 % (40 samples) |
+| Pocket worker (CPU; `CUDA_VISIBLE_DEVICES=-1`), V's own Pocket worker is the same class | 0.000 % (20 samples) |
+| Local AI `llama-server` (Gemma 4 E4B, Vulkan, warmed) plus the CPU embedder (`--device none`) | 0.000 % (35 samples) |
+| Facial model (a JavaScript worker thread, no onnxruntime), phone-analysis worker (CPU), local recogniser (CPU, sherpa-onnx) | not on the GPU by construction |
+
+So nothing idles on the GPU. What does use it with nobody speaking is **ahead-of-time work for characters that are only near V** (the game
+lists up to two it is looking at or standing near, `runtime/nearby-connections.json`, "Auto-connect nearby characters", on by default,
+and every ordinary NPC archetype has a voice): `NearbyWarm` prepared each one's voice. On OmniVoice a preparation is one hidden render:
+about 1.2 to 1.4 s of the card at 16 steps (measured, 10 characters one after another: 13.2 s of work, and the 8-profile prompt cache
+means a rotation of more than eight characters pays it again), about twice that at Ultra's 32 steps. On the local AI, `host.warm` loaded
+each nearby character's persona into the prompt cache (a 1-token request on a 1 300-token head, 0.4 to 0.7 s each, measured). Walking
+through a crowd made both run again and again, with no companion and no reply.
+
+Now: with OmniVoice speaking and playback on (`VoiceSelection.preparesOnGpu`), `NearbyWarm` skips the characters that are only near
+(partners, V's spawned followers and the party keep their ahead-of-time preparation: V is with them), and the local AI's `warm` skips
+a connection whose role is `nearby` (`party-connections.mjs` passes the entry's role). The same work is done **when V starts to talk**:
+the composer hint, the talk key and the start of a turn call `warmTalkTargets` (`convai-bridge.mjs`: voice preparation and, except at
+the turn start, the persona prefill), which overlaps typing or speaking, so the first reply waits for nothing it did not wait for before
+(typing takes seconds; the preparation is 1 to 3 s and runs behind the model's own first tokens). A turn that has begun never queues a
+persona prefill in front of its own request (the local server has one slot). Pocket (CPU) and cloud voices keep warming nearby
+characters as before, because that costs the card nothing.
+
+Not measurable without the game, and left as it is: with Convai answering, the vision helper (`CyberpunkConvaiVision.exe`, Windows
+Graphics Capture of the game window, about 105 ms per picture) takes one picture every 3 s while a party member or any nearby talkable
+character exists and no conversation runs (`companion-vision.mjs`). It does run with no companions (a nearby character is enough); it
+is documented as costing no FPS (`docs/COMPANION_VISION.md`, 57.4 FPS with and without), and cutting it would take away the picture
+the companion sees at the start of a turn, so it was not changed. Live check: with Convai answering and Developer mode on, stand near an
+ordinary NPC for a minute with `Measure-VisionCapture.mjs` reading `perf-probe.json`, then with `CYBERPUNK_CONVAI_VISION=off`.
+
 ## Timers and watchers that stay (audited, not changed)
 
 - The bridge's eleven interval timers (50 ms request, 150 ms microphone, prefetch and phone, 60 ms look-ahead, 500 ms settings, knowledge,

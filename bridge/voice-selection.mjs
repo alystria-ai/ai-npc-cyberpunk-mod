@@ -346,6 +346,10 @@ export class VoiceSelection {
     // A character with no clip of its own keeps one voice of its alias for good: the seed is its own key, not the body that speaks today.
     return pickVoiceKey(voice, voice === profile ? seed : profile, [...this.availability].filter(key => this.registry.has(key)));
   }
+  // True while preparing a character's voice means GPU work: OmniVoice speaks the companions and voice playback is on (a preparation is
+  // one hidden render, 1 to 3 s of the card). Pocket prepares on the CPU, a cloud voice has no model, and playback Off prepares nothing.
+  // Callers that prepare ahead for characters nobody has spoken to yet (bridge/nearby-warm.mjs) leave those to the first sign of a talk.
+  get preparesOnGpu() { return !this.closed && this.provider === 'omni' && !this.silent; }
   // A cloud voice has no worker to wait for: a character is ready when it can be routed (its key and clip are checked per reply).
   profileReady(key) { return !this.closed&&this.usesProfile(key)&&(this.cloudActive||(this.clientBackend===this.provider
     &&!this.client?.failure&&!this.client?.closing&&this.client?.profileReady(this.voiceOf(key))===true)); }

@@ -106,6 +106,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/pcm-edges.mjs',
   'bridge/phone-analysis-config.mjs',
   'bridge/phone-chat.mjs',
+  'bridge/phone-failure.mjs',
   'bridge/phone-poses.mjs',
   'bridge/phone-warm.mjs',
   'bridge/phonetic-lipsync.mjs',

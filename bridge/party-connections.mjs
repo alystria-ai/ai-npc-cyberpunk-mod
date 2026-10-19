@@ -342,7 +342,9 @@ export class PartyConnections {
     const timeout = setTimeout(() => { entry.timedOut = true; entry.controller.abort(); }, 25000);
     this.emit();
     let warming;
-    try { warming = this.host.warm(this.configuration(entry), {signal: entry.controller.signal}); }
+    // `role` lets a text route tell a character that is merely near ('nearby') from one V is with or talking to: the local AI does not
+    // load a persona into the card for the first (bridge/text-provider-host.mjs attachTextProvider).
+    try { warming = this.host.warm(this.configuration(entry), {signal: entry.controller.signal, role: entry.role}); }
     catch (error) { warming = Promise.reject(error); }
     entry.pending = Promise.resolve(warming).then(timing => {
       if (this.entries.get(entry.identity) !== entry || entry.controller.signal.aborted) return;

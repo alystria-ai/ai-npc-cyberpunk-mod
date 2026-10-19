@@ -18,10 +18,25 @@ local MISTRAL_STATUS = {
     ['custom-reasoning'] = 'This model spends its reply on thinking. Choose a non-reasoning model in Settings.',
     ['custom-unreachable'] = 'The custom provider did not answer. Check its address in Settings, or try again.',
     ['local-fallback'] = 'Local AI could not start, so a cloud provider is used. Check Local AI in Settings > Conversation provider.',
+    -- Convai's own limits, in the words of the game's notices (init.lua keyNoticeText).
+    ['quota-shared'] = 'The conversation limit has been reached. Try again later, or add a free Mistral key and set Conversation provider to Mistral in Settings > Conversation provider.',
+    ['quota-own'] = 'Your Convai API key has reached its plan limit. Try again later or add a different key in Settings > Conversation provider.',
+    ['key-rejected'] = 'Convai did not accept your API key. Check it in Settings > Conversation provider.',
+    ['key-memory-needed'] = 'Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.',
     ['local-failed'] = 'Local AI could not answer that. Try again in a moment.',
     ['local-unavailable'] = 'Local AI could not start. Check Local AI in Settings > Conversation provider.',
     ['local-no-memory'] = 'Not enough free graphics memory to start Local AI. Try a smaller model in Settings.',
 }
+-- How long a sent message waits for its reply before the draft is given back. The bridge ends a turn with its own explanation inside the
+-- provider's budget (Local AI 80 s, a custom endpoint up to 120 s), so the wait is never shorter than that budget plus a margin; Convai and Mistral
+-- answer or fail well inside 45 s. M.replyWait (init.lua) names the wait for the provider in use; it is asked once, when a message is sent.
+local DEFAULT_REPLY_WAIT = 45
+local function replyWait()
+    if type(M.replyWait) ~= 'function' then return DEFAULT_REPLY_WAIT end
+    local ok, seconds = pcall(M.replyWait)
+    if not ok or type(seconds) ~= 'number' or seconds ~= seconds then return DEFAULT_REPLY_WAIT end
+    return math.min(math.max(seconds, DEFAULT_REPLY_WAIT), 150)
+end
 local function copy(value)
     if type(value) ~= 'table' then return value end
     local result = {}; for key, item in pairs(value) do result[key] = copy(item) end
@@ -586,6 +601,7 @@ function M.update(player, delta)
                 journalHistory = journalHistory, journal = journal, battle = battle, gameDialogue = gameDialogue}
             M.pending.turnContext = turnContext
             M.sentAt = os.time()
+            M.replyWaitSeconds = replyWait()
             M.errors[submission.contact] = nil
             if publish(true) then
                 append(submission.contact, text, true)
@@ -598,7 +614,7 @@ function M.update(player, delta)
         end
         M.dirty = true
     end
-    if M.pending and M.sentAt and os.time() - M.sentAt > 45 then
+    if M.pending and M.sentAt and os.time() - M.sentAt > (M.replyWaitSeconds or DEFAULT_REPLY_WAIT) then
         M.errors = M.errors or {}
         M.errors[M.pending.contact] = 'No reply received. Your message is in the draft; press Enter to retry.'
         if (M.drafts[M.pending.contact] or '') == '' then

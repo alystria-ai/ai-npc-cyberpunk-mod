@@ -54,6 +54,7 @@
     "phone-analysis-state.json",
     "phone-chat-input.json",
     "phone-chat-output.json",
+    "phone-failure-state.json",
     "phone-game-launch.json",
     "reaction-lease.json",
     "relationship-routing.json",
