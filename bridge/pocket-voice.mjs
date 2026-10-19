@@ -13,8 +13,10 @@ export const POCKET_SOURCE_SHA256 = 'b86f98955b6c4776bb24a748b321408aba89d3b66f6
 // stallMs: a starting worker that reports nothing new (no phase change) this long is stuck. It is stopped and started once more; a second
 // stall gives up (the failure is the same as a startup timeout). Importing the runtime is the phase that hangs on a starved CPU (the
 // worker runs below normal priority), so it has the shortest limit; loading the student and warming voices are given longer ones.
+// cancelMs: how long a cancelled request may keep the worker busy before the worker is stopped. A first-time preparation of a voice
+// (1.4 to 4.5 s) cannot be interrupted, so a cancelled one gets prepareCancelMs: the worker finishes it, answers 'cancelled', and goes on.
 export const POCKET_LIMITS = Object.freeze({startupMs: 180_000, prepareMs: 60_000,
-  renderMs: 120_000, sinkMs: 10_000, cancelMs: 2000, exitMs: 5000, maxFrames: 24000 * 120,
+  renderMs: 120_000, sinkMs: 10_000, cancelMs: 2000, prepareCancelMs: 15_000, exitMs: 5000, maxFrames: 24000 * 120,
   stallMs: Object.freeze({default: 45_000, 'loading-student': 90_000, 'student-loaded': 60_000, warming: 60_000}),
   startAttempts: 2});
 // Stops a worker and everything it started. On Windows the venv's python.exe is a launcher whose child is the real interpreter, and
@@ -341,7 +343,8 @@ export class PocketVoice {
     if (!this.pending.has(request.id) || request.cancelReason) return;
     request.cancelReason = reason; request.controller.abort(reason);
     try { this.send({op: 'cancel', id: request.id}); } catch (error) { this.fail(error); }
-    request.cancelTimer = this.timer(() => this.fail(Error('Pocket worker did not stop its cancelled request')), POCKET_LIMITS.cancelMs);
+    request.cancelTimer = this.timer(() => this.fail(Error('Pocket worker did not stop its cancelled request')),
+      request.kind === 'prepare' ? POCKET_LIMITS.prepareCancelMs : POCKET_LIMITS.cancelMs);
   }
   finishRequest(request, error, result) {
     if (!this.pending.delete(request.id)) return;

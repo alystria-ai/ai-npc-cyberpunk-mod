@@ -46,12 +46,28 @@ function M.new(options)
     local readFact, readVersion = options.readFact or nativeFact, options.readVersion or nativeVersion
     local clock, publish = options.clock or function() return os.time() * 1000 end, options.publish or write
     local last = nil
+    -- The unavailable answer that is standing (reason, when it was published), and a world whose capture just failed (frame-shaped, so
+    -- `same` compares it). Both only ever hold work back: an answer that cannot change is not written again every frame, which on a
+    -- game version other than 2.31 (or with a runtime file that cannot be opened) was a file write and 2 to 13 native reads per frame.
+    local standing, held = nil, nil
     local collector = {}
 
     function collector:reset(reason)
-        last = nil
-        local value = {version = 1, status = 'unavailable', reason = reason or 'world-unavailable', capturedAt = clock()}
+        last, held = nil, nil
+        reason = reason or 'world-unavailable'
+        local now = clock()
+        -- The same unavailable answer is rewritten at the 2 s heartbeat (the bridge keeps a capture 5 s), not on every frame.
+        if standing and standing.reason == reason and now >= standing.at and now - standing.at < 2000 then return true end
+        standing = {reason = reason, at = now}
+        local value = {version = 1, status = 'unavailable', reason = reason, capturedAt = now}
         return publish(value)
+    end
+
+    -- A capture of this world failed: say so (once per heartbeat), then neither read nor write for a while.
+    local function failed(self, reason, frame, now, wait)
+        local published = self:reset(reason)
+        held = {status = frame.status, worldToken = frame.worldToken, generation = frame.generation, capturedAt = now, wait = wait or 2000}
+        return published
     end
 
     function collector:update(frame)
@@ -59,11 +75,12 @@ function M.new(options)
         local now = clock()
         -- The bridge keeps a capture 5 s; recapture and republish every 2 s.
         if last and same(last, frame) and now >= last.capturedAt and now - last.capturedAt < 2000 then return true end
+        if held and same(held, frame) and now >= held.capturedAt and now - held.capturedAt < held.wait then return true end
         -- A recapture of the same world writes in a frame no other heartbeat writes in (init.lua convaiHeartbeatSlot).
         local slot = convaiHeartbeatSlot
         if last and same(last, frame) and now >= last.capturedAt and type(slot) == 'function' and not slot() then return true end
         local versionOk, version = pcall(readVersion)
-        if not versionOk or version ~= '2.31' then return self:reset('unsupported-game-version') end
+        if not versionOk or version ~= '2.31' then return failed(self, 'unsupported-game-version', frame, now) end
         local candidate = {version = 1, status = 'ready', gameVersion = version,
             worldToken = frame.worldToken, generation = frame.generation, capturedAt = now, facts = {}}
         for _, spec in ipairs(FACTS) do
@@ -71,7 +88,7 @@ function M.new(options)
             local ok, number = pcall(readFact, spec[1])
             if not ok or type(number) ~= 'number' or number ~= number or number < 0
                 or number > 2147483647 or number % 1 ~= 0 then
-                return self:reset('native-fact-unavailable')
+                return failed(self, 'native-fact-unavailable', frame, now)
             end
             candidate.facts[spec[1]] = number > 0 and {
                 status = 'known', value = number, present = true,
@@ -79,7 +96,9 @@ function M.new(options)
             } or {status = 'unknown', reason = 'zero-or-absent'}
         end
         if not same(frame, currentWorld()) then return self:reset('world-changed-during-capture') end
-        if not publish(candidate) then last = nil; return false end
+        -- A write that failed (a file that cannot be opened) is tried again in a second, not on every frame.
+        if not publish(candidate) then last = nil; held = {status = frame.status, worldToken = frame.worldToken, generation = frame.generation, capturedAt = now, wait = 1000}; return false end
+        standing, held = nil, nil
         -- A fact that became set since the last capture of the same world (Johnny speaks up, init.lua; nil leaves it as before). The
         -- first capture of a world is only a baseline.
         if type(self.onFact) == 'function' and last and same(last, frame) then

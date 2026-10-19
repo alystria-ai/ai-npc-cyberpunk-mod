@@ -97,6 +97,10 @@ test('fallback reasons: missing Omni pack, failed worker, Multilingual non-Engli
   const failed = fixture();
   failed.voice.failedBackends.add('pocket'); failed.voice.applyWhenIdle(false);
   assert.equal(route(failed, JUDY).fallback, 'Pocket worker unavailable');
+  // A Pocket that failed is loaded again by the poll (VoiceSelection.pocketRetry), and the log says so until it gives up.
+  failed.voice.pocketRetry = {failures: 1, nextAt: 0};
+  assert.equal(route(failed, JUDY).fallback, 'Pocket still loading (retrying in the background)');
+  failed.voice.pocketRetry = null;
 
   // An Omni that failed is retried in the background, and the log says so until it gives up.
   const loading = fixture({settings: {voiceProvider: 'omni', omniReference: 'short'}});

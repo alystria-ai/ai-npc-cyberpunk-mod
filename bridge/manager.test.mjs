@@ -3359,7 +3359,7 @@ test('a saved Groq provider (the option was removed) reads as Convai free tier, 
     manager.configure(api, profiles)
     assert(manager.snapshot(player).settings.conversationProvider == 'convai', 'a saved groq was kept')
     assert(saved and saved.conversationProvider == 'convai', 'the file was not corrected')
-    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 5}}).ok == false, 'there is no fifth provider')
+    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 6}}).ok == false, 'there is no sixth provider')
     assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 0}}).ok == false, 'there is no zeroth provider')
   `);
 });
@@ -5814,7 +5814,8 @@ test('Settings sections: Conversation provider sits after Conversations and befo
     for _, id in ipairs(voices) do assert(not id:find('inworld', 1, true) and id ~= 'voice-pack', id .. ' is in Voices') end
     for _, id in ipairs({'groq-key-status', 'groq-key:paste', 'groq-key:remove', 'permissions', 'enabled:person-1'}) do assert(row(id) == nil, id .. ' is still offered') end
     local elements = row('conversationProvider').elements
-    assert(#elements == 4 and elements[1] == 'Convai free tier' and elements[2] == 'Convai API key' and elements[3] == 'Mistral (free plan)' and elements[4] == 'Local AI')
+    assert(#elements == 5 and elements[1] == 'Convai free tier' and elements[2] == 'Convai API key' and elements[3] == 'Mistral (free plan)' and elements[4] == 'Local AI'
+      and elements[5] == 'Custom (OpenAI-compatible)')
     assert(not tostring(row('conversationProvider').description):find('Groq', 1, true))
     -- Developer mode: the Inworld key is the row after Developer mode.
     assert(registered.applyBatch('manager', {{id = 'developerMode', value = true}}).ok); loaded = registered.loadMod('manager')
@@ -6040,8 +6041,8 @@ test('The Conversation provider section offers the provider, Mature content, the
     assert(invoke('tab:settings').ok)
     local provider = row('conversationProvider')
     assert(provider and provider.type == 'select' and provider.value == 1 and provider.defaultValue == 1)
-    assert(#provider.elements == 4 and provider.elements[1] == 'Convai free tier' and provider.elements[2] == 'Convai API key'
-      and provider.elements[3] == 'Mistral (free plan)' and provider.elements[4] == 'Local AI')
+    assert(#provider.elements == 5 and provider.elements[1] == 'Convai free tier' and provider.elements[2] == 'Convai API key'
+      and provider.elements[3] == 'Mistral (free plan)' and provider.elements[4] == 'Local AI' and provider.elements[5] == 'Custom (OpenAI-compatible)')
     assert(provider.description:find('memory stays on this computer', 1, true) and provider.description:find('Convai API key uses your own key', 1, true))
     assert(not provider.description:lower():find('text only', 1, true), 'Mistral is not described as text only')
     assert(provider.description:find('local voice', 1, true) and provider.description:find('until no conversation is running', 1, true))
@@ -6171,25 +6172,33 @@ test('The Conversation provider section offers the provider, Mature content, the
   `);
 });
 
-test('the Conversation provider setting: four entries stored as a provider and the own-key choice, Convai free tier by default, saved like the other settings, validated', () => {
+test('the Conversation provider setting: five entries stored as a provider and the own-key choice, Convai free tier by default, saved like the other settings, validated', () => {
   run(`${mcmFixture}
     local clock = 1000; os.clock = function() return clock end
     local function settings() return manager.snapshot(player).settings end
     assert(invoke('tab:settings').ok)
     assert(settings().conversationProvider == 'convai' and settings().useOwnConvaiKey == false)
-    -- 1 Convai free tier, 2 Convai API key, 3 Mistral, 4 Local.
+    -- 1 Convai free tier, 2 Convai API key, 3 Mistral, 4 Local, 5 Custom.
     assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 3}}).ok)
     assert(settings().conversationProvider == 'mistral' and saved.conversationProvider == 'mistral' and saved.useOwnConvaiKey == false)
-    for _, bad in ipairs({5, 0, -1, 2.5, 'mistral', 'local', 'groq', true}) do
+    for _, bad in ipairs({6, 0, -1, 2.5, 'mistral', 'local', 'custom', 'groq', true}) do
       assert(not registered.applyBatch('manager', {{id = 'conversationProvider', value = bad}}).ok, tostring(bad))
     end
     assert(not manager.applySettings(player, {conversationProvider = 'other'}))
     assert(settings().conversationProvider == 'mistral', 'a refused value changes nothing')
     assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 4}}).ok)
     assert(settings().conversationProvider == 'local' and saved.conversationProvider == 'local' and saved.useOwnConvaiKey == false)
-    assert(not registered.applyBatch('manager', {{id = 'conversationProvider', value = 5}}).ok, 'there is no fifth provider: Groq was removed')
+    assert(not registered.applyBatch('manager', {{id = 'conversationProvider', value = 6}}).ok, 'there is no sixth provider')
     assert(not manager.applySettings(player, {conversationProvider = 'groq'}), 'a Groq provider is refused')
     assert(settings().conversationProvider == 'local', 'a refused value changes nothing')
+    -- Custom (OpenAI-compatible): the fifth entry, stored as 'custom'; the own-key choice is left as it was.
+    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 5}}).ok)
+    assert(settings().conversationProvider == 'custom' and saved.conversationProvider == 'custom' and saved.useOwnConvaiKey == false)
+    loaded = registered.loadMod('manager')
+    assert(row('conversationProvider').value == 5, 'a saved custom provider reads as the fifth entry')
+    assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 4}}).ok)
+    assert(manager.applySettings(player, {conversationProvider = 'custom'}) and settings().conversationProvider == 'custom')
+    assert(manager.applySettings(player, {conversationProvider = 'local'}) and settings().conversationProvider == 'local')
     -- Convai API key: stored as 'convai' with the own-key choice on; Convai free tier turns it off again.
     assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 2}}).ok)
     assert(settings().conversationProvider == 'convai' and settings().useOwnConvaiKey == true and saved.conversationProvider == 'convai' and saved.useOwnConvaiKey == true)

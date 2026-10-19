@@ -139,9 +139,7 @@ test('handle API: a wrong or oversized argument is refused with its reason, a nu
   `);
 });
 
-test('a remarkDropped handler that asks for the same remark again while a scene is on must not spin the scheduler within one tick', {
-  todo: 'BUG: mod/addons.lua schedule() drops a remark inside its while-loop over the queue; the remarkDropped handler queues a new remark, the loop takes it, it is dropped again, and so on without end (the game freezes). Bound the loop to the entries that were queued when it began'
-}, () => {
+test('a remarkDropped handler that asks for the same remark again while a scene is on must not spin the scheduler within one tick', () => {
   lua(`
     ${REGISTER}
     handle:speaker({id = 'gun', name = 'Skippy', minGap = 2})
@@ -225,9 +223,7 @@ test('add-ons that fail are isolated: every callback of one throwing changes not
   `);
 });
 
-test('re-registering an id forgets what the earlier registration had waiting', {
-  todo: 'BUG: api.register for an id that exists drops the old speakers but leaves the old registration\'s queued remark; the next tick sends it for a profile key that M.isSpeaker no longer knows'
-}, () => {
+test('re-registering an id forgets what the earlier registration had waiting', () => {
   lua(`
     local old = assert(M.public.register({id = 'skippy', name = 'Skippy', version = '1.0.0', requires = '1.0'}))
     old:speaker({id = 'gun', name = 'Skippy', minGap = 2})

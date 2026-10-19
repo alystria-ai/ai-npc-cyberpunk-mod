@@ -106,9 +106,7 @@ test('the zip is deterministic and laid out as the docs say, the command line re
   assert.match(ignore, /^\/addons\/\*\/voice\/\*\.voice\.json$/m);
 });
 
-test('a voice file the manifest does not name is never shipped, nor are the notes kept beside the voice files out of git', {
-  todo: 'BUG: packaging/build-addon.mjs ships any .wav and .json it finds (SHIPPED), so a stray game-audio clip in voice/ or a voice/*.voice.json that .gitignore keeps out of git would be packed into the public zip; only the references named in convai-addon.json should ship'
-}, async () => {
+test('a voice file the manifest does not name is never shipped, nor are the notes kept beside the voice files out of git', async () => {
   const shipped = await names(async dir => {
     const manifest = await manifestOf(dir); manifest.speakers[0].voice = {reference: 'voice/echo.wav', transcript: 'Hello.'};
     await writeFile(resolve(dir, 'convai-addon.json'), JSON.stringify(manifest));

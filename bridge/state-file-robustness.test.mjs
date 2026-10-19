@@ -155,7 +155,7 @@ test('MemoryStore on a root that is a file (or cannot be listed) starts empty, k
   assert.equal(saved.channels.private[0].r, 'hi there');
 });
 
-test('a damaged character memory file is kept aside before the first save writes over it', {todo: 'MemoryStore skips a damaged character file silently (no log line) and the next save replaces it with no copy; VendorMemory keeps its damaged file as .corrupt'}, async t => {
+test('a damaged character memory file is kept aside before the first save writes over it', async t => {
   const directory = await folder(t);
   const {root, player} = await seedMemoryFolder(directory);
   const damaged = await readFile(join(player, 'truncated.json'), 'utf8');
@@ -164,6 +164,25 @@ test('a damaged character memory file is kept aside before the first save writes
   await store.flush();
   const kept = [...await filesUnder(root)].filter(([path, text]) => path !== join(player, 'truncated.json') && text === damaged);
   assert.equal(kept.length, 1, 'the cut-off file survives somewhere beside the new one');
+});
+
+test('the kept copy of a damaged character memory file is logged once, is not made for an empty file, and goes when the character is forgotten', async t => {
+  const directory = await folder(t);
+  const {root, player} = await seedMemoryFolder(directory);
+  const lines = [];
+  const store = await MemoryStore.open({dir: root, limits: {characterBytes: 1000}, log: line => lines.push(line)});
+  assert.ok(lines.some(line => line.includes('truncated.json')), 'the skipped file is named in the log: ' + JSON.stringify(lines));
+  for (const key of ['truncated', 'empty']) {
+    store.record({profileKey: key, v: 'hello again', r: 'you are back'});
+    await store.flush();
+    store.record({profileKey: key, v: 'and once more', r: 'welcome'});
+    await store.flush();
+  }
+  assert.equal(lines.filter(line => /kept as truncated\.json\.corrupt/.test(line)).length, 1);
+  assert.deepEqual((await names(player)).filter(name => /^(?:truncated|empty)/.test(name)), ['empty.json', 'truncated.json', 'truncated.json.corrupt']);
+  store.forget({profileKeys: ['truncated']});
+  await store.flush();
+  assert.deepEqual((await names(player)).filter(name => name.startsWith('truncated')), [], 'the player\'s forget takes the old copy too');
 });
 
 // ---------------------------------------------------------------- character edits (CharacterOverrides)
@@ -207,7 +226,7 @@ test('CharacterOverrides given a folder that does not exist, or a file instead o
   assert.equal(overrides.get('judy-alvarez'), null, 'a failed save changes nothing in memory');
 });
 
-test('a damaged character edit file is kept aside before the player\'s next save writes over it', {todo: 'the load log says "they are left as they are", but set() replaces the damaged file with no copy'}, async t => {
+test('a damaged character edit file is kept aside before the player\'s next save writes over it', async t => {
   const directory = await folder(t);
   const dir = await seedOverrides(directory);
   const damaged = await readFile(join(dir, 'cut-off.json'), 'utf8');
@@ -215,6 +234,20 @@ test('a damaged character edit file is kept aside before the player\'s next save
   await overrides.set('cut-off', {bio: BIO + ' Edited again.'});
   const kept = [...await filesUnder(directory)].filter(([path, text]) => path !== join(dir, 'cut-off.json') && text === damaged);
   assert.equal(kept.length, 1);
+});
+
+test('a reset of a damaged character edit file keeps the old file too, logs it once, and an empty or folder entry is left alone', async t => {
+  const directory = await folder(t);
+  const dir = await seedOverrides(directory);
+  const damaged = await readFile(join(dir, 'cut-off.json'), 'utf8');
+  const lines = [];
+  const overrides = await CharacterOverrides.open({dir, log: line => lines.push(line)});
+  await overrides.reset('cut-off');
+  await overrides.set('cut-off', {bio: BIO + ' Edited again.'});
+  assert.equal(await readFile(join(dir, 'cut-off.json.corrupt'), 'utf8'), damaged);
+  assert.equal(lines.filter(line => line.includes('kept as cut-off.json.corrupt') && line.includes('were damaged')).length, 1, JSON.stringify(lines));
+  await overrides.set('empty-one', {bio: BIO});
+  assert.ok(!(await names(dir)).includes('empty-one.json.corrupt'), 'an empty file is nothing to keep');
 });
 
 // ---------------------------------------------------------------- vendor memory
@@ -426,7 +459,7 @@ test('the sign-in settings file is optional: empty, cut off, array or folder lea
   assert.equal((await readAuthSettings({env: {}, path})).enabled, true);
 });
 
-test('a sign-in settings file with a byte-order mark is read like any other (PowerShell and Notepad can write one)', {todo: 'readAuthSettings parses the raw text, so a BOM makes the whole file count as unreadable and the backend stays off with no message; local-ai-pack.mjs, custom-models.mjs and key-codec.mjs strip it'}, async t => {
+test('a sign-in settings file with a byte-order mark is read like any other (PowerShell and Notepad can write one)', async t => {
   const directory = await folder(t);
   const path = join(directory, 'convai-auth.json');
   await writeFile(path, '﻿' + JSON.stringify({enabled: true, url: 'https://backend.example/token', secret: 's'.repeat(32)}));

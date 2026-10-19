@@ -69,6 +69,8 @@ local function readJSON(path)
     local file = io.open(path, 'rb')
     if not file then return nil end
     local raw = file:read('*a'); file:close()
+    -- Windows PowerShell and older Notepad save UTF-8 with a byte-order mark (EF BB BF), which the codec reads as garbage.
+    if raw:sub(1, 3) == '\239\187\191' then raw = raw:sub(4) end
     local ok, value = pcall(json.decode, raw)
     return ok and type(value) == 'table' and value or nil
 end
@@ -266,6 +268,14 @@ end
 
 local function writeMemoryCommand(value) return writeCommandFile('runtime/memory-command.json', value) end
 
+-- For the Custom provider module (custom-provider.lua, drawn by mod/mcm.lua): the same in-place command file write, and the id of this game
+-- session, which every command id of that channel carries (made on first use, like the key commands below).
+function M.writeCommand(target, value) return writeCommandFile(target, value) end
+function M.commandSession()
+    memorySession = memorySession or memorySessionUUID()
+    return memorySession
+end
+
 -- The player's own Convai API key (docs/OWN_CONVAI_KEY.md). The bridge reads the key from the clipboard on request and
 -- keeps it in its own folder; this file only sends two commands and reads the status the bridge publishes. Nothing here
 -- ever holds the key. The status file is read on demand (the settings page asks about once a second while it is open).
@@ -393,10 +403,10 @@ function M.removeInworldKey()
 end
 
 local mistralResults = {saved = true, cleared = true, invalid = true, unreadable = true, failed = true}
-local mistralLimits = {rate = true, daily = true, invalid = true, model = true}
+local mistralLimits = {rate = true, daily = true, invalid = true, model = true, credits = true}
 local localAiStates = {ready = true, warming = true, ['not-installed'] = true, ['no-memory'] = true, failed = true}
 local function providerName(value)
-    return (value == 'mistral' or value == 'local') and value or 'convai'
+    return (value == 'mistral' or value == 'local' or value == 'custom') and value or 'convai'
 end
 
 -- What the settings page shows. `result` is the outcome of the player's latest Paste or Remove, and only that one.
@@ -408,7 +418,7 @@ local function validModelId(value)
 end
 
 -- What turning Mature content on changed, kept in the settings so that turning it off puts the player's own choices back:
---   {conversationProvider = {before = 'convai' | 'convai-key' | 'mistral', set = 'local'}, localModel = {before = <model id>, set = <the uncensored model id>},
+--   {conversationProvider = {before = 'convai' | 'convai-key' | 'mistral' | 'custom', set = 'local'}, localModel = {before = <model id>, set = <the uncensored model id>},
 --    voice = {before = <voice>, set = <voice>}} where a voice is {provider = 'pocket'|'omni'|'convai'|'voxtral'|'inworld',
 --   steps = 16|32, reference = 'short'|'long'} (steps and reference for omni only). Each part is optional; anything malformed is
 -- dropped, and nil is returned when nothing is left. Returns a new table.
@@ -672,11 +682,12 @@ local function loadSettings()
             settings.convaiProviderChoice, settingsNeedSave = true, true
         end
     end
-    -- Who writes the replies: 'convai' (default), 'mistral' (the player's own Mistral key) or 'local' (the optional Local AI pack, on this
-    -- computer). Any other saved value is Convai, a saved 'groq' (an option that was removed) included, as in the bridge. The bridge reads
-    -- this from settings.json and applies it when no conversation is running.
+    -- Who writes the replies: 'convai' (default), 'mistral' (the player's own Mistral key), 'local' (the optional Local AI pack, on this
+    -- computer) or 'custom' (any OpenAI-compatible endpoint, mod/custom-provider.lua). Any other saved value is Convai, a saved 'groq' (an
+    -- option that was removed) included, as in the bridge. The bridge reads this from settings.json and applies it when no conversation
+    -- is running.
     if settings.conversationProvider ~= 'convai' and settings.conversationProvider ~= 'mistral'
-        and settings.conversationProvider ~= 'local' then
+        and settings.conversationProvider ~= 'local' and settings.conversationProvider ~= 'custom' then
         settings.conversationProvider, settingsNeedSave = 'convai', true
     end
     if type(settings.battleReactions) ~= 'boolean' then settings.battleReactions, settingsNeedSave = false, true end
@@ -748,7 +759,7 @@ local function loadSettings()
     if settings.companionVision ~= nil then settings.companionVision, settingsNeedSave = nil, true end
     -- Mature content (off by default): lets the Local AI provider write adult language and themes. Read by the bridge on change only.
     if type(settings.matureContent) ~= 'boolean' then settings.matureContent, settingsNeedSave = false, true end
-    -- Mature content and a cloud provider (Convai free tier, Convai API key, Mistral) exclude each other: a saved pairing (an older
+    -- Mature content and a cloud provider (Convai free tier, Convai API key, Mistral, Custom) exclude each other: a saved pairing (an older
     -- save, which showed "no effect yet" for it) comes back with Mature content off.
     if settings.matureContent == true and settings.conversationProvider ~= 'local' then settings.matureContent, settingsNeedSave = false, true end
     -- Which installed Local AI model loads: one model's id. 'auto' means none chosen yet (or a value an older version saved): the bridge then
@@ -814,6 +825,12 @@ local function saveSettings()
     local existing = io.open(target, 'rb')
     if existing then
         existing:close()
+        -- loadSettings falls back to the backup when settings.json is unreadable, so then the backup is the only good copy and must not be
+        -- removed to make room: it takes the file's place first, and the steps below find an ordinary good file (a failure or a crash at
+        -- any step leaves settings.json or the backup with the settings in it).
+        if not readJSON(target) and readJSON(backup) then
+            if not os.remove(target) or not os.rename(backup, target) then return false end
+        end
         os.remove(backup)
         if not os.rename(target, backup) then return false end
     end
@@ -939,13 +956,13 @@ function M.developerMode()
     return settings ~= nil and settings.developerMode == true
 end
 
--- True when speaking to a companion cannot work right now: the player chose Mistral or Local AI, the bridge says that
+-- True when speaking to a companion cannot work right now: the player chose Mistral, Local AI or Custom, the bridge says that
 -- provider is in use, and this computer cannot recognise speech locally. Asked only when a voice key is pressed (never per
 -- frame); the bridge status is re-read at most once every 1.5 s.
 function M.voiceNeedsConvai()
     loadSettings()
     local chosen = settings.conversationProvider
-    if chosen ~= 'mistral' and chosen ~= 'local' then return false end
+    if chosen ~= 'mistral' and chosen ~= 'local' and chosen ~= 'custom' then return false end
     local state = M.mistral()
     return state.effective == chosen and state.stt ~= true
 end
@@ -1300,8 +1317,10 @@ local function initialize(player)
     playerIdentity = current
     loadSettings()
     if not initialized then
-        player:ConvaiManagerSetVoice(settings.voice)
-        player:ConvaiManagerSetSubtitles(settings.subtitles)
+        -- The player has these methods only when this mod's scripts compiled; the settings work without them, so a missing one is not
+        -- an error here (it would repeat on every update tick, and the manager would never finish starting).
+        pcall(function() player:ConvaiManagerSetVoice(settings.voice) end)
+        pcall(function() player:ConvaiManagerSetSubtitles(settings.subtitles) end)
         -- Keep the legacy native flags consistent while callers move to keys.
         for index, key in ipairs(legacyKeys) do
             pcall(function() player:ConvaiManagerSetEnabled(index - 1, settings.enabledByKey[key] ~= false) end)
@@ -1822,7 +1841,7 @@ function M.applySettings(player, values)
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings.johnnyHologram = value
         elseif key == 'conversationProvider' then
-            if value ~= 'convai' and value ~= 'mistral' and value ~= 'local' then return false, 'Choose one of the listed conversation providers.' end
+            if value ~= 'convai' and value ~= 'mistral' and value ~= 'local' and value ~= 'custom' then return false, 'Choose one of the listed conversation providers.' end
             nextSettings.conversationProvider = value
         elseif key == 'audioDelay' then
             if not isChoice(value, audioDelays) then return false, 'Choose one of the listed lip sync delays.' end
@@ -1958,8 +1977,10 @@ function M.update(player, delta)
     if not player then if initialized then M.reset() end; return end
     local ready = initialize(player)
     if not ready then return end
+    -- A player without the method (this mod's scripts did not compile) has no window: closed. The party and the voice state below
+    -- still follow, so the settings page stays right.
     local openOk, open = pcall(function() return player:ConvaiManagerIsOpen() end)
-    if not openOk then return end
+    if not openOk then open = false end
     -- Drain a bounded queue even after closing so a just-clicked command is not
     -- silently discarded. Settings changes outside this view are also retained.
     for _ = 1, 16 do

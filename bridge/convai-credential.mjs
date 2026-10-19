@@ -42,7 +42,8 @@ const falsy = value => ['0', 'false', 'no', 'off'].includes(String(value ?? '').
 export async function readAuthSettings({env = process.env, readText = path => readFile(path, 'utf8'), path} = {}) {
   let file = {};
   if (path) {
-    try { const parsed = JSON.parse(await readText(path)); if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) file = parsed; }
+    // A byte-order mark (PowerShell and older Notepad write one) is not part of the JSON; the other settings readers strip it too.
+    try { const parsed = JSON.parse((await readText(path)).replace(/^﻿/, '')); if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) file = parsed; }
     catch { /* none, or unreadable: the file is optional */ }
   }
   const asked = env.CYBERPUNK_CONVAI_AUTH_BACKEND !== undefined && env.CYBERPUNK_CONVAI_AUTH_BACKEND !== ''

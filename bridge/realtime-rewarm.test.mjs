@@ -45,7 +45,9 @@ test('prewarmLocal after close() starts a new browser and keeps a warm renderer 
 
 test('the bridge opens the local voice again after a world reset, a key switch and a provider switch', () => {
   const source = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
-  assert.match(source, /function rewarmLocalVoice\(\) \{\s*if \(mistral\.active && localVoice\.playbackEnabled !== false && !stopped\) void realtime\.prewarmLocal\(\);/);
+  // Not before the first settings poll has read the playback setting (voiceSettingsRead): with voice playback Off no browser is started at launch.
+  assert.match(source, /function rewarmLocalVoice\(\) \{\s*(?:\/\/[^\n]*\n\s*)*if \(voiceSettingsRead && mistral\.active && localVoice\.playbackEnabled !== false && !stopped\) void realtime\.prewarmLocal\(\);/);
+  assert.match(source, /localVoice\.update\(settings, preview, voiceBoundaryBusy\(\)\)\) \{\s*dropPrefetch\(\); prefetchObserved = '';\s*\}\s*if \(!voiceSettingsRead\) \{ voiceSettingsRead = true; rewarmLocalVoice\(\); \}/);
   const sites = [/partyObserved = ''; prewarmObserved = ''; prefetchObserved = '';\s*rewarmLocalVoice\(\);/,
     /Conversation key: [^\n]*\n\s*rewarmLocalVoice\(\);/, /Conversation provider: \$\{mistral\.applied\}`\);\s*rewarmLocalVoice\(\);/];
   for (const site of sites) assert.match(source, site);

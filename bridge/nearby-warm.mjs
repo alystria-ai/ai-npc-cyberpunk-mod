@@ -54,12 +54,19 @@ export class NearbyWarm {
       staleMs = 8000, retryMs = 30000, onError = () => {}}) {
     Object.assign(this, {connections, prepareVoice, canPrepare, isKnown, routeFor, now, staleMs, retryMs, onError});
     this.profiles = []; this.partners = []; this.spawned = [];
+    this.last = null;          // the last document that parsed
     this.voices = new Map();   // profile -> {state: 'preparing' | 'ready' | 'failed', controller, retryAt}
   }
   // Apply the published document (its raw text, or '' when absent).
   async apply(raw) {
     let value;
     try { value = JSON.parse(raw); } catch {}
+    // The game writes the file in place (mod/auto-connect.lua): a read that lands between the open and the write sees '' or a cut-off
+    // document. That is no change, not "nobody is near" (which would close every connection and abort every voice preparation for one
+    // poll). The last document stands, and its own `updated` still ages it out after staleMs, so a game that really stops publishing
+    // (closed, paused, file gone) releases everything.
+    if (value && typeof value === 'object') this.last = value;
+    else value = this.last;
     const options = {isKnown: this.isKnown, now: this.now(), staleMs: this.staleMs};
     const partners = parsePartners(value, options);
     const profiles = parseNearby(value, options).filter(profile => !partners.includes(profile));
@@ -110,7 +117,7 @@ export class NearbyWarm {
   // Release everything now (bridge shutdown or a lost game).
   async release() {
     for (const voice of this.voices.values()) voice.controller?.abort();
-    this.voices.clear(); this.profiles = []; this.partners = []; this.spawned = [];
+    this.voices.clear(); this.profiles = []; this.partners = []; this.spawned = []; this.last = null;
     if (typeof this.connections.setAmbient === 'function') {
       try { await this.connections.setAmbient({}); } catch (error) { this.onError(error); }
       return;

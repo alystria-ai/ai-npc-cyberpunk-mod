@@ -16,6 +16,8 @@ const PRICE = /^[$€£]?\d{1,4}(?:[.,]\d{2})?(?:\s?(?:USD|EUR|GBP|[$€£]))?$/
 const NAME = /^[A-Za-z0-9][A-Za-z0-9 .+-]{0,31}$/;
 const PATH = /^\/[A-Za-z0-9/_-]{1,80}$/;
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+// RegExp.test turns its argument into text, so a number, a boolean or a one-item array would pass: only a real string may match.
+const matches = (pattern, value) => typeof value === 'string' && pattern.test(value);
 const convaiUrl = value => {
   if (typeof value !== 'string' || value.length > 300) return null;
   try {
@@ -36,8 +38,8 @@ export function validPaidPlans(value) {
   if (!plain(value) || !Array.isArray(value.plans) || value.plans.length < 1 || value.plans.length > 8) return null;
   const ids = new Set(), prices = new Set(), plans = [];
   for (const item of value.plans) {
-    if (!plain(item) || !PLAN_ID.test(item.id ?? '') || !NAME.test(item.name ?? '') || !['monthly', 'yearly'].includes(item.period)
-        || typeof item.price !== 'string' || !PRICE.test(item.price.trim()) || !PRICE_ID.test(item.priceId ?? '')) return null;
+    if (!plain(item) || !matches(PLAN_ID, item.id) || !matches(NAME, item.name) || !['monthly', 'yearly'].includes(item.period)
+        || typeof item.price !== 'string' || !PRICE.test(item.price.trim()) || !matches(PRICE_ID, item.priceId)) return null;
     if (ids.has(item.id) || prices.has(item.priceId)) return null;
     ids.add(item.id); prices.add(item.priceId);
     const interactions = count(item.interactions, 10_000_000), concurrency = count(item.concurrency, 1000);
