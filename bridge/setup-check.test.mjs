@@ -540,7 +540,15 @@ async function control(root, extra = {}) {
   return {instance, calls, runtime, requestPath: join(runtime, SETUP_REQUEST_FILE), resultPath: join(runtime, SETUP_CHECK_FILE)};
 }
 const collects = calls => calls.filter(call => call[0] === 'collect');
-const wait = ms => new Promise(done => setTimeout(done, ms));
+// Waits for something to have happened. The check is repeated until it holds, with a generous ceiling that only a hung test reaches: a fixed
+// pause here would be a guess about how long the machine takes (writing the answer file between two runs is real disk work).
+async function until(check, label, ceilingMs = 60_000) {
+  const end = Date.now() + ceilingMs;
+  while (!check()) {
+    if (Date.now() > end) assert.fail(`timed out waiting for ${label}`);
+    await new Promise(done => setTimeout(done, 2));
+  }
+}
 
 test('a request left by an earlier session is never answered; a new one is answered once with its id', async () => temp(async root => {
   const runtime = join(root, 'runtime');
@@ -613,11 +621,17 @@ test('one run at a time: asks made during a run share one more run afterwards, f
     log.push(`done ${id}`);
     return {version: 1, updated: 1, bridgePid: process.pid, request: id, checks: []};
   }});
-  const finishOne = async () => { gates.shift()(); await wait(10); };
+  // Opens the gate of the run in progress, then waits for what follows: the queued run starting (the answer of this one is written to disk first)
+  // or the control going free.
+  const finishOne = async () => {
+    const before = runs.length;
+    gates.shift()();
+    await until(() => runs.length > before || f.instance.running === null, 'the next run to start or the control to be free');
+  };
   const first = f.instance.run('a');
-  await wait(5);
+  await until(() => runs.length === 1 && gates.length === 1, 'the first run to start');
   const second = f.instance.run('b'), third = f.instance.run('c'), quiet = f.instance.run(null, {light: true});
-  await wait(5);
+  await new Promise(done => setImmediate(done));
   assert.deepEqual(runs, [{id: 'a', light: false}], 'nothing else runs while one is running');
   await finishOne();
   assert.deepEqual(runs, [{id: 'a', light: false}, {id: 'c', light: false}], 'one more run, for the newest id, full because a full one was asked for');
@@ -630,14 +644,14 @@ test('one run at a time: asks made during a run share one more run afterwards, f
   // A queue made only of light asks stays light; one full ask makes it full and gives it the id.
   runs.length = 0;
   const running = f.instance.run(null, {light: true});
-  await wait(5);
+  await until(() => runs.length === 1 && gates.length === 1, 'the light run to start');
   const again = f.instance.run(null, {light: true});
   await finishOne(); await finishOne();
   await Promise.all([running, again]);
   assert.deepEqual(runs, [{id: null, light: true}, {id: null, light: true}]);
   runs.length = 0;
   const lightRun = f.instance.run(null, {light: true});
-  await wait(5);
+  await until(() => runs.length === 1 && gates.length === 1, 'the next light run to start');
   const queuedLight = f.instance.run(null, {light: true}), queuedFull = f.instance.run('z'), queuedLater = f.instance.run(null, {light: true});
   await finishOne(); await finishOne();
   await Promise.all([lightRun, queuedLight, queuedFull, queuedLater]);
