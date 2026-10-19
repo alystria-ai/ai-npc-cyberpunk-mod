@@ -848,6 +848,34 @@ test('Johnny speaks up is Off by default, a three-way select under Conversations
   `);
 });
 
+test('V talks on their own is Off by default, a three-way select under Johnny speaks up, saved, and an unknown value is Off', () => {
+  run(`${nsuiFixture}
+    assert(manager.vTalks() == 'off' and manager.snapshot(player).settings.vTalks == 'off', 'a missing key is off')
+    assert(saved.vTalks == 'off', 'a new install saves the default Off')
+    assert(invoke('tab:settings').ok)
+    local talks = assert(row('vTalks'), 'the setting is not offered')
+    assert(talks.type == 'select' and talks.value == 1 and talks.defaultValue == 1 and talks.label == 'V talks on their own')
+    assert(#talks.elements == 3 and talks.elements[1] == 'Off' and talks.elements[2] == 'Rare' and talks.elements[3] == 'Normal')
+    local conversations, remarksAt, talksAt
+    for _, category in ipairs(loaded.categories) do if category.id == 'conversation-controls' then conversations = category end end
+    for index, item in ipairs(conversations.settings) do
+      if item.id == 'johnnyRemarks' then remarksAt = index end
+      if item.id == 'vTalks' then talksAt = index end
+    end
+    assert(talksAt == remarksAt + 1, 'right under Johnny speaks up')
+    assert(registered.applyBatch('manager', {{id = 'vTalks', value = 3}}).ok and manager.vTalks() == 'normal' and saved.vTalks == 'normal')
+    loaded = registered.loadMod('manager'); assert(row('vTalks').value == 3)
+    assert(registered.applyBatch('manager', {{id = 'vTalks', value = 2}}).ok and manager.vTalks() == 'rare')
+    assert(not registered.applyBatch('manager', {{id = 'vTalks', value = 4}}).ok and manager.vTalks() == 'rare')
+    assert(not manager.applySettings(player, {vTalks = 'often'}) and manager.vTalks() == 'rare')
+    assert(manager.johnnyRemarks() == 'off', 'the neighbouring setting is not disturbed')
+    assert(registered.applyBatch('manager', {{id = 'vTalks', value = 1}}).ok and manager.vTalks() == 'off' and saved.vTalks == 'off')
+    saved.vTalks = 'sometimes'
+    manager.reset(); manager.configure(api, profiles)
+    assert(manager.vTalks() == 'off' and saved.vTalks == 'off', 'a damaged value is read as Off and mended')
+  `);
+});
+
 test('the live holocall picture is on by default, offered under Conversations, and an explicit Off is kept', () => {
   run(`${nsuiFixture}
     assert(manager.holocallLiveImage() == true and manager.snapshot(player).settings.holocallLiveImage == true)

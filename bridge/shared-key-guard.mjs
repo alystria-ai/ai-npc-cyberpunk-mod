@@ -195,8 +195,10 @@ export class SharedKeyGuard {
 // other, but on the shared key they may use at most REMARK_SHARE of the day's limit (10 of 100), so a chatty Johnny never eats the turns
 // a player wants for talking. Counted in their own signed record (the same format and secret as the turn count, its own files), where a
 // remark goes to Convai; a remark answered by Mistral or Local AI is not a shared-key turn and is not counted.
+// V talks on their own (docs/V_TALKS.md) is the same kind of turn and shares this cap: a companion's answer in an exchange V started counts
+// here too, so the two together never take more than the share (isRemark names both kinds).
 export const REMARK_SHARE = 0.1;
-export const isRemark = config => config?.reaction?.kind === 'head';
+export const isRemark = config => config?.reaction?.kind === 'head' || config?.reaction?.kind === 'vtalk';
 export const remarkCap = limit => Math.max(1, Math.floor(limit * REMARK_SHARE));
 
 /** The remarks' share of the shared key. Follows the guard's limit and day; does nothing for a remark that is not on the shared key. */

@@ -755,6 +755,10 @@ local function loadSettings()
     if settings.johnnyRemarks ~= 'off' and settings.johnnyRemarks ~= 'rare' and settings.johnnyRemarks ~= 'normal' then
         settings.johnnyRemarks, settingsNeedSave = 'off', true
     end
+    -- Off by default: how often V starts a short talk with a companion unprompted (docs/V_TALKS.md): off, rare or normal.
+    if settings.vTalks ~= 'off' and settings.vTalks ~= 'rare' and settings.vTalks ~= 'normal' then
+        settings.vTalks, settingsNeedSave = 'off', true
+    end
     -- Off by default. A saved pairing with the Convai cloud voice cannot stand: the cloud voice is kept (it is the
     -- player's voice) and the setting is turned off below.
     if type(settings.naturalSpeech) ~= 'boolean' then settings.naturalSpeech, settingsNeedSave = false, true end
@@ -933,6 +937,13 @@ end
 function M.johnnyRemarks()
     loadSettings()
     return settings.johnnyRemarks == 'rare' and 'rare' or settings.johnnyRemarks == 'normal' and 'normal' or 'off'
+end
+
+-- V talks on their own: 'off', 'rare' or 'normal' (mod/v-talks.lua). Read once per 0.5 s observer sample and when a collector hands over an
+-- event, never per frame.
+function M.vTalks()
+    loadSettings()
+    return settings.vTalks == 'rare' and 'rare' or settings.vTalks == 'normal' and 'normal' or 'off'
 end
 
 -- Is Mistral or the Local AI answering conversations right now (the bridge's applied provider)? Asked when a character the player made is
@@ -1806,6 +1817,7 @@ function M.snapshot(player)
             storyConversations = settings.storyConversations == true,
             johnnyInHead = settings.johnnyInHead == true,
             johnnyRemarks = M.johnnyRemarks(),
+            vTalks = M.vTalks(),
             uiLanguage = settings.uiLanguage,
             enabledByKey = enabled},
         ownKey = M.ownKey(),
@@ -1885,6 +1897,9 @@ function M.applySettings(player, values)
         elseif key == 'johnnyRemarks' then
             if value ~= 'off' and value ~= 'rare' and value ~= 'normal' then return false, 'Choose how often Johnny speaks up.' end
             nextSettings.johnnyRemarks = value
+        elseif key == 'vTalks' then
+            if value ~= 'off' and value ~= 'rare' and value ~= 'normal' then return false, 'Choose how often V talks on their own.' end
+            nextSettings.vTalks = value
         elseif key == 'conversationProvider' then
             if value ~= 'convai' and value ~= 'mistral' and value ~= 'local' and value ~= 'custom' then return false, 'Choose one of the listed conversation providers.' end
             nextSettings.conversationProvider = value

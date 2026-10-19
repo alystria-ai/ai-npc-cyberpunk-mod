@@ -5,7 +5,8 @@ for typed lines** on, whatever you type to a companion is also spoken aloud, in 
 lines in the game. Then the companion answers.
 
 **On by default** (new installs, and saved settings that never stored it; a player who turned it off keeps it off). The first version saved `false` as its default, so a saved `false` counts only when the player set it (an Apply that carried it stores `vVoiceChosen`, the same pattern as Expressive emotions and the holocall live picture); an unchosen `false` becomes `true` when the settings load, in `mod/manager.lua` and in the bridge's read of `runtime/settings.json`. Typed lines only: push-to-talk is never replayed (you already spoke it). Reactions, phone Chat, add-on
-remarks and the later speakers of a group round never get a V line. A line typed to an add-on's voice (the Delamain cab, Skippy) does
+remarks and the later speakers of a group round never get a V line. The one exception is V's own opener of an exchange V started by itself
+(V talks on their own, `docs/V_TALKS.md`): that line is the text of an automatic reaction, and it is required (the companion's answer waits for it). A line typed to an add-on's voice (the Delamain cab, Skippy) does
 (2026-10-16; before it did not, and V was silent in the cab): `runAddonTurn` starts V's line beside the add-on's text request exactly as for a
 companion, in V's own voice page, and the add-on's reply waits for it. The composer of an add-on's voice leaves a voice-only hint in
 `conversation-prewarm.json` (`voiceOnly`), so V's voice page is warm; it opens no connection. V's words are never part of the add-on speaker's

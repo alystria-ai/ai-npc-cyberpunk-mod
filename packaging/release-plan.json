@@ -322,6 +322,10 @@
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/world-talk.lua"
         },
         {
+          "source": "mod/v-talks.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/v-talks.lua"
+        },
+        {
           "source": "mod/johnny-head.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/johnny-head.lua"
         },
@@ -722,6 +726,7 @@
             "bridge/turn-clock.mjs",
             "bridge/turn-context.mjs",
             "bridge/v-helper-voice.mjs",
+            "bridge/v-talks.mjs",
             "bridge/v-voice.mjs",
             "bridge/vendor-memory.mjs",
             "bridge/vision-capture.mjs",

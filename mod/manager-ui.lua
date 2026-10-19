@@ -1396,6 +1396,10 @@ local function schema()
                 snapshot.settings.johnnyRemarks == 'normal' and 3 or snapshot.settings.johnnyRemarks == 'rare' and 2 or 1, 1,
                 'Johnny says something on his own after you meet someone he knows of, finish a job, or a romance moves on. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the Convai free tier each remark uses one of the day’s turns; remarks never take more than a tenth of them.',
                 {'Off', 'Rare', 'Normal'}),
+            setting('vTalks', 'V talks on their own', 'select',
+                snapshot.settings.vTalks == 'normal' and 3 or snapshot.settings.vTalks == 'rare' and 2 or 1, 1,
+                'Now and then V starts a short chat with a companion in your party, and the companion answers. Mostly after a fight or a finished job, sometimes on a quiet walk or ride.\n\nNeeds V’s voice for typed lines; with that off, V stays quiet. Never during scenes, calls, fights or while you talk.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the Convai free tier each answer uses one of the day’s turns, counted with Johnny’s remarks, which never take more than a tenth of them.',
+                {'Off', 'Rare', 'Normal'}),
             withInworld(setting('multilingualConversations', 'Multilingual conversations', 'bool', snapshot.settings.multilingualConversations, false,
                 'Talk in any language; each character answers in yours.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech and Expressive emotions turn off.'),
                 'Inworld speaks English only as well.'),
@@ -1832,6 +1836,10 @@ function M.apply(changes)
             if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 then return refused('Choose how often Johnny speaks up.') end
             -- Order: 1 Off, 2 Rare, 3 Normal.
             values.johnnyRemarks = ({'off', 'rare', 'normal'})[change.value]
+        elseif key == 'vTalks' then
+            if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 then return refused('Choose how often V talks on their own.') end
+            -- Order: 1 Off, 2 Rare, 3 Normal.
+            values.vTalks = ({'off', 'rare', 'normal'})[change.value]
         elseif key:sub(1, 6) == 'addon:' and convaiAddons and convaiAddons.live then
             local staged, problem = convaiAddons.stageSetting(key, change.value)
             if not staged then convaiAddons.discardSettings(); return refused(problem) end
