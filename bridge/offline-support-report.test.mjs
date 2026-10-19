@@ -264,8 +264,9 @@ test('Mod Organizer 2 layout: the game comes from ModOrganizer.ini, enabled mod 
   const f = await mo2Install({
     modlist: '+AI NPC Scripts\r\n+AI NPC Runtime\r\n+Codeware\r\n-TweakXL (off)\r\n+Audioware\r\n+Mod Configuration Menu\r\n*DLC\r\n',
     files: MO2_MODS,
+    // The game wrote its logs into Overwrite, the mod's own log too (a partial copy of the mod folder, with no init.lua in it).
     overwrite: {'r6/logs/redscript_rCURRENT.log': REDSCRIPT_OK, 'red4ext/logs/red4ext-2026-10-19-04-31-33.log': RED4EXT_LOG,
-      'bin/x64/plugins/cyber_engine_tweaks/cyber_engine_tweaks.log': CET_LOG}});
+      'bin/x64/plugins/cyber_engine_tweaks/cyber_engine_tweaks.log': CET_LOG, [`${MOD}/AiNpcCyberpunkMod.log`]: 'mod log line from Overwrite\n'}});
   for (const [relative, text] of Object.entries(MO2_GAME_FILES)) await f.put(join(f.game, ...relative.split('/')), text);
   try {
     const layout = await resolveOfflineLayout({appDirectory: f.app, env: f.env});
@@ -279,12 +280,13 @@ test('Mod Organizer 2 layout: the game comes from ModOrganizer.ini, enabled mod 
     assert.equal(layout.modRoot, join(f.mods, 'AI NPC Scripts', ...MOD.split('/')));
     assert.equal(layout.plugin, join(f.mods, 'AI NPC Runtime', ...PLUGIN.split('/')));
     const logs = await locateOfflineLogs(layout);
-    for (const id of ['cet', 'redscript', 'red4ext']) assert(logs.find(entry => entry.id === id).path.startsWith(join(f.instance, 'overwrite')), `${id} comes from Overwrite`);
+    for (const id of ['cet', 'redscript', 'red4ext', 'mod-log']) assert(logs.find(entry => entry.id === id).path.startsWith(join(f.instance, 'overwrite')), `${id} comes from Overwrite`);
 
     const result = await runOfflineReport({appDirectory: f.app, env: f.env, graphics: [], sharedObjects: [], stdout: {write() {}}, open() {}});
     assert.equal(result.ok, true);
     const entries = await unzip(result.path);
     const summary = summaryOf(entries);
+    assert(entries.some(entry => entry.name.startsWith('logs/') && entry.text.includes('mod log line from Overwrite')), "the mod's own log from Overwrite is in the report");
     assert.deepEqual(row(summary, 'codeware').foundIn, ['MO2 mod: Codeware']);
     assert.equal(row(summary, 'codeware').version, '1.20.5', 'the version comes from the RED4ext log in Overwrite');
     assert.equal(row(summary, 'mcm').version, '0.10.3');

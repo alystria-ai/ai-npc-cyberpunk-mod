@@ -176,8 +176,10 @@ export async function resolveOfflineLayout({appDirectory, game: asked, env = pro
     }
     return null;
   };
-  const modRoot = (await find(MOD_FOLDER, 'dir'))?.path ?? join(game, ...MOD_FOLDER);
-  const plugin = (await find(PLUGIN_FOLDER, 'dir'))?.path ?? join(game, ...PLUGIN_FOLDER);
+  // The mod's own folder is the one holding init.lua (Overwrite may hold a partial copy with only a log in it); the plugin folder, the one with the DLL.
+  const initLua = await find([...MOD_FOLDER, 'init.lua'], 'file'), dll = await find([...PLUGIN_FOLDER, 'CyberpunkConvai.dll'], 'file');
+  const modRoot = initLua ? dirname(initLua.path) : (await find(MOD_FOLDER, 'dir'))?.path ?? join(game, ...MOD_FOLDER);
+  const plugin = dll ? dirname(dll.path) : (await find(PLUGIN_FOLDER, 'dir'))?.path ?? join(game, ...PLUGIN_FOLDER);
   const installedApp = join(plugin, 'app');
   const project = await isDir(installedApp) ? installedApp : app;
   const runtime = join(modRoot, 'runtime');
@@ -385,7 +387,9 @@ export async function offlineSecrets({stateDirectory, project}) {
 export async function locateOfflineLogs(layout) {
   const merged = new Map();
   for (const root of layout.roots) {
-    for (const entry of await locateLogs({game: root.path, modRoot: layout.modRoot, runtime: layout.runtime, stateDirectory: layout.stateDirectory})) {
+    // Each folder is searched as its own game folder: under Mod Organizer 2 the game wrote the mod's log into Overwrite, not into the mod folder.
+    const modRoot = join(root.path, ...MOD_FOLDER);
+    for (const entry of await locateLogs({game: root.path, modRoot, runtime: join(modRoot, 'runtime'), stateDirectory: layout.stateDirectory})) {
       const present = await isFile(entry.path);
       const have = merged.get(entry.id);
       if (!have || (!have.present && present)) merged.set(entry.id, {...entry, present});
