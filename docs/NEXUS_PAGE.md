@@ -10,7 +10,8 @@
 [size=4][b]Recommended settings[/b][/size]
 [b]1. Cloud: the best option[/b] (fastest replies, voices closest to the characters, light on your PC)
 [list]
-[*]Make a free [url=https://console.mistral.ai]Mistral[/url] account and create an API key.
+[*]Text already works out of the box: the [b]Convai free tier[/b] is set up by default (100 turns a day), nothing to do.
+[*]For more turns, make a free [url=https://console.mistral.ai]Mistral[/url] account and create an API key.
 [*]Companion Manager > Settings > Conversation provider: choose [b]Mistral[/b] and paste the key (about 5,000 turns a day, free).
 [*]Settings > Voices > Companion voices: choose [b]Voxtral[/b]. The same key covers it.
 [*]No extra downloads, no video memory used.
