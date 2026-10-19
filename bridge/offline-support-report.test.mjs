@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {copyFile, mkdtemp, mkdir, readFile, readdir, rm, writeFile} from 'node:fs/promises';
+import {copyFile, mkdtemp, mkdir, readFile, readdir, rename, rm, rmdir, symlink, utimes, writeFile} from 'node:fs/promises';
 import {spawnSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
@@ -11,13 +11,14 @@ import {REPORT_NAME} from './support-report.mjs';
 import {PLANTED} from './support-report-fixture.mjs';
 import {dataHomeFor} from '../packaging/runtime/state-home.mjs';
 import {importClosure} from '../packaging/lib/closure.mjs';
-import {MO2_HINT, REQUIREMENTS, checkRequirements, dataHomeRoot, enabledMods, fallbackReports, iniValue, locateOfflineLogs, offlineProblems,
-  openInExplorer, parseArgs, pluginVersions, resolveOfflineLayout, runOfflineReport} from './offline-support-report.mjs';
+import {MO2_HINT, REQUIREMENTS, accountNames, checkRequirements, dataHomeRoot, enabledMods, fallbackReports, iniValue, locateOfflineLogs, mo2Paths,
+  offlineProblems, openInExplorer, parseArgs, pluginVersions, resolveOfflineLayout, runOfflineReport} from './offline-support-report.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = dirname(here);
 // Fake secrets are made at run time, never written out as literals (a key-shaped string trips GitHub push protection).
 const SECRET_PLAYER = 'test' + 'x'.repeat(28), SECRET_MISTRAL = 'test' + 'y'.repeat(28), SECRET_SHARED = 'test' + 'z'.repeat(28), SECRET_AUTH = 'test' + 'w'.repeat(28);
+const SECRET_CUSTOM = 'test' + 'v'.repeat(28), SECRET_SIGNING = 'test' + 'u'.repeat(28);
 const CHAT = 'PLANTED CONVERSATION TEXT about the heist';
 const USER = 'PlantedPlayerName';
 
@@ -275,8 +276,9 @@ test('Mod Organizer 2 layout: the game comes from ModOrganizer.ini, enabled mod 
     assert.equal(layout.game, f.game);
     assert.equal(layout.mo2.profile, 'Default');
     assert.equal(layout.mo2.enabledOnly, true);
-    assert.deepEqual(layout.roots.map(root => root.label), ['game folder', 'MO2 Overwrite', 'MO2 mod: AI NPC Scripts', 'MO2 mod: AI NPC Runtime',
-      'MO2 mod: Codeware', 'MO2 mod: Audioware', 'MO2 mod: Mod Configuration Menu']);
+    // The order the game sees them in: Overwrite, the enabled mods as modlist.txt lists them, then the game folder.
+    assert.deepEqual(layout.roots.map(root => root.label), ['MO2 Overwrite', 'MO2 mod: AI NPC Scripts', 'MO2 mod: AI NPC Runtime',
+      'MO2 mod: Codeware', 'MO2 mod: Audioware', 'MO2 mod: Mod Configuration Menu', 'game folder']);
     assert.equal(layout.modRoot, join(f.mods, 'AI NPC Scripts', ...MOD.split('/')));
     assert.equal(layout.plugin, join(f.mods, 'AI NPC Runtime', ...PLUGIN.split('/')));
     const logs = await locateOfflineLogs(layout);
@@ -402,6 +404,9 @@ test('options: --game, --out and --no-open, in both spellings, and nothing else'
   assert.deepEqual(parseArgs(['--game', 'D:\\Games\\Cyberpunk 2077', '--out', 'E:\\reports', '--no-open']), {game: 'D:\\Games\\Cyberpunk 2077', out: 'E:\\reports', open: false});
   assert.deepEqual(parseArgs(['--game=X', '--out=Y', '--bogus', 'stray']), {game: 'X', out: 'Y', open: true});
   assert.deepEqual(parseArgs(['--game']), {game: undefined, out: undefined, open: true}, 'a missing value is ignored');
+  // --game "D:\Cyberpunk 2077\" --no-open: Windows reads \" as a quote character, so Node gets one argument holding the rest of the line.
+  assert.deepEqual(parseArgs(['--game', 'D:\\Cyberpunk 2077" --no-open']), {game: 'D:\\Cyberpunk 2077', out: undefined, open: false});
+  assert.deepEqual(parseArgs(['--out=E:\\reports"']), {game: undefined, out: 'E:\\reports', open: true});
 });
 
 test('--out is honoured, --no-open opens nothing, and a folder that cannot be written is a plain message, not a crash', async () => {
@@ -440,6 +445,113 @@ test('ModOrganizer.ini values and modlist.txt lines are read the way MO2 writes 
   assert.equal(iniValue(ini, 'absent'), null);
   assert.equal(iniValue(null, 'gamePath'), null);
   assert.deepEqual(enabledMods('# comment\r\n+One\r\n-Two\r\n*Unmanaged\r\n+Three Four\r\n\r\n+  \r\n'), ['One', 'Three Four']);
+});
+
+/**
+ * A QByteArray value as Qt writes it into an INI file: backslashes and quotes escaped, every byte above 0x7e as \xHH and a hex digit right
+ * after such an escape as one too (Qt reads every hex digit that follows \x), the whole value quoted when it holds , ; or =.
+ */
+function qtByteArray(text) {
+  let out = '', escaped = false;
+  for (const byte of Buffer.from(text, 'utf8')) {
+    const char = String.fromCharCode(byte);
+    if (byte >= 0x7f || (escaped && /[0-9a-f]/i.test(char))) { out += `\\x${byte.toString(16)}`; escaped = true; continue; }
+    escaped = false;
+    out += char === '\\' || char === '"' ? `\\${char}` : char;
+  }
+  return /[,;=]/.test(text) ? `"@ByteArray(${out})"` : `@ByteArray(${out})`;
+}
+
+test('ModOrganizer.ini values the way Qt escapes them: a quoted value with a comma, non-ASCII bytes, \\x character codes, an empty value', () => {
+  const b = '\\';
+  assert.equal(qtByteArray(`D:${b}Spiele, alt${b}Jürgen${b}Cyberpunk 2077`), `"@ByteArray(D:${b}${b}Spiele, alt${b}${b}J${b}xc3${b}xbcrgen${b}${b}Cyberpunk 2077)"`);
+  assert.equal(qtByteArray('Profil spécial'), `@ByteArray(Profil sp${b}xc3${b}xa9${b}x63ial)`, 'the c after the escape is escaped too');
+  const ini = [`gamePath=${qtByteArray(`D:${b}Spiele, alt${b}Jürgen${b}Cyberpunk 2077`)}`, 'selected_profile=', 'next=value',
+    `profile=${qtByteArray('Profil spécial')}`, `base_directory=D:/MO2 ${b}x20ac`, 'literal=@@at sign', `tabbed="a${b}tb"`, `kept=E:${b}Games`].join('\r\n');
+  assert.equal(iniValue(ini, 'gamePath'), 'D:\\Spiele, alt\\Jürgen\\Cyberpunk 2077');
+  assert.equal(iniValue(ini, 'selected_profile'), null, 'an empty value does not take the next line');
+  assert.equal(iniValue(ini, 'profile'), 'Profil spécial');
+  assert.equal(iniValue(ini, 'base_directory'), 'D:/MO2 €', 'a character code (Qt 5 writes non-ASCII text this way)');
+  assert.equal(iniValue(ini, 'literal'), '@at sign');
+  assert.equal(iniValue(ini, 'tabbed'), 'a\tb');
+  assert.equal(iniValue(ini, 'kept'), 'E:\\Games', 'a single backslash Qt never writes is kept');
+  assert.equal(iniValue('gamePath=@ByteArray(C:\\\\Jürgen)', 'gamePath'), 'C:\\Jürgen', 'a hand-edited file with the letters themselves');
+  // The folders: base_directory (else the instance folder), and mods, profiles and overwrite under it unless set; a $ in a path is kept.
+  const instance = 'C:\\Users\\Someone\\AppData\\Local\\ModOrganizer\\Cyberpunk 2077';
+  assert.deepEqual(mo2Paths('[Settings]\r\nbase_directory=D:/Mod$&ding\r\nprofiles_directory=%BASE_DIR%/my profiles\r\n', instance),
+    {base: 'D:\\Mod$&ding', mods: 'D:\\Mod$&ding\\mods', profiles: 'D:\\Mod$&ding\\my profiles', overwrite: 'D:\\Mod$&ding\\overwrite'});
+  assert.deepEqual(mo2Paths('', 'E:\\MO2'), {base: 'E:\\MO2', mods: 'E:\\MO2\\mods', profiles: 'E:\\MO2\\profiles', overwrite: 'E:\\MO2\\overwrite'});
+  assert.equal(mo2Paths('mod_directory=F:\\\\All mods\r\n', 'E:\\MO2').mods, 'F:\\All mods');
+});
+
+test('a global Mod Organizer 2 instance: ModOrganizer.ini in %LOCALAPPDATA%\\ModOrganizer, the base directory elsewhere, a non-ASCII profile and game folder', async () => {
+  const w = await workspace();
+  try {
+    const game = w.at('Spiele, alt', 'Jürgen', 'Cyberpunk 2077'), local = w.at('local'), base = w.at('MO2 data'), mods = join(base, 'mods');
+    const instance = join(local, 'ModOrganizer', 'Cyberpunk 2077'), profile = 'Profil spécial';
+    await w.put(join(game, 'bin', 'x64', 'Cyberpunk2077.exe'));
+    for (const [relative, text] of Object.entries(MO2_GAME_FILES)) await w.put(join(game, ...relative.split('/')), text);
+    // Another instance first, for another game: only the one whose mods folder holds this Runtime counts.
+    await w.put(join(local, 'ModOrganizer', 'Another game', 'ModOrganizer.ini'), `[General]\r\ngamePath=${qtByteArray(w.at('elsewhere'))}\r\n`);
+    await w.put(join(instance, 'ModOrganizer.ini'), `[General]\r\ngameName=Cyberpunk 2077\r\ngamePath=${qtByteArray(game)}\r\nselected_profile=${qtByteArray(profile)}\r\n`
+      + `\r\n[Settings]\r\nbase_directory=${base.replace(/\\/g, '/')}\r\n`);
+    await w.put(join(base, 'profiles', profile, 'modlist.txt'), '+AI NPC Scripts\r\n+AI NPC Runtime\r\n+Codeware\r\n+TweakXL (off)\r\n+Audioware\r\n+Mod Configuration Menu\r\n');
+    for (const [mod, list] of Object.entries(MO2_MODS)) for (const [relative, text] of Object.entries(list)) await w.put(join(mods, mod, ...relative.split('/')), text ?? '');
+    await w.put(join(base, 'overwrite', 'r6', 'logs', 'redscript_rCURRENT.log'), REDSCRIPT_OK);
+    const app = join(mods, 'AI NPC Runtime', ...PLUGIN.split('/'), 'app');
+    const env = {LOCALAPPDATA: local, TEMP: w.at('temp')};
+    const layout = await resolveOfflineLayout({appDirectory: app, env});
+    assert.equal(layout.gameFound, true);
+    assert.equal(layout.game, game);
+    assert.equal(layout.mo2.instance, instance);
+    assert.equal(layout.mo2.profile, profile);
+    assert.equal(layout.mo2.enabledOnly, true, 'the profile list was found under the base directory');
+    assert.equal(layout.mo2.overwrite, true, 'Overwrite under the base directory');
+    assert.equal(layout.mo2.modCount, 6);
+    const result = await runOfflineReport({appDirectory: app, env, graphics: [], sharedObjects: [], stdout: {write() {}}, open() {}});
+    const summary = summaryOf(await unzip(result.path));
+    assert.equal(summary.problems, undefined, JSON.stringify(summary.problems));
+    assert.equal(summary.offline.gameFolder.namedBy, 'ModOrganizer.ini');
+    assert(summary.logs.some(entry => entry.id === 'redscript' && entry.found), 'the redscript log in Overwrite is in the report');
+  } finally { await w.cleanup(); }
+});
+
+test('Mod Organizer 2: a leftover copy of the mod and an old log in the game folder lose to the files the game sees, and the newest log wins', async () => {
+  const f = await mo2Install({modlist: '+AI NPC Scripts\r\n+AI NPC Runtime\r\n+Codeware\r\n+TweakXL (off)\r\n+Audioware\r\n+Mod Configuration Menu\r\n', files: MO2_MODS,
+    overwrite: {'r6/logs/redscript_rCURRENT.log': REDSCRIPT_OK}});
+  try {
+    for (const [relative, text] of Object.entries(MO2_GAME_FILES)) await f.put(join(f.game, ...relative.split('/')), text);
+    const old = new Date('2026-01-01T00:00:00Z');
+    // A manual install from before MO2: an older Scripts package, and the log of a compile that failed back then.
+    await f.put(join(f.game, ...MOD.split('/'), 'init.lua'));
+    await f.put(join(f.game, ...MOD.split('/'), 'release.json'), JSON.stringify({version: '0.2.1'}));
+    const stale = await f.put(join(f.game, 'r6', 'logs', 'redscript_rCURRENT.log'), '[ERROR - Thu, 1 Jan 2026 00:00:00 +0000] an old failure\n');
+    await utimes(stale, old, old);
+    // A log the game rewrote in place in the game folder is newer than the copy in Overwrite.
+    const fresh = await f.put(join(f.game, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'cyber_engine_tweaks.log'), CET_LOG);
+    const older = await f.put(join(f.instance, 'overwrite', 'bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'cyber_engine_tweaks.log'), '[info] CET version v1.0.0\n');
+    await utimes(older, old, old);
+    const layout = await resolveOfflineLayout({appDirectory: f.app, env: f.env});
+    assert.equal(layout.modRoot, join(f.mods, 'AI NPC Scripts', ...MOD.split('/')), 'the Scripts mod, not the leftover copy');
+    const logs = await locateOfflineLogs(layout);
+    assert.equal(logs.find(entry => entry.id === 'redscript').path, join(f.instance, 'overwrite', 'r6', 'logs', 'redscript_rCURRENT.log'));
+    assert.equal(logs.find(entry => entry.id === 'cet').path, fresh);
+    const result = await runOfflineReport({appDirectory: f.app, env: f.env, graphics: [], sharedObjects: [], stdout: {write() {}}, open() {}});
+    const summary = summaryOf(await unzip(result.path));
+    assert.equal(summary.problems, undefined, 'no version mismatch and no redscript error from the stale files: ' + JSON.stringify(summary.problems));
+    assert.equal(summary.releases.scripts.version, '0.2.2');
+    assert.equal(row(summary, 'cet').version, 'v1.37.1');
+  } finally { await f.cleanup(); }
+});
+
+test('a Mod Organizer 2 profile that enables no mod counts no mod folder', async () => {
+  const f = await mo2Install({modlist: '-AI NPC Scripts\r\n-Codeware\r\n*DLC\r\n', files: MO2_MODS});
+  try {
+    const layout = await resolveOfflineLayout({appDirectory: f.app, env: f.env});
+    assert.equal(layout.mo2.enabledOnly, true);
+    assert.equal(layout.mo2.modCount, 0);
+    assert.deepEqual(layout.roots.map(root => root.label), ['game folder']);
+  } finally { await f.cleanup(); }
 });
 
 test('plugin versions are read from the RED4ext log lines and from nothing else', () => {
@@ -538,10 +650,111 @@ test('double-clicking Make support report.bat works from a folder with spaces, p
     assert.equal(names.length, 1, run.stdout);
     assert.match(run.stdout, /Your support report is saved at .*convai-report-\d{8}-\d{6}\.zip - please send that file\./);
     assert.match(run.stdout, /Press any key/i, 'the window stays open until a key is pressed');
+    // A report that could not be made ends with exit code 1, after the same pause.
+    const blocker = await f.put(f.at('blocker'), 'a file');
+    const failed = spawnSync('cmd.exe', ['/d', '/s', '/c', `""${bat}" --no-open --out "${join(blocker, 'inside')}""`],
+      {windowsVerbatimArguments: true, cwd: f.base, input: '\r\n', env: {...process.env, LOCALAPPDATA: f.local}, encoding: 'utf8'});
+    assert.match(failed.stdout, /The support report could not be made/);
+    assert.equal(failed.status, 1, 'the exit code is the report tool\'s, not the pause\'s');
     // Without the Runtime's Node the batch file says so plainly and still waits, instead of closing on the player.
     await rm(join(f.app, 'node', 'node.exe'));
     const broken = spawnSync('cmd.exe', ['/d', '/s', '/c', `""${bat}""`], {windowsVerbatimArguments: true, cwd: f.base, input: '\r\n', encoding: 'utf8'});
     assert.match(broken.stdout, /Could not find app\\node\\node\.exe/);
     assert.match(broken.stdout, /Press any key/i);
+    assert.equal(broken.status, 1);
+  } finally { await f.cleanup(); }
+});
+
+test("the Custom provider's key (player-custom-endpoint.txt) and the signing secret from the environment are scrubbed from every line", async () => {
+  const f = await healthyInstall({logs: false});
+  try {
+    const data = join(f.local, 'AiNpcCyberpunkMod', 'data');
+    await f.put(join(data, 'player-custom-endpoint.txt'), `# saved by Settings\nendpoint=https://example.invalid/v1\nmodel=vendor/model:free\napi-key=${SECRET_CUSTOM}\n`);
+    await f.put(join(f.game, ...MOD.split('/'), 'AiNpcCyberpunkMod.log'), `request failed with ${SECRET_CUSTOM} attached\nsigned with ${SECRET_SIGNING}\nmodel vendor/model:free\n`);
+    const result = await f.run({env: {...f.env, CYBERPUNK_CONVAI_AUTH_SECRET: SECRET_SIGNING}});
+    const everything = (await unzip(result.path)).map(entry => entry.text).join('\n');
+    assert(!everything.includes(SECRET_CUSTOM), 'the custom key appears in the report');
+    assert(!everything.includes(SECRET_SIGNING), 'the signing secret appears in the report');
+    assert(everything.includes('request failed with [secret-redacted] attached'));
+    assert(everything.includes('model vendor/model:free'), 'the model id is not a secret');
+  } finally { await f.cleanup(); }
+});
+
+test("the player's account name is hidden in every path form of a log: a space in it, forward slashes, lowercase, 8.3, UNC, escapes, outside C:\\Users", async () => {
+  const f = await healthyInstall({logs: false});
+  try {
+    const b = '\\';
+    const name = 'Planted Person', short = 'PLANTE~1', encoded = name.replace(' ', '%20');
+    const forms = [`C:${b}Users${b}${name}${b}AppData${b}Local${b}Temp`, `c:/users/${name.toLowerCase()}/documents`, `C:${b}Users${b}${short}${b}AppData`,
+      `${b}${b}localhost${b}c$${b}Users${b}${name}${b}x`, `${b}${b}?${b}UNC${b}server${b}c$${b}Users${b}${name}${b}x`, `"C:${b}${b}Users${b}${b}${name}${b}${b}x"`,
+      `file:///C:/Users/${encoded}/x`, `C%3A%5CUsers%5C${encoded}%5Cx`, `USERPROFILE=C:${b}Users${b}${name}`, `D:${b}${name}${b}Games${b}Cyberpunk 2077`,
+      `E:/games/${name.toUpperCase()}/x`];
+    await f.put(join(f.game, ...MOD.split('/'), 'AiNpcCyberpunkMod.log'), forms.join('\n') + '\n');
+    assert.deepEqual(accountNames({USERNAME: name, USERPROFILE: `C:${b}Users${b}${name}${b}`}), [name]);
+    const result = await f.run({env: {...f.env, USERNAME: name, USERPROFILE: `C:${b}Users${b}${name}`}});
+    const entries = await unzip(result.path);
+    const everything = entries.map(entry => entry.text).join('\n');
+    for (const part of ['Planted', 'Person', 'planted', 'person', 'PLANTED', short]) assert(!everything.includes(part), `${part} is in the report`);
+    const body = entries.find(entry => /-mod-log\.txt$/.test(entry.name)).text.split('\n').slice(2).filter(Boolean);
+    assert.equal(body.length, forms.length);
+    assert(body.every(line => line.includes('<user>')), body.join('\n'));
+    assert(body.some(line => line.endsWith(`Games${b}Cyberpunk 2077`)) && body.some(line => line.endsWith(`AppData${b}Local${b}Temp`)), 'the rest of each path is kept');
+  } finally { await f.cleanup(); }
+});
+
+test('Make support report.bat works from a folder named with &, %, ^, (), ! and non-ASCII letters, and passes the exit code on', {skip: process.platform !== 'win32'}, async () => {
+  const w = await workspace();
+  try {
+    const plugin = w.at('a & b 100% ^ (x) !bang Jürgen ✓', ...PLUGIN.split('/'));
+    await mkdir(join(plugin, 'app', 'node'), {recursive: true});
+    await copyFile(process.execPath, join(plugin, 'app', 'node', 'node.exe'));
+    // A stand-in for the report tool: prints what it was given and exits with the code it is asked for.
+    await w.put(join(plugin, 'app', 'bridge', 'make-support-report.mjs'), 'console.log("ARGS " + JSON.stringify(process.argv.slice(2))); process.exitCode = Number(process.argv[2]);\n');
+    const bat = join(plugin, 'Make support report.bat');
+    await copyFile(join(repo, 'packaging', 'Make support report.bat'), bat);
+    for (const code of [0, 3]) {
+      const run = spawnSync('cmd.exe', ['/d', '/s', '/c', `""${bat}" ${code} --out "a b""`], {windowsVerbatimArguments: true, cwd: w.base, input: '\r\n', encoding: 'utf8'});
+      assert(run.stdout.includes(`ARGS ["${code}","--out","a b"]`), `${run.stdout}\n${run.stderr}`);
+      assert.equal(run.status, code);
+    }
+  } finally { await w.cleanup(); }
+});
+
+test('a plugin folder linked into the game folder from a staging folder (a junction) is still read as the game install', {skip: process.platform !== 'win32'}, async () => {
+  const f = await healthyInstall();
+  const plugin = join(f.game, ...PLUGIN.split('/')), staging = f.at('staging', 'AI NPC Runtime', ...PLUGIN.split('/'));
+  let linked = false;
+  try {
+    await shipTheTool(f.app);
+    await mkdir(dirname(staging), {recursive: true});
+    await rename(plugin, staging);
+    await symlink(staging, plugin, 'junction');
+    linked = true;
+    const out = f.at('linked out');
+    // Node resolves the junction for import.meta.url: the wrapper must go by the path it was started from.
+    const run = spawnSync(process.execPath, [join(f.app, 'bridge', 'make-support-report.mjs'), '--no-open', '--out', out],
+      {cwd: f.base, env: {...process.env, LOCALAPPDATA: f.local, NODE_OPTIONS: '', CYBERPUNK_CONVAI_GAME: '', CYBERPUNK_CONVAI_DATA_HOME: ''}, encoding: 'utf8'});
+    assert.equal(run.status, 0, run.stdout + run.stderr);
+    const summary = summaryOf(await unzip(join(out, (await readdir(out))[0])));
+    assert.equal(summary.offline.gameFolder.found, true);
+    assert(summary.requirements.every(item => item.state === 'present'), JSON.stringify(summary.requirements.map(item => item.state)));
+    assert.equal(summary.modFiles.plugin.state, 'present');
+  } finally {
+    // The link goes first, on its own, so that removing the test folder never walks through it.
+    if (linked) await rmdir(plugin).catch(() => {});
+    await f.cleanup();
+  }
+});
+
+test('started through a short 8.3 path, the install is still recognised', {skip: process.platform !== 'win32'}, async t => {
+  const f = await healthyInstall();
+  try {
+    const run = spawnSync('cmd.exe', ['/d', '/s', '/c', `"for %I in ("${f.app}") do @echo %~sI"`], {windowsVerbatimArguments: true, encoding: 'utf8'});
+    const short = run.stdout.trim();
+    if (!short.includes('~')) { t.skip('this volume makes no 8.3 names'); return; }
+    const layout = await resolveOfflineLayout({appDirectory: short, env: f.env});
+    assert.equal(layout.packaged, true);
+    assert.equal(layout.gameFound, true);
+    assert.equal(layout.game, f.game);
   } finally { await f.cleanup(); }
 });
