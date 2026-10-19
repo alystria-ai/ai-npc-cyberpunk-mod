@@ -39,9 +39,37 @@ M.baseSet = 'WorkspotUnlocked' -- named set the overrides apply to in a plain wo
 M.sceneSet = 'Tier3Scene'      -- ... and in a scene (scene tier 3)
 M.settle = .4                  -- seconds until the second copy of the event
 
+-- Is V sitting in an ordinary seat right now, as far as the game's own scene flags can say? V's chairs and couches are SCENE sits (scene tier 3;
+-- live 2026-10-19: a plain couch sit was refused by the Johnny hologram as "dialogue", so the dialogue or the choice-hub flag is up while V
+-- sits, and the manager's shortcut refused at tier 3). So tier 3 with those flags is what an ordinary sit looks like, and only what the scene
+-- does on top of it tells a real cutscene apart: a game line that is not the crowd's since V sat down, a phone call, a fight, V replaced or
+-- mounted, scene tier 4 or above.
+--   sit     {kind, at}: what this module's controller holds while V sits (kind: couch, bench, scene ..., at: os.time seconds of the sit)
+--   sample  the battle observer's player-side sample (mod/battle-observer.lua)
+--   lines   the game-dialogue rows (newest last; {at = os.time seconds, channel}), or nil
+-- Pure. The observer calls it through its sitProbe hook and puts the answer in sample.sitting.
+function M.plain(sit, sample, lines)
+    if type(sit) ~= 'table' or sit.kind == nil or type(sample) ~= 'table' or sample.available ~= true then return false end
+    if sample.call == true or sample.combat == true or sample.replacer == true or sample.vehicle == true then return false end
+    local tier = tonumber(sample.tier)
+    if tier == nil or tier > 3 then return false end
+    if type(lines) == 'table' and type(sit.at) == 'number' then
+        for index = #lines, math.max(1, #lines - 39), -1 do
+            local row = lines[index]
+            if type(row) == 'table' and type(row.at) == 'number' then
+                if row.at < sit.at then break end
+                if row.channel ~= 'ambient' then return false end
+            end
+        end
+    end
+    return true
+end
+
 -- native: {seat() -> {path, anim, tier, vehicle}, queue(limits, set), delay(limits, set, seconds) -> id,
 --   cancel(id), classify(path, anim) -> kind or nil, log(kind, fields), onSit(kind, seat) and onStand() (optional: Johnny's
---   hologram, mod/johnny-hologram.lua, hears of a sit and of V standing up; each is called inside pcall)}.
+--   hologram, mod/johnny-hologram.lua, hears of a sit and of V standing up; each is called inside pcall), now() (optional: os.time
+--   seconds, for the controller's sitAt)}.
+-- The controller's sitting (the seat kind, or nil) and sitAt (when V sat) are what M.plain reads.
 function M.new(native)
     local self = {native = native, pending = nil, sitting = nil, sits = 0, widened = 0}
     local function log(kind, fields)
@@ -69,7 +97,7 @@ function M.new(native)
     -- and couch in the October 10 live runs).
     function self.entered()
         self.sits = self.sits + 1
-        self.sitting = nil
+        self.sitting, self.sitAt = nil, nil
         local ok, seat = pcall(native.seat)
         if not ok or type(seat) ~= 'table' then log('seated-look-error', {stage = 'seat', error = tostring(seat)}); return false end
         if seat.vehicle and seat.vehicle ~= 0 then log('seated-look-skip', {reason = 'in a vehicle'}); return false end
@@ -83,6 +111,7 @@ function M.new(native)
             return false
         end
         self.sitting, self.set = kind, set
+        self.sitAt = (native.now or os.time)()
         self.widened = self.widened + 1
         log('seated-look-enter', {path = seat.path, anim = seat.anim, tier = seat.tier, kind = kind})
         if native.onSit then pcall(native.onSit, kind, seat) end
@@ -101,7 +130,7 @@ function M.new(native)
     function self.left()
         local id = self.pending
         local sat = self.sitting
-        self.pending, self.sitting = nil, nil
+        self.pending, self.sitting, self.sitAt = nil, nil, nil
         if id ~= nil then pcall(native.cancel, id) end
         if sat and native.onStand then pcall(native.onStand) end
     end
@@ -109,7 +138,7 @@ function M.new(native)
     -- The session was released (a load, a detach, a death): drop the state without a native call. The delayed event died
     -- with the old world, and a CancelDelay on the engine's delay system now is a call into something being destroyed.
     function self.forget()
-        self.pending, self.sitting = nil, nil
+        self.pending, self.sitting, self.sitAt = nil, nil, nil
     end
 
     return self
@@ -120,7 +149,7 @@ end
 -- hook missing in this build).
 function M.install(options)
     options = options or {}
-    local native = {classify = options.classify, log = options.log, onSit = options.onSit, onStand = options.onStand}
+    local native = {classify = options.classify, log = options.log, onSit = options.onSit, onStand = options.onStand, now = options.now}
     function native.seat()
         local player = Game.GetPlayer()
         local seat = {}

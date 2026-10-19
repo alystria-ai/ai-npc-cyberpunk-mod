@@ -130,6 +130,48 @@ assert(l.pitchMin<0 and l.pitchMax>0 and l.pitchMin>=-80 and l.pitchMax<=80)
 assert(look.baseSet=='WorkspotUnlocked' and look.sceneSet=='Tier3Scene')
 `));
 
+test('plain: V\'s couch is a scene sit (tier 3, dialogue and choice flags up) and counts as a plain sit; only what a scene adds on top does not', () => run(`
+local function sample(over)
+  local s = {available = true, tier = 3, dialogue = true, choices = true, call = false, combat = false, replacer = false, vehicle = false}
+  for k, v in pairs(over or {}) do s[k] = v end
+  return s
+end
+local sit = {kind = 'scene', at = 1000}
+assert(look.plain(sit, sample(), nil) == true, 'a couch sit read live: tier 3 with the dialogue and choice flags up (the worst case)')
+assert(look.plain(sit, sample({dialogue = false, choices = false, tier = 1}), {}) == true, 'a named seat in open play')
+assert(look.plain(sit, sample({dialogue = false, choices = false, tier = 2}), {}) == true)
+assert(look.plain(nil, sample()) == false and look.plain({}, sample()) == false and look.plain({kind = 'couch'}, nil) == false)
+assert(look.plain(sit, sample({available = false})) == false and look.plain(sit, sample({tier = false})) == false, 'an unreadable tier is no plain sit')
+assert(look.plain(sit, sample({tier = 4})) == false and look.plain(sit, sample({tier = 5})) == false, 'a cutscene')
+for _, key in ipairs({'call', 'combat', 'replacer', 'vehicle'}) do assert(look.plain(sit, sample({[key] = true})) == false, key) end
+-- Game lines: the crowd's and the older ones do not count; any other line since V sat does (a cutscene's dialogue).
+local rows = {{at = 990, channel = 'scene'}, {at = 999, channel = 'phone'}, {at = 1005, channel = 'ambient'}}
+assert(look.plain(sit, sample(), rows) == true, 'a line before the sit and the crowd after it')
+rows[#rows + 1] = {at = 1000, channel = 'scene', profileKey = 'judy-alvarez'}
+assert(look.plain(sit, sample(), rows) == false, 'a line in the second V sat down counts as since')
+rows[#rows] = {at = 1010, channel = 'scene'}
+assert(look.plain(sit, sample(), rows) == false)
+assert(look.plain({kind = 'scene'}, sample(), rows) == true, 'no sit time: the lines cannot be placed')
+assert(look.plain(sit, sample(), 'junk') == true and look.plain(sit, sample(), {'junk', {at = 'x'}}) == true)
+`));
+
+test('plain: the controller holds when V sat (sitAt) while he sits and forgets it when he stands or the session goes', () => run(`
+local n = fake({tier = 3, vehicle = 0})
+local clock = 5000
+n.now = function() return clock end
+local c = look.new(n)
+assert(c.entered() == true and c.sitting == 'scene' and c.sitAt == 5000)
+c.left()
+assert(c.sitting == nil and c.sitAt == nil)
+clock = 5100
+assert(c.entered() == true and c.sitAt == 5100)
+c.forget()
+assert(c.sitting == nil and c.sitAt == nil)
+assert(c.entered() == true and c.sitAt == 5100)
+n.seat_ = {tier = 3, vehicle = 1}
+assert(c.entered() == false and c.sitting == nil and c.sitAt == nil, 'in a vehicle: no sit')
+`));
+
 test('init.lua installs it once from onInit with the seating classifier, and nothing runs per frame', () => {
   const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
   assert.equal((init.match(/seated-look\.lua/g) || []).length, 1);

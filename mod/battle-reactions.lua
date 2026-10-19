@@ -81,6 +81,8 @@ function M.new()
         return {version = 1, status = current.state, encounter = current.id,
             ageSeconds = math.floor(clock - (current.ended or current.started)),
             durationSeconds = math.floor((current.ended or clock) - current.started),
+            -- The seconds of combat itself: up to the last combat sample, without the four-second settle that ends the encounter.
+            combatSeconds = math.floor((current.quiet or current.ended or clock) - current.started),
             opponents = opponents, witnesses = witnesses}
     end
 

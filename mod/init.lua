@@ -53,6 +53,15 @@ do
 end
 local questContext = dofile('quest-context.lua')
 local battleObserver = dofile('battle-observer.lua')
+-- The observer's sample says whether V sits in an ordinary seat (sample.sitting): the sit's scene tier and choice flags are not a cutscene
+-- (the seated-look module's M.plain). Read only while the seated-look controller (set in onInit, globals so onInit gains no upvalue) says V sits;
+-- nothing per frame.
+battleObserver.sitProbe = function(sample)
+    local controller = convaiSeatedLook
+    if not controller or not controller.sitting or not convaiSeatedLookModule then return false end
+    return convaiSeatedLookModule.plain({kind = controller.sitting, at = controller.sitAt}, sample,
+        convaiGameDialogue and convaiGameDialogue.lines or nil)
+end
 local battles = dofile('battle-reactions.lua').new()
 convaiBattleReactions = battles
 -- Companion tactics (Fight the marked target). The environment is
@@ -869,6 +878,23 @@ function convaiJohnnyHologramService()
         else print('[CyberpunkConvai] johnny-hologram.lua unavailable: ' .. tostring(module)) end
     end
     return convaiJohnnyHologram or nil
+end
+-- Is V seated in an ordinary seat right now? For the manager's shortcut (mod/nsui-entry.lua, mod/mcm-host.lua): asked only when the game's
+-- scene tier is 3 or above, on a key press, one fresh observer sample. An answer of no is logged (at most every 5 s) with the controller's
+-- verdict and the sample's scene facts, so a refusal on a seat that should have counted shows why in probe.log.
+function convaiPlainSitting()
+    local controller = convaiSeatedLook
+    local player = Game.GetPlayer()
+    local ok, sample = false, nil
+    if player then ok, sample = pcall(battleObserver.sample, player) end
+    local plain = ok and type(sample) == 'table' and controller ~= nil and controller.sitting ~= nil and sample.sitting == true
+    if not plain and (convaiPlainSitLogAt == nil or os.clock() - convaiPlainSitLogAt >= 5) then
+        convaiPlainSitLogAt = os.clock()
+        local facts = ok and type(sample) == 'table' and (' dialogue=' .. tostring(sample.dialogue) .. ' choices=' .. tostring(sample.choices)
+            .. ' tier=' .. tostring(sample.tier) .. ' call=' .. tostring(sample.call) .. ' combat=' .. tostring(sample.combat)) or ' unreadable'
+        if convaiLogLine then convaiLogLine('Plain sit check: no (seated-look sitting=' .. tostring(controller and controller.sitting) .. facts .. ')') end
+    end
+    return plain
 end
 -- V sat down (the seated-look module's onSit): one table write in the service. V stood up (onStand): he goes at once.
 function convaiJohnnyHologramMoment(kind, seat)
@@ -3122,7 +3148,9 @@ function convaiVTalksService()
     if convaiVTalks == nil then
         local loaded, module = pcall(dofile, 'v-talks.lua')
         convaiVTalksModule = loaded and type(module) == 'table' and type(module.new) == 'function' and module or nil
-        convaiVTalks = convaiVTalksModule and module.new({level = function() return manager.vTalks() end}) or false
+        -- The service says why it does not start (one line per reason and waiting spell: probe.log).
+        convaiVTalks = convaiVTalksModule and module.new({level = function() return manager.vTalks() end,
+            log = function(line) log('V talks on their own: ' .. line) end}) or false
         if not convaiVTalks then print('[CyberpunkConvai] v-talks.lua unavailable: ' .. tostring(module)) end
     end
     return convaiVTalks or nil
@@ -3152,8 +3180,11 @@ function convaiVTalkObserve(sample)
     local status = battles.status()
     if status.state == 'ended' and status.encounter ~= talks.fightSeen then
         talks.fightSeen = status.encounter
+        -- A fight that does not count says why, once per encounter (fightSeen is set above).
         local subject, facts, prefer = module.fightEvent(battles.capture())
-        if subject and talks:note('fight', subject, facts, now, prefer) then log('V talks on their own: noted ' .. subject) end
+        if subject then
+            if talks:note('fight', subject, facts, now, prefer) then log('V talks on their own: noted ' .. subject) end
+        elseif type(facts) == 'string' then log('V talks on their own: fight ' .. facts) end
     end
 end
 -- Under pcall, like the tick: a fault is logged once and never reaches updateBattles.
@@ -3188,22 +3219,44 @@ function convaiVTalkRun(player, now, worldReady, outputs, manual, busy, mayFollo
         elseif not reactionLease(true) then cancelAutomatic('lease-write-failed') end
         return true
     end
-    if busy or not talks:active(now) then return false end
+    -- Nothing waiting: the spell of waiting (and what was said about it) is over. A decline below is logged once per reason and spell, so
+    -- an event that has to wait says why it waits and never fills the log (docs/V_TALKS.md, "Why it did not start").
+    if not talks:waiting(now) then talks:settled(); return false end
+    if busy then return talks:decline('another turn is in progress (a reply, a reaction, or V typing or talking)') end
+    if not talks.exchange then
+        local allowed, limit = talks:allowed(now)
+        if not allowed then return talks:decline(limit) end
+    end
     -- The game has the floor, or a game line is still going on: an exchange between its parts is over, an event waits for its time to live.
-    if module.busy(battleSample) then talks:finish(); return false end
-    if module.recentLine(convaiGameDialogue and convaiGameDialogue.lines, now, module.LINE_SECONDS) then return false end
+    local theFloor = module.busy(battleSample)
+    if theFloor then talks:finish(); return talks:decline('the game has the floor (' .. theFloor .. ')') end
+    if module.recentLine(convaiGameDialogue and convaiGameDialogue.lines, now, module.LINE_SECONDS) then
+        return talks:decline('a game line was shown in the last ' .. module.LINE_SECONDS .. ' s')
+    end
     local exchange = talks:continuing(now)
     local entry
     if exchange then
         -- The next part, only when nothing else spoke since the last one.
-        if not lastAutomatic or lastAutomatic.requestId ~= exchange.requestId then talks:finish(); return false end
+        if not lastAutomatic or lastAutomatic.requestId ~= exchange.requestId then
+            talks:finish()
+            return talks:decline('something else spoke between the two parts: the exchange is over')
+        end
     else
         if talks.exchange then return false end
         -- Not right after another automatic reaction (a battle line, a pickup, a remark of Johnny's), and only with a companion in reach.
-        if lastAutomatic and now - (lastAutomatic.finishedAt or lastAutomatic.at) < module.AFTER_REACTION then return false end
-        if not mayFollow(true, 'vtalk') or not module.pickSpeaker(battlePeople) then return false end
-        entry = talks:offer(now, {ride = battleSample.vehicle == true, where = convaiVTalkWhere})
-        if not entry then return false end
+        if lastAutomatic and now - (lastAutomatic.finishedAt or lastAutomatic.at) < module.AFTER_REACTION then
+            return talks:decline('another automatic reaction (' .. tostring(lastAutomatic.kind) .. ') ended less than ' .. module.AFTER_REACTION .. ' s ago')
+        end
+        if not mayFollow(true, 'vtalk') then return talks:decline('the previous reaction is still being handed over') end
+        if not module.pickSpeaker(battlePeople) then
+            return talks:decline('no party companion within ' .. module.SPEAKER_RANGE .. ' m who can speak')
+        end
+        local why
+        entry, why = talks:offer(now, {ride = battleSample.vehicle == true, where = convaiVTalkWhere})
+        if not entry then
+            if why then talks:decline(why) end
+            return false
+        end
     end
     local person = module.pickSpeaker(battlePeople, exchange and {keep = exchange.speaker}
         or {prefer = entry.prefer, last = talks.lastSpeaker})
@@ -4069,7 +4122,8 @@ registerForEvent('onInit', function()
     -- Free look while V sits (docs/COMPANION_SEATING.md): one Observe pair on
     -- the player's Workspot state; widens the camera limits once per sit.
     local lookLoaded, lookResult, lookReason = pcall(function()
-        return dofile('seated-look.lua').install({
+        convaiSeatedLookModule = dofile('seated-look.lua')
+        return convaiSeatedLookModule.install({
             classify = dofile('companion-seating.lua').classify,
             -- Johnny's hologram hears of a sit and of V standing up (both do nothing while its setting is off).
             onSit = function(kind, seat) convaiJohnnyHologramMoment(kind, seat) end,
@@ -4085,7 +4139,8 @@ registerForEvent('onInit', function()
         })
     end)
     if not lookLoaded then log('Seated free look failed: ' .. tostring(lookResult))
-    elseif not lookResult then log('Seated free look unavailable: ' .. tostring(lookReason)) end
+    elseif not lookResult then log('Seated free look unavailable: ' .. tostring(lookReason))
+    else convaiSeatedLook = lookResult end
     if convaiGameDialogue then
         local hooked, installed = convaiGuarded('Game dialogue hooks', function() return convaiGameDialogue:install() end)
         if hooked and not installed then log('Game dialogue capture unavailable') end

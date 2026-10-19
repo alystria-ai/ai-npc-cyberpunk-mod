@@ -1,6 +1,8 @@
 # V talks on their own
 
-Written 2026-10-19 on branch `v-talks`; main merged in again the same day (7ec1232d: the manager runs on `mod/manager-ui.lua` with the Mod Configuration Menu and Native Settings UI hosts). Built, unit-tested, not merged into main, not installed, not seen in the game.
+Written 2026-10-19 on branch `v-talks`; main merged in again the same day (7ec1232d: the manager runs on `mod/manager-ui.lua` with the Mod Configuration Menu and Native Settings UI hosts). Merged into main the same day.
+
+**First live test, 2026-10-19 evening (branch `fix/vtalks-hologram-live`, 2026-10-20): nothing was heard, and `probe.log` had no `V talks on their own` line.** The setting was Normal, V's voice for typed lines on, two companions in the party. The fight was 15 s of combat. The battle state machine ends an encounter four seconds after the last combat sample, so the encounter was 19 s long, and the rule compared that with 20 s: the fight was dropped as "a scuffle" without a word (the observer marks the encounter as seen, so it was never looked at again), while the battle reactions and Johnny's fight remark (he counts combat time, 8 s and three people down) both spoke. Fixed: the capture carries `combatSeconds` (up to the last combat sample), `FIGHT_MIN_SECONDS` is 10 of those, a fight that does not count is logged once (`V talks on their own: fight battle-N not counted: 5 s of combat, a scuffle under 10 s`), and an event now waits 150 s instead of 90 (a battle line, then Johnny's remark, each followed by fifteen quiet seconds, come first). See "Why it did not start".
 
 ## The request
 
@@ -16,12 +18,12 @@ It needs **V's voice for typed lines** (Settings > Voices, on by default): V's l
 
 | Question | Default | Where to change it |
 |---|---|---|
-| When | After a fight that counted (20 s or longer) or a main or side job finished; on a calm walk or ride after a quiet spell (10 min at Normal, 20 min at Rare, plus a random share of up to half again) during which V really travelled 40 m or more. Gigs and NCPD hustles do not count | `FIGHT_MIN_SECONDS`, `CALM_SECONDS`, `CALM_JITTER`, `CALM_MOVED`, `QUIET_SECONDS`, `TTL` |
+| When | After a fight that counted (10 s or more of combat, not counting the encounter's four-second settle) or a main or side job finished; on a calm walk or ride after a quiet spell (10 min at Normal, 20 min at Rare, plus a random share of up to half again) during which V really travelled 40 m or more. Gigs and NCPD hustles do not count | `FIGHT_MIN_SECONDS`, `CALM_SECONDS`, `CALM_JITTER`, `CALM_MOVED`, `QUIET_SECONDS`, `TTL` |
 | Who | Only a companion in the party (a copy invited through the Companion Manager) within 12 m of V who can speak. Not a story character, a passer-by, a character another mod spawned, Johnny in V's head or an add-on voice. After a fight a witness is preferred; the companion who spoke last is not chosen twice when another can | `SPEAKER_RANGE`, `pickSpeaker` |
 | How long | Two lines in most exchanges, four in about four in ten | `LONG_CHANCE` |
 | V's voice | The existing V voice for typed lines (`docs/V_VOICE.md`), male or female by V's voice tone; the engine is the player's V voice engine (Pocket or Voxtral) | the V voice settings |
 | Rate | Rare: at most 2 an hour, at least 15 minutes apart. Normal: at most 6 an hour, at least 5 minutes apart. The same trigger never starts two exchanges in a row (see "Triggers" below) | `LEVELS`, `REPEAT_SECONDS` |
-| Cost | Every companion answer is one turn of the day on the free shared Convai key, counted in Johnny's remark share (`REMARK_SHARE`, a tenth of the day's limit, 10 of 100). Mistral, Local AI and a player's own key are not capped beyond the rate limits | `isRemark` in `bridge/shared-key-guard.mjs` |
+| Cost | Every companion answer is one turn of the day on the free shared Convai key, counted in Johnny's remark share (`REMARK_SHARE`, a tenth of the day's limit, 10 of 100). Johnny's remarks may take at most 7 of those 10 (`VTALK_RESERVE`, 30 percent), so after a fight his remark never leaves V's exchanges without a turn; V's exchanges may use the whole pool. Mistral, Local AI and a player's own key are not capped beyond the rate limits | `isRemark`, `VTALK_RESERVE` in `bridge/shared-key-guard.mjs` |
 
 ## V's personality, and why the lines are written, not generated
 
@@ -42,7 +44,7 @@ All of it is policy in `mod/v-talks.lua` (pure), driven from `mod/init.lua` on t
 
 | Trigger | Source | Notes |
 |---|---|---|
-| `fight` | the encounter state of `mod/battle-reactions.lua` (`battles.status()` and `capture()`), looked at on the existing 0.5 s observer sample | one event per ended encounter, only if it lasted 20 s or more; waits 8 s after the end, expires after 90 s |
+| `fight` | the encounter state of `mod/battle-reactions.lua` (`battles.status()` and `capture()`), looked at on the existing 0.5 s observer sample | one event per ended encounter, only if it had 10 s or more of combat (`combatSeconds`); waits 8 s after the end, expires after 150 s |
 | `job` | `journalHistory.onFinished` (the history scan that already runs), the same callback Johnny speaks up uses | a main or side job finished or failed; waits 15 s, expires after 240 s; the same job is not talked about again for an hour |
 | `walk`, `ride` | no event: a calm spell tracked on the 0.5 s sample (open gameplay: no scene tier 3 or above, no call, no quest conversation, no fight). The spell must last 10 min (Normal) or 20 min (Rare) plus up to 50 percent more, and V must have moved 40 m or more since it began (two position reads per spell). V in a vehicle makes it a ride | a broken spell starts over; standing still ends the spell without a talk |
 
@@ -59,6 +61,8 @@ All of it is policy in `mod/v-talks.lua` (pure), driven from `mod/init.lua` on t
 - a reply or subtitle is playing or pending;
 - V's voice for typed lines is off, or both voice playback and subtitles are off (automatic turns stay silent then);
 - the bridge answered that V's line cannot be spoken (`vtalk-silent`): no new exchange for 10 minutes.
+
+**Why it did not start (probe.log).** Whenever an event is waiting, the service says why it is not starting yet, once per reason and waiting spell (never per tick), as `V talks on their own: waiting, not starting: <reason>`: another turn is in progress; the setting's rate (`the gap since the last exchange`, `the hourly limit is used`, `muted: V's voice could not speak the last line`); the game has the floor (`dialogue`, `scene`, `call`, `combat`, `replacer`, `unreadable`); a game line in the last 10 s; another automatic reaction (`battle`, `head`, `loot`) ended less than 15 s ago; the previous reaction is still being handed over; no party companion within 12 m who can speak; the quiet time after the event; the same trigger started the last exchange; a calm spell without travelling. An event that waited its whole time is logged as `<subject> dropped unsaid: it waited longer than N s`. A fight that does not count is logged once per encounter. A subject talked about in the last hour is logged as not kept. With no such line and no `noted`, the trigger itself never fired (the setting was off, V's voice for typed lines was off, or nothing counted).
 
 **One exchange.** The tick offers the due event (`offer`), picks the companion (`pickSpeaker`), chooses V's line (`line`), and starts an automatic turn: a request with `reaction = {kind = 'vtalk', exchange, step, steps, event, facts, expiresAt}` whose `text` is V's line, to the companion, through the same reply owner, lease (`runtime/reaction-lease.json`), cancellation and delivery gates as battle and loot reactions. V's subtitle shows at once (`subtitles.showTyped`). When the companion's answer has played to its end, an exchange with a second part waits 2 s and sends the second request to the same companion (V's follow-up line; the companion is told the first part's lines as reported words, the wording group rounds use for earlier speakers). If anything else spoke in between, or the first part was cut, or 25 s passed, the exchange is over.
 
@@ -90,7 +94,7 @@ Setup: the Scripts install (every committed `mod/` file, Lua and `.json`, never 
 
 1. Open the Companion Manager (Native Settings UI: Mods > the tab > Settings; Mod Configuration Menu: the mod's page). Conversations has **V talks on their own** right under **Johnny speaks up**, set to **Off**, choices Off, Rare, Normal. Check it in both hosts if both are installed; the row looks like its neighbours (in MCM nothing is purple at Off). Set it to Rare, press **Restore defaults** twice: it is Off again.
 2. Off: play five minutes with a companion beside you, fight once. `probe.log` has no `V talks on their own` line.
-3. Set **Normal**, Apply. Fight for 30 s or more beside the companion. About 8 to 15 s after the last shot V says a short line in V's voice (subtitle too) and the companion answers in one line. No line says who won. `probe.log`: `V talks on their own: noted fight:`, then `part 1 of ...`.
+3. Set **Normal**, Apply. Fight for 15 s or more beside the companion. About 8 to 15 s after the last shot V says a short line in V's voice (subtitle too) and the companion answers in one line. No line says who won. `probe.log`: `V talks on their own: noted fight:`, then `part 1 of ...`.
 4. Ask for the rate: a second fight within 30 minutes gives nothing; no two exchanges less than 5 minutes apart.
 5. Never while: open the text box (or hold the voice key, or start a phone call, or enter a cutscene) and wait: nothing starts; if one is running it stops (`Automatic reaction released: vtalk-...`).
 6. Turn **V's voice for typed lines** off, Apply: V stays silent. Back on: it resumes with no reload.
