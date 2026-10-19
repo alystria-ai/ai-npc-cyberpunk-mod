@@ -299,6 +299,15 @@ if (usvfsCompat) {
     } catch (error) { log(`Mod Organizer 2: Python's search paths could not be pinned (${dirname(python)}): ${error?.message || error}`); }
   }
 }
+// The files a Runtime update no longer ships are removed here (packaging/runtime/apply-removals.mjs): the update zip is extracted over
+// the old Runtime and cannot delete, so it carries app/defaults/runtime-removals.json (every Runtime does, the full one too). It runs from
+// this process's own place, so under Mod Organizer 2 it deletes inside the Runtime's mod folder. A handful of stat calls when the list is
+// empty, a time budget when it is not, one log line per start; a problem is logged and never stops the start (nor does a missing module).
+let removals = null;
+try {
+  const {applyRuntimeRemovals} = await import('./apply-removals.mjs');
+  removals = applyRuntimeRemovals({appDirectory, log});
+} catch (error) { log(`Removing the files an update no longer ships failed: ${error?.stack || error}`); }
 // What is left of the old folders (the old application and its browser, Python...) is removed off the main path, a while after
 // the start, so the game's loading never competes with the deletion. A locked file only postpones it to the next start.
 const legacyCleanup = delayMs => new Promise(done => {
@@ -354,6 +363,8 @@ if (prepareOnly) {
   const cleaned = await legacyCleanup(0);
   process.stdout.write(JSON.stringify({ok: true, omni: prepared.omni, localAi: localAi.map(item => `${item.file}:${item.state}`),
     legacy: legacy?.found ? {moved: legacy.report.moved.length, errors: legacy.report.errors, removed: cleaned?.removed ?? [], pending: cleaned?.pending ?? []} : null,
+    removals: removals ? {state: removals.state, version: removals.version, removed: removals.removed, absent: removals.absent, refused: removals.refused,
+      failed: removals.failed, left: removals.left} : null,
     key: prepared.keyFile.startsWith(layout.state) ? 'player' : 'package', state: layout.state, app: layout.app,
     packs: {localAi: layout.localAi, omni: layout.omni}, childNodeOptions: env.NODE_OPTIONS ?? null}) + '\n');
   process.exit(0);

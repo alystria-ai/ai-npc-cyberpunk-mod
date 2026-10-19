@@ -8,6 +8,7 @@ How the player release is built, what it contains and how it starts. Players rea
 | Package | Where players get it | Contents |
 |---|---|---|
 | `AI-NPC-Cyberpunk-Mod-Scripts-<v>.zip` | Nexus Mods | Text only: the CET Lua mod, redscript, the four JSON catalogs the Lua reads, the empty `runtime/` placeholder files (see "Mod Organizer 2" below), `README.txt` and `release.json`. |
+| `AI-NPC-Cyberpunk-Mod-Runtime-Update-<from>-to-<to>.zip` | Hugging Face, beside the full Runtime | From 0.2.3 on, every release: only the Runtime files that were added or changed since the previous Runtime, the new `release.json` and the removal list; extracted over the previous version ("Runtime update zip" below). Not built by `build-release.mjs`: `build-runtime-update.mjs` makes it from the two full Runtime zips. |
 | `AI-NPC-Cyberpunk-Mod-Runtime-<v>.zip` | GitHub release of this repository | Everything else needed to play: the RED4ext launcher, bundled Node and Python, the bridge, the Pocket voice and lip-sync models, voice references, game archives and the Audioware reply bank. |
 | `AI-NPC-Cyberpunk-Mod-OmniPack-<v>.zip` | Hugging Face | Optional OmniVoice pack, one zip: CUDA Python environment, the VoiceStudio adapter, the OmniVoice model and the OmniVoice references. |
 | `AI-NPC-Cyberpunk-Mod-LocalAI-Standard-<v>.zip` | Hugging Face | Optional Local AI pack with Gemma 4 E4B (about 5.3 GB), one zip: the llama-server Vulkan build, the embedding model and the chat model, whole. |
@@ -287,6 +288,70 @@ node packaging/check-pack-overlap.mjs listing packaging/pack-listings/packs-<ver
 **Checking what a Runtime must contain.** `node packaging/check-runtime-contents.mjs <Runtime zip>...` reads only the zip's directory and fails when V's voice clips (`voices/v-voice/`: the manifest and the clips `assets/v-voice/v-voice.json` names) or the Runtime's own OmniVoice lists in `app/defaults/` are missing (the names come from `packaging/lib/runtime-required.mjs`; the 0.2 and 0.2.1 Runtimes shipped without the clips). `packaging/test-release-install.mjs` checks the same on the extracted install and loads the clips with the packaged bridge's own loader. Run it beside the overlap check on every Runtime zip before upload; `packaging/runtime-contents.test.mjs` keeps both from drifting.
 
 **Removed in 0.2.3:** the double-click `Make support report.bat` (with its bridge entry and offline report code) is no longer built or shipped, because players are not comfortable running a batch file; the in-game report and the automatic error reports are the report paths (`packaging/support-report-packaging.test.mjs` keeps it out).
+
+### Runtime update zip
+
+The Runtime is about 1 GB and most of it (Python, torch, Node, the voice and lip-sync models) does not change between releases. From 0.2.3 on, every
+release ships a **Runtime update zip** on Hugging Face next to the full Runtime, named `AI-NPC-Cyberpunk-Mod-Runtime-Update-<from>-to-<to>.zip` (the first:
+`...-Update-0.2.2-to-0.2.3.zip`). A player who has the previous Runtime extracts it over that Runtime (Replace is safe: it holds only paths whose bytes
+differ, and the packs rule above still holds); a new install, or a player on an older version, uses the full Runtime, which stays. The Scripts are
+small and always full.
+
+**What is in it.** Every file the new Runtime has and the previous one did not, or has with other bytes (path, size and CRC-32 are compared, so it does
+not matter how either full zip was made); the new `app/release.json`; and `app/defaults/runtime-removals.json`, the removal list.
+
+**Removing what a version no longer ships.** Extracting adds and replaces but never deletes, so a file the new version dropped (a renamed voice clip, a retired
+model) would stay in the player's folder. The player never deletes anything: the service does, at its next start, from the list.
+
+- **The list** is `app/defaults/runtime-removals.json`: `{"version": "0.2.3", "removes": ["red4ext/plugins/AiNpcCyberpunkMod/voices/old/clip.wav", ...]}`. Every Runtime carries
+  one, the full one too (`build-release.mjs` writes it from `packaging/runtime-removals.json`, the paths declared there, empty at first, and refuses a declared path that the
+  same Runtime ships or that the start step may not delete), so a full install over an old one cleans up what is declared. The update zip's list is the
+  comparison's result: the paths in the previous Runtime and not in the new one, plus the new Runtime's own declared paths, plus any `--remove` given to the builder. Paths are
+  relative to the folder the Runtime was extracted into (the game folder; under Mod Organizer 2 the Runtime's mod folder), forward slashes, as named in the zip.
+- **Where it runs.** `packaging/runtime/apply-removals.mjs` (shipped as `app/launcher/apply-removals.mjs`), called by `start-service.mjs` after the log exists and before
+  the data is prepared, at every start, also with `--prepare-only` (which reports it under `removals`). It reads the list from its own `app/defaults/`, deletes files only, never blocks the start
+  beyond an 8 s budget (the rest waits for the next start; every start is cheap when everything is gone), logs ONE line per start
+  (`Runtime removal list 0.2.3: 6 listed, 5 removed, 1 already gone.`) in `bridge-service.log`, is idempotent (a file that is gone is only counted) and never fails the start:
+  a problem is logged. A Runtime without the module (a partial extraction) still starts.
+- **What it may delete.** Only a relative path with forward slashes and no `..`, `.`, empty part, drive, colon, backslash or control character, that lies under a folder a
+  Runtime installs into (`ALLOWED_ROOTS`: the plugin folder `red4ext/plugins/AiNpcCyberpunkMod/`, `red4ext/plugins/AiNpcCyberpunkModNative/`,
+  `r6/audioware/CyberpunkConvai/`, and files named `convai_*` or `cyberpunk_convai_*` in `archive/pc/mod/`), and is not `PROTECTED`: the player's `launcher.ini` and `launcher.log`,
+  `app/release.json`, the list itself, the optional packs (`app/omni/`, `app/local-ai/`) and a `data/` or `state/` folder in the plugin folder. The player's data folder
+  (`%LOCALAPPDATA%\AiNpcCyberpunkMod`) and the CET mod folder (`bin/.../AiNpcCyberpunkMod`, with the settings and `runtime/`) are outside every allowed root. A folder is never
+  deleted by name (only files; the folders a removal empties go with it, under the plugin folder, by `rmdir`, which refuses a folder that is not empty), a link that leads out of
+  the Runtime's folder is not followed, and a path that is refused is counted and logged, never deleted. This goes a little beyond the plugin folder on purpose: the Runtime ships
+  the archives, the reply bank and the native plugin too, and an update may drop one of them.
+- **Mod Organizer 2.** The Runtime is a mod folder (`mods\<name>\red4ext\...`) that exists only virtually at the game folder, and the service runs from the REAL place of its
+  own files. The install folder is therefore worked out from where `app/` is (four folders up), not from `--game-root`, so the delete is a plain delete of a plain file in the Runtime's own
+  mod folder. A file with the same name in the game folder, or in another mod, is never touched (it is simply not there: counted as already gone). A Runtime that is not in the standard
+  folder layout (no `red4ext/plugins/AiNpcCyberpunkMod/app` above the script) is left alone and says so in the log.
+
+**Building it.** After the full Runtime of the new version is built:
+
+```
+node packaging/build-runtime-update.mjs --old <previous full Runtime zip> --new <new full Runtime zip> --out <folder>
+```
+
+`--old` and `--new` may be repeated for a Runtime in several zips; `--from` and `--to` name the versions (default: read from each Runtime's `app/release.json`); `--remove <path>` adds a path to the
+list; `--listing <file>` or `--no-listing` chooses the optional-pack listing (default `packaging/pack-listings/packs-0.2.1.json`). It writes the zip, `<name>.files.json` (path, size, SHA-256
+of every file, like the full builds) and `<name>.sha256`, prints the counts and the SHA-256, and gives the same bytes for the same inputs. A removed path that the start step may not delete
+(for instance the install note in the game folder's top folder) or that an optional pack ships is left in place and printed ("left in place, not in the removal list"); that is expected and
+harmless. The full Runtime of the new version carries its own removal list (the declared extras only), which the update's replaces when extracted over: the two differ by design, so
+`.files.json` of the full Runtime does not list the update's version of that file. To make a full install over an old one clean up as well, copy the update's removal paths into
+`packaging/runtime-removals.json` before building the full Runtime.
+
+**Testing it.** `node --test packaging/runtime-removals.test.mjs packaging/build-runtime-update.test.mjs` (fixture zips and a fake game folder; no real Runtime). The install test has an update
+mode that never touches a real game folder:
+
+```
+node packaging/test-release-install.mjs --packages <folder with the new Scripts zip, the update zip and the new Runtime's .files.json> --version 0.2.3 \
+  --update-from <previous full Runtime zip> --update-from-scripts <previous Scripts zip> [--update-zip <update zip>] [--host <test-host.exe>] [--key-file <file>]
+```
+
+It extracts the previous Scripts and Runtime into the stand-in game folder, then the update zip and the new Scripts (as a player does), and starts the service (`start-service --prepare-only`). Then it
+checks that the listed files existed and are gone, that the installed removal list is the update's, that every other file matches the new full Runtime's `.files.json` (paths, sizes, SHA-256), that
+every file the new Runtime no longer ships is gone (or is listed as left on purpose), and that the plugin folder holds nothing else; the rest of the install test (voice, lip sync, the real launcher DLL) then
+runs on that installation. The new full Runtime's zip itself is not needed, only its `.files.json`. Source of truth for the check: `packaging/lib/runtime-removals.mjs`, `packaging/runtime/apply-removals.mjs`.
 
 ### Player state (`data/`)
 

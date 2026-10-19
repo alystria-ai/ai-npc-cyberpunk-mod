@@ -225,7 +225,8 @@ export async function listZip(source) {
       const nameLength = directory.readUInt16LE(position + 28), extra = directory.readUInt16LE(position + 30);
       const comment = directory.readUInt16LE(position + 32);
       let compressed = directory.readUInt32LE(position + 20), uncompressed = directory.readUInt32LE(position + 24);
-      if (compressed === LIMIT || uncompressed === LIMIT) {
+      let headerOffset = directory.readUInt32LE(position + 42);
+      if (compressed === LIMIT || uncompressed === LIMIT || headerOffset === LIMIT) {
         // The ZIP64 extra field: the fields that read 0xFFFFFFFF, in the order uncompressed, compressed, offset.
         const extraStart = position + 46 + nameLength;
         for (let at = extraStart; at + 4 <= extraStart + extra;) {
@@ -233,13 +234,15 @@ export async function listZip(source) {
           if (id === 1) {
             let field = at + 4;
             if (uncompressed === LIMIT) { uncompressed = Number(directory.readBigUInt64LE(field)); field += 8; }
-            if (compressed === LIMIT) compressed = Number(directory.readBigUInt64LE(field));
+            if (compressed === LIMIT) { compressed = Number(directory.readBigUInt64LE(field)); field += 8; }
+            if (headerOffset === LIMIT) headerOffset = Number(directory.readBigUInt64LE(field));
           }
           at += 4 + size;
         }
       }
+      // `offset` is where the entry's local header starts (packaging/lib/zip-entry.mjs reads the entry's bytes from there).
       entries.push({name: directory.toString('utf8', position + 46, position + 46 + nameLength),
-        method: directory.readUInt16LE(position + 10), crc: directory.readUInt32LE(position + 16), compressed, uncompressed});
+        method: directory.readUInt16LE(position + 10), crc: directory.readUInt32LE(position + 16), compressed, uncompressed, offset: headerOffset});
       position += 46 + nameLength + extra + comment;
     }
     return entries;

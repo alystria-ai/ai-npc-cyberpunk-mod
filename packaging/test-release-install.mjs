@@ -19,7 +19,14 @@
 // 4. Plugin folders: only the launcher and the native plugin install into red4ext/plugins (never the development
 //    launcher); the native DLL is inspected without running it (convai_plugin_host) and runtime/native-off.txt lists the
 //    systems that start off.
-// 5. With --local-ai: both Local AI packs are extracted too (one zip each, the chat models whole: nothing is joined), the
+// 5. With --update-from (the Runtime update zip test): instead of the new full Runtime, the PREVIOUS full Runtime and Scripts are extracted
+//    first (--update-from <previous Runtime zip>, repeated for a Runtime in several zips; --update-from-scripts <previous Scripts zip>), then
+//    the Runtime update zip (--update-zip, default AI-NPC-Cyberpunk-Mod-Runtime-Update-<from>-to-<version>.zip in --packages) and the new
+//    Scripts, as a player updates. The start step then runs (start-service --prepare-only): the files the update names in its removal list
+//    must go, and afterwards every file must match the NEW full Runtime's file list (paths, sizes, SHA-256; the new Runtime's own
+//    .files.json is read, its zip is not needed) with nothing of the previous Runtime left over that the new one does not ship, except
+//    what the removal step may never delete (listed in the output). The remaining checks run on that installation, so they also prove it works.
+// 6. With --local-ai: both Local AI packs are extracted too (one zip each, the chat models whole: nothing is joined), the
 //    packaged bridge detects the pack, and the packaged llama-server loads the chat models and the embedding
 //    model on the processor (no sound, no graphics card, no game).
 import {spawn, spawnSync} from 'node:child_process';
@@ -29,7 +36,11 @@ import net from 'node:net';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {childEnv, sha256File} from './lib/files.mjs';
+import {childEnv, sha256File, walk} from './lib/files.mjs';
+import {listZip} from './lib/zip.mjs';
+import {readEntry} from './lib/zip-entry.mjs';
+import {PLUGIN as PLUGIN_FOLDER, refusalFor} from './runtime/apply-removals.mjs';
+import {REMOVALS_ENTRY} from './lib/runtime-removals.mjs';
 import {loadRuntimeExchange} from './lib/runtime-exchange.mjs';
 import {missingRuntimeFiles, requiredRuntimeFiles, V_VOICE_FOLDER} from './lib/runtime-required.mjs';
 
@@ -44,6 +55,10 @@ const omni = argv.includes('--omni');
 const localAi = argv.includes('--local-ai');
 const pluginHost = resolve(value('--plugin-host', resolve(packagesDir, '../native/convai_plugin_host.exe')));
 const keep = argv.includes('--keep');
+const values = name => argv.flatMap((item, index) => (item === name && argv[index + 1] ? [resolve(argv[index + 1])] : []));
+const updateFrom = values('--update-from');
+const updateFromScripts = values('--update-from-scripts');
+const updateZipArgument = values('--update-zip')[0];
 if (!version) { console.error('--version is required'); process.exit(2); }
 
 const results = [];
@@ -251,18 +266,39 @@ async function main() {
     const pick = (prefix, {parts = false} = {}) => names.filter(name => name === `AI-NPC-Cyberpunk-Mod-${prefix}-${version}.zip`
       || (parts && new RegExp(`^AI-NPC-Cyberpunk-Mod-${prefix}-${escaped(version)}-part\\d+of\\d+\\.zip$`).test(name))).sort();
     const localIds = localAi ? ['LocalAI-Standard', 'LocalAI-Lite'] : [];
-    const wanted = [...pick('Scripts'), ...pick('Runtime', {parts: true}), ...(omni ? pick('OmniPack') : []), ...localIds.flatMap(pick)];
-    check('packages present', pick('Scripts').length === 1 && pick('Runtime', {parts: true}).length >= 1 && (!omni || pick('OmniPack').length === 1)
-      && localIds.every(id => pick(id).length === 1), wanted.join(', '));
+    // The update test extracts the previous version and the update zip instead of the new full Runtime (see the header).
+    const updateZips = names.filter(name => new RegExp(`^AI-NPC-Cyberpunk-Mod-Runtime-Update-.+-to-${escaped(version)}\\.zip$`).test(name));
+    const updateZip = updateFrom.length ? (updateZipArgument ?? (updateZips.length === 1 ? join(packagesDir, updateZips[0]) : null)) : null;
+    const wanted = updateFrom.length ? [...pick('Scripts'), ...(omni ? pick('OmniPack') : []), ...localIds.flatMap(pick)]
+      : [...pick('Scripts'), ...pick('Runtime', {parts: true}), ...(omni ? pick('OmniPack') : []), ...localIds.flatMap(pick)];
+    check('packages present', pick('Scripts').length === 1 && (updateFrom.length ? existsSync(updateZip ?? '') && existsSync(join(packagesDir, `AI-NPC-Cyberpunk-Mod-Runtime-${version}.files.json`))
+      : pick('Runtime', {parts: true}).length >= 1) && (!omni || pick('OmniPack').length === 1) && localIds.every(id => pick(id).length === 1),
+    updateFrom.length ? [...wanted, updateZip ? updateZip.split(/[\\/]/).pop() : '(no update zip)'].join(', ') : wanted.join(', '));
     let t = Date.now();
+    let update = null;
+    if (updateFrom.length) {
+      // As a player updates: the previous Runtime and Scripts, then the update zip over them, then the new Scripts (below).
+      for (const zip of [...updateFromScripts, ...updateFrom]) await expand(zip, game);
+      const previous = new Set();
+      for (const zip of updateFrom) for (const entry of await listZip(zip)) if (!entry.name.endsWith('/')) previous.add(entry.name);
+      await expand(updateZip, game);
+      const listed = (await listZip(updateZip)).find(entry => entry.name === REMOVALS_ENTRY);
+      const removes = listed ? JSON.parse((await readEntry(updateZip, listed)).toString('utf8')).removes : null;
+      const present = (removes ?? []).filter(rel => existsSync(join(game, rel)));
+      update = {previous, removes, present, listBytes: listed ? await readEntry(updateZip, listed) : null};
+      check('the previous Runtime is installed and the update zip carries a removal list', previous.size > 0 && Array.isArray(removes),
+        `${previous.size} files before; the update names ${removes?.length ?? '(no list)'} to remove, ${present.length} of them installed`);
+    }
     for (const zip of wanted) await expand(join(packagesDir, zip), game);
-    check('extracted with Expand-Archive', true, `${wanted.length} archives in ${((Date.now() - t) / 1000).toFixed(0)} s`);
+    check('extracted with Expand-Archive', true, `${wanted.length + (update ? updateFrom.length + updateFromScripts.length + 1 : 0)} archives in ${((Date.now() - t) / 1000).toFixed(0)} s`);
     let mismatches = 0, count = 0, longest = 0;
     const omniSplit = new Set();
     for (const id of ['Scripts', 'Runtime', ...(omni ? ['OmniPack'] : []), ...localIds]) {
       const list = JSON.parse(await readFile(join(packagesDir, `AI-NPC-Cyberpunk-Mod-${id}-${version}.files.json`), 'utf8'));
       for (const file of list) {
         count++; longest = Math.max(longest, game.length + 1 + file.path.length);
+        // The one file that differs by design: the update's removal list (what went away since the previous Runtime) replaces the full Runtime's own; it is checked below.
+        if (update && file.path === REMOVALS_ENTRY) continue;
         const path = join(game, file.path);
         if (!existsSync(path) || (await stat(path)).size !== file.bytes || await sha256File(path) !== file.sha256) {
           mismatches++; if (mismatches < 5) console.log(`  mismatch: ${file.path}`);
@@ -290,6 +326,28 @@ async function main() {
     try { summary = JSON.parse(prepare.stdout.trim().split('\n').pop()); } catch {}
     check('start-service prepares the installation', prepare.status === 0 && summary.ok === true,
       `omni=${summary.omni} key=${summary.key}`);
+    if (update) {
+      const installedList = existsSync(join(game, REMOVALS_ENTRY)) ? await readFile(join(game, REMOVALS_ENTRY)) : null;
+      check("the installed removal list is the update's own", installedList !== null && update.listBytes !== null && installedList.equals(update.listBytes));
+      // The start step has run (--prepare-only is the same code path as the launcher's start): the listed files are gone, the rest matches the new Runtime.
+      const removals = summary.removals ?? {};
+      check('the start removed the files the update names, refusing and failing on none', removals.state === 'done' && removals.removed === update.present.length
+        && removals.refused === 0 && removals.failed === 0 && update.present.every(rel => !existsSync(join(game, rel))),
+      JSON.stringify(removals));
+      const newList = JSON.parse(await readFile(join(packagesDir, `AI-NPC-Cyberpunk-Mod-Runtime-${version}.files.json`), 'utf8'));
+      const shippedNow = new Set(newList.map(file => file.path.toLowerCase()));
+      const dropped = [...update.previous].filter(name => !shippedNow.has(name.toLowerCase())).sort();
+      // What the previous Runtime had and the new one has not: gone, or left on purpose (a path the removal step may not delete, or an optional pack's file).
+      const stayed = dropped.filter(name => existsSync(join(game, name)));
+      const listedGone = new Set(update.removes);
+      const why = name => refusalFor(name) ?? 'not in the update\'s list';
+      check('every file the new Runtime no longer ships is gone, except what is left on purpose', stayed.every(name => !listedGone.has(name)),
+        `${dropped.length} no longer shipped, ${dropped.length - stayed.length} gone, ${stayed.length} left in place${stayed.length ? ` (${stayed.slice(0, 5).map(name => `${name} [${why(name)}]`).join('; ')})` : ''}`);
+      // Nothing else is in the Runtime's folders: no file of the previous Runtime the update missed.
+      const extra = (await walk(join(game, PLUGIN_FOLDER), {skip: rel => /(?:^|\/)__pycache__(?:\/|$)/.test(rel)})).map(rel => `${PLUGIN_FOLDER}/${rel}`)
+        .filter(name => !shippedNow.has(name.toLowerCase()) && !stayed.includes(name) && !name.endsWith('.pyc'));
+      check('the plugin folder holds nothing the new Runtime does not ship', extra.length === 0, extra.slice(0, 5).join(', ') || `${newList.length} shipped files`);
+    }
     for (const name of omniSplit) {
       const target = join(game, name.replace(/\.parts\.json$/, ''));
       check(`split file joined: ${name.split('/').pop().replace('.parts.json', '')}`, existsSync(target) && existsSync(`${target}.verified`));

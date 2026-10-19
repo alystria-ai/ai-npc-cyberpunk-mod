@@ -56,6 +56,7 @@ import {packagedKeyText} from './lib/packaged-key.mjs';
 import {copyInto, download, exists, extractZip, inside, posix, readJson, run, sha256Buffer, sha256File, walk, writeText} from './lib/files.mjs';
 import {RUNTIME_PREPARED_FOLDER} from './lib/pack-overlap.mjs';
 import {launcherIni} from './lib/launcher-ini.mjs';
+import {DECLARED_REMOVALS, REMOVALS_ENTRY, checkRemovals, removalListText} from './lib/runtime-removals.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const started = Date.now();
@@ -474,8 +475,16 @@ async function runtimePackage(source, config, models, key) {
   log(`Voxtral references: ${voxtral.keys.length} voices, ${(voxtral.bytes / 1e6).toFixed(2)} MB in the Runtime package.`);
 
   // Launcher scripts, application metadata and notices.
-  for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs', 'state-home.mjs', 'usvfs-compat.mjs']) pkg.file(`${app}/launcher/${name}`, resolve(source.root, 'packaging/runtime', name));
+  for (const name of ['start-service.mjs', 'prepare-state.mjs', 'assemble-parts.mjs', 'migrate-legacy.mjs', 'place-packs.mjs', 'state-home.mjs', 'usvfs-compat.mjs', 'apply-removals.mjs']) pkg.file(`${app}/launcher/${name}`, resolve(source.root, 'packaging/runtime', name));
   pkg.json(`${app}/package.json`, {name: 'cyberpunk-convai', version: npmVersion(version), private: true, type: 'module'});
+  // Files an earlier Runtime shipped that this one does not: the service deletes them at its next start (packaging/runtime/apply-removals.mjs).
+  // The list is in every Runtime, the full one too; a Runtime update zip replaces it with what it finds by comparing two Runtimes
+  // (packaging/build-runtime-update.mjs). Here it carries the paths declared in packaging/runtime-removals.json, which must be paths the
+  // start step may delete and none that this same Runtime ships.
+  const declared = (await readJson(resolve(source.root, DECLARED_REMOVALS))).removes ?? [];
+  const checked = checkRemovals(declared, new Set(pkg.entries.keys()));
+  if (checked.refused.length) throw Error(`${DECLARED_REMOVALS}: ${checked.refused.map(item => `${item.path} (${item.why})`).join('; ')}`);
+  pkg.text(REMOVALS_ENTRY, removalListText(version, checked.ok));
 
   // Game-side binary assets: the three generated archives and the Audioware reply bank.
   for (const item of config.releaseData.archives) pkg.file(item.target, resolve(source.root, item.source));
