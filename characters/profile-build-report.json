@@ -2183,12 +2183,12 @@
     },
     {
       "key": "kerry-eurodyne",
-      "words": 976,
+      "words": 980,
       "speakingStyleWords": 161,
       "sampleDialogueWords": 239,
       "voice": "Logan (Expressive Young-Adult American Male)",
       "sources": 13,
-      "researchRevision": "b8e725d2f160c44bc57122e34a1addabbde761c2586bfb8d6fc7e883473541fd"
+      "researchRevision": "3014c7b08a47e39d23de638820613d16b083ae761cd0293996ce122310678cd9"
     },
     {
       "key": "liam-northom",
