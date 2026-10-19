@@ -443,3 +443,29 @@ test('an invalid wake option is refused with the other admission checks', async 
   const {host} = fixture(t);
   await assert.rejects(host.play({token: 'bad-wake', text: 'x'}, async () => ({}), {onFrame: () => undefined, wake: 'soon'}), /Invalid local PCM admission/);
 });
+
+test('the first accepted audio ends the poll sleep: the snapshot that publishes the reply is taken at once, not after the sleep', {timeout: 5000}, async t => {
+  const {host, players, track} = fixture(t);
+  host.pollMs = 600;
+  const polls = [];
+  const audio = deferred();
+  let acceptedAt = null;
+  const pending = track(host.play({token: 'first-audio', text: 'One reply.'}, async emit => {
+    await audio.promise;
+    await emit(packet());
+    acceptedAt = performance.now();
+    return {};
+  }, {onFrame: frame => { polls.push({at: performance.now(), frames: frame.receivedFrames}); return undefined; }}));
+  await until(() => polls.length >= 1);
+  await sleep(30);
+  assert.equal(polls.length, 1, 'no audio yet: the long sleep holds');
+  audio.resolve();
+  await until(() => polls.some(poll => poll.frames > 0));
+  const first = polls.find(poll => poll.frames > 0);
+  assert.ok(first.at - acceptedAt < 300, `the audio was polled ${Math.round(first.at - acceptedAt)} ms after it was accepted, well inside the 600 ms sleep`);
+  await until(() => players[0]?.sealed);
+  players[0].finish();
+  await sleep(0);
+  host.pollMs = 5;
+  await pending;
+});
