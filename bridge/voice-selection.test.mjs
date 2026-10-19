@@ -743,13 +743,14 @@ function retryFixture({omni = [], pocket = []} = {}) {
       async close() { this.closes++; if (owned) live--; owned = loaded = false; hooks.onState({state: 'stopped', resident: false}); }};
     workers.push(worker); return worker;
   };
-  const voice = new VoiceSelection(pocketSettings(voices), {onState: value => states.push(value), onLog: line => logs.push(line),
+  const failures = [];
+  const voice = new VoiceSelection(pocketSettings(voices), {onState: value => states.push(value), onLog: line => logs.push(line), onFailure: info => failures.push(info),
     factory: factory('pocket'), omniFactory: factory('omni'), clock: () => now,
     omniConfig: {version: 2, provider: 'hybrid', engine: 'omnivoice', steps: 32, voices}});
   const omniWorkers = () => workers.filter(worker => worker.backend === 'omni');
   const pocketWorkers = () => workers.filter(worker => worker.backend === 'pocket');
   const settle = async () => { for (let i = 0; i < 6; i++) await tick(); };
-  return {voice, workers, states, logs, omniWorkers, pocketWorkers, settle, advance: ms => { now += ms; }, live: () => live, peak: () => peak,
+  return {voice, workers, states, logs, failures, omniWorkers, pocketWorkers, settle, advance: ms => { now += ms; }, live: () => live, peak: () => peak,
     pocket: () => workers.find(worker => worker.backend === 'pocket')};
 }
 
@@ -879,9 +880,13 @@ test('a Pocket that loads on a retry takes the route back at the next idle poll,
   const h = retryFixture({pocket: ['fail', 'ok']});
   h.voice.update({}, null, false); await h.settle(); h.voice.update({}, null, false); await h.settle();
   assert.equal(h.voice.provider, 'convai'); assert.equal(h.voice.profileReady('johnny-silverhand'), false);
+  // The failure is told once with its reason and is a problem for the setup check while it lasts; a Pocket that loaded again is none.
+  assert.deepEqual(h.failures, [{engine: 'pocket', reason: 'pocket worker failed'}]);
+  assert.deepEqual(h.voice.voiceProblem(), {engine: 'pocket', reason: 'pocket worker failed'});
   h.advance(45_000); h.voice.update({}, null, false); await h.settle();
   assert.equal(h.pocketWorkers().length, 2); assert.equal(h.pocketWorkers()[1].loaded, true);
   assert.equal(h.voice.pocketRetry, null, 'a loaded Pocket ends the story');
+  assert.equal(h.voice.voiceProblem(), null);
   h.voice.update({}, null, false); await h.settle();
   assert.equal(h.voice.provider, 'pocket'); assert.equal(h.voice.fallback, null); assert.equal(h.states.at(-1).pocketRetry, null);
   assert.equal(h.voice.profileReady('johnny-silverhand'), true);

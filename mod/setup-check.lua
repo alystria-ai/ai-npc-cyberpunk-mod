@@ -488,6 +488,12 @@ local function bridgeLines(out)
     elseif browser and browser.code == 'missing' then
         out[#out + 1] = line('browser', ui.t('Browser'), 'problem', ui.t('The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game.'))
     end
+    -- The Pocket voice failed to start (two 0.2.2 players had no voice from V and no way to tell why). Only a failure has a line: a voice that works
+    -- needs none. Pocket ships inside the Runtime, so the line says nothing needs installing.
+    local voice = bridgeCheck('voice')
+    if voice and voice.code == 'pocket-failed' then
+        out[#out + 1] = line('voice', ui.t('Pocket voice'), 'problem', ui.t('The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it.'))
+    end
     -- A Local AI or Mature pack that is one folder too deep is "not installed" to Local AI until the launcher moves it. The packs line above says
     -- where it is, so a second line telling the player to download a pack they already have is left out.
     local nestedLocalAi = false

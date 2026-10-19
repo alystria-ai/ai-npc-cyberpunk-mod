@@ -258,6 +258,14 @@ test('the browser, Local AI and the internet: every state has its own line and f
   assert(#check.problems() == 0, 'a missing browser is told by the service status and its own notice')
   answer({browser = {id = 'browser', state = 'unknown', code = 'unknown'}}); check.run()
   assert(lineOf('browser') == nil, 'a browser not looked up yet (the first, light answer) shows no line')
+  -- The Pocket voice: a line only when it failed to start, and it says nothing needs installing.
+  answer({voice = {id = 'voice', state = 'ok', code = 'ok'}}); check.run()
+  assert(lineOf('voice') == nil, 'a working Pocket voice needs no line')
+  answer({voice = {id = 'voice', state = 'problem', code = 'pocket-failed', engine = 'v-helper'}}); check.run()
+  assert(lineOf('voice').state == 'problem' and lineOf('voice').description:find('nothing else needs installing', 1, true) and lineOf('voice').description:find('generate a report', 1, true), tostring(lineOf('voice').description))
+  assert(#check.problems() == 0, 'it has no first-load notice: the Help page tells it')
+  answer({voice = {id = 'voice', state = 'unknown', code = 'unknown'}}); check.run()
+  assert(lineOf('voice') == nil)
   local states = {
     {'ready', 'ok', 'Local AI is ready.'}, {'warming', 'ok', 'Local AI is warming up…'},
     {'not-installed', 'problem', 'No Local AI pack found. Download one from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, or choose another conversation provider.'},

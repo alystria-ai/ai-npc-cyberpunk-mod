@@ -582,6 +582,8 @@ return {
     ["OmniVoice could not load. See Help in Settings."] = "OmniVoice 无法加载。请在设置中查看帮助。",
     ["Loading the Pocket voice…"] = "正在加载 Pocket 语音…",
     ["Pocket voice is ready."] = "Pocket 语音已就绪。",
+    ["Pocket voice"] = "Pocket 语音",
+    ["The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it."] = "Pocket 语音（V 的声音，以及你选择 Pocket 时同伴的声音）无法启动，因此保持静音。Pocket 是 Runtime 的一部分，无需安装其他任何东西。请重新启动游戏。如果再次出现，请使用帮助中的“生成报告”按钮生成报告并发送。",
     ["Pocket could not load. See Help in Settings."] = "Pocket 无法加载。请在设置中查看帮助。",
     ["Local AI is warming up…"] = "Local AI 预热中…",
     ["Local AI is ready."] = "Local AI 已就绪。",

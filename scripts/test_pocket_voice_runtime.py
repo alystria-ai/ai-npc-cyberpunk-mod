@@ -100,6 +100,10 @@ class Assets(unittest.TestCase):
         clean = runtime.digest_source(self.source)
         (self.source / '__folder_managed_by_vortex').write_text('')
         (self.source / 'pocket_tts' / '__folder_managed_by_vortex').write_text('')
+        # What Windows Explorer or a zip made on a Mac leaves behind is not source either.
+        for name in ('desktop.ini', 'Thumbs.db', '.DS_Store'):
+            (self.source / name).write_text('')
+            (self.source / 'pocket_tts' / name).write_text('')
         self.assertEqual(runtime.digest_source(self.source), clean)
         (self.source / 'pocket_tts' / 'extra.py').write_text('# not in the pinned revision\n')
         self.assertNotEqual(runtime.digest_source(self.source), clean)

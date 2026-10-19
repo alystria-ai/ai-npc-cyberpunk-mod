@@ -582,6 +582,8 @@ return {
     ["OmniVoice could not load. See Help in Settings."] = "OmniVoice を読み込めませんでした。設定のヘルプをご確認ください。",
     ["Loading the Pocket voice…"] = "Pocket の音声を読み込み中…",
     ["Pocket voice is ready."] = "Pocket の音声は準備完了です。",
+    ["Pocket voice"] = "Pocket の音声",
+    ["The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it."] = "Pocket の音声（V の声と、Pocket を選んだ場合は仲間の声）が開始できなかったため、無音のままです。Pocket は Runtime の一部なので、ほかに何もインストールする必要はありません。ゲームを再起動してください。また発生する場合は、ヘルプの「レポートを生成」ボタンでレポートを作成して送ってください。",
     ["Pocket could not load. See Help in Settings."] = "Pocket を読み込めませんでした。設定のヘルプをご確認ください。",
     ["Local AI is warming up…"] = "Local AI を準備中…",
     ["Local AI is ready."] = "Local AI は準備完了です。",

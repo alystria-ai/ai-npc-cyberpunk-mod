@@ -582,6 +582,8 @@ return {
     ["OmniVoice could not load. See Help in Settings."] = "OmniVoice se nepodařilo načíst. Viz Nápověda v Nastavení.",
     ["Loading the Pocket voice…"] = "Načítání hlasu Pocket…",
     ["Pocket voice is ready."] = "Hlas Pocket je připraven.",
+    ["Pocket voice"] = "Hlas Pocket",
+    ["The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it."] = "Hlas Pocket (V’s hlas a hlas společníka, pokud jsi zvolil Pocket) se nemohl spustit, proto zůstává němý. Pocket je součástí Runtime, takže nic dalšího instalovat nemusíš. Restartuj hru. Pokud se to stane znovu, vytvoř hlášení tlačítkem Vytvořit hlášení v Nápovědě a pošli ho.",
     ["Pocket could not load. See Help in Settings."] = "Pocket se nepodařilo načíst. Viz Nápověda v Nastavení.",
     ["Local AI is warming up…"] = "Local AI se zahřívá…",
     ["Local AI is ready."] = "Local AI je připravena.",

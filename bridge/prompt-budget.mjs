@@ -265,6 +265,38 @@ function planFor() {
   return steps;
 }
 
+// ---- The compact persona (last resort) -----------------------------------------------------------------------------------------
+
+// A server with a small context (a 4,096-token one the player runs themselves) cannot hold a named character's persona and the output rules
+// (Judy's alone are about 4,500 tokens), and nothing optional is left to cut. When no other route can answer the turn (`shrinkPersona`), the persona
+// itself is shortened in fixed levels: the backstory keeps its beginning, the style keeps its beginning, the example lines are already gone, and the
+// rules, the format notes, the right-now block, the player's own rules and the Mature layer are never cut. The first level that fits is used. The levels
+// are few and coarse on purpose: the persona sits at the very start of the prompt, so a level that changed with every turn would make the server read it
+// again every turn; as the rest of the prompt is already at its smallest here, the same level is chosen turn after turn.
+export const PERSONA_LEVELS = Object.freeze([
+  Object.freeze({backstory: 9000, style: Infinity}), Object.freeze({backstory: 6000, style: Infinity}), Object.freeze({backstory: 4200, style: Infinity}),
+  Object.freeze({backstory: 3000, style: 1200}), Object.freeze({backstory: 2200, style: 900}), Object.freeze({backstory: 1600, style: 700}),
+  Object.freeze({backstory: 1100, style: 500}), Object.freeze({backstory: 700, style: 360})]);
+
+// The beginning of a text up to `limit` characters, ended at a sentence (or else a word) so no sentence is cut in two; the text itself when it is not longer.
+function leadingText(text, limit) {
+  const value = String(text ?? '');
+  if (value.length <= limit) return value;
+  const piece = value.slice(0, limit);
+  const sentences = [...piece.matchAll(/[.!?…]["'”’)\]]*(?=\s)/g)], last = sentences.at(-1);
+  const end = last && last.index + last[0].length >= limit * 0.6 ? last.index + last[0].length : piece.replace(/\s+\S*$/, '').length;
+  return piece.slice(0, end > 0 ? end : limit).trimEnd();
+}
+
+/** The persona of `args` at a level of PERSONA_LEVELS, or null when that level cuts nothing (the persona is already that short). */
+function compactPersona(args, level) {
+  const persona = args?.persona;
+  if (!persona) return null;
+  const backstory = leadingText(persona.backstory, level.backstory), style = leadingText(persona.style, level.style);
+  if (backstory === String(persona.backstory ?? '') && style === String(persona.style ?? '')) return null;
+  return {...args, persona: {...persona, backstory, style, samples: []}};
+}
+
 /**
  * The messages of a request, cut to fit.
  *   args     what `buildMessages` takes (persona, memory, history, context, contextParts, remembered, text, reaction, limits);
@@ -272,9 +304,11 @@ function planFor() {
  *            block be trimmed block by block
  *   budget   {contextTokens, reserveTokens?, meter?, count?}: the server's context, the room kept for the reply, a TokenMeter, and
  *            `count(messages)` -> Promise<tokens | null> from the server's tokenizer (optional)
+ *   shrinkPersona   true: when everything optional is gone and the prompt is still over, the persona is shortened (PERSONA_LEVELS) rather than
+ *            failing; the caller sets it only when no other route is left to answer the turn
  * Returns {messages, tokens, limit, fits, trimmed: [step names], counts, exact}.
  */
-export async function fitMessages({args, build = defaultBuild, budget}) {
+export async function fitMessages({args, build = defaultBuild, budget, shrinkPersona = false}) {
   const context = Number(budget?.contextTokens);
   let state = args;
   let messages = build(state);
@@ -318,6 +352,20 @@ export async function fitMessages({args, build = defaultBuild, budget}) {
         if (counted !== null) { tokens = counted; exact = true; }
       }
     }
+    // Nothing optional is left and the prompt is still over: the persona is shortened, the largest level that fits.
+    if (tokens > limit && shrinkPersona) {
+      let used = null;
+      for (const level of PERSONA_LEVELS) {
+        const next = compactPersona(state, level);
+        if (!next) continue;
+        const list = build(next);
+        let value = Math.ceil(estimate(list) * scale), counted = false;
+        if (value <= limit && value >= limit * BUDGET.verifyBand) { const known = await verify(list); if (known !== null) { value = known; counted = true; } }
+        state = next; messages = list; tokens = value; exact = counted; used = level;
+        if (tokens <= limit) break;
+      }
+      if (used) trimmed.push(`persona:${used.backstory}`);
+    }
   }
   return {messages, tokens, limit, fits: tokens <= limit, trimmed, counts, exact, charsPerToken: perToken()};
 }
@@ -342,6 +390,8 @@ export class PromptTooLarge extends MistralError {
  *   tooLarge(fit, options)   the error to throw when the prompt cannot fit (default: PromptTooLarge)
  *   shape(args, options)     optional: the arguments to build the prompt from instead (a route may build a smaller persona and history);
  *                            a route without one fits exactly what `buildMessages` was given
+ *   options.lastResort       true when no other route is left to answer the turn: a prompt that cannot fit has its persona shortened (PERSONA_LEVELS)
+ *                            instead of failing; otherwise it fails and the host hands the turn to the next route
  *   budget().soft            optional {contextTokens, reserveTokens?}: a smaller target tried first; a prompt that cannot reach it is fitted
  *                            to the budget's own (hard) limit as before, so a soft target never makes a request fail
  * Only requests built by `buildMessages` are fitted (summaries, fact extraction and prewarm are small and pass through). A server that
@@ -361,7 +411,7 @@ export function budgetedChat(chat, {budget, onFit, tooLarge, shape} = {}) {
     for (let attempt = 0; ; attempt++) {
       let fit = soft ? await fitMessages({args, budget: {...current, ...soft, soft: undefined}}) : null;
       if (fit) fit.target = 'soft';
-      if (!fit?.fits) { fit = await fitMessages({args, budget: {...current, soft: undefined}}); if (soft) fit.target = 'hard'; }
+      if (!fit?.fits) { fit = await fitMessages({args, budget: {...current, soft: undefined}, shrinkPersona: options?.lastResort === true}); if (soft) fit.target = 'hard'; }
       if (fit.trimmed.length || !fit.fits) { try { onFit?.(fit, options); } catch { /* a log line never fails a request */ } }
       if (!fit.fits) throw tooLarge ? tooLarge(fit, options) : new PromptTooLarge(fit, options?.provider);
       try {

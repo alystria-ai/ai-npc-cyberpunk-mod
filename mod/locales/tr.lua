@@ -582,6 +582,8 @@ return {
     ["OmniVoice could not load. See Help in Settings."] = "OmniVoice yüklenemedi. Ayarlar'daki Yardım'a bak.",
     ["Loading the Pocket voice…"] = "Pocket sesi yükleniyor…",
     ["Pocket voice is ready."] = "Pocket sesi hazır.",
+    ["Pocket voice"] = "Pocket sesi",
+    ["The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it."] = "Pocket sesi (V’nin sesi ve Pocket’ı seçtiyseniz bir yoldaşın sesi) başlatılamadı, bu yüzden sessiz kalıyor. Pocket, Runtime’ın bir parçasıdır; başka bir şey kurmanız gerekmez. Oyunu yeniden başlatın. Sorun tekrar ederse Yardım’daki “Rapor oluştur” düğmesiyle bir rapor oluşturup gönderin.",
     ["Pocket could not load. See Help in Settings."] = "Pocket yüklenemedi. Ayarlar'daki Yardım'a bak.",
     ["Local AI is warming up…"] = "Local AI hazırlanıyor…",
     ["Local AI is ready."] = "Local AI hazır.",

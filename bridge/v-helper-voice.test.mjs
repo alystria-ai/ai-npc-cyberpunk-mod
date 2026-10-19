@@ -252,9 +252,13 @@ test('a release while the helper waits to start cancels the start', async () => 
 });
 
 test('a failed helper stays off with one log line and no retry loop; V stays silent until the voice or the setting changes', async () => {
-  const h = fixture({failHelper: true});
+  const failures = [];
+  const h = fixture({failHelper: true, options: {onFailure: info => failures.push(info)}});
   await omniReady(h); await until(() => h.voice.vHelper.failed, 'the failure');
   await tick(); await tick();
+  // The failure is told once, with its reason, and the setup check can see it while it lasts (the Help page's Pocket voice row).
+  assert.deepEqual(failures, [{engine: 'v-helper', reason: 'helper failed'}]);
+  assert.deepEqual(h.voice.voiceProblem(), {engine: 'v-helper', reason: 'helper failed'});
   const attempts = h.workers.filter(worker => worker.backend === 'pocket').length;
   assert.equal(attempts, 1);
   for (let at = 0; at < 5; at++) { h.voice.update(omniSettings, null, false); h.voice.vHelperReady('v-male'); await tick(); }
@@ -265,6 +269,7 @@ test('a failed helper stays off with one log line and no retry loop; V stays sil
   // Turning V off and on again tries once more.
   h.voice.setVHelperWanted(false); await tick();
   assert.equal(h.voice.vHelper.failed, false);
+  assert.equal(h.voice.voiceProblem(), null, 'no problem once the voice is off or tried again');
   h.voice.setVHelperWanted(true); await tick();
   await until(() => h.workers.filter(worker => worker.backend === 'pocket').length === 2, 'a second attempt');
   await h.voice.close();

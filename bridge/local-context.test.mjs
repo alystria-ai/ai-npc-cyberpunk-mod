@@ -199,6 +199,29 @@ test('without a cloud key the turn fails with the game code local-failed and no 
   assert.equal(provider.takeNotice(), undefined);
 });
 
+test('a 4096-token server the player runs: with no cloud key the persona is shortened to fit, and the server is never sent more than it holds', async t => {
+  // A 2026-10-19 report: a named character's persona and the output rules alone were over a 4,096-token context, nothing optional was left to cut, and every turn failed.
+  const {server: handle} = supervisor(t, {contextSize: 4096, env: {FAKE_LLAMA_REPLY: 'Sure thing, V.'}});
+  const {host, logs} = await hostFor(t, {server: handle});
+  const reply = await host.reply(bigTurn('What are you up to right now?'));
+  assert.equal(reply.text, 'Sure thing, V.');
+  const seen = (await stats(await handle.ensure())).requests.filter(request => request.path === '/v1/chat/completions');
+  assert.equal(seen.filter(request => request.refused).length, 0, 'no refusal');
+  assert.equal(seen.length, 1);
+  assert(seen[0].promptTokens <= 4096 - 320, `the prompt (${seen[0].promptTokens} tokens) leaves room for the reply`);
+  assert(logs.some(line => /cut:.*persona:\d+/.test(line)), 'the log names the persona cut');
+});
+
+test('a 4096-token server with a Mistral key saved: the turn goes to Mistral with the full persona, the persona is not shortened for the local server', async t => {
+  const {server: handle} = supervisor(t, {contextSize: 4096, env: {FAKE_LLAMA_REPLY: 'never used'}});
+  const {host, cloud, logs} = await hostFor(t, {server: handle, mistralKey: MISTRAL_KEY, mistralScript: () => 'Mistral here, V.'});
+  const reply = await host.reply(bigTurn('Hello?'));
+  assert.equal(reply.text, 'Mistral here, V.');
+  assert.equal(cloud.requests.length, 1);
+  assert.equal((await stats(await handle.ensure())).requests.filter(request => request.path === '/v1/chat/completions').length, 0, 'the local server was sent nothing');
+  assert(!logs.some(line => /persona:\d+/.test(line)));
+});
+
 test('the fallback notice is only for a local route: it is not queued while another provider is applied', async t => {
   const provider = new MistralProvider({keyPath: 'k.txt', readText: async () => `api-key=${MISTRAL_KEY}\n`, writeText: async () => {}});
   await provider.load();

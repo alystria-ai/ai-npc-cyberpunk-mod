@@ -17,11 +17,12 @@ export class VHelperVoice {
    * wait     () => Promise       settles when no other Pocket worker is still stopping
    * onReady  () => void          the worker finished loading (once per load): V's voice is prepared now, not inside the first line
    */
-  constructor({create, wait = () => Promise.resolve(), log = () => {}, onReady = () => {}} = {}) {
-    Object.assign(this, {create, wait, log, onReady});
+  constructor({create, wait = () => Promise.resolve(), log = () => {}, onReady = () => {}, onFailure = () => {}} = {}) {
+    Object.assign(this, {create, wait, log, onReady, onFailure});
     this.client = null;
     this.generation = 0;
     this.failed = false;
+    this.failure = null;   // why it failed (a few words), while it has: the setup check and the error report name it
     this.exit = Promise.resolve();
   }
 
@@ -38,7 +39,7 @@ export class VHelperVoice {
       client = this.client = this.create(value => {
         if (this.client === client && value?.state === 'error') queueMicrotask(() => this.broke(client, client?.failure?.message));
       });
-    } catch (error) { this.client = null; this.failed = true; this.log(`V's helper voice could not be created (${String(error?.message ?? error).slice(0, 120)})`); return; }
+    } catch (error) { this.client = null; this.failed = true; this.failure = String(error?.message ?? error).slice(0, 200); this.log(`V's helper voice could not be created (${String(error?.message ?? error).slice(0, 120)})`); return; }
     const exited = this.exit;
     Promise.resolve().then(() => Promise.all([exited, this.wait()])).then(() => {
       if (this.client !== client || this.generation !== generation) throw Object.assign(Error('V helper voice was released'), {released: true});
@@ -53,13 +54,15 @@ export class VHelperVoice {
   broke(client, message) {
     if (this.client !== client) return;
     this.failed = true;
-    this.log(`V's helper voice failed (${String(message ?? 'unknown').slice(0, 120)}); typed lines stay silent until the voice or the setting changes`);
+    this.failure = String(message ?? 'unknown').slice(0, 200);
+    this.log(`V's helper voice failed (${this.failure}); typed lines stay silent until the voice or the setting changes`);
+    try { this.onFailure(this.failure); } catch { /* a report never affects the voice */ }
     void this.release({keepFailure: true});
   }
 
   /** Stops the worker; resolves when its exit is confirmed. Clears a failure, so the next start tries again. */
   release({keepFailure = false} = {}) {
-    if (!keepFailure) this.failed = false;
+    if (!keepFailure) { this.failed = false; this.failure = null; }
     const client = this.client;
     if (!client) return this.exit;
     this.client = null;

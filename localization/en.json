@@ -50,7 +50,7 @@
     ]
   },
   "counts": {
-    "strings": 1096,
+    "strings": 1098,
     "dynamicTemplates": 55,
     "contexts": 37
   },
@@ -616,6 +616,7 @@
     "Please wait for the current requests to finish.": "Please wait for the current requests to finish.",
     "Pocket TTS speaks only English. Turn off Multilingual conversations to choose it.": "Pocket TTS speaks only English. Turn off Multilingual conversations to choose it.",
     "Pocket could not load. See Help in Settings.": "Pocket could not load. See Help in Settings.",
+    "Pocket voice": "Pocket voice",
     "Pocket voice is ready.": "Pocket voice is ready.",
     "Pocket · On your PC": "Pocket · On your PC",
     "Pocket · Performance": "Pocket · Performance",
@@ -796,6 +797,7 @@
     "The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).": "The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).",
     "The Mistral cloud voice speaks only English here. Turn off Multilingual conversations to choose it.": "The Mistral cloud voice speaks only English here. Turn off Multilingual conversations to choose it.",
     "The Mistral model is unavailable right now. Try again in a minute.": "The Mistral model is unavailable right now. Try again in a minute.",
+    "The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it.": "The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it.",
     "The Runtime is incomplete ({code}). Download it again and extract it into the Cyberpunk 2077 folder, then restart the game.": "The Runtime is incomplete ({code}). Download it again and extract it into the Cyberpunk 2077 folder, then restart the game.",
     "The Scripts and Runtime versions do not match. Install the same version of both.": "The Scripts and Runtime versions do not match. Install the same version of both.",
     "The account is out of credits. Add credits with your provider.": "The account is out of credits. Add credits with your provider.",
@@ -2112,6 +2114,7 @@
       "Play saved clip",
       "Pocket TTS speaks only English. Turn off Multilingual conversations to choose it.",
       "Pocket could not load. See Help in Settings.",
+      "Pocket voice",
       "Pocket voice is ready.",
       "Pocket · On your PC",
       "Pocket · Performance",
@@ -2212,6 +2215,7 @@
       "The Mature pack’s uncensored models give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).",
       "The Mistral cloud voice speaks only English here. Turn off Multilingual conversations to choose it.",
       "The Mistral model is unavailable right now. Try again in a minute.",
+      "The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it.",
       "The Runtime is incomplete ({code}). Download it again and extract it into the Cyberpunk 2077 folder, then restart the game.",
       "The Scripts and Runtime versions do not match. Install the same version of both.",
       "The account is out of credits. Add credits with your provider.",
@@ -2624,7 +2628,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:630"
+        "mod/setup-check.lua:636"
       ]
     },
     "A previous memory request could not be read. The memory service must reconcile it before another clear.": {
@@ -2949,7 +2953,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:624"
+        "mod/setup-check.lua:630"
       ]
     },
     "Audioware is missing. Install Audioware 1.9.9 or newer from Nexus Mods (nexusmods.com/cyberpunk2077/mods/12001), extract it into the Cyberpunk 2077 folder, then restart the game.": {
@@ -3873,7 +3877,7 @@
       ],
       "references": [
         "mod/setup-check.lua:444",
-        "mod/setup-check.lua:623"
+        "mod/setup-check.lua:629"
       ]
     },
     "Companion Manager": {
@@ -5130,7 +5134,7 @@
       "references": [
         "mod/setup-check.lua:478",
         "mod/setup-check.lua:487",
-        "mod/setup-check.lua:527"
+        "mod/setup-check.lua:533"
       ]
     },
     "Free": {
@@ -5291,7 +5295,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:526"
+        "mod/setup-check.lua:532"
       ]
     },
     "Group chat needs two characters nearby. Use private chat for one person.": {
@@ -5423,7 +5427,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:620"
+        "mod/setup-check.lua:626"
       ]
     },
     "Installed character models": {
@@ -5457,7 +5461,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:517"
+        "mod/setup-check.lua:523"
       ]
     },
     "Invalid Mature content settings.": {
@@ -5829,7 +5833,7 @@
       "references": [
         "mod/manager-ui.lua:586",
         "mod/manager-ui.lua:876",
-        "mod/setup-check.lua:502"
+        "mod/setup-check.lua:508"
       ]
     },
     "Local AI could not answer that one, so a cloud provider did.": {
@@ -5870,7 +5874,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:513"
+        "mod/setup-check.lua:519"
       ]
     },
     "Local AI did not answer within {seconds} s. Try again, or choose a smaller model in Settings.": {
@@ -5886,7 +5890,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:512"
+        "mod/setup-check.lua:518"
       ]
     },
     "Local AI is not ready, so Convai took that message and did not answer in time.": {
@@ -5903,7 +5907,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:87",
-        "mod/setup-check.lua:504"
+        "mod/setup-check.lua:510"
       ]
     },
     "Local AI is still loading its model. Try again in a moment.": {
@@ -5920,7 +5924,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:86",
-        "mod/setup-check.lua:505"
+        "mod/setup-check.lua:511"
       ]
     },
     "Local AI model": {
@@ -6100,7 +6104,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:621"
+        "mod/setup-check.lua:627"
       ]
     },
     "Mistral (free plan)": {
@@ -6210,7 +6214,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:532"
+        "mod/setup-check.lua:538"
       ]
     },
     "Mod files": {
@@ -6243,7 +6247,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:531"
+        "mod/setup-check.lua:537"
       ]
     },
     "Model ID: {model}": {
@@ -6432,7 +6436,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:508"
+        "mod/setup-check.lua:514"
       ]
     },
     "No clear, reachable companion space on this floor. Move to a wider spot and try again.": {
@@ -6571,7 +6575,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:534"
+        "mod/setup-check.lua:540"
       ]
     },
     "None installed. They are optional.": {
@@ -6641,7 +6645,7 @@
       "references": [
         "mod/init.lua:3595",
         "mod/manager-ui.lua:88",
-        "mod/setup-check.lua:510"
+        "mod/setup-check.lua:516"
       ]
     },
     "Not enough memory": {
@@ -6665,7 +6669,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:518"
+        "mod/setup-check.lua:524"
       ]
     },
     "Not running": {
@@ -6692,7 +6696,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:503"
+        "mod/setup-check.lua:509"
       ]
     },
     "Not your conversation provider. Choose it in Settings > Conversation provider.": {
@@ -6700,7 +6704,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:503"
+        "mod/setup-check.lua:509"
       ]
     },
     "Note": {
@@ -6837,7 +6841,7 @@
       ],
       "references": [
         "mod/manager-ui.lua:868",
-        "mod/setup-check.lua:511"
+        "mod/setup-check.lua:517"
       ]
     },
     "Only https:// works outside this computer and your home network.": {
@@ -6884,7 +6888,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:618"
+        "mod/setup-check.lua:624"
       ]
     },
     "Opened in your browser.": {
@@ -7163,6 +7167,14 @@
         "mod/manager-ui.lua:84"
       ]
     },
+    "Pocket voice": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/setup-check.lua:495"
+      ]
+    },
     "Pocket voice is ready.": {
       "contexts": [
         "ui.localized"
@@ -7410,7 +7422,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:519"
+        "mod/setup-check.lua:525"
       ]
     },
     "React to battles": {
@@ -8110,7 +8122,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:627"
+        "mod/setup-check.lua:633"
       ]
     },
     "Some model records could not be read.": {
@@ -8586,7 +8598,7 @@
       ],
       "references": [
         "mod/nsui.lua:787",
-        "mod/setup-check.lua:625"
+        "mod/setup-check.lua:631"
       ]
     },
     "The Companion Manager needs Mod Configuration Menu 0.10.5 or newer, or Native Settings UI 1.96 or newer. Either one is enough. Install one from Nexus Mods, then restart the game.": {
@@ -8664,6 +8676,14 @@
         "mod/phone-chat.lua:12"
       ]
     },
+    "The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/setup-check.lua:495"
+      ]
+    },
     "The Runtime is incomplete ({code}). Download it again and extract it into the Cyberpunk 2077 folder, then restart the game.": {
       "contexts": [
         "ui.localized"
@@ -8677,7 +8697,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:629"
+        "mod/setup-check.lua:635"
       ]
     },
     "The account is out of credits. Add credits with your provider.": {
@@ -8964,7 +8984,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:631"
+        "mod/setup-check.lua:637"
       ]
     },
     "The conversation service cannot reach {host}. Allow Node.js through your firewall or antivirus (Windows asks once; choose Allow), check your internet, then restart the game.": {
@@ -8972,7 +8992,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:521"
+        "mod/setup-check.lua:527"
       ]
     },
     "The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.": {
@@ -9020,7 +9040,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:628"
+        "mod/setup-check.lua:634"
       ]
     },
     "The conversation service is not running, so nothing can be tested. Restart the game.": {
@@ -9766,7 +9786,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:520"
+        "mod/setup-check.lua:526"
       ]
     },
     "This address is not encrypted, which is fine on your own computer or home network.": {
@@ -10152,7 +10172,7 @@
       ],
       "references": [
         "mod/nsui.lua:786",
-        "mod/setup-check.lua:626"
+        "mod/setup-check.lua:632"
       ]
     },
     "Updating selection": {
@@ -10373,7 +10393,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:533"
+        "mod/setup-check.lua:539"
       ]
     },
     "Voxtral (recommended)": {
@@ -11386,7 +11406,7 @@
       "references": [
         "mod/setup-check.lua:429",
         "mod/setup-check.lua:452",
-        "mod/setup-check.lua:632"
+        "mod/setup-check.lua:638"
       ]
     },
     "{name} is no longer attached to the world. Dismiss this copy to free its place.": {
@@ -11490,7 +11510,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/setup-check.lua:526"
+        "mod/setup-check.lua:532"
       ]
     },
     "{name}: chat {state}.": {

@@ -19,9 +19,10 @@ import time
 PROTOCOL_VERSION = 1
 SOURCE_REVISION = "41cbc84af539ea78a804ffca5f9c6edc1a22ce44"
 SOURCE_SHA256 = "b86f98955b6c4776bb24a748b321408aba89d3b66f6b911f415ef4f4191a7666"
-# __folder_managed_by_vortex: Vortex drops this marker file into folders it creates in the game folder (one 0.2.2 report: the Pocket source "differs
-# from the pinned official revision" on a Vortex install, with that file in the Runtime's folders), so it is not part of the source.
-SOURCE_IGNORES = {".git", "__pycache__", ".pytest_cache", ".ruff_cache", "__folder_managed_by_vortex"}
+# __folder_managed_by_vortex: Vortex drops this marker file into folders it creates in the game folder (two 0.2.2 reports: the Pocket source
+# "differs from the pinned official revision" on a Vortex install, with that file in the Runtime's folders), so it is not part of the source.
+# desktop.ini and Thumbs.db are what Windows Explorer leaves in a folder it has shown; .DS_Store is the same from a zip made on a Mac.
+SOURCE_IGNORES = {".git", "__pycache__", ".pytest_cache", ".ruff_cache", "__folder_managed_by_vortex", "desktop.ini", "Thumbs.db", ".DS_Store"}
 ASSETS = {"model.safetensors": "sha256", "inference.yaml": "configSha256",
           "tokenizer.json": "tokenizerSha256", "receipt.json": "receiptSha256"}
 MAX_TEXT = 12_000

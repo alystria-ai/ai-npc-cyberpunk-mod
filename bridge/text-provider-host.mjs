@@ -455,7 +455,7 @@ export class TextProviderHost {
         // The local AI keeps the whole turn inside its budget (LOCAL_TURN_BUDGET_MS), counted from the start of the turn, so the game still has the
         // bridge's own explanation to show when it gives up on the request.
         const deadlineAt = route.turnBudgetMs > 0 ? started + route.turnBudgetMs : undefined;
-        const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey, feed, actionNotes, speculation, deadlineAt});
+        const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey, feed, actionNotes, speculation, deadlineAt, lastResort: index === candidates.length - 1});
         if (confirmed) await confirmed;
         const elapsed = Math.round(this.now() - started);
         const {response} = outcome;
@@ -618,7 +618,7 @@ export class TextProviderHost {
     this.log(`[MatureContent] ${fact}`);
   }
 
-  async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed, actionNotes, speculation, deadlineAt}) {
+  async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed, actionNotes, speculation, deadlineAt, lastResort = false}) {
     // The crude persona layer: the Mature setting only, never an add-on's host. The guard alone: also an uncensored model with the setting off, and add-ons.
     const mature = this.matureContent?.enabled && !this.guardOnly ? await this.#matureLevel(route, signal) : null;
     const guard = mature ? true : await this.#guardOn(route, signal);
@@ -663,7 +663,7 @@ export class TextProviderHost {
       const messages = build(nudge);
       markStage('promptBuilt');
       const sent = spec && !spec.over ? (signal ? AbortSignal.any([signal, spec.controller.signal]) : spec.controller.signal) : signal;
-      const response = await this.#request(route, messages, sent, {shouldStop, profileKey, ...(deadlineAt !== undefined ? {deadlineAt} : {}), ...(wordLimit ? {maxTokens: remarkTokens(wordLimit)} : {}), onDelta: (_piece, soFar) => {
+      const response = await this.#request(route, messages, sent, {shouldStop, profileKey, ...(lastResort ? {lastResort} : {}), ...(deadlineAt !== undefined ? {deadlineAt} : {}), ...(wordLimit ? {maxTokens: remarkTokens(wordLimit)} : {}), onDelta: (_piece, soFar) => {
         const shown = visible(soFar);
         if (spec && !spec.over) { spec.latest = shown; if (!spec.open) return; }
         try { feed.update(shown); } catch { /* the voice's view of the reply never breaks the reply */ }

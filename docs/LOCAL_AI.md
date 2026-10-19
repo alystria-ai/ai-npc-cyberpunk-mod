@@ -575,6 +575,17 @@ The reports' own log lines say what was going on:
     is never cut, the format notes, the right-now block and V's words, is more than the allowance) is fitted to the context as before, so the target
     never fails a request. The log says
     `prompt N of M tokens (soft target); cut: ...` and `this computer reads about N tokens a second`.
+- **A persona that does not fit a small context (2026-10-20, third round of reports).** A player's own server ran with a 4,096-token context
+  (the limit is then 3,714 tokens): a named character's persona and the output rules alone were more than that, every optional cut had been made,
+  and every turn failed (`PromptTooLarge`, 6,948 tokens against 3,714; the fitter did know the real context, the prompt could not be made to fit
+  without touching the persona). Now, when no other route is left to answer the turn (the host passes `lastResort` on the last of its candidates; a
+  Mistral key saved means Mistral answers a turn the local server cannot take, as before, with the full persona), `fitMessages({shrinkPersona: true})`
+  shortens the persona itself in fixed levels (`PERSONA_LEVELS`: the backstory to 9,000 / 6,000 / 4,200 / 3,000 / 2,200 / 1,600 / 1,100 / 700 characters, the style
+  to 1,200 and below from the fourth level, example lines already gone), each cut at a sentence, and the first level that fits is used. The rules, the format
+  notes, the right-now block, the character's own rules and the Mature layer are still never cut. The levels are few and coarse so the same turn after
+  turn lands on the same persona and the server's prefix cache keeps holding it. A context too small even for the shortest level (about 3,000 tokens
+  and less) still fails as before. The log says `cut: ..., persona:1600`. The soft target of a slow machine never shortens the persona. The
+  supervisor's diagnostics also name the real context of a server the player runs (the turn line said `context 0` for it).
 - **The sentence the game shows says why.** A slow turn on a model that is partly on the CPU ends `...; the model is partly on the CPU` (`error.hint`,
   still within the 140 characters the game accepts).
 - **Not changed.** The 75 s limits and the 80 s turn budget stay under the game's 90 s; the idle stop after ten minutes stays (the model leaving the

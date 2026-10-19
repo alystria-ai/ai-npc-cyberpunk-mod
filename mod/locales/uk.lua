@@ -582,6 +582,8 @@ return {
     ["OmniVoice could not load. See Help in Settings."] = "Не вдалося завантажити OmniVoice. Див. Довідку в Налаштуваннях.",
     ["Loading the Pocket voice…"] = "Завантаження голосу Pocket…",
     ["Pocket voice is ready."] = "Голос Pocket готовий.",
+    ["Pocket voice"] = "Голос Pocket",
+    ["The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it."] = "Голос Pocket (голос V і голос супутника, якщо ви обрали Pocket) не зміг запуститися, тож він мовчить. Pocket входить до складу Runtime, тому нічого більше встановлювати не потрібно. Перезапустіть гру. Якщо це повториться, створіть звіт кнопкою «Згенерувати звіт» у довідці та надішліть його.",
     ["Pocket could not load. See Help in Settings."] = "Не вдалося завантажити Pocket. Див. Довідку в Налаштуваннях.",
     ["Local AI is warming up…"] = "Local AI готується…",
     ["Local AI is ready."] = "Local AI готовий.",

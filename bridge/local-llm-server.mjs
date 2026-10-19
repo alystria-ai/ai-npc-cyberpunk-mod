@@ -845,6 +845,8 @@ export class LocalLlmServer extends EventEmitter {
     this.#info = {endpoint: model.endpoint + '/chat/completions', base: model.endpoint, apiKey: model.apiKey || NO_KEY, contextSize: found.contextSize,
       external: true, remote: model.remote === true, requestModel: found.requestModel, trustedOrigin: model.origin};
     this.#contextSize = found.contextSize;
+    // The diagnostics (a turn's log line, the support report) name the context the prompts are fitted to, not the 0 of an entry that left it to the server.
+    this.#loaded.contextSize = found.contextSize;
     this.#setState('ready');   // no warm-up and no idle timer: nothing of ours is loaded
     if (this.#reselectPending) { const timer = this.setTimer(() => { void this.#reloadIfIdle(); }, 250); timer?.unref?.(); }
     return this.#handle();
