@@ -291,6 +291,7 @@ Everything lives under **Companion Manager > Settings**. Defaults are for a new 
 | V's voice engine | Voices | Pocket |
 | Subtitles, Subtitle display | Subtitles | On, Cinematic subtitles |
 | React to battles, React to collected loot | Automatic reactions | Off |
+| Send error reports automatically | Privacy | On |
 | Developer mode | Development | Off |
 
 A few worth knowing:
@@ -306,6 +307,7 @@ A few worth knowing:
 - **Body gestures, Eye contact height, Head tracking strength:** companions gesture through longer replies, nod while you talk and hold idle poses beside you, and their eyes and head follow you. Gestures stop the moment anyone moves or a fight starts.
 - **Subtitle display:** Cinematic subtitles use the game's dialogue line; **Above the speaker** floats them over the character.
 - **React to battles / collected loot:** a nearby companion makes one short comment when a fight starts and ends, or after a run of loot pickups, at most once every ten minutes each.
+- **Send error reports automatically:** when something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. See [Error reports](#error-reports) below for what it holds and what it never holds.
 - **Developer mode** is for testing and bug reports: routine popups, diagnostic traces and developer-only experiments. You will not need it to play.
 
 ## Troubleshooting
@@ -326,7 +328,12 @@ A few worth knowing:
 
 **Does it change the story?** No. Companions are temporary copies that the mod owns. They never recruit, revive or alter story characters. A story character in the world only answers when you talk to it, with its voice and face, and the mod stays out of scenes, quest conversations, fights and rides.
 
-**Which of my data leaves my computer?** With Convai your lines go to Convai, along with a recent picture of the game window, taken only while someone you can talk to is near, kept in memory for a few seconds and never saved. With Mistral your lines go to Mistral. With a Custom endpoint they go to the endpoint you chose, and only after you choose it (a server on your own computer keeps them there). With Local AI nothing leaves your computer for replies, unless you point it at a model server on another computer (see [LOCAL_AI.md](docs/LOCAL_AI.md)). Voxtral sends the text to be spoken and a short reference clip of the character to Mistral.
+**Which of my data leaves my computer?** With Convai your lines go to Convai, along with a recent picture of the game window, taken only while someone you can talk to is near, kept in memory for a few seconds and never saved. With Mistral your lines go to Mistral. With a Custom endpoint they go to the endpoint you chose, and only after you choose it (a server on your own computer keeps them there). With Local AI nothing leaves your computer for replies, unless you point it at a model server on another computer (see [LOCAL_AI.md](docs/LOCAL_AI.md)). Voxtral sends the text to be spoken and a short reference clip of the character to Mistral. Error reports, below, go to the mod's own server.
+
+<a id="error-reports"></a>**Error reports.** When something in the mod goes wrong, it sends a short error report to the developer's server, so problems can be fixed without asking you for logs. It is on by default; **Settings > Privacy > Send error reports automatically** turns it off, and then nothing is recorded or sent. The first time you load the game after updating, a notice says so once.
+- **What a report holds:** the error and where in the code it happened; the versions of the mod, the game and the required mods; your conversation provider, voice and Local AI model choices; whether Mature content is on (on or off, nothing more); your graphics card's name and memory; the setup check's lines; and up to 150 log lines from around the error, with keys, IDs and your Windows user name removed. Your installation is identified only by a random number hashed twice.
+- **What it never holds:** API keys or tokens, what you or the characters say, typed lines, character memories, microphone audio, or your Windows user name. Your IP address is not stored.
+- **How often:** at most one report per kind of error per day and five a day in all, sent in the background, never while a character is answering. Reports are kept for 30 days. The support report shows whether the setting is on. Details: [docs/ERROR_REPORTS.md](docs/ERROR_REPORTS.md).
 
 **The mod does not load, or the manager will not open?** Close the game and double-click **Make support report.bat** in `red4ext\plugins\AiNpcCyberpunkMod`. It checks that the required mods are installed, adds the logs, saves one report with the game closed and opens its folder. Send that file. With Mod Organizer 2, start it from MO2 (add it under Executables).
 
@@ -369,7 +376,7 @@ bridge/                   the Node bridge: ~175 modules, Python workers, the sup
 assets/                   data the bridge and Lua read: emotion/, facial/, gestures/, v-voice/
 characters/               profile roster, ordinary-NPC archetypes, phone contacts, world-knowledge pack
 research/                 lore research, dossiers and the generators that build the knowledge packs
-auth-backend/             sign-in backend for the free tier (Vercel functions + Redis)
+auth-backend/             sign-in backend for the free tier, and the error-report endpoint (Vercel functions + Redis)
 addons/example/           a complete, tested reference add-on
 packaging/                the release builder, pinned toolchain config, Python hash locks, player notes
 scripts/                  install, build, measure, evaluation and training tools
@@ -431,7 +438,7 @@ flowchart LR
 | **Hidden browser** | The system's Microsoft Edge, else Google Chrome, else another installed Chromium browser (Brave, Vivaldi, Opera and others; nothing is bundled), driven by Playwright | Hosts the Convai Web SDK (compiled into `realtime-client.js`), the continuous PCM player and the local speech capture page, because those need browser audio and WebRTC. |
 | **Python workers** | `bridge/*.py` | Persistent processes: Pocket TTS (CPU), OmniVoice (CUDA), local speech recognition (sherpa-onnx, CPU) and the Pocket phone analyser. Each request carries an owner token and a request id, and shutdown is pipe EOF. |
 | **llama-server** | llama.cpp (Vulkan build), `bridge/local-llm-server.mjs`, `bridge/local-embed.mjs` | The Local AI chat model and the small CPU memory embedder. |
-| **Sign-in backend** | `auth-backend/`, Vercel Node functions with an Upstash Redis store | Keeps the free tier's daily limit fair across installs. See [Daily limit](#daily-limit). |
+| **Sign-in backend** | `auth-backend/`, Vercel Node functions with an Upstash Redis store | Keeps the free tier's daily limit fair across installs (see [Daily limit](#daily-limit)) and takes the automatic error reports (see [docs/ERROR_REPORTS.md](docs/ERROR_REPORTS.md)). |
 
 ### How Lua and the bridge talk
 
@@ -1448,7 +1455,7 @@ Every design note in `docs/`, grouped by area. Dated files are snapshots (resear
 [NATIVE_ACTUATOR](docs/NATIVE_ACTUATOR.md) · [NATIVE_CLEARANCE](docs/NATIVE_CLEARANCE.md) · [NATIVE_VEHICLES](docs/NATIVE_VEHICLES.md) · [NATIVE_FACIAL_RETARGET_CALIBRATION](docs/NATIVE_FACIAL_RETARGET_CALIBRATION.md)
 
 **Conversation providers, accounts and latency**
-[MISTRAL](docs/MISTRAL.md) · [MISTRAL_PROMPT_PASS](docs/MISTRAL_PROMPT_PASS.md) · [LOCAL_AI](docs/LOCAL_AI.md) · [LOCAL_MODEL_CHOICE](docs/LOCAL_MODEL_CHOICE.md) · [LOCAL_OPTION_DESIGN](docs/LOCAL_OPTION_DESIGN.md) · [OWN_CONVAI_KEY](docs/OWN_CONVAI_KEY.md) · [CONVAI_AUTH_BACKEND](docs/CONVAI_AUTH_BACKEND.md) · [FREE_CLOUD_OPTION_RESEARCH](docs/FREE_CLOUD_OPTION_RESEARCH.md) · [CHARACTER_API](docs/CHARACTER_API.md) · [LATENCY_2026-10-12](docs/LATENCY_2026-10-12.md) · [LATENCY_2026-10-13](docs/LATENCY_2026-10-13.md) · [LATENCY_2026-10-14](docs/LATENCY_2026-10-14.md)
+[MISTRAL](docs/MISTRAL.md) · [MISTRAL_PROMPT_PASS](docs/MISTRAL_PROMPT_PASS.md) · [LOCAL_AI](docs/LOCAL_AI.md) · [LOCAL_MODEL_CHOICE](docs/LOCAL_MODEL_CHOICE.md) · [LOCAL_OPTION_DESIGN](docs/LOCAL_OPTION_DESIGN.md) · [OWN_CONVAI_KEY](docs/OWN_CONVAI_KEY.md) · [CONVAI_AUTH_BACKEND](docs/CONVAI_AUTH_BACKEND.md) · [ERROR_REPORTS](docs/ERROR_REPORTS.md) · [FREE_CLOUD_OPTION_RESEARCH](docs/FREE_CLOUD_OPTION_RESEARCH.md) · [CHARACTER_API](docs/CHARACTER_API.md) · [LATENCY_2026-10-12](docs/LATENCY_2026-10-12.md) · [LATENCY_2026-10-13](docs/LATENCY_2026-10-13.md) · [LATENCY_2026-10-14](docs/LATENCY_2026-10-14.md)
 
 **Mature setting and models**
 [MATURE_MODELS_RESEARCH](docs/MATURE_MODELS_RESEARCH.md) · [MATURE_MODELS_TEST_2026-10-13](docs/MATURE_MODELS_TEST_2026-10-13.md) · [MATURE_MODELS_V2_2026-10-14](docs/MATURE_MODELS_V2_2026-10-14.md) · [MATURE_SAMPLES_2026-10-13](docs/MATURE_SAMPLES_2026-10-13.md) · [MATURE_SAMPLES_2026-10-14](docs/MATURE_SAMPLES_2026-10-14.md) · [MATURE_SAMPLES_V3_2026-10-14](docs/MATURE_SAMPLES_V3_2026-10-14.md) · [MATURE_SAMPLES_V4_2026-10-14](docs/MATURE_SAMPLES_V4_2026-10-14.md)
