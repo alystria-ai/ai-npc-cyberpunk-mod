@@ -31,6 +31,8 @@ M.catalog = {
     ['phone-unavailable'] = {class = PLAYER, repeatS = 20},
     -- Add-ons (docs/ADDON_API.md): an add-on that needs a newer main mod or could not load, and an add-on's own notice
     ['addon-notice'] = {class = PLAYER, repeatS = 20},
+    -- A character the player made, talked to while Convai answers: it speaks as an ordinary person (docs/CHARACTER_EDITOR.md)
+    ['custom-needs-provider'] = {class = PLAYER, repeatS = 86400},
     ['phone-queue-refused'] = {class = PLAYER, repeatS = 20},
     -- Conversation service and replies
     ['service-down'] = {class = PLAYER},               -- once per failure

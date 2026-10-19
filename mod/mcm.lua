@@ -1689,7 +1689,7 @@ local function ownKeyRows(snapshot)
     end
     if editor then
         rows[#rows + 1] = action('character-editor:open', 'Edit characters', 'Open',
-            'Edit a character’s bio, speaking style, speaking rules and memories in your browser.\n\nWorks with Mistral and Local, not Convai. Changes apply from the next reply.',
+            'Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral and Local, not Convai. Changes apply from the next reply.',
             function() return editor.request() end)
     end
     -- The Inworld key belongs to the Inworld cloud voice, which is a developer-mode voice: its row sits in Settings > Development.
@@ -2298,7 +2298,10 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
     end
     if editorLoaded and type(editorFactory) == 'table' and type(editorFactory.new) == 'function' then
         local created, instance = pcall(editorFactory.new, {ui = ui,
-            serviceState = function() return support and support.serviceState() or 'unknown' end})
+            serviceState = function() return support and support.serviceState() or 'unknown' end,
+            -- The character V faces and the list of the player's own characters live in init.lua (globals): asked once, when Open is chosen.
+            facing = function() return type(convaiFacingCharacter) == 'function' and convaiFacingCharacter() or nil end,
+            watch = function() if convaiCustomCharacters then convaiCustomCharacters.watch() end end})
         if created and type(instance) == 'table' then editor = instance end
     end
     if paidTierLoaded and type(paidTierFactory) == 'table' and type(paidTierFactory.new) == 'function' then
