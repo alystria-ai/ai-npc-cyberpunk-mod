@@ -1707,6 +1707,74 @@ function M.hold(actor, requestId)
     return false
 end
 
+-- Why a face request or a reply ended without a speaking face, in a sentence, for the log (init.lua convaiFaceRequestLog and the
+-- "Conversation result" line). The status words come from Face.reds (ConvaiFaceRequest, ConvaiFaceStatus); a speaking face
+-- ("prepared:...") and a word nobody knows have no reason. Read only when such a line is written, never per frame.
+local FACE_REASONS = {
+    {'^service%-unavailable$', 'the redscript half of the mod is not loaded (see the redscript log)'},
+    {'^unavailable$', 'the character is not attached to the world'},
+    {'^initializing$', 'the copy was still being built'},
+    {'^no%-face%-rig$', 'the model has no face_rig component, so there is no face to move'},
+    {'^rig%-not%-loaded$', 'the face rig did not load'},
+    {'^unsupported%-rig$', 'the face rig lacks the lip-sync tracks, so no mouth can be written (a model with its own rig)'},
+    {'^speech%-graph%-not%-loaded$', 'the game has not loaded the mod face graphs: convai_facial.archive is missing, in the wrong folder or not enabled'},
+    {'^skipped:named$', 'a story character the game placed; its face is driven only while Talk to story characters is on, after the next load'},
+    {'^skipped:quest$', 'a quest-bound character, left to the game'},
+    {'^skipped:no%-record$', 'the character has no readable record, left to the game'},
+    {'^skipped:dialogue$', 'the character is in a game dialogue'},
+    {'^skipped:driven$', 'a quest or a scene commands this character'},
+}
+function M.faceStatusReason(status)
+    if type(status) ~= 'string' or status == '' then return nil end
+    if status:find('^prepared') then return nil end
+    -- A screen face (an add-on) says the same thing under a "screen:" prefix.
+    local plain = status:gsub('^screen:', '')
+    for _, row in ipairs(FACE_REASONS) do
+        if plain:find(row[1]) then return row[2] end
+    end
+    local path = plain:match('^unsupported%-graph:(.*)$') or plain:match('^unprepared:(.*)$')
+    if path then
+        if path:find('_lc%.animgraph$') then
+            return 'its face runs a light-crowd graph, which the mod has no lip-sync copy of yet'
+        end
+        if path:find('^cyberpunk_convai\\') then return nil end
+        return 'its face runs a graph the mod has no copy of (' .. path .. '): a model another mod replaced, or a face the game builds another way'
+    end
+    local live = plain:match('^stale:(%S*)')
+    if live then
+        return 'the face was rebuilt after the mod prepared it (an appearance change by another mod or the game) and now runs ' .. live
+    end
+    return nil
+end
+-- The text appended to a face log line: the reason, then the native facts (ConvaiFaceDetail: kind, record, appearance, entity
+-- template, face graph and rig, the mod's own graphs). An install whose scripts lack the detail method still gets the reason.
+function M.faceNote(actor, status)
+    local text = ''
+    local reason = M.faceStatusReason(status)
+    if reason then text = ' why=' .. reason end
+    if actor ~= nil then
+        local ok, detail = pcall(function() return actor:ConvaiFaceDetail() end)
+        if ok and type(detail) == 'string' and detail ~= '' then text = text .. ' | ' .. detail end
+    end
+    return text
+end
+-- The state of the mod's own face graphs in the game (13 expected: nine companion graphs, four crowd copies), read once per session
+-- for the log (init.lua convaiFaceRequestLog, at the first talk start): a game that never mounted convai_facial.archive says
+-- loaded:0 failed:13 before any face request has to fail, and a working install says so in its report too. The two settings that
+-- decide who gets a face follow. Errors when the redscript half is missing.
+function M.graphReport()
+    local service = Game.GetScriptableServiceContainer():GetService(CName.new('ConvaiFaceService'))
+    local text = service:GraphReport()
+    if type(text) ~= 'string' or text == '' then error('no graph report') end
+    return text .. ' crowd=' .. tostring(M.crowdMode or 'gated') .. ' story=' .. tostring(M.storyTalk)
+end
+-- True when a face request status needs a log line: anything but a speaking face. ("managed" is what scripts older than this
+-- change answered for our own copies; it says nothing, so it stays quiet.)
+function M.faceNeedsLine(ok, status)
+    if not ok then return true end
+    return status ~= 'managed' and not tostring(status):find('^prepared')
+end
+
 function M.status()
     mergeTurn(M.lastSpeechExpression)
     return {state = M.state or 'idle', source = M.source, articulation = M.articulation, position = M.position,

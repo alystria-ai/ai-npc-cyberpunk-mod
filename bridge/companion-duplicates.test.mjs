@@ -416,6 +416,7 @@ const groupHarness = `
   local function sendRequest(input) sent[#sent+1]=input; pending=input; return true end
   local function beginFocus() return true end
   local function log() end
+  local function convaiFaceRequestLog() end -- the real one is defined earlier in init.lua, outside this slice
   ${groupAdapter}
   local function candidatesFor(radius)
     local result={}

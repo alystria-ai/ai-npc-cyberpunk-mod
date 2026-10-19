@@ -1191,6 +1191,29 @@ local function log(line)
     print('[CyberpunkConvai] ' .. line)
 end
 microphone.log = log
+-- A talk start whose speaker's face will not move: one line with the status (Face.reds ConvaiFaceRequest), what it means, and the
+-- facts that name a replaced model (kind, record, appearance, entity template, face graph and rig, the mod's own graphs). A speaking
+-- face ("prepared:...") writes nothing. Called once per talk start (text, voice, group speaker), never per frame.
+function convaiFaceRequestLog(actor, identity, ok, status)
+    local facial = convaiFacialPlayback
+    -- Once per session, at the first talk start: the state of the mod's own face graphs (13 loaded when convai_facial.archive is mounted).
+    if not convaiFaceGraphsNoted and type(facial) == 'table' and type(facial.graphReport) == 'function' then
+        convaiFaceGraphsNoted = true
+        local reported, report = pcall(facial.graphReport)
+        log('Face graphs: ' .. (reported and tostring(report) or ('not readable (' .. tostring(report) .. ')')))
+    end
+    if type(facial) == 'table' and type(facial.faceNeedsLine) == 'function' then
+        if not facial.faceNeedsLine(ok, status) then return end
+    elseif ok and (status == 'managed' or tostring(status):find('^prepared')) then
+        return
+    end
+    local note = ''
+    if type(facial) == 'table' and type(facial.faceNote) == 'function' then
+        local noted, text = pcall(facial.faceNote, ok and actor or nil, status)
+        if noted and type(text) == 'string' then note = text end
+    end
+    log('Face request: actor=' .. tostring(identity) .. ' status=' .. tostring(status) .. note)
+end
 -- Names for nameless ordinary NPCs (docs/NPC_NAMES.md, mod/npc-names.lua). One generator serves the scanner and the talk path.
 -- The gate is the rule above: not ours, not protected (named, quest-bound, story record), a resolved ordinary profile (an archetype
 -- or the two residents), an adult human. Read on demand (a scan, a conversation start), never per frame.
@@ -2194,9 +2217,7 @@ local function beginTextNow(groupMode, waited)
         -- An ordinary world NPC's face carries the gated speech layer from its spawn (Face.reds OnWorldInitialize); ConvaiFaceRequest reports it and runs the talk-time guards. An add-on's voice has no face or gaze.
         if not primary.voiceOnly then
             local faceOk, faceStatus = pcall(function() return npc:ConvaiFaceRequest() end)
-            if not faceOk or (faceStatus ~= 'managed' and not tostring(faceStatus):find('^prepared')) then
-                log('Face request: actor=' .. tostring(identity) .. ' status=' .. tostring(faceStatus))
-            end
+            convaiFaceRequestLog(npc, identity, faceOk, faceStatus)
             -- A holocall's live-picture copy is far away and held still: it never turns to V.
             if focusEntity ~= identity and not primary.holocall and not primary.story then
                 local focused, reason = beginFocus(player, npc)
@@ -2329,9 +2350,7 @@ local function toggleVoice(groupMode, source)
         -- An ordinary world NPC's face carries the gated speech layer from its spawn (Face.reds OnWorldInitialize); ConvaiFaceRequest reports it and runs the talk-time guards. An add-on's voice has no face.
         if not primary.voiceOnly then
             local faceOk, faceStatus = pcall(function() return npc:ConvaiFaceRequest() end)
-            if not faceOk or (faceStatus ~= 'managed' and not tostring(faceStatus):find('^prepared')) then
-                log('Face request: actor=' .. tostring(entity) .. ' status=' .. tostring(faceStatus))
-            end
+            convaiFaceRequestLog(npc, entity, faceOk, faceStatus)
         end
         local context
         if groupMode then
@@ -3120,9 +3139,7 @@ local function updateGroup(player)
     -- An ordinary world NPC's face carries the gated speech layer from its spawn (Face.reds OnWorldInitialize); ConvaiFaceRequest reports it and runs the talk-time guards. An add-on's voice has no face.
     if not context.voiceOnly then
         local faceOk, faceStatus = pcall(function() return actor:ConvaiFaceRequest() end)
-        if not faceOk or (faceStatus ~= 'managed' and not tostring(faceStatus):find('^prepared')) then
-            log('Face request: actor=' .. tostring(context.entity) .. ' status=' .. tostring(faceStatus))
-        end
+        convaiFaceRequestLog(actor, context.entity, faceOk, faceStatus)
         beginFocus(player, actor)
     end
     focusMode, focusEntity = 'chat', context.entity
@@ -4040,16 +4057,21 @@ registerForEvent('onUpdate', function(delta)
                     if type(microphone.received) == 'function' then microphone.received(pending.requestId) end
                     -- One line per reply: did speech start, and does the speaker's face carry
                     -- the speech layer (an ordinary world NPC gets it at its spawn, Face.reds OnWorldInitialize).
-                    local faceState = 'none'
+                    local faceState, faceNote = 'none', ''
                     if speech.actor then
                         local faceOk, faceReady, faceStatus = pcall(function()
                             return speech.actor:ConvaiFaceReady(), speech.actor:ConvaiFaceStatus() end)
                         faceState = faceOk and (tostring(faceReady) .. '/' .. tostring(faceStatus)) or 'unavailable'
+                        -- A reply whose speaker's mouth will not move says why, with the facts that name a replaced model.
+                        if not (faceOk and faceReady == true) and convaiFacialPlayback and convaiFacialPlayback.faceNote then
+                            local noted, text = pcall(convaiFacialPlayback.faceNote, speech.actor, faceOk and faceStatus or 'unavailable')
+                            if noted and type(text) == 'string' then faceNote = text end
+                        end
                     end
                     -- A voice that could not start says why (speech.lua keeps the reason in speech.error), once, on the same line.
                     local why = speech.state == 'playback-failed' and speech.error and (' why=' .. tostring(speech.error):sub(1, 160)) or ''
                     log('Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil)
-                        .. ' speech=' .. tostring(speech.state) .. ' face=' .. faceState .. why)
+                        .. ' speech=' .. tostring(speech.state) .. ' face=' .. faceState .. why .. faceNote)
                     if automatic and pending.requestId == automatic.requestId then
                         automatic.shown = reply.error == nil
                         if automatic.shown and (speech.requestId or subtitles.ownsUtterance()) then
