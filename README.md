@@ -38,7 +38,7 @@ The voices are free too. The default, **Pocket TTS**, gives every character a vo
 
 ## Install
 
-Close the game. Extract each download into your Cyberpunk 2077 folder (the one with `bin`, `archive` and `r6`) and let the folders merge. Install the mods under [Requirements](#requirements) first.
+Close the game. Extract each download into your Cyberpunk 2077 folder (the one with `bin`, `archive` and `r6`) and let the folders merge. If Windows asks about files with the same names, choose Replace: it is always safe. Install the mods under [Requirements](#requirements) first.
 
 | # | Download | Where from | Size | Needed? |
 |---|---|---|---|---|
@@ -1362,6 +1362,7 @@ node packaging/build-release.mjs --version 0.2 --dry-run                        
 node packaging/build-release.mjs --version 0.2 --dry-run --packages scripts,runtime
 node packaging/build-release.mjs --version 0.2 --dry-run --packages localai-lite,mature-lite   # optional packs: one zip each
 node packaging/test-release-install.mjs --version 0.2 --packages dist/release/packages [--omni] [--local-ai]
+node packaging/check-pack-overlap.mjs check <Runtime or Scripts zip>   # no path shared with a published pack may have other bytes (docs/PACKAGING.md)
 node --test packaging/release.test.mjs
 ```
 
