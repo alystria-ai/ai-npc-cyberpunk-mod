@@ -12,7 +12,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn, spawnSync} from 'node:child_process';
-import {cp, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile} from 'node:fs/promises';
+import {cp, link, mkdir, mkdtemp, readFile, readdir, rename, rm, rmdir, stat, symlink, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -249,6 +249,37 @@ test('a service that cannot see the game\'s mod folder stops and writes nothing 
     const prepared = start(f, '--prepare-only');
     assert.equal(prepared.status, 0, prepared.stderr);
   } finally { await f.cleanup(); }
+});
+
+// The stop above must never fire on an ordinary install. The launcher tests <game>\bin\x64\plugins\cyber_engine_tweaks\mods\AiNpcCyberpunkMod\init.lua
+// with GetFileAttributesW, and so does Node's existsSync (libuv's access), on the same --game-root: they agree on a hard-linked init.lua
+// (Vortex's default deployment), a mod folder that is a link to a staging folder, a game root passed in another case, and a path with
+// spaces and letters outside ASCII. The folder name is the launcher's MOD_RELATIVE, letter for letter.
+test('an ordinary install sees init.lua however it was deployed: a hard link, a linked mod folder, another case, a Unicode path', async () => {
+  const launcher = await read(join(project, 'native/autostart/CyberpunkConvaiLauncher.c'));
+  const script = await read(join(project, 'packaging/runtime/start-service.mjs'));
+  const native = /#define MOD_RELATIVE L"([^"]+)"/.exec(launcher)?.[1].replace(/\\\\/g, '/').replace(/^\//, '');
+  assert.equal(native, /const MOD_FOLDER = '([^']+)'/.exec(script)?.[1], 'the launcher and the script look at the same folder');
+  const f = await install({inGame: true});
+  const modFolder = join(f.game, MOD), staging = join(f.root, 'Vortex', 'staging', 'AI NPC Cyberpunk Mod');
+  try {
+    await mkdir(dirname(staging), {recursive: true});
+    await rename(modFolder, staging);
+    await symlink(staging, modFolder, 'junction');
+    await rename(join(staging, 'init.lua'), join(staging, 'init.lua.staged'));
+    await link(join(staging, 'init.lua.staged'), join(staging, 'init.lua'));
+    const result = spawnSync(process.execPath, [join(f.app, 'launcher/start-service.mjs'), '--game-root', f.game.toUpperCase(), '--game-pid', GAME],
+      {encoding: 'utf8', timeout: 60_000, env: f.env});
+    // This Runtime has no bridge folder, so the start ends at the step after the check: proof it went past it.
+    assert.equal(result.status, 1, result.stderr + result.stdout);
+    const status = await readStatus(f.game);
+    assert.deepEqual([status.state, status.code, status.stage], ['failed', 'install-incomplete', 'loading-supervisor'], JSON.stringify(status));
+    assert.equal(status.view, 'usvfs no; Runtime inside the game folder; init.lua visible');
+    assert.doesNotMatch(await read(join(f.state, 'bridge-service.log')), /NOT visible|Stopped:/);
+  } finally {
+    await rmdir(modFolder).catch(() => {}); // the link only, before the folder holding its target goes
+    await f.cleanup();
+  }
 });
 
 test('a physical install, with the Runtime inside the game folder, behaves the same', async () => {
