@@ -94,6 +94,19 @@ export function compareWithPacks(files, listing) {
   return {identical, different, inPackTrees, ok: !different.length && !inPackTrees.length};
 }
 
+// Paths a zip holds more than once (Windows compares names without regard to case): each is a "Replace or skip?" inside that one zip, and
+// with other bytes the answer decides which copy the player gets, which is what the rule above exists to prevent. ZipWriter refuses
+// them, but a zip patched or made by another tool can have them. Returns [{path, copies: [{path, size, crc}], same}].
+export function duplicatePaths(files) {
+  const byName = new Map();
+  for (const file of files) {
+    const key = file.path.toLowerCase();
+    byName.set(key, [...(byName.get(key) ?? []), file]);
+  }
+  return [...byName.values()].filter(copies => copies.length > 1).map(copies => ({path: copies[0].path,
+    copies: copies.map(({path, size, crc}) => ({path, size, crc})), same: copies.every(copy => copy.size === copies[0].size && copy.crc === copies[0].crc)}));
+}
+
 // How many of `items` lie in each folder, `depth` folders below the plugin folder (a path outside it counts in its own top folder).
 export function countByFolder(items, depth = 3) {
   const counts = new Map();
