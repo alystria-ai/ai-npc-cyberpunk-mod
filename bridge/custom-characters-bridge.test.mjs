@@ -162,12 +162,24 @@ test('opening the composer on a character warms its text route and the voice tha
 test('the bridge opens the store before the voices, gives it to the prompt, the editor and the voice routing, and answers its turns before the Convai checks', () => {
   assert.match(bridge, /const customCharacters = await CustomCharacters\.open\(\{dir: stateDirectory, exchangePath: resolve\(runtime, 'custom-characters\.json'\), roster: rosterIndex\(roster\),/);
   assert(bridge.indexOf('const customCharacters = await CustomCharacters.open') < bridge.indexOf('const voiceConfigPaths = await addonHost.voiceConfigPaths'), 'before the voice configurations are merged');
-  assert.match(bridge, /extra: extraVoices\(vVoiceReferences\)\.concat\(customVoiceExtras\)/, 'a clip joins the voices of the add-ons and of V');
+  // The player's voice clips (story characters' and their own characters'): opened before the store, offered only for keys that still have a
+  // character, merged with the voices of the add-ons and of V and read from the data folder (playerVoiceDirectory), never copied.
+  assert(bridge.indexOf('const playerVoices = await PlayerVoices.open') < bridge.indexOf('const customCharacters = await CustomCharacters.open'));
+  assert.match(bridge, /const playerVoiceAllowed = key => isCustomKey\(key\) \? customCharacters\.has\(key\) : roster\.some\(row => row\?\.key === key && row\.kind === 'named'\);/);
+  assert.match(bridge, /await playerVoices\.prune\(key => !isCustomKey\(key\) \|\| customCharacters\.has\(key\)\);/, 'a clip of a deleted character is removed, a story character\'s never');
+  assert.match(bridge, /const playerVoiceExtras = await playerVoices\.extras\(playerVoiceAllowed\);/);
+  assert.match(bridge, /extra: extraVoices\(vVoiceReferences\)\.concat\(playerVoiceExtras\), playerVoiceDirectory: playerVoices\.folder\}\)/, 'a clip joins the voices of the add-ons and of V');
+  assert(bridge.indexOf('const playerVoiceExtras = await playerVoices.extras') < bridge.indexOf('const voiceConfigPaths = await addonHost.voiceConfigPaths'));
+  // Voxtral reads a player clip from the data folder and keeps its prepared slot there; the shipped clips keep their own cache.
+  assert.match(bridge, /referenceRoot: voxtralReferenceRoot, playerRoot: playerVoices\.folder,/);
+  assert.match(bridge, /player: createReferencePreparer\(\{cacheDirectory: resolve\(stateDirectory, PLAYER_PREPARED_FOLDER\),/);
+  assert.match(bridge, /prepare: voxtralPreparers \? \(bytes, options = \{\}\) => \(options\.player \? voxtralPreparers\.player : voxtralPreparers\.shipped\)\(bytes, options\) : undefined,/);
+  assert.match(bridge, /onRemoved: key => releasePreparedSlots\(\{folder: resolve\(stateDirectory, PLAYER_PREPARED_FOLDER\), key\}\)/);
   assert.match(bridge, /aliases: key => customCharacters\.voiceAlias\(key\),/, 'a character with no clip speaks with the resident voice of its gender');
   assert.match(bridge, /new PersonaBook\(roster, \{overrides: characterOverrides, custom: customCharacters\}\)/);
-  assert.match(bridge, /new CharacterEditor\(\{personas: personaBook, overrides: characterOverrides, memory: mistralMemory, route: \(\) => mistral\.route, custom: customCharacters\}\)/);
+  assert.match(bridge, /new CharacterEditor\(\{personas: personaBook, overrides: characterOverrides, memory: mistralMemory, route: \(\) => mistral\.route, custom: customCharacters,\n  voices: playerVoices\}\)/);
   assert.match(bridge, /await mkdir\(runtime, \{recursive: true\}\);\nawait customCharacters\.publish\(\);/, 'the list the game reads is written at start');
-  assert.match(bridge, /onVoiceReleased: key => releaseCustomVoice\(key\)/);
+  assert.match(bridge, /onDeleted: key => \{ void playerVoices\.clear\(key\)\.catch\(\(\) => \{\}\); return releaseCustomVoice\(key\); \}/, 'deleting a character removes its clip and its prepared setups');
   assert.match(bridge, /for \(let at = roster\.length - 1; at >= 0; at--\) if \(roster\[at\]\?\.kind === 'custom'\) roster\.splice\(at, 1\);/, 'the roster array follows every change in place');
   // The turn: before the Convai identity check, so no Convai id is ever asked for.
   const custom = bridge.indexOf('if (profile && customCharacters.has(profile.key)) { await runCustomTurn(request, input, profile, current, clock); return; }');

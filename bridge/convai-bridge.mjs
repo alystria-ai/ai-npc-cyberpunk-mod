@@ -71,7 +71,8 @@ import {PlayerMemoryControl} from './player-memory-control.mjs';
 import {SupportReportControl} from './support-report.mjs';
 import {SetupCheckControl, cachedBrowserName, cachedGraphicsCards, cachedModManagers, collectSetupCheck, findNestedPacks, readPackPlacement} from './setup-check.mjs';
 import {CharacterOverrides} from './character-overrides.mjs';
-import {CustomCharacters, rosterIndex, releaseVoiceFiles} from './custom-characters.mjs';
+import {CustomCharacters, isCustomKey, rosterIndex, releaseVoiceFiles} from './custom-characters.mjs';
+import {PlayerVoices, PLAYER_PREPARED_FOLDER, releasePreparedSlots} from './player-voices.mjs';
 import {CharacterEditor} from './character-editor.mjs';
 import {EditorServer} from './character-editor-server.mjs';
 import {EditorControl} from './character-editor-control.mjs';
@@ -131,11 +132,17 @@ const ids = JSON.parse(await readFile(resolve(stateDirectory, 'characters.json')
 const addonHost = await AddonHost.load({game, log: message => console.error('[Addons] ' + message)});
 addonHost.extend(roster, ids);
 addonHost.characterLookup = rosterLookup(roster);
-// Characters the player made (docs/CHARACTER_EDITOR.md, "Your own characters"): opened here, before the voice configurations are built, so a
-// clip a character already has is merged in with the add-on voices. Their rows join the roster array (profileFor and the other lookups by key);
-// the list the game reads is runtime/custom-characters.json. They never have a Convai character: runCustomTurn answers them.
+// Voice clips players give characters in the editor (docs/CHARACTER_EDITOR.md, "Voice clips"; bridge/player-voices.mjs): kept in the data folder
+// (<state>/player-voices/<key>.wav and player-voices.json), opened before the voice configurations are built so each clip is merged over the
+// shipped voice of its character. A removed clip's Voxtral slot (<state>/player-voices-prepared) goes with it.
+const playerVoices = await PlayerVoices.open({dir: stateDirectory, log: message => console.error('[PlayerVoices] ' + message),
+  onRemoved: key => releasePreparedSlots({folder: resolve(stateDirectory, PLAYER_PREPARED_FOLDER), key})});
+// Characters the player made (docs/CHARACTER_EDITOR.md, "Your own characters"): opened here, before the voice configurations are built. Their rows
+// join the roster array (profileFor and the other lookups by key); the list the game reads is runtime/custom-characters.json. They never have a
+// Convai character: runCustomTurn answers them. Deleting one removes its voice clip and its prepared voice setups.
 const customCharacters = await CustomCharacters.open({dir: stateDirectory, exchangePath: resolve(runtime, 'custom-characters.json'), roster: rosterIndex(roster),
-  log: message => console.error('[Custom] ' + message), onChange: () => syncCustomRoster(), onVoiceReleased: key => releaseCustomVoice(key)});
+  log: message => console.error('[Custom] ' + message), onChange: () => syncCustomRoster(),
+  onDeleted: key => { void playerVoices.clear(key).catch(() => {}); return releaseCustomVoice(key); }});
 function syncCustomRoster() {
   for (let at = roster.length - 1; at >= 0; at--) if (roster[at]?.kind === 'custom') roster.splice(at, 1);
   roster.push(...customCharacters.rosterRows());
@@ -160,12 +167,17 @@ const referenceRoots = process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES ? [process.e
   : [resolve(stateDirectory, 'voice-references'), resolve(project, 'runtime/voice-references')];
 const vVoiceReferences = await loadVVoiceReferences([...referenceRoots.map(root => resolve(root, 'v-voice')), resolve(project, 'assets/v-voice')],
   {log: line => console.error('[VVoice] ' + line)});
-// A custom character's clip is merged like V's voices (copied to voice-references/addons/<key>.wav, written into the addons.<name> copies of the
-// configurations, prepared on demand): the same checks, the same preparation, the cloud voices read it from the long configuration. A clip given
-// while the service runs is merged at the next start; until then (and for a character with no clip) the voice of its gender speaks (aliases below).
-const customVoiceExtras = await customCharacters.voiceExtras();
+// The player's voice clips (a story character's, or one of their own characters') join the configurations like V's voices, with three differences:
+// they are never copied (the workers read them from <state>/player-voices, named runtime/player-voices/<key>.wav), a clip replaces the shipped voice
+// of its character, and it is taken out of the startup preparation, so nothing is prepared or loaded before that character speaks. A clip given or
+// removed while the service runs counts from the next start; until then a character keeps the voice it had (a custom character with no clip: the
+// voice of its gender, aliases below). Only story characters and the player's existing characters may have one; a clip of a character the player
+// deleted is removed here.
+const playerVoiceAllowed = key => isCustomKey(key) ? customCharacters.has(key) : roster.some(row => row?.key === key && row.kind === 'named');
+await playerVoices.prune(key => !isCustomKey(key) || customCharacters.has(key));
+const playerVoiceExtras = await playerVoices.extras(playerVoiceAllowed);
 const voiceConfigPaths = await addonHost.voiceConfigPaths(resolveVoiceConfigPaths(stateDirectory), {stateDirectory,
-  roots: referenceRoots, extra: extraVoices(vVoiceReferences).concat(customVoiceExtras)});
+  roots: referenceRoots, extra: extraVoices(vVoiceReferences).concat(playerVoiceExtras), playerVoiceDirectory: playerVoices.folder});
 for (const warning of voiceConfigPaths.warnings) console.error('[CyberpunkConvai] Voice configuration: ' + warning);
 const readVoiceConfig = async path => JSON.parse(await readFile(path, 'utf8').catch(error => {
   if (error.code === 'ENOENT') return '{}';
@@ -174,14 +186,16 @@ const readVoiceConfig = async path => JSON.parse(await readFile(path, 'utf8').ca
 const localVoiceConfigPath = voiceConfigPaths.pocket;
 const voiceConfig = await readVoiceConfig(localVoiceConfigPath);
 const omniVoiceConfigs = {short: await readVoiceConfig(voiceConfigPaths.omni.short), long: await readVoiceConfig(voiceConfigPaths.omni.long)};
-// What a custom character's clip leaves outside the data folder goes when the clip or the character does, and anything no character owns is swept
-// here at start: the copies the voice merge made under <reference root>/addons/ and the prepared setups Pocket saved (<work>/prepared-voices,
-// bridge/prepared-voices.mjs). Nothing else is touched (releaseVoiceFiles names exactly the files it may remove).
+// What a custom character's voice leaves outside the data folder goes when the character does, and anything no character owns is swept here at
+// start: the prepared setups Pocket saved (<work>/prepared-voices, bridge/prepared-voices.mjs) and copies older builds made under
+// <reference root>/addons/. Nothing else is touched (releaseVoiceFiles names exactly the files it may remove). Voxtral's slots of player clips
+// that no clip owns any more are swept too (releasePreparedSlots).
 const customVoiceFolders = () => ({roots: [...referenceRoots, voiceConfig.runtime?.referenceDirectory],
   preparedFolder: typeof voiceConfig.runtime?.workDirectory === 'string' && voiceConfig.runtime.workDirectory ? resolve(voiceConfig.runtime.workDirectory, 'prepared-voices') : null});
 const releaseCustomVoice = key => releaseVoiceFiles({key, ...customVoiceFolders()});
-void releaseVoiceFiles({keep: new Set(customVoiceExtras.map(voice => voice.key)), ...customVoiceFolders()})
+void releaseVoiceFiles({keep: new Set(customCharacters.list().map(row => row.key)), ...customVoiceFolders()})
   .then(count => { if (count) console.error(`[Custom] ${count} voice file(s) of deleted characters removed`); }).catch(() => {});
+void releasePreparedSlots({folder: resolve(stateDirectory, PLAYER_PREPARED_FOLDER), keep: new Set(playerVoices.list().map(clip => clip.key))}).catch(() => {});
 let voiceMetricsWriting = Promise.resolve();
 const phoneAnalysisConfigPath=resolve(stateDirectory,'phone-analysis.json');
 let phoneAnalysisConfig={};
@@ -209,22 +223,26 @@ const jaliFace = await JaliFace.load(resolve(stateDirectory, 'lipsync-model')).c
 // The reference clip is sent with every request, so a smaller one is a shorter wait for the first sound (bridge/voxtral-reference.mjs):
 // 24 kHz mono (the clone keeps only the bandwidth of its reference) and cut to about 8.5 s (Ogg Vorbis as well when ffmpeg is on the machine; MP3 stops at 11.3 kHz), prepared once per character and kept in <references>/prepared
 // (the Runtime's own pre-built slots are read from <references>/prepared-runtime when that one has none that fits, or only a WAV or MP3 where the Runtime has the Ogg).
-// CYBERPUNK_CONVAI_VOXTRAL_FULL_REFERENCE=1 sends the clips whole, as before.
+// CYBERPUNK_CONVAI_VOXTRAL_FULL_REFERENCE=1 sends the clips whole, as before. A player's clip (playerRoot) is read from the data folder and its
+// prepared slot is kept there too (<state>/player-voices-prepared), never in the references folder of the game.
 // Reply streaming (bridge/reply-stream.mjs): on unless settings.json "replyStreaming": false or this variable is 0. Kept up here, beside the other
 // environment reads, so the sections of this file that tests evaluate on their own never touch `process`.
 const replyStreamingForcedOff = process.env.CYBERPUNK_CONVAI_REPLY_STREAM === '0';
 let replyStreaming = !replyStreamingForcedOff;
 const voxtralReferenceRoot = process.env.CYBERPUNK_CONVAI_OMNI_REFERENCES || resolve(stateDirectory, 'voice-references');
+const voxtralPreparers = process.env.CYBERPUNK_CONVAI_VOXTRAL_FULL_REFERENCE === '1' ? null : {
+  shipped: createReferencePreparer({cacheDirectory: resolve(voxtralReferenceRoot, PREPARED_FOLDER), shippedDirectories: [resolve(voxtralReferenceRoot, RUNTIME_PREPARED_FOLDER)], onLog: message => process.stderr.write(`[Voxtral] ${message}\n`)}),
+  player: createReferencePreparer({cacheDirectory: resolve(stateDirectory, PLAYER_PREPARED_FOLDER), onLog: message => process.stderr.write(`[Voxtral] ${message}\n`)}),
+};
 const voxtralVoice = new VoxtralVoice({getKey: () => { try { return mistral.apiKey ?? null; } catch { return null; } },
-  referenceRoot: voxtralReferenceRoot,
-  prepare: process.env.CYBERPUNK_CONVAI_VOXTRAL_FULL_REFERENCE === '1' ? undefined
-    : createReferencePreparer({cacheDirectory: resolve(voxtralReferenceRoot, PREPARED_FOLDER), shippedDirectories: [resolve(voxtralReferenceRoot, RUNTIME_PREPARED_FOLDER)], onLog: message => process.stderr.write(`[Voxtral] ${message}\n`)}),
+  referenceRoot: voxtralReferenceRoot, playerRoot: playerVoices.folder,
+  prepare: voxtralPreparers ? (bytes, options = {}) => (options.player ? voxtralPreparers.player : voxtralPreparers.shipped)(bytes, options) : undefined,
   onLog: message => process.stderr.write(message)});
 // The Inworld cloud voice (docs/CLOUD_VOICE_INWORLD.md): the same kind of choice, on the player's own Inworld key (player-inworld-key.txt in
 // the state folder, pasted in Settings). Each character is cloned once from the same reference clips; the voice ids are kept in
 // player-inworld-voices.json in the state folder. `inworldKey` is loaded below with the other keys.
 const inworldKey = await new InworldKey({keyPath: resolve(stateDirectory, INWORLD_KEY_FILE)}).load();
-const inworldVoice = new InworldVoice({getKey: () => inworldKey.key, referenceRoot: voxtralReferenceRoot,
+const inworldVoice = new InworldVoice({getKey: () => inworldKey.key, referenceRoot: voxtralReferenceRoot, playerRoot: playerVoices.folder,
   storePath: resolve(stateDirectory, 'player-inworld-voices.json'), onLog: message => process.stderr.write(message)});
 const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
   phoneAnalysis: jaliFace ? undefined : phoneAnalysis,
@@ -3077,7 +3095,8 @@ const setupCheck = await SetupCheckControl.open({runtime, log: message => consol
     nestedPacks: () => findNestedPacks({game, modRoot: resolve(runtime, '..'), plugin: resolve(game, 'red4ext/plugins/AiNpcCyberpunkMod')}),
     placement: () => readPackPlacement({stateDirectory, startedAt: bridgeStartedAt})})});
 // Settings > Edit characters: a local page, served only while it is open (bridge/character-editor-server.mjs).
-const characterEditor = new CharacterEditor({personas: personaBook, overrides: characterOverrides, memory: mistralMemory, route: () => mistral.route, custom: customCharacters});
+const characterEditor = new CharacterEditor({personas: personaBook, overrides: characterOverrides, memory: mistralMemory, route: () => mistral.route, custom: customCharacters,
+  voices: playerVoices});
 const editorControl = await EditorControl.open({server: new EditorServer({editor: characterEditor, log: message => console.error('[Editor] ' + message)}),
   commandPath: resolve(runtime, 'editor-command.json'), statusPath: resolve(runtime, 'editor-status.json'),
   log: message => console.error('[Editor] ' + message)});
