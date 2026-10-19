@@ -163,7 +163,7 @@ export function serviceEnvironment(layout, {omni, keyFile}, source = process.env
   for (const name of ['NODE_OPTIONS', 'NODE_PATH', 'PYTHONPATH', 'PYTHONHOME', 'PYTHONSTARTUP', 'PYTHONUSERBASE',
     'CYBERPUNK_CONVAI_PYTHON', 'CYBERPUNK_CONVAI_OMNI_MODEL', 'CYBERPUNK_CONVAI_OMNI_ADAPTER',
     'CYBERPUNK_CONVAI_OMNI_REFERENCES', 'CYBERPUNK_CONVAI_OMNI_CACHE', 'CYBERPUNK_CONVAI_RHUBARB',
-    'CYBERPUNK_CONVAI_LIPSYNC_WORK', 'CYBERPUNK_CONVAI_DAILY_LIMIT',
+    'CYBERPUNK_CONVAI_LIPSYNC_WORK', 'CYBERPUNK_CONVAI_DAILY_LIMIT', 'CYBERPUNK_CONVAI_GAME_STATE',
     // A developer's Local AI folder or model files must not leak into a player's service (docs/LOCAL_AI.md).
     'CYBERPUNK_CONVAI_LOCAL_AI_DEV', 'CYBERPUNK_CONVAI_LOCAL_SERVER', 'CYBERPUNK_CONVAI_LOCAL_MODEL',
     'CYBERPUNK_CONVAI_LOCAL_LITE_MODEL', 'CYBERPUNK_CONVAI_LOCAL_EMBED_MODEL']) delete env[name];
@@ -178,6 +178,9 @@ export function serviceEnvironment(layout, {omni, keyFile}, source = process.env
     // and its pre-built prepared/ clips from here, so it is set with or without the OmniVoice pack.
     CYBERPUNK_CONVAI_OMNI_REFERENCES: layout.voices,
   });
+  // The folder of the copies of the player's state files in runtime/ (bridge/game-state.mjs, docs/PACKAGING.md "Mod Organizer 2"): the bridge keeps
+  // them current. Only with a data home outside the game folder, where Mod Organizer 2 cannot lose them; a copy inside the game folder is no safer.
+  if (layout.dataHome) env.CYBERPUNK_CONVAI_GAME_STATE = resolve(layout.state, 'game-state');
   if (omni) Object.assign(env, {
     CYBERPUNK_CONVAI_PYTHON: layout.omniPython,
     CYBERPUNK_CONVAI_OMNI_MODEL: layout.omniModel,

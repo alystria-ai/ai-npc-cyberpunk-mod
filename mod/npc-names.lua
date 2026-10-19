@@ -269,7 +269,8 @@ end
 --   options.inCombat(npc)       true when the NPC is fighting (the scanner leaves them alone)
 --   options.apply(npc, name)    puts the name into the scanner chunk (redscript NPCPuppet.ConvaiApplyScannerName)
 --   options.pools / options.loadPools   the pools, or how to load them (default dofile('npc-name-pools.lua'))
---   options.log, options.json, options.io, options.storePath
+--   options.log, options.json, options.io, options.storePath (default runtime/npc-names.json), options.legacyPath (where the file used to
+--   be, next to init.lua; read until runtime/ has one), options.waiting() (true while the service may still be restoring the file)
 M.STORE_CAP = 128
 M.CACHE_CAP = 512
 
@@ -282,7 +283,16 @@ function M.new(options)
     local store
     local jsonLib = options.json or json
     local ioLib = options.io or io
-    local storePath = options.storePath or 'npc-names.json'
+    local storePath = options.storePath or 'runtime/npc-names.json'
+    -- The file lives with the other player state in runtime/ (the service keeps a copy outside the game folder, bridge/game-state.mjs); a
+    -- store an earlier version saved next to init.lua is read until one exists there.
+    local legacyPath = options.legacyPath
+    if legacyPath == nil and options.storePath == nil then legacyPath = 'npc-names.json' end
+    local function waiting()
+        if options.waiting then return options.waiting() == true end
+        local restore = convaiStateRestore
+        return restore ~= nil and restore.waiting() == true
+    end
     local function log(line) if options.log then pcall(options.log, line) end end
 
     local function loadPools()
@@ -292,27 +302,39 @@ function M.new(options)
         if ok and type(loaded) == 'table' and type(loaded.cultures) == 'table' then pools = loaded end
         return pools
     end
+    local function readText(path)
+        local file = ioLib.open(path, 'rb')
+        if not file then return nil end
+        local text = file:read('*a'); file:close()
+        return text
+    end
     local function readStore()
         if store then return store end
-        store = {names = {}, order = {}}
-        local file = ioLib.open(storePath, 'rb')
-        if file then
-            local text = file:read('*a'); file:close()
+        local text = readText(storePath)
+        if (text == nil or text == '') and legacyPath then text = readText(legacyPath) end
+        local kept = {names = {}, order = {}}
+        if text == nil or text == '' then
+            -- Missing or empty while the service may still be restoring its copy (mod/state-restore.lua): this name is made but not kept,
+            -- and the file is looked at again for the next vendor.
+            if waiting() then kept.transient = true; return kept end
+        else
             local ok, decoded = pcall(jsonLib.decode, text)
             if ok and type(decoded) == 'table' and type(decoded.names) == 'table' then
                 for _, key in ipairs(decoded.order or {}) do
                     if type(key) == 'string' and type(decoded.names[key]) == 'string' then
-                        store.names[key] = decoded.names[key]; store.order[#store.order + 1] = key
+                        kept.names[key] = decoded.names[key]; kept.order[#kept.order + 1] = key
                     end
                 end
             end
         end
+        store = kept
         return store
     end
-    local function writeStore()
+    local function writeStore(kept)
+        if kept.transient then return false end
         local file = ioLib.open(storePath, 'wb')
         if not file then return false end
-        local ok, text = pcall(jsonLib.encode, {version = 1, names = store.names, order = store.order})
+        local ok, text = pcall(jsonLib.encode, {version = 1, names = kept.names, order = kept.order})
         if ok then file:write(text) end
         file:close()
         return ok
@@ -335,7 +357,7 @@ function M.new(options)
             local oldest = table.remove(kept.order, 1)
             kept.names[oldest] = nil
         end
-        writeStore()
+        writeStore(kept)
         return result
     end
 

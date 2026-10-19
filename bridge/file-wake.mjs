@@ -36,6 +36,22 @@ export function createWakeSignal() {
   };
 }
 
+/**
+ * Several sets of handlers for watchFiles in one: a file named in more than one set runs every handler (an add-on's reader and the
+ * player-state copy both follow addon-settings.json), in the order given.
+ */
+export function mergeHandlers(...sets) {
+  const merged = {};
+  for (const set of sets) {
+    for (const [name, handler] of Object.entries(set ?? {})) {
+      if (typeof handler !== 'function') continue;
+      const before = merged[name];
+      merged[name] = before ? () => { Promise.resolve().then(before).catch(() => {}); return handler(); } : handler;
+    }
+  }
+  return merged;
+}
+
 export function watchFiles(directory, handlers, {watch = fsWatch, delayMs = FILE_WAKE_DELAY_MS, setTimer = setTimeout,
   clearTimer = clearTimeout, log = () => {}} = {}) {
   const names = new Set(Object.keys(handlers ?? {}).filter(name => typeof handlers[name] === 'function'));
