@@ -185,7 +185,7 @@ const jaliFace = await JaliFace.load(resolve(stateDirectory, 'lipsync-model')).c
 // The key is read from the Mistral provider on each call (it can be pasted or removed while the game runs); `mistral` is created below.
 // The reference clip is sent with every request, so a smaller one is a shorter wait for the first sound (bridge/voxtral-reference.mjs):
 // 24 kHz mono (the clone keeps only the bandwidth of its reference) and cut to about 8.5 s (Ogg Vorbis as well when ffmpeg is on the machine; MP3 stops at 11.3 kHz), prepared once per character and kept in <references>/prepared
-// (the Runtime's own pre-built slots are read from <references>/prepared-runtime when that one has none that fits).
+// (the Runtime's own pre-built slots are read from <references>/prepared-runtime when that one has none that fits, or only a WAV or MP3 where the Runtime has the Ogg).
 // CYBERPUNK_CONVAI_VOXTRAL_FULL_REFERENCE=1 sends the clips whole, as before.
 // Reply streaming (bridge/reply-stream.mjs): on unless settings.json "replyStreaming": false or this variable is 0. Kept up here, beside the other
 // environment reads, so the sections of this file that tests evaluate on their own never touch `process`.

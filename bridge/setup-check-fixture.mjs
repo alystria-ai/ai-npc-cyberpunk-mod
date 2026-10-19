@@ -137,7 +137,7 @@ function put(path, value) files[path] = type(value) == 'string' and value or jso
 
 -- the game as CET shows it: env says what is installed; applyEnv() builds the globals from it (call it again after changing env)
 env = {cet = '1.37.1', gameVersion = '2.31', codeware = '1.20.5', tweakxl = '1.11.4', audioware = '1.9.9', scripts = true,
-  native = false, mcm = 'ok', player = true, paused = false, menu = false}
+  native = false, nsui = 'ok', player = true, paused = false, menu = false}
 gameCalls, requirementCalls = 0, 0
 function applyEnv()
   GetVersion = env.cet and function() return env.cet end or nil
@@ -145,9 +145,14 @@ function applyEnv()
   TweakXL = env.tweakxl and {Version = function() return env.tweakxl end} or nil
   convaiNative = env.native and {present = true} or nil
   GetMod = function(name)
-    assert(name == 'ModConfigurationMenuAPI')
-    if env.mcm == 'ok' then return {apiVersion = 2, providers = {}} end
-    if env.mcm == 'old' then return {apiVersion = 1} end
+    assert(name == 'nativeSettings' or name == 'NativeSettings')
+    local function noop() end
+    if env.nsui == 'ok' and name == 'nativeSettings' then
+      return {version = 1.96, data = {}, addTab = noop, addSubcategory = noop, removeSubcategory = noop, removeOption = noop, addSwitch = noop,
+        addRangeInt = noop, addSelectorString = noop, addButton = noop, setOption = noop, registerRestoreDefaultsCallback = noop}
+    end
+    -- An old copy has the tab and the options but not what a page that changes in place needs.
+    if env.nsui == 'old' and name == 'nativeSettings' then return {version = 1.2, data = {}, addTab = noop, addSwitch = noop} end
     return nil
   end
   local real = {

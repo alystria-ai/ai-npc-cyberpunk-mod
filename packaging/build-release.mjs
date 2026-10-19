@@ -458,6 +458,10 @@ async function runtimePackage(source, config, models, key) {
   const pocketConfig = JSON.parse(await readFile(models.files.get(configs.bucket + 'pocket-voices.autobest.json'), 'utf8'));
   await verifyPocketModel(pocketConfig, models.files, group('app/models/pocket/'));
   pkg.json(`${app}/defaults/pocket-voices.autobest.json`, templateOf(pocketConfig));
+  // The Runtime's own OmniVoice lists, beside the Pocket list: app/launcher/prepare-state.mjs reads them before the pack's copy in app/omni/defaults.
+  // Every Runtime carries them, because nothing deletes an earlier version's files: a list an older Runtime left in app/defaults would
+  // otherwise win over a newer pack's at every start (docs/PACKAGING.md, "Packs reused unchanged"). Without the pack they are not used.
+  for (const name of OMNI_LIST_NAMES) pkg.json(`${app}/defaults/${name}`, await omniListOf(models.files.get(configs.bucket + name), name, config.toolchain.omniModel));
   for (const name of config.releaseData.managed) pkg.file(`${app}/defaults/${name}`, resolve(source.root, 'packaging/release-data', name));
   // Scrambled, not a greppable api-key line (bridge/key-codec.mjs); the packed file is also what marks the key as the
   // project's shared one, which the bridge limits per day.
@@ -555,6 +559,16 @@ async function voxtralCache(source, models, directory, configs, {except = new Ma
   }
   await rm(root, {recursive: true, force: true});
   return {directory, keys: kept, bytes, skipped};
+}
+
+// The OmniVoice lists, in the Runtime's app/defaults and the pack's app/omni/defaults alike.
+const OMNI_LIST_NAMES = Object.freeze(['local-voices.autobest-short.json', 'local-voices.autobest-long.json']);
+// One list as it ships: checked against the pinned OmniVoice model and without the picker's proposal. The Runtime and the pack get the same text.
+async function omniListOf(path, name, model) {
+  const value = JSON.parse(await readFile(path, 'utf8'));
+  if (value.revision !== model.revision) throw Error(`${name} names OmniVoice ${value.revision}, not the packaged ${model.revision}.`);
+  const copy = structuredClone(value); delete copy.proposal;
+  return copy;
 }
 
 function templateOf(config) {
@@ -657,12 +671,11 @@ async function omniPackage(source, config, models) {
   // OmniVoice voice configurations and their reference clips.
   const configs = config.models.groups.find(item => item.target === 'voice-configs/');
   const seen = new Set(), values = {};
-  for (const name of ['local-voices.autobest-short.json', 'local-voices.autobest-long.json']) {
+  for (const name of OMNI_LIST_NAMES) {
     const value = values[name] = JSON.parse(await readFile(models.files.get(configs.bucket + name), 'utf8'));
-    if (value.revision !== model.revision) throw Error(`${name} names OmniVoice ${value.revision}, not the packaged ${model.revision}.`);
-    const copy = structuredClone(value); delete copy.proposal;
-    // The Runtime may carry a newer copy of this list in app/defaults, which the launcher prefers (packaging/runtime/prepare-state.mjs).
-    pkg.json(`${omni}/defaults/${name}`, copy);
+    // The Runtime carries the same list in app/defaults (a newer one, once this pack is reused by a later version), which the launcher prefers
+    // (packaging/runtime/prepare-state.mjs).
+    pkg.json(`${omni}/defaults/${name}`, await omniListOf(models.files.get(configs.bucket + name), name, model));
     for (const [rel, path] of await referencesOf(value, models)) {
       if (seen.has(rel)) continue;
       seen.add(rel); pkg.file(`${plugin}/voices/${rel}`, path);

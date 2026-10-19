@@ -149,7 +149,7 @@ The same rules as Mistral. A cloud voice loads no local model: Voxtral needs a M
 | `bridge/reasoning.mjs` | Models that think first: the field that asks for less thinking and its steps, the filter that drops thoughts from a stream, the evidence that a reply went to thinking, the larger budget and `/no_think`. |
 | `bridge/text-provider-host.mjs` | `customRoute`: one model, no pacing, the Retry-After gate, per-session refusals. The host, prompt, memory, streaming and reply checks are shared with Mistral. |
 | `bridge/mistral-key.mjs` | `MistralProvider` knows the `custom` preference and when it is ready; notices `custom-no-setup` and `custom-voice`. |
-| `mod/custom-provider.lua` | The game side: the state file, the commands, the row texts. `mod/mcm.lua` only draws them. |
+| `mod/custom-provider.lua` | The game side: the state file, the commands, the row texts. `mod/manager-ui.lua` only draws them. |
 
 ## Testing
 

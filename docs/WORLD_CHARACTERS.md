@@ -100,7 +100,7 @@ Emotions: nothing new. The reply's emotion timeline (the Expressive emotions set
 | `mod/character-catalog.lua` | `resolve`: `actor.story` lets the roster profile resolve for a world character; no other change |
 | `mod/speech.lua` | two hook points (`M.storyGuard`): before a reply starts and while it plays |
 | `mod/facial-playback.lua` | `applyStoryTalk`; `storyEntity` (the writer's safety check without the scene flag for that speaker) |
-| `mod/manager.lua`, `mod/mcm.lua` | the setting `storyConversations` (off by default; a missing key counts as off), its row and help text |
+| `mod/manager.lua`, `mod/manager-ui.lua` | the setting `storyConversations` (off by default; a missing key counts as off), its row and help text |
 | `mod/notices.lua`, `docs/NOTIFICATIONS.md` | the `talk-busy` notice |
 | `r6/scripts/CyberpunkConvai/Face.reds` | `m_storyTalk`, `SetStoryTalk`, `StoryTalk`, `PrepareStoryFace`, the story branch of `TalkRefusal` |
 | `localization/en.json`, `mod/locales/*.lua` | three strings, 15 locales |
