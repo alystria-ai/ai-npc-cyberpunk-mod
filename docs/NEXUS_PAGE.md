@@ -105,7 +105,10 @@ No. Companions are temporary copies that the mod owns. The game's own story char
 With Convai, your lines go to Convai, along with a recent picture of only the game window so characters can see where you are. It is taken only while someone you can talk to is near, kept in memory for a few seconds and never saved. With Mistral, your lines go to Mistral. With Local AI, nothing leaves your computer for replies.
 
 [b]Can I make my own characters?[/b]
-Yes, with Mistral or Local AI. Face a character that has no profile here (for example a Night City Allies follower from a character mod), open Settings > Edit characters > Open and choose New character in the page that opens. Give them a name, a bio and a way of speaking; the page can fill in how the game recognises them from the character you are facing. An optional voice clip (10 to 18 seconds of clean speech in a WAV file, with the words typed out) gives them a voice of their own from the next game start. With Convai they talk as an ordinary person, and the game says so once.
+Yes, with Mistral or Local AI. Face a character that has no profile here (for example a Night City Allies follower from a character mod), open Settings > Edit characters > Open and choose New character in the page that opens. Give them a name, a bio and a way of speaking; the page can fill in how the game recognises them from the character you are facing. An optional voice clip gives them a voice of their own. With Convai they talk as an ordinary person, and the game says so once.
+
+[b]Can I change a character's voice?[/b]
+Yes. In the same editor page, open a story character's Voice tab (or one of your own characters) and choose Add voice clip: a WAV, MP3, OGG or FLAC file of 5 to 20 seconds of one person speaking clearly, with the words said in it typed out. Pocket, OmniVoice and Voxtral copy that voice from the next game start. Remove clip brings the original voice back. The clip stays on your PC.
 
 [b]What languages can I use?[/b]
 Menus come in sixteen languages. Turn on Multilingual conversations to talk in any language. Pocket and Voxtral speak English only, so those replies use OmniVoice, or Convai's cloud voice without the pack. The Convai microphone expects English, so type in other languages.
