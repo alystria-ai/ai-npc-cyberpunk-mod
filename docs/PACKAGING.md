@@ -66,13 +66,14 @@ red4ext/plugins/AiNpcCyberpunkMod/
     models/pocket/           Pocket student v2 + decoder v2 export
     models/lipsync/          lip-sync model, text stage and lexicon
     models/stt/              Moonshine Tiny English int8 (local speech recognition for the Mistral route; MIT)
-    defaults/                templates and managed defaults copied into data/ at start-up
+    defaults/                templates and managed defaults copied into data/ at start-up (the Pocket list, and the Runtime's own OmniVoice lists)
     launcher/                start-service.mjs, prepare-state.mjs, assemble-parts.mjs, migrate-legacy.mjs, place-packs.mjs, state-home.mjs
     licenses/                third-party notices (Python packages keep theirs in *.dist-info)
     omni/                    the OmniVoice pack, when installed
     local-ai/                the Local AI pack(s), when installed (llama/, models/, licenses/, manifest.*.json)
   voices/                    reference clips (outside app/: the Omni worker requires it)
-    prepared/                the Mistral voice's references, already cut and encoded (see below)
+    prepared/                the bridge's cache of the Mistral voice's references, and the OmniVoice pack's slots (see below)
+    prepared-runtime/        the Runtime's pre-built slots for the Pocket clips (read after prepared/, never written)
 red4ext/plugins/AiNpcCyberpunkModNative/
   CyberpunkConvaiNative.dll  the native core plugin (native/core, compiled in the build) and its licence texts
 bin/x64/plugins/cyber_engine_tweaks/mods/AiNpcCyberpunkMod/
@@ -188,13 +189,53 @@ ffmpeg would send the 408 KB WAV instead of the 38 KB Ogg, so the build makes th
 for every install (the Omni worker only exists with the pack, so this cannot trip its all-or-none check), which is where the bridge
 looks first.
 
-- The **Runtime** package carries the slots for the Pocket clips.
+- The **Runtime** package carries the slots for the Pocket clips, in `voices/prepared-runtime/`.
 - The **OmniVoice pack** carries the slots for the clips it adds (a Mistral voice clones from the OmniVoice long clip when the pack
-  is installed, else the short one, else Pocket's); a slot identical to the Runtime package's is not repeated. A slot is keyed by the
-  clip's hash, so a key whose clip differs overwrites the Runtime's. Extract the Runtime first and the OmniVoice pack second; the
-  other order only costs an ffmpeg re-encode (or the larger WAV) for those keys until the bridge rewrites the slot.
+  is installed, else the short one, else Pocket's), in `voices/prepared/`; a slot identical to the Runtime package's is not repeated.
+  A slot is keyed by the clip's hash (its signature), so the bridge (`createReferencePreparer`: `prepared/` first, then
+  `prepared-runtime/`, a hit only when the signature fits) finds the right one whichever folder holds it and whatever the extraction
+  order. With a mismatch it encodes the clip with ffmpeg (or sends the larger WAV) and writes the slot into `prepared/`; the Runtime's
+  folder is never written. (Until 0.2.1 the Runtime's slots were in `prepared/` too: 289 files that the OmniVoice pack also had, with other
+  bytes, which is what made Windows report 437 conflicts. See "Packs reused unchanged".)
 - The build needs `ffmpeg` on `PATH` (or `CYBERPUNK_CONVAI_FFMPEG`) and fails without it. The workflow installs it.
 - Slot files carry a fixed `written` time, so the same inputs give the same package.
+
+### Packs reused unchanged
+
+A new version rebuilds the Scripts and the Runtime, but the optional packs are several GB each, so a version that did not change them
+reuses the old zips as server-side copies under the new folder (0.2.1 and 0.2.2 hold the very bytes of 0.2). The Scripts and Runtime of
+the new version then meet OLD pack files in the player's game folder. If both carry a path with different bytes, Windows asks "Replace or
+skip?", and "Replace" puts an older file over a newer one (0.2.1: the OmniVoice pack's older voice lists over the Runtime's newer ones).
+
+**The rule: the Scripts and the Runtime never carry a path a published pack carries with other bytes.** Then Replace is always safe, which
+is what the install steps tell the player. A file both carry must be byte for byte the same (today only the install note). Whatever the Runtime has in a newer version than the pack's copy lives at a path the pack does not
+use, and the code looks there first:
+
+| Data | The pack's path (old copy, kept as the fallback) | The Runtime's path (read first) | Code |
+|---|---|---|---|
+| OmniVoice lists `local-voices.autobest-short.json` and `-long.json` | `app/omni/defaults/` | `app/defaults/` | `readOmniTemplate` in `packaging/runtime/prepare-state.mjs` |
+| Mistral voice slots (`<key>.json` + `<key>.ogg`) | `voices/prepared/` | `voices/prepared-runtime/` | `createReferencePreparer({shippedDirectories})` in `bridge/voxtral-reference.mjs` |
+
+The live-list pointer is not a shipped file: `voice-configs.json` in the data folder is rewritten at every start by `prepare-state.mjs`
+(Runtime), from the Runtime's list or the pack's. Nothing of it is in the Scripts. The state folder's copies of the lists are generated
+from the template, so a newer template reaches the bridge at the next start.
+
+Also true, and checked: the Runtime and Scripts put nothing in a tree only the OmniVoice pack writes (`app/omni/python/`, `voicestudio/`,
+`model/`); the 0.2.1 Runtime's three unused `voices/full-cast-draft/<key>/reference.wav` clips (coach-fred, jim-jarry, life-coach; the pack has them
+for its older lists) are left out (`RUNTIME_DROPS`); the five packs share files only byte for byte (the Local AI and Mature engine files, the licence texts); and
+the install note (`INSTALL_NOTE` in `build-release.mjs`) is the 574-byte text the Mature packs already contain, so it is fixed until
+the packs are rebuilt.
+
+**Checking a build.** `node packaging/check-pack-overlap.mjs check <zip>...` reads only the zip's directory and compares every shared path
+with `packaging/pack-listings/packs-0.2.1.json` (path, size and CRC-32 of the five 0.2.1 packs); it exits 1 and groups the offenders by
+folder. Run it on every Runtime and Scripts zip before upload. `packaging/pack-overlap.test.mjs` runs the same comparison on the real Scripts
+build and on the 0.2.1 Runtime's shared files (`runtime-0.2.1-shared.json`, to show the cause and the fix). When the packs are
+rebuilt, remake the listing from Hugging Face without downloading them (HTTP range requests: the directory of the 6.5 GB OmniVoice pack is
+3.5 MB; a URL is a pack's resolve/main/<version>/<file> link on the Hugging Face page, public, no token):
+
+```
+node packaging/check-pack-overlap.mjs listing packaging/pack-listings/packs-<version>.json OmniPack=<zip or URL> LocalAI-Standard=<zip or URL> LocalAI-Lite=<zip or URL> Mature-Standard=<zip or URL> Mature-Lite=<zip or URL>
+```
 
 ### Player state (`data/`)
 
@@ -258,7 +299,7 @@ ever modify or replace them (no player usvfs log was available; the design works
 
 
 - **Generated, refreshed every start:** `pocket-voices.autobest.json` (absolute paths for this
-  install), the two OmniVoice configs (with the pack), `voice-configs.json`, `lipsync-model/`.
+  install), the two OmniVoice configs (with the pack; from the Runtime's `app/defaults/`, else the pack's `app/omni/defaults/`), `voice-configs.json`, `lipsync-model/`.
 - **Managed until edited:** `characters.json` and
   `multilingual-profiles.json` follow the package; once the player edits one it is kept
   (`package-defaults.json` remembers what was written).

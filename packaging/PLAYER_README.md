@@ -42,7 +42,7 @@ You do not need to install anything else. The voice service, its voices and mode
 
 ## Install
 
-Close the game, then extract each download into your Cyberpunk 2077 folder (the folder that contains `bin`, `archive` and `r6`). Allow folders to merge.
+Close the game, then extract each download into your Cyberpunk 2077 folder (the folder that contains `bin`, `archive` and `r6`). Allow folders to merge. If Windows asks about files with the same names, choose Replace: it is always safe.
 
 1. **Scripts**: from Nexus Mods, with Vortex or by hand.
 2. **Runtime**: https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/blob/main/0.2.1/AI-NPC-Cyberpunk-Mod-Runtime-0.2.1.zip (the mod's Hugging Face page, 0.2.1 folder). Use the same version number as the Scripts.
