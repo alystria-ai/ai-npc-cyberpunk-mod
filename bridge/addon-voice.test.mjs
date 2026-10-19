@@ -94,7 +94,7 @@ test('no Convai connection, memory or warm-up is opened for an add-on voice turn
     }
   }
   assert.doesNotMatch(source('./addon-voice.mjs'), /^import /m, 'the module reaches nothing by itself');
-  assert.match(bridge, /const addonVoice = createAddonVoice\(\{isSpeaker: key => addonHost\.isSpeaker\(key\), speech: mistralSpeech,/);
+  assert.match(bridge, /const addonVoice = createAddonVoice\(\{isSpeaker: key => addonHost\.isSpeaker\(key\) \|\| customCharacters\.has\(key\), speech: mistralSpeech,/);
   assert.match(bridge, /const mic = new MicrophoneSession\(\{hostFactory: addonVoice\.hostFactory\(\(\) => realtime\.voiceChannel\(\)\),/);
   // Its reply step and its model-voice step skip the Convai text/voice route.
   assert.match(bridge, /prepareReply: async \(input, signal\) => \{\n    if \(addonVoice\.voice\(input\) \|\| localVoice\.playbackEnabled === false\) return;/);
