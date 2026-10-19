@@ -501,7 +501,7 @@ test('interface language persists atomically, localizes the schema and preserves
     assert(saved.uiLanguage=='fr' and convaiUiLocale.selection()=='fr')
     assert(convaiUiLocale.update(0))
     loaded=registered.loadMod('manager')
-    assert(loaded.categories[1].settings[1].label=='Retour à la gestion des compagnons')
+    assert(loaded.categories[1].settings[1].label=='Retour au gestionnaire')
     assert(row('uiLanguage').label~='Interface language' and row('uiLanguage').value==french)
     assert(row('uiLanguage').elements[2]=='English','language names must remain natively recognizable')
     local snapshot=manager.snapshot(player)

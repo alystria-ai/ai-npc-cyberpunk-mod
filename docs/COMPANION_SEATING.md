@@ -470,7 +470,7 @@ at tier 3 where V stands (a conversation) is not touched because the Workspot
 state is never entered. A scene where V is in some other workspot at tier 3 with no
 readable path would also be widened (no way to tell from the state alone); that
 only frees the camera. No setting (same decision as "Sit with you": a pure comfort
-fix, and a setting would touch the manager, the MCM and 15 locales); the numbers
+fix, and a setting would touch the manager, the Native Settings UI page and 15 locales); the numbers
 are constants at the top of the module.
 
 Cost: nothing per frame. Four Observe hooks that run only when the state machine
@@ -533,7 +533,7 @@ release, a walk the actuator never takes, the PSM settle and stand-up, the live 
 Install: **game restart** for the rebuilt `archive/pc/mod/convai_gestures.archive`
 (from `runtime\gestures\package\`), plus `mod/companion-seating.lua`,
 `gesture-catalog.lua`, `gesture-probe.lua`, `companions.lua`, `init.lua`,
-`manager.lua`, `mcm.lua` and the 15 locales. Developer mode on for the lines.
+`manager.lua`, `manager-ui.lua` and the 15 locales. Developer mode on for the lines.
 
 1. V's apartment couch: sit with one companion standing nearby. `player-workspot`
    says `unnamed: classify by the furniture`, `seat-classified` kind `couch`

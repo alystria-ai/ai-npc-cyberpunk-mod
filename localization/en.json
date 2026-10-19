@@ -4208,7 +4208,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/nsui.lua:396"
+        "mod/nsui.lua:407"
       ]
     },
     "Delete": {
@@ -6165,7 +6165,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/nsui.lua:387"
+        "mod/nsui.lua:398"
       ]
     },
     "Opened in your browser.": {
@@ -7698,7 +7698,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/nsui.lua:555",
+        "mod/nsui.lua:566",
         "mod/setup-check.lua:463"
       ]
     },
@@ -7801,7 +7801,7 @@
       "references": [
         "mod/manager-ui.lua:1587",
         "mod/manager.lua:1973",
-        "mod/nsui.lua:364"
+        "mod/nsui.lua:375"
       ]
     },
     "The address must start with https:// or http://.": {

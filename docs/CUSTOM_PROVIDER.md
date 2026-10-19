@@ -106,7 +106,7 @@ The same rules as Mistral. A cloud voice loads no local model: Voxtral needs a M
 | `bridge/mistral-client.mjs` | The one chat client; `provider: 'custom'` adds the optional key, the refused-field retry (`adapt`), the plain-JSON reply, 402, Retry-After and the OpenRouter headers. Mistral and local requests are built as before. |
 | `bridge/text-provider-host.mjs` | `customRoute`: one model, no pacing, the Retry-After gate, per-session refusals. The host, prompt, memory, streaming and reply checks are shared with Mistral. |
 | `bridge/mistral-key.mjs` | `MistralProvider` knows the `custom` preference and when it is ready; notices `custom-no-setup` and `custom-voice`. |
-| `mod/custom-provider.lua` | The game side: the state file, the commands, the row texts. `mod/mcm.lua` only draws them. |
+| `mod/custom-provider.lua` | The game side: the state file, the commands, the row texts. `mod/manager-ui.lua` only draws them. |
 
 ## Testing
 
