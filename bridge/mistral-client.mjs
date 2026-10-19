@@ -323,7 +323,8 @@ export async function warmConnection({provider = 'mistral', fetchImpl = globalTh
     const signal = AbortSignal.timeout(timeoutMs);
     const dispatcher = fetchImpl === globalThis.fetch ? await remoteDispatcher() : undefined;
     const one = async () => {
-      const response = await fetchImpl(target, {method: 'GET', signal, headers: {Accept: 'application/json'}, ...(dispatcher ? {dispatcher} : {})});
+      // The custom provider's origin root may be a whole web page (OpenRouter's is): a HEAD opens the connection and reads nothing.
+      const response = await fetchImpl(target, {method: provider === 'custom' ? 'HEAD' : 'GET', signal, headers: {Accept: 'application/json'}, ...(dispatcher ? {dispatcher} : {})});
       try { await response.arrayBuffer(); } catch { /* the body failed: the connection is gone, nothing to keep */ }
       return true;
     };

@@ -32,7 +32,7 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - Cyberpunk 2077 2.31 on Windows 10 or 11 (64-bit)
 - Install these from Nexus Mods first: Cyber Engine Tweaks, RED4ext, redscript, Codeware, TweakXL, Audioware and Mod Configuration Menu
 - A Chromium browser for the conversation service: Microsoft Edge, which comes with Windows, is enough. Google Chrome, Brave, Vivaldi, Opera and other Chromium browsers work too; Firefox does not
-- An internet connection while you talk with Convai, Mistral or the Voxtral voice (Local AI with a local voice needs none)
+- An internet connection while you talk with Convai, Mistral, a cloud Custom endpoint or the Voxtral voice (Local AI, or a Custom server on your own PC, with a local voice needs none)
 - About 3 GB of free disk space (about 15 GB more while installing the optional OmniVoice pack, 9 GB once installed)
 - Optional Local AI packs: about 5.3 GB for standard and about 1.4 GB for lite (about 11 GB free while installing the standard one, which counts the downloaded zip)
 
@@ -68,6 +68,18 @@ Convai free tier works out of the box with no setup and gives better quality res
 **Your own model server (advanced, optional).** If you already run a model in KoboldCpp, LM Studio, Ollama, a llama.cpp server or any program with an OpenAI-compatible API, Local AI can use it, with no Local AI pack. Put the server's address in the same `manifest.custom.json` as an `endpoint`, for example `{"version":1,"models":[{"endpoint":"http://127.0.0.1:5001/v1","name":"My Server"}]}`. Start the server before the game, then choose it by name in the Local AI model row, where it is marked "(custom)". A server on this computer or your home network needs nothing more; any other needs `"remote": true` and an `https://` address. The usual addresses and the other options are on the mod's Nexus Mods page.
 
 If your graphics card is short of memory the mod steps down by itself and keeps your voice before it keeps the model: the standard model gives way to the lite model, and if the lite model does not fit either, the text comes from Mistral or Convai, with one notice. Your voice only changes as a last resort. The standard model checks that about 6 GB of video memory is free when it starts; with less, the lite model is used.
+
+## Custom provider (advanced, optional)
+
+Settings > Conversation provider > **Custom (OpenAI-compatible)** uses any endpoint that speaks the OpenAI chat-completions protocol: OpenRouter, Nano-GPT, or a server on your own computer such as Ollama or LM Studio. The Custom rows sit under the Mistral row. Use their three Paste buttons in order, each after copying the value from your provider:
+
+1. **Paste endpoint URL**, the endpoint's base address. OpenRouter: `https://openrouter.ai/api/v1`. Nano-GPT: `https://nano-gpt.com/api/v1`. Ollama: `http://localhost:11434/v1`. LM Studio: `http://localhost:1234/v1`.
+2. The second button, for the access code of your account. A server on your own computer needs none.
+3. **Paste model ID**, a model name from the provider's list: for example `meta-llama/llama-3.1-8b-instruct` on OpenRouter, or `llama3.2` on Ollama.
+4. Press **Test connection**. It sends one tiny request and says OK, or what the provider answered.
+5. Choose **Custom (OpenAI-compatible)** as the provider and **Apply**.
+
+Each paste reads the clipboard once, checks it and saves it on your computer; **Remove** deletes it. Only the last four characters of the access code are ever shown, and it goes to that endpoint and nowhere else. An `http://` address works only for your own computer or home network; any other host needs `https://`. A server on your own PC must be running before the game starts. Nothing is sent until you choose the provider or press Test connection. Without an address and a model ID, conversations use Convai and one notice says so. The replies, their price and their limits are your provider's, and your lines go to it. The values are kept in `player-custom-endpoint.txt` in `%LOCALAPPDATA%AiNpcCyberpunkModdata`; its three lines are described in docs/CUSTOM_PROVIDER.md in the mod's repository.
 
 ## Choosing a setup
 

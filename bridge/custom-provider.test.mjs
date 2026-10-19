@@ -293,14 +293,15 @@ test('the key never appears in an error, a log line or what a server echoes back
 });
 
 test('a cloud connection is warmed only when the caller names an https origin', async () => {
-  const urls = [];
-  const fetchImpl = async url => { urls.push(String(url)); return {arrayBuffer: async () => new ArrayBuffer(0)}; };
+  const urls = [], methods = [];
+  const fetchImpl = async (url, init) => { urls.push(String(url)); methods.push(init.method); return {arrayBuffer: async () => new ArrayBuffer(0)}; };
   assert.equal(await warmConnection({provider: 'custom', fetchImpl}), false);
   assert.equal(await warmConnection({provider: 'custom', fetchImpl, origin: 'http://localhost:11434'}), false);
   assert.equal(await warmConnection({provider: 'custom', fetchImpl, origin: 'https://openrouter.ai/api/v1'}), false);
   assert.deepEqual(urls, []);
   assert.equal(await warmConnection({provider: 'custom', fetchImpl, origin: 'https://openrouter.ai', connections: 2}), true);
   assert.deepEqual(urls, ['https://openrouter.ai/', 'https://openrouter.ai/']);
+  assert.deepEqual(methods, ['HEAD', 'HEAD'], 'a HEAD: the root of a cloud host may be a whole web page');
 });
 
 // ---- The host: a whole turn --------------------------------------------------------------------------------------------------
