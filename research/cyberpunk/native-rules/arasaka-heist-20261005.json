@@ -7,6 +7,7 @@
   ],
   "profileKeys": [
     "arthur-jenkins",
+    "brick",
     "dexter-deshawn",
     "evelyn-parker",
     "frank-nostra",
@@ -15,6 +16,7 @@
     "johnny-silverhand",
     "meredith-stout",
     "nancy-hartley",
+    "patricia",
     "placide",
     "royce",
     "viktor-vektor",
@@ -2285,7 +2287,8 @@
       ],
       "audience": {
         "speakers": [
-          "jackie-welles"
+          "jackie-welles",
+          "brick"
         ],
         "perspective": "witnessed",
         "channels": [
@@ -2294,7 +2297,8 @@
         ],
         "recipients": [
           "v",
-          "jackie-welles"
+          "jackie-welles",
+          "brick"
         ]
       },
       "condition": {
@@ -2608,7 +2612,8 @@
       "audience": {
         "speakers": [
           "nancy-hartley",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "brick"
         ],
         "perspective": "participant",
         "channels": [
@@ -2618,7 +2623,8 @@
         "recipients": [
           "v",
           "nancy-hartley",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "brick"
         ]
       },
       "condition": {
@@ -2660,7 +2666,8 @@
       "audience": {
         "speakers": [
           "nancy-hartley",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "patricia"
         ],
         "perspective": "participant",
         "channels": [
@@ -2670,7 +2677,8 @@
         "recipients": [
           "v",
           "nancy-hartley",
-          "johnny-silverhand"
+          "johnny-silverhand",
+          "patricia"
         ]
       },
       "condition": {

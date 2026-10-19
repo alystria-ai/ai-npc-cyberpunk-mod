@@ -10,6 +10,8 @@ const url = path => new URL('../' + path, import.meta.url);
 const read = path => readFileSync(url(path), 'utf8').replace(/^﻿/u, '');
 const json = path => JSON.parse(read(path));
 
+const live = ['local-voices.autobest-short.json', 'local-voices.autobest-long.json', 'pocket-voices.autobest.json'];
+
 // Keys whose Convai character and twin exist (packaging/release-data); the rest are profile-only until provisioning.
 const PROVISIONED = new Set(Object.keys(json('packaging/release-data/characters.json')));
 
@@ -43,7 +45,6 @@ test('every batch character is a knowledge audience and a prepared local voice',
   }
 });
 
-const live = ['local-voices.autobest-short.json', 'local-voices.autobest-long.json', 'pocket-voices.autobest.json'];
 test('the live voice configs hold a ready reference for every batch character', {skip: !live.every(name => existsSync(url('runtime/' + name))) && 'runtime configs absent'}, () => {
   for (const name of live) {
     const voices = json('runtime/' + name).voices;
