@@ -126,9 +126,9 @@ Then delete `%LOCALAPPDATA%\AiNpcCyberpunkMod` (paste that into the Explorer add
 
 When something in the mod goes wrong, it sends a short error report to the developer's server, so problems can be fixed without asking you for logs. It is on by default. Settings > Privacy > Send error reports automatically turns it off; then nothing is recorded or sent. The first time you load the game after updating, a notice says so once.
 
-A report holds: the error and where in the code it happened; the versions of the mod, the game and the required mods; your conversation provider, voice and Local AI model choices; whether Mature content is on (on or off, nothing more); your graphics card's name and memory; the setup check's lines; and up to 150 log lines from around the error, with keys, IDs and your Windows user name removed. Your installation is identified only by a random number hashed twice.
+A report holds: the error and where in the code it happened; the versions of the mod, the game and the required mods; your conversation provider, voice and Local AI model choices and a few other settings (on or off); your graphics card's name and memory; the setup check's lines; and up to 150 log lines from around the error, with access codes, IDs and your Windows user name removed. Your installation is identified only by a random number hashed twice.
 
-A report never holds: API keys or tokens, what you or the characters say, typed lines, character memories, microphone audio, or your Windows user name. Your IP address is not stored. At most one report per kind of error per day and five a day in all are sent, in the background, never while a character is answering. Reports are kept for 30 days.
+A report never holds: access codes or passwords, what you or the characters say, typed lines, character memories, microphone audio, or your Windows user name. Your IP address is not stored. At most one report per kind of error per day and five a day in all are sent, in the background, never while a character is answering. Reports are kept for 30 days.
 
 ## Licence
 

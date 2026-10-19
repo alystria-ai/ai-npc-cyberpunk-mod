@@ -26,7 +26,7 @@ AI NPC Cyberpunk Mod gives the game's named characters, from Panam and Johnny to
 
 ## Free, three ways
 
-- **Fully local and free.** Download a Local AI pack and your characters think and speak entirely on your own PC, with the Pocket TTS voices: no account, no key, no internet, no limit. A lite model keeps smaller graphics cards in the game.
+- **Fully local and free.** Download a Local AI pack and your characters think and speak entirely on your own PC, with the Pocket TTS voices: no account, no key, no internet, no limit (only [error reports](#error-reports), if you leave them on, go out when something fails). A lite model keeps smaller graphics cards in the game.
 - **Mistral with a free account.** Make a free Mistral account, paste its key once, and get the fastest cloud replies, about 5,000 turns a day. The same key unlocks **Voxtral**, each character's voice made in the cloud, so neither the text nor the voice costs your PC anything.
 - **Convai free tier, no setup.** It is what you get the moment you install: no account, no key, nothing to set up, 100 turns a day. Install, start the game, talk.
 

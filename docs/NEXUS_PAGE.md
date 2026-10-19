@@ -79,6 +79,7 @@ All on the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-pac
 [*]Companion Manager > Settings > Conversation provider: choose [b]Local AI[/b] and press Apply. With only a Mature pack, also turn on [b]Mature content[/b].
 [*]Local AI speaks with Pocket TTS, already in the Runtime (English). For voices that sound like the game characters, and for other languages, add the OmniVoice pack and choose it in Settings > Voices.
 [*]If Windows asks whether node.js may use the network, you can decline: Local AI and the local voices only talk inside your PC.
+[*]For no network traffic at all, also turn off [b]Settings > Privacy > Send error reports automatically[/b].
 [/list]
 
 [size=4][b]Use your own AI model or model server[/b][/size]
@@ -103,6 +104,14 @@ No. Companions are temporary copies that the mod owns. The game's own story char
 
 [b]What leaves my computer?[/b]
 With Convai, your lines go to Convai, along with a recent picture of only the game window so characters can see where you are. It is taken only while someone you can talk to is near, kept in memory for a few seconds and never saved. With Mistral, your lines go to Mistral. With Local AI, nothing leaves your computer for replies.
+
+[b]Error reports[/b]
+When something in the mod goes wrong, it sends a short error report to the developer's server, so problems can be fixed without asking you for logs. It is on by default; [b]Settings > Privacy > Send error reports automatically[/b] turns it off, and then nothing is recorded or sent. The first time you load the game after updating, a notice says so once.
+[list]
+[*][b]A report holds:[/b] the error and where in the code it happened; the versions of the mod, the game and the required mods; your conversation provider, voice and Local AI model choices; whether Mature content is on (on or off only); your graphics card's name and memory; the setup check's lines; and up to 150 log lines from around the error, with keys, IDs and your Windows user name removed. Your installation is identified only by a random number, hashed twice.
+[*][b]It never holds:[/b] API keys or tokens, what you or the characters say, typed lines, character memories, microphone audio, or your Windows user name. Your IP address is not stored.
+[*][b]How often:[/b] at most one report per kind of error per day and five a day in all, sent in the background, never while a character is answering. Reports are kept for 30 days.
+[/list]
 
 [b]What languages can I use?[/b]
 Menus come in sixteen languages. Turn on Multilingual conversations to talk in any language. Pocket and Voxtral speak English only, so those replies use OmniVoice, or Convai's cloud voice without the pack. The Convai microphone expects English, so type in other languages.
