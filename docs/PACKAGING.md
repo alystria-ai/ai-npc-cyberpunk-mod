@@ -85,6 +85,7 @@ archive/pc/mod/              convai_facial, convai_gestures, cyberpunk_convai_am
 
 %LOCALAPPDATA%/AiNpcCyberpunkMod/   outside the game folder (packaging/runtime/state-home.mjs)
   data/                      player state, created on first start (before this change: mods/AiNpcCyberpunkMod/data)
+    game-state/              copies of the player's files in runtime/ (settings, phone chats, ...), written back at start (see "the player's state")
 ```
 
 RED4ext loads DLLs only from `red4ext/plugins/*.dll` and `red4ext/plugins/<name>/*.dll`
@@ -214,8 +215,8 @@ ever modify or replace them (no player usvfs log was available; the design works
 
 - **`packaging/runtime-exchange.json`** classifies every `runtime/` file name the shipped Lua and the bridge use: `exchange` (about 70
   files; shipped as **empty placeholders in the Scripts package** by `scriptsPackage`), `state` (settings, chat history, witness
-  receipts, decision ledger, add-on settings: never shipped, an update would wipe the player's data; their writers keep the temp-file
-  and backup protection), `optional` (switch and probe files made by hand, and the knowledge-service files that the shipped bridge never
+  receipts, decision ledger, add-on settings, NPC names: never shipped, an update would wipe the player's data; their writers keep the
+  temp-file and backup protection, and the service keeps a copy outside the game folder, see "the player's state" below), `optional` (switch and probe files made by hand, and the knowledge-service files that the shipped bridge never
   runs: a missing file is harmless) and `elsewhere` (names that are not in the mod folder). `packaging/runtime-exchange.test.mjs` fails
   when a new `runtime/` name appears unclassified, when shipped Lua that uses exchange files calls `os.remove`/`os.rename` or names a
   `.tmp` (the three files that also write state are listed with the reason), and when the bridge deletes an exchange file.
@@ -233,13 +234,77 @@ ever modify or replace them (no player usvfs log was available; the design works
   in place.
 - **Legacy carry-over** (`migrate-legacy.mjs`): an empty file at the new place is a placeholder and takes the old content in place
   (nothing is displaced); the volatile files it purges from the new `runtime/` are emptied, not deleted.
-- **Not covered:** the `state` files above are created by their first write (Overwrite under MO2, so those settings do not persist
-  across launches there; see TODO.md); the `.native-tmp` file of the optional native plugin's atomic write; the Audioware reply
+- **Not covered:** the Lua's own temp-file, backup and swap protocol for the `state` files is unchanged (what it leaves in
+  `runtime/` is kept by the service's copy, see "the player's state" below); the `.native-tmp` file of the optional native plugin's atomic write; the Audioware reply
   bank (`r6/audioware/CyberpunkConvai`) already ships its slot files and `speech.yml`, and only the transient `reply-pre-*.tmp` is new;
   `knowledge-fact-commits/<generation>.json` (run-time names; dormant); CET's own `AiNpcCyberpunkMod.log`.
 - **Live check on MO2** (not done): install Scripts and Runtime physically, start the game from MO2 with the service on, talk to a
   companion, quit; Overwrite should hold only CET's `AiNpcCyberpunkMod.log` and the `state` files. Start again: the mod loads and
   talking works from the first turn.
+
+### Mod Organizer 2: the player's state (settings, phone chats)
+
+The `state` files cannot be shipped as placeholders (a zip extracted over an install would wipe the player's data) and, created by the
+game or the service under MO2, they would not survive a launch. So the service keeps a durable copy of each in
+`%LOCALAPPDATA%\AiNpcCyberpunkMod\data\game-state\` and writes it back before the game's Lua reads it. The set (`GAME_STATE_FILES` in
+`bridge/game-state.mjs`, kept equal to the manifest's `state` class by a test): `settings.json`, `phone-history.json` (each with its
+`.previous`), `memory-chat-resets.json`, `witness-receipts.json`, `decision-ledger.json`, `addon-settings.json` and `npc-names.json`.
+`npc-names.json` belongs to the set: the Lua used to write it next to `init.lua`, outside the manifest, which under MO2 is a new file in
+the mod folder's root; it is now `runtime/npc-names.json` (a store saved next to `init.lua` by an earlier version is read until one exists
+there).
+
+- **At start (Runtime package, `start-service.mjs`).** `restoreGameState` runs first, right after the layout is known and before the
+  legacy carry-over, the data move and `prepareState`. Per file: a real, non-empty file always wins and refreshes the copy (when it is more
+  than 2 s older than the copy it replaces, that copy is kept in `game-state/older/`, one slot per file); a missing or an empty file gets the
+  copy written into it in place (an existing file is modified, never swapped; a missing one is created, which under MO2 lands in Overwrite
+  and is visible for this session); JSON that does not parse is neither copied nor restored. A start with nothing to do is two stats per file,
+  and a read only when size or time differ (a copy carries the time of the file it came from). Then it writes `runtime/state-restore.json`
+  (`{version, state: "done", written, restored, refreshed, errors}`, an exchange file shipped empty in the Scripts package). Without a data
+  home outside the game folder (`CYBERPUNK_CONVAI_DATA_HOME` unset and no `%LOCALAPPDATA%`) nothing is restored and no signal is written.
+- **While the service runs (Runtime package, `bridge/game-state.mjs` `GameStateSync`).** The 500 ms settings poll stats each file and a
+  directory watcher runs the same pass a few milliseconds after a save (`bridge/file-wake.mjs`); only a changed file is read, and it is
+  copied only when it is not empty and parses (temporary file, rename, time set). A pass at shutdown copies the Lua's last save. It never
+  fills a file in, never deletes a main file's copy, and drops a `.previous` copy only after it saw the backup go. On when the launcher
+  sets `CYBERPUNK_CONVAI_GAME_STATE` (the copies folder; only with a data home); a development bridge does nothing.
+- **Startup order, and how the restore beats the first read.** The RED4ext launcher starts the service when the game process starts;
+  CET loads the mod only once the engine and its scripts are up (seconds to tens of seconds later), so the restore (a few stats and
+  writes in a Node process that has just started) almost always finishes first. That is not measured, so the Lua does not rely on it
+  (`mod/state-restore.lua`, a global `convaiStateRestore` that `init.lua` sets before anything reads these files): a reader that finds its
+  file **missing or empty** asks `waiting()`. While it is true the reader uses defaults in memory only, saves nothing, and asks again
+  later; when it turns false the file is read again. A signal counts only if it was written after this game session began
+  (`os.time() - os.clock()`; the file is shipped empty and modified in place, so last session's signal is still there at the next launch).
+  With no signal at all (an older Runtime, the service not started) waiting ends 120 s after the first question and the reader carries on
+  as it always did. A file that is there is never waited for, and nothing is asked per frame.
+  `manager.lua`: the settings stay in memory (`settingsDeferred`); `saveSettings` refuses; the next `loadSettings` after the restore reads
+  the file, and `initialize` hands the restored voice, subtitle and enabled values to the game again. `phone-chat.lua`: the store is empty
+  in memory (`storePending`), nothing binds to a world and nothing is saved until the restore is over, then it is read again (checked on
+  the 10 Hz tick). `addons.lua`: the add-ons register with defaults, the commit refuses to write, and the saved values are merged in after
+  the restore. `npc-names.lua`: a vendor name is made but not kept. Values other modules cached before a late restore (the story-talk
+  setting handed to the face service in `onInit`) are not pushed again.
+- **What MO2 does with it.** The service's writes into the mod folder are redirected into Overwrite and are visible during the session
+  (USVFS shares the virtual tree between the processes it hooks); at the next launch the files are gone (or, if Overwrite is mapped, there
+  and real), and the start-up restore settles them either way. Not measured on MO2 (see the live check below).
+- **Packages.** Scripts: `mod/state-restore.lua` (new), `init.lua`, `manager.lua`, `phone-chat.lua`, `addons.lua`, `npc-names.lua`, and the
+  empty `runtime/state-restore.json` placeholder. Runtime: `bridge/game-state.mjs` (new), `bridge/file-wake.mjs`, `bridge/convai-bridge.mjs`,
+  `packaging/runtime/start-service.mjs`, `packaging/runtime/prepare-state.mjs`. Scripts new with Runtime old: no signal, so a first-ever
+  launch (the only time a file is missing) holds the defaults for 120 s, then behaves as before. Runtime new with Scripts old: the restore
+  works; an old Lua that happened to read first could save defaults, and that real file then wins (the copy it replaces is kept in `older/`).
+- **Not covered.** The Lua's save protocol for these files (temp file, backup, swap) is unchanged; how USVFS treats that swap on a file
+  that lives in Overwrite is unproven, and the copy is of whatever ends up on disk. A service that starts after the Lua gave up waiting
+  (more than 120 s late) finds the defaults the Lua saved, and that real file wins over the copy (kept in `older/`). Two game installs on
+  one Windows account share `game-state/` as they share `data/`. Deleting a state file by hand to reset it now brings the copy back at the
+  next start (a missing file is what MO2 leaves behind, so the two cannot be told apart): delete the same file in `game-state/` too, or
+  that whole folder.
+- **Tests.** `bridge/game-state.test.mjs` (restore order, newer wins, empty files, the sync), `packaging/game-state-restore.test.mjs`
+  (the launcher end to end, before the slow work, the signal), `bridge/state-restore-lua.test.mjs` (the module and the three readers),
+  `bridge/npc-names.test.mjs` (the vendor file), and the manifest and package tests.
+- **Live check, MO2** (not done): install Scripts and Runtime physically; start from MO2, change a setting (a voice option) and send one
+  phone message, quit. Start again: the setting and the phone chat are there, and `bridge-service.log` says `Player state in runtime/: ...
+  restored (...)`. Overwrite should hold only CET's log and the `state` files. Also look at `game-state/` in the data folder.
+- **Live check, normal install:** the same two steps without MO2: nothing changes for the player; `game-state/` holds the copies
+  (up to nine small files) and `runtime/state-restore.json` has a recent `written`.
+
+### Player state (`data/`), continued
 
 - **Override:** `CYBERPUNK_CONVAI_DATA_HOME` (an absolute path) is the folder that holds `data/`, for development or a player who
   wants it elsewhere; a relative value is ignored (one line in `bridge-service.log`). Without `%LOCALAPPDATA%` the data stays in the
