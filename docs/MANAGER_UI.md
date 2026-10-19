@@ -259,7 +259,7 @@ What the setup check does with it, and what still runs when a requirement is mis
 | Missing | Notice at the first load | What is left out |
 | --- | --- | --- |
 | Audioware | Audioware is missing (alone or in the list) | the voice played through Audioware (the OmniVoice phrases, and a holocall's voice where it uses Audioware); `speech.lua` stops offering audio to the service and says "Audioware is missing" when a voice does not start; the voices played in the browser are not affected |
-| Codeware | Codeware is missing | the speaking face (`Face.reds`), the save-bound knowledge state, the text box on the talk key (each press says so), the phone Chat tab (no contact is offered), the J and L keys and marks on the contact list, the holocall backdrop |
+| Codeware | Codeware is missing | the speaking face (`Face.reds`), the save-bound knowledge state, the text box on the talk key (each press says so), the phone Chat tab (no contact is offered), the J and L keys and marks on the contact list, the holocall backdrop (the live picture is then not cut out either) |
 | Codeware without UI modules | Codeware is too old | the text box, the Chat tab and the old Manager window |
 | TweakXL, Mod Configuration Menu | their own text | nothing in the scripts: they use neither |
 | scripts did not compile | "Open r6/logs/redscript_rCURRENT.log. A mod it names is why the scripts did not load." | everything that needs a script (text box, phone, face, speech playback); the Lua side still loads and shows the notice |
