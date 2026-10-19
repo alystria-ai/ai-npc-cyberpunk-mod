@@ -1834,8 +1834,8 @@ function M.slowUpdate(currentPlayer, worldReady)
         messages[#messages + 1] = paidNotice
         paidNotice = nil
     end
-    -- Setup check (mod/setup-check.lua): one notice at the first load when something critical is wrong (with or without Mod
-    -- Configuration Menu), and the Help page's re-check. A few comparisons until something is due.
+    -- Setup check (mod/setup-check.lua): one notice at the first load when something critical is wrong (with or without Native
+    -- Settings UI), and the Help page's re-check. A few comparisons until something is due.
     if convaiSetupCheck then
         local checked, setupNotice = pcall(convaiSetupCheck.tick, worldReady == true, currentPlayer ~= nil)
         if checked and setupNotice then log(setupNotice); messages[#messages + 1] = {id = 'setup-problem', text = setupNotice} end

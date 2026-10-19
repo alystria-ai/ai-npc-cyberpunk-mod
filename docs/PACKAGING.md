@@ -238,6 +238,8 @@ rebuilt, remake the listing from Hugging Face without downloading them (HTTP ran
 node packaging/check-pack-overlap.mjs listing packaging/pack-listings/packs-<version>.json OmniPack=<zip or URL> LocalAI-Standard=<zip or URL> LocalAI-Lite=<zip or URL> Mature-Standard=<zip or URL> Mature-Lite=<zip or URL>
 ```
 
+**Checking what a Runtime must contain.** `node packaging/check-runtime-contents.mjs <Runtime zip>...` reads only the zip's directory and fails when V's voice clips (`voices/v-voice/`: the manifest and the clips `assets/v-voice/v-voice.json` names), `Make support report.bat` or the bridge modules it starts are missing (the names come from `packaging/lib/runtime-required.mjs`; the 0.2 and 0.2.1 Runtimes shipped without the clips, and 0.2.1 without the batch file). `packaging/test-release-install.mjs` checks the same on the extracted install and loads the clips with the packaged bridge's own loader. Run it beside the overlap check on every Runtime zip before upload; `packaging/runtime-contents.test.mjs` keeps both from drifting.
+
 ### Player state (`data/`)
 
 `data/` is `%LOCALAPPDATA%\AiNpcCyberpunkMod\data`, outside the game folder (`packaging/runtime/state-home.mjs`). Mod Organizer 2

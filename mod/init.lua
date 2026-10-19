@@ -1191,6 +1191,14 @@ local function log(line)
     print('[CyberpunkConvai] ' .. line)
 end
 microphone.log = log
+-- A hook installer that raises must not stop onInit: every line after it (the Native Settings UI registration among them) would
+-- never run, and a player whose scripts did not compile (the hooks below name methods those scripts add) would see nothing of this
+-- mod at all. One failure line per installer, once per load. A global, so onInit gains no upvalue.
+convaiGuarded = function(label, fn, ...)
+    local ok, result = pcall(fn, ...)
+    if not ok then log(label .. ' failed: ' .. tostring(result)) end
+    return ok, result
+end
 -- Names for nameless ordinary NPCs (docs/NPC_NAMES.md, mod/npc-names.lua). One generator serves the scanner and the talk path.
 -- The gate is the rule above: not ours, not protected (named, quest-bound, story record), a resolved ordinary profile (an archetype
 -- or the two residents), an adult human. Read on demand (a scan, a conversation start), never per frame.
@@ -2154,6 +2162,24 @@ function convaiComposerWatch.lost(player, why, context)
     convaiComposerWatch.notify(player)
 end
 
+-- The scripts refused to open the text box: it is Codeware's (Composer.reds answers false when they were compiled without its UI
+-- part). One probe.log line per game session, with what is known of the requirement; and the player is told each time the talk key
+-- is pressed, in the words of the setup check (a key press, never per frame). A global, so nothing gains an upvalue.
+convaiComposerRefused = function(player)
+    local beat, check = convaiHeartbeat, convaiSetupCheck
+    local known, text = false, nil
+    if type(check) == 'table' and type(check.requirement) == 'function' then
+        known = select(2, pcall(check.requirement, 'codeware-ui', player)) == false
+        if known and type(check.codewareNotice) == 'function' then text = select(2, pcall(check.codewareNotice)) end
+    end
+    if not beat.composerRefusedLogged then
+        beat.composerRefusedLogged = true
+        log(known and 'Native composer unavailable: these scripts were compiled without the UI part of Codeware (Codeware missing or too old)'
+            or 'Native composer unavailable (check redscript and Codeware)')
+    end
+    if type(text) == 'string' and text ~= '' then convaiNotices.send(player, 'setup-problem', text) end
+end
+
 -- Talk box start gate. The game's popup takes the keyboard, so a movement key
 -- released while it is open is never seen by gameplay and V keeps walking after it
 -- closes (a Codeware popup cannot hand the key-up back). Composer.reds tracks the
@@ -2182,7 +2208,7 @@ local function beginTextNow(groupMode, waited)
         local speedAtOpen = playerSpeedText(player)
         local moveAtOpen = moveStateText(player)
         if not player:ConvaiOpenComposer(name) then
-            log('Native composer unavailable (check redscript and Codeware)')
+            convaiComposerRefused(player)
             return
         end
         cancelAutomatic('manual-text')
@@ -3299,6 +3325,8 @@ if convaiAddons then
     seams.menus = function(requestId) speech.menuRequest = requestId end
     -- The face service (Face.reds), for an add-on's screen-face watch: one call per watch change, never per frame.
     seams.faceService = function()
+        -- Without Codeware the service and its container's lookup do not exist: nothing to watch, and no error.
+        if Game.GetScriptableServiceContainer == nil then return nil end
         return Game.GetScriptableServiceContainer():GetService(CName.new('ConvaiFaceService'))
     end
     -- An add-on remark whose speaker shows the text itself goes without a subtitle (addons.lua hideCaption), asked once per reply.
@@ -3511,7 +3539,7 @@ registerForEvent('onInit', function()
         local ok,error=pcall(companions.initReloadCleanup)
         if not ok then log('Interrupted driver cleanup initialization failed: '..tostring(error)) end
     end
-    subtitles.install()
+    convaiGuarded('Subtitle hooks', subtitles.install)
     -- Free look while V sits (docs/COMPANION_SEATING.md): one Observe pair on
     -- the player's Workspot state; widens the camera limits once per sit.
     local lookLoaded, lookResult, lookReason = pcall(function()
@@ -3529,7 +3557,10 @@ registerForEvent('onInit', function()
     end)
     if not lookLoaded then log('Seated free look failed: ' .. tostring(lookResult))
     elseif not lookResult then log('Seated free look unavailable: ' .. tostring(lookReason)) end
-    if convaiGameDialogue and not convaiGameDialogue:install() then log('Game dialogue capture unavailable') end
+    if convaiGameDialogue then
+        local hooked, installed = convaiGuarded('Game dialogue hooks', function() return convaiGameDialogue:install() end)
+        if hooked and not installed then log('Game dialogue capture unavailable') end
+    end
     -- Journal changes wake the resting knowledge collectors (updateKnowledge). The quest HUD's notification queue
     -- is the game's own journal listener; it fires on entry state changes only, never per frame.
     local journalHooked, journalHookError = pcall(ObserveAfter, 'JournalNotificationQueue', 'OnJournalUpdate', function()
@@ -3541,24 +3572,26 @@ registerForEvent('onInit', function()
     if not journalHooked then log('Journal change hook unavailable: ' .. tostring(journalHookError))
     else worldKnowledge.eventDriven, journalHistory.eventDriven = true, true end
     lootObserver.configure({captureContext = captureLootContext, enabled = function() return manager.lootReactions() end})
-    lootObserver.install()
+    convaiGuarded('Loot observer hooks', lootObserver.install)
     if convaiVanillaReactions then
         local hooked, hookError = pcall(convaiVanillaReactions.install)
         if not hooked then log('Vanilla reaction hooks failed: ' .. tostring(hookError)) end
     end
-    convaiLocomotion = dofile('companion-locomotion.lua')
-    convaiLocomotion.install(function(npc, command)
-        return companions.ownsTravelCommand(npc, command)
+    convaiGuarded('Locomotion hooks', function()
+        convaiLocomotion = dofile('companion-locomotion.lua')
+        convaiLocomotion.install(function(npc, command)
+            return companions.ownsTravelCommand(npc, command)
+        end)
     end)
-    if stanceModule then stanceModule.install(stanceBuilt, log) end
+    if stanceModule then convaiGuarded('Stance hooks', function() stanceModule.install(stanceBuilt, log) end) end
     if convaiNpcNames then
         local hooked, hookError = pcall(convaiNpcNames.install, ObserveAfter)
         if not hooked then log('NPC name scanner hook failed: ' .. tostring(hookError)) end
     end
-    dofile('composer-input.lua').install()
-    dofile('phone-input.lua').install()
-    phoneLayout.install()
-    phoneChatStyle.install()
+    convaiGuarded('Text box hooks', function() dofile('composer-input.lua').install() end)
+    convaiGuarded('Phone input hooks', function() dofile('phone-input.lua').install() end)
+    convaiGuarded('Phone layout hooks', phoneLayout.install)
+    convaiGuarded('Phone chat style hooks', phoneChatStyle.install)
     local ok, err = pcall(managerUi.install)
     if not ok then log('Manager registration failed: ' .. tostring(err)) end
     ObserveAfter('AutoDriveSystem', 'OnAutodriveToggled', function(_, enabled)
@@ -3863,8 +3896,15 @@ registerForEvent('onUpdate', function(delta)
         return
     end
     if not phoneCatalogReady then
+        -- A player without this mod's phone methods (the scripts did not compile) fails this on every tick, and the failure line
+        -- used to be a file write ten times a second: it is retried on every tick as before, and logged once until it succeeds.
         local ok, err = pcall(companions.registerPhoneContacts, player)
-        if not ok then log('Phone catalog registration failed: ' .. tostring(err)) end
+        if ok then
+            convaiHeartbeat.phoneCatalogFailed = nil
+        elseif not convaiHeartbeat.phoneCatalogFailed then
+            convaiHeartbeat.phoneCatalogFailed = true
+            log('Phone catalog registration failed: ' .. tostring(err))
+        end
         phoneCatalogReady = ok
     end
     if worldReady then

@@ -1308,8 +1308,10 @@ local function initialize(player)
     playerIdentity = current
     loadSettings()
     if not initialized then
-        player:ConvaiManagerSetVoice(settings.voice)
-        player:ConvaiManagerSetSubtitles(settings.subtitles)
+        -- The player has these methods only when this mod's scripts compiled; the settings work without them, so a missing one is not
+        -- an error here (it would repeat on every update tick, and the manager would never finish starting).
+        pcall(function() player:ConvaiManagerSetVoice(settings.voice) end)
+        pcall(function() player:ConvaiManagerSetSubtitles(settings.subtitles) end)
         -- Keep the legacy native flags consistent while callers move to keys.
         for index, key in ipairs(legacyKeys) do
             pcall(function() player:ConvaiManagerSetEnabled(index - 1, settings.enabledByKey[key] ~= false) end)
@@ -1962,8 +1964,10 @@ function M.update(player, delta)
     if not player then if initialized then M.reset() end; return end
     local ready = initialize(player)
     if not ready then return end
+    -- A player without the method (this mod's scripts did not compile) has no window: closed. The party and the voice state below
+    -- still follow, so the settings page stays right.
     local openOk, open = pcall(function() return player:ConvaiManagerIsOpen() end)
-    if not openOk then return end
+    if not openOk then open = false end
     -- Drain a bounded queue even after closing so a just-clicked command is not
     -- silently discarded. Settings changes outside this view are also retained.
     for _ = 1, 16 do
