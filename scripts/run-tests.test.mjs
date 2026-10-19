@@ -5,7 +5,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
-import {copyFile, mkdir, mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
@@ -53,7 +53,6 @@ test('the runner finds test files by location: sorted, unique, slash-separated, 
 });
 
 test('every EXCLUDE entry names a real test file in a searched folder, so a rename cannot leave a stale entry that hides a new test', () => {
-  assert(EXCLUDE.size >= 1);
   for (const file of EXCLUDE) {
     assert(existsSync(resolve(project, file)), `${file} does not exist: remove it from EXCLUDE in scripts/run-tests.mjs`);
     assert.match(file, /^(?:bridge|packaging|scripts|auth-backend|addons)\/.+\.test\.mjs$/, file);
@@ -81,18 +80,23 @@ test('every file a package.json script names exists, so a renamed test cannot le
 });
 
 test('the files npm test leaves out are a short, commented list: adding to it is a visible decision', async () => {
-  // The seven gesture, seating and profile test files and the release pipeline test are excluded from npm test by name; the runner
+  // Every test file runs (the list is empty since the gesture, seating, profile and release pipeline tests were taken off it); the runner
   // must not grow a silent list. The count is pinned so that adding to EXCLUDE is a visible decision.
-  assert(EXCLUDE.size <= 12, `${EXCLUDE.size} excluded files: review the list before adding to it`);
+  assert(EXCLUDE.size <= 3, `${EXCLUDE.size} excluded files: review the list before adding to it`);
   const source = await readFile(resolve(project, 'scripts/run-tests.mjs'), 'utf8');
   for (const file of EXCLUDE) assert(source.includes(`"${file}", //`), `${file} carries a comment saying why`);
 });
 
 // ---- the runner as a process, in a copy of the layout (the script finds its project from its own location)
-async function layout(files) {
+async function layout(files, {exclude = []} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'run-tests-layout-'));
   await mkdir(join(root, 'scripts'), {recursive: true});
-  await copyFile(runner, join(root, 'scripts/run-tests.mjs'));
+  // The copy may carry an EXCLUDE list of its own, written into the empty one the real runner has.
+  const empty = 'export const EXCLUDE = new Set([\n]);';
+  const text = (await readFile(runner, 'utf8')).replace(/\r\n/g, '\n');
+  assert(text.includes(empty), 'the runner declares its EXCLUDE list as an empty Set, one entry per line');
+  const entries = exclude.map(file => `  "${file}", // for this test\n`).join('');
+  await writeFile(join(root, 'scripts/run-tests.mjs'), text.replace(empty, `export const EXCLUDE = new Set([\n${entries}]);`));
   await writeFile(join(root, 'package.json'), '{"type":"module"}');
   for (const dir of SEARCH_DIRS) await mkdir(join(root, dir), {recursive: true});
   for (const [rel, body] of Object.entries(files)) {
@@ -127,8 +131,8 @@ test('the runner exits 0 when every collected test passes and 1 when one fails; 
 });
 
 test('an excluded file is not run even when it fails, and the same file outside the list is', async () => {
-  const [name] = [...EXCLUDE].filter(file => file.startsWith('bridge/'));
-  const root = await layout({[name]: failing, 'bridge/other.test.mjs': passing});
+  const name = 'bridge/skipped.test.mjs';
+  const root = await layout({[name]: failing, 'bridge/other.test.mjs': passing}, {exclude: [name]});
   try {
     const skipped = await execute(root, '--test-reporter=dot');
     assert.equal(skipped.code, 0, skipped.stdout + skipped.stderr);

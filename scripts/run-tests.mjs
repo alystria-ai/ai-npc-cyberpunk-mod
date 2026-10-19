@@ -23,17 +23,9 @@ const NODE_TEST_FLAGS = ["--test", "--test-concurrency=8"];
 // batching is a safety net for when the suite grows past it.
 const MAX_ARG_CHARS = 20000;
 
-// Test files that exist in the repo but are deliberately NOT run by `npm test`.
+// Test files that exist in the repo but are deliberately NOT run by `npm test`. Each entry names its file and says why on the same line
+// (scripts/run-tests.test.mjs checks both). The list is empty: every test file runs.
 export const EXCLUDE = new Set([
-  "bridge/companion-gestures.test.mjs", // not in the npm test list as of 2026-10-13
-  "bridge/companion-seating.test.mjs", // not in the npm test list as of 2026-10-13
-  "bridge/gesture-probe.test.mjs", // not in the npm test list as of 2026-10-13
-  "bridge/gesture-seat-endless.test.mjs", // not in the npm test list as of 2026-10-13
-  "bridge/gesture-selection.test.mjs", // not in the npm test list as of 2026-10-13
-  "bridge/multilingual-profiles.test.mjs", // not in the npm test list as of 2026-10-13
-  "bridge/seated-look.test.mjs", // not in the npm test list as of 2026-10-13
-  "packaging/release.test.mjs", // not in the npm test list as of 2026-10-13
-  "scripts/reference-picker/natural-speech-page.test.mjs", // not in the npm test list as of 2026-10-13
 ]);
 
 function walk(dir, out) {
