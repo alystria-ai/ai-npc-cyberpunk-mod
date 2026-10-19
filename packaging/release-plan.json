@@ -620,7 +620,6 @@
             "bridge/emotion-selector.mjs",
             "bridge/emotion-tags.mjs",
             "bridge/error-events.mjs",
-            "bridge/error-reports.mjs",
             "bridge/expression-timeline.mjs",
             "bridge/expressive-emotions.mjs",
             "bridge/facial-timeline.mjs",
@@ -746,7 +745,8 @@
             "bridge/local-stt-worker.py",
             "bridge/audio-output-probe.ps1",
             "bridge/make-support-report.mjs",
-            "bridge/offline-support-report.mjs"
+            "bridge/offline-support-report.mjs",
+            "bridge/error-reports.mjs"
           ]
         },
         {
