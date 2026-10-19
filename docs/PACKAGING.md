@@ -312,10 +312,14 @@ USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `br
   `runtime/` are visible.
 - **The game says what it can see** (`mod/service-status.lua`, Scripts only, works with any Runtime). A `starting` that only the launcher
   or the start script wrote (`source` `launcher` or `service`) and nothing refreshed is a service coming up for 90 s and a service that
-  never came up after that: kind `failed`, code `service-silent`. The notice, a blocked talk and the Help row end with the status's
-  own words in brackets, in English: `(service-silent after launcher-started)`, `(install-incomplete at loading-modules: ERR_MODULE_NOT_FOUND: ...)`.
-  The short report's second line is `PROBLEM: the conversation service did not come up (...)` with where the logs are, and its
-  `service status` section prints `stage` and `reason`.
+  never came up after that: kind `failed`, code `service-silent`. The notices (the one-time notice, a blocked talk, a request the
+  service dropped) keep the plain sentence "could not start. Restart the game, or see Help in Settings.": they are the game's warning
+  line, which holds two lines, and that sentence fills them (docs/NOTIFICATIONS.md, "How much a notice can say"). The Help page's
+  Conversation service row names the code (`could not start (service-silent)`), and the status's own words, in English, are in
+  `failureDetail()` and the rows that have room (`message(kind, detail)`): `service-silent after launcher-started`,
+  `install-incomplete at loading-modules: ERR_MODULE_NOT_FOUND: ...`. The short report's second line is
+  `PROBLEM: the conversation service did not come up (...)` with those words and where the logs are, and its `service status` section
+  prints `stage` and `reason`.
 - **Where to look.** `%LOCALAPPDATA%\AiNpcCyberpunkMod\data\bridge-service.log` (the `View:` line; the data home does not depend on MO2),
   `bridge.stderr.log` beside it, and `launcher.log`: in the Runtime mod's folder (`mods\<Runtime mod>\red4ext\plugins\AiNpcCyberpunkMod\`)
   because the packaged one is an existing file, or in `overwrite\red4ext\plugins\AiNpcCyberpunkMod\` when the Runtime has none. The
