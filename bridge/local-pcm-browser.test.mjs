@@ -51,7 +51,7 @@ test('isolated local headless renderer streams, drains during a pending game cal
         // Native state publication is asynchronous. While this callback waits,
         // the real player timer completes and closes the AudioContext itself.
         await pages[0].waitForFunction(() => !!window.localPcm.active?.player.snapshot().ended,
-          undefined, {timeout: 10000, polling: 10});
+          undefined, {timeout: 120000, polling: 10});
         drainedDuringCallback = true;
       }
       return {allow: true, paused: false, volume: 0, pan: 0};

@@ -20,6 +20,13 @@ const source = readFileSync(new URL('./realtime-client.mjs', import.meta.url), '
   .replace("import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';", '')
   .replace("import {ConvaiVision, visionConnectOptions, visionIdentity, VISION_NOTE} from './convai-vision.mjs';", '');
 const flush = () => new Promise(done => setImmediate(done));
+// Waits for a state to hold. The ceiling is reached only by a hung test (a fixed count of short polls is a wall-clock limit in disguise).
+async function until(predicate, label) {
+  for (const deadline = Date.now() + 60_000; !predicate();) {
+    if (Date.now() > deadline) assert.fail('timed out waiting for ' + label);
+    await new Promise(done => setTimeout(done, 10));
+  }
+}
 function manualTimers() {
   let now = 0, nextId = 0;
   const pending = new Map();
@@ -416,10 +423,11 @@ test('a text-only reply returns a late-emotion token; its one id-less emotion be
 });
 
 test('cancelled connection emotion cannot cross into a replacement copy or turn',async()=>{
-  const {api,clients}=fixture();await api.warm(config);const first=api.reply(config);first.catch(()=>{});await flush();
+  const {api,clients,events}=fixture();await api.warm(config);const first=api.reply(config);first.catch(()=>{});await flush();
   const retired=clients[0],data=audioFixture();retired.data(data.faces);
   await api.close('Owner dismissed');await assert.rejects(first,/Owner dismissed/);
-  const next=api.reply(config);await flush();await new Promise(done=>setTimeout(done,65));
+  const next=api.reply(config);await flush();// The replacement turn has begun once it has sent its message (the first turn sent one before it was cancelled).
+  await until(()=>events.filter(event=>event[0]==='message').length===2,'the replacement turn to send its message');
   const active=clients[1];assert.ok(active);
   retired.data(wire({type:'bot-emotion',...data.owner,emotion:'Joy',scale:3}));
   sendAudio(active,audioFixture({sequence:2}));finalText(active);
@@ -585,7 +593,7 @@ test('reliable source PCM becomes one unchanged WAV before playback duration, af
   await api.warm(config);
   const pending = api.reply({...config, audioStreamToken: 'native-stream-one'}); pending.catch(() => {});
   await flush();
-  const client = clients[0], audio = audioFixture({seconds: 3.05}), started = performance.now();
+  const client = clients[0], audio = audioFixture({seconds: 3.05});
   client.state.isSpeaking = true; // SDK playback clocks do not own source PCM completion.
   finalText(client, 'Hello V. There is more to say.');
   client.data({label: 'rtvi-ai', type: 'bot-started-speaking', data: {}});
@@ -606,7 +614,9 @@ test('reliable source PCM becomes one unchanged WAV before playback duration, af
   assert.equal(client.options.blendshapeConfig.output_fps, 30, 'provider frame clock may differ from request');
   assert.equal(client.roomHandlers.has('trackSubscribed'), false);
   assert.equal(result.timing.audioTransport, 'convai-data'); assert.equal(result.packetCount, 2);
-  assert(performance.now() - started < 2000, 'collection must not wait 3.05 seconds for browser playback');
+  // Collection did not wait for browser playback: the SDK still reports speaking, and nothing but the source PCM completed the turn
+  // (waiting for the playback clock would end only in the 60 s collection timeout, which rejects). No elapsed-time figure is compared.
+  assert.equal(client.state.isSpeaking, true, 'collection finished while the SDK still reported playback');
   await api.close();
 });
 
@@ -1203,14 +1213,16 @@ test('malformed source PCM and changed response ownership discard the connection
 
 test('a cancelled or disconnected PCM turn cannot contaminate a replacement connection', async () => {
   for (const reason of ['cancel', 'disconnect']) {
-    const {api, clients} = fixture(); await api.warm(config);
+    const {api, clients, events} = fixture(); await api.warm(config);
     const old = api.reply(config); old.catch(() => {}); await flush();
     const obsolete = clients[0], audio = audioFixture();
     obsolete.data(audio.pcm(audio.samples.subarray(0, 3200)));
     if (reason === 'cancel') await api.close();
     else obsolete.handlers.get('disconnect')();
     await assert.rejects(old, /cancelled|closed/);
-    const pending = api.reply(config); await new Promise(done => setTimeout(done, 80));
+    const pending = api.reply(config);
+    // The replacement turn has begun once it has sent its message (the first turn sent one before it was discarded).
+    await until(() => events.filter(event => event[0] === 'message').length === 2, 'the replacement turn to send its message');
     obsolete.data(audio.pcm(audio.samples.subarray(3200))); obsolete.data(audio.stats); obsolete.data(audio.terminal);
     sendAudio(clients[1], audioFixture({sequence: 2})); finalText(clients[1], 'New reply.');
     const result = await pending;
@@ -1697,7 +1709,7 @@ test('vision: the session connects with video on the silent lane, and a picture 
   const {api, clients, events} = fixture();
   const request = {...config, ttsEnabled: false, vision: true, visionImages: [{mime: 'image/jpeg', base64: '/9j/2Q=='}]};
   const pending = api.reply(request);
-  for (let i = 0; i < 300 && !events.some(event => event[0] === 'message'); i++) await new Promise(done => setTimeout(done, 10));
+  await until(() => events.some(event => event[0] === 'message'), 'the text message to be sent');
   const client = clients[0];
   assert.equal(client.options.enableVideo, true);
   assert.equal(client.options.startWithVideoOn, false);
@@ -1715,7 +1727,7 @@ test('vision: the session connects with video on the silent lane, and a picture 
 test('vision: without the setting the session connects audio-only, and turning it on reconnects once', async () => {
   const {api, clients, events} = fixture();
   const pending = api.reply({...config, ttsEnabled: false});
-  for (let i = 0; i < 300 && !events.some(event => event[0] === 'message'); i++) await new Promise(done => setTimeout(done, 10));
+  await until(() => events.some(event => event[0] === 'message'), 'the text message to be sent');
   assert.equal(clients[0].options.enableVideo, false);
   assert.equal(clients[0].options.visionInputConfig, undefined);
   assert.deepEqual({...clients[0].options.respondModes}, {contextUpdate: 'silent'});
@@ -1723,7 +1735,7 @@ test('vision: without the setting the session connects audio-only, and turning i
   await pending;
   assert.equal(api.diagnostics().vision, null);
   const second = api.reply({...config, ttsEnabled: false, vision: true, text: 'Again'});
-  for (let i = 0; i < 300 && !events.some(event => event[0] === 'message' && event[1] === 'Again'); i++) await new Promise(done => setTimeout(done, 10));
+  await until(() => events.some(event => event[0] === 'message' && event[1] === 'Again'), 'the second text message to be sent');
   assert.equal(clients.length, 2);
   assert.equal(clients[1].options.enableVideo, true);
   finalText(clients[1], 'Hi.', 'second');
