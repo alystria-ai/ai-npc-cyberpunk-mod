@@ -50,9 +50,13 @@ export class NearbyWarm {
   // local voice. canPrepare(): false while a turn, the microphone or a voice
   // change owns the voice service. onError(error): diagnostics only.
   // routeFor(profile, entity): the exact route of an ambient character's entity, or null (a named profile, no world).
+  // gpuVoice(): true while preparing a voice costs GPU time (OmniVoice). A character that is only near or looked at is then NOT
+  // prepared: V walks past many of them and each preparation is 1 to 3 s of the card with nobody speaking. Their voice is prepared
+  // the moment V starts to talk to one (the bridge's composer, talk key and turn start), which overlaps typing or speaking. Partners
+  // and spawned characters (V is with them) keep their ahead-of-time preparation.
   constructor({connections, prepareVoice, canPrepare = () => true, isKnown = () => true, routeFor = () => null, now = Date.now,
-      staleMs = 8000, retryMs = 30000, onError = () => {}}) {
-    Object.assign(this, {connections, prepareVoice, canPrepare, isKnown, routeFor, now, staleMs, retryMs, onError});
+      staleMs = 8000, retryMs = 30000, gpuVoice = () => false, onError = () => {}}) {
+    Object.assign(this, {connections, prepareVoice, canPrepare, isKnown, routeFor, now, staleMs, retryMs, gpuVoice, onError});
     this.profiles = []; this.partners = []; this.spawned = [];
     this.last = null;          // the last document that parsed
     this.voices = new Map();   // profile -> {state: 'preparing' | 'ready' | 'failed', controller, retryAt}
@@ -96,8 +100,10 @@ export class NearbyWarm {
   }
   prepareVoices() {
     if ([...this.voices.values()].some(voice => voice.state === 'preparing')) return;
-    // Partners first: V is with them now.
-    for (const profile of [...this.partners, ...this.spawned, ...this.profiles]) {
+    // Partners first: V is with them now. Characters merely near are left out while a voice costs GPU time (see the constructor).
+    let gpu = false;
+    try { gpu = this.gpuVoice() === true; } catch { gpu = false; }
+    for (const profile of [...this.partners, ...this.spawned, ...(gpu ? [] : this.profiles)]) {
       const voice = this.voices.get(profile);
       if (voice && (voice.state !== 'failed' || this.now() < voice.retryAt)) continue;
       if (!this.canPrepare()) return;

@@ -1197,7 +1197,26 @@ const nearbyWarm = new NearbyWarm({connections, isKnown: profile => Object.hasOw
   canPrepare: () => !stopped && !memoryQuiescing && !active && !mic.current && !micPolling && !lookahead.busy
     && !voiceRouteReservation && !relationshipRouteReservation && !localVoice.pending && !localVoice.availabilityPending,
   prepareVoice: (profile, options) => localVoice.prepareProfile(profile, options),
+  // OmniVoice: a character that is only near is not prepared (each preparation is 1 to 3 s of the card with nobody speaking); it is
+  // prepared when V starts to talk to it (warmTalkTargets below). Partners and spawned characters are still prepared ahead.
+  gpuVoice: () => localVoice.preparesOnGpu,
   onError: error => console.error('[CyberpunkConvai] Nearby warm-up:', error.message)});
+// What a character costs the card before a word is said is paid when V starts to talk to it, not when it is merely in view: the composer
+// opens, the talk key goes down, or a turn begins. Typing or speaking takes seconds, so this overlaps it. Only work that uses the GPU is
+// held back for this: OmniVoice's voice preparation and the local AI's persona prefill. Both are best effort and never throw; both are
+// idempotent (a prepared voice answers at once, a cached persona prefix costs a short prefill). `persona: false` is for a turn that has
+// already begun: its own request is about to take the local server's one slot, and a prefill in front of it would only delay it.
+function warmTalkTargets(profileKeys, {persona = true} = {}) {
+  if (stopped || !Array.isArray(profileKeys)) return;
+  for (const key of new Set(profileKeys)) {
+    if (typeof key !== 'string' || !Object.hasOwn(ids, key)) continue;
+    if (localVoice.preparesOnGpu && localVoice.usesProfile(key)) void localVoice.prepareProfile(key).catch(() => {});
+    if (persona && mistral.active && mistral.route === 'local') {
+      const profile = profileFor({profileKey: key}, roster);
+      if (profile) void mistralHost.prewarm({local: {profileKey: key, name: profile.name}}).catch(() => {});
+    }
+  }
+}
 let voiceRouteSync = Promise.resolve();
 // A warm connection's Convai TTS flag follows warmUsesConvaiVoice; when that changes (the setting, the language of
 // the conversation), the page is replaced at the next idle boundary.
@@ -2176,6 +2195,8 @@ async function pollMicrophone() {
           await cancelKnowledgeTurn(prepared); return;
         }
         void mic.start(prepared.input, realtimeConfig(prepared.input)).catch(error => console.error(error.message));
+        // While V talks: the voice (OmniVoice) and the persona (local AI) of whoever answers, if nothing prepared them before.
+        warmTalkTargets([prepared.input.profileKey, ...(prepared.input.group?.audience ?? [])]);
         // A reply the local renderer will voice (Pocket, Voxtral): its output device opens while V talks (RealtimeHost.standbyLocal; an
         // unused one closes itself after 30 s). Routing is read without fixing this turn's voice plan, which waits for the words.
         const choice = localChoice(prepared.input.profileKey);
@@ -2536,6 +2557,7 @@ async function runInput(request, prepared, clock) {
   const {controller} = request;
   // A conversation turn: the frame buffer stops capturing (the view is on the companion now); the turn takes a buffered frame.
   companionVision.beginTurn(input);
+  warmTalkTargets([input.profileKey], {persona: false});
   const ahead = request.lookahead;
   const preparationStarted = performance.now();
   const stages = {};
@@ -2728,6 +2750,7 @@ async function pollPrefetch() {
         // A private hint for an ambient NPC carries its entity: open that NPC's own route now, while V types.
         const config = hint.scope === 'private' && hint.entity ? ambientWarmConfig(hint.audience[0], hint.entity) : null;
         vVoice.warmUp();
+        warmTalkTargets(hint.audience);
         const opening = connections.setComposer(config ? {...hint, config} : hint);
         // The surroundings picture goes onto the target pages now, while V types (retried while a page still connects).
         companionVision.openComposer(composerPages(hint, config));

@@ -817,7 +817,9 @@ export function attachTextProvider(host, {provider, mistral, speech, prewarmVoic
   };
   host.warm = function warm(config, options) {
     if (!provider.active) return original.warm.call(this, withoutLocal(config), options);
-    if (provider.route === 'local') void textHost.prewarm?.(config);
+    // A character that is only near is not loaded into the card: its persona prefill is a GPU burst for every passer-by, and the
+    // composer, the talk key and the turn itself warm it when V starts to talk (bridge/convai-bridge.mjs warmTalkTargets).
+    if (provider.route === 'local' && options?.role !== 'nearby') void textHost.prewarm?.(config);
     // A cloud route's connection is kept open for 60 s after its last use: opening the composer renews it (an unauthenticated request).
     else if (warmCloud && (provider.route === 'mistral' || provider.route === 'custom')) void warmCloud({provider: provider.route});
     // The local voice's browser and renderer page open now, while V types or looks, not in front of the first reply.
