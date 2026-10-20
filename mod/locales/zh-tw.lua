@@ -983,6 +983,7 @@ return {
     ["Some mod files are missing. Extract the Scripts zip again. See Help in Settings."] = "缺少部分模組檔案。請重新解壓縮 Scripts 壓縮檔。請查看 設定 > 說明。",
     ["Some pack files could not be moved into place because different files are already there. Extract the pack into the Cyberpunk 2077 folder again and let it replace the files."] = "部分組件包檔案無法移入，因為該處已有不同的檔案。請將組件包重新解壓縮到 Cyberpunk 2077 資料夾，並覆寫這些檔案。",
     ["The Runtime is incomplete ({code}). Download it again and extract it into the Cyberpunk 2077 folder, then restart the game."] = "Runtime 不完整（{code}）。請重新下載並解壓縮到 Cyberpunk 2077 資料夾，然後重新啟動遊戲。",
+    ["The settings file of the launcher, launcher.ini, is missing from red4ext/plugins/AiNpcCyberpunkMod, so the game cannot start the conversation service. Extract the Runtime zip straight into the Cyberpunk 2077 folder again (by hand, also with Vortex) and let it replace the files, then restart the game."] = "啟動器的設定檔 launcher.ini 不在 red4ext/plugins/AiNpcCyberpunkMod 中，所以遊戲無法啟動對話服務。請把 Runtime 壓縮檔重新直接解壓縮到 Cyberpunk 2077 資料夾（即使使用 Vortex 也請手動解壓縮），並取代檔案，然後重新啟動遊戲。",
     ["The Scripts and Runtime versions do not match. Install the same version of both."] = "Scripts 與 Runtime 版本不符。請安裝相同版本的兩者。",
     ["The conversation service cannot reach the internet. See Help in Settings."] = "對話服務無法連上網際網路。請查看 設定 > 說明。",
     ["The conversation service cannot reach {host}. Allow Node.js through your firewall or antivirus (Windows asks once; choose Allow), check your internet, then restart the game."] = "對話服務無法連線至 {host}。請允許 Node.js 通過防火牆或防毒軟體（Windows 只會詢問一次，請選擇「允許存取」），檢查網路連線，然後重新啟動遊戲。",

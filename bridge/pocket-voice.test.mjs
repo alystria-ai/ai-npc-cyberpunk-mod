@@ -89,7 +89,7 @@ test('a worker that cannot start says why in its fatal frame: the failure keeps 
   const long=harness({autoReady:false});
   const cut=long.client.start().catch(error=>error);
   await tick();long.send({op:'fatal',reason:'Err\n'+'x'.repeat(500)});
-  const error=await cut;assert(error.message.length<=70+160+4&&!/\n/.test(error.message),error.message);
+  const error=await cut;assert(error.message.length<=70+300+4&&!/\n/.test(error.message),error.message);
 });
 
 test('rejects wrong model, source, CPU precision, paths or conditioning identities before streaming',async()=>{

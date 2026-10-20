@@ -409,6 +409,21 @@ the whole `pocket-tts` tree (`digest_source`, `bridge/pocket_voice_runtime.py`; 
 - Settings > Help has a "Pocket voice" row while Pocket or V's helper is failed (setup check id `voice`, code `pocket-failed`, from
   `VoiceSelection.voiceProblem()`): it says nothing needs installing, to restart the game and to send a report if it happens again.
 
+### Fourth round (2026-10-20, 0.2.3 on Vortex: `26d9eb59191a945a` and `f309bd3f807c9dd0`)
+
+The same message came back on a 0.2.3 install (Vortex, RX 6600, Convai text with the Pocket voice) that had ignored the marker and the Explorer files
+and still failed within half a second at every start. That install went 0.2.1 -> 0.2.2 -> 0.2.3 in place, so the `pocket-tts` folder can hold anything
+the earlier Runtimes and the manager left there; the report could not say what. So the check no longer asks "is the folder exactly the pinned tree":
+`verify_source` (`bridge/pocket_voice_runtime.py`) reads `SOURCE_FILES`, the path and SHA-256 of each of the 140 files the pinned revision ships
+(generated from the revision; `SOURCE_SHA256` is the digest of exactly that list, `digest_manifest()`), and looks only at those. Files that are not in the
+list (Vortex markers, deployment files and `.vortex_backup`, `__pycache__`, a leftover from an older Runtime, an antivirus note) are ignored by design.
+A listed file that is missing, changed or a link fails when it is under `pocket_tts/` or is a `.py` file (the code that runs), and the error names the
+first three with what is wrong ("pocket_tts/x.py changed, y.py missing, +2 more", relative paths only; the reason the worker sends is 300 characters now,
+so the log line and the error report carry them). A pinned README, test, notebook or picture that differs does not stop the voice; the worker logs one
+line naming them. A text file whose line endings were converted to CRLF counts as unchanged. The list is inside `pocket_voice_runtime.py`, which the
+Runtime already ships, so no new file travels; `packaging/build-release.mjs` refuses to build when the files it ships are not the list
+(`packaging/lib/pocket-source-list.mjs`, `packaging/pocket-source-list.test.mjs`).
+
 The other reason a V line is not heard on a working Pocket is time: loading Pocket takes 8 to 36 s after the game starts on the reports (importing the
 libraries is the slow part and is made slower by a virus scanner looking at the freshly extracted files), and a typed line before it is ready is skipped
 (`voice-not-loaded`, one per session in the reports); a line whose voice starts after the companion's reply has begun is dropped

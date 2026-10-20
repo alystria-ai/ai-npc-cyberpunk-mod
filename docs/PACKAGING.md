@@ -101,7 +101,10 @@ entry whose game-relative path would exceed 255 characters under a 70-character 
 
 1. RED4ext loads `CyberpunkConvai.dll`. It checks that CET and the CET mod are present, reads
    `launcher.ini` and starts `app\node\node.exe --eval <bootstrap> app\launcher\start-service.mjs` hidden, with a pipe
-   whose closing tells the service that the game ended. The bootstrap (`packaging/lib/launcher-ini.mjs`) loads the script where it is,
+   whose closing tells the service that the game ended. launcher.ini is optional from launcher 1.0.1 (0.2.4): without it, or with one that
+   names no program, the launcher starts exactly what the shipped file says (`DEFAULT_*` in `native/autostart/CyberpunkConvaiLauncher.c`, held
+   equal to `packaging/lib/launcher-ini.mjs` by `bridge/autostart-plugin.test.mjs`); an older launcher publishes `launcher-not-configured`.
+   The bootstrap (`packaging/lib/launcher-ini.mjs`) loads the script where it is,
    or from its real place when Node's stat cannot see it (a Runtime installed as a Mod Organizer 2 mod, below).
 2. `start-service.mjs` prepares `data/` (below), joins split files left by an earlier release on the first start
    (verifying their SHA-256; current packs have none), and sets every path explicitly:
