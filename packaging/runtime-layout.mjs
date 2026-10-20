@@ -141,6 +141,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/romance-context.mjs',
   'bridge/runtime-files.mjs',
   'bridge/runtime-paths.mjs',
+  'bridge/scenery-memory.mjs',
   'bridge/setup-check.mjs',
   'bridge/shared-key-guard.mjs',
   'bridge/slow-turns.mjs',

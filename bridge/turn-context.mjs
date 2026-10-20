@@ -16,8 +16,13 @@
 // Weather, V's health band, the police heat stage and a rough money band (added 2026-10-14; the CET calls are unconfirmed, so each is
 // optional): a companion in person gets all four, a stranger gets the weather and a visible injury (a bystander sees both; never heat
 // or money), a phone contact gets the weather where V is (like the time) and nothing else of V's body, wanted state or wallet.
+// The weather and the part of the day are scenery, not news: stated on every turn they became the topic (a player report of 2026-10-21,
+// "the NPCs always mention the weather"). With `split` they leave this block for a short "Background" line of their own (describeTurnContext
+// `background`), which carries each only when it is new to the conversation (bridge/scenery-memory.mjs; sceneryFor below): the first turn, a
+// change, after a long silence, or when V asks. Health, heat and money stay in the block: they are V's standing state, and one that matters.
 import {describePlace} from './place-names.mjs';
 import {headOf} from './johnny-head.mjs';
+import {sceneryMemory} from './scenery-memory.mjs';
 
 // The whole block, framing included (the phone's block is the longest: it also says what she cannot know).
 export const MAX_CHARS = 900;
@@ -111,10 +116,12 @@ export function parseTurnContext(value) {
   return result;
 }
 
+const dayPart = hour => hour < 5 ? 'late night' : hour < 7 ? 'early morning' : hour < 12 ? 'morning' : hour < 14 ? 'midday'
+  : hour < 17 ? 'afternoon' : hour < 20 ? 'evening' : 'night';
+
 /** "late night, about 2 AM": the part of the day, then the hour to the nearest whole hour. */
 export function timeOfDay(hour, minute) {
-  const part = hour < 5 ? 'late night' : hour < 7 ? 'early morning' : hour < 12 ? 'morning' : hour < 14 ? 'midday'
-    : hour < 17 ? 'afternoon' : hour < 20 ? 'evening' : 'night';
+  const part = dayPart(hour);
   const rounded = Math.round((hour * 60 + minute) / 60) % 24;
   const clock = rounded === 0 ? 'midnight' : rounded === 12 ? 'noon' : `${rounded % 12 || 12} ${rounded < 12 ? 'AM' : 'PM'}`;
   return `${part}, about ${clock}`;
@@ -151,15 +158,32 @@ function voiceTurnContext(input, snapshot) {
   return {text: prefix + sentences.join(' ') + suffix, parts: sentences.length, reason: ''};
 }
 
-// The block, plus what a per-turn diagnostic needs: how many facts it states, its length, or why there is none.
-export function describeTurnContext(input, {ambient = false, voice = false} = {}) {
-  if (!input) return {text: '', parts: 0, reason: 'no input'};
-  if (input.reaction) return {text: '', parts: 0, reason: 'automatic reaction'};
-  if (input.turnContext === undefined) return {text: '', parts: 0, reason: 'the game sent none'};
+// Which of the weather and the part of the day this turn states ({weather, time}, booleans): each only when new to the conversation
+// (bridge/scenery-memory.mjs). Everything is stated for a turn with nothing to decide on (no snapshot, a reaction, no turn id).
+const EVERYTHING = Object.freeze({weather: true, time: true});
+export function sceneryFor(input, memory = sceneryMemory) {
+  if (!input || input.reaction || input.turnContext === undefined) return EVERYTHING;
   const snapshot = parseTurnContext(input.turnContext);
-  if (!snapshot || snapshot.status !== 'ready') return {text: '', parts: 0, reason: 'unavailable or malformed'};
-  if (voice) return voiceTurnContext(input, snapshot);
-  const sentences = [];
+  if (!snapshot || snapshot.status !== 'ready') return EVERYTHING;
+  // One conversation: a character, one physical NPC (its entity) or one phone contact.
+  return memory.decide({key: `${input.channel === 'phone' ? 'phone' : 'talk'}|${input.profileKey}|${input.entity ?? ''}`, id: input.requestId ?? input.id,
+    weather: snapshot.weather, part: snapshot.hour === undefined ? undefined : dayPart(snapshot.hour), text: input.text});
+}
+const BACKGROUND = 'Background (mention only if it matters or V asks):';
+
+// The block, plus what a per-turn diagnostic needs: how many facts it states, its length, or why there is none.
+// `fresh` ({weather, time}, default both) leaves out a fact the conversation was already told. `split` moves the weather and the time out
+// of the block into `background` (its own short line, "" when there is none), so the block itself does not change when they come and go and
+// the text provider's prompt cache keeps its prefix: the bridge puts it in the volatile tail (bridge/quest-context.mjs).
+export function describeTurnContext(input, {ambient = false, voice = false, split = false, fresh = EVERYTHING} = {}) {
+  if (!input) return {text: '', background: '', parts: 0, reason: 'no input'};
+  if (input.reaction) return {text: '', background: '', parts: 0, reason: 'automatic reaction'};
+  if (input.turnContext === undefined) return {text: '', background: '', parts: 0, reason: 'the game sent none'};
+  const snapshot = parseTurnContext(input.turnContext);
+  if (!snapshot || snapshot.status !== 'ready') return {text: '', background: '', parts: 0, reason: 'unavailable or malformed'};
+  if (voice) return {...voiceTurnContext(input, snapshot), background: ''};
+  const sentences = [], scenery = [];
+  const scene = (kind, sentence) => { if (fresh[kind] !== false) (split ? scenery : sentences).push(sentence); };
   const head = !ambient && input.channel !== 'phone' ? headOf(input) : null;
   const call = !ambient && !head && !input.group && input.channel !== 'phone' ? holocallOf(input) : null;
   // Remote: a phone chat or a holocall. Neither learns who is with V, V's heat or V's money.
@@ -185,9 +209,9 @@ export function describeTurnContext(input, {ambient = false, voice = false} = {}
   } else if (!ambient && phone) {
     sentences.push(`You are messaging V by text on the phone, not talking to V in person${place ? `; V is in ${place}` : ''}. You are somewhere else; where you are and what you are doing are not given.`);
   }
-  if (snapshot.hour !== undefined) sentences.push(`It is ${timeOfDay(snapshot.hour, snapshot.minute)}.`);
+  if (snapshot.hour !== undefined) scene('time', `It is ${timeOfDay(snapshot.hour, snapshot.minute)}.`);
   // The weather goes to all three kinds of turn: a stranger or a contact on the phone could know it as well.
-  if (snapshot.weather) sentences.push(WEATHER[snapshot.weather]);
+  if (snapshot.weather) scene('weather', WEATHER[snapshot.weather]);
   // An ordinary NPC is already told its own district (archetypeContext); say it only when that block had none.
   if (ambient && place && !input.archetype?.district) sentences.push(`You are in ${place}.`);
   const others = phone ? [] : (snapshot.party ?? []).filter(row => row.key !== input.profileKey);
@@ -210,7 +234,8 @@ export function describeTurnContext(input, {ambient = false, voice = false} = {}
   }
   // Money is the least urgent fact, so it goes last and is the first to go in a budget cut. A companion in person only.
   if (!ambient && !phone && MONEY[snapshot.money]) sentences.push(MONEY[snapshot.money]);
-  if (!sentences.length) return {text: '', parts: 0, reason: 'empty'};
+  const background = scenery.length ? `${BACKGROUND} ${scenery.join(' ')}` : '';
+  if (!sentences.length) return {text: '', background, parts: scenery.length, reason: background ? '' : 'empty'};
   const prefix = 'Right now (from the game, this turn only): ';
   const suffix = ambient
     ? ' You are a stranger to V and know only what you can see and hear. Background only; bring it up only when it fits.'
@@ -219,16 +244,18 @@ export function describeTurnContext(input, {ambient = false, voice = false} = {}
   // Over budget: drop whole sentences from the end, never cut one in half.
   const budget = MAX_CHARS - prefix.length - suffix.length;
   while (sentences.length && sentences.join(' ').length > budget) sentences.pop();
-  if (!sentences.length) return {text: '', parts: 0, reason: 'over budget'};
-  return {text: prefix + sentences.join(' ') + suffix, parts: sentences.length, reason: ''};
+  if (!sentences.length) return {text: '', background, parts: scenery.length, reason: background ? '' : 'over budget'};
+  return {text: prefix + sentences.join(' ') + suffix, background, parts: sentences.length + scenery.length, reason: ''};
 }
 
-export const turnContext = (input, options) => describeTurnContext(input, options).text;   // options: {ambient, voice}
+export const turnContext = (input, options) => describeTurnContext(input, options).text;   // options: {ambient, voice, split, fresh}
 
 // One line per reply for the bridge log (stderr): whether this turn's context carried the block, or why not. Counts only.
 export function turnContextDiagnostic(input, options) {
-  const {text, parts, reason} = describeTurnContext(input, options);   // `voice` in the options: the form an add-on voice gets
+  const {text, background, parts, reason} = describeTurnContext(input, options);   // `voice` in the options: the form an add-on voice gets
   const head = input && input.channel !== 'phone' && headOf(input) ? ` head=${input.head.stage}` : '';
   const call = head ? head : input && !input.group && input.channel !== 'phone' && holocallOf(input) ? ` holocall=${input.holocall.mode}` : '';
-  return text ? `Turn context: ${parts} facts, ${text.length} chars${call}` : `Turn context: none (${reason})${call}`;
+  // With `split`, say whether the background line (the weather, the time) went along: counts only.
+  const apart = options?.split ? (background ? ` background=${background.length}` : ' background=none') : '';
+  return text || background ? `Turn context: ${parts} facts, ${text.length + background.length} chars${call}${apart}` : `Turn context: none (${reason})${call}`;
 }
