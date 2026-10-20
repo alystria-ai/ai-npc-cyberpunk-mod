@@ -161,9 +161,9 @@ Post what you see (a screenshot helps) on this page's Posts tab or in the Discor
 [b]Something else?[/b]
 In game, open Companion Manager > Settings > Help > Help and support, choose [b]Generate report[/b], and send that file with what you were doing.
 
-Questions, bugs or ideas? Join the [url=https://discord.com/invite/3p2FzjZQZ]Discord server[/url]:
+Questions, bugs or ideas? Join the [url=https://discord.gg/p4pxQhAvJ]Discord server[/url]:
 
-[url=https://discord.com/invite/3p2FzjZQZ][img]https://logos-world.net/wp-content/uploads/2020/12/Discord-Symbol.png[/img][/url]
+[url=https://discord.gg/p4pxQhAvJ][img]https://logos-world.net/wp-content/uploads/2020/12/Discord-Symbol.png[/img][/url]
 ```
 
 ## 2. File description (Scripts upload)
