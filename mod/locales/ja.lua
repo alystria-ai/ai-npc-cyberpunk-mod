@@ -950,7 +950,7 @@ return {
     ["Moved into place from {folder}: {packs}."] = "{folder} から配置しました：{packs}。",
     ["No Local AI pack found. Download one from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, or choose another conversation provider."] = "ローカル AI パックが見つかりません。Mod の Hugging Face ページからダウンロードして Cyberpunk 2077 フォルダーに展開するか、別の会話プロバイダーを選んでください。",
     ["No problem found. Select a line to see what was checked."] = "問題は見つかりませんでした。行を選ぶと、確認した内容を表示します。",
-    ["No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game."] = "このセッションでは会話サービスの動作が確認できません。Runtime がないか、読み込まれていません。Runtime の zip を新しいフォルダーではなく Cyberpunk 2077 フォルダーに直接展開し、red4ext/plugins/AiNpcCyberpunkMod があるか確認して、ゲームを再起動してください。",
+    ["No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The Runtime is a separate download from the mod’s Hugging Face page; the Nexus page links to it."] = "このセッションでは会話サービスの動作が確認できません。Runtime がないか、読み込まれていません。Runtime の zip を新しいフォルダーではなく Cyberpunk 2077 フォルダーに直接展開し、red4ext/plugins/AiNpcCyberpunkMod があるか確認して、ゲームを再起動してください。 Runtime は Mod の Hugging Face ページから別にダウンロードします。Nexus のページにリンクがあります。",
     ["None found: installed by hand."] = "見つからず：手動でインストール済み。",
     ["None installed. They are optional."] = "インストールされていません。任意です。",
     ["Not needed: Local AI and the voice run on this PC."] = "不要：ローカル AI と音声はこの PC で動作します。",

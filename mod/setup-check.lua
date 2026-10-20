@@ -384,7 +384,7 @@ function M.serviceLine()
     local check = game and game.checks.service
     if not check then return nil end
     if check.code == 'never' then
-        return {value = ui.t('Not running'), description = ui.t('No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game.')}
+        return {value = ui.t('Not running'), description = ui.t('No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The Runtime is a separate download from the mod’s Hugging Face page; the Nexus page links to it.')}
     end
     -- The launcher found no launcher.ini beside its DLL (a 0.2.3 Vortex report; the launcher from 0.2.4 on starts without it, so this is an
     -- older launcher): the generic sentence below would say "download it again" without saying which file or why.

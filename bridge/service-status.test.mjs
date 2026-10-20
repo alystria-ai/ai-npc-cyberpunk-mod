@@ -53,6 +53,7 @@ const messages = {
   setup: 'The conversation service needs your Convai API key. Add it, then restart the game.',
   browser: 'The conversation service needs a Chromium browser such as Microsoft Edge, Google Chrome, Brave or Opera. Install one, or put the path of yours in a browser.txt file next to launcher.ini, then restart the game.',
   failed: 'The conversation service could not start. Restart the game, or see Help in Settings.',
+  never: 'The conversation service did not start. Is the Runtime installed? See Help in Settings.',
   stopped: 'The conversation service is not running. Restart the game to start it again.',
 };
 const lua_ = value => JSON.stringify('T:' + value);
@@ -74,7 +75,7 @@ test('with no evidence at all the adapter stays silent while the game has only j
 test('no trace of this session after the first seconds means the service never started: a request is told so at once, not after its 90 s', () => run(`
   advance(15)
   local message, kind = status.blockedMessage()
-  assert(kind == 'failed' and message == ${lua_(messages.failed)}, tostring(kind))
+  assert(kind == 'failed' and message == ${lua_(messages.never)}, tostring(kind))
   assert(status.lostSince(now() - 10) == nil, 'only the supervisor status retires a request early')
   assert(status.notice() == nil, 'and there is no proactive notice for a service nobody tried to start')
   -- A bridge that comes up (started by hand, or late) is served again at once.
@@ -99,7 +100,7 @@ test('what an earlier session of the game left behind is not this session: "neve
   assert(status.unavailable().kind == 'stopped', 'inside the first seconds the old behaviour stands')
   advance(15)
   local message, kind = status.blockedMessage()
-  assert(kind == 'failed' and message == ${lua_(messages.failed)}, tostring(kind))
+  assert(kind == 'failed' and message == ${lua_(messages.never)}, tostring(kind))
   -- A trace written in this session is still "stopped": the service ran and is gone.
   advance(1); put('runtime/bridge-service.json', {state = 'stopped', code = 'game-exited', since = ms(-30), updated = ms(-20)})
   assert(status.unavailable().kind == 'stopped')
@@ -210,7 +211,7 @@ test('a stale "starting" from an earlier game session is no trace of this one, a
   advance(15)
   local down = status.unavailable()
   assert(down.kind == 'failed' and down.code == nil and down.detail == nil, 'the service never started in this session: the plain sentence')
-  assert(status.blockedMessage() == ${lua_(messages.failed)})
+  assert(status.blockedMessage() == ${lua_(messages.never)}, 'no trace of this session: the Runtime is what to look at, not a restart')
   -- The supervisor's own status has no source and its heartbeat refreshes it: stale means the service stopped, as before.
   advance(1)
   put('runtime/bridge-service.json', {version = 1, state = 'starting', code = 'supervisor-started', since = ms(-300), updated = ms(-200)})
