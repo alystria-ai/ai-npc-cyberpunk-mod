@@ -190,10 +190,22 @@ failures before synthesis remain recoverable for the other valid profiles.
 A cancelled request has `POCKET_LIMITS.cancelMs` (2 s) to be answered before the
 worker is retired. The one exception is a voice preparation: a first-time
 preparation takes 1.4 to 4.5 s and cannot be interrupted, so a cancelled one gets
-`prepareCancelMs` (15 s). The worker finishes it, answers `cancelled` (the
+`prepareCancelMs` (30 s). The worker finishes it, answers `cancelled` (the
 prepared voice stays cached) and takes the next job; V's typed line is cancelled
 on purpose when the companion's voice starts, which used to take the worker down
-whenever that line met a voice not yet prepared.
+whenever that line met a voice not yet prepared. A stream that has produced no
+audio yet is in the same position (it is preparing the voice or reading the text,
+neither interruptible), so it gets the long wait too; one that is already
+generating stops within a step and keeps the 2 s (0.2.4 report: a V line
+cancelled while the worker was starved of CPU took the worker down at 2 s).
+
+The upstream decoder turns every latent frame that is queued when it runs into
+ONE chunk, so on a busy computer a chunk can hold seconds of speech. The worker
+cuts such a chunk into consecutive packets of at most one second (`PACKET_FRAMES`),
+each acknowledged and numbered like any other, all with the chunk's one clock. A
+chunk that is empty, not PCM, or would pass the 120 s reply limit still fails
+the request (0.2.4 report: "Pocket returned PCM outside its frame limit" for a
+five-second chunk retired the worker).
 
 IPC carries a fresh owner token and request ID. Packets also retain exact
 profile/model identity and sample offset. Startup, reference preparation,

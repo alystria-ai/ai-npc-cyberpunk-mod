@@ -290,8 +290,11 @@ voice, nor beside the Pocket voice (V then uses the chosen worker), nor while vo
   switch to the Pocket voice, or a Settings preview of it), and it never starts while another Pocket worker is stopping.
 - A V line that finds the helper still loading (the first typed lines after the game starts, or just after V was switched on) is
   skipped with one log line (`V's line skipped: the Pocket helper voice is not loaded yet`); the reply never waits.
-- A failure (the worker cannot start or dies) leaves the helper off with one log line (`[VHelper] ... failed`) until V is turned
-  off and on, or the voice changes: no retry loop, and V is silent, never rendered on OmniVoice instead.
+- A failure (the worker cannot start or dies) leaves the helper off with one log line (`[VHelper] ... failed`); V is silent meanwhile,
+  never rendered on OmniVoice instead. It is loaded again after 45 s, then 3 min, then 10 min (`V_HELPER_RETRY_DELAYS_MS`, the same
+  waits as the companions' Pocket), never while a reply is in flight, due-checked from the 500 ms poll and each V line (no timer);
+  after the fourth failure it stays off until V is turned off and on, or the voice changes. A Windows block of a file of the voice is
+  not retried. (Before 0.2.4 one failure ended V's voice for the whole session.)
 - Pocket speaks English only: a non-English turn (Multilingual conversations) gets no V line beside OmniVoice, with one log line.
 - Order: the helper line is a V line like any other. The companion's OmniVoice request neither waits for it nor stops it (a different
   worker); the reply, published as a whole after its render, waits in `publishResult` (`waitClear`) while V is audible and starts after

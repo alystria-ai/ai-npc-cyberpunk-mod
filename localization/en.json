@@ -538,7 +538,7 @@
     "No reply arrived. The conversation service may not be running.": "No reply arrived. The conversation service may not be running.",
     "No reply received. Your message is in the draft; press Enter to retry.": "No reply received. Your message is in the draft; press Enter to retry.",
     "No settings were supplied.": "No settings were supplied.",
-    "No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game.": "No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game.",
+    "No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The Runtime is a separate download from the mod’s Hugging Face page; the Nexus page links to it.": "No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The Runtime is a separate download from the mod’s Hugging Face page; the Nexus page links to it.",
     "No speech was heard. Wait for Listening, then speak before you finish.": "No speech was heard. Wait for Listening, then speak before you finish.",
     "None found: installed by hand.": "None found: installed by hand.",
     "None installed. They are optional.": "None installed. They are optional.",
@@ -2063,7 +2063,7 @@
       "No problem found. Select a line to see what was checked.",
       "No reply arrived within {seconds} s. Try again.",
       "No reply arrived. The conversation service may not be running.",
-      "No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game.",
+      "No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The Runtime is a separate download from the mod’s Hugging Face page; the Nexus page links to it.",
       "No speech was heard. Wait for Listening, then speak before you finish.",
       "None found: installed by hand.",
       "None installed. They are optional.",
@@ -5825,7 +5825,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:246"
+        "mod/service-status.lua:251"
       ]
     },
     "Local AI found no graphics card it can use. It needs an NVIDIA or AMD card with a current driver. Update the driver, or choose another conversation provider.": {
@@ -5841,7 +5841,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:249"
+        "mod/service-status.lua:254"
       ]
     },
     "Local AI is ready.": {
@@ -5858,7 +5858,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:245"
+        "mod/service-status.lua:250"
       ]
     },
     "Local AI is warming up…": {
@@ -6483,7 +6483,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:251"
+        "mod/service-status.lua:256"
       ]
     },
     "No reply arrived. The conversation service may not be running.": {
@@ -6511,7 +6511,7 @@
         "mod/manager.lua:1825"
       ]
     },
-    "No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game.": {
+    "No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The Runtime is a separate download from the mod’s Hugging Face page; the Nexus page links to it.": {
       "contexts": [
         "ui.localized"
       ],
@@ -9000,7 +9000,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/service-status.lua:241"
+        "mod/service-status.lua:246"
       ]
     },
     "The conversation service did not start. Is the Runtime installed? See Help in Settings.": {
@@ -9008,6 +9008,7 @@
         "ui.localized"
       ],
       "references": [
+        "mod/service-status.lua:180",
         "mod/setup-check.lua:642"
       ]
     },

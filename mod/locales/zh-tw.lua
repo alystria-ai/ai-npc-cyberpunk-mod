@@ -950,7 +950,7 @@ return {
     ["Moved into place from {folder}: {packs}."] = "已從 {folder} 移入：{packs}。",
     ["No Local AI pack found. Download one from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, or choose another conversation provider."] = "找不到本機 AI 組件包。請從模組的 Hugging Face 頁面下載，解壓縮到 Cyberpunk 2077 資料夾，或選擇其他對話提供者。",
     ["No problem found. Select a line to see what was checked."] = "未發現問題。選取一行即可查看檢查內容。",
-    ["No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game."] = "本次執行未偵測到對話服務：Runtime 遺失或未能載入。請將 Runtime 壓縮檔直接解壓縮到 Cyberpunk 2077 資料夾（不要解壓到新資料夾），確認存在 red4ext/plugins/AiNpcCyberpunkMod，然後重新啟動遊戲。",
+    ["No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The Runtime is a separate download from the mod’s Hugging Face page; the Nexus page links to it."] = "本次執行未偵測到對話服務：Runtime 遺失或未能載入。請將 Runtime 壓縮檔直接解壓縮到 Cyberpunk 2077 資料夾（不要解壓到新資料夾），確認存在 red4ext/plugins/AiNpcCyberpunkMod，然後重新啟動遊戲。Runtime 需要從模組的 Hugging Face 頁面另外下載，Nexus 頁面上有連結。",
     ["None found: installed by hand."] = "未找到：已手動安裝。",
     ["None installed. They are optional."] = "未安裝。它們是選用的。",
     ["Not needed: Local AI and the voice run on this PC."] = "無需：本機 AI 與語音都在這台電腦上執行。",

@@ -110,6 +110,7 @@ export class VoiceSelection {
     this.vHelperWanted=false;
     this.vHelper=options.vHelper||new VHelperVoice({wait:()=>this.retiring,onReady:()=>this.options.onVHelperReady?.(),log:message=>{try{this.options.onLog?.('[VHelper] '+message+'\n');}catch{}},
       onFailure:reason=>this.noteFailure('v-helper',reason),
+      clock:()=>this.clock(),retryDelays:options.vHelperRetryDelays,noRetry:blockedByWindows,busy:()=>this.busy,
       create:onState=>this.primed(this.factory(this.baseConfigs.pocket,{...this.options,keepPreparedVoices:this.keepPrepared,onState}),'pocket')});
     // omniRetry: {failures, nextAt} while a failed Omni is to be loaded again; candidate: the background Omni worker
     // loading beside the committed fallback (Pocket is CPU only, so the two never share VRAM). candidateExit

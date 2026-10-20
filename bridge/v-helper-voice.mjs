@@ -10,15 +10,24 @@
 //     normal priority. A V line that finds it still loading is skipped; the reply never waits for it.
 //   - It never waits for or blocks the companion: it is a separate process on the CPU. It holds the Pocket work folder's lock, so it
 //     is released (and its exit confirmed) before any other Pocket worker starts, and it never starts while one is stopping.
-//   - A failure leaves it off until the setting or the voice changes; V then stays silent (one log line), never falls back to OmniVoice.
+//   - A failure leaves it off (V stays silent, one log line each, never falls back to OmniVoice) and it is loaded again after 45 s, then
+//     3 min, then 10 min, with no reply in flight, like the companions' Pocket voice; after the fourth failure it stays off until the
+//     setting or the voice changes. Windows blocking a file of the voice is not retried (restarting changes nothing). Before 0.2.4 a single
+//     failure (two reports: a PCM chunk over the packet limit, a cancelled line the starved worker could not stop) ended V's voice for the
+//     whole session.
+export const V_HELPER_RETRY_DELAYS_MS = Object.freeze([45_000, 180_000, 600_000]);
+export const V_HELPER_HEALTHY_MS = 600_000;
+
 export class VHelperVoice {
   /**
    * create   onState => client   a PocketVoice-like worker client (start, close, loaded, failure, hasProfile, prepareProfile, synthesizeStream)
    * wait     () => Promise       settles when no other Pocket worker is still stopping
    * onReady  () => void          the worker finished loading (once per load): V's voice is prepared now, not inside the first line
    */
-  constructor({create, wait = () => Promise.resolve(), log = () => {}, onReady = () => {}, onFailure = () => {}} = {}) {
-    Object.assign(this, {create, wait, log, onReady, onFailure});
+  constructor({create, wait = () => Promise.resolve(), log = () => {}, onReady = () => {}, onFailure = () => {},
+    clock = Date.now, retryDelays = V_HELPER_RETRY_DELAYS_MS, noRetry = () => false, busy = () => false} = {}) {
+    Object.assign(this, {create, wait, log, onReady, onFailure, clock, retryDelays, noRetry, busy});
+    this.retry = null;     // {failures, nextAt} while a failed helper is waiting for its next load
     this.client = null;
     this.generation = 0;
     this.failed = false;
@@ -32,7 +41,14 @@ export class VHelperVoice {
 
   /** Starts loading in the background; does nothing while one exists or after a failure. Never throws. */
   start() {
-    if (this.client || this.failed) return;
+    if (this.client) return;
+    if (this.failed) {
+      // Due-checked where routing already looks at the helper (the 500 ms poll, each V line): no timer. Waits for a moment with no reply in
+      // flight, so the load never competes with a reply's own work.
+      if (!this.retry || this.clock() < this.retry.nextAt || this.busy()) return;
+      this.log(`loading again (retry ${this.retry.failures})`);
+      this.failed = false; this.failure = null;
+    }
     const generation = ++this.generation;
     let client;
     try {
@@ -46,6 +62,7 @@ export class VHelperVoice {
       return client.start();
     }).then(() => {
       if (this.client !== client) return;
+      this.readyAt = this.clock();
       this.log('V\'s helper voice is ready (Pocket on the CPU, beside OmniVoice)');
       try { this.onReady(); } catch { /* a warm-up never affects the worker */ }
     }, error => { if (!error?.released) this.broke(client, error?.message); });
@@ -55,14 +72,22 @@ export class VHelperVoice {
     if (this.client !== client) return;
     this.failed = true;
     this.failure = String(message ?? 'unknown').slice(0, 200);
-    this.log(`V's helper voice failed (${this.failure}); typed lines stay silent until the voice or the setting changes`);
+    // A helper that ran well for ten minutes before it broke is a new fault, not another try at the same one: the count starts over.
+    if (this.retry && this.readyAt && this.clock() - this.readyAt >= V_HELPER_HEALTHY_MS) this.retry = null;
+    this.readyAt = null;
+    const failures = (this.retry?.failures ?? 0) + 1, delay = this.retryDelays[failures - 1];
+    let next = '';
+    if (this.noRetry(this.failure)) { this.retry = null; next = 'Windows blocked a file of the voice, so it is not tried again until the voice or the setting changes'; }
+    else if (delay === undefined) { this.retry = null; next = `giving up after ${failures} failed attempts; typed lines stay silent until the voice or the setting changes`; }
+    else { this.retry = {failures, nextAt: this.clock() + delay}; next = `trying again in ${Math.round(delay / 1000)} s`; }
+    this.log(`V's helper voice failed (${this.failure}); ${next}`);
     try { this.onFailure(this.failure); } catch { /* a report never affects the voice */ }
     void this.release({keepFailure: true});
   }
 
-  /** Stops the worker; resolves when its exit is confirmed. Clears a failure, so the next start tries again. */
+  /** Stops the worker; resolves when its exit is confirmed. Clears a failure (and the retries used), so the next start tries again. */
   release({keepFailure = false} = {}) {
-    if (!keepFailure) { this.failed = false; this.failure = null; }
+    if (!keepFailure) { this.failed = false; this.failure = null; this.retry = null; }
     const client = this.client;
     if (!client) return this.exit;
     this.client = null;

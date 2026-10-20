@@ -950,7 +950,7 @@ return {
     ["Moved into place from {folder}: {packs}."] = "{folder}에서 제자리로 옮김: {packs}.",
     ["No Local AI pack found. Download one from the mod’s Hugging Face page and extract it into the Cyberpunk 2077 folder, or choose another conversation provider."] = "로컬 AI 팩을 찾을 수 없습니다. 모드의 Hugging Face 페이지에서 받아 Cyberpunk 2077 폴더에 풀거나, 다른 대화 제공자를 선택하세요.",
     ["No problem found. Select a line to see what was checked."] = "문제가 발견되지 않았습니다. 줄을 선택하면 확인한 항목을 볼 수 있습니다.",
-    ["No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game."] = "이번 세션에서 대화 서비스가 확인되지 않습니다. Runtime이 없거나 로드되지 않았습니다. Runtime zip을 새 폴더가 아니라 Cyberpunk 2077 폴더에 바로 풀고, red4ext/plugins/AiNpcCyberpunkMod가 있는지 확인한 후 게임을 다시 시작하세요.",
+    ["No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The Runtime is a separate download from the mod’s Hugging Face page; the Nexus page links to it."] = "이번 세션에서 대화 서비스가 확인되지 않습니다. Runtime이 없거나 로드되지 않았습니다. Runtime zip을 새 폴더가 아니라 Cyberpunk 2077 폴더에 바로 풀고, red4ext/plugins/AiNpcCyberpunkMod가 있는지 확인한 후 게임을 다시 시작하세요. Runtime은 모드의 Hugging Face 페이지에서 따로 받는 파일입니다. Nexus 페이지에 링크가 있습니다.",
     ["None found: installed by hand."] = "없음: 수동으로 설치됨.",
     ["None installed. They are optional."] = "설치된 항목 없음. 선택 사항입니다.",
     ["Not needed: Local AI and the voice run on this PC."] = "불필요: 로컬 AI와 음성은 이 PC에서 실행됩니다.",

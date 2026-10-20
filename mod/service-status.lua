@@ -174,6 +174,11 @@ end
 -- A localized explanation when a new conversation cannot be served, else nil. A notice: the plain sentence, without the status's words.
 function M.blockedMessage(now)
     local state = M.unavailable(now)
+    -- No trace of the service in this session at all (reach 'never': nothing ever started it, usually the Runtime was never extracted): "restart the
+    -- game" is no help, so the sentence the first-load notice already uses says what to look at (0.2.4: sixteen installs reported this).
+    if state and state.kind == 'failed' and state.code == nil and state.detail == nil and M.reach(now) == 'never' then
+        return ui.t('The conversation service did not start. Is the Runtime installed? See Help in Settings.'), state.kind
+    end
     return state and M.message(state.kind), state and state.kind
 end
 

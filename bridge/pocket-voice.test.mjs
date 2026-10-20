@@ -170,7 +170,7 @@ test('terminal native synthesis failure retires the owned worker and cannot reus
 test('hung cancellation and shutdown kill only the owned handle and require exit confirmation',async()=>{
   const timers=clock(),h=harness({timers});const controller=new AbortController();
   const synthesis=h.client.synthesizeStream(profile,'One reply.',{signal:controller.signal,onPcm:()=>{}}),rejected=assert.rejects(synthesis,{name:'AbortError'});
-  await tick();h.prepared();await tick();controller.abort();await rejected;
+  await tick();h.prepared();await tick();h.pcm(h.requests[1],1,0);await tick();controller.abort();await rejected;
   timers.advance(POCKET_LIMITS.cancelMs);await tick();assert.ok(h.client.failure);assert.equal(h.child.stdin.writableEnded,true);
   timers.advance(POCKET_LIMITS.cancelMs);assert.equal(h.child.kills,1);
   const close=h.client.close(),failed=assert.rejects(close,/exit could not be confirmed/);
@@ -205,6 +205,45 @@ test('a cancelled preparation that never ends still stops the worker, after the 
   timers.advance(POCKET_LIMITS.prepareCancelMs - 1); await tick(); assert.equal(h.client.failure, undefined);
   timers.advance(1); await tick(); assert.match(h.client.failure.message, /did not stop its cancelled request/);
   assert.equal(h.child.stdin.writableEnded, true);
+  timers.advance(POCKET_LIMITS.cancelMs); assert.equal(h.child.kills, 1);
+  h.finish();
+});
+
+// A long decoder chunk is cut into consecutive packets by the worker, all with the chunk's one clock; the bridge takes them in order.
+test('consecutive packets cut from one decoder chunk (the same clocks) are accepted in order', async () => {
+  const h = harness(), packets = [];
+  const synthesis = h.client.synthesizeStream(profile, 'One long reply.', {onPcm: packet => { packets.push(packet); }});
+  await tick(); h.prepared(); await tick(); const request = h.requests[1];
+  h.pcm(request, 1, 0); await tick();
+  h.pcm(request, 2, 4, undefined, {yieldMs: 40, copiedReadyMs: 45}); await tick();
+  h.pcm(request, 3, 8, undefined, {yieldMs: 40, copiedReadyMs: 45}); await tick();
+  assert.deepEqual(packets.map(packet => packet.index), [1, 2, 3]);
+  h.done(request, 12, 3); const result = await synthesis; assert.equal(result.frames, 12); assert.equal(result.chunks, 3);
+  await h.close();
+});
+
+// 0.2.4 report (RTX 5050 laptop, OmniVoice beside it): V's first line was dropped while the worker was starved of CPU, the cancel came before
+// any sound, and the 2 s deadline took the worker down ("did not stop its cancelled request"). Before its first sound a stream is still
+// preparing the voice or reading the text, which cannot be interrupted, so it gets the long wait.
+test('a stream cancelled before its first sound waits for the worker to answer instead of killing it at the 2 s deadline', async () => {
+  const timers = clock(), h = harness({timers}), controller = new AbortController();
+  const synthesis = h.client.synthesizeStream(profile, 'One reply.', {signal: controller.signal, onPcm: () => {}}), rejected = assert.rejects(synthesis, {name: 'AbortError'});
+  await tick(); h.prepared(); await tick(); const request = h.requests[1]; assert.equal(request.op, 'stream');
+  controller.abort(); await rejected; assert.equal(h.requests.at(-1).op, 'cancel');
+  timers.advance(POCKET_LIMITS.cancelMs * 3); await tick();
+  assert.equal(h.client.failure, undefined); assert.equal(h.child.stdin.writableEnded, false); assert.equal(h.child.kills, 0);
+  h.send({op: 'cancelled', id: request.id, profile, ...h.profiles()}); await tick();
+  timers.advance(POCKET_LIMITS.prepareCancelMs); await tick();
+  assert.equal(h.client.failure, undefined, 'the answered cancel has no deadline left'); assert.equal(h.launches.length, 1, 'one worker throughout');
+  await h.close();
+});
+
+test('a stream cancelled before its first sound that never answers still stops the worker, after the long wait', async () => {
+  const timers = clock(), h = harness({timers}), controller = new AbortController();
+  const synthesis = h.client.synthesizeStream(profile, 'One reply.', {signal: controller.signal, onPcm: () => {}}), rejected = assert.rejects(synthesis, {name: 'AbortError'});
+  await tick(); h.prepared(); await tick(); controller.abort(); await rejected;
+  timers.advance(POCKET_LIMITS.prepareCancelMs - 1); await tick(); assert.equal(h.client.failure, undefined);
+  timers.advance(1); await tick(); assert.match(h.client.failure.message, /did not stop its cancelled request/);
   timers.advance(POCKET_LIMITS.cancelMs); assert.equal(h.child.kills, 1);
   h.finish();
 });

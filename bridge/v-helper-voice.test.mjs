@@ -15,7 +15,7 @@ const pocketSettings = voices => ({version: 1, provider: 'pocket', engine: 'pock
   model: {sha256: 'a'.repeat(64), configSha256: 'b'.repeat(64), tokenizerSha256: 'c'.repeat(64), receiptSha256: 'd'.repeat(64),
     inputIdentity: 'e'.repeat(64), selectedStep: 1500}});
 
-function fixture({holdPocketClose = false, failHelper = false, options = {}} = {}) {
+function fixture({holdPocketClose = false, failHelper = false, helperError = 'helper failed', options = {}} = {}) {
   const events = [], workers = [];
   const ref = name => ({'judy-alvarez': {reference: `runtime/voice-references/${name}/judy.wav`, sha256: 'b'.repeat(64), transcript: 'A line.'},
     'v-male': {reference: `runtime/voice-references/${name}/v-male.wav`, sha256: 'c'.repeat(64), transcript: 'V says something.'}});
@@ -31,7 +31,7 @@ function fixture({holdPocketClose = false, failHelper = false, options = {}} = {
       hasProfile: key => Object.hasOwn(config.voices, key), profileReady(key) { return loaded && this.hasProfile(key); },
       async start() {
         this.starts++; events.push(`${backend}#${index} start`);
-        if (failHelper && backend === 'pocket') { this.failure = Error('helper failed'); onState({state: 'error'}); throw this.failure; }
+        if (failHelper && backend === 'pocket' && (failHelper === true || index <= failHelper)) { this.failure = Error(helperError); onState({state: 'error'}); throw this.failure; }
         loaded = true; events.push(`${backend}#${index} ready`); onState({state: 'ready', resident: true});
       },
       async prepareProfile(profile) { this.prepared.push(profile); return {provider: backend, ready: true, profile}; },
@@ -272,6 +272,71 @@ test('a failed helper stays off with one log line and no retry loop; V stays sil
   assert.equal(h.voice.voiceProblem(), null, 'no problem once the voice is off or tried again');
   h.voice.setVHelperWanted(true); await tick();
   await until(() => h.workers.filter(worker => worker.backend === 'pocket').length === 2, 'a second attempt');
+  await h.voice.close();
+});
+
+// 0.2.4 reports: one failure of V's helper (a PCM chunk over the packet limit; a cancelled line the starved worker could not stop) left V without
+// a voice for the rest of the session. It is loaded again after 45 s, then 3 min, then 10 min, with no reply in flight; the fourth failure ends it.
+test('a failed helper is loaded again after the wait, never while a reply is in flight, and the failure clears once it is back', async () => {
+  let now = 1_000_000; const failures = [];
+  const h = fixture({failHelper: 1, options: {clock: () => now, onFailure: info => failures.push(info)}});
+  await omniReady(h); await until(() => h.voice.vHelper.failed, 'the failure');
+  assert.deepEqual(failures, [{engine: 'v-helper', reason: 'helper failed'}]);
+  assert.match(h.logs.join(''), /helper voice failed \(helper failed\); trying again in 45 s/);
+  assert.deepEqual(h.voice.voiceProblem(), {engine: 'v-helper', reason: 'helper failed'}, 'the Help row still names it while it waits');
+  const pockets = () => h.workers.filter(worker => worker.backend === 'pocket').length;
+  now += 44_999; h.voice.update(omniSettings, null, false); h.voice.vHelperReady('v-male'); await tick();
+  assert.equal(pockets(), 1, 'not before the wait is over');
+  now += 1; h.voice.update(omniSettings, null, true); h.voice.vHelperReady('v-male'); await tick();
+  assert.equal(pockets(), 1, 'not while a reply is in flight');
+  h.voice.update(omniSettings, null, false); await until(() => pockets() === 2, 'the second attempt'); await until(() => h.voice.vHelper.loaded, 'the helper loading again');
+  assert.match(h.logs.join(''), /loading again \(retry 1\)/);
+  assert.equal(h.voice.voiceProblem(), null); assert.equal(h.voice.vHelperReady('v-male'), true);
+  assert.equal(h.logs.filter(line => /helper voice failed/.test(line)).length, 1);
+  await h.voice.close();
+});
+
+test('a helper that keeps failing is tried three more times (45 s, 3 min, 10 min) and then stays off until the voice or the setting changes', async () => {
+  let now = 1_000_000;
+  const h = fixture({failHelper: true, options: {clock: () => now}});
+  await omniReady(h); await until(() => h.voice.vHelper.failed, 'the first failure');
+  const pockets = () => h.workers.filter(worker => worker.backend === 'pocket').length;
+  for (const [attempt, wait] of [[2, 45_000], [3, 180_000], [4, 600_000]]) {
+    now += wait; h.voice.update(omniSettings, null, false); h.voice.vHelperReady('v-male');
+    await until(() => pockets() === attempt, `attempt ${attempt}`); await until(() => h.voice.vHelper.failed, `failure ${attempt}`); await tick();
+  }
+  assert.match(h.logs.join(''), /giving up after 4 failed attempts/);
+  now += 24 * 3_600_000; for (let at = 0; at < 3; at++) { h.voice.update(omniSettings, null, false); h.voice.vHelperReady('v-male'); await tick(); }
+  assert.equal(pockets(), 4, 'no fifth attempt');
+  h.voice.setVHelperWanted(false); await tick(); h.voice.setVHelperWanted(true); await tick();
+  await until(() => pockets() === 5, 'a fresh try after the setting changed');
+  await h.voice.close();
+});
+
+test('a helper that ran for ten minutes before it broke starts its retries over; one that broke soon after loading does not', async () => {
+  let now = 1_000_000;
+  const h = fixture({failHelper: 1, options: {clock: () => now}});
+  await omniReady(h); await until(() => h.voice.vHelper.failed, 'the first failure');
+  now += 45_000; h.voice.update(omniSettings, null, false); h.voice.vHelperReady('v-male');
+  await until(() => h.voice.vHelper.loaded, 'the helper loading again');
+  now += 60_000; h.voice.vHelper.broke(h.voice.vHelper.client, 'died soon');
+  assert.match(h.logs.join(''), /helper voice failed \(died soon\); trying again in 180 s/, 'the second failure waits the second step');
+  now += 180_000; h.voice.update(omniSettings, null, false); h.voice.vHelperReady('v-male');
+  await until(() => h.voice.vHelper.loaded, 'the helper loading a third time');
+  now += 600_000; h.voice.vHelper.broke(h.voice.vHelper.client, 'died late');
+  assert.match(h.logs.join(''), /helper voice failed \(died late\); trying again in 45 s/, 'after ten healthy minutes the count starts over');
+  await h.voice.close();
+});
+
+test('a helper that Windows blocked is not tried again', async () => {
+  let now = 1_000_000;
+  const h = fixture({failHelper: true, helperError: 'An Application Control policy has blocked this file', options: {clock: () => now}});
+  await omniReady(h); await until(() => h.voice.vHelper.failed, 'the first failure');
+  assert.match(h.logs.join(''), /Windows blocked a file of the voice, so it is not tried again/);
+  assert.equal(h.voice.voiceProblem().cause, 'blocked');
+  const pockets = h.workers.filter(worker => worker.backend === 'pocket').length;
+  now += 24 * 3_600_000; h.voice.update(omniSettings, null, false); h.voice.vHelperReady('v-male'); await tick(); await tick();
+  assert.equal(h.workers.filter(worker => worker.backend === 'pocket').length, pockets);
   await h.voice.close();
 });
 
