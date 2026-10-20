@@ -680,7 +680,6 @@
             "bridge/local-server-recovery.mjs",
             "bridge/local-stt-capture.mjs",
             "bridge/local-stt.mjs",
-            "bridge/log-cap.mjs",
             "bridge/loot-context.mjs",
             "bridge/mature-content.mjs",
             "bridge/mature-guard-terms.mjs",
@@ -787,7 +786,8 @@
             "bridge/local-stt-worker.py",
             "bridge/audio-output-probe.ps1",
             "bridge/error-reports.mjs",
-            "bridge/report-secrets.mjs"
+            "bridge/report-secrets.mjs",
+            "bridge/log-cap.mjs"
           ]
         },
         {

@@ -85,7 +85,6 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/local-server-recovery.mjs',
   'bridge/local-stt-capture.mjs',
   'bridge/local-stt.mjs',
-  'bridge/log-cap.mjs',
   'bridge/loot-context.mjs',
   'bridge/mature-content.mjs',
   'bridge/mature-guard-terms.mjs',
@@ -203,6 +202,7 @@ export const BRIDGE_AUXILIARY_FILES = Object.freeze([
   // values to scrub and the RED4ext plugin versions is loaded the same way.
   'bridge/error-reports.mjs',
   'bridge/report-secrets.mjs',
+  'bridge/log-cap.mjs', // the supervisor's log size caps (bridge/bridge-supervisor.mjs); not in the bridge's import closure
 ]);
 // These are the pinned external package entry points, not a replacement for the
 // full reviewed Playwright distributions and their transitive source/notices.
