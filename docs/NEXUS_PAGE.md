@@ -18,8 +18,8 @@ Pick one in Companion Manager > Settings > Conversation provider.
 [b]2. Local: no internet, no account, no limit[/b]
 [list]
 [*]Needs a graphics card with room to spare next to the game: 12 GB of video memory or more (see the card list below). On an 8 GB card, use cloud text instead.
-[*]Choose [b]Local AI[/b]. With only a Mature pack, also turn on [b]Mature content[/b].
 [*]Install a Local AI pack (see Optional packs): [b]Local AI standard[/b], or [b]Local AI lite[/b] for smaller graphics cards. A Mature pack works too.
+[*]Choose [b]Local AI[/b]. With only a Mature pack, also turn on [b]Mature content[/b].
 [*]Voice: [b]Pocket[/b] (already in the Runtime, English), or [b]OmniVoice[/b] with its pack on an NVIDIA card with 12 GB of video memory or more, for voices that sound like the game characters and for other languages.
 [*]It runs on your graphics card (Vulkan, NVIDIA or AMD), needs at least 16 GB of system memory and shares the card with the game, so it is slower than the cloud on most PCs.
 [*]Fully offline: if Windows asks whether Node.js may use the network, you can decline, and turn off [b]Settings > Privacy > Send error reports automatically[/b].
