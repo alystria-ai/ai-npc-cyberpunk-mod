@@ -19,6 +19,8 @@
 //             is mapped at once, `mature:*` to `mature:good` if it fits, else `mature:lite`, any other to the default rule; and with
 //             Mature content on and a Mature model installed the fallbacks never leave the Mature pack (good, then lite): when even
 //             the lite one does not fit the free graphics memory it is loaded anyway, with part of its layers on the CPU (`offload`).
+// With no Mature model, when nothing at all fits whole (and no server of the player's is installed), the smallest installed model of any kind (standard, lite, a custom file) is
+// loaded the same way (`offload`) instead of the start failing. The caller (bridge/local-llm-server.mjs) refuses it when too little of it could stay on the card (FIT_LIMITS.hopelessShare).
 // A Mature-only install (the Mature packs carry their own engine, so a player may have no Local AI pack): when every installed model is a Mature
 // pack model and Mature content is off, nothing is chosen and nothing is offered as the default: Local AI is unavailable ('mature-off') until
 // Mature content is turned on, or a Local AI pack or a custom model is added. With a standard, lite or custom model installed Local AI always runs: with
@@ -31,7 +33,7 @@
 // A model that stalled the turns of this session (the game took the graphics memory and the driver moved the model into shared system memory, so the prompt
 // is read at a crawl) is marked `stalled` by the server (bridge/local-llm-server.mjs, stepDown) and is left out like a broken one: the choice then steps down to the
 // next smaller installed model of the same family (Mature good -> Mature lite, standard -> lite; stepDownTarget), never across the Mature line, and with none left
-// the caller falls back to the cloud text provider. The saved choice (`pin`) is never changed: the mark lives in memory for the session.
+// the same model is loaded again with part of its layers on the CPU, or Local AI is marked unavailable (it never hands the turns to a cloud provider). The saved choice (`pin`) is never changed: the mark lives in memory for the session.
 // On a card of about 8 GB or less the default rule (no pin) also keeps room for the game: a model must fit the card's total memory minus
 // SMALL_CARD_GAME_RESERVE_MIB, else the next smaller one that does is taken (the largest that merely fits when none does). A pinned model is the player's word.
 // Pure functions: no I/O, no timers. The caller supplies the file sizes and the free memory, and runs this only when a model is about to
@@ -163,7 +165,12 @@ function prepare({models, freeMiB, totalMiB, sizeOf, realFit = {}}) {
   const group = wanted => { const own = candidates.filter(item => item.model.external !== true && wanted(item)); return own.length ? own : candidates.filter(item => item.model.external === true && wanted(item)); };
   // The last resort when no file model fits: a server the player runs (an uncensored one only with Mature content on, like any uncensored model).
   const externals = candidates.filter(item => item.model.external === true);
-  return {sized, fits, pick, pickMature, externals, reserved, uncensored: group(item => item.model.uncensored), ordinary: group(item => !item.model.uncensored)};
+  // Nothing fits whole and no server of the player's is there: the smallest installed file model of any kind (standard, lite, Mature, a custom file), to be loaded with part of its layers on the CPU.
+  // A model too large for the card (`tooLarge`) is still in it: the caller's gate (bridge/local-vram-fit.mjs offloadPlan) says whether enough of it can stay on the card. An uncensored model only
+  // with Mature content on (`allowUncensored`), like everywhere else.
+  const offloadable = allowUncensored => bySize(sized.filter(item => item.model.external !== true && item.model.broken !== true && item.model.stalled !== true
+    && (allowUncensored || !item.model.uncensored))).at(-1) ?? null;
+  return {sized, fits, pick, pickMature, externals, offloadable, reserved, uncensored: group(item => item.model.uncensored), ordinary: group(item => !item.model.uncensored)};
 }
 
 /**
@@ -177,19 +184,19 @@ function prepare({models, freeMiB, totalMiB, sizeOf, realFit = {}}) {
  *   realFit    {modelId: {pick}} from bridge/local-vram-fit.mjs for the models whose file-size need exceeds the free memory but whose projected memory (the real
  *              figure: a Gemma 4 E4B keeps about 1.7 GB of its file in system memory) fits whole: such a model counts as fitting, so a chosen one is kept and
  *              a Mature one is loaded whole instead of with layers on the CPU. The caller probes only the chosen model and the uncensored ones.
- * Returns {model, profile, sizeMiB, pinned, fellBack, offload}: `offload` is true when a Mature model is loaded though it does not fit the
- * free graphics memory (some of its layers then run on the CPU); `fellBack` is null, or 'missing' / 'low-memory' / 'start-failed' / 'too-slow' when the pin could
+ * Returns {model, profile, sizeMiB, pinned, fellBack, offload}: `offload` is true when the model is loaded though it does not fit the free graphics memory (some of its layers
+ * then run on the CPU): a Mature model (it never gives way to a censored one), or, when nothing at all fits whole, the smallest installed model of any kind; `fellBack` is null, or 'missing' / 'low-memory' / 'start-failed' / 'too-slow' when the pin could
  * not be used and another model was chosen instead (`model.broken`, set by the server, marks a custom model that failed to start; `model.stalled` a model that
  * stalled this session's turns); `gameReserve` is true when the room kept for the game on a small card changed the default pick. Throws
  * LocalAiUnavailable('not-installed') with no model, ('mature-off') when only Mature pack models are installed and Mature content is off,
- * ('low-memory') when nothing fits.
+ * ('low-memory') when no model is left to try (every one is broken or stepped down).
  */
 export function chooseLocalModel({models = [], pin = AUTO_MODEL, matureOn = false, freeMiB = null, totalMiB = null, sizeOf = () => 0, realFit = {}} = {}) {
   if (!models.length) throw new LocalAiUnavailable('not-installed', 'no model');
   if (matureOffBlocks(models, matureOn)) throw new LocalAiUnavailable('mature-off', 'only Mature models are installed and Mature content is off');
   // Mature content off: a Mature pack model never loads, pinned or not (a pin of it stays in the settings, and is used again when Mature content is on).
   if (!matureOn) { if (matureOffIgnores(pin, models)) pin = AUTO_MODEL; models = models.filter(model => !model.matureTier); }
-  const {sized, fits, pick, pickMature, externals, reserved, uncensored, ordinary} = prepare({models, freeMiB, totalMiB, sizeOf, realFit});
+  const {sized, fits, pick, pickMature, externals, offloadable, reserved, uncensored, ordinary} = prepare({models, freeMiB, totalMiB, sizeOf, realFit});
   let fellBack = null, silent = false, want = pin;
   if (want !== AUTO_MODEL) {
     let item = sized.find(candidate => candidate.model.id === want);
@@ -218,11 +225,14 @@ export function chooseLocalModel({models = [], pin = AUTO_MODEL, matureOn = fals
   }
   // Mature content on with a Mature model installed: the fallback stays in the Mature pack (it never reaches a censored model).
   const mature = matureOn && uncensored.length > 0;
-  const chosen = (mature ? pickMature(uncensored) : null) ?? pick(ordinary) ?? externals.find(item => matureOn || !item.model.uncensored) ?? null;
+  const whole = (mature ? pickMature(uncensored) : null) ?? pick(ordinary) ?? externals.find(item => matureOn || !item.model.uncensored) ?? null;
+  // Nothing fits whole: the smallest installed model of any kind goes onto the card as far as it fits and runs the rest on the CPU (`offload`) instead of the start failing. Whether enough of it
+  // can stay on the card is the caller's gate (the projection is not pure data), so a model that is far too large is still returned here.
+  const chosen = whole ?? offloadable(matureOn);
   if (!chosen) throw new LocalAiUnavailable('low-memory');
   // A silent migration, or the pinned model itself loaded anyway (it did not fit): nothing was replaced, so nothing is announced.
   if (silent || chosen.model.id === pin) fellBack = null;
-  return {...chosen, pinned: false, fellBack, offload: chosen.model.uncensored && !fits(chosen), ...(reserved.applied ? {gameReserve: true} : {})};
+  return {...chosen, pinned: false, fellBack, offload: whole === null || (chosen.model.uncensored && !fits(chosen)), ...(reserved.applied ? {gameReserve: true} : {})};
 }
 
 /** The installed model a saved `mature:*` id that is in no pack any more stands for: the Mature pack's good model if it fits, else its lite one; null when the pack has none. */

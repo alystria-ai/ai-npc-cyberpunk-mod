@@ -49,9 +49,10 @@ The game can also take the graphics memory after the model is loaded (a big scen
 system memory, where it reads a prompt at a crawl. When two requests in a row get no usable answer (a turn or a persona warm-up with no reply, a
 prompt read that stops, a reply that goes quiet) and none was answered in between, the mod steps down for the rest of the session, in the same
 family: **standard to lite**, and for the Mature models **Mature good to Mature lite** (an uncensored model never gives way to a censored one). You
-see one notice, once: "Local AI switched to {model}: the game is using most of your graphics memory." When no smaller model is installed, or the
-lite model does not fit the memory that is free then, a cloud provider takes the text (Mistral with a saved key, otherwise Convai), with one notice,
-once: "Local AI was too slow because the game is using most of your graphics memory, so a cloud provider is used." Your saved model choice is not
+see one notice, once: "Local AI switched to {model}: the game is using most of your graphics memory." When no smaller model is installed, the same model is loaded
+again with part of its layers on the CPU (see "Partial offload on a small card" below) if enough of them can stay on the card; when too few can, Local AI is unavailable
+and says so ("Not enough free graphics memory to start Local AI. Try a smaller model in Settings." and, after it, "this graphics card is too small for the model: choose a
+smaller model in Settings, or use the Custom provider"). Your saved model choice is not
 changed; choosing Local AI again, or another model, tries the whole choice again. A model you added yourself and a server you run never step down.
 On a card of about 8 GB or less the default choice (no model saved) keeps 3 GB of the card for the game, so it takes the lite model; a model you pick
 in the row is loaded as you chose it (and steps down only if it stalls).
@@ -97,7 +98,7 @@ no "Auto" entry: the row always shows one concrete model as selected. Only one m
   **Mature content never falls back to a censored model** (when a Mature model is installed): the fallbacks stay among the installed Mature models, good
   first, then lite. When even the lite model does not fit the free graphics memory it is loaded anyway, with part of its layers on the CPU
   (`offload`: the server is started without `-ngl` and with `-fit on`, so llama-server keeps as many layers on the card as fit; slower, but
-  uncensored; the log says so). Only with no Mature model installed at all do the ordinary models answer, as before (the setting works
+  uncensored; the log says so), provided at least 35% of its layers can stay on the card ("Partial offload on a small card"). Only with no Mature model installed at all do the ordinary models answer, as before (the setting works
   with any model; a pinned Mature id with no Mature model installed gets the usual "missing" notice).
 - **A saved choice that names a model no longer in any pack** (a Mature model of an older pack such as `mature:qwen3.5-9b-...`, a removed
   standard model) is mapped without any notice: `mature:*` to `mature:good` if it fits, else `mature:lite`; any other id to the default.
@@ -245,7 +246,10 @@ The support report (Settings > Help > Help and support) lists both folders under
 A model of a name nobody listed that thinks before it answers (a server's own label such as "Laptop AI") would think through its whole allowance: its turn comes back as
 only thinking. That turn is asked again once, at once, with the fields that ask for no thinking, `reasoning_effort: "none"`, `chat_template_kwargs: {enable_thinking: false}`
 and `think: false` (`noThinkingFields`, `bridge/reasoning.mjs`; a server that refuses one by name loses just that one), inside the turn's own time. The endpoint is then
-remembered for the session as one that thinks, and later turns send those fields from the start. If the retry is only thinking too, the turn fails with the notice
+remembered for the session as one that thinks, and later turns send those fields from the start. **Since 2026-10-21 a server you run gets the fields on its very first request**
+(`localRoute`'s adaptation starts with `thinks: true`, `bridge/text-provider-host.mjs`), so the first turn is not spent on a reply of only thinking; a server that rejects one of them by
+name, or says a parameter is unsupported without naming it, or answers 400/422 "Extra inputs are not permitted" (`UNKNOWN_FIELD_WORDS`), loses that field (or all three) and the request is sent
+again at once (`learnRefusal`, `bridge/mistral-client.mjs`), which is remembered for the session. If a reply is only thinking although the fields went along, the turn fails with the notice
 `local-thinking` ("Your model only thought and didn't answer. Turn thinking off for it in your model server, or pick a non-thinking model."). Thinking is never spoken. The packaged
 models do not think and are never sent the fields.
 
@@ -823,8 +827,9 @@ Free graphics memory was never read at turn time, and the Mature family was neve
   treats `model.stalled` like `broken`; `stepDownTarget` is the next smaller installed model of the same family (same `uncensored` flag, a pack model, never a
   custom one or a server). A pinned model that stalled gets `fellBack: 'too-slow'`: its family's next model (a Mature one is loaded with layers on the CPU
   when it does not fit, like the rest of the Mature pack; an ordinary one only when it fits), else the default rule. The saved pin is never written.
-- The start that follows emits `model-stepdown {from, model, free}` (once; `model` is the new model's name). With no model left, or no room for it, the
-  event has `model: null` and the server fails with `low-memory`, which hands the turns to the cloud text provider as any other failed start does.
+- The start that follows emits `model-stepdown {from, model, free}` (once; `model` is the new model's name). With no smaller model, the same model is loaded with part of its layers
+  on the CPU (2026-10-21, "Partial offload on a small card"), and when that is not possible the server fails with `low-memory` and the detail `too-small`, a local failure (no
+  `model-stepdown` event, which would name a cloud provider). A smaller model that has no room either fails the same way.
   `MistralProvider.noteLocalStepDown` turns the event into the `local-stepdown` notice (`keyNoticeModel` carries the name; without a name the notice is the
   cloud text and replaces `local-fallback`, which says "could not start").
 - `diagnostics().steppedDown` lists the models left out, for the support report; the log has `[local] ... stalled (1 of 2)` and `[local] stepping down from ...`.
@@ -871,7 +876,8 @@ before a load (`lms load --estimate-only`) and has a CUDA-only "limit offload to
    process's Dedicated and Shared Usage. Shared usage beyond 128 MiB that is at least 300 MiB and 10% of what the process holds is a spill. Nothing per frame, per turn or while the
    replies are fast; no counters (not Windows, a failed read) change nothing. The reading goes to the log and `diagnostics().engine.spill`.
 3. **Reaction to a spill.** The server is stopped (its memory goes back at once), the free memory is read, and the same model is loaded again fitted to it with a 1,024 MiB margin (once per
-   model per session); when no rung fits, or it spills again, it steps down as after two stalls (same family, then the cloud). Measured end to end with the real server (Balanced mode, the
+   model per session); when no rung fits, or it spills again, it steps down as after two stalls (same family, then the same model with part of it on the CPU, else Local AI is
+   unavailable with the `too-small` detail; before 2026-10-21 it was "then the cloud"). Measured end to end with the real server (Balanced mode, the
    card over-committed by four other servers): Gemma 4 E4B spilled at 6.2 tokens a second (1,073 prompt tokens a second), 6.5 s after the slow reply was reported the lite model was
    loaded and read 3,658 prompt tokens and wrote 103 tokens a second (Silent mode: 6.2 and 109, 8.8 s). A partial placement does not look like a spill (76 MiB shared with 20 layers on the card). Before this change a reply that came, however slowly, was never counted as a stall.
 4. **A model on the CPU for the most part steps down at its first stall.** When the fit says under 35% of the layers can stay on the card (123 to 314 MiB free: the 8 GB RTX 4060 report,
@@ -887,6 +893,58 @@ driver setting for CUDA programs and is not touched (a system setting).
 Tests: `bridge/local-vram-fit.test.mjs` (the parse, the probe with a stand-in process, the ladder, `chooseLocalModel` with a fit), `bridge/gpu-memory.test.mjs` (the counter CSV, the verdict
 with the measured numbers), `bridge/local-llm-server.test.mjs` (whole-model loads at each rung, no probe where there was none, the hopeless first stall, refit once then step down, no
 counters, the reload that would end on the same model).
+
+### Partial offload on a small card (2026-10-21: RTX 4060 8 GB, Mature lite pack, "answered once, then not enough memory")
+
+**What the player had.** A 4060 (8 GB, 16 GB of RAM) with the Mature lite pack only (Qwen3.5-4B Q4_K_M, 2,582 MiB; the game used at most 45% of the card), text only. The first message was
+answered: the model was loaded whole (the file-size rule: 3,282 MiB needed). The first request read the memory counters (`SPILL_LIMITS`), the game had taken more of the card, the
+model had spilled into shared memory, and `#spillAct` unloaded it and looked for a placement: no context rung fitted with the 1,024 MiB refit margin, there was no smaller Mature model,
+so `#stepDown` failed Local AI with `low-memory`. `-fit on` (partial offload) was only ever used for a Mature model that did not fit at the first load; standard, lite and custom
+models never were, and the spill path never used it. The player runs 20 GB models elsewhere with CPU offloading and wanted the same.
+
+**What happens now** (`bridge/local-vram-fit.mjs`, `bridge/local-model-choice.mjs`, `bridge/local-llm-server.mjs`):
+1. **Initial choice.** When nothing fits whole (and no server of the player's is installed), `chooseLocalModel` no longer throws `low-memory`: it returns the smallest installed file model
+   of any kind (standard, lite, Mature with Mature content on, a custom file, even one `tooLarge` for the card) with `offload: true`. A stalled or broken model, a server and (Mature
+   off) an uncensored model are left out. Nothing that fits whole is ever offloaded. A pinned model that does not fit is still replaced by the default, with the usual notice.
+2. **Spill and step-down** (`#spillAct`, `#stepDown`). When no context rung fits and no smaller model of the family is installed, the SAME model is loaded again with part of its layers on
+   the CPU, once per model per session (`#offloadTried`). A model the player added is now handled by a spill like a pack model (a stall, or two lost devices, still never step one of those
+   down). A model that already ran that way, or was tried that way earlier, is not tried again: Local AI is unavailable. A smaller model, when there is one, is still preferred (whole on the card).
+3. **The gate** (`offloadPlan`). Before an offloaded load the share of the layers that can stay on the card is worked out from llama-fit-params' projection of the placement (context 8,192, 8-bit
+   cache; one run of 1 to 3 s, or the projection the fit already made; the file size plus 700 MiB when there is no tool): `share = (free - 1,792 - 1,100) / (projected - 1,100)`, where 1,792 MiB
+   (`offloadGameRoomMiB`, 1.75 GiB) is the room left free for the game and 1,100 MiB (`offloadFixedMiB`) is the part of the projection that stays on the card with every layer on the CPU (compute
+   buffers: 1,002 MiB measured for Qwen3.5-4B, 1,057 for Gemma 4 E4B). That matches the layer count of llama-fit-params itself, measured 2026-10-21 on the RTX 4080 Laptop (b11560): Qwen3.5-4B 10 of 33 layers
+   (30%, formula 27%), Gemma 4 E4B 13 of 43 (30%, formula 27%). **Under `FIT_LIMITS.hopelessShare` (35%) nothing is loaded**: Local AI fails with `low-memory` and the detail `too-small`
+   (the 2026-10-19 reports read 36 to 54 prompt tokens a second under that share). No free-memory reading, or no projection and no file size: the share is unknown and nothing is refused.
+4. **The load.** `llama-server -m <file> -fa on -c 8192 -ctk q8_0 -ctv q8_0 -np 1 --reasoning off --cache-ram <n> --ctx-checkpoints 32 -fit on -fitt 1792 -t <threads> --device <id> --no-webui ...` (no `-ngl`:
+   llama-server's fit pass places the layers and leaves 1,792 MiB free; the context is given, so it stays). `-t` is about half the physical cores (`offloadThreads`: a quarter of the logical processors,
+   2 to 6), so the layers on the CPU do not starve the game. Every other start keeps its arguments byte for byte (`-ngl 99 ... -fit off`, no `-fitt`, no `-t`). A custom model's own context size is kept.
+5. **The notice.** A refused offload ends in `low-memory` with the detail `too-small` (`TOO_SMALL`, `status().detail`, the `failed` event, `LocalAiUnavailable.detail`). The game's notice is the
+   existing local one ("Not enough free graphics memory to start Local AI. Try a smaller model in Settings."), followed by "(this graphics card is too small for the model: choose a smaller model in
+   Settings, or use the Custom provider)" (`unavailableDetail`, `turnFailure` in `bridge/convai-bridge.mjs`, `localFailureSuffix` in `mod/init.lua`). No cloud provider is named or used, and
+   no `model-stepdown` event (its notice names one) is sent for these failures. The phone chat shows the canned sentence only.
+6. **The log.** One line when an offload is chosen: `[local] partial offload: <model>, about N% of its layers on the card (projected P MiB at 8192 q8_0 against F MiB free), context 8192, q8_0 cache, fit target 1792 MiB kept free for the game, T CPU threads`;
+   a refusal logs `[local] <model> is too large for this graphics card beside the game: only about N% of its layers would stay on the card ... choose a smaller model in Settings, or use the Custom provider`.
+   The model-ready line adds `about N% of the layers on the card` and `fit target ... CPU threads`; `diagnostics().engine.offloadPlan` has `{share, projectedMiB, estimated, fitTargetMiB, threads}`.
+
+**Numbers for an 8 GB card** (Qwen3.5-4B Q4_K_M, 3,271 MiB projected at 8,192 / 8-bit): the whole model with the refit margin needs 4,295 MiB free; partial offload needs at least about 3,650 MiB free
+(35% of the layers), so the window it opens for this model is small (3,650 to 4,300 MiB free): below it the card is too small beside the game, above it the model is whole. For a bigger
+model the window is wide: a 5 GB Gemma 4 E4B (3,520 projected) gets 35% from about 3,740 MiB free where the whole model needs 4,540. A 9 GB custom file with 7 GB free gets about 48%.
+
+**Measured** (2026-10-21, RTX 4080 Laptop, llama.cpp b11560 Vulkan, Qwen3.5-4B Q4_K_M, a 1,248-token prompt and 48 generated tokens, the game not running, the model file cached; the real `-fit on -fitt N -c 8192 -ctk q8_0`
+arguments, N chosen to leave the stated share on the card): whole on the card (`-ngl 99 -c 16384`) 3.7 s to load, about 3,000 prompt tokens a second, 85 generated a second, 1.0 s a turn. Partial offload, about 45% of the
+layers on the card: 7.1 s to load (the fit pass loads the model twice), 900 to 1,040 prompt tokens a second, 21 generated a second, 3.5 s a turn. At the gate (about 36%): 6.9 s, 850 to 880, 18 a second, 4.0 to 4.1 s. The same 36% with
+every thread (no `-t`): 650 prompt tokens a second, 16.5 generated, 4.8 s, so the thread cap is faster here, not slower (32 logical processors; the default oversubscribes them). A 4060 with slower memory and a game using the
+processor will be slower than this laptop; the processor cost to the game was not measured. This is why the gate is 35%: partial offload is a floor, not a speed-up, and a card that has to use it reads about three times slower
+than a model that fits.
+
+**Servers you run.** The no-thinking fields go with the first request (see "Use your own server").
+
+Not changed, and why: a pinned model that does not fit is still replaced by the default (a pinned custom 20 GB file on an 8 GB card gets the smallest model, not an offload of itself); the game
+room is a fit target, not a reservation (a game that wants more still pushes the model into shared memory, which the spill check finds and acts on); the idle stop, the file-size rule and the
+default choice (FPS first).
+
+Tests: `bridge/local-vram-fit.test.mjs` (`offloadPlan`, `offloadThreads`), `bridge/local-model-choice.test.mjs` (the offload candidate), `bridge/local-llm-server.test.mjs` (the arguments, the gate, the
+spill with no smaller model, a custom model, a lost device, the stalled Mature family, the failure detail), `bridge/own-server-thinking-context.test.mjs` (the first request of a server you run).
 
 ### The single slot (2026-10-20: "fine at first, then 1 to 2 minutes after typing, growing")
 

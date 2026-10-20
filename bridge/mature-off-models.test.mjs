@@ -72,7 +72,9 @@ test('Mature content off with both packs installed: a model is always chosen and
       }
       assert.equal(Boolean(choice.model.matureTier), false, label + ': ' + choice.model.id);
       assert.equal(choice.model.uncensored, false, label);
-      assert.equal(choice.offload, false, label);
+      // Nothing fits whole at 3,000 MiB for some of the pack combinations: the smallest ordinary model is chosen to go on the card as far as it fits (the caller's gate decides).
+      if (choice.offload) assert.equal(freeMiB, 3000, label);
+      else assert.equal(choice.offload, false, label);
     }
   }
 });

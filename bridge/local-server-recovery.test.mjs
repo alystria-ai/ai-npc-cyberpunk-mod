@@ -256,14 +256,21 @@ test('a device lost on a server that stays healthy: the turn is restarted onto a
   assert.equal(provider.takeNotice(), 'local-restarted');
 });
 
-test('a device lost again on the new server fails the turn with its own words, then steps down (here: no smaller model, so the cloud takes over) instead of looping', async t => {
+test('a device lost again on the new server fails the turn with its own words, then steps down (here: no smaller model, so the same model is loaded with part of it on the CPU, and a loss after that ends Local AI) instead of looping', async t => {
   const {server, host, children} = await rig(t, {envFor: () => ({FAKE_LLAMA_DEVICE_LOST_FROM: '1'})});
   server.deviceLostPauseMs = 10;
+  const waitFor = async check => { for (let i = 0; i < 400; i++) { if (check()) return true; await new Promise(resolve => setTimeout(resolve, 25)); } return false; };
   await server.ensure();
   const error = await host.reply(turn('hello there')).catch(e => e);
   assert.ok(error instanceof Error);
   assert.match(String(error.message), /ErrorDeviceLost|device lost|stopped working|went away/i);
-  assert.equal(await (async () => { for (let i = 0; i < 400; i++) { if (server.status().state === 'failed') return true; await new Promise(resolve => setTimeout(resolve, 25)); } return false; })(), true, 'Local AI is marked unavailable');
-  assert.equal(server.status().reason, 'low-memory');
-  assert.equal(children.length, 2, 'two servers in all, no loop');
+  assert.equal(await waitFor(() => children.length === 3 && server.status().state === 'ready'), true, 'the same model is loaded again with part of its layers on the CPU');
+  assert.ok(children[2].spawnargs.includes('-fitt') && children[2].spawnargs[children[2].spawnargs.indexOf('-fit') + 1] === 'on', 'the third server is the offloaded one');
+  assert.ok(!children[0].spawnargs.includes('-fitt') && !children[1].spawnargs.includes('-fitt'));
+  // It loses the device too: one restart, then (nothing smaller, the offload already tried) Local AI is unavailable, as a local failure.
+  const again = await host.reply(turn('hello again')).catch(e => e);
+  assert.ok(again instanceof Error);
+  assert.equal(await waitFor(() => server.status().state === 'failed'), true, 'Local AI is marked unavailable');
+  assert.deepEqual([server.status().reason, server.status().detail], ['low-memory', 'too-small']);
+  assert.ok(children.length <= 5, 'no loop: ' + children.length);
 });

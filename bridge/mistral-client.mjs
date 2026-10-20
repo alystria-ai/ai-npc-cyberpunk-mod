@@ -133,6 +133,8 @@ const DROPPABLE = Object.freeze(['stream_options', 'response_format', 'temperatu
 // a sentence that names no optional field, such as "messages must be non-empty", is still not a refusal of one).
 const REFUSAL_WORDS = /unsupported|not supported|unknown|unrecogni[sz]ed|unexpected|not permitted|not allowed|not accepted|extra (?:inputs?|fields?|forbidden)|extra_forbidden|invalid (?:parameter|param|field|argument)|additional propert|does not support|only the default|must be|invalid_request_error.*param/;
 const FIELD_WORDS = /parameter|param\b|field|argument|propert/;
+// A refusal of unknown extra request fields that names no field and does not use the word field or parameter ("Extra inputs are not permitted"): for the local route's no-thinking fields only.
+const UNKNOWN_FIELD_WORDS = /extra (?:inputs?|fields?|forbidden)|extra_forbidden|unrecogni[sz]ed|unknown|unexpected|not permitted|not allowed|unsupported|not supported|additional propert/;
 const NO_SUCH_MODEL = /(?:model|endpoint)s?\b.{0,60}\b(?:not found|does not exist|not a valid|no such|unknown|not available|is not supported)|no endpoints found|invalid model/;
 // The fields that ask a model to think less (bridge/reasoning.mjs). A word of one of them that is not part of a model id ("qwen3-thinking") says the refusal is
 // about them: OpenAI's "reasoning_effort", Ollama's "does not support thinking", OpenRouter's "Reasoning is mandatory for this endpoint and cannot be disabled".
@@ -816,6 +818,11 @@ async function once({apiKey, model, messages, maxTokens, temperature, onDelta, s
         const refusal = rejectedParameters(response.status, textOf(refused));
         const named = refusal ? namedNoThinkFields(textOf(refused)) : [];
         if (named.length) failure.paramsRejected = {names: [], swap: false, reasoning: true, noThink: named};
+        // A strict server that says "Extra inputs are not permitted" or "unknown field" without naming one (and without the word field or parameter): the fields we added from the first request
+        // are the likely cause, so all three go, once, and the request is sent again at once (a server the player runs gets them from its first request, bridge/text-provider-host.mjs).
+        else if ((response.status === 400 || response.status === 422) && UNKNOWN_FIELD_WORDS.test(textOf(refused).toLowerCase()) && !NO_SUCH_MODEL.test(textOf(refused).toLowerCase())) {
+          failure.paramsRejected = {names: [], swap: false, reasoning: true, noThink: [...NO_THINKING_FIELDS]};
+        }
       }
       failure.trace = {...trace, elapsedMs: since()};
       throw failure;

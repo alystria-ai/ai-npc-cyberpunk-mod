@@ -522,6 +522,12 @@ const turnFailure = (error, input) => {
     const detail = unavailableDetail(isLocalUnavailable(error) ? error.reason : mistral.localBroken, isLocalUnavailable(error) ? error.detail : undefined);
     if (detail) return {...corrected, errorDetail: detail};
   }
+  // The model cannot stay on the card even with part of it on the CPU (bridge/local-llm-server.mjs TOO_SMALL): the game's "not enough free graphics memory" sentence gets the reason that
+  // says what to do (a smaller model, or the Custom provider) after it, as data like a local turn's detail.
+  if (errorCode === 'local-no-memory' && !corrected.errorDetail) {
+    const detail = unavailableDetail('low-memory', isLocalUnavailable(error) ? error.detail : localServer.status().detail);
+    if (detail && /too small/.test(detail)) return {...corrected, errorDetail: detail};
+  }
   return corrected;
 };
 // The game's notice for a failure (docs/NOTIFICATIONS.md). An automatic reaction that hit the daily cap just stops: no notice.
