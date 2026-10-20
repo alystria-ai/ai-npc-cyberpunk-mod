@@ -1395,10 +1395,9 @@ test('V\'s typed line is never a holocall or voice-only line, even right after a
 
 test('typing is the only thing that calls it: init.lua shows the sent line once, after the request was written, and never per frame', () => {
   const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
-  // Two callers: the typed line, and V's own opener of an exchange V started (V talks on their own, docs/V_TALKS.md), once per step.
-  assert.equal((init.match(/subtitles\.showTyped/g) ?? []).length, 2);
+  // One caller: the typed line.
+  assert.equal((init.match(/subtitles\.showTyped/g) ?? []).length, 1);
   assert.match(init, /if sent ~= false then pcall\(subtitles\.showTyped, message\) end/);
-  assert.match(init, /pcall\(subtitles\.showTyped, line\)/);
   const subtitlesSource = readFileSync(new URL('../mod/subtitles.lua', import.meta.url), 'utf8');
   const body = subtitlesSource.slice(subtitlesSource.indexOf('function M.showTyped'), subtitlesSource.indexOf('function M.beginTimed'));
   assert.doesNotMatch(body, /registerForEvent|onUpdate|Observe\(|os\.time|io\.open/);

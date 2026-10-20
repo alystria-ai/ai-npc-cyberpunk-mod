@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {parseInput} from './protocol.mjs';
-import {VTalkLedger} from './v-talks.mjs';
 import {inputIdentity, parsedInputIdentity} from './group-prefetch.mjs';
 import {fileIdentity, RequestFileOwner, requestFileEmpty} from './request-ownership.mjs';
 import {reactionLeaseProblem} from './battle-context.mjs';
@@ -25,7 +24,7 @@ function fixture() {
     lease: {requestId: input.requestId, valid: true, updated: Date.now()}};
   // The bridge's clock (Date.now) is this fixture's own, so a test can let time pass.
   const clock = {now: () => state.now};
-  const context = vm.createContext({parseInput, vTalkLedger: new VTalkLedger(), inputIdentity, parsedInputIdentity, fileIdentity, RequestFileOwner, requestFileEmpty,
+  const context = vm.createContext({parseInput, inputIdentity, parsedInputIdentity, fileIdentity, RequestFileOwner, requestFileEmpty,
     reactionLeaseProblem: (value, lease) => reactionLeaseProblem(value, lease, state.now), Date: clock, AbortController,
     companionActions: {revoke: async () => { state.actionRevocations++; }},
     readLease: async () => {

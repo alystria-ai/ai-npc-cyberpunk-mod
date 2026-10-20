@@ -195,16 +195,9 @@ export class SharedKeyGuard {
 // other, but on the shared key they may use at most REMARK_SHARE of the day's limit (10 of 100), so a chatty Johnny never eats the turns
 // a player wants for talking. Counted in their own signed record (the same format and secret as the turn count, its own files), where a
 // remark goes to Convai; a remark answered by Mistral or Local AI is not a shared-key turn and is not counted.
-// V talks on their own (docs/V_TALKS.md) is the same kind of turn and shares this cap: a companion's answer in an exchange V started counts
-// here too, so the two together never take more than the share (isRemark names both kinds).
 export const REMARK_SHARE = 0.1;
-export const isRemark = config => config?.reaction?.kind === 'head' || config?.reaction?.kind === 'vtalk';
+export const isRemark = config => config?.reaction?.kind === 'head';
 export const remarkCap = limit => Math.max(1, Math.floor(limit * REMARK_SHARE));
-// The share is one pool for both kinds, but Johnny's remarks (they come first after a fight, and a chatty day would use the whole pool) may
-// take only the part below the reserve: the last VTALK_RESERVE of the pool stays for V's exchanges, so neither kind starves the other (a pool
-// of 10 gives Johnny at most 7, and V's exchanges the rest and anything Johnny left). A pool of 1 to 3 has no reserve.
-export const VTALK_RESERVE = 0.3;
-export const headCap = limit => { const cap = remarkCap(limit); return cap - Math.floor(cap * VTALK_RESERVE); };
 
 /** The remarks' share of the shared key. Follows the guard's limit and day; does nothing for a remark that is not on the shared key. */
 export class RemarkAllowance {
@@ -214,7 +207,6 @@ export class RemarkAllowance {
     this.saving = Promise.resolve();
   }
   get cap() { return remarkCap(this.guard.limit); }
-  get headCap() { return headCap(this.guard.limit); }
   #applies(config) { return isRemark(config) && this.guard.enabled && this.guard.applies(); }
   #roll() {
     const now = this.now(), today = dayOf(Math.max(now, this.seen));
@@ -230,7 +222,7 @@ export class RemarkAllowance {
   check(config) {
     if (!this.#applies(config)) return;
     this.#roll();
-    if (this.count >= (config?.reaction?.kind === 'head' ? this.headCap : this.cap)) throw new TurnLimitError('daily');
+    if (this.count >= this.cap) throw new TurnLimitError('daily');
   }
   consume(config) {
     if (!this.#applies(config)) return;

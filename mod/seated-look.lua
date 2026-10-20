@@ -40,7 +40,7 @@ M.sceneSet = 'Tier3Scene'      -- ... and in a scene (scene tier 3)
 M.settle = .4                  -- seconds until the second copy of the event
 
 -- Is V sitting in an ordinary seat right now, as far as the game's own scene flags can say? V's chairs and couches are SCENE sits (scene tier 3;
--- live 2026-10-19: a plain couch sit was refused by the Johnny hologram as "dialogue", so the dialogue or the choice-hub flag is up while V
+-- live 2026-10-19: a plain couch sit was refused as "dialogue", so the dialogue or the choice-hub flag is up while V
 -- sits, and the manager's shortcut refused at tier 3). So tier 3 with those flags is what an ordinary sit looks like, and only what the scene
 -- does on top of it tells a real cutscene apart: a game line that is not the crowd's since V sat down, a phone call, a fight, V replaced or
 -- mounted, scene tier 4 or above.
@@ -66,8 +66,7 @@ function M.plain(sit, sample, lines)
 end
 
 -- native: {seat() -> {path, anim, tier, vehicle}, queue(limits, set), delay(limits, set, seconds) -> id,
---   cancel(id), classify(path, anim) -> kind or nil, log(kind, fields), onSit(kind, seat) and onStand() (optional: Johnny's
---   hologram, mod/johnny-hologram.lua, hears of a sit and of V standing up; each is called inside pcall), now() (optional: os.time
+--   cancel(id), classify(path, anim) -> kind or nil, log(kind, fields), now() (optional: os.time
 --   seconds, for the controller's sitAt)}.
 -- The controller's sitting (the seat kind, or nil) and sitAt (when V sat) are what M.plain reads.
 function M.new(native)
@@ -114,7 +113,6 @@ function M.new(native)
         self.sitAt = (native.now or os.time)()
         self.widened = self.widened + 1
         log('seated-look-enter', {path = seat.path, anim = seat.anim, tier = seat.tier, kind = kind})
-        if native.onSit then pcall(native.onSit, kind, seat) end
         return send(set, 'enter', false)
     end
 
@@ -129,10 +127,8 @@ function M.new(native)
     -- who already stands.
     function self.left()
         local id = self.pending
-        local sat = self.sitting
         self.pending, self.sitting, self.sitAt = nil, nil, nil
         if id ~= nil then pcall(native.cancel, id) end
-        if sat and native.onStand then pcall(native.onStand) end
     end
 
     -- The session was released (a load, a detach, a death): drop the state without a native call. The delayed event died
@@ -149,7 +145,7 @@ end
 -- hook missing in this build).
 function M.install(options)
     options = options or {}
-    local native = {classify = options.classify, log = options.log, onSit = options.onSit, onStand = options.onStand, now = options.now}
+    local native = {classify = options.classify, log = options.log, now = options.now}
     function native.seat()
         local player = Game.GetPlayer()
         local seat = {}

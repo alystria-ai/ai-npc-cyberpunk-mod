@@ -5,7 +5,6 @@ import vm from 'node:vm';
 import {parseLoot, lootFacts, lootContext, lootTrigger} from './loot-context.mjs';
 import {parseReaction, battleTrigger, reactionLeaseValid, reactionLeaseProblem} from './battle-context.mjs';
 import {parseInput} from './protocol.mjs';
-import {VTalkLedger} from './v-talks.mjs';
 import {conversationContext} from './quest-context.mjs';
 import {inputIdentity, parsedInputIdentity} from './group-prefetch.mjs';
 import {fileIdentity, RequestFileOwner, requestFileEmpty} from './request-ownership.mjs';
@@ -351,7 +350,7 @@ function bridgeFixture() {
   const input = automatic(pickup(), Date.now() + 60000);
   const state = {accepted: [], queue: [], reads: 0, errors: [], delays: [], actionRevocations: 0,
     lease: {requestId: input.requestId, valid: true, updated: Date.now()}};
-  const context = vm.createContext({parseInput, vTalkLedger: new VTalkLedger(), inputIdentity, parsedInputIdentity, fileIdentity, RequestFileOwner, requestFileEmpty, reactionLeaseProblem, AbortController,
+  const context = vm.createContext({parseInput, inputIdentity, parsedInputIdentity, fileIdentity, RequestFileOwner, requestFileEmpty, reactionLeaseProblem, AbortController,
     companionActions: {revoke: async () => { state.actionRevocations++; }},
     rawInput: JSON.stringify(input), record: request => state.accepted.push(request),
     readLease: async () => {

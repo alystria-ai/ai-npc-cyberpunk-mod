@@ -27,14 +27,6 @@ import {ROMANCE_LIMITS, ROMANCE_USE} from './romance-context.mjs';
 /** Providers that may get the layer (the route names of bridge/text-provider-host.mjs; Convai prompting cannot take it). */
 export const MATURE_PROVIDERS = Object.freeze({local: true, mistral: true, custom: true, convai: false});
 
-/**
- * With the setting on, may V's cloud voice (Voxtral, a request to Mistral) speak? `preference` is the Conversation provider setting. The old rule
- * ("Mature content keeps your lines off the cloud") holds while the text stays on this computer (Local AI) and wherever the layer does not apply
- * (Convai, which Mature content is never on beside): V's line is spoken locally. With the text on Mistral or Custom the line is already sent to
- * the cloud for the reply, so the cloud voice adds no new exposure and is allowed. Off, nothing here restricts the voice.
- */
-export const matureAllowsCloudVoice = (enabled, preference) => enabled !== true || (MATURE_PROVIDERS[preference] === true && preference !== 'local');
-
 /** The allowance per model family, first match wins. `licence` is the reason, for the log and the docs. */
 export const MODEL_ALLOWANCE = Object.freeze([
   // The optional uncensored models (docs/MATURE_MODELS_RESEARCH.md): Qwen3.5-*-Uncensored-HauhauCS-*, gemma-4-E4B-it-ultra-uncensored-heretic.

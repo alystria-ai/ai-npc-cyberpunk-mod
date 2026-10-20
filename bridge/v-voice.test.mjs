@@ -744,7 +744,8 @@ test('V\'s own Pocket worker is the voice selection\'s, and the settings poll te
   assert.match(block, /localVoice\.vHelperStream\(/);
   assert.match(block, /localVoice\.vHelperPrepare\(/);
   assert.match(bridge, /localVoice\.setVHelperWanted\(vVoice\.wantsPocket\)/);
-  assert.match(block, /matureAllowsCloudVoice\(matureContent\.enabled, mistral\.preference\)/, 'Mature content with Local AI keeps V\'s line off the cloud; Mistral and Custom text allow it');
+  assert.doesNotMatch(block, /matureContent|matureAllows|off the cloud/, 'Mature content never changes or refuses V\'s voice (2026-10-20): Voxtral is allowed with Mature on and Local AI text');
+  assert.doesNotMatch(bridge, /matureAllowsCloudVoice/);
   assert.match(block, /mistralScheduler\.stats\(\)/, 'V never takes a Mistral start from the reply');
 });
 
