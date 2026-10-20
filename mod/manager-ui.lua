@@ -326,8 +326,6 @@ local function sharedCharacterLines(snapshot)
     if settings.vVoice then speech[#speech + 1] = ui.t('V’s voice for typed lines') end
     local talk = {}
     if #speech > 0 then talk[#talk + 1] = ui.t('Speech: {list}', {list = table.concat(speech, ' · ')}) end
-    -- Only where it is in use (the Convai free tier, manager.multilingualActive): beside another provider the switch does nothing.
-    if manager.multilingualActive(settings) then talk[#talk + 1] = ui.t('Multilingual: replies in your language') end
     if settings.battleReactions then behavior[#behavior + 1] = ui.t('React to battles') end
     if settings.lootReactions then behavior[#behavior + 1] = ui.t('React to collected loot') end
     return {talk = talk,
@@ -1404,8 +1402,6 @@ local function schema()
                     or snapshot.settings.johnnyRemarks == 'rare' and 3 or 2, 1,
                 'Johnny Silverhand answers when you use the talk keys with nobody in front of you, as the voice in V’s head. He knows your jobs and your story so far, and what he thinks of you follows it.\n\nOnly while the story has him in V’s head. He stays quiet during scenes, calls, dialogue choices and fights, and when the game gives him a line.\n\nOn: he answers when you talk to him. Speaks up rarely: he also says something on his own, at most twice an hour. Speaks up often: at most six times an hour, never closer than five minutes. He speaks up after you meet someone he knows of, finish a job, a romance moves on, you arrive somewhere he knows, the Relic acts up, or a big fight ends.\n\nOn the Convai free tier each remark uses one of the day’s turns; remarks never take more than a tenth of them.',
                 {'Off', 'On', 'Speaks up rarely', 'Speaks up often'}),
-            setting('multilingualConversations', 'Multilingual conversations', 'bool', snapshot.settings.multilingualConversations, false,
-                'Talk in any language; each character answers in yours. It works on the Convai free tier only. Mistral, Local AI and Custom already answer in the language you write in.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket speaks English only, so this switches that voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Voxtral speaks many languages and stays. Without the pack and Voxtral, Natural speech turns off.'),
         })
         -- Who speaks as a partner: a page of its own (one row per character who can), a button beside Memory, so Conversations stays short.
         if #relationshipRows(snapshot) > 0 then
@@ -1748,7 +1744,7 @@ function M.apply(changes)
         local key = change.id
         if key == 'voice' or key == 'subtitles' or key == 'developerMode'
             or key == 'battleReactions' or key == 'lootReactions' or key == 'naturalSpeech'
-            or key == 'followUpInterest' or key == 'multilingualConversations'
+            or key == 'followUpInterest'
             or key == 'matureContent' or key == 'errorReports' then values[key] = change.value
         elseif key == 'voiceVolume' then
             if type(change.value) ~= 'number' then return refused('Choose a voice volume from 50 to 200 percent.') end

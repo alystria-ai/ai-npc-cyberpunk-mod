@@ -322,7 +322,7 @@ If Local AI makes the game stutter, choose the lite model in the **Local AI mode
 | Voice | Runs on | Languages | Notes |
 |---|---|---|---|
 | **Pocket** (default) | Your processor, no video memory | English | Each character's own voice, made on your PC |
-| **OmniVoice** | Your NVIDIA graphics card (the optional OmniVoice pack) | Many (needed for Multilingual conversations) | Richer, and it can laugh and sigh |
+| **OmniVoice** | Your NVIDIA graphics card (the optional OmniVoice pack) | Many | Richer, and it can laugh and sigh |
 | **Voxtral** | Mistral's servers, with your free Mistral key | English | Each character's own voice, made in the cloud. Needs the internet, so Local AI with Voxtral is no longer offline |
 
 With Local AI the voice key still works: your speech is recognised on this computer, in English (type in other languages).

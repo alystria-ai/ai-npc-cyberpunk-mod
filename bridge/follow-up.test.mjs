@@ -58,7 +58,7 @@ test('the setting follows runtime/settings.json, a change is reported once, and 
 test('off, the context the bridge builds is byte-identical to the one without the feature', () => {
   const base = ['intrinsic', 'archetype', 'relationship', 'natural speech', 'expressive emotions'];
   const languageBlock = new MultilingualConversations();
-  languageBlock.update({multilingualConversations: true});
+  languageBlock.observe('Hola, ¿cómo estás? Vamos a la tienda, que tengo mucho que hacer.');
   for (const language of [new MultilingualConversations(), languageBlock]) {
     const without = [...base, language.contextFor('hola, cómo estás')].filter(Boolean).join('\n\n');
     const withOff = [...base, off().contextFor({sessionId: 's', turn: 't', trait: 'warm', text: 'hola', random: ALWAYS}),
@@ -322,10 +322,10 @@ test('the module cannot start a request, a timer or a turn: no timers, no networ
 test('the bridge wires it in as context only: before the reply-language line, no extra request, off adds nothing', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
   assert.match(bridge, /import \{FollowUp\} from '\.\/follow-up\.mjs'/);
-  assert.match(bridge, /block\('volatile', followUpContext\(input\)\),[\s\S]{0,400}naturalSpeechContext\(input\)\)[\s\S]{0,100}expressiveEmotionsContext\(input\)\)[\s\S]{0,300}block\('volatile', firstPersonReminder\(input\)\),\n\s*\/\/ Multilingual conversations: the reply language, last/);
+  assert.match(bridge, /block\('volatile', followUpContext\(input\)\),[\s\S]{0,400}naturalSpeechContext\(input\)\)[\s\S]{0,100}expressiveEmotionsContext\(input\)\)[\s\S]{0,300}block\('volatile', firstPersonReminder\(input\)\),\n\s*\/\/ The reply language, last/);
   assert.match(bridge, /const followUpContext = input => \{\n\s*if \(!followUp\.enabled\) return '';/);
   assert.match(bridge, /const followUpChanged = followUp\.update\(settings\);/);
-  assert.match(bridge, /speechChanged \|\| emotionsChanged \|\| multilingualChanged \|\| followUpChanged\) \{ dropPrefetch\(\)/);
+  assert.match(bridge, /speechChanged \|\| emotionsChanged \|\| followUpChanged\) \{ dropPrefetch\(\)/);
   assert.match(bridge, /logFollowUp\(input, result\);/);
   // The only things the bridge does with the object: the setting, the context, the record and the log reads.
   const uses = [...bridge.matchAll(/\bfollowUp\.(\w+)/g)].map(match => match[1]);
@@ -341,7 +341,6 @@ test('the bridge wires it in as context only: before the reply-language line, no
 
 test('on, the block sits before the voice notes (they dilute it when they come first) and before the reply-language line, which stays last', () => {
   const language = new MultilingualConversations();
-  language.update({multilingualConversations: true});
   const followUp = on();
   const join = text => ['intrinsic', followUp.contextFor({sessionId: 's' + text, turn: 'o' + text, trait: 'warm', text, random: ALWAYS}),
     'natural speech block', 'expressive emotions block', language.contextFor(text)].filter(Boolean).join('\n\n');

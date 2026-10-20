@@ -185,33 +185,40 @@ test('D8: Natural speech is blocked only by the Convai cloud voice on a Convai p
   assert(notice and notice:find('Natural speech needs a local voice', 1, true), tostring(notice))
 `));
 
-test('Multilingual conversations acts only where the bridge uses it (Convai free tier): with Mistral it moves no voice and refuses none', () => run(`${harness()}
+test('the Multilingual conversations switch is gone (2026-10-21): an Apply that still carries it is ignored, nothing moves, nothing is saved or said, on every provider and voice', () => run(`${harness()}
   bridge('key', {provider = 'mistral', effective = 'mistral', saved = true})
   voices(true)
   press('Settings'); frames(20)
-  assert(manager.applySettings(player, {conversationProvider = 'mistral', voiceProvider = 'voxtral'}))
-  -- On beside Mistral: the bridge keeps it off there (bridge/convai-bridge.mjs, text providers), so the voice stays.
-  local ok, err, notice = manager.applySettings(player, {multilingualConversations = true})
-  assert(ok, err)
-  assert(settings().voiceProvider == 'voxtral', 'the voice was moved for a setting that does nothing here: ' .. tostring(settings().voiceProvider))
-  assert(notice == nil, tostring(notice))
-  ok, err = manager.applySettings(player, {voiceProvider = 'pocket'})
-  assert(ok, 'Pocket refused beside Mistral: ' .. tostring(err))
-  assert(manager.applySettings(player, {naturalSpeech = true}))
-  -- The Convai API key: the bridge keeps it off on a player's key too.
-  assert(manager.applySettings(player, {conversationProvider = 'convai', useOwnConvaiKey = true}))
-  assert(settings().voiceProvider == 'pocket' and settings().naturalSpeech == true)
-  -- Back to Convai free tier, where it works: the voice moves now, with the usual line.
-  ok, err, notice = manager.applySettings(player, {conversationProvider = 'convai', useOwnConvaiKey = false})
-  assert(ok, err)
-  assert(settings().voiceProvider == 'omni' and settings().omniSteps == 16 and settings().omniReference == 'short', tostring(settings().voiceProvider))
-  assert(notice and notice:find('Multilingual conversations needs a voice that speaks every language', 1, true), tostring(notice))
-  -- Now Pocket is refused, as before.
-  local refused, message = manager.applySettings(player, {voiceProvider = 'pocket'})
-  assert(refused == false and message == 'Pocket TTS speaks only English. Turn off Multilingual conversations to choose it.', tostring(message))
+  for _, provider in ipairs({'convai', 'mistral', 'local', 'custom'}) do
+    for _, voice in ipairs({'pocket', 'voxtral', 'convai', 'omni'}) do
+      assert(manager.applySettings(player, {conversationProvider = provider, voiceProvider = voice, naturalSpeech = false}))
+      local before = settings()
+      local ok, err, notice = manager.applySettings(player, {multilingualConversations = true})
+      assert(ok, provider .. '/' .. voice .. ': ' .. tostring(err))
+      assert(notice == nil, provider .. '/' .. voice .. ': a notice for a setting that is gone: ' .. tostring(notice))
+      assert(settings().voiceProvider == before.voiceProvider and settings().voiceProvider == voice, provider .. '/' .. voice .. ' moved to ' .. tostring(settings().voiceProvider))
+      assert(settings().multilingualConversations == nil and saved.multilingualConversations == nil, 'nothing is saved for it')
+    end
+  end
+  -- Pocket is no longer refused for a switch: it can be chosen on the Convai free tier as on any provider.
+  assert(manager.applySettings(player, {conversationProvider = 'convai', voiceProvider = 'omni'}))
+  local ok, err = manager.applySettings(player, {voiceProvider = 'pocket', multilingualConversations = true})
+  assert(ok, tostring(err))
+  assert(settings().voiceProvider == 'pocket', tostring(settings().voiceProvider))
+  assert(manager.multilingualConversations == nil and manager.multilingualActive == nil and manager.resolveMultilingualVoice == nil)
 `));
 
-test('a saved Multilingual pairing with Voxtral is kept on load, beside Mistral and beside the Convai free tier alike (Voxtral TTS 3 speaks the language of the text); Pocket still moves to the cloud voice', () => run(`${harness()}
+test('the Native Settings page has no Multilingual conversations row, and the snapshot no key for it', () => run(`${harness()}
+  bridge('key', {provider = 'convai', effective = 'convai', saved = true})
+  voices(true)
+  press('Settings'); frames(20)
+  assert(ns.find('Talk to ordinary NPCs'), 'the Conversations rows are on the page')
+  assert(ns.find('Multilingual conversations') == nil, 'the row is gone')
+  assert(settings().multilingualConversations == nil)
+  assert(not tostring(managerUi.inspect().shown):find('Multilingual', 1, true), tostring(managerUi.inspect().shown))
+`));
+
+test('a saved multilingualConversations: true is dropped on load and leaves every voice alone, Pocket TTS included, beside every provider', () => run(`${harness()}
   bridge('key', {provider = 'mistral', effective = 'mistral', saved = true})
   local function load(values)
     local file = {version = 2, enabledByKey = {}}
@@ -221,10 +228,11 @@ test('a saved Multilingual pairing with Voxtral is kept on load, beside Mistral 
     manager.reset()
     return manager.snapshot(player).settings
   end
-  local loadedSettings = load({conversationProvider = 'mistral', voiceProvider = 'voxtral', multilingualConversations = true})
-  assert(loadedSettings.voiceProvider == 'voxtral', tostring(loadedSettings.voiceProvider))
-  loadedSettings = load({conversationProvider = 'convai', voiceProvider = 'voxtral', multilingualConversations = true})
-  assert(loadedSettings.voiceProvider == 'voxtral', tostring(loadedSettings.voiceProvider))
-  loadedSettings = load({conversationProvider = 'convai', voiceProvider = 'pocket', multilingualConversations = true})
-  assert(loadedSettings.voiceProvider == 'convai', tostring(loadedSettings.voiceProvider))
+  for _, provider in ipairs({'convai', 'mistral', 'local', 'custom'}) do
+    for _, voice in ipairs({'pocket', 'voxtral', 'convai', 'omni'}) do
+      local loadedSettings = load({conversationProvider = provider, voiceProvider = voice, multilingualConversations = true})
+      assert(loadedSettings.voiceProvider == voice, provider .. '/' .. voice .. ' became ' .. tostring(loadedSettings.voiceProvider))
+      assert(loadedSettings.multilingualConversations == nil, 'the key is not in the snapshot')
+    end
+  end
 `));

@@ -186,7 +186,7 @@ function syncCustomRoster() {
 }
 syncCustomRoster();
 // runtime/relationship-profiles.json (the retired alternate affectionate profiles) is no longer read: every character has one profile.
-// Multilingual twins (docs/MULTILINGUAL_PROFILES.md): used only while "Multilingual conversations" is on. A missing
+// Multilingual twins (docs/MULTILINGUAL_PROFILES.md): used for a turn whose message is clearly not English (wantsTwin). A missing
 // map is an English-only installation; a twin that no longer clones the current profile is left out.
 const multilingualProfiles = multilingualTwins(JSON.parse(await readFile(resolve(stateDirectory, 'multilingual-profiles.json'), 'utf8').catch(error => {
   if (error.code === 'ENOENT') return 'null';
@@ -570,7 +570,10 @@ playerMemory = await PlayerMemory.open({path: resolve(stateDirectory, 'player-me
   provider: memoryProvider, quiesce: quiescePlayerMemory, retired: providerKey => RETIRED_PROVIDER_KEY.test(providerKey)});
 const knowledgeRouter = new PlayerKnowledge({playerMemory, pack: knowledgePack, questCatalog,
   isWorldCurrent: worldCurrent, getBoundary: currentBoundary,
-  selectProfile: (profile, boundary) => relationshipRoutes.select(profile, boundary),
+  // Which Convai character answers is decided per turn: the multilingual twin for a message that is clearly not English, the ordinary
+  // character otherwise (bridge/multilingual.mjs wantsTwin). A warm connection has no message and stays on the ordinary character: a language
+  // change must not re-warm every nearby character on its twin; the first turn on a twin opens its session, the later ones reuse it.
+  selectProfile: (profile, boundary, turn) => relationshipRoutes.select(profile, boundary, {multilingual: twinForTurn(turn)}),
   // Off unless the game's decisionLedger setting writes the file (docs/QUEST_DECISIONS.md 4.4); one stat per turn when it does not exist.
   decisionLedger: decisionLedgerReader(resolve(stateDirectory, 'decision-ledger.json'), {readFile: path => readFileSync(path, 'utf8'), statFile: statSync}),
   // Off unless the game's witnessReceipts setting writes the file (docs/QUEST_DECISIONS.md 4.3); one stat per turn when it does not exist.
@@ -586,8 +589,10 @@ const followUp = new FollowUp();
 // label; `emotionSelector: "legacy"` in settings.json returns to the reply-only planner.
 const emotionSelection = new EmotionSelection();
 const cleanReply = result => expressiveEmotions.process(naturalSpeech.process(result));
-// "Multilingual conversations": the setting and the language the conversation was last in (bridge/multilingual.mjs).
+// The language the conversation was last in (bridge/multilingual.mjs). Replies follow the player's language on every route; there is no setting.
 const multilingual = new MultilingualConversations();
+// Convai's twins answer a turn only on the free shared plan (a player's own key has one session and no twins) and only while Convai answers at all.
+const twinForTurn = turn => !!turn && !keys.singleSession && !mistral.active && multilingual.wantsTwin({text: turn?.text, reaction: !!turn?.reaction, hint: speechLanguage.evidence?.language ?? null});
 // A player's free plan allows very few memory users. When Convai refuses a new one ("LTM speaker limit reached") the
 // turn is repeated with a memory user the account already has, which becomes the player's one id on that key
 // (convai-key.mjs, adoptUser; saved, so later sessions reuse it). Only when the account has none to adopt does the turn
@@ -994,9 +999,8 @@ const intrinsicConversationContext = createIntrinsicConversationContext({baseCon
 // Natural speech: the devices the CURRENT voice engine can render, for spoken replies only. Phone chat is text,
 // battle and loot reactions are short barks, and the Convai cloud voice cannot follow it (it would read tags aloud).
 // The voice of each turn (bridge/multilingual.mjs). Decided once per submitted turn, the first time it is needed, so
-// the context (tags or none), the Convai TTS flag and the delivery all agree. With Multilingual conversations off it
-// is exactly the character's chosen voice; on (Settings keep the voice on OmniVoice or the cloud voice), a turn in
-// another language never reaches Pocket, and a cloud-voice turn never gets tag instructions.
+// the context (tags or none), the Convai TTS flag and the delivery all agree. An English turn is exactly the character's chosen
+// voice; a turn in another language never reaches Pocket (its reply is shown as text), and a cloud-voice turn never gets tag instructions.
 const turnVoices = new Map();
 // A cloud voice with no key speaks nothing, so its turns go to the Convai cloud voice (a written reply under the Mistral provider,
 // which has no Convai audio); the cloud voices load no local model, so no local voice is ever the fallback.
@@ -1007,8 +1011,7 @@ function turnVoice(input) {
   const id = input?.requestId || input?.id, cacheKey = id ? JSON.stringify([id, input.profileKey]) : null;
   if (cacheKey && turnVoices.has(cacheKey)) return turnVoices.get(cacheKey);
   const profile = input.profileKey;
-  const plan = planTurnVoice({enabled: multilingual.enabled, textProvider: multilingual.textProvider,
-    language: multilingual.aware ? multilingual.expected(input.reaction ? '' : input.text) : 'en',
+  const plan = planTurnVoice({textProvider: true, language: multilingual.expected(input.reaction ? '' : input.text),
     local: localChoice(profile)});
   if (cacheKey) {
     turnVoices.set(cacheKey, plan);
@@ -1050,7 +1053,7 @@ function voiceKeyFor(input) {
   return key;
 }
 // Warm connections are prepared before any text exists: they follow the language of the last exchange.
-const warmUsesConvaiVoice = profile => localVoice.playbackEnabled !== false && planTurnVoice({enabled: multilingual.enabled, textProvider: multilingual.textProvider,
+const warmUsesConvaiVoice = profile => localVoice.playbackEnabled !== false && planTurnVoice({textProvider: true,
   language: multilingual.lastLanguage ?? 'en', local: localChoice(profile)}).engine === 'convai';
 const routingLog = new VoiceRoutingLog({path: resolve(runtime, ROUTING_LOG_NAME)});
 const voiceSources = {pocket: voiceConfig, omni: omniVoiceConfigs};
@@ -1119,7 +1122,7 @@ const vGenderMemory = {
   gender: (() => { try { return JSON.parse(readFileSync(vGenderFile, 'utf8')).gender; } catch { return null; } })(),
   save: gender => { void atomic(vGenderFile, JSON.stringify({gender})).catch(() => {}); }};
 const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console.error('[VVoice] ' + line), remember: vGenderMemory,
-  planFor: (input, key) => ({engine: vVoice.engine, language: multilingual.aware ? multilingual.expected(input.text) : 'en'}),
+  planFor: (input, key) => ({engine: vVoice.engine, language: multilingual.expected(input.text)}),
   // Pocket, when it is the companions' own voice: that worker speaks V too, one job at a time. Voice playback Off silences the companions,
   // not V: with the V setting on the Pocket worker stays loaded for his line (docs/RESOURCE_LIFECYCLE.md).
   ready: key => localVoice.vRouteSpeaks(key),
@@ -1195,7 +1198,7 @@ const conversationBlocks = input => {
     // notes are the same every turn for a given setting.
     block('volatile', naturalSpeechContext(input)), block('notes', expressiveEmotionsContext(input)),
     block('volatile', firstPersonReminder(input)),
-    // Multilingual conversations: the reply language, last so it outweighs the English notes above; on a text provider the player's own language (nothing in English; a recording follows the microphone's or the remembered language; docs/MULTILINGUAL_PROFILES.md).
+    // The reply language, last so it outweighs the English notes above: the player's own language on every route (nothing in an English conversation; a recording follows the microphone's or the remembered language; docs/MULTILINGUAL_PROFILES.md).
     block('volatile', multilingual.contextFor(input.reaction ? '' : input.text, input.reaction ? null : speechLanguage.evidence?.language))];
 };
 const joinedContext = blocks => blocks.map(item => item.text).filter(Boolean).join('\n\n');
@@ -1531,7 +1534,7 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
   // A local turn follows its reply's language: English keeps the chosen voice, another language needs OmniVoice.
   const voice = replyVoice({plan: turnPlan, text: result.text, local: localChoice(input.profileKey)});
   if (voice.engine === 'none') {
-    if (mistral.active && !multilingual.enabled && !input.reaction) voiceLanguageNotice.note();
+    if (!input.reaction) voiceLanguageNotice.note();
     logVoiceRoute(input, profile, voice);
     return {...result, audio: undefined, faces: [], captions: [], timing: {...result.timing, voiceProvider: 'none'},
       audioError: voice.reason === 'voice-language-unsupported' ? 'The selected voice does not speak this language; showing the written reply.'
@@ -1894,8 +1897,8 @@ async function publishResult(input, profile, result, current = async () => true,
   await current.vLine?.()?.waitClear(signal);
   if (!await current()) return false;
   // The language of this exchange predicts the next turn without text (reactions, warm connections).
-  if (!input.reaction) multilingual.observe(input.text);
-  multilingual.observe(result.text);
+  // Only a turn the player had a hand in sets the conversation's language: the reply to a reaction (a bark) is short and may be in any language.
+  if (!input.reaction) { multilingual.observe(input.text); multilingual.observe(result.text); }
   logNaturalSpeech(input, result);
   logFollowUp(input, result);
   // One line per reply: whether this turn's context carried V's gear (bridge/player-gear.mjs), or why not. Counts only, no names.
@@ -2466,7 +2469,7 @@ function addonTurnConfig(input, profile) {
   // The reply language, last like a companion's: an add-on always answers on a text provider (Mistral, the local AI or Custom), whatever the
   // companions use, so the text provider's rule applies directly. A remark has no words of V's and follows the conversation's language.
   const language = textProviderLanguageContext({text: input.reaction ? '' : input.text,
-    lastLanguage: (multilingual.aware ? multilingual.lastLanguage : null) ?? speechLanguage.evidence?.language ?? null});
+    lastLanguage: multilingual.lastLanguage ?? speechLanguage.evidence?.language ?? null});
   const blocks = [...base, ...addonHost.blocks(input), ...(language ? [{tier: 'volatile', text: language}] : [])];
   return {text: input.reaction?.kind === 'addon' ? addonHost.trigger(input) : input.text, reaction: input.reaction,
     context: joinedContext(blocks), contextParts: contextPartsOf(blocks),
@@ -3202,8 +3205,6 @@ async function pollSettings(checkShutdown = true) {
       if (keys.setPreference(settings.useOwnConvaiKey === true)) await ownKeyControl.publishStatus().catch(() => {});
       await ownKeyControl.poll().catch(() => {});
       await applyKeyChoice();
-      // Convai's free plans carry no multilingual support: conversations use the original characters, not the twins.
-      if (keys.singleSession) settings = {...settings, multilingualConversations: false};
       // Conversation provider (docs/MISTRAL.md): the setting and the settings page's commands, then the switch itself.
       // Choosing the custom provider reads its file again first: a player may have written the address by hand while the game ran.
       if (settings.conversationProvider === 'custom' && mistral.preference !== 'custom') await customEndpoint.load().catch(() => {});
@@ -3223,9 +3224,8 @@ async function pollSettings(checkShutdown = true) {
       }
       await applyProviderChoice();
       if (mistral.active) {
-        // A local voice: Pocket speaks when the Convai cloud voice is selected (there is no Convai audio), and
-        // the twins (another Convai character per language) are not used.
-        settings = {...settings, multilingualConversations: false, ...(settings.voiceProvider === 'convai' ? {voiceProvider: 'pocket'} : {})};
+        // A local voice: Pocket speaks when the Convai cloud voice is selected (there is no Convai audio).
+        if (settings.voiceProvider === 'convai') settings = {...settings, voiceProvider: 'pocket'};
       }
     }
     if (settings) { audioDelaySetting = settingDelay(settings); await applyAudioDelay(); }
@@ -3261,12 +3261,7 @@ async function pollSettings(checkShutdown = true) {
     if (speechChanged) console.error(`[NaturalSpeech] setting is now ${naturalSpeech.enabled ? 'on' : 'off'}`);
     if (emotionSelection.update(settings)) console.error(`Facial emotion selector: ${emotionSelection.mode}`);
     if (settings && typeof settings === 'object') replyStreaming = settings.replyStreaming !== false && !replyStreamingForcedOff;
-    // Multilingual conversations changes which voice a turn uses (and so its instructions).
-    // (The voice selection reads the same setting: while it is on, a fallback never lands on Pocket.)
-    // (A text provider answering turns also makes them follow the player's language: no twins, see MultilingualConversations.textProvider.)
-    const twinsChanged = multilingual.update(settings), textLanguageChanged = multilingual.setTextProvider(mistral.active);
-    const multilingualChanged = twinsChanged || textLanguageChanged;
-    if (speechChanged || emotionsChanged || multilingualChanged || followUpChanged) { dropPrefetch(); prefetchObserved = ''; }
+    if (speechChanged || emotionsChanged || followUpChanged) { dropPrefetch(); prefetchObserved = ''; }
     if (matureChanged) { dropPrefetch(); prefetchObserved = ''; }
     refreshWarmVoices();
     await syncRelationshipRoutes(); await syncVoiceRoutes();

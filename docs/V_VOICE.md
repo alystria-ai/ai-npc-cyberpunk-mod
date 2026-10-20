@@ -295,7 +295,7 @@ voice, nor beside the Pocket voice (V then uses the chosen worker), nor while vo
   waits as the companions' Pocket), never while a reply is in flight, due-checked from the 500 ms poll and each V line (no timer);
   after the fourth failure it stays off until V is turned off and on, or the voice changes. A Windows block of a file of the voice is
   not retried. (Before 0.2.4 one failure ended V's voice for the whole session.)
-- Pocket speaks English only: a non-English turn (Multilingual conversations) gets no V line beside OmniVoice, with one log line.
+- Pocket speaks English only: a non-English turn gets no V line beside OmniVoice, with one log line.
 - Order: the helper line is a V line like any other. The companion's OmniVoice request neither waits for it nor stops it (a different
   worker); the reply, published as a whole after its render, waits in `publishResult` (`waitClear`) while V is audible and starts after
   V's tail, so V is first, the companion second, never overlapping. If V were somehow not audible when the reply is ready it is dropped.

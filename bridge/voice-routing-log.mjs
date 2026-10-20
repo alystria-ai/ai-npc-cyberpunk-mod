@@ -111,7 +111,6 @@ export function fallbackReason(voice, profile, {plan, engine} = {}) {
     if (requested === 'pocket' && voice.pocketRetry) return 'Pocket still loading (retrying in the background)';
     return `${requested === 'omni' ? 'Omni' : 'Pocket'} worker unavailable`;
   }
-  if (voice.multilingual && requested === 'pocket' && !voice.cloudWanted) return 'Multilingual is on: Pocket speaks English only';
   // The chosen backend is not the one routing (the change is waiting for a quiet moment, or it was never set up).
   if (voice.provider !== voice.resolvedProvider) return 'voice change pending';
   if (!voice.configuredByBackend?.[requested]) return `${requested === 'omni' ? 'Omni' : 'Pocket'} not configured`;
@@ -159,7 +158,9 @@ export function describeVoiceRoute({voice, input, profile, plan, reply, voiceKey
   else if (engine === 'pocket') record.used = cloud ? (cloudWhy ? 'none (written reply only)' : CLOUD_LABEL) : 'Pocket';
   else if (engine === 'none') record.used = 'none (written reply only)';
   else record.used = `Convai cloud (${profile?.voiceName ?? 'character voice'})`;
-  if (voice.multilingual) record.language = reply?.language ?? plan?.language ?? undefined;
+  // The language of a reply that is not English (an English turn adds nothing to the line).
+  const language = reply?.language ?? plan?.language;
+  if (language && language !== 'en') record.language = language;
   if (typeof lipText === 'boolean') record.lipText = lipText;
   if (character?.id) record.character = {key: character.key, id: character.id};
   return record;

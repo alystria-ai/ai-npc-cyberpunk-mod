@@ -262,8 +262,7 @@ Works: text talk, Phone Chat, group conversations, battle and loot reactions, su
 Natural speech and Expressive emotion tags (Natural speech also works with the Convai voice selection: the bridge plays Pocket for it here), follow-up hooks, quest and world knowledge in the prompt, Forget, and the voice key when
 local speech-to-text is available.
 
-Does not: Convai long-term memory and its cloud voices (use Convai for those); Multilingual conversations (the setting is off while
-Mistral is active); speculative preparation and look-ahead (a single session, like a free Convai plan); memory is local to this
+Does not: Convai long-term memory and its cloud voices (use Convai for those); the Convai multilingual twins (Mistral answers in the language you write in without them); speculative preparation and look-ahead (a single session, like a free Convai plan); memory is local to this
 computer and much simpler than Convai's.
 
 Model variability: the smaller free models hold a persona less tightly than Convai: expect plainer replies, now and then a made-up

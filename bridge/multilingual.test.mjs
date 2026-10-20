@@ -6,7 +6,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {detectLanguage, isNonEnglish} from './reply-language.mjs';
 import {VOXTRAL_TTS_MODEL, VOXTRAL_TTS_FALLBACK_MODEL, voxtralSpeaks} from './voxtral-languages.mjs';
-import {MultilingualConversations, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyVoice, textProviderLanguageContext, twinMarkerKey} from './multilingual.mjs';
+import {MultilingualConversations, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyVoice, textProviderLanguageContext, twinMarkerKey,
+  wantsTwin} from './multilingual.mjs';
 import {CAST_EXPANSION_KEYS} from './cast-expansion-keys.mjs';
 import {RelationshipRouting, relationshipRegistry, selectRelationshipProfile, parseRelationshipState,
   RELATIONSHIP_PROFILES} from './relationship-routing.mjs';
@@ -105,17 +106,40 @@ test('the turn plan gates Natural speech and Expressive emotions: the cloud voic
   assert.match(blocks(planTurnVoice({enabled: true, language: 'en', local: POCKET}))[0], /Pocket TTS/);
 });
 
-test('the setting holder remembers the conversation language only while on', () => {
+test('the holder remembers the language the conversation was last in, on every route', () => {
   const value = new MultilingualConversations();
-  assert.equal(value.observe('Hola, ¿cómo estás?'), false); assert.equal(value.lastLanguage, null);
-  value.update({multilingualConversations: true});
   assert.equal(value.expected('[Microphone]'), 'en');
   assert.equal(value.observe('Hola, ¿cómo estás?'), true); assert.equal(value.lastLanguage, 'es');
   assert.equal(value.expected('[Microphone]'), 'es', 'a turn without text keeps the conversation language');
   assert.equal(value.expected('How are you doing tonight?'), 'en');
   assert.equal(value.observe('ok'), false, 'unclear text keeps the last language');
-  value.update({}); assert.equal(value.enabled, false); assert.equal(value.lastLanguage, null);
-  assert.equal(value.update(null), false); assert.equal(value.update(undefined), false);
+  assert.equal(value.lastLanguage, 'es');
+  // There is no setting to switch it off or on: an old settings object is not read.
+  assert.equal(typeof value.update, 'undefined'); assert.equal(typeof value.setTextProvider, 'undefined');
+});
+
+test('wantsTwin: a clear non-English message goes to the twin, a clear English one back to the original, anything unclear stays where the conversation is', () => {
+  // Clearly another language: the twin, whatever came before.
+  for (const text of ['Combien de temps encore ?', 'Siamo quasi arrivati?', '¿Qué pasa, choom?', 'Wie lange noch?', 'こんにちは'])
+    assert.equal(wantsTwin({text}), true, text);
+  // English, three words or more: the original, even from the middle of a French conversation.
+  assert.equal(wantsTwin({text: 'how long until we get there', lastLanguage: 'fr'}), false);
+  assert.equal(wantsTwin({text: 'Hey V, what do you need?', lastLanguage: 'ja'}), false);
+  // Unclear: stays. One English word or "ok" does not switch a French conversation back (a switch is a new session and another memory).
+  for (const text of ['ok', 'yes', 'lol', '', '[Microphone]', '42', undefined]) {
+    assert.equal(wantsTwin({text, lastLanguage: 'fr'}), true, JSON.stringify(text));
+    assert.equal(wantsTwin({text, lastLanguage: 'en'}), false, JSON.stringify(text));
+    assert.equal(wantsTwin({text, lastLanguage: null}), false, JSON.stringify(text));
+  }
+  // A reaction (a bark, an add-on remark) follows the conversation and never starts a twin conversation by its own text.
+  assert.equal(wantsTwin({text: 'Combien de temps encore ?', reaction: true}), false);
+  assert.equal(wantsTwin({text: 'watch out', reaction: true, lastLanguage: 'de'}), true);
+  // The holder asks with its own last language and a hint (the microphone's) for a turn that has neither.
+  const value = new MultilingualConversations();
+  assert.equal(value.wantsTwin({text: '[Microphone]'}), false);
+  assert.equal(value.wantsTwin({text: '[Microphone]', hint: 'fr'}), true);
+  value.observe('Siamo quasi arrivati?');
+  assert.equal(value.wantsTwin({text: 'ok', hint: 'en'}), true, 'the conversation\'s language wins over the hint');
 });
 
 // ---- Twin map and routing --------------------------------------------------------------------------------------
@@ -248,44 +272,49 @@ test('multilingual selection picks the twin of exactly the profile chosen; On, O
   }
 });
 
-test('the setting commits at an idle boundary, retires every twinned character once and guards accept twin IDs', () => {
-  let now = NOW;
-  const routes = new RelationshipRouting({ordinaryIds, multilingual: twins, now: () => now});
+test('the twin is chosen per turn: a turn option picks it, no setting is read, nothing is retired, and guards accept both IDs', () => {
+  const routes = new RelationshipRouting({ordinaryIds, multilingual: twins, now: () => NOW});
   const state = {version: 1, status: 'ready', gameVersion: '2.31', ...boundary, capturedAt: NOW, facts: {}};
   routes.update({}, state, {boundary});
   assert.equal(routes.select('rogue-amendiares', boundary).providerProfileKey, 'rogue-amendiares');
-  // Busy: staged, not applied.
-  assert.equal(routes.update({multilingualConversations: true}, state, {boundary, busy: true}), false);
+  assert.equal(routes.select('rogue-amendiares', boundary, {multilingual: false}).providerProfileKey, 'rogue-amendiares');
+  const twin = routes.select('rogue-amendiares', boundary, {multilingual: true});
+  assert.equal(twin.providerProfileKey, 'rogue-amendiares-multilingual'); assert.equal(twin.characterId, 'rogue-amendiares-twin-id');
+  assert.equal(twin.multilingual, true);
+  // The language of a turn never churns the routes: no change to publish, no connection to retire.
+  assert.deepEqual(routes.consumeRouteChanges(), []);
+  // A saved multilingualConversations from an old settings file is not read.
+  assert.equal(routes.update({multilingualConversations: true}, state, {boundary}), false);
   assert.equal(routes.select('rogue-amendiares', boundary).providerProfileKey, 'rogue-amendiares');
-  assert.equal(routes.update(undefined, undefined, {boundary}), true);
-  assert.equal(routes.select('rogue-amendiares', boundary).providerProfileKey, 'rogue-amendiares-multilingual');
-  assert.deepEqual(routes.consumeRouteChanges().sort(), Object.keys(ordinaryIds).sort());
-  // Guards: a twin ID belongs to the canonical character and is the selected route.
+  assert.deepEqual(routes.consumeRouteChanges(), []);
+  // Guards: a twin ID belongs to the canonical character, and so does the original's; a guard on either is current.
   const guard = {characterId: 'rogue-amendiares-twin-id'};
   assert.equal(routes.providerKeyForGuard('rogue-amendiares', guard), 'rogue-amendiares-multilingual');
   assert.equal(routes.guardSelected('rogue-amendiares', guard, boundary), true);
-  assert.equal(routes.guardSelected('rogue-amendiares', {characterId: 'rogue-amendiares-ordinary-id'}, boundary), false);
+  assert.equal(routes.guardSelected('rogue-amendiares', {characterId: 'rogue-amendiares-ordinary-id'}, boundary), true);
+  assert.equal(routes.guardSelected('rogue-amendiares', {characterId: 'judy-alvarez-twin-id'}, boundary), false);
+  assert.equal(routes.guardSelected('rogue-amendiares', {characterId: 'something-else'}, boundary), false);
   assert.throws(() => routes.providerKeyForGuard('judy-alvarez', guard), {code: 'CHARACTER_MISMATCH'});
-  // Unchanged settings: no route churn.
-  assert.equal(routes.update({multilingualConversations: true}, state, {boundary}), false);
-  assert.equal(routes.describe(boundary).find(row => row.profileKey === 'judy-alvarez').multilingual, true);
+  assert.equal(routes.describe(boundary).find(row => row.profileKey === 'judy-alvarez').multilingual, false);
   assert.equal(routes.markerKeys['judy-alvarez-multilingual'], 'judy-alvarez:multilingual');
   assert.equal(routes.providerIds['judy-alvarez-romantic'], undefined);
 });
 
-test('a relationship style change never changes the provider: no route change, no connection retirement; only the Multilingual setting does', () => {
+test('a relationship style change never changes the provider: no route change, no connection retirement; only the turn\'s own language picks the twin', () => {
   const routes = new RelationshipRouting({ordinaryIds, multilingual: twins, now: () => NOW});
   const state = {version: 1, status: 'ready', gameVersion: '2.31', ...boundary, capturedAt: NOW,
     facts: {sq030_judy_lover: fact(1), sq030_11_romance: fact(1), sq030_romance: fact(1)}};
+  const modes = relationshipModes => ({relationshipModes});
+  routes.update({}, {...state, facts: {}}, {boundary});
+  routes.consumeRouteChanges();
   for (const multilingual of [false, true]) {
-    const modes = relationshipModes => ({multilingualConversations: multilingual, relationshipModes});
-    routes.update({multilingualConversations: multilingual}, {...state, facts: {}}, {boundary});
+    routes.update({}, {...state, facts: {}}, {boundary});   // every character back to Auto
     routes.consumeRouteChanges();
-    const providerOf = profile => routes.select(profile, boundary).providerProfileKey;
+    const providerOf = profile => routes.select(profile, boundary, {multilingual}).providerProfileKey;
     const before = providerOf('judy-alvarez');
     assert.equal(before, multilingual ? 'judy-alvarez-multilingual' : 'judy-alvarez');
     // Auto with no confirmed facts: ordinary. Auto with confirmed facts, On, Off: styles change, the route does not.
-    assert.equal(routes.select('judy-alvarez', boundary).style, 'ordinary');
+    assert.equal(routes.select('judy-alvarez', boundary, {multilingual}).style, 'ordinary');
     for (const [settings, snapshotState, style] of [
       [modes({'judy-alvarez': 'on'}), undefined, 'romantic'],
       [modes({'judy-alvarez': 'off'}), undefined, 'ordinary'],
@@ -296,17 +325,10 @@ test('a relationship style change never changes the provider: no route change, n
     ]) {
       assert.equal(routes.update(settings, snapshotState, {boundary}), false);
       assert.deepEqual(routes.consumeRouteChanges(), []);
-      assert.equal(routes.select('judy-alvarez', boundary).style, style);
+      assert.equal(routes.select('judy-alvarez', boundary, {multilingual}).style, style);
       assert.equal(providerOf('judy-alvarez'), before);
     }
   }
-  // The Multilingual setting is the only thing that moves the provider, for every twinned character at once.
-  routes.update({multilingualConversations: false, relationshipModes: {'judy-alvarez': 'on'}}, state, {boundary});
-  routes.consumeRouteChanges();
-  assert.equal(routes.update({multilingualConversations: true, relationshipModes: {'judy-alvarez': 'on'}}, state, {boundary}), true);
-  assert.deepEqual(routes.consumeRouteChanges().sort(), Object.keys(ordinaryIds).sort());
-  assert.equal(routes.select('judy-alvarez', boundary).providerProfileKey, 'judy-alvarez-multilingual');
-  assert.equal(routes.select('judy-alvarez', boundary).style, 'romantic');
 });
 
 // ---- Memory: a twin is its own character, and Forget clears both ------------------------------------------------
@@ -464,7 +486,7 @@ test('archetype twins are loaded under the same rules as named twins', () => {
   assert.deepEqual(multilingualTwins(document, {ordinaryIds: partial}).skipped.includes('npc-ripperdoc-male'), true);
 });
 
-test('with Multilingual on, an archetype goes to its twin; off, to the original; the twin keeps the archetype family and marker', () => {
+test('for a twin turn an archetype goes to its twin; otherwise to the original; the twin keeps the archetype family and marker', () => {
   const ids = {...ordinaryIds, ...archetypeIds};
   const archetypeTwins = multilingualTwins({version: 1, characters: {...twinDocument().characters, ...archetypeTwinDocument().characters}},
     {ordinaryIds: ids}).twins;
@@ -489,7 +511,7 @@ test('with Multilingual on, an archetype goes to its twin; off, to the original;
   assert.equal(route('npc-bartender-male').providerProfileKey, 'npc-bartender-male-multilingual');
 });
 
-test('the setting retires every archetype route at the idle boundary, and guards accept an archetype twin ID', () => {
+test('a turn in another language reaches an archetype twin without retiring any route, and guards accept an archetype twin ID', () => {
   const ids = {...ordinaryIds, ...archetypeIds};
   const archetypeTwins = multilingualTwins({version: 1, characters: {...twinDocument().characters, ...archetypeTwinDocument().characters}},
     {ordinaryIds: ids}).twins;
@@ -497,18 +519,13 @@ test('the setting retires every archetype route at the idle boundary, and guards
   const state = {version: 1, status: 'ready', gameVersion: '2.31', ...boundary, capturedAt: NOW, facts: {}};
   routes.update({}, state, {boundary});
   assert.equal(routes.select('npc-maelstrom-male', boundary).providerProfileKey, 'npc-maelstrom-male');
-  assert.equal(routes.update({multilingualConversations: true}, state, {boundary}), true);
-  assert.equal(routes.select('npc-maelstrom-male', boundary).providerProfileKey, 'npc-maelstrom-male-multilingual');
-  const changed = routes.consumeRouteChanges();
-  for (const profile of archetypeKeys) assert.ok(changed.includes(profile), profile + ' not retired');
+  assert.equal(routes.select('npc-maelstrom-male', boundary, {multilingual: true}).providerProfileKey, 'npc-maelstrom-male-multilingual');
+  assert.deepEqual(routes.consumeRouteChanges(), []);
   const guard = {characterId: 'npc-maelstrom-male-twin-id'};
   assert.equal(routes.providerKeyForGuard('npc-maelstrom-male', guard), 'npc-maelstrom-male-multilingual');
   assert.equal(routes.guardSelected('npc-maelstrom-male', guard, boundary), true);
-  assert.equal(routes.guardSelected('npc-maelstrom-male', {characterId: 'npc-maelstrom-male-original-id'}, boundary), false);
+  assert.equal(routes.guardSelected('npc-maelstrom-male', {characterId: 'npc-maelstrom-male-original-id'}, boundary), true);
   assert.throws(() => routes.providerKeyForGuard('npc-ncpd-male', guard), {code: 'CHARACTER_MISMATCH'});
-  // Turning it off sends them back.
-  assert.equal(routes.update({multilingualConversations: false}, state, {boundary}), true);
-  assert.equal(routes.select('npc-maelstrom-male', boundary).providerProfileKey, 'npc-maelstrom-male');
 });
 
 test('an archetype twin has its own memory identity in the archetype family, and the provider adapter accepts only its marker', async t => {
@@ -564,26 +581,28 @@ test('the bridge loads the twins, gives memory their markers and decides the voi
   assert.match(bridge, /characterFamilies: relationshipRoutes\.providerFamilies/);
   assert.match(bridge, /chatResetFamilies: relationshipRoutes\.providerFamilies/);
   assert.match(bridge, /ttsEnabled: localVoice\.playbackEnabled!==false&&!turnUsesLocal\(input\)/);
-  assert.match(bridge, /const twinsChanged = multilingual\.update\(settings\), textLanguageChanged = multilingual\.setTextProvider\(mistral\.active\);/);
-  assert.match(bridge, /const multilingualChanged = twinsChanged \|\| textLanguageChanged;/);
+  // No setting: the poll neither reads one nor forces one off, and the twin is chosen per turn from the message.
+  assert.doesNotMatch(bridge, /multilingualConversations|multilingual\.update\(|setTextProvider/);
+  assert.match(bridge, /selectProfile: \(profile, boundary, turn\) => relationshipRoutes\.select\(profile, boundary, \{multilingual: twinForTurn\(turn\)\}\)/);
+  assert.match(bridge, /const twinForTurn = turn => !!turn && !keys\.singleSession && !mistral\.active && multilingual\.wantsTwin\(/);
   // Every per-turn voice check goes through the plan; only invitation readiness asks about the profile.
   const perTurn = bridge.slice(bridge.indexOf('async function synthesizeReply('), bridge.indexOf('async function pollMicrophone('));
   assert.doesNotMatch(perTurn, /usesProfile\(input\.profileKey\)|localVoice\.provider\s*===\s*'omni'\s*\)/);
 });
 
-test('the reply-language block names the player\'s language, last in the context, only while the setting is on', async () => {
+test('the reply-language block names the player\'s language, last in the context, and says nothing in an English conversation', async () => {
   const {languageContext} = await import('./multilingual.mjs');
-  assert.equal(languageContext({enabled: false, text: 'hola, cómo estás'}), '');
   // The in-game failure: a short Spanish greeting answered in English under the English context notes.
-  assert.match(languageContext({enabled: true, text: 'hola, cómo estás'}), /latest message, which is Spanish\..*whole reply in Spanish/);
-  assert.match(languageContext({enabled: true, text: 'こんにちは、ジュディ'}), /which is Japanese/);
-  assert.match(languageContext({enabled: true, text: 'How are you?'}), /which is English/);
+  assert.match(languageContext({text: 'hola, cómo estás'}), /latest message, which is Spanish\..*whole reply in Spanish/);
+  assert.match(languageContext({text: 'こんにちは、ジュディ'}), /which is Japanese/);
+  assert.match(languageContext({text: 'How are you?'}), /which is English/);
   // No player text (a reaction, the microphone placeholder): the language the player is using, with the last one.
-  assert.match(languageContext({enabled: true, text: '[Microphone]', lastLanguage: 'de'}), /language the player is using with you \(so far German\)/);
-  assert.match(languageContext({enabled: true, text: ''}), /language the player is using with you\. Everything else/);
+  assert.match(languageContext({text: '[Microphone]', lastLanguage: 'de'}), /language the player is using with you \(so far German\)/);
+  assert.match(languageContext({text: ''}), /language the player is using with you\. Everything else/);
   const setting = new MultilingualConversations();
-  assert.equal(setting.contextFor('hola'), '');
-  setting.update({multilingualConversations: true}); setting.observe('Hola, ¿cómo estás?');
+  assert.equal(setting.contextFor('How are you?'), '', 'an English conversation sends the context it always did');
+  assert.match(setting.contextFor('hola, cómo estás'), /which is Spanish/);
+  setting.observe('Hola, ¿cómo estás?');
   assert.match(setting.contextFor('[Microphone]'), /so far Spanish/);
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(bridge, /block\('volatile', firstPersonReminder\(input\)\),(?:\s*\/\/[^\n]*\n)+\s*block\('volatile', multilingual\.contextFor\(input\.reaction \? '' : input\.text, input\.reaction \? null : speechLanguage\.evidence\?\.language\)\)\]/);
@@ -591,22 +610,16 @@ test('the reply-language block names the player\'s language, last in the context
 
 // ---- Text providers (Mistral, Local AI, Custom): the player's language, with no twins ---------------------------------------
 
-test('on a text provider a French message gets the French note, even though the Multilingual setting stays off', () => {
+test('a French message gets the French note on every route, with the same wording as the full language block', () => {
   const setting = new MultilingualConversations();
-  setting.update({multilingualConversations: false}); setting.setTextProvider(true);
-  assert.equal(setting.enabled, false, 'the twins stay off');
   const french = "Salut, ça va? Qu'est-ce que tu fais ce soir?";
   const note = setting.contextFor(french);
   assert.match(note, /latest message, which is French\..*whole reply in French/);
-  // Same wording as the twins' note.
-  const twins = new MultilingualConversations(); twins.update({multilingualConversations: true});
-  assert.equal(note, twins.contextFor(french));
-  // Not a text provider (Convai, Setting off): nothing.
-  assert.equal(new MultilingualConversations().contextFor(french), '');
+  assert.equal(note, textProviderLanguageContext({text: french}));
 });
 
-test('on a text provider an English conversation adds nothing: the context stays what it always was', () => {
-  const setting = new MultilingualConversations(); setting.setTextProvider(true);
+test('an English conversation adds nothing: the context stays what it always was', () => {
+  const setting = new MultilingualConversations();
   for (const text of ['What do you need, choom?', 'Hey V, meet me at the Afterlife tonight.', '', '[Microphone]', 'ok', "Ay, chica, let's go"])
     assert.equal(setting.contextFor(text), '', JSON.stringify(text));
   setting.observe('What do you need, choom?'); setting.observe('Nothing much, V. You?');
@@ -615,29 +628,30 @@ test('on a text provider an English conversation adds nothing: the context stays
   assert.equal(setting.contextFor('Thanks, that helps.'), '');
 });
 
-test('on a text provider the note follows the conversation: kept for a turn with no text, and English named again when the player switches back', () => {
-  const setting = new MultilingualConversations(); setting.setTextProvider(true);
+test('the note follows the conversation: kept for a turn with no text, and English named again when the player switches back', () => {
+  const setting = new MultilingualConversations();
   assert.equal(setting.observe('Hola, ¿cómo estás? Vamos a la tienda, que tengo mucho que hacer.'), true);
   assert.match(setting.contextFor('[Microphone]'), /language the player is using with you \(so far Spanish\)/);
   assert.match(setting.contextFor(''), /so far Spanish/, 'a reaction bark follows the conversation');
   assert.match(setting.contextFor('Thanks, that helps a lot.'), /which is English/, 'back to English: said once, so the reply follows');
-  // Turning the provider off forgets the language.
-  setting.setTextProvider(false);
-  assert.equal(setting.lastLanguage, null);
-  assert.equal(setting.contextFor('Hola, ¿cómo estás?'), '');
 });
 
-test('a language known from an earlier launch (or the last recording) is the fallback for a recording on a text provider', () => {
-  const setting = new MultilingualConversations(); setting.setTextProvider(true);
+test('a short line in a supported language is called by the context block (the live finding of 2026-10-21: "Combien de temps encore ?" was answered in English)', () => {
+  for (const [text, name] of [['Combien de temps encore ?', 'French'], ['Siamo quasi arrivati?', 'Italian'], ['No entiendo nada', 'Spanish'],
+    ['Wie lange noch?', 'German'], ['Quanto custa isso?', 'Portuguese']])
+    assert.match(textProviderLanguageContext({text}), new RegExp('which is ' + name), text);
+  // Night City words and nicknames inside an English line do not change its language.
+  for (const text of ['preem gig choom', 'hey hermano what\'s up', 'Afterlife tonight?', 'nova ride Delamain']) assert.equal(textProviderLanguageContext({text}), '', text);
+});
+
+test('a language known from an earlier launch (or the last recording) is the fallback for a recording', () => {
+  const setting = new MultilingualConversations();
   assert.match(setting.contextFor('[Microphone]', 'fr'), /so far French/);
   assert.equal(setting.contextFor('[Microphone]', 'en'), '');
   assert.equal(setting.contextFor('[Microphone]', null), '');
   // The conversation's own language wins over the hint.
   setting.observe('Hola, ¿cómo estás? Vamos a la tienda, que tengo mucho que hacer.');
   assert.match(setting.contextFor('[Microphone]', 'fr'), /so far Spanish/);
-  // With the twins on, the hint is not used (the twin keeps its own behaviour).
-  const twins = new MultilingualConversations(); twins.update({multilingualConversations: true});
-  assert.doesNotMatch(twins.contextFor('[Microphone]', 'fr'), /French/);
 });
 
 test('textProviderLanguageContext is empty exactly where the conversation is English', () => {
@@ -743,7 +757,8 @@ test('the bridge tells the plan which cloud voice is chosen and which languages 
   assert.match(bridge, /cloud: localVoice\.cloudActive \? localVoice\.cloud : null, speaks: language => voxtralVoice\.speaks\(language\)/);
   assert.match(bridge, /speaks: language => voxtralVoice\.speaks\(language\),/);
   const selection = readFileSync(new URL('./voice-selection.mjs', import.meta.url), 'utf8');
-  assert.match(selection, /!\(this\.multilingual&&backend==='pocket'&&!this\.cloudWanted\)/);
+  // The voice selection no longer reads a Multilingual setting: Pocket stays in the fallback order, and a reply it cannot speak is shown as text.
+  assert.doesNotMatch(selection, /multilingual/i);
 });
 
 test('one notice per game session says OmniVoice has voices in other languages', () => {
@@ -758,11 +773,14 @@ test('one notice per game session says OmniVoice has voices in other languages',
 
 test('the bridge wires the text-provider language: note, voice plan, notice and the V line', () => {
   const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
-  assert.match(bridge, /planTurnVoice\(\{enabled: multilingual\.enabled, textProvider: multilingual\.textProvider,/);
-  assert.match(bridge, /language: multilingual\.aware \? multilingual\.expected\(input\.reaction \? '' : input\.text\) : 'en'/);
+  assert.match(bridge, /planTurnVoice\(\{textProvider: true, language: multilingual\.expected\(input\.reaction \? '' : input\.text\),/);
   assert.match(bridge, /\?\? voiceLanguageNotice\.take\(\)/);
-  assert.match(bridge, /if \(mistral\.active && !multilingual\.enabled && !input\.reaction\) voiceLanguageNotice\.note\(\);/);
-  assert.match(bridge, /planFor: \(input, key\) => \(\{engine: vVoice\.engine, language: multilingual\.aware \? multilingual\.expected\(input\.text\) : 'en'\}\)/);
+  assert.match(bridge, /if \(!input\.reaction\) voiceLanguageNotice\.note\(\);/);
+  assert.match(bridge, /planFor: \(input, key\) => \(\{engine: vVoice\.engine, language: multilingual\.expected\(input\.text\)\}\)/);
+  // An add-on speaker's own remarks follow the conversation's last detected language (the player's, on any route).
+  assert.match(bridge, /lastLanguage: multilingual\.lastLanguage \?\? speechLanguage\.evidence\?\.language \?\? null\}\);/);
+  // A reply to a reaction (a bark) does not set the conversation's language.
+  assert.match(bridge, /if \(!input\.reaction\) \{ multilingual\.observe\(input\.text\); multilingual\.observe\(result\.text\); \}/);
   // The game side shows the notice.
   const game = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
   assert.match(game, /reply\.keyNotice == 'voice-language'/);

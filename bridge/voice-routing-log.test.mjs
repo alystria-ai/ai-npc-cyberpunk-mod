@@ -78,7 +78,7 @@ test('an ambient voice variant is named by its own key; routing facts stay on th
 });
 
 test('OmniVoice reports its tier, steps, reference choice and the language of a multilingual reply', () => {
-  const h = fixture({settings: {voiceProvider: 'omni', omniSteps: 16, omniReference: 'short', multilingualConversations: true}});
+  const h = fixture({settings: {voiceProvider: 'omni', omniSteps: 16, omniReference: 'short'}});
   const plan = planFor(h.voice, 'judy-alvarez', {enabled: true, language: 'es'});
   const line = formatVoiceRoute(route(h, JUDY, {engine: 'omni', language: 'es'}, {plan, voiceKey: 'judy-alvarez', lipText: true}));
   assert.equal(line, '2026-10-08 14:03:21 profile=judy-alvarez name="Judy Alvarez" requested="OmniVoice · Balanced" '
@@ -110,11 +110,11 @@ test('fallback reasons: missing Omni pack, failed worker, Multilingual non-Engli
   loading.voice.omniRetry = null;
   assert.equal(route(loading, JUDY).fallback, 'Omni worker unavailable');
 
-  // Multilingual on with a Pocket pairing: the turn plan sends a non-English reply to the cloud voice.
-  const multi = fixture({settings: {voiceProvider: 'pocket', multilingualConversations: true}});
+  // A Pocket pairing and a non-English turn: the plan names why (the plan helper still builds the older cloud-voice hand-over, which the log explains the same way).
+  const multi = fixture({settings: {voiceProvider: 'pocket'}});
   const plan = planFor(multi.voice, 'judy-alvarez', {enabled: true, language: 'de'});
   assert.equal(plan.engine, 'convai');
-  assert.equal(route(multi, JUDY, undefined, {plan}).fallback, 'Multilingual is on: Pocket speaks English only');
+  assert.equal(route(multi, JUDY, undefined, {plan}).fallback, 'Multilingual non-English reply: Pocket speaks English only');
   // Pocket still routes but the reply turned out to be non-English: the turn plan names it.
   const english = {engine: 'convai', language: 'de', reason: 'english-only-voice'};
   assert.equal(route(fixture(), JUDY, undefined, {plan: english}).fallback, 'Multilingual non-English reply: Pocket speaks English only');

@@ -108,8 +108,8 @@ state-of-mind settings, model `fast-gemma-4-31b-it`, Kokoro voice per variant (i
 
 **Multilingual twins (2026-10-08).** All 74 archetypes have a "<name> Multilingual" twin
 (`node scripts/Create-MultilingualProfiles.mjs --roster archetypes --apply`; the 30 of the second batch are in `characters/multilingual-voice-map.json` with varied non-main-cast Azure voices, reused between kinds that do not meet): a faithful clone, en-US only, memory off,
-a matched Azure multilingual voice from `characters/multilingual-voice-map.json`, marker `:multilingual`. With
-Multilingual conversations on, the bridge routes an archetype to its twin like a named character; a twin is used once its
+a matched Azure multilingual voice from `characters/multilingual-voice-map.json`, marker `:multilingual`. When
+the player's message is clearly non-English, the bridge routes an archetype to its twin like a named character; a twin is used once its
 language box is marked off (web session). See `docs/MULTILINGUAL_PROFILES.md`.
 
 ## Identity and memory

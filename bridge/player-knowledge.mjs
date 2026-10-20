@@ -150,10 +150,11 @@ export class PlayerKnowledge {
     try { return !!guard && this.playerMemory.isCurrent(guard) === true; } catch { return false; }
   }
 
-  #selectedRoute(route, binding) {
+  // `turn`: {text, reaction} of the message being admitted, so the bridge can pick the character that answers in its language; a warm request has none.
+  #selectedRoute(route, binding, turn) {
     if (!this.selectProfile) return {route};
     try {
-      const selection = this.selectProfile(route.profileKey, binding);
+      const selection = this.selectProfile(route.profileKey, binding, turn);
       if (selection?.status !== 'ready') return {route, reason: 'relationship-profile-unavailable'};
       if (selection.profileKey !== route.profileKey || !PROFILE.test(selection.providerProfileKey ?? '')
           || !boundedId(selection.characterId) || !['ordinary', 'romantic'].includes(selection.style)
@@ -228,7 +229,7 @@ export class PlayerKnowledge {
     let route = inputRoute(frozen, settings.channel);
     const snapshot = parseWorldSnapshot(frozen.worldKnowledge);
     const binding = this.#binding(settings, snapshot);
-    const selected = this.#selectedRoute(route, binding);
+    const selected = this.#selectedRoute(route, binding, {text: frozen.text, reaction: frozen.reaction});
     route = selected.route;
     frozen.channel = route.channel;
     frozen.worldKnowledge = snapshot;

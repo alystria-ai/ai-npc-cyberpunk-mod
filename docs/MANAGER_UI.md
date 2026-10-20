@@ -74,7 +74,7 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
 - **Characters to invite** (named "Characters" until 2026-10-14): the researched profiles, including Johnny Silverhand and Adam
   Smasher, one row each with **Invite**, **Add copy (n)** once a copy is in the party, or **Profile only** when the character has no
   model to spawn. The help of a row shows the character's summary, voice, conversation state, relationship mode, the shared settings in
-  effect (speech, multilingual, memory) and, for a character in the party, how many copies. This catalogue is independent of phone
+  effect (speech, behavior, memory) and, for a character in the party, how many copies. This catalogue is independent of phone
   contacts and quest unlocks. There is no search box (NSUI has none); the list pages (see "How lists page").
 - **Current party:** one row per actual or invited copy, "Name #number", with **Dismiss** (or **Cancel invitation** while it is only
   invited). A copy that is dismissed leaves the list at once, even while the game is paused; the world deletion is queued and runs after
@@ -87,7 +87,7 @@ Mods screen that was opened by hand; it does nothing for the game's own Settings
   - Interface: Interface language. Its help says the setting changes this mod's menus and notices only, that character voices and the language the
     player talks in are separate, and that the microphone uses this language as a hint for non-English speech (the bridge reads it, `bridge/speech-language.mjs`).
   - Conversations: Memory (opens the Memory page), Talk to ordinary NPCs, Talk to story characters, Johnny in your head (one list: Off, On, Speaks up
-    rarely, Speaks up often; default Off), Multilingual conversations.
+    rarely, Speaks up often; default Off). (The Multilingual conversations row was removed on 2026-10-21: the language is detected per message.)
   - Relationships (a page of its own, opened by the Relationships row of Conversations): one selector per character that has the setting (Auto, Romantic, Ordinary; Auto, Casual, Ordinary for Meredith
     Stout). The saved values stay `auto`, `on` and `off`. There is no "Who can talk" row: every character may talk by default, and
     one the player muted earlier stays muted, since nothing resets the saved value.
@@ -188,8 +188,8 @@ After every apply the page is drawn again. **What the rules did is shown on the 
     stays. An Apply that makes the pairing (it chooses the voice, or chooses a Convai provider while the voice is Convai) keeps the choice and
     turns Natural speech off with "The Convai cloud voice cannot use Natural speech, so it was turned off." Turning Natural speech on beside an
     existing pairing moves the voice to Pocket · Performance with the "needs a local voice" notice. An older save with the pairing loads with
-    Natural speech off. Multilingual conversations follows the same rule (the voice is kept when the player chooses it) and never keeps Pocket or
-    Voxtral, which speak English only: it switches to OmniVoice · Balanced, or to the Convai cloud voice without the pack.
+    Natural speech off. No voice is moved or refused for the language of a reply: Pocket keeps speaking English and shows another language as text with the
+    one-time voice-language notice.
   - V's voice is one list (2026-10-20): Off, Pocket, Voxtral. The row writes both stored keys (`vVoice`, `vVoiceEngine`); Off keeps the saved engine. Voxtral is greyed out
     until a Mistral key is saved (a chosen Voxtral without a key is refused with "Requires a Mistral key"), and a saved Voxtral without a key shows and
     speaks as Pocket until a key is saved. With Mature content on the Voxtral entry is greyed out and a saved Voxtral reads as Pocket (see Mature content above).

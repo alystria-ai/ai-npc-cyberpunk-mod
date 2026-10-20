@@ -301,7 +301,7 @@ session ("A failed worker stays out of routing until the player chooses that pro
   while it runs. There is no background candidate (the voice it falls to, Convai's, loads nothing): when a retry is due, with no reply in
   flight and voice playback not Off (V's typed line counts), the failure is cleared and the normal start loads Pocket again; the route
   returns at the next idle poll. The failed worker is released when it fails. The story ends, and nothing loads, when the player chooses
-  another voice, a cloud voice or Multilingual conversations, or the service closes.
+  another voice or a cloud voice, or the service closes.
 
 ## OmniVoice implementation and historical measurements
 

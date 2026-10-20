@@ -31,9 +31,9 @@ bridge publishes only whether one is saved (`runtime/mistral-state.json`, `saved
 (a reference clip in English still speaks French). Mistral names 21 languages for Voxtral TTS 3 and its voice presets add Greek; those 22 are the list the mod
 uses (`bridge/voxtral-languages.mjs`; "35+ languages" is claimed, but only these are written down). The older alias model speaks 9 (English, French, Spanish,
 Portuguese, Italian, Dutch, German, Hindi, Arabic) and is the list used while it is the model in use. A reply in a listed language is spoken by Voxtral
-(on a text provider and with Multilingual conversations alike); a reply in another one (Czech, Swedish, Hebrew, Thai) is shown as text on a text provider and goes
-to the Convai voice with Multilingual conversations. An English conversation keeps the chosen voice untouched. Multilingual conversations keeps a saved Voxtral
-choice (it no longer refuses it) and still refuses Pocket. See docs/MISTRAL.md, "Voxtral 3".
+(on every provider); a reply in another one (Czech, Swedish, Hebrew, Thai) is shown as text, with the one-time voice-language notice. An English conversation
+keeps the chosen voice untouched. No voice is moved or refused for the language of a reply (the Multilingual conversations switch was removed on 2026-10-21; the
+language is detected per message). See docs/MISTRAL.md, "Voxtral 3".
 Natural speech and Expressive emotions stay available: the voice uses Pocket's route, whose tag handling it keeps (Natural speech is
 limited to pauses, as with Pocket). Voxtral is not used with Mature content (since 2026-10-20, after Voxtral refused Mature lines in a live test): turning it on moves the voices to Pocket, turning it off puts Voxtral back. V's own Voxtral engine is a choice of the "V's voice for typed lines" list (docs/V_VOICE.md).
 

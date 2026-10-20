@@ -247,7 +247,7 @@ export const freshSettings = {
   eyeContactHeight: 0, headFollowStrength: 1, voiceProvider: 'pocket', omniSteps: 16, omniReference: 'long', keepPreparedVoices: true,
   archetypeConversations: true, storyConversations: false, johnnyInHead: false, johnnyRemarks: 'off',
   naturalSpeech: false, followUpInterest: true,
-  matureContent: false, localModel: 'auto', multilingualConversations: false,
+  matureContent: false, localModel: 'auto',
   vVoiceChosen: false, vVoice: true, vVoiceEngine: 'pocket',
   enabledByKey: {'viktor-vektor': true, 'misty-olszewski': true, 'judy-alvarez': true, 'panam-palmer': true, 'resident-male': true,
     'resident-female': true, 'johnny-silverhand': true},

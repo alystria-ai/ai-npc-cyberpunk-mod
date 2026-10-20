@@ -79,7 +79,7 @@ translation from `scnDialogLineData.GetDisplayText` when available. Markup is
 stripped, `LocKey#` placeholders are rejected, and lines are cut at 600 bytes on
 a UTF-8 boundary. The game language may not be English; lines are kept in the
 subtitle language and the prompt says so ("answer in the language you would
-otherwise use"), so Multilingual conversations still decides the reply language.
+otherwise use"), so the language detected in the player's message still decides the reply language.
 
 ## Buffer (Lua)
 

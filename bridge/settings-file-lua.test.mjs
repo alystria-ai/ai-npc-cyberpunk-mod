@@ -197,7 +197,7 @@ const oldFiles = {
   'a version 1 file with the legacy enabled list and the old hybrid voice': {voice: false, enabled: [false, true, true, true, true, true], voiceProvider: 'hybrid', omniSteps: 32},
   'Mature content beside a cloud provider': {version: 2, conversationProvider: 'mistral', matureContent: true,
     matureRestore: {conversationProvider: {before: 'convai', set: 'local'}}},
-  'Multilingual with Pocket TTS and Natural speech': {version: 2, multilingualConversations: true, voiceProvider: 'pocket', naturalSpeech: true},
+  'the removed Multilingual switch on with Pocket TTS and Natural speech': {version: 2, multilingualConversations: true, voiceProvider: 'pocket', naturalSpeech: true},
   'a tag setting beside the Convai cloud voice': {version: 2, voiceProvider: 'convai', naturalSpeech: true, expressiveEmotions: true},
   'the removed Inworld voice': {version: 2, voiceProvider: 'inworld'},
   'the removed Groq provider': {version: 2, conversationProvider: 'groq'},
@@ -453,7 +453,7 @@ test('a start with the settings file missing but its backup present (a crash bet
 // ---------------------------------------------------------------------------------------------------- settings of 2026-10-20
 // Settings the page no longer has, and the ones whose default changed. An old file keeps working: nothing it carries changes a behaviour.
 const RETIRED = ['autoConnectNearby', 'expressiveEmotions', 'expressiveEmotionsChosen', 'gameDialogueContext', 'holocallLiveImage',
-  'holocallLiveImageChosen', 'bodyGestures', 'johnnyHologram', 'vTalks'];
+  'holocallLiveImageChosen', 'bodyGestures', 'johnnyHologram', 'vTalks', 'multilingualConversations'];
 
 // Loads a file text, lets one update save what a load changed, and reports the loaded settings, the written file and the write count.
 const loadFile = content => run(`${managerLua}
@@ -477,12 +477,31 @@ for (const key of RETIRED) {
   }
 }
 
+test('a settings.json that still has multilingualConversations: true loads cleanly: the key is dropped and the voice (Pocket included) is left alone', () => {
+  for (const provider of ['convai', 'mistral', 'local', 'custom']) {
+    const out = loadFile({...freshSettings, conversationProvider: provider, multilingualConversations: true, voiceProvider: 'pocket'});
+    const saved = JSON.parse(out.text);
+    assert.equal(out.writes, 1, provider + ': one save drops the key');
+    assert.equal(saved.multilingualConversations, undefined, provider + ': gone from the file');
+    assert.equal(out.settings.multilingualConversations, undefined, provider + ': gone from the snapshot');
+    assert.equal(saved.voiceProvider, 'pocket', provider + ': Pocket TTS is kept, not moved to the cloud voice');
+    assert.equal(out.settings.voiceProvider, 'pocket');
+  }
+  const next = loadFile({...freshSettings, multilingualConversations: true, voiceProvider: 'pocket'});
+  const again = loadFile(JSON.parse(next.text));
+  assert.equal(again.writes, 0, 'a start from the written file writes nothing');
+});
+
 test('the removed settings have no getter any more, and an Apply that still carries one is ignored without an error', () => {
   const out = run(`${managerLua}
     local player, manager = newPlayer(), newManager()
     manager.update(player, 0.1)
-    local names = {'autoConnectNearby', 'expressiveEmotions', 'gameDialogueContext', 'holocallLiveImage', 'bodyGestures', 'johnnyHologram', 'vTalks'}
+    local names = {'autoConnectNearby', 'expressiveEmotions', 'gameDialogueContext', 'holocallLiveImage', 'bodyGestures', 'johnnyHologram', 'vTalks',
+      'multilingualConversations'}
     local getters = {}
+    for _, name in ipairs({'multilingualActive', 'resolveMultilingualVoice'}) do
+      if manager[name] ~= nil then getters[#getters + 1] = name end
+    end
     for _, name in ipairs(names) do
       if manager[name] ~= nil then getters[#getters + 1] = name end
     end
