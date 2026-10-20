@@ -13,7 +13,8 @@
 -- Rails (all of them in `M.allowed`, which is pure and tested):
 --   * ordinary NPCs only: never our companions, another mod's characters, a named or story character, a quest-flagged one;
 --   * never a child, never when the game is in charge (a scene, a quest dialogue, a call, a fight, an injury, a vehicle: world-talk.lua);
---   * never on V's first message to that person, at most one reaction per person, and a cooldown before another attack or police call;
+--   * at most one reaction per person, and a cooldown before another attack or police call (V's very first message to a person may earn one:
+--     no first-message rail since 2026-10-21, the owner's decision after a live test that threatened in the first message every time);
 --   * the hostile kinds never in a safe zone or where combat is disabled, and a police call only while V is not wanted and the game's own
 --     prevention system says it would react;
 --   * every native call is guarded, logged once per failure kind and switched off after repeated failures; an unreadable fact refuses.
@@ -21,8 +22,7 @@ local M = {version = 1}
 
 M.DEFAULTS = {
     cooldown = 120,      -- seconds after one attack or police call before another person may start either
-    minExchanges = 1,    -- messages from V to this person that pass without any offer (the first line never earns a reaction)
-    forget = 600,        -- seconds after V's last message to a person that the count starts again
+    forget = 600,        -- seconds after V's last message to a person that the message count (only logged: `message=N`) starts again
     settle = 1.5,        -- seconds the reply must have been over before the reaction starts
     maxWait = 120,       -- seconds after which a reaction whose reply never seemed to end starts anyway
     maxFailures = 3,     -- failures of one kind of native call before it is switched off for the session
@@ -72,7 +72,7 @@ end
 --   child, hostile, safe     booleans (nil: could not be read, which refuses what depends on it)
 --   heat       V's wanted stage (number)           preventionReady   the game's prevention system would react to a crime now
 --   refused    the reason the game is in charge (world-talk.lua), or nil
---   first      V's first message to this person     reacted   this person already had its one reaction     cooldown   a recent attack or call
+--   reacted    this person already had its one reaction     cooldown   a recent attack or call
 --   off        {attack = true, call = true, walk = true}: kinds of native call switched off after failures
 -- Pure.
 function M.allowed(kinds, facts)
@@ -80,7 +80,6 @@ function M.allowed(kinds, facts)
     if type(facts) ~= 'table' then return {}, 'unreadable' end
     if facts.ordinary ~= true then return {}, 'not-ordinary' end
     if facts.quest ~= false then return {}, facts.quest == true and 'quest-flag' or 'unreadable-quest' end
-    if facts.first == true then return {}, 'first-message' end
     if facts.reacted == true then return {}, 'already-reacted' end
     if facts.child ~= false then return {}, facts.child == true and 'child' or 'unreadable-child' end
     if facts.refused then return {}, 'game-in-charge:' .. tostring(facts.refused) end
@@ -327,9 +326,10 @@ function M.new(options)
     local function cooling(now) return lastHostile ~= nil and now - lastHostile < cfg.cooldown end
 
     -- The facts of one person now. mode: nil when V's message is admitted (every rail); 'start' when the bridge hands a reaction back (the
-    -- first-message and once-only rails were applied when it was offered, the cooldown still counts: two people offered the same minute may
-    -- not both act); 'run' when it begins, after the reply (the person's own start set the cooldown, so none of the three applies).
-    local function facts(npc, player, entity, count, mode)
+    -- once-only rail was applied when it was offered, the cooldown still counts: two people offered the same minute may not both act);
+    -- 'run' when it begins, after the reply (the person's own start set the cooldown, so neither applies). There is no first-message rail since
+    -- 2026-10-21: V's very first message to a person may earn a reaction (the live test threatened in the first message every time).
+    local function facts(npc, player, entity, mode)
         local fresh = mode ~= nil
         local now = clock()
         local f = {off = {attack = off.attack, call = off.call, walk = off.walk}}
@@ -351,7 +351,6 @@ function M.new(options)
         read('safe', 'read-zone', natives.safe, player)
         read('heat', 'read-heat', natives.heat)
         read('preventionReady', 'read-prevention', natives.preventionReady, player)
-        f.first = not fresh and count ~= nil and count <= cfg.minExchanges
         f.reacted = not fresh and reacted[entity] ~= nil
         f.cooldown = mode ~= 'run' and cooling(now)
         return f
@@ -362,19 +361,28 @@ function M.new(options)
     function S.offer(entity, context)
         if type(entity) ~= 'string' or type(context) ~= 'table' or type(context.profileKey) ~= 'string' then return nil end
         local kinds = M.kindsFor(context.archetype)
-        if not kinds then return nil end
+        if not kinds then
+            logOnce('npc-reaction-no-kind:' .. entity, 'NPC reaction not offered: no-kind (' .. tostring(type(context.archetype) == 'table' and (context.archetype.base or context.archetype.category) or 'no archetype') .. ')')
+            return nil
+        end
         local now = clock()
         local count = touch(entity, now)
         local okNpc, npc = pcall(options.npcFor, entity)
         local okPlayer, player = pcall(options.player)
-        if not (okNpc and npc and okPlayer and player) then return nil end
+        if not (okNpc and npc and okPlayer and player) then
+            logOnce('npc-reaction-no-person:' .. entity, 'NPC reaction not offered: no-person (not the conversation partner)')
+            return nil
+        end
         local readOk, alive = guard('read-alive', natives.alive, npc)
-        if not (readOk and alive) then return nil end
+        if not (readOk and alive) then
+            logOnce('npc-reaction-no-alive:' .. entity, 'NPC reaction not offered: not-alive-or-unreadable')
+            return nil
+        end
         exchanges[entity].category = context.archetype.base or context.archetype.category
         exchanges[entity].group = context.archetype.category
-        local allowed, why = M.allowed(kinds, facts(npc, player, entity, count))
+        local allowed, why = M.allowed(kinds, facts(npc, player, entity))
         if #allowed == 0 then
-            if why ~= 'first-message' then logOnce('npc-reaction-no:' .. entity .. ':' .. tostring(why), 'NPC reaction not offered: ' .. tostring(why) .. ' (' .. tostring(context.archetype.base or context.archetype.category) .. ')') end
+            logOnce('npc-reaction-no:' .. entity .. ':' .. tostring(why), 'NPC reaction not offered: ' .. tostring(why) .. ' (' .. tostring(context.archetype.base or context.archetype.category) .. ')')
             return nil
         end
         log('NPC reaction offered: kinds=' .. table.concat(allowed, ',') .. ' type=' .. tostring(context.archetype.base or context.archetype.category)
@@ -410,7 +418,7 @@ function M.new(options)
         local alive, up = guard('read-alive', natives.alive, p.npc)
         local keyOk, key = pcall(natives.key, p.npc)
         if not (alive and up and keyOk and key == p.entity) then log('NPC reaction dropped: the person is gone (' .. p.kind .. ')'); return end
-        local allowed, why = M.allowed({p.kind}, facts(p.npc, player, p.entity, nil, 'run'))
+        local allowed, why = M.allowed({p.kind}, facts(p.npc, player, p.entity, 'run'))
         if #allowed == 0 then
             log('NPC reaction dropped before it started (' .. p.kind .. '): ' .. tostring(why))
             -- A person who would have called the police and cannot: the honest fallback is the walk away that goes with the call.
@@ -481,7 +489,7 @@ function M.new(options)
             return false, 'no-person'
         end
         local row = exchanges[entity]
-        local allowed, why = M.allowed({kind}, facts(npc, player, entity, nil, 'start'))
+        local allowed, why = M.allowed({kind}, facts(npc, player, entity, 'start'))
         if #allowed == 0 then log('NPC reaction refused (' .. kind .. '): ' .. tostring(why)); return false, why end
         if reactedCount >= cfg.limit then reacted, reactedCount = {}, 0 end
         local now = clock()

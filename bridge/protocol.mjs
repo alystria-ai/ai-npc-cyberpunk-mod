@@ -71,6 +71,9 @@ function parseRequest(raw) {
   const followOffer = parseFollowOffer(value.followOffer), leaveOffer = parseLeaveOffer(value.leaveOffer);
   // An ordinary world NPC's reaction offer (docs/NPC_REACTIONS.md); a person with any of the offers above is a companion and has none.
   const reactionOffer = chauffeurOffer || tacticOffer || followOffer || leaveOffer ? null : parseReactionOffer(value.reactionOffer);
+  // An offer the game sent that did not survive the parser is not silent: the turn's reaction line says so (bridge/companion-actions.mjs admit).
+  const reactionOfferDropped = value.reactionOffer !== undefined && !reactionOffer && !(chauffeurOffer || tacticOffer || followOffer || leaveOffer)
+    ? 'malformed-offer' : undefined;
   const followUnavailable = parseFollowUnavailable(value.followUnavailable);
   const tacticUnavailable = parseTacticUnavailable(value.tacticUnavailable);
   const driveUnavailable = chauffeurOffer ? null : parseDriveUnavailable(value.driveUnavailable);
@@ -81,6 +84,7 @@ function parseRequest(raw) {
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(loot ? {loot} : {}), ...(reaction ? {reaction} : {}),
     ...(chauffeurOffer ? {chauffeurOffer} : {}), ...(tacticOffer ? {tacticOffer} : {}),
     ...(followOffer ? {followOffer} : {}), ...(leaveOffer ? {leaveOffer} : {}), ...(reactionOffer ? {reactionOffer} : {}),
+    ...(reactionOfferDropped ? {reactionOfferDropped} : {}),
     ...(followUnavailable ? {followUnavailable} : {}), ...(tacticUnavailable ? {tacticUnavailable} : {}), ...(driveUnavailable ? {driveUnavailable} : {}),
     ...(worldKnowledge ? {worldKnowledge} : {}), ...(journalHistory ? {journalHistory} : {}),
     ...(gameDialogue ? {gameDialogue} : {}), ...(gear ? {gear} : {}), ...(turnContext ? {turnContext} : {}),

@@ -1637,6 +1637,8 @@ end
 if playerGear then playerGear.options.log = log end
 if convaiTurnContext then convaiTurnContext.options.log = log end
 if convaiNpcReactions then convaiNpcReactions.options.log, convaiNpcReactions.options.logOnce = log, convaiLogOnce end
+-- The lease writes one line when a reaction offer ends early or its packet is refused (mod/gameplay-actions.lua), never per frame.
+if gameplayActions and gameplayActions.options then gameplayActions.options.log = log end
 -- Continue from game dialogue: one line the first time each of its four hooks fires in a session (mod/game-dialogue.lua).
 if gameDialogue then gameDialogue.options.log = log end
 if convaiWitnessReceipts then convaiWitnessReceipts.options.log = log end

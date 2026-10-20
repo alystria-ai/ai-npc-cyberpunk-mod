@@ -67,10 +67,9 @@ local function context(base, category, entity)
 end
 local function has(list, kind) for _, value in ipairs(list or {}) do if value == kind then return true end end return false end
 local function logged(pattern) for _, line in ipairs(logs) do if line:find(pattern) then return true end end return false end
--- The second message of a conversation, which is the first that may earn an offer.
+-- V's message to a person: the very first one may earn an offer (no first-message rail since 2026-10-21).
 local function offerFor(S, base, category, entity)
   local ctx = context(base, category, entity)
-  S.offer(ctx.entity, ctx)
   return S.offer(ctx.entity, ctx)
 end
 `;
@@ -125,7 +124,7 @@ test('the archetype catalogue and the kinds agree: every base of characters/arch
 test('allowed: every rail, in order, and a fact that could not be read refuses', () => withModule(`
   local NIL = {}
   local function facts(over)
-    local f = {ordinary = true, quest = false, first = false, reacted = false, child = false, refused = nil, cooldown = false,
+    local f = {ordinary = true, quest = false, reacted = false, child = false, refused = nil, cooldown = false,
       safe = false, hostile = false, heat = 0, preventionReady = true, off = {}}
     for key, value in pairs(over or {}) do if value == NIL then f[key] = nil else f[key] = value end end
     return f
@@ -138,8 +137,8 @@ test('allowed: every rail, in order, and a fact that could not be read refuses',
   assert(select(2, kinds({'leave'}, {quest = NIL})) == 'unreadable-quest')
   assert(select(2, kinds({'leave'}, {child = true})) == 'child')
   assert(select(2, kinds({'leave'}, {child = NIL})) == 'unreadable-child')
-  -- When: not the first message, once, and not while the game is in charge.
-  assert(select(2, kinds({'leave'}, {first = true})) == 'first-message')
+  -- When: once, and not while the game is in charge. V's first message to a person is no rail (a stale \`first\` fact refuses nothing).
+  assert(kinds({'leave'}, {first = true}) == 'leave', 'there is no first-message rail')
   assert(select(2, kinds({'leave'}, {reacted = true})) == 'already-reacted')
   for _, reason in ipairs({'hub', 'dialogue', 'driven', 'combat', 'hurt', 'vehicle', 'gone', 'unreadable'}) do
     assert(select(2, kinds({'leave', 'attack'}, {refused = reason})) == 'game-in-charge:' .. reason, reason)
@@ -170,19 +169,39 @@ test('allowed: every rail, in order, and a fact that could not be read refuses',
 // ---------------------------------------------------------------------------------------------------------------------------------
 // The offer
 
-test('the first message of a conversation never earns an offer; the second does, for the kinds that fit', () => withService(`
+test('the first message of a conversation earns the offer, for the kinds that fit, and the message count only reaches the log', () => withService(`
   local S = build()
   local ctx = context('street-resident', 'resident')
-  assert(S.offer('44ULL', ctx) == nil, 'the first line')
   local offer = S.offer('44ULL', ctx)
-  assert(offer and offer.available == true and offer.actor.id == '44ULL' and offer.actor.key == 'npc-street-resident-male')
+  assert(offer and offer.available == true and offer.actor.id == '44ULL' and offer.actor.key == 'npc-street-resident-male', 'the first line')
   assert(#offer.kinds == 2 and offer.kinds[1] == 'leave' and offer.kinds[2] == 'call-police')
+  assert(logged('offered: kinds=leave,call%-police type=street%-resident message=1'))
+  assert(S.offer('44ULL', ctx) ~= nil and logged('message=2'))
   local gang = offerFor(S, 'maelstrom', 'gang', '55ULL')
   assert(gang and #gang.kinds == 2 and gang.kinds[1] == 'leave' and gang.kinds[2] == 'attack')
-  -- A person V has not spoken to for ten minutes is a new conversation.
+  -- A person V has not spoken to for ten minutes is a new conversation (the count starts again; the offer is the same).
   now = now + 700
-  assert(S.offer('44ULL', ctx) == nil, 'the count starts again')
-  assert(S.offer('44ULL', ctx) ~= nil)
+  assert(S.offer('44ULL', ctx) ~= nil and logs[#logs]:find('message=1$'))
+`));
+
+test('an offer that cannot be made says why, once per person and reason', () => withService(`
+  local S = build()
+  -- No archetype: not an ordinary NPC with a kind.
+  local plain = {entity = '44ULL', profileKey = 'judy-alvarez'}
+  assert(S.offer('44ULL', plain) == nil and S.offer('44ULL', plain) == nil)
+  assert(logged('not offered: no%-kind %(no archetype%)'))
+  -- Not the conversation partner: the person is not the one the game talks to.
+  local nobody = context('street-resident', 'resident', '99ULL')
+  assert(S.offer('99ULL', nobody) == nil and S.offer('99ULL', nobody) == nil)
+  assert(logged('not offered: no%-person'))
+  -- A dead or unreadable person.
+  state.alive = false
+  assert(offerFor(S, 'street-resident', 'resident') == nil)
+  assert(logged('not offered: not%-alive%-or%-unreadable'))
+  state.alive = true
+  local count = 0
+  for _, line in ipairs(logs) do if line:find('not offered') then count = count + 1 end end
+  assert(count == 3, 'each reason once: ' .. count)
 `));
 
 test('nobody who is not an ordinary NPC is ever offered anything: companions, spawned and story characters, quest actors, children', () => withService(`
@@ -642,6 +661,37 @@ test('lease: a refused reaction is quiet, an expired world or lease takes the of
   assert(#feedback == 0)
 `));
 
+test('lease: a refused packet, an offer that ends early and a hand-over the service rejects each write one line; the ordinary ends write none', () => withLease(`
+  local lines = {}
+  Q.options.log = function(line) lines[#lines + 1] = line end
+  local input = context(); assert(Q.capture(input, 'private-text'))
+  local bad = packet(input, 'leave'); bad.requestId = 'stale'; publish(bad); Q.update(true)
+  assert(#started == 0 and lines[1] == 'NPC reaction packet refused: other-request', tostring(lines[1]))
+  publish(packet(input, 'attack')); Q.update(true)
+  assert(lines[2] == 'NPC reaction packet refused: not-offered', tostring(lines[2]))
+  bad = packet(input, 'leave'); bad.action = 'companion-leave'; publish(bad); Q.update(true)
+  assert(#lines == 2, 'a packet of another action is not a reaction line')
+  bad = packet(input, 'leave'); bad.worldToken = 'old'; publish(bad); Q.update(true)
+  assert(lines[3] == 'NPC reaction packet refused: other-world', tostring(lines[3]))
+  Q.revoke('reply-error', 'request-1')
+  assert(lines[4] == 'NPC reaction offer ended before it was used: reply-error', tostring(lines[4]))
+  -- The ordinary ends: the next message, and the lease running out on its own.
+  assert(Q.capture(context('request-2'), 'private-text')); Q.revoke('new-conversation')
+  assert(Q.capture(context('request-3'), 'private-text')); now = now + 200000; Q.update(true)
+  assert(#lines == 4, 'ordinary ends are quiet: ' .. #lines)
+  -- A changed world is not.
+  now = 100000
+  assert(Q.capture(context('request-4'), 'private-text')); world.generation = 2; Q.update(true)
+  assert(lines[5] == 'NPC reaction offer ended before it was used: world-changed', tostring(lines[5]))
+  world.generation = 1
+  -- The service rejects the hand-over: the reason is written.
+  Q.options.queueReaction = function() return false, 'busy' end
+  local last = context('request-5'); assert(Q.capture(last, 'private-text'))
+  publish(packet(last, 'leave')); Q.update(true)
+  assert(lines[6] == 'NPC reaction hand-over rejected: busy', tostring(lines[6]))
+  assert(Q.inspect().state == 'rejected')
+`));
+
 // ---------------------------------------------------------------------------------------------------------------------------------
 // The wiring in the mod
 
@@ -674,6 +724,7 @@ test('wiring: nothing per frame beyond one nil check; the release, the log, the 
   assert.match(update, /if convaiNpcReactions then convaiNpcReactions\.update\(\) end/);
   assert.match(init, /convaiNpcReactions\.options\.release = function\(player\) endFocus\(player\) end/);
   assert.match(init, /convaiNpcReactions\.options\.log, convaiNpcReactions\.options\.logOnce = log, convaiLogOnce/);
+  assert.match(init, /if gameplayActions and gameplayActions\.options then gameplayActions\.options\.log = log end/);
   assert.match(init, /if convaiNpcReactions then convaiNpcReactions\.reset\(\) end/);
   // The module itself has no per-frame hook, no event observer, no timer: its only entry points are the offer, the start and the update.
   assert.doesNotMatch(moduleSource, /registerForEvent|Observe\(|ObserveAfter|Override\(|NewProxy|Cron\.|onUpdate/);

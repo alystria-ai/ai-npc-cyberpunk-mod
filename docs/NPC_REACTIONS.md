@@ -1,6 +1,6 @@
 # Consequences of talking to ordinary NPCs
 
-Written 2026-10-21 on branch `feat/npc-reactions` (from `main` fc2b8c82). Unit-tested; not merged, not pushed, not installed, **not seen in the game**.
+Written 2026-10-21 on branch `feat/npc-reactions` (from `main` fc2b8c82). Unit-tested; **live-tested once on 2026-10-21 (Mistral, then Convai): the offer was made and no reaction ever started**; branch `fix/reaction-pipeline` removes the first-message rail, drops the Convai-identity condition for this feature and adds the per-turn trace lines below.
 
 ## The decision
 
@@ -47,7 +47,7 @@ There is **no decision request** (unlike the companion actions, which first ask 
 
 The Convai sentence says the same about the action names, and ends with "almost every reply has no action".
 
-Why a tag and not a classifier here: the reply is written once. The first version asked for the tag at the END, after the words ("rare", "nor when your own reply stays calm"); measured on ministral-8b it was written for 3% of clear threats (the persona writes its in-character defiance and never reaches the tag). Every rewording of an end tag reached 50 to 60% at best. A tag the reply must OPEN with is a choice made before the persona speaks, and with `[none]` as the answer for everything else the model judges every line: 2026-10-21, 5 persons x 26 lines, ministral-8b, 100% of threats got a tag and 4 of 80 harmless lines did (three of them V telling the person to go away, which makes it leave). The companion actions measured badly with a code that opens the reply (the persona picked the code by mood, `docs/MISTRAL.md`), but those were requests mixed with chat; here the choice is between "V attacks me" and nothing. A tag at the end of the reply counts too. A tag in the middle, two tags, a tag for a kind that was not offered, or a reply that was cut back to its first sentence does nothing; the bridge logs `NPC reaction tag in the reply was not used (<why>)` with the reason only, never the words. A model that has chosen sometimes stops after the tag (`[attack]` alone, about one threat in five): the host then keeps the choice and sends a second request only for the words ("you have just decided to ...", no tag to write); asking again for "tag and words" got the tag alone again half the time.
+Why a tag and not a classifier here: the reply is written once. The first version asked for the tag at the END, after the words ("rare", "nor when your own reply stays calm"); measured on ministral-8b it was written for 3% of clear threats (the persona writes its in-character defiance and never reaches the tag). Every rewording of an end tag reached 50 to 60% at best. A tag the reply must OPEN with is a choice made before the persona speaks, and with `[none]` as the answer for everything else the model judges every line: 2026-10-21, 5 persons x 26 lines, ministral-8b, 100% of threats got a tag and 4 of 80 harmless lines did (three of them V telling the person to go away, which makes it leave). The companion actions measured badly with a code that opens the reply (the persona picked the code by mood, `docs/MISTRAL.md`), but those were requests mixed with chat; here the choice is between "V attacks me" and nothing. A tag at the end of the reply counts too. A tag in the middle, two tags, a tag for a kind that was not offered, or a reply that was cut back to its first sentence does nothing; the turn's one `NPC reaction: ... tag=none(<why>)` line says why (reason only, never the words; see "Where it can stop"). A model that has chosen sometimes stops after the tag (`[attack]` alone, about one threat in five): the host then keeps the choice and sends a second request only for the words ("you have just decided to ...", no tag to write); asking again for "tag and words" got the tag alone again half the time.
 
 ### The tag in the text
 
@@ -55,9 +55,38 @@ Why a tag and not a classifier here: the reply is written once. The first versio
 - Counts only: last in the reply, once, with words before it, for an offered kind (`reactionMenu(...).pick`).
 - The reply is never remembered with the tag.
 
-### "Never on the first line"
+### The first message (changed 2026-10-21)
 
-Read as the first message V sends a person: it earns no offer at all (`minExchanges = 1` in `mod/npc-reactions.lua`). The offer exists from V's second message to the same person (a conversation older than ten minutes starts again). If the owner meant only the reply's first sentence, set `minExchanges = 0`; nothing else changes.
+V's very first message to a person may earn a reaction. The first version refused any offer on the first message ("never on the first line"); the live test of 2026-10-21 threatened the pedestrian in the first message every time, so nothing ever happened (every offer it logged was from the second message on, to a person who had already answered the threat in character with no tag). The owner removed the rail: `mod/npc-reactions.lua` has no `minExchanges` and no `first` fact any more; the `message=N` in the `NPC reaction offered` line is a count for the log only. The model reads the same note on a first message as on any other (measured 2026-10-21 on ministral-8b: 10 of 10 threats tagged whether the history is empty, calm or an earlier untagged defiance: `scripts/Eval-MistralPrompt.mjs --reactions --history none|threat`).
+
+## Where it can stop, and the one line that says where (added 2026-10-21)
+
+The live test showed the offer and nothing after it, with no bridge line at all, because every drop was silent. Now each turn that carried an offer leaves exactly one line.
+
+Bridge (`bridge.stderr.log`, prefix `[NPCReaction]`; codes and names only, never V's words or the reply):
+
+```
+NPC reaction: person=npc-corpo-resident-female offered=leave,call-police admitted=yes route=text tag=call-police delivered=yes
+NPC reaction: person=... offered=... admitted=yes route=text tag=none(no-tag) delivered=-
+NPC reaction: person=... offered=... admitted=yes route=convai tag=none(no-action-requested) delivered=- convai=allowed:true privateManual:true verified:true armed:true published:1 accepted:0 skipped:0 skip:- ack:success
+NPC reaction: person=... offered=leave,call-police admitted=no(<why>) route=- tag=- delivered=-
+```
+
+| Field | Values |
+|---|---|
+| `admitted` | `yes`, or `no(<rule>)`: `send-not-allowed`, `channel:<x>`, `input-channel:<x>`, `source:<x>`, `automatic-turn`, `group-shape`, `transport`, `owner-mismatch`, `request-id`, `world-binding`, `no-currency-check`, `aborted`, `stale-world`, `not-identified` (companion offers only), `malformed-offer` (the game sent an offer the parser cannot read), `no-offer` |
+| `route` | `text` (Mistral, Local AI, Custom: the reply's tag) or `convai` (the action list); `-` when nothing chose |
+| `tag` | the kind chosen, or `none(<why>)`: `no-tag` (the model wrote `[none]` or no tag), `not-at-end`, `several-tags`, `no-words`, `not-offered`, `reply-cut-back`, `guarded-reply`, `no-action-requested` (Convai: no action in the reply, written when the 8 s late-action window has closed), `revoked`, `next-turn` (the turn was replaced first) |
+| `delivered` | `yes`, `no(<why>)` (`not-offered`, `revoked`, `expired`, `stale`, `stale-before-publish`, `token-mismatch`, `already-accepted`, `not-published`, `bad-message`, `next-turn`, `turn-ended`), or `-` |
+| `convai=...` | Convai turns that asked for no action only: what the realtime page did with the offer (`armed:false` with `verified:false` means the action list was never published; `published:0` the same; `accepted:0 skipped:n skip:<why>` a proposal that did not match) |
+
+Game (`probe.log`): `NPC reaction offered: ...` (every offer), `NPC reaction not offered: <why>` (once per person and reason, now also `no-kind`, `no-person`, `not-alive-or-unreadable`), then either `NPC reaction accepted: <kind>, starts when the reply has been heard` and the start and read-back lines, or one of `NPC reaction packet refused: <rule>` (the lease rejected the bridge's packet: `other-request`, `other-person`, `other-world`, `source`, `clock`, `expired`, `offer-differs`, `not-offered`...), `NPC reaction offer ended before it was used: <reason>` (`reply-error`, `reply-timeout`, `menu`, `world-changed`, `world-not-ready`...; the next message and the lease running out on its own are ordinary and write nothing), `NPC reaction hand-over rejected: <why>`, `NPC reaction refused (<kind>): <why>`.
+
+Reading the two logs together for a turn: no bridge line at all means the request never reached `companionActions.admit` (the turn failed earlier); `admitted=no(...)` names the rule; `tag=none(no-tag)` means the model chose nothing (a prompt or model matter, nothing in the plumbing); `tag=<kind> delivered=yes` followed by no `accepted` line in `probe.log` means the packet was written and the game did not take it (look for `packet refused` / `ended before it was used`).
+
+The full path was run end to end offline (`bridge/npc-reaction-pipeline.test.mjs`: the real Lua modules in a Lua VM write the request as the game does, the bridge parses and admits it, the host or the Convai window picks the reaction, the packet goes back into the Lua lease, and the service starts the reaction), on both routes, and no drop was found between the offer and the start. The drops that did exist were the first-message rail, which refused silently, and the silent bridge refusals above.
+
+An ordinary NPC's reaction no longer needs the Convai identity (`identified` and an end-user id): the text routes have none, and a turn that cannot send at all is refused earlier. The companion offers keep that rule.
 
 ## The rails
 
@@ -67,7 +96,6 @@ All in `M.allowed` (pure, tested), asked when V's message is admitted (the offer
 |---|---|
 | Who | `convaiWorldPolicy`: not ours, not another mod's, not protected (named, quest or story record), not a story character; the person's quest flag (`MainQuest`, `SideQuest`, `MinorQuest`) must read as not set (a vendor flagged as a quest actor gets nothing either); never a child |
 | When | the game is not in charge: the world-talk guard (`mod/world-talk.lua`: a quest dialogue, a call, a scene of V's own at tier 3 or above, the person in a scene dialogue or under a scene's AI, a fight of the person or of V, an injury, a vehicle). This covers quests, scenes and braindances as far as the game reports them as V's scene tier |
-| First line | V's first message to a person never earns an offer |
 | Once | at most one reaction per person (until the save is reloaded) |
 | Cooldown | after an `attack` or a `call-police`, none of those two for 120 s for anyone; `leave` is not counted |
 | Safe zones | no `attack` and no `call-police` where combat is disabled: `PlayerStateMachine.Zones == Safe`, V inside a `SafeAreaManager` volume, or a `NoCombat` status on V. A zone that cannot be read refuses the hostile kinds |
@@ -117,14 +145,15 @@ None. The project prefers no toggles, the feature is rare and bounded, and it ne
 | `bridge/text-actions.mjs` | the tags (`splitActions`), `reactionNotes`, `reactionMenu` (`pick`, `resolve`) |
 | `bridge/text-provider-host.mjs` | the instruction in the reply's notes, the pick after the reply, the hand-over |
 | `scripts/development-files.json`, `packaging/release-plan.json` | ship and dev-install `npc-reactions.lua` |
-| `bridge/npc-reactions.test.mjs`, `bridge/npc-reactions-lua.test.mjs` | the tests |
+| `bridge/npc-reactions.test.mjs`, `bridge/npc-reactions-lua.test.mjs`, `bridge/npc-reaction-pipeline.test.mjs` | the tests |
 
 No redscript, no new setting, no new notice, no locale string, no new bridge file.
 
 ## Tests
 
 - `bridge/npc-reactions.test.mjs` (23): the tags and their cutting (spellings, streaming hold-back, a tag split across the real reply stream, the harmless brackets), which reply counts (start or end, once, offered kind, `[none]`), the tag-only reply and its second request, the instruction (short, tag first, only offered kinds, never the others), the offer on the wire and its admission (also through the real `PlayerKnowledge` for an ordinary NPC), delivery, expiry, the Convai window and its context text, and whole turns on Custom (against the loopback mock), Mistral and Local AI (fake chat), including the replies that deliver nothing, per-type actions and companions unaffected.
-- `bridge/npc-reactions-lua.test.mjs` (28): the kinds per person (every base of `characters/archetypes.json` has one), every rail, the service on a fake game (first message, once, cooldown, rechecks at start and at run, failures switched off, nothing per frame), the native adapter on a fake game (the exact calls), the lease, and the wiring.
+- `bridge/npc-reactions-lua.test.mjs` (30): the kinds per person (every base of `characters/archetypes.json` has one), every rail, the service on a fake game (the first message earns an offer, once, cooldown, rechecks at start and at run, failures switched off, nothing per frame, the reasons an offer cannot be made), the native adapter on a fake game (the exact calls), the lease (and the lines it writes when a packet is refused or an offer ends early), and the wiring.
+- `bridge/npc-reaction-pipeline.test.mjs` (6): the whole path with the real pieces on every step (the real Lua modules in a Lua VM write the request, `parseInput`, `PlayerKnowledge.prepare`, `CompanionActions` admit/deliver, the text host or the Convai window, the packet back into the Lua lease, the service starts the reaction), on the text route and the Convai route, plus the one trace line of every outcome (chosen, none, refused, revoked, late Convai window).
 
 ## Live checks owed (CET reload only; the bridge restarts with the game)
 
