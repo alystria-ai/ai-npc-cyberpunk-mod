@@ -1,5 +1,5 @@
 // The Mistral cloud voice (Voxtral): an optional Companion voice that speaks a reply with Mistral's text-to-speech
-// (`voxtral-mini-tts-latest`), cloned from the character's own reference clip (OmniVoice long set, else short set, else the
+// (Voxtral TTS 3, `voxtral-mini-tts-3-0`; the older `voxtral-mini-tts-latest` when the account refuses it), cloned from the character's own reference clip (OmniVoice long set, else short set, else the
 // Pocket reference, else clips extracted for that character), on the player's free Mistral key (docs/CLOUD_VOICE_VOXTRAL.md,
 // docs/FREE_CLOUD_OPTION_RESEARCH.md).
 //
@@ -42,10 +42,14 @@ import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
 import {cloudFetchOptions} from './mistral-client.mjs';
 import {RequestGate} from './request-gate.mjs';
 import {isVariantKey} from './voice-variants.mjs';
+import {VOXTRAL_TTS_MODEL, VOXTRAL_TTS_FALLBACK_MODEL, modelRefused, voxtralSpeaks} from './voxtral-languages.mjs';
 import {PLAYER_REFERENCE_PREFIX, isPlayerReference, playerReferenceValid} from './voice-profile-registry.mjs';
 
 export const VOXTRAL_ENDPOINT = 'https://api.mistral.ai/v1/audio/speech';
-export const VOXTRAL_MODEL = 'voxtral-mini-tts-latest';
+// Voxtral TTS 3 (released 2026-10-20). The `-latest` alias still points to the March 2026 model, so the v3 id is asked by name; an account that
+// refuses it (unknown, not on the plan, 404 or a repeated 403) is served by the alias instead, from then on, with one log line (fetchPart).
+export const VOXTRAL_MODEL = VOXTRAL_TTS_MODEL;
+export const VOXTRAL_FALLBACK_MODEL = VOXTRAL_TTS_FALLBACK_MODEL;
 export const VOXTRAL_RATE = 24000;
 export const VOXTRAL_LIMITS = Object.freeze({
   firstAudioMs: 7000,        // no audio this long after the request was sent: it is asked again once with a longer wait, then the reply is written (a long reply is split to stay well inside)
@@ -74,6 +78,7 @@ export const VOXTRAL_LIMITS = Object.freeze({
   extractedClips: 8,         // at most this many extracted clips are read for one reference
   maxReferenceBytes: 4_000_000,
   cachedReferences: 32,
+  modelRetryMs: 600_000,     // after the account refused the v3 model and the older one answered: the older one is asked this long, then v3 is tried again
   limitCooldownMs: 20_000,   // after a 429, no request for the server's Retry-After (this when it names none, at most 60 s)
   keyCooldownMs: 60_000,     // after the key was refused (HTTP 401)
   forbiddenCooldownMs: 20_000, // after an HTTP 403 that was still there on the quick second try (2026-10-17: one 403 mid-round was not a bad key)
@@ -88,7 +93,8 @@ export const VOXTRAL_LIMITS = Object.freeze({
   tightMs: 30_000,           // ... for this long
 });
 // A fixed identity for the packets (the PCM host checks owner/profile/model stay the same through one reply).
-const MODEL_ID = createHash('sha256').update(VOXTRAL_MODEL).digest('hex');
+// (Fixed for both models: a reply never changes model, but the identity must not depend on which one answered.)
+const MODEL_ID = createHash('sha256').update('voxtral-mini-tts').digest('hex');
 // Where a reference came from, by registry order (setReferences): shown in the diagnostics and the log.
 const REFERENCE_SOURCES = ['omni-long', 'omni-short', 'pocket'];
 // A voice key that may name a folder: lower-case letters, digits and hyphens only.
@@ -320,7 +326,14 @@ export class VoxtralVoice {
     // degraded: why the last attempt fell back (null: working or not tried). until: no request before this time (a limit or a refused key).
     this.degraded = null; this.until = 0; this.spoke = 0; this.fellBack = 0;
     this.lastKey = undefined;         // the key the cool-down (until) belongs to
+    // The model asked: Voxtral TTS 3 (22 languages), unless the account refused it and the older alias (9 languages) answered instead: the alias is then
+    // asked for `modelRetryMs`, after which the v3 id is tried again (a refusal can be a plan change, a roll-out or a hiccup that looked like one).
+    this.fallbackUntil = 0; this.fallbackLogged = false;
   }
+  /** The model asked now (see fetchPart). */
+  get model() { return this.clock() < this.fallbackUntil ? VOXTRAL_FALLBACK_MODEL : VOXTRAL_MODEL; }
+  /** Does the voice speak `language` ('fr')? English always; the rest depends on the model in use (bridge/voxtral-languages.mjs). */
+  speaks(language) { return voxtralSpeaks(language, this.model); }
   setReferences(registry) { this.registries = [].concat(registry ?? []).filter(Boolean); this.references.clear(); }
   /**
    * The registries again after a player changed some voices (bridge/voice-selection.mjs setVoices): only the cached references of `keys` are
@@ -662,9 +675,23 @@ export class VoxtralVoice {
    * quick tries is thrown with `retried: true` (the voice selection does not ask a third time).
    */
   async fetchPart(args) {
+    let model = this.model;
     for (let attempt = 0; ; attempt++) {
-      try { return await this.fetchOnce(args); }
-      catch (error) {
+      try {
+        const answer = await this.fetchOnce({...args, model});
+        // The older model answered where the v3 id was refused: it is the model for a while (the log says so once).
+        if (model === VOXTRAL_FALLBACK_MODEL && this.clock() >= this.fallbackUntil) {
+          this.fallbackUntil = this.clock() + this.limits.modelRetryMs;
+          if (!this.fallbackLogged) { this.fallbackLogged = true; this.log(`${VOXTRAL_MODEL} was refused for this key; using ${model} instead (fewer languages)`); }
+        }
+        return answer;
+      } catch (error) {
+        // The account refuses the v3 id (not the key, not a limit): the same request goes to the alias at once, and it becomes the model only if it
+        // answers. A 403 has already had its quick second ask when it counts, so the alias is not asked twice for it.
+        if (model === VOXTRAL_MODEL && !args.signal?.aborted && error instanceof VoxtralError && modelRefused(error, attempt)) {
+          model = VOXTRAL_FALLBACK_MODEL; attempt = error.status === 403 ? 0 : -1;
+          continue;
+        }
         const wait = args.signal?.aborted ? null : this.retryWait(error, attempt);
         if (wait === null) { if (attempt > 0 && error instanceof VoxtralError) error.retried = true; throw error; }
         this.log(`${error.kind}${error.status ? ` (HTTP ${error.status})` : ''}, asking again in ${wait} ms`);
@@ -679,7 +706,7 @@ export class VoxtralVoice {
    * failure throws a VoxtralError; after that a failure ends this request's audio where it stopped (done: false).
    * `ahead`: the held next speaker of a group round (it never takes the slots the speaker being heard needs, see bridge/request-gate.mjs).
    */
-  async fetchOnce({text, apiKey, reference, signal, fail, onSamples, ahead = false, firstAudioMs = this.limits.firstAudioMs, maxQueueMs = this.limits.maxQueueMs}) {
+  async fetchOnce({text, model = this.model, apiKey, reference, signal, fail, onSamples, ahead = false, firstAudioMs = this.limits.firstAudioMs, maxQueueMs = this.limits.maxQueueMs}) {
     const controller = new AbortController();
     const onAbort = () => controller.abort(cancelled());
     signal?.addEventListener('abort', onAbort, {once: true});
@@ -739,7 +766,7 @@ export class VoxtralVoice {
           arm(firstAudioMs, 'timeout');
           return this.fetchImpl(this.endpoint, {method: 'POST', signal: controller.signal, ...pooled,
             headers: {authorization: `Bearer ${apiKey}`, 'content-type': 'application/json', accept: 'text/event-stream'},
-            body: JSON.stringify({model: VOXTRAL_MODEL, input: text, ref_audio: reference.base64, response_format: 'pcm', stream: true})});
+            body: JSON.stringify({model, input: text, ref_audio: reference.base64, response_format: 'pcm', stream: true})});
         }, {priority: PRIORITY.TTS, signal: controller.signal, maxQueueMs});
       } catch (error) {
         throwIfCancelled(signal);

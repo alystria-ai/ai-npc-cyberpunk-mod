@@ -1,5 +1,6 @@
-// Speech recognition in any language on the Mistral route: Mistral's own transcription (Voxtral Mini Transcribe 2,
-// `POST https://api.mistral.ai/v1/audio/transcriptions`, model `voxtral-mini-latest`) with the player's Mistral key
+// Speech recognition in any language on the Mistral route: Mistral's own transcription (Voxtral Mini Transcribe 3,
+// `POST https://api.mistral.ai/v1/audio/transcriptions`, model `voxtral-mini-transcribe-3-0`; Transcribe 2, `voxtral-mini-latest`, when the
+// account refuses the v3 id) with the player's Mistral key
 // (docs/LOCAL_STT.md, "Other languages"). Used only for a recording in a language other than English while Mistral is the
 // player's conversation provider; English keeps the local Moonshine recogniser.
 //
@@ -18,15 +19,19 @@
 //  - Nothing here runs unless a recording in another language is finished: no timer, no connection, no state.
 import {mistralScheduler, PRIORITY} from './mistral-rate.mjs';
 import {cancelled, throwIfCancelled} from './transport-pool.mjs';
+import {VOXTRAL_STT_MODEL, VOXTRAL_STT_FALLBACK_MODEL, modelRefused, voxtralHears} from './voxtral-languages.mjs';
 
 export const VOXTRAL_STT_ENDPOINT = 'https://api.mistral.ai/v1/audio/transcriptions';
-export const VOXTRAL_STT_MODEL = 'voxtral-mini-latest';
+// Voxtral Mini Transcribe 3 (released 2026-10-20; the `-latest` alias still points to Transcribe 2). An account that refuses the v3 id is served by
+// the alias from then on (transcribe), with one log line.
+export {VOXTRAL_STT_MODEL, VOXTRAL_STT_FALLBACK_MODEL};
 export const VOXTRAL_STT_LIMITS = Object.freeze({
   requestMs: 12_000,        // one request: from the send to the full answer
   budgetMs: 16_000,         // all tries of one recording
   maxQueueMs: 6_000,        // waiting this long behind other Mistral requests fails the recording's transcription
   retryWaitMs: 300,
   limitCooldownMs: 20_000,  // after a 429 that names no Retry-After (at most 60 s)
+  modelRetryMs: 600_000,    // after the account refused the v3 model and the older one answered: the older one is asked this long, then v3 is tried again
   planCooldownMs: 600_000,  // transcription is not in this key's plan (a 403 that repeats, or an allowance of 0)
   keyCooldownMs: 600_000,   // the key was refused (401): until a different key is saved
   maxBytes: 3_000_000,      // 45 s of 16 kHz mono 16-bit is 1.44 MB; nothing near this is sent
@@ -87,10 +92,13 @@ export class VoxtralStt {
   constructor({getKey, onLog = () => {}, fetchImpl = globalThis.fetch, endpoint = VOXTRAL_STT_ENDPOINT, model = VOXTRAL_STT_MODEL, limits = {},
       setTimer = setTimeout, clearTimer = clearTimeout, clock = Date.now, scheduler = mistralScheduler} = {}) {
     if (typeof getKey !== 'function') throw Error('Invalid Voxtral transcription configuration');
-    Object.assign(this, {getKey, onLog, fetchImpl, endpoint, model, setTimer, clearTimer, clock, scheduler});
+    Object.assign(this, {getKey, onLog, fetchImpl, endpoint, pinned: model, setTimer, clearTimer, clock, scheduler});
     this.limits = Object.freeze({...VOXTRAL_STT_LIMITS, ...limits});
     this.until = 0; this.reason = null; this.lastKey = undefined;
     this.requests = 0; this.failures = 0;
+    // The model asked: Transcribe 3, unless the account refused it and the older alias answered instead: the alias is then asked for `modelRetryMs`, after
+    // which the v3 id is tried again.
+    this.fallbackUntil = 0; this.fallbackLogged = false;
   }
   #key() {
     const apiKey = this.getKey();
@@ -100,6 +108,8 @@ export class VoxtralStt {
     }
     return apiKey;
   }
+  /** The model asked now (see transcribe): the pinned one (Transcribe 3 unless a test names another), or the alias while a refusal of it stands. */
+  get model() { return this.pinned === VOXTRAL_STT_MODEL && this.clock() < this.fallbackUntil ? VOXTRAL_STT_FALLBACK_MODEL : this.pinned; }
   get hasKey() { return !!this.#key(); }
   /** Whether a request may be made now: a key, and no cool-down from an earlier refusal. */
   get ready() { return this.hasKey && this.clock() >= this.until; }
@@ -129,13 +139,26 @@ export class VoxtralStt {
     if (pcm.length > this.limits.maxBytes) throw new VoxtralSttError('request', 'was given too much audio');
     const wav = wavFromPcm16(pcm);
     const started = this.clock();
+    let model = this.model;
     for (let attempt = 0; ; attempt++) {
       try {
-        const result = await this.#once({wav, apiKey, language, signal, deadline: started + this.limits.budgetMs});
+        const result = await this.#once({wav, apiKey, language, signal, model, deadline: started + this.limits.budgetMs});
+        if (model === VOXTRAL_STT_FALLBACK_MODEL && this.pinned === VOXTRAL_STT_MODEL && this.clock() >= this.fallbackUntil) {
+          this.fallbackUntil = this.clock() + this.limits.modelRetryMs;
+          if (!this.fallbackLogged) { this.fallbackLogged = true; this.log(`${VOXTRAL_STT_MODEL} was refused for this key; using ${model} instead`); }
+        }
         return {...result, ms: this.clock() - started};
       } catch (error) {
         throwIfCancelled(signal);
         if (!(error instanceof VoxtralSttError)) throw error;
+        // The account refuses the v3 id (not the key, not a limit): the same recording goes to the alias at once, and it becomes the model only if it answers.
+        // (A 429 with an allowance of 0 is the free plan's way of saying a model is not included: kind 'plan'.)
+        if (model === VOXTRAL_STT_MODEL && this.pinned === VOXTRAL_STT_MODEL
+            && (modelRefused({status: error.status, kind: error.kind === 'plan' ? undefined : error.kind, message: error.message}, attempt)
+              || (error.kind === 'plan' && error.status === 429))) {
+          model = VOXTRAL_STT_FALLBACK_MODEL; attempt = error.status === 403 ? 0 : -1;
+          continue;
+        }
         const hiccup = attempt === 0 && (error.kind === 'network' || error.kind === 'timeout' || (error.kind === 'plan' && error.status === 403)
           || (error.kind === 'limit' && (error.retryAfterMs ?? 0) <= 1000));
         if (!hiccup || this.clock() + this.limits.retryWaitMs >= started + this.limits.budgetMs) { this.failures++; this.#cool(error); throw error; }
@@ -154,7 +177,7 @@ export class VoxtralStt {
     });
   }
 
-  async #once({wav, apiKey, language, signal, deadline}) {
+  async #once({wav, apiKey, language, signal, deadline, model = this.model}) {
     const controller = new AbortController();
     const onAbort = () => controller.abort(signal.reason ?? cancelled());
     signal?.addEventListener('abort', onAbort, {once: true});
@@ -173,8 +196,9 @@ export class VoxtralStt {
           this.requests++;
           arm(Math.max(1000, Math.min(this.limits.requestMs, deadline - this.clock())));
           const form = new FormData();
-          form.set('model', this.model);
-          if (language) form.set('language', language);
+          form.set('model', model);
+          // The alias (Transcribe 2) lists fewer languages: a language it does not list is asked without a hint, as before.
+          if (language && (model === VOXTRAL_STT_MODEL || voxtralHears(language, model))) form.set('language', language);
           form.set('file', new Blob([wav], {type: 'audio/wav'}), 'speech.wav');
           return this.fetchImpl(this.endpoint, {method: 'POST', signal: controller.signal, headers: {authorization: `Bearer ${apiKey}`, accept: 'application/json'}, body: form});
         }, {priority: PRIORITY.TEXT, signal: controller.signal, maxQueueMs: this.limits.maxQueueMs});

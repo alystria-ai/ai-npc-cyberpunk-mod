@@ -3,7 +3,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {randomBytes} from 'node:crypto';
-import {VoxtralStt, VoxtralSttError, wavFromPcm16, mapSttStatus, VOXTRAL_STT_MODEL, redact} from './voxtral-stt.mjs';
+import {VoxtralStt, VoxtralSttError, wavFromPcm16, mapSttStatus, VOXTRAL_STT_MODEL, VOXTRAL_STT_FALLBACK_MODEL, redact} from './voxtral-stt.mjs';
 
 const key = () => randomBytes(18).toString('hex');
 const pcm = seconds => Buffer.alloc(Math.round(seconds * 32000), 1);
@@ -43,6 +43,8 @@ test('one request: the model, the file, the bearer key, no language unless one i
   const [request] = f.requests;
   assert.equal(request.url, 'https://api.mistral.ai/v1/audio/transcriptions'); assert.equal(request.method, 'POST');
   assert.equal(request.auth, 'Bearer ' + f.apiKey); assert.equal(request.model, VOXTRAL_STT_MODEL); assert.equal(request.language, null);
+  assert.equal(VOXTRAL_STT_MODEL, 'voxtral-mini-transcribe-3-0', 'Transcribe 3 is asked by name: the -latest alias still points to Transcribe 2');
+  assert.equal(VOXTRAL_STT_FALLBACK_MODEL, 'voxtral-mini-latest');
   assert.equal(request.file.size, 44 + 64000); assert.equal(request.file.type, 'audio/wav');
   const hinted = make({answers: [json({text: 'hola', language: 'es'})]});
   await hinted.stt.transcribe(pcm(1), {language: 'es'});
@@ -89,15 +91,18 @@ test('401: the key is refused, no second try, and the transcriber cools down unt
 });
 
 test('403 twice (not in the plan) and an allowance of 0 put the transcriber into a long cool-down that ends by itself', async () => {
-  const f = make({answers: [new Response('forbidden', {status: 403}), new Response('forbidden', {status: 403})]});
+  const f = make({answers: [new Response('forbidden', {status: 403}), new Response('forbidden', {status: 403}), new Response('forbidden', {status: 403})]});
   await assert.rejects(f.stt.transcribe(pcm(1)), error => error.kind === 'plan' && error.status === 403);
-  assert.equal(f.requests.length, 2, 'a 403 can be a hiccup: asked once more');
+  assert.equal(f.requests.length, 3, 'a 403 can be a hiccup: asked once more; a repeated one can be the plan refusing v3: the older model once');
+  assert.deepEqual(f.requests.map(request => request.model), [VOXTRAL_STT_MODEL, VOXTRAL_STT_MODEL, VOXTRAL_STT_FALLBACK_MODEL]);
+  assert.equal(f.stt.model, VOXTRAL_STT_MODEL, 'the older model refused too: nothing changed');
   assert.equal(f.stt.unavailableReason, 'plan');
   f.clock.now += 599_000; assert.equal(f.stt.ready, false);
   f.clock.now += 2_000; assert.equal(f.stt.ready, true);
-  const zero = make({answers: [new Response('limit', {status: 429, headers: {'x-ratelimit-limit-req-minute': '0'}})]});
+  const noAllowance = () => new Response('limit', {status: 429, headers: {'x-ratelimit-limit-req-minute': '0'}});
+  const zero = make({answers: [noAllowance(), noAllowance()]});
   await assert.rejects(zero.stt.transcribe(pcm(1)), error => error.kind === 'plan');
-  assert.equal(zero.requests.length, 1, 'an allowance of 0 is not asked again');
+  assert.equal(zero.requests.length, 2, 'an allowance of 0 is not asked again: v3 once, the older model once');
   assert.equal(zero.stt.unavailableReason, 'plan');
 });
 
@@ -137,4 +142,42 @@ test('status mapping and redaction never expose a key', () => {
   assert.ok(!echoed.message.includes(secret));
   assert.equal(redact('a ' + secret + ' b', secret), 'a [key] b');
   assert.equal(redact('x' + 'y'.repeat(30), null), '[key]');
+});
+
+test('Transcribe 3 refused (404, an unknown model, or an allowance of 0): the older model answers the same recording, the log says so once, and v3 is tried again later', async () => {
+  for (const refusal of [() => new Response('{"message":"Not found"}', {status: 404}), () => new Response('{"message":"Invalid model: voxtral-mini-transcribe-3-0"}', {status: 400}),
+    () => new Response('limit', {status: 429, headers: {'x-ratelimit-limit-req-minute': '0'}})]) {
+    const f = make({answers: [refusal, () => json({text: 'hola', language: 'es'}), () => json({text: 'otra vez', language: 'es'}), refusal, () => json({text: 'de nuevo', language: 'es'})]});
+    assert.equal((await f.stt.transcribe(pcm(1), {language: 'pl'})).text, 'hola');
+    assert.deepEqual(f.requests.map(request => request.model), [VOXTRAL_STT_MODEL, VOXTRAL_STT_FALLBACK_MODEL]);
+    assert.equal(f.requests[0].language, 'pl', 'Polish is on the Transcribe 3 list: hinted');
+    assert.equal(f.requests[1].language, null, 'the older model does not list Polish: asked without a hint');
+    assert.equal(f.stt.model, VOXTRAL_STT_FALLBACK_MODEL); assert.equal(f.stt.ready, true, 'a refused model is not a refused key: no cool-down');
+    assert.equal(f.logs.filter(line => /was refused for this key/.test(line)).length, 1);
+    await f.stt.transcribe(pcm(1));
+    assert.equal(f.requests.length, 3, 'the next recording goes straight to the older model'); assert.equal(f.requests[2].model, VOXTRAL_STT_FALLBACK_MODEL);
+    f.clock.now += 600_001;
+    assert.equal(f.stt.model, VOXTRAL_STT_MODEL);
+    await f.stt.transcribe(pcm(1));
+    assert.deepEqual(f.requests.slice(3).map(request => request.model), [VOXTRAL_STT_MODEL, VOXTRAL_STT_FALLBACK_MODEL], 'v3 is tried again after ten minutes; refused again, the older model answers');
+    assert.equal(f.logs.filter(line => /was refused for this key/.test(line)).length, 1, 'the log line is not repeated');
+  }
+});
+
+test('a rate limit, a server fault, a timeout and a 401 are not a refused model: the v3 id stays and the older model is not asked', async () => {
+  for (const [answer, kind] of [[new Response('slow', {status: 429, headers: {'retry-after': '30'}}), 'limit'], [new Response('key', {status: 401}), 'key']]) {
+    const f = make({answers: [answer]});
+    await assert.rejects(f.stt.transcribe(pcm(1)), error => error.kind === kind);
+    assert.equal(f.requests.length, 1, kind); assert.equal(f.stt.model, VOXTRAL_STT_MODEL);
+  }
+  const hiccup = make({answers: [new Response('oops', {status: 502}), json({text: 'ok', language: 'de'})]});
+  await hiccup.stt.transcribe(pcm(1));
+  assert.deepEqual(hiccup.requests.map(request => request.model), [VOXTRAL_STT_MODEL, VOXTRAL_STT_MODEL]);
+  assert.equal(hiccup.stt.model, VOXTRAL_STT_MODEL);
+});
+
+test('a transcriber made with a model of its own keeps it and never falls back', async () => {
+  const f = make({answers: [new Response('{"message":"Not found"}', {status: 404})], model: 'custom-model'});
+  await assert.rejects(f.stt.transcribe(pcm(1)), error => error.kind === 'request');
+  assert.equal(f.requests.length, 1); assert.equal(f.requests[0].model, 'custom-model');
 });

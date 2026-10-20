@@ -27,8 +27,11 @@ test('every interface language of the mod has an engine route: Voxtral, a pack, 
   for (const language of new Set(dictionaries)) assert.ok(MOD_LANGUAGES.includes(language), `${language} is a language of the mod`);
   const everything = new Set(['en', ...LOCAL_PACKS.flatMap(pack => pack.languages), ...VOXTRAL_LANGUAGES]);
   const none = MOD_LANGUAGES.filter(language => !everything.has(language));
-  // Turkish is the only one of the mod's languages that neither Mistral's list nor the two packs name: Mistral is still asked, with no hint.
-  assert.deepEqual(none, ['tr']);
+  // Voxtral Mini Transcribe 3 names every language the mod has (Transcribe 2 left out Polish, Ukrainian, Czech, Hungarian and Turkish).
+  assert.deepEqual(none, []);
+  assert.deepEqual(MOD_LANGUAGES.filter(language => !VOXTRAL_LANGUAGES.includes(language)), []);
+  assert.equal(VOXTRAL_LANGUAGES.length, 44, 'the 45 languages of the announcement\'s benchmark, without Filipino (its code is not confirmed)');
+  assert.equal(new Set(VOXTRAL_LANGUAGES).size, VOXTRAL_LANGUAGES.length);
 });
 
 test('English and unknown languages keep the English recogniser with no note', () => {
@@ -47,9 +50,11 @@ test('Mistral route, another language: Mistral transcription, the hint only from
   assert.equal(planRecording({...ready, language: 'ru', source: 'voice'}).hint, 'ru');
   // The interface language alone can be wrong (an English speaker with a Russian game): no hint, Mistral detects the language.
   assert.equal(planRecording({...ready, language: 'ru', source: 'ui'}).hint, null);
-  // Polish is not on Mistral's list: asked without a hint even from the player's text.
+  // Polish is on Transcribe 3's list (it was not on Transcribe 2's): hinted from the player's text. A language Mistral does not name (Hebrew) is asked without a hint.
   const polish = planRecording({...ready, language: 'pl', source: 'text'});
-  assert.equal(polish.mode, 'voxtral'); assert.equal(polish.hint, null);
+  assert.equal(polish.mode, 'voxtral'); assert.equal(polish.hint, 'pl');
+  const hebrew = planRecording({...ready, language: 'he', source: 'text'});
+  assert.equal(hebrew.mode, 'voxtral'); assert.equal(hebrew.hint, null);
   // No pack installed and no English recogniser: nothing to fall back to.
   assert.deepEqual(planRecording({...ready, language: 'ru', installed: [], englishAvailable: false}).fallback, []);
 });

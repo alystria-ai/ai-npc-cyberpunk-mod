@@ -489,7 +489,7 @@ test('the companion\'s continuous speech buffers silently while V is audible, pu
 // The engine is V's setting (runtime/settings.json vVoiceEngine), whatever the companions use. `main`: the companions' voice is the
 // Pocket worker itself (it speaks V, one job at a time). `own`: V has a Pocket worker of its own (the companions use OmniVoice, a
 // cloud voice or the Convai voice). `cloud`: the Voxtral voice.
-function engineFeature({engine = 'pocket', main = false, own = false, ownReady = true, problem = null, endAfter = 30, language = 'en', stream, ownStream, cloudStream} = {}) {
+function engineFeature({engine = 'pocket', main = false, own = false, ownReady = true, problem = null, endAfter = 30, language = 'en', stream, ownStream, cloudStream, cloudLanguages = []} = {}) {
   const host = renderer({endAfter});
   const seen = {own: [], ownReady: [], ownPrepare: [], cloud: [], cloudWarm: [], main: [], mainPrepare: []};
   const helper = {
@@ -508,6 +508,7 @@ function engineFeature({engine = 'pocket', main = false, own = false, ownReady =
       if (cloudStream) return cloudStream(key, text, options);
       await options.onPcm(packet({profile: key})); return {frames: 4800};
     },
+    speaks: language => cloudLanguages.includes(language),
     warm: key => { seen.cloudWarm.push(key); }};
   const made = feature({planFor: () => ({engine, language}), ready: () => main, helper, cloud, play: host.play,
     stream: async (key, text, options) => {
@@ -613,13 +614,26 @@ test('a Pocket turn with no worker able to speak it gives no line and warms noth
   assert.ok(calls.logs.length <= 1);
 });
 
-test('both engines speak English only: another language gives no V line (with one log line) and nothing is started', () => {
-  for (const [engine, options] of [['pocket', {own: true}], ['pocket', {main: true}], ['voxtral', {}]]) {
+test('Pocket speaks English only, and Voxtral only the languages its model lists: another language gives no V line (with one log line) and nothing is started', () => {
+  for (const [engine, options] of [['pocket', {own: true}], ['pocket', {main: true}], ['pocket', {main: true, cloudLanguages: ['es']}], ['voxtral', {}], ['voxtral', {cloudLanguages: ['fr', 'de']}]]) {
     const made = engineFeature({engine, language: 'es', ...options});
     assert.equal(made.voice.start(typed()), null, engine);
     assert.equal(made.voice.start(typed()), null);
     assert.deepEqual(made.calls.play.concat(made.seen.main, made.seen.own, made.seen.cloud), []);
-    assert.equal(made.calls.logs.length, 1); assert.match(made.calls.logs[0], /English only/);
+    assert.equal(made.calls.logs.length, 1); assert.match(made.calls.logs[0], /does not speak this language/);
+  }
+});
+
+test('Voxtral 3: a line in a language the cloud voice speaks is spoken by it (plan language kept), and English is unchanged', async () => {
+  for (const language of ['es', 'ja', 'en']) {
+    const {voice, seen, host, calls} = engineFeature({engine: 'voxtral', language, cloudLanguages: ['es', 'ja']});
+    const made = voice.start(typed({text: 'Hola Judy, como estas hoy?'}));
+    assert.ok(made, language);
+    assert.equal(made.plan.engine, 'voxtral'); assert.equal(made.plan.language, language);
+    await made.finished;
+    assert.deepEqual(seen.cloud, [['v-male', 'Hola Judy, como estas hoy?']], language);
+    assert.deepEqual(seen.main.concat(seen.own), [], 'no Pocket worker is asked for anything');
+    assert.equal(host.state.played, true); assert.equal(calls.reports[0].result, 'played');
   }
 });
 

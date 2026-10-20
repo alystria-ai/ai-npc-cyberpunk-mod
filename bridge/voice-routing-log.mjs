@@ -88,7 +88,8 @@ export function cloudReferenceOf(voice, key, sources = {}) {
 export function fallbackReason(voice, profile, {plan, engine} = {}) {
   const requested = voice.requestedProvider;
   const multilingualWhy = plan?.reason === 'english-only-voice'
-    ? 'Multilingual non-English reply: Pocket speaks English only' : null;
+    ? 'Multilingual non-English reply: Pocket speaks English only'
+    : plan?.reason === 'voice-language-unsupported' ? 'Multilingual non-English reply: the Voxtral voice does not speak this language' : null;
   if (engine === 'none') return multilingualWhy ?? 'Multilingual non-English reply: this voice speaks English only';
   if (engine === requested) {
     // Same voice, but the tier committed lags the choice (applied at the next conversation boundary).
@@ -110,7 +111,7 @@ export function fallbackReason(voice, profile, {plan, engine} = {}) {
     if (requested === 'pocket' && voice.pocketRetry) return 'Pocket still loading (retrying in the background)';
     return `${requested === 'omni' ? 'Omni' : 'Pocket'} worker unavailable`;
   }
-  if (voice.multilingual && requested === 'pocket') return 'Multilingual is on: Pocket speaks English only';
+  if (voice.multilingual && requested === 'pocket' && !voice.cloudWanted) return 'Multilingual is on: Pocket speaks English only';
   // The chosen backend is not the one routing (the change is waiting for a quiet moment, or it was never set up).
   if (voice.provider !== voice.resolvedProvider) return 'voice change pending';
   if (!voice.configuredByBackend?.[requested]) return `${requested === 'omni' ? 'Omni' : 'Pocket'} not configured`;
