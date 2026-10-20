@@ -901,3 +901,26 @@ test('a standard model with a lite one that does not fit the free memory now ste
   await sleep(150);
   assert.deepEqual([custom.calls.length, custom.server.status().state, custom.server.diagnostics().steppedDown], [1, 'ready', undefined], 'the player chose that model: it keeps running');
 });
+
+test('on a small card a model that leaves the game under 3000 MiB steps down at its first stall; on a larger card, or for a model that leaves room, it takes two', async t => {
+  const small = `Available devices:
+  Vulkan0: NVIDIA GeForce RTX 4060 (8188 MiB, 7600 MiB free)
+`;
+  // The Mature good model (5400 MiB and the standard headroom) on an 8 GB card: it cannot sit beside the game.
+  const h = stepHarness(t, {selected: {pin: 'mature:good', matureOn: true}, listDevices: async () => small});
+  assert.equal((await h.server.ensure()).model, 'Gemma-4-E4B-uncensored');
+  stall(h.server, 'prefill-stalled');
+  assert.equal(await until(() => h.steps.length > 0), true, 'one stall was enough');
+  assert.equal((await h.server.ensure()).model, 'Qwen3.5-2B-Uncensored');
+  assert.ok(h.logs.some(line => /stalled \(1 of 1\)/.test(line)));
+  // The lite model (1400 MiB and the lite headroom) leaves the game 5000 MiB: it takes two stalls like anywhere.
+  stall(h.server, 'prefill-stalled');
+  await sleep(150);
+  assert.deepEqual([h.steps.length, h.server.status().state], [1, 'ready'], 'the lite model on the same card needs two stalls');
+  // A card of 12 GB: the good model takes two stalls.
+  const big = stepHarness(t, {selected: {pin: 'mature:good', matureOn: true}});
+  await big.server.ensure();
+  stall(big.server, 'prefill-stalled');
+  await sleep(150);
+  assert.deepEqual([big.steps.length, big.calls.length], [0, 1]);
+});

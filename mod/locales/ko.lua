@@ -588,6 +588,7 @@ return {
     ["Pocket voice is ready."] = "Pocket 음성이 준비됐습니다.",
     ["Pocket voice"] = "Pocket 음성",
     ["The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it."] = "Pocket 음성(V의 음성, 그리고 Pocket을 선택했을 때는 동료의 음성)을 시작하지 못해 무음 상태입니다. Pocket은 Runtime에 포함되어 있으므로 따로 설치할 것은 없습니다. 게임을 다시 시작하세요. 또다시 발생하면 도움말의 ‘보고서 생성’ 버튼으로 보고서를 만들어 보내 주세요.",
+    ["Windows blocked a file that the Pocket voice needs (Smart App Control or an Application Control policy), so Pocket cannot run on this PC. Choose another voice in Settings, such as OmniVoice or a cloud voice."] = "Windows가 Pocket 음성에 필요한 파일을 차단했습니다(Smart App Control 또는 Application Control 정책). 그래서 이 PC에서는 Pocket을 쓸 수 없습니다. 설정에서 OmniVoice나 클라우드 음성 같은 다른 음성을 선택하세요.",
     ["Pocket could not load. See Help in Settings."] = "Pocket을 불러올 수 없습니다. 설정의 도움말을 확인하세요.",
     ["Local AI is warming up…"] = "Local AI 준비 중…",
     ["Local AI is ready."] = "Local AI가 준비됐습니다.",

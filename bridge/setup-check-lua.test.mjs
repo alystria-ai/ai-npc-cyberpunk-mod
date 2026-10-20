@@ -270,6 +270,11 @@ test('the browser, Local AI and the internet: every state has its own line and f
   answer({voice = {id = 'voice', state = 'problem', code = 'pocket-failed', engine = 'v-helper'}}); check.run()
   assert(lineOf('voice').state == 'problem' and lineOf('voice').description:find('nothing else needs installing', 1, true) and lineOf('voice').description:find('generate a report', 1, true), tostring(lineOf('voice').description))
   assert(#check.problems() == 0, 'it has no first-load notice: the Help page tells it')
+  -- Windows refused to load a file of the voice: restarting cannot help, so the line names what blocked it and offers another voice.
+  answer({voice = {id = 'voice', state = 'problem', code = 'pocket-failed', engine = 'pocket', cause = 'blocked'}}); check.run()
+  assert(lineOf('voice').state == 'problem' and lineOf('voice').description:find('Windows blocked a file', 1, true) and lineOf('voice').description:find('Smart App Control', 1, true)
+    and lineOf('voice').description:find('another voice', 1, true) and not lineOf('voice').description:find('Restart', 1, true), tostring(lineOf('voice').description))
+  assert(#check.problems() == 0)
   answer({voice = {id = 'voice', state = 'unknown', code = 'unknown'}}); check.run()
   assert(lineOf('voice') == nil)
   local states = {

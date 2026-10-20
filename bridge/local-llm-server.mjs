@@ -35,7 +35,7 @@ import {createServer} from 'node:net';
 import {tmpdir, freemem, totalmem, setPriority, constants as osConstants} from 'node:os';
 import {basename, join} from 'node:path';
 import {contextRefusal} from './mistral-client.mjs';
-import {chooseLocalModel, externalModels, listLocalModels, normalisePin, stepDownTarget, stillSatisfies} from './local-model-choice.mjs';
+import {SMALL_CARD_GAME_RESERVE_MIB, SMALL_CARD_MAX_MIB, chooseLocalModel, externalModels, listLocalModels, modelNeedMiB, normalisePin, stepDownTarget, stillSatisfies} from './local-model-choice.mjs';
 
 const REASON_TEXT = Object.freeze({
   'not-installed': 'the Local AI pack is not installed',
@@ -1297,7 +1297,7 @@ export class LocalLlmServer extends EventEmitter {
   /**
    * One request of the loaded model stalled (no answer, a prompt read that stopped, a reply that went quiet; the host reports a turn through noteTurn, the
    * warm-up is counted here). The game takes the graphics memory after the model was loaded, the driver moves the model into shared system memory and the
-   * prompt is then read at a crawl; a second stall (stallStepDown), with no answer in between, steps down: the model is left out for this session and the next
+   * prompt is then read at a crawl; a second stall (stallStepDown; the first on a small card the model does not leave room on), with no answer in between, steps down: the model is left out for this session and the next
    * smaller installed model of the same family is loaded (Mature good to lite, standard to lite; never a censored model for an uncensored one), and when there is
    * none the server fails with 'low-memory' so the cloud text provider takes over. The saved choice stays. Models the player added and servers the player runs
    * never step down. One free-memory reading (nvidia-smi) goes into the log, only now. Never throws, never blocks the caller. Returns whether a step was started.
@@ -1306,11 +1306,28 @@ export class LocalLlmServer extends EventEmitter {
     try {
       if (this.#state !== 'ready' || this.#info?.external || this.#stepping || !this.#modelId) return false;
       this.#stalls++;
-      this.log('[local] ' + this.#model + ' stalled (' + this.#stalls + ' of ' + LOCAL_LLM_LIMITS.stallStepDown + '): ' + what);
-      if (this.#stalls < LOCAL_LLM_LIMITS.stallStepDown) return false;
+      // On a card of about 8 GB or less a model that leaves the game under SMALL_CARD_GAME_RESERVE_MIB (a pinned Mature good model: 2026-10-20 reports of a 4060, a
+      // 3070 and a 5060 Ti, each read the prompt at 50 to 120 tokens a second and waited out 75 s twice) steps down at its first stall: the second one is another
+      // 75 s turn the player waits through for a model that cannot run beside the game.
+      const needed = this.#oversizeForCard() ? 1 : LOCAL_LLM_LIMITS.stallStepDown;
+      this.log('[local] ' + this.#model + ' stalled (' + this.#stalls + ' of ' + needed + '): ' + what);
+      if (this.#stalls < needed) return false;
       this.#stepping = true;
       void this.#stepDown().catch(() => {}).finally(() => { this.#stepping = false; });
       return true;
+    } catch { return false; }
+  }
+
+  // Does the loaded model leave the game too little of a small card (the room the default choice keeps, bridge/local-model-choice.mjs)? Only a model of a pack:
+  // one the player added, and a server the player runs, are theirs.
+  #oversizeForCard() {
+    try {
+      const total = Number(this.#totalMiB);
+      if (!(total > 0 && total <= SMALL_CARD_MAX_MIB)) return false;
+      const from = this.#selected(this.pack).models.find(model => model.id === this.#modelId);
+      if (!from || from.custom === true || from.external === true) return false;
+      const size = Number(this.fileSizeMiB(from.file)) || 0;
+      return size > 0 && modelNeedMiB(from, size) > total - SMALL_CARD_GAME_RESERVE_MIB;
     } catch { return false; }
   }
 

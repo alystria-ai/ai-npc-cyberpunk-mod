@@ -588,6 +588,7 @@ return {
     ["Pocket voice is ready."] = "Pocket sesi hazır.",
     ["Pocket voice"] = "Pocket sesi",
     ["The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it."] = "Pocket sesi (V’nin sesi ve Pocket’ı seçtiyseniz bir yoldaşın sesi) başlatılamadı, bu yüzden sessiz kalıyor. Pocket, Runtime’ın bir parçasıdır; başka bir şey kurmanız gerekmez. Oyunu yeniden başlatın. Sorun tekrar ederse Yardım’daki “Rapor oluştur” düğmesiyle bir rapor oluşturup gönderin.",
+    ["Windows blocked a file that the Pocket voice needs (Smart App Control or an Application Control policy), so Pocket cannot run on this PC. Choose another voice in Settings, such as OmniVoice or a cloud voice."] = "Windows, Pocket sesinin ihtiyaç duyduğu bir dosyayı engelledi (Smart App Control veya bir Application Control ilkesi), bu yüzden Pocket bu bilgisayarda çalışamaz. Ayarlar’dan OmniVoice veya bir bulut sesi gibi başka bir ses seç.",
     ["Pocket could not load. See Help in Settings."] = "Pocket yüklenemedi. Ayarlar'daki Yardım'a bak.",
     ["Local AI is warming up…"] = "Local AI hazırlanıyor…",
     ["Local AI is ready."] = "Local AI hazır.",

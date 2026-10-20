@@ -496,7 +496,10 @@ local function bridgeLines(out)
     -- The Pocket voice failed to start (two 0.2.2 players had no voice from V and no way to tell why). Only a failure has a line: a voice that works
     -- needs none. Pocket ships inside the Runtime, so the line says nothing needs installing.
     local voice = bridgeCheck('voice')
-    if voice and voice.code == 'pocket-failed' then
+    if voice and voice.code == 'pocket-failed' and voice.cause == 'blocked' then
+        -- Windows refused to load a file of the voice (Smart App Control, or an Application Control policy of a company or school): restarting changes nothing.
+        out[#out + 1] = line('voice', ui.t('Pocket voice'), 'problem', ui.t('Windows blocked a file that the Pocket voice needs (Smart App Control or an Application Control policy), so Pocket cannot run on this PC. Choose another voice in Settings, such as OmniVoice or a cloud voice.'))
+    elseif voice and voice.code == 'pocket-failed' then
         out[#out + 1] = line('voice', ui.t('Pocket voice'), 'problem', ui.t('The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it.'))
     end
     -- A Local AI or Mature pack that is one folder too deep is "not installed" to Local AI until the launcher moves it. The packs line above says

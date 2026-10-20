@@ -408,6 +408,10 @@ the whole `pocket-tts` tree (`digest_source`, `bridge/pocket_voice_runtime.py`; 
   (`ErrorEvents.voiceFailed`, once per reason per bridge run).
 - Settings > Help has a "Pocket voice" row while Pocket or V's helper is failed (setup check id `voice`, code `pocket-failed`, from
   `VoiceSelection.voiceProblem()`): it says nothing needs installing, to restart the game and to send a report if it happens again.
+  When Windows refused to load a file of the voice (Smart App Control, or a company's or school's Application Control policy: "DLL load failed ... An Application
+  Control policy has blocked this file", 2026-10-20, `edd41879c00ef0ae`) `voiceProblem()` carries `cause: 'blocked'` (`blockedByWindows`), the Pocket worker is not tried
+  again (the same import would be blocked again, and it costs thirty seconds of CPU), and the row says Windows blocked a file, that Pocket cannot run on this PC and to choose
+  another voice. The mod cannot change the policy.
 
 ### Fourth round (2026-10-20, 0.2.3 on Vortex: `26d9eb59191a945a` and `f309bd3f807c9dd0`)
 
