@@ -67,6 +67,8 @@ async function mo2Install({compat = true} = {}) {
   const realApp = join(runtimeMod, PLUGIN, 'app');
   await mkdir(join(realApp, 'launcher'), {recursive: true});
   for (const name of LAUNCHER_FILES) if (compat || name !== 'usvfs-compat.mjs') await cp(join(project, 'packaging/runtime', name), join(realApp, 'launcher', name));
+  await mkdir(join(realApp, 'bridge'), {recursive: true});
+  await cp(join(project, 'bridge/local-ai-pack.mjs'), join(realApp, 'bridge/local-ai-pack.mjs'));
   await put(join(realApp, 'defaults/pocket-voices.autobest.json'), JSON.stringify({version: 1, provider: 'pocket', engine: 'pocket-tts', runtime: {}, voices: {}}));
   await put(join(realApp, 'defaults/characters.json'), '{"v":2}');
   await put(join(realApp, 'defaults/multilingual-profiles.json'), '{"v":2}');
@@ -146,7 +148,9 @@ test('under USVFS the start puts the stat fallbacks in, runs the Runtime from it
     assert.equal(summary.ok, true);
     assert.equal(summary.state, f.state);
     assert.equal(summary.app.toLowerCase(), f.realApp.toLowerCase(), 'Python, llama-server and the bridge get real paths');
-    assert.equal(summary.packs.localAi.toLowerCase(), join(f.localAiMod, PLUGIN, 'app/local-ai').toLowerCase());
+    // The Local AI folder stays the virtual one (packs that are separate MO2 mods are merged there; each file is mapped to its real place by the bridge,
+    // packaging/mo2-split-packs.test.mjs); the old single real folder hid every other mod's pack.
+    assert.equal(summary.packs.localAi.toLowerCase(), join(f.game, PLUGIN, 'app/local-ai').toLowerCase());
     assert.equal(summary.packs.omni.toLowerCase(), join(f.realApp, 'omni').toLowerCase(), 'a pack that is not installed stays under the app');
     assert.match(summary.childNodeOptions, /^--import=file:\/\/\/.*\/app\/launcher\/usvfs-compat\.mjs$/);
     const url = summary.childNodeOptions.slice('--import='.length);
@@ -157,6 +161,7 @@ test('under USVFS the start puts the stat fallbacks in, runs the Runtime from it
     assert.ok(log.includes(`started as ${resolve(f.virtualScript, '../..')}`), log);
     assert.match(log, /the CET mod's init\.lua is visible; runtime\/ is visible/);
     assert.doesNotMatch(log, /Stopped:/);
+    assert.doesNotMatch(log, /locating the Local AI pack files failed/, 'the pack locator ran (it lists a pack\'s files only when they are somewhere else than where they were looked for)');
     assert.equal(await exists(join(f.game, PLUGIN)), false, 'nothing is created for the Runtime in the game folder');
   } finally { await f.cleanup(); }
 });

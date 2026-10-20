@@ -46,8 +46,9 @@ async function writeIfChanged(path, bytes) {
 }
 
 // dataHome: the folder that holds data/ (state-home.mjs dataHomeFor), or null/undefined to keep data/ in the game's mod folder.
-// packRoots: {localAi, omni}, where an optional pack really is when that is not under app/ (a pack installed as its own Mod Organizer 2
-// mod; start-service.mjs), else app/local-ai and app/omni.
+// packRoots: {localAi, omni}, where an optional pack is when that is not under app/ (a pack installed as its own Mod Organizer 2 mod;
+// start-service.mjs), else app/local-ai and app/omni. omni is the pack's real folder (one pack, Python runs from it); localAi is the
+// VIRTUAL folder, where the Local AI and Mature packs (each its own mod) are merged: the bridge maps each file to its real place.
 export function installLayout({appDirectory, gameRoot, dataHome = null, packRoots = {}}) {
   const app = resolve(appDirectory), plugin = resolve(app, '..');
   const omni = packRoots.omni ? resolve(packRoots.omni) : resolve(app, 'omni');

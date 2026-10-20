@@ -194,14 +194,20 @@ try {
 enterStage('preparing');
 
 // The optional packs (app/local-ai, app/omni) are looked up where the launcher started this script: under Mod Organizer 2 a pack may be its
-// own MO2 mod, which the Runtime mod's real folder does not hold. A pack found only virtually is used from its real place (Python and
-// llama-server read it there); one that is not installed stays under the Runtime's own app folder, as in a physical install.
+// own MO2 mod, which the Runtime mod's real folder does not hold. One that is not installed stays under the Runtime's own app folder, as in a
+// physical install.
+//   - omni (one pack, one mod): a pack found only virtually is used from its real place; Python reads it there.
+//   - local-ai: the Local AI packs and the Mature packs each unpack into app/local-ai and are usually separate MO2 mods, which USVFS merges
+//     into one virtual folder. locate() would map that folder to ONE mod's real folder (the mod of the highest priority) and hide the other
+//     packs' markers and models, so the bridge gets the VIRTUAL folder (its stat fallbacks list and read it merged) and maps each file a
+//     manifest names to its own real place (bridge/local-ai-pack.mjs, realPathFor; llama-server and its DLLs from one real folder).
 function packRootsFor() {
   if (!usvfsCompat || launchedApp === appDirectory) return {};
   const roots = {};
   for (const [key, name] of [['localAi', 'local-ai'], ['omni', 'omni']]) {
-    const found = usvfsCompat.locate(resolve(launchedApp, name));
-    if (found.kind !== 'missing') roots[key] = found.path;
+    const virtual = resolve(launchedApp, name);
+    const found = usvfsCompat.locate(virtual);
+    if (found.kind !== 'missing') roots[key] = key === 'localAi' ? virtual : found.path;
   }
   return roots;
 }
@@ -298,6 +304,12 @@ if (usvfsCompat) {
       if (changed.length) log(`Mod Organizer 2: Python's search paths pinned to its real folder (${changed.join(', ')}).`);
     } catch (error) { log(`Mod Organizer 2: Python's search paths could not be pinned (${dirname(python)}): ${error?.message || error}`); }
   }
+  // Where each Local AI pack file really is (several packs may be separate MO2 mods merged into one folder), for the report.
+  try {
+    const {packPlaceLines} = await import('../bridge/local-ai-pack.mjs');
+    const lines = packPlaceLines({environment: {CYBERPUNK_CONVAI_LOCAL_AI: layout.localAi, CYBERPUNK_CONVAI_USVFS: '1'}});
+    if (lines.length) log(`Mod Organizer 2: Local AI pack files, where each really is (${layout.localAi}):\n  ${lines.join('\n  ')}`);
+  } catch (error) { log(`Mod Organizer 2: locating the Local AI pack files failed: ${error?.message || error}`); }
 }
 // The files a Runtime update no longer ships are removed here (packaging/runtime/apply-removals.mjs): the update zip is extracted over
 // the old Runtime and cannot delete, so it carries app/defaults/runtime-removals.json (every Runtime does, the full one too). It runs from
