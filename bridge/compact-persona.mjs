@@ -22,7 +22,10 @@ import {worldRulesBlock} from './world-rules.mjs';
 import {leadingText, textTokens} from './prompt-budget.mjs';
 
 export const COMPACT = Object.freeze({
-  targetChars: 8000,   // the head, all of it, aims at this: about 1,900 tokens (the full head of Judy is 3,570, with the Mature layer 4,200)
+  targetChars: 8000,   // the head, all of it, aims at this when no ratio is known: about 1,900 tokens at 4.2 characters a token (the full head of Judy is 3,570, with the Mature layer 4,200)
+  minRatio: 3.8,       // the ratio the target is counted with is kept inside these (the whole prompt's ratio, ids and slang included, runs a little under the persona text's own 4.4)
+  maxRatio: 4.6,
+  targetTokens: 1900,  // ... and this is what it aims at: with the model's own characters-a-token ratio (the budget's TokenMeter) the target in characters follows it
   floorChars: 2600,    // the persona's own text keeps at least this much when the Mature layer and the world rules leave less room
   minPiece: 160,       // a block that would be cut to less than this is left out
   minSaving: 800,      // a persona that would lose less than this (an everyday resident) is left whole: a cut that small is not worth a different prompt
@@ -101,12 +104,15 @@ function blocksOf(persona) {
  *   persona   from PersonaBook.persona
  *   mature    the Mature level, or null; guard: the guard layer is on (both lengthen what is never cut)
  *   limits    the prompt limits the head is built with (bridge/mistral-prompt.mjs LIMITS)
+ *   charsPerToken   the model's characters-a-token ratio (bridge/prompt-budget.mjs TokenMeter, the estimator the soft target uses): the head aims at COMPACT.targetTokens of it;
+ *             without one at COMPACT.targetChars
  */
-export function compactPersonaFor(persona, {mature = null, guard = false, limits} = {}) {
+export function compactPersonaFor(persona, {mature = null, guard = false, limits, charsPerToken} = {}) {
   if (!persona || typeof persona !== 'object') return persona;
   const bare = {...persona, backstory: '', style: '', samples: []};
   const fixed = systemHead({persona: bare, limits, mature, guard}).length + (persona.worldRules ? worldRulesBlock(persona.worldRules).length + 2 : 0);
-  let room = Math.max(COMPACT.floorChars, COMPACT.targetChars - fixed);
+  const target = Number.isFinite(charsPerToken) && charsPerToken > 0 ? Math.round(COMPACT.targetTokens * charsPerToken / 100) * 100 : COMPACT.targetChars;
+  let room = Math.max(COMPACT.floorChars, target - fixed);
   const blocks = blocksOf(persona), kept = new Map();
   for (const kind of COMPACT.order) {
     if (kind === 'samples') {
@@ -148,13 +154,18 @@ export class CompactChoice {
   #told = new Map();   // the cut already named in the log, per character: a group talk that goes back and forth between two characters names each once
   constructor({log = () => {}} = {}) { this.log = log; }
   say(line) { try { this.log(line); } catch { /* a log line never fails a turn */ } }
-  /** The persona to build the prompt from: `persona` itself, or its compact text. */
-  personaFor(persona, {speed, mature = null, guard = false, limits} = {}) {
+  /**
+   * The persona to build the prompt from: `persona` itself, or its compact text. `meter` (the model's TokenMeter): the ratio the head's target is counted with, the same
+   * one the soft target uses, taken once for as long as the choice stands (quantised, so a ratio that wobbles does not make a different text of the same character).
+   */
+  personaFor(persona, {speed, meter, mature = null, guard = false, limits} = {}) {
     if (!persona || !speed) return persona;
     if (mature) guard = false;   // the Mature layer replaces the guard-only one in the head
     let memo = this.#memo;
     if (!memo || memo.speed !== speed || memo.name !== persona.name || memo.backstory !== persona.backstory || memo.style !== persona.style) {
-      memo = this.#memo = {speed, name: persona.name, backstory: persona.backstory, style: persona.style, compact: speed.compact === true, extras: null, result: persona};
+      const ratio = Number(meter?.charsPerToken);
+      memo = this.#memo = {speed, name: persona.name, backstory: persona.backstory, style: persona.style, compact: speed.compact === true, extras: null, result: persona,
+        ratio: Number.isFinite(ratio) && ratio > 0 ? Math.min(COMPACT.maxRatio, Math.max(COMPACT.minRatio, Math.round(ratio * 5) / 5)) : undefined};
       if (memo.compact !== this.#announced) {
         this.#announced = memo.compact;
         const rate = speed.tokensPerSecond;
@@ -168,9 +179,9 @@ export class CompactChoice {
     const extras = JSON.stringify([mature, guard, persona.worldRules ?? '', persona.rules ?? [], persona.memories ?? [], persona.samples ?? [], persona.intro ?? '', persona.identityRule ?? '', persona.talkWords ?? 0]);
     if (memo.extras !== extras) {
       memo.extras = extras;
-      memo.result = compactPersonaFor(persona, {mature, guard, limits});
+      memo.result = compactPersonaFor(persona, {mature, guard, limits, charsPerToken: memo.ratio});
       if (memo.result !== persona) {
-        const tokens = which => Math.round(textTokens(systemHead({persona: which, limits, mature, guard})));
+        const tokens = which => Math.round(textTokens(systemHead({persona: which, limits, mature, guard}), memo.ratio));
         const line = `the head goes from about ${tokens(persona)} to ${tokens(memo.result)} tokens`, who = persona.name || 'a resident';
         if (this.#told.get(who) !== line) { this.#told.set(who, line); this.say(`The local AI: compact character text for ${who}: ${line}`); }
       }

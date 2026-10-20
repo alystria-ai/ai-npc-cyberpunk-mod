@@ -35,11 +35,12 @@ const chars = messages => messages.reduce((sum, message) => sum + message.conten
 // A tokenizer that counts 4.2 characters a token, like the real models do on this prompt.
 const counter = (log = []) => async messages => { log.push(messages.length); return Math.ceil(chars(messages) / 4.2) + templateTokens(messages.length); };
 
-test('textTokens: English prose by the learned ratio, Chinese, Japanese and Korean about a token a character, other scripts half a token', () => {
+test('textTokens: English prose by the learned ratio, Chinese, Japanese and Korean about two thirds of a token a character, other scripts half a token, Latin extended letters about one', () => {
   assert.equal(textTokens('', 4), 0);
   assert.equal(Math.round(textTokens('x'.repeat(400), 4)), 100);
-  assert(textTokens('日本語のテキストです。'.repeat(10), 4) >= 90, 'about one token per Japanese character');
+  assert(textTokens('日本語のテキストです。'.repeat(10), 4) >= 75, 'two thirds of a token per Japanese character (measured 0.48 to 0.67)');
   assert(textTokens('Привет, как дела у тебя сегодня?'.repeat(10), 4) > 140, 'Cyrillic costs more than English');
+  assert(textTokens('Zażółć gęślą jaźń, szczęśliwy człowiek.'.repeat(10), 4) > textTokens('Zazolc gesla jazn, szczesliwy czlowiek.'.repeat(10), 4) * 1.5, 'Latin extended letters cost more than plain ones');
   assert(estimateTokens([{role: 'user', content: 'x'.repeat(360)}], 3.6) === 100 + templateTokens(1));
 });
 
@@ -224,7 +225,8 @@ test('budgetedChat: a server that still refuses the prompt says what it counted;
   // A second refusal is final.
   const stubborn = budgetedChat(async options => { throw Object.assign(new MistralError('request', 'x', {provider: 'local'}), {overflow: {promptTokens: 99999, contextTokens: 8192}}); },
     {budget: async () => ({contextTokens: 8192, meter: new TokenMeter({charsPerToken: 6})})});
-  await assert.rejects(stubborn({messages: buildMessages(args), provider: 'local'}), error => error.overflow?.promptTokens === 99999);
+  await assert.rejects(stubborn({messages: buildMessages(args), provider: 'local'}), error => error.overflow?.promptTokens === 99999 || error instanceof PromptTooLarge,
+    'the second refusal is final (a count that absurd teaches a bias too, so the second fit may find nothing that fits and fail as too large)');
 });
 
 test('budgetedChat: a prompt that cannot fit is a failed local request the host falls back from, with a game code', async () => {
@@ -349,15 +351,18 @@ test('budgetedChat: on a machine seen to read slowly the prompt is cut below the
   const head = estimateTokens([{role: 'system', content: systemHead({persona: judy})}]);
   const cold = await run(0);
   assert(cold.sent < full - 2500 && cold.sent <= head + 1300 + BUDGET.minMargin, `cold: from ${full} to ${cold.sent}, persona ${head}`);
-  // What cannot be cut (the format notes, the right-now block, V's words) is more than the allowance: the soft target cannot be reached, the context's
-  // limit is used as it always was, and the request is sent whole.
+  // What cannot be cut (the format notes, the right-now block, V's words) is more than the allowance: the soft target cannot be reached even with everything optional
+  // cut. The next step up that holds what is left is used (2026-10-20 live record: a prompt that missed the target by 36 tokens was sent whole, 5,300 tokens for 3,300).
   const heavy = turn(); heavy.contextParts.notes = 'FORMAT: ' + 'use a tag for a feeling, never read it aloud. '.repeat(65); heavy.text = 'Tell me everything. '.repeat(60);
   const wide = estimateTokens(buildMessages(heavy));
   const speed = new PrefillMeter(); speed.observe({timings: {promptTokens: 3000, cachedTokens: 4300, promptMs: 600_000}});   // 5 tokens a second: the lowest step, 600
   const sent = [], fits = [];
   await budgetedChat(async options => { sent.push(estimateTokens(options.messages)); return {text: 'ok'}; }, {budget: async () => ({contextTokens: 16384, meter: new TokenMeter(), speed}), onFit: fit => fits.push(fit)})({messages: buildMessages(heavy), provider: 'local'});
-  assert.equal(fits.length, 0, 'the soft target could not be reached: nothing was cut under it, and the hard limit asks for nothing');
-  assert.equal(sent[0], wide, 'a soft target never makes a request fail or cuts what the context allows');
+  assert.equal(fits.length, 1, 'cut under the raised target');
+  assert.equal(fits[0].target, 'soft'); assert.equal(fits[0].raised, true); assert.equal(fits[0].fits, true);
+  assert.match(describeFit(fits[0]), /\(raised soft target\)/);
+  assert(sent[0] < wide - 1500 && sent[0] <= 4300 + 3500 + BUDGET.minMargin, `cut from ${wide} to ${sent[0]}`);
+  assert(sent[0] > 4300 + PREFILL.steps[0], 'to a larger step than the lowest, which it could not reach');
   // A fast machine: the context is the only limit.
   const fast = new PrefillMeter(); fast.observe({timings: {promptTokens: 3000, cachedTokens: 4300, promptMs: 1000}});
   const quick = [];

@@ -26,7 +26,8 @@ import {MistralError} from './mistral-client.mjs';
 import {worldRulesBlock} from './world-rules.mjs';
 
 export const BUDGET = Object.freeze({
-  charsPerToken: 3.6,    // before anything is learned; this prompt measures about 4.2 on Gemma 4 and on Qwen3.5
+  charsPerToken: 3.6,    // before anything is learned, for a model nobody measured
+  knownCharsPerToken: 4.0,   // ... for the shipped families: this prompt measures 4.2 to 4.5 on Gemma 4 and on Qwen3.5 (Bonsai), 3.8 to 4.0 for slang and dense notes
   minCharsPerToken: 2.4,
   maxCharsPerToken: 4.6,
   messageTokens: 6,      // chat-template tokens around each message (measured 4.4 on both models)
@@ -37,25 +38,45 @@ export const BUDGET = Object.freeze({
   verifyFrom: 0.8,       // ask the server's tokenizer once the estimate passes this share of the limit
   verifyBand: 0.9,       // ... and again for a trimmed prompt that lands above this share of it
   maxCounts: 4,          // tokenizer requests in one fit
+  biasFrom: 1.06,        // the server's count must top the budget's by this much before it is corrected for (the template and rounding are within it)
+  biasKeep: 2,           // observations the correction is taken from: the larger of the last two
+  maxBias: 2.5,
+  mismatchLog: 1.15,     // a gap this large is written to the log
   keepExchanges: 2,      // older exchanges are dropped down to this many before anything else of the conversation is cut
 });
 
-// Text in scripts that spend about a token a character (Chinese, Japanese, Korean) or two characters a token (Cyrillic, Greek,
-// Arabic, ...) is counted separately: the ratio learned from English prose does not apply to it.
+// Text outside plain Latin is counted separately: the ratio learned from English prose does not apply to it. Measured 2026-10-20 with the tokenizers of both model
+// families the Local AI ships (Gemma 4: standard and Mature good; Qwen3.5: Bonsai 2 lite and Mature lite), in tokens a character:
+//   Chinese, Japanese, Korean                          0.48 to 0.67   counted 0.72 (wide)
+//   Cyrillic, Greek, Hebrew, Arabic, Thai, Devanagari  0.27 to 0.47   counted 0.5 (other)
+//   Latin Extended-A and -B (Polish, Czech, Turkish letters such as ł ś ę ř ő ğ): 1.0 to 2.7 tokens a letter, counted 2.0 (ext)
+// English, French, Spanish, Italian, German and Portuguese prose, the persona and the output rules are 3.8 to 4.5 characters a token (the plain ratio).
+export const SCRIPT_TOKENS = Object.freeze({wide: 0.72, other: 0.5, ext: 2.0});
 const WIDE = /[ᄀ-ᇿ⺀-鿿가-퟿豈-﫿＀-￯\u{20000}-\u{2fa1f}]/gu;
 const OTHER = /[^\u0000-ɏ -⁯₠-⃏←-⇿]/gu;
 
-/** The tokens a text costs: `charsPerToken` for ordinary characters, a token each for wide scripts, half a token each for the rest. */
+const EXT = /[Ā-ɏ]/g;
+
+/** How many characters of `text` are wide-script, other-script and Latin-extended letters (the rest is plain). */
+export function scriptCounts(text) {
+  const value = String(text ?? '');
+  // Pure ASCII and Latin-1 (almost every prompt) skips the three scans.
+  let plain = true;
+  for (let index = 0; index < value.length; index++) if (value.charCodeAt(index) > 0xff) { plain = false; break; }
+  if (plain) return {wide: 0, other: 0, ext: 0};
+  const wide = (value.match(WIDE) ?? []).length;
+  const ext = (value.match(EXT) ?? []).length;
+  const other = Math.max(0, (value.match(OTHER) ?? []).length - wide);
+  return {wide, other, ext};
+}
+
+/** The tokens a text costs: `charsPerToken` for ordinary characters, SCRIPT_TOKENS for the wide, other and Latin-extended ones. */
 export function textTokens(text, charsPerToken = BUDGET.charsPerToken) {
   const value = String(text ?? '');
   if (!value) return 0;
-  // Pure ASCII and Latin text (almost every prompt) skips the two scans.
-  let plain = true;
-  for (let index = 0; index < value.length; index++) if (value.charCodeAt(index) > 0x24f) { plain = false; break; }
-  if (plain) return value.length / charsPerToken;
-  const wide = (value.match(WIDE) ?? []).length;
-  const other = (value.match(OTHER) ?? []).length - wide;
-  return (value.length - wide - Math.max(0, other)) / charsPerToken + wide * 1.05 + Math.max(0, other) * 0.55;
+  const {wide, other, ext} = scriptCounts(value);
+  if (!wide && !other && !ext) return value.length / charsPerToken;
+  return (value.length - wide - other - ext) / charsPerToken + wide * SCRIPT_TOKENS.wide + other * SCRIPT_TOKENS.other + ext * SCRIPT_TOKENS.ext;
 }
 
 /** The most tokens a prompt may hold for a budget {contextTokens, reserveTokens?}: the context less the room for the reply and a margin. */
@@ -76,39 +97,63 @@ export function estimateTokens(messages, charsPerToken = BUDGET.charsPerToken) {
   return Math.ceil(sum) + templateTokens(messages.length);
 }
 
+/** The ratio a model starts from before its server has said anything: the shipped families are measured (above), any other model is taken to tokenize worse. */
+export const seedRatio = name => (/gemma[-_ ]?4|bonsai|qwen|hauhau/i.test(String(name ?? '')) ? BUDGET.knownCharsPerToken : BUDGET.charsPerToken);
+
 /**
- * The characters-per-token ratio of one model, learned from the prompt token counts its server reports. The lowest recent ratio is
- * used (the most tokens for the characters seen), a little lower still: an estimate that is too high only trims early, one that is
- * too low costs a refused request.
+ * What one model's tokenizer really does to this prompt, learned from the token counts its server reports after each turn (nothing is asked of the server for it):
+ *   charsPerToken   the lowest recent ratio of plain text (the most tokens for the characters seen), a little lower still: an estimate that is too high only trims
+ *                   early, one that is too low costs a refused request. The seed is the measured ratio of the model's family (`seedRatio`).
+ *   bias            a factor of 1 or more for what the count missed, whatever the cause (text the ratio does not describe, template or request parts the estimate does
+ *                   not know): the server's count of a prompt over what the budget counted for it (the tokenizer's own count when it was asked, else the estimate under
+ *                   the ratio learned meanwhile), the larger of the last two, so one odd turn is followed for two turns and a lasting gap for as long as it lasts.
  */
 export class TokenMeter {
-  #ratios = [];
-  constructor({charsPerToken = BUDGET.charsPerToken, keep = 6} = {}) { this.fallback = charsPerToken; this.keep = keep; }
+  #ratios = []; #gaps = [];
+  constructor({charsPerToken = BUDGET.charsPerToken, keep = 6} = {}) { this.fallback = charsPerToken; this.keep = keep; this.lastGap = null; }
   get charsPerToken() {
     if (!this.#ratios.length) return this.fallback;
     const lowest = Math.min(...this.#ratios) * 0.97;
     return Math.min(BUDGET.maxCharsPerToken, Math.max(BUDGET.minCharsPerToken, lowest));
   }
   get samples() { return this.#ratios.length; }
-  /** `promptTokens` is the server's count for `messages` (usage.prompt_tokens, or n_prompt_tokens of a refusal). */
-  observe(messages, promptTokens) {
-    const tokens = Number(promptTokens) - templateTokens(messages.length);
+  get bias() {
+    const gap = Math.max(0, ...this.#gaps);
+    return gap > BUDGET.biasFrom ? Math.min(BUDGET.maxBias, gap) : 1;
+  }
+  /**
+   * `promptTokens` is the server's count for `messages` (usage.prompt_tokens, or n_prompt_tokens of a refusal). `raw` and `exact`: what the budget counted for them
+   * before the bias, and whether that was the tokenizer's own count; with them the gap between the budget and the server is learned too.
+   * `gap: false` (a refusal: the count says the prompt did not fit, not how far the budget was off) teaches the ratio only. Returns whether the ratio learned something (`lastGap` is the gap of this observation, or null).
+   */
+  observe(messages, promptTokens, {raw, exact = false, gap = true} = {}) {
+    this.lastGap = null;
+    const real = Number(promptTokens);
+    const tokens = real - templateTokens(messages.length);
     if (!Number.isFinite(tokens) || tokens < 200) return false;   // a tiny prompt says nothing about the ratio
-    let chars = 0, foreign = 0;
+    let chars = 0, plain = 0, foreign = 0;
     for (const message of messages) {
       const text = String(message?.content ?? '');
-      for (let index = 0; index < text.length; index++) {
-        const code = text.charCodeAt(index);
-        if (code > 0x24f && !(code >= 0x2000 && code <= 0x206f)) foreign++;   // letters of another script; curly quotes and dashes are English
-      }
-      chars += text.length;
+      const {wide, other, ext} = scriptCounts(text);
+      chars += text.length; plain += text.length - wide - other - ext;
+      foreign += wide * SCRIPT_TOKENS.wide + other * SCRIPT_TOKENS.other + ext * SCRIPT_TOKENS.ext;
     }
-    if (foreign > chars * 0.01) return false;                                // English prose only
-    this.#ratios.push(chars / tokens);
-    if (this.#ratios.length > this.keep) this.#ratios.shift();
-    return true;
+    // Plain text teaches the ratio; the letters of other scripts are taken off at what they are counted at.
+    let learned = false;
+    if (plain >= chars * 0.7 && tokens - foreign >= 150) {
+      this.#ratios.push(plain / (tokens - foreign));
+      if (this.#ratios.length > this.keep) this.#ratios.shift();
+      learned = true;
+    }
+    const counted = exact ? Number(raw) : estimateTokens(messages, this.charsPerToken);
+    if (gap && Number.isFinite(counted) && counted >= 200) {
+      this.lastGap = real / counted;
+      this.#gaps.push(this.lastGap);
+      if (this.#gaps.length > BUDGET.biasKeep) this.#gaps.shift();
+    }
+    return learned;
   }
-  reset() { this.#ratios = []; }
+  reset() { this.#ratios = []; this.#gaps = []; this.lastGap = null; }
 }
 
 // ---- How fast this machine reads a prompt -------------------------------------------------------------------------------------
@@ -195,13 +240,20 @@ export class PrefillMeter {
    * The smaller budget for a slow machine, as `fitMessages` takes it ({contextTokens, reserveTokens}); null when there is none.
    * `floorTokens`: what the prompt holds that is read once and then kept, its persona and rules (the first turn of a character, or a character that
    * is not the one the server held): the allowance is added to the larger of that and what the server holds.
+   * `reach`: a prompt that was cut as far as it can be and still came to this many tokens (a target it could not reach): the smallest larger step whose limit holds it,
+   * or null when even the largest step does not (the cliff of 2026-10-20: a prompt that missed the target by a few tokens was sent whole, 5,300 tokens instead of 3,300).
    */
-  soft(floorTokens = 0) {
+  soft(floorTokens = 0, reach = 0) {
     const rate = this.tokensPerSecond;
     const held = Math.max(this.#cached, Number(floorTokens) || 0);
     if (rate === null || rate >= PREFILL.fastTokensPerSecond || !(held > 0)) return null;
     const wanted = rate * PREFILL.targetSeconds;
-    const allowed = PREFILL.steps.reduce((best, step) => step <= wanted ? step : best, PREFILL.steps[0]);
+    let allowed = PREFILL.steps.reduce((best, step) => step <= wanted ? step : best, PREFILL.steps[0]);
+    if (reach > 0) {
+      const next = PREFILL.steps.find(step => step > allowed && held + step >= reach);
+      if (next === undefined) return null;
+      allowed = next;
+    }
     const total = held + allowed;
     // fitMessages keeps a margin of max(minMargin, marginRatio of the context) below the context it is given: ask for one that leaves `total`.
     let contextTokens = Math.ceil(Math.max(total + BUDGET.minMargin, total / (1 - BUDGET.marginRatio)));
@@ -342,11 +394,13 @@ export async function fitMessages({args, build = defaultBuild, budget, shrinkPer
   const context = Number(budget?.contextTokens);
   let state = args;
   let messages = build(state);
-  if (!(context > 0)) return {messages, tokens: estimateTokens(messages), limit: Infinity, fits: true, trimmed: [], counts: 0, exact: false};
+  if (!(context > 0)) return {messages, tokens: estimateTokens(messages), raw: estimateTokens(messages), limit: Infinity, fits: true, trimmed: [], counts: 0, exact: false};
   const reserve = budget.reserveTokens ?? BUDGET.reserveTokens;
   const limit = fitLimit({contextTokens: context, reserveTokens: reserve});
   const perToken = () => budget.meter?.charsPerToken ?? BUDGET.charsPerToken;
-  const estimate = list => estimateTokens(list, perToken());
+  // The meter's bias (1 unless the server has counted more than the budget did) corrects the estimate and the tokenizer's count alike.
+  const bias = () => budget.meter?.bias ?? 1;
+  const estimate = list => Math.ceil(estimateTokens(list, perToken()) * bias());
   let counts = 0, scale = 1, exact = false;
   // The server's own count of `list`, which also corrects the estimate for the rest of this fit.
   const verify = async list => {
@@ -355,7 +409,8 @@ export async function fitMessages({args, build = defaultBuild, budget, shrinkPer
     let value = null;
     try { value = await budget.count(list); } catch { value = null; }
     if (!Number.isFinite(value) || value <= 0) return null;
-    scale = Math.min(1.6, Math.max(0.5, value / Math.max(1, estimate(list))));
+    value = Math.ceil(value * bias());
+    scale = Math.min(3, Math.max(0.5, value / Math.max(1, estimate(list))));
     return value;
   };
   let tokens = estimate(messages);
@@ -397,11 +452,12 @@ export async function fitMessages({args, build = defaultBuild, budget, shrinkPer
       if (used) trimmed.push(`persona:${used.backstory}`);
     }
   }
-  return {messages, tokens, limit, fits: tokens <= limit, trimmed, counts, exact, charsPerToken: perToken()};
+  // `raw`: the tokens before the meter's bias, which is what the server's own count is compared with afterwards (TokenMeter.observe).
+  return {messages, tokens, raw: Math.ceil(tokens / bias()), limit, fits: tokens <= limit, trimmed, counts, exact, charsPerToken: perToken(), bias: bias()};
 }
 
 /** One line for the log: what was cut, and what the prompt came to. */
-export const describeFit = fit => `prompt ${fit.tokens} of ${fit.limit} tokens${fit.target ? ` (${fit.target} target)` : ''}${fit.exact ? '' : ' (estimated)'}${fit.trimmed.length ? `; cut: ${fit.trimmed.join(', ')}` : ''}${fit.fits ? '' : '; does not fit'}`;
+export const describeFit = fit => `prompt ${fit.tokens} of ${fit.limit} tokens${fit.target ? ` (${fit.raised ? 'raised ' : ''}${fit.target} target)` : ''}${fit.exact ? '' : ' (estimated)'}${fit.trimmed.length ? `; cut: ${fit.trimmed.join(', ')}` : ''}${fit.fits ? '' : '; does not fit'}`;
 
 // ---- The request wrapper --------------------------------------------------------------------------------------------------
 
@@ -430,12 +486,15 @@ export const MIN_SERVER_CONTEXT = 2048;
  *                            teaches the real context (the one the error names, else half of the one assumed, at least MIN_SERVER_CONTEXT), `learn(contextTokens, options)` is called
  *                            with it so later requests start from it, and a prompt that still does not fit fails with the words of a context that is too small (PromptTooLarge)
  *   budget().soft            optional {contextTokens, reserveTokens?}: a smaller target tried first; a prompt that cannot reach it is fitted
- *                            to the budget's own (hard) limit as before, so a soft target never makes a request fail
+ *                            to the budget's own (hard) limit as before, so a soft target never makes a request fail. A target `budget().speed` chose
+ *                            (a slow machine) that the prompt cannot reach even with everything optional cut is raised to the smallest larger step that holds
+ *                            the cut prompt (PrefillMeter.soft `reach`) before the hard limit is used: the next step up reads a few hundred tokens more, the hard limit thousands
+ *   onMismatch(info, options)  called when the server counted at least BUDGET.mismatchLog times what the budget did for the prompt that was sent: {raw, real, gap, exact, bias}
  * Only requests built by `buildMessages` are fitted (summaries, fact extraction and prewarm are small and pass through). A server that
  * still refuses the prompt (an estimate that was too low) says how many tokens it counted: that count is learned, the prompt is cut
  * to it, and the request is sent once more.
  */
-export function budgetedChat(chat, {budget, onFit, tooLarge, shape, learn} = {}) {
+export function budgetedChat(chat, {budget, onFit, onMismatch, tooLarge, shape, learn} = {}) {
   return async function fittedChat(options) {
     const source = options?.messages?.[PROMPT_SOURCE];
     const base = source ? await budget?.(options) : null;
@@ -444,7 +503,8 @@ export function budgetedChat(chat, {budget, onFit, tooLarge, shape, learn} = {})
     let current = base;
     // `speed` (a PrefillMeter): on a machine that has been seen to read prompts slowly, a smaller target than the context is tried first.
     // An explicit `soft` of the budget wins.
-    const soft = base.soft ?? (base.speed?.slow ? base.speed.soft(headTokens(args, base.meter?.charsPerToken)) : null);
+    const floor = base.soft || !base.speed?.slow ? 0 : headTokens(args, base.meter?.charsPerToken);
+    const soft = base.soft ?? (base.speed?.slow ? base.speed.soft(floor) : null);
     for (let attempt = 0; ; attempt++) {
       // A soft target only ever lowers the limit: one that is not below the context's own (a persona that is itself longer than the allowance makes the soft
       // context larger than the real one; the reply's room and a context the server refused are lost with it) is not used, so a prompt it lets through
@@ -452,12 +512,23 @@ export function budgetedChat(chat, {budget, onFit, tooLarge, shape, learn} = {})
       const hard = {...current, soft: undefined}, lower = soft ? {...current, ...soft, soft: undefined} : null;
       let fit = lower && fitLimit(lower) < fitLimit(hard) ? await fitMessages({args, budget: lower}) : null;
       if (fit) fit.target = 'soft';
+      // The target of a slow machine was missed with everything optional cut: the next step up that holds what is left, before the whole prompt goes.
+      if (fit && !fit.fits && !base.soft && base.speed?.slow) {
+        const higher = base.speed.soft(floor, fit.tokens);
+        const wider = higher ? {...current, ...higher, soft: undefined} : null;
+        if (wider && fitLimit(wider) < fitLimit(hard)) {
+          const again = await fitMessages({args, budget: wider});
+          if (again.fits) { fit = again; fit.target = 'soft'; fit.raised = true; }
+        }
+      }
       if (!fit?.fits) { fit = await fitMessages({args, budget: hard, shrinkPersona: options?.lastResort === true}); if (soft) fit.target = 'hard'; }
       if (fit.trimmed.length || !fit.fits) { try { onFit?.(fit, options); } catch { /* a log line never fails a request */ } }
       if (!fit.fits) throw tooLarge ? tooLarge(fit, options) : new PromptTooLarge(fit, options?.provider, {server: base.server === true});
       try {
         const result = await chat({...options, messages: fit.messages});
-        base.meter?.observe(fit.messages, result?.usage?.prompt_tokens);
+        base.meter?.observe(fit.messages, result?.usage?.prompt_tokens, {raw: fit.raw, exact: fit.exact});
+        const gap = base.meter?.lastGap;
+        if (gap >= BUDGET.mismatchLog) { try { onMismatch?.({raw: fit.raw, real: Number(result.usage.prompt_tokens), gap, exact: fit.exact, bias: base.meter.bias}, options); } catch { /* a log line never fails a request */ } }
         try { base.speed?.observe(result?.trace); } catch { /* a measurement never fails a request */ }
         return result;
       } catch (error) {
@@ -473,7 +544,7 @@ export function budgetedChat(chat, {budget, onFit, tooLarge, shape, learn} = {})
         }
         // The server's count of the refused prompt replaces the estimate: learn the ratio and cut by what the estimate missed.
         const counted = Number(refused.promptTokens) > 0;
-        const learned = counted ? base.meter?.observe(fit.messages, refused.promptTokens) : null;
+        const learned = counted ? base.meter?.observe(fit.messages, refused.promptTokens, {gap: false}) : null;
         // A ratio the meter learned corrects the next estimate by itself; only a count it could not learn from is taken off the budget.
         const missed = learned || !counted ? 0 : Math.max(0, Number(refused.promptTokens) - fit.tokens);
         // The context the server says it has; one that does not say (LM Studio's loaded context can be smaller than what it reported) is stepped down by half.

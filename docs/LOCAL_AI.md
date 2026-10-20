@@ -432,8 +432,9 @@ budget rebuilds the prompt with less in it instead of cutting a string.
 - **The limit.** `n_ctx` from the server (`GET /props`, in the supervisor's handle as `contextSize`) minus a reply reserve (320 tokens) minus a safety
   margin (the larger of 48 tokens and 1.5% of n_ctx). Mistral's cloud models have contexts of 128k and more, so they are not fitted.
 - **The count.** An estimate first: characters per token learned from the server's own counts (`TokenMeter`: the lowest recent ratio times
-  0.97; 3.6 before anything is learned, the prompt really measures about 4.2), plus the chat template's cost per message; Chinese,
-  Japanese and Korean count about a token a character, other scripts about half a token. A prompt that is clearly under the limit is sent
+  0.97; 4.0 before anything is learned for the shipped model families (`seedRatio`), 3.6 for a model nobody measured; the prompt really measures 4.2 to 4.5),
+  plus the chat template's cost per message; Chinese, Japanese and Korean count 0.72 of a token a character, other scripts half a token, Latin Extended letters
+  (ł ś ř ő ğ) two (measurements and the whole story: "Token estimate and calibration (2026-10-20)" below). A prompt that is clearly under the limit is sent
   as it is. One that is near it or over it is counted by the server (`POST /tokenize`, about 50 to 150 ms for 30,000 characters) and the cut
   is decided on that count. The reply's closing chunk carries `usage.prompt_tokens` (`stream_options.include_usage`), which the meter learns
   from.
@@ -456,6 +457,72 @@ budget rebuilds the prompt with less in it instead of cutting a string.
   counts as the server being down. A persona that still does not fit fails the turn with the notice `local-context` ("Your model server's context is too small for this character.
   Raise the context length in your server (8192 or more).").
 - Every cut is logged as `[TextProvider] The local AI: prompt N of M tokens; cut: ...`.
+
+### Token estimate and calibration (2026-10-20: "the soft target said 3,306, the server counted 5,262")
+
+**The report.** Error report `931d456381ee3ec6` (an RTX 4070, the lite model Bonsai 2 4B): turn 2 logged `prompt 3270 of 3306 tokens (soft target); cut: jobs:drop, ...`
+(exact: the server's own tokenizer counted it) and the `[LocalTurn]` line of that turn said `3793 new + 1469 cached tokens`, 5,262 in all, 1.61 times the count.
+The two turns after it logged no cut at all and read 5,328 and 5,618 tokens; the fifth (`3085 of 3306`, then `3077 new + 0 cached`) matched to the token. Every other
+pair of a `The local AI: prompt N` line and the `[LocalTurn]` total of its turn in the reports on file (about ten, Gemma 4 Mature) agrees within 1% (one, an estimate, at 0.95).
+
+**What was measured offline** (the bundled llama-server, Vulkan build, `-c 16384 --reasoning off`, the dev card; four models, two tokenizers). The real builders
+made 13 prompts (Judy whole and compact, Jackie, two archetypes, with and without world rules, an action note, the Mature layer, no history, a Spanish, a Russian and a
+Japanese line) and the server counted each (`usage.prompt_tokens`, also `/tokenize` and `/apply-template`); 24 short texts in 20 scripts and kinds were counted with `/tokenize`.
+Gemma 4 E4B (standard) and the Mature good model count alike, so do Bonsai 2 4B (lite) and the Mature lite model (Qwen3.5): two tokenizers. The counts are recorded in
+`bridge/fixtures/token-counts.json`; `bridge/token-estimate.test.mjs` compares the estimator with them without a server.
+
+| What | Characters a token (Gemma 4 / Qwen3.5) | The estimate |
+|---|---|---|
+| The persona head and the output rules | 4.3 to 4.5 | 4.0 seed, 4.2 to 4.4 learned |
+| A whole turn (persona, world block, history, notes, V's words) | 4.2 to 4.5 (4.4 Judy, 4.2 an archetype) | the same |
+| English, Spanish, Portuguese, German, French, Italian prose | 3.8 to 4.4 | within 5% |
+| Slang ("choom, preem, gonk, eddies") | 4.1 / 3.9 | within 5% |
+| Turn-context text (ids, `weather=...(GetWeatherState...)`, JSON) | 2.6 | about 35% low: learned |
+| Haitian Creole, Hungarian | 3.0 to 3.4 | 15 to 25% low: learned |
+| Tag strings (`{warm}`, `[FOLLOW]`) | 3.3 | 20% low: learned |
+| Chinese, Japanese, Korean | 1.5 to 2.1 (0.48 to 0.67 of a token a letter) | counted 0.72 (was 1.05: 1.6 times too high) |
+| Russian, Greek, Hebrew, Arabic, Thai, Hindi | 2.1 to 3.8 (0.27 to 0.47) | counted 0.5 (was 0.55) |
+| Polish, Czech, Turkish letters of Latin Extended (ł ś ę ř ğ) | 1.0 to 2.7 tokens a letter | counted 2.0 (was a plain letter: about 25% low on a Polish text) |
+| The chat template | 44 to 47 tokens for 8 messages, 14 to 17 for 2 | 12 + 6 a message |
+
+**Result: the estimate of an ordinary English prompt was never 1.6 times low.** With the old seed (3.6) it was 25% high before the server had said anything and 3 to 8% high
+after one turn; the tokenizer's count (asked whenever the estimate is within 20% of the limit, and for every trimmed prompt that lands within 10% of it) matched the server's to
+0.3% (the template). 13 prompts on each tokenizer, a prompt run through the real `localRoute` budget against a live server for eight turns, with a prewarm, a slow reading
+faked into the timings, a cut context: the fit's count and the server's differed by 8 to 20 tokens every turn, soft target or not. I could not make the 1.61 of that one report
+happen, and nothing in the request is outside the budget: `fit.messages` is what `chat` sends, `streamChat` adds only `stream_options`, `return_progress`, `stop` and
+`chat_template_kwargs` (no tokens), no tool, image or vision text goes to the Local route, and the warm-up, the action classifier, the summaries and the fact extraction are
+separate small requests that are not fitted. The turn is not explained, so the budget now learns it when it happens (below).
+
+**What the report did show: a cliff.** The soft target of a slow machine is the head the server holds plus the new tokens it reads in 8 s, in steps (600 to 3,500). A prompt cut as far
+as it can be (everything optional) that still came to more than the step used to be sent whole: the old code fitted the soft target, found it unreachable and fitted the hard
+limit (the context), which cut nothing and logged nothing. Turn 2 reached 3,270 of 3,306; the next turns came to a few tens of tokens more and read the whole 5,300 to 5,600
+tokens at 200 a second (20 s) in place of 3,300 (12 s). Reproduced offline (a slow reading faked, a persona warm-up, 8 exchanges of history, the real server): turns 2 to 8 were sent
+whole, 5,600 tokens; now 4,040 to 4,550.
+
+**What changed** (`bridge/prompt-budget.mjs`, `bridge/text-provider-host.mjs`, `bridge/compact-persona.mjs`):
+- **Raised soft target.** A target that cannot be reached is raised to the smallest larger step that holds the cut prompt (`PrefillMeter.soft(floor, reach)`), and the prompt is fitted
+  to that; only when even the largest step (3,500 new tokens) does not hold it is the context's limit used, as before. The log says `(raised soft target)`. A
+  machine that reads fast, or that nobody has measured, is untouched.
+- **Per-model ratio, from the first turn.** `seedRatio`: 4.0 for Gemma 4, Bonsai and Qwen3.5 (the measured 4.2 to 4.5 less the dense and slang text), 3.6 for any other model. `TokenMeter`
+  then learns from every answered turn's `usage.prompt_tokens` (no request of its own), from plain text only, taking the other scripts off at what they are counted at: a prompt with a
+  Russian line used to teach nothing. The lowest of the last six, times 0.97, as before.
+- **A correction for what the ratio cannot explain.** After each turn `TokenMeter.observe` compares the server's count with what the budget counted for that prompt (the tokenizer's own
+  count when it was asked, else the estimate under the ratio learned meanwhile, so a wrong ratio is not corrected twice). A gap over 6% becomes the `bias` (the larger of the last two
+  turns, at most 2.5): the next fits multiply their estimate and the tokenizer's count by it, so the soft and the hard limit are met in the server's tokens. An odd turn is followed for two
+  turns, a lasting gap for as long as it lasts, and a model that agrees with the budget has a bias of exactly 1 (a fast machine's prompt is the same as before). A server's refusal of a prompt teaches the ratio only, as before. A gap of 15% or more
+  is logged (three times per model): `The local AI: the server counted 5262 tokens for a prompt this computer counted as 3270 (by the server's tokenizer, 1.61 times); later prompts are
+  counted 1.61 times higher`, and a fit made with a bias says `(counts corrected by 1.61)`. A report that shows this line says what the missing part was.
+- **One estimator.** The compact character text (`bridge/compact-persona.mjs`) aims at 1,900 tokens counted with the model's ratio (`COMPACT.targetTokens`, the meter's ratio, quantised to 0.2 and
+  kept inside 3.8 to 4.6, taken once when a character's text is chosen); its log line `the head goes from about N to M tokens` counts with it too (it used 3.6, 17% high). Without a ratio
+  (a test) the old 8,000 characters. The warm-up uses the same ratio as the turn.
+- **Scripts.** CJK 0.72 a character, other scripts 0.5, Latin Extended 2.0 (the table); the tokenizer verification's scale limit was 1.6, now 3.
+
+Tests: `bridge/token-estimate.test.mjs` (the estimator against the recorded real counts: whole prompts of both tokenizers, 24 texts, the learned ratio, the bias and its recovery, the fit with a
+bias, the log, everything sent is counted, the raised target, the compact target), `bridge/prompt-budget.test.mjs` (the raised target replaces "sent whole").
+
+**Live check owed** (needs a slow machine): the `[TextProvider] The local AI: prompt N of M tokens (raised soft target)` line instead of a turn with no line and 5,300 or more tokens; and, if
+the 1.61 of report `931d456381ee3ec6` comes back, the `the server counted ... tokens for a prompt this computer counted as ...` line, which says whether the tokenizer's count (`by the server's
+tokenizer`) or the estimate was off.
 
 ### Context size
 
