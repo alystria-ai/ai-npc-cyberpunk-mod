@@ -18,6 +18,7 @@ import {stripSpeechTags} from './natural-speech.mjs';
 import {ReplyStream} from './reply-stream.mjs';
 import {markStage} from './turn-clock.mjs';
 import {survivingLoss} from './local-server-recovery.mjs';
+import {worldRulesBlock} from './world-rules.mjs';
 import {budgetedChat, PrefillMeter, TokenMeter, templateTokens, describeFit} from './prompt-budget.mjs';
 import {MatureGuard, refusalLog} from './mature-guard.mjs';
 import {allowanceFor} from './mature-content.mjs';
@@ -790,7 +791,9 @@ export class TextProviderHost {
       // With Mature content on, the layer is part of the head, so the warmed prefix is the one the first reply will use.
       const mature = this.guardOnly ? null : await this.#matureLevel(route);
       const guard = mature ? true : await this.#guardOn(route);
-      await route.prewarm([{role: 'system', content: systemHead({persona, limits: this.limits, ...(mature ? {mature} : guard ? {guard: true} : {})})}, {role: 'user', content: '.'}], {key});
+      // The player's world rules follow the head in every prompt (bridge/mistral-prompt.mjs systemPrompt), so they are warmed with it.
+      const head = systemHead({persona, limits: this.limits, ...(mature ? {mature} : guard ? {guard: true} : {})});
+      await route.prewarm([{role: 'system', content: [head, worldRulesBlock(persona.worldRules)].filter(Boolean).join('\n\n')}, {role: 'user', content: '.'}], {key});
     } catch (error) {
       route.failure?.(error);
       this.log('prewarm failed: ' + (failureKind(error) ?? 'error'));

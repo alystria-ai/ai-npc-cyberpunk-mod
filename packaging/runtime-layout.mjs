@@ -175,6 +175,7 @@ export const BRIDGE_MODULES = Object.freeze([
   'bridge/voxtral-voice.mjs',
   'bridge/witness-receipts.mjs',
   'bridge/world-knowledge.mjs',
+  'bridge/world-rules.mjs',
   'bridge/world-session.mjs',
   'bridge/zip-writer.mjs',
 ]);

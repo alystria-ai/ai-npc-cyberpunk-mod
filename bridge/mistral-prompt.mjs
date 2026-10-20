@@ -5,7 +5,9 @@
 // server that reuses the longest identical prefix of the previous request (llama.cpp's prompt cache; some cloud APIs) recomputes
 // as little as possible. Nothing that alternates between turns may sit early: on a hybrid model (Qwen3.5, Gemma 4) a changed
 // early token throws away every checkpoint after it (docs/LOCAL_OPTION_DESIGN.md, "Hybrid model caveat"):
-//   system   1. the persona (backstory with the appearance, speaking style, original example lines) and the output rules
+//   system   1. the persona (backstory with the appearance, speaking style, original example lines) and the output rules, then the
+//               world rules the player wrote in the editor (bridge/world-rules.mjs; nothing when there are none): they change only when
+//               the player saves them, so they sit with the other stable text and never after the world facts or the right-now block
 //            2. the format notes (Expressive emotion tags): identical every turn for a given setting
 //            3. the world: quest and journal, relationship, who V is to this character, gear (changes on game events only)
 //            4. what the character remembers of V from older talks (the summary; changes every few exchanges)
@@ -24,6 +26,7 @@
 import {matureLayer, guardLayer, matureClosing, matureWorld} from './mature-content.mjs';
 
 import {applyOverride} from './character-overrides.mjs';
+import {worldRulesBlock} from './world-rules.mjs';
 
 export const LIMITS = Object.freeze({
   persona: 16000,        // characters of the persona sections (the longest named character is about 11,400)
@@ -65,16 +68,25 @@ export class PersonaBook {
   /**
    * `overrides` (bridge/character-overrides.mjs, optional): the player's own edits of a character, read with a plain lookup per turn.
    * `custom` (bridge/custom-characters.mjs, optional): the characters the player made; their persona is theirs alone and a roster key never reaches it.
+   * `worldRules` (bridge/world-rules.mjs, optional): the player's rules for the whole world; every persona carries them as `worldRules` (a text, absent when empty).
    */
-  constructor(rows = [], {overrides = null, custom = null} = {}) {
+  constructor(rows = [], {overrides = null, custom = null, worldRules = null} = {}) {
     this.overrides = overrides;
     this.custom = custom;
+    this.worldRules = worldRules;
     this.rows = new Map();
     for (const row of rows) if (row && typeof row.key === 'string' && !this.rows.has(row.key)) this.rows.set(row.key, row);
   }
   has(key) { return this.rows.has(key) || this.custom?.has(key) === true; }
-  /** {name, backstory, style, samples, rules, memories}: the shipped profile with the player's edits, when there are any. */
+  /**
+   * {name, backstory, style, samples, rules, memories, worldRules}: the shipped profile with the player's edits, when there are any, and the world
+   * rules of the whole world (a plain property read per turn). A persona without world rules has no `worldRules` field at all.
+   */
   persona(profileKey, fallbackName) {
+    const persona = this.#personaOf(profileKey, fallbackName), rules = this.worldRules?.get() ?? '';
+    return rules ? {...persona, worldRules: rules} : persona;
+  }
+  #personaOf(profileKey, fallbackName) {
     if (!this.rows.has(profileKey)) { const own = this.custom?.persona(profileKey); if (own) return own; }
     const shipped = this.defaults(profileKey, fallbackName);
     return shipped.known ? applyOverride(shipped, this.overrides?.get(profileKey) ?? null) : shipped;
@@ -202,10 +214,13 @@ export function systemHead({persona, memory = '', limits = LIMITS, mature = null
  * right-now block, in that order (see the header comment for why).
  */
 export function systemPrompt({persona, memory = '', limits = LIMITS, layers = null, mature = null, guard = false}) {
-  if (!layers) return systemHead({persona, memory, limits, mature, guard});
+  // The player's world rules follow the head (persona, output rules, Mature or guard layer) and come before everything that can change between
+  // turns. Never cut by the prompt budget (bridge/prompt-budget.mjs): they are not part of the persona levels.
+  const rules = worldRulesBlock(persona.worldRules);
+  if (!layers) return [systemHead({persona, memory, limits, mature, guard}), rules].filter(Boolean).join('\n\n');
   const fitted = capContext(`${CONTEXT_PREFIX}${layers.world || 'This is a private conversation with V.'}`, limits.world);
   const world = mature ? matureWorld(fitted) : fitted;   // Mature on: a partner's relationship text leans in (bridge/mature-content.mjs)
-  return [systemHead({persona, limits, mature, guard}),
+  return [systemHead({persona, limits, mature, guard}), rules,
     section('FORMAT NOTES FOR EVERY REPLY (instructions for you, never read aloud)', capContext(layers.notes, limits.notes)),
     section('WORLD AND QUEST CONTEXT (facts and instructions for you, never to be read aloud)', world),
     memory ? section('WHAT YOU REMEMBER OF V FROM EARLIER TALKS (true unless the live context says otherwise)', clip(memory, limits.summary)) : '',

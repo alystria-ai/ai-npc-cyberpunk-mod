@@ -41,7 +41,8 @@ export function editorClient() {
 
   // custom: the character being made or edited ({draft}); null while a shipped character is open.
   // voice: the voice part of the open character ({key, words, chosen, saved}); null when it cannot have a clip (see voiceSection).
-  const model = {state: null, key: '', data: null, draft: null, custom: null, voice: null, tab: 'bio', filter: '', note: null};
+  // world: the world rules page ({draft: {worldRules}}) while it is open, else null; it belongs to no character, so `data` is null then.
+  const model = {state: null, key: '', data: null, draft: null, custom: null, voice: null, world: null, tab: 'bio', filter: '', note: null};
   let noteTimer = 0, pickSeq = 0;
 
   const say = (text, bad) => {
@@ -68,6 +69,7 @@ export function editorClient() {
       case 'examples-total': return T('The example lines are too long together. Keep them under {max} characters in all.', values);
       case 'memories-many': return T('Too many memories. Keep {max} or fewer.', values);
       case 'memories-long': return T('A memory is too long. Keep each one under {max} characters.', values);
+      case 'world-rules-long': return T('The world rules are too long. Keep them under {max} characters.', values);
       case 'too-big': return T('Everything together is too long. Shorten something so it stays under {max} characters.', values);
       case 'name-empty': return T('Give the character a name.');
       case 'name-long': return T('The name is too long. Keep it under {max} characters.', values);
@@ -99,7 +101,9 @@ export function editorClient() {
   const customDirty = () => !!model.custom && (!model.data || !same(model.custom.draft, model.data.key ? model.data.custom : blankCustom()));
   // A file chosen and not saved, or words changed for a clip that is saved, are changes that are not saved. Words typed with no clip are not (nothing keeps them).
   const voiceDirty = () => !!model.voice && (!!model.voice.chosen || (!!model.data && !!model.data.voice && !!model.data.voice.clip && model.voice.words !== model.data.voice.transcript));
+  const worldDirty = () => !!model.world && model.world.draft.worldRules !== model.state.worldRules.text;
   const dirtyFields = () => {
+    if (model.world) return worldDirty() ? ['world'] : [];
     const text = model.custom ? (customDirty() ? ['custom'] : []) : model.data ? FIELDS.filter(field => !same(model.draft[field], model.data.values[field])) : [];
     return voiceDirty() ? [...text, 'voice'] : text;
   };
@@ -182,7 +186,7 @@ export function editorClient() {
   // keepDraft: only the memory or voice part changed, so what is typed in the form stays. The voice part follows the character: another one (or
   // one that cannot have a clip) drops the chosen file and its blob addresses.
   const apply = (data, keepDraft) => {
-    model.data = data;
+    model.data = data; model.world = null;
     if (data.group === 'custom') {
       if (!(keepDraft && model.custom)) model.custom = {draft: clone(data.custom)};
       model.draft = null;
@@ -468,11 +472,46 @@ export function editorClient() {
   };
   const newCharacter = () => {
     if (!leave()) return;
-    model.key = ''; model.draft = null;
+    model.key = ''; model.draft = null; model.world = null;
     model.data = {key: '', name: '', group: 'custom', custom: blankCustom(), memory: {available: false, learns: false, summary: '', records: []}, voice: null};
     model.custom = {draft: blankCustom()};
     dropVoice();
     drawList(); drawMain();
+    $('main').focus({preventScroll: true});
+  };
+
+  // ---- the world rules: one text for the whole world, in every character's talks. Saved at once (the next reply already uses it).
+  const worldPanel = () => {
+    const spec = model.state.worldRules, world = model.world, limit = spec.limit;
+    const area = h('textarea', {id: 'f-worldRules', rows: 10, spellcheck: 'true', maxlength: String(limit * 3), 'aria-label': T('World rules'), 'aria-describedby': 'h-worldRules',
+      placeholder: T('For example: Nobody in Night City knows V’s name unless V tells them. Everyone speaks casually.')});
+    area.value = world.draft.worldRules;
+    const meter = h('div', {class: 'meter'}, counter(area.value, limit));
+    const keep = h('button', {type: 'button', class: 'primary', onclick: async () => {
+      try { hush(); const reply = await api('PUT', '/api/world-rules', {text: world.draft.worldRules}); model.state.worldRules = reply; world.draft.worldRules = reply.text; drawMain(); say(T('Saved.')); }
+      catch (error) { say(problem(error), true); }
+    }}, T('Save'));
+    const back = h('button', {type: 'button', class: 'secondary', onclick: () => { world.draft.worldRules = spec.text; drawMain(); }}, T('Revert changes'));
+    const wipe = h('button', {type: 'button', class: 'quiet', onclick: async () => {
+      if (!confirm(T('Clear the world rules?'))) return;
+      try { hush(); const reply = await api('DELETE', '/api/world-rules'); model.state.worldRules = reply; world.draft.worldRules = reply.text; drawMain(); say(T('Cleared.')); }
+      catch (error) { say(problem(error), true); }
+    }}, T('Clear'));
+    const refresh = () => { const dirty = worldDirty(); keep.disabled = !dirty || count(world.draft.worldRules) > limit; back.disabled = !dirty; wipe.disabled = !spec.text && !world.draft.worldRules; };
+    area.addEventListener('input', () => { world.draft.worldRules = area.value; meter.replaceChildren(counter(area.value, limit)); refresh(); });
+    refresh();
+    return h('div', {},
+      h('div', {class: 'field'},
+        h('p', {class: 'help', id: 'h-worldRules'}, T('Rules for the whole world, used for every character in every talk: face to face, phone and group chats. Write facts and style, for example how people talk or what nobody knows. They never replace the mod’s own rules.')),
+        area, meter),
+      h('p', {class: 'help'}, T('Applies to every provider: Local AI, Mistral and Custom in the character prompt, and Convai through its dynamic info.')),
+      h('div', {class: 'actions bar'}, keep, back, wipe));
+  };
+  const openWorld = () => {
+    if (model.world || !leave()) return;
+    model.key = ''; model.data = null; model.draft = null; model.custom = null; dropVoice();
+    model.world = {draft: {worldRules: model.state.worldRules.text}};
+    chrome(); drawList(); drawMain();
     $('main').focus({preventScroll: true});
   };
 
@@ -489,6 +528,8 @@ export function editorClient() {
   };
   function drawMain() {
     const main = $('main');
+    drawBanner();
+    if (model.world) { main.replaceChildren(h('div', {class: 'head'}, h('h2', {}, T('World rules')), model.state.worldRules.text ? h('span', {class: 'chip edited'}, T('Edited')) : null), h('div', {class: 'panel'}, worldPanel())); return; }
     if (!model.data) { main.replaceChildren(h('p', {class: 'empty big'}, T('Choose a character on the left.'))); return; }
     const data = model.data;
     if (data.group === 'custom') {
@@ -509,6 +550,7 @@ export function editorClient() {
     refreshButtons();
   }
   function drawList() {
+    $('world').classList.toggle('on', !!model.world);
     const query = model.filter.trim().toLowerCase();
     const groups = [['custom', T('Your characters')], ['story', T('Story characters')], ['everyday', T('Everyday people')]];
     const nodes = [];
@@ -542,13 +584,21 @@ export function editorClient() {
     const make = $('new');
     make.textContent = T('New character');
     make.hidden = !model.state.custom;
-    const banner = $('banner');
-    if (model.state.provider === 'convai') { banner.hidden = false; banner.textContent = T('Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local AI as the conversation provider in the settings.'); }
-    else banner.hidden = true;
+    const world = $('world');
+    world.textContent = T('World rules');
+    world.hidden = !model.state.worldRules;
+    drawBanner();
   };
+  // The warning that Convai is answering. Not on the world rules page: Convai gets those as context, and that page says so.
+  function drawBanner() {
+    const banner = $('banner');
+    if (model.state.provider === 'convai' && !model.world) { banner.hidden = false; banner.textContent = T('Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local AI as the conversation provider in the settings.'); }
+    else banner.hidden = true;
+  }
   window.addEventListener('beforeunload', event => { if (dirtyFields().length) { event.preventDefault(); event.returnValue = ''; } });
   $('search').addEventListener('input', event => { model.filter = event.target.value; drawList(); });
   $('new').addEventListener('click', newCharacter);
+  $('world').addEventListener('click', openWorld);
   $('close').addEventListener('click', async () => {
     if (!leave()) return;
     try { await api('POST', '/api/close', {}); } catch { /* the page is closing anyway */ }
@@ -580,7 +630,8 @@ header.top p{margin:2px 0 0;color:var(--dim);font-size:13px}
 .layout{display:grid;grid-template-columns:300px 1fr;flex:1;min-height:0}
 aside{border-right:1px solid var(--line);padding:16px;overflow:auto;max-height:calc(100vh - 120px);background:var(--panel)}
 aside input[type=search]{width:100%}
-aside #new{width:100%;margin-bottom:12px}
+aside #new,aside #world{width:100%;margin-bottom:12px}
+aside #world.on{border-color:var(--accent)}
 #list ul{list-style:none;margin:0;padding:0}
 .group{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:18px 0 6px}
 .pick{width:100%;display:flex;justify-content:space-between;align-items:center;text-align:left;background:none;border:1px solid transparent;color:var(--text);padding:7px 10px;border-radius:6px;cursor:pointer;font:inherit}
@@ -657,7 +708,7 @@ export function renderEditorPage({nonce, token, language = 'en'}) {
 <header class="top"><div class="grow"><h1 id="title">Character editor</h1><p id="sub"></p></div><button type="button" id="close" class="secondary">Close editor</button></header>
 <p id="banner" role="status" hidden></p>
 <div class="layout">
-<aside><button type="button" id="new" class="primary" hidden>New character</button><input type="search" id="search" autocomplete="off"><nav id="list" aria-label="Characters"></nav></aside>
+<aside><button type="button" id="world" class="secondary" hidden>World rules</button><button type="button" id="new" class="primary" hidden>New character</button><input type="search" id="search" autocomplete="off"><nav id="list" aria-label="Characters"></nav></aside>
 <main id="main" tabindex="-1"></main>
 </div>
 <footer id="foot"></footer>

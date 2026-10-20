@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import {journalContext} from './quest-context.mjs';
+import {worldRulesContext} from './world-rules.mjs';
 import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';
 import {ConvaiDataAudio} from './convai-data-audio.mjs';
 import {AnalysisPcm} from './analysis-pcm.mjs';
@@ -27,6 +28,21 @@ async function until(predicate, label) {
     await new Promise(done => setTimeout(done, 10));
   }
 }
+test('the world rules reach Convai in the dynamic info the turn already sends: after everything else in it, replacing the last one', async () => {
+  const {api, events} = fixture();
+  await api.warm(config);
+  const rules = 'Nobody in Night City knows V’s name unless V tells them.';
+  const context = 'CURRENT PERSON\nQuest facts here.\n\n' + worldRulesContext(rules);
+  const pending = api.reply({...config, context}); pending.catch(() => {});
+  await flush();
+  const row = events.find(event => event[0] === 'context')[1];
+  assert.equal(row.mode, 'replace'); assert.equal(row.run_llm, 'false');
+  assert(row.text.startsWith('You are speaking to V in Night City.'));
+  assert(row.text.indexOf('Quest facts here.') < row.text.indexOf('World rules set by the player'));
+  assert(row.text.endsWith(rules), 'the player\'s words are the end of the dynamic info');
+  await api.close(); await assert.rejects(pending, /cancelled/);
+});
+
 function manualTimers() {
   let now = 0, nextId = 0;
   const pending = new Map();

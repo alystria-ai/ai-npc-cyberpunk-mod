@@ -9,6 +9,7 @@ import {EDIT_LIMITS, FIELDS, cleanBlock, cleanLine, validateOverride} from './ch
 import {STORE_LIMITS} from './memory-store.mjs';
 import {CUSTOM_LIMITS, isCustomKey} from './custom-characters.mjs';
 import {CLIP, CLIP_FORMATS} from './custom-voice-clip.mjs';
+import {WORLD_RULES_LIMIT} from './world-rules.mjs';
 
 export class EditorError extends Error {
   constructor(status, code, errors = []) { super(code); this.status = status; this.code = code; this.errors = errors; }
@@ -24,13 +25,16 @@ export class CharacterEditor {
    *   route      () => 'convai' | 'mistral' | 'local': who answers conversations now
    *   custom     CustomCharacters (optional: without it the editor has no "New character")
    *   voices     PlayerVoices (optional: without it the editor has no voice clips)
+   *   worldRules WorldRules (optional: without it the editor has no "World rules" page): one text for the whole world (bridge/world-rules.mjs)
    *   onChanged  (key) => void: after a save, reset, memory edit or character change reached the store. Everything the prompt reads is a plain lookup per
    *              turn (PersonaBook, CharacterOverrides, CustomCharacters, MemoryStore), so the next turn already uses it; what a speculative turn
    *              (a prepared group reply, a look-ahead) wrote before the save is the one thing that does not, and the bridge drops it here.
    */
-  constructor({personas, overrides, memory = null, route = () => 'convai', limits = EDIT_LIMITS, custom = null, voices = null, onChanged = () => {}} = {}) {
-    Object.assign(this, {personas, overrides, memory, route, limits, custom, voices, onChanged});
+  constructor({personas, overrides, memory = null, route = () => 'convai', limits = EDIT_LIMITS, custom = null, voices = null, worldRules = null, onChanged = () => {}} = {}) {
+    Object.assign(this, {personas, overrides, memory, route, limits, custom, voices, worldRules, onChanged});
   }
+  /** What the page needs for the "World rules" page: the saved text and its limit. Null without a store. */
+  get worldRulesForPage() { return this.worldRules ? {text: this.worldRules.get(), limit: this.worldRules.limit ?? WORLD_RULES_LIMIT} : null; }
   #changed(key) { try { this.onChanged(key); } catch { /* the change is saved; a hook never fails it */ } }
   get limitsForPage() { return {...this.limits, record: STORE_LIMITS.fact, summary: STORE_LIMITS.summary}; }
   /** What the page needs to build the "New character" form. Null without a store. */
@@ -61,7 +65,19 @@ export class CharacterEditor {
     return [...shipped, ...own]
       .sort((a, b) => (GROUP_ORDER[a.group] - GROUP_ORDER[b.group]) || a.name.localeCompare(b.name, 'en', {sensitivity: 'base'}));
   }
-  state() { return {provider: this.route(), characters: this.catalog(), limits: this.limitsForPage, custom: this.customForPage, voice: this.voiceForPage}; }
+  state() { return {provider: this.route(), characters: this.catalog(), limits: this.limitsForPage, custom: this.customForPage, voice: this.voiceForPage, worldRules: this.worldRulesForPage}; }
+
+  // ---- the world rules: one text for every character (bridge/world-rules.mjs). Saved at once; the next turn already reads it.
+  /** Stores the text ('' clears it). Throws EditorError 422 with `errors` when it is over the limit; nothing is stored then. */
+  async saveWorldRules(text) {
+    if (!this.worldRules) throw new EditorError(404, 'not-found');
+    if (typeof text !== 'string') throw new EditorError(400, 'bad-request');
+    try { await this.worldRules.set(text); }
+    catch (error) { throw error?.code === 'invalid' ? new EditorError(422, 'invalid', error.errors) : new EditorError(500, 'not-saved'); }
+    this.#changed('');
+    return this.worldRulesForPage;
+  }
+  async clearWorldRules() { return this.saveWorldRules(''); }
 
   /** The shipped text of a character in the editor's five fields. */
   defaults(key) {
