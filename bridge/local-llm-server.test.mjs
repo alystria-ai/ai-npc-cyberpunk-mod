@@ -566,8 +566,12 @@ test('the model follows the choice: auto, Mature content, a pin, a missing pin a
   await pinned.server.ensure();
   assert.deepEqual([pinned.loaded(), pinned.fallbacks], [['q2.gguf'], []]);
 
-  const pinnedUncensored = choiceHarness(t, {selected: {pin: 'mature:lite', matureOn: false}});
+  const pinnedUncensored = choiceHarness(t, {selected: {pin: 'mature:lite', matureOn: true}});
   assert.equal((await pinnedUncensored.server.ensure()).model, 'Qwen3.5-2B-Uncensored');
+  // Mature content off: a pinned uncensored model is not loaded (the pin stays saved), the ordinary default is, with no notice.
+  const pinnedOff = choiceHarness(t, {selected: {pin: 'mature:lite', matureOn: false}});
+  assert.equal((await pinnedOff.server.ensure()).model, 'Qwen3.5-4B');
+  assert.deepEqual([pinnedOff.loaded(), pinnedOff.fallbacks], [['q4.gguf'], []]);
 
   const missing = choiceHarness(t, {selected: {pin: 'mature:good'}, mature: false});
   await missing.server.ensure();
@@ -587,9 +591,12 @@ test('the model follows the choice: auto, Mature content, a pin, a missing pin a
   await stale.server.ensure();
   assert.deepEqual([stale.loaded(), stale.fallbacks, stale.server.modelId], [['big-u.gguf'], [], 'mature:good'], 'a saved Mature model that is gone maps to mature:good silently');
   assert.ok(!stale.logs.some(line => /not usable/.test(line)));
-  const staleTight = choiceHarness(t, {selected: {pin: 'mature:qwen3.5-9b-old', matureOn: false}, freeMiB: 3000});
+  const staleTight = choiceHarness(t, {selected: {pin: 'mature:qwen3.5-9b-old', matureOn: true}, freeMiB: 3000});
   await staleTight.server.ensure();
   assert.deepEqual([staleTight.loaded(), staleTight.fallbacks], [['small-u.gguf'], []], 'good does not fit: mature:lite, still silent');
+  const staleOff = choiceHarness(t, {selected: {pin: 'mature:qwen3.5-9b-old', matureOn: false}, freeMiB: 3000});
+  await staleOff.server.ensure();
+  assert.deepEqual([staleOff.loaded(), staleOff.fallbacks], [['q2.gguf'], []], 'Mature content off: never the uncensored model, the lite one fits and loads');
 
   // A legacy saved `auto` is no choice at all: the default model loads and nothing is announced.
   assert.deepEqual(auto.fallbacks, []);
@@ -631,6 +638,21 @@ test('a changed choice reloads the model at an idle moment: the old server is st
   assert.equal(await until(() => h.calls.length === 3 && h.server.status().state === 'ready'), true);
   assert.equal(h.server.modelId, 'mature:good');
   assert.equal(h.calls[1].child.exitCode !== null || h.calls[1].child.signalCode !== null, true);
+});
+
+test('Mature content turned off after an uncensored model was loaded and pinned: the standard model replaces it (reload), the pin stays saved, and back on it returns', async t => {
+  // The Local AI standard pack and a Mature pack are both installed (the player's report: Mature off must not leave Local AI without a model).
+  const h = choiceHarness(t, {selected: {pin: 'mature:good', matureOn: true}});
+  assert.equal((await h.server.ensure()).model, 'Gemma-4-E4B-uncensored');
+  h.state.matureOn = false;
+  assert.equal(await h.server.reselect(), true, 'the loaded uncensored model does not satisfy Mature content off');
+  assert.equal(await until(() => h.calls.length === 2 && h.server.status().state === 'ready'), true);
+  assert.deepEqual([h.server.modelId, h.loaded(), h.state.pin, h.fallbacks], ['standard', ['big-u.gguf', 'q4.gguf'], 'mature:good', []]);
+  assert.equal(await h.server.reselect(), false, 'and it is stable: no reload loop');
+  h.state.matureOn = true;
+  assert.equal(await h.server.reselect(), true);
+  assert.equal(await until(() => h.calls.length === 3 && h.server.status().state === 'ready'), true);
+  assert.equal(h.server.modelId, 'mature:good');
 });
 
 test('reselect does nothing while the server is stopped (the next start reads the choice itself), and a stop clears a queued reload', async t => {
@@ -859,8 +881,8 @@ test('stalled turns on the Mature family: mature:good steps down to mature:lite,
   assert.equal((await h.server.ensure()).model, 'Gemma-4-E4B-uncensored');
 });
 
-test('a pinned model steps down inside its own family: the Mature good model with Mature content off goes to Mature lite, not to the ordinary lite model', async t => {
-  const h = stepHarness(t, {selected: {pin: 'mature:good', matureOn: false}});
+test('a pinned model steps down inside its own family: the Mature good model (pinned, Mature content on) goes to Mature lite, not to the ordinary lite model', async t => {
+  const h = stepHarness(t, {selected: {pin: 'mature:good', matureOn: true}});
   assert.equal((await h.server.ensure()).model, 'Gemma-4-E4B-uncensored');
   stall(h.server, 'no-first-token'); stall(h.server, 'no-first-token');
   assert.equal(await until(() => h.steps.length > 0), true);

@@ -538,9 +538,22 @@ local function stageMature(changes, snapshot)
     local savedMature = saved.matureContent == true
     local providerNow = now('conversationProvider', providerIndexOf(saved))
     local mature = by.matureContent
+    -- Mature content off never loads a Mature pack model (the bridge skips it), so a row still on one moves to the standard (else the lite) model in the same
+    -- change, whether or not the way back above put an earlier model there. Nothing happens when neither is listed (a Mature-only install).
+    local function leaveUncensoredModel()
+        local current = manager.localModelChoices()[now('localModel', modelIndexOf(saved.localModel)) or 0]
+        if not current or not current.id:find('^mature:') then return end
+        for _, id in ipairs({'standard', 'lite'}) do
+            local target = modelIndexOf(id)
+            if target then
+                stage('localModel', target); names[#names + 1] = ui.t('Local AI model')
+                return
+            end
+        end
+    end
     local function turnedOff()
         local restore = saved.matureRestore
-        if type(restore) ~= 'table' then return end
+        if type(restore) ~= 'table' then leaveUncensoredModel(); return end
         local part = restore.conversationProvider
         if part then
             local was, back
@@ -566,6 +579,7 @@ local function stageMature(changes, snapshot)
                 stage('voiceProvider', back); names[#names + 1] = ui.t('Companion voices')
             end
         end
+        leaveUncensoredModel()
     end
     if mature and mature.value == true and not savedMature then
         local installed = LOCAL_AI_PRESENT[(snapshot.mistral or {}).localAi] == true
@@ -802,7 +816,8 @@ local function ownKeyRows(snapshot)
         local found = false
         for index, choice in ipairs(choices) do
             labels[index] = choice.name
-            if choice.id == snapshot.settings.localModel then selected, found = index, true end
+            -- A saved Mature pack model with Mature content off is not the model that loads (the bridge skips it): the default is shown instead.
+            if choice.id == snapshot.settings.localModel and not (choice.id:find('^mature:') and snapshot.settings.matureContent ~= true) then selected, found = index, true end
             do
                 local gb = string.format('%.1f', choice.sizeMiB / 1024)
                 if choice.custom then

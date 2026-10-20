@@ -10,7 +10,9 @@
 //             the fallback when none of them fits; otherwise an uncensored model is never picked. A custom model counts like any other
 //             (its manifest `auto` flag is obsolete and ignored), except that it is never picked when it is too large for the graphics
 //             card or failed to start before.
-//   <id>      that model, whatever the setting for Mature content says. A model that is missing, that does not fit the free graphics
+//   <id>      that model, whatever the setting for Mature content says, except that with Mature content off a Mature pack model (`mature:*`) is
+//             never loaded: the pin stays in the settings, is ignored (no notice) and the default rule runs, so with a standard or lite model
+//             installed they load. A model that is missing, that does not fit the free graphics
 //             memory (a custom one: or the card), or that failed to start, is replaced by the default (the result says why, and which
 //             model was used, so the bridge can say it once). Two things are silent: a saved id that names a model no longer in any
 //             pack (a Mature model of an older pack, a removed standard model; never a `custom:` one, which is the player's own file)
@@ -19,8 +21,8 @@
 //             the lite one does not fit the free graphics memory it is loaded anyway, with part of its layers on the CPU (`offload`).
 // A Mature-only install (the Mature packs carry their own engine, so a player may have no Local AI pack): when every installed model is a Mature
 // pack model and Mature content is off, nothing is chosen and nothing is offered as the default: Local AI is unavailable ('mature-off') until
-// Mature content is turned on, or a Local AI pack or a custom model is added. The rule above ("a pinned model is used whatever Mature content says")
-// is for installs that have another model to run; with a standard, lite or custom model installed nothing changes.
+// Mature content is turned on, or a Local AI pack or a custom model is added. With a standard, lite or custom model installed Local AI always runs: with
+// Mature content off the Mature pack models are skipped, pinned or not.
 // A server the player runs (an `endpoint` entry of bridge/custom-models.mjs: KoboldCpp, LM Studio, Ollama, ...) is a custom model with no file:
 // `external: true`. It uses no graphics memory of ours, so it always "fits" and is never "too large", and it has no size (0). It joins the
 // default choice only as the last resort of its group: the default is an installed file model when there is one (an uncensored one first with
@@ -47,6 +49,9 @@ const BIG_MODEL_MIB = 3000;                                      // a mature mod
 
 /** True when every installed model is a Mature pack model (a Mature-only install) and Mature content is off: no model may run then. */
 export const matureOffBlocks = (models, matureOn) => !matureOn && models.length > 0 && models.every(model => model.matureTier);
+
+/** True when Mature content is off, the pin names a Mature pack model (`mature:*`) and one is installed: the pin is not used (the default rule runs, with no notice). */
+const matureOffIgnores = (pin, models) => typeof pin === 'string' && pin.startsWith('mature:') && models.some(model => model.matureTier);
 
 /** A pin read from the settings file: an id made of letters, digits and `. _ : -` (at most 80), else `auto` (no choice: the default rule). */
 export function normalisePin(value) {
@@ -178,6 +183,8 @@ function prepare({models, freeMiB, totalMiB, sizeOf}) {
 export function chooseLocalModel({models = [], pin = AUTO_MODEL, matureOn = false, freeMiB = null, totalMiB = null, sizeOf = () => 0} = {}) {
   if (!models.length) throw new LocalAiUnavailable('not-installed', 'no model');
   if (matureOffBlocks(models, matureOn)) throw new LocalAiUnavailable('mature-off', 'only Mature models are installed and Mature content is off');
+  // Mature content off: a Mature pack model never loads, pinned or not (a pin of it stays in the settings, and is used again when Mature content is on).
+  if (!matureOn) { if (matureOffIgnores(pin, models)) pin = AUTO_MODEL; models = models.filter(model => !model.matureTier); }
   const {sized, fits, pick, pickMature, externals, reserved, uncensored, ordinary} = prepare({models, freeMiB, totalMiB, sizeOf});
   let fellBack = null, silent = false, want = pin;
   if (want !== AUTO_MODEL) {
@@ -233,7 +240,7 @@ export function defaultModelIds({models = [], matureOn = false, freeMiB = null, 
   const mature = uncensored.length ? pickMature(uncensored) : null;
   // A Mature-only install with Mature content off: no default (nothing is saved on Apply); turning Mature content on selects `mature`.
   if (matureOffBlocks(models, matureOn)) return {default: null, mature: mature?.model.id ?? null};
-  const chosen = (matureOn ? mature : null) ?? pick(ordinary) ?? mature;
+  const chosen = (matureOn ? mature : null) ?? pick(ordinary) ?? (matureOn ? mature : null);   // Mature content off: an uncensored model is never the default
   return {default: chosen?.model.id ?? null, mature: mature?.model.id ?? null};
 }
 
@@ -245,6 +252,8 @@ export function defaultModelIds({models = [], matureOn = false, freeMiB = null, 
 export function stillSatisfies({loadedId, models = [], pin = AUTO_MODEL, matureOn = false} = {}) {
   if (!loadedId) return false;
   if (matureOffBlocks(models, matureOn)) return false;   // a Mature-only install with Mature content turned off: nothing may stay loaded
+  if (!matureOn && models.some(model => model.id === loadedId && model.matureTier)) return false;   // a Mature pack model never stays loaded with Mature content off
+  if (matureOffIgnores(pin, models)) pin = AUTO_MODEL;
   if (pin !== AUTO_MODEL && models.some(model => model.id === pin)) return loadedId === pin;
   // A saved Mature model that is gone stands for a model of the Mature pack (chooseLocalModel): any of the two satisfies it.
   if (pin.startsWith('mature:') && models.some(model => model.matureTier)) return models.some(model => model.id === loadedId && model.matureTier);
