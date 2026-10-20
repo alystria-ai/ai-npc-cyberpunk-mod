@@ -59,6 +59,7 @@ export class MistralProvider {
     this.noKeyPending = false; this.noSetupPending = false; this.voicePending = false; this.limit = null; this.sttAvailable = false;
     this.localTurnNoticePending = false; this.localRestartNoticePending = false; this.localModelNoticePending = false; this.localModelNoticeName = ''; this.lastNoticeModel = '';
     this.localBroken = null; this.localNoticePending = false; // why the local AI cannot be used (null: it can), and the one notice for it
+    this.localStepNoticePending = false; this.localStepNoticeName = ''; this.localStepToCloud = false;   // turns stalled: a smaller model was loaded (its name), or the cloud takes over
     // May Convai take a turn now? The bridge sets this (false while the shared free tier's day is used up). A Local AI that cannot be used
     // hands its turns to Convai only while Convai can answer them; otherwise they stay on Local AI, whose failure names the real problem
     // instead of a Convai limit the player did not choose (2026-10-19 report: Local AI saved, the first turn showed the Convai daily limit).
@@ -88,7 +89,7 @@ export class MistralProvider {
     const next = PROVIDERS.includes(value) ? value : 'convai', changed = next !== this.preference;
     this.preference = next;
     if (changed) {
-      this.noKeyPending = next === 'mistral' && !this.key; this.noSetupPending = next === 'custom' && !this.custom?.ready; this.localBroken = null; this.localNoticePending = false; this.localModelNoticePending = false; this.localRestartNoticePending = false;
+      this.noKeyPending = next === 'mistral' && !this.key; this.noSetupPending = next === 'custom' && !this.custom?.ready; this.localBroken = null; this.localNoticePending = false; this.localModelNoticePending = false; this.localRestartNoticePending = false; this.localStepNoticePending = false; this.localStepToCloud = false;
     }
     return changed;
   }
@@ -140,7 +141,7 @@ export class MistralProvider {
    */
   clearLocalFailure(reason) {
     if (this.preference !== 'local' || !this.localBroken || this.localBroken !== reason) return false;
-    this.localBroken = null; this.localNoticePending = false;
+    this.localBroken = null; this.localNoticePending = false; this.localStepToCloud = false;
     this.#changed();
     return true;
   }
@@ -153,7 +154,17 @@ export class MistralProvider {
   noteLocalRestarted() { if (this.applied === 'local') this.localRestartNoticePending = true; }
   /** The model the player chose for Local AI is missing, does not fit or did not start, and `model` (its name) was used instead: one notice ('local-model-fallback') with the next reply; `noticeModel` holds the name. */
   noteLocalModelFallback(model) { if (this.preference === 'local') { this.localModelNoticePending = true; this.localModelNoticeName = typeof model === 'string' ? model.slice(0, 80) : ''; } }
-  /** The name of the model the 'local-model-fallback' notice just taken says was used, else ''. */
+  /**
+   * Local AI's turns stalled (the game uses most of the graphics memory) and the supervisor stepped down (bridge/local-llm-server.mjs 'model-stepdown'): `model` (its
+   * name) was loaded instead, said once with the next reply ('local-stepdown', `noticeModel` holds the name); null when no smaller model is installed, so the cloud
+   * provider takes over (the supervisor's 'failed' follows at once): the one notice for that failure is then this one, not 'local-fallback' (which says it could not start).
+   */
+  noteLocalStepDown(model) {
+    if (this.preference !== 'local') return;
+    if (typeof model === 'string' && model) { this.localStepNoticePending = true; this.localStepNoticeName = model.slice(0, 80); }
+    else this.localStepToCloud = true;
+  }
+  /** The name of the model the 'local-model-fallback' or 'local-stepdown' notice just taken says was used, else ''. */
   get noticeModel() { return this.lastNoticeModel || ''; }
   /** Adopts the requested provider; call only at an idle boundary. Returns whether it changed. */
   apply() {
@@ -175,7 +186,12 @@ export class MistralProvider {
   noteSuccess() { if (this.limit) { this.limit = null; this.#changed(); } }
   /** 'mistral-no-key', 'mistral-voice', 'custom-no-setup', 'custom-voice', 'local-fallback', 'local-turn-fallback' or 'local-restarted' once each (the game shows them with the next reply), else undefined. */
   takeNotice({cloudVoice = false} = {}) {
-    if (this.localNoticePending && this.applied !== 'local') { this.localNoticePending = false; return 'local-fallback'; }
+    if (this.localNoticePending && this.applied !== 'local') {
+      this.localNoticePending = false;
+      if (this.localStepToCloud) { this.localStepToCloud = false; this.lastNoticeModel = ''; return 'local-stepdown'; }
+      return 'local-fallback';
+    }
+    if (this.localStepNoticePending && this.applied === 'local') { this.localStepNoticePending = false; this.lastNoticeModel = this.localStepNoticeName || ''; return 'local-stepdown'; }
     if (this.localModelNoticePending && this.applied === 'local') { this.localModelNoticePending = false; this.lastNoticeModel = this.localModelNoticeName || ''; return 'local-model-fallback'; }
     if (this.localTurnNoticePending) { this.localTurnNoticePending = false; return 'local-turn-fallback'; }
     if (this.localRestartNoticePending && this.applied === 'local') { this.localRestartNoticePending = false; return 'local-restarted'; }

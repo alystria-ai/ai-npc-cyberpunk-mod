@@ -353,7 +353,7 @@ async function hostRig(t, {env = {}, limits = {}, budgetMs, names, serverOptions
   if (budgetMs !== undefined) route.turnBudgetMs = budgetMs;
   const host = new TextProviderHost({provider, memory: await MistralMemory.open({path: null}), personas: book, routes: {local: route}, log: line => logs.push(line)});
   t.after(() => host.close());
-  return {host, server, route, logs, directory};
+  return {host, server, route, logs, directory, provider};
 }
 
 test('the local route\'s limits end a turn before the game gives up on it (90 s), and the route asks for what it needs from its own server only', () => {
@@ -956,4 +956,28 @@ test('a slow turn on a model that does not fit the graphics memory says so in th
     trace: {...newTrace(), elapsedMs: 75000, progress: {processed: 123456, total: 234567, cache: 0}}}), {hint: 'x'.repeat(120)});
   assert.doesNotMatch(failureDetail(long), /xxx/);
   assert.equal(failureDetail(new Error('x')), undefined);
+});
+
+test('end to end: two stalled turns in a row step Local AI down; with no smaller model installed the cloud takes over with one notice, and the saved choice is untouched', async t => {
+  const {host, server, provider, logs} = await hostRig(t, {env: {FAKE_LLAMA_STALL: 'progress'}, limits: {promptStallMs: 100, stallMs: 100, firstByteMs: 30_000, totalMs: 60_000}});
+  // The bridge's wiring (bridge/convai-bridge.mjs): the supervisor's step-down and failure reach the provider.
+  const steps = [];
+  server.on('model-stepdown', event => { steps.push(event); provider.noteLocalStepDown(event.model); });
+  server.on('failed', ({reason}) => provider.noteLocalFailure(reason));
+  const first = await host.reply(turn('hello there')).catch(e => e);
+  assert.equal(first.reason, 'prefill-stalled');
+  assert.deepEqual([steps.length, server.status().state], [0, 'ready'], 'one stall is not enough');
+  const second = await host.reply(turn('hello again')).catch(e => e);
+  assert.equal(second.reason, 'prefill-stalled');
+  for (let wait = 0; wait < 400 && server.status().state !== 'failed'; wait++) await sleep(25);
+  assert.equal(server.status().state, 'failed');
+  assert.deepEqual([steps.map(step => step.model), server.status().reason], [[null], 'low-memory']);
+  assert(logs.some(line => /stepping down from .*no smaller model is installed, the cloud text provider takes over/.test(line)), logs.join('\n'));
+  // The provider: Local AI is still the saved choice; the turns go to a cloud provider, and the game is told once, in the step-down's words.
+  assert.equal(provider.preference, 'local');
+  assert.equal(provider.requested, 'convai');
+  provider.apply();
+  assert.equal(provider.takeNotice(), 'local-stepdown');
+  assert.equal(provider.noticeModel, '');
+  assert.equal(provider.takeNotice(), undefined);
 });

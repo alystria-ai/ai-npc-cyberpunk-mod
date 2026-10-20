@@ -661,6 +661,8 @@ return {
     ["No model installed"] = "Nincs telepített modell",
     ["another model"] = "egy másik modell",
     ["The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead."] = "A kiválasztott Local AI-modell hiányzik, nem fér be a szabad grafikus memóriába, vagy nem indult el, ezért helyette ezt használtuk: {model}.",
+    ["Local AI switched to {model}: the game is using most of your graphics memory."] = "Local AI átváltott {model} modellre: a játék a videomemória nagy részét használja.",
+    ["Local AI was too slow because the game is using most of your graphics memory, so a cloud provider is used."] = "A Local AI túl lassú volt, mert a játék a videomemória nagy részét használja, ezért felhőszolgáltatót használ.",
     ["Choose one of the listed Local AI models."] = "Válassz egyet a felsorolt Local AI-modellek közül.",
     ["Deletes the saved key. The Inworld cloud voice stops until you add a key again."] = "Törli a mentett kulcsot. Az Inworld felhőhang leáll, amíg újra nem adsz meg kulcsot.",
     ["Inworld cloud voice"] = "Inworld felhőhang",

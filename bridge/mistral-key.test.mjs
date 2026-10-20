@@ -361,3 +361,37 @@ test('local: a Mature-only install that could not start while Mature content was
   other.noteLocalFailure('mature-off');
   assert.equal(other.clearLocalFailure('mature-off'), false);
 });
+
+test('local-stepdown: a smaller model was loaded (said once, with its name) or the cloud took over (said once instead of local-fallback); a new choice drops it', () => {
+  const model = new MistralProvider({});
+  model.setPreference('local'); model.apply();
+  // A smaller model was loaded: one notice, with the model's name, on the next reply; the Local AI stays the provider.
+  model.noteLocalStepDown('Qwen3.5-2B');
+  assert.equal(model.takeNotice(), 'local-stepdown');
+  assert.equal(model.noticeModel, 'Qwen3.5-2B');
+  assert.equal(model.takeNotice(), undefined);
+  assert.equal(model.applied, 'local');
+  // No smaller model: the supervisor's failure (low-memory) hands the turns to a cloud provider, and its one notice is the step-down's, without a name.
+  const cloud = new MistralProvider({});
+  cloud.key = 'k'.repeat(32);
+  cloud.setPreference('local'); cloud.apply();
+  cloud.noteLocalStepDown(null);
+  cloud.noteLocalFailure('low-memory');
+  assert.equal(cloud.requested, 'mistral');
+  cloud.apply();
+  assert.equal(cloud.takeNotice(), 'local-stepdown');
+  assert.equal(cloud.noticeModel, '');
+  assert.equal(cloud.takeNotice(), undefined);
+  // An ordinary failure that follows is the usual 'local-fallback'.
+  cloud.noteLocalFailure('start-failed');
+  assert.equal(cloud.takeNotice(), 'local-fallback');
+  // Another provider chosen: nothing stays pending.
+  const gone = new MistralProvider({});
+  gone.setPreference('local'); gone.apply();
+  gone.noteLocalStepDown('X');
+  gone.setPreference('convai'); gone.setPreference('local');
+  assert.equal(gone.takeNotice(), undefined);
+  const other = new MistralProvider({});
+  other.noteLocalStepDown('X');
+  assert.equal(other.takeNotice(), undefined, 'only while Local AI is the chosen provider');
+});

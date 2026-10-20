@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {AUTO_MODEL, chooseLocalModel, defaultModelIds, describeLocalModels, listLocalModels, modelNeedMiB, normalisePin, profileOf, sortLocalModels, stillSatisfies} from './local-model-choice.mjs';
+import {AUTO_MODEL, chooseLocalModel, defaultModelIds, describeLocalModels, listLocalModels, modelNeedMiB, normalisePin, profileOf, sortLocalModels, stepDownTarget, stillSatisfies} from './local-model-choice.mjs';
 import {tierNeedMiB} from './local-llm-server.mjs';
 import {allowanceFor} from './mature-content.mjs';
 
@@ -349,4 +349,57 @@ test('a combined install keeps every earlier behaviour: Mature off still runs th
   const withCustom = listLocalModels({pack: {tiers: {}}, matureModels, customModels: custom});
   assert.equal(pick(withCustom, {matureOn: false, pin: 'mature:lite'}).model.id, 'mature:lite');
   assert.equal(pick(withCustom, {matureOn: false}).model.id, 'custom:mine');
+});
+
+test('stepDownTarget: the next smaller model of the same family; the Mature line is never crossed; a model the player added or a server never steps down', () => {
+  const target = (models, from, options) => stepDownTarget({models, from: models.find(model => model.id === from), sizeOf, ...options})?.id ?? null;
+  assert.equal(target(withMature, 'standard'), 'lite');
+  assert.equal(target(withMature, 'mature:good'), 'mature:lite');
+  assert.equal(target(withMature, 'lite'), null);
+  assert.equal(target(withMature, 'mature:lite'), null);
+  assert.equal(target(stock.filter(model => model.id !== 'lite'), 'standard'), null, 'no lite model installed');
+  assert.equal(target(withMature.filter(model => model.id !== 'mature:lite'), 'mature:good'), null, 'only the censored models are left: not for an uncensored one');
+  assert.equal(target(withMature.map(model => (model.id === 'lite' ? {...model, stalled: true} : model)), 'standard'), null, 'a model that stalled is not a target');
+  const custom = listLocalModels({pack, customModels: [{id: 'custom:own', name: 'Own', file: 'models/small.gguf', family: 'llama'}]});
+  assert.equal(target(custom, 'custom:own'), null);
+  assert.equal(stepDownTarget({models: withMature, from: null}), null);
+});
+
+test('a stalled model is left out of the choice: the default and a pin step down inside the family, and with nothing left the choice is unavailable', () => {
+  const stall = (models, ...ids) => models.map(model => (ids.includes(model.id) ? {...model, stalled: true} : model));
+  // Default rule, Mature content off: standard stalled -> lite; both stalled -> unavailable.
+  assert.equal(pick(stall(stock, 'standard')).model.id, 'lite');
+  assert.throws(() => pick(stall(stock, 'standard', 'lite')), error => error.reason === 'low-memory');
+  // Mature content on: good stalled -> Mature lite; both Mature models stalled -> the ordinary default (the server never asks: it fails to the cloud first).
+  assert.equal(pick(stall(withMature, 'mature:good'), {matureOn: true}).model.id, 'mature:lite');
+  assert.equal(pick(stall(withMature, 'mature:good', 'mature:lite'), {matureOn: true}).model.id, 'standard');
+  // A pinned model that stalled: its family's next smaller one, and the result says it was "too slow" (no pin of the player's is rewritten).
+  const pinned = pick(stall(withMature, 'standard'), {pin: 'standard'});
+  assert.deepEqual([pinned.model.id, pinned.fellBack, pinned.pinned], ['lite', 'too-slow', false]);
+  const pinnedMature = pick(stall(withMature, 'mature:good'), {pin: 'mature:good', matureOn: false});
+  assert.deepEqual([pinnedMature.model.id, pinnedMature.fellBack, pinnedMature.offload], ['mature:lite', 'too-slow', false]);
+  // A smaller Mature model that does not fit the free memory is still loaded (with layers on the CPU), like the rest of the Mature pack; an ordinary one is not.
+  const crowded = pick(stall(withMature, 'mature:good'), {pin: 'mature:good', freeMiB: 1000});
+  assert.deepEqual([crowded.model.id, crowded.offload], ['mature:lite', true]);
+  assert.throws(() => pick(stall(stock, 'standard'), {pin: 'standard', freeMiB: 1000}), error => error.reason === 'low-memory');
+});
+
+test('a card of about 8 GB keeps room for the game in the default choice only: the lite model is taken, a pinned model is the player\'s word, bigger cards and unknown cards are unchanged', () => {
+  const small = {totalMiB: 8151, freeMiB: 7174};
+  const auto = pick(withMature, {...small, matureOn: true});
+  assert.deepEqual([auto.model.id, auto.gameReserve], ['mature:lite', true], 'the 5,400 MiB model fits the 7,174 MiB free now but not beside the game');
+  assert.equal(pick(stock, small).model.id, 'lite');
+  assert.equal(pick(stock, small).gameReserve, true);
+  // A pin is kept when it fits the free memory, as before.
+  assert.equal(pick(withMature, {...small, pin: 'mature:good', matureOn: true}).model.id, 'mature:good');
+  assert.equal(pick(stock, {...small, pin: 'standard'}).model.id, 'standard');
+  // A 12 GB card, a card whose size is unknown and a 10 GB card have the old default; so does a small card where the reserve would leave nothing (the old rule applies).
+  for (const options of [{totalMiB: 11997, freeMiB: 11229}, {totalMiB: null, freeMiB: 7174}, {totalMiB: 10240, freeMiB: 9000}]) {
+    const result = pick(stock, options);
+    assert.deepEqual([result.model.id, result.gameReserve], ['standard', undefined], JSON.stringify(options));
+  }
+  const tiny = pick(stock, {totalMiB: 4096, freeMiB: 3900});
+  assert.deepEqual([tiny.model.id, tiny.gameReserve], ['lite', undefined], '4 GB: the reserve leaves no model, so the largest that fits is taken as before');
+  // The page's defaults follow the same rule.
+  assert.equal(defaultModelIds({models: stock, ...small, sizeOf}).default, 'lite');
 });

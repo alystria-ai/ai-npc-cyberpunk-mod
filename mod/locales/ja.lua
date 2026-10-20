@@ -661,6 +661,8 @@ return {
     ["No model installed"] = "モデル未インストール",
     ["another model"] = "別のモデル",
     ["The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead."] = "選んだ Local AI モデルがない、空きグラフィックスメモリに収まらない、または起動しなかったため、代わりに {model} が使用されました。",
+    ["Local AI switched to {model}: the game is using most of your graphics memory."] = "Local AIを{model}に切り替えました：ゲームがグラフィックメモリの大部分を使用しています。",
+    ["Local AI was too slow because the game is using most of your graphics memory, so a cloud provider is used."] = "ゲームがグラフィックメモリの大部分を使用しているため Local AI が遅すぎたので、クラウドプロバイダーを使用しました。",
     ["Choose one of the listed Local AI models."] = "Local AI のモデルを一覧から 1 つ選んでください。",
     ["Deletes the saved key. The Inworld cloud voice stops until you add a key again."] = "保存されているキーを削除します。キーを再度追加するまで、Inworldクラウド音声は停止します。",
     ["Inworld cloud voice"] = "Inworldクラウド音声",

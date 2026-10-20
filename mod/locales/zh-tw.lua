@@ -661,6 +661,8 @@ return {
     ["No model installed"] = "未安裝任何模型",
     ["another model"] = "其他模型",
     ["The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead."] = "你選擇的 Local AI 模型缺失、放不進可用顯示記憶體或未能啟動，因此改用了 {model}。",
+    ["Local AI switched to {model}: the game is using most of your graphics memory."] = "Local AI 已切換至 {model}：遊戲正在佔用大部分顯存。",
+    ["Local AI was too slow because the game is using most of your graphics memory, so a cloud provider is used."] = "因為遊戲佔用了大部分顯存，Local AI 運作太慢，因此改用雲端服務供應商。",
     ["Choose one of the listed Local AI models."] = "請從列出的 Local AI 模型中選擇一個。",
     ["Deletes the saved key. The Inworld cloud voice stops until you add a key again."] = "刪除已儲存的金鑰。在你重新新增金鑰之前，Inworld 雲端語音將停止運作。",
     ["Inworld cloud voice"] = "Inworld 雲端語音",

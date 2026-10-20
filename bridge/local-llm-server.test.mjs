@@ -793,3 +793,111 @@ test('buildServerArgs adds --chat-template only when one is named', () => {
   const args = buildServerArgs({...base, chatTemplate: 'llama3'});
   assert.equal(args[args.indexOf('--chat-template') + 1], 'llama3');
 });
+
+// ---- Stalled turns: step down to a smaller model (the game takes the graphics memory and the model is read at a crawl) ----------------------------------------------
+
+// What the Mistral client throws for a local turn that stalled (bridge/mistral-client.mjs timeoutError): `slow`, and the stream's own reason.
+const stalledTurn = (reason = 'prefill-stalled') => Object.assign(new Error('The local AI did not finish in time'), {slow: true, reason, provider: 'local'});
+const stall = (server, reason) => server.noteTurn({ok: false, error: stalledTurn(reason), detail: 'stuck reading the prompt'});
+
+function stepHarness(t, options) {
+  const h = choiceHarness(t, options);
+  const steps = [];
+  h.server.on('model-stepdown', event => steps.push(event));
+  return {...h, steps};
+}
+
+test('stalled turns step the model down: standard to lite after two stalls with no answer between, in memory only (the saved choice stays), and said once', async t => {
+  const h = stepHarness(t, {mature: false, selected: {pin: 'standard'}});
+  await h.server.ensure();
+  assert.deepEqual(h.loaded(), ['q4.gguf']);
+  // One stall is not enough, and an answered turn clears the count; a refused prompt or a model that was still loading is no stall.
+  stall(h.server, 'no-response');
+  h.server.noteTurn({ok: true, trace: {firstTokenMs: 400}});
+  stall(h.server, 'no-first-token');
+  h.server.noteTurn({ok: false, error: Object.assign(new Error('x'), {slow: true, reason: 'loading', provider: 'local'})});
+  h.server.noteTurn({ok: false, error: Object.assign(new Error('x'), {slow: false, reason: 'prefill-stalled'})});
+  h.server.noteTurn({ok: false, error: Object.assign(new Error('x'), {slow: true, reason: 'thinking-only'})});
+  assert.deepEqual([h.steps.length, h.calls.length], [0, 1], 'nothing stepped down yet');
+  stall(h.server, 'prefill-stalled');
+  assert.equal(await until(() => h.steps.length > 0), true);
+  const info = await h.server.ensure();
+  assert.deepEqual([info.model, h.server.modelId, h.loaded()], ['Qwen3.5-2B', 'lite', ['q4.gguf', 'q2.gguf']]);
+  assert.equal(h.steps.length, 1);
+  assert.deepEqual([h.steps[0].model, h.fallbacks], ['Qwen3.5-2B', []], 'its own event, not the "chosen model is missing" fallback');
+  assert.equal(h.state.pin, 'standard', 'the saved choice is never changed');
+  assert.equal(await until(() => h.calls[0].child.exitCode !== null || h.calls[0].child.signalCode !== null), true, 'the stalled model was stopped, its graphics memory is free');
+  assert.ok(h.logs.some(line => /stepping down from Qwen3.5-4B/.test(line) && /Qwen3.5-2B is the next smaller model/.test(line)));
+  assert.deepEqual(h.server.diagnostics().steppedDown, ['standard']);
+  // An idle stop and a new start keep the session's step (still lite, no second notice); a new choice or a new Local AI choice (reset) tries the whole choice again.
+  await h.server.stop();
+  assert.equal((await h.server.ensure()).model, 'Qwen3.5-2B');
+  assert.equal(h.steps.length, 1);
+  h.server.reset();
+  await h.server.stop();
+  assert.equal((await h.server.ensure()).model, 'Qwen3.5-4B');
+});
+
+test('stalled turns on the Mature family: mature:good steps down to mature:lite, never to a censored model, and with Mature lite stalled the cloud takes over', async t => {
+  const h = stepHarness(t, {selected: {matureOn: true}});
+  await h.server.ensure();
+  assert.deepEqual([h.server.modelId, h.loaded()], ['mature:good', ['big-u.gguf']]);
+  stall(h.server, 'no-response'); stall(h.server, 'no-response');
+  assert.equal(await until(() => h.steps.length > 0), true);
+  assert.equal((await h.server.ensure()).model, 'Qwen3.5-2B-Uncensored');
+  assert.deepEqual([h.server.modelId, h.loaded(), h.steps.map(step => step.model)], ['mature:lite', ['big-u.gguf', 'small-u.gguf'], ['Qwen3.5-2B-Uncensored']]);
+  assert.ok(!h.loaded().includes('q4.gguf') && !h.loaded().includes('q2.gguf'), 'a censored model never takes the place of an uncensored one');
+  // The lite model stalls too: none is left in the family, so the server fails with low-memory and the host hands the turns to the cloud text provider.
+  stall(h.server, 'prefill-stalled'); stall(h.server, 'stalled');
+  assert.equal(await until(() => h.failures.length > 0), true);
+  assert.deepEqual([h.failures, h.steps.map(step => step.model)], [[{reason: 'low-memory'}], ['Qwen3.5-2B-Uncensored', null]]);
+  assert.equal(h.server.status().state, 'failed');
+  await assert.rejects(h.server.ensure(), error => error.reason === 'low-memory');
+  assert.deepEqual(h.loaded(), ['big-u.gguf', 'small-u.gguf'], 'nothing else was started');
+  // Choosing Local AI again (reset) tries the whole choice from the top.
+  h.server.reset();
+  assert.equal((await h.server.ensure()).model, 'Gemma-4-E4B-uncensored');
+});
+
+test('a pinned model steps down inside its own family: the Mature good model with Mature content off goes to Mature lite, not to the ordinary lite model', async t => {
+  const h = stepHarness(t, {selected: {pin: 'mature:good', matureOn: false}});
+  assert.equal((await h.server.ensure()).model, 'Gemma-4-E4B-uncensored');
+  stall(h.server, 'no-first-token'); stall(h.server, 'no-first-token');
+  assert.equal(await until(() => h.steps.length > 0), true);
+  assert.equal((await h.server.ensure()).model, 'Qwen3.5-2B-Uncensored');
+  assert.equal(h.state.pin, 'mature:good');
+  assert.deepEqual(h.fallbacks, []);
+});
+
+test('with no smaller model installed the stalled model is dropped and the cloud takes over: a failed event (low-memory), one step-down event with no model', async t => {
+  const h = stepHarness(t, {mature: false, lite: false});
+  await h.server.ensure();
+  assert.deepEqual(h.loaded(), ['q4.gguf']);
+  stall(h.server, 'no-response'); stall(h.server, 'prefill-stalled');
+  assert.equal(await until(() => h.failures.length > 0), true);
+  assert.deepEqual([h.steps.map(step => step.model), h.failures, h.server.status().state], [[null], [{reason: 'low-memory'}], 'failed']);
+  assert.ok(h.logs.some(line => /no smaller model is installed, the cloud text provider takes over/.test(line)));
+  assert.equal(h.calls.length, 1, 'no second model was started');
+  assert.equal(await until(() => h.calls[0].child.exitCode !== null || h.calls[0].child.signalCode !== null), true);
+});
+
+test('a standard model with a lite one that does not fit the free memory now steps down to the cloud, and a model the player added never steps down', async t => {
+  // The game filled the card: after the stalled model left, the lite one (needs 2011 MiB) has 1500 MiB.
+  let free = 24000;
+  const tight = stepHarness(t, {mature: false, freeMiB: 24000, freeVramMiB: () => free});
+  await tight.server.ensure();
+  free = 1500;
+  stall(tight.server, 'no-response'); stall(tight.server, 'no-response');
+  assert.equal(await until(() => tight.failures.length > 0), true);
+  assert.deepEqual([tight.failures, tight.steps.map(step => step.model)], [[{reason: 'low-memory'}], [null]], 'the cloud takes over, and the step-down says so');
+  assert.deepEqual(tight.loaded(), ['q4.gguf']);
+
+  const custom = choiceHarness(t, {mature: false, selected: {pin: 'custom:mine', customModels: []}});
+  const own = join(custom.directory, 'mine.gguf');
+  writeFileSync(own, 'mine');
+  custom.state.customModels = [{id: 'custom:mine', name: 'Mine', file: own, family: 'llama'}];
+  assert.equal((await custom.server.ensure()).model, 'Mine');
+  stall(custom.server, 'no-response'); stall(custom.server, 'no-response'); stall(custom.server, 'no-response');
+  await sleep(150);
+  assert.deepEqual([custom.calls.length, custom.server.status().state, custom.server.diagnostics().steppedDown], [1, 'ready', undefined], 'the player chose that model: it keeps running');
+});

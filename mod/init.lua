@@ -3622,6 +3622,15 @@ local function keyReplyNotice(reply)
         if type(used) ~= 'string' or used == '' or #used > 80 or used:find('%c') then used = ui.t('another model') end
         return 'local-model-fallback', ui.t('The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead.', {model = used})
     end
+    -- Local AI's turns stalled because the game uses most of the graphics memory: the bridge loaded the next smaller model (the reply names it), or, with none
+    -- left, a cloud provider takes over (no model name). Said once per step (bridge/local-llm-server.mjs, 'model-stepdown').
+    if reply.keyNotice == 'local-stepdown' then
+        local used = reply.keyNoticeModel
+        if type(used) ~= 'string' or used == '' or #used > 80 or used:find('%c') then
+            return 'local-stepdown', ui.t('Local AI was too slow because the game is using most of your graphics memory, so a cloud provider is used.')
+        end
+        return 'local-stepdown', ui.t('Local AI switched to {model}: the game is using most of your graphics memory.', {model = used})
+    end
     if reply.keyNotice == 'mistral-no-key' then
         return 'mistral-no-key', ui.t('Mistral has no key yet, so Convai is used. Add your key in Settings > Conversation provider.')
     elseif reply.keyNotice == 'mistral-voice' then
@@ -3645,7 +3654,8 @@ local function sendProviderNotice(player, keyId, keyText)
     elseif keyId == 'local-fallback' then convaiNotices.send(player, 'local-fallback', keyText)
     elseif keyId == 'local-turn-fallback' then convaiNotices.send(player, 'local-turn-fallback', keyText)
     elseif keyId == 'local-restarted' then convaiNotices.send(player, 'local-restarted', keyText)
-    elseif keyId == 'local-model-fallback' then convaiNotices.send(player, 'local-model-fallback', keyText) end
+    elseif keyId == 'local-model-fallback' then convaiNotices.send(player, 'local-model-fallback', keyText)
+    elseif keyId == 'local-stepdown' then convaiNotices.send(player, 'local-stepdown', keyText) end
 end
 
 local function reactionCanDeliver(context, player)
@@ -4773,7 +4783,7 @@ registerForEvent('onUpdate', function(delta)
                             if not pending.reaction then convaiNotices.send(player, 'local-unavailable', keyText) end
                         elseif keyId == 'local-no-memory' then
                             if not pending.reaction then convaiNotices.send(player, 'local-no-memory', keyText) end
-                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' or keyId == 'local-restarted' then
+                        elseif keyId == 'mistral-no-key' or keyId == 'mistral-voice' or keyId == 'custom-no-setup' or keyId == 'custom-voice' or keyId == 'local-restarted' or keyId == 'local-stepdown' then
                             sendProviderNotice(player, keyId, keyText)
                             if not pending.reaction then convaiNotices.send(player, 'reply-error', reply.error) end
                         elseif keyId then convaiNotices.send(player, 'quota-exhausted', keyText)

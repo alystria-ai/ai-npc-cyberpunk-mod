@@ -10,6 +10,8 @@
 //   server.status()   -> {state: 'stopped'|'starting'|'warming'|'ready'|'failed', reason?, tier, model, firstTime?}
 //   server.on('failed', ({reason}) => ...)                                     // once per failure episode
 //   server.on('model-fallback', ({pin, reason, model}) => ...)                 // the chosen model was missing, did not fit or did not start; `model` (its name) was used instead
+//   server.on('model-stepdown', ({from, model, free}) => ...)                  // turns stalled (the game took the graphics memory): `model` (its name) was loaded instead, or null when none is
+//                                                                              // left and the cloud text provider takes over (a 'failed' event with reason 'low-memory' follows at once)
 //   await server.reselect()                                                    // the model choice changed: reload at an idle moment
 //   server.diagnostics()                                                       // what is loaded and how the turns went (model file, family, template, timings); for the log and the support report
 //   server.noteTurn({ok, trace, error, detail})                                // the host reports each local turn: kept in diagnostics(), a 'diagnostics' event on a failure and on the first turn after a start
@@ -32,7 +34,7 @@ import {mkdtempSync, readFileSync, renameSync, rmSync, statSync, writeFileSync} 
 import {createServer} from 'node:net';
 import {tmpdir, freemem, totalmem, setPriority, constants as osConstants} from 'node:os';
 import {basename, join} from 'node:path';
-import {chooseLocalModel, externalModels, listLocalModels, normalisePin, stillSatisfies} from './local-model-choice.mjs';
+import {chooseLocalModel, externalModels, listLocalModels, normalisePin, stepDownTarget, stillSatisfies} from './local-model-choice.mjs';
 
 const REASON_TEXT = Object.freeze({
   'not-installed': 'the Local AI pack is not installed',
@@ -85,6 +87,7 @@ export const LOCAL_LLM_LIMITS = Object.freeze({
   kvMiBPerKToken: {standard: 17, lite: 33},   // KV cache growth per 1,000 tokens of context, f16
   idleMs: 600_000,             // weights leave VRAM after ten idle minutes
   startupMs: 180_000,          // the first start compiles Vulkan shaders (about a minute)
+  stallStepDown: 2,            // this many stalled requests (a turn or a persona warm-up with no answer, a prompt read that stopped, a reply that went quiet) since the model was loaded, none answered between: step down
   warmupMs: 240_000,           // one warm-up request, first time included
   maxRestarts: 2,
   externalProbeMs: 4000,       // a server the player runs: the one look at it when its model is chosen (GET /models), and each context question
@@ -220,6 +223,10 @@ export function chooseContext({tier, freeMiB, sizeMiB, ladder = LOCAL_LLM_LIMITS
   }
   return ladder.at(-1) ?? LOCAL_LLM_LIMITS.contextSize;
 }
+
+// The failures of a local turn that mean the model is reading or writing at a crawl, as the stream showed them (stallReason in bridge/mistral-client.mjs).
+// 'loading' (the first start is still compiling), 'thinking-only', an empty answer or a refused prompt are not among them.
+const STALL_REASONS = new Set(['no-response', 'prefill-stalled', 'no-first-token', 'stalled']);
 
 const defaultFileSizeMiB = file => { try { return statSync(file).size / 1048576; } catch { return 0; } };
 
@@ -472,6 +479,9 @@ export class LocalLlmServer extends EventEmitter {
   #proc = null; #info = null; #starting = null; #generation = 0; #inflight = 0; #idleTimer = null;
   #keyNoted = false; #warmed = new Set(); #contextSize = 0; #modelId = null; #reselectPending = false; #hints = null; #totalMiB = null; #lastFreeMiB = null; #failedPin = null; #broken = new Map();
   #loaded = null; #lastExit = null; #lastTurn = null; #turns = {ok: 0, failed: 0, sinceStart: 0}; #prewarming = null;
+  // Step-down (stalled turns, see noteStall): the ids of the models left out for the rest of this session, the stalled requests since the model was loaded,
+  // the model the step started from (the next start says what it was replaced by), and whether a step is running. In memory only: the saved choice is untouched.
+  #stalled = new Set(); #stalls = 0; #stepFrom = null; #stepFree = null; #stepping = false;
   // The ready server runs below normal priority so the game keeps its CPU, but a request in flight (and priorityHoldMs after the last one) runs at normal:
   // the server's own thread feeds the graphics card and streams the reply, and a game that keeps every core busy starved it for seconds.
   priorityHoldMs = 5000; #raised = false; #holdTimer = null;
@@ -544,7 +554,11 @@ export class LocalLlmServer extends EventEmitter {
       },
       error => {
         if (this.#starting === promise) this.#starting = null;
-        if (error instanceof LocalAiUnavailable && error.reason !== 'stopped') this.#fail(error.reason);
+        if (error instanceof LocalAiUnavailable && error.reason !== 'stopped') {
+          // The start after a step-down found no room for the smaller model (the game took the card): the cloud text provider takes over, and the step says so.
+          if (this.#stepFrom) { this.#stepFrom = null; this.emit('model-stepdown', {from: this.#model, model: null, free: this.#stepFree ?? null}); }
+          this.#fail(error.reason);
+        }
         throw error;
       });
     this.#starting = promise;
@@ -566,6 +580,7 @@ export class LocalLlmServer extends EventEmitter {
   // Clears a failure so the next ensure() tries again (the settings screen / a new session).
   reset() {
     this.#broken.clear();   // a custom model that failed to start gets another chance
+    this.#stalled.clear(); this.#stalls = 0;   // so does a model that stalled the turns: Local AI is chosen again, the whole choice is tried
     if (this.#state !== 'failed') return;
     this.#reason = null; this.#state = 'stopped';
     this.emit('state', this.status());
@@ -649,10 +664,12 @@ export class LocalLlmServer extends EventEmitter {
 
   // A model that did not start is announced with the retry (#startOnce, which knows the model used instead); the other reasons here.
   #announce(choice, selected) {
-    if (choice.fellBack && choice.fellBack !== 'start-failed') {
+    // 'too-slow' is the step-down (noteStall): it has its own event and notice, emitted when the smaller model is loaded.
+    if (choice.fellBack && choice.fellBack !== 'start-failed' && choice.fellBack !== 'too-slow') {
       this.log('[local] the chosen model is not usable (' + choice.fellBack + '): ' + choice.model.name + ' was chosen instead');
       this.emit('model-fallback', {pin: selected.pin, reason: choice.fellBack, model: choice.model.name});
     }
+    if (choice.gameReserve) this.log('[local] a small graphics card (' + (this.#totalMiB ?? '?') + ' MiB): room is kept for the game, so ' + choice.model.name + ' was chosen');
     if (choice.offload) this.log('[local] ' + choice.model.name + ' does not fit the free graphics memory: it is loaded with part of its layers on the CPU (Mature content never uses a censored model)');
   }
 
@@ -664,6 +681,7 @@ export class LocalLlmServer extends EventEmitter {
     let models = listLocalModels({pack, matureModels: picked?.matureModels, customModels: picked?.customModels});
     if (!pack?.installed) models = externalModels(models);
     for (const model of models) if (model.custom && this.#broken.get(model.id) === this.#sizeKey(model)) model.broken = true;
+    for (const model of models) if (this.#stalled.has(model.id)) model.stalled = true;
     return {models, pin: normalisePin(picked?.pin), matureOn: picked?.matureOn === true};
   }
 
@@ -709,6 +727,7 @@ export class LocalLlmServer extends EventEmitter {
    * reads the new choice itself). Returns whether a reload was done or queued.
    */
   async reselect() {
+    this.#stalled.clear();   // a changed choice is tried whole: nothing stays left out for slow turns
     if (this.#state !== 'ready' && this.#state !== 'warming' && this.#state !== 'starting') return false;
     if (this.tierSetting === 'standard' || this.tierSetting === 'lite') return false;
     this.#reselectPending = true;
@@ -751,6 +770,7 @@ export class LocalLlmServer extends EventEmitter {
     // With the card's numbers a file model turned out too large for it, and a server the player runs is the last resort: use it.
     if (choice.model.external === true) return this.#startExternal(choice.model, failedPin, generation);
     if (failedPin) this.emit('model-fallback', {pin: failedPin, reason: 'start-failed', model: choice.model.name});
+    this.#announceStep(choice.model.id, choice.model.name);
     const tierKey = choice.profile, tier = choice.model;
     const contextSize = tier.contextSize ?? this.contextSize ?? chooseContext({tier: tierKey, freeMiB, sizeMiB: choice.sizeMiB});
     this.#tier = tierKey; this.#model = tier.loadedName ?? tier.name; this.#modelId = tier.id; this.#contextSize = contextSize;
@@ -765,7 +785,7 @@ export class LocalLlmServer extends EventEmitter {
       tier: tierKey, sizeMiB: Math.round(Number(choice.sizeMiB) || 0), device: {id: device.id, name: device.name, freeMiB: Number.isFinite(freeMiB) ? Math.round(freeMiB) : null},
       contextSize, cacheRamMiB, priority: 'normal', ram: {freeMiB: Math.round(Number(this.freeMemMiB())) || null, totalMiB: Math.round(totalmem() / 1048576)}, offload: choice.offload === true, custom: tier.custom === true, templateFlag: tier.chatTemplate ? String(tier.chatTemplate) : null,
       template: null, bos: null, eos: null, build: null, ftype: null, loadMs: null, warmMs: null, firstTime: this.#firstTime, readyAt: null};
-    this.#turns.sinceStart = 0;
+    this.#turns.sinceStart = 0; this.#stalls = 0;
     const began = this.now();
     const proc = new LlamaProcess({command: this.command, argsPrefix: this.argsPrefix, spawnImpl: this.spawnImpl, fetchImpl: this.fetchImpl,
       startupMs: this.startupMs, log: this.log, label: 'llama-server', lowerAfter: 'ready',
@@ -829,7 +849,7 @@ export class LocalLlmServer extends EventEmitter {
     this.#loaded = {id: model.id, name: model.loadedName ?? model.name, file: null, family: modelFamily({family: model.family, name: model.name}), tier: null, sizeMiB: 0, device: null,
       contextSize: model.contextSize ?? 0, cacheRamMiB: null, offload: false, custom: true, external: true, templateFlag: null, template: null, bos: null, eos: null, build: null, ftype: null,
       loadMs: null, warmMs: null, firstTime: false, readyAt: null};
-    this.#turns.sinceStart = 0;
+    this.#turns.sinceStart = 0; this.#stalls = 0; this.#stepFrom = null;
     this.#hints = {uncensored: model.uncensored === true, family: model.family ?? null};
     this.#firstTime = false;
     this.#keyNoted = false;
@@ -961,7 +981,8 @@ export class LocalLlmServer extends EventEmitter {
       template: loaded.template ? {source: loaded.templateFlag ? 'flag:' + loaded.templateFlag : 'gguf', ...loaded.template} : {source: loaded.templateFlag ? 'flag:' + loaded.templateFlag : 'not reported'},
       tokens: {bos: loaded.bos, eos: loaded.eos},
       start: {loadMs: loaded.loadMs, warmMs: loaded.warmMs, firstTime: loaded.firstTime, readyAt: loaded.readyAt ? new Date(loaded.readyAt).toISOString() : null},
-      turns: {ok: this.#turns.ok, failed: this.#turns.failed}, lastTurn: this.#lastTurn, lastExit: this.#lastExit};
+      turns: {ok: this.#turns.ok, failed: this.#turns.failed}, lastTurn: this.#lastTurn, lastExit: this.#lastExit,
+      ...(this.#stalled.size ? {steppedDown: [...this.#stalled].slice(0, 4)} : {})};
   }
 
   /**
@@ -981,6 +1002,8 @@ export class LocalLlmServer extends EventEmitter {
           ...(t.timings ? {promptTokens: t.timings.promptTokens, cachedTokens: t.timings.cachedTokens, tokensPerSecond: Number.isFinite(t.timings.tokensPerSecond) ? Math.round(t.timings.tokensPerSecond * 10) / 10 : null} : {}),
           ...(t.finishReason ? {finishReason: t.finishReason} : {})} : {})};
       if (!ok || first) this.emit('diagnostics', this.diagnostics());
+      if (ok) this.#stalls = 0;
+      else if (error?.slow === true && STALL_REASONS.has(error?.reason)) this.noteStall('a turn: ' + (detail ? oneLine(detail, 100) : error.reason));
       return {first};
     } catch { return {first: false}; }
   }
@@ -1157,10 +1180,13 @@ export class LocalLlmServer extends EventEmitter {
       this.#prewarming = mine;
       release = this.begin({background: true});
       await this.#complete(info, messages, {signal: mine.controller.signal});
+      this.#stalls = 0;
       return true;
     } catch (error) {
       this.log(mine?.controller.signal.aborted ? '[local] persona prewarm stopped: another request needed the model first'
         : '[local] persona prewarm skipped: ' + (error?.message || 'error'));
+      // A warm-up that got no answer in its whole wait (#complete) is a stall like a turn's; one that was stopped for a turn, or that failed for another reason, is not.
+      if (!mine?.controller.signal.aborted && /^no answer in \d+ s/.test(String(error?.message))) this.noteStall('a persona warm-up: ' + oneLine(error.message, 100));
       return false;
     } finally {
       if (this.#prewarming === mine) this.#prewarming = null;
@@ -1178,6 +1204,58 @@ export class LocalLlmServer extends EventEmitter {
     this.#prewarming = null;
     try { warming.controller.abort(); } catch { /* already finished */ }
     return true;
+  }
+
+  // --- stalled turns: step down ---------------------------------------------------------------------------------
+
+  /**
+   * One request of the loaded model stalled (no answer, a prompt read that stopped, a reply that went quiet; the host reports a turn through noteTurn, the
+   * warm-up is counted here). The game takes the graphics memory after the model was loaded, the driver moves the model into shared system memory and the
+   * prompt is then read at a crawl; a second stall (stallStepDown), with no answer in between, steps down: the model is left out for this session and the next
+   * smaller installed model of the same family is loaded (Mature good to lite, standard to lite; never a censored model for an uncensored one), and when there is
+   * none the server fails with 'low-memory' so the cloud text provider takes over. The saved choice stays. Models the player added and servers the player runs
+   * never step down. One free-memory reading (nvidia-smi) goes into the log, only now. Never throws, never blocks the caller. Returns whether a step was started.
+   */
+  noteStall(what = 'a request') {
+    try {
+      if (this.#state !== 'ready' || this.#info?.external || this.#stepping || !this.#modelId) return false;
+      this.#stalls++;
+      this.log('[local] ' + this.#model + ' stalled (' + this.#stalls + ' of ' + LOCAL_LLM_LIMITS.stallStepDown + '): ' + what);
+      if (this.#stalls < LOCAL_LLM_LIMITS.stallStepDown) return false;
+      this.#stepping = true;
+      void this.#stepDown().catch(() => {}).finally(() => { this.#stepping = false; });
+      return true;
+    } catch { return false; }
+  }
+
+  async #stepDown() {
+    const fromId = this.#modelId, fromName = this.#model;
+    const selected = this.#selected(this.pack);
+    const from = selected.models.find(model => model.id === fromId);
+    // Only a model of a pack (standard, lite, Mature good, Mature lite) steps down; one the player added is theirs to change.
+    if (!from || from.custom === true) return;
+    let free = null;
+    try { free = Number(await this.freeVramMiB()); } catch { /* the reading is for the log */ }
+    if (!Number.isFinite(free)) free = null;
+    const next = stepDownTarget({models: selected.models, from, sizeOf: file => this.fileSizeMiB(file)});
+    this.#stalled.add(fromId);
+    this.log('[local] stepping down from ' + fromName + (free === null ? '' : ' (' + Math.round(free) + ' MiB of graphics memory free now)') + ': '
+      + (next ? next.name + ' is the next smaller model' : 'no smaller model is installed, the cloud text provider takes over'));
+    this.#stepFrom = fromId; this.#stepFree = free;
+    await this.stop();   // its graphics memory goes back to the game before the smaller model is chosen
+    if (next) { void this.ensure({background: true}).catch(() => {}); return; }
+    this.#stepFrom = null;
+    this.emit('model-stepdown', {from: fromName, model: null, free});
+    this.#fail('low-memory');
+  }
+
+  // The start that follows a step names the model it loaded instead (once): the host tells the player.
+  #announceStep(modelId, modelName) {
+    const from = this.#stepFrom;
+    if (!from) return;
+    this.#stepFrom = null;
+    if (modelId === from) return;
+    this.emit('model-stepdown', {from, model: modelName, free: this.#stepFree ?? null});
   }
 
   // --- stopping -----------------------------------------------------------------------------------------------

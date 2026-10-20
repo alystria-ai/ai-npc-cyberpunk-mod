@@ -661,6 +661,8 @@ return {
     ["No model installed"] = "Žádný model nenainstalován",
     ["another model"] = "jiný model",
     ["The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead."] = "Zvolený model Local AI chybí, nevejde se do volné paměti grafiky nebo se nepodařilo ho spustit, proto byl místo něj použit {model}.",
+    ["Local AI switched to {model}: the game is using most of your graphics memory."] = "Local AI přepnuta na {model}: hra využívá většinu grafické paměti.",
+    ["Local AI was too slow because the game is using most of your graphics memory, so a cloud provider is used."] = "Local AI byla příliš pomalá, protože hra využívá většinu grafické paměti, a proto se použije cloudový poskytovatel.",
     ["Choose one of the listed Local AI models."] = "Vyber jeden z uvedených modelů Local AI.",
     ["Deletes the saved key. The Inworld cloud voice stops until you add a key again."] = "Smaže uložený klíč. Cloudový hlas Inworld přestane fungovat, dokud klíč znovu nepřidáš.",
     ["Inworld cloud voice"] = "Cloudový hlas Inworld",

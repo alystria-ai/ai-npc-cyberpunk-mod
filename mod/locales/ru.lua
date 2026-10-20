@@ -661,6 +661,8 @@ return {
     ["No model installed"] = "Модель не установлена",
     ["another model"] = "другая модель",
     ["The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead."] = "Выбранная вами модель Local AI отсутствует, не помещается в свободную видеопамять или не запустилась, поэтому вместо неё использована модель {model}.",
+    ["Local AI switched to {model}: the game is using most of your graphics memory."] = "Local AI переключился на {model}: игра использует большую часть видеопамяти.",
+    ["Local AI was too slow because the game is using most of your graphics memory, so a cloud provider is used."] = "Local AI работал слишком медленно из-за того, что игра занимает большую часть видеопамяти, поэтому используется облачный сервис.",
     ["Choose one of the listed Local AI models."] = "Выберите одну из перечисленных моделей Local AI.",
     ["Deletes the saved key. The Inworld cloud voice stops until you add a key again."] = "Удаляет сохранённый ключ. Облачный голос Inworld не работает, пока вы снова не добавите ключ.",
     ["Inworld cloud voice"] = "Облачный голос Inworld",
