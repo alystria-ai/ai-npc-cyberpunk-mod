@@ -414,6 +414,25 @@ def main():
             output.write(json.dumps({"owner": args.owner, **frame}, ensure_ascii=False, allow_nan=False) + "\n")
             output.flush()
 
+    # Startup progress for the bridge's stall watchdog: how much CPU this process has used (a slow import under a virus scan or a busy
+    # disk still creeps forward; a hung one uses none), once every two seconds while starting, and a mark after each heavy import. It
+    # stops when the worker is ready, so a worker that is serving never beats.
+    started = threading.Event()
+
+    def beat(step=None):
+        frame = {"op": "heartbeat", "cpuMs": int(time.process_time() * 1000)}
+        if step is not None:
+            frame["step"] = step
+        send(frame)
+
+    def heartbeats():
+        while not started.wait(2.0):
+            try:
+                beat()
+            except Exception:
+                return
+
+    threading.Thread(target=heartbeats, name="pocket-start-heartbeat", daemon=True).start()
     commands = Commands(command_pipe(sys.stdin), args.owner)
     commands.thread.start()
     cleaned = threading.Event()
@@ -443,10 +462,14 @@ def main():
         send({"op": "state", "state": "loading", "phase": "importing-dependencies"})
         with redirect_stdout(sys.stderr):
             import numpy as np
+            beat("numpy")
             import torch
+            beat("torch")
             import yaml
+            beat("yaml")
             import pocket_tts
             from pocket_tts import TTSModel
+            beat("pocket_tts")
 
             if not Path(pocket_tts.__file__).resolve().is_relative_to(source):
                 raise RuntimeError("Pocket import did not resolve to the pinned local source")
@@ -489,6 +512,7 @@ def main():
             return {"profiles": sorted(registry["refs"]), "preparedProfiles": cache.prepared(),
                     "unavailableProfiles": dict(registry["unavailable"])}
 
+        started.set()
         send({"op": "ready", **identity, **profiles(),
               "workerPaths": {key: str(value) for key, value in registry["paths"].items()},
               "referenceHashes": {key: registry["descriptors"][key]["sha256"] for key in registry["refs"]}})
@@ -594,6 +618,7 @@ def main():
         send({"op": "fatal", "message": "Pocket student runtime is unavailable.", "reason": reason})
         return 1
     finally:
+        started.set()
         commands.finish_input()
         if lock is not None:
             os.close(lock)

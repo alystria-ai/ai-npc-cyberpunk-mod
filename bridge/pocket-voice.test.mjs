@@ -19,7 +19,7 @@ const config = () => ({version: 1, provider: 'pocket', engine: 'pocket-tts',
 
 function clock() {
   const jobs = new Map(); let time = 0, sequence = 0;
-  return {set(callback, delay) { const id=++sequence; jobs.set(id,{callback,at:time+delay}); return id; },
+  return {now:()=>time, set(callback, delay) { const id=++sequence; jobs.set(id,{callback,at:time+delay}); return id; },
     clear:id=>jobs.delete(id), advance(ms) { const target=time+ms;
       for (;;) { const next=[...jobs].filter(([,job])=>job.at<=target).sort((a,b)=>a[1].at-b[1].at)[0];
         if (!next) break; jobs.delete(next[0]); time=next[1].at; next[1].callback(); } time=target; }};
@@ -240,7 +240,7 @@ function restartHarness() {
   };
   const settings = config();
   const client = new PocketVoice(settings, {project: process.cwd(), configPath: resolve('pocket-fixtures/config.json'),
-    pythonExecutable: resolve('pocket-fixtures/python.exe'), setTimer: timers.set, clearTimer: timers.clear,
+    pythonExecutable: resolve('pocket-fixtures/python.exe'), setTimer: timers.set, clearTimer: timers.clear, now: timers.now,
     onLog: line => logs.push(line), spawnImpl: (exe, args) => { launches.push(args); return make(); }});
   const send = (child, frame) => child.stdout.write(JSON.stringify({owner: client.owner, ...frame}) + '\n');
   const ready = child => send(child, {op: 'ready', protocolVersion: 1, engine: 'pocket-tts', device: 'cpu', dtype: 'torch.float32',
@@ -255,7 +255,7 @@ test('a worker stuck importing is stopped and started once more; the second one 
   const starting = h.client.start(); await tick();
   assert.equal(h.launches.length, 1);
   h.send(h.children[0], {op: 'state', state: 'loading'}); h.send(h.children[0], {op: 'state', state: 'loading', phase: 'importing-dependencies'}); await tick();
-  h.timers.advance(POCKET_LIMITS.stallMs['default'] - 1); await tick();
+  h.timers.advance(POCKET_LIMITS.stallMs['importing-dependencies'] - 1); await tick();
   assert.equal(h.children[0].kills, 0, 'not yet');
   h.timers.advance(1); await tick();
   assert.equal(h.children[0].kills, 1, 'the stuck worker is stopped'); assert.equal(h.children[0].stdin.writableEnded, true);
@@ -275,10 +275,10 @@ test('a worker that stalls again is given up on cleanly: one restart only, no lo
   const h = restartHarness();
   const starting = h.client.start(), failed = assert.rejects(starting, /stalled/); await tick();
   h.send(h.children[0], {op: 'state', state: 'loading', phase: 'importing-dependencies'}); await tick();
-  h.timers.advance(POCKET_LIMITS.stallMs['default']); await tick(); h.children[0].emit('close', 1); await tick();
+  h.timers.advance(POCKET_LIMITS.stallMs['importing-dependencies']); await tick(); h.children[0].emit('close', 1); await tick();
   assert.equal(h.launches.length, 2);
   h.send(h.children[1], {op: 'state', state: 'loading', phase: 'importing-dependencies'}); await tick();
-  h.timers.advance(POCKET_LIMITS.stallMs['default']); await failed;
+  h.timers.advance(POCKET_LIMITS.stallMs['importing-dependencies']); await failed;
   assert.equal(h.launches.length, 2, 'never a third worker'); assert.ok(h.client.failure);
   assert.equal(h.children[1].stdin.writableEnded, true);
   assert.match(h.logs.join(''), /stalled at importing-dependencies again; giving up/);
@@ -300,6 +300,91 @@ test('a worker that keeps moving through its phases is not restarted, and a slow
   h.timers.advance(10 * POCKET_LIMITS.startupMs); await tick();
   assert.equal(h.children[0].kills, 0, 'a worker that is ready is never judged by the startup limits');
   h.client.close(); h.children[0].emit('close', 0);
+});
+
+// ---- progress: a slow import that keeps moving is never stopped; one that stands still is; the hard bound ends either ----
+
+const IMPORT = 'importing-dependencies';
+const beat = async (h, child, cpuMs, step) => { h.send(child, {op: 'heartbeat', cpuMs, ...(step ? {step} : {})}); await tick(); };
+
+test('a slow import that makes progress is not killed, however long it takes within the hard bound, and then gets ready', async () => {
+  const h = restartHarness();
+  const starting = h.client.start(); await tick();
+  h.send(h.children[0], {op: 'state', state: 'loading', phase: IMPORT}); await tick();
+  // Three stall windows of a worker whose CPU time creeps (200 ms per 2 s beat), with a mark after each heavy import.
+  let cpu = 0;
+  for (let at = 0; at < 3 * POCKET_LIMITS.stallMs[IMPORT]; at += 2000) {
+    h.timers.advance(2000); cpu += 200; await beat(h, h.children[0], cpu, at === 20_000 ? 'numpy' : at === 120_000 ? 'torch' : undefined);
+  }
+  assert.equal(h.children[0].kills, 0, 'a worker that moves is not stopped'); assert.equal(h.launches.length, 1);
+  assert.equal(h.client.failure, undefined);
+  h.send(h.children[0], {op: 'state', state: 'loading', phase: 'loading-student'}); h.send(h.children[0], {op: 'state', state: 'loading', phase: 'student-loaded'});
+  h.ready(h.children[0]);
+  await starting; assert.equal(h.client.loaded, true); assert.equal(h.launches.length, 1);
+  const log = h.logs.join('');
+  assert.match(log, /imported numpy \(worker CPU/); assert.match(log, /imported torch/); assert.match(log, /still importing-dependencies \(worker CPU [\d.]+s\), not stalled/);
+  assert.doesNotMatch(log, /stalled at/);
+  // A beat that arrives after the worker is ready changes nothing.
+  await beat(h, h.children[0], 99_999); h.timers.advance(10 * POCKET_LIMITS.startupMs); await tick(); assert.equal(h.children[0].kills, 0);
+  h.client.close(); h.children[0].emit('close', 0);
+});
+
+test('a hung import (CPU time standing still, however many beats) is stopped at the stall window, and a slow second attempt is not', async () => {
+  const h = restartHarness();
+  const starting = h.client.start(); await tick();
+  h.send(h.children[0], {op: 'state', state: 'loading', phase: IMPORT}); await tick();
+  await beat(h, h.children[0], 1500);
+  // Beats that add no CPU (a deadlock) are not progress and do not push the window back.
+  for (let at = 0; at < POCKET_LIMITS.stallMs[IMPORT] - 2000; at += 2000) { h.timers.advance(2000); await beat(h, h.children[0], 1500 + 50); }
+  assert.equal(h.children[0].kills, 0, 'not before the window');
+  h.timers.advance(4000); await tick();
+  assert.equal(h.children[0].kills, 1, 'a worker with no progress for the window is stopped');
+  assert.match(h.logs.join(''), /stalled at importing-dependencies for 60s without progress, worker CPU 1\.5s; stopping/);
+  // A beat that was already on its way while it is being stopped counts for nothing (and is not an error).
+  await beat(h, h.children[0], 9_000_000);
+  h.children[0].emit('close', 1); await tick();
+  assert.equal(h.launches.length, 2);
+  // The second attempt starts cold and creeps along for longer than a window: it is left alone.
+  h.send(h.children[1], {op: 'state', state: 'loading', phase: IMPORT}); await tick();
+  for (let at = 0, cpu = 0; at < 2 * POCKET_LIMITS.stallMs[IMPORT]; at += 2000) { h.timers.advance(2000); cpu += 150; await beat(h, h.children[1], cpu); }
+  assert.equal(h.children[1].kills, 0, 'a second attempt that moves is not stopped'); assert.equal(h.launches.length, 2);
+  h.ready(h.children[1]); await starting; assert.equal(h.client.loaded, true);
+  assert.match(h.logs.join(''), /attempt 2\/2: ready/); assert.doesNotMatch(h.logs.join(''), /again; giving up/);
+  h.client.close(); h.children[1].emit('close', 0);
+});
+
+test('a worker that hangs on both attempts is stopped twice at the window and then given up on, and Pocket stays failed', async () => {
+  const h = restartHarness();
+  const starting = h.client.start(), failed = assert.rejects(starting, /stalled/); await tick();
+  h.send(h.children[0], {op: 'state', state: 'loading', phase: IMPORT}); await beat(h, h.children[0], 800);
+  h.timers.advance(POCKET_LIMITS.stallMs[IMPORT]); await tick(); h.children[0].emit('close', 1); await tick();
+  h.send(h.children[1], {op: 'state', state: 'loading', phase: IMPORT}); await beat(h, h.children[1], 800);
+  h.timers.advance(2000); await beat(h, h.children[1], 810);
+  h.timers.advance(POCKET_LIMITS.stallMs[IMPORT]); await failed;
+  assert.equal(h.launches.length, 2); assert.match(h.logs.join(''), /again; giving up/);
+  assert.equal(h.children[1].stdin.writableEnded, true); h.children[1].emit('close', 1);
+});
+
+test('the hard bound ends a worker that keeps moving but never gets ready: no restart, the start fails', async () => {
+  const h = restartHarness();
+  const starting = h.client.start(), failed = assert.rejects(starting, /timed out/); await tick();
+  h.send(h.children[0], {op: 'state', state: 'loading', phase: IMPORT}); await tick();
+  let cpu = 0;
+  for (let at = 0; at < POCKET_LIMITS.startupMs + 2000 && !h.client.failure; at += 2000) { h.timers.advance(2000); cpu += 200; await beat(h, h.children[0], cpu); }
+  await failed;
+  assert.equal(h.launches.length, 1, 'a progressing worker is failed at the bound, never restarted into another cold import');
+  assert.equal(h.children[0].stdin.writableEnded, true);
+  h.children[0].emit('close', 1);
+});
+
+test('heartbeats are checked: a malformed beat or an unknown import step fails the worker', async () => {
+  for (const bad of [{cpuMs: -1}, {cpuMs: 1.5}, {cpuMs: '5'}, {cpuMs: 5, step: 'os'}, {}]) {
+    const h = restartHarness();
+    const starting = h.client.start(), failed = assert.rejects(starting, /Invalid Pocket worker heartbeat/); await tick();
+    h.send(h.children[0], {op: 'state', state: 'loading', phase: IMPORT}); await tick();
+    h.send(h.children[0], {op: 'heartbeat', ...bad}); await failed;
+    h.children[0].emit('close', 1);
+  }
 });
 
 test('a preparation a reply waits on is urgent for the worker (normal priority), a voice warmed ahead of time is not', async () => {
