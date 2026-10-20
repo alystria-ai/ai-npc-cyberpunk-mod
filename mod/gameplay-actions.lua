@@ -4,7 +4,8 @@
 -- companion-tactic offer, one follow offer (a world character joining the
 -- party) and one leave offer (a party member leaving); the first matching
 -- packet consumes the whole lease. The first speaker of a manual group round
--- leases a leave offer only (docs/WORLD_COMPANIONS.md).
+-- leases a leave offer only (docs/WORLD_COMPANIONS.md). An ordinary world NPC with none of those offers leases at most one
+-- reaction offer instead (leave, call the police, attack; docs/NPC_REACTIONS.md, mod/npc-reactions.lua), private turns only.
 local M = {}
 local MAX_PACKET, MAX_LEASE_MS = 16384, 125000
 -- Why a world character cannot follow V now. Only these codes reach the bridge,
@@ -105,6 +106,7 @@ function M.new(options)
     local function assign(context, from)
         context.chauffeurOffer, context.tacticOffer = copy(from.offer), copy(from.tacticOffer)
         context.followOffer, context.leaveOffer = copy(from.followOffer), copy(from.leaveOffer)
+        context.reactionOffer = copy(from.reactionOffer)
     end
 
     function Q.revoke(reason, requestId)
@@ -121,7 +123,7 @@ function M.new(options)
         if type(context) ~= 'table' then return false end
         context.chauffeurOffer, context.tacticOffer, context.tacticUnavailable = nil, nil, nil
         context.followOffer, context.leaveOffer, context.followUnavailable = nil, nil, nil
-        context.driveUnavailable = nil
+        context.driveUnavailable, context.reactionOffer = nil, nil
         local private = source == 'private-text' or source == 'private-voice'
         local group = source == 'group-text' or source == 'group-voice'
         if not (private or group) or (private and context.group ~= nil) or context.reaction
@@ -151,6 +153,13 @@ function M.new(options)
         end
         local leave = capturedOffer(options.leaveOffer, context.entity, context)
         if leave and (type(leave.members) ~= 'table' or #leave.members < 1 or #leave.members > 3) then leave = nil end
+        -- An ordinary world NPC's reaction (docs/NPC_REACTIONS.md): only a private conversation, and only for a person with no
+        -- companion offer at all.
+        local reaction
+        if private and not drive and not tactic and not follow and not leave then
+            reaction = capturedOffer(options.reactionOffer, context.entity, context)
+            if reaction and (type(reaction.kinds) ~= 'table' or #reaction.kinds < 1 or #reaction.kinds > 3) then reaction = nil end
+        end
         -- A follow the game refuses carries only its reason code: no lease, no action.
         if not follow and type(refusal) == 'table' and refusal.available == false
             and FOLLOW_UNAVAILABLE[refusal.reason] then
@@ -169,11 +178,11 @@ function M.new(options)
             lastTacticAdvisory = 'no-target'
             context.tacticUnavailable = 'no-target'
         end
-        if not drive and not tactic and not follow and not leave then return false end
+        if not drive and not tactic and not follow and not leave and not reaction then return false end
         lease = {requestId = context.requestId, generation = context.generation, entity = context.entity,
             profileKey = context.profileKey, source = source, worldToken = world.worldToken,
             worldGeneration = world.generation, offer = copy(drive), tacticOffer = copy(tactic),
-            followOffer = copy(follow), leaveOffer = copy(leave),
+            followOffer = copy(follow), leaveOffer = copy(leave), reactionOffer = copy(reaction),
             group = group and context.group.id or nil, expiresAt = clock() + MAX_LEASE_MS}
         assign(context, lease)
         result = {state = 'available'}
@@ -205,7 +214,9 @@ function M.new(options)
         local follow = packet.action == 'companion-follow' and lease.followOffer ~= nil
         local leave = packet.action == 'companion-leave' and lease.leaveOffer ~= nil
             and offeredMember(lease.leaveOffer, packet.leave)
-        if packet.version ~= 1 or not (drive or tactic or follow or leave)
+        local reaction = packet.action == 'npc-reaction' and lease.reactionOffer ~= nil
+            and offeredKind(lease.reactionOffer, packet.reaction)
+        if packet.version ~= 1 or not (drive or tactic or follow or leave or reaction)
             or type(packet.actionId) ~= 'string' or #packet.actionId < 1 or #packet.actionId > 240
             or packet.requestId ~= lease.requestId or packet.generation ~= lease.generation
             or packet.entity ~= lease.entity or packet.profileKey ~= lease.profileKey
@@ -218,7 +229,8 @@ function M.new(options)
             or (drive and not equal(packet.offer, lease.offer))
             or (tactic and not equal(packet.tacticOffer, lease.tacticOffer))
             or (follow and not equal(packet.followOffer, lease.followOffer))
-            or (leave and not equal(packet.leaveOffer, lease.leaveOffer)) then return end
+            or (leave and not equal(packet.leaveOffer, lease.leaveOffer))
+            or (reaction and not equal(packet.reactionOffer, lease.reactionOffer)) then return end
         -- Consume before the native callback: even a throw after a side effect
         -- cannot execute this action twice. Native queue admission rechecks the
         -- actual managed copy and every other precondition.
@@ -231,6 +243,13 @@ function M.new(options)
             local driveQueued = called and accepted == true
             report(driveQueued and 'queued' or 'rejected', called and reason or nil,
                 driveQueued and '' or 'The driving request could not be queued.')
+            return
+        end
+        if reaction then
+            -- An ordinary NPC's reaction says nothing on screen, accepted or not: the log line of the service is its record.
+            local called, accepted, why = pcall(options.queueReaction or function() return false, 'not-available' end, packet.reaction,
+                copy(admitted.reactionOffer), admitted.entity, admitted.requestId)
+            result = {state = called and accepted == true and 'queued' or 'rejected', reason = called and why or nil}
             return
         end
         if follow or leave then
@@ -260,7 +279,8 @@ function M.new(options)
         return {pending = lease ~= nil, state = result and result.state or 'idle',
             reason = result and result.reason, drive = lease ~= nil and lease.offer ~= nil,
             tactic = lease ~= nil and lease.tacticOffer ~= nil, follow = lease ~= nil and lease.followOffer ~= nil,
-            leave = lease ~= nil and lease.leaveOffer ~= nil, followUnavailable = lastAdvisory,
+            leave = lease ~= nil and lease.leaveOffer ~= nil, reaction = lease ~= nil and lease.reactionOffer ~= nil,
+            followUnavailable = lastAdvisory,
             tacticUnavailable = lastTacticAdvisory, driveUnavailable = lastDriveAdvisory}
     end
 

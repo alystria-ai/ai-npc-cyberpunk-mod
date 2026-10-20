@@ -188,8 +188,15 @@ const ADDRESSES_HER = /\b(?:you|u|ya|y'all|yourself)\b/i;
 const REQUEST_QUESTION = /^(?:[^?!.]{0,30}[,:] )?(?:can|could|would|will|won'?t|wanna|want to|mind|do you mind|do you want|do you wanna|do you think you could)\b/i;
 
 // A code in a reply is never spoken: the character is not told about codes, but a small model may still write one.
-const TAG = /\[\s*(?:action\s*[:=]\s*)?(drive|fight|follow|leave|dismissed|none)\b\s*(?:[:=]\s*([^\]\n]{0,40}))?\]/gi;
-const LOWER_CODES = ['drive', 'fight', 'follow', 'leave', 'dismissed', 'none'];
+// The last three are an ordinary NPC's reactions (docs/NPC_REACTIONS.md, `reactionMenu` below): [attack], [call-police] (also spelled
+// "call police" or "police") and [leave], which is also the companion code above.
+// A tag's own full stop ("Fine. [leave].") goes with it, so no doubled stop is left behind.
+const TAG = /\[\s*(?:action\s*[:=]\s*)?(drive|fight|follow|leave|dismissed|none|attack|call[ _-]?police|police)\b\s*(?:[:=]\s*([^\]\n]{0,40}))?\]\.?/gi;
+const LOWER_CODES = ['drive', 'fight', 'follow', 'leave', 'dismissed', 'none', 'attack', 'police', 'call-police', 'callpolice'];
+const normalCode = code => {
+  const upper = String(code).toUpperCase().replace(/[ _]/g, '-');
+  return upper === 'DISMISSED' ? 'LEAVE' : upper === 'CALLPOLICE' || upper === 'POLICE' ? 'CALL-POLICE' : upper;
+};
 
 // Is this unfinished bracket group (it starts with "[" and runs to the end of the text) the start of a code?
 function couldBeCode(partial) {
@@ -197,10 +204,12 @@ function couldBeCode(partial) {
   if (/^[a-z]*$/.test(body) && 'action'.startsWith(body)) return true;   // "", "a", "act", ...
   body = body.replace(/^action\s*[:=]\s*/, '');
   if (body === '') return true;
-  const head = /^[a-z]+/.exec(body)?.[0] ?? '';
-  if (!head) return false;
-  if (head.length === body.length) return LOWER_CODES.some(code => code.startsWith(head));
-  return LOWER_CODES.includes(head);   // a whole code followed by an argument that is still being written
+  const word = /^[a-z]+/.exec(body)?.[0] ?? '';
+  if (!word) return false;
+  // Still being written: the letters so far start a code ("call police" and "call_police" count as "call-police").
+  const typed = body.replace(/\s+$/, '');
+  if (/^[a-z]+(?:[ _-][a-z]*)?$/.test(typed)) return LOWER_CODES.some(code => code.startsWith(typed.replace(/[ _]/g, '-')));
+  return LOWER_CODES.includes(word);   // a whole code followed by an argument that is still being written
 }
 
 /**
@@ -209,11 +218,68 @@ function couldBeCode(partial) {
  */
 export function splitActions(raw, {streaming = false} = {}) {
   const found = [];
-  let text = String(raw ?? '').replace(TAG, (_match, code, argument) => { found.push({code: code.toUpperCase() === 'DISMISSED' ? 'LEAVE' : code.toUpperCase(), argument: argument?.trim() || ''}); return ' '; });
+  let text = String(raw ?? '').replace(TAG, (_match, code, argument) => { found.push({code: normalCode(code), argument: argument?.trim() || ''}); return ' '; });
   if (streaming) {
     const at = text.lastIndexOf('[');
     if (at >= 0 && !text.includes(']', at) && text.length - at <= 52 && couldBeCode(text.slice(at))) text = text.slice(0, at);
   }
   if (found.length) text = text.replace(/[ \t]{2,}/g, ' ').replace(/\s+([,.!?;:])/g, '$1').replace(/^\s+/, '');
   return {text, found};
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// An ordinary NPC's reaction (docs/NPC_REACTIONS.md). The text routes have no action channel and, for this, no decision request either: the
+// reply decides. A person the game offers reactions for (config.companionAction.reaction, bridge/companion-actions.mjs) gets one short
+// note, and a reply that ends with one tag ("... Back off. [call-police]") hands that reaction to the game after the reply. The tag is rare
+// by the note's own words and by these rules: it is cut from every text the player hears or reads; only a tag at the very END of a reply
+// with words before it counts; only a kind the game offered counts; and the game still checks the exact offer (mod/npc-reactions.lua).
+
+const REACTION_TAG = Object.freeze({leave: 'leave', 'call-police': 'call-police', attack: 'attack'});
+const REACTION_WORDS = Object.freeze({
+  leave: 'you end the talk and walk or run off',
+  'call-police': 'you report V to the police',
+  attack: 'you turn on V and attack',
+});
+const REACTION_ORDER = Object.freeze(['leave', 'call-police', 'attack']);
+// The code in a reply (normalCode above) -> the reaction kind of the offer.
+const REACTION_OF_CODE = Object.freeze({LEAVE: 'leave', 'CALL-POLICE': 'call-police', ATTACK: 'attack'});
+// A tag at the very end of the reply, after the words, with at most closing punctuation after it.
+const TRAILING_TAG = /\[\s*(leave|attack|call[ _-]?police|police)\s*\][\s.!?"'*)]*$/i;
+
+/** The note a reply is written with when the game offers these reactions: kept short, it is read on every turn of such a person. */
+export function reactionNotes(kinds) {
+  const list = REACTION_ORDER.filter(kind => kinds?.includes(kind)).map(kind => `[${REACTION_TAG[kind]}] ${REACTION_WORDS[kind]}`).join('; ');
+  if (!list) return '';
+  return 'GAME REACTION (rare): only when V clearly threatens you or seriously insults you and you truly would react, end your reply with one tag after your words: '
+    + list + '. No tag for normal, rude-but-harmless or joking talk, nor when your own reply stays calm; never at the start. Never speak of tags.';
+}
+
+/**
+ * The reaction an ordinary NPC's reply asked for, from the turn's offer (`config.companionAction`). Returns null when the turn offers none.
+ *   kinds        the offered kinds
+ *   notes        the sentence for the reply's prompt
+ *   pick(raw)    {kind} for a reply that ends with an offered tag, else {kind: null, why}: 'no-tag', 'not-offered', 'not-at-end',
+ *                'several-tags' or 'no-words' (codes only, never the words of the reply)
+ *   resolve(kind)  the message for CompanionActions.deliver
+ */
+export function reactionMenu(offer) {
+  const kinds = Array.isArray(offer?.reaction?.kinds) ? REACTION_ORDER.filter(kind => offer.reaction.kinds.includes(kind)) : [];
+  if (!kinds.length || typeof offer.token !== 'string' || !offer.token) return null;
+  return {
+    kinds,
+    notes: reactionNotes(kinds),
+    pick(raw) {
+      const text = String(raw ?? '');
+      const {found, text: spoken} = splitActions(text);
+      const asked = found.map(item => REACTION_OF_CODE[item.code]).filter(Boolean);
+      if (!asked.length) return {kind: null, why: 'no-tag'};
+      const end = TRAILING_TAG.exec(text.trimEnd());
+      if (!end) return {kind: null, why: 'not-at-end'};
+      if (found.length > 1) return {kind: null, why: 'several-tags'};
+      if (!spoken.replace(/\s+/g, '').length) return {kind: null, why: 'no-words'};
+      const kind = REACTION_OF_CODE[normalCode(end[1])];
+      return kinds.includes(kind) ? {kind} : {kind: null, why: 'not-offered'};
+    },
+    resolve: kind => (kinds.includes(kind) ? {version: 1, token: offer.token, reaction: kind} : null),
+  };
 }

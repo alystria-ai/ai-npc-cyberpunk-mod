@@ -385,6 +385,15 @@ gameplayActions = dofile('gameplay-actions.lua').new({
         if not adoption then return false, ui.t('That action is not available.') end
         return adoption.queueLeave(target, offer, entity, requestId, groupId)
     end,
+    -- An ordinary world NPC's reaction to the conversation (docs/NPC_REACTIONS.md, mod/npc-reactions.lua): leave, call the police or
+    -- attack. A global service, so these two lines add no upvalue. Nothing is offered or started when the module is missing.
+    reactionOffer = function(entity, context)
+        return convaiNpcReactions and convaiNpcReactions.offer(entity, context) or nil
+    end,
+    queueReaction = function(kind, offer, entity, requestId)
+        if not convaiNpcReactions then return false, 'not-available' end
+        return convaiNpcReactions.start(kind, offer, entity, requestId)
+    end,
     developerMode = manager.developerMode,
     feedback = function(state, reason)
         local player = Game.GetPlayer()
@@ -771,6 +780,36 @@ do
     local loaded, module = pcall(dofile, 'world-talk.lua')
     convaiWorldTalk = loaded and type(module) == 'table' and type(module.new) == 'function'
         and module.new({sample = function(player) return battleObserver.sample(player) end}) or nil
+end
+
+-- What a conversation can do to an ordinary world NPC (docs/NPC_REACTIONS.md, mod/npc-reactions.lua): the person walks off, calls the
+-- police (the game's own wanted stage rises by one) or turns hostile. A global, like the modules above. It is asked once when V's message
+-- is admitted (the offer) and once when the NPC has finished speaking (the reaction); `update` is one nil check while nothing waits.
+-- Never for our companions, another mod's characters, a named, story or quest character, or anyone while the game is in charge.
+do
+    local loaded, module = pcall(dofile, 'npc-reactions.lua')
+    if loaded and type(module) == 'table' and type(module.new) == 'function' then
+        local built, service = pcall(module.new, {
+            player = function() return Game.GetPlayer() end,
+            npcFor = function(entity) return conversationNpc(entity) end,
+            policy = {
+                ours = function(npc) return convaiWorldPolicy.ours(npc) end,
+                spawned = function(npc) return convaiWorldPolicy.spawned(npc) end,
+                protected = function(npc) return convaiWorldPolicy.protected(npc) end,
+                story = function(npc) return convaiWorldPolicy.story(npc) end,
+            },
+            -- The quest flag of the person's record (the same read the catalog's story-bound rule uses, cached per entity).
+            storyFlag = function(npc, entity)
+                local facts = archetypeFacts(npc, entity, tostring(npc:GetBodyType() or ''))
+                local quest = facts.quest
+                return quest == 'MainQuest' or quest == 'SideQuest' or quest == 'MinorQuest'
+            end,
+            refusal = function(npc, player, entity) return convaiWorldTalk and convaiWorldTalk:refusal(npc, player, entity) or nil end,
+            awaiting = function(requestId) return pending ~= nil and pending.requestId == requestId end,
+            speaking = function(entity) return speech.requestId ~= nil and speech.context ~= nil and speech.context.entity == entity end,
+        })
+        if built then convaiNpcReactions = service else print('[CyberpunkConvai] NPC reactions unavailable: ' .. tostring(service)) end
+    elseif not loaded then print('[CyberpunkConvai] npc-reactions.lua unavailable: ' .. tostring(module)) end
 end
 
 -- Johnny in your head (docs/JOHNNY_IN_YOUR_HEAD.md, mod/johnny-head.lua): with the setting on, the private talk keys that find nobody
@@ -1579,6 +1618,7 @@ end
 -- V's gear: one line per real read (bridge/player-gear.mjs logs the other half per reply), so a test shows what was built.
 if playerGear then playerGear.options.log = log end
 if convaiTurnContext then convaiTurnContext.options.log = log end
+if convaiNpcReactions then convaiNpcReactions.options.log, convaiNpcReactions.options.logOnce = log, convaiLogOnce end
 -- Continue from game dialogue: one line the first time each of its four hooks fires in a session (mod/game-dialogue.lua).
 if gameDialogue then gameDialogue.options.log = log end
 if convaiWitnessReceipts then convaiWitnessReceipts.options.log = log end
@@ -2047,6 +2087,8 @@ local function endFocus(player)
     if player then pcall(function() player:ConvaiEndFocus() end) end
     if convaiVanillaReactions then pcall(convaiVanillaReactions.release) end
 end
+-- An ordinary NPC that reacts (walks off, attacks) first lets go of the conversation's hold and look-at, the same release.
+if convaiNpcReactions then convaiNpcReactions.options.release = function(player) endFocus(player) end end
 
 local function beginFocus(player, npc)
     endFocus(player)
@@ -3910,6 +3952,7 @@ local function abandonSession(reason,preserveTransit,worldAlive)
     convaiStory = nil
     if convaiFacialPlayback then convaiFacialPlayback.storyEntity = nil end
     if convaiWorldTalk then convaiWorldTalk:reset() end
+    if convaiNpcReactions then convaiNpcReactions.reset() end
     convaiHeadTalk = nil
     if convaiJohnnyHead then convaiJohnnyHead:reset() end
     if convaiJohnnyRemarks then convaiJohnnyRemarks:reset() end
@@ -4641,6 +4684,8 @@ registerForEvent('onUpdate', function(delta)
     -- The captured lease owns this deadline independently of reply playback.
     -- Process an explicit reply failure first so it cannot admit an action.
     gameplayActions.update(worldReady)
+    -- A reaction an ordinary NPC is waiting to start once its reply has been heard (one nil check while none waits).
+    if convaiNpcReactions then convaiNpcReactions.update() end
     local ok, ready = pcall(convaiInvoke, player, 'ConvaiHasSubmission')
     if not ok or not ready then
         if active then

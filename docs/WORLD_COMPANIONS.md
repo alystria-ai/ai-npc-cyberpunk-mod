@@ -1,5 +1,7 @@
 # Game-placed characters, and the retired "follow me"
 
+**Amended 2026-10-21: an ordinary world NPC can, rarely, react to how a conversation went (walk off, call the police, attack V), decided by its own reply and limited to those three outcomes; see [NPC_REACTIONS.md](NPC_REACTIONS.md). Story and quest characters, vendors' shops and our companions are not touched by it.**
+
 **Amended 2026-10-18: the game's own named characters can now be talked to (voice and face only), see [WORLD_CHARACTERS.md](WORLD_CHARACTERS.md).** The rows below for named characters describe the rule before that change; everything except the talk path is still true for them.
 
 **Decision 2026-10-11 (release 0.2): the mod never touches a character the game placed, except the talk path for ordinary NPCs.** Only companions the mod spawns are party members. A world character can no longer be asked to follow (the adoption code below is kept but switched off, `allowWorldFollow` in `mod/companion-adoption.lua`; nothing sets it). "Leave V's Party" remains for spawned companions. The rest of this page describes the retired world-follow mechanism, and then what still applies.
