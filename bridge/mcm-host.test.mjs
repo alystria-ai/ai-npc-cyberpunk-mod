@@ -18,6 +18,7 @@ const everything = {
   'convai-paid-tier.lua': source('convai-paid-tier.lua'), 'support-report.lua': source('support-report.lua'),
   'setup-check.lua': source('setup-check.lua'), 'custom-provider.lua': source('custom-provider.lua'),
 };
+const withoutCustomModule = Object.fromEntries(Object.entries(everything).filter(([name]) => name !== 'custom-provider.lua'));
 const harness = (options = {}) => `
   local logged = {}
   print = function(text) logged[#logged + 1] = tostring(text) end
@@ -193,7 +194,7 @@ test('every kind of row is one MCM can take: switches, selects, sliders, buttons
     if row.type == 'action' then assert(row.capabilities.write == false and row.capabilities.draft == false, row.id) end
     assert(not row.id:find('^ui:'), 'a page control must not be a draft: ' .. row.id)
   end
-  -- The read-only lines of the Settings page are status buttons, so no line of the page is drawn at another size.
+  -- The Settings page has no read-only line, so no line of the page is drawn at another size.
   assert(kinds.bool and kinds.select and kinds.int and kinds.action and not kinds.string, 'every kind is on the Settings page')
   assert(mcm.row('feedback') == nil, 'the line of the last action is MCM\s status line, not a row')
   assert(#mcm.categories() > 6)
@@ -230,9 +231,9 @@ test('Revert and Restore defaults: Revert drops the drafts; the footer button, p
   mcm.set('Voice volume (%)', 120)
   mcm.revert()
   assert(not next(mcm.drafts()) and mcm.row('Voice volume (%)').value == 100)
-  assert(manager.applySettings(player, {bodyGestures = false, voiceVolume = 150, battleReactions = true}))
+  assert(manager.applySettings(player, {followUpInterest = false, voiceVolume = 150, battleReactions = false}))
   frames(10)
-  assert(mcm.row('Body gestures').value == false and mcm.row('Voice volume (%)').value == 150, 'an outside change is drawn')
+  assert(mcm.row('Follow-up questions').value == false and mcm.row('Voice volume (%)').value == 150, 'an outside change is drawn')
   -- No row has a default, so MCM's own Defaults button and its Modified counter are not there; the manager's own button is.
   local layout = mcm.layout()
   assert(layout.mcmDefaultsButton == false and layout.comparable == 0 and layout.modified == 0)
@@ -246,14 +247,15 @@ test('Revert and Restore defaults: Revert drops the drafts; the footer button, p
   press('Defaults')
   assert(footerLabels() == 'Confirm | Back', footerLabels())
   assert(mcm.status():find('Confirm', 1, true), mcm.status())
-  assert(manager.snapshot(player).settings.bodyGestures == false and manager.snapshot(player).settings.voiceVolume == 150)
-  -- Another button drops the first press.
-  press('Voice status')
+  assert(manager.snapshot(player).settings.followUpInterest == false and manager.snapshot(player).settings.voiceVolume == 150)
+  -- Another button drops the first press (a page button; the Settings page has no status button any more).
+  press('Memory'); press('Back to settings')
   assert(footerLabels() == 'Defaults | Back', footerLabels())
   press('Defaults'); press('Defaults')
   local settings = manager.snapshot(player).settings
-  assert(settings.bodyGestures == true and settings.voiceVolume == 100 and settings.battleReactions == false, 'defaults saved')
-  assert(mcm.row('Body gestures').value == true and mcm.row('Voice volume (%)').value == 100, 'the page shows them')
+  assert(settings.followUpInterest == true and settings.voiceVolume == 100 and settings.battleReactions == true, 'defaults saved')
+  assert(mcm.row('Follow-up questions').value == true and mcm.row('Voice volume (%)').value == 100, 'the page shows them')
+  frames(8)   -- the status line follows within a moment
   assert(mcm.status() == 'Defaults restored.', mcm.status())
   assert(footerLabels() == 'Defaults | Back' and not next(mcm.drafts()))
   -- A press on another page drops it too: the confirmation is for the page it was asked on.
@@ -523,10 +525,9 @@ test('no row is ever drawn as changed (purple): MCM needs a default for that mar
   mcm.revert()
 `));
 
-test('every row of the Settings page is drawn the same: one size, one colour family, buttons for the status lines; the two alignments left are the ones MCM fixes', () => withScreen(`
+test('every row of the Settings page is drawn the same: one size, one colour family, no read-only line at all; the two alignments left are the ones MCM fixes', () => withScreen(`
   ${footer}
-  assert(manager.applySettings(player, {johnnyInHead = true}))
-  convaiJohnnyStanding = function() return 'grudging' end
+  assert(manager.applySettings(player, {johnnyInHead = true, johnnyRemarks = 'rare'}))
   frames(6)
   press('Settings')
   local layout = mcm.layout()
@@ -545,17 +546,25 @@ test('every row of the Settings page is drawn the same: one size, one colour fam
   -- MCM puts the label of a setting in its marker column (x 48) and the label of an action flush left (x 20): neither moves through
   -- the public interface (see mcm-fake.mjs layout()), so the page has exactly those two.
   assert(columns.setting == 48 and columns.action == 20, tostring(columns.setting) .. ' ' .. tostring(columns.action))
-  -- Voice status and Johnny's standing are status buttons (the value is the button's text), and pressing one changes nothing.
-  for _, name in ipairs({'Voice status', 'Johnny’s standing'}) do
-    local row = listed(name)
-    assert(row and row.kind == 'action' and row.button and row.buttonText ~= '', name .. ' is ' .. tostring(row and row.kind))
+  -- The Settings page has no read-only line (Voice status and Johnny’s standing were removed 2026-10-20) and so no status button either.
+  for _, name in ipairs({'Voice status', 'Johnny’s standing'}) do assert(listed(name) == nil and mcm.row(name) == nil, name .. ' is gone') end
+  for _, row in ipairs(mcm.rows()) do
+    assert(row.type ~= 'string' and not tostring(row.id):find('^status:'), 'a read-only or status row on Settings: ' .. tostring(row.id))
   end
-  assert(listed('Johnny’s standing').buttonText == 'Grudging respect', listed('Johnny’s standing').buttonText)
-  -- The button is narrow: a value in parts shows its first part only.
-  assert(not listed('Voice status').buttonText:find(' · ', 1, true), listed('Voice status').buttonText)
-  local loads = mcm.loads
-  press('Voice status'); press('Johnny’s standing')
-  assert(mcm.loads == loads, 'a status button does not draw the page again')
+  -- The read-only lines of the other pages are MCM's own lines (type string, drawn as read-only text), not buttons.
+  press('Help and support')
+  local lines = 0
+  local drawnById = {}
+  for _, drawn in ipairs(mcm.layout().rows) do if drawn.id then drawnById[drawn.id] = drawn end end
+  for _, row in ipairs(mcm.rows()) do
+    if row.type == 'string' then
+      lines = lines + 1
+      assert(drawnById[row.id] and drawnById[row.id].kind == 'readonly', row.label .. ' is a plain text row')
+      assert(not tostring(row.id):find('^status:'), row.id)
+    end
+  end
+  assert(lines > 0, 'the Help page has read-only lines')
+  press('Back to settings')
   -- No row carries a default.
   for _, row in ipairs(mcm.rows()) do assert(row.default == nil, row.id) end
 `));
@@ -586,35 +595,35 @@ test('Relationships is a page of its own: a button in Conversations opens it, it
   press('Back to Companion Manager')
 `));
 
-test('Apply of one switch saves exactly that switch: Live holocall picture off is saved off, and the rest stays', () => withScreen(`
+test('Apply of one switch saves exactly that switch: Follow-up questions off is saved off, and the rest stays', () => withScreen(`
   press('Settings')
   frames(6)
   local core = managerUi._test.core
   local realApply, seen = core.apply, nil
   core.apply = function(batch) seen = batch; return realApply(batch) end
   local before = manager.snapshot(player).settings
-  assert(before.holocallLiveImage == true and before.multilingualConversations == false)
-  assert(mcm.row('Live holocall picture').value == true)
-  assert(mcm.set('Live holocall picture', false))
-  assert(mcm.drafts()['cyberpunk-convai:manager:holocallLiveImage'] == false, 'the draft is on that row')
+  assert(before.followUpInterest == true and before.multilingualConversations == false)
+  assert(mcm.row('Follow-up questions').value == true)
+  assert(mcm.set('Follow-up questions', false))
+  assert(mcm.drafts()['cyberpunk-convai:manager:followUpInterest'] == false, 'the draft is on that row')
   assert(next(mcm.drafts(), next(mcm.drafts())) == nil, 'and on no other')
   local ok, why = mcm.apply()
   assert(ok, tostring(why))
-  assert(seen and #seen == 1 and seen[1].id == 'holocallLiveImage' and seen[1].value == false, 'the batch is that one switch')
-  assert(saved.holocallLiveImage == false and saved.holocallLiveImageChosen == true, 'saved: ' .. tostring(saved.holocallLiveImage))
-  assert(manager.snapshot(player).settings.holocallLiveImage == false)
-  assert(mcm.row('Live holocall picture').value == false, 'the page shows what is saved')
+  assert(seen and #seen == 1 and seen[1].id == 'followUpInterest' and seen[1].value == false, 'the batch is that one switch')
+  assert(saved.followUpInterest == false, 'saved: ' .. tostring(saved.followUpInterest))
+  assert(manager.snapshot(player).settings.followUpInterest == false)
+  assert(mcm.row('Follow-up questions').value == false, 'the page shows what is saved')
   assert(saved.multilingualConversations == false and saved.subtitles == true, 'the other switches did not move')
   -- And back on.
   core.apply = realApply
-  assert(mcm.set('Live holocall picture', true) and mcm.apply())
-  assert(saved.holocallLiveImage == true)
+  assert(mcm.set('Follow-up questions', true) and mcm.apply())
+  assert(saved.followUpInterest == true)
   -- The same while the list jumps on every redraw (the live check): the switch pressed is the one saved.
   mcm.jumpOnLoad = 0.7
   frames(4)
-  assert(mcm.set('Live holocall picture', false) and mcm.apply())
+  assert(mcm.set('Follow-up questions', false) and mcm.apply())
   frames(6)
-  assert(saved.holocallLiveImage == false and saved.multilingualConversations == false)
+  assert(saved.followUpInterest == false and saved.multilingualConversations == false)
 `));
 
 test('the list keeps its place after Apply and after a reload of the page, leaves a later scroll alone, and starts at the top on another page', () => withScreen(`
@@ -624,7 +633,7 @@ test('the list keeps its place after Apply and after a reload of the page, leave
   assert(math.abs(mcm.scroll() - 0.2) < 1e-9)
   -- MCM redraws the page after Apply and the list jumps far down (as in the live check): the host puts it back.
   mcm.jumpOnLoad = 0.6
-  assert(mcm.set('Live holocall picture', false) and mcm.apply())
+  assert(mcm.set('Follow-up questions', false) and mcm.apply())
   assert(mcm.scroll() == 0.6, 'the jump happened, as in the live check')
   frames(1)
   assert(math.abs(mcm.scroll() - 0.2) < 1e-9, 'put back: ' .. mcm.scroll())
@@ -1093,4 +1102,170 @@ test('MCM 0.10.6 adds no per-frame work: nothing is called while the screen is c
   assert(count('ui.close') == 0 and count('ui.setActionVisibility') == 1)
   managerUi.shutdown(true)
   assert(not mcmHost.ready() and mcm.config() and next(mcm.config()) == nil, 'the UI configuration is cleared')
+`));
+
+// ---------------------------------------------------------------------------------------------------- settings decisions of 2026-10-20
+const customRows = ['Custom endpoint URL', 'Custom API key', 'Custom model ID', 'Test connection'];
+const customState = `
+  files['runtime/custom-provider-command.json'] = ''
+  local function service(tag, value)
+    jsonFixtures['custom-' .. tag] = value; files['runtime/custom-provider-state.json'] = 'custom-' .. tag
+    clock = clock + 2; frames(4)
+  end
+  local function command() return jsonFixtures[files['runtime/custom-provider-command.json']] end
+`;
+
+test('Custom endpoint is a page of its own: one button on Settings where the four rows were, Back to settings returns, and the rows send their commands through the provider', () => withScreen(`
+  ${footer}
+  ${customState}
+  press('Settings')
+  assert(mcm.row('Custom endpoint').type == 'action' and mcm.row('Custom endpoint').value == 'Open', 'one button on Settings')
+  for _, label in ipairs({${customRows.map(label => `'${label}'`).join(', ')}}) do assert(mcm.row(label) == nil, label .. ' is not on Settings any more') end
+  press('Custom endpoint')
+  local config = mcm.config()
+  assert(config.navigation.pageId == 'custom-endpoint|1|1' and config.navigation.backActionId == 'custom-endpoint:back' and config.navigation.escapeBack == true,
+    tostring(config.navigation.pageId) .. ' ' .. tostring(config.navigation.backActionId))
+  assert(headings() == 'Custom endpoint', headings())
+  assert(config.footerActions[#config.footerActions] == 'custom-endpoint:back', table.concat(config.footerActions, ','))
+  assert(mcm.row('Back to settings').value == 'Back')
+  for _, label in ipairs({${customRows.map(label => `'${label}'`).join(', ')}}) do
+    assert(mcm.row(label) and mcm.row(label).type == 'action', label .. ' is a button of the page')
+  end
+  assert(mcm.row('Settings') == nil and mcm.row('Conversation provider') == nil, 'nothing of Settings is on the page')
+  for _, drawn in ipairs(mcm.layout().rows) do
+    if drawn.kind ~= 'heading' then assert(drawn.kind == 'action' and drawn.size == 22 and drawn.color == 'red', drawn.label .. ' is drawn as ' .. drawn.kind) end
+  end
+  -- No state from the service yet: the test waits. The rows send their commands on the provider's own channel.
+  assert(mcm.row('Test connection').capabilities.write == false)
+  press('Custom endpoint URL')
+  assert(command().action == 'paste-url', tostring(command() and command().action))
+  press('Custom API key'); assert(command().action == 'paste-key')
+  press('Custom model ID'); assert(command().action == 'paste-model')
+  -- The service saved everything: the rows say so, and Test connection runs; its result shows on the page.
+  service('saved', {version = 1, updated = 1, ready = true, host = 'openrouter.ai', secure = true, ['local'] = false, model = 'llama3.2', keySaved = true, tail = 'wxyz'})
+  assert(mcm.row('Custom endpoint URL (openrouter.ai)').value == 'Remove', labels())
+  press('Test connection')
+  local id = command().id
+  assert(command().action == 'test')
+  service('testing', {version = 1, updated = 2, ready = true, host = 'openrouter.ai', secure = true, ['local'] = false, model = 'llama3.2', keySaved = true, tail = 'wxyz',
+    test = {id = id, state = 'testing'}})
+  assert(mcm.row('Test connection (Testing…)'), labels())
+  service('failed', {version = 1, updated = 3, ready = true, host = 'openrouter.ai', secure = true, ['local'] = false, model = 'llama3.2', keySaved = true, tail = 'wxyz',
+    test = {id = id, state = 'failed', code = 'model', detail = 'model not found'}})
+  assert(mcm.row('Test connection (Failed)'), labels())
+  assert(mcm.row('Test connection (Failed)').description:find('The endpoint does not know that model ID.', 1, true))
+  -- Back to settings leaves the page and the way back works from the footer too.
+  press('Back to settings')
+  assert(mcm.config().navigation.pageId == 'settings|1|1' and mcm.row('Custom endpoint') and mcm.row('Custom endpoint URL (openrouter.ai)') == nil)
+  press('Custom endpoint'); press('Back to settings'); press('Back to Companion Manager')
+  assert(labels() == 'Characters to invite | Current party | Model browser | Settings', labels())
+`));
+
+test('Custom endpoint with changes pending: MCM refuses the button until Apply, the change is saved by Apply, and the page then opens', () => withScreen(`
+  ${footer}
+  press('Settings')
+  assert(mcm.set('Subtitles', false))
+  local ok, why = mcm.press('Custom endpoint')
+  assert(ok == false and why:find('pending changes', 1, true), tostring(why))
+  assert(mcm.config().navigation.pageId == 'settings|1|1', 'the page did not change')
+  assert(mcm.apply())
+  assert(saved.subtitles == false)
+  press('Custom endpoint')
+  assert(mcm.config().navigation.pageId == 'custom-endpoint|1|1')
+  assert(next(mcm.drafts()) == nil, 'the page has no draft')
+  -- The way back is a button, and Revert/Apply have nothing to do on this page.
+  press('Back to settings')
+  assert(mcm.row('Subtitles').value == false, 'the saved change is on the page')
+`));
+
+test('Custom endpoint is not offered without the provider module: no button on Settings, nothing to open', () => run(`${harness({modules: withoutCustomModule})}
+  mcm.openScreen()
+  frames(2)
+  press('Settings')
+  assert(mcm.row('Custom endpoint') == nil, 'no button without the module')
+  assert(not pcall(mcm.press, 'Custom endpoint'), 'there is nothing to press')
+  assert(mcm.row('Mistral key') ~= nil or mcm.row('Conversation provider') ~= nil, 'the rest of the page is there')
+`));
+
+test('Johnny in your head is one list: Off, On, Speaks up rarely, Speaks up often; it stores both settings together, and the old rows are gone', () => withScreen(`
+  press('Settings')
+  assert(mcm.row('Johnny speaks up') == nil and mcm.row('Johnny’s standing') == nil, 'the separate rows are gone')
+  local row = mcm.row('Johnny in your head')
+  assert(row.type == 'select' and row.default == nil and row.value == 1, 'Off by default')
+  assert(table.concat(row.elements, ' | ') == 'Off | On | Speaks up rarely | Speaks up often', table.concat(row.elements, ' | '))
+  local function stored() return tostring(saved.johnnyInHead) .. '/' .. tostring(saved.johnnyRemarks) end
+  assert(stored() == 'false/off', stored())
+  assert(mcm.set('Johnny in your head', 3) and mcm.apply())
+  assert(stored() == 'true/rare', stored())
+  assert(mcm.row('Johnny in your head').value == 3, 'the page shows what is saved')
+  assert(mcm.set('Johnny in your head', 4) and mcm.apply()); assert(stored() == 'true/normal', stored())
+  assert(mcm.set('Johnny in your head', 2) and mcm.apply()); assert(stored() == 'true/off', stored())
+  assert(mcm.row('Johnny in your head').value == 2)
+  assert(mcm.set('Johnny in your head', 1) and mcm.apply()); assert(stored() == 'false/off', stored())
+  assert(mcm.row('Johnny in your head').value == 1)
+  -- A saved Johnny with remarks reads as the same entry after a restart of the page.
+  assert(manager.applySettings(player, {johnnyInHead = true, johnnyRemarks = 'rare'}))
+  frames(10)
+  assert(mcm.row('Johnny in your head').value == 3)
+`));
+
+test('V’s voice is one list: Off, Pocket, Voxtral; Voxtral is greyed out without a Mistral key (the choice is refused as a draft) and works with one', () => withScreen(`
+  press('Settings')
+  local name = 'V’s voice for typed lines'
+  assert(mcm.row('V’s voice engine') == nil, 'the engine row is gone')
+  local row = mcm.row(name)
+  assert(row.type == 'select' and row.default == nil and row.value == 2, 'Pocket by default')
+  assert(table.concat(row.elements, ' | ') == 'Off | Pocket · On your PC | Voxtral · needs Mistral key', table.concat(row.elements, ' | '))
+  local states = mcm.config().choices and mcm.config().choices.vVoice
+  assert(states and states.states[3] and states.states[3].enabled == false, 'Voxtral is a disabled choice without a key')
+  assert(states.states[1].enabled ~= false and states.states[2].enabled ~= false, 'Off and Pocket are free')
+  local ok, why = mcm.set(name, 3)
+  assert(ok == false, 'MCM refuses the disabled entry as a draft')
+  assert(next(mcm.drafts()) == nil)
+  assert(mcm.set(name, 1) and mcm.apply())
+  assert(saved.vVoice == false and saved.vVoiceEngine == 'pocket', tostring(saved.vVoice))
+  assert(mcm.row(name).value == 1)
+  assert(mcm.set(name, 2) and mcm.apply())
+  assert(saved.vVoice == true and saved.vVoiceEngine == 'pocket' and mcm.row(name).value == 2)
+  -- The Mistral key is saved: the entry has its name and can be chosen.
+  jsonFixtures['mistral-key'] = {provider = 'convai', effective = 'convai', saved = true}
+  files['runtime/mistral-state.json'] = 'mistral-key'
+  clock = clock + 2; manager.snapshot(player); frames(10)
+  assert(mcm.row(name).elements[3] == 'Voxtral · Mistral cloud', mcm.row(name).elements[3])
+`));
+
+test('once the Mistral key is saved the Voxtral entry of V’s voice is a normal choice again (the disabled state set without a key is lifted)', () => withScreen(`
+  press('Settings')
+  local name = 'V’s voice for typed lines'
+  jsonFixtures['mistral-key'] = {provider = 'convai', effective = 'convai', saved = true}
+  files['runtime/mistral-state.json'] = 'mistral-key'
+  clock = clock + 2; manager.snapshot(player); frames(10)
+  local ok3, why3 = mcm.set(name, 3)
+  assert(ok3, 'Voxtral is a normal draft with a key: ' .. tostring(why3))
+  assert(mcm.apply())
+  assert(saved.vVoice == true and saved.vVoiceEngine == 'voxtral' and mcm.row(name).value == 3)
+`));
+
+test('the Voxtral entry of V’s voice says what it needs: the Mistral key (and not the OmniVoice pack)', () => withScreen(`
+  press('Settings')
+  local states = mcm.config().choices.vVoice.states
+  assert(states[3].enabled == false and states[3].reason:find('Mistral', 1, true) and not states[3].reason:find('OmniVoice', 1, true), tostring(states[3].reason))
+`));
+
+test('React to battles and to collected loot are on by default, and Restore defaults puts Johnny to Off, V’s voice to Pocket and the reactions on', () => withScreen(`
+  press('Settings')
+  assert(mcm.row('React to battles').value == true and mcm.row('React to collected loot').value == true)
+  assert(mcm.set('React to battles', false) and mcm.set('React to collected loot', false) and mcm.set('Johnny in your head', 4) and mcm.set('V’s voice for typed lines', 1))
+  assert(mcm.apply())
+  assert(saved.battleReactions == false and saved.battleReactionsChosen == true and saved.lootReactions == false and saved.lootReactionsChosen == true)
+  assert(saved.johnnyInHead == true and saved.johnnyRemarks == 'normal' and saved.vVoice == false)
+  frames(6)
+  press('Defaults'); press('Defaults')
+  frames(8)
+  local settings = manager.snapshot(player).settings
+  assert(settings.battleReactions == true and settings.lootReactions == true, 'the reactions are on again')
+  assert(settings.johnnyInHead == false and settings.johnnyRemarks == 'off', 'Johnny is Off')
+  assert(settings.vVoice == true and settings.vVoiceEngine == 'pocket', 'V speaks with Pocket')
+  assert(mcm.row('Johnny in your head').value == 1 and mcm.row('V’s voice for typed lines').value == 2)
+  assert(mcm.row('React to battles').value == true and mcm.row('React to collected loot').value == true)
 `));

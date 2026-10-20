@@ -230,7 +230,7 @@ test('loader: nothing is loaded while the setting is off; loaded once on first n
     print = function() end
     ${loader}
     assert(convaiJohnnyHeadService() == nil and loads == 0, 'off: not even read from disk')
-    assert(convaiJohnnyStanding() == nil and loads == 0)
+    assert(convaiJohnnyStanding == nil, 'the standing row and its init.lua function are gone')
     on = true
     local service = assert(convaiJohnnyHeadService())
     assert(loads == 1 and service.key == 'johnny-silverhand' and service.name == 'Johnny Silverhand')
@@ -378,10 +378,11 @@ test('shipping: the module ships and dev-installs; the setting has its row and h
   for (const plan of ['../packaging/release-plan.json', '../scripts/development-files.json']) {
     assert.match(read(plan), /"source": "mod\/johnny-head\.lua",\s+"target": "bin\/x64\/plugins\/cyber_engine_tweaks\/mods\/AiNpcCyberpunkMod\/johnny-head\.lua"/, plan);
   }
-  assert.match(read('../mod/manager-ui.lua'), /setting\('johnnyInHead', 'Johnny in your head', 'bool', snapshot\.settings\.johnnyInHead == true, false,/);
+  assert.match(read('../mod/manager-ui.lua'), /setting\('johnnyInHead', 'Johnny in your head', 'select',[^]*?\{'Off', 'On', 'Speaks up rarely', 'Speaks up often'\}\)/);
   const en = JSON.parse(read('../localization/en.json')).strings;
-  const strings = Object.keys(en).filter(key => /Johnny|Grudging respect|Close friends|Not in your head yet|Gone after the ending|^Wary$|^Friends$/.test(key));
-  assert.ok(strings.length >= 10, strings.join(' | '));
+  const strings = Object.keys(en).filter(key => /Johnny|^Speaks up (rarely|often)$|^On$|^Off$/.test(key));
+  for (const key of ['Johnny in your head', 'Speaks up rarely', 'Speaks up often']) assert.ok(strings.includes(key), key);
+  assert.ok(!strings.some(key => /Not in your head yet|Gone after the ending|Grudging respect|standing/i.test(key)), 'the standing row texts are gone');
   for (const locale of ['cs', 'de', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'pl', 'pt-br', 'ru', 'tr', 'uk', 'zh-cn', 'zh-tw']) {
     const source = read(`../mod/locales/${locale}.lua`);
     for (const key of strings) assert.ok(source.includes(`["${key.replace(/\n/g, '\\n')}"]`), `${locale}: ${key.slice(0, 40)}`);

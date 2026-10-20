@@ -721,7 +721,9 @@ test('the bridge starts V\'s line at the top of the turn (before knowledge, admi
   assert.match(bridge, /holdSound: \(\) => current\.vLine\?\.\(\)\?\.blocking === true/);
   assert.match(bridge, /current\.vLine\?\.\(\)\?\.whenNearEnd\?\.\(\(\) => speech\.wakeUp\(\)\)/);
   assert.match(bridge, /await current\.vLine\?\.\(\)\?\.waitClear\(signal\)/);
-  assert.match(bridge, /if \(vVoice\.update\(settings\)\)/);
+  // A saved Voxtral without a Mistral key is Pocket for V (the one row of V's voice offers Voxtral only with a key).
+  assert.match(bridge, /const vSettings = settings\?\.vVoiceEngine === 'voxtral' && !voxtralVoice\.hasKey \? \{\.\.\.settings, vVoiceEngine: 'pocket'\} : settings;/);
+  assert.match(bridge, /if \(vVoice\.update\(vSettings\)\)/);
   assert.match(bridge, /vVoice\.warmUp\(\)/);
   assert.match(bridge, /extra: extraVoices\(vVoiceReferences\)/);
 });

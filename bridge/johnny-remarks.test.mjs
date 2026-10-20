@@ -5,7 +5,7 @@ import fengari from 'fengari';
 import {parseInput} from './protocol.mjs';
 import {battleTrigger, battleContext} from './battle-context.mjs';
 import {parseHeadReaction, headTrigger} from './johnny-head.mjs';
-import {REMARK_SHARE, RemarkAllowance, SharedKeyGuard, TurnLimitError, headCap, remarkCap} from './shared-key-guard.mjs';
+import {REMARK_SHARE, RemarkAllowance, SharedKeyGuard, TurnLimitError, remarkCap} from './shared-key-guard.mjs';
 
 // Johnny speaks up (docs/JOHNNY_IN_YOUR_HEAD.md, phase 2): the remark policy of mod/johnny-remarks.lua, the collectors that hand events
 // over, the automatic-turn wiring in init.lua, the bridge's trigger and the shared key's remark share.
@@ -249,21 +249,20 @@ test('bridge: the trigger says where he is, what happened (quoted), his standing
 // ---------------------------------------------------------------------------------------------------------------------
 // The shared key: remarks are turns, and at most a tenth of the day's.
 
-test('shared key: remarks count as turns and may use at most REMARK_SHARE of the day less the reserve for V\'s exchanges (7 of the 10 of 100); other turns and other keys are untouched', () => {
+test('shared key: remarks count as turns and may use at most REMARK_SHARE of the day (10 of 100); other turns and other keys are untouched', () => {
   assert.equal(REMARK_SHARE, 0.1);
   assert.equal(remarkCap(100), 10); assert.equal(remarkCap(5), 1); assert.equal(remarkCap(250), 25);
-  assert.equal(headCap(100), 7); assert.equal(headCap(5), 1); assert.equal(headCap(250), 18); assert.equal(headCap(30), 3, 'a pool of 3 has no reserve');
   let now = new Date(2026, 9, 19, 12).getTime(), shared = true;
   const guard = new SharedKeyGuard({limit: 100, now: () => now, applies: () => shared, spacingMs: 0, burst: 1000, perMinute: 100000});
   const remarks = new RemarkAllowance({guard});
   const head = {reaction: {kind: 'head'}}, battle = {reaction: {kind: 'battle'}}, talk = {};
   const admit = config => { guard.check(); remarks.check(config); guard.consume(); remarks.consume(config); };
-  for (let i = 0; i < 7; i++) admit(head);
-  assert.equal(guard.count, 7, 'each remark is one of the day\'s turns');
-  assert.throws(() => admit(head), TurnLimitError, 'the eighth remark of the day is refused: the last three of the ten are V\'s exchanges\'');
-  assert.equal(guard.count, 7);
+  for (let i = 0; i < 10; i++) admit(head);
+  assert.equal(guard.count, 10, 'each remark is one of the day\'s turns');
+  assert.throws(() => admit(head), TurnLimitError, 'the eleventh remark of the day is refused');
+  assert.equal(guard.count, 10);
   admit(talk); admit(battle);
-  assert.equal(guard.count, 9, 'V\'s own turns and battle reactions go on');
+  assert.equal(guard.count, 12, 'V\'s own turns and battle reactions go on');
   guard.setLimit(200);
   assert.doesNotThrow(() => admit(head), 'the share follows the backend\'s limit');
   shared = false; remarks.count = 999;
@@ -280,16 +279,16 @@ test('shared key: remarks count as turns and may use at most REMARK_SHARE of the
   assert.match(bridge, /'remark-usage\.json'/);
 });
 
-test('shipping: the module ships and dev-installs; the select has its row, help and three options in all languages', () => {
+test('shipping: the module ships and dev-installs; the one select row (Johnny in your head, four options) has its texts in all languages; the separate row is gone', () => {
   for (const plan of ['../packaging/release-plan.json', '../scripts/development-files.json']) {
     assert.match(read(plan), /"source": "mod\/johnny-remarks\.lua",\s+"target": "bin\/x64\/plugins\/cyber_engine_tweaks\/mods\/AiNpcCyberpunkMod\/johnny-remarks\.lua"/, plan);
   }
   const managerUiSource = read('../mod/manager-ui.lua');
-  assert.match(managerUiSource, /setting\('johnnyRemarks', 'Johnny speaks up', 'select',/);
-  assert.match(managerUiSource, /\{'Off', 'Rare', 'Normal'\}\),/);
+  assert.doesNotMatch(managerUiSource, /setting\('johnnyRemarks'/);
+  assert.match(managerUiSource, /setting\('johnnyInHead', 'Johnny in your head', 'select',[^]*?\{'Off', 'On', 'Speaks up rarely', 'Speaks up often'\}\)/);
   const en = JSON.parse(read('../localization/en.json')).strings;
-  const keys = Object.keys(en).filter(key => /^Johnny speaks up$|^Rare$|^Normal$|Choose how often Johnny|^Johnny says something on his own/.test(key));
-  assert.equal(keys.length, 5);
+  const keys = Object.keys(en).filter(key => /^Speaks up rarely$|^Speaks up often$|^Choose how often Johnny speaks up\.$|^Johnny in your head$/.test(key));
+  assert.equal(keys.length, 4);
   for (const locale of ['cs', 'de', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'pl', 'pt-br', 'ru', 'tr', 'uk', 'zh-cn', 'zh-tw']) {
     const source = read(`../mod/locales/${locale}.lua`);
     for (const key of keys) assert.ok(source.includes(`["${key.replace(/\n/g, '\\n')}"]`), `${locale}: ${key.slice(0, 40)}`);

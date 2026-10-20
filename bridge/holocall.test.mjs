@@ -147,13 +147,12 @@ test('the game\'s own phone is untouched; a holocall starts only from the mod\'s
   assert.match(code, /public final func ConvaiChatListHolocall\(contact: wref<ContactData>\) -> Void \{[^]*?this\.m_player\.ConvaiHolocallRequest\(contact\.id\);/);
 });
 
-test('the live picture setting is a Conversations setting, not a developer one', () => {
+test('the live picture is not a setting any more: no row, no getter, an old saved key is ignored', () => {
   const managerUiSource = read('../mod/manager-ui.lua');
-  const conversations = managerUiSource.slice(managerUiSource.indexOf("category('conversation-controls'"), managerUiSource.indexOf("category('companion-behavior'"));
-  const development = managerUiSource.slice(managerUiSource.indexOf("category('development'"), managerUiSource.indexOf("category('help', 'Help'"));
-  assert.match(conversations, /setting\('holocallLiveImage', 'Live holocall picture'/);
-  assert.doesNotMatch(development, /holocall/i);
-  assert.match(managerUiSource, /key == 'holocallLiveImage'/);
+  const managerSource = read('../mod/manager.lua');
+  assert.doesNotMatch(managerUiSource, /setting\('holocallLiveImage'|Live holocall picture/);
+  assert.doesNotMatch(managerSource, /function M\.holocallLiveImage|holocallLiveImageChosen\s*=/);
+  assert.match(read('../mod/init.lua'), /liveImage = function\(\) return true end/);
 });
 
 // ---------------------------------------------------------------- Lua state machine

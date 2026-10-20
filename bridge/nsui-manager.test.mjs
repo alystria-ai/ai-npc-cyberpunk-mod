@@ -61,10 +61,10 @@ test('every page builds on the tab and the tab always starts with the way back, 
     press('Back to Companion Manager')
     assert(#ns.sections() == 1 and ns.sections()[1].options[1].label == 'Characters to invite', 'back on Home')
   end
-  -- Settings has its sub-pages: Memory, Relationships, Help and the paid tier, each with its Back to Settings at the top.
+  -- Settings has its sub-pages: Memory, Relationships, Help, the paid tier and the Custom endpoint, each with its Back to Settings at the top.
   press('Settings')
-  assert(ns.find('Memory') and ns.find('Relationships') and ns.find('Help and support') and ns.find('Convai paid tier'))
-  for _, page in ipairs({'Memory', 'Relationships', 'Help and support', 'Convai paid tier'}) do
+  assert(ns.find('Memory') and ns.find('Relationships') and ns.find('Help and support') and ns.find('Convai paid tier') and ns.find('Custom endpoint'))
+  for _, page in ipairs({'Memory', 'Relationships', 'Help and support', 'Convai paid tier', 'Custom endpoint'}) do
     press(page)
     check(page, 'Back to settings')
     press('Back to settings')
@@ -160,14 +160,14 @@ test('the manager opens on its first page: after leaving the tab, after closing 
 
 test('a change is applied for real after a moment, as one transaction; rows the rules corrected are put back in place with one line under the way back', () => run(`${harness()}
   press('Settings')
-  local gestures = ns.find('Body gestures')
-  assert(gestures.state == true)
+  local gestures = ns.find('React to battles')
+  assert(gestures.state == true, 'battle reactions are on by default')
   ns.interact.toggle(gestures)
   frames(1)
-  assert(manager.snapshot(player).settings.bodyGestures == true, 'nothing is saved at the moment of the click')
+  assert(manager.snapshot(player).settings.battleReactions == true, 'nothing is saved at the moment of the click')
   frames(6)
-  assert(manager.snapshot(player).settings.bodyGestures == false and saved.bodyGestures == false, 'applied once the changes have settled')
-  assert(ns.find('Body gestures') == gestures and gestures.state == false, 'the row is the same widget and shows the saved value')
+  assert(manager.snapshot(player).settings.battleReactions == false and saved.battleReactions == false and saved.battleReactionsChosen == true, 'applied once the changes have settled')
+  assert(ns.find('React to battles') == gestures and gestures.state == false, 'the row is the same widget and shows the saved value')
   -- Two changes close together are one transaction (one save).
   local writes = #fileWrites
   ns.interact.toggle(ns.find('Subtitles')); ns.interact.toggle(ns.find('Voice playback'))
@@ -188,7 +188,7 @@ test('a change is applied for real after a moment, as one transaction; rows the 
   ns.interact.select(ns.find('Companion voices'), 7)   -- Convai cloud voice
   frames(8); ns.verify()
   assert(saved.voiceProvider == 'convai' and ns.find('Companion voices').selectedElementIndex == 7)
-  assert(saved.expressiveEmotions == false and ns.find('Expressive emotions').state == false, 'the cloud voice turned Expressive emotions off, and the row shows it')
+  assert(ns.find('Expressive emotions') == nil and saved.expressiveEmotions == nil, 'Expressive emotions is not a setting any more')
   ns.interact.toggle(ns.find('Natural speech')); frames(8); ns.verify()
   assert(saved.naturalSpeech == true and saved.voiceProvider == 'pocket', 'Natural speech moved the voice to Pocket')
   assert(ns.find('Companion voices').selectedElementIndex == 1, 'the voice row shows it')
@@ -295,7 +295,7 @@ test('Mature content beside Mistral or Custom is just turned on (provider, model
   ns.interact.select(ns.find('Conversation provider'), 1); frames(8); ns.verify()
   assert(saved.conversationProvider == 'convai' and saved.matureContent == false, 'Convai turns it off')
   -- Turning it on beside Custom with a cloud companion voice leaves the voice alone (the lines are in the cloud for the reply anyway).
-  assert(manager.applySettings(player, {conversationProvider = 'custom', voiceProvider = 'convai', naturalSpeech = false, expressiveEmotions = false}))
+  assert(manager.applySettings(player, {conversationProvider = 'custom', voiceProvider = 'convai', naturalSpeech = false}))
   frames(8)
   ns.interact.toggle(ns.find('Mature content')); frames(8); ns.verify()
   assert(saved.matureContent == true and saved.conversationProvider == 'custom' and saved.voiceProvider == 'convai', tostring(saved.voiceProvider))
@@ -306,19 +306,19 @@ test('Restore defaults goes through the same validated path, only on the Setting
   ns.interact.restoreDefaults(); frames(4)
   assert(managerUi.inspect().shown == 'Open Settings to restore its defaults.', tostring(managerUi.inspect().shown))
   press('Settings')
-  assert(manager.applySettings(player, {bodyGestures = false, subtitleStyle = 'overhead', voiceVolume = 150, battleReactions = true, voiceProvider = 'convai',
-    naturalSpeech = false, expressiveEmotions = false}))
+  assert(manager.applySettings(player, {battleReactions = false, followUpInterest = false, subtitleStyle = 'overhead', voiceVolume = 150, voiceProvider = 'convai',
+    naturalSpeech = false}))
   frames(20)
-  assert(ns.find('Body gestures').state == false and ns.find('Subtitle display').selectedElementIndex == 2)
+  assert(ns.find('React to battles').state == false and ns.find('Subtitle display').selectedElementIndex == 2)
   ns.interact.interact = nil
   ns.interact.restoreDefaults(); frames(8); ns.verify()
   local settings = manager.snapshot(player).settings
-  assert(settings.bodyGestures == true and settings.subtitleStyle == 'dialogue' and settings.voiceVolume == 100 and settings.battleReactions == false)
+  assert(settings.followUpInterest == true and settings.subtitleStyle == 'dialogue' and settings.voiceVolume == 100 and settings.battleReactions == true)
   assert(settings.voiceProvider == 'pocket', 'the voice default, applied through the same rules')
-  assert(ns.find('Body gestures').state == true and ns.find('Voice volume (%)').currentValue == 100 and ns.find('Battle reactions') == nil)
-  assert(ns.find('React to battles').state == false and ns.find('Companion voices').selectedElementIndex == 1)
+  assert(ns.find('Follow-up questions').state == true and ns.find('Voice volume (%)').currentValue == 100 and ns.find('Battle reactions') == nil)
+  assert(ns.find('React to battles').state == true and ns.find('Companion voices').selectedElementIndex == 1)
   assert(managerUi.inspect().shown == 'Defaults restored.', tostring(managerUi.inspect().shown))
-  -- A default the rules would refuse is not forced: Expressive emotions with the cloud voice (turned off by the rule, quietly).
+  -- Restore defaults after the cloud voice was chosen puts the default voice back.
   assert(manager.applySettings(player, {voiceProvider = 'convai'}))
   frames(4)
   ns.interact.restoreDefaults(); frames(8)
@@ -486,7 +486,7 @@ test('Mod Configuration Menu installed beside it changes nothing for the host: t
   end
   frames(5)
   press('Settings'); ns.verify()
-  assert(ns.find('Body gestures'), 'the page works')
+  assert(ns.find('React to battles'), 'the page works')
   assert(convaiSetupCheck, 'the setup check is loaded')
   convaiSetupCheck.run(os.time())
   local text = table.concat(convaiSetupCheck.reportLines(), '\\n')
@@ -552,7 +552,7 @@ test('with a language that has its own font family the rows get it in batches; w
 test('no row on any page speaks of Inworld, a shared key or plan or calls an option recommended, with Developer mode off or on', () => run(`${harness()}
   local function everything()
     local text = {}
-    for _, view in ipairs({'home', 'characters', 'party', 'models', 'settings', 'memory', 'help', 'paid-tier'}) do
+    for _, view in ipairs({'home', 'characters', 'party', 'models', 'settings', 'memory', 'help', 'paid-tier', 'custom-endpoint'}) do
       core.setView(view); frames(view == 'models' and 140 or 8)
       for _, section in ipairs(ns.sections()) do
         text[#text + 1] = section.label
@@ -771,9 +771,9 @@ test('a change applied through the mirror (setOption on the option MCM holds) ke
   local held = handles()
   assert(#held > 20, 'the Settings page is mirrored: ' .. #held)
   -- A switch, a slider and a selector, each applied the way MCM does (a draft applied through setOption, one after the other).
-  local gestures = ns.find('Body gestures', TAB)
+  local gestures = ns.find('React to battles', TAB)
   ns.setOption(gestures, not gestures.state); frames(8)
-  assert(manager.snapshot(player).settings.bodyGestures == false, 'the change was applied')
+  assert(manager.snapshot(player).settings.battleReactions == false, 'the change was applied')
   assert(stale(held) == 0, 'switch: handles that no longer resolve to their option: ' .. stale(held))
   ns.setOption(ns.find('Voice volume (%)', TAB), 135); frames(8)
   assert(saved.voiceVolume == 135 and stale(held) == 0, 'slider: ' .. stale(held))
@@ -793,30 +793,162 @@ test('a row whose text changes while the tab is not on screen is updated in plac
   ${mirror}
   go('Settings')
   local held = handles()
-  local gestures = ns.find('Body gestures', TAB)
+  local gestures = ns.find('React to battles', TAB)
   local label = gestures.label
   ns.resetCalls()
   convaiUiLocale.configure('de'); convaiUiLocale.update(0)
   managerUi._test.render(); frames(2)
-  assert(ns.find('Body gestures', TAB) == nil, 'the page is drawn in German now')
+  assert(ns.find('React to battles', TAB) == nil, 'the page is drawn in German now')
   assert(gestures.label ~= label, 'the same option table carries the new label: ' .. gestures.label)
   assert(stale(held) == 0, 'no handle was invalidated by the language change: ' .. stale(held))
   assert(ns.callCount('removeOption') == 0, 'nothing was removed')
   -- The same change with the tab on screen replaces the rows (their widgets show what they were spawned with).
   convaiUiLocale.configure('en'); convaiUiLocale.update(0)
   ns.openScreen(TAB); frames(6); ns.verify()
-  assert(ns.find('Body gestures', TAB) ~= gestures, 'on screen the row is a new widget')
+  assert(ns.find('React to battles', TAB) ~= gestures, 'on screen the row is a new widget')
 `));
 
 test('a draw of the tab never rebuilds what has not changed: a value changed from the screen leaves every option table and no call but the setter', () => run(`${harness()}
   press('Settings')
   local held = (function() local list = {} for _, section in ipairs(ns.sections()) do for _, option in ipairs(section.options) do list[#list + 1] = option end end return list end)()
   ns.resetCalls()
-  ns.interact.toggle(ns.find('Body gestures')); frames(8); ns.verify()
+  ns.interact.toggle(ns.find('React to battles')); frames(8); ns.verify()
   assert(ns.callCount('removeOption') == 0 and ns.callCount('removeSubcategory') == 0 and ns.callCount('addSubcategory') == 0,
     'a value change rebuilt something: ' .. ns.callCount('removeOption'))
   local now, same = {}, 0
   for _, section in ipairs(ns.sections()) do for _, option in ipairs(section.options) do now[option] = true end end
   for _, option in ipairs(held) do if now[option] then same = same + 1 end end
   assert(same >= #held - 1, 'the options kept: ' .. same .. ' of ' .. #held)
+`));
+
+// ---------------------------------------------------------------------------------------------------- settings decisions of 2026-10-20
+const customRows = ['Custom endpoint URL', 'Custom API key', 'Custom model ID', 'Test connection'];
+const withoutCustomModule = Object.fromEntries(Object.entries(everything).filter(([name]) => name !== 'custom-provider.lua'));
+const customState = `
+  files['runtime/custom-provider-command.json'] = ''
+  local function service(tag, value)
+    jsonFixtures['custom-' .. tag] = value; files['runtime/custom-provider-state.json'] = 'custom-' .. tag
+    clock = clock + 2; frames(4); ns.verify()
+  end
+  local function command() return jsonFixtures[files['runtime/custom-provider-command.json']] end
+`;
+
+test('Custom endpoint is a page of its own: one button on Settings where the four rows were, Back to settings returns, and the rows send their commands through the provider', () => run(`${harness()}
+  ${customState}
+  press('Settings')
+  assert(ns.find('Custom endpoint').buttonText == 'Open', 'one button on Settings')
+  for _, label in ipairs({${customRows.map(label => `'${label}'`).join(', ')}}) do assert(ns.find(label) == nil, label .. ' is not on Settings any more') end
+  press('Custom endpoint')
+  assert(managerUi.inspect().view == 'custom-endpoint')
+  local sections = ns.sections()
+  assert(sections[1].label == 'Companion Manager' and sections[1].options[1].label == 'Back to settings' and sections[1].options[1].buttonText == 'Back')
+  assert(sections[2].label == 'Custom endpoint' and #sections == 2, tostring(sections[2] and sections[2].label) .. ' ' .. #sections)
+  assert(dense(ns.data[TAB]))
+  local shown = {}
+  for _, option in ipairs(sections[2].options) do shown[#shown + 1] = option.label end
+  assert(table.concat(shown, ' | ') == 'Custom endpoint URL | Custom API key | Custom model ID | Test connection', table.concat(shown, ' | '))
+  assert(ns.find('Conversation provider') == nil and ns.find('Subtitles') == nil, 'nothing of Settings is on the page')
+  press('Custom endpoint URL'); assert(command().action == 'paste-url', tostring(command() and command().action))
+  press('Custom API key'); assert(command().action == 'paste-key')
+  press('Custom model ID'); assert(command().action == 'paste-model')
+  service('saved', {version = 1, updated = 1, ready = true, host = 'x.ai', secure = true, ['local'] = false, model = 'llama3.2', keySaved = true, tail = 'wxyz'})
+  assert(ns.find('Custom endpoint URL (x.ai)'), shownOutline())
+  assert(ns.find('Custom endpoint URL (x.ai)').buttonText == 'Remove')
+  press('Test connection')
+  local id = command().id
+  assert(command().action == 'test')
+  service('testing', {version = 1, updated = 2, ready = true, host = 'x.ai', secure = true, ['local'] = false, model = 'llama3.2', keySaved = true, tail = 'wxyz',
+    test = {id = id, state = 'testing'}})
+  assert(ns.find('Test connection (Testing…)'), shownOutline())
+  service('failed', {version = 1, updated = 3, ready = true, host = 'x.ai', secure = true, ['local'] = false, model = 'llama3.2', keySaved = true, tail = 'wxyz',
+    test = {id = id, state = 'failed', code = 'model', detail = 'model not found'}})
+  assert(ns.find('Test connection (Failed)'), shownOutline())
+  assert(ns.find('Test connection (Failed)').desc:find('The endpoint does not know that model ID.', 1, true))
+  press('Back to settings')
+  assert(ns.sections()[2].label == 'Interface' and ns.find('Custom endpoint') and ns.find('Custom endpoint URL (x.ai)') == nil)
+  press('Custom endpoint'); press('Back to settings'); press('Back to Companion Manager')
+  assert(#ns.sections() == 1 and ns.sections()[1].options[1].label == 'Characters to invite')
+`));
+
+test('Custom endpoint with a change just made: the change is still applied after the page is opened, and the page has no pending state of its own', () => run(`${harness()}
+  press('Settings')
+  ns.interact.toggle(ns.find('Subtitles'))
+  press('Custom endpoint')
+  frames(8); ns.verify()
+  assert(managerUi.inspect().view == 'custom-endpoint', 'still on the page')
+  assert(saved.subtitles == false, 'the change made on Settings was applied')
+  press('Back to settings')
+  assert(ns.find('Subtitles').state == false, 'and shown on Settings')
+`));
+
+test('Custom endpoint is not offered without the provider module: no button on Settings, the page cannot be reached', () => run(`${harness({modules: withoutCustomModule})}
+  press('Settings')
+  assert(ns.find('Custom endpoint') == nil, 'no button without the module')
+  assert(ns.find('Conversation provider'), 'the rest of the page is there')
+  core.setView('custom-endpoint'); frames(6)
+  assert(managerUi.inspect().view ~= 'custom-endpoint', 'the view falls back: ' .. tostring(managerUi.inspect().view))
+`));
+
+test('Johnny in your head is one list: Off, On, Speaks up rarely, Speaks up often; it stores both settings together, and the old rows are gone', () => run(`${harness()}
+  press('Settings')
+  assert(ns.find('Johnny speaks up') == nil and ns.find('Johnny’s standing') == nil, 'the separate rows are gone')
+  local row = ns.find('Johnny in your head')
+  assert(row.selectedElementIndex == 1 and table.concat(row.elements, ' | ') == 'Off | On | Speaks up rarely | Speaks up often', table.concat(row.elements, ' | '))
+  local function stored() return tostring(saved.johnnyInHead) .. '/' .. tostring(saved.johnnyRemarks) end
+  ns.interact.select(ns.find('Johnny in your head'), 3); frames(8); ns.verify()
+  assert(stored() == 'true/rare', stored())
+  assert(ns.find('Johnny in your head').selectedElementIndex == 3, 'the row shows what is saved')
+  ns.interact.select(ns.find('Johnny in your head'), 4); frames(8); assert(stored() == 'true/normal', stored())
+  ns.interact.select(ns.find('Johnny in your head'), 2); frames(8); assert(stored() == 'true/off', stored())
+  assert(ns.find('Johnny in your head').selectedElementIndex == 2)
+  ns.interact.select(ns.find('Johnny in your head'), 1); frames(8); assert(stored() == 'false/off', stored())
+  assert(ns.find('Johnny in your head').selectedElementIndex == 1)
+  assert(manager.applySettings(player, {johnnyInHead = true, johnnyRemarks = 'rare'}))
+  frames(10)
+  assert(ns.find('Johnny in your head').selectedElementIndex == 3)
+`));
+
+test('V’s voice is one list: Off, Pocket, Voxtral; choosing Voxtral without a Mistral key is refused with the key message, with a key it is saved', () => run(`${harness()}
+  press('Settings')
+  local name = 'V’s voice for typed lines'
+  assert(ns.find('V’s voice engine') == nil, 'the engine row is gone')
+  local row = ns.find(name)
+  assert(row.selectedElementIndex == 2, 'Pocket by default')
+  assert(table.concat(row.elements, ' | ') == 'Off | Pocket · On your PC | Voxtral · needs Mistral key', table.concat(row.elements, ' | '))
+  ns.interact.select(ns.find(name), 3); frames(8); ns.verify()
+  assert(managerUi.inspect().shown == 'Requires a Mistral key (add it in Settings > Conversation provider)', tostring(managerUi.inspect().shown))
+  assert(ns.find(name).selectedElementIndex == 2 and saved.vVoiceEngine == 'pocket' and saved.vVoice == true, 'the refused choice went back')
+  ns.interact.select(ns.find(name), 1); frames(8); ns.verify()
+  assert(saved.vVoice == false and saved.vVoiceEngine == 'pocket' and saved.vVoiceChosen == true, tostring(saved.vVoice))
+  assert(ns.find(name).selectedElementIndex == 1)
+  ns.interact.select(ns.find(name), 2); frames(8)
+  assert(saved.vVoice == true and saved.vVoiceEngine == 'pocket' and ns.find(name).selectedElementIndex == 2)
+  -- The Mistral key is saved: the entry has its name and is saved.
+  jsonFixtures['mistral-key'] = {provider = 'convai', effective = 'convai', saved = true}
+  files['runtime/mistral-state.json'] = 'mistral-key'
+  clock = clock + 2; manager.snapshot(player); frames(10); ns.verify()
+  assert(ns.find(name).elements[3] == 'Voxtral · Mistral cloud', ns.find(name).elements[3])
+  ns.interact.select(ns.find(name), 3); frames(8); ns.verify()
+  assert(saved.vVoice == true and saved.vVoiceEngine == 'voxtral' and ns.find(name).selectedElementIndex == 3)
+  -- Off keeps the engine that was saved, and Pocket on again is Pocket.
+  ns.interact.select(ns.find(name), 1); frames(8)
+  assert(saved.vVoice == false and saved.vVoiceEngine == 'voxtral')
+`));
+
+test('React to battles and to collected loot are on by default, and Restore defaults puts Johnny to Off, V’s voice to Pocket and the reactions on', () => run(`${harness()}
+  press('Settings')
+  assert(ns.find('React to battles').state == true and ns.find('React to collected loot').state == true)
+  ns.interact.toggle(ns.find('React to battles')); ns.interact.toggle(ns.find('React to collected loot'))
+  ns.interact.select(ns.find('Johnny in your head'), 4); ns.interact.select(ns.find('V’s voice for typed lines'), 1)
+  frames(10); ns.verify()
+  assert(saved.battleReactions == false and saved.battleReactionsChosen == true and saved.lootReactions == false and saved.lootReactionsChosen == true)
+  assert(saved.johnnyInHead == true and saved.johnnyRemarks == 'normal' and saved.vVoice == false)
+  ns.interact.restoreDefaults(); frames(8); ns.verify()
+  local settings = manager.snapshot(player).settings
+  assert(settings.battleReactions == true and settings.lootReactions == true, 'the reactions are on again')
+  assert(settings.johnnyInHead == false and settings.johnnyRemarks == 'off', 'Johnny is Off')
+  assert(settings.vVoice == true and settings.vVoiceEngine == 'pocket', 'V speaks with Pocket')
+  assert(ns.find('Johnny in your head').selectedElementIndex == 1 and ns.find('V’s voice for typed lines').selectedElementIndex == 2)
+  assert(ns.find('React to battles').state == true and ns.find('React to collected loot').state == true)
+  assert(managerUi.inspect().shown == 'Defaults restored.', tostring(managerUi.inspect().shown))
 `));

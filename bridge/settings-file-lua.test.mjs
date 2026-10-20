@@ -16,8 +16,8 @@ const luaString = text => `'${text.replace(/\\/g, '\\\\').replace(/'/g, "\\'").r
 // A normalized settings table that differs from the defaults in values that matter to the bridge (provider, Mature, model, voice).
 const customised = {
   ...freshSettings, voice: false, conversationProvider: 'local', matureContent: true, localModel: 'standard', voiceVolume: 150,
-  voiceProvider: 'omni', omniSteps: 32, omniReference: 'short', johnnyRemarks: 'rare', subtitleStyle: 'overhead',
-  naturalSpeech: true, expressiveEmotions: false,
+  voiceProvider: 'omni', omniSteps: 32, omniReference: 'short', johnnyInHead: true, johnnyRemarks: 'rare', subtitleStyle: 'overhead',
+  naturalSpeech: true, followUpInterest: false,
 };
 
 test('a first start writes exactly the documented defaults, once; a second start from that file writes nothing', () => {
@@ -82,7 +82,7 @@ for (const [label, text] of Object.entries(unreadable)) {
       report('writes', writes('runtime/settings.json.tmp'))
     `);
     for (const key of ['voice', 'conversationProvider', 'matureContent', 'localModel', 'voiceVolume', 'voiceProvider', 'omniSteps',
-      'omniReference', 'johnnyRemarks', 'subtitleStyle', 'naturalSpeech', 'expressiveEmotions']) {
+      'omniReference', 'johnnyInHead', 'johnnyRemarks', 'subtitleStyle', 'naturalSpeech', 'followUpInterest']) {
       assert.deepEqual(out.settings[key], customised[key], `${key} came back from the backup`);
     }
     assert.equal(out.writes, 0, 'a normalized backup needs no rewrite just to be loaded');
@@ -137,7 +137,7 @@ test('a wrong type or an unknown choice in any setting lands on that setting\'s 
     conversationProvider: 7, battleReactions: 'on', lootReactions: [], bodyGestures: 'no', autoConnectNearby: 'yes', holocallLiveImage: 'x',
     gameDialogueContext: 2, decisionLedger: 'y', witnessReceipts: 9, eyeContactHeight: 'high', headFollowStrength: 99,
     voiceProvider: 12, omniSteps: '16', omniReference: 4, archetypeConversations: 'maybe', storyConversations: 3, johnnyInHead: 'x',
-    johnnyRemarks: 5, johnnyHologram: 'x', naturalSpeech: 'x', expressiveEmotions: 'x', followUpInterest: 'x', matureContent: 'x', localModel: 'has space',
+    johnnyRemarks: 5, naturalSpeech: 'x', expressiveEmotions: 'x', followUpInterest: 'x', matureContent: 'x', localModel: 'has space',
     multilingualConversations: 'x', vVoice: 'x', vVoiceEngine: 'elevenlabs', enabledByKey: 'all', relationshipModes: 'friends',
     uiLanguage: 'klingon', keepPreparedVoices: 'always', expressiveEmotionsChosen: 'x', vVoiceChosen: 'x', holocallLiveImageChosen: 'x',
     errorReports: 'off',
@@ -205,6 +205,12 @@ const oldFiles = {
   'false chosen by the player for those two': {version: 2, holocallLiveImage: false, holocallLiveImageChosen: true, vVoice: false, vVoiceChosen: true},
   'retired keys': {version: 2, followUpQuestions: true, companionVision: false, disappearingMessages: true},
   'Voxtral for V beside Mature content': {version: 2, conversationProvider: 'local', matureContent: true, vVoiceEngine: 'voxtral'},
+  'every removed setting saved off': {version: 2, autoConnectNearby: false, expressiveEmotions: false, expressiveEmotionsChosen: true, gameDialogueContext: false,
+    holocallLiveImage: false, holocallLiveImageChosen: true, bodyGestures: false, johnnyHologram: true, vTalks: 'normal'},
+  'Johnny’s remarks set while Johnny in your head is off': {version: 2, johnnyInHead: false, johnnyRemarks: 'rare'},
+  'Johnny’s remarks beside Johnny in your head': {version: 2, johnnyInHead: true, johnnyRemarks: 'normal'},
+  'the reactions saved off by an old default': {version: 2, battleReactions: false, lootReactions: false},
+  'the reactions switched off by the player': {version: 2, battleReactions: false, battleReactionsChosen: true, lootReactions: false, lootReactionsChosen: true},
   'a fully customised current file': customised,
 };
 
@@ -241,8 +247,8 @@ test('reading the setting of the moment each frame reads the file once, and agai
     report('beforeReads', (readCounts['runtime/settings.json'] or 0) + (readCounts['runtime/settings.json.previous'] or 0))
     for _ = 1, 500 do
       manager.interfaceLanguage(); manager.developerMode(); manager.battleReactions(); manager.lootReactions(); manager.subtitleStyle()
-      manager.naturalSpeech(); manager.expressiveEmotions(); manager.vVoice(); manager.vVoiceEngine(); manager.johnnyInHead(); manager.johnnyRemarks(); manager.johnnyHologram()
-      manager.autoConnectNearby(); manager.storyConversations(); manager.archetypeConversations()
+      manager.naturalSpeech(); manager.vVoice(); manager.vVoiceEngine(); manager.johnnyInHead(); manager.johnnyRemarks()
+      manager.storyConversations(); manager.archetypeConversations()
     end
     report('reads', readCounts['runtime/settings.json'])
     report('backupReads', readCounts['runtime/settings.json.previous'])
@@ -442,4 +448,123 @@ test('a start with the settings file missing but its backup present (a crash bet
   assert.equal(out.loaded, 'mistral', 'the backup is what is left of the last good save');
   assert.equal(out.after, 'mistral');
   assert.ok(out.names.includes('runtime/settings.json'));
+});
+
+// ---------------------------------------------------------------------------------------------------- settings of 2026-10-20
+// Settings the page no longer has, and the ones whose default changed. An old file keeps working: nothing it carries changes a behaviour.
+const RETIRED = ['autoConnectNearby', 'expressiveEmotions', 'expressiveEmotionsChosen', 'gameDialogueContext', 'holocallLiveImage',
+  'holocallLiveImageChosen', 'bodyGestures', 'johnnyHologram', 'vTalks'];
+
+// Loads a file text, lets one update save what a load changed, and reports the loaded settings, the written file and the write count.
+const loadFile = content => run(`${managerLua}
+  files['runtime/settings.json'] = ${luaString(JSON.stringify(content))}
+  local player, manager = newPlayer(), newManager()
+  manager.update(player, 0.1)
+  report('settings', manager.snapshot(player).settings)
+  report('writes', writes('runtime/settings.json.tmp'))
+  report('text', settingsText())
+`);
+
+for (const key of RETIRED) {
+  for (const value of key === 'vTalks' ? ['off', 'normal', false, true] : [false, true]) {
+    test(`the removed setting ${key} saved as ${JSON.stringify(value)} is dropped from the file once and changes nothing else`, () => {
+      const out = loadFile({...freshSettings, [key]: value});
+      assert.equal(out.writes, 1, 'one save drops the key');
+      assert.equal(JSON.parse(out.text)[key], undefined, `${key} is not in the file any more`);
+      assert.equal(out.settings[key], undefined, `${key} is not in the snapshot`);
+      assert.deepEqual(JSON.parse(out.text), freshSettings, 'every other setting is as it was');
+    });
+  }
+}
+
+test('the removed settings have no getter any more, and an Apply that still carries one is ignored without an error', () => {
+  const out = run(`${managerLua}
+    local player, manager = newPlayer(), newManager()
+    manager.update(player, 0.1)
+    local names = {'autoConnectNearby', 'expressiveEmotions', 'gameDialogueContext', 'holocallLiveImage', 'bodyGestures', 'johnnyHologram', 'vTalks'}
+    local getters = {}
+    for _, name in ipairs(names) do
+      if manager[name] ~= nil then getters[#getters + 1] = name end
+    end
+    report('getters', getters)
+    resetOps()
+    local applied = {}
+    for _, key in ipairs(names) do
+      local ok, refusal = manager.applySettings(player, {[key] = false})
+      applied[#applied + 1] = tostring(ok) .. ':' .. tostring(refusal)
+    end
+    report('applied', applied); report('text', settingsText())
+  `);
+  assert.deepEqual(out.getters, []);
+  assert.ok(out.applied.every(entry => entry === 'true:nil'), JSON.stringify(out.applied));
+  assert.deepEqual(JSON.parse(out.text), freshSettings, 'nothing was saved for them');
+});
+
+test('Johnny: remarks saved beside Johnny in your head off read as Off and the file is put right; with Johnny on they stay', () => {
+  const cases = [
+    [{johnnyInHead: false, johnnyRemarks: 'rare'}, {johnnyInHead: false, johnnyRemarks: 'off'}, 1],
+    [{johnnyInHead: false, johnnyRemarks: 'normal'}, {johnnyInHead: false, johnnyRemarks: 'off'}, 1],
+    [{johnnyInHead: false, johnnyRemarks: 'off'}, {johnnyInHead: false, johnnyRemarks: 'off'}, 0],
+    [{johnnyInHead: true, johnnyRemarks: 'rare'}, {johnnyInHead: true, johnnyRemarks: 'rare'}, 0],
+    [{johnnyInHead: true, johnnyRemarks: 'normal'}, {johnnyInHead: true, johnnyRemarks: 'normal'}, 0],
+    [{johnnyInHead: true, johnnyRemarks: 'off'}, {johnnyInHead: true, johnnyRemarks: 'off'}, 0],
+    [{johnnyInHead: true, johnnyRemarks: 'loud'}, {johnnyInHead: true, johnnyRemarks: 'off'}, 1],
+  ];
+  for (const [saved, expected, writeCount] of cases) {
+    const out = loadFile({...freshSettings, ...saved});
+    const label = JSON.stringify(saved);
+    assert.equal(out.settings.johnnyInHead, expected.johnnyInHead, label);
+    assert.equal(out.settings.johnnyRemarks, expected.johnnyRemarks, label);
+    assert.equal(out.writes, writeCount, label);
+    assert.equal(JSON.parse(out.text).johnnyRemarks, expected.johnnyRemarks, label);
+  }
+});
+
+test('React to battles and to loot: a fresh file has them on; an old saved false counts only when the player chose it', () => {
+  const fresh = loadFile({...freshSettings});
+  assert.equal(fresh.writes, 0);
+  assert.deepEqual([fresh.settings.battleReactions, fresh.settings.lootReactions], [true, true]);
+  for (const key of ['battleReactions', 'lootReactions']) {
+    const chosen = `${key}Chosen`;
+    // The old default saved as false (never chosen): on now, saved once, and still not marked as chosen.
+    let out = loadFile({...freshSettings, [key]: false});
+    assert.equal(out.settings[key], true, `${key}: an unchosen false is the new default`);
+    assert.equal(JSON.parse(out.text)[key], true); assert.equal(JSON.parse(out.text)[chosen], false); assert.equal(out.writes, 1);
+    // A file from before the flag with the key missing altogether.
+    const without = {...freshSettings}; delete without[key]; delete without[chosen];
+    out = loadFile(without);
+    assert.equal(out.settings[key], true, `${key}: missing is on`); assert.equal(JSON.parse(out.text)[chosen], false);
+    // False the player chose stays off, and is not rewritten.
+    out = loadFile({...freshSettings, [key]: false, [chosen]: true});
+    assert.equal(out.settings[key], false, `${key}: a chosen false stays`); assert.equal(out.writes, 0);
+    // True stays true.
+    out = loadFile({...freshSettings, [key]: true, [chosen]: true});
+    assert.equal(out.settings[key], true); assert.equal(out.writes, 0);
+  }
+  // An Apply that carries the key marks it chosen, whatever the value, so a later load keeps it.
+  const out = run(`${managerLua}
+    local player, manager = newPlayer(), newManager()
+    manager.update(player, 0.1)
+    assert(manager.applySettings(player, {battleReactions = false}))
+    report('text', settingsText())
+    local again = newManager()
+    report('again', again.snapshot(player).settings)
+  `);
+  const saved = JSON.parse(out.text);
+  assert.deepEqual([saved.battleReactions, saved.battleReactionsChosen, saved.lootReactions, saved.lootReactionsChosen], [false, true, true, false]);
+  assert.equal(out.again.battleReactions, false);
+  assert.equal(out.again.lootReactions, true);
+});
+
+test('a fresh file has the 2026-10-20 defaults: reactions on, Johnny Off, V’s voice on with Pocket, Natural speech off, no removed key', () => {
+  const out = run(`${managerLua}
+    local player, manager = newPlayer(), newManager()
+    manager.update(player, 0.1)
+    report('text', settingsText())
+  `);
+  const saved = JSON.parse(out.text);
+  assert.deepEqual([saved.battleReactions, saved.lootReactions, saved.johnnyInHead, saved.johnnyRemarks, saved.vVoice, saved.vVoiceEngine,
+    saved.naturalSpeech, saved.followUpInterest, saved.matureContent, saved.conversationProvider],
+  [true, true, false, 'off', true, 'pocket', false, true, false, 'convai']);
+  for (const key of RETIRED) assert.equal(saved[key], undefined, key);
 });

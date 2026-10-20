@@ -628,19 +628,31 @@ const stateFixture = `
   local function command() return jsonFixtures[files['runtime/custom-provider-command.json']] end
 `;
 
-test('the selector has five entries, Custom (OpenAI-compatible) fifth; the four rows sit right under the Mistral key row, above the Convai API key row', () => run(`${pageFixture()}${stateFixture}
+test('the selector has five entries, Custom (OpenAI-compatible) fifth; one Custom endpoint button sits right under the Mistral key row and opens a page with the four rows', () => run(`${pageFixture()}${stateFixture}
   assert(invoke('tab:settings').ok)
   local provider = row('conversationProvider')
   assert(provider.type == 'select' and #provider.elements == 5 and provider.elements[1] == 'Convai free tier' and provider.elements[2] == 'Convai API key'
     and provider.elements[3] == 'Mistral (free plan)' and provider.elements[4] == 'Local AI' and provider.elements[5] == 'Custom (OpenAI-compatible)')
   assert(provider.value == 1 and provider.defaultValue == 1)
-  assert(providerIds() == 'conversationProvider,matureContent,localModel,mistral-key,custom-url,custom-key,custom-model,custom-test,own-key', providerIds())
+  assert(providerIds() == 'conversationProvider,matureContent,localModel,mistral-key,custom-endpoint,own-key', providerIds())
+  for _, id in ipairs({'custom-url', 'custom-key', 'custom-model', 'custom-test'}) do assert(row(id) == nil, id .. ' is not on the Settings page any more') end
+  assert(row('custom-endpoint').type == 'action' and row('custom-endpoint').value == 'Open' and row('custom-endpoint').label == 'Custom endpoint')
+  assert(not (row('custom-endpoint').description .. row('custom-endpoint').label):lower():find('recommend', 1, true))
+  -- The page: a way back first, then the four rows; the way back returns to Settings.
+  assert(invoke('custom-endpoint').ok and managerUi.inspect().view == 'custom-endpoint')
+  assert(loaded.categories[1].settings[1].id == 'custom-endpoint:back' and loaded.categories[1].settings[1].label == 'Back to settings')
+  local pageIds = {}
+  for _, category in ipairs(loaded.categories) do
+    if category.id == 'custom-endpoint' then for _, item in ipairs(category.settings) do pageIds[#pageIds + 1] = item.id end end
+  end
+  assert(table.concat(pageIds, ',') == 'custom-url,custom-key,custom-model,custom-test', table.concat(pageIds, ','))
   for _, id in ipairs({'custom-url', 'custom-key', 'custom-model', 'custom-test'}) do
     assert(row(id).type == 'action', id)
     assert(not (row(id).description .. row(id).label .. row(id).value):lower():find('recommend', 1, true), id)
   end
   assert(row('custom-url').label == 'Custom endpoint URL' and row('custom-url').value == 'Paste endpoint URL')
   assert(row('custom-test').disabled == true, 'no state file: the test cannot run')
+  assert(invoke('custom-endpoint:back').ok and managerUi.inspect().view == 'settings' and row('custom-endpoint') and not row('custom-url'))
   -- The help of the provider row names Custom only where it would otherwise be wrong (the description area holds only so much): Custom too
   -- replaces Convai's cloud voice with a local one (2026-10-20 settings audit; bridge/description-fit.test.mjs keeps it within the area).
   local _, customs = provider.description:gsub('Custom', '')
@@ -658,11 +670,12 @@ test('the selector has five entries, Custom (OpenAI-compatible) fifth; the four 
   assert(manager.snapshot(player).settings.conversationProvider == 'custom', 'a refused value changes nothing')
 `));
 
-test('without the module file (or with a module that fails) the page still shows every other row and the fifth entry', () => {
+test('without the module file (or with a module that fails) the page still shows every other row and the fifth entry, and no Custom endpoint button', () => {
   run(`${pageFixture(false)}${stateFixture}
     assert(invoke('tab:settings').ok)
     assert(#row('conversationProvider').elements == 5)
     assert(providerIds() == 'conversationProvider,matureContent,localModel,mistral-key,own-key', providerIds())
+    assert(row('custom-endpoint') == nil and not invoke('custom-endpoint').ok, 'the page is not offered without the module')
     assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = 5}}).ok)
     -- No module, no custom notes: the provider row is the same as with no limit at all.
     local plain = row('conversationProvider').description
@@ -675,7 +688,10 @@ test('without the module file (or with a module that fails) the page still shows
   const raising = customSource.replace('function self.rows()', 'function self.rows() error("boom") end\n    function self.unusedRows()');
   run(`${pageFixture(true, raising)}${stateFixture}
     assert(invoke('tab:settings').ok)
-    assert(providerIds() == 'conversationProvider,matureContent,localModel,mistral-key,own-key', providerIds())
+    assert(providerIds() == 'conversationProvider,matureContent,localModel,mistral-key,custom-endpoint,own-key', providerIds())
+    assert(invoke('custom-endpoint').ok and managerUi.inspect().view == 'custom-endpoint')
+    assert(row('custom-url') == nil and row('custom-test') == nil and row('custom-endpoint:back'), 'the page opens without rows, with its way back')
+    assert(invoke('custom-endpoint:back').ok and managerUi.inspect().view == 'settings')
   `);
   // A module that raises while it is made.
   const broken = customSource.replace('function M.new(options)', 'function M.new(options) error("no instance")');
@@ -687,7 +703,7 @@ test('without the module file (or with a module that fails) the page still shows
 
 test('the rows send their commands on their own channel, in place, with ids of this game session; a failed write is refused with a sentence', () => run(`${pageFixture()}${stateFixture}
   files['runtime/custom-provider-command.json'] = ''
-  assert(invoke('tab:settings').ok)
+  assert(invoke('tab:settings').ok and invoke('custom-endpoint').ok)
   local removed, renamed = {}, {}
   local remove, rename = os.remove, os.rename
   os.remove = function(path) removed[#removed + 1] = path; return remove(path) end
@@ -726,7 +742,7 @@ test('the rows send their commands on their own channel, in place, with ids of t
 `));
 
 test('the page follows the service: answers show up, an unchanged state does not redraw, an old answer is never shown, a test runs to its end', () => run(`${pageFixture()}${stateFixture}
-  assert(invoke('tab:settings').ok)
+  assert(invoke('tab:settings').ok and invoke('custom-endpoint').ok)
   -- The page is drawn again when what it shows changes: the calls into Native Settings UI say whether it was.
   local function pump(times)
     for _ = 1, times or 3 do clock = clock + 2; managerUi.update(player, false) end
