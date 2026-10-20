@@ -3647,6 +3647,12 @@ local function keyReplyNotice(reply)
     if reply.errorCode == 'local-failed' then
         return 'local-failed', ui.t('Local AI could not answer that. Try again in a moment.') .. localFailureSuffix(reply)
     end
+    -- A model on the player's own server that only thought, also when asked not to think, or a context there that is too small for the character: what to change.
+    if reply.errorCode == 'local-thinking' then
+        return 'local-thinking', ui.t("Your model only thought and didn't answer. Turn thinking off for it in your model server, or pick a non-thinking model.")
+    elseif reply.errorCode == 'local-context' then
+        return 'local-context', ui.t("Your model server's context is too small for this character. Raise the context length in your server (8192 or more).")
+    end
     -- A turn the local AI could not answer and the player's cloud provider did: the reply carries this one-line note.
     if reply.keyNotice == 'local-turn-fallback' then
         return 'local-turn-fallback', ui.t('Local AI could not answer that one, so a cloud provider did.')
@@ -4820,6 +4826,11 @@ registerForEvent('onUpdate', function(delta)
                         -- A local turn failed and nothing took it over: the same rule, its own notice.
                         elseif keyId == 'local-failed' then
                             if not pending.reaction then convaiNotices.send(player, 'local-failed', keyText) end
+                        -- The player's own model server only thinks, or has too small a context: the same rule, its own notices.
+                        elseif keyId == 'local-thinking' then
+                            if not pending.reaction then convaiNotices.send(player, 'local-thinking', keyText) end
+                        elseif keyId == 'local-context' then
+                            if not pending.reaction then convaiNotices.send(player, 'local-context', keyText) end
                         -- Local AI could not start and nobody took the turn over: the same rule, with Local AI's own reason.
                         elseif keyId == 'local-unavailable' then
                             if not pending.reaction then convaiNotices.send(player, 'local-unavailable', keyText) end

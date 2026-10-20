@@ -565,6 +565,8 @@ return {
     ["Convai: Local AI is not ready"] = "Convai: Local AI non è pronta",
     ["Local AI"] = "Local AI",
     ["Local AI could not answer that. Try again in a moment."] = "Local AI non è riuscita a rispondere. Riprova tra un momento.",
+    ["Your model only thought and didn't answer. Turn thinking off for it in your model server, or pick a non-thinking model."] = "Il tuo modello ha solo ragionato e non ha risposto. Disattiva il ragionamento per lui nel tuo server di modelli, oppure scegli un modello senza ragionamento.",
+    ["Your model server's context is too small for this character. Raise the context length in your server (8192 or more)."] = "Il contesto del tuo server di modelli è troppo piccolo per questo personaggio. Aumenta la lunghezza del contesto nel tuo server (8192 o più).",
     ["Local AI could not answer that one, so a cloud provider did."] = "Local AI non è riuscita a rispondere, quindi ha risposto un provider cloud.",
     ["Not enough free graphics memory to start Local AI. Try a smaller model in Settings."] = "Poca memoria grafica libera per Local AI. Prova un modello più piccolo nelle Impostazioni.",
     ["Local AI is still loading its model. Try again in a moment."] = "Local AI sta ancora caricando il modello. Riprova tra un momento.",

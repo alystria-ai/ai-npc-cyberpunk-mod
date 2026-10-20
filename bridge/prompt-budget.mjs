@@ -379,11 +379,15 @@ export const describeFit = fit => `prompt ${fit.tokens} of ${fit.limit} tokens${
 
 /** A prompt that cannot fit even with everything optional removed: a failed request (kind 'request') the caller falls back from. */
 export class PromptTooLarge extends MistralError {
-  constructor(fit, provider = 'local') {
-    super('request', `prompt of ${fit.tokens} tokens does not fit the context (${fit.limit})`, {provider});
+  // server: the context belongs to a model server the player runs; the words then say so, and the game tells the player to raise it there (errorCodeFor, 'local-context').
+  constructor(fit, provider = 'local', {server = false} = {}) {
+    super('request', `prompt of ${fit.tokens} tokens does not fit the context (${fit.limit})${server ? ': the model server\'s context is too small' : ''}`, {provider});
     this.name = 'PromptTooLarge'; this.fit = fit;
   }
 }
+
+/** The least context a server's is stepped down to when a refusal does not say what it really has (a smaller one could not hold even the shortest persona). */
+export const MIN_SERVER_CONTEXT = 2048;
 
 /**
  * `chat` with the prompt fitted to the route's budget before it is sent.
@@ -394,13 +398,16 @@ export class PromptTooLarge extends MistralError {
  *                            a route without one fits exactly what `buildMessages` was given
  *   options.lastResort       true when no other route is left to answer the turn: a prompt that cannot fit has its persona shortened (PERSONA_LEVELS)
  *                            instead of failing; otherwise it fails and the host hands the turn to the next route
+ *   budget().server          true: the context is a model server the player runs (its loaded context can be smaller than it reported). A refusal of the prompt then
+ *                            teaches the real context (the one the error names, else half of the one assumed, at least MIN_SERVER_CONTEXT), `learn(contextTokens, options)` is called
+ *                            with it so later requests start from it, and a prompt that still does not fit fails with the words of a context that is too small (PromptTooLarge)
  *   budget().soft            optional {contextTokens, reserveTokens?}: a smaller target tried first; a prompt that cannot reach it is fitted
  *                            to the budget's own (hard) limit as before, so a soft target never makes a request fail
  * Only requests built by `buildMessages` are fitted (summaries, fact extraction and prewarm are small and pass through). A server that
  * still refuses the prompt (an estimate that was too low) says how many tokens it counted: that count is learned, the prompt is cut
  * to it, and the request is sent once more.
  */
-export function budgetedChat(chat, {budget, onFit, tooLarge, shape} = {}) {
+export function budgetedChat(chat, {budget, onFit, tooLarge, shape, learn} = {}) {
   return async function fittedChat(options) {
     const source = options?.messages?.[PROMPT_SOURCE];
     const base = source ? await budget?.(options) : null;
@@ -415,7 +422,7 @@ export function budgetedChat(chat, {budget, onFit, tooLarge, shape} = {}) {
       if (fit) fit.target = 'soft';
       if (!fit?.fits) { fit = await fitMessages({args, budget: {...current, soft: undefined}, shrinkPersona: options?.lastResort === true}); if (soft) fit.target = 'hard'; }
       if (fit.trimmed.length || !fit.fits) { try { onFit?.(fit, options); } catch { /* a log line never fails a request */ } }
-      if (!fit.fits) throw tooLarge ? tooLarge(fit, options) : new PromptTooLarge(fit, options?.provider);
+      if (!fit.fits) throw tooLarge ? tooLarge(fit, options) : new PromptTooLarge(fit, options?.provider, {server: base.server === true});
       try {
         const result = await chat({...options, messages: fit.messages});
         base.meter?.observe(fit.messages, result?.usage?.prompt_tokens);
@@ -425,12 +432,23 @@ export function budgetedChat(chat, {budget, onFit, tooLarge, shape} = {}) {
         // A request that was stuck reading the prompt says how far it got: the next turn is fitted to what this machine reads.
         try { base.speed?.observeFailure(error?.trace); } catch { /* a measurement never fails a request */ }
         const refused = error?.overflow;
-        if (!refused || attempt >= 1 || options?.signal?.aborted) throw error;
+        if (!refused || options?.signal?.aborted) throw error;
+        if (attempt >= 1) {
+          if (base.server !== true) throw error;
+          // A model server the player runs that still refuses the prompt after it was fitted again: its context is too small for this character.
+          const counted = Number(refused.promptTokens) > 0 ? Number(refused.promptTokens) : fit.tokens;
+          throw new PromptTooLarge({tokens: counted, limit: Number(refused.contextTokens) > 0 ? Number(refused.contextTokens) : current.contextTokens}, options?.provider, {server: true});
+        }
         // The server's count of the refused prompt replaces the estimate: learn the ratio and cut by what the estimate missed.
-        const learned = base.meter?.observe(fit.messages, refused.promptTokens);
+        const counted = Number(refused.promptTokens) > 0;
+        const learned = counted ? base.meter?.observe(fit.messages, refused.promptTokens) : null;
         // A ratio the meter learned corrects the next estimate by itself; only a count it could not learn from is taken off the budget.
-        const missed = learned ? 0 : Math.max(0, Number(refused.promptTokens) - fit.tokens);
-        const context = Math.min(base.contextTokens, Number(refused.contextTokens) || base.contextTokens);
+        const missed = learned || !counted ? 0 : Math.max(0, Number(refused.promptTokens) - fit.tokens);
+        // The context the server says it has; one that does not say (LM Studio's loaded context can be smaller than what it reported) is stepped down by half.
+        const said = Number(refused.contextTokens) > 0;
+        let context = said ? Math.min(base.contextTokens, Number(refused.contextTokens)) : base.contextTokens;
+        if (!said && base.server === true) context = Math.max(MIN_SERVER_CONTEXT, Math.floor(base.contextTokens / 2));
+        if (base.server === true && context < base.contextTokens) { try { learn?.(context, options); } catch { /* a note of the context never fails a request */ } }
         current = {...base, contextTokens: context - missed - BUDGET.minMargin};
       }
     }

@@ -565,6 +565,8 @@ return {
     ["Convai: Local AI is not ready"] = "Convai：Local AI 尚未就緒",
     ["Local AI"] = "Local AI",
     ["Local AI could not answer that. Try again in a moment."] = "Local AI 無法回答這個問題。請稍後再試。",
+    ["Your model only thought and didn't answer. Turn thinking off for it in your model server, or pick a non-thinking model."] = "模型只顧思考，沒有作答。請在模型伺服器中為它關閉思考，或選擇非推理模型。",
+    ["Your model server's context is too small for this character. Raise the context length in your server (8192 or more)."] = "你的模型伺服器上下文太小，無法支援這個角色。請在伺服器中提高上下文長度（8192 或更高）。",
     ["Local AI could not answer that one, so a cloud provider did."] = "Local AI 無法回答這個問題，因此由雲端服務供應商回答。",
     ["Not enough free graphics memory to start Local AI. Try a smaller model in Settings."] = "可用顯存不足，無法啟動 Local AI。請在 設定 中換用較小的模型。",
     ["Local AI is still loading its model. Try again in a moment."] = "Local AI 仍在載入模型。請稍後再試。",

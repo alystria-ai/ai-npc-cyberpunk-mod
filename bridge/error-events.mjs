@@ -320,6 +320,8 @@ export function installCrashCapture({stateDirectory, runtime, processRef = proce
 // does not fit the graphics memory ('local-no-memory'), has no graphics card to run on or needs Mature content is the player's setup too.
 const OWN_DOING = new Set(['mistral-key', 'mistral-limit', 'custom-key', 'custom-credits', 'custom-limit', 'custom-model', 'custom-unreachable',
   'quota-own', 'quota-shared', 'daily-limit', 'key-rejected', 'key-memory', 'key-memory-needed', 'addon-provider', 'addon-pace', 'local-no-memory',
+  // The player's own model server only thinks (also when asked not to) or has a context too small for the character: what to change is in its settings.
+  'local-thinking', 'local-context',
   // The browser for the conversation page would not start (bridge/system-browser.mjs): the player's own browser or its policy, named in the log.
   'browser-failed']);
 const OWN_LOCAL_REASONS = new Set(['not-installed', 'low-memory', 'mature-off', 'no-gpu']);

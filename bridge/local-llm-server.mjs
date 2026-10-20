@@ -34,6 +34,7 @@ import {mkdtempSync, readFileSync, renameSync, rmSync, statSync, writeFileSync} 
 import {createServer} from 'node:net';
 import {tmpdir, freemem, totalmem, setPriority, constants as osConstants} from 'node:os';
 import {basename, join} from 'node:path';
+import {contextRefusal} from './mistral-client.mjs';
 import {chooseLocalModel, externalModels, listLocalModels, normalisePin, stepDownTarget, stillSatisfies} from './local-model-choice.mjs';
 
 const REASON_TEXT = Object.freeze({
@@ -475,6 +476,7 @@ function abortable(promise, signal) {
 // ---------------------------------------------------------------------------------------------------------------
 // The supervisor
 
+const CONTEXT_FLOOR = 2048;   // the least a server's context is stepped down to when a refusal does not say what it has
 export class LocalLlmServer extends EventEmitter {
   #state = 'stopped'; #reason = null; #tier = null; #model = null; #firstTime = false;
   #proc = null; #info = null; #starting = null; #generation = 0; #inflight = 0; #idleTimer = null;
@@ -490,6 +492,9 @@ export class LocalLlmServer extends EventEmitter {
   // the background requests in flight (a summary, memory work) so a turn can take the slot at once, `#slot` is the persona whose prompt the slot holds (a warm-up of it
   // would only cut that longer prompt down to the head), and `#queue` counts what was stopped or refused, for the support report.
   #foreground = 0; #foregroundEndedAt = -Infinity; #yieldable = new Set(); #slot = null; #queue = {stopped: 0, refused: 0, warmSkipped: 0};
+  // The context a server the player runs really has, learned from a request it refused for length (learnContext), per address and model id, for the session: a server's
+  // loaded context can be smaller than what it reported (LM Studio), and the prompts are fitted to the smaller one from then on.
+  #contextLearned = new Map();
 
   // command/argsPrefix replace pack.server when spawning (tests); processOptions go to LlamaProcess (tests).
   // contextSize: a fixed context (tests, CYBERPUNK_CONVAI_LOCAL_CTX); without it each start takes the ladder's largest that fits.
@@ -533,9 +538,32 @@ export class LocalLlmServer extends EventEmitter {
     const info = this.#info;
     // loadedAt / offload: which load this is and whether part of the model runs on the CPU, for the route's prompt-reading speed (bridge/prompt-budget.mjs PrefillMeter):
     // a model that was loaded again, perhaps with less graphics memory free, is measured anew.
-    return {endpoint: info.endpoint, apiKey: info.apiKey, model: this.#model, tier: this.#tier, contextSize: info.contextSize,
+    return {endpoint: info.endpoint, apiKey: info.apiKey, model: this.#model, tier: this.#tier, contextSize: this.#learnedContext(info) ?? info.contextSize,
       loadedAt: this.#loaded?.readyAt ?? 0, offload: this.#loaded?.offload === true,
       ...(info.external ? {external: true, requestModel: info.requestModel, trustedOrigin: info.trustedOrigin} : {})};
+  }
+
+  #contextKey(info) { return info?.external ? `${info.endpoint}|${info.requestModel ?? ''}` : null; }
+  #learnedContext(info) {
+    const learned = this.#contextLearned.get(this.#contextKey(info));
+    return Number.isFinite(learned) && learned > 0 && learned < info.contextSize ? learned : null;
+  }
+
+  /**
+   * A request to the server the player runs was refused because the prompt was longer than the context it has loaded. `tokens`: the context the refusal named; without
+   * one, the context assumed so far is halved (never below 2048). Remembered for the session, so every later prompt is fitted to it. Returns the context now assumed, or
+   * null when nothing changed (our own llama-server reads its context from /props and is never changed this way).
+   */
+  learnContext(tokens) {
+    const info = this.#info;
+    if (!info?.external) return null;
+    const current = this.#learnedContext(info) ?? info.contextSize;
+    const said = Number(tokens) > 0 ? Math.floor(Number(tokens)) : null;
+    const next = said ?? Math.max(CONTEXT_FLOOR, Math.floor(current / 2));
+    if (!(next < current)) return null;
+    this.#contextLearned.set(this.#contextKey(info), next);
+    this.log('[local] the server you added has a smaller context than it reported: prompts are fitted to ' + next + ' tokens from now on (raise the context length in the server for more)');
+    return next;
   }
 
   // Starts the server if needed; resolves when it is ready. Concurrent callers share one start.
@@ -1055,8 +1083,15 @@ export class LocalLlmServer extends EventEmitter {
       const response = await this.fetchImpl(info.endpoint, {method: 'POST', signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
         headers: {'content-type': 'application/json', authorization: 'Bearer ' + info.apiKey},
         body: JSON.stringify({model: info.requestModel ?? this.#model ?? 'local', messages, max_tokens: 1, stream: false, temperature: 0, cache_prompt: cachePrompt})});
-      await response.arrayBuffer?.().catch(() => {});
-      if (!response.ok) throw Error('HTTP ' + response.status);
+      // A refusal's words are read: one that says the prompt is longer than the server's context teaches it (a persona warm-up is the first request that hits it).
+      let words = '';
+      if (!response.ok && typeof response.text === 'function') words = await response.text().catch(() => '');
+      else await response.arrayBuffer?.().catch(() => {});
+      if (!response.ok) {
+        let body = null; try { body = JSON.parse(words); } catch { /* not JSON */ }
+        const refused = contextRefusal(response.status, typeof body?.error?.message === 'string' ? body.error.message : words, body);
+        throw Object.assign(Error('HTTP ' + response.status), refused ? {overflow: refused} : {});
+      }
     } catch (error) {
       // The platform's own text for a timeout ("The operation was aborted due to timeout") says nothing: say how long it waited.
       if (timeout.aborted && !signal?.aborted) throw Error('no answer in ' + Math.round(timeoutMs / 1000) + ' s (the server was still reading the prompt, or stuck)');
@@ -1207,6 +1242,8 @@ export class LocalLlmServer extends EventEmitter {
     } catch (error) {
       this.log(mine?.controller.signal.aborted ? '[local] persona prewarm stopped: another request needed the model first'
         : '[local] persona prewarm skipped: ' + (error?.message || 'error'));
+      // A refusal for length is an answer, not a server that is down: the context is learned, nothing is marked lost.
+      if (error?.overflow && !mine?.controller.signal.aborted) this.learnContext(error.overflow.contextTokens);
       // A warm-up that got no answer in its whole wait (#complete) is a stall like a turn's; one that was stopped for a turn, or that failed for another reason, is not.
       if (!mine?.controller.signal.aborted && /^no answer in \d+ s/.test(String(error?.message))) this.noteStall('a persona warm-up: ' + oneLine(error.message, 100));
       return false;

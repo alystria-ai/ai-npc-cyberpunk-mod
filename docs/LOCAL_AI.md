@@ -238,6 +238,13 @@ The support report (Settings > Help > Help and support) lists both folders under
 
 ### Use your own server (KoboldCpp, LM Studio, Ollama)
 
+A model of a name nobody listed that thinks before it answers (a server's own label such as "Laptop AI") would think through its whole allowance: its turn comes back as
+only thinking. That turn is asked again once, at once, with the fields that ask for no thinking, `reasoning_effort: "none"`, `chat_template_kwargs: {enable_thinking: false}`
+and `think: false` (`noThinkingFields`, `bridge/reasoning.mjs`; a server that refuses one by name loses just that one), inside the turn's own time. The endpoint is then
+remembered for the session as one that thinks, and later turns send those fields from the start. If the retry is only thinking too, the turn fails with the notice
+`local-thinking` ("Your model only thought and didn't answer. Turn thinking off for it in your model server, or pick a non-thinking model."). Thinking is never spoken. The packaged
+models do not think and are never sent the fields.
+
 If you already run a model in a program of your own, Local AI can talk to it instead of loading a model itself. It works with KoboldCpp,
 LM Studio, Ollama, text-generation-webui, a llama.cpp `llama-server` and anything else with an OpenAI-compatible chat API (the `/v1`
 address). You do not need a Local AI pack for this: with only your own server listed, Local AI uses it. While your server is the chosen model, Local AI uses none of this computer's graphics memory.
@@ -437,6 +444,13 @@ budget rebuilds the prompt with less in it instead of cutting a string.
   on every turn (hybrid models such as Qwen3.5 and Gemma 4 lose every cache checkpoint after one changed early token).
 - **A refusal anyway.** If the server still refuses (`error.overflow`: its `n_prompt_tokens` and `n_ctx`), the count is learned into the
   meter and the same turn is fitted again and sent once more. A second refusal is final.
+- **A server the player runs (LM Studio, Ollama, KoboldCpp) can have less context loaded than it reports.** Its refusal for length is told by its words, not its status:
+  LM Studio passes llama.cpp's refusal on as a 500 or 502 with the numbers inside its own error text (`contextRefusal`, `bridge/mistral-client.mjs`), and that is an answer,
+  not a server that went away (no "stopped answering", no restart look). The context the refusal names (`n_ctx`, "context length of only N tokens", "maximum context length
+  is N tokens") replaces the reported one; a refusal that names none halves the one assumed, never below 2048. It is remembered per address and model for the session
+  (`LocalLlmServer.learnContext`), the prompt is fitted again with the persona shortened (`lastResort`) and sent once. The persona prewarm's refusal teaches the same and never
+  counts as the server being down. A persona that still does not fit fails the turn with the notice `local-context` ("Your model server's context is too small for this character.
+  Raise the context length in your server (8192 or more).").
 - Every cut is logged as `[TextProvider] The local AI: prompt N of M tokens; cut: ...`.
 
 ### Context size
