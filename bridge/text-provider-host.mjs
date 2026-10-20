@@ -12,6 +12,7 @@
 import {streamChat, MistralError, DEFAULT_MODELS, failureKind, failureDetail, newTrace, newAdaptation} from './mistral-client.mjs';
 import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, dropRepeatedLines, provokesAiTalk, takesUpAiTalk, trimUnfinished,
   summaryMessages, factMessages, capWords, overWords, remarkTokens, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS} from './mistral-prompt.mjs';
+import {reactionTraceLine} from './companion-actions.mjs';
 import {actionMenu, reactionMenu, reactionOnlyTag, reactionChosenNotes, splitActions} from './text-actions.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 import {stripSpeechTags} from './natural-speech.mjs';
@@ -380,6 +381,8 @@ export class TextProviderHost {
    * idleRetryMs   how often a gated background task checks the gate again
    * deliverAction  message => Promise<boolean>: hands a companion action the reply asked for to the game (CompanionActions.deliver);
    *                without it the turn offers no actions (bridge/text-actions.mjs)
+   * traceReaction  (offerToken, {tag, why}) => void: what the reply's tag was for an ordinary NPC's reaction offer (CompanionActions.traceReaction),
+   *                which writes the turn's one log line; without it the host writes that line itself
    * matureContent  the Mature setting (bridge/mature-content.mjs); the hard-limit guard runs for a turn on the local AI or Custom when it is on, and
    *                for the local AI also when the loaded model is an uncensored one (the guard follows the model that answers, not only the setting)
    * guardOnly      true for an add-on's host: the guard (input screen, output screen, adults-only and hard-limit lines) but never the crude Mature persona layer
@@ -389,9 +392,9 @@ export class TextProviderHost {
    *                script) loses those words, in the text the voice is given as it streams and in the finished reply (stripPlayerEcho in mistral-prompt.mjs)
    */
   constructor({provider, memory, personas = new PersonaBook(), routes = {}, transformReply = result => result, now = () => performance.now(),
-    log = () => {}, limits = LIMITS, gate, resolveProfile, idleRetryMs = 10_000, deliverAction, matureContent = null, matureGuard = new MatureGuard(), guardOnly = false, stripPlayerEcho: echoCut = false, spokenLines = null} = {}) {
+    log = () => {}, limits = LIMITS, gate, resolveProfile, idleRetryMs = 10_000, deliverAction, traceReaction, matureContent = null, matureGuard = new MatureGuard(), guardOnly = false, stripPlayerEcho: echoCut = false, spokenLines = null} = {}) {
     if (!provider) throw Error('Text provider required');
-    Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs, deliverAction, matureContent, matureGuard, guardOnly, echoCut, spokenLines});
+    Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs, deliverAction, traceReaction, matureContent, matureGuard, guardOnly, echoCut, spokenLines});
     this.summaries = new Set();
     this.stoppable = new Set();   // the controllers of background requests that give way to a turn (a local summary)
     this.matureLogged = new Set();
@@ -594,11 +597,15 @@ export class TextProviderHost {
         if (deciding) { const settled = await deciding, act = settled && menu.message(settled); if (act) this.#act({code: settled.code, message: act}); }
         // The reply ended with a reaction tag the game offered (cut from the text already): hand it over, after the reply and never for a
         // reply that was cut back to its first sentence or replaced. The game waits for the NPC to finish speaking before it acts.
-        if (reactions && !outcome.guarded && reply === outcome.reply) {
-          let picked = reactions.pick(response.text);
-          if (picked.why === 'no-tag' && outcome.chosenReaction && reactions.kinds.includes(outcome.chosenReaction)) picked = {kind: outcome.chosenReaction};
+        // Exactly one line says what became of the offer (reactionTraceLine): the tag, or why there was none.
+        if (reactions) {
+          let picked = {kind: null, why: outcome.guarded ? 'guarded-reply' : 'reply-cut-back'};
+          if (!outcome.guarded && reply === outcome.reply) {
+            picked = reactions.pick(response.text);
+            if (picked.why === 'no-tag' && outcome.chosenReaction && reactions.kinds.includes(outcome.chosenReaction)) picked = {kind: outcome.chosenReaction};
+          }
+          this.#traceReaction(config, reactions, picked);
           if (picked.kind) this.#act({code: `REACTION ${picked.kind}`, message: reactions.resolve(picked.kind)});
-          else if (picked.why !== 'no-tag') this.log(`NPC reaction tag in the reply was not used (${picked.why})`);
         }
         const result = this.transformReply({text: reply, sessionID: config.sessionId, transport: route.name,
           timing: {provider: route.name, llmMs: elapsed, model: response.model ?? route.models()[0]?.id, attempts: response.attempts,
@@ -687,11 +694,24 @@ export class TextProviderHost {
     return result;
   }
 
+  /** The turn's one line about an ordinary NPC's reaction offer: the tag the reply chose, or why it chose none (codes only, never the words). */
+  #traceReaction(config, reactions, picked) {
+    try {
+      if (typeof this.traceReaction === 'function') {
+        this.traceReaction(config.companionAction?.token, {route: 'text', tag: picked.kind ?? null, why: picked.kind ? null : picked.why});
+        return;
+      }
+      this.log(reactionTraceLine({person: config.local?.profileKey, kinds: reactions.kinds, route: 'text', tag: picked.kind ?? null, why: picked.why}));
+    } catch { /* a log line never breaks a turn */ }
+  }
+
   /** Hands the action a finished reply asked for to the game. Best effort: the spoken reply never waits for it or fails with it. */
   #act({code, message}) {
+    // A reaction's hand-over is part of its one trace line (the CompanionActions that took it writes the result), not a second line.
+    const traced = typeof this.traceReaction === 'function' && code.startsWith('REACTION ');
     try {
       Promise.resolve(this.deliverAction(message)).then(
-        accepted => this.log(`action ${code} ${accepted ? 'handed to the game' : 'was not accepted'}`),
+        accepted => { if (!traced) this.log(`action ${code} ${accepted ? 'handed to the game' : 'was not accepted'}`); },
         error => this.log(`action ${code} failed: ${error?.message ?? 'error'}`));
     } catch (error) { this.log(`action ${code} failed: ${error?.message ?? 'error'}`); }
   }

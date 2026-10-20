@@ -803,7 +803,19 @@ function writeStreamManifest(document,current){
   });streamWriting=job;return job;
 }
 const companionActions = new CompanionActions({createToken: () => 'drive-' + randomUUID(),
-  publish: (packet, options) => atomic(resolve(runtime, 'companion-actions.json'), JSON.stringify(packet), options)});
+  publish: (packet, options) => atomic(resolve(runtime, 'companion-actions.json'), JSON.stringify(packet), options),
+  // One line for every turn that carried an ordinary NPC's reaction offer (docs/NPC_REACTIONS.md): where it stopped, or that it was handed over.
+  log: line => console.error('[NPCReaction] ' + line),
+  // The Convai route's part nobody could see: what its page did with the offer (armed or not, proposals seen). Read from the existing
+  // diagnostics of the pages, once, only for a turn that asked for no action; never on the reply's path.
+  probe: async () => {
+    const pages = (await realtime.diagnostics()).map(page => page.value?.actions).filter(actions => actions?.eligibility?.hasOffer);
+    const seen = pages.at(-1);
+    if (!seen) return 'convai=no page was offered the action list';
+    const e = seen.eligibility;
+    return `convai=allowed:${e.allowed} privateManual:${e.privateManual} verified:${e.verified} armed:${e.armed} published:${seen.published}`
+      + ` accepted:${seen.accepted} skipped:${seen.skipped} skip:${seen.lastSkip ?? '-'} ack:${seen.contextAck ?? '-'}`;
+  }});
 // "Companions can see" (docs/COMPANION_VISION.md): always on, Convai only. Every conversation turn carries a recent picture of
 // V's surroundings from an in-memory buffer that native/vision fills out of process while someone is near and nobody is talking;
 // it is published on the page ahead of the line. companionVision.attachToNextTurn(images) lets other features show the companion
@@ -861,7 +873,8 @@ maturePackInstalled(true);
 const mistralHost = new TextProviderHost({provider: mistral, memory: mistralMemory, personas: personaBook, routes: textRoutes, matureContent,
   transformReply: cleanReply, gate: memoryQuiet, resolveProfile: profileOfCharacter, log: message => console.error('[TextProvider] ' + message),
   // A companion action the reply asked for ("[DRIVE]", bridge/text-actions.mjs) reaches the game the way a Convai action does.
-  deliverAction: message => companionActions.deliver(message)});
+  deliverAction: message => companionActions.deliver(message),
+  traceReaction: (token, info) => companionActions.traceReaction(token, info)});
 // The hook for local speech recognition (bridge/local-stt.mjs and local-stt-capture.mjs; docs/LOCAL_STT.md). While Mistral is the
 // provider the voice key needs it: `available()` says whether this computer can recognise speech, `voiceChannel({reply})` returns
 // a channel (beginVoice / finishVoice / heard / close, like RealtimeHost.voiceChannel) whose finished recording is answered
@@ -2746,6 +2759,8 @@ async function runInput(request, prepared, clock) {
       submissionStages: {...stages, beforeTransportMs: performance.now() - preparationStarted}});
     const replying = respond(input, profile, {signal: controller.signal, prepared, current});
     const result = await replying;
+    // The reply is complete: a reaction offer nobody took gets its one log line (a Convai action may still arrive for a few seconds).
+    companionActions.endTurn(input);
     // Ready but not yet submitted by the game: hold until it is, or cancelled.
     // (Continuous speech already waited for this inside its own admission.)
     if (ahead) { ahead.markReady(); await ahead.waitClaimed(controller.signal); }

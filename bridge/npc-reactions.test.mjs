@@ -183,12 +183,18 @@ test('an ordinary NPC\'s private manual turn arms the offer; any other turn, own
   assert.equal(config.tactic, undefined); assert.equal(config.follow, undefined); assert.equal(config.leave, undefined);
   assert.equal(config.token, 'drive-00000000000000000001');
   for (const change of [p => p.route.channel = 'phone', p => p.route.channel = 'group', p => p.input.group = {id: 'g', index: 1},
-    p => p.input.reaction = {phase: 'after'}, p => p.input.channel = 'phone', p => p.identified = false, p => p.sendAllowed = false,
+    p => p.input.reaction = {phase: 'after'}, p => p.input.channel = 'phone', p => p.sendAllowed = false,
     p => p.input.reactionOffer.actor.id = '99ULL', p => p.input.reactionOffer.actor.key = 'npc-other', p => p.input.requestId = '100-7-44ULL',
     p => p.input.reactionOffer = {...offer(), kinds: []}, p => delete p.input.reactionOffer]) {
     const {broker: other, options: opts} = fixture(), p = prepared(); change(p);
     assert.equal(other.admit(p, opts), null);
   }
+  // The reaction needs no Convai identity (Mistral, Local AI and Custom have none); a companion's offer still does.
+  const anonymous = fixture(), a = prepared(); a.identified = false; a.remoteConfig = null;
+  assert.deepEqual(anonymous.broker.admit(a, anonymous.options)?.reaction, {kinds: ['leave', 'call-police']});
+  const unidentifiedCompanion = fixture(), c = prepared(); c.identified = false;
+  c.input.followOffer = {available: true, actor: {id: '44ULL', key: KEY_NPC}, name: 'Judy'};
+  assert.equal(unidentifiedCompanion.broker.admit(c, unidentifiedCompanion.options), null);
   // A group round never carries a reaction.
   const group = fixture(), g = prepared(); g.route.channel = 'group'; g.input.channel = 'group'; g.input.group = {id: 'g', index: 1};
   assert.equal(group.broker.admit(g, {...group.options, source: 'group-text'}), null);
@@ -433,8 +439,13 @@ test('custom provider: no tag, [none], a tag for a kind not offered, a tag in th
     }
     await settle();
     assert.deepEqual(delivered, []);
-    assert.ok(logs.some(line => /NPC reaction tag in the reply was not used \(not-offered\)/.test(line)), logs.join('|'));
-    assert.ok(logs.some(line => /not used \(not-at-end\)/.test(line)));
+    // One line per turn that had the offer, with the reason (codes only, never the words), in the order of the turns.
+    const lines = logs.filter(line => line.startsWith('NPC reaction: '));
+    assert.equal(lines.length, cases.length, logs.join('|'));
+    assert.deepEqual(lines.map(line => /tag=(\S+) delivered=(\S+)/.exec(line).slice(1)),
+      [['none(no-tag)', '-'], ['none(not-offered)', '-'], ['none(no-tag)', '-'], ['none(not-at-end)', '-'], ['none(several-tags)', '-']]);
+    assert.match(lines[0], /^NPC reaction: person=npc-street-resident-male offered=leave,call-police admitted=yes route=text tag=none\(no-tag\) delivered=-$/);
+    assert.ok(logs.every(line => !/Whatever|regret|Not much|\[/.test(line)), 'no words of the reply in the log');
     // A turn that offers nothing: the instruction is not in the prompt and a stray tag does nothing.
     const before = mock.requests.length;
     mock.behave(said('Get lost. [leave]'));

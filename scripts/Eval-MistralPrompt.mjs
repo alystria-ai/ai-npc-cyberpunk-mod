@@ -9,7 +9,7 @@
 //   node scripts/Eval-MistralPrompt.mjs --actions --decision-only --models ministral-8b-latest,ministral-3b-latest [--n 2] [--label x]
 //     (the action decision alone, per model: recall, precision, false triggers, latency p50/p90; --decision-model <id> in a full run sets the decision model)
 //        [--temperature 0.65] [--max-tokens 600] [--concurrency 5] [--situations greeting,lore]
-//   node scripts/Eval-MistralPrompt.mjs --reactions [--notes live,baseline] [--models ministral-8b-latest,ministral-3b-latest] [--personas homeless-f,ganger] [--n 2] [--label x]
+//   node scripts/Eval-MistralPrompt.mjs --reactions [--notes live,baseline] [--models ministral-8b-latest,ministral-3b-latest] [--personas homeless-f,ganger] [--history 1|2|3|none|threat] [--n 2] [--label x]
 //     (an ordinary NPC's reaction tag, docs/NPC_REACTIONS.md: archetype persons x threat / benign lines through the real host, per note variant and model:
 //      recall per offered kind and the false-trigger rate; --rescore <label> reads the stored raw replies again with the live parser, no request)
 //   node scripts/Eval-MistralPrompt.mjs --report <label>            the automatic checks of a finished run
@@ -288,7 +288,7 @@ function contextFor(c, situation, text, party, scene) {
 
 // ---- Ordinary NPC reactions (--reactions) ----------------------------------------------------------------------------------------------
 // docs/NPC_REACTIONS.md: the reply of an ordinary NPC ends with [leave], [call-police] or [attack] when V clearly threatens it. A cell is one archetype
-// person (the real persona and context pieces), a canned first exchange (the game offers a reaction from V's second message on) and one line of V, sent
+// person (the real persona and context pieces), a canned first exchange (--history) and one line of V, sent
 // through the real TextProviderHost with an offer, so the real note, cleaning, retry and `pick` decide. A note VARIANT rewrites the live note inside the
 // request (the wrapped chat function swaps or moves the text of reactionNotes(kinds)), so notes are compared without editing the bridge; `live` is the
 // bridge as it is. The raw reply of every request is kept, to see what the model really writes.
@@ -304,7 +304,7 @@ const REACTION_PERSONAS = [
   {id: 'vendor', key: 'npc-food-vendor-male', kinds: ['call-police'], hour: 20, minute: 10, district: 'Watson', area: 'Kabuki',
     archetype: {base: 'food-vendor', category: 'vendor', title: 'food and drink vendor', vendorType: 'GrilledFood', district: 'Watson', area: 'Kabuki'}},
 ].map(p => ({...p, ambient: true}));
-// The exchange every cell starts with (the offer never exists on V's first message to a person).
+// The exchange every cell starts with by default (V's first message may earn an offer too since 2026-10-21: see --history none).
 const REACTION_HISTORY = [{v: 'Hey, got a minute?', r: 'Depends. What do you want?'}];
 // V's lines. threat: clearly threatens, robs, assaults or seriously insults, so a reaction is earned. benign: normal talk, mild rudeness, flirting, jokes,
 // violent idioms and topics; no reaction is earned.
@@ -324,8 +324,18 @@ const REACTION_LINES = [
   ['benign', 'You are an idiot. Seriously, go away.'], ['benign', 'Shut up and listen for once, I am trying to ask you something.'],
   ['benign', 'My cousin got shot last week. I still cannot believe it.'], ['benign', 'Did you hear a gunshot just now?'],
 ];
-// The talk before V's line (the offer exists from V's second message): --history 3 makes it three earlier exchanges, as in a longer conversation.
+// The talk before V's line: --history 3 makes it three earlier exchanges, as in a longer conversation.
 const MORE_HISTORY = [{v: 'Nice night, huh?', r: 'Quiet enough. Rain is staying away for once.'}, {v: 'Been around here long?', r: 'Long enough to know which corners to avoid.'}];
+// --history none: V's very first message to the person (no earlier talk; since 2026-10-21 that message may earn a reaction).
+// --history threat: the live case of 2026-10-21 (the first message was already a threat and the person answered in character with no tag, because
+// no reaction was offered yet), so the model reads its own untagged defiance in the history before the second threat.
+const THREAT_HISTORY = [{v: 'Give me your money or I will hurt you.', r: 'Not a chance. Walk away before I call security.'}];
+const historyOf = () => {
+  const mode = option('history', '1');
+  if (mode === 'none') return [];
+  if (mode === 'threat') return THREAT_HISTORY;
+  return [...MORE_HISTORY.slice(0, Math.max(0, Number(mode) - 1)), ...REACTION_HISTORY];
+};
 // Note variants. `live` is the bridge's own note. The others replace it inside the request: note(kinds) -> text, place 'volatile' (where the bridge puts
 // it, in this turn's notes) or 'end' (after V's line and the closing reminder, the last thing the model reads).
 const WORDS_OF = {leave: 'you end the talk and walk or run off', 'call-police': 'you report V to the police', attack: 'you turn on V and attack'};
@@ -974,7 +984,7 @@ if (flag('reactions') && !localPort) {
         raws.push(result.text);
         return result;
       };
-      const host = new TextProviderHost({provider, memory: stubMemory({turns: [...MORE_HISTORY.slice(0, Math.max(0, Number(option('history', 1)) - 1)), ...REACTION_HISTORY]}), personas, limits, log: line => logs.push(String(line)),
+      const host = new TextProviderHost({provider, memory: stubMemory({turns: historyOf()}), personas, limits, log: line => logs.push(String(line)),
         deliverAction: async message => { delivered.push(message); return true; },
         routes: {mistral: mistralRoute({provider, model: () => [modelId], scheduler: mistralScheduler, cacheScope: `eval-${label}`, chat})}});
       const local = {profileKey: p.key, name: persona.name, channel: 'private', ambientKey: `${p.key}:eval`};
@@ -983,7 +993,7 @@ if (flag('reactions') && !localPort) {
       try {
         const reply = await host.reply({local, text, context, contextParts, companionAction: reactionOffer(p.kinds)}, {stream});
         rows.push({persona: p.id, kinds: p.kinds, cls, line: text, sample, kind: delivered[0]?.reaction ?? null, spoken: reply.text, raw: raws.at(-1) ?? null, requests: raws.length,
-          dropped: logs.filter(l => l.includes('NPC reaction tag')).map(l => l.slice(0, 120))});
+          dropped: logs.filter(l => l.startsWith('NPC reaction:')).map(l => l.slice(0, 160))});
       } catch (error) { rows.push({persona: p.id, kinds: p.kinds, cls, line: text, sample, kind: null, raw: raws.at(-1) ?? null, requests: raws.length, failed: redact(error?.message ?? String(error), apiKey).slice(0, 120)}); }
       finally { host.close(); }
     };

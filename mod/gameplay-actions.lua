@@ -109,11 +109,24 @@ function M.new(options)
         context.reactionOffer = copy(from.reactionOffer)
     end
 
+    -- The one place a reaction offer's end is written when it ends for a reason that is not the ordinary one (the next message, or its own
+    -- 125 s running out): a reply that failed or never came, a menu, a changed world. A silent end was why a live test showed offers and nothing else.
+    local ORDINARY_END = {['new-conversation'] = true, ['lease-expired'] = true}
+    local function logReaction(line)
+        if type(options.log) == 'function' then pcall(options.log, line) end
+    end
+
     function Q.revoke(reason, requestId)
         if requestId and (not lease or lease.requestId ~= requestId) then return end
-        if lease then result = {state = 'revoked', reason = reason or 'cancelled'} end
+        if lease then
+            result = {state = 'revoked', reason = reason or 'cancelled'}
+            if lease.reactionOffer ~= nil and not ORDINARY_END[reason or 'cancelled'] then
+                logReaction('NPC reaction offer ended before it was used: ' .. tostring(reason or 'cancelled'))
+            end
+        end
         lease = nil
     end
+    Q.options = options
 
     -- Call only at actual manual request admission, never for warmup, phone,
     -- group prefetch or AI-authored text. Unavailable native offers stay absent.
@@ -199,8 +212,9 @@ function M.new(options)
     function Q.update(gameplayReady)
         if not lease then return end
         local now = clock()
-        if not gameplayReady or not worldMatches(lease, options.world()) or now >= lease.expiresAt then
-            Q.revoke('world-or-request-expired'); return
+        if now >= lease.expiresAt then Q.revoke('lease-expired'); return end
+        if not gameplayReady or not worldMatches(lease, options.world()) then
+            Q.revoke(gameplayReady and 'world-changed' or 'world-not-ready'); return
         end
         local readOk, raw = pcall(options.read or readPacket)
         if not readOk or type(raw) ~= 'string' or raw == lastRaw then return end
@@ -216,21 +230,28 @@ function M.new(options)
             and offeredMember(lease.leaveOffer, packet.leave)
         local reaction = packet.action == 'npc-reaction' and lease.reactionOffer ~= nil
             and offeredKind(lease.reactionOffer, packet.reaction)
-        if packet.version ~= 1 or not (drive or tactic or follow or leave or reaction)
-            or type(packet.actionId) ~= 'string' or #packet.actionId < 1 or #packet.actionId > 240
-            or packet.requestId ~= lease.requestId or packet.generation ~= lease.generation
-            or packet.entity ~= lease.entity or packet.profileKey ~= lease.profileKey
-            or packet.source ~= lease.source or packet.worldToken ~= lease.worldToken
-            or packet.worldGeneration ~= lease.worldGeneration
-            or type(packet.createdAt) ~= 'number' or type(packet.expiresAt) ~= 'number'
-            or packet.createdAt ~= packet.createdAt or packet.expiresAt ~= packet.expiresAt
-            or packet.createdAt > now + 5000 or packet.createdAt < now - MAX_LEASE_MS
-            or packet.expiresAt <= now or packet.expiresAt > packet.createdAt + MAX_LEASE_MS
-            or (drive and not equal(packet.offer, lease.offer))
+        -- The first rule this packet breaks (nil: none). The reason is written for an ordinary NPC's reaction only, once per packet.
+        local fault
+        if packet.version ~= 1 then fault = 'version'
+        elseif not (drive or tactic or follow or leave or reaction) then fault = 'not-offered'
+        elseif type(packet.actionId) ~= 'string' or #packet.actionId < 1 or #packet.actionId > 240 then fault = 'action-id'
+        elseif packet.requestId ~= lease.requestId or packet.generation ~= lease.generation then fault = 'other-request'
+        elseif packet.entity ~= lease.entity or packet.profileKey ~= lease.profileKey then fault = 'other-person'
+        elseif packet.source ~= lease.source then fault = 'source'
+        elseif packet.worldToken ~= lease.worldToken or packet.worldGeneration ~= lease.worldGeneration then fault = 'other-world'
+        elseif type(packet.createdAt) ~= 'number' or type(packet.expiresAt) ~= 'number'
+            or packet.createdAt ~= packet.createdAt or packet.expiresAt ~= packet.expiresAt then fault = 'times'
+        elseif packet.createdAt > now + 5000 or packet.createdAt < now - MAX_LEASE_MS then fault = 'clock'
+        elseif packet.expiresAt <= now or packet.expiresAt > packet.createdAt + MAX_LEASE_MS then fault = 'expired'
+        elseif (drive and not equal(packet.offer, lease.offer))
             or (tactic and not equal(packet.tacticOffer, lease.tacticOffer))
             or (follow and not equal(packet.followOffer, lease.followOffer))
             or (leave and not equal(packet.leaveOffer, lease.leaveOffer))
-            or (reaction and not equal(packet.reactionOffer, lease.reactionOffer)) then return end
+            or (reaction and not equal(packet.reactionOffer, lease.reactionOffer)) then fault = 'offer-differs' end
+        if fault then
+            if packet.action == 'npc-reaction' then logReaction('NPC reaction packet refused: ' .. fault) end
+            return
+        end
         -- Consume before the native callback: even a throw after a side effect
         -- cannot execute this action twice. Native queue admission rechecks the
         -- actual managed copy and every other precondition.
@@ -250,6 +271,9 @@ function M.new(options)
             local called, accepted, why = pcall(options.queueReaction or function() return false, 'not-available' end, packet.reaction,
                 copy(admitted.reactionOffer), admitted.entity, admitted.requestId)
             result = {state = called and accepted == true and 'queued' or 'rejected', reason = called and why or nil}
+            if result.state == 'rejected' then
+                logReaction('NPC reaction hand-over rejected: ' .. tostring(called and why or ('error: ' .. tostring(accepted):sub(1, 120))))
+            end
             return
         end
         if follow or leave then

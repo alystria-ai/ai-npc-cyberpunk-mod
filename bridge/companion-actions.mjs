@@ -158,13 +158,59 @@ export function parseTacticOffer(value) {
     kinds: TACTIC_KINDS.filter(kind => kinds.includes(kind))};
 }
 
+// One line per turn that carried an ordinary NPC's reaction offer, so a turn that did nothing says where it stopped (2026-10-21: thirteen offers in
+// a live test and nothing in the bridge log, because every drop was silent). Codes and names only, never V's words or the reply:
+//   NPC reaction: person=npc-corpo-resident-female offered=leave,call-police admitted=yes route=text tag=none(no-tag) delivered=-
+//   NPC reaction: person=npc-corpo-resident-female offered=leave,call-police admitted=no(<why>) route=- tag=- delivered=-
+//   NPC reaction: person=... offered=... admitted=yes route=convai tag=call-police delivered=yes
+// route: text (Mistral, Local AI, Custom: the reply's tag) or convai (the action list); tag: the kind the model chose or none(<why>);
+// delivered: yes, no(<why>) or - (nothing to hand over). `extra` is appended for the Convai route (what its page saw of the offer).
+export function reactionTraceLine({person, kinds, admitted = true, route, tag, why, delivered, extra} = {}) {
+  const list = Array.isArray(kinds) ? kinds.join(',') : String(kinds ?? '?');
+  const outcome = tag ? String(tag) : why ? `none(${why})` : 'none';
+  return `NPC reaction: person=${person ?? '?'} offered=${list || '?'} admitted=${admitted === true ? 'yes' : `no(${admitted})`}`
+    + ` route=${route ?? '-'} tag=${admitted === true ? outcome : '-'} delivered=${delivered === true ? 'yes' : delivered ? `no(${delivered})` : '-'}${extra ? ' ' + extra : ''}`;
+}
+const LATE_TRACE_MS = LATE_ACTION_MS + 1000;
+
 // Host-side ownership survives completed text/audio for a bounded late event.
 // A new input, cancellation, world/reset change or expired offer revokes it.
 export class CompanionActions {
-  constructor({publish, createToken, now = Date.now}) {
-    Object.assign(this, {publish, createToken, now}); this.revision = 0; this.pending = null;
+  // log: one line per reaction turn (reactionTraceLine); probe: async () => text, what the Convai page saw of the offer (appended to the line
+  // of a turn that asked for no action).
+  constructor({publish, createToken, now = Date.now, log = () => {}, probe = null}) {
+    Object.assign(this, {publish, createToken, now, log, probe}); this.revision = 0; this.pending = null;
   }
-  revoke() {
+  // The text host says what the reply's tag was ({tag: kind} before it hands the reaction over; {tag: null, why} when the reply asked for none).
+  traceReaction(token, {route = 'text', tag = null, why = null} = {}) {
+    const pending = this.pending, trace = pending?.trace;
+    if (!trace || trace.logged || pending.packet.actionId !== token) return;
+    trace.route = route; trace.tag = tag; trace.why = why;
+    if (!tag) this.#closeTrace(pending, null);
+  }
+  // The turn's reply has been published. A text turn that chose nothing is already closed; a Convai turn may still get a late action
+  // (the window stays open for a few seconds), so its line comes when the window has closed.
+  endTurn(input) {
+    const pending = this.pending;
+    if (!pending?.trace || pending.input !== input || pending.trace.logged) return;
+    if (pending.trace.tag) return;   // chosen: deliver() closes it
+    const timer = setTimeout(() => this.#closeTrace(pending, 'no-action-requested'), LATE_TRACE_MS);
+    timer.unref?.();
+  }
+  #closeTrace(pending, reason, delivered = reason) {
+    const trace = pending?.trace;
+    if (!trace || trace.logged) return;
+    trace.logged = true;
+    const parts = {person: trace.person, kinds: trace.kinds, route: trace.route, tag: trace.tag, why: trace.why ?? (trace.tag ? null : reason),
+      delivered: trace.tag ? (delivered === true ? true : delivered ?? 'turn-ended') : null};
+    const emit = extra => { try { this.log(reactionTraceLine({...parts, extra})); } catch { /* a log line never breaks a turn */ } };
+    if (!trace.route && typeof this.probe === 'function') {
+      // The Convai route: what its page did with the offer is the part nobody could see.
+      Promise.resolve().then(() => this.probe()).then(emit, () => emit());
+    } else emit();
+  }
+  revoke(reason = 'revoked') {
+    this.#closeTrace(this.pending, reason);
     const revision = ++this.revision; this.pending = null;
     // Invalidate an unconsumed file too. An already running native journey has
     // its own cancellation policy and is not undone by this empty mailbox.
@@ -174,7 +220,7 @@ export class CompanionActions {
       {isCurrentSync: () => this.revision === revision && this.pending === null})).catch(() => false);
   }
   admit(prepared, {source, isCurrent, isCurrentSync, signal} = {}) {
-    void this.revoke();
+    void this.revoke('next-turn');
     const input = prepared?.input, offer = parseChauffeurOffer(input?.chauffeurOffer);
     const tactic = parseTacticOffer(input?.tacticOffer);
     const follow = parseFollowOffer(input?.followOffer), leave = parseLeaveOffer(input?.leaveOffer);
@@ -187,20 +233,41 @@ export class CompanionActions {
     // A manual group round arms only its first speaker, and only to send companions away.
     const group = typeof source === 'string' && source.startsWith('group-');
     const channel = group ? 'group' : 'private';
-    if ((!offer && !tactic && !follow && !leave && !reaction && !refusal && !tacticRefusal && !driveRefusal) || !MANUAL_SOURCES.includes(source)
-        || prepared?.route?.channel !== channel
-        || !prepared.sendAllowed || !prepared.identified || !prepared.remoteConfig?.endUserId
-        || input.reaction || input.channel !== channel
-        || (group ? (!object(input.group) || input.group.index !== 1 || !leave || offer || tactic || follow || reaction || refusal || tacticRefusal || driveRefusal)
-          : input.group !== undefined)
-        || source.endsWith('-voice') !== (prepared.route.transport === 'microphone')
-        || !ownedBy(offer) || !ownedBy(tactic) || !ownedBy(follow) || !ownedBy(leave) || !ownedBy(reaction)
-        || !string(input.requestId, 100) || !/^\d+-\d+-\d+ULL$/.test(input.requestId)
+    // The first reason this turn arms nothing (null: it arms). One list, so the reaction line can say which rule stopped it.
+    const refused = () => {
+      if (!offer && !tactic && !follow && !leave && !reaction && !refusal && !tacticRefusal && !driveRefusal) return 'no-offer';
+      if (!MANUAL_SOURCES.includes(source)) return 'source:' + String(source);
+      if (prepared?.route?.channel !== channel) return 'channel:' + String(prepared?.route?.channel);
+      if (!prepared.sendAllowed) return 'send-not-allowed';
+      // An ordinary NPC's reaction needs no Convai identity: the Mistral, Local AI and Custom routes have none, and a turn that cannot run at all
+      // has no send permission (above). The companion offers keep the identified-session rule they were built with.
+      if (!reaction && (!prepared.identified || !prepared.remoteConfig?.endUserId)) return 'not-identified';
+      if (input.reaction) return 'automatic-turn';
+      if (input.channel !== channel) return 'input-channel:' + String(input.channel);
+      if (group ? (!object(input.group) || input.group.index !== 1 || !leave || offer || tactic || follow || reaction || refusal || tacticRefusal || driveRefusal)
+        : input.group !== undefined) return 'group-shape';
+      if (source.endsWith('-voice') !== (prepared.route.transport === 'microphone')) return 'transport';
+      if (!ownedBy(offer) || !ownedBy(tactic) || !ownedBy(follow) || !ownedBy(leave) || !ownedBy(reaction)) return 'owner-mismatch';
+      if (!string(input.requestId, 100) || !/^\d+-\d+-\d+ULL$/.test(input.requestId)
         || !Number.isSafeInteger(input.generation) || input.generation < 0
-        || !input.requestId.endsWith(`-${input.generation}-${input.entity}`)
-        || !string(prepared.worldToken, 160) || !Number.isSafeInteger(prepared.generation) || prepared.generation < 1
-        || typeof isCurrent !== 'function' || typeof isCurrentSync !== 'function'
-        || signal?.aborted || isCurrentSync() !== true) return null;
+        || !input.requestId.endsWith(`-${input.generation}-${input.entity}`)) return 'request-id';
+      if (!string(prepared.worldToken, 160) || !Number.isSafeInteger(prepared.generation) || prepared.generation < 1) return 'world-binding';
+      if (typeof isCurrent !== 'function' || typeof isCurrentSync !== 'function') return 'no-currency-check';
+      if (signal?.aborted) return 'aborted';
+      if (isCurrentSync() !== true) return 'stale-world';
+      return null;
+    };
+    const why = refused();
+    if (why !== null) {
+      // A turn that carried a reaction offer (or lost one on the way: the input says so) says where it stopped.
+      if (input?.reactionOffer || input?.reactionOfferDropped) {
+        try {
+          this.log(reactionTraceLine({person: input.profileKey, kinds: input.reactionOffer?.kinds ?? '?',
+            admitted: why === 'no-offer' && input.reactionOfferDropped ? input.reactionOfferDropped : why}));
+        } catch { /* a log line never breaks a turn */ }
+      }
+      return null;
+    }
     const actionId = this.createToken();
     if (!token(actionId)) throw Error('Invalid companion action token');
     const issuedAt = this.now();
@@ -209,7 +276,8 @@ export class CompanionActions {
       generation: input.generation, entity: input.entity, profileKey: input.profileKey,
       worldToken: prepared.worldToken, worldGeneration: prepared.generation, source,
       createdAt: issuedAt, expiresAt: issuedAt + CHAUFFEUR_OFFER_TTL_MS, ...(offer ? {offer} : {})};
-    this.pending = {input, packet, tactic, follow, leave, reaction, refusal, tacticRefusal, driveRefusal, group, isCurrent, isCurrentSync, signal, accepted: false};
+    this.pending = {input, packet, tactic, follow, leave, reaction, refusal, tacticRefusal, driveRefusal, group, isCurrent, isCurrentSync, signal, accepted: false,
+      ...(reaction ? {trace: {person: input.profileKey, kinds: [...reaction.kinds], logged: false}} : {})};
     return this.configFor(input);
   }
   current(pending) {
@@ -236,6 +304,18 @@ export class CompanionActions {
   }
   async deliver(message) {
     const pending = this.pending;
+    const attempt = await this.#attempt(message, pending);
+    // An ordinary NPC's reaction says how it ended: handed over, or the rule that refused it.
+    if (object(message) && message.reaction !== undefined && pending?.trace && !pending.trace.logged) {
+      const trace = pending.trace;
+      // No tag came from the text host first: the model asked for the action itself (the Convai route).
+      if (!trace.route) { trace.route = 'convai'; trace.tag = String(message.reaction); }
+      this.#closeTrace(pending, null, attempt.value ? true : attempt.why ?? 'not-published');
+    }
+    return attempt.value;
+  }
+  async #attempt(message, pending) {
+    const no = why => ({value: false, why});
     // {version, token} drives; {version, token, tactic} chooses one offered tactic;
     // {version, token, follow: true} joins; {version, token, leave: n | 'all'} sends
     // offered member n (1-based) or every offered member away; {version, token, reaction: kind} is one offered NPC reaction.
@@ -243,23 +323,26 @@ export class CompanionActions {
       ? ['tactic', 'follow', 'leave', 'reaction'].find(key => Object.hasOwn(message, key)) : undefined;
     const tacticKind = third === 'tactic' ? message.tactic : undefined;
     if (!object(message) || (Object.keys(message).length !== 2 && third === undefined)
-        || message.version !== 1 || !token(message.token)
-        || !pending || pending.accepted || message.token !== pending.packet.actionId || !this.current(pending)) return false;
+        || message.version !== 1 || !token(message.token)) return no('bad-message');
+    if (!pending) return no('revoked');
+    if (pending.accepted) return no('already-accepted');
+    if (message.token !== pending.packet.actionId) return no('token-mismatch');
+    if (!this.current(pending)) return no(this.now() >= pending.packet.expiresAt ? 'expired' : 'stale');
     let leaveTarget;
-    if (third === 'follow') { if (message.follow !== true || !pending.follow) return false; }
-    else if (third === 'reaction') { if (!pending.reaction?.kinds.includes(message.reaction)) return false; }
+    if (third === 'follow') { if (message.follow !== true || !pending.follow) return no('not-offered'); }
+    else if (third === 'reaction') { if (!pending.reaction?.kinds.includes(message.reaction)) return no('not-offered'); }
     else if (third === 'leave') {
       const members = pending.leave?.members ?? [];
       if (message.leave === 'all' && members.length > 1) leaveTarget = 'all';
       else if (Number.isSafeInteger(message.leave) && message.leave >= 1 && message.leave <= members.length) {
         leaveTarget = members[message.leave - 1].id;
-      } else return false;
-    } else if (tacticKind !== undefined ? !pending.tactic?.kinds.includes(tacticKind) : !pending.packet.offer) return false;
+      } else return no('not-offered');
+    } else if (tacticKind !== undefined ? !pending.tactic?.kinds.includes(tacticKind) : !pending.packet.offer) return no('not-offered');
     // Reserve before awaiting file/world checks so duplicate callbacks cannot
     // race each other into two native publications.
     pending.accepted = true;
     const current = async () => this.current(pending) && await pending.isCurrent() && this.current(pending);
-    if (!await current()) return false;
+    if (!await current()) return no('stale-before-publish');
     const createdAt = this.now(), {offer: driveOffer, ...base} = pending.packet;
     const packet = {...base, ...(third === 'follow' ? {action: 'companion-follow', followOffer: pending.follow}
       : third === 'leave' ? {action: 'companion-leave', leave: leaveTarget, leaveOffer: pending.leave}
@@ -268,8 +351,9 @@ export class CompanionActions {
           ? {action: 'companion-tactic', tactic: tacticKind, tacticOffer: pending.tactic}
           : {action: 'drive-to-waypoint', offer: driveOffer}), createdAt,
       expiresAt: Math.min(pending.packet.expiresAt, createdAt + CHAUFFEUR_DELIVERY_TTL_MS)};
-    return this.publish(packet, {signal: pending.signal, isCurrent: current,
+    const value = await this.publish(packet, {signal: pending.signal, isCurrent: current,
       isCurrentSync: () => this.current(pending)});
+    return {value, why: value ? undefined : 'not-published'};
   }
 }
 
