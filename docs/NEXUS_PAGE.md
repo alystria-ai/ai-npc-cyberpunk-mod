@@ -24,7 +24,7 @@ Pick one in Companion Manager > Settings > Conversation provider.
 [*]Fully offline: if Windows asks whether Node.js may use the network, you can decline, and turn off [b]Settings > Privacy > Send error reports automatically[/b].
 [/list]
 
-[size=4][b]How much video memory?[/b][/size]
+[b]How much video memory?[/b]
 What each voice + text pair adds on top of the game:
 [list]
 [*]Pocket or Voxtral voice + Convai or Mistral: [b]0 GB[/b] (the default)
@@ -37,24 +37,56 @@ What each voice + text pair adds on top of the game:
 Measured on a 12 GB RTX 4080 Laptop. If your card runs short, the mod steps down by itself (standard to lite, then lite to cloud text), and you can change either choice in Settings at any time.
 
 [size=4][b]Key features[/b][/size]
+[b]Talk to anyone[/b]
 [list]
-[*][b]Talk by voice or text.[/b] Face someone and press your talk key: hold it while you speak, tap to start and stop, or type. They answer out loud in their own voice, with subtitles, and now and then ask you something back.
-[*][b]Invite almost anyone.[/b] The game's named cast, from Panam, Johnny and Judy to Takemura, Kerry, River and Alt Cunningham, each with a personality researched from the game's own lore, plus hundreds more character models from the Model browser. No party size limit.
-[*][b]Companions that live alongside you.[/b] They walk beside you, follow you through doors, lifts and fast travel, sit with you on couches, benches and bar stools, ride in your car, drive you to your waypoint and fight with the game's own combat AI.
-[*][b]Faces and bodies that act.[/b] Lips follow the words, the face changes at the very word where the feeling shifts, eyes and head follow you, and they gesture, nod and hold idle poses with props such as a cigarette, a cup or a pair of shades.
-[*][b]Group conversations.[/b] Talk to two or three companions at once; they take turns and pick up from each other.
+[*][b]Voice or text.[/b] Face someone and press your talk key: hold it while you speak, tap to start and stop, or type. They answer out loud with subtitles, cinematic or above the speaker, and now and then ask you something back.
+[*][b]The game's named cast.[/b] Panam, Johnny, Judy, Takemura, Kerry, River, Alt Cunningham and many more, each with a personality researched from the game's own lore.
+[*][b]The whole city.[/b] Gangers, NCPD officers, guards, ripperdocs, vendors, bartenders and passers-by answer as their kind of person, and shopkeepers you come back to remember you.
+[*][b]Story characters where they stand.[/b] Turn on Talk to story characters (off by default) and the game's own Judy, Jackie, Panam or Rogue answer in place, with voice and face only. The story is left alone.
+[*][b]Group chat.[/b] Talk to two or three companions at once; they take turns and pick up from each other.
 [*][b]Phone Chat and holocalls.[/b] Text any supported contact from a Chat tab on V's phone, or call them and watch them pick up live on screen.
+[*][b]No waiting.[/b] Characters you look at or walk up to get their conversation ready in the background, so they answer straight away.
+[/list]
+[b]Companions[/b]
+[list]
+[*][b]Invite almost anyone[/b] from Characters to invite, plus hundreds more character models from the Model browser. No party size limit.
+[*][b]They live alongside you.[/b] They walk beside you, follow you through doors, lifts and fast travel, sit with you on couches, benches and bar stools, ride in your car and fight with the game's own combat AI.
+[*][b]Ask them to drive.[/b] Set a waypoint, have your car nearby and say something like "can you drive us to the waypoint?". They take the wheel and you get in the passenger seat.
+[*][b]Point out a target.[/b] Tag an enemy with your scanner (or look right at them) and tell them to attack.
+[*][b]Send them home.[/b] Tell them to leave, or use Dismiss in Current party.
+[*][b]They react.[/b] A short comment when a fight starts and after it, and remarks on the loot you pick up.
+[*][b]Night City Allies followers talk.[/b] NCA followers who are characters here talk as themselves, and Lucy (with Lucy for NCA) and Rita Wheeler have their own voices and memory. NCA keeps doing the following, fighting and driving.
+[/list]
+[b]Faces and voices[/b]
+[list]
+[*][b]Faces that act.[/b] Lips follow the words, the face changes at the very word where the feeling shifts, and eyes and head follow you.
+[*][b]Bodies that act.[/b] They gesture, nod and hold idle poses with props such as a cigarette, a cup or a pair of shades.
+[*][b]Voices that sound like them.[/b] Pocket TTS (the default) runs on your processor with no setup, Voxtral makes each voice in the cloud with a free Mistral key, and OmniVoice (NVIDIA) can laugh and sigh. Natural speech adds pauses and hesitations.
 [*][b]V speaks too.[/b] Lines you type are voiced in the V voice that matches yours.
-[*][b]The whole city talks.[/b] Gangers, NCPD officers, vendors, bartenders and passers-by answer as their kind of person, and shopkeepers remember you. Turn on Talk to story characters (off by default) and the game's own Judy, Jackie, Panam or Rogue answer where they stand. Characters spawned by other mods can talk too.
-[*][b]Night City Allies followers talk.[/b] NCA followers who are characters here (Judy, Panam, Goro and more) talk as themselves, and Lucy (with Lucy for NCA) and Rita Wheeler have their own voices and memory. NCA keeps doing the following, fighting and driving.
+[/list]
+[b]Story and memory[/b]
+[list]
+[*][b]They know the moment.[/b] They pick up from the game's own dialogue and know your quest, your clothes and what you carry. With Convai they also see a fresh glimpse of the game window (never saved).
+[*][b]They remember you.[/b] Conversations stay with a character across saves, and Judy, Panam, River, Kerry and Meredith know where things stand with V. Make one character, or everyone, forget at any time.
 [*][b]Johnny in your head.[/b] Turn it on (off by default) and, with nobody in front of you, talk and Johnny answers in V's head. He knows your jobs, his own history and how things stand between you. With Johnny speaks up he also comments on people you meet, jobs you finish and romances.
-[*][b]They know the moment.[/b] They continue from the game's own dialogue and know your quest, your clothes and what you carry. With Convai they also see a fresh glimpse of the game window, so they can talk about where you are (the picture is never saved).
-[*][b]They remember you.[/b] Conversations stay with a character across saves, and Judy, Panam, River, Kerry and Meredith know where things stand with V. Make characters forget, edit any character's bio, speaking style and memories in your browser, or make a character of your own for someone who has no profile (Mistral or Local AI).
-[*][b]Voices that sound like them.[/b] Pocket TTS (the default) runs on your processor with no setup. OmniVoice, for NVIDIA cards, can laugh and sigh. Voxtral makes each voice in the cloud with a free Mistral key. Optional natural speech adds pauses and hesitations.
-[*][b]Free three ways, light on your game, any language.[/b] Local AI, Mistral or the Convai free tier (see above). The heavy work runs in a separate background service, and unused models unload on their own. Menus in sixteen languages, plus a Multilingual setting to talk in any language.
+[/list]
+[b]Make it yours[/b]
+[list]
+[*][b]Character editor.[/b] Edit any character's bio, speaking style and memories in your browser, or make characters of your own for anyone who has no profile (Mistral or Local AI).
+[*][b]World rules.[/b] Write rules for the whole of Night City in the editor, and the characters follow them (Local AI, Mistral and Custom).
+[*][b]Voice clips.[/b] Give a character a new voice from a 5 to 20 second recording. It applies without a restart.
+[*][b]Bring your own AI.[/b] The Custom provider works with OpenRouter, Nano-GPT, Ollama, LM Studio or any OpenAI-compatible service, and Local AI can run your own model files (see below).
+[*][b]Any language.[/b] Menus in sixteen languages, a Multilingual setting to talk in any language, and microphone packs for European and Asian languages.
+[/list]
+[b]Light on your game[/b]
+[list]
+[*]The heavy work runs in a separate background service, not inside the game, and the default setup uses no video memory.
+[*]Unused models unload on their own, and Local AI steps down to a lighter model when the game needs the memory.
+[*]Works with Vortex, Mod Organizer 2 or a manual install.
 [/list]
 
-[size=4][b]Requirements[/b][/size]
+[size=4][b]Install[/b][/size]
+[b]Requirements[/b]
 [list]
 [*]Cyberpunk 2077 version 2.31 on Windows 10 or 11 (64-bit).
 [*]These mods from Nexus Mods, installed first: [url=https://www.nexusmods.com/cyberpunk2077/mods/107]Cyber Engine Tweaks[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/2380]RED4ext[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/1511]redscript[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/7780]Codeware[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/4197]TweakXL[/url], [url=https://www.nexusmods.com/cyberpunk2077/mods/12001]Audioware[/url], and either [url=https://www.nexusmods.com/cyberpunk2077/mods/31640]Mod Configuration Menu[/url] 0.10.5 or newer or [url=https://www.nexusmods.com/cyberpunk2077/mods/3518]Native Settings UI[/url] (one of the two is enough; with both, the manager uses Mod Configuration Menu). Tested with Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31, Codeware 1.20.5, TweakXL 1.11.4, Audioware 1.9.9, Mod Configuration Menu 0.10.5 and Native Settings UI 1.96.
@@ -64,7 +96,7 @@ Measured on a 12 GB RTX 4080 Laptop. If your card runs short, the mod steps down
 [*]No graphics card needed for the default setup. Only OmniVoice and Local AI use one.
 [/list]
 
-[size=4][b]Install[/b][/size]
+[b]Steps[/b]
 [list=1]
 [*]Install the mods in Requirements.
 [*]Download [b]Scripts 0.2.3[/b] from this page (Vortex or by hand) and the [b]Runtime 0.2.3[/b] from the [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/0.2.3]Hugging Face page (0.2.3 folder)[/url]. Use the same version for both.
@@ -72,18 +104,11 @@ Measured on a 12 GB RTX 4080 Laptop. If your card runs short, the mod steps down
 [*]Start the game. The first start takes a little longer while the voice service prepares itself.
 [*]Open Cyber Engine Tweaks' [b]Bindings[/b] and give a key to each AI NPC Cyberpunk Mod action: talk by text, talk by voice, Group Chat and the companion manager. The mod never sets keys for you.
 [/list]
-Updating from 0.2.2: download the Scripts and the small [b]Runtime update[/b] (AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.2-to-0.2.3.zip, about 23 MB) instead of the full Runtime, and extract both over your install. Choose Replace if Windows asks. Your settings and memories are kept. The optional packs (OmniVoice, Local AI, Mature) have not changed since 0.2.1, so if you already have them you don't need to download them again. On an older version, or not sure? Use the full Runtime.
 
-[size=4][b]What companions can do[/b][/size]
-Invite someone from Companion Manager > Characters to invite. Party members follow you everywhere, sit with you when you sit (couches, benches, bar stools), ride along in your car and fight with you. A few things you just ask for in conversation, in your own words:
-[list]
-[*][b]Drive you somewhere:[/b] set a waypoint on the map and have your car nearby (call it, or stand within 20 m of one of your cars). Ask them to drive, for example "can you drive us to the waypoint?". They walk to the car and take the wheel; get in the passenger seat yourself within a few minutes. Change the waypoint and they follow it. Stop trip in the Companion Manager ends it; fast travel or loading a save does too.
-[*][b]Fight someone:[/b] tag the enemy with your scanner (or look right at them) and tell them to attack. They fight on their own anyway when a fight starts.
-[*][b]Leave:[/b] tell them to go home or leave the party, or use Dismiss in Companion Manager > Current party.
-[/list]
-They can't wait, stay or sit on command yet.
+[b]Updating[/b]
+From 0.2.2, download the Scripts and the small [b]Runtime update[/b] (AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.2-to-0.2.3.zip, about 23 MB) instead of the full Runtime, and extract both over your install. Choose Replace if Windows asks. Your settings and memories are kept. The optional packs (OmniVoice, Local AI, Mature) have not changed since 0.2.1, so if you already have them you don't need to download them again. On an older version, or not sure? Use the full Runtime.
 
-[size=4][b]Optional packs[/b][/size]
+[b]Optional packs[/b]
 All on the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/0.2.3]Hugging Face page (0.2.3 folder)[/url]. Each is one zip that works on its own; install none, some or all, the same way as the Runtime.
 [list]
 [*][b]OmniVoice[/b] (about 9 GB installed): a richer voice that can laugh and sigh, for NVIDIA cards with at least 8 GB of video memory. Choose it in Settings > Voices.
@@ -108,7 +133,7 @@ This runs on the mod's own engine, so a Local AI or Mature pack must be installe
 
 Then in game: Settings > Conversation provider, choose Local AI, pick your model in the Local AI model row. List several models in the same file, separated by commas. Your model shares the graphics card with the game, so pick a size that leaves the game enough video memory.
 
-[size=4][b]FAQ[/b][/size]
+[size=4][b]Help and FAQ[/b][/size]
 [b]Will it slow my game down?[/b]
 The heavy work runs in a separate background service, not inside the game, and the default setup uses no video memory. See How much video memory? above for the other options.
 
@@ -135,7 +160,6 @@ When something in the mod fails, a short report goes to the developer so it can 
 [b]What languages can I use?[/b]
 Menus come in sixteen languages. Turn on Multilingual conversations to talk in any language. Pocket and Voxtral speak English only, so those replies use OmniVoice, or Convai's cloud voice without the pack. The Convai microphone expects English, so type in other languages. With Mistral the microphone understands other languages too; with Local AI or a Custom endpoint, the optional Microphone packs add ten European languages, Mandarin Chinese, Japanese and Korean.
 
-[size=4][b]Troubleshooting[/b][/size]
 [b]The Companion Manager doesn't show up.[/b]
 Press your manager key (stand up first if V is sitting), or press Esc, then Mods, and choose Companion Manager (in Native Settings UI, the AI NPC Cyberpunk Mod tab). No Mods entry in the pause menu? Install or update Mod Configuration Menu (0.10.5 or newer) or Native Settings UI.
 
@@ -151,7 +175,6 @@ Post what you see (a screenshot helps) on this page's Posts tab or in the Discor
 [b]Something else?[/b]
 In game, open Companion Manager > Settings > Help > Help and support, choose [b]Generate report[/b], and send that file with what you were doing.
 
-[size=4][b]Support[/b][/size]
 Questions, bugs or ideas? Join the [url=https://discord.com/invite/3p2FzjZQZ]Discord server[/url]:
 
 [url=https://discord.com/invite/3p2FzjZQZ][img]https://logos-world.net/wp-content/uploads/2020/12/Discord-Symbol.png[/img][/url]
