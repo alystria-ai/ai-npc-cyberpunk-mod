@@ -66,7 +66,7 @@ M.catalog = {
     ['custom-unreachable'] = {class = PLAYER, repeatS = 60}, -- the endpoint did not answer
     ['custom-no-setup'] = {class = PLAYER, repeatS = 86400}, -- Custom is chosen but the endpoint URL or the model ID is missing, so Convai is used: once per game session
     ['custom-voice'] = {class = PLAYER, repeatS = 86400},   -- the Convai cloud voice is chosen: a local voice speaks Custom replies, once per game session
-    ['voice-language'] = {class = PLAYER, repeatS = 86400}, -- a text provider replied in a language the chosen voice cannot speak (Pocket, Voxtral): shown as text, OmniVoice speaks it; once per game session
+    ['voice-language'] = {class = PLAYER, repeatS = 86400}, -- a text provider replied in a language the chosen voice cannot speak (Pocket always, Voxtral for the languages it does not list): shown as text, OmniVoice speaks it; once per game session
     ['local-fallback'] = {class = PLAYER, repeatS = 86400}, -- Local AI is chosen but could not start, so Convai is used: once per game session
     ['local-failed'] = {class = PLAYER, repeatS = 30},      -- a local turn could not be answered and no cloud provider took it over: say so on every attempt, not more than twice a minute
     ['local-thinking'] = {class = PLAYER, repeatS = 30},    -- the player's own model server answered with only thinking, also when asked not to think: turn thinking off there or pick another model

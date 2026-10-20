@@ -146,7 +146,8 @@ export class VoiceSelection {
     this.routeRevision = 0; this.routeChanges = new Set(); this.routingWaiters = new Set();
     // Multilingual conversations: Pocket TTS speaks only English, so while it is on the fallback skips Pocket (an Omni
     // choice that cannot run lands on the cloud voice). Settings never pair the two; a hand-edited pairing also ends
-    // on the cloud voice.
+    // on the cloud voice. The Voxtral cloud voice runs on Pocket's route but speaks the language of the text (Voxtral TTS 3: 22 languages), so it keeps
+    // the route while it is chosen; a reply in a language it does not list goes to the Convai voice (bridge/multilingual.mjs planTurnVoice).
     this.multilingual=false;
   }
   // The optional OmniVoice pack. A machine without it keeps Omni out of routing (the choice falls to Pocket) and
@@ -279,7 +280,7 @@ export class VoiceSelection {
   resolve(provider){
     const start=VOICE_FALLBACK_ORDER.indexOf(provider);
     return VOICE_FALLBACK_ORDER.slice(Math.max(start,0))
-      .find(backend=>this.backendUsable(backend)&&!(this.multilingual&&backend==='pocket'))||'convai';
+      .find(backend=>this.backendUsable(backend)&&!(this.multilingual&&backend==='pocket'&&!this.cloudWanted))||'convai';
   }
   get resolvedProvider(){return this.resolve(this.requestedProvider);}
   // The cloud voice speaks replies: chosen and committed; its route is Pocket's (packet format and routing only, no Pocket worker).

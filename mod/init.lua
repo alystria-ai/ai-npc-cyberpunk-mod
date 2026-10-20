@@ -3484,9 +3484,9 @@ local function keyReplyNotice(reply)
         end
         return 'local-stepdown', ui.t('Local AI switched to {model}: the game is using most of your graphics memory.', {model = used})
     end
-    -- A text provider answered in a language the chosen voice cannot speak (Pocket and Voxtral are English only): the reply showed as text. Said once per game session.
+    -- A text provider answered in a language the chosen voice cannot speak (Pocket is English only; Voxtral lists some languages): the reply showed as text. Said once per game session.
     if reply.keyNotice == 'voice-language' then
-        return 'voice-language', ui.t('Replies in other languages show as text: this voice speaks English only. OmniVoice speaks them.')
+        return 'voice-language', ui.t('Replies in some languages show as text: this voice does not speak them. OmniVoice speaks them all, and Voxtral most of them.')
     end
     if reply.keyNotice == 'mistral-no-key' then
         return 'mistral-no-key', ui.t('Mistral has no key yet, so Convai is used. Add your key in Settings > Conversation provider.')

@@ -366,8 +366,9 @@ export class VVoice {
    * helper   {speaks(key), ready(key), stream, prepare} or null: the Pocket worker that is V's alone (bridge/v-helper-voice.mjs). It speaks
    *          V whenever the companions' voice is not the Pocket worker itself (OmniVoice, a cloud voice, the Convai voice); `speaks` says
    *          whether it is the one in charge for this key, `ready` whether it is loaded.
-   * cloud    {problem(key), stream(key, text, options), warm(key)} or null: the Voxtral cloud voice. `problem` is null when it can speak
-   *          V's line now, else a short reason (no key, no clip, a limit cooling down); `warm` prepares V's reference clip.
+   * cloud    {problem(key), stream(key, text, options), warm(key), speaks(language)} or null: the Voxtral cloud voice. `problem` is null when it
+   *          can speak V's line now, else a short reason (no key, no clip, a limit cooling down); `warm` prepares V's reference clip; `speaks`
+   *          says whether its model speaks a language other than English (a line in such a language is spoken, any other is skipped).
    * remember {gender, save(gender)} or null: V's gender kept between sessions (the bridge keeps it in the state folder). It lets the
    *          voice that will speak be prepared before the first typed line of a session, when the game has not said yet who V is.
    * graceMs  how long a ready reply waits for V's first audio (V_GRACE_MS)
@@ -465,9 +466,11 @@ export class VVoice {
       if (!text) return null;
       const plan = this.planFor(input, voice.key);
       if (!plan || (plan.engine !== 'pocket' && plan.engine !== 'voxtral')) return null;
-      // Both engines speak English here (Pocket has no other language, the Mistral cloud voice is English only in this mod).
-      if (plan.language && plan.language !== 'en') {
-        this.once('language:' + plan.engine, `V's voice skipped: the ${plan.engine === 'voxtral' ? 'Voxtral' : 'Pocket'} voice speaks English only`);
+      // Pocket has no language but English. The Voxtral voice speaks the language the line is written in, for the languages its model lists
+      // (Voxtral TTS 3: bridge/voxtral-languages.mjs): a line in another language is spoken by it, and skipped when the model does not list it.
+      const spoken = plan.language && plan.language !== 'en' ? plan.language : 'en';
+      if (spoken !== 'en' && !(plan.engine === 'voxtral' && this.cloud?.speaks?.(spoken) === true)) {
+        this.once('language:' + plan.engine, `V's voice skipped: the ${plan.engine === 'voxtral' ? 'Voxtral' : 'Pocket'} voice does not speak this language`);
         return this.skip('not-english');
       }
       const volume = input.turnContext?.dialogueVolume;
@@ -478,7 +481,7 @@ export class VVoice {
         // The cloud voice shares no worker with anyone: nothing stops it, it is simply dropped if it is not audible when the reply is.
         const problem = this.cloud ? this.cloud.problem(voice.key) : 'not available';
         if (problem !== null) { this.once('cloud:' + problem, `V's voice skipped: the Voxtral voice cannot speak it now (${problem})`); return this.skip('cloud-unavailable'); }
-        route = {plan: {engine: 'voxtral', language: 'en'}, stream: (key, spoken, options) => this.cloud.stream(key, spoken, options), local: false};
+        route = {plan: {engine: 'voxtral', language: spoken}, stream: (key, spoken, options) => this.cloud.stream(key, spoken, options), local: false};
       } else if (this.helper?.speaks(voice.key)) {
         // V's own Pocket worker (the companions use OmniVoice, a cloud voice or the Convai voice). Still loading, or failed: V is skipped,
         // the reply never waits for it. Asking also starts a due load.

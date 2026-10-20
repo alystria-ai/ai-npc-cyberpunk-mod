@@ -1702,7 +1702,7 @@ test('select option width: every select of the settings page fits in English, th
   `);
 });
 
-test('the Mistral cloud voice speaks English only here: Multilingual conversations refuses it and moves a saved choice to the Convai cloud voice', () => {
+test('the Mistral cloud voice (Voxtral TTS 3) speaks the language of the text: Multilingual conversations keeps a saved choice and accepts choosing it, and still refuses Pocket', () => {
   run(`${nsuiFixture}
     local clock = 1000; os.clock = function() return clock end
     jsonFixtures['mistral-a'] = {provider = 'convai', effective = 'convai', saved = true}
@@ -1710,14 +1710,17 @@ test('the Mistral cloud voice speaks English only here: Multilingual conversatio
     clock = clock + 2
     assert(manager.applySettings(player, {voiceProvider = 'voxtral'}))
     assert(manager.snapshot(player).settings.voiceProvider == 'voxtral')
-    -- Turning Multilingual on beside the saved choice moves the voice (the OmniVoice pack is unknown here, so it counts as installed).
+    -- Turning Multilingual on beside the saved choice keeps it (the OmniVoice pack is unknown here, so it counts as installed).
     local ok, err = manager.applySettings(player, {multilingualConversations = true})
     assert(ok, err)
-    assert(manager.snapshot(player).settings.voiceProvider ~= 'voxtral')
-    -- With Multilingual on, choosing the Mistral cloud voice is refused with the reason.
-    local refused, message = manager.applySettings(player, {voiceProvider = 'voxtral'})
-    assert(refused == false and message == 'The Mistral cloud voice speaks only English here. Turn off Multilingual conversations to choose it.', message)
-    assert(manager.snapshot(player).settings.voiceProvider ~= 'voxtral')
+    assert(manager.snapshot(player).settings.voiceProvider == 'voxtral')
+    -- With Multilingual on, choosing the Mistral cloud voice again is accepted; Pocket is still refused.
+    local again, message = manager.applySettings(player, {voiceProvider = 'voxtral'})
+    assert(again, message)
+    assert(manager.snapshot(player).settings.voiceProvider == 'voxtral')
+    local refused, why = manager.applySettings(player, {voiceProvider = 'pocket'})
+    assert(refused == false and why == 'Pocket TTS speaks only English. Turn off Multilingual conversations to choose it.', tostring(why))
+    assert(manager.snapshot(player).settings.voiceProvider == 'voxtral')
   `);
 });
 
@@ -4381,7 +4384,7 @@ test('the reply notices for Mistral: three failures, two one-time notices, nothi
     assert(id == 'mistral-voice' and text:find('local voice', 1, true), text)
     -- A text provider answered in a language the English-only voice cannot speak: shown as text; OmniVoice is named.
     id, text = notice({keyNotice = 'voice-language', text = 'Salut'})
-    assert(id == 'voice-language' and text:find('English only', 1, true) and text:find('OmniVoice', 1, true) and not text:find('Recommended', 1, true), text)
+    assert(id == 'voice-language' and text:find('does not speak', 1, true) and text:find('Voxtral', 1, true) and text:find('OmniVoice', 1, true) and not text:find('Recommended', 1, true), text)
     sendProviderNotice({}, 'voice-language', 'v'); assert(sent[#sent] == 'voice-language=v', table.concat(sent, ';')); sent[#sent] = nil
     -- The one-time notices go through the gate under their own ids; anything else sends nothing.
     -- Local AI fell back to Convai: the same line on the first reply (keyNotice) and on a failed turn (errorCode).

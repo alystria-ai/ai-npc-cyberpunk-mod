@@ -74,10 +74,10 @@ Install states as inputs: the OmniVoice pack (unknown counts as installed; Omni 
 | 15 | Mature × Mistral key | key removed: Mature stays as it is (the voice rows are not touched any more); a Mature on from Convai picks Mistral only while a key is saved (D3). |
 | 16 | Mature × Omni pack | none any more (no voice record). |
 | 17 | Mature × Restore defaults | rows the batch sets are never put back. Was F5. |
-| 18 | Multilingual × companion voice | in use (Convai free tier): never Pocket/Voxtral; turning on moves to Omni Balanced or the Convai voice. On a text provider the setting stays out of it: the chosen voice is kept, OmniVoice speaks another language, Pocket and Voxtral show a non-English reply as text (one `voice-language` notice per session), and no other model is loaded. |
+| 18 | Multilingual × companion voice | in use (Convai free tier): never Pocket; a saved Voxtral is kept (it speaks the language of the text); turning on moves Pocket to Omni Balanced or the Convai voice. On a text provider the setting stays out of it: the chosen voice is kept, OmniVoice and Voxtral (for the languages its model lists) speak another language, Pocket and Voxtral (for an unlisted one) show a non-English reply as text (one `voice-language` notice per session), and no other model is loaded. |
 | 19 | Multilingual × Omni pack | in use without the pack: the Convai voice. |
 | 20 | Multilingual × Natural speech | in use without the pack: Natural speech off, turning it on refused. |
-| 21 | Multilingual × V voice | a V line in another language is skipped (`v-voice.mjs`); the V engine help says English only. |
+| 21 | Multilingual × V voice | a V line in another language is spoken on Voxtral when its model lists the language, and skipped otherwise and on Pocket (`v-voice.mjs`). |
 | 22 | companion voice × Natural speech | the Convai voice on a Convai provider turns it off (choosing the voice, or the provider, keeps that choice and turns Natural speech off with a notice); turning it on beside that pairing moves the voice to Pocket (Omni with Multilingual in use); beside Mistral, Local AI or Custom nothing happens (D8). Expressive emotions has no rule: it is always on and asked for only where a local voice speaks. |
 | 23 | companion voice × Omni pack | Omni refused without the pack; a saved Omni without it falls back to Pocket with a notice. |
 | 24 | companion voice × Mistral key | Voxtral refused without the key; key removed later: the Convai voice (or text) with a notice. |

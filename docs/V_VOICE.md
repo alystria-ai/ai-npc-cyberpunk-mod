@@ -133,7 +133,7 @@ the sections below that still describe "the voice you already chose" are history
 | **Voxtral** | One HTTPS request to the Mistral Voxtral voice with the player's Mistral key, cloned from V's reference | Nothing |
 
 Not offered: OmniVoice (its GPU worker cannot serve V in time and cannot cancel a started render), and the Convai voice (it cannot clone). The engine is independent of the companions' voice, so every mix works.
-Both engines are English only: a turn in another language gets no V line (subtitle still shows).
+Pocket is English only: a turn in another language gets no V line (subtitle still shows). Voxtral speaks the language of the line for the languages its model lists (Voxtral TTS 3, 22; `bridge/voxtral-languages.mjs`), so a V line in French or Japanese is spoken; a language it does not list gets no V line, as before (one log line).
 
 **What the choice does to the pipeline.**
 

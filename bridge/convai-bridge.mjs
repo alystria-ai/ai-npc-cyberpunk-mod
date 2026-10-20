@@ -491,7 +491,7 @@ let playerConnectionLimit = () => 1;
 const connectionLimit = () => mistral.active ? 1 : playerConnectionLimit();
 const spawnedConnections = () => spawnedWarmLimit({singleSession: keys.singleSession, connectionLimit: connectionLimit(), textProvider: mistral.active});
 const groupLookaheadAllowed = () => lookaheadAllowed({singleSession: keys.singleSession, connectionLimit: connectionLimit(), textProvider: mistral.active});
-// A text provider answered in a language the chosen voice cannot speak (Pocket and Voxtral speak English only): the reply is shown as text, and
+// A text provider answered in a language the chosen voice cannot speak (Pocket speaks English only, Voxtral the languages its model lists): the reply is shown as text, and
 // the player is told once per game session that OmniVoice has voices for other languages (the game's 'voice-language' notice).
 const voiceLanguageNotice = new VoiceLanguageNotice();
 const keyNotice = () => {
@@ -987,7 +987,9 @@ const intrinsicConversationContext = createIntrinsicConversationContext({baseCon
 const turnVoices = new Map();
 // A cloud voice with no key speaks nothing, so its turns go to the Convai cloud voice (a written reply under the Mistral provider,
 // which has no Convai audio); the cloud voices load no local model, so no local voice is ever the fallback.
-const localChoice = profile => ({uses: localVoice.usesProfile(profile) && !localVoice.cloudKeyless, provider: localVoice.provider});
+// `cloud` and `speaks`: the Voxtral voice (it runs on Pocket's route) and the languages the model in use speaks (bridge/multilingual.mjs cloudSpeaks).
+const localChoice = profile => ({uses: localVoice.usesProfile(profile) && !localVoice.cloudKeyless, provider: localVoice.provider,
+  cloud: localVoice.cloudActive ? localVoice.cloud : null, speaks: language => voxtralVoice.speaks(language)});
 function turnVoice(input) {
   const id = input?.requestId || input?.id, cacheKey = id ? JSON.stringify([id, input.profileKey]) : null;
   if (cacheKey && turnVoices.has(cacheKey)) return turnVoices.get(cacheKey);
@@ -1097,7 +1099,7 @@ function logFollowUp(input, result) {
 // V's voice for typed lines (bridge/v-voice.mjs, docs/V_VOICE.md): the player's typed line is also spoken in V's cloned voice, by the engine
 // the player chose for V (Settings > Voices > V's voice engine): Pocket on the CPU (the default) or the Mistral cloud voice (Voxtral), whatever
 // the companions use. Never OmniVoice, never the Convai cloud voice, never a local model beside a cloud voice that was chosen for it. It runs
-// beside the companion's reply and never delays it. English only (a turn in another language gets no V line).
+// beside the companion's reply and never delays it. English on Pocket; on Voxtral also the languages its model lists (a turn in another language gets no V line otherwise).
 // Which V is playing, kept between sessions (state folder): the first typed line of a session prepares the right voice before it is sent.
 const vGenderFile = resolve(stateDirectory, 'v-voice-gender.json');
 const vGenderMemory = {
@@ -1137,6 +1139,7 @@ const vVoice = new VVoice({voices: vVoiceReferences.voices, log: line => console
       return load.spacingMs > 0 || load.pausedForMs > 0 ? 'Mistral is pacing requests' : null;
     },
     stream: (key, text, options) => voxtralVoice.synthesizeStream(key, text, options),
+    speaks: language => voxtralVoice.speaks(language),
     warm: key => { void voxtralVoice.reference(key); }},
   // One log line and one record per V line: what happened and when (V's own stage clock), no dialogue.
   report: (input, summary) => {
@@ -1518,7 +1521,8 @@ async function synthesizeReplyBody(input, result, signal, current, profile, rece
     if (mistral.active && !multilingual.enabled && !input.reaction) voiceLanguageNotice.note();
     logVoiceRoute(input, profile, voice);
     return {...result, audio: undefined, faces: [], captions: [], timing: {...result.timing, voiceProvider: 'none'},
-      audioError: 'The selected voice speaks English only; showing the written reply.'};
+      audioError: voice.reason === 'voice-language-unsupported' ? 'The selected voice does not speak this language; showing the written reply.'
+        : 'The selected voice speaks English only; showing the written reply.'};
   }
   const omni = voice.engine === 'omni', language = voice.language && voice.language !== 'en' ? voice.language : undefined;
   const voiceKey = voiceKeyFor(input);

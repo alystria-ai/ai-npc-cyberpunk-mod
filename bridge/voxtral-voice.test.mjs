@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
 import {resolve} from 'node:path';
-import {VoxtralVoice, VoxtralError, VOXTRAL_LIMITS, capWav, isContentRefusal, joinWavs, mapStatus, redact, splitReply, sseEvents} from './voxtral-voice.mjs';
+import {VOXTRAL_TTS3_LANGUAGES, VOXTRAL_TTS1_LANGUAGES, voxtralSpeaks, modelRefused} from './voxtral-languages.mjs';
+import {VoxtralVoice, VoxtralError, VOXTRAL_LIMITS, VOXTRAL_MODEL, VOXTRAL_FALLBACK_MODEL, capWav, isContentRefusal, joinWavs, mapStatus, redact, splitReply, sseEvents} from './voxtral-voice.mjs';
 import {createVoiceProfileRegistry} from './voice-profile-registry.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {ownedLocalPcmPacket} from './local-pcm-host.mjs';
@@ -120,7 +121,9 @@ test('the request clones from the OmniVoice long reference, streams raw PCM and 
     await voice.synthesizeStream('judy-alvarez', 'Second.', collect());
     const [first, second] = server.requests;
     assert.equal(first.headers.authorization, `Bearer ${KEY}`);
-    assert.equal(first.body.model, 'voxtral-mini-tts-latest'); assert.equal(first.body.response_format, 'pcm');
+    assert.equal(first.body.model, 'voxtral-mini-tts-3-0', 'Voxtral TTS 3 is asked by name: the -latest alias still points to the March model');
+    assert.equal(VOXTRAL_MODEL, 'voxtral-mini-tts-3-0'); assert.equal(VOXTRAL_FALLBACK_MODEL, 'voxtral-mini-tts-latest');
+    assert.equal(first.body.response_format, 'pcm');
     assert.equal(first.body.stream, true); assert.equal(first.body.input, 'First.');
     assert.equal(first.body.ref_audio, REFERENCE.toString('base64'));
     assert.equal(second.body.ref_audio, first.body.ref_audio, 'the reference is sent with every call');
@@ -708,11 +711,14 @@ test('a consumer error or a cancelled reply is not a fallback to Pocket', async 
   } finally { await server.close(); }
 });
 
-test('multilingual conversations keep the cloud voice out: Pocket is skipped, so the route is the Convai voice', async () => {
+test('multilingual conversations keep the Voxtral voice (it speaks the language of the text) and still skip Pocket, so a Pocket choice routes to the Convai voice', async () => {
   const server = await serve((request, response) => { response.end(); });
   try {
     const h = selection(server);
     h.voice.update({voiceProvider: 'voxtral', multilingualConversations: true}, null, false);
+    assert.equal(h.voice.provider, 'pocket'); assert.equal(h.voice.cloudActive, true); assert.equal(h.voice.cloud, 'voxtral');
+    assert.equal(h.cloud.speaks('es'), true); assert.equal(h.cloud.speaks('cs'), false, 'Czech is not one of the languages Mistral names for Voxtral TTS 3');
+    h.voice.update({voiceProvider: 'pocket', multilingualConversations: true}, null, false);
     assert.equal(h.voice.provider, 'convai'); assert.equal(h.voice.cloudActive, false);
     await h.voice.close();
   } finally { await server.close(); }
@@ -1376,7 +1382,9 @@ test('a 403 that is still there on the quick second ask is reported as a refused
       assert.ok(error.message.includes('HTTP 403: 403 Forbidden by the gateway'), error.message);
       return true;
     });
-    assert.equal(server.requests.length, 2); assert.equal(voice.degraded.reason, 'key');
+    assert.equal(server.requests.length, 3, 'the v3 id twice (the quick second ask), then the older model once: a repeated 403 can be the plan refusing v3'); assert.equal(voice.degraded.reason, 'key');
+    assert.deepEqual(server.requests.map(request => request.body.model), [VOXTRAL_MODEL, VOXTRAL_MODEL, VOXTRAL_FALLBACK_MODEL]);
+    assert.equal(voice.model, VOXTRAL_MODEL, 'the older model did not answer either: nothing changed');
     time += VOXTRAL_LIMITS.forbiddenCooldownMs - 1; assert.equal(voice.ready, false);
     time += 2; assert.equal(voice.ready, true);
   } finally { await server.close(); }
@@ -1494,7 +1502,7 @@ test('a 403 with other wording is still a key problem (one quick second ask, the
       const logs = [];
       const {voice} = voiceFor(server, {...quick, clock: () => time, onLog: line => logs.push(line)});
       await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Hello V.', collect()), {kind: 'key', status: 403, retried: true});
-      assert.equal(server.requests.length, 2, `${body}: one quick second ask`);
+      assert.equal(server.requests.length, 3, `${body}: one quick second ask, then the older model once`);
       assert.equal(voice.degraded.reason, 'key'); assert.equal(voice.gate.cap, VOXTRAL_LIMITS.tightConcurrent, 'a 403 may be a burst limit');
       assert.equal(logs.filter(line => line.includes('asking again')).length, 1);
       assert.ok(logs.some(line => line.includes('did not accept the API key (HTTP 403')), logs.join('|'));
@@ -1658,4 +1666,94 @@ test('the held next speaker is marked ahead and never takes the slots the speake
     await Promise.all(pending);
     assert.deepEqual(order, ['speaker', 'ahead-1', 'ahead-2']);
   } finally { Object.values(latches).forEach(latch => latch.open()); await server.close(); }
+});
+
+
+// ---- Voxtral TTS 3: the v3 id, and the older alias when the account refuses it ------------------------------------------------------
+
+// A server that refuses one model id the way `refuse` says and speaks for any other.
+const refusing = (refuse, rejected = VOXTRAL_MODEL) => serve((request, response, record) => {
+  if (record.body?.model === rejected) { const [status, body] = refuse(); response.writeHead(status, {'content-type': 'application/json'}); response.end(body); return; }
+  sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done);
+});
+
+test('the account refuses the v3 id (404, 402, or an invalid model): the same line is asked of the older model at once, spoken, with one log line; the next replies go straight to it', async () => {
+  for (const refuse of [() => [404, '{"message":"Not found"}'], () => [402, '{"message":"Payment required"}'], () => [400, '{"message":"Invalid model: voxtral-mini-tts-3-0"}']]) {
+    const server = await refusing(refuse);
+    try {
+      const logs = [];
+      let time = 20_000_000;
+      const {voice} = voiceFor(server, {...quick, clock: () => time, onLog: line => logs.push(line)});
+      assert.equal(voice.model, VOXTRAL_MODEL); assert.equal(voice.speaks('pl'), true); assert.equal(voice.speaks('fr'), true);
+      const first = collect();
+      const result = await voice.synthesizeStream('judy-alvarez', 'Hello V.', first);
+      assert.equal(result.truncated, false); assert.ok(first.packets.length > 0, 'the line was spoken');
+      assert.deepEqual(server.requests.map(request => request.body.model), [VOXTRAL_MODEL, VOXTRAL_FALLBACK_MODEL]);
+      assert.equal(voice.model, VOXTRAL_FALLBACK_MODEL); assert.equal(voice.degraded, null, 'a refused model is not a refused key');
+      assert.equal(voice.speaks('fr'), true); assert.equal(voice.speaks('pl'), false, 'the older model speaks 9 languages: not Polish');
+      await voice.synthesizeStream('judy-alvarez', 'Again.', collect());
+      assert.deepEqual(server.requests.slice(2).map(request => request.body.model), [VOXTRAL_FALLBACK_MODEL]);
+      assert.equal(logs.filter(line => /was refused for this key/.test(line)).length, 1, logs.join('|'));
+      time += VOXTRAL_LIMITS.modelRetryMs + 1;
+      assert.equal(voice.model, VOXTRAL_MODEL, 'after the retry time v3 is asked again'); assert.equal(voice.speaks('pl'), true);
+      await voice.synthesizeStream('judy-alvarez', 'Third.', collect());
+      assert.deepEqual(server.requests.slice(3).map(request => request.body.model), [VOXTRAL_MODEL, VOXTRAL_FALLBACK_MODEL], 'refused again: the older model answers in the same ask');
+      assert.equal(logs.filter(line => /was refused for this key/.test(line)).length, 1, 'the line is not repeated');
+    } finally { await server.close(); }
+  }
+});
+
+test('a 403 that repeats on v3 while the older model answers is the plan refusing v3: the line is spoken; a single 403 hiccup stays on v3', async () => {
+  const server = await refusing(() => [403, '{"message":"Forbidden"}']);
+  try {
+    const {voice} = voiceFor(server, quick);
+    const sink = collect();
+    await voice.synthesizeStream('judy-alvarez', 'Hello V.', sink);
+    assert.ok(sink.packets.length > 0);
+    assert.deepEqual(server.requests.map(request => request.body.model), [VOXTRAL_MODEL, VOXTRAL_MODEL, VOXTRAL_FALLBACK_MODEL]);
+    assert.equal(voice.model, VOXTRAL_FALLBACK_MODEL);
+  } finally { await server.close(); }
+  const hiccup = await flaky(403, 1);
+  try {
+    const {voice} = voiceFor(hiccup, quick);
+    await voice.synthesizeStream('judy-alvarez', 'Hello V.', collect());
+    assert.deepEqual(hiccup.requests.map(request => request.body.model), [VOXTRAL_MODEL, VOXTRAL_MODEL]);
+    assert.equal(voice.model, VOXTRAL_MODEL, 'one 403 that goes away on the quick second ask is a hiccup, not a plan');
+  } finally { await hiccup.close(); }
+});
+
+test('both models refused (a missing plan or a bad key): the error is thrown as before and the voice does not change model; a limit, a server fault and a guardrail refusal never try the alias', async () => {
+  const both = await serve((request, response) => { response.writeHead(404, {'content-type': 'application/json'}); response.end('{"message":"Not found"}'); });
+  try {
+    const {voice} = voiceFor(both, quick);
+    await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Hello V.', collect()), {kind: 'request', status: 404});
+    assert.deepEqual(both.requests.map(request => request.body.model), [VOXTRAL_MODEL, VOXTRAL_FALLBACK_MODEL]);
+    assert.equal(voice.model, VOXTRAL_MODEL);
+  } finally { await both.close(); }
+  for (const [status, body, kind] of [[429, '{"message":"slow"}', 'limit'], [503, 'down', 'network'], [403, '{"message":"Request blocked by guardrail policy"}', 'content'], [401, '{"message":"bad key"}', 'key']]) {
+    const server = await serve((request, response) => { response.writeHead(status, {'content-type': 'application/json', 'retry-after': '30'}); response.end(body); });
+    try {
+      const {voice} = voiceFor(server, quick);
+      await assert.rejects(voice.synthesizeStream('judy-alvarez', 'Hello V.', collect()), {kind}, String(status));
+      assert.ok(server.requests.every(request => request.body.model === VOXTRAL_MODEL), `${status}: only the v3 id is ever sent`);
+      assert.equal(voice.model, VOXTRAL_MODEL);
+    } finally { await server.close(); }
+  }
+});
+
+test('Voxtral speaks the language of the text: the request carries no language field, and the language lists are Mistral\'s own (22 for v3, 9 for the older model)', async () => {
+  const server = await serve((request, response) => { sse(response); response.write(delta(bytesOf(samples(2400)))); response.end(done); });
+  try {
+    const {voice} = voiceFor(server);
+    await voice.synthesizeStream('judy-alvarez', 'Hola, como estas?', collect());
+    assert.equal(server.requests[0].body.input, 'Hola, como estas?');
+    assert.deepEqual(Object.keys(server.requests[0].body).sort(), ['input', 'model', 'ref_audio', 'response_format', 'stream']);
+  } finally { await server.close(); }
+  assert.equal(VOXTRAL_TTS3_LANGUAGES.length, 22); assert.equal(VOXTRAL_TTS1_LANGUAGES.length, 9);
+  for (const language of ['en', 'fr', 'es', 'de', 'it', 'pt', 'nl', 'pl', 'ru', 'uk', 'tr', 'hu', 'ar', 'hi', 'ja', 'ko', 'zh', 'el']) assert.equal(voxtralSpeaks(language), true, language);
+  for (const language of ['cs', 'sv', 'he', 'th']) assert.equal(voxtralSpeaks(language), false, language + ': not named by Mistral for TTS 3');
+  for (const language of ['pl', 'ru', 'uk', 'tr', 'ja', 'ko', 'zh']) assert.equal(voxtralSpeaks(language, VOXTRAL_FALLBACK_MODEL), false, language + ' on the older model');
+  assert.equal(voxtralSpeaks('en', VOXTRAL_FALLBACK_MODEL), true); assert.equal(voxtralSpeaks(null), true); assert.equal(voxtralSpeaks('fr', VOXTRAL_FALLBACK_MODEL), true);
+  assert.equal(modelRefused({status: 404, kind: 'request'}), true); assert.equal(modelRefused({status: 403, kind: 'key'}), false); assert.equal(modelRefused({status: 403, kind: 'key'}, 1), true);
+  assert.equal(modelRefused({status: 403, kind: 'content'}, 1), false); assert.equal(modelRefused({status: 429, kind: 'limit'}, 1), false);
 });

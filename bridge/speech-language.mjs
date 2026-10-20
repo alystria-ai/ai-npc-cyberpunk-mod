@@ -13,10 +13,11 @@
 //
 // Pure functions and one small state holder: no I/O except the optional file read the caller passes in.
 import {detectLanguage} from './reply-language.mjs';
+import {VOXTRAL_STT3_LANGUAGES} from './voxtral-languages.mjs';
 
-// The languages Mistral's transcription model (Voxtral Mini Transcribe 2) lists (docs.mistral.ai, 2026-10). Polish, Ukrainian, Czech,
-// Hungarian and Turkish are NOT listed: the model is still asked (it may understand them), without a language hint.
-export const VOXTRAL_LANGUAGES = Object.freeze(['en', 'zh', 'hi', 'es', 'ar', 'fr', 'pt', 'ru', 'de', 'ja', 'ko', 'it', 'nl']);
+// The languages Mistral's transcription model lists (Voxtral Mini Transcribe 3, docs.mistral.ai, 2026-10-21; bridge/voxtral-languages.mjs): 44 of the
+// 50 it supports are named. A language that is not named (Mistral prints no full list) is still asked, without a language hint, and may be understood.
+export const VOXTRAL_LANGUAGES = VOXTRAL_STT3_LANGUAGES;
 
 // The mod's interface languages (mod/locales) as the base language the recognisers use.
 export const MOD_LANGUAGES = Object.freeze(['en', 'de', 'fr', 'es', 'it', 'pt', 'pl', 'ru', 'uk', 'tr', 'cs', 'hu', 'ja', 'ko', 'zh']);

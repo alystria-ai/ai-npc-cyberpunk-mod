@@ -63,9 +63,12 @@ Now there is no setting and no twin: while a text provider answers (`mistral.act
   switches back, and "the language the player is using (so far X)" for a turn with no text of its own (a recording, a reaction) once the
   conversation is in another language. A recording with nothing said yet follows the language the microphone last heard or the one remembered
   from the last launch (`player-language.json`, docs/LOCAL_STT.md). Natural speech and V's line get the language too (CJK sounds, V skipped);
-- the voice follows the reply: OmniVoice speaks it with the reply's language (as in the Convai twins' path); Pocket and Voxtral, which speak
-  English only, keep the plan and `replyVoice` shows a non-English reply as text (`engine: 'none'`), with one `voice-language` notice per game
-  session ("Replies in other languages show as text: this voice speaks English only. OmniVoice speaks them."). No voice model is loaded for it.
+- the voice follows the reply: OmniVoice speaks it with the reply's language (as in the Convai twins' path); Voxtral (Mistral cloud, Voxtral TTS 3,
+  2026-10-21) speaks it for the languages its model lists (`local.cloud` and `local.speaks` in `planTurnVoice`/`replyVoice`, `bridge/voxtral-languages.mjs`:
+  the API has no language field, the model speaks the language of the text, so nothing is passed); Pocket, which speaks English only, and Voxtral for an
+  unlisted language keep the plan and `replyVoice` shows a non-English reply as text (`engine: 'none'`, reason `english-only-voice` or
+  `voice-language-unsupported`), with one `voice-language` notice per game session ("Replies in some languages show as text: this voice does not speak
+  them. OmniVoice speaks them all, and Voxtral most of them."). No voice model is loaded for it. An English conversation keeps the chosen voice untouched.
   A text provider has no Convai cloud voice to fall back on, so the plan never hands such a turn to `convai`.
 
 The Convai Multilingual setting is unchanged (twins, the Convai free tier only).
@@ -410,6 +413,7 @@ one-time notice:
 | Turned on together with Convai · Cloud voice chosen in the same Apply (no tag setting on) | kept |
 | Turned on, no Omni pack | Convai · Cloud voice; Natural speech turned off (Multilingual wins: the cloud voice would read its tags aloud; Expressive emotions has no setting since 2026-10-20 and is simply not asked for with that voice) |
 | On, Pocket chosen | refused: "Pocket TTS speaks only English. Turn off Multilingual conversations to choose it." |
+| On or turned on, Voxtral chosen (2026-10-21) | kept (no refusal, no move), pack or not, Natural speech included (only pauses, no tag is read aloud); a reply in a language Voxtral does not list goes to the Convai twin's voice (`voice-language-unsupported`) |
 | On, no pack, Natural speech turned on | refused, with the reason |
 | On, pack installed, Natural speech turned on beside the saved cloud voice | voice moves to OmniVoice · Balanced (never to Pocket) |
 | On, the cloud voice chosen (Natural speech on, or turned on in the same Apply) | the cloud voice is kept and Natural speech is turned off, with one notice ("The Convai cloud voice cannot use Natural speech, so it was turned off."; the rule holds with Convai as the provider, which is where Multilingual works, 2026-10-20) |

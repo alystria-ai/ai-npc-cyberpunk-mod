@@ -5,6 +5,7 @@ import {existsSync, readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {detectLanguage, isNonEnglish} from './reply-language.mjs';
+import {VOXTRAL_TTS_MODEL, VOXTRAL_TTS_FALLBACK_MODEL, voxtralSpeaks} from './voxtral-languages.mjs';
 import {MultilingualConversations, VoiceLanguageNotice, multilingualTwins, planTurnVoice, replyVoice, textProviderLanguageContext, twinMarkerKey} from './multilingual.mjs';
 import {CAST_EXPANSION_KEYS} from './cast-expansion-keys.mjs';
 import {RelationshipRouting, relationshipRegistry, selectRelationshipProfile, parseRelationshipState,
@@ -678,6 +679,71 @@ test('a text provider speaks another language with OmniVoice, and shows it as te
   assert.equal(planTurnVoice({enabled: false, textProvider: true, language: 'fr', local: {uses: false, provider: 'pocket'}}).engine, 'convai');
   // Off and not a text provider: exactly the voice used before.
   assert.equal(planTurnVoice({enabled: false, language: 'fr', local: pocketLocal}).reason, 'multilingual-off');
+});
+
+test('Voxtral 3 speaks other languages: a text provider reply in a listed language is spoken by it, in an unlisted one shown as text, and English keeps the chosen voice untouched', () => {
+  const french = "Salut, ça va? Je n'ai rien à te dire ce soir.";
+  const czech = 'Dobrý den, jak se máte? Dnes večer nemám co říct, kamaráde.';
+  // The bridge's shape: Voxtral runs on Pocket's route (provider 'pocket') and says so with cloud: 'voxtral'.
+  const voxtral = (model = VOXTRAL_TTS_MODEL) => ({uses: true, provider: 'pocket', cloud: 'voxtral', speaks: language => voxtralSpeaks(language, model)});
+  const local = voxtral();
+  const fr = planTurnVoice({enabled: false, textProvider: true, language: 'fr', local});
+  assert.deepEqual([fr.engine, fr.language, fr.reason], ['pocket', 'fr', 'voxtral']);
+  assert.deepEqual(replyVoice({plan: fr, text: french, local}), {engine: 'pocket', language: 'fr'}, 'spoken, not shown as text');
+  // The player wrote French and the reply came back in English: English keeps the voice.
+  assert.deepEqual(replyVoice({plan: fr, text: 'Nothing much, V. You?', local}), {engine: 'pocket', language: 'en'});
+  // The player wrote English: the chosen voice is untouched whatever the reply looks like (a Voxtral player is never moved).
+  const en = planTurnVoice({enabled: false, textProvider: true, language: 'en', local});
+  assert.deepEqual([en.engine, en.reason], ['pocket', 'english']);
+  assert.deepEqual(replyVoice({plan: en, text: french, local}), {engine: 'pocket', language: 'en'});
+  assert.deepEqual(replyVoice({plan: en, text: 'Nothing much, V. You?', local}), {engine: 'pocket', language: 'en'});
+  // Czech is not one of the languages Mistral names: the plan keeps the voice and the finished reply is shown as text, for its own reason.
+  const cs = planTurnVoice({enabled: false, textProvider: true, language: 'cs', local});
+  assert.deepEqual([cs.engine, cs.reason], ['pocket', 'voice-language-unsupported']);
+  assert.deepEqual(replyVoice({plan: cs, text: czech, local}), {engine: 'none', language: 'cs', reason: 'voice-language-unsupported'});
+  // A reply in a listed language that the older model does not speak (Polish) is shown as text once the alias is the model.
+  const polish = 'Cześć, jak się masz? Nie mam dziś wieczorem nic do powiedzenia, stary.';
+  const alias = voxtral(VOXTRAL_TTS_FALLBACK_MODEL);
+  assert.equal(planTurnVoice({enabled: false, textProvider: true, language: 'pl', local}).reason, 'voxtral');
+  assert.equal(planTurnVoice({enabled: false, textProvider: true, language: 'pl', local: alias}).reason, 'voice-language-unsupported');
+  assert.equal(replyVoice({plan: planTurnVoice({enabled: false, textProvider: true, language: 'pl', local}), text: polish, local: alias}).engine, 'none');
+  // Pocket is unchanged: English only, the reply in another language is text, for the old reason.
+  const pocket = {uses: true, provider: 'pocket', cloud: null, speaks: () => false};
+  const pk = planTurnVoice({enabled: false, textProvider: true, language: 'fr', local: pocket});
+  assert.deepEqual([pk.engine, pk.reason], ['pocket', 'english-only-voice']);
+  assert.deepEqual(replyVoice({plan: pk, text: french, local: pocket}), {engine: 'none', language: 'fr', reason: 'english-only-voice'});
+  // OmniVoice still wins where it is the voice; a key-less cloud voice (uses: false) is the Convai voice as before.
+  assert.equal(planTurnVoice({enabled: false, textProvider: true, language: 'fr', local: {uses: false, provider: 'pocket', cloud: 'voxtral', speaks: () => true}}).engine, 'convai');
+  // Off and not a text provider: exactly the voice used before.
+  assert.equal(planTurnVoice({enabled: false, language: 'fr', local}).reason, 'multilingual-off');
+});
+
+test('Multilingual conversations (the Convai twins) with the Voxtral voice: a listed language is spoken by it on Pocket\'s route, an unlisted one goes to the Convai voice, Pocket still never speaks another language', () => {
+  const french = "Salut, ça va? Je n'ai rien à te dire ce soir.";
+  const czech = 'Dobrý den, jak se máte? Dnes večer nemám co říct, kamaráde.';
+  const local = {uses: true, provider: 'pocket', cloud: 'voxtral', speaks: language => voxtralSpeaks(language)};
+  const fr = planTurnVoice({enabled: true, language: 'fr', local});
+  assert.deepEqual([fr.engine, fr.language, fr.reason], ['pocket', 'fr', 'voxtral']);
+  assert.deepEqual(replyVoice({plan: fr, text: french, local}), {engine: 'pocket', language: 'fr'});
+  assert.deepEqual(replyVoice({plan: fr, text: 'Nothing much, V. You?', local}), {engine: 'pocket', language: 'en'});
+  const cs = planTurnVoice({enabled: true, language: 'cs', local});
+  assert.deepEqual([cs.engine, cs.reason], ['convai', 'voice-language-unsupported'], 'the Convai twin\'s own voice speaks what Voxtral does not list');
+  // A reply in an unlisted language that the turn did not expect is shown as text, never read by a voice that would garble it.
+  assert.deepEqual(replyVoice({plan: fr, text: czech, local}), {engine: 'none', language: 'cs', reason: 'voice-language-unsupported'});
+  const pocket = {uses: true, provider: 'pocket', cloud: null, speaks: () => false};
+  assert.deepEqual(planTurnVoice({enabled: true, language: 'fr', local: pocket}), {engine: 'convai', language: 'fr', reason: 'english-only-voice'});
+  assert.deepEqual(planTurnVoice({enabled: true, language: 'es', local: {uses: false, provider: 'pocket', cloud: 'voxtral', speaks: () => true}}), {engine: 'convai', language: 'es', reason: 'cloud-voice'});
+  assert.deepEqual(planTurnVoice({enabled: true, language: 'en', local}), {engine: 'pocket', language: 'en', reason: 'english'});
+  // A cloud voice is told no language (the API has none): the plan only decides who speaks.
+  assert.equal(Object.hasOwn(fr, 'tag'), false);
+});
+
+test('the bridge tells the plan which cloud voice is chosen and which languages its model speaks, and V\'s voice asks the same', () => {
+  const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  assert.match(bridge, /cloud: localVoice\.cloudActive \? localVoice\.cloud : null, speaks: language => voxtralVoice\.speaks\(language\)/);
+  assert.match(bridge, /speaks: language => voxtralVoice\.speaks\(language\),/);
+  const selection = readFileSync(new URL('./voice-selection.mjs', import.meta.url), 'utf8');
+  assert.match(selection, /!\(this\.multilingual&&backend==='pocket'&&!this\.cloudWanted\)/);
 });
 
 test('one notice per game session says OmniVoice has voices in other languages', () => {

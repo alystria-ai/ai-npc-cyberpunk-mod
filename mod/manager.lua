@@ -54,8 +54,8 @@ local function cloudVoiceBlocksTags(settings)
     return settings.voiceProvider == 'convai' and settings.conversationProvider == 'convai'
 end
 -- Multilingual conversations is in use only on the Convai free tier: the bridge turns it off on a player's own Convai key (one session, no twins)
--- and while Mistral, Local AI or Custom answers (bridge/convai-bridge.mjs, the settings poll). Its voice rules (never Pocket or Voxtral, the tag
--- settings without the OmniVoice pack) hold only there; elsewhere the saved switch waits, and the rules apply when the player returns to the free tier.
+-- and while Mistral, Local AI or Custom answers (bridge/convai-bridge.mjs, the settings poll). Its voice rules (never Pocket; Voxtral is kept, it speaks
+-- the language of the text; the tag settings without the OmniVoice pack) hold only there; elsewhere the saved switch waits, and the rules apply when the player returns to the free tier.
 local function multilingualActive(settings)
     return settings.multilingualConversations == true and settings.conversationProvider == 'convai' and settings.useOwnConvaiKey ~= true
 end
@@ -786,9 +786,10 @@ local function loadSettings()
     -- Multilingual conversations (off by default): conversations go to each character's multilingual twin. Pocket TTS
     -- speaks only English, so a saved pairing with it cannot stand where Multilingual is in use (the Convai free tier, multilingualActive;
     -- Apply never makes one): the voice moves to the cloud voice, which every installation can run. With the cloud voice, Multilingual wins
-    -- over the two tag settings. Beside another provider the switch does nothing, so the voice is kept.
+    -- over the two tag settings. Voxtral (Mistral cloud, Voxtral TTS 3) speaks the language of the text, so a saved Voxtral stays (2026-10-21).
+    -- Beside another provider the switch does nothing, so the voice is kept.
     if type(settings.multilingualConversations) ~= 'boolean' then settings.multilingualConversations, settingsNeedSave = false, true end
-    if multilingualActive(settings) and (settings.voiceProvider == 'pocket' or settings.voiceProvider == 'voxtral') then
+    if multilingualActive(settings) and settings.voiceProvider == 'pocket' then
         settings.voiceProvider, settingsNeedSave = 'convai', true
     end
     -- A saved cloud voice with Natural speech on, on a Convai provider (an older save): the voice is kept and Natural speech is turned off,
@@ -1059,8 +1060,10 @@ function M.multilingualConversations()
     return settings.multilingualConversations == true
 end
 
--- Multilingual conversations needs a voice that speaks every language. Pocket TTS speaks only English; OmniVoice (the
--- optional pack) and the Convai cloud voice speak them all, but the cloud voice would read Natural speech's tags aloud.
+-- Multilingual conversations needs a voice that speaks other languages. Pocket TTS speaks only English; OmniVoice (the
+-- optional pack) and the Convai cloud voice speak them all, but the cloud voice would read Natural speech's tags aloud. Voxtral (Mistral cloud,
+-- with the player's own key) speaks the language of each reply (Voxtral TTS 3 lists 22 languages; a reply in another one goes to the Convai
+-- voice, bridge/multilingual.mjs) and adds only pauses to Natural speech, so it is kept like the cloud voice and needs nothing else.
 -- Judged on the settings as they will be after this Apply (`after` is changed in place):
 --   - turning it on moves the voice to OmniVoice · Balanced (16 steps, short reference: the lightest Omni) when the pack
 --     is installed, or to the cloud voice otherwise; an OmniVoice tier is kept, and so is a cloud voice chosen in the
@@ -1081,10 +1084,6 @@ local function resolveMultilingualVoice(before, after, values, packInstalled)
         result.error = ui.t('Pocket TTS speaks only English. Turn off Multilingual conversations to choose it.')
         return result
     end
-    if values.voiceProvider ~= nil and after.voiceProvider == 'voxtral' then
-        result.error = ui.t('The Mistral cloud voice speaks only English here. Turn off Multilingual conversations to choose it.')
-        return result
-    end
     local effects = after.naturalSpeech == true
     local function switched(voice)
         local named = {setting = ui.t('Companion voices'), voice = voice}
@@ -1093,6 +1092,8 @@ local function resolveMultilingualVoice(before, after, values, packInstalled)
         end
         return ui.t('Natural speech needs a local voice, so {setting} was switched to {voice}.', named)
     end
+    -- Voxtral stays whatever the pack: it needs no local model, and its Natural speech is only pauses (no tag is read aloud).
+    if after.voiceProvider == 'voxtral' then return result end
     if not packInstalled then
         local newlyOn = values.naturalSpeech == true and after.naturalSpeech == true and before.naturalSpeech ~= true
         if newlyOn and not turningOn then
