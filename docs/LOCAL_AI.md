@@ -747,6 +747,58 @@ Tests: `bridge/local-llm-server.test.mjs` (the stall count, standard to lite, th
 fit, a model the player added), `bridge/local-model-choice.test.mjs` (`stepDownTarget`, `stalled`, the small-card reserve), `bridge/mistral-key.test.mjs` (the notice),
 `bridge/local-turn-diagnostics.test.mjs` (two stalled turns through the host).
 
+### Free-memory fit and spill (2026-10-20: "0.8 to 5 tokens a second on an 8 to 12 GB NVIDIA card")
+
+Full write-up with the Ollama, LM Studio and KoboldCpp comparison and the measurements: `deliverables/local-speed-ollama-2026-10-20.md`.
+
+**What the slow players had.** Three different things, told apart by their log lines:
+- **The model went into shared memory after it was loaded** (a card with room at the load: 10,919, 10,185, 11,072, 5,152 MiB free, `context 16384`, no "part on the CPU", and
+  then 0.9 to 6.6 tokens a second for the whole session; an RTX 4090 included, which cannot be that slow on a card it owns). The game took the memory later, and Windows moves the
+  allocations of one of the processes into shared system memory (the one that was loaded earlier and is idle at that moment: ours). **Reproduced on the developer card** (RTX 4080 Laptop, llama.cpp b11560 Vulkan, Silent power
+  mode for this first experiment): four other model servers took the card until it was over-committed; the 3.2 GB Gemma 4 E4B server ended with 1,103 MiB of its memory in shared system memory
+  (the Windows counter "GPU Process Memory > Shared Usage"; a healthy server has 80 to 100 MiB) and fell from 83 to 3.9 generated tokens a second and from 3,400 to 680
+  prompt tokens a second. That is the 1 to 5 and 36 to 420 of the reports: a spill of a third of the model costs a factor of twenty, far more than the same share
+  placed on the CPU on purpose.
+- **Not enough free memory at the load** (231, 257, 276, 314 MiB; 2,388 and 3,208 MiB): the model was loaded "part on the CPU" by the fit pass, a model of 5 GB on an
+  8 GB card with the game running reads a prompt at 36 to 54 tokens a second. Part of these loads were not CPU-bound at all: see the next item.
+- **The file-size rule overstated the model.** `file + 1,200 MiB` (standard) is 6,600 MiB for the 5,400 MiB Mature good file, but a Gemma 4 E4B keeps its per-layer embedding
+  table (about 1.7 GB of the file) in system memory: it uses 3.3 GB at 16,384 context. A card with 4,789 MiB free (the 4070 SUPER of the 0.2.4 reports) was told "does not fit", the
+  model was loaded with `-fit on` in an 8,192 context, marked `offload`, and the prompt budget then assumed a machine reading 120 tokens a second and cut the prompts.
+
+**What Ollama does** (source read 2026-10-20: `llm/llama_server.go`, `server/sched.go`): its current engine is llama-server itself with `--fit` on and no `-ngl`; before a load it
+predicts the memory (file size plus KV), reads the card's free memory from the driver, takes the smaller of its own accounting and the driver's, and disables mmap with CUDA on
+Windows; with an automatic context (4k below 24 GiB of VRAM) a load that fails is retried with a smaller one. It has **no check for a spill after the load**. LM Studio estimates
+before a load (`lms load --estimate-only`) and has a CUDA-only "limit offload to dedicated memory" switch; KoboldCpp guesses layers from the file size. See the write-up.
+
+**What changed** (`bridge/local-vram-fit.mjs`, `bridge/gpu-memory.mjs`, `bridge/local-llm-server.mjs`):
+1. **The real fit, only where the file-size rule says no room.** `llama-fit-params` (shipped beside llama-server; 1.5 to 2 s, nothing allocated) projects the memory of a load for the
+   context ladder 16,384 / 8,192 / 8,192 with the `q8_0` cache (three runs at once, stopped at the first `projected to use N MiB ... vs. M MiB of free device memory` line). The
+   projection is about 340 MiB above what the load really uses (3,734 against 3,398 for Mature good; 3,562 against 3,226 for standard; 2,228 against 1,843 for lite). The first rung
+   whose projection plus 512 MiB fits the free memory is used: the whole model on the card (`-ngl 99`, fit pass off), in that context and cache type. Probed only: the model the player
+   chose, and with Mature content on the uncensored ones, and only when the file-size rule rejects them. **The default choice, a card with room and a model that fits by the old rule
+   take no probe and choose exactly as before** (the 8 GB room for the game is still judged by the file-size rule). A pinned model whose projection fits is kept instead of being replaced
+   by the default (`chooseLocalModel({realFit})`). No tool, no number, an error: the old rule alone.
+2. **Spill detection.** After a reply that was slow (under 12 tokens a second, 20 pieces or more) or a stall, at most once in three minutes, one `typeperf` read (0.4 s) of the server
+   process's Dedicated and Shared Usage. Shared usage beyond 128 MiB that is at least 300 MiB and 10% of what the process holds is a spill. Nothing per frame, per turn or while the
+   replies are fast; no counters (not Windows, a failed read) change nothing. The reading goes to the log and `diagnostics().engine.spill`.
+3. **Reaction to a spill.** The server is stopped (its memory goes back at once), the free memory is read, and the same model is loaded again fitted to it with a 1,024 MiB margin (once per
+   model per session); when no rung fits, or it spills again, it steps down as after two stalls (same family, then the cloud). Measured end to end with the real server (Balanced mode, the
+   card over-committed by four other servers): Gemma 4 E4B spilled at 6.2 tokens a second (1,073 prompt tokens a second), 6.5 s after the slow reply was reported the lite model was
+   loaded and read 3,658 prompt tokens and wrote 103 tokens a second (Silent mode: 6.2 and 109, 8.8 s). A partial placement does not look like a spill (76 MiB shared with 20 layers on the card). Before this change a reply that came, however slowly, was never counted as a stall.
+4. **A model on the CPU for the most part steps down at its first stall.** When the fit says under 35% of the layers can stay on the card (123 to 314 MiB free: the 8 GB RTX 4060 report,
+   60 s twice), the first stall steps down like on a small card, not the second.
+5. **A changed choice that ends on the same model does not reload it.** `reselect()` adds the card's memory that our own model holds (its dedicated usage) to the free memory and runs the
+   choice again; when it picks the loaded model with the same placement, nothing is reloaded and the chosen model's "does not fit" notice is still sent. Without the counters it reloads
+   as before.
+
+Not changed, and why: the default choice (a bigger model on an 8 GB card would take memory the game wants: FPS first), `-ub 512` (256 saves 80 MiB and reads prompts 14% slower; 128 is
+27% slower), the KV cache type on a card with room (`q8_0` saves 135 MiB at 16,384 and reads 7 to 10% slower), the 10-minute idle stop. NVIDIA's "CUDA - Sysmem Fallback Policy" is a
+driver setting for CUDA programs and is not touched (a system setting).
+
+Tests: `bridge/local-vram-fit.test.mjs` (the parse, the probe with a stand-in process, the ladder, `chooseLocalModel` with a fit), `bridge/gpu-memory.test.mjs` (the counter CSV, the verdict
+with the measured numbers), `bridge/local-llm-server.test.mjs` (whole-model loads at each rung, no probe where there was none, the hopeless first stall, refit once then step down, no
+counters, the reload that would end on the same model).
+
 ### The single slot (2026-10-20: "fine at first, then 1 to 2 minutes after typing, growing")
 
 `llama-server` runs with one slot (`-np 1`), so everything we ask of it is one queue, and its prompt cache holds one prompt. The report

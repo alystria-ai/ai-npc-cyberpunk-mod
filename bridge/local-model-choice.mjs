@@ -130,12 +130,13 @@ export function stepDownTarget({models = [], from, sizeOf = () => 0} = {}) {
 }
 
 /** Sizes, memory fit and the two ways of picking, shared by the choice and by the defaults the settings page shows. */
-function prepare({models, freeMiB, totalMiB, sizeOf}) {
+function prepare({models, freeMiB, totalMiB, sizeOf, realFit = {}}) {
   const sized = models.map(model => { const sizeMiB = model.external ? 0 : Number(sizeOf(model.file)) || 0; return {model, sizeMiB, profile: profileOf(model, sizeMiB)}; });
   // A server the player runs takes none of our graphics memory: it is never too large and always fits.
   const tooLarge = item => item.model.external !== true && item.model.custom === true
     && (item.model.tooLarge === true || (known(totalMiB) && totalMiB > 0 && modelNeedMiB(item.model, item.sizeMiB) > totalMiB));
-  const fits = item => item.model.external === true || (!tooLarge(item) && (!known(freeMiB) || freeMiB >= modelNeedMiB(item.model, item.sizeMiB)));
+  // `realFit[id].pick` (bridge/local-vram-fit.mjs) says the model goes whole onto the card in the free memory though the file-size rule says it does not: it fits.
+  const fits = item => item.model.external === true || (!tooLarge(item) && (!known(freeMiB) || freeMiB >= modelNeedMiB(item.model, item.sizeMiB) || Boolean(realFit[item.model.id]?.pick)));
   // The default rule on a small card keeps room for the game (SMALL_CARD_GAME_RESERVE_MIB); `reserved.applied` says that it changed the pick.
   const smallCard = known(totalMiB) && totalMiB > 0 && totalMiB <= SMALL_CARD_MAX_MIB;
   const roomForGame = item => item.model.external === true || !smallCard || modelNeedMiB(item.model, item.sizeMiB) <= totalMiB - SMALL_CARD_GAME_RESERVE_MIB;
@@ -168,6 +169,9 @@ function prepare({models, freeMiB, totalMiB, sizeOf}) {
  *   freeMiB    free graphics memory, or null/NaN when unknown (the smallest model of the candidates is taken then)
  *   sizeOf     file => size in MiB (0 when unknown)
  *   totalMiB   the graphics card's total memory when known: a custom model that needs more is never chosen (by the default or a pin)
+ *   realFit    {modelId: {pick}} from bridge/local-vram-fit.mjs for the models whose file-size need exceeds the free memory but whose projected memory (the real
+ *              figure: a Gemma 4 E4B keeps about 1.7 GB of its file in system memory) fits whole: such a model counts as fitting, so a chosen one is kept and
+ *              a Mature one is loaded whole instead of with layers on the CPU. The caller probes only the chosen model and the uncensored ones.
  * Returns {model, profile, sizeMiB, pinned, fellBack, offload}: `offload` is true when a Mature model is loaded though it does not fit the
  * free graphics memory (some of its layers then run on the CPU); `fellBack` is null, or 'missing' / 'low-memory' / 'start-failed' / 'too-slow' when the pin could
  * not be used and another model was chosen instead (`model.broken`, set by the server, marks a custom model that failed to start; `model.stalled` a model that
@@ -175,10 +179,10 @@ function prepare({models, freeMiB, totalMiB, sizeOf}) {
  * LocalAiUnavailable('not-installed') with no model, ('mature-off') when only Mature pack models are installed and Mature content is off,
  * ('low-memory') when nothing fits.
  */
-export function chooseLocalModel({models = [], pin = AUTO_MODEL, matureOn = false, freeMiB = null, totalMiB = null, sizeOf = () => 0} = {}) {
+export function chooseLocalModel({models = [], pin = AUTO_MODEL, matureOn = false, freeMiB = null, totalMiB = null, sizeOf = () => 0, realFit = {}} = {}) {
   if (!models.length) throw new LocalAiUnavailable('not-installed', 'no model');
   if (matureOffBlocks(models, matureOn)) throw new LocalAiUnavailable('mature-off', 'only Mature models are installed and Mature content is off');
-  const {sized, fits, pick, pickMature, externals, reserved, uncensored, ordinary} = prepare({models, freeMiB, totalMiB, sizeOf});
+  const {sized, fits, pick, pickMature, externals, reserved, uncensored, ordinary} = prepare({models, freeMiB, totalMiB, sizeOf, realFit});
   let fellBack = null, silent = false, want = pin;
   if (want !== AUTO_MODEL) {
     let item = sized.find(candidate => candidate.model.id === want);

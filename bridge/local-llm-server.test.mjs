@@ -924,3 +924,162 @@ test('on a small card a model that leaves the game under 3000 MiB steps down at 
   await sleep(150);
   assert.deepEqual([big.steps.length, big.calls.length], [0, 1]);
 });
+
+// ---- Free-memory fit (bridge/local-vram-fit.mjs) and spill (bridge/gpu-memory.mjs) ------------------------------------------------------------------------------
+// llama-fit-params' projections of a Gemma 4 E4B model by context (16,384 / 8,192 / 8,192 with the 8-bit cache), measured 2026-10-20: the file-size rule says 6,600 MiB for the 5,400 MiB file, the projection 3,734.
+const PROJECTED = {'big-u.gguf': {16384: 3734, 8192: 3598, q8: 3520}, 'q4.gguf': {16384: 3562, 8192: 3426, q8: 3348}, 'q2.gguf': {16384: 2228, 8192: 1964, q8: 1844}};
+function fitHarness(t, {free = {value: 24000}, spill = null, clock = {now: 1_000_000}, probes = [], table = PROJECTED, ...options} = {}) {
+  const fitProbe = async args => { probes.push(args); return table[String(args.model).split(/[\\/]/).pop()]?.[args.kvType ? 'q8' : args.contextSize] ?? null; };
+  const gpuMemory = spill ? async () => spill.value : null;
+  const h = stepHarness(t, {freeVramMiB: () => free.value, fitProbe, gpuMemory, now: () => clock.now, ...options});
+  return {...h, free, probes, clock, spill};
+}
+const argValue = (call, flag) => call.args[call.args.indexOf(flag) + 1];
+// A Mature pack with only its good model (the 2026-10-20 8 GB reports had no smaller model to fall back to): the pin that does not fit is loaded anyway.
+const onlyGood = h => { h.state.matureModels = h.state.matureModels.filter(model => model.tier === 'good'); return h; };
+
+test('a chosen Mature model that the file-size rule says does not fit, but whose projection does, is loaded whole on the card (no layers on the CPU), with the context and cache the free memory allows', async t => {
+  // The 2026-10-20 reports: a 4070 SUPER with 4,789 MiB free, a 4080 with 3,208, an 8 GB card: the 5 GB model was loaded "part on the CPU" in 8,192 context.
+  const roomy = fitHarness(t, {selected: {pin: 'mature:good', matureOn: true}, free: {value: 4789}});
+  await roomy.server.ensure();
+  assert.ok(roomy.calls[0].args.includes('-ngl') && argValue(roomy.calls[0], '-fit') === 'off', 'the whole model on the card: layers given, fit pass off');
+  assert.equal(argValue(roomy.calls[0], '-c'), '16384');
+  assert.ok(!roomy.calls[0].args.includes('-ctk'));
+  assert.deepEqual(roomy.fallbacks, []);
+  assert.ok(roomy.logs.some(line => /fit of Gemma-4-E4B-uncensored: projected 3734 MiB at 16384, 3598 MiB at 8192, 3520 MiB at 8192 q8_0 against 4789 MiB free/.test(line) && /the whole model fits: context 16384/.test(line)));
+  assert.equal(roomy.server.diagnostics().engine.fit.pick.contextSize, 16384);
+  // A little less room: the 8,192 context, then the 8-bit cache, then (nothing fits) the old way with layers on the CPU and the share the card can hold.
+  const ctx = fitHarness(t, {selected: {pin: 'mature:good', matureOn: true}, free: {value: 4200}});
+  await ctx.server.ensure();
+  assert.deepEqual([argValue(ctx.calls[0], '-c'), ctx.calls[0].args.includes('-ctk'), argValue(ctx.calls[0], '-fit')], ['8192', false, 'off']);
+  const q8 = fitHarness(t, {selected: {pin: 'mature:good', matureOn: true}, free: {value: 4100}});
+  await q8.server.ensure();
+  assert.deepEqual([argValue(q8.calls[0], '-c'), argValue(q8.calls[0], '-ctk'), argValue(q8.calls[0], '-ctv')], ['8192', 'q8_0', 'q8_0']);
+  const none = onlyGood(fitHarness(t, {selected: {pin: 'mature:good', matureOn: true}, free: {value: 3500}}));
+  await none.server.ensure();
+  assert.ok(!none.calls[0].args.includes('-ngl') && argValue(none.calls[0], '-fit') === 'on', 'no rung fits: layers on the CPU as before');
+  assert.ok(none.logs.some(line => /about 69% of the layers can stay on the card/.test(line)), none.logs.filter(line => /fit of/.test(line)).join('|'));
+  assert.ok(/about 69% of the layers on the card/.test(none.logs.find(line => /model ready/.test(line))));
+});
+
+test('a pinned ordinary model whose projection fits is kept instead of replaced by the lite model; the default choice and a card with room take no probe at all', async t => {
+  const pinned = fitHarness(t, {selected: {pin: 'standard'}, mature: false, free: {value: 4600}});
+  await pinned.server.ensure();
+  assert.deepEqual([pinned.loaded(), pinned.fallbacks], [['q4.gguf'], []], 'the player chose it and it fits whole: no "low-memory" fallback');
+  assert.equal(argValue(pinned.calls[0], '-c'), '16384');
+  // The default rule is unchanged: standard needs 6,480 by the file-size rule, so lite is taken, and nothing was probed.
+  const auto = fitHarness(t, {mature: false, free: {value: 4600}});
+  await auto.server.ensure();
+  assert.deepEqual([auto.loaded(), auto.probes.length], [['q2.gguf'], 0]);
+  // A card with room: the fit tool is never started.
+  const roomy = fitHarness(t, {selected: {pin: 'mature:good', matureOn: true}, free: {value: 24000}});
+  await roomy.server.ensure();
+  assert.deepEqual([roomy.loaded(), roomy.probes.length], [['big-u.gguf'], 0]);
+  // A missing fit tool or one that gives no number: the file-size rule alone, as before.
+  const blind = onlyGood(choiceHarness(t, {selected: {pin: 'mature:good', matureOn: true}, freeMiB: 4789, fitProbe: async () => null}));
+  await blind.server.ensure();
+  assert.ok(!blind.calls[0].args.includes('-ngl') && argValue(blind.calls[0], '-fit') === 'on');
+});
+
+test('buildServerArgs: the cache type is given only when the fit asked for it', () => {
+  const base = {model: 'm.gguf', port: 1, keyFile: 'k', device: 'Vulkan1'};
+  assert.ok(!buildServerArgs(base).includes('-ctk') && !buildServerArgs({...base, kvType: null}).includes('-ctv'));
+  const args = buildServerArgs({...base, kvType: 'q8_0'});
+  assert.deepEqual([args[args.indexOf('-ctk') + 1], args[args.indexOf('-ctv') + 1]], ['q8_0', 'q8_0']);
+});
+
+test('a model loaded with almost none of its layers on the card steps down at its first stall (the 5 GB model on an 8 GB card with 123 to 314 MiB free), one with most of them takes two', async t => {
+  const hopeless = onlyGood(fitHarness(t, {selected: {pin: 'mature:good', matureOn: true}, free: {value: 300}}));
+  assert.equal((await hopeless.server.ensure()).model, 'Gemma-4-E4B-uncensored');
+  assert.ok(!hopeless.calls[0].args.includes('-ngl'));
+  stall(hopeless.server, 'prefill-stalled');
+  assert.equal(await until(() => hopeless.steps.length > 0), true, 'one stall was enough');
+  assert.ok(hopeless.logs.some(line => /stalled \(1 of 1\)/.test(line)));
+  // 3,500 MiB free: about 69% of the layers stay on the card: two stalls.
+  const mostly = onlyGood(fitHarness(t, {selected: {pin: 'mature:good', matureOn: true}, free: {value: 3500}}));
+  await mostly.server.ensure();
+  stall(mostly.server, 'prefill-stalled');
+  await sleep(150);
+  assert.deepEqual([mostly.steps.length, mostly.calls.length], [0, 1]);
+});
+
+test('a model that spilled into shared memory is unloaded and loaded again fitted to the memory that is free now, once; a second spill steps down; healthy counters and a recent reading do nothing', async t => {
+  const spill = {value: {dedicatedMiB: 3200, sharedMiB: 95}};
+  const h = fitHarness(t, {selected: {pin: 'standard'}, mature: false, spill});
+  await h.server.ensure();
+  assert.equal(argValue(h.calls[0], '-c'), '16384');
+  const slow = {timings: {tokensPerSecond: 3.9, promptTokens: 2500}, pieces: 40};
+  // Healthy counters on a slow reply: looked at, nothing done (a CPU-bound model is slow without being spilled).
+  h.server.noteTurn({ok: true, trace: slow});
+  await sleep(100);
+  assert.deepEqual([h.calls.length, h.logs.filter(line => /graphics memory of the model server after a slow reply/.test(line)).length], [1, 1]);
+  assert.equal(h.server.diagnostics().engine.spill.spilled, false);
+  // Inside the rate limit nothing is read again.
+  spill.value = {dedicatedMiB: 2200, sharedMiB: 1100};
+  h.clock.now += 60_000;
+  h.server.noteTurn({ok: true, trace: slow});
+  await sleep(100);
+  assert.equal(h.calls.length, 1, 'one reading in three minutes');
+  // Spilled, the game left 4,500 MiB: the same model again, in the 8,192 context (3,426 and the 1,024 margin fit; 16,384 does not).
+  h.clock.now += 200_000; h.free.value = 4500;
+  h.server.noteTurn({ok: true, trace: slow});
+  assert.equal(await until(() => h.calls.length === 2 && h.server.status().state === 'ready'), true);
+  assert.deepEqual([h.loaded(), argValue(h.calls[1], '-c'), h.server.modelId], [['q4.gguf', 'q4.gguf'], '8192', 'standard']);
+  assert.equal(h.steps.length, 0, 'no step-down, no notice: the same model');
+  assert.ok(h.logs.some(line => /972 MiB in shared system memory \(the game took the graphics memory\): unloading it/.test(line)));
+  assert.equal(await until(() => h.calls[0].child.exitCode !== null || h.calls[0].child.signalCode !== null), true, 'the spilled server was stopped');
+  // The second spill of the same model steps down to lite.
+  h.clock.now += 200_000;
+  h.server.noteTurn({ok: true, trace: slow});
+  assert.equal(await until(() => h.steps.length > 0), true);
+  assert.equal((await h.server.ensure()).model, 'Qwen3.5-2B');
+  assert.deepEqual(h.server.diagnostics().steppedDown, ['standard']);
+});
+
+test('a spill with no room for the model whole (the game holds the card) steps down at once, and a spill needs the counters: without them nothing changes', async t => {
+  const spill = {value: {dedicatedMiB: 2200, sharedMiB: 1100}};
+  const h = fitHarness(t, {selected: {pin: 'standard'}, mature: false, spill});
+  await h.server.ensure();
+  h.free.value = 3000;   // 3,426 + 1,024 does not fit, nor does any other rung
+  h.server.noteTurn({ok: true, trace: {timings: {tokensPerSecond: 2.5}, pieces: 30}});
+  assert.equal(await until(() => h.steps.length > 0), true);
+  assert.equal((await h.server.ensure()).model, 'Qwen3.5-2B');
+  // Not slow enough, or too short to tell: no reading.
+  const quiet = fitHarness(t, {selected: {pin: 'standard'}, mature: false, spill});
+  await quiet.server.ensure();
+  quiet.server.noteTurn({ok: true, trace: {timings: {tokensPerSecond: 40}, pieces: 60}});
+  quiet.server.noteTurn({ok: true, trace: {timings: {tokensPerSecond: 2}, pieces: 3}});
+  await sleep(100);
+  assert.ok(!quiet.logs.some(line => /graphics memory of the model server/.test(line)));
+  // No counters (not Windows, or a failed read): a slow reply is only slow.
+  const blind = fitHarness(t, {selected: {pin: 'standard'}, mature: false});
+  await blind.server.ensure();
+  blind.server.noteTurn({ok: true, trace: {timings: {tokensPerSecond: 2}, pieces: 40}});
+  await sleep(100);
+  assert.deepEqual([blind.calls.length, blind.steps.length], [1, 0]);
+});
+
+test('a changed choice that would end on the model already loaded does not reload it, and still says the chosen model does not fit', async t => {
+  // Mature good is loaded (24 GB free then). The player pins the standard model; 3,000 MiB are free now and our model holds 3,300, so the card has 6,300 without it: the standard model
+  // does not fit by the file-size rule, and the Mature default is the loaded model, which fits whole by its projection.
+  const spill = {value: {dedicatedMiB: 3300, sharedMiB: 90}};
+  const {'q4.gguf': _standard, ...withoutStandard} = PROJECTED;   // no projection for the standard model: it does not fit by either rule
+  const h = fitHarness(t, {selected: {matureOn: true}, spill, table: withoutStandard});
+  await h.server.ensure();
+  assert.equal(h.server.modelId, 'mature:good');
+  h.free.value = 3000; h.state.pin = 'standard';
+  assert.equal(await h.server.reselect(), false);
+  assert.equal(h.calls.length, 1, 'no reload of the same 5 GB model');
+  assert.deepEqual(h.fallbacks, [{pin: 'standard', reason: 'low-memory', model: 'Gemma-4-E4B-uncensored'}]);
+  assert.ok(h.logs.some(line => /it stays loaded/.test(line)));
+  // With room for the pinned model the reload happens.
+  h.free.value = 24000;
+  assert.equal(await h.server.reselect(), true);
+  assert.equal(await until(() => h.calls.length === 2 && h.server.status().state === 'ready'), true);
+  assert.equal(h.server.modelId, 'standard');
+  // Without the counters the answer is unknown: it reloads as it always did.
+  const blind = fitHarness(t, {selected: {matureOn: true}});
+  await blind.server.ensure();
+  blind.free.value = 3000; blind.state.pin = 'standard';
+  assert.equal(await blind.server.reselect(), true);
+});
