@@ -233,6 +233,36 @@ test('identity and policy: the game\'s own Judy and Jackie talk with the setting
   assert(P.story(broken) == false)
 `));
 
+test('a pedestrian the game binds to a quest (crowd body, quest flag or q-record) has no profile, and the log line says why', () => run(`
+  ${world}
+  ${identitySource}
+  local function key(n) return (profileIdentity(n)) end
+  -- Scene extras of a quest ("Customer" at a bar a quest owns) look like crowd people; the quest flag keeps them out of the residents
+  -- (live 2026-10-20: three such "Customer"s beside V, unprofiled in every session, the same log line at every try).
+  local minor = npc('21', 'Character.customer_a', 'Customer', {crowd = true, quest = 'MinorQuest', recordName = 'Character.customer_a', human = true})
+  local record = npc('22', 'Character.q003_customer', 'Customer', {crowd = true, quest = 'NotQuest', recordName = 'Character.q003_customer', human = true})
+  local plain = npc('23', 'Character.customer_b', 'Customer', {crowd = true, quest = 'NotQuest', recordName = 'Character.customer_b', human = true})
+  assert(key(minor) == nil and key(record) == nil, 'story-bound: never a resident, story setting on or not')
+  assert(key(plain) == 'resident-female', 'the same person without the quest binding talks')
+  local why = convaiUnprofiledWhy(minor)
+  assert(why:find('classify=story-bound', 1, true) and why:find('protected=quest', 1, true) and why:find('crowd=true', 1, true)
+    and why:find('quest=MinorQuest', 1, true) and why:find('record=Character.customer_a', 1, true), why)
+  why = convaiUnprofiledWhy(record)
+  assert(why:find('classify=story-bound', 1, true) and why:find('protected=story-record', 1, true), why)
+  -- A person who is no crowd member at all is named as such, and an unreadable one gives an empty tail instead of an error.
+  local seated = npc('24', 'Character.seated', 'Customer', {quest = 'NotQuest', recordName = 'Character.seated', human = true})
+  assert(convaiUnprofiledWhy(seated):find('classify=unclassified protected=nil crowd=nil', 1, true), convaiUnprofiledWhy(seated))
+  assert(convaiUnprofiledWhy({GetEntityID = function() error('gone') end}) == '')
+  assert(convaiUnprofiledWhy(nil) == '')
+`));
+{
+  const code = init.replace(/--.*$/gm, '');
+  test('the talk key writes the reason with the unavailable line, from a global function (no new upvalue for the selector)', () => {
+    assert.match(code, /log\('Conversation unavailable: profile=' \.\. tostring\(key\) \.\. \(key == nil and convaiUnprofiledWhy and convaiUnprofiledWhy\(npc\) or ''\)\)/);
+    assert.match(code, /\nfunction convaiUnprofiledWhy\(npc\)/);
+  });
+}
+
 test('beginFocus: a story character gets no look-at, no hold and no bark muting, even in a conversation V started', () => run(`
   ${world}
   ${identitySource}

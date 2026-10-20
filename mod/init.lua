@@ -758,6 +758,24 @@ local function profileIdentity(npc, forceFacts)
     return key, canonical, body, archetype
 end
 
+-- Why a talk target ended with no profile, as the tail of the one probe-log line the talk key writes (a key press only, never per frame).
+-- The catalogue gives a game-placed person no profile when the game owns them: a quest flag or a q/sq/mq record ("story-bound", the scene
+-- extras of a quest) and a named roster character are never turned into a resident (docs/WORLD_CHARACTERS.md). Without this line "profile=nil"
+-- cannot tell that from a classification gap. A global, so no function here gains an upvalue; every read is guarded.
+function convaiUnprofiledWhy(npc)
+    local ok, text = pcall(function()
+        local idOk, entity = pcall(function() return tostring(npc:GetEntityID().hash) end)
+        local facts = archetypeFacts(npc, idOk and entity or nil, tostring(npc:GetBodyType() or ''))
+        local _, reason = characterCatalog.classify(archetypes, facts)
+        local protected = characterCatalog.protectedReason(catalog, {record = facts.recordId or '',
+            name = tostring(npc:GetTweakDBFullDisplayName(true) or ''), facts = facts})
+        local record = tostring(facts.recordName or facts.recordId or '?'):sub(1, 80)
+        return ' (classify=' .. tostring(reason) .. ' protected=' .. tostring(protected) .. ' crowd=' .. tostring(facts.crowd)
+            .. ' quest=' .. tostring(facts.quest) .. ' record=' .. record .. ')'
+    end)
+    return ok and text or ''
+end
+
 -- Characters another mod or a spawner created (docs/SPAWNED_CHARACTERS.md): recognised from the shared dynamic entity
 -- system, never from another mod's names. A global, so no function here gains an upvalue; optional like the modules below.
 do
@@ -2377,7 +2395,7 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
     end
     if not key or not supportedProfiles[key] then
         convaiNotices.send(player, 'talk-no-profile', ui.t('{name} does not have a conversation profile configured yet.',{name=name}))
-        log('Conversation unavailable: profile=' .. tostring(key))
+        log('Conversation unavailable: profile=' .. tostring(key) .. (key == nil and convaiUnprofiledWhy and convaiUnprofiledWhy(npc) or ''))
         return nil
     end
     if not profileEnabled(player, key) then log('Companion disabled in manager: ' .. name); return nil end

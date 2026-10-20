@@ -1364,3 +1364,38 @@ test('React to battles and to collected loot are off by default, and Restore def
   assert(mcm.row('Johnny in your head').value == 1 and mcm.row('V’s voice for typed lines').value == 2)
   assert(mcm.row('React to battles').value == false and mcm.row('React to collected loot').value == false)
 `));
+
+// A setting's label is drawn by MCM in a box that ends in "..." when the text does not fit (MCMPanelWidgetFactory.McmUiApplyTextBounds, textOverflowPolicy
+// DotsEnd; the box is the width MCMPanelContent.ApplyLabelWidth gives it). Live 2026-10-21 every setting label of the Settings page was drawn as
+// an ellipsis while the buttons were not. The box is canvas units of MCMLayout.reds: content 980 wide, label x 28, controls from 480, labelIndent 20:
+// 444 units wide, and at row size 22 an average letter is about 11 of them (optionUnits() counts in letters), so a label of 40 or more letters
+// of width is cut. The fake does not draw text, so this asserts what the host sends: every label of a setting is one non-empty line that fits
+// the box in every language, and the page schema carries the same labels on every build of the page (it is rebuilt on each change).
+const LABEL_BOX_UNITS = 40;
+for (const locale of ['en', 'cs', 'de', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'pl', 'pt-br', 'ru', 'tr', 'uk', 'zh-cn', 'zh-tw']) {
+  test(`every setting label MCM is given is one line that fits its box (${locale})`, () => run(`${harness({locale: locale === 'en' ? null : locale, mcm: {version: '0.10.6'}})}
+    mcm.openScreen()
+    frames(3)
+    ${locale === 'en' ? '' : `convaiUiLocale.configure('${locale}'); convaiUiLocale.update(0); frames(12)`}
+    local checked, longest = 0, {units = 0}
+    local function check(page)
+      for _, row in ipairs(mcm.layout().rows) do
+        if row.kind == 'setting' then
+          local label = row.label
+          assert(type(label) == 'string' and label ~= '', page .. ': a setting with no label: ' .. tostring(row.id))
+          assert(not label:find('%c'), page .. ': a label with a line break or tab: ' .. row.id)
+          assert(not label:find('...', 1, true) and not label:find('…', 1, true), page .. ': a label that is already cut: ' .. label)
+          local units = managerUi._test.core.optionUnits(label)
+          if units > longest.units then longest = {units = units, label = label} end
+          assert(units <= ${LABEL_BOX_UNITS}, page .. ': ' .. label .. ' is ' .. units .. ' wide, the box holds ${LABEL_BOX_UNITS}')
+          checked = checked + 1
+        end
+      end
+    end
+    press('tab:settings')
+    check('Settings')
+    press('relationships'); check('Relationships'); press('relationships:back')
+    press('custom-endpoint'); check('Custom endpoint')
+    assert(checked > 25, 'the pages have settings: ' .. checked)
+  `));
+}
