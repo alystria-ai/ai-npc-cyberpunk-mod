@@ -20,7 +20,7 @@
 // never per frame; the bridge looks again at most every few seconds and publishes the answer with the provider status.
 import {readFileSync, statSync} from 'node:fs';
 import {isAbsolute, resolve} from 'node:path';
-import {LOCAL_AI_ENV} from './local-ai-pack.mjs';
+import {LOCAL_AI_ENV, realPathFor} from './local-ai-pack.mjs';
 
 /** The marker of each Mature pack, by the model it carries. */
 export const MATURE_MARKERS = Object.freeze({lite: 'manifest.mature-lite.json', good: 'manifest.mature-standard.json'});
@@ -47,8 +47,9 @@ const parse = text => {
   } catch { return null; }
 };
 
-/** {installed, root, models: [{tier: 'lite'|'good', name, family, file, present}]} (two at most, lite first); `installed` is false when no marker is present, readable and ours. */
-export function detectMaturePack({project, environment = process.env, exists = fileExists, readText = readUtf8} = {}) {
+/** {installed, root, models: [{tier: 'lite'|'good', name, family, file, present}]} (two at most, lite first); `installed` is false when no marker is present, readable and ours.
+ *  Markers are read from `root` (under Mod Organizer 2 the merged folder of all the packs); `file` is where the model really is (`realPath`, usvfs only). */
+export function detectMaturePack({project, environment = process.env, exists = fileExists, readText = readUtf8, realPath = realPathFor(environment)} = {}) {
   // The real pack's folder; in a development checkout without it, the developer Local AI folder (CYBERPUNK_CONVAI_LOCAL_AI_DEV) may hold the markers.
   const primary = environment[LOCAL_AI_ENV.root] ? resolve(environment[LOCAL_AI_ENV.root]) : resolve(project ?? '.', 'local-ai');
   const dev = !environment[LOCAL_AI_ENV.root] && environment[LOCAL_AI_ENV.dev] ? resolve(environment[LOCAL_AI_ENV.dev]) : null;
@@ -68,7 +69,8 @@ export function detectMaturePack({project, environment = process.env, exists = f
   // wins; anything else in a marker is ignored.
   const models = MATURE_TIERS.flatMap(tier => {
     for (const marker of markers) {
-      const entry = marker[tier], file = inside(root, entry?.file);
+      // Under Mod Organizer 2 the folder is the merged virtual one and each model file is looked at where it really is (the identity otherwise).
+      const entry = marker[tier], virtual = inside(root, entry?.file), file = virtual && realPath(virtual);
       if (file) {
         return [{tier, name: typeof entry.name === 'string' ? entry.name.slice(0, 80) : '', family: typeof entry.family === 'string' ? entry.family.slice(0, 40) : '',
           file, present: exists(file)}];

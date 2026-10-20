@@ -48,7 +48,7 @@
 // start is replaced by the default model with one notice (bridge/local-llm-server.mjs).
 import {closeSync, openSync, readFileSync, readSync, statSync} from 'node:fs';
 import {basename, isAbsolute, resolve} from 'node:path';
-import {LOCAL_AI_ENV} from './local-ai-pack.mjs';
+import {LOCAL_AI_ENV, realPathFor} from './local-ai-pack.mjs';
 import {CUSTOM_MARKER, OUTSIDE_FOLDER, customManifestFolders, describeCustomFolders, outsideLocalAiRoot, parseManifestText, qualified} from './custom-manifest-folders.mjs';
 import {modelNeedMiB, safeModelId} from './local-model-choice.mjs';
 
@@ -347,8 +347,9 @@ function shardPaths(file) {
 export class CustomModelScanner {
   #cache = new Map(); #logged = new Set();
 
-  constructor({project, environment = process.env, outside, exists = fileExists, readText = readUtf8, stat = statFile, head = readHead, log = () => {}} = {}) {
-    Object.assign(this, {project, environment, exists, readText, stat, head, log});
+  constructor({project, environment = process.env, outside, exists = fileExists, readText = readUtf8, stat = statFile, head = readHead, log = () => {},
+    realPath = realPathFor(environment)} = {}) {
+    Object.assign(this, {project, environment, exists, readText, stat, head, log, realPath});
     this.outside = outside === undefined ? outsideLocalAiRoot(environment) : outside ? resolve(outside) : null;
   }
 
@@ -410,6 +411,8 @@ export class CustomModelScanner {
       const checked = validateEntry(source.root, raw, {allowAbsolute: source.allowAbsolute});
       if (checked.error) { this.#say(tag + 'skipped ' + label(raw, index) + ': ' + checked.error); return; }
       const entry = checked.entry;
+      // Under Mod Organizer 2 the mod's Local AI folder is the merged virtual one: a model file there is used from where it really is (the identity otherwise).
+      if (!entry.external && source.where === 'mod') entry.file = this.realPath(entry.file);
       if (entry.external) {
         // A server the player runs: nothing to read from disk, and no network here (it is looked at when the model is chosen).
         const serverKey = (entry.endpoint + '|' + (entry.model ?? '')).toLowerCase();

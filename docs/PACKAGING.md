@@ -494,16 +494,34 @@ USVFS. What the start does about that (`packaging/virtual-runtime.test.mjs`, `br
   JavaScript `realpath` fall back to an opened handle and `fstat`, `access`, and the path itself, when the plain call says ENOENT (a
   really missing file still says ENOENT). The game side (the CET mod's `runtime/`) stays at its virtual place, where the game, the
   Scripts mod, the Runtime mod and Overwrite meet; the Runtime's own files run from their real place, so Python, llama-server and the
-  bridge get real paths. The optional packs are looked up at their virtual place (`app/local-ai`, `app/omni`) and used from their
-  real one, so a pack installed as its own MO2 mod is found. The bridge and every Node process it starts get the same fallbacks through
+  bridge get real paths. The optional packs are looked up at their virtual place (`app/local-ai`, `app/omni`), so a pack installed
+  as its own MO2 mod is found; how each is then used is under "Packs and MO2" below. The bridge and every Node process it starts get the same fallbacks through
   `NODE_OPTIONS=--import=<file URL of usvfs-compat.mjs>`: the supervisor drops any inherited `NODE_OPTIONS` and puts back only that one
   module, named in `CYBERPUNK_CONVAI_USVFS_IMPORT` (`usvfsCompatImport`). The bundled Pythons' `python3XX._pth` lines become absolute
   real paths (`pinPythonPaths`; the package text is kept beside it as `python3XX._pth.package`, so a moved MO2 instance is pinned
   again and an update's file is taken as the new package text). The `View:` line says `(stat fallbacks on)` and
   `the Runtime is in an MO2 mod folder (<real app>, started as <virtual app>)`.
-- **Packs and MO2.** The Local AI and OmniVoice packs work as their own MO2 mods (their roots are resolved separately); the OmniVoice
+- **Packs and MO2.** The Local AI, Mature and OmniVoice packs work as their own MO2 mods (their roots are resolved separately); the OmniVoice
   pack's voice clips under `voices/` are found only when that pack is merged into the Runtime's MO2 mod (or installed in the game folder),
   because `voices/` is read from the Runtime's real folder.
+  - **Local AI and Mature packs are resolved file by file (2026-10-20, `packaging/mo2-split-packs.test.mjs`).** Every pack unpacks into the same
+    `app/local-ai` (`manifest.standard.json`, `manifest.mature-standard.json`, `models/`, `llama/`), so under MO2 the packs are usually separate
+    mods that USVFS merges into one virtual folder. Mapping that folder with `locate()` / `realpathSync.native` gives ONE mod's real folder (the
+    mod that wins for the folder), and the service read the pack from there: the other mod's marker and model were invisible (with Mature on
+    one model in the row, with Mature off "Only Mature models found"). Now `start-service.mjs` hands the bridge the VIRTUAL `app/local-ai` in
+    `CYBERPUNK_CONVAI_LOCAL_AI` (the stat fallbacks list and read it merged, so every marker is found whichever mod holds it) and the pack
+    modules (`bridge/local-ai-pack.mjs`, `bridge/mature-pack.mjs`, the mod folder of `bridge/custom-models.mjs`) map each file a manifest names to
+    its own real place with `realPathFor` (the file's `realpathSync.native`, only when `CYBERPUNK_CONVAI_USVFS=1`; the identity otherwise, so a
+    physical install is unchanged). The engine processes get real absolute file paths. `llama-server.exe` and its DLLs must be neighbours in one
+    real folder (Windows looks beside the real exe): if both packs ship `llama/` and MO2 would give the exe from one mod and a DLL from the
+    other, the server is taken from the folder with the most of the DLLs the merged `llama/` lists (the winning exe's folder, else the folder
+    of any marker that names a server; ties go to the winner). OmniVoice is one pack in one mod, so its real root is kept. Not covered:
+    the microphone packs (`app/models/stt/<id>`) are read from the Runtime's own real app folder (`bridge/local-stt.mjs`), so a mic pack
+    installed as its own MO2 mod is not found (open item in TODO.md).
+  - **Where the files were found** is in the service log (`Mod Organizer 2: Local AI pack files, where each really is (...)`: one line per marker,
+    model, the server with whether its DLLs are beside it, the embedding model) and in the support report's `localAi.packFiles` (`foundIn`: the MO2
+    mod folder's name, never a path; `engine`: the server's and the embedding model's mod and whether the DLLs sit beside the server). A physical
+    install has none of these fields.
 
 - **No path comparison on the start path.** `installLayout` (`prepare-state.mjs`) takes the game's folders from `--game-root` and the
   Runtime's from the script's own place; nothing resolves a link or compares a resolved path with the game root.
