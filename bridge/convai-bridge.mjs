@@ -75,6 +75,7 @@ import {ErrorEvents, eventFromError, installCrashCapture} from './error-events.m
 import {endIfIncomplete, installFileErrorGuard, readRequiredJson} from './runtime-files.mjs';
 import {SetupCheckControl, cachedBrowserName, cachedGraphicsCards, cachedModManagers, collectSetupCheck, findNestedPacks, readPackPlacement} from './setup-check.mjs';
 import {CharacterOverrides} from './character-overrides.mjs';
+import {WorldRules, convaiWorldRulesBlocks} from './world-rules.mjs';
 import {CustomCharacters, isCustomKey, rosterIndex, releaseVoiceFiles} from './custom-characters.mjs';
 import {PlayerVoices, PLAYER_PREPARED_FOLDER, releasePreparedSlots} from './player-voices.mjs';
 import {LiveVoices, shippedVoicesReader, voicesOf} from './live-voices.mjs';
@@ -835,7 +836,10 @@ const profileOfCharacter = config => {
 };
 // The player's own edits of a character (docs/CHARACTER_EDITOR.md): read from disk once here, then a plain lookup on every turn.
 const characterOverrides = await CharacterOverrides.open({dir: resolve(stateDirectory, 'character-overrides'), log: message => console.error('[Editor] ' + message)});
-const personaBook = new PersonaBook(roster, {overrides: characterOverrides, custom: customCharacters});
+// The player's rules for the whole world (docs/CHARACTER_EDITOR.md, "World rules"): <state>/world-rules.json, read once here; the prompt builder reads the text
+// with a plain property read per turn. The text providers carry it in every persona; Convai gets it in the context it is sent every turn.
+const worldRules = await WorldRules.open({dir: stateDirectory, log: message => console.error('[Editor] ' + message)});
+const personaBook = new PersonaBook(roster, {overrides: characterOverrides, custom: customCharacters, worldRules});
 // "Mature content": read from the settings file when it changes (never per turn); only the local AI route ever uses it. The optional Mature
 // pack (uncensored models) does not gate it: its marker is looked for at most every 5 s, on the settings poll, only so the setting's help text
 // can say whether the uncensored models are installed (never per turn or per frame).
@@ -1145,6 +1149,12 @@ const conversationBlocks = input => {
       {group: prepared.input.group, audience: prepared.route.audience,
         worldToken: prepared.worldToken, generation: prepared.generation}) : ''),
     block('volatile', admitted && prepared.route.channel === 'phone' ? phoneRecentConversationContext(prepared.input) : ''),
+    // The player's world rules (bridge/world-rules.mjs): Convai's characters live on Convai's side and cannot be edited, so the rules reach them in the
+    // dynamic info this context is (realtime-client.mjs updateContext sends it, replacing the last one, every turn), after all the game's facts in it (world,
+    // relationship, phone recap), at most 2,000 characters of the player's words. The voice and style notes after them (follow-up, Natural speech, Expressive
+    // emotions, the first-person reminder, the reply language) keep the places that were measured for them. The tier is one no text-provider layout reads
+    // (contextPartsOf): those carry the rules in the persona.
+    ...convaiWorldRulesBlocks(worldRules.get(), mistral.active),
     // Follow-up questions go before the voice notes: after "keep the same length and content" they lost most of their effect
     // (scripts/Probe-FollowUp.mjs: a pull in 16 of 26 offered turns here, against 13 of 41 after them). The one-sentence
     // first-person reminder goes after the voice blocks, which pull a reply away from the base rule (docs/FIRST_PERSON_RULE.md).
@@ -3296,7 +3306,7 @@ const setupCheck = await SetupCheckControl.open({runtime, log: message => consol
     placement: () => readPackPlacement({stateDirectory, startedAt: bridgeStartedAt})})});
 // Settings > Edit characters: a local page, served only while it is open (bridge/character-editor-server.mjs).
 const characterEditor = new CharacterEditor({personas: personaBook, overrides: characterOverrides, memory: mistralMemory, route: () => mistral.route, custom: customCharacters,
-  voices: playerVoices,
+  voices: playerVoices, worldRules,
   // Every turn reads the persona, the overrides, the memories and the player's characters with a plain lookup, so a save counts from the next turn with
   // no restart. A group reply prepared before the save was written from the old text: it is dropped, so the next one is written from the new.
   onChanged: () => { dropPrefetch(); prefetchObserved = ''; }});

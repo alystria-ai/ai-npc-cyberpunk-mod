@@ -128,6 +128,8 @@ With Mistral or Local AI as the Conversation provider, you can give a person who
 
 **Voice clips.** You can give a story character, or one of your own characters, a voice clip in the same page: open the character (a story character has a Voice tab), choose **Add voice clip**, pick a WAV, MP3, OGG or FLAC file of 5 to 20 seconds of one person speaking clearly (10 to 18 seconds works best), type the words said in it and choose **Save clip**. Pocket, OmniVoice and Voxtral then copy that voice from that character's next line, once the current reply is over: you do not restart the game or the service. **Remove clip** brings the original voice back the same way. The clip stays on your PC.
 
+**World rules.** In the same editor, choose **World rules** (above the list of characters) to write a few rules for the whole world, for example "Nobody in Night City knows V's name unless V tells them" or "Everyone speaks casually". Every character follows them in every talk (in person, Phone Chat and group chats) with Local AI, Mistral and a Custom endpoint, and Convai gets them with the rest of what the game tells it each turn. They are saved on this computer (up to 2,000 characters), kept when you update the mod, and used from the next reply with no restart. They add facts and style for the setting; they never change the mod's own rules.
+
 **Story characters.** The game's own story characters, such as Judy or Jackie, answer where they stand in their own voice, and their face follows what they say, once you turn it on (Settings > Conversations > Talk to story characters, off by default; reload your save after switching it). Nothing else about them changes.
 
 ## Update

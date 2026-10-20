@@ -15,14 +15,15 @@
 //   4. the world facts (halved once), this turn's volatile notes (capped), the last exchanges, the world block as a whole (capped), the
 //      persona's example lines
 //
-// It never touches the persona (who the character is, how it talks), the output rules, the format notes, the "right now" block or the
-// player's words. If those alone do not fit, `fits` is false and the caller falls back to another route.
+// It never touches the persona (who the character is, how it talks), the output rules, the player's world rules (bridge/world-rules.mjs), the format
+// notes, the "right now" block or the player's words. If those alone do not fit, `fits` is false and the caller falls back to another route.
 //
 // Measuring: a character estimate with a ratio learned from the server's own prompt token counts (`TokenMeter`), and, when the
 // estimate comes near the limit, the server's tokenizer (`budget.count`, one request of tens of milliseconds, only then). A turn
 // that is far below the limit costs a few microseconds and no request.
 import {buildMessages as defaultBuild, capContext, joinBlocks, PROMPT_SOURCE, systemHead} from './mistral-prompt.mjs';
 import {MistralError} from './mistral-client.mjs';
+import {worldRulesBlock} from './world-rules.mjs';
 
 export const BUDGET = Object.freeze({
   charsPerToken: 3.6,    // before anything is learned; this prompt measures about 4.2 on Gemma 4 and on Qwen3.5
@@ -185,7 +186,8 @@ export class PrefillMeter {
 function headTokens(args, charsPerToken = BUDGET.charsPerToken) {
   try {
     if (!args?.persona) return 0;
-    const head = systemHead({persona: args.persona, limits: args.limits, mature: args.mature ?? null, guard: args.guard ?? false});
+    // The world rules follow the head in every turn and are read once like it: they are part of what the server holds.
+    const head = [systemHead({persona: args.persona, limits: args.limits, mature: args.mature ?? null, guard: args.guard ?? false}), worldRulesBlock(args.persona.worldRules)].filter(Boolean).join('\n\n');
     return Math.ceil(textTokens(head, charsPerToken)) + templateTokens(1);
   } catch { return 0; }
 }
@@ -270,7 +272,7 @@ function planFor() {
 // A server with a small context (a 4,096-token one the player runs themselves) cannot hold a named character's persona and the output rules
 // (Judy's alone are about 4,500 tokens), and nothing optional is left to cut. When no other route can answer the turn (`shrinkPersona`), the persona
 // itself is shortened in fixed levels: the backstory keeps its beginning, the style keeps its beginning, the example lines are already gone, and the
-// rules, the format notes, the right-now block, the player's own rules and the Mature layer are never cut. The first level that fits is used. The levels
+// rules, the format notes, the right-now block, the player's own rules, the world rules and the Mature layer are never cut. The first level that fits is used. The levels
 // are few and coarse on purpose: the persona sits at the very start of the prompt, so a level that changed with every turn would make the server read it
 // again every turn; as the rest of the prompt is already at its smallest here, the same level is chosen turn after turn.
 export const PERSONA_LEVELS = Object.freeze([

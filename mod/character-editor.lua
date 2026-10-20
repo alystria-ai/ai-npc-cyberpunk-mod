@@ -162,6 +162,13 @@ function M.new(options)
         ['Changes are saved on this computer and used from the next reply.'] = ui.t('Changes are saved on this computer and used from the next reply.'),
         ['Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local AI as the conversation provider in the settings.'] = ui.t('Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local AI as the conversation provider in the settings.'),
         ['The editor is closed. You can close this tab.'] = ui.t('The editor is closed. You can close this tab.'),
+        ['World rules'] = ui.t('World rules'),
+        ['Rules for the whole world, used for every character in every talk: face to face, phone and group chats. Write facts and style, for example how people talk or what nobody knows. They never replace the mod’s own rules.'] = ui.t('Rules for the whole world, used for every character in every talk: face to face, phone and group chats. Write facts and style, for example how people talk or what nobody knows. They never replace the mod’s own rules.'),
+        ['For example: Nobody in Night City knows V’s name unless V tells them. Everyone speaks casually.'] = ui.t('For example: Nobody in Night City knows V’s name unless V tells them. Everyone speaks casually.'),
+        ['Applies to every provider: Local AI, Mistral and Custom in the character prompt, and Convai through its dynamic info.'] = ui.t('Applies to every provider: Local AI, Mistral and Custom in the character prompt, and Convai through its dynamic info.'),
+        ['The world rules are too long. Keep them under {max} characters.'] = ui.t('The world rules are too long. Keep them under {max} characters.'),
+        ['Revert changes'] = ui.t('Revert changes'),
+        ['Clear the world rules?'] = ui.t('Clear the world rules?'),
         }
     end
 

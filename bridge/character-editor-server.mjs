@@ -194,6 +194,11 @@ export class EditorServer {
     if (method === 'GET' && parts[0] === 'state' && parts.length === 1) return {...this.editor.state(), strings: this.strings, language: this.language};
     if (method === 'POST' && parts[0] === 'close' && parts.length === 1) { this.setTimer(() => { void this.stop(); }, 250).unref?.(); return {ok: true}; }
     if (method === 'GET' && parts[0] === 'facing' && parts.length === 1) return {facing: this.facing};
+    if (parts[0] === 'world-rules' && parts.length === 1) {
+      if (method === 'GET') return this.editor.worldRulesForPage ?? (() => { throw new EditorError(404, 'not-found'); })();
+      if (method === 'PUT') return this.editor.saveWorldRules((await this.#body(request))?.text);
+      if (method === 'DELETE') return this.editor.clearWorldRules();
+    }
     if (parts[0] === 'custom') return this.#customRoute(request, method, parts.slice(1));
     if (parts[0] === 'voice') return this.#voiceRoute(request, method, parts.slice(1));
     if (parts[0] !== 'character' || !parts[1]) throw new EditorError(404, 'not-found');

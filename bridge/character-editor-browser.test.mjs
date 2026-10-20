@@ -10,6 +10,7 @@ import {CharacterEditor} from './character-editor.mjs';
 import {EditorServer} from './character-editor-server.mjs';
 import {MemoryStore} from './memory-store.mjs';
 import {PersonaBook} from './mistral-prompt.mjs';
+import {WorldRules} from './world-rules.mjs';
 import {CustomCharacters, rosterIndex} from './custom-characters.mjs';
 import {PlayerVoices} from './player-voices.mjs';
 import {speechWav} from './voice-clip-fixture.mjs';
@@ -36,10 +37,11 @@ async function bench({route = 'local'} = {}) {
   await mkdir(join(dir, 'runtime'), {recursive: true});
   const custom = await CustomCharacters.open({dir: join(dir, 'state'), exchangePath: join(dir, 'runtime', 'custom-characters.json'), roster: rosterIndex(rows)});
   const voices = await PlayerVoices.open({dir: join(dir, 'state')});
-  const personas = new PersonaBook(rows, {overrides, custom});
+  const worldRules = await WorldRules.open({dir: join(dir, 'state')});
+  const personas = new PersonaBook(rows, {overrides, custom, worldRules});
   const state = {route};
-  const server = new EditorServer({editor: new CharacterEditor({personas, overrides, memory, route: () => state.route, custom, voices})});
-  return {dir, overrides, memory, server, state, custom, voices, personas, async done() { await server.stop(); await rm(dir, {recursive: true, force: true}); }};
+  const server = new EditorServer({editor: new CharacterEditor({personas, overrides, memory, route: () => state.route, custom, voices, worldRules})});
+  return {dir, overrides, memory, server, state, custom, voices, personas, worldRules, async done() { await server.stop(); await rm(dir, {recursive: true, force: true}); }};
 }
 async function open(t, {route, strings = {}, language = 'en', viewport = {width: 1280, height: 900}, scheme = 'dark', facing = null} = {}) {
   const b = await bench({route});
@@ -459,4 +461,51 @@ test('the new-character form works at phone width and in the light theme', {skip
   const overflow = await e.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   assert(overflow <= 1, 'no sideways scroll, got ' + overflow);
   await e.shot('13-phone');
+});
+
+test('World rules: a page of its own, saved, reverted and cleared, in force on the next turn, with the Convai note and no warning banner', {skip, timeout: 120000}, async t => {
+  const e = await open(t, {route: 'convai'});
+  const {page} = e;
+  assert.equal(await page.locator('#banner').isHidden(), false, 'the character pages warn while Convai answers');
+  await page.getByRole('button', {name: 'World rules'}).click();
+  await page.waitForSelector('#f-worldRules');
+  assert.equal(await page.locator('#banner').isHidden(), true, 'the world rules reach Convai too, so that page has no warning');
+  assert.equal(await page.locator('#main h2').textContent(), 'World rules');
+  assert.match(await page.locator('#main').textContent(), /Applies to every provider: Local AI, Mistral and Custom in the character prompt, and Convai through its dynamic info\./);
+  assert.match(await page.locator('.count').first().textContent(), /^0 of 2000$/);
+  assert.equal(await page.getByRole('button', {name: 'Save'}).isDisabled(), true);
+  assert.equal(await page.getByRole('button', {name: 'Clear'}).isDisabled(), true);
+  await e.shot('14-world-rules');
+  // Too long is refused (the counter says so and Save is off); a real text is saved at once.
+  await page.fill('#f-worldRules', 'x'.repeat(2001));
+  assert.equal(await page.getByRole('button', {name: 'Save'}).isDisabled(), true);
+  await page.fill('#f-worldRules', 'Nobody in Night City knows V’s name unless V tells them.');
+  await page.getByRole('button', {name: 'Revert changes'}).click();
+  assert.equal(await page.inputValue('#f-worldRules'), '', 'revert goes back to the saved text');
+  await page.fill('#f-worldRules', 'Nobody in Night City knows V’s name unless V tells them.');
+  await page.getByRole('button', {name: 'Save'}).click();
+  await page.waitForFunction(() => document.querySelector('#note.show')?.textContent === 'Saved.');
+  assert.equal(e.worldRules.get(), 'Nobody in Night City knows V’s name unless V tells them.');
+  assert.equal(e.personas.persona('judy-alvarez').worldRules, e.worldRules.get(), 'the next turn reads it');
+  assert.equal(await page.locator('.chip').textContent(), 'Edited');
+  // Unsaved words warn before leaving for a character.
+  await page.fill('#f-worldRules', 'Everyone speaks casually.');
+  e.dialogs.length = 0;
+  await page.fill('#search', 'judy');
+  await page.locator('#list button.pick').click();
+  await page.waitForSelector('#f-bio');
+  assert.deepEqual(e.dialogs, ['You have changes that are not saved. Leave without saving?']);
+  assert.equal(e.worldRules.get(), 'Nobody in Night City knows V’s name unless V tells them.', 'nothing was saved by leaving');
+  assert.equal(await page.locator('#banner').isHidden(), false, 'the character page warns again');
+  // Clear asks first, then empties the box and the store.
+  await page.getByRole('button', {name: 'World rules'}).click();
+  await page.waitForSelector('#f-worldRules');
+  e.dialogs.length = 0;
+  await page.getByRole('button', {name: 'Clear'}).click();
+  await page.waitForFunction(() => document.querySelector('#note.show')?.textContent === 'Cleared.');
+  assert.deepEqual(e.dialogs, ['Clear the world rules?']);
+  assert.equal(e.worldRules.get(), '');
+  assert.equal(await page.inputValue('#f-worldRules'), '');
+  assert.deepEqual(e.problems, [], 'no console error or warning');
+  assert(e.requests.every(url => url.startsWith(e.url.slice(0, e.url.indexOf('/editor')))), 'nothing left this computer');
 });

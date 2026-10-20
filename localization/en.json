@@ -50,7 +50,7 @@
     ]
   },
   "counts": {
-    "strings": 1098,
+    "strings": 1105,
     "dynamicTemplates": 55,
     "contexts": 37
   },
@@ -109,6 +109,7 @@
     "Another AutoDrive activity took control.": "Another AutoDrive activity took control.",
     "Another AutoDrive journey has control.": "Another AutoDrive journey has control.",
     "Another character of yours, {other}, already answers to this record or name.": "Another character of yours, {other}, already answers to this record or name.",
+    "Applies to every provider: Local AI, Mistral and Custom in the character prompt, and Convai through its dynamic info.": "Applies to every provider: Local AI, Mistral and Custom in the character prompt, and Convai through its dynamic info.",
     "As shipped": "As shipped",
     "Ask a companion to drive to your selected map waypoint.\n\nGet into the passenger seat when they are ready.": "Ask a companion to drive to your selected map waypoint.\n\nGet into the passenger seat when they are ready.",
     "Asking Convai for the payment page…": "Asking Convai for the payment page…",
@@ -213,6 +214,7 @@
     "Clear memories about you for every character you have talked to.\n\nYour player identity stays. A confirmation comes first.": "Clear memories about you for every character you have talked to.\n\nYour player identity stays. A confirmation comes first.",
     "Clear profile": "Clear profile",
     "Clear the summary?": "Clear the summary?",
+    "Clear the world rules?": "Clear the world rules?",
     "Clear {name}’s memories about conversations with you. Review an inline confirmation first.": "Clear {name}’s memories about conversations with you. Review an inline confirmation first.",
     "Clear {name}’s memories about conversations with you?": "Clear {name}’s memories about conversations with you?",
     "Cleared.": "Cleared.",
@@ -361,6 +363,7 @@
     "Finish combat before asking for a ride.": "Finish combat before asking for a ride.",
     "Follow-up questions": "Follow-up questions",
     "For example: Character.Rebecca": "For example: Character.Rebecca",
+    "For example: Nobody in Night City knows V’s name unless V tells them. Everyone speaks casually.": "For example: Nobody in Night City knows V’s name unless V tells them. Everyone speaks casually.",
     "For example: Rebecca": "For example: Rebecca",
     "For example: V has a sister called Lena.": "For example: V has a sister called Lena.",
     "For testing and bug reports; leave it off for normal play.\n\nShows routine popups (joining steps, dismissals, driving instructions, results of companion actions), writes a movement trace in the mod’s runtime folder, logs gesture decisions and adds itself to support reports.\n\nPreparation progress, joined notices, failures and replies to Stop trip stay visible when it is off.": "For testing and bug reports; leave it off for normal play.\n\nShows routine popups (joining steps, dismissals, driving instructions, results of companion actions), writes a movement trace in the mod’s runtime folder, logs gesture decisions and adds itself to support reports.\n\nPreparation progress, joined notices, failures and replies to Stop trip stay visible when it is off.",
@@ -676,9 +679,11 @@
     "Reset to default": "Reset to default",
     "Return to Companion Manager.": "Return to Companion Manager.",
     "Return to conversation settings.": "Return to conversation settings.",
+    "Revert changes": "Revert changes",
     "Review the memory clear below, then choose Confirm or Cancel.": "Review the memory clear below, then choose Confirm or Cancel.",
     "Right after the game’s own dialogue with a character, they know its last few lines, including your chosen replies and your phone calls with them.\n\nOnly the last few minutes count, and none of it is saved to memory.": "Right after the game’s own dialogue with a character, they know its last few lines, including your chosen replies and your phone calls with them.\n\nOnly the last few minutes count, and none of it is saved to memory.",
     "Romantic": "Romantic",
+    "Rules for the whole world, used for every character in every talk: face to face, phone and group chats. Write facts and style, for example how people talk or what nobody knows. They never replace the mod’s own rules.": "Rules for the whole world, used for every character in every talk: face to face, phone and group chats. Write facts and style, for example how people talk or what nobody knows. They never replace the mod’s own rules.",
     "Running": "Running",
     "SELECTED": "SELECTED",
     "SETTINGS": "SETTINGS",
@@ -925,6 +930,7 @@
     "The trip will be stopped when you return to gameplay.": "The trip will be stopped when you return to gameplay.",
     "The voice model did not load. Check the voice in Settings or choose another one, then invite again.": "The voice model did not load. Check the voice in Settings or choose another one, then invite again.",
     "The words said in the clip are too long. Keep them under {max} characters.": "The words said in the clip are too long. Keep them under {max} characters.",
+    "The world rules are too long. Keep them under {max} characters.": "The world rules are too long. Keep them under {max} characters.",
     "There is no companion trip to cancel.": "There is no companion trip to cancel.",
     "Things they always know": "Things they always know",
     "This PC cannot look up {host}. Check your internet connection, then restart the game.": "This PC cannot look up {host}. Check your internet connection, then restart the game.",
@@ -1044,6 +1050,7 @@
     "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.": "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.",
     "Whose memories": "Whose memories",
     "Words said in the clip": "Words said in the clip",
+    "World rules": "World rules",
     "Write a message...  /  Enter to send  /  Esc to stop typing": "Write a message...  /  Enter to send  /  Esc to stop typing",
     "YOUR PARTY": "YOUR PARTY",
     "You are already on a call.": "You are already on a call.",
@@ -1848,6 +1855,7 @@
       "Also changed: {names}.",
       "An example line is too long. Keep each one under {max} characters.",
       "Another character of yours, {other}, already answers to this record or name.",
+      "Applies to every provider: Local AI, Mistral and Custom in the character prompt, and Convai through its dynamic info.",
       "As shipped",
       "Asking Convai for the payment page…",
       "Audioware is installed but unused. Update it to 1.9.9 or newer, then restart the game.",
@@ -1883,6 +1891,7 @@
       "Clear",
       "Clear memories about you for all {count} characters you have talked to?",
       "Clear the summary?",
+      "Clear the world rules?",
       "Clear {name}’s memories about conversations with you. Review an inline confirmation first.",
       "Clear {name}’s memories about conversations with you?",
       "Cleared.",
@@ -1965,6 +1974,7 @@
       "Filled in from the character you were facing: {name}.",
       "Follow-up questions",
       "For example: Character.Rebecca",
+      "For example: Nobody in Night City knows V’s name unless V tells them. Everyone speaks casually.",
       "For example: Rebecca",
       "For example: V has a sister called Lena.",
       "Forget ({count} characters)",
@@ -2150,6 +2160,8 @@
       "Requires the optional OmniVoice pack (GPU)",
       "Reset everything",
       "Reset to default",
+      "Revert changes",
+      "Rules for the whole world, used for every character in every talk: face to face, phone and group chats. Write facts and style, for example how people talk or what nobody knows. They never replace the mod’s own rules.",
       "Running",
       "Save",
       "Save clip",
@@ -2308,6 +2320,7 @@
       "The trip will be stopped when you return to gameplay.",
       "The voice model did not load. Check the voice in Settings or choose another one, then invite again.",
       "The words said in the clip are too long. Keep them under {max} characters.",
+      "The world rules are too long. Keep them under {max} characters.",
       "There is no companion trip to cancel.",
       "Things they always know",
       "This PC cannot look up {host}. Check your internet connection, then restart the game.",
@@ -2364,6 +2377,7 @@
       "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.",
       "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.",
       "Words said in the clip",
+      "World rules",
       "You are already on a call.",
       "You have as many voice clips as the editor keeps ({max}). Remove one first.",
       "You have changes that are not saved. Leave without saving?",
@@ -2914,6 +2928,14 @@
       ],
       "references": [
         "mod/character-editor.lua:44"
+      ]
+    },
+    "Applies to every provider: Local AI, Mistral and Custom in the character prompt, and Convai through its dynamic info.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:168"
       ]
     },
     "As shipped": {
@@ -3802,6 +3824,14 @@
       ],
       "references": [
         "mod/character-editor.lua:78"
+      ]
+    },
+    "Clear the world rules?": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:171"
       ]
     },
     "Clear {name}’s memories about conversations with you. Review an inline confirmation first.": {
@@ -5044,6 +5074,14 @@
       ],
       "references": [
         "mod/character-editor.lua:126"
+      ]
+    },
+    "For example: Nobody in Night City knows V’s name unless V tells them. Everyone speaks casually.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:167"
       ]
     },
     "For example: Rebecca": {
@@ -6920,7 +6958,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:197"
+        "mod/character-editor.lua:204"
       ]
     },
     "Opening the page in your browser…": {
@@ -7669,6 +7707,14 @@
         "mod/manager-ui.lua:1158"
       ]
     },
+    "Revert changes": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:170"
+      ]
+    },
     "Review the memory clear below, then choose Confirm or Cancel.": {
       "contexts": [
         "manager.validation",
@@ -7693,6 +7739,14 @@
       "references": [
         "mod/manager-ui.lua:1122",
         "mod/manager-ui.lua:376"
+      ]
+    },
+    "Rules for the whole world, used for every character in every talk: face to face, phone and group chats. Write facts and style, for example how people talk or what nobody knows. They never replace the mod’s own rules.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:166"
       ]
     },
     "Running": {
@@ -9064,7 +9118,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:182"
+        "mod/character-editor.lua:189"
       ]
     },
     "The conversation service is not running. Restart the game to start it again.": {
@@ -9244,7 +9298,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/character-editor.lua:196"
+        "mod/character-editor.lua:203"
       ]
     },
     "The editor is closed. You can close this tab.": {
@@ -9763,6 +9817,14 @@
       ],
       "references": [
         "mod/character-editor.lua:58"
+      ]
+    },
+    "The world rules are too long. Keep them under {max} characters.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:169"
       ]
     },
     "There is no companion trip to cancel.": {
@@ -10758,6 +10820,14 @@
       ],
       "references": [
         "mod/character-editor.lua:109"
+      ]
+    },
+    "World rules": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/character-editor.lua:165"
       ]
     },
     "Write a message...  /  Enter to send  /  Esc to stop typing": {
