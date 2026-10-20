@@ -14,7 +14,7 @@ The single working document for development: open items first, then a dated log,
   - Test in game with the preview installed, then thank Antrix.
 - **Launcher 1.0.1** (optional launcher.ini) is on main but not shipped: test it in game, then ship it in the next release.
 - **Install tutorial**: the owner records the shots from deliverables/tutorial-0.2.4/PLAN.md; then the Pocket draft voice-over (model downloaded), edit, ambience, one Cartesia render.
-- **Player replies for 0.2.4** are in Downloads/AI-NPC-Nexus-0.2.4/5-PLAYER_REPLIES.md for the owner to post.
+- **Player replies for 0.2.4**: posted by the owner (2026-10-20).
 - **Downloads**: AI-NPC-Nexus-0.2.2 and 0.2.3 folders are still there (owner said wait).
 
 Rewritten 2026-10-15 afternoon at `main` c277774d. The log entry "2026-10-15 (TODO cleanup)" lists what was removed or merged; the older "2026-10-14 (TODO cleanup)" entry keeps the long text of the shortened live-check lists. Log entries that say "NOT merged" or "NOT installed" predate the merges: every branch is in `main` except `skippy-stock`, `skippy-voice`, `v-voice-finetune` (not used) and `youtube-home-2` (superseded when YouTube was removed). Every 2026-10-17 branch (spawned characters, companion items 1 to 6, group count and look-ahead, pre-open, Voxtral retry, V's voice engine, Bonsai lite) is in `main` 07541c71, pushed and in the rebuilt v0.2 release.
