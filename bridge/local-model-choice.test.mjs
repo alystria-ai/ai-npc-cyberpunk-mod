@@ -113,13 +113,43 @@ test('a chosen model that does not fit falls back to the default, and says why (
   assert.equal(off.model.id, 'standard'); assert.equal(off.fellBack, null, 'a Mature pin with Mature off is ignored: no notice, and the default is not told "low-memory"');
 });
 
-test('nothing fits, or nothing is installed', () => {
-  assert.throws(() => pick(stock, {freeMiB: 1000}), error => error.reason === 'low-memory');
-  // With Mature content on a Mature model is always loaded (offload), so nothing "does not fit"; with it off the ordinary rule throws.
+test('nothing fits whole: the smallest installed model of any kind is chosen with part of its layers on the CPU (the caller gates it); nothing installed still throws', () => {
+  // Used to throw 'low-memory' (the 2026-10-21 8 GB RTX 4060 report: Local AI failed after its first reply with no way to run beside the game).
+  const lone = pick(stock, {freeMiB: 1000});
+  assert.deepEqual([lone.model.id, lone.offload, lone.fellBack, lone.pinned], ['lite', true, null, false]);
+  // With Mature content on a Mature model is always loaded (offload), so nothing "does not fit"; with it off the ordinary models are the candidates (the smallest of them).
   assert.equal(pick(withMature, {freeMiB: 1000, matureOn: true}).model.id, 'mature:lite');
-  assert.throws(() => pick(withMature, {freeMiB: 1000, matureOn: false}), error => error.reason === 'low-memory');
+  const off = pick(withMature, {freeMiB: 1000, matureOn: false});
+  assert.deepEqual([off.model.id, off.offload], ['lite', true], 'never an uncensored model with Mature content off');
   assert.throws(() => pick([], {}), error => error.reason === 'not-installed');
-  assert.throws(() => pick(stock, {pin: 'standard', freeMiB: 1000}), error => error.reason === 'low-memory');
+  // A pinned model that does not fit still says so (the notice), and the smallest model takes its place.
+  const pinned = pick(stock, {pin: 'standard', freeMiB: 1000});
+  assert.deepEqual([pinned.model.id, pinned.offload, pinned.fellBack], ['lite', true, 'low-memory']);
+  // A model that fits whole is never offloaded.
+  assert.equal(pick(stock, {freeMiB: 24000}).offload, false);
+});
+
+test('the offload candidate is the smallest installed file model of any kind: a custom file counts (even one too large for the card, the gate of the caller decides), a stalled or broken one and a server do not', () => {
+  const custom = (id, file, extra = {}) => ({id, name: id, file, tier: null, custom: true, uncensored: false, loadedName: id, ...extra});
+  const own = [custom('custom:small', 'own/small.gguf'), custom('custom:huge', 'own/huge.gguf', {tooLarge: true})];
+  const sized = file => ({'own/small.gguf': 4000, 'own/huge.gguf': 20000}[file] ?? sizeOf(file));
+  const models = [...stock, ...own];
+  const pickWith = (list, options) => chooseLocalModel({models: list, sizeOf: sized, freeMiB: 500, ...options});
+  assert.deepEqual([pickWith(models).model.id, pickWith(models).offload], ['lite', true]);
+  // Without the pack: the smallest custom file, and the 20 GB one when it is the only one left.
+  assert.equal(pickWith(own).model.id, 'custom:small');
+  assert.equal(pickWith([own[1]]).model.id, 'custom:huge');
+  assert.equal(pickWith([own[1]]).offload, true);
+  // Stalled or broken models are left out; a server the player runs is the last resort before an offload.
+  assert.equal(pickWith(models.map(model => (model.id === 'lite' ? {...model, stalled: true} : model))).model.id, 'custom:small');
+  assert.equal(pickWith(models.map(model => (model.id === 'lite' ? {...model, broken: true} : model))).model.id, 'custom:small');
+  const server = {id: 'custom:lm', name: 'LM Studio', file: null, external: true, endpoint: 'http://127.0.0.1:1234/v1', custom: true, uncensored: false, tier: null, loadedName: 'LM Studio'};
+  const withServer = pickWith([...stock, server]);
+  assert.deepEqual([withServer.model.id, withServer.offload], ['custom:lm', false]);
+  // Uncensored custom files only with Mature content on.
+  const uncensored = custom('custom:u', 'own/small.gguf', {uncensored: true});
+  assert.throws(() => pickWith([uncensored], {matureOn: false}), error => error.reason === 'low-memory');
+  assert.equal(pickWith([uncensored], {matureOn: true}).model.id, 'custom:u');
 });
 
 test('unknown free memory takes the smallest model of the group', () => {
@@ -271,7 +301,8 @@ test('a saved choice naming a model that left the packs maps silently: mature:* 
   // Neither fits: with Mature content on the lite one is loaded anyway (layers on the CPU), with no notice; off, the ordinary rule applies.
   const nothing = pick(withMature, {pin: stale, matureOn: true, freeMiB: 1000});
   assert.deepEqual([nothing.model.id, nothing.fellBack, nothing.offload], ['mature:lite', null, true]);
-  assert.throws(() => pick(withMature, {pin: stale, matureOn: false, freeMiB: 1000}), error => error.reason === 'low-memory');
+  const nothingOff = pick(withMature, {pin: stale, matureOn: false, freeMiB: 1000});
+  assert.deepEqual([nothingOff.model.id, nothingOff.fellBack, nothingOff.offload], ['lite', null, true], 'Mature off: the ordinary models, the smallest one on the CPU');
   // Only the lite model is installed.
   const onlyLite = listLocalModels({pack, matureModels: matureModels.filter(model => model.tier === 'lite')});
   const lone = pick(onlyLite, {pin: stale, matureOn: true});
@@ -397,7 +428,8 @@ test('a stalled model is left out of the choice: the default and a pin step down
   // A smaller Mature model that does not fit the free memory is still loaded (with layers on the CPU), like the rest of the Mature pack; an ordinary one is not.
   const crowded = pick(stall(withMature, 'mature:good'), {pin: 'mature:good', matureOn: true, freeMiB: 1000});
   assert.deepEqual([crowded.model.id, crowded.offload], ['mature:lite', true]);
-  assert.throws(() => pick(stall(stock, 'standard'), {pin: 'standard', freeMiB: 1000}), error => error.reason === 'low-memory');
+  const ordinary = pick(stall(stock, 'standard'), {pin: 'standard', freeMiB: 1000});
+  assert.deepEqual([ordinary.model.id, ordinary.offload], ['lite', true], 'nothing fits whole: the smaller model goes onto the card as far as it fits');
 });
 
 test('a card of about 8 GB keeps room for the game in the default choice only: the lite model is taken, a pinned model is the player\'s word, bigger cards and unknown cards are unchanged', () => {

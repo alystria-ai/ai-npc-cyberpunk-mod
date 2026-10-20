@@ -84,8 +84,9 @@ test('a pin works for a custom model that fits, and falls back (with a reason) w
   const afterFailure = chooseLocalModel({models: broken, pin: 'custom:big', sizeOf, freeMiB: 24000});
   assert.deepEqual([afterFailure.fellBack, afterFailure.model.id], ['start-failed', 'standard']);
   assert.equal(chooseLocalModel({models: broken, sizeOf, freeMiB: 24000}).model.id, 'standard', 'the default skips a custom model that failed to start');
-  // A too large model is never the default choice, even when it is the only one.
-  assert.throws(() => chooseLocalModel({models: listLocalModels({pack: {tiers: {}}, customModels: [customList[3]]}), sizeOf, freeMiB: 90000}), error => error.reason === 'low-memory');
+  // A too large model is never the default choice that fits; when it is the only one it is the offload candidate, and the caller's gate (offloadPlan) refuses it when too little of it could stay on the card.
+  const huge1 = chooseLocalModel({models: listLocalModels({pack: {tiers: {}}, customModels: [customList[3]]}), sizeOf, freeMiB: 90000});
+  assert.deepEqual([huge1.model.id, huge1.offload], ['custom:huge', true]);
 });
 
 test('stillSatisfies treats every installed model alike, and the published list is sorted and marks custom models', () => {

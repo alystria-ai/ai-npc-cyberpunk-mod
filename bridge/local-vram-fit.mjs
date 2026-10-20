@@ -17,6 +17,13 @@ export const FIT_LIMITS = Object.freeze({
   refitMarginMiB: 1024,    // the same after the driver spilled the model into shared memory: the game showed it wants the room
   offloadTargetMiB: 1024,  // llama-server's own default `--fit-target`: the room its fit pass leaves when layers go to the CPU
   hopelessShare: 0.35,     // below this share of the layers on the card a model is CPU-bound (36 to 54 prompt tokens a second in the 2026-10-19 reports)
+  // Partial offload (the model does not fit whole: `-fit on`, no `-ngl`; docs/LOCAL_AI.md, "Partial offload"). Context 8,192 with the 8-bit cache: the smallest placement the prompt budget still serves.
+  offloadContext: 8192,
+  offloadKvType: 'q8_0',
+  offloadGameRoomMiB: 1792,   // the `-fitt` of an offloaded load: free memory the fit pass leaves on the card for the game (about 1.75 GiB; llama-server's own default is 1,024)
+  offloadFixedMiB: 1100,      // the part of a projection that stays on the card with every layer on the CPU (compute buffers; measured 1,002 MiB Qwen3.5-4B and 1,057 MiB Gemma 4 E4B at 8,192 / q8_0)
+  offloadEstimateExtraMiB: 700,   // no projection: the file plus this (Qwen3.5-4B Q4_K_M: 2,582 MiB file, 3,271 projected)
+  offloadMaxThreads: 6,       // CPU threads of an offloaded load: the CPU part is bound by memory bandwidth, more threads only take cores from the game
   probeMs: 15_000,
   // Largest first. 16,384 is the normal context; 8,192 is what the prompt budget still serves (the persona and rules are about 4.5k tokens); q8_0 saves another 75 to 135 MiB.
   ladder: Object.freeze([
@@ -76,8 +83,8 @@ export function probeProjectedMiB({exe, model, contextSize, kvType = null, devic
 /**
  * The context ladder against the free memory: {projections: [{contextSize, kvType, projectedMiB|null}], pick, share}.
  *   pick    the first rung (largest context first) whose projection plus `marginMiB` fits `freeMiB`: the model goes whole onto the card; null when none does
- *   share   the part of the model's layers the card can hold with the fit pass's own margin left (0 to 1; 1 when `pick` exists): what the 8,192 rung needs against
- *           what is free beyond FIT_LIMITS.offloadTargetMiB. Null when no projection is known.
+ *   share   the part of the model's layers the card can hold with the game's room (FIT_LIMITS.offloadGameRoomMiB) left free (0 to 1; 1 when `pick` exists): offloadPlan of the
+ *           8,192 / 8-bit rung. Null when no projection is known.
  * `probe(rung)` resolves a rung's projected MiB or null. The rungs are probed at once.
  */
 export async function fitLadder({freeMiB, marginMiB = FIT_LIMITS.marginMiB, probe, ladder = FIT_LIMITS.ladder} = {}) {
@@ -87,11 +94,45 @@ export async function fitLadder({freeMiB, marginMiB = FIT_LIMITS.marginMiB, prob
     return {contextSize: rung.contextSize, kvType: rung.kvType, projectedMiB: Number.isFinite(projectedMiB) && projectedMiB > 0 ? projectedMiB : null};
   }));
   const pick = projections.find(rung => rung.projectedMiB !== null && Number.isFinite(freeMiB) && rung.projectedMiB + marginMiB <= freeMiB) ?? null;
-  const reference = projections.find(rung => rung.projectedMiB !== null && rung.contextSize === 8192 && !rung.kvType) ?? projections.find(rung => rung.projectedMiB !== null);
+  // The placement a model that does not fit whole gets is the offload one (context 8,192, the 8-bit cache, the game's room kept free): the share is worked out for it (offloadPlan).
+  const reference = projections.find(rung => rung.projectedMiB !== null && rung.contextSize === FIT_LIMITS.offloadContext && rung.kvType === FIT_LIMITS.offloadKvType)
+    ?? projections.find(rung => rung.projectedMiB !== null && rung.contextSize === 8192 && !rung.kvType) ?? projections.find(rung => rung.projectedMiB !== null);
   let share = null;
   if (pick) share = 1;
-  else if (reference && Number.isFinite(freeMiB)) share = Math.max(0, Math.min(1, (freeMiB - FIT_LIMITS.offloadTargetMiB) / reference.projectedMiB));
+  else if (reference && Number.isFinite(freeMiB)) share = offloadPlan({projectedMiB: reference.projectedMiB, freeMiB}).share;
   return {projections, pick, share};
+}
+
+/**
+ * Where a model that does not fit whole goes when part of it runs on the CPU: {share, projectedMiB, estimated, hopeless, ...}.
+ *   projectedMiB   llama-fit-params' projection for the offload placement (FIT_LIMITS.offloadContext, offloadKvType); null when there is none
+ *   sizeMiB        the model file, used for an estimate when there is no projection (file + offloadEstimateExtraMiB)
+ *   share          the part of the layers the card can hold with `targetMiB` (the game's room) left free: (free - target - fixed) / (projected - fixed), 0 to 1, where `fixed` is the
+ *                  part of the projection that does not shrink when layers move to the CPU. This matches llama-fit-params' own layer count to within a few percent (Qwen3.5-4B, target
+ *                  leaving 1,676 MiB: 10 of 33 layers, 30%; the formula says 30%; Gemma 4 E4B: 13 of 43, 30%, formula 27%). 1 when the projection fits whole; null when it cannot be said
+ *                  (no free-memory reading, or neither a projection nor a file size): then nothing is refused.
+ *   hopeless       share under FIT_LIMITS.hopelessShare: the model would be CPU-bound (36 to 54 prompt tokens a second in the 2026-10-19 reports) and is not loaded.
+ */
+export function offloadPlan({projectedMiB, sizeMiB, freeMiB, targetMiB = FIT_LIMITS.offloadGameRoomMiB} = {}) {
+  const measured = Number.isFinite(projectedMiB) && projectedMiB > 0;
+  const projected = measured ? projectedMiB : Number.isFinite(sizeMiB) && sizeMiB > 0 ? Math.ceil(sizeMiB) + FIT_LIMITS.offloadEstimateExtraMiB : null;
+  let share = null;
+  if (projected !== null && Number.isFinite(freeMiB)) {
+    const room = freeMiB - targetMiB;
+    const fixed = Math.min(FIT_LIMITS.offloadFixedMiB, projected / 2);
+    share = projected <= room ? 1 : Math.max(0, Math.min(1, (room - fixed) / Math.max(1, projected - fixed)));
+  }
+  return {share, projectedMiB: projected, estimated: projected !== null && !measured, targetMiB, contextSize: FIT_LIMITS.offloadContext, kvType: FIT_LIMITS.offloadKvType,
+    hopeless: share !== null && share < FIT_LIMITS.hopelessShare};
+}
+
+/**
+ * CPU threads for an offloaded load: about half of the physical cores, so the game's CPU is not starved (2 to offloadMaxThreads). Node reports logical processors; a computer with
+ * two threads per core (nearly every gaming CPU) has half as many cores, and half of those is a quarter of what is reported.
+ */
+export function offloadThreads(logicalCpus) {
+  const logical = Number.isFinite(logicalCpus) && logicalCpus > 0 ? Math.floor(logicalCpus) : 8;
+  return Math.max(2, Math.min(FIT_LIMITS.offloadMaxThreads, Math.round(logical / 4)));
 }
 
 /** One line for the log: the projections against the free memory and what was decided. */

@@ -3441,7 +3441,7 @@ local function keyReplyNotice(reply)
     -- Local AI is chosen and could not start, and nobody took the turn over (no Mistral key, Convai's free turns for today used): its own reason,
     -- never the Convai limit the player did not choose (bridge/convai-bridge.mjs providerFailureCode).
     if reply.errorCode == 'local-no-memory' then
-        return 'local-no-memory', ui.t('Not enough free graphics memory to start Local AI. Try a smaller model in Settings.')
+        return 'local-no-memory', ui.t('Not enough free graphics memory to start Local AI. Try a smaller model in Settings.') .. localFailureSuffix(reply)
     elseif reply.errorCode == 'local-unavailable' then
         return 'local-unavailable', ui.t('Local AI could not start. Check Local AI in Settings > Conversation provider.') .. localFailureSuffix(reply)
     end

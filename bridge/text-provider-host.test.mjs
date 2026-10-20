@@ -724,3 +724,15 @@ test('a reply that merely opens like a recent line for a word or two is shown as
     assert.match(stream.text ?? '', /^Ah, Arroyo. It is not so bad/, 'shown as written once it moved on');
   } finally { await close(); }
 });
+
+test('a server the player runs is asked for no thinking from its very first request (its adaptation starts as one that thinks, kept per address and model); our own llama-server gets neither the fields nor an adaptation', async () => {
+  const lease = extra => ({apiKey: 'no-key-needed', endpoint: 'http://127.0.0.1:1234/v1/chat/completions', model: 'LM Studio', requestModel: 'laptop-ai', trustedOrigin: 'http://127.0.0.1:1234', ...extra});
+  const serverFor = connection => ({ensure: async () => connection, status: () => ({state: 'ready'}), begin: () => () => {}, touch() {}});
+  const route = localRoute({server: serverFor(lease({external: true}))});
+  const first = await route.connect(undefined, {});
+  assert.equal(first.adapt.thinks, true, 'the fields go with the first request');
+  assert.deepEqual(first.noThinking, {reasoning_effort: 'none', chat_template_kwargs: {enable_thinking: false}, think: false});
+  assert.equal((await route.connect(undefined, {})).adapt, first.adapt, 'one adaptation per address and model: a refusal learned once is kept');
+  const own = await localRoute({server: serverFor(lease({external: false}))}).connect(undefined, {});
+  assert.deepEqual([own.adapt, own.noThinking], [undefined, undefined], 'the packaged models never think');
+});

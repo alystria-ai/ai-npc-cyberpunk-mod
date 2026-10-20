@@ -975,7 +975,7 @@ test('a slow turn on a model that does not fit the graphics memory says so in th
   assert.equal(failureDetail(new Error('x')), undefined);
 });
 
-test('end to end: two stalled turns in a row step Local AI down; with no smaller model installed the cloud takes over with one notice, and the saved choice is untouched', async t => {
+test('end to end: two stalled turns in a row step Local AI down; with no smaller model installed the same model is loaded with part of it on the CPU, one more stall ends Local AI (a local failure, no cloud step-down event), and the saved choice is untouched', async t => {
   const {host, server, provider, logs} = await hostRig(t, {env: {FAKE_LLAMA_STALL: 'progress'}, limits: {promptStallMs: 100, stallMs: 100, firstByteMs: 30_000, totalMs: 60_000}});
   // The bridge's wiring (bridge/convai-bridge.mjs): the supervisor's step-down and failure reach the provider.
   const steps = [];
@@ -986,17 +986,18 @@ test('end to end: two stalled turns in a row step Local AI down; with no smaller
   assert.deepEqual([steps.length, server.status().state], [0, 'ready'], 'one stall is not enough');
   const second = await host.reply(turn('hello again')).catch(e => e);
   assert.equal(second.reason, 'prefill-stalled');
+  for (let wait = 0; wait < 400 && !logs.some(line => /model ready/.test(line) && /fit target/.test(line)); wait++) await sleep(25);
+  assert(logs.some(line => /no smaller model is installed, so the same model is loaded again with part of its layers on the CPU/.test(line)), logs.join('\n'));
+  assert.equal(server.status().state, 'ready', 'the same model, loaded again with part of it on the CPU');
+  assert.deepEqual(steps, [], 'no step-down event: it would name a cloud provider');
+  // The model on the CPU stalls once more: nothing smaller and nothing more to give up, so Local AI is unavailable, with the reason that says the card is too small.
+  const third = await host.reply(turn('hello once more')).catch(e => e);
+  assert.equal(third.reason, 'prefill-stalled');
   for (let wait = 0; wait < 400 && server.status().state !== 'failed'; wait++) await sleep(25);
   assert.equal(server.status().state, 'failed');
-  assert.deepEqual([steps.map(step => step.model), server.status().reason], [[null], 'low-memory']);
-  assert(logs.some(line => /stepping down from .*no smaller model is installed, the cloud text provider takes over/.test(line)), logs.join('\n'));
-  // The provider: Local AI is still the saved choice; the turns go to a cloud provider, and the game is told once, in the step-down's words.
+  assert.deepEqual([steps, server.status().reason, server.status().detail], [[], 'low-memory', 'too-small']);
+  // The provider: Local AI is still the saved choice.
   assert.equal(provider.preference, 'local');
-  assert.equal(provider.requested, 'convai');
-  provider.apply();
-  assert.equal(provider.takeNotice(), 'local-stepdown');
-  assert.equal(provider.noticeModel, '');
-  assert.equal(provider.takeNotice(), undefined);
 });
 
 // ---- 2026-10-21, round 3: the first turn after the idle stop, and a turn that was never sent is not a stall ----------------------------------------------------------

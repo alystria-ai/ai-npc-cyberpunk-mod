@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
-import {FIT_LIMITS, describeFit, fitLadder, fitToolPath, parseProjection, probeProjectedMiB} from './local-vram-fit.mjs';
+import {FIT_LIMITS, describeFit, fitLadder, fitToolPath, offloadPlan, offloadThreads, parseProjection, probeProjectedMiB} from './local-vram-fit.mjs';
 import {chooseLocalModel, listLocalModels} from './local-model-choice.mjs';
 
 // The line llama-fit-params prints at -lv 4, as measured 2026-10-20 (RTX 4080 Laptop, build 11560, Gemma 4 E4B Mature good at 16,384 context).
@@ -80,7 +80,7 @@ test('fitLadder takes the largest context whose projection plus the margin fits 
   assert.deepEqual((await at(4100)).pick, {contextSize: 8192, kvType: 'q8_0', projectedMiB: 3520});
   const none = await at(3500);
   assert.equal(none.pick, null);
-  assert.ok(Math.abs(none.share - 0.688) < 0.001, 'the 8,192 rung against what is free beyond the fit pass margin');
+  assert.ok(Math.abs(none.share - 0.251) < 0.001, 'the 8,192 8-bit rung (3,520 MiB, 1,100 of them fixed) against what is free beyond the 1,792 MiB kept for the game');
   assert.equal((await at(231)).share, 0, 'a card with nothing free holds none of the layers');
   assert.equal((await at(11000)).share, 1);
   // A larger margin (after a spill) moves the pick.
@@ -102,7 +102,7 @@ test('describeFit puts the projections, the free memory and the decision on one 
   const fit = await fitLadder({freeMiB: 4100, probe: probeOf(TABLE)});
   assert.equal(describeFit(fit, 4100, 512), 'projected 3734 MiB at 16384, 3598 MiB at 8192, 3520 MiB at 8192 q8_0 against 4100 MiB free (room kept 512 MiB): the whole model fits: context 8192, q8_0 cache');
   const no = await fitLadder({freeMiB: 3000, probe: probeOf(TABLE)});
-  assert.match(describeFit(no, 3000, 512), /does not fit whole, about 55% of the layers can stay on the card/);
+  assert.match(describeFit(no, 3000, 512), /does not fit whole, about 4% of the layers can stay on the card/);
 });
 
 test('chooseLocalModel: a model whose projection fits counts as fitting, so a pin is kept and a Mature model is not offloaded; without it the file-size rule decides as before', () => {
@@ -127,4 +127,40 @@ test('chooseLocalModel: a model whose projection fits counts as fitting, so a pi
   assert.equal(small.model.id, 'lite', 'the small-card reserve is judged by the file-size rule');
   // A fit with no pick (the model does not fit whole) changes nothing.
   assert.equal(chooseLocalModel({models, pin: 'standard', freeMiB: 4800, sizeOf, realFit: {standard: {pick: null, share: 0.6}}}).model.id, 'lite');
+});
+
+// ---- Partial offload: the share of the layers that stays on the card, the gate and the threads --------------------------------------------------------------------
+
+test('offloadPlan: the share of the layers on the card follows the layer count of llama-fit-params itself (measured 2026-10-21, RTX 4080 Laptop, b11560, 8,192 context, 8-bit cache)', () => {
+  // Qwen3.5-4B Q4_K_M: 3,271 MiB projected, 1,002 MiB with every layer on the CPU. A fit target of 9,500 MiB against 11,176 free left 1,676 MiB for the model: 10 of 33 layers (30%).
+  const qwen = offloadPlan({projectedMiB: 3271, sizeMiB: 2582, freeMiB: 11176, targetMiB: 9500});
+  assert.ok(qwen.share > 0.25 && qwen.share < 0.31, String(qwen.share));
+  // Gemma 4 E4B Mature good: 3,520 projected, 1,057 fixed, 13 of 43 layers (30%) with 1,725 MiB.
+  const gemma = offloadPlan({projectedMiB: 3520, sizeMiB: 5088, freeMiB: 11226, targetMiB: 9500});
+  assert.ok(gemma.share > 0.25 && gemma.share < 0.31, String(gemma.share));
+  assert.deepEqual([qwen.estimated, qwen.contextSize, qwen.kvType, qwen.targetMiB], [false, 8192, 'q8_0', 9500]);
+});
+
+test('offloadPlan: whole when the projection fits beside the room kept for the game, nothing when it cannot, hopeless under 35%, an estimate from the file without a projection, unknown without a reading', () => {
+  const room = FIT_LIMITS.offloadGameRoomMiB;
+  assert.equal(offloadPlan({projectedMiB: 3000, freeMiB: 3000 + room}).share, 1);
+  assert.equal(offloadPlan({projectedMiB: 3000, freeMiB: room - 100}).share, 0);
+  const limit = FIT_LIMITS.offloadFixedMiB + FIT_LIMITS.hopelessShare * (3000 - FIT_LIMITS.offloadFixedMiB);   // the room the model needs for exactly the least share
+  const edge = offloadPlan({projectedMiB: 3000, freeMiB: room + Math.ceil(limit)});
+  assert.equal(edge.hopeless, false);
+  assert.equal(offloadPlan({projectedMiB: 3000, freeMiB: room + Math.floor(limit) - 60}).hopeless, true);
+  // The 8 GB report: a 2,582 MiB Qwen3.5-4B (3,271 projected) with 3,500 MiB free is hopeless beside the game, with 4,200 it is about half on the card.
+  assert.equal(offloadPlan({projectedMiB: 3271, freeMiB: 3500}).hopeless, true);
+  const half = offloadPlan({projectedMiB: 3271, freeMiB: 4200});
+  assert.ok(half.share > 0.55 && half.share < 0.65 && !half.hopeless, String(half.share));
+  // No projection: the file plus 700 MiB stands in for it, and says so.
+  const estimate = offloadPlan({sizeMiB: 2582, freeMiB: 4200});
+  assert.deepEqual([estimate.projectedMiB, estimate.estimated], [3282, true]);
+  // Unknown: no free-memory reading, or neither a projection nor a file size. Nothing is refused then.
+  for (const unknown of [offloadPlan({projectedMiB: 3271}), offloadPlan({freeMiB: 4000}), offloadPlan({})]) assert.deepEqual([unknown.share, unknown.hopeless], [null, false]);
+});
+
+test('offloadThreads: about half the physical cores (a quarter of the logical processors), at least 2 and at most 6', () => {
+  assert.deepEqual([4, 8, 12, 16, 24, 32, 64].map(offloadThreads), [2, 2, 3, 4, 6, 6, 6]);
+  assert.deepEqual([offloadThreads(1), offloadThreads(undefined), offloadThreads(NaN)], [2, 2, 2]);
 });

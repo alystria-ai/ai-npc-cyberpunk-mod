@@ -201,7 +201,9 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
   const adaptations = new Map();
   const adaptation = connection => {
     const key = `${connection.trustedOrigin}|${connection.requestModel ?? ''}`;
-    if (!adaptations.has(key)) adaptations.set(key, newAdaptation());
+    // `thinks: true` from the start: a server the player runs (LM Studio, Ollama, KoboldCpp) gets the fields that ask for no thinking on its FIRST request, not after a reply of only thinking
+    // (one wasted turn); one that refuses a field by name loses just that field and the request is sent again at once (bridge/mistral-client.mjs learnRefusal).
+    if (!adaptations.has(key)) adaptations.set(key, {...newAdaptation(), thinks: true});
     return adaptations.get(key);
   };
   chat = budgetedChat(survivingLoss(chat, {server, log}), {
@@ -272,8 +274,7 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
       if (!background) { try { server.noteSlot?.(typeof persona === 'string' ? persona : null); } catch { /* the warm-up is best effort */ } }
       // A request in flight keeps the server loaded; releasing it re-arms the idle timer.
       const done = typeof server.begin === 'function' ? server.begin({background, cancel: stopper ? () => stopper.abort() : null}) : null;
-      // A server the player runs: what it has refused, and the fields that ask for no thinking, sent once a request came back with nothing but thinking (a model of a
-      // name nobody listed is not asked for less thinking from the start). Our own llama-server never thinks and has neither.
+      // A server the player runs: what it has refused, and the fields that ask for no thinking, sent from its first request (the adaptation above starts with `thinks`). Our own llama-server never thinks and has neither.
       let hostname = ''; try { hostname = new URL(connection.endpoint).hostname; } catch { /* no address: nothing to ask */ }
       const own = connection.external === true ? {adapt: adaptation(connection), noThinking: noThinkingFields({hostname, local: true})} : {};
       return {apiKey: connection.apiKey, endpoint: connection.endpoint, model: connection.model, requestModel: connection.requestModel, trustedOrigin: connection.trustedOrigin, external: connection.external === true,

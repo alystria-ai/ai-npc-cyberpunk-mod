@@ -251,8 +251,9 @@ test('a server is used when it is chosen, or as the last resort of its group: ne
   assert.equal(pick({freeMiB: 10}).model.id, kobold, 'nothing of ours fits: the server is the last resort, not an error');
   assert.equal(pick({freeMiB: 10, pin: 'standard'}).fellBack, 'low-memory');
   assert.equal(pick({freeMiB: 3000}).model.id, 'lite', 'a smaller file model that fits still comes first');
-  assert.throws(() => chooseLocalModel({models: listLocalModels({pack, customModels: scan.models.slice(1)}), sizeOf, freeMiB: 10}), /not enough free graphics memory/,
-    'an uncensored server is never the last resort with Mature content off');
+  // An uncensored server is never the last resort with Mature content off: the smallest file model is offloaded instead (the caller's gate refuses it when the card is too small).
+  const notHeretic = chooseLocalModel({models: listLocalModels({pack, customModels: scan.models.slice(1)}), sizeOf, freeMiB: 10});
+  assert.deepEqual([notHeretic.model.id, notHeretic.offload], ['lite', true]);
   assert.equal(chooseLocalModel({models: listLocalModels({pack, customModels: scan.models.slice(1)}), sizeOf, freeMiB: 10, matureOn: true}).model.id, heretic);
   // A server that failed to start is broken, like a custom file: its pin falls back with a reason.
   const broken = models.map(model => (model.id === kobold ? {...model, broken: true} : model));
