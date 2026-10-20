@@ -17,14 +17,22 @@ Pick one in Companion Manager > Settings > Conversation provider.
 [/list]
 [b]2. Local: no internet, no account, no limit[/b]
 [list]
-[*]Install a Local AI pack (see Optional packs): [b]Local AI standard[/b], or [b]Local AI lite[/b] for smaller graphics cards. A Mature pack works too.
+[*]Needs a graphics card with room to spare next to the game: 12 GB of video memory or more (see the card list below). On an 8 GB card, use cloud text instead.
 [*]Choose [b]Local AI[/b]. With only a Mature pack, also turn on [b]Mature content[/b].
-[*]Voice: [b]Pocket[/b] (already in the Runtime, English), or [b]OmniVoice[/b] with its pack on an NVIDIA card with 8 GB of video memory or more, for voices that sound like the game characters and for other languages.
+[*]Install a Local AI pack (see Optional packs): [b]Local AI standard[/b], or [b]Local AI lite[/b] for smaller graphics cards. A Mature pack works too.
+[*]Voice: [b]Pocket[/b] (already in the Runtime, English), or [b]OmniVoice[/b] with its pack on an NVIDIA card with 12 GB of video memory or more, for voices that sound like the game characters and for other languages.
 [*]It runs on your graphics card (Vulkan, NVIDIA or AMD), needs at least 16 GB of system memory and shares the card with the game, so it is slower than the cloud on most PCs.
 [*]Fully offline: if Windows asks whether Node.js may use the network, you can decline, and turn off [b]Settings > Privacy > Send error reports automatically[/b].
 [/list]
 
 [b]How much video memory?[/b]
+The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at 1440p or with ray tracing, and 12 GB or more at 4K or with path tracing. Local AI and OmniVoice need room on top of that:
+[list]
+[*][b]8 GB card:[/b] cloud text (Convai or Mistral) with Pocket or Voxtral. Local AI and OmniVoice will be slow or step down.
+[*][b]10 to 12 GB:[/b] Local AI lite with Pocket at 1080p without ray tracing, or OmniVoice with cloud text.
+[*][b]12 to 16 GB:[/b] Local AI standard with Pocket at 1080p, or lite with ray tracing or 1440p.
+[*][b]16 GB or more:[/b] Local AI standard with ray tracing or 1440p and up, or Local AI with OmniVoice.
+[/list]
 What each voice + text pair adds on top of the game:
 [list]
 [*]Pocket or Voxtral voice + Convai or Mistral: [b]0 GB[/b] (the default)
@@ -34,7 +42,7 @@ What each voice + text pair adds on top of the game:
 [*]OmniVoice + Local AI lite: about 3.9 GB (up to 5.9 GB)
 [*]OmniVoice + Local AI standard: about 5.2 GB (up to 7.3 GB)
 [/list]
-Measured on a 12 GB RTX 4080 Laptop. If your card runs short, the mod steps down by itself (standard to lite, then lite to cloud text), and you can change either choice in Settings at any time.
+Measured on a 12 GB RTX 4080 Laptop. If your card runs short, the mod steps down by itself (standard to lite, then lite to cloud text), and you can change either choice in Settings at any time. Lowering texture quality in the game frees the most room.
 
 [size=4][b]Key features[/b][/size]
 [b]Talk to anyone[/b]
