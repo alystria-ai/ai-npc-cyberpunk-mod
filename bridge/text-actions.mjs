@@ -20,7 +20,7 @@
 // Offered here: drive to the map destination, fight the marked target, follow V (a world character), leave V's party. Distract is gone.
 // There is no wait / stay / sit command in the game, so none is offered, and the prompt says so.
 
-import {parseDriveUnavailable} from './companion-actions.mjs';
+import {parseDriveUnavailable, SEATED_MODES} from './companion-actions.mjs';
 import {screenWords, explicitRequest} from './text-action-words.mjs';
 
 export const ACTION_CODES = Object.freeze(['DRIVE', 'FIGHT', 'FOLLOW', 'LEAVE']);
@@ -28,8 +28,8 @@ export const ACTION_CODES = Object.freeze(['DRIVE', 'FIGHT', 'FOLLOW', 'LEAVE'])
 // Why the game cannot let this companion drive V right now (codes: bridge/companion-actions.mjs). Each becomes one short sentence of what
 // V has to do first.
 export const DRIVE_LIMIT = Object.freeze({
-  'player-driving': 'V is in the driver seat; V would have to get out of the car first, then ask',
-  'player-seated': 'V is sitting in a car; V would have to get out first, then ask',
+  'player-driving': 'V is driving a vehicle that is not V\'s own car; V would have to get out of it first, then ask',
+  'player-seated': 'V is sitting in a vehicle that is not V\'s own car; V would have to get out first, then ask',
   'no-waypoint': 'no destination is marked on the map; V has to mark one first',
   'no-car': "V's own car is not standing close by; V has to stand next to it or call it first",
   'car-moving': "V's car has to stand still first",
@@ -65,8 +65,14 @@ export function actionMenu(offer) {
   const limits = [];
   const base = {version: 1, token: offer.token};
   if (offer.drive !== false && typeof offer.destinationName === 'string') {
-    rows.push({code: 'DRIVE', what: `drive V in V's car to the map destination (V asks to be driven, to take the wheel, to be taken somewhere)`,
-      tell: `V is asking you to drive them in their car ${data(offer.carName ?? "V's car")} to the map destination ${data(offer.destinationName)}. You take the wheel and the game starts it right after your reply`,
+    const seated = SEATED_MODES.includes(offer.seated);
+    rows.push({code: 'DRIVE', what: `drive V in V's car to the map destination (V asks to be driven, to take the wheel, to be taken somewhere${seated ? ', or tells the companion to drive, take over or swap seats' : ''})`,
+      tell: seated
+        ? `V is sitting in their own car ${data(offer.carName ?? "V's car")} and is asking you to drive them to the map destination ${data(offer.destinationName)}. `
+          + (offer.seated === 'driver'
+            ? `V has the driver seat: tell V to step out of it so you can take the wheel, then you get out and take the driver seat, and V gets into a passenger seat. The game starts it right after your reply`
+            : `You take the driver seat if you do not have it yet and drive. The game starts it right after your reply`)
+        : `V is asking you to drive them in their car ${data(offer.carName ?? "V's car")} to the map destination ${data(offer.destinationName)}. You take the wheel and the game starts it right after your reply`,
       resolve: () => ({...base})});
   } else if (!offer.group && parseDriveUnavailable(offer.driveUnavailable)) {
     limits.push(`you cannot drive V anywhere (${DRIVE_LIMIT[offer.driveUnavailable]})`);

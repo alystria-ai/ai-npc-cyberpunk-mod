@@ -1159,7 +1159,8 @@ local function schema()
         local trip = queue.chauffeur()
         local status = {}
         if trip.active then
-            local tripStates = {releasing = 'Preparing to drive', ['boarding-driver'] = 'Driver boarding',
+            local tripStates = {releasing = 'Preparing to drive', ['exiting-passenger'] = 'Preparing to drive',
+                ['waiting-for-driver-seat'] = 'Waiting for you to step out', ['boarding-driver'] = 'Driver boarding',
                 ['waiting-for-player'] = 'Waiting for you to board', ['waiting-for-party'] = 'Waiting for party to board',
                 starting = 'Starting trip', driving = 'Driving',
                 stopping = 'Stopping', ['waiting-for-player-exit'] = 'Waiting for you to step out',

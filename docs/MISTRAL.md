@@ -166,8 +166,11 @@ arms the turn for any provider (it needs the turn's identified player route, whi
 
 What the game must offer, whatever the provider (the model can only choose among these, never create one):
 
-- **Drive**: a managed companion in V's party who can drive (not Alt), V on foot, V's own car within about 20 m and standing still, and a
-  destination marked on the map. V sitting in a car, or no marked destination, offers nothing and the character says what is needed.
+- **Drive**: a managed companion in V's party who can drive (not Alt), V's own car standing still, and a destination marked on the map.
+  Either V is on foot with the car within about 20 m, or (seated drive, 2026-10-20) V is sitting in their own car, as driver or
+  passenger, with the companion in the car or outside it (`offer.seated` = `driver` or `passenger`; see `docs/COMPANION_CHAUFFEUR.md`,
+  "Seated drive"). V sitting in a vehicle that is not their own car, or no marked destination, offers nothing and the character says
+  what is needed. The seated request words ("you drive", "swap seats", "take over") are in `bridge/text-action-words.mjs`.
 - **Fight**: a tagged enemy (scanner) or one in V's sights, and the companion in V's party.
 - **Follow**: a world character the game judged safe to adopt (not in a quest scene, not in combat, not on duty).
 - **Leave**: a current party member.

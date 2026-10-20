@@ -11,6 +11,7 @@ const string = (value, max) => typeof value === 'string' && value.length > 0 && 
 const profile = value => string(value, 80) && /^[a-z0-9-]+$/.test(value);
 const token = value => typeof value === 'string' && /^drive-[a-zA-Z0-9_-]{16,80}$/.test(value);
 const seats = new Set(['seat_front_right', 'seat_back_left', 'seat_back_right']);
+export const SEATED_MODES = Object.freeze(['driver', 'passenger']);
 const keys = (value, expected) => Object.keys(value).length === expected.length && expected.every(key => Object.hasOwn(value, key));
 
 // Legacy semantic actions may omit target. Put the one-use capability in the
@@ -102,8 +103,10 @@ export const parseFollowUnavailable = value => typeof value === 'string' && Obje
 export function parseChauffeurOffer(value) {
   if (!object(value) || value.available !== true || !object(value.actor) || !object(value.car)
       || !object(value.waypoint) || !object(value.waypoint.position)) return null;
-  const {actor, car, waypoint, passengerSeat} = value;
-  if (!keys(value, ['available', 'actor', 'car', 'waypoint', 'passengerSeat'])
+  const {actor, car, waypoint, passengerSeat, seated} = value;
+  // `seated` is present only when V already sits in their own car: 'driver' (V holds the wheel and has to step out) or 'passenger'.
+  const seatedOk = seated === undefined ? Object.keys(value).length === 5 : SEATED_MODES.includes(seated) && Object.keys(value).length === 6;
+  if (!seatedOk || !['available', 'actor', 'car', 'waypoint', 'passengerSeat'].every(key => Object.hasOwn(value, key))
       || !keys(actor, ['serial', 'id', 'key']) || !keys(car, ['id', 'record', 'name'])
       || !keys(waypoint, ['id', 'name', 'position']) || !keys(waypoint.position, ['x', 'y', 'z'])
       || !Number.isSafeInteger(actor.serial) || actor.serial < 1 || !entityId(actor.id) || !profile(actor.key)
@@ -112,7 +115,8 @@ export function parseChauffeurOffer(value) {
       || ['x', 'y', 'z'].some(key => !Number.isFinite(waypoint.position[key]) || Math.abs(waypoint.position[key]) > 1e7)) return null;
   return {available: true, actor: {serial: actor.serial, id: actor.id, key: actor.key},
     car: {id: car.id, record: car.record, name: car.name}, waypoint: {id: waypoint.id,
-      name: waypoint.name, position: {x: waypoint.position.x, y: waypoint.position.y, z: waypoint.position.z}}, passengerSeat};
+      name: waypoint.name, position: {x: waypoint.position.x, y: waypoint.position.y, z: waypoint.position.z}}, passengerSeat,
+    ...(seated ? {seated} : {})};
 }
 
 // The game sends only integers here, so the snapshot survives the Lua/JSON
@@ -194,7 +198,8 @@ export class CompanionActions {
     if (!pending || pending.input !== input || !this.current(pending) || pending.accepted) return undefined;
     const drive = !!pending.packet.offer;
     return {version: 1, token: pending.packet.actionId, source: pending.packet.source, expiresAt: pending.packet.expiresAt,
-      ...(drive ? {carName: pending.packet.offer.car.name, destinationName: pending.packet.offer.waypoint.name} : {drive: false}),
+      ...(drive ? {carName: pending.packet.offer.car.name, destinationName: pending.packet.offer.waypoint.name,
+        ...(pending.packet.offer.seated ? {seated: pending.packet.offer.seated} : {})} : {drive: false}),
       ...(pending.tactic ? {tactic: {targetName: pending.tactic.target.name, hostile: pending.tactic.target.hostile,
         distance: pending.tactic.target.distance, kinds: [...pending.tactic.kinds]}} : {}),
       ...(pending.follow ? {follow: {name: pending.follow.name}} : {}),
@@ -317,8 +322,17 @@ function tacticUnavailableText(reason) {
     + "do not agree or pretend that you are doing it. Do not bring this up unless V asks.";
 }
 
+// What happens next, in the words of the character's reply, when V already sits in the car (offer.seated). The game never moves V.
+export const SEATED_TAKEOVER = Object.freeze({
+  driver: 'V is sitting in the driver seat of their own stopped car, with you in or next to it. You take the wheel: you tell V '
+    + 'to step out of the driver seat, you get out and walk round to the driver seat, and V then gets into a passenger seat themselves. ',
+  passenger: 'V is sitting in a passenger seat of their own stopped car. You take the driver seat if you do not have it yet and drive. ',
+});
+
 function chauffeurContextText(offered) {
-  return '\nCurrent game-verified driving setup: V is on foot beside their stopped, summoned owned car '
+  const seated = SEATED_MODES.includes(offered.seated);
+  return '\nCurrent game-verified driving setup: '
+    + (seated ? SEATED_TAKEOVER[offered.seated] + 'The car is ' : 'V is on foot beside their stopped, summoned owned car ')
     + JSON.stringify(offered.carName ?? "V's car") + '. A destination is already selected on the map: '
     + JSON.stringify(offered.destinationName ?? 'the selected map route') + '. The native route is ready. '
     + 'If V asks you to drive for them, give them a ride, or take the wheel, use that selected route; '
@@ -330,6 +344,7 @@ function chauffeurContextText(offered) {
     + 'Only the new user message in this turn can authorize that action. Previous driving requests do not authorize it. '
     + 'For a greeting, ordinary question, or discussion of driving, emit no action even if an earlier request was not carried out. '
     + 'You take the driver seat and wait for V to get into a passenger seat themselves before departing. '
+    + (seated ? '"You drive", "swap seats", "switch places" and "take over" are this same request. ' : '')
     + 'Do not request it for hypothetical discussion, quoted speech, or an automatic event. '
     + 'The game must confirm boarding, driving, and arrival; never claim success before confirmation.';
 }
@@ -368,6 +383,7 @@ export class CompanionActionWindow {
         || (offer.carName !== undefined && !string(offer.carName, 160))
         || (offer.destinationName !== undefined && !string(offer.destinationName, 160))
         || (offer.drive !== undefined && offer.drive !== false)
+        || (offer.seated !== undefined && (!SEATED_MODES.includes(offer.seated) || offer.drive === false))
         || (offer.tactic !== undefined && !windowTactic(offer.tactic))
         || (offer.follow !== undefined && !windowFollow(offer.follow))
         || (offer.leave !== undefined && !windowLeave(offer.leave))
@@ -471,7 +487,8 @@ export async function publishCompanionActionContext(client, context, offer) {
   const actions = !offer ? [] : [...(offer.drive === false ? [] : [chauffeurActionName(offer)]),
     ...(offer.tactic?.kinds ?? []).map(kind => tacticActionName(offer, kind)).filter(Boolean),
     ...(offer.follow ? [followActionName(offer)] : []), ...leaveActions(offer).map(row => row.name)];
-  const subjects = [...(offer?.drive === false ? [] : ["V's currently summoned owned car and selected map waypoint"]),
+  const subjects = [...(offer?.drive === false ? [] : [SEATED_MODES.includes(offer?.seated)
+      ? "V's own car that V is sitting in, and selected map waypoint" : "V's currently summoned owned car and selected map waypoint"]),
     ...(offer?.tactic ? ['the person V marked as a target'] : []),
     ...(offer?.follow ? ['your chance to come along with V'] : []),
     ...(offer?.leave ? ["V's current party"] : [])];

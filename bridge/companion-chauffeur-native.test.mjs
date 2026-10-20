@@ -184,6 +184,18 @@ assert(not native.start(player,entry,restored,pin,'seat_front_right',api))
 values.summonState=0;values.record='Vehicle.replaced'
 assert(not native.sample(player,entry,restored,api).carValid and values.queries==1)
 `));
+test('seated drive: the car is the exact owned vehicle V sits in, never a summon or nearby substitute',()=>run(`
+values.summoned='9001ULL';values.nearby={}
+values.playerMount={vehicle='2001ULL',parent={hash='2001ULL'},seat='seat_front_left'};values.playerState='Driver'
+local sample=native.sample(player,entry,nil,api)
+assert(sample.carValid and sample.car.id=='2001ULL' and sample.carSource=='mounted' and values.queries==nil)
+-- V sits in a vehicle that is not one of their own cars: no car at all, so no offer can name another one
+values.playerMount={vehicle='7ULL',parent={hash='7ULL'},seat='seat_front_right'}
+values.extraEntities={['7ULL']={IsAttached=function()return true end,IsVehicle=function()return true end,
+  IsPlayerVehicle=function()return false end,IsDestroyed=function()return false end}}
+sample=native.sample(player,entry,nil,api)
+assert(sample.car==nil and values.queries==nil and #values.queued==0 and not values.mountRequest)
+`));
 test('nearby discovery filters traffic, distant cars and duplicate parts and rejects ambiguous owned cars',()=>run(`
 values.summoned='0ULL'
 local function clone(id,record,x,owned)
