@@ -41,6 +41,13 @@ local function matureProvider(provider) return provider == 'local' or provider =
 -- With the text on this computer (Local AI) Mature content keeps V's line off the cloud (no Voxtral); with Mistral or Custom text the line goes there anyway.
 local function matureKeepsLinesLocal(settings) return settings.matureContent == true and settings.conversationProvider == 'local' end
 local V_ENGINE_MATURE = 'Voxtral sends your line to Mistral. Turn off Mature content to choose it.'
+-- Multilingual conversations is in use only on the Convai free tier: the bridge turns it off on a player's own Convai key (one session, no twins)
+-- and while Mistral, Local AI or Custom answers (bridge/convai-bridge.mjs, the settings poll). Its voice rules (never Pocket or Voxtral, the tag
+-- settings without the OmniVoice pack) hold only there; elsewhere the saved switch waits, and the rules apply when the player returns to the free tier.
+local function multilingualActive(settings)
+    return settings.multilingualConversations == true and settings.conversationProvider == 'convai' and settings.useOwnConvaiKey ~= true
+end
+M.multilingualActive = multilingualActive
 local voiceFallbackSeen, voiceFallbackNotice = {}, nil
 -- Natural speech and Expressive emotions need a local voice (the Convai cloud voice would read their tags aloud). The
 -- pending notice, once, after an Apply that switched the voice or turned the two settings off.
@@ -396,7 +403,7 @@ end
 
 -- What turning Mature content on changed, kept in the settings so that turning it off puts the player's own choices back:
 --   {conversationProvider = {before = 'convai' | 'convai-key' | 'mistral' | 'custom', set = 'local'}, localModel = {before = <model id>, set = <the uncensored model id>},
---    voice = {before = <voice>, set = <voice>}} where a voice is {provider = 'pocket'|'omni'|'convai'|'voxtral',
+--    voice = {before = <voice>, set = <voice>}, vVoiceEngine = {before = 'voxtral', set = 'pocket'}} where a voice is {provider = 'pocket'|'omni'|'convai'|'voxtral',
 --   steps = 16|32, reference = 'short'|'long'} (steps and reference for omni only). Each part is optional; anything malformed is
 -- dropped, and nil is returned when nothing is left. Returns a new table.
 local function cleanMatureVoice(value)
@@ -429,6 +436,12 @@ local function cleanMatureRestore(value)
     if type(part) == 'table' then
         local before, set = cleanMatureVoice(part.before), cleanMatureVoice(part.set)
         if before and set then result.voice, any = {before = before, set = set}, true end
+    end
+    -- V's voice engine: Mature content with Local AI moves V off Voxtral (the only change it makes there).
+    part = value.vVoiceEngine
+    local function engine(name) return name == 'pocket' or name == 'voxtral' end
+    if type(part) == 'table' and engine(part.before) and engine(part.set) and part.before ~= part.set then
+        result.vVoiceEngine, any = {before = part.before, set = part.set}, true
     end
     return any and result or nil
 end
@@ -765,10 +778,11 @@ local function loadSettings()
         settings.matureRestore = restore
     end
     -- Multilingual conversations (off by default): conversations go to each character's multilingual twin. Pocket TTS
-    -- speaks only English, so a saved pairing with it cannot stand (Apply never makes one): the voice moves to the cloud
-    -- voice, which every installation can run. With the cloud voice, Multilingual wins over the two tag settings.
+    -- speaks only English, so a saved pairing with it cannot stand where Multilingual is in use (the Convai free tier, multilingualActive;
+    -- Apply never makes one): the voice moves to the cloud voice, which every installation can run. With the cloud voice, Multilingual wins
+    -- over the two tag settings. Beside another provider the switch does nothing, so the voice is kept.
     if type(settings.multilingualConversations) ~= 'boolean' then settings.multilingualConversations, settingsNeedSave = false, true end
-    if settings.multilingualConversations and (settings.voiceProvider == 'pocket' or settings.voiceProvider == 'voxtral') then
+    if multilingualActive(settings) and (settings.voiceProvider == 'pocket' or settings.voiceProvider == 'voxtral') then
         settings.voiceProvider, settingsNeedSave = 'convai', true
     end
     -- A saved cloud voice with a tag setting on (an older save): the voice is kept and the tag settings are turned off,
@@ -1068,10 +1082,12 @@ end
 --   - with the pack, a tag setting turned on beside a saved cloud voice moves the voice to OmniVoice · Balanced, never to
 --     Pocket. (Choosing the cloud voice keeps it and turns the tag settings off, as without Multilingual.)
 -- Turning it off leaves the voice as it is. Returns an error to refuse the Apply, and the notices to show.
+-- "On" is where it is in use (multilingualActive: the switch on and the Convai free tier), so choosing the free tier with the switch on counts
+-- as turning it on, and with any other provider these rules stand aside.
 local function resolveMultilingualVoice(before, after, values, packInstalled)
     local result = {notices = {}}
-    if after.multilingualConversations ~= true then return result end
-    local turningOn = before.multilingualConversations ~= true
+    if not multilingualActive(after) then return result end
+    local turningOn = not multilingualActive(before)
     if values.voiceProvider ~= nil and after.voiceProvider == 'pocket' then
         result.error = ui.t('Pocket TTS speaks only English. Turn off Multilingual conversations to choose it.')
         return result
@@ -1949,11 +1965,11 @@ function M.applySettings(player, values)
     -- choosing the cloud voice keeps it and turns both off (honourCloudVoice: one notice, only if the player had set one),
     -- while turning one on beside a saved cloud voice moves the voice to Pocket TTS with a notice. A tag setting turned on
     -- in the same Apply that changes the voice to the cloud voice loses to the voice.
-    -- With Multilingual conversations on, the voice is resolved by its own rules below instead (never Pocket TTS).
+    -- With Multilingual conversations in use (multilingualActive), the voice is resolved by its own rules below instead (never Pocket TTS).
     local cloudNotice, cloudQuiet = honourCloudVoice(settings, nextSettings, values)
     local multilingual = resolveMultilingualVoice(settings, nextSettings, values, M.omniPack().installed)
     if multilingual.error then return false, multilingual.error end
-    local switchedVoice = nextSettings.multilingualConversations ~= true
+    local switchedVoice = not multilingualActive(nextSettings)
         and (nextSettings.naturalSpeech == true or nextSettings.expressiveEmotions == true)
         and nextSettings.voiceProvider == 'convai'
     if switchedVoice then nextSettings.voiceProvider = 'pocket' end

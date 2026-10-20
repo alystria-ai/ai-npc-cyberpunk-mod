@@ -2373,7 +2373,7 @@ local function selectConversation(player, groupMode, singleAction, addonHears)
         if not convaiCustomNoted[skipped.key] then
             convaiCustomNoted[skipped.key] = true
             convaiNotices.send(player, 'custom-needs-provider',
-                ui.t('{name} is one of your own characters. They need Mistral or Local AI, so with Convai they talk as an ordinary person.', {name = skipped.name}))
+                ui.t('{name} is one of your own characters. They need Mistral, Local AI or Custom, so with Convai they talk as an ordinary person.', {name = skipped.name}))
         end
     end
     if not key or not supportedProfiles[key] then

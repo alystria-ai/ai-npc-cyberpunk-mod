@@ -252,7 +252,7 @@
     "Convai free tier: limit used up": "Convai free tier: limit used up",
     "Convai free tier: {left} of {limit} left today": "Convai free tier: {left} of {limit} left today",
     "Convai has not confirmed your plan yet. Check it in Settings > Convai paid tier.": "Convai has not confirmed your plan yet. Check it in Settings > Convai paid tier.",
-    "Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local AI as the conversation provider in the settings.": "Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local AI as the conversation provider in the settings.",
+    "Convai is answering right now, so these changes have no effect yet. Choose Mistral, Local AI or Custom as the conversation provider in the settings.": "Convai is answering right now, so these changes have no effect yet. Choose Mistral, Local AI or Custom as the conversation provider in the settings.",
     "Convai paid tier": "Convai paid tier",
     "Convai voice": "Convai voice",
     "Convai voices · Local model unloaded": "Convai voices · Local model unloaded",
@@ -339,7 +339,7 @@
     "ENTER  Write / Send   /   ESC  Stop typing": "ENTER  Write / Send   /   ESC  Stop typing",
     "ENTER  Write message   /   ESC  Stop typing": "ENTER  Write message   /   ESC  Stop typing",
     "Each character marks its own feelings as it speaks, so the face changes at that word instead of being guessed from the text. Subtle, set by personality, only where a feeling really shifts.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.": "Each character marks its own feelings as it speaks, so the face changes at that word instead of being guessed from the text. Subtle, set by personality, only where a feeling really shifts.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.",
-    "Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral and Local AI, not Convai. Changes apply from the next reply.": "Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral and Local AI, not Convai. Changes apply from the next reply.",
+    "Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply.": "Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply.",
     "Edit characters": "Edit characters",
     "Edited": "Edited",
     "Error reports go to the developer automatically. Turn them off in Settings > Privacy.": "Error reports go to the developer automatically. Turn them off in Settings > Privacy.",
@@ -615,7 +615,7 @@
     "Pocket voice is ready.": "Pocket voice is ready.",
     "Pocket · On your PC": "Pocket · On your PC",
     "Pocket · Performance": "Pocket · Performance",
-    "Pocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second. English only, and not with Mature content on.\n\nWhichever you pick, a line that is not ready in time is skipped.": "Pocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second. English only, and not with Mature content on.\n\nWhichever you pick, a line that is not ready in time is skipped.",
+    "Pocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second. English only, and not with Mature content on Local AI.\n\nWhichever you pick, a line that is not ready in time is skipped.": "Pocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second. English only, and not with Mature content on Local AI.\n\nWhichever you pick, a line that is not ready in time is skipped.",
     "Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, English only. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.": "Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, English only. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.",
     "Preparing a reply": "Preparing a reply",
     "Preparing connection to {name}…": "Preparing connection to {name}…",
@@ -762,7 +762,7 @@
     "Support report saved: {path}": "Support report saved: {path}",
     "TALK TO {character}": "TALK TO {character}",
     "TEXT  >": "TEXT  >",
-    "Talk in any language; each character answers in yours.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech and Expressive emotions turn off.": "Talk in any language; each character answers in yours.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech and Expressive emotions turn off.",
+    "Talk in any language; each character answers in yours. It works on the Convai free tier only. Mistral, Local AI and Custom already answer in the language you write in.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech and Expressive emotions turn off.": "Talk in any language; each character answers in yours. It works on the Convai free tier only. Mistral, Local AI and Custom already answer in the language you write in.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech and Expressive emotions turn off.",
     "Talk to ordinary NPCs": "Talk to ordinary NPCs",
     "Talk to story characters": "Talk to story characters",
     "Test": "Test",
@@ -1037,8 +1037,8 @@
     "Where you and Johnny stand in this save’s story. It follows what you have been through together, such as Alt, the oil fields, Rogue and the reunion concert.\n\nRead from your save; nothing is stored.": "Where you and Johnny stand in this save’s story. It follows what you have been through together, such as Alt, the oil fields, Rogue and the reunion concert.\n\nRead from your save; nothing is stored.",
     "Who this character is, what they know and how they look. A long bio makes replies slower, so keep it tight.": "Who this character is, what they know and how they look. A long bio makes replies slower, so keep it tight.",
     "Who this character is, what they know and how they look. Writing it as “I am …” works best. A long bio makes replies slower, so keep it tight.": "Who this character is, what they know and how they look. Writing it as “I am …” works best. A long bio makes replies slower, so keep it tight.",
-    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.": "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.",
-    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.": "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.",
+    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.": "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.",
+    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.": "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.",
     "Whose memories": "Whose memories",
     "Windows blocked a file that the Pocket voice needs (Smart App Control or an Application Control policy), so Pocket cannot run on this PC. Choose another voice in Settings, such as OmniVoice or a cloud voice.": "Windows blocked a file that the Pocket voice needs (Smart App Control or an Application Control policy), so Pocket cannot run on this PC. Choose another voice in Settings, such as OmniVoice or a cloud voice.",
     "Words said in the clip": "Words said in the clip",
@@ -1063,7 +1063,7 @@
     "Your Convai plan is active. Conversations now use your Convai API key.": "Your Convai plan is active. Conversations now use your Convai API key.",
     "Your browser could not be opened.": "Your browser could not be opened.",
     "Your car has no free passenger seat for V.": "Your car has no free passenger seat for V.",
-    "Your changes work with Mistral and Local AI. They do not apply to Convai.": "Your changes work with Mistral and Local AI. They do not apply to Convai.",
+    "Your changes work with Mistral, Local AI and Custom. They do not apply to Convai.": "Your changes work with Mistral, Local AI and Custom. They do not apply to Convai.",
     "Your character": "Your character",
     "Your characters": "Your characters",
     "Your companion is driving to the selected waypoint.": "Your companion is driving to the selected waypoint.",
@@ -1078,7 +1078,7 @@
     "Your message was not sent. Open the text box again and retype it.": "Your message was not sent. Open the text box again and retype it.",
     "Your model only thought and didn't answer. Turn thinking off for it in your model server, or pick a non-thinking model.": "Your model only thought and didn't answer. Turn thinking off for it in your model server, or pick a non-thinking model.",
     "Your model server's context is too small for this character. Raise the context length in your server (8192 or more).": "Your model server's context is too small for this character. Raise the context length in your server (8192 or more).",
-    "Your own characters talk only with Mistral or Local AI. With Convai they speak as an ordinary person.": "Your own characters talk only with Mistral or Local AI. With Convai they speak as an ordinary person.",
+    "Your own characters talk only with Mistral, Local AI or Custom. With Convai they speak as an ordinary person.": "Your own characters talk only with Mistral, Local AI or Custom. With Convai they speak as an ordinary person.",
     "Your own key, without memory": "Your own key, without memory",
     "Your party": "Your party",
     "Your party is empty": "Your party is empty",
@@ -1125,7 +1125,7 @@
     "{name} is no longer attached to the world. Dismiss this copy to free its place.": "{name} is no longer attached to the world. Dismiss this copy to free its place.",
     "{name} is no longer nearby.": "{name} is no longer nearby.",
     "{name} is not in your group.": "{name} is not in your group.",
-    "{name} is one of your own characters. They need Mistral or Local AI, so with Convai they talk as an ordinary person.": "{name} is one of your own characters. They need Mistral or Local AI, so with Convai they talk as an ordinary person.",
+    "{name} is one of your own characters. They need Mistral, Local AI or Custom, so with Convai they talk as an ordinary person.": "{name} is one of your own characters. They need Mistral, Local AI or Custom, so with Convai they talk as an ordinary person.",
     "{name} joined your group.": "{name} joined your group.",
     "{name} joined your party.": "{name} joined your party.",
     "{name} selected for memory controls.": "{name} selected for memory controls.",
@@ -1392,7 +1392,7 @@
       "Copy report path",
       "Create",
       "Current plan",
-      "Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral and Local AI, not Convai. Changes apply from the next reply.",
+      "Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply.",
       "Edit characters",
       "Find the log files and create a report to send to the developer if something goes wrong.",
       "Forget",
@@ -1638,7 +1638,7 @@
       "Now and then, when you sit down, Johnny shows himself a few steps away for a few seconds as a glitching hologram, the way the story shows him. Needs Johnny in your head.\n\nNever in scenes, calls, dialogue choices or fights, and at most once every ten minutes.",
       "Off: replies are text only and no voice is generated.\n\nWith Subtitles off as well, automatic reactions stay silent.",
       "Page",
-      "Pocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second. English only, and not with Mature content on.\n\nWhichever you pick, a line that is not ready in time is skipped.",
+      "Pocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second. English only, and not with Mature content on Local AI.\n\nWhichever you pick, a line that is not ready in time is skipped.",
       "Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, English only. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.",
       "React to battles",
       "React to collected loot",
@@ -1650,7 +1650,7 @@
       "Starts with",
       "Subtitle display",
       "Subtitles",
-      "Talk in any language; each character answers in yours.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech and Expressive emotions turn off.",
+      "Talk in any language; each character answers in yours. It works on the Convai free tier only. Mistral, Local AI and Custom already answer in the language you write in.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech and Expressive emotions turn off.",
       "Talk to ordinary NPCs",
       "Talk to story characters",
       "The game’s own named characters, such as Judy, Jackie, Panam and Rogue, answer when you talk to them where they stand. They use their own voice and memory, and their face follows what they say.\n\nNothing else about them changes: they do not turn, move, gesture or follow. They do not answer during scenes, quest conversations, fights or rides.\n\nTakes effect after you reload your save.",
@@ -1900,7 +1900,7 @@
       "Convai free tier: limit used up",
       "Convai free tier: {left} of {limit} left today",
       "Convai has not confirmed your plan yet. Check it in Settings > Convai paid tier.",
-      "Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local AI as the conversation provider in the settings.",
+      "Convai is answering right now, so these changes have no effect yet. Choose Mistral, Local AI or Custom as the conversation provider in the settings.",
       "Convai voice",
       "Convai · Cloud voice",
       "Convai: Local AI is not ready",
@@ -2349,6 +2349,7 @@
       "Voxtral (recommended)",
       "Voxtral · Mistral cloud",
       "Voxtral · needs Mistral key",
+      "V’s voice engine",
       "V’s voice for typed lines",
       "Waiting for the conversation to end",
       "Waiting for the endpoint to answer…",
@@ -2357,8 +2358,8 @@
       "Wary",
       "Who this character is, what they know and how they look. A long bio makes replies slower, so keep it tight.",
       "Who this character is, what they know and how they look. Writing it as “I am …” works best. A long bio makes replies slower, so keep it tight.",
-      "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.",
-      "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.",
+      "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.",
+      "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.",
       "Windows blocked a file that the Pocket voice needs (Smart App Control or an Application Control policy), so Pocket cannot run on this PC. Choose another voice in Settings, such as OmniVoice or a cloud voice.",
       "Words said in the clip",
       "World rules",
@@ -2375,7 +2376,7 @@
       "Your Convai plan is active. Choose Convai API key in Settings > Conversation provider.",
       "Your Convai plan is active. Conversations now use your Convai API key.",
       "Your browser could not be opened.",
-      "Your changes work with Mistral and Local AI. They do not apply to Convai.",
+      "Your changes work with Mistral, Local AI and Custom. They do not apply to Convai.",
       "Your character",
       "Your characters",
       "Your companion is driving to the selected waypoint.",
@@ -2388,7 +2389,7 @@
       "Your message was not sent. Open the text box again and retype it.",
       "Your model only thought and didn't answer. Turn thinking off for it in your model server, or pick a non-thinking model.",
       "Your model server's context is too small for this character. Raise the context length in your server (8192 or more).",
-      "Your own characters talk only with Mistral or Local AI. With Convai they speak as an ordinary person.",
+      "Your own characters talk only with Mistral, Local AI or Custom. With Convai they speak as an ordinary person.",
       "Your own key, without memory",
       "Your plan could not be read right now. Try again in a moment.",
       "Your player identity stays the same. Matching Phone Chat messages and drafts are also cleared.",
@@ -2429,7 +2430,7 @@
       "{name} is missing. Install it from Nexus Mods, then restart the game.",
       "{name} is no longer nearby.",
       "{name} is not in your group.",
-      "{name} is one of your own characters. They need Mistral or Local AI, so with Convai they talk as an ordinary person.",
+      "{name} is one of your own characters. They need Mistral, Local AI or Custom, so with Convai they talk as an ordinary person.",
       "{name} joined your group.",
       "{name} selected for memory controls.",
       "{name} will leave when you return to the game.",
@@ -2470,7 +2471,7 @@
       "{name} does not have a conversation profile configured yet.",
       "{name} is busy right now.",
       "{name} is not in your group.",
-      "{name} is one of your own characters. They need Mistral or Local AI, so with Convai they talk as an ordinary person."
+      "{name} is one of your own characters. They need Mistral, Local AI or Custom, so with Convai they talk as an ordinary person."
     ],
     "world.microphone": [
       "Listening - press {key} again to finish",
@@ -2483,7 +2484,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1642"
+        "mod/manager.lua:1658"
       ]
     },
     "10 cm higher": {
@@ -2491,7 +2492,7 @@
         "page.options"
       ],
       "references": [
-        "mod/manager-ui.lua:1438"
+        "mod/manager-ui.lua:1460"
       ]
     },
     "10 cm lower": {
@@ -2499,7 +2500,7 @@
         "page.options"
       ],
       "references": [
-        "mod/manager-ui.lua:1438"
+        "mod/manager-ui.lua:1460"
       ]
     },
     "5 cm higher": {
@@ -2507,7 +2508,7 @@
         "page.options"
       ],
       "references": [
-        "mod/manager-ui.lua:1438"
+        "mod/manager-ui.lua:1460"
       ]
     },
     "5 cm lower": {
@@ -2515,7 +2516,7 @@
         "page.options"
       ],
       "references": [
-        "mod/manager-ui.lua:1438"
+        "mod/manager-ui.lua:1460"
       ]
     },
     "<  PREVIOUS": {
@@ -2539,7 +2540,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1448"
+        "mod/manager-ui.lua:1470"
       ]
     },
     "A clip you add replaces the shipped voice of this character for Pocket, OmniVoice and the Voxtral cloud voice.": {
@@ -2587,7 +2588,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:169"
+        "mod/manager.lua:176"
       ]
     },
     "A memory is too long. Keep each one under {max} characters.": {
@@ -2603,7 +2604,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1502"
+        "mod/manager-ui.lua:1524"
       ]
     },
     "A new or removed clip counts from the next line this character speaks, once the current reply is over. Nothing needs restarting.": {
@@ -2636,7 +2637,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:189"
+        "mod/manager.lua:196"
       ]
     },
     "A record name can only use letters, digits, dots, dashes and underscores, for example Character.Rebecca.": {
@@ -2724,7 +2725,7 @@
         "page.options"
       ],
       "references": [
-        "mod/manager-ui.lua:1498"
+        "mod/manager-ui.lua:1520"
       ]
     },
     "Add a copy": {
@@ -2732,8 +2733,8 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1592",
-        "mod/manager.lua:1600"
+        "mod/manager.lua:1608",
+        "mod/manager.lua:1616"
       ]
     },
     "Add a copy, then use Party to choose its conversation profile.": {
@@ -2741,7 +2742,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1599"
+        "mod/manager.lua:1615"
       ]
     },
     "Add a display name": {
@@ -2806,7 +2807,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1171"
+        "mod/manager-ui.lua:1193"
       ]
     },
     "Add voice clip": {
@@ -2822,7 +2823,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:940"
+        "mod/manager-ui.lua:962"
       ]
     },
     "Add your Convai API key first.": {
@@ -2830,7 +2831,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:979"
+        "mod/manager-ui.lua:1001"
       ]
     },
     "Add your Convai API key first: copy it, then choose Paste on the Convai API key row.": {
@@ -2847,7 +2848,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:276",
-        "mod/manager-ui.lua:729"
+        "mod/manager-ui.lua:751"
       ]
     },
     "All": {
@@ -2855,7 +2856,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1240"
+        "mod/manager-ui.lua:1262"
       ]
     },
     "All files found.": {
@@ -2871,7 +2872,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1853"
+        "mod/manager-ui.lua:1885"
       ]
     },
     "An AutoDrive journey is already active.": {
@@ -2936,7 +2937,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:1187"
+        "mod/manager-ui.lua:1209"
       ]
     },
     "Asking Convai for the payment page…": {
@@ -2952,7 +2953,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:995"
+        "mod/manager-ui.lua:1017"
       ]
     },
     "Audioware is installed but unused. Update it to 1.9.9 or newer, then restart the game.": {
@@ -2985,9 +2986,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1117",
-        "mod/manager-ui.lua:1455",
-        "mod/manager-ui.lua:374"
+        "mod/manager-ui.lua:1139",
+        "mod/manager-ui.lua:1477",
+        "mod/manager-ui.lua:375"
       ]
     },
     "Auto-connect nearby characters": {
@@ -2995,7 +2996,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1397"
+        "mod/manager-ui.lua:1419"
       ]
     },
     "Auto: follows the completed encounter in this save.\n\nCasual: speaks with that familiarity.\n\nOrdinary: keeps her usual manner.\n\nIt does not imply an ongoing relationship.": {
@@ -3003,7 +3004,7 @@
         "page.relationships"
       ],
       "references": [
-        "mod/manager-ui.lua:1113"
+        "mod/manager-ui.lua:1135"
       ]
     },
     "Auto: follows the relationship in this save.\n\nRomantic: speaks to V as a partner.\n\nOrdinary: keeps their usual manner.\n\nOnly changes how they talk, never your game choices.": {
@@ -3011,7 +3012,7 @@
         "page.relationships"
       ],
       "references": [
-        "mod/manager-ui.lua:1114"
+        "mod/manager-ui.lua:1136"
       ]
     },
     "Automatic (game interface language)": {
@@ -3026,7 +3027,7 @@
         "page.category"
       ],
       "references": [
-        "mod/manager-ui.lua:1500"
+        "mod/manager-ui.lua:1522"
       ]
     },
     "Back": {
@@ -3035,8 +3036,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1152",
-        "mod/manager-ui.lua:1153",
+        "mod/manager-ui.lua:1174",
+        "mod/manager-ui.lua:1175",
         "mod/mcm-host.lua:273"
       ]
     },
@@ -3045,7 +3046,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:1152"
+        "mod/manager-ui.lua:1174"
       ]
     },
     "Back to party": {
@@ -3053,7 +3054,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1573"
+        "mod/manager.lua:1589"
       ]
     },
     "Back to settings": {
@@ -3061,7 +3062,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:1153"
+        "mod/manager-ui.lua:1175"
       ]
     },
     "Back to the shipped text.": {
@@ -3077,7 +3078,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:335"
+        "mod/manager-ui.lua:336"
       ]
     },
     "Billed every month.": {
@@ -3085,7 +3086,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:976"
+        "mod/manager-ui.lua:998"
       ]
     },
     "Billed once a year.": {
@@ -3093,7 +3094,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:976"
+        "mod/manager-ui.lua:998"
       ]
     },
     "Bio": {
@@ -3109,7 +3110,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1470"
+        "mod/manager-ui.lua:1492"
       ]
     },
     "Body gestures": {
@@ -3118,8 +3119,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1442",
-        "mod/manager-ui.lua:331"
+        "mod/manager-ui.lua:1464",
+        "mod/manager-ui.lua:332"
       ]
     },
     "Browse every character model in the game and invite any of them, including characters without conversation support. They join as followers and do not talk.": {
@@ -3127,7 +3128,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1144"
+        "mod/manager-ui.lua:1166"
       ]
     },
     "Browse your characters, discover a game model, or manage your current party.": {
@@ -3144,7 +3145,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1145"
+        "mod/manager-ui.lua:1167"
       ]
     },
     "Browser": {
@@ -3161,7 +3162,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:988"
+        "mod/manager-ui.lua:1010"
       ]
     },
     "CHARACTERS": {
@@ -3232,7 +3233,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:704"
+        "mod/manager-ui.lua:726"
       ]
     },
     "Cancel invitation": {
@@ -3240,7 +3241,7 @@
         "page.party"
       ],
       "references": [
-        "mod/manager-ui.lua:1215"
+        "mod/manager-ui.lua:1237"
       ]
     },
     "Cancel this request before anything is sent.": {
@@ -3248,7 +3249,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:705"
+        "mod/manager-ui.lua:727"
       ]
     },
     "Casual": {
@@ -3256,8 +3257,8 @@
         "page.relationships"
       ],
       "references": [
-        "mod/manager-ui.lua:1117",
-        "mod/manager-ui.lua:373"
+        "mod/manager-ui.lua:1139",
+        "mod/manager-ui.lua:374"
       ]
     },
     "Changes are saved on this computer and used from the next reply.": {
@@ -3273,7 +3274,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1372"
+        "mod/manager-ui.lua:1394"
       ]
     },
     "Changing after the current reply": {
@@ -3282,7 +3283,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:401"
+        "mod/manager-ui.lua:402"
       ]
     },
     "Character editor": {
@@ -3298,7 +3299,7 @@
         "memory.feedback"
       ],
       "references": [
-        "mod/manager.lua:240"
+        "mod/manager.lua:247"
       ]
     },
     "Characters": {
@@ -3306,7 +3307,7 @@
         "page.navigation"
       ],
       "references": [
-        "mod/manager.lua:1575"
+        "mod/manager.lua:1591"
       ]
     },
     "Characters and party": {
@@ -3314,9 +3315,9 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:1162",
-        "mod/manager-ui.lua:1224",
-        "mod/manager-ui.lua:1230"
+        "mod/manager-ui.lua:1184",
+        "mod/manager-ui.lua:1246",
+        "mod/manager-ui.lua:1252"
       ]
     },
     "Characters sometimes ask about something you said, pick up something from earlier or share a thought that invites an answer.\n\nNow and then, never on every reply, and never while you are leaving, giving an order or fighting.": {
@@ -3324,7 +3325,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1482"
+        "mod/manager-ui.lua:1504"
       ]
     },
     "Characters to invite": {
@@ -3332,7 +3333,7 @@
         "page.category"
       ],
       "references": [
-        "mod/manager-ui.lua:1174"
+        "mod/manager-ui.lua:1196"
       ]
     },
     "Characters you have talked to": {
@@ -3340,7 +3341,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:685"
+        "mod/manager-ui.lua:707"
       ]
     },
     "Chat": {
@@ -3358,7 +3359,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:717"
+        "mod/manager-ui.lua:739"
       ]
     },
     "Chat off": {
@@ -3366,7 +3367,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1526"
+        "mod/manager.lua:1542"
       ]
     },
     "Chat on": {
@@ -3374,7 +3375,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1526"
+        "mod/manager.lua:1542"
       ]
     },
     "Check": {
@@ -3382,7 +3383,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:994"
+        "mod/manager-ui.lua:1016"
       ]
     },
     "Check my plan": {
@@ -3390,7 +3391,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:994"
+        "mod/manager-ui.lua:1016"
       ]
     },
     "Checking your plan…": {
@@ -3408,9 +3409,9 @@
       ],
       "references": [
         "mod/custom-provider.lua:200",
-        "mod/manager-ui.lua:728",
-        "mod/manager.lua:314",
-        "mod/manager.lua:373"
+        "mod/manager-ui.lua:750",
+        "mod/manager.lua:321",
+        "mod/manager.lua:380"
       ]
     },
     "Choose 16 or 32 voice steps.": {
@@ -3419,7 +3420,7 @@
         "page.validation"
       ],
       "references": [
-        "mod/manager.lua:1912"
+        "mod/manager.lua:1928"
       ]
     },
     "Choose Check my plan to ask Convai.": {
@@ -3427,7 +3428,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:945"
+        "mod/manager-ui.lua:967"
       ]
     },
     "Choose Generate report. The file name and its folder appear here and in the banner above.": {
@@ -3435,7 +3436,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1294"
+        "mod/manager-ui.lua:1316"
       ]
     },
     "Choose a character": {
@@ -3443,7 +3444,7 @@
         "page.memory"
       ],
       "references": [
-        "mod/manager-ui.lua:689",
+        "mod/manager-ui.lua:711",
         "r6/scripts/CyberpunkConvai/Manager.reds:792"
       ]
     },
@@ -3452,7 +3453,7 @@
         "page.memory"
       ],
       "references": [
-        "mod/manager-ui.lua:709"
+        "mod/manager-ui.lua:731"
       ]
     },
     "Choose a character from the catalogue first.": {
@@ -3460,7 +3461,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:175"
+        "mod/manager.lua:182"
       ]
     },
     "Choose a character from the catalogue.": {
@@ -3468,7 +3469,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:212"
+        "mod/manager.lua:219"
       ]
     },
     "Choose a character on the left.": {
@@ -3484,7 +3485,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:1714"
+        "mod/manager.lua:1730"
       ]
     },
     "Choose a copy from your party first.": {
@@ -3492,7 +3493,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:1721"
+        "mod/manager.lua:1737"
       ]
     },
     "Choose a gender": {
@@ -3516,7 +3517,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:1921"
+        "mod/manager.lua:1937"
       ]
     },
     "Choose a memory clear action from Settings.": {
@@ -3524,7 +3525,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:176"
+        "mod/manager.lua:183"
       ]
     },
     "Choose a model in Models, then assign this profile in Party.": {
@@ -3532,7 +3533,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1591"
+        "mod/manager.lua:1607"
       ]
     },
     "Choose a ready companion from your party.": {
@@ -3550,7 +3551,7 @@
         "page.validation"
       ],
       "references": [
-        "mod/manager.lua:1915"
+        "mod/manager.lua:1931"
       ]
     },
     "Choose a voice volume from 50 to 200 percent.": {
@@ -3559,8 +3560,8 @@
         "page.refused"
       ],
       "references": [
-        "mod/manager-ui.lua:1754",
-        "mod/manager.lua:1888"
+        "mod/manager-ui.lua:1786",
+        "mod/manager.lua:1904"
       ]
     },
     "Choose an active or invited copy.": {
@@ -3577,7 +3578,7 @@
         "page.validation"
       ],
       "references": [
-        "mod/manager-ui.lua:1813"
+        "mod/manager-ui.lua:1845"
       ]
     },
     "Choose an eye-contact height from the available settings.": {
@@ -3585,7 +3586,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:1918"
+        "mod/manager.lua:1934"
       ]
     },
     "Choose an interface language.": {
@@ -3595,8 +3596,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1784",
-        "mod/manager.lua:1894"
+        "mod/manager-ui.lua:1816",
+        "mod/manager.lua:1910"
       ]
     },
     "Choose any character from the list below. They do not need to be in your current party.": {
@@ -3604,7 +3605,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:690"
+        "mod/manager-ui.lua:712"
       ]
     },
     "Choose how often Johnny speaks up.": {
@@ -3613,8 +3614,8 @@
         "page.refused"
       ],
       "references": [
-        "mod/manager-ui.lua:1825",
-        "mod/manager.lua:1872"
+        "mod/manager-ui.lua:1857",
+        "mod/manager.lua:1888"
       ]
     },
     "Choose how often V talks on their own.": {
@@ -3623,8 +3624,8 @@
         "page.refused"
       ],
       "references": [
-        "mod/manager-ui.lua:1830",
-        "mod/manager.lua:1878"
+        "mod/manager-ui.lua:1862",
+        "mod/manager.lua:1894"
       ]
     },
     "Choose one of the listed Local AI models.": {
@@ -3633,8 +3634,8 @@
         "page.refused"
       ],
       "references": [
-        "mod/manager-ui.lua:1775",
-        "mod/manager.lua:1852"
+        "mod/manager-ui.lua:1807",
+        "mod/manager.lua:1868"
       ]
     },
     "Choose one of the listed companion voices.": {
@@ -3644,8 +3645,8 @@
         "page.validation"
       ],
       "references": [
-        "mod/manager-ui.lua:1796",
-        "mod/manager.lua:1899"
+        "mod/manager-ui.lua:1828",
+        "mod/manager.lua:1915"
       ]
     },
     "Choose one of the listed conversation providers.": {
@@ -3654,8 +3655,8 @@
         "page.refused"
       ],
       "references": [
-        "mod/manager-ui.lua:1768",
-        "mod/manager.lua:1881"
+        "mod/manager-ui.lua:1800",
+        "mod/manager.lua:1897"
       ]
     },
     "Choose one of the listed lip sync delays.": {
@@ -3664,8 +3665,8 @@
         "page.refused"
       ],
       "references": [
-        "mod/manager-ui.lua:1759",
-        "mod/manager.lua:1884"
+        "mod/manager-ui.lua:1791",
+        "mod/manager.lua:1900"
       ]
     },
     "Choose one of the listed relationship options.": {
@@ -3674,9 +3675,9 @@
         "page.refused"
       ],
       "references": [
-        "mod/manager-ui.lua:1818",
-        "mod/manager.lua:1855",
-        "mod/manager.lua:1858"
+        "mod/manager-ui.lua:1850",
+        "mod/manager.lua:1871",
+        "mod/manager.lua:1874"
       ]
     },
     "Choose one of the listed subtitle displays.": {
@@ -3686,8 +3687,8 @@
         "page.validation"
       ],
       "references": [
-        "mod/manager-ui.lua:1778",
-        "mod/manager.lua:1891"
+        "mod/manager-ui.lua:1810",
+        "mod/manager.lua:1907"
       ]
     },
     "Choose one of the listed voices for V.": {
@@ -3696,8 +3697,8 @@
         "page.refused"
       ],
       "references": [
-        "mod/manager-ui.lua:1789",
-        "mod/manager.lua:1907"
+        "mod/manager-ui.lua:1821",
+        "mod/manager.lua:1923"
       ]
     },
     "Choose profile": {
@@ -3705,7 +3706,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1609"
+        "mod/manager.lua:1625"
       ]
     },
     "Choose the mod interface language independently of character voices and conversation language.": {
@@ -3720,7 +3721,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1565"
+        "mod/manager.lua:1581"
       ]
     },
     "Choose, character by character, who speaks to V as a partner.\n\nAuto follows the relationship in this save. It only changes how they talk, never your game choices.": {
@@ -3728,7 +3729,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:1408"
+        "mod/manager-ui.lua:1430"
       ]
     },
     "Choosing Convai turns it off.": {
@@ -3736,7 +3737,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:806"
+        "mod/manager-ui.lua:828"
       ]
     },
     "Chosen file: {name} ({size}). It is checked when you save it.": {
@@ -3760,7 +3761,7 @@
         "page.options"
       ],
       "references": [
-        "mod/manager-ui.lua:1498"
+        "mod/manager-ui.lua:1520"
       ]
     },
     "Cinematic: the game’s regular dialogue subtitles.\n\nAbove the speaker: over the companion who is talking.\n\nThe Subtitles switch turns both off.": {
@@ -3768,7 +3769,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1497"
+        "mod/manager-ui.lua:1519"
       ]
     },
     "Clear": {
@@ -3785,7 +3786,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:697"
+        "mod/manager-ui.lua:719"
       ]
     },
     "Clear memories about you for every character you have talked to.\n\nYour player identity stays. A confirmation comes first.": {
@@ -3793,7 +3794,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:713"
+        "mod/manager-ui.lua:735"
       ]
     },
     "Clear profile": {
@@ -3801,7 +3802,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1568"
+        "mod/manager.lua:1584"
       ]
     },
     "Clear the summary?": {
@@ -3826,7 +3827,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:708"
+        "mod/manager-ui.lua:730"
       ]
     },
     "Clear {name}’s memories about conversations with you?": {
@@ -3835,7 +3836,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:698"
+        "mod/manager-ui.lua:720"
       ]
     },
     "Cleared.": {
@@ -3852,7 +3853,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:196"
+        "mod/manager.lua:203"
       ]
     },
     "Clip removed.": {
@@ -3876,7 +3877,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:429"
+        "mod/manager-ui.lua:430"
       ]
     },
     "Close the phone to finish the pending companion requests.": {
@@ -3917,7 +3918,7 @@
         "page.category"
       ],
       "references": [
-        "mod/manager-ui.lua:1435"
+        "mod/manager-ui.lua:1457"
       ]
     },
     "Companion driver": {
@@ -3926,8 +3927,8 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:1185",
-        "mod/manager-ui.lua:1188"
+        "mod/manager-ui.lua:1207",
+        "mod/manager-ui.lua:1210"
       ]
     },
     "Companion ownership changed; waiting for the companion owner to resolve it.": {
@@ -3970,10 +3971,10 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1461",
-        "mod/manager-ui.lua:579",
-        "mod/manager.lua:1085",
-        "mod/manager.lua:1994"
+        "mod/manager-ui.lua:1483",
+        "mod/manager-ui.lua:597",
+        "mod/manager.lua:1101",
+        "mod/manager.lua:2010"
       ]
     },
     "Companions comment after you finish collecting loot from the world. Storage transfers stay silent.\n\nOrdinary comments are ten minutes apart; newly acquired Legendary gear has its own two-minute cooldown.\n\nPickups made during a fight are folded into one comment at its end.": {
@@ -3981,7 +3982,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1504"
+        "mod/manager-ui.lua:1526"
       ]
     },
     "Companions gesture while they speak longer replies and nod while you talk, with the game’s own animations in their usual stance.\n\nThey stop at once when anyone moves or a fight starts.": {
@@ -3989,7 +3990,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1443"
+        "mod/manager-ui.lua:1465"
       ]
     },
     "Companions now and then pause, hesitate, laugh or sigh, as their personality would. Each character decides when; it stays rare.\n\nOmniVoice can voice laughs and sighs; the other voices only add pauses.\n\nNot available with Convai’s cloud voice: choosing it turns this off, and turning this on switches the voice to Pocket.": {
@@ -3997,7 +3998,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1478"
+        "mod/manager-ui.lua:1500"
       ]
     },
     "Confirm": {
@@ -4006,7 +4007,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:701",
+        "mod/manager-ui.lua:723",
         "mod/mcm-host.lua:267"
       ]
     },
@@ -4015,7 +4016,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:700"
+        "mod/manager-ui.lua:722"
       ]
     },
     "Connecting microphone - wait for Listening": {
@@ -4041,7 +4042,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1399"
+        "mod/manager-ui.lua:1421"
       ]
     },
     "Convai API key": {
@@ -4050,9 +4051,9 @@
         "page.options"
       ],
       "references": [
-        "mod/manager-ui.lua:879",
-        "mod/manager-ui.lua:887",
-        "mod/manager-ui.lua:963"
+        "mod/manager-ui.lua:901",
+        "mod/manager-ui.lua:909",
+        "mod/manager-ui.lua:985"
       ]
     },
     "Convai could not start the payment. Try again later.": {
@@ -4068,8 +4069,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:752",
-        "mod/manager-ui.lua:960"
+        "mod/manager-ui.lua:774",
+        "mod/manager-ui.lua:982"
       ]
     },
     "Convai did not accept your API key.": {
@@ -4101,7 +4102,7 @@
         "page.options"
       ],
       "references": [
-        "mod/manager-ui.lua:879"
+        "mod/manager-ui.lua:901"
       ]
     },
     "Convai free tier: daily limit reached": {
@@ -4109,7 +4110,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:785"
+        "mod/manager-ui.lua:807"
       ]
     },
     "Convai free tier: limit used up": {
@@ -4117,7 +4118,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:776"
+        "mod/manager-ui.lua:798"
       ]
     },
     "Convai free tier: {left} of {limit} left today": {
@@ -4125,7 +4126,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:787"
+        "mod/manager-ui.lua:809"
       ]
     },
     "Convai has not confirmed your plan yet. Check it in Settings > Convai paid tier.": {
@@ -4134,10 +4135,10 @@
       ],
       "references": [
         "mod/convai-paid-tier.lua:161",
-        "mod/manager-ui.lua:1862"
+        "mod/manager-ui.lua:1894"
       ]
     },
-    "Convai is answering right now, so these changes have no effect yet. Choose Mistral or Local AI as the conversation provider in the settings.": {
+    "Convai is answering right now, so these changes have no effect yet. Choose Mistral, Local AI or Custom as the conversation provider in the settings.": {
       "contexts": [
         "ui.localized"
       ],
@@ -4152,10 +4153,10 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:1003",
-        "mod/manager-ui.lua:912",
-        "mod/manager-ui.lua:935",
-        "mod/manager-ui.lua:937"
+        "mod/manager-ui.lua:1025",
+        "mod/manager-ui.lua:934",
+        "mod/manager-ui.lua:957",
+        "mod/manager-ui.lua:959"
       ]
     },
     "Convai voice": {
@@ -4164,7 +4165,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:343"
+        "mod/manager-ui.lua:344"
       ]
     },
     "Convai voices · Local model unloaded": {
@@ -4172,7 +4173,7 @@
         "page.voice-status"
       ],
       "references": [
-        "mod/manager-ui.lua:390"
+        "mod/manager-ui.lua:391"
       ]
     },
     "Convai · Cloud voice": {
@@ -4180,7 +4181,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:952"
+        "mod/manager.lua:966"
       ]
     },
     "Convai: Local AI is not ready": {
@@ -4188,7 +4189,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:771"
+        "mod/manager-ui.lua:793"
       ]
     },
     "Convai: Mistral has no key yet": {
@@ -4196,7 +4197,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:772"
+        "mod/manager-ui.lua:794"
       ]
     },
     "Convai: the custom provider is not set up yet": {
@@ -4228,7 +4229,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:913"
+        "mod/manager-ui.lua:935"
       ]
     },
     "Conversation interrupted. Your message is in the draft.": {
@@ -4255,7 +4256,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:1723"
+        "mod/manager.lua:1739"
       ]
     },
     "Conversation profile not assigned": {
@@ -4263,7 +4264,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1542"
+        "mod/manager.lua:1558"
       ]
     },
     "Conversation profile not assigned.": {
@@ -4271,8 +4272,8 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1598",
-        "mod/manager.lua:1606"
+        "mod/manager.lua:1614",
+        "mod/manager.lua:1622"
       ]
     },
     "Conversation profile set to {name}.": {
@@ -4280,7 +4281,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1716"
+        "mod/manager.lua:1732"
       ]
     },
     "Conversation provider": {
@@ -4290,9 +4291,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1429",
-        "mod/manager-ui.lua:565",
-        "mod/manager-ui.lua:878"
+        "mod/manager-ui.lua:1451",
+        "mod/manager-ui.lua:579",
+        "mod/manager-ui.lua:900"
       ]
     },
     "Conversation service": {
@@ -4300,7 +4301,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:1323"
+        "mod/manager-ui.lua:1345"
       ]
     },
     "Conversation service logs": {
@@ -4308,7 +4309,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:1345"
+        "mod/manager-ui.lua:1367"
       ]
     },
     "Conversation: {name} (archetype)": {
@@ -4316,7 +4317,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1259"
+        "mod/manager-ui.lua:1281"
       ]
     },
     "Conversation: {state}": {
@@ -4325,8 +4326,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1260",
-        "mod/manager-ui.lua:368"
+        "mod/manager-ui.lua:1282",
+        "mod/manager-ui.lua:369"
       ]
     },
     "Conversations": {
@@ -4334,7 +4335,7 @@
         "page.category"
       ],
       "references": [
-        "mod/manager-ui.lua:1375"
+        "mod/manager-ui.lua:1397"
       ]
     },
     "Conversations are disabled for this contact.": {
@@ -4362,7 +4363,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:943"
+        "mod/manager-ui.lua:965"
       ]
     },
     "Copies in party: {count}": {
@@ -4370,7 +4371,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1585"
+        "mod/manager.lua:1601"
       ]
     },
     "Copy": {
@@ -4378,7 +4379,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:1338"
+        "mod/manager-ui.lua:1360"
       ]
     },
     "Copy report path": {
@@ -4386,7 +4387,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:1338"
+        "mod/manager-ui.lua:1360"
       ]
     },
     "Copy the base URL from your provider, for example https://openrouter.ai/api/v1, https://nano-gpt.com/api/v1 or http://localhost:11434/v1 (Ollama). It is read from the clipboard once and saved on this computer.\n\nOnly this computer and your home network may use http://. You can also fill in endpoint=, model= and api-key= in player-custom-endpoint.txt in the conversation service folder.\n\nNothing is sent until you choose this provider or press Test connection.": {
@@ -4410,7 +4411,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1292"
+        "mod/manager-ui.lua:1314"
       ]
     },
     "Copy your API key from your provider first. It is read from the clipboard once and saved on this computer only. A server on your own computer, such as Ollama or LM Studio, usually needs no key.": {
@@ -4426,7 +4427,7 @@
         "page.keyRow"
       ],
       "references": [
-        "mod/manager-ui.lua:883"
+        "mod/manager-ui.lua:905"
       ]
     },
     "Copy your key first. It is read from the clipboard once, checked with Convai and saved on this computer.": {
@@ -4434,8 +4435,8 @@
         "page.keyRow"
       ],
       "references": [
-        "mod/manager-ui.lua:888",
-        "mod/manager-ui.lua:964"
+        "mod/manager-ui.lua:910",
+        "mod/manager-ui.lua:986"
       ]
     },
     "Copying the path needs the conversation service, which is not running. The report file is at: {path}": {
@@ -4459,7 +4460,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:1334"
+        "mod/manager-ui.lua:1356"
       ]
     },
     "Create a report": {
@@ -4467,7 +4468,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:1330"
+        "mod/manager-ui.lua:1352"
       ]
     },
     "Create a report first, then copy its path.": {
@@ -4475,7 +4476,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1293"
+        "mod/manager-ui.lua:1315"
       ]
     },
     "Create a report first.": {
@@ -4491,7 +4492,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1680"
+        "mod/manager.lua:1696"
       ]
     },
     "Creating the report…": {
@@ -4508,8 +4509,8 @@
         "page.navigation"
       ],
       "references": [
-        "mod/manager-ui.lua:1140",
-        "mod/manager-ui.lua:1227"
+        "mod/manager-ui.lua:1162",
+        "mod/manager-ui.lua:1249"
       ]
     },
     "Current plan": {
@@ -4517,7 +4518,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:985"
+        "mod/manager-ui.lua:1007"
       ]
     },
     "Currently {state}.": {
@@ -4525,7 +4526,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1614"
+        "mod/manager.lua:1630"
       ]
     },
     "Custom (OpenAI-compatible)": {
@@ -4533,7 +4534,7 @@
         "page.options"
       ],
       "references": [
-        "mod/manager-ui.lua:879"
+        "mod/manager-ui.lua:901"
       ]
     },
     "Custom API key": {
@@ -4565,7 +4566,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:857"
+        "mod/manager-ui.lua:879"
       ]
     },
     "Custom provider replies are spoken by a local voice instead of the Convai cloud voice.": {
@@ -4622,7 +4623,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:1349"
+        "mod/manager-ui.lua:1371"
       ]
     },
     "Cyber Engine Tweaks writes cyber_engine_tweaks.log and scripting.log in {path}": {
@@ -4631,7 +4632,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1350"
+        "mod/manager-ui.lua:1372"
       ]
     },
     "DETAILS  {page} / {pages}": {
@@ -4656,7 +4657,7 @@
         "page.options"
       ],
       "references": [
-        "mod/manager-ui.lua:1438"
+        "mod/manager-ui.lua:1460"
       ]
     },
     "Defaults": {
@@ -4729,9 +4730,9 @@
         "page.keyRow"
       ],
       "references": [
-        "mod/manager-ui.lua:884",
-        "mod/manager-ui.lua:889",
-        "mod/manager-ui.lua:965"
+        "mod/manager-ui.lua:906",
+        "mod/manager-ui.lua:911",
+        "mod/manager-ui.lua:987"
       ]
     },
     "Deletes the saved key. Replies from the custom provider are then asked for without a key.": {
@@ -4763,7 +4764,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1524"
+        "mod/manager-ui.lua:1546"
       ]
     },
     "Development": {
@@ -4771,7 +4772,7 @@
         "page.category"
       ],
       "references": [
-        "mod/manager-ui.lua:1527"
+        "mod/manager-ui.lua:1549"
       ]
     },
     "Discovering installed character models. Results appear as they are read.": {
@@ -4779,7 +4780,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1576"
+        "mod/manager.lua:1592"
       ]
     },
     "Dismiss": {
@@ -4787,7 +4788,7 @@
         "page.party"
       ],
       "references": [
-        "mod/manager-ui.lua:1215"
+        "mod/manager-ui.lua:1237"
       ]
     },
     "Dismiss copy": {
@@ -4795,7 +4796,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1608"
+        "mod/manager.lua:1624"
       ]
     },
     "Display names": {
@@ -4819,7 +4820,7 @@
         "chauffeur.status"
       ],
       "references": [
-        "mod/manager-ui.lua:1180"
+        "mod/manager-ui.lua:1202"
       ]
     },
     "Driver leaving the car": {
@@ -4827,7 +4828,7 @@
         "chauffeur.status"
       ],
       "references": [
-        "mod/manager-ui.lua:1184"
+        "mod/manager-ui.lua:1206"
       ]
     },
     "Driving": {
@@ -4836,7 +4837,7 @@
       ],
       "references": [
         "mod/companions.lua:242",
-        "mod/manager-ui.lua:1182"
+        "mod/manager-ui.lua:1204"
       ]
     },
     "ENTER  Write / Send   /   ESC  Stop typing": {
@@ -4860,15 +4861,15 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1480"
+        "mod/manager-ui.lua:1502"
       ]
     },
-    "Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral and Local AI, not Convai. Changes apply from the next reply.": {
+    "Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply.": {
       "contexts": [
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:921"
+        "mod/manager-ui.lua:943"
       ]
     },
     "Edit characters": {
@@ -4876,7 +4877,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:920"
+        "mod/manager-ui.lua:942"
       ]
     },
     "Edited": {
@@ -4933,7 +4934,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1479",
+        "mod/manager-ui.lua:1501",
         "mod/manager-ui.lua:325"
       ]
     },
@@ -4942,8 +4943,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:1091",
-        "mod/manager.lua:1997"
+        "mod/manager.lua:1107",
+        "mod/manager.lua:2013"
       ]
     },
     "Eye contact height": {
@@ -4951,7 +4952,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1436"
+        "mod/manager-ui.lua:1458"
       ]
     },
     "Eyes only": {
@@ -4959,7 +4960,7 @@
         "page.options"
       ],
       "references": [
-        "mod/manager-ui.lua:1441"
+        "mod/manager-ui.lua:1463"
       ]
     },
     "Eyes only: the head stays still and just the eyes move.\n\nSubtle to Strong: the head turns toward you more and more.": {
@@ -4967,7 +4968,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1440"
+        "mod/manager-ui.lua:1462"
       ]
     },
     "Face a nearby character to talk.": {
@@ -5024,7 +5025,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:1531"
+        "mod/manager-ui.lua:1553"
       ]
     },
     "Finish combat before asking for a ride.": {
@@ -5041,7 +5042,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1481",
+        "mod/manager-ui.lua:1503",
         "mod/manager-ui.lua:326"
       ]
     },
@@ -5082,7 +5083,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1525"
+        "mod/manager-ui.lua:1547"
       ]
     },
     "Forget": {
@@ -5090,7 +5091,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:707"
+        "mod/manager-ui.lua:729"
       ]
     },
     "Forget ({count} characters)": {
@@ -5099,7 +5100,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:712"
+        "mod/manager-ui.lua:734"
       ]
     },
     "Forget all memories": {
@@ -5107,7 +5108,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:711"
+        "mod/manager-ui.lua:733"
       ]
     },
     "Forget all memories applies to these characters.\n\nBrowsing the catalogue or inviting a companion does not add anyone to this count.": {
@@ -5115,7 +5116,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:688"
+        "mod/manager-ui.lua:710"
       ]
     },
     "Forget memories": {
@@ -5123,7 +5124,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:701"
+        "mod/manager-ui.lua:723"
       ]
     },
     "Forget selected character": {
@@ -5131,7 +5132,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:707"
+        "mod/manager-ui.lua:729"
       ]
     },
     "Found.": {
@@ -5165,7 +5166,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:428"
+        "mod/manager-ui.lua:429"
       ]
     },
     "From Convai, turning it on selects Local AI. With Local AI it also selects the largest uncensored model that fits and a local voice instead of a cloud one. Turning it off restores your choices.": {
@@ -5173,7 +5174,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:805"
+        "mod/manager-ui.lua:827"
       ]
     },
     "GAME MODELS": {
@@ -5229,7 +5230,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1380"
+        "mod/manager-ui.lua:1402"
       ]
     },
     "Gender": {
@@ -5245,7 +5246,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:1334"
+        "mod/manager-ui.lua:1356"
       ]
     },
     "Generated reports are saved in {path}. The five newest are kept.": {
@@ -5254,7 +5255,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1356"
+        "mod/manager-ui.lua:1378"
       ]
     },
     "Gentle (default)": {
@@ -5262,7 +5263,7 @@
         "page.options"
       ],
       "references": [
-        "mod/manager-ui.lua:1441"
+        "mod/manager-ui.lua:1463"
       ]
     },
     "Get your Convai API key": {
@@ -5270,7 +5271,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:954"
+        "mod/manager-ui.lua:976"
       ]
     },
     "Gets a conversation ready when you look at, approach or have just talked to a character, so they answer without a wait. Paused in combat and scenes.\n\nLimits: two characters ready at once, a new one every 3 s, released after 40 s unused. A crowd never adds up.": {
@@ -5278,7 +5279,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1398"
+        "mod/manager-ui.lua:1420"
       ]
     },
     "Give the character a name.": {
@@ -5310,7 +5311,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:430"
+        "mod/manager-ui.lua:431"
       ]
     },
     "Graphics card": {
@@ -5345,7 +5346,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:427"
+        "mod/manager-ui.lua:428"
       ]
     },
     "Head tracking strength": {
@@ -5353,7 +5354,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1439"
+        "mod/manager-ui.lua:1461"
       ]
     },
     "Help": {
@@ -5361,7 +5362,7 @@
         "page.category"
       ],
       "references": [
-        "mod/manager-ui.lua:1529"
+        "mod/manager-ui.lua:1551"
       ]
     },
     "Help and support": {
@@ -5369,7 +5370,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:1530"
+        "mod/manager-ui.lua:1552"
       ]
     },
     "Holocall ended: combat started.": {
@@ -5393,7 +5394,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1475"
+        "mod/manager-ui.lua:1497"
       ]
     },
     "How the game finds this character": {
@@ -5426,7 +5427,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:1331"
+        "mod/manager-ui.lua:1353"
       ]
     },
     "If something goes wrong": {
@@ -5434,7 +5435,7 @@
         "page.category"
       ],
       "references": [
-        "mod/manager-ui.lua:1332"
+        "mod/manager-ui.lua:1354"
       ]
     },
     "In your party: {count}": {
@@ -5442,7 +5443,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:381"
+        "mod/manager-ui.lua:382"
       ]
     },
     "Install or update: {names}. Then restart the game.": {
@@ -5458,7 +5459,7 @@
         "page.category"
       ],
       "references": [
-        "mod/manager-ui.lua:1268"
+        "mod/manager-ui.lua:1290"
       ]
     },
     "Interface": {
@@ -5467,7 +5468,7 @@
         "settings.language"
       ],
       "references": [
-        "mod/manager-ui.lua:1370"
+        "mod/manager-ui.lua:1392"
       ]
     },
     "Interface language": {
@@ -5476,7 +5477,7 @@
         "settings.language"
       ],
       "references": [
-        "mod/manager-ui.lua:1371"
+        "mod/manager-ui.lua:1393"
       ]
     },
     "Internet": {
@@ -5492,7 +5493,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:1849"
+        "mod/manager.lua:1865"
       ]
     },
     "Invalid conversation settings.": {
@@ -5500,7 +5501,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:1924"
+        "mod/manager.lua:1940"
       ]
     },
     "Invite": {
@@ -5509,8 +5510,8 @@
         "page.party"
       ],
       "references": [
-        "mod/manager-ui.lua:1171",
-        "mod/manager-ui.lua:1262"
+        "mod/manager-ui.lua:1193",
+        "mod/manager-ui.lua:1284"
       ]
     },
     "Invite someone from Characters or Model browser.": {
@@ -5518,7 +5519,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:1226"
+        "mod/manager-ui.lua:1248"
       ]
     },
     "Invited characters are prepared immediately. Their memories start when you actually talk to them.\n\nOne player identity is shared across all saves and stays the same after forgetting.\n\nCurrent game context describes the world you have loaded.": {
@@ -5526,7 +5527,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:681"
+        "mod/manager-ui.lua:703"
       ]
     },
     "Inviting characters and managing your party need a loaded game.": {
@@ -5534,9 +5535,9 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:1163",
-        "mod/manager-ui.lua:1225",
-        "mod/manager-ui.lua:1231"
+        "mod/manager-ui.lua:1185",
+        "mod/manager-ui.lua:1247",
+        "mod/manager-ui.lua:1253"
       ]
     },
     "It answered in {ms} ms.": {
@@ -5568,7 +5569,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1384"
+        "mod/manager-ui.lua:1406"
       ]
     },
     "Johnny in your head": {
@@ -5576,7 +5577,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1383"
+        "mod/manager-ui.lua:1405"
       ]
     },
     "Johnny says something on his own after you meet someone he knows of, finish a job, a romance moves on, you arrive somewhere he knows, the Relic acts up, or a big fight ends. Needs Johnny in your head.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the Convai free tier each remark uses one of the day’s turns; remarks never take more than a tenth of them.": {
@@ -5584,7 +5585,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1387"
+        "mod/manager-ui.lua:1409"
       ]
     },
     "Johnny speaks up": {
@@ -5592,7 +5593,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1385"
+        "mod/manager-ui.lua:1407"
       ]
     },
     "Johnny’s hologram": {
@@ -5600,7 +5601,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1389"
+        "mod/manager-ui.lua:1411"
       ]
     },
     "Johnny’s standing": {
@@ -5608,7 +5609,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:432"
+        "mod/manager-ui.lua:433"
       ]
     },
     "Joining...": {
@@ -5616,7 +5617,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1543"
+        "mod/manager.lua:1559"
       ]
     },
     "Keep memories": {
@@ -5624,7 +5625,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:704"
+        "mod/manager-ui.lua:726"
       ]
     },
     "Keep this copy without a conversation identity": {
@@ -5632,7 +5633,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1513"
+        "mod/manager.lua:1529"
       ]
     },
     "Kept until forgotten": {
@@ -5640,7 +5641,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:716"
+        "mod/manager-ui.lua:738"
       ]
     },
     "Last report": {
@@ -5648,7 +5649,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:1337"
+        "mod/manager-ui.lua:1359"
       ]
     },
     "Launcher log": {
@@ -5656,7 +5657,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:1347"
+        "mod/manager-ui.lua:1369"
       ]
     },
     "Lines in their voice. They show the tone only and are never said back word for word.": {
@@ -5672,7 +5673,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1469"
+        "mod/manager-ui.lua:1491"
       ]
     },
     "Listening - press the same voice chat shortcut again to finish": {
@@ -5697,7 +5698,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1402"
+        "mod/manager-ui.lua:1424"
       ]
     },
     "Live picture unavailable. The call continues with the portrait.": {
@@ -5723,9 +5724,9 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:1162",
-        "mod/manager-ui.lua:1224",
-        "mod/manager-ui.lua:1230"
+        "mod/manager-ui.lua:1184",
+        "mod/manager-ui.lua:1246",
+        "mod/manager-ui.lua:1252"
       ]
     },
     "Loaded.": {
@@ -5741,7 +5742,7 @@
         "page.voice-status"
       ],
       "references": [
-        "mod/manager-ui.lua:388"
+        "mod/manager-ui.lua:389"
       ]
     },
     "Loading the OmniVoice voice…": {
@@ -5774,8 +5775,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:597",
-        "mod/manager-ui.lua:879",
+        "mod/manager-ui.lua:620",
+        "mod/manager-ui.lua:901",
         "mod/setup-check.lua:516"
       ]
     },
@@ -5875,9 +5876,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:549",
-        "mod/manager-ui.lua:572",
-        "mod/manager-ui.lua:865"
+        "mod/manager-ui.lua:552",
+        "mod/manager-ui.lua:586",
+        "mod/manager-ui.lua:887"
       ]
     },
     "Local AI stopped working and was restarted.": {
@@ -5917,7 +5918,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:1376"
+        "mod/manager-ui.lua:1398"
       ]
     },
     "Manage or cancel plan": {
@@ -5925,7 +5926,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:1000"
+        "mod/manager-ui.lua:1022"
       ]
     },
     "Mature content": {
@@ -5933,7 +5934,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:807"
+        "mod/manager-ui.lua:829"
       ]
     },
     "Memories": {
@@ -5949,7 +5950,7 @@
         "page.memory"
       ],
       "references": [
-        "mod/manager-ui.lua:683"
+        "mod/manager-ui.lua:705"
       ]
     },
     "Memory": {
@@ -5960,8 +5961,8 @@
       ],
       "references": [
         "mod/character-editor.lua:68",
-        "mod/manager-ui.lua:1271",
-        "mod/manager-ui.lua:1376"
+        "mod/manager-ui.lua:1293",
+        "mod/manager-ui.lua:1398"
       ]
     },
     "Memory clear cancelled. Nothing was deleted.": {
@@ -5969,7 +5970,7 @@
         "memory.feedback"
       ],
       "references": [
-        "mod/manager.lua:231"
+        "mod/manager.lua:238"
       ]
     },
     "Memory clear confirmed for {target}.": {
@@ -5978,7 +5979,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:199"
+        "mod/manager.lua:206"
       ]
     },
     "Memory clear requested. Waiting for the memory service to confirm it.": {
@@ -5987,7 +5988,7 @@
         "memory.feedback"
       ],
       "references": [
-        "mod/manager.lua:577"
+        "mod/manager.lua:590"
       ]
     },
     "Memory clearing is in progress. Your draft has been kept.": {
@@ -6005,7 +6006,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:693"
+        "mod/manager-ui.lua:715"
       ]
     },
     "Memory service": {
@@ -6013,7 +6014,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:682"
+        "mod/manager-ui.lua:704"
       ]
     },
     "Memory: remembers your conversations": {
@@ -6021,7 +6022,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:378"
+        "mod/manager-ui.lua:379"
       ]
     },
     "Message sent. Waiting for reply.": {
@@ -6072,7 +6073,7 @@
         "page.options"
       ],
       "references": [
-        "mod/manager-ui.lua:879"
+        "mod/manager-ui.lua:901"
       ]
     },
     "Mistral cloud voice (Voxtral)": {
@@ -6080,7 +6081,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:953"
+        "mod/manager.lua:967"
       ]
     },
     "Mistral did not accept that key.": {
@@ -6088,7 +6089,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:756"
+        "mod/manager-ui.lua:778"
       ]
     },
     "Mistral did not accept your key. Check it in Settings > Conversation provider.": {
@@ -6107,7 +6108,7 @@
         "page.keyRow"
       ],
       "references": [
-        "mod/manager-ui.lua:882"
+        "mod/manager-ui.lua:904"
       ]
     },
     "Mistral has no key yet, so Convai is used. Add your key in Settings > Conversation provider.": {
@@ -6131,7 +6132,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:765"
+        "mod/manager-ui.lua:787"
       ]
     },
     "Mistral: key not accepted": {
@@ -6139,7 +6140,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:766"
+        "mod/manager-ui.lua:788"
       ]
     },
     "Mistral: model unavailable": {
@@ -6147,7 +6148,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:767"
+        "mod/manager-ui.lua:789"
       ]
     },
     "Mistral’s free limit is reached for now. Try again in a moment.": {
@@ -6190,7 +6191,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:1343"
+        "mod/manager-ui.lua:1365"
       ]
     },
     "Mod logs such as probe.log and mcm.log are in {path}": {
@@ -6199,7 +6200,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1344"
+        "mod/manager-ui.lua:1366"
       ]
     },
     "Mod manager": {
@@ -6223,7 +6224,7 @@
         "page.navigation"
       ],
       "references": [
-        "mod/manager-ui.lua:1141"
+        "mod/manager-ui.lua:1163"
       ]
     },
     "Models": {
@@ -6231,7 +6232,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1575"
+        "mod/manager.lua:1591"
       ]
     },
     "More than one owned car is nearby. Select or summon the car you want to use.": {
@@ -6263,7 +6264,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1395"
+        "mod/manager-ui.lua:1417"
       ]
     },
     "Multilingual conversations needs a voice that speaks every language, so {setting} was switched to {voice}.": {
@@ -6271,7 +6272,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:1087"
+        "mod/manager.lua:1103"
       ]
     },
     "Multilingual: replies in your language": {
@@ -6279,7 +6280,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:330"
+        "mod/manager-ui.lua:331"
       ]
     },
     "NEXT  >": {
@@ -6312,7 +6313,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1477",
+        "mod/manager-ui.lua:1499",
         "mod/manager-ui.lua:324"
       ]
     },
@@ -6321,7 +6322,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:1097"
+        "mod/manager.lua:1113"
       ]
     },
     "Natural speech and Expressive emotions were turned off: the Convai cloud voice would read their tags aloud. With the OmniVoice pack, all three work together.": {
@@ -6329,7 +6330,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:1106"
+        "mod/manager.lua:1122"
       ]
     },
     "Natural speech needs a local voice, so {setting} was switched to {voice}.": {
@@ -6337,8 +6338,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:1090",
-        "mod/manager.lua:1996"
+        "mod/manager.lua:1106",
+        "mod/manager.lua:2012"
       ]
     },
     "Needs Local AI, Mistral or Custom.": {
@@ -6346,7 +6347,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:591"
+        "mod/manager-ui.lua:614"
       ]
     },
     "Needs a browser": {
@@ -6354,7 +6355,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:463",
+        "mod/manager-ui.lua:464",
         "mod/support-report.lua:357"
       ]
     },
@@ -6363,7 +6364,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:801"
+        "mod/manager-ui.lua:823"
       ]
     },
     "New address saved. Paste your API key again for it.": {
@@ -6420,7 +6421,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1261"
+        "mod/manager-ui.lua:1283"
       ]
     },
     "No entries are available.": {
@@ -6428,7 +6429,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1579"
+        "mod/manager.lua:1595"
       ]
     },
     "No entries yet.\nTry another search or tab.": {
@@ -6444,7 +6445,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:940"
+        "mod/manager-ui.lua:962"
       ]
     },
     "No match.": {
@@ -6460,7 +6461,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1579"
+        "mod/manager.lua:1595"
       ]
     },
     "No model installed": {
@@ -6468,7 +6469,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:852"
+        "mod/manager-ui.lua:874"
       ]
     },
     "No problem found. Select a line to see what was checked.": {
@@ -6476,7 +6477,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1319"
+        "mod/manager-ui.lua:1341"
       ]
     },
     "No reply arrived within {seconds} s. Try again.": {
@@ -6509,7 +6510,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:1825"
+        "mod/manager.lua:1841"
       ]
     },
     "No sign of the conversation service in this session: the Runtime is missing or did not load. Extract the Runtime zip straight into the Cyberpunk 2077 folder (not into a new folder), check that red4ext/plugins/AiNpcCyberpunkMod is there, then restart the game. The Runtime is a separate download from the mod’s Hugging Face page; the Nexus page links to it.": {
@@ -6550,7 +6551,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1294"
+        "mod/manager-ui.lua:1316"
       ]
     },
     "Normal": {
@@ -6558,8 +6559,8 @@
         "page.options"
       ],
       "references": [
-        "mod/manager-ui.lua:1388",
-        "mod/manager-ui.lua:1394"
+        "mod/manager-ui.lua:1410",
+        "mod/manager-ui.lua:1416"
       ]
     },
     "Not added": {
@@ -6570,7 +6571,7 @@
         "mod/custom-provider.lua:257",
         "mod/custom-provider.lua:277",
         "mod/custom-provider.lua:296",
-        "mod/manager-ui.lua:730"
+        "mod/manager-ui.lua:752"
       ]
     },
     "Not available right now.": {
@@ -6578,7 +6579,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1648"
+        "mod/manager-ui.lua:1670"
       ]
     },
     "Not checked yet": {
@@ -6586,7 +6587,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:945"
+        "mod/manager-ui.lua:967"
       ]
     },
     "Not configured": {
@@ -6594,7 +6595,7 @@
         "page.voice-status"
       ],
       "references": [
-        "mod/manager-ui.lua:389"
+        "mod/manager-ui.lua:390"
       ]
     },
     "Not enough free graphics memory to start Local AI. Try a smaller model in Settings.": {
@@ -6612,7 +6613,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:867"
+        "mod/manager-ui.lua:889"
       ]
     },
     "Not in your head yet": {
@@ -6620,7 +6621,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:425"
+        "mod/manager-ui.lua:426"
       ]
     },
     "Not needed: Local AI and the voice run on this PC.": {
@@ -6648,7 +6649,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:863"
+        "mod/manager-ui.lua:885"
       ]
     },
     "Not used": {
@@ -6688,7 +6689,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1393"
+        "mod/manager-ui.lua:1415"
       ]
     },
     "Now and then, when you sit down, Johnny shows himself a few steps away for a few seconds as a glitching hologram, the way the story shows him. Needs Johnny in your head.\n\nNever in scenes, calls, dialogue choices or fights, and at most once every ten minutes.": {
@@ -6696,7 +6697,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1390"
+        "mod/manager-ui.lua:1412"
       ]
     },
     "OK": {
@@ -6715,11 +6716,11 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1388",
-        "mod/manager-ui.lua:1394",
-        "mod/manager-ui.lua:1455",
-        "mod/manager-ui.lua:368",
-        "mod/manager.lua:1552"
+        "mod/manager-ui.lua:1410",
+        "mod/manager-ui.lua:1416",
+        "mod/manager-ui.lua:1477",
+        "mod/manager-ui.lua:369",
+        "mod/manager.lua:1568"
       ]
     },
     "Off: replies are text only and no voice is generated.\n\nWith Subtitles off as well, automatic reactions stay silent.": {
@@ -6727,7 +6728,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1464"
+        "mod/manager-ui.lua:1486"
       ]
     },
     "OmniVoice could not load. See Help in Settings.": {
@@ -6783,8 +6784,8 @@
         "page.voice-status"
       ],
       "references": [
-        "mod/manager-ui.lua:368",
-        "mod/manager.lua:1552"
+        "mod/manager-ui.lua:369",
+        "mod/manager.lua:1568"
       ]
     },
     "One file with versions, settings and the latest log lines. It never contains your API key, tokens, voice recordings or conversation text.": {
@@ -6792,7 +6793,7 @@
         "page.category"
       ],
       "references": [
-        "mod/manager-ui.lua:1341"
+        "mod/manager-ui.lua:1363"
       ]
     },
     "Only Mature models found. Turn on Mature content to use them.": {
@@ -6800,7 +6801,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:871",
+        "mod/manager-ui.lua:893",
         "mod/setup-check.lua:525"
       ]
     },
@@ -6818,13 +6819,13 @@
         "page.navigation"
       ],
       "references": [
-        "mod/manager-ui.lua:1000",
-        "mod/manager-ui.lua:1146",
-        "mod/manager-ui.lua:1407",
-        "mod/manager-ui.lua:1530",
-        "mod/manager-ui.lua:912",
-        "mod/manager-ui.lua:920",
-        "mod/manager-ui.lua:954"
+        "mod/manager-ui.lua:1022",
+        "mod/manager-ui.lua:1168",
+        "mod/manager-ui.lua:1429",
+        "mod/manager-ui.lua:1552",
+        "mod/manager-ui.lua:934",
+        "mod/manager-ui.lua:942",
+        "mod/manager-ui.lua:976"
       ]
     },
     "Open AI NPC Cyberpunk Mod in the Mods list.": {
@@ -6896,7 +6897,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:978"
+        "mod/manager-ui.lua:1000"
       ]
     },
     "Opens Convai’s sign-in page in your browser.\n\nSign in or make a free account, and your Convai API key is saved on this computer, the same as Paste. You have five minutes.": {
@@ -6904,7 +6905,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:952"
+        "mod/manager-ui.lua:974"
       ]
     },
     "Opens convai.com in your browser. Sign in or make a free account, copy your API key, then come back and choose Paste below.": {
@@ -6912,7 +6913,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:955"
+        "mod/manager-ui.lua:977"
       ]
     },
     "Opens your Convai billing page in your browser. Sign in with the same Convai account to change or cancel your plan.": {
@@ -6920,7 +6921,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:1001"
+        "mod/manager-ui.lua:1023"
       ]
     },
     "Optional packs": {
@@ -6944,8 +6945,8 @@
         "page.relationships"
       ],
       "references": [
-        "mod/manager-ui.lua:1117",
-        "mod/manager-ui.lua:374"
+        "mod/manager-ui.lua:1139",
+        "mod/manager-ui.lua:375"
       ]
     },
     "Page": {
@@ -6972,7 +6973,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1642"
+        "mod/manager.lua:1658"
       ]
     },
     "Parts of the character": {
@@ -6988,7 +6989,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1650"
+        "mod/manager.lua:1666"
       ]
     },
     "Paste": {
@@ -6996,7 +6997,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:739"
+        "mod/manager-ui.lua:761"
       ]
     },
     "Paste API key": {
@@ -7036,7 +7037,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:716"
+        "mod/manager-ui.lua:738"
       ]
     },
     "Picked up in your talks": {
@@ -7052,7 +7053,7 @@
         "page.category"
       ],
       "references": [
-        "mod/manager-ui.lua:1005"
+        "mod/manager-ui.lua:1027"
       ]
     },
     "Plans Convai made for this mod. They give your own Convai API key more conversations; the free tier stays as it is.": {
@@ -7060,7 +7061,7 @@
         "page.category"
       ],
       "references": [
-        "mod/manager-ui.lua:1004"
+        "mod/manager-ui.lua:1026"
       ]
     },
     "Play saved clip": {
@@ -7076,7 +7077,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1612"
+        "mod/manager.lua:1628"
       ]
     },
     "Playback settings updated.": {
@@ -7084,7 +7085,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:2031"
+        "mod/manager.lua:2047"
       ]
     },
     "Player memory": {
@@ -7092,7 +7093,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:680"
+        "mod/manager-ui.lua:702"
       ]
     },
     "Player unavailable": {
@@ -7116,7 +7117,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:1076"
+        "mod/manager.lua:1092"
       ]
     },
     "Pocket could not load. See Help in Settings.": {
@@ -7149,7 +7150,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1487"
+        "mod/manager-ui.lua:1509"
       ]
     },
     "Pocket · Performance": {
@@ -7157,15 +7158,15 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:951"
+        "mod/manager.lua:965"
       ]
     },
-    "Pocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second. English only, and not with Mature content on.\n\nWhichever you pick, a line that is not ready in time is skipped.": {
+    "Pocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second. English only, and not with Mature content on Local AI.\n\nWhichever you pick, a line that is not ready in time is skipped.": {
       "contexts": [
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1486"
+        "mod/manager-ui.lua:1508"
       ]
     },
     "Pocket: the lightest, runs on your CPU, starts speaking in about 0.2 s.\n\nOmniVoice: richer, especially on harder voices. Needs a capable GPU and the OmniVoice pack (greyed out until it is installed); the higher tiers start in 1 to 2.5 s.\n\nVoxtral: each companion’s own voice from the cloud, with your own Mistral key, English only. It loads no local voice model.\n\nConvai: its own cloud voice. A voice that cannot run is replaced by a simpler one, with one notice.": {
@@ -7173,7 +7174,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1466"
+        "mod/manager-ui.lua:1488"
       ]
     },
     "Preparing a reply": {
@@ -7181,7 +7182,7 @@
         "page.voice-status"
       ],
       "references": [
-        "mod/manager-ui.lua:388"
+        "mod/manager-ui.lua:389"
       ]
     },
     "Preparing connection to {name}…": {
@@ -7197,7 +7198,7 @@
         "chauffeur.status"
       ],
       "references": [
-        "mod/manager-ui.lua:1179"
+        "mod/manager-ui.lua:1201"
       ]
     },
     "Preparing voices": {
@@ -7205,7 +7206,7 @@
         "page.voice-status"
       ],
       "references": [
-        "mod/manager-ui.lua:388"
+        "mod/manager-ui.lua:389"
       ]
     },
     "Preparing {count} more companions…": {
@@ -7301,7 +7302,7 @@
         "page.category"
       ],
       "references": [
-        "mod/manager-ui.lua:1005"
+        "mod/manager-ui.lua:1027"
       ]
     },
     "Privacy": {
@@ -7309,7 +7310,7 @@
         "page.category"
       ],
       "references": [
-        "mod/manager-ui.lua:1519"
+        "mod/manager-ui.lua:1541"
       ]
     },
     "Problem": {
@@ -7325,7 +7326,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1320"
+        "mod/manager-ui.lua:1342"
       ]
     },
     "Profile only": {
@@ -7333,7 +7334,7 @@
         "page.party"
       ],
       "references": [
-        "mod/manager-ui.lua:1171"
+        "mod/manager-ui.lua:1193"
       ]
     },
     "Puts every setting on Settings and Relationships back to its default. Press the button twice to confirm.": {
@@ -7357,7 +7358,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:1353"
+        "mod/manager-ui.lua:1375"
       ]
     },
     "RED4ext writes its logs in {path}": {
@@ -7366,7 +7367,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1354"
+        "mod/manager-ui.lua:1376"
       ]
     },
     "Rare": {
@@ -7374,8 +7375,8 @@
         "page.options"
       ],
       "references": [
-        "mod/manager-ui.lua:1388",
-        "mod/manager-ui.lua:1394"
+        "mod/manager-ui.lua:1410",
+        "mod/manager-ui.lua:1416"
       ]
     },
     "Reached {host}.": {
@@ -7392,8 +7393,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1501",
-        "mod/manager-ui.lua:332"
+        "mod/manager-ui.lua:1523",
+        "mod/manager-ui.lua:333"
       ]
     },
     "React to collected loot": {
@@ -7402,8 +7403,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1503",
-        "mod/manager-ui.lua:333"
+        "mod/manager-ui.lua:1525",
+        "mod/manager-ui.lua:334"
       ]
     },
     "Reading installed models…": {
@@ -7412,8 +7413,8 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:1234",
-        "mod/manager-ui.lua:1235"
+        "mod/manager-ui.lua:1256",
+        "mod/manager-ui.lua:1257"
       ]
     },
     "Reading models {read}/{total}": {
@@ -7421,7 +7422,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1644"
+        "mod/manager.lua:1660"
       ]
     },
     "Ready": {
@@ -7429,8 +7430,8 @@
         "page.voice-status"
       ],
       "references": [
-        "mod/manager-ui.lua:388",
-        "mod/manager-ui.lua:682"
+        "mod/manager-ui.lua:389",
+        "mod/manager-ui.lua:704"
       ]
     },
     "Record names": {
@@ -7446,7 +7447,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:1351"
+        "mod/manager-ui.lua:1373"
       ]
     },
     "Relationship: {mode}": {
@@ -7454,7 +7455,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:372"
+        "mod/manager-ui.lua:373"
       ]
     },
     "Relationships": {
@@ -7463,8 +7464,8 @@
         "page.category"
       ],
       "references": [
-        "mod/manager-ui.lua:1362",
-        "mod/manager-ui.lua:1407"
+        "mod/manager-ui.lua:1384",
+        "mod/manager-ui.lua:1429"
       ]
     },
     "Releasing local voice memory": {
@@ -7472,7 +7473,7 @@
         "page.voice-status"
       ],
       "references": [
-        "mod/manager-ui.lua:390"
+        "mod/manager-ui.lua:391"
       ]
     },
     "Remove": {
@@ -7483,7 +7484,7 @@
         "mod/custom-provider.lua:267",
         "mod/custom-provider.lua:288",
         "mod/custom-provider.lua:306",
-        "mod/manager-ui.lua:739"
+        "mod/manager-ui.lua:761"
       ]
     },
     "Remove clip": {
@@ -7501,7 +7502,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1216"
+        "mod/manager-ui.lua:1238"
       ]
     },
     "Remove the voice clip? The character goes back to a generic voice.": {
@@ -7526,7 +7527,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1643"
+        "mod/manager-ui.lua:1665"
       ]
     },
     "Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.": {
@@ -7534,7 +7535,7 @@
         "page.memory"
       ],
       "references": [
-        "mod/manager-ui.lua:684"
+        "mod/manager-ui.lua:706"
       ]
     },
     "Report for the developer": {
@@ -7542,7 +7543,7 @@
         "page.category"
       ],
       "references": [
-        "mod/manager-ui.lua:1333"
+        "mod/manager-ui.lua:1355"
       ]
     },
     "Report path copied to the clipboard.": {
@@ -7574,8 +7575,8 @@
         "page.refused"
       ],
       "references": [
-        "mod/manager-ui.lua:1791",
-        "mod/manager-ui.lua:1804"
+        "mod/manager-ui.lua:1823",
+        "mod/manager-ui.lua:1836"
       ]
     },
     "Requires the optional OmniVoice pack (GPU)": {
@@ -7585,7 +7586,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1800",
+        "mod/manager-ui.lua:1832",
         "mod/manager.lua:35",
         "mod/mcm-host.lua:301"
       ]
@@ -7619,7 +7620,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:1152"
+        "mod/manager-ui.lua:1174"
       ]
     },
     "Return to conversation settings.": {
@@ -7627,7 +7628,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:1153"
+        "mod/manager-ui.lua:1175"
       ]
     },
     "Revert changes": {
@@ -7644,7 +7645,7 @@
         "memory.feedback"
       ],
       "references": [
-        "mod/manager.lua:226"
+        "mod/manager.lua:233"
       ]
     },
     "Right after the game’s own dialogue with a character, they know its last few lines, including your chosen replies and your phone calls with them.\n\nOnly the last few minutes count, and none of it is saved to memory.": {
@@ -7652,7 +7653,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1400"
+        "mod/manager-ui.lua:1422"
       ]
     },
     "Romantic": {
@@ -7660,8 +7661,8 @@
         "page.relationships"
       ],
       "references": [
-        "mod/manager-ui.lua:1117",
-        "mod/manager-ui.lua:373"
+        "mod/manager-ui.lua:1139",
+        "mod/manager-ui.lua:374"
       ]
     },
     "Rules for the whole world, used for every character in every talk: face to face, phone and group chats. Write facts and style, for example how people talk or what nobody knows. They never replace the mod’s own rules.": {
@@ -7735,7 +7736,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1297"
+        "mod/manager-ui.lua:1319"
       ]
     },
     "Saved clip: {seconds} seconds.": {
@@ -7752,7 +7753,7 @@
       ],
       "references": [
         "mod/custom-provider.lua:281",
-        "mod/manager-ui.lua:733"
+        "mod/manager-ui.lua:755"
       ]
     },
     "Saved reports": {
@@ -7760,7 +7761,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:1355"
+        "mod/manager-ui.lua:1377"
       ]
     },
     "Saved.": {
@@ -7792,7 +7793,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:1335"
+        "mod/manager-ui.lua:1357"
       ]
     },
     "Scenery or a vehicle is blocking the companion position.": {
@@ -7851,7 +7852,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:1377"
+        "mod/manager-ui.lua:1399"
       ]
     },
     "Select a destination on the map first.": {
@@ -7869,7 +7870,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1280"
+        "mod/manager-ui.lua:1302"
       ]
     },
     "Selected": {
@@ -7877,7 +7878,7 @@
         "page.navigation"
       ],
       "references": [
-        "mod/manager-ui.lua:1279",
+        "mod/manager-ui.lua:1301",
         "mod/phone-chat-style.lua:154",
         "mod/phone-chat-style.lua:157",
         "mod/phone-chat-style.lua:204",
@@ -7889,7 +7890,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:689"
+        "mod/manager-ui.lua:711"
       ]
     },
     "Send error reports automatically": {
@@ -7897,7 +7898,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1520"
+        "mod/manager-ui.lua:1542"
       ]
     },
     "Send the generated report rather than raw log files. Open these locations only if the developer asks for a specific file.": {
@@ -7905,7 +7906,7 @@
         "page.category"
       ],
       "references": [
-        "mod/manager-ui.lua:1357"
+        "mod/manager-ui.lua:1379"
       ]
     },
     "Sends one tiny message to your endpoint with the saved model ID and key, and shows how it answered. It uses next to nothing of your credits.": {
@@ -7921,7 +7922,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:850"
+        "mod/manager-ui.lua:872"
       ]
     },
     "Service starting": {
@@ -7929,7 +7930,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:851"
+        "mod/manager-ui.lua:873"
       ]
     },
     "Settings": {
@@ -7937,8 +7938,8 @@
         "page.navigation"
       ],
       "references": [
-        "mod/manager-ui.lua:1141",
-        "mod/manager.lua:1575"
+        "mod/manager-ui.lua:1163",
+        "mod/manager.lua:1591"
       ]
     },
     "Settings are active, but could not be saved for next time.": {
@@ -7946,7 +7947,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:1363"
+        "mod/manager.lua:1379"
       ]
     },
     "Settings saved.": {
@@ -7954,7 +7955,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:2004"
+        "mod/manager.lua:2020"
       ]
     },
     "Setup check": {
@@ -7962,7 +7963,7 @@
         "page.category"
       ],
       "references": [
-        "mod/manager-ui.lua:1327"
+        "mod/manager-ui.lua:1349"
       ]
     },
     "Shared across your saves": {
@@ -7970,7 +7971,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:680"
+        "mod/manager-ui.lua:702"
       ]
     },
     "Short facts you write yourself, such as a name or a promise. The character knows them in every talk.": {
@@ -8026,7 +8027,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1613"
+        "mod/manager.lua:1629"
       ]
     },
     "Show only the models whose name starts with this letter.": {
@@ -8034,7 +8035,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1251"
+        "mod/manager-ui.lua:1273"
       ]
     },
     "Shows companion replies as text.\n\nWith Voice playback off as well, automatic reactions stay silent.": {
@@ -8042,7 +8043,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1495"
+        "mod/manager-ui.lua:1517"
       ]
     },
     "Shows the character live in a holocall instead of their portrait.\n\nIf she cannot be shown, the call goes on with the portrait.": {
@@ -8050,7 +8051,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1403"
+        "mod/manager-ui.lua:1425"
       ]
     },
     "Sign in": {
@@ -8058,7 +8059,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:951"
+        "mod/manager-ui.lua:973"
       ]
     },
     "Sign in on the Convai page in your browser. Your key is saved here when you finish.": {
@@ -8074,7 +8075,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:951"
+        "mod/manager-ui.lua:973"
       ]
     },
     "Signed in. Your Convai API key is saved.": {
@@ -8091,7 +8092,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1264"
+        "mod/manager-ui.lua:1286"
       ]
     },
     "Some mod files are missing. Extract the Scripts zip again. See Help in Settings.": {
@@ -8107,7 +8108,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager.lua:1479"
+        "mod/manager.lua:1495"
       ]
     },
     "Some pack files could not be moved into place because different files are already there. Extract the pack into the Cyberpunk 2077 folder again and let it replace the files.": {
@@ -8189,7 +8190,7 @@
         "chauffeur.status"
       ],
       "references": [
-        "mod/manager-ui.lua:1182"
+        "mod/manager-ui.lua:1204"
       ]
     },
     "Starts with": {
@@ -8197,7 +8198,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1250"
+        "mod/manager-ui.lua:1272"
       ]
     },
     "Starts with: {letter}": {
@@ -8213,7 +8214,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1604"
+        "mod/manager.lua:1620"
       ]
     },
     "Step out and wait for the previous driver cleanup to finish.": {
@@ -8255,7 +8256,7 @@
         "chauffeur.status"
       ],
       "references": [
-        "mod/manager-ui.lua:1186"
+        "mod/manager-ui.lua:1208"
       ]
     },
     "Stop the trip after returning to gameplay. Wait for the car to stop, then step out before dismissing the driver.": {
@@ -8263,7 +8264,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:1189"
+        "mod/manager-ui.lua:1211"
       ]
     },
     "Stop the trip and step out before dismissing your driver.": {
@@ -8280,7 +8281,7 @@
         "page.action"
       ],
       "references": [
-        "mod/manager-ui.lua:1188"
+        "mod/manager-ui.lua:1210"
       ]
     },
     "Stopped": {
@@ -8288,7 +8289,7 @@
         "page.voice-status"
       ],
       "references": [
-        "mod/manager-ui.lua:389"
+        "mod/manager-ui.lua:390"
       ]
     },
     "Stopping": {
@@ -8297,7 +8298,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager-ui.lua:1183"
+        "mod/manager-ui.lua:1205"
       ]
     },
     "Stopping the trip. Wait for the car to stop before stepping out.": {
@@ -8321,7 +8322,7 @@
         "page.options"
       ],
       "references": [
-        "mod/manager-ui.lua:1441"
+        "mod/manager-ui.lua:1463"
       ]
     },
     "Strong language, graphic violence, drugs and, between consenting adults, flirting and sex. Adults only (18+). Works with Local AI, Mistral and Custom.": {
@@ -8329,7 +8330,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:799"
+        "mod/manager-ui.lua:821"
       ]
     },
     "Subtitle display": {
@@ -8337,7 +8338,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1496"
+        "mod/manager-ui.lua:1518"
       ]
     },
     "Subtitles": {
@@ -8346,8 +8347,8 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1494",
-        "mod/manager-ui.lua:1495"
+        "mod/manager-ui.lua:1516",
+        "mod/manager-ui.lua:1517"
       ]
     },
     "Subtle": {
@@ -8355,7 +8356,7 @@
         "page.options"
       ],
       "references": [
-        "mod/manager-ui.lua:1441"
+        "mod/manager-ui.lua:1463"
       ]
     },
     "Support report saved: {path}": {
@@ -8384,12 +8385,12 @@
         "r6/scripts/CyberpunkConvai/Manager.reds:224"
       ]
     },
-    "Talk in any language; each character answers in yours.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech and Expressive emotions turn off.": {
+    "Talk in any language; each character answers in yours. It works on the Convai free tier only. Mistral, Local AI and Custom already answer in the language you write in.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech and Expressive emotions turn off.": {
       "contexts": [
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1396"
+        "mod/manager-ui.lua:1418"
       ]
     },
     "Talk to ordinary NPCs": {
@@ -8397,7 +8398,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1379"
+        "mod/manager-ui.lua:1401"
       ]
     },
     "Talk to story characters": {
@@ -8405,7 +8406,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1381"
+        "mod/manager-ui.lua:1403"
       ]
     },
     "Test": {
@@ -8487,8 +8488,8 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:230",
-        "mod/manager.lua:558"
+        "mod/manager.lua:237",
+        "mod/manager.lua:571"
       ]
     },
     "That conversation profile is unavailable.": {
@@ -8497,8 +8498,8 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:1692",
-        "mod/manager.lua:1927"
+        "mod/manager.lua:1708",
+        "mod/manager.lua:1943"
       ]
     },
     "That copy is no longer in your party.": {
@@ -8509,8 +8510,8 @@
       "references": [
         "mod/manager-party.lua:561",
         "mod/manager-party.lua:592",
-        "mod/manager.lua:1686",
-        "mod/manager.lua:1708"
+        "mod/manager.lua:1702",
+        "mod/manager.lua:1724"
       ]
     },
     "That dismissal is no longer pending.": {
@@ -8550,7 +8551,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:1676"
+        "mod/manager.lua:1692"
       ]
     },
     "That setting is read-only.": {
@@ -8559,7 +8560,7 @@
         "page.validation"
       ],
       "references": [
-        "mod/manager-ui.lua:1837"
+        "mod/manager-ui.lua:1869"
       ]
     },
     "That was not accepted.": {
@@ -8592,7 +8593,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:1133"
+        "mod/manager.lua:1149"
       ]
     },
     "The Local AI model you chose is missing, does not fit in the free graphics memory or did not start, so {model} was used instead.": {
@@ -8616,7 +8617,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:803"
+        "mod/manager-ui.lua:825"
       ]
     },
     "The Mature pack’s uncensored models (for Local AI) give the full effect; standard models mostly refuse sex. Pack: not installed (optional, on this mod’s Hugging Face page).": {
@@ -8624,7 +8625,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:804"
+        "mod/manager-ui.lua:826"
       ]
     },
     "The Mistral cloud voice speaks only English here. Turn off Multilingual conversations to choose it.": {
@@ -8632,7 +8633,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:1080"
+        "mod/manager.lua:1096"
       ]
     },
     "The Mistral model is unavailable right now. Try again in a minute.": {
@@ -8684,8 +8685,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1654",
-        "mod/manager.lua:2023",
+        "mod/manager-ui.lua:1676",
+        "mod/manager.lua:2039",
         "mod/nsui.lua:440"
       ]
     },
@@ -8770,7 +8771,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:563"
+        "mod/manager.lua:576"
       ]
     },
     "The character died before joining.": {
@@ -8821,9 +8822,9 @@
       ],
       "references": [
         "mod/custom-provider.lua:206",
-        "mod/manager-ui.lua:753",
-        "mod/manager-ui.lua:757",
-        "mod/manager-ui.lua:961"
+        "mod/manager-ui.lua:775",
+        "mod/manager-ui.lua:779",
+        "mod/manager-ui.lua:983"
       ]
     },
     "The clipboard does not hold a Convai API key.": {
@@ -8831,8 +8832,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:751",
-        "mod/manager-ui.lua:959"
+        "mod/manager-ui.lua:773",
+        "mod/manager-ui.lua:981"
       ]
     },
     "The clipboard does not hold a model ID.": {
@@ -8872,8 +8873,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:750",
-        "mod/manager-ui.lua:958"
+        "mod/manager-ui.lua:772",
+        "mod/manager-ui.lua:980"
       ]
     },
     "The clipboard is not available here. Read the path from the Last report row.": {
@@ -9026,7 +9027,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:936"
+        "mod/manager-ui.lua:958"
       ]
     },
     "The conversation service is not running, so the editor cannot open. Restart the game.": {
@@ -9058,8 +9059,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1309",
-        "mod/manager-ui.lua:1447",
+        "mod/manager-ui.lua:1331",
+        "mod/manager-ui.lua:1469",
         "mod/service-status.lua:165",
         "mod/setup-check.lua:494"
       ]
@@ -9085,7 +9086,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1310"
+        "mod/manager-ui.lua:1332"
       ]
     },
     "The conversation service writes bridge.stderr.log, bridge.stdout.log and bridge-service.log in {path}": {
@@ -9094,7 +9095,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1346"
+        "mod/manager-ui.lua:1368"
       ]
     },
     "The copy could not be dismissed.": {
@@ -9104,7 +9105,7 @@
       ],
       "references": [
         "mod/manager-party.lua:772",
-        "mod/manager.lua:1688"
+        "mod/manager.lua:1704"
       ]
     },
     "The custom provider did not accept your key. Check it in Settings > Conversation provider.": {
@@ -9397,7 +9398,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1382"
+        "mod/manager-ui.lua:1404"
       ]
     },
     "The installed character models could not be read.": {
@@ -9405,7 +9406,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager.lua:1395"
+        "mod/manager.lua:1411"
       ]
     },
     "The key could not be saved.": {
@@ -9413,9 +9414,9 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:754",
-        "mod/manager-ui.lua:758",
-        "mod/manager-ui.lua:962"
+        "mod/manager-ui.lua:776",
+        "mod/manager-ui.lua:780",
+        "mod/manager-ui.lua:984"
       ]
     },
     "The list will refresh in a moment.": {
@@ -9431,7 +9432,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1740"
+        "mod/manager.lua:1756"
       ]
     },
     "The manager could not refresh: {reason}": {
@@ -9439,7 +9440,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:2044"
+        "mod/manager.lua:2060"
       ]
     },
     "The memory clear request could not be sent. Check the memory service before trying again.": {
@@ -9447,7 +9448,7 @@
         "memory.feedback"
       ],
       "references": [
-        "mod/manager.lua:571"
+        "mod/manager.lua:584"
       ]
     },
     "The memory service could not confirm the clear for {target}. Review the service before choosing Forget again.": {
@@ -9456,7 +9457,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:200"
+        "mod/manager.lua:207"
       ]
     },
     "The memory service did not respond. Check your connection, then invite again.": {
@@ -9472,8 +9473,8 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:171",
-        "mod/manager.lua:173"
+        "mod/manager.lua:178",
+        "mod/manager.lua:180"
       ]
     },
     "The microphone {name} sends no sound. Check your Windows input device.": {
@@ -9538,7 +9539,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:1371"
+        "mod/manager.lua:1387"
       ]
     },
     "The profile could not be assigned.": {
@@ -9546,7 +9547,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1717"
+        "mod/manager.lua:1733"
       ]
     },
     "The profile could not be cleared.": {
@@ -9554,7 +9555,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1724"
+        "mod/manager.lua:1740"
       ]
     },
     "The provider said: {detail}": {
@@ -9595,7 +9596,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1352"
+        "mod/manager-ui.lua:1374"
       ]
     },
     "The report could not be created. Check that the mod folder can be written to, then try again.": {
@@ -9615,8 +9616,8 @@
         "mod/convai-paid-tier.lua:135",
         "mod/custom-provider.lua:188",
         "mod/custom-provider.lua:193",
-        "mod/manager.lua:304",
-        "mod/manager.lua:363"
+        "mod/manager.lua:311",
+        "mod/manager.lua:370"
       ]
     },
     "The route is blocked. Step out or try a new trip.": {
@@ -9658,7 +9659,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1348"
+        "mod/manager-ui.lua:1370"
       ]
     },
     "The settings could not be saved. Nothing was changed.": {
@@ -9666,7 +9667,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:1979"
+        "mod/manager.lua:1995"
       ]
     },
     "The settings file of the launcher, launcher.ini, is missing from red4ext/plugins/AiNpcCyberpunkMod, so the game cannot start the conversation service. Extract the Runtime zip straight into the Cyberpunk 2077 folder again (by hand, also with Vortex) and let it replace the files, then restart the game.": {
@@ -9828,7 +9829,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1567"
+        "mod/manager.lua:1583"
       ]
     },
     "This copy could not be created.": {
@@ -9836,7 +9837,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1681"
+        "mod/manager.lua:1697"
       ]
     },
     "This copy could not join.": {
@@ -9844,7 +9845,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager.lua:1381"
+        "mod/manager.lua:1397"
       ]
     },
     "This is a short report: the conversation service was not available to build the full one.": {
@@ -9852,7 +9853,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1299"
+        "mod/manager-ui.lua:1321"
       ]
     },
     "This is your current plan. To change or cancel it, choose Manage or cancel plan below.": {
@@ -9860,7 +9861,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:984"
+        "mod/manager-ui.lua:1006"
       ]
     },
     "This key has no paid plan. Choose a plan below.": {
@@ -9868,7 +9869,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:944"
+        "mod/manager-ui.lua:966"
       ]
     },
     "This managed companion is unavailable.": {
@@ -9885,7 +9886,7 @@
         "manager.feedback"
       ],
       "references": [
-        "mod/manager.lua:1729"
+        "mod/manager.lua:1745"
       ]
     },
     "This model spends its reply on thinking. Choose a non-reasoning model in Settings.": {
@@ -9911,12 +9912,12 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:1842",
-        "mod/manager.lua:1845",
-        "mod/manager.lua:1863",
-        "mod/manager.lua:1866",
-        "mod/manager.lua:1869",
-        "mod/manager.lua:1875"
+        "mod/manager.lua:1858",
+        "mod/manager.lua:1861",
+        "mod/manager.lua:1879",
+        "mod/manager.lua:1882",
+        "mod/manager.lua:1885",
+        "mod/manager.lua:1891"
       ]
     },
     "Today’s Convai turns are used.\nTry Mistral (free key, ~5,000 a day) or Local AI (unlimited).": {
@@ -9996,7 +9997,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1594"
+        "mod/manager.lua:1610"
       ]
     },
     "Turn chat on": {
@@ -10004,7 +10005,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1594"
+        "mod/manager.lua:1610"
       ]
     },
     "Turn off": {
@@ -10012,7 +10013,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1615"
+        "mod/manager.lua:1631"
       ]
     },
     "Turn on": {
@@ -10020,7 +10021,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1615"
+        "mod/manager.lua:1631"
       ]
     },
     "TweakXL is missing. Install TweakXL from Nexus Mods (nexusmods.com/cyberpunk2077/mods/4197), extract it into the Cyberpunk 2077 folder, then restart the game.": {
@@ -10091,11 +10092,11 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:389",
-        "mod/manager-ui.lua:682",
-        "mod/manager-ui.lua:687",
-        "mod/manager-ui.lua:870",
-        "mod/manager-ui.lua:935"
+        "mod/manager-ui.lua:390",
+        "mod/manager-ui.lua:704",
+        "mod/manager-ui.lua:709",
+        "mod/manager-ui.lua:892",
+        "mod/manager-ui.lua:957"
       ]
     },
     "Uncensored model": {
@@ -10103,7 +10104,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:609"
+        "mod/manager-ui.lua:632"
       ]
     },
     "Unknown": {
@@ -10111,7 +10112,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:431",
+        "mod/manager-ui.lua:432",
         "mod/setup-check.lua:368",
         "mod/support-report.lua:361"
       ]
@@ -10122,7 +10123,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:1931"
+        "mod/manager.lua:1947"
       ]
     },
     "Unnamed model {index}": {
@@ -10131,8 +10132,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1258",
-        "mod/manager.lua:1461"
+        "mod/manager-ui.lua:1280",
+        "mod/manager.lua:1477"
       ]
     },
     "Until you choose one, Local AI loads the largest model that fits your free graphics memory.\n\nOne model at a time; a change applies when it next loads. A model that is missing, too large or failing is replaced by the largest that fits, with one notice.": {
@@ -10140,7 +10141,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:854"
+        "mod/manager-ui.lua:876"
       ]
     },
     "Update Mod Configuration Menu to 0.10.5 or newer, or install Native Settings UI": {
@@ -10165,7 +10166,7 @@
         "manager.validation"
       ],
       "references": [
-        "mod/manager.lua:221"
+        "mod/manager.lua:228"
       ]
     },
     "Use it if companions seem to look above or below your eyes.": {
@@ -10173,7 +10174,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1437"
+        "mod/manager-ui.lua:1459"
       ]
     },
     "Use profile": {
@@ -10181,7 +10182,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1571"
+        "mod/manager.lua:1587"
       ]
     },
     "Use the base URL only: no password, query or #.": {
@@ -10205,7 +10206,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1518"
+        "mod/manager.lua:1534"
       ]
     },
     "Use {key} to finish this recording.": {
@@ -10254,7 +10255,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1391"
+        "mod/manager-ui.lua:1413"
       ]
     },
     "Vehicle exit workspot state is unavailable.": {
@@ -10329,7 +10330,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1464"
+        "mod/manager-ui.lua:1486"
       ]
     },
     "Voice status": {
@@ -10337,7 +10338,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:1468"
+        "mod/manager-ui.lua:1490"
       ]
     },
     "Voice volume (%)": {
@@ -10345,7 +10346,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1474"
+        "mod/manager-ui.lua:1496"
       ]
     },
     "Voice: {voice}": {
@@ -10354,7 +10355,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:367"
+        "mod/manager-ui.lua:368"
       ]
     },
     "Voices": {
@@ -10362,7 +10363,7 @@
         "page.category"
       ],
       "references": [
-        "mod/manager-ui.lua:1463"
+        "mod/manager-ui.lua:1485"
       ]
     },
     "Vortex. Install the Runtime and the optional packs by hand into the Cyberpunk 2077 folder, as the install steps say.": {
@@ -10378,7 +10379,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:451"
+        "mod/manager-ui.lua:452"
       ]
     },
     "Voxtral cloud voice · Local model unloaded": {
@@ -10386,7 +10387,7 @@
         "page.voice-status"
       ],
       "references": [
-        "mod/manager-ui.lua:391"
+        "mod/manager-ui.lua:392"
       ]
     },
     "Voxtral · Mistral cloud": {
@@ -10394,7 +10395,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1487"
+        "mod/manager-ui.lua:1509"
       ]
     },
     "Voxtral · needs Mistral key": {
@@ -10402,16 +10403,19 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1487",
-        "mod/manager-ui.lua:451"
+        "mod/manager-ui.lua:1509",
+        "mod/manager-ui.lua:452"
       ]
     },
     "V’s voice engine": {
       "contexts": [
-        "page.setting"
+        "page.setting",
+        "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1485"
+        "mod/manager-ui.lua:1507",
+        "mod/manager-ui.lua:565",
+        "mod/manager-ui.lua:603"
       ]
     },
     "V’s voice for typed lines": {
@@ -10420,7 +10424,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1483",
+        "mod/manager-ui.lua:1505",
         "mod/manager-ui.lua:327"
       ]
     },
@@ -10470,7 +10474,7 @@
         "chauffeur.status"
       ],
       "references": [
-        "mod/manager-ui.lua:1181"
+        "mod/manager-ui.lua:1203"
       ]
     },
     "Waiting for the companion to release the driver seat.": {
@@ -10495,7 +10499,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:763"
+        "mod/manager-ui.lua:785"
       ]
     },
     "Waiting for the endpoint to answer…": {
@@ -10561,7 +10565,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:197"
+        "mod/manager.lua:204"
       ]
     },
     "Waiting for voice service": {
@@ -10569,10 +10573,10 @@
         "page.voice-status"
       ],
       "references": [
-        "mod/manager-ui.lua:389",
-        "mod/manager-ui.lua:399",
-        "mod/manager-ui.lua:408",
-        "mod/manager-ui.lua:415"
+        "mod/manager-ui.lua:390",
+        "mod/manager-ui.lua:400",
+        "mod/manager-ui.lua:409",
+        "mod/manager-ui.lua:416"
       ]
     },
     "Waiting for walking ownership to resume.": {
@@ -10588,7 +10592,7 @@
         "chauffeur.status"
       ],
       "references": [
-        "mod/manager-ui.lua:1181"
+        "mod/manager-ui.lua:1203"
       ]
     },
     "Waiting for you to step out": {
@@ -10596,8 +10600,8 @@
         "chauffeur.status"
       ],
       "references": [
-        "mod/manager-ui.lua:1180",
-        "mod/manager-ui.lua:1183"
+        "mod/manager-ui.lua:1202",
+        "mod/manager-ui.lua:1205"
       ]
     },
     "Waiting for your companion to settle before boarding.": {
@@ -10638,7 +10642,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:866"
+        "mod/manager-ui.lua:888"
       ]
     },
     "Wary": {
@@ -10646,7 +10650,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:426"
+        "mod/manager-ui.lua:427"
       ]
     },
     "What to do": {
@@ -10654,7 +10658,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:1330"
+        "mod/manager-ui.lua:1352"
       ]
     },
     "When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error. If replies stay slow, it also holds how long a few recent replies took, stage by stage.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.": {
@@ -10662,7 +10666,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1521"
+        "mod/manager-ui.lua:1543"
       ]
     },
     "When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. A slow V line is skipped, so the reply is never delayed. The line always shows as a subtitle.\n\nThe voice that speaks it is chosen in the next row.": {
@@ -10670,7 +10674,7 @@
         "page.setting"
       ],
       "references": [
-        "mod/manager-ui.lua:1484"
+        "mod/manager-ui.lua:1506"
       ]
     },
     "Where the logs are": {
@@ -10678,7 +10682,7 @@
         "page.category"
       ],
       "references": [
-        "mod/manager-ui.lua:1342"
+        "mod/manager-ui.lua:1364"
       ]
     },
     "Where you and Johnny stand in this save’s story. It follows what you have been through together, such as Alt, the oil fields, Rogue and the reunion concert.\n\nRead from your save; nothing is stored.": {
@@ -10686,7 +10690,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:433"
+        "mod/manager-ui.lua:434"
       ]
     },
     "Who this character is, what they know and how they look. A long bio makes replies slower, so keep it tight.": {
@@ -10705,20 +10709,20 @@
         "mod/character-editor.lua:132"
       ]
     },
-    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.": {
+    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.": {
       "contexts": [
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:790"
+        "mod/manager-ui.lua:812"
       ]
     },
-    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.": {
+    "Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.": {
       "contexts": [
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:791"
+        "mod/manager-ui.lua:813"
       ]
     },
     "Whose memories": {
@@ -10726,7 +10730,7 @@
         "page.category"
       ],
       "references": [
-        "mod/manager-ui.lua:1283"
+        "mod/manager-ui.lua:1305"
       ]
     },
     "Windows blocked a file that the Pocket voice needs (Smart App Control or an Application Control policy), so Pocket cannot run on this PC. Choose another voice in Settings, such as OmniVoice or a cloud voice.": {
@@ -10824,7 +10828,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:786"
+        "mod/manager-ui.lua:808"
       ]
     },
     "You moved away from the car. The trip was cancelled.": {
@@ -10857,7 +10861,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:948"
+        "mod/manager-ui.lua:970"
       ]
     },
     "Your Convai plan cannot hold the memory these conversations need. Free a memory user in your Convai account or use another key.": {
@@ -10883,7 +10887,7 @@
       "references": [
         "mod/convai-paid-tier.lua:160",
         "mod/convai-paid-tier.lua:169",
-        "mod/manager-ui.lua:1866"
+        "mod/manager-ui.lua:1898"
       ]
     },
     "Your Convai plan is active. Choose Convai API key in Settings > Conversation provider.": {
@@ -10891,7 +10895,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1873"
+        "mod/manager-ui.lua:1905"
       ]
     },
     "Your Convai plan is active. Conversations now use your Convai API key.": {
@@ -10899,7 +10903,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1871"
+        "mod/manager-ui.lua:1903"
       ]
     },
     "Your browser could not be opened.": {
@@ -10918,7 +10922,7 @@
         "mod/companion-chauffeur.lua:158"
       ]
     },
-    "Your changes work with Mistral and Local AI. They do not apply to Convai.": {
+    "Your changes work with Mistral, Local AI and Custom. They do not apply to Convai.": {
       "contexts": [
         "ui.localized"
       ],
@@ -10972,7 +10976,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1546",
+        "mod/manager-ui.lua:1568",
         "mod/mcm-host.lua:387"
       ]
     },
@@ -10981,7 +10985,7 @@
         "page.category"
       ],
       "references": [
-        "mod/manager-ui.lua:1192"
+        "mod/manager-ui.lua:1214"
       ]
     },
     "Your key was removed.": {
@@ -10991,8 +10995,8 @@
       ],
       "references": [
         "mod/custom-provider.lua:198",
-        "mod/manager.lua:320",
-        "mod/manager.lua:379"
+        "mod/manager.lua:327",
+        "mod/manager.lua:386"
       ]
     },
     "Your key: no room for memory": {
@@ -11000,7 +11004,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:778"
+        "mod/manager-ui.lua:800"
       ]
     },
     "Your key: not accepted": {
@@ -11008,7 +11012,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:777"
+        "mod/manager-ui.lua:799"
       ]
     },
     "Your key: plan limit reached": {
@@ -11016,7 +11020,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:775"
+        "mod/manager-ui.lua:797"
       ]
     },
     "Your message was not sent. Open the text box again and retype it.": {
@@ -11044,7 +11048,7 @@
         "mod/init.lua:3654"
       ]
     },
-    "Your own characters talk only with Mistral or Local AI. With Convai they speak as an ordinary person.": {
+    "Your own characters talk only with Mistral, Local AI or Custom. With Convai they speak as an ordinary person.": {
       "contexts": [
         "ui.localized"
       ],
@@ -11057,7 +11061,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:779"
+        "mod/manager-ui.lua:801"
       ]
     },
     "Your party": {
@@ -11065,7 +11069,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1575"
+        "mod/manager.lua:1591"
       ]
     },
     "Your party is empty": {
@@ -11073,7 +11077,7 @@
         "page.readonly"
       ],
       "references": [
-        "mod/manager-ui.lua:1226"
+        "mod/manager-ui.lua:1248"
       ]
     },
     "Your party is empty. Add a character or model to create a companion copy.": {
@@ -11081,7 +11085,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1578"
+        "mod/manager.lua:1594"
       ]
     },
     "Your plan could not be read right now. Try again in a moment.": {
@@ -11098,7 +11102,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:699"
+        "mod/manager-ui.lua:721"
       ]
     },
     "You’ve reached today’s Convai free tier limit. It resets tomorrow. To keep talking now, choose another provider in Settings > Conversation provider. Mistral (free, with your own free key) allows about 5,000 turns a day. Local AI is unlimited and runs on your PC.": {
@@ -11116,7 +11120,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:114"
+        "mod/manager.lua:121"
       ]
     },
     "an embedding model, not a chat model": {
@@ -11124,7 +11128,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:484"
+        "mod/manager-ui.lua:485"
       ]
     },
     "another model": {
@@ -11140,7 +11144,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:485"
+        "mod/manager-ui.lua:486"
       ]
     },
     "file not found": {
@@ -11148,7 +11152,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:482"
+        "mod/manager-ui.lua:483"
       ]
     },
     "no Omni pack": {
@@ -11156,7 +11160,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1462"
+        "mod/manager-ui.lua:1484"
       ]
     },
     "not a valid GGUF file": {
@@ -11164,7 +11168,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:483"
+        "mod/manager-ui.lua:484"
       ]
     },
     "the game folder": {
@@ -11181,7 +11185,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:116"
+        "mod/manager.lua:123"
       ]
     },
     "{count} Convai interactions a month.": {
@@ -11189,7 +11193,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:975"
+        "mod/manager-ui.lua:997"
       ]
     },
     "{count} matching models": {
@@ -11199,7 +11203,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1246"
+        "mod/manager-ui.lua:1268"
       ]
     },
     "{count} more companions also failed.": {
@@ -11216,7 +11220,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1247"
+        "mod/manager-ui.lua:1269"
       ]
     },
     "{count} of {max}": {
@@ -11233,7 +11237,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:687"
+        "mod/manager-ui.lua:709"
       ]
     },
     "{first} and {second}": {
@@ -11265,7 +11269,7 @@
         "settings.feedback"
       ],
       "references": [
-        "mod/manager.lua:1238"
+        "mod/manager.lua:1254"
       ]
     },
     "{names} joined your group.": {
@@ -11281,7 +11285,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:827"
+        "mod/manager-ui.lua:849"
       ]
     },
     "{name} (custom)": {
@@ -11289,8 +11293,8 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:830",
-        "mod/manager-ui.lua:833"
+        "mod/manager-ui.lua:852",
+        "mod/manager-ui.lua:855"
       ]
     },
     "{name} (custom, {size} GB, needs {need} GB)": {
@@ -11298,7 +11302,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:832"
+        "mod/manager-ui.lua:854"
       ]
     },
     "{name} (custom, {size} GB, too large for this card)": {
@@ -11306,7 +11310,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:828"
+        "mod/manager-ui.lua:850"
       ]
     },
     "{name} answers typed messages only for now.": {
@@ -11422,7 +11426,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager.lua:1382"
+        "mod/manager.lua:1398"
       ]
     },
     "{name} is no longer nearby.": {
@@ -11443,7 +11447,7 @@
         "mod/init.lua:3944"
       ]
     },
-    "{name} is one of your own characters. They need Mistral or Local AI, so with Convai they talk as an ordinary person.": {
+    "{name} is one of your own characters. They need Mistral, Local AI or Custom, so with Convai they talk as an ordinary person.": {
       "contexts": [
         "ui.localized",
         "world.conversation"
@@ -11466,7 +11470,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager.lua:1380"
+        "mod/manager.lua:1396"
       ]
     },
     "{name} selected for memory controls.": {
@@ -11475,7 +11479,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:214"
+        "mod/manager.lua:221"
       ]
     },
     "{name} will leave when you return to the game.": {
@@ -11510,7 +11514,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:1212"
+        "mod/manager-ui.lua:1234"
       ]
     },
     "{name}, {memory} GB of video memory.": {
@@ -11526,7 +11530,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1698"
+        "mod/manager.lua:1714"
       ]
     },
     "{name}: conversation profile cleared.": {
@@ -11586,7 +11590,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:861"
+        "mod/manager-ui.lua:883"
       ]
     },
     "{other} already has a profile in the mod, and that profile always wins. Use another record or name.": {
@@ -11610,7 +11614,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:971"
+        "mod/manager-ui.lua:993"
       ]
     },
     "{plan}, {price} a year": {
@@ -11618,7 +11622,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:970"
+        "mod/manager-ui.lua:992"
       ]
     },
     "{requested} is not ready yet. Companions are using {voice} for now.": {
@@ -11626,7 +11630,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:976"
+        "mod/manager.lua:990"
       ]
     },
     "{requested} is unavailable. Companions are using {voice} instead.": {
@@ -11634,7 +11638,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager.lua:979"
+        "mod/manager.lua:993"
       ]
     },
     "{status} · After current reply": {
@@ -11643,7 +11647,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:399"
+        "mod/manager-ui.lua:400"
       ]
     },
     "{status} · Using {voice}, {requested} not ready yet": {
@@ -11651,7 +11655,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:412"
+        "mod/manager-ui.lua:413"
       ]
     },
     "{status} · Using {voice}, {requested} unavailable": {
@@ -11659,7 +11663,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:413"
+        "mod/manager-ui.lua:414"
       ]
     },
     "{voice} · needs Mistral key": {
@@ -11667,7 +11671,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:359"
+        "mod/manager-ui.lua:360"
       ]
     },
     "{voice} · needs Omni pack": {
@@ -11675,7 +11679,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/manager-ui.lua:363"
+        "mod/manager-ui.lua:364"
       ]
     }
   },
@@ -11688,7 +11692,7 @@
         "page.party"
       ],
       "references": [
-        "mod/manager-ui.lua:1171"
+        "mod/manager-ui.lua:1193"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11701,7 +11705,7 @@
         "page.navigation"
       ],
       "references": [
-        "mod/manager-ui.lua:1145"
+        "mod/manager-ui.lua:1167"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11713,7 +11717,7 @@
         "page.memory"
       ],
       "references": [
-        "mod/manager-ui.lua:697"
+        "mod/manager-ui.lua:719"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11725,7 +11729,7 @@
         "page.memory"
       ],
       "references": [
-        "mod/manager-ui.lua:708"
+        "mod/manager-ui.lua:730"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11737,7 +11741,7 @@
         "page.memory"
       ],
       "references": [
-        "mod/manager-ui.lua:698"
+        "mod/manager-ui.lua:720"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11749,7 +11753,7 @@
         "memory.feedback"
       ],
       "references": [
-        "mod/manager.lua:196"
+        "mod/manager.lua:203"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11761,7 +11765,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1716"
+        "mod/manager.lua:1732"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11773,8 +11777,8 @@
         "page.voice-status"
       ],
       "references": [
-        "mod/manager-ui.lua:1260",
-        "mod/manager-ui.lua:368"
+        "mod/manager-ui.lua:1282",
+        "mod/manager-ui.lua:369"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11786,7 +11790,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1585"
+        "mod/manager.lua:1601"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11798,7 +11802,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1680"
+        "mod/manager.lua:1696"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11810,7 +11814,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1614"
+        "mod/manager.lua:1630"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11835,7 +11839,7 @@
         "page.memory"
       ],
       "references": [
-        "mod/manager-ui.lua:712"
+        "mod/manager-ui.lua:734"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11872,7 +11876,7 @@
         "memory.feedback"
       ],
       "references": [
-        "mod/manager.lua:199"
+        "mod/manager.lua:206"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11899,7 +11903,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1642"
+        "mod/manager.lua:1658"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11911,7 +11915,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1650"
+        "mod/manager.lua:1666"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11924,7 +11928,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1644"
+        "mod/manager.lua:1660"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11936,7 +11940,7 @@
         "page.memory"
       ],
       "references": [
-        "mod/manager-ui.lua:1280"
+        "mod/manager-ui.lua:1302"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11948,7 +11952,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1604"
+        "mod/manager.lua:1620"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11972,7 +11976,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:2023"
+        "mod/manager.lua:2039"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11984,7 +11988,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1740"
+        "mod/manager.lua:1756"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -11996,7 +12000,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:2044"
+        "mod/manager.lua:2060"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -12008,7 +12012,7 @@
         "memory.feedback"
       ],
       "references": [
-        "mod/manager.lua:200"
+        "mod/manager.lua:207"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -12020,7 +12024,7 @@
         "settings.feedback"
       ],
       "references": [
-        "mod/manager.lua:1931"
+        "mod/manager.lua:1947"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -12032,7 +12036,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1461"
+        "mod/manager.lua:1477"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -12056,7 +12060,7 @@
         "page.voice-status"
       ],
       "references": [
-        "mod/manager-ui.lua:367"
+        "mod/manager-ui.lua:368"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -12068,7 +12072,7 @@
         "memory.feedback"
       ],
       "references": [
-        "mod/manager.lua:197"
+        "mod/manager.lua:204"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -12080,7 +12084,7 @@
         "page.models"
       ],
       "references": [
-        "mod/manager-ui.lua:1246"
+        "mod/manager-ui.lua:1268"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -12092,7 +12096,7 @@
         "page.memory"
       ],
       "references": [
-        "mod/manager-ui.lua:687"
+        "mod/manager-ui.lua:709"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -12104,7 +12108,7 @@
         "settings.feedback"
       ],
       "references": [
-        "mod/manager.lua:1238"
+        "mod/manager.lua:1254"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -12170,7 +12174,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager.lua:1382"
+        "mod/manager.lua:1398"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -12206,7 +12210,7 @@
         "party.feedback"
       ],
       "references": [
-        "mod/manager.lua:1380"
+        "mod/manager.lua:1396"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -12218,7 +12222,7 @@
         "memory.feedback"
       ],
       "references": [
-        "mod/manager.lua:214"
+        "mod/manager.lua:221"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -12254,7 +12258,7 @@
         "page.party"
       ],
       "references": [
-        "mod/manager-ui.lua:1212"
+        "mod/manager-ui.lua:1234"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -12267,7 +12271,7 @@
         "legacy.manager"
       ],
       "references": [
-        "mod/manager.lua:1698"
+        "mod/manager.lua:1714"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -12352,7 +12356,7 @@
         "page.voice-status"
       ],
       "references": [
-        "mod/manager-ui.lua:399"
+        "mod/manager-ui.lua:400"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     }

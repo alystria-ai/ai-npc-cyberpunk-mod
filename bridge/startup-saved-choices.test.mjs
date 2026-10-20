@@ -90,4 +90,12 @@ describe('the settings file during the poll', {timeout: 120000}, () => {
     await bridge.writeSettings(settings);
     await bridge.until(choices, value => JSON.stringify(value) === JSON.stringify(SAVED), 'the saved choices did not come back');
   });
+  // Windows PowerShell and older Notepad save UTF-8 with a byte-order mark. The game reads such a file (mod/manager.lua readJSON strips it), so
+  // the bridge must too, or the two would run different settings until the next save from the game.
+  test('a file saved with a UTF-8 byte-order mark (a hand edit in Notepad) is read like any other', async () => {
+    await bridge.writeSettings({});
+    await bridge.until(choices, value => value.delay === 0 && value.provider === 'convai', 'the reset file was not applied');
+    await bridge.writeSettings('﻿' + JSON.stringify(settings));
+    await bridge.until(choices, value => JSON.stringify(value) === JSON.stringify(SAVED), 'a settings file with a byte-order mark was ignored');
+  });
 });

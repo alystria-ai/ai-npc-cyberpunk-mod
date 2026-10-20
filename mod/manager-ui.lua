@@ -327,7 +327,8 @@ local function sharedCharacterLines(snapshot)
     if settings.vVoice then speech[#speech + 1] = ui.t('V’s voice for typed lines') end
     local talk = {}
     if #speech > 0 then talk[#talk + 1] = ui.t('Speech: {list}', {list = table.concat(speech, ' · ')}) end
-    if settings.multilingualConversations then talk[#talk + 1] = ui.t('Multilingual: replies in your language') end
+    -- Only where it is in use (the Convai free tier, manager.multilingualActive): beside another provider the switch does nothing.
+    if manager.multilingualActive(settings) then talk[#talk + 1] = ui.t('Multilingual: replies in your language') end
     if settings.bodyGestures then behavior[#behavior + 1] = ui.t('Body gestures') end
     if settings.battleReactions then behavior[#behavior + 1] = ui.t('React to battles') end
     if settings.lootReactions then behavior[#behavior + 1] = ui.t('React to collected loot') end
@@ -518,10 +519,12 @@ end
 -- settings), the names of what was changed besides the player's own choice, and a refusal text when the switch cannot be turned on.
 local function stageMature(changes, snapshot)
     local saved = snapshot.settings
-    local batch, by = {}, {}
+    -- `explicit`: the rows the batch itself sets (the player's own choice in it, or Restore defaults). Turning Mature content off never puts one
+    -- of those back: what the batch asks for wins.
+    local batch, by, explicit = {}, {}, {}
     for _, change in ipairs(changes) do
         local copy = {id = change.id, value = change.value}
-        batch[#batch + 1], by[change.id] = copy, copy
+        batch[#batch + 1], by[change.id], explicit[change.id] = copy, copy, true
     end
     local function stage(id, value)
         if by[id] then by[id].value = value
@@ -551,11 +554,22 @@ local function stageMature(changes, snapshot)
             end
         end
     end
+    local keySaved = (snapshot.mistral or {}).saved == true
+    -- V's voice engine as the row holds it: 1 Pocket, 2 Voxtral.
+    local vEngineNow = now('vVoiceEngine', saved.vVoiceEngine == 'voxtral' and 2 or 1)
+    -- With Local AI, Mature content keeps V's line off the cloud (manager.lua refuses Voxtral there): V moves to Pocket in the same batch, so
+    -- the player is told, and turning Mature content off can put Voxtral back.
+    local function vToPocket()
+        if vEngineNow ~= 2 then return false end
+        stage('vVoiceEngine', 1); vEngineNow = 1
+        names[#names + 1] = ui.t('V’s voice engine')
+        return true
+    end
     local function turnedOff()
         local restore = saved.matureRestore
         if type(restore) ~= 'table' then leaveUncensoredModel(); return end
         local part = restore.conversationProvider
-        if part then
+        if part and not explicit.conversationProvider then
             local was, back
             for index, id in ipairs(PROVIDER_IDS) do
                 if id == part.set then was = index end
@@ -566,18 +580,27 @@ local function stageMature(changes, snapshot)
             end
         end
         part = restore.localModel
-        if part then
+        if part and not explicit.localModel then
             local current, back = now('localModel', modelIndexOf(saved.localModel)), modelIndexOf(part.before)
             if current == modelIndexOf(part.set) and back then
                 stage('localModel', back); names[#names + 1] = ui.t('Local AI model')
             end
         end
         part = restore.voice
-        if part then
+        if part and not explicit.voiceProvider then
             local current, back = now('voiceProvider', savedVoiceIndex(saved)), voiceIndexOf(part.before)
-            if current == voiceIndexOf(part.set) and back then
+            -- Only a voice that can be chosen now: Voxtral needs the Mistral key, OmniVoice its pack (M.apply refuses either without, and the
+            -- refusal would keep Mature content on). Otherwise the voice stays where it is.
+            local choice = back and VOICE_CHOICES[back]
+            local usable = choice and (choice.provider ~= 'voxtral' or keySaved) and (choice.provider ~= 'omni' or manager.omniPack().installed == true)
+            if current == voiceIndexOf(part.set) and usable then
                 stage('voiceProvider', back); names[#names + 1] = ui.t('Companion voices')
             end
+        end
+        part = restore.vVoiceEngine
+        if part and part.before == 'voxtral' and not explicit.vVoiceEngine and vEngineNow == 1 and keySaved then
+            stage('vVoiceEngine', 2); vEngineNow = 2
+            names[#names + 1] = ui.t('V’s voice engine')
         end
         leaveUncensoredModel()
     end
@@ -612,17 +635,13 @@ local function stageMature(changes, snapshot)
                 local choice = VOICE_CHOICES[voiceNow]
                 if choice and CLOUD_VOICES[choice.provider] then
                     -- A local voice (Pocket, OmniVoice) is left exactly as it is; only a cloud voice moves, and it moves to Pocket TTS.
-                    -- Multilingual conversations refuses Pocket TTS: then OmniVoice is the local voice to move to, and without its pack there is none.
-                    local multilingual = now('multilingualConversations', saved.multilingualConversations == true) == true
-                    local omni = manager.omniPack().installed == true
-                    if omni or not multilingual then
-                        local target = multilingual and 2 or 1
-                        stage('voiceProvider', target)
-                        record.voice = {before = voiceRecord(voiceNow), set = voiceRecord(target)}
-                        local chosen = VOICE_CHOICES[target]
-                        names[#names + 1] = manager.voiceLabel(chosen.provider, chosen.steps, chosen.reference)
-                    end
+                    -- (Multilingual conversations, which refuses Pocket, is never in use beside Local AI: manager.multilingualActive.)
+                    stage('voiceProvider', 1)
+                    record.voice = {before = voiceRecord(voiceNow), set = voiceRecord(1)}
+                    local chosen = VOICE_CHOICES[1]
+                    names[#names + 1] = manager.voiceLabel(chosen.provider, chosen.steps, chosen.reference)
                 end
+                if vToPocket() then record.vVoiceEngine = {before = 'voxtral', set = 'pocket'} end
             end
             record = next(record) and record or nil
         end
@@ -633,6 +652,9 @@ local function stageMature(changes, snapshot)
         -- Convai picked while Mature content is on turns it off, with the same way back.
         stage('matureContent', false)
         turnedOff()
+    elseif savedMature and not mature and by.conversationProvider and providerNow == LOCAL_PROVIDER and providerIndexOf(saved) ~= LOCAL_PROVIDER then
+        -- Mistral or Custom to Local AI while Mature content is on: V's line leaves the cloud, and the player is told.
+        vToPocket()
     end
     return batch, record, names, refusal
 end
@@ -787,8 +809,8 @@ local function ownKeyRows(snapshot)
     elseif own.daily then note = ui.t('Convai free tier: {left} of {limit} left today', {left = own.daily.left, limit = own.daily.limit}) end
     -- The voice key needs speech recognition on this computer, which only the bridge can say it has.
     local providerHelp = mistral.stt
-        and ui.t('Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.')
-        or ui.t('Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral or Local AI, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.')
+        and ui.t('Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech is recognized on this computer, so the voice key works.')
+        or ui.t('Who writes your companions’ replies. A change waits until no conversation is running.\n\nConvai free tier needs no setup and gives better replies. Convai API key uses your own key, and Mistral uses its free plan with your own free key; memory stays on this computer.\n\nWith Mistral, Local AI or Custom, Convai’s cloud voice is replaced by a local voice. Speech recognition for the voice key is not available yet with them, so type your messages.')
     -- The note comes first: the description area holds only so much, and who answers right now is what the player acts on.
     if note then providerHelp = note .. '\n\n' .. providerHelp end
     -- Mature content is part of the main mod (off by default). It works with Local AI, Mistral and Custom: turning it on beside Convai selects
@@ -918,7 +940,7 @@ local function ownKeyRows(snapshot)
     end
     if editor then
         rows[#rows + 1] = action('character-editor:open', 'Edit characters', 'Open',
-            'Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral and Local AI, not Convai. Changes apply from the next reply.',
+            'Edit a character’s bio, speaking style, speaking rules and memories, or make a character of your own, in your browser.\n\nWorks with Mistral, Local AI and Custom, not Convai. Changes apply from the next reply.',
             function() return editor.request() end)
     end
     return rows
@@ -1393,7 +1415,7 @@ local function schema()
                 'Now and then V starts a short chat with a companion in your party, and the companion answers. Mostly after a fight or a finished job, sometimes on a quiet walk or ride.\n\nNeeds V’s voice for typed lines; with that off, V stays quiet. Never during scenes, calls, fights or while you talk.\n\nRare: at most twice an hour. Normal: at most six times an hour, never closer than five minutes.\n\nOn the Convai free tier each answer uses one of the day’s turns, counted with Johnny’s remarks, which never take more than a tenth of them.',
                 {'Off', 'Rare', 'Normal'}),
             setting('multilingualConversations', 'Multilingual conversations', 'bool', snapshot.settings.multilingualConversations, false,
-                'Talk in any language; each character answers in yours.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech and Expressive emotions turn off.'),
+                'Talk in any language; each character answers in yours. It works on the Convai free tier only. Mistral, Local AI and Custom already answer in the language you write in.\n\nA separate multilingual copy of each character is used, so what they remember from these talks stays apart from your English ones. Forgetting a character clears both.\n\nPocket and Voxtral speak English only, so this switches the voice to OmniVoice · Balanced, or to Convai · Cloud voice without the OmniVoice pack. Without the pack, Natural speech and Expressive emotions turn off.'),
             setting('autoConnectNearby', 'Auto-connect nearby characters', 'bool', snapshot.settings.autoConnectNearby, true,
                 'Gets a conversation ready when you look at, approach or have just talked to a character, so they answer without a wait. Paused in combat and scenes.\n\nLimits: two characters ready at once, a new one every 3 s, released after 40 s unused. A crowd never adds up.'),
             setting('gameDialogueContext', 'Continue from game dialogue', 'bool', snapshot.settings.gameDialogueContext, true,
@@ -1483,7 +1505,7 @@ local function schema()
             setting('vVoice', 'V’s voice for typed lines', 'bool', snapshot.settings.vVoice, true,
                 'When you type a line, V says it out loud too, in the male or female V voice that matches yours. Push-to-talk is never replayed.\n\nV speaks first, then the companion answers. A slow V line is skipped, so the reply is never delayed. The line always shows as a subtitle.\n\nThe voice that speaks it is chosen in the next row.'),
             setting('vVoiceEngine', 'V’s voice engine', 'select', snapshot.settings.vVoiceEngine == 'voxtral' and 2 or 1, 1,
-                'Pocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second. English only, and not with Mature content on.\n\nWhichever you pick, a line that is not ready in time is skipped.',
+                'Pocket: runs on your processor and starts in about 0.2 s. If the companions use another voice, it loads its own small voice model just for V.\n\nVoxtral: made in the cloud with your Mistral key, so nothing loads on your PC. Starts in about a second. English only, and not with Mature content on Local AI.\n\nWhichever you pick, a line that is not ready in time is skipped.',
                 {ui.t('Pocket · On your PC'), (snapshot.mistral or {}).saved and ui.t('Voxtral · Mistral cloud') or ui.t('Voxtral · needs Mistral key')},
                 {elements = true}),
         })
@@ -1701,7 +1723,7 @@ end
 -- The Local AI model has no default of its own (nothing chosen: the largest that fits), so it goes to the model shown as the default.
 function M.defaults()
     local previous = view
-    local changes = {}
+    local changes, atDefault, turningMatureOff = {}, {}, false
     -- Settings, and the Relationships page that opens from it.
     for _, name in ipairs({'settings', 'relationships'}) do
         view = name
@@ -1713,9 +1735,19 @@ function M.defaults()
                 if (kind == 'bool' or kind == 'select' or kind == 'int') and row.defaultValue ~= nil and not row.id:match('^ui:') then
                     local target = row.defaultValue
                     if row.id == 'localModel' then target = modelIndexOf('auto') or row.value end
-                    if row.value ~= target then changes[#changes + 1] = {id = row.id, value = target} end
+                    if row.value ~= target then
+                        changes[#changes + 1] = {id = row.id, value = target}
+                        if row.id == 'matureContent' then turningMatureOff = true end
+                    else atDefault[row.id] = target end
                 end
             end
+        end
+    end
+    -- Turning Mature content off puts back what turning it on changed (stageMature). Here the defaults are wanted instead: the rows it would put
+    -- back are named in the batch at their default, so they stay there.
+    if turningMatureOff then
+        for _, id in ipairs({'conversationProvider', 'localModel', 'voiceProvider', 'vVoiceEngine'}) do
+            if atDefault[id] ~= nil then changes[#changes + 1] = {id = id, value = atDefault[id]} end
         end
     end
     -- Drawing the other pages replaced the page's actions and signature: the page on screen is built again.

@@ -2591,7 +2591,7 @@ async function runCustomTurn(request, input, profile, current, clock, {userText 
   const {controller} = request, ahead = request.lookahead, signal = controller.signal;
   if (!mistral.active) {
     await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation, entity: input.entity,
-      error: `${profile.name} is one of your own characters. They need Mistral or Local AI: choose one under Conversation provider in the settings.`, errorCode: 'custom-provider'}),
+      error: `${profile.name} is one of your own characters. They need Mistral, Local AI or Custom: choose one under Conversation provider in the settings.`, errorCode: 'custom-provider'}),
     {signal, isCurrent: current, isCurrentSync: current.sync});
     return;
   }
@@ -3163,7 +3163,9 @@ async function pollSettings(checkShutdown = true) {
     // and accidentally retire the already-warmed model.
     const preview = voicePreview.observe(await readFile(resolve(runtime, 'voice-preview.json'), 'utf8').catch(() => ''));
     // A transient rename/partial settings write must not reset the selected quality.
-    const raw = await readFile(resolve(runtime, 'settings.json'), 'utf8').catch(() => '');
+    // A byte-order mark (a hand edit saved by Windows PowerShell or an older Notepad) is dropped, as the game's own reader does (mod/manager.lua
+    // readJSON): otherwise the file would not parse here and the bridge would keep other settings than the game shows.
+    const raw = (await readFile(resolve(runtime, 'settings.json'), 'utf8').catch(() => '')).replace(/^﻿/, '');
     let settings; try { settings = JSON.parse(raw); } catch {}
     // Mature content and the saved model choice come first: the saved provider is applied below, and its first Local AI start (prepareLocal)
     // loads the model these two decide. They are the first thing this poll does with the file, so that start waits for nothing but this read.

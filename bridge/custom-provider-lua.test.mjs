@@ -641,8 +641,10 @@ test('the selector has five entries, Custom (OpenAI-compatible) fifth; the four 
   end
   assert(row('custom-url').label == 'Custom endpoint URL' and row('custom-url').value == 'Paste endpoint URL')
   assert(row('custom-test').disabled == true, 'no state file: the test cannot run')
-  -- The help of the provider row does not change for Custom (the description area holds only so much): the same text as before.
-  assert(not provider.description:find('Custom', 1, true))
+  -- The help of the provider row names Custom only where it would otherwise be wrong (the description area holds only so much): Custom too
+  -- replaces Convai's cloud voice with a local one (2026-10-20 settings audit; bridge/description-fit.test.mjs keeps it within the area).
+  local _, customs = provider.description:gsub('Custom', '')
+  assert(customs == 1 and provider.description:find('With Mistral, Local AI or Custom, Convai’s cloud voice', 1, true), provider.description)
   -- The existing elements keep their numbers.
   for _, case in ipairs({{1, 'convai', false}, {2, 'convai', true}, {3, 'mistral'}, {4, 'local'}, {5, 'custom'}}) do
     assert(registered.applyBatch('manager', {{id = 'conversationProvider', value = case[1]}}).ok, tostring(case[1]))
