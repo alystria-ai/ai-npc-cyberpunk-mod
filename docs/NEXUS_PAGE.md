@@ -100,7 +100,7 @@ The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at
 [/list]
 
 [b]Updating[/b]
-From 0.2.5, download the Scripts and the small [b]Runtime update[/b] (AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.5-to-0.2.6.zip) instead of the full Runtime, and extract both over your install. From an older version, extract the updates one after the other, oldest first (0.2.2-to-0.2.3, 0.2.3-to-0.2.4, 0.2.4-to-0.2.5, then 0.2.5-to-0.2.6; all on the same page). Choose Replace if Windows asks. Your settings and memories are kept. Never delete the mod's folders to update: the optional packs live inside them and would be gone. The optional packs (OmniVoice, Local AI, Mature) have not changed since 0.2.1, so if you already have them you don't need to download them again. On an older version, or not sure? Use the full Runtime.
+Updating? Download the new Scripts, and instead of the full Runtime get the small [b]Runtime update[/b] zips (all on the same page) and extract them over your install one by one, starting from your version. Choose Replace if Windows asks. Your settings and memories are kept. Never delete the mod's folders to update: the optional packs live inside them and would be gone. The optional packs (OmniVoice, Local AI, Mature) have not changed since 0.2.1, so if you already have them you don't need to download them again. On an older version, or not sure? Use the full Runtime.
 
 [b]Optional packs[/b]
 All on the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main]Hugging Face page[/url]. Each is one zip that works on its own; install none, some or all, the same way as the Runtime.[list]
