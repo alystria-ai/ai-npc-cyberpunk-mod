@@ -98,6 +98,27 @@ export function parseLeaveOffer(value) {
   return {available: true, actor: {id: value.actor.id, key: value.actor.key}, members};
 }
 
+// Reactions of an ordinary world NPC (docs/NPC_REACTIONS.md): what V's conversation made the person do. The game offers only the kinds that
+// fit the person (a civilian leaves or calls the police, a ganger leaves or attacks); the model chooses at most one, and only when V's words
+// clearly earned it. The order here is the order of every list that crosses the wire.
+export const REACTION_ACTIONS = Object.freeze({leave: 'Walk Away', 'call-police': 'Call Police', attack: 'Attack V'});
+export const REACTION_KINDS = Object.freeze(Object.keys(REACTION_ACTIONS));
+export const REACTION_MEANING = Object.freeze({
+  leave: 'you end the talk and walk or run away',
+  'call-police': 'you report V to the police',
+  attack: 'you turn on V and attack',
+});
+export const reactionActionName = (offer, kind) => token(offer?.token) && Object.hasOwn(REACTION_ACTIONS, kind)
+  ? `${REACTION_ACTIONS[kind]} ${offer.token}` : null;
+export function parseReactionOffer(value) {
+  if (!object(value) || value.available !== true || !object(value.actor) || !Array.isArray(value.kinds)
+      || !keys(value, ['available', 'actor', 'kinds']) || !keys(value.actor, ['id', 'key'])
+      || !entityId(value.actor.id) || !profile(value.actor.key)
+      || value.kinds.length < 1 || value.kinds.length > REACTION_KINDS.length || new Set(value.kinds).size !== value.kinds.length
+      || value.kinds.some(kind => !REACTION_KINDS.includes(kind))) return null;
+  return {available: true, actor: {id: value.actor.id, key: value.actor.key}, kinds: REACTION_KINDS.filter(kind => value.kinds.includes(kind))};
+}
+
 export const parseFollowUnavailable = value => typeof value === 'string' && Object.hasOwn(FOLLOW_UNAVAILABLE, value) ? value : null;
 
 export function parseChauffeurOffer(value) {
@@ -157,6 +178,8 @@ export class CompanionActions {
     const input = prepared?.input, offer = parseChauffeurOffer(input?.chauffeurOffer);
     const tactic = parseTacticOffer(input?.tacticOffer);
     const follow = parseFollowOffer(input?.followOffer), leave = parseLeaveOffer(input?.leaveOffer);
+    // An ordinary NPC's reaction offer stands alone: a person who could also drive, fight or join is not one.
+    const reaction = offer || tactic || follow || leave ? null : parseReactionOffer(input?.reactionOffer);
     const refusal = follow ? null : parseFollowUnavailable(input?.followUnavailable);
     const tacticRefusal = tactic ? null : parseTacticUnavailable(input?.tacticUnavailable);
     const driveRefusal = offer ? null : parseDriveUnavailable(input?.driveUnavailable);
@@ -164,14 +187,14 @@ export class CompanionActions {
     // A manual group round arms only its first speaker, and only to send companions away.
     const group = typeof source === 'string' && source.startsWith('group-');
     const channel = group ? 'group' : 'private';
-    if ((!offer && !tactic && !follow && !leave && !refusal && !tacticRefusal && !driveRefusal) || !MANUAL_SOURCES.includes(source)
+    if ((!offer && !tactic && !follow && !leave && !reaction && !refusal && !tacticRefusal && !driveRefusal) || !MANUAL_SOURCES.includes(source)
         || prepared?.route?.channel !== channel
         || !prepared.sendAllowed || !prepared.identified || !prepared.remoteConfig?.endUserId
         || input.reaction || input.channel !== channel
-        || (group ? (!object(input.group) || input.group.index !== 1 || !leave || offer || tactic || follow || refusal || tacticRefusal || driveRefusal)
+        || (group ? (!object(input.group) || input.group.index !== 1 || !leave || offer || tactic || follow || reaction || refusal || tacticRefusal || driveRefusal)
           : input.group !== undefined)
         || source.endsWith('-voice') !== (prepared.route.transport === 'microphone')
-        || !ownedBy(offer) || !ownedBy(tactic) || !ownedBy(follow) || !ownedBy(leave)
+        || !ownedBy(offer) || !ownedBy(tactic) || !ownedBy(follow) || !ownedBy(leave) || !ownedBy(reaction)
         || !string(input.requestId, 100) || !/^\d+-\d+-\d+ULL$/.test(input.requestId)
         || !Number.isSafeInteger(input.generation) || input.generation < 0
         || !input.requestId.endsWith(`-${input.generation}-${input.entity}`)
@@ -182,11 +205,11 @@ export class CompanionActions {
     if (!token(actionId)) throw Error('Invalid companion action token');
     const issuedAt = this.now();
     const packet = {version: 1, action: offer ? 'drive-to-waypoint' : tactic ? 'companion-tactic' : follow ? 'companion-follow'
-      : leave ? 'companion-leave' : 'none', actionId, requestId: input.requestId,
+      : leave ? 'companion-leave' : reaction ? 'npc-reaction' : 'none', actionId, requestId: input.requestId,
       generation: input.generation, entity: input.entity, profileKey: input.profileKey,
       worldToken: prepared.worldToken, worldGeneration: prepared.generation, source,
       createdAt: issuedAt, expiresAt: issuedAt + CHAUFFEUR_OFFER_TTL_MS, ...(offer ? {offer} : {})};
-    this.pending = {input, packet, tactic, follow, leave, refusal, tacticRefusal, driveRefusal, group, isCurrent, isCurrentSync, signal, accepted: false};
+    this.pending = {input, packet, tactic, follow, leave, reaction, refusal, tacticRefusal, driveRefusal, group, isCurrent, isCurrentSync, signal, accepted: false};
     return this.configFor(input);
   }
   current(pending) {
@@ -205,6 +228,7 @@ export class CompanionActions {
       ...(pending.follow ? {follow: {name: pending.follow.name}} : {}),
       ...(pending.leave ? {leave: {members: pending.leave.members.map(member => ({name: member.name,
         self: member.id === pending.leave.actor.id}))}} : {}),
+      ...(pending.reaction ? {reaction: {kinds: [...pending.reaction.kinds]}} : {}),
       ...(pending.refusal ? {followUnavailable: pending.refusal} : {}),
       ...(pending.tacticRefusal ? {tacticUnavailable: pending.tacticRefusal} : {}),
       ...(pending.driveRefusal ? {driveUnavailable: pending.driveRefusal} : {}),
@@ -214,15 +238,16 @@ export class CompanionActions {
     const pending = this.pending;
     // {version, token} drives; {version, token, tactic} chooses one offered tactic;
     // {version, token, follow: true} joins; {version, token, leave: n | 'all'} sends
-    // offered member n (1-based) or every offered member away.
+    // offered member n (1-based) or every offered member away; {version, token, reaction: kind} is one offered NPC reaction.
     const third = object(message) && Object.keys(message).length === 3
-      ? ['tactic', 'follow', 'leave'].find(key => Object.hasOwn(message, key)) : undefined;
+      ? ['tactic', 'follow', 'leave', 'reaction'].find(key => Object.hasOwn(message, key)) : undefined;
     const tacticKind = third === 'tactic' ? message.tactic : undefined;
     if (!object(message) || (Object.keys(message).length !== 2 && third === undefined)
         || message.version !== 1 || !token(message.token)
         || !pending || pending.accepted || message.token !== pending.packet.actionId || !this.current(pending)) return false;
     let leaveTarget;
     if (third === 'follow') { if (message.follow !== true || !pending.follow) return false; }
+    else if (third === 'reaction') { if (!pending.reaction?.kinds.includes(message.reaction)) return false; }
     else if (third === 'leave') {
       const members = pending.leave?.members ?? [];
       if (message.leave === 'all' && members.length > 1) leaveTarget = 'all';
@@ -238,6 +263,7 @@ export class CompanionActions {
     const createdAt = this.now(), {offer: driveOffer, ...base} = pending.packet;
     const packet = {...base, ...(third === 'follow' ? {action: 'companion-follow', followOffer: pending.follow}
       : third === 'leave' ? {action: 'companion-leave', leave: leaveTarget, leaveOffer: pending.leave}
+        : third === 'reaction' ? {action: 'npc-reaction', reaction: message.reaction, reactionOffer: pending.reaction}
         : tacticKind !== undefined
           ? {action: 'companion-tactic', tactic: tacticKind, tacticOffer: pending.tactic}
           : {action: 'drive-to-waypoint', offer: driveOffer}), createdAt,
@@ -253,6 +279,11 @@ function windowTactic(value) {
     && Number.isSafeInteger(value.distance) && value.distance >= 0 && value.distance <= 500
     && Array.isArray(value.kinds) && value.kinds.length >= 1 && new Set(value.kinds).size === value.kinds.length
     && value.kinds.every(kind => TACTIC_KINDS.includes(kind));
+}
+
+function windowReaction(value) {
+  return object(value) && keys(value, ['kinds']) && Array.isArray(value.kinds) && value.kinds.length >= 1
+    && new Set(value.kinds).size === value.kinds.length && value.kinds.every(kind => REACTION_KINDS.includes(kind));
 }
 
 function windowFollow(value) { return object(value) && keys(value, ['name']) && string(value.name, 120); }
@@ -307,6 +338,17 @@ function leaveContextText(offered) {
     + 'When V clearly means it, accept it: the one leaving says a short goodbye that fits them, and you request the action in the same reply. '
     + PROTOCOL_NOTE
     + 'The game removes the companion from V\'s party after this reply; never claim it has happened before it does.';
+}
+
+// The Convai route's words about an ordinary NPC's reaction. Short on purpose: it is read on every turn of such a person. The text routes
+// have their own sentence for the same rule (bridge/text-actions.mjs, reactionNotes).
+function reactionContextText(offered) {
+  const list = offered.reaction.kinds.map(kind => JSON.stringify(reactionActionName(offered, kind)) + ' means ' + REACTION_MEANING[kind]).join('; ');
+  return '\nGame reactions (rare): only when V\'s new message clearly threatens you or seriously insults you and you truly would react, '
+    + 'request one exact action, optionally targeting ' + offered.token + ', in the same reply as your words: ' + list + '. '
+    + 'Request nothing for normal talk, rude but harmless talk or jokes, or when your own reply stays calm; almost every reply has no action. '
+    + PROTOCOL_NOTE
+    + 'The game carries it out after your reply; never claim it has happened before it does.';
 }
 
 function followUnavailableText(reason) {
@@ -387,18 +429,20 @@ export class CompanionActionWindow {
         || (offer.tactic !== undefined && !windowTactic(offer.tactic))
         || (offer.follow !== undefined && !windowFollow(offer.follow))
         || (offer.leave !== undefined && !windowLeave(offer.leave))
+        || (offer.reaction !== undefined && (!windowReaction(offer.reaction) || offer.drive !== false || offer.tactic || offer.follow || offer.leave))
         || (offer.followUnavailable !== undefined && (!parseFollowUnavailable(offer.followUnavailable) || offer.follow))
         || (offer.group !== undefined && offer.group !== true)
         // A group window carries only a leave offer, from a group source.
         || (offer.tacticUnavailable !== undefined && (!parseTacticUnavailable(offer.tacticUnavailable) || offer.tactic))
         || (offer.driveUnavailable !== undefined && (!parseDriveUnavailable(offer.driveUnavailable) || offer.drive !== false))
         || (offer.group === true) !== offer.source.startsWith('group-')
-        || (offer.group === true && (offer.drive !== false || offer.tactic || offer.follow || offer.followUnavailable || offer.tacticUnavailable || offer.driveUnavailable || !offer.leave))
+        || (offer.group === true && (offer.drive !== false || offer.tactic || offer.follow || offer.followUnavailable || offer.tacticUnavailable || offer.driveUnavailable || offer.reaction || !offer.leave))
         || (offer.drive === false && offer.tactic === undefined && offer.follow === undefined
-          && offer.leave === undefined && offer.followUnavailable === undefined && offer.tacticUnavailable === undefined
+          && offer.leave === undefined && offer.reaction === undefined && offer.followUnavailable === undefined && offer.tacticUnavailable === undefined
           && offer.driveUnavailable === undefined)) return false;
     this.pending = {...offer, ...(offer.tactic ? {tactic: {...offer.tactic, kinds: [...offer.tactic.kinds]}} : {}),
       ...(offer.follow ? {follow: {...offer.follow}} : {}),
+      ...(offer.reaction ? {reaction: {kinds: [...offer.reaction.kinds]}} : {}),
       ...(offer.leave ? {leave: {members: offer.leave.members.map(member => ({...member}))}} : {})};
     return true;
   }
@@ -437,6 +481,11 @@ export class CompanionActionWindow {
         this.clear(); return {version: 1, token: pending.token, leave: row.target};
       }
     }
+    for (const kind of pending.reaction?.kinds ?? []) {
+      const bound = action.name === reactionActionName(pending, kind);
+      const targeted = action.name === REACTION_ACTIONS[kind] && action.target === pending.token;
+      if ((bound && targetOk) || targeted) { this.clear(); return {version: 1, token: pending.token, reaction: kind}; }
+    }
     for (const kind of pending.tactic?.kinds ?? []) {
       const bound = action.name === tacticActionName(pending, kind);
       const targeted = action.name === TACTIC_ACTIONS[kind] && action.target === pending.token;
@@ -456,6 +505,7 @@ export class CompanionActionWindow {
   static contextText(offer) {
     return (offer?.drive === false ? '' : chauffeurContextText(offer)) + (offer?.tactic ? tacticContextText(offer) : '')
       + (offer?.follow ? followContextText(offer) : '') + (offer?.leave ? leaveContextText(offer) : '')
+      + (offer?.reaction ? reactionContextText(offer) : '')
       + (offer?.followUnavailable ? followUnavailableText(offer.followUnavailable) : '')
       + (offer?.tacticUnavailable ? tacticUnavailableText(offer.tacticUnavailable) : '');
   }
@@ -486,12 +536,14 @@ export async function publishCompanionActionContext(client, context, offer) {
   if (offer && !chauffeurActionName(offer)) throw Error('Invalid companion action offer');
   const actions = !offer ? [] : [...(offer.drive === false ? [] : [chauffeurActionName(offer)]),
     ...(offer.tactic?.kinds ?? []).map(kind => tacticActionName(offer, kind)).filter(Boolean),
-    ...(offer.follow ? [followActionName(offer)] : []), ...leaveActions(offer).map(row => row.name)];
+    ...(offer.follow ? [followActionName(offer)] : []), ...leaveActions(offer).map(row => row.name),
+    ...(offer.reaction?.kinds ?? []).map(kind => reactionActionName(offer, kind)).filter(Boolean)];
   const subjects = [...(offer?.drive === false ? [] : [SEATED_MODES.includes(offer?.seated)
       ? "V's own car that V is sitting in, and selected map waypoint" : "V's currently summoned owned car and selected map waypoint"]),
     ...(offer?.tactic ? ['the person V marked as a target'] : []),
     ...(offer?.follow ? ['your chance to come along with V'] : []),
-    ...(offer?.leave ? ["V's current party"] : [])];
+    ...(offer?.leave ? ["V's current party"] : []),
+    ...(offer?.reaction ? ['the way this conversation can end for you'] : [])];
   const description = subjects.length ? subjects.join(', ').replace(/^./, first => first.toUpperCase()) + ', bound to this request only.'
     : 'This request only.';
   const action_config = {actions, characters: [],

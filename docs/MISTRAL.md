@@ -134,6 +134,8 @@ The notices are in `mod/notices.lua` (see docs/NOTIFICATIONS.md). Failures of au
 
 ### Companion actions (drive, attack, follow, leave)
 
+(An ordinary world NPC's own three outcomes, walk off, call the police and attack, use the same lease and delivery but no decision request: the reply ends with a tag, `docs/NPC_REACTIONS.md`.)
+
 Convai characters can carry out four game actions: drive V to the map waypoint ("Drive To Waypoint"), attack the enemy V tagged or aims at,
 follow V (a world character joining the party) and leave V's party. The game offers them per turn (`chauffeurOffer`, `tacticOffer`,
 `followOffer`, `leaveOffer` in the turn input, parsed by `bridge/protocol.mjs`; the bridge's `CompanionActions` arms the turn and

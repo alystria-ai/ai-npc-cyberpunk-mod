@@ -12,7 +12,7 @@ import {parseGear} from './player-gear.mjs';
 import {parseTurnContext} from './turn-context.mjs';
 import {parseHead, parseHeadReaction} from './johnny-head.mjs';
 import {resolveKnowledgeParts} from './knowledge-parts.mjs';
-import {parseChauffeurOffer, parseTacticOffer, parseFollowOffer, parseLeaveOffer, parseFollowUnavailable, parseTacticUnavailable, parseDriveUnavailable}
+import {parseChauffeurOffer, parseTacticOffer, parseFollowOffer, parseLeaveOffer, parseReactionOffer, parseFollowUnavailable, parseTacticUnavailable, parseDriveUnavailable}
   from './companion-actions.mjs';
 
 export function profileFor(input, roster) {
@@ -69,6 +69,8 @@ function parseRequest(raw) {
   const tacticOffer = parseTacticOffer(value.tacticOffer);
   // Party membership offers (docs/WORLD_COMPANIONS.md): join V, leave V's party, or why joining is refused.
   const followOffer = parseFollowOffer(value.followOffer), leaveOffer = parseLeaveOffer(value.leaveOffer);
+  // An ordinary world NPC's reaction offer (docs/NPC_REACTIONS.md); a person with any of the offers above is a companion and has none.
+  const reactionOffer = chauffeurOffer || tacticOffer || followOffer || leaveOffer ? null : parseReactionOffer(value.reactionOffer);
   const followUnavailable = parseFollowUnavailable(value.followUnavailable);
   const tacticUnavailable = parseTacticUnavailable(value.tacticUnavailable);
   const driveUnavailable = chauffeurOffer ? null : parseDriveUnavailable(value.driveUnavailable);
@@ -78,7 +80,7 @@ function parseRequest(raw) {
   return {requestId, generation, entity, name: name.slice(0, 120), bodyType: bodyType.slice(0, 80), profileKey, text: text.trim(), group,
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(loot ? {loot} : {}), ...(reaction ? {reaction} : {}),
     ...(chauffeurOffer ? {chauffeurOffer} : {}), ...(tacticOffer ? {tacticOffer} : {}),
-    ...(followOffer ? {followOffer} : {}), ...(leaveOffer ? {leaveOffer} : {}),
+    ...(followOffer ? {followOffer} : {}), ...(leaveOffer ? {leaveOffer} : {}), ...(reactionOffer ? {reactionOffer} : {}),
     ...(followUnavailable ? {followUnavailable} : {}), ...(tacticUnavailable ? {tacticUnavailable} : {}), ...(driveUnavailable ? {driveUnavailable} : {}),
     ...(worldKnowledge ? {worldKnowledge} : {}), ...(journalHistory ? {journalHistory} : {}),
     ...(gameDialogue ? {gameDialogue} : {}), ...(gear ? {gear} : {}), ...(turnContext ? {turnContext} : {}),

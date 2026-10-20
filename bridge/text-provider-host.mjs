@@ -12,7 +12,7 @@
 import {streamChat, MistralError, DEFAULT_MODELS, failureKind, failureDetail, newTrace, newAdaptation} from './mistral-client.mjs';
 import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, dropRepeatedLines, provokesAiTalk, takesUpAiTalk, trimUnfinished,
   summaryMessages, factMessages, capWords, overWords, remarkTokens, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS} from './mistral-prompt.mjs';
-import {actionMenu, splitActions} from './text-actions.mjs';
+import {actionMenu, reactionMenu, splitActions} from './text-actions.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 import {stripSpeechTags} from './natural-speech.mjs';
 import {ReplyStream} from './reply-stream.mjs';
@@ -530,6 +530,8 @@ export class TextProviderHost {
     // The companion actions the game offers this turn (a private conversation with a companion; never a reaction line). Which one V asked
     // for is decided by a tiny request of its own that runs while the memory store retrieves (bridge/text-actions.mjs).
     const menu = !reaction && typeof this.deliverAction === 'function' ? actionMenu(config.companionAction) : null;
+    // The reactions the game offers an ordinary NPC this turn (never a reaction line, never a companion: its offers come with the turn).
+    const reactions = !reaction && typeof this.deliverAction === 'function' ? reactionMenu(config.companionAction) : null;
     const recalled = reaction ? this.memory.recall({...memoryKey, channel: 'private'}) : this.memory.recall(memoryKey);
     // The guard is on (Mature content on with the local AI or Custom, or an uncensored local model loaded): it reads V's words before any model is asked
     // (bridge/mature-guard.mjs). A refusal is the character's own short line; nothing is sent to a model and nothing is stored.
@@ -554,8 +556,10 @@ export class TextProviderHost {
     const decision = deciding && !guess ? await deciding : null;
     if (signal?.aborted) throw cancelled();
     const chosen = decided => decided && menu.message(decided) ? decided.code : null;
-    const actionNotes = menu ? menu.notes(guess ? (guess === 'NONE' ? null : guess) : chosen(decision)) : '';
-    const speculation = guess ? {guess, deciding, confirms: decided => (chosen(decided) ?? 'NONE') === guess, notesFor: decided => menu.notes(chosen(decided))} : null;
+    // An ordinary NPC's reaction (docs/NPC_REACTIONS.md): the reply itself decides, so its note is only one more sentence of the prompt.
+    const withReactions = notes => [notes, reactions?.notes].filter(Boolean).join('\n');
+    const actionNotes = withReactions(menu ? menu.notes(guess ? (guess === 'NONE' ? null : guess) : chosen(decision)) : '');
+    const speculation = guess ? {guess, deciding, confirms: decided => (chosen(decided) ?? 'NONE') === guess, notesFor: decided => withReactions(menu.notes(chosen(decided)))} : null;
     markStage('recalled');
     const candidates = this.#candidates();
     for (const [index, route] of candidates.entries()) {
@@ -588,6 +592,13 @@ export class TextProviderHost {
         currentClock()?.annotate({provider: route.name, model: response.model ?? route.models()[0]?.id,
           promptTokens: response.trace?.timings?.promptTokens, cachedTokens: response.trace?.timings?.cachedTokens});
         if (deciding) { const settled = await deciding, act = settled && menu.message(settled); if (act) this.#act({code: settled.code, message: act}); }
+        // The reply ended with a reaction tag the game offered (cut from the text already): hand it over, after the reply and never for a
+        // reply that was cut back to its first sentence or replaced. The game waits for the NPC to finish speaking before it acts.
+        if (reactions && !outcome.guarded && reply === outcome.reply) {
+          const picked = reactions.pick(response.text);
+          if (picked.kind) this.#act({code: `REACTION ${picked.kind}`, message: reactions.resolve(picked.kind)});
+          else if (picked.why !== 'no-tag') this.log(`NPC reaction tag in the reply was not used (${picked.why})`);
+        }
         const result = this.transformReply({text: reply, sessionID: config.sessionId, transport: route.name,
           timing: {provider: route.name, llmMs: elapsed, model: response.model ?? route.models()[0]?.id, attempts: response.attempts,
             ...(response.failed?.length ? {llmFailed: response.failed} : {}),
