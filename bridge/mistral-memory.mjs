@@ -11,7 +11,12 @@ import {atomicFile} from './guarded-file.mjs';
 
 export const MEMORY_FILE = 'mistral-memory.json';
 export const MEMORY_LIMITS = Object.freeze({
-  turns: 8,            // exchanges kept in a channel's history
+  turns: 8,            // exchanges a channel's history is cut back to
+  // The history is sent with every request, oldest exchange first. A server that reuses the longest identical prefix of the last request (llama.cpp's prompt
+  // cache, Mistral's) holds everything up to the first exchange that differs: with a window that dropped its oldest exchange on every turn that was the first one
+  // from the ninth turn on, and the whole history was read again every turn. So the window grows by `slide` more exchanges and is then cut back to `turns` in one step:
+  // its start stays the same for `slide` turns in a row (8 to 11 exchanges are kept). 0 cuts one at a time, as before.
+  slide: 3,
   batch: 8,            // exchanges that roll out of the history before they are folded into the summary
   overflow: 24,        // exchanges waiting to be summarised; the oldest are dropped beyond this
   line: 500,           // characters kept of each side of an exchange
@@ -59,7 +64,7 @@ export class MistralMemory {
       if (!KEY.test(key) || !plain(row)) continue;
       const channels = plain(row.channels) ? row.channels : {};
       this.rows.set(key, {summary: clean(row.summary, this.limits.summary), overflow: readTurns(row.overflow, this.limits.overflow),
-        channels: Object.fromEntries(CHANNELS.map(name => [name, readTurns(channels[name], this.limits.turns)])),
+        channels: Object.fromEntries(CHANNELS.map(name => [name, readTurns(channels[name], this.limits.turns + (this.limits.slide ?? 0))])),
         updated: Number.isFinite(row.updated) ? row.updated : 0});
     }
     this.#trim();
@@ -89,16 +94,18 @@ export class MistralMemory {
     if (ambientKey) {
       const turns = this.ambient.get(ambientKey) ?? [];
       turns.push(turn);
-      this.ambient.delete(ambientKey); this.ambient.set(ambientKey, turns.slice(-this.limits.turns));
+      this.ambient.delete(ambientKey); this.ambient.set(ambientKey, turns.length > this.limits.turns + (this.limits.slide ?? 0) ? turns.slice(-this.limits.turns) : turns);
       while (this.ambient.size > this.limits.ambient) this.ambient.delete(this.ambient.keys().next().value);
       return true;
     }
     if (!KEY.test(profileKey ?? '') || !CHANNELS.includes(channel)) return false;
     const row = this.#row(profileKey), turns = row.channels[channel];
     turns.push(turn);
-    while (turns.length > this.limits.turns) {
-      const old = turns.shift();
-      if (channel !== 'group') row.overflow.push(old);
+    if (turns.length > this.limits.turns + (this.limits.slide ?? 0)) {
+      while (turns.length > this.limits.turns) {
+        const old = turns.shift();
+        if (channel !== 'group') row.overflow.push(old);
+      }
     }
     while (row.overflow.length > this.limits.overflow) row.overflow.shift();
     row.updated = turn.at;

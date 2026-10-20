@@ -113,7 +113,7 @@ export class MemoryStore {
     const row = emptyRow();
     row.summary = clean(value.summary, this.limits.summary);
     row.overflow = readTurns(value.overflow, this.limits.overflow, this.limits.line);
-    row.channels = Object.fromEntries(CHANNELS.map(name => [name, readTurns(channels[name], this.limits.turns, this.limits.line)]));
+    row.channels = Object.fromEntries(CHANNELS.map(name => [name, readTurns(channels[name], this.limits.turns + (this.limits.slide ?? 0), this.limits.line)]));
     row.updated = Number.isFinite(value.updated) ? value.updated : 0;
     if (legacy) return row;
     row.pending = readTurns(value.pending, this.limits.pending, this.limits.line);
@@ -219,16 +219,20 @@ export class MemoryStore {
     if (ambientKey) {
       const turns = this.ambient.get(ambientKey) ?? [];
       turns.push(turn);
-      this.ambient.delete(ambientKey); this.ambient.set(ambientKey, turns.slice(-this.limits.turns));
+      this.ambient.delete(ambientKey); this.ambient.set(ambientKey, turns.length > this.limits.turns + (this.limits.slide ?? 0) ? turns.slice(-this.limits.turns) : turns);
       while (this.ambient.size > this.limits.ambient) this.ambient.delete(this.ambient.keys().next().value);
       return true;
     }
     if (!KEY.test(profileKey ?? '') || !CHANNELS.includes(channel)) return false;
     const row = this.#row(profileKey), turns = row.channels[channel];
     turns.push(turn);
-    while (turns.length > this.limits.turns) {
-      const old = turns.shift();
-      if (channel !== 'group') row.overflow.push(old);
+    // Cut back to `turns` in one step once the window has grown by `slide` more, so the history's first exchange stays the same for several turns in a row
+    // and the server's prompt cache keeps the whole history (bridge/mistral-memory.mjs, MEMORY_LIMITS.slide).
+    if (turns.length > this.limits.turns + (this.limits.slide ?? 0)) {
+      while (turns.length > this.limits.turns) {
+        const old = turns.shift();
+        if (channel !== 'group') row.overflow.push(old);
+      }
     }
     while (row.overflow.length > this.limits.overflow) row.overflow.shift();
     row.updated = turn.at;
@@ -452,7 +456,8 @@ export class MemoryStore {
   }
   #failed(row, kind, controller, error) {
     const sched = row.sched;
-    if (controller.signal.aborted) { sched[kind + 'At'] = this.now() + GATE_MS; return; }
+    // Interrupted by a turn, or put off by the model server (`retryLater`: a turn holds its one slot): not a failure, so no backoff; looked at again soon.
+    if (controller.signal.aborted || error?.retryLater === true) { sched[kind + 'At'] = this.now() + GATE_MS; return; }
     sched[kind + 'Backoff'] = sched[kind + 'Backoff'] ? Math.min(sched[kind + 'Backoff'] * 2, BACKOFF_MAX_MS) : BACKOFF_FIRST_MS;
     sched[kind + 'At'] = this.now() + sched[kind + 'Backoff'];
     this.log(`memory ${kind} failed (${error?.code ?? error?.message ?? 'error'}); retrying in ${Math.round(sched[kind + 'Backoff'] / 1000)} s`);

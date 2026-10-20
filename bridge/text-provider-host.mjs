@@ -201,11 +201,12 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
     // waitMs: the most this turn can still wait (its budget, LOCAL_TURN_BUDGET_MS). A model that is still loading then (a first start compiles shaders for a
     // minute or two; a reload after a changed choice) ends the turn with its own explanation instead of the game's silent timeout; the load itself goes on, so
     // the next turn finds the model ready. With a cloud key saved the cloud provider answers that turn (fallsBack).
-    async connect(signal, {background = false, waitMs, profileKey} = {}) {
+    async connect(signal, {background = false, waitMs, profileKey, persona = null} = {}) {
       if (background && server.status().state !== 'ready') throw new MistralError('network', 'is not loaded right now', {provider: 'local'});
-      // The server has one slot: a warm-up of another character's persona that is still being read must not stand in this request's way.
-      // (A warm-up of this character's own persona is the prefix this request needs, so it is waited for.)
-      if (!background) { try { server.preempt?.(typeof profileKey === 'string' ? profileKey : null); } catch { /* the warm-up is best effort */ } }
+      // The server has one slot: a warm-up of another character's persona that is still being read must not stand in this request's way, and neither
+      // may a summary or memory work (nobody waits for those). (A warm-up of this character's own persona is the prefix this request needs, so it is waited for.)
+      let stopped = false;
+      if (!background) { try { stopped = server.preempt?.(typeof profileKey === 'string' ? profileKey : null) === true; } catch { /* the warm-up is best effort */ } }
       let connection;
       const bounded = Number.isFinite(waitMs) ? AbortSignal.timeout(Math.max(0, Math.ceil(waitMs))) : null;   // a whole number of milliseconds, or it throws
       try { connection = await server.ensure({signal: bounded ? (signal ? AbortSignal.any([signal, bounded]) : bounded) : signal, background}); }
@@ -215,9 +216,22 @@ export function localRoute({server, chat = streamChat, provider, onFailure, log 
         }
         throw error;
       }
+      // Work nobody waits on starts only when the slot is free of turns and of other such work, and a turn that comes while it runs stops it (preempt).
+      // The check and the registration below are one step, so a turn cannot slip between them.
+      let stopper = null;
+      if (background && !connection.external) {
+        const why = server.backgroundRefusal?.() ?? null;
+        if (why) throw new MistralError('network', `is busy (${why})`, {provider: 'local', reason: 'busy', noRetry: true});
+        if (typeof server.begin === 'function') stopper = new AbortController();
+      }
+      // Requests of ours already on the server when this one is sent: what it may have to wait behind (the record of the turn says so).
+      const behind = Number.isFinite(server.inflight) ? server.inflight : 0;
+      // The persona this request puts into the slot (null for an action decision, which replaces it with a short prompt): a warm-up of that persona is then skipped.
+      if (!background) { try { server.noteSlot?.(typeof persona === 'string' ? persona : null); } catch { /* the warm-up is best effort */ } }
       // A request in flight keeps the server loaded; releasing it re-arms the idle timer.
-      const done = typeof server.begin === 'function' ? server.begin({background}) : null;
+      const done = typeof server.begin === 'function' ? server.begin({background, cancel: stopper ? () => stopper.abort() : null}) : null;
       return {apiKey: connection.apiKey, endpoint: connection.endpoint, model: connection.model, requestModel: connection.requestModel, trustedOrigin: connection.trustedOrigin, external: connection.external === true,
+        ...(stopper ? {signal: stopper.signal} : {}), queue: {behind, ...(stopped ? {stopped: true} : {})},
         release: () => { try { if (done) done(); else server.touch?.(); } catch { /* the idle timer is best effort */ } }};
     },
     // The closing chunk of a reply carries the server's own count of the prompt, which the token meter learns from.
@@ -271,22 +285,26 @@ const part = (label, value, unit = '') => (value === null || value === undefined
  *   a turn that failed   [LocalTurn] FAILED: no first word from the model after 60 s (no-first-token): headers 45 ms, first event -, first word -, 0 pieces, ... | model ...
  * `diagnostics` is the supervisor's (bridge/local-llm-server.mjs); no word of a reply, no path and no key is in it.
  */
-export function describeLocalTurn({ok, trace, error, detail, first = false, diagnostics = null} = {}) {
+export function describeLocalTurn({ok, trace, error, detail, first = false, brief = false, diagnostics = null} = {}) {
   const t = trace ?? error?.trace ?? null;
   const when = value => (Number.isFinite(value) ? `${value} ms` : '-');
-  const model = diagnostics?.model ? [`model ${diagnostics.model.file ?? diagnostics.model.name} (${diagnostics.model.family ?? 'unknown family'}${diagnostics.model.offload ? ', part on the CPU' : ''})`,
+  // The wait before the request was sent and what was already on the server beside it (the first sign of a growing delay), at the end of every line that has it.
+  const q = t?.queue ?? error?.queue ?? null;
+  const queued = Number.isFinite(q?.waitMs) ? ` | waited ${q.waitMs} ms before sending, ${q.behind > 0 ? `behind ${q.behind} other request${q.behind === 1 ? '' : 's'}` : 'nothing else on the server'}${q.stopped ? ', stopped background work for it' : ''}` : '';
+  // An ordinary turn (not the first since the load, not slow) is logged too, in a short form: its timings and prompt sizes, no model description.
+  const model = brief ? '' : diagnostics?.model ? [`model ${diagnostics.model.file ?? diagnostics.model.name} (${diagnostics.model.family ?? 'unknown family'}${diagnostics.model.offload ? ', part on the CPU' : ''})`,
     diagnostics.template ? `template ${diagnostics.template.source}${diagnostics.template.chars ? ` ${diagnostics.template.chars} chars sha ${diagnostics.template.sha}` : ''}` : null,
     part('context', diagnostics.engine?.contextSize), diagnostics.state ? `server ${diagnostics.state}` : null,
     Number.isFinite(diagnostics.start?.loadMs) ? `loaded in ${(diagnostics.start.loadMs / 1000).toFixed(1)} s` : null].filter(Boolean).join(', ') : 'model unknown';
   if (ok) {
     const speed = Number.isFinite(t?.timings?.tokensPerSecond) ? `${Math.round(t.timings.tokensPerSecond * 10) / 10} tokens/s` : null;
     const prompt = Number.isFinite(t?.timings?.promptTokens) ? `prompt ${t.timings.promptTokens} new + ${t.timings.cachedTokens ?? 0} cached tokens` : null;
-    return `[LocalTurn] ok${first ? ' (first turn since the model was loaded)' : ''}: first word ${when(t?.firstTokenMs)}, ${t?.pieces ?? 0} pieces${[speed, prompt].filter(Boolean).map(x => ', ' + x).join('')}, took ${when(t?.elapsedMs)} | ${model}`;
+    return `[LocalTurn] ok${first ? ' (first turn since the model was loaded)' : ''}: first word ${when(t?.firstTokenMs)}, ${t?.pieces ?? 0} pieces${[speed, prompt].filter(Boolean).map(x => ', ' + x).join('')}, took ${when(t?.elapsedMs)}${brief ? '' : ` | ${model}`}${queued}`;
   }
   const attempts = Array.isArray(error?.failed) && error.failed.length ? `; attempts: ${error.failed.map(item => `${item.reason ?? item.kind} ${item.ms} ms`).join(', ')}` : '';
   const progress = t?.progress ? `, prompt read ${t.progress.processed} of ${t.progress.total} tokens (${t.progress.cache} cached)` : '';
   return `[LocalTurn] FAILED: ${detail ?? String(error?.message ?? 'error').slice(0, 160)} (${error?.reason ?? error?.kind ?? 'error'}): headers ${when(t?.headersMs)}, first event ${when(t?.eventMs)}, `
-    + `first word ${when(t?.firstTokenMs)}, ${t?.pieces ?? 0} pieces, ${t?.reasoning ?? 0} thinking pieces${progress}, took ${when(t?.elapsedMs)}${attempts} | ${model}`;
+    + `first word ${when(t?.firstTokenMs)}, ${t?.pieces ?? 0} pieces, ${t?.reasoning ?? 0} thinking pieces${progress}, took ${when(t?.elapsedMs)}${attempts} | ${model}${queued}`;
 }
 
 // ---- Host --------------------------------------------------------------------------------------------------------------------
@@ -316,6 +334,7 @@ export class TextProviderHost {
     if (!provider) throw Error('Text provider required');
     Object.assign(this, {provider, memory, personas, routes, transformReply, now, log, limits, gate, resolveProfile, idleRetryMs, deliverAction, matureContent, matureGuard, guardOnly, echoCut, spokenLines});
     this.summaries = new Set();
+    this.stoppable = new Set();   // the controllers of background requests that give way to a turn (a local summary)
     this.matureLogged = new Set();
     this.holdingTurns = 0;
     this.timers = new Set();
@@ -348,7 +367,14 @@ export class TextProviderHost {
     // slotKey: whose persona a local server has just been warmed with, for a request that has no `profileKey` of its own (the action decision, which must
     // not carry the persona's cache key to the cloud): it only tells the local route which warm-up not to stop.
     const {profileKey, slotKey, background, extraBody, models, ...rest} = extra;
-    const lease = await route.connect(signal, {background, profileKey: profileKey ?? slotKey, ...(extra.deadlineAt !== undefined ? {waitMs: extra.deadlineAt - this.now()} : {})});
+    const began = this.now();
+    const lease = await route.connect(signal, {background, profileKey: profileKey ?? slotKey, persona: profileKey ?? null, ...(extra.deadlineAt !== undefined ? {waitMs: extra.deadlineAt - this.now()} : {})});
+    // How long this request waited before it was sent (starting or waiting for the model, giving way to others) and what was in flight beside it: left on the
+    // request's trace (and on its error) so the turn's log line and the support report show a growing wait as it happens (docs/LOCAL_AI.md, "Turn record").
+    const queue = lease.queue ? {waitMs: Math.max(0, Math.round(this.now() - began)), ...lease.queue} : null;
+    const noted = target => { if (queue && target && typeof target === 'object') { try { target.queue = queue; } catch { /* a frozen object keeps no note */ } } return target; };
+    // A background request also stops when a turn needs the model (the lease's own signal).
+    const sent = lease.signal ? (signal ? AbortSignal.any([signal, lease.signal]) : lease.signal) : signal;
     try {
       // The models in order of preference. A model the account has no allowance for (limit 0) is skipped for ten minutes.
       const wanted = models?.length ? models : route.models();
@@ -360,13 +386,16 @@ export class TextProviderHost {
           // `lease.requestModel`: the model id a server the player runs is asked for (the local and custom routes); `lease.trustedOrigin`: the one origin
           // that server's key may go to (bridge/mistral-client.mjs); `lease.headers`, `lease.adapt` and `lease.reasoning` (custom only): OpenRouter's two optional headers,
           // what the server has refused so far, and the field that asks a reasoning model to think less. None of them exists for the Mistral route.
-          return await route.chat({apiKey: lease.apiKey, model: lease.requestModel ?? item.id, messages, signal, endpoint: lease.endpoint ?? route.endpoint,
+          const answer = await route.chat({apiKey: lease.apiKey, model: lease.requestModel ?? item.id, messages, signal: sent, endpoint: lease.endpoint ?? route.endpoint,
             provider: route.provider, ...(lease.trustedOrigin ? {trustedOrigin: lease.trustedOrigin} : {}),
             ...(lease.headers ? {headers: lease.headers} : {}), ...(lease.adapt ? {adapt: lease.adapt} : {}), ...(lease.reasoning ? {reasoning: lease.reasoning} : {}), maxTokens: item.maxTokens ?? this.limits.maxTokens, temperature: this.limits.temperature,
             ...(route.chatDefaults ?? {}), ...rest, ...(rest.deadlineAt !== undefined ? {now: this.now} : {}), onHeaders: route.noteHeaders,
             onRetry: ({attempt, error, waitMs, ms}) => this.log(`${route.label} attempt ${attempt} failed after ${ms} ms (${error.kind}${error.status ? ` ${error.status}` : ''}${error.slow ? ', no answer in time' : ''}); asking again in ${waitMs} ms`),
             extraBody: {...route.cacheBody(profileKey), ...(route.leaseBody?.(lease) ?? {}), ...(item.body ?? {}), ...extraBody}});
+          noted(answer?.trace);
+          return answer;
         } catch (error) {
+          noted(error?.trace); noted(error);
           if (!(error instanceof MistralError) || !error.zeroQuota) throw error;
           route.blocked.set(item.id, now + 10 * 60_000);
           this.log(`no allowance for ${item.id}; trying the next model`);
@@ -415,6 +444,7 @@ export class TextProviderHost {
     const started = this.now();
     // A turn starts: background memory work (fact extraction) gives way to it.
     try { this.memory?.interrupt?.(); } catch { /* best effort */ }
+    for (const stopper of [...this.stoppable]) { this.stoppable.delete(stopper); try { stopper.abort(); } catch { /* already over */ } }
     const persona = this.personas.persona(local.profileKey, local.name);
     const reaction = !!config.reaction;
     const memoryKey = {profileKey: local.profileKey, channel: local.channel, ambientKey: local.ambientKey};
@@ -500,9 +530,9 @@ export class TextProviderHost {
   }
 
   /**
-   * The local route's record of a turn. The supervisor keeps it for its diagnostics (the support report), and the log gets one line for a turn that
-   * failed, for the first turn after the model was loaded (a cold prompt: the numbers to compare a slow start with) and for any turn whose first word
-   * took longer than SLOW_FIRST_WORD_MS. A model that never loaded is the supervisor's to explain. Never throws, never changes the turn.
+   * The local route's record of a turn. The supervisor keeps it for its diagnostics (the support report), and the log gets one line for every turn: in full for
+   * a turn that failed, for the first turn after the model was loaded (a cold prompt: the numbers to compare a slow start with) and for any turn whose first word
+   * took longer than SLOW_FIRST_WORD_MS, in a short form for the others. A model that never loaded is the supervisor's to explain. Never throws, never changes the turn.
    */
   #noteLocalTurn(route, {ok, trace, error}) {
     if (route.name !== 'local' || typeof route.noteTurn !== 'function') return;
@@ -514,8 +544,10 @@ export class TextProviderHost {
       }
       const detail = ok ? undefined : failureDetail(error) ?? String(error?.message ?? 'error').slice(0, 160);
       const {first} = route.noteTurn({ok, trace, error, detail});
-      if (ok && !first && !((trace?.firstTokenMs ?? 0) > SLOW_FIRST_WORD_MS)) return;
-      this.log(describeLocalTurn({ok, trace, error, detail, first, diagnostics: route.diagnostics?.() ?? null}));
+      // Every turn leaves one line: the wait before it was sent, the prompt (new and cached tokens) and the timings, so a report shows a delay growing from turn
+      // to turn. A turn that is neither the first since the load nor slow gets the short form (no model description, which the lines around it carry).
+      const brief = ok && !first && !((trace?.firstTokenMs ?? 0) > SLOW_FIRST_WORD_MS);
+      this.log(describeLocalTurn({ok, trace, error, detail, first, brief, diagnostics: brief ? null : route.diagnostics?.() ?? null}));
     } catch { /* a log line never fails a turn */ }
   }
 
@@ -752,17 +784,28 @@ export class TextProviderHost {
     this.memory.beginSummary(profileKey);
     const name = this.personas.persona(profileKey).name;
     const work = async () => {
+      // On the local AI a summary gives way to a turn: the model has one slot, a summary on a computer the game keeps busy takes tens of seconds, and a line V typed
+      // in that time waited for it (2026-10-20 report: a delay of minutes that grew as the talk went on). The batch stays pending and is folded in a quiet moment later.
+      const stopper = route.name === 'local' ? new AbortController() : null;
+      if (stopper) this.stoppable.add(stopper);
+      let again = false;
       try {
         // Queued behind the reply that triggered it: never within one slot of a chat request.
-        if (!route.scheduler) await pause(route.gapMs);
-        const response = await this.#request(route, summaryMessages({name, summary: batch.summary, turns: batch.turns}), undefined,
+        if (!route.scheduler) await pause(route.gapMs, stopper?.signal);
+        const response = await this.#request(route, summaryMessages({name, summary: batch.summary, turns: batch.turns}), stopper?.signal,
           {maxTokens: 260, temperature: 0.3, retries: 1, totalMs: 40000, background: route.name === 'local', priority: 'background'});
         const text = cleanReply(response.text, {name, isTag});
         if (!this.memory.applySummary(profileKey, text, batch)) this.memory.failSummary(profileKey);
       } catch (error) {
         this.memory.failSummary(profileKey);
-        this.log('summary failed: ' + (failureKind(error) ?? 'error'));
-      } finally { this.summaries.delete(profileKey); }
+        // Put off, not failed: a turn needed the model (or one is being served, or other background work holds the slot); the next quiet moment tries again.
+        if (stopper?.signal.aborted) this.log('summary put off: a turn needed the local model');   // folded in after a later turn's reply
+        else if (error?.reason === 'busy') again = true;   // a turn, or other background work, holds the slot: asked again in a few seconds, no log line
+        else this.log('summary failed: ' + (failureKind(error) ?? 'error'));
+      } finally {
+        this.summaries.delete(profileKey); if (stopper) this.stoppable.delete(stopper);
+        if (again && !this.closed) this.#later(() => this.#summarize(route, profileKey), this.idleRetryMs);
+      }
     };
     if (route.name === 'local' || this.gate) this.#whenIdle(() => { void work(); }); else void work();
   }
@@ -772,8 +815,15 @@ export class TextProviderHost {
     const route = this.routes[this.provider.route];
     if (!route || !this.provider.active || !route.summarizeAllowed()) throw new MistralError('request', 'cannot extract facts now');
     const name = this.personas.persona(profileKey).name;
-    const response = await this.#request(route, factMessages({name, turns, known}), signal,
-      {maxTokens: 300, temperature: 0.2, retries: 1, totalMs: 40000, background: route.name === 'local', priority: 'background', extraBody: route.jsonBody()});
+    let response;
+    try {
+      response = await this.#request(route, factMessages({name, turns, known}), signal,
+        {maxTokens: 300, temperature: 0.2, retries: 1, totalMs: 40000, background: route.name === 'local', priority: 'background', extraBody: route.jsonBody()});
+    } catch (error) {
+      // The local model is busy with a turn (or other background work): the memory store asks again in a few seconds instead of backing off for minutes.
+      if (error?.reason === 'busy') error.retryLater = true;
+      throw error;
+    }
     return parseFacts(response.text, {known});
   }
 

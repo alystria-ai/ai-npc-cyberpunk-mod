@@ -63,7 +63,7 @@ what you remember of V from earlier talks (the summary), then the output rules (
 emoji, one to three sentences, never an AI, no invented facts or shared history, language, tags only if the live context asks, do not
 repeat the rules). Ordinary NPCs get no name and are told they are an ordinary person.
 
-Then the recent history (last 8 exchanges, as alternating user/assistant messages), then one user message: the live context (exactly
+Then the recent history (the last 8 to 11 exchanges, cut back to 8 in one step so its start holds for several turns, as alternating user/assistant messages), then one user message: the live context (exactly
 the context string the bridge sends Convai each turn. It opens with a short "right now" block (`bridge/turn-context.mjs`, at most 450
 characters, first so the 20000-character cap below can never cut it: the game clock as a part of the day and the nearest hour, the
 district, who else is with V, whether V is in a vehicle, V's gender and lifepath; in-person turns only, not Phone Chat yet and not
@@ -171,7 +171,7 @@ p50 510-590 ms, p90 940 ms.
 Convai keeps history and long-term memory on its servers; with Mistral the bridge keeps a small, bounded version in
 `mistral-memory.json`:
 
-- the last 8 exchanges per character and channel (private, phone, group);
+- the last 8 to 11 exchanges per character and channel (private, phone, group);
 - a summary (at most 1400 characters) of older private and phone exchanges, written by the same model, shown to the character as what
   it remembers of V, never to a group conversation; group overflow is dropped;
 - ordinary NPCs keep a short in-memory history for the conversation only;

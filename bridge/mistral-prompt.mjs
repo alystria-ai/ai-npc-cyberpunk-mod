@@ -37,7 +37,7 @@ export const LIMITS = Object.freeze({
   volatile: 6000,        // layout v2: this turn's volatile notes in the last user message
   remembered: 1200,      // layout v2: retrieved memories for this turn (about 300 tokens)
   summary: 1400,         // what the character remembers of V from older talks
-  turns: 8,              // exchanges of conversation history sent with a request
+  turns: 11,             // exchanges of conversation history sent with a request: all the memory holds (8 to 11, MEMORY_LIMITS.turns + slide in bridge/mistral-memory.mjs)
   userLine: 400,         // each history line from V
   replyLine: 600,        // each history line from the character
   playerText: 1200,      // V's message (the game already caps it at 1200)
