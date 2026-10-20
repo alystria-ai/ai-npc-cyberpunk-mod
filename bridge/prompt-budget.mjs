@@ -58,6 +58,12 @@ export function textTokens(text, charsPerToken = BUDGET.charsPerToken) {
   return (value.length - wide - Math.max(0, other)) / charsPerToken + wide * 1.05 + Math.max(0, other) * 0.55;
 }
 
+/** The most tokens a prompt may hold for a budget {contextTokens, reserveTokens?}: the context less the room for the reply and a margin. */
+export function fitLimit(budget) {
+  const context = Number(budget?.contextTokens);
+  return Math.floor(context - (budget?.reserveTokens ?? BUDGET.reserveTokens) - Math.max(BUDGET.minMargin, context * BUDGET.marginRatio));
+}
+
 export const promptChars = messages => messages.reduce((sum, message) => sum + String(message?.content ?? '').length, 0);
 
 /** The template overhead the server adds around `count` messages. */
@@ -316,7 +322,7 @@ export async function fitMessages({args, build = defaultBuild, budget, shrinkPer
   let messages = build(state);
   if (!(context > 0)) return {messages, tokens: estimateTokens(messages), limit: Infinity, fits: true, trimmed: [], counts: 0, exact: false};
   const reserve = budget.reserveTokens ?? BUDGET.reserveTokens;
-  const limit = Math.floor(context - reserve - Math.max(BUDGET.minMargin, context * BUDGET.marginRatio));
+  const limit = fitLimit({contextTokens: context, reserveTokens: reserve});
   const perToken = () => budget.meter?.charsPerToken ?? BUDGET.charsPerToken;
   const estimate = list => estimateTokens(list, perToken());
   let counts = 0, scale = 1, exact = false;
@@ -418,9 +424,13 @@ export function budgetedChat(chat, {budget, onFit, tooLarge, shape, learn} = {})
     // An explicit `soft` of the budget wins.
     const soft = base.soft ?? (base.speed?.slow ? base.speed.soft(headTokens(args, base.meter?.charsPerToken)) : null);
     for (let attempt = 0; ; attempt++) {
-      let fit = soft ? await fitMessages({args, budget: {...current, ...soft, soft: undefined}}) : null;
+      // A soft target only ever lowers the limit: one that is not below the context's own (a persona that is itself longer than the allowance makes the soft
+      // context larger than the real one; the reply's room and a context the server refused are lost with it) is not used, so a prompt it lets through
+      // cannot be longer than the context allows. 2026-10-20 live record: 8919 tokens sent to an 8192-token server, and the retry fitted to the same target.
+      const hard = {...current, soft: undefined}, lower = soft ? {...current, ...soft, soft: undefined} : null;
+      let fit = lower && fitLimit(lower) < fitLimit(hard) ? await fitMessages({args, budget: lower}) : null;
       if (fit) fit.target = 'soft';
-      if (!fit?.fits) { fit = await fitMessages({args, budget: {...current, soft: undefined}, shrinkPersona: options?.lastResort === true}); if (soft) fit.target = 'hard'; }
+      if (!fit?.fits) { fit = await fitMessages({args, budget: hard, shrinkPersona: options?.lastResort === true}); if (soft) fit.target = 'hard'; }
       if (fit.trimmed.length || !fit.fits) { try { onFit?.(fit, options); } catch { /* a log line never fails a request */ } }
       if (!fit.fits) throw tooLarge ? tooLarge(fit, options) : new PromptTooLarge(fit, options?.provider, {server: base.server === true});
       try {

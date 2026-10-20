@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {PersonaBook, buildMessages, PROMPT_SOURCE, systemHead, worldBlocksInCacheOrder} from './mistral-prompt.mjs';
-import {BUDGET, PREFILL, PrefillMeter, PromptTooLarge, TokenMeter, budgetedChat, describeFit, estimateTokens, fitMessages, templateTokens, textTokens} from './prompt-budget.mjs';
+import {BUDGET, PREFILL, PrefillMeter, PromptTooLarge, TokenMeter, budgetedChat, describeFit, estimateTokens, fitLimit, fitMessages, templateTokens, textTokens} from './prompt-budget.mjs';
 import {MistralError, errorCodeFor, mapFailure} from './mistral-client.mjs';
 import {conversationContextBlocks} from './quest-context.mjs';
 import {matureLayer} from './mature-content.mjs';
@@ -375,4 +375,44 @@ test('budgetedChat: a request that stalls on the prompt teaches the next turn ho
   }, {budget: async () => ({contextTokens: 16384, meter: new TokenMeter(), speed})});
   await assert.rejects(chat({messages: buildMessages(args), provider: 'local'}), /did not finish in time/);
   assert(speed.tokensPerSecond < 300, `now believed slow: ${speed.tokensPerSecond}`);
+});
+
+// 2026-10-20 live record (0.2.4, a Mature model on an 8192-token server): the soft target of a slow machine is the persona plus the allowance, which can be larger
+// than the context. It let a prompt of 8919 tokens through, the server refused it, and the retry was fitted to the same soft target and refused again.
+// A prompt of 3.4 characters a token (a denser one than the usual 4.2): the whole turn is about 9,500 tokens, over an 8192-token context.
+const DENSE = 3.4;
+const roomy = () => {
+  const server = 8192, sent = [];
+  const refusing = async options => {
+    const tokens = Math.ceil(chars(options.messages) / DENSE) + templateTokens(options.messages.length);
+    sent.push(tokens);
+    if (tokens > server) throw Object.assign(new MistralError('request', 'exceeds the available context size', {provider: 'local'}), {overflow: {promptTokens: tokens, contextTokens: server}});
+    return {text: 'ok', usage: {prompt_tokens: tokens}};
+  };
+  return {sent, chat: budgetedChat(refusing, {budget: async () => ({contextTokens: server, meter: new TokenMeter({charsPerToken: DENSE}), soft: {contextTokens: 9400, reserveTokens: 0}})})};
+};
+
+test('budgetedChat: a soft target that is not below the context is not used, so the prompt fits the context on the first request', async () => {
+  const {sent, chat} = roomy();
+  assert.equal((await chat({messages: buildMessages(turn()), provider: 'local'})).text, 'ok');
+  assert.equal(sent.length, 1, 'no refusal, no retry');
+  assert(sent[0] <= fitLimit({contextTokens: 8192}), `sent ${sent[0]} of ${fitLimit({contextTokens: 8192})}`);
+});
+
+test('budgetedChat: an estimate that is too low is refused once and the retry is cut to what the server counted, soft target or not', async () => {
+  const sent = [];
+  const chat = budgetedChat(async options => {
+    const tokens = Math.ceil(chars(options.messages) / DENSE) + templateTokens(options.messages.length);
+    sent.push(tokens);
+    if (tokens > 8192) throw Object.assign(new MistralError('request', 'exceeds the available context size', {provider: 'local'}), {overflow: {promptTokens: tokens, contextTokens: 8192}});
+    return {text: 'ok', usage: {prompt_tokens: tokens}};
+  }, {budget: async () => ({contextTokens: 8192, meter: new TokenMeter({charsPerToken: 6}), soft: {contextTokens: 9400, reserveTokens: 0}})});
+  assert.equal((await chat({messages: buildMessages(turn()), provider: 'local'})).text, 'ok');
+  assert.equal(sent.length, 2, 'one refusal, one retry');
+  assert(sent[0] > 8192 && sent[1] <= 8192 - BUDGET.reserveTokens, `first ${sent[0]}, retry ${sent[1]}`);
+});
+
+test('fitLimit: the context less the room for the reply and the margin', () => {
+  assert.equal(fitLimit({contextTokens: 8192}), 8192 - BUDGET.reserveTokens - Math.max(BUDGET.minMargin, 8192 * BUDGET.marginRatio) | 0);
+  assert(fitLimit({contextTokens: 9400, reserveTokens: 0}) > fitLimit({contextTokens: 8192}));
 });
