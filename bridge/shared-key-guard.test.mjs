@@ -50,7 +50,7 @@ const guardWith = (clock, options = {}) => new SharedKeyGuard({now: clock.now, l
 const drain = (guard, clock, count) => { for (let i = 0; i < count; i++) { clock.advance(5000); guard.admit(); } };
 
 test('the shipped numbers are the documented ones', () => {
-  assert.equal(DAILY_LIMIT, 100); assert.equal(RATE_BURST, 15); assert.equal(RATE_PER_MINUTE, 12); assert.equal(MIN_SPACING_MS, 250);
+  assert.equal(DAILY_LIMIT, 500); assert.equal(RATE_BURST, 15); assert.equal(RATE_PER_MINUTE, 12); assert.equal(MIN_SPACING_MS, 250);
 });
 
 test('the counter goes up once per admitted turn and the cap blocks the next one', () => {

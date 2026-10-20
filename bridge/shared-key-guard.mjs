@@ -18,7 +18,7 @@ import {dirname} from 'node:path';
 import {execFile} from 'node:child_process';
 import {hostname, userInfo} from 'node:os';
 
-export const DAILY_LIMIT = 100;       // turns per local day on the shared key until the sign-in backend says otherwise (auth-backend/ POST /api/admin/config)
+export const DAILY_LIMIT = 500;       // turns per local day on the shared key until the sign-in backend says otherwise (auth-backend/ POST /api/admin/config)
 export const LIMIT_MIN = 1, LIMIT_MAX = 10_000;  // the range of a limit the backend may set; the same bounds as auth-backend/api/_lib/config.js
 export const RATE_BURST = 15;         // turns that may follow each other at once
 export const RATE_PER_MINUTE = 12;    // sustained turns per minute
