@@ -195,7 +195,8 @@ test('conversation start reports the spawn decision and keeps the talk-time guar
   assert.match(guards, /scene\.IsEntityInDialogue\(npc\.GetEntityID\(\)\) \{ return "skipped:dialogue"; \};/);
   assert.match(guards, /if npc\.IsQuest\(\) \|\| !npc\.IsOnAutonomousAI\(\) \{ return "skipped:driven"; \};/);
   assert(guards.indexOf('skipped:dialogue') < guards.indexOf('skipped:quest') && guards.indexOf('skipped:quest') < guards.indexOf('skipped:driven'));
-  assert.match(guards, /QuestBound\(NameToString\(npc\.GetCurrentAppearanceName\(\)\)\)\s*\|\| ConvaiFaceService\.QuestBound\(TDBID\.ToStringDEBUG\(npc\.GetRecordID\(\)\)\)/);
+  assert.match(guards, /let record = TDBID\.ToStringDEBUG\(npc\.GetRecordID\(\)\);\s*if ConvaiFaceService\.QuestBound\(NameToString\(npc\.GetCurrentAppearanceName\(\)\)\)\s*\|\| ConvaiFaceService\.QuestBound\(record\) && !ConvaiFaceService\.QuestCrowd\(record\)/,
+    'a quest crowd extra (its record names it a crowd member) is let through at talk time; a quest appearance is not');
   assert.doesNotMatch(guards, /IsEntityInScene|skipped:scene|IsVendor|IsCrowd/, 'vendors and community NPCs are scene actors: the scene guard is gone');
   assert.doesNotMatch(nativeFace, /skipped:scene/);
   // A refused NPC is never written: readiness checks the refusal, and the status the log shows is the refusal.
@@ -337,13 +338,15 @@ const transliterate = (signature, parameters) => {
   const from = redscript.indexOf(signature);
   assert(from >= 0, signature);
   const text = redscript.slice(redscript.indexOf('{', from) + 1, redscript.indexOf('\n  }', from));
-  const js = text.replace(/\};/g, '}').replace(/\b(if|while) ([\s\S]*?) \{/g, '$1 ($2) {').replace(/ConvaiFaceService\.QuestBound\(/g, 'questBound(');
+  const js = text.replace(/\};/g, '}').replace(/\b(if|while) ([\s\S]*?) \{/g, '$1 ($2) {').replace(/ConvaiFaceService\.QuestBound\(/g, 'questBound(').replace(/ConvaiFaceService\.QuestCrowd\(/g, 'questCrowd(');
   return new Function(...parameters, js);
 };
 const questBoundJs = transliterate('public static func QuestBound(text: String) -> Bool {', ['text', 'StrLen', 'StrMid', 'StrContains', 'Equals']);
 const questBound = text => questBoundJs(text, s => s.length, (s, i, n) => s.substr(i, n), (s, x) => x !== '' && s.includes(x), (a, b) => a === b);
-const skipJs = transliterate('public static func CrowdSkipReason(', ['recordValid', 'named', 'appearance', 'record', 'questBound']);
-const skipReason = (recordValid, named, appearance = '', record = '') => skipJs(recordValid, named, appearance, record, questBound);
+const questCrowdJs = transliterate('public static func QuestCrowd(record: String) -> Bool {', ['record', 'StrContains', 'StrEndsWith', 'StrLower']);
+const questCrowd = record => questCrowdJs(record, (s, x) => x !== '' && s.includes(x), (s, x) => s.endsWith(x), s => s.toLowerCase());
+const skipJs = transliterate('public static func CrowdSkipReason(', ['recordValid', 'named', 'appearance', 'record', 'questBound', 'questCrowd']);
+const skipReason = (recordValid, named, appearance = '', record = '') => skipJs(recordValid, named, appearance, record, questBound, questCrowd);
 const redscriptNamed = new Set([...featureSource().match(/NamedRecords\(\) -> array<String> \{\s*return \[([^\]]*)\]/)[1].matchAll(/"([^"]+)"/g)].map(match => match[1]));
 test('the spawn filter keeps story characters, named roster characters and Johnny vanilla, and lets ordinary NPCs through', () => {
   // The decision for a record, as OnWorldInitialize makes it: roster first, then the strings.
@@ -363,6 +366,10 @@ test('the spawn filter keeps story characters, named roster characters and Johnn
   assert.equal(decide('Character.sq021_unlisted_vendor', 'lowlife_ma__01'), 'skipped:quest');
   assert.equal(decide('Character.mq003_guard', 'x'), 'skipped:quest');
   assert.equal(decide('Character.q101_johnny_bartender', 'x'), 'skipped:quest', 'a quest-placed Johnny');
+  // A quest's crowd extra speaks like any crowd face (it talks as an ordinary person); a quest appearance still keeps it vanilla.
+  assert.equal(decide('Character.q005_afterlife_crowd_female', 'citizen__nightlife_wa_hood_hottie_wa_17'), '');
+  assert.equal(decide('Character.q005_afterlife_crowd_female', 'citizen__q005__afterlife_patron_01'), 'skipped:quest');
+  assert.equal(decide('Character.q005_afterlife_bouncer', 'citizen__nightlife_ma_01'), 'skipped:quest');
   for (const record of ['Character.LowlifeMale', 'Character.CorpoMan', 'Character.HomelessMan', 'Character.StoopKing', 'Character.WorkerMale',
     'Character.LowlifeWoman', 'Character.cct_dtn_food_02', 'Character.wat_kab_foodshop_04']) {
     assert.equal(decide(record, 'citizen__lowlife_ma__01'), '', record);

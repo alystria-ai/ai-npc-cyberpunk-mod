@@ -535,7 +535,7 @@ public class ConvaiFaceService extends ScriptableService {
   public static func CrowdSkipReason(recordValid: Bool, named: Bool, appearance: String, record: String) -> String {
     if !recordValid { return "skipped:no-record"; };
     if named { return "skipped:named"; };
-    if ConvaiFaceService.QuestBound(appearance) || ConvaiFaceService.QuestBound(record) { return "skipped:quest"; };
+    if ConvaiFaceService.QuestBound(appearance) || ConvaiFaceService.QuestBound(record) && !ConvaiFaceService.QuestCrowd(record) { return "skipped:quest"; };
     return "";
   }
 
@@ -577,10 +577,18 @@ public class ConvaiFaceService extends ScriptableService {
       if !npc.IsOnAutonomousAI() { return "skipped:driven"; };
       return "";
     };
+    let record = TDBID.ToStringDEBUG(npc.GetRecordID());
     if ConvaiFaceService.QuestBound(NameToString(npc.GetCurrentAppearanceName()))
-      || ConvaiFaceService.QuestBound(TDBID.ToStringDEBUG(npc.GetRecordID())) { return "skipped:quest"; };
+      || ConvaiFaceService.QuestBound(record) && !ConvaiFaceService.QuestCrowd(record) { return "skipped:quest"; };
     if npc.IsQuest() || !npc.IsOnAutonomousAI() { return "skipped:driven"; };
     return "";
+  }
+
+  // A quest's crowd extra (Character.q005_afterlife_crowd_female): its record names it a crowd member of the quest. It talks as an
+  // ordinary person (mod/character-catalog.lua questCrowd, 2026-10-21), so its face speaks like any crowd face; a quest token in its
+  // appearance, a quest marking or a commanded AI still leaves it to the game.
+  public static func QuestCrowd(record: String) -> Bool {
+    return StrContains(StrLower(record), "_crowd_") || StrEndsWith(StrLower(record), "_crowd");
   }
 
   // True for a quest token: "q", "sq" or "mq" right after "_" or "." or at the
