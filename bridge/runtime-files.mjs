@@ -52,6 +52,26 @@ function runtimeName(path, project) {
   return posix.basename(clean);
 }
 
+// Node's ESM SyntaxError when a module imports a name the file it imports does not have: "The requested module './x.mjs' does not provide an export named 'y'". Files of two
+// versions side by side (the Runtime of an earlier version under newer Scripts, an update zip applied over the wrong base, 0.2.5 report: Scripts 0.2.5 with Runtime 0.2.2, the bridge
+// ended at once six times) end this way, and starting again ends the same way.
+const NO_EXPORT = /The requested module '([^']+)' does not provide an export named/;
+
+/** Does the bridge's stderr say that a file it imports does not match the file that imports it (see NO_EXPORT)? */
+export const versionMismatchInLog = text => NO_EXPORT.test(slashes(text ?? ''));
+
+/** The file named by such a message, relative to the Runtime ("bridge/x.mjs"; a package as `node_modules/<name>`), or null. */
+function mismatchedModuleIn(log, project) {
+  const found = NO_EXPORT.exec(log);
+  if (!found) return null;
+  const specifier = found[1];
+  if (/^(?:[A-Za-z]:)?\//.test(specifier) || /^file:/i.test(specifier)) return runtimeName(specifier, project);
+  if (!/^\.\.?\//.test(specifier)) return `node_modules/${specifier.split('/').slice(0, specifier.startsWith('@') ? 2 : 1).join('/')}`;
+  // A relative specifier: relative to the file that imports it, the last "file:///...:line" heading before the message.
+  const heading = [...log.slice(0, found.index).matchAll(/^(?:file:\/\/\/)?(.+?\.[cm]?js):\d+\s*$/gm)].pop();
+  return heading ? runtimeName(posix.join(posix.dirname(slashes(heading[1]).trim()), specifier), project) : posix.basename(specifier);
+}
+
 /**
  * What the bridge's own stderr (the text since its last start) says when Node could not load one of its files or packages: a package, a file
  * of it or a module of the bridge that is not there. Returns that file as a name relative to the Runtime (`node_modules/playwright`,
@@ -61,6 +81,8 @@ function runtimeName(path, project) {
  */
 export function missingModuleInLog(text, project = '') {
   const log = slashes(text ?? '');
+  const mismatched = mismatchedModuleIn(log, project);
+  if (mismatched) return mismatched;
   const bare = /Cannot find package '([^']+)' imported from/.exec(log);
   if (bare) return `node_modules/${bare[1].split('/').slice(0, bare[1].startsWith('@') ? 2 : 1).join('/')}`;
   const found = /Cannot find module '([^']+)'([\s\S]{0,40}imported from)?/.exec(log);
@@ -86,6 +108,10 @@ export async function missingRuntimeFiles(project, files = RUNTIME_DATA_FILES, {
 /** What a missing Runtime file is called in the log: the one line the player and the support report read. */
 export const incompleteMessage = names => `The Runtime is incomplete: ${[].concat(names).join(', ')} ${[].concat(names).length === 1 ? 'is' : 'are'} missing. `
   + 'Download the Runtime again and extract it into the Cyberpunk 2077 folder, then restart the game.';
+
+/** The line for files of two versions (versionMismatchInLog): the full Runtime again, or the update zips in order from the version the player has. */
+export const mismatchMessage = name => `The Runtime does not match the mod's Scripts: ${name} comes from a different version. `
+  + 'Download the full Runtime again, or apply the Runtime update zips in order, extracting them into the Cyberpunk 2077 folder, then restart the game.';
 
 export class RuntimeIncomplete extends Error {
   constructor(file) {

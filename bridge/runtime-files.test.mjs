@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {INCOMPLETE_EXIT_CODE, RUNTIME_DATA_FILES, RUNTIME_PACKAGE_FILES, RUNTIME_REQUIRED_FILES, RuntimeIncomplete, endIfIncomplete, incompleteMessage,
-  installFileErrorGuard, isTransientFileError, missingModuleInLog, missingRuntimeFiles, readRequiredJson} from './runtime-files.mjs';
+  installFileErrorGuard, isTransientFileError, mismatchMessage, missingModuleInLog, missingRuntimeFiles, readRequiredJson, versionMismatchInLog} from './runtime-files.mjs';
 
 const module = pathToFileURL(join(import.meta.dirname, 'runtime-files.mjs')).href;
 
@@ -126,6 +126,26 @@ test('what Node says when the bridge cannot load a package or a file of its own 
   }
   // anything else is not a missing file
   for (const log of ['', undefined, null, 'TypeError: x is not a function\n    at run (file.mjs:1:1)', 'Error: connect ECONNREFUSED 127.0.0.1:1', 'ValueError: Pocket source differs']) assert.equal(missingModuleInLog(log, project), null, String(log));
+});
+
+test('Node\'s "does not provide an export named" (files of two versions) is read like a missing file, named relative to the Runtime, and told apart for its own message', () => {
+  const project = 'D:\\Made Up Games\\Some Game\\red4ext\\plugins\\FakeMod\\app';
+  const heading = 'file:///D:/Made Up Games/Some Game/red4ext/plugins/FakeMod/app/bridge/convai-bridge.mjs:12';
+  const local = `${heading}\nimport {newerThing} from './runtime-files.mjs';\n        ^^^^^^^^\nSyntaxError: The requested module './runtime-files.mjs' does not provide an export named 'newerThing'\n    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)`;
+  assert.equal(missingModuleInLog(local, project), 'bridge/runtime-files.mjs');
+  assert.equal(versionMismatchInLog(local), true);
+  assert.equal(missingModuleInLog(local), 'runtime-files.mjs', 'without the project folder only the file name');
+  // From a package's own file and a bare package name
+  assert.equal(missingModuleInLog(`SyntaxError: The requested module 'fakepkg-core/lib/x' does not provide an export named 'y'`, project), 'node_modules/fakepkg-core');
+  assert.equal(missingModuleInLog(`SyntaxError: The requested module 'D:\\Made Up Games\\Some Game\\red4ext\\plugins\\FakeMod\\app\\bridge\\old.mjs' does not provide an export named 'z'`, project), 'bridge/old.mjs');
+  // A missing file is not a mismatch, and a message with no importing file still names the file
+  assert.equal(versionMismatchInLog(`Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'fakepkg' imported from ${project}\\bridge\\x.mjs`), false);
+  assert.equal(missingModuleInLog(`SyntaxError: The requested module './lone.mjs' does not provide an export named 'q'`, project), 'lone.mjs');
+  for (const name of ['bridge/runtime-files.mjs', 'node_modules/fakepkg-core']) {
+    const message = mismatchMessage(name);
+    assert.match(message, /full Runtime again, or apply the Runtime update zips in order/);
+    assert(message.includes(name) && !/Made Up|Some Game|D:/.test(message));
+  }
 });
 
 test('the guard can be removed again', () => {

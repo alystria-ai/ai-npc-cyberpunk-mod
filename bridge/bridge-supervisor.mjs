@@ -19,7 +19,7 @@ import {atomicFile} from './guarded-file.mjs';
 import {capLogFile} from './log-cap.mjs';
 import {isKeyFileText} from './key-codec.mjs';
 import {NO_BROWSER_MESSAGE, systemBrowserAvailable} from './system-browser.mjs';
-import {INCOMPLETE_EXIT_CODE, incompleteMessage, missingModuleInLog, missingRuntimeFiles} from './runtime-files.mjs';
+import {INCOMPLETE_EXIT_CODE, incompleteMessage, mismatchMessage, missingModuleInLog, missingRuntimeFiles, versionMismatchInLog} from './runtime-files.mjs';
 // For the entry points (scripts/Supervise-ConversationBridge.mjs, the packaged start-service.mjs): what they pass as `requiredFiles`.
 export {RUNTIME_DATA_FILES, RUNTIME_PACKAGE_FILES, RUNTIME_REQUIRED_FILES} from './runtime-files.mjs';
 
@@ -468,9 +468,12 @@ export class BridgeSupervisor {
     }
     // The bridge died on a file or package of its own that is not there (a Runtime extracted only partly, a file an antivirus removed) and said
     // so on its stderr, in Node's own words. Starting it again would end the same way, so this is `install-incomplete` too, named by the file.
-    const missingModule = typeof exit?.code === 'number' && exit.code !== 0 ? missingModuleInLog(this.bridgeErrorText(), this.project) : null;
+    // The same when its files are of two versions (Node: "does not provide an export named", 0.2.5 report: Scripts 0.2.5 over a Runtime 0.2.2): the bridge ends at its first import,
+    // every time, so this is not a crash loop either; the line says to take the full Runtime or the update zips in order.
+    const errorText = typeof exit?.code === 'number' && exit.code !== 0 ? this.bridgeErrorText() : '';
+    const missingModule = errorText ? missingModuleInLog(errorText, this.project) : null;
     if (missingModule) {
-      this.log(`The bridge${pid ? ` (PID ${pid})` : ''} stopped at once. ${incompleteMessage(missingModule)}`);
+      this.log(`The bridge${pid ? ` (PID ${pid})` : ''} stopped at once. ${versionMismatchInLog(errorText) ? mismatchMessage(missingModule) : incompleteMessage(missingModule)}`);
       this.missingFiles = [missingModule];
       this.retrySetup = false;
       return this.fail('install-incomplete');

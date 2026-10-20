@@ -13,7 +13,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {MistralError, failureDetail, errorCodeFor, MIN_ATTEMPT_MS} from './mistral-client.mjs';
 import {LocalLlmServer, LocalAiUnavailable, unavailableDetail} from './local-llm-server.mjs';
-import {lostServer, survivingLoss} from './local-server-recovery.mjs';
+import {lostServer, deviceLost, survivingLoss} from './local-server-recovery.mjs';
 import {TextProviderHost, localRoute, isLocalUnavailable} from './text-provider-host.mjs';
 import {MistralMemory} from './mistral-memory.mjs';
 import {MistralProvider} from './mistral-key.mjs';
@@ -202,4 +202,68 @@ test('a turn that arrives while the server is starting after an idle stop waits 
   await started;
   assert.equal(reply.text, 'Hey.');
   assert.equal(server.status().state, 'ready');
+});
+
+// ---- a lost graphics device: the server stays alive and answers /health, every request fails (2026-10-20 report, an RX 580 over Vulkan) -----------------------------------
+
+const LOST = 'decode() failed: vk::Queue::submit: ErrorDeviceLost';
+
+test('deviceLost reads the words of a failed request; lostServer still holds for the same failure', () => {
+  assert.equal(deviceLost(failure(LOST, {status: 500, slow: true})), true);
+  assert.equal(deviceLost(failure('the graphics device ran out of memory')), false, 'only the driver\'s own words');
+  assert.equal(deviceLost(failure('VK_ERROR_DEVICE_LOST')), true);
+  assert.equal(deviceLost(Object.assign(failure('HTTP 500', {status: 500}), {providerText: 'device lost'})), true);
+  assert.equal(deviceLost(failure('could not be reached (ECONNREFUSED)')), false);
+  assert.equal(deviceLost(new Error('boom')), false);
+  assert.equal(deviceLost(undefined), false);
+  assert.equal(lostServer(failure(LOST, {status: 500, slow: true})), true, 'a 500 with no reply written is a lost server, whatever its words');
+});
+
+test('a device-lost failure asks the supervisor to restart without its health check; a second loss on the new server tells it at once', async () => {
+  const flags = [], noted = [];
+  let calls = 0;
+  const chat = async () => { calls++; throw failure(LOST, {status: 500, slow: true}); };
+  const server = {recover: async options => { flags.push(options.deviceLost); return {endpoint: 'http://127.0.0.1:2/v1/chat/completions', apiKey: 'newkey'}; },
+    noteDeviceLost: what => { noted.push(what); }};
+  await assert.rejects(survivingLoss(chat, {server})({endpoint: 'http://127.0.0.1:1/v1/chat/completions', apiKey: 'a', ...timed()}), /ErrorDeviceLost/);
+  assert.deepEqual(flags, [true]);
+  assert.equal(calls, 2, 'asked once more, no third time');
+  assert.equal(noted.length, 1, 'the second loss is noted (step down), the first went through recover');
+  // An ordinary failure never carries the flag.
+  const flagsOrdinary = [];
+  const ordinary = async () => { throw failure('could not be reached (ECONNREFUSED)'); };
+  await survivingLoss(ordinary, {server: {recover: async options => { flagsOrdinary.push(options.deviceLost); return null; }}})({...timed()}).catch(() => {});
+  assert.deepEqual(flagsOrdinary, [false]);
+  // A loss that cannot be asked again (no turn deadline, or a reply already begun) is still noted, so the next turn finds a restarted server; the failure stands.
+  noted.length = 0;
+  const partial = async () => { throw failure(LOST, {status: 500, partial: true, trace: {pieces: 2}}); };
+  await assert.rejects(survivingLoss(partial, {server})({...timed()}), /ErrorDeviceLost/);
+  await assert.rejects(survivingLoss(chat, {server})({}), /ErrorDeviceLost/);
+  assert.equal(noted.length, 2);
+  assert.equal(flags.length, 1, 'neither went through recover');
+});
+
+test('a device lost on a server that stays healthy: the turn is restarted onto a new server and answered; the player is told once', async t => {
+  const {server, host, provider, logs, children, restarted} = await rig(t, {envFor: index => (index === 0 ? {FAKE_LLAMA_DEVICE_LOST_FROM: '1'} : {FAKE_LLAMA_REPLY: 'Sure, V.'})});
+  server.deviceLostPauseMs = 10;
+  const first = await server.ensure();
+  const reply = await host.reply(turn('hello there'));
+  assert.equal(reply.text, 'Sure, V.');
+  assert.equal(children.length, 2);
+  assert.notEqual((await server.ensure()).endpoint, first.endpoint);
+  assert.ok(logs.some(line => /graphics device was lost/.test(line)), logs.join('\n'));
+  assert.equal(restarted.length, 1);
+  assert.equal(provider.takeNotice(), 'local-restarted');
+});
+
+test('a device lost again on the new server fails the turn with its own words, then steps down (here: no smaller model, so the cloud takes over) instead of looping', async t => {
+  const {server, host, children} = await rig(t, {envFor: () => ({FAKE_LLAMA_DEVICE_LOST_FROM: '1'})});
+  server.deviceLostPauseMs = 10;
+  await server.ensure();
+  const error = await host.reply(turn('hello there')).catch(e => e);
+  assert.ok(error instanceof Error);
+  assert.match(String(error.message), /ErrorDeviceLost|device lost|stopped working|went away/i);
+  assert.equal(await (async () => { for (let i = 0; i < 400; i++) { if (server.status().state === 'failed') return true; await new Promise(resolve => setTimeout(resolve, 25)); } return false; })(), true, 'Local AI is marked unavailable');
+  assert.equal(server.status().reason, 'low-memory');
+  assert.equal(children.length, 2, 'two servers in all, no loop');
 });

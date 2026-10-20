@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {closing, PersonaBook, systemPrompt, buildMessages, capContext, cleanReply, capReply, capPoint, breaksCharacter, repeatsLine, provokesAiTalk, takesUpAiTalk, summaryMessages, LIMITS,
+import {closing, PersonaBook, systemPrompt, buildMessages, capContext, cleanReply, capReply, capPoint, breaksCharacter, repeatsLine, dropRepeatedLines, provokesAiTalk, takesUpAiTalk, summaryMessages, LIMITS,
   CONTEXT_PREFIX, capWords, overWords, remarkTokens} from './mistral-prompt.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 
@@ -211,6 +211,20 @@ test('repeatsLine finds a reply that says an example line or its own last reply 
   assert(!repeatsLine('Making somebody feel something is easy. Earning it takes a lot more work than that.', lines));
   assert(!repeatsLine('Yes. Hold on, that was a different deal.', lines), 'a line under six words is never counted');
   assert(!repeatsLine('', lines) && !repeatsLine('anything at all here', []) && !repeatsLine('anything at all here', undefined));
+});
+
+test('dropRepeatedLines leaves out the sentences that say a line again and keeps the reply\'s own words; null when there is nothing to keep', () => {
+  const lines = ['Ah, Arroyo. Where the factories hum and the air tastes of oil.', 'Yes.'];
+  assert.equal(dropRepeatedLines('Ah, Arroyo. Where the factories hum and the air tastes of oil. I only notice the smog when the windows are down.', lines),
+    'I only notice the smog when the windows are down.');
+  assert.equal(dropRepeatedLines('You asked about the smog. Where the factories hum and the air tastes of oil. Keep the windows up, V.', lines),
+    'You asked about the smog. Keep the windows up, V.', 'a repeat in the middle goes too');
+  assert.equal(dropRepeatedLines('Ah, Arroyo. Where the factories hum and the air tastes of oil.', lines), null, 'all of it repeats: nothing left');
+  assert.equal(dropRepeatedLines('Nothing here repeats anything at all. Honest.', lines), null, 'nothing repeated');
+  assert.equal(dropRepeatedLines('Where the factories hum and the air tastes of oil. Ok.', lines), null, 'what is left is too short to be a reply');
+  assert.equal(dropRepeatedLines('Where the factories hum and the air tastes of oil', lines), null, 'one sentence');
+  assert.equal(dropRepeatedLines('', lines), null);
+  assert.equal(dropRepeatedLines('Anything at all here, friend. Nice day.', undefined), null);
 });
 
 test('a remark is cut to its word limit at a sentence end, with a small token budget, and a short one is left alone', () => {

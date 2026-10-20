@@ -922,7 +922,7 @@ return {
     ["Setup check"] = "설치 확인",
     ["Some mod files are missing. Extract the Scripts zip again. See Help in Settings."] = "모드 파일이 없습니다. Scripts zip을 다시 풀고 설정 도움말을 보세요.",
     ["Some pack files could not be moved into place because different files are already there. Extract the pack into the Cyberpunk 2077 folder again and let it replace the files."] = "다른 파일이 이미 있어 일부 팩 파일을 제자리에 옮길 수 없었습니다. 팩을 Cyberpunk 2077 폴더에 다시 풀고 파일을 덮어쓰세요.",
-    ["The Runtime is incomplete ({code}). Download it again and extract it into the Cyberpunk 2077 folder, then restart the game."] = "Runtime이 불완전합니다 ({code}). 다시 받아 Cyberpunk 2077 폴더에 풀고 게임을 다시 시작하세요.",
+    ["The Runtime is incomplete ({code}). Download it again and extract it into the Cyberpunk 2077 folder (or apply the Runtime update zips in order), then restart the game."] = "Runtime이 불완전합니다 ({code}). 다시 받아 Cyberpunk 2077 폴더에 풀거나 Runtime 업데이트 zip을 순서대로 적용한 다음 게임을 다시 시작하세요.",
     ["The settings file of the launcher, launcher.ini, is missing from red4ext/plugins/AiNpcCyberpunkMod, so the game cannot start the conversation service. Extract the Runtime zip straight into the Cyberpunk 2077 folder again (by hand, also with Vortex) and let it replace the files, then restart the game."] = "런처 설정 파일인 launcher.ini가 red4ext/plugins/AiNpcCyberpunkMod에 없어서 게임이 대화 서비스를 시작할 수 없습니다. Runtime zip을 Cyberpunk 2077 폴더에 바로 다시 압축 해제하고(Vortex를 쓰더라도 직접), 파일을 덮어쓴 다음 게임을 다시 시작하세요.",
     ["The Scripts and Runtime versions do not match. Install the same version of both."] = "Scripts와 Runtime 버전이 다릅니다. 두 파일을 같은 버전으로 설치하세요.",
     ["The conversation service cannot reach the internet. See Help in Settings."] = "대화 서비스가 인터넷에 연결되지 않습니다. 설정의 도움말을 참고하세요.",

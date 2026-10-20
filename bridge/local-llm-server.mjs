@@ -94,9 +94,14 @@ export const LOCAL_LLM_LIMITS = Object.freeze({
   warmupMs: 240_000,           // one warm-up request, first time included
   backgroundQuietMs: 10_000,   // work no player waits on (a summary, memory work) does not start within this long after a turn ended; the bridge's own gate holds 20 s from a turn's start
   maxRestarts: 2,
+  deviceLostStepDown: 2,       // the graphics device was lost (Vulkan ErrorDeviceLost) this many times in a session: the first loss restarts llama-server, the second steps down a model size
+  deviceLostPauseMs: 2000,     // the driver needs a moment to reset the device: the server it is restarted on waits this long before it starts
   externalProbeMs: 4000,       // a server the player runs: the one look at it when its model is chosen (GET /models), and each context question
   externalContext: 8192,       // its context when neither the entry, the listing nor /props says
 });
+
+/** The words of a lost graphics device (llama.cpp's Vulkan backend: "decode() failed: vk::Queue::submit: ErrorDeviceLost"), in a failed request's text or in the server's own log. */
+export const DEVICE_LOST = /ErrorDeviceLost|device lost|VK_ERROR_DEVICE_LOST/i;
 
 /** The key sent to a server the player runs that needs none (streamChat wants a key of 8 characters; such a server ignores the header). */
 export const NO_KEY = 'no-key-needed';
@@ -488,6 +493,9 @@ export class LocalLlmServer extends EventEmitter {
   // Step-down (stalled turns, see noteStall): the ids of the models left out for the rest of this session, the stalled requests since the model was loaded,
   // the model the step started from (the next start says what it was replaced by), and whether a step is running. In memory only: the saved choice is untouched.
   #stalled = new Set(); #stalls = 0; #stepFrom = null; #stepFree = null; #stepping = false;
+  // Lost graphics device (noteDeviceLost): the losses since the session began (or the last step), the process the last one was seen on (one process counts once),
+  // and the pause the next start makes first, so the driver has reset the device.
+  #deviceLosses = 0; #lostProc = null; #coolDownMs = 0;
   // Free-memory fit (bridge/local-vram-fit.mjs) and spill (bridge/gpu-memory.mjs): the device of the last start, the models already reloaded once after a spill (a second spill
   // steps down), the one-shot fit a spill reload brings to the next start, and the rate limit of the counter reads.
   #device = null; #refitted = new Set(); #refitPlan = null; #spillAt = -Infinity; #checking = false;
@@ -509,13 +517,13 @@ export class LocalLlmServer extends EventEmitter {
   constructor({pack, tier = 'auto', selection, contextSize, spawnImpl = spawn, fetchImpl = fetch, listDevices,
       freeVramMiB = nvidiaFreeMiB, idleMs = LOCAL_LLM_LIMITS.idleMs, startupMs = LOCAL_LLM_LIMITS.startupMs, warmup = true,
       warmupMs = LOCAL_LLM_LIMITS.warmupMs, stateFile, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout,
-      log = () => {}, maxRestarts = LOCAL_LLM_LIMITS.maxRestarts, backoffMs = 750, cacheRamMiB, freeMemMiB = () => freemem() / 1048576,
+      log = () => {}, maxRestarts = LOCAL_LLM_LIMITS.maxRestarts, backoffMs = 750, deviceLostPauseMs = LOCAL_LLM_LIMITS.deviceLostPauseMs, cacheRamMiB, freeMemMiB = () => freemem() / 1048576,
       beforeStart, beforeStartMs = 120_000, fileSizeMiB = defaultFileSizeMiB, environment = process.env, command, argsPrefix = [], processOptions = {},
       externalProbeMs = LOCAL_LLM_LIMITS.externalProbeMs, backgroundQuietMs = LOCAL_LLM_LIMITS.backgroundQuietMs, fitProbe, gpuMemory} = {}) {
     super();
     const fixedContext = Number.parseInt(contextSize ?? environment.CYBERPUNK_CONVAI_LOCAL_CTX ?? '', 10);
     Object.assign(this, {pack, tierSetting: tier, selection, contextSize: Number.isFinite(fixedContext) && fixedContext >= 2048 ? fixedContext : null, spawnImpl, fetchImpl, freeVramMiB, idleMs, startupMs, warmup,
-      warmupMs, stateFile, now, setTimer, clearTimer, log, maxRestarts, backoffMs, argsPrefix, processOptions, freeMemMiB,
+      warmupMs, stateFile, now, setTimer, clearTimer, log, maxRestarts, backoffMs, deviceLostPauseMs, argsPrefix, processOptions, freeMemMiB,
       beforeStart, beforeStartMs, fileSizeMiB, externalProbeMs, backgroundQuietMs});
     const configured = Number.parseInt(cacheRamMiB ?? environment.CYBERPUNK_CONVAI_LOCAL_CACHE_RAM ?? '', 10);
     this.cacheRamMiB = Number.isFinite(configured) && configured >= 0 ? configured : null;   // null: chosen at each start
@@ -624,6 +632,7 @@ export class LocalLlmServer extends EventEmitter {
   // Clears a failure so the next ensure() tries again (the settings screen / a new session).
   reset() {
     this.#broken.clear();   // a custom model that failed to start gets another chance
+    this.#deviceLosses = 0; this.#lostProc = null;
     this.#stalled.clear(); this.#stalls = 0;   // so does a model that stalled the turns: Local AI is chosen again, the whole choice is tried
     this.#refitted.clear(); this.#refitPlan = null;   // and a model that spilled into shared memory may be fitted again
     if (this.#state !== 'failed') return;
@@ -636,6 +645,13 @@ export class LocalLlmServer extends EventEmitter {
     let remaining = recovering ? this.maxRestarts : 1;
     let attempt = 0;
     if (recovering && remaining <= 0) throw new LocalAiUnavailable('crashed');
+    // After a lost graphics device: a short wait before the next process asks the driver for the card (once).
+    if (this.#coolDownMs > 0) {
+      const pause = this.#coolDownMs, generation = this.#generation;
+      this.#coolDownMs = 0;
+      await delay(this.setTimer, this.clearTimer, pause);
+      if (generation !== this.#generation) throw new LocalAiUnavailable('stopped');
+    }
     for (;;) {
       try {
         return await this.#startOnce();
@@ -1184,10 +1200,13 @@ export class LocalLlmServer extends EventEmitter {
    * {endpoint, apiKey, model, ...}: the old address and key died with the old process. Throws LocalAiUnavailable('crashed' ...) when it
    * cannot be started again. A server the player runs is not ours to restart: null. Never called per frame: only after a failed request.
    */
-  async recover({signal} = {}) {
+  async recover({signal, deviceLost = false} = {}) {
     signal?.throwIfAborted();
     if (this.#info?.external) return null;
     const proc = this.#proc;
+    // A lost graphics device leaves llama-server alive and answering /health, but every request fails (2026-10-20 report: an RX 580 failed seven turns in a row): the
+    // words of the failed request, or of the server's own log, send it to noteDeviceLost (restart, or a smaller model the second time) without the health check.
+    if (this.#state === 'ready' && proc && (deviceLost || this.#tailSaysDeviceLost(proc)) && await this.noteDeviceLost('a failed request')) return this.ensure({signal});
     if (this.#state === 'ready' && proc) {
       if (await proc.answers()) return null;
       // The exit event may be a moment away; the process may also be alive and deaf (its listening socket closed). Either way it is no use.
@@ -1200,6 +1219,47 @@ export class LocalLlmServer extends EventEmitter {
     }
     // Starting, warming, stopped or restarted just now: ensure() waits for the start (or begins one) and hands out the new address and key.
     return this.ensure({signal});
+  }
+
+  #tailSaysDeviceLost(proc) {
+    try { return DEVICE_LOST.test(String(proc?.tail?.() ?? '')); } catch { return false; }
+  }
+
+  /**
+   * A request failed because the graphics device was lost (Vulkan ErrorDeviceLost: a driver reset, the game taking the card). llama-server stays alive and its /health keeps
+   * answering, so recover()'s health check would call it fine while every turn fails. The first loss of a session ends the server and starts it again (after
+   * deviceLostPauseMs, which gives the driver time to reset); the second (deviceLostStepDown) steps down one model size as after stalled turns (#stepDown: its notice, the model
+   * left out for the session, the cloud text provider when none is smaller) and the count starts again for the model loaded then. A model the player added is only restarted, and
+   * after two more losses with nowhere to step down Local AI is marked failed rather than restarted for ever. One process counts once. Returns 'restart', 'step', 'failed' or
+   * null when nothing was done (a server the player runs, a start already under way). Never throws. Only after a failed request: nothing runs per frame.
+   */
+  async noteDeviceLost(what = 'a request') {
+    try {
+      const proc = this.#proc;
+      if (this.#state !== 'ready' || !proc || this.#info?.external || this.#stepping || proc === this.#lostProc) return null;
+      this.#lostProc = proc;
+      this.#deviceLosses++;
+      const needed = LOCAL_LLM_LIMITS.deviceLostStepDown;
+      this.log('[local] the graphics device was lost (' + what + '; ' + this.#deviceLosses + ' since the session began or the last step down)');
+      const from = this.#selected(this.pack).models.find(model => model.id === this.#modelId);
+      this.#coolDownMs = this.deviceLostPauseMs;
+      if (this.#deviceLosses >= needed && from && from.custom !== true) {
+        this.#deviceLosses = 0;
+        this.#stepping = true;
+        try { await this.#stepDown(); } finally { this.#stepping = false; }
+        return 'step';
+      }
+      if (this.#deviceLosses >= needed + 2) {
+        this.#coolDownMs = 0;
+        this.log('[local] the graphics device keeps being lost and there is no smaller model to step down to');
+        this.#fail('crashed');
+        return 'failed';
+      }
+      this.#lastExit = {code: null, signal: null, at: new Date(this.now()).toISOString(), state: this.#state};
+      this.#restartAfterLoss(proc, 'llama-server lost the graphics device: ending it and starting it again', 'the graphics device was lost');
+      proc.stop().catch(() => {});
+      return 'restart';
+    } catch { return null; }
   }
 
   // --- idle handling ------------------------------------------------------------------------------------------
@@ -1370,12 +1430,26 @@ export class LocalLlmServer extends EventEmitter {
       // with 123 to 314 MiB free, 60 s twice): the second stall is another turn lost for nothing.
       // And a model loaded after a step-down, again with layers on the CPU (the card has no room for it either, now that the game holds it): its second stall is another
       // 60 to 75 s turn for a model the game leaves no room for (2026-10-20 reports of a 3060 Ti: Gemma stepped down to Qwen "part on the CPU", and its two stalls were two more failed turns).
-      const needed = this.#oversizeForCard() || this.#hopelessOffload() || this.#offloadedAfterStep() ? 1 : LOCAL_LLM_LIMITS.stallStepDown;
+      const needed = this.#stallsNeeded();
       this.log('[local] ' + this.#model + ' stalled (' + this.#stalls + ' of ' + needed + '): ' + what);
       if (this.#stalls < needed) { void this.#checkSpill('a stall'); return false; }
       this.#stepping = true;
       void this.#stepDown().catch(() => {}).finally(() => { this.#stepping = false; });
       return true;
+    } catch { return false; }
+  }
+
+  #stallsNeeded() { return this.#oversizeForCard() || this.#hopelessOffload() || this.#offloadedAfterStep() ? 1 : LOCAL_LLM_LIMITS.stallStepDown; }
+
+  /**
+   * Would one more stall step the model down, or is a step down under way? The host then keeps a reply that repeats a line instead of asking for another one (a request that would
+   * only wait for the reload). A plain read of fields already held: nothing is measured, nothing runs per frame. A server the player runs never steps down.
+   */
+  stepDownNear() {
+    try {
+      if (this.#info?.external) return false;
+      if (this.#stepping) return true;
+      return this.#state === 'ready' && !!this.#modelId && this.#stalls > 0 && this.#stalls + 1 >= this.#stallsNeeded();
     } catch { return false; }
   }
 

@@ -392,7 +392,7 @@ function M.serviceLine()
         return {value = ui.t('Not running'), description = ui.t('The settings file of the launcher, launcher.ini, is missing from red4ext/plugins/AiNpcCyberpunkMod, so the game cannot start the conversation service. Extract the Runtime zip straight into the Cyberpunk 2077 folder again (by hand, also with Vortex) and let it replace the files, then restart the game.')}
     end
     if check.code == 'incomplete' then
-        return {value = ui.t('Not running'), description = ui.t('The Runtime is incomplete ({code}). Download it again and extract it into the Cyberpunk 2077 folder, then restart the game.', {code = check.detail or '?'})}
+        return {value = ui.t('Not running'), description = ui.t('The Runtime is incomplete ({code}). Download it again and extract it into the Cyberpunk 2077 folder (or apply the Runtime update zips in order), then restart the game.', {code = check.detail or '?'})}
     end
     if check.code == 'failed' then
         return {value = ui.t('Not running'), description = ui.t('The conversation service could not start ({code}). Restart the game. If it happens again, generate a report below and send it.', {code = check.detail or '?'})}

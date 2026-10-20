@@ -56,7 +56,7 @@ function manualTimers() {
     }
   };
 }
-function fixture({emitAudio, onCompanionAction, onPublish, allowMic = false, timers, onConnect, onDisconnect, onDisableAudio, botReady = true, player, clock} = {}) {
+function fixture({emitAudio, onCompanionAction, onPublish, allowMic = false, timers, onConnect, onDisconnect, onDisableAudio, botReady = true, player, clock, visionClass = ConvaiVision} = {}) {
   const clients = [], events = [];
   class Client {
     constructor(options) {
@@ -115,7 +115,7 @@ function fixture({emitAudio, onCompanionAction, onPublish, allowMic = false, tim
   runInNewContext(source, {ConvaiClient: Client, AudioContext: ForbiddenAudio, AudioWorkletNode: ForbiddenAudio,
     endUserOptions, transportKey, SessionBindings, ConvaiDataAudio, AnalysisPcm, ConvaiEmotion, TextDecoder, TextEncoder,
     CompanionActionWindow, publishCompanionActionContext, chauffeurActionName,
-    ConvaiVision, visionConnectOptions, visionIdentity, VISION_NOTE,
+    ConvaiVision: visionClass, visionConnectOptions, visionIdentity, VISION_NOTE,
     ContinuousPcmPlayer: player || ForbiddenAudio,
     window, performance: clock ?? performance, setTimeout: timers?.setTimeout ?? setTimeout, clearTimeout: timers?.clearTimeout ?? clearTimeout,
     setInterval, clearInterval,
@@ -1738,6 +1738,28 @@ test('vision: the session connects with video on the silent lane, and a picture 
   assert.deepEqual(events.filter(event => event[0] === 'message'), [['message', 'Hello']]);
   assert.equal(api.diagnostics().vision.skipped, 1);
   assert.equal(api.diagnostics().vision.lastReason, 'no-video-session');
+});
+
+// 0.2.5 report: "Cannot read properties of null (reading 'updateContext')". reply() waits for the connection and for the picture; close() during either wait leaves no connection.
+test('a connection closed while the turn waits for its picture cancels the turn (an AbortError, nothing sent), never a TypeError on the missing connection', async () => {
+  let release, entered = false;
+  const gate = new Promise(resolve => { release = resolve; });
+  class SlowVision extends ConvaiVision {
+    async stage(...args) { entered = true; await gate; return super.stage(...args); }
+  }
+  const {api, events} = fixture({visionClass: SlowVision});
+  const request = {...config, ttsEnabled: false, vision: true, visionImages: [{mime: 'image/jpeg', base64: '/9j/2Q=='}]};
+  const pending = api.reply(request);
+  const rejected = assert.rejects(pending, error => error.name === 'AbortError' && /cancelled/.test(error.message) && !(error instanceof TypeError));
+  await until(() => entered, 'the picture to be staged');
+  await api.close();
+  release();
+  await rejected;
+  assert.equal(events.some(event => event[0] === 'context' || event[0] === 'message'), false, 'nothing was sent to a connection that is gone');
+  // The session works again afterwards: a turn on a new connection is answered.
+  const again = api.reply({...config, ttsEnabled: false, text: 'Again'});
+  await until(() => events.some(event => event[0] === 'message'), 'the next turn to be sent');
+  await api.close(); await assert.rejects(again, /cancelled/);
 });
 
 test('vision: without the setting the session connects audio-only, and turning it on reconnects once', async () => {
