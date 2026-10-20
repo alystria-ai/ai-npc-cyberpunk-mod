@@ -21,7 +21,7 @@
 // There is no wait / stay / sit command in the game, so none is offered, and the prompt says so.
 
 import {parseDriveUnavailable} from './companion-actions.mjs';
-import {screenWords} from './text-action-words.mjs';
+import {screenWords, explicitRequest} from './text-action-words.mjs';
 
 export const ACTION_CODES = Object.freeze(['DRIVE', 'FIGHT', 'FOLLOW', 'LEAVE']);
 
@@ -57,6 +57,7 @@ const word = value => String(value ?? '').toLowerCase().replace(/[^\p{L}\p{N}]+/
  *   notes(code)  the character's prompt text for a decision (a code of `codes`, or null for none / unknown)
  *   classifier({text, last})  the messages of the decision request, or null when nothing is offered
  *   decide(raw)  the offered code in a classifier answer (or null) and, for a named leave, its argument
+ *   explicit(text)  the decision for a line that plainly asks for a ride, an attack or to follow (or null): used only when the classifier gave none
  */
 export function actionMenu(offer) {
   if (!offer || typeof offer !== 'object' || typeof offer.token !== 'string' || !offer.token) return null;
@@ -125,6 +126,14 @@ export function actionMenu(offer) {
       if ((TALK.test(sentence) || OPEN_QUESTION.test(sentence)) && !REQUEST_QUESTION.test(sentence)) return 'NONE';
       if (sentences.every(part => REMARK.test(part) && !ADDRESSES_HER.test(part))) return 'NONE';
       return found.length === 1 ? found[0] : null;
+    },
+    /**
+     * The safety net under a decision that failed or said none: the offered action V's line plainly asks for in plain words ("drive me", "take the
+     * wheel", "attack him", "follow me"), as a decision, or null (bridge/text-action-words.mjs explicitRequest; never a leave).
+     */
+    explicit: text => {
+      const code = explicitRequest(text, {codes: rows.map(row => row.code)});
+      return code && rows.some(row => row.code === code) ? {code, argument: ''} : null;
     },
     notes(code) {
       const row = rows.find(item => item.code === code);

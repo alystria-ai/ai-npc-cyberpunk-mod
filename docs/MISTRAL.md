@@ -152,6 +152,37 @@ How it works on Mistral and Local AI (`bridge/text-actions.mjs`, used by `TextPr
 4. The Lua side now also reports why a ride is not possible (`driveUnavailable`: `player-driving`, `player-seated`, `no-waypoint`, `no-car`,
    `car-moving`, `combat`, `busy`), only to the text routes; Convai's text is unchanged.
 
+#### Which provider decides how (checked 2026-10-20)
+
+| Provider | How an action is decided | Fired by |
+| --- | --- | --- |
+| Convai | Convai's own action list: the context names the exact offered action (`Drive To Waypoint <token>`, `Attack Marked Target`, `Follow V`, `Leave V's Party`) and the Convai model asks for it in its reply; `bridge/realtime-client.mjs` accepts only the offered one | `CompanionActionWindow` publishes `runtime/companion-actions.json` |
+| Mistral, Local AI, Custom | the decision request above (`bridge/text-actions.mjs`), the same for all three: `TextProviderHost` serves them with one code path | `CompanionActions.deliver`, the same file |
+
+Custom (OpenRouter, KoboldCpp, Ollama, LM Studio, any OpenAI-compatible endpoint) takes exactly the Mistral and Local AI path. A server on this
+computer or home network (`custom.local`) answers one request at a time, so the decision runs before the reply, like on Local AI.
+The game side (`mod/gameplay-actions.lua`) does not know the provider: it offers what the game allows, and the bridge's `CompanionActions.admit`
+arms the turn for any provider (it needs the turn's identified player route, which every provider has; it is not Convai's identity).
+
+What the game must offer, whatever the provider (the model can only choose among these, never create one):
+
+- **Drive**: a managed companion in V's party who can drive (not Alt), V on foot, V's own car within about 20 m and standing still, and a
+  destination marked on the map. V sitting in a car, or no marked destination, offers nothing and the character says what is needed.
+- **Fight**: a tagged enemy (scanner) or one in V's sights, and the companion in V's party.
+- **Follow**: a world character the game judged safe to adopt (not in a quest scene, not in combat, not on duty).
+- **Leave**: a current party member.
+
+Two safety nets under the model, both for the text routes (2026-10-20):
+
+- When the decision request fails, times out, is unreadable or answers none, a few plain English requests are still honoured ("drive me",
+  "take the wheel", "attack him", "follow me", "come with me"; `explicitRequest` in `bridge/text-action-words.mjs`). Only drive, attack and
+  follow, never leave; only for lines the word screen already let through; questions, conditions, negations and look-alikes ("do you know how
+  to drive?", "if you drive me there", "attack of the clones") are not requests. The game still checks the exact offer. It costs nothing on a
+  normal turn (it runs only after the decision gave nothing). Measured need: Gemma 4 E4B recall was 81% on Local AI, Mistral 3b 97%.
+- A custom server whose model thinks first answered the one-word decision with thinking only on the first turn that showed it thinks, which read
+  as "no action". It is now asked again once with the fields that ask for no thinking (same 12-token budget); the remembered setting then
+  applies from the start.
+
 Why not tool calls: on action turns `ministral-8b` returned only a tool call with no speech, picked the wrong tool, called several or filled
 the arguments with garbage; speech would need a second request and the tool definitions sit before the cacheable prefix. Why not a code at the
 start of the reply: the small model either never wrote it (recall 12%) or wrote it for plain talk (precision 58%).

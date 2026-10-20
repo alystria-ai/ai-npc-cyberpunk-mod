@@ -624,11 +624,25 @@ export class TextProviderHost {
     try {
       const response = await this.#request(route, menu.classifier({text, last}), signal,
         {slotKey: profileKey, maxTokens: 12, temperature: 0, retries: 0, totalMs: 8000, firstByteMs: 6000, thinkingRoom: false, models: route.decisionModels?.()});
-      return menu.decide(response.text);
+      const decided = menu.decide(response.text);
+      if (decided) return decided;
+      return this.#plainRequest(menu, text, 'answered none or unclear');
     } catch (error) {
-      if (!signal?.aborted) this.log('action decision failed: ' + (failureKind(error) ?? error?.message ?? 'error'));
-      return null;
+      if (signal?.aborted) return null;
+      this.log('action decision failed: ' + (failureKind(error) ?? error?.message ?? 'error'));
+      return this.#plainRequest(menu, text, 'decision failed');
     }
+  }
+
+  /**
+   * A decision that failed or said none, for a line that plainly asks for a ride, an attack or to come along ("drive me", "take the wheel", "attack
+   * him", "follow me"): the plain request counts. A small model misses some of these; the game still checks the exact offer. Never a leave.
+   */
+  #plainRequest(menu, text, why) {
+    let decided = null;
+    try { decided = menu.explicit?.(text) ?? null; } catch { decided = null; }
+    if (decided) this.log(`action ${decided.code}: ${why}, V's words ask for it plainly`);
+    return decided;
   }
 
   /**

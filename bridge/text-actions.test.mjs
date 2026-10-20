@@ -261,10 +261,11 @@ test('each offered action is delivered as the message the Convai client would se
     ['FIGHT', noRide({tactic: target()}), [{version: 1, token: TOKEN, tactic: 'fight'}], 'attack him'],
     ['FOLLOW', noRide({follow: {name: 'Judy Alvarez'}}), [{version: 1, token: TOKEN, follow: true}], 'come with me'],
     ['DISMISSED', noRide({leave: {members: [{name: 'Judy Alvarez', self: true}]}}), [{version: 1, token: TOKEN, leave: 1}], 'you can go'],
-    ['NONE', ride(), [], 'drive for me'],
-    ['FIGHT', ride(), [], 'drive for me'],
-    ['DRIVE then more words', ride(), [], 'drive for me'],
-    ['', ride(), [], 'drive for me'],
+    // A line that is not a plain request (bridge/text-action-words.mjs explicitRequest does honour "drive for me" when the decision gave nothing).
+    ['NONE', ride(), [], 'a ride would be nice'],
+    ['FIGHT', ride(), [], 'a ride would be nice'],
+    ['DRIVE then more words', ride(), [], 'a ride would be nice'],
+    ['', ride(), [], 'a ride would be nice'],
   ];
   for (const [answer, offer, expected, said] of cases) {
     const {host, delivered, close} = await harness(script(() => answer || '.', 'Fine, V.'));
@@ -288,7 +289,7 @@ test('a failing decision request does not fail the reply: the turn is plain talk
   const host = new TextProviderHost({provider, memory: await MistralMemory.open({path: null}), personas: book, log: line => logs.push(line),
     routes: {mistral: route}, deliverAction: async message => { delivered.push(message); return true; }});
   try {
-    const result = await host.reply(turn('drive for me', {companionAction: ride()}));
+    const result = await host.reply(turn('a ride would be nice', {companionAction: ride()}));
     await settle();
     assert.equal(result.text, 'Fine, V.');
     assert.equal(delivered.length, 0);

@@ -624,7 +624,9 @@ export async function streamChat({apiKey, model = DEFAULT_MODEL, messages, maxTo
       const thoughtOnly = lastError.reason === 'thinking-only' || lastError.reasoning === true;
       if (noThinking && thoughtOnly && !askedNoThink) {
         if (adapt) adapt.thinks = true;
-        if (thinkingRoom !== false && !signal?.aborted) {
+        // The one-word decision (thinkingRoom: false) is asked again too, with the fields that ask for no thinking and the same small budget: that is
+        // short, and without it a model that thinks first answered "no action" to every request of the first turn that learned it thinks.
+        if (!signal?.aborted) {
           thinkRetry = true;
           if (provider === 'custom' && thinkingRoom && lastError.reasoning && !larger) larger = {maxTokens: retryBudget(Math.max(maxTokens, adapt?.floorTokens ?? 0)), noThink: NO_THINK_MODEL.test(model)};
           try { onRetry?.({attempt: attempt + 1, error: lastError, waitMs: 0, ms: failed.at(-1).ms}); } catch { /* an observer never fails a reply */ }

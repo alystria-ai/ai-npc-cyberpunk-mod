@@ -854,6 +854,9 @@ The same companion-action path as Mistral applies (see "Companion actions" in `d
 request to the local model, and the reply carries the `GAME ACTIONS` note. It is skipped when no action is offered. Measured on Gemma 4 E4B
 (`scripts/Eval-MistralPrompt.mjs --actions --local <port>`, 64 replies): precision 100%, recall 81%. The reply waits for the decision (a short prompt
 and a one-word answer, not yet timed on the player's hardware), so on a slow GPU this adds to the time before the first sound.
+When the 12-token decision fails or says none, a plain request ("drive me", "attack him", "follow me") still counts (`explicitRequest`, see
+"Which provider decides how" in `docs/MISTRAL.md`), which lifts the 81% recall on a small model. What the player needs: the companion in V's
+party, V on foot beside their own stopped car with a destination marked on the map (drive), or a tagged enemy (attack). Nothing else differs from Convai.
 
 ### Mature content
 

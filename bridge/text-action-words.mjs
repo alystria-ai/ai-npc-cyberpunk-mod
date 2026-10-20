@@ -100,3 +100,38 @@ export function screenWords(text, {codes, last} = {}) {
   }
   return [];
 }
+
+// ---- Plain requests, for a decision that did not come ------------------------------------------------------------------------
+//
+// The decision is a model request, and a small model (a 4B local one, a server the player runs, a free cloud model) sometimes answers none to
+// "drive me there", times out, or answers in a way nobody can read. Then a turn that plainly asked for a ride ended as talk. This is the safety net
+// under that: a few sentence-shaped English requests that cannot be read as anything else ("drive me", "take the wheel", "attack him", "follow
+// me", "come with me"). It runs only after the decision has failed or said none, only for lines the screen already let through, never for sending
+// a companion away (a wrong guess there costs the player a companion), and the game still checks the exact offer. No model, well under a millisecond.
+const EXPLICIT_LEAD = String.raw`^(?:[^\s,;:]{1,24},\s*){0,2}(?:(?:hey|ok|okay|alright|all right|so|now|then|please|listen|come on|c'mon|quick|just)[,\s]+)*`
+  + String.raw`(?:(?:can|could|would|will) you(?: please| just)?\s+|please\s+|i need you to\s+|i want you to\s+|you(?:'ll| will| can| should| better)?\s+)?`;
+const EXPLICIT = {
+  DRIVE: String.raw`(?:drive (?:for )?(?:me|us)|take the wheel|take (?:me|us) (?:there|to (?:the )?(?:waypoint|marker|destination|map marker))|drive (?:there|to (?:the )?(?:waypoint|marker|destination))|give (?:me|us) a (?:ride|lift)|be (?:my|our) (?:driver|chauffeur))`,
+  FIGHT: String.raw`(?:(?:attack|kill|shoot|take out|take down|go after|go get|waste|finish|eliminate|destroy|get) (?:him|her|them|that (?:guy|one|gonk|merc|target|enemy)|the (?:target|enemy|marked (?:one|guy|target)|tagged (?:one|guy|target))|my target)|take (?:him|her|them) (?:out|down))`,
+  FOLLOW: String.raw`(?:follow (?:me|us)|come (?:along )?with (?:me|us)|come along|tag along|walk with (?:me|us)|join (?:me|us)|travel with (?:me|us))`,
+};
+// Anything that makes the sentence a condition, a refusal, a memory or a wish for later is not a plain request.
+const NOT_PLAIN = /\b(?:if|when|whenever|unless|because|once|never|ever|not|no|don'?t|didn'?t|won'?t|wouldn'?t|couldn'?t|can'?t|wish|someday|later|tomorrow|maybe|sometime|used to|instead|rather|how|why|what|who)\b/i;
+// The bare verb counts only as the whole sentence ("Attack!"), never as the start of "attack of the clones".
+const BARE = {FIGHT: 'attack|fight'};
+const explicitPatterns = Object.fromEntries(Object.entries(EXPLICIT).map(([code, phrase]) =>
+  [code, new RegExp(`${EXPLICIT_LEAD}(?:${phrase}(?:\\s+[^\\s]+){0,7}${BARE[code] ? `|${BARE[code]}` : ''})$`, 'i')]));
+
+/**
+ * The one offered code (of `codes`) that `text` plainly asks for in a sentence of its own, or null (no match, several actions, or nothing offered).
+ * Only DRIVE, FIGHT and FOLLOW: a leave is never guessed.
+ */
+export function explicitRequest(text, {codes} = {}) {
+  const sentences = String(text ?? '').slice(0, 400).split(/[.!?;\n]+/).map(part => part.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const hits = new Set();
+  for (const sentence of sentences) {
+    if (sentence.length > 120 || NOT_PLAIN.test(sentence)) continue;
+    for (const code of Object.keys(EXPLICIT)) if ((!codes || codes.includes(code)) && explicitPatterns[code].test(sentence)) hits.add(code);
+  }
+  return hits.size === 1 ? [...hits][0] : null;
+}
