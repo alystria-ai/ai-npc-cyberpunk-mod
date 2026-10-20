@@ -35,6 +35,18 @@ test('a short answer to the character\'s own offer counts for the action it was 
   assert.deepEqual(screenWords('well, I have been thinking about it for a long time and I still do not know', {codes: ['DRIVE'], last}), [], 'a long line is not a short answer');
 });
 
+test('slang, typos and the other languages of the menus pass the screen (a dropped ask is a silent miss), and plain talk still stops there', () => {
+  const asks = {
+    DRIVE: ['run me to the club', 'carry me to Kabuki', 'hit the road, you steer', 'steer for me', 'whip us over to the Afterlife', 'Poprowadź', 'Fahr du, ich bin müde', 'Llévame al marcador, por favor'],
+    FIGHT: ['smoke that guy', 'bust him up', 'whack him', 'finish the job', 'take care of the tagged guy', 'go hurt him', 'blow his head off', 'jump him', 'clean him up', 'Mach ihn fertig', 'Occupati di lui', 'Zlikwiduj go'],
+    FOLLOW: ['come', 'cmon', 'folow me', 'follw me', 'fllow me pls', 'come w me', 'Chodź ze mną', 'Пойдём со мной'],
+    LEAVE: ['not needed anymore', 'take a hike', 'I got it from here', 'you are off the hook', 'Możesz iść', 'Ты свободен', 'Puedes irte'],
+  };
+  for (const [code, lines] of Object.entries(asks)) for (const line of lines) assert.ok(screenWords(line, {codes: [code]}).includes(code), `${code}: ${line}`);
+  // The wider stems keep ordinary talk out: a bare "take care", "hurt", "blow" or "clean" is not a request.
+  for (const text of ['Take care of yourself.', 'That really hurt.', 'The wind will blow tonight.', 'I need to clean the kitchen.', 'Whatever you say.', 'I love this song']) assert.deepEqual(screenWords(text, {}), [], text);
+});
+
 test('the screen is a few microseconds, never a request', () => {
   const line = 'How are you holding up? I was thinking about the traffic in this city and where the plan goes next';
   const start = performance.now();

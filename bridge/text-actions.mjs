@@ -92,7 +92,7 @@ export function actionMenu(offer) {
   if (members.length) {
     const own = members.findIndex(member => member.self);
     if (members.length === 1 && own === 0) {
-      rows.push({code: 'LEAVE', what: `leave V's company (V sends the companion away: "you can go", "go home", "we're done here", "I'll go on without you")`,
+      rows.push({code: 'LEAVE', what: `leave V's company (V sends the companion away: "you can go", "go home", "we're done here", "I don't need you anymore", "I'll go on without you")`,
         tell: 'V is sending you away. You go your own way, and the game removes you from V\'s company right after your reply: say a short goodbye that fits you',
         resolve: () => ({...base, leave: 1})});
     } else {
@@ -155,7 +155,7 @@ export function actionMenu(offer) {
       return [{role: 'system', content: 'You read one message from V, the player of a video game, to a companion character and decide which game action, if any, V is asking the companion to do right now.\n'
         + 'Actions:\n' + lines.join('\n') + '\nNONE: anything else (conversation, questions, jokes, stories, remarks, thanks, "leave it", "forget it", or a request for something not listed).\n'
         + (blocked.length ? `These are not possible right now, so asking for any of them is NONE, never another action: ${blocked.join('; ')}.\n` : '')
-        + 'Rules: only V\'s new message counts. A request is a request even phrased as a question ("can you drive for me?", "could you take him out?"). A question about whether the companion could, would, knows how or has done it ("do you know how to drive?", "would you ever follow me?", "remember when you drove?") is NONE, and so is a hypothetical, a joke or a wish for later. "Let\'s leave this place", "leave it" and "I\'m leaving" do not send the companion away. The message may be in any language.\n'
+        + 'Rules: only V\'s new message counts. A request is a request even phrased as a question ("can you drive for me?", "could you take him out?"). A question about whether the companion could, would, knows how or has done it ("do you know how to drive?", "would you ever follow me?", "remember when you drove?") is NONE, and so is a hypothetical, a joke or a wish for later. "Let\'s leave this place", "leave it" and "I\'m leaving" do not send the companion away. The message may be in any language, in slang or with typos ("folow me", "u drive"): judge what V means. A story or remark that only contains the word ("I followed the news", "that drive-by scared me", "I\'m leaving the city someday") is NONE.\n'
         + `Answer with one word only: ${[...rows.map(row => row.code === 'LEAVE' ? 'DISMISSED' : row.code), 'NONE'].join(', ')}${named ? ' (DISMISSED may be followed by a name or ALL)' : ''}.`},
       {role: 'user', content: `${last ? `Just before, V said: ${JSON.stringify(String(last.v ?? '').slice(0, 160))} and the companion answered: ${JSON.stringify(String(last.r ?? '').slice(0, 200))}\n\n` : ''}V's new message: ${JSON.stringify(String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, 400))}`}];
     },

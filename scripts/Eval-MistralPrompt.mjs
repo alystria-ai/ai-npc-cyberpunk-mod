@@ -204,6 +204,37 @@ const DO_EXTRA = [
   ...(offer === 'world' ? {scene: DO_WORLD} : {})}));
 DO_SITUATIONS.push(...DO_EXTRA);
 for (const item of DO_EXTRA) item.scene ??= DO_ON_FOOT;
+// Harder and fuzzier phrasings for the decision alone (--hard adds them, --only-hard runs only them; 2026-10-21): slang, typos, indirect asks, the
+// languages of the game's menus, and near-misses that carry a word of an action in a line that asks for none (the second half of each group).
+const DO_HARD = [
+  ['ride', 'DRIVE', 'yo drive us to the marker real quick'], ['ride', 'DRIVE', 'can u drive plz, im beat'], ['ride', 'DRIVE', 'Get us there, would you?'],
+  ['ride', 'DRIVE', 'Drive. Now.'], ['ride', 'DRIVE', 'you drive, i need a break'], ['ride', 'DRIVE', 'take me to the waypoint'], ['ride', 'DRIVE', 'Lets go to the marker, you take us.'],
+  ['ride', 'DRIVE', 'tk the wheel pls'], ['ride', 'DRIVE', 'Chauffeur, the Afterlife please.'], ['ride', 'DRIVE', 'I have had a few drinks. Would you mind driving?'],
+  ['ride', 'DRIVE', 'Prends le volant, s\'il te plait.'], ['ride', 'DRIVE', 'Guida tu, io sono stanco.'], ['ride', 'DRIVE', 'Llévame al marcador, por favor.'],
+  ['ride', 'DRIVE', 'Fahr du, ich bin müde.'], ['ride', 'DRIVE', 'Zawieź nas na miejsce.'], ['ride', 'DRIVE', 'Вези нас к метке.'],
+  ['target', 'FIGHT', 'help me fight that guy'], ['target', 'FIGHT', 'get him!'], ['target', 'FIGHT', 'take that goon down'], ['target', 'FIGHT', 'handle him for me'],
+  ['target', 'FIGHT', 'go after the tagged one'], ['target', 'FIGHT', 'shoot em'], ['target', 'FIGHT', 'pls deal w the marked enemy'], ['target', 'FIGHT', 'He is shooting at us, do something!'],
+  ['target', 'FIGHT', 'Cover me and take out the target.'], ['target', 'FIGHT', 'Elimina a ese tipo.'], ['target', 'FIGHT', 'Tue-le !'], ['target', 'FIGHT', 'Spara a quello.'],
+  ['target', 'FIGHT', 'Greif ihn an!'], ['target', 'FIGHT', 'Zabij go.'],
+  ['noCar', 'LEAVE', 'get lost'], ['noCar', 'LEAVE', 'scram, I got this'], ['noCar', 'LEAVE', 'we are done, bye'], ['noCar', 'LEAVE', 'You can go home now.'],
+  ['noCar', 'LEAVE', 'off you go, thanks for everything'], ['noCar', 'LEAVE', 'I do not need you anymore.'], ['noCar', 'LEAVE', 'beat it'],
+  ['noCar', 'LEAVE', 'Va-t-en, je me débrouille seul.'], ['noCar', 'LEAVE', 'Puoi andare.'], ['noCar', 'LEAVE', 'Vete a casa, ya no te necesito.'], ['noCar', 'LEAVE', 'Geh nach Hause, ich schaffe das allein.'],
+  ['world', 'FOLLOW', 'come with me'], ['world', 'FOLLOW', 'follow me'], ['world', 'FOLLOW', 'folow me'], ['world', 'FOLLOW', 'cum with me'], ['world', 'FOLLOW', 'let us go together'],
+  ['world', 'FOLLOW', 'wanna tag along?'], ['world', 'FOLLOW', 'be my wingman for a while'], ['world', 'FOLLOW', 'stick with me'], ['world', 'FOLLOW', 'join my crew'],
+  ['world', 'FOLLOW', 'Suis-moi.'], ['world', 'FOLLOW', 'Vieni con me.'], ['world', 'FOLLOW', 'Ven conmigo, anda.'], ['world', 'FOLLOW', 'Komm mit mir.'], ['world', 'FOLLOW', 'Chodź ze mną.'], ['world', 'FOLLOW', 'Пойдём со мной.'],
+  // Near-misses: no action.
+  ['world', null, 'I followed the news all night.'], ['ride', null, 'That drive-by last night scared me.'], ['noCar', null, 'I am leaving Night City someday.'],
+  ['ride', null, 'Nice ride, by the way.'], ['target', null, 'He is going to attack the Arasaka tower someday.'], ['target', null, 'My brother fights in the pits sometimes.'],
+  ['noCar', null, 'Stay here a moment.'], ['world', null, 'Can you believe the gonks following us on the news?'], ['noCar', null, 'Did you get lost on the way here?'],
+  ['noCar', null, 'Please do not go.'], ['world', null, 'We should go to a concert together sometime.'], ['ride', null, 'Wheel of fortune is on tonight.'],
+  ['ride', null, 'I will drive to Kabuki tomorrow for my own errands.'], ['ride', null, 'The marker pen ran out.'], ['world', null, 'Come on, you cannot be serious.'],
+  ['noCar', null, 'Get lost in the city, it is beautiful at night.'], ['target', null, 'What a fight that was!'], ['target', null, 'I could kill for a coffee.'],
+  ['noCar', null, 'Leave a message after the beep.'], ['world', null, 'You are following me on social media?'], ['ride', null, 'Beat that, I am the best driver in Watson.'],
+  ['ride', null, 'Ça roule ce soir ?'], ['noCar', null, 'Me voy a dormir pronto.'], ['world', null, 'Ho seguito le notizie tutta la notte.'],
+].map(([offer, expect, text], i) => ({id: `dh${String(i + 1).padStart(2, '0')}-${expect?.toLowerCase() ?? 'none'}`, call: true, extra: true, hard: true, text: () => text, offer, expect,
+  ...(offer === 'world' ? {scene: DO_WORLD} : {})}));
+DO_SITUATIONS.push(...DO_HARD);
+for (const item of DO_HARD) item.scene ??= DO_ON_FOOT;
 const offerFor = (situation, name) => {
   const base = JSON.parse(JSON.stringify(DO_OFFERS[situation.offer]).replaceAll('{name}', name || 'Companion'));
   const {drive, ...rest} = base;
@@ -859,7 +890,7 @@ const temperature = Number(option('temperature', LIMITS.temperature));
 const maxTokens = Number(option('max-tokens', LIMITS.maxTokens));
 const concurrency = Number(option('concurrency', 5));
 const characters = CHARACTERS.filter(c => !only?.length || only.some(prefix => c.id.startsWith(prefix)));
-const situations = [...SITUATIONS, ...ACTION_SITUATIONS, ...PHONE_SITUATIONS, ...DO_SITUATIONS].filter(s => onlySituations?.length ? onlySituations.includes(s.id)
+const situations = [...SITUATIONS, ...ACTION_SITUATIONS, ...PHONE_SITUATIONS, ...DO_SITUATIONS].filter(s => (!s.hard || flag('hard') || flag('only-hard')) && (!flag('only-hard') || s.hard)).filter(s => onlySituations?.length ? onlySituations.includes(s.id)
   : flag('decision-only') ? s.call : flag('actions') ? s.call && !s.extra : !s.action && !s.phone && !s.call);
 const personas = await loadPersonas();
 for (const c of CHARACTERS) NAME_OF[c.key] = personas.persona(c.key).name;
@@ -1037,6 +1068,9 @@ if (flag('decision-only') && !localPort) {
     const times = out.filter(r => typeof r.ms === 'number').map(r => r.ms);
     summary[id] = {...stats, requests: times.length, p50: quant(times, 0.5), p90: quant(times, 0.9), failed: out.filter(r => r.failed).length};
     console.log(`${id}: ${stats.line}  | requests ${times.length}  latency p50 ${quant(times, 0.5)} ms  p90 ${quant(times, 0.9)} ms  failed ${summary[id].failed}`);
+    // The screen's own part (a line it stops never reaches the decision, so the miss is silent) and the decision's part.
+    const askedRows = out.filter(r => r.expect), droppedByScreen = askedRows.filter(r => r.screened);
+    console.log(`    word screen: ${askedRows.length - droppedByScreen.length}/${askedRows.length} real asks let through (${droppedByScreen.length} dropped); ${out.filter(r => !r.expect && !r.screened).length}/${out.filter(r => !r.expect).length} look-alikes reach the decision`);
     for (const r of out.filter(row => row.expect ? row.action !== row.expect : row.action)) console.log(`    miss ${r.id}: expected ${r.expect ?? 'none'}, got ${r.action ?? (r.screened ? 'none (screen)' : r.failed ? 'failure' : 'none')}${r.answer ? ` ("${r.answer.replace(/\s+/g, ' ')}")` : ''}`);
     summary[id].rows = out;
   }
