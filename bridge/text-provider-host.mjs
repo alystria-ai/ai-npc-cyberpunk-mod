@@ -12,7 +12,7 @@
 import {streamChat, MistralError, DEFAULT_MODELS, failureKind, failureDetail, newTrace, newAdaptation} from './mistral-client.mjs';
 import {PersonaBook, buildMessages, cleanReply, stripPlayerEcho, speakerTurn, startsLikeLine, capPoint, capReply, breaksCharacter, leaksReasoning, looksCut, repeatsLine, dropRepeatedLines, provokesAiTalk, takesUpAiTalk, trimUnfinished,
   summaryMessages, factMessages, capWords, overWords, remarkTokens, parseFacts, systemHead, joinBlocks, FACT_SCHEMA, LIMITS} from './mistral-prompt.mjs';
-import {actionMenu, reactionMenu, splitActions} from './text-actions.mjs';
+import {actionMenu, reactionMenu, reactionOnlyTag, reactionChosenNotes, splitActions} from './text-actions.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 import {stripSpeechTags} from './natural-speech.mjs';
 import {ReplyStream} from './reply-stream.mjs';
@@ -574,7 +574,7 @@ export class TextProviderHost {
           const readyAt = await loading;
           if (readyAt !== null) deadlineAt = Math.max(deadlineAt, Math.min(readyAt + LOCAL_ATTEMPT_ROOM_MS, started + route.turnBudgetMs + LOCAL_TURN_STRETCH_MS));
         }
-        const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey, feed, actionNotes, speculation, deadlineAt, lastResort: index === candidates.length - 1});
+        const outcome = await this.#replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, memoryKey, profileKey: local.profileKey, feed, actionNotes, speculation, deadlineAt, lastResort: index === candidates.length - 1, tagged: !!reactions});
         if (confirmed) await confirmed;
         const elapsed = Math.round(this.now() - started);
         const {response} = outcome;
@@ -595,7 +595,8 @@ export class TextProviderHost {
         // The reply ended with a reaction tag the game offered (cut from the text already): hand it over, after the reply and never for a
         // reply that was cut back to its first sentence or replaced. The game waits for the NPC to finish speaking before it acts.
         if (reactions && !outcome.guarded && reply === outcome.reply) {
-          const picked = reactions.pick(response.text);
+          let picked = reactions.pick(response.text);
+          if (picked.why === 'no-tag' && outcome.chosenReaction && reactions.kinds.includes(outcome.chosenReaction)) picked = {kind: outcome.chosenReaction};
           if (picked.kind) this.#act({code: `REACTION ${picked.kind}`, message: reactions.resolve(picked.kind)});
           else if (picked.why !== 'no-tag') this.log(`NPC reaction tag in the reply was not used (${picked.why})`);
         }
@@ -768,12 +769,14 @@ export class TextProviderHost {
     this.log(`[MatureContent] ${fact}`);
   }
 
-  async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed, actionNotes, speculation, deadlineAt, lastResort = false}) {
+  async #replyOn(route, {config, persona, reaction, recalled, remembered, text, signal, profileKey, feed, actionNotes, speculation, deadlineAt, lastResort = false, tagged = false}) {
     // The crude persona layer: the Mature setting only, never an add-on's host. The guard alone: also an uncensored model with the setting off, and add-ons.
     const mature = this.matureContent?.enabled && !this.guardOnly ? await this.#matureLevel(route, signal) : null;
     const guard = mature ? true : await this.#guardOn(route, signal);
     // This turn's action notes go last in the prompt, after everything that can be cached.
     let notes = actionNotes;
+    // The reaction an ordinary NPC chose with a tag alone (see run below), whose words came from a second request.
+    const chosen = {kind: null};
     const cutEcho = this.echoCut && !reaction;
     // An earlier reply of the speaker that opened with V's words (stored before this was cut) is shown to the model without them: a model copies the pattern of its own history.
     const history = cutEcho ? recalled.turns.map(turn => ({...turn, r: stripPlayerEcho(turn.r, turn.v)})) : recalled.turns;
@@ -821,6 +824,15 @@ export class TextProviderHost {
       if (spec && !spec.over) { await speculation.deciding; if (spec.missed) throw new MistralError('request', 'the action decision changed the notes'); }
       markStage('fullText');
       const {text: spoken} = splitActions(response.text);
+      // An ordinary NPC that answered with its reaction tag alone (the model decided and stopped; asking it again for "the tag and words" gets the tag
+      // alone again about half the time): the choice stands, and a second request is asked only for the words that go with it, with no tag to write.
+      const only = tagged && !chosen.kind ? reactionOnlyTag(response.text) : null;
+      if (only) {
+        this.log('NPC reaction reply was only a tag; asking once more for the words');
+        chosen.kind = only;
+        notes = reactionChosenNotes(only);
+        return run(nudge);
+      }
       let cleaned = cleanReply(spoken, {name: persona.name, isTag});
       if (cutEcho) cleaned = stripPlayerEcho(cleaned, text);
       if (response.finishReason === 'length') cleaned = trimUnfinished(cleaned);
@@ -887,7 +899,7 @@ export class TextProviderHost {
     }
     if (leaksReasoning(outcome.reply) || looksCut(outcome.reply) && outcome.reply.split(/\s+/).length < 4) throw new MistralError('empty', 'answered with its reasoning or a cut-off line', {provider: route.provider});
     route.success();
-    return outcome;
+    return chosen.kind ? {...outcome, chosenReaction: chosen.kind} : outcome;
   }
 
   // Is the local model server one stall from stepping down to a smaller model or the cloud (or already doing it)? Another request would only wait for the reload.

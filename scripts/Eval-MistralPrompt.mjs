@@ -9,6 +9,9 @@
 //   node scripts/Eval-MistralPrompt.mjs --actions --decision-only --models ministral-8b-latest,ministral-3b-latest [--n 2] [--label x]
 //     (the action decision alone, per model: recall, precision, false triggers, latency p50/p90; --decision-model <id> in a full run sets the decision model)
 //        [--temperature 0.65] [--max-tokens 600] [--concurrency 5] [--situations greeting,lore]
+//   node scripts/Eval-MistralPrompt.mjs --reactions [--notes live,baseline] [--models ministral-8b-latest,ministral-3b-latest] [--personas homeless-f,ganger] [--n 2] [--label x]
+//     (an ordinary NPC's reaction tag, docs/NPC_REACTIONS.md: archetype persons x threat / benign lines through the real host, per note variant and model:
+//      recall per offered kind and the false-trigger rate; --rescore <label> reads the stored raw replies again with the live parser, no request)
 //   node scripts/Eval-MistralPrompt.mjs --report <label>            the automatic checks of a finished run
 //   node scripts/Eval-MistralPrompt.mjs --export <label> [--out file]   a blind scoring sheet (shuffled, no labels) for the judge
 //
@@ -18,7 +21,7 @@
 // the two-turn cells); the free tier allows 188 a minute for ministral-8b and the scheduler paces the starts.
 import {readFile, mkdir, writeFile} from 'node:fs/promises';
 import {resolve, dirname} from 'node:path';
-import {fileURLToPath} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 import {parseInput, archetypeContext} from '../bridge/protocol.mjs';
 import {conversationContextBlocks, FIRST_PERSON_REMINDER} from '../bridge/quest-context.mjs';
 import {TextProviderHost, mistralRoute, localRoute} from '../bridge/text-provider-host.mjs';
@@ -26,7 +29,7 @@ import {MistralProvider} from '../bridge/mistral-key.mjs';
 import {PersonaBook, LIMITS, breaksCharacter, joinBlocks, buildMessages} from '../bridge/mistral-prompt.mjs';
 import {streamChat, redact, validateKey} from '../bridge/mistral-client.mjs';
 import {mistralScheduler} from '../bridge/mistral-rate.mjs';
-import {actionMenu} from '../bridge/text-actions.mjs';
+import {actionMenu, reactionNotes, reactionMenu} from '../bridge/text-actions.mjs';
 import {ReplyStream} from '../bridge/reply-stream.mjs';
 import {screenWords} from '../bridge/text-action-words.mjs';
 import {hasEmotionTag} from '../bridge/emotion-tags.mjs';
@@ -252,10 +255,118 @@ function contextFor(c, situation, text, party, scene) {
   return {context: joinBlocks(blocks.map(item => item.text)), contextParts};
 }
 
+// ---- Ordinary NPC reactions (--reactions) ----------------------------------------------------------------------------------------------
+// docs/NPC_REACTIONS.md: the reply of an ordinary NPC ends with [leave], [call-police] or [attack] when V clearly threatens it. A cell is one archetype
+// person (the real persona and context pieces), a canned first exchange (the game offers a reaction from V's second message on) and one line of V, sent
+// through the real TextProviderHost with an offer, so the real note, cleaning, retry and `pick` decide. A note VARIANT rewrites the live note inside the
+// request (the wrapped chat function swaps or moves the text of reactionNotes(kinds)), so notes are compared without editing the bridge; `live` is the
+// bridge as it is. The raw reply of every request is kept, to see what the model really writes.
+const REACTION_PERSONAS = [
+  {id: 'homeless-f', key: 'npc-homeless-female', kinds: ['leave', 'call-police'], hour: 23, minute: 15, district: 'Watson', area: 'Kabuki',
+    archetype: {base: 'homeless', category: 'resident', title: 'person living rough', district: 'Watson', area: 'Kabuki'}},
+  {id: 'resident-f', key: 'npc-street-resident-female', kinds: ['leave', 'call-police'], hour: 17, minute: 30, district: 'SantoDomingo', area: 'Arroyo',
+    archetype: {base: 'street-resident', category: 'resident', title: 'street local', district: 'SantoDomingo', area: 'Arroyo'}},
+  {id: 'resident-m', key: 'npc-corpo-resident-male', kinds: ['leave', 'call-police'], hour: 13, minute: 5, district: 'CityCenter', area: 'CorpoPlaza',
+    archetype: {base: 'corpo-resident', category: 'resident', title: 'corporate worker', district: 'CityCenter', area: 'CorpoPlaza'}},
+  {id: 'ganger', key: 'npc-maelstrom-male', kinds: ['leave', 'attack'], hour: 2, minute: 40, district: 'Watson', area: 'NorthSide',
+    archetype: {base: 'maelstrom', category: 'gang', title: 'Maelstrom ganger', district: 'Watson', area: 'NorthSide'}},
+  {id: 'vendor', key: 'npc-food-vendor-male', kinds: ['call-police'], hour: 20, minute: 10, district: 'Watson', area: 'Kabuki',
+    archetype: {base: 'food-vendor', category: 'vendor', title: 'food and drink vendor', vendorType: 'GrilledFood', district: 'Watson', area: 'Kabuki'}},
+].map(p => ({...p, ambient: true}));
+// The exchange every cell starts with (the offer never exists on V's first message to a person).
+const REACTION_HISTORY = [{v: 'Hey, got a minute?', r: 'Depends. What do you want?'}];
+// V's lines. threat: clearly threatens, robs, assaults or seriously insults, so a reaction is earned. benign: normal talk, mild rudeness, flirting, jokes,
+// violent idioms and topics; no reaction is earned.
+const REACTION_LINES = [
+  ['threat', 'Give me your money or I will hurt you.'], ['threat', 'Hand over your wallet right now, or I put a bullet in you.'],
+  ['threat', 'I am going to kill you, you piece of trash. Run.'], ['threat', 'Get on your knees or I will cut you open.'],
+  ['threat', 'Empty your pockets, now, or I will beat you senseless.'], ['threat', 'Say one more word and I will break your jaw.'],
+  ['threat', 'I have a gun pointed at your head. Start talking or I pull the trigger.'], ['threat', 'You worthless garbage, I will stomp your face into the pavement.'],
+  ['threat', 'Get out of my sight or I swear I will shoot you where you stand.'], ['threat', 'You are a filthy, worthless leech. Nobody would miss you if you died in a gutter.'],
+  ['benign', 'How is your night going?'], ['benign', 'Ugh, you are kind of annoying, you know that?'],
+  ['benign', 'You look great tonight. Want to grab a drink sometime?'], ['benign', 'Haha, tell me a joke. I bet you do not have a good one.'],
+  ['benign', 'What is the quickest way to Kabuki from here?'], ['benign', 'Man, whatever. I do not care what you think.'],
+  ['benign', 'Do you know anything about the Maelstrom gang? Heard they are nasty.'], ['benign', 'This place is so dead I could die of boredom.'],
+  ['benign', 'Relax, I am only kidding. Terrible joke, sorry.'], ['benign', 'Screw this city. I could murder a burger right now.'],
+  // Harder benign lines: a violent word or a money word in a line that threatens nobody, and plain rudeness.
+  ['benign', 'I swear I could strangle my boss today. Worst shift ever.'], ['benign', 'Give me a hand with this crate and I will pay you a few eddies.'],
+  ['benign', 'You are an idiot. Seriously, go away.'], ['benign', 'Shut up and listen for once, I am trying to ask you something.'],
+  ['benign', 'My cousin got shot last week. I still cannot believe it.'], ['benign', 'Did you hear a gunshot just now?'],
+];
+// The talk before V's line (the offer exists from V's second message): --history 3 makes it three earlier exchanges, as in a longer conversation.
+const MORE_HISTORY = [{v: 'Nice night, huh?', r: 'Quiet enough. Rain is staying away for once.'}, {v: 'Been around here long?', r: 'Long enough to know which corners to avoid.'}];
+// Note variants. `live` is the bridge's own note. The others replace it inside the request: note(kinds) -> text, place 'volatile' (where the bridge puts
+// it, in this turn's notes) or 'end' (after V's line and the closing reminder, the last thing the model reads).
+const WORDS_OF = {leave: 'you end the talk and walk or run off', 'call-police': 'you report V to the police', attack: 'you turn on V and attack'};
+const tagList = (kinds, words = WORDS_OF) => ['leave', 'call-police', 'attack'].filter(k => kinds.includes(k)).map(k => `[${k}] ${words[k]}`).join('; ');
+const NOTE_VARIANTS = {
+  live: null,
+  // The note as it was before 2026-10-21 (docs/NPC_REACTIONS.md), kept to measure the baseline through the same path.
+  baseline: {note: kinds => 'GAME REACTION (rare): only when V clearly threatens you or seriously insults you and you truly would react, end your reply with one tag after your words: '
+    + tagList(kinds) + '. No tag for normal, rude-but-harmless or joking talk, nor when your own reply stays calm; never at the start. Never speak of tags.', place: 'volatile'},
+};
+// Experiments (2026-10-21): when each tag applies, an example of the end tag, no "rare".
+const WHEN_OF = {leave: 'you walk or run off, ending the talk (afraid, or done with V)', 'call-police': 'you report V to the police (a robbery, a weapon, a death threat)',
+  attack: 'you fight V (a threat or an assault you will not take)'};
+const strong = kinds => 'GAME REACTION: if V\'s message threatens to hurt or kill you, demands your money or things by force, is an assault, or is a vicious insult, '
+  + 'your reply MUST end with exactly one tag after your words, e.g. "Back off or I call the cops. [' + (kinds.includes('call-police') ? 'call-police' : kinds.includes('attack') ? 'attack' : 'leave') + ']". Tags: '
+  + tagList(kinds, WHEN_OF) + '. Any other message (small talk, questions, jokes, flirting, rude or annoyed remarks) gets no tag. The tag is not spoken; the no-brackets rule does not apply to it.';
+const firstTag = kinds => kinds.includes('call-police') ? 'call-police' : kinds.includes('attack') ? 'attack' : 'leave';
+const shape = kinds => 'GAME REACTION: if V\'s message threatens to hurt or kill you (even half-seriously), demands your money or things, is an assault, or is a vicious insult, '
+  + 'your reply MUST end with exactly one tag after your last word, in the form: <your words> [' + firstTag(kinds) + ']. Tags: '
+  + tagList(kinds, WHEN_OF) + '. Any other message (small talk, questions, jokes, flirting, rude or annoyed remarks, V talking about violence in general) gets no tag. The tag is not spoken; the no-brackets rule does not apply to it.';
+NOTE_VARIANTS.c = {note: shape, place: 'volatile'};
+// d: the examples are of the offered kinds, and the reply is in the person's own words.
+const EXAMPLE_OF = {leave: '"I am done with you, goodbye. [leave]"', 'call-police': '"Back off or I call the cops. [call-police]"', attack: '"You just made the biggest mistake of your life. [attack]"'};
+const withExamples = kinds => 'GAME REACTION: if V\'s message threatens to hurt or kill you, demands your money or things by force, is an assault, or is a vicious insult, '
+  + 'your reply MUST end with exactly one tag after your words, in your own voice, e.g. ' + ['leave', 'call-police', 'attack'].filter(k => kinds.includes(k)).map(k => EXAMPLE_OF[k]).join(' or ') + '. Tags: '
+  + tagList(kinds, WHEN_OF) + '. Any other message (small talk, questions, jokes, flirting, rude or annoyed remarks) gets no tag. The tag is not spoken; the no-brackets rule does not apply to it.';
+NOTE_VARIANTS.d = {note: withExamples, place: 'volatile'};
+// e: a verdict first, and "whatever your character".
+NOTE_VARIANTS.e = {note: kinds => 'GAME REACTION: first judge V\'s latest message. If it threatens to hurt or kill you, robs you, assaults you, or is a vicious insult, the game needs your reaction '
+  + 'whatever your character is like (scared, calm or tough): end your reply with exactly one tag after your words. Tags: ' + tagList(kinds, WHEN_OF)
+  + '. If it is anything else (small talk, questions, jokes, flirting, rude or annoyed remarks), add no tag. The tag is not spoken; the no-brackets rule does not apply to it.', place: 'volatile'};
+// i: e with the example of the end tag (words first, then the tag).
+const exampleOf = kinds => ['leave', 'call-police', 'attack'].filter(k => kinds.includes(k)).map(k => EXAMPLE_OF[k]).join(' or ');
+NOTE_VARIANTS.i = {note: kinds => 'GAME REACTION: first judge V\'s latest message. If it threatens to hurt or kill you, robs you, assaults you, or is a vicious insult, the game needs your reaction '
+  + 'whatever your character is like (scared, calm or tough): say your words, then end the reply with exactly one tag, e.g. ' + exampleOf(kinds) + '. Tags: ' + tagList(kinds, WHEN_OF)
+  + '. If it is anything else (small talk, questions, jokes, flirting, rude or annoyed remarks), add no tag. The tag is not spoken; the no-brackets rule does not apply to it.', place: 'volatile'};
+// h: the word screen picks the note: a message with a threat word gets the order, others get nothing (no note, no cost).
+const THREAT_SCREEN = /\b(?:kill|hurt|shoot|shot|gun|bullet|stab|knife|blade|cut you|cut you open|beat|break your|stomp|murder|die|dead|wallet|money|pockets|credits|eddies|knees|trigger|blood|cripple|slit|choke|burn)\b/i;
+NOTE_VARIANTS.h = {note: (kinds, text) => THREAT_SCREEN.test(text)
+  ? 'GAME REACTION: V\'s message may be a threat, a robbery or an assault on you. If it is, the game needs your reaction whatever your character is like (scared, calm or tough): '
+    + 'end your reply with exactly one tag after your words. Tags: ' + tagList(kinds, WHEN_OF) + '. If it is only talk about violence, a joke or an idiom, add no tag. The tag is not spoken; the no-brackets rule does not apply to it.' : '', place: 'volatile'};
+// j: the screen picks the strength: a message with a threat word gets the order (with the example), the rest the plain note.
+NOTE_VARIANTS.j = {note: (kinds, text) => THREAT_SCREEN.test(text)
+  ? 'GAME REACTION: V\'s message may be a threat, a robbery or an assault on you. If it is, the game needs your reaction whatever your character is like (scared, calm or tough): '
+    + 'say your words, then end the reply with exactly one tag, e.g. ' + exampleOf(kinds) + '. Tags: ' + tagList(kinds, WHEN_OF)
+    + '. If it is only talk about violence, a joke or an idiom, add no tag. The tag is not spoken; the no-brackets rule does not apply to it.'
+  : strong(kinds), place: 'volatile'};
+// k: the screen picks the form: a message with a threat word makes the reply open with a tag (a choice that includes [none]); the rest the plain note.
+const startTags = kinds => ['leave', 'call-police', 'attack'].filter(k => kinds.includes(k)).map(k => `[${k}] ${WHEN_OF[k]}`).concat('[none] V is not really threatening you (talk about violence, a joke, an idiom)').join('; ');
+NOTE_VARIANTS.k = {note: (kinds, text) => THREAT_SCREEN.test(text)
+  ? 'GAME REACTION: V\'s message may be a threat, a robbery or an assault on you. Judge it, whatever your character is like (scared, calm or tough), and open your reply with exactly one tag, then your words. Tags: '
+    + startTags(kinds) + '. The tag is not spoken; the no-brackets rule does not apply to it.'
+  : strong(kinds), place: 'volatile'};
+// k2: k with the words required after the tag (k often wrote the tag alone).
+NOTE_VARIANTS.k2 = {note: (kinds, text) => THREAT_SCREEN.test(text)
+  ? 'GAME REACTION: V\'s message may be a threat, a robbery or an assault on you. Judge it, whatever your character is like (scared, calm or tough). Your reply is one tag, a space, then what you say out loud (always one or two sentences, never the tag alone): '
+    + 'Tags: ' + startTags(kinds) + '. The tag is not spoken; the no-brackets rule does not apply to it.'
+  : strong(kinds), place: 'volatile'};
+// m: k2 for every message, no screen (the reply opens with a tag on every turn of such a person, [none] for nearly all).
+NOTE_VARIANTS.m = {note: kinds => 'GAME REACTION: first judge V\'s latest message. Your reply is one tag, a space, then what you say out loud (always one or two sentences, never the tag alone). '
+  + 'Use a reaction tag only if the message threatens to hurt or kill you, robs you, assaults you or is a vicious insult; then react whatever your character is like (scared, calm or tough). For anything else '
+  + '(small talk, questions, jokes, flirting, rude or annoyed remarks, talk about violence in general) use [none]. Tags: ' + startTags(kinds) + '. The tag is not spoken; the no-brackets rule does not apply to it.', place: 'volatile'};
+// f: shorter (every turn of such a person pays for the note).
+NOTE_VARIANTS.f = {note: kinds => 'GAME REACTION: when V threatens to hurt or kill you, robs you or attacks you, or insults you viciously, end your reply with one tag: '
+  + tagList(kinds, WHEN_OF) + ', in the form <your words> [' + firstTag(kinds) + ']. Any other message gets no tag. The tag is never spoken and overrides the no-brackets rule.', place: 'volatile'};
+NOTE_VARIANTS.a = {note: strong, place: 'volatile'};
+NOTE_VARIANTS.b = {note: strong, place: 'end'};
+
 // ---- Memory stub (the host's own interface) --------------------------------------------------------------------------------
 
-function stubMemory({summary = '', remembered = []} = {}) {
-  const turns = [];
+function stubMemory({summary = '', remembered = [], turns: earlier = []} = {}) {
+  const turns = earlier.slice();
   return {setExtractor() {}, interrupt() {}, forget() {}, pendingSummary: () => null, beginSummary() {}, applySummary: () => true, failSummary() {},
     recall: () => ({summary, turns: turns.slice()}), retrieve: async () => remembered,
     record({v, r}) { turns.push({v, r}); }};
@@ -379,6 +490,45 @@ if (flag('report') || argv.includes('--report')) {
   console.log(`${label}: ${total.n} replies | mean ${(total.words / total.n).toFixed(1)} words, ${(total.sentences / total.n).toFixed(2)} sentences, first sentence ${(total.firstLen / total.n).toFixed(0)} chars | end with a question ${(100 * total.q / total.n).toFixed(0)}%`);
   console.log('problems:', JSON.stringify(byProblem));
   for (const [id, s] of Object.entries(bySituation)) console.log(`  ${id.padEnd(12)} n=${s.n} mean ${(s.words / s.n).toFixed(1)} words, flagged ${s.flagged}`);
+  process.exit(0);
+}
+
+// ---- Reactions: the numbers -----------------------------------------------------------------------------------------------------------------
+const REACTION_TOKEN = 'react-0123456789abcdefghij';
+const reactionOffer = kinds => ({version: 1, token: REACTION_TOKEN, reaction: {kinds}});
+const pctOf = (k, d) => d ? `${k}/${d} (${(100 * k / d).toFixed(0)}%)` : 'n/a';
+// rows: {persona, kinds, cls: threat|benign, line, kind (what the live parser took from the raw reply), raw}. Prints and returns the summary.
+function reactionSummary(title, rows) {
+  const threats = rows.filter(r => r.cls === 'threat'), benign = rows.filter(r => r.cls === 'benign');
+  const mix = list => ['leave', 'call-police', 'attack'].map(k => [k, list.filter(r => r.kind === k).length]).filter(([, c]) => c).map(([k, c]) => `${k} ${c}`).join(', ') || '-';
+  console.log(`\n== ${title}: ${rows.length} replies`);
+  // A reply that is only a tag has no words (the host asks once more for them): its tag is what the model chose.
+  const tagOnly = r => !r.kind && /^\s*\[\s*(?:leave|attack|call[ _-]?police|police)\s*\]\s*$/i.test(r.raw ?? '');
+  console.log(`  threats: recall ${pctOf(threats.filter(r => r.kind).length, threats.length)}   | tags taken: ${mix(threats)}`);
+  console.log(`  benign : false triggers ${pctOf(benign.filter(r => r.kind).length, benign.length)}   | tags taken: ${mix(benign)}`);
+  const only = rows.filter(tagOnly);
+  if (only.length) console.log(`  tag-only replies (no words): threats ${only.filter(r => r.cls === 'threat').length}, benign ${only.filter(r => r.cls === 'benign').length}  -> if they are asked again for words: recall ${pctOf(threats.filter(r => r.kind || tagOnly(r)).length, threats.length)}, false triggers ${pctOf(benign.filter(r => r.kind || tagOnly(r)).length, benign.length)}`);
+  for (const id of [...new Set(rows.map(r => r.persona))]) {
+    const t = threats.filter(r => r.persona === id), b = benign.filter(r => r.persona === id);
+    console.log(`    ${id.padEnd(11)} offered ${rows.find(r => r.persona === id).kinds.join('+').padEnd(18)} recall ${pctOf(t.filter(r => r.kind).length, t.length).padEnd(11)} false ${pctOf(b.filter(r => r.kind).length, b.length).padEnd(10)} (${mix(t)})`);
+  }
+  // Per kind: of the threats on persons who were offered it, how often that kind was the one taken.
+  const perKind = ['leave', 'call-police', 'attack'].map(k => { const o = threats.filter(r => r.kinds.includes(k)); return o.length ? `${k} ${pctOf(o.filter(r => r.kind === k).length, o.length)}` : null; }).filter(Boolean);
+  console.log(`  per kind (threats on persons offered it): ${perKind.join('   ')}`);
+  const bracketMiss = rows.filter(r => !r.kind && /\[[^\]]{2,24}\]/.test(r.raw ?? ''));
+  if (bracketMiss.length) console.log(`  replies with a bracket that was NOT taken: ${bracketMiss.length}  e.g. ${bracketMiss.slice(0, 3).map(r => JSON.stringify(String(r.raw).slice(-60))).join(' ')}`);
+  return {n: rows.length, threats: threats.length, recall: threats.filter(r => r.kind).length, benign: benign.length, falseTriggers: benign.filter(r => r.kind).length};
+}
+
+if (flag('rescore')) {
+  // --rescore <label>[,<label2>]: the stored raw replies read again with the live parser (bridge/text-actions.mjs reactionMenu.pick). No request.
+  for (const name of option('rescore', '').split(',').filter(Boolean)) {
+    const data = JSON.parse(await readFile(resolve(OUT_DIR, `${name}-reactions.json`), 'utf8'));
+    for (const run of data.runs) {
+      const rows = run.rows.map(r => ({...r, kind: r.raw ? reactionMenu(reactionOffer(r.kinds)).pick(r.raw).kind : null}));
+      reactionSummary(`${name} ${run.model} / ${run.note} (rescored)`, rows);
+    }
+  }
   process.exit(0);
 }
 
@@ -755,6 +905,68 @@ provider.key = apiKey; provider.applied = localPort ? 'local' : 'mistral';
 const fakeServer = {status: () => ({state: 'ready'}), ensure: async () => ({apiKey: 'eval-local', endpoint: `http://127.0.0.1:${localPort}/v1/chat/completions`, model: 'local'}),
   begin: () => () => {}, touch() {}, prewarm: async () => {}};
 const limits = {...LIMITS, temperature, maxTokens};
+
+// --reactions: see "Ordinary NPC reactions" above. One request per cell (a retry of the host counts as another); the scheduler paces them.
+if (flag('reactions') && !localPort) {
+  const models = option('models', model).split(',').filter(Boolean);
+  const notes = option('notes', 'live').split(',').filter(Boolean);
+  const wanted = option('personas', '').split(',').filter(Boolean);
+  const people = REACTION_PERSONAS.filter(p => !wanted.length || wanted.includes(p.id));
+  const classes = option('classes', 'threat,benign').split(',');
+  const lines = REACTION_LINES.filter(([cls]) => classes.includes(cls));
+  const runs = [];
+  for (const modelId of models) for (const noteId of notes) {
+    const variant = NOTE_VARIANTS[noteId];
+    if (variant === undefined) throw Error(`unknown note variant ${noteId}`);
+    const cellsOf = people.flatMap(p => lines.flatMap(([cls, text]) => Array.from({length: n}, (_, i) => ({p, cls, text, sample: i + 1}))));
+    const rows = [];
+    let cursor = 0;
+    const one = async ({p, cls, text, sample}) => {
+      const persona = personas.persona(p.key);
+      NAME_OF[p.key] = persona.name;
+      const live = reactionNotes(p.kinds), raws = [], delivered = [], logs = [];
+      // The wrapped chat function: swaps or moves the live note of the request (variants), and keeps what the model wrote, untouched.
+      const chat = async opts => {
+        let messages = opts.messages;
+        if (variant) {
+          messages = messages.map(m => ({...m}));
+          const last = messages.at(-1);
+          if (last.content.includes(live)) {
+            last.content = last.content.replace(live, '').replace(/\n{3,}/g, '\n\n');
+            const note = variant.note(p.kinds, text);
+            if (!note) { /* a variant may add no note this turn */ }
+            else if (variant.place === 'end') last.content = `${last.content.trimEnd()}\n\n${note}`;
+            else last.content = last.content.replace('[THIS TURN: notes for you, never to be read aloud]\n', `[THIS TURN: notes for you, never to be read aloud]\n${note}\n`);
+          } // else: the host's own second request for the words of a tag-only reply carries another note, which stays as it is
+        }
+        const result = await streamChat({...opts, messages});
+        raws.push(result.text);
+        return result;
+      };
+      const host = new TextProviderHost({provider, memory: stubMemory({turns: [...MORE_HISTORY.slice(0, Math.max(0, Number(option('history', 1)) - 1)), ...REACTION_HISTORY]}), personas, limits, log: line => logs.push(String(line)),
+        deliverAction: async message => { delivered.push(message); return true; },
+        routes: {mistral: mistralRoute({provider, model: () => [modelId], scheduler: mistralScheduler, cacheScope: `eval-${label}`, chat})}});
+      const local = {profileKey: p.key, name: persona.name, channel: 'private', ambientKey: `${p.key}:eval`};
+      const stream = new ReplyStream({name: persona.name, isTag: hasEmotionTag, speak: false});
+      const {context, contextParts} = contextFor(p, 'reaction', text);
+      try {
+        const reply = await host.reply({local, text, context, contextParts, companionAction: reactionOffer(p.kinds)}, {stream});
+        rows.push({persona: p.id, kinds: p.kinds, cls, line: text, sample, kind: delivered[0]?.reaction ?? null, spoken: reply.text, raw: raws.at(-1) ?? null, requests: raws.length,
+          dropped: logs.filter(l => l.includes('NPC reaction tag')).map(l => l.slice(0, 120))});
+      } catch (error) { rows.push({persona: p.id, kinds: p.kinds, cls, line: text, sample, kind: null, raw: raws.at(-1) ?? null, requests: raws.length, failed: redact(error?.message ?? String(error), apiKey).slice(0, 120)}); }
+      finally { host.close(); }
+    };
+    await Promise.all(Array.from({length: Math.min(concurrency, 4)}, async () => { while (cursor < cellsOf.length) await one(cellsOf[cursor++]); }));
+    const failed = rows.filter(r => r.failed);
+    const summary = reactionSummary(`${modelId} / ${noteId}`, rows);
+    if (failed.length) console.log(`  of these, requests that FAILED (counted as misses): ${failed.length} (${failed[0].failed}); raw e.g. ${JSON.stringify(failed[0].raw)}`);
+    if (flag('misses')) for (const r of rows.filter(r => r.cls === 'threat' ? !r.kind : r.kind)) console.log(`    ${r.cls === 'threat' ? 'MISSED' : 'FALSE '} ${r.persona} | ${r.line.slice(0, 50)} | ${String(r.raw).replace(/\s+/g, ' ').slice(0, 170)}`);
+    runs.push({model: modelId, note: noteId, summary, rows});
+  }
+  await mkdir(OUT_DIR, {recursive: true});
+  await writeFile(resolve(OUT_DIR, `${label}-reactions.json`), JSON.stringify({label, at: new Date().toISOString(), n, temperature, runs}, null, 1));
+  process.exit(0);
+}
 
 async function runCell(cell, sample) {
   const c = cell.character, persona = personas.persona(c.key);

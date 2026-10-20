@@ -38,16 +38,16 @@ The **NPC's reply decides**, so it stays in character. The game side offers only
 
 | Provider | The model signals it | The bridge hands it over |
 |---|---|---|
-| Mistral, Local AI, Custom | one tag at the very end of the reply: `[leave]`, `[call-police]` or `[attack]` | `TextProviderHost` cuts the tag from the text (the voice, the subtitle and the memory never see it) and delivers `{version, token, reaction}` through `CompanionActions.deliver` |
+| Mistral, Local AI, Custom | one tag that opens the reply (`[none]` for everything else; a tag at the very end counts too): `[leave]`, `[call-police]` or `[attack]` | `TextProviderHost` cuts the tag from the text (the voice, the subtitle and the memory never see it) and delivers `{version, token, reaction}` through `CompanionActions.deliver` |
 | Convai | Convai's own action list: `Walk Away <token>`, `Call Police <token>`, `Attack V <token>` (only the offered ones), requested in the same reply | `CompanionActionWindow.accept` -> the same `deliver` |
 
 There is **no decision request** (unlike the companion actions, which first ask a tiny classifier): the reply is written once, with one more sentence in its notes. That sentence is for ordinary NPCs only, lists only the offered kinds, and costs about 100 tokens:
 
-> GAME REACTION (rare): only when V clearly threatens you or seriously insults you and you truly would react, end your reply with one tag after your words: [leave] you end the talk and walk or run off; [call-police] you report V to the police. No tag for normal, rude-but-harmless or joking talk, nor when your own reply stays calm; never at the start. Never speak of tags.
+> GAME REACTION: judge V's latest message, then begin your reply with exactly one tag, a space, and what you say out loud (one or two sentences, never the tag alone). If the message threatens to hurt or kill you, robs you, assaults you or is a vicious insult, react whatever your character is like (scared, calm or tough) with one of: [call-police] you report V to the police (a robbery, a weapon, a threat to hurt or kill you); [leave] you end the talk and walk or run off (a vicious insult, or V is too much for you). Anything else (small talk, questions, jokes, flirting, rude or annoyed remarks, "shut up", "go away", insults that are only rude, talk about violence in general) gets [none]. The tag is not spoken; the no-brackets rule does not apply to it.
 
 The Convai sentence says the same about the action names, and ends with "almost every reply has no action".
 
-Why a tag and not a classifier here: the companion actions measured badly with a code that opens the reply on every turn (the persona picked the code by mood, `docs/MISTRAL.md`). Here the tag is rare, comes last, and only counts when it is the last thing in a reply that has words before it. A tag anywhere else, two tags, a tag for a kind that was not offered, or a reply that was cut back to its first sentence does nothing; the bridge logs `NPC reaction tag in the reply was not used (<why>)` with the reason only, never the words.
+Why a tag and not a classifier here: the reply is written once. The first version asked for the tag at the END, after the words ("rare", "nor when your own reply stays calm"); measured on ministral-8b it was written for 3% of clear threats (the persona writes its in-character defiance and never reaches the tag). Every rewording of an end tag reached 50 to 60% at best. A tag the reply must OPEN with is a choice made before the persona speaks, and with `[none]` as the answer for everything else the model judges every line: 2026-10-21, 5 persons x 26 lines, ministral-8b, 100% of threats got a tag and 4 of 80 harmless lines did (three of them V telling the person to go away, which makes it leave). The companion actions measured badly with a code that opens the reply (the persona picked the code by mood, `docs/MISTRAL.md`), but those were requests mixed with chat; here the choice is between "V attacks me" and nothing. A tag at the end of the reply counts too. A tag in the middle, two tags, a tag for a kind that was not offered, or a reply that was cut back to its first sentence does nothing; the bridge logs `NPC reaction tag in the reply was not used (<why>)` with the reason only, never the words. A model that has chosen sometimes stops after the tag (`[attack]` alone, about one threat in five): the host then keeps the choice and sends a second request only for the words ("you have just decided to ...", no tag to write); asking again for "tag and words" got the tag alone again half the time.
 
 ### The tag in the text
 
@@ -57,7 +57,7 @@ Why a tag and not a classifier here: the companion actions measured badly with a
 
 ### "Never on the first line"
 
-Read as the first message V sends a person: it earns no offer at all (`minExchanges = 1` in `mod/npc-reactions.lua`). The offer exists from V's second message to the same person (a conversation older than ten minutes starts again). The instruction also says "never at the start" of the reply. If the owner meant only the reply's first sentence, set `minExchanges = 0`; nothing else changes.
+Read as the first message V sends a person: it earns no offer at all (`minExchanges = 1` in `mod/npc-reactions.lua`). The offer exists from V's second message to the same person (a conversation older than ten minutes starts again). If the owner meant only the reply's first sentence, set `minExchanges = 0`; nothing else changes.
 
 ## The rails
 
@@ -123,7 +123,7 @@ No redscript, no new setting, no new notice, no locale string, no new bridge fil
 
 ## Tests
 
-- `bridge/npc-reactions.test.mjs` (21): the tags and their cutting (spellings, streaming hold-back, a tag split across the real reply stream, the harmless brackets), which reply counts (end only, once, offered kind), the instruction (short, "rare", only offered kinds, never the others), the offer on the wire and its admission (also through the real `PlayerKnowledge` for an ordinary NPC), delivery, expiry, the Convai window and its context text, and whole turns on Custom (against the loopback mock), Mistral and Local AI (fake chat), including rare-means-rare, per-type actions and companions unaffected.
+- `bridge/npc-reactions.test.mjs` (23): the tags and their cutting (spellings, streaming hold-back, a tag split across the real reply stream, the harmless brackets), which reply counts (start or end, once, offered kind, `[none]`), the tag-only reply and its second request, the instruction (short, tag first, only offered kinds, never the others), the offer on the wire and its admission (also through the real `PlayerKnowledge` for an ordinary NPC), delivery, expiry, the Convai window and its context text, and whole turns on Custom (against the loopback mock), Mistral and Local AI (fake chat), including the replies that deliver nothing, per-type actions and companions unaffected.
 - `bridge/npc-reactions-lua.test.mjs` (28): the kinds per person (every base of `characters/archetypes.json` has one), every rail, the service on a fake game (first message, once, cooldown, rechecks at start and at run, failures switched off, nothing per frame), the native adapter on a fake game (the exact calls), the lease, and the wiring.
 
 ## Live checks owed (CET reload only; the bridge restarts with the game)
