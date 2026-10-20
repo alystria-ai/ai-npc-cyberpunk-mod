@@ -10,15 +10,19 @@ import {abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
 
 export const POCKET_SOURCE_REVISION = '41cbc84af539ea78a804ffca5f9c6edc1a22ce44';
 export const POCKET_SOURCE_SHA256 = 'b86f98955b6c4776bb24a748b321408aba89d3b66f6b911f415ef4f4191a7666';
-// stallMs: a starting worker that reports nothing new (no phase change) this long is stuck. It is stopped and started once more; a second
-// stall gives up (the failure is the same as a startup timeout). Importing the runtime is the phase that hangs on a starved CPU (the
-// worker runs below normal priority), so it has the shortest limit; loading the student and warming voices are given longer ones.
+// stallMs: a starting worker that makes no progress this long is stuck. Progress is a new phase, a mark after a heavy import, or the
+// worker's own CPU time growing (progressCpuMs since the last progress; its heartbeat reports it every 2 s while starting). A worker that
+// is merely slow (a virus scan, a slow disk, other models loading) keeps moving and is never stopped for it; only one that has stopped is
+// stopped and started once more, and a second stall gives up (the failure is the same as a startup timeout). startupMs is the hard bound
+// for the whole start, progress or not (a restart does not extend it). Importing the runtime has been measured at 2 to 36 s on healthy
+// machines and over 45 s on a busy one, so it gets a longer window; loading the student and warming voices are given longer ones.
 // cancelMs: how long a cancelled request may keep the worker busy before the worker is stopped. A first-time preparation of a voice
 // (1.4 to 4.5 s) cannot be interrupted, so a cancelled one gets prepareCancelMs: the worker finishes it, answers 'cancelled', and goes on.
-export const POCKET_LIMITS = Object.freeze({startupMs: 180_000, prepareMs: 60_000,
+export const POCKET_LIMITS = Object.freeze({startupMs: 240_000, prepareMs: 60_000,
   renderMs: 120_000, sinkMs: 10_000, cancelMs: 2000, prepareCancelMs: 15_000, exitMs: 5000, maxFrames: 24000 * 120,
-  stallMs: Object.freeze({default: 45_000, 'loading-student': 90_000, 'student-loaded': 60_000, warming: 60_000}),
-  startAttempts: 2, voicesMs: 30_000});
+  stallMs: Object.freeze({default: 45_000, 'importing-dependencies': 60_000, 'loading-student': 90_000, 'student-loaded': 60_000, warming: 60_000}),
+  progressCpuMs: 100, progressLogMs: 30_000, startAttempts: 2, voicesMs: 30_000});
+const HEARTBEAT_STEPS = Object.freeze(['numpy', 'torch', 'yaml', 'pocket_tts']);
 // Stops a worker and everything it started. On Windows the venv's python.exe is a launcher whose child is the real interpreter, and
 // a plain kill reaches only the launcher: the real worker would go on holding the runtime lock. Only the real spawn is killed by
 // process tree (a test's stand-in child is never handed to taskkill).
@@ -175,15 +179,32 @@ export class PocketVoice {
     this.clearTimer(this.stallTimer);
     this.stallTimer = this.timer(() => this.stalled(phase), this.stallLimit(phase));
   }
-  // The worker has not moved on for too long: stop it (the whole process tree) and start it once more, then give up.
+  // The worker's heartbeat while it starts (every 2 s, never while it serves): its CPU time so far, and `step` after each heavy import.
+  // A mark, or CPU time that grew by progressCpuMs since the last progress, means the worker is moving (slowly, on a busy machine), so
+  // the stall window starts over; a worker whose CPU time stands still is the one that is stuck. Nothing here runs per frame or polls.
+  heartbeat(frame) {
+    const cpu = frame.cpuMs;
+    if (!Number.isSafeInteger(cpu) || cpu < 0 || (frame.step !== undefined && !HEARTBEAT_STEPS.includes(frame.step)))
+      throw Error('Invalid Pocket worker heartbeat');
+    // A late beat of a worker that is being stopped says nothing about its replacement.
+    if (this.closing || this.failure || this.loaded || this.restarting || !this.child) return;
+    const at = this.now(), cpuText = `worker CPU ${(cpu / 1000).toFixed(1)}s`;
+    if (frame.step !== undefined) this.startLog(`imported ${frame.step} (${cpuText})`);
+    else if (at - this.noteAt >= POCKET_LIMITS.progressLogMs) { this.noteAt = at; this.startLog(`still ${this.phase || 'starting'} (${cpuText}), not stalled`); }
+    if (frame.step !== undefined || cpu >= this.progressCpu + POCKET_LIMITS.progressCpuMs) {
+      this.progressCpu = cpu; this.cpuMs = cpu; this.armStall(this.phase);
+    }
+  }
+  // The worker has made no progress for too long: stop it (the whole process tree) and start it once more, then give up.
   stalled(phase) {
     this.stallTimer = null;
     if (this.closing || this.failure || this.loaded || this.restarting || !this.child) return;
+    const cpuText = this.cpuMs === undefined ? '' : `, worker CPU ${(this.cpuMs / 1000).toFixed(1)}s`;
     if (this.attempt >= POCKET_LIMITS.startAttempts) {
       this.startLog(`stalled at ${phase || 'start'} again; giving up`);
       this.fail(Error('Pocket student startup stalled')); return;
     }
-    this.startLog(`stalled at ${phase || 'start'} for ${Math.round(this.stallLimit(phase) / 1000)}s; stopping the worker to start it once more`);
+    this.startLog(`stalled at ${phase || 'start'} for ${Math.round(this.stallLimit(phase) / 1000)}s without progress${cpuText}; stopping the worker to start it once more`);
     this.restarting = true;
     this.clearTimer(this.startTimer); this.startTimer = null;
     const child = this.child;
@@ -206,7 +227,7 @@ export class PocketVoice {
     return this.ready;
   }
   spawnWorker() {
-    this.attempt++; this.phase = undefined;
+    this.attempt++; this.phase = undefined; this.progressCpu = 0; this.cpuMs = undefined; this.noteAt = this.now();
     // A new worker reads the configuration's voices: what a player changed since is sent once it is ready.
     this.registry = this.baseRegistry; this.workerDir = this.baseDir;
     let child;
@@ -259,7 +280,9 @@ export class PocketVoice {
       });
     });
     this.exited.catch(() => {});
-    this.startTimer = this.timer(() => this.fail(Error('Pocket student startup timed out')), POCKET_LIMITS.startupMs);
+    // The hard bound is for the whole start: a restarted worker gets what is left of it, never a fresh window.
+    this.startTimer = this.timer(() => this.fail(Error('Pocket student startup timed out')),
+      Math.max(1000, POCKET_LIMITS.startupMs - Math.max(0, this.now() - (this.startedAt ?? this.now()))));
     this.armStall(undefined);
   }
   validateProfiles(frame) {
@@ -296,6 +319,7 @@ export class PocketVoice {
       const reason = typeof frame.reason === 'string' ? frame.reason.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 160) : '';
       throw Error(`Pocket student runtime is unavailable${reason ? ` (${reason})` : ''}`);
     }
+    if (frame.op === 'heartbeat') { this.heartbeat(frame); return; }
     if (frame.op === 'state') {
       if (!['loading', 'warming'].includes(frame.state) || (frame.profile !== undefined && !this.registry.has(frame.profile)))
         throw Error('Invalid Pocket worker state');
