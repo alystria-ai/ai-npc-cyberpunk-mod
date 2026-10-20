@@ -15,18 +15,32 @@
 const STEMS = {
   DRIVE: {
     words: String.raw`driv|wheel|rid(?:e|es|ing)(?![\p{L}])|cars?(?![\p{L}])|vehicle|taxi|cab(?![\p{L}])|chauffeur|lift(?![\p{L}])|take (?:me|us)|drop (?:me|us)|get (?:me|us)|bring (?:me|us)|waypoint|marker|destination|navigat|route|map(?![\p{L}])|floor it|let'?s go|lets go|let us (?:go|move|roll)|head (?:out|there|over|to)|go there|hop in|get in|buckle|gas(?![\p{L}])|` // en
-      + String.raw`fahr|lenk|auto(?![\p{L}])|wagen|fuhr|bring mich|nimm mich|steuer|` // de
+      + String.raw`f[aä]hr|lenk|auto(?![\p{L}])|wagen|fuhr|bring mich|nimm mich|steuer|` // de
       + String.raw`condui|volant|voiture|emm[eè]ne|conduis|trajet|` // fr
       + String.raw`conduc|volante|coche|ll[eé]va|punto que|` // es
       + String.raw`guida|macchina|portami|volante|` // it
       + String.raw`dirig|dirij|carro|leva-?me|leve-?me|me leve|` // pt
       + String.raw`prowad|jed[zź]|kierownic|samoch|zawie[zź]|wioz|podwie[zź]|` // pl
-      + String.raw`води|веди|поведи|вези|руль|машин|подвез|отвез|довез|поезж|поедем|повез|авто|такси|` // ru
+      + String.raw`води|веди|поведи|вези|рул|машин|подвез|отвез|довез|поезж|поедем|повез|авто|такси|` // ru
       + String.raw`кермо|керу|машин|авто|відвез|підвез|повез|` // uk
       + String.raw`s[uü]r(?![\p{L}])|s[uü]rd|s[uü]rer|direksiyon|araba|g[oö]t[uü]r|` // tr
       + String.raw`[rř]i[dď]|je[dď]|volant|auto(?![\p{L}])|odvez|zave[dď]|` // cs
-      + String.raw`vezes|vezet|korm[aá]ny|aut[oó]|vigy|vigyél|vidd|`, // hu
-    spaceless: '運転|ドライブ|乗せ|乗って|車|連れて|送って|운전|태워|차로|데려다|데려가|开车|驾驶|方向盘|带我|送我|载我|车',
+      + String.raw`vezes|vezet|korm[aá]ny|aut[oó]|vigy|vigyél|vidd|` // hu
+      // Seated drive, V already sits in the car ("you drive", "swap seats", "take over", "your turn", "slide over"):
+      + String.raw`swap|switch (?:seats|places)|seats?(?![\p{L}])|take ?over|your turn|my turn|slide over|move over|trade places|change (?:seats|places)|scoot|` // en
+      + String.raw`sitz|platz|tausch|[uü]bernimm|[uü]bernehm|[uü]berlass|abl[oö]s|rutsch|` // de
+      + String.raw`si[eè]ge|place(?![\p{L}])|[eé]chang|changeons|chang[eé]|prends la|prend la|reprends|relais|[aà] toi|glisse|` // fr
+      + String.raw`asiento|cambi[ae]|c[aá]mbia|t[oó]ma el|tu turno|rel[eé]va|desl[ií]za|pasa al|` // es
+      + String.raw`sedile|posto|cambia|scambia|prendi tu|tocca a te|subentra|spostati|` // it
+      + String.raw`banco|lugar|troc[ae]|assum[ae]|sua vez|tua vez|desliza|` // pt
+      + String.raw`fotel|siedzeni|miejsc|zamie[nń]|zmie[nń]|przejmij|przejmi|twoja kolej|przesu[nń]|przesi[aą]d|` // pl
+      + String.raw`сиден|мест[оа]|поменя|смени|пересяд|пересад|возьми|займи|твоя очередь|подвинь|сдвинь|за руль|садись|` // ru
+      + String.raw`сидін|місц|поміня|змін|пересяд|пересід|візьми|займи|твоя черга|посунь|за кермо|сідай|` // uk
+      + String.raw`koltuk|de[gğ]i[sş]|devral|s[ıi]ra sende|kayd[ıi]r|` // tr
+      + String.raw`sedadl|vym[eě]n|prohod|p[rř]evez|p[rř]evem|p[rř]esa[dď]|p[rř]esed|posu[nň]|` // cs
+      + String.raw`[uü]l[eé]s|cser[eé]l|vedd [aá]t|[aá]tvesz|[aá]t[uü]lj|[uü]lj|helyet|`, // hu
+    spaceless: '運転|ドライブ|乗せ|乗って|車|連れて|送って|운전|태워|차로|데려다|데려가|开车|驾驶|方向盘|带我|送我|载我|车'
+      + '|席|代わ|替わ|交代|入れ替|任せ|자리|교대|바꿔|바꾸|맡|换座|换位|座位|座椅|换我|你来开|接管|交换',
   },
   FIGHT: {
     words: String.raw`attack|fight|kill|shoot(?!out)|take (?:him|her|them|that|those|these|this|it|out|down)|take .{0,16} out|get (?:him|her|them|that|those|these|this)|hit (?:him|her|them|that)|waste|eliminat|murder|finish (?:him|her|them|it)|deal with (?:him|her|them|that|it|the)|smash|cut down|pinned|handle (?:the|him|her|them|that|it)|do something about|make (?:him|her|them) (?:stop|pay|bleed|regret)|destroy|smoke (?:him|her|them)|blast|punch|beat|stab|slice|open fire|go (?:get|after)|dispatch|neutrali|put (?:him|her|them|a bullet)|drop (?:him|her|them)|tagged|marked|target|marked|mark(?![\p{L}])|enem|hostile|charge|engage|rush|light (?:him|her|them|it) up|cut (?:him|her|them) down|end (?:him|her|them)|flatline|fry|ice (?:him|her|them)|trash|` // en
@@ -118,7 +132,10 @@ const EXPLICIT = {
 // Anything that makes the sentence a condition, a refusal, a memory or a wish for later is not a plain request.
 const NOT_PLAIN = /\b(?:if|when|whenever|unless|because|once|never|ever|not|no|don'?t|didn'?t|won'?t|wouldn'?t|couldn'?t|can'?t|wish|someday|later|tomorrow|maybe|sometime|used to|instead|rather|how|why|what|who)\b/i;
 // The bare verb counts only as the whole sentence ("Attack!"), never as the start of "attack of the clones".
-const BARE = {FIGHT: 'attack|fight'};
+// DRIVE: V sits in the car already ("you drive", "take over", "swap seats"); these stay whole-sentence so "take over the world" is not a request.
+const BARE = {FIGHT: 'attack|fight',
+  DRIVE: String.raw`drive(?: now| please)?|take over(?: (?:the )?(?:wheel|driving))?(?: from me| for me| please| now)?|`
+    + String.raw`(?:swap|switch|change) (?:seats|places)(?: with me)?(?: please| now)?|trade places(?: with me)?|your turn to drive|slide over and drive`};
 const explicitPatterns = Object.fromEntries(Object.entries(EXPLICIT).map(([code, phrase]) =>
   [code, new RegExp(`${EXPLICIT_LEAD}(?:${phrase}(?:\\s+[^\\s]+){0,7}${BARE[code] ? `|${BARE[code]}` : ''})$`, 'i')]));
 

@@ -58,13 +58,25 @@ local function reject(offer,code,reason) offer.code,offer.reason=code,reason; re
 local function seat(info,name)
     for _,row in ipairs(info and info.seats or {}) do if row.name==name then return row end end
 end
-local function free(info,name) local row=seat(info,name); return row and not row.occupant and not row.reserved end
 local function preparation(phase)
-    return phase=='releasing' or phase=='boarding-driver' or phase=='waiting-for-driver-seat'
+    return phase=='exiting-passenger' or phase=='releasing' or phase=='boarding-driver' or phase=='waiting-for-driver-seat'
         or phase=='waiting-for-player' or phase=='waiting-for-party'
 end
 local function approaching(phase)
-    return phase=='releasing' or phase=='boarding-driver' or phase=='waiting-for-driver-seat'
+    return phase=='exiting-passenger' or phase=='releasing' or phase=='boarding-driver' or phase=='waiting-for-driver-seat'
+end
+-- Seated drive (V already sits in their own car). The seat swap is never forced: the game has no animated NPC seat switch, and
+-- V's native switch needs a free front-right seat (docs/COMPANION_CHAUFFEUR.md, "Seated drive"). So a companion who is not
+-- the driver yet steps out of the car, V leaves the driver seat if V has it, the companion takes the driver seat through the
+-- ordinary driver boarding, and V sits in a passenger seat.
+local function occupantOk(row,...)
+    if not row then return false end
+    if not row.occupant then return not row.reserved end
+    for _,id in ipairs({...}) do if id and row.occupant==id then return true end end
+    return false
+end
+local function busy(value,sample)
+    return reject(value,'transport-busy','Wait for the current vehicle activity to finish.'),sample
 end
 local function offer(s,player,entry)
     -- A passenger-only companion (Alt Cunningham, a digital ghost) is never offered the wheel; no native read is needed to know.
@@ -72,18 +84,45 @@ local function offer(s,player,entry)
     local sample,err=safe(s.chauffeurApi.sample,player,entry,nil,s.api)
     if not sample then return {available=false,code='world-unavailable',reason='Vehicle information is not ready.',error=err} end
     local value=publicOffer(sample)
-    if sample.playerMount then
-        if sample.playerMount.seat=='seat_front_left' then
-            return reject(value,'player-driving','Step out of the driver seat before asking your companion to drive.'),sample
+    local pm,seated=sample.playerMount,nil
+    if pm then
+        -- V sits somewhere. Only V's own car (the exact car V sits in) qualifies, V as the driver or in a passenger seat.
+        local ownCar=sample.car and sample.carValid and sample.car.id==pm.vehicle
+        local passenger=pm.seat=='seat_front_right' or pm.seat=='seat_back_left' or pm.seat=='seat_back_right'
+        if not ownCar or (pm.seat~='seat_front_left' and not passenger) then
+            if pm.seat=='seat_front_left' then
+                return reject(value,'player-driving','Step out of the driver seat before asking your companion to drive.'),sample
+            end
+            return reject(value,'player-seated','Step out before starting a new companion trip.'),sample
         end
-        return reject(value,'player-seated','Step out before starting a new companion trip.'),sample
+        seated=pm.seat=='seat_front_left' and 'driver' or 'passenger'
+        -- The fleet's own primary car is V's car; anything else is stale transport state.
+        if s.primary and s.primary.id~=pm.vehicle then return busy(value,sample) end
     end
-    if s.chauffeur or s.phase~='on-foot' then return reject(value,'transport-busy','Wait for the current vehicle activity to finish.'),sample end
-    for _,person in pairs(s.people) do if person.owned then return reject(value,'transport-busy','Wait for the current vehicle activity to finish.'),sample end end
+    if s.chauffeur then return busy(value,sample) end
+    if seated then
+        -- The ordinary party boarding may be running (V just sat down). The selected companion must be settled: seated in
+        -- V's car, or not held by the fleet at all. Other people still boarding do not matter.
+        if s.phase~='riding' and s.phase~='boarding' and s.phase~='on-foot' then return busy(value,sample) end
+        local companion=s.people[entry.serial]
+        if companion and companion.owned and (companion.phase~='riding' or companion.removing) then return busy(value,sample) end
+    else
+        if s.phase~='on-foot' then return busy(value,sample) end
+        for _,person in pairs(s.people) do if person.owned then return busy(value,sample) end end
+    end
     if not sample.actorValid or not sample.actor.id or type(sample.actor.key)~='string' or sample.actor.key=='' then
         return reject(value,'actor-unavailable','This managed companion is unavailable.'),sample
     end
-    if sample.driverMount then return reject(value,'actor-seated','Your companion must step out before taking the driver seat.'),sample end
+    local dm=sample.driverMount
+    if dm then
+        -- Seated drive: the companion may sit in any seat of V's own car. Another vehicle's occupant is never touched.
+        if not seated or not sample.car or dm.vehicle~=sample.car.id then
+            return reject(value,'actor-seated','Your companion must step out before taking the driver seat.'),sample
+        end
+        if seated=='driver' and dm.seat=='seat_front_left' then
+            return reject(value,'actor-unavailable','This managed companion is unavailable.'),sample
+        end
+    end
     if not sample.actorCalm or sample.playerCombat then return reject(value,'combat','Finish combat before asking for a ride.'),sample end
     if sample.auto.enabled then return reject(value,'autodrive-active','An AutoDrive journey is already active.'),sample end
     if sample.carSelectionError=='ambiguous' then
@@ -95,18 +134,29 @@ local function offer(s,player,entry)
     if not sample.info.ready or sample.info.invalid or sample.summonEnRoute then
         return reject(value,'car-arriving','Wait for your summoned car to arrive.'),sample
     end
-    if not sample.drive or not sample.drive.known or not sample.drive.ready then
+    -- While V holds the wheel the car takes no AI commands; the NPC command is checked again at departure.
+    if not sample.drive or not sample.drive.known or (seated~='driver' and not sample.drive.ready) then
         return reject(value,'driving-unavailable','Vehicle driving AI is not ready.'),sample
     end
     if sample.drive.foreign or sample.drive.busy then
         return reject(value,'transport-busy','Another vehicle activity has control.'),sample
     end
     if sample.info.speed>0.5 or sample.info.scene then return reject(value,'car-moving','Wait for your car to stop.'),sample end
-    if (sample.info.playerGap or math.huge)>20 then return reject(value,'car-distant','Stand near your owned car.'),sample end
+    if not seated and (sample.info.playerGap or math.huge)>20 then return reject(value,'car-distant','Stand near your owned car.'),sample end
     if not sample.waypoint then return reject(value,'no-waypoint','Select a destination on the map first.'),sample end
-    if not free(sample.info,'seat_front_left') then return reject(value,'driver-occupied','The driver seat is occupied or reserved.'),sample end
-    for _,name in ipairs(passengerSeats) do if free(sample.info,name) then value.passengerSeat=name; break end end
+    -- The driver seat: free, or V's own (V will step out), or this companion's own (V already sits as a passenger).
+    if not occupantOk(seat(sample.info,'seat_front_left'),sample.playerId,sample.actor.id) then
+        return reject(value,'driver-occupied','The driver seat is occupied or reserved.'),sample
+    end
+    if seated=='passenger' then value.passengerSeat=pm.seat
+    else
+        -- V's seat afterwards: the first passenger seat that is free or that this companion leaves.
+        for _,name in ipairs(passengerSeats) do
+            if occupantOk(seat(sample.info,name),sample.actor.id) then value.passengerSeat=name; break end
+        end
+    end
     if not value.passengerSeat then return reject(value,'no-passenger-seat','Your car has no free passenger seat for V.'),sample end
+    value.seated=seated
     value.available=true
     return value,sample
 end
@@ -116,9 +166,16 @@ local function matches(a,b)
         and a.actor.serial==b.actor.serial and a.actor.id==b.actor.id and a.actor.key==b.actor.key
         and a.car.id==b.car.id and a.car.record==b.car.record and a.waypoint.id==b.waypoint.id
         and samePoint(a.waypoint.position,b.waypoint.position) and a.passengerSeat==b.passengerSeat
+        and a.seated==b.seated
+end
+-- One probe.log line per stage of a seated drive ("Companion recovery vehicle-seated-drive"), never per frame: the live check
+-- reads the stages and the seats in them.
+local function trace(s,stage,fields)
+    if type(s.report)=='function' then pcall(s.report,'seated-drive',fields) end
 end
 local function phase(s,value)
     local c=s.chauffeur; c.phase=value; c.phaseAt=s.clock
+    if c.seated then trace(s,value,{stage=value,mode=c.seated,seat=c.passengerSeat,reason=c.reason}) end
     if value=='exiting-driver' and not c.exitPrepared then
         c.exitPrepared=true
         for _,person in pairs(s.people) do person.phase='leaving'; person.attempts=0; person.retryAt=nil end
@@ -130,15 +187,39 @@ function M.queue(s,player,entry,expected)
     if not value.available then return false,value.reason,value end
     if expected and not matches(expected,value) then return false,'The companion, car, seat or selected destination changed. Ask again.',value end
     s.generation=s.generation+1
-    s.primary=sample.car -- borrowed: deliberately never added to the owned cars list
+    if value.seated and s.primary and s.primary.id==sample.car.id then
+        -- The ordinary party boarding already holds V's car as its primary. Keep that table (the other people's seat records
+        -- point at it) and refresh its identity fields from the borrowed-car sample.
+        for key,item in pairs(sample.car) do s.primary[key]=item end
+    else
+        s.primary=sample.car -- borrowed: deliberately never added to the owned cars list
+    end
     s.primary.summonBaseline={id=sample.summonedId,state=sample.summonState or (sample.summonEnRoute and 1 or 0)}
-    s.people[entry.serial]={entry=entry,phase='releasing',attempts=0,owned=true,chauffeur=true,
+    local previous=s.people[entry.serial]
+    local person={entry=entry,phase='releasing',attempts=0,owned=true,chauffeur=true,
         vehicle=s.primary,seat='seat_front_left'}
-    s.chauffeur={phase='releasing',phaseAt=s.clock,startedAt=s.clock,offer=copy(value),entry=entry,player=player,
+    local first='releasing'
+    local sitting=sample.driverMount
+    if value.seated then
+        -- The walking owners were released when the fleet seated this companion; do not run that handoff twice.
+        person.released=previous and previous.released or nil
+        if sitting and sitting.vehicle==sample.car.id then
+            person.mount=sitting
+            if sitting.seat=='seat_front_left' then first='waiting-for-player'; person.phase='riding'
+            else first='exiting-passenger' end
+        end
+    end
+    s.people[entry.serial]=person
+    s.chauffeur={phase=first,phaseAt=s.clock,startedAt=s.clock,offer=copy(value),entry=entry,player=player,
         car=s.primary,serial=entry.serial,waypoint=copy(sample.waypoint),passengerSeat=value.passengerSeat,
         playerId=sample.playerId,generation=s.generation,active=true,stopAttempts=0,brakeAttempts=0,
-        destinationRevision=1,destinationAnchor=copy(sample.waypoint),driveRevision=0,retargets=0,backend='npc'}
+        destinationRevision=1,destinationAnchor=copy(sample.waypoint),driveRevision=0,retargets=0,backend='npc',
+        seated=value.seated,seatedFrom=sitting and sitting.seat or nil}
     s.lastChauffeur=nil; s.phase='chauffeur'; s.error=nil
+    if value.seated then
+        trace(s,'queued',{stage='queued',mode=value.seated,vSeat=sample.playerMount and sample.playerMount.seat,
+            companionSeat=sitting and sitting.seat or 'outside',first=first,seat=value.passengerSeat})
+    end
     return true,nil,copy(value)
 end
 local function stop(s,reason,outcome)
@@ -274,13 +355,19 @@ function M.update(s,player,entries,hooks,ops)
         -- People can choose the wrong door while their friend is approaching.
         -- Yield the exact NPC mount and wait; an accidental stopped-car entry
         -- is not a new request, nor permission to move V to another seat.
-        if not c.driverSeatWaitStarted then
-            c.driverSeatWaitStarted=s.clock
-            c.driverSeatWaitUsed=0
-        end
-        if c.phase~='waiting-for-driver-seat' then
-            c.driverSeatWaitAt=s.clock
-            phase(s,'waiting-for-driver-seat')
+        if c.phase=='exiting-passenger' then
+            -- Seated drive: the companion is still stepping out of its seat. The 45 s allowance for V to leave the
+            -- driver seat starts only once the companion is out, so the exit animation does not eat into it.
+            c.error='Step out of the driver seat so your companion can get in.'
+        else
+            if not c.driverSeatWaitStarted then
+                c.driverSeatWaitStarted=s.clock
+                c.driverSeatWaitUsed=0
+            end
+            if c.phase~='waiting-for-driver-seat' then
+                c.driverSeatWaitAt=s.clock
+                phase(s,'waiting-for-driver-seat')
+            end
         end
     elseif takingOver then
         c.yieldToPlayer=true
@@ -311,6 +398,13 @@ function M.update(s,player,entries,hooks,ops)
     if c.phase=='releasing' then
         if prepared then phase(s,'boarding-driver')
         elseif age>RELEASE_TIMEOUT then stop(s,'Walking commands did not release in time.','failed') end
+    elseif c.phase=='exiting-passenger' then
+        -- Seated drive: the companion sits in a passenger seat of V's car. It steps out first (an animated exit from this
+        -- exact car); the ordinary driver boarding takes over from there.
+        if ops.exitSeat(s,person,hooks) then
+            if not takingOver then c.error=nil end
+            phase(s,'boarding-driver')
+        elseif age>BOARD_TIMEOUT then stop(s,'The companion could not step out of the passenger seat.','failed') end
     elseif c.phase=='boarding-driver' then
         ops.board(s,person,hooks,1)
         if person.phase=='riding' and driverSeated(c,sample) then phase(s,'waiting-for-player')
@@ -437,6 +531,17 @@ function M.update(s,player,entries,hooks,ops)
         if other then c.error='Waiting for the other vehicle activity to finish.'; return end
         if sample.info.scene then c.error='Waiting for the vehicle scene to finish.'; return end
         if retired then
+            if c.seated and not c.operation and not driverSeated(c,sample) then
+                -- Seated drive that ended before the companion reached the driver seat (V changed their mind, combat, a
+                -- timeout): nothing was driven, so the ordinary party transport simply takes everyone back. The companion
+                -- keeps its seat or walks back to the car; V is never moved.
+                if ops.yieldToPlayer(s,player,hooks) then
+                    trace(s,'ended',{stage='yielded',mode=c.seated,reason=c.reason})
+                    s.lastChauffeur=M.snapshot(s); s.lastChauffeur.active=false; s.lastChauffeur.phase=c.outcome or 'cancelled'
+                    s.chauffeur=nil
+                else c.error='Waiting for the companion to settle.' end
+                return
+            end
             if c.yieldToPlayer and takeover then
                 if ops.yieldToPlayer(s,player,hooks) then
                     s.lastChauffeur=M.snapshot(s); s.lastChauffeur.active=false; s.lastChauffeur.phase='taken-over'
@@ -493,7 +598,7 @@ function M.snapshot(s)
         reason=c.reason,error=c.error,outcome=c.outcome,observed=copy(c.observed),
         backend='npc',vehicleCommand=copy(c.commandReceipt),stopObligation=c.stopObligation==true,
         destinationRevision=c.destinationRevision,driveRevision=c.driveRevision,retargets=c.retargets,
-        passengerSeat=c.passengerSeat,partyReady=c.partyReady==true,
+        passengerSeat=c.passengerSeat,seated=c.seated,partyReady=c.partyReady==true,
         driverSeatWaitUsed=(c.driverSeatWaitUsed or 0)+(c.driverSeatWaitAt and s.clock-c.driverSeatWaitAt or 0),
         driverSeatWaitRemaining=c.driverSeatWaitStarted and math.max(0,DRIVER_SEAT_GRACE
             -(c.driverSeatWaitUsed or 0)-(c.driverSeatWaitAt and s.clock-c.driverSeatWaitAt or 0)) or nil,

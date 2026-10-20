@@ -20,6 +20,49 @@ Routine preparing, boarding, driving and exit popups are shown only with
 **Settings → Development → Developer mode** On. The setting defaults Off.
 Current party always retains the trip status; actionable errors remain visible.
 
+## Seated drive (V already sits in their own car)
+
+"Drive me", "you drive", "swap seats" and "take over" also work when V is already sitting in their own stopped car, as driver or as
+passenger, with a map destination set. The offer carries `seated: 'driver' | 'passenger'` (absent when V is on foot) and reaches every
+provider: Convai's action context and the Mistral/Local/Custom text route (`bridge/companion-actions.mjs`, `bridge/text-actions.mjs`).
+A line that is not in the offer (no waypoint, V in a vehicle that is not their own car, a car that is moving, combat, a companion in another
+vehicle, or one still boarding the party car) offers nothing, exactly as on foot, and the text-route character says what is needed.
+
+| V | Companion | What happens |
+| --- | --- | --- |
+| Driver | In a passenger seat | The companion steps out (one animated unmount from this car), V is asked to step out of the driver seat, the companion takes the driver seat through the ordinary driver boarding, V sits in a passenger seat (the companion's old seat, or the next free one), the trip departs |
+| Driver | Outside the car | V is asked to step out; then the on-foot driver boarding |
+| Passenger | In the driver seat | Straight to the party check and departure; no seat movement |
+| Passenger | In another seat, or outside | The companion steps out (if seated), takes the driver seat; V stays where they are |
+
+**No forced seat swap, and why.** The game scripts (installed `tools/redmod/scripts`) show what exists and what does not:
+
+- V's own switch is the player state machine's `switchSeats` state (`cyberpunk/player/psm/vehicleTransition.script`, `DriverSwitchSeatsCondition`,
+  `PassangerSwitchSeatsCondition`). It needs the target seat free, so a companion in the front passenger seat blocks it. Worse, a passenger in
+  `seat_front_right` with a free `seat_front_left` is switched straight back to the driver seat after 0.2 s (`PassangerSwitchSeatsCondition`),
+  so V cannot sit in the passenger seat while the driver seat is empty, which is exactly the gap while the companion walks round. The quest
+  parameter `switchSeats` is set only by quests, never by a script, and nothing proves a CET-sent state-machine parameter reaches it.
+- An NPC has no animated seat switch. `WorkspotGameSystem.SwitchSeatVehicle` is used only by that player state. Mounting an NPC into an
+  occupied slot is refused, and the instant `MountingFacility.Mount` request the game itself uses at the end of the player's switch bypasses the
+  player state machine, which tracks driver and passenger separately (V would sit in a passenger slot while the machine still says driver).
+- So the mod never mounts, ejects or switches V (the existing rule): V leaves the driver seat with the normal exit, and the companion's seat
+  change is the exit-and-board the party already uses (`AIUnmountCommand`, then `AIMountCommand` to `seat_front_left`).
+
+Safety: V is never moved and never left outside by the mod; the car is never left driverless (the companion is the driver before any
+command is sent, and a failure before that point hands everyone back to the ordinary party boarding, nothing was driven). Combat, V leaving,
+a timeout, a foreign AutoDrive or a new summon end the trip; combat or any failure while the companion is still stepping out or boarding yields
+back to the party (`yieldToPlayer`), and the companion re-boards V's car. The 45 s allowance for V to leave the driver seat starts only
+after the companion is out. Exit attempts are bounded (three, 12 s each, 25 s total). No per-frame work: the same trip update that
+already runs once per fleet tick, a cached mount read per tick, and probe.log lines only at stage changes.
+
+Stages (probe.log, `Companion recovery vehicle-seated-drive`): `queued` (V seat, companion seat, first stage), then each phase:
+`exiting-passenger`, `boarding-driver`, `waiting-for-driver-seat`, `waiting-for-player`, `waiting-for-party`, `starting`, `driving`; an end
+before the driver seat shows `yielded`. The unmount itself logs as `Companion recovery vehicle-exit` with `decision=seated-drive-step-out`.
+
+Native: with V mounted, the sample's car is exactly the vehicle V sits in when it is one of V's own cars (`carSource='mounted'`), never the
+summon or a nearby search result. While V holds the wheel the offer does not require `CommandsFromDriverEnabled` (it is checked again at
+departure, with V as a passenger).
+
 ## Native NPC driving
 
 The lead car uses Cyberpunk 2.31's `AIVehicleDriveToPointAutonomousCommand` on its vehicle AI component. It does not enable AutoDrive, simulate the game's AutoDrive key, or use Delamain mode.
@@ -84,6 +127,7 @@ If a new destination races the old command's native completion, the trip waits f
 
 | Phase | Required evidence |
 | --- | --- |
+| Exiting passenger (seated drive only) | One animated unmount from V's car; companion outside every vehicle and native exit finished; 25-second deadline, then the party is handed back |
 | Releasing | Exact walking/equipment owners release; 12-second deadline |
 | Boarding driver | Actual driver mount plus terminal animated mount command; 25-second deadline |
 | Waiting for driver seat | Accidental V driver-seat entry during stopped approach retires the NPC mount and allows 45 seconds total to vacate/release the reservation |

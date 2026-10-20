@@ -189,11 +189,15 @@ offer.waypoint.position.x=-55
 assert(world.waypoint.position.x==100,'offer mutated native sample')
 assert(not queue(offer) and not fleet.chauffeur and world.enables==0)
 `));
-test('V is asked to step out of the driver seat and an existing AutoDrive trip is rejected',()=>run(`
-actual('player','seat_front_left')
+test('V driving a car that is not their own is asked to step out, and an existing AutoDrive trip is rejected',()=>run(`
+actual('player','seat_front_left'); world.carValid=false
 local offer=transport.chauffeurOffer(fleet,player,entry)
 assert(not offer.available and offer.code=='player-driving' and not queue())
+actual('player','seat_back_left')
+offer=transport.chauffeurOffer(fleet,player,entry)
+assert(not offer.available and offer.code=='player-seated' and not queue())
 assert(world.unmounts==0 and world.playerMounts==0)
+world.carValid=true
 actual('player',nil); world.auto.enabled=true
 assert(not queue() and world.disables==0 and world.brakes==0)
 `));
@@ -683,4 +687,145 @@ entry.key='alt-model-copy'; entry.profileKey='judy-alvarez'
 assert(transport.chauffeurOffer(fleet,player,entry).code=='does-not-drive')
 entry.key='judy-alvarez'; entry.record='Character.Judy'; entry.profileKey='alt-cunningham'
 assert(transport.chauffeurOffer(fleet,player,entry).available,'Judy under her profile can still drive')
+`));
+
+// ---- Seated drive: V already sits in their own car ----------------------------------------------------------------------------
+const seatedFixture=`
+local function sitDown(seat)
+  actual('player',seat); tick(20)
+  assert(fleet.phase=='riding' and fleet.people[1].phase=='riding',tostring(fleet.phase)..' '..tostring(fleet.people[1] and fleet.people[1].phase))
+end
+`;
+const seated=body=>run(seatedFixture+body);
+test('seated offer: V driver or passenger in their own car, the seat they will take, and no key on an on-foot offer',()=>seated(`
+local onFoot=transport.chauffeurOffer(fleet,player,entry)
+assert(onFoot.available and onFoot.seated==nil)
+-- V driver, companion still outside (the fleet has not begun yet)
+actual('player','seat_front_left')
+local driver=transport.chauffeurOffer(fleet,player,entry)
+assert(driver.available and driver.seated=='driver' and driver.passengerSeat=='seat_front_right',tostring(driver.code))
+-- V driver, companion riding in the front passenger seat: its own seat is the one V will take
+tick(20)
+assert(fleet.people[1].seat=='seat_front_right' and world.mounts[1].seat=='seat_front_right')
+driver=transport.chauffeurOffer(fleet,player,entry)
+assert(driver.available and driver.seated=='driver' and driver.passengerSeat=='seat_front_right',tostring(driver.code))
+-- another companion already in the front seat: V gets another free seat
+actual(entry,'seat_back_right'); fleet.people[1].seat='seat_back_right'
+actual(other,'seat_front_right')
+driver=transport.chauffeurOffer(fleet,player,entry)
+assert(driver.available and driver.passengerSeat=='seat_back_left' or driver.passengerSeat=='seat_back_right',tostring(driver.code))
+assert(world.playerMounts==0)
+`));
+test('seated offer: passenger seat is V own seat; foreign vehicle, other vehicle, boarding and no waypoint are refused',()=>seated(`
+actual(entry,'seat_front_left'); actual('player','seat_back_left')
+local offer=transport.chauffeurOffer(fleet,player,entry)
+assert(offer.available and offer.seated=='passenger' and offer.passengerSeat=='seat_back_left',tostring(offer.code))
+-- the companion in another vehicle is never touched
+local elsewhere={id='9ULL',entityID={hash='9ULL'},info={ready=true,speed=0,seats={{name='seat_front_left'}}}}
+world.cars['9ULL']=elsewhere; actual(entry,'seat_front_left',elsewhere)
+offer=transport.chauffeurOffer(fleet,player,entry)
+assert(not offer.available and offer.code=='actor-seated')
+actual(entry,nil)
+-- no waypoint: nothing moves
+local pin=world.waypoint; world.waypoint=nil
+offer=transport.chauffeurOffer(fleet,player,entry)
+assert(not offer.available and offer.code=='no-waypoint' and not queue()); world.waypoint=pin
+-- V sits in a vehicle that is not their own
+world.carValid=false
+offer=transport.chauffeurOffer(fleet,player,entry)
+assert(not offer.available and offer.code=='player-seated'); world.carValid=true
+-- a companion still boarding the ordinary party car is not settled yet
+fleet.phase='boarding'; fleet.people[1]={entry=entry,owned=true,phase='boarding',attempts=0}
+offer=transport.chauffeurOffer(fleet,player,entry)
+assert(not offer.available and offer.code=='transport-busy')
+assert(world.playerMounts==0 and world.unmounts==0)
+`));
+test('seated drive, V driver and companion in the passenger seat: companion steps out, V steps out, companion drives, V boards',()=>seated(`
+sitDown('seat_front_left')
+assert(world.mounts[1].seat=='seat_front_right')
+local offer=transport.chauffeurOffer(fleet,player,entry)
+assert(offer.available and offer.seated=='driver')
+world.delayDriver=true
+assert(queue(offer)); assert(phase()=='exiting-passenger' and transport.chauffeurSnapshot(fleet).seated=='driver')
+local mountsBefore=world.mountsRequested
+tick(5)
+assert(world.unmounts==1 and world.mounts[1].seat=='seat_front_right','the exit is one animated unmount from this car')
+assert(world.mountsRequested==mountsBefore and world.enables==0,'no driver mount before the companion is out')
+actual(entry,nil); world.commands[#world.commands].state='Success'
+tick(25)
+-- V still holds the wheel: the companion waits outside, V is asked to step out
+assert(phase()=='waiting-for-driver-seat' and world.mounts.player.seat=='seat_front_left',phase())
+assert(fleet.chauffeur.error=='Step out of the driver seat so your companion can get in.')
+assert(world.enables==0 and world.playerMounts==0)
+-- V steps out; the companion walks round and takes the driver seat
+actual('player',nil); world.delayDriver=false; tick(10)
+assert(world.mounts[1].seat=='seat_front_left' and phase()=='waiting-for-player',phase())
+assert(world.enables==0)
+boardManually()
+assert(phase()=='driving' and world.enables==1 and world.enableSeat=='seat_front_right')
+assert(world.playerMounts==0 and world.brakes==0 and world.disables==0)
+assert(fleet.chauffeur.offer.seated=='driver')
+`));
+test('seated drive, V driver and companion outside: V is asked to step out, then the on-foot driver boarding runs',()=>seated(`
+actual('player','seat_front_left')
+local offer=transport.chauffeurOffer(fleet,player,entry)
+assert(offer.available and offer.seated=='driver')
+assert(queue(offer)); assert(phase()=='releasing')
+tick(12)
+assert(phase()=='waiting-for-driver-seat' and world.unmounts==0)
+actual('player',nil); tick(10)
+assert(phase()=='waiting-for-player' and world.mounts[1].seat=='seat_front_left')
+boardManually(); assert(phase()=='driving' and world.playerMounts==0)
+`));
+test('seated drive, V passenger and companion already the driver: departs with no seat movement at all',()=>seated(`
+actual(entry,'seat_front_left'); actual('player','seat_front_right')
+local offer=transport.chauffeurOffer(fleet,player,entry)
+assert(offer.available and offer.seated=='passenger' and offer.passengerSeat=='seat_front_right')
+assert(queue(offer)); assert(phase()=='waiting-for-player')
+tick(12)
+assert(phase()=='driving' and world.enables==1 and world.enableSeat=='seat_front_right',phase())
+assert(world.mountsRequested==0 and world.unmounts==0 and world.playerMounts==0)
+`));
+test('seated drive, V passenger in the back and companion in another seat: companion steps out and takes the wheel',()=>seated(`
+sitDown('seat_back_left')
+local offer=transport.chauffeurOffer(fleet,player,entry)
+assert(offer.available and offer.seated=='passenger' and offer.passengerSeat=='seat_back_left',tostring(offer.code))
+assert(fleet.people[1].seat=='seat_front_right')
+assert(queue(offer)); assert(phase()=='exiting-passenger')
+tick(30)
+assert(phase()=='driving' and world.unmounts==1 and world.enableSeat=='seat_back_left',phase())
+assert(world.mounts[1].seat=='seat_front_left' and world.playerMounts==0)
+`));
+test('seated drive: V never leaving the driver seat cancels after the grace, nobody is driven, the party boards again',()=>seated(`
+sitDown('seat_front_left')
+assert(queue()); tick(10)
+assert(phase()=='waiting-for-driver-seat',phase())
+tick(60,1)
+assert(not fleet.chauffeur and transport.chauffeurSnapshot(fleet).phase=='cancelled')
+assert(world.enables==0 and world.playerMounts==0 and world.mounts.player.seat=='seat_front_left')
+tick(20)
+assert(fleet.phase=='riding' and fleet.people[1].phase=='riding' and world.mounts[1].seat=='seat_front_right',tostring(fleet.phase))
+`));
+test('seated drive: combat while the companion steps out ends the trip and hands the party back, V unmoved',()=>seated(`
+sitDown('seat_front_left')
+world.delayDriver=true
+assert(queue()); tick(3); assert(phase()=='exiting-passenger' and world.unmounts==1)
+world.calm=false; tick(6)
+assert(not fleet.chauffeur and world.enables==0 and world.playerMounts==0 and world.mounts.player.seat=='seat_front_left')
+world.calm=true; world.delayDriver=false; tick(30)
+assert(fleet.phase=='riding' and world.mounts[1] and world.mounts[1].seat~='seat_front_left')
+`));
+test('seated drive: a passenger exit that never completes times out and leaves the companion in its seat',()=>seated(`
+sitDown('seat_front_left')
+world.delayDriver=true
+assert(queue()); tick(300,.1)
+assert(not fleet.chauffeur and world.enables==0 and world.playerMounts==0)
+assert(world.unmounts>=1 and world.unmounts<=3,'bounded exit attempts: '..world.unmounts)
+assert(world.mounts[1] and world.mounts[1].seat=='seat_front_right' and fleet.people[1] and fleet.people[1].phase=='riding' and not fleet.people[1].chauffeur)
+`));
+test('seated drive: V leaving the passenger seat during the trip stops it without moving anybody',()=>seated(`
+actual(entry,'seat_front_left'); actual('player','seat_front_right')
+assert(queue()); tick(12); assert(phase()=='driving')
+actual('player',nil); tick(10)
+assert(world.disables==1 and world.playerMounts==0)
 `));

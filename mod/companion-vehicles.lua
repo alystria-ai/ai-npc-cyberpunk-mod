@@ -548,6 +548,42 @@ local function pauseChauffeurDriver(s,person,hooks)
     person.retryAt=nil; person.error=nil
     return true
 end
+-- Seated drive (docs/COMPANION_CHAUFFEUR.md): the selected companion sits in a passenger seat of V's car and has to take the driver
+-- seat. The game has no animated NPC seat switch, so it steps out first, the way the party does at a trip's end: one animated
+-- AIUnmountCommand from this exact car, retried within the ordinary attempt limit. True once the companion is out of every
+-- vehicle and the native exit has finished; the driver boarding takes over from there. Nothing here touches V's seat.
+local function stepOutOfSeat(s,person,hooks)
+    local car=s.chauffeur.car
+    if not prepare(s,person,hooks) then return false end
+    local mount,known=observeMount(s,person)
+    if not known then return false end
+    if person.command then
+        local status=safe(s.api.commandState,person.command)
+        person.commandState=status
+        if not terminal(status) and s.clock-person.commandAt<=EXIT_TIMEOUT then return false end
+        if not releaseCommand(s,person) then return false end
+    end
+    if mount then
+        if mount.vehicle~=car.id then person.error='Waiting for the foreign vehicle mount to release.'; return false end
+        if not car.info or not car.info.ready or car.info.speed>0.5 or car.info.scene then return false end
+        -- The mount link can outlive a finished exit command by a moment; give it time before asking again.
+        if person.stepOutAt and s.clock-person.stepOutAt<3 then return false end
+        if person.attempts>=MAX_ATTEMPTS then
+            person.phase='exit-failed'; person.error='The companion could not leave the passenger seat.'; return false
+        end
+        person.attempts=person.attempts+1; person.commandAt=s.clock; person.stepOutAt=s.clock; person.commandState=nil
+        local command,err=safe(s.api.mount,person.entry,car,mount.seat,true)
+        person.command=command; person.phase='leaving-wrong-seat'; person.error=err
+        report(s,'exit',{name=who(person),decision='seated-drive-step-out',seat=mount.seat,attempt=person.attempts})
+        return false
+    end
+    if s.api.canResumeWalking then
+        local clear,err=safe(s.api.canResumeWalking,person.entry,car,person.seat)
+        if clear~=true then person.error=err; return false end
+    end
+    person.attempts=0; person.retryAt=nil; person.error=nil; person.phase='waiting-to-board'
+    return true
+end
 local function follow(s,car,player,budget)
     if car==s.primary or car.retired or not car.info or not car.info.ready or car.info.playerMounted then return budget end
     local driver=s.people[car.driver]
@@ -717,7 +753,7 @@ end
 local function protectChauffeurPassenger(s,player)
     local trip=s.chauffeur
     trip.passengerYieldPending=false
-    if trip.phase~='releasing' and trip.phase~='boarding-driver' and trip.phase~='waiting-for-driver-seat'
+    if trip.phase~='exiting-passenger' and trip.phase~='releasing' and trip.phase~='boarding-driver' and trip.phase~='waiting-for-driver-seat'
         and trip.phase~='waiting-for-player'
         and trip.phase~='waiting-for-party' then return end
     local mount,err=safe(s.api.mounting,{npc=player})
@@ -811,7 +847,7 @@ function M.update(s,player,entries,dt,hooks)
             if trip.passengerYieldPending then trip.partyReady=false end
         end
         chauffeur(s).update(s,player,entries,hooks,{prepare=prepare,board=board,
-            pauseDriver=pauseChauffeurDriver,
+            pauseDriver=pauseChauffeurDriver,exitSeat=stepOutOfSeat,
             leaveParty=leaveChauffeurParty,yieldToPlayer=yieldChauffeurToPlayer})
         if s.chauffeur then
             if s.chauffeur.phase=='driving' or (s.chauffeur.phase=='starting' and s.chauffeur.partyReady) then

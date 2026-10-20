@@ -260,6 +260,12 @@ function M.sample(player,entry,leasedCar,api,operation)
     if leasedCar then
         -- Never rediscover or change the borrowed car during an admitted trip.
         car=liveCar(leasedCar)
+    elseif sample.playerMount and sample.playerMount.parent then
+        -- Seated drive: V sits in a vehicle, so the only candidate is that exact vehicle, and only when it is one of V's own
+        -- cars. No summon blackboard or nearby search can substitute another car for the one V is sitting in; a foreign
+        -- vehicle, a bike or the Delamain cab leaves `car` nil and the offer says so.
+        local seatedIn=Game.FindEntityByID(sample.playerMount.parent)
+        if ownedCar(seatedIn) then car=seatedIn; sample.carSource='mounted' end
     else
         car=entityID(summoned) and Game.FindEntityByID(summoned) or nil
         if ownedCar(car) then sample.carSource='summoned'
