@@ -46,23 +46,19 @@ export const PROVIDERS = Object.freeze(['convai', 'mistral', 'local', 'custom'])
 /**
  * Which provider conversations use. `preference` follows the Conversation provider setting; Mistral is `requested` only
  * when a key is saved, and the custom provider only when its address and model id are saved (without them the setting falls back to Convai and
- * says so once); the local AI is `requested` unless it has
- * failed (not installed, not enough graphics memory, would not start), in which case Convai is used and one notice says so until
- * the setting is changed again (only while Convai can answer: with its free tier's day used up the turns stay on Local AI and fail with
- * Local AI's own reason, `localDown`); `applied` is what turns use. `active` means a text provider (Mistral or local) answers.
+ * says so once); the local AI is ALWAYS `requested` when it is chosen. When it fails (not installed, not enough graphics memory, would not start)
+ * the provider stays Local AI (owner rule 2026-10-21: a Local AI turn is never handed to Mistral or Convai): `localBroken` records why, the turns
+ * fail with Local AI's own reason (`localDown`, `localFailureCode`), and the next turn tries Local AI again; `applied` is what turns use.
+ * `active` means a text provider (Mistral, local or custom) answers.
  */
 export class MistralProvider {
   constructor({keyPath, readText = path => readFile(path, 'utf8'), writeText = writePrivate, removeFile = path => rm(path, {force: true}), custom = null} = {}) {
     Object.assign(this, {keyPath, readText, writeText, removeFile, custom});
     this.key = null; this.preference = 'convai'; this.applied = 'convai';
     this.noKeyPending = false; this.noSetupPending = false; this.voicePending = false; this.limit = null; this.sttAvailable = false;
-    this.localTurnNoticePending = false; this.localRestartNoticePending = false; this.localCpuNoticePending = false; this.localModelNoticePending = false; this.localModelNoticeName = ''; this.lastNoticeModel = '';
-    this.localBroken = null; this.localNoticePending = false; // why the local AI cannot be used (null: it can), and the one notice for it
-    this.localStepNoticePending = false; this.localStepNoticeName = ''; this.localStepToCloud = false;   // turns stalled: a smaller model was loaded (its name), or the cloud takes over
-    // May Convai take a turn now? The bridge sets this (false while the shared free tier's day is used up). A Local AI that cannot be used
-    // hands its turns to Convai only while Convai can answer them; otherwise they stay on Local AI, whose failure names the real problem
-    // instead of a Convai limit the player did not choose (2026-10-19 report: Local AI saved, the first turn showed the Convai daily limit).
-    this.convaiAvailable = () => true;
+    this.localRestartNoticePending = false; this.localCpuNoticePending = false; this.localModelNoticePending = false; this.localModelNoticeName = ''; this.lastNoticeModel = '';
+    this.localBroken = null; // why the local AI cannot be used right now (null: it can); it decides the failure code and the status, never the provider
+    this.localStepNoticePending = false; this.localStepNoticeName = '';   // turns stalled: a smaller model was loaded (its name)
     // The bridge holds the status file until its first settings poll has applied the saved provider, so the game never reads the defaults
     // (Convai) as the player's choice in the moment between the start and that poll.
     this.statusHeld = false;
@@ -88,7 +84,7 @@ export class MistralProvider {
     const next = PROVIDERS.includes(value) ? value : 'convai', changed = next !== this.preference;
     this.preference = next;
     if (changed) {
-      this.noKeyPending = next === 'mistral' && !this.key; this.noSetupPending = next === 'custom' && !this.custom?.ready; this.localBroken = null; this.localNoticePending = false; this.localModelNoticePending = false; this.localRestartNoticePending = false; this.localCpuNoticePending = false; this.localStepNoticePending = false; this.localStepToCloud = false;
+      this.noKeyPending = next === 'mistral' && !this.key; this.noSetupPending = next === 'custom' && !this.custom?.ready; this.localBroken = null; this.localModelNoticePending = false; this.localRestartNoticePending = false; this.localCpuNoticePending = false; this.localStepNoticePending = false;
     }
     return changed;
   }
@@ -96,24 +92,22 @@ export class MistralProvider {
   get requested() {
     if (this.preference === 'mistral' && this.key) return 'mistral';
     if (this.preference === 'custom') return this.custom?.ready ? 'custom' : 'convai';
-    // The local AI could not be used (pack missing, no room beside the voice, crashed): a cloud provider with a key answers, else Convai, but
-    // only while Convai can take the turn (its free tier's day not used up); with nobody to take over the turns stay on Local AI and fail with its reason.
-    if (this.preference === 'local') return !this.localBroken ? 'local' : this.key ? 'mistral' : this.#convaiOpen() ? 'convai' : 'local';
+    // Local AI stays Local AI whatever happens to it (pack missing, no room beside the voice, crashed): its turns fail with its own reason and are
+    // tried again on the next turn. Nothing is handed to Mistral or Convai (owner rule 2026-10-21, after a player's surprise cloud use).
+    if (this.preference === 'local') return 'local';
     return 'convai';
   }
-  #convaiOpen() { try { return this.convaiAvailable() !== false; } catch { return true; } }
-  /** Local AI is chosen and cannot answer (why: `localBroken`), and no other provider takes its turns: they fail with that reason. */
-  get localDown() { return this.preference === 'local' && !!this.localBroken && this.requested === 'local'; }
+  /** Local AI is chosen and cannot answer right now (why: `localBroken`): its turns fail with that reason and are tried again. */
+  get localDown() { return this.preference === 'local' && !!this.localBroken; }
   /** The game's notice code for a turn Local AI could not take: 'local-no-memory' (not enough free graphics memory) or 'local-unavailable'; undefined while it can. */
   get localFailureCode() { return !this.localBroken ? undefined : this.localBroken === 'low-memory' ? 'local-no-memory' : 'local-unavailable'; }
   /**
    * The game's notice code for a failed turn (`code`, what the failure alone says), corrected while Local AI is chosen and cannot start, so the
-   * player hears Local AI's problem and never a Convai one: 'local-fallback' says a cloud provider takes over, untrue when none can (`localDown`),
-   * and 'daily-limit' met by a turn that fell back to Convai would tell them to try the Local AI they already chose. Any other code is kept.
+   * player hears Local AI's own problem: an older 'local-fallback' code (it said a cloud provider takes over, which never happens now) becomes
+   * Local AI's reason (`localFailureCode`, 'local-unavailable' when none is recorded). Any other code is kept.
    */
   failureCode(code) {
-    if (code === 'local-fallback' && this.localDown) return this.localFailureCode;
-    if (code === 'daily-limit' && this.preference === 'local' && this.localBroken) return this.localFailureCode;
+    if (code === 'local-fallback') return this.localFailureCode ?? 'local-unavailable';
     return code;
   }
   get pending() { return this.requested !== this.applied; }
@@ -127,28 +121,28 @@ export class MistralProvider {
   get active() { return this.applied !== 'convai'; }
   /** Which text route answers: 'mistral', 'local', 'custom' or (Convai) 'convai'. */
   get route() { return this.applied; }
-  /** The local AI cannot be used (reason: 'not-installed', 'low-memory', 'mature-off', 'no-gpu', 'start-failed', 'crashed'): Convai takes over at the next idle boundary, with one notice. */
+  /** The local AI cannot be used (reason: 'not-installed', 'low-memory', 'mature-off', 'no-gpu', 'start-failed', 'crashed'): the provider stays Local AI, `localBroken` says why (no notice of its own: the failed turn carries Local AI's reason). */
   noteLocalFailure(reason) {
     if (this.preference !== 'local') return;
     if (this.localBroken === (reason || 'start-failed')) return;
-    this.localBroken = reason || 'start-failed'; this.localNoticePending = true;
+    this.localBroken = reason || 'start-failed';
     this.#changed();
   }
   /**
    * The reason the local AI could not be used has gone away (Mature content was turned on beside a Mature-only install): the local AI is the
-   * requested provider again, taken at the next idle boundary, and the earlier failure's notice is dropped. Returns whether anything changed.
+   * requested provider again (it never stopped being it), and the failure is forgotten. Returns whether anything changed.
    */
   clearLocalFailure(reason) {
     if (this.preference !== 'local' || !this.localBroken || this.localBroken !== reason) return false;
-    this.localBroken = null; this.localNoticePending = false; this.localStepToCloud = false;
+    this.localBroken = null;
     this.#changed();
     return true;
   }
-  /**
-   * One local turn could not be answered and the player's cloud provider answered it instead: the reply carries a notice
-   * ('local-turn-fallback', once per call; the game limits how often it shows). The local AI stays the provider.
-   */
-  noteLocalTurnFallback() { if (this.applied === 'local') this.localTurnNoticePending = true; }
+  /** Local AI's model server is running again (status 'ready'): whatever failed before is over, so turns and the status stop reporting it. Returns whether anything changed. */
+  clearLocalFailureAny() {
+    if (this.preference !== 'local' || !this.localBroken) return false;
+    return this.clearLocalFailure(this.localBroken);
+  }
   /** The local model server stopped by itself and was started again (bridge/local-llm-server.mjs 'restarted'): one notice ('local-restarted') with the next reply. */
   noteLocalRestarted() { if (this.applied === 'local') this.localRestartNoticePending = true; }
   /** Local AI's model runs mostly on the processor (bridge/local-llm-server.mjs 'offload-slow': under FIT_LIMITS.hopelessShare of its layers on the card): one notice ('local-cpu') with the next reply. */
@@ -157,13 +151,12 @@ export class MistralProvider {
   noteLocalModelFallback(model) { if (this.preference === 'local') { this.localModelNoticePending = true; this.localModelNoticeName = typeof model === 'string' ? model.slice(0, 80) : ''; } }
   /**
    * Local AI's turns stalled (the game uses most of the graphics memory) and the supervisor stepped down (bridge/local-llm-server.mjs 'model-stepdown'): `model` (its
-   * name) was loaded instead, said once with the next reply ('local-stepdown', `noticeModel` holds the name); null when no smaller model is installed, so the cloud
-   * provider takes over (the supervisor's 'failed' follows at once): the one notice for that failure is then this one, not 'local-fallback' (which says it could not start).
+   * name) was loaded instead, said once with the next reply ('local-stepdown', `noticeModel` holds the name). With no name (no smaller model is installed) there is
+   * nothing to say here: the supervisor's 'failed' (low-memory) follows at once and its failed turns carry Local AI's own reason ('local-no-memory').
    */
   noteLocalStepDown(model) {
     if (this.preference !== 'local') return;
     if (typeof model === 'string' && model) { this.localStepNoticePending = true; this.localStepNoticeName = model.slice(0, 80); }
-    else this.localStepToCloud = true;
   }
   /** The name of the model the 'local-model-fallback' or 'local-stepdown' notice just taken says was used, else ''. */
   get noticeModel() { return this.lastNoticeModel || ''; }
@@ -185,16 +178,10 @@ export class MistralProvider {
   secrets() { return [this.key, ...(this.custom?.secrets?.() ?? [])].filter(Boolean); }
   noteLimit(kind) { this.limit = kind ? {kind, at: Date.now()} : null; this.#changed(); }
   noteSuccess() { if (this.limit) { this.limit = null; this.#changed(); } }
-  /** 'mistral-no-key', 'mistral-voice', 'custom-no-setup', 'custom-voice', 'local-fallback', 'local-turn-fallback' or 'local-restarted' once each (the game shows them with the next reply), else undefined. */
+  /** 'mistral-no-key', 'mistral-voice', 'custom-no-setup', 'custom-voice', 'local-stepdown', 'local-model-fallback' or 'local-restarted' once each (the game shows them with the next reply), else undefined. */
   takeNotice({cloudVoice = false} = {}) {
-    if (this.localNoticePending && this.applied !== 'local') {
-      this.localNoticePending = false;
-      if (this.localStepToCloud) { this.localStepToCloud = false; this.lastNoticeModel = ''; return 'local-stepdown'; }
-      return 'local-fallback';
-    }
     if (this.localStepNoticePending && this.applied === 'local') { this.localStepNoticePending = false; this.lastNoticeModel = this.localStepNoticeName || ''; return 'local-stepdown'; }
     if (this.localModelNoticePending && this.applied === 'local') { this.localModelNoticePending = false; this.lastNoticeModel = this.localModelNoticeName || ''; return 'local-model-fallback'; }
-    if (this.localTurnNoticePending) { this.localTurnNoticePending = false; return 'local-turn-fallback'; }
     if (this.localRestartNoticePending && this.applied === 'local') { this.localRestartNoticePending = false; return 'local-restarted'; }
     if (this.localCpuNoticePending && this.applied === 'local') { this.localCpuNoticePending = false; return 'local-cpu'; }
     if (this.noKeyPending && this.applied === 'convai') { this.noKeyPending = false; return 'mistral-no-key'; }

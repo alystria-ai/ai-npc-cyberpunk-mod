@@ -146,7 +146,7 @@ How references work (from `docs/GAME_VOICE_REFERENCES.md`, `docs/LOCAL_VOICES.md
 
 | | Option | What it means | Flags |
 |---|---|---|---|
-| a | Convai voice only (placeholder Claire) | Works on the Convai provider. On Pocket or OmniVoice she falls back to the Convai voice; on Voxtral, or Mistral or local text with a local voice, she is text only. | none |
+| a | Convai voice only (placeholder Claire) | Works on the Convai provider. On Pocket or OmniVoice she is text only (a local voice never hands a turn to the Convai voice, 2026-10-21); on Voxtral, or Mistral or local text with a local voice, she is text only too. | none |
 | b | Borrow an existing cast member's reference | Gives her a local voice everywhere | Breaks the project's rule against borrowing an unrelated cloned voice; she would sound like someone the player knows |
 | c | A clip from the anime | The closest likeness | **Rights concern, not decided here:** the series' audio belongs to its rights holders, and the voice is a real actor's. The Pocket weights' licence has a no-cloning-without-consent clause (`docs/PACKAGING.md` 352-355). Needs the user's call. |
 | d | A designed voice, rendered once as a reference clip | Own voice, no likeness | Against the current rule "No cloned/generated speech is used as a reference" (`docs/LOCAL_VOICES.md` ~209); needs a rule change |

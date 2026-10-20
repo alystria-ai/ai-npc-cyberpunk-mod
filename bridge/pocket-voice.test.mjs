@@ -144,7 +144,7 @@ test('withdraws only a changed reference and never aliases it to another voice',
   const h=harness();const preparation=h.client.prepareProfile(profile),rejected=assert.rejects(preparation,/could not prepare/);
   await tick();h.send({op:'error',id:h.requests[0].id,profile,profiles:[],preparedProfiles:[],unavailableProfiles:{[profile]:'unavailable'}});
   await rejected;assert.equal(h.client.hasProfile(profile),false);assert.equal(h.client.profileReady(profile),false);
-  assert.deepEqual(await h.client.prepareProfile(profile),{provider:'convai',ready:true,reason:'unavailable'});
+  assert.deepEqual(await h.client.prepareProfile(profile),{provider:'text',ready:true,reason:'unavailable'});
   await h.close();
 });
 

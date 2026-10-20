@@ -551,6 +551,9 @@ export class LocalLlmServer extends EventEmitter {
       beforeStart, beforeStartMs, fileSizeMiB, externalProbeMs, backgroundQuietMs, cpuCount});
     const configured = Number.parseInt(cacheRamMiB ?? environment.CYBERPUNK_CONVAI_LOCAL_CACHE_RAM ?? '', 10);
     this.cacheRamMiB = Number.isFinite(configured) && configured >= 0 ? configured : null;   // null: chosen at each start
+    // CYBERPUNK_CONVAI_LOCAL_FREE_RAM_MIB: the free system memory the supervisor sees (tests of a real bridge process: the check before a load with part on the CPU, LOW_RAM).
+    const ramOverride = Number.parseInt(environment.CYBERPUNK_CONVAI_LOCAL_FREE_RAM_MIB ?? '', 10);
+    if (Number.isFinite(ramOverride) && ramOverride >= 0) this.freeMemMiB = () => ramOverride;
     this.command = command ?? pack?.server;
     this.listDevices = listDevices ?? (() => run(this.command, [...this.argsPrefix, '--list-devices'], 30_000));
     // fitProbe({model, contextSize, kvType, device}) -> projected MiB or null: llama-fit-params beside our llama-server (none with a stand-in server of a test).

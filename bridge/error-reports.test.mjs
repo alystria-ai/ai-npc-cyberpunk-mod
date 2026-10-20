@@ -136,6 +136,9 @@ test('a failed turn is reported only when it is not the player\'s own doing', ()
   assert.equal(reportableTurnFailure(timeout), true);
   assert.equal(reportableTurnFailure(new Error('Local AI server stopped [local:network]'), {errorCode: 'local-failed'}), true);
   assert.equal(reportableTurnFailure(new Error('x'), {errorCode: 'local-fallback', localReason: 'start-failed'}), true, 'a Local AI server that never answers');
+  assert.equal(reportableTurnFailure(new Error('x'), {errorCode: 'local-unavailable', localReason: 'start-failed'}), true, 'the code a start that failed carries now: no hand-over to a cloud provider');
+  assert.equal(reportableTurnFailure(new Error('x'), {errorCode: 'local-unavailable', localReason: 'crashed'}), true);
+  assert.equal(reportableTurnFailure(new Error('x'), {errorCode: 'local-no-memory', localReason: 'low-memory'}), false, 'not enough graphics memory is the player\'s setup');
   for (const errorCode of ['mistral-key', 'custom-credits', 'quota-own', 'quota-shared', 'daily-limit', 'key-rejected', 'custom-unreachable']) {
     assert.equal(reportableTurnFailure(new Error('x'), {errorCode}), false, errorCode);
   }

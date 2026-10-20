@@ -35,28 +35,29 @@ function fixture({fail = []} = {}) {
 }
 const tick = () => new Promise(done => setImmediate(done));
 
-test('while Multilingual is on, an OmniVoice choice that cannot run falls back to the cloud voice, never Pocket', async () => {
+test('an OmniVoice choice that cannot run shows text, never Pocket and never the cloud voice, with Multilingual on or off', async () => {
   const off = fixture({fail: ['omni']});
   off.voice.update({voiceProvider: 'omni'}, null, false); await off.voice.start().catch(() => {}); await tick();
   off.voice.update({voiceProvider: 'omni'}, null, false);
-  assert.equal(off.voice.provider, 'pocket', 'off: the usual fallback order');
+  assert.equal(off.voice.provider, 'text', 'off: text; Pocket is not loaded in place of OmniVoice');
   await off.voice.close();
   const on = fixture({fail: ['omni']});
   on.voice.update({voiceProvider: 'omni', multilingualConversations: true}, null, false);
   await on.voice.start().catch(() => {}); await tick();
   on.voice.update({voiceProvider: 'omni', multilingualConversations: true}, null, false);
-  assert.equal(on.voice.provider, 'convai'); assert.deepEqual(on.voice.fallback, {from: 'omni', to: 'convai', temporary: true}); // Omni is retried in the background
+  assert.equal(on.voice.provider, 'text'); assert.deepEqual(on.voice.fallback, {from: 'omni', to: 'text', temporary: true}); // Omni is retried in the background
+  assert.equal(on.workers.filter(worker => worker.backend === 'pocket').length, 0);
   await on.voice.close();
 });
 
-test('a hand-edited Pocket choice with Multilingual on ends on the cloud voice; off again restores Pocket', async () => {
+test('a hand-edited Pocket choice with Multilingual on ends on text (Pocket speaks English only; no cloud voice takes over); off again restores Pocket', async () => {
   const h = fixture();
   h.voice.update({voiceProvider: 'pocket', multilingualConversations: true}, null, false);
-  assert.equal(h.voice.provider, 'convai');
+  assert.equal(h.voice.provider, 'text'); assert.equal(h.voice.convaiVoiceAllowed, false);
   assert.equal(h.voice.usesProfile('johnny-silverhand'), false);
   // A busy turn keeps its route until the idle boundary.
   h.voice.update({voiceProvider: 'pocket', multilingualConversations: false}, null, true);
-  assert.equal(h.voice.provider, 'convai');
+  assert.equal(h.voice.provider, 'text');
   h.voice.update({voiceProvider: 'pocket', multilingualConversations: false}, null, false);
   assert.equal(h.voice.provider, 'pocket');
   await h.voice.close();

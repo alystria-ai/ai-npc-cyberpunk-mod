@@ -57,7 +57,10 @@ test('English with street Spanish, Japanese names or voice tags stays English; u
 
 // ---- The voice of a turn ---------------------------------------------------------------------------------------
 
-const POCKET = {uses: true, provider: 'pocket'}, OMNI = {uses: true, provider: 'omni'}, CLOUD = {uses: false, provider: 'convai'};
+// CLOUD: the player chose the Convai voice (`convai` is what the bridge says when the Convai voice may speak). FAILED: a local voice was chosen and cannot
+// run right now (its provider is the route 'text'): no voice speaks, and above all not the Convai voice.
+const POCKET = {uses: true, provider: 'pocket'}, OMNI = {uses: true, provider: 'omni'}, CLOUD = {uses: false, provider: 'convai', convai: true};
+const FAILED = {uses: false, provider: 'text', convai: false};
 test('turn voice: off keeps the chosen voice; on, a non-English turn uses OmniVoice or the cloud voice, never Pocket', () => {
   const plan = (enabled, language, local) => planTurnVoice({enabled, language, local}).engine;
   // Off: exactly the voice used before, whatever the language.
@@ -66,11 +69,32 @@ test('turn voice: off keeps the chosen voice; on, a non-English turn uses OmniVo
   assert.equal(plan(false, 'es', CLOUD), 'convai');
   // On, English: the chosen voice.
   for (const local of [POCKET, OMNI, CLOUD]) assert.equal(plan(true, 'en', local), local.uses ? local.provider : 'convai');
-  // On, another language: Omni speaks it; the cloud voice speaks it; Pocket (a fallback) hands it to the cloud voice.
+  // On, another language: Omni speaks it; the cloud voice speaks it; Pocket (a fallback) cannot, and does NOT hand it to the cloud voice: it is written.
   assert.equal(plan(true, 'ja', OMNI), 'omni');
   assert.equal(plan(true, 'ja', CLOUD), 'convai');
-  assert.equal(plan(true, 'ja', POCKET), 'convai');
+  assert.equal(plan(true, 'ja', POCKET), 'none');
   assert.equal(planTurnVoice({enabled: true, language: 'ja', local: POCKET}).reason, 'english-only-voice');
+});
+
+test('a chosen local voice that cannot run is never replaced by the Convai voice, in any language, with Multilingual on or off, on a text provider or not', () => {
+  for (const language of ['en', 'es', 'ja']) {
+    for (const options of [{enabled: false}, {enabled: true}, {enabled: false, textProvider: true}]) {
+      // Nothing speaks: not Pocket, not OmniVoice, above all not Convai.
+      for (const local of [FAILED, {uses: false, provider: 'pocket'}, {uses: false}, {}]) {
+        const plan = planTurnVoice({...options, language, local});
+        assert.equal(plan.engine, 'none', JSON.stringify([language, options, local]));
+        assert.equal(plan.reason, 'local-voice-unavailable');
+        assert.deepEqual(replyVoice({plan, text: 'Claro que sí, V. Vamos al bar esta noche.', local}), {engine: 'none', language: plan.language, reason: 'local-voice-unavailable'});
+      }
+      // The Convai voice was chosen on purpose: it speaks.
+      assert.equal(planTurnVoice({...options, language, local: CLOUD}).engine, 'convai');
+    }
+  }
+  // A written turn gets neither Natural speech nor Expressive emotions instructions (no voice would render the tags).
+  const speech = new NaturalSpeech(), emotions = new ExpressiveEmotions();
+  speech.update({naturalSpeech: true}); emotions.update({expressiveEmotions: true});
+  const plan = planTurnVoice({enabled: false, language: 'en', local: FAILED});
+  assert.deepEqual([speech.contextFor({engine: plan.engine, random: () => 0}), emotions.contextFor({engine: plan.engine})], ['', '']);
 });
 
 test('reply voice: a local turn follows the reply language; a cloud turn stays on Convai', () => {
@@ -86,7 +110,7 @@ test('reply voice: a local turn follows the reply language; a cloud turn stays o
   assert.deepEqual(reply(local(true, 'es', 'omni'), '...', 'omni'), {engine: 'omni', language: 'es'});
   // A cloud-voice turn is already being spoken by Convai.
   assert.equal(replyVoice({plan: planTurnVoice({enabled: true, language: 'es', local: CLOUD}), text: en}).engine, 'convai');
-  assert.equal(replyVoice({plan: planTurnVoice({enabled: true, language: 'es', local: POCKET}), text: es}).engine, 'convai');
+  assert.equal(replyVoice({plan: planTurnVoice({enabled: true, language: 'es', local: POCKET}), text: es}).engine, 'none', 'Pocket cannot speak Spanish and does not hand it to the Convai voice');
   // Off: the plan's own voice, no language.
   assert.deepEqual(reply(local(false, 'en'), es), {engine: 'pocket', language: null});
 });
@@ -676,7 +700,8 @@ test('a text provider speaks another language with OmniVoice, and shows it as te
   assert.equal(replyVoice({plan: voxtralFrench, text: french, local: voxtralLocal}).engine, 'none');
   assert.deepEqual(replyVoice({plan: voxtralFrench, text: 'Nothing much, V. You?', local: voxtralLocal}), {engine: 'voxtral', language: 'en'});
   // A cloud voice that cannot speak (no key) stays the written reply it always was.
-  assert.equal(planTurnVoice({enabled: false, textProvider: true, language: 'fr', local: {uses: false, provider: 'pocket'}}).engine, 'convai');
+  assert.equal(planTurnVoice({enabled: false, textProvider: true, language: 'fr', local: {uses: false, provider: 'pocket', convai: true}}).engine, 'convai');
+  assert.equal(planTurnVoice({enabled: false, textProvider: true, language: 'fr', local: {uses: false, provider: 'pocket'}}).engine, 'none', 'a local voice that cannot run is not the Convai voice');
   // Off and not a text provider: exactly the voice used before.
   assert.equal(planTurnVoice({enabled: false, language: 'fr', local: pocketLocal}).reason, 'multilingual-off');
 });
@@ -713,7 +738,7 @@ test('Voxtral 3 speaks other languages: a text provider reply in a listed langua
   assert.deepEqual([pk.engine, pk.reason], ['pocket', 'english-only-voice']);
   assert.deepEqual(replyVoice({plan: pk, text: french, local: pocket}), {engine: 'none', language: 'fr', reason: 'english-only-voice'});
   // OmniVoice still wins where it is the voice; a key-less cloud voice (uses: false) is the Convai voice as before.
-  assert.equal(planTurnVoice({enabled: false, textProvider: true, language: 'fr', local: {uses: false, provider: 'pocket', cloud: 'voxtral', speaks: () => true}}).engine, 'convai');
+  assert.equal(planTurnVoice({enabled: false, textProvider: true, language: 'fr', local: {uses: false, provider: 'pocket', cloud: 'voxtral', convai: true, speaks: () => true}}).engine, 'convai');
   // Off and not a text provider: exactly the voice used before.
   assert.equal(planTurnVoice({enabled: false, language: 'fr', local}).reason, 'multilingual-off');
 });
@@ -731,8 +756,8 @@ test('Multilingual conversations (the Convai twins) with the Voxtral voice: a li
   // A reply in an unlisted language that the turn did not expect is shown as text, never read by a voice that would garble it.
   assert.deepEqual(replyVoice({plan: fr, text: czech, local}), {engine: 'none', language: 'cs', reason: 'voice-language-unsupported'});
   const pocket = {uses: true, provider: 'pocket', cloud: null, speaks: () => false};
-  assert.deepEqual(planTurnVoice({enabled: true, language: 'fr', local: pocket}), {engine: 'convai', language: 'fr', reason: 'english-only-voice'});
-  assert.deepEqual(planTurnVoice({enabled: true, language: 'es', local: {uses: false, provider: 'pocket', cloud: 'voxtral', speaks: () => true}}), {engine: 'convai', language: 'es', reason: 'cloud-voice'});
+  assert.deepEqual(planTurnVoice({enabled: true, language: 'fr', local: pocket}), {engine: 'none', language: 'fr', reason: 'english-only-voice'}, 'Pocket never hands a turn to a cloud voice');
+  assert.deepEqual(planTurnVoice({enabled: true, language: 'es', local: {uses: false, provider: 'pocket', cloud: 'voxtral', convai: true, speaks: () => true}}), {engine: 'convai', language: 'es', reason: 'cloud-voice'});
   assert.deepEqual(planTurnVoice({enabled: true, language: 'en', local}), {engine: 'pocket', language: 'en', reason: 'english'});
   // A cloud voice is told no language (the API has none): the plan only decides who speaks.
   assert.equal(Object.hasOwn(fr, 'tag'), false);
@@ -761,7 +786,7 @@ test('the bridge wires the text-provider language: note, voice plan, notice and 
   assert.match(bridge, /planTurnVoice\(\{enabled: multilingual\.enabled, textProvider: multilingual\.textProvider,/);
   assert.match(bridge, /language: multilingual\.aware \? multilingual\.expected\(input\.reaction \? '' : input\.text\) : 'en'/);
   assert.match(bridge, /\?\? voiceLanguageNotice\.take\(\)/);
-  assert.match(bridge, /if \(mistral\.active && !multilingual\.enabled && !input\.reaction\) voiceLanguageNotice\.note\(\);/);
+  assert.match(bridge, /if \(!unavailable && mistral\.active && !multilingual\.enabled && !input\.reaction\) voiceLanguageNotice\.note\(\);/);
   assert.match(bridge, /planFor: \(input, key\) => \(\{engine: vVoice\.engine, language: multilingual\.aware \? multilingual\.expected\(input\.text\) : 'en'\}\)/);
   // The game side shows the notice.
   const game = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');

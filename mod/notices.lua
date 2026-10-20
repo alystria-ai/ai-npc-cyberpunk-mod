@@ -67,17 +67,15 @@ M.catalog = {
     ['custom-no-setup'] = {class = PLAYER, repeatS = 86400}, -- Custom is chosen but the endpoint URL or the model ID is missing, so Convai is used: once per game session
     ['custom-voice'] = {class = PLAYER, repeatS = 86400},   -- the Convai cloud voice is chosen: a local voice speaks Custom replies, once per game session
     ['voice-language'] = {class = PLAYER, repeatS = 86400}, -- a text provider replied in a language the chosen voice cannot speak (Pocket always, Voxtral for the languages it does not list): shown as text, OmniVoice speaks it; once per game session
-    ['local-fallback'] = {class = PLAYER, repeatS = 86400}, -- Local AI is chosen but could not start, so Convai is used: once per game session
-    ['local-failed'] = {class = PLAYER, repeatS = 30},      -- a local turn could not be answered and no cloud provider took it over: say so on every attempt, not more than twice a minute
+    ['local-failed'] = {class = PLAYER, repeatS = 30},      -- a local turn could not be answered (no other provider ever takes it over): say so on every attempt, not more than twice a minute
     ['local-thinking'] = {class = PLAYER, repeatS = 30},    -- the player's own model server answered with only thinking, also when asked not to think: turn thinking off there or pick another model
     ['local-context'] = {class = PLAYER, repeatS = 30},     -- the player's own model server has a context too small for the character: raise it there
-    ['local-turn-fallback'] = {class = PLAYER, repeatS = 600}, -- a local turn was answered by the cloud provider instead: about once per ten minutes
     ['local-restarted'] = {class = PLAYER, repeatS = 300},   -- the Local AI model server stopped by itself and was started again: about once per five minutes
     ['local-model-fallback'] = {class = PLAYER, repeatS = 60},    -- the Local AI model the player chose is missing, does not fit or did not start, so the largest model that fits was used (the bridge sends it once per choice)
     ['local-cpu'] = {class = PLAYER, repeatS = 86400},       -- the Local AI model is mostly on the processor (too little of it fits the graphics card beside the game): once per game session, with the next reply; a smaller model or the Custom provider is faster
-    ['local-stepdown'] = {class = PLAYER, repeatS = 60},    -- Local AI's turns stalled (the game uses most of the graphics memory): a smaller model was loaded, or a cloud provider took over (the bridge sends it once per step)
+    ['local-stepdown'] = {class = PLAYER, repeatS = 60},    -- Local AI's turns stalled (the game uses most of the graphics memory): a smaller model was loaded (the bridge sends it once per step)
     ['browser-failed'] = {class = PLAYER, repeatS = 60},    -- the browser for the conversation page was found but would not start (or there is none): says which and why, at most once a minute
-    ['local-unavailable'] = {class = PLAYER, repeatS = 30}, -- Local AI is chosen, could not start and nobody took the turn over (no Mistral key, Convai's free day used up): every attempt, at most twice a minute
+    ['local-unavailable'] = {class = PLAYER, repeatS = 30}, -- Local AI is chosen and could not start (never handed to another provider; the next turn tries again): every attempt, at most twice a minute
     ['local-no-memory'] = {class = PLAYER, repeatS = 30},   -- the same, for want of free graphics memory: a smaller model is the cure
     -- Starting a conversation
     ['talk-no-target'] = {class = PLAYER, repeatS = 20},
