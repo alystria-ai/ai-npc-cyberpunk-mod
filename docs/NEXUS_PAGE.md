@@ -5,10 +5,9 @@
 ```text
 [size=4][b]Two downloads: the Scripts from this page AND the Runtime from [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main]Hugging Face[/url], same version.[/b][/size]
 
-[youtube]7hoYG5tmZ98[/youtube]
-
-[b]Install guide and features[/b] (12 min, step by step):
 [youtube]iR0lOYfrFx8[/youtube]
+
+[youtube]7hoYG5tmZ98[/youtube]
 
 [size=4][b]Recommended settings[/b][/size]
 Pick one in Companion Manager > Settings > Conversation provider.
