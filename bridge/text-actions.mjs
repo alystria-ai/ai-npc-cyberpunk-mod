@@ -92,7 +92,7 @@ export function actionMenu(offer) {
   if (members.length) {
     const own = members.findIndex(member => member.self);
     if (members.length === 1 && own === 0) {
-      rows.push({code: 'LEAVE', what: `leave V's company (V sends the companion away: "you can go", "go home", "we're done here", "I'll go on without you")`,
+      rows.push({code: 'LEAVE', what: `leave V's company (V sends the companion away: "you can go", "go home", "we're done here", "I don't need you anymore", "I'll go on without you")`,
         tell: 'V is sending you away. You go your own way, and the game removes you from V\'s company right after your reply: say a short goodbye that fits you',
         resolve: () => ({...base, leave: 1})});
     } else {
@@ -155,7 +155,7 @@ export function actionMenu(offer) {
       return [{role: 'system', content: 'You read one message from V, the player of a video game, to a companion character and decide which game action, if any, V is asking the companion to do right now.\n'
         + 'Actions:\n' + lines.join('\n') + '\nNONE: anything else (conversation, questions, jokes, stories, remarks, thanks, "leave it", "forget it", or a request for something not listed).\n'
         + (blocked.length ? `These are not possible right now, so asking for any of them is NONE, never another action: ${blocked.join('; ')}.\n` : '')
-        + 'Rules: only V\'s new message counts. A request is a request even phrased as a question ("can you drive for me?", "could you take him out?"). A question about whether the companion could, would, knows how or has done it ("do you know how to drive?", "would you ever follow me?", "remember when you drove?") is NONE, and so is a hypothetical, a joke or a wish for later. "Let\'s leave this place", "leave it" and "I\'m leaving" do not send the companion away. The message may be in any language.\n'
+        + 'Rules: only V\'s new message counts. A request is a request even phrased as a question ("can you drive for me?", "could you take him out?"). A question about whether the companion could, would, knows how or has done it ("do you know how to drive?", "would you ever follow me?", "remember when you drove?") is NONE, and so is a hypothetical, a joke or a wish for later. "Let\'s leave this place", "leave it" and "I\'m leaving" do not send the companion away. The message may be in any language, in slang or with typos ("folow me", "u drive"): judge what V means. A story or remark that only contains the word ("I followed the news", "that drive-by scared me", "I\'m leaving the city someday") is NONE.\n'
         + `Answer with one word only: ${[...rows.map(row => row.code === 'LEAVE' ? 'DISMISSED' : row.code), 'NONE'].join(', ')}${named ? ' (DISMISSED may be followed by a name or ALL)' : ''}.`},
       {role: 'user', content: `${last ? `Just before, V said: ${JSON.stringify(String(last.v ?? '').slice(0, 160))} and the companion answered: ${JSON.stringify(String(last.r ?? '').slice(0, 200))}\n\n` : ''}V's new message: ${JSON.stringify(String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, 400))}`}];
     },
@@ -191,8 +191,8 @@ const REQUEST_QUESTION = /^(?:[^?!.]{0,30}[,:] )?(?:can|could|would|will|won'?t|
 // The last three are an ordinary NPC's reactions (docs/NPC_REACTIONS.md, `reactionMenu` below): [attack], [call-police] (also spelled
 // "call police" or "police") and [leave], which is also the companion code above.
 // A tag's own full stop ("Fine. [leave].") goes with it, so no doubled stop is left behind.
-const TAG = /\[\s*(?:action\s*[:=]\s*)?(drive|fight|follow|leave|dismissed|none|attack|call[ _-]?police|police)\b\s*(?:[:=]\s*([^\]\n]{0,40}))?\]\.?/gi;
-const LOWER_CODES = ['drive', 'fight', 'follow', 'leave', 'dismissed', 'none', 'attack', 'police', 'call-police', 'callpolice'];
+const TAG = /\[\s*(?:action\s*[:=]\s*)?(drive|fight|follow|leave|dismissed|none|no[ _-]?(?:tag|reaction)|attack|call[ _-]?police|police)\b\s*(?:[:=]\s*([^\]\n]{0,40}))?\]\.?/gi;
+const LOWER_CODES = ['drive', 'fight', 'follow', 'leave', 'dismissed', 'none', 'no-tag', 'no-reaction', 'attack', 'police', 'call-police', 'callpolice'];
 const normalCode = code => {
   const upper = String(code).toUpperCase().replace(/[ _]/g, '-');
   return upper === 'DISMISSED' ? 'LEAVE' : upper === 'CALLPOLICE' || upper === 'POLICE' ? 'CALL-POLICE' : upper;
@@ -230,29 +230,54 @@ export function splitActions(raw, {streaming = false} = {}) {
 // ---------------------------------------------------------------------------------------------------------------------------------
 // An ordinary NPC's reaction (docs/NPC_REACTIONS.md). The text routes have no action channel and, for this, no decision request either: the
 // reply decides. A person the game offers reactions for (config.companionAction.reaction, bridge/companion-actions.mjs) gets one short
-// note, and a reply that ends with one tag ("... Back off. [call-police]") hands that reaction to the game after the reply. The tag is rare
-// by the note's own words and by these rules: it is cut from every text the player hears or reads; only a tag at the very END of a reply
-// with words before it counts; only a kind the game offered counts; and the game still checks the exact offer (mod/npc-reactions.lua).
+// note, and a reply that opens with one tag ("[call-police] Back off, I am calling the cops.") hands that reaction to the game after the
+// reply. The tag is rare in practice and by these rules: it is cut from every text the player hears or reads; it counts only at the very
+// START or END of a reply with words besides it; only a kind the game offered counts; and the game still checks the exact offer
+// (mod/npc-reactions.lua).
+//
+// Why the reply OPENS with the tag (measured on ministral-8b, scripts/Eval-MistralPrompt.mjs --reactions, 2026-10-21): a tag asked for at the
+// END after the words was written for 3% of the threats ("give me your money or I will hurt you") and 50 to 60% with every rewording of the note
+// that was tried: the persona writes its in-character defiance and never gets to the tag. A tag the reply must open with is a choice made
+// before the persona speaks, and with "[none]" as the answer for everything else the model judged every line (a joke, a flirt, "I could murder
+// a burger") correctly. The cost: a model that has chosen sometimes stops after the tag ("[attack]"); the host asks once more for the words.
 
 const REACTION_TAG = Object.freeze({leave: 'leave', 'call-police': 'call-police', attack: 'attack'});
+// When each tag is the right one, in the words the model reads. A civilian who is robbed or held at gunpoint reports it; a vicious insult sends
+// the person off; a ganger or a merc fights back.
 const REACTION_WORDS = Object.freeze({
-  leave: 'you end the talk and walk or run off',
-  'call-police': 'you report V to the police',
-  attack: 'you turn on V and attack',
+  'call-police': 'you report V to the police (a robbery, a weapon, a threat to hurt or kill you)',
+  attack: 'you turn on V and fight (a threat or an assault you will not take)',
+  leave: 'you end the talk and walk or run off (a vicious insult, or V is too much for you)',
 });
 const REACTION_ORDER = Object.freeze(['leave', 'call-police', 'attack']);
+// The order of the note: the serious reactions first.
+const REACTION_NOTE_ORDER = Object.freeze(['call-police', 'attack', 'leave']);
 // The code in a reply (normalCode above) -> the reaction kind of the offer.
 const REACTION_OF_CODE = Object.freeze({LEAVE: 'leave', 'CALL-POLICE': 'call-police', ATTACK: 'attack'});
-// A tag at the very end of the reply, after the words, with at most closing punctuation after it.
+// A tag at the very end of the reply, after the words, with at most closing punctuation after it; or at the very start, before them.
 const TRAILING_TAG = /\[\s*(leave|attack|call[ _-]?police|police)\s*\][\s.!?"'*)]*$/i;
+const LEADING_TAG = /^[\s"'*(]*\[\s*(leave|attack|call[ _-]?police|police)\s*\]/i;
 
 /** The note a reply is written with when the game offers these reactions: kept short, it is read on every turn of such a person. */
 export function reactionNotes(kinds) {
-  const list = REACTION_ORDER.filter(kind => kinds?.includes(kind)).map(kind => `[${REACTION_TAG[kind]}] ${REACTION_WORDS[kind]}`).join('; ');
+  const list = REACTION_NOTE_ORDER.filter(kind => kinds?.includes(kind)).map(kind => `[${REACTION_TAG[kind]}] ${REACTION_WORDS[kind]}`).join('; ');
   if (!list) return '';
-  return 'GAME REACTION (rare): only when V clearly threatens you or seriously insults you and you truly would react, end your reply with one tag after your words: '
-    + list + '. No tag for normal, rude-but-harmless or joking talk, nor when your own reply stays calm; never at the start. Never speak of tags.';
+  return 'GAME REACTION: judge V\'s latest message, then begin your reply with exactly one tag, a space, and what you say out loud (one or two sentences, never the tag alone). '
+    + 'If the message threatens to hurt or kill you, robs you, assaults you or is a vicious insult, react whatever your character is like (scared, calm or tough) with one of: ' + list + '. '
+    + 'Anything else (small talk, questions, jokes, flirting, rude or annoyed remarks, "shut up", "go away", insults that are only rude, talk about violence in general) gets [none]. The tag is not spoken; the no-brackets rule does not apply to it.';
 }
+
+/** The kind of reaction when the whole reply is one reaction tag and nothing else ("[attack]"), else null. */
+export function reactionOnlyTag(raw) {
+  const {found, text} = splitActions(raw);
+  return found.length === 1 && !text.trim() ? REACTION_OF_CODE[found[0].code] ?? null : null;
+}
+
+/** The note of the second request for a reply that was only a tag: the choice is made, the model is asked only for the words that go with it. */
+export function reactionChosenNotes(kind) {
+  return `GAME REACTION: you have just decided to ${REACTION_ACT[kind] ?? 'react'}. Say out loud, in one or two short sentences and in your own voice, what you say as you do it. Write no tag.`;
+}
+const REACTION_ACT = Object.freeze({leave: 'end the talk and walk away from V', 'call-police': 'report V to the police', attack: 'turn on V and attack'});
 
 /**
  * The reaction an ordinary NPC's reply asked for, from the turn's offer (`config.companionAction`). Returns null when the turn offers none.
@@ -273,7 +298,7 @@ export function reactionMenu(offer) {
       const {found, text: spoken} = splitActions(text);
       const asked = found.map(item => REACTION_OF_CODE[item.code]).filter(Boolean);
       if (!asked.length) return {kind: null, why: 'no-tag'};
-      const end = TRAILING_TAG.exec(text.trimEnd());
+      const end = TRAILING_TAG.exec(text.trimEnd()) ?? LEADING_TAG.exec(text);
       if (!end) return {kind: null, why: 'not-at-end'};
       if (found.length > 1) return {kind: null, why: 'several-tags'};
       if (!spoken.replace(/\s+/g, '').length) return {kind: null, why: 'no-words'};

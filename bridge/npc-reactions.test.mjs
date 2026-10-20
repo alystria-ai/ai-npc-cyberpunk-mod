@@ -82,7 +82,10 @@ test('a tag counts only at the very end of a reply with words before it, once, a
   assert.deepEqual(pick('I am done here.\n[leave]\n'), {kind: 'leave'});
   assert.deepEqual(pick('Fine.'), {kind: null, why: 'no-tag'});
   assert.deepEqual(pick(''), {kind: null, why: 'no-tag'});
-  assert.deepEqual(pick('[leave] I am done here.'), {kind: null, why: 'not-at-end'}, 'a tag at the start never counts');
+  assert.deepEqual(pick('[leave] I am done here.'), {kind: 'leave'}, 'a tag that opens the reply counts: the note asks for it there');
+  assert.deepEqual(pick('[none] Not much, you?'), {kind: null, why: 'no-tag'}, '[none] is the answer for everything else');
+  assert.deepEqual(pick('[leave]\n\nI am done here.'), {kind: 'leave'});
+  assert.deepEqual(pick('[no tag] Not much, you?'), {kind: null, why: 'no-tag'});
   assert.deepEqual(pick('Go [leave] and do not come back.'), {kind: null, why: 'not-at-end'});
   assert.deepEqual(pick('[leave]'), {kind: null, why: 'no-words'});
   assert.deepEqual(pick('I warned you. [attack]'), {kind: null, why: 'not-offered'}, 'a civilian is never offered an attack');
@@ -106,19 +109,22 @@ test('the menu exists only for an offer, and an offer of companion actions has n
 
 // ---- The instruction -------------------------------------------------------------------------------------------------------
 
-test('the instruction is short, says "rare", lists only the offered kinds and never names the others', () => {
+test('the instruction is short, asks for the tag first and [none] for everything else, lists only the offered kinds and never names the others', () => {
   const civilian = reactionNotes(['leave', 'call-police']);
   const ganger = reactionNotes(['leave', 'attack']);
   const cop = reactionNotes(['attack']);
   const clerk = reactionNotes(['call-police']);
   for (const text of [civilian, ganger, cop, clerk]) {
-    assert.ok(text.length < 520, `short: ${text.length}`);
-    assert.match(text, /rare/i);
-    assert.match(text, /threatens you or seriously insults you/);
-    assert.match(text, /rude-but-harmless or joking/);
-    assert.match(text, /never at the start/);
-    assert.match(text, /Never speak of tags/);
+    assert.ok(text.length < 800, `short: ${text.length}`);
+    assert.doesNotMatch(text, /rare/i, 'a word like "rare" made the models write no tag at all');
+    assert.match(text, /begin your reply with exactly one tag/);
+    assert.match(text, /never the tag alone/);
+    assert.match(text, /threatens to hurt or kill you, robs you, assaults you or is a vicious insult/);
+    assert.match(text, /rude or annoyed remarks/);
+    assert.match(text, /gets \[none\]/);
+    assert.match(text, /no-brackets rule does not apply/);
   }
+  assert.ok(civilian.indexOf('[call-police]') < civilian.indexOf('[leave]'), 'the serious reaction is listed first');
   assert.match(civilian, /\[leave\]/); assert.match(civilian, /\[call-police\]/); assert.doesNotMatch(civilian, /attack/i);
   assert.match(ganger, /\[attack\]/); assert.match(ganger, /\[leave\]/); assert.doesNotMatch(ganger, /police/i);
   assert.match(cop, /\[attack\]/); assert.doesNotMatch(cop, /leave|police/i);
@@ -335,9 +341,52 @@ test('custom provider: a threat answered with a closing tag hands the reaction t
     assert.ok(streamed.every(text => !/\[|call-police/i.test(text)), 'the streamed view never shows the tag: ' + JSON.stringify(streamed));
     assert.equal(mock.requests.length, 1, 'one request: the reply decides, there is no decision request');
     const prompt = mock.requests[0].body.messages.map(message => message.content).join('\n');
-    assert.match(prompt, /GAME REACTION \(rare\)/); assert.match(prompt, /\[leave\]/); assert.match(prompt, /\[call-police\]/); assert.doesNotMatch(prompt, /\[attack\]/);
+    assert.match(prompt, /GAME REACTION: judge/); assert.match(prompt, /\[leave\]/); assert.match(prompt, /\[call-police\]/); assert.doesNotMatch(prompt, /\[attack\]/);
     const recalled = memory.recall({profileKey: KEY_NPC, channel: 'private', ambientKey: 'npc-1:44ULL'});
     assert.equal(recalled.turns.at(-1).r, 'Back off, or I swear I will call the cops on you.');
+  } finally { host.close(); await mock.close(); }
+});
+
+test('custom provider: a reply that opens with the tag hands the reaction over; [none] and its look-alikes are never spoken', async () => {
+  const mock = await startOpenAiMock();
+  const {host, delivered} = await customHarness(mock);
+  try {
+    mock.behave(said('[call-police]\n\nBack off, I am calling the cops right now.'));
+    const result = await host.reply(turn('give me your money or I will cut you', {companionAction: reactionConfig(['leave', 'call-police'])}));
+    await settle();
+    assert.equal(result.text, 'Back off, I am calling the cops right now.');
+    assert.deepEqual(delivered, [{version: 1, token: TOKEN, reaction: 'call-police'}]);
+    delivered.length = 0;
+    for (const [reply, spoken] of [['[none] Not much, you?', 'Not much, you?'], ['[None]\n\nFine, thanks for asking.', 'Fine, thanks for asking.'], ['[no tag] Rain is coming, I think.', 'Rain is coming, I think.']]) {
+      mock.behave(said(reply));
+      const calm = await host.reply(turn('how is your night going', {companionAction: reactionConfig(['leave', 'call-police'])}));
+      assert.equal(calm.text, spoken);
+    }
+    await settle();
+    assert.deepEqual(delivered, []);
+  } finally { host.close(); await mock.close(); }
+});
+
+test('custom provider: a reply that is only the tag keeps the choice and asks once more for the words, with the tag already chosen', async () => {
+  const mock = await startOpenAiMock();
+  const {host, delivered, logs, memory} = await customHarness(mock);
+  try {
+    mock.behave(request => ({sse: [/you have just decided to turn on V/.test(request.body.messages.map(message => message.content).join('\n')) ? 'Last warning, V. Walk away.' : '[attack]']}));
+    const result = await host.reply(turn('I am going to kill you, trash', {companionAction: reactionConfig(['leave', 'attack'])}));
+    await settle();
+    assert.equal(result.text, 'Last warning, V. Walk away.');
+    assert.equal(mock.requests.length, 2, 'one more request, for the words');
+    assert.deepEqual(delivered, [{version: 1, token: TOKEN, reaction: 'attack'}]);
+    assert.ok(logs.some(line => /was only a tag; asking once more/.test(line)));
+    const second = mock.requests[1].body.messages.map(message => message.content).join('\n');
+    assert.doesNotMatch(second, /begin your reply with exactly one tag/, 'the second request has no tag to write');
+    assert.equal(memory.recall({profileKey: KEY_NPC, channel: 'private', ambientKey: 'npc-1:44ULL'}).turns.at(-1).r, 'Last warning, V. Walk away.');
+    // [none] alone is no choice: the same second request, and nothing is handed over.
+    delivered.length = 0;
+    mock.behave(said('[none]'));
+    await host.reply(turn('hello again', {companionAction: reactionConfig(['leave', 'attack'])})).catch(() => {});
+    await settle();
+    assert.deepEqual(delivered, []);
   } finally { host.close(); await mock.close(); }
 });
 
@@ -366,14 +415,15 @@ test('custom provider: a tag split across the stream never reaches the voice, th
   } finally { host.close(); await mock.close(); }
 });
 
-test('custom provider: rare means rare: no tag, a tag for a kind not offered, a tag that opens the reply, two tags and a bark each deliver nothing', async () => {
+test('custom provider: no tag, [none], a tag for a kind not offered, a tag in the middle, two tags and a bark each deliver nothing', async () => {
   const mock = await startOpenAiMock();
   const {host, delivered, logs} = await customHarness(mock);
   try {
     const cases = [
       ['Whatever, man. Move along.', 'no tag'],
       ['You will regret this. [attack]', 'attack was not offered to a civilian'],
-      ['[leave] You will regret this.', 'a tag first'],
+      ['[none] Not much, how about you?', 'the answer for everything else'],
+      ['You will [leave] regret this one day.', 'a tag in the middle'],
       ['Done with you. [leave] Done. [leave]', 'two tags'],
     ];
     for (const [reply] of cases) {
@@ -455,7 +505,7 @@ test('Mistral and the local AI: the same turn, the same rule, the same message t
       assert.equal(result.text, 'Stay away from me.', name);
       assert.deepEqual(tagged.delivered, [{version: 1, token: TOKEN, reaction: 'leave'}], name);
       assert.equal(tagged.seen.length, 1, `${name}: one request, no decision`);
-      assert.match(tagged.seen[0].map(message => message.content).join('\n'), /GAME REACTION \(rare\)/);
+      assert.match(tagged.seen[0].map(message => message.content).join('\n'), /GAME REACTION: judge/);
     } finally { tagged.host.close(); }
     const calm = await fakeChatHost(routes[name](), name, 'Sure, whatever you say.');
     try {

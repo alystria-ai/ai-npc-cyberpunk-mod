@@ -14,13 +14,13 @@
 
 const STEMS = {
   DRIVE: {
-    words: String.raw`driv|wheel|rid(?:e|es|ing)(?![\p{L}])|cars?(?![\p{L}])|vehicle|taxi|cab(?![\p{L}])|chauffeur|lift(?![\p{L}])|take (?:me|us)|drop (?:me|us)|get (?:me|us)|bring (?:me|us)|waypoint|marker|destination|navigat|route|map(?![\p{L}])|floor it|let'?s go|lets go|let us (?:go|move|roll)|head (?:out|there|over|to)|go there|hop in|get in|buckle|gas(?![\p{L}])|` // en
+    words: String.raw`driv|wheel|rid(?:e|es|ing)(?![\p{L}])|cars?(?![\p{L}])|vehicle|taxi|cab(?![\p{L}])|chauffeur|lift(?![\p{L}])|take (?:me|us)|drop (?:me|us)|get (?:me|us)|bring (?:me|us)|waypoint|marker|destination|navigat|route|map(?![\p{L}])|floor it|let'?s go|lets go|let us (?:go|move|roll)|head (?:out|there|over|to)|go there|hop in|get in|buckle|gas(?![\p{L}])|run (?:me|us)|carry (?:me|us)|steer|whip (?:me|us)|hit the road|` // en
       + String.raw`f[aä]hr|lenk|auto(?![\p{L}])|wagen|fuhr|bring mich|nimm mich|steuer|` // de
       + String.raw`condui|volant|voiture|emm[eè]ne|conduis|trajet|` // fr
       + String.raw`conduc|volante|coche|ll[eé]va|punto que|` // es
       + String.raw`guida|macchina|portami|volante|` // it
       + String.raw`dirig|dirij|carro|leva-?me|leve-?me|me leve|` // pt
-      + String.raw`prowad|jed[zź]|kierownic|samoch|zawie[zź]|wioz|podwie[zź]|` // pl
+      + String.raw`(?:po)?prowad|jed[zź]|kierownic|samoch|zawie[zź]|wioz|podwie[zź]|` // pl
       + String.raw`води|веди|поведи|вези|рул|машин|подвез|отвез|довез|поезж|поедем|повез|авто|такси|` // ru
       + String.raw`кермо|керу|машин|авто|відвез|підвез|повез|` // uk
       + String.raw`s[uü]r(?![\p{L}])|s[uü]rd|s[uü]rer|direksiyon|araba|g[oö]t[uü]r|` // tr
@@ -43,13 +43,13 @@ const STEMS = {
       + '|席|代わ|替わ|交代|入れ替|任せ|자리|교대|바꿔|바꾸|맡|换座|换位|座位|座椅|换我|你来开|接管|交换',
   },
   FIGHT: {
-    words: String.raw`attack|fight|kill|shoot(?!out)|take (?:him|her|them|that|those|these|this|it|out|down)|take .{0,16} out|get (?:him|her|them|that|those|these|this)|hit (?:him|her|them|that)|waste|eliminat|murder|finish (?:him|her|them|it)|deal with (?:him|her|them|that|it|the)|smash|cut down|pinned|handle (?:the|him|her|them|that|it)|do something about|make (?:him|her|them) (?:stop|pay|bleed|regret)|destroy|smoke (?:him|her|them)|blast|punch|beat|stab|slice|open fire|go (?:get|after)|dispatch|neutrali|put (?:him|her|them|a bullet)|drop (?:him|her|them)|tagged|marked|target|marked|mark(?![\p{L}])|enem|hostile|charge|engage|rush|light (?:him|her|them|it) up|cut (?:him|her|them) down|end (?:him|her|them)|flatline|fry|ice (?:him|her|them)|trash|` // en
-      + String.raw`angreif|k[aä]mpf|t[oö]te|erschie|schie[sß]|knall|greif|nimm .{0,12} aus|schalt .{0,12} aus|erledig|` // de
+    words: String.raw`attack|fight|kill|shoot(?!out)|take (?:him|her|them|that|those|these|this|it|out|down)|take .{0,16} out|get (?:him|her|them|that|those|these|this)|hit (?:him|her|them|that)|waste|eliminat|murder|finish (?:him|her|them|it)|deal with (?:him|her|them|that|it|the)|smash|cut down|pinned|handle (?:the|him|her|them|that|it)|do something about|make (?:him|her|them) (?:stop|pay|bleed|regret)|destroy|smoke (?:him|her|them|that|the|this)|bust (?:him|her|them|up)|whack|finish the (?:job|fight)|take care of (?:him|her|them|that|the (?:guy|target|enemy|one|goon|gonk))|hurt (?:him|her|them)|blow (?:his|her|their) |jump (?:him|her|them)|clean (?:him|her|them) up|blast|punch|beat|stab|slice|open fire|go (?:get|after)|dispatch|neutrali|put (?:him|her|them|a bullet)|drop (?:him|her|them)|tagged|marked|target|marked|mark(?![\p{L}])|enem|hostile|charge|engage|rush|light (?:him|her|them|it) up|cut (?:him|her|them) down|end (?:him|her|them)|flatline|fry|ice (?:him|her|them)|trash|` // en
+      + String.raw`angreif|k[aä]mpf|t[oö]te|erschie|schie[sß]|knall|greif|nimm .{0,12} aus|schalt .{0,12} aus|erledig|mach .{0,12}fertig|` // de
       + String.raw`attaque|combat|tue(?![\p{L}])|tuer|tire(?![\p{L}])|bute|[eé]limine|descends|d[eé]fonce|r[eè]gle|compte|` // fr
       + String.raw`ataque|ataca|mata|dispara|elimina|pelea|lucha|acaba con|paliza|dale|` // es
-      + String.raw`attacca|uccidi|spara|elimina|combatti|fallo fuori|` // it
+      + String.raw`attacca|uccidi|spara|elimina|combatti|fallo fuori|occupati di|` // it
       + String.raw`atira|luta|acaba com|derruba|` // pt
-      + String.raw`zaatakuj|atakuj|zabij|strzel|walcz|za[lł]atw|rozwal|` // pl
+      + String.raw`zaatakuj|atakuj|zabij|strzel|walcz|za[lł]atw|rozwal|zlikwid|` // pl
       + String.raw`атакуй|убей|убить|стреляй|бей|убери|мочи|завали|порви|уничтож|нападай|вали|разберись|` // ru
       + String.raw`атакуй|вбий|вбити|стріляй|бий|знищ|` // uk
       + String.raw`sald[ıi]r|[oö]ld[uü]r|vur(?![\p{L}])|d[oö]v[uü][sş]|` // tr
@@ -59,7 +59,7 @@ const STEMS = {
     spaceless: '攻撃|倒し|殺|撃っ|やっつけ|공격|죽여|쏴|싸워|처리|攻击|杀|干掉|打|开枪|解决',
   },
   FOLLOW: {
-    words: String.raw`follow|come (?:with|along|on|over|here)|join|tag along|stick (?:with|close|by|around)|with me|travel|accompan|walk with|stay (?:with|close|by)|keep up|let'?s (?:go|roll|move|get)|lets (?:go|roll|move)|let us (?:go|move|roll)|together|ride along|team up|partner|company|hang with|roll with|back me|have my back|by my side|along with|move out|with us|be my|my crew|my team|on board|fall in|split off|peel off|tail(?![\p{L}])|shadow|squad|beside me|next to me|after me|behind me|at my side|` // en
+    words: String.raw`fol+ow|follw|fllow|folw|cmon|c'?mon|c mon|come w |^come[.!\s]*$|come (?:with|along|on|over|here)|join|tag along|stick (?:with|close|by|around)|with me|travel|accompan|walk with|stay (?:with|close|by)|keep up|let'?s (?:go|roll|move|get)|lets (?:go|roll|move)|let us (?:go|move|roll)|together|ride along|team up|partner|company|hang with|roll with|back me|have my back|by my side|along with|move out|with us|be my|my crew|my team|on board|fall in|split off|peel off|tail(?![\p{L}])|shadow|squad|beside me|next to me|after me|behind me|at my side|` // en
       + String.raw`folge|komm mit|begleit|mitkommen|komm(?![\p{L}])|mit mir|bleib|bei mir|` // de
       + String.raw`suis(?![\p{L}])|suivre|viens|accompagn|avec moi|` // fr
       + String.raw`s[ií]gueme|ven conmigo|acomp[aá][nñ]|conmigo|ven(?![\p{L}])|` // es
@@ -75,14 +75,14 @@ const STEMS = {
     spaceless: '一緒|ついて|来て|付いて|行こう|따라|같이|함께|와줘|와라|跟|一起|来吧|陪|同行',
   },
   LEAVE: {
-    words: String.raw`leave|go (?:home|away|now|on|ahead|back|rest)|you (?:can|may) go|dismiss|bounce|walk off|send(?:ing)? you|kick(?:ing)? you|drop out|off the team|step away|head off|(?:^|[.!?]\s*)go(?![\p{L}])|get lost|beat it|scram|done(?![\p{L}])|through(?![\p{L}])|that'?s all|will be all|be all(?![\p{L}])|your own|own thing|off you go|you go(?![\p{L}])|part (?:ways|company)|without you|on my own|alone|solo|walk away|split up|separate|farewell|good ?bye|bye(?![\p{L}])|take off|clear out|piss off|buzz off|disappear|free to go|you'?re free|no longer|fired|own way|get out|out of here|get going|run along|enough|finished|see you|later|head home|no need|don'?t need you|not need you|on your way|disband|quit|resign|release|stand down|off duty|off the clock|` // en
+    words: String.raw`leave|go (?:home|away|now|on|ahead|back|rest)|you (?:can|may) go|dismiss|bounce|walk off|send(?:ing)? you|kick(?:ing)? you|drop out|off the team|step away|head off|(?:^|[.!?]\s*)go(?![\p{L}])|get lost|beat it|scram|done(?![\p{L}])|through(?![\p{L}])|that'?s all|will be all|be all(?![\p{L}])|your own|own thing|off you go|you go(?![\p{L}])|part (?:ways|company)|without you|on my own|alone|solo|walk away|split up|separate|farewell|good ?bye|bye(?![\p{L}])|take off|clear out|piss off|buzz off|disappear|free to go|you'?re free|no longer|fired|own way|get out|out of here|get going|run along|enough|finished|see you|later|head home|no need|don'?t need you|not need you|on your way|disband|quit|resign|release|stand down|off duty|off the clock|not needed|take a hike|(?:got|have) (?:it|this) (?:from here|covered|handled)|off the hook|` // en
       + String.raw`geh(?![\p{L}])|gehen|verschwinde|hau ab|fertig|allein|tsch[uü]ss|lass mich|nach hause|entlass|mach'?s gut|` // de
       + String.raw`va-?t'?en|pars(?![\p{L}])|d[eé]gage|on a fini|seul|laisse-?moi|rentre|partir|lib[eè]re|` // fr
       + String.raw`vete|l[aá]rgate|hemos terminado|solo(?![\p{L}])|d[eé]jame|a casa|adi[oó]s|despedid|irte|` // es
       + String.raw`vattene|vai(?![\p{L}])|abbiamo finito|da solo|lasciami|a casa|congeda|andare|` // it
       + String.raw`vai embora|some(?:[!.\s]*$|,? por favor| daqui| j[aá](?![\p{L}])| de aqui| da minha)|acabou|sozinho|deixa-?me|v[aá](?![\p{L}])|para casa|dispensad|embora|` // pt
-      + String.raw`id[zź] sobie|spadaj|odejd[zź]|koniec|sam(?![\p{L}])|zostaw|wynoś|do domu|idź(?![\p{L}])|odej[sś]|zwalniam|zwolni|` // pl
-      + String.raw`уходи|уйди|проваливай|свободн|мы закончили|закончили|один(?![\p{L}])|оставь|иди домой|ступай|пока(?![\p{L}])|прощай|свободы|вали|гуляй|можешь идти|иди(?![\p{L}])|` // ru
+      + String.raw`id[zź] sobie|spadaj|odejd[zź]|koniec|sam(?![\p{L}])|zostaw|wynoś|do domu|idź(?![\p{L}])|mo[zż]esz i[sś][cć]|odej[sś]|zwalniam|zwolni|` // pl
+      + String.raw`уходи|уйди|проваливай|свободн|свободен|мы закончили|закончили|один(?![\p{L}])|оставь|иди домой|ступай|пока(?![\p{L}])|прощай|свободы|вали|гуляй|можешь идти|иди(?![\p{L}])|` // ru
       + String.raw`йди|геть|ми закінчили|закінчили|сам(?![\p{L}])|залиш|іди|можеш іти|` // uk
       + String.raw`git(?![\p{L}])|defol|bitti|yaln[ıi]z|b[ıi]rak|eve git|gidebilirsin|ç[ıi]kar|` // tr
       + String.raw`jdi pry[cč]|vypadni|konec|s[aá]m(?![\p{L}])|nech m[eě]|dom[uů]|jdi(?![\p{L}])|` // cs
