@@ -20,6 +20,11 @@
  *   arg1=<supervisor script>  arg2=... argN=...   (each value is one argument)
  *   working_directory=<optional absolute path>
  * The plugin appends: --game-pid <pid> --game-root <root> --lifeline stdin
+ *
+ * The file is optional. A Vortex install (a 0.2.3 report: "launcher-not-configured") can end up with the DLL in the plugin folder and no
+ * launcher.ini beside it (a partial update, a purge, a deployment that missed it). Without the file, or with one that names no program,
+ * the launcher starts the Runtime exactly as the shipped launcher.ini says (the DEFAULT_* values below, kept equal to
+ * packaging/lib/launcher-ini.mjs by bridge/autostart-plugin.test.mjs). enabled=0 still turns it off when the file is there.
  */
 #define WIN32_LEAN_AND_MEAN
 #define UNICODE
@@ -55,12 +60,22 @@ _Static_assert(offsetof(R4ePluginInfo, name) == 16 && offsetof(R4ePluginInfo, au
 
 #define LAUNCHER_VERSION_MAJOR 1
 #define LAUNCHER_VERSION_MINOR 0
-#define LAUNCHER_VERSION_PATCH 0
+#define LAUNCHER_VERSION_PATCH 1
 #define PATH_CAP 1024
 #define VALUE_CAP 1024
 #define COMMAND_CAP 16384
 #define MAX_ARGS 24
 #define MOD_RELATIVE L"\\bin\\x64\\plugins\\cyber_engine_tweaks\\mods\\AiNpcCyberpunkMod"
+
+/* What the shipped launcher.ini says (packaging/lib/launcher-ini.mjs); used when launcher.ini is missing or names no program. */
+#define DEFAULT_PROGRAM L"%PLUGIN%\\app\\node\\node.exe"
+#define DEFAULT_ARG_COUNT 3
+#define DEFAULT_ARG1 L"--eval"
+#define DEFAULT_ARG2 L"const f=require('node:fs');let p=process.argv[1];try{f.statSync(p)}catch{try{p=f.realpathSync.native(p)}catch{}}" \
+    L"import(require('node:url').pathToFileURL(p).href)"
+#define DEFAULT_ARG3 L"%PLUGIN%\\app\\launcher\\start-service.mjs"
+#define DEFAULT_DIRECTORY L"%PLUGIN%\\app"
+static const wchar_t *const DEFAULT_ARGS[DEFAULT_ARG_COUNT] = {DEFAULT_ARG1, DEFAULT_ARG2, DEFAULT_ARG3};
 
 static HANDLE g_lifeline = NULL; /* Write end. Deliberately never closed. */
 static bool g_started = false;
@@ -227,27 +242,35 @@ static void launch(HMODULE self) {
         return;
     }
 
-    if (!join(ini, PATH_CAP, plugin, L"\\launcher.ini") || !file_exists(ini)) {
-        log_line(L"Not started: launcher.ini is missing. Run the install script again.");
-        publish_status(mod, "failed", "launcher-not-configured", 0, ERROR_FILE_NOT_FOUND);
-        return;
-    }
-    if (GetPrivateProfileIntW(L"launch", L"enabled", 1, ini) == 0) {
+    /* launcher.ini is optional (see the top of this file): without it the shipped settings apply, and the first line of the log says so. */
+    bool built_in = !join(ini, PATH_CAP, plugin, L"\\launcher.ini") || !file_exists(ini);
+    if (built_in) {
+        log_line(L"launcher.ini is missing next to the launcher: using the built-in settings (the Runtime's own node and service).");
+    } else if (GetPrivateProfileIntW(L"launch", L"enabled", 1, ini) == 0) {
         log_line(L"Not started: disabled in launcher.ini (enabled=0).");
         return;
     }
 
     wchar_t raw[VALUE_CAP], program[PATH_CAP], directory[PATH_CAP], argument[VALUE_CAP];
-    DWORD read = GetPrivateProfileStringW(L"launch", L"program", L"", raw, VALUE_CAP, ini);
-    if (read == 0 || read >= VALUE_CAP - 1 || !expand(raw, game, plugin, program, PATH_CAP)
+    DWORD read = 0;
+    if (!built_in) {
+        read = GetPrivateProfileStringW(L"launch", L"program", L"", raw, VALUE_CAP, ini);
+        if (read == 0) {
+            built_in = true;
+            log_line(L"launcher.ini names no program: using the built-in settings (the Runtime's own node and service).");
+        }
+    }
+    if (built_in) wcscpy_s(raw, VALUE_CAP, DEFAULT_PROGRAM);
+    if (read >= VALUE_CAP - 1 || !expand(raw, game, plugin, program, PATH_CAP)
         || wcschr(program, L'"') || !file_exists(program)) {
         log_line(L"Not started: the configured program is missing or invalid (%ls).", raw);
         publish_status(mod, "failed", "launcher-program-missing", 0, ERROR_FILE_NOT_FOUND);
         return;
     }
     directory[0] = L'\0';
-    read = GetPrivateProfileStringW(L"launch", L"working_directory", L"", raw, VALUE_CAP, ini);
-    if (read >= VALUE_CAP - 1 || (read > 0 && (!expand(raw, game, plugin, directory, PATH_CAP)
+    if (built_in) { read = 0; wcscpy_s(raw, VALUE_CAP, DEFAULT_DIRECTORY); }
+    else read = GetPrivateProfileStringW(L"launch", L"working_directory", L"", raw, VALUE_CAP, ini);
+    if (read >= VALUE_CAP - 1 || ((built_in || read > 0) && (!expand(raw, game, plugin, directory, PATH_CAP)
         || !directory_exists(directory)))) {
         log_line(L"Not started: the configured working directory is missing (%ls).", raw);
         publish_status(mod, "failed", "launcher-directory-missing", 0, ERROR_PATH_NOT_FOUND);
@@ -260,8 +283,14 @@ static void launch(HMODULE self) {
     for (int index = 1; index <= MAX_ARGS; ++index) {
         wchar_t key[16];
         _snwprintf_s(key, _countof(key), _TRUNCATE, L"arg%d", index);
-        read = GetPrivateProfileStringW(L"launch", key, L"", raw, VALUE_CAP, ini);
-        if (read == 0) break;
+        if (built_in) {
+            if (index > DEFAULT_ARG_COUNT) break;
+            wcscpy_s(raw, VALUE_CAP, DEFAULT_ARGS[index - 1]);
+            read = (DWORD)wcslen(raw);
+        } else {
+            read = GetPrivateProfileStringW(L"launch", key, L"", raw, VALUE_CAP, ini);
+            if (read == 0) break;
+        }
         if (read >= VALUE_CAP - 1 || !expand(raw, game, plugin, argument, VALUE_CAP)
             || !append_argument(command, COMMAND_CAP, argument)) {
             log_line(L"Not started: %ls in launcher.ini is too long.", key);

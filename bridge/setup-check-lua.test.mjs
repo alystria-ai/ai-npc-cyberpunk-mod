@@ -172,7 +172,7 @@ test('the conversation service: no trace, an incomplete Runtime, a failed start,
   check.run()
   assert(table.concat(check.problems(), ',') == 'service', 'an hour-old failure is no trace of this session')
   -- the Runtime's own files missing
-  for _, code in ipairs({'install-incomplete', 'bridge-missing', 'missing-character-ids', 'launcher-not-configured', 'launcher-program-missing', 'launcher-directory-missing'}) do
+  for _, code in ipairs({'install-incomplete', 'bridge-missing', 'missing-character-ids', 'launcher-program-missing', 'launcher-directory-missing'}) do
     advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = code, updated = ms()})
     check.run()
     local line = check.serviceLine()
@@ -180,6 +180,12 @@ test('the conversation service: no trace, an incomplete Runtime, a failed start,
     assert(#check.problems() == 0, 'a failed service has its own notice (service-down), the first-load notice leaves it alone')
     assert(check.problemCount() == 1, 'but it counts on the page')
   end
+  -- an older launcher that found no launcher.ini (a 0.2.3 Vortex report) says which file and what to do, in plain words
+  advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'launcher-not-configured', updated = ms()})
+  check.run()
+  local launcherLine = check.serviceLine()
+  assert(launcherLine and launcherLine.value == 'Not running' and launcherLine.description == 'The settings file of the launcher, launcher.ini, is missing from red4ext/plugins/AiNpcCyberpunkMod, so the game cannot start the conversation service. Extract the Runtime zip straight into the Cyberpunk 2077 folder again (by hand, also with Vortex) and let it replace the files, then restart the game.', launcherLine and launcherLine.description)
+  assert(#check.problems() == 0 and check.problemCount() == 1)
   -- any other failure: restart, then send a report; the code is kept short and plain
   advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = 'bridge-crashed', updated = ms()})
   check.run()

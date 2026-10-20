@@ -47,6 +47,119 @@ def tone(path, seconds=.3, hertz=220):
         output.writeframes(frames)
 
 
+class SourceCheck(unittest.TestCase):
+    """The source check covers exactly the files the pinned revision ships (a manifest of path to hash): anything else beside them is ignored,
+    a changed or missing pinned file is named, and only code that runs (pocket_tts/ or any .py) can stop the voice."""
+    FILES = {'pocket_tts/__init__.py': '# package\n', 'pocket_tts/models/flow.py': 'x = 1\n', 'pocket_tts/config/english.yaml': 'a: 1\n',
+             'training/train.py': 'y = 2\n', 'README.md': '# readme\nline two\n', 'docs/guide.md': 'guide\n', '.gitignore': '*.pyc\n',
+             'uv.lock': 'lock\n'}
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix='pocket-source-test-')
+        self.root = Path(self.temp.name) / 'pocket-tts'
+        for rel, text in self.FILES.items():
+            path = self.root / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(text.encode())
+        self.manifest = {rel: runtime.digest_file(self.root / rel) for rel in self.FILES}
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def check(self):
+        return runtime.verify_source(self.root, self.manifest)
+
+    def fails(self):
+        with self.assertRaises(ValueError) as caught:
+            self.check()
+        message = str(caught.exception)
+        self.assertTrue(message.startswith('Pocket source differs from the pinned official revision ('), message)
+        self.assertNotIn('\n', message)
+        self.assertNotIn(str(self.root), message, 'only relative paths are named')
+        self.assertNotIn(self.temp.name, message)
+        return message
+
+    def test_the_shipped_list_is_the_pinned_revision_and_needs_no_file_beside_it(self):
+        self.assertEqual(runtime.digest_manifest(), runtime.SOURCE_SHA256)
+        self.assertEqual(len(runtime.SOURCE_FILES), 140)
+        self.assertTrue(all(len(value) == 64 for value in runtime.SOURCE_FILES.values()))
+        self.assertIn('pocket_tts/__init__.py', runtime.SOURCE_FILES)
+        self.assertTrue(all(runtime.source_runs(rel) for rel in runtime.SOURCE_FILES if rel.startswith('pocket_tts/') or rel.endswith('.py')))
+        self.assertIsNone(self.check())
+
+    def test_files_that_are_not_pinned_are_ignored_by_design(self):
+        # Vortex (marker, deployment record, backup of a file it replaced), Python (__pycache__), Explorer, an antivirus note, and a file
+        # an older Runtime shipped that Vortex keeps because the new archive does not list it.
+        for rel in ('__folder_managed_by_vortex', 'pocket_tts/__folder_managed_by_vortex', 'vortex.deployment.json', 'vortex.deployment.msgpack',
+                    'pocket_tts/__init__.py.vortex_backup', 'README.md.vortex_backup', 'desktop.ini', 'pocket_tts/Thumbs.db', '.DS_Store',
+                    'pocket_tts/__pycache__/__init__.cpython-312.pyc', 'pocket_tts/models/__pycache__/flow.cpython-312.pyc',
+                    'pocket_tts/old_module_from_0.2.1.py', 'old-pocket-notes.txt', 'QUARANTINED_BY_ANTIVIRUS.txt', 'docs/extra/page.md'):
+            path = self.root / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b'something else')
+        self.assertIsNone(self.check())
+
+    def test_a_changed_or_missing_python_or_package_file_fails_and_is_named(self):
+        (self.root / 'pocket_tts/models/flow.py').write_text('x = 2\n')
+        message = self.fails()
+        self.assertIn('pocket_tts/models/flow.py changed', message)
+        (self.root / 'pocket_tts/models/flow.py').write_text('x = 1\n')
+        self.assertIsNone(self.check())
+        (self.root / 'pocket_tts/config/english.yaml').unlink()
+        self.assertIn('pocket_tts/config/english.yaml missing', self.fails())
+        (self.root / 'pocket_tts/config/english.yaml').write_text('a: 1\n')
+        # A Python file outside the package is still code: a change there fails too.
+        (self.root / 'training/train.py').write_text('y = 3\n')
+        self.assertIn('training/train.py changed', self.fails())
+        (self.root / 'training/train.py').unlink()
+        self.assertIn('training/train.py missing', self.fails())
+
+    def test_the_message_names_the_first_few_and_counts_the_rest(self):
+        for rel in ('pocket_tts/__init__.py', 'pocket_tts/models/flow.py', 'pocket_tts/config/english.yaml', 'training/train.py'):
+            (self.root / rel).unlink()
+        (self.root / 'pocket_tts/models/flow.py').write_text('x = 9\n')
+        message = self.fails()
+        self.assertIn('pocket_tts/__init__.py missing', message)
+        self.assertIn('pocket_tts/config/english.yaml missing', message)
+        self.assertIn('pocket_tts/models/flow.py changed', message)
+        self.assertIn('+1 more', message)
+        self.assertNotIn('training/train.py', message)
+        self.assertLessEqual(len(message), 300, 'fits in the reason the worker sends')
+
+    def test_only_documentation_style_files_differing_does_not_stop_the_voice_but_is_logged(self):
+        (self.root / 'README.md').write_text('# a different readme\n')
+        (self.root / 'docs/guide.md').unlink()
+        (self.root / '.gitignore').unlink()
+        (self.root / 'uv.lock').write_text('another lock\n')
+        note = self.check()
+        for expected in ('README.md changed', 'docs/guide.md missing', '.gitignore missing'):
+            self.assertIn(expected, note)
+        self.assertNotIn(str(self.root), note)
+
+    def test_line_endings_converted_to_crlf_do_not_count_as_a_change(self):
+        for rel in ('pocket_tts/models/flow.py', 'pocket_tts/config/english.yaml', 'README.md'):
+            path = self.root / rel
+            path.write_bytes(path.read_bytes().replace(b'\n', b'\r\n'))
+        self.assertIsNone(self.check())
+        (self.root / 'pocket_tts/models/flow.py').write_bytes(b'x = 2\r\n')
+        self.assertIn('pocket_tts/models/flow.py changed', self.fails())
+
+    def test_a_linked_pinned_file_is_refused_and_named(self):
+        target = Path(self.temp.name) / 'elsewhere.py'
+        target.write_bytes((self.root / 'pocket_tts/models/flow.py').read_bytes())
+        (self.root / 'pocket_tts/models/flow.py').unlink()
+        try:
+            os.symlink(target, self.root / 'pocket_tts/models/flow.py')
+        except (OSError, NotImplementedError):
+            self.skipTest('symbolic links are not available here')
+        self.assertIn('pocket_tts/models/flow.py linked', self.fails())
+
+    def test_a_manifest_that_is_not_the_pinned_one_is_refused(self):
+        with patch.dict(runtime.SOURCE_FILES, {'pocket_tts/extra.py': 'a' * 64}):
+            with self.assertRaisesRegex(ValueError, 'does not match its pinned digest'):
+                runtime.verify_source(self.root)
+
+
 class Assets(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='pocket-runtime-test-')
@@ -84,6 +197,15 @@ class Assets(unittest.TestCase):
     def validate(self, config=None):
         return runtime.validate_config(config or self.config, yaml_load=json.loads,
                                        source_hasher=lambda _:runtime.SOURCE_SHA256)
+
+    def test_the_shipped_source_check_names_what_differs_in_the_error(self):
+        # No test seam: the real pinned list against a fixture tree that is not the pinned revision.
+        with self.assertRaises(ValueError) as caught:
+            runtime.validate_config(self.config, yaml_load=json.loads)
+        message = str(caught.exception)
+        self.assertTrue(message.startswith('Pocket source differs from the pinned official revision ('), message)
+        self.assertIn('pocket_tts/__init__.py changed', message)
+        self.assertNotIn(str(self.source), message)
 
     def test_selected_student_uses_copied_local_paths_without_mutating_original_assets(self):
         before={name:(self.export/name).read_bytes() for name in runtime.ASSETS}

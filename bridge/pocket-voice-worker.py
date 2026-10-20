@@ -450,6 +450,8 @@ def main():
     try:
         send({"op": "state", "state": "loading"})
         registry = validate_config(read_json(args.config))
+        if registry.get("sourceNote"):
+            print(registry["sourceNote"], file=sys.stderr, flush=True)
         send({"op": "state", "state": "loading", "phase": "assets-verified"})
         if commands.shutdown.is_set():
             return 0
@@ -614,7 +616,7 @@ def main():
         print(f"Pocket worker failed: {type(error).__name__}: {error}", file=sys.stderr, flush=True)
         # The reason travels with the frame (class and first line, short), so the bridge's log line and an error report name it instead of
         # only the generic text; the bridge cuts it to a few words and a report removes any folder from it.
-        reason = f"{type(error).__name__}: {str(error).splitlines()[0] if str(error) else ''}".rstrip(": ")[:160]
+        reason = f"{type(error).__name__}: {str(error).splitlines()[0] if str(error) else ''}".rstrip(": ")[:300]
         send({"op": "fatal", "message": "Pocket student runtime is unavailable.", "reason": reason})
         return 1
     finally:

@@ -8,6 +8,8 @@ Talk to Cyberpunk 2077 characters by voice or text, with companions who answer i
 - **Local AI stays fast in long talks**: a background summary no longer waits in front of your typed line, and the model no longer re-reads the whole character after you open the chat box.
 - **Local AI on 8 GB cards**: after two stalled replies it switches to the lite model of the same family, or to cloud text, and says so once. 8 GB cards start on the lite model.
 - **V's voice on slower PCs**: a slow Pocket start is no longer stopped while it is still loading.
+- **Pocket on Vortex, again**: the Pocket check looks only at the files Pocket ships, so extra files a mod manager leaves beside them no longer silence every voice. If a Pocket file really is wrong, Settings > Help names it.
+- **The game starts the service without launcher.ini**: if that file is missing from the plugin folder (seen on a Vortex install), the launcher uses the shipped settings instead of giving up.
 - **Your own model server**: a model that only thinks is asked again without thinking, and a server with a small context gets a shorter character description that fits.
 - **Smaller updates**: from 0.2.3, the Runtime update is enough; from 0.2.2, apply the two Runtime updates in order.
 

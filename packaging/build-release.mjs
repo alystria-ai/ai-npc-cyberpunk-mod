@@ -56,6 +56,7 @@ import {packagedKeyText} from './lib/packaged-key.mjs';
 import {copyInto, download, exists, extractZip, inside, posix, readJson, run, sha256Buffer, sha256File, walk, writeText} from './lib/files.mjs';
 import {RUNTIME_PREPARED_FOLDER} from './lib/pack-overlap.mjs';
 import {launcherIni} from './lib/launcher-ini.mjs';
+import {checkPocketSourceList, parsePocketSourceList} from './lib/pocket-source-list.mjs';
 import {DECLARED_REMOVALS, REMOVALS_ENTRY, checkRemovals, removalListText} from './lib/runtime-removals.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -398,6 +399,9 @@ async function runtimePackage(source, config, models, key) {
   for (const rel of pocketFiles) hashed.push({rel, sha: await sha256File(resolve(pocketDir, rel))});
   const tree = sourceDigest(hashed);
   if (tree !== tool.pocketTts.treeSha256) throw Error(`Pocket TTS source hash ${tree} differs from the pinned ${tool.pocketTts.treeSha256}.`);
+  // The worker checks the installed source against the list of these files in bridge/pocket_voice_runtime.py (extra files beside them are ignored);
+  // a list that is not these files would fail every player's voice, so the build stops here instead.
+  checkPocketSourceList(parsePocketSourceList(await readFile(resolve(source.root, 'bridge/pocket_voice_runtime.py'), 'utf8')), hashed);
   for (const rel of pocketFiles) pkg.file(`${app}/pocket-tts/${rel}`, resolve(pocketDir, rel));
   notices.push(`Pocket TTS (Kyutai) ${tool.pocketTts.revision} - ${tool.pocketTts.license}: app/pocket-tts/LICENSE - ${tool.pocketTts.repository}`);
 

@@ -2,13 +2,14 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {existsSync} from 'node:fs';
-import {copyFile, mkdtemp, mkdir, readFile, writeFile, rm, realpath} from 'node:fs/promises';
+import {copyFile, link, mkdtemp, mkdir, readFile, readdir, writeFile, rm, realpath} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {basename, dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {setTimeout as sleep} from 'node:timers/promises';
 import {fakeBridgeSource} from './supervisor-fixture.mjs';
 import {RUNTIME_REQUIRED_FILES} from './runtime-files.mjs';
+import {LAUNCHER_BOOTSTRAP, launcherIniLines} from '../packaging/lib/launcher-ini.mjs';
 
 const supervisorScript = fileURLToPath(new URL('../scripts/Supervise-ConversationBridge.mjs', import.meta.url));
 
@@ -46,7 +47,20 @@ process.stdin.on('data', () => {});
 setInterval(() => {}, 1000);
 `;
 
-async function fakeGame(t, {mod = true, cet = true, ini} = {}) {
+// Stands in for the Runtime's own start script when the launcher runs without a launcher.ini: it records how it was started.
+const builtInStart = `
+import {appendFileSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
+const out = fileURLToPath(new URL('./result.jsonl', import.meta.url));
+appendFileSync(out, JSON.stringify({event: 'started', pid: process.pid, argv: process.argv.slice(2), cwd: process.cwd()}) + '\\n');
+process.stdin.on('end', () => process.exit(0));
+process.stdin.resume();
+setInterval(() => {}, 1000);
+`;
+
+// ini: null writes no launcher.ini. runtime: true gives the plugin folder the Runtime's own node and start script (what the built-in
+// settings run), recording into app/launcher/result.jsonl.
+async function fakeGame(t, {mod = true, cet = true, ini, runtime = false} = {}) {
   const root = await mkdtemp(join(tmpdir(), prefix + 'space dir '));
   const game = join(root, 'Cyberpunk 2077'), x64 = join(game, 'bin', 'x64');
   const plugin = join(game, 'red4ext', 'plugins', 'CyberpunkConvaiLauncher');
@@ -60,19 +74,28 @@ async function fakeGame(t, {mod = true, cet = true, ini} = {}) {
   await writeFile(probePath, probe);
   const values = ini ?? {enabled: '1', program: process.execPath, arg1: probePath, arg2: result,
     arg3: 'C:\\path with space\\', arg4: 'say "hi"', arg5: '%GAME%\\bin', working_directory: root};
-  const text = '[launch]\r\n' + Object.entries(values).map(([key, value]) => `${key}=${value}`).join('\r\n') + '\r\n';
-  await writeFile(join(plugin, 'launcher.ini'), Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, 'utf16le')]));
+  if (ini !== null) {
+    const text = '[launch]\r\n' + Object.entries(values).map(([key, value]) => `${key}=${value}`).join('\r\n') + '\r\n';
+    await writeFile(join(plugin, 'launcher.ini'), Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(text, 'utf16le')]));
+  }
+  let recorded = result;
+  if (runtime) {
+    await mkdir(join(plugin, 'app', 'node'), {recursive: true}); await mkdir(join(plugin, 'app', 'launcher'), {recursive: true});
+    await link(process.execPath, join(plugin, 'app', 'node', 'node.exe')).catch(() => copyFile(process.execPath, join(plugin, 'app', 'node', 'node.exe')));
+    await writeFile(join(plugin, 'app', 'launcher', 'start-service.mjs'), builtInStart);
+    recorded = join(plugin, 'app', 'launcher', 'result.jsonl');
+  }
   const children = [];
   t.after(async () => {
     for (const child of children) if (child.exitCode === null) { try { child.kill(); } catch {} }
-    for (const row of await events(result)) if (row.pid) { try { process.kill(row.pid); } catch {} }
+    for (const row of await events(recorded)) if (row.pid) { try { process.kill(row.pid); } catch {} }
     await sleep(100);
     const target = await realpath(root), base = await realpath(tmpdir());
     assert.equal(dirname(target).toLowerCase(), base.toLowerCase());
     assert(basename(target).startsWith(prefix));
     await rm(target, {recursive: true, force: true, maxRetries: 5, retryDelay: 100});
   });
-  return {root, game, plugin, result, probePath, children, hostResult: join(root, 'host.json'),
+  return {root, game, plugin, result: recorded, probePath, children, hostResult: join(root, 'host.json'),
     status: join(game, ...modRuntime, 'bridge-service.json'), log: join(plugin, 'launcher.log')};
 }
 
@@ -108,7 +131,7 @@ test('the launcher reports a runtime-independent RED4ext plugin and starts the h
       .find(row => row.event === 'started');
     const info = JSON.parse(await readFile(f.hostResult, 'utf8'));
     assert.deepEqual(info, {...info, api: 1, sdk: [0, 5, 0, 0, 0], name: 'CyberpunkConvaiLauncher',
-      author: 'AI NPC Cyberpunk Mod', version: [1, 0, 0, 0, 0], runtime: [65535, 65535, 65535, 65535], load: true});
+      author: 'AI NPC Cyberpunk Mod', version: [1, 0, 1, 0, 0], runtime: [65535, 65535, 65535, 65535], load: true});
     assert.deepEqual(started.argv, ['C:\\path with space\\', 'say "hi"', `${f.game}\\bin`,
       '--game-pid', String(info.pid), '--game-root', f.game, '--lifeline', 'stdin']);
     assert.equal(started.cwd.toLowerCase(), f.root.toLowerCase());
@@ -202,3 +225,59 @@ test('a disabled launcher starts nothing and a missing program is published to t
   assert.equal(status.state, 'failed'); assert.equal(status.code, 'launcher-program-missing');
   assert.equal(status.source, 'launcher');
 });
+
+
+// The built-in settings of the launcher (native/autostart/CyberpunkConvaiLauncher.c DEFAULT_*) are what the shipped launcher.ini says. Not
+// skipped: it reads the C source, so a change to the Runtime's launcher.ini that the launcher does not follow fails here, not at a player.
+test('the launcher\'s built-in settings are the shipped launcher.ini', async () => {
+  const c = (await readFile(fileURLToPath(new URL('../native/autostart/CyberpunkConvaiLauncher.c', import.meta.url)), 'utf8')).replace(/\r\n/g, '\n');
+  // A #define's L"..." pieces: it runs to the first line that does not end in a backslash; C escapes \\ for one backslash.
+  const define = name => {
+    const at = c.indexOf(`#define ${name} `);
+    assert(at >= 0, `${name} is defined`);
+    const lines = [];
+    for (const line of c.slice(at).split('\n')) { lines.push(line); if (!line.trimEnd().endsWith('\\')) break; }
+    return [...lines.join('\n').matchAll(/L"((?:[^"\\]|\\.)*)"/g)].map(part => part[1].replace(/\\\\/g, '\\')).join('');
+  };
+  const shipped = Object.fromEntries(launcherIniLines().filter(line => /^\w+=/.test(line)).map(line => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)]));
+  assert.equal(define('DEFAULT_PROGRAM'), shipped.program);
+  assert.equal(define('DEFAULT_ARG1'), shipped.arg1);
+  assert.equal(define('DEFAULT_ARG2'), shipped.arg2);
+  assert.equal(define('DEFAULT_ARG2'), LAUNCHER_BOOTSTRAP);
+  assert.equal(define('DEFAULT_ARG3'), shipped.arg3);
+  assert.equal(define('DEFAULT_DIRECTORY'), shipped.working_directory);
+  assert.equal(Number(/#define DEFAULT_ARG_COUNT (\d+)/.exec(c)[1]), Object.keys(shipped).filter(key => /^arg\d+$/.test(key)).length);
+});
+
+test('without a launcher.ini, or with one that names no program, the launcher starts the Runtime with the shipped settings',
+  {skip, timeout: 300_000}, async t => {
+    for (const ini of [null, {enabled: '1'}]) {
+      const f = await fakeGame(t, {ini, runtime: true});
+      const host = runHost(f, 60_000);
+      const started = (await until(() => events(f.result), rows => rows.some(row => row.event === 'started'), 'the built-in start did not happen'))
+        .find(row => row.event === 'started');
+      const info = JSON.parse(await readFile(f.hostResult, 'utf8'));
+      assert.deepEqual(started.argv, ['--game-pid', String(info.pid), '--game-root', f.game, '--lifeline', 'stdin']);
+      assert.equal(started.cwd.toLowerCase(), join(f.plugin, 'app').toLowerCase(), 'the working directory is the Runtime\'s app folder');
+      const status = JSON.parse(await readFile(f.status, 'utf8'));
+      assert.equal(status.state, 'starting'); assert.equal(status.code, 'launcher-started');
+      const log = await readFile(f.log, 'utf8');
+      assert.match(log, ini === null ? /launcher\.ini is missing next to the launcher: using the built-in settings/ : /launcher\.ini names no program: using the built-in settings/);
+      assert.doesNotMatch(log, /Not started/);
+      await writeFile(f.hostResult + '.exit', 'exit');
+      assert.equal(await host.exited, 0);
+    }
+  });
+
+test('without a launcher.ini and without the Runtime\'s node the failure is the missing program, never "not configured"; enabled=0 still wins',
+  {skip, timeout: 180_000}, async t => {
+    const bare = await fakeGame(t, {ini: null});
+    assert.equal(await runHost(bare, 300).exited, 0);
+    const status = JSON.parse(await readFile(bare.status, 'utf8'));
+    assert.equal(status.state, 'failed'); assert.equal(status.code, 'launcher-program-missing'); assert.equal(status.source, 'launcher');
+    const disabled = await fakeGame(t, {ini: {enabled: '0'}, runtime: true});
+    assert.equal(await runHost(disabled, 300).exited, 0);
+    assert.match(await readFile(disabled.log, 'utf8'), /disabled in launcher\.ini/);
+    assert.equal(existsSync(disabled.status), false);
+    assert.deepEqual(await events(disabled.result), []);
+  });
