@@ -4573,7 +4573,10 @@ registerForEvent('onUpdate', function(delta)
         -- A player without this mod's phone methods (the scripts did not compile) fails this on every tick, and the failure line
         -- used to be a file write ten times a second: it is retried on every tick as before, and logged once until it succeeds.
         local ok, err = pcall(companions.registerPhoneContacts, player)
-        if ok then
+        -- false: no phone methods at all (the scripts did not compile); the setup check reports it, so stop here quietly.
+        if ok and err == false then
+            phoneCatalogReady = true
+        elseif ok then
             convaiHeartbeat.phoneCatalogFailed = nil
         elseif not convaiHeartbeat.phoneCatalogFailed then
             convaiHeartbeat.phoneCatalogFailed = true

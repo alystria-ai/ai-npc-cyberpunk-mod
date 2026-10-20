@@ -127,12 +127,16 @@ function M.phoneContactKey(contactId)
     return contact.key, nil, contact.name
 end
 
+-- Returns false when this mod's phone methods do not exist (its scripts did not compile, e.g. redscript missing): the setup
+-- check already names that, so it is neither an error nor worth trying again this session.
 function M.registerPhoneContacts(player)
+    if type(player.ConvaiPhoneClearContacts) ~= 'function' then return false end
     player:ConvaiPhoneClearContacts()
     for id, contact in pairs(phoneContacts) do
         local key, reason = M.phoneContactKey(id)
         player:ConvaiPhoneRegisterContact(id, contact.name, key and '' or reason)
     end
+    return true
 end
 
 
