@@ -639,6 +639,15 @@ test('Relationships is a page of its own: a button in Conversations opens it, it
   press('Back to Companion Manager')
 `));
 
+test('the Settings page has no Multilingual conversations row (the setting was removed 2026-10-21): the language is detected per message', () => withScreen(`
+  press('Settings')
+  frames(6)
+  assert(mcm.row('Follow-up questions') ~= nil or mcm.row('Talk to ordinary NPCs') ~= nil or mcm.row('Johnny in your head') ~= nil, 'the Conversations rows are on the page')
+  assert(mcm.row('Multilingual conversations') == nil, 'the row is gone')
+  assert(manager.snapshot(player).settings.multilingualConversations == nil)
+  for key in pairs(mcm.drafts()) do assert(not tostring(key):find('multilingual', 1, true), key) end
+`));
+
 test('Apply of one switch saves exactly that switch: Follow-up questions off is saved off, and the rest stays', () => withScreen(`
   press('Settings')
   frames(6)
@@ -646,7 +655,7 @@ test('Apply of one switch saves exactly that switch: Follow-up questions off is 
   local realApply, seen = core.apply, nil
   core.apply = function(batch) seen = batch; return realApply(batch) end
   local before = manager.snapshot(player).settings
-  assert(before.followUpInterest == true and before.multilingualConversations == false)
+  assert(before.followUpInterest == true and before.multilingualConversations == nil)
   assert(mcm.row('Follow-up questions').value == true)
   assert(mcm.set('Follow-up questions', false))
   assert(mcm.drafts()['cyberpunk-convai:manager:followUpInterest'] == false, 'the draft is on that row')
@@ -657,7 +666,7 @@ test('Apply of one switch saves exactly that switch: Follow-up questions off is 
   assert(saved.followUpInterest == false, 'saved: ' .. tostring(saved.followUpInterest))
   assert(manager.snapshot(player).settings.followUpInterest == false)
   assert(mcm.row('Follow-up questions').value == false, 'the page shows what is saved')
-  assert(saved.multilingualConversations == false and saved.subtitles == true, 'the other switches did not move')
+  assert(saved.multilingualConversations == nil and saved.subtitles == true, 'the other switches did not move')
   -- And back on.
   core.apply = realApply
   assert(mcm.set('Follow-up questions', true) and mcm.apply())
@@ -667,7 +676,7 @@ test('Apply of one switch saves exactly that switch: Follow-up questions off is 
   frames(4)
   assert(mcm.set('Follow-up questions', false) and mcm.apply())
   frames(6)
-  assert(saved.followUpInterest == false and saved.multilingualConversations == false)
+  assert(saved.followUpInterest == false and saved.multilingualConversations == nil)
 `));
 
 test('the list keeps its place after Apply and after a reload of the page, leaves a later scroll alone, and starts at the top on another page', () => withScreen(`

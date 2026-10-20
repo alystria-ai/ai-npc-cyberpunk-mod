@@ -89,7 +89,6 @@ if (!off) followUp.update({followUpInterest: true});
 const speech = new NaturalSpeech(), emotions = new ExpressiveEmotions(), multilingual = new MultilingualConversations();
 if (others.includes('natural')) speech.update({naturalSpeech: true});
 if (others.includes('emotions')) emotions.update({expressiveEmotions: true});
-if (others.includes('multilingual')) multilingual.update({multilingualConversations: true});
 const host = new RealtimeHost();
 
 const words = text => (text.match(/[\p{L}\p{N}'’-]+/gu) ?? []).length;

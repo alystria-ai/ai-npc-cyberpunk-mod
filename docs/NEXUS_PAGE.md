@@ -72,7 +72,7 @@ The game itself uses most of the card: roughly 6 to 7 GB at 1080p, 9 to 10 GB at
 [*][b]World rules.[/b] Write rules for the whole of Night City on the editor's World rules page, for example "nobody knows V's name unless V says it", and every character follows them from the next reply, on every provider.
 [*][b]Voice clips.[/b] Give a character a new voice from a 5 to 20 second recording. It applies without a restart.
 [*][b]Bring your own AI.[/b] The Custom provider works with OpenRouter, Nano-GPT, Ollama, LM Studio or any OpenAI-compatible service, and Local AI can run your own model files (see below).
-[*][b]Any language.[/b] Menus in sixteen languages, a Multilingual setting to talk in any language, and microphone packs for European and Asian languages.
+[*][b]Any language.[/b] Menus in sixteen languages, characters that answer in the language you write in, and microphone packs for European and Asian languages.
 [/list][b]Light on your game[/b][list]
 [*]The heavy work runs in a separate background service, not inside the game, and the default setup uses no video memory.
 [*]Unused models unload on their own, and Local AI steps down to a lighter model when the game needs the memory.
@@ -148,7 +148,7 @@ When something in the mod fails, or replies stay slow, a short report goes to th
 [/list]
 
 [b]What languages can I use?[/b]
-Menus come in sixteen languages. Turn on Multilingual conversations to talk in any language. Pocket and Voxtral speak English only, so those replies use OmniVoice, or Convai's cloud voice without the pack (the game tells you when it switches your voice for this). A voice that cannot speak a reply shows it as text, never in a cloud voice you did not choose. The Convai microphone expects English, so type in other languages. With Mistral the microphone understands other languages too; with Local AI or a Custom endpoint, the optional Microphone packs add ten European languages, Mandarin Chinese, Japanese and Korean.
+Menus come in sixteen languages. Characters answer in the language you write in, automatically; there is nothing to switch on. Pocket speaks English only, so a reply in another language is shown as text, with a one-time notice. OmniVoice speaks every language, and Voxtral the 22 languages Mistral lists for it. The Convai microphone expects English, so type in other languages. With Mistral the microphone understands other languages too; with Local AI or a Custom endpoint, the optional Microphone packs add ten European languages, Mandarin Chinese, Japanese and Korean.
 
 [b]The Companion Manager doesn't show up.[/b]
 Press your manager key (stand up first if V is sitting), or press Esc, then Mods, and choose Companion Manager (in Native Settings UI, the AI NPC Cyberpunk Mod tab). No Mods entry in the pause menu? Install or update Mod Configuration Menu (0.10.5 or newer) or Native Settings UI.

@@ -159,7 +159,7 @@ boundary applies the latest native state and committed settings.
 Optional `runtime/multilingual-profiles.json` adds the Multilingual twin of a
 profile (see [MULTILINGUAL_PROFILES.md](MULTILINGUAL_PROFILES.md)). Those are the
 only two provider IDs a character can have, and the Auto / On / Off choice never
-moves a conversation between them: only the Multilingual conversations setting
+moves a conversation between them: only the language of the player's message
 does. Visible settings, actor copies, phone Chat, local voice references and
 knowledge audiences all use the canonical key.
 
@@ -238,17 +238,17 @@ memory-building message and does not create a new player ID.
 ## Invitations and routing ownership
 
 Invitation preparation captures the exact provider ID (the profile, or its twin
-when Multilingual conversations is on) before verifying memory. Canonical local
+when the player's language calls for it) before verifying memory. Canonical local
 voice conditioning and the matching socket must be ready before actor creation.
 Because the Auto / On / Off choice does not change the provider ID, changing it
 during a pending invitation no longer replaces or restarts anything; only a
-Multilingual change does. Already-spawned copies are never recreated by a style
+language switch does. Already-spawned copies are never recreated by a style
 change.
 
 Each admitted turn owns its selected ID, its frozen style and its memory/reset
 guard. Changing settings cannot redirect its send or rewrite its block. Phone
 session lookup uses the prepared selected ID. World/session partitions include the
-actual provider ID. Only a Multilingual change retires idle routes (a style change
+actual provider ID. Only a language switch retires idle routes (a style change
 retires nothing); a completed request's retained old-ID focus is withdrawn first.
 
 The existing memory-clear quiesce currently retires all live transports even

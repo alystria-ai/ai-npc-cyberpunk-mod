@@ -127,7 +127,7 @@ export function selectRelationshipProfile({profileKey, mode = 'auto', snapshot, 
   // Auto is affectionate only when a fresh capture of this world confirms the relationship. Without a fresh capture Auto is
   // ordinary for this turn (the conversation is never blocked on it), and the next turn follows the capture once it arrives.
   const romantic = !!rule && (mode === 'on' || mode === 'auto' && current && confirmed(profileKey, observed));
-  // Multilingual conversations: the twin of the profile. A profile without a usable twin keeps its original (English-only) profile.
+  // A turn in another language: the twin of the profile. A profile without a usable twin keeps its original (English-only) profile.
   const twinKey = multilingual === true ? registry.multilingual?.[profileKey] : undefined;
   const providerProfileKey = twinKey ?? profileKey;
   // Style and history are separate. On is never evidence, and Off does not erase a real event. Capture only this speaker's
@@ -152,7 +152,6 @@ export class RelationshipRouting {
     // Provider key -> the key in its ownership marker (only twins differ).
     this.markerKeys = this.registry.markerKeys;
     this.now = now; this.modes = relationshipModes(); this.snapshot = null; this.revision = 0;
-    this.multilingual = false;
     this.pending = null; this.changes = new Set(); this.fingerprints = new Map();
     // Every character whose provider can change: those with a twin. A style change (Auto/On/Off, a save fact) never changes
     // the provider, so it needs no connection retirement.
@@ -161,14 +160,11 @@ export class RelationshipRouting {
   update(settings, rawSnapshot, {boundary, busy = false} = {}) {
     const modes = settings === undefined ? this.pending?.modes ?? this.modes : relationshipModes(settings?.relationshipModes);
     if (!modes) return false;
-    // Multilingual conversations commits at the same idle boundary as the relationship modes.
-    const multilingual = settings === undefined ? this.pending?.multilingual ?? this.multilingual
-      : settings?.multilingualConversations === true;
     // An empty file is the shipped placeholder (nothing published yet): the same as a missing one.
     const snapshot = rawSnapshot === undefined || rawSnapshot === '' ? this.pending?.snapshot ?? this.snapshot : parseRelationshipState(rawSnapshot);
-    this.pending = {modes, snapshot, multilingual};
+    this.pending = {modes, snapshot};
     if (busy) return false;
-    this.modes = modes; this.snapshot = snapshot; this.multilingual = multilingual; this.pending = null;
+    this.modes = modes; this.snapshot = snapshot; this.pending = null;
     let changed = false;
     for (const profileKey of this.routedProfiles) {
       const selected = this.select(profileKey, boundary);
@@ -180,7 +176,8 @@ export class RelationshipRouting {
     if (changed) this.revision++;
     return changed;
   }
-  select(profileKey, boundary) {
+  /** `multilingual`: this turn goes to the character's multilingual twin (when it has a usable one). It is decided per turn, from the message (bridge/multilingual.mjs wantsTwin), so no connection is retired when the language changes. */
+  select(profileKey, boundary, {multilingual = false} = {}) {
     // Fresh heartbeats during a long voice/microphone/group turn keep its
     // already committed choice usable. New decisions/modes remain pending;
     // a different world can never extend the old evidence's lease.
@@ -188,7 +185,7 @@ export class RelationshipRouting {
       && fresh(this.pending.snapshot, boundary, this.now())
       ? {...this.snapshot, capturedAt: this.pending.snapshot.capturedAt} : this.snapshot;
     return selectRelationshipProfile({profileKey, mode: this.modes[profileKey] ?? 'auto', snapshot: retained,
-      boundary, now: this.now(), registry: this.registry, multilingual: this.multilingual});
+      boundary, now: this.now(), registry: this.registry, multilingual: multilingual === true});
   }
   consumeRouteChanges() { const keys = [...this.changes]; this.changes.clear(); return keys; }
   /** What the next admitted turn of each supported character would use. Names
@@ -215,7 +212,10 @@ export class RelationshipRouting {
   guardSelected(profileKey, guard, boundary) {
     try {
       const selected = this.select(profileKey, boundary);
-      return selected.status === 'ready' && selected.characterId === guard?.characterId;
+      // A guard taken on the character's twin (a turn in another language) is as current as one taken on the original.
+      const twin = this.registry.multilingual?.[profileKey];
+      return selected.status === 'ready' && (selected.characterId === guard?.characterId
+        || twin !== undefined && this.registry.providerIds[twin] === guard?.characterId);
     } catch { return false; }
   }
   /** Canonical invitation interface; all later preparation uses the captured

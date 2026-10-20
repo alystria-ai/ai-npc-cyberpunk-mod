@@ -218,7 +218,6 @@ async function collectChoices({runtime, gameInfo = {}}) {
     localAi: word(state.localAi),
     // Mature content is reported as on or off, nothing more.
     matureContent: settings.matureContent === true,
-    multilingual: settings.multilingualConversations === true,
     language: word(settings.uiLanguage) ?? gameInfo.language,
   };
 }
