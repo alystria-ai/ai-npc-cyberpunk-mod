@@ -586,6 +586,7 @@ return {
     ["Pocket voice is ready."] = "Голос Pocket готов.",
     ["Pocket voice"] = "Голос Pocket",
     ["The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it."] = "Голос Pocket (голос V и голос спутника, если вы выбрали Pocket) не смог запуститься, поэтому он молчит. Pocket входит в состав Runtime, так что ничего больше устанавливать не нужно. Перезапустите игру. Если это повторится, создайте отчёт кнопкой «Сформировать отчёт» в справке и отправьте его.",
+    ["Windows blocked a file that the Pocket voice needs (Smart App Control or an Application Control policy), so Pocket cannot run on this PC. Choose another voice in Settings, such as OmniVoice or a cloud voice."] = "Windows заблокировала файл, который нужен голосу Pocket (Smart App Control или политика Application Control), поэтому Pocket не может работать на этом компьютере. Выбери в настройках другой голос, например OmniVoice или облачный голос.",
     ["Pocket could not load. See Help in Settings."] = "Не удалось загрузить Pocket. См. Справку в Настройках.",
     ["Local AI is warming up…"] = "Local AI подготавливается…",
     ["Local AI is ready."] = "Local AI готов.",

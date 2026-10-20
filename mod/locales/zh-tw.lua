@@ -586,6 +586,7 @@ return {
     ["Pocket voice is ready."] = "Pocket 語音已就緒。",
     ["Pocket voice"] = "Pocket 語音",
     ["The Pocket voice (V’s voice, and a companion’s when you chose Pocket) could not start, so it stays silent. Pocket is part of the Runtime: nothing else needs installing. Restart the game. If it happens again, generate a report below and send it."] = "Pocket 語音（V 的聲音，以及你選擇 Pocket 時夥伴的聲音）無法啟動，因此保持靜音。Pocket 是 Runtime 的一部分，無需安裝其他任何東西。請重新啟動遊戲。如果再次發生，請使用說明中的「產生報告」按鈕產生報告並傳送。",
+    ["Windows blocked a file that the Pocket voice needs (Smart App Control or an Application Control policy), so Pocket cannot run on this PC. Choose another voice in Settings, such as OmniVoice or a cloud voice."] = "Windows 封鎖了 Pocket 語音所需的一個檔案（Smart App Control 或 Application Control 原則），因此 Pocket 無法在這台電腦上執行。請在設定中選擇其他語音，例如 OmniVoice 或雲端語音。",
     ["Pocket could not load. See Help in Settings."] = "Pocket 無法載入。請在設定中查看說明。",
     ["Local AI is warming up…"] = "Local AI 預熱中…",
     ["Local AI is ready."] = "Local AI 已就緒。",
