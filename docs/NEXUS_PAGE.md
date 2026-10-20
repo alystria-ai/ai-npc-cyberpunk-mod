@@ -8,19 +8,33 @@
 [youtube]7hoYG5tmZ98[/youtube]
 
 [size=4][b]Recommended settings[/b][/size]
+Pick one in Companion Manager > Settings > Conversation provider.
 [b]1. Cloud: the best option[/b] (fastest replies, light on your PC, no extra downloads)
 [list]
-[*][b]Convai (best):[/b] already set up for text, nothing to do. It is the most complete: characters act on what you ask and see where you are. The free tier gives 100 turns a day; Convai's paid plans give more.
-[*][b]Mistral (second choice):[/b] if you want more free turns, make a free [url=https://console.mistral.ai]Mistral[/url] account, create an API key, and in Companion Manager > Settings > Conversation provider choose [b]Mistral[/b] and paste it (about 5,000 turns a day).
-[*][b]Voice:[/b] with a Mistral key, choose [b]Voxtral[/b] in Settings > Voices > Companion voices for voices closest to the characters.
+[*][b]Convai (best):[/b] already set up, nothing to do. It is the most complete: characters act on what you ask and see where you are. The free tier gives 100 turns a day and Settings shows how many are left; Convai's paid plans give more (their plan page is in the Convai settings).
+[*][b]Mistral (second choice):[/b] for more free turns, make a free [url=https://console.mistral.ai]Mistral[/url] account (phone verification), create an API key, choose [b]Mistral[/b] and paste the key once: about 5,000 turns a day.
+[*][b]Voice:[/b] Pocket TTS (the default) runs on your processor with no limit. With a Mistral key, choose [b]Voxtral[/b] in Settings > Voices > Companion voices for voices closest to the characters.
 [/list]
-[b]2. Local: no internet, no account[/b]
+[b]2. Local: no internet, no account, no limit[/b]
 [list]
-[*]Install a Local AI pack from Hugging Face: [b]Local AI standard[/b], or [b]Local AI lite[/b] for smaller graphics cards.
-[*]Settings > Conversation provider: choose [b]Local AI[/b].
-[*]Voice: [b]Pocket[/b] (already in the Runtime), or [b]OmniVoice[/b] with its pack on an NVIDIA card with 8 GB of video memory or more.
-[*]It shares your graphics card with the game, so it is slower than the cloud on most PCs.
+[*]Install a Local AI pack (see Optional packs): [b]Local AI standard[/b], or [b]Local AI lite[/b] for smaller graphics cards. A Mature pack works too.
+[*]Choose [b]Local AI[/b]. With only a Mature pack, also turn on [b]Mature content[/b].
+[*]Voice: [b]Pocket[/b] (already in the Runtime, English), or [b]OmniVoice[/b] with its pack on an NVIDIA card with 8 GB of video memory or more, for voices that sound like the game characters and for other languages.
+[*]It runs on your graphics card (Vulkan, NVIDIA or AMD), needs at least 16 GB of system memory and shares the card with the game, so it is slower than the cloud on most PCs.
+[*]Fully offline: if Windows asks whether Node.js may use the network, you can decline, and turn off [b]Settings > Privacy > Send error reports automatically[/b].
 [/list]
+
+[size=4][b]How much video memory?[/b][/size]
+What each voice + text pair adds on top of the game:
+[list]
+[*]Pocket or Voxtral voice + Convai or Mistral: [b]0 GB[/b] (the default)
+[*]Pocket voice + Local AI lite: about 1.8 GB
+[*]Pocket voice + Local AI standard: about 3.1 GB (needs about 6 GB free to start)
+[*]OmniVoice + Convai or Mistral: about 2 GB (up to 4 GB)
+[*]OmniVoice + Local AI lite: about 3.9 GB (up to 5.9 GB)
+[*]OmniVoice + Local AI standard: about 5.2 GB (up to 7.3 GB)
+[/list]
+Measured on a 12 GB RTX 4080 Laptop. If your card runs short, the mod steps down by itself (standard to lite, then lite to cloud text), and you can change either choice in Settings at any time.
 
 [size=4][b]Key features[/b][/size]
 [list]
@@ -37,7 +51,7 @@
 [*][b]They know the moment.[/b] They continue from the game's own dialogue and know your quest, your clothes and what you carry. With Convai they also see a fresh glimpse of the game window, so they can talk about where you are (the picture is never saved).
 [*][b]They remember you.[/b] Conversations stay with a character across saves, and Judy, Panam, River, Kerry and Meredith know where things stand with V. Make characters forget, edit any character's bio, speaking style and memories in your browser, or make a character of your own for someone who has no profile (Mistral or Local AI).
 [*][b]Voices that sound like them.[/b] Pocket TTS (the default) runs on your processor with no setup. OmniVoice, for NVIDIA cards, can laugh and sigh. Voxtral makes each voice in the cloud with a free Mistral key. Optional natural speech adds pauses and hesitations.
-[*][b]Free three ways, light on your game, any language.[/b] Local AI, Mistral or the Convai free tier (see How it runs). The heavy work runs in a separate background service, and unused models unload on their own. Menus in sixteen languages, plus a Multilingual setting to talk in any language.
+[*][b]Free three ways, light on your game, any language.[/b] Local AI, Mistral or the Convai free tier (see Recommended settings). The heavy work runs in a separate background service, and unused models unload on their own. Menus in sixteen languages, plus a Multilingual setting to talk in any language.
 [/list]
 
 [size=4][b]Requirements[/b][/size]
@@ -58,7 +72,7 @@
 [*]Start the game. The first start takes a little longer while the voice service prepares itself.
 [*]Open Cyber Engine Tweaks' [b]Bindings[/b] and give a key to each AI NPC Cyberpunk Mod action: talk by text, talk by voice, Group Chat and the companion manager. The mod never sets keys for you.
 [/list]
-Updating from 0.2.2: download the Scripts and the small [b]Runtime update[/b] (AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.2-to-0.2.3.zip, about 22 MB) instead of the full Runtime, and extract both over your install. Choose Replace if Windows asks. Your settings and memories are kept. The optional packs (OmniVoice, Local AI, Mature) have not changed since 0.2.1, so if you already have them you don't need to download them again. On an older version, or not sure? Use the full Runtime.
+Updating from 0.2.2: download the Scripts and the small [b]Runtime update[/b] (AI-NPC-Cyberpunk-Mod-Runtime-Update-0.2.2-to-0.2.3.zip, about 23 MB) instead of the full Runtime, and extract both over your install. Choose Replace if Windows asks. Your settings and memories are kept. The optional packs (OmniVoice, Local AI, Mature) have not changed since 0.2.1, so if you already have them you don't need to download them again. On an older version, or not sure? Use the full Runtime.
 
 [size=4][b]What companions can do[/b][/size]
 Invite someone from Companion Manager > Characters to invite. Party members follow you everywhere, sit with you when you sit (couches, benches, bar stools), ride along in your car and fight with you. A few things you just ask for in conversation, in your own words:
@@ -68,27 +82,6 @@ Invite someone from Companion Manager > Characters to invite. Party members foll
 [*][b]Leave:[/b] tell them to go home or leave the party, or use Dismiss in Companion Manager > Current party.
 [/list]
 They can't wait, stay or sit on command yet.
-
-[size=4][b]How it runs[/b][/size]
-Three ways, all free. Pick one in Companion Manager > Settings > Conversation provider.
-[list]
-[*][b]Convai free tier (the default):[/b] nothing to set up. 100 turns a day, and Settings shows how many are left. Convai's paid plans give more turns; their plan page is in the Convai settings.
-[*][b]Mistral:[/b] make a free Mistral account (phone verification), paste its key once, and get about 5,000 turns a day with the fastest cloud replies. The same key unlocks the Voxtral voice.
-[*][b]Local AI:[/b] fully on your PC with a Local AI pack. No account, no key, no internet, no limit. Runs on your graphics card (Vulkan, NVIDIA or AMD) and needs at least 16 GB of system memory.
-[/list]
-Voices: Pocket TTS runs on your processor and never counts against a limit, Voxtral needs a Mistral key, and OmniVoice needs an NVIDIA card and its optional pack.
-
-[size=4][b]How much video memory?[/b][/size]
-What each voice + text pair adds on top of the game:
-[list]
-[*]Pocket or Voxtral voice + Convai or Mistral: [b]0 GB[/b] (the default)
-[*]Pocket voice + Local AI lite: about 1.8 GB
-[*]Pocket voice + Local AI standard: about 3.1 GB (needs about 6 GB free to start)
-[*]OmniVoice + Convai or Mistral: about 2 GB (up to 4 GB)
-[*]OmniVoice + Local AI lite: about 3.9 GB (up to 5.9 GB)
-[*]OmniVoice + Local AI standard: about 5.2 GB (up to 7.3 GB)
-[/list]
-Measured on a 12 GB RTX 4080 Laptop. If your card runs short, the mod steps down by itself (standard to lite, then lite to cloud text), and you can change either choice in Settings at any time.
 
 [size=4][b]Optional packs[/b][/size]
 All on the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-packs/tree/main/0.2.3]Hugging Face page (0.2.3 folder)[/url]. Each is one zip that works on its own; install none, some or all, the same way as the Runtime.
@@ -101,15 +94,6 @@ All on the same [url=https://huggingface.co/alystria-ai/ai-npc-cyberpunk-mod-pac
 [*][b]Microphone, Asian languages[/b] (about 0.24 GB, new in 0.2.3): the same for Mandarin Chinese, Japanese and Korean.
 [/list]
 With Mistral you need neither Microphone pack: Mistral understands other languages by itself. English never needs one.
-
-[size=4][b]Fully local setup (no internet, no account)[/b][/size]
-[list=1]
-[*]Install the Scripts and Runtime, plus one Local AI pack (or a Mature pack).
-[*]Companion Manager > Settings > Conversation provider: choose [b]Local AI[/b]. With only a Mature pack, also turn on [b]Mature content[/b].
-[*]Local AI speaks with Pocket TTS, already in the Runtime (English). For voices that sound like the game characters, and for other languages, add the OmniVoice pack and choose it in Settings > Voices.
-[*]If Windows asks whether Node.js may use the network, you can decline: Local AI and the local voices only talk inside your PC.
-[*]For no network traffic at all, also turn off [b]Settings > Privacy > Send error reports automatically[/b].
-[/list]
 
 [size=4][b]Use your own AI model or model server[/b][/size]
 Already run AI models on your PC? Local AI can use them. Create a text file named [b]manifest.custom.json[/b] (check it does not end in .txt) in %LOCALAPPDATA%\AiNpcCyberpunkMod\local-ai\ (paste that into the Explorer address bar and make the local-ai folder if it is not there). It is outside the game folder, so it survives reinstalls and mod managers. The older place, Cyberpunk 2077\red4ext\plugins\AiNpcCyberpunkMod\app\local-ai\, still works and both are read, but a clean reinstall deletes it: to keep a setup you made there, copy its custom folder and manifest.custom.json into the %LOCALAPPDATA% folder.
@@ -153,10 +137,10 @@ Menus come in sixteen languages. Turn on Multilingual conversations to talk in a
 
 [size=4][b]Troubleshooting[/b][/size]
 [b]The Companion Manager doesn't show up.[/b]
-Press your manager key, or press Esc, then Mods, and choose Companion Manager (in Native Settings UI, the AI NPC Cyberpunk Mod tab). No Mods entry in the pause menu? Install or update Mod Configuration Menu (0.10.5 or newer) or Native Settings UI.
+Press your manager key (stand up first if V is sitting), or press Esc, then Mods, and choose Companion Manager (in Native Settings UI, the AI NPC Cyberpunk Mod tab). No Mods entry in the pause menu? Install or update Mod Configuration Menu (0.10.5 or newer) or Native Settings UI.
 
 [b]Settings says it needs a browser, or the service does not start.[/b]
-Install or repair Microsoft Edge (free from [url=https://www.microsoft.com/edge]microsoft.com/edge[/url]) or install Google Chrome, then restart the game. Some Windows tweak tools remove Edge.
+Install or repair Microsoft Edge (free from [url=https://www.microsoft.com/edge]microsoft.com/edge[/url]) or install Google Chrome, then restart the game. Some Windows tweak tools remove Edge. Browser installed somewhere unusual? Make a file named [b]browser.txt[/b] next to launcher.ini (red4extpluginsAiNpcCyberpunkMod) with the path to its exe on one line.
 
 [b]Settings says "No model installed" for Local AI.[/b]
 The pack was probably extracted into an extra folder named after the zip. Extract it again into the Cyberpunk 2077 folder itself (the mod also moves misplaced packs into place at the next start). With only a Mature pack, turn on Mature content in Settings > Conversation provider.
