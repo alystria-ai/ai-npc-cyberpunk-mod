@@ -132,7 +132,7 @@ const reviewed = {
     'Convai voice', 'On', 'Off', 'OmniVoice · Balanced', 'OmniVoice · Quality', 'OmniVoice · High Quality', 'OmniVoice · Ultra Quality',
   ],
   'page.memory': [
-    'Choose a character', 'Unavailable', 'Memories can be managed here.',
+    'Choose a character', 'Unselect', 'Unavailable', 'Memories can be managed here.',
     'Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.',
     'Choose a character before clearing their memories about you.',
     'Your player identity stays the same. Matching Phone Chat messages and drafts are also cleared.',

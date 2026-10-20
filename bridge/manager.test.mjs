@@ -1807,13 +1807,74 @@ test('native Memory submenu has consistent parent navigation and preserves an un
     assert(row('memory:select:person-20') and row('memory:select:person-20').value == 'Choose' and not row('memory:select:person-01'))
     assert(invoke('memory:select:person-20').ok)
     assert(managerUi.inspect().view == 'memory' and row('memory-selected').value == 'Person 20')
-    assert(row('memory:select:person-20').value == 'Selected')
+    assert(row('memory:select:person-20').value == 'Unselect')
     assert(invoke('memory:forget-character').ok)
     local confirmation = token()
     assert(invoke('memory:settings').ok and managerUi.inspect().view == 'settings')
     assert(invoke('memory').ok and token() == confirmation and row('memory-confirmation'))
     assert(invoke('memory:cancel:' .. confirmation).ok and memoryWrites() == 0)
     assert(#members == 0 and #spawned == 0)
+  `);
+});
+
+test('Memory: pressing the chosen character again unchooses it, the button says so, and a confirmed forget clears the choice', () => {
+  run(`${nsuiFixture}${memoryFixture}
+    publishMemory(2, {{profileKey = 'johnny-silverhand'}, {profileKey = 'person-20'}})
+    openMemory()
+    local function choiceRows()
+      local chosen, unchosen = 0, 0
+      for _, category in ipairs(loaded.categories) do
+        for _, value in ipairs(category.settings) do
+          if tostring(value.id):find('^memory:select:') then
+            if value.value == 'Unselect' then chosen = chosen + 1 elseif value.value == 'Choose' then unchosen = unchosen + 1 end
+          end
+        end
+      end
+      return chosen, unchosen
+    end
+    local chosen, unchosen = choiceRows()
+    assert(chosen == 0 and unchosen == 12, 'nothing is chosen at first')
+    local before = managerUi.inspect().page
+    -- Choose one, then another: only the second shows as chosen (a single choice), never two.
+    assert(invoke('memory:select:johnny-silverhand').ok)
+    chosen = choiceRows()
+    assert(chosen == 1 and row('memory:select:johnny-silverhand').value == 'Unselect' and row('memory-selected').value == 'Johnny Silverhand')
+    assert(core.setUi('ui:page', 2)); loaded = registered.loadMod('manager')
+    assert(invoke('memory:select:person-20').ok)
+    chosen = choiceRows()
+    assert(chosen == 1 and row('memory:select:person-20').value == 'Unselect' and row('memory-selected').value == 'Person 20')
+    assert(core.setUi('ui:page', 1)); loaded = registered.loadMod('manager')
+    assert(row('memory:select:johnny-silverhand').value == 'Choose', 'the earlier choice is not still drawn as chosen')
+    -- Pressing the chosen one again unchooses it: the button, the Selected character line and the Forget button follow at once.
+    assert(core.setUi('ui:page', 2)); loaded = registered.loadMod('manager')
+    local unselected = invoke('memory:select:person-20')
+    assert(unselected.ok and row('memory:select:person-20').value == 'Choose')
+    assert(row('memory-selected').value == 'Choose a character' and row('memory:forget-character').disabled)
+    assert(manager.snapshot(player).memory.selectedKey == nil)
+    assert(managerUi.inspect().shown == 'Person 20 unselected.', 'the line under the way back says what happened: ' .. tostring(managerUi.inspect().shown))
+    -- Unchoosing drops a review that was waiting for Confirm, and nothing was sent.
+    assert(invoke('memory:select:person-20').ok and invoke('memory:forget-character').ok and row('memory-confirmation'))
+    assert(invoke('memory:select:person-20').ok and not row('memory-confirmation') and memoryWrites() == 0)
+    assert(row('memory:forget-character').disabled)
+    -- The choice survives leaving the page and coming back (the page says so: "Your selection is unchanged").
+    assert(invoke('memory:select:person-20').ok)
+    assert(invoke('memory:settings').ok and invoke('memory').ok)
+    assert(row('memory-selected').value == 'Person 20')
+    -- A confirmed forget clears the choice once the service reports it done; a failed one keeps it.
+    reloadMemory(); assert(invoke('memory:forget-character').ok and invoke('memory:confirm:' .. token()).ok)
+    local command = memoryRequest()
+    assert(reloadMemory().selectedKey == 'person-20', 'the choice stays while the clear is pending')
+    publishMemory(2, nil, 'ready', memoryResult(command, 'failed'))
+    assert(reloadMemory().selectedKey == 'person-20' and reloadMemory().command.state == 'failed', 'a failed clear keeps the choice')
+    -- Forget again from the kept choice; this time the service confirms it.
+    publishMemory(2, nil)
+    reloadMemory(); assert(invoke('memory:forget-character').ok and invoke('memory:confirm:' .. token()).ok)
+    command = memoryRequest()
+    publishMemory(2, nil, 'ready', memoryResult(command, 'succeeded'))
+    local after = reloadMemory()
+    assert(after.command.state == 'succeeded' and after.selectedKey == nil, 'a confirmed forget clears the choice')
+    assert(row('memory-selected').value == 'Choose a character' and row('memory:forget-character').disabled)
+    assert(row('memory-feedback').value:find('confirmed for Person 20', 1, true))
   `);
 });
 

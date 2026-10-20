@@ -511,6 +511,43 @@ test('every page the manager can show is drawn in one style: buttons are buttons
   go('Current party'); check('party with copies')
 `));
 
+test('Memory page: choosing a character is a toggle, one at a time; every press draws the list again with the right button text, and nothing runs per frame', () => withScreen(`
+  ${footer}
+  press('Settings'); press('Memory')
+  local function names()
+    local list, chosen = {}, {}
+    local inList = false
+    for _, row in ipairs(mcm.layout().rows) do
+      if row.kind == 'heading' then inList = tostring(row.label):find('^Whose memories') ~= nil
+      elseif inList and row.kind == 'action' then
+        list[#list + 1] = row.label
+        if row.buttonText == 'Unselect' then chosen[#chosen + 1] = row.label end
+      end
+    end
+    return list, chosen
+  end
+  local list, chosen = names()
+  assert(#list >= 2 and #chosen == 0, 'a list of characters, none chosen')
+  local first, second = list[1], list[2]
+  press(first)
+  list, chosen = names()
+  assert(#chosen == 1 and chosen[1] == first, 'the pressed row says Unselect: ' .. table.concat(chosen, ','))
+  -- Another one: the first goes back to Choose in the same redraw (never two rows chosen).
+  press(second)
+  list, chosen = names()
+  assert(#chosen == 1 and chosen[1] == second, 'only the second is chosen: ' .. table.concat(chosen, ','))
+  -- Pressing the chosen one again unchooses it.
+  press(second)
+  list, chosen = names()
+  assert(#chosen == 0, 'nothing is chosen after the second press: ' .. table.concat(chosen, ','))
+  assert(manager.snapshot(player).memory.selectedKey == nil)
+  -- The redraw is on the press only: frames without a press draw nothing again.
+  frames(30)
+  local loads = mcm.loads
+  frames(30)
+  assert(mcm.loads == loads, 'the page was drawn again without a press')
+`));
+
 test('no row is ever drawn as changed (purple): MCM needs a default for that mark, and none is given', () => withScreen(`
   ${footer}
   press('Settings')
