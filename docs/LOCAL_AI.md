@@ -784,6 +784,17 @@ What happens now (`bridge/local-server-recovery.mjs`, `LocalLlmServer.recover()`
 - Live check owed: with Local AI on, end `llama-server.exe` in Task Manager right as a reply starts (or before the next turn): the turn is answered after a pause, the log says
   `stopped unexpectedly` or `stopped answering` and `was started again; asking once more`, and the game shows the restart notice once.
 
+#### A lost graphics device (2026-10-20: an RX 580 8 GB failed seven turns in a row)
+
+`decode() failed: vk::Queue::submit: ErrorDeviceLost` (Vulkan: a driver reset, the game taking the card) leaves llama-server alive and its `/health` answering, so
+`recover()` called it fine and every later turn failed 50 to 100 ms after it began, until the process finally crashed. Now a request that fails with those words
+(`ErrorDeviceLost`, `device lost`, `VK_ERROR_DEVICE_LOST`, in the error's text or in the server's own log tail) goes to `LocalLlmServer.noteDeviceLost` without the health check:
+the first loss of a session ends llama-server and starts it again (after `deviceLostPauseMs`, 2 s, so the driver has reset the device); the turn is asked once more on the new server and
+the player gets the usual `local-restarted` notice. The second loss steps down one model size through the same path as stalled turns (`model-stepdown` and its notice; the cloud text
+provider when no smaller model is installed; the count starts again for the smaller model). A model the player added is only restarted, and after two more losses Local AI is marked
+failed (`crashed`) instead of restarting for ever. One process counts once. A loss on the retry is noted at once, so the step happens now, not at the next turn's failure.
+Tests: `bridge/local-llm-server.test.mjs` and `bridge/local-server-recovery.test.mjs` (the fake llama-server's `FAKE_LLAMA_DEVICE_LOST_FROM`).
+
 ### Stalled turns step down (2026-10-20: "the mod steps down by itself" did not, on an 8 GB card)
 
 **Why it did not.** The only step-down there was happened when a model was loaded: `chooseLocalModel` takes the largest model that fits the free

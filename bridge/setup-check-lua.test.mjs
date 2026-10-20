@@ -176,7 +176,7 @@ test('the conversation service: no trace, an incomplete Runtime, a failed start,
     advance(1); put('runtime/bridge-service.json', {version = 1, state = 'failed', code = code, updated = ms()})
     check.run()
     local line = check.serviceLine()
-    assert(line and line.value == 'Not running' and line.description == 'The Runtime is incomplete (' .. code .. '). Download it again and extract it into the Cyberpunk 2077 folder, then restart the game.', code)
+    assert(line and line.value == 'Not running' and line.description == 'The Runtime is incomplete (' .. code .. '). Download it again and extract it into the Cyberpunk 2077 folder (or apply the Runtime update zips in order), then restart the game.', code)
     assert(#check.problems() == 0, 'a failed service has its own notice (service-down), the first-load notice leaves it alone')
     assert(check.problemCount() == 1, 'but it counts on the page')
   end

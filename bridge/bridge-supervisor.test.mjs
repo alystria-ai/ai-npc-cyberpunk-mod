@@ -320,6 +320,25 @@ test('a bridge that dies on a package or file of its own that is not there is "i
   run.endGame(); await run.done;
 });
 
+test('a bridge whose files are of two versions (Node: "does not provide an export named") is "install-incomplete" after one start, with the full Runtime or the update zips in order named', async t => {
+  const f = await fixture(t);
+  const importer = join(f.project, 'bridge', 'convai-bridge.mjs').replace(/\//g, '\\');
+  await writeFile(join(f.state, 'fake-behavior.json'), JSON.stringify({crashAlways: true, crashBeforeReady: true, exitCode: 1,
+    stderrText: `file:///${importer.replace(/\\/g, '/')}:12\nimport {newerThing} from './runtime-files.mjs';\n        ^^^^^^^^\nSyntaxError: The requested module './runtime-files.mjs' does not provide an export named 'newerThing'\n    at ModuleJob._instantiate (node:internal/modules/esm/module_job:180:21)`}));
+  const run = supervise(f);
+  const failed = await until(() => readJson(f.statusPath), value => value?.state === 'failed', 'no failure was published');
+  assert.equal(failed.code, 'install-incomplete', 'not bridge-crashed');
+  await sleep(500);
+  assert.equal((await bridgePids(f.state)).length, 1, 'one start, no restart loop');
+  const log = await readFile(join(f.state, 'bridge-service.log'), 'utf8');
+  const line = log.split('\n').find(text => text.includes('does not match'));
+  assert(line, log);
+  assert.match(line, /The Runtime does not match the mod's Scripts: bridge\/runtime-files\.mjs comes from a different version\. Download the full Runtime again, or apply the Runtime update zips in order/);
+  assert(!line.includes(f.project) && !line.toLowerCase().includes(basename(f.root).toLowerCase()), 'never a folder');
+  assert.doesNotMatch(log, /exited unexpectedly/, 'not counted as a crash');
+  run.endGame(); await run.done;
+});
+
 test('a bridge that crashes for another reason is still a crash that is restarted and finally "bridge-crashed"', async t => {
   const f = await fixture(t, {behavior: {crashAlways: true, crashBeforeReady: true, exitCode: 1,
     stderrText: 'TypeError: something is not a function\n    at run (convai-bridge.mjs:1:1)'}});
