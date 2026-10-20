@@ -89,6 +89,7 @@ export const LOCAL_LLM_LIMITS = Object.freeze({
   startupMs: 180_000,          // the first start compiles Vulkan shaders (about a minute)
   stallStepDown: 2,            // this many stalled requests (a turn or a persona warm-up with no answer, a prompt read that stopped, a reply that went quiet) since the model was loaded, none answered between: step down
   warmupMs: 240_000,           // one warm-up request, first time included
+  backgroundQuietMs: 10_000,   // work no player waits on (a summary, memory work) does not start within this long after a turn ended; the bridge's own gate holds 20 s from a turn's start
   maxRestarts: 2,
   externalProbeMs: 4000,       // a server the player runs: the one look at it when its model is chosen (GET /models), and each context question
   externalContext: 8192,       // its context when neither the entry, the listing nor /props says
@@ -485,6 +486,10 @@ export class LocalLlmServer extends EventEmitter {
   // The ready server runs below normal priority so the game keeps its CPU, but a request in flight (and priorityHoldMs after the last one) runs at normal:
   // the server's own thread feeds the graphics card and streams the reply, and a game that keeps every core busy starved it for seconds.
   priorityHoldMs = 5000; #raised = false; #holdTimer = null;
+  // The one slot (-np 1): who is using it. `#foreground` counts the requests a player waits on (a turn, its action decision), `#yieldable` holds the stop functions of
+  // the background requests in flight (a summary, memory work) so a turn can take the slot at once, `#slot` is the persona whose prompt the slot holds (a warm-up of it
+  // would only cut that longer prompt down to the head), and `#queue` counts what was stopped or refused, for the support report.
+  #foreground = 0; #foregroundEndedAt = -Infinity; #yieldable = new Set(); #slot = null; #queue = {stopped: 0, refused: 0, warmSkipped: 0};
 
   // command/argsPrefix replace pack.server when spawning (tests); processOptions go to LlamaProcess (tests).
   // contextSize: a fixed context (tests, CYBERPUNK_CONVAI_LOCAL_CTX); without it each start takes the ladder's largest that fits.
@@ -495,12 +500,12 @@ export class LocalLlmServer extends EventEmitter {
       warmupMs = LOCAL_LLM_LIMITS.warmupMs, stateFile, now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout,
       log = () => {}, maxRestarts = LOCAL_LLM_LIMITS.maxRestarts, backoffMs = 750, cacheRamMiB, freeMemMiB = () => freemem() / 1048576,
       beforeStart, beforeStartMs = 120_000, fileSizeMiB = defaultFileSizeMiB, environment = process.env, command, argsPrefix = [], processOptions = {},
-      externalProbeMs = LOCAL_LLM_LIMITS.externalProbeMs} = {}) {
+      externalProbeMs = LOCAL_LLM_LIMITS.externalProbeMs, backgroundQuietMs = LOCAL_LLM_LIMITS.backgroundQuietMs} = {}) {
     super();
     const fixedContext = Number.parseInt(contextSize ?? environment.CYBERPUNK_CONVAI_LOCAL_CTX ?? '', 10);
     Object.assign(this, {pack, tierSetting: tier, selection, contextSize: Number.isFinite(fixedContext) && fixedContext >= 2048 ? fixedContext : null, spawnImpl, fetchImpl, freeVramMiB, idleMs, startupMs, warmup,
       warmupMs, stateFile, now, setTimer, clearTimer, log, maxRestarts, backoffMs, argsPrefix, processOptions, freeMemMiB,
-      beforeStart, beforeStartMs, fileSizeMiB, externalProbeMs});
+      beforeStart, beforeStartMs, fileSizeMiB, externalProbeMs, backgroundQuietMs});
     const configured = Number.parseInt(cacheRamMiB ?? environment.CYBERPUNK_CONVAI_LOCAL_CACHE_RAM ?? '', 10);
     this.cacheRamMiB = Number.isFinite(configured) && configured >= 0 ? configured : null;   // null: chosen at each start
     this.command = command ?? pack?.server;
@@ -982,6 +987,7 @@ export class LocalLlmServer extends EventEmitter {
       tokens: {bos: loaded.bos, eos: loaded.eos},
       start: {loadMs: loaded.loadMs, warmMs: loaded.warmMs, firstTime: loaded.firstTime, readyAt: loaded.readyAt ? new Date(loaded.readyAt).toISOString() : null},
       turns: {ok: this.#turns.ok, failed: this.#turns.failed}, lastTurn: this.#lastTurn, lastExit: this.#lastExit,
+      queue: {...this.#queue, inflight: this.#inflight},
       ...(this.#stalled.size ? {steppedDown: [...this.#stalled].slice(0, 4)} : {})};
   }
 
@@ -999,6 +1005,7 @@ export class LocalLlmServer extends EventEmitter {
       this.#lastTurn = {at: new Date(this.now()).toISOString(), ok: ok === true, ...(ok ? {} : {reason: String(error?.reason ?? error?.kind ?? 'error').slice(0, 30), detail: oneLine(detail ?? '', 160)}),
         ...(t ? {headersMs: t.headersMs, firstWordMs: t.firstTokenMs, pieces: t.pieces, thinkingPieces: t.reasoning, elapsedMs: t.elapsedMs,
           ...(t.progress ? {promptProgress: `${t.progress.processed}/${t.progress.total}`} : {}),
+          ...(t.queue ? {waitedMs: t.queue.waitMs, behind: t.queue.behind} : {}),
           ...(t.timings ? {promptTokens: t.timings.promptTokens, cachedTokens: t.timings.cachedTokens, tokensPerSecond: Number.isFinite(t.timings.tokensPerSecond) ? Math.round(t.timings.tokensPerSecond * 10) / 10 : null} : {}),
           ...(t.finishReason ? {finishReason: t.finishReason} : {})} : {})};
       if (!ok || first) this.emit('diagnostics', this.diagnostics());
@@ -1110,12 +1117,20 @@ export class LocalLlmServer extends EventEmitter {
 
   // Marks a request in flight (blocks the idle stop). Returns a one-shot release function; end() is the manual form.
   // `background`: work no player is waiting on (a persona warm-up, the memory work after a reply) does not raise the child's priority.
-  begin({background = false} = {}) {
+  // `cancel` (background work only): how to stop this request; a turn calls it through preempt() so the single slot is free for the turn.
+  begin({background = false, cancel = null} = {}) {
     this.#inflight++;
     this.#disarm();
-    if (!background) this.#raise();
+    if (!background) { this.#foreground++; this.#raise(); }
+    else if (typeof cancel === 'function') this.#yieldable.add(cancel);
     let released = false;
-    return () => { if (!released) { released = true; this.end(); } };
+    return () => {
+      if (released) return;
+      released = true;
+      if (!background) { this.#foreground = Math.max(0, this.#foreground - 1); this.#foregroundEndedAt = this.now(); }
+      else if (typeof cancel === 'function') this.#yieldable.delete(cancel);
+      this.end();
+    };
   }
   end() {
     if (this.#inflight > 0) this.#inflight--;
@@ -1174,6 +1189,12 @@ export class LocalLlmServer extends EventEmitter {
     try {
       const info = await this.ensure();
       if (info.external && this.#info?.remote) return false;   // nothing is sent to a remote server ahead of a turn
+      // A turn is being served (or waits): a warm-up now would queue behind it and then replace the prompt it leaves in the slot with the bare persona.
+      if (this.#foreground > 0) { this.#queue.warmSkipped++; return false; }
+      // The slot already holds this persona, under a longer prompt (the last turn's): a warm-up reads the bare persona, a prefix of that prompt, so it would only
+      // cut the slot down to the head (a model with sliding-window or recurrent layers resumes only from a checkpoint, and the next turn then reads the whole
+      // world block again: the 2026-10-19 reports show 2,350 of 5,400 tokens held, every turn). Opening the composer asks for a warm-up each time.
+      if (key !== null && this.#slotHolds(key)) { this.#queue.warmSkipped++; return false; }
       this.preempt(key);
       if (this.#prewarming) return false;   // the same character's persona is already being read: a second request would only queue behind it
       mine = {key, controller: new AbortController()};
@@ -1181,6 +1202,7 @@ export class LocalLlmServer extends EventEmitter {
       release = this.begin({background: true});
       await this.#complete(info, messages, {signal: mine.controller.signal});
       this.#stalls = 0;
+      this.noteSlot(key);
       return true;
     } catch (error) {
       this.log(mine?.controller.signal.aborted ? '[local] persona prewarm stopped: another request needed the model first'
@@ -1196,14 +1218,41 @@ export class LocalLlmServer extends EventEmitter {
 
   /**
    * A real request is about to be sent for the character `keep` (a profile key, or null for any): a warm-up in flight for another character is
-   * stopped, so the single slot is free for the request. Returns whether one was. Never throws.
+   * stopped, so the single slot is free for the request, and so is every background request in flight (a summary, memory work: nobody waits for
+   * those and a player waits for this request; a typed line waited behind a summary for tens of seconds). Returns whether one was. Never throws.
    */
   preempt(keep = null) {
+    let stopped = false;
+    for (const cancel of [...this.#yieldable]) {
+      this.#yieldable.delete(cancel);
+      try { cancel(); stopped = true; this.#queue.stopped++; } catch { /* already finished */ }
+    }
     const warming = this.#prewarming;
-    if (!warming || (keep !== null && warming.key === keep)) return false;
+    if (!warming || (keep !== null && warming.key === keep)) return stopped;
     this.#prewarming = null;
     try { warming.controller.abort(); } catch { /* already finished */ }
+    this.#queue.stopped++;
     return true;
+  }
+
+  /** The persona (profile key) a request puts into the slot, or null when it is not a persona prompt (an action decision); a finished persona warm-up sets it too. */
+  noteSlot(key) {
+    this.#slot = typeof key === 'string' && key ? {key, readyAt: this.#loaded?.readyAt ?? 0} : null;
+  }
+  // Does the slot, as this load of the model left it, hold this persona's prompt?
+  #slotHolds(key) { return this.#slot !== null && this.#slot.key === key && this.#slot.readyAt === (this.#loaded?.readyAt ?? 0); }
+
+  /**
+   * Why work no player is waiting on (a summary, memory work) must not start now, or null: a turn is being served, one ended a moment ago, or another such
+   * request already holds the slot (one at a time, so they never pile up behind each other or behind a turn). The caller skips the work and tries again later.
+   */
+  backgroundRefusal() {
+    let why = null;
+    if (this.#foreground > 0) why = 'a turn is using the model';
+    else if (this.now() - this.#foregroundEndedAt < this.backgroundQuietMs) why = 'a turn has just ended';
+    else if (this.#yieldable.size > 0) why = 'other background work is running';
+    if (why) this.#queue.refused++;
+    return why;
   }
 
   // --- stalled turns: step down ---------------------------------------------------------------------------------

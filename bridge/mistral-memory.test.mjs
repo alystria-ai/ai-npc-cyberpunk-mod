@@ -57,12 +57,16 @@ test('a failed summary leaves the exchanges for a later try', async () => {
 
 test('the overflow is bounded; a group conversation never feeds the summary', async () => {
   const memory = await fresh();
-  exchange(memory, 'jackie-welles', MEMORY_LIMITS.turns + MEMORY_LIMITS.overflow + 30);
+  const total = MEMORY_LIMITS.turns + MEMORY_LIMITS.overflow + 30;
+  exchange(memory, 'jackie-welles', total);
+  const kept = memory.recall({profileKey: 'jackie-welles'}).turns.length;
+  assert.ok(kept >= MEMORY_LIMITS.turns && kept <= MEMORY_LIMITS.turns + MEMORY_LIMITS.slide);
   const batch = memory.pendingSummary('jackie-welles');
-  assert.equal(batch.turns[0].v, 'question 30', 'the oldest exchanges beyond the overflow cap are dropped');
+  assert.equal(batch.turns[0].v, `question ${total - kept - MEMORY_LIMITS.overflow}`, 'the oldest exchanges beyond the overflow cap are dropped');
   const group = await fresh();
-  exchange(group, 'jackie-welles', 40, {channel: 'group'});
-  assert.equal(group.recall({profileKey: 'jackie-welles', channel: 'group'}).turns.length, MEMORY_LIMITS.turns);
+  exchange(group, 'jackie-welles', 41, {channel: 'group'});
+  const groupKept = group.recall({profileKey: 'jackie-welles', channel: 'group'}).turns.length;
+  assert.ok(groupKept >= MEMORY_LIMITS.turns && groupKept <= MEMORY_LIMITS.turns + MEMORY_LIMITS.slide);
   assert.equal(group.pendingSummary('jackie-welles'), null);
 });
 

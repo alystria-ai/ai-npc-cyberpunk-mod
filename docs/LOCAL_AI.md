@@ -663,6 +663,56 @@ Tests: `bridge/local-llm-server.test.mjs` (the stall count, standard to lite, th
 fit, a model the player added), `bridge/local-model-choice.test.mjs` (`stepDownTarget`, `stalled`, the small-card reserve), `bridge/mistral-key.test.mjs` (the notice),
 `bridge/local-turn-diagnostics.test.mjs` (two stalled turns through the host).
 
+### The single slot (2026-10-20: "fine at first, then 1 to 2 minutes after typing, growing")
+
+`llama-server` runs with one slot (`-np 1`), so everything we ask of it is one queue, and its prompt cache holds one prompt. The report
+("2 to 3 seconds at first, then a delay of 1 to 2 minutes that keeps growing") matches what the code did once a talk had gone on for a while.
+
+**What was found (each with its evidence).**
+- **A summary stood in front of the next line, proved in code.** The summary of older talk (one request per 8 exchanges that rolled out of the history,
+  260 tokens, up to 40 s) was sent with no cancel path (`#summarize` passed no signal), as soon as the bridge's gate opened (20 s after the turn started: at once after a
+  slow turn). The memory work (fact extraction, every 6 exchanges) was stopped by a turn, the summary was not. With the game keeping the card busy a
+  summary takes tens of seconds and the line V typed in that time waited behind it. It starts only after the first 16 exchanges, which is why the first minutes are fast.
+  The error reports show the same wait from the other side: `no response` after 60 s with no headers, and headers after 25 and 38 s, on turns nothing else explains.
+- **A warm-up cut the cached prompt down, proved in code.** Opening the composer asks for a persona warm-up every time, and a warm-up of the character the slot
+  already held read the bare persona (a prefix of the last turn's longer prompt) and left the slot with only that. Gemma 4 (sliding-window attention) and Qwen3.5
+  (recurrent layers) resume only from saved checkpoints, not from any token, so the next turn read the whole world block again. The reports of 0.2.2 show
+  `cached` fixed at 2,350 (the persona) on every turn of a character while 3,000 new tokens were read, and `0 cached` on later turns of one Jackie talk.
+  Moving the world facts after the stable blocks (round 1) fixed the first cause of that; this is the second.
+- **The history window moved every turn, proved by a test.** The last 8 exchanges are sent with every request; from the ninth turn on the oldest dropped out on
+  each turn, so the first history message changed every turn and the server read the whole history (about 800 to 1,000 tokens) again every turn.
+  This is the one cause that starts at the ninth turn on any machine and grows with a slow one.
+- **Not causes, with the code that bounds them.** The history is at most 11 exchanges of 1,000 characters, the summary 1,400, the retrieved memories 4 records and
+  1,200 characters, the game's dialogue lines 14 lines and 1,600 characters in the last message (not the cached prefix), the world facts 12,000 characters
+  (cut in a fixed order when the context or the machine's reading speed asks), per-character files are never injected whole. Retrieval is one embedding call with a
+  400 ms limit (`MemoryStore.retrieve`) and a flat scan of at most 600 records. The memory store, the turn clocks and the request tables are bounded
+  (`STORE_LIMITS`, 24 clocks, 8 leases). Automatic reactions, Johnny's remarks, phone chat and ambient NPCs all go through the bridge's one `active` request, which the next
+  request aborts (and the game cancels automatic reactions when V acts: `cancelAutomatic`), so they cannot queue; add-on remarks are paced (about 20 s) and the stock
+  lines are written on Mistral only. Nearby characters get no persona warm-up. No timer or lease was found that leaks: a request's lease is released in `finally`.
+
+**What happens now.**
+- A turn (`localRoute.connect`, not background) calls `LocalLlmServer.preempt`, which now stops every background request in flight (a summary; each registered a stop
+  function through `begin({background, cancel})`) as well as a warm-up of another character. `TextProviderHost` also aborts its own summaries when a turn starts.
+- Work nobody waits on (`backgroundRefusal`) starts only when no turn is being served, none ended in the last 10 s (`backgroundQuietMs`) and no other such request is in
+  flight (one at a time, so they cannot pile up). It is refused with a `busy` error: a summary asks again in 10 s (no log line), an extraction asks again at the
+  memory store's 10 s gate interval (`retryLater`, not the 60 s backoff that doubles).
+- A persona warm-up is skipped when a turn is being served and when the slot already holds that persona (`noteSlot`: set by every turn and every finished warm-up,
+  cleared by an action decision, and tied to the load of the model, so a restart empties it). A warm-up for another character still runs.
+- The history window is cut back to 8 exchanges in one step once it has grown to 11 (`MEMORY_LIMITS.slide`), so its first exchange stays the same for four turns in a
+  row: the whole last prompt up to the newest exchange is in the cache on 3 turns of 4 instead of on none.
+- One log line per turn, always: `[LocalTurn] ok: first word ..., prompt N new + M cached tokens, took ... | waited W ms before sending, behind K other request(s)`
+  (`W`: from the start of the request to the moment it was sent, which includes waiting for the model to load; `K`: requests of ours already on the server, so a
+  growing wait names what it was behind). The first turn after a load, a slow one and a failure keep the full line with the model description. `diagnostics().lastTurn`
+  carries `waitedMs` and `behind`, and `diagnostics().queue` counts `stopped`, `refused` and `warmSkipped` for the support report.
+- Step-down is unchanged: a turn that stalls still counts. A wait behind our own summary was one of the stalls it counted; that wait no longer happens.
+
+**Reading the next report.** A delay that still grows shows in the per-turn lines: `waited` large means something stood in front of it (and `behind` says how many),
+`cached` small next to `new` means the prefix changed early or the slot was replaced, `new` growing from turn to turn means the prompt grows, and a long first word
+with `prompt` small and `cached` large means the machine itself is slow (memory pressure: the step-down above).
+
+Tests: `bridge/local-queue.test.mjs` (the arbitration, the warm-up skip, the host stopping a summary for a turn, the retry, the per-turn line, the history window),
+`bridge/memory-store.test.mjs` (the window, the extraction put off), `bridge/local-turn-diagnostics.test.mjs` (the line).
+
 ### The knowledge status file (EPERM in the bridge log)
 
 `Knowledge poll: EPERM ... rename 'runtime\knowledge-status.json.<id>.tmp'` is the bridge's atomic write (temp file, then rename over the

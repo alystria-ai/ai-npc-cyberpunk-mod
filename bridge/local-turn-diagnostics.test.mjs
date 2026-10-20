@@ -467,15 +467,29 @@ test('a model that is still loading when the budget ends: the turn says so at on
   assert.equal(server.status().state, 'ready');
 });
 
-test('the first turn after a load is logged with its numbers, so is a slow first word, an ordinary turn is not', async t => {
+test('the first turn after a load is logged in full, every other turn in a short line with its wait and prompt sizes', async t => {
   const {host, logs} = await hostRig(t, {env: {FAKE_LLAMA_TEMPLATE: TEMPLATE, FAKE_LLAMA_FIRST_TOKEN_MS: '5', FAKE_LLAMA_REPLY: 'Sure thing, V.'}});
   await host.reply(turn('first'));
   const first = logs.filter(entry => entry.startsWith('[LocalTurn] ok'));
   assert.equal(first.length, 1);
-  assert.match(first[0], /^\[LocalTurn\] ok \(first turn since the model was loaded\): first word \d+ ms, 3 pieces, 50 tokens\/s, prompt \d+ new \+ 0 cached tokens, took \d+ ms \| model Gemma4-E4B/);
+  assert.match(first[0], /^\[LocalTurn\] ok \(first turn since the model was loaded\): first word \d+ ms, 3 pieces, 50 tokens\/s, prompt \d+ new \+ 0 cached tokens, took \d+ ms \| model Gemma4-E4B.* \| waited \d+ ms before sending, nothing else on the server$/);
   await host.reply(turn('second'));
-  assert.equal(logs.filter(entry => entry.startsWith('[LocalTurn] ok')).length, 1, 'the second, fast turn is not logged');
+  const all = logs.filter(entry => entry.startsWith('[LocalTurn] ok'));
+  assert.equal(all.length, 2, 'the second, fast turn leaves a line too');
+  assert.match(all[1], /^\[LocalTurn\] ok: first word \d+ ms, 3 pieces, 50 tokens\/s, prompt \d+ new \+ \d+ cached tokens, took \d+ ms \| waited \d+ ms before sending, nothing else on the server$/);
+  assert.doesNotMatch(all[1], /template|context|model /, 'the short form leaves out the model description');
   assert.equal(SLOW_FIRST_WORD_MS, 8000);
+});
+
+test('describeLocalTurn: the wait before sending and what was in flight beside the request are on the line, and on a failure too', () => {
+  const trace = {...newTrace(), firstTokenMs: 346, pieces: 50, elapsedMs: 1895, timings: {promptTokens: 322, cachedTokens: 4579, tokensPerSecond: 32.5}, queue: {waitMs: 41, behind: 2, stopped: true}};
+  assert.match(describeLocalTurn({ok: true, trace, brief: true}), /prompt 322 new \+ 4579 cached tokens, took 1895 ms \| waited 41 ms before sending, behind 2 other requests, stopped background work for it$/);
+  assert.match(describeLocalTurn({ok: true, trace: {...trace, queue: {waitMs: 0, behind: 1}}, brief: true}), /\| waited 0 ms before sending, behind 1 other request$/);
+  const error = new MistralError('network', 'x', {provider: 'local', reason: 'no-response', trace: {...newTrace(), elapsedMs: 60000}});
+  error.queue = {waitMs: 12, behind: 1};
+  assert.match(describeLocalTurn({ok: false, error, detail: 'no answer'}), /\| model unknown \| waited 12 ms before sending, behind 1 other request$/);
+  // A turn on a route that has no queue record (the cloud) gets no such text.
+  assert.doesNotMatch(describeLocalTurn({ok: true, trace: {...trace, queue: undefined}, brief: true}), /waited/);
 });
 
 test('describeLocalTurn: a failed turn and a good one in one line each, with the model when it is known and without when it is not', () => {
@@ -917,6 +931,8 @@ test('the host: a turn for another character stops a warm-up still being read, s
   await warming;
   assert(logs.some(line => /persona prewarm stopped: another request needed the model first/.test(line)), logs.join('\n'));
   // The same character: the warm-up is the prefix the turn needs, so it is left alone (and the turn, on a server that answers, still goes through).
+  // (The reply above left Judy's prompt in the slot, and a warm-up of a persona the slot holds is skipped: see bridge/local-queue.test.mjs; here it is not held.)
+  server.noteSlot(null);
   const judy = host.prewarm(turn('x'));
   await until(() => started.length === 2);
   const second = await host.reply(turn('hello again'));

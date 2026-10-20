@@ -70,7 +70,7 @@ test('messages: system, then the recent history, then one user message with the 
   const messages = buildMessages({persona, memory: '', history, context: 'CURRENT PERSON\nQuest facts here.\n\nFirst-person reminder.', text: 'Where are we going?'});
   assert.equal(messages[0].role, 'system');
   assert.equal(messages.length, 1 + LIMITS.turns * 2 + 1);
-  assert.deepEqual(messages.slice(1, 3).map(m => m.content), ['question 4', 'answer 4']);
+  assert.deepEqual(messages.slice(1, 3).map(m => m.content), [`question ${12 - LIMITS.turns}`, `answer ${12 - LIMITS.turns}`]);
   assert.deepEqual(messages.slice(1, -1).map(m => m.role), Array.from({length: LIMITS.turns * 2}, (_, i) => i % 2 ? 'assistant' : 'user'));
   const last = messages.at(-1);
   assert.equal(last.role, 'user');

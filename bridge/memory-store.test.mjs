@@ -144,12 +144,46 @@ test('a failed summary leaves the exchanges for a later try', async () => {
 
 test('the overflow is bounded; a group conversation never feeds the summary', async () => {
   const memory = await MemoryStore.open({});
-  exchange(memory, 'jackie-welles', MEMORY_LIMITS.turns + MEMORY_LIMITS.overflow + 30);
-  assert.equal(memory.pendingSummary('jackie-welles').turns[0].v, 'question 30');
+  const total = MEMORY_LIMITS.turns + MEMORY_LIMITS.overflow + 30;
+  exchange(memory, 'jackie-welles', total);
+  const kept = memory.recall({profileKey: 'jackie-welles'}).turns.length;
+  assert.ok(kept >= MEMORY_LIMITS.turns && kept <= MEMORY_LIMITS.turns + MEMORY_LIMITS.slide);
+  assert.equal(memory.pendingSummary('jackie-welles').turns[0].v, `question ${total - kept - MEMORY_LIMITS.overflow}`, 'the oldest exchanges beyond the overflow cap are dropped');
   const group = await MemoryStore.open({});
-  exchange(group, 'jackie-welles', 40, {channel: 'group'});
-  assert.equal(group.recall({profileKey: 'jackie-welles', channel: 'group'}).turns.length, MEMORY_LIMITS.turns);
+  exchange(group, 'jackie-welles', 41, {channel: 'group'});
+  const groupKept = group.recall({profileKey: 'jackie-welles', channel: 'group'}).turns.length;
+  assert.ok(groupKept >= MEMORY_LIMITS.turns && groupKept <= MEMORY_LIMITS.turns + MEMORY_LIMITS.slide);
   assert.equal(group.pendingSummary('jackie-welles'), null);
+});
+
+test('the history is cut back in one step once it has grown by `slide`, so its first exchange stays the same for several turns in a row (the prompt cache holds all of it)', async () => {
+  const {turns, slide} = MEMORY_LIMITS;
+  assert.ok(slide >= 2, 'a window that moves every turn is what made the whole history be read again every turn');
+  const memory = await MemoryStore.open({});
+  const firsts = [];
+  for (let i = 0; i < turns + slide + 1 + 2 * (slide + 1); i++) {
+    memory.record({profileKey: 'judy-alvarez', v: `question ${i}`, r: `answer ${i}`});
+    const held = memory.recall({profileKey: 'judy-alvarez'}).turns;
+    assert.ok(held.length <= turns + slide, `never more than ${turns + slide} exchanges`);
+    assert.equal(held.at(-1).v, `question ${i}`, 'the newest exchange is always there');
+    firsts.push(held[0].v);
+  }
+  // Runs of the same first exchange: each lasts `slide + 1` turns once the window is full, and the exchanges that left went to the overflow in order.
+  const runs = [];
+  for (const first of firsts) { if (runs.at(-1)?.first === first) runs.at(-1).length++; else runs.push({first, length: 1}); }
+  assert.ok(runs.slice(1, -1).every(run => run.length === slide + 1), JSON.stringify(runs));
+  const batch = memory.pendingSummary('judy-alvarez');
+  assert.equal(batch.turns[0].v, 'question 0');
+  assert.deepEqual(batch.turns.map(turn => turn.v), batch.turns.map((_, index) => `question ${index}`));
+  // Groups and ordinary NPCs move the same way; a slide of 0 is the old one-at-a-time window.
+  const ordinary = await MemoryStore.open({});
+  exchange(ordinary, 'npc-food-vendor-male', turns + slide, {ambientKey: 'vendor-1'});
+  assert.equal(ordinary.recall({profileKey: 'npc-food-vendor-male', ambientKey: 'vendor-1'}).turns.length, turns + slide);
+  exchange(ordinary, 'npc-food-vendor-male', 1, {ambientKey: 'vendor-1'});
+  assert.equal(ordinary.recall({profileKey: 'npc-food-vendor-male', ambientKey: 'vendor-1'}).turns.length, turns);
+  const plain = await MemoryStore.open({limits: {slide: 0}});
+  exchange(plain, 'judy-alvarez', turns + 5);
+  assert.equal(plain.recall({profileKey: 'judy-alvarez'}).turns.length, turns);
 });
 
 test('ordinary NPC conversations are remembered only in memory, bounded, and never written', async () => {
@@ -590,6 +624,19 @@ test('a failed extraction keeps the exchanges and backs off 60 s, doubling', asy
   await clock.advance(0); assert.equal(calls, 5);
   await clock.advance(59999); assert.equal(calls, 5, 'a success reset the backoff');
   await clock.advance(1); assert.equal(calls, 6);
+});
+
+test('an extraction the model server put off (a turn holds its one slot) is asked again in 10 s and never backs off', async () => {
+  let calls = 0, busy = true;
+  const {store, clock} = await setup({extractor: async () => { calls++; if (busy) throw Object.assign(new Error('busy'), {retryLater: true}); return SAMPLE; }});
+  exchange(store, 'judy-alvarez', 6);
+  await clock.advance(0); assert.equal(calls, 1);
+  await clock.advance(9999); assert.equal(calls, 1);
+  await clock.advance(1); assert.equal(calls, 2, 'asked again after the 10 s gate interval, not after the 60 s backoff');
+  await clock.advance(10_000); assert.equal(calls, 3, 'and again: the pause does not double');
+  busy = false;
+  await clock.advance(10_000); assert.equal(calls, 4);
+  assert.equal(store.listRecords('judy-alvarez').length, 1);
 });
 
 test('an extraction in flight when memory is forgotten is discarded, and nothing comes back', async () => {
