@@ -29,7 +29,7 @@ import {createRedactor, credentialSecrets, customServerSecrets, setupLine, tailF
 import {dataFolderSecrets, pluginVersions} from './report-secrets.mjs';
 import {cachedGraphicsCards} from './setup-check.mjs';
 import {AUTH_CONFIG_FILE, INSTALL_FILE, loadInstallId, readBackendAddress, signRequest} from './convai-credential.mjs';
-import {GAME_EVENTS_FILE, QUEUE_FOLDER, clearQueue, errorReportsEnabled, parseGameEvents, readQueue, recordErrorEvent,
+import {GAME_EVENTS_FILE, QUEUE_FOLDER, cleanSlow, clearQueue, errorReportsEnabled, parseGameEvents, readQueue, recordErrorEvent,
   removeQueued, sentPath} from './error-events.mjs';
 
 export const REPORT_PATH = '/api/errors/report';
@@ -236,6 +236,14 @@ async function collectSetup({runtime, gameInfo = {}, now}) {
   return lines.slice(0, 24);
 }
 
+/** The same value with every string put through `clean` (the redactor), whatever the nesting. */
+function cleanStrings(value, clean) {
+  if (typeof value === 'string') return clean(value);
+  if (Array.isArray(value)) return value.map(item => cleanStrings(item, clean));
+  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, cleanStrings(item, clean)]));
+  return value;
+}
+
 const needleOf = message => String(message ?? '').replace(/^\w*Error: /, '').replace(/[^\x20-\x7e]/g, ' ').trim().slice(0, 48);
 
 async function collectLogs({paths, record, clean}) {
@@ -305,6 +313,8 @@ export async function buildErrorPayload({record, game, modRoot, runtime, stateDi
       firstAt: new Date(record.firstAt).toISOString(), lastAt: new Date(record.lastAt).toISOString(), sentAt: new Date(now()).toISOString(),
       stack: (record.stack ?? []).map(line => clean(line)),
       ...(detail ? {detail} : {}),
+      // A slow-turn record's timings (bridge/slow-turns.mjs): numbers and fixed names, rebuilt again by cleanSlow when it was queued.
+      ...(record.kind === 'slow-turn' && record.slow ? {slow: cleanStrings(cleanSlow(record.slow), clean)} : {}),
       versions,
       choices: await collectChoices({runtime, gameInfo}),
       system: {gpu},
@@ -331,10 +341,17 @@ export async function buildErrorPayload({record, game, modRoot, runtime, stateDi
 const LUA_ERROR = /(?:^|[\s:(\]])([A-Za-z0-9_.-]+\.lua):(\d+): (.+)$/;
 const LUA_WORDS = /attempt to|bad argument|stack overflow|nil value|expected|unexpected|not enough memory|table index|invalid|error/i;
 
-/** Lua errors in some log lines: [{message, frame, context}]. */
-export function luaErrorsIn(lines, {strict = true} = {}) {
+/**
+ * Lua errors in some log lines: [{message, frame, context}]. `since` (ms): a line that starts with an ISO stamp older than it is skipped (probe.log
+ * lines carry one; the file is cut back at each game load, and what is left of earlier sessions is not this session's).
+ */
+export function luaErrorsIn(lines, {strict = true, since = 0} = {}) {
   const found = [];
   for (const raw of lines) {
+    if (since) {
+      const stamp = /^\s*(\d{4}-\d\d-\d\dT[\d:.]+Z)/.exec(String(raw ?? ''));
+      if (stamp && Date.parse(stamp[1]) < since) continue;
+    }
     const line = String(raw ?? '').replace(/^\s*(?:\[[^\]]*\]\s*|\d{4}-\d\d-\d\dT[\d:.]+Z\s*)+/, '');
     const match = LUA_ERROR.exec(line);
     if (match) {
@@ -362,6 +379,7 @@ export class ErrorReporter {
     this.modRoot = modRoot ?? (runtime ? dirname(runtime) : null);
     this.timings = {...TIMINGS, ...timings};
     this.targetOverride = target;
+    this.startedAt = now();
     this.timer = null; this.repeat = null; this.flushing = null; this.closed = false; this.chain = Promise.resolve();
     this.stopped = null; this.failures = 0; this.retryAt = 0; this.clockOffsetMs = 0; this.gameInfo = {};
     this.announced = new Set();
@@ -386,12 +404,12 @@ export class ErrorReporter {
   }
 
   async #save(state) {
+    const path = sentPath(this.stateDirectory), temporary = `${path}.${process.pid}.tmp`;
     try {
-      const path = sentPath(this.stateDirectory), temporary = `${path}.${process.pid}.tmp`;
       await mkdir(dirname(path), {recursive: true});
       await writeFile(temporary, JSON.stringify(state));
       await rename(temporary, path);
-    } catch { /* the next look writes it again */ }
+    } catch { /* the next look writes it again (a full disk or a locked file never reaches the caller) */ await rm(temporary, {force: true}).catch(() => {}); }
   }
 
   /** Starts the looks: the game's events and the log positions now (a few reads), the first send a minute later, then every 5 minutes. */
@@ -487,7 +505,9 @@ export class ErrorReporter {
         const {bytesRead} = await handle.read(buffer, 0, buffer.length, start);
         text = buffer.subarray(0, bytesRead).toString('utf8');
       } catch { continue; } finally { await handle?.close().catch(() => {}); }
-      for (const found of luaErrorsIn(text.split(/\r?\n/), {strict: source.strict})) {
+      // A file that got smaller was cut back or replaced (the game cuts probe.log back at each load): only its lines stamped since this service started count.
+      const since = size < known ? this.startedAt - 60_000 : 0;
+      for (const found of luaErrorsIn(text.split(/\r?\n/), {strict: source.strict, since})) {
         if (recorded >= 5) break;
         if (await recordErrorEvent(this.stateDirectory, {kind: 'lua-error', message: found.message, frame: found.frame, source: 'game',
           detail: {log: source.id, ...(found.context ? {context: found.context} : {})}}, {now: this.now()})) recorded++;

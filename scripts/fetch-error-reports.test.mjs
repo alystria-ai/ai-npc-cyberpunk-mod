@@ -323,6 +323,27 @@ test('writeIndex with nothing at all still writes a valid index', async () => {
   });
 });
 
+test('the index counts reports by kind and summarises each slow-turn report: first turns against the slow ones', async () => {
+  await withFolder(async folder => {
+    const out = join(folder, 'slow');
+    const signature = 'c'.repeat(16), id = idAt(NOW - 3600_000, 'e');
+    await mkdir(join(out, signature), {recursive: true});
+    await writeFile(join(out, signature, `${id}.json`), JSON.stringify({signature, id, report: {kind: 'slow-turn', modVersion: '0.2.3', report: {
+      choices: {provider: 'local', voice: 'pocket'},
+      slow: {reason: 'slow-in-window', provider: 'local', voice: 'pocket', turns: 14, minutes: 42.5, first: [{soundMs: 2400}, {soundMs: 2900}], slow: [{soundMs: 18_200}, {soundMs: 61_000}]}}}}));
+    const path = await writeIndex({out, fetchedAt: NOW, signatures: [
+      {signature, kind: 'slow-turn', message: 'Replies are slow and stay slow', reports: 1, stored: 1, versions: {'0.2.3': 1}, firstSeen: new Date(NOW - 3600_000).toISOString(),
+        lastSeen: new Date(NOW - 3600_000).toISOString(), ids: [id]},
+      {signature: SIG_A, kind: 'lua-error', message: 'x', reports: 2, stored: 0, versions: {'0.2.3': 2}, firstSeen: new Date(NOW - 86_400_000).toISOString(),
+        lastSeen: new Date(NOW - 86_400_000).toISOString(), ids: []}]});
+    const text = await readFile(path, 'utf8');
+    assert.match(text, /\nBy kind: lua-error x2, slow-turn x1\.\n/);
+    assert.match(text, /### Slow replies \(kind slow-turn\)/);
+    assert.match(text, new RegExp(`\\| \`${signature}/${id}\` \\| 0\\.2\\.3 \\| local \\| pocket \\| 14 \\| 42\\.5 \\| 2\\.4 s, 2\\.9 s \\| 18\\.2 s, 61 s \\| slow-in-window \\|`));
+    assert.match(text, /\nTotals: 2 signatures/);
+  });
+});
+
 test('the command line: --out, --limit and --help work, and a bad option or value is a usage error', async () => {
   await withFolder(async folder => {
     const server = fakeServer();

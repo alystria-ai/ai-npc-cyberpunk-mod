@@ -204,7 +204,9 @@ export class ResidentVoice {
     this.registry = this.baseRegistry; this.workerDir = this.baseDir;
     let child;
     try {
-      const environment = {...process.env, PYTHONUTF8: '1'};
+      // pydub (a dependency of the OmniVoice package) warns at import that it found no ffmpeg; the worker never converts audio with it, and the
+      // warning was in 13 of the first 82 error reports (2026-10-20), taking log lines from each. Only that warning is silenced.
+      const environment = {...process.env, PYTHONUTF8: '1', PYTHONWARNINGS: 'ignore::RuntimeWarning:pydub.utils'};
       // Use the values captured with this owner, even if the parent environment
       // changes before warm-up. An absent layout keeps the development defaults.
       for (const name of Object.values(OMNI_RUNTIME_PATHS)) delete environment[name];

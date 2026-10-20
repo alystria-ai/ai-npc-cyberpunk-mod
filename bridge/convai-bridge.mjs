@@ -121,6 +121,8 @@ import {VoxtralStt} from './voxtral-stt.mjs';
 import {LocalSttCapture, createLocalSpeech, hostBrowser} from './local-stt-capture.mjs';
 import {DEFAULT_MODELS as MISTRAL_MODELS, DECISION_MODELS as MISTRAL_DECISION_MODELS, DEFAULT_MODEL as MISTRAL_MODEL, errorCodeFor as mistralCodeFor, errorExtrasFor as mistralExtrasFor, failureDetail as localFailureDetail, warmConnection} from './mistral-client.mjs';
 import {TurnClock, withClock, markStage} from './turn-clock.mjs';
+import {SlowTurnWatch} from './slow-turns.mjs';
+import {repeatLimiter} from './repeat-log.mjs';
 import {AddonHost, LOCAL_REMARK_GAP_S, fixedProvider, rosterLookup, sharedMemory} from './addons.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -137,6 +139,9 @@ installCrashCapture({stateDirectory, runtime});
 installFileErrorGuard({record: error => { try { errorEvents.record({...eventFromError(error, 'bridge-rejection'), detail: {handled: true}}); } catch {} }});
 const requiredJson = name => readRequiredJson(project, name).catch(endIfIncomplete);
 const errorEvents = new ErrorEvents({stateDirectory, runtime});
+// The bridge polls the game's files every 50 to 500 ms. A poll that fails for a lasting reason logs once per cause, then at most once a minute
+// with how many were left out, never one line per tick (bridge/repeat-log.mjs).
+const pollLog = repeatLimiter({write: line => console.error(line)});
 const noteSetupProblems = document => { try { if (document) errorEvents.setupChecked(document); } catch { /* never fails start-up */ } };
 const keyFile = process.env.CYBERPUNK_CONVAI_KEY_FILE || resolve(stateDirectory, 'convai-key.txt');
 // The player's own state files in runtime/ (settings, phone chats, add-on settings, NPC names, ...): a copy is kept outside the game folder,
@@ -500,6 +505,7 @@ const keyNotice = () => {
 // A failed turn for the automatic error reports (bridge/error-events.mjs decides whether it is the player's own doing, from the same code
 // the failure reply carries). Called after that reply is written; it defers its one file write, so the turn's path pays a function call.
 function noteTurnFailure(error, input, {microphone = false} = {}) {
+  try { turnClocks.get(input?.requestId)?.annotate({failed: true}); } catch { /* the slow-turn report leaves a failed turn out */ }
   try {
     const errorCode = input ? turnFailure(error, input).errorCode : undefined;
     errorEvents.turnFailed(error, {provider: mistral.route ?? 'convai', errorCode, microphone,
@@ -955,7 +961,16 @@ const latency = new Map();
 // One TurnClock per request (bridge/turn-clock.mjs): the moment every stage of the turn was reached. `measure` writes its snapshot
 // into the turn's record (`stages`) each time the record is written. Bounded like the records.
 const turnClocks = new Map();
-let metricsWriting = Promise.resolve();
+// Replies that are slow and stay slow become one `slow-turn` error report (bridge/slow-turns.mjs). Judged once per finished turn from the clock's
+// numbers; the free video memory and the connection counts are read once, when the report is made, from what the bridge already holds.
+const slowTurns = new SlowTurnWatch({onSlow: data => errorEvents.slowTurns(data),
+  turnContext: () => ({provider: mistral.route ?? 'convai', voice: localVoice.provider}),
+  reportContext: () => {
+    const warm = connections.diagnostic();
+    return {freeVideoMemoryMiB: localServer.lastFreeMiB,
+      background: {warmConnections: warm.ready, connectingConnections: warm.connecting, turnsInFlight: [...turnClocks.values()].filter(clock => !clock.has('published')).length}};
+  }});
+let metricsWriting = Promise.resolve(), metricsNext = null;
 let connectionMetricsWriting = Promise.resolve();
 
 const preparedInputs = new WeakMap();
@@ -1430,11 +1445,15 @@ function measure(input, values) {
   latency.set(input.requestId, {...previous, ...values, ...(clock ? {stages: clock.snapshot()} : {})});
   while (latency.size > 24) latency.delete(latency.keys().next().value);
   while (turnClocks.size > 24) { turnClocks.get(turnClocks.keys().next().value)?.stop(); turnClocks.delete(turnClocks.keys().next().value); }
-  // No dialogue, API keys or character session IDs are written to metrics.
-  metricsWriting = metricsWriting.catch(() => {}).then(() => atomic(resolve(runtime, 'bridge-latency.json'), JSON.stringify({
-    version: 1, updated: Date.now(), turns: [...latency.values()],
-  })));
-  return metricsWriting;
+  // No dialogue, API keys or character session IDs are written to metrics. A turn updates its record six to eight times, each a replacement of
+  // the whole file (a write and a rename); an update that arrives while the next write has not started yet shares it, and that write serialises
+  // the latest state when it runs. Never more than one write running and one waiting; the writes still go out in order.
+  metricsNext ??= metricsWriting.catch(() => {}).then(() => {
+    metricsNext = null;
+    return atomic(resolve(runtime, 'bridge-latency.json'), JSON.stringify({version: 1, updated: Date.now(), turns: [...latency.values()]}));
+  });
+  metricsWriting = metricsNext;
+  return metricsNext;
 }
 // A record update the turn does not wait for (the writes still go out in order). The ones before the model request used to be
 // awaited, so every turn waited for two file replacements (each a write and a rename, 5 to 60 ms on a busy disk) before asking
@@ -1722,6 +1741,8 @@ function continuousSpeech(input, profile, current, signal, receiptPrepared = pre
       note(input, {...timing, stream: {mode: local ? 'pocket-continuous' : 'convai-continuous'}, nativePlaybackObserved: false}); },
     // The game's first lease reached the bridge (the turn's record: published -> leaseRead is the game's half of the hand-off).
     onLease: () => turnMark(input.requestId, 'leaseRead'),
+    // The game was paused (a pause or a menu) while this reply waited for its sound: the slow-turn report leaves the turn out.
+    onPaused: () => turnClocks.get(input.requestId)?.annotate({gamePaused: true}),
     // The first renderer state with audio in it: the moment the sound can start (the turn's record, bridge/turn-clock.mjs).
     onAudio: () => { turnMark(input.requestId, 'firstPcmAccepted'); turnMark(input.requestId, 'firstFrame'); },
     onStarted: timing => { turnMark(input.requestId, 'playbackObserved', timing.continuousPlaybackFirstObservedAt);
@@ -2384,7 +2405,7 @@ async function tick() {
     // Native decision/history context is projected at actual submission. A
     // raw prediction cannot be substituted for that verified context.
     void processInput(request);
-  } catch (error) { console.error('[CyberpunkConvai] Input poll:', error.message); }
+  } catch (error) { pollLog('[CyberpunkConvai] Input poll:', error); }
   finally { polling = false; }
 }
 
@@ -2410,7 +2431,9 @@ async function withTurnClock(request, run) {
   clock.mark('received', request.receivedAt);
   if (request.input?.requestId) turnClocks.set(request.input.requestId, clock);
   clock.watch({maxMs: 20_000});
-  return withClock(clock, () => run(clock));
+  // Judged for the slow-turn report once the turn has reached its first sound and its run has ended (bridge/slow-turns.mjs).
+  const ended = slowTurns.track(clock);
+  try { return await withClock(clock, () => run(clock)); } finally { ended(); }
 }
 
 // An add-on speaker's turn (docs/ADDON_API.md): a remark the add-on asked for, or V talking to it. Text comes from Mistral or the local
@@ -3335,42 +3358,32 @@ console.log('[CyberpunkConvai] Convai conversation bridge ready');
 // A poll is one stat of the request file until Lua replaces it, so a short
 // interval costs little and removes up to 150 ms from every turn's start.
 const timer = setInterval(tick, 50);
-const micTimer = setInterval(() => { void pollMicrophone().catch(error => console.error('[CyberpunkConvai] Microphone poll:', error.message)); }, 150);
-const prefetchTimer = setInterval(() => { void pollPrefetch().catch(error => console.error('[CyberpunkConvai] Preparation poll:', error.message)); }, 150);
-const lookaheadTimer = setInterval(() => { void pollLookahead().catch(error => console.error('[CyberpunkConvai] Look-ahead poll:', error.message)); }, 60);
+const micTimer = setInterval(() => { void pollMicrophone().catch(error => pollLog('[CyberpunkConvai] Microphone poll:', error)); }, 150);
+const prefetchTimer = setInterval(() => { void pollPrefetch().catch(error => pollLog('[CyberpunkConvai] Preparation poll:', error)); }, 150);
+const lookaheadTimer = setInterval(() => { void pollLookahead().catch(error => pollLog('[CyberpunkConvai] Look-ahead poll:', error)); }, 60);
 // Add-ons only: the state and settings files are also read once a second, in case the directory watcher missed a change.
 const addonTimer = addonHost.active ? setInterval(() => { for (const read of Object.values(addonHost.watchHandlers(runtime))) void read(); }, 1000) : null;
 addonTimer?.unref?.();
 // A poll that is still running when the service closes is rejected with 'Voice service is closed': expected at shutdown, not a fault.
 const settingsTimer = setInterval(() => {
   void gameState?.poll();   // a stat of each state file (bridge/game-state.mjs); a copy only when one changed
-  void pollSettings().catch(error => { if (!stopped) console.error('[CyberpunkConvai] Settings poll:', error.message); });
+  void pollSettings().catch(error => { if (!stopped) pollLog('[CyberpunkConvai] Settings poll:', error); });
 }, 500);
-const phoneTimer = setInterval(() => { void pollPhone().catch(error => console.error('[CyberpunkConvai] Phone poll:', error.message)); }, 150);
+const phoneTimer = setInterval(() => { void pollPhone().catch(error => pollLog('[CyberpunkConvai] Phone poll:', error)); }, 150);
 // The status file the game reads can be held open by the game for a moment (Windows refuses the rename: EPERM/EBUSY); the next poll
 // writes it again, so the same message is logged at most once a minute, with how many were left out.
-let knowledgePollQuiet = {message: '', at: 0, skipped: 0};
-function logKnowledgePoll(error) {
-  const message = String(error?.message ?? error);
-  const kind = message.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '*');   // the temp file name differs every time
-  const now = Date.now();
-  if (kind === knowledgePollQuiet.message && now - knowledgePollQuiet.at < 60_000) { knowledgePollQuiet.skipped++; return; }
-  const skipped = knowledgePollQuiet.skipped;
-  knowledgePollQuiet = {message: kind, at: now, skipped: 0};
-  console.error('[CyberpunkConvai] Knowledge poll:', message + (skipped ? ` (${skipped} more of the same were not logged)` : ''));
-}
-const knowledgeTimer = setInterval(() => { void pollKnowledge().catch(logKnowledgePoll); }, 500);
-const memoryTimer = setInterval(() => { void memoryControl.poll().catch(error => console.error('[CyberpunkConvai] Memory control:', error.message)); }, 500);
-const supportTimer = setInterval(() => { void supportReport.poll().catch(error => console.error('[CyberpunkConvai] Support report:', error.message)); }, 500);
-const setupTimer = setInterval(() => { void setupCheck.poll().catch(error => console.error('[CyberpunkConvai] Setup check:', error.message)); }, 500);
-const paidTierTimer = setInterval(() => { void paidTierControl.poll().catch(error => console.error('[CyberpunkConvai] Paid tier:', error.message)); }, 500);
+const knowledgeTimer = setInterval(() => { void pollKnowledge().catch(error => pollLog('[CyberpunkConvai] Knowledge poll:', error)); }, 500);
+const memoryTimer = setInterval(() => { void memoryControl.poll().catch(error => pollLog('[CyberpunkConvai] Memory control:', error)); }, 500);
+const supportTimer = setInterval(() => { void supportReport.poll().catch(error => pollLog('[CyberpunkConvai] Support report:', error)); }, 500);
+const setupTimer = setInterval(() => { void setupCheck.poll().catch(error => pollLog('[CyberpunkConvai] Setup check:', error)); }, 500);
+const paidTierTimer = setInterval(() => { void paidTierControl.poll().catch(error => pollLog('[CyberpunkConvai] Paid tier:', error)); }, 500);
 // The same polls run a few milliseconds after the game replaces their file (bridge/file-wake.mjs): a typed or spoken turn and a
 // phone message no longer wait half an interval (25 ms for the request, 75 ms for the microphone and the phone) to be seen.
 // The intervals above stay as the fallback. The watcher never keeps the process alive.
 watchFiles(runtime, {
   'last-input.json': tick,
-  'microphone-command.json': () => pollMicrophone().catch(error => console.error('[CyberpunkConvai] Microphone poll:', error.message)),
-  'phone-chat-input.json': () => pollPhone().catch(error => console.error('[CyberpunkConvai] Phone poll:', error.message)),
+  'microphone-command.json': () => pollMicrophone().catch(error => pollLog('[CyberpunkConvai] Microphone poll:', error)),
+  'phone-chat-input.json': () => pollPhone().catch(error => pollLog('[CyberpunkConvai] Phone poll:', error)),
   // The game's playback lease releases the first sound: the playback pump polls the moment it is written (docs/LATENCY_2026-10-13.md, 4.2).
   'continuous-control.json': () => leaseWake.fire(),
   // The add-on state and settings the game writes (docs/ADDON_API.md); no entries without add-ons. The player's state files too: the copy
@@ -3380,7 +3393,7 @@ watchFiles(runtime, {
   // reader keeps its last good copy when it meets a half-written file and the wake is a latch (bridge/file-wake.mjs `delays`). The
   // request keeps the short delay: Lua rewrites that large file in place under Mod Organizer 2.
 }, {delays: {'continuous-control.json': 0}, log: message => console.error('[CyberpunkConvai] ' + message)});
-const editorTimer = setInterval(() => { void editorControl.poll().catch(error => console.error('[CyberpunkConvai] Character editor:', error.message)); }, 500);
+const editorTimer = setInterval(() => { void editorControl.poll().catch(error => pollLog('[CyberpunkConvai] Character editor:', error)); }, 500);
 async function shutdown() {
   if (stopped) return;
   await gameState?.flush().catch(() => {});   // the Lua's last save is copied before anything else closes

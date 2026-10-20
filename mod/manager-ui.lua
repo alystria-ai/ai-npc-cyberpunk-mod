@@ -1533,7 +1533,7 @@ local function schema()
         -- Automatic error reports (docs/ERROR_REPORTS.md, mod/error-reports.lua): on by default; the help says what is sent and what never is.
         categories[#categories + 1] = category('privacy', 'Privacy', {
             setting('errorReports', 'Send error reports automatically', 'bool', snapshot.settings.errorReports ~= false, true,
-                'When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.'),
+                'When something in the mod goes wrong, a short report goes to the developer so it can be fixed without asking you for logs. At most five a day.\n\nIt holds the error, the mod and requirement versions, your provider and voice choices, whether Mature content is on, your graphics card, the setup check and the log lines around the error. If replies stay slow, it also holds how long a few recent replies took, stage by stage.\n\nIt never holds keys, what you or the characters say, memories, audio or your Windows user name.'),
         })
         -- Developer mode lists the Inworld cloud voice (in Voices) and puts its key here.
         local development = {

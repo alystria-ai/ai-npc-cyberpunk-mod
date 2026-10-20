@@ -16,7 +16,7 @@ import {actionMenu, splitActions} from './text-actions.mjs';
 import {hasEmotionTag} from './emotion-tags.mjs';
 import {stripSpeechTags} from './natural-speech.mjs';
 import {ReplyStream} from './reply-stream.mjs';
-import {markStage} from './turn-clock.mjs';
+import {currentClock, markStage} from './turn-clock.mjs';
 import {survivingLoss} from './local-server-recovery.mjs';
 import {worldRulesBlock} from './world-rules.mjs';
 import {budgetedChat, PrefillMeter, TokenMeter, templateTokens, describeFit} from './prompt-budget.mjs';
@@ -500,6 +500,9 @@ export class TextProviderHost {
           this.#summarize(route, local.profileKey);
         }
         markStage('replyReturned');
+        // For the slow-turn report (bridge/slow-turns.mjs): the route, its model and the prompt's token counts, numbers and names only.
+        currentClock()?.annotate({provider: route.name, model: response.model ?? route.models()[0]?.id,
+          promptTokens: response.trace?.timings?.promptTokens, cachedTokens: response.trace?.timings?.cachedTokens});
         if (deciding) { const settled = await deciding, act = settled && menu.message(settled); if (act) this.#act({code: settled.code, message: act}); }
         const result = this.transformReply({text: reply, sessionID: config.sessionId, transport: route.name,
           timing: {provider: route.name, llmMs: elapsed, model: response.model ?? route.models()[0]?.id, attempts: response.attempts,
@@ -544,6 +547,7 @@ export class TextProviderHost {
       }
       const detail = ok ? undefined : failureDetail(error) ?? String(error?.message ?? 'error').slice(0, 160);
       const {first} = route.noteTurn({ok, trace, error, detail});
+      if (first) currentClock()?.annotate({cold: true});   // the first turn after the model was loaded is slow by nature: the slow-turn report does not count it
       // Every turn leaves one line: the wait before it was sent, the prompt (new and cached tokens) and the timings, so a report shows a delay growing from turn
       // to turn. A turn that is neither the first since the load nor slow gets the short form (no model description, which the lines around it carry).
       const brief = ok && !first && !((trace?.firstTokenMs ?? 0) > SLOW_FIRST_WORD_MS);

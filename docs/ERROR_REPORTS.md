@@ -10,6 +10,7 @@ When the mod hits an error, it sends a small, redacted error report to the proje
 - Versions: the mod's Scripts and Runtime, the game, Cyber Engine Tweaks, RED4ext, redscript, Codeware, Audioware, TweakXL, ArchiveXL, Node and Windows.
 - Your choices: conversation provider, companion voice, Local AI model, interface language, and whether Mature content is on (on or off, nothing more).
 - Your graphics card's name and memory.
+- When replies stay slow: how long each stage of a few recent replies took (numbers and stage names only), their token counts and how long the session had run. Never what was said.
 - The setup check's lines (the same ones as on the Help page).
 - Up to 150 log lines from around the error: the conversation service's log, the launcher's, the mod's own logs, and the error lines of the redscript log.
 - A random number for your installation, hashed twice, so reports from one computer can be counted together without identifying it.
@@ -44,6 +45,8 @@ The support report (**Settings > Help > Generate report**) says whether the sett
         v
     scripts/Fetch-ErrorReports.mjs  ->  deliverables/error-reports/<signature>/<id>.json + INDEX.md
 ```
+
+**Slow replies** (`bridge/slow-turns.mjs`, kind `slow-turn`). Players reported replies getting slower over a session (Local AI going from 2 to 3 s to a minute or two); the stage clock that already times every turn (`bridge/turn-clock.mjs`, `bridge-latency.json`) now also feeds a watch. When 3 of the last 5 turns took more than 15 s from the bridge reading the request to the first sound, or any one turn took more than 45 s (`SLOW_TURNS`), the bridge records one `slow-turn` event per run (`ErrorEvents.slowTurns`); the sender adds one report per kind per day, five a day and the Privacy setting. Left out of the trigger: a turn that failed (it is a `turn-failed`), a turn during which the game said it was paused or a menu was open (the game's playback lease carries `paused`, `onPaused` in `bridge/convai-continuous-speech.mjs`), and the first turn after Local AI loaded its model (slow by nature; it stays in the history). Whether the window is focused is not known to the bridge. The judging is a few array writes per finished turn, with no file read, no probe and nothing per frame or per audio chunk. The report's `slow` section (rebuilt field by field by `cleanSlow`, so no text can ride along): why it fired and the thresholds, turns this session and minutes since the start, provider and voice, the free video memory the Local AI saw at its last start (no new probe), the background connection counts, the sound times of the last turns, and for the first turns of the session and for the slow turns: the time of each stage (`marks`, milliseconds after the request), the model, the prompt tokens (new and cached, from the local model's trace) and the event-loop stalls. The signature is constant, so the backend takes it as it takes any other kind: no backend change was needed.
 
 **Recording** (`bridge/error-events.mjs`, `mod/error-reports.lua`) only writes small files; nothing is sent from the bridge or the game.
 
@@ -88,6 +91,8 @@ Log sources and their share of the 150 lines: `bridge-stderr` 70 (the lines arou
 
 Redaction, in order: the support report's `createRedactor` with every key file's value as a literal (`credentialSecrets`, `customServerSecrets`, `dataFolderSecrets` in `bridge/report-secrets.mjs`: the data folder's key files, the sign-in file's secret, the custom servers' keys, the packed key), then `withoutConversation` (quoted text of 12 characters or more with a space in it, and the values of `text=`, `reply:`, `prompt=`, `"text":`... fields), then the Windows account names this process can see (`USERNAME`, the profile folder, `os.userInfo()`). The `detail` object keeps only the fields the recorders write. `bridge/error-reports.test.mjs` runs the support report's planted secrets, IDs, account name and conversation text through the whole path and requires none of them to get out.
 
+**Logs stay bounded.** The bridge's stdout and stderr (`bridge.stdout.log`, `bridge.stderr.log`) are rotated at each service start and, during a session, cut back by the supervisor to their last 3 MB when they pass 6 MB (checked every 5 minutes, `capLogFile`); the service log is cut to 500 KB at 1 MB. A poll of the bridge that keeps failing logs once per cause and then once a minute with a count (`pollLog`), never a line per tick. A queue file left half-written is removed after an hour.
+
 **Cost.** Nothing per frame and nothing per turn: a failed turn pays one function call (the file write is deferred), the game writes its file at most ten times a session, and the supervisor's five-minute look is a few file reads in another process.
 
 ## Backend
@@ -100,7 +105,7 @@ Redaction, in order: the support report's `createRedactor` with every key file's
 node scripts/Fetch-ErrorReports.mjs
 ```
 
-It reads the backend address from `runtime/convai-auth.json` and the admin secret from `runtime/convai-auth-admin.txt` (never printed), fetches every report it does not have yet into `deliverables/error-reports/<signature>/<id>.json` and writes `deliverables/error-reports/INDEX.md`, a table of every signature with its counts, versions and first and last seen. Options: `--url`, `--admin-secret-file`, `--out`, `--limit`, `--delete-fetched`.
+It reads the backend address from `runtime/convai-auth.json` and the admin secret from `runtime/convai-auth-admin.txt` (never printed), fetches every report it does not have yet into `deliverables/error-reports/<signature>/<id>.json` and writes `deliverables/error-reports/INDEX.md`, a table of every signature with its counts, versions and first and last seen, a line of totals by kind, and, for `slow-turn` reports, a table of first sound for the first turns against the slow ones. Options: `--url`, `--admin-secret-file`, `--out`, `--limit`, `--delete-fetched`.
 
 ## Files
 
@@ -108,6 +113,8 @@ It reads the backend address from `runtime/convai-auth.json` and the admin secre
 |---|---|
 | `bridge/error-events.mjs` | Signatures, the queue, the bridge's recorder, the crash capture, the game's events file, the status for the support report |
 | `bridge/error-reports.mjs` | The reporter: payload, redaction, throttles, sending, the Lua log scan |
+| `bridge/slow-turns.mjs` | The slow-turn watch: the trigger, the exclusions, the report section |
+| `bridge/repeat-log.mjs`, `bridge/log-cap.mjs` | One console line per cause for the bridge's polls; the size cap of the service logs |
 | `bridge/report-secrets.mjs` | The reporter's helpers: the secret values to scrub from the data folder's key files, and the plugin versions in the RED4ext log |
 | `bridge/bridge-supervisor.mjs` | Starts the reporter (`errorReports: true` from `packaging/runtime/start-service.mjs` and `scripts/Supervise-ConversationBridge.mjs`), reports `failed` and unexpected exits |
 | `mod/error-reports.lua` | The game's events, the first-load versions, the one-time notice |
